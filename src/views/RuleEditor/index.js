@@ -227,6 +227,38 @@ export function Editor({ session, onExit }) {
             </IconButton>
           </Stack>
         }
+        footer={
+          rule && (
+            <Stack
+              component="section"
+              aria-label={t("pagePreview")}
+              spacing={0.5}
+            >
+              <Typography variant="body2" fontWeight={600}>
+                {t("pagePreview")}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {t("pagePreviewHelp")}
+              </Typography>
+              <Stack direction="row" justifyContent="space-between">
+                <Button
+                  size="small"
+                  disabled={busy}
+                  onClick={() => session.showWhole()}
+                >
+                  {t("whole")}
+                </Button>
+                <Button
+                  size="small"
+                  disabled={busy}
+                  onClick={() => session.showTranslation(!state.translated)}
+                >
+                  {t(state.translated ? "original" : "translation")}
+                </Button>
+              </Stack>
+            </Stack>
+          )
+        }
       >
         <Stack spacing={2}>
           <Typography sx={codeStyle} color="text.secondary" title={t("scope")}>
@@ -268,165 +300,167 @@ export function Editor({ session, onExit }) {
                 rule.isPlainText === "true") && (
                 <Alert severity="warning">{t("scanAll")}</Alert>
               )}
-              <TextField
-                select
-                SelectProps={{ native: true }}
-                size="small"
-                label={t("purpose")}
-                value={state.field}
-                disabled={busy}
-                onChange={(event) => session.setField(event.target.value)}
-              >
-                {SELECTOR_FIELDS.map((field) => (
-                  <option key={field} value={field}>
-                    {t(field)}
-                  </option>
-                ))}
-              </TextField>
-              <Stack direction="row" gap={1}>
-                <Button
-                  variant="contained"
-                  disabled={busy}
-                  onClick={() => session.pick()}
-                  sx={{ flex: 1 }}
-                >
-                  {t("pick")}
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  disabled={busy}
-                  onClick={() => session.add()}
-                >
-                  {t("manualAdd")}
-                </Button>
-              </Stack>
-              {state.picking && (
-                <Alert
-                  severity="info"
-                  onClose={() => {
-                    session.emit({ picking: false });
-                    session.refresh();
-                  }}
-                >
-                  {t("picking")}
-                </Alert>
-              )}
               <Stack
-                spacing={1}
-                sx={{ maxHeight: 320, overflowY: "auto" }}
-                aria-label={t("entries")}
+                component="section"
+                aria-label={t("currentGroup")}
+                spacing={1.5}
+                sx={{
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1,
+                  p: 1.5,
+                  minWidth: 0,
+                }}
               >
-                {state.entries.length === 0 && (
-                  <Typography color="text.secondary">{t("empty")}</Typography>
-                )}
-                {state.entries.map((entry) => (
-                  <Box
-                    key={entry.selector}
-                    onMouseEnter={() => session.hover(entry.selector)}
-                    onMouseLeave={() => session.refresh()}
-                    sx={{
-                      ...cardStyle(state.editing === entry.selector),
-                      position: "relative",
-                      flexShrink: 0,
+                <TextField
+                  select
+                  SelectProps={{ native: true }}
+                  size="small"
+                  label={t("purpose")}
+                  value={state.field}
+                  disabled={busy}
+                  onChange={(event) => session.setField(event.target.value)}
+                >
+                  {SELECTOR_FIELDS.map((field) => (
+                    <option key={field} value={field}>
+                      {t(field)}
+                    </option>
+                  ))}
+                </TextField>
+                <Stack direction="row" gap={1}>
+                  <Button
+                    variant="contained"
+                    disabled={busy}
+                    onClick={() => session.pick()}
+                    sx={{ flex: 1 }}
+                  >
+                    {t("pick")}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddIcon />}
+                    disabled={busy}
+                    onClick={() => session.add()}
+                  >
+                    {t("manualAdd")}
+                  </Button>
+                </Stack>
+                {state.picking && (
+                  <Alert
+                    severity="info"
+                    onClose={() => {
+                      session.emit({ picking: false });
+                      session.refresh();
                     }}
                   >
-                    <ButtonBase
-                      disabled={busy}
-                      aria-label={entry.selector}
-                      aria-pressed={state.editing === entry.selector}
-                      onClick={() => session.edit(entry.selector)}
+                    {t("picking")}
+                  </Alert>
+                )}
+                <Stack
+                  spacing={1}
+                  sx={{
+                    // Leave room for group actions and the page preview footer.
+                    maxHeight: "clamp(120px, calc(100dvh - 504px), 260px)",
+                    overflowY: "auto",
+                  }}
+                  aria-label={t("entries")}
+                >
+                  {state.entries.length === 0 && (
+                    <Typography color="text.secondary">{t("empty")}</Typography>
+                  )}
+                  {state.entries.map((entry) => (
+                    <Box
+                      key={entry.selector}
+                      onMouseEnter={() => session.hover(entry.selector)}
+                      onMouseLeave={() => session.refresh()}
                       sx={{
-                        display: "block",
-                        width: "100%",
-                        textAlign: "left",
-                        p: 1.25,
-                        "&:hover": { bgcolor: "action.hover" },
-                        "&.Mui-focusVisible": {
-                          boxShadow: "inset 0 0 0 2px",
-                          color: "primary.main",
-                        },
+                        ...cardStyle(state.editing === entry.selector),
+                        position: "relative",
+                        flexShrink: 0,
                       }}
                     >
-                      <Stack direction="row" alignItems="start" gap={1}>
-                        <Box
-                          sx={{
-                            ...codeStyle,
-                            flex: 1,
-                            minWidth: 0,
-                            color: "primary.main",
-                          }}
-                        >
-                          {entry.selector}
-                        </Box>
-                        <Chip
-                          size="small"
-                          color={entry.invalid ? "error" : "default"}
-                          label={entry.invalid ? "!" : entry.count}
-                        />
-                      </Stack>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        component="div"
+                      <ButtonBase
+                        disabled={busy}
+                        aria-label={entry.selector}
+                        aria-pressed={state.editing === entry.selector}
+                        onClick={() => session.edit(entry.selector)}
                         sx={{
-                          mt: 1,
-                          pr: "132px",
-                          minHeight: 32,
-                          display: "flex",
-                          alignItems: "center",
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          p: 1.25,
+                          "&:hover": { bgcolor: "action.hover" },
+                          "&.Mui-focusVisible": {
+                            boxShadow: "inset 0 0 0 2px",
+                            color: "primary.main",
+                          },
                         }}
                       >
-                        {t(entry.source)}
-                      </Typography>
-                    </ButtonBase>
-                    <Button
-                      size="small"
-                      color="inherit"
-                      disabled={busy}
-                      onClick={() => session.remove(entry.selector)}
-                      sx={{ position: "absolute", bottom: 8, right: 8 }}
-                    >
-                      {t("delete")}
-                    </Button>
-                  </Box>
-                ))}
-              </Stack>
-              <Stack direction="row" justifyContent="space-between">
-                <Button
-                  size="small"
-                  disabled={busy}
-                  title={t("inheritHelp")}
-                  onClick={() => session.save({ [state.field]: "" })}
-                >
-                  {t("inherit")}
-                </Button>
-                <Button
-                  size="small"
-                  disabled={busy}
-                  onClick={() =>
-                    session.save({ [state.field]: EMPTY_SELECTOR })
-                  }
-                >
-                  {t("clear")}
-                </Button>
-              </Stack>
-              <Divider />
-              <Stack direction="row" justifyContent="space-between">
-                <Button
-                  size="small"
-                  disabled={busy}
-                  onClick={() => session.showWhole()}
-                >
-                  {t("whole")}
-                </Button>
-                <Button
-                  size="small"
-                  disabled={busy}
-                  onClick={() => session.showTranslation(!state.translated)}
-                >
-                  {t(state.translated ? "original" : "translation")}
-                </Button>
+                        <Stack direction="row" alignItems="start" gap={1}>
+                          <Box
+                            sx={{
+                              ...codeStyle,
+                              flex: 1,
+                              minWidth: 0,
+                              color: "primary.main",
+                            }}
+                          >
+                            {entry.selector}
+                          </Box>
+                          <Chip
+                            size="small"
+                            color={entry.invalid ? "error" : "default"}
+                            label={entry.invalid ? "!" : entry.count}
+                          />
+                        </Stack>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          component="div"
+                          sx={{
+                            mt: 1,
+                            pr: "132px",
+                            minHeight: 32,
+                            display: "flex",
+                            alignItems: "center",
+                          }}
+                        >
+                          {t(entry.source)}
+                        </Typography>
+                      </ButtonBase>
+                      <Button
+                        size="small"
+                        color="inherit"
+                        disabled={busy}
+                        onClick={() => session.remove(entry.selector)}
+                        sx={{ position: "absolute", bottom: 8, right: 8 }}
+                      >
+                        {t("delete")}
+                      </Button>
+                    </Box>
+                  ))}
+                </Stack>
+                <Divider />
+                <Stack direction="row" justifyContent="space-between" gap={1}>
+                  <Button
+                    size="small"
+                    disabled={busy}
+                    title={t("inheritHelp")}
+                    onClick={() => session.save({ [state.field]: "" })}
+                  >
+                    {t("inherit")}
+                  </Button>
+                  <Button
+                    size="small"
+                    disabled={busy}
+                    title={t("inheritHelp")}
+                    onClick={() =>
+                      session.save({ [state.field]: EMPTY_SELECTOR })
+                    }
+                  >
+                    {t("clear")}
+                  </Button>
+                </Stack>
               </Stack>
               <Notice {...{ session, state, t }} />
             </>

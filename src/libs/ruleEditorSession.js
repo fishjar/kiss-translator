@@ -27,7 +27,7 @@ export class RuleEditorSession {
     this.state = {
       loading: true,
       saving: false,
-      field: "ignoreSelector",
+      field: "selector",
       input: "",
       error: "",
       notice: "",
@@ -160,6 +160,9 @@ export class RuleEditorSession {
     }, 400);
     this.storageTimer = setInterval(() => this.checkExternalChanges(), 1500);
     await this.load();
+    if (this.context && this.context.effective.autoScan !== "false") {
+      await this.save({ autoScan: "false" });
+    }
   }
   async checkExternalChanges() {
     if (

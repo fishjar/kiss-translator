@@ -32,6 +32,9 @@ const messages = {
   keepSelector: ["保留内部原文（高级）", "Keep original content (advanced)"],
   blockSelector: ["段落边界（高级）", "Paragraph boundaries (advanced)"],
   purpose: ["规则用途", "Rule purpose"],
+  currentGroup: ["当前规则组", "Current rule group"],
+  pagePreview: ["页面预览", "Page preview"],
+  pagePreviewHelp: ["综合当前网站的全部规则", "Uses all rules for this site"],
   personal: ["个人规则", "Personal rule"],
   subscription: ["订阅规则", "Subscription rule"],
   global: ["全局规则", "Global rule"],
@@ -62,7 +65,7 @@ const messages = {
   update: ["保存定位修改", "Save selector"],
   delete: ["删除定位条目", "Remove selector"],
   cancelEdit: ["取消替换", "Cancel replacement"],
-  inherit: ["恢复继承", "Restore inheritance"],
+  inherit: ["恢复此组继承", "Restore group inheritance"],
   clear: ["清空此组", "Clear group"],
   inheritHelp: [
     "恢复继承使用订阅／全局值；清空使用显式空范围。根容器清空时不扫描页面。",

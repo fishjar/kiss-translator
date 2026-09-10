@@ -72,6 +72,47 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
+test.each([
+  null,
+  { ...DEFAULT_RULE, pattern: "hostname:localhost", autoScan: "true" },
+])(
+  "opening switches inherited or saved automatic mode to selected targets: %p",
+  async (site) => {
+    session.dispose();
+    context = {
+      ...context,
+      effective: { ...context.effective, autoScan: "true" },
+      personal: site,
+      site,
+    };
+    resolveRuleContext.mockResolvedValue(context);
+    session = new RuleEditorSession({ translator, onExit: jest.fn() });
+
+    await session.start();
+
+    expect(session.state.field).toBe("selector");
+    expect(session.state.context.effective.autoScan).toBe("false");
+    expect(saveSiteRule).toHaveBeenCalledWith(
+      expect.objectContaining({ patch: { autoScan: "false" } })
+    );
+    expect(translator.updateRule).toHaveBeenLastCalledWith(
+      expect.objectContaining({ autoScan: "false" })
+    );
+    expect(session.undoStack).toHaveLength(1);
+  }
+);
+
+test("opens on translation targets and saves a new entry to that group", async () => {
+  expect(session.state.field).toBe("selector");
+  expect(saveSiteRule).not.toHaveBeenCalled();
+  session.add();
+  session.setInput("main > p");
+  await session.commitInput();
+  expect(saveSiteRule).toHaveBeenCalledWith(
+    expect.objectContaining({ patch: { selector: ".story, main > p" } })
+  );
+});
+
 test("picking cancels link clicks, locks an element and highlights every candidate match", () => {
   const link = document.querySelector("a");
   const pageHandler = jest.fn();
