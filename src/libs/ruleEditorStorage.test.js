@@ -5,6 +5,7 @@ import {
   mergeSelectors,
   hostnamePattern,
   matchesRulePattern,
+  resolveRuleContext,
 } from "./rules";
 import {
   getRulesWithDefault,
@@ -162,6 +163,9 @@ test("renames a saved hostname rule in place, retains other fields and continues
   expect(renamed.effective.selector).toBe(".new");
   expect(renamed.pageEffective.selector).toBe(".old");
   expect((await matchRule(href, {})).selector).toBe(".old");
+  const reloaded = await resolveRuleContext(href, {}, pattern);
+  expect(reloaded.site).toEqual(renamed.site);
+  expect(reloaded.effective.selector).toBe(".new");
   const updated = await writeSiteRule({
     href,
     expected: renamed.site,
@@ -227,3 +231,44 @@ test("rejects stale edits after another editor has renamed the rule", async () =
   ).rejects.toThrow("rule-conflict");
   expect(rules[0].selector).toBe(".new");
 });
+
+test.each(["priority", "rename", "delete"])(
+  "reloads the active personal rule after an external %s and permits saving",
+  async (change) => {
+    const created = await writeSiteRule({
+      href,
+      seed: rules[0],
+      patch: { selector: ".new" },
+    });
+    if (change === "priority") rules = [rules[1], rules[0]];
+    else if (change === "rename") rules[0].pattern = "news.example.com";
+    else rules.shift();
+    const snapshot = structuredCopy(rules);
+
+    await expect(
+      writeSiteRule({
+        href,
+        expected: created.site,
+        patch: { selector: ".stale" },
+      })
+    ).rejects.toThrow("rule-conflict");
+    expect(rules).toEqual(snapshot);
+
+    const reloaded = await resolveRuleContext(href, {}, created.site.pattern);
+    expect(reloaded.site).toEqual(snapshot[0]);
+    expect(reloaded.effective.selector).toBe(snapshot[0].selector);
+    expect(reloaded.pageEffective).toBeNull();
+    expect(rules).toEqual(snapshot);
+
+    const saved = await writeSiteRule({
+      href,
+      expected: reloaded.site,
+      seed: reloaded.personal,
+      inherited: reloaded.inherited,
+      patch: { selector: ".after-reload" },
+    });
+    expect(saved.site.pattern).toBe(snapshot[0].pattern);
+    expect(saved.effective.selector).toBe(".after-reload");
+    expect(rules.slice(1)).toEqual(snapshot.slice(1));
+  }
+);

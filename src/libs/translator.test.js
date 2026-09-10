@@ -159,6 +159,99 @@ describe("Translator rule styles", () => {
   });
 
   test.each([false, true])(
+    "retries pending language detection across a translation toggle (enable before detection finishes: %s)",
+    async (enableBeforeDetection) => {
+      document.body.innerHTML =
+        '<main id="root"><p>Article pending language detection</p></main>';
+      let finishDetect;
+      tryDetectLang.mockImplementationOnce(
+        () => new Promise((resolve) => (finishDetect = resolve))
+      );
+      const translator = createTranslator({ fromLang: "auto" });
+      await flushAsync();
+      expect(finishDetect).toBeDefined();
+
+      translator.disable();
+      if (enableBeforeDetection) translator.enable();
+      finishDetect("en");
+      await flushAsync();
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(enableBeforeDetection ? 1 : 0);
+      if (!enableBeforeDetection) translator.enable();
+      await flushAsync();
+      await flushAsync();
+
+      expect(tryDetectLang).toHaveBeenCalledTimes(2);
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(document.querySelector(".kiss-translator-wrapper")).not.toBeNull();
+    }
+  );
+
+  test("a stale detection does not clear a newer task after rescanning", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Article with overlapping language detections</p></main>';
+    const detections = [];
+    tryDetectLang.mockImplementation(
+      () => new Promise((resolve) => detections.push(resolve))
+    );
+    const translator = createTranslator({ fromLang: "auto" });
+    await flushAsync();
+    translator.rescan();
+    await flushAsync();
+    expect(detections).toHaveLength(2);
+
+    detections[0]("en");
+    await flushAsync();
+    translator.updateRule({ transOnly: "true" });
+    await flushAsync();
+    expect(detections).toHaveLength(2);
+    expect(apiTranslate).not.toHaveBeenCalled();
+
+    detections[1]("en");
+    await flushAsync();
+    await flushAsync();
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll(".kiss-translator-wrapper")).toHaveLength(
+      1
+    );
+  });
+
+  test.each(["false", "true"])(
+    "preserves injected CSS throughout editing without rerunning initialization JS (transOpen: %s)",
+    async (transOpen) => {
+      document.body.innerHTML =
+        '<main id="root"><p>Article with site-specific styling</p></main>';
+      const translator = createTranslator(
+        {
+          transOpen,
+          injectCss: "#root { color: red; }",
+          injectJs: "KT.apiDectect('rule initialization');",
+        },
+        { preInit: true }
+      );
+      await flushAsync();
+      const selector = 'style[data-source="kiss-inject injectInternalCss"]';
+      const style = document.querySelector(selector);
+      expect(style).not.toBeNull();
+      const state = translator.beginRuleEditing();
+      expect(document.querySelector(selector)).toBe(style);
+
+      translator.setRuleEditingPreview(true);
+      await flushAsync();
+      translator.setRuleEditingPreview(false);
+      translator.endRuleEditing(state);
+      await flushAsync();
+      expect(document.querySelector(selector)).toBe(style);
+      expect(document.querySelectorAll(selector)).toHaveLength(1);
+      expect(tryDetectLang).toHaveBeenCalledTimes(1);
+      expect(tryDetectLang).toHaveBeenCalledWith("rule initialization");
+
+      translator.stop();
+      expect(document.querySelector(selector)).toBeNull();
+    }
+  );
+
+  test.each([false, true])(
     "keeps pending and subsequent DOM rescans across a translation toggle (enable before idle: %s)",
     async (enableBeforeIdle) => {
       document.body.innerHTML =

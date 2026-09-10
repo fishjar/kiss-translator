@@ -232,9 +232,18 @@ export const resolveRuleContext = async (
   // The visual editor can keep editing a renamed rule even when its new
   // pattern no longer matches the page used to select elements.
   const activePersonalRule = findMatchingRule(personalRules, href);
-  const matchedPersonalRule = sitePattern
+  const requestedPersonalRule = sitePattern
     ? personalRules.find((rule) => rule.pattern === sitePattern)
-    : activePersonalRule;
+    : null;
+  // Reload must recover from deletion, renaming or a change in precedence.
+  // Keep an explicitly edited off-page rule, but never pin a shadowed rule.
+  const matchedPersonalRule =
+    requestedPersonalRule &&
+    requestedPersonalRule.enabled !== false &&
+    (!matchesRulePattern(href, requestedPersonalRule.pattern) ||
+      requestedPersonalRule === activePersonalRule)
+      ? requestedPersonalRule
+      : activePersonalRule;
 
   // 获取订阅规则并查找匹配
   let matchedSubRule = null;

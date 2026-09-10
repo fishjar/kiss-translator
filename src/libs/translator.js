@@ -2397,14 +2397,14 @@ export class Translator {
       this.enable();
     } else {
       this.#cleanupAllNodes();
-      this.stop();
+      this.stop({ preserveInjector: true });
       this.#runId++;
       this.#editorPaused = true;
     }
   }
 
   endRuleEditing(state, restore = true) {
-    this.stop();
+    this.stop({ preserveInjector: restore });
     this.#editorPaused = false;
     this.#rule.transOpen = state.enabled ? "true" : "false";
     this.#setting.mouseHoverSetting.useMouseHover = state.mouseHover;
@@ -2429,7 +2429,8 @@ export class Translator {
       return;
     }
 
-    this.#processedNodes.set(node, { ...this.#rule });
+    const appliedRule = { ...this.#rule };
+    this.#processedNodes.set(node, appliedRule);
     // 按住操作代次与 runId：语言检测等异步环节完成后据此判断任务是否已过期
     const generation = options.generation;
     const runId = this.#runId;
@@ -2462,19 +2463,29 @@ export class Translator {
       deLang = await tryDetectLang(node.textContent, langDetector);
       // 语言检测期间可能发生了还原、重新触发或停止/重扫：
       // 任务已失效，不再创建译文容器或发起翻译请求。
-      // 若当前节点仍由本代次任务标记，则回滚处理状态，避免单段/原子目标
-      // 在还原后永久停留在 processed 状态，导致后续按住无法再次翻译。
+      // 只撤销本任务的标记，不能清除重扫后新任务的状态。
       if (
-        generation !== undefined &&
-        (generation !== this.#holdGeneration || runId !== this.#runId)
+        runId !== this.#runId ||
+        this.#editorPaused ||
+        (generation !== undefined && generation !== this.#holdGeneration)
       ) {
-        if (this.#holdProcessGenerations.get(node) === generation) {
+        if (this.#processedNodes.get(node) === appliedRule) {
           this.#processedNodes.delete(node);
           this.#holdProcessGenerations.delete(node);
+          // 重新开启时，视口同步可能已被旧标记跳过；此时补发当前任务。
+          // 按住操作不能自动重试，关闭或离开视口的节点等待下次触发。
+          if (
+            generation === undefined &&
+            this.#enabled &&
+            !this.#editorPaused &&
+            node.isConnected &&
+            this.#viewNodes.has(node)
+          ) {
+            return this.#processNode(node);
+          }
         }
         return;
       }
-      if (runId !== this.#runId || this.#editorPaused) return;
       if (generation !== undefined) {
         this.#holdProcessGenerations.delete(node);
       }
@@ -4854,7 +4865,7 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 停止运行
-  stop() {
+  stop({ preserveInjector = false } = {}) {
     document.removeEventListener(
       EVENT_FAVORITE_WORD_CHANGE,
       this.#boundFavoriteWordChange
@@ -4866,7 +4877,8 @@ overflow-wrap: anywhere !important;`;
     this.#resetOptions();
     this.#disableMouseHover();
     this.#disableTransOnlyRevert();
-    this.#removeInjector();
+    // 编辑暂停会复用本实例；保留样式，避免恢复时重复执行初始化 JS。
+    if (!preserveInjector) this.#removeInjector();
     this.#isInitialized = false;
   }
 
