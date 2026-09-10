@@ -16,6 +16,7 @@ import {
   MenuItem,
   Stack,
   TextField,
+  ToggleButton,
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -270,47 +271,66 @@ export function Editor({ session }) {
           </Stack>
         }
         footer={
-          <Stack spacing={1.5}>
-            {rule && (
-              <Stack
-                component="section"
-                aria-label={t("pagePreview")}
-                spacing={0.5}
-              >
+          <Stack spacing={1}>
+            <Stack direction="row" spacing={1} alignItems="stretch">
+              {rule && (
                 <Stack
+                  component="section"
+                  aria-label={t("pagePreview")}
                   direction="row"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  flexWrap="wrap"
-                  gap={0.5}
+                  spacing={1}
+                  sx={{
+                    flex: 1,
+                    minWidth: 0,
+                    "& .MuiToggleButton-root": {
+                      minHeight: 36,
+                      px: 1,
+                      py: 0.75,
+                      fontSize: 14,
+                      lineHeight: 1.4,
+                      textTransform: "none",
+                    },
+                  }}
                 >
-                  <Typography variant="body2" fontWeight={600}>
-                    {t("pagePreview")}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {t("pagePreviewHelp")}
-                  </Typography>
-                </Stack>
-                <Stack direction="row" justifyContent="space-between">
-                  <Button
+                  <ToggleButton
+                    value="scope"
                     size="small"
-                    variant={state.whole ? "contained" : "text"}
-                    aria-pressed={!!state.whole}
+                    color="primary"
+                    selected={!!state.whole}
                     disabled={busy}
+                    title={t("pagePreviewHelp")}
                     onClick={() => session.showWhole()}
+                    sx={{ flex: 1.4 }}
                   >
                     {t("whole")}
-                  </Button>
-                  <Button
+                  </ToggleButton>
+                  <ToggleButton
+                    value="translation"
                     size="small"
+                    color="primary"
+                    selected={!!state.translated}
                     disabled={busy}
                     onClick={() => session.showTranslation(!state.translated)}
+                    sx={{ flex: 1 }}
                   >
                     {t(state.translated ? "original" : "translation")}
-                  </Button>
+                  </ToggleButton>
                 </Stack>
-              </Stack>
-            )}
+              )}
+              <Button
+                size="small"
+                variant="contained"
+                disableElevation
+                disabled={busy || !state.dirty}
+                aria-label={t("save")}
+                aria-busy={state.saving}
+                title={state.dirty ? t("unsaved") : undefined}
+                onClick={() => session.save()}
+                sx={{ minHeight: 36, px: 2, flexShrink: 0 }}
+              >
+                {state.saving ? t("saving") : t("save")}
+              </Button>
+            </Stack>
             {state.error && (
               <Alert
                 severity="error"
@@ -330,27 +350,6 @@ export function Editor({ session }) {
               </Alert>
             )}
             {!state.error && <Notice {...{ session, state, t }} />}
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              gap={1}
-            >
-              <Typography
-                role="status"
-                variant="caption"
-                color="text.secondary"
-              >
-                {state.saving ? t("saving") : state.dirty ? t("unsaved") : ""}
-              </Typography>
-              <Button
-                variant="contained"
-                disabled={busy || !state.dirty}
-                onClick={() => session.save()}
-              >
-                {t("save")}
-              </Button>
-            </Stack>
           </Stack>
         }
       >

@@ -141,7 +141,7 @@ test("conflicts appear in the footer and take precedence over stale save notices
   const footer = container.querySelector("footer");
   expect(footer.querySelectorAll('[role="alert"]')).toHaveLength(1);
   expect(footer.textContent).not.toContain("rule_editor_saved");
-  expect(footer.textContent.indexOf("rule_editor_pagePreview")).toBeLessThan(
+  expect(footer.textContent.indexOf("rule_editor_whole")).toBeLessThan(
     footer.textContent.indexOf("rule_editor_rule-conflict")
   );
 });
@@ -153,7 +153,7 @@ test("save confirmation appears after the preview in the footer", async () => {
   expect(footer.querySelector('[role="alert"]').textContent).toContain(
     "rule_editor_saved"
   );
-  expect(footer.textContent.indexOf("rule_editor_pagePreview")).toBeLessThan(
+  expect(footer.textContent.indexOf("rule_editor_whole")).toBeLessThan(
     footer.textContent.indexOf("rule_editor_saved")
   );
 });

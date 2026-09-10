@@ -2374,9 +2374,9 @@ export const I18N = {
     vi: "Bộ chọn",
   },
   target_selector: {
-    zh: `目标元素选择器`,
+    zh: `需翻译节点选择器`,
     en: `Target element selector`,
-    zh_TW: `目標元素選擇器`,
+    zh_TW: `需翻譯節點選擇器`,
     ja: `対象要素セレクタ`,
     ko: `대상 요소 선택자`,
     tr: `Hedef Öğe Seçici`,
