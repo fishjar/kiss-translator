@@ -7,6 +7,13 @@ const mockPopupInstances = [];
 const mockFabInstances = [];
 const activeManagers = [];
 
+jest.mock("./ruleEditorManager", () => ({
+  RuleEditorManager: class {
+    destroy = jest.fn();
+    open = jest.fn();
+  },
+}));
+
 jest.mock("../config", () => ({
   EVENT_KISS_INNER: "kiss-inner",
   EVENT_KISS_TRANSLATOR: "kiss-translator",

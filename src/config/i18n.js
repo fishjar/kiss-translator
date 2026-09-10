@@ -4,6 +4,7 @@
  */
 
 import { RU_I18N } from "./i18n.ru";
+import { RULE_EDITOR_I18N } from "./i18n.ruleEditor";
 
 export const UI_LANGS = [
   ["en", "English"],
@@ -1019,6 +1020,7 @@ const SUBTITLE_PLAYGROUND_I18N = {
 };
 
 export const I18N = {
+  ...RULE_EDITOR_I18N,
   ...SUBTITLE_PLAYGROUND_I18N,
   app_name: {
     zh: `简约翻译`,
@@ -2318,8 +2320,8 @@ export const I18N = {
     vi: "Mẫu URL",
   },
   pattern_helper: {
-    zh: `1、支持星号(*)通配符。2、多个URL用换行或英文逗号“,”分隔。`,
-    en: `1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas ",".`,
+    zh: `1、支持星号(*)通配符。2、多个URL用换行或英文逗号“,”分隔。3、hostname:example.com 仅匹配该主机，不包含子域名；此格式单独使用。`,
+    en: `1. Supports the asterisk (*) wildcard character. 2. Separate multiple URLs with newlines or English commas ",". 3. hostname:example.com matches only that host, without subdomains; use this format alone.`,
     zh_TW: `1. 支援星號 (*) 萬用字元。2. 多個 URL 請以換行或英文逗號「,」分隔。`,
     ja: `1. アスタリスク (*) ワイルドカードをサポートします。 2. 複数のURLは改行または英語のコンマ「,」で区切ります。`,
     ko: `1. 별표(*) 와일드카드 문자를 지원합니다. 2. 여러 URL은 줄바꿈 또는 영어 쉼표 ","로 구분합니다.`,

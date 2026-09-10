@@ -48,6 +48,7 @@ import { injectInternalCss } from "./injector";
 import { isExt } from "./client";
 import { sendBgMsg } from "./msg";
 import { getDocInfo } from "./docInfo";
+import { visitTranslationTargets } from "./translationTargets";
 
 /**
  * @class Translator
@@ -317,7 +318,7 @@ export class Translator {
   static KISS_IGNORE_SELECTOR = `.${Translator.KISS_CLASS.warpper}, .${Translator.KISS_CLASS.hoverBubble}, .kiss-caption-container, .kiss-subtitle-controls, #kiss-youtube-subtitle-list-container,
   #${APP_CONSTS.fabID}, .${APP_CONSTS.fabID}_warpper,
   #${APP_CONSTS.boxID}, .${APP_CONSTS.boxID}_warpper,
-  #${APP_CONSTS.popupID}, .${APP_CONSTS.popupID}_warpper`;
+  #${APP_CONSTS.popupID}, .${APP_CONSTS.popupID}_warpper, #kiss-rule-editor, #kiss-rule-highlights`;
 
   static BUILTIN_IGNORE_SELECTOR = `address, area, audio, br, canvas,
   data, datalist, embed, head, iframe, input, noscript, map,
@@ -328,6 +329,7 @@ export class Translator {
   #setting; // 设置选项
   #rule; // 规则
   #isInitialized = false; // 初始化状态
+  #editorPaused = false;
   #isJsInjected = false; // 注入用户JS
   #isShadowRootJsInjected = false; //
   #mouseHoverEnabled = false; // 鼠标悬停翻译
@@ -496,16 +498,24 @@ export class Translator {
 
   // 忽略元素
   get #ignoreSelector() {
-    if (this.#rule.scanAll === "true" || this.#rule.isPlainText) {
+    return this.#getIgnoreSelector(this.#rule);
+  }
+
+  #getIgnoreSelector(rule) {
+    if (
+      rule.scanAll === "true" ||
+      rule.isPlainText === true ||
+      rule.isPlainText === "true"
+    ) {
       return Translator.KISS_IGNORE_SELECTOR;
     }
 
     const selectors = [Translator.KISS_IGNORE_SELECTOR];
-    if (this.#rule.autoScan !== "false") {
+    if (rule.autoScan !== "false") {
       selectors.push(Translator.BUILTIN_IGNORE_SELECTOR);
     }
 
-    const userSelector = this.#rule.ignoreSelector?.trim();
+    const userSelector = rule.ignoreSelector?.trim();
     if (userSelector) {
       selectors.push(userSelector);
     }
@@ -945,6 +955,7 @@ export class Translator {
 
   // 启动
   #run() {
+    if (this.#editorPaused) return;
     if (this.#rule.transOpen === "true") {
       this.enable();
     } else if (this.#setting.preInit) {
@@ -2212,7 +2223,9 @@ export class Translator {
     this.#rescanQueue.add(target);
     if (!this.#isQueueProcessing) {
       this.#isQueueProcessing = true;
+      const runId = this.#runId;
       scheduleIdle(() => {
+        if (runId !== this.#runId || this.#editorPaused) return;
         this.#rescanQueue.forEach((t) => this.#rescanContainer(t));
         this.#rescanQueue.clear();
         this.#isQueueProcessing = false;
@@ -2314,60 +2327,96 @@ export class Translator {
     }
   }
 
-  // 非自动识别文本模式下，快速查询目标节点
-  #queryNode(rootNode) {
-    // root 也可能是目标节点
-    if (rootNode.matches?.(this.#rule.selector)) {
-      this.#startObserveNode(rootNode);
-    }
-
-    rootNode.querySelectorAll(this.#rule.selector).forEach((node) => {
-      if (!node.closest?.(this.#ignoreSelector)) {
-        this.#startObserveNode(node);
-      }
-    });
+  #targetOptions(rule = this.#rule) {
+    return {
+      ...rule,
+      ignoreSelector: this.#getIgnoreSelector(rule),
+      isBlock: (node) => {
+        try {
+          if (rule.blockSelector && node.matches?.(rule.blockSelector))
+            return true;
+        } catch {
+          /* Invalid legacy block selectors fall back to tag/display. */
+        }
+        return Translator.isBlockNode(node);
+      },
+      hasText: Translator.hasTextNode,
+      wrapperClass: Translator.KISS_CLASS.warpper,
+    };
   }
 
-  // 寻找需要被监控的文本节点
   #scanNode(rootNode) {
-    if (
-      !Translator.isElementOrFragment(rootNode) ||
-      // rootNode.matches?.(this.#rule.keepSelector) ||
-      rootNode.matches?.(this.#ignoreSelector)
-    ) {
-      return;
+    if (this.#editorPaused) return;
+    visitTranslationTargets(rootNode, this.#targetOptions(), (node) =>
+      this.#startObserveNode(node)
+    );
+  }
+
+  // Read-only structural candidates, before language and request filtering.
+  previewRule(rule = this.#rule) {
+    const options = this.#targetOptions(rule);
+    const targets = new Set();
+    const roots = Array.from(
+      document.querySelectorAll(rule.rootsSelector || "body")
+    );
+    roots.forEach((root) =>
+      visitTranslationTargets(root, options, (node) => {
+        if (node.nodeType === 1 && /\S/.test(node.textContent || ""))
+          targets.add(node);
+      })
+    );
+    return {
+      targets: Array.from(targets),
+      roots,
+      ignoreSelector: options.ignoreSelector,
+    };
+  }
+
+  ruleRangeContext(rule = this.#rule) {
+    return {
+      roots: Array.from(
+        document.querySelectorAll(rule.rootsSelector || "body")
+      ),
+      ignoreSelector: this.#getIgnoreSelector(rule),
+    };
+  }
+
+  beginRuleEditing() {
+    const state = {
+      enabled: this.#enabled,
+      mouseHover: this.#mouseHoverEnabled,
+    };
+    this.setRuleEditingPreview(false);
+    return state;
+  }
+
+  setRuleEditingPreview(show) {
+    if (show) {
+      this.#editorPaused = false;
+      this.enable();
+    } else {
+      this.#cleanupAllNodes();
+      this.stop();
+      this.#runId++;
+      this.#editorPaused = true;
     }
+  }
 
-    if (this.#rule.autoScan === "false") {
-      this.#queryNode(rootNode);
-      return;
-    }
-
-    const hasText = Translator.hasTextNode(rootNode);
-
-    // 如果当前节点没有直接文本，但只有一个子节点，继续向下钻取，避免在过高层级包裹
-    if (!hasText && rootNode.children.length === 1) {
-      const child = rootNode.children[0];
-      if (!child.classList?.contains(Translator.KISS_CLASS.warpper)) {
-        this.#scanNode(child);
-        return;
-      }
-    }
-
-    const hasBlock = this.#hasBlockNode(rootNode);
-
-    if (hasText || !hasBlock) {
-      this.#startObserveNode(rootNode);
-    }
-
-    if (hasBlock) {
-      for (const child of rootNode.children) {
-        const isBlock = this.#isBlockNode(child);
-        if (!hasText || isBlock) {
-          this.#scanNode(child);
-        }
-      }
-    }
+  endRuleEditing(state, restore = true) {
+    this.stop();
+    this.#editorPaused = false;
+    this.#rule.transOpen = state.enabled ? "true" : "false";
+    this.#setting.mouseHoverSetting.useMouseHover = state.mouseHover;
+    if (!restore) return;
+    document.addEventListener(
+      EVENT_FAVORITE_WORD_CHANGE,
+      this.#boundFavoriteWordChange
+    );
+    document.addEventListener("mouseover", this.#boundFavoriteMouseOver);
+    document.addEventListener("mouseout", this.#boundFavoriteMouseOut);
+    if (state.mouseHover) this.#enableMouseHover();
+    this.#syncTransOnlyRevert();
+    this.#run();
   }
 
   // 处理一个待翻译的节点
@@ -2410,6 +2459,7 @@ export class Translator {
     if (fromLang === "auto") {
       // revert 529
       deLang = await tryDetectLang(node.textContent, langDetector);
+      if (runId !== this.#runId || this.#editorPaused) return;
       // 语言检测期间可能发生了还原、重新触发或停止/重扫：
       // 任务已失效，不再创建译文容器或发起翻译请求。
       // 若当前节点仍由本代次任务标记，则回滚处理状态，避免单段/原子目标
@@ -4434,6 +4484,8 @@ overflow-wrap: anywhere !important;`;
 
   // 停止监听，重置参数
   #resetOptions() {
+    this.#rescanQueue.clear();
+    this.#isQueueProcessing = false;
     // 停止/重扫会清理实例状态，语言检测中的按住任务必须立即过期
     this.#holdGeneration += 1;
     this.#removeShadowRootListener();
@@ -4690,7 +4742,7 @@ overflow-wrap: anywhere !important;`;
 
   // 开启翻译
   enable() {
-    if (this.#enabled) return;
+    if (this.#enabled || this.#editorPaused) return;
     this.#enabled = true;
     this.#rule.transOpen = "true";
     this.#runId++;
@@ -4714,12 +4766,15 @@ overflow-wrap: anywhere !important;`;
 
   // 翻译页面标题
   async #translateTitle() {
+    const runId = this.#runId;
     const docInfo = getDocInfo();
     if (!docInfo?.title) return;
 
     try {
       const deLang = await tryDetectLang(docInfo.title);
+      if (runId !== this.#runId || this.#editorPaused) return;
       const { trText } = await this.#translateFetch(docInfo.title, deLang);
+      if (runId !== this.#runId || this.#editorPaused) return;
       this.#docInfo.title = document.title; // 缓存原标题
       document.title = trText || docInfo.title;
     } catch (err) {
@@ -4750,7 +4805,7 @@ overflow-wrap: anywhere !important;`;
 
   // 重新扫描页面
   rescan() {
-    if (!this.#isInitialized) return;
+    if (!this.#isInitialized || this.#editorPaused) return;
     this.#runId++;
 
     this.#cleanupAllNodes();
@@ -4816,6 +4871,13 @@ overflow-wrap: anywhere !important;`;
 
   // 更新规则
   updateRule(newRule) {
+    if (Object.prototype.hasOwnProperty.call(newRule, "isPlainText")) {
+      newRule = {
+        ...newRule,
+        isPlainText:
+          newRule.isPlainText === true || newRule.isPlainText === "true",
+      };
+    }
     let hasChanged = false;
     let needsRescan = false;
     const oldTransAllnow = this.#transAllnow;
@@ -4828,6 +4890,9 @@ overflow-wrap: anywhere !important;`;
         this.#rule[key] = newRule[key];
         if (
           key === "autoScan" ||
+          key === "selector" ||
+          key === "ignoreSelector" ||
+          key === "keepSelector" ||
           key === "blockSelector" ||
           key === "hasShadowroot" ||
           key === "rootsSelector" ||
@@ -4867,6 +4932,10 @@ overflow-wrap: anywhere !important;`;
   }
 
   #syncTransOnlyRevert() {
+    if (this.#editorPaused) {
+      this.#disableTransOnlyRevert();
+      return;
+    }
     // 退出气泡模式或关闭“隐藏原文”时，清理仍在等待或显示的原文气泡。
     if (!this.#shouldUseOriginalHoverBubble()) {
       this.#clearHoverOriginalTimer();

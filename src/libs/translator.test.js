@@ -100,6 +100,79 @@ function createPlainTextTranslator(rule = {}, setting = {}) {
 }
 
 describe("Translator rule styles", () => {
+  test("editor preview shares targets without modifying DOM or sending requests", () => {
+    document.body.innerHTML =
+      '<main id="root"><article><p id="a">First article text</p><p id="b" class="excluded">Ignored paragraph text</p></article></main>';
+    const translator = createTranslator(
+      { transOpen: "false", ignoreSelector: ".excluded" },
+      { preInit: false }
+    );
+    const before = document.body.innerHTML;
+    expect(translator.previewRule().targets.map((node) => node.id)).toEqual([
+      "a",
+    ]);
+    expect(document.body.innerHTML).toBe(before);
+    expect(apiTranslate).not.toHaveBeenCalled();
+    expect(tryDetectLang).not.toHaveBeenCalled();
+  });
+
+  test("changing manual targets removes old translations and discovers new targets", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="a">First article text</p><p id="b">Second article text</p></main>';
+    const translator = createTranslator({ autoScan: "false", selector: "#a" });
+    await flushAsync();
+    await flushAsync();
+    expect(
+      document.querySelector("#a .kiss-translator-wrapper")
+    ).not.toBeNull();
+    translator.updateRule({ selector: "#b" });
+    await flushAsync();
+    await flushAsync();
+    expect(document.querySelector("#a .kiss-translator-wrapper")).toBeNull();
+    expect(
+      document.querySelector("#b .kiss-translator-wrapper")
+    ).not.toBeNull();
+  });
+
+  test("entering the editor invalidates pending language detection and restores the switch", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Pending original article text</p></main>';
+    let finishDetect;
+    tryDetectLang.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishDetect = resolve;
+        })
+    );
+    const translator = createTranslator({ fromLang: "auto" });
+    await flushAsync();
+    const state = translator.beginRuleEditing();
+    expect(state.enabled).toBe(true);
+    finishDetect("en");
+    await flushAsync();
+    expect(apiTranslate).not.toHaveBeenCalled();
+    expect(document.querySelector(".kiss-translator-wrapper")).toBeNull();
+    translator.updateRule({ selector: ":not(*)", autoScan: "false" });
+    translator.endRuleEditing(state);
+    expect(translator.rule.transOpen).toBe("true");
+    expect(translator.previewRule().targets).toEqual([]);
+  });
+
+  test("manual preview excludes roots under ignored ancestors", () => {
+    document.body.innerHTML =
+      '<div class="excluded"><main id="root"><p>Ignored article text</p></main></div>';
+    const translator = createTranslator(
+      {
+        transOpen: "false",
+        autoScan: "false",
+        selector: "p",
+        ignoreSelector: ".excluded",
+      },
+      { preInit: false }
+    );
+    expect(translator.previewRule().targets).toEqual([]);
+  });
+
   let originalIntersectionObserver;
   let originalCSSStyleSheet;
   let originalScrollBy;

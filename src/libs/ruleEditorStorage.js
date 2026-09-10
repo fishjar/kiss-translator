@@ -21,7 +21,13 @@ let writeQueue = Promise.resolve();
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 // In extensions this queue lives in the background, shared by all editor tabs.
-export function writeSiteRule({ href, patch, expected, seed = null }) {
+export function writeSiteRule({
+  href,
+  patch,
+  expected,
+  seed = null,
+  inherited,
+}) {
   const write = async () => {
     const pattern = hostnamePattern(href);
     const keys = Object.keys(patch || {});
@@ -33,6 +39,14 @@ export function writeSiteRule({ href, patch, expected, seed = null }) {
       if (SELECTOR_FIELDS.includes(key)) splitSelectorList(patch[key]);
       else if (!["true", "false", "*"].includes(patch[key]))
         throw new Error("invalid-patch");
+    }
+    if (inherited) {
+      const latest = await resolveRuleContext(
+        href,
+        await getSettingWithDefault()
+      );
+      if (keys.some((key) => latest.inherited[key] !== inherited[key]))
+        throw new Error("rule-conflict");
     }
     const rules = await getRulesWithDefault();
     const index = rules.findIndex((rule) => rule.pattern === pattern);
@@ -67,11 +81,22 @@ export function writeSiteRule({ href, patch, expected, seed = null }) {
     if (index < 0) next.unshift(saved);
     else next[index] = saved;
     await setRules(next);
+    const persisted = (await getRulesWithDefault()).find(
+      (rule) => rule.pattern === pattern
+    );
+    if (!persisted || keys.some((key) => persisted[key] !== saved[key])) {
+      throw new Error("rule-conflict");
+    }
     debounceSyncMeta(KV_RULES_KEY);
     trySyncRules();
     return resolveRuleContext(href, await getSettingWithDefault());
   };
-  const result = writeQueue.then(write);
+  // Userscript pages on the same origin can also coordinate through Web Locks.
+  const result = writeQueue.then(() =>
+    !isExt && globalThis.navigator?.locks
+      ? navigator.locks.request("kiss-rule-editor-write", write)
+      : write()
+  );
   writeQueue = result.catch(() => {});
   return result;
 }

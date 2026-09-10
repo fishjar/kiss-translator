@@ -13,6 +13,7 @@ import { useI18n } from "../../hooks/I18n";
 import TextField from "@mui/material/TextField";
 import {
   MSG_TRANS_TOGGLE,
+  MSG_RULE_EDITOR,
   MSG_TRANS_PUTRULE,
   MSG_SAVE_RULE,
   MSG_COMMAND_SHORTCUTS,
@@ -321,6 +322,18 @@ export default function PopupCont({
 
   return (
     <Stack sx={{ p: 2 }} spacing={2}>
+      <Button
+        variant="outlined"
+        onClick={async () => {
+          if (processActions) processActions({ action: MSG_RULE_EDITOR });
+          else {
+            await sendTabMsg(MSG_RULE_EDITOR);
+            window.close();
+          }
+        }}
+      >
+        {i18n("rule_editor_open")}
+      </Button>
       {/* 翻译功能及高级开关的网格布局布局 */}
       <Grid container columns={12} spacing={1}>
         {/* 开关：双语网页翻译 (支持快捷键提示) */}
