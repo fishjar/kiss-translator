@@ -1,6 +1,16 @@
 const messages = {
   title: ["网站规则编辑器", "Site rule editor"],
   open: ["编辑网站规则", "Edit site rules"],
+  move: ["拖动主面板（方向键可移动）", "Move editor (or use arrow keys)"],
+  moveInspector: [
+    "拖动副面板（方向键可移动）",
+    "Move selector panel (or use arrow keys)",
+  ],
+  closeInspector: ["关闭副面板", "Close selector panel"],
+  editSelector: ["编辑定位", "Edit selector"],
+  manualAdd: ["手动添加", "Add manually"],
+  element: ["当前元素 / 祖先元素", "Current element / ancestors"],
+  entries: ["定位条目", "Selectors"],
   scope: ["仅当前主机 · 不含子域名", "This hostname only · no subdomains"],
   pick: ["选取元素", "Pick element"],
   picking: [

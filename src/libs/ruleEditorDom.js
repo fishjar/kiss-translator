@@ -53,6 +53,9 @@ export function queryPage(selector) {
   return Array.from(document.querySelectorAll(selector)).filter(isPageElement);
 }
 
+export const compareCandidates = (a, b) =>
+  a.count - b.count || Number(a.fragile) - Number(b.fragile);
+
 export function selectorCandidates(element) {
   if (!isPageElement(element)) return [];
   const candidates = new Map();
@@ -115,9 +118,7 @@ export function selectorCandidates(element) {
     node = node.parentElement;
   }
   add(parts.join(" > "), "position", true);
-  return Array.from(candidates.values())
-    .sort((a, b) => Number(a.fragile) - Number(b.fragile))
-    .slice(0, 14);
+  return Array.from(candidates.values()).sort(compareCandidates).slice(0, 14);
 }
 
 export function ancestorElements(element) {

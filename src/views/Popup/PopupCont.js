@@ -322,18 +322,6 @@ export default function PopupCont({
 
   return (
     <Stack sx={{ p: 2 }} spacing={2}>
-      <Button
-        variant="outlined"
-        onClick={async () => {
-          if (processActions) processActions({ action: MSG_RULE_EDITOR });
-          else {
-            await sendTabMsg(MSG_RULE_EDITOR);
-            window.close();
-          }
-        }}
-      >
-        {i18n("rule_editor_open")}
-      </Button>
       {/* 翻译功能及高级开关的网格布局布局 */}
       <Grid container columns={12} spacing={1}>
         {/* 开关：双语网页翻译 (支持快捷键提示) */}
@@ -636,6 +624,18 @@ export default function PopupCont({
           </Button>
         </Stack>
       </Stack>
+      <Button
+        variant="outlined"
+        onClick={async () => {
+          if (processActions) processActions({ action: MSG_RULE_EDITOR });
+          else {
+            await sendTabMsg(MSG_RULE_EDITOR);
+            window.close();
+          }
+        }}
+      >
+        {i18n("rule_editor_open")}
+      </Button>
       {/* 操作成功提示气泡提示条 */}
       <Snackbar
         open={snackbar.open}

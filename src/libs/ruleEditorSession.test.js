@@ -105,6 +105,97 @@ test("candidates include the selected element and never copy text, links or inpu
   }
 });
 
+test("candidates stay ordered by match count after the page changes", async () => {
+  session.selectElement(document.querySelector("a"));
+  const expectSorted = () => {
+    const counts = session.state.candidates.map(({ count }) => count);
+    expect(counts).toEqual([...counts].sort((a, b) => a - b));
+  };
+  expectSorted();
+  document
+    .querySelector("main")
+    .insertAdjacentHTML(
+      "beforeend",
+      '<a class="story">Third</a><a class="story">Fourth</a>'
+    );
+  await Promise.resolve();
+  jest.advanceTimersByTime(220);
+  expectSorted();
+  expect(
+    session.state.candidates.find(({ kind }) => kind === "class").count
+  ).toBe(4);
+});
+
+test("count ordering does not automatically recommend a fragile position selector", () => {
+  document
+    .querySelector("main")
+    .insertAdjacentHTML("beforeend", '<a class="story">Another link</a>');
+  session.selectElement(document.querySelector("a"));
+  expect(session.state.candidates[0]).toMatchObject({
+    count: 1,
+    fragile: true,
+  });
+  expect(
+    session.state.candidates.find(
+      ({ selector }) => selector === session.state.input
+    ).fragile
+  ).toBe(false);
+});
+
+test("closing the inspector cancels its draft without exiting or saving", () => {
+  session.edit(".story");
+  session.selectElement(document.querySelector("a"));
+  session.setInput(".draft");
+  session.closeInspector();
+  expect(session.state).toMatchObject({
+    inspectorOpen: false,
+    input: "",
+    editing: null,
+    selected: null,
+    candidates: [],
+    picking: false,
+  });
+  expect(session.onExit).not.toHaveBeenCalled();
+  expect(saveSiteRule).not.toHaveBeenCalled();
+  session.add();
+  expect(session.state.inspectorOpen).toBe(true);
+  session.setField("selector");
+  expect(session.state.inspectorOpen).toBe(false);
+});
+
+test("Escape cancels picking, then closes the inspector, then exits", () => {
+  const escape = () =>
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+    );
+  session.selectElement(document.querySelector("a"));
+  session.pick();
+  escape();
+  expect(session.state.picking).toBe(false);
+  expect(session.state.inspectorOpen).toBe(true);
+  escape();
+  expect(session.state.inspectorOpen).toBe(false);
+  expect(session.onExit).not.toHaveBeenCalled();
+  escape();
+  expect(session.onExit).toHaveBeenCalledTimes(1);
+});
+
+test("saving keeps the inspector open on failure and closes it on success", async () => {
+  session.setField("selector");
+  session.edit(".story");
+  session.setInput("main > p");
+  saveSiteRule.mockRejectedValueOnce(new Error("save-failed"));
+  await session.commitInput();
+  expect(session.state).toMatchObject({
+    inspectorOpen: true,
+    input: "main > p",
+    editing: ".story",
+  });
+  await session.commitInput();
+  expect(context.effective.selector).toBe("main > p");
+  expect(session.state.inspectorOpen).toBe(false);
+});
+
 test("dynamic content updates counts and removed selections are released", async () => {
   session.selectElement(document.querySelector("a"));
   session.setInput(".story");

@@ -9,6 +9,7 @@ import {
 import { saveSiteRule } from "./ruleEditorStorage";
 import {
   ancestorElements,
+  compareCandidates,
   isEditorElement,
   isPageElement,
   queryPage,
@@ -31,6 +32,7 @@ export class RuleEditorSession {
       error: "",
       notice: "",
       picking: false,
+      inspectorOpen: false,
       selected: null,
       ancestors: [],
       candidates: [],
@@ -40,7 +42,6 @@ export class RuleEditorSession {
       hidden: 0,
       whole: false,
       translated: false,
-      side: "right",
       undo: false,
       redo: false,
     };
@@ -105,10 +106,12 @@ export class RuleEditorSession {
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopImmediatePropagation();
+        if (this.state.saving) return;
         if (this.state.picking) {
           this.emit({ picking: false });
           this.refresh();
-        } else if (!this.state.saving) this.onExit();
+        } else if (this.state.inspectorOpen) this.closeInspector();
+        else this.onExit();
       }
     };
     window.addEventListener("keydown", this.handleKey, true);
@@ -142,6 +145,7 @@ export class RuleEditorSession {
         this.redoStack = [];
         this.emit({
           picking: false,
+          inspectorOpen: false,
           input: "",
           editing: null,
           selected: null,
@@ -254,10 +258,12 @@ export class RuleEditorSession {
           return { selector, count: 0, source: "personal", invalid: true };
         }
       });
-      const candidates = this.state.candidates.map((candidate) => ({
-        ...candidate,
-        count: queryPage(candidate.selector).length,
-      }));
+      const candidates = this.state.candidates
+        .map((candidate) => ({
+          ...candidate,
+          count: queryPage(candidate.selector).length,
+        }))
+        .sort(compareCandidates);
       const removed = this.state.selected && !this.state.selected.isConnected;
       const matches = this.state.whole
         ? this.translator.previewRule().targets
@@ -296,13 +302,16 @@ export class RuleEditorSession {
   selectElement(element) {
     if (!isPageElement(element)) return;
     const candidates = selectorCandidates(element);
+    const recommended =
+      candidates.find((candidate) => !candidate.fragile) || candidates[0];
     this.emit({
       selected: element,
       ancestors: ancestorElements(element),
       candidates,
       picking: false,
+      inspectorOpen: true,
       whole: false,
-      input: candidates[0]?.selector || "",
+      input: recommended?.selector || "",
       notice: "",
       error: "",
     });
@@ -312,7 +321,29 @@ export class RuleEditorSession {
     this.showTranslation(false);
     this.emit({ picking: true, whole: false, notice: "" });
   }
+  closeInspector() {
+    if (this.state.saving) return;
+    clearTimeout(this.inputTimer);
+    this.emit({
+      inspectorOpen: false,
+      picking: false,
+      selected: null,
+      ancestors: [],
+      candidates: [],
+      input: "",
+      editing: null,
+      validation: "",
+      whole: false,
+    });
+    this.refresh();
+  }
+  add() {
+    this.closeInspector();
+    this.showTranslation(false);
+    this.emit({ inspectorOpen: true, notice: "", error: "" });
+  }
   setField(field) {
+    this.closeInspector();
     this.emit({
       field,
       editing: null,
@@ -330,8 +361,15 @@ export class RuleEditorSession {
     this.inputTimer = setTimeout(() => this.refresh(), 160);
   }
   edit(selector) {
+    this.closeInspector();
     this.showTranslation(false);
-    this.emit({ input: selector, editing: selector, whole: false, notice: "" });
+    this.emit({
+      inspectorOpen: true,
+      input: selector,
+      editing: selector,
+      whole: false,
+      notice: "",
+    });
     this.refresh();
   }
   hover(selector) {
@@ -343,6 +381,7 @@ export class RuleEditorSession {
     }
   }
   showWhole() {
+    this.closeInspector();
     this.showTranslation(false);
     this.emit({ whole: true, picking: false });
     this.refresh();
@@ -373,9 +412,10 @@ export class RuleEditorSession {
       const list = this.list().filter(
         (selector) => selector !== this.state.editing
       );
-      await this.save({
+      const saved = await this.save({
         [this.state.field]: [...new Set([...list, ...selectors])].join(", "),
       });
+      if (saved) this.closeInspector();
     } catch (error) {
       this.emit({ error: error.message });
     }
@@ -386,6 +426,7 @@ export class RuleEditorSession {
       [this.state.field]: list.join(", ") || EMPTY_SELECTOR,
     });
     if (saved) {
+      this.closeInspector();
       const targets = this.translator.previewRule().targets;
       const coverage = this.classify(queryPage(selector)).some(
         ({ element, excluded }) =>

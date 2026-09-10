@@ -3,563 +3,533 @@ import {
   Alert,
   Box,
   Button,
+  ButtonBase,
   Chip,
   Divider,
-  Paper,
+  IconButton,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import UndoIcon from "@mui/icons-material/Undo";
+import RedoIcon from "@mui/icons-material/Redo";
+import AddIcon from "@mui/icons-material/Add";
 import Theme from "../../hooks/Theme";
 import { SettingProvider } from "../../hooks/Setting";
 import { useI18n } from "../../hooks/I18n";
+import useWindowSize from "../../hooks/WindowSize";
 import { describeElement } from "../../libs/ruleEditorDom";
 import {
   EMPTY_SELECTOR,
   SELECTOR_FIELDS,
   splitSelectorList,
 } from "../../libs/selectorList";
+import { limitNumber } from "../../libs/utils";
+import FloatingPanel from "./FloatingPanel";
 
 const codeStyle = {
   fontFamily: 'Consolas, "SFMono-Regular", monospace',
-  fontSize: 12,
+  fontSize: 14,
+  lineHeight: 1.6,
   overflowWrap: "anywhere",
   textTransform: "none",
   textAlign: "left",
 };
-const panelStyle = {
-  position: "fixed",
-  zIndex: 2147483647,
-  border: "1px solid",
-  borderColor: "divider",
-  borderRadius: 2,
-  overflow: "auto",
-  boxShadow: "0 12px 48px #0003",
+// Shadow DOM still inherits the page's root rem size. Keep editor text readable
+// even on sites that use a 10px root font, without changing the host page.
+const themeOptions = {
+  typography: {
+    pxToRem: (size) => `${size}px`,
+    body1: { fontSize: 16 },
+    body2: { fontSize: 15 },
+    caption: { fontSize: 14 },
+    button: { fontSize: 15, textTransform: "none" },
+  },
+  components: {
+    MuiButton: { styleOverrides: { sizeSmall: { fontSize: 14 } } },
+    MuiChip: { styleOverrides: { label: { fontSize: 14 } } },
+  },
 };
+const cardStyle = (selected) => ({
+  border: "1px solid",
+  borderColor: selected ? "primary.main" : "divider",
+  bgcolor: selected ? "action.selected" : "background.paper",
+  borderRadius: 1,
+  overflow: "hidden",
+});
 
 function CandidateList({ session, state, t }) {
   const busy = state.saving || state.loading;
   return (
-    <Stack spacing={0.8}>
-      <Typography variant="subtitle2">{t("candidates")}</Typography>
-      <Typography variant="caption" color="text.secondary">
-        {t("candidateHelp")}
-      </Typography>
-      <Stack direction="row" gap={0.5} flexWrap="wrap" aria-label={t("pick")}>
-        {state.ancestors.map((element, index) => (
-          <Button
-            key={index}
-            disabled={busy}
-            size="small"
-            sx={{ ...codeStyle, minWidth: 0, p: 0.5 }}
-            onClick={() => session.selectElement(element)}
-          >
-            {describeElement(element)}
-          </Button>
-        ))}
-      </Stack>
+    <Stack spacing={1}>
+      {!!state.ancestors.length && (
+        <TextField
+          select
+          SelectProps={{ native: true }}
+          size="small"
+          label={t("element")}
+          value={state.ancestors.indexOf(state.selected)}
+          disabled={busy}
+          onChange={(event) =>
+            session.selectElement(state.ancestors[Number(event.target.value)])
+          }
+          inputProps={{ style: codeStyle }}
+        >
+          {state.ancestors.map((element, index) => (
+            <option key={index} value={index}>
+              {describeElement(element)}
+            </option>
+          ))}
+        </TextField>
+      )}
       {state.candidates.map((candidate) => (
-        <Button
+        <ButtonBase
           key={candidate.selector}
           disabled={busy}
-          variant={state.input === candidate.selector ? "outlined" : "text"}
+          aria-pressed={state.input === candidate.selector}
           onClick={() => {
             session.setInput(candidate.selector);
             session.refresh();
           }}
           sx={{
+            ...cardStyle(state.input === candidate.selector),
             display: "block",
+            p: 1.25,
             textAlign: "left",
-            p: 1,
-            border: "1px solid",
-            borderColor:
-              state.input === candidate.selector ? "primary.main" : "divider",
+            "&:hover": { bgcolor: "action.hover" },
+            "&.Mui-focusVisible": {
+              outline: "2px solid",
+              outlineColor: "primary.main",
+            },
           }}
         >
           <Stack
             direction="row"
             justifyContent="space-between"
             alignItems="center"
+            gap={1}
           >
             <Typography variant="caption" color="text.secondary">
               {t(candidate.kind)}
             </Typography>
             <Chip size="small" label={candidate.count} />
           </Stack>
-          <Box sx={{ ...codeStyle, mt: 0.5 }}>{candidate.selector}</Box>
+          <Box sx={{ ...codeStyle, mt: 0.5, color: "primary.main" }}>
+            {candidate.selector}
+          </Box>
           {candidate.fragile && (
             <Typography variant="caption" color="warning.main">
               {t("fragile")}
             </Typography>
           )}
-        </Button>
+        </ButtonBase>
       ))}
-      <Box
-        sx={{
-          position: "sticky",
-          bottom: -12,
-          bgcolor: "background.paper",
-          py: 1,
-          borderTop: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <Typography variant="caption" display="block">
-          {t(state.field)}
-        </Typography>
-        <Button
-          fullWidth
-          variant="contained"
-          disabled={busy || !state.input.trim() || !!state.validation}
-          onClick={() => session.commitInput()}
-        >
-          {t(state.editing ? "update" : "add")}
-        </Button>
-      </Box>
     </Stack>
   );
 }
 
-function Editor({ session, onExit }) {
+function Notice({ session, state, t }) {
+  if (!state.notice) return null;
+  return (
+    <Alert
+      severity={state.notice === "saved" ? "success" : "info"}
+      onClose={() => session.emit({ notice: "" })}
+    >
+      {t(state.notice)}
+      {state.notice === "removed-coverage" && (
+        <Button
+          disabled={state.saving || state.loading}
+          onClick={() =>
+            session.save({
+              ignoreSelector: [
+                ...new Set([
+                  ...session.list("ignoreSelector"),
+                  ...splitSelectorList(state.input),
+                ]),
+              ].join(", "),
+            })
+          }
+        >
+          {t("exclude")}
+        </Button>
+      )}
+    </Alert>
+  );
+}
+
+export function Editor({ session, onExit }) {
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const i18n = useI18n();
   const t = (key) => i18n(`rule_editor_${key}`, key);
-  const [anchor, setAnchor] = useState(null);
+  const windowSize = useWindowSize();
+  const viewport = {
+    w: windowSize.w || window.innerWidth,
+    h: windowSize.h || window.innerHeight,
+  };
+  const [position, setPosition] = useState(() => ({
+    x: window.innerWidth - 412,
+    y: 24,
+  }));
+  const [inspectorPosition, setInspectorPosition] = useState(null);
   useEffect(() => {
-    if (!state.selected) {
-      setAnchor(null);
-      return;
-    }
-    let frame;
-    const update = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const rect = state.selected.getBoundingClientRect();
-        const minLeft = state.side === "left" ? 406 : 12;
-        const maxLeft =
-          window.innerWidth - (state.side === "right" ? 720 : 326);
-        setAnchor({
-          left: Math.max(minLeft, Math.min(rect.right + 12, maxLeft)),
-          top: Math.max(12, Math.min(rect.top, window.innerHeight - 420)),
-          compact: window.innerWidth < 1000,
-        });
-      });
-    };
-    update();
-    window.addEventListener("scroll", update, true);
-    window.addEventListener("resize", update);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", update, true);
-      window.removeEventListener("resize", update);
-    };
-  }, [state.selected, state.side]);
+    setInspectorPosition(null);
+  }, [viewport.w, viewport.h]);
+  const mainWidth = Math.min(400, viewport.w - 24);
+  const inspectorWidth = Math.min(380, viewport.w - 24);
+  const mainX = limitNumber(position.x, 12, viewport.w - mainWidth - 12);
+  const besideX =
+    mainX >= inspectorWidth + 24
+      ? mainX - inspectorWidth - 12
+      : mainX + mainWidth + 12;
+  const adjacent = {
+    x: limitNumber(besideX, 12, viewport.w - inspectorWidth - 12),
+    y: position.y + (viewport.w < mainWidth + inspectorWidth + 36 ? 64 : 0),
+  };
   const rule = state.context?.effective;
   const busy = state.loading || state.saving;
-  const entryCount = state.matches.length;
+  const inspectorVisible =
+    state.inspectorOpen && !state.picking && !state.translated;
   return (
     <>
-      <Paper
-        component="aside"
-        aria-label={t("title")}
-        sx={{
-          ...panelStyle,
-          top: 12,
-          bottom: 12,
-          [state.side]: 12,
-          width: 376,
-          maxWidth: "calc(100vw - 24px)",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <Box sx={{ p: 2, borderTop: "4px solid #168aad" }}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Typography
-              variant="overline"
-              sx={{ letterSpacing: 2, color: "primary.main" }}
+      <FloatingPanel
+        title={t("title")}
+        moveLabel={t("move")}
+        position={position}
+        onMove={setPosition}
+        width={400}
+        viewport={viewport}
+        actions={
+          <Stack direction="row">
+            <IconButton
+              title={t("undo")}
+              aria-label={t("undo")}
+              disabled={busy || !state.undo}
+              onClick={() => session.history()}
             >
-              KISS / SITE RULES
-            </Typography>
-            <Button size="small" disabled={state.saving} onClick={onExit}>
-              {t("exit")}
-            </Button>
+              <UndoIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              title={t("redo")}
+              aria-label={t("redo")}
+              disabled={busy || !state.redo}
+              onClick={() => session.history(true)}
+            >
+              <RedoIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              title={t("exit")}
+              aria-label={t("exit")}
+              disabled={state.saving}
+              onClick={onExit}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
           </Stack>
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            {t("title")}
-          </Typography>
-          <Typography sx={{ ...codeStyle, mt: 0.5 }}>
+        }
+      >
+        <Stack spacing={2}>
+          <Typography sx={codeStyle} color="text.secondary" title={t("scope")}>
             {window.location.hostname}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {t("scope")}
-          </Typography>
-        </Box>
-        <Divider />
-        <Box sx={{ overflowY: "auto", p: 2, flex: 1 }}>
-          <Stack spacing={1.5}>
-            {state.loading && (
-              <Typography role="status">{t("loading")}</Typography>
-            )}
-            {state.error && (
-              <Alert
-                severity="error"
-                action={
-                  <Button
-                    size="small"
-                    disabled={busy}
-                    onClick={() => session.load()}
-                  >
-                    {t("reload")}
-                  </Button>
+          {state.loading && (
+            <Typography role="status">{t("loading")}</Typography>
+          )}
+          {state.error && (
+            <Alert
+              severity="error"
+              action={
+                <Button disabled={busy} onClick={() => session.load()}>
+                  {t("reload")}
+                </Button>
+              }
+            >
+              {t(state.error)}
+            </Alert>
+          )}
+          {rule && (
+            <>
+              <TextField
+                select
+                SelectProps={{ native: true }}
+                size="small"
+                label={t("mode")}
+                disabled={busy}
+                value={rule.autoScan}
+                onChange={(event) =>
+                  session.save({ autoScan: event.target.value })
                 }
               >
-                {t(state.error)}
-              </Alert>
-            )}
-            {rule && (
-              <>
-                <Stack direction="row" gap={1}>
-                  <Button
-                    variant="contained"
-                    disabled={busy}
-                    onClick={() => session.pick()}
-                    sx={{ flex: 1 }}
-                  >
-                    {t("pick")}
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    disabled={busy}
-                    onClick={() => session.showWhole()}
-                  >
-                    {t("whole")}
-                  </Button>
-                </Stack>
-                {state.picking && <Alert severity="info">{t("picking")}</Alert>}
-                <TextField
-                  select
-                  SelectProps={{ native: true }}
-                  size="small"
-                  label={t("mode")}
+                <option value="true">{t("auto")}</option>
+                <option value="false">{t("manual")}</option>
+              </TextField>
+              {(rule.scanAll === "true" ||
+                rule.isPlainText === true ||
+                rule.isPlainText === "true") && (
+                <Alert severity="warning">{t("scanAll")}</Alert>
+              )}
+              <TextField
+                select
+                SelectProps={{ native: true }}
+                size="small"
+                label={t("purpose")}
+                value={state.field}
+                disabled={busy}
+                onChange={(event) => session.setField(event.target.value)}
+              >
+                {SELECTOR_FIELDS.map((field) => (
+                  <option key={field} value={field}>
+                    {t(field)}
+                  </option>
+                ))}
+              </TextField>
+              <Stack direction="row" gap={1}>
+                <Button
+                  variant="contained"
                   disabled={busy}
-                  value={rule.autoScan}
-                  onChange={(event) =>
-                    session.save({ autoScan: event.target.value })
-                  }
+                  onClick={() => session.pick()}
+                  sx={{ flex: 1 }}
                 >
-                  <option value="true">{t("auto")}</option>
-                  <option value="false">{t("manual")}</option>
-                </TextField>
-                <Typography variant="caption" color="text.secondary">
-                  {t("modeHelp")}
-                </Typography>
-                {(rule.scanAll === "true" ||
-                  rule.isPlainText === true ||
-                  rule.isPlainText === "true") && (
-                  <Alert severity="warning">{t("scanAll")}</Alert>
-                )}
-                <Box component="details" sx={{ fontSize: 12 }}>
-                  <Box
-                    component="summary"
-                    sx={{ cursor: "pointer", color: "text.secondary" }}
-                  >
-                    {t("personal")} / {t("subscription")}
-                  </Box>
-                  <Typography variant="caption" display="block">
-                    {t("personal")}:{" "}
-                    {state.context.personal?.pattern || t("none")}
-                  </Typography>
-                  <Typography variant="caption" display="block">
-                    {t("subscription")}:{" "}
-                    {state.context.subscription?.pattern || t("none")}
-                  </Typography>
-                  {!state.context.site && (
-                    <Typography
-                      variant="caption"
-                      display="block"
-                      sx={{ mt: 1 }}
-                    >
-                      {t("sourceHelp")}
-                    </Typography>
-                  )}
-                </Box>
-                <Divider />
-                <TextField
-                  select
-                  SelectProps={{ native: true }}
-                  size="small"
-                  label={t("purpose")}
-                  value={state.field}
+                  {t("pick")}
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
                   disabled={busy}
-                  onChange={(event) => session.setField(event.target.value)}
+                  onClick={() => session.add()}
                 >
-                  {SELECTOR_FIELDS.map((field) => (
-                    <option key={field} value={field}>
-                      {t(field)}
-                    </option>
-                  ))}
-                </TextField>
+                  {t("manualAdd")}
+                </Button>
+              </Stack>
+              {state.picking && (
+                <Alert
+                  severity="info"
+                  onClose={() => {
+                    session.emit({ picking: false });
+                    session.refresh();
+                  }}
+                >
+                  {t("picking")}
+                </Alert>
+              )}
+              <Stack
+                spacing={1}
+                sx={{ maxHeight: 320, overflowY: "auto" }}
+                aria-label={t("entries")}
+              >
                 {state.entries.length === 0 && (
-                  <Typography variant="body2" color="text.secondary">
-                    {t("empty")}
-                  </Typography>
+                  <Typography color="text.secondary">{t("empty")}</Typography>
                 )}
-                <Stack spacing={0.6} sx={{ maxHeight: 280, overflowY: "auto" }}>
-                  {state.entries.map((entry) => (
-                    <Box
-                      key={entry.selector}
-                      onMouseEnter={() => session.hover(entry.selector)}
-                      onMouseLeave={() => session.refresh()}
+                {state.entries.map((entry) => (
+                  <Box
+                    key={entry.selector}
+                    onMouseEnter={() => session.hover(entry.selector)}
+                    onMouseLeave={() => session.refresh()}
+                    sx={{
+                      ...cardStyle(state.editing === entry.selector),
+                      position: "relative",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ButtonBase
+                      disabled={busy}
+                      aria-label={entry.selector}
+                      aria-pressed={state.editing === entry.selector}
+                      onClick={() => session.edit(entry.selector)}
                       sx={{
-                        border: "1px solid",
-                        borderColor:
-                          state.editing === entry.selector
-                            ? "primary.main"
-                            : "divider",
-                        borderRadius: 1,
-                        p: 1,
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        p: 1.25,
+                        "&:hover": { bgcolor: "action.hover" },
+                        "&.Mui-focusVisible": {
+                          boxShadow: "inset 0 0 0 2px",
+                          color: "primary.main",
+                        },
                       }}
                     >
                       <Stack direction="row" alignItems="start" gap={1}>
-                        <Button
-                          disabled={busy}
-                          onClick={() => session.edit(entry.selector)}
+                        <Box
                           sx={{
                             ...codeStyle,
                             flex: 1,
-                            justifyContent: "start",
-                            p: 0,
                             minWidth: 0,
+                            color: "primary.main",
                           }}
                         >
                           {entry.selector}
-                        </Button>
+                        </Box>
                         <Chip
                           size="small"
                           color={entry.invalid ? "error" : "default"}
                           label={entry.invalid ? "!" : entry.count}
                         />
                       </Stack>
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="center"
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        component="div"
+                        sx={{
+                          mt: 1,
+                          pr: "132px",
+                          minHeight: 32,
+                          display: "flex",
+                          alignItems: "center",
+                        }}
                       >
-                        <Typography variant="caption" color="text.secondary">
-                          {t(entry.source)}
-                        </Typography>
-                        <Button
-                          size="small"
-                          color="inherit"
-                          disabled={busy}
-                          onClick={() => session.remove(entry.selector)}
-                        >
-                          {t("delete")}
-                        </Button>
-                      </Stack>
-                    </Box>
-                  ))}
-                </Stack>
-                <Stack direction="row" gap={1}>
-                  <Button
-                    size="small"
-                    disabled={busy}
-                    onClick={() => session.save({ [state.field]: "" })}
-                  >
-                    {t("inherit")}
-                  </Button>
-                  <Button
-                    size="small"
-                    disabled={busy}
-                    onClick={() =>
-                      session.save({ [state.field]: EMPTY_SELECTOR })
-                    }
-                  >
-                    {t("clear")}
-                  </Button>
-                </Stack>
-                <Typography variant="caption" color="text.secondary">
-                  {t("inheritHelp")}
-                </Typography>
-                {anchor?.compact && !!state.candidates.length && (
-                  <CandidateList {...{ session, state, t }} />
-                )}
-                <TextField
-                  label={t("input")}
-                  multiline
-                  minRows={2}
-                  maxRows={5}
+                        {t(entry.source)}
+                      </Typography>
+                    </ButtonBase>
+                    <Button
+                      size="small"
+                      color="inherit"
+                      disabled={busy}
+                      onClick={() => session.remove(entry.selector)}
+                      sx={{ position: "absolute", bottom: 8, right: 8 }}
+                    >
+                      {t("delete")}
+                    </Button>
+                  </Box>
+                ))}
+              </Stack>
+              <Stack direction="row" justifyContent="space-between">
+                <Button
                   size="small"
                   disabled={busy}
-                  value={state.input}
-                  error={!!state.validation}
-                  helperText={state.validation || " "}
-                  onChange={(event) => session.setInput(event.target.value)}
-                  inputProps={{ spellCheck: false, style: codeStyle }}
-                />
-                <Stack direction="row" gap={1}>
-                  <Button
-                    variant="contained"
-                    disabled={busy || !state.input.trim() || !!state.validation}
-                    onClick={() => session.commitInput()}
-                    sx={{ flex: 1 }}
-                  >
-                    {t(state.editing ? "update" : "add")}
-                  </Button>
-                  {state.editing && (
-                    <Button
-                      disabled={busy}
-                      onClick={() => session.emit({ editing: null })}
-                    >
-                      {t("cancelEdit")}
-                    </Button>
-                  )}
-                </Stack>
-                {state.notice && (
-                  <Alert
-                    severity={state.notice === "saved" ? "success" : "info"}
-                  >
-                    {t(state.notice)}
-                    {state.notice === "removed-coverage" && (
-                      <Button
-                        disabled={busy}
-                        size="small"
-                        onClick={() =>
-                          session.save({
-                            ignoreSelector: [
-                              ...new Set([
-                                ...session.list("ignoreSelector"),
-                                ...splitSelectorList(state.input),
-                              ]),
-                            ].join(", "),
-                          })
-                        }
-                      >
-                        {t("exclude")}
-                      </Button>
-                    )}
-                  </Alert>
-                )}
-              </>
-            )}
-          </Stack>
-        </Box>
-        <Box
-          sx={{
-            p: 1.5,
-            borderTop: "1px solid",
-            borderColor: "divider",
-            bgcolor: "action.hover",
-          }}
-        >
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Typography variant="caption">
-              {t(state.whole ? "whole" : "entry")}
-            </Typography>
-            <Typography variant="body2" fontWeight={700}>
-              {entryCount} {t("matches")}
-            </Typography>
-          </Stack>
-          <Typography variant="caption" display="block">
-            {state.excluded} {t("excluded")} · {state.hidden} {t("hidden")}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" display="block">
-            {t("legend")}
-          </Typography>
-          <Stack direction="row" gap={0.5} sx={{ mt: 0.5 }}>
-            <Button
-              size="small"
-              aria-label={t("previous")}
-              disabled={!entryCount}
-              onClick={() => session.navigate(-1)}
-            >
-              ←
-            </Button>
-            <Typography variant="caption" sx={{ alignSelf: "center" }}>
-              {entryCount ? `${state.matchIndex || 1} / ${entryCount}` : "0"}
-            </Typography>
-            <Button
-              size="small"
-              aria-label={t("next")}
-              disabled={!entryCount}
-              onClick={() => session.navigate(1)}
-            >
-              →
-            </Button>
-            <Button
-              size="small"
-              disabled={busy || !rule}
-              onClick={() => session.showTranslation(!state.translated)}
-            >
-              {t(state.translated ? "original" : "translation")}
-            </Button>
-          </Stack>
-          <Box component="details" sx={{ fontSize: 11, my: 0.5 }}>
-            <Box component="summary" sx={{ cursor: "pointer" }}>
-              {t("previewHelp")}
-            </Box>
-            <Typography variant="caption">{t("boundary")}</Typography>
-          </Box>
-          <Stack direction="row" justifyContent="space-between">
-            <Button
-              size="small"
-              disabled={busy || !state.undo}
-              onClick={() => session.history()}
-            >
-              {t("undo")}
-            </Button>
-            <Button
-              size="small"
-              disabled={busy || !state.redo}
-              onClick={() => session.history(true)}
-            >
-              {t("redo")}
-            </Button>
-            <Button
-              size="small"
-              onClick={() =>
-                session.emit({
-                  side: state.side === "right" ? "left" : "right",
-                })
-              }
-            >
-              {t("dock")}
-            </Button>
-          </Stack>
+                  title={t("inheritHelp")}
+                  onClick={() => session.save({ [state.field]: "" })}
+                >
+                  {t("inherit")}
+                </Button>
+                <Button
+                  size="small"
+                  disabled={busy}
+                  onClick={() =>
+                    session.save({ [state.field]: EMPTY_SELECTOR })
+                  }
+                >
+                  {t("clear")}
+                </Button>
+              </Stack>
+              <Divider />
+              <Stack direction="row" justifyContent="space-between">
+                <Button
+                  size="small"
+                  disabled={busy}
+                  onClick={() => session.showWhole()}
+                >
+                  {t("whole")}
+                </Button>
+                <Button
+                  size="small"
+                  disabled={busy}
+                  onClick={() => session.showTranslation(!state.translated)}
+                >
+                  {t(state.translated ? "original" : "translation")}
+                </Button>
+              </Stack>
+              <Notice {...{ session, state, t }} />
+            </>
+          )}
           {state.saving && (
             <Typography role="status" variant="caption">
               {t("saving")}
             </Typography>
           )}
-        </Box>
-      </Paper>
-      {anchor &&
-        !anchor.compact &&
-        !!state.candidates.length &&
-        !state.picking &&
-        !state.translated && (
-          <Paper
-            sx={{
-              ...panelStyle,
-              left: anchor.left,
-              top: anchor.top,
-              width: 302,
-              maxHeight: "min(65vh, 540px)",
-              p: 1.5,
-            }}
-          >
+        </Stack>
+      </FloatingPanel>
+      {inspectorVisible && (
+        <FloatingPanel
+          title={t(state.editing ? "editSelector" : "candidates")}
+          moveLabel={t("moveInspector")}
+          position={inspectorPosition || adjacent}
+          onMove={setInspectorPosition}
+          width={380}
+          viewport={viewport}
+          actions={
+            <IconButton
+              title={t("closeInspector")}
+              aria-label={t("closeInspector")}
+              disabled={state.saving}
+              onClick={() => session.closeInspector()}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          }
+          footer={
+            <Stack spacing={1.5}>
+              <TextField
+                label={t("input")}
+                multiline
+                minRows={2}
+                maxRows={4}
+                size="small"
+                disabled={busy}
+                value={state.input}
+                error={!!state.validation}
+                helperText={state.validation || undefined}
+                onChange={(event) => session.setInput(event.target.value)}
+                inputProps={{ spellCheck: false, style: codeStyle }}
+              />
+              <Button
+                fullWidth
+                variant="contained"
+                disabled={busy || !state.input.trim() || !!state.validation}
+                onClick={() => session.commitInput()}
+              >
+                {t(state.editing ? "update" : "add")}
+              </Button>
+            </Stack>
+          }
+        >
+          <Stack spacing={2}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <Typography variant="body2" color="text.secondary">
+                {t(state.field)}
+              </Typography>
+              <Button
+                size="small"
+                disabled={busy}
+                onClick={() => session.pick()}
+              >
+                {t("pick")}
+              </Button>
+            </Stack>
             <CandidateList {...{ session, state, t }} />
-          </Paper>
-        )}
+            {!!state.matches.length && (
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <Typography variant="caption">
+                  {state.matches.length} {t("matches")}
+                </Typography>
+                <Stack direction="row" alignItems="center">
+                  <Button
+                    size="small"
+                    aria-label={t("previous")}
+                    onClick={() => session.navigate(-1)}
+                  >
+                    ←
+                  </Button>
+                  <Button
+                    size="small"
+                    aria-label={t("next")}
+                    onClick={() => session.navigate(1)}
+                  >
+                    →
+                  </Button>
+                </Stack>
+              </Stack>
+            )}
+          </Stack>
+        </FloatingPanel>
+      )}
     </>
   );
 }
@@ -567,7 +537,7 @@ function Editor({ session, onExit }) {
 export default function RuleEditor(props) {
   return (
     <SettingProvider context="ruleEditor">
-      <Theme>
+      <Theme options={themeOptions}>
         <Editor {...props} />
       </Theme>
     </SettingProvider>
