@@ -17,17 +17,20 @@ import { sendBgMsg } from "./msg";
 import { parseResponse } from "./response";
 
 /**
- * 清除翻译网络请求的本地缓存
+ * Clear translation caches and report whether the operation completed.
+ * A cache that does not exist is already clear and counts as success.
+ * @returns {Promise<boolean>} Whether the local or background clear succeeded.
  */
 export const tryClearCaches = async () => {
   try {
     if (isExt && !isBg()) {
-      await sendBgMsg(MSG_CLEAR_CACHES);
-    } else {
-      await caches.delete(CACHE_NAME);
+      return (await sendBgMsg(MSG_CLEAR_CACHES)) === true;
     }
+    await caches.delete(CACHE_NAME);
+    return true;
   } catch (err) {
     kissLog("clean caches", err);
+    return false;
   }
 };
 

@@ -8,6 +8,7 @@ import { browser } from "../../libs/browser";
 import { useAlert } from "../../hooks/Alert";
 import { useSetting } from "../../hooks/Setting";
 import { useFab } from "../../hooks/Fab";
+import { tryClearCaches } from "../../libs/cache";
 import {
   hasClipboardReadPermission,
   requestClipboardReadPermission,
@@ -48,6 +49,7 @@ jest.mock("../../hooks/Shortcut", () => ({ useShortcut: jest.fn() }));
 jest.mock("./ShortcutInput", () => () => null);
 jest.mock("../../hooks/Fab", () => ({ useFab: jest.fn() }));
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
+jest.mock("../../libs/cache", () => ({ tryClearCaches: jest.fn() }));
 jest.mock("../../libs/log", () => ({
   kissLog: jest.fn(),
   LogLevel: { INFO: { value: 3 } },
@@ -67,6 +69,7 @@ const commands = [
 const alert = {
   info: jest.fn(),
   success: jest.fn(),
+  error: jest.fn(),
   warning: jest.fn(),
 };
 const originalUserAgent = navigator.userAgent;
@@ -120,6 +123,49 @@ describe("Settings overview layout", () => {
 
     act(() => root.unmount());
   });
+});
+
+describe("Settings cache feedback", () => {
+  beforeEach(() => {
+    browser.commands.getAll.mockResolvedValue([]);
+    alert.success.mockReset();
+    alert.error.mockReset();
+    useAlert.mockReturnValue(alert);
+    useSetting.mockReturnValue({
+      setting: { uiLang: "zh", logLevel: 3, clearCache: false },
+      updateSetting: jest.fn(),
+    });
+    useFab.mockReturnValue({ fab: {}, updateFab: jest.fn() });
+    tryClearCaches.mockReset();
+  });
+
+  test.each([true, false])(
+    "waits for cache completion before reporting success=%s",
+    async (cleared) => {
+      let resolveClear;
+      tryClearCaches.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveClear = resolve;
+          })
+      );
+      const { container, root } = await renderSettings();
+      const button = Array.from(container.querySelectorAll("button")).find(
+        (element) => element.textContent === "clear_all_cache_now"
+      );
+      act(() => button.click());
+      expect(tryClearCaches).toHaveBeenCalledTimes(1);
+      expect(alert.success).not.toHaveBeenCalled();
+      expect(alert.error).not.toHaveBeenCalled();
+
+      await act(async () => resolveClear(cleared));
+      expect(cleared ? alert.success : alert.error).toHaveBeenCalledWith(
+        cleared ? "clear_success" : "clear_failed"
+      );
+      expect(cleared ? alert.error : alert.success).not.toHaveBeenCalled();
+      act(() => root.unmount());
+    }
+  );
 });
 
 describe("ExtCommands", () => {

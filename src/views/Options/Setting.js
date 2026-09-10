@@ -22,7 +22,6 @@ import Typography from "@mui/material/Typography";
 import {
   UI_LANGS,
   TRANS_NEWLINE_LENGTH,
-  CACHE_NAME,
   OPT_LANGDETECTOR_ALL,
   OPT_SHORTCUT_TRANSLATE,
   OPT_SHORTCUT_TRANSONLY,
@@ -41,6 +40,7 @@ import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
 import { useFab } from "../../hooks/Fab";
 import { sendBgMsg } from "../../libs/msg";
+import { tryClearCaches } from "../../libs/cache";
 import { kissLog, LogLevel } from "../../libs/log";
 import UploadButton from "./UploadButton";
 import DownloadButton from "./DownloadButton";
@@ -243,13 +243,12 @@ export default function Settings() {
     });
   };
 
-  // 清除本地网络请求翻译缓存
-  const handleClearCache = () => {
-    try {
-      caches.delete(CACHE_NAME);
+  // Report cache clearing only after the local or background operation completes.
+  const handleClearCache = async () => {
+    if (await tryClearCaches()) {
       alert.success(i18n("clear_success"));
-    } catch (err) {
-      kissLog("clear cache", err);
+    } else {
+      alert.error(i18n("clear_failed"));
     }
   };
 

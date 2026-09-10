@@ -3,6 +3,7 @@ import { act, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import PopupCont from "./PopupCont";
 import { getVisibleServices } from "./services";
+import { tryClearCaches } from "../../libs/cache";
 import {
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANS_GETRULE,
@@ -149,6 +150,8 @@ function renderPopupCont(props = {}, { statefulRule = false } = {}) {
 describe("PopupCont capability parity", () => {
   beforeEach(() => {
     mockIsExt = false;
+    tryClearCaches.mockReset();
+    tryClearCaches.mockResolvedValue(true);
     mockSendBgMsg.mockReset();
     mockSendBgMsg.mockResolvedValue([]);
     mockSendTabMsg.mockReset();
@@ -316,6 +319,48 @@ describe("PopupCont capability parity", () => {
       view.container.querySelectorAll(".kt-popup-style-chip")
     ).find((button) => button.textContent.includes("Style 6"));
     expect(customStyleButton.querySelector("span").className).toBe("");
+    view.cleanup();
+  });
+
+  test("waits for cache clearing before showing success", async () => {
+    let resolveClear;
+    tryClearCaches.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveClear = resolve;
+        })
+    );
+    const view = renderPopupCont();
+    await flushEffects();
+    const clearCache = view.container.querySelector(
+      'button[aria-label="clear_cache"]'
+    );
+
+    act(() => clearCache.click());
+    expect(tryClearCaches).toHaveBeenCalledTimes(1);
+    expect(view.container.textContent).not.toContain("clear_success");
+    expect(view.container.textContent).not.toContain("clear_failed");
+
+    await act(async () => resolveClear(true));
+    expect(
+      view.container.querySelector('[role="alert"]').textContent
+    ).toContain("clear_success");
+    view.cleanup();
+  });
+
+  test("reports cache clearing failure without a success message", async () => {
+    tryClearCaches.mockResolvedValueOnce(false);
+    const view = renderPopupCont();
+    await flushEffects();
+    const clearCache = view.container.querySelector(
+      'button[aria-label="clear_cache"]'
+    );
+
+    await act(async () => clearCache.click());
+    expect(
+      view.container.querySelector('[role="alert"]').textContent
+    ).toContain("clear_failed");
+    expect(view.container.textContent).not.toContain("clear_success");
     view.cleanup();
   });
 

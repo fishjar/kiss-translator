@@ -1397,6 +1397,156 @@ describe("Apis with stateful API hooks", () => {
     }
   );
 
+  describe.each([false, true])(
+    "API status rebasing (StrictMode: %s)",
+    (strictMode) => {
+      test.each([
+        {
+          name: "accepts a synced disable over a draft pin",
+          initialStatus: { isDisabled: false, sortOrder: 0 },
+          draftControls: ["isPinned"],
+          syncedStatus: { isDisabled: true, sortOrder: 1001 },
+          expectedStatus: { isDisabled: true, sortOrder: 1001 },
+        },
+        {
+          name: "accepts a synced disable over a draft unpin",
+          initialStatus: { isDisabled: false, sortOrder: -1 },
+          draftControls: ["isPinned"],
+          syncedStatus: { isDisabled: true, sortOrder: 1001 },
+          expectedStatus: { isDisabled: true, sortOrder: 1001 },
+        },
+        {
+          name: "keeps a draft disable over a synced pin",
+          initialStatus: { isDisabled: false, sortOrder: 0 },
+          draftControls: ["isDisabled"],
+          syncedStatus: { isDisabled: false, sortOrder: -1 },
+          expectedStatus: { isDisabled: true, sortOrder: 999 },
+        },
+        {
+          name: "keeps a draft enable over a synced disabled order",
+          initialStatus: { isDisabled: true, sortOrder: 999 },
+          draftControls: ["isDisabled"],
+          syncedStatus: { isDisabled: true, sortOrder: 1001 },
+          expectedStatus: { isDisabled: false, sortOrder: 0 },
+        },
+        {
+          name: "accepts a synced enable after toggling a draft back to disabled",
+          initialStatus: { isDisabled: true, sortOrder: 1001 },
+          draftControls: ["isDisabled", "isDisabled"],
+          syncedStatus: { isDisabled: false, sortOrder: -1 },
+          expectedStatus: { isDisabled: false, sortOrder: -1 },
+        },
+        {
+          name: "keeps a valid draft pin over a synced enabled order",
+          initialStatus: { isDisabled: false, sortOrder: 0 },
+          draftControls: ["isPinned"],
+          syncedStatus: { isDisabled: false, sortOrder: 2 },
+          expectedStatus: { isDisabled: false, sortOrder: -1 },
+        },
+        {
+          name: "keeps a draft enable and pin over a synced disabled order",
+          initialStatus: { isDisabled: true, sortOrder: 999 },
+          draftControls: ["isDisabled", "isPinned"],
+          syncedStatus: { isDisabled: true, sortOrder: 1001 },
+          expectedStatus: { isDisabled: false, sortOrder: -1 },
+        },
+      ])(
+        "$name before and after saving",
+        async ({
+          initialStatus,
+          draftControls,
+          syncedStatus,
+          expectedStatus,
+        }) => {
+          const otherApi = createApi({
+            apiSlug: "other",
+            apiName: "Other",
+            isDisabled: true,
+            sortOrder: 1200,
+          });
+          const view = await renderStatefulApis(
+            [
+              createApi({ ...initialStatus, customHeader: "obsolete-header" }),
+              otherApi,
+            ],
+            strictMode
+          );
+
+          try {
+            await editUrlDraft(view.container);
+            for (const control of draftControls) {
+              await act(async () => getInput(view.container, control).click());
+            }
+            expect(view.setting.transApis[0]).toMatchObject(initialStatus);
+
+            await view.updateSetting((setting) => ({
+              ...setting,
+              transApis: setting.transApis.map((api) => {
+                if (api.apiSlug !== "OpenAI") return api;
+                const syncedApi = {
+                  ...api,
+                  ...syncedStatus,
+                  url: "https://synced.example/v1",
+                  key: "synced-key",
+                  model: "gpt-4.1",
+                };
+                delete syncedApi.customHeader;
+                return syncedApi;
+              }),
+            }));
+
+            expect(getInput(view.container, "isDisabled").checked).toBe(
+              expectedStatus.isDisabled
+            );
+            expect(getInput(view.container, "isPinned").checked).toBe(
+              expectedStatus.sortOrder === -1
+            );
+            expect(getInput(view.container, "isPinned").disabled).toBe(
+              expectedStatus.isDisabled
+            );
+            expect(getInput(view.container, "url").value).toBe(
+              "https://draft.example/v1"
+            );
+            expect(getInput(view.container, "model").value).toBe("gpt-4.1");
+            expect(getSaveButton(view.container).disabled).toBe(false);
+
+            const expectedApi = {
+              ...expectedStatus,
+              url: "https://draft.example/v1",
+              key: "synced-key",
+              model: "gpt-4.1",
+            };
+            apiTranslate.mockResolvedValue({ trText: "Translated text" });
+            const testButton = Array.from(
+              view.container.querySelectorAll("button")
+            ).find((button) => button.textContent === "click_test");
+            await act(async () => testButton.click());
+            expect(apiTranslate).toHaveBeenLastCalledWith(
+              expect.objectContaining({
+                apiSetting: expect.objectContaining(expectedApi),
+              })
+            );
+            expect(view.setting.transApis[0]).toMatchObject({
+              ...syncedStatus,
+              url: "https://synced.example/v1",
+            });
+
+            await act(async () => getSaveButton(view.container).click());
+
+            expect(view.setting.transApis[0]).toMatchObject(expectedApi);
+            expect(view.setting.transApis[0]).not.toHaveProperty(
+              "customHeader"
+            );
+            expect(view.setting.transApis[1]).toEqual(otherApi);
+            expect(getSaveButton(view.container).disabled).toBe(true);
+          } finally {
+            view.unmount();
+          }
+        }
+      );
+    }
+  );
+
   test("accepts normalized draft values after a synced model change", async () => {
     const view = await renderStatefulApis([
       createApi({

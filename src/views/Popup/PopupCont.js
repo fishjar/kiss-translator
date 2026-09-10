@@ -287,9 +287,12 @@ export default function PopupCont({
   const { handleInputToggle, handleMouseHoverToggle, handleTransboxToggle } =
     usePopupFeatureToggles({ processActions, setSetting });
 
-  const handleClearCache = useCallback(() => {
-    tryClearCaches();
-    showMessage(i18n("clear_success"));
+  const handleClearCache = useCallback(async () => {
+    const cleared = await tryClearCaches();
+    showMessage(
+      i18n(cleared ? "clear_success" : "clear_failed"),
+      cleared ? "success" : "error"
+    );
   }, [i18n, showMessage]);
 
   const handleSaveRule = useCallback(async () => {

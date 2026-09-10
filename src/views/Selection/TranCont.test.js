@@ -190,6 +190,65 @@ describe("TranCont", () => {
     act(() => root.unmount());
   });
 
+  test.each(["", " \t\r\n "])(
+    "shows the Popup input hint for empty or whitespace source %j",
+    async (text) => {
+      const { container, root } = renderTranCont({ text, popupStyle: true });
+      await flushEffects();
+
+      const body = container.querySelector(
+        ".kt-popup-translation-result__body"
+      );
+      expect(body.textContent).toBe("popup_enter_text");
+      expect(body.getAttribute("aria-busy")).toBe("false");
+      expect(container.querySelector("[data-copy-text]")).toBeNull();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      act(() => root.unmount());
+    }
+  );
+
+  test("keeps the Popup result empty when automatic detection matches the target language", async () => {
+    apiTranslate.mockResolvedValueOnce({
+      trText: "hello",
+      srLang: "en",
+      srCode: "en",
+      isSame: true,
+    });
+    const { container, root } = renderTranCont({
+      text: "hello",
+      fromLang: "auto",
+      toLang: "en",
+      popupStyle: true,
+    });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "hello",
+        fromLang: "auto",
+        toLang: "en",
+      })
+    );
+    const body = container.querySelector(".kt-popup-translation-result__body");
+    expect(body.textContent).toBe("");
+    expect(body.getAttribute("aria-busy")).toBe("false");
+    expect(container.querySelector("[data-copy-text]")).toBeNull();
+    act(() => root.unmount());
+  });
+
+  test("keeps the Popup result empty when a successful translation returns no text", async () => {
+    apiTranslate.mockResolvedValueOnce({ trText: "", isSame: false });
+    const { container, root } = renderTranCont({ popupStyle: true });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    const body = container.querySelector(".kt-popup-translation-result__body");
+    expect(body.textContent).toBe("");
+    expect(body.getAttribute("aria-busy")).toBe("false");
+    expect(container.querySelector("[data-copy-text]")).toBeNull();
+    act(() => root.unmount());
+  });
+
   test("keeps the Popup copy action hidden until translation text exists", async () => {
     const deferred = createDeferred();
     apiTranslate.mockReturnValueOnce(deferred.promise);

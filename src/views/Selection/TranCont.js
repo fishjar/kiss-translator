@@ -355,11 +355,11 @@ export default function TranCont({
             <span className="kt-popup-translation-result__error">{error}</span>
           ) : trText ? (
             <span>{trText}</span>
-          ) : (
+          ) : !text?.trim() ? (
             <span className="kt-popup-translation-result__empty">
               {i18n("popup_enter_text")}
             </span>
-          )}
+          ) : null}
         </div>
       </article>
     );

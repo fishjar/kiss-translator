@@ -260,7 +260,14 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
             JSON.stringify(value) !== JSON.stringify(previousApi[key])
         )
       );
-      return { ...api, ...draftChanges };
+      const nextFormData = { ...api, ...draftChanges };
+      if (
+        Boolean(nextFormData.isDisabled) !== Boolean(currentFormData.isDisabled)
+      ) {
+        // A synced status change also owns its dependent pin/disabled order.
+        nextFormData.sortOrder = api.sortOrder;
+      }
+      return nextFormData;
     });
     lastSyncedApiRef.current = api;
   }, [api, apiSlug]);
