@@ -3,8 +3,10 @@ import {
   findMatchingRule,
   hostnamePattern,
   matchesRulePattern,
+  mergeRules,
   resolveRuleContext,
 } from "./rules";
+import { getDomainOptions } from "./url";
 import { getRulesWithDefault } from "./storage";
 import {
   EMPTY_SELECTOR,
@@ -32,6 +34,8 @@ export class RuleEditorSession {
     this.state = {
       loading: true,
       saving: false,
+      dirty: false,
+      confirmAction: "",
       field: "selector",
       input: "",
       pattern: "",
@@ -64,6 +68,14 @@ export class RuleEditorSession {
     this.state = {
       ...this.state,
       ...patch,
+      dirty: this.savedContext
+        ? !this.savedContext.site ||
+          (patch.pattern ?? this.state.pattern).trim() !==
+            this.baseline.pattern ||
+          Object.keys(this.draft).some(
+            (key) => this.draft[key] !== this.baseline[key]
+          )
+        : false,
       undo: !!this.undoStack.length,
       redo: !!this.redoStack.length,
     };
@@ -124,6 +136,7 @@ export class RuleEditorSession {
         !this.state.translated &&
         !this.state.saving &&
         !this.state.loading &&
+        !this.state.confirmAction &&
         !event.altKey &&
         !event.ctrlKey &&
         !event.metaKey &&
@@ -158,13 +171,21 @@ export class RuleEditorSession {
         event.preventDefault();
         event.stopImmediatePropagation();
         if (this.state.saving) return;
-        if (this.state.picking) {
+        if (this.state.confirmAction) {
+          this.emit({ confirmAction: "" });
+        } else if (this.state.picking) {
           this.cancelPick();
         } else if (this.state.inspectorOpen) this.closeInspector();
-        else this.onExit();
+        else this.requestAction("exit");
       }
     };
     window.addEventListener("keydown", this.handleKey, true);
+    this.handleBeforeUnload = (event) => {
+      if (!this.state.dirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", this.handleBeforeUnload);
     this.observer = new MutationObserver((records) => {
       if (
         records.every((record) =>
@@ -189,32 +210,17 @@ export class RuleEditorSession {
       characterData: true,
     });
     this.routeTimer = setInterval(() => {
-      if (window.location.href !== this.href && !this.state.loading) {
-        this.href = window.location.href;
-        this.context = null;
-        this.activeMatch = null;
-        this.undoStack = [];
-        this.redoStack = [];
-        this.emit({
-          picking: false,
-          inspectorOpen: false,
-          input: "",
-          editing: null,
-          selected: null,
-          ancestors: [],
-          candidates: [],
-          translated: false,
-          notice: "route-changed",
-        });
-        this.translator.setRuleEditingPreview(false);
-        this.load();
+      if (
+        window.location.href !== (this.observedHref || this.href) &&
+        !this.state.loading &&
+        !this.state.saving
+      ) {
+        this.observedHref = window.location.href;
+        this.requestAction("reload");
       }
     }, 400);
     this.storageTimer = setInterval(() => this.checkExternalChanges(), 1500);
     await this.load();
-    if (this.context && this.context.effective.autoScan !== "false") {
-      await this.save({ autoScan: "false" });
-    }
   }
   async checkExternalChanges() {
     if (
@@ -226,10 +232,10 @@ export class RuleEditorSession {
     )
       return;
     this.checkingStorage = true;
-    const context = this.context;
+    const context = this.savedContext;
     try {
       const rules = await getRulesWithDefault();
-      if (this.disposed || this.state.saving || context !== this.context)
+      if (this.disposed || this.state.saving || context !== this.savedContext)
         return;
       const personal = context.site
         ? rules.find((rule) => rule.pattern === context.site.pattern) || null
@@ -269,17 +275,70 @@ export class RuleEditorSession {
         this.context?.site?.pattern
       );
       if (this.disposed || href !== this.href) return;
-      this.context = context;
+      this.resetDraft(context);
       this.translator.updateRule({ ...context.effective, transOpen: "false" });
       this.emit({
         context,
         loading: false,
-        pattern: context.site?.pattern || hostnamePattern(href),
+        pattern: this.draft.pattern,
+        domainOptions: getDomainOptions(href),
       });
       this.refresh();
     } catch (error) {
       this.emit({ loading: false, error: error.message });
     }
+  }
+  resetDraft(context) {
+    this.savedContext = context;
+    this.context = context;
+    this.baseline = {
+      ...DEFAULT_RULE,
+      ...(context.site || context.personal),
+      pattern: context.site?.pattern || getDomainOptions(this.href)[0],
+    };
+    this.draft = { ...this.baseline };
+  }
+  requestAction(action) {
+    if (this.disposed || this.state.saving) return;
+    if (this.state.dirty) {
+      this.cancelPick();
+      this.emit({ confirmAction: action });
+    } else return this.finishAction(action);
+  }
+  async confirmAction(save) {
+    const action = this.state.confirmAction;
+    if (!action || this.state.saving) return;
+    if (save && !(await this.save())) return;
+    return this.finishAction(action);
+  }
+  async finishAction(action) {
+    this.emit({ confirmAction: "" });
+    if (action === "reload") {
+      const changed = this.href !== window.location.href;
+      this.href = window.location.href;
+      this.observedHref = this.href;
+      if (changed) this.context = null;
+      this.closeInspector();
+      this.emit({ notice: changed ? "route-changed" : "" });
+      return this.load();
+    }
+    // A SPA can navigate while the user keeps the old page's draft open.
+    // Restore the rule for the actual page when leaving that draft.
+    if (this.href !== window.location.href) {
+      this.emit({ loading: true });
+      try {
+        const context = await resolveRuleContext(
+          window.location.href,
+          this.translator.setting
+        );
+        if (this.disposed) return;
+        this.restoreRule = context.effective;
+      } catch (error) {
+        this.emit({ loading: false, error: error.message });
+        return;
+      }
+    }
+    this.onExit();
   }
   list(field = this.state.field) {
     try {
@@ -464,9 +523,10 @@ export class RuleEditorSession {
     }
   }
   showWhole() {
+    const whole = !this.state.whole;
     this.closeInspector();
     this.showTranslation(false);
-    this.emit({ whole: true, picking: false });
+    this.emit({ whole, picking: false });
     this.refresh();
   }
   navigate(direction) {
@@ -494,28 +554,26 @@ export class RuleEditorSession {
   setPattern(pattern) {
     this.emit({ pattern, patternError: "" });
   }
-  async commitPattern() {
+  commitPattern() {
     const pattern = this.state.pattern.trim();
-    if (
-      pattern === (this.context?.site?.pattern || hostnamePattern(this.href))
-    ) {
-      this.emit({ pattern });
-      return;
-    }
     if (!pattern || pattern === "*") {
       this.emit({ patternError: "invalid-pattern" });
-      return;
+      return false;
     }
-    await this.save({ pattern });
+    return this.updateDraft({ pattern });
   }
   showTranslation(show) {
     if (show === this.state.translated) return;
     this.translator.setRuleEditingPreview(show);
-    this.emit({ translated: show, picking: false });
+    this.emit({
+      translated: show,
+      picking: false,
+      ...(show ? { whole: false } : {}),
+    });
     this.highlights.show([]);
     if (!show) this.refresh();
   }
-  async commitInput() {
+  commitInput() {
     try {
       const selectors = splitSelectorList(this.state.input);
       if (!selectors.length) return;
@@ -523,20 +581,20 @@ export class RuleEditorSession {
       const list = this.list().filter(
         (selector) => selector !== this.state.editing
       );
-      const saved = await this.save({
+      const updated = this.updateDraft({
         [this.state.field]: [...new Set([...list, ...selectors])].join(", "),
       });
-      if (saved) this.closeInspector();
+      if (updated) this.closeInspector();
     } catch (error) {
       this.emit({ error: error.message });
     }
   }
-  async remove(selector) {
+  remove(selector) {
     const list = this.list().filter((item) => item !== selector);
-    const saved = await this.save({
+    const updated = this.updateDraft({
       [this.state.field]: list.join(", ") || EMPTY_SELECTOR,
     });
-    if (saved) {
+    if (updated) {
       this.closeInspector();
       const targets = this.translator.previewRule().targets;
       const coverage = this.classify(queryPage(selector)).some(
@@ -557,51 +615,75 @@ export class RuleEditorSession {
       this.refresh();
     }
   }
-  async save(patch, history = "push") {
-    if (this.disposed || this.state.saving || this.state.loading) return false;
-    if (window.location.href !== this.href) {
-      this.href = window.location.href;
-      this.context = null;
-      this.emit({ notice: "route-changed" });
-      await this.load();
+  updateDraft(patch, history = "push") {
+    if (this.disposed || this.state.saving || this.state.loading || !this.draft)
       return false;
-    }
     this.showTranslation(false);
-    const href = this.href;
-    const raw = this.context.site || this.context.personal || DEFAULT_RULE;
     const before = Object.fromEntries(
-      Object.keys(patch).map((key) => [
-        key,
-        key === "pattern"
-          ? this.context.site?.pattern || hostnamePattern(href)
-          : (raw[key] ?? DEFAULT_RULE[key]),
-      ])
+      Object.keys(patch).map((key) => [key, this.draft[key]])
     );
+    const changed = Object.keys(patch).some(
+      (key) => patch[key] !== before[key]
+    );
+    this.draft = { ...this.draft, ...patch };
+    this.context = {
+      ...this.savedContext,
+      personal: this.draft,
+      effective: mergeRules(this.savedContext.inherited, this.draft),
+    };
+    this.translator.updateRule({
+      ...this.context.effective,
+      transOpen: "false",
+    });
+    if (changed && history === "push") {
+      this.undoStack.push({ before, after: patch });
+      this.redoStack = [];
+    }
+    this.emit({
+      context: this.context,
+      notice: "",
+      ...(patch.pattern ? { pattern: patch.pattern, patternError: "" } : {}),
+    });
+    this.refresh();
+    return true;
+  }
+  async save() {
+    if (
+      this.disposed ||
+      this.state.saving ||
+      this.state.loading ||
+      !this.context
+    )
+      return false;
+    if (!this.commitPattern()) return false;
+    const patch = Object.fromEntries(
+      Object.keys(this.draft)
+        .filter((key) => this.draft[key] !== this.baseline[key])
+        .map((key) => [key, this.draft[key]])
+    );
+    if (!this.savedContext.site) patch.pattern = this.draft.pattern;
+    if (!Object.keys(patch).length) return true;
+    const href = this.href;
     this.emit({ saving: true, error: "", notice: "" });
     try {
       const context = await saveSiteRule({
         href,
         patch,
-        expected: this.context.site,
-        seed: this.context.personal,
-        inherited: this.context.inherited,
+        expected: this.savedContext.site,
+        seed: this.savedContext.personal,
+        inherited: this.savedContext.inherited,
       });
       if (!context?.effective) throw new Error("save-failed");
       if (this.disposed || href !== this.href) return false;
-      this.context = context;
+      this.resetDraft(context);
       this.translator.updateRule({ ...context.effective, transOpen: "false" });
-      if (history === "push") {
-        this.undoStack.push({ before, after: patch });
-        this.redoStack = [];
-      }
       this.emit({
         context,
         saving: false,
         editing: null,
         notice: "saved",
-        ...(patch.pattern
-          ? { pattern: context.site.pattern, patternError: "" }
-          : {}),
+        pattern: this.draft.pattern,
+        patternError: "",
       });
       this.refresh();
       return true;
@@ -621,10 +703,10 @@ export class RuleEditorSession {
       this.emit({ saving: false });
     }
   }
-  async history(redo = false) {
+  history(redo = false) {
     const from = redo ? this.redoStack : this.undoStack;
     const item = from[from.length - 1];
-    if (item && (await this.save(redo ? item.after : item.before, "history"))) {
+    if (item && this.updateDraft(redo ? item.after : item.before, "history")) {
       from.pop();
       (redo ? this.undoStack : this.redoStack).push(item);
       this.emit();
@@ -642,11 +724,14 @@ export class RuleEditorSession {
       window.removeEventListener(type, this.handlePointer, true)
     );
     window.removeEventListener("keydown", this.handleKey, true);
+    window.removeEventListener("beforeunload", this.handleBeforeUnload);
     this.highlights?.destroy();
-    if (restore && this.runtimeState && this.context?.pageEffective) {
+    if (restore && this.runtimeState && this.savedContext) {
       this.translator.setRuleEditingPreview(false);
       this.translator.updateRule({
-        ...this.context.pageEffective,
+        ...(this.restoreRule ||
+          this.savedContext.pageEffective ||
+          this.savedContext.effective),
         transOpen: "false",
       });
     }

@@ -41,7 +41,9 @@ beforeEach(() => {
     matches: [],
     ancestors: [],
     candidates: [],
-    pattern: "hostname:localhost",
+    pattern: "localhost",
+    domainOptions: ["localhost", "localhost:*"],
+    dirty: true,
   };
   session = {
     subscribe: () => () => {},
@@ -52,6 +54,11 @@ beforeEach(() => {
     refresh: jest.fn(),
     closeInspector: jest.fn(),
     save: jest.fn(),
+    updateDraft: jest.fn(),
+    requestAction: jest.fn(),
+    confirmAction: jest.fn(),
+    emit: jest.fn(),
+    showWhole: jest.fn(),
     setField: jest.fn(),
     setPattern: jest.fn(),
     commitPattern: jest.fn(),
@@ -104,7 +111,7 @@ test("selector input and save live only in the closable inspector", async () => 
 test("themed menus reuse settings labels and keep automatic scanning values", async () => {
   await render();
   expect(container.querySelector("select")).toBeNull();
-  const selects = container.querySelectorAll('[role="combobox"]');
+  const selects = container.querySelectorAll('div[role="combobox"]');
   expect(selects[0].textContent).toContain("disable");
   expect(container.textContent).toContain("auto_scan_page");
   expect(selects[1].textContent).toContain("target_selector");
@@ -114,7 +121,8 @@ test("themed menus reuse settings labels and keep automatic scanning values", as
     )
   );
   click(document.querySelector('[role="option"][data-value="true"]'));
-  expect(session.save).toHaveBeenCalledWith({ autoScan: "true" });
+  expect(session.updateDraft).toHaveBeenCalledWith({ autoScan: "true" });
+  expect(session.save).not.toHaveBeenCalled();
   act(() =>
     selects[1].dispatchEvent(
       new MouseEvent("mousedown", { bubbles: true, button: 0 })
@@ -195,7 +203,7 @@ test("shadow-tree menus keep focus on options and support arrow navigation", asy
   shadow.appendChild(wrapper);
   root = createRoot(wrapper);
   await render();
-  const scan = shadow.querySelector('[role="combobox"]');
+  const scan = shadow.querySelector('div[role="combobox"]');
   act(() =>
     scan.dispatchEvent(
       new MouseEvent("mousedown", { bubbles: true, button: 0 })
@@ -211,34 +219,89 @@ test("shadow-tree menus keep focus on options and support arrow navigation", asy
   );
   expect(shadow.activeElement).toBe(options[1]);
   click(options[1]);
-  expect(session.save).toHaveBeenCalledWith({ autoScan: "true" });
+  expect(session.updateDraft).toHaveBeenCalledWith({ autoScan: "true" });
 });
 
-test("site pattern is editable and saves on blur or Enter", async () => {
+test("site pattern supports custom input and dropdown choices without saving", async () => {
   await render();
-  const input = container.querySelector('input[value="hostname:localhost"]');
+  const input = container.querySelector('input[role="combobox"]');
   expect(input).not.toBeNull();
   act(() => {
     input.focus();
     Object.getOwnPropertyDescriptor(
       HTMLInputElement.prototype,
       "value"
-    ).set.call(input, "localhost");
+    ).set.call(input, "https://localhost/custom/*");
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
-  expect(session.setPattern).toHaveBeenCalledWith("localhost");
-  act(() =>
-    input.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+  expect(session.setPattern).toHaveBeenCalledWith("https://localhost/custom/*");
+  act(() => input.blur());
+  expect(session.commitPattern).toHaveBeenCalledTimes(1);
+  click(container.querySelector(".MuiAutocomplete-popupIndicator"));
+  const options = document.querySelectorAll('[role="option"]');
+  expect([...options].map((item) => item.textContent)).toEqual([
+    "localhost",
+    "localhost:*",
+  ]);
+  click(options[1]);
+  expect(session.setPattern).toHaveBeenLastCalledWith("localhost:*");
+  expect(session.save).not.toHaveBeenCalled();
+});
+
+test("the main save and exit controls use the explicit draft workflow", async () => {
+  await render();
+  click(
+    [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "rule_editor_save"
     )
   );
-  expect(session.commitPattern).toHaveBeenCalledTimes(1);
-  act(() => {
-    input.focus();
-    input.blur();
-  });
-  expect(session.commitPattern).toHaveBeenCalledTimes(2);
+  expect(session.save).toHaveBeenCalledWith();
+  click(container.querySelector('button[aria-label="rule_editor_exit"]'));
+  expect(session.requestAction).toHaveBeenCalledWith("exit");
 });
+
+test("the unsaved dialog offers save, discard and keep editing", async () => {
+  session.getSnapshot().confirmAction = "exit";
+  await render();
+  const dialog = container.querySelector('[role="dialog"]');
+  const button = (name) =>
+    [...dialog.querySelectorAll("button")].find(
+      (element) => element.textContent === `rule_editor_${name}`
+    );
+  click(button("continueEditing"));
+  expect(session.emit).toHaveBeenCalledWith({ confirmAction: "" });
+  click(button("discard"));
+  expect(session.confirmAction).toHaveBeenCalledWith(false);
+  click(button("save"));
+  expect(session.confirmAction).toHaveBeenCalledWith(true);
+});
+
+test("confirmation in a shadow tree keeps the editor host accessible", async () => {
+  act(() => root.unmount());
+  const shadow = container.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "notranslate";
+  shadow.appendChild(wrapper);
+  root = createRoot(wrapper);
+  session.getSnapshot().confirmAction = "exit";
+  await render();
+  expect(shadow.querySelector('[role="dialog"]')).not.toBeNull();
+  expect(container.getAttribute("aria-hidden")).not.toBe("true");
+});
+
+test.each([false, true])(
+  "scope preview exposes its toggle state: %s",
+  async (whole) => {
+    session.getSnapshot().whole = whole;
+    await render();
+    const button = [...container.querySelectorAll("button")].find(
+      (element) => element.textContent === "rule_editor_whole"
+    );
+    expect(button.getAttribute("aria-pressed")).toBe(String(whole));
+    click(button);
+    expect(session.showWhole).toHaveBeenCalledTimes(1);
+  }
+);
 
 test("manual addition shows only the selector input and save action", async () => {
   Object.assign(session.getSnapshot(), { inspectorOpen: true, input: "" });

@@ -83,8 +83,31 @@ test("creates a site override preserving the broader personal rule settings", as
   expect(result.effective.selector).toBe(".new");
   expect(result.effective.apiSlug).toBe("custom");
   expect(rules[1]).toEqual(seed);
-  expect(rules[0].pattern).toBe("hostname:news.example.com");
+  expect(rules[0].pattern).toBe("news.example.com");
 });
+
+test.each(["news.example.com", "*.example.com", "hostname:news.example.com"])(
+  "loads existing personal pattern %s and updates it without creating a duplicate",
+  async (pattern) => {
+    rules = checkRules([
+      { pattern, selector: ".old", apiSlug: "custom", autoScan: "false" },
+    ]);
+    const loaded = await resolveRuleContext(href, {});
+    expect(loaded.site.pattern).toBe(pattern);
+    const saved = await writeSiteRule({
+      href,
+      expected: loaded.site,
+      patch: { selector: ".new" },
+    });
+    expect(rules).toHaveLength(1);
+    expect(saved.site).toMatchObject({
+      pattern,
+      selector: ".new",
+      apiSlug: "custom",
+      autoScan: "false",
+    });
+  }
+);
 
 test("preserves concurrent edits to unrelated fields and rejects same-field conflicts", async () => {
   const created = await writeSiteRule({
@@ -139,7 +162,7 @@ test("persists the edit timestamp before starting cloud synchronization", async 
   );
 });
 
-test("renames a saved hostname rule in place, retains other fields and continues editing", async () => {
+test("renames a saved domain rule in place, retains other fields and continues editing", async () => {
   const seed = structuredCopy(rules[0]);
   const created = await writeSiteRule({
     href,
@@ -177,7 +200,7 @@ test("renames a saved hostname rule in place, retains other fields and continues
     expected: updated.site,
     patch: { pattern: created.site.pattern },
   });
-  expect(undone.site.pattern).toBe("hostname:news.example.com");
+  expect(undone.site.pattern).toBe("news.example.com");
   expect(undone.pageEffective).toBeNull();
   expect((await matchRule(href, {})).selector).toBe(".next");
 });
@@ -220,7 +243,7 @@ test("rejects stale edits after another editor has renamed the rule", async () =
   await writeSiteRule({
     href,
     expected: created.site,
-    patch: { pattern: "news.example.com" },
+    patch: { pattern: "https://news.example.com/story*" },
   });
   await expect(
     writeSiteRule({
@@ -241,7 +264,8 @@ test.each(["priority", "rename", "delete"])(
       patch: { selector: ".new" },
     });
     if (change === "priority") rules = [rules[1], rules[0]];
-    else if (change === "rename") rules[0].pattern = "news.example.com";
+    else if (change === "rename")
+      rules[0].pattern = "https://news.example.com/*";
     else rules.shift();
     const snapshot = structuredCopy(rules);
 

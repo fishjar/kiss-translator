@@ -4,6 +4,7 @@ import { resolveRuleContext } from "./rules";
 import { saveSiteRule } from "./ruleEditorStorage";
 import { DEFAULT_RULE, GLOBLA_RULE } from "../config";
 import { getRulesWithDefault } from "./storage";
+import { getDomainOptions } from "./url";
 
 jest.mock("./storage", () => ({ getRulesWithDefault: jest.fn() }));
 jest.mock("./subRules", () => ({ loadOrFetchSubRules: jest.fn() }));
@@ -15,6 +16,7 @@ jest.mock("./rules", () => ({
   findMatchingRule: (rules) =>
     rules.find((rule) => rule.pattern !== "*") || null,
   matchesRulePattern: jest.requireActual("./rules").matchesRulePattern,
+  mergeRules: jest.requireActual("./rules").mergeRules,
 }));
 jest.mock("./ruleEditorStorage", () => ({ saveSiteRule: jest.fn() }));
 jest.mock("./ruleEditorDom", () => ({
@@ -32,7 +34,7 @@ beforeEach(async () => {
     '<main><a href="/away" class="story">Article one</a><p class="story">Article two</p></main>';
   context = {
     effective: { ...GLOBLA_RULE, selector: ".story", autoScan: "false" },
-    inherited: { ...GLOBLA_RULE },
+    inherited: { ...GLOBLA_RULE, selector: ".story", autoScan: "false" },
     personal: null,
     site: null,
     global: { ...GLOBLA_RULE },
@@ -59,7 +61,7 @@ beforeEach(async () => {
       effective: { ...context.effective, ...patch },
       site: {
         ...DEFAULT_RULE,
-        pattern: "hostname:localhost",
+        pattern: "localhost",
         ...context.site,
         ...patch,
       },
@@ -75,11 +77,8 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test.each([
-  null,
-  { ...DEFAULT_RULE, pattern: "hostname:localhost", autoScan: "true" },
-])(
-  "opening switches inherited or saved automatic mode to selected targets: %p",
+test.each([null, { ...DEFAULT_RULE, pattern: "localhost", autoScan: "true" }])(
+  "opening preserves inherited or saved scanning without writing a rule: %p",
   async (site) => {
     session.dispose();
     context = {
@@ -94,26 +93,31 @@ test.each([
     await session.start();
 
     expect(session.state.field).toBe("selector");
-    expect(session.state.context.effective.autoScan).toBe("false");
-    expect(saveSiteRule).toHaveBeenCalledWith(
-      expect.objectContaining({ patch: { autoScan: "false" } })
-    );
+    expect(session.state.context.effective.autoScan).toBe("true");
+    expect(saveSiteRule).not.toHaveBeenCalled();
     expect(translator.updateRule).toHaveBeenLastCalledWith(
-      expect.objectContaining({ autoScan: "false" })
+      expect.objectContaining({ autoScan: "true" })
     );
-    expect(session.undoStack).toHaveLength(1);
+    expect(session.undoStack).toHaveLength(0);
   }
 );
 
-test("opens on translation targets and saves a new entry to that group", async () => {
+test("adds selectors to the draft and persists only on explicit save", async () => {
   expect(session.state.field).toBe("selector");
   expect(saveSiteRule).not.toHaveBeenCalled();
   session.add();
   session.setInput("main > p");
   await session.commitInput();
+  expect(saveSiteRule).not.toHaveBeenCalled();
+  expect(session.context.effective.selector).toBe(".story, main > p");
+  expect(session.state.dirty).toBe(true);
+  await session.save();
   expect(saveSiteRule).toHaveBeenCalledWith(
-    expect.objectContaining({ patch: { selector: ".story, main > p" } })
+    expect.objectContaining({
+      patch: { selector: ".story, main > p", pattern: "localhost" },
+    })
   );
+  expect(session.state.dirty).toBe(false);
 });
 
 test("picking cancels link clicks, locks an element and highlights every candidate match", () => {
@@ -208,7 +212,7 @@ test("closing the inspector cancels its draft without exiting or saving", () => 
   expect(session.state.inspectorOpen).toBe(false);
 });
 
-test("Escape cancels picking, then closes the inspector, then exits", () => {
+test("Escape cancels picking, closes the inspector, then asks before discarding a new rule", async () => {
   const escape = () =>
     window.dispatchEvent(
       new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
@@ -222,23 +226,28 @@ test("Escape cancels picking, then closes the inspector, then exits", () => {
   expect(session.state.inspectorOpen).toBe(false);
   expect(session.onExit).not.toHaveBeenCalled();
   escape();
+  expect(session.state.confirmAction).toBe("exit");
+  expect(session.onExit).not.toHaveBeenCalled();
+  await session.confirmAction(false);
   expect(session.onExit).toHaveBeenCalledTimes(1);
+  expect(saveSiteRule).not.toHaveBeenCalled();
 });
 
-test("saving keeps the inspector open on failure and closes it on success", async () => {
+test("invalid selectors stay in the inspector; confirmed edits are kept as a draft", async () => {
   session.setField("selector");
   session.edit(".story");
-  session.setInput("main > p");
-  saveSiteRule.mockRejectedValueOnce(new Error("save-failed"));
+  session.setInput("[");
   await session.commitInput();
   expect(session.state).toMatchObject({
     inspectorOpen: true,
-    input: "main > p",
+    input: "[",
     editing: ".story",
   });
+  session.setInput("main > p");
   await session.commitInput();
-  expect(context.effective.selector).toBe("main > p");
+  expect(session.context.effective.selector).toBe("main > p");
   expect(session.state.inspectorOpen).toBe(false);
+  expect(saveSiteRule).not.toHaveBeenCalled();
 });
 
 test("Escape in a shadow-tree menu does not close the editor or inspector", () => {
@@ -277,23 +286,28 @@ test("dynamic content updates counts and removed selections are released", async
   expect(session.state.notice).toBe("element-removed");
 });
 
-test("failed writes preserve input; undo and redo persist actual field changes", async () => {
+test("failed writes preserve the draft; undo and redo need an explicit save", async () => {
   session.setField("selector");
   session.setInput("main > p");
+  await session.commitInput();
   saveSiteRule.mockRejectedValueOnce(new Error("rule-conflict"));
-  await session.commitInput();
-  expect(session.state.input).toBe("main > p");
+  await session.save();
+  expect(session.context.effective.selector).toBe(".story, main > p");
   expect(session.state.error).toBe("rule-conflict");
-  expect(session.undoStack).toHaveLength(0);
-  await session.commitInput();
   expect(session.undoStack).toHaveLength(1);
-  expect(context.effective.selector).toBe(".story, main > p");
   await session.history();
-  expect(saveSiteRule).toHaveBeenLastCalledWith(
-    expect.objectContaining({ patch: { selector: "" } })
-  );
+  expect(session.context.effective.selector).toBe(".story");
   await session.history(true);
+  expect(session.context.effective.selector).toBe(".story, main > p");
+  expect(saveSiteRule).toHaveBeenCalledTimes(1);
+  await session.save();
   expect(context.effective.selector).toBe(".story, main > p");
+  expect(session.state.dirty).toBe(false);
+  await session.history();
+  expect(session.state.dirty).toBe(true);
+  expect(saveSiteRule).toHaveBeenCalledTimes(2);
+  await session.history(true);
+  expect(session.state.dirty).toBe(false);
 });
 
 test("selecting candidates and previewing do not persist anything", () => {
@@ -303,6 +317,120 @@ test("selecting candidates and previewing do not persist anything", () => {
   session.showWhole();
   expect(saveSiteRule).not.toHaveBeenCalled();
   expect(translator.setRuleEditingPreview).not.toHaveBeenCalledWith(true);
+});
+
+test("scope preview toggles off and stays off after the page refreshes", () => {
+  session.setInput(".story");
+  session.showWhole();
+  expect(session.state.whole).toBe(true);
+  expect(session.state.matches).toHaveLength(2);
+  session.showWhole();
+  expect(session.state.whole).toBe(false);
+  expect(session.state.matches).toHaveLength(0);
+  session.refresh();
+  expect(session.highlights.show).toHaveBeenLastCalledWith([], null);
+  expect(saveSiteRule).not.toHaveBeenCalled();
+});
+
+test("translation preview clears the scope toggle so the next click shows scope", () => {
+  session.showWhole();
+  session.showTranslation(true);
+  expect(session.state.whole).toBe(false);
+  session.showWhole();
+  expect(session.state).toMatchObject({ translated: false, whole: true });
+  expect(session.state.matches).toHaveLength(2);
+});
+
+test("discarding preview edits restores the saved rule and does not write", async () => {
+  const savedRule = { ...context.effective };
+  session.updateDraft({ selector: "main", autoScan: "true" });
+  session.requestAction("exit");
+  expect(session.onExit).not.toHaveBeenCalled();
+  session.emit({ confirmAction: "" });
+  expect(session.context.effective.selector).toBe("main");
+  session.requestAction("exit");
+  await session.confirmAction(false);
+  expect(session.onExit).toHaveBeenCalledTimes(1);
+  session.dispose();
+  expect(translator.updateRule).toHaveBeenLastCalledWith({
+    ...savedRule,
+    transOpen: "false",
+  });
+  expect(saveSiteRule).not.toHaveBeenCalled();
+});
+
+test("save before exit retains the draft on failure and exits only after success", async () => {
+  session.updateDraft({ selector: "main", autoScan: "true" });
+  session.requestAction("exit");
+  saveSiteRule.mockRejectedValueOnce(new Error("save-failed"));
+  await session.confirmAction(true);
+  expect(session.onExit).not.toHaveBeenCalled();
+  expect(session.state).toMatchObject({
+    confirmAction: "exit",
+    dirty: true,
+    error: "save-failed",
+  });
+  expect(session.context.effective.selector).toBe("main");
+  await session.confirmAction(true);
+  expect(session.onExit).toHaveBeenCalledTimes(1);
+  expect(session.state.dirty).toBe(false);
+  session.dispose();
+  expect(translator.updateRule).toHaveBeenLastCalledWith(
+    expect.objectContaining({ selector: "main", autoScan: "true" })
+  );
+});
+
+test("unchanged saved rules exit directly and unload prompts track unsaved edits", async () => {
+  await session.save();
+  const unload = () => {
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  expect(unload()).toBe(false);
+  session.setPattern("https://localhost/changed/*");
+  expect(unload()).toBe(true);
+  session.commitPattern();
+  session.history();
+  expect(session.state.dirty).toBe(false);
+  expect(unload()).toBe(false);
+  session.requestAction("exit");
+  expect(session.onExit).toHaveBeenCalledTimes(1);
+  expect(session.state.confirmAction).toBe("");
+});
+
+test("route changes keep the draft until the reload decision is made", async () => {
+  session.updateDraft({ selector: "main" });
+  window.history.pushState({}, "", "/other-page");
+  try {
+    jest.advanceTimersByTime(400);
+    expect(session.state.confirmAction).toBe("reload");
+    expect(session.context.effective.selector).toBe("main");
+    expect(session.href).not.toContain("other-page");
+    await session.confirmAction(true);
+    expect(saveSiteRule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        href: "http://localhost/",
+        patch: { pattern: "localhost", selector: "main" },
+      })
+    );
+    expect(session.href).toContain("other-page");
+    expect(session.undoStack).toHaveLength(0);
+  } finally {
+    window.history.replaceState({}, "", "/");
+  }
+});
+
+test.each([
+  "https://www.bbc.com/news",
+  "http://localhost:3000/",
+  "http://192.168.1.1:8080/",
+])("new rule domains match popup options for %s", async (href) => {
+  session.href = href;
+  await session.load();
+  expect(session.state.pattern).toBe(getDomainOptions(href)[0]);
+  expect(session.state.domainOptions).toEqual(getDomainOptions(href));
+  expect(saveSiteRule).not.toHaveBeenCalled();
 });
 
 test("external changes are reported without discarding the draft", async () => {
@@ -320,7 +448,7 @@ test("removal distinguishes overlapping coverage from an empty scope", async () 
   await session.remove(".story");
   expect(session.state.notice).toBe("removed-coverage");
   translator.previewRule = () => ({ targets: [] });
-  await session.save({ selector: ".story" });
+  session.updateDraft({ selector: ".story" });
   await session.remove(".story");
   expect(session.state.notice).toBe("removed");
 });
@@ -468,25 +596,21 @@ test("right-click cancels picking and suppresses the page context menu", () => {
   ).toBe(true);
 });
 
-test("pattern defaults to hostname and can be renamed, undone and redone", async () => {
-  expect(session.state.pattern).toBe("hostname:localhost");
+test("pattern defaults to the popup domain and draft renaming can be undone and redone", async () => {
+  expect(session.state.pattern).toBe("localhost");
+  expect(session.state.domainOptions).toEqual(getDomainOptions(session.href));
   session.setPattern(" https://localhost/article/* ");
   await session.commitPattern();
   expect(session.state.pattern).toBe("https://localhost/article/*");
-  expect(session.state.context.site.pattern).toBe(session.state.pattern);
-  await session.save({ selector: "main p" });
-  expect(saveSiteRule).toHaveBeenLastCalledWith(
-    expect.objectContaining({
-      expected: expect.objectContaining({
-        pattern: "https://localhost/article/*",
-      }),
-    })
-  );
+  expect(session.draft.pattern).toBe(session.state.pattern);
+  session.updateDraft({ selector: "main p" });
+  expect(saveSiteRule).not.toHaveBeenCalled();
   await session.history();
   await session.history();
-  expect(session.state.pattern).toBe("hostname:localhost");
+  expect(session.state.pattern).toBe("localhost");
   await session.history(true);
   expect(session.state.pattern).toBe("https://localhost/article/*");
+  await session.save();
   resolveRuleContext.mockResolvedValue(context);
   await session.load();
   expect(resolveRuleContext).toHaveBeenLastCalledWith(
@@ -504,16 +628,19 @@ test("invalid and duplicate patterns preserve the draft without overwriting rule
   }
   expect(saveSiteRule).not.toHaveBeenCalled();
   saveSiteRule.mockRejectedValueOnce(new Error("duplicate-pattern"));
-  session.setPattern("localhost");
+  session.setPattern("*.localhost");
   await session.commitPattern();
-  expect(session.state.pattern).toBe("localhost");
+  expect(saveSiteRule).not.toHaveBeenCalled();
+  await session.save();
+  expect(session.state.pattern).toBe("*.localhost");
   expect(session.state.patternError).toBe("duplicate-pattern");
-  expect(session.undoStack).toHaveLength(0);
+  expect(session.undoStack).toHaveLength(1);
 });
 
 test("external changes to a renamed rule are detected even outside its URL scope", async () => {
   session.setPattern("https://localhost/another-page/*");
   await session.commitPattern();
+  await session.save();
   getRulesWithDefault.mockResolvedValue([context.site]);
   await session.checkExternalChanges();
   expect(session.state.error).toBe("");
@@ -527,7 +654,7 @@ test("external changes to a renamed rule are detected even outside its URL scope
 test("pattern save conflicts use the reloadable error while retaining the input", async () => {
   session.setPattern("localhost");
   saveSiteRule.mockRejectedValueOnce(new Error("rule-conflict"));
-  await session.commitPattern();
+  await session.save();
   expect(session.state.error).toBe("rule-conflict");
   expect(session.state.pattern).toBe("localhost");
   expect(session.state.patternError).toBe("");

@@ -16,6 +16,7 @@ import {
 import { trySyncRules } from "./sync";
 import { isExt } from "./client";
 import { sendBgMsg } from "./msg";
+import { getDomainOptions } from "./url";
 
 const EDITABLE_FIELDS = [...SELECTOR_FIELDS, "autoScan", "pattern"];
 let writeQueue = Promise.resolve();
@@ -30,7 +31,8 @@ export function writeSiteRule({
   inherited,
 }) {
   const write = async () => {
-    const defaultPattern = hostnamePattern(href);
+    hostnamePattern(href);
+    const defaultPattern = getDomainOptions(href)[0];
     const previousPattern = expected?.pattern || defaultPattern;
     if (previousPattern === "*") throw new Error("invalid-pattern");
     const rawPattern = patch?.pattern ?? previousPattern;

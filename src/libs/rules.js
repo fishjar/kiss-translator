@@ -284,13 +284,7 @@ export const resolveRuleContext = async (
     personal: matchedPersonalRule || null,
     subscription: matchedSubRule,
     global: globalRule,
-    site: sitePattern
-      ? matchedPersonalRule || null
-      : personalRules.find(
-          (r) =>
-            r.pattern.startsWith("hostname:") &&
-            matchesRulePattern(href, r.pattern)
-        ) || null,
+    site: matchedPersonalRule || null,
   };
 };
 

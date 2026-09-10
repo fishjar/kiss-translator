@@ -18,9 +18,9 @@ export class RuleEditorManager extends ShadowDomManager {
     this.resumeInteractions = this.pauseInteractions();
     this.session = new RuleEditorSession({
       translator: this.translator,
-      onExit: () => this.close(),
+      onExit: () => this.close(true),
     });
-    this.show({ session: this.session, onExit: () => this.close() });
+    this.show({ session: this.session });
     if (!this.isVisible) {
       this.session = null;
       this.resumeInteractions?.();
@@ -33,8 +33,9 @@ export class RuleEditorManager extends ShadowDomManager {
         this.session?.emit({ error: error.message, loading: false })
       );
   }
-  close() {
+  close(confirmed = false) {
     if (this.session?.state.saving) return;
+    if (this.session && !confirmed) return this.session.requestAction("exit");
     this.session?.dispose();
     this.session = null;
     super.destroy();

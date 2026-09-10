@@ -1,11 +1,17 @@
-import { useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   ButtonBase,
   Chip,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   MenuItem,
   Stack,
@@ -167,7 +173,7 @@ function Notice({ session, state, t }) {
         <Button
           disabled={state.saving || state.loading}
           onClick={() =>
-            session.save({
+            session.updateDraft({
               ignoreSelector: [
                 ...new Set([
                   ...session.list("ignoreSelector"),
@@ -184,8 +190,9 @@ function Notice({ session, state, t }) {
   );
 }
 
-export function Editor({ session, onExit }) {
+export function Editor({ session }) {
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
+  const patternField = useRef(null);
   const i18n = useI18n();
   const t = (key) => i18n(`rule_editor_${key}`, key);
   const viewport = usePanelViewport();
@@ -256,7 +263,7 @@ export function Editor({ session, onExit }) {
               title={t("exit")}
               aria-label={t("exit")}
               disabled={state.saving}
-              onClick={onExit}
+              onClick={() => session.requestAction("exit")}
             >
               <CloseIcon fontSize="small" />
             </IconButton>
@@ -287,6 +294,8 @@ export function Editor({ session, onExit }) {
                 <Stack direction="row" justifyContent="space-between">
                   <Button
                     size="small"
+                    variant={state.whole ? "contained" : "text"}
+                    aria-pressed={!!state.whole}
                     disabled={busy}
                     onClick={() => session.showWhole()}
                   >
@@ -311,7 +320,7 @@ export function Editor({ session, onExit }) {
                     size="small"
                     sx={{ whiteSpace: "nowrap" }}
                     disabled={busy}
-                    onClick={() => session.load()}
+                    onClick={() => session.requestAction("reload")}
                   >
                     {t("reload")}
                   </Button>
@@ -321,11 +330,27 @@ export function Editor({ session, onExit }) {
               </Alert>
             )}
             {!state.error && <Notice {...{ session, state, t }} />}
-            {state.saving && (
-              <Typography role="status" variant="caption">
-                {t("saving")}
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              gap={1}
+            >
+              <Typography
+                role="status"
+                variant="caption"
+                color="text.secondary"
+              >
+                {state.saving ? t("saving") : state.dirty ? t("unsaved") : ""}
               </Typography>
-            )}
+              <Button
+                variant="contained"
+                disabled={busy || !state.dirty}
+                onClick={() => session.save()}
+              >
+                {t("save")}
+              </Button>
+            </Stack>
           </Stack>
         }
       >
@@ -336,22 +361,50 @@ export function Editor({ session, onExit }) {
             "& > :not(section)": { flexShrink: 0 },
           }}
         >
-          <TextField
-            label={i18n("pattern")}
-            size="small"
-            disabled={busy}
-            value={state.pattern || ""}
-            error={!!state.patternError}
-            helperText={state.patternError ? t(state.patternError) : undefined}
-            onChange={(event) => session.setPattern(event.target.value)}
-            onBlur={() => session.commitPattern()}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-                event.preventDefault();
-                event.currentTarget.querySelector("input")?.blur();
-              }
+          <Autocomplete
+            ref={patternField}
+            freeSolo
+            forcePopupIcon
+            slotProps={{
+              popper: {
+                container: () =>
+                  patternField.current?.closest(".notranslate") ||
+                  document.body,
+                sx: { zIndex: 2147483647 },
+              },
             }}
-            inputProps={{ spellCheck: false, style: codeStyle }}
+            ListboxProps={{
+              style: { overscrollBehavior: "contain", fontSize: 15 },
+            }}
+            disabled={busy}
+            options={state.domainOptions || []}
+            value={state.pattern || ""}
+            inputValue={state.pattern || ""}
+            onInputChange={(_, value, reason) => {
+              if (reason === "input" || reason === "clear")
+                session.setPattern(value);
+            }}
+            onChange={(_, value) => {
+              session.setPattern(value || "");
+              session.commitPattern();
+            }}
+            onBlur={() => session.commitPattern()}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={i18n("pattern")}
+                size="small"
+                error={!!state.patternError}
+                helperText={
+                  state.patternError ? t(state.patternError) : undefined
+                }
+                inputProps={{
+                  ...params.inputProps,
+                  spellCheck: false,
+                  style: codeStyle,
+                }}
+              />
+            )}
           />
           {state.loading && (
             <Typography role="status">{t("loading")}</Typography>
@@ -363,7 +416,7 @@ export function Editor({ session, onExit }) {
                 disabled={busy}
                 value={rule.autoScan}
                 onChange={(event) =>
-                  session.save({ autoScan: event.target.value })
+                  session.updateDraft({ autoScan: event.target.value })
                 }
               >
                 <MenuItem value="false">{i18n("disable")}</MenuItem>
@@ -518,7 +571,7 @@ export function Editor({ session, onExit }) {
                     size="small"
                     disabled={busy}
                     title={t("inheritHelp")}
-                    onClick={() => session.save({ [state.field]: "" })}
+                    onClick={() => session.updateDraft({ [state.field]: "" })}
                   >
                     {t("inherit")}
                   </Button>
@@ -528,7 +581,7 @@ export function Editor({ session, onExit }) {
                     disabled={busy}
                     title={t("inheritHelp")}
                     onClick={() =>
-                      session.save({ [state.field]: EMPTY_SELECTOR })
+                      session.updateDraft({ [state.field]: EMPTY_SELECTOR })
                     }
                   >
                     {t("clear")}
@@ -615,6 +668,51 @@ export function Editor({ session, onExit }) {
           )}
         </FloatingPanel>
       )}
+      <Dialog
+        open={!!state.confirmAction}
+        disablePortal
+        container={() =>
+          patternField.current?.closest(".notranslate") || document.body
+        }
+        disableEnforceFocus
+        disableScrollLock
+        onClose={() => !state.saving && session.emit({ confirmAction: "" })}
+        aria-labelledby="rule-editor-unsaved-title"
+        sx={{ zIndex: 2147483647 }}
+      >
+        <DialogTitle id="rule-editor-unsaved-title">
+          {t("confirmTitle")}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>{t("confirmHelp")}</DialogContentText>
+          {(state.error || state.patternError) && (
+            <Alert severity="error">
+              {t(state.patternError || state.error)}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ flexWrap: "wrap", gap: 1 }}>
+          <Button
+            disabled={state.saving}
+            onClick={() => session.emit({ confirmAction: "" })}
+          >
+            {t("continueEditing")}
+          </Button>
+          <Button
+            disabled={state.saving}
+            onClick={() => session.confirmAction(false)}
+          >
+            {t("discard")}
+          </Button>
+          <Button
+            variant="contained"
+            disabled={busy}
+            onClick={() => session.confirmAction(true)}
+          >
+            {t("save")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
