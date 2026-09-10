@@ -113,6 +113,7 @@ export default function FloatingPanel({
         }}
       >
         <ButtonBase
+          data-rule-editor-move=""
           aria-label={moveLabel}
           title={moveLabel}
           disableRipple

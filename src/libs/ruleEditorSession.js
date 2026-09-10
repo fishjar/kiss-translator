@@ -1,5 +1,10 @@
 import { DEFAULT_RULE, GLOBLA_RULE } from "../config";
-import { findMatchingRule, hostnamePattern, resolveRuleContext } from "./rules";
+import {
+  findMatchingRule,
+  hostnamePattern,
+  matchesRulePattern,
+  resolveRuleContext,
+} from "./rules";
 import { getRulesWithDefault } from "./storage";
 import {
   EMPTY_SELECTOR,
@@ -29,6 +34,8 @@ export class RuleEditorSession {
       saving: false,
       field: "selector",
       input: "",
+      pattern: "",
+      patternError: "",
       error: "",
       notice: "",
       picking: false,
@@ -38,6 +45,7 @@ export class RuleEditorSession {
       candidates: [],
       entries: [],
       matches: [],
+      matchIndex: 0,
       excluded: 0,
       hidden: 0,
       whole: false,
@@ -66,6 +74,12 @@ export class RuleEditorSession {
     this.highlights = new RuleHighlights();
     this.href = window.location.href;
     this.handlePointer = (event) => {
+      if (this.state.picking && event.type === "contextmenu") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this.cancelPick();
+        return;
+      }
       if (isEditorElement(event.target)) return;
       if (!this.state.picking || this.state.translated) return;
       const element = event.target;
@@ -103,6 +117,31 @@ export class RuleEditorSession {
       window.addEventListener(type, this.handlePointer, true)
     );
     this.handleKey = (event) => {
+      if (
+        ["ArrowLeft", "ArrowRight"].includes(event.key) &&
+        this.state.inspectorOpen &&
+        !this.state.picking &&
+        !this.state.translated &&
+        !this.state.saving &&
+        !this.state.loading &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        !event
+          .composedPath()
+          .some((node) =>
+            node.matches?.(
+              'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="combobox"], [role="listbox"], [data-rule-editor-move]'
+            )
+          )
+      ) {
+        if (this.navigate(event.key === "ArrowRight" ? 1 : -1)) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+        return;
+      }
       if (event.key === "Escape") {
         // Let an open editor menu consume Escape before closing either panel.
         if (
@@ -120,8 +159,7 @@ export class RuleEditorSession {
         event.stopImmediatePropagation();
         if (this.state.saving) return;
         if (this.state.picking) {
-          this.emit({ picking: false });
-          this.refresh();
+          this.cancelPick();
         } else if (this.state.inspectorOpen) this.closeInspector();
         else this.onExit();
       }
@@ -153,6 +191,8 @@ export class RuleEditorSession {
     this.routeTimer = setInterval(() => {
       if (window.location.href !== this.href && !this.state.loading) {
         this.href = window.location.href;
+        this.context = null;
+        this.activeMatch = null;
         this.undoStack = [];
         this.redoStack = [];
         this.emit({
@@ -191,13 +231,20 @@ export class RuleEditorSession {
       const rules = await getRulesWithDefault();
       if (this.disposed || this.state.saving || context !== this.context)
         return;
-      const personal = findMatchingRule(rules, this.href) || null;
+      const personal = context.site
+        ? rules.find((rule) => rule.pattern === context.site.pattern) || null
+        : findMatchingRule(rules, this.href) || null;
       const global = {
         ...GLOBLA_RULE,
         ...rules.find((rule) => rule.pattern === "*"),
       };
       if (
-        JSON.stringify(personal) !== JSON.stringify(context.personal) ||
+        (context.site &&
+          matchesRulePattern(this.href, context.site.pattern) &&
+          findMatchingRule(rules, this.href)?.pattern !==
+            context.site.pattern) ||
+        JSON.stringify(personal) !==
+          JSON.stringify(context.site || context.personal) ||
         JSON.stringify(global) !== JSON.stringify(context.global)
       ) {
         this.emit({ error: "rule-conflict" });
@@ -213,14 +260,22 @@ export class RuleEditorSession {
     this.showTranslation(false);
     this.undoStack = [];
     this.redoStack = [];
-    this.emit({ loading: true, error: "" });
+    this.emit({ loading: true, error: "", patternError: "" });
     try {
       hostnamePattern(href);
-      const context = await resolveRuleContext(href, this.translator.setting);
+      const context = await resolveRuleContext(
+        href,
+        this.translator.setting,
+        this.context?.site?.pattern
+      );
       if (this.disposed || href !== this.href) return;
       this.context = context;
       this.translator.updateRule({ ...context.effective, transOpen: "false" });
-      this.emit({ context, loading: false });
+      this.emit({
+        context,
+        loading: false,
+        pattern: context.site?.pattern || hostnamePattern(href),
+      });
       this.refresh();
     } catch (error) {
       this.emit({ loading: false, error: error.message });
@@ -284,8 +339,10 @@ export class RuleEditorSession {
         ? this.translator.previewRule().targets
         : queryPage(this.state.input);
       const classified = this.classify(matches);
+      const matchIndex = matches.indexOf(this.activeMatch);
+      if (matchIndex < 0) this.activeMatch = null;
       if (!this.state.picking && !this.state.translated)
-        this.highlights.show(classified);
+        this.highlights.show(classified, this.activeMatch);
       let hidden = 0;
       for (const element of matches)
         if (
@@ -297,6 +354,7 @@ export class RuleEditorSession {
         entries,
         candidates,
         matches,
+        matchIndex: matchIndex + 1,
         excluded: classified.filter((entry) => entry.excluded).length,
         hidden,
         validation: "",
@@ -310,12 +368,14 @@ export class RuleEditorSession {
           : {}),
       });
     } catch (error) {
+      this.activeMatch = null;
       this.highlights.show([]);
-      this.emit({ matches: [], validation: error.message });
+      this.emit({ matches: [], matchIndex: 0, validation: error.message });
     }
   }
   selectElement(element) {
     if (!isPageElement(element)) return;
+    this.activeMatch = null;
     const candidates = selectorCandidates(element);
     const recommended =
       candidates.find((candidate) => !candidate.fragile) || candidates[0];
@@ -334,11 +394,18 @@ export class RuleEditorSession {
   }
   pick() {
     this.showTranslation(false);
+    this.hovered = null;
     this.emit({ picking: true, whole: false, notice: "" });
+  }
+  cancelPick() {
+    this.hovered = null;
+    this.emit({ picking: false });
+    this.refresh();
   }
   closeInspector() {
     if (this.state.saving) return;
     clearTimeout(this.inputTimer);
+    this.activeMatch = null;
     this.emit({
       inspectorOpen: false,
       picking: false,
@@ -371,7 +438,8 @@ export class RuleEditorSession {
     this.refresh();
   }
   setInput(input) {
-    this.emit({ input, whole: false, error: "" });
+    this.activeMatch = null;
+    this.emit({ input, matchIndex: 0, whole: false, error: "" });
     clearTimeout(this.inputTimer);
     this.inputTimer = setTimeout(() => this.refresh(), 160);
   }
@@ -402,15 +470,43 @@ export class RuleEditorSession {
     this.refresh();
   }
   navigate(direction) {
+    // Resolve pending selector input and dynamic page changes before moving.
+    clearTimeout(this.inputTimer);
+    this.refresh();
     const matches = this.state.matches;
-    if (!matches.length) return;
-    this.matchIndex =
-      ((this.matchIndex ?? -1) + direction + matches.length) % matches.length;
-    matches[this.matchIndex].scrollIntoView({
+    if (!matches.length) return false;
+    const current = matches.indexOf(this.activeMatch);
+    const index =
+      current < 0
+        ? direction > 0
+          ? 0
+          : matches.length - 1
+        : (current + direction + matches.length) % matches.length;
+    this.activeMatch = matches[index];
+    this.activeMatch.scrollIntoView({
       block: "center",
       behavior: "smooth",
     });
-    this.emit({ matchIndex: this.matchIndex + 1 });
+    this.highlights.show(this.classify(matches), this.activeMatch);
+    this.emit({ matchIndex: index + 1 });
+    return true;
+  }
+  setPattern(pattern) {
+    this.emit({ pattern, patternError: "" });
+  }
+  async commitPattern() {
+    const pattern = this.state.pattern.trim();
+    if (
+      pattern === (this.context?.site?.pattern || hostnamePattern(this.href))
+    ) {
+      this.emit({ pattern });
+      return;
+    }
+    if (!pattern || pattern === "*") {
+      this.emit({ patternError: "invalid-pattern" });
+      return;
+    }
+    await this.save({ pattern });
   }
   showTranslation(show) {
     if (show === this.state.translated) return;
@@ -465,6 +561,7 @@ export class RuleEditorSession {
     if (this.disposed || this.state.saving || this.state.loading) return false;
     if (window.location.href !== this.href) {
       this.href = window.location.href;
+      this.context = null;
       this.emit({ notice: "route-changed" });
       await this.load();
       return false;
@@ -473,7 +570,12 @@ export class RuleEditorSession {
     const href = this.href;
     const raw = this.context.site || this.context.personal || DEFAULT_RULE;
     const before = Object.fromEntries(
-      Object.keys(patch).map((key) => [key, raw[key] ?? DEFAULT_RULE[key]])
+      Object.keys(patch).map((key) => [
+        key,
+        key === "pattern"
+          ? this.context.site?.pattern || hostnamePattern(href)
+          : (raw[key] ?? DEFAULT_RULE[key]),
+      ])
     );
     this.emit({ saving: true, error: "", notice: "" });
     try {
@@ -492,12 +594,25 @@ export class RuleEditorSession {
         this.undoStack.push({ before, after: patch });
         this.redoStack = [];
       }
-      this.emit({ context, saving: false, editing: null, notice: "saved" });
+      this.emit({
+        context,
+        saving: false,
+        editing: null,
+        notice: "saved",
+        ...(patch.pattern
+          ? { pattern: context.site.pattern, patternError: "" }
+          : {}),
+      });
       this.refresh();
       return true;
     } catch (error) {
+      const errorField =
+        patch.pattern &&
+        ["invalid-pattern", "duplicate-pattern"].includes(error.message)
+          ? "patternError"
+          : "error";
       this.emit({
-        error: error.message.includes("rule-conflict")
+        [errorField]: error.message.includes("rule-conflict")
           ? "rule-conflict"
           : error.message,
       });
@@ -528,6 +643,13 @@ export class RuleEditorSession {
     );
     window.removeEventListener("keydown", this.handleKey, true);
     this.highlights?.destroy();
+    if (restore && this.runtimeState && this.context?.pageEffective) {
+      this.translator.setRuleEditingPreview(false);
+      this.translator.updateRule({
+        ...this.context.pageEffective,
+        transOpen: "false",
+      });
+    }
     if (this.runtimeState)
       this.translator.endRuleEditing(this.runtimeState, restore);
     this.listeners.clear();

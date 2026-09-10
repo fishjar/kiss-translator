@@ -14,8 +14,8 @@ const messages = {
   scope: ["仅当前主机 · 不含子域名", "This hostname only · no subdomains"],
   pick: ["选取元素", "Pick element"],
   picking: [
-    "点击网页元素锁定；Esc 取消选取",
-    "Click a page element to lock it; Esc cancels picking",
+    "点击网页元素锁定；右键取消选取",
+    "Click a page element to lock it; right-click cancels picking",
   ],
   exit: ["退出编辑", "Exit editor"],
   dock: ["切换停靠方向", "Switch dock side"],
@@ -36,6 +36,10 @@ const messages = {
   candidateHelp: [
     "选择候选只预览；确认添加后才保存。",
     "Candidates preview immediately. Confirm to save.",
+  ],
+  navigateHelp: [
+    "← / → 按页面顺序切换匹配；红色高亮为当前项",
+    "← / → Browse matches in page order; red highlights the current match",
   ],
   id: ["按 ID 定位", "By ID"],
   attribute: ["按结构属性定位", "By structural attribute"],
@@ -92,6 +96,14 @@ const messages = {
   "save-failed": [
     "保存未完成，编辑内容已保留。",
     "Save did not complete. Your input is preserved.",
+  ],
+  "invalid-pattern": [
+    "请输入网站匹配规则；* 为全局规则保留。",
+    "Enter a site pattern; * is reserved for the global rule.",
+  ],
+  "duplicate-pattern": [
+    "已存在相同的网站匹配规则，请修改后重试。",
+    "A rule with this pattern already exists. Choose a different pattern.",
   ],
   "route-changed": [
     "网页地址已变化，已重新读取规则并清空撤销历史。",

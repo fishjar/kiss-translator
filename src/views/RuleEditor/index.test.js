@@ -41,6 +41,7 @@ beforeEach(() => {
     matches: [],
     ancestors: [],
     candidates: [],
+    pattern: "hostname:localhost",
   };
   session = {
     subscribe: () => () => {},
@@ -52,6 +53,8 @@ beforeEach(() => {
     closeInspector: jest.fn(),
     save: jest.fn(),
     setField: jest.fn(),
+    setPattern: jest.fn(),
+    commitPattern: jest.fn(),
   };
 });
 afterEach(() => {
@@ -209,4 +212,64 @@ test("shadow-tree menus keep focus on options and support arrow navigation", asy
   expect(shadow.activeElement).toBe(options[1]);
   click(options[1]);
   expect(session.save).toHaveBeenCalledWith({ autoScan: "true" });
+});
+
+test("site pattern is editable and saves on blur or Enter", async () => {
+  await render();
+  const input = container.querySelector('input[value="hostname:localhost"]');
+  expect(input).not.toBeNull();
+  act(() => {
+    input.focus();
+    Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    ).set.call(input, "localhost");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(session.setPattern).toHaveBeenCalledWith("localhost");
+  act(() =>
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+    )
+  );
+  expect(session.commitPattern).toHaveBeenCalledTimes(1);
+  act(() => {
+    input.focus();
+    input.blur();
+  });
+  expect(session.commitPattern).toHaveBeenCalledTimes(2);
+});
+
+test("manual addition shows only the selector input and save action", async () => {
+  Object.assign(session.getSnapshot(), { inspectorOpen: true, input: "" });
+  await render();
+  const inspector = container.querySelector(
+    'aside[aria-label="rule_editor_manualAdd"]'
+  );
+  expect(inspector.querySelector("textarea")).not.toBeNull();
+  expect(document.activeElement).toBe(inspector.querySelector("textarea"));
+  expect(inspector.textContent).not.toContain("target_selector");
+  expect(inspector.textContent).not.toContain("rule_editor_pick");
+  expect(inspector.textContent).toContain("rule_editor_add");
+});
+
+test("selected candidate shows its current match inline without a bottom navigation bar", async () => {
+  const element = document.createElement("p");
+  Object.assign(session.getSnapshot(), {
+    inspectorOpen: true,
+    selected: element,
+    ancestors: [element],
+    candidates: [{ selector: ".story", count: 3, kind: "class" }],
+    matchIndex: 2,
+  });
+  await render();
+  const inspector = container.querySelector(
+    'aside[aria-label="rule_editor_candidates"]'
+  );
+  expect(inspector.querySelector(".MuiChip-root").textContent).toBe("2 / 3");
+  expect(inspector.textContent).toContain("rule_editor_navigateHelp");
+  expect(
+    inspector.querySelector('[aria-label="rule_editor_previous"]')
+  ).toBeNull();
+  expect(inspector.querySelector('[aria-label="rule_editor_next"]')).toBeNull();
 });

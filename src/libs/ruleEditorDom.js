@@ -169,8 +169,9 @@ export class RuleHighlights {
     this.resize = new ResizeObserver(this.schedule);
     if (document.body) this.resize.observe(document.body);
   }
-  show(entries) {
+  show(entries, activeElement = null) {
     this.entries = entries;
+    this.activeElement = activeElement;
     const next = new Set(entries.map(({ element }) => element));
     for (const element of this.observed) {
       if (!next.has(element)) {
@@ -189,15 +190,24 @@ export class RuleHighlights {
     this.canvas.height = window.innerHeight * dpr;
     const ctx = this.canvas.getContext("2d");
     ctx.scale(dpr, dpr);
-    ctx.lineWidth = 2;
-    for (const { element, excluded = false } of this.entries) {
+    // Draw the active match last so overlapping containers cannot hide it.
+    const active = this.entries.find(
+      ({ element }) => element === this.activeElement
+    );
+    const entries = active
+      ? [...this.entries.filter((entry) => entry !== active), active]
+      : this.entries;
+    for (const { element, excluded = false } of entries) {
       if (
         !this.visible.has(element) ||
         !element.isConnected ||
         getComputedStyle(element).visibility === "hidden"
       )
         continue;
-      ctx.strokeStyle = excluded ? "#d97706" : "#168aad";
+      const current = element === this.activeElement;
+      ctx.lineWidth = current ? 4 : 2;
+      ctx.strokeStyle = current ? "#e11d48" : excluded ? "#d97706" : "#168aad";
+      ctx.fillStyle = "rgba(225, 29, 72, 0.16)";
       ctx.setLineDash(excluded ? [5, 4] : []);
       for (const rect of element.getClientRects()) {
         if (
@@ -209,6 +219,7 @@ export class RuleHighlights {
           rect.left > window.innerWidth
         )
           continue;
+        if (current) ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
         ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
       }
     }

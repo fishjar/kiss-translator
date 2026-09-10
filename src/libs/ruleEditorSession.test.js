@@ -6,12 +6,15 @@ import { DEFAULT_RULE, GLOBLA_RULE } from "../config";
 import { getRulesWithDefault } from "./storage";
 
 jest.mock("./storage", () => ({ getRulesWithDefault: jest.fn() }));
+jest.mock("./subRules", () => ({ loadOrFetchSubRules: jest.fn() }));
+jest.mock("./sync", () => ({ trySyncRules: jest.fn() }));
 
 jest.mock("./rules", () => ({
   hostnamePattern: (href) => `hostname:${new URL(href).hostname}`,
   resolveRuleContext: jest.fn(),
   findMatchingRule: (rules) =>
     rules.find((rule) => rule.pattern !== "*") || null,
+  matchesRulePattern: jest.requireActual("./rules").matchesRulePattern,
 }));
 jest.mock("./ruleEditorStorage", () => ({ saveSiteRule: jest.fn() }));
 jest.mock("./ruleEditorDom", () => ({
@@ -56,9 +59,9 @@ beforeEach(async () => {
       effective: { ...context.effective, ...patch },
       site: {
         ...DEFAULT_RULE,
+        pattern: "hostname:localhost",
         ...context.site,
         ...patch,
-        pattern: "hostname:localhost",
       },
     };
     return context;
@@ -128,7 +131,8 @@ test("picking cancels link clicks, locks an element and highlights every candida
   session.refresh();
   expect(session.state.matches).toHaveLength(2);
   expect(session.highlights.show).toHaveBeenLastCalledWith(
-    expect.arrayContaining([{ element: link, excluded: false }])
+    expect.arrayContaining([{ element: link, excluded: false }]),
+    null
   );
 });
 
@@ -245,15 +249,13 @@ test("Escape in a shadow-tree menu does not close the editor or inspector", () =
   shadow.innerHTML =
     '<ul role="listbox"><li role="option" tabindex="0">Option</li></ul>';
   session.add();
-  shadow
-    .querySelector("li")
-    .dispatchEvent(
-      new KeyboardEvent("keydown", {
-        key: "Escape",
-        bubbles: true,
-        composed: true,
-      })
-    );
+  shadow.querySelector("li").dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      composed: true,
+    })
+  );
   expect(session.state.inspectorOpen).toBe(true);
   expect(session.onExit).not.toHaveBeenCalled();
   host.remove();
@@ -334,5 +336,217 @@ test("session cleanup removes page click interception and restores runtime state
   expect(translator.endRuleEditing).toHaveBeenCalledWith(
     { enabled: false },
     true
+  );
+});
+
+const arrow = (key, target = window, options = {}) => {
+  const event = new KeyboardEvent("keydown", {
+    key,
+    bubbles: true,
+    composed: true,
+    cancelable: true,
+    ...options,
+  });
+  target.dispatchEvent(event);
+  return event;
+};
+
+test("arrow keys browse from the first page match and highlight the active element", () => {
+  const matches = [...document.querySelectorAll(".story")];
+  matches.forEach((element) => {
+    element.scrollIntoView = jest.fn();
+  });
+  session.selectElement(matches[1]);
+  session.setInput(".story");
+  expect(arrow("ArrowRight").defaultPrevented).toBe(true);
+  expect(matches[0].scrollIntoView).toHaveBeenCalledWith({
+    block: "center",
+    behavior: "smooth",
+  });
+  expect(session.state.matchIndex).toBe(1);
+  expect(session.highlights.show).toHaveBeenLastCalledWith(
+    expect.any(Array),
+    matches[0]
+  );
+  arrow("ArrowRight");
+  expect(session.state.matchIndex).toBe(2);
+  session.refresh();
+  expect(session.highlights.show).toHaveBeenLastCalledWith(
+    expect.any(Array),
+    matches[1]
+  );
+  arrow("ArrowRight");
+  expect(session.state.matchIndex).toBe(1);
+  arrow("ArrowLeft");
+  expect(session.state.matchIndex).toBe(2);
+  session.setInput("a");
+  arrow("ArrowRight");
+  expect(session.state.matchIndex).toBe(1);
+  expect(session.highlights.show).toHaveBeenLastCalledWith(
+    expect.any(Array),
+    matches[0]
+  );
+  expect(saveSiteRule).not.toHaveBeenCalled();
+});
+
+test("navigation handles removed matches and an invalid or empty selector", () => {
+  const matches = [...document.querySelectorAll(".story")];
+  matches.forEach((element) => {
+    element.scrollIntoView = jest.fn();
+  });
+  session.selectElement(matches[0]);
+  session.setInput(".story");
+  arrow("ArrowLeft");
+  expect(session.state.matchIndex).toBe(2);
+  matches[1].remove();
+  arrow("ArrowRight");
+  expect(session.state.matchIndex).toBe(1);
+  expect(session.highlights.show).toHaveBeenLastCalledWith(
+    expect.any(Array),
+    matches[0]
+  );
+  for (const selector of ["[", ".missing", ""]) {
+    session.setInput(selector);
+    expect(arrow("ArrowRight").defaultPrevented).toBe(false);
+    expect(session.state.matchIndex).toBe(0);
+  }
+});
+
+test("navigation leaves text inputs, menus and panel movement alone in shadow DOM", () => {
+  session.add();
+  session.setInput(".story");
+  const host = document.createElement("div");
+  host.id = "kiss-rule-editor";
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  shadow.innerHTML =
+    '<input><textarea></textarea><select></select><div contenteditable="true"><span>Text</span></div><div role="combobox"></div><ul role="listbox"><li>Option</li></ul><button data-rule-editor-move><span>Move</span></button>';
+  const navigate = jest.spyOn(session, "navigate");
+  for (const node of shadow.querySelectorAll(
+    "input, textarea, select, span, [role=combobox], li"
+  )) {
+    expect(arrow("ArrowRight", node).defaultPrevented).toBe(false);
+  }
+  arrow("ArrowLeft", window, { altKey: true });
+  expect(navigate).not.toHaveBeenCalled();
+  host.remove();
+});
+
+test("arrow navigation is inactive while picking, previewing or outside the inspector", () => {
+  const navigate = jest.spyOn(session, "navigate");
+  arrow("ArrowRight");
+  session.add();
+  session.pick();
+  arrow("ArrowRight");
+  session.cancelPick();
+  session.showTranslation(true);
+  arrow("ArrowRight");
+  expect(navigate).not.toHaveBeenCalled();
+});
+
+test("right-click cancels picking and suppresses the page context menu", () => {
+  const link = document.querySelector("a");
+  const pageMenu = jest.fn();
+  link.addEventListener("contextmenu", pageMenu);
+  session.selectElement(link);
+  session.pick();
+  const event = new MouseEvent("contextmenu", {
+    bubbles: true,
+    cancelable: true,
+    button: 2,
+  });
+  expect(link.dispatchEvent(event)).toBe(false);
+  expect(pageMenu).not.toHaveBeenCalled();
+  expect(session.state.picking).toBe(false);
+  expect(session.state.inspectorOpen).toBe(true);
+  expect(session.state.selected).toBe(link);
+  expect(session.onExit).not.toHaveBeenCalled();
+  expect(
+    link.dispatchEvent(
+      new MouseEvent("contextmenu", { bubbles: true, cancelable: true })
+    )
+  ).toBe(true);
+});
+
+test("pattern defaults to hostname and can be renamed, undone and redone", async () => {
+  expect(session.state.pattern).toBe("hostname:localhost");
+  session.setPattern(" https://localhost/article/* ");
+  await session.commitPattern();
+  expect(session.state.pattern).toBe("https://localhost/article/*");
+  expect(session.state.context.site.pattern).toBe(session.state.pattern);
+  await session.save({ selector: "main p" });
+  expect(saveSiteRule).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      expected: expect.objectContaining({
+        pattern: "https://localhost/article/*",
+      }),
+    })
+  );
+  await session.history();
+  await session.history();
+  expect(session.state.pattern).toBe("hostname:localhost");
+  await session.history(true);
+  expect(session.state.pattern).toBe("https://localhost/article/*");
+  resolveRuleContext.mockResolvedValue(context);
+  await session.load();
+  expect(resolveRuleContext).toHaveBeenLastCalledWith(
+    session.href,
+    translator.setting,
+    "https://localhost/article/*"
+  );
+});
+
+test("invalid and duplicate patterns preserve the draft without overwriting rules", async () => {
+  for (const pattern of [" ", "*"]) {
+    session.setPattern(pattern);
+    await session.commitPattern();
+    expect(session.state.patternError).toBe("invalid-pattern");
+  }
+  expect(saveSiteRule).not.toHaveBeenCalled();
+  saveSiteRule.mockRejectedValueOnce(new Error("duplicate-pattern"));
+  session.setPattern("localhost");
+  await session.commitPattern();
+  expect(session.state.pattern).toBe("localhost");
+  expect(session.state.patternError).toBe("duplicate-pattern");
+  expect(session.undoStack).toHaveLength(0);
+});
+
+test("external changes to a renamed rule are detected even outside its URL scope", async () => {
+  session.setPattern("https://localhost/another-page/*");
+  await session.commitPattern();
+  getRulesWithDefault.mockResolvedValue([context.site]);
+  await session.checkExternalChanges();
+  expect(session.state.error).toBe("");
+  getRulesWithDefault.mockResolvedValue([
+    { ...context.site, selector: ".external" },
+  ]);
+  await session.checkExternalChanges();
+  expect(session.state.error).toBe("rule-conflict");
+});
+
+test("pattern save conflicts use the reloadable error while retaining the input", async () => {
+  session.setPattern("localhost");
+  saveSiteRule.mockRejectedValueOnce(new Error("rule-conflict"));
+  await session.commitPattern();
+  expect(session.state.error).toBe("rule-conflict");
+  expect(session.state.pattern).toBe("localhost");
+  expect(session.state.patternError).toBe("");
+});
+
+test("exiting restores the actual page rule when the edited pattern no longer matches", () => {
+  context.pageEffective = { ...GLOBLA_RULE, selector: ".actual-page" };
+  session.showTranslation(true);
+  session.dispose();
+  expect(translator.setRuleEditingPreview).toHaveBeenLastCalledWith(false);
+  expect(translator.updateRule).toHaveBeenLastCalledWith({
+    ...context.pageEffective,
+    transOpen: "false",
+  });
+  expect(translator.endRuleEditing).toHaveBeenLastCalledWith(
+    { enabled: false },
+    true
+  );
+  expect(translator.updateRule.mock.invocationCallOrder.at(-1)).toBeLessThan(
+    translator.endRuleEditing.mock.invocationCallOrder.at(-1)
   );
 });

@@ -137,3 +137,93 @@ test("persists the edit timestamp before starting cloud synchronization", async 
     trySyncRules.mock.invocationCallOrder[0]
   );
 });
+
+test("renames a saved hostname rule in place, retains other fields and continues editing", async () => {
+  const seed = structuredCopy(rules[0]);
+  const created = await writeSiteRule({
+    href,
+    seed,
+    patch: { selector: ".new" },
+  });
+  // This URL pattern deliberately excludes the page currently open in the editor.
+  const pattern = "https://news.example.com/other/*";
+  const renamed = await writeSiteRule({
+    href,
+    expected: created.site,
+    patch: { pattern },
+  });
+  expect(rules).toHaveLength(2);
+  expect(rules[1]).toEqual(seed);
+  expect(renamed.site).toMatchObject({
+    pattern,
+    selector: ".new",
+    apiSlug: "custom",
+  });
+  expect(renamed.effective.selector).toBe(".new");
+  expect(renamed.pageEffective.selector).toBe(".old");
+  expect((await matchRule(href, {})).selector).toBe(".old");
+  const updated = await writeSiteRule({
+    href,
+    expected: renamed.site,
+    patch: { selector: ".next" },
+  });
+  expect(updated.site).toMatchObject({ pattern, selector: ".next" });
+  const undone = await writeSiteRule({
+    href,
+    expected: updated.site,
+    patch: { pattern: created.site.pattern },
+  });
+  expect(undone.site.pattern).toBe("hostname:news.example.com");
+  expect(undone.pageEffective).toBeNull();
+  expect((await matchRule(href, {})).selector).toBe(".next");
+});
+
+test("creates the first override using the edited pattern and preserves the source", async () => {
+  const seed = structuredCopy(rules[0]);
+  const result = await writeSiteRule({
+    href,
+    seed,
+    patch: { pattern: " https://news.example.com/* " },
+  });
+  expect(result.site.pattern).toBe("https://news.example.com/*");
+  expect(result.effective.apiSlug).toBe("custom");
+  expect(rules[1]).toEqual(seed);
+});
+
+test("rejects invalid and duplicate patterns without changing either existing rule", async () => {
+  const created = await writeSiteRule({
+    href,
+    seed: rules[0],
+    patch: { selector: ".new" },
+  });
+  const snapshot = structuredCopy(rules);
+  for (const pattern of ["", " ", "*", "example.com"]) {
+    await expect(
+      writeSiteRule({ href, expected: created.site, patch: { pattern } })
+    ).rejects.toThrow(
+      pattern === "example.com" ? "duplicate-pattern" : "invalid-pattern"
+    );
+    expect(rules).toEqual(snapshot);
+  }
+});
+
+test("rejects stale edits after another editor has renamed the rule", async () => {
+  const created = await writeSiteRule({
+    href,
+    seed: rules[0],
+    patch: { selector: ".new" },
+  });
+  await writeSiteRule({
+    href,
+    expected: created.site,
+    patch: { pattern: "news.example.com" },
+  });
+  await expect(
+    writeSiteRule({
+      href,
+      expected: created.site,
+      patch: { selector: ".lost" },
+    })
+  ).rejects.toThrow("rule-conflict");
+  expect(rules[0].selector).toBe(".new");
+});

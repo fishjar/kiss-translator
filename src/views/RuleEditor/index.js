@@ -96,6 +96,11 @@ function CandidateList({ session, state, t }) {
           ))}
         </EditorSelect>
       )}
+      {!!state.candidates.length && (
+        <Typography variant="caption" color="text.secondary">
+          {t("navigateHelp")}
+        </Typography>
+      )}
       {state.candidates.map((candidate) => (
         <ButtonBase
           key={candidate.selector}
@@ -126,7 +131,15 @@ function CandidateList({ session, state, t }) {
             <Typography variant="caption" color="text.secondary">
               {t(candidate.kind)}
             </Typography>
-            <Chip size="small" label={candidate.count} />
+            <Chip
+              size="small"
+              aria-live={state.input === candidate.selector ? "polite" : "off"}
+              label={
+                state.input === candidate.selector && state.matchIndex
+                  ? `${state.matchIndex} / ${candidate.count}`
+                  : candidate.count
+              }
+            />
           </Stack>
           <Box sx={{ ...codeStyle, mt: 0.5, color: "primary.main" }}>
             {candidate.selector}
@@ -323,9 +336,23 @@ export function Editor({ session, onExit }) {
             "& > :not(section)": { flexShrink: 0 },
           }}
         >
-          <Typography sx={codeStyle} color="text.secondary" title={t("scope")}>
-            {window.location.hostname}
-          </Typography>
+          <TextField
+            label={i18n("pattern")}
+            size="small"
+            disabled={busy}
+            value={state.pattern || ""}
+            error={!!state.patternError}
+            helperText={state.patternError ? t(state.patternError) : undefined}
+            onChange={(event) => session.setPattern(event.target.value)}
+            onBlur={() => session.commitPattern()}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                event.currentTarget.querySelector("input")?.blur();
+              }
+            }}
+            inputProps={{ spellCheck: false, style: codeStyle }}
+          />
           {state.loading && (
             <Typography role="status">{t("loading")}</Typography>
           )}
@@ -394,13 +421,7 @@ export function Editor({ session, onExit }) {
                   </Button>
                 </Stack>
                 {state.picking && (
-                  <Alert
-                    severity="info"
-                    onClose={() => {
-                      session.emit({ picking: false });
-                      session.refresh();
-                    }}
-                  >
+                  <Alert severity="info" onClose={() => session.cancelPick()}>
                     {t("picking")}
                   </Alert>
                 )}
@@ -503,6 +524,7 @@ export function Editor({ session, onExit }) {
                   </Button>
                   <Button
                     size="small"
+                    color="error"
                     disabled={busy}
                     title={t("inheritHelp")}
                     onClick={() =>
@@ -519,13 +541,20 @@ export function Editor({ session, onExit }) {
       </FloatingPanel>
       {inspectorVisible && (
         <FloatingPanel
-          title={t(state.editing ? "editSelector" : "candidates")}
+          title={t(
+            state.editing
+              ? "editSelector"
+              : state.selected
+                ? "candidates"
+                : "manualAdd"
+          )}
           moveLabel={t("moveInspector")}
           position={inspectorPosition.position || adjacent}
           onMove={inspectorPosition.onMove}
           onMoveEnd={inspectorPosition.onMoveEnd}
           width={380}
           viewport={viewport}
+          bodySx={state.selected ? undefined : { display: "none" }}
           actions={
             <IconButton
               title={t("closeInspector")}
@@ -540,6 +569,7 @@ export function Editor({ session, onExit }) {
             <Stack spacing={1.5}>
               <TextField
                 label={t("input")}
+                autoFocus={!state.selected}
                 multiline
                 minRows={2}
                 maxRows={4}
@@ -562,52 +592,27 @@ export function Editor({ session, onExit }) {
             </Stack>
           }
         >
-          <Stack spacing={2}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <Typography variant="body2" color="text.secondary">
-                {i18n(selectorLabels[state.field])}
-              </Typography>
-              <Button
-                size="small"
-                disabled={busy}
-                onClick={() => session.pick()}
-              >
-                {t("pick")}
-              </Button>
-            </Stack>
-            <CandidateList {...{ session, state, t }} />
-            {!!state.matches.length && (
+          {state.selected && (
+            <Stack spacing={2}>
               <Stack
                 direction="row"
                 alignItems="center"
                 justifyContent="space-between"
               >
-                <Typography variant="caption">
-                  {state.matches.length} {t("matches")}
+                <Typography variant="body2" color="text.secondary">
+                  {i18n(selectorLabels[state.field])}
                 </Typography>
-                <Stack direction="row" alignItems="center">
-                  <Button
-                    size="small"
-                    aria-label={t("previous")}
-                    onClick={() => session.navigate(-1)}
-                  >
-                    ←
-                  </Button>
-                  <Button
-                    size="small"
-                    aria-label={t("next")}
-                    onClick={() => session.navigate(1)}
-                  >
-                    →
-                  </Button>
-                </Stack>
+                <Button
+                  size="small"
+                  disabled={busy}
+                  onClick={() => session.pick()}
+                >
+                  {t("pick")}
+                </Button>
               </Stack>
-            )}
-          </Stack>
+              <CandidateList {...{ session, state, t }} />
+            </Stack>
+          )}
         </FloatingPanel>
       )}
     </>

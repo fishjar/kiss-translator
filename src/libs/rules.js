@@ -216,7 +216,8 @@ export const mergeRules = (baseRule, overrideRule) => {
  */
 export const resolveRuleContext = async (
   href,
-  { injectRules, subrulesList = [] } = {}
+  { injectRules, subrulesList = [] } = {},
+  sitePattern
 ) => {
   // 获取个人规则
   const personalRules = await getRulesWithDefault();
@@ -228,7 +229,12 @@ export const resolveRuleContext = async (
   };
 
   // 查找匹配的个人规则（排除全局规则）
-  const matchedPersonalRule = findMatchingRule(personalRules, href);
+  // The visual editor can keep editing a renamed rule even when its new
+  // pattern no longer matches the page used to select elements.
+  const activePersonalRule = findMatchingRule(personalRules, href);
+  const matchedPersonalRule = sitePattern
+    ? personalRules.find((rule) => rule.pattern === sitePattern)
+    : activePersonalRule;
 
   // 获取订阅规则并查找匹配
   let matchedSubRule = null;
@@ -255,22 +261,27 @@ export const resolveRuleContext = async (
 
   // 合并规则：全局规则 <- 订阅规则 <- 个人规则
   // 优先级：个人规则 > 订阅规则 > 全局规则
-  let finalRule = { ...globalRule };
-  finalRule = mergeRules(finalRule, matchedSubRule);
-  finalRule = mergeRules(finalRule, matchedPersonalRule);
+  const inherited = mergeRules(globalRule, matchedSubRule);
+  const finalRule = mergeRules(inherited, matchedPersonalRule);
 
   return {
     effective: finalRule,
-    inherited: mergeRules(globalRule, matchedSubRule),
+    inherited,
+    // Restore the real page rule after previewing a rule for a different URL.
+    pageEffective:
+      matchedPersonalRule !== activePersonalRule
+        ? mergeRules(inherited, activePersonalRule)
+        : null,
     personal: matchedPersonalRule || null,
     subscription: matchedSubRule,
     global: globalRule,
-    site:
-      personalRules.find(
-        (r) =>
-          r.pattern.startsWith("hostname:") &&
-          matchesRulePattern(href, r.pattern)
-      ) || null,
+    site: sitePattern
+      ? matchedPersonalRule || null
+      : personalRules.find(
+          (r) =>
+            r.pattern.startsWith("hostname:") &&
+            matchesRulePattern(href, r.pattern)
+        ) || null,
   };
 };
 

@@ -3,6 +3,7 @@ import {
   checkRules,
   findMatchingRule,
   hostnamePattern,
+  matchesRulePattern,
   resolveRuleContext,
 } from "./rules";
 import { SELECTOR_FIELDS, splitSelectorList } from "./selectorList";
@@ -16,7 +17,7 @@ import { trySyncRules } from "./sync";
 import { isExt } from "./client";
 import { sendBgMsg } from "./msg";
 
-const EDITABLE_FIELDS = [...SELECTOR_FIELDS, "autoScan"];
+const EDITABLE_FIELDS = [...SELECTOR_FIELDS, "autoScan", "pattern"];
 let writeQueue = Promise.resolve();
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -29,7 +30,12 @@ export function writeSiteRule({
   inherited,
 }) {
   const write = async () => {
-    const pattern = hostnamePattern(href);
+    const defaultPattern = hostnamePattern(href);
+    const previousPattern = expected?.pattern || defaultPattern;
+    if (previousPattern === "*") throw new Error("invalid-pattern");
+    const rawPattern = patch?.pattern ?? previousPattern;
+    if (typeof rawPattern !== "string") throw new Error("invalid-patch");
+    const pattern = rawPattern.trim();
     const keys = Object.keys(patch || {});
     if (!keys.length || keys.some((key) => !EDITABLE_FIELDS.includes(key))) {
       throw new Error("invalid-patch");
@@ -37,7 +43,9 @@ export function writeSiteRule({
     for (const key of keys) {
       if (typeof patch[key] !== "string") throw new Error("invalid-patch");
       if (SELECTOR_FIELDS.includes(key)) splitSelectorList(patch[key]);
-      else if (!["true", "false", "*"].includes(patch[key]))
+      else if (key === "pattern") {
+        if (!pattern || pattern === "*") throw new Error("invalid-pattern");
+      } else if (!["true", "false", "*"].includes(patch[key]))
         throw new Error("invalid-patch");
     }
     if (inherited) {
@@ -49,7 +57,9 @@ export function writeSiteRule({
         throw new Error("rule-conflict");
     }
     const rules = await getRulesWithDefault();
-    const index = rules.findIndex((rule) => rule.pattern === pattern);
+    const index = rules.findIndex((rule) => rule.pattern === previousPattern);
+    if (rules.some((rule, i) => i !== index && rule.pattern === pattern))
+      throw new Error("duplicate-pattern");
     const current = index < 0 ? null : rules[index];
     const active = findMatchingRule(rules, href) || null;
     if (!current) {
@@ -57,7 +67,8 @@ export function writeSiteRule({
     } else if (
       !expected ||
       current.enabled === false ||
-      active?.pattern !== pattern ||
+      (matchesRulePattern(href, current.pattern) &&
+        active?.pattern !== previousPattern) ||
       keys.some(
         (key) =>
           (current[key] ?? DEFAULT_RULE[key]) !==
@@ -90,7 +101,7 @@ export function writeSiteRule({
     // Sync must see this edit's timestamp before comparing remote versions.
     await putSyncMeta(KV_RULES_KEY);
     trySyncRules();
-    return resolveRuleContext(href, await getSettingWithDefault());
+    return resolveRuleContext(href, await getSettingWithDefault(), pattern);
   };
   // Userscript pages on the same origin can also coordinate through Web Locks.
   const result = writeQueue.then(() =>
