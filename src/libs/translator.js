@@ -2223,11 +2223,12 @@ export class Translator {
     this.#rescanQueue.add(target);
     if (!this.#isQueueProcessing) {
       this.#isQueueProcessing = true;
-      const runId = this.#runId;
+      // 开关翻译不取消 DOM 扫描；仅重建扫描状态时废弃旧队列。
+      const queue = this.#rescanQueue;
       scheduleIdle(() => {
-        if (runId !== this.#runId || this.#editorPaused) return;
-        this.#rescanQueue.forEach((t) => this.#rescanContainer(t));
-        this.#rescanQueue.clear();
+        if (queue !== this.#rescanQueue || this.#editorPaused) return;
+        queue.forEach((t) => this.#rescanContainer(t));
+        queue.clear();
         this.#isQueueProcessing = false;
       }, 100);
     }
@@ -2459,7 +2460,6 @@ export class Translator {
     if (fromLang === "auto") {
       // revert 529
       deLang = await tryDetectLang(node.textContent, langDetector);
-      if (runId !== this.#runId || this.#editorPaused) return;
       // 语言检测期间可能发生了还原、重新触发或停止/重扫：
       // 任务已失效，不再创建译文容器或发起翻译请求。
       // 若当前节点仍由本代次任务标记，则回滚处理状态，避免单段/原子目标
@@ -2474,6 +2474,7 @@ export class Translator {
         }
         return;
       }
+      if (runId !== this.#runId || this.#editorPaused) return;
       if (generation !== undefined) {
         this.#holdProcessGenerations.delete(node);
       }
@@ -4484,7 +4485,7 @@ overflow-wrap: anywhere !important;`;
 
   // 停止监听，重置参数
   #resetOptions() {
-    this.#rescanQueue.clear();
+    this.#rescanQueue = new Set();
     this.#isQueueProcessing = false;
     // 停止/重扫会清理实例状态，语言检测中的按住任务必须立即过期
     this.#holdGeneration += 1;

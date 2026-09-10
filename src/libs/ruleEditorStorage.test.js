@@ -16,7 +16,7 @@ jest.mock("./storage", () => ({
   getRulesWithDefault: jest.fn(),
   getSettingWithDefault: jest.fn(),
   setRules: jest.fn(),
-  debounceSyncMeta: jest.fn(),
+  putSyncMeta: jest.fn(),
   getDisabledSubRules: jest.fn(),
 }));
 jest.mock("./subRules", () => ({ loadOrFetchSubRules: jest.fn() }));
@@ -121,4 +121,19 @@ test("reports storage failures and allows a retry", async () => {
   setRules.mockRejectedValueOnce(new Error("disk full"));
   await expect(writeSiteRule(request)).rejects.toThrow("disk full");
   await expect(writeSiteRule(request)).resolves.toBeTruthy();
+});
+
+test("persists the edit timestamp before starting cloud synchronization", async () => {
+  const { putSyncMeta } = require("./storage");
+  const { trySyncRules } = require("./sync");
+  await writeSiteRule({
+    href,
+    patch: { selector: ".new" },
+    seed: rules[0],
+  });
+  expect(putSyncMeta).toHaveBeenCalledWith("kiss-rules_v2.json");
+  expect(trySyncRules).toHaveBeenCalled();
+  expect(putSyncMeta.mock.invocationCallOrder[0]).toBeLessThan(
+    trySyncRules.mock.invocationCallOrder[0]
+  );
 });

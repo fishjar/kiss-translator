@@ -158,6 +158,48 @@ describe("Translator rule styles", () => {
     expect(translator.previewRule().targets).toEqual([]);
   });
 
+  test.each([false, true])(
+    "keeps pending and subsequent DOM rescans across a translation toggle (enable before idle: %s)",
+    async (enableBeforeIdle) => {
+      document.body.innerHTML =
+        '<main id="root"><p>Initial original article text</p></main>';
+      const translator = createTranslator();
+      await flushAsync();
+      await flushAsync();
+
+      const root = document.querySelector("#root");
+      root.insertAdjacentHTML(
+        "beforeend",
+        '<p id="pending">Article added before disabling translation</p>'
+      );
+      await Promise.resolve();
+      translator.disable();
+      if (enableBeforeIdle) translator.enable();
+      await flushAsync();
+      await flushAsync();
+      if (!enableBeforeIdle) translator.enable();
+      await flushAsync();
+      await flushAsync();
+      expect(
+        document.querySelector("#pending .kiss-translator-wrapper")
+      ).not.toBeNull();
+
+      apiTranslate.mockClear();
+      root.insertAdjacentHTML(
+        "beforeend",
+        '<p id="later">Article added after enabling translation</p>'
+      );
+      await Promise.resolve();
+      await flushAsync();
+      await flushAsync();
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalled();
+      expect(
+        document.querySelector("#later .kiss-translator-wrapper")
+      ).not.toBeNull();
+    }
+  );
+
   test("manual preview excludes roots under ignored ancestors", () => {
     document.body.innerHTML =
       '<div class="excluded"><main id="root"><p>Ignored article text</p></main></div>';
@@ -4742,6 +4784,19 @@ describe("Translator rule styles", () => {
       expect(
         document.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
       ).toHaveLength(0);
+
+      if (lifecycle === "disable") {
+        // 取消语言检测后不能残留 processed 标记，仍可单独按住翻译。
+        tryDetectLang.mockResolvedValue("en");
+        await hoverNode(first, 20, 20);
+        hold();
+        await flushAsync();
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalled();
+        expect(
+          first.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+        ).not.toBeNull();
+      }
     }
   });
 

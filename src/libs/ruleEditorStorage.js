@@ -10,7 +10,7 @@ import {
   getRulesWithDefault,
   getSettingWithDefault,
   setRules,
-  debounceSyncMeta,
+  putSyncMeta,
 } from "./storage";
 import { trySyncRules } from "./sync";
 import { isExt } from "./client";
@@ -87,7 +87,8 @@ export function writeSiteRule({
     if (!persisted || keys.some((key) => persisted[key] !== saved[key])) {
       throw new Error("rule-conflict");
     }
-    debounceSyncMeta(KV_RULES_KEY);
+    // Sync must see this edit's timestamp before comparing remote versions.
+    await putSyncMeta(KV_RULES_KEY);
     trySyncRules();
     return resolveRuleContext(href, await getSettingWithDefault());
   };
