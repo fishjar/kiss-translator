@@ -204,11 +204,14 @@ export default function SubtitleSegmentationPlayground({
   const prepared = useMemo(() => {
     if (!sourceValue) return null;
     try {
-      return prepareTimedTextEvents(parseSubtitleSource(sourceValue).events);
+      return prepareTimedTextEvents(
+        parseSubtitleSource(sourceValue).events,
+        fromLang
+      );
     } catch {
       return null;
     }
-  }, [sourceValue]);
+  }, [sourceValue, fromLang]);
   const estimatedChunkCount = segApi
     ? splitEventsIntoChunks(
         prepared?.flatEvents || [],
