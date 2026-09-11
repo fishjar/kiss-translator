@@ -148,6 +148,9 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-language .kt-popup-language-select { width: 100%; margin-top: 1px; color: var(--kt-on); font-size: 13px; font-weight: 600; }
 .kt-popup-language-select { border-radius: 12px; }
 .kt-popup-language-select .MuiSelect-select { min-height: 0; padding: 0 24px 0 0 !important; border-radius: inherit; color: var(--kt-on); cursor: pointer; transition: background-color .2s ease; }
+/* Keep the rounded focus ring without clipping edge glyphs. The label spans
+   below handle long-name truncation independently. */
+.kt-popup-language .kt-popup-language-select .MuiSelect-select { overflow: visible; }
 .kt-popup-language-select .MuiSelect-select.MuiInputBase-input:focus { outline: 3px solid var(--kt-pri); outline-offset: 2px; background: transparent; }
 @supports selector(:focus-visible) {
   .kt-popup-language-select .MuiSelect-select.MuiInputBase-input:focus { outline: none; }
