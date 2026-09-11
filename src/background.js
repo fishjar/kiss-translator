@@ -1,4 +1,5 @@
 import browser from "webextension-polyfill";
+import { writeSiteRule } from "./libs/ruleEditorStorage";
 import {
   MSG_FETCH,
   MSG_GET_HTTPCACHE,
@@ -7,6 +8,7 @@ import {
   MSG_TRANS_TOGGLE_ONLY,
   MSG_OPEN_OPTIONS,
   MSG_SAVE_RULE,
+  MSG_EDIT_RULE,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_OPEN_TRANBOX,
   MSG_TRANSBOX_TOGGLE,
@@ -565,6 +567,7 @@ const messageHandlers = {
   [MSG_SHA256]: ({ text = "", salt = "" } = {}) => sha256(text, salt), // 代算缓存签名
   [MSG_OPEN_OPTIONS]: () => openOptionsPage(), // 打开设置选项页
   [MSG_SAVE_RULE]: (args) => saveRule(args), // 写入/保存规则
+  [MSG_EDIT_RULE]: (args) => writeSiteRule(args),
   [MSG_INJECT_JS]: (args) => injectToCurrentTab(injectInlineJsBg, args), // 注入 JS 代码到前台
   [MSG_INJECT_CSS]: (args) => injectToCurrentTab(injectInternalCss, args), // 注入 CSS 样式到前台
   [MSG_UPDATE_CSP]: (args) => updateCspRules(args), // 触发 CSP 重写规则变更

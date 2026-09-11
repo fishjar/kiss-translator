@@ -13,6 +13,7 @@ import { useI18n } from "../../hooks/I18n";
 import TextField from "@mui/material/TextField";
 import {
   MSG_TRANS_TOGGLE,
+  MSG_RULE_EDITOR,
   MSG_TRANS_PUTRULE,
   MSG_SAVE_RULE,
   MSG_COMMAND_SHORTCUTS,
@@ -623,6 +624,18 @@ export default function PopupCont({
           </Button>
         </Stack>
       </Stack>
+      <Button
+        variant="outlined"
+        onClick={async () => {
+          if (processActions) processActions({ action: MSG_RULE_EDITOR });
+          else {
+            await sendTabMsg(MSG_RULE_EDITOR);
+            window.close();
+          }
+        }}
+      >
+        {i18n("rule_editor_open")}
+      </Button>
       {/* 操作成功提示气泡提示条 */}
       <Snackbar
         open={snackbar.open}
