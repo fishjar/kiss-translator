@@ -101,17 +101,11 @@ export default function PopupCont({
   const snackbarSequenceRef = useRef(0);
   const ruleRef = useRef(rule);
   const { allTextStyles } = useAllTextStyles();
-  const primaryPopupTextStyles = useMemo(
-    () => resolvePopupTextStyles(allTextStyles, rule?.textStyle, false),
-    [allTextStyles, rule?.textStyle]
+  const visiblePopupTextStyles = useMemo(
+    () => resolvePopupTextStyles(allTextStyles, rule?.textStyle, showAllStyles),
+    [allTextStyles, rule?.textStyle, showAllStyles]
   );
-  const extraPopupTextStyles = useMemo(() => {
-    const primarySlugs = new Set(
-      primaryPopupTextStyles.map((style) => style.styleSlug)
-    );
-    return allTextStyles.filter((style) => !primarySlugs.has(style.styleSlug));
-  }, [allTextStyles, primaryPopupTextStyles]);
-  const hiddenStyleCount = extraPopupTextStyles.length;
+  const hiddenStyleCount = allTextStyles.length - visiblePopupTextStyles.length;
   const styleDisclosureLabel = showAllStyles
     ? `${i18n("popup_collapse")}: ${i18n("popup_all_styles")}`
     : `${i18n("popup_all_styles")} (${hiddenStyleCount})`;
@@ -653,12 +647,8 @@ export default function PopupCont({
             <div className="kt-popup-section-label">
               {i18n("text_style_alt")}
             </div>
-            <div
-              className={`kt-popup-style-chips ${
-                showAllStyles ? "kt-popup-style-chips--open" : ""
-              }`}
-            >
-              {primaryPopupTextStyles.map(renderPopupStyleChip)}
+            <div className="kt-popup-style-chips">
+              {visiblePopupTextStyles.map(renderPopupStyleChip)}
               {allTextStyles.length > 5 && (
                 <button
                   type="button"
@@ -674,7 +664,6 @@ export default function PopupCont({
                   <ExpandMoreRoundedIcon aria-hidden="true" />
                 </button>
               )}
-              {showAllStyles && extraPopupTextStyles.map(renderPopupStyleChip)}
             </div>
           </div>
           <div className="kt-popup-advanced-grid">

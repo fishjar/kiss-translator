@@ -253,8 +253,8 @@ describe("PopupCont capability parity", () => {
     view.cleanup();
   });
 
-  test("keeps the active style visible and expands to every style", async () => {
-    const view = renderPopupCont();
+  test("keeps the active style visible and the disclosure after all visible styles", async () => {
+    const view = renderPopupCont({}, { statefulRule: true });
     await flushEffects();
 
     const advancedButton = Array.from(
@@ -287,6 +287,8 @@ describe("PopupCont capability parity", () => {
       "popup_all_styles (2)"
     );
     expect(allStylesButton.getAttribute("aria-expanded")).toBe("false");
+    expect(allStylesButton.nextElementSibling).toBeNull();
+    allStylesButton.focus();
     act(() => allStylesButton.click());
 
     styleButtons = view.container.querySelectorAll(
@@ -296,9 +298,34 @@ describe("PopupCont capability parity", () => {
     expect(allStylesButton.textContent).toContain("popup_collapse");
     expect(allStylesButton.getAttribute("aria-expanded")).toBe("true");
     expect(allStylesButton.previousElementSibling.textContent).toContain(
-      "Style 3"
+      "Style 6"
     );
-    expect(allStylesButton.nextElementSibling.textContent).toContain("Style 4");
+    expect(allStylesButton.nextElementSibling).toBeNull();
+    expect(document.activeElement).toBe(allStylesButton);
+
+    const newlyVisibleStyle = Array.from(styleButtons).find((button) =>
+      button.textContent.includes("Style 5")
+    );
+    newlyVisibleStyle.focus();
+    act(() => newlyVisibleStyle.click());
+    expect(document.activeElement).toBe(newlyVisibleStyle);
+    allStylesButton.focus();
+    act(() => allStylesButton.click());
+
+    expect(
+      view.container.querySelectorAll(
+        ".kt-popup-style-chip:not(.kt-popup-style-more)"
+      )
+    ).toHaveLength(5);
+    expect(
+      view.container.querySelector(
+        '.kt-popup-style-chip[aria-pressed="true"] small'
+      ).textContent
+    ).toBe("Style 5");
+    expect(allStylesButton.getAttribute("aria-expanded")).toBe("false");
+    expect(allStylesButton.textContent).toContain("+2");
+    expect(allStylesButton.nextElementSibling).toBeNull();
+    expect(document.activeElement).toBe(allStylesButton);
     view.cleanup();
   });
 
