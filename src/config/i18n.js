@@ -4061,6 +4061,15 @@ export const I18N = {
     tr: `Çeviri Kutusu Uyarlanabilir Yükseklik`,
     vi: "Hộp dịch tự động chiều cao",
   },
+  field_resize_height: {
+    zh: `拖动调整高度`,
+    en: `Drag to adjust height`,
+    zh_TW: `拖曳調整高度`,
+    ja: `ドラッグで高さを調整`,
+    ko: `드래그하여 높이 조절`,
+    tr: `Yüksekliği ayarlamak için sürükleyin`,
+    vi: "Kéo để điều chỉnh chiều cao",
+  },
   tranbox_interact_mode: {
     zh: `翻译框内交互模式`,
     en: `Transbox Interact Mode`,

@@ -22,7 +22,7 @@ import {
   PROMPT_MODE_FOLLOW_API,
   findPromptBySlug,
 } from "../../config";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useId } from "react";
 import TranCont from "./TranCont";
 import DictCont from "./DictCont";
 import AiDictCont from "./AiDictCont";
@@ -33,6 +33,24 @@ import { isValidWord, isSingleChineseChar } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
 import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
+import {
+  ResizeHandle,
+  usePrefersReducedMotion,
+  CONTROL_HEIGHT,
+  CONTROL_CENTER_FROM_RIGHT,
+  NOTCH_STRIP_HEIGHT,
+  NOTCH_HORIZONTAL_PAD,
+} from "../../components/ResizeHandle";
+import { useTextareaResize } from "../../components/useTextareaResize";
+import { useFocusClosingGate } from "../../components/useFocusClosingGate";
+
+// 控件嵌入边框的共享定位常量（转发导出，供测试与其他调用点从本组件导入）
+export {
+  CONTROL_HEIGHT,
+  CONTROL_CENTER_FROM_RIGHT,
+  NOTCH_STRIP_HEIGHT,
+  NOTCH_HORIZONTAL_PAD,
+} from "../../components/ResizeHandle";
 
 /**
  * 翻译交互核心表单组件 (集成源/目标语言选择、多引擎翻译、词典展示、汉典展示、语言检测与文本输入)
@@ -61,11 +79,34 @@ export default function TranForm({
   syncExternalTextWhileEditing = false,
 }) {
   const i18n = useI18n();
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   // 当前是否处于文本框获取焦点的编辑提交模式
   const [editMode, setEditMode] = useState(false);
   // 输入框中临时编辑的文本，在失焦或点击提交时同步至外层全局 text 状态
   const [editText, setEditText] = useState(text);
+  const editTextRef = useRef(editText);
+  editTextRef.current = editText;
+
+  // 唯一焦点退出 gate：TranForm / TranCont 共享的状态机，
+  // 负责 focus-gating（focused）与 120ms 退出过渡（closing）。
+  const {
+    focused: originalFocused,
+    closing,
+    handleFocus: handleFieldFocus,
+    handleBlur: handleFieldBlur,
+  } = useFocusClosingGate({
+    prefersReducedMotion,
+    onTrueBlur: () => {
+      // 提交语义立即生效：真正离开字段时提交当前编辑内容
+      setText(editTextRef.current.trim());
+    },
+    onClosingEnd: () => {
+      // 退出动画到期后 editMode 归位
+      setEditMode(false);
+    },
+  });
+
   const [apiSlugs, setApiSlugs] = useState(initApiSlugs);
   const [hasUserChangedApiSlugs, setHasUserChangedApiSlugs] = useState(false);
   const [fromLang, setFromLang] = useState(initFromLang);
@@ -83,6 +124,19 @@ export default function TranForm({
     loading: false,
   });
   const inputRef = useRef(null);
+  const fieldId = useId();
+  // 原文文本框自定义高度：null 表示仍由 MUI TextareaAutosize 自动测量，
+  // 用户首次拖动后切换为受控高度，后续内容变化不会覆盖用户调整的尺寸。
+  const [resizeHeight, setResizeHeight] = useState(null);
+  // 拖动高度 → TextField 的 minRows/maxRows/根节点高度样式（共享 hook）：
+  // 未拖动时保持自动测量（minRows 随 Playgound 形态、maxRows=10 限制上限），
+  // 拖动后全部释放量化，由像素高度驱动。
+  const { minRows, maxRows, rootStyle } = useTextareaResize(
+    resizeHeight,
+    isPlaygound ? 2 : 1
+  );
+  const originalBoxRef = useRef(null);
+  const showOriginalControls = originalFocused || closing;
 
   const detectionKey = useMemo(
     () => `${langDetector}\u0000${text}`,
@@ -167,9 +221,18 @@ export default function TranForm({
 
   // 从剪贴板粘贴文本到翻译框
   const handlePaste = async () => {
+    // 剪贴板能力守卫：非安全上下文或未实现 readText 的环境直接降级为
+    // 无操作；不依赖异常流作为正常路径。
+    if (typeof navigator.clipboard?.readText !== "function") {
+      return;
+    }
     try {
       const text = await navigator.clipboard.readText();
       setText(text.trim());
+      // 粘贴的内容立即成为当前编辑值并恢复编辑/提交态：粘贴动作等价于
+      // 手动输入，rail 应切回 Done 提交，而非停留在空态粘贴按钮上。
+      setEditText(text.trim());
+      setEditMode(true);
     } catch (err) {
       //
     }
@@ -454,63 +517,135 @@ export default function TranForm({
             </Grid>
           </Box>
 
-          {/* 原始文本输入区域 */}
-          <Box>
+          {/* 原始文本输入区域：onBlur 挂在包装层（焦点保活见 handleFieldBlur） */}
+          <Box
+            ref={originalBoxRef}
+            sx={{ position: "relative" }}
+            onBlur={handleFieldBlur}
+          >
             <TextField
+              id={fieldId}
               size="small"
               label={i18n("original_text")}
               fullWidth
               multiline
               inputRef={inputRef}
-              minRows={isPlaygound ? 2 : 1}
-              maxRows={10}
+              minRows={minRows}
+              maxRows={maxRows}
               sx={{
-                "& textarea": {
-                  resize: "vertical",
+                "& textarea:not([aria-hidden='true'])": {
+                  boxSizing: "border-box",
+                  maxHeight: "100%",
+                  resize: "none",
+                  ...(resizeHeight != null
+                    ? { overflow: "auto !important" }
+                    : {}),
                 },
               }}
               value={editText}
               onChange={(e) => {
                 setEditText(e.target.value);
-              }}
-              onFocus={() => {
+                // 打字即进入编辑态：提交后焦点仍保留在 textarea，
+                // 继续输入必须恢复 Done 提交态
                 setEditMode(true);
               }}
-              // REVIEW: TextField 的 onBlur 会立即触发 setEditMode(false) 并提交数据，而 DoneIcon 的 onClick 也会执行相同逻辑。这会在点击提交按钮时产生多余重入。更关键的是，在某些系统或移动端环境下，onBlur 优先于 click 触发会使 EditMode 瞬间置为 false，导致 DoneIcon 被提早销毁而无法正常响应 onClick 事件。建议在图标按钮上改用 onMouseDown + preventDefault，或使用 onCommit 统一提交通道。
-              onBlur={() => {
-                setEditMode(false);
-                setText(editText.trim());
+              onFocus={() => {
+                handleFieldFocus();
+                setEditMode(true);
               }}
               InputProps={{
-                endAdornment: (
+                style: {
+                  paddingRight: 14,
+                  ...(rootStyle || {}),
+                },
+              }}
+            />
+            {/* 覆盖层：与可能设置 overflow-y: auto 的输入根节点同级，避免滚动裁切
+                控件（rail / 六点手柄 / 两处 notch 不再位于滚动根节点内部），
+                也避免滚动时覆盖层随内容滚走。几何相对本包装层，
+                其外框与输入根节点完全重合。 */}
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+              }}
+            >
+              {/* 右上角操作区：聚焦显示（编辑态提交，有内容非编辑复制，空态粘贴）；失焦播放退出动画后卸载 */}
+              {showOriginalControls && (
+                <>
+                  {/* Notch 遮罩条：覆盖顶边框线段，形成 notch 效果 */}
+                  <Box
+                    data-testid="tranform-rail-notch"
+                    style={{
+                      position: "absolute",
+                      right:
+                        CONTROL_CENTER_FROM_RIGHT -
+                        CONTROL_HEIGHT / 2 -
+                        NOTCH_HORIZONTAL_PAD,
+                      top: -Math.round(NOTCH_STRIP_HEIGHT / 2),
+                      width: CONTROL_HEIGHT + NOTCH_HORIZONTAL_PAD * 2,
+                      height: NOTCH_STRIP_HEIGHT,
+                    }}
+                    sx={{
+                      backgroundColor: "background.paper",
+                      zIndex: 1,
+                      // 与 rail 统一为同一套 opacity + visibility 过渡（120ms）
+                      opacity: closing ? 0 : 1,
+                      visibility: closing ? "hidden" : "visible",
+                      transition: prefersReducedMotion
+                        ? "none"
+                        : "opacity 120ms ease, visibility 120ms ease",
+                    }}
+                  />
                   <Stack
                     direction="row"
-                    sx={{
+                    data-testid="tranform-rail"
+                    style={{
                       position: "absolute",
-                      right: 0,
-                      top: 0,
+                      right: CONTROL_CENTER_FROM_RIGHT - CONTROL_HEIGHT / 2,
+                      top: -Math.round(CONTROL_HEIGHT / 2),
+                      // 进入态保持 auto 以便命中；closing 期间屏蔽点击，防止残留按钮被触发
+                      pointerEvents: closing ? "none" : "auto",
+                    }}
+                    sx={{
+                      zIndex: 2,
+                      // 与边框变色 / 缩放手柄统一为同一套 opacity + visibility 过渡（120ms）
+                      opacity: closing ? 0 : 1,
+                      visibility: closing ? "hidden" : "visible",
+                      transition: prefersReducedMotion
+                        ? "none"
+                        : "opacity 120ms ease, visibility 120ms ease",
                     }}
                   >
-                    {editMode ? (
-                      /* 编辑模式：显示提交勾选图标 */
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditMode(false);
-                          setText(editText.trim());
-                        }}
-                        title={i18n("submit")}
-                      >
-                        <DoneIcon fontSize="inherit" />
-                      </IconButton>
-                    ) : text ? (
-                      /* 有内容时：显示一键复制按钮 */
-                      <CopyBtn text={text} title={i18n("copy")} />
+                    {editText.trim() ? (
+                      editMode ? (
+                        /* 编辑模式：显示提交勾选图标 */
+                        <IconButton
+                          size="small"
+                          aria-label={i18n("submit")}
+                          // 鼠标按下时阻止默认行为，避免 textarea 先失焦卸载按钮，保证 onClick 正常触发
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditMode(false);
+                            setText(editText.trim());
+                          }}
+                          title={i18n("submit")}
+                        >
+                          <DoneIcon fontSize="inherit" />
+                        </IconButton>
+                      ) : (
+                        /* 有内容且非编辑态：显示一键复制按钮（复制当前编辑缓冲，
+                           聚焦后未提交的改动同样被复制） */
+                        <CopyBtn text={editText} title={i18n("copy")} />
+                      )
                     ) : (
-                      /* 无内容时：显示一键粘贴按钮 */
+                      /* 空缓冲：显示一键粘贴按钮（同样阻止 mousedown 失焦） */
                       <IconButton
                         size="small"
+                        aria-label={i18n("paste")}
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={handlePaste}
                         title={i18n("paste")}
                       >
@@ -518,9 +653,29 @@ export default function TranForm({
                       </IconButton>
                     )}
                   </Stack>
-                ),
-              }}
-            />
+                </>
+              )}
+              {/* 右下角纵向缩放手柄：内容门控依据当前编辑值 editText.trim()（而非
+                  已提交的 text），空框输入立即可调、清空已有内容立即隐藏；
+                  已有手动高度（resizeHeight）本身也构成显示手柄的理由——
+                  清空内容后手柄常驻，可拖回最小完成复位。 */}
+              <ResizeHandle
+                visible={Boolean(
+                  (originalFocused || closing) &&
+                    (editText.trim() || resizeHeight != null)
+                )}
+                closing={closing}
+                height={resizeHeight}
+                containerRef={originalBoxRef}
+                onHeightChange={setResizeHeight}
+                prefersReducedMotion={prefersReducedMotion}
+                controlsId={fieldId}
+                title={i18n("field_resize_height")}
+                ariaLabel={i18n("field_resize_height")}
+                testId="tranform-resize-handle"
+                notchTestId="tranform-resize-notch"
+              />
+            </Box>
           </Box>
         </>
       )}

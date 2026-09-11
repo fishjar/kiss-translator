@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -40,17 +40,16 @@ import {
 } from "../../subtitle/subtitleSegmentationMetrics";
 import { DEFAULT_PARAMS } from "../../subtitle/sentenceBreaker";
 import { buildBilingualVtt } from "../../subtitle/vtt";
+import {
+  ResizeHandle,
+  usePrefersReducedMotion,
+  MIN_RESIZE_HEIGHT_MEDIUM,
+} from "../../components/ResizeHandle";
+import { useTextareaResize } from "../../components/useTextareaResize";
 
 const SAMPLE_BASE_URL = `${process.env.REACT_APP_SITEURL}/subtitle-samples`;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MAX_UPLOAD_EVENTS = 100000;
-// 原始数据和结果框默认显示五行，并允许用户从右下角按需拉高查看区域。
-const RESIZABLE_TEXT_FIELD_SX = {
-  "& textarea": {
-    resize: "vertical !important",
-    overflow: "auto !important",
-  },
-};
 
 /** 用命名占位符组装包含运行时数据的多语言文案。 */
 function formatI18n(i18n, key, fallback, values = {}) {
@@ -150,6 +149,105 @@ function hasCompleteIndexedCoverage(cues, eventCount) {
   return nextIndex === eventCount;
 }
 
+/**
+ * 字幕页可拖高输入框包装组件（最简形态）：把「受控高度 state +
+ * useTextareaResize + 只读 TextField + 常显 ResizeHandle」收敛进这一层，
+ * 使拖动期间的每次 pointermove 只重渲染本组件，不再触发整页
+ * SubtitleSegmentationPlayground 的 reconciliation —— 重渲染范围隔离，
+ * 修复整页重渲染导致的拖动掉帧。
+ *
+ * 重渲染范围隔离生效的关键：onHeightChange 直接传 useState setter（引用稳定）。
+ * ResizeHandle 的拖动会话监听在 pointerdown/touchstart 内同步安装、由 endSession
+ * 卸载，不随重渲染重建；拖动期间每次 pointermove 只重渲染本组件，父级不参与
+ * reconciliation，value/ariaLabel 等 props 引用不变、不参与拖动路径。
+ *
+ * 字幕页没有 focus-gating：两手柄静态 visible、closing=false，
+ * 不引入任何焦点状态；notch 遮罩条用默认高度（无局部聚焦边框策略）。
+ *
+ * 本文件内定义专用包装组件，不与 Selection 的 focus-gating 形态共享：
+ * 字幕页是只读静态常显手柄 + 默认 notch；Selection（TranForm/TranCont）则是
+ * focus-gating 显隐 + 自定义遮罩条高度——差异足以支撑分开定义，贸然合并会
+ * 回归焦点/notch 行为。
+ */
+function ResizableSubtitleField({
+  value,
+  textareaLabel,
+  handleLabel,
+  testId,
+  notchTestId,
+  // 额外绝对定位浮层（如结果框右上角 JSON/VTT 工具栏），渲染在手柄覆盖层之下。
+  toolbar = null,
+}) {
+  const boxRef = useRef(null);
+  const fieldId = useId();
+  // 受控高度：null 表示仍由 MUI TextareaAutosize 自动测量，
+  // 用户首次拖动后切换为受控高度（与 Selection 语义一致）。
+  const [height, setHeight] = useState(null);
+  // reduced-motion 偏好由本组件订阅一次并经 prop 下发（单一状态真源，
+  // ResizeHandle 自身不再重复订阅）。
+  const prefersReducedMotion = usePrefersReducedMotion();
+  // 拖动高度 → TextField 的 minRows/maxRows/根节点高度样式（共享 hook）。
+  // 未拖动时保持原语义：minRows=5、maxRows=10 限制自动增长上限；
+  // 拖动后受控像素高度落在 InputBase 根节点（与 Selection 的根节点高度模型
+  // 对齐），min/maxRows 量化全部释放。
+  const { minRows, maxRows, rootStyle } = useTextareaResize(height, 5);
+
+  return (
+    <Box ref={boxRef} sx={{ position: "relative" }}>
+      <TextField
+        id={fieldId}
+        fullWidth
+        multiline
+        minRows={minRows}
+        maxRows={maxRows}
+        value={value}
+        InputProps={{
+          readOnly: true,
+          // 根节点保留右侧内边距；拖动后受控像素高度直接约束 InputBase
+          // （输入框本体），与 helperText/标签互不干扰，rootStyle 与
+          // TranForm/TranCont 的 InputBase 根节点高度模型一致。不写入内部
+          // textarea 的 inline height，TextareaAutosize 的自动测量不受影响；
+          // 滚动与几何契约由下方 scoped sx 规则承载（不命中测量 shadow）。
+          style: {
+            paddingRight: 14,
+            ...(rootStyle || {}),
+          },
+        }}
+        inputProps={{
+          "aria-label": textareaLabel,
+        }}
+        sx={{
+          "& textarea:not([aria-hidden='true'])": {
+            boxSizing: "border-box",
+            maxHeight: "100%",
+            resize: "none",
+            ...(height != null ? { overflow: "auto !important" } : {}),
+          },
+        }}
+      />
+      {toolbar}
+      {/* 覆盖层：手柄/notch 相对本包装层定位，不被滚动裁切 */}
+      <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+        <ResizeHandle
+          visible
+          closing={false}
+          height={height}
+          containerRef={boxRef}
+          minHeight={MIN_RESIZE_HEIGHT_MEDIUM}
+          // 直接传 state setter（引用稳定）：拖动全程监听器集不重挂，隔离生效关键。
+          onHeightChange={setHeight}
+          prefersReducedMotion={prefersReducedMotion}
+          controlsId={fieldId}
+          title={handleLabel}
+          ariaLabel={handleLabel}
+          testId={testId}
+          notchTestId={notchTestId}
+        />
+      </Box>
+    </Box>
+  );
+}
+
 /** 字幕断句工作台，所有配置只读取当前字幕设置，不单独持久化。 */
 export default function SubtitleSegmentationPlayground({
   subtitleSetting = {},
@@ -173,6 +271,8 @@ export default function SubtitleSegmentationPlayground({
   const [showLanguageRequired, setShowLanguageRequired] = useState(false);
   const abortRef = useRef(null);
   const languageSelectRef = useRef(null);
+  // 原始字幕 JSON / 断句结果输入框的高度 state、useTextareaResize 与手柄
+  // 已整体收敛进下方 ResizableSubtitleField 包装组件（重渲染范围隔离）。
   // 索引只应拉取一次，通过 ref 读取当前语言，避免翻译函数变化导致重复请求。
   const i18nRef = useRef(i18n);
   i18nRef.current = i18n;
@@ -778,71 +878,61 @@ export default function SubtitleSegmentationPlayground({
           <Typography variant="subtitle2" gutterBottom>
             {i18n("subtitle_playground_source_json", "原始字幕 JSON")}
           </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={5}
+          <ResizableSubtitleField
             value={sourceText}
-            InputProps={{ readOnly: true }}
-            inputProps={{
-              "aria-label": i18n(
-                "subtitle_playground_source_json",
-                "原始字幕 JSON"
-              ),
-            }}
-            sx={RESIZABLE_TEXT_FIELD_SX}
+            textareaLabel={i18n("subtitle_playground_source_json")}
+            handleLabel={i18n("field_resize_height")}
+            testId="segmentation-source-resize-handle"
+            notchTestId="segmentation-source-resize-notch"
           />
         </Box>
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="subtitle2" gutterBottom>
             {i18n("subtitle_playground_result", "断句结果")}
           </Typography>
-          <Box sx={{ position: "relative" }}>
-            <TextField
-              fullWidth
-              multiline
-              rows={5}
-              value={resultText}
-              InputProps={{ readOnly: true }}
-              inputProps={{
-                "aria-label": i18n("subtitle_playground_result", "断句结果"),
-              }}
-              sx={RESIZABLE_TEXT_FIELD_SX}
-            />
-            <Stack
-              direction="row"
-              spacing={0.5}
-              alignItems="center"
-              sx={{
-                position: "absolute",
-                zIndex: 1,
-                top: 8,
-                right: 8,
-                p: 0.25,
-                borderRadius: 1,
-                bgcolor: "background.paper",
-                boxShadow: 1,
-              }}
-            >
-              <ToggleButtonGroup
-                exclusive
-                size="small"
-                value={resultFormat}
-                onChange={(_, value) => value && setResultFormat(value)}
+          <ResizableSubtitleField
+            value={resultText}
+            textareaLabel={i18n("subtitle_playground_result")}
+            handleLabel={i18n("field_resize_height")}
+            testId="segmentation-result-resize-handle"
+            notchTestId="segmentation-result-resize-notch"
+            toolbar={
+              <Stack
+                direction="row"
+                spacing={0.5}
+                alignItems="center"
+                sx={{
+                  position: "absolute",
+                  zIndex: 1,
+                  top: 8,
+                  right: 8,
+                  p: 0.25,
+                  borderRadius: 1,
+                  bgcolor: "background.paper",
+                  boxShadow: 1,
+                }}
               >
-                <ToggleButton value="json">JSON</ToggleButton>
-                <ToggleButton value="vtt">VTT</ToggleButton>
-              </ToggleButtonGroup>
-              <Button
-                size="small"
-                startIcon={<DownloadIcon />}
-                disabled={!result}
-                onClick={downloadResult}
-              >
-                {i18n("subtitle_playground_download", "下载")}
-              </Button>
-            </Stack>
-          </Box>
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  value={resultFormat}
+                  onChange={(_, value) => value && setResultFormat(value)}
+                >
+                  <ToggleButton value="json">JSON</ToggleButton>
+                  <ToggleButton value="vtt">VTT</ToggleButton>
+                </ToggleButtonGroup>
+                <Button
+                  size="small"
+                  startIcon={<DownloadIcon />}
+                  disabled={!result}
+                  onClick={downloadResult}
+                >
+                  {i18n("subtitle_playground_download", "下载")}
+                </Button>
+              </Stack>
+            }
+          />
+          {/* 右上按钮 Stack zIndex=1，手柄在下右下，几何上不重叠。 */}
         </Box>
       </Box>
 
