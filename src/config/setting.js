@@ -37,6 +37,14 @@ export const TRANS_MIN_LENGTH = 2; // 触发网页翻译的最小文本字符数
 export const TRANS_MAX_LENGTH = 100000; // 单次翻译的最大字符数
 export const TRANS_NEWLINE_LENGTH = 20; // 文本被认定为需要单独换行的长度限制
 
+// --- 工具栏弹窗默认界面 ---
+export const OPT_POPUP_DEFAULT_VIEW_PAGE = "page"; // 默认显示网页翻译界面
+export const OPT_POPUP_DEFAULT_VIEW_TEXT = "text"; // 默认显示文本翻译界面
+export const OPT_POPUP_DEFAULT_VIEW_ALL = [
+  OPT_POPUP_DEFAULT_VIEW_PAGE,
+  OPT_POPUP_DEFAULT_VIEW_TEXT,
+];
+
 // 默认不参与整页翻译的网站黑名单 (例如翻译工具本身、特定系统页，避免死循环翻译)
 export const DEFAULT_BLACKLIST = [
   "https://fishjar.github.io/kiss-translator/options.html",
@@ -262,6 +270,7 @@ export const DEFAULT_SETTING = {
   httpTimeout: DEFAULT_HTTP_TIMEOUT, // 接口请求超时时间
   clearCache: false, // 每次浏览器重启时，是否自动清空翻译结果的本地网络缓存
   autoTranslateClipboard: false, // 打开文本翻译面板或重新聚焦独立窗口时，是否自动翻译剪贴板文本
+  popupDefaultView: OPT_POPUP_DEFAULT_VIEW_PAGE, // 工具栏弹窗打开时默认显示的界面
   injectRules: true, // 页面加载时是否自动匹配并注入云端订阅的翻译规则
   fabClickAction: 0, // 工具栏悬浮球按钮双击或单击的默认响应行为 (如开启/关闭翻译)
   // injectWebfix: true, // 是否注入修复补丁(作废)

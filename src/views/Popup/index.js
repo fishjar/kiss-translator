@@ -10,6 +10,7 @@ import {
   MSG_OPEN_OPTIONS,
   MSG_OPEN_SEPARATE_WINDOW,
   MSG_TRANS_GETRULE,
+  OPT_POPUP_DEFAULT_VIEW_TEXT,
   STOKEY_SETTING,
   resolveApiPromptList,
 } from "../../config";
@@ -165,14 +166,19 @@ export function Trantab({ isSeparate = false }) {
  */
 export default function Popup() {
   const i18n = useI18n();
+  const { setting: globalSetting } = useSetting();
   // 当前网页的翻译规则设置
   const [rule, setRule] = useState(null);
   // 全局通用设置
   const [setting, setSetting] = useState(null);
   // 是否展示文本翻译输入框面板 (为 true 时显示文本翻译，为 false 时显示网页设置)
-  const [showTrantab, setShowTrantab] = useState(false);
+  const [showTrantab, setShowTrantab] = useState(
+    () => globalSetting?.popupDefaultView === OPT_POPUP_DEFAULT_VIEW_TEXT
+  );
   // 是否以独立翻译窗口的模式运行 (通过 URL Hash #tranbox 识别)
-  const [isSeparate, setIsSeparate] = useState(false);
+  const [isSeparate] = useState(
+    () => window.location.hash.slice(1) === "tranbox"
+  );
 
   // 跳转到浏览器插件的设置选项页面
   const handleOpenSetting = useCallback(() => {
@@ -185,7 +191,6 @@ export default function Popup() {
       try {
         const cleanHash = window.location.hash.slice(1);
         if (cleanHash === "tranbox") {
-          setIsSeparate(true);
           return;
         }
 

@@ -4,7 +4,8 @@ import { STOKEY_SETTING } from "../../config";
 import { useSetting } from "../../hooks/Setting";
 import { browser } from "../../libs/browser";
 import { readClipboardTextIfAllowed } from "../../libs/clipboard";
-import { Trantab } from ".";
+import Popup, { Trantab } from ".";
+import { sendTabMsg } from "../../libs/msg";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -28,8 +29,19 @@ jest.mock("../../libs/browser", () => ({
     },
   },
 }));
-jest.mock("./PopupCont", () => () => null);
-jest.mock("./Header", () => () => null);
+jest.mock("../../libs/msg", () => ({
+  sendTabMsg: jest.fn(),
+  sendBgMsg: jest.fn(),
+}));
+jest.mock("./PopupCont", () => {
+  const React = require("react");
+  return () => React.createElement("div", { "data-testid": "page-panel" });
+});
+jest.mock("./Header", () => {
+  const React = require("react");
+  return ({ toggleTab }) =>
+    React.createElement("button", { onClick: toggleTab }, "toggle");
+});
 jest.mock("../Selection/TranForm", () => {
   const React = require("react");
   return ({ text, autoFocusInput, syncExternalTextWhileEditing }) =>
@@ -183,5 +195,98 @@ describe("Trantab clipboard translation", () => {
       container.querySelector('[data-testid="tran-form"]').textContent
     ).toBe("new clipboard text");
     act(() => root.unmount());
+  });
+});
+
+describe("Popup default view", () => {
+  let container;
+  let root;
+  const updateSetting = jest.fn();
+
+  beforeEach(() => {
+    window.location.hash = "";
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    updateSetting.mockClear();
+    readClipboardTextIfAllowed.mockReset();
+    sendTabMsg.mockReset();
+    sendTabMsg.mockResolvedValue({ rule: {}, setting });
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+    window.location.hash = "";
+  });
+
+  async function renderPopup(popupDefaultView) {
+    useSetting.mockReturnValue({
+      setting: { ...setting, autoTranslateClipboard: false, popupDefaultView },
+      updateSetting,
+    });
+    await act(async () => root.render(<Popup />));
+  }
+
+  test.each([undefined, "page", "invalid"])(
+    "opens the webpage panel for preference %p",
+    async (value) => {
+      await renderPopup(value);
+      expect(
+        container.querySelector('[data-testid="page-panel"]')
+      ).not.toBeNull();
+      expect(container.querySelector('[data-testid="tran-form"]')).toBeNull();
+    }
+  );
+
+  test("opens text translation without a content-script response", async () => {
+    sendTabMsg.mockResolvedValue(undefined);
+    await renderPopup("text");
+    expect(container.querySelector('[data-testid="tran-form"]')).not.toBeNull();
+    expect(readClipboardTextIfAllowed).not.toHaveBeenCalled();
+  });
+
+  test("temporary switching does not save or replace the configured default", async () => {
+    await renderPopup("text");
+    act(() => container.querySelector("button").click());
+    expect(
+      container.querySelector('[data-testid="page-panel"]')
+    ).not.toBeNull();
+    await renderPopup("text");
+    expect(
+      container.querySelector('[data-testid="page-panel"]')
+    ).not.toBeNull();
+    expect(updateSetting).not.toHaveBeenCalled();
+
+    act(() => root.unmount());
+    root = createRoot(container);
+    await renderPopup("text");
+    expect(container.querySelector('[data-testid="tran-form"]')).not.toBeNull();
+  });
+
+  test("separate windows always show text translation", async () => {
+    window.location.hash = "tranbox";
+    await renderPopup("page");
+    expect(container.querySelector('[data-testid="tran-form"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="page-panel"]')).toBeNull();
+    expect(sendTabMsg).not.toHaveBeenCalled();
+  });
+
+  test("separate text windows read the clipboard only once on mount", async () => {
+    window.location.hash = "tranbox";
+    readClipboardTextIfAllowed.mockResolvedValue("clipboard text");
+    useSetting.mockReturnValue({
+      setting: {
+        ...setting,
+        autoTranslateClipboard: true,
+        popupDefaultView: "text",
+      },
+      updateSetting,
+    });
+
+    await act(async () => root.render(<Popup />));
+    await flushEffects();
+
+    expect(readClipboardTextIfAllowed).toHaveBeenCalledTimes(1);
   });
 });

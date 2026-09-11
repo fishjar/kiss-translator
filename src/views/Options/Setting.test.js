@@ -1,8 +1,14 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { AutoTranslateClipboardSetting, ExtCommands } from "./Setting";
+import Settings, {
+  AutoTranslateClipboardSetting,
+  ExtCommands,
+} from "./Setting";
 import { browser } from "../../libs/browser";
 import { useAlert } from "../../hooks/Alert";
+import { useSetting } from "../../hooks/Setting";
+import { useFab } from "../../hooks/Fab";
+import { useShortcut } from "../../hooks/Shortcut";
 import {
   hasClipboardReadPermission,
   requestClipboardReadPermission,
@@ -30,9 +36,12 @@ jest.mock("../../hooks/Alert", () => ({
 }));
 
 jest.mock("../../hooks/Setting", () => ({ useSetting: jest.fn() }));
+let mockIsExt = true;
 jest.mock("../../libs/client", () => ({
   isAutoTranslateClipboardSupported: true,
-  isExt: true,
+  get isExt() {
+    return mockIsExt;
+  },
 }));
 jest.mock("../../libs/clipboard", () => ({
   CLIPBOARD_READ_PERMISSION: "clipboardRead",
@@ -191,6 +200,74 @@ describe("AutoTranslateClipboardSetting", () => {
 
     expect(onChange).toHaveBeenCalledWith(false);
     expect(alert.warning).toHaveBeenCalledWith("clipboard_permission_denied");
+    act(() => root.unmount());
+  });
+});
+
+describe("Settings popup default view", () => {
+  const setting = {
+    uiLang: "en",
+    minLength: 2,
+    maxLength: 100000,
+    clearCache: false,
+    logLevel: 3,
+    popupDefaultView: "page",
+  };
+  const updateSetting = jest.fn();
+  const updateFab = jest.fn();
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    mockIsExt = true;
+    updateSetting.mockReset();
+    updateFab.mockReset();
+    useSetting.mockReturnValue({ setting, updateSetting });
+    useFab.mockReturnValue({ fab: {}, updateFab });
+    useShortcut.mockReturnValue({ shortcut: [], setShortcut: jest.fn() });
+    browser.commands.getAll.mockResolvedValue([]);
+    hasClipboardReadPermission.mockResolvedValue(false);
+    useAlert.mockReturnValue(alert);
+  });
+
+  async function renderSettings() {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Settings />);
+      await Promise.resolve();
+    });
+    return { container, root };
+  }
+
+  test("saves the selected popup default view", async () => {
+    const { container, root } = await renderSettings();
+    const input = container.querySelector('input[name="popupDefaultView"]');
+    const select = input
+      .closest(".MuiInputBase-root")
+      .querySelector('[role="combobox"]');
+
+    expect(input.value).toBe("page");
+    act(() => {
+      select.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    });
+    act(() => {
+      document.body
+        .querySelector('[role="option"][data-value="text"]')
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(updateSetting).toHaveBeenCalledWith({ popupDefaultView: "text" });
+    act(() => root.unmount());
+  });
+
+  test("hides the popup default view outside extension mode", async () => {
+    mockIsExt = false;
+    const { container, root } = await renderSettings();
+
+    expect(
+      container.querySelector('input[name="popupDefaultView"]')
+    ).toBeNull();
     act(() => root.unmount());
   });
 });
