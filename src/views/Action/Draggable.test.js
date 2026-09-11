@@ -118,8 +118,33 @@ describe("Draggable FAB edge locking", () => {
     return nextFab;
   }
 
+  test("keeps the cross-axis fully visible at viewport corners", () => {
+    const dimensions = {
+      x: 580,
+      y: 390,
+      width: 56,
+      height: 56,
+      windowWidth: 600,
+      windowHeight: 400,
+    };
+
+    expect(
+      getEdgePosition({ ...dimensions, revealed: false, edge: "right" })
+    ).toEqual({ x: 572, y: 344 });
+    expect(
+      getEdgePosition({ ...dimensions, revealed: true, edge: "right" })
+    ).toEqual({ x: 544, y: 344 });
+    expect(
+      getEdgePosition({ ...dimensions, revealed: false, edge: "bottom" })
+    ).toEqual({ x: 544, y: 372 });
+    expect(
+      getEdgePosition({ ...dimensions, revealed: true, edge: "bottom" })
+    ).toEqual({ x: 544, y: 344 });
+  });
+
   test("keeps the right edge during immediate and debounced viewport resize", () => {
     const fab = renderFab();
+    expect(draggable.style.width).toBe("40px");
     expect(draggable.style.transform).toBe("translate(580px, 200px)");
 
     setViewport(1200, 800);
@@ -128,6 +153,66 @@ describe("Draggable FAB edge locking", () => {
 
     rerenderFab(fab, { windowSize: { w: 1200, h: 800 } });
     expect(draggable.style.transform).toBe("translate(1180px, 400px)");
+  });
+
+  test("constrains a content panel to its requested width", () => {
+    renderFab({
+      width: 360,
+      height: 442,
+      left: 120,
+      top: 40,
+      edge: undefined,
+      snapEdge: false,
+      usePaper: true,
+    });
+
+    expect(draggable.style.width).toBe("360px");
+    expect(draggable.querySelector(".MuiPaper-root")).not.toBeNull();
+  });
+
+  test("does not begin a panel drag from an interactive header control", () => {
+    const onStart = jest.fn();
+    renderFab({
+      width: 360,
+      height: 442,
+      left: 120,
+      top: 40,
+      edge: undefined,
+      snapEdge: false,
+      usePaper: true,
+      onStart,
+      handler: (
+        <div>
+          <button type="button">Close</button>
+          <span data-testid="drag-surface">Header</span>
+        </div>
+      ),
+    });
+
+    const button = draggable.querySelector("button");
+    act(() =>
+      button.dispatchEvent(
+        new MouseEvent("pointerdown", {
+          bubbles: true,
+          clientX: 10,
+          clientY: 10,
+        })
+      )
+    );
+    expect(onStart).not.toHaveBeenCalled();
+    expect(button.setPointerCapture).not.toHaveBeenCalled();
+
+    const surface = draggable.querySelector('[data-testid="drag-surface"]');
+    act(() =>
+      surface.dispatchEvent(
+        new MouseEvent("pointerdown", {
+          bubbles: true,
+          clientX: 10,
+          clientY: 10,
+        })
+      )
+    );
+    expect(onStart).toHaveBeenCalledTimes(1);
   });
 
   test.each([
@@ -158,21 +243,102 @@ describe("Draggable FAB edge locking", () => {
 
   test("hovering expands the FAB without changing its saved edge", () => {
     renderFab();
+    expect(draggable.style.opacity).toBe("1");
+    expect(draggable.style.transition).toContain("opacity");
+    expect(draggable.style.transition).toContain("transform");
 
     act(() =>
       draggable.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }))
     );
     expect(draggable.style.transform).toBe("translate(560px, 200px)");
+    expect(draggable.style.opacity).toBe("1");
 
     act(() =>
       draggable.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }))
     );
     act(() => jest.runOnlyPendingTimers());
     expect(draggable.style.transform).toBe("translate(580px, 200px)");
+    expect(draggable.style.opacity).toBe("1");
     expect(putFab).toHaveBeenLastCalledWith({ x: 580, y: 200, edge: "right" });
   });
 
+  test("keyboard focus reveals the snapped FAB and blur hides it halfway", () => {
+    const outside = document.createElement("button");
+    document.body.appendChild(outside);
+    renderFab({ handler: <button type="button">fab</button> });
+    const handler = draggable.querySelector("button");
+
+    act(() => handler.focus());
+    expect(draggable.style.transform).toBe("translate(560px, 200px)");
+
+    act(() => outside.focus());
+    expect(draggable.style.transform).toBe("translate(580px, 200px)");
+    outside.remove();
+  });
+
+  test("ignores pointer movement when no drag is active", () => {
+    const onMove = jest.fn();
+    renderFab({ onMove });
+    const handler = draggable.firstElementChild.firstElementChild;
+
+    act(() => {
+      handler.dispatchEvent(
+        new MouseEvent("pointermove", {
+          bubbles: true,
+          clientX: 300,
+          clientY: 100,
+        })
+      );
+    });
+
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
   test("changes the locked edge only after a real drag", () => {
+    renderFab();
+    const handler = draggable.firstElementChild.firstElementChild;
+
+    act(() => {
+      handler.dispatchEvent(
+        new MouseEvent("pointerdown", {
+          bubbles: true,
+          clientX: 590,
+          clientY: 210,
+        })
+      );
+    });
+    expect(draggable.style.transition).not.toContain("transform");
+    act(() => {
+      handler.dispatchEvent(
+        new MouseEvent("pointermove", {
+          bubbles: true,
+          clientX: 300,
+          clientY: 0,
+        })
+      );
+    });
+    act(() => {
+      handler.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }));
+    });
+    expect(draggable.style.transition).toContain("transform");
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    expect(draggable.style.transform).toBe("translate(290px, -20px)");
+    expect(putFab).toHaveBeenLastCalledWith({ x: 290, y: -20, edge: "top" });
+  });
+
+  test("infers and persists an edge for legacy FAB positions", () => {
+    renderFab({ edge: undefined });
+    act(() => jest.runOnlyPendingTimers());
+
+    expect(draggable.style.transform).toBe("translate(580px, 200px)");
+    expect(putFab).toHaveBeenLastCalledWith({ x: 580, y: 200, edge: "right" });
+  });
+
+  // Cancellation must clear the drag because no later pointerup is guaranteed.
+  test("a cancelled pointer ends the drag instead of leaving it stuck", () => {
     renderFab();
     const handler = draggable.firstElementChild.firstElementChild;
 
@@ -195,30 +361,43 @@ describe("Draggable FAB edge locking", () => {
       );
     });
     act(() => {
-      handler.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }));
+      handler.dispatchEvent(new MouseEvent("pointercancel", { bubbles: true }));
     });
+    const afterCancel = draggable.style.transform;
+
     act(() => {
-      jest.runOnlyPendingTimers();
+      handler.dispatchEvent(
+        new MouseEvent("pointermove", {
+          bubbles: true,
+          clientX: 100,
+          clientY: 300,
+        })
+      );
     });
 
-    expect(draggable.style.transform).toBe("translate(290px, -20px)");
-    expect(putFab).toHaveBeenLastCalledWith({ x: 290, y: -20, edge: "top" });
+    expect(draggable.style.transform).toBe(afterCancel);
   });
 
-  test("infers and persists an edge for legacy FAB positions", () => {
-    renderFab({ edge: undefined });
-    act(() => jest.runOnlyPendingTimers());
+  test("keeps the container unconstrained when fitContent is set", () => {
+    renderFab({ fitContent: true });
+    expect(draggable.style.width).toBe("");
+  });
 
+  test("an expanded overlay reveals the snapped control for touch input", () => {
+    const fab = renderFab();
+    expect(draggable.style.opacity).toBe("1");
     expect(draggable.style.transform).toBe("translate(580px, 200px)");
-    expect(putFab).toHaveBeenLastCalledWith({ x: 580, y: 200, edge: "right" });
+
+    rerenderFab(fab, { expanded: true });
+    expect(draggable.style.opacity).toBe("1");
+    expect(draggable.style.transform).toBe("translate(560px, 200px)");
   });
 
-  test("poison coordinates from a narrower viewport are clamped into drag-reachable bounds on mount", () => {
-    // 毒坐标新视口挂载回归：800×600 视口挂载遗留自宽视口的 {x:1400, y:-20, edge:"top"}。
-    // top: -20 是历史毒坐标输入，但 top 分支输出 -20 实际来自 -height / 2（贴边隐藏语义），不是输入值。
-    // putFab 为 mock：本测试只证明传给 putFab 的 payload 不再含越界正交坐标，不覆盖真实 storage 读写闭环。
+  test("clamps a saved position from a wider viewport while keeping the cross-axis visible", () => {
+    // The top edge remains half-hidden; the cross-axis fits the narrower viewport.
+    // The mocked storage verifies only the persisted payload.
     setViewport(800, 600);
-    const fab = renderFab({
+    renderFab({
       left: 1400,
       top: -20,
       edge: "top",
@@ -226,22 +405,20 @@ describe("Draggable FAB edge locking", () => {
     });
     act(() => jest.runOnlyPendingTimers());
 
-    expect(draggable.style.transform).toBe("translate(780px, -20px)");
-    expect(putFab).toHaveBeenLastCalledWith({ x: 780, y: -20, edge: "top" });
+    expect(draggable.style.transform).toBe("translate(760px, -20px)");
+    expect(putFab).toHaveBeenLastCalledWith({ x: 760, y: -20, edge: "top" });
   });
 
   test.each([
     ["left", -20, "translate(-20px, 0px)"],
-    ["right", 580, "translate(780px, 580px)"],
-    ["top", -20, "translate(-20px, -20px)"],
-    ["bottom", 780, "translate(780px, 580px)"],
+    ["right", 580, "translate(780px, 560px)"],
+    ["top", -20, "translate(0px, -20px)"],
+    ["bottom", 780, "translate(760px, 580px)"],
   ])(
-    "keeps half-hidden corner semantics for %s edge under drag-same-bound clamp",
+    "keeps only the snapped %s edge half-hidden at viewport corners",
     (edge, ortho, expected) => {
-      // 四个角落：只有被 clamp 的正交轴越界值收敛（如 edge=left 的 top=-20 -> 0，
-      // 因拖拽 min y=0），其余拖拽可达位置全部保持原样（如右下/左上双半隐藏）。
       setViewport(800, 600);
-      const fab = renderFab({
+      renderFab({
         left: edge === "top" || edge === "bottom" ? ortho : 1400,
         top: edge === "left" || edge === "right" ? ortho : 500,
         edge,
@@ -255,7 +432,7 @@ describe("Draggable FAB edge locking", () => {
 
   test("zero viewport yields finite in-range corners without NaN or negative upper bound", () => {
     setViewport(0, 0);
-    const fab = renderFab({
+    renderFab({
       left: 0,
       top: 0,
       edge: "top",
@@ -263,13 +440,13 @@ describe("Draggable FAB edge locking", () => {
     });
     act(() => jest.runOnlyPendingTimers());
 
-    expect(draggable.style.transform).toBe("translate(-20px, -20px)");
+    expect(draggable.style.transform).toBe("translate(0px, -20px)");
     expect(draggable.style.transform).not.toMatch(/NaN|Infinity/);
-    expect(putFab).toHaveBeenLastCalledWith({ x: -20, y: -20, edge: "top" });
+    expect(putFab).toHaveBeenLastCalledWith({ x: 0, y: -20, edge: "top" });
   });
 
   test("non-finite coordinates fall back safely instead of producing illegal transforms", () => {
-    const fab = renderFab({
+    renderFab({
       left: Infinity,
       top: Number.NaN,
       edge: "left",
@@ -283,8 +460,7 @@ describe("Draggable FAB edge locking", () => {
   });
 
   test("default edge (undefined) follows top semantics when clamping the orthogonal axis", () => {
-    // switch default 分支按"贴顶"重算 top，正交轴应为 left：
-    // 毒坐标 1400 收敛到 780，top 保持 -height/2 半隐藏语义，不被误收敛到 0
+    // The default branch uses the top edge and clamps the horizontal position.
     const result = getEdgePosition({
       x: 1400,
       y: -20,
@@ -292,9 +468,9 @@ describe("Draggable FAB edge locking", () => {
       height: 40,
       windowWidth: 800,
       windowHeight: 600,
-      hover: false,
+      revealed: false,
       edge: undefined,
     });
-    expect(result).toEqual({ x: 780, y: -20 });
+    expect(result).toEqual({ x: 760, y: -20 });
   });
 });

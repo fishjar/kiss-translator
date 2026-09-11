@@ -9,11 +9,11 @@ import { debounceSyncMeta } from "../libs/storage";
  */
 export function useRules() {
   // 使用 useStorage 管理翻译规则的持久化读写
-  const { data: list = [], save: saveRules } = useStorage(
-    STOKEY_RULES,
-    DEFAULT_RULES,
-    KV_RULES_KEY
-  );
+  const {
+    data: list = [],
+    save: saveRules,
+    isLoading,
+  } = useStorage(STOKEY_RULES, DEFAULT_RULES, KV_RULES_KEY);
 
   // 包装保存规则的函数，每次保存修改后都触发防抖云同步 (WebDAV 等)
   const save = useCallback(
@@ -100,5 +100,5 @@ export function useRules() {
     [save]
   );
 
-  return { list, add, del, clear, put, merge };
+  return { list, isLoading, add, del, clear, put, merge };
 }

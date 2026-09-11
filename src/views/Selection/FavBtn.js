@@ -8,25 +8,27 @@ import { useSetting } from "../../hooks/Setting";
 import { EVENT_FAVORITE_WORD_CHANGE } from "../../config";
 
 /**
- * 收藏生词按钮组件 (红心图标)
+ * Favorite word button with a heart icon.
  *
  * @param {Object} props
- * @param {string} props.word - 需要被收藏或取消收藏的单词
- * @param {string} props.title - 鼠标悬停提示文本
+ * @param {string} props.word - Word to add to or remove from favorites.
+ * @param {string} props.title - Hover tooltip text.
  */
 export default function FavBtn({ word, title }) {
-  // 使用自定义的 useFavWords 获取收藏的生词列表及切换收藏状态的方法
+  // Read favorite words and the toggle action from useFavWords.
   const { favWords, toggleFav } = useFavWords();
   const { context, setting } = useSetting();
   const [loading, setLoading] = useState(false);
+  const isFavorite = Boolean(favWords[word]);
   const autoCollect =
     context === "tranbox" && setting?.tranboxSetting?.autoFavWord;
 
-  // 点击触发收藏/取消收藏
+  // Toggle the favorite state on click.
   const handleClick = useCallback(() => {
     try {
       setLoading(true);
-      // REVIEW: toggleFav(word) 极有可能是涉及本地存储或后台同步的异步操作，但在 handleClick 中未对其进行 await (函数也未声明为 async)。这导致 finally 块中的 setLoading(false) 会同步瞬间执行，使防连击的 loading 状态形同虚设。建议将其改为 async 函数，并对 toggleFav(word) 加上 await。
+      // REVIEW: If toggleFav is asynchronous, finally clears loading before it completes.
+      // Make this handler async and await the toggle to prevent repeated clicks during the operation.
       const isFavorite = !favWords[word];
       toggleFav(word);
       document.dispatchEvent(
@@ -53,9 +55,11 @@ export default function FavBtn({ word, title }) {
       size="small"
       onClick={handleClick}
       title={title}
+      aria-label={title}
+      aria-pressed={isFavorite}
     >
-      {/* 如果单词已存在于生词本中，渲染实心红心，否则为空心红心 */}
-      {favWords[word] ? (
+      {/* Use a filled heart for favorite words and an outline otherwise. */}
+      {isFavorite ? (
         <FavoriteIcon fontSize="inherit" />
       ) : (
         <FavoriteBorderIcon fontSize="inherit" />

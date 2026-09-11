@@ -8,6 +8,7 @@ import {
   APP_CONSTS,
   resolveApiPromptList,
 } from "../config";
+import { isolateShadowHost, mountShadowHost } from "./shadowHost";
 
 function resolvePromptProps(props = {}) {
   return {
@@ -26,6 +27,7 @@ export class TransboxManager {
   #shadowContainer = null;
   #cache = null;
   #props = {};
+  #cleanupHostMount = null;
 
   constructor(initialProps = {}) {
     this.#props = resolvePromptProps(initialProps);
@@ -37,30 +39,40 @@ export class TransboxManager {
   }
 
   isEnabled() {
-    return !!this.#container && document.body.contains(this.#container);
+    return Boolean(this.#container?.isConnected);
   }
 
   enable() {
     if (!this.isEnabled()) {
+      this.disable();
       this.#container = document.createElement("div");
       this.#container.id = APP_CONSTS.boxID;
       this.#container.className = "notranslate";
+      isolateShadowHost(this.#container);
 
-      document.body.appendChild(this.#container);
+      this.#cleanupHostMount = mountShadowHost(this.#container, undefined, {
+        onReconnect: () => this.#refreshStyles(),
+      });
       this.#shadowContainer = this.#container.attachShadow({ mode: "open" });
       const shadowRootElement = document.createElement("div");
       shadowRootElement.className = `${APP_CONSTS.boxID}_wrapper notranslate`;
       this.#shadowContainer.appendChild(shadowRootElement);
 
-      this.#cache = createCache({
-        key: APP_CONSTS.boxID,
-        prepend: true,
-        container: this.#shadowContainer,
-      });
-
       this.#reactRoot = ReactDOM.createRoot(shadowRootElement);
-      this.#render();
+      this.#refreshStyles();
     }
+  }
+
+  #refreshStyles() {
+    this.#cache?.sheet.flush();
+    this.#cache = createCache({
+      key: APP_CONSTS.boxID,
+      prepend: true,
+      container: this.#shadowContainer,
+    });
+    // A new cache restores CSSOM lost during page-owned DOM removal while the
+    // unchanged React root preserves unsaved selection text and panel state.
+    this.#render();
   }
 
   #render() {
@@ -78,11 +90,11 @@ export class TransboxManager {
   }
 
   disable() {
-    if (!this.isEnabled() || !this.#reactRoot) {
-      return;
-    }
-    this.#reactRoot.unmount();
-    this.#container.remove();
+    this.#cleanupHostMount?.();
+    this.#cleanupHostMount = null;
+    this.#reactRoot?.unmount();
+    this.#cache?.sheet.flush();
+    this.#container?.remove();
     this.#container = null;
     this.#reactRoot = null;
     this.#shadowContainer = null;
@@ -108,16 +120,14 @@ export class TransboxManager {
    */
   update(newProps) {
     this.#props = resolvePromptProps({ ...this.#props, ...newProps });
-    if (this.isEnabled()) {
-      if (!this.#props.tranboxSetting?.transOpen) {
-        this.disable();
-      } else {
-        this.#render();
-      }
+    if (!this.#props.tranboxSetting?.transOpen) {
+      this.disable();
       return;
     }
 
-    if (this.#props.tranboxSetting?.transOpen) {
+    if (this.isEnabled()) {
+      this.#render();
+    } else {
       this.enable();
     }
   }

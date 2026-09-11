@@ -43,6 +43,9 @@ export const MSG_BUILTINAI_TRANSLATE = "builtinai_translte"; // 调用内置 AI 
 export const MSG_SET_LOGLEVEL = "set_loglevel"; // 设置当前会话的日志等级
 export const MSG_CLEAR_CACHES = "clear_caches"; // 请求后台脚本清理本地翻译 HTTP 缓存
 export const MSG_OPEN_SEPARATE_WINDOW = "open_separate_window"; // 请求后台脚本开启独立窗口
+export const MSG_FIT_SEPARATE_WINDOW = "fit_separate_window"; // Fit the separate window after its content renders.
+export const MSG_UPDATE_SEPARATE_WINDOW_BOUNDS =
+  "update_separate_window_bounds"; // Cache the actual separate window bounds.
 export const PORT_STREAM_FETCH = "kiss_stream_fetch"; // 双向长连接端口名称：用于大模型翻译时的流式输出通道
 export const MSG_UPDATE_ICON = "update_icon"; // 通知后台脚本更新扩展的工具栏图标状态 (激活/灰色状态)
 export const MSG_SHA256 = "sha256"; // 请求后台脚本代算 SHA-256 签名

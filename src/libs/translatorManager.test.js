@@ -59,6 +59,8 @@ jest.mock("./translator", () => ({
       }),
       rescan: jest.fn(),
       toggle: jest.fn(),
+      enable: jest.fn(),
+      disable: jest.fn(),
       toggleTransOnly: jest.fn(),
       toggleStyle: jest.fn(),
       updateRule: jest.fn(),
@@ -66,7 +68,10 @@ jest.mock("./translator", () => ({
         this.setting.tranboxSetting.transOpen =
           !this.setting.tranboxSetting.transOpen;
       }),
-      toggleMouseHover: jest.fn(),
+      toggleMouseHover: jest.fn(function toggleMouseHover() {
+        this.setting.mouseHoverSetting.useMouseHover =
+          !this.setting.mouseHoverSetting.useMouseHover;
+      }),
       toggleInputTranslate: jest.fn(function toggleInputTranslate() {
         this.setting.inputRule.transOpen = !this.setting.inputRule.transOpen;
       }),
@@ -80,9 +85,18 @@ jest.mock("./translator", () => ({
 jest.mock("./tranbox", () => ({
   TransboxManager: jest.fn().mockImplementation((setting) => {
     mockTransboxArgs.push(setting);
+    let enabled = Boolean(setting.tranboxSetting?.transOpen);
     const instance = {
-      disable: jest.fn(),
-      toggle: jest.fn(),
+      isEnabled: jest.fn(() => enabled),
+      enable: jest.fn(() => {
+        enabled = true;
+      }),
+      disable: jest.fn(() => {
+        enabled = false;
+      }),
+      toggle: jest.fn(() => {
+        enabled = !enabled;
+      }),
     };
     mockTransboxInstances.push(instance);
     return instance;
@@ -92,6 +106,7 @@ jest.mock("./tranbox", () => ({
 jest.mock("./inputTranslate", () => ({
   InputTranslator: jest.fn().mockImplementation(() => {
     const instance = {
+      enable: jest.fn(),
       disable: jest.fn(),
       toggle: jest.fn(),
       handleTranslate: jest.fn(),
@@ -160,6 +175,8 @@ function setupMockConstructors() {
       }),
       rescan: jest.fn(),
       toggle: jest.fn(),
+      enable: jest.fn(),
+      disable: jest.fn(),
       toggleTransOnly: jest.fn(),
       toggleStyle: jest.fn(),
       updateRule: jest.fn(),
@@ -167,7 +184,10 @@ function setupMockConstructors() {
         this.setting.tranboxSetting.transOpen =
           !this.setting.tranboxSetting.transOpen;
       }),
-      toggleMouseHover: jest.fn(),
+      toggleMouseHover: jest.fn(function toggleMouseHover() {
+        this.setting.mouseHoverSetting.useMouseHover =
+          !this.setting.mouseHoverSetting.useMouseHover;
+      }),
       toggleInputTranslate: jest.fn(function toggleInputTranslate() {
         this.setting.inputRule.transOpen = !this.setting.inputRule.transOpen;
       }),
@@ -179,9 +199,18 @@ function setupMockConstructors() {
 
   TransboxManager.mockImplementation((setting) => {
     mockTransboxArgs.push(setting);
+    let enabled = Boolean(setting.tranboxSetting?.transOpen);
     const instance = {
-      disable: jest.fn(),
-      toggle: jest.fn(),
+      isEnabled: jest.fn(() => enabled),
+      enable: jest.fn(() => {
+        enabled = true;
+      }),
+      disable: jest.fn(() => {
+        enabled = false;
+      }),
+      toggle: jest.fn(() => {
+        enabled = !enabled;
+      }),
     };
     mockTransboxInstances.push(instance);
     return instance;
@@ -189,6 +218,7 @@ function setupMockConstructors() {
 
   InputTranslator.mockImplementation(() => {
     const instance = {
+      enable: jest.fn(),
       disable: jest.fn(),
       toggle: jest.fn(),
       handleTranslate: jest.fn(),
@@ -226,6 +256,7 @@ function createManager({
       touchModes: [],
       shortcuts: {},
       tranboxSetting: { transOpen: true },
+      mouseHoverSetting: { useMouseHover: false },
       inputRule: { transOpen: true },
       contextMenuType: 0,
       ...setting,
@@ -249,6 +280,14 @@ function replaceBody() {
 async function flushMutationObserver() {
   await Promise.resolve();
   await Promise.resolve();
+}
+
+function sendRuntimeMessage(message) {
+  const runtimeHandler = browser.runtime.onMessage.addListener.mock.calls[0][0];
+  const sendResponse = jest.fn();
+  runtimeHandler(message, {}, sendResponse);
+  expect(sendResponse).toHaveBeenCalledTimes(1);
+  return sendResponse.mock.calls[0][0];
 }
 
 describe("TranslatorManager SPA lifecycle", () => {
@@ -321,6 +360,45 @@ describe("TranslatorManager SPA lifecycle", () => {
     expect(mockTranslatorArgs[1].setting.inputRule.transOpen).toBe(false);
   });
 
+  test.each([true, false])(
+    "restores pre-editor translation state %s and explicit feature settings on restart",
+    (enabled) => {
+      const manager = createManager();
+      manager.start();
+      sendRuntimeMessage({
+        action: "transbox-toggle",
+        args: { enabled: false },
+      });
+      sendRuntimeMessage({
+        action: "transinput-toggle",
+        args: { enabled: false },
+      });
+
+      const translator = mockTranslatorInstances[0];
+      const editor = manager._ruleEditorManager;
+      editor.session = { runtimeState: { enabled, mouseHover: enabled } };
+      translator.rule = {
+        transOpen: enabled ? "false" : "true",
+        selector: ".article",
+      };
+      translator.setting.mouseHoverSetting.useMouseHover = !enabled;
+
+      manager.restart("rule-editor-state-test");
+
+      expect(editor.destroy).toHaveBeenCalledTimes(1);
+      expect(mockTranslatorArgs[1].rule).toEqual({
+        transOpen: enabled ? "true" : "false",
+        selector: ".article",
+      });
+      expect(
+        mockTranslatorArgs[1].setting.mouseHoverSetting.useMouseHover
+      ).toBe(enabled);
+      expect(mockTransboxArgs[1].tranboxSetting.transOpen).toBe(false);
+      expect(mockTranslatorArgs[1].setting.inputRule.transOpen).toBe(false);
+      expect(translator.setting.mouseHoverSetting.useMouseHover).toBe(!enabled);
+    }
+  );
+
   test("coalesces navigation rescan and body replacement into one restart", async () => {
     const manager = createManager();
     manager.start();
@@ -381,6 +459,221 @@ describe("TranslatorManager SPA lifecycle", () => {
     });
 
     document.removeEventListener("kiss-inner", eventHandler);
+  });
+
+  test.each([true, false])(
+    "keeps reopened Popup toggles in sync in transbox-only mode from %s",
+    (initialEnabled) => {
+      const manager = createManager({
+        transboxOnly: true,
+        setting: { tranboxSetting: { transOpen: initialEnabled } },
+      });
+      manager.start();
+
+      for (const expected of [
+        !initialEnabled,
+        initialEnabled,
+        !initialEnabled,
+      ]) {
+        const reopened = sendRuntimeMessage({ action: "trans-getrule" });
+        const message = {
+          action: "transbox-toggle",
+          args: { enabled: !reopened.setting.tranboxSetting.transOpen },
+        };
+        const response = sendRuntimeMessage(message);
+        expect(response.setting.tranboxSetting.transOpen).toBe(expected);
+        expect(mockTransboxInstances[0].isEnabled()).toBe(expected);
+
+        const replayed = sendRuntimeMessage(message);
+        expect(replayed.setting.tranboxSetting.transOpen).toBe(expected);
+        expect(mockTransboxInstances[0].isEnabled()).toBe(expected);
+      }
+
+      for (const expected of [initialEnabled, !initialEnabled]) {
+        const response = sendRuntimeMessage({ action: "transbox-toggle" });
+        expect(response.setting.tranboxSetting.transOpen).toBe(expected);
+        expect(mockTransboxInstances[0].isEnabled()).toBe(expected);
+        const reopened = sendRuntimeMessage({ action: "trans-getrule" });
+        expect(reopened.setting.tranboxSetting.transOpen).toBe(expected);
+      }
+    }
+  );
+
+  test.each([true, false])(
+    "preserves the live transbox-only state across restart from %s",
+    (initialEnabled) => {
+      const tranboxSetting = {
+        transOpen: initialEnabled,
+        tranboxShortcut: "Alt+S",
+      };
+      const manager = createManager({
+        transboxOnly: true,
+        setting: { tranboxSetting, uiLang: "en" },
+      });
+      manager.start();
+      sendRuntimeMessage({ action: "transbox-toggle" });
+
+      manager.restart("pdf-selection-state-test");
+
+      const response = sendRuntimeMessage({ action: "trans-getrule" });
+      expect(response.setting.tranboxSetting).toEqual({
+        ...tranboxSetting,
+        transOpen: !initialEnabled,
+      });
+      expect(response.setting.uiLang).toBe("en");
+      expect(mockTransboxInstances[1].isEnabled()).toBe(!initialEnabled);
+      expect(mockTransboxArgs[1].tranboxSetting.transOpen).toBe(
+        !initialEnabled
+      );
+      expect(tranboxSetting.transOpen).toBe(initialEnabled);
+      expect(Translator).not.toHaveBeenCalled();
+    }
+  );
+
+  test("returns current translator settings and rules in normal mode", () => {
+    const manager = createManager();
+    manager.start();
+    const translator = mockTranslatorInstances[0];
+    translator.setting.uiLang = "en";
+    translator.rule = { transOpen: "false", toLang: "en" };
+
+    sendRuntimeMessage({
+      action: "transbox-toggle",
+      args: { enabled: false },
+    });
+    const response = sendRuntimeMessage({ action: "trans-getrule" });
+
+    expect(response).toEqual({
+      rule: translator.rule,
+      setting: translator.setting,
+    });
+    expect(response.setting.uiLang).toBe("en");
+    expect(response.setting.tranboxSetting.transOpen).toBe(false);
+    expect(mockTransboxInstances[0].isEnabled()).toBe(false);
+  });
+
+  test("applies an explicit page translation state without double toggling", () => {
+    const manager = createManager();
+    manager.start();
+
+    const runtimeHandler =
+      browser.runtime.onMessage.addListener.mock.calls[0][0];
+    runtimeHandler(
+      { action: "trans-toggle", args: { enabled: false } },
+      {},
+      jest.fn()
+    );
+    runtimeHandler(
+      { action: "trans-toggle", args: { enabled: true } },
+      {},
+      jest.fn()
+    );
+
+    expect(mockTranslatorInstances[0].disable).toHaveBeenCalledTimes(1);
+    expect(mockTranslatorInstances[0].enable).toHaveBeenCalledTimes(1);
+    expect(mockTranslatorInstances[0].toggle).not.toHaveBeenCalled();
+  });
+
+  test("keeps the legacy page translation toggle when no state is supplied", () => {
+    const manager = createManager();
+    manager.start();
+
+    const runtimeHandler =
+      browser.runtime.onMessage.addListener.mock.calls[0][0];
+    runtimeHandler({ action: "trans-toggle" }, {}, jest.fn());
+
+    expect(mockTranslatorInstances[0].toggle).toHaveBeenCalledTimes(1);
+    expect(mockTranslatorInstances[0].enable).not.toHaveBeenCalled();
+    expect(mockTranslatorInstances[0].disable).not.toHaveBeenCalled();
+  });
+
+  test("applies explicit feature states without flipping them on replay", () => {
+    const manager = createManager();
+    manager.start();
+
+    const runtimeHandler =
+      browser.runtime.onMessage.addListener.mock.calls[0][0];
+    const send = (action, enabled) =>
+      runtimeHandler({ action, args: { enabled } }, {}, jest.fn());
+
+    send("transbox-toggle", false);
+    send("transbox-toggle", false);
+    send("mousehover-toggle", true);
+    send("mousehover-toggle", true);
+    send("transinput-toggle", false);
+    send("transinput-toggle", false);
+
+    expect(mockTransboxInstances[0].disable).toHaveBeenCalledTimes(2);
+    expect(mockTranslatorInstances[0].toggleTransbox).toHaveBeenCalledTimes(1);
+    expect(mockTranslatorInstances[0].setting.tranboxSetting.transOpen).toBe(
+      false
+    );
+    expect(mockTranslatorInstances[0].toggleMouseHover).toHaveBeenCalledTimes(
+      1
+    );
+    expect(
+      mockTranslatorInstances[0].setting.mouseHoverSetting.useMouseHover
+    ).toBe(true);
+    expect(mockInputTranslatorInstances[0].disable).toHaveBeenCalledTimes(2);
+    expect(
+      mockTranslatorInstances[0].toggleInputTranslate
+    ).toHaveBeenCalledTimes(1);
+    expect(mockTranslatorInstances[0].setting.inputRule.transOpen).toBe(false);
+  });
+
+  test("keeps legacy feature toggles when no desired state is supplied", () => {
+    const manager = createManager();
+    manager.start();
+
+    const runtimeHandler =
+      browser.runtime.onMessage.addListener.mock.calls[0][0];
+    ["transbox-toggle", "mousehover-toggle", "transinput-toggle"].forEach(
+      (action) => runtimeHandler({ action }, {}, jest.fn())
+    );
+
+    expect(mockTransboxInstances[0].toggle).toHaveBeenCalledTimes(1);
+    expect(mockTranslatorInstances[0].toggleTransbox).toHaveBeenCalledTimes(1);
+    expect(mockTranslatorInstances[0].toggleMouseHover).toHaveBeenCalledTimes(
+      1
+    );
+    expect(mockInputTranslatorInstances[0].toggle).toHaveBeenCalledTimes(1);
+    expect(
+      mockTranslatorInstances[0].toggleInputTranslate
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  test("reports live selection availability to the FAB after toggles and restart", () => {
+    const manager = createManager({
+      setting: { tranboxSetting: { transOpen: false } },
+    });
+    manager.start();
+    const { getSelectionEnabled } = FabManager.mock.calls[0][0];
+    const { processActions } = PopupManager.mock.calls[0][0];
+    const snapshots = [];
+    const onSelectionChange = (event) => {
+      if (event.detail.action === "transbox-toggle") {
+        snapshots.push(getSelectionEnabled());
+      }
+    };
+    document.addEventListener("kiss-inner", onSelectionChange);
+
+    try {
+      expect(getSelectionEnabled()).toBe(false);
+      for (const enabled of [true, true, false]) {
+        processActions({ action: "transbox-toggle", args: { enabled } });
+      }
+      processActions({ action: "transbox-toggle" });
+      processActions({ action: "transbox-toggle" });
+
+      expect(snapshots).toEqual([true, true, false, true, false]);
+      expect(getSelectionEnabled()).toBe(false);
+
+      manager.restart("selection-state-test");
+      expect(FabManager.mock.calls[1][0].getSelectionEnabled()).toBe(false);
+      expect(mockTransboxArgs[1].tranboxSetting.transOpen).toBe(false);
+    } finally {
+      document.removeEventListener("kiss-inner", onSelectionChange);
+    }
   });
 
   test("cleans up transbox-only runtime on stop", () => {

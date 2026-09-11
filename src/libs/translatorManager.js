@@ -268,6 +268,7 @@ export default class TranslatorManager {
       this._fabManager = new FabManager({
         processActions: this.#processActions.bind(this),
         fabConfig: this.#cloneConfig(this.#fabConfig),
+        getSelectionEnabled: () => Boolean(this._transboxManager?.isEnabled()),
       });
     }
   }
@@ -320,9 +321,7 @@ export default class TranslatorManager {
    */
   #snapshotRuntimeState() {
     const editing = this._ruleEditorManager?.session?.runtimeState;
-    const setting = this.#cloneConfig(
-      this._translator?.setting || this.#setting
-    );
+    const setting = this.#cloneConfig(this.#getRuntimeSetting());
     const rule = this.#cloneConfig(this._translator?.rule || this.#rule);
     if (editing) {
       rule.transOpen = editing.enabled ? "true" : "false";
@@ -333,6 +332,20 @@ export default class TranslatorManager {
       rule,
       fabConfig: this.#cloneConfig(this.#fabConfig),
       favWords: this.#cloneConfig(this.#favWords),
+    };
+  }
+
+  #getRuntimeSetting() {
+    const setting = this._translator?.setting || this.#setting;
+    if (!this.#transboxOnly || !this._transboxManager) return setting;
+
+    // PDF pages have no Translator to keep the selection setting in sync.
+    return {
+      ...setting,
+      tranboxSetting: {
+        ...setting?.tranboxSetting,
+        transOpen: this._transboxManager.isEnabled(),
+      },
     };
   }
 
@@ -600,7 +613,7 @@ export default class TranslatorManager {
     const result = this.#processActions(message, true);
     const response = result || {
       rule: this._translator?.rule || this.#rule,
-      setting: this._translator?.setting || this.#setting,
+      setting: this.#getRuntimeSetting(),
     };
     sendResponse(response);
     return true;
@@ -700,7 +713,13 @@ export default class TranslatorManager {
 
     switch (action) {
       case MSG_TRANS_TOGGLE:
-        this._translator?.toggle();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._translator?.enable()
+            : this._translator?.disable();
+        } else {
+          this._translator?.toggle();
+        }
         break;
       case MSG_TRANS_TOGGLE_ONLY:
         this._translator?.toggleTransOnly();
@@ -724,15 +743,52 @@ export default class TranslatorManager {
         this._popupManager?.toggle();
         break;
       case MSG_TRANSBOX_TOGGLE:
-        this._transboxManager?.toggle();
-        this._translator?.toggleTransbox();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._transboxManager?.enable()
+            : this._transboxManager?.disable();
+          if (
+            Boolean(this._translator?.setting?.tranboxSetting?.transOpen) !==
+            args.enabled
+          ) {
+            this._translator?.toggleTransbox();
+          }
+        } else {
+          this._transboxManager?.toggle();
+          this._translator?.toggleTransbox();
+        }
+        // Notify mounted page controls after the runtime toggle has completed.
+        document.dispatchEvent(
+          new CustomEvent(EVENT_KISS_INNER, {
+            detail: { action: MSG_TRANSBOX_TOGGLE },
+          })
+        );
         break;
       case MSG_MOUSEHOVER_TOGGLE:
-        this._translator?.toggleMouseHover();
+        if (
+          typeof args?.enabled !== "boolean" ||
+          Boolean(
+            this._translator?.setting?.mouseHoverSetting?.useMouseHover
+          ) !== args.enabled
+        ) {
+          this._translator?.toggleMouseHover();
+        }
         break;
       case MSG_TRANSINPUT_TOGGLE:
-        this._inputTranslator?.toggle();
-        this._translator?.toggleInputTranslate();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._inputTranslator?.enable()
+            : this._inputTranslator?.disable();
+          if (
+            Boolean(this._translator?.setting?.inputRule?.transOpen) !==
+            args.enabled
+          ) {
+            this._translator?.toggleInputTranslate();
+          }
+        } else {
+          this._inputTranslator?.toggle();
+          this._translator?.toggleInputTranslate();
+        }
         break;
       case MSG_HOVERNODE_TOGGLE:
         this._translator?.toggleHoverNode();

@@ -1,6 +1,6 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import Options from "./index";
+import Options, { normalizeOptionsHashPath } from "./index";
 import { trySyncRules, trySyncSetting, trySyncWords } from "../../libs/sync";
 import { kissLog } from "../../libs/log";
 import { adaptScript } from "../../libs/gm";
@@ -8,6 +8,18 @@ import { runDataMigration } from "../../libs/storage";
 import { sleep } from "../../libs/utils";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+describe("normalizeOptionsHashPath", () => {
+  test.each([
+    ["#/", "/"],
+    ["#/?source=test", "/"],
+    ["#/rules/", "/rules"],
+    ["#/rules/?source=test", "/rules"],
+    ["", "/"],
+  ])("normalizes %p to %p", (hash, expected) => {
+    expect(normalizeOptionsHashPath(hash)).toBe(expected);
+  });
+});
 
 let mockIsGm = false;
 const mockSettingProvider = jest.fn();
@@ -45,7 +57,7 @@ jest.mock("../../libs/utils", () => ({
 
 jest.mock("../../hooks/Setting", () => ({
   useSetting: () => ({
-    setting: { uiLang: "zh-CN" },
+    setting: { uiLang: "en" },
     updateSetting: jest.fn(),
   }),
   SettingProvider: function SettingProvider(props) {
@@ -171,16 +183,17 @@ describe("Options startup sync", () => {
     delete window.APP_INFO;
   });
 
-  test("renders rules page while waiting for rules sync", async () => {
+  test("does not mount the rules page before rules sync completes", async () => {
     const rulesSync = createDeferred();
     trySyncRules.mockReturnValueOnce(rulesSync.promise);
 
     const view = renderOptions("#/rules");
     await flushEffects();
 
-    expect(view.container.querySelector("[data-testid='rules-page']")).not.toBe(
+    expect(view.container.querySelector("[data-testid='rules-page']")).toBe(
       null
     );
+    expect(mockSettingProvider).not.toHaveBeenCalled();
     expect(
       view.container.querySelector("[data-testid='options-sync-backdrop']")
     ).not.toBe(null);
@@ -197,22 +210,27 @@ describe("Options startup sync", () => {
     expect(
       view.container.querySelector("[data-testid='options-sync-backdrop']")
     ).toBe(null);
+    expect(view.container.querySelector("[data-testid='rules-page']")).not.toBe(
+      null
+    );
+    expect(mockSettingProvider).toHaveBeenCalledTimes(1);
     expect(trySyncSetting).toHaveBeenCalledTimes(1);
     expect(trySyncWords).toHaveBeenCalledTimes(1);
 
     view.unmount();
   });
 
-  test("waits for words sync on favorite words page", async () => {
+  test("does not mount favorite words before words sync completes", async () => {
     const wordsSync = createDeferred();
     trySyncWords.mockReturnValueOnce(wordsSync.promise);
 
     const view = renderOptions("#/words");
     await flushEffects();
 
-    expect(view.container.querySelector("[data-testid='words-page']")).not.toBe(
+    expect(view.container.querySelector("[data-testid='words-page']")).toBe(
       null
     );
+    expect(mockSettingProvider).not.toHaveBeenCalled();
     expect(
       view.container.querySelector("[data-testid='options-sync-backdrop']")
     ).not.toBe(null);
@@ -229,22 +247,26 @@ describe("Options startup sync", () => {
     expect(
       view.container.querySelector("[data-testid='options-sync-backdrop']")
     ).toBe(null);
+    expect(view.container.querySelector("[data-testid='words-page']")).not.toBe(
+      null
+    );
     expect(trySyncSetting).toHaveBeenCalledTimes(1);
     expect(trySyncRules).toHaveBeenCalledTimes(1);
 
     view.unmount();
   });
 
-  test("waits for setting sync on other pages", async () => {
+  test("does not mount other pages before setting sync completes", async () => {
     const settingSync = createDeferred();
     trySyncSetting.mockReturnValueOnce(settingSync.promise);
 
     const view = renderOptions("#/apis");
     await flushEffects();
 
-    expect(view.container.querySelector("[data-testid='apis-page']")).not.toBe(
+    expect(view.container.querySelector("[data-testid='apis-page']")).toBe(
       null
     );
+    expect(mockSettingProvider).not.toHaveBeenCalled();
     expect(
       view.container.querySelector("[data-testid='options-sync-backdrop']")
     ).not.toBe(null);
@@ -261,7 +283,85 @@ describe("Options startup sync", () => {
     expect(
       view.container.querySelector("[data-testid='options-sync-backdrop']")
     ).toBe(null);
+    expect(view.container.querySelector("[data-testid='apis-page']")).not.toBe(
+      null
+    );
     expect(trySyncRules).toHaveBeenCalledTimes(1);
+    expect(trySyncWords).toHaveBeenCalledTimes(1);
+
+    view.unmount();
+  });
+
+  test("waits only for settings on the appearance page", async () => {
+    const settingSync = createDeferred();
+    trySyncSetting.mockReturnValueOnce(settingSync.promise);
+
+    const view = renderOptions("#/styles");
+    await flushEffects();
+
+    expect(trySyncSetting).toHaveBeenCalledTimes(1);
+    expect(trySyncRules).not.toHaveBeenCalled();
+    expect(trySyncWords).not.toHaveBeenCalled();
+    expect(mockSettingProvider).not.toHaveBeenCalled();
+    expect(
+      view.container.querySelector("[data-testid='options-sync-backdrop']")
+    ).not.toBe(null);
+
+    await act(async () => {
+      settingSync.resolve();
+      await settingSync.promise;
+    });
+    await flushEffects();
+
+    expect(
+      view.container.querySelector("[data-testid='options-sync-backdrop']")
+    ).toBe(null);
+    expect(mockSettingProvider).toHaveBeenCalledTimes(1);
+    expect(trySyncRules).toHaveBeenCalledTimes(1);
+    expect(trySyncWords).toHaveBeenCalledTimes(1);
+    view.unmount();
+  });
+
+  test("syncs settings before rules and waits for both on the overview page", async () => {
+    const settingSync = createDeferred();
+    const rulesSync = createDeferred();
+    trySyncSetting.mockReturnValueOnce(settingSync.promise);
+    trySyncRules.mockReturnValueOnce(rulesSync.promise);
+
+    const view = renderOptions("#/?source=test");
+    await flushEffects();
+
+    expect(trySyncSetting).toHaveBeenCalledTimes(1);
+    expect(trySyncRules).not.toHaveBeenCalled();
+    expect(trySyncWords).not.toHaveBeenCalled();
+    expect(mockSettingProvider).not.toHaveBeenCalled();
+    expect(view.container.querySelector("[data-testid='setting-page']")).toBe(
+      null
+    );
+
+    await act(async () => {
+      settingSync.resolve();
+      await settingSync.promise;
+    });
+    await flushEffects();
+
+    expect(trySyncRules).toHaveBeenCalledTimes(1);
+    expect(trySyncWords).not.toHaveBeenCalled();
+    expect(mockSettingProvider).not.toHaveBeenCalled();
+    expect(view.container.querySelector("[data-testid='setting-page']")).toBe(
+      null
+    );
+
+    await act(async () => {
+      rulesSync.resolve();
+      await rulesSync.promise;
+    });
+    await flushEffects();
+
+    expect(mockSettingProvider).toHaveBeenCalledTimes(1);
+    expect(
+      view.container.querySelector("[data-testid='setting-page']")
+    ).not.toBe(null);
     expect(trySyncWords).toHaveBeenCalledTimes(1);
 
     view.unmount();
@@ -314,13 +414,10 @@ describe("Options startup sync", () => {
       expect(runDataMigration.mock.invocationCallOrder[0]).toBeGreaterThan(
         adaptScript.mock.invocationCallOrder[0]
       );
-      expect(mockSettingProvider).toHaveBeenCalled();
-      expect(mockSettingProvider.mock.invocationCallOrder[0]).toBeGreaterThan(
-        runDataMigration.mock.invocationCallOrder[0]
+      expect(mockSettingProvider).not.toHaveBeenCalled();
+      expect(view.container.querySelector("[data-testid='apis-page']")).toBe(
+        null
       );
-      expect(
-        view.container.querySelector("[data-testid='apis-page']")
-      ).not.toBe(null);
       expect(
         view.container.querySelector("[data-testid='options-sync-backdrop']")
       ).not.toBe(null);
@@ -338,6 +435,13 @@ describe("Options startup sync", () => {
       expect(
         view.container.querySelector("[data-testid='options-sync-backdrop']")
       ).toBe(null);
+      expect(mockSettingProvider).toHaveBeenCalledTimes(1);
+      expect(mockSettingProvider.mock.invocationCallOrder[0]).toBeGreaterThan(
+        trySyncSetting.mock.invocationCallOrder[0]
+      );
+      expect(
+        view.container.querySelector("[data-testid='apis-page']")
+      ).not.toBe(null);
     } finally {
       view?.unmount();
       if (originalName === undefined) {

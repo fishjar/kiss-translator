@@ -126,6 +126,32 @@ describe("SubtitleSegmentationPlayground", () => {
     }
   });
 
+  test("opens the JSON picker from the keyboard and names the result format", async () => {
+    const { container, root } = renderPlayground();
+    await flushEffects();
+    const input = container.querySelector('input[type="file"]');
+    const clickInput = jest.spyOn(input, "click").mockImplementation(() => {});
+    const uploadButton = input.closest('[role="button"]');
+
+    for (const key of ["Enter", " "]) {
+      const event = new KeyboardEvent("keydown", {
+        key,
+        bubbles: true,
+        cancelable: true,
+      });
+      act(() => uploadButton.dispatchEvent(event));
+      expect(event.defaultPrevented).toBe(true);
+    }
+    expect(clickInput).toHaveBeenCalledTimes(2);
+    expect(
+      container
+        .querySelector(".MuiToggleButtonGroup-root")
+        .getAttribute("aria-label")
+    ).toBe("Result format");
+
+    act(() => root.unmount());
+  });
+
   afterEach(() => {
     delete global.fetch;
   });
@@ -186,6 +212,18 @@ describe("SubtitleSegmentationPlayground", () => {
     );
     expect(sourceArea.getAttribute("rows")).toBe("5");
     expect(resultArea.getAttribute("rows")).toBe("5");
+    expect(sourceArea.classList).toContain("kt-resizable-textarea");
+    expect(resultArea.classList).toContain("kt-resizable-textarea");
+    expect(sourceArea.closest(".kt-resizable-text-field")).not.toBeNull();
+    expect(resultArea.closest(".kt-resizable-text-field")).not.toBeNull();
+    expect(
+      getComputedStyle(sourceArea.closest(".MuiInputBase-root")).overflow
+    ).toBe("visible");
+    expect(getComputedStyle(sourceArea).resize).toBe("vertical");
+    expect(
+      getComputedStyle(resultArea.closest(".MuiInputBase-root")).overflow
+    ).toBe("visible");
+    expect(getComputedStyle(resultArea).resize).toBe("vertical");
     expect(container.textContent.indexOf("当前生效的断句配置")).toBeLessThan(
       container.textContent.indexOf("内置字幕样本")
     );
@@ -356,6 +394,9 @@ describe("SubtitleSegmentationPlayground", () => {
         confirmText: "继续",
       })
     );
+    expect(
+      runButton.querySelector(".MuiCircularProgress-root").style.width
+    ).toBe("20px");
     expect(
       container.querySelector('textarea[aria-label="断句结果"]').value
     ).toContain("Hello world.");

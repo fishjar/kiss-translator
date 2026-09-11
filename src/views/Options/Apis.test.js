@@ -1,8 +1,10 @@
-import { act } from "react";
+import { act, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import Apis from "./Apis";
 import {
+  DEFAULT_API_LIST,
+  OPT_TRANS_BUILTINAI,
   GEMINI_INTERACTIONS_URL,
   OPT_TRANS_OPENAI,
   OPT_TRANS_OPENROUTER,
@@ -14,15 +16,18 @@ import {
 } from "../../config";
 import { fetchModelCatalog } from "../../libs/modelList";
 import { apiTranslate } from "../../apis";
+import { SettingProvider } from "../../hooks/Setting";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 HTMLElement.prototype.scrollTo = jest.fn();
+const mockConfirm = jest.fn();
 
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key, fallback) => fallback || key,
 }));
 
 jest.mock("../../hooks/Api", () => ({
+  ...jest.requireActual("../../hooks/Api"),
   useApiList: jest.fn(),
   useApiItem: jest.fn(),
 }));
@@ -32,7 +37,7 @@ jest.mock("../../hooks/Prompt", () => ({
 }));
 
 jest.mock("../../hooks/Confirm", () => ({
-  useConfirm: () => jest.fn(),
+  useConfirm: () => mockConfirm,
 }));
 
 jest.mock("../../hooks/Alert", () => ({
@@ -42,11 +47,16 @@ jest.mock("../../hooks/Alert", () => ({
   }),
 }));
 
-jest.mock("../../hooks/Setting", () => ({
-  useSetting: () => ({
+jest.mock("../../hooks/Setting", () => {
+  const { createContext, useContext } = jest.requireActual("react");
+  const SettingContext = createContext({
     setting: { prompts: [], subtitleSetting: {}, uiLang: "zh" },
-  }),
-}));
+  });
+  return {
+    SettingProvider: SettingContext.Provider,
+    useSetting: () => useContext(SettingContext),
+  };
+});
 
 jest.mock("../../apis", () => ({
   apiTranslate: jest.fn(),
@@ -84,7 +94,6 @@ jest.mock("./ReusableAutocomplete", () => {
     );
   };
 });
-
 const { useApiList, useApiItem } = require("../../hooks/Api");
 
 function createApi(overrides = {}) {
@@ -110,12 +119,12 @@ async function flushEffects() {
 }
 
 async function renderApis(api = createApi(), update = jest.fn()) {
+  let apis = Array.isArray(api) ? api : [api];
+  const reset = jest.fn();
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-
-  useApiList.mockReturnValue({
-    transApis: [api],
+  const apiListValue = {
     addApi: jest.fn(),
     deleteApi: jest.fn(),
     deleteApis: jest.fn(),
@@ -125,21 +134,102 @@ async function renderApis(api = createApi(), update = jest.fn()) {
     copyApi: jest.fn(),
     alphaSortApis: jest.fn(),
     reorderApis: jest.fn(),
-  });
-  useApiItem.mockReturnValue({
-    api,
-    update,
-    reset: jest.fn(),
-  });
+  };
+
+  const configureApiMocks = () => {
+    useApiList.mockReturnValue({ transApis: apis, ...apiListValue });
+    useApiItem.mockImplementation((apiSlug) => ({
+      api: apis.find((item) => item.apiSlug === apiSlug),
+      update,
+      reset,
+    }));
+  };
+
+  configureApiMocks();
 
   await act(async () => {
-    root.render(<Apis />);
+    root.render(
+      <div className="kt-m3-root">
+        <Apis />
+      </div>
+    );
+  });
+  await flushEffects();
+
+  return {
+    apiListValue,
+    container,
+    rerender: async (nextApis) => {
+      apis = nextApis;
+      configureApiMocks();
+      await act(async () => {
+        root.render(
+          <div className="kt-m3-root">
+            <Apis />
+          </div>
+        );
+      });
+      await flushEffects();
+    },
+    reset,
+    update,
+    unmount: () => {
+      act(() => root.unmount());
+      container.remove();
+    },
+  };
+}
+
+async function renderStatefulApis(apis, strictMode = false) {
+  const actualApiHooks = jest.requireActual("../../hooks/Api");
+  useApiList.mockImplementation(actualApiHooks.useApiList);
+  useApiItem.mockImplementation(actualApiHooks.useApiItem);
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  let currentSetting;
+  let setCurrentSetting;
+
+  function Harness() {
+    const [setting, setSetting] = useState({
+      transApis: apis,
+      prompts: [],
+      subtitleSetting: {},
+      uiLang: "zh",
+    });
+    currentSetting = setting;
+    setCurrentSetting = setSetting;
+    return (
+      <SettingProvider value={{ setting, updateSetting: setSetting }}>
+        <div className="kt-m3-root">
+          <Apis />
+        </div>
+      </SettingProvider>
+    );
+  }
+
+  await act(async () => {
+    root.render(
+      strictMode ? (
+        <StrictMode>
+          <Harness />
+        </StrictMode>
+      ) : (
+        <Harness />
+      )
+    );
   });
   await flushEffects();
 
   return {
     container,
-    update,
+    get setting() {
+      return currentSetting;
+    },
+    updateSetting: async (updater) => {
+      await act(async () => setCurrentSetting(updater));
+      await flushEffects();
+    },
     unmount: () => {
       act(() => root.unmount());
       container.remove();
@@ -160,6 +250,317 @@ function getSaveButton(container) {
     (button) => button.textContent === "save"
   );
 }
+
+function getApiListItem(container, apiName) {
+  const item = Array.from(
+    container.querySelectorAll(".MuiListItemButton-root")
+  ).find((element) => element.textContent.includes(apiName));
+  if (!item) {
+    throw new Error(`Unable to find list item for ${apiName}`);
+  }
+  return item;
+}
+
+async function editUrlDraft(container) {
+  const urlInput = getInput(container, "url");
+  await act(async () => {
+    Simulate.change(urlInput, {
+      target: { name: "url", value: "https://draft.example/v1" },
+    });
+  });
+  return urlInput;
+}
+
+describe("Apis ordering and master-detail layout", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test("offers explicit A-Z and Z-A actions and starts with A-Z", async () => {
+    const view = await renderApis([
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+      createApi({ apiSlug: "charlie", apiName: "Charlie", sortOrder: 1 }),
+      createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 2 }),
+    ]);
+    const sortButton = view.container.querySelector("#api-sort-button");
+
+    expect(sortButton.textContent).toContain("Custom");
+    expect(sortButton.getAttribute("aria-label")).toContain("Custom");
+
+    await act(async () => {
+      Simulate.click(sortButton);
+    });
+
+    const sortItems = Array.from(
+      document.body.querySelectorAll('[role="menuitemradio"]')
+    );
+    const ascendingItem = sortItems.find(
+      (item) => item.textContent.trim() === "A–Z"
+    );
+    const descendingItem = sortItems.find(
+      (item) => item.textContent.trim() === "Z–A"
+    );
+
+    expect(ascendingItem).toBeDefined();
+    expect(descendingItem).toBeDefined();
+    expect(ascendingItem.getAttribute("aria-checked")).toBe("false");
+
+    await act(async () => {
+      Simulate.click(ascendingItem);
+    });
+
+    expect(view.apiListValue.alphaSortApis).toHaveBeenCalledWith("asc");
+
+    await act(async () => {
+      Simulate.click(sortButton);
+    });
+    const reopenedDescendingItem = Array.from(
+      document.body.querySelectorAll('[role="menuitemradio"]')
+    ).find((item) => item.textContent.trim() === "Z–A");
+
+    await act(async () => {
+      Simulate.click(reopenedDescendingItem);
+    });
+
+    expect(view.apiListValue.alphaSortApis).toHaveBeenCalledWith("desc");
+
+    view.unmount();
+  });
+
+  test("disables alphabetical sorting when fewer than two APIs can move", async () => {
+    const view = await renderApis(createApi());
+
+    expect(view.container.querySelector("#api-sort-button").disabled).toBe(
+      true
+    );
+
+    view.unmount();
+  });
+
+  test("reflects the persisted order and becomes custom after drag reorder", async () => {
+    const alpha = createApi({
+      apiSlug: "alpha",
+      apiName: "Alpha",
+      sortOrder: 0,
+    });
+    const beta = createApi({
+      apiSlug: "beta",
+      apiName: "Beta",
+      sortOrder: 1,
+    });
+    const charlie = createApi({
+      apiSlug: "charlie",
+      apiName: "Charlie",
+      sortOrder: 2,
+    });
+    const view = await renderApis([alpha, beta, charlie]);
+    const sortButton = view.container.querySelector("#api-sort-button");
+
+    expect(sortButton.textContent).toContain("A–Z");
+
+    const alphaCard = getApiListItem(view.container, "Alpha");
+    const charlieCard = getApiListItem(view.container, "Charlie");
+    const dragHandle = alphaCard.querySelector('[draggable="true"]');
+    const dataTransfer = {
+      effectAllowed: "",
+      dropEffect: "",
+      getData: jest.fn(() => "alpha"),
+      setData: jest.fn(),
+    };
+
+    await act(async () => {
+      Simulate.dragStart(dragHandle, { dataTransfer });
+    });
+    await act(async () => {
+      Simulate.dragOver(charlieCard.closest("li"), { dataTransfer });
+      Simulate.drop(charlieCard.closest("li"), { dataTransfer });
+    });
+
+    expect(view.apiListValue.reorderApis).toHaveBeenCalledWith(
+      "alpha",
+      "charlie"
+    );
+
+    view.apiListValue.reorderApis.mockClear();
+    await act(async () => {
+      Simulate.keyDown(charlieCard, { key: "ArrowUp", altKey: true });
+      await Promise.resolve();
+    });
+    expect(view.apiListValue.reorderApis).toHaveBeenCalledWith(
+      "charlie",
+      "beta"
+    );
+    expect(charlieCard.getAttribute("aria-keyshortcuts")).toContain(
+      "Alt+ArrowUp"
+    );
+
+    await view.rerender([
+      { ...beta, sortOrder: 0 },
+      { ...charlie, sortOrder: 1 },
+      { ...alpha, sortOrder: 2 },
+    ]);
+
+    expect(
+      view.container.querySelector("#api-sort-button").textContent
+    ).toContain("Custom");
+
+    view.unmount();
+  });
+
+  test("uses one-dimensional interactive cards and layered detail actions", async () => {
+    const view = await renderApis([
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+      createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 1 }),
+    ]);
+    const masterDetail = view.container.querySelector(".kt-api-master-detail");
+    const list = masterDetail.querySelector(".kt-api-list");
+    const selectedCard = getApiListItem(view.container, "Alpha");
+    const detail = masterDetail.querySelector(".kt-api-detail");
+
+    expect(view.container.querySelector(".kt-api-grid")).toBeNull();
+    expect(list.querySelectorAll(".kt-api-list__card")).toHaveLength(2);
+    expect(selectedCard.classList.contains("Mui-selected")).toBe(true);
+    expect(selectedCard.getAttribute("aria-current")).toBe("true");
+    expect(
+      selectedCard.parentElement.classList.contains("kt-api-list__item")
+    ).toBe(true);
+    expect(selectedCard.parentElement.classList.contains("Mui-selected")).toBe(
+      false
+    );
+    expect(masterDetail.children[0]).toBe(list);
+    expect(masterDetail.children[1]).toBe(detail);
+
+    const disabledSwitch = detail.querySelector(
+      '.kt-api-detail__header input[name="isDisabled"]'
+    );
+    expect(disabledSwitch).not.toBeNull();
+    expect(
+      detail.querySelector('.kt-api-detail__header input[name="isPinned"]')
+    ).not.toBeNull();
+
+    expect(disabledSwitch.checked).toBe(false);
+    await act(async () => disabledSwitch.click());
+    expect(disabledSwitch.checked).toBe(true);
+    await act(async () => disabledSwitch.click());
+    expect(disabledSwitch.checked).toBe(false);
+    expect(
+      detail.querySelectorAll('[class*="MuiGrid-grid-lg-3"]')
+    ).toHaveLength(0);
+    expect(
+      detail.querySelectorAll('[class*="MuiGrid-grid-lg-6"]').length
+    ).toBeGreaterThan(0);
+
+    const footer = detail.querySelector(".kt-api-detail__footer");
+    const footerButtonTexts = Array.from(footer.querySelectorAll("button")).map(
+      (button) => button.textContent
+    );
+    expect(footerButtonTexts).toEqual(
+      expect.arrayContaining(["save", "click_test", "api_actions"])
+    );
+    expect(footer.textContent).not.toContain("restore_default");
+    expect(footer.textContent).not.toContain("copy_api");
+    expect(footer.textContent).not.toContain("delete");
+
+    const moreButton = footer.querySelector(
+      '[id^="api-detail-actions-button-"]'
+    );
+    expect(moreButton.getAttribute("aria-haspopup")).toBe("menu");
+
+    await act(async () => {
+      Simulate.click(moreButton);
+    });
+
+    const actionMenu = document.body.querySelector(
+      `#api-detail-actions-menu-alpha`
+    );
+    expect(actionMenu.textContent).toContain("restore_default");
+    expect(actionMenu.textContent).toContain("copy_api");
+    expect(actionMenu.textContent).toContain("delete");
+
+    view.unmount();
+  });
+
+  test("uses the service card itself as the bulk-selection control", async () => {
+    const view = await renderApis([
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+      createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 1 }),
+    ]);
+    const bulkButton = Array.from(
+      view.container.querySelectorAll("button")
+    ).find((button) => button.textContent === "bulk_actions");
+    expect(bulkButton.getAttribute("aria-pressed")).toBe("false");
+
+    await act(async () => Simulate.click(bulkButton));
+    expect(bulkButton.getAttribute("aria-pressed")).toBe("true");
+
+    const bulkCards = Array.from(
+      view.container.querySelectorAll('.kt-api-list__card[role="checkbox"]')
+    );
+    expect(bulkCards).toHaveLength(2);
+    expect(bulkCards[1].getAttribute("aria-checked")).toBe("false");
+    expect(bulkCards[1].querySelector("input")).toBeNull();
+
+    await act(async () => {
+      Simulate.keyDown(bulkCards[1], { key: " " });
+      Simulate.keyUp(bulkCards[1], { key: " " });
+    });
+    expect(bulkCards[1].getAttribute("aria-checked")).toBe("true");
+    expect(getInput(view.container, "apiName").value).toBe("Alpha");
+    expect(mockConfirm).not.toHaveBeenCalled();
+
+    view.unmount();
+  });
+
+  test("keeps the add menu inside the Material theme root", async () => {
+    const view = await renderApis(createApi());
+    const addButton = Array.from(
+      view.container.querySelectorAll("button")
+    ).find((button) => button.textContent.trim() === "add");
+
+    await act(async () => Simulate.click(addButton));
+
+    const menu = view.container.querySelector("#add-api-menu");
+    expect(menu).not.toBeNull();
+    expect(menu.closest(".kt-m3-root")).toBe(
+      view.container.querySelector(".kt-m3-root")
+    );
+    expect(menu.querySelector(".kt-api-provider-icon")).not.toBeNull();
+    view.unmount();
+  });
+});
+
+describe("Apis conditional option groups", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test("omits the runtime option shell when the API has no matching controls", async () => {
+    const view = await renderApis(
+      createApi({ apiSlug: "BuiltinAI", apiType: OPT_TRANS_BUILTINAI })
+    );
+
+    expect(view.container.querySelector(".kt-api-runtime-options")).toBeNull();
+    expect(
+      Array.from(view.container.querySelectorAll(".MuiGrid-item")).filter(
+        (item) => !item.firstElementChild && !item.textContent.trim()
+      )
+    ).toHaveLength(0);
+
+    view.unmount();
+  });
+
+  test("keeps runtime options for APIs that support them", async () => {
+    const view = await renderApis();
+
+    expect(
+      view.container.querySelector(".kt-api-runtime-options")
+    ).not.toBeNull();
+
+    view.unmount();
+  });
+});
 
 describe("Apis model list", () => {
   afterEach(() => {
@@ -637,6 +1038,623 @@ describe("Apis model list", () => {
     expect(view.container.textContent).not.toContain("model_list_fetch_failed");
 
     view.unmount();
+  });
+});
+
+describe("Apis unsaved API switching", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test("keeps the draft and selection when switching APIs is cancelled", async () => {
+    const selectedApi = createApi();
+    const otherApi = createApi({
+      apiSlug: "Other",
+      apiName: "Other",
+      url: "https://other.example/v1",
+    });
+    const view = await renderApis([selectedApi, otherApi]);
+    const urlInput = await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(false);
+
+    await act(async () => {
+      Simulate.click(getApiListItem(view.container, otherApi.apiName));
+      await Promise.resolve();
+    });
+
+    expect(mockConfirm).toHaveBeenCalledWith({
+      message: "This API has unsaved changes. Discard them?",
+      confirmText: "discard_changes",
+      cancelText: "cancel",
+    });
+    expect(urlInput.value).toBe("https://draft.example/v1");
+    expect(getInput(view.container, "apiName").value).toBe(selectedApi.apiName);
+
+    view.unmount();
+  });
+
+  test("switches clean APIs without confirmation", async () => {
+    const otherApi = createApi({
+      apiSlug: "Other",
+      apiName: "Other",
+      url: "https://other.example/v1",
+    });
+    const view = await renderApis([createApi(), otherApi]);
+
+    await act(async () => {
+      Simulate.click(getApiListItem(view.container, otherApi.apiName));
+      await Promise.resolve();
+    });
+
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(getInput(view.container, "url").value).toBe(otherApi.url);
+
+    view.unmount();
+  });
+
+  test("switches APIs after the draft is deliberately discarded", async () => {
+    const selectedApi = createApi();
+    const otherApi = createApi({
+      apiSlug: "Other",
+      apiName: "Other",
+      url: "https://other.example/v1",
+    });
+    const view = await renderApis([selectedApi, otherApi]);
+    await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(true);
+
+    await act(async () => {
+      Simulate.click(getApiListItem(view.container, otherApi.apiName));
+      await Promise.resolve();
+    });
+
+    expect(getInput(view.container, "url").value).toBe(otherApi.url);
+    expect(getInput(view.container, "apiName").value).toBe(otherApi.apiName);
+
+    view.unmount();
+  });
+
+  test("keeps a local draft when the same API is refreshed with a new object", async () => {
+    const selectedApi = createApi();
+    const view = await renderApis(selectedApi);
+    const urlInput = await editUrlDraft(view.container);
+
+    await view.rerender([{ ...selectedApi }]);
+
+    expect(urlInput.value).toBe("https://draft.example/v1");
+    expect(getSaveButton(view.container).disabled).toBe(false);
+
+    view.unmount();
+  });
+
+  test("cancels alphabetical sorting without discarding the current draft", async () => {
+    const view = await renderApis([
+      createApi({ apiSlug: "charlie", apiName: "Charlie", sortOrder: 0 }),
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 1 }),
+    ]);
+    const urlInput = await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(false);
+
+    await act(async () => {
+      Simulate.click(view.container.querySelector("#api-sort-button"));
+    });
+    const ascendingItem = Array.from(
+      document.body.querySelectorAll('[role="menuitemradio"]')
+    ).find((item) => item.textContent.trim() === "A–Z");
+    await act(async () => {
+      Simulate.click(ascendingItem);
+      await Promise.resolve();
+    });
+
+    expect(view.apiListValue.alphaSortApis).not.toHaveBeenCalled();
+    expect(urlInput.value).toBe("https://draft.example/v1");
+
+    view.unmount();
+  });
+
+  test("treats the already active sort direction as a no-op", async () => {
+    const view = await renderApis([
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+      createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 1 }),
+    ]);
+    const urlInput = await editUrlDraft(view.container);
+
+    await act(async () => {
+      Simulate.click(view.container.querySelector("#api-sort-button"));
+    });
+    const ascendingItem = Array.from(
+      document.body.querySelectorAll('[role="menuitemradio"]')
+    ).find((item) => item.textContent.trim() === "A–Z");
+    await act(async () => {
+      Simulate.click(ascendingItem);
+      await Promise.resolve();
+    });
+
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(view.apiListValue.alphaSortApis).not.toHaveBeenCalled();
+    expect(urlInput.value).toBe("https://draft.example/v1");
+
+    view.unmount();
+  });
+
+  test("sorts after the current draft is deliberately discarded", async () => {
+    const selectedApi = createApi({
+      apiSlug: "charlie",
+      apiName: "Charlie",
+      sortOrder: 0,
+    });
+    const view = await renderApis([
+      selectedApi,
+      createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 1 }),
+    ]);
+    await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(true);
+
+    await act(async () => {
+      Simulate.click(view.container.querySelector("#api-sort-button"));
+    });
+    const ascendingItem = Array.from(
+      document.body.querySelectorAll('[role="menuitemradio"]')
+    ).find((item) => item.textContent.trim() === "A–Z");
+    await act(async () => {
+      Simulate.click(ascendingItem);
+      await Promise.resolve();
+    });
+
+    expect(view.apiListValue.alphaSortApis).toHaveBeenCalledWith("asc");
+    expect(getInput(view.container, "url").value).toBe(selectedApi.url);
+    expect(getSaveButton(view.container).disabled).toBe(true);
+
+    view.unmount();
+  });
+
+  test("cancels drag reordering without discarding the current draft", async () => {
+    const selectedApi = createApi({
+      apiSlug: "alpha",
+      apiName: "Alpha",
+      sortOrder: 0,
+    });
+    const otherApi = createApi({
+      apiSlug: "beta",
+      apiName: "Beta",
+      sortOrder: 1,
+    });
+    const view = await renderApis([selectedApi, otherApi]);
+    const urlInput = await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(false);
+    const selectedCard = getApiListItem(view.container, "Alpha");
+    const otherCard = getApiListItem(view.container, "Beta");
+    const dataTransfer = {
+      effectAllowed: "",
+      dropEffect: "",
+      getData: jest.fn(() => "alpha"),
+      setData: jest.fn(),
+    };
+
+    await act(async () => {
+      Simulate.dragStart(selectedCard.querySelector('[draggable="true"]'), {
+        dataTransfer,
+      });
+      Simulate.dragOver(otherCard.closest("li"), { dataTransfer });
+      Simulate.drop(otherCard.closest("li"), { dataTransfer });
+      await Promise.resolve();
+    });
+
+    expect(view.apiListValue.reorderApis).not.toHaveBeenCalled();
+    expect(urlInput.value).toBe("https://draft.example/v1");
+
+    view.unmount();
+  });
+
+  test("restores the persisted form before resetting an edited API", async () => {
+    const selectedApi = createApi();
+    const view = await renderApis(selectedApi);
+    await editUrlDraft(view.container);
+    const actionsButton = view.container.querySelector(
+      '[id^="api-detail-actions-button-"]'
+    );
+
+    await act(async () => Simulate.click(actionsButton));
+    const resetItem = Array.from(
+      document.body.querySelectorAll('[role="menuitem"]')
+    ).find((item) => item.textContent === "restore_default");
+    await act(async () => Simulate.click(resetItem));
+
+    expect(view.reset).toHaveBeenCalledTimes(1);
+    expect(getInput(view.container, "url").value).toBe(selectedApi.url);
+    expect(getSaveButton(view.container).disabled).toBe(true);
+
+    view.unmount();
+  });
+});
+
+describe("Apis with stateful API hooks", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  test.each([false, true])(
+    "restores defaults after saving and editing a draft (StrictMode: %s)",
+    async (strictMode) => {
+      const selectedApi = createApi({
+        apiSlug: "custom-openai",
+        apiName: "Custom OpenAI",
+      });
+      const defaultApi = DEFAULT_API_LIST.find(
+        (api) => api.apiType === selectedApi.apiType
+      );
+      const view = await renderStatefulApis([selectedApi], strictMode);
+
+      try {
+        await act(async () => {
+          Simulate.change(getInput(view.container, "url"), {
+            target: { name: "url", value: "https://saved.example/v1" },
+          });
+        });
+        await act(async () => Simulate.click(getSaveButton(view.container)));
+        expect(view.setting.transApis[0].url).toBe("https://saved.example/v1");
+        expect(getSaveButton(view.container).disabled).toBe(true);
+
+        await editUrlDraft(view.container);
+        await act(async () =>
+          Simulate.click(
+            view.container.querySelector('[id^="api-detail-actions-button-"]')
+          )
+        );
+        const resetItem = Array.from(
+          document.body.querySelectorAll('[role="menuitem"]')
+        ).find((item) => item.textContent === "restore_default");
+        await act(async () => Simulate.click(resetItem));
+        await flushEffects();
+
+        expect(view.setting.transApis[0]).toMatchObject({
+          apiSlug: selectedApi.apiSlug,
+          apiName: selectedApi.apiName,
+          apiType: selectedApi.apiType,
+          key: selectedApi.key,
+          url: defaultApi.url,
+        });
+        expect(getInput(view.container, "url").value).toBe(defaultApi.url);
+        expect(getInput(view.container, "model").value).toBe(defaultApi.model);
+        expect(getSaveButton(view.container).disabled).toBe(true);
+      } finally {
+        view.unmount();
+      }
+    }
+  );
+
+  test("reflects a persisted update when the form has no local draft", async () => {
+    const view = await renderStatefulApis([createApi()]);
+
+    try {
+      await view.updateSetting((setting) => ({
+        ...setting,
+        transApis: setting.transApis.map((api) => ({
+          ...api,
+          url: "https://updated.example/v1",
+        })),
+      }));
+
+      expect(getInput(view.container, "url").value).toBe(
+        "https://updated.example/v1"
+      );
+      expect(getSaveButton(view.container).disabled).toBe(true);
+    } finally {
+      view.unmount();
+    }
+  });
+
+  test.each([false, true])(
+    "saves edited fields without rolling back newer API values (StrictMode: %s)",
+    async (strictMode) => {
+      const view = await renderStatefulApis(
+        [createApi({ customHeader: "obsolete-header" })],
+        strictMode
+      );
+
+      try {
+        await editUrlDraft(view.container);
+        for (const version of [1, 2]) {
+          await view.updateSetting((setting) => ({
+            ...setting,
+            transApis: setting.transApis.map((api) => {
+              const nextApi = { ...api };
+              delete nextApi.customHeader;
+              return {
+                ...nextApi,
+                url: `https://synced.example/v${version}`,
+                key: `synced-key-${version}`,
+                model: version === 1 ? "gpt-4o" : "gpt-4.1",
+                sortOrder: version,
+              };
+            }),
+          }));
+
+          expect(getInput(view.container, "url").value).toBe(
+            "https://draft.example/v1"
+          );
+          expect(getInput(view.container, "model").value).toBe(
+            version === 1 ? "gpt-4o" : "gpt-4.1"
+          );
+          expect(getSaveButton(view.container).disabled).toBe(false);
+        }
+
+        await act(async () => getSaveButton(view.container).click());
+
+        expect(view.setting.transApis[0]).toMatchObject({
+          url: "https://draft.example/v1",
+          key: "synced-key-2",
+          model: "gpt-4.1",
+          sortOrder: 2,
+        });
+        expect(view.setting.transApis[0]).not.toHaveProperty("customHeader");
+        expect(getSaveButton(view.container).disabled).toBe(true);
+      } finally {
+        view.unmount();
+      }
+    }
+  );
+
+  describe.each([false, true])(
+    "API status rebasing (StrictMode: %s)",
+    (strictMode) => {
+      test.each([
+        {
+          name: "accepts a synced disable over a draft pin",
+          initialStatus: { isDisabled: false, sortOrder: 0 },
+          draftControls: ["isPinned"],
+          syncedStatus: { isDisabled: true, sortOrder: 1001 },
+          expectedStatus: { isDisabled: true, sortOrder: 1001 },
+        },
+        {
+          name: "accepts a synced disable over a draft unpin",
+          initialStatus: { isDisabled: false, sortOrder: -1 },
+          draftControls: ["isPinned"],
+          syncedStatus: { isDisabled: true, sortOrder: 1001 },
+          expectedStatus: { isDisabled: true, sortOrder: 1001 },
+        },
+        {
+          name: "keeps a draft disable over a synced pin",
+          initialStatus: { isDisabled: false, sortOrder: 0 },
+          draftControls: ["isDisabled"],
+          syncedStatus: { isDisabled: false, sortOrder: -1 },
+          expectedStatus: { isDisabled: true, sortOrder: 999 },
+        },
+        {
+          name: "keeps a draft enable over a synced disabled order",
+          initialStatus: { isDisabled: true, sortOrder: 999 },
+          draftControls: ["isDisabled"],
+          syncedStatus: { isDisabled: true, sortOrder: 1001 },
+          expectedStatus: { isDisabled: false, sortOrder: 0 },
+        },
+        {
+          name: "accepts a synced enable after toggling a draft back to disabled",
+          initialStatus: { isDisabled: true, sortOrder: 1001 },
+          draftControls: ["isDisabled", "isDisabled"],
+          syncedStatus: { isDisabled: false, sortOrder: -1 },
+          expectedStatus: { isDisabled: false, sortOrder: -1 },
+        },
+        {
+          name: "keeps a valid draft pin over a synced enabled order",
+          initialStatus: { isDisabled: false, sortOrder: 0 },
+          draftControls: ["isPinned"],
+          syncedStatus: { isDisabled: false, sortOrder: 2 },
+          expectedStatus: { isDisabled: false, sortOrder: -1 },
+        },
+        {
+          name: "keeps a draft enable and pin over a synced disabled order",
+          initialStatus: { isDisabled: true, sortOrder: 999 },
+          draftControls: ["isDisabled", "isPinned"],
+          syncedStatus: { isDisabled: true, sortOrder: 1001 },
+          expectedStatus: { isDisabled: false, sortOrder: -1 },
+        },
+      ])(
+        "$name before and after saving",
+        async ({
+          initialStatus,
+          draftControls,
+          syncedStatus,
+          expectedStatus,
+        }) => {
+          const otherApi = createApi({
+            apiSlug: "other",
+            apiName: "Other",
+            isDisabled: true,
+            sortOrder: 1200,
+          });
+          const view = await renderStatefulApis(
+            [
+              createApi({ ...initialStatus, customHeader: "obsolete-header" }),
+              otherApi,
+            ],
+            strictMode
+          );
+
+          try {
+            await editUrlDraft(view.container);
+            for (const control of draftControls) {
+              await act(async () => getInput(view.container, control).click());
+            }
+            expect(view.setting.transApis[0]).toMatchObject(initialStatus);
+
+            await view.updateSetting((setting) => ({
+              ...setting,
+              transApis: setting.transApis.map((api) => {
+                if (api.apiSlug !== "OpenAI") return api;
+                const syncedApi = {
+                  ...api,
+                  ...syncedStatus,
+                  url: "https://synced.example/v1",
+                  key: "synced-key",
+                  model: "gpt-4.1",
+                };
+                delete syncedApi.customHeader;
+                return syncedApi;
+              }),
+            }));
+
+            expect(getInput(view.container, "isDisabled").checked).toBe(
+              expectedStatus.isDisabled
+            );
+            expect(getInput(view.container, "isPinned").checked).toBe(
+              expectedStatus.sortOrder === -1
+            );
+            expect(getInput(view.container, "isPinned").disabled).toBe(
+              expectedStatus.isDisabled
+            );
+            expect(getInput(view.container, "url").value).toBe(
+              "https://draft.example/v1"
+            );
+            expect(getInput(view.container, "model").value).toBe("gpt-4.1");
+            expect(getSaveButton(view.container).disabled).toBe(false);
+
+            const expectedApi = {
+              ...expectedStatus,
+              url: "https://draft.example/v1",
+              key: "synced-key",
+              model: "gpt-4.1",
+            };
+            apiTranslate.mockResolvedValue({ trText: "Translated text" });
+            const testButton = Array.from(
+              view.container.querySelectorAll("button")
+            ).find((button) => button.textContent === "click_test");
+            await act(async () => testButton.click());
+            expect(apiTranslate).toHaveBeenLastCalledWith(
+              expect.objectContaining({
+                apiSetting: expect.objectContaining(expectedApi),
+              })
+            );
+            expect(view.setting.transApis[0]).toMatchObject({
+              ...syncedStatus,
+              url: "https://synced.example/v1",
+            });
+
+            await act(async () => getSaveButton(view.container).click());
+
+            expect(view.setting.transApis[0]).toMatchObject(expectedApi);
+            expect(view.setting.transApis[0]).not.toHaveProperty(
+              "customHeader"
+            );
+            expect(view.setting.transApis[1]).toEqual(otherApi);
+            expect(getSaveButton(view.container).disabled).toBe(true);
+          } finally {
+            view.unmount();
+          }
+        }
+      );
+    }
+  );
+
+  test("accepts normalized draft values after a synced model change", async () => {
+    const view = await renderStatefulApis([
+      createApi({
+        apiSlug: OPT_TRANS_GEMINI,
+        apiType: OPT_TRANS_GEMINI,
+        model: "gemini-3-flash-preview",
+        thinkingMode: "enabled",
+        thinkingEffort: "high",
+      }),
+    ]);
+
+    try {
+      await act(async () => {
+        Simulate.change(getInput(view.container, "thinkingEffort"), {
+          target: { name: "thinkingEffort", value: "medium" },
+        });
+      });
+      await view.updateSetting((setting) => ({
+        ...setting,
+        transApis: setting.transApis.map((api) => ({
+          ...api,
+          model: "gemini-3-pro-preview",
+          thinkingEffort: "high",
+        })),
+      }));
+      expect(getSaveButton(view.container).disabled).toBe(false);
+
+      await act(async () => getSaveButton(view.container).click());
+
+      expect(view.setting.transApis[0]).toMatchObject({
+        model: "gemini-3-pro-preview",
+        thinkingMode: "enabled",
+        thinkingEffort: "high",
+      });
+      expect(getSaveButton(view.container).disabled).toBe(true);
+    } finally {
+      view.unmount();
+    }
+  });
+
+  test("follows later updates after a draft is reverted to the received value", async () => {
+    const view = await renderStatefulApis([createApi()]);
+
+    try {
+      await editUrlDraft(view.container);
+      await view.updateSetting((setting) => ({
+        ...setting,
+        transApis: setting.transApis.map((api) => ({
+          ...api,
+          url: "https://synced.example/v1",
+        })),
+      }));
+      await act(async () => {
+        Simulate.change(getInput(view.container, "url"), {
+          target: { name: "url", value: "https://synced.example/v1" },
+        });
+      });
+      expect(getSaveButton(view.container).disabled).toBe(true);
+
+      await view.updateSetting((setting) => ({
+        ...setting,
+        transApis: setting.transApis.map((api) => ({
+          ...api,
+          url: "https://synced.example/v2",
+        })),
+      }));
+      expect(getInput(view.container, "url").value).toBe(
+        "https://synced.example/v2"
+      );
+      expect(getSaveButton(view.container).disabled).toBe(true);
+    } finally {
+      view.unmount();
+    }
+  });
+
+  test("preserves a draft through an unrelated API update and identity refresh", async () => {
+    const view = await renderStatefulApis([
+      createApi(),
+      createApi({ apiSlug: "other", apiName: "Other", sortOrder: 1 }),
+    ]);
+
+    try {
+      await editUrlDraft(view.container);
+      await view.updateSetting((setting) => ({
+        ...setting,
+        transApis: setting.transApis.map((api) =>
+          api.apiSlug === "other"
+            ? { ...api, url: "https://other.example/v1" }
+            : { ...api }
+        ),
+      }));
+
+      expect(getInput(view.container, "url").value).toBe(
+        "https://draft.example/v1"
+      );
+      expect(getSaveButton(view.container).disabled).toBe(false);
+
+      await act(async () => Simulate.click(getSaveButton(view.container)));
+      expect(
+        view.setting.transApis.find((api) => api.apiSlug === "OpenAI").url
+      ).toBe("https://draft.example/v1");
+      expect(
+        view.setting.transApis.find((api) => api.apiSlug === "other").url
+      ).toBe("https://other.example/v1");
+      expect(getSaveButton(view.container).disabled).toBe(true);
+    } finally {
+      view.unmount();
+    }
   });
 });
 

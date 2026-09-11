@@ -38,12 +38,15 @@ export const sendBgMsg = (action, args) =>
  * @param {Object} args 指令参数数据
  * @returns {Promise<*>} 页面 Content Script 接收处理后的响应数据
  */
-export const sendTabMsg = async (action, args) => {
+export const sendTabMsg = async (action, args, options) => {
   const tabId = await getCurTabId();
   if (!tabId) return;
 
   // 向指定 ID 的标签页发送消息，并捕获常见的由于注入未就绪产生的错误
-  return browser.tabs.sendMessage(tabId, { action, args }).catch((err) => {
+  const sendPromise = options
+    ? browser.tabs.sendMessage(tabId, { action, args }, options)
+    : browser.tabs.sendMessage(tabId, { action, args });
+  return sendPromise.catch((err) => {
     // REVIEW: 屏蔽两种常见的无害通信错误：
     // 1. "Could not establish connection" (多发于前台 content script 尚未加载完毕或无响应)
     // 2. "Receiving end does not exist" (常见于用户在不支持注入扩展的浏览器内置特权页面如 chrome:// 上触发了消息)
@@ -58,3 +61,14 @@ export const sendTabMsg = async (action, args) => {
     }
   });
 };
+
+/**
+ * Send a query to the active tab's top frame and use only its response.
+ * Commands intended for every frame should continue to use sendTabMsg.
+ *
+ * @param {string} action Message action.
+ * @param {Object} args Message arguments.
+ * @returns {Promise<*>} Top-frame response.
+ */
+export const sendTopFrameMsg = (action, args) =>
+  sendTabMsg(action, args, { frameId: 0 });

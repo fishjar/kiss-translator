@@ -1,38 +1,171 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import Button from "@mui/material/Button";
-import { sendBgMsg, sendTabMsg } from "../../libs/msg";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
+import { sendBgMsg } from "../../libs/msg";
 import { useI18n } from "../../hooks/I18n";
-import Divider from "@mui/material/Divider";
 import Header from "./Header";
 import {
   MSG_OPEN_OPTIONS,
   MSG_OPEN_SEPARATE_WINDOW,
-  MSG_TRANS_GETRULE,
+  MSG_FIT_SEPARATE_WINDOW,
+  SEPARATE_WINDOW_CONTENT_WIDTH,
+  CLIENT_THUNDERBIRD,
   STOKEY_SETTING,
+  DEFAULT_SETTING,
+  GLOBLA_RULE,
   resolveApiPromptList,
 } from "../../config";
 import { kissLog } from "../../libs/log";
 import PopupCont from "./PopupCont";
 import TranForm from "../Selection/TranForm";
 import { useSetting } from "../../hooks/Setting";
+import { useSeparateWindowBounds } from "../../hooks/SeparateWindowBounds";
 import { browser } from "../../libs/browser";
-import { isAutoTranslateClipboardSupported } from "../../libs/client";
+import {
+  client,
+  isFirefox,
+  isAutoTranslateClipboardSupported,
+} from "../../libs/client";
 import { readClipboardTextIfAllowed } from "../../libs/clipboard";
+import { POPUP_STYLES } from "./styles";
+import { loadPopupData } from "./loadData";
+import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 
 /**
- * 文本翻译面板组件 (用于直接在 Popup 中输入文本进行翻译)
+ * Fit a newly opened separate window after measuring its rendered content.
+ * Extension window bounds use screen pixels, while layout sizes must be scaled
+ * by the tab zoom. DOM outer dimensions are not consistent across browsers.
+ */
+function useFitSeparateWindow(enabled) {
+  useEffect(() => {
+    if (
+      !enabled ||
+      typeof browser?.windows?.getCurrent !== "function" ||
+      typeof browser?.tabs?.getCurrent !== "function" ||
+      typeof browser?.tabs?.getZoom !== "function"
+    ) {
+      return undefined;
+    }
+
+    let active = true;
+    let frame;
+    const initialize = async () => {
+      try {
+        const tab = await browser.tabs.getCurrent();
+        if (!active || !Number.isInteger(tab?.id) || tab.id < 0) return;
+        const zoom = await browser.tabs.getZoom(tab.id);
+        const currentWindow = await browser.windows.getCurrent();
+        if (
+          !active ||
+          !Number.isFinite(zoom) ||
+          zoom <= 0 ||
+          !Number.isFinite(currentWindow?.width) ||
+          !Number.isFinite(currentWindow?.height)
+        ) {
+          return;
+        }
+
+        frame = requestAnimationFrame(() => {
+          if (!active) return;
+          const panel = document.querySelector(".kt-popup-text-panel");
+          if (!panel) return;
+
+          // Gecko scales DOM outer/screen values with layout zoom. Its tab zoom
+          // may instead be text-only, which is already reflected in scrollHeight.
+          const isGecko = isFirefox || client === CLIENT_THUNDERBIRD;
+          const screenScale =
+            isGecko && window.outerWidth > 0
+              ? currentWindow.width / window.outerWidth
+              : 1;
+          const layoutZoom = isGecko ? screenScale : zoom;
+          const chromeHeight = Math.max(
+            0,
+            currentWindow.height - window.innerHeight * layoutZoom
+          );
+          const chromeWidth = Math.max(
+            0,
+            currentWindow.width - window.innerWidth * layoutZoom
+          );
+          const availWidth = window.screen?.availWidth * screenScale;
+          const maxWidth = Number.isFinite(availWidth)
+            ? availWidth - 40
+            : Infinity;
+          // Match the background's width limits before measuring wrapped text.
+          const width = Math.round(
+            Math.max(
+              360,
+              Math.min(
+                SEPARATE_WINDOW_CONTENT_WIDTH * layoutZoom + chromeWidth,
+                maxWidth
+              )
+            )
+          );
+          const contentWidth = Math.min(
+            SEPARATE_WINDOW_CONTENT_WIDTH,
+            Math.max(1, (width - chromeWidth) / layoutZoom)
+          );
+          const previousWidth = panel.style.getPropertyValue("width");
+          const previousPriority = panel.style.getPropertyPriority("width");
+          let contentHeight;
+          try {
+            // Read at the final width without painting an intermediate layout.
+            panel.style.setProperty("width", `${contentWidth}px`, "important");
+            contentHeight = panel.scrollHeight;
+          } finally {
+            if (previousWidth) {
+              panel.style.setProperty("width", previousWidth, previousPriority);
+            } else {
+              panel.style.removeProperty("width");
+            }
+          }
+
+          Promise.resolve(
+            sendBgMsg(MSG_FIT_SEPARATE_WINDOW, {
+              width,
+              height: Math.ceil(contentHeight * layoutZoom + chromeHeight),
+              availWidth,
+              availHeight: window.screen?.availHeight * screenScale,
+              availLeft: window.screen?.availLeft * screenScale,
+              availTop: window.screen?.availTop * screenScale,
+            })
+          ).catch((error) => kissLog("fit separate window", error));
+        });
+      } catch (error) {
+        // Keep the default size if the window closes or its APIs are unavailable.
+        kissLog("measure separate window", error);
+      }
+    };
+
+    void initialize();
+    return () => {
+      active = false;
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    };
+  }, [enabled]);
+}
+
+/**
+ * Text translation panel for direct input in the popup.
  */
 export function Trantab({ isSeparate = false }) {
+  useSeparateWindowBounds(isSeparate);
   const [text, setText] = useState("");
-  // 获取全局设置
+  const i18n = useI18n();
   const { setting } = useSetting();
   const shouldReadClipboardInitially =
     isAutoTranslateClipboardSupported &&
-    (setting.autoTranslateClipboard ?? false);
+    (setting?.autoTranslateClipboard ?? false);
   const [autoTranslateClipboard, setAutoTranslateClipboard] = useState(
-    setting.autoTranslateClipboard ?? false
+    setting?.autoTranslateClipboard ?? false
   );
   const [autoFocusInput, setAutoFocusInput] = useState(
     !shouldReadClipboardInitially
@@ -47,17 +180,25 @@ export function Trantab({ isSeparate = false }) {
   }, [text]);
 
   useEffect(() => {
-    setAutoTranslateClipboard(setting.autoTranslateClipboard ?? false);
-  }, [setting.autoTranslateClipboard]);
+    setAutoTranslateClipboard(setting?.autoTranslateClipboard ?? false);
+  }, [setting?.autoTranslateClipboard]);
 
   useEffect(() => {
     const handleStorageChange = (changes, areaName) => {
-      if (areaName !== "local") return;
-      const nextSetting = changes?.[STOKEY_SETTING]?.newValue;
-      if (nextSetting) {
-        setAutoTranslateClipboard(nextSetting.autoTranslateClipboard ?? false);
+      const change = changes?.[STOKEY_SETTING];
+      if (areaName !== "local" || !change) return;
+
+      // Decode stored JSON strings within this panel's subscription.
+      let nextSetting;
+      try {
+        nextSetting =
+          change.newValue === undefined ? null : JSON.parse(change.newValue);
+      } catch {
+        return;
       }
+      setAutoTranslateClipboard(nextSetting?.autoTranslateClipboard ?? false);
     };
+
     browser?.storage?.onChanged?.addListener?.(handleStorageChange);
     return () => {
       browser?.storage?.onChanged?.removeListener?.(handleStorageChange);
@@ -109,7 +250,39 @@ export function Trantab({ isSeparate = false }) {
     return () => window.removeEventListener("focus", translateClipboard);
   }, [isSeparate, translateClipboard]);
 
-  // REVIEW: 如果在异步加载未完成或出现异常时 setting 仍为 null / undefined，此处直接解构 setting 将导致 TypeError 崩溃。建议对 setting 进行判空保护，例如：const { tranboxSetting = {}, transApis = [], langDetector = {} } = setting || {};
+  // Wait for settings so the fixed 260px loading state cannot shrink the window.
+  useFitSeparateWindow(isSeparate && Boolean(setting?.tranboxSetting));
+
+  const serializedTransApis = useMemo(
+    () =>
+      JSON.stringify(
+        resolveApiPromptList(
+          setting?.transApis,
+          setting?.prompts,
+          setting?.subtitleSetting
+        )
+      ),
+    [setting?.transApis, setting?.prompts, setting?.subtitleSetting]
+  );
+  // Storage updates can recreate JSON objects without changing API settings.
+  // Preserve their identity so unrelated settings do not cancel active requests.
+  const resolvedTransApis = useMemo(
+    () => JSON.parse(serializedTransApis),
+    [serializedTransApis]
+  );
+
+  if (!setting?.tranboxSetting) {
+    return (
+      <div
+        className="kt-popup-loading"
+        role="status"
+        aria-label={i18n("popup_loading")}
+      >
+        <AutorenewRoundedIcon />
+      </div>
+    );
+  }
+
   const {
     tranboxSetting: {
       enDict,
@@ -121,21 +294,14 @@ export function Trantab({ isSeparate = false }) {
       aiDictApiSlug,
       aiDictPromptSlug,
     },
-    transApis,
-    langDetector,
-    prompts,
-    subtitleSetting,
+    langDetector = {},
+    prompts = [],
     translateVariants,
     parseLatex,
   } = setting;
-  const resolvedTransApis = useMemo(
-    () => resolveApiPromptList(transApis, prompts, subtitleSetting),
-    [prompts, subtitleSetting, transApis]
-  );
 
   return (
-    <Box sx={{ p: 2 }}>
-      {/* 渲染主动文本输入翻译表单组件 */}
+    <div className="kt-popup-text-panel">
       <TranForm
         text={text}
         setText={setText}
@@ -155,82 +321,194 @@ export function Trantab({ isSeparate = false }) {
         parseLatex={parseLatex}
         autoFocusInput={autoFocusInput}
         syncExternalTextWhileEditing
+        popupStyle
       />
-    </Box>
+    </div>
   );
 }
 
-/**
- * Popup 浮窗页面主入口组件
- */
 export default function Popup() {
   const i18n = useI18n();
-  // 当前网页的翻译规则设置
   const [rule, setRule] = useState(null);
-  // 全局通用设置
   const [setting, setSetting] = useState(null);
-  // 是否展示文本翻译输入框面板 (为 true 时显示文本翻译，为 false 时显示网页设置)
-  const [showTrantab, setShowTrantab] = useState(false);
-  // 是否以独立翻译窗口的模式运行 (通过 URL Hash #tranbox 识别)
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("page");
   const [isSeparate, setIsSeparate] = useState(false);
+  const popupShellRef = useRef(null);
+  const initialFocusGuardRef = useRef(true);
 
-  // 跳转到浏览器插件的设置选项页面
+  useLayoutEffect(() => {
+    if (!isSeparate) {
+      popupShellRef.current?.focus({ preventScroll: true });
+    }
+  }, [isSeparate]);
+
+  useEffect(() => {
+    if (isSeparate || isLoading) return undefined;
+
+    let activationTimer;
+    const clearSafariAutofocus = () => {
+      if (!initialFocusGuardRef.current) return;
+      const shell = popupShellRef.current;
+      if (!shell) return;
+      if (shell.contains(document.activeElement)) {
+        document.activeElement?.blur?.();
+      }
+      shell.focus({ preventScroll: true });
+    };
+    const handleWindowFocus = (event) => {
+      if (event.target !== window) return;
+      window.clearTimeout(activationTimer);
+      activationTimer = window.setTimeout(clearSafariAutofocus, 0);
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+    const mountTimer = window.setTimeout(clearSafariAutofocus, 0);
+    const settleTimer = window.setTimeout(clearSafariAutofocus, 120);
+    const guardTimer = window.setTimeout(() => {
+      initialFocusGuardRef.current = false;
+      window.removeEventListener("focus", handleWindowFocus);
+    }, 300);
+
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+      window.clearTimeout(activationTimer);
+      window.clearTimeout(mountTimer);
+      window.clearTimeout(settleTimer);
+      window.clearTimeout(guardTimer);
+    };
+  }, [isLoading, isSeparate]);
+
   const handleOpenSetting = useCallback(() => {
     sendBgMsg(MSG_OPEN_OPTIONS);
   }, []);
 
-  // 页面挂载时：获取当前网页的规则和全局配置，并检测是否是独立窗口
   useEffect(() => {
+    let active = true;
     (async () => {
       try {
-        const cleanHash = window.location.hash.slice(1);
-        if (cleanHash === "tranbox") {
-          setIsSeparate(true);
+        const previewMode =
+          process.env.NODE_ENV === "development" &&
+          new URLSearchParams(window.location.search).has("preview");
+        if (previewMode) {
+          setRule({
+            ...GLOBLA_RULE,
+            transOpen: "true",
+            textStyle: "dash_line",
+          });
+          setSetting({
+            ...DEFAULT_SETTING,
+            uiLang: "zh",
+            darkMode: "light",
+            tranboxSetting: {
+              ...DEFAULT_SETTING.tranboxSetting,
+              transOpen: true,
+            },
+            mouseHoverSetting: {
+              ...DEFAULT_SETTING.mouseHoverSetting,
+              useMouseHover: true,
+            },
+          });
           return;
         }
-
-        // 向当前活动的标签页请求该网址的翻译规则及全局配置信息
-        const res = await sendTabMsg(MSG_TRANS_GETRULE);
-        if (res && !res.error) {
-          setRule(res.rule);
-          setSetting(res.setting);
+        const cleanHash = window.location.hash.slice(1);
+        if (cleanHash === "tranbox") {
+          if (active) setIsSeparate(true);
+          return;
         }
-      } catch (err) {
-        kissLog("query rule", err);
+        const response = await loadPopupData();
+        if (active && response && !response.error) {
+          setRule(response.rule);
+          setSetting(response.setting);
+        }
+      } catch (error) {
+        kissLog("query rule", error);
+      } finally {
+        if (active) setIsLoading(false);
       }
     })();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  // 切换“网页翻译配置”与“输入翻译面板”两个标签页
-  const toggleTab = useCallback(() => {
-    setShowTrantab((pre) => !pre);
-  }, []);
-
-  // 请求后台 Background 在独立的无边框小窗口中打开当前翻译页面，并关闭当前 Popup
   const openSeparateWindow = useCallback(() => {
     sendBgMsg(MSG_OPEN_SEPARATE_WINDOW);
     window.close();
   }, []);
 
-  // 独立窗口模式下只显示文本翻译输入框组件
+  const tabs = useMemo(
+    () => [
+      {
+        value: "page",
+        label: i18n("popup_page_translation"),
+        tabId: "kt-popup-page-tab",
+        panelId: "kt-popup-active-panel",
+      },
+      {
+        value: "text",
+        label: i18n("popup_text_translation"),
+        tabId: "kt-popup-text-tab",
+        panelId: "kt-popup-active-panel",
+      },
+    ],
+    [i18n]
+  );
+
   if (isSeparate) {
     return (
-      <Box>
+      <main className="kt-popup-shell kt-popup-shell--window">
+        <style>{POPUP_STYLES}</style>
         <Trantab isSeparate />
-      </Box>
+      </main>
     );
   }
 
   return (
-    <Box width={360}>
-      {/* 头部组件 */}
-      <Header toggleTab={toggleTab} openSeparateWindow={openSeparateWindow} />
-      <Divider />
-      {/* 内容区域 (可垂直滚动) */}
-      <Box sx={{ overflowY: "auto", maxHeight: 500 }}>
-        {showTrantab ? (
+    <main
+      className="kt-popup-shell"
+      ref={popupShellRef}
+      tabIndex={-1}
+      onPointerDownCapture={() => {
+        initialFocusGuardRef.current = false;
+      }}
+      onKeyDownCapture={() => {
+        initialFocusGuardRef.current = false;
+      }}
+    >
+      <style>{POPUP_STYLES}</style>
+      <div className="kt-popup-chrome">
+        <Header
+          openSeparateWindow={openSeparateWindow}
+          openSettings={handleOpenSetting}
+        />
+        <Tabs
+          className="kt-popup-tabs"
+          value={activeTab}
+          onChange={(_event, value) => setActiveTab(value)}
+          aria-label={i18n("translate")}
+          variant="fullWidth"
+        >
+          {tabs.map((tab) => (
+            <Tab
+              value={tab.value}
+              label={tab.label}
+              id={tab.tabId}
+              aria-controls={tab.panelId}
+              key={tab.value}
+            />
+          ))}
+        </Tabs>
+      </div>
+      <div
+        id="kt-popup-active-panel"
+        role="tabpanel"
+        aria-labelledby={`kt-popup-${activeTab}-tab`}
+        className="kt-popup-scroll"
+      >
+        {activeTab === "text" ? (
           <Trantab />
-        ) : rule ? (
+        ) : rule && setting ? (
           <PopupCont
             rule={rule}
             setting={setting}
@@ -238,42 +516,41 @@ export default function Popup() {
             setSetting={setSetting}
             handleOpenSetting={handleOpenSetting}
           />
-        ) : (
-          /* 如果当前网页规则未成功获取 (例如在扩展禁用的标签页上)，显示备用的支持页脚 */
-          <Stack
-            sx={{ p: 2 }}
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
+        ) : isLoading ? (
+          <div
+            className="kt-popup-loading"
+            role="status"
+            aria-label={i18n("popup_loading")}
           >
-            <Button
-              variant="text"
-              onClick={() => {
-                window.open(
-                  "https://chromewebstore.google.com/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof/reviews",
-                  "_blank"
-                );
-              }}
-            >
-              {i18n("comment_support")}
-            </Button>
-            <Button
-              variant="text"
-              onClick={() => {
-                window.open(
-                  "https://github.com/fishjar/kiss-translator#%E8%B5%9E%E8%B5%8F",
-                  "_blank"
-                );
-              }}
-            >
-              {i18n("appreciate_support")}
-            </Button>
-            <Button variant="text" onClick={handleOpenSetting}>
-              {i18n("setting")}
-            </Button>
-          </Stack>
+            <AutorenewRoundedIcon />
+          </div>
+        ) : (
+          <div className="kt-popup-empty">
+            <span>{i18n("load_setting_err")}</span>
+            <div className="kt-popup-empty__actions">
+              <Button
+                variant="text"
+                onClick={() => {
+                  window.open(REVIEW_URL, "_blank", "noopener,noreferrer");
+                }}
+              >
+                {i18n("comment_support")}
+              </Button>
+              <Button
+                variant="text"
+                onClick={() => {
+                  window.open(SUPPORT_URL, "_blank", "noopener,noreferrer");
+                }}
+              >
+                {i18n("appreciate_support")}
+              </Button>
+              <Button variant="text" onClick={handleOpenSetting}>
+                {i18n("setting")}
+              </Button>
+            </div>
+          </div>
         )}
-      </Box>
-    </Box>
+      </div>
+    </main>
   );
 }

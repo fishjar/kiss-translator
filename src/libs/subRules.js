@@ -23,16 +23,17 @@ const updateSyncDataCache = async (url) => {
 /**
  * 从远程 URL 同步/下载订阅规则，校验合法性后存入本地。
  * @param {string} url 订阅规则的远程地址
+ * @param {{shouldCommit?: () => boolean}} [options] Optional cache commit guard.
  * @returns {Promise<Array<Object>>} 过滤清洗后的规则列表
  */
-export const syncSubRules = async (url) => {
+export const syncSubRules = async (url, { shouldCommit = () => true } = {}) => {
   // 从远程拉取规则数据
   const res = await apiFetch(url);
   // 校验规则格式，并过滤掉 pattern 为全局匹配星号 "*" 的规则，以防止订阅规则劫持用户的全局设置
   const rules = checkRules(res).filter(
     ({ pattern }) => !isAllchar(pattern, GLOBAL_KEY)
   );
-  if (rules.length > 0) {
+  if (rules.length > 0 && shouldCommit()) {
     await setSubRules(url, rules);
   }
   return rules;

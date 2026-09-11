@@ -3,16 +3,20 @@ import TranBox from "./TranBox";
 import useTranBoxState from "../../hooks/useTranBoxState";
 import useSelectionController from "../../hooks/useSelectionController";
 import useTranboxShortcuts from "../../hooks/useTranboxShortcuts";
+import ThemeProvider from "../../hooks/M3Theme";
+import { SettingProvider } from "../../hooks/Setting";
+import { SELECTION_STYLES } from "./styles";
+import { newI18n } from "../../config";
 
 /**
- * 划词翻译交互整体入口组件
+ * Entry point for selection translation interactions.
  *
  * @param {Object} props
- * @param {string} props.contextMenuType - 浏览器右键菜单的类型/配置
- * @param {Object} props.tranboxSetting - 划词翻译框的相关设置项
- * @param {Array} props.transApis - 启用的翻译 API 配置列表
- * @param {string} props.uiLang - 当前扩展所用的 UI 本地化语言
- * @param {Object} props.langDetector - 语种检测器的状态配置项
+ * @param {string} props.contextMenuType - Browser context menu type or configuration.
+ * @param {Object} props.tranboxSetting - Selection translation panel settings.
+ * @param {Array} props.transApis - Enabled translation API settings.
+ * @param {string} props.uiLang - Extension UI language.
+ * @param {Object} props.langDetector - Language detector settings.
  */
 export default function Selection({
   contextMenuType,
@@ -23,8 +27,10 @@ export default function Selection({
   langDetector,
   translateVariants = true,
   parseLatex = false,
+  extStyles,
 }) {
-  // 1. 初始化并管理划词翻译框（TranBox）的各种展示和交互状态（如宽高、位置、极简模式、点击外部关闭等）
+  const i18n = newI18n(uiLang || "zh");
+  // 1. Manage the panel's size, position, simple mode, and click-away behavior.
   const {
     boxSize,
     setBoxSize,
@@ -40,7 +46,7 @@ export default function Selection({
     boxOffsetY,
   } = useTranBoxState(tranboxSetting);
 
-  // 2. 初始化并绑定全局鼠标划词选区监听器，控制翻译按钮和翻译面板的定位、显示与隐藏
+  // 2. Listen for global selection changes to position and show the button and panel.
   const {
     showBox,
     setShowBox,
@@ -62,7 +68,7 @@ export default function Selection({
     hideClickAway,
   });
 
-  // 3. 注册并侦听划词框专属的全局键盘快捷键 (如 Esc 关闭，特定键拉起等)
+  // 3. Register global panel shortcuts, including Escape to close.
   useTranboxShortcuts({
     showBox,
     setShowBox,
@@ -73,48 +79,50 @@ export default function Selection({
   });
 
   return (
-    <>
-      {/* 渲染可拖拽拉伸的划词翻译面板 */}
-      {
-        <TranBox
-          showBox={showBox}
-          text={text}
-          setText={setText}
-          boxSize={boxSize}
-          setBoxSize={setBoxSize}
-          boxPosition={boxPosition}
-          setBoxPosition={setBoxPosition}
-          tranboxSetting={tranboxSetting}
-          transApis={transApis}
-          prompts={prompts}
-          setShowBox={setShowBox}
-          simpleStyle={simpleStyle}
-          setSimpleStyle={setSimpleStyle}
-          hideClickAway={hideClickAway}
-          setHideClickAway={setHideClickAway}
-          followSelection={followSelection}
-          setFollowSelection={setFollowSelection}
-          // extStyles={extStyles}
-          langDetector={langDetector}
-          translateVariants={translateVariants}
-          parseLatex={parseLatex}
-          selectionContext={textContext}
-        />
-      }
+    <SettingProvider context="tranbox">
+      <ThemeProvider styles={extStyles}>
+        <style>{SELECTION_STYLES}</style>
+        {/* Render the draggable, resizable selection translation panel. */}
+        {
+          <TranBox
+            showBox={showBox}
+            text={text}
+            setText={setText}
+            boxSize={boxSize}
+            setBoxSize={setBoxSize}
+            boxPosition={boxPosition}
+            setBoxPosition={setBoxPosition}
+            tranboxSetting={tranboxSetting}
+            transApis={transApis}
+            prompts={prompts}
+            setShowBox={setShowBox}
+            simpleStyle={simpleStyle}
+            setSimpleStyle={setSimpleStyle}
+            hideClickAway={hideClickAway}
+            setHideClickAway={setHideClickAway}
+            followSelection={followSelection}
+            setFollowSelection={setFollowSelection}
+            // extStyles={extStyles}
+            langDetector={langDetector}
+            translateVariants={translateVariants}
+            parseLatex={parseLatex}
+            selectionContext={textContext}
+          />
+        }
 
-      {/* 当有划词选区时，在选区旁渲染悬浮的蓝色翻译触发按钮 */}
-      {showBtn && (
-        <TranBtn
-          position={position}
-          btnOffsetX={tranboxSetting.btnOffsetX}
-          btnOffsetY={tranboxSetting.btnOffsetY}
-          btnEvent={btnEvent}
-          onTrigger={(e) => {
-            e.stopPropagation();
-            handleOpenTranbox();
-          }}
-        />
-      )}
-    </>
+        {/* Show the floating translation action beside the current selection. */}
+        {showBtn && (
+          <TranBtn
+            position={position}
+            btnEvent={btnEvent}
+            label={i18n("translate") || "Translate selection"}
+            onTrigger={(e) => {
+              e.stopPropagation();
+              handleOpenTranbox();
+            }}
+          />
+        )}
+      </ThemeProvider>
+    </SettingProvider>
   );
 }
