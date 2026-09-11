@@ -43,6 +43,7 @@ export default function Playgound() {
     prompts,
     subtitleSetting,
     translateVariants,
+    parseLatex,
   } = setting || DEFAULT_SETTING;
   const resolvedTransApis = useMemo(
     () => resolveApiPromptList(transApis, prompts, subtitleSetting),
@@ -108,6 +109,7 @@ export default function Playgound() {
             aiDictPromptSlug={aiDictPromptSlug}
             prompts={prompts}
             translateVariants={translateVariants}
+            parseLatex={parseLatex}
             isPlaygound={true}
             playgroundConfigHeader={
               <Box className="kt-playground-config__header">

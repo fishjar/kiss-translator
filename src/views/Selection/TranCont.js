@@ -12,6 +12,7 @@ import {
   OPT_TRANS_GOOGLE,
 } from "../../config";
 import { useI18n } from "../../hooks/I18n";
+import { parseMathInText } from "../../libs/mathParse";
 import CopyBtn from "./CopyBtn";
 import { BrowserTtsBtn } from "./AudioBtn";
 
@@ -48,19 +49,26 @@ const normalizeChunkText = (text) => {
  * @param {string} text Text returned by the translation API.
  * @param {string} apiType Translation API type.
  * @param {string} sourceText Original text to translate.
+ * @param {boolean} parseLatex Whether to render inline LaTeX as Unicode.
  * @returns {string} Translation text ready for the text UI.
  */
-const normalizeTranslationText = (text, apiType, sourceText) => {
+const normalizeTranslationText = (text, apiType, sourceText, parseLatex) => {
   const normalizedText = normalizeChunkText(text);
+  // Convert inline LaTeX before unescaping newlines so commands such as
+  // `\right` are not split by the escaped carriage-return replacement.
+  const mathText = parseLatex
+    ? parseMathInText(normalizedText)
+    : normalizedText;
+
   if (apiType === OPT_TRANS_GOOGLE) {
-    return normalizedText.replace(/[\t ]*(\r\n|\r|\n)[\t ]*/g, "\n");
+    return mathText.replace(/[\t ]*(\r\n|\r|\n)[\t ]*/g, "\n");
   }
 
   if (API_SPE_TYPES.ai.has(apiType) && /\r\n|\r|\n/.test(sourceText)) {
-    return normalizedText.replace(/\\r\\n|\\n|\\r/g, "\n");
+    return mathText.replace(/\\r\\n|\\n|\\r/g, "\n");
   }
 
-  return normalizedText;
+  return mathText;
 };
 
 /**
@@ -146,6 +154,7 @@ export default function TranCont({
   apiSlug,
   transApis,
   translateVariants = true,
+  parseLatex = false,
   detectedLang = "",
   sourceDetectionPending = false,
   simpleStyle = false,
@@ -211,7 +220,8 @@ export default function TranCont({
           const nextText = normalizeTranslationText(
             chunkText,
             apiSetting.apiType,
-            text
+            text,
+            parseLatex
           );
           if (nextText) {
             setTrText(nextText);
@@ -252,7 +262,12 @@ export default function TranCont({
           setTrText(
             isSame
               ? ""
-              : normalizeTranslationText(trText, apiSetting.apiType, text)
+              : normalizeTranslationText(
+                  trText,
+                  apiSetting.apiType,
+                  text,
+                  parseLatex
+                )
           );
           setElapsedMs(Date.now() - startedAt);
         }
@@ -284,6 +299,7 @@ export default function TranCont({
     toLang,
     apiSetting,
     translateVariants,
+    parseLatex,
     builtinDetectedLang,
     waitForBuiltinDetection,
     attemptRevision,

@@ -9,6 +9,7 @@ import {
 import { resolveApiPromptSettings } from "../config/prompt";
 import { isMobile } from "./mobile";
 import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";
+import { parseMathInText } from "./mathParse";
 import { stepShortcutRegister } from "./shortcut";
 import { apiTranslate } from "../apis";
 import { createLoadingSVG } from "./svg";
@@ -258,6 +259,7 @@ export class InputTranslator {
     prompts = [],
     subtitleSetting = {},
     translateVariants = true,
+    parseLatex = false,
   } = {}) {
     this.#config = {
       inputRule,
@@ -265,6 +267,7 @@ export class InputTranslator {
       subtitleSetting,
       transApis,
       translateVariants,
+      parseLatex,
     };
 
     const { triggerShortcut: initialTriggerShortcut } = this.#config.inputRule;
@@ -616,7 +619,11 @@ export class InputTranslator {
         translateVariants: this.#config.translateVariants,
       });
 
-      const newText = trText?.trim() || "";
+      // 输入框写回纯文本，开启后将模型输出的行内 LaTeX 转成可读的 Unicode
+      const trimmedText = trText?.trim() || "";
+      const newText = this.#config.parseLatex
+        ? parseMathInText(trimmedText)
+        : trimmedText;
       if (!newText || isSame) return;
 
       // 6. 执行替换 (使用新的智能替换函数)

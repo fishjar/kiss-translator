@@ -116,6 +116,47 @@ describe("Explicit translation submissions", () => {
     return event;
   };
 
+  test.each([
+    ["popup", { popupStyle: true }, false],
+    ["popup", { popupStyle: true }, true],
+    ["selection", { popupStyle: false }, false],
+    ["selection", { popupStyle: false }, true],
+    ["playground", { popupStyle: false, isPlaygound: true }, false],
+    ["playground", { popupStyle: false, isPlaygound: true }, true],
+  ])(
+    "preserves LaTeX in %s results with layout %j (enabled: %s)",
+    async (_surface, layout, parseLatex) => {
+      const deferred = createDeferred();
+      apiTranslate.mockReturnValueOnce(deferred.promise);
+      await renderPanel({ ...layout, parseLatex });
+      const readResult = () =>
+        layout.popupStyle
+          ? container.querySelector(".kt-popup-translation-result__body")
+              .textContent
+          : container.querySelector(
+              'textarea[readonly]:not([aria-hidden="true"])'
+            ).value;
+
+      await act(async () => {
+        apiTranslate.mock.calls[0][0].onStreamChunk({
+          text: "\\(\\dot{x}_1\\) partial",
+          isComplete: false,
+        });
+      });
+      expect(readResult()).toBe(
+        parseLatex ? "ẋ₁ partial" : "\\(\\dot{x}_1\\) partial"
+      );
+
+      await act(async () => {
+        deferred.resolve({ trText: "\\(\\dot{x}_1\\) final" });
+        await deferred.promise;
+      });
+      expect(readResult()).toBe(
+        parseLatex ? "ẋ₁ final" : "\\(\\dot{x}_1\\) final"
+      );
+    }
+  );
+
   test.each(["button", "Ctrl+Enter", "Cmd+Enter"])(
     "retries a failed request for unchanged text with %s",
     async (action) => {

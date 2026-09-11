@@ -88,6 +88,7 @@ export default function TranForm({
   simpleStyle = false,
   langDetector: initLangDetector = "-",
   translateVariants = true,
+  parseLatex = false,
   enDict: initEnDict = "-",
   enSug: initEnSug = "-",
   aiDictApiSlug = "-",
@@ -364,6 +365,7 @@ export default function TranForm({
       transApis={transApis}
       isPlayground={isPlaygound}
       translateVariants={translateVariants}
+      parseLatex={parseLatex}
       detectedLang={deLang}
       sourceDetectionPending={fromLang === "auto" && deLoading}
       requestRevision={requestRevision}
@@ -544,6 +546,7 @@ export default function TranForm({
               apiSlug={slug}
               transApis={transApis}
               translateVariants={translateVariants}
+              parseLatex={parseLatex}
               detectedLang={deLang}
               sourceDetectionPending={fromLang === "auto" && deLoading}
               requestRevision={requestRevision}

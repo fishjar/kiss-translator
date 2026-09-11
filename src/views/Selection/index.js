@@ -26,6 +26,7 @@ export default function Selection({
   uiLang,
   langDetector,
   translateVariants = true,
+  parseLatex = false,
   extStyles,
 }) {
   const i18n = newI18n(uiLang || "zh");
@@ -104,6 +105,7 @@ export default function Selection({
             // extStyles={extStyles}
             langDetector={langDetector}
             translateVariants={translateVariants}
+            parseLatex={parseLatex}
             selectionContext={textContext}
           />
         }

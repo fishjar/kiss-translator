@@ -297,6 +297,7 @@ export function Trantab({ isSeparate = false }) {
     langDetector = {},
     prompts = [],
     translateVariants,
+    parseLatex,
   } = setting;
 
   return (
@@ -317,6 +318,7 @@ export function Trantab({ isSeparate = false }) {
         aiDictPromptSlug={aiDictPromptSlug}
         prompts={prompts}
         translateVariants={translateVariants}
+        parseLatex={parseLatex}
         autoFocusInput={autoFocusInput}
         syncExternalTextWhileEditing
         popupStyle

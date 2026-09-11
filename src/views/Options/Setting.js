@@ -280,6 +280,7 @@ export default function Settings() {
     preInit = true,
     skipLangs = [],
     translateVariants = true,
+    parseLatex = false,
     autoTranslateClipboard = false,
   } = setting;
   // 解构 FAB 悬浮球的显隐状态及点击后的默认交互行为
@@ -507,6 +508,22 @@ export default function Settings() {
                 value={translateVariants}
                 label={i18n("translate_variants")}
                 helperText={i18n("translate_variants_helper")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
+              </TextField>
+            </Grid>
+            {/* Render inline LaTeX as Unicode only when explicitly enabled. */}
+            <Grid item xs={12} sm={12} md={6} lg={6}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="parseLatex"
+                value={parseLatex}
+                label={i18n("parse_latex")}
+                helperText={i18n("parse_latex_helper")}
                 onChange={handleChange}
               >
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>

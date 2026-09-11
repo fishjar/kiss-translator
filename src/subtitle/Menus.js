@@ -269,6 +269,16 @@ export function Menus({
     [enabledApis]
   );
 
+  // 构造字幕翻译服务下拉列表，只展示当前启用的接口
+  const transApiOptions = useMemo(
+    () =>
+      enabledApis.map((api) => ({
+        value: api.apiSlug,
+        label: api.apiName,
+      })),
+    [enabledApis]
+  );
+
   // 构造 AI 智能断句服务下拉列表选项 (若没有启用的 AI 接口，则下拉项仅有禁用)
   const segOptions = useMemo(() => {
     const options = [{ value: "-", label: i18n("disable") || "禁用" }];
@@ -296,6 +306,7 @@ export function Menus({
 
   // 从表单配置对象中解构出字幕交互相关的控制值
   const {
+    apiSlug, // 当前页面使用的字幕翻译服务 apiSlug
     segSlug, // 选中的智能断句大模型 apiSlug
     skipAd, // 是否开启自动跳过广告
     isBilingual, // 是否采用双语对照视图显示
@@ -324,6 +335,15 @@ export function Menus({
         name="autoTranslate"
         value={autoTranslate}
         label={i18n("enable_subtitle_translate")}
+      />
+      {/* 当前页面的字幕翻译服务，不修改持久化默认设置 */}
+      <Select
+        onChange={handleChange}
+        name="apiSlug"
+        value={apiSlug}
+        options={transApiOptions}
+        label={i18n("translate_service")}
+        disabled={transApiOptions.length === 0}
       />
       {/* 智能断句下拉项：若可用 AI 大模型数量为 0 时禁用下拉 */}
       <Select

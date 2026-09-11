@@ -287,6 +287,7 @@ export const DEFAULT_SETTING = {
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
   skipLangs: [], // 忽略翻译的语种代码列表 (即如果网页检测到是这些语言，则不触发自动整页翻译)
   translateVariants: true, // 是否继续翻译同一语言的不同变体（如简体中文与繁体中文）
+  parseLatex: false, // 是否将译文中的行内 LaTeX 公式转换为可读的 Unicode 文本
   transInterval: 100, // 两次段落翻译执行之间的等待延迟
   langDetector: "-", // 主动检测源语言的外部 API 服务选择 ("-" 表示由翻译 API 本身自动判定)
   mouseHoverSetting: DEFAULT_MOUSE_HOVER_SETTING, // 鼠标悬浮段落翻译的详细配置

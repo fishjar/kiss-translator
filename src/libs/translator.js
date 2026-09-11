@@ -34,6 +34,7 @@ import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
 import { escapeHTML } from "./html";
+import { parseMathInText } from "./mathParse";
 import { apiMicrosoftDict, apiTranslate, apiYoudaoDict } from "../apis";
 import { kissLog } from "./log";
 import { clearAllBatchQueue } from "./batchQueue";
@@ -3713,7 +3714,11 @@ overflow-wrap: anywhere !important;`;
         return;
       }
 
-      this.#showHoverBubble(Array.isArray(trText) ? trText[0] : trText);
+      // 气泡以纯文本渲染，开启后将模型输出的行内 LaTeX 转成可读的 Unicode
+      const bubbleText = Array.isArray(trText) ? trText[0] : trText;
+      this.#showHoverBubble(
+        this.#setting.parseLatex ? parseMathInText(bubbleText) : bubbleText
+      );
     } catch (err) {
       if (
         this.#hoverBubbleRunId !== currentRunId ||
