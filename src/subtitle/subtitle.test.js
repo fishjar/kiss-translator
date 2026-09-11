@@ -1,7 +1,8 @@
-import { persistSubtitlePosition } from "./subtitle.js";
+import { persistSubtitlePosition, runSubtitle } from "./subtitle.js";
 import { debounceSyncMeta, getSetting, setSetting } from "../libs/storage.js";
 import { logger } from "../libs/log.js";
 import { KV_SETTING_KEY } from "../config/storage.js";
+import { YouTubeInitializer } from "./YouTubeCaptionProvider.js";
 
 jest.mock("../libs/storage.js", () => ({
   debounceSyncMeta: jest.fn(),
@@ -118,5 +119,42 @@ describe("persistSubtitlePosition", () => {
       },
     });
     expect(debounceSyncMeta).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("runSubtitle", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("keeps the runtime API slug aligned with the first enabled service", () => {
+    const disabledApi = {
+      apiSlug: "disabled-api",
+      apiName: "Disabled API",
+      isDisabled: true,
+    };
+    const enabledApi = {
+      apiSlug: "enabled-api",
+      apiName: "Enabled API",
+    };
+
+    runSubtitle({
+      href: "https://www.youtube.com/watch?v=video-1",
+      setting: {
+        subtitleSetting: {
+          enabled: true,
+          apiSlug: disabledApi.apiSlug,
+        },
+        transApis: [disabledApi, enabledApi],
+      },
+    });
+
+    expect(YouTubeInitializer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiSlug: enabledApi.apiSlug,
+        apiSetting: enabledApi,
+        transApis: [disabledApi, enabledApi],
+      })
+    );
   });
 });

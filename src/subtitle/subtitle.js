@@ -71,14 +71,19 @@ export function runSubtitle({ href, setting }) {
 
       // 2. 获取当前字幕翻译所关联的翻译 API 配置 (apiSetting)
       const transApis = setting.transApis || [];
+      const enabledTransApis = transApis.filter((api) => !api.isDisabled);
       const apiSetting =
-        transApis.find((api) => api.apiSlug === subtitleSetting.apiSlug) ||
+        enabledTransApis.find(
+          (api) => api.apiSlug === subtitleSetting.apiSlug
+        ) ||
+        enabledTransApis[0] ||
         DEFAULT_API_SETTING;
 
       // 3. 启动特定平台的字幕翻译与渲染引擎 (如 YouTubeCaptionProvider)
       // 将整理好的字幕配置、翻译 API 配置、所有已启用的 API 列表以及 UI 界面语言传递给对应的 provider
       provider.start({
         ...subtitleSetting,
+        apiSlug: apiSetting.apiSlug,
         apiSetting,
         transApis,
         prompts: setting.prompts,
