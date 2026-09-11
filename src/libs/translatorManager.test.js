@@ -7,6 +7,13 @@ const mockPopupInstances = [];
 const mockFabInstances = [];
 const activeManagers = [];
 
+jest.mock("./ruleEditorManager", () => ({
+  RuleEditorManager: class {
+    destroy = jest.fn();
+    open = jest.fn();
+  },
+}));
+
 jest.mock("../config", () => ({
   EVENT_KISS_INNER: "kiss-inner",
   EVENT_KISS_TRANSLATOR: "kiss-translator",
@@ -352,6 +359,45 @@ describe("TranslatorManager SPA lifecycle", () => {
     expect(mockTransboxArgs[1].tranboxSetting.transOpen).toBe(false);
     expect(mockTranslatorArgs[1].setting.inputRule.transOpen).toBe(false);
   });
+
+  test.each([true, false])(
+    "restores pre-editor translation state %s and explicit feature settings on restart",
+    (enabled) => {
+      const manager = createManager();
+      manager.start();
+      sendRuntimeMessage({
+        action: "transbox-toggle",
+        args: { enabled: false },
+      });
+      sendRuntimeMessage({
+        action: "transinput-toggle",
+        args: { enabled: false },
+      });
+
+      const translator = mockTranslatorInstances[0];
+      const editor = manager._ruleEditorManager;
+      editor.session = { runtimeState: { enabled, mouseHover: enabled } };
+      translator.rule = {
+        transOpen: enabled ? "false" : "true",
+        selector: ".article",
+      };
+      translator.setting.mouseHoverSetting.useMouseHover = !enabled;
+
+      manager.restart("rule-editor-state-test");
+
+      expect(editor.destroy).toHaveBeenCalledTimes(1);
+      expect(mockTranslatorArgs[1].rule).toEqual({
+        transOpen: enabled ? "true" : "false",
+        selector: ".article",
+      });
+      expect(
+        mockTranslatorArgs[1].setting.mouseHoverSetting.useMouseHover
+      ).toBe(enabled);
+      expect(mockTransboxArgs[1].tranboxSetting.transOpen).toBe(false);
+      expect(mockTranslatorArgs[1].setting.inputRule.transOpen).toBe(false);
+      expect(translator.setting.mouseHoverSetting.useMouseHover).toBe(!enabled);
+    }
+  );
 
   test("coalesces navigation rescan and body replacement into one restart", async () => {
     const manager = createManager();

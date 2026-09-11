@@ -24,6 +24,7 @@ import { isExt } from "../../libs/client";
 import { useI18n } from "../../hooks/I18n";
 import {
   MSG_TRANS_TOGGLE,
+  MSG_RULE_EDITOR,
   MSG_TRANS_PUTRULE,
   MSG_SAVE_RULE,
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
@@ -704,6 +705,19 @@ export default function PopupCont({
           </div>
         </div>
       )}
+
+      <Button
+        variant="outlined"
+        onClick={async () => {
+          if (processActions) processActions({ action: MSG_RULE_EDITOR });
+          else {
+            await sendTabMsg(MSG_RULE_EDITOR);
+            window.close();
+          }
+        }}
+      >
+        {i18n("rule_editor_open")}
+      </Button>
 
       {isContent && (
         <>

@@ -256,6 +256,77 @@ describe("SubtitleSegmentationPlayground", () => {
     act(() => root.unmount());
   });
 
+  test.each(["rule", "ai"])(
+    "%s preserves Korean ASR spaces after changing the source language",
+    async (mode) => {
+      const text = "오늘 날씨 정말 좋다";
+      const koreanSource = JSON.stringify({
+        events: [
+          {
+            tStartMs: 1000,
+            dDurationMs: 3000,
+            segs: [{ utf8: text, acAsrConf: 0 }],
+          },
+        ],
+      });
+      handleSubtitle.mockImplementation(async ({ events }) => [
+        {
+          start: events[0].start,
+          end: events[events.length - 1].end,
+          text: events.map((event) => event.text).join(" "),
+          translation: "天气真好",
+          _si: 0,
+          _ei: events.length - 1,
+        },
+      ]);
+      const { container, root } = renderPlayground({
+        subtitleSetting: {
+          segSlug: mode === "ai" ? "test-ai" : "-",
+          useAlgorithmBreaker: "rule",
+          chunkLength: 2000,
+          longSentenceThreshold: 120,
+          toLang: "zh-CN",
+        },
+        transApis: [{ apiSlug: "test-ai", apiType: "openai" }],
+      });
+      await flushEffects();
+      const input = container.querySelector('input[type="file"]');
+      const file = new File([koreanSource], "korean.json", {
+        type: "application/json",
+      });
+      Object.defineProperty(file, "text", { value: async () => koreanSource });
+      Object.defineProperty(input, "files", { value: [file] });
+      await act(async () => {
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        await Promise.resolve();
+      });
+
+      for (const language of ["ko", "en", "ko"]) {
+        await selectSourceLanguage(container, language);
+        const runButton = [...container.querySelectorAll("button")].find(
+          (button) => button.textContent.includes("运行测试")
+        );
+        await act(async () => {
+          runButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+        expect(
+          container.querySelector('textarea[aria-label="断句结果"]').value
+        ).toContain(text);
+        if (mode === "ai") {
+          const { events, from } = handleSubtitle.mock.calls.slice(-1)[0][0];
+          expect(from).toBe(language);
+          expect(events).toHaveLength(language === "ko" ? 1 : 4);
+          if (language === "ko") {
+            expect(events[0]).toMatchObject({ text, start: 1000, end: 4000 });
+          }
+        }
+      }
+      act(() => root.unmount());
+    }
+  );
+
   test("uses useConfirm and previews completed AI cues while streaming", async () => {
     let resolveResponse;
     const streamedCue = {

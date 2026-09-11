@@ -17,6 +17,7 @@ import { loadOrFetchSubRules } from "./subRules";
 import { getRulesWithDefault, setRules, getDisabledSubRules } from "./storage";
 import { trySyncRules } from "./sync";
 import { kissLog } from "./log";
+import { splitSelectorList } from "./selectorList";
 
 /**
  * 差分合并 CSS 选择器。
@@ -27,19 +28,21 @@ import { kissLog } from "./log";
  * @param {string} userStr 覆盖的 CSS 选择器字符串（逗号分割）
  * @returns {string} 合并后的最终 CSS 选择器字符串
  */
-function mergeSelectors(defaultStr, userStr) {
+export function mergeSelectors(defaultStr, userStr) {
   if (!userStr || !userStr.trim()) {
     return defaultStr;
   }
 
-  const defaultList = defaultStr
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const userList = userStr
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  // Keep invalid legacy input intact for the existing runtime error handling.
+  // Never silently change attribute values or nested selector arguments.
+  let defaultList, userList;
+  try {
+    defaultList = splitSelectorList(defaultStr);
+    userList = splitSelectorList(userStr);
+  } catch (err) {
+    kissLog("invalid selector list", err);
+    return userStr;
+  }
 
   // 判断是否属于追加/删除的补丁（Patch）模式（即列表中包含任意一个带 "+" 或 "-" 的项）
   const isPatchMode = userList.some(
@@ -83,12 +86,35 @@ function mergeSelectors(defaultStr, userStr) {
  * @param {string} href 当前页面的完整 URL (如 location.href)
  * @returns {Object|undefined} 匹配到的首条规则，未匹配返回 undefined
  */
-const findMatchingRule = (rules, href) => {
+export const matchesRulePattern = (href, pattern) => {
+  if (pattern.startsWith("hostname:")) {
+    try {
+      const url = new URL(href);
+      return (
+        ["http:", "https:"].includes(url.protocol) &&
+        url.hostname === pattern.slice("hostname:".length).toLowerCase()
+      );
+    } catch {
+      return false;
+    }
+  }
+  return pattern.split(/\n|,/).some((p) => isMatch(href, p.trim()));
+};
+
+export const hostnamePattern = (href) => {
+  const url = new URL(href);
+  if (!["http:", "https:"].includes(url.protocol) || !url.hostname) {
+    throw new Error("unsupported-page");
+  }
+  return `hostname:${url.hostname}`;
+};
+
+export const findMatchingRule = (rules, href) => {
   return rules.find(
     (r) =>
       r.pattern !== GLOBAL_KEY &&
       r.enabled !== false &&
-      r.pattern.split(/\n|,/).some((p) => isMatch(href, p.trim()))
+      matchesRulePattern(href, r.pattern)
   );
 };
 
@@ -100,7 +126,7 @@ const findMatchingRule = (rules, href) => {
  * @param {Object} overrideRule 覆盖高优先级规则
  * @returns {Object} 合并后的最终规则
  */
-const mergeRules = (baseRule, overrideRule) => {
+export const mergeRules = (baseRule, overrideRule) => {
   if (!overrideRule) return { ...baseRule };
   if (!baseRule) return { ...overrideRule };
 
@@ -188,7 +214,11 @@ const mergeRules = (baseRule, overrideRule) => {
  * @param {string} href
  * @returns
  */
-export const matchRule = async (href, { injectRules, subrulesList }) => {
+export const resolveRuleContext = async (
+  href,
+  { injectRules, subrulesList = [] } = {},
+  sitePattern
+) => {
   // 获取个人规则
   const personalRules = await getRulesWithDefault();
 
@@ -199,7 +229,21 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
   };
 
   // 查找匹配的个人规则（排除全局规则）
-  const matchedPersonalRule = findMatchingRule(personalRules, href);
+  // The visual editor can keep editing a renamed rule even when its new
+  // pattern no longer matches the page used to select elements.
+  const activePersonalRule = findMatchingRule(personalRules, href);
+  const requestedPersonalRule = sitePattern
+    ? personalRules.find((rule) => rule.pattern === sitePattern)
+    : null;
+  // Reload must recover from deletion, renaming or a change in precedence.
+  // Keep an explicitly edited off-page rule, but never pin a shadowed rule.
+  const matchedPersonalRule =
+    requestedPersonalRule &&
+    requestedPersonalRule.enabled !== false &&
+    (!matchesRulePattern(href, requestedPersonalRule.pattern) ||
+      requestedPersonalRule === activePersonalRule)
+      ? requestedPersonalRule
+      : activePersonalRule;
 
   // 获取订阅规则并查找匹配
   let matchedSubRule = null;
@@ -224,19 +268,28 @@ export const matchRule = async (href, { injectRules, subrulesList }) => {
     }
   }
 
-  // 如果没有匹配到任何规则，返回全局规则
-  if (!matchedPersonalRule && !matchedSubRule) {
-    return globalRule;
-  }
-
   // 合并规则：全局规则 <- 订阅规则 <- 个人规则
   // 优先级：个人规则 > 订阅规则 > 全局规则
-  let finalRule = { ...globalRule };
-  finalRule = mergeRules(finalRule, matchedSubRule);
-  finalRule = mergeRules(finalRule, matchedPersonalRule);
+  const inherited = mergeRules(globalRule, matchedSubRule);
+  const finalRule = mergeRules(inherited, matchedPersonalRule);
 
-  return finalRule;
+  return {
+    effective: finalRule,
+    inherited,
+    // Restore the real page rule after previewing a rule for a different URL.
+    pageEffective:
+      matchedPersonalRule !== activePersonalRule
+        ? mergeRules(inherited, activePersonalRule)
+        : null,
+    personal: matchedPersonalRule || null,
+    subscription: matchedSubRule,
+    global: globalRule,
+    site: matchedPersonalRule || null,
+  };
 };
+
+export const matchRule = async (href, setting) =>
+  (await resolveRuleContext(href, setting)).effective;
 
 /**
  * 检查、清洗并过滤规则列表数据。
@@ -411,7 +464,11 @@ export const saveRule = async (curRule) => {
   // 导致非同名的其它规则被错误合并覆盖。建议改为精确的字符串对比：item.pattern === curRule.pattern。
   const index = rules.findIndex(
     (item) =>
-      item.pattern !== GLOBAL_KEY && isMatch(curRule.pattern, item.pattern)
+      item.pattern !== GLOBAL_KEY &&
+      (item.pattern === curRule.pattern ||
+        (item.pattern.startsWith("hostname:")
+          ? matchesRulePattern(`https://${curRule.pattern}`, item.pattern)
+          : isMatch(curRule.pattern, item.pattern)))
   );
 
   if (index !== -1) {

@@ -6,6 +6,7 @@ import { getVisibleServices } from "./services";
 import { tryClearCaches } from "../../libs/cache";
 import {
   MSG_MOUSEHOVER_TOGGLE,
+  MSG_RULE_EDITOR,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
   MSG_TRANS_TOGGLE,
@@ -165,6 +166,61 @@ describe("PopupCont capability parity", () => {
   afterEach(() => {
     jest.useRealTimers();
     document.body.innerHTML = "";
+  });
+
+  test("opens the rule editor from the content popup without closing the page", async () => {
+    const processActions = jest.fn();
+    const closeWindow = jest
+      .spyOn(window, "close")
+      .mockImplementation(() => {});
+    const view = renderPopupCont({ processActions, isContent: true });
+    try {
+      await flushEffects();
+      const openEditor = Array.from(
+        view.container.querySelectorAll("button")
+      ).find((button) => button.textContent === "rule_editor_open");
+
+      await act(async () => openEditor.click());
+
+      expect(processActions).toHaveBeenCalledWith({ action: MSG_RULE_EDITOR });
+      expect(mockSendTabMsg).not.toHaveBeenCalled();
+      expect(closeWindow).not.toHaveBeenCalled();
+    } finally {
+      view.cleanup();
+      closeWindow.mockRestore();
+    }
+  });
+
+  test("waits for the rule editor message before closing the extension popup", async () => {
+    mockIsExt = true;
+    let resolveOpen;
+    mockSendTabMsg.mockImplementation(
+      () => new Promise((resolve) => (resolveOpen = resolve))
+    );
+    const closeWindow = jest
+      .spyOn(window, "close")
+      .mockImplementation(() => {});
+    const view = renderPopupCont();
+    try {
+      await flushEffects();
+      const openEditor = Array.from(
+        view.container.querySelectorAll("button")
+      ).find((button) => button.textContent === "rule_editor_open");
+
+      act(() => openEditor.click());
+
+      expect(mockSendTabMsg).toHaveBeenCalledWith(MSG_RULE_EDITOR);
+      expect(closeWindow).not.toHaveBeenCalled();
+
+      await act(async () => {
+        resolveOpen();
+        await Promise.resolve();
+      });
+      expect(closeWindow).toHaveBeenCalledTimes(1);
+    } finally {
+      view.cleanup();
+      closeWindow.mockRestore();
+    }
   });
 
   test("swaps both languages atomically while earlier tab messages are pending", async () => {

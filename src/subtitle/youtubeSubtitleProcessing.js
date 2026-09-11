@@ -8,6 +8,8 @@ import { normalizeLanguageCode } from "../libs/language.js";
 import { intelligentSentenceBreak } from "./sentenceBreaker.js";
 import { isNonSpeechSegment } from "./subtitleTextClassification.js";
 
+const NO_SPACE_LANGUAGES = ["zh", "ja", "ko", "th", "lo", "km", "my"];
+
 /**
  * YouTube 字幕文本处理层。
  * 只负责语言映射、timedtext 事件清洗、展平、切块和内置断句，不发起 AI 请求，也不触碰页面 DOM。
@@ -49,13 +51,72 @@ export function cleanTimedText(utf8 = "") {
 }
 
 /**
+ * 按词长比例将自动字幕的粗粒度空格文本展开为连续的时间片段。
+ * 无安全分词边界或无有效时长时保持原片段。
+ */
+function expandCoarseTimedText(text, start, end) {
+  const words = text.split(" ").filter(Boolean);
+  if (words.length < 2 || !Number.isFinite(end) || end <= start) return null;
+
+  const totalWeight = words.reduce((total, word) => total + word.length, 0);
+  let elapsedWeight = 0;
+
+  return words.map((word, index) => {
+    const wordStart = start + ((end - start) * elapsedWeight) / totalWeight;
+    elapsedWeight += word.length;
+    const wordEnd =
+      index === words.length - 1
+        ? end
+        : start + ((end - start) * elapsedWeight) / totalWeight;
+    return { text: word, start: wordStart, end: wordEnd };
+  });
+}
+
+function getTimedTextEventText(event = {}) {
+  const segs = Array.isArray(event.segs) ? event.segs : [];
+  return cleanTimedText(segs.map((seg) => seg?.utf8).join(" "));
+}
+function getTimedTextEventKey(event = {}) {
+  const visibleText = getTimedTextEventText(event);
+  if (!visibleText) return "";
+  return `${Number(event.tStartMs) || 0}|${Number(event.dDurationMs) || 0}|${visibleText}`;
+}
+
+const shouldRetainTimedTextEvent = (eventKey, lastVisibleEventKey) =>
+  !eventKey || eventKey !== lastVisibleEventKey;
+
+function findNextEffectiveEventStart(
+  sourceEvents,
+  eventIndex,
+  lastEventKey,
+  currentStart
+) {
+  for (let index = eventIndex + 1; index < sourceEvents.length; index += 1) {
+    const event = sourceEvents[index] || {};
+    const eventKey = getTimedTextEventKey(event);
+    if (!shouldRetainTimedTextEvent(eventKey, lastEventKey)) continue;
+    lastEventKey = eventKey;
+    const eventStart = Number(event.tStartMs);
+    if (Number.isFinite(eventStart) && eventStart > currentStart) {
+      return eventStart;
+    }
+  }
+  return NaN;
+}
+
+/**
  * 一次完成 YouTube json3 events 的文本清洗、相邻重复事件去除和时间轴展平。
  * 原始输入不会被修改；统计断句读取 events，规则和 AI 断句读取已过滤非语音片段的 flatEvents。
  *
  * @param {Array<object>} [rawEvents=[]] YouTube 原始 json3 events。
+ * @param {string} [fromLang="auto"] 字幕源语言代码。
  * @returns {{events:Array<object>, flatEvents:Array<object>, filteredNonSpeechCount:number}}
  */
-export function prepareTimedTextEvents(rawEvents = []) {
+export function prepareTimedTextEvents(rawEvents = [], fromLang = "auto") {
+  const sourceEvents = Array.isArray(rawEvents) ? rawEvents : [];
+  const canExpandCoarseText = !NO_SPACE_LANGUAGES.some((lang) =>
+    String(fromLang).startsWith(lang)
+  );
   const events = [];
   const flatEvents = [];
   let filteredNonSpeechCount = 0;
@@ -73,7 +134,8 @@ export function prepareTimedTextEvents(rawEvents = []) {
     buffer = null;
   };
 
-  for (const rawEvent of Array.isArray(rawEvents) ? rawEvents : []) {
+  for (let eventIndex = 0; eventIndex < sourceEvents.length; eventIndex += 1) {
+    const rawEvent = sourceEvents[eventIndex];
     const event = rawEvent || {};
     const rawSegs = Array.isArray(event.segs) ? event.segs : [];
     const tStartMs = Number(event.tStartMs) || 0;
@@ -86,18 +148,10 @@ export function prepareTimedTextEvents(rawEvents = []) {
       // 统计断句仍需识别 YouTube 的物理换行控制信号。
       utf8: isLineBreak ? "\n" : cleanTimedText(seg?.utf8),
     }));
-    const visibleText = normalizedSegs
-      .map((seg) => cleanTimedText(seg.utf8))
-      .filter(Boolean)
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .trim();
-    const eventKey = visibleText
-      ? `${tStartMs}|${dDurationMs}|${visibleText}`
-      : "";
+    const eventKey = getTimedTextEventKey(event);
 
     // 只删除相邻且时间、时长、可见文本完全相同的重复事件。
-    if (eventKey && eventKey === lastVisibleEventKey) continue;
+    if (!shouldRetainTimedTextEvent(eventKey, lastVisibleEventKey)) continue;
 
     const canonicalEvent = { ...event, segs: normalizedSegs };
     events.push(canonicalEvent);
@@ -122,6 +176,37 @@ export function prepareTimedTextEvents(rawEvents = []) {
       }
 
       flushBuffer(start);
+      const nextOffset =
+        index === normalizedSegs.length - 1
+          ? dDurationMs
+          : Number(normalizedSegs[index + 1]?.tOffsetMs) || 0;
+      const declaredEnd = tStartMs + nextOffset;
+      const nextEventStart = findNextEffectiveEventStart(
+        sourceEvents,
+        eventIndex,
+        lastVisibleEventKey,
+        start
+      );
+      const effectiveEnd =
+        index === normalizedSegs.length - 1 &&
+        Number.isFinite(nextEventStart) &&
+        nextEventStart > start
+          ? Math.min(declaredEnd, nextEventStart)
+          : declaredEnd;
+      const isAsrSegment = Object.prototype.hasOwnProperty.call(
+        normalizedSegs[index],
+        "acAsrConf"
+      );
+      const expanded =
+        isAsrSegment && canExpandCoarseText && text.includes(" ")
+          ? expandCoarseTimedText(text, start, effectiveEnd)
+          : null;
+      if (expanded) {
+        flatEvents.push(...expanded.slice(0, -1));
+        buffer = expanded[expanded.length - 1];
+        continue;
+      }
+
       buffer = { text, start };
       if (index === normalizedSegs.length - 1) {
         buffer.end = tStartMs + dDurationMs;
@@ -316,9 +401,7 @@ export function formatSubtitles(
 ) {
   if (!flatEvents?.length) return [];
 
-  const noSpaceLanguages = ["zh", "ja", "ko", "th", "lo", "km", "my"];
-
-  if (noSpaceLanguages.some((l) => lang?.startsWith(l))) {
+  if (NO_SPACE_LANGUAGES.some((l) => lang?.startsWith(l))) {
     const subtitles = [];
 
     if (isQualityPoor(flatEvents, 5, 0.5)) {
