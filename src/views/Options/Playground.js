@@ -42,6 +42,7 @@ export default function Playgound() {
     prompts,
     subtitleSetting,
     translateVariants,
+    parseLatex,
   } = setting || DEFAULT_SETTING;
   const resolvedTransApis = useMemo(
     () => resolveApiPromptList(transApis, prompts, subtitleSetting),
@@ -114,6 +115,7 @@ export default function Playgound() {
             aiDictPromptSlug={aiDictPromptSlug}
             prompts={prompts}
             translateVariants={translateVariants}
+            parseLatex={parseLatex}
             isPlaygound={true} // 标识为 Playground 环境以进行特定的渲染样式和交互处理
           />
         </>

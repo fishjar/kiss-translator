@@ -623,6 +623,104 @@ describe("TranCont", () => {
     });
   });
 
+  test("leaves LaTeX untouched while the addon is off", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+
+    const { container, root } = renderTranCont();
+    await flushEffects();
+    const textarea = container.querySelector("textarea");
+
+    await act(async () => {
+      apiTranslate.mock.calls[0][0].onStreamChunk({
+        text: "\\(\\dot{x}_1\\) 部分",
+        isComplete: false,
+      });
+    });
+    expect(textarea.value).toBe("\\(\\dot{x}_1\\) 部分");
+
+    await act(async () => {
+      deferred.resolve({ trText: "\\(\\dot{x}_1\\) 是速度" });
+      await deferred.promise;
+    });
+    expect(textarea.value).toBe("\\(\\dot{x}_1\\) 是速度");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("converts LaTeX in stream and final text when the addon is on", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+
+    const { container, root } = renderTranCont({ parseLatex: true });
+    await flushEffects();
+    const textarea = container.querySelector("textarea");
+
+    await act(async () => {
+      apiTranslate.mock.calls[0][0].onStreamChunk({
+        text: "\\(\\dot{x}_1\\) 部分",
+        isComplete: false,
+      });
+    });
+    expect(textarea.value).toBe("ẋ₁ 部分");
+
+    await act(async () => {
+      deferred.resolve({ trText: "\\(\\dot{x}_1\\) 是速度" });
+      await deferred.promise;
+    });
+    expect(textarea.value).toBe("ẋ₁ 是速度");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("converts LaTeX before the multiline de-escaping of an AI response", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+
+    // 多行原文会触发 `\\n|\\r` 反转义规则，`\right` 必须先被公式转换消化掉。
+    const { container, root } = renderTranCont({
+      parseLatex: true,
+      text: "hello\nworld",
+    });
+    await flushEffects();
+
+    await act(async () => {
+      deferred.resolve({ trText: "\\(\\left(x\\right)\\)" });
+      await deferred.promise;
+    });
+
+    const textarea = container.querySelector("textarea");
+    expect(textarea.value).toBe("(x)");
+    expect(textarea.value).not.toContain("ight");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("keeps the multiline de-escaping untouched while the addon is off", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+
+    const { container, root } = renderTranCont({ text: "hello\nworld" });
+    await flushEffects();
+
+    await act(async () => {
+      deferred.resolve({ trText: "第一行\\n第二行" });
+      await deferred.promise;
+    });
+
+    expect(container.querySelector("textarea").value).toBe("第一行\n第二行");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
   test("aborts active request when component unmounts", async () => {
     const deferred = createDeferred();
     apiTranslate.mockReturnValueOnce(deferred.promise);

@@ -12,6 +12,7 @@ import {
   OPT_TRANS_GOOGLE,
 } from "../../config";
 import { useI18n } from "../../hooks/I18n";
+import { parseMathInText } from "../../libs/mathParse";
 import CopyBtn from "./CopyBtn";
 
 /**
@@ -47,19 +48,26 @@ const normalizeChunkText = (text) => {
  * @param {string} text 翻译接口返回的文本。
  * @param {string} apiType 翻译接口类型。
  * @param {string} sourceText 原始待翻译文本。
+ * @param {boolean} parseLatex 是否转换译文中的行内 LaTeX 公式。
  * @returns {string} 供文本 UI 使用的译文。
  */
-const normalizeTranslationText = (text, apiType, sourceText) => {
+const normalizeTranslationText = (text, apiType, sourceText, parseLatex) => {
   const normalizedText = normalizeChunkText(text);
+  // 划词结果以纯文本展示，开启后把模型输出的行内 LaTeX 转成可读的 Unicode。
+  // 必须先于换行反转义执行：`\right` 等命令会被 `\\n|\\r` 规则拆坏。
+  const mathText = parseLatex
+    ? parseMathInText(normalizedText)
+    : normalizedText;
+
   if (apiType === OPT_TRANS_GOOGLE) {
-    return normalizedText.replace(/[\t ]*(\r\n|\r|\n)[\t ]*/g, "\n");
+    return mathText.replace(/[\t ]*(\r\n|\r|\n)[\t ]*/g, "\n");
   }
 
   if (API_SPE_TYPES.ai.has(apiType) && /\r\n|\r|\n/.test(sourceText)) {
-    return normalizedText.replace(/\\r\\n|\\n|\\r/g, "\n");
+    return mathText.replace(/\\r\\n|\\n|\\r/g, "\n");
   }
 
-  return normalizedText;
+  return mathText;
 };
 
 /**
@@ -142,6 +150,7 @@ export default function TranCont({
   apiSlug,
   transApis,
   translateVariants = true,
+  parseLatex = false,
   detectedLang = "",
   sourceDetectionPending = false,
   simpleStyle = false,
@@ -197,7 +206,8 @@ export default function TranCont({
           const nextText = normalizeTranslationText(
             chunkText,
             apiSetting.apiType,
-            text
+            text,
+            parseLatex
           );
           if (nextText) {
             setTrText(nextText);
@@ -237,7 +247,12 @@ export default function TranCont({
           setTrText(
             isSame
               ? ""
-              : normalizeTranslationText(trText, apiSetting.apiType, text)
+              : normalizeTranslationText(
+                  trText,
+                  apiSetting.apiType,
+                  text,
+                  parseLatex
+                )
           );
         }
       } catch (err) {
@@ -266,6 +281,7 @@ export default function TranCont({
     toLang,
     apiSetting,
     translateVariants,
+    parseLatex,
     builtinDetectedLang,
     waitForBuiltinDetection,
   ]);

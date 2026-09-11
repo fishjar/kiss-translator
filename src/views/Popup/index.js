@@ -126,6 +126,7 @@ export function Trantab({ isSeparate = false }) {
     prompts,
     subtitleSetting,
     translateVariants,
+    parseLatex,
   } = setting;
   const resolvedTransApis = useMemo(
     () => resolveApiPromptList(transApis, prompts, subtitleSetting),
@@ -151,6 +152,7 @@ export function Trantab({ isSeparate = false }) {
         aiDictPromptSlug={aiDictPromptSlug}
         prompts={prompts}
         translateVariants={translateVariants}
+        parseLatex={parseLatex}
         autoFocusInput={autoFocusInput}
         syncExternalTextWhileEditing
       />
