@@ -604,8 +604,10 @@ export class YouTubeCaptionProvider {
         return;
       }
 
-      const { events: subtitleEvents, flatEvents } =
-        prepareTimedTextEvents(events);
+      const { events: subtitleEvents, flatEvents } = prepareTimedTextEvents(
+        events,
+        fromLang
+      );
       if (!flatEvents?.length) {
         logger.debug("Youtube Provider: flatEvents not got:", videoId);
         return;

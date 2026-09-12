@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useSetting } from "./Setting";
 import { I18N, URL_RAW_PREFIX } from "../config";
 import { useGet } from "./Fetch";
@@ -13,9 +14,14 @@ export const getI18n = (uiLang, key, defaultText = "") => {
   return I18N?.[key]?.[uiLang] ?? defaultText;
 };
 
-// 预柯里化语言参数，返回一个只需传入 key 的获取翻译函数
+// Bind the language and keep the lookup function stable until uiLang changes.
+// Consumers use it in memo and callback dependencies, so a new identity on every
+// render would invalidate their caches.
 export const useLangMap = (uiLang) => {
-  return (key, defaultText = "") => getI18n(uiLang, key, defaultText);
+  return useCallback(
+    (key, defaultText = "") => getI18n(uiLang, key, defaultText),
+    [uiLang]
+  );
 };
 
 /**

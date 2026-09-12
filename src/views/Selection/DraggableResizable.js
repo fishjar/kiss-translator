@@ -13,16 +13,16 @@ import {
 } from "../../libs/tranboxPosition";
 
 /**
- * 拖拽/拉伸触发点（控制八个方向拉伸和顶部拖拽移动）
+ * Drag and resize handle for eight resize directions and header dragging.
  *
  * @param {Object} props
- * @param {string} props.direction - 方向标识（例如 "Header", "TopLeft", "Bottom" 等）
- * @param {Object} props.size - 当前容器尺寸 { w, h }
- * @param {Function} props.setSize - 容器尺寸的 React setter
- * @param {Object} props.position - 当前容器位置 { x, y }
- * @param {Function} props.setPosition - 容器位置的 React setter
- * @param {Object} props.minSize - 容器最小允许尺寸
- * @param {Object} props.maxSize - 容器最大允许尺寸
+ * @param {string} props.direction - Direction, such as "Header", "TopLeft", or "Bottom".
+ * @param {Object} props.size - Current container dimensions { w, h }.
+ * @param {Function} props.setSize - React setter for container dimensions.
+ * @param {Object} props.position - Current container position { x, y }.
+ * @param {Function} props.setPosition - React setter for container position.
+ * @param {Object} props.minSize - Minimum allowed container dimensions.
+ * @param {Object} props.maxSize - Maximum allowed container dimensions.
  */
 function Pointer({
   direction,
@@ -36,15 +36,23 @@ function Pointer({
   getMaxPositionY,
   ...props
 }) {
-  // 记录拖动/拉伸开始时的起点物理坐标及初始位置大小
+  // Store the pointer coordinates, position, and size at the start of a drag or resize.
   const [origin, setOrigin] = useState(null);
 
-  // 指针/触控按下事件
+  // Handle pointer or touch start.
   function handlePointerDown(e) {
-    // 非移动端环境，对指针捕获进行锁定，防止拖出元素边界时事件丢失
+    // The header contains buttons and an overflow menu as well as the drag area.
+    // Pressing a control must not start a drag. Clear origin too, so the next move
+    // cannot calculate its displacement from a stale starting point.
+    if (e.target.closest?.("button, input, select, textarea, a")) {
+      setOrigin(null);
+      return;
+    }
+
+    // Capture desktop pointers to keep receiving events outside the element.
     !isMobile && e.target.setPointerCapture(e.pointerId);
 
-    // 获取初始触点 client 坐标 (兼容移动端 Touch 事件)
+    // Read the initial client coordinates, including mobile touch events.
     const { clientX, clientY } = isMobile ? e.targetTouches[0] : e;
     setOrigin({
       x: position.x,
@@ -56,11 +64,11 @@ function Pointer({
     });
   }
 
-  // 指针/触控移动事件
+  // Handle pointer or touch movement.
   function handlePointerMove(e) {
     const { clientX, clientY } = isMobile ? e.targetTouches[0] : e;
     if (origin) {
-      // 计算偏移量
+      // Calculate the displacement.
       const dx = clientX - origin.clientX;
       const dy = clientY - origin.clientY;
       let x = position.x;
@@ -68,50 +76,50 @@ function Pointer({
       let w = size.w;
       let h = size.h;
 
-      // 根据拉伸方向，计算最新的位置 (x, y) 和尺寸 (w, h)
+      // Calculate the new position (x, y) and size (w, h) for this direction.
       switch (direction) {
-        case "Header": // 仅位置平移拖拽
+        case "Header": // Move without resizing.
           x = origin.x + dx;
           y = origin.y + dy;
           break;
-        case "TopLeft": // 左上角拉伸
+        case "TopLeft": // Resize from the top-left corner.
           x = origin.x + dx;
           y = origin.y + dy;
           w = origin.w - dx;
           h = origin.h - dy;
           break;
-        case "Top": // 顶边向上拉伸
+        case "Top": // Resize from the top edge.
           y = origin.y + dy;
           h = origin.h - dy;
           break;
-        case "TopRight": // 右上角拉伸
+        case "TopRight": // Resize from the top-right corner.
           y = origin.y + dy;
           w = origin.w + dx;
           h = origin.h - dy;
           break;
-        case "Left": // 左边向左拉伸
+        case "Left": // Resize from the left edge.
           x = origin.x + dx;
           w = origin.w - dx;
           break;
-        case "Right": // 右边向右拉伸
+        case "Right": // Resize from the right edge.
           w = origin.w + dx;
           break;
-        case "BottomLeft": // 左下角拉伸
+        case "BottomLeft": // Resize from the bottom-left corner.
           x = origin.x + dx;
           w = origin.w - dx;
           h = origin.h + dy;
           break;
-        case "Bottom": // 底边向下拉伸
+        case "Bottom": // Resize from the bottom edge.
           h = origin.h + dy;
           break;
-        case "BottomRight": // 右下角拉伸
+        case "BottomRight": // Resize from the bottom-right corner.
           w = origin.w + dx;
           h = origin.h + dy;
           break;
         default:
       }
 
-      // 限制拉伸宽度在 [minSize.w, maxSize.w] 区间
+      // Clamp the width to [minSize.w, maxSize.w].
       if (w < minSize.w) {
         w = minSize.w;
         x = position.x;
@@ -120,7 +128,7 @@ function Pointer({
         w = maxSize.w;
         x = position.x;
       }
-      // 限制拉伸高度在 [minSize.h, maxSize.h] 区间
+      // Clamp the height to [minSize.h, maxSize.h].
       if (h < minSize.h) {
         h = minSize.h;
         y = position.y;
@@ -130,7 +138,7 @@ function Pointer({
         y = position.y;
       }
 
-      // 执行物理坐标边界控制更新 (保证翻译窗口在拖拽和缩放时不会移出屏幕可视区)
+      // Keep the translation panel inside the viewport while dragging or resizing.
       const nextSize = {
         w: limitNumber(w, minSize.w, getMaxTranBoxContentWidth()),
         h: limitNumber(h, minSize.h, getMaxTranBoxContentHeight()),
@@ -144,23 +152,29 @@ function Pointer({
     }
   }
 
-  // 指针/触控抬起结束事件
+  // Handle pointer or touch end.
   function handlePointerUp(e) {
     e.stopPropagation();
     setOrigin(null);
   }
 
-  // REVIEW: handlePointerDown 中针对 isMobile 使用 TouchEvent 的 targetTouches[0] 获取坐标，非 isMobile 使用 PointerEvent。但在一些混合模式设备上（同时支持触屏和鼠标），使用 PointerEvent 代替 TouchEvent 可以获得更好的跨设备体验，同时能避免因 TouchEvent 与 PointerEvent 双重监听导致的事件冲突。
+  // REVIEW: handlePointerDown reads TouchEvent.targetTouches[0] on mobile and PointerEvent elsewhere. Using PointerEvent consistently could improve hybrid touch/mouse support and avoid conflicts between touch and pointer listeners.
+  // Browsers do not emit pointerup / touchend after pointercancel / touchcancel,
+  // so cancellation must call handlePointerUp to clear origin.
+  // Otherwise, a system gesture such as scrolling or pinching leaves a stale origin,
+  // and moving over the header resumes dragging without any button pressed.
   const touchProps = isMobile
     ? {
         onTouchStart: handlePointerDown,
         onTouchMove: handlePointerMove,
         onTouchEnd: handlePointerUp,
+        onTouchCancel: handlePointerUp,
       }
     : {
         onPointerDown: handlePointerDown,
         onPointerMove: handlePointerMove,
         onPointerUp: handlePointerUp,
+        onPointerCancel: handlePointerUp,
       };
 
   return (
@@ -171,7 +185,7 @@ function Pointer({
 }
 
 /**
- * 可拖拽、可拉伸调整大小的绝对定位弹性容器组件
+ * Positioned container with drag and resize support.
  */
 export default function DraggableResizable({
   header,
@@ -199,7 +213,7 @@ export default function DraggableResizable({
   autoHeight,
   ...props
 }) {
-  // 边缘拉伸触发边线的物理像素宽度
+  // Width of the resize handles in pixels.
   const lineWidth = 4;
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -209,7 +223,7 @@ export default function DraggableResizable({
     (contentHeight) => {
       if (!autoHeight) return getMaxTranBoxY(contentHeight);
 
-      const outerHeight = containerRef.current?.getBoundingClientRect().height;
+      const outerHeight = containerRef.current?.offsetHeight;
       return Math.max(
         0,
         window.innerHeight -
@@ -238,7 +252,7 @@ export default function DraggableResizable({
     return () => observer.disconnect();
   }, [autoHeight, getMaxPositionY, setPosition, size.h]);
 
-  // 深色模式下，为悬浮翻译小窗口提供精美的外发光日食效果阴影
+  // Add an outer glow to the floating translation panel in dark mode.
   const glowShadow = isDark
     ? `
         0 0 0 1px rgba(255,255,255,0.18),
@@ -264,21 +278,21 @@ export default function DraggableResizable({
       ref={containerRef}
       className="KT-draggable"
       style={{
-        touchAction: "none", // 阻止系统默认的触摸手势行为
+        touchAction: "none", // Disable default touch gestures.
         position: "fixed",
         left: position.x,
         top: position.y,
-        // CSS Grid 网格划分 3x3 空间，用于完美排布四周及顶部的拉伸触控条
+        // Arrange the resize handles around the panel in a 3x3 CSS grid.
         display: "grid",
         gridTemplateColumns: `${lineWidth * 2}px ${size.w}px ${lineWidth * 2}px`,
         gridTemplateRows: `${lineWidth * 2}px auto ${lineWidth * 2}px`,
         zIndex: 2147483647,
-        borderRadius: "12px",
+        borderRadius: "16px",
         overflow: "hidden",
       }}
       {...props}
     >
-      {/* ---------------- 顶部与两侧的拉伸触发点组件 ---------------- */}
+      {/* ---------------- Top and side resize handles ---------------- */}
       <Pointer
         direction="TopLeft"
         style={{
@@ -314,7 +328,7 @@ export default function DraggableResizable({
         {...opts}
       />
 
-      {/* ---------------- 容器内部主体卡片区域 ---------------- */}
+      {/* ---------------- Main container card ---------------- */}
       <Paper
         className="KT-draggable-body"
         elevation={4}
@@ -322,13 +336,13 @@ export default function DraggableResizable({
           width: size.w,
           maxWidth: size.w,
           minWidth: 0,
-          borderRadius: 4,
+          borderRadius: "16px",
           overflow: "hidden",
           backgroundColor: theme.palette.background.paper,
           boxShadow: glowShadow,
         }}
       >
-        {/* 顶部标题栏 (可拖动它来移动整个窗口位置) */}
+        {/* Drag the header to move the entire panel. */}
         <Pointer
           className="KT-draggable-header"
           direction="Header"
@@ -338,7 +352,7 @@ export default function DraggableResizable({
           {header}
         </Pointer>
 
-        {/* 内容展示区 (支持纵向滚动，高度自适应或固定) */}
+        {/* Vertically scrollable content with automatic or fixed height. */}
         <Box
           className="KT-draggable-container"
           sx={() => {
@@ -356,7 +370,7 @@ export default function DraggableResizable({
                   wordBreak: "break-word",
                 };
 
-            // 自定义滚动条风格
+            // Customize the scrollbar appearance.
             const scrollbarTrackColor =
               theme.palette.mode === "dark"
                 ? "#1f1f23"
@@ -378,7 +392,7 @@ export default function DraggableResizable({
               },
               "&::-webkit-scrollbar-thumb": {
                 backgroundColor: scrollbarThumbColor,
-                borderRadius: 8,
+                borderRadius: "999px",
                 border: `2px solid ${theme.palette.background.paper}`,
               },
               "&::-webkit-scrollbar-thumb:hover": {
@@ -394,7 +408,7 @@ export default function DraggableResizable({
         </Box>
       </Paper>
 
-      {/* ---------------- 右下侧及底部拉伸触发点组件 ---------------- */}
+      {/* ---------------- Right and bottom resize handles ---------------- */}
       <Pointer
         direction="Right"
         style={{

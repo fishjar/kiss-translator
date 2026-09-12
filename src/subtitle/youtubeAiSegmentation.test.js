@@ -3,7 +3,11 @@ import {
   createAiChunkScheduler,
   eventsToSubtitles,
 } from "./youtubeAiSegmentation";
-import { prepareTimedTextEvents } from "./youtubeSubtitleProcessing";
+import { mapBoundaryItemToCue } from "./subtitleBoundaryProtocol";
+import {
+  formatSubtitles,
+  prepareTimedTextEvents,
+} from "./youtubeSubtitleProcessing";
 
 jest.mock("../libs/log.js", () => ({
   LogLevel: {
@@ -44,6 +48,262 @@ const subtitle = {
   _si: 0,
   _ei: 1,
 };
+
+describe("coarse timedtext normalization", () => {
+  test("expands a coarse phrase for AI boundaries and reconstructs adjacent cue times", async () => {
+    const rawEvents = [
+      {
+        tStartMs: 1200,
+        dDurationMs: 3400,
+        segs: [{ utf8: "The quick brown fox.", acAsrConf: 0 }],
+      },
+    ];
+    const prepared = prepareTimedTextEvents(rawEvents);
+    const apiSubtitle = jest.fn(({ events }) => {
+      let nextIndex = 0;
+      return Promise.resolve(
+        [
+          { e: 1, t: "敏捷的狐狸" },
+          { e: 3, t: "棕色狐狸。" },
+        ].map((item) => {
+          const cue = mapBoundaryItemToCue(item, events, nextIndex, "en");
+          nextIndex = item.e + 1;
+          return cue;
+        })
+      );
+    });
+
+    const result = await aiSegment({
+      videoId: "video-coarse-captions",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: prepared.flatEvents,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles: jest.fn(() => []),
+      clearSegmentTranslation: false,
+      setting: {},
+    });
+
+    expect(prepared.events).toEqual(rawEvents);
+    expect(apiSubtitle.mock.calls[0][0].events).toEqual([
+      { text: "The", start: 1200, end: 1800 },
+      { text: "quick", start: 1800, end: 2800 },
+      { text: "brown", start: 2800, end: 3800 },
+      { text: "fox.", start: 3800, end: 4600 },
+    ]);
+    expect(result).toEqual([
+      {
+        start: 1200,
+        end: 2800,
+        text: "The quick",
+        translation: "敏捷的狐狸",
+        _si: 0,
+        _ei: 1,
+      },
+      {
+        start: 2800,
+        end: 4600,
+        text: "brown fox.",
+        translation: "棕色狐狸。",
+        _si: 2,
+        _ei: 3,
+      },
+    ]);
+  });
+
+  test("leaves manually authored sentence-level captions unchanged", () => {
+    const rawEvents = [
+      {
+        tStartMs: 1200,
+        dDurationMs: 3400,
+        segs: [{ utf8: "The quick brown fox." }],
+      },
+    ];
+
+    expect(prepareTimedTextEvents(rawEvents).flatEvents).toEqual([
+      { text: "The quick brown fox.", start: 1200, end: 4600 },
+    ]);
+  });
+
+  test("caps coarse ASR words at the next event without overlaps or lost text", () => {
+    const rawEvents = [
+      {
+        tStartMs: 0,
+        dDurationMs: 6000,
+        segs: [{ utf8: "one two six", acAsrConf: 0 }],
+      },
+      {
+        tStartMs: 3000,
+        dDurationMs: 1000,
+        segs: [{ utf8: "next", acAsrConf: 0 }],
+      },
+    ];
+
+    const { flatEvents } = prepareTimedTextEvents(rawEvents);
+
+    expect(flatEvents).toEqual([
+      { text: "one", start: 0, end: 1000 },
+      { text: "two", start: 1000, end: 2000 },
+      { text: "six", start: 2000, end: 3000 },
+      { text: "next", start: 3000, end: 4000 },
+    ]);
+    expect(flatEvents.map((event) => event.text).join(" ")).toBe(
+      "one two six next"
+    );
+    expect(
+      flatEvents.every(
+        (event, index) =>
+          index === flatEvents.length - 1 ||
+          event.end <= flatEvents[index + 1].start
+      )
+    ).toBe(true);
+  });
+
+  test("coarse ASR -> duplicate -> next effective event", () => {
+    const event = (utf8, tStartMs, dDurationMs) => ({
+      tStartMs,
+      dDurationMs,
+      segs: [{ utf8, acAsrConf: 0 }],
+    });
+    const coarseEvent = event("one two six", 0, 6000);
+    const { flatEvents } = prepareTimedTextEvents([
+      coarseEvent,
+      coarseEvent,
+      event("next", 3000, 1000),
+    ]);
+    expect(flatEvents[2].text).toBe("six");
+    expect(flatEvents[1].end).toBeLessThanOrEqual(flatEvents[3].start);
+  });
+
+  test.each([
+    ["non-speech", { tStartMs: 3000, segs: [{ utf8: "[Music]" }] }],
+    ["line break", { tStartMs: 3000, aAppend: 1, segs: [{ utf8: "\n" }] }],
+  ])("caps coarse ASR words at a retained %s boundary", (_name, boundary) => {
+    const { flatEvents } = prepareTimedTextEvents([
+      {
+        tStartMs: 0,
+        dDurationMs: 6000,
+        segs: [{ utf8: "one two six", acAsrConf: 0 }],
+      },
+      boundary,
+      {
+        tStartMs: 5000,
+        dDurationMs: 1000,
+        segs: [{ utf8: "next", acAsrConf: 0 }],
+      },
+    ]);
+
+    expect(flatEvents).toEqual([
+      { text: "one", start: 0, end: 1000 },
+      { text: "two", start: 1000, end: 2000 },
+      { text: "six", start: 2000, end: 3000 },
+      { text: "next", start: 5000, end: 6000 },
+    ]);
+  });
+
+  test("looks past a same-timestamp newline for the next usable boundary", () => {
+    const { flatEvents } = prepareTimedTextEvents([
+      {
+        tStartMs: 1000,
+        dDurationMs: 6000,
+        segs: [{ utf8: "one two six", acAsrConf: 0 }],
+      },
+      {
+        tStartMs: 1000,
+        aAppend: 1,
+        segs: [{ utf8: "\n" }],
+      },
+      {
+        tStartMs: 4000,
+        dDurationMs: 1000,
+        segs: [{ utf8: "next", acAsrConf: 0 }],
+      },
+    ]);
+
+    expect(flatEvents).toEqual([
+      { text: "one", start: 1000, end: 2000 },
+      { text: "two", start: 2000, end: 3000 },
+      { text: "six", start: 3000, end: 4000 },
+      { text: "next", start: 4000, end: 5000 },
+    ]);
+  });
+
+  test("preserves Korean ASR spaces in AI and rule-based reconstruction", () => {
+    const prepared = prepareTimedTextEvents(
+      [
+        {
+          tStartMs: 1000,
+          dDurationMs: 3000,
+          segs: [{ utf8: "오늘 날씨 정말 좋다", acAsrConf: 0 }],
+        },
+      ],
+      "ko"
+    );
+
+    expect(prepared.flatEvents).toEqual([
+      { text: "오늘 날씨 정말 좋다", start: 1000, end: 4000 },
+    ]);
+    expect(
+      mapBoundaryItemToCue(
+        { e: 0, t: "좋은 날씨" },
+        prepared.flatEvents,
+        0,
+        "ko"
+      ).text
+    ).toBe("오늘 날씨 정말 좋다");
+    expect(formatSubtitles(prepared.flatEvents, "ko")[0].text).toBe(
+      "오늘 날씨 정말 좋다"
+    );
+  });
+
+  test("leaves word-level offsets unchanged", () => {
+    const rawEvents = [
+      {
+        tStartMs: 2000,
+        dDurationMs: 1500,
+        segs: [
+          { utf8: "hello", tOffsetMs: 0 },
+          { utf8: "world.", tOffsetMs: 600 },
+        ],
+      },
+    ];
+
+    expect(prepareTimedTextEvents(rawEvents)).toMatchObject({
+      events: rawEvents,
+      flatEvents: [
+        { text: "hello", start: 2000, end: 2600 },
+        { text: "world.", start: 2600, end: 3500 },
+      ],
+    });
+  });
+
+  test.each([
+    ["empty", { tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: "" }] }, []],
+    [
+      "line break",
+      {
+        tStartMs: 0,
+        dDurationMs: 0,
+        aAppend: 1,
+        segs: [{ utf8: "\n" }],
+      },
+      [],
+    ],
+    [
+      "non-space text",
+      {
+        tStartMs: 0,
+        dDurationMs: 1000,
+        segs: [{ utf8: "今天我们测试" }],
+      },
+      [{ text: "今天我们测试", start: 0, end: 1000 }],
+    ],
+  ])("does not synthetically split %s segments", (_name, event, expected) => {
+    expect(prepareTimedTextEvents([event]).flatEvents).toEqual(expected);
+  });
+});
 
 describe("aiSegment recovery", () => {
   test("sends only speech events after timedtext preparation", async () => {

@@ -14,6 +14,7 @@ import {
 import { touchTapListener } from "./touch";
 import { PopupManager } from "./popupManager";
 import { FabManager } from "./fabManager";
+import { RuleEditorManager } from "./ruleEditorManager";
 import {
   OPT_SHORTCUT_TRANSLATE,
   OPT_SHORTCUT_TRANSONLY,
@@ -28,6 +29,7 @@ import {
   MSG_OPEN_TRANBOX,
   MSG_TRANSBOX_TOGGLE,
   MSG_POPUP_TOGGLE,
+  MSG_RULE_EDITOR,
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANSINPUT_TOGGLE,
 } from "../config";
@@ -81,6 +83,7 @@ export default class TranslatorManager {
   _inputTranslator = null;
   _popupManager = null;
   _fabManager = null;
+  _ruleEditorManager = null;
 
   /**
    * 保存启动参数并绑定全局 handler。
@@ -249,9 +252,23 @@ export default class TranslatorManager {
         translator: this._translator,
         processActions: this.#processActions.bind(this),
       });
+      this._ruleEditorManager = new RuleEditorManager({
+        translator: this._translator,
+        pauseInteractions: () => {
+          const selectionEnabled = this._transboxManager.isEnabled();
+          const inputEnabled = this._translator.setting.inputRule?.transOpen;
+          this._transboxManager.disable();
+          this._inputTranslator.disable();
+          return () => {
+            if (selectionEnabled) this._transboxManager?.enable();
+            if (inputEnabled) this._inputTranslator?.enable();
+          };
+        },
+      });
       this._fabManager = new FabManager({
         processActions: this.#processActions.bind(this),
         fabConfig: this.#cloneConfig(this.#fabConfig),
+        getSelectionEnabled: () => Boolean(this._transboxManager?.isEnabled()),
       });
     }
   }
@@ -263,6 +280,8 @@ export default class TranslatorManager {
    * restart 只调用本方法，避免重复注册全局入口。
    */
   #destroyRuntimeModules() {
+    this._ruleEditorManager?.destroy();
+    this._ruleEditorManager = null;
     this._popupManager?.destroy();
     this._fabManager?.destroy();
     this._transboxManager?.disable();
@@ -301,11 +320,32 @@ export default class TranslatorManager {
    * 用户在页面内切换过的全文翻译、划词翻译、输入框翻译等开关。
    */
   #snapshotRuntimeState() {
+    const editing = this._ruleEditorManager?.session?.runtimeState;
+    const setting = this.#cloneConfig(this.#getRuntimeSetting());
+    const rule = this.#cloneConfig(this._translator?.rule || this.#rule);
+    if (editing) {
+      rule.transOpen = editing.enabled ? "true" : "false";
+      setting.mouseHoverSetting.useMouseHover = editing.mouseHover;
+    }
     return {
-      setting: this.#cloneConfig(this._translator?.setting || this.#setting),
-      rule: this.#cloneConfig(this._translator?.rule || this.#rule),
+      setting,
+      rule,
       fabConfig: this.#cloneConfig(this.#fabConfig),
       favWords: this.#cloneConfig(this.#favWords),
+    };
+  }
+
+  #getRuntimeSetting() {
+    const setting = this._translator?.setting || this.#setting;
+    if (!this.#transboxOnly || !this._transboxManager) return setting;
+
+    // PDF pages have no Translator to keep the selection setting in sync.
+    return {
+      ...setting,
+      tranboxSetting: {
+        ...setting?.tranboxSetting,
+        transOpen: this._transboxManager.isEnabled(),
+      },
     };
   }
 
@@ -573,7 +613,7 @@ export default class TranslatorManager {
     const result = this.#processActions(message, true);
     const response = result || {
       rule: this._translator?.rule || this.#rule,
-      setting: this._translator?.setting || this.#setting,
+      setting: this.#getRuntimeSetting(),
     };
     sendResponse(response);
     return true;
@@ -653,6 +693,16 @@ export default class TranslatorManager {
    */
   #processActions({ action, args } = {}, fromExt = false) {
     if (!action) return;
+    // Editing belongs to this frame. Never broadcast the editor or its changes.
+    if (action === MSG_RULE_EDITOR) {
+      if (!this.#isIframe) {
+        this._popupManager?.hide();
+        this._ruleEditorManager?.open();
+      }
+      return;
+    }
+    if (this._ruleEditorManager?.session && action !== MSG_TRANS_GETRULE)
+      return;
 
     // 非 background 指令需要主动同步给子 iframe，保持多 frame 页面状态一致。
     if (!fromExt) {
@@ -663,7 +713,13 @@ export default class TranslatorManager {
 
     switch (action) {
       case MSG_TRANS_TOGGLE:
-        this._translator?.toggle();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._translator?.enable()
+            : this._translator?.disable();
+        } else {
+          this._translator?.toggle();
+        }
         break;
       case MSG_TRANS_TOGGLE_ONLY:
         this._translator?.toggleTransOnly();
@@ -687,15 +743,52 @@ export default class TranslatorManager {
         this._popupManager?.toggle();
         break;
       case MSG_TRANSBOX_TOGGLE:
-        this._transboxManager?.toggle();
-        this._translator?.toggleTransbox();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._transboxManager?.enable()
+            : this._transboxManager?.disable();
+          if (
+            Boolean(this._translator?.setting?.tranboxSetting?.transOpen) !==
+            args.enabled
+          ) {
+            this._translator?.toggleTransbox();
+          }
+        } else {
+          this._transboxManager?.toggle();
+          this._translator?.toggleTransbox();
+        }
+        // Notify mounted page controls after the runtime toggle has completed.
+        document.dispatchEvent(
+          new CustomEvent(EVENT_KISS_INNER, {
+            detail: { action: MSG_TRANSBOX_TOGGLE },
+          })
+        );
         break;
       case MSG_MOUSEHOVER_TOGGLE:
-        this._translator?.toggleMouseHover();
+        if (
+          typeof args?.enabled !== "boolean" ||
+          Boolean(
+            this._translator?.setting?.mouseHoverSetting?.useMouseHover
+          ) !== args.enabled
+        ) {
+          this._translator?.toggleMouseHover();
+        }
         break;
       case MSG_TRANSINPUT_TOGGLE:
-        this._inputTranslator?.toggle();
-        this._translator?.toggleInputTranslate();
+        if (typeof args?.enabled === "boolean") {
+          args.enabled
+            ? this._inputTranslator?.enable()
+            : this._inputTranslator?.disable();
+          if (
+            Boolean(this._translator?.setting?.inputRule?.transOpen) !==
+            args.enabled
+          ) {
+            this._translator?.toggleInputTranslate();
+          }
+        } else {
+          this._inputTranslator?.toggle();
+          this._translator?.toggleInputTranslate();
+        }
         break;
       case MSG_HOVERNODE_TOGGLE:
         this._translator?.toggleHoverNode();

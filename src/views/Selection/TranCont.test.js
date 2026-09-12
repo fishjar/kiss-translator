@@ -1,3 +1,4 @@
+/* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act, testing-library/render-result-naming-convention */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import TranCont from "./TranCont";
@@ -34,10 +35,23 @@ jest.mock("./CopyBtn", () => {
     );
 });
 
+jest.mock("./AudioBtn", () => {
+  const React = require("react");
+
+  return {
+    BrowserTtsBtn: ({ text }) =>
+      React.createElement(
+        "button",
+        { type: "button", "data-speech-text": text },
+        "speak"
+      ),
+  };
+});
+
 /**
- * 创建一个可由测试主动 resolve/reject 的 Promise。
+ * Create a Promise that tests can resolve or reject explicitly.
  *
- * @returns {{promise: Promise<unknown>, resolve: Function, reject: Function}} 可控 Promise 句柄。
+ * @returns {{promise: Promise<unknown>, resolve: Function, reject: Function}} Controllable Promise handle.
  */
 function createDeferred() {
   let resolve;
@@ -51,9 +65,9 @@ function createDeferred() {
 }
 
 /**
- * 将 React effect 与 Promise 微任务推进到稳定状态。
+ * Flush React effects and Promise microtasks.
  *
- * @returns {Promise<void>} 等待队列清空的 Promise。
+ * @returns {Promise<void>} Promise that resolves after the queues settle.
  */
 async function flushEffects() {
   await act(async () => {
@@ -103,10 +117,10 @@ const microsoftApiSetting = {
 };
 
 /**
- * 渲染划词翻译结果组件。
+ * Render the selection translation result component.
  *
- * @param {Object} props 覆盖默认组件参数。
- * @returns {{container: HTMLElement, root: Object}} React 根节点与容器。
+ * @param {Object} props Overrides for the default component props.
+ * @returns {{container: HTMLElement, root: Object}} React root and container.
  */
 function renderTranCont(props = {}) {
   const container = document.createElement("div");
@@ -135,6 +149,134 @@ describe("TranCont", () => {
     document.body.innerHTML = "";
   });
 
+  test("renders an explicit read-only empty state in the Playground", async () => {
+    const { container, root } = renderTranCont({
+      text: "",
+      isPlayground: true,
+    });
+    await flushEffects();
+
+    const textarea = container.querySelector("textarea");
+    expect(
+      container.querySelector(".kt-playground-translator__result")
+    ).not.toBeNull();
+    expect(textarea.readOnly).toBe(true);
+    expect(textarea.classList).toContain("kt-resizable-textarea");
+    expect(textarea.closest(".kt-resizable-text-field")).not.toBeNull();
+    expect(
+      getComputedStyle(textarea.closest(".MuiInputBase-root")).overflow
+    ).toBe("visible");
+    expect(getComputedStyle(textarea).resize).toBe("vertical");
+    expect(textarea.placeholder).toBe("playground_translation_empty_result");
+    expect(container.querySelector("button[data-copy-text]")).toBeNull();
+    expect(apiTranslate).not.toHaveBeenCalled();
+    act(() => root.unmount());
+  });
+
+  test("renders the Popup M3 result card with copy and speech actions", async () => {
+    apiTranslate.mockResolvedValueOnce({ trText: "译文" });
+    const { container, root } = renderTranCont({ popupStyle: true });
+    await flushEffects();
+
+    const result = container.querySelector(".kt-popup-translation-result");
+    expect(result).not.toBeNull();
+    expect(result.textContent).toContain("译文");
+    expect(result.querySelector("[data-copy-text]").dataset.copyText).toBe(
+      "译文"
+    );
+    expect(result.querySelector("[data-speech-text]").dataset.speechText).toBe(
+      "译文"
+    );
+    act(() => root.unmount());
+  });
+
+  test.each(["", " \t\r\n "])(
+    "shows the Popup input hint for empty or whitespace source %j",
+    async (text) => {
+      const { container, root } = renderTranCont({ text, popupStyle: true });
+      await flushEffects();
+
+      const body = container.querySelector(
+        ".kt-popup-translation-result__body"
+      );
+      expect(body.textContent).toBe("popup_enter_text");
+      expect(body.getAttribute("aria-busy")).toBe("false");
+      expect(container.querySelector("[data-copy-text]")).toBeNull();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      act(() => root.unmount());
+    }
+  );
+
+  test("keeps the Popup result empty when automatic detection matches the target language", async () => {
+    apiTranslate.mockResolvedValueOnce({
+      trText: "hello",
+      srLang: "en",
+      srCode: "en",
+      isSame: true,
+    });
+    const { container, root } = renderTranCont({
+      text: "hello",
+      fromLang: "auto",
+      toLang: "en",
+      popupStyle: true,
+    });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "hello",
+        fromLang: "auto",
+        toLang: "en",
+      })
+    );
+    const body = container.querySelector(".kt-popup-translation-result__body");
+    expect(body.textContent).toBe("");
+    expect(body.getAttribute("aria-busy")).toBe("false");
+    expect(container.querySelector("[data-copy-text]")).toBeNull();
+    act(() => root.unmount());
+  });
+
+  test("keeps the Popup result empty when a successful translation returns no text", async () => {
+    apiTranslate.mockResolvedValueOnce({ trText: "", isSame: false });
+    const { container, root } = renderTranCont({ popupStyle: true });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    const body = container.querySelector(".kt-popup-translation-result__body");
+    expect(body.textContent).toBe("");
+    expect(body.getAttribute("aria-busy")).toBe("false");
+    expect(container.querySelector("[data-copy-text]")).toBeNull();
+    act(() => root.unmount());
+  });
+
+  test("keeps the Popup copy action hidden until translation text exists", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+    const { container, root } = renderTranCont({ popupStyle: true });
+    await flushEffects();
+
+    const body = container.querySelector(".kt-popup-translation-result__body");
+    expect(body.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector("[data-copy-text]")).toBeNull();
+
+    await act(async () => {
+      apiTranslate.mock.calls[0][0].onStreamChunk({
+        text: "partial translation",
+        isComplete: false,
+      });
+    });
+    expect(container.querySelector("[data-copy-text]").dataset.copyText).toBe(
+      "partial translation"
+    );
+
+    await act(async () => {
+      deferred.resolve({ trText: "final translation" });
+      await deferred.promise;
+    });
+    expect(body.getAttribute("aria-busy")).toBe("false");
+    act(() => root.unmount());
+  });
+
   test("renders streaming chunks before the final translation", async () => {
     const deferred = createDeferred();
     apiTranslate.mockReturnValueOnce(deferred.promise);
@@ -144,9 +286,15 @@ describe("TranCont", () => {
 
     const textarea = container.querySelector("textarea");
     expect(textarea.value).toBe("");
+    expect(textarea.getAttribute("aria-busy")).toBe("true");
+    expect(
+      container.querySelector(
+        '[role="progressbar"][aria-label="popup_translating"]'
+      )
+    ).not.toBeNull();
 
     await act(async () => {
-      // 模拟底层 SSE 增量返回，输出框应立即展示已经到达的部分译文。
+      // Simulate an SSE chunk; the output should display the partial translation immediately.
       apiTranslate.mock.calls[0][0].onStreamChunk({
         text: "阶段译文",
         isComplete: false,
@@ -159,6 +307,7 @@ describe("TranCont", () => {
       await deferred.promise;
     });
     expect(textarea.value).toBe("最终译文");
+    expect(textarea.getAttribute("aria-busy")).toBe("false");
 
     act(() => {
       root.unmount();
@@ -609,7 +758,7 @@ describe("TranCont", () => {
     expect(apiTranslate.mock.calls[0][0].signal.aborted).toBe(true);
 
     await act(async () => {
-      // 旧请求即使晚返回，也不能覆盖新请求的最终译文。
+      // A late response from an old request must not overwrite the new translation.
       first.resolve({ trText: "旧译文" });
       await first.promise;
       second.resolve({ trText: "新译文" });

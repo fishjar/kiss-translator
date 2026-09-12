@@ -35,7 +35,8 @@
     },
     {
       "resources": [
-        "injector-shadowroot.js"
+        "injector-shadowroot.js",
+        "api/*"
       ],
       "matches": [
         "<all_urls>"

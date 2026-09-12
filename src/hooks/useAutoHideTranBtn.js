@@ -23,6 +23,8 @@ export default function useAutoHideTranBtn(
       }
     };
 
+    const handleScroll = () => setShowBtn(false);
+
     // 监听选区变化：如果当前选区不存在，或是选区被折叠（collapsed，即没有选中实际文本内容），隐藏翻译按钮
     // REVIEW: selectionchange 事件是一个超高频触发事件（在用户鼠标滑过文本或精细选择文字的整个拖拽期间会持续高频发生）。
     // 在其中高频判断并触发状态更新（setShowBtn(false)）可能带来性能开销。
@@ -33,11 +35,15 @@ export default function useAutoHideTranBtn(
     };
 
     window.addEventListener("mousedown", handleMouseDown, true);
+    window.addEventListener("scroll", handleScroll, true);
+    window.visualViewport?.addEventListener("scroll", handleScroll);
     document.addEventListener("selectionchange", handleSelectionChange);
 
     // 清理事件监听器
     return () => {
       window.removeEventListener("mousedown", handleMouseDown, true);
+      window.removeEventListener("scroll", handleScroll, true);
+      window.visualViewport?.removeEventListener("scroll", handleScroll);
       document.removeEventListener("selectionchange", handleSelectionChange);
     };
   }, [showBtn, setShowBtn, getSelection]);

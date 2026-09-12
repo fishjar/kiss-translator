@@ -13,6 +13,7 @@ function ValidationInput({
   min, // 最小值约束
   max, // 最大值约束
   isFloat = false, // 是否允许输入浮点数（默认为整数）
+  inputProps,
   ...props // 其他传递给 TextField 的属性
 }) {
   // 使用本地局部状态管理输入框的即时显示文本，防止每次输入都触发全页重绘或校验导致输入卡顿
@@ -66,6 +67,12 @@ function ValidationInput({
       value={localValue}
       onChange={handleLocalChange}
       onBlur={handleBlur}
+      inputProps={{
+        ...inputProps,
+        min,
+        max,
+        step: inputProps?.step ?? (isFloat ? "any" : 1),
+      }}
     />
   );
 }

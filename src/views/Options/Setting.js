@@ -17,11 +17,11 @@ import {
   requestClipboardReadPermission,
 } from "../../libs/clipboard";
 import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
 
 import {
   UI_LANGS,
   TRANS_NEWLINE_LENGTH,
-  CACHE_NAME,
   OPT_LANGDETECTOR_ALL,
   OPT_SHORTCUT_TRANSLATE,
   OPT_SHORTCUT_TRANSONLY,
@@ -43,10 +43,12 @@ import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
 import { useFab } from "../../hooks/Fab";
 import { sendBgMsg } from "../../libs/msg";
+import { tryClearCaches } from "../../libs/cache";
 import { kissLog, LogLevel } from "../../libs/log";
 import UploadButton from "./UploadButton";
 import DownloadButton from "./DownloadButton";
 import ValidationInput from "../../hooks/ValidationInput";
+import OverviewHero from "./OverviewHero";
 
 /**
  * 包装单个快捷键录入表单项组件
@@ -109,7 +111,7 @@ export function ExtCommands() {
     <Box>
       <Grid container spacing={2} columns={12}>
         {commands.map((cmd) => (
-          <Grid item xs={12} sm={12} md={6} lg={3} key={cmd.name}>
+          <Grid item xs={12} sm={12} md={6} lg={6} key={cmd.name}>
             <Stack direction="row" alignItems="flex-start">
               <TextField
                 size="small"
@@ -118,7 +120,11 @@ export function ExtCommands() {
                 fullWidth
                 disabled
               />
-              <IconButton onClick={handleEdit}>
+              <IconButton
+                onClick={handleEdit}
+                aria-label={i18n("edit")}
+                title={i18n("edit")}
+              >
                 <EditIcon />
               </IconButton>
             </Stack>
@@ -240,13 +246,12 @@ export default function Settings() {
     });
   };
 
-  // 清除本地网络请求翻译缓存
-  const handleClearCache = () => {
-    try {
-      caches.delete(CACHE_NAME);
+  // Report cache clearing only after the local or background operation completes.
+  const handleClearCache = async () => {
+    if (await tryClearCaches()) {
       alert.success(i18n("clear_success"));
-    } catch (err) {
-      kissLog("clear cache", err);
+    } else {
+      alert.error(i18n("clear_failed"));
     }
   };
 
@@ -296,6 +301,7 @@ export default function Settings() {
 
   return (
     <Box>
+      <OverviewHero />
       <Stack spacing={3}>
         {/* 数据导入导出控制条 */}
         <Stack
@@ -314,10 +320,13 @@ export default function Settings() {
         </Stack>
 
         {/* 基础参数网格配置区 */}
-        <Box>
-          <Grid container spacing={2} columns={12}>
+        <Box className="kt-overview-settings">
+          <Typography className="kt-options-section-title">
+            {i18n("general")}
+          </Typography>
+          <Grid container columns={12}>
             {/* 设置面板用户界面语言 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -336,7 +345,7 @@ export default function Settings() {
             </Grid>
             {/* 工具栏弹窗打开时默认显示的界面 (仅 Extension 模式) */}
             {isExt && (
-              <Grid item xs={12} sm={12} md={6} lg={3}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   select
                   fullWidth
@@ -356,7 +365,7 @@ export default function Settings() {
               </Grid>
             )}
             {/* 页面打开时是否预先初始化运行环境 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -379,7 +388,7 @@ export default function Settings() {
               />
             )}
             {/* 点击悬浮球时触发的行为 (直接展示菜单或立即启动全文双语翻译) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -394,7 +403,7 @@ export default function Settings() {
               </TextField>
             </Grid>
             {/* 单个 DOM 文本块触发网页翻译的最小有效文本长度 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -408,7 +417,7 @@ export default function Settings() {
               />
             </Grid>
             {/* 允许发起单次网页段落翻译的最长文本限制 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -422,7 +431,7 @@ export default function Settings() {
               />
             </Grid>
             {/* 网页中单个纯文本换行符被当作真换行截断句子的数量 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -436,7 +445,7 @@ export default function Settings() {
               />
             </Grid>
             {/* DOM 段落网页翻译扫描定时查询轮询间隔时间 (ms) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -450,7 +459,7 @@ export default function Settings() {
               />
             </Grid>
             {/* 全局接口 HTTP 网络请求超时阈值 (s) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <ValidationInput
                 fullWidth
                 size="small"
@@ -464,7 +473,7 @@ export default function Settings() {
               />
             </Grid>
             {/* 移动端/触屏端特定的触摸手势快捷翻译触发方式 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -485,7 +494,7 @@ export default function Settings() {
               </TextField>
             </Grid>
             {/* 浏览器右键上下文菜单的展示层级 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -501,7 +510,7 @@ export default function Settings() {
               </TextField>
             </Grid>
             {/* 网页首选的语言自动检测服务组件 (如 Chrome Builtin, FastText 或 API) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -519,8 +528,8 @@ export default function Settings() {
                 ))}
               </TextField>
             </Grid>
-            {/* 是否翻译同一语言的不同变体，例如简体中文与繁体中文 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            {/* Translate variants of the same language, such as Simplified and Traditional Chinese. */}
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -535,8 +544,8 @@ export default function Settings() {
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
-            {/* 是否把译文里的行内 LaTeX 公式转换为可读的 Unicode 文本 */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            {/* Render inline LaTeX as Unicode only when explicitly enabled. */}
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -552,7 +561,7 @@ export default function Settings() {
               </TextField>
             </Grid>
             {/* 日志记录详细层级 (Error/Info/Debug 等) */}
-            <Grid item xs={12} sm={12} md={6} lg={3}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
                 fullWidth
@@ -683,31 +692,31 @@ export default function Settings() {
           <>
             <Box>
               <Grid container spacing={2} columns={12}>
-                <Grid item xs={12} sm={12} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_TRANSLATE}
                     label={i18n("toggle_translate_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_TRANSONLY}
                     label={i18n("toggle_transonly_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_STYLE}
                     label={i18n("toggle_style_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_POPUP}
                     label={i18n("toggle_popup_shortcut")}
                   />
                 </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={3}>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
                   <ShortcutItem
                     action={OPT_SHORTCUT_SETTING}
                     label={i18n("open_setting_shortcut")}

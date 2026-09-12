@@ -83,7 +83,10 @@ describe("FavBtn", () => {
       act(() => {
         root.render(<FavBtn word="library" title="collect" />);
       });
-      act(() => container.querySelector("button").click());
+      const button = container.querySelector("button");
+      expect(button.getAttribute("aria-label")).toBe("collect");
+      expect(button.getAttribute("aria-pressed")).toBe(String(wasFavorite));
+      act(() => button.click());
 
       expect(toggleFav).toHaveBeenCalledWith("library");
       expect(handleChange).toHaveBeenCalledWith(

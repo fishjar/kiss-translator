@@ -3,25 +3,27 @@ import ReactDOM from "react-dom/client";
 import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
 import { logger } from "./log";
+import {
+  isolateShadowHost,
+  mountShadowHost,
+  setShadowHostVisible,
+} from "./shadowHost";
 
 export default class ShadowDomManager {
   #hostElement = null;
   #reactRoot = null;
   #isVisible = false;
   #isProcessing = false;
+  #cleanupHostMount = null;
+  #cache = null;
+  #renderProps = null;
 
   _id;
   _className;
   _ReactComponent;
   _props;
 
-  constructor({
-    id,
-    className = "",
-    reactComponent,
-    props = {},
-    rootElement = document.body,
-  }) {
+  constructor({ id, className = "", reactComponent, props = {}, rootElement }) {
     if (!id || !reactComponent) {
       throw new Error("ID and a React Component must be provided.");
     }
@@ -33,7 +35,7 @@ export default class ShadowDomManager {
   }
 
   get isVisible() {
-    return this.#isVisible;
+    return this.#isVisible && Boolean(this.#hostElement?.isConnected);
   }
 
   /**
@@ -46,8 +48,12 @@ export default class ShadowDomManager {
    * @param {Object} props - 可选的新 props
    */
   show(props) {
-    if (this.#isVisible || this.#isProcessing) {
+    if (this.isVisible || this.#isProcessing) {
       return;
+    }
+
+    if (this.#hostElement && !this.#hostElement.isConnected) {
+      this.#unmount();
     }
 
     if (!this.#hostElement) {
@@ -55,6 +61,7 @@ export default class ShadowDomManager {
       try {
         this.#mount(props || this._props);
       } catch (error) {
+        this.#unmount();
         logger.warn(`Failed to mount component with id "${this._id}":`, error);
         this.#isProcessing = false;
         return;
@@ -63,7 +70,7 @@ export default class ShadowDomManager {
       }
     }
 
-    this.#hostElement.style.display = "";
+    setShadowHostVisible(this.#hostElement, true);
     this.#isVisible = true;
   }
 
@@ -71,11 +78,17 @@ export default class ShadowDomManager {
     if (!this.#isVisible || !this.#hostElement) {
       return;
     }
-    this.#hostElement.style.display = "none";
+    setShadowHostVisible(this.#hostElement, false);
     this.#isVisible = false;
   }
 
   destroy() {
+    this.#unmount();
+  }
+
+  #unmount() {
+    this.#cleanupHostMount?.();
+    this.#cleanupHostMount = null;
     if (!this.#hostElement) {
       return;
     }
@@ -89,13 +102,16 @@ export default class ShadowDomManager {
 
     this.#hostElement = null;
     this.#reactRoot = null;
+    this.#cache?.sheet.flush();
+    this.#cache = null;
+    this.#renderProps = null;
     this.#isVisible = false;
     this.#isProcessing = false;
     logger.info(`Component with id "${this._id}" has been destroyed.`);
   }
 
   toggle(props) {
-    if (this.#isVisible) {
+    if (this.isVisible) {
       this.hide();
     } else {
       this.show(props || this._props);
@@ -108,30 +124,41 @@ export default class ShadowDomManager {
     if (this._className) {
       host.className = this._className;
     }
+    isolateShadowHost(host);
 
-    this._rootElement.appendChild(host);
     this.#hostElement = host;
+    this.#cleanupHostMount = mountShadowHost(host, this._rootElement, {
+      onReconnect: () => this.#refreshStyles(),
+    });
     const shadowContainer = host.attachShadow({ mode: "open" });
     const appRoot = document.createElement("div");
     appRoot.className = `${this._id}_wrapper notranslate`;
     shadowContainer.appendChild(appRoot);
 
-    const cache = createCache({
+    this.#renderProps = props;
+    this.#reactRoot = ReactDOM.createRoot(appRoot);
+    this.#refreshStyles();
+  }
+
+  #refreshStyles() {
+    this.#cache?.sheet.flush();
+    this.#cache = createCache({
       key: this._id,
       prepend: true,
-      container: shadowContainer,
+      container: this.#hostElement.shadowRoot,
     });
 
     const enhancedProps = {
-      ...props,
+      ...this.#renderProps,
       onClose: this.hide.bind(this),
     };
 
     const ComponentToRender = this._ReactComponent;
-    this.#reactRoot = ReactDOM.createRoot(appRoot);
+    // Changing only the cache reinserts Emotion rules without resetting panel
+    // inputs, visibility, or any other state owned by the existing React tree.
     this.#reactRoot.render(
       <React.StrictMode>
-        <CacheProvider value={cache}>
+        <CacheProvider value={this.#cache}>
           <ComponentToRender {...enhancedProps} />
         </CacheProvider>
       </React.StrictMode>

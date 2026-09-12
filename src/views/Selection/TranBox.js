@@ -1,7 +1,4 @@
-import { SettingProvider } from "../../hooks/Setting";
-import ThemeProvider from "../../hooks/Theme";
 import DraggableResizable from "./DraggableResizable";
-import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
@@ -15,9 +12,18 @@ import CloseIcon from "@mui/icons-material/Close";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import BrightnessAutoIcon from "@mui/icons-material/BrightnessAuto";
-import Typography from "@mui/material/Typography";
+import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useI18n } from "../../hooks/I18n";
-import { useCallback, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import TranForm from "./TranForm.js";
 import { MSG_OPEN_SEPARATE_WINDOW } from "../../config/msg.js";
 import { sendBgMsg } from "../../libs/msg.js";
@@ -26,18 +32,42 @@ import { useTheme, alpha } from "@mui/material/styles";
 import Logo from "../../components/Logo";
 import { isValidWord } from "../../libs/utils";
 import { useDarkMode } from "../../hooks/ColorMode";
+import { createMenuKeyDownHandler } from "../../libs/menuFocus";
+
+export function getOverflowMenuPosition(anchor, menu, viewport) {
+  const margin = 8;
+  const gap = 4;
+  const maxWidth = Math.max(0, viewport.width - margin * 2);
+  const maxHeight = Math.max(0, viewport.height - margin * 2);
+  const width = Math.min(menu.width, maxWidth);
+  const height = Math.min(menu.height, maxHeight);
+  const below = viewport.height - margin - anchor.bottom - gap;
+  const above = anchor.top - gap - margin;
+  const preferredTop =
+    height > below && above > below
+      ? anchor.top - gap - height
+      : anchor.bottom + gap;
+  const clamp = (value, max) => Math.max(margin, Math.min(value, max));
+
+  return {
+    left: clamp(anchor.right - width, viewport.width - margin - width),
+    top: clamp(preferredTop, viewport.height - margin - height),
+    maxWidth,
+    maxHeight,
+  };
+}
 
 /**
- * 划词翻译框的顶部导航栏组件
+ * Header navigation for the selection translation panel.
  *
  * @param {Object} props
- * @param {Function} props.setShowBox - 控制划词翻译框显隐的 React setter
- * @param {boolean} props.simpleStyle - 极简模式开关状态
- * @param {Function} props.setSimpleStyle - 控制极简模式开关的 React setter
- * @param {boolean} props.hideClickAway - 点击外部是否自动隐藏划词框的锁定开关状态
- * @param {Function} props.setHideClickAway - 锁定开关的 React setter
- * @param {boolean} props.followSelection - 划词框是否紧跟选区的定位锁定状态
- * @param {Function} props.setFollowSelection - 定位锁定状态的 React setter
+ * @param {Function} props.setShowBox - React setter for panel visibility.
+ * @param {boolean} props.simpleStyle - Whether minimal mode is enabled.
+ * @param {Function} props.setSimpleStyle - React setter for minimal mode.
+ * @param {boolean} props.hideClickAway - Whether outside clicks can hide the panel.
+ * @param {Function} props.setHideClickAway - React setter for the outside-click lock.
+ * @param {boolean} props.followSelection - Whether the panel follows the selection.
+ * @param {Function} props.setFollowSelection - React setter for selection following.
  */
 function TranBoxHeader({
   setShowBox,
@@ -48,301 +78,224 @@ function TranBoxHeader({
   followSelection,
   setFollowSelection,
 }) {
-  const theme = useTheme();
   const i18n = useI18n();
   const { darkMode, toggleDarkMode } = useDarkMode();
+  const [showMore, setShowMore] = useState(false);
+  const menuId = useId();
+  const menuButtonId = `${menuId}-button`;
+  const menuRef = useRef(null);
+  const menuButtonRef = useRef(null);
+  const focusLastItemRef = useRef(false);
+  const [menuPosition, setMenuPosition] = useState(null);
+  const navigateMenu = useMemo(() => createMenuKeyDownHandler(), []);
 
-  const iconColor = theme.palette.text.secondary;
-
-  // 请求在独立的无边框小窗口中打开翻译框
-  const openSeparateWindow = useCallback(() => {
-    sendBgMsg(MSG_OPEN_SEPARATE_WINDOW);
-    // REVIEW: 在独立小窗口中打开翻译后，并未同时调用 setShowBox(false) 来隐藏当前页面上的划词翻译框，这可能导致页面上残留已打开的翻译框，体验上可进一步优化。
+  const updateMenuPosition = useCallback(() => {
+    const menu = menuRef.current;
+    const button = menuButtonRef.current;
+    if (!menu || !button) return;
+    const header = button.closest(".kt-tranbox-header").getBoundingClientRect();
+    const ownerWindow = button.ownerDocument.defaultView;
+    const position = getOverflowMenuPosition(
+      button.getBoundingClientRect(),
+      menu.getBoundingClientRect(),
+      { width: ownerWindow.innerWidth, height: ownerWindow.innerHeight }
+    );
+    position.left -= header.left;
+    position.top -= header.top;
+    setMenuPosition((previous) =>
+      previous &&
+      Object.keys(position).every((key) => previous[key] === position[key])
+        ? previous
+        : position
+    );
   }, []);
 
-  // 鼠标移出按钮后，自动取消焦点
-  const blurOnLeave = (e) => e.currentTarget.blur();
+  // Refit after panel moves, resizes, or changes between full and minimal mode.
+  useLayoutEffect(() => {
+    if (showMore) updateMenuPosition();
+  });
 
-  // 顶部操作图标按钮的基础通用样式配置
-  const baseBtnStyle = {
-    borderRadius: "6px",
-    padding: "5px",
-    minWidth: "30px",
-    minHeight: "30px",
-    transition: "all 0.2s ease",
-    backgroundColor: "transparent",
-    "& svg": {
-      color: iconColor,
-    },
+  useEffect(() => {
+    if (!showMore) return;
+    const items = menuRef.current?.querySelectorAll('[role^="menuitem"]');
+    items?.[focusLastItemRef.current ? items.length - 1 : 0]?.focus();
+  }, [showMore]);
+
+  useEffect(() => {
+    if (!showMore) return;
+    const ownerWindow = menuButtonRef.current.ownerDocument.defaultView;
+    ownerWindow.addEventListener("resize", updateMenuPosition);
+    return () => ownerWindow.removeEventListener("resize", updateMenuPosition);
+  }, [showMore, updateMenuPosition]);
+
+  useEffect(() => {
+    if (!showMore) return;
+    const ownerDocument = menuButtonRef.current.ownerDocument;
+    const handleOutsideClick = (event) => {
+      const path = event.composedPath();
+      if (
+        path.includes(menuRef.current) ||
+        path.includes(menuButtonRef.current)
+      ) {
+        return;
+      }
+      setShowMore(false);
+    };
+
+    // Capture clicks before the panel isolates them from the host page. The
+    // composed path retains the original target across the selection shadow root.
+    ownerDocument.addEventListener("click", handleOutsideClick, true);
+    return () =>
+      ownerDocument.removeEventListener("click", handleOutsideClick, true);
+  }, [showMore]);
+
+  const handleMenuKeyDown = (event) => {
+    if (event.key === "Escape" || event.key === "Tab") {
+      if (event.key === "Escape") event.preventDefault();
+      event.stopPropagation();
+      setShowMore(false);
+      // For Tab, let the browser continue from the trigger in either direction.
+      menuButtonRef.current?.focus();
+      return;
+    }
+    navigateMenu(event);
   };
 
+  // Request a separate borderless translation window.
+  const openSeparateWindow = useCallback(() => {
+    sendBgMsg(MSG_OPEN_SEPARATE_WINDOW);
+    // REVIEW: Opening a separate window does not call setShowBox(false), so the page's translation panel remains visible. Hiding it could improve the experience.
+  }, []);
+
   return (
-    <Box
-      onMouseUp={(e) => e.stopPropagation()}
-      onTouchEnd={(e) => e.stopPropagation()}
-      sx={{
-        backgroundColor: theme.palette.background.default,
-        padding: "4px 8px 4px 12px",
-        height: "36px",
-        display: "flex",
-        alignItems: "center",
-        minHeight: "auto",
-      }}
-    >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        spacing={1}
-        sx={{
-          width: "100%",
-          height: "100%",
-          minWidth: 0,
-        }}
-      >
-        {/* 左侧：Logo 图标与版本号显示 */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={1}
-          sx={{ minWidth: 0, flex: "1 1 auto", overflow: "hidden" }}
-        >
-          <Box
-            sx={{
-              width: 18,
-              height: 18,
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "4px",
-              backgroundColor: theme.palette.background.paper,
-              border: `1px solid ${theme.palette.divider}`,
-              transition: "all 0.2s ease",
-              "&:hover": {
-                boxShadow: theme.shadows[2],
-                transform: "translateY(-1px)",
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <Logo size={16} />
-          </Box>
+    // Keep stopPropagation on mouseup: the header also starts drags, and bubbling
+    // the release event would interfere with the page's selection handling.
+    <div className="kt-tranbox-header" onMouseUp={(e) => e.stopPropagation()}>
+      <span className="kt-tranbox-header__drag" aria-hidden="true">
+        <DragIndicatorRoundedIcon />
+      </span>
 
-          <Typography
-            variant="caption"
-            sx={{
-              minWidth: 0,
-              fontWeight: 500,
-              fontSize: "12px",
-              color: theme.palette.text.secondary,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
-          </Typography>
-        </Stack>
+      {/* Left: logo and version. */}
+      <span className="kt-tranbox-header__brand">
+        <span className="kt-tranbox-header__logo">
+          <Logo size={16} />
+        </span>
+        <span className="kt-tranbox-header__title">
+          {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
+        </span>
+      </span>
 
-        {/* 右侧：功能控制按钮组 */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={0.5}
-          sx={{ flexShrink: 0 }}
+      {/* Right: always-visible actions. */}
+      <span className="kt-tranbox-header__actions">
+        {/* Lock the panel against outside clicks. */}
+        <IconButton
+          title={i18n("btn_tip_click_away")}
+          aria-pressed={hideClickAway}
+          onClick={() => setHideClickAway((pre) => !pre)}
         >
-          {/* 独立窗口打开 */}
+          {hideClickAway ? <LockOpenIcon /> : <LockIcon />}
+        </IconButton>
+
+        {/* Keep less frequent controls in the overflow menu. */}
+        <IconButton
+          id={menuButtonId}
+          ref={menuButtonRef}
+          title={i18n("more")}
+          aria-expanded={showMore}
+          aria-haspopup="menu"
+          aria-controls={showMore ? menuId : undefined}
+          onClick={() => {
+            focusLastItemRef.current = false;
+            setShowMore((pre) => !pre);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+            event.preventDefault();
+            event.stopPropagation();
+            focusLastItemRef.current = event.key === "ArrowUp";
+            setShowMore(true);
+          }}
+        >
+          <MoreVertIcon />
+        </IconButton>
+
+        {/* Close the translation panel. */}
+        <IconButton title={i18n("close")} onClick={() => setShowBox(false)}>
+          <CloseIcon />
+        </IconButton>
+      </span>
+
+      {showMore && (
+        <div
+          ref={menuRef}
+          id={menuId}
+          className="kt-tranbox-header__menu"
+          style={menuPosition ? { ...menuPosition, right: "auto" } : undefined}
+          role="menu"
+          aria-labelledby={menuButtonId}
+          onKeyDown={handleMenuKeyDown}
+        >
+          {/* Open in a separate window. */}
           {isExt && (
-            <IconButton
-              size="small"
-              title={i18n("open_separate_window")}
+            <button
+              type="button"
+              tabIndex={-1}
+              role="menuitem"
               onClick={openSeparateWindow}
-              onMouseLeave={blurOnLeave}
-              sx={{
-                ...baseBtnStyle,
-                "&:hover": {
-                  backgroundColor: theme.palette.primary.light + "20",
-                  transform: "scale(1.05)",
-                  boxShadow: theme.shadows[2],
-                  "& svg": { color: theme.palette.primary.main },
-                },
-                "&:active": {
-                  transform: "scale(0.95)",
-                  backgroundColor: theme.palette.primary.light + "40",
-                },
-              }}
             >
-              <OpenInNewIcon sx={{ width: 16, height: 16 }} />
-            </IconButton>
+              <OpenInNewIcon />
+              {i18n("open_separate_window")}
+            </button>
           )}
 
-          {/* 锁定划词框 (点击外部不消失) */}
-          <IconButton
-            size="small"
-            title={i18n("btn_tip_click_away")}
-            onMouseLeave={blurOnLeave}
-            onClick={() => setHideClickAway((pre) => !pre)}
-            sx={{
-              ...baseBtnStyle,
-              "&:hover": {
-                backgroundColor: theme.palette.success.light + "20",
-                transform: "scale(1.05)",
-                boxShadow: theme.shadows[2],
-                "& svg": { color: theme.palette.success.main },
-              },
-              "&:active": {
-                transform: "scale(0.95)",
-                backgroundColor: theme.palette.success.light + "40",
-              },
-            }}
-          >
-            {hideClickAway ? (
-              <LockOpenIcon
-                sx={{
-                  width: 16,
-                  height: 16,
-                  color: theme.palette.success.main,
-                }}
-              />
-            ) : (
-              <LockIcon sx={{ width: 16, height: 16 }} />
-            )}
-          </IconButton>
-
-          {/* 固定位置/跟随划词选区位置切换 */}
-          <IconButton
-            size="small"
-            title={i18n("btn_tip_follow_selection")}
-            onMouseLeave={blurOnLeave}
-            onClick={() => setFollowSelection((pre) => !pre)}
-            sx={{
-              ...baseBtnStyle,
-              "&:hover": {
-                backgroundColor: theme.palette.warning.light + "20",
-                transform: "scale(1.05)",
-                boxShadow: theme.shadows[2],
-                "& svg": { color: theme.palette.warning.main },
-              },
-              "&:active": {
-                transform: "scale(0.95)",
-                backgroundColor: theme.palette.warning.light + "40",
-              },
-            }}
-          >
-            {followSelection ? (
-              <PushPinOutlinedIcon
-                sx={{
-                  width: 16,
-                  height: 16,
-                  color: theme.palette.warning.main,
-                }}
-              />
-            ) : (
-              <PushPinIcon sx={{ width: 16, height: 16 }} />
-            )}
-          </IconButton>
-
-          {/* 极简折叠样式切换 */}
-          <IconButton
-            size="small"
-            title={i18n("btn_tip_simple_style")}
-            onMouseLeave={blurOnLeave}
+          {/* Toggle the minimal collapsed style. */}
+          <button
+            type="button"
+            tabIndex={-1}
+            role="menuitemcheckbox"
+            aria-checked={simpleStyle}
             onClick={() => setSimpleStyle((pre) => !pre)}
-            sx={{
-              ...baseBtnStyle,
-              "&:hover": {
-                backgroundColor: theme.palette.info.light + "20",
-                transform: "scale(1.05)",
-                boxShadow: theme.shadows[2],
-                "& svg": { color: theme.palette.info.main },
-              },
-              "&:active": {
-                transform: "scale(0.95)",
-                backgroundColor: theme.palette.info.light + "40",
-              },
-            }}
           >
-            {simpleStyle ? (
-              <UnfoldMoreIcon
-                sx={{ width: 16, height: 16, color: theme.palette.info.main }}
-              />
-            ) : (
-              <UnfoldLessIcon sx={{ width: 16, height: 16 }} />
-            )}
-          </IconButton>
+            {simpleStyle ? <UnfoldMoreIcon /> : <UnfoldLessIcon />}
+            {i18n("btn_tip_simple_style")}
+          </button>
 
-          {/* 深色/浅色/自动主题模式切换 */}
-          <IconButton
-            size="small"
-            title={i18n("btn_tip_dark_mode")}
-            onMouseLeave={blurOnLeave}
+          {/* Toggle between a fixed position and following the selection. */}
+          <button
+            type="button"
+            tabIndex={-1}
+            role="menuitemcheckbox"
+            aria-checked={followSelection}
+            onClick={() => setFollowSelection((pre) => !pre)}
+          >
+            {followSelection ? <PushPinOutlinedIcon /> : <PushPinIcon />}
+            {i18n("btn_tip_follow_selection")}
+          </button>
+
+          {/* Cycle through dark, light, and automatic themes. */}
+          <button
+            type="button"
+            tabIndex={-1}
+            role="menuitem"
             onClick={toggleDarkMode}
-            sx={{
-              ...baseBtnStyle,
-              "&:hover": {
-                backgroundColor: theme.palette.warning.light + "20",
-                transform: "scale(1.05)",
-                boxShadow: theme.shadows[2],
-                "& svg": { color: theme.palette.warning.main },
-              },
-              "&:active": {
-                transform: "scale(0.95)",
-                backgroundColor: theme.palette.warning.light + "40",
-              },
-            }}
           >
             {darkMode === "dark" ? (
-              <DarkModeIcon
-                sx={{
-                  width: 16,
-                  height: 16,
-                  color: theme.palette.warning.main,
-                }}
-              />
+              <DarkModeIcon />
             ) : darkMode === "auto" ? (
-              <BrightnessAutoIcon
-                sx={{
-                  width: 16,
-                  height: 16,
-                  color: theme.palette.info.main,
-                }}
-              />
+              <BrightnessAutoIcon />
             ) : (
-              <LightModeIcon sx={{ width: 16, height: 16 }} />
+              <LightModeIcon />
             )}
-          </IconButton>
-
-          {/* 关闭翻译框 */}
-          <IconButton
-            size="small"
-            title={i18n("close")}
-            onMouseLeave={blurOnLeave}
-            onClick={() => setShowBox(false)}
-            sx={{
-              ...baseBtnStyle,
-              "&:hover": {
-                backgroundColor: theme.palette.error.light + "20",
-                transform: "scale(1.05)",
-                boxShadow: theme.shadows[2],
-                "& svg": { color: theme.palette.error.main },
-              },
-              "&:active": {
-                transform: "scale(0.95)",
-                backgroundColor: theme.palette.error.light + "40",
-              },
-            }}
-          >
-            <CloseIcon sx={{ width: 16, height: 16 }} />
-          </IconButton>
-        </Stack>
-      </Stack>
-    </Box>
+            {i18n("btn_tip_dark_mode")}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
 /**
- * 划词翻译框的内部表单内容渲染容器组件
+ * Container for the selection translation form.
  */
 function TranBoxContent({
   simpleStyle,
@@ -374,6 +327,7 @@ function TranBoxContent({
 
   return (
     <Box
+      className="kt-tranbox-content"
       sx={{
         p: simpleStyle ? 1 : 2,
         backgroundColor: theme.palette.background.paper,
@@ -387,7 +341,7 @@ function TranBoxContent({
         },
         "&::-webkit-scrollbar-thumb": {
           backgroundColor: scrollbarThumbColor,
-          borderRadius: 8,
+          borderRadius: "999px",
           border: `2px solid ${theme.palette.background.paper}`,
         },
         "&::-webkit-scrollbar-thumb:hover": {
@@ -398,13 +352,13 @@ function TranBoxContent({
         scrollbarColor: `${scrollbarThumbColor} ${scrollbarTrackColor}`,
 
         color: isDark
-          ? "rgba(255,255,255,0.82)" // 柔白字体, 避免极暗背景下过于刺眼
+          ? "rgba(255,255,255,0.82)" // Soften white text on very dark backgrounds.
           : theme.palette.text.primary,
 
         lineHeight: 1.55,
       }}
     >
-      {/* 嵌入实际的翻译表单 */}
+      {/* Embed the translation form. */}
       <TranForm
         text={text}
         setText={setText}
@@ -429,7 +383,7 @@ function TranBoxContent({
 }
 
 /**
- * 划词翻译框的主容器入口组件 (控制拖拽外壳及规则分发)
+ * Main selection translation panel, managing its draggable shell and settings.
  */
 export default function TranBox(props) {
   const [mouseHover, setMouseHover] = useState(false);
@@ -442,63 +396,54 @@ export default function TranBox(props) {
   const setFollowSelection = props.setFollowSelection;
 
   let realApiSlugs = props.tranboxSetting.apiSlugs;
-  // 检查是否开启了“如果是单字，则不进行全文大模型/机器翻译，仅展示词典与建议”的性能优化设置
+  // Skip translation for single words when configured to show only dictionary results and suggestions.
   if (props.tranboxSetting.singleWordNoTrans && isValidWord(props.text)) {
-    // 强制清空要调用的翻译引擎 API slugs
+    // Clear the translation engine API slugs.
     realApiSlugs = [];
   }
 
-  return (
-    // 为子组件提供独立翻译框专属的 Setting 上下文
-    <SettingProvider context="tranbox">
-      {/* 提供独立翻译框专属的自定义样式 CSS 作用的主题 */}
-      <ThemeProvider styles={props.extStyles}>
-        {props.showBox && (
-          // 渲染可拖动可缩放的外壳
-          <DraggableResizable
-            position={props.boxPosition}
-            size={props.boxSize}
-            setSize={props.setBoxSize}
-            setPosition={props.setBoxPosition}
-            autoHeight={props.tranboxSetting.autoHeight}
-            header={
-              <TranBoxHeader
-                setShowBox={props.setShowBox}
-                simpleStyle={simpleStyle}
-                setSimpleStyle={setSimpleStyle}
-                hideClickAway={hideClickAway}
-                setHideClickAway={setHideClickAway}
-                followSelection={followSelection}
-                setFollowSelection={setFollowSelection}
-                mouseHover={mouseHover}
-              />
-            }
-            onClick={(e) => e.stopPropagation()}
-            onMouseEnter={() => setMouseHover(true)}
-            onMouseLeave={() => setMouseHover(false)}
-          >
-            <TranBoxContent
-              simpleStyle={simpleStyle}
-              text={props.text}
-              setText={props.setText}
-              apiSlugs={realApiSlugs}
-              fromLang={props.tranboxSetting.fromLang}
-              toLang={props.tranboxSetting.toLang}
-              toLang2={props.tranboxSetting.toLang2}
-              transApis={props.transApis}
-              prompts={props.prompts}
-              langDetector={props.langDetector}
-              translateVariants={props.translateVariants}
-              parseLatex={props.parseLatex}
-              enDict={props.tranboxSetting.enDict}
-              enSug={props.tranboxSetting.enSug}
-              aiDictApiSlug={props.tranboxSetting.aiDictApiSlug}
-              aiDictPromptSlug={props.tranboxSetting.aiDictPromptSlug}
-              selectionContext={props.selectionContext}
-            />
-          </DraggableResizable>
-        )}
-      </ThemeProvider>
-    </SettingProvider>
-  );
+  return props.showBox ? (
+    <DraggableResizable
+      position={props.boxPosition}
+      size={props.boxSize}
+      setSize={props.setBoxSize}
+      setPosition={props.setBoxPosition}
+      autoHeight={props.tranboxSetting.autoHeight}
+      header={
+        <TranBoxHeader
+          setShowBox={props.setShowBox}
+          simpleStyle={simpleStyle}
+          setSimpleStyle={setSimpleStyle}
+          hideClickAway={hideClickAway}
+          setHideClickAway={setHideClickAway}
+          followSelection={followSelection}
+          setFollowSelection={setFollowSelection}
+          mouseHover={mouseHover}
+        />
+      }
+      onClick={(e) => e.stopPropagation()}
+      onMouseEnter={() => setMouseHover(true)}
+      onMouseLeave={() => setMouseHover(false)}
+    >
+      <TranBoxContent
+        simpleStyle={simpleStyle}
+        text={props.text}
+        setText={props.setText}
+        apiSlugs={realApiSlugs}
+        fromLang={props.tranboxSetting.fromLang}
+        toLang={props.tranboxSetting.toLang}
+        toLang2={props.tranboxSetting.toLang2}
+        transApis={props.transApis}
+        prompts={props.prompts}
+        langDetector={props.langDetector}
+        translateVariants={props.translateVariants}
+        parseLatex={props.parseLatex}
+        enDict={props.tranboxSetting.enDict}
+        enSug={props.tranboxSetting.enSug}
+        aiDictApiSlug={props.tranboxSetting.aiDictApiSlug}
+        aiDictPromptSlug={props.tranboxSetting.aiDictPromptSlug}
+        selectionContext={props.selectionContext}
+      />
+    </DraggableResizable>
+  ) : null;
 }
