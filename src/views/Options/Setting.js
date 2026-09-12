@@ -31,6 +31,9 @@ import {
   DEFAULT_BLACKLIST,
   DEFAULT_CSPLIST,
   DEFAULT_ORILIST,
+  OPT_POPUP_DEFAULT_VIEW_PAGE,
+  OPT_POPUP_DEFAULT_VIEW_TEXT,
+  OPT_POPUP_DEFAULT_VIEW_ALL,
   MSG_CONTEXT_MENUS,
   MSG_UPDATE_CSP,
   DEFAULT_HTTP_TIMEOUT,
@@ -282,7 +285,13 @@ export default function Settings() {
     translateVariants = true,
     parseLatex = false,
     autoTranslateClipboard = false,
+    popupDefaultView = OPT_POPUP_DEFAULT_VIEW_PAGE,
   } = setting;
+  const normalizedPopupDefaultView = OPT_POPUP_DEFAULT_VIEW_ALL.includes(
+    popupDefaultView
+  )
+    ? popupDefaultView
+    : OPT_POPUP_DEFAULT_VIEW_PAGE;
   // 解构 FAB 悬浮球的显隐状态及点击后的默认交互行为
   const {
     isHide = false,
@@ -334,6 +343,27 @@ export default function Settings() {
                 ))}
               </TextField>
             </Grid>
+            {/* 工具栏弹窗打开时默认显示的界面 (仅 Extension 模式) */}
+            {isExt && (
+              <Grid item xs={12} sm={12} md={6} lg={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  name="popupDefaultView"
+                  value={normalizedPopupDefaultView}
+                  label={i18n("popup_default_view")}
+                  onChange={handleChange}
+                >
+                  <MenuItem value={OPT_POPUP_DEFAULT_VIEW_PAGE}>
+                    {i18n("popup_default_view_page")}
+                  </MenuItem>
+                  <MenuItem value={OPT_POPUP_DEFAULT_VIEW_TEXT}>
+                    {i18n("popup_default_view_text")}
+                  </MenuItem>
+                </TextField>
+              </Grid>
+            )}
             {/* 页面打开时是否预先初始化运行环境 */}
             <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField

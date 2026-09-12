@@ -57,12 +57,15 @@ jest.mock("./PopupCont", () => {
 
 jest.mock("../Selection/TranForm", () => {
   const React = require("react");
-  return () =>
+  return ({ autoFocusInput }) =>
     React.createElement(
       "div",
       null,
       "translation",
-      React.createElement("input", { "aria-label": "translation-input" })
+      React.createElement("input", {
+        "aria-label": "translation-input",
+        autoFocus: autoFocusInput,
+      })
     );
 });
 
@@ -91,6 +94,33 @@ describe("Popup focus", () => {
     });
 
     expect(sendBgMsg).toHaveBeenCalledWith(MSG_OPEN_OPTIONS);
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  test("keeps input autofocus when the configured default is the text tab", async () => {
+    mockSetting = {
+      tranboxSetting: {},
+      autoTranslateClipboard: false,
+      popupDefaultView: "text",
+    };
+    mockSendTabMsg.mockReturnValue(new Promise(() => {}));
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<Popup />);
+      await Promise.resolve();
+    });
+
+    expect(
+      container.querySelector('[role="tab"][aria-selected="true"]').textContent
+    ).toBe("popup_text_translation");
+    expect(document.activeElement).toBe(
+      container.querySelector('[aria-label="translation-input"]')
+    );
+
     act(() => root.unmount());
     container.remove();
   });
