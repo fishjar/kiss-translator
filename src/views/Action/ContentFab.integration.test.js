@@ -1,3 +1,6 @@
+jest.mock("../../hooks/MouseHover", () => ({
+  useMouseHoverSetting: () => ({ updateMouseHoverSetting: jest.fn() }),
+}));
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -39,6 +42,11 @@ describe.each(["document", "shadow root"])(
     let outsideHost;
 
     beforeEach(() => {
+      window.PointerEvent = MouseEvent;
+      Object.defineProperty(navigator, "maxTouchPoints", {
+        configurable: true,
+        value: 0,
+      });
       jest.useFakeTimers();
       jest
         .spyOn(HTMLElement.prototype, "getBoundingClientRect")
@@ -98,6 +106,51 @@ describe.each(["document", "shadow root"])(
       act(() =>
         target.dispatchEvent(new Event(type, { bubbles: true, composed: true }))
       );
+
+    test("real touch control survives Portal clicks and synchronizes on reopen", async () => {
+      Object.defineProperty(navigator, "maxTouchPoints", {
+        configurable: true,
+        value: 2,
+      });
+      let mode = "off";
+      processActions.mockImplementation(({ args }) => {
+        if (args?.mode) mode = args.mode;
+        return {
+          touchTranslate: { mode, supported: true, direction: "right" },
+        };
+      });
+      render();
+      openMenu();
+      await act(async () => {
+        Array.from(menu().querySelectorAll('[role="menuitem"]'))
+          .find((el) => el.textContent === "touch_paragraph")
+          .click();
+      });
+      const select = menu().querySelector('[role="combobox"]');
+      act(() =>
+        select.dispatchEvent(
+          new MouseEvent("mousedown", {
+            bubbles: true,
+            composed: true,
+            button: 0,
+          })
+        )
+      );
+      await act(async () => {
+        document.querySelector('[data-value="tap"]').click();
+      });
+      expect(menu()).not.toBeNull();
+      expect(select.textContent).toBe("touch_tap");
+      click(document.body);
+      expect(menu()).toBeNull();
+      openMenu();
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(menu().querySelector('[role="combobox"]').textContent).toBe(
+        "touch_tap"
+      );
+    });
 
     test.each(["menu surface", "disabled item"])(
       "the first outside click closes after clicking the %s",

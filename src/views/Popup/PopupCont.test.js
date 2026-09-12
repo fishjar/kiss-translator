@@ -1,3 +1,17 @@
+let mockRealTouchControl = false;
+jest.mock(
+  "../../components/TouchTranslateControl",
+  () => (props) =>
+    mockRealTouchControl
+      ? require("react").createElement(
+          jest.requireActual("../../components/TouchTranslateControl").default,
+          props
+        )
+      : null
+);
+jest.mock("../../hooks/MouseHover", () => ({
+  useMouseHoverSetting: () => ({ updateMouseHoverSetting: jest.fn() }),
+}));
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import { act, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -150,6 +164,7 @@ function renderPopupCont(props = {}, { statefulRule = false } = {}) {
 
 describe("PopupCont capability parity", () => {
   beforeEach(() => {
+    mockRealTouchControl = false;
     mockIsExt = false;
     tryClearCaches.mockReset();
     tryClearCaches.mockResolvedValue(true);
@@ -166,6 +181,64 @@ describe("PopupCont capability parity", () => {
   afterEach(() => {
     jest.useRealTimers();
     document.body.innerHTML = "";
+  });
+
+  test("real touch controls appear below the hero and use the page receiver", async () => {
+    mockRealTouchControl = true;
+    window.PointerEvent = MouseEvent;
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      value: 2,
+    });
+    const processActions = jest.fn(({ args }) => ({
+      touchTranslate: {
+        mode: args?.mode || "off",
+        supported: true,
+        direction: "right",
+      },
+    }));
+    const view = renderPopupCont({ processActions, isContent: true });
+    try {
+      await flushEffects();
+      const control = view.container.querySelector("[data-kiss-touch-ui]");
+      const hero = view.container.querySelector(".kt-popup-hero");
+      expect(
+        hero.compareDocumentPosition(control) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      act(() =>
+        control
+          .querySelector('[role="combobox"]')
+          .dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, button: 0 })
+          )
+      );
+      await act(async () =>
+        document.querySelector('[data-value="tap"]').click()
+      );
+      expect(control.querySelector('[role="combobox"]').textContent).toBe(
+        "touch_tap"
+      );
+    } finally {
+      view.cleanup();
+    }
+  }, 15000);
+
+  test("real touch controls remain silent without an injected receiver", async () => {
+    mockRealTouchControl = true;
+    window.PointerEvent = MouseEvent;
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      value: 2,
+    });
+    const view = renderPopupCont();
+    try {
+      await flushEffects();
+      expect(view.container.querySelector("[data-kiss-touch-ui]")).toBeNull();
+      expect(view.container.textContent).not.toContain("touch_failed");
+      expect(view.container.querySelector(".kt-popup-hero")).not.toBeNull();
+    } finally {
+      view.cleanup();
+    }
   });
 
   test("opens the rule editor from the content popup without closing the page", async () => {
