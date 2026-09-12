@@ -185,8 +185,8 @@ export default function Layout() {
         i18n("options_selection_description"),
       ],
       "/mousehover": [
-        i18n("mousehover_translate"),
-        i18n("options_hover_description"),
+        i18n("touch_paragraph"),
+        i18n("touch_settings_description"),
       ],
       "/input": [i18n("input_translate"), i18n("options_input_description")],
       "/subtitle": [

@@ -1,3 +1,14 @@
+jest.mock(
+  "./shadowDomManager",
+  () =>
+    class {
+      show = jest.fn();
+      destroy = jest.fn();
+    }
+);
+jest.mock("../components/TouchTranslateControl", () => ({
+  TouchTranslateStatus: () => null,
+}));
 const mockTranslatorInstances = [];
 const mockTranslatorArgs = [];
 const mockTransboxInstances = [];
@@ -28,6 +39,8 @@ jest.mock("../config", () => ({
   MSG_TRANSBOX_TOGGLE: "transbox-toggle",
   MSG_POPUP_TOGGLE: "popup-toggle",
   MSG_MOUSEHOVER_TOGGLE: "mousehover-toggle",
+  MSG_TOUCH_TRANSLATE_MODE_SET: "touch-mode-set",
+  MSG_TOUCH_TRANSLATE_STATE: "touch-state",
   MSG_TRANSINPUT_TOGGLE: "transinput-toggle",
   OPT_SHORTCUT_TRANSLATE: "translate",
   OPT_SHORTCUT_TRANSONLY: "transonly",
@@ -57,6 +70,7 @@ jest.mock("./translator", () => ({
       stop: jest.fn(function stop() {
         this.rule.transOpen = "false";
       }),
+      setTouchMode: jest.fn((mode) => mode),
       rescan: jest.fn(),
       toggle: jest.fn(),
       enable: jest.fn(),
@@ -173,6 +187,7 @@ function setupMockConstructors() {
       stop: jest.fn(function stop() {
         this.rule.transOpen = "false";
       }),
+      setTouchMode: jest.fn((mode) => mode),
       rescan: jest.fn(),
       toggle: jest.fn(),
       enable: jest.fn(),
@@ -327,6 +342,33 @@ describe("TranslatorManager SPA lifecycle", () => {
     expect(mockPopupInstances[0].destroy).toHaveBeenCalledTimes(1);
     expect(mockFabInstances[0].destroy).toHaveBeenCalledTimes(1);
     expect(browser.runtime.onMessage.addListener).toHaveBeenCalledTimes(1);
+  });
+
+  test("touch mode is document-local and survives runtime recreation", () => {
+    const manager = createManager();
+    manager.start();
+    expect(
+      sendRuntimeMessage({ action: "touch-state" }).touchTranslate.mode
+    ).toBe("off");
+    expect(
+      sendRuntimeMessage({ action: "touch-mode-set", args: { mode: "tap" } })
+        .touchTranslate.mode
+    ).toBe("tap");
+    manager.restart();
+    expect(mockTranslatorInstances[1].setTouchMode).toHaveBeenCalledWith("tap");
+    expect(mockTranslatorArgs[1].setting.mouseHoverSetting).toEqual({
+      useMouseHover: false,
+    });
+    manager.stop();
+    const nextDocument = createManager();
+    nextDocument.start();
+    const respond = jest.fn();
+    browser.runtime.onMessage.addListener.mock.calls.at(-1)[0](
+      { action: "touch-state" },
+      {},
+      respond
+    );
+    expect(respond.mock.calls[0][0].touchTranslate.mode).toBe("off");
   });
 
   test("does not restart after stop", async () => {

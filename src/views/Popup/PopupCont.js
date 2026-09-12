@@ -1,3 +1,4 @@
+import TouchTranslateControl from "../../components/TouchTranslateControl";
 import {
   useCallback,
   useEffect,
@@ -570,6 +571,7 @@ export default function PopupCont({
         })}
       </div>
 
+      <TouchTranslateControl processActions={processActions} />
       <div className="kt-popup-site">
         <div className="kt-popup-site__top">
           <select

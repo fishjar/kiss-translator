@@ -153,7 +153,38 @@ export default function MouseHoverSetting() {
 
   return (
     <Box>
-      <SettingsSection>
+      <SettingsSection title={i18n("touch_controls")}>
+        <SettingsCard>
+          <SettingsRow
+            label={i18n("touch_mode")}
+            description={i18n("touch_help")}
+          >
+            <SettingsSegmented
+              value={mouseHoverSetting.touchMode || "tap"}
+              label={i18n("touch_mode")}
+              onChange={(touchMode) => updateMouseHoverSetting({ touchMode })}
+              items={[
+                { value: "tap", label: i18n("touch_tap") },
+                { value: "swipe", label: i18n("touch_swipe") },
+              ]}
+            />
+          </SettingsRow>
+          <SettingsRow label={i18n("touch_direction")}>
+            <SettingsSegmented
+              value={mouseHoverSetting.touchDirection || "right"}
+              label={i18n("touch_direction")}
+              onChange={(touchDirection) =>
+                updateMouseHoverSetting({ touchDirection })
+              }
+              items={[
+                { value: "right", label: i18n("touch_right") },
+                { value: "left", label: i18n("touch_left") },
+              ]}
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </SettingsSection>
+      <SettingsSection title={i18n("touch_mouse")}>
         <SettingsCard>
           <SettingsRow label={i18n("use_mousehover_translation")}>
             <SettingsSwitch
