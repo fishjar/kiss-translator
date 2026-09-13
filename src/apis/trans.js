@@ -235,6 +235,7 @@ const buildSubtitleUserPrompt = ({ formattedEvents }) =>
  * @returns {Array<[string, string]>} 解析后的双元组列表 [译文, 源语言检测结果]
  */
 const parseAIRes = (raw, useBatchFetch = true) => {
+  // raw 无效返回无效解析
   if (!raw) {
     return [];
   }
@@ -257,11 +258,8 @@ const parseAIRes = (raw, useBatchFetch = true) => {
     return structuredSegments.map((segment) => segment.translation);
   }
 
-  // 兜底策略：纯文本按行切割解析
-  return content.split("\n").map((line) => {
-    const text = decodeHTMLEntities(line.replace(/<br\s*\/?>/gi, "\n").trim());
-    return [text, ""];
-  });
+  // 兜底返回无效解析
+  return []
 };
 
 /** 依据时间差计算旧版字幕输入使用的停顿等级。 */
