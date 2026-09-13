@@ -232,9 +232,10 @@ const buildSubtitleUserPrompt = ({ formattedEvents }) =>
  * 完美解决大模型在翻译时常混杂的 Markdown、未闭合 JSON、XML、数字列表及无规换行文本的纠错与规避问题。
  * @param {string} raw 大模型返回的原始字符串内容
  * @param {boolean} useBatchFetch 是否为批量翻译模式
+ * @param {string} batchSegmentFormat 批量翻译分片格式，可选值：auto、json、xml、line
  * @returns {Array<[string, string]>} 解析后的双元组列表 [译文, 源语言检测结果]
  */
-const parseAIRes = (raw, useBatchFetch = true) => {
+const parseAIRes = (raw, useBatchFetch = true, batchSegmentFormat = "auto") => {
   if (!raw) {
     return [];
   }
@@ -252,6 +253,7 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   // 清洗自定义标签后导致非流式路径拿不到 <t> 译文。
   const structuredSegments = parseCompleteTranslationSegments(content, {
     decodeText: decodeHTMLEntities,
+    segmentFormat: batchSegmentFormat,
   });
   if (structuredSegments.length > 0) {
     return structuredSegments.map((segment) => segment.translation);
@@ -1562,6 +1564,7 @@ export const parseTransRes = async (
     userMsg,
     apiType,
     useBatchFetch,
+    batchSegmentFormat,
     textFormat = "text",
   }
 ) => {
@@ -1680,7 +1683,7 @@ export const parseTransRes = async (
         // 成对写入与轮次截断守卫统一内聚在 addPair：空正文/非 assistant role 整对不写
         history.addPair(userMsg, modelMsg);
       }
-      return parseAIRes(modelMsg?.content, useBatchFetch);
+      return parseAIRes(modelMsg?.content, useBatchFetch, batchSegmentFormat);
     case OPT_TRANS_GEMINI:
       // Gemini Interactions steps may include thought items.
       // Their context replay semantics are outside this history-correctness fix.
@@ -1694,7 +1697,11 @@ export const parseTransRes = async (
           history.add(userMsg, modelMsg);
         }
       }
-      return parseAIRes(geminiResponseText(res), useBatchFetch);
+      return parseAIRes(
+        geminiResponseText(res),
+        useBatchFetch,
+        batchSegmentFormat
+      );
     case OPT_TRANS_CLAUDE: {
       // 历史上下文取值必须做形态归一化，原因有三：
       // 1. 形态防御：响应 content 存在多种形态 —— Anthropic 标准的块数组
@@ -1725,7 +1732,11 @@ export const parseTransRes = async (
       if (history && userMsg) {
         history.addPair(userMsg, modelMsg);
       }
-      return parseAIRes(res?.content?.[0]?.text ?? "", useBatchFetch);
+      return parseAIRes(
+        res?.content?.[0]?.text ?? "",
+        useBatchFetch,
+        batchSegmentFormat
+      );
     }
     case OPT_TRANS_CLOUDFLAREAI:
       return [[res?.result?.translated_text]];
@@ -1742,7 +1753,7 @@ export const parseTransRes = async (
       if (history && userMsg) {
         history.addPair(userMsg, modelMsg);
       }
-      return parseAIRes(modelMsg?.content, useBatchFetch);
+      return parseAIRes(modelMsg?.content, useBatchFetch, batchSegmentFormat);
     case OPT_TRANS_CUSTOMIZE:
       if (useBatchFetch) {
         return (res?.translations ?? res)?.map((item) => [item.text, item.src]);
@@ -2081,6 +2092,7 @@ export async function* handleTranslate(
         httpTimeout,
         signal,
         streamRenderMode: apiSetting.streamRenderMode || "disabled",
+        batchSegmentFormat: apiSetting.batchSegmentFormat,
       });
       return;
     } catch (err) {
@@ -2117,6 +2129,7 @@ async function* handleTranslateStreamInternal(
     httpTimeout,
     signal,
     streamRenderMode,
+    batchSegmentFormat,
   }
 ) {
   const results = new Array(texts.length).fill(null);
@@ -2211,7 +2224,7 @@ async function* handleTranslateStreamInternal(
   // 最终再解析一次，捕获可能遗漏的段落
   const hasEmpty = results.some((r) => !r);
   if (hasEmpty) {
-    const parsed = parseAIRes(fullContent, useBatchFetch);
+    const parsed = parseAIRes(fullContent, useBatchFetch, batchSegmentFormat);
     for (let i = 0; i < texts.length && i < parsed.length; i++) {
       if (!results[i]) {
         results[i] = parsed[i];

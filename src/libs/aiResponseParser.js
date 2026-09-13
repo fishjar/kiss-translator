@@ -192,18 +192,44 @@ export const parseLineTranslationSegments = (
 /**
  * 按完整响应的优先级解析结构化翻译结果。
  *
- * 优先级保持与 prompt 约束一致：JSON 最明确，其次 XML，最后 LINE。纯文本兜底不放在这里，
- * 由调用方决定；非流式 `parseAIRes` 会在本函数无结果时按普通文本逐行降级。
+ * 明确解析格式为`json`,`xml`,`line`时，无法解析抛出异常
+ * 否则按照 json xml line 隐式回退静默失败
  *
  * @param {string} content 完整模型输出
  * @param {Object} options 解析选项
  * @param {Function} options.decodeText 译文文本解码函数
+ * @param {string} options.segmentFormat 分段格式，可选值：auto、json、xml、line
  * @returns {Array<{id: number, translation: [string, string]}>} 解析出的段落列表
  */
 export const parseCompleteTranslationSegments = (
   content,
-  { decodeText = identity } = {}
+  { decodeText = identity, segmentFormat } = {}
 ) => {
+  // FIXME: 可能不应该将空数组视为无法解析 但解析器没有明确的失败响应可用
+  switch (segmentFormat) {
+    case "json":
+      const jsonSegments = parseJsonTranslationSegments(content, {
+        decodeText,
+      });
+      if (jsonSegments.length === 0) {
+        throw new Error("Failed to parse JSON segments");
+      }
+      return jsonSegments;
+    case "xml":
+      const xmlSegments = parseXmlTranslationSegments(content);
+      if (xmlSegments.length === 0) {
+        throw new Error("Failed to parse XML segments");
+      }
+      return xmlSegments;
+    case "line":
+      const lineSegments = parseLineTranslationSegments(content, {
+        decodeText,
+      });
+      if (lineSegments.length === 0) {
+        throw new Error("Failed to parse LINE segments");
+      }
+      return lineSegments;
+  }
   const jsonSegments = parseJsonTranslationSegments(content, { decodeText });
   if (jsonSegments.length > 0) return jsonSegments;
 

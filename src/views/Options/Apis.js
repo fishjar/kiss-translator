@@ -495,6 +495,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     nobatchPromptSlug = "",
     subtitlePromptSlug = "",
     dictPromptSlug = "",
+    batchSegmentFormat = "auto",
   } = activeFormData;
   const contextForcesSerialBatch =
     useContext && API_SPE_TYPES.context.has(apiType);
@@ -559,6 +560,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
   )
     ? dictPromptSlug
     : DEFAULT_DICTIONARY_PROMPT_SLUG;
+  const selectedBatchSegmentFormat = Object.prototype.hasOwnProperty.call(
+    activeFormData,
+    "batchSegmentFormat"
+  )
+    ? batchSegmentFormat
+    : "auto";
   const nobatchPromptOptions = useMemo(
     () => getNobatchPromptOptions(prompts),
     [prompts]
@@ -1280,6 +1287,31 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     {getPromptDisplayName(prompt, i18n)}
                   </MenuItem>
                 ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="batchSegmentFormat"
+                value={selectedBatchSegmentFormat}
+                label={i18n("batch_format", "聚合翻译格式")}
+                onChange={handlePromptChange}
+                helperText={i18n("batch_format_helper", "不建议同时使用流式传输和批量请求时使用不使用自动格式")}
+              >
+                <MenuItem value="auto">
+                  {i18n("batch_format_auto", "自动")}
+                </MenuItem>
+                <MenuItem value="json">
+                  {i18n("batch_format_json", "JSON")}
+                </MenuItem>
+                <MenuItem value="xml">
+                  {i18n("batch_format_xml", "XML")}
+                </MenuItem>
+                <MenuItem value="line">
+                  {i18n("batch_format_line", "LINE")}
+                </MenuItem>
               </TextField>
             </Grid>
           </Grid>

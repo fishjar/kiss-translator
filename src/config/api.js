@@ -1549,6 +1549,7 @@ const defaultAiApiOpts = {
   thinkingEffort: "_default", // 思考强度：_default=接口默认,不注入参数
   useStream: true, // 是否启用流式传输
   streamRenderMode: "realtime", // 流式渲染模式：disabled/realtime/segment
+  batchSegmentFormat: "auto", // 聚合响应分片格式: auto | json | xml | line
 };
 
 const defaultApiOpts = {
