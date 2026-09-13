@@ -59,7 +59,7 @@ describe("BrowserTtsBtn", () => {
     });
   });
 
-  test("highlights while speaking and ignores repeated clicks until speech ends", () => {
+  test("keeps focus while speaking and ignores repeated activations until speech ends", () => {
     let onEnd;
     speak.mockImplementation((text, lang, callbacks) => {
       onEnd = callbacks.onEnd;
@@ -70,12 +70,17 @@ describe("BrowserTtsBtn", () => {
     const button = container.querySelector("button");
 
     act(() => {
-      button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      button.focus();
+      button.click();
+      // The second activation arrives before React renders the busy state.
+      button.click();
     });
 
     expect(speak).toHaveBeenCalledTimes(1);
     expect(button.className).toContain("MuiIconButton-colorPrimary");
-    expect(button.disabled).toBe(true);
+    expect(button.disabled).toBe(false);
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(document.activeElement).toBe(button);
     expect(button.getAttribute("aria-busy")).toBe("true");
     expect(button.getAttribute("aria-pressed")).toBe("true");
 
@@ -84,6 +89,7 @@ describe("BrowserTtsBtn", () => {
     });
 
     expect(speak).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(button);
 
     act(() => {
       onEnd();
@@ -91,6 +97,8 @@ describe("BrowserTtsBtn", () => {
 
     expect(button.className).not.toContain("MuiIconButton-colorPrimary");
     expect(button.disabled).toBe(false);
+    expect(button.getAttribute("aria-disabled")).toBe("false");
+    expect(document.activeElement).toBe(button);
 
     act(() => {
       button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -101,6 +109,22 @@ describe("BrowserTtsBtn", () => {
     act(() => {
       root.unmount();
     });
+  });
+
+  test("releases its activation guard when speech cannot start", () => {
+    speak.mockReturnValue(false);
+    const { container, root } = renderBrowserTtsBtn();
+    const button = container.querySelector("button");
+    act(() => {
+      button.focus();
+      button.click();
+    });
+    expect(button.getAttribute("aria-disabled")).toBe("false");
+    expect(button.getAttribute("aria-busy")).toBe("false");
+    expect(document.activeElement).toBe(button);
+    act(() => button.click());
+    expect(speak).toHaveBeenCalledTimes(2);
+    act(() => root.unmount());
   });
 });
 

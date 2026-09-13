@@ -173,14 +173,19 @@ describe("TranCont", () => {
     act(() => root.unmount());
   });
 
-  test("renders the Popup M3 result card with copy and speech actions", async () => {
+  test("renders an accessible read-only result with copy and speech actions", async () => {
     apiTranslate.mockResolvedValueOnce({ trText: "译文" });
-    const { container, root } = renderTranCont({ popupStyle: true });
+    const { container, root } = renderTranCont();
     await flushEffects();
 
-    const result = container.querySelector(".kt-popup-translation-result");
+    const result = container.querySelector(".kt-translation-result");
     expect(result).not.toBeNull();
-    expect(result.textContent).toContain("译文");
+    const textarea = result.querySelector('textarea:not([aria-hidden="true"])');
+    expect(textarea.value).toBe("译文");
+    expect(textarea.readOnly).toBe(true);
+    expect(textarea.getAttribute("aria-label")).toBe(
+      "translated_text - OpenAI"
+    );
     expect(result.querySelector("[data-copy-text]").dataset.copyText).toBe(
       "译文"
     );
@@ -191,23 +196,23 @@ describe("TranCont", () => {
   });
 
   test.each(["", " \t\r\n "])(
-    "shows the Popup input hint for empty or whitespace source %j",
+    "keeps the result empty for empty or whitespace source %j",
     async (text) => {
-      const { container, root } = renderTranCont({ text, popupStyle: true });
+      const { container, root } = renderTranCont({ text });
       await flushEffects();
 
-      const body = container.querySelector(
-        ".kt-popup-translation-result__body"
+      const textarea = container.querySelector(
+        'textarea[readonly]:not([aria-hidden="true"])'
       );
-      expect(body.textContent).toBe("popup_enter_text");
-      expect(body.getAttribute("aria-busy")).toBe("false");
+      expect(textarea.value).toBe("");
+      expect(textarea.getAttribute("aria-busy")).toBe("false");
       expect(container.querySelector("[data-copy-text]")).toBeNull();
       expect(apiTranslate).not.toHaveBeenCalled();
       act(() => root.unmount());
     }
   );
 
-  test("keeps the Popup result empty when automatic detection matches the target language", async () => {
+  test("keeps the result empty when automatic detection matches the target language", async () => {
     apiTranslate.mockResolvedValueOnce({
       trText: "hello",
       srLang: "en",
@@ -218,7 +223,6 @@ describe("TranCont", () => {
       text: "hello",
       fromLang: "auto",
       toLang: "en",
-      popupStyle: true,
     });
     await flushEffects();
 
@@ -229,34 +233,40 @@ describe("TranCont", () => {
         toLang: "en",
       })
     );
-    const body = container.querySelector(".kt-popup-translation-result__body");
-    expect(body.textContent).toBe("");
-    expect(body.getAttribute("aria-busy")).toBe("false");
+    const textarea = container.querySelector(
+      'textarea[readonly]:not([aria-hidden="true"])'
+    );
+    expect(textarea.value).toBe("");
+    expect(textarea.getAttribute("aria-busy")).toBe("false");
     expect(container.querySelector("[data-copy-text]")).toBeNull();
     act(() => root.unmount());
   });
 
-  test("keeps the Popup result empty when a successful translation returns no text", async () => {
+  test("keeps the result empty when a successful translation returns no text", async () => {
     apiTranslate.mockResolvedValueOnce({ trText: "", isSame: false });
-    const { container, root } = renderTranCont({ popupStyle: true });
+    const { container, root } = renderTranCont();
     await flushEffects();
 
     expect(apiTranslate).toHaveBeenCalledTimes(1);
-    const body = container.querySelector(".kt-popup-translation-result__body");
-    expect(body.textContent).toBe("");
-    expect(body.getAttribute("aria-busy")).toBe("false");
+    const textarea = container.querySelector(
+      'textarea[readonly]:not([aria-hidden="true"])'
+    );
+    expect(textarea.value).toBe("");
+    expect(textarea.getAttribute("aria-busy")).toBe("false");
     expect(container.querySelector("[data-copy-text]")).toBeNull();
     act(() => root.unmount());
   });
 
-  test("keeps the Popup copy action hidden until translation text exists", async () => {
+  test("keeps the copy action hidden until translation text exists", async () => {
     const deferred = createDeferred();
     apiTranslate.mockReturnValueOnce(deferred.promise);
-    const { container, root } = renderTranCont({ popupStyle: true });
+    const { container, root } = renderTranCont();
     await flushEffects();
 
-    const body = container.querySelector(".kt-popup-translation-result__body");
-    expect(body.getAttribute("aria-busy")).toBe("true");
+    const textarea = container.querySelector(
+      'textarea[readonly]:not([aria-hidden="true"])'
+    );
+    expect(textarea.getAttribute("aria-busy")).toBe("true");
     expect(container.querySelector("[data-copy-text]")).toBeNull();
 
     await act(async () => {
@@ -273,7 +283,7 @@ describe("TranCont", () => {
       deferred.resolve({ trText: "final translation" });
       await deferred.promise;
     });
-    expect(body.getAttribute("aria-busy")).toBe("false");
+    expect(textarea.getAttribute("aria-busy")).toBe("false");
     act(() => root.unmount());
   });
 

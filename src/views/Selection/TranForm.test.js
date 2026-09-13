@@ -37,7 +37,6 @@ jest.mock("./TranCont", () => {
     translateVariants,
     detectedLang,
     sourceDetectionPending,
-    popupStyle,
   }) =>
     React.createElement("div", {
       "data-testid": "tran-cont",
@@ -45,7 +44,6 @@ jest.mock("./TranCont", () => {
       "data-text": text,
       "data-to-lang": toLang,
       "data-translate-variants": String(translateVariants),
-      "data-popup-style": String(Boolean(popupStyle)),
       "data-detected-lang": detectedLang,
       "data-source-detection-pending": String(sourceDetectionPending),
     });
@@ -767,13 +765,13 @@ describe("TranForm AI dictionary revalidates stale settings", () => {
   });
 });
 
-describe("TranForm popup input", () => {
+describe("TranForm source input", () => {
   beforeEach(() => {
     apiDict.mockReset();
     document.body.innerHTML = "";
   });
 
-  test("pastes clipboard text into an empty popup input", async () => {
+  test("pastes clipboard text into an empty source input", async () => {
     const setText = jest.fn();
     const readText = jest.fn().mockResolvedValue("  clipboard text  ");
     Object.defineProperty(navigator, "clipboard", {
@@ -783,11 +781,11 @@ describe("TranForm popup input", () => {
     const { container, root } = renderTranForm({
       text: "",
       setText,
-      popupStyle: true,
+      simpleStyle: false,
     });
     await flushEffects();
 
-    const pasteButton = container.querySelector('button[aria-label="paste"]');
+    const pasteButton = container.querySelector('button[title="paste"]');
     expect(pasteButton).not.toBeNull();
 
     await act(async () => {
@@ -813,29 +811,14 @@ describe("TranForm popup input", () => {
         {
           text: "library",
           setText,
-          popupStyle: true,
+          simpleStyle: false,
         },
         { shadow: fullscreen }
       );
       const cleanupFullscreen = fullscreen ? mountInFullscreen(host) : null;
       const textarea = container.querySelector("textarea");
       expect(textarea.classList).toContain("kt-resizable-textarea");
-      expect(textarea.parentElement.classList).toContain(
-        "kt-popup-translation-textarea"
-      );
-      const inputContainer = textarea.closest(".kt-popup-translation-input");
-      expect(inputContainer.classList).toContain(
-        "kt-popup-translation-input--focused"
-      );
-
-      act(() => Simulate.blur(textarea));
-      expect(inputContainer.classList).not.toContain(
-        "kt-popup-translation-input--focused"
-      );
-      act(() => Simulate.focus(textarea));
-      expect(inputContainer.classList).toContain(
-        "kt-popup-translation-input--focused"
-      );
+      expect(textarea.closest(".kt-translation-source")).not.toBeNull();
 
       act(() => {
         const setTextareaValue = Object.getOwnPropertyDescriptor(
@@ -861,34 +844,6 @@ describe("TranForm popup input", () => {
       cleanupFullscreen?.();
     }
   );
-
-  test("shows M3 results before the expandable service choices", () => {
-    const { container, root } = renderTranForm({
-      apiSlugs: ["openai"],
-      popupStyle: true,
-    });
-    const form = container.querySelector(".kt-popup-translation-form");
-    const results = form.querySelector(".kt-popup-translation-results");
-    const compareButton = form.querySelector(".kt-popup-translation-compare");
-
-    expect(results.querySelector('[data-popup-style="true"]')).not.toBeNull();
-    expect(form.querySelector(".kt-popup-translation-services")).toBeNull();
-
-    act(() => {
-      compareButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    const services = form.querySelector(".kt-popup-translation-services");
-    const children = [...form.children];
-    expect(children.indexOf(results)).toBeLessThan(
-      children.indexOf(compareButton)
-    );
-    expect(children.indexOf(compareButton)).toBeLessThan(
-      children.indexOf(services)
-    );
-
-    act(() => root.unmount());
-  });
 });
 
 describe("TranForm translation service selection", () => {
@@ -897,6 +852,18 @@ describe("TranForm translation service selection", () => {
     tryDetectLang.mockResolvedValue("en");
     document.body.innerHTML = "";
   });
+
+  const openServices = async (container) => {
+    const trigger = container
+      .querySelector('input[name="apiSlugs"]')
+      .closest(".MuiInputBase-root")
+      .querySelector('[role="combobox"]');
+    act(() => {
+      trigger.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    });
+    await flushEffects();
+    return [...container.querySelectorAll('[role="option"]')];
+  };
 
   test("uses translationText for every translation service", async () => {
     const { container, root } = renderTranForm({
@@ -921,8 +888,8 @@ describe("TranForm translation service selection", () => {
   });
 
   test.each([false, true])(
-    "switches to the secondary target when Chinese variants are disabled and popupStyle is %s",
-    async (popupStyle) => {
+    "switches to the secondary target when Chinese variants are disabled and simpleStyle is %s",
+    async (simpleStyle) => {
       tryDetectLang.mockResolvedValue("zh-TW");
       const { container, root } = renderTranForm({
         text: "繁體中文",
@@ -931,7 +898,7 @@ describe("TranForm translation service selection", () => {
         toLang: "zh-CN",
         toLang2: "en",
         translateVariants: false,
-        popupStyle,
+        simpleStyle,
       });
       await flushEffects();
 
@@ -998,7 +965,7 @@ describe("TranForm translation service selection", () => {
     ["missing", undefined, ["google"]],
     ["explicitly empty", [], []],
   ])(
-    "adds a popup comparison to the displayed selection when saved slugs are %s",
+    "adds a service to the displayed selection when saved slugs are %s",
     async (_label, apiSlugs, initialSlugs) => {
       const { container, root } = renderTranForm({
         apiSlugs,
@@ -1012,7 +979,7 @@ describe("TranForm translation service selection", () => {
           { apiSlug: "google", apiName: "Google", apiType: "Google" },
           { apiSlug: "openai", apiName: "OpenAI", apiType: "OpenAI" },
         ],
-        popupStyle: true,
+        simpleStyle: false,
       });
       await flushEffects();
 
@@ -1022,24 +989,19 @@ describe("TranForm translation service selection", () => {
         );
       expect(resultSlugs()).toEqual(initialSlugs);
 
-      act(() =>
-        container.querySelector(".kt-popup-translation-compare").click()
+      const services = await openServices(container);
+      const openAiOption = services.find(
+        (option) => option.getAttribute("data-value") === "openai"
       );
-      const services = [
-        ...container.querySelectorAll(".kt-popup-translation-services button"),
-      ];
-      const openAiButton = services.find(
-        (button) => button.textContent === "OpenAI"
-      );
-      act(() => openAiButton.click());
+      act(() => openAiOption.click());
 
       expect(resultSlugs()).toEqual([...initialSlugs, "openai"]);
-      expect(openAiButton.getAttribute("aria-pressed")).toBe("true");
+      expect(openAiOption.getAttribute("aria-selected")).toBe("true");
       if (initialSlugs.length > 0) {
         expect(
           services
-            .find((button) => button.textContent === "Google")
-            .getAttribute("aria-pressed")
+            .find((option) => option.getAttribute("data-value") === "google")
+            .getAttribute("aria-selected")
         ).toBe("true");
       }
 
@@ -1047,7 +1009,7 @@ describe("TranForm translation service selection", () => {
     }
   );
 
-  test("keeps one valid popup service after removing stale selections", async () => {
+  test("removes stale services and allows changing or clearing valid selections", async () => {
     const { container, root } = renderTranForm({
       apiSlugs: ["removed", "disabled", "google"],
       transApis: [
@@ -1060,7 +1022,7 @@ describe("TranForm translation service selection", () => {
         { apiSlug: "google", apiName: "Google", apiType: "Google" },
         { apiSlug: "openai", apiName: "OpenAI", apiType: "OpenAI" },
       ],
-      popupStyle: true,
+      simpleStyle: false,
     });
     await flushEffects();
 
@@ -1068,32 +1030,33 @@ describe("TranForm translation service selection", () => {
       [...container.querySelectorAll('[data-testid="tran-cont"]')].map((el) =>
         el.getAttribute("data-api-slug")
       );
-    act(() => container.querySelector(".kt-popup-translation-compare").click());
-    const serviceButtons = [
-      ...container.querySelectorAll(".kt-popup-translation-services button"),
-    ];
-    const googleButton = serviceButtons.find(
-      (button) => button.textContent === "Google"
-    );
-    const openAiButton = serviceButtons.find(
-      (button) => button.textContent === "OpenAI"
-    );
-
-    act(() => googleButton.click());
     expect(resultSlugs()).toEqual(["google"]);
+    const services = await openServices(container);
+    expect(services.map((option) => option.getAttribute("data-value"))).toEqual(
+      ["google", "openai"]
+    );
+    const googleOption = services.find(
+      (option) => option.getAttribute("data-value") === "google"
+    );
+    const openAiOption = services.find(
+      (option) => option.getAttribute("data-value") === "openai"
+    );
 
-    act(() => openAiButton.click());
+    act(() => openAiOption.click());
     expect(resultSlugs()).toEqual(["google", "openai"]);
 
-    act(() => googleButton.click());
+    act(() => googleOption.click());
     expect(resultSlugs()).toEqual(["openai"]);
+
+    act(() => openAiOption.click());
+    expect(resultSlugs()).toEqual([]);
 
     act(() => root.unmount());
   });
 
   test.each([false, true])(
-    "passes only the current complete-input detection result when popupStyle is %s",
-    async (popupStyle) => {
+    "passes only the current complete-input detection result when simpleStyle is %s",
+    async (simpleStyle) => {
       const firstDetection = createDeferred();
       const secondDetection = createDeferred();
       tryDetectLang.mockImplementation((value) =>
@@ -1109,12 +1072,11 @@ describe("TranForm translation service selection", () => {
         toLang: "zh-CN",
         toLang2: "-",
         transApis,
-        simpleStyle: false,
+        simpleStyle,
         langDetector: "Baidu",
         enDict: "-",
         enSug: "-",
         aiDictApiSlug: "-",
-        popupStyle,
       };
       const { container, root } = renderTranForm({
         ...baseProps,
@@ -1273,6 +1235,32 @@ describe("TranForm input focus and external text synchronization", () => {
       container.querySelector("textarea")
     );
     act(() => root.unmount());
+  });
+
+  test("focuses the source when expanding simple mode with auto focus disabled", async () => {
+    const view = renderTranForm({
+      text: "Clipboard source text",
+      simpleStyle: true,
+      autoFocusInput: false,
+      enDict: "-",
+      aiDictApiSlug: "-",
+    });
+    await flushEffects();
+    expect(view.container.querySelector("textarea")).toBeNull();
+
+    view.rerender({ simpleStyle: false });
+    await flushEffects();
+
+    const input = view.container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    expect(input).not.toBeNull();
+    expect(document.activeElement).toBe(input);
+    expect(input.value).toBe("Clipboard source text");
+    expect(input.selectionStart).toBe(input.value.length);
+    expect(input.selectionEnd).toBe(input.value.length);
+
+    act(() => view.root.unmount());
   });
 
   test("focuses after asynchronous initialization allows auto focus", async () => {

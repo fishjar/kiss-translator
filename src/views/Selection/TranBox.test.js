@@ -328,12 +328,12 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
     }
   );
 
-  test("clicking a menu action keeps the menu open and the trigger still toggles it", () => {
+  test("changing follow-selection keeps the menu open and the trigger still toggles it", () => {
     render();
     openMenu();
 
-    act(() => menuItems()[1].click());
-    expect(handlers.setSimpleStyle).toHaveBeenCalled();
+    act(() => menuItems()[2].click());
+    expect(handlers.setFollowSelection).toHaveBeenCalled();
     expect(menu()).not.toBeNull();
 
     act(() => actions()[1].click());

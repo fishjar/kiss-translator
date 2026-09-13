@@ -1,8 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import { isMobile } from "../../libs/mobile";
-import { useTheme, alpha } from "@mui/material/styles";
+import TranslationPanelSurface from "../../components/TranslationPanel/Surface";
 import { limitNumber } from "../../libs/utils";
 import {
   getMaxTranBoxContentWidth,
@@ -215,8 +214,6 @@ export default function DraggableResizable({
 }) {
   // Width of the resize handles in pixels.
   const lineWidth = 4;
-  const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
   const containerRef = useRef(null);
 
   const getMaxPositionY = useCallback(
@@ -251,17 +248,6 @@ export default function DraggableResizable({
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, [autoHeight, getMaxPositionY, setPosition, size.h]);
-
-  // Add an outer glow to the floating translation panel in dark mode.
-  const glowShadow = isDark
-    ? `
-        0 0 0 1px rgba(255,255,255,0.18),
-        0 0 10px 2px rgba(255,255,255,0.18),
-        0 8px 32px rgba(0,0,0,0.35)
-      `
-    : ` 
-        0 4px 18px rgba(0, 0, 0, 0.15)
-      `;
 
   const opts = {
     size,
@@ -328,86 +314,25 @@ export default function DraggableResizable({
         {...opts}
       />
 
-      {/* ---------------- Main container card ---------------- */}
-      <Paper
+      <TranslationPanelSurface
         className="KT-draggable-body"
-        elevation={4}
-        sx={{
-          width: size.w,
-          maxWidth: size.w,
-          minWidth: 0,
-          borderRadius: "16px",
-          overflow: "hidden",
-          backgroundColor: theme.palette.background.paper,
-          boxShadow: glowShadow,
-        }}
+        bodyClassName="KT-draggable-container"
+        width={size.w}
+        contentHeight={size.h}
+        autoHeight={autoHeight}
+        header={
+          <Pointer
+            className="KT-draggable-header"
+            direction="Header"
+            style={{ cursor: "move" }}
+            {...opts}
+          >
+            {header}
+          </Pointer>
+        }
       >
-        {/* Drag the header to move the entire panel. */}
-        <Pointer
-          className="KT-draggable-header"
-          direction="Header"
-          style={{ cursor: "move" }}
-          {...opts}
-        >
-          {header}
-        </Pointer>
-
-        {/* Vertically scrollable content with automatic or fixed height. */}
-        <Box
-          className="KT-draggable-container"
-          sx={() => {
-            const containerStyle = autoHeight
-              ? {
-                  width: size.w,
-                  maxHeight: size.h,
-                  overflow: "hidden auto",
-                  wordBreak: "break-word",
-                }
-              : {
-                  width: size.w,
-                  height: size.h,
-                  overflow: "hidden auto",
-                  wordBreak: "break-word",
-                };
-
-            // Customize the scrollbar appearance.
-            const scrollbarTrackColor =
-              theme.palette.mode === "dark"
-                ? "#1f1f23"
-                : theme.palette.background.paper;
-            const scrollbarThumbColor =
-              theme.palette.mode === "dark"
-                ? alpha(theme.palette.text.primary, 0.28)
-                : alpha(theme.palette.text.primary, 0.24);
-
-            return {
-              ...containerStyle,
-              backgroundColor: theme.palette.background.paper,
-              "&::-webkit-scrollbar": {
-                width: 10,
-                height: 10,
-              },
-              "&::-webkit-scrollbar-track": {
-                background: scrollbarTrackColor,
-              },
-              "&::-webkit-scrollbar-thumb": {
-                backgroundColor: scrollbarThumbColor,
-                borderRadius: "999px",
-                border: `2px solid ${theme.palette.background.paper}`,
-              },
-              "&::-webkit-scrollbar-thumb:hover": {
-                backgroundColor: alpha(theme.palette.text.primary, 0.36),
-              },
-              // firefox
-              scrollbarWidth: "thin",
-              scrollbarColor: `${scrollbarThumbColor} ${scrollbarTrackColor}`,
-            };
-          }}
-        >
-          {children}
-        </Box>
-      </Paper>
-
+        {children}
+      </TranslationPanelSurface>
       {/* ---------------- Right and bottom resize handles ---------------- */}
       <Pointer
         direction="Right"
