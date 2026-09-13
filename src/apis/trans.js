@@ -229,7 +229,7 @@ const buildSubtitleUserPrompt = ({ formattedEvents }) =>
 
 /**
  * 强健的大模型翻译结果解析器 (AI Response Robust Parser)。
- * 完美解决大模型在翻译时常混杂的 Markdown、未闭合 JSON、XML、数字列表及无规换行文本的纠错与规避问题。
+ * 完美解决大模型在翻译时常混杂的 Markdown、未闭合 JSON、XML、数字列表的纠错与规避问题。
  * @param {string} raw 大模型返回的原始字符串内容
  * @param {boolean} useBatchFetch 是否为批量翻译模式
  * @returns {Array<[string, string]>} 解析后的双元组列表 [译文, 源语言检测结果]
