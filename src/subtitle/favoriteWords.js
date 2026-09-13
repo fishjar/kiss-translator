@@ -69,13 +69,17 @@ export async function toggleFavoriteWord(word, data = {}) {
   return true;
 }
 
-export function createFavoriteButton({ word, data, i18n = () => "" }) {
+export function createFavoriteButton({
+  word,
+  data,
+  i18n = (key, defaultText = key) => defaultText,
+}) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "kiss-favorite-word-button";
   button.style.cssText = `background: none; border: none; color: inherit; cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 4px;`;
 
-  const label = i18n("collect") || "Favorite";
+  const label = i18n("collect", "Favorite");
   const render = (isFavorite) => {
     button.textContent = String.fromCodePoint(isFavorite ? 0x2665 : 0x2661);
     button.setAttribute("aria-pressed", String(isFavorite));

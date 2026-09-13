@@ -142,7 +142,7 @@ export class WordTooltipController {
     getVideoContainer,
     getTimestamp,
     autoFavWord = false,
-    i18n = () => "",
+    i18n = (key, defaultText = key) => defaultText,
   }) {
     this.getVideoContainer = getVideoContainer;
     this.getTimestamp = getTimestamp;
