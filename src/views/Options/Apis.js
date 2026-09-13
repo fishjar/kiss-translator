@@ -1298,7 +1298,10 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                 value={selectedBatchSegmentFormat}
                 label={i18n("batch_format", "聚合翻译格式")}
                 onChange={handlePromptChange}
-                helperText={i18n("batch_format_helper", "不建议同时使用流式传输和批量请求时使用不使用自动格式")}
+                helperText={i18n(
+                  "batch_format_helper",
+                  "不建议同时使用流式传输和聚合翻译时不使用自动格式"
+                )}
               >
                 <MenuItem value="auto">
                   {i18n("batch_format_auto", "自动")}
