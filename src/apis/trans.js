@@ -259,6 +259,7 @@ const parseAIRes = (raw, useBatchFetch = true) => {
   }
 
   // 兜底返回无效解析
+  kissLog("parseAIRes: useBatchFetch got unparseable message:\n" + raw);
   return []
 };
 
