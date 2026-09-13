@@ -229,12 +229,13 @@ const buildSubtitleUserPrompt = ({ formattedEvents }) =>
 
 /**
  * 强健的大模型翻译结果解析器 (AI Response Robust Parser)。
- * 完美解决大模型在翻译时常混杂的 Markdown、未闭合 JSON、XML、数字列表及无规换行文本的纠错与规避问题。
+ * 完美解决大模型在翻译时常混杂的 Markdown、未闭合 JSON、XML、数字列表的纠错与规避问题。
  * @param {string} raw 大模型返回的原始字符串内容
  * @param {boolean} useBatchFetch 是否为批量翻译模式
  * @returns {Array<[string, string]>} 解析后的双元组列表 [译文, 源语言检测结果]
  */
 const parseAIRes = (raw, useBatchFetch = true) => {
+  // raw 无效返回无效解析
   if (!raw) {
     return [];
   }
@@ -257,11 +258,9 @@ const parseAIRes = (raw, useBatchFetch = true) => {
     return structuredSegments.map((segment) => segment.translation);
   }
 
-  // 兜底策略：纯文本按行切割解析
-  return content.split("\n").map((line) => {
-    const text = decodeHTMLEntities(line.replace(/<br\s*\/?>/gi, "\n").trim());
-    return [text, ""];
-  });
+  // 兜底返回无效解析
+  kissLog("parseAIRes: useBatchFetch got unparseable message:\n" + raw);
+  return []
 };
 
 /** 依据时间差计算旧版字幕输入使用的停顿等级。 */

@@ -193,7 +193,7 @@ export const parseLineTranslationSegments = (
  * 按完整响应的优先级解析结构化翻译结果。
  *
  * 优先级保持与 prompt 约束一致：JSON 最明确，其次 XML，最后 LINE。纯文本兜底不放在这里，
- * 由调用方决定；非流式 `parseAIRes` 会在本函数无结果时按普通文本逐行降级。
+ * 由调用方决定；非流式 `parseAIRes` 会在本函数无结果时按空响应降级。
  *
  * @param {string} content 完整模型输出
  * @param {Object} options 解析选项
