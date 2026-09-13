@@ -1392,14 +1392,14 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   size="small"
                   name="placetagFormat"
                   value={placetagFormat}
-                  label={i18n("placetag_format") || "占位符格式"}
+                  label={i18n("placetag_format", "占位符格式")}
                   onChange={handleChange}
                 >
                   <MenuItem value="compact">
-                    {i18n("format_compact") || "简洁格式 <a1>"}
+                    {i18n("format_compact", "简洁格式 <a1>")}
                   </MenuItem>
                   <MenuItem value="attribute">
-                    {i18n("format_attribute") || "属性格式 <a i=1>"}
+                    {i18n("format_attribute", "属性格式 <a i=1>")}
                   </MenuItem>
                 </TextField>
               </Grid>

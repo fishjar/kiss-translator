@@ -513,6 +513,8 @@ describe("Subtitle page copy", () => {
   // 缺失的 i18n key 会渲染成空字符串而不是 key 名（hooks/I18n.js 的 defaultText 是 ""），
   // 而本文件把 useI18n mock 成了恒等函数，所以渲染断言完全看不出来。
   // 只能从源码提取 key 再对着 I18N 校验。
+  //
+  // XXX: o0kam1 2026-09-13: 我不知道为什么要有这种测试 怎么修
   test("covers every page copy key in all supported UI languages", () => {
     const source = fs.readFileSync(path.join(__dirname, "Subtitle.js"), "utf8");
     const keys = new Set(

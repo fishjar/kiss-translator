@@ -3040,7 +3040,7 @@ export class Translator {
   // 创建带错误信息浮层的重试按钮，浮层内支持直接复制错误内容
   #createRetryErrorNode(errorText, onRetry) {
     const i18n = newI18n(this.#setting.uiLang || "zh");
-    const copyText = i18n("copy") || "Copy";
+    const copyText = i18n("copy", "Copy");
     const isDarkMode =
       this.#setting.darkMode === "dark" ||
       (this.#setting.darkMode === "auto" &&
@@ -3639,14 +3639,14 @@ export class Translator {
     const currentRunId = ++this.#hoverBubbleRunId;
     this.#hoverBubbleTarget = highlight;
     this.#showFavoriteBubble(
-      i18n("favorite_word_lookup_loading") || "Looking up...",
+      i18n("favorite_word_lookup_loading", "Looking up..."),
       "loading"
     );
 
     if (!/^[a-zA-Z]+(?:['’][a-zA-Z]+)?$/.test(word)) {
       this.#showFavoriteBubble(
-        i18n("favorite_word_lookup_unavailable") ||
-          "Dictionary lookup is unavailable for this word.",
+        i18n("favorite_word_lookup_unavailable",
+          "Dictionary lookup is unavailable for this word."),
         "unavailable"
       );
       return;
@@ -3655,8 +3655,8 @@ export class Translator {
     const enDict = this.#setting.tranboxSetting?.enDict;
     if (!OPT_DICT_MAP.has(enDict)) {
       this.#showFavoriteBubble(
-        i18n("favorite_word_lookup_unavailable") ||
-          "Dictionary lookup is unavailable for this word.",
+        i18n("favorite_word_lookup_unavailable",
+          "Dictionary lookup is unavailable for this word."),
         "unavailable"
       );
       return;
@@ -3681,7 +3681,7 @@ export class Translator {
       );
       if (result.definitions.length === 0) {
         this.#showFavoriteBubble(
-          i18n("favorite_word_definition_not_found") || "No definition found.",
+          i18n("favorite_word_definition_not_found", "No definition found."),
           "empty"
         );
         return;
@@ -3700,7 +3700,7 @@ export class Translator {
       }
       kissLog("favorite word lookup failed", err);
       this.#showFavoriteBubble(
-        i18n("favorite_word_lookup_failed") || "Failed to load definition.",
+        i18n("favorite_word_lookup_failed", "Failed to load definition."),
         "error"
       );
     }

@@ -25,7 +25,7 @@ export class YouTubeSubtitleList {
    */
   constructor(
     videoElement,
-    i18n = () => "",
+    i18n = (key, defaultText = key) => defaultText,
     { enableHoverLookup = false, autoFavWord = false } = {}
   ) {
     this.videoEl = videoElement;
@@ -209,7 +209,7 @@ export class YouTubeSubtitleList {
   }
 
   _t(key, fallback) {
-    return this.i18n(key) || fallback;
+    return this.i18n(key, fallback);
   }
 
   /**
