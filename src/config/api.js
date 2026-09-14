@@ -316,16 +316,31 @@ const createOpenAIThinkingCapability = (efforts, defaults = {}) =>
     ...defaults,
   });
 
+const normalizeOpenAIModelName = (model = "") =>
+  String(model)
+    .trim()
+    .toLowerCase()
+    .replace(/^openai\//, "");
+
+export const isGPT6Astra = (model = "") =>
+  normalizeOpenAIModelName(model) === "gpt-6-astra";
+
 /**
  * 根据 OpenAI 模型名称解析已确认的思考能力。
  * @param {string} model OpenAI 或带 openai/ 前缀的模型名称。
  * @returns {Object|null} 已知模型的思考能力；未知模型返回 null。
  */
 const getOpenAIThinkingCapability = (model = "") => {
-  const normalizedModel = String(model)
-    .trim()
-    .toLowerCase()
-    .replace(/^openai\//, "");
+  const normalizedModel = normalizeOpenAIModelName(model);
+
+  if (normalizedModel === "gpt-6-astra") {
+    // https://developers.openai.com/api/docs/models/gpt-6-astra
+    // Astra 不支持关闭思考；沿用最低强度降级及其 UI 提示。
+    return createOpenAIThinkingCapability(
+      ["max", "xhigh", "high", "medium", "low"],
+      { disable: null }
+    );
+  }
 
   if (/^gpt-5\.6(?:-|$)/.test(normalizedModel)) {
     return createOpenAIThinkingCapability([

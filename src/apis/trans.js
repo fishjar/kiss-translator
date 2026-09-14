@@ -55,6 +55,7 @@ import {
   INPUT_PLACE_CONTEXT,
   GEMINI25_BUDGETS,
   THINKING_API_REGISTRY,
+  isGPT6Astra,
   isGeminiInteractionsUrl,
   normalizeGeminiModelName,
   normalizeThinkingSettings,
@@ -852,6 +853,10 @@ const genOpenAI = ({
     stream: useStream,
   };
 
+  // Astra 不支持 temperature，与是否显式设置思考强度无关。
+  // https://developers.openai.com/api/docs/guides/latest-model
+  if (isGPT6Astra(model)) delete body.temperature;
+
   applyThinkingParameters(body, {
     apiType,
     url,
@@ -1209,6 +1214,9 @@ const genOrcaRouter = ({
     max_completion_tokens: maxTokens,
     stream: useStream,
   };
+
+  // 与 OpenAI 直连保持一致，Astra 不发送自动生成的温度参数。
+  if (isGPT6Astra(model)) delete body.temperature;
 
   applyThinkingParameters(body, {
     apiType: OPT_TRANS_ORCAROUTER,

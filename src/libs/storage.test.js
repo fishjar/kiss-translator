@@ -204,6 +204,31 @@ describe("settings storage migration", () => {
     });
   });
 
+  test.each(["none", "minimal", "_default"])(
+    "loads legacy Astra disabled effort %s as low without rewriting storage",
+    async (thinkingEffort) => {
+      const storedSetting = {
+        version: SETTINGS_VERSION_V3,
+        transApis: [
+          {
+            apiSlug: "openai",
+            apiType: OPT_TRANS_OPENAI,
+            model: "gpt-6-astra",
+            thinkingMode: "disabled",
+            thinkingEffort,
+          },
+        ],
+      };
+      window.localStorage.setItem(
+        STOKEY_SETTING,
+        JSON.stringify(storedSetting)
+      );
+      const setting = await getSettingWithDefault();
+      expect(setting.transApis[0].thinkingEffort).toBe("low");
+      expect(readStoredJson(STOKEY_SETTING)).toEqual(storedSetting);
+    }
+  );
+
   test("GM storage reports a clear error when GM APIs are unavailable", async () => {
     const { storage } = loadGmStorageModule();
 

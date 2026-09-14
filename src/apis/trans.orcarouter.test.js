@@ -19,6 +19,7 @@ import { handleTranslate } from "./trans";
 import {
   API_SPE_TYPES,
   DEFAULT_API_LIST,
+  normalizeApiThinkingSetting,
   OPT_TRANS_ORCAROUTER,
   THINKING_API_REGISTRY,
 } from "../config";
@@ -185,5 +186,79 @@ describe("OrcaRouter interface", () => {
     const body = JSON.parse(fetchData.mock.calls[0][1].body);
     expect(body).not.toHaveProperty("reasoning");
     expect(body.reasoning_effort).toBe("medium");
+  });
+
+  test.each([
+    ["auto", "_default", undefined],
+    ["enabled", "_default", undefined],
+    ["disabled", "none", "low"],
+    ...["low", "medium", "high", "xhigh", "max"].map((effort) => [
+      "enabled",
+      effort,
+      effort,
+    ]),
+  ])(
+    "omits Astra temperature for %s/%s",
+    async (thinkingMode, thinkingEffort, expected) => {
+      mockOnce();
+      await translate(
+        normalizeApiThinkingSetting(
+          getApiSetting({
+            model: "gpt-6-astra",
+            temperature: 0.7,
+            thinkingMode,
+            thinkingEffort,
+          })
+        )
+      );
+      const body = JSON.parse(fetchData.mock.calls[0][1].body);
+      expect(body).not.toHaveProperty("temperature");
+      if (expected === undefined) {
+        expect(body).not.toHaveProperty("reasoning_effort");
+      } else {
+        expect(body.reasoning_effort).toBe(expected);
+      }
+    }
+  );
+
+  test.each([
+    ["openai/gpt-6-astra", undefined],
+    [" OPENAI/GPT-6-ASTRA ", undefined],
+    ["openai/gpt-5.4-mini", 0.7],
+    ["gpt-6-astra-pro", 0.7],
+    ["gpt-6-astra-2026-03-01", 0.7],
+    ["unknown-model", 0.7],
+  ])(
+    "applies temperature compatibility only to Astra aliases: %s",
+    async (model, expected) => {
+      mockOnce();
+      await translate(
+        getApiSetting({ model, temperature: 0.7, thinkingMode: "auto" })
+      );
+      const body = JSON.parse(fetchData.mock.calls[0][1].body);
+      if (expected === undefined) {
+        expect(body).not.toHaveProperty("temperature");
+      } else {
+        expect(body.temperature).toBe(expected);
+      }
+    }
+  );
+
+  test("preserves custom body overrides for Astra", async () => {
+    mockOnce();
+    await translate(
+      normalizeApiThinkingSetting(
+        getApiSetting({
+          model: "openai/gpt-6-astra",
+          temperature: 0.7,
+          thinkingMode: "disabled",
+          customBody: '{"temperature":0.3,"reasoning_effort":"high"}',
+        })
+      )
+    );
+    expect(JSON.parse(fetchData.mock.calls[0][1].body)).toMatchObject({
+      temperature: 0.3,
+      reasoning_effort: "high",
+    });
   });
 });

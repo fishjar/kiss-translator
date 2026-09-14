@@ -22,6 +22,7 @@ jest.mock("../libs/docInfo", () => ({
 import { handleTranslate } from "./trans";
 import {
   DEFAULT_API_LIST,
+  normalizeApiThinkingSetting,
   GEMINI_GENERATE_CONTENT_URL,
   GEMINI_INTERACTIONS_URL,
   OPT_TRANS_CLAUDE,
@@ -656,6 +657,87 @@ describe("handleTranslate", () => {
       "reasoning_effort"
     );
   });
+
+  test.each([
+    ["enabled", "low", "low"],
+    ["enabled", "medium", "medium"],
+    ["enabled", "high", "high"],
+    ["enabled", "xhigh", "xhigh"],
+    ["enabled", "max", "max"],
+    ["enabled", "_default", undefined],
+    ["auto", "high", undefined],
+    ["disabled", "none", "low"],
+    ["enabled", "minimal", "low"],
+  ])(
+    "sends Astra %s/%s without temperature",
+    async (thinkingMode, thinkingEffort, expected) => {
+      fetchData.mockResolvedValue({
+        choices: [{ message: { content: "你好" } }],
+      });
+      await collectAsyncGenerator(
+        handleTranslate(["hello"], {
+          from: "en",
+          to: "zh-CN",
+          fromLang: "English",
+          toLang: "Chinese",
+          langMap: () => "",
+          glossary: "",
+          usePool: false,
+          apiSetting: normalizeApiThinkingSetting({
+            ...getApiSetting(OPT_TRANS_OPENAI),
+            useStream: false,
+            model: "gpt-6-astra",
+            temperature: 0.7,
+            thinkingMode,
+            thinkingEffort,
+          }),
+        })
+      );
+      const body = JSON.parse(fetchData.mock.calls[0][1].body);
+      expect(body).not.toHaveProperty("temperature");
+      if (expected === undefined) {
+        expect(body).not.toHaveProperty("reasoning_effort");
+      } else {
+        expect(body.reasoning_effort).toBe(expected);
+      }
+    }
+  );
+
+  test.each([
+    [" OPENAI/GPT-6-ASTRA ", "", undefined],
+    ["gpt-6-astra", '{"temperature":0.3,"reasoning_effort":"high"}', 0.3],
+    ["gpt-5.6-sol", "", 0.7],
+    ["gpt-6-other", "", 0.7],
+  ])(
+    "preserves temperature overrides and other models for %s/%s",
+    async (model, customBody, expected) => {
+      fetchData.mockResolvedValue({
+        choices: [{ message: { content: "你好" } }],
+      });
+      await collectAsyncGenerator(
+        handleTranslate(["hello"], {
+          from: "en",
+          to: "zh-CN",
+          fromLang: "English",
+          toLang: "Chinese",
+          langMap: () => "",
+          glossary: "",
+          usePool: false,
+          apiSetting: {
+            ...getApiSetting(OPT_TRANS_OPENAI),
+            useStream: false,
+            model,
+            temperature: 0.7,
+            thinkingMode: "auto",
+            customBody,
+          },
+        })
+      );
+      const body = JSON.parse(fetchData.mock.calls[0][1].body);
+      expect(body.temperature).toBe(expected);
+      if (customBody) expect(body.reasoning_effort).toBe("high");
+    }
+  );
 
   test("does not inject native Gemini parameters for unknown models", async () => {
     fetchData.mockResolvedValue({
