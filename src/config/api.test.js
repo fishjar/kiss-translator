@@ -114,6 +114,63 @@ test("keeps disabled as the initial thinking mode", () => {
 });
 
 describe("unified thinking capabilities", () => {
+  test.each(["gpt-6-astra", " OPENAI/GPT-6-ASTRA "])(
+    "recognizes Astra efforts and mandatory reasoning for %s",
+    (model) => {
+      const options = { apiType: OPT_TRANS_OPENAI, model };
+      const capability = getThinkingCapability(options);
+      expect(capability.efforts.map(({ value }) => value)).toEqual([
+        "max",
+        "xhigh",
+        "high",
+        "medium",
+        "low",
+      ]);
+      expect(
+        normalizeThinkingSettings({ ...options, thinkingMode: "auto" })
+      ).toEqual({ thinkingMode: "auto", thinkingEffort: "_default" });
+      expect(
+        normalizeThinkingSettings({ ...options, thinkingMode: "enabled" })
+      ).toEqual({ thinkingMode: "enabled", thinkingEffort: null });
+      expect(
+        normalizeThinkingSettings({ ...options, thinkingMode: "disabled" })
+      ).toEqual({ thinkingMode: "disabled", thinkingEffort: "low" });
+      expect(
+        isThinkingMinimumFallback({ capability, thinkingMode: "disabled" })
+      ).toBe(true);
+      for (const thinkingEffort of ["max", "xhigh", "high", "medium", "low"]) {
+        expect(
+          normalizeThinkingSettings({
+            ...options,
+            thinkingMode: "enabled",
+            thinkingEffort,
+          }).thinkingEffort
+        ).toBe(thinkingEffort);
+      }
+      for (const thinkingEffort of ["none", "minimal"]) {
+        expect(
+          normalizeThinkingSettings({
+            ...options,
+            thinkingMode: "enabled",
+            thinkingEffort,
+          }).thinkingEffort
+        ).toBe("low");
+      }
+    }
+  );
+
+  test.each([
+    "gpt-6",
+    "gpt-6-other",
+    "gpt-6-astra-pro",
+    "gpt-6-astra-unknown",
+    "gpt-6-astra-2026-03-01",
+  ])("does not assume Astra capabilities for %s", (model) => {
+    expect(
+      getThinkingCapability({ apiType: OPT_TRANS_OPENAI, model })
+    ).toBeNull();
+  });
+
   test.each(["gpt-5.6-sol", "gpt-5.4-pro", "gpt-5.3-codex", "gpt-5"])(
     "keeps the OpenAI interface default for model %s",
     (model) => {
