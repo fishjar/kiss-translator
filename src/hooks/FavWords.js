@@ -11,17 +11,9 @@ export function useFavWords() {
   // 通过 useStorage 获取生词本数据并返回保存函数
   const {
     data: favWords,
-    save: saveWords,
+    save,
     isLoading,
   } = useStorage(STOKEY_WORDS, DEFAULT_FAVWORDS, KV_WORDS_KEY);
-
-  // 包装保存生词本数据的方法，在保存后自动触发防抖云同步 (WebDAV 等)
-  const save = useCallback(
-    (objOrFn) => {
-      saveWords(objOrFn);
-    },
-    [saveWords]
-  );
 
   /**
    * 收藏或取消收藏某个单词的开关函数

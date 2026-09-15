@@ -10,17 +10,9 @@ export function useRules() {
   // 使用 useStorage 管理翻译规则的持久化读写
   const {
     data: list = [],
-    save: saveRules,
+    save,
     isLoading,
   } = useStorage(STOKEY_RULES, DEFAULT_RULES, KV_RULES_KEY);
-
-  // 包装保存规则的函数，每次保存修改后都触发防抖云同步 (WebDAV 等)
-  const save = useCallback(
-    (objOrFn) => {
-      saveRules(objOrFn);
-    },
-    [saveRules]
-  );
 
   // 添加单条规则，但限制通配符 "*" 规则的添加，且过滤重复 pattern 规则
   const add = useCallback(
