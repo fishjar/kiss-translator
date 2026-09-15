@@ -78,13 +78,16 @@ function getGmInfo() {
 }
 
 /**
- * 注入网页的初始化脚本，用于将油猴基本信息与事件通道公开给页面环境。
- * @param {string} ping 特权环境监听的自定义 CustomEvent 事件名称
+ * Expose installed userscript metadata and the event channel to the page.
+ * Pass the protocol explicitly because this function is serialized for injection.
+ * @param {string} ping The event name handled by the privileged userscript.
+ * @param {number} storageProtocol The installed userscript's storage protocol.
  */
-export const injectScript = (ping) => {
+export const injectScript = (ping, storageProtocol) => {
   window.APP_INFO = {
     name: process.env.REACT_APP_NAME,
     version: process.env.REACT_APP_VERSION,
+    storageProtocol,
     eventName: ping, // 将监听的事件名暴露在全局，以便页面内代码进行事件通信
   };
 };

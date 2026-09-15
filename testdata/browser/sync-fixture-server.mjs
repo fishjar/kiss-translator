@@ -104,6 +104,13 @@ const server = http.createServer(async (req, res) => {
   try {
     if (url.pathname === "/__fixture__/state")
       return json(res, 200, await inspect());
+    if (url.pathname === "/__fixture__/legacy-userscript") {
+      const upstream = await fetch(`http://127.0.0.1:${appPort}/options.html`);
+      const html = await upstream.text();
+      const bridge = `<script>window.APP_INFO={name:"KISS Translator",version:"2.0.31",eventName:"fixture-legacy-gm"};window.fixtureGmCalls=[];window.addEventListener("fixture-legacy-gm",({detail})=>window.fixtureGmCalls.push(detail));</script>`;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.end(html.replace("<head>", `<head>${bridge}`));
+    }
     if (url.pathname === "/__fixture__/control" && req.method === "POST") {
       const control = JSON.parse(await readBody(req));
       if (control.reset) {

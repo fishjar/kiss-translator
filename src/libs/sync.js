@@ -411,6 +411,31 @@ export const syncData = async (
     [KV_RULES_KEY]: STOKEY_RULES,
     [KV_WORDS_KEY]: STOKEY_WORDS,
   }[key];
+  if (isFirstSync && originalMeta.pendingUpload && !forceRemoteRead) {
+    // A failed first attempt preserves edits, but does not prove that this
+    // passphrase can read the existing backup. Validate before replacing it.
+    const backup = await syncByType(
+      syncType,
+      { ...encryptedData, updateAt: 0 },
+      args
+    );
+    if (!backup) throw new Error("Unable to verify the existing sync backup");
+    const verified = await decryptSyncData(backup, syncEncryptKey);
+    JSON.parse(verified.data.value);
+
+    const currentConfig = await getSyncWithDefault();
+    if (
+      !isRequestCurrent() ||
+      (currentConfig.destinationRevision || 0) !== destinationRevision ||
+      currentConfig.syncEncryptKey !== savedSyncEncryptKey
+    ) {
+      return;
+    }
+    // Gist discovery may have filled the URL during the validation request.
+    if (syncType === OPT_SYNCTYPE_GIST && !args.syncUrl) {
+      args.syncUrl = currentConfig.syncUrl;
+    }
+  }
   const encryptedOrLegacyRes = await syncByType(syncType, encryptedData, args);
 
   if (!encryptedOrLegacyRes) {

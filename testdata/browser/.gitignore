@@ -1,4 +1,5 @@
 *.log
 evidence/
 extension-build/
+production-userscript/
 profiles/

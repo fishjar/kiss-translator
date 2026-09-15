@@ -153,10 +153,11 @@ async function rawDel(key) {
 async function setObj(key, obj) {
   return withTransaction(async (transaction) => {
     if (key === STOKEY_SYNC) {
-      return transaction.updateSyncState((current) => ({
+      const current = await transaction.getObj(key);
+      return transaction.setObj(key, {
         ...obj,
-        syncMeta: preserveNewerSyncMeta(current.syncMeta, obj?.syncMeta),
-      }));
+        syncMeta: preserveNewerSyncMeta(current?.syncMeta, obj?.syncMeta),
+      });
     }
     await transaction.setObj(key, obj);
   });
@@ -270,7 +271,14 @@ export function withTransaction(operation) {
       return originals.get(key);
     };
     const stage = async (key, value, remove = false, options = {}) => {
-      const current = await read(key);
+      const current =
+        (await read(key)) ?? (options.syncStateUpdate ? DEFAULT_SYNC : null);
+      // Metadata updates may read defaults without initializing configuration.
+      const configurationBaseline = options.syncStateUpdate
+        ? writes.has(key)
+          ? writes.get(key).configurationBaseline
+          : current
+        : originals.get(key);
       if (key === STOKEY_SYNC && value && current) {
         const destinationChanged = DESTINATION_FIELDS.some(
           (field) => current[field] !== value[field]
@@ -290,8 +298,23 @@ export function withTransaction(operation) {
             ? { syncMeta: {} }
             : {}),
         };
+      } else if (
+        isGm &&
+        key === STOKEY_SYNC &&
+        value &&
+        DESTINATION_FIELDS.some(
+          (field) =>
+            value[field] !== undefined && value[field] !== DEFAULT_SYNC[field]
+        )
+      ) {
+        // Bind imported configuration without discarding its metadata or
+        // accepting acknowledgements from the unconfigured default state.
+        value = {
+          ...value,
+          destinationRevision: Math.max(1, value.destinationRevision || 0),
+        };
       }
-      writes.set(key, { value, remove });
+      writes.set(key, { value, remove, configurationBaseline });
       return value;
     };
     const transaction = {
@@ -307,7 +330,10 @@ export function withTransaction(operation) {
         const next = await updater(current, transaction);
         if (onWriteError) errorHandlers.push(onWriteError);
         if (next === undefined) return current;
-        return stage(STOKEY_SYNC, next, false, { preserveDestination });
+        return stage(STOKEY_SYNC, next, false, {
+          preserveDestination,
+          syncStateUpdate: true,
+        });
       },
     };
     const result = await operation(transaction);
@@ -318,7 +344,7 @@ export function withTransaction(operation) {
         persisted.set(key, { previous: await rawGet(key), value });
       else persisted.get(key).value = value;
     };
-    for (const [key, { value, remove }] of writes) {
+    for (const [key, { value, remove, configurationBaseline }] of writes) {
       if (isGm && SYNC_KEYS[key]) {
         const config = (await read(STOKEY_SYNC)) || DEFAULT_SYNC;
         await stageRaw(
@@ -355,28 +381,37 @@ export function withTransaction(operation) {
         }
         // Keep legacy inline metadata as a read fallback until each key is used.
         // Migrating every key here would race a write from another origin.
-        const rawConfig = parseStoredValue(await rawGet(key), key);
         const inlineMeta = (sync) =>
           Object.fromEntries(
             Object.entries(sync?.syncMeta || {}).filter(
               ([syncKey]) => !Object.values(SYNC_KEYS).includes(syncKey)
             )
           );
-        const legacyMeta =
-          (value?.destinationRevision || 0) ===
-          (rawConfig?.destinationRevision || 0)
-            ? Object.fromEntries(
-                Object.entries(rawConfig?.syncMeta || {}).filter(([syncKey]) =>
-                  Object.values(SYNC_KEYS).includes(syncKey)
+        const configFields = (sync) =>
+          sync && { ...sync, syncMeta: inlineMeta(sync) };
+        // An acknowledgement must never rewrite a destination changed elsewhere.
+        // Compare this transaction's snapshots, not the latest stored config.
+        if (
+          remove ||
+          !sameValue(configFields(configurationBaseline), configFields(value))
+        ) {
+          const rawConfig = parseStoredValue(await rawGet(key), key);
+          const legacyMeta =
+            (value?.destinationRevision || 0) ===
+            (rawConfig?.destinationRevision || 0)
+              ? Object.fromEntries(
+                  Object.entries(rawConfig?.syncMeta || {}).filter(
+                    ([syncKey]) => Object.values(SYNC_KEYS).includes(syncKey)
+                  )
                 )
-              )
-            : {};
-        const nextConfig = value && {
-          ...value,
-          syncMeta: { ...legacyMeta, ...inlineMeta(value) },
-        };
-        if (remove || !sameValue(rawConfig, nextConfig))
-          await stageRaw(key, remove ? null : JSON.stringify(nextConfig));
+              : {};
+          const nextConfig = value && {
+            ...value,
+            syncMeta: { ...legacyMeta, ...inlineMeta(value) },
+          };
+          if (remove || !sameValue(rawConfig, nextConfig))
+            await stageRaw(key, remove ? null : JSON.stringify(nextConfig));
+        }
       } else {
         await stageRaw(key, remove ? null : JSON.stringify(value));
       }
@@ -440,7 +475,7 @@ export function saveEdit(
     const current = (await transaction.getObj(STOKEY_SYNC)) ?? DEFAULT_SYNC;
     const meta = current.syncMeta?.[syncKey] || {};
     const updateAt = Math.max(timestamp, (meta.updateAt || 0) + 1);
-    await transaction.setObj(STOKEY_SYNC, {
+    await transaction.updateSyncState(() => ({
       ...current,
       syncMeta: {
         ...current.syncMeta,
@@ -452,7 +487,7 @@ export function saveEdit(
             : {}),
         },
       },
-    });
+    }));
     return { value, updateAt };
   });
 }

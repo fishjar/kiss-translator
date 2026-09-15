@@ -13,6 +13,7 @@ import { kissLog } from "../../libs/log";
 import { adaptScript } from "../../libs/gm";
 import { runDataMigration } from "../../libs/storage";
 import { sleep } from "../../libs/utils";
+import { USERSCRIPT_STORAGE_PROTOCOL } from "../../libs/userscriptProtocol";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -458,7 +459,8 @@ describe("Options startup sync", () => {
     expect(trySyncSetting).not.toHaveBeenCalled();
     window.APP_INFO = {
       name: "KISS Translator",
-      version: "2.0.25",
+      version: "2.0.24",
+      storageProtocol: USERSCRIPT_STORAGE_PROTOCOL,
       eventName: "kiss-ping",
     };
     await resolveDeferred(bridgeWait);

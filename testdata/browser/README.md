@@ -63,6 +63,61 @@ normal editing resumes once the request completes.
 These checks cover the web Options target. They do not substitute for a packaged
 extension or legacy Thunderbird compatibility test.
 
+## Passphrase and userscript protocol regressions
+
+`run-three-fix-browser-tests.mjs` verifies a failed first decryption followed by
+two real vocabulary imports and retries. It compares the original AES-GCM packet
+byte for byte, checks that it still decrypts with the original passphrase, then
+uses the real clear/set passphrase dialogs to restore synchronization. Fixture
+settings and rules come from a successful clean Options initialization, so the
+remote backup includes the complete production schema. Changing the local
+passphrase retains the existing first-sync behavior: the verified remote data
+replaces local data before later edits upload normally.
+
+The same runner uses the regular userscript Options bundle for the protocol and
+cross-origin GM cases. It replaces only the privileged GM transport with an
+asynchronous shared backend exposed through browser CustomEvents. The production
+`adaptScript`, startup checks, storage code, and React components run unchanged.
+An old bridge without `APP_INFO.storageProtocol` must show the update error with
+zero GM calls. Protocol 1 must read legacy values, write the new record format,
+and make those values visible to another origin.
+
+The two destination cases pause a vocabulary edit after it reads its old GM
+configuration. A second real page changes the destination through the Sync form.
+After resuming the stale transaction, the new destination and revision must stay
+intact. After reloading that page, a read-only inspection of its actual React
+`useStorage` snapshot verifies that effective metadata is exactly `{}`. The
+second case starts without any stored sync configuration.
+These GM cases leave the authentication key empty to isolate storage commits
+from legitimate first-attempt metadata created by new-target network syncs.
+
+Build and serve the optimized userscript output in an isolated directory:
+
+```powershell
+$env:REACT_APP_CLIENT = 'userscript'
+$env:BUILD_PATH = './testdata/browser/production-userscript'
+$env:GENERATE_SOURCEMAP = 'false'
+$env:NODE_PATH = (Resolve-Path 'node_modules/.pnpm/node_modules').Path
+node node_modules/react-app-rewired/bin/index.js build
+node testdata/browser/serve-userscript-build.mjs
+```
+
+The static server binds only to loopback on ports 3157 and 3158. In another
+terminal, point the runner at the existing web fixture and those two origins:
+
+```powershell
+$env:FIXTURE_ORIGIN = 'http://127.0.0.1:3154'
+$env:GM_FIXTURE_ORIGIN = 'http://127.0.0.1:3157'
+$env:GM_SECOND_ORIGIN = 'http://127.0.0.1:3158'
+$env:BROWSER_EVIDENCE_DIR = 'testdata/browser/evidence/three-fixes/production'
+node testdata/browser/run-three-fix-browser-tests.mjs
+```
+
+The legacy rejection page can also be inspected manually at
+`http://127.0.0.1:3157/__fixture__/legacy-userscript#/words`. These checks do not
+install or automate a real userscript manager, and they do not test unrelated
+passphrase-rotation races.
+
 To exercise the native IndexedDB fallback instead of Web Locks, run the same
 concurrent-page case with these settings:
 

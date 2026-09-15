@@ -19,9 +19,11 @@ jest.mock("./libs/iframe", () => ({
 }));
 
 jest.mock("./libs/gm", () => ({
+  ...jest.requireActual("./libs/gm"),
   handlePing: jest.fn(),
-  injectScript: jest.fn(),
 }));
+
+jest.mock("./libs/fetch", () => ({ fetchGM: jest.fn() }));
 
 jest.mock("./libs/rules", () => ({
   matchRule: jest.fn(),
@@ -69,6 +71,7 @@ const { runSubtitle } = require("./subtitle/subtitle");
 const { injectInlineJs } = require("./libs/injector");
 const TranslatorManager = require("./libs/translatorManager").default;
 const { run } = require("./common");
+const { USERSCRIPT_STORAGE_PROTOCOL } = require("./libs/userscriptProtocol");
 
 function setReadyState(value) {
   Object.defineProperty(document, "readyState", {
@@ -383,6 +386,19 @@ describe("common iframe startup", () => {
       expect(injectInlineJs.mock.calls[0][1]).toBe(
         "kiss-translator-options-injector"
       );
+      const bridgedWindow = {};
+      // Execute the serialized function without access to imported constants.
+      // eslint-disable-next-line no-new-func
+      new Function("window", "process", injectInlineJs.mock.calls[0][0])(
+        bridgedWindow,
+        process
+      );
+      expect(bridgedWindow.APP_INFO).toEqual({
+        name: process.env.REACT_APP_NAME,
+        version: process.env.REACT_APP_VERSION,
+        storageProtocol: USERSCRIPT_STORAGE_PROTOCOL,
+        eventName: expect.any(String),
+      });
       expectNoNormalUserscriptStartup();
     } finally {
       window.history.pushState({}, "", originalHref);
@@ -411,6 +427,7 @@ describe("common iframe startup", () => {
       expect(globalThis.unsafeWindow.APP_INFO).toEqual({
         name: process.env.REACT_APP_NAME,
         version: process.env.REACT_APP_VERSION,
+        storageProtocol: USERSCRIPT_STORAGE_PROTOCOL,
       });
       expect(injectInlineJs).not.toHaveBeenCalled();
       expectNoNormalUserscriptStartup();
