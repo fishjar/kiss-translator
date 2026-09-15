@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Sync browser fixture</title>
+<style>
+  body { font: 16px system-ui; max-width: 1050px; margin: 40px auto; color: #152d34; background: #f6faf9; }
+  button, select, input { font: inherit; padding: 8px 12px; margin: 6px; }
+  pre { background: white; border: 1px solid #bbc; padding: 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+<h1>Sync browser fixture</h1>
+<p>This fixture runs the unmodified Options app, production storage and encryption code, and local HTTP endpoints.</p>
+<label>Target <select id="target"><option>a</option><option>b</option></select></label>
+<label>Protocol <select id="protocol"><option>KISS-Worker</option><option>WebDAV</option></select></label>
+<button id="reset">Reset local data and open Options</button>
+<button id="open">Open Options</button>
+<button id="refresh">Refresh evidence</button>
+<h2>Local data</h2><pre id="local"></pre>
+<h2>Remote packets and requests</h2><pre id="remote"></pre>
+<script>
+  const refresh = async () => {
+    document.querySelector("#local").textContent = JSON.stringify(Object.fromEntries(
+      Object.entries(localStorage).filter(([key]) => key.startsWith("KISS-Translator")).map(([key, value]) => {
+        try { return [key, JSON.parse(value)]; } catch { return [key, value]; }
+      })
+    ), null, 2);
+    document.querySelector("#remote").textContent = JSON.stringify(await (await fetch("/__fixture__/state")).json(), null, 2);
+  };
+  document.querySelector("#reset").onclick = () => {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("KISS-Translator")) localStorage.removeItem(key);
+    }
+    localStorage.setItem("KISS-Translator_sync", JSON.stringify({
+      syncType: document.querySelector("#protocol").value,
+      syncUrl: location.origin + "/" + document.querySelector("#target").value,
+      syncUser: "browser-review", syncKey: "browser-review-token",
+      syncEncryptKey: "browser-review-secret", syncMeta: {}, dataCaches: {}, subRulesSyncAt: 0,
+    }));
+    location.href = "/options.html#/sync";
+  };
+  document.querySelector("#open").onclick = () => location.href = "/options.html#/sync";
+  document.querySelector("#refresh").onclick = refresh;
+  refresh();
+</script>

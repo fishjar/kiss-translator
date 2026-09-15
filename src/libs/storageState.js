@@ -60,16 +60,38 @@ export function getStorageState(key, defaultValue) {
   let unsubscribeRefresh;
   let unsubscribeWrite;
   let dirty = false;
+  let syncKey = "";
+  let syncHandler;
+  let syncTimer;
 
   const publish = (data = snapshot.data, isLoading = snapshot.isLoading) => {
     snapshot = { data, isLoading };
     listeners.forEach((listener) => listener(snapshot));
   };
   const disposeIfIdle = () => {
-    if (listeners.size || pendingWrites || pendingMutations || pendingSyncs)
+    if (
+      listeners.size ||
+      pendingWrites ||
+      pendingMutations ||
+      pendingSyncs ||
+      syncTimer ||
+      (dirty && syncHandler)
+    )
       return;
     if (states.get(key) === state) states.delete(key);
     readId += 1;
+  };
+  const cancelSync = () => {
+    clearTimeout(syncTimer);
+    syncTimer = undefined;
+  };
+  const scheduleSync = () => {
+    if (!dirty || !syncHandler || snapshot.data === null) return;
+    cancelSync();
+    syncTimer = setTimeout(() => {
+      syncTimer = undefined;
+      void syncHandler(state, revision, snapshot.data);
+    }, 3000);
   };
   const enqueueWrite = (operation) => {
     pendingWrites += 1;
@@ -138,18 +160,28 @@ export function getStorageState(key, defaultValue) {
       isSameStorageValue(snapshot.data, value) &&
       failedRevision !== revision
     ) {
+      scheduleSync();
       return Promise.resolve(null);
     }
     const savedRevision = ++revision;
+    const savedTimestamp = Date.now();
     editVersion += 1;
-    editTimestamp = Date.now();
+    editTimestamp = savedTimestamp;
     dirty = true;
     failedRevision = undefined;
     publish(value, false);
     if (value === null) return Promise.resolve(null);
     return enqueueWrite(async () => {
       try {
-        await storage.setObj(key, value);
+        if (syncKey) {
+          const saved = await storage.saveEdit(key, value, syncKey, {
+            timestamp: savedTimestamp,
+          });
+          if (revision === savedRevision) editTimestamp = saved.updateAt;
+        } else {
+          await storage.setObj(key, value);
+        }
+        if (revision === savedRevision) scheduleSync();
         return { value, revision: savedRevision };
       } catch (error) {
         if (revision === savedRevision) failedRevision = savedRevision;
@@ -169,6 +201,7 @@ export function getStorageState(key, defaultValue) {
       });
   };
   const remove = () => {
+    cancelSync();
     const removedRevision = ++revision;
     editVersion += 1;
     dirty = false;
@@ -200,6 +233,13 @@ export function getStorageState(key, defaultValue) {
     get editTimestamp() {
       return editTimestamp;
     },
+    configureSync(keyToSync, handler) {
+      syncKey = keyToSync;
+      if (handler) syncHandler = handler;
+      if (dirty) scheduleSync();
+    },
+    scheduleSync,
+    cancelSync,
     subscribe(listener) {
       if (!listeners.size && reloadOnSubscribe) {
         reloadOnSubscribe = false;
@@ -253,6 +293,7 @@ export function getStorageState(key, defaultValue) {
     enqueueWrite,
     enqueueSync,
     acceptValue(value) {
+      cancelSync();
       initialized = true;
       failedRevision = undefined;
       revision += 1;
@@ -261,7 +302,11 @@ export function getStorageState(key, defaultValue) {
       return revision;
     },
     markSynced(expectedRevision) {
-      if (revision === expectedRevision) dirty = false;
+      if (revision === expectedRevision) {
+        dirty = false;
+        cancelSync();
+        disposeIfIdle();
+      }
     },
   };
   states.set(key, state);

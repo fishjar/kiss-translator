@@ -25,6 +25,7 @@ import SubtitleSetting from "./Subtitle";
 import StylesSetting from "./StylesSetting";
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
+import InteractionLock from "./InteractionLock";
 import {
   createOptionsStartup,
   getRequiredOptionsSyncKeys,
@@ -58,14 +59,9 @@ function OptionsContent({ pendingKeys, children }) {
 
   return (
     <>
-      {/* React 18 requires a string for the native inert attribute. */}
-      <div
-        data-testid="options-content"
-        inert={syncing ? "" : undefined}
-        aria-busy={syncing}
-      >
+      <InteractionLock data-testid="options-content" locked={syncing}>
         {children}
-      </div>
+      </InteractionLock>
       <SyncBackdrop open={syncing} />
     </>
   );
@@ -129,10 +125,10 @@ export default function Options() {
   return (
     <SettingProvider context="options">
       <ThemeProvider>
-        <AlertProvider>
-          <ConfirmProvider>
-            <HashRouter>
-              <OptionsContent pendingKeys={pendingKeys}>
+        <HashRouter>
+          <OptionsContent pendingKeys={pendingKeys}>
+            <AlertProvider>
+              <ConfirmProvider>
                 <Routes>
                   <Route path="/" element={<Layout />}>
                     <Route index element={<Setting />} />
@@ -150,10 +146,10 @@ export default function Options() {
                     <Route path="about" element={<About />} />
                   </Route>
                 </Routes>
-              </OptionsContent>
-            </HashRouter>
-          </ConfirmProvider>
-        </AlertProvider>
+              </ConfirmProvider>
+            </AlertProvider>
+          </OptionsContent>
+        </HashRouter>
       </ThemeProvider>
     </SettingProvider>
   );

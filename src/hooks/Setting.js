@@ -16,7 +16,6 @@ import {
   migrateSettingToV3,
 } from "../config";
 import { useStorage } from "./Storage";
-import { debounceSyncMeta } from "../libs/storage";
 import Loading from "./Loading";
 import { logger } from "../libs/log";
 import { sendBgMsg } from "../libs/msg";
@@ -96,7 +95,6 @@ export function SettingProvider({ children, context }) {
   const updateSetting = useCallback(
     (objOrFn) => {
       update(objOrFn);
-      debounceSyncMeta(KV_SETTING_KEY);
     },
     [update]
   );

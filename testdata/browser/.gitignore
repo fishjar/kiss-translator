@@ -1,0 +1,4 @@
+*.log
+evidence/
+extension-build/
+profiles/

@@ -2,7 +2,6 @@ import { STOKEY_RULES, DEFAULT_RULES, KV_RULES_KEY } from "../config";
 import { useStorage } from "./Storage";
 import { checkRules } from "../libs/rules";
 import { useCallback } from "react";
-import { debounceSyncMeta } from "../libs/storage";
 
 /**
  * 翻译规则列表增删改查管理的自定义 Hook
@@ -19,7 +18,6 @@ export function useRules() {
   const save = useCallback(
     (objOrFn) => {
       saveRules(objOrFn);
-      debounceSyncMeta(KV_RULES_KEY);
     },
     [saveRules]
   );

@@ -22,6 +22,9 @@ import {
   CURRENT_SETTINGS_VERSION,
   DEFAULT_TRANBOX_SETTING,
   normalizeApiThinkingSettings,
+  KV_SETTING_KEY,
+  KV_RULES_KEY,
+  KV_WORDS_KEY,
 } from "../config";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
@@ -29,27 +32,34 @@ import { kissLog } from "./log";
 import { debounce } from "./utils";
 import { getGmMethod } from "./gm";
 import { publishStorageWrite } from "./storageEvents";
+import { withStorageLock } from "./storageCoordination";
 
-let syncWriteQueue = Promise.resolve();
+const SYNC_KEYS = {
+  [STOKEY_SETTING]: KV_SETTING_KEY,
+  [STOKEY_RULES]: KV_RULES_KEY,
+  [STOKEY_WORDS]: KV_WORDS_KEY,
+};
+const GM_RECORD_SCHEMA = "kiss-sync-record-v1";
+const GM_ACK_SCHEMA = "kiss-sync-ack-v1";
+const gmRecordKey = (key) => `${STOKEY_SYNC}:record:${key}`;
+const gmAckKey = (key) => `${STOKEY_SYNC}:ack:${key}`;
+const newRecordRevision = () =>
+  globalThis.crypto?.randomUUID?.() ||
+  `${Date.now()}-${Math.random()}-${Math.random()}`;
+const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const DESTINATION_FIELDS = [
+  "syncType",
+  "syncUrl",
+  "syncUser",
+  "syncKey",
+  "syncEncryptKey",
+];
 
-/** Serialize sync configuration and metadata read/modify/write operations. */
-export function updateSyncState(updater, { onWriteError } = {}) {
-  const pending = syncWriteQueue.then(async () => {
-    const current = (await getObj(STOKEY_SYNC)) ?? DEFAULT_SYNC;
-    const next = await updater(current);
-    if (next === undefined) return current;
-    try {
-      await set(STOKEY_SYNC, JSON.stringify(next));
-    } catch (error) {
-      // Compensation stays inside this same commit boundary.
-      await onWriteError?.(error);
-      throw error;
-    }
-    publishStorageWrite(STOKEY_SYNC, next, true);
-    return next;
-  });
-  syncWriteQueue = pending.catch(() => {});
-  return pending;
+/** Update metadata under the same boundary as related business writes. */
+export function updateSyncState(updater, options) {
+  return withTransaction((transaction) =>
+    transaction.updateSyncState(updater, options)
+  );
 }
 
 function preserveNewerSyncMeta(current, incoming) {
@@ -62,8 +72,8 @@ function preserveNewerSyncMeta(current, incoming) {
       (meta.updateAt === next.updateAt &&
         (meta.syncAt > next.syncAt ||
           (meta.syncAt === next.syncAt &&
-            meta.pendingUpload &&
-            !next.pendingUpload)))
+            ((meta.pendingUpload && !next.pendingUpload) ||
+              (meta.firstAttemptAt && !next.firstAttemptAt)))))
     ) {
       merged[key] = meta;
     }
@@ -95,7 +105,7 @@ function getGmStorage() {
  * @param {string} key 键名
  * @param {*} val 待写入的字符串数据
  */
-async function set(key, val) {
+async function rawSet(key, val) {
   if (isExt) {
     await browser.storage.local.set({ [key]: val });
   } else if (isGm) {
@@ -110,7 +120,7 @@ async function set(key, val) {
  * @param {string} key 键名
  * @returns {Promise<string|null>} 读取到的原始字符串数据
  */
-async function get(key) {
+async function rawGet(key) {
   if (isExt) {
     const val = await browser.storage.local.get([key]);
     return val[key];
@@ -125,7 +135,7 @@ async function get(key) {
  * 跨平台存储底层删除操作。
  * @param {string} key 键名
  */
-async function del(key) {
+async function rawDel(key) {
   if (isExt) {
     await browser.storage.local.remove([key]);
   } else if (isGm) {
@@ -141,15 +151,15 @@ async function del(key) {
  * @param {Object|Array} obj 待存入 of JS 对象或数组
  */
 async function setObj(key, obj) {
-  if (key === STOKEY_SYNC) {
-    await updateSyncState((current) => ({
-      ...obj,
-      syncMeta: preserveNewerSyncMeta(current.syncMeta, obj?.syncMeta),
-    }));
-    return;
-  }
-  await set(key, JSON.stringify(obj));
-  publishStorageWrite(key, obj);
+  return withTransaction(async (transaction) => {
+    if (key === STOKEY_SYNC) {
+      return transaction.updateSyncState((current) => ({
+        ...obj,
+        syncMeta: preserveNewerSyncMeta(current.syncMeta, obj?.syncMeta),
+      }));
+    }
+    await transaction.setObj(key, obj);
+  });
 }
 
 /**
@@ -158,9 +168,10 @@ async function setObj(key, obj) {
  * @param {Object|Array} obj 默认值对象
  */
 async function trySetObj(key, obj) {
-  if (!(await get(key))) {
-    await setObj(key, obj);
-  }
+  return withTransaction(async (transaction) => {
+    if ((await transaction.getObj(key)) === null)
+      await transaction.setObj(key, obj);
+  });
 }
 
 /**
@@ -168,8 +179,7 @@ async function trySetObj(key, obj) {
  * @param {string} key 键名
  * @returns {Promise<Object|Array|null>} 返回反序列化后的数据，发生解析错误或为空时返回 null
  */
-async function getObj(key) {
-  const val = await get(key);
+function parseStoredValue(val, key) {
   if (val === null || val === undefined) return null;
   try {
     return JSON.parse(val);
@@ -177,6 +187,291 @@ async function getObj(key) {
     kissLog("parse json in storage err: ", key);
   }
   return null;
+}
+
+async function getGmRecord(key, records) {
+  if (records?.has(key)) return records.get(key);
+  const read = (async () => {
+    const record = parseStoredValue(await rawGet(gmRecordKey(key)), key);
+    return record?.schema === GM_RECORD_SCHEMA ? record : null;
+  })();
+  records?.set(key, read);
+  return read;
+}
+
+async function getObj(key, records = new Map()) {
+  if (isGm && SYNC_KEYS[key]) {
+    const record = await getGmRecord(SYNC_KEYS[key], records);
+    if (record && Object.prototype.hasOwnProperty.call(record, "value"))
+      return record.value;
+  }
+  const value = parseStoredValue(await rawGet(key), key);
+  if (!isGm || key !== STOKEY_SYNC) return value;
+  const syncMeta = { ...(value?.syncMeta || {}) };
+  let hasMetadata = false;
+  const destinationRevision = value?.destinationRevision || 0;
+  await Promise.all(
+    Object.values(SYNC_KEYS).map(async (syncKey) => {
+      const record = await getGmRecord(syncKey, records);
+      const ack = parseStoredValue(await rawGet(gmAckKey(syncKey)), syncKey);
+      let meta = syncMeta[syncKey];
+      if (record && Object.prototype.hasOwnProperty.call(record, "meta")) {
+        meta =
+          (record.destinationRevision || 0) === destinationRevision
+            ? record.meta
+            : null;
+      }
+      if (
+        ack?.schema === GM_ACK_SCHEMA &&
+        ack.businessRevision === (record?.revision || "legacy") &&
+        (ack.destinationRevision || 0) === destinationRevision
+      )
+        meta = ack.meta;
+      if (meta === null || meta === undefined) delete syncMeta[syncKey];
+      else {
+        hasMetadata = true;
+        syncMeta[syncKey] = meta;
+      }
+    })
+  );
+  return value || hasMetadata ? { ...(value || DEFAULT_SYNC), syncMeta } : null;
+}
+
+async function get(key) {
+  if (isGm && (SYNC_KEYS[key] || key === STOKEY_SYNC)) {
+    const value = await getObj(key);
+    return value === null ? null : JSON.stringify(value);
+  }
+  return rawGet(key);
+}
+
+async function set(key, value) {
+  return withStorageLock(async (coordinator) => {
+    if (coordinator?.commit)
+      await coordinator.commit([{ key, value, previous: await rawGet(key) }]);
+    else await rawSet(key, value);
+  });
+}
+
+async function del(key) {
+  return withTransaction((transaction) => transaction.del(key));
+}
+
+/** Stage writes, compensate failures, and notify only after persistence succeeds. */
+export function withTransaction(operation) {
+  return withStorageLock(async (coordinator) => {
+    const writes = new Map();
+    const originals = new Map();
+    const gmRecords = new Map();
+    const errorHandlers = [];
+    const read = async (key) => {
+      if (writes.has(key)) return writes.get(key).value;
+      if (!originals.has(key)) originals.set(key, await getObj(key, gmRecords));
+      return originals.get(key);
+    };
+    const stage = async (key, value, remove = false, options = {}) => {
+      const current = await read(key);
+      if (key === STOKEY_SYNC && value && current) {
+        const destinationChanged = DESTINATION_FIELDS.some(
+          (field) => current[field] !== value[field]
+        );
+        const revision = current.destinationRevision || 0;
+        value = {
+          ...value,
+          ...(current.destinationRevision !== undefined ||
+          (destinationChanged && !options.preserveDestination)
+            ? {
+                destinationRevision:
+                  revision +
+                  (destinationChanged && !options.preserveDestination ? 1 : 0),
+              }
+            : {}),
+          ...(destinationChanged && !options.preserveDestination
+            ? { syncMeta: {} }
+            : {}),
+        };
+      }
+      writes.set(key, { value, remove });
+      return value;
+    };
+    const transaction = {
+      getObj: read,
+      setObj: (key, value) => stage(key, value),
+      discard: (key) => writes.delete(key),
+      del: (key) => stage(key, null, true),
+      updateSyncState: async (
+        updater,
+        { onWriteError, preserveDestination } = {}
+      ) => {
+        const current = (await read(STOKEY_SYNC)) ?? DEFAULT_SYNC;
+        const next = await updater(current, transaction);
+        if (onWriteError) errorHandlers.push(onWriteError);
+        if (next === undefined) return current;
+        return stage(STOKEY_SYNC, next, false, { preserveDestination });
+      },
+    };
+    const result = await operation(transaction);
+    if (!writes.size) return result;
+    const persisted = new Map();
+    const stageRaw = async (key, value) => {
+      if (!persisted.has(key))
+        persisted.set(key, { previous: await rawGet(key), value });
+      else persisted.get(key).value = value;
+    };
+    for (const [key, { value, remove }] of writes) {
+      if (isGm && SYNC_KEYS[key]) {
+        const config = (await read(STOKEY_SYNC)) || DEFAULT_SYNC;
+        await stageRaw(
+          gmRecordKey(SYNC_KEYS[key]),
+          JSON.stringify({
+            schema: GM_RECORD_SCHEMA,
+            revision: newRecordRevision(),
+            destinationRevision: config.destinationRevision || 0,
+            value,
+            meta: config.syncMeta?.[SYNC_KEYS[key]] ?? null,
+          })
+        );
+      } else if (isGm && key === STOKEY_SYNC) {
+        const previous = originals.get(key);
+        for (const [storageKey, syncKey] of Object.entries(SYNC_KEYS)) {
+          if (
+            !writes.has(storageKey) &&
+            !sameValue(
+              previous?.syncMeta?.[syncKey],
+              value?.syncMeta?.[syncKey]
+            )
+          ) {
+            const record = await getGmRecord(syncKey, gmRecords);
+            await stageRaw(
+              gmAckKey(syncKey),
+              JSON.stringify({
+                schema: GM_ACK_SCHEMA,
+                businessRevision: record?.revision || "legacy",
+                destinationRevision: value?.destinationRevision || 0,
+                meta: value?.syncMeta?.[syncKey] ?? null,
+              })
+            );
+          }
+        }
+        // Keep legacy inline metadata as a read fallback until each key is used.
+        // Migrating every key here would race a write from another origin.
+        const rawConfig = parseStoredValue(await rawGet(key), key);
+        const inlineMeta = (sync) =>
+          Object.fromEntries(
+            Object.entries(sync?.syncMeta || {}).filter(
+              ([syncKey]) => !Object.values(SYNC_KEYS).includes(syncKey)
+            )
+          );
+        const legacyMeta =
+          (value?.destinationRevision || 0) ===
+          (rawConfig?.destinationRevision || 0)
+            ? Object.fromEntries(
+                Object.entries(rawConfig?.syncMeta || {}).filter(([syncKey]) =>
+                  Object.values(SYNC_KEYS).includes(syncKey)
+                )
+              )
+            : {};
+        const nextConfig = value && {
+          ...value,
+          syncMeta: { ...legacyMeta, ...inlineMeta(value) },
+        };
+        if (remove || !sameValue(rawConfig, nextConfig))
+          await stageRaw(key, remove ? null : JSON.stringify(nextConfig));
+      } else {
+        await stageRaw(key, remove ? null : JSON.stringify(value));
+      }
+    }
+    const attempted = [];
+    try {
+      if (coordinator?.commit) {
+        await coordinator.commit(
+          [...persisted].map(([key, entry]) => ({ key, ...entry }))
+        );
+      } else {
+        for (const [key, { value }] of persisted) {
+          attempted.push(key);
+          if (value === null) await rawDel(key);
+          else await rawSet(key, value);
+        }
+      }
+    } catch (error) {
+      for (const key of attempted.reverse()) {
+        const { previous, value } = persisted.get(key);
+        try {
+          // GM has no cross-origin CAS; never compensate another page's write.
+          const stored = await rawGet(key);
+          if (value === null ? stored != null : stored !== value) continue;
+          if (previous === undefined || previous === null) await rawDel(key);
+          else await rawSet(key, previous);
+        } catch (recoveryError) {
+          error.storageRecoveryFailed = true;
+          kissLog("Unable to compensate a storage transaction", recoveryError);
+        }
+      }
+      for (const handler of errorHandlers) await handler(error);
+      throw error;
+    }
+    for (const [key, { value }] of writes) {
+      publishStorageWrite(
+        key,
+        isGm && key === STOKEY_SYNC ? await getObj(key) : value,
+        key === STOKEY_SYNC
+      );
+    }
+    return result;
+  });
+}
+
+/** Persist an edit and its conflict timestamp before any sync may read either. */
+export function saveEdit(
+  key,
+  valueOrFn,
+  syncKey = SYNC_KEYS[key],
+  options = {}
+) {
+  const { timestamp = Date.now(), pendingUpload = false } =
+    typeof options === "number" ? { timestamp: options } : options;
+  return withTransaction(async (transaction) => {
+    const previous = await transaction.getObj(key);
+    const value =
+      typeof valueOrFn === "function" ? valueOrFn(previous) : valueOrFn;
+    await transaction.setObj(key, value);
+    if (!syncKey) return { value, updateAt: timestamp };
+    const current = (await transaction.getObj(STOKEY_SYNC)) ?? DEFAULT_SYNC;
+    const meta = current.syncMeta?.[syncKey] || {};
+    const updateAt = Math.max(timestamp, (meta.updateAt || 0) + 1);
+    await transaction.setObj(STOKEY_SYNC, {
+      ...current,
+      syncMeta: {
+        ...current.syncMeta,
+        [syncKey]: {
+          ...meta,
+          updateAt,
+          ...(pendingUpload || meta.firstAttemptAt
+            ? { pendingUpload: true }
+            : {}),
+        },
+      },
+    });
+    return { value, updateAt };
+  });
+}
+
+/** Read one business value and the metadata belonging to that exact record. */
+export function readSyncSnapshot(storageKey) {
+  return withTransaction(async (transaction) => {
+    const rawValue = await transaction.getObj(storageKey);
+    const syncConfig = (await transaction.getObj(STOKEY_SYNC)) || DEFAULT_SYNC;
+    const value =
+      storageKey === STOKEY_SETTING
+        ? normalizeStoredSetting(rawValue)
+        : storageKey === STOKEY_RULES
+          ? rawValue || DEFAULT_RULES
+          : storageKey === STOKEY_WORDS
+            ? rawValue || {}
+            : rawValue;
+    return { value, syncConfig };
+  });
 }
 
 /**
@@ -187,8 +482,10 @@ async function getObj(key) {
  * @param {Object} obj 待合并的数据切片
  */
 async function putObj(key, obj) {
-  const cur = (await getObj(key)) ?? {};
-  await setObj(key, { ...cur, ...obj });
+  return withTransaction(async (transaction) => {
+    const cur = (await transaction.getObj(key)) ?? {};
+    await transaction.setObj(key, { ...cur, ...obj });
+  });
 }
 
 /**
@@ -202,6 +499,9 @@ export const storage = {
   trySetObj,
   getObj,
   putObj,
+  withTransaction,
+  saveEdit,
+  readSyncSnapshot,
 };
 
 // --- 应用设置 (Settings) 数据存取 ---
@@ -269,8 +569,7 @@ export const runDataMigration = async () => {
   }
 };
 
-export const getSettingWithDefault = async () => {
-  const rawSetting = await getSetting();
+export const normalizeStoredSetting = (rawSetting) => {
   if (!rawSetting) {
     // 新安装同样通过统一入口得到最终思考设置，避免默认配置绕过归一化。
     return mergeSettingWithDefault(DEFAULT_SETTING);
@@ -283,6 +582,8 @@ export const getSettingWithDefault = async () => {
 
   return mergeSettingWithDefault(setting);
 };
+export const getSettingWithDefault = async () =>
+  normalizeStoredSetting(await getSetting());
 export const setSetting = async (val) => setObj(STOKEY_SETTING, val);
 export const putSetting = async (obj) => {
   const cur = (await getSetting()) ?? {};
@@ -370,16 +671,24 @@ export const debouncePutTranBox = debounce(putTranBox, 300);
 // --- 云同步元数据 (Sync Settings & Timestamps) 存取 ---
 export const getSync = () => getObj(STOKEY_SYNC);
 export const getSyncWithDefault = async () => (await getSync()) || DEFAULT_SYNC;
-export const putSync = (obj) =>
-  updateSyncState((current) => ({
-    ...current,
-    ...obj,
-    ...(obj.syncMeta
-      ? {
-          syncMeta: preserveNewerSyncMeta(current.syncMeta, obj.syncMeta),
-        }
-      : {}),
-  }));
+export const putSync = (obj, options) =>
+  updateSyncState((current) => {
+    if (
+      options?.expectedDestinationRevision !== undefined &&
+      (current.destinationRevision || 0) !== options.expectedDestinationRevision
+    ) {
+      throw new Error("Sync destination changed during the request");
+    }
+    return {
+      ...current,
+      ...obj,
+      ...(obj.syncMeta
+        ? {
+            syncMeta: preserveNewerSyncMeta(current.syncMeta, obj.syncMeta),
+          }
+        : {}),
+    };
+  }, options);
 export const putSyncMeta = (key) => {
   const updateAt = Date.now();
   return updateSyncState((current) => ({
@@ -396,8 +705,8 @@ export const putSyncMeta = (key) => {
     },
   }));
 };
-// 节流处理同步时间元数据的更新
-export const debounceSyncMeta = debounce(putSyncMeta, 300);
+// Keep the legacy name without delaying or discarding another key's metadata.
+export const debounceSyncMeta = putSyncMeta;
 
 // --- 百度云服务授权 Token 存取 ---
 export const getBdauth = () => getObj(STOKEY_BDAUTH);

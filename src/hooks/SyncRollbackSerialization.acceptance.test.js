@@ -13,6 +13,16 @@ import {
 } from "../config";
 
 jest.mock("../libs/client", () => ({ isExt: true, isGm: false }));
+jest.mock("../libs/storageCoordination", () => {
+  let queue = Promise.resolve();
+  return {
+    withStorageLock: (operation) => {
+      const pending = queue.then(() => operation());
+      queue = pending.catch(() => {});
+      return pending;
+    },
+  };
+});
 jest.mock("../libs/browser", () => ({
   isOptions: () => true,
   browser: {

@@ -1,69 +1,66 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getStorageState, isSameStorageValue } from "../libs/storageState";
 import { storage } from "../libs/storage";
-import { getStorageState } from "../libs/storageState";
+import { STOKEY_SYNC } from "../config";
 import { kissLog } from "../libs/log";
 import { syncData } from "../libs/sync";
-import { useDebouncedCallback } from "./DebouncedCallback";
 import { isOptions } from "../libs/browser";
 
-/** Read without writing defaults; share edits by key. Keep defaultVal stable. */
+/** Read without writing defaults; edits and pending uploads are owned by key. */
 export function useStorage(key, defaultVal = null, syncKey = "") {
   const [snapshot, setSnapshot] = useState({
     data: defaultVal,
     isLoading: true,
   });
   const scopeRef = useRef(null);
-  const scheduleSyncRef = useRef(null);
-  const isCurrent = useCallback(
-    (scope, revision) =>
-      scopeRef.current === scope &&
-      scope.active &&
-      scope.state.revision === revision,
-    []
-  );
 
   const runSync = useCallback(
-    (scope, revision, value) =>
-      scope.state.enqueueSync(async () => {
-        if (!isCurrent(scope, revision) || !scope.state.dirty) return;
-        const requestEditVersion = scope.state.editVersion;
+    (state, revision, value) =>
+      state.enqueueSync(async () => {
+        const isCurrent = () => state.revision === revision;
+        if (!isCurrent() || !state.dirty) return;
+        const requestEditVersion = state.editVersion;
         try {
-          const result = await syncData(syncKey, value, {
-            deferCommit: true,
-            isRequestCurrent: () => isCurrent(scope, revision),
-          });
-          if (!result) return;
-          const accepted = await scope.state.enqueueWrite(() =>
-            result.commit({
-              applyValue: async () => {
-                if (result.isNew) await storage.setObj(key, result.value);
-              },
-              rollbackValue: () => storage.setObj(key, value),
-              isCurrent: () => isCurrent(scope, revision),
-              shouldRetry: () =>
-                scope.state.snapshot.data !== null &&
-                scope.state.editVersion !== requestEditVersion,
-              getRetryTimestamp: () => scope.state.editTimestamp,
+          const request = await storage.withTransaction(
+            async (transaction) => ({
+              value: await transaction.getObj(key),
+              config: await transaction.getObj(STOKEY_SYNC),
             })
           );
-          if (accepted && isCurrent(scope, revision)) {
-            if (result.isNew) scope.state.acceptValue(result.value);
-            else scope.state.markSynced(revision);
-            // Legacy encryption is network work, outside the local write queue.
+          if (!isCurrent()) return;
+          if (!isSameStorageValue(value, request.value)) {
+            await state.load();
+            return;
+          }
+          const result = await syncData(syncKey, value, {
+            deferCommit: true,
+            isRequestCurrent: isCurrent,
+            syncConfig: request.config,
+          });
+          if (!result) return;
+          const accepted = await state.enqueueWrite(() =>
+            result.commit({
+              applyValue: async (transaction) => {
+                if (result.isNew) await transaction.setObj(key, result.value);
+              },
+              isCurrent,
+              shouldRetry: () =>
+                state.snapshot.data !== null &&
+                state.editVersion !== requestEditVersion,
+              getRetryTimestamp: () => state.editTimestamp,
+            })
+          );
+          if (accepted && isCurrent()) {
+            if (result.isNew) state.acceptValue(result.value);
+            else state.markSynced(revision);
             await result.migrateLegacy?.();
-          } else if (scope.active && scope.state.dirty) {
-            // Retry the retained edit with its original dirty timestamp. Rejecting
-            // a response must not change the timestamp conflict policy.
-            scheduleSyncRef.current(
-              scope,
-              scope.state.revision,
-              scope.state.snapshot.data
-            );
+          } else if (state.dirty) {
+            state.scheduleSync();
           }
         } catch (error) {
           kissLog("Sync failed", syncKey, error);
-          if (error.storageRecoveryFailed && scope.active) {
-            await scope.state
+          if (error.storageRecoveryFailed) {
+            await state
               .load()
               .catch((readError) =>
                 kissLog("Reload after sync failure", readError)
@@ -71,13 +68,12 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
           }
         }
       }),
-    [isCurrent, key, syncKey]
+    [key, syncKey]
   );
-  const debouncedSync = useDebouncedCallback(runSync, 3000);
-  scheduleSyncRef.current = debouncedSync;
 
   useEffect(() => {
     const state = getStorageState(key, defaultVal);
+    state.configureSync(syncKey, syncKey && isOptions() ? runSync : undefined);
     const scope = { key, state, active: true };
     scopeRef.current = scope;
     const unsubscribe = state.subscribe((next) => {
@@ -88,32 +84,19 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
     });
     return () => {
       scope.active = false;
-      debouncedSync.cancel();
       unsubscribe();
     };
-  }, [key, defaultVal, debouncedSync]);
+  }, [key, defaultVal, syncKey, runSync]);
 
   const save = useCallback(
     (valueOrFn) => {
       const scope = scopeRef.current;
       if (!scope?.active || scope.key !== key) return Promise.resolve();
-      return scope.state
-        .save(valueOrFn)
-        .then((saved) => {
-          if (
-            saved &&
-            isCurrent(scope, saved.revision) &&
-            syncKey &&
-            isOptions()
-          ) {
-            debouncedSync(scope, saved.revision, saved.value);
-          }
-        })
-        .catch((error) => {
-          kissLog(`storage save error for key: ${key}`, error);
-        });
+      return scope.state.save(valueOrFn).catch((error) => {
+        kissLog(`storage save error for key: ${key}`, error);
+      });
     },
-    [key, syncKey, isCurrent, debouncedSync]
+    [key]
   );
 
   const update = useCallback(
@@ -133,13 +116,12 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
   const remove = useCallback(async () => {
     const scope = scopeRef.current;
     if (!scope?.active || scope.key !== key) return;
-    debouncedSync.cancel();
     try {
       await scope.state.remove();
     } catch (error) {
       kissLog(`storage remove error for key: ${key}`, error);
     }
-  }, [key, debouncedSync]);
+  }, [key]);
 
   const reload = useCallback(async () => {
     const scope = scopeRef.current;

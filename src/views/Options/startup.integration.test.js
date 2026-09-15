@@ -41,6 +41,17 @@ jest.mock("../../libs/browser", () => ({
   },
 }));
 
+jest.mock("../../libs/storageCoordination", () => {
+  let queue = Promise.resolve();
+  return {
+    withStorageLock: (operation) => {
+      const pending = queue.then(() => operation());
+      queue = pending.catch(() => {});
+      return pending;
+    },
+  };
+});
+
 jest.mock("../../libs/gm", () => ({ adaptScript: jest.fn() }));
 
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));

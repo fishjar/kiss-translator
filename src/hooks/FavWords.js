@@ -1,7 +1,6 @@
 import { STOKEY_WORDS, KV_WORDS_KEY } from "../config";
 import { useCallback, useMemo } from "react";
 import { useStorage } from "./Storage";
-import { debounceSyncMeta } from "../libs/storage";
 
 const DEFAULT_FAVWORDS = {};
 
@@ -20,7 +19,6 @@ export function useFavWords() {
   const save = useCallback(
     (objOrFn) => {
       saveWords(objOrFn);
-      debounceSyncMeta(KV_WORDS_KEY);
     },
     [saveWords]
   );

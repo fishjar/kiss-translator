@@ -13,13 +13,18 @@ jest.mock("../libs/storage", () => ({
   storage: {
     getObj: jest.fn(),
     setObj: jest.fn(),
+    saveEdit: jest.fn(),
+    withTransaction: jest.fn(),
     del: jest.fn(),
   },
 }));
 
 jest.mock("../libs/sync", () => ({ syncData: jest.fn() }));
 jest.mock("../libs/browser", () => ({ isOptions: () => false }));
-jest.mock("../libs/log", () => ({ kissLog: jest.fn() }));
+jest.mock("../libs/log", () => ({
+  ...jest.requireActual("../libs/log"),
+  kissLog: jest.fn(),
+}));
 
 const DEFAULT_VALUE = { count: 0 };
 const hosts = new Set();
@@ -96,9 +101,18 @@ describe("useStorage shared state lifecycle", () => {
     storageKey = `storage-lifecycle-${++keySequence}`;
     persisted = new Map([[storageKey, { count: 4, retained: true }]]);
     storage.getObj.mockImplementation(async (key) => persisted.get(key));
+    storage.withTransaction.mockImplementation((operation) =>
+      operation(storage)
+    );
     storage.setObj.mockImplementation(async (key, value) => {
       persisted.set(key, value);
     });
+    storage.saveEdit.mockImplementation(
+      async (key, value, _syncKey, options) => {
+        await storage.setObj(key, value);
+        return { value, updateAt: options.timestamp };
+      }
+    );
     storage.del.mockImplementation(async (key) => {
       persisted.delete(key);
     });

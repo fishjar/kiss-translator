@@ -17,13 +17,11 @@ import {
   getSettingWithDefault,
   getRulesWithDefault,
   getWordsWithDefault,
-  getSetting,
-  getRules,
-  getWords,
   setSetting,
   setRules,
   setWords,
   updateSyncState,
+  storage,
 } from "./storage";
 import {
   apiSyncData,
@@ -159,7 +157,7 @@ const getGistFilename = (key) => {
 
 const syncByGist = async (
   data,
-  { syncUrl, syncKey },
+  { syncUrl, syncKey, destinationRevision = 0 },
   { forceWrite = false } = {}
 ) => {
   let gistId = getGistId(syncUrl);
@@ -170,7 +168,13 @@ const syncByGist = async (
     const existingGist = await findGistByDescription(syncKey);
     if (existingGist?.id) {
       gistId = existingGist.id;
-      await putSync({ syncUrl: gistId });
+      await putSync(
+        { syncUrl: gistId },
+        {
+          preserveDestination: true,
+          expectedDestinationRevision: destinationRevision,
+        }
+      );
     }
   }
 
@@ -183,7 +187,13 @@ const syncByGist = async (
       },
       GIST_SYNC_DESCRIPTION
     );
-    await putSync({ syncUrl: gist.id });
+    await putSync(
+      { syncUrl: gist.id },
+      {
+        preserveDestination: true,
+        expectedDestinationRevision: destinationRevision,
+      }
+    );
     return data;
   }
 
@@ -267,6 +277,7 @@ const forceSyncDataWithEncryptKey = async (key, value, syncEncryptKey) => {
     syncUser,
     syncKey,
     syncMeta = {},
+    destinationRevision = 0,
   } = await getSyncWithDefault();
 
   if (
@@ -284,6 +295,7 @@ const forceSyncDataWithEncryptKey = async (key, value, syncEncryptKey) => {
     syncUrl,
     syncUser,
     syncKey,
+    destinationRevision,
   };
   const data = await encryptSyncData(
     {
@@ -323,6 +335,7 @@ export const syncData = async (
     persistMeta = true,
     deferCommit = false,
     isRequestCurrent = () => true,
+    syncConfig,
   } = {}
 ) => {
   // 获取同步服务配置
@@ -333,7 +346,8 @@ export const syncData = async (
     syncKey,
     syncEncryptKey: savedSyncEncryptKey,
     syncMeta = {},
-  } = await getSyncWithDefault();
+    destinationRevision = 0,
+  } = syncConfig || (await getSyncWithDefault());
 
   if (!isRequestCurrent()) return;
 
@@ -366,13 +380,37 @@ export const syncData = async (
     syncUrl,
     syncUser,
     syncKey,
+    destinationRevision,
   };
 
   const encryptedData = await encryptSyncData(data, syncEncryptKey);
 
   if (!isRequestCurrent()) return;
 
+  if (isFirstSync && persistMeta && !forceRemoteRead) {
+    let currentDestination = false;
+    await updateSyncState((current) => {
+      if ((current.destinationRevision || 0) !== destinationRevision) return;
+      currentDestination = true;
+      const meta = current.syncMeta?.[key] || {};
+      if (meta.firstAttemptAt || meta.syncAt) return;
+      return {
+        ...current,
+        syncMeta: {
+          ...current.syncMeta,
+          [key]: { ...meta, firstAttemptAt: Date.now() },
+        },
+      };
+    });
+    if (!currentDestination || !isRequestCurrent()) return;
+  }
+
   // 根据同步类型执行不同的同步方法
+  const storageKey = {
+    [KV_SETTING_KEY]: STOKEY_SETTING,
+    [KV_RULES_KEY]: STOKEY_RULES,
+    [KV_WORDS_KEY]: STOKEY_WORDS,
+  }[key];
   const encryptedOrLegacyRes = await syncByType(syncType, encryptedData, args);
 
   if (!encryptedOrLegacyRes) {
@@ -393,13 +431,11 @@ export const syncData = async (
   // Never hold this metadata queue while waiting for another controller queue.
   const commit = async ({
     applyValue = async () => {},
-    rollbackValue,
     isCurrent = () => true,
     shouldRetry = () => false,
     getRetryTimestamp = () => 0,
   } = {}) => {
     let accepted = false;
-    let valueApplied = false;
     const retryState = (current) =>
       persistMeta && shouldRetry()
         ? {
@@ -417,46 +453,33 @@ export const syncData = async (
             },
           }
         : undefined;
-    await updateSyncState(
-      async (current) => {
-        const currentMeta = current.syncMeta?.[key] || {};
-        if (
-          !isCurrent() ||
-          (currentMeta.updateAt || 0) !== (originalMeta.updateAt || 0) ||
-          (currentMeta.syncAt || 0) !== (originalMeta.syncAt || 0) ||
-          !!currentMeta.pendingUpload !== !!originalMeta.pendingUpload
-        ) {
-          return retryState(current);
-        }
-        await applyValue();
-        valueApplied = isNew;
-        if (!isCurrent()) return retryState(current);
-        accepted = true;
-        if (!persistMeta) return undefined;
-        return {
-          ...current,
-          syncMeta: {
-            ...current.syncMeta,
-            [key]: { updateAt: res.updateAt, syncAt: Date.now() },
-          },
-        };
-      },
-      {
-        onWriteError: async (error) => {
-          if (valueApplied && rollbackValue) {
-            try {
-              await rollbackValue();
-            } catch (rollbackError) {
-              error.storageRecoveryFailed = true;
-              kissLog(
-                "Unable to restore data after sync metadata failure",
-                rollbackError
-              );
-            }
-          }
-        },
+    await updateSyncState(async (current, transaction) => {
+      if ((current.destinationRevision || 0) !== destinationRevision)
+        return undefined;
+      const currentMeta = current.syncMeta?.[key] || {};
+      if (
+        !isCurrent() ||
+        (currentMeta.updateAt || 0) !== (originalMeta.updateAt || 0) ||
+        (currentMeta.syncAt || 0) !== (originalMeta.syncAt || 0) ||
+        !!currentMeta.pendingUpload !== !!originalMeta.pendingUpload
+      ) {
+        return retryState(current);
       }
-    );
+      await applyValue(transaction);
+      if (!isCurrent()) {
+        transaction.discard(storageKey);
+        return retryState(current);
+      }
+      accepted = true;
+      if (!persistMeta) return undefined;
+      return {
+        ...current,
+        syncMeta: {
+          ...current.syncMeta,
+          [key]: { updateAt: res.updateAt, syncAt: Date.now() },
+        },
+      };
+    });
     return accepted;
   };
   const migrateLegacy = async () => {
@@ -475,12 +498,13 @@ export const syncData = async (
   return result;
 };
 
-function syncStoredValue(key, storageKey, read, readRaw, write, options = {}) {
+function syncStoredValue(key, storageKey, options = {}) {
   return enqueueStorageSync(storageKey, async () => {
     let originalState;
     let originalEditVersion;
     let value;
     let result;
+    let requestConfig;
     const hasNewEdit = () => {
       const currentState = findStorageState(storageKey);
       return (
@@ -491,12 +515,17 @@ function syncStoredValue(key, storageKey, read, readRaw, write, options = {}) {
     do {
       originalState = findStorageState(storageKey);
       originalEditVersion = originalState?.editVersion;
-      value = await enqueueStorageWrite(storageKey, read);
+      const request = await enqueueStorageWrite(storageKey, () =>
+        storage.readSyncSnapshot(storageKey)
+      );
+      value = request.value;
+      requestConfig = request.syncConfig;
       if (hasNewEdit()) continue;
       result = await syncData(key, value, {
         ...options,
         deferCommit: true,
         isRequestCurrent: () => !hasNewEdit(),
+        syncConfig: requestConfig,
       });
       if (result || !hasNewEdit()) break;
     } while (true);
@@ -505,21 +534,15 @@ function syncStoredValue(key, storageKey, read, readRaw, write, options = {}) {
     if (options.applyRemote === false && options.persistMeta === false) {
       return { value: result.value, isNew: result.isNew };
     }
-    let previousStoredValue;
-    const accepted = await enqueueStorageWrite(storageKey, () =>
+    const commitState = findStorageState(storageKey);
+    const enqueueCommit = commitState
+      ? commitState.enqueueWrite
+      : (operation) => enqueueStorageWrite(storageKey, operation);
+    const accepted = await enqueueCommit(() =>
       result.commit({
-        applyValue: async () => {
+        applyValue: async (transaction) => {
           if (result.isNew && options.applyRemote !== false) {
-            previousStoredValue = await readRaw();
-            await write(result.value);
-          }
-        },
-        rollbackValue: async () => {
-          // Do not roll back an unrelated edit that has already reached storage.
-          if (
-            JSON.stringify(await readRaw()) === JSON.stringify(result.value)
-          ) {
-            await write(previousStoredValue ?? null);
+            await transaction.setObj(storageKey, result.value);
           }
         },
         isCurrent: () => !hasNewEdit(),
@@ -548,14 +571,7 @@ function syncStoredValue(key, storageKey, read, readRaw, write, options = {}) {
  * 同步用户设置 (Setting)。若云端设置更新，则覆盖本地设置。
  */
 const syncSetting = async (options) => {
-  return syncStoredValue(
-    KV_SETTING_KEY,
-    STOKEY_SETTING,
-    getSettingWithDefault,
-    getSetting,
-    setSetting,
-    options
-  );
+  return syncStoredValue(KV_SETTING_KEY, STOKEY_SETTING, options);
 };
 
 /**
@@ -573,14 +589,7 @@ export const trySyncSetting = async () => {
  * 同步规则 (Rules)。若云端规则更新，则覆盖本地规则。
  */
 const syncRules = async (options) => {
-  return syncStoredValue(
-    KV_RULES_KEY,
-    STOKEY_RULES,
-    getRulesWithDefault,
-    getRules,
-    setRules,
-    options
-  );
+  return syncStoredValue(KV_RULES_KEY, STOKEY_RULES, options);
 };
 
 /**
@@ -598,14 +607,7 @@ export const trySyncRules = async () => {
  * 同步生词本词汇 (Fav Words)。若云端有更新，则覆盖本地。
  */
 const syncWords = async (options) => {
-  return syncStoredValue(
-    KV_WORDS_KEY,
-    STOKEY_WORDS,
-    getWordsWithDefault,
-    getWords,
-    setWords,
-    options
-  );
+  return syncStoredValue(KV_WORDS_KEY, STOKEY_WORDS, options);
 };
 
 /**
@@ -702,7 +704,10 @@ export const changeSyncEncryptKey = async ({
     newEncryptKey
   );
 
-  await putSync({ syncEncryptKey: newEncryptKey });
+  await putSync(
+    { syncEncryptKey: newEncryptKey },
+    { preserveDestination: true }
+  );
 };
 
 /**

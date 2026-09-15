@@ -2,7 +2,7 @@ import { act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import FavBtn from "./FavBtn";
 import { browser } from "../../libs/browser";
-import { STOKEY_WORDS } from "../../config";
+import { STOKEY_WORDS, STOKEY_SYNC, KV_WORDS_KEY } from "../../config";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -19,6 +19,16 @@ jest.mock("../../libs/browser", () => ({
     storage: { local: { get: jest.fn(), set: jest.fn(), remove: jest.fn() } },
   },
 }));
+jest.mock("../../libs/storageCoordination", () => {
+  let queue = Promise.resolve();
+  return {
+    withStorageLock: (operation) => {
+      const pending = queue.then(() => operation());
+      queue = pending.catch(() => {});
+      return pending;
+    },
+  };
+});
 jest.mock("../../libs/sync", () => ({ syncData: jest.fn() }));
 jest.mock("../../libs/gm", () => ({ getGmMethod: jest.fn() }));
 jest.mock("../../libs/log", () => ({
@@ -53,7 +63,14 @@ test.each([false, true])(
         expect.objectContaining(existing)
       );
       expect(JSON.parse(values.get(STOKEY_WORDS))).toHaveProperty("library");
-      expect(browser.storage.local.set).toHaveBeenCalledTimes(1);
+      const wordWrites = browser.storage.local.set.mock.calls.filter(
+        ([entries]) =>
+          Object.prototype.hasOwnProperty.call(entries, STOKEY_WORDS)
+      );
+      expect(wordWrites).toHaveLength(1);
+      expect(
+        JSON.parse(values.get(STOKEY_SYNC)).syncMeta[KV_WORDS_KEY].updateAt
+      ).toBeGreaterThan(0);
     } finally {
       act(() => root.unmount());
       jest.useRealTimers();

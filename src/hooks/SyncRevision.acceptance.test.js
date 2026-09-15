@@ -3,6 +3,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "webdav";
+import { browser } from "../libs/browser";
 import { useFavWords } from "./FavWords";
 import { useSync } from "./Sync";
 import {
@@ -25,8 +26,38 @@ import {
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-jest.mock("../libs/client", () => ({ isExt: false, isGm: false }));
-jest.mock("../libs/browser", () => ({ isOptions: () => true }));
+jest.mock("../libs/client", () => ({ isExt: true, isGm: false }));
+jest.mock("../libs/browser", () => ({
+  isOptions: () => true,
+  browser: {
+    storage: {
+      local: {
+        get: async (keys) =>
+          Object.fromEntries(
+            keys.map((key) => [key, globalThis.localStorage.getItem(key)])
+          ),
+        set: async (entries) => {
+          Object.entries(entries).forEach(([key, value]) => {
+            globalThis.localStorage.setItem(key, value);
+          });
+        },
+        remove: async (keys) => {
+          keys.forEach((key) => globalThis.localStorage.removeItem(key));
+        },
+      },
+    },
+  },
+}));
+jest.mock("../libs/storageCoordination", () => {
+  let queue = Promise.resolve();
+  return {
+    withStorageLock: (operation) => {
+      const pending = queue.then(() => operation());
+      queue = pending.catch(() => {});
+      return pending;
+    },
+  };
+});
 jest.mock("../libs/log", () => ({
   ...jest.requireActual("../libs/log"),
   kissLog: jest.fn(),
@@ -417,19 +448,22 @@ describe("F10 acceptance with real sync metadata and WebDAV comparison", () => {
     await advance(2700);
     const remoteWrite = deferred();
     const remoteWords = packetValue(remotePackets[KV_WORDS_KEY]);
-    const originalSetObj = storage.setObj;
-    const setObj = jest
-      .spyOn(storage, "setObj")
-      .mockImplementation(async (key, value) => {
-        if (key === STOKEY_WORDS && value.remote) await remoteWrite.promise;
-        return originalSetObj(key, value);
+    const originalSet = browser.storage.local.set;
+    const set = jest
+      .spyOn(browser.storage.local, "set")
+      .mockImplementation(async (entries) => {
+        if (JSON.parse(entries[STOKEY_WORDS] || "null")?.remote)
+          await remoteWrite.promise;
+        return originalSet(entries);
       });
     try {
       await act(async () => {
         blockedReply.resolve(JSON.stringify(remotePackets[KV_WORDS_KEY]));
       });
       await flush();
-      expect(setObj).toHaveBeenCalledWith(STOKEY_WORDS, remoteWords);
+      expect(set).toHaveBeenCalledWith({
+        [STOKEY_WORDS]: JSON.stringify(remoteWords),
+      });
       act(() => {
         hook.toggleFav("second");
       });
@@ -448,21 +482,26 @@ describe("F10 acceptance with real sync metadata and WebDAV comparison", () => {
       await expectLatestConvergence();
     } finally {
       remoteWrite.resolve();
-      setObj.mockRestore();
+      set.mockRestore();
     }
   });
 
-  test("editing sync configuration after a commit preserves the accepted metadata", async () => {
+  test("changing sync credentials resets metadata accepted for the old destination", async () => {
     await completeObsoleteReply();
     await advance(3000);
     await expectLatestConvergence();
     const acceptedMeta = (await getSyncWithDefault()).syncMeta;
+    const destinationRevision =
+      (await getSyncWithDefault()).destinationRevision || 0;
     expect(syncHook.sync.syncMeta).toEqual(acceptedMeta);
     await act(async () => {
       await syncHook.updateSync({ syncUser: "updated-user" });
     });
-    expect((await getSyncWithDefault()).syncMeta).toEqual(acceptedMeta);
+    expect((await getSyncWithDefault()).syncMeta).toEqual({});
     expect((await getSyncWithDefault()).syncUser).toBe("updated-user");
+    expect((await getSyncWithDefault()).destinationRevision).toBeGreaterThan(
+      destinationRevision
+    );
   });
 
   test.each(["automatic", "manual"])(

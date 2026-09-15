@@ -5,6 +5,7 @@ import { storage } from "../libs/storage";
 import { syncData } from "../libs/sync";
 import { isOptions } from "../libs/browser";
 import { refreshStorageKeys } from "../libs/storageRefresh";
+import { findStorageState } from "../libs/storageState";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -12,6 +13,8 @@ jest.mock("../libs/storage", () => ({
   storage: {
     getObj: jest.fn(),
     setObj: jest.fn(),
+    saveEdit: jest.fn(),
+    withTransaction: jest.fn(),
     del: jest.fn(),
   },
 }));
@@ -25,6 +28,7 @@ jest.mock("../libs/browser", () => ({
 }));
 
 jest.mock("../libs/log", () => ({
+  ...jest.requireActual("../libs/log"),
   kissLog: jest.fn(),
 }));
 
@@ -49,7 +53,7 @@ function syncResult(result) {
     ...result,
     commit: async ({ applyValue, isCurrent }) => {
       if (!isCurrent()) return false;
-      await applyValue();
+      await applyValue(storage);
       return isCurrent();
     },
   };
@@ -118,9 +122,18 @@ describe("useStorage persistence and refresh", () => {
     jest.resetAllMocks();
     storedValues = new Map([[LOCAL_KEY, DEFAULT_VALUE]]);
     storage.getObj.mockImplementation(async (key) => storedValues.get(key));
+    storage.withTransaction.mockImplementation((operation) =>
+      operation(storage)
+    );
     storage.setObj.mockImplementation(async (key, value) => {
       storedValues.set(key, value);
     });
+    storage.saveEdit.mockImplementation(
+      async (key, value, _syncKey, options) => {
+        await storage.setObj(key, value);
+        return { value, updateAt: options.timestamp };
+      }
+    );
     storage.del.mockImplementation(async (key) => {
       storedValues.delete(key);
     });
@@ -128,8 +141,13 @@ describe("useStorage persistence and refresh", () => {
     isOptions.mockReturnValue(true);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     for (const host of hosts) host.unmount();
+    await flushEffects();
+    for (const key of [LOCAL_KEY, "other-key"]) {
+      await findStorageState(key)?.remove();
+    }
+    await flushEffects();
     jest.useRealTimers();
   });
 
@@ -440,7 +458,7 @@ describe("useStorage persistence and refresh", () => {
     expect(storage.setObj).not.toHaveBeenCalled();
   });
 
-  test("finishes queued user persistence after unmount without remote sync", async () => {
+  test("finishes queued persistence and synchronization after its owner unmounts", async () => {
     const host = await mountHost();
     act(() => {
       host.hookResult.save({ changed: true });
@@ -450,7 +468,12 @@ describe("useStorage persistence and refresh", () => {
     await advanceTime();
 
     expect(storedValues.get(LOCAL_KEY)).toEqual({ changed: true });
-    expect(syncData).not.toHaveBeenCalled();
+    expect(syncData).toHaveBeenCalledTimes(1);
+    expect(syncData).toHaveBeenCalledWith(
+      REMOTE_KEY,
+      { changed: true },
+      expect.any(Object)
+    );
   });
 
   test("refreshes every mounted subscriber once across multiple keys", async () => {
