@@ -6,7 +6,6 @@ import {
 } from "../../config";
 import { isGm } from "../../libs/client";
 import { adaptScript } from "../../libs/gm";
-import { USERSCRIPT_STORAGE_PROTOCOL } from "../../libs/userscriptProtocol";
 import { kissLog } from "../../libs/log";
 import { runDataMigration } from "../../libs/storage";
 import { refreshStorageKeys } from "../../libs/storageRefresh";
@@ -38,7 +37,7 @@ async function prepareGmBridge() {
       window.APP_INFO &&
       window.APP_INFO.name === process.env.REACT_APP_NAME
     ) {
-      const { version, eventName, storageProtocol } = window.APP_INFO;
+      const { version, eventName } = window.APP_INFO;
       const installed = version?.split(".");
       const bundled = process.env.REACT_APP_VERSION?.split(".");
       if (
@@ -49,13 +48,6 @@ async function prepareGmBridge() {
       ) {
         throw new Error(
           `The version of the local script(v${version}) is not the latest version(v${process.env.REACT_APP_VERSION}).`
-        );
-      }
-
-      // Reject incompatible scripts before migration or any storage access.
-      if (storageProtocol !== USERSCRIPT_STORAGE_PROTOCOL) {
-        throw new Error(
-          "The installed KISS Translator userscript uses an incompatible storage protocol. Please update the userscript and reload this page."
         );
       }
 

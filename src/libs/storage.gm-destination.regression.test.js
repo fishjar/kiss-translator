@@ -122,9 +122,7 @@ test.each(["configuration read", "metadata updater"])(
         destinationRevision: 1,
         syncMeta: {},
       });
-      expect(globalThis.GM.setValue.mock.calls.map(([key]) => key)).toEqual([
-        `${STOKEY_SYNC}:ack:${KV_WORDS_KEY}`,
-      ]);
+      expect(globalThis.GM.setValue).not.toHaveBeenCalled();
     } finally {
       resume.resolve();
       await metadata.catch(() => {});
@@ -132,7 +130,7 @@ test.each(["configuration read", "metadata updater"])(
   }
 );
 
-test("a GM metadata acknowledgement preserves legacy inline fallback and custom metadata", async () => {
+test("a GM metadata update preserves other inline timestamps and custom metadata", async () => {
   const values = installGmStorage();
   const page = loadPage();
   await page.updateSyncState((current) => ({
@@ -142,8 +140,7 @@ test("a GM metadata acknowledgement preserves legacy inline fallback and custom 
       [KV_WORDS_KEY]: { updateAt: 20, syncAt: 200 },
     },
   }));
-  expect(JSON.parse(values.get(STOKEY_SYNC))).toEqual(initialSync);
-  expect((await page.getSync()).syncMeta).toEqual({
+  expect(JSON.parse(values.get(STOKEY_SYNC)).syncMeta).toEqual({
     ...initialSync.syncMeta,
     [KV_WORDS_KEY]: { updateAt: 20, syncAt: 200 },
   });
@@ -156,11 +153,10 @@ test("a GM metadata acknowledgement preserves legacy inline fallback and custom 
     [KV_WORDS_KEY]: { updateAt: 20, syncAt: 200 },
     custom: { updateAt: 300 },
   });
-  expect(JSON.parse(values.get(STOKEY_SYNC))).toMatchObject({
-    syncMeta: {
-      [KV_SETTING_KEY]: initialSync.syncMeta[KV_SETTING_KEY],
-      custom: { updateAt: 300 },
-    },
+  expect(JSON.parse(values.get(STOKEY_SYNC)).syncMeta).toEqual({
+    ...initialSync.syncMeta,
+    [KV_WORDS_KEY]: { updateAt: 20, syncAt: 200 },
+    custom: { updateAt: 300 },
   });
 });
 
@@ -217,12 +213,14 @@ test.each([
         syncUrl: "https://destination-b.invalid",
         syncKey: "key-b",
         syncEncryptKey: "passphrase-b",
-        destinationRevision: 1,
         syncMeta: {},
       });
-      expect(globalThis.GM.setValue.mock.calls.map(([key]) => key)).toEqual([
-        `${STOKEY_SYNC}:${operation === "metadata" ? "ack" : "record"}:${KV_WORDS_KEY}`,
-      ]);
+      expect(globalThis.GM.setValue.mock.calls.map(([key]) => key)).toEqual(
+        operation === "metadata" ? [] : [STOKEY_WORDS]
+      );
+      if (operation === "business edit") {
+        expect(JSON.parse(values.get(STOKEY_WORDS))).toEqual({ added: {} });
+      }
     } finally {
       resume.resolve();
       await pending.catch(() => {});
@@ -241,13 +239,10 @@ test.each(["setObj", "trySetObj"])(
   }
 );
 
-test("GM initial destination binding preserves imported metadata", async () => {
+test("GM initial configuration preserves imported fields and metadata", async () => {
   const values = installGmStorage();
   values.delete(STOKEY_SYNC);
   const page = loadPage();
   await page.storage.setObj(STOKEY_SYNC, initialSync);
-  expect(await page.getSync()).toEqual({
-    ...initialSync,
-    destinationRevision: 1,
-  });
+  expect(await page.getSync()).toEqual(initialSync);
 });

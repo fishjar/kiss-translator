@@ -33,7 +33,24 @@ for (const port of ports) {
       }
       let content = await readFile(file);
       if (legacy) {
-        const bridge = `<base href="/"><script>window.APP_INFO={name:"KISS Translator",version:"2.0.31",eventName:"fixture-legacy-gm"};window.fixtureGmCalls=[];window.addEventListener("fixture-legacy-gm",({detail})=>window.fixtureGmCalls.push(detail));</script>`;
+        const bridge = `<base href="/"><script>
+window.APP_INFO = { name: "KISS Translator", version: "2.0.31", eventName: "fixture-legacy-gm" };
+window.fixtureGmCalls = [];
+window.addEventListener("fixture-legacy-gm", ({ detail }) => {
+  window.fixtureGmCalls.push(detail);
+  const { action, args = {} } = detail;
+  let data;
+  let error;
+  try {
+    if (action === "getValue") data = localStorage.getItem(args.key) ?? undefined;
+    else if (action === "setValue") localStorage.setItem(args.key, args.val);
+    else if (action === "deleteValue") localStorage.removeItem(args.key);
+    else if (action === "info") data = { script: { name: "KISS Translator", version: "2.0.31" }, scriptHandler: "Browser verification fixture" };
+    else throw new Error("Unexpected fixture GM action: " + action);
+  } catch (cause) { error = cause.message; }
+  window.dispatchEvent(new CustomEvent(detail.pong, { detail: { data, error } }));
+});
+</script>`;
         content = Buffer.from(
           content.toString("utf8").replace("<head>", `<head>${bridge}`)
         );

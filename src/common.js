@@ -7,7 +7,6 @@ import {
 import { isIframe } from "./libs/iframe";
 import { genEventName } from "./libs/utils";
 import { handlePing, injectScript } from "./libs/gm";
-import { USERSCRIPT_STORAGE_PROTOCOL } from "./libs/userscriptProtocol";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isInBlacklist } from "./libs/blacklist";
@@ -28,14 +27,13 @@ function runSettingPage() {
     unsafeWindow.APP_INFO = {
       name: process.env.REACT_APP_NAME,
       version: process.env.REACT_APP_VERSION,
-      storageProtocol: USERSCRIPT_STORAGE_PROTOCOL,
     };
   } else {
     // 否则，回退到注册 CustomEvent 监听器进行间接通信代理
     const ping = genEventName();
     window.addEventListener(ping, handlePing);
     injectInlineJs(
-      `(${injectScript})(${JSON.stringify(ping)}, ${USERSCRIPT_STORAGE_PROTOCOL})`,
+      `(${injectScript})("${ping}")`,
       "kiss-translator-options-injector"
     );
   }

@@ -6,15 +6,16 @@ import { resolve } from "node:path";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
 const webOrigin = process.env.FIXTURE_ORIGIN || "http://127.0.0.1:3154";
-const gmOrigin = process.env.GM_FIXTURE_ORIGIN || "http://127.0.0.1:3156";
-const gmOtherOrigin = process.env.GM_SECOND_ORIGIN || "http://127.0.0.1:3155";
+const gmOrigin = process.env.GM_FIXTURE_ORIGIN || "http://127.0.0.1:3157";
+const gmOtherOrigin = process.env.GM_SECOND_ORIGIN || "http://127.0.0.1:3158";
 const output = resolve(
-  process.env.BROWSER_EVIDENCE_DIR || "testdata/browser/evidence/three-fixes"
+  process.env.BROWSER_EVIDENCE_DIR ||
+    "testdata/browser/evidence/userscript-storage"
 );
 const STOKEY_SYNC = "KISS-Translator_sync";
 const STOKEY_WORDS = "KISS-Translator_words";
+const STOKEY_SETTING = "KISS-Translator_setting_v2";
 const WORDS_KEY = "kiss-words.json";
-const RECORD_WORDS = `${STOKEY_SYNC}:record:${WORDS_KEY}`;
 const passphrase = "browser-review-secret";
 const report = [];
 const contexts = new Set();
@@ -62,32 +63,18 @@ const importWords = (page, words) =>
     buffer: Buffer.from(`${words.join("\n")}\n`),
   });
 const syncButton = (page) => page.getByRole("button", { name: /^Sync now$/i });
-// Read the real useStorage result consumed by the rendered Sync page. This is
-// read-only evidence of the production getObj metadata projection, not a model
-// of that projection or a test-only entry point in the application.
-const renderedSyncSnapshot = (page) =>
-  page.locator('input[name="syncUrl"]').evaluate((input) => {
-    const key = Object.keys(input).find((name) =>
-      name.startsWith("__reactFiber$")
-    );
-    let fiber = input[key];
-    while (fiber) {
-      let hook = fiber.memoizedState;
-      while (
-        hook &&
-        Object.prototype.hasOwnProperty.call(hook, "memoizedState")
-      ) {
-        const value = hook.memoizedState;
-        if (value?.data?.syncUrl === input.value && value.data.syncMeta)
-          return value.data;
-        hook = hook.next;
-      }
-      fiber = fiber.return;
-    }
-    throw new Error(
-      "The rendered Sync page did not expose its loaded storage snapshot"
-    );
-  });
+const stored = (backend, key) => JSON.parse(backend.values.get(key) || "null");
+const assertLegacyStorage = (backend) => {
+  const keys = new Set([
+    ...backend.values.keys(),
+    ...backend.calls.map(({ args }) => args.key).filter(Boolean),
+  ]);
+  assert.deepEqual(
+    [...keys].filter((key) => /:(record|ack):/.test(key)),
+    [],
+    "The application accessed a new record/ack storage key"
+  );
+};
 const newContext = async () => {
   const context = await browser.newContext({
     viewport: { width: 1400, height: 1000 },
@@ -182,7 +169,7 @@ const gmBackend = () => {
       else if (action === "deleteValue") values.delete(args.key);
       else if (action === "info")
         return {
-          script: { name: "KISS Translator", version: "2.0.32" },
+          script: { name: "KISS Translator", version: "2.0.31" },
           scriptHandler: "Browser verification fixture",
         };
       else throw new Error(`Unexpected fixture GM action: ${action}`);
@@ -194,36 +181,38 @@ const gmBackend = () => {
 const gmPage = async (
   context,
   backend,
-  { origin = gmOrigin, protocol = 1, route = "words" } = {}
+  { origin = gmOrigin, route = "words" } = {}
 ) => {
   const page = await context.newPage();
   await page.exposeBinding("fixtureGmCall", (source, details) =>
     backend.call(source, details)
   );
-  await page.addInitScript(
-    ({ protocol }) => {
-      const eventName = "kiss-browser-fixture-gm";
-      window.APP_INFO = {
-        name: "KISS Translator",
-        version: "2.0.31",
-        eventName,
-        ...(protocol === null ? {} : { storageProtocol: protocol }),
-      };
-      window.addEventListener(eventName, async ({ detail }) => {
-        try {
-          const data = await window.fixtureGmCall(detail);
-          window.dispatchEvent(
-            new CustomEvent(detail.pong, { detail: { data } })
-          );
-        } catch (error) {
-          window.dispatchEvent(
-            new CustomEvent(detail.pong, { detail: { error: error.message } })
-          );
-        }
-      });
-    },
-    { protocol }
-  );
+  await page.addInitScript(() => {
+    const eventName = "kiss-browser-fixture-gm";
+    window.APP_INFO = {
+      name: "KISS Translator",
+      version: "2.0.31",
+      eventName,
+    };
+    window.GM = {
+      getValue: (key) =>
+        window.fixtureGmCall({ action: "getValue", args: { key } }),
+      setValue: (key, val) =>
+        window.fixtureGmCall({ action: "setValue", args: { key, val } }),
+    };
+    window.addEventListener(eventName, async ({ detail }) => {
+      try {
+        const data = await window.fixtureGmCall(detail);
+        window.dispatchEvent(
+          new CustomEvent(detail.pong, { detail: { data } })
+        );
+      } catch (error) {
+        window.dispatchEvent(
+          new CustomEvent(detail.pong, { detail: { error: error.message } })
+        );
+      }
+    });
+  });
   await page.goto(`${origin}/options.html#/${route}`);
   return page;
 };
@@ -460,25 +449,21 @@ try {
         errors,
       };
     });
-  if (shouldRun("legacy-protocol"))
-    await run("legacy-protocol", async () => {
+  if (shouldRun("legacy-bridge"))
+    await run("legacy-bridge", async () => {
       const context = await newContext();
       const backend = gmBackend();
-      const page = await gmPage(context, backend, { protocol: null });
-      await page
-        .getByText(/incompatible storage protocol/)
-        .waitFor({ timeout: 120000 });
+      const page = await gmPage(context, backend);
+      await ready(page);
+      await page.getByText("legacyword", { exact: true }).waitFor();
       assert.equal(
-        backend.calls.length,
-        0,
-        "An incompatible bridge was used before startup rejection"
+        await page.evaluate(() => "storageProtocol" in window.APP_INFO),
+        false
       );
-      assert.equal(
-        await page.locator('[data-testid="options-content"]').count(),
-        0
-      );
+      assert.ok(backend.calls.length > 0, "The existing bridge was not used");
+      assertLegacyStorage(backend);
       await page.screenshot({
-        path: resolve(output, "legacy-protocol-blocked.png"),
+        path: resolve(output, "legacy-bridge-accepted.png"),
         fullPage: true,
       });
       return {
@@ -486,31 +471,72 @@ try {
         backend: snapshot(backend),
       };
     });
-  if (shouldRun("compatible-protocol"))
-    await run("compatible-protocol", async () => {
+  if (shouldRun("legacy-storage-interop"))
+    await run("legacy-storage-interop", async () => {
       const context = await newContext();
       const backend = gmBackend();
       const page = await gmPage(context, backend);
       await ready(page);
       await page.getByText("legacyword", { exact: true }).waitFor();
-      await importWords(page, ["compatibleword"]);
+      await importWords(page, ["optionsword"]);
       await poll(
-        () =>
-          JSON.parse(backend.values.get(RECORD_WORDS) || "null")?.value
-            ?.compatibleword,
-        "Compatible protocol did not write the production record format"
+        () => stored(backend, STOKEY_WORDS)?.optionsword,
+        "Options did not write plain JSON to the existing words key"
       );
       const second = await gmPage(context, backend, { origin: gmOtherOrigin });
       await ready(second);
-      await second.getByText("compatibleword", { exact: true }).waitFor();
+      await second.getByText("optionsword", { exact: true }).waitFor();
       await second.getByText("legacyword", { exact: true }).waitFor();
       assert.notEqual(new URL(page.url()).origin, new URL(second.url()).origin);
+      const legacyWords = await second.evaluate(async (key) => {
+        const words = JSON.parse(await GM.getValue(key));
+        await GM.setValue(
+          key,
+          JSON.stringify({ ...words, oldapiword: { createdAt: 2 } })
+        );
+        return words;
+      }, STOKEY_WORDS);
+      assert.ok(
+        legacyWords.optionsword,
+        "The existing GM API did not read the Options edit"
+      );
+      await page.reload();
+      await ready(page);
+      await page.getByText("oldapiword", { exact: true }).waitFor();
+      await page.getByText("optionsword", { exact: true }).waitFor();
+      await page.setViewportSize({ width: 1100, height: 1100 });
+      await page.getByRole("button", { name: /Appearance mode:/ }).click();
+      await poll(
+        () => stored(backend, STOKEY_SETTING)?.darkMode === "light",
+        "Options did not save settings to the existing key"
+      );
+      const legacySettings = await second.evaluate(async (key) => {
+        const settings = JSON.parse(await GM.getValue(key));
+        await GM.setValue(
+          key,
+          JSON.stringify({ ...settings, darkMode: "dark" })
+        );
+        return settings;
+      }, STOKEY_SETTING);
+      assert.equal(legacySettings.darkMode, "light");
+      await page.reload();
+      await ready(page);
+      await page
+        .getByRole("button", { name: /Appearance mode: current Dark/i })
+        .waitFor();
+      assertLegacyStorage(backend);
       await second.screenshot({
-        path: resolve(output, "compatible-protocol-cross-origin.png"),
+        path: resolve(output, "legacy-storage-api.png"),
+        fullPage: true,
+      });
+      await page.screenshot({
+        path: resolve(output, "legacy-storage-options.png"),
         fullPage: true,
       });
       return {
         origins: [new URL(page.url()).origin, new URL(second.url()).origin],
+        legacyWords,
+        legacySettings,
         backend: snapshot(backend),
       };
     });
@@ -553,26 +579,20 @@ try {
           .fill("https://destination-b.invalid");
         await poll(
           () =>
-            JSON.parse(backend.values.get(STOKEY_SYNC) || "null")?.syncUrl ===
+            stored(backend, STOKEY_SYNC)?.syncUrl ===
             "https://destination-b.invalid",
           "The second origin did not persist its destination change"
         );
         const afterSwitch = snapshot(backend);
-        const changed = JSON.parse(backend.values.get(STOKEY_SYNC));
-        assert.ok(
-          changed.destinationRevision >= 1,
-          "A configured destination must have its own revision"
-        );
+        const changed = stored(backend, STOKEY_SYNC);
         gate.resume();
         await imported;
         await poll(
-          () =>
-            JSON.parse(backend.values.get(RECORD_WORDS) || "null")?.value
-              ?.racedword,
+          () => stored(backend, STOKEY_WORDS)?.racedword,
           "The delayed edit did not commit after releasing its stale metadata snapshot"
         );
         await first.getByText("racedword", { exact: true }).waitFor();
-        const finalConfig = JSON.parse(backend.values.get(STOKEY_SYNC));
+        const finalConfig = stored(backend, STOKEY_SYNC);
         assert.equal(
           finalConfig.syncUrl,
           "https://destination-b.invalid",
@@ -590,10 +610,11 @@ try {
             entry.args.key === STOKEY_SYNC &&
             entry.index >= before.calls.length
         );
-        assert.equal(
-          lateWrites.length,
-          0,
-          "A metadata-only change rewrote unrelated configuration"
+        assert.ok(
+          lateWrites.every(
+            ({ args }) => JSON.parse(args.val).syncUrl === changed.syncUrl
+          ),
+          "A metadata-only change rewrote the configuration with an obsolete destination"
         );
         await second.reload();
         await ready(second);
@@ -601,12 +622,13 @@ try {
           await second.locator('input[name="syncUrl"]').inputValue(),
           "https://destination-b.invalid"
         );
-        const effectiveSync = await renderedSyncSnapshot(second);
+        const effectiveSync = stored(backend, STOKEY_SYNC);
         assert.deepEqual(
           effectiveSync.syncMeta,
           {},
           "Metadata from the obsolete destination leaked into the new target"
         );
+        assertLegacyStorage(backend);
         await first.screenshot({
           path: resolve(output, `${name}-words.png`),
           fullPage: true,

@@ -63,9 +63,9 @@ normal editing resumes once the request completes.
 These checks cover the web Options target. They do not substitute for a packaged
 extension or legacy Thunderbird compatibility test.
 
-## Passphrase and userscript protocol regressions
+## Passphrase and existing userscript storage regressions
 
-`run-three-fix-browser-tests.mjs` verifies a failed first decryption followed by
+`run-userscript-storage-tests.mjs` verifies a failed first decryption followed by
 two real vocabulary imports and retries. It compares the original AES-GCM packet
 byte for byte, checks that it still decrypts with the original passphrase, then
 uses the real clear/set passphrase dialogs to restore synchronization. Fixture
@@ -74,20 +74,23 @@ remote backup includes the complete production schema. Changing the local
 passphrase retains the existing first-sync behavior: the verified remote data
 replaces local data before later edits upload normally.
 
-The same runner uses the regular userscript Options bundle for the protocol and
+The same runner uses the regular userscript Options bundle for the bridge and
 cross-origin GM cases. It replaces only the privileged GM transport with an
 asynchronous shared backend exposed through browser CustomEvents. The production
 `adaptScript`, startup checks, storage code, and React components run unchanged.
-An old bridge without `APP_INFO.storageProtocol` must show the update error with
-zero GM calls. Protocol 1 must read legacy values, write the new record format,
-and make those values visible to another origin.
+An existing bridge without a storage capability field must load normally. The
+runner verifies that Options reads plain JSON from the established keys and that
+its vocabulary and settings edits remain readable through the existing
+`GM.getValue` API. It then writes through `GM.setValue` from another origin and
+reloads Options to verify those edits appear. No record or acknowledgement keys
+may be read or written.
 
 The two destination cases pause a vocabulary edit after it reads its old GM
 configuration. A second real page changes the destination through the Sync form.
 After resuming the stale transaction, the new destination and revision must stay
-intact. After reloading that page, a read-only inspection of its actual React
-`useStorage` snapshot verifies that effective metadata is exactly `{}`. The
-second case starts without any stored sync configuration.
+intact. The runner reads the original sync key directly and reloads the form to
+verify that both persisted storage and the rendered destination are correct.
+The second case starts without any stored sync configuration.
 These GM cases leave the authentication key empty to isolate storage commits
 from legitimate first-attempt metadata created by new-target network syncs.
 
@@ -109,11 +112,11 @@ terminal, point the runner at the existing web fixture and those two origins:
 $env:FIXTURE_ORIGIN = 'http://127.0.0.1:3154'
 $env:GM_FIXTURE_ORIGIN = 'http://127.0.0.1:3157'
 $env:GM_SECOND_ORIGIN = 'http://127.0.0.1:3158'
-$env:BROWSER_EVIDENCE_DIR = 'testdata/browser/evidence/three-fixes/production'
-node testdata/browser/run-three-fix-browser-tests.mjs
+$env:BROWSER_EVIDENCE_DIR = 'testdata/browser/evidence/userscript-storage'
+node testdata/browser/run-userscript-storage-tests.mjs
 ```
 
-The legacy rejection page can also be inspected manually at
+An accepted existing bridge can also be inspected manually at
 `http://127.0.0.1:3157/__fixture__/legacy-userscript#/words`. These checks do not
 install or automate a real userscript manager, and they do not test unrelated
 passphrase-rotation races.

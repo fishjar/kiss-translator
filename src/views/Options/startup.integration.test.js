@@ -12,7 +12,6 @@ import {
   STOKEY_WORDS,
 } from "../../config";
 import { adaptScript } from "../../libs/gm";
-import { USERSCRIPT_STORAGE_PROTOCOL } from "../../libs/userscriptProtocol";
 import { browser } from "../../libs/browser";
 import { runDataMigration, storage } from "../../libs/storage";
 import {
@@ -414,7 +413,7 @@ describe("Options startup with real storage hooks", () => {
   });
 
   test.each([undefined, "test-gm-bridge"])(
-    "waits for the userscript bridge (%p) and migration before mounting real storage hooks",
+    "accepts an older compatible userscript bridge (%p) before migration and local storage access",
     async (eventName) => {
       mockIsGm = true;
       process.env.REACT_APP_NAME = "KISS Translator";
@@ -435,8 +434,7 @@ describe("Options startup with real storage hooks", () => {
 
       window.APP_INFO = {
         name: "KISS Translator",
-        version: "2.0.32",
-        storageProtocol: USERSCRIPT_STORAGE_PROTOCOL,
+        version: "2.0.31",
         eventName,
       };
       await advanceTime(1000);
@@ -455,52 +453,6 @@ describe("Options startup with real storage hooks", () => {
       await advanceTime(6000);
       expect(storage.setObj).not.toHaveBeenCalled();
       expect(syncData).not.toHaveBeenCalled();
-    }
-  );
-
-  test.each([
-    ["direct", undefined, undefined],
-    ["event", "test-gm-bridge", undefined],
-    ["direct", undefined, 0],
-    ["event", "test-gm-bridge", 0],
-    ["direct", undefined, USERSCRIPT_STORAGE_PROTOCOL + 1],
-    ["event", "test-gm-bridge", USERSCRIPT_STORAGE_PROTOCOL + 1],
-    ["direct", undefined, String(USERSCRIPT_STORAGE_PROTOCOL)],
-    ["event", "test-gm-bridge", String(USERSCRIPT_STORAGE_PROTOCOL)],
-  ])(
-    "rejects the %s bridge (event %p, protocol %p) before touching local data",
-    async (_bridge, eventName, storageProtocol) => {
-      mockIsGm = true;
-      process.env.REACT_APP_NAME = "KISS Translator";
-      process.env.REACT_APP_VERSION = "2.0.32";
-      window.APP_INFO = {
-        name: "KISS Translator",
-        version: "2.0.31",
-        eventName,
-        storageProtocol,
-      };
-      const beforeStartup = [...storedValues.entries()];
-      const host = renderOptions("#/apis");
-      await flushEffects();
-
-      expect(host.container.textContent).toContain(
-        "Please update the userscript and reload this page."
-      );
-      expect(host.container.querySelector("[data-testid='apis-page']")).toBe(
-        null
-      );
-      expect(adaptScript).not.toHaveBeenCalled();
-      expect(runDataMigration).not.toHaveBeenCalled();
-      expect(storage.getObj).not.toHaveBeenCalled();
-      expect(storage.setObj).not.toHaveBeenCalled();
-      expect(storage.del).not.toHaveBeenCalled();
-      expect(browser.storage.local.get).not.toHaveBeenCalled();
-      expect(browser.storage.local.set).not.toHaveBeenCalled();
-      expect(browser.storage.local.remove).not.toHaveBeenCalled();
-      expect(trySyncSetting).not.toHaveBeenCalled();
-      expect(trySyncRules).not.toHaveBeenCalled();
-      expect(trySyncWords).not.toHaveBeenCalled();
-      expect([...storedValues.entries()]).toEqual(beforeStartup);
     }
   );
 

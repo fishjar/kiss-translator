@@ -39,13 +39,6 @@ const SYNC_KEYS = {
   [STOKEY_RULES]: KV_RULES_KEY,
   [STOKEY_WORDS]: KV_WORDS_KEY,
 };
-const GM_RECORD_SCHEMA = "kiss-sync-record-v1";
-const GM_ACK_SCHEMA = "kiss-sync-ack-v1";
-const gmRecordKey = (key) => `${STOKEY_SYNC}:record:${key}`;
-const gmAckKey = (key) => `${STOKEY_SYNC}:ack:${key}`;
-const newRecordRevision = () =>
-  globalThis.crypto?.randomUUID?.() ||
-  `${Date.now()}-${Math.random()}-${Math.random()}`;
 const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const DESTINATION_FIELDS = [
   "syncType",
@@ -190,61 +183,11 @@ function parseStoredValue(val, key) {
   return null;
 }
 
-async function getGmRecord(key, records) {
-  if (records?.has(key)) return records.get(key);
-  const read = (async () => {
-    const record = parseStoredValue(await rawGet(gmRecordKey(key)), key);
-    return record?.schema === GM_RECORD_SCHEMA ? record : null;
-  })();
-  records?.set(key, read);
-  return read;
+async function getObj(key) {
+  return parseStoredValue(await rawGet(key), key);
 }
 
-async function getObj(key, records = new Map()) {
-  if (isGm && SYNC_KEYS[key]) {
-    const record = await getGmRecord(SYNC_KEYS[key], records);
-    if (record && Object.prototype.hasOwnProperty.call(record, "value"))
-      return record.value;
-  }
-  const value = parseStoredValue(await rawGet(key), key);
-  if (!isGm || key !== STOKEY_SYNC) return value;
-  const syncMeta = { ...(value?.syncMeta || {}) };
-  let hasMetadata = false;
-  const destinationRevision = value?.destinationRevision || 0;
-  await Promise.all(
-    Object.values(SYNC_KEYS).map(async (syncKey) => {
-      const record = await getGmRecord(syncKey, records);
-      const ack = parseStoredValue(await rawGet(gmAckKey(syncKey)), syncKey);
-      let meta = syncMeta[syncKey];
-      if (record && Object.prototype.hasOwnProperty.call(record, "meta")) {
-        meta =
-          (record.destinationRevision || 0) === destinationRevision
-            ? record.meta
-            : null;
-      }
-      if (
-        ack?.schema === GM_ACK_SCHEMA &&
-        ack.businessRevision === (record?.revision || "legacy") &&
-        (ack.destinationRevision || 0) === destinationRevision
-      )
-        meta = ack.meta;
-      if (meta === null || meta === undefined) delete syncMeta[syncKey];
-      else {
-        hasMetadata = true;
-        syncMeta[syncKey] = meta;
-      }
-    })
-  );
-  return value || hasMetadata ? { ...(value || DEFAULT_SYNC), syncMeta } : null;
-}
-
-async function get(key) {
-  if (isGm && (SYNC_KEYS[key] || key === STOKEY_SYNC)) {
-    const value = await getObj(key);
-    return value === null ? null : JSON.stringify(value);
-  }
-  return rawGet(key);
-}
+const get = rawGet;
 
 async function set(key, value) {
   return withStorageLock(async (coordinator) => {
@@ -263,17 +206,15 @@ export function withTransaction(operation) {
   return withStorageLock(async (coordinator) => {
     const writes = new Map();
     const originals = new Map();
-    const gmRecords = new Map();
-    const errorHandlers = [];
     const read = async (key) => {
       if (writes.has(key)) return writes.get(key).value;
-      if (!originals.has(key)) originals.set(key, await getObj(key, gmRecords));
+      if (!originals.has(key)) originals.set(key, await getObj(key));
       return originals.get(key);
     };
     const stage = async (key, value, remove = false, options = {}) => {
       const current =
         (await read(key)) ?? (options.syncStateUpdate ? DEFAULT_SYNC : null);
-      // Metadata updates may read defaults without initializing configuration.
+      // Use the same defaults when comparing metadata-only changes.
       const configurationBaseline = options.syncStateUpdate
         ? writes.has(key)
           ? writes.get(key).configurationBaseline
@@ -298,21 +239,6 @@ export function withTransaction(operation) {
             ? { syncMeta: {} }
             : {}),
         };
-      } else if (
-        isGm &&
-        key === STOKEY_SYNC &&
-        value &&
-        DESTINATION_FIELDS.some(
-          (field) =>
-            value[field] !== undefined && value[field] !== DEFAULT_SYNC[field]
-        )
-      ) {
-        // Bind imported configuration without discarding its metadata or
-        // accepting acknowledgements from the unconfigured default state.
-        value = {
-          ...value,
-          destinationRevision: Math.max(1, value.destinationRevision || 0),
-        };
       }
       writes.set(key, { value, remove, configurationBaseline });
       return value;
@@ -322,13 +248,9 @@ export function withTransaction(operation) {
       setObj: (key, value) => stage(key, value),
       discard: (key) => writes.delete(key),
       del: (key) => stage(key, null, true),
-      updateSyncState: async (
-        updater,
-        { onWriteError, preserveDestination } = {}
-      ) => {
+      updateSyncState: async (updater, { preserveDestination } = {}) => {
         const current = (await read(STOKEY_SYNC)) ?? DEFAULT_SYNC;
         const next = await updater(current, transaction);
-        if (onWriteError) errorHandlers.push(onWriteError);
         if (next === undefined) return current;
         return stage(STOKEY_SYNC, next, false, {
           preserveDestination,
@@ -345,76 +267,45 @@ export function withTransaction(operation) {
       else persisted.get(key).value = value;
     };
     for (const [key, { value, remove, configurationBaseline }] of writes) {
-      if (isGm && SYNC_KEYS[key]) {
-        const config = (await read(STOKEY_SYNC)) || DEFAULT_SYNC;
-        await stageRaw(
-          gmRecordKey(SYNC_KEYS[key]),
-          JSON.stringify({
-            schema: GM_RECORD_SCHEMA,
-            revision: newRecordRevision(),
-            destinationRevision: config.destinationRevision || 0,
-            value,
-            meta: config.syncMeta?.[SYNC_KEYS[key]] ?? null,
-          })
-        );
-      } else if (isGm && key === STOKEY_SYNC) {
-        const previous = originals.get(key);
-        for (const [storageKey, syncKey] of Object.entries(SYNC_KEYS)) {
-          if (
-            !writes.has(storageKey) &&
-            !sameValue(
-              previous?.syncMeta?.[syncKey],
-              value?.syncMeta?.[syncKey]
-            )
-          ) {
-            const record = await getGmRecord(syncKey, gmRecords);
-            await stageRaw(
-              gmAckKey(syncKey),
-              JSON.stringify({
-                schema: GM_ACK_SCHEMA,
-                businessRevision: record?.revision || "legacy",
-                destinationRevision: value?.destinationRevision || 0,
-                meta: value?.syncMeta?.[syncKey] ?? null,
-              })
-            );
-          }
-        }
-        // Keep legacy inline metadata as a read fallback until each key is used.
-        // Migrating every key here would race a write from another origin.
-        const inlineMeta = (sync) =>
-          Object.fromEntries(
-            Object.entries(sync?.syncMeta || {}).filter(
-              ([syncKey]) => !Object.values(SYNC_KEYS).includes(syncKey)
-            )
+      const configFields = (sync) => {
+        if (!sync) return sync;
+        const { syncMeta, ...configuration } = sync;
+        return configuration;
+      };
+      if (
+        isGm &&
+        key === STOKEY_SYNC &&
+        !remove &&
+        sameValue(configFields(configurationBaseline), configFields(value))
+      ) {
+        // Keep the original sync key and merge only metadata changed here.
+        // Re-read configuration so a delayed update cannot restore an old target.
+        const previous = configurationBaseline || DEFAULT_SYNC;
+        const current = (await getObj(key)) || DEFAULT_SYNC;
+        const changedDestination =
+          (current.destinationRevision || 0) !==
+            (previous.destinationRevision || 0) ||
+          DESTINATION_FIELDS.some(
+            (field) => current[field] !== previous[field]
           );
-        const configFields = (sync) =>
-          sync && { ...sync, syncMeta: inlineMeta(sync) };
-        // An acknowledgement must never rewrite a destination changed elsewhere.
-        // Compare this transaction's snapshots, not the latest stored config.
-        if (
-          remove ||
-          !sameValue(configFields(configurationBaseline), configFields(value))
-        ) {
-          const rawConfig = parseStoredValue(await rawGet(key), key);
-          const legacyMeta =
-            (value?.destinationRevision || 0) ===
-            (rawConfig?.destinationRevision || 0)
-              ? Object.fromEntries(
-                  Object.entries(rawConfig?.syncMeta || {}).filter(
-                    ([syncKey]) => Object.values(SYNC_KEYS).includes(syncKey)
-                  )
-                )
-              : {};
-          const nextConfig = value && {
-            ...value,
-            syncMeta: { ...legacyMeta, ...inlineMeta(value) },
-          };
-          if (remove || !sameValue(rawConfig, nextConfig))
-            await stageRaw(key, remove ? null : JSON.stringify(nextConfig));
+        if (changedDestination) {
+          writes.delete(key);
+          continue;
         }
-      } else {
-        await stageRaw(key, remove ? null : JSON.stringify(value));
+        const changedMeta = Object.fromEntries(
+          Object.entries(value.syncMeta || {}).filter(
+            ([syncKey, meta]) => !sameValue(previous.syncMeta?.[syncKey], meta)
+          )
+        );
+        const next = {
+          ...current,
+          syncMeta: preserveNewerSyncMeta(current.syncMeta, changedMeta),
+        };
+        writes.get(key).value = next;
+        await stageRaw(key, JSON.stringify(next));
+        continue;
       }
+      await stageRaw(key, remove ? null : JSON.stringify(value));
     }
     const attempted = [];
     try {
@@ -433,7 +324,7 @@ export function withTransaction(operation) {
       for (const key of attempted.reverse()) {
         const { previous, value } = persisted.get(key);
         try {
-          // GM has no cross-origin CAS; never compensate another page's write.
+          // Avoid compensation when a newer value is already observable.
           const stored = await rawGet(key);
           if (value === null ? stored != null : stored !== value) continue;
           if (previous === undefined || previous === null) await rawDel(key);
@@ -443,29 +334,23 @@ export function withTransaction(operation) {
           kissLog("Unable to compensate a storage transaction", recoveryError);
         }
       }
-      for (const handler of errorHandlers) await handler(error);
       throw error;
     }
     for (const [key, { value }] of writes) {
-      publishStorageWrite(
-        key,
-        isGm && key === STOKEY_SYNC ? await getObj(key) : value,
-        key === STOKEY_SYNC
-      );
+      publishStorageWrite(key, value, key === STOKEY_SYNC);
     }
     return result;
   });
 }
 
-/** Persist an edit and its conflict timestamp before any sync may read either. */
+/** Keep an edit and its timestamp in the same ordered write operation. */
 export function saveEdit(
   key,
   valueOrFn,
   syncKey = SYNC_KEYS[key],
   options = {}
 ) {
-  const { timestamp = Date.now(), pendingUpload = false } =
-    typeof options === "number" ? { timestamp: options } : options;
+  const { timestamp = Date.now() } = options;
   return withTransaction(async (transaction) => {
     const previous = await transaction.getObj(key);
     const value =
@@ -482,9 +367,7 @@ export function saveEdit(
         [syncKey]: {
           ...meta,
           updateAt,
-          ...(pendingUpload || meta.firstAttemptAt
-            ? { pendingUpload: true }
-            : {}),
+          ...(meta.firstAttemptAt ? { pendingUpload: true } : {}),
         },
       },
     }));
@@ -492,7 +375,7 @@ export function saveEdit(
   });
 }
 
-/** Read one business value and the metadata belonging to that exact record. */
+/** Read business data and sync settings within the page's write boundary. */
 export function readSyncSnapshot(storageKey) {
   return withTransaction(async (transaction) => {
     const rawValue = await transaction.getObj(storageKey);
