@@ -1837,6 +1837,7 @@ export default function Apis() {
     detailPanelRef.current?.scrollTo({ top: 0 });
   }, [selectedApiSlug]);
 
+  const addApiButtonRef = useRef(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const [sortAnchorEl, setSortAnchorEl] = useState(null);
@@ -2060,6 +2061,7 @@ export default function Apis() {
             <Button
               size="small"
               id="add-api-button"
+              ref={addApiButtonRef}
               variant="contained"
               onClick={handleClick}
               aria-controls={open ? "add-api-menu" : undefined}
@@ -2174,7 +2176,7 @@ export default function Apis() {
             anchorEl={anchorEl}
             open={open}
             onClose={handleClose}
-            container={() => anchorEl?.closest(".kt-m3-root")}
+            container={() => addApiButtonRef.current?.closest(".kt-m3-root")}
             disableScrollLock
             MenuListProps={{
               "aria-labelledby": "add-api-button",

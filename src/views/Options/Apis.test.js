@@ -512,22 +512,64 @@ describe("Apis ordering and master-detail layout", () => {
     view.unmount();
   });
 
-  test("keeps the add menu inside the Material theme root", async () => {
-    const view = await renderApis(createApi());
-    const addButton = Array.from(
-      view.container.querySelectorAll("button")
-    ).find((button) => button.textContent.trim() === "add");
+  test.each(["Escape", "backdrop click", "service selection"])(
+    "removes the themed add menu and restores interaction after %s",
+    async (closeMethod) => {
+      jest.useFakeTimers();
+      let view;
 
-    await act(async () => Simulate.click(addButton));
+      try {
+        view = await renderApis(createApi());
+        const addButton = view.container.querySelector("#add-api-button");
+        const bulkButton = Array.from(
+          view.container.querySelectorAll("button")
+        ).find((button) => button.textContent === "bulk_actions");
 
-    const menu = view.container.querySelector("#add-api-menu");
-    expect(menu).not.toBeNull();
-    expect(menu.closest(".kt-m3-root")).toBe(
-      view.container.querySelector(".kt-m3-root")
-    );
-    expect(menu.querySelector(".kt-api-provider-icon")).not.toBeNull();
-    view.unmount();
-  });
+        await act(async () => {
+          addButton.focus();
+          Simulate.click(addButton);
+        });
+        act(() => jest.advanceTimersByTime(1000));
+
+        const menu = document.body.querySelector("#add-api-menu");
+        expect(menu).not.toBeNull();
+        expect(menu.closest(".kt-m3-root")).toBe(
+          view.container.querySelector(".kt-m3-root")
+        );
+        expect(menu.querySelector(".kt-api-provider-icon")).not.toBeNull();
+
+        await act(async () => {
+          if (closeMethod === "Escape") {
+            Simulate.keyDown(menu.querySelector('[role="menu"]'), {
+              key: "Escape",
+            });
+          } else if (closeMethod === "backdrop click") {
+            Simulate.click(menu.querySelector(".MuiBackdrop-root"));
+          } else {
+            Simulate.click(menu.querySelector('[role="menuitem"]'));
+          }
+        });
+        act(() => jest.advanceTimersByTime(1000));
+
+        expect(document.body.querySelector("#add-api-menu")).toBeNull();
+        expect(view.apiListValue.addApi).toHaveBeenCalledTimes(
+          closeMethod === "service selection" ? 1 : 0
+        );
+
+        await act(async () => Simulate.click(bulkButton));
+        expect(bulkButton.getAttribute("aria-pressed")).toBe("true");
+
+        await act(async () => Simulate.click(addButton));
+        act(() => jest.advanceTimersByTime(1000));
+        expect(
+          view.container.querySelector('#add-api-menu [role="menu"]')
+        ).not.toBeNull();
+      } finally {
+        view?.unmount();
+        jest.useRealTimers();
+      }
+    }
+  );
 });
 
 describe("Apis conditional option groups", () => {
