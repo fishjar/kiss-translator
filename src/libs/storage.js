@@ -297,9 +297,18 @@ export function withTransaction(operation) {
             ([syncKey, meta]) => !sameValue(previous.syncMeta?.[syncKey], meta)
           )
         );
+        const syncMeta = preserveNewerSyncMeta(current.syncMeta, changedMeta);
+        Object.entries(changedMeta).forEach(([syncKey, meta]) => {
+          // An accepted remote version may be older than the local edit.
+          // Preserve newer metadata only if another origin changed this key.
+          if (
+            sameValue(current.syncMeta?.[syncKey], previous.syncMeta?.[syncKey])
+          )
+            syncMeta[syncKey] = meta;
+        });
         const next = {
           ...current,
-          syncMeta: preserveNewerSyncMeta(current.syncMeta, changedMeta),
+          syncMeta,
         };
         writes.get(key).value = next;
         await stageRaw(key, JSON.stringify(next));

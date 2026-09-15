@@ -26,7 +26,7 @@ export const normalizePlaygroundLineBreaks = (text) =>
  * 翻译测试沙盒游乐场组件 (Playground)
  * 提供一个沙盒输入框，允许用户在设置页面内实时测试当前配置的各个翻译引擎与样式效果
  */
-export default function Playgound() {
+export default function Playgound({ initialSettingsReady = true }) {
   // 当前输入的测试文本状态
   const [text, setText] = useState("");
   // Playground 内的页签状态只影响页面展示，不写入用户设置。
@@ -93,6 +93,7 @@ export default function Playgound() {
           aria-labelledby="kt-playground-translation-tab"
         >
           <TranForm
+            initialSettingsReady={initialSettingsReady}
             text={text}
             translationText={translationText}
             setText={setText}

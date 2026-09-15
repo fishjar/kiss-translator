@@ -8,6 +8,7 @@ import { SettingProvider } from "../../hooks/Setting";
 import ThemeProvider from "./OptionsTheme";
 import { useEffect, useRef, useState } from "react";
 import { isGm } from "../../libs/client";
+import { STOKEY_SETTING } from "../../config";
 import { AlertProvider } from "../../hooks/Alert";
 import { ConfirmProvider } from "../../hooks/Confirm";
 import Link from "@mui/material/Link";
@@ -142,7 +143,16 @@ export default function Options() {
                     <Route path="prompts" element={<Prompts />} />
                     <Route path="sync" element={<SyncSetting />} />
                     <Route path="words" element={<FavWords />} />
-                    <Route path="playground" element={<Playgound />} />
+                    <Route
+                      path="playground"
+                      element={
+                        <Playgound
+                          initialSettingsReady={
+                            !pendingKeys.includes(STOKEY_SETTING)
+                          }
+                        />
+                      }
+                    />
                     <Route path="about" element={<About />} />
                   </Route>
                 </Routes>

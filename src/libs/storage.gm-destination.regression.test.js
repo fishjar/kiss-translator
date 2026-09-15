@@ -161,6 +161,128 @@ test("a GM metadata update preserves other inline timestamps and custom metadata
 });
 
 test.each([
+  ["without a local timestamp", { firstAttemptAt: 300 }],
+  ["after a newer local edit", { updateAt: 200, firstAttemptAt: 300 }],
+])(
+  "GM first adoption %s commits the remote value and metadata",
+  async (_label, meta) => {
+    const values = installGmStorage();
+    values.set(
+      STOKEY_SYNC,
+      JSON.stringify({
+        ...initialSync,
+        syncMeta: { ...initialSync.syncMeta, [KV_WORDS_KEY]: meta },
+      })
+    );
+    values.set(STOKEY_WORDS, JSON.stringify({ local: {} }));
+    const page = loadPage();
+
+    await page.updateSyncState(async (current, transaction) => {
+      await transaction.setObj(STOKEY_WORDS, { remote: {} });
+      return {
+        ...current,
+        syncMeta: {
+          ...current.syncMeta,
+          [KV_WORDS_KEY]: { updateAt: 100, syncAt: 400 },
+        },
+      };
+    });
+
+    expect(await page.getWords()).toEqual({ remote: {} });
+    expect((await page.getSync()).syncMeta).toEqual({
+      ...initialSync.syncMeta,
+      [KV_WORDS_KEY]: { updateAt: 100, syncAt: 400 },
+    });
+  }
+);
+
+test.each([
+  [
+    "a newer edit",
+    { updateAt: 100, syncAt: 400 },
+    { updateAt: 500, firstAttemptAt: 300, pendingUpload: true },
+  ],
+  [
+    "a later sync of the same version",
+    { updateAt: 300, syncAt: 400 },
+    { updateAt: 300, syncAt: 500 },
+  ],
+])(
+  "GM metadata adoption preserves another origin's %s",
+  async (_label, incoming, concurrent) => {
+    installGmStorage();
+    const first = loadPage();
+    const second = loadPage();
+    const paused = deferred();
+    const resume = deferred();
+    const pending = first.updateSyncState(async (current) => {
+      paused.resolve();
+      await resume.promise;
+      return {
+        ...current,
+        syncMeta: { ...current.syncMeta, [KV_WORDS_KEY]: incoming },
+      };
+    });
+
+    try {
+      await paused.promise;
+      await second.updateSyncState((current) => ({
+        ...current,
+        syncMeta: { ...current.syncMeta, [KV_WORDS_KEY]: concurrent },
+      }));
+      resume.resolve();
+      await pending;
+      expect((await first.getSync()).syncMeta[KV_WORDS_KEY]).toEqual(
+        concurrent
+      );
+    } finally {
+      resume.resolve();
+      await pending.catch(() => {});
+    }
+  }
+);
+
+test("GM adoption permits an older version while another origin changes a different key", async () => {
+  installGmStorage();
+  const first = loadPage();
+  const second = loadPage();
+  const paused = deferred();
+  const resume = deferred();
+  const pending = first.updateSyncState(async (current) => {
+    paused.resolve();
+    await resume.promise;
+    return {
+      ...current,
+      syncMeta: {
+        ...current.syncMeta,
+        [KV_WORDS_KEY]: { updateAt: 10, syncAt: 400 },
+      },
+    };
+  });
+
+  try {
+    await paused.promise;
+    await second.updateSyncState((current) => ({
+      ...current,
+      syncMeta: {
+        ...current.syncMeta,
+        [KV_SETTING_KEY]: { updateAt: 500, syncAt: 501 },
+      },
+    }));
+    resume.resolve();
+    await pending;
+    expect((await first.getSync()).syncMeta).toEqual({
+      ...initialSync.syncMeta,
+      [KV_SETTING_KEY]: { updateAt: 500, syncAt: 501 },
+      [KV_WORDS_KEY]: { updateAt: 10, syncAt: 400 },
+    });
+  } finally {
+    resume.resolve();
+    await pending.catch(() => {});
+  }
+});
+
+test.each([
   ["metadata", "putSync"],
   ["metadata", "setObj"],
   ["business edit", "putSync"],

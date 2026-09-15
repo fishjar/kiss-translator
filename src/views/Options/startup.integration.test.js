@@ -134,13 +134,16 @@ jest.mock("./Layout", () => {
 });
 
 function mockSettingsPage(testId, withRules = false) {
-  return function MockSettingsPage() {
+  return function MockSettingsPage({ initialSettingsReady }) {
     const React = require("react");
     const { useSetting } = require("../../hooks/Setting");
     const { setting } = useSetting();
     return React.createElement(
       "section",
-      { "data-testid": testId },
+      {
+        "data-testid": testId,
+        "data-initial-settings-ready": initialSettingsReady,
+      },
       React.createElement(
         "output",
         { "data-testid": "setting-value" },
@@ -179,7 +182,7 @@ jest.mock("./Prompts", () => mockEmptyPage);
 jest.mock("./InputSetting", () => mockEmptyPage);
 jest.mock("./Tranbox", () => mockEmptyPage);
 jest.mock("./FavWords", () => mockEmptyPage);
-jest.mock("./Playground", () => mockEmptyPage);
+jest.mock("./Playground", () => mockSettingsPage("playground-page"));
 jest.mock("./MouseHover", () => mockEmptyPage);
 jest.mock("./Subtitle", () => mockEmptyPage);
 jest.mock("./StylesSetting", () => mockEmptyPage);
@@ -244,6 +247,12 @@ function readSetting(host) {
   return JSON.parse(
     host.container.querySelector("[data-testid='setting-value']").textContent
   );
+}
+
+function readPlaygroundReadiness(host) {
+  return host.container
+    .querySelector("[data-testid='playground-page']")
+    .getAttribute("data-initial-settings-ready");
 }
 
 function expectInteractionBlocked(host, expected) {
@@ -314,6 +323,30 @@ describe("Options startup with real storage hooks", () => {
     else process.env.REACT_APP_NAME = originalAppName;
     if (originalAppVersion === undefined) delete process.env.REACT_APP_VERSION;
     else process.env.REACT_APP_VERSION = originalAppVersion;
+  });
+
+  test("initializes Playground only after synchronized settings reach the provider", async () => {
+    const settingSync = deferred();
+    const remoteSetting = {
+      ...storedValues.get(STOKEY_SETTING),
+      marker: "remote-setting",
+    };
+    trySyncSetting.mockImplementation(async () => {
+      await settingSync.promise;
+      await storage.setObj(STOKEY_SETTING, remoteSetting);
+    });
+    const view = renderOptions("#/playground");
+    await flushEffects();
+    expect(readSetting(view).marker).toBe("local-setting");
+    expect(readPlaygroundReadiness(view)).toBe("false");
+    expectInteractionBlocked(view, true);
+
+    await act(async () => settingSync.resolve());
+    await flushEffects();
+
+    expect(readSetting(view).marker).toBe("remote-setting");
+    expect(readPlaygroundReadiness(view)).toBe("true");
+    expectInteractionBlocked(view, false);
   });
 
   test.each([
