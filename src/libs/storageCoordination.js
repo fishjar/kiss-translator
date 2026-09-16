@@ -6,6 +6,14 @@ let queue = Promise.resolve();
 let databasePromise;
 let installed = false;
 
+function storageFailure(error, outcome = "not-committed") {
+  const failure = error instanceof Error ? error : new Error(String(error));
+  failure.storageOutcome = failure.storageRecoveryFailed
+    ? "unknown"
+    : failure.storageOutcome || outcome;
+  return failure;
+}
+
 function enqueue(operation) {
   const pending = queue.then(operation);
   queue = pending.catch(() => {});
@@ -32,8 +40,14 @@ async function commitExtensionWrites(entries) {
     for (const { key, value, previous } of attempted.reverse()) {
       try {
         const current = await browser.storage.local.get([key]);
-        if (value === null ? current[key] != null : current[key] !== value)
+        if (value === null ? current[key] != null : current[key] !== value) {
+          if (
+            current[key] !== previous &&
+            (current[key] != null || previous != null)
+          )
+            error.storageOutcome = "unknown";
           continue;
+        }
         if (previous === undefined || previous === null)
           await browser.storage.local.remove([key]);
         else await browser.storage.local.set({ [key]: previous });
@@ -41,7 +55,7 @@ async function commitExtensionWrites(entries) {
         error.storageRecoveryFailed = true;
       }
     }
-    throw error;
+    throw storageFailure(error);
   }
 }
 
@@ -53,9 +67,16 @@ function withBackgroundLock(operation) {
     let disconnected = false;
     let commitReply;
     let commitStarted = false;
+    let commitSent = false;
+    let commitAcknowledged = false;
+    const disconnectedError = () =>
+      storageFailure(
+        new Error("Storage coordinator disconnected"),
+        commitSent ? "unknown" : "not-committed"
+      );
     const onDisconnect = () => {
       disconnected = true;
-      const error = new Error("Storage coordinator disconnected");
+      const error = disconnectedError();
       commitReply?.reject(error);
       if (!finished && !granted) reject(error);
     };
@@ -65,8 +86,12 @@ function withBackgroundLock(operation) {
         if (message.error) {
           const error = new Error(message.error);
           error.storageRecoveryFailed = message.storageRecoveryFailed;
-          commitReply?.reject(error);
-        } else commitReply?.resolve();
+          error.storageOutcome = message.storageOutcome;
+          commitReply?.reject(storageFailure(error));
+        } else {
+          commitAcknowledged = true;
+          commitReply?.resolve();
+        }
         commitReply = undefined;
         return;
       }
@@ -77,7 +102,7 @@ function withBackgroundLock(operation) {
           commit: (entries) =>
             new Promise((resolveCommit, rejectCommit) => {
               if (disconnected) {
-                rejectCommit(new Error("Storage coordinator disconnected"));
+                rejectCommit(disconnectedError());
                 return;
               }
               if (commitStarted) {
@@ -88,19 +113,34 @@ function withBackgroundLock(operation) {
               }
               commitStarted = true;
               commitReply = { resolve: resolveCommit, reject: rejectCommit };
-              port.postMessage({ type: "commit", entries });
+              try {
+                port.postMessage({ type: "commit", entries });
+                commitSent = true;
+              } catch (error) {
+                commitReply = undefined;
+                rejectCommit(storageFailure(error));
+              }
             }),
         });
-        if (disconnected) throw new Error("Storage coordinator disconnected");
+        if (disconnected && !commitAcknowledged) throw disconnectedError();
         finished = true;
-        port.postMessage({ type: "release" });
         resolve(value);
       } catch (error) {
         finished = true;
-        reject(error);
+        reject(storageFailure(error, commitSent ? "unknown" : "not-committed"));
       } finally {
         port.onDisconnect.removeListener(onDisconnect);
-        port.disconnect();
+        // Cleanup cannot turn an acknowledged commit into a reported failure.
+        try {
+          if (!disconnected) port.postMessage({ type: "release" });
+        } catch {
+          // Disconnect also releases this owner in the background.
+        }
+        try {
+          port.disconnect();
+        } catch {
+          // The browser may have already destroyed the document's port.
+        }
       }
     });
   });
@@ -175,7 +215,12 @@ async function withIndexedDbLock(operation, reopened = false) {
     };
     transaction.oncomplete = () => (failed ? reject(failure) : resolve(result));
     transaction.onabort = () =>
-      reject(transaction.error || new Error("Storage coordination aborted"));
+      reject(
+        storageFailure(
+          transaction.error || new Error("Storage coordination aborted"),
+          started ? "unknown" : "not-committed"
+        )
+      );
     transaction.onerror = () => {};
     keepAlive();
   });
@@ -198,6 +243,8 @@ export function withStorageLock(operation) {
     // jsdom has no cross-document storage or browser lock primitives.
     if (process.env.NODE_ENV === "test") return operation();
     throw new Error("Cross-page storage coordination is unavailable");
+  }).catch((error) => {
+    throw storageFailure(error);
   });
 }
 
@@ -237,6 +284,7 @@ export function installStorageCoordinator() {
               type: "committed",
               error: error.message,
               storageRecoveryFailed: error.storageRecoveryFailed,
+              storageOutcome: error.storageOutcome,
             });
         }
       );

@@ -428,17 +428,32 @@ describe("Options startup with real storage hooks", () => {
     const host = renderOptions("#/apis");
     await flushEffects();
 
-    storage.getObj.mockImplementation(async (key) =>
-      key === STOKEY_SETTING ? settingRead.promise : copy(storedValues.get(key))
-    );
+    const originalRead = browser.storage.local.get.getMockImplementation();
+    let refreshPending = false;
+    let refreshStarted = false;
+    browser.storage.local.get.mockImplementation(async (keys) => {
+      if (refreshPending && keys.includes(STOKEY_SETTING)) {
+        refreshStarted = true;
+        await settingRead.promise;
+      }
+      return originalRead(keys);
+    });
+    browser.storage.local.set.mockImplementation(async (values) => {
+      commitStoredValues(values);
+      if (Object.prototype.hasOwnProperty.call(values, STOKEY_SETTING)) {
+        refreshPending = true;
+      }
+    });
     await act(async () => settingSync.resolve());
     await flushEffects();
     expect(storedValues.get(STOKEY_SETTING)).toEqual(remoteSetting);
-    expect(readSetting(host).marker).toBe("remote-setting");
+    expect(refreshStarted).toBe(true);
+    // Invalidation cannot adopt a payload before the coordinated read completes.
+    expect(readSetting(host).marker).toBe("local-setting");
     expectInteractionBlocked(host, true);
     expect(trySyncRules).not.toHaveBeenCalled();
 
-    await act(async () => settingRead.resolve(copy(remoteSetting)));
+    await act(async () => settingRead.resolve());
     await flushEffects();
     expect(readSetting(host).marker).toBe("remote-setting");
     expectInteractionBlocked(host, false);
@@ -583,14 +598,14 @@ describe("Options startup with real storage hooks", () => {
     const pendingRead = new Promise((_, reject) => {
       rejectRead = reject;
     });
-    const originalGetObj = storage.getObj.getMockImplementation();
+    const originalRead = browser.storage.local.get.getMockImplementation();
     let reloadStarted = false;
-    storage.getObj.mockImplementation((key) => {
-      if (key === STOKEY_RULES) {
+    browser.storage.local.get.mockImplementation((keys) => {
+      if (keys.includes(STOKEY_RULES)) {
         reloadStarted = true;
         return pendingRead;
       }
-      return originalGetObj(key);
+      return originalRead(keys);
     });
     await act(async () => rulesSync.resolve());
     await flushEffects();

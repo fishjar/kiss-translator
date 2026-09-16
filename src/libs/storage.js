@@ -33,13 +33,22 @@ import { debounce } from "./utils";
 import { getGmMethod } from "./gm";
 import { publishStorageWrite } from "./storageEvents";
 import { withStorageLock } from "./storageCoordination";
+import { cloneStorageValue, isSameStorageValue } from "./storageEquality";
 
 const SYNC_KEYS = {
   [STOKEY_SETTING]: KV_SETTING_KEY,
   [STOKEY_RULES]: KV_RULES_KEY,
   [STOKEY_WORDS]: KV_WORDS_KEY,
 };
-const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const sameValue = isSameStorageValue;
+const EDIT_DEFAULTS = {
+  [STOKEY_SETTING]: DEFAULT_SETTING,
+  [STOKEY_RULES]: DEFAULT_RULES,
+  [STOKEY_WORDS]: {},
+  [STOKEY_SYNC]: DEFAULT_SYNC,
+  [STOKEY_FAB]: {},
+  [STOKEY_TRANBOX]: {},
+};
 const DESTINATION_FIELDS = [
   "syncType",
   "syncUrl",
@@ -213,7 +222,10 @@ export function withTransaction(operation) {
     };
     const stage = async (key, value, remove = false, options = {}) => {
       const current =
-        (await read(key)) ?? (options.syncStateUpdate ? DEFAULT_SYNC : null);
+        (await read(key)) ??
+        (key === STOKEY_SYNC && (options.syncStateUpdate || options.userEdit)
+          ? DEFAULT_SYNC
+          : null);
       // Use the same defaults when comparing metadata-only changes.
       const configurationBaseline = options.syncStateUpdate
         ? writes.has(key)
@@ -248,6 +260,8 @@ export function withTransaction(operation) {
       setObj: (key, value) => stage(key, value),
       discard: (key) => writes.delete(key),
       del: (key) => stage(key, null, true),
+      saveEdit: (key, valueOrFn, syncKey = SYNC_KEYS[key], options = {}) =>
+        stageEdit(transaction, stage, key, valueOrFn, syncKey, options),
       updateSyncState: async (updater, { preserveDestination } = {}) => {
         const current = (await read(STOKEY_SYNC)) ?? DEFAULT_SYNC;
         const next = await updater(current, transaction);
@@ -335,40 +349,84 @@ export function withTransaction(operation) {
         try {
           // Avoid compensation when a newer value is already observable.
           const stored = await rawGet(key);
-          if (value === null ? stored != null : stored !== value) continue;
+          if (value === null ? stored != null : stored !== value) {
+            // A concurrent writer makes the outcome of this edit indeterminate.
+            if (stored !== previous && (stored != null || previous != null))
+              error.storageOutcome = "unknown";
+            continue;
+          }
           if (previous === undefined || previous === null) await rawDel(key);
           else await rawSet(key, previous);
         } catch (recoveryError) {
           error.storageRecoveryFailed = true;
+          error.storageOutcome = "unknown";
           kissLog("Unable to compensate a storage transaction", recoveryError);
         }
       }
+      error.storageOutcome ||= "not-committed";
       throw error;
     }
     for (const [key, { value }] of writes) {
       publishStorageWrite(key, value, key === STOKEY_SYNC);
     }
     return result;
+  }).catch((error) => {
+    error.storageOutcome ||= "not-committed";
+    throw error;
   });
 }
 
-/** Keep an edit and its timestamp in the same ordered write operation. */
-export function saveEdit(
+/** Stage a pure edit and its metadata without acquiring another lock. */
+async function stageEdit(
+  transaction,
+  stage,
   key,
   valueOrFn,
-  syncKey = SYNC_KEYS[key],
+  syncKey,
   options = {}
 ) {
-  const { timestamp = Date.now() } = options;
-  return withTransaction(async (transaction) => {
-    const previous = await transaction.getObj(key);
-    const value =
-      typeof valueOrFn === "function" ? valueOrFn(previous) : valueOrFn;
-    await transaction.setObj(key, value);
-    if (!syncKey) return { value, updateAt: timestamp };
-    const current = (await transaction.getObj(STOKEY_SYNC)) ?? DEFAULT_SYNC;
-    const meta = current.syncMeta?.[syncKey] || {};
-    const updateAt = Math.max(timestamp, (meta.updateAt || 0) + 1);
+  const { timestamp = Date.now(), defaultValue = EDIT_DEFAULTS[key] } = options;
+  const captured =
+    typeof valueOrFn === "function" ? valueOrFn : cloneStorageValue(valueOrFn);
+  const capturedDefault = cloneStorageValue(defaultValue);
+  const previous = (await transaction.getObj(key)) ?? capturedDefault;
+  const computed =
+    typeof captured === "function"
+      ? captured(cloneStorageValue(previous))
+      : captured;
+  if (computed && typeof computed.then === "function") {
+    void Promise.resolve(computed).catch(() => {});
+    throw new TypeError("Storage edit updaters must be synchronous");
+  }
+  let value = cloneStorageValue(computed);
+  const current =
+    key === STOKEY_SYNC
+      ? previous
+      : syncKey
+        ? ((await transaction.getObj(STOKEY_SYNC)) ?? DEFAULT_SYNC)
+        : undefined;
+  const meta = current?.syncMeta?.[syncKey] || {};
+  if (key === STOKEY_SYNC && value) {
+    // Configuration edits cannot restore stale metadata or choose a revision.
+    const { destinationRevision, ...configuration } = value;
+    value = {
+      ...configuration,
+      syncMeta: cloneStorageValue(current?.syncMeta || {}),
+      ...(current?.destinationRevision !== undefined
+        ? { destinationRevision: current.destinationRevision }
+        : {}),
+    };
+  }
+  if (sameValue(previous, value))
+    return {
+      value: cloneStorageValue(previous),
+      changed: false,
+      updateAt: meta.updateAt || 0,
+    };
+  value = await stage(key, value, false, { userEdit: true });
+  let updateAt = meta.updateAt || 0;
+  if (syncKey) {
+    updateAt = Math.max(timestamp, updateAt + 1);
     await transaction.updateSyncState(() => ({
       ...current,
       syncMeta: {
@@ -380,8 +438,29 @@ export function saveEdit(
         },
       },
     }));
-    return { value, updateAt };
-  });
+  }
+  return { value: cloneStorageValue(value), changed: true, updateAt };
+}
+
+/** Keep an edit and its timestamp in the same ordered write operation. */
+export function saveEdit(
+  key,
+  valueOrFn,
+  syncKey = SYNC_KEYS[key],
+  options = {}
+) {
+  const captured =
+    typeof valueOrFn === "function" ? valueOrFn : cloneStorageValue(valueOrFn);
+  const capturedOptions = {
+    ...options,
+    timestamp: options.timestamp ?? Date.now(),
+    ...(options.defaultValue !== undefined
+      ? { defaultValue: cloneStorageValue(options.defaultValue) }
+      : {}),
+  };
+  return withTransaction((transaction) =>
+    transaction.saveEdit(key, captured, syncKey, capturedOptions)
+  );
 }
 
 /** Read business data and sync settings within the page's write boundary. */

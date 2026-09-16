@@ -335,7 +335,10 @@ describe("storage transaction coordination", () => {
       await commitReady.promise;
       await commit([{ key: "settings", value: "new", previous: "old" }]);
     });
-    const rejectedWrite = expect(write).rejects.toThrow(/disconnect/i);
+    const rejectedWrite = expect(write).rejects.toMatchObject({
+      message: expect.stringMatching(/disconnect/i),
+      storageOutcome: "not-committed",
+    });
     await flushPromises();
     runtime.ports[0].front.disconnect();
     commitReady.resolve();
@@ -360,7 +363,10 @@ describe("storage transaction coordination", () => {
           { key: "settings", value: "light", previous: "dark" },
         ])
       )
-    ).rejects.toThrow("Write failed");
+    ).rejects.toMatchObject({
+      message: "Write failed",
+      storageOutcome: "not-committed",
+    });
 
     expect(runtime.values).toEqual({ obsolete: "old value", settings: "dark" });
     await expect(page.withStorageLock(() => "recovered")).resolves.toBe(
@@ -383,7 +389,7 @@ describe("storage transaction coordination", () => {
     const firstWrite = firstPage.withStorageLock(({ commit }) =>
       commit([{ key: "settings", value: "new", previous: "old" }])
     );
-    const firstResult = firstWrite.catch(() => undefined);
+    const firstResult = firstWrite.catch((error) => error);
     await writeStarted.promise;
     runtime.ports[0].front.disconnect();
     const secondOperation = jest.fn(() => "next writer");
@@ -394,11 +400,114 @@ describe("storage transaction coordination", () => {
       expect(secondOperation).not.toHaveBeenCalled();
     } finally {
       writeComplete.resolve();
-      await firstResult;
+      expect(await firstResult).toMatchObject({ storageOutcome: "unknown" });
       await secondWrite;
     }
     expect(runtime.values.settings).toBe("new");
     expect(secondOperation).toHaveBeenCalledTimes(1);
+  });
+
+  test("compensates a partially applied batch before reporting not-committed", async () => {
+    const runtime = createRuntime();
+    runtime.values.settings = "old";
+    loadCoordinator({ runtime, background: true }).installStorageCoordinator();
+    const page = loadCoordinator({ runtime });
+    runtime.storage.local.set.mockImplementationOnce(async (entries) => {
+      Object.assign(runtime.values, entries);
+      throw new Error("Batch acknowledgement failed");
+    });
+
+    await expect(
+      page.withStorageLock(({ commit }) =>
+        commit([
+          { key: "settings", value: "new", previous: "old" },
+          { key: "sync", value: "100", previous: null },
+        ])
+      )
+    ).rejects.toMatchObject({
+      message: "Batch acknowledgement failed",
+      storageOutcome: "not-committed",
+    });
+    expect(runtime.values).toEqual({ settings: "old" });
+  });
+
+  test("propagates a failed compensation outcome through the foreground port", async () => {
+    const runtime = createRuntime();
+    runtime.values.settings = "old";
+    loadCoordinator({ runtime, background: true }).installStorageCoordinator();
+    const page = loadCoordinator({ runtime });
+    runtime.storage.local.set
+      .mockImplementationOnce(async (entries) => {
+        Object.assign(runtime.values, entries);
+        throw new Error("Batch acknowledgement failed");
+      })
+      .mockRejectedValueOnce(new Error("Compensation failed"));
+
+    await expect(
+      page.withStorageLock(({ commit }) =>
+        commit([{ key: "settings", value: "new", previous: "old" }])
+      )
+    ).rejects.toMatchObject({
+      message: "Batch acknowledgement failed",
+      storageOutcome: "unknown",
+      storageRecoveryFailed: true,
+    });
+    expect(runtime.values.settings).toBe("new");
+  });
+
+  test("finishes compensation after disconnection before granting another writer", async () => {
+    const runtime = createRuntime();
+    runtime.values.settings = "old";
+    loadCoordinator({ runtime, background: true }).installStorageCoordinator();
+    const firstPage = loadCoordinator({ runtime });
+    const secondPage = loadCoordinator({ runtime });
+    const recoveryStarted = deferred();
+    const recoveryComplete = deferred();
+    runtime.storage.local.set
+      .mockImplementationOnce(async (entries) => {
+        Object.assign(runtime.values, entries);
+        throw new Error("Batch acknowledgement failed");
+      })
+      .mockImplementationOnce(async (entries) => {
+        recoveryStarted.resolve();
+        await recoveryComplete.promise;
+        Object.assign(runtime.values, entries);
+      });
+    const firstWrite = firstPage.withStorageLock(({ commit }) =>
+      commit([{ key: "settings", value: "new", previous: "old" }])
+    );
+    const firstResult = firstWrite.catch((error) => error);
+    await recoveryStarted.promise;
+    runtime.ports[0].front.disconnect();
+    const secondOperation = jest.fn(() => runtime.values.settings);
+    const secondWrite = secondPage.withStorageLock(secondOperation);
+    await flushPromises();
+    try {
+      expect(secondOperation).not.toHaveBeenCalled();
+    } finally {
+      recoveryComplete.resolve();
+      expect(await firstResult).toMatchObject({ storageOutcome: "unknown" });
+      await expect(secondWrite).resolves.toBe("old");
+    }
+  });
+
+  test("retains acknowledged success if port cleanup fails", async () => {
+    const runtime = createRuntime();
+    loadCoordinator({ runtime, background: true }).installStorageCoordinator();
+    const page = loadCoordinator({ runtime });
+    await expect(
+      page.withStorageLock(async ({ commit }) => {
+        await commit([{ key: "settings", value: "new", previous: null }]);
+        runtime.ports[0].front.postMessage.mockImplementationOnce(() => {
+          throw new Error("Release failed");
+        });
+        return "saved";
+      })
+    ).resolves.toBe("saved");
+    expect(runtime.values.settings).toBe("new");
+    await expect(page.withStorageLock(() => "continued")).resolves.toBe(
+      "continued"
+    );
   });
 
   test("uses the browser lock manager to coordinate web pages", async () => {

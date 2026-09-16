@@ -1,6 +1,7 @@
 import { act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { useStorage } from "./Storage";
+import { cloneStorageValue, isSameStorageValue } from "../libs/storageEquality";
 import { storage } from "../libs/storage";
 import { refreshStorageKeys } from "../libs/storageRefresh";
 import { syncData } from "../libs/sync";
@@ -18,6 +19,8 @@ jest.mock("../libs/storage", () => ({
     del: jest.fn(),
   },
 }));
+
+jest.mock("../libs/gm", () => ({ getGmMethod: jest.fn() }));
 
 jest.mock("../libs/sync", () => ({ syncData: jest.fn() }));
 jest.mock("../libs/browser", () => ({ isOptions: () => false }));
@@ -108,10 +111,18 @@ describe("useStorage shared state lifecycle", () => {
       persisted.set(key, value);
     });
     storage.saveEdit.mockImplementation(
-      async (key, value, _syncKey, options) => {
-        await storage.setObj(key, value);
-        return { value, updateAt: options.timestamp };
-      }
+      (key, valueOrFn, _syncKey, options = {}) =>
+        storage.withTransaction(async (transaction) => {
+          const previous = cloneStorageValue(
+            (await transaction.getObj(key)) ?? options.defaultValue
+          );
+          const value = cloneStorageValue(
+            typeof valueOrFn === "function" ? valueOrFn(previous) : valueOrFn
+          );
+          const changed = !isSameStorageValue(previous, value);
+          if (changed) await transaction.setObj(key, value);
+          return { value, changed, updateAt: changed ? options.timestamp : 0 };
+        })
     );
     storage.del.mockImplementation(async (key) => {
       persisted.delete(key);
@@ -124,7 +135,7 @@ describe("useStorage shared state lifecycle", () => {
   });
 
   test.each([false, true])(
-    "runs each queued updater once against hydrated data in order (StrictMode: %s)",
+    "submits each queued edit once against current storage in order (StrictMode: %s)",
     async (strict) => {
       const initialRead = deferred();
       storage.getObj.mockReturnValueOnce(initialRead.promise);
@@ -160,12 +171,10 @@ describe("useStorage shared state lifecycle", () => {
         await Promise.all(saves);
       });
 
-      expect(first).toHaveBeenCalledTimes(1);
       expect(first).toHaveBeenCalledWith({ count: 4, retained: true });
-      expect(second).toHaveBeenCalledTimes(1);
       expect(second).toHaveBeenCalledWith({ count: 5, retained: true });
-      expect(third).toHaveBeenCalledTimes(1);
       expect(third).toHaveBeenCalledWith({ count: 10, retained: true });
+      expect(storage.saveEdit).toHaveBeenCalledTimes(3);
       expect(storage.setObj.mock.calls).toEqual([
         [storageKey, { count: 5, retained: true }],
         [storageKey, { count: 10, retained: true }],
@@ -198,12 +207,13 @@ describe("useStorage shared state lifecycle", () => {
     expect(storage.setObj).not.toHaveBeenCalled();
 
     await act(async () => {
+      persisted.set(storageKey, { count: 8, retained: true });
       initialRead.resolve({ count: 8, retained: true });
       await save;
     });
 
-    expect(updater).toHaveBeenCalledTimes(1);
     expect(updater).toHaveBeenCalledWith({ count: 8, retained: true });
+    expect(storage.saveEdit).toHaveBeenCalledTimes(1);
     expect(storage.setObj).toHaveBeenCalledTimes(1);
     expect(persisted.get(storageKey)).toEqual({ count: 9, retained: true });
     expect(syncData).not.toHaveBeenCalled();
@@ -304,12 +314,12 @@ describe("useStorage shared state lifecycle", () => {
 
     const remounted = await mountHost();
 
-    expect(storage.getObj).toHaveBeenCalledTimes(2);
+    expect(storage.getObj).toHaveBeenCalledTimes(3);
     expect(remounted.result.data).toEqual({ external: true });
     expect(storage.setObj).toHaveBeenCalledTimes(1);
   });
 
-  test("continues queued writes after an earlier write fails", async () => {
+  test("cancels dependent queued edits and reloads after an earlier write fails", async () => {
     const host = await mountHost();
     const failedWrite = deferred();
     const error = new Error("First write failed");
@@ -327,27 +337,34 @@ describe("useStorage shared state lifecycle", () => {
 
     await act(async () => {
       failedWrite.reject(error);
-      await Promise.all([firstSave, secondSave]);
+      const results = await Promise.allSettled([firstSave, secondSave]);
+      expect(results[0]).toEqual({ status: "rejected", reason: error });
+      expect(results[1].status).toBe("rejected");
+      expect(results[1].reason.cause).toBe(error);
     });
 
-    expect(storage.setObj).toHaveBeenCalledTimes(2);
-    expect(persisted.get(storageKey)).toEqual({ count: 6, retained: true });
-    expect(host.result.data).toEqual({ count: 6, retained: true });
+    expect(storage.saveEdit).toHaveBeenCalledTimes(1);
+    expect(storage.setObj).toHaveBeenCalledTimes(1);
+    expect(persisted.get(storageKey)).toEqual({ count: 4, retained: true });
+    expect(host.result.data).toEqual({ count: 4, retained: true });
     expect(kissLog).toHaveBeenCalledWith(
-      `storage save error for key: ${storageKey}`,
+      "Storage save failed",
+      storageKey,
       error
     );
   });
 
-  test("retries an unchanged optimistic value after its write fails", async () => {
+  test("allows an explicit save after failure reconciliation without replaying the failed edit", async () => {
     const host = await mountHost();
     const error = new Error("Write failed");
     storage.setObj.mockRejectedValueOnce(error);
 
     await act(async () => {
-      await host.result.save({ count: 5, retained: true });
+      await expect(host.result.save({ count: 5, retained: true })).rejects.toBe(
+        error
+      );
     });
-    expect(host.result.data).toEqual({ count: 5, retained: true });
+    expect(host.result.data).toEqual({ count: 4, retained: true });
     expect(persisted.get(storageKey)).toEqual({ count: 4, retained: true });
 
     await act(async () => {
@@ -360,6 +377,55 @@ describe("useStorage shared state lifecycle", () => {
       await host.result.save({ count: 5, retained: true });
     });
     expect(storage.setObj).toHaveBeenCalledTimes(2);
+  });
+
+  test("reconciles a committed write with a lost reply without replaying its toggle", async () => {
+    persisted.set(storageKey, { enabled: false, retained: true });
+    const host = await mountHost();
+    const reply = deferred();
+    const error = new Error("Commit reply lost");
+    error.storageOutcome = "unknown";
+    storage.setObj.mockImplementationOnce(async (key, value) => {
+      persisted.set(key, value);
+      await reply.promise;
+    });
+    let toggleSave;
+    let dependentSave;
+
+    act(() => {
+      toggleSave = host.result.save((previous) => ({
+        ...previous,
+        enabled: !previous.enabled,
+      }));
+      dependentSave = host.result.update({ dependent: true });
+    });
+    await flushEffects();
+    expect(persisted.get(storageKey)).toEqual({
+      enabled: true,
+      retained: true,
+    });
+    expect(host.result.data).toEqual({
+      enabled: true,
+      retained: true,
+      dependent: true,
+    });
+
+    await act(async () => {
+      reply.reject(error);
+      const results = await Promise.allSettled([toggleSave, dependentSave]);
+      expect(results[0]).toEqual({ status: "rejected", reason: error });
+      expect(results[1].status).toBe("rejected");
+    });
+
+    expect(storage.saveEdit).toHaveBeenCalledTimes(1);
+    expect(storage.setObj).toHaveBeenCalledTimes(1);
+    expect(persisted.get(storageKey)).toEqual({
+      enabled: true,
+      retained: true,
+    });
+    expect(host.result.data).toEqual({ enabled: true, retained: true });
+    expect(host.result.isRecovering).toBe(false);
+    expect(host.result.error).toBe(error);
   });
 
   test("ignores a refresh read rejection after the last subscriber unmounts", async () => {
@@ -388,9 +454,13 @@ describe("useStorage shared state lifecycle", () => {
     persisted.set(storageKey, { latest: true });
 
     await act(async () => {
-      await refreshStorageKeys([storageKey]);
+      const latestRefresh = refreshStorageKeys([storageKey]);
       staleRead.reject(new Error("Superseded read failed"));
-      await expect(staleRefresh).resolves.toBeUndefined();
+      const results = await Promise.allSettled([staleRefresh, latestRefresh]);
+      expect(results).toEqual([
+        { status: "fulfilled", value: undefined },
+        { status: "fulfilled", value: undefined },
+      ]);
     });
 
     expect(host.result.data).toEqual({ latest: true });
@@ -406,9 +476,11 @@ describe("useStorage shared state lifecycle", () => {
     await flushEffects();
 
     await act(async () => {
-      await host.result.save({ edited: true });
+      const save = host.result.save({ edited: true });
       staleRead.reject(new Error("Outdated read failed"));
-      await expect(staleRefresh).resolves.toBeUndefined();
+      const results = await Promise.allSettled([staleRefresh, save]);
+      expect(results[0]).toEqual({ status: "fulfilled", value: undefined });
+      expect(results[1].status).toBe("fulfilled");
     });
 
     expect(host.result.data).toEqual({ edited: true });

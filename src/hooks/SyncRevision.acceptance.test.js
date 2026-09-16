@@ -440,7 +440,7 @@ describe("F10 acceptance with real sync metadata and WebDAV comparison", () => {
     }
   });
 
-  test("a new edit during remote persistence keeps its data and dirty version", async () => {
+  test("rebases a queued edit on an already accepted remote transaction", async () => {
     await act(async () => {
       hook.toggleFav("first");
     });
@@ -474,12 +474,24 @@ describe("F10 acceptance with real sync metadata and WebDAV comparison", () => {
       await flush();
       latestDirtyTime = (await getSyncWithDefault()).syncMeta[KV_WORDS_KEY]
         .updateAt;
-      await expectLatestLocalValue();
+      // The remote transaction acquired the lock before the second edit. Its
+      // accepted value is the base; the queued updater must retain that value.
+      const expectedWords = {
+        ...remoteWords,
+        second: { createdAt: SECOND_EDIT_TIME },
+      };
+      expect(hook.favWords).toEqual(expectedWords);
+      expect(await storage.getObj(STOKEY_WORDS)).toEqual(expectedWords);
       expect(latestDirtyTime).toBeGreaterThan(
         remotePackets[KV_WORDS_KEY].updateAt
       );
       await advance(3000);
-      await expectLatestConvergence();
+      expect(hook.favWords).toEqual(expectedWords);
+      expect(await storage.getObj(STOKEY_WORDS)).toEqual(expectedWords);
+      expect(packetValue(remotePackets[KV_WORDS_KEY])).toEqual(expectedWords);
+      expect(remotePackets[KV_WORDS_KEY].updateAt).toBeGreaterThanOrEqual(
+        latestDirtyTime
+      );
     } finally {
       remoteWrite.resolve();
       set.mockRestore();

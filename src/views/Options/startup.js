@@ -47,7 +47,7 @@ async function prepareGmBridge() {
         installed[1] !== bundled[1]
       ) {
         throw new Error(
-          `The version of the local script(v${version}) is not the latest version(v${process.env.REACT_APP_VERSION}).`
+          `\u672c\u5730\u811a\u672c\u7248\u672c(v${version})\u4e0e\u8bbe\u7f6e\u9875\u7248\u672c(v${process.env.REACT_APP_VERSION})\u4e0d\u517c\u5bb9\uff0c\u8bf7\u66f4\u65b0\u811a\u672c\u6216\u5237\u65b0\u8bbe\u7f6e\u9875\u3002\nThe version of the local script(v${version}) is not the latest version(v${process.env.REACT_APP_VERSION}).`
         );
       }
 
@@ -59,7 +59,7 @@ async function prepareGmBridge() {
   }
 
   throw new Error(
-    "Time out. Please confirm whether to install or enable KISS Translator GreaseMonkey script?"
+    "\u8fde\u63a5\u6cb9\u7334\u811a\u672c\u8d85\u65f6\uff0c\u8bf7\u786e\u8ba4\u5df2\u5b89\u88c5\u5e76\u542f\u7528 KISS Translator \u811a\u672c\uff0c\u7136\u540e\u5237\u65b0\u8bbe\u7f6e\u9875\u3002\nTime out. Please confirm whether to install or enable KISS Translator GreaseMonkey script?"
   );
 }
 

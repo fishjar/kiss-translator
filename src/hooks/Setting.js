@@ -21,21 +21,17 @@ import { logger } from "../libs/log";
 import { sendBgMsg } from "../libs/msg";
 import { isExt } from "../libs/client";
 
-// 创建全局设置 Context，用于在子组件中访问配置数据和更新、重载方法
+// Share settings and their persistence operations with descendant components.
 const SettingContext = createContext({
   setting: DEFAULT_SETTING,
   updateSetting: () => {},
   reloadSetting: () => {},
 });
 
-/**
- * 全局设置 Provider 组件，负责统筹配置的读取、升级、同步与副作用执行（深色模式、日志级别等）
- */
+/** Load settings, apply schema migrations, and expose persistent mutations. */
 export function SettingProvider({ children, context }) {
-  // 判断当前运行上下文是否为扩展的配置后台选项页 (options)
   const isOptionsPage = useMemo(() => context === "options", [context]);
 
-  // 从本地 Storage 中持久化加载/读写全局设置项
   const {
     data: setting,
     isLoading,
@@ -46,7 +42,7 @@ export function SettingProvider({ children, context }) {
   const settingVersion = getSettingVersion(setting);
   const logLevel = setting?.logLevel;
 
-  // 兼容直接从 Storage 或云同步回填进来的旧版设置，确保进入界面的配置已经升级到当前版本。
+  // Upgrade settings loaded directly or adopted from an older remote backup.
   useEffect(() => {
     if (!hasSetting || settingVersion >= CURRENT_SETTINGS_VERSION) {
       return;
@@ -64,18 +60,21 @@ export function SettingProvider({ children, context }) {
     });
   }, [hasSetting, settingVersion, update]);
 
-  // 对设置项中老版本可能存在的 boolean 类型 darkMode 进行自动平滑升级为三种模式类型 (dark, light, auto)
+  // Preserve compatibility with the legacy boolean theme setting.
   useEffect(() => {
     if (typeof setting?.darkMode === "boolean") {
-      update((currentSetting) => ({
-        ...currentSetting,
-        darkMode: currentSetting.darkMode ? "dark" : "light",
-      }));
+      update((currentSetting) =>
+        typeof currentSetting?.darkMode === "boolean"
+          ? {
+              ...currentSetting,
+              darkMode: currentSetting.darkMode ? "dark" : "light",
+            }
+          : currentSetting
+      );
     }
   }, [setting?.darkMode, update]);
 
-  // 副作用：当日志等级 (logLevel) 发生变化时，同步更新 logger 配置。
-  // 若在浏览器扩展环境下，需额外发送消息通知 background 页面更改对应的 logLevel 保持一致。
+  // Keep the Options logger and extension background logger in sync.
   useEffect(() => {
     if (!isOptionsPage) return;
 
@@ -91,28 +90,20 @@ export function SettingProvider({ children, context }) {
     })();
   }, [isOptionsPage, logLevel]);
 
-  // 包装后的更新设置项函数，更新状态的同时异步触发防抖的云端同步机制 (KV 同步)
-  const updateSetting = useCallback(
-    (objOrFn) => {
-      update(objOrFn);
-    },
-    [update]
-  );
+  const updateSetting = useCallback((objOrFn) => update(objOrFn), [update]);
 
-  // 快捷更新特定子对象键的方法（如仅更新 customStyles 或是 shortcuts 字段）
-  // REVIEW: 此处 `async (obj)` 声明为了异步函数，但其内部并无任何使用 `await` 的异步处理。
-  // 这种多余的 async 声明是不必要的，应当去除以保证代码精简纯净（为维持原业务逻辑一致性，此处只做 review 标识，不做代码精细修改）。
+  // Merge a child patch against the current value when the reducer is replayed.
   const updateChild = useCallback(
-    (key) => async (obj) => {
-      updateSetting((prev) => ({
+    (key) => (obj) => {
+      const patch = { ...obj };
+      return updateSetting((prev) => ({
         ...prev,
-        [key]: { ...(prev?.[key] || {}), ...obj },
+        [key]: { ...(prev?.[key] || {}), ...patch },
       }));
     },
     [updateSetting]
   );
 
-  // 缓存导出的 Context Value
   const value = useMemo(
     () => ({
       context,
@@ -124,12 +115,12 @@ export function SettingProvider({ children, context }) {
     [context, setting, updateSetting, updateChild, reload]
   );
 
-  // 如果仍处于 Storage 的初次异步加载状态，在配置页显示 Loading 组件，其他页面默认返回 null 防止白屏
+  // Show loading feedback in Options before the first storage read completes.
   if (isLoading) {
     return isOptionsPage ? <Loading /> : null;
   }
 
-  // 容错处理：如果无法加载设置，在 Options 选项页弹出警示提示，其他页面返回 null
+  // Options can explain a failed read; embedded views stay hidden.
   if (!setting) {
     return isOptionsPage ? (
       <center>
@@ -149,7 +140,6 @@ export function SettingProvider({ children, context }) {
   );
 }
 
-// 导出 Hook，方便子组件快速获取全局设置
 export function useSetting() {
   return useContext(SettingContext);
 }

@@ -1,6 +1,13 @@
 import { storage } from "./storage";
+import { STOKEY_SYNC } from "../config";
 import { subscribeStorageRefresh } from "./storageRefresh";
-import { subscribeStorageWrite } from "./storageEvents";
+import {
+  subscribeStorageInvalidation,
+  subscribeStorageWrite,
+} from "./storageEvents";
+import { cloneStorageValue, isSameStorageValue } from "./storageEquality";
+
+export { isSameStorageValue } from "./storageEquality";
 
 const states = new Map();
 const writeQueues = new Map();
@@ -23,200 +30,284 @@ export const enqueueStorageSync = (key, operation) =>
   enqueue(syncQueues, key, operation);
 export const findStorageState = (key) => states.get(key);
 
-export function isSameStorageValue(a, b) {
-  if (Object.is(a, b)) return true;
-  if (
-    a &&
-    b &&
-    typeof a === "object" &&
-    typeof b === "object" &&
-    Array.isArray(a) === Array.isArray(b)
-  ) {
-    try {
-      return JSON.stringify(a) === JSON.stringify(b);
-    } catch {
-      return false;
-    }
-  }
-  return false;
-}
-
-/** Share hydration, optimistic data and write order for one key in this page. */
+/**
+ * A page owns its confirmed base and ordered, pure edit intents. Reducers may
+ * run for previews and rebasing; each intent submits at most once. Persistence
+ * owns timestamps, and the sync controller owns accepting remote responses.
+ */
 export function getStorageState(key, defaultValue) {
   if (states.has(key)) return states.get(key);
   const listeners = new Set();
+  let base = defaultValue;
   let snapshot = { data: defaultValue, isLoading: true };
   let initialized = false;
   let revision = 0;
-  let readId = 0;
-  let readPromise;
-  let pendingWrites = 0;
-  let pendingMutations = 0;
-  let pendingSyncs = 0;
-  let reloadOnSubscribe = false;
   let editVersion = 0;
+  let committedEditVersion = 0;
   let editTimestamp = 0;
-  let failedRevision;
-  let unsubscribeRefresh;
-  let unsubscribeWrite;
+  let pending = [];
+  let pendingWrites = 0;
+  let pendingSyncs = 0;
+  let readPromise;
+  let readVersion = 0;
+  let subscriptionVersion = 0;
+  let reloadOnSubscribe = false;
   let dirty = false;
+  let recovering = false;
+  let lastError = null;
   let syncKey = "";
   let syncHandler;
   let syncTimer;
+  let subscriptions = [];
+  let invalidation = 0;
+  let refreshScheduled = false;
 
-  const publish = (data = snapshot.data, isLoading = snapshot.isLoading) => {
-    snapshot = { data, isLoading };
+  const project = () => {
+    let value = base;
+    if (!initialized) return value;
+    for (const intent of pending) {
+      if (intent.cancelled) continue;
+      if (intent.kind !== "save") {
+        value = null;
+      } else {
+        value =
+          typeof intent.valueOrFn === "function"
+            ? intent.valueOrFn(value ?? defaultValue)
+            : intent.valueOrFn;
+        if (value && typeof value.then === "function") {
+          throw new TypeError("Storage reducers must be synchronous");
+        }
+      }
+    }
+    return value;
+  };
+  const publish = () => {
+    let data = base;
+    try {
+      data = project();
+    } catch (error) {
+      // The authoritative reducer will reject and reconcile this edit.
+      lastError = error;
+    }
+    snapshot = {
+      data,
+      isLoading: !initialized,
+      isSaving: pending.length > 0,
+      isRecovering: recovering,
+      error: lastError,
+    };
     listeners.forEach((listener) => listener(snapshot));
   };
   const disposeIfIdle = () => {
     if (
       listeners.size ||
+      pending.length ||
       pendingWrites ||
-      pendingMutations ||
       pendingSyncs ||
       syncTimer ||
+      readPromise ||
+      refreshScheduled ||
+      recovering ||
       (dirty && syncHandler)
     )
       return;
     if (states.get(key) === state) states.delete(key);
-    readId += 1;
   };
   const cancelSync = () => {
     clearTimeout(syncTimer);
     syncTimer = undefined;
   };
   const scheduleSync = () => {
-    if (!dirty || !syncHandler || snapshot.data === null) return;
+    if (!dirty || !syncHandler || pending.length || recovering || base === null)
+      return;
     cancelSync();
     syncTimer = setTimeout(() => {
       syncTimer = undefined;
-      void syncHandler(state, revision, snapshot.data);
+      if (!pending.length && !recovering)
+        void syncHandler(state, revision, base);
     }, 3000);
   };
   const enqueueWrite = (operation) => {
     pendingWrites += 1;
-    const pending = enqueueStorageWrite(key, operation);
-    pending
+    const result = enqueueStorageWrite(key, operation);
+    result
       .catch(() => {})
       .finally(() => {
         pendingWrites -= 1;
         disposeIfIdle();
       });
-    return pending;
+    return result;
   };
   const enqueueSync = (operation) => {
     pendingSyncs += 1;
-    const pending = enqueueStorageSync(key, operation);
-    pending
+    const result = enqueueStorageSync(key, operation);
+    result
       .catch(() => {})
       .finally(() => {
         pendingSyncs -= 1;
         disposeIfIdle();
       });
-    return pending;
+    return result;
+  };
+  const adoptBase = (value) => {
+    if (!isSameStorageValue(base, value)) revision += 1;
+    base = value;
+    initialized = true;
+    publish();
+  };
+  const readCurrent = async (isCurrent = () => true) => {
+    // A coordinator read waits for accepted commits whose reply was lost.
+    const recovered = await storage.withTransaction(async (transaction) => ({
+      value: await transaction.getObj(key),
+      metadata:
+        recovering && syncKey
+          ? (await transaction.getObj(STOKEY_SYNC))?.syncMeta?.[syncKey]
+          : undefined,
+    }));
+    if (!isCurrent()) return;
+    const { value, metadata } = recovered;
+    if (recovering && metadata) editTimestamp = metadata.updateAt || 0;
+    // An explicit deletion remains null in its current controller. Only initial
+    // hydration supplies a default for a missing key.
+    const current =
+      value == null && initialized && base === null
+        ? null
+        : (value ?? defaultValue);
+    if (!isSameStorageValue(base, current)) dirty = false;
+    adoptBase(current);
+    recovering = false;
+    publish();
   };
   const load = () => {
-    const currentRead = ++readId;
-    const currentRevision = revision;
+    const requestReadVersion = ++readVersion;
+    const requestSubscriptionVersion = subscriptionVersion;
+    const requestEditVersion = editVersion;
     const isCurrent = () =>
-      currentRead === readId && currentRevision === revision;
-    const pending = (async () => {
+      requestReadVersion === readVersion &&
+      requestSubscriptionVersion === subscriptionVersion &&
+      requestEditVersion === editVersion;
+    const result = enqueueWrite(async () => {
       try {
-        await (writeQueues.get(key) || Promise.resolve());
-        if (!isCurrent()) return;
-        const storedValue = await storage.getObj(key);
-        if (!isCurrent()) return;
-        const value = storedValue ?? defaultValue;
-        initialized = true;
-        failedRevision = undefined;
-        if (!isSameStorageValue(snapshot.data, value)) {
-          revision += 1;
-          dirty = false;
-        }
-        // Missing values are defaults in memory, never writes from a read.
-        publish(value, false);
+        await readCurrent(isCurrent);
       } catch (error) {
         if (!isCurrent()) return;
-        publish(snapshot.data, false);
+        lastError = error;
+        initialized = true;
+        recovering = true;
+        publish();
         throw error;
       }
-    })();
-    readPromise = pending;
-    const clear = () => {
-      if (readPromise === pending) readPromise = undefined;
+    });
+    readPromise = result;
+    const complete = () => {
+      if (readPromise === result) readPromise = undefined;
+      disposeIfIdle();
     };
-    pending.then(clear, clear);
-    return pending;
+    result.then(complete, complete);
+    return result;
+  };
+  const requestRefresh = () => {
+    invalidation += 1;
+    if (refreshScheduled) return;
+    refreshScheduled = true;
+    // Events can run inside a transaction. Never wait for this read there.
+    Promise.resolve().then(async () => {
+      try {
+        let observed;
+        do {
+          observed = invalidation;
+          await load();
+        } while (observed !== invalidation && listeners.size);
+      } catch {
+        // load publishes the error; a later event or explicit reload can retry.
+      } finally {
+        refreshScheduled = false;
+        disposeIfIdle();
+      }
+    });
   };
   const ensureLoaded = async () => {
-    while (!initialized && (listeners.size || pendingMutations)) {
-      await (readPromise || load());
+    // An invalidation can supersede a read without initializing this state.
+    // Wait for its replacement before callers rely on a hydrated snapshot.
+    while (!initialized) await (readPromise || load());
+  };
+
+  const submit = (kind, valueOrFn) => {
+    if (recovering) {
+      const error = new Error("Reload storage before saving another edit");
+      error.storageOutcome = "unknown";
+      return Promise.reject(error);
     }
-  };
-  const applySave = (valueOrFn) => {
-    const value =
-      typeof valueOrFn === "function" ? valueOrFn(snapshot.data) : valueOrFn;
-    if (
-      isSameStorageValue(snapshot.data, value) &&
-      failedRevision !== revision
-    ) {
-      scheduleSync();
-      return Promise.resolve(null);
-    }
-    const savedRevision = ++revision;
-    const savedTimestamp = Date.now();
-    editVersion += 1;
-    editTimestamp = savedTimestamp;
-    dirty = true;
-    failedRevision = undefined;
-    publish(value, false);
-    if (value === null) return Promise.resolve(null);
-    return enqueueWrite(async () => {
-      try {
-        if (syncKey) {
-          const saved = await storage.saveEdit(key, value, syncKey, {
-            timestamp: savedTimestamp,
-          });
-          if (revision === savedRevision) editTimestamp = saved.updateAt;
-        } else {
-          await storage.setObj(key, value);
-        }
-        if (revision === savedRevision) scheduleSync();
-        return { value, revision: savedRevision };
-      } catch (error) {
-        if (revision === savedRevision) failedRevision = savedRevision;
-        throw error;
-      }
-    });
-  };
-  const save = (valueOrFn) => {
-    if (initialized) return applySave(valueOrFn);
-    // Keep updater functions intact until their actual previous value is known.
-    pendingMutations += 1;
-    return ensureLoaded()
-      .then(() => applySave(valueOrFn))
-      .finally(() => {
-        pendingMutations -= 1;
-        disposeIfIdle();
-      });
-  };
-  const remove = () => {
+    const intent = {
+      kind,
+      valueOrFn:
+        typeof valueOrFn === "function"
+          ? valueOrFn
+          : cloneStorageValue(valueOrFn),
+      timestamp: Date.now(),
+      version: ++editVersion,
+      cancelled: null,
+    };
+    pending.push(intent);
+    revision += 1;
+    lastError = null;
     cancelSync();
-    const removedRevision = ++revision;
-    editVersion += 1;
-    dirty = false;
-    initialized = true;
-    failedRevision = undefined;
-    publish(null, false);
+    publish();
     return enqueueWrite(async () => {
+      if (intent.cancelled) throw intent.cancelled;
       try {
-        await storage.del(key);
+        let receipt;
+        if (kind === "remove") {
+          await storage.del(key);
+          receipt = { value: null, changed: true };
+        } else if (kind === "transient") {
+          // Preserve the legacy local-only save(null) behavior.
+          receipt = { value: null, changed: false };
+        } else {
+          receipt = await storage.saveEdit(key, intent.valueOrFn, syncKey, {
+            timestamp: intent.timestamp,
+            defaultValue,
+          });
+        }
+        // Acknowledge before the next write or reload may run.
+        pending = pending.filter((item) => item !== intent);
+        if (kind !== "save") {
+          dirty = false;
+        } else if (receipt.changed) {
+          committedEditVersion += 1;
+          editTimestamp = receipt.updateAt;
+          dirty = true;
+        }
+        adoptBase(receipt.value);
+        scheduleSync();
+        return { ...receipt, revision, editVersion: intent.version };
       } catch (error) {
-        if (revision === removedRevision) failedRevision = removedRevision;
+        // Rejection does not prove absence of a commit. Never replay a toggle.
+        const cancelled = new Error(
+          "An earlier storage edit failed; reload and retry"
+        );
+        cancelled.cause = error;
+        for (const item of pending) item.cancelled = cancelled;
+        pending = [];
+        recovering = true;
+        dirty = false;
+        lastError = error;
+        revision += 1;
+        cancelSync();
+        publish();
+        try {
+          await readCurrent();
+        } catch {
+          // Remain blocked until a coordinator-protected read succeeds.
+          recovering = true;
+          publish();
+        }
         throw error;
       }
     });
   };
+  const save = (valueOrFn) =>
+    submit(valueOrFn === null ? "transient" : "save", valueOrFn);
   const state = {
     get snapshot() {
       return snapshot;
@@ -230,58 +321,44 @@ export function getStorageState(key, defaultValue) {
     get editVersion() {
       return editVersion;
     },
+    get committedEditVersion() {
+      return committedEditVersion;
+    },
     get editTimestamp() {
       return editTimestamp;
+    },
+    get hasPendingEdits() {
+      return pending.length > 0;
+    },
+    get isRecovering() {
+      return recovering;
     },
     configureSync(keyToSync, handler) {
       syncKey = keyToSync;
       if (handler) syncHandler = handler;
-      if (dirty) scheduleSync();
+      scheduleSync();
     },
-    scheduleSync,
-    cancelSync,
     subscribe(listener) {
       if (!listeners.size && reloadOnSubscribe) {
         reloadOnSubscribe = false;
-        if (!pendingWrites && !pendingMutations) {
-          initialized = false;
-          snapshot = { data: snapshot.data, isLoading: true };
-        }
+        requestRefresh();
       }
       listeners.add(listener);
       listener(snapshot);
-      if (!unsubscribeRefresh)
-        unsubscribeRefresh = subscribeStorageRefresh(key, load);
-      if (!unsubscribeWrite) {
-        unsubscribeWrite = subscribeStorageWrite(
-          key,
-          (value, hasSyncMetadata) => {
-            if (pendingWrites) {
-              // Do not replace a newer optimistic edit with an earlier own write.
-              if (hasSyncMetadata)
-                publish({ ...snapshot.data, syncMeta: value.syncMeta });
-              return;
-            }
-            readId += 1;
-            initialized = true;
-            if (!isSameStorageValue(snapshot.data, value)) {
-              revision += 1;
-              dirty = false;
-            }
-            publish(value, false);
-          }
-        );
+      if (!subscriptions.length) {
+        subscriptions = [
+          subscribeStorageRefresh(key, load),
+          subscribeStorageWrite(key, requestRefresh),
+          subscribeStorageInvalidation(key, requestRefresh),
+        ];
       }
       return () => {
         listeners.delete(listener);
         if (!listeners.size) {
+          subscriptionVersion += 1;
           reloadOnSubscribe = true;
-          unsubscribeRefresh?.();
-          unsubscribeRefresh = undefined;
-          unsubscribeWrite?.();
-          unsubscribeWrite = undefined;
-          // Pending user edits still need hydration after their owner closes.
-          if (!pendingMutations) readId += 1;
+          subscriptions.forEach((unsubscribe) => unsubscribe());
+          subscriptions = [];
           disposeIfIdle();
         }
       };
@@ -289,20 +366,21 @@ export function getStorageState(key, defaultValue) {
     ensureLoaded,
     load,
     save,
-    remove,
+    remove: () => submit("remove"),
     enqueueWrite,
     enqueueSync,
+    scheduleSync,
+    cancelSync,
     acceptValue(value) {
+      if (pending.length || recovering) return revision;
       cancelSync();
-      initialized = true;
-      failedRevision = undefined;
-      revision += 1;
       dirty = false;
-      publish(value, false);
+      lastError = null;
+      adoptBase(value);
       return revision;
     },
     markSynced(expectedRevision) {
-      if (revision === expectedRevision) {
+      if (revision === expectedRevision && !pending.length && !recovering) {
         dirty = false;
         cancelSync();
         disposeIfIdle();

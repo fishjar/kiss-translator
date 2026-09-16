@@ -1,6 +1,7 @@
 import { act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { useStorage } from "./Storage";
+import { cloneStorageValue, isSameStorageValue } from "../libs/storageEquality";
 import { storage } from "../libs/storage";
 import { syncData } from "../libs/sync";
 import { isOptions } from "../libs/browser";
@@ -18,6 +19,8 @@ jest.mock("../libs/storage", () => ({
     del: jest.fn(),
   },
 }));
+
+jest.mock("../libs/gm", () => ({ getGmMethod: jest.fn() }));
 
 jest.mock("../libs/sync", () => ({
   syncData: jest.fn(),
@@ -129,10 +132,18 @@ describe("useStorage persistence and refresh", () => {
       storedValues.set(key, value);
     });
     storage.saveEdit.mockImplementation(
-      async (key, value, _syncKey, options) => {
-        await storage.setObj(key, value);
-        return { value, updateAt: options.timestamp };
-      }
+      (key, valueOrFn, _syncKey, options = {}) =>
+        storage.withTransaction(async (transaction) => {
+          const previous = cloneStorageValue(
+            (await transaction.getObj(key)) ?? options.defaultValue
+          );
+          const value = cloneStorageValue(
+            typeof valueOrFn === "function" ? valueOrFn(previous) : valueOrFn
+          );
+          const changed = !isSameStorageValue(previous, value);
+          if (changed) await transaction.setObj(key, value);
+          return { value, changed, updateAt: changed ? options.timestamp : 0 };
+        })
     );
     storage.del.mockImplementation(async (key) => {
       storedValues.delete(key);
@@ -145,7 +156,9 @@ describe("useStorage persistence and refresh", () => {
     for (const host of hosts) host.unmount();
     await flushEffects();
     for (const key of [LOCAL_KEY, "other-key"]) {
-      await findStorageState(key)?.remove();
+      const state = findStorageState(key);
+      if (state?.isRecovering) await state.load();
+      await state?.remove();
     }
     await flushEffects();
     jest.useRealTimers();
@@ -199,8 +212,12 @@ describe("useStorage persistence and refresh", () => {
       host.hookResult.save(replace);
       host.hookResult.update(merge);
     });
-    expect(replace).toHaveBeenCalledTimes(1);
-    expect(merge).toHaveBeenCalledTimes(1);
+    expect(replace).toHaveBeenCalledWith(DEFAULT_VALUE);
+    expect(merge).toHaveBeenCalledWith({ local: true, count: 1 });
+    expect(storage.saveEdit).toHaveBeenCalledTimes(2);
+    expect(
+      storage.saveEdit.mock.calls.map(([, valueOrFn]) => typeof valueOrFn)
+    ).toEqual(["function", "function"]);
     expect(host.hookResult.data).toEqual({ local: true, count: 2 });
     expect(storage.setObj).toHaveBeenCalledTimes(2);
 
@@ -228,6 +245,82 @@ describe("useStorage persistence and refresh", () => {
 
     expect(storage.setObj).toHaveBeenCalledWith(LOCAL_KEY, { changed: true });
     expect(syncData).not.toHaveBeenCalled();
+  });
+
+  test("rebases a stale page edit onto current persisted data before committing", async () => {
+    const host = await mountHost();
+    storedValues.set(LOCAL_KEY, { local: true, external: 1 });
+    let receipt;
+
+    await act(async () => {
+      receipt = await host.hookResult.update((previous) => ({
+        count: (previous.count || 0) + 1,
+      }));
+    });
+
+    const expected = { local: true, external: 1, count: 1 };
+    expect(receipt).toEqual(
+      expect.objectContaining({ value: expected, changed: true })
+    );
+    expect(storage.saveEdit).toHaveBeenCalledTimes(1);
+    expect(storage.setObj).toHaveBeenCalledTimes(1);
+    expect(storedValues.get(LOCAL_KEY)).toEqual(expected);
+    expect(host.hookResult.data).toEqual(expected);
+  });
+
+  test("does not skip an explicit replacement that only matches the stale display", async () => {
+    const host = await mountHost();
+    storedValues.set(LOCAL_KEY, { external: true });
+
+    await act(async () => {
+      await expect(host.hookResult.save(DEFAULT_VALUE)).resolves.toEqual(
+        expect.objectContaining({ changed: true, value: DEFAULT_VALUE })
+      );
+    });
+
+    expect(storage.saveEdit).toHaveBeenCalledTimes(1);
+    expect(storage.setObj).toHaveBeenCalledWith(LOCAL_KEY, DEFAULT_VALUE);
+    expect(storedValues.get(LOCAL_KEY)).toEqual(DEFAULT_VALUE);
+  });
+
+  test("checks structural no-ops against storage without writing or syncing", async () => {
+    storedValues.set(LOCAL_KEY, { first: 1, second: 2 });
+    const host = await mountHost();
+
+    await act(async () => {
+      await expect(
+        host.hookResult.save({ second: 2, first: 1 })
+      ).resolves.toEqual(
+        expect.objectContaining({
+          changed: false,
+          value: { first: 1, second: 2 },
+        })
+      );
+    });
+    await advanceTime(6000);
+
+    expect(storage.saveEdit).toHaveBeenCalledTimes(1);
+    expect(storage.setObj).not.toHaveBeenCalled();
+    expect(syncData).not.toHaveBeenCalled();
+    expect(host.hookResult.data).toEqual({ first: 1, second: 2 });
+  });
+
+  test("supplies the configured default to the persisted edit when the key is missing", async () => {
+    storedValues.delete(LOCAL_KEY);
+    const host = await mountHost();
+
+    await act(async () => {
+      await host.hookResult.update({ added: true });
+    });
+
+    expect(storage.saveEdit).toHaveBeenCalledWith(
+      LOCAL_KEY,
+      expect.any(Function),
+      REMOTE_KEY,
+      expect.objectContaining({ defaultValue: DEFAULT_VALUE })
+    );
+    expect(storedValues.get(LOCAL_KEY)).toEqual({ local: true, added: true });
+    expect(host.hookResult.data).toEqual({ local: true, added: true });
   });
 
   test("persists a new remote result once without scheduling another sync", async () => {
@@ -325,9 +418,9 @@ describe("useStorage persistence and refresh", () => {
 
     storedValues.set(LOCAL_KEY, { latest: true });
     await act(async () => {
-      await host.hookResult.reload();
+      const latestReload = host.hookResult.reload();
       oldRead.resolve({ stale: true });
-      await pendingReload;
+      await Promise.all([pendingReload, latestReload]);
     });
 
     expect(host.hookResult.data).toEqual({ latest: true });
@@ -409,14 +502,14 @@ describe("useStorage persistence and refresh", () => {
     });
     const pendingReload = host.hookResult.reload();
     await flushEffects();
-    expect(storage.getObj).toHaveBeenCalledTimes(1);
+    expect(storage.getObj).toHaveBeenCalledTimes(2);
 
     await act(async () => {
       pendingWrite.resolve();
       await pendingReload;
     });
     expect(host.hookResult.data).toEqual({ changed: true });
-    expect(storage.getObj).toHaveBeenCalledTimes(2);
+    expect(storage.getObj).toHaveBeenCalledTimes(3);
   });
 
   test("removes storage without writing null or accepting an old sync result", async () => {

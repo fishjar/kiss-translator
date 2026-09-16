@@ -1,44 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { STOKEY_SYNC, DEFAULT_SYNC } from "../config";
 import { useStorage } from "./Storage";
-import { getSyncWithDefault, putSync, storage } from "../libs/storage";
+import {
+  getSyncWithDefault,
+  putSyncMeta,
+  storage,
+  updateSyncState,
+} from "../libs/storage";
 import { kissLog } from "../libs/log";
 
-/**
- * 远端云同步（如 WebDAV）配置数据的读取与更新自定义 Hook
- * @returns {object} { sync: *, updateSync: function, reloadSync: function }
- */
+/** Read and mutate the current sync configuration. */
 export function useSync() {
-  // 使用 useStorage 代理同步配置 STOKEY_SYNC 的持久化存储
   const { data, update, reload } = useStorage(STOKEY_SYNC, DEFAULT_SYNC);
   return { sync: data, updateSync: update, reloadSync: reload };
 }
 
-/**
- * 更新特定同步配置键对应更新时间戳的自定义 Hook
- * 用于向云端元数据标识该类配置发生了更改
- * @returns {object} { updateSyncMeta: function }
- */
+/** Retain the legacy hook while updating metadata inside its transaction. */
 export function useSyncMeta() {
-  const { updateSync } = useSync();
-
-  // 接收一个规则或配置的 key (例如 'rules', 'setting')，更新其对应的 syncMeta 时间戳并写入存储
-  const updateSyncMeta = useCallback(
-    (key) => {
-      updateSync((prevSync) => {
-        const newSyncMeta = {
-          ...(prevSync?.syncMeta || {}),
-          [key]: {
-            ...(prevSync?.syncMeta?.[key] || {}),
-            updateAt: Date.now(),
-          },
-        };
-        return { syncMeta: newSyncMeta };
-      });
-    },
-    [updateSync]
-  );
-
+  const updateSyncMeta = useCallback((key) => putSyncMeta(key), []);
   return { updateSyncMeta };
 }
 
@@ -62,13 +41,13 @@ async function readSyncCacheState() {
 
 function writeSyncCache(url, timestamp) {
   return enqueueSyncCacheOperation(async () => {
-    const sync = await readSyncCacheState();
-    const dataCaches = { ...sync.dataCaches };
-    if (timestamp === undefined) delete dataCaches[url];
-    else dataCaches[url] = timestamp;
-    // Merge only the cache field into current storage, never an old sync snapshot.
-    await putSync({ dataCaches });
-    return dataCaches;
+    const saved = await updateSyncState((current) => {
+      const dataCaches = { ...current.dataCaches };
+      if (timestamp === undefined) delete dataCaches[url];
+      else dataCaches[url] = timestamp;
+      return { ...current, dataCaches };
+    });
+    return saved.dataCaches;
   });
 }
 

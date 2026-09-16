@@ -527,6 +527,7 @@ function syncStoredValue(key, storageKey, options = {}) {
   return enqueueStorageSync(storageKey, async () => {
     let originalState;
     let originalEditVersion;
+    let originalCommittedVersion;
     let value;
     let result;
     let requestConfig;
@@ -537,9 +538,26 @@ function syncStoredValue(key, storageKey, options = {}) {
         (currentState && currentState !== originalState && currentState.dirty)
       );
     };
+    const hasCommittedEdit = () => {
+      const currentState = findStorageState(storageKey);
+      return (
+        (originalState &&
+          originalState.committedEditVersion !== originalCommittedVersion) ||
+        (currentState && currentState !== originalState && currentState.dirty)
+      );
+    };
+    const isCurrent = () => {
+      const currentState = findStorageState(storageKey);
+      return (
+        !hasNewEdit() &&
+        !currentState?.hasPendingEdits &&
+        !currentState?.isRecovering
+      );
+    };
     do {
       originalState = findStorageState(storageKey);
       originalEditVersion = originalState?.editVersion;
+      originalCommittedVersion = originalState?.committedEditVersion;
       const request = await enqueueStorageWrite(storageKey, () =>
         storage.readSyncSnapshot(storageKey)
       );
@@ -549,7 +567,7 @@ function syncStoredValue(key, storageKey, options = {}) {
       result = await syncData(key, value, {
         ...options,
         deferCommit: true,
-        isRequestCurrent: () => !hasNewEdit(),
+        isRequestCurrent: isCurrent,
         syncConfig: requestConfig,
       });
       if (result || !hasNewEdit()) break;
@@ -563,28 +581,29 @@ function syncStoredValue(key, storageKey, options = {}) {
     const enqueueCommit = commitState
       ? commitState.enqueueWrite
       : (operation) => enqueueStorageWrite(storageKey, operation);
-    const accepted = await enqueueCommit(() =>
-      result.commit({
+    const accepted = await enqueueCommit(async () => {
+      const committed = await result.commit({
         applyValue: async (transaction) => {
           if (result.isNew && options.applyRemote !== false) {
             await transaction.setObj(storageKey, result.value);
           }
         },
-        isCurrent: () => !hasNewEdit(),
-        shouldRetry: hasNewEdit,
+        isCurrent,
+        shouldRetry: hasCommittedEdit,
         getRetryTimestamp: () =>
           Math.max(
             originalState?.editTimestamp || 0,
             findStorageState(storageKey)?.editTimestamp || 0
           ),
-      })
-    );
-    const currentState = findStorageState(storageKey);
-    if (accepted && currentState && !hasNewEdit()) {
-      if (result.isNew && options.applyRemote !== false)
-        currentState.acceptValue(result.value);
-      else currentState.markSynced(currentState.revision);
-    }
+      });
+      const currentState = findStorageState(storageKey);
+      if (committed && currentState && isCurrent()) {
+        if (result.isNew && options.applyRemote !== false)
+          currentState.acceptValue(result.value);
+        else currentState.markSynced(currentState.revision);
+      }
+      return committed;
+    });
     if (accepted) await result.migrateLegacy();
     return accepted
       ? { value: result.value, isNew: result.isNew }

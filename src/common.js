@@ -77,6 +77,12 @@ function ensureUserscriptGM() {
   globalThis.GM.getValue = globalThis.GM.getValue || globalThis.GM_getValue;
   globalThis.GM.deleteValue =
     globalThis.GM.deleteValue || globalThis.GM_deleteValue;
+  globalThis.GM.addValueChangeListener =
+    globalThis.GM.addValueChangeListener ||
+    globalThis.GM_addValueChangeListener;
+  globalThis.GM.removeValueChangeListener =
+    globalThis.GM.removeValueChangeListener ||
+    globalThis.GM_removeValueChangeListener;
   globalThis.GM.info = globalThis.GM.info || globalThis.GM_info;
 }
 

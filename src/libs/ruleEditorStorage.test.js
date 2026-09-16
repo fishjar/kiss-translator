@@ -10,14 +10,18 @@ import {
 import {
   getRulesWithDefault,
   getSettingWithDefault,
-  setRules,
+  saveEdit,
+  withTransaction,
 } from "./storage";
+import { STOKEY_SETTING } from "../config";
+import { loadOrFetchSubRules } from "./subRules";
 
 jest.mock("./storage", () => ({
   getRulesWithDefault: jest.fn(),
   getSettingWithDefault: jest.fn(),
-  setRules: jest.fn(),
-  putSyncMeta: jest.fn(),
+  saveEdit: jest.fn(),
+  withTransaction: jest.fn(),
+  normalizeStoredSetting: (setting) => setting || {},
   getDisabledSubRules: jest.fn(),
 }));
 jest.mock("./subRules", () => ({ loadOrFetchSubRules: jest.fn() }));
@@ -38,8 +42,20 @@ beforeEach(() => {
   ];
   getRulesWithDefault.mockImplementation(async () => structuredCopy(rules));
   getSettingWithDefault.mockResolvedValue({ injectRules: false });
-  setRules.mockImplementation(async (next) => {
-    rules = structuredCopy(next);
+  saveEdit.mockImplementation(async (_key, update) => {
+    rules = structuredCopy(update(structuredCopy(rules)));
+    return {
+      value: structuredCopy(rules),
+      changed: true,
+      updateAt: Date.now(),
+    };
+  });
+  withTransaction.mockImplementation(async (operation) => {
+    return operation({
+      getObj: async (key) =>
+        key === STOKEY_SETTING ? getSettingWithDefault() : null,
+      saveEdit,
+    });
   });
 });
 const structuredCopy = (value) => JSON.parse(JSON.stringify(value));
@@ -142,22 +158,79 @@ test("serializes simultaneous tabs and rejects creation after a source change", 
 
 test("reports storage failures and allows a retry", async () => {
   const request = { href, patch: { selector: ".new" }, seed: rules[0] };
-  setRules.mockRejectedValueOnce(new Error("disk full"));
+  saveEdit.mockRejectedValueOnce(new Error("disk full"));
   await expect(writeSiteRule(request)).rejects.toThrow("disk full");
   await expect(writeSiteRule(request)).resolves.toBeTruthy();
 });
 
+test("checks expected fields after acquiring the shared storage transaction", async () => {
+  const expected = structuredCopy(rules[0]);
+  const transaction = withTransaction.getMockImplementation();
+  withTransaction.mockImplementationOnce(async (operation) => {
+    rules[0] = { ...rules[0], selector: ".concurrent" };
+    return transaction(operation);
+  });
+  await expect(
+    writeSiteRule({
+      href,
+      expected,
+      patch: { selector: ".stale" },
+    })
+  ).rejects.toThrow("rule-conflict");
+  expect(rules[0].selector).toBe(".concurrent");
+  expect(require("./sync").trySyncRules).not.toHaveBeenCalled();
+});
+
+test("prepares a changed subscription source outside the next transaction", async () => {
+  const firstSource = "https://rules.example/first";
+  const secondSource = "https://rules.example/second";
+  getSettingWithDefault.mockResolvedValue({
+    injectRules: true,
+    subrulesList: [{ url: firstSource, selected: true }],
+  });
+  loadOrFetchSubRules.mockResolvedValue([]);
+  const transaction = withTransaction.getMockImplementation();
+  withTransaction.mockImplementationOnce(async (operation) => {
+    getSettingWithDefault.mockResolvedValue({
+      injectRules: true,
+      subrulesList: [{ url: secondSource, selected: true }],
+    });
+    return transaction(operation);
+  });
+  await writeSiteRule({
+    href,
+    expected: structuredCopy(rules[0]),
+    patch: { selector: ".new" },
+  });
+  expect(loadOrFetchSubRules.mock.calls).toEqual([
+    [firstSource],
+    [secondSource],
+  ]);
+  expect(withTransaction).toHaveBeenCalledTimes(2);
+  expect(saveEdit).toHaveBeenCalledTimes(1);
+  expect(loadOrFetchSubRules.mock.invocationCallOrder[1]).toBeGreaterThan(
+    withTransaction.mock.invocationCallOrder[0]
+  );
+  expect(loadOrFetchSubRules.mock.invocationCallOrder[1]).toBeLessThan(
+    withTransaction.mock.invocationCallOrder[1]
+  );
+});
+
 test("persists the edit timestamp before starting cloud synchronization", async () => {
-  const { putSyncMeta } = require("./storage");
   const { trySyncRules } = require("./sync");
   await writeSiteRule({
     href,
     patch: { selector: ".new" },
     seed: rules[0],
   });
-  expect(putSyncMeta).toHaveBeenCalledWith("kiss-rules_v2.json");
+  expect(saveEdit).toHaveBeenCalledWith(
+    expect.any(String),
+    expect.any(Function),
+    "kiss-rules_v2.json",
+    { timestamp: expect.any(Number) }
+  );
   expect(trySyncRules).toHaveBeenCalled();
-  expect(putSyncMeta.mock.invocationCallOrder[0]).toBeLessThan(
+  expect(saveEdit.mock.invocationCallOrder[0]).toBeLessThan(
     trySyncRules.mock.invocationCallOrder[0]
   );
 });
