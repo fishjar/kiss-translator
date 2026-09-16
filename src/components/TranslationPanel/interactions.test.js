@@ -1,11 +1,12 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
-import { act, useState } from "react";
+import { act, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { apiTranslate } from "../../apis";
 import { speak } from "../../libs/speech";
 import TranslationPanelContent from "./Content";
 import TranslationPanelHeader from "./Header";
 import TranslationPanelSurface from "./Surface";
+import TranBox from "../../views/Selection/TranBox";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -52,9 +53,34 @@ const formProps = {
   autoFocusInput: false,
 };
 
-function Panel({ initialSimpleStyle = false, initialText = "First source" }) {
+function Panel({
+  initialSimpleStyle = false,
+  initialText = "First source",
+  externalText,
+  formOverrides,
+  selectionHost = false,
+}) {
   const [text, setText] = useState(initialText);
   const [simpleStyle, setSimpleStyle] = useState(initialSimpleStyle);
+  useEffect(() => {
+    if (externalText !== undefined) setText(externalText);
+  }, [externalText]);
+  if (selectionHost) {
+    return (
+      <TranBox
+        showBox
+        text={text}
+        setText={setText}
+        simpleStyle={simpleStyle}
+        setSimpleStyle={setSimpleStyle}
+        tranboxSetting={formProps}
+        transApis={formProps.transApis}
+        langDetector={formProps.langDetector}
+        setBoxPosition={() => {}}
+        setBoxSize={() => {}}
+      />
+    );
+  }
   return (
     <TranslationPanelSurface
       header={
@@ -66,6 +92,7 @@ function Panel({ initialSimpleStyle = false, initialText = "First source" }) {
     >
       <TranslationPanelContent
         {...formProps}
+        {...formOverrides}
         text={text}
         setText={setText}
         simpleStyle={simpleStyle}
@@ -227,6 +254,107 @@ describe.each(["document", "shadow"])(
         expect(apiTranslate.mock.calls[1][0].text).toBe("Second source draft");
       }
     );
+
+    test.each(["pointer", "keyboard"])(
+      "keeps pasted source text after leaving the form with %s activation",
+      async (activation) => {
+        navigator.clipboard.readText = jest
+          .fn()
+          .mockResolvedValue("  Clipboard source  ");
+        await renderPanel({ initialText: "" });
+        act(() => input().focus());
+        const paste = container.querySelector('button[title="paste"]');
+
+        if (activation === "pointer") {
+          await pointerClick(paste);
+        } else {
+          act(() => paste.focus());
+          await act(async () => paste.click());
+        }
+        await flushEffects();
+
+        expect(navigator.clipboard.readText).toHaveBeenCalledTimes(1);
+        expect(input().value).toBe("Clipboard source");
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe("Clipboard source");
+        expect(result().value).toBe("First result");
+
+        act(() => outside.focus());
+        await flushEffects();
+        expect(input().value).toBe("Clipboard source");
+        expect(result().value).toBe("First result");
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+
+        await renderPanel({ externalText: "Next selected text" });
+        expect(input().value).toBe("Next selected text");
+        expect(apiTranslate).toHaveBeenCalledTimes(2);
+        expect(apiTranslate.mock.calls[1][0].text).toBe("Next selected text");
+      }
+    );
+
+    test.each(["copy", "read_aloud"])(
+      "commits the draft when a focused streaming %s action disappears",
+      async (action) => {
+        let finishTranslation;
+        apiTranslate.mockReturnValueOnce(
+          new Promise((resolve) => {
+            finishTranslation = resolve;
+          })
+        );
+        await renderPanel({
+          formOverrides: { fromLang: "auto", toLang: "en" },
+        });
+        act(() =>
+          apiTranslate.mock.calls[0][0].onStreamChunk({
+            text: "Partial result",
+          })
+        );
+        editDraft("Next source draft");
+        const button = resultAction(action);
+        act(() => button.focus());
+        expect(activeElement()).toBe(button);
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+
+        await act(async () => {
+          finishTranslation({ trText: "Same language result", isSame: true });
+        });
+        await flushEffects();
+
+        expect(button.isConnected).toBe(false);
+        expect(input().value).toBe("Next source draft");
+        expect(apiTranslate).toHaveBeenCalledTimes(2);
+        expect(apiTranslate.mock.calls[1][0].text).toBe("Next source draft");
+
+        await renderPanel({
+          externalText: "Next selected text",
+          formOverrides: { fromLang: "auto", toLang: "en" },
+        });
+        expect(input().value).toBe("Next selected text");
+        expect(apiTranslate).toHaveBeenCalledTimes(3);
+        expect(apiTranslate.mock.calls[2][0].text).toBe("Next selected text");
+      }
+    );
+
+    test("keeps new panel selections when the result textarea retains focus", async () => {
+      await renderPanel({ selectionHost: true });
+      editDraft("Unsubmitted draft");
+      act(() => result().focus());
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+
+      await renderPanel({
+        selectionHost: true,
+        externalText: "New panel selection",
+      });
+      expect(activeElement()).toBe(result());
+      expect(input().value).toBe("New panel selection");
+      expect(apiTranslate).toHaveBeenCalledTimes(2);
+      expect(apiTranslate.mock.calls[1][0].text).toBe("New panel selection");
+
+      act(() => outside.focus());
+      await flushEffects();
+      expect(input().value).toBe("New panel selection");
+      expect(apiTranslate).toHaveBeenCalledTimes(2);
+    });
 
     test("keeps native focus traversal through source actions and the old result", async () => {
       await renderPanel();

@@ -30,6 +30,7 @@ import {
   useState,
   useMemo,
   useEffect,
+  useLayoutEffect,
   useRef,
   useCallback,
 } from "react";
@@ -108,6 +109,7 @@ export default function TranForm({
   const [editMode, setEditMode] = useState(false);
   // Keep draft input until blur or submission updates the outer text state.
   const [editText, setEditText] = useState(text);
+  const editTextRef = useRef(editText);
   const [requestRevision, setRequestRevision] = useState(0);
   const [apiSlugs, setApiSlugs] = useState(initApiSlugs);
   const [hasUserChangedApiSlugs, setHasUserChangedApiSlugs] = useState(false);
@@ -126,6 +128,8 @@ export default function TranForm({
     loading: false,
   });
   const inputRef = useRef(null);
+  const formRef = useRef(null);
+  const focusedTextControlRef = useRef(null);
   const previousSimpleStyleRef = useRef(simpleStyle);
   const [isShadowMenu, setIsShadowMenu] = useState(false);
   const setInputRef = useCallback((input) => {
@@ -193,9 +197,15 @@ export default function TranForm({
     }
   }, [initApiSlugs, hasUserChangedApiSlugs]);
 
-  // Normally sync external text only outside editing; text panels can allow clipboard updates to replace drafts.
-  useEffect(() => {
+  useLayoutEffect(() => {
+    editTextRef.current = editText;
+  }, [editText]);
+
+  // Commit external replacements before removed-control observers can submit a
+  // draft from the same render. Hosts opt in for clipboard and selection updates.
+  useLayoutEffect(() => {
     if (syncExternalTextWhileEditing || !editMode) {
+      editTextRef.current = text;
       setEditText(text);
     }
   }, [text, editMode, syncExternalTextWhileEditing]);
@@ -237,8 +247,10 @@ export default function TranForm({
   // Paste clipboard text into the translation input.
   const handlePaste = async () => {
     try {
-      const text = await navigator.clipboard.readText();
-      setText(text.trim());
+      const pastedText = (await navigator.clipboard.readText()).trim();
+      // Pasting replaces the draft even while focus stays in the text controls.
+      setEditText(pastedText);
+      setText(pastedText);
     } catch (err) {
       //
     }
@@ -340,10 +352,28 @@ export default function TranForm({
     }
   }, [text, defaultDictAvailable, aiDictAvailable]);
 
-  const commitEditText = () => {
+  const commitEditText = useCallback(() => {
     setEditMode(false);
-    setText(editText.trim());
-  };
+    setText(editTextRef.current.trim());
+  }, [setText]);
+
+  useLayoutEffect(() => {
+    if (!editMode) return;
+    const form = formRef.current;
+    const commitRemovedControl = () => {
+      const control = focusedTextControlRef.current;
+      if (control && !form.contains(control)) {
+        focusedTextControlRef.current = null;
+        commitEditText();
+      }
+    };
+    // Removing a focused action does not emit blur. Results can remove their
+    // actions after streaming ends without rerendering this form.
+    commitRemovedControl();
+    const observer = new MutationObserver(commitRemovedControl);
+    observer.observe(form, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [editMode, commitEditText]);
 
   const submitTranslation = () => {
     // Keyboard submissions keep editing active while the input retains focus.
@@ -399,9 +429,19 @@ export default function TranForm({
   ));
   return (
     <Stack
+      ref={formRef}
       className={isPlaygound ? "kt-playground-translator" : undefined}
       spacing={simpleStyle ? 1 : 2}
       useFlexGap={isPlaygound}
+      onFocusCapture={(event) => {
+        const control = event.target.closest?.(
+          ".kt-translation-source, .kt-translation-result"
+        );
+        focusedTextControlRef.current =
+          control && event.currentTarget.contains(control)
+            ? event.target
+            : null;
+      }}
       onBlur={(event) => {
         if (!editMode || isShadowHostMoving(event.target)) return;
         const textControls = ".kt-translation-source, .kt-translation-result";

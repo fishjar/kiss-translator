@@ -335,6 +335,10 @@ export default function TranCont({
     );
   }
 
+  const resultLabel = `${i18n("translated_text")} - ${
+    apiSetting.apiName || apiSetting.apiSlug
+  }`;
+
   return (
     <Box
       className={`kt-translation-result ${
@@ -348,7 +352,7 @@ export default function TranCont({
             : "kt-resizable-text-field"
         }
         size="small"
-        label={`${i18n("translated_text")} - ${apiSetting.apiName}`}
+        label={resultLabel}
         InputLabelProps={isPlayground ? { shrink: true } : undefined}
         fullWidth
         multiline
@@ -358,7 +362,7 @@ export default function TranCont({
           className: "kt-resizable-textarea",
           style: { resize: "vertical" },
           "aria-busy": loading,
-          "aria-label": `${i18n("translated_text")} - ${apiSetting.apiName}`,
+          "aria-label": resultLabel,
         }}
         placeholder={
           isPlayground && !text
@@ -431,6 +435,27 @@ export default function TranCont({
           ),
         }}
       />
+      {/* Announce completed results without repeating every streaming chunk. */}
+      <Box
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        sx={{
+          width: "1px",
+          height: "1px",
+          position: "absolute",
+          overflow: "hidden",
+          padding: 0,
+          margin: -1,
+          border: 0,
+          clip: "rect(0 0 0 0)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {!loading && (error || trText)
+          ? `${resultLabel}: ${error || trText}`
+          : ""}
+      </Box>
     </Box>
   );
 }

@@ -195,6 +195,71 @@ describe("TranCont", () => {
     act(() => root.unmount());
   });
 
+  test.each([undefined, ""])(
+    "identifies a provider without a display name (%s) by its slug",
+    async (apiName) => {
+      apiTranslate.mockResolvedValueOnce({ trText: "Translated result" });
+      const { container, root } = renderTranCont({
+        transApis: [{ ...baseApiSetting, apiName }],
+      });
+      await flushEffects();
+
+      expect(container.querySelector("label").textContent).toBe(
+        "translated_text - openai"
+      );
+      expect(
+        container.querySelector("textarea").getAttribute("aria-label")
+      ).toBe("translated_text - openai");
+      expect(container.querySelector('[role="status"]').textContent).toBe(
+        "translated_text - openai: Translated result"
+      );
+      act(() => root.unmount());
+    }
+  );
+
+  test.each(["success", "error"])(
+    "announces the final %s without announcing streaming chunks",
+    async (outcome) => {
+      const deferred = createDeferred();
+      apiTranslate.mockReturnValueOnce(deferred.promise);
+      const { container, root } = renderTranCont();
+      await flushEffects();
+
+      const status = container.querySelector('[role="status"]');
+      expect(status).not.toBeNull();
+      expect(status.getAttribute("aria-live")).toBe("polite");
+      expect(status.getAttribute("aria-atomic")).toBe("true");
+      expect(status.textContent).toBe("");
+
+      act(() => {
+        apiTranslate.mock.calls[0][0].onStreamChunk({
+          text: "Partial translation",
+        });
+      });
+      expect(container.querySelector("textarea").value).toBe(
+        "Partial translation"
+      );
+      expect(status.textContent).toBe("");
+
+      await act(async () => {
+        if (outcome === "success") {
+          deferred.resolve({ trText: "Final translation" });
+        } else {
+          deferred.reject(new Error("Translation failed"));
+        }
+        await deferred.promise.catch(() => {});
+      });
+
+      expect(container.querySelector('[role="status"]')).toBe(status);
+      expect(status.textContent).toBe(
+        `translated_text - OpenAI: ${
+          outcome === "success" ? "Final translation" : "Translation failed"
+        }`
+      );
+      act(() => root.unmount());
+    }
+  );
+
   test.each(["", " \t\r\n "])(
     "keeps the result empty for empty or whitespace source %j",
     async (text) => {
