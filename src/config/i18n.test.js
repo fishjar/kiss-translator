@@ -31,5 +31,7 @@ test("integrates Russian translations with M3 labels and product identity", () =
 test("provides default text when key is not found", () => {
   const i18n = newI18n("en");
   expect(i18n("nonexistent_key")).toBe("nonexistent_key");
+  expect(i18n("nonexistent_key", "Fallback")).toBe("Fallback");
+  expect(i18n("nonexistent_key", "")).toBe("");
   expect(i18n("app_name")).not.toBe("app_name");
 });

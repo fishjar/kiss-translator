@@ -1449,9 +1449,7 @@ export class Translator {
 
   // 获取按住左键触发翻译需要等待的毫秒数
   #getMouseHoldDelay() {
-    const delay = Number(
-      this.#setting.mouseHoverSetting?.mouseHoverHoldDelay
-    );
+    const delay = Number(this.#setting.mouseHoverSetting?.mouseHoverHoldDelay);
     return Number.isFinite(delay) && delay > 0
       ? delay
       : DEFAULT_MOUSE_HOVER_HOLD_DELAY;
@@ -1484,8 +1482,7 @@ export class Translator {
   #registerMouseHoldHandler() {
     if (this.#removeMouseHoldHandlers) return;
 
-    this.#boundMouseDownHandler = (event) =>
-      this.#handleMouseHoldDown(event);
+    this.#boundMouseDownHandler = (event) => this.#handleMouseHoldDown(event);
     this.#boundMouseUpHandler = (event) => this.#handleMouseHoldUp(event);
     this.#boundMouseHoldMoveHandler = (event) =>
       this.#handleMouseHoldMove(event);
@@ -1493,27 +1490,15 @@ export class Translator {
       this.#handleMouseHoldClick(event);
     this.#boundCancelMouseHold = () => this.#cancelMouseHold();
 
-    document.addEventListener(
-      "mousedown",
-      this.#boundMouseDownHandler,
-      true
-    );
+    document.addEventListener("mousedown", this.#boundMouseDownHandler, true);
     document.addEventListener("mouseup", this.#boundMouseUpHandler, true);
-    document.addEventListener(
-      "mousemove",
-      this.#boundMouseHoldMoveHandler,
-      { capture: true, passive: true }
-    );
-    document.addEventListener(
-      "click",
-      this.#boundMouseHoldClickHandler,
-      true
-    );
+    document.addEventListener("mousemove", this.#boundMouseHoldMoveHandler, {
+      capture: true,
+      passive: true,
+    });
+    document.addEventListener("click", this.#boundMouseHoldClickHandler, true);
     window.addEventListener("blur", this.#boundCancelMouseHold);
-    document.addEventListener(
-      "visibilitychange",
-      this.#boundCancelMouseHold
-    );
+    document.addEventListener("visibilitychange", this.#boundCancelMouseHold);
     // 触摸手势被浏览器接管（按住后滚动/系统手势）时取消，避免残留状态触发翻译
     document.addEventListener(
       "pointercancel",
@@ -1521,11 +1506,7 @@ export class Translator {
       true
     );
     // 按住期间弹出右键/移动端长按菜单时取消
-    document.addEventListener(
-      "contextmenu",
-      this.#boundCancelMouseHold,
-      true
-    );
+    document.addEventListener("contextmenu", this.#boundCancelMouseHold, true);
 
     this.#removeMouseHoldHandlers = () => {
       document.removeEventListener(
@@ -1533,11 +1514,7 @@ export class Translator {
         this.#boundMouseDownHandler,
         true
       );
-      document.removeEventListener(
-        "mouseup",
-        this.#boundMouseUpHandler,
-        true
-      );
+      document.removeEventListener("mouseup", this.#boundMouseUpHandler, true);
       document.removeEventListener(
         "mousemove",
         this.#boundMouseHoldMoveHandler,
@@ -1588,9 +1565,7 @@ export class Translator {
       this.#setting.mouseHoverSetting?.mouseHoverPreventClick
     );
     this.#mouseHoldInteractive = Boolean(
-      target?.closest?.(
-        "button, a, [role='button'], [role='link'], summary"
-      )
+      target?.closest?.("button, a, [role='button'], [role='link'], summary")
     );
     this.#mouseHoldStartX = event.clientX;
     this.#mouseHoldStartY = event.clientY;
@@ -1850,9 +1825,7 @@ export class Translator {
       leaf = current.parentElement;
     }
     if (!leaf || leaf === node) return null;
-    if (
-      leaf.matches?.("button, a, [role='button'], [role='link'], summary")
-    ) {
+    if (leaf.matches?.("button, a, [role='button'], [role='link'], summary")) {
       return null;
     }
     return leaf;
@@ -1869,7 +1842,9 @@ export class Translator {
     while ((current = walker.nextNode())) {
       const text = current.nodeValue?.trim() || "";
       if (!text) continue;
-      if (current.parentElement?.closest?.(`.${Translator.KISS_CLASS.warpper}`)) {
+      if (
+        current.parentElement?.closest?.(`.${Translator.KISS_CLASS.warpper}`)
+      ) {
         continue;
       }
       if (text.length > bestLength) {
@@ -1878,9 +1853,7 @@ export class Translator {
       }
     }
     if (!best || best === node) return null;
-    if (
-      best.matches?.("button, a, [role='button'], [role='link'], summary")
-    ) {
+    if (best.matches?.("button, a, [role='button'], [role='link'], summary")) {
       return null;
     }
     return best;
@@ -1975,9 +1948,7 @@ export class Translator {
     if (!Translator.isElement(node)) return false;
     try {
       return Boolean(
-        node.matches?.(
-          "article, main, [role='main'], [role='article']"
-        )
+        node.matches?.("article, main, [role='main'], [role='article']")
       );
     } catch (err) {
       return false;
@@ -2029,9 +2000,7 @@ export class Translator {
       return true;
     }
 
-    const allProcessed = units.every((unit) =>
-      this.#processedNodes.has(unit)
-    );
+    const allProcessed = units.every((unit) => this.#processedNodes.has(unit));
     if (allProcessed) {
       this.#restoreHoverBlock(container);
       return true;
@@ -3645,8 +3614,10 @@ export class Translator {
 
     if (!/^[a-zA-Z]+(?:['’][a-zA-Z]+)?$/.test(word)) {
       this.#showFavoriteBubble(
-        i18n("favorite_word_lookup_unavailable",
-          "Dictionary lookup is unavailable for this word."),
+        i18n(
+          "favorite_word_lookup_unavailable",
+          "Dictionary lookup is unavailable for this word."
+        ),
         "unavailable"
       );
       return;
@@ -3655,8 +3626,10 @@ export class Translator {
     const enDict = this.#setting.tranboxSetting?.enDict;
     if (!OPT_DICT_MAP.has(enDict)) {
       this.#showFavoriteBubble(
-        i18n("favorite_word_lookup_unavailable",
-          "Dictionary lookup is unavailable for this word."),
+        i18n(
+          "favorite_word_lookup_unavailable",
+          "Dictionary lookup is unavailable for this word."
+        ),
         "unavailable"
       );
       return;
