@@ -1478,7 +1478,7 @@ describe("handleTranslate", () => {
     choices: [{ message: { role: "assistant", content, ...extra } }],
   });
 
-  test("批量非结构化纯文本：parseAIRes 不做按行裸文本兜底，抛 unexpected result", async () => {
+  test("批量非结构化纯文本：parseAIRes 不做按行裸文本兜底，抛 parseAIRes: useBatchFetch got unparseable message", async () => {
     fetchData.mockResolvedValueOnce(openaiRes("没有任何 id 结构的裸文本"));
 
     await expect(
@@ -1498,7 +1498,7 @@ describe("handleTranslate", () => {
           usePool: false,
         })
       )
-    ).rejects.toThrow("translate got an unexpected result");
+    ).rejects.toThrow("parseAIRes: useBatchFetch got unparseable message");
 
     expect(fetchData).toHaveBeenCalledTimes(1);
   });

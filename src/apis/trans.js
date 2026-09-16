@@ -258,10 +258,17 @@ const parseAIRes = (raw, useBatchFetch = true) => {
     return structuredSegments.map((segment) => segment.translation);
   }
 
-  // 兜底返回无效解析
+  // 兜底抛出异常
   kissLog("parseAIRes: useBatchFetch got unparseable message:\n" + raw);
-  return []
+  throw new AIResponseParseError("parseAIRes: useBatchFetch got unparseable message:\n" + raw);
 };
+
+export class AIResponseParseError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "AIResponseParseError";
+  }
+}
 
 /** 依据时间差计算旧版字幕输入使用的停顿等级。 */
 const getPauseLevel = (gapMs) => {
@@ -2083,7 +2090,7 @@ export async function* handleTranslate(
       });
       return;
     } catch (err) {
-      if (err?.name === "AbortError") {
+      if (err?.name === "AbortError" || err?.name === "AIResponseParseError") {
         throw err;
       }
       kissLog("translate stream failed, fallback to non-stream", err);
