@@ -5,8 +5,13 @@ User edits enter through `saveEdit`. The standalone function and
 stored value, applies a synchronous reducer, and stages the value and its sync
 metadata together. Lower-level transaction methods remain available for
 initialization, migrations, and accepted remote values; those methods do not
-automatically create user-edit metadata. Compatibility transforms still issued
-through the settings provider's update operation follow the edit path.
+automatically create user-edit metadata. The settings provider normalizes legacy
+schemas and boolean themes in memory on reads, including remote adoption and
+refresh. Reading settings does not persist compatibility transforms, mark the
+page dirty, advance edit timestamps, or schedule an upload. A real user edit
+rebases against the latest normalized settings inside the transaction and saves
+that format with its edit metadata. An edit that leaves the normalized value
+unchanged preserves the original stored representation and metadata.
 
 ## Ownership
 

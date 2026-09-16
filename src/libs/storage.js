@@ -30,7 +30,7 @@ import { isExt, isGm } from "./client";
 import { browser } from "./browser";
 import { kissLog } from "./log";
 import { debounce } from "./utils";
-import { getGmMethod } from "./gm";
+import { getGmMethod } from "./gmMethods";
 import { publishStorageWrite } from "./storageEvents";
 import { withStorageLock } from "./storageCoordination";
 import { cloneStorageValue, isSameStorageValue } from "./storageEquality";
@@ -581,10 +581,14 @@ export const normalizeStoredSetting = (rawSetting) => {
     return mergeSettingWithDefault(DEFAULT_SETTING);
   }
 
-  const setting =
+  let setting =
     getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION
       ? migrateSettingToV3(rawSetting)
       : rawSetting;
+
+  if (typeof setting.darkMode === "boolean") {
+    setting = { ...setting, darkMode: setting.darkMode ? "dark" : "light" };
+  }
 
   return mergeSettingWithDefault(setting);
 };

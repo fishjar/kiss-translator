@@ -17,6 +17,7 @@ jest.mock("./Storage", () => ({
   }),
 }));
 jest.mock("../libs/client", () => ({ isExt: false }));
+jest.mock("../libs/browser", () => ({}));
 jest.mock("../libs/msg", () => ({ sendBgMsg: jest.fn() }));
 
 describe("settings persistence results", () => {
@@ -29,7 +30,7 @@ describe("settings persistence results", () => {
     return null;
   }
 
-  function render() {
+  function mountProvider() {
     act(() =>
       root.render(
         <SettingProvider context="popup">
@@ -46,7 +47,7 @@ describe("settings persistence results", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
-    render();
+    mountProvider();
   });
 
   afterEach(() => {
@@ -75,20 +76,19 @@ describe("settings persistence results", () => {
     const reduce = mockUpdate.mock.calls[0][0];
     const previous = { tranboxSetting: { width: 600 }, uiLang: "en" };
 
-    expect(reduce(previous)).toEqual({
+    expect(reduce(previous)).toMatchObject({
       tranboxSetting: { width: 600, autoFavWord: true },
       uiLang: "en",
     });
     expect(previous.tranboxSetting).toEqual({ width: 600 });
   });
 
-  test("does not overwrite a newer theme when replaying legacy normalization", () => {
+  test("normalizes a legacy theme without issuing a persistent update", () => {
     mockSetting = { ...mockSetting, darkMode: false };
-    render();
-    const reduce = mockUpdate.mock.calls[0][0];
-    const current = { ...mockSetting, darkMode: "auto" };
+    mountProvider();
 
-    expect(reduce(current)).toBe(current);
-    expect(reduce(mockSetting).darkMode).toBe("light");
+    expect(settings.setting.darkMode).toBe("light");
+    expect(mockSetting.darkMode).toBe(false);
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 });

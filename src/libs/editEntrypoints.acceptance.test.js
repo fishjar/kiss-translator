@@ -27,6 +27,11 @@ import {
   EVENT_FAVORITE_WORD_CHANGE,
 } from "../config";
 
+// Keep the production storage and sync chain while isolating unused ESM utilities.
+jest.mock("query-string", () => ({
+  stringify: (value) => new URLSearchParams(value).toString(),
+}));
+jest.mock("@streamparser/json", () => ({ JSONParser: jest.fn() }));
 jest.mock("./client", () => ({ isExt: true, isGm: false }));
 jest.mock("./browser", () => ({
   isBg: () => true,

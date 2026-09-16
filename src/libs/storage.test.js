@@ -152,6 +152,33 @@ describe("settings storage migration", () => {
     expect(setting.transApis[0]).not.toHaveProperty("systemPrompt");
   });
 
+  test.each([
+    [undefined, true, "dark"],
+    [SETTINGS_VERSION_V2, false, "light"],
+    [SETTINGS_VERSION_V3, true, "dark"],
+    [SETTINGS_VERSION_V3, "auto", "auto"],
+  ])(
+    "normalizes version %p and theme %p without persisting a migration",
+    async (version, darkMode, expected) => {
+      const oldSetting = { version, darkMode, uiLang: "en" };
+      const serialized = JSON.stringify(oldSetting);
+      window.localStorage.setItem(STOKEY_SETTING, serialized);
+      const setItem = jest.spyOn(window.Storage.prototype, "setItem");
+      try {
+        await expect(getSettingWithDefault()).resolves.toMatchObject({
+          version: SETTINGS_VERSION_V3,
+          darkMode: expected,
+          uiLang: "en",
+        });
+        expect(setItem).not.toHaveBeenCalled();
+        expect(window.localStorage.getItem(STOKEY_SETTING)).toBe(serialized);
+        expect(oldSetting.darkMode).toBe(darkMode);
+      } finally {
+        setItem.mockRestore();
+      }
+    }
+  );
+
   test("merges the language variant default without overriding an explicit choice", async () => {
     window.localStorage.setItem(
       STOKEY_SETTING,
