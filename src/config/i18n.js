@@ -6815,4 +6815,6 @@ Object.keys(I18N).forEach((key) => {
   I18N[key].ru = RU_I18N[key] ?? I18N[key].en;
 });
 
-export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";
+export const newI18n = (lang) => {
+  return (key, defaultText = key) => I18N[key]?.[lang] ?? defaultText;
+};

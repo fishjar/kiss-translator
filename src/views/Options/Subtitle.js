@@ -354,13 +354,13 @@ function SubtitleStylePreview({
   );
   const translationPreview = (
     <p style={{ ...transCss, margin: 0 }}>
-      {i18n("subtitle_preview_sample") || "这是示例字幕文本"}
+      {i18n("subtitle_preview_sample", "这是示例字幕文本")}
     </p>
   );
   return (
     <Box>
       <Typography variant="subtitle2" gutterBottom>
-        {i18n("subtitle_style_preview") || "样式预览"}
+        {i18n("subtitle_style_preview", "样式预览")}
       </Typography>
       <Box
         sx={{
@@ -676,11 +676,11 @@ export default function SubtitleSetting() {
               color="text.secondary"
               sx={{ minWidth: 56, flexShrink: 0 }}
             >
-              {i18n("font_size") || "字体大小"}
+              {i18n("font_size", "字体大小")}
             </Typography>
             <Slider
               size="small"
-              aria-label={`${label} ${i18n("font_size") || "Font size"}`}
+              aria-label={`${label} ${i18n("font_size", "Font size")}`}
               value={fontSize.preferred}
               min={0.5}
               max={5}
@@ -710,12 +710,12 @@ export default function SubtitleSetting() {
               color="text.secondary"
               sx={{ minWidth: 56, flexShrink: 0 }}
             >
-              {i18n("font_color") || "字体颜色"}
+              {i18n("font_color", "字体颜色")}
             </Typography>
             <Box
               component="input"
               type="color"
-              aria-label={`${label} ${i18n("font_color") || "Font color"}`}
+              aria-label={`${label} ${i18n("font_color", "Font color")}`}
               value={colorToHex(cssObj["color"])}
               onChange={(e) => updateCss("color", e.target.value)}
               sx={{
@@ -744,7 +744,7 @@ export default function SubtitleSetting() {
               onChange={(e) => updateCss("color", e.target.value)}
               placeholder="#ffffff"
               inputProps={{
-                "aria-label": `${label} ${i18n("font_color") || "Font color"}`,
+                "aria-label": `${label} ${i18n("font_color", "Font color")}`,
               }}
               sx={{ flex: 1 }}
             />
@@ -843,8 +843,10 @@ export default function SubtitleSetting() {
                   forceSubtitleRetranslate &&
                   segSlug !== "-" &&
                   segSlug !== apiSlug
-                    ? i18n("seg_trans_diff_warning") ||
-                      "断句和翻译服务不同，翻译引擎会重复翻译字幕"
+                    ? i18n(
+                        "seg_trans_diff_warning",
+                        "断句和翻译服务不同，翻译引擎会重复翻译字幕"
+                      )
                     : ""
                 }
                 FormHelperTextProps={{
@@ -1072,7 +1074,7 @@ export default function SubtitleSetting() {
                 size="small"
                 name="showList"
                 value={showListValue}
-                label={i18n("show_subtitle_list") || "显示字幕列表"}
+                label={i18n("show_subtitle_list", "显示字幕列表")}
                 onChange={handleChange}
               >
                 <MenuItem value={OPT_ENHANCE_ON}>{i18n("enable")}</MenuItem>
@@ -1187,14 +1189,15 @@ export default function SubtitleSetting() {
                         color="text.secondary"
                         sx={{ minWidth: 56, flexShrink: 0 }}
                       >
-                        {i18n("background_color") || "背景颜色"}
+                        {i18n("background_color", "背景颜色")}
                       </Typography>
                       <Box
                         component="input"
                         type="color"
-                        aria-label={
-                          i18n("background_color") || "Background color"
-                        }
+                        aria-label={i18n(
+                          "background_color",
+                          "Background color"
+                        )}
                         value={windowBgHex}
                         onChange={(e) => {
                           const rgb = hexToRgb(e.target.value);
@@ -1224,11 +1227,11 @@ export default function SubtitleSetting() {
                         }}
                       />
                       <Typography variant="body2" sx={{ minWidth: 48 }}>
-                        {i18n("opacity") || "透明度"}
+                        {i18n("opacity", "透明度")}
                       </Typography>
                       <Slider
                         size="small"
-                        aria-label={i18n("opacity") || "Opacity"}
+                        aria-label={i18n("opacity", "Opacity")}
                         value={windowBgRgba.a}
                         min={0}
                         max={1}
@@ -1257,11 +1260,11 @@ export default function SubtitleSetting() {
                         color="text.secondary"
                         sx={{ minWidth: 56, flexShrink: 0 }}
                       >
-                        {i18n("line_height") || "行高"}
+                        {i18n("line_height", "行高")}
                       </Typography>
                       <Slider
                         size="small"
-                        aria-label={i18n("line_height") || "Line height"}
+                        aria-label={i18n("line_height", "Line height")}
                         value={windowLineHeight}
                         min={1}
                         max={2.5}
@@ -1294,14 +1297,14 @@ export default function SubtitleSetting() {
                         color="text.secondary"
                         sx={{ minWidth: 56, flexShrink: 0 }}
                       >
-                        {i18n("padding") || "内边距"}
+                        {i18n("padding", "内边距")}
                       </Typography>
                       <Typography variant="body2">
-                        {i18n("vertical") || "上下"}
+                        {i18n("vertical", "上下")}
                       </Typography>
                       <Slider
                         size="small"
-                        aria-label={`${i18n("padding") || "Padding"} ${i18n("vertical") || "Vertical"}`}
+                        aria-label={`${i18n("padding", "Padding")} ${i18n("vertical", "Vertical")}`}
                         value={windowPadding.vertical}
                         min={0}
                         max={2}
@@ -1315,11 +1318,11 @@ export default function SubtitleSetting() {
                         sx={{ width: 80, flex: "1 1 80px" }}
                       />
                       <Typography variant="body2">
-                        {i18n("horizontal") || "左右"}
+                        {i18n("horizontal", "左右")}
                       </Typography>
                       <Slider
                         size="small"
-                        aria-label={`${i18n("padding") || "Padding"} ${i18n("horizontal") || "Horizontal"}`}
+                        aria-label={`${i18n("padding", "Padding")} ${i18n("horizontal", "Horizontal")}`}
                         value={windowPadding.horizontal}
                         min={0}
                         max={3}
@@ -1357,7 +1360,7 @@ export default function SubtitleSetting() {
                       }
                       label={
                         <Typography variant="body2">
-                          {i18n("text_shadow") || "文字阴影"}
+                          {i18n("text_shadow", "文字阴影")}
                         </Typography>
                       }
                     />
@@ -1371,7 +1374,7 @@ export default function SubtitleSetting() {
               >
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography variant="body2" color="text.secondary">
-                    {i18n("advanced_css") || "高级 CSS 编辑"}
+                    {i18n("advanced_css", "高级 CSS 编辑")}
                   </Typography>
                 </AccordionSummary>
                 <AccordionDetails>
