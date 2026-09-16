@@ -9,6 +9,7 @@ import {
   getMaxTranBoxX,
   getMaxTranBoxY,
   getTranBoxOuterHeight,
+  getTranBoxViewportHeight,
 } from "../../libs/tranboxPosition";
 
 /**
@@ -223,7 +224,7 @@ export default function DraggableResizable({
       const outerHeight = containerRef.current?.offsetHeight;
       return Math.max(
         0,
-        window.innerHeight -
+        getTranBoxViewportHeight() -
           (outerHeight || getTranBoxOuterHeight(contentHeight))
       );
     },

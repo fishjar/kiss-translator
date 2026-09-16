@@ -1,4 +1,4 @@
-// 左右拉伸触发区的宽度 (8px 左侧 + 8px 右侧)
+// Combined width of the left and right resize grips (8px on each side).
 // DraggableResizable uses lineWidth = 4, with lineWidth * 2 on each grid side.
 const TRANBOX_SIDE_GRIP_WIDTH = 16;
 // Non-content height: 56px header + two 8px resize grips + two 1px card borders.
@@ -7,44 +7,72 @@ const TRANBOX_SIDE_GRIP_WIDTH = 16;
 // Omitting the taller M3 header and borders lets the box overflow by 22px.
 const TRANBOX_CHROME_HEIGHT = 74;
 
+// The document client area excludes classic scrollbars. Use the current window's
+// document so embedded frames keep their own bounds; unmeasured roots (including
+// test environments) fall back to the window dimensions.
+function getTranBoxViewportElement() {
+  const doc = window.document;
+  // In quirks mode, the body exposes the viewport while the root can grow with
+  // the page content and therefore cannot provide a safe vertical bound.
+  return doc?.compatMode === "BackCompat"
+    ? doc.body || doc.documentElement
+    : doc?.documentElement;
+}
+
+function getTranBoxViewportWidth() {
+  const clientWidth = getTranBoxViewportElement()?.clientWidth;
+  return clientWidth > 0 ? clientWidth : window.innerWidth;
+}
+
+export function getTranBoxViewportHeight() {
+  const clientHeight = getTranBoxViewportElement()?.clientHeight;
+  return clientHeight > 0 ? clientHeight : window.innerHeight;
+}
+
 /**
- * 获取翻译框包含拉伸触发区在内的整体外部宽度
+ * Get the outer translation box width, including the resize grips.
  */
 export function getTranBoxOuterWidth(contentWidth) {
   return contentWidth + TRANBOX_SIDE_GRIP_WIDTH;
 }
 
 /**
- * 获取翻译框包含 Header 和拉伸触发区在内的整体外部高度
+ * Get the outer translation box height, including the header and resize grips.
  */
 export function getTranBoxOuterHeight(contentHeight) {
   return contentHeight + TRANBOX_CHROME_HEIGHT;
 }
 
 /**
- * 获取翻译框内容区允许的最大宽度 (防止整体外部宽度超出视口)
+ * Get the maximum content width that keeps the outer box inside the viewport.
  */
 export function getMaxTranBoxContentWidth() {
-  return Math.max(0, window.innerWidth - TRANBOX_SIDE_GRIP_WIDTH);
+  return Math.max(0, getTranBoxViewportWidth() - TRANBOX_SIDE_GRIP_WIDTH);
 }
 
 /**
- * 获取翻译框内容区允许的最大高度 (防止整体外部高度超出视口)
+ * Get the maximum content height that keeps the outer box inside the viewport.
  */
 export function getMaxTranBoxContentHeight() {
-  return Math.max(0, window.innerHeight - TRANBOX_CHROME_HEIGHT);
+  return Math.max(0, getTranBoxViewportHeight() - TRANBOX_CHROME_HEIGHT);
 }
 
 /**
- * 获取翻译框允许的最大 X 坐标 (防止右侧拉伸区溢出屏幕)
+ * Get the maximum X position that keeps the right resize grip visible.
  */
 export function getMaxTranBoxX(contentWidth) {
-  return Math.max(0, window.innerWidth - getTranBoxOuterWidth(contentWidth));
+  return Math.max(
+    0,
+    getTranBoxViewportWidth() - getTranBoxOuterWidth(contentWidth)
+  );
 }
 
 /**
- * 获取翻译框允许的最大 Y 坐标 (防止底部拉伸区溢出屏幕)
+ * Get the maximum Y position that keeps the bottom resize grip visible.
  */
 export function getMaxTranBoxY(contentHeight) {
-  return Math.max(0, window.innerHeight - getTranBoxOuterHeight(contentHeight));
+  return Math.max(
+    0,
+    getTranBoxViewportHeight() - getTranBoxOuterHeight(contentHeight)
+  );
 }

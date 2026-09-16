@@ -360,7 +360,12 @@ export default function TranCont({
         maxRows={10}
         inputProps={{
           className: "kt-resizable-textarea",
-          style: { resize: "vertical" },
+          style: {
+            resize: "vertical",
+            ...(isPlayground
+              ? {}
+              : { boxSizing: "border-box", paddingInlineEnd: 16 }),
+          },
           "aria-busy": loading,
           "aria-label": resultLabel,
         }}

@@ -718,7 +718,12 @@ export default function TranForm({
               maxRows={10}
               inputProps={{
                 className: "kt-resizable-textarea",
-                style: { resize: "vertical" },
+                style: {
+                  resize: "vertical",
+                  ...(isPlaygound
+                    ? {}
+                    : { boxSizing: "border-box", paddingInlineEnd: 16 }),
+                },
               }}
               sx={{
                 "& .MuiInputBase-root": {
