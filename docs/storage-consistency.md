@@ -10,8 +10,14 @@ schemas and boolean themes in memory on reads, including remote adoption and
 refresh. Reading settings does not persist compatibility transforms, mark the
 page dirty, advance edit timestamps, or schedule an upload. A real user edit
 rebases against the latest normalized settings inside the transaction and saves
-that format with its edit metadata. An edit that leaves the normalized value
-unchanged preserves the original stored representation and metadata.
+that format with its edit metadata. The merged edit is also normalized so an
+imported legacy backup cannot persist an old schema or boolean theme. An edit
+that leaves the normalized value unchanged preserves the original stored
+representation and metadata.
+
+JSON imports resolve the backup's schema before merging with current settings.
+An absent version identifies V1 and must not inherit the current version,
+otherwise legacy custom prompts would bypass migration.
 
 ## Ownership
 

@@ -1,9 +1,13 @@
+/* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
+// Direct React DOM fixtures require act and explicit DOM queries.
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import Settings, {
   AutoTranslateClipboardSetting,
   ExtCommands,
 } from "./Setting";
+import UploadButton from "./UploadButton";
+import { OPT_TRANS_GEMINI, SETTINGS_VERSION_V1 } from "../../config";
 import { browser } from "../../libs/browser";
 import { useAlert } from "../../hooks/Alert";
 import { useSetting } from "../../hooks/Setting";
@@ -54,7 +58,7 @@ jest.mock("../../libs/log", () => ({
   kissLog: jest.fn(),
   LogLevel: { INFO: { value: 3 } },
 }));
-jest.mock("./UploadButton", () => () => null);
+jest.mock("./UploadButton", () => jest.fn(() => null));
 jest.mock("./DownloadButton", () => () => null);
 jest.mock("../../hooks/ValidationInput", () => () => null);
 jest.mock("./OverviewHero", () => () => null);
@@ -166,6 +170,48 @@ describe("Settings cache feedback", () => {
       act(() => root.unmount());
     }
   );
+});
+
+describe("Settings backup import", () => {
+  test("identifies a versionless JSON backup as V1 while preserving its fields", async () => {
+    browser.commands.getAll.mockResolvedValue([]);
+    useAlert.mockReturnValue(alert);
+    const updateSetting = jest.fn();
+    useSetting.mockReturnValue({
+      setting: { version: 3, uiLang: "zh", logLevel: 3, clearCache: false },
+      updateSetting,
+    });
+    useFab.mockReturnValue({ fab: {}, updateFab: jest.fn() });
+    UploadButton.mockClear();
+    const imported = {
+      darkMode: true,
+      uiLang: "en",
+      transApis: [
+        {
+          apiSlug: "legacy-gemini",
+          apiType: OPT_TRANS_GEMINI,
+          url: "https://generativelanguage.googleapis.com/v1beta2/interactions",
+          systemPrompt: "Preserve the imported custom batch prompt.",
+          key: "imported-api-key",
+        },
+      ],
+      customStyles: [{ styleSlug: "custom", styleCode: "color: blue;" }],
+    };
+    const { root } = await renderSettings();
+
+    try {
+      const { handleImport } = UploadButton.mock.calls.at(-1)[0];
+      await handleImport(JSON.stringify(imported));
+
+      expect(updateSetting).toHaveBeenCalledTimes(1);
+      expect(updateSetting).toHaveBeenCalledWith({
+        ...imported,
+        version: SETTINGS_VERSION_V1,
+      });
+    } finally {
+      act(() => root.unmount());
+    }
+  });
 });
 
 describe("ExtCommands", () => {

@@ -67,7 +67,8 @@ export function SettingProvider({ children, context }) {
         // Rebase user edits on the latest normalized value inside the lock.
         const current = normalizeStoredSetting(previous);
         const patch = typeof input === "function" ? input(current) : input;
-        const next = { ...current, ...patch };
+        // Imported backups may introduce legacy fields again.
+        const next = normalizeStoredSetting({ ...current, ...patch });
         // A no-op must not persist compatibility transforms or create an upload.
         return isSameStorageValue(current, next) ? previous : next;
       });

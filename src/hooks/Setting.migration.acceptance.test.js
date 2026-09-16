@@ -8,6 +8,7 @@ import { syncData } from "../libs/sync";
 import {
   CURRENT_SETTINGS_VERSION,
   GEMINI_GENERATE_CONTENT_URL,
+  getSettingVersion,
   KV_SETTING_KEY,
   OPT_TRANS_GEMINI,
   STOKEY_SETTING,
@@ -45,7 +46,9 @@ function legacySetting(version, darkMode, uiLang = "en") {
         apiSlug: "legacy-gemini",
         apiType: OPT_TRANS_GEMINI,
         url: "https://generativelanguage.googleapis.com/v1beta2/interactions",
-        ...(version === 1 ? { systemPrompt: "Legacy batch prompt" } : {}),
+        ...((version ?? 1) === 1
+          ? { systemPrompt: "Legacy batch prompt" }
+          : {}),
       },
     ],
   };
@@ -240,6 +243,54 @@ describe("settings normalization across the production persistence chain", () =>
     }
   );
 
+  test.each([undefined, 1, 2])(
+    "persists an imported schema %s backup as one normalized user edit",
+    async (version) => {
+      await mount(legacySetting(2, "auto"));
+      const imported = legacySetting(version, true, "imported");
+      let receipt;
+      await act(async () => {
+        const parsed = JSON.parse(JSON.stringify(imported));
+        receipt = await settings.updateSetting({
+          ...parsed,
+          version: getSettingVersion(parsed),
+        });
+      });
+      await flush();
+
+      expectNormalized("dark", "imported");
+      const importedPrompt = settings.setting.prompts.find(
+        (prompt) =>
+          prompt.slug === settings.setting.transApis[0].batchPromptSlug
+      );
+      expect(importedPrompt?.systemPrompt).toBe(
+        (version ?? 1) === 1 ? "Legacy batch prompt" : undefined
+      );
+      expect(settings.setting.transApis[0]).not.toHaveProperty("systemPrompt");
+      expect(await storage.getObj(STOKEY_SETTING)).toEqual(settings.setting);
+      expect(receipt.changed).toBe(true);
+      expect(receipt.updateAt).toBe(EDIT_TIME);
+      expect(findStorageState(STOKEY_SETTING).committedEditVersion).toBe(1);
+      expect(
+        (await storage.getObj(STOKEY_SYNC)).syncMeta[KV_SETTING_KEY]
+      ).toEqual({
+        updateAt: EDIT_TIME,
+        syncAt: INITIAL_META.syncAt,
+      });
+      expect(imported.version).toBe(version);
+      expect(imported.darkMode).toBe(true);
+      await advance();
+      expect(syncData).toHaveBeenCalledTimes(1);
+      expect(syncData).toHaveBeenCalledWith(
+        KV_SETTING_KEY,
+        settings.setting,
+        expect.objectContaining({ deferCommit: true })
+      );
+      await advance();
+      expect(syncData).toHaveBeenCalledTimes(1);
+    }
+  );
+
   test.each(["patch", "reducer"])(
     "persists a real %s against the latest normalized settings inside the lock",
     async (kind) => {
@@ -311,16 +362,16 @@ describe("settings normalization across the production persistence chain", () =>
     }
   );
 
-  test.each(["patch", "reducer"])(
+  test.each(["patch", "legacy patch", "reducer"])(
     "keeps a normalized %s no-op free of writes and uploads",
     async (kind) => {
       const bytes = await mount(legacySetting(1, true));
       let receipt;
       await act(async () => {
         receipt = await settings.updateSetting(
-          kind === "patch"
-            ? { darkMode: "dark" }
-            : (current) => ({ darkMode: current.darkMode })
+          kind === "reducer"
+            ? (current) => ({ darkMode: current.darkMode })
+            : { darkMode: kind === "legacy patch" ? true : "dark" }
         );
       });
       await flush();
