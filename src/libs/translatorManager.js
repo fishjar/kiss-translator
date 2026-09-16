@@ -42,6 +42,8 @@ import {
   MSG_TRANSINPUT_TOGGLE,
 } from "../config";
 import { logger } from "./log";
+import { getPopupDocumentIdentity } from "./popupDocument";
+import { MSG_GET_FRAME_ID } from "../config/msg";
 
 /**
  * 前台翻译业务的总生命周期管理器。
@@ -68,6 +70,10 @@ export default class TranslatorManager {
   #isUserscript;
   #isIframe;
   #transboxOnly;
+  // Reply routing must work before a child receives its frame ID.
+  #documentToken = null;
+  #documentInfo = null;
+  #documentReady = null;
 
   // SPA 容器监听：document 负责 html 替换，documentElement 负责 body 替换。
   #documentObserver = null;
@@ -139,6 +145,7 @@ export default class TranslatorManager {
     }
 
     this.#createRuntimeModules();
+    this.#initializeDocumentInfo();
     this.#setupMessageListeners();
     if (!this.#transboxOnly) {
       this.#setupTouchOperations();
@@ -255,7 +262,7 @@ export default class TranslatorManager {
       this.#cloneConfig(this.#setting)
     );
 
-    // iframe 内只跑核心翻译，不创建顶层页面专属交互 UI。
+    // Frames keep page, selection, and hover translation, but no top-level UI.
     if (!this.#isIframe) {
       this.#touchStatus = new ShadowDomManager({
         id: "kiss-touch-status",
@@ -368,6 +375,46 @@ export default class TranslatorManager {
         ...setting?.tranboxSetting,
         transOpen: this._transboxManager.isEnabled(),
       },
+    };
+  }
+
+  #initializeDocumentInfo() {
+    if (this.#isUserscript) return;
+    const identity = getPopupDocumentIdentity();
+    this.#documentToken = identity.token;
+    if (!this.#isIframe) {
+      this.#documentInfo = { ...identity, frameId: 0 };
+      return;
+    }
+    // The background reads frameId from MessageSender; a child cannot infer it
+    // from its URL or DOM position, especially across cross-origin frames.
+    this.#documentReady = Promise.resolve(
+      browser?.runtime?.sendMessage?.({ action: MSG_GET_FRAME_ID })
+    )
+      .then((frameId) => {
+        if (Number.isInteger(frameId)) {
+          this.#documentInfo = { ...identity, frameId };
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        this.#documentReady = null;
+      });
+  }
+
+  #getRuntimeResponse() {
+    return {
+      rule: this._translator?.rule || this.#rule,
+      setting: this.#getRuntimeSetting(),
+      capabilities: {
+        pageTranslation: Boolean(this._translator),
+        selectionTranslation: Boolean(this._transboxManager),
+        hoverTranslation: Boolean(this._translator),
+        inputTranslation: Boolean(this._inputTranslator),
+        ruleEditor: Boolean(this._ruleEditorManager),
+      },
+      isTopFrame: !this.#isIframe,
+      document: this.#documentInfo,
     };
   }
 
@@ -633,13 +680,44 @@ export default class TranslatorManager {
    * 处理扩展 background 发送的 runtime 消息。
    */
   #handleBrowserMessage(message, sender, sendResponse) {
-    const result = this.#processActions(message, true);
-    const response = result || {
-      rule: this._translator?.rule || this.#rule,
-      setting: this.#getRuntimeSetting(),
+    const shouldRespond =
+      !message.responseDocumentToken ||
+      message.responseDocumentToken === this.#documentToken;
+    const respond = (response) => {
+      if (shouldRespond) sendResponse(response);
     };
-    sendResponse(response);
-    return true;
+    const processMessage = () => {
+      try {
+        if (!this.#isActive) {
+          respond({
+            error: "The requested runtime is no longer active.",
+            code: "STALE_DOCUMENT",
+          });
+          return;
+        }
+        const result = this.#processActions(message, true);
+        respond(result || this.#getRuntimeResponse());
+      } catch (error) {
+        respond({ error: error?.message || String(error) });
+      }
+    };
+    if (
+      shouldRespond &&
+      message.action === MSG_TRANS_GETRULE &&
+      !this.#documentInfo
+    ) {
+      if (!this.#documentReady) this.#initializeDocumentInfo();
+      if (this.#documentReady) {
+        // A child must not publish a usable-looking snapshot before the
+        // background has supplied the frame ID needed to verify that document.
+        this.#documentReady.then(processMessage);
+        return true;
+      }
+    }
+    processMessage();
+    // Every frame executes broadcasts, but only the selected document replies.
+    // Returning false synchronously keeps other frames from claiming the reply.
+    return shouldRespond;
   }
 
   /**
@@ -738,8 +816,20 @@ export default class TranslatorManager {
     };
   }
 
-  #processActions({ action, args } = {}, fromExt = false) {
+  #processActions(
+    { action, args, expectedDocumentToken } = {},
+    fromExt = false
+  ) {
     if (!action) return;
+    if (
+      expectedDocumentToken &&
+      expectedDocumentToken !== this.#documentInfo?.token
+    ) {
+      return {
+        error: "The requested document is no longer current.",
+        code: "STALE_DOCUMENT",
+      };
+    }
     if (action === MSG_TOUCH_TRANSLATE_STATE)
       return { touchTranslate: this.#getTouchState() };
     if (action === MSG_TOUCH_TRANSLATE_MODE_SET) {
@@ -755,18 +845,58 @@ export default class TranslatorManager {
     }
     // Editing belongs to this frame. Never broadcast the editor or its changes.
     if (action === MSG_RULE_EDITOR) {
-      if (!this.#isIframe) {
-        this._popupManager?.hide();
-        this._ruleEditorManager?.open();
-        this.#notifyTouchState();
+      if (!this._ruleEditorManager) {
+        return { error: "The rule editor is unavailable in this frame." };
       }
-      return;
+      this._ruleEditorManager.open();
+      if (
+        !this._ruleEditorManager.session ||
+        !this._ruleEditorManager.isVisible
+      ) {
+        return { error: "The rule editor could not be opened." };
+      }
+      this._popupManager?.hide();
+      this.#notifyTouchState();
+      return { ...this.#getRuntimeResponse(), ruleEditorOpened: true };
     }
-    if (this._ruleEditorManager?.session && action !== MSG_TRANS_GETRULE)
-      return;
+    if (this._ruleEditorManager?.session && action !== MSG_TRANS_GETRULE) {
+      return {
+        error: "Page controls are paused while the rule editor is open.",
+      };
+    }
 
-    // 非 background 指令需要主动同步给子 iframe，保持多 frame 页面状态一致。
-    if (!fromExt) {
+    const requiresTranslator = [
+      MSG_TRANS_TOGGLE,
+      MSG_TRANS_TOGGLE_ONLY,
+      MSG_TRANS_TOGGLE_STYLE,
+      MSG_TRANS_PUTRULE,
+      MSG_MOUSEHOVER_TOGGLE,
+      MSG_HOVERNODE_TOGGLE,
+    ].includes(action);
+    const requiresTransbox = [MSG_OPEN_TRANBOX, MSG_TRANSBOX_TOGGLE].includes(
+      action
+    );
+    const requiresInput = [MSG_TRANSINPUT_TOGGLE, MSG_INPUT_TRANSLATE].includes(
+      action
+    );
+    if (
+      (requiresTranslator && !this._translator) ||
+      (requiresTransbox && !this._transboxManager) ||
+      (requiresInput && !this._inputTranslator) ||
+      (action === MSG_POPUP_TOGGLE && !this._popupManager)
+    ) {
+      return {
+        error: `Message action is unavailable in this frame: ${action}`,
+      };
+    }
+
+    // Keep shared translation commands in sync without forwarding top-only UI.
+    if (
+      !fromExt &&
+      !requiresInput &&
+      action !== MSG_POPUP_TOGGLE &&
+      action !== MSG_TRANS_GETRULE
+    ) {
       sendIframeMsg(action, args);
     }
 
@@ -861,5 +991,6 @@ export default class TranslatorManager {
         logger.info(`Message action is unavailable: ${action}`);
         return { error: `Message action is unavailable: ${action}` };
     }
+    return this.#getRuntimeResponse();
   }
 }

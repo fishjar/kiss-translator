@@ -37,6 +37,7 @@ import {
   PORT_STREAM_FETCH,
   MSG_UPDATE_ICON,
   MSG_SHA256,
+  MSG_GET_FRAME_ID,
 } from "./config";
 import {
   getSettingWithDefault,
@@ -714,6 +715,8 @@ const injectToCurrentTab = async (func, args) => {
 
 // 后台消息指令与对应处理器映射表
 const messageHandlers = {
+  [MSG_GET_FRAME_ID]: (_args, sender) =>
+    Number.isInteger(sender?.frameId) ? sender.frameId : undefined,
   [MSG_FETCH]: (args) => fetchHandle(args), // 跨域请求代理
   [MSG_GET_HTTPCACHE]: (args) => getHttpCache(args), // 读取翻译 HTTP 缓存
   [MSG_PUT_HTTPCACHE]: (args) => putHttpCache(args), // 存入翻译 HTTP 缓存

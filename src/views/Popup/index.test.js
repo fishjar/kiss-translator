@@ -4,7 +4,7 @@ import { useSetting } from "../../hooks/Setting";
 import { readClipboardTextIfAllowed } from "../../libs/clipboard";
 import Popup, { Trantab } from ".";
 import { browser } from "../../libs/browser";
-import { sendBgMsg } from "../../libs/msg";
+import { getCurTab, sendBgMsg } from "../../libs/msg";
 import { MSG_FIT_SEPARATE_WINDOW, STOKEY_SETTING } from "../../config";
 import { SEPARATE_WINDOW_CONTENT_WIDTH } from "../../config/app";
 import { loadPopupData } from "./loadData";
@@ -42,7 +42,10 @@ jest.mock("../../libs/browser", () => ({
     },
   },
 }));
-jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
+jest.mock("../../libs/msg", () => ({
+  getCurTab: jest.fn(),
+  sendBgMsg: jest.fn(),
+}));
 jest.mock("./loadData", () => ({ loadPopupData: jest.fn() }));
 jest.mock("./PopupCont", () => {
   const React = require("react");
@@ -529,6 +532,11 @@ describe("Popup default view", () => {
 
   beforeEach(() => {
     window.location.hash = "";
+    getCurTab.mockResolvedValue({
+      id: 1,
+      windowId: 1,
+      url: "https://example.com",
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
