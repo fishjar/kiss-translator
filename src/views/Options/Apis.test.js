@@ -1851,6 +1851,58 @@ describe("Apis static thinking normalization", () => {
     document.body.innerHTML = "";
   });
 
+  test.each([
+    ["disabled", "low"],
+    ["enabled", null],
+    ["auto", "_default"],
+  ])(
+    "recognizes a newly entered Astra model in %s mode",
+    async (thinkingMode, expectedEffort) => {
+      apiTranslate.mockResolvedValue({ trText: "你好" });
+      const view = await renderApis(
+        createApi({
+          model: "unknown-model",
+          thinkingMode,
+          thinkingEffort: "_default",
+        })
+      );
+      await act(async () => {
+        Simulate.change(getInput(view.container, "model"), {
+          target: { name: "model", value: "gpt-6-astra" },
+        });
+      });
+      expect(view.container.textContent).not.toContain(
+        "thinking_unknown_model_helper"
+      );
+      expect(
+        getInput(view.container, "thinkingMode").getAttribute("aria-invalid")
+      ).not.toBe("true");
+      if (thinkingMode === "disabled") {
+        expect(view.container.textContent).toContain(
+          "gemini_thinking_minimum_helper"
+        );
+      }
+      await act(async () => {
+        Simulate.click(
+          Array.from(view.container.querySelectorAll("button")).find(
+            (button) => button.textContent === "click_test"
+          )
+        );
+        await Promise.resolve();
+      });
+      expect(apiTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiSetting: expect.objectContaining({
+            model: "gpt-6-astra",
+            thinkingMode,
+            thinkingEffort: expectedEffort,
+          }),
+        })
+      );
+      view.unmount();
+    }
+  );
+
   test("normalizes an unsupported saved effort before saving", async () => {
     const update = jest.fn();
     const view = await renderApis(
