@@ -6,6 +6,27 @@ import { getEditorPortalContainer } from "./portal";
 
 const HEADER_HEIGHT = 56;
 
+// Contain wheel input at each surface, including notifications in a portal.
+const containWheel = (event) => {
+  const element = event.currentTarget;
+  event.stopPropagation();
+  const canScroll = event.composedPath().some((node) => {
+    if (!(node instanceof Element) || !element.contains(node)) return false;
+    const style = getComputedStyle(node);
+    return (
+      (/(auto|scroll)/.test(style.overflowY) &&
+        ((event.deltaY < 0 && node.scrollTop > 0) ||
+          (event.deltaY > 0 &&
+            node.scrollTop + node.clientHeight < node.scrollHeight - 1))) ||
+      (/(auto|scroll)/.test(style.overflowX) &&
+        ((event.deltaX < 0 && node.scrollLeft > 0) ||
+          (event.deltaX > 0 &&
+            node.scrollLeft + node.clientWidth < node.scrollWidth - 1)))
+    );
+  });
+  if (!canScroll && !event.ctrlKey) event.preventDefault();
+};
+
 // Shared by the editor and inspector; position is independent of page elements.
 export default function FloatingPanel({
   title,
@@ -26,6 +47,7 @@ export default function FloatingPanel({
   const origin = useRef(null);
   const lastMove = useRef(null);
   const [height, setHeight] = useState(0);
+  const [notificationElement, setNotificationElement] = useState(null);
   const margin = Math.min(12, viewport.w / 4, viewport.h / 4);
   const panelWidth = Math.min(width, viewport.w - margin * 2);
   const minX = (viewport.x || 0) + margin;
@@ -45,30 +67,17 @@ export default function FloatingPanel({
   }, []);
 
   useLayoutEffect(() => {
-    const element = panel.current;
     // overscroll-behavior handles scrollable lists. Also consume wheel input
     // over empty lists and fixed controls, where there is no scroll container.
-    const containWheel = (event) => {
-      event.stopPropagation();
-      const canScroll = event.composedPath().some((node) => {
-        if (!(node instanceof Element) || !element.contains(node)) return false;
-        const style = getComputedStyle(node);
-        return (
-          (/(auto|scroll)/.test(style.overflowY) &&
-            ((event.deltaY < 0 && node.scrollTop > 0) ||
-              (event.deltaY > 0 &&
-                node.scrollTop + node.clientHeight < node.scrollHeight - 1))) ||
-          (/(auto|scroll)/.test(style.overflowX) &&
-            ((event.deltaX < 0 && node.scrollLeft > 0) ||
-              (event.deltaX > 0 &&
-                node.scrollLeft + node.clientWidth < node.scrollWidth - 1)))
-        );
-      });
-      if (!canScroll && !event.ctrlKey) event.preventDefault();
-    };
-    element.addEventListener("wheel", containWheel, { passive: false });
-    return () => element.removeEventListener("wheel", containWheel);
-  }, []);
+    const elements = [panel.current, notificationElement].filter(Boolean);
+    elements.forEach((element) =>
+      element.addEventListener("wheel", containWheel, { passive: false })
+    );
+    return () =>
+      elements.forEach((element) =>
+        element.removeEventListener("wheel", containWheel)
+      );
+  }, [notificationElement]);
 
   const move = (x, y) => {
     const next = {
@@ -237,6 +246,7 @@ export default function FloatingPanel({
           }
         >
           <Box
+            ref={setNotificationElement}
             data-rule-editor-notification=""
             sx={{
               position: "fixed",

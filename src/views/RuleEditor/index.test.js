@@ -200,6 +200,45 @@ test("save confirmation follows its panel without entering the layout", async ()
   expect(session.emit).toHaveBeenCalledWith({ notice: "" });
 });
 
+test.each([false, true])(
+  "save notifications contain wheel input and preserve browser zoom (shadow: %s)",
+  async (inShadow) => {
+    const scope = inShadow ? mountInShadow() : container;
+    await render();
+    session.getSnapshot().notice = "saved";
+    await render();
+    const notification = scope.querySelector(
+      ".MuiSnackbar-root [role='alert']"
+    );
+    const pageWheel = jest.fn();
+    document.addEventListener("wheel", pageWheel);
+    try {
+      for (const delta of [{ deltaY: 100 }, { deltaX: -100 }]) {
+        const event = new WheelEvent("wheel", {
+          ...delta,
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+        });
+        notification.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(true);
+      }
+      const zoom = new WheelEvent("wheel", {
+        deltaY: 100,
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      });
+      notification.dispatchEvent(zoom);
+      expect(zoom.defaultPrevented).toBe(false);
+      expect(pageWheel).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener("wheel", pageWheel);
+    }
+  }
+);
+
 test("saving keeps the button label and preview borders stable", async () => {
   await render();
   const save = container.querySelector('[aria-label="rule_editor_save"]');
