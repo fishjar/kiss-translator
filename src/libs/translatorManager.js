@@ -43,7 +43,7 @@ import {
 } from "../config";
 import { logger } from "./log";
 import { getPopupDocumentIdentity } from "./popupDocument";
-import { MSG_GET_FRAME_ID } from "../config/msg";
+import { MSG_GET_FRAME_ID, MSG_VALIDATE_DOCUMENT } from "../config/msg";
 
 /**
  * 前台翻译业务的总生命周期管理器。
@@ -74,6 +74,7 @@ export default class TranslatorManager {
   #documentToken = null;
   #documentInfo = null;
   #documentReady = null;
+  #forwardedCommandQueue = Promise.resolve();
 
   // SPA 容器监听：document 负责 html 替换，documentElement 负责 body 替换。
   #documentObserver = null;
@@ -683,6 +684,14 @@ export default class TranslatorManager {
     const shouldRespond =
       !message.responseDocumentToken ||
       message.responseDocumentToken === this.#documentToken;
+    // The first delivery belongs only to the selected document. The subsequent
+    // broadcast excludes it so toggles cannot execute twice in that document.
+    if (
+      !shouldRespond ||
+      message.sourceDocument?.token === this.#documentToken
+    ) {
+      return false;
+    }
     const respond = (response) => {
       if (shouldRespond) sendResponse(response);
     };
@@ -701,9 +710,36 @@ export default class TranslatorManager {
         respond({ error: error?.message || String(error) });
       }
     };
+    if (message.sourceDocument) {
+      // Verify at each receiving runtime, not before sending the broadcast:
+      // navigation can replace the entire page while the message is in flight.
+      // The background supplies the tab ID from this runtime's MessageSender.
+      // Keep consecutive controls in arrival order even when validation takes
+      // different amounts of time. Validate only when this command reaches the
+      // queue head so a queued command cannot reuse an earlier document check.
+      this.#forwardedCommandQueue = this.#forwardedCommandQueue
+        .then(() =>
+          browser.runtime.sendMessage({
+            action: MSG_VALIDATE_DOCUMENT,
+            args: message.sourceDocument,
+          })
+        )
+        .then(
+          (current) => {
+            if (current === true) processMessage();
+            else
+              respond({
+                error: "The requested document is no longer current.",
+                code: "STALE_DOCUMENT",
+              });
+          },
+          (error) => respond({ error: error?.message || String(error) })
+        );
+      return true;
+    }
     if (
       shouldRespond &&
-      message.action === MSG_TRANS_GETRULE &&
+      (message.action === MSG_TRANS_GETRULE || message.responseDocumentToken) &&
       !this.#documentInfo
     ) {
       if (!this.#documentReady) this.#initializeDocumentInfo();
@@ -715,8 +751,7 @@ export default class TranslatorManager {
       }
     }
     processMessage();
-    // Every frame executes broadcasts, but only the selected document replies.
-    // Returning false synchronously keeps other frames from claiming the reply.
+    // Unselected documents neither execute the command nor claim its response.
     return shouldRespond;
   }
 
@@ -823,7 +858,7 @@ export default class TranslatorManager {
     if (!action) return;
     if (
       expectedDocumentToken &&
-      expectedDocumentToken !== this.#documentInfo?.token
+      expectedDocumentToken !== this.#documentToken
     ) {
       return {
         error: "The requested document is no longer current.",

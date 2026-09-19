@@ -78,21 +78,79 @@ describe("tab messaging targets", () => {
     );
   });
 
-  test("selects a broadcast response without restricting command execution", async () => {
-    await sendTabMsg(
-      "toggle",
-      { enabled: true },
-      undefined,
-      29,
-      undefined,
-      "displayed-document"
-    );
+  test.each([0, 12])(
+    "authorizes a broadcast in frame %s before forwarding to the other documents",
+    async (frameId) => {
+      let authorize;
+      const selectedResponse = {
+        document: { token: "displayed-document", frameId },
+        rule: { transOpen: "true" },
+      };
+      mockSendMessage.mockImplementationOnce(
+        () => new Promise((resolve) => (authorize = resolve))
+      );
+      const result = sendTabMsg(
+        "toggle",
+        { enabled: true },
+        undefined,
+        29,
+        undefined,
+        "displayed-document"
+      );
+      expect(mockSendMessage).toHaveBeenCalledTimes(1);
+      expect(mockSendMessage).toHaveBeenNthCalledWith(1, 29, {
+        action: "toggle",
+        args: { enabled: true },
+        responseDocumentToken: "displayed-document",
+      });
+      authorize(selectedResponse);
+      await expect(result).resolves.toBe(selectedResponse);
+      expect(mockQuery).not.toHaveBeenCalled();
+      expect(mockSendMessage).toHaveBeenNthCalledWith(2, 29, {
+        action: "toggle",
+        args: { enabled: true },
+        sourceDocument: selectedResponse.document,
+      });
+    }
+  );
 
-    expect(mockQuery).not.toHaveBeenCalled();
-    expect(mockSendMessage).toHaveBeenCalledWith(29, {
-      action: "toggle",
-      args: { enabled: true },
-      responseDocumentToken: "displayed-document",
-    });
+  test.each([
+    undefined,
+    { error: "Paused while editing." },
+    { document: { token: "replacement-document", frameId: 0 } },
+    { document: { token: "displayed-document" } },
+  ])(
+    "does not forward a command without authorization: %j",
+    async (response) => {
+      mockSendMessage.mockResolvedValue(response);
+      await expect(
+        sendTabMsg(
+          "toggle",
+          { enabled: true },
+          undefined,
+          29,
+          undefined,
+          "displayed-document"
+        )
+      ).resolves.toBe(response);
+      expect(mockSendMessage).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  test("preserves the selected response when optional recipients disappear", async () => {
+    const response = { document: { token: "displayed-document", frameId: 0 } };
+    mockSendMessage
+      .mockResolvedValueOnce(response)
+      .mockRejectedValueOnce(new Error("The message port closed."));
+    await expect(
+      sendTabMsg(
+        "toggle",
+        undefined,
+        undefined,
+        29,
+        undefined,
+        "displayed-document"
+      )
+    ).resolves.toBe(response);
   });
 });

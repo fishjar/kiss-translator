@@ -316,11 +316,19 @@ function sendRuntimeMessage(message) {
   return sendResponse.mock.calls[0][0];
 }
 
+function sendRuntimeMessageAsync(message) {
+  const handler = browser.runtime.onMessage.addListener.mock.calls[0][0];
+  return new Promise((resolve) => {
+    expect(handler(message, {}, resolve)).toBe(true);
+  });
+}
+
 describe("TranslatorManager SPA lifecycle", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     document.documentElement.innerHTML = "<head></head><body></body>";
     jest.clearAllMocks();
+    browser.runtime.sendMessage.mockReset().mockResolvedValue(12);
     mockPopupDocumentIdentity.mockReset();
     mockPopupDocumentIdentity.mockReturnValue({
       token: "current-document",
@@ -995,7 +1003,7 @@ describe("TranslatorManager SPA lifecycle", () => {
     "removed-document",
     undefined,
   ])(
-    "executes broadcasts in every frame and selects the reply for %s",
+    "executes a routed command only in its selected document: %s",
     async (responseDocumentToken) => {
       browser.runtime.sendMessage.mockResolvedValue(12);
       createManager().start();
@@ -1034,7 +1042,9 @@ describe("TranslatorManager SPA lifecycle", () => {
             })
           );
         }
-        expect(mockTranslatorInstances[index].enable).toHaveBeenCalledTimes(1);
+        expect(mockTranslatorInstances[index].enable).toHaveBeenCalledTimes(
+          selected ? 1 : 0
+        );
       }
       expect(sendIframeMsg).not.toHaveBeenCalled();
     }
@@ -1047,9 +1057,10 @@ describe("TranslatorManager SPA lifecycle", () => {
     { selected: false, throws: false },
   ])(
     "only the selected document reports command errors (selected: $selected, throws: $throws)",
-    ({ selected, throws }) => {
+    async ({ selected, throws }) => {
       const manager = createManager({ isIframe: true });
       manager.start();
+      await flushMutationObserver();
       mockTranslatorInstances[0].enable.mockImplementation(() => {
         throw new Error("Translation initialization failed.");
       });
@@ -1078,10 +1089,151 @@ describe("TranslatorManager SPA lifecycle", () => {
         });
       }
       expect(mockTranslatorInstances[0].enable).toHaveBeenCalledTimes(
-        throws ? 1 : 0
+        selected && throws ? 1 : 0
       );
     }
   );
+
+  test.each([0, 12])(
+    "verifies a forwarded command's source frame %s before executing in another frame",
+    async (frameId) => {
+      const sourceDocument = { token: "selected-document", frameId };
+      createManager({ isIframe: true }).start();
+      await flushMutationObserver();
+      let verify;
+      browser.runtime.sendMessage.mockReturnValueOnce(
+        new Promise((resolve) => (verify = resolve))
+      );
+      const response = sendRuntimeMessageAsync({
+        action: "trans-toggle",
+        sourceDocument,
+      });
+      await flushMutationObserver();
+      expect(mockTranslatorInstances[0].toggle).not.toHaveBeenCalled();
+      expect(browser.runtime.sendMessage).toHaveBeenLastCalledWith({
+        action: "validate_document",
+        args: sourceDocument,
+      });
+      verify(true);
+      await expect(response).resolves.toMatchObject({
+        document: { token: "current-document" },
+      });
+      expect(mockTranslatorInstances[0].toggle).toHaveBeenCalledTimes(1);
+      expect(sendIframeMsg).not.toHaveBeenCalled();
+    }
+  );
+
+  test("does not execute the selected document's toggle again during forwarding", () => {
+    createManager().start();
+    const handler = browser.runtime.onMessage.addListener.mock.calls[0][0];
+    const reply = jest.fn();
+    expect(
+      handler(
+        {
+          action: "trans-toggle",
+          sourceDocument: { token: "current-document", frameId: 0 },
+        },
+        {},
+        reply
+      )
+    ).toBe(false);
+    expect(mockTranslatorInstances[0].toggle).not.toHaveBeenCalled();
+    expect(browser.runtime.sendMessage).not.toHaveBeenCalled();
+    expect(reply).not.toHaveBeenCalled();
+  });
+
+  test.each([false, undefined, "true"])(
+    "rejects a forwarded command when its replaced source cannot be verified: %s",
+    async (verification) => {
+      createManager().start();
+      browser.runtime.sendMessage.mockResolvedValue(verification);
+      await expect(
+        sendRuntimeMessageAsync({
+          action: "trans-toggle",
+          sourceDocument: { token: "old-document", frameId: 0 },
+        })
+      ).resolves.toMatchObject({ code: "STALE_DOCUMENT" });
+      expect(mockTranslatorInstances[0].toggle).not.toHaveBeenCalled();
+    }
+  );
+
+  test("does not execute a forwarded command after its receiving runtime stops", async () => {
+    const manager = createManager();
+    manager.start();
+    let verify;
+    browser.runtime.sendMessage.mockReturnValueOnce(
+      new Promise((resolve) => (verify = resolve))
+    );
+    const response = sendRuntimeMessageAsync({
+      action: "trans-toggle",
+      sourceDocument: { token: "selected-document", frameId: 12 },
+    });
+    await flushMutationObserver();
+    manager.stop();
+    verify(true);
+    await expect(response).resolves.toMatchObject({ code: "STALE_DOCUMENT" });
+    expect(mockTranslatorInstances[0].toggle).not.toHaveBeenCalled();
+  });
+
+  test("reports verification failure without executing a forwarded command", async () => {
+    createManager().start();
+    browser.runtime.sendMessage.mockRejectedValue(new Error("Frame removed."));
+    await expect(
+      sendRuntimeMessageAsync({
+        action: "trans-toggle",
+        sourceDocument: { token: "selected-document", frameId: 12 },
+      })
+    ).resolves.toEqual({ error: "Frame removed." });
+    expect(mockTranslatorInstances[0].toggle).not.toHaveBeenCalled();
+  });
+
+  test("preserves the arrival order of forwarded controls while verification is pending", async () => {
+    createManager().start();
+    const sourceDocument = { token: "selected-document", frameId: 12 };
+    let verifyFirst;
+    browser.runtime.sendMessage
+      .mockReturnValueOnce(new Promise((resolve) => (verifyFirst = resolve)))
+      .mockResolvedValueOnce(true);
+    const firstResponse = sendRuntimeMessageAsync({
+      action: "trans-putrule",
+      args: { apiSlug: "service-one" },
+      sourceDocument,
+    });
+    const secondResponse = sendRuntimeMessageAsync({
+      action: "trans-putrule",
+      args: { toLang: "fr" },
+      sourceDocument,
+    });
+    await flushMutationObserver();
+    expect(browser.runtime.sendMessage).toHaveBeenCalledTimes(1);
+    expect(mockTranslatorInstances[0].updateRule).not.toHaveBeenCalled();
+    verifyFirst(true);
+    await Promise.all([firstResponse, secondResponse]);
+    expect(mockTranslatorInstances[0].updateRule.mock.calls).toEqual([
+      [{ apiSlug: "service-one" }],
+      [{ toLang: "fr" }],
+    ]);
+  });
+
+  test("continues checking queued controls after a verification rejects", async () => {
+    createManager().start();
+    browser.runtime.sendMessage
+      .mockRejectedValueOnce(new Error("Frame removed."))
+      .mockResolvedValueOnce(true);
+    const sourceDocument = { token: "selected-document", frameId: 12 };
+    const firstResponse = sendRuntimeMessageAsync({
+      action: "trans-toggle",
+      sourceDocument,
+    });
+    const secondResponse = sendRuntimeMessageAsync({
+      action: "trans-toggle-only",
+      sourceDocument,
+    });
+    await expect(firstResponse).resolves.toEqual({ error: "Frame removed." });
+    await secondResponse;
+    expect(mockTranslatorInstances[0].toggle).not.toHaveBeenCalled();
+    expect(mockTranslatorInstances[0].toggleTransOnly).toHaveBeenCalledTimes(1);
+  });
 
   test.each([true, false])(
     "only the selected document reports an inactive runtime (selected: %s)",
