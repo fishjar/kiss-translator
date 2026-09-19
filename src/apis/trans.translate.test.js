@@ -468,6 +468,7 @@ describe("handleTranslate", () => {
           apiSetting: {
             ...getApiSetting(OPT_TRANS_GEMINI),
             useStream: false,
+            useBatchFetch: false,
             model: "gemini-3-pro-preview",
             thinkingMode,
             thinkingEffort,
@@ -510,6 +511,7 @@ describe("handleTranslate", () => {
           apiSetting: {
             ...getApiSetting(OPT_TRANS_OPENROUTER),
             useStream: false,
+            useBatchFetch: false,
             model: "provider/reasoning-model",
             thinkingMode,
             thinkingEffort,
@@ -559,6 +561,7 @@ describe("handleTranslate", () => {
         apiSetting: {
           ...getApiSetting(OPT_TRANS_OPENROUTER),
           useStream: false,
+          useBatchFetch: false,
           model: "provider/unknown-model",
           thinkingMode: "enabled",
         },
@@ -577,6 +580,7 @@ describe("handleTranslate", () => {
     const apiSetting = {
       ...getApiSetting(OPT_TRANS_OPENROUTER),
       useStream: false,
+      useBatchFetch: false,
       model: "provider/mandatory-model",
     };
 
@@ -637,6 +641,7 @@ describe("handleTranslate", () => {
           apiSetting: {
             ...getApiSetting(OPT_TRANS_OPENAI),
             useStream: false,
+            useBatchFetch: false,
             model: "unknown-model",
             thinkingMode,
           },
@@ -761,6 +766,7 @@ describe("handleTranslate", () => {
         apiSetting: {
           ...getApiSetting(OPT_TRANS_GEMINI),
           useStream: false,
+          useBatchFetch: false,
           model: "custom-model",
           thinkingMode: "enabled",
           thinkingEffort: "_default",
@@ -790,6 +796,7 @@ describe("handleTranslate", () => {
         apiSetting: {
           ...getApiSetting(OPT_TRANS_DEEPSEEK),
           useStream: false,
+          useBatchFetch: false,
           thinkingMode: "enabled",
           thinkingEffort: "max",
         },
@@ -819,6 +826,7 @@ describe("handleTranslate", () => {
         apiSetting: {
           ...getApiSetting(OPT_TRANS_GEMINI_2),
           useStream: false,
+          useBatchFetch: false,
           model: "gemini-2.5-flash",
           thinkingMode: "disabled",
           thinkingEffort: "none",
@@ -842,6 +850,7 @@ describe("handleTranslate", () => {
         apiSetting: {
           ...getApiSetting(OPT_TRANS_GEMINI_2),
           useStream: false,
+          useBatchFetch: false,
           model: "gemini-3.5-flash",
           thinkingMode: "disabled",
           thinkingEffort: "minimal",
@@ -870,6 +879,7 @@ describe("handleTranslate", () => {
         apiSetting: {
           ...getApiSetting(OPT_TRANS_GEMINI_2),
           useStream: false,
+          useBatchFetch: false,
           model: "gemini-3.6-flash",
           thinkingMode: "enabled",
           thinkingEffort: "high",
@@ -900,6 +910,7 @@ describe("handleTranslate", () => {
           ...getApiSetting(OPT_TRANS_GEMINI),
           url: GEMINI_GENERATE_CONTENT_URL,
           useStream: false,
+          useBatchFetch: false,
           model: "gemini-2.5-flash",
           thinkingMode: "enabled",
           thinkingEffort: -1,
@@ -1549,6 +1560,31 @@ describe("handleTranslate", () => {
     choices: [{ message: { role: "assistant", content, ...extra } }],
   });
 
+  test("批量非结构化纯文本：parseAIRes 不做按行裸文本兜底，抛 parseAIRes: useBatchFetch got unparseable message", async () => {
+    fetchData.mockResolvedValueOnce(openaiRes("没有任何 id 结构的裸文本"));
+
+    await expect(
+      collectAsyncGenerator(
+        handleTranslate(["first", "second"], {
+          from: "en",
+          to: "zh-CN",
+          fromLang: "English",
+          toLang: "Chinese",
+          langMap: () => "",
+          glossary: "",
+          apiSetting: {
+            ...getApiSetting(OPT_TRANS_OPENAI),
+            useStream: false,
+            useBatchFetch: true,
+          },
+          usePool: false,
+        })
+      )
+    ).rejects.toThrow("parseAIRes: useBatchFetch got unparseable message");
+
+    expect(fetchData).toHaveBeenCalledTimes(1);
+  });
+
   async function runTranslateRounds(apiSetting, texts) {
     const errors = [];
     for (const text of texts) {
@@ -1997,6 +2033,7 @@ describe("gemini thinking effort clamp (#1048)", () => {
           url: GEMINI_INTERACTIONS_URL,
           model: "gemini-3.7-flash",
           useStream: false,
+          useBatchFetch: false,
           thinkingMode: "enabled",
           thinkingEffort: "minimal",
         },
@@ -2032,6 +2069,7 @@ describe("gemini thinking effort clamp (#1048)", () => {
           url: GEMINI_GENERATE_CONTENT_URL,
           model: "gemini-3.1-flash-lite",
           useStream: false,
+          useBatchFetch: false,
           thinkingMode: "enabled",
           thinkingEffort: "minimal",
         },
