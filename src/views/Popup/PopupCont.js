@@ -308,7 +308,7 @@ export default function PopupCont({
       ) {
         throw new Error("The popup document is not ready.");
       }
-      if (!activeRef.current || !visibleRef.current) {
+      if (!isVisible || !activeRef.current || !visibleRef.current) {
         throw new Error("The popup page controls are no longer active.");
       }
       const activity = touchActivityRef.current;
