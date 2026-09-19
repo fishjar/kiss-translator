@@ -55,8 +55,10 @@ import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
 import { kissLog, logger } from "./libs/log";
 import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
 import { sha256 } from "./libs/utils";
+import { installStorageCoordinator } from "./libs/storageCoordination";
 
 globalThis.__KISS_CONTEXT__ = "background";
+installStorageCoordinator();
 
 let openingOptionsPage = false;
 

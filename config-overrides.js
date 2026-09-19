@@ -110,6 +110,10 @@ const userscriptWebpack = (config, env) => {
 // @grant         GM_getValue
 // @grant         GM.deleteValue
 // @grant         GM_deleteValue
+// @grant         GM.addValueChangeListener
+// @grant         GM_addValueChangeListener
+// @grant         GM.removeValueChangeListener
+// @grant         GM_removeValueChangeListener
 // @grant         GM.info
 // @grant         GM_info
 // @grant         unsafeWindow

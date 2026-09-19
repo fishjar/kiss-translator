@@ -10,11 +10,12 @@ import {
   OPT_LANGS_TO,
   DEFAULT_RULE,
   GLOBLA_RULE,
+  STOKEY_RULES,
   OPT_SPLIT_PARAGRAPH_ALL,
   OPT_HIGHLIGHT_WORDS_ALL,
 } from "../config";
 import { loadOrFetchSubRules } from "./subRules";
-import { getRulesWithDefault, setRules, getDisabledSubRules } from "./storage";
+import { getRulesWithDefault, saveEdit, getDisabledSubRules } from "./storage";
 import { trySyncRules } from "./sync";
 import { kissLog } from "./log";
 import { splitSelectorList } from "./selectorList";
@@ -206,29 +207,19 @@ export const mergeRules = (baseRule, overrideRule) => {
   return merged;
 };
 
-/**
- * 根据href匹配规则
- * 合并匹配到的个人规则、订阅规则、全局规则
- * 优先级：个人规则 > 订阅规则 > 全局规则
- * @param {*} rules
- * @param {string} href
- * @returns
- */
-export const resolveRuleContext = async (
+/** Resolve rule precedence without storage access or network requests. */
+export const deriveRuleContext = (
   href,
-  { injectRules, subrulesList = [] } = {},
+  { personalRules, subRules = [], disabledPatterns = [] },
   sitePattern
 ) => {
-  // 获取个人规则
-  const personalRules = await getRulesWithDefault();
-
-  // 获取全局规则
+  // Derive inheritance from one caller-owned storage snapshot.
   const globalRule = {
     ...GLOBLA_RULE,
     ...(personalRules.find((r) => r.pattern === GLOBAL_KEY) || {}),
   };
 
-  // 查找匹配的个人规则（排除全局规则）
+  // Find the active personal rule, excluding the global rule.
   // The visual editor can keep editing a renamed rule even when its new
   // pattern no longer matches the page used to select elements.
   const activePersonalRule = findMatchingRule(personalRules, href);
@@ -245,38 +236,20 @@ export const resolveRuleContext = async (
       ? requestedPersonalRule
       : activePersonalRule;
 
-  // 获取订阅规则并查找匹配
-  let matchedSubRule = null;
-  if (injectRules) {
-    try {
-      const selectedSub = subrulesList.find((item) => item.selected);
-      if (selectedSub?.url) {
-        const subRules = await loadOrFetchSubRules(selectedSub.url);
-        matchedSubRule = findMatchingRule(subRules, href);
-        // If the matched subscribed rule is disabled by user for this source, ignore it
-        try {
-          const disabled = await getDisabledSubRules(selectedSub.url);
-          if (matchedSubRule && disabled.includes(matchedSubRule.pattern)) {
-            matchedSubRule = null;
-          }
-        } catch (err) {
-          kissLog("getDisabledSubRules", err);
-        }
-      }
-    } catch (err) {
-      kissLog("load injectRules", err);
-    }
-  }
+  const candidate = findMatchingRule(subRules, href);
+  const matchedSubRule =
+    candidate && !disabledPatterns.includes(candidate.pattern)
+      ? candidate
+      : null;
 
-  // 合并规则：全局规则 <- 订阅规则 <- 个人规则
-  // 优先级：个人规则 > 订阅规则 > 全局规则
+  // Apply global, subscribed and personal rules in increasing priority.
   const inherited = mergeRules(globalRule, matchedSubRule);
   const finalRule = mergeRules(inherited, matchedPersonalRule);
 
   return {
     effective: finalRule,
     inherited,
-    // Restore the real page rule after previewing a rule for a different URL.
+    // Restore the page rule after previewing an off-page rule.
     pageEffective:
       matchedPersonalRule !== activePersonalRule
         ? mergeRules(inherited, activePersonalRule)
@@ -286,6 +259,37 @@ export const resolveRuleContext = async (
     global: globalRule,
     site: matchedPersonalRule || null,
   };
+};
+
+export const resolveRuleContext = async (
+  href,
+  { injectRules, subrulesList = [] } = {},
+  sitePattern
+) => {
+  const personalRules = await getRulesWithDefault();
+  let subRules = [];
+  let disabledPatterns = [];
+  if (injectRules) {
+    try {
+      const selectedSub = subrulesList.find((item) => item.selected);
+      if (selectedSub?.url) {
+        subRules = (await loadOrFetchSubRules(selectedSub.url)) || [];
+        try {
+          disabledPatterns = (await getDisabledSubRules(selectedSub.url)) || [];
+        } catch (err) {
+          kissLog("getDisabledSubRules", err);
+        }
+      }
+    } catch (err) {
+      kissLog("load injectRules", err);
+    }
+  }
+
+  return deriveRuleContext(
+    href,
+    { personalRules, subRules, disabledPatterns },
+    sitePattern
+  );
 };
 
 export const matchRule = async (href, setting) =>
@@ -449,19 +453,8 @@ export const checkRules = (rules) => {
   return rules;
 };
 
-/**
- * 保存或更新单条用户自定义规则。
- * 检查是否存在冲突并进行属性合并，最后同步更新规则列表。
- * @param {Object} curRule 待保存的规则对象
- */
-export const saveRule = async (curRule) => {
-  // 获取当前所有的规则列表
-  const rules = await getRulesWithDefault();
-
-  // 查找是否存在相同或模糊匹配 pattern 的已有规则
-  // REVIEW: 此处使用 isMatch(curRule.pattern, item.pattern) 进行判断。
-  // 如果 curRule.pattern 或 item.pattern 带有通配符，极易造成模糊匹配的误判，
-  // 导致非同名的其它规则被错误合并覆盖。建议改为精确的字符串对比：item.pattern === curRule.pattern。
+/** Apply a popup edit without mutating either the request or stored rules. */
+const applySavedRule = (rules, curRule) => {
   const index = rules.findIndex(
     (item) =>
       item.pattern !== GLOBAL_KEY &&
@@ -471,50 +464,51 @@ export const saveRule = async (curRule) => {
           : isMatch(curRule.pattern, item.pattern)))
   );
 
-  if (index !== -1) {
-    // 若匹配到了已有规则，将其从数组中取出，并与新属性合并，保留老规则的选择器等配置
-    const rule = rules.splice(index, 1)[0];
-    curRule = {
-      ...rule,
-      ...curRule,
-      pattern: rule.pattern,
-      selector: rule.selector,
-      keepSelector: rule.keepSelector,
-      blockSelector: rule.blockSelector,
-      rootsSelector: rule.rootsSelector,
-      ignoreSelector: rule.ignoreSelector,
-    };
-  }
+  const remaining = rules.filter((_, ruleIndex) => ruleIndex !== index);
+  const rule = rules[index];
+  const mergedRule = rule
+    ? {
+        ...rule,
+        ...curRule,
+        pattern: rule.pattern,
+        selector: rule.selector,
+        keepSelector: rule.keepSelector,
+        blockSelector: rule.blockSelector,
+        rootsSelector: rule.rootsSelector,
+        ignoreSelector: rule.ignoreSelector,
+      }
+    : curRule;
 
   const newRule = {};
-  // 获取当前的全局规则配置，用于做“冗余值过滤”
+  // Compress values against the current global rule.
   const globalRule = {
     ...GLOBLA_RULE,
     ...(rules.find((r) => r.pattern === GLOBAL_KEY) || {}),
   };
 
-  // 遍历所有全局规则键值，若新规则的某项值与全局规则一致，则只保存 DEFAULT_RULE 中的占位符以优化存储大小
+  // Keep inherited values represented by their default placeholders.
   Object.keys(GLOBLA_RULE).forEach((key) => {
     if (key === "isPlainText") {
       const value =
-        curRule[key] === true || curRule[key] === "true"
+        mergedRule[key] === true || mergedRule[key] === "true"
           ? "true"
-          : curRule[key] === false || curRule[key] === "false"
+          : mergedRule[key] === false || mergedRule[key] === "false"
             ? "false"
             : DEFAULT_RULE[key];
       newRule[key] = value === globalRule[key] ? DEFAULT_RULE[key] : value;
       return;
     }
     newRule[key] =
-      !curRule[key] || curRule[key] === globalRule[key]
+      !mergedRule[key] || mergedRule[key] === globalRule[key]
         ? DEFAULT_RULE[key]
-        : curRule[key];
+        : mergedRule[key];
   });
 
-  // 将新规则插入到列表的最前端并保存
-  rules.unshift(newRule);
-  await setRules(rules);
+  return [newRule, ...remaining];
+};
 
-  // 触发跨端/多终端规则同步
+/** Persist the edit and its metadata before starting synchronization. */
+export const saveRule = async (curRule) => {
+  await saveEdit(STOKEY_RULES, (rules) => applySavedRule(rules, curRule));
   trySyncRules();
 };

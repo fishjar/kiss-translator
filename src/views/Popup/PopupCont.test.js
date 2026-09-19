@@ -18,12 +18,12 @@ import { createRoot } from "react-dom/client";
 import PopupCont from "./PopupCont";
 import { getVisibleServices } from "./services";
 import { tryClearCaches } from "../../libs/cache";
-import { getCurTab } from "../../libs/msg";
 import { saveRule } from "../../libs/rules";
 import { isCurrentPopupDocument } from "../../libs/popupDocument";
 import {
   MSG_MOUSEHOVER_TOGGLE,
   MSG_RULE_EDITOR,
+  MSG_SAVE_RULE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
   MSG_TRANS_TOGGLE,
@@ -46,11 +46,13 @@ const mockStyles = Array.from({ length: 7 }, (_, index) => {
   };
 });
 const mockUpdateSetting = jest.fn();
+const mockGetCurTab = jest.fn();
 const mockSendBgMsg = jest.fn(async () => []);
 const mockSendTabMsg = jest.fn(async () => undefined);
 const mockSendTopFrameMsg = jest.fn(async () => undefined);
 const mockCss = jest.fn(() => "mock-preview-class");
 let mockIsExt = false;
+let mockContextSetting = { blacklist: "" };
 
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key, fallback) => fallback || key,
@@ -58,7 +60,7 @@ jest.mock("../../hooks/I18n", () => ({
 
 jest.mock("../../hooks/Setting", () => ({
   useSetting: () => ({
-    setting: { blacklist: "" },
+    setting: mockContextSetting,
     updateSetting: mockUpdateSetting,
   }),
 }));
@@ -74,7 +76,7 @@ jest.mock("@emotion/react", () => ({
 }));
 
 jest.mock("../../libs/msg", () => ({
-  getCurTab: jest.fn(async () => ({ url: "https://example.com/page" })),
+  getCurTab: (...args) => mockGetCurTab(...args),
   sendBgMsg: (...args) => mockSendBgMsg(...args),
   sendTabMsg: (...args) => mockSendTabMsg(...args),
   sendTopFrameMsg: (...args) => mockSendTopFrameMsg(...args),
@@ -193,8 +195,8 @@ describe("PopupCont capability parity", () => {
   beforeEach(() => {
     mockRealTouchControl = false;
     mockIsExt = false;
-    getCurTab.mockReset();
-    getCurTab.mockResolvedValue({ url: "https://example.com/page" });
+    mockGetCurTab.mockReset();
+    mockGetCurTab.mockResolvedValue({ url: "https://example.com/page" });
     tryClearCaches.mockReset();
     tryClearCaches.mockResolvedValue(true);
     mockSendBgMsg.mockReset();
@@ -203,9 +205,12 @@ describe("PopupCont capability parity", () => {
     mockSendTabMsg.mockResolvedValue(undefined);
     mockSendTopFrameMsg.mockReset();
     mockSendTopFrameMsg.mockResolvedValue(undefined);
-    mockUpdateSetting.mockClear();
-    saveRule.mockClear();
     isCurrentPopupDocument.mockResolvedValue(true);
+    mockUpdateSetting.mockReset();
+    mockUpdateSetting.mockResolvedValue({ changed: true });
+    mockContextSetting = { blacklist: "" };
+    saveRule.mockReset();
+    saveRule.mockResolvedValue({ changed: true });
     mockCss.mockClear();
   });
 
@@ -938,6 +943,140 @@ describe("PopupCont capability parity", () => {
     view.cleanup();
   });
 
+  test.each(["add", "remove"])(
+    "rebases a blacklist %s and waits for persistence before reporting success",
+    async (operation) => {
+      const actionLabel =
+        operation === "add" ? "add_to_blacklist" : "remove_from_blacklist";
+      mockContextSetting = {
+        blacklist: operation === "remove" ? "example.com" : "",
+      };
+      let completeSave;
+      mockUpdateSetting.mockReturnValueOnce(
+        new Promise((resolve) => (completeSave = resolve))
+      );
+      const view = renderPopupCont();
+      try {
+        await flushEffects();
+        const action = Array.from(
+          view.container.querySelectorAll("button")
+        ).find((button) => button.textContent === actionLabel);
+        act(() => action.click());
+
+        const reduce = mockUpdateSetting.mock.calls[0][0];
+        const current = {
+          blacklist: "example.com,other.example",
+          retained: true,
+        };
+        const value = reduce(current);
+        expect(value).toEqual(
+          operation === "add"
+            ? current
+            : { blacklist: "other.example", retained: true }
+        );
+        if (operation === "add") {
+          expect(reduce({ blacklist: "other.example" }).blacklist).toBe(
+            "other.example\nexample.com"
+          );
+        }
+        expect(view.container.querySelector('[role="alert"]')).toBeNull();
+
+        await act(async () => completeSave({ value, changed: true }));
+
+        expect(view.container.querySelector('[role="alert"]').textContent).toBe(
+          `${actionLabel}: example.com`
+        );
+      } finally {
+        view.cleanup();
+      }
+    }
+  );
+
+  test("reports a blacklist write failure without a success message", async () => {
+    mockUpdateSetting.mockRejectedValueOnce(new Error("Storage unavailable"));
+    const view = renderPopupCont();
+    try {
+      await flushEffects();
+      const action = Array.from(view.container.querySelectorAll("button")).find(
+        (button) => button.textContent === "add_to_blacklist"
+      );
+      await act(async () => action.click());
+
+      expect(view.container.querySelector('[role="alert"]').textContent).toBe(
+        "error_got_some_wrong"
+      );
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test.each([false, true])(
+    "waits for a saved rule before reporting success (extension content: %s)",
+    async (extensionContent) => {
+      mockIsExt = extensionContent;
+      const persist = extensionContent ? mockSendBgMsg : saveRule;
+      let completeSave;
+      const pending = new Promise((resolve) => (completeSave = resolve));
+      persist.mockImplementation((action) =>
+        !extensionContent || action === MSG_SAVE_RULE
+          ? pending
+          : Promise.resolve([])
+      );
+      const view = renderPopupCont({ isContent: extensionContent });
+      try {
+        await flushEffects();
+        const action = Array.from(
+          view.container.querySelectorAll("button")
+        ).find((button) => button.textContent === "save_rule");
+        act(() => action.click());
+
+        const domain = view.container.querySelector(
+          ".kt-popup-site__select"
+        ).value;
+        expect(persist).toHaveBeenCalledWith(
+          ...(extensionContent ? [MSG_SAVE_RULE] : []),
+          expect.objectContaining({ pattern: domain })
+        );
+        expect(view.container.querySelector('[role="alert"]')).toBeNull();
+
+        await act(async () => completeSave({ changed: true }));
+
+        expect(view.container.querySelector('[role="alert"]').textContent).toBe(
+          `save_rule: ${domain}`
+        );
+      } finally {
+        view.cleanup();
+      }
+    }
+  );
+
+  test.each([false, true])(
+    "reports a rejected rule save without success (extension content: %s)",
+    async (extensionContent) => {
+      mockIsExt = extensionContent;
+      const persist = extensionContent ? mockSendBgMsg : saveRule;
+      persist.mockImplementation((action) =>
+        !extensionContent || action === MSG_SAVE_RULE
+          ? Promise.reject(new Error("Rule persistence failed"))
+          : Promise.resolve([])
+      );
+      const view = renderPopupCont({ isContent: extensionContent });
+      try {
+        await flushEffects();
+        const action = Array.from(
+          view.container.querySelectorAll("button")
+        ).find((button) => button.textContent === "save_rule");
+        await act(async () => action.click());
+
+        expect(view.container.querySelector('[role="alert"]').textContent).toBe(
+          "error_got_some_wrong"
+        );
+      } finally {
+        view.cleanup();
+      }
+    }
+  );
+
   test("dispatches one content action from a scene toggle", async () => {
     const processActions = jest.fn(({ args }) => ({
       setting: { tranboxSetting: { transOpen: args.enabled } },
@@ -991,7 +1130,7 @@ describe("PopupCont capability parity", () => {
     });
     await flushEffects();
 
-    expect(getCurTab).not.toHaveBeenCalled();
+    expect(mockGetCurTab).not.toHaveBeenCalled();
     expect(view.container.querySelector(".kt-popup-site__select").value).toBe(
       "captured.example"
     );

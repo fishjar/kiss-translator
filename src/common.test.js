@@ -299,6 +299,33 @@ describe("common iframe startup", () => {
     }
   });
 
+  test("exposes legacy GM value listeners through the direct settings bridge", async () => {
+    const keys = [
+      "GM",
+      "GM_addValueChangeListener",
+      "GM_removeValueChangeListener",
+    ];
+    const originals = keys.map((key) => [key, globalThis[key]]);
+    const add = jest.fn();
+    const remove = jest.fn();
+    globalThis.GM = {};
+    globalThis.GM_addValueChangeListener = add;
+    globalThis.GM_removeValueChangeListener = remove;
+    globalThis.unsafeWindow = {};
+    process.env.REACT_APP_OPTIONSPAGE = window.location.href;
+    try {
+      await run(true);
+      expect(globalThis.unsafeWindow.GM.addValueChangeListener).toBe(add);
+      expect(globalThis.unsafeWindow.GM.removeValueChangeListener).toBe(remove);
+      expectNoNormalUserscriptStartup();
+    } finally {
+      originals.forEach(([key, value]) => {
+        if (value === undefined) delete globalThis[key];
+        else globalThis[key] = value;
+      });
+    }
+  });
+
   test("fills missing fields on existing userscript GM object", async () => {
     const originalGM = globalThis.GM;
     const originalGMXmlhttpRequest = globalThis.GM_xmlhttpRequest;
