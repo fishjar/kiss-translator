@@ -1,11 +1,13 @@
-import { useRef, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import {
   Alert,
   Autocomplete,
   Box,
   Button,
-  ButtonBase,
+  Card,
+  CardActionArea,
   Chip,
+  CircularProgress,
   Divider,
   Dialog,
   DialogActions,
@@ -14,16 +16,23 @@ import {
   DialogTitle,
   IconButton,
   MenuItem,
+  Snackbar,
   Stack,
+  Switch,
   TextField,
   ToggleButton,
   Typography,
 } from "@mui/material";
+import LoadingButton from "@mui/lab/LoadingButton";
 import CloseIcon from "@mui/icons-material/Close";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import AddIcon from "@mui/icons-material/Add";
-import Theme from "../../hooks/Theme";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import AdsClickRoundedIcon from "@mui/icons-material/AdsClickRounded";
+import CodeRoundedIcon from "@mui/icons-material/CodeRounded";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import M3Theme from "../../hooks/M3Theme";
 import { SettingProvider } from "../../hooks/Setting";
 import { useI18n } from "../../hooks/I18n";
 import {
@@ -39,6 +48,7 @@ import {
 import { limitNumber } from "../../libs/utils";
 import FloatingPanel from "./FloatingPanel";
 import EditorSelect from "./EditorSelect";
+import { getEditorPortalContainer } from "./portal";
 import usePanelPosition from "./usePanelPosition";
 import usePanelViewport from "./usePanelViewport";
 
@@ -53,7 +63,7 @@ const MAIN_WIDTH = 448;
 
 const codeStyle = {
   fontFamily: 'Consolas, "SFMono-Regular", monospace',
-  fontSize: 14,
+  fontSize: 13,
   lineHeight: 1.6,
   overflowWrap: "anywhere",
   textTransform: "none",
@@ -64,23 +74,29 @@ const codeStyle = {
 const themeOptions = {
   typography: {
     pxToRem: (size) => `${size}px`,
-    body1: { fontSize: 16 },
-    body2: { fontSize: 15 },
-    caption: { fontSize: 14 },
-    button: { fontSize: 15, textTransform: "none" },
-  },
-  components: {
-    MuiButton: { styleOverrides: { sizeSmall: { fontSize: 14 } } },
-    MuiChip: { styleOverrides: { label: { fontSize: 14 } } },
+    body1: { fontSize: 14 },
+    body2: { fontSize: 13 },
+    caption: { fontSize: 12 },
+    button: { fontSize: 13 },
   },
 };
 const cardStyle = (selected) => ({
   border: "1px solid",
   borderColor: selected ? "primary.main" : "divider",
-  bgcolor: selected ? "action.selected" : "background.paper",
-  borderRadius: 1,
+  bgcolor: selected ? "var(--kt-secc)" : "var(--kt-sf0)",
+  color: selected ? "var(--kt-onsecc)" : "text.primary",
+  borderRadius: "12px",
   overflow: "hidden",
 });
+const cardActionStyle = {
+  minWidth: 0,
+  p: 1.5,
+  textAlign: "left",
+  "&&.Mui-focusVisible": {
+    outline: "none",
+    boxShadow: "inset 0 0 0 3px var(--kt-pri)",
+  },
+};
 
 function CandidateList({ session, state, t }) {
   const busy = state.saving || state.loading;
@@ -109,66 +125,63 @@ function CandidateList({ session, state, t }) {
         </Typography>
       )}
       {state.candidates.map((candidate) => (
-        <ButtonBase
+        <Card
           key={candidate.selector}
-          disabled={busy}
-          aria-pressed={state.input === candidate.selector}
-          onClick={() => {
-            session.setInput(candidate.selector);
-            session.refresh();
-          }}
-          sx={{
-            ...cardStyle(state.input === candidate.selector),
-            display: "block",
-            p: 1.25,
-            textAlign: "left",
-            "&:hover": { bgcolor: "action.hover" },
-            "&.Mui-focusVisible": {
-              outline: "2px solid",
-              outlineColor: "primary.main",
-            },
-          }}
+          variant="outlined"
+          sx={cardStyle(state.input === candidate.selector)}
         >
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            gap={1}
+          <CardActionArea
+            disabled={busy}
+            aria-pressed={state.input === candidate.selector}
+            onClick={() => {
+              session.setInput(candidate.selector);
+              session.refresh();
+            }}
+            sx={cardActionStyle}
           >
-            <Typography variant="caption" color="text.secondary">
-              {t(candidate.kind)}
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              gap={1}
+            >
+              <Typography variant="caption" color="text.secondary">
+                {t(candidate.kind)}
+              </Typography>
+              <Chip
+                size="small"
+                aria-live={
+                  state.input === candidate.selector ? "polite" : "off"
+                }
+                label={
+                  state.input === candidate.selector && state.matchIndex
+                    ? `${state.matchIndex} / ${candidate.count}`
+                    : candidate.count
+                }
+              />
+            </Stack>
+            <Typography
+              component="code"
+              sx={{ ...codeStyle, display: "block", mt: 0.5 }}
+            >
+              {candidate.selector}
             </Typography>
-            <Chip
-              size="small"
-              aria-live={state.input === candidate.selector ? "polite" : "off"}
-              label={
-                state.input === candidate.selector && state.matchIndex
-                  ? `${state.matchIndex} / ${candidate.count}`
-                  : candidate.count
-              }
-            />
-          </Stack>
-          <Box sx={{ ...codeStyle, mt: 0.5, color: "primary.main" }}>
-            {candidate.selector}
-          </Box>
-          {candidate.fragile && (
-            <Typography variant="caption" color="warning.main">
-              {t("fragile")}
-            </Typography>
-          )}
-        </ButtonBase>
+            {candidate.fragile && (
+              <Typography variant="caption" color="warning.main">
+                {t("fragile")}
+              </Typography>
+            )}
+          </CardActionArea>
+        </Card>
       ))}
     </Stack>
   );
 }
 
 function Notice({ session, state, t }) {
-  if (!state.notice) return null;
+  if (!state.notice || state.notice === "saved") return null;
   return (
-    <Alert
-      severity={state.notice === "saved" ? "success" : "info"}
-      onClose={() => session.emit({ notice: "" })}
-    >
+    <Alert severity="info" onClose={() => session.emit({ notice: "" })}>
       {t(state.notice)}
       {state.notice === "removed-coverage" && (
         <Button
@@ -194,6 +207,7 @@ function Notice({ session, state, t }) {
 export function Editor({ session }) {
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const patternField = useRef(null);
+  const [notificationHost, setNotificationHost] = useState(null);
   const i18n = useI18n();
   const t = (key) => i18n(`rule_editor_${key}`, key);
   const viewport = usePanelViewport();
@@ -204,6 +218,7 @@ export function Editor({ session }) {
     y: viewport.y + 24,
   };
   const mainWidth = Math.min(MAIN_WIDTH, viewport.w - 24);
+  const compactFooter = mainWidth < 400;
   const inspectorWidth = Math.min(380, viewport.w - 24);
   const mainX = limitNumber(
     position.x,
@@ -237,13 +252,49 @@ export function Editor({ session }) {
         onMoveEnd={mainPosition.onMoveEnd}
         width={MAIN_WIDTH}
         viewport={viewport}
+        notificationContainer={notificationHost}
+        notification={
+          notificationHost && (
+            <Snackbar
+              open={
+                state.notice === "saved" && !state.error && !state.confirmAction
+              }
+              autoHideDuration={5000}
+              onClose={(_, reason) => {
+                if (reason !== "clickaway") session.emit({ notice: "" });
+              }}
+              sx={{
+                "&&": {
+                  position: "static",
+                  transform: "none",
+                  width: "100%",
+                  minWidth: 0,
+                },
+                pointerEvents: "auto",
+              }}
+            >
+              <Alert
+                severity="success"
+                onClose={() => session.emit({ notice: "" })}
+                sx={{
+                  width: "100%",
+                  minWidth: 0,
+                  boxShadow: "var(--kt-shadow-2)",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {t("saved")}
+              </Alert>
+            </Snackbar>
+          )
+        }
         bodySx={{
           display: "flex",
           flexDirection: "column",
           p: viewport.h < 780 ? 1.5 : 2,
         }}
         actions={
-          <Stack direction="row">
+          <Stack direction="row" sx={{ flexShrink: 0 }}>
             <IconButton
               title={t("undo")}
               aria-label={t("undo")}
@@ -272,7 +323,11 @@ export function Editor({ session }) {
         }
         footer={
           <Stack spacing={1}>
-            <Stack direction="row" spacing={1} alignItems="stretch">
+            <Stack
+              direction={compactFooter ? "column" : "row"}
+              gap={1}
+              alignItems="stretch"
+            >
               {rule && (
                 <Stack
                   component="section"
@@ -282,13 +337,21 @@ export function Editor({ session }) {
                   sx={{
                     flex: 1,
                     minWidth: 0,
+                    p: 0.5,
+                    borderRadius: "16px",
+                    bgcolor: "var(--kt-sf2)",
                     "& .MuiToggleButton-root": {
-                      minHeight: 36,
+                      flex: 1,
+                      minWidth: 0,
+                      minHeight: 40,
                       px: 1,
-                      py: 0.75,
-                      fontSize: 14,
+                      py: 0.5,
+                      border: 0,
+                      borderRadius: "12px",
+                      fontSize: 13,
                       lineHeight: 1.4,
-                      textTransform: "none",
+                      "&:first-of-type": { flex: 1.4 },
+                      "&.Mui-disabled": { border: 0 },
                     },
                   }}
                 >
@@ -300,7 +363,6 @@ export function Editor({ session }) {
                     disabled={busy}
                     title={t("pagePreviewHelp")}
                     onClick={() => session.showWhole()}
-                    sx={{ flex: 1.4 }}
                   >
                     {t("whole")}
                   </ToggleButton>
@@ -311,25 +373,33 @@ export function Editor({ session }) {
                     selected={!!state.translated}
                     disabled={busy}
                     onClick={() => session.showTranslation(!state.translated)}
-                    sx={{ flex: 1 }}
                   >
                     {t(state.translated ? "original" : "translation")}
                   </ToggleButton>
                 </Stack>
               )}
-              <Button
-                size="small"
+              <LoadingButton
                 variant="contained"
-                disableElevation
+                fullWidth={compactFooter || !rule}
+                loading={state.saving}
+                loadingPosition="start"
+                loadingIndicator={
+                  <CircularProgress
+                    size={16}
+                    color="inherit"
+                    aria-label={t("saving")}
+                  />
+                }
                 disabled={busy || !state.dirty}
                 aria-label={t("save")}
                 aria-busy={state.saving}
                 title={state.dirty ? t("unsaved") : undefined}
                 onClick={() => session.save()}
-                sx={{ minHeight: 36, px: 2, flexShrink: 0 }}
+                startIcon={<SaveOutlinedIcon />}
+                sx={{ flexShrink: 0, minHeight: 48 }}
               >
-                {state.saving ? t("saving") : t("save")}
-              </Button>
+                {t("save")}
+              </LoadingButton>
             </Stack>
             {state.error && (
               <Alert
@@ -354,7 +424,7 @@ export function Editor({ session }) {
         }
       >
         <Stack
-          spacing={1}
+          spacing={1.5}
           sx={{
             minHeight: 0,
             "& > :not(section)": { flexShrink: 0 },
@@ -366,14 +436,34 @@ export function Editor({ session }) {
             forcePopupIcon
             slotProps={{
               popper: {
-                container: () =>
-                  patternField.current?.closest(".notranslate") ||
-                  document.body,
-                sx: { zIndex: 2147483647 },
+                container: () => getEditorPortalContainer(patternField.current),
+                sx: {
+                  zIndex: 2147483647,
+                  "& .MuiAutocomplete-paper": {
+                    mt: 0.5,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: "12px",
+                    bgcolor: "var(--kt-sf0)",
+                    boxShadow: "var(--kt-shadow-2)",
+                  },
+                  "& .MuiAutocomplete-option": {
+                    borderRadius: "8px",
+                    "&.Mui-focused": { bgcolor: "var(--kt-sf3)" },
+                    '&[aria-selected="true"]': {
+                      bgcolor: "var(--kt-secc)",
+                      color: "var(--kt-onsecc)",
+                    },
+                  },
+                },
               },
             }}
             ListboxProps={{
-              style: { overscrollBehavior: "contain", fontSize: 15 },
+              style: {
+                overscrollBehavior: "contain",
+                fontSize: 14,
+                padding: 4,
+              },
             }}
             disabled={busy}
             options={state.domainOptions || []}
@@ -392,6 +482,7 @@ export function Editor({ session }) {
               <TextField
                 {...params}
                 label={i18n("pattern")}
+                variant="filled"
                 size="small"
                 error={!!state.patternError}
                 helperText={
@@ -406,21 +497,48 @@ export function Editor({ session }) {
             )}
           />
           {state.loading && (
-            <Typography role="status">{t("loading")}</Typography>
+            <Stack
+              direction="row"
+              gap={1.5}
+              alignItems="center"
+              role="status"
+              sx={{ p: 1 }}
+            >
+              <CircularProgress size={20} />
+              <Typography variant="body2">{t("loading")}</Typography>
+            </Stack>
           )}
           {rule && (
             <>
-              <EditorSelect
-                label={i18n("auto_scan_page")}
-                disabled={busy}
-                value={rule.autoScan}
-                onChange={(event) =>
-                  session.updateDraft({ autoScan: event.target.value })
-                }
+              <Stack
+                component="label"
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                gap={2}
+                sx={{
+                  px: 1.5,
+                  py: 1,
+                  minHeight: 52,
+                  borderRadius: "12px",
+                  bgcolor: "var(--kt-sf2)",
+                }}
               >
-                <MenuItem value="false">{i18n("disable")}</MenuItem>
-                <MenuItem value="true">{i18n("enable")}</MenuItem>
-              </EditorSelect>
+                <Typography variant="body2" sx={{ fontWeight: 650 }}>
+                  {i18n("auto_scan_page")}
+                </Typography>
+                <Switch
+                  disabled={busy}
+                  checked={rule.autoScan === "true"}
+                  inputProps={{ "aria-label": i18n("auto_scan_page") }}
+                  onChange={(event) =>
+                    session.updateDraft({
+                      autoScan: String(event.target.checked),
+                    })
+                  }
+                  sx={{ flexShrink: 0 }}
+                />
+              </Stack>
               {(rule.scanAll === "true" ||
                 rule.isPlainText === true ||
                 rule.isPlainText === "true") && (
@@ -429,7 +547,7 @@ export function Editor({ session }) {
               <Stack
                 component="section"
                 aria-label={t("currentGroup")}
-                spacing={1}
+                spacing={1.5}
                 sx={{
                   minWidth: 0,
                   minHeight: 0,
@@ -437,11 +555,25 @@ export function Editor({ session }) {
                   "& > :not([aria-label])": { flexShrink: 0 },
                 }}
               >
-                <Divider textAlign="left">
-                  <Typography variant="caption" color="text.secondary">
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{ pt: 0.5 }}
+                >
+                  <Typography
+                    variant="body2"
+                    component="h2"
+                    sx={{ fontWeight: 650 }}
+                  >
                     {t("currentGroup")}
                   </Typography>
-                </Divider>
+                  <Chip
+                    size="small"
+                    label={state.entries.length}
+                    sx={{ bgcolor: "var(--kt-sf2)" }}
+                  />
+                </Stack>
                 <EditorSelect
                   label={t("purpose")}
                   value={state.field}
@@ -457,9 +589,11 @@ export function Editor({ session }) {
                 <Stack direction="row" gap={1}>
                   <Button
                     variant="contained"
+                    color="secondary"
+                    startIcon={<AdsClickRoundedIcon />}
                     disabled={busy}
                     onClick={() => session.pick()}
-                    sx={{ flex: 1 }}
+                    sx={{ flex: 1, minWidth: 0 }}
                   >
                     {t("pick")}
                   </Button>
@@ -468,6 +602,7 @@ export function Editor({ session }) {
                     startIcon={<AddIcon />}
                     disabled={busy}
                     onClick={() => session.add()}
+                    sx={{ flex: 1, minWidth: 0 }}
                   >
                     {t("manualAdd")}
                   </Button>
@@ -490,47 +625,55 @@ export function Editor({ session }) {
                   aria-label={t("entries")}
                 >
                   {state.entries.length === 0 && (
-                    <Typography color="text.secondary">{t("empty")}</Typography>
+                    <Stack
+                      alignItems="center"
+                      spacing={1}
+                      sx={{
+                        p: 2.5,
+                        border: "1px dashed",
+                        borderColor: "divider",
+                        borderRadius: "12px",
+                        color: "text.secondary",
+                      }}
+                    >
+                      <CodeRoundedIcon />
+                      <Typography variant="body2">{t("empty")}</Typography>
+                    </Stack>
                   )}
                   {state.entries.map((entry) => (
-                    <Box
+                    <Card
                       key={entry.selector}
+                      variant="outlined"
                       onMouseEnter={() => session.hover(entry.selector)}
                       onMouseLeave={() => session.refresh()}
                       sx={{
                         ...cardStyle(state.editing === entry.selector),
-                        position: "relative",
+                        display: "flex",
+                        alignItems: "center",
                         flexShrink: 0,
                       }}
                     >
-                      <ButtonBase
+                      <CardActionArea
                         disabled={busy}
                         aria-label={entry.selector}
                         aria-pressed={state.editing === entry.selector}
                         onClick={() => session.edit(entry.selector)}
                         sx={{
-                          display: "block",
-                          width: "100%",
-                          textAlign: "left",
-                          p: 1.25,
-                          "&:hover": { bgcolor: "action.hover" },
-                          "&.Mui-focusVisible": {
-                            boxShadow: "inset 0 0 0 2px",
-                            color: "primary.main",
-                          },
+                          ...cardActionStyle,
+                          flex: 1,
                         }}
                       >
                         <Stack direction="row" alignItems="start" gap={1}>
-                          <Box
+                          <Typography
+                            component="code"
                             sx={{
                               ...codeStyle,
                               flex: 1,
                               minWidth: 0,
-                              color: "primary.main",
                             }}
                           >
                             {entry.selector}
-                          </Box>
+                          </Typography>
                           <Chip
                             size="small"
                             color={entry.invalid ? "error" : "default"}
@@ -542,26 +685,23 @@ export function Editor({ session }) {
                           color="text.secondary"
                           component="div"
                           sx={{
-                            mt: 1,
-                            pr: "132px",
-                            minHeight: 32,
-                            display: "flex",
-                            alignItems: "center",
+                            mt: 0.75,
                           }}
                         >
                           {t(entry.source)}
                         </Typography>
-                      </ButtonBase>
-                      <Button
+                      </CardActionArea>
+                      <IconButton
                         size="small"
-                        color="inherit"
+                        title={t("delete")}
+                        aria-label={`${t("delete")}: ${entry.selector}`}
                         disabled={busy}
                         onClick={() => session.remove(entry.selector)}
-                        sx={{ position: "absolute", bottom: 8, right: 8 }}
+                        sx={{ m: 0.5, flexShrink: 0 }}
                       >
-                        {t("delete")}
-                      </Button>
-                    </Box>
+                        <DeleteOutlineRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </Card>
                   ))}
                 </Stack>
                 <Divider />
@@ -621,6 +761,7 @@ export function Editor({ session }) {
             <Stack spacing={1.5}>
               <TextField
                 label={t("input")}
+                variant="filled"
                 autoFocus={!state.selected}
                 multiline
                 minRows={2}
@@ -667,12 +808,11 @@ export function Editor({ session }) {
           )}
         </FloatingPanel>
       )}
+      <Box ref={setNotificationHost} />
       <Dialog
         open={!!state.confirmAction}
         disablePortal
-        container={() =>
-          patternField.current?.closest(".notranslate") || document.body
-        }
+        container={() => getEditorPortalContainer(patternField.current)}
         disableEnforceFocus
         disableScrollLock
         onClose={() => !state.saving && session.emit({ confirmAction: "" })}
@@ -690,7 +830,7 @@ export function Editor({ session }) {
             </Alert>
           )}
         </DialogContent>
-        <DialogActions sx={{ flexWrap: "wrap", gap: 1 }}>
+        <DialogActions sx={{ flexWrap: "wrap", gap: 1, px: 3, pb: 3 }}>
           <Button
             disabled={state.saving}
             onClick={() => session.emit({ confirmAction: "" })}
@@ -719,9 +859,9 @@ export function Editor({ session }) {
 export default function RuleEditor(props) {
   return (
     <SettingProvider context="ruleEditor">
-      <Theme options={themeOptions}>
+      <M3Theme options={themeOptions}>
         <Editor {...props} />
-      </Theme>
+      </M3Theme>
     </SettingProvider>
   );
 }

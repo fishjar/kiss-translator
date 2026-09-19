@@ -56,7 +56,7 @@ export default function M3Theme({
       htmlFontSize = 16;
     }
 
-    return createTheme({
+    const themeOptions = {
       palette: {
         mode: resolvedMode,
         primary: { main: color.primary, contrastText: color.onPrimary },
@@ -73,10 +73,22 @@ export default function M3Theme({
         divider: color.outlineVariant,
       },
       shape: { borderRadius: 12 },
-      typography: {
-        htmlFontSize,
-        fontFamily: M3_FONT_FAMILY,
-        button: { textTransform: "none", fontWeight: 650 },
+      typography: (palette) => {
+        const typography =
+          typeof options.typography === "function"
+            ? options.typography(palette)
+            : options.typography;
+        // Resolve conversions before MUI generates sizes for each variant.
+        return {
+          htmlFontSize,
+          fontFamily: M3_FONT_FAMILY,
+          ...typography,
+          button: {
+            textTransform: "none",
+            fontWeight: 650,
+            ...typography?.button,
+          },
+        };
       },
       components: {
         MuiCssBaseline: {
@@ -392,12 +404,14 @@ export default function M3Theme({
         MuiSnackbarContent: {
           styleOverrides: { root: { borderRadius: 8 } },
         },
-        ...options.components,
       },
       ...Object.fromEntries(
-        Object.entries(options).filter(([key]) => key !== "components")
+        Object.entries(options).filter(
+          ([key]) => key !== "components" && key !== "typography"
+        )
       ),
-    });
+    };
+    return createTheme(themeOptions, { components: options.components || {} });
   }, [colors, options, resolvedMode]);
 
   return (
