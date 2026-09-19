@@ -37,6 +37,8 @@ import {
   PORT_STREAM_FETCH,
   MSG_UPDATE_ICON,
   MSG_SHA256,
+  MSG_GET_FRAME_ID,
+  MSG_VALIDATE_DOCUMENT,
 } from "./config";
 import {
   getSettingWithDefault,
@@ -55,6 +57,7 @@ import { kissLog, logger } from "./libs/log";
 import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
 import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
+import { isCurrentPopupDocument } from "./libs/popupDocument";
 
 globalThis.__KISS_CONTEXT__ = "background";
 installStorageCoordinator();
@@ -716,6 +719,10 @@ const injectToCurrentTab = async (func, args) => {
 
 // 后台消息指令与对应处理器映射表
 const messageHandlers = {
+  [MSG_GET_FRAME_ID]: (_args, sender) =>
+    Number.isInteger(sender?.frameId) ? sender.frameId : undefined,
+  [MSG_VALIDATE_DOCUMENT]: (args, sender) =>
+    isCurrentPopupDocument(sender?.tab?.id, args),
   [MSG_FETCH]: (args) => fetchHandle(args), // 跨域请求代理
   [MSG_GET_HTTPCACHE]: (args) => getHttpCache(args), // 读取翻译 HTTP 缓存
   [MSG_PUT_HTTPCACHE]: (args) => putHttpCache(args), // 存入翻译 HTTP 缓存

@@ -89,6 +89,7 @@ export default function Header({ onClose, openSeparateWindow, openSettings }) {
             anchorEl={supportAnchor}
             open={Boolean(supportAnchor)}
             onClose={() => setSupportAnchor(null)}
+            disableScrollLock
             anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
             transformOrigin={{ vertical: "top", horizontal: "left" }}
             transitionDuration={0}
