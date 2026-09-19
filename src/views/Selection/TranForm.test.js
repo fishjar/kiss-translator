@@ -140,6 +140,83 @@ function renderTranForm(
   };
 }
 
+describe("TranForm startup settings", () => {
+  const remoteDefaults = {
+    fromLang: "fr",
+    toLang: "de",
+    toLang2: "it",
+    langDetector: "Google",
+    enDict: "Youdao",
+    enSug: "Baidu",
+  };
+  const readDefaults = (container) =>
+    Object.fromEntries(
+      Object.keys(remoteDefaults).map((name) => [
+        name,
+        container.querySelector(`input[name="${name}"]`).value,
+      ])
+    );
+  let view;
+
+  const renderPendingForm = () =>
+    renderTranForm({
+      text: "",
+      simpleStyle: false,
+      isPlaygound: true,
+      autoFocusInput: false,
+      initialSettingsReady: false,
+    });
+
+  afterEach(() => {
+    act(() => view.root.unmount());
+    view.host.remove();
+  });
+
+  test("adopts synchronized defaults when startup finishes without remounting the form", () => {
+    view = renderPendingForm();
+    const textarea = view.container.querySelector("textarea");
+    expect(readDefaults(view.container).toLang).toBe("zh-CN");
+    view.rerender(remoteDefaults);
+    expect(readDefaults(view.container).toLang).toBe("zh-CN");
+
+    view.rerender({ ...remoteDefaults, initialSettingsReady: true });
+
+    expect(readDefaults(view.container)).toEqual(remoteDefaults);
+    expect(view.container.querySelector("textarea")).toBe(textarea);
+  });
+
+  test("preserves user choices and draft text after startup when defaults change again", () => {
+    view = renderPendingForm();
+    view.rerender({ ...remoteDefaults, initialSettingsReady: true });
+    const textarea = view.container.querySelector("textarea");
+    act(() => {
+      Simulate.change(view.container.querySelector('input[name="toLang"]'), {
+        target: { value: "ja" },
+      });
+      Simulate.focus(textarea);
+      Simulate.change(textarea, { target: { value: "Unsubmitted draft" } });
+    });
+    expect(readDefaults(view.container).toLang).toBe("ja");
+
+    view.rerender({
+      ...remoteDefaults,
+      initialSettingsReady: true,
+      fromLang: "es",
+      toLang: "ko",
+      toLang2: "ru",
+      langDetector: "Baidu",
+      enDict: "Bing",
+      enSug: "Youdao",
+    });
+
+    expect(readDefaults(view.container)).toEqual({
+      ...remoteDefaults,
+      toLang: "ja",
+    });
+    expect(textarea.value).toBe("Unsubmitted draft");
+  });
+});
+
 function mountInFullscreen(host) {
   const originalFullscreen = Object.getOwnPropertyDescriptor(
     document,

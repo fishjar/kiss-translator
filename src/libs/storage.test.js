@@ -73,6 +73,63 @@ describe("settings storage migration", () => {
     expect(stored.transApis[0]).not.toHaveProperty("systemPrompt");
   });
 
+  test.each([
+    [true, "dark"],
+    [false, "light"],
+  ])(
+    "migrates boolean theme %p without changing current settings",
+    async (darkMode, expected) => {
+      const oldSetting = {
+        version: SETTINGS_VERSION_V3,
+        darkMode,
+        uiLang: "en",
+      };
+      window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(oldSetting));
+
+      await runDataMigration();
+
+      expect(readStoredJson(STOKEY_SETTING)).toEqual({
+        ...oldSetting,
+        darkMode: expected,
+      });
+      expect(readStoredJson(STOKEY_SETTING_BACKUP_V1_BEFORE_V2)).toBe(null);
+    }
+  );
+
+  test("finishes schema and theme migration in one settings write", async () => {
+    const oldSetting = { version: SETTINGS_VERSION_V2, darkMode: true };
+    window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(oldSetting));
+    const setItem = jest.spyOn(window.Storage.prototype, "setItem");
+    try {
+      await runDataMigration();
+
+      expect(readStoredJson(STOKEY_SETTING)).toMatchObject({
+        version: SETTINGS_VERSION_V3,
+        darkMode: "dark",
+      });
+      expect(setItem).toHaveBeenCalledTimes(1);
+      await runDataMigration();
+      expect(setItem).toHaveBeenCalledTimes(1);
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  test("reports a failed migration write to callers that require ready storage", async () => {
+    globalThis.GM = {
+      getValue: jest.fn(async () =>
+        JSON.stringify({ version: SETTINGS_VERSION_V3, darkMode: true })
+      ),
+      setValue: jest.fn(async () => {
+        throw new Error("migration write failed");
+      }),
+      deleteValue: jest.fn(),
+    };
+    const { runDataMigration: migrateGmData } = loadGmStorageModule();
+
+    await expect(migrateGmData()).resolves.toBe(false);
+  });
+
   test("getSettingWithDefault returns current settings for stored v1 data", async () => {
     const oldSetting = {
       uiLang: "zh",
@@ -94,6 +151,33 @@ describe("settings storage migration", () => {
     );
     expect(setting.transApis[0]).not.toHaveProperty("systemPrompt");
   });
+
+  test.each([
+    [undefined, true, "dark"],
+    [SETTINGS_VERSION_V2, false, "light"],
+    [SETTINGS_VERSION_V3, true, "dark"],
+    [SETTINGS_VERSION_V3, "auto", "auto"],
+  ])(
+    "normalizes version %p and theme %p without persisting a migration",
+    async (version, darkMode, expected) => {
+      const oldSetting = { version, darkMode, uiLang: "en" };
+      const serialized = JSON.stringify(oldSetting);
+      window.localStorage.setItem(STOKEY_SETTING, serialized);
+      const setItem = jest.spyOn(window.Storage.prototype, "setItem");
+      try {
+        await expect(getSettingWithDefault()).resolves.toMatchObject({
+          version: SETTINGS_VERSION_V3,
+          darkMode: expected,
+          uiLang: "en",
+        });
+        expect(setItem).not.toHaveBeenCalled();
+        expect(window.localStorage.getItem(STOKEY_SETTING)).toBe(serialized);
+        expect(oldSetting.darkMode).toBe(darkMode);
+      } finally {
+        setItem.mockRestore();
+      }
+    }
+  );
 
   test("merges the language variant default without overriding an explicit choice", async () => {
     window.localStorage.setItem(

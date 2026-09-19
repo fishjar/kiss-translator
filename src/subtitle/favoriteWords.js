@@ -1,9 +1,5 @@
-import { EVENT_FAVORITE_WORD_CHANGE, KV_WORDS_KEY } from "../config";
-import {
-  debounceSyncMeta,
-  getWordsWithDefault,
-  setWords,
-} from "../libs/storage";
+import { EVENT_FAVORITE_WORD_CHANGE, STOKEY_WORDS } from "../config";
+import { getWordsWithDefault, saveEdit } from "../libs/storage";
 
 function createWordData({ phonetic, definition, examples }) {
   const wordData = {
@@ -27,11 +23,6 @@ function createWordData({ phonetic, definition, examples }) {
   return wordData;
 }
 
-async function saveWords(words) {
-  await setWords(words);
-  debounceSyncMeta(KV_WORDS_KEY);
-}
-
 function notifyFavoriteWordChange(word, isFavorite) {
   document.dispatchEvent(
     new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
@@ -46,27 +37,26 @@ export async function isFavoriteWord(word) {
 }
 
 export async function saveFavoriteWordIfMissing(word, data = {}) {
-  const words = await getWordsWithDefault();
-  if (words[word]) return false;
-
-  await saveWords({ ...words, [word]: createWordData(data) });
+  const wordData = createWordData(data);
+  const { changed } = await saveEdit(STOKEY_WORDS, (words) =>
+    words[word] ? words : { ...words, [word]: wordData }
+  );
+  if (!changed) return false;
   notifyFavoriteWordChange(word, true);
   return true;
 }
 
 export async function toggleFavoriteWord(word, data = {}) {
-  const words = await getWordsWithDefault();
-  if (words[word]) {
+  const wordData = createWordData(data);
+  const { value } = await saveEdit(STOKEY_WORDS, (words) => {
+    if (!words[word]) return { ...words, [word]: wordData };
     const nextWords = { ...words };
     delete nextWords[word];
-    await saveWords(nextWords);
-    notifyFavoriteWordChange(word, false);
-    return false;
-  }
-
-  await saveWords({ ...words, [word]: createWordData(data) });
-  notifyFavoriteWordChange(word, true);
-  return true;
+    return nextWords;
+  });
+  const isFavorite = Boolean(value[word]);
+  notifyFavoriteWordChange(word, isFavorite);
+  return isFavorite;
 }
 
 export function createFavoriteButton({

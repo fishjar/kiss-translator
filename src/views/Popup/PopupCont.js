@@ -138,31 +138,44 @@ export default function PopupCont({
     return isInBlacklist(currentHref, blacklistValue);
   }, [blacklistValue, currentHref, selectedDomain]);
 
-  const handleAddToBlacklist = useCallback(() => {
+  const handleAddToBlacklist = useCallback(async () => {
     if (!selectedDomain) return;
-    const nextBlacklist = blacklistValue
-      ? `${blacklistValue}\n${selectedDomain}`
-      : selectedDomain;
-    updateSetting((previous) => ({
-      ...previous,
-      blacklist: nextBlacklist,
-    }));
-    showMessage(`${i18n("add_to_blacklist")}: ${selectedDomain}`);
-  }, [blacklistValue, i18n, selectedDomain, showMessage, updateSetting]);
+    try {
+      await updateSetting((previous) => {
+        const entries = (previous?.blacklist || "")
+          .split(/\n|,/)
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+        if (entries.includes(selectedDomain)) return previous;
+        return {
+          ...previous,
+          blacklist: [...entries, selectedDomain].join("\n"),
+        };
+      });
+      showMessage(`${i18n("add_to_blacklist")}: ${selectedDomain}`);
+    } catch (error) {
+      kissLog("add to blacklist", error);
+      showMessage(i18n("error_got_some_wrong"), "error");
+    }
+  }, [i18n, selectedDomain, showMessage, updateSetting]);
 
-  const handleRemoveFromBlacklist = useCallback(() => {
+  const handleRemoveFromBlacklist = useCallback(async () => {
     if (!selectedDomain) return;
-    const nextBlacklist = blacklistValue
-      .split(/\n|,/)
-      .map((item) => item.trim())
-      .filter((item) => item !== selectedDomain)
-      .join("\n");
-    updateSetting((previous) => ({
-      ...previous,
-      blacklist: nextBlacklist,
-    }));
-    showMessage(`${i18n("remove_from_blacklist")}: ${selectedDomain}`);
-  }, [blacklistValue, i18n, selectedDomain, showMessage, updateSetting]);
+    try {
+      await updateSetting((previous) => ({
+        ...previous,
+        blacklist: (previous?.blacklist || "")
+          .split(/\n|,/)
+          .map((entry) => entry.trim())
+          .filter((entry) => entry && entry !== selectedDomain)
+          .join("\n"),
+      }));
+      showMessage(`${i18n("remove_from_blacklist")}: ${selectedDomain}`);
+    } catch (error) {
+      kissLog("remove from blacklist", error);
+      showMessage(i18n("error_got_some_wrong"), "error");
+    }
+  }, [i18n, selectedDomain, showMessage, updateSetting]);
 
   const putRuleValues = useCallback(
     async (values) => {
@@ -294,14 +307,18 @@ export default function PopupCont({
   const handleSaveRule = useCallback(async () => {
     if (!selectedDomain) return;
     try {
-      const currentRule = { ...rule, pattern: selectedDomain };
-      if (isExt && isContent) sendBgMsg(MSG_SAVE_RULE, currentRule);
-      else saveRule(currentRule);
+      const currentRule = { ...ruleRef.current, pattern: selectedDomain };
+      const response =
+        isExt && isContent
+          ? await sendBgMsg(MSG_SAVE_RULE, currentRule)
+          : await saveRule(currentRule);
+      if (response?.error) throw new Error(response.error);
       showMessage(`${i18n("save_rule")}: ${selectedDomain}`);
     } catch (error) {
       kissLog("save rule", error);
+      showMessage(i18n("error_got_some_wrong"), "error");
     }
-  }, [i18n, isContent, rule, selectedDomain, showMessage]);
+  }, [i18n, isContent, selectedDomain, showMessage]);
 
   useEffect(() => {
     let active = true;
