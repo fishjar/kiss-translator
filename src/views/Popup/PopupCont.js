@@ -34,6 +34,8 @@ import {
   MSG_RULE_EDITOR,
   MSG_TRANS_PUTRULE,
   MSG_SAVE_RULE,
+  MSG_TOUCH_TRANSLATE_MODE_SET,
+  MSG_TOUCH_TRANSLATE_STATE,
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
   OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
 } from "../../config";
@@ -56,6 +58,10 @@ import PopupStylePreview from "./PopupStylePreview";
 import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 import { queryPopupData } from "./loadData";
 import { useConfirmedPopupUpdate } from "./useConfirmedPopupUpdate";
+
+const isTouchAction = (action) =>
+  action === MSG_TOUCH_TRANSLATE_STATE ||
+  action === MSG_TOUCH_TRANSLATE_MODE_SET;
 
 export function resolvePopupTextStyles(
   allTextStyles,
@@ -205,6 +211,15 @@ export default function PopupCont({
   const sendPageMessage = useCallback(
     (action, args, topFrame = false) => {
       if (targetTab?.id !== undefined) {
+        if (isTouchAction(action) && documentInfo?.token) {
+          return sendTabMsg(
+            action,
+            args,
+            { frameId: documentInfo.frameId },
+            targetTab.id,
+            documentInfo.token
+          );
+        }
         return topFrame
           ? documentInfo?.frameId === 0
             ? sendTopFrameMsg(action, args, targetTab.id, documentInfo.token)
@@ -270,7 +285,9 @@ export default function PopupCont({
         onPageUnavailable?.();
       }
       if (response?.error) throw new Error(response.error);
-      return response;
+      // Touch state is returned by its own command, after verifying that the
+      // document which produced it still owns this popup's page controls.
+      return isTouchAction(action) && response != null ? result : response;
     },
     [
       onPageUnavailable,
@@ -279,6 +296,27 @@ export default function PopupCont({
       targetTab?.id,
       documentInfo,
     ]
+  );
+
+  const dispatchTouchAction = useCallback(
+    async ({ action, args }) => {
+      if (
+        !processActions &&
+        (!Number.isInteger(targetTab?.id) || !documentInfo?.token)
+      ) {
+        throw new Error("The popup document is not ready.");
+      }
+      if (!activeRef.current || !visibleRef.current) {
+        throw new Error("The popup page controls are no longer active.");
+      }
+      const response = await dispatchPageAction(action, args);
+      // A late reply must not persist a preference after navigation or unmount.
+      if (!activeRef.current || !visibleRef.current) {
+        throw new Error("The popup page controls are no longer active.");
+      }
+      return response;
+    },
+    [dispatchPageAction, documentInfo?.token, processActions, targetTab?.id]
   );
 
   const reportActionFailure = useCallback(
@@ -696,7 +734,7 @@ export default function PopupCont({
         </div>
       )}
 
-      <TouchTranslateControl processActions={processActions} />
+      <TouchTranslateControl processActions={dispatchTouchAction} />
       <div className="kt-popup-site">
         <div className="kt-popup-site__top">
           <select
