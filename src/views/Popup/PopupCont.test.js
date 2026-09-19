@@ -302,9 +302,11 @@ describe("PopupCont capability parity", () => {
         );
         const control = view.container.querySelector("[data-kiss-touch-ui]");
         act(() =>
-          control.querySelector('[role="combobox"]').dispatchEvent(
-            new MouseEvent("mousedown", { bubbles: true, button: 0 })
-          )
+          control
+            .querySelector('[role="combobox"]')
+            .dispatchEvent(
+              new MouseEvent("mousedown", { bubbles: true, button: 0 })
+            )
         );
         await act(async () =>
           document.querySelector('[data-value="tap"]').click()
@@ -317,14 +319,56 @@ describe("PopupCont capability parity", () => {
           documentInfo.token
         );
         expect(mockGetCurTab).not.toHaveBeenCalled();
-        expect(mockUpdateMouseHoverSetting).toHaveBeenCalledWith({ touchMode: "tap" });
+        expect(mockUpdateMouseHoverSetting).toHaveBeenCalledWith({
+          touchMode: "tap",
+        });
       } finally {
         view.cleanup();
       }
     }
   );
 
-  test.each(["navigation", "hidden", "unmounted"])(
+  test("loads touch state when the initially hidden page tab becomes visible", async () => {
+    mockRealTouchControl = true;
+    window.PointerEvent = MouseEvent;
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      value: 2,
+    });
+    const documentInfo = { frameId: 0, token: "captured-touch-document" };
+    mockSendTabMsg.mockImplementation(async (action) =>
+      action === MSG_TRANS_GETRULE
+        ? { rule: {}, setting: {}, document: documentInfo }
+        : {
+            touchTranslate: {
+              mode: "tap",
+              supported: true,
+              direction: "right",
+            },
+          }
+    );
+    const view = renderPopupCont({
+      targetTab: { id: 42, url: "https://captured.example" },
+      documentInfo,
+      isVisible: false,
+    });
+    try {
+      await flushEffects();
+      expect(mockSendTabMsg).not.toHaveBeenCalled();
+      expect(view.container.querySelector("[data-kiss-touch-ui]")).toBeNull();
+      view.rerender({ isVisible: true });
+      await flushEffects();
+      expect(
+        view.container.querySelector('[data-kiss-touch-ui] [role="combobox"]')
+          .textContent
+      ).toBe("touch_tap");
+      expect(mockUpdateMouseHoverSetting).not.toHaveBeenCalled();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test.each(["navigation", "hidden", "reshown", "unmounted"])(
     "does not persist a late touch mode response after the popup is %s",
     async (transition) => {
       mockRealTouchControl = true;
@@ -339,8 +383,12 @@ describe("PopupCont capability parity", () => {
         if (action === MSG_TRANS_GETRULE)
           return { rule: {}, setting: {}, document: documentInfo };
         if (action === MSG_TOUCH_TRANSLATE_MODE_SET)
-          return new Promise((resolve) => { finishModeChange = resolve; });
-        return { touchTranslate: { mode: "off", supported: true, direction: "right" } };
+          return new Promise((resolve) => {
+            finishModeChange = resolve;
+          });
+        return {
+          touchTranslate: { mode: "off", supported: true, direction: "right" },
+        };
       });
       const onPageUnavailable = jest.fn();
       const view = renderPopupCont({
@@ -352,22 +400,31 @@ describe("PopupCont capability parity", () => {
       try {
         await flushEffects();
         act(() =>
-          view.container.querySelector('[data-kiss-touch-ui] [role="combobox"]').dispatchEvent(
-            new MouseEvent("mousedown", { bubbles: true, button: 0 })
-          )
+          view.container
+            .querySelector('[data-kiss-touch-ui] [role="combobox"]')
+            .dispatchEvent(
+              new MouseEvent("mousedown", { bubbles: true, button: 0 })
+            )
         );
         act(() => document.querySelector('[data-value="swipe"]').click());
         if (transition === "navigation") {
           isCurrentPopupDocument.mockResolvedValue(false);
-        } else if (transition === "hidden") {
+        } else if (transition === "hidden" || transition === "reshown") {
           view.rerender({ isVisible: false });
+          if (transition === "reshown") view.rerender({ isVisible: true });
         } else {
           view.cleanup();
           unmounted = true;
         }
-        await act(async () => finishModeChange({
-          touchTranslate: { mode: "swipe", supported: true, direction: "right" },
-        }));
+        await act(async () =>
+          finishModeChange({
+            touchTranslate: {
+              mode: "swipe",
+              supported: true,
+              direction: "right",
+            },
+          })
+        );
         expect(mockUpdateMouseHoverSetting).not.toHaveBeenCalled();
         if (transition === "navigation")
           expect(onPageUnavailable).toHaveBeenCalledTimes(1);
