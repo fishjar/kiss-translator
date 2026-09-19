@@ -27,7 +27,9 @@ import {
 } from "../../config";
 import { kissLog } from "../../libs/log";
 import PopupCont from "./PopupCont";
-import TranForm from "../Selection/TranForm";
+import TranslationPanelSurface from "../../components/TranslationPanel/Surface";
+import TranslationPanelHeader from "../../components/TranslationPanel/Header";
+import TranslationPanelContent from "../../components/TranslationPanel/Content";
 import { useSetting } from "../../hooks/Setting";
 import { useSeparateWindowBounds } from "../../hooks/SeparateWindowBounds";
 import { browser } from "../../libs/browser";
@@ -46,7 +48,7 @@ import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
  * Extension window bounds use screen pixels, while layout sizes must be scaled
  * by the tab zoom. DOM outer dimensions are not consistent across browsers.
  */
-function useFitSeparateWindow(enabled) {
+function useFitSeparateWindow(enabled, panelRef) {
   useEffect(() => {
     if (
       !enabled ||
@@ -77,7 +79,7 @@ function useFitSeparateWindow(enabled) {
 
         frame = requestAnimationFrame(() => {
           if (!active) return;
-          const panel = document.querySelector(".kt-popup-text-panel");
+          const panel = panelRef.current;
           if (!panel) return;
 
           // Gecko scales DOM outer/screen values with layout zoom. Its tab zoom
@@ -151,7 +153,7 @@ function useFitSeparateWindow(enabled) {
       active = false;
       if (frame !== undefined) cancelAnimationFrame(frame);
     };
-  }, [enabled]);
+  }, [enabled, panelRef]);
 }
 
 /**
@@ -159,7 +161,9 @@ function useFitSeparateWindow(enabled) {
  */
 export function Trantab({ isSeparate = false }) {
   useSeparateWindowBounds(isSeparate);
+  const panelRef = useRef(null);
   const [text, setText] = useState("");
+  const [simpleStyle, setSimpleStyle] = useState(false);
   const i18n = useI18n();
   const { setting } = useSetting();
   const shouldReadClipboardInitially =
@@ -175,6 +179,25 @@ export function Trantab({ isSeparate = false }) {
   const readingClipboardRef = useRef(false);
   const lastClipboardTextRef = useRef("");
   const textRef = useRef(text);
+
+  const closeSeparateWindow = useCallback(async () => {
+    try {
+      const currentTab = await browser.tabs.getCurrent();
+      // The same route can also be opened in a normal browser window.
+      // Closing its own tab leaves unrelated tabs intact and closes a one-tab popup.
+      if (Number.isInteger(currentTab?.id) && currentTab.id >= 0) {
+        await browser.tabs.remove(currentTab.id);
+        return;
+      }
+    } catch (error) {
+      kissLog("close separate window", error);
+    }
+    window.close();
+  }, []);
+
+  useEffect(() => {
+    if (!text.trim()) setSimpleStyle(false);
+  }, [text]);
 
   useEffect(() => {
     textRef.current = text;
@@ -252,7 +275,10 @@ export function Trantab({ isSeparate = false }) {
   }, [isSeparate, translateClipboard]);
 
   // Wait for settings so the fixed 260px loading state cannot shrink the window.
-  useFitSeparateWindow(isSeparate && Boolean(setting?.tranboxSetting));
+  useFitSeparateWindow(
+    isSeparate && Boolean(setting?.tranboxSetting),
+    panelRef
+  );
 
   const serializedTransApis = useMemo(
     () =>
@@ -302,28 +328,41 @@ export function Trantab({ isSeparate = false }) {
   } = setting;
 
   return (
-    <div className="kt-popup-text-panel">
-      <TranForm
-        text={text}
-        setText={setText}
-        apiSlugs={apiSlugs}
-        fromLang={fromLang}
-        toLang={toLang}
-        toLang2={toLang2}
-        transApis={resolvedTransApis}
-        simpleStyle={false}
-        langDetector={langDetector}
-        enDict={enDict}
-        enSug={enSug}
-        aiDictApiSlug={aiDictApiSlug}
-        aiDictPromptSlug={aiDictPromptSlug}
-        prompts={prompts}
-        translateVariants={translateVariants}
-        parseLatex={parseLatex}
-        autoFocusInput={autoFocusInput}
-        syncExternalTextWhileEditing
-        popupStyle
-      />
+    <div className="kt-popup-text-panel" ref={panelRef}>
+      <TranslationPanelSurface
+        embedded={!isSeparate}
+        header={
+          isSeparate ? (
+            <TranslationPanelHeader
+              onClose={closeSeparateWindow}
+              simpleStyle={simpleStyle}
+              setSimpleStyle={setSimpleStyle}
+              simpleStyleDisabled={!text.trim()}
+            />
+          ) : null
+        }
+      >
+        <TranslationPanelContent
+          text={text}
+          setText={setText}
+          apiSlugs={apiSlugs}
+          fromLang={fromLang}
+          toLang={toLang}
+          toLang2={toLang2}
+          transApis={resolvedTransApis}
+          simpleStyle={isSeparate && simpleStyle && Boolean(text.trim())}
+          langDetector={langDetector}
+          enDict={enDict}
+          enSug={enSug}
+          aiDictApiSlug={aiDictApiSlug}
+          aiDictPromptSlug={aiDictPromptSlug}
+          prompts={prompts}
+          translateVariants={translateVariants}
+          parseLatex={parseLatex}
+          autoFocusInput={autoFocusInput}
+          syncExternalTextWhileEditing
+        />
+      </TranslationPanelSurface>
     </div>
   );
 }

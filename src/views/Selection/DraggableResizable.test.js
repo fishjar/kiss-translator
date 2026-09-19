@@ -130,6 +130,20 @@ describe("DraggableResizable auto height bounds", () => {
     expect(updater({ x: 0, y: 400 })).toEqual({ x: 0, y: 200 });
   });
 
+  test("keeps an auto-height panel above the horizontal scrollbar", () => {
+    const getClientHeight = jest
+      .spyOn(document.documentElement, "clientHeight", "get")
+      .mockReturnValue(485);
+
+    try {
+      const panel = renderPanel({ position: { x: 0, y: 400 } });
+      const updater = panel.setPosition.mock.calls.at(-1)[0];
+      expect(updater({ x: 0, y: 400 })).toEqual({ x: 0, y: 385 });
+    } finally {
+      getClientHeight.mockRestore();
+    }
+  });
+
   // The header contains buttons and an overflow menu as well as the drag area.
   // Opening the menu must not make the panel follow the pointer.
   test("pressing a control inside the header does not start a drag", () => {

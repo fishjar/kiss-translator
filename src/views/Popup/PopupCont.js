@@ -2,6 +2,7 @@ import TouchTranslateControl from "../../components/TouchTranslateControl";
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -93,6 +94,7 @@ export default function PopupCont({
   isContent = false,
 }) {
   const i18n = useI18n();
+  const advancedPanelId = useId();
   const { setting: contextSetting, updateSetting } = useSetting();
   const shortcutMap = useOverviewShortcuts(setting);
   const [domainOptions, setDomainOptions] = useState([]);
@@ -694,33 +696,6 @@ export default function PopupCont({
         </div>
       )}
 
-      <div className="kt-popup-scenes">
-        {scenes
-          .filter((scene) => scene.available)
-          .map((scene) => {
-            const SceneIcon = scene.icon;
-            return (
-              <button
-                type="button"
-                className="kt-popup-scene"
-                aria-pressed={scene.enabled}
-                key={scene.key}
-                onClick={() => void scene.onChange(!scene.enabled)}
-              >
-                <SceneIcon />
-                <span className="kt-popup-scene__copy">
-                  <span className="kt-popup-scene__label" title={scene.label}>
-                    {scene.label}
-                  </span>
-                  <span className="kt-popup-scene__state">
-                    {i18n(scene.enabled ? "popup_enabled" : "popup_disabled")}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-      </div>
-
       <TouchTranslateControl processActions={processActions} />
       <div className="kt-popup-site">
         <div className="kt-popup-site__top">
@@ -728,6 +703,7 @@ export default function PopupCont({
             className="kt-popup-site__select"
             value={selectedDomain}
             aria-label={i18n("domain")}
+            title={selectedDomain}
             onChange={(event) => setSelectedDomain(event.target.value)}
           >
             {domainOptions.map((domain) => (
@@ -773,98 +749,139 @@ export default function PopupCont({
                 : "add_to_blacklist"
             )}
           </Button>
-          <IconButton
-            onClick={handleClearCache}
-            aria-label={i18n("clear_cache")}
-          >
-            <DeleteSweepRoundedIcon />
-          </IconButton>
         </div>
       </div>
 
-      {canTranslatePage && (
-        <div className="kt-popup-disclosure-row">
-          <button
-            type="button"
-            className="kt-popup-disclosure"
-            aria-expanded={showAdvanced}
-            onClick={() => setShowAdvanced((current) => !current)}
-          >
-            {i18n("popup_advanced_options")}
-            <ExpandMoreRoundedIcon />
-          </button>
-        </div>
-      )}
+      <div className="kt-popup-disclosure-row">
+        <button
+          type="button"
+          className="kt-popup-disclosure"
+          aria-expanded={showAdvanced}
+          aria-controls={advancedPanelId}
+          onClick={() => setShowAdvanced((current) => !current)}
+        >
+          {i18n("popup_advanced_options")}
+          <ExpandMoreRoundedIcon />
+        </button>
+      </div>
 
-      {showAdvanced && canTranslatePage && (
-        <div className="kt-popup-advanced">
-          <div>
-            <div className="kt-popup-section-label">
-              {i18n("text_style_alt")}
+      <div
+        id={advancedPanelId}
+        className="kt-popup-advanced"
+        hidden={!showAdvanced}
+      >
+        {showAdvanced && (
+          <>
+            <div className="kt-popup-scenes">
+              {scenes.filter((scene) => scene.available).map((scene) => {
+                const SceneIcon = scene.icon;
+                return (
+                  <button
+                    type="button"
+                    className="kt-popup-scene"
+                    aria-pressed={scene.enabled}
+                    key={scene.key}
+                    onClick={() => void scene.onChange(!scene.enabled)}
+                  >
+                    <SceneIcon />
+                    <span className="kt-popup-scene__copy">
+                      <span
+                        className="kt-popup-scene__label"
+                        title={scene.label}
+                      >
+                        {scene.label}
+                      </span>
+                      <span className="kt-popup-scene__state">
+                        {i18n(
+                          scene.enabled ? "popup_enabled" : "popup_disabled"
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-            <div className="kt-popup-style-chips">
-              {visiblePopupTextStyles.map(renderPopupStyleChip)}
-              {allTextStyles.length > 5 && (
-                <button
-                  type="button"
-                  className="kt-popup-style-chip kt-popup-style-more"
-                  aria-label={styleDisclosureLabel}
-                  aria-expanded={showAllStyles}
-                  title={styleDisclosureLabel}
-                  onClick={() => setShowAllStyles((current) => !current)}
-                >
-                  {showAllStyles
-                    ? i18n("popup_collapse")
-                    : `+${hiddenStyleCount}`}
-                  <ExpandMoreRoundedIcon aria-hidden="true" />
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="kt-popup-advanced-grid">
-            {advancedRows.map(([name, label, checked]) => (
-              <div className="kt-popup-advanced-row" key={name}>
-                <span>{label}</span>
-                <Switch
-                  size="small"
-                  checked={checked}
-                  onChange={(event) =>
-                    putRuleValue(
-                      name,
-                      name === "isPlainText"
-                        ? event.target.checked
-                        : event.target.checked
-                          ? "true"
-                          : "false"
-                    )
-                  }
-                  inputProps={{ "aria-label": label }}
-                />
+            {canTranslatePage && (
+              <>
+            <div>
+              <div className="kt-popup-section-label">
+                {i18n("text_style_alt")}
               </div>
-            ))}
-          </div>
-          <div className="kt-popup-advanced-row">
-            <span>{i18n("autoscan_alt")}</span>
-            <Switch
-              size="small"
-              checked={autoScan === "true"}
-              onChange={(event) =>
-                putRuleValue(
-                  "autoScan",
-                  event.target.checked ? "true" : "false"
-                )
-              }
-              inputProps={{ "aria-label": i18n("autoscan_alt") }}
-            />
-          </div>
-        </div>
-      )}
-
-      {canEditRule && (
-        <Button variant="outlined" onClick={handleOpenRuleEditor}>
-          {i18n("rule_editor_open")}
-        </Button>
-      )}
+              <div className="kt-popup-style-chips">
+                {visiblePopupTextStyles.map(renderPopupStyleChip)}
+                {allTextStyles.length > 5 && (
+                  <button
+                    type="button"
+                    className="kt-popup-style-chip kt-popup-style-more"
+                    aria-label={styleDisclosureLabel}
+                    aria-expanded={showAllStyles}
+                    title={styleDisclosureLabel}
+                    onClick={() => setShowAllStyles((current) => !current)}
+                  >
+                    {showAllStyles
+                      ? i18n("popup_collapse")
+                      : `+${hiddenStyleCount}`}
+                    <ExpandMoreRoundedIcon aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="kt-popup-advanced-grid">
+              {advancedRows.map(([name, label, checked]) => (
+                <div className="kt-popup-advanced-row" key={name}>
+                  <span>{label}</span>
+                  <Switch
+                    size="small"
+                    checked={checked}
+                    onChange={(event) =>
+                      putRuleValue(
+                        name,
+                        name === "isPlainText"
+                          ? event.target.checked
+                          : event.target.checked
+                            ? "true"
+                            : "false"
+                      )
+                    }
+                    inputProps={{ "aria-label": label }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="kt-popup-advanced-row">
+              <span>{i18n("autoscan_alt")}</span>
+              <Switch
+                size="small"
+                checked={autoScan === "true"}
+                onChange={(event) =>
+                  putRuleValue(
+                    "autoScan",
+                    event.target.checked ? "true" : "false"
+                  )
+                }
+                inputProps={{ "aria-label": i18n("autoscan_alt") }}
+              />
+            </div>
+              </>
+            )}
+            <div className="kt-popup-advanced-tools">
+              {canEditRule && (
+                <Button variant="outlined" onClick={handleOpenRuleEditor}>
+                  {i18n("rule_editor_open")}
+                </Button>
+              )}
+              <Button
+                variant="text"
+                startIcon={<DeleteSweepRoundedIcon />}
+                onClick={handleClearCache}
+                aria-label={i18n("clear_cache")}
+              >
+                {i18n("clear_cache")}
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
 
       {isContent && (
         <>

@@ -29,10 +29,12 @@ jest.mock("../../libs/browser", () => ({
   browser: {
     windows: {
       getCurrent: jest.fn(),
+      remove: jest.fn(),
     },
     tabs: {
       getCurrent: jest.fn(),
       getZoom: jest.fn(),
+      remove: jest.fn(),
     },
     storage: {
       onChanged: {
@@ -54,13 +56,19 @@ jest.mock("./PopupCont", () => {
 jest.mock("./Header", () => () => null);
 jest.mock("../Selection/TranForm", () => {
   const React = require("react");
-  return ({ text, autoFocusInput, syncExternalTextWhileEditing }) =>
+  return ({
+    text,
+    autoFocusInput,
+    syncExternalTextWhileEditing,
+    simpleStyle,
+  }) =>
     React.createElement(
       "div",
       {
         "data-testid": "tran-form",
         "data-auto-focus": String(autoFocusInput),
         "data-sync-external": String(syncExternalTextWhileEditing),
+        "data-simple-style": String(Boolean(simpleStyle)),
       },
       text
     );
@@ -289,6 +297,108 @@ describe("Trantab clipboard translation", () => {
 
 // Language, browser zoom, and system font size determine the rendered height.
 // Open at an initial size, then measure once and ask the background to fit it.
+describe("shared translation panel hosts", () => {
+  let view;
+
+  beforeEach(() => {
+    useSetting.mockReturnValue({ setting });
+    readClipboardTextIfAllowed.mockReset();
+    readClipboardTextIfAllowed.mockResolvedValue(null);
+    browser.tabs.getCurrent.mockResolvedValue({ id: 7 });
+    browser.tabs.remove.mockReset();
+    browser.windows.remove.mockReset();
+    browser.windows.getCurrent.mockResolvedValue({
+      id: 4,
+      type: "popup",
+      width: 760,
+      height: 800,
+    });
+  });
+
+  afterEach(() => {
+    if (view) {
+      act(() => view.root.unmount());
+      view.container.remove();
+    }
+  });
+
+  test("shows the shared header without page-only actions in a separate window", async () => {
+    view = renderTrantab({ isSeparate: true });
+    await flushEffects();
+
+    expect(
+      view.container.querySelector(".kt-translation-panel")
+    ).not.toBeNull();
+    expect(view.container.querySelector(".KT-draggable")).toBeNull();
+    expect(view.container.querySelector(".kt-tranbox-header__drag")).toBeNull();
+    expect(
+      [
+        ...view.container.querySelectorAll(
+          ".kt-tranbox-header__actions button"
+        ),
+      ].map((button) => button.title)
+    ).toEqual(["more", "close"]);
+
+    act(() => view.container.querySelector('button[title="more"]').click());
+    const menuItems = [
+      ...view.container.querySelectorAll('[role^="menuitem"]'),
+    ];
+    expect(menuItems.map((button) => button.textContent)).toEqual([
+      "btn_tip_simple_style",
+      "btn_tip_dark_mode",
+    ]);
+    // Empty windows must keep their input available.
+    expect(menuItems[0].disabled).toBe(true);
+  });
+
+  test("embeds the same content without a second header in the popup tab", async () => {
+    view = renderTrantab();
+    await flushEffects();
+
+    expect(
+      view.container.querySelector(".kt-translation-panel--embedded")
+    ).not.toBeNull();
+    expect(view.container.querySelector(".kt-tranbox-content")).not.toBeNull();
+    expect(view.container.querySelector(".kt-tranbox-header")).toBeNull();
+    expect(
+      view.container.querySelector('[data-testid="tran-form"]').dataset
+        .simpleStyle
+    ).toBe("false");
+  });
+
+  test("keeps clipboard input settings when switching the separate window to minimal mode", async () => {
+    readClipboardTextIfAllowed.mockResolvedValue("Clipboard source text");
+    view = renderTrantab({ isSeparate: true });
+    await flushEffects();
+    act(() => view.container.querySelector('button[title="more"]').click());
+    act(() =>
+      view.container.querySelector('[role="menuitemcheckbox"]').click()
+    );
+
+    const form = view.container.querySelector('[data-testid="tran-form"]');
+    expect(form.dataset.simpleStyle).toBe("true");
+    expect(form.dataset.autoFocus).toBe("false");
+    expect(form.dataset.syncExternal).toBe("true");
+    expect(form.textContent).toBe("Clipboard source text");
+    expect(readClipboardTextIfAllowed).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(["popup", "normal"])(
+    "closes only its own tab when the route is hosted in a %s window",
+    async (type) => {
+      browser.windows.getCurrent.mockResolvedValue({ id: 4, type });
+      view = renderTrantab({ isSeparate: true });
+      await flushEffects();
+      act(() => view.container.querySelector('button[title="close"]').click());
+      await flushEffects();
+
+      expect(browser.tabs.remove).toHaveBeenCalledTimes(1);
+      expect(browser.tabs.remove).toHaveBeenCalledWith(7);
+      expect(browser.windows.remove).not.toHaveBeenCalled();
+    }
+  );
+});
+
 describe("separate window auto-fit", () => {
   let container;
   let root;
@@ -365,6 +475,21 @@ describe("separate window auto-fit", () => {
     expect(action).toBe(MSG_FIT_SEPARATE_WINDOW);
     // 612px of content plus 40px of window chrome.
     expect(args.height).toBe(652);
+  });
+
+  test("measures the header, form, borders and outer padding together", async () => {
+    await act(async () => root.render(<Trantab isSeparate />));
+    const panel = container.querySelector(".kt-popup-text-panel");
+    const form = container.querySelector(".kt-tranbox-content");
+    Object.defineProperty(form, "scrollHeight", { value: 500 });
+    Object.defineProperty(panel, "scrollHeight", { value: 582 });
+    expect(panel.querySelector(".kt-tranbox-header")).not.toBeNull();
+    act(() => rafCallbacks.forEach((callback) => callback()));
+
+    expect(sendBgMsg).toHaveBeenCalledWith(
+      MSG_FIT_SEPARATE_WINDOW,
+      expect.objectContaining({ height: 622 })
+    );
   });
 
   test("keeps width at the design cap rather than measuring it", async () => {
