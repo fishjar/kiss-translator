@@ -4,9 +4,11 @@ import { createRoot } from "react-dom/client";
 import FavWords from "./FavWords";
 import { useFavWords } from "../../hooks/FavWords";
 import { useSetting } from "../../hooks/Setting";
+import { useConfirm } from "../../hooks/Confirm";
 import { PROMPT_MODE_FOLLOW_API } from "../../config";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+let mockImport;
 
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key, fallback) => fallback || key,
@@ -21,7 +23,7 @@ jest.mock("../../hooks/Setting", () => ({
 }));
 
 jest.mock("../../hooks/Confirm", () => ({
-  useConfirm: () => jest.fn(),
+  useConfirm: jest.fn(),
 }));
 
 jest.mock("../Selection/DictHandler", () => ({
@@ -60,10 +62,60 @@ jest.mock("./DownloadButton", () => {
 
 jest.mock("./UploadButton", () => {
   const React = require("react");
-  return function MockUploadButton({ text }) {
+  return function MockUploadButton({ text, handleImport }) {
+    mockImport = handleImport;
     return React.createElement("button", { type: "button" }, text);
   };
 });
+
+test.each(["import", "clear"])(
+  "keeps %s pending until persistence finishes and reports failure",
+  async (action) => {
+    let reject;
+    const write = new Promise((_, onReject) => {
+      reject = onReject;
+    });
+    const mergeWords = jest.fn(() => write);
+    const clearWords = jest.fn(() => write);
+    useFavWords.mockReturnValue({
+      favList: [],
+      wordList: [],
+      mergeWords,
+      clearWords,
+    });
+    useSetting.mockReturnValue({
+      setting: {
+        transApis: [],
+        prompts: [],
+        subtitleSetting: {},
+        tranboxSetting: {},
+      },
+    });
+    useConfirm.mockReturnValue(jest.fn().mockResolvedValue(true));
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    act(() => root.render(<FavWords />));
+    const clearButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "clear_all"
+    );
+    let imported;
+    await act(async () => {
+      if (action === "import") imported = mockImport("first\nsecond");
+      else clearButton.click();
+    });
+    expect(clearButton.disabled).toBe(true);
+    if (action === "import")
+      expect(mergeWords).toHaveBeenCalledWith(["first", "second"]);
+    else expect(clearWords).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      reject(new Error("storage unavailable"));
+      await imported;
+    });
+    expect(clearButton.disabled).toBe(false);
+    expect(container.textContent).toContain("error_got_some_wrong");
+    act(() => root.unmount());
+  }
+);
 
 test("keeps every dictionary tab linked to a persistent panel", () => {
   useFavWords.mockReturnValue({

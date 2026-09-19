@@ -510,14 +510,13 @@ describe("Subtitle advanced controls", () => {
 });
 
 describe("Subtitle page copy", () => {
-  // 缺失的 i18n key 会渲染成空字符串而不是 key 名（hooks/I18n.js 的 defaultText 是 ""），
-  // 而本文件把 useI18n mock 成了恒等函数，所以渲染断言完全看不出来。
-  // 只能从源码提取 key 再对着 I18N 校验。
+  // 本文件把 useI18n mock 成恒等函数，渲染断言无法发现未注册或缺少翻译的 key。
+  // 因此从源码提取单参数和带 fallback 的调用，再逐一校验 I18N。
   test("covers every page copy key in all supported UI languages", () => {
     const source = fs.readFileSync(path.join(__dirname, "Subtitle.js"), "utf8");
     const keys = new Set(
       Array.from(
-        source.matchAll(/\bi18n\(\s*["'`]([a-zA-Z0-9_]+)["'`]\s*\)/g),
+        source.matchAll(/\bi18n\(\s*["'`]([a-zA-Z0-9_]+)["'`]/g),
         (match) => match[1]
       )
     );

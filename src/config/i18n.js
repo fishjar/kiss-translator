@@ -1,3 +1,4 @@
+import { TOUCH_I18N } from "./i18n.touch";
 /**
  * @file i18n.js
  * @description 国际化本地化字典文件，包含支持的界面语言、自定义 API 请求帮助文档，以及多语言文案对照（支持中文、英文、繁体中文、日文、韩文）。
@@ -1066,6 +1067,7 @@ const SUBTITLE_PLAYGROUND_I18N = {
 };
 
 export const I18N = {
+  ...TOUCH_I18N,
   ...SETTINGS_I18N,
   ...RULE_EDITOR_I18N,
   ...SUBTITLE_PLAYGROUND_I18N,
@@ -1249,6 +1251,33 @@ export const I18N = {
     ko: `인터페이스 언어`,
     tr: `Arayüz Dili`,
     vi: "Ngôn ngữ giao diện",
+  },
+  popup_default_view: {
+    zh: `工具栏弹窗默认界面`,
+    en: `Toolbar Popup Default View`,
+    zh_TW: `工具列彈出視窗預設介面`,
+    ja: `ツールバーのポップアップ既定画面`,
+    ko: `도구 모음 팝업 기본 화면`,
+    tr: `Araç Çubuğu Açılır Penceresi Varsayılan Görünümü`,
+    vi: "Giao diện mặc định của cửa sổ bật lên trên thanh công cụ",
+  },
+  popup_default_view_page: {
+    zh: `网页翻译`,
+    en: `Web page translation`,
+    zh_TW: `網頁翻譯`,
+    ja: `ウェブページ翻訳`,
+    ko: `웹페이지 번역`,
+    tr: `Web sayfası çevirisi`,
+    vi: "Dịch trang web",
+  },
+  popup_default_view_text: {
+    zh: `文本翻译`,
+    en: `Text translation`,
+    zh_TW: `文字翻譯`,
+    ja: `テキスト翻訳`,
+    ko: `텍스트 번역`,
+    tr: `Metin çevirisi`,
+    vi: "Dịch văn bản",
   },
   version_warning: {
     zh: `当前版本 (v{0}) 不是最新版本 (v{1})，可以等待自动升级或手动`,
@@ -6786,4 +6815,6 @@ Object.keys(I18N).forEach((key) => {
   I18N[key].ru = RU_I18N[key] ?? I18N[key].en;
 });
 
-export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";
+export const newI18n = (lang) => {
+  return (key, defaultText = key) => I18N[key]?.[lang] ?? defaultText;
+};

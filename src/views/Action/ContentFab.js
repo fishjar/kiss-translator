@@ -1,3 +1,5 @@
+import { supportsTouch } from "../../libs/touchCapability";
+import TouchTranslateControl from "../../components/TouchTranslateControl";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
@@ -95,6 +97,7 @@ export function ContentFabContent({
   const windowSize = useWindowSize();
   const [moved, setMoved] = useState(false); // Track whether a drag occurred.
   const [showFab, setShowFab] = useState(true);
+  const [touchOpen, setTouchOpen] = useState(false);
   const [open, setOpen] = useState(false); // Action menu visibility.
   const anchorRef = useRef(null);
   const menuRef = useRef(null);
@@ -128,7 +131,11 @@ export function ContentFabContent({
     // their composed paths to identify the menu and FAB across shadow roots.
     const handleClickAway = (event) => {
       const path = event.composedPath();
-      if (path.includes(menuRef.current) || path.includes(anchorRef.current)) {
+      if (
+        path.includes(menuRef.current) ||
+        path.includes(anchorRef.current) ||
+        path.some((node) => node.hasAttribute?.("data-kiss-touch-ui"))
+      ) {
         return;
       }
       closeMenu();
@@ -259,7 +266,13 @@ export function ContentFabContent({
       icon: SettingsRoundedIcon,
       action: openSettings,
     },
-  ];
+    {
+      label: i18n("touch_paragraph"),
+      icon: TranslateRoundedIcon,
+      action: () => setTouchOpen((value) => !value),
+      hidden: !supportsTouch(),
+    },
+  ].filter((item) => !item.hidden);
 
   return (
     <Draggable
@@ -328,6 +341,9 @@ export function ContentFabContent({
               </MenuItem>
             ))}
           </MenuList>
+          {touchOpen && (
+            <TouchTranslateControl processActions={processActions} />
+          )}
         </Paper>
       </Popper>
     </Draggable>

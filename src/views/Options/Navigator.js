@@ -8,7 +8,7 @@ import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
 import KeyboardRoundedIcon from "@mui/icons-material/KeyboardRounded";
 import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
-import MouseRoundedIcon from "@mui/icons-material/MouseRounded";
+import SegmentRoundedIcon from "@mui/icons-material/SegmentRounded";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
@@ -63,12 +63,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
             "/tranbox",
             SelectAllRoundedIcon,
           ],
-          [
-            "hover",
-            i18n("mousehover_translate"),
-            "/mousehover",
-            MouseRoundedIcon,
-          ],
+          ["hover", i18n("touch_paragraph"), "/mousehover", SegmentRoundedIcon],
           ["input", i18n("input_translate"), "/input", KeyboardRoundedIcon],
           [
             "subtitle",

@@ -61,3 +61,6 @@ export const MSG_XHR_DATA_YOUTUBE = "KISS_XHR_DATA_YOUTUBE"; // 传递 YouTube �
 // --- 字幕菜单控制状态类型 ---
 export const MSG_MENUS_PROGRESSED = "progressed"; // 进度事件
 export const MSG_MENUS_UPDATEFORM = "updateFormData"; // 更新表单参数数据
+
+export const MSG_TOUCH_TRANSLATE_MODE_SET = "touch_translate_mode_set";
+export const MSG_TOUCH_TRANSLATE_STATE = "touch_translate_state";

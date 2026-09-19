@@ -2,7 +2,13 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { DEFAULT_SYNC, STOKEY_SYNC } from "../config";
-import { getSync, putSync, putSyncMeta, storage } from "../libs/storage";
+import {
+  getSync,
+  putSync,
+  putSyncMeta,
+  storage,
+  updateSyncState,
+} from "../libs/storage";
 import { trySyncAllSubRules } from "../libs/subRules";
 import { apiFetch } from "../apis";
 import { useSyncCaches } from "./Sync";
@@ -102,6 +108,48 @@ describe("subscription cache persistence", () => {
     expect((await getSync()).dataCaches).toEqual(expected);
     expect(JSON.parse(container.textContent)).toEqual(expected);
   });
+
+  test.each(["update", "delete"])(
+    "preserves another writer's URL while a cache %s is in progress",
+    async (operation) => {
+      const getItem = Storage.prototype.getItem;
+      let reads = 0;
+      let concurrentWrite;
+      const read = jest
+        .spyOn(Storage.prototype, "getItem")
+        .mockImplementation(function (key) {
+          const value = getItem.call(this, key);
+          if (key === STOKEY_SYNC && ++reads === 2) {
+            concurrentWrite = updateSyncState((current) => ({
+              ...current,
+              dataCaches: { ...current.dataCaches, concurrent: 222 },
+            }));
+          }
+          return value;
+        });
+
+      try {
+        await act(async () => {
+          if (operation === "update") await cache.updateDataCache("added");
+          else await cache.deleteDataCache("existing");
+          await concurrentWrite;
+        });
+
+        expect(concurrentWrite).toBeDefined();
+        expect((await getSync()).dataCaches).toEqual(
+          operation === "update"
+            ? {
+                existing: 123,
+                added: expect.any(Number),
+                concurrent: 222,
+              }
+            : { concurrent: 222 }
+        );
+      } finally {
+        read.mockRestore();
+      }
+    }
+  );
 
   test("continues the cache queue after a storage write fails", async () => {
     const setItem = jest.spyOn(Storage.prototype, "setItem");

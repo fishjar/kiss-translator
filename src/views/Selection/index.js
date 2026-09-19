@@ -115,7 +115,7 @@ export default function Selection({
           <TranBtn
             position={position}
             btnEvent={btnEvent}
-            label={i18n("translate") || "Translate selection"}
+            label={i18n("translate", "Translate selection")}
             onTrigger={(e) => {
               e.stopPropagation();
               handleOpenTranbox();

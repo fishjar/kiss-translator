@@ -2,11 +2,12 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { useSetting } from "../../hooks/Setting";
 import { readClipboardTextIfAllowed } from "../../libs/clipboard";
+import Popup, { Trantab } from ".";
 import { browser } from "../../libs/browser";
 import { sendBgMsg } from "../../libs/msg";
 import { MSG_FIT_SEPARATE_WINDOW, STOKEY_SETTING } from "../../config";
 import { SEPARATE_WINDOW_CONTENT_WIDTH } from "../../config/app";
-import { Trantab } from ".";
+import { loadPopupData } from "./loadData";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let mockIsFirefox = false;
@@ -42,7 +43,11 @@ jest.mock("../../libs/browser", () => ({
   },
 }));
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
-jest.mock("./PopupCont", () => () => null);
+jest.mock("./loadData", () => ({ loadPopupData: jest.fn() }));
+jest.mock("./PopupCont", () => {
+  const React = require("react");
+  return () => React.createElement("div", { "data-testid": "page-panel" });
+});
 jest.mock("./Header", () => () => null);
 jest.mock("../Selection/TranForm", () => {
   const React = require("react");
@@ -514,5 +519,104 @@ describe("separate window auto-fit", () => {
     act(() => rafCallbacks.forEach((callback) => callback()));
 
     expect(sendBgMsg).not.toHaveBeenCalled();
+  });
+});
+
+describe("Popup default view", () => {
+  let container;
+  let root;
+  const updateSetting = jest.fn();
+
+  beforeEach(() => {
+    window.location.hash = "";
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    updateSetting.mockClear();
+    readClipboardTextIfAllowed.mockReset();
+    loadPopupData.mockReset();
+    loadPopupData.mockResolvedValue({ rule: {}, setting });
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+    window.location.hash = "";
+  });
+
+  async function renderPopup(popupDefaultView) {
+    useSetting.mockReturnValue({
+      setting: { ...setting, autoTranslateClipboard: false, popupDefaultView },
+      updateSetting,
+    });
+    await act(async () => {
+      root.render(<Popup />);
+      await Promise.resolve();
+    });
+  }
+
+  test.each([undefined, "page", "invalid"])(
+    "opens the webpage panel for preference %p",
+    async (value) => {
+      await renderPopup(value);
+      expect(
+        container.querySelector('[data-testid="page-panel"]')
+      ).not.toBeNull();
+      expect(container.querySelector('[data-testid="tran-form"]')).toBeNull();
+    }
+  );
+
+  test("opens text translation without a content-script response", async () => {
+    loadPopupData.mockResolvedValue(undefined);
+    await renderPopup("text");
+    expect(container.querySelector('[data-testid="tran-form"]')).not.toBeNull();
+    expect(readClipboardTextIfAllowed).not.toHaveBeenCalled();
+  });
+
+  test("temporary switching does not save or replace the configured default", async () => {
+    await renderPopup("text");
+    const pageTab = Array.from(container.querySelectorAll('[role="tab"]')).find(
+      (tab) => tab.textContent === "popup_page_translation"
+    );
+    act(() => pageTab.click());
+    expect(
+      container.querySelector('[data-testid="page-panel"]')
+    ).not.toBeNull();
+    await renderPopup("text");
+    expect(
+      container.querySelector('[data-testid="page-panel"]')
+    ).not.toBeNull();
+    expect(updateSetting).not.toHaveBeenCalled();
+
+    act(() => root.unmount());
+    root = createRoot(container);
+    await renderPopup("text");
+    expect(container.querySelector('[data-testid="tran-form"]')).not.toBeNull();
+  });
+
+  test("separate windows always show text translation", async () => {
+    window.location.hash = "tranbox";
+    await renderPopup("page");
+    expect(container.querySelector('[data-testid="tran-form"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="page-panel"]')).toBeNull();
+    expect(loadPopupData).not.toHaveBeenCalled();
+  });
+
+  test("separate text windows read the clipboard only once on mount", async () => {
+    window.location.hash = "tranbox";
+    readClipboardTextIfAllowed.mockResolvedValue("clipboard text");
+    useSetting.mockReturnValue({
+      setting: {
+        ...setting,
+        autoTranslateClipboard: true,
+        popupDefaultView: "text",
+      },
+      updateSetting,
+    });
+
+    await act(async () => root.render(<Popup />));
+    await flushEffects();
+
+    expect(readClipboardTextIfAllowed).toHaveBeenCalledTimes(1);
   });
 });

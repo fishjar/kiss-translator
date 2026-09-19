@@ -5,6 +5,10 @@ import createCache from "@emotion/cache";
 import RuleEditor from ".";
 import { storage } from "../../libs/storage";
 import {
+  cloneStorageValue,
+  isSameStorageValue,
+} from "../../libs/storageEquality";
+import {
   STOKEY_RULE_EDITOR_POSITION,
   STOKEY_RULE_INSPECTOR_POSITION,
 } from "../../config";
@@ -21,7 +25,12 @@ jest.mock("../../hooks/Setting", () => ({
 }));
 jest.mock("../../hooks/I18n", () => ({ useI18n: () => (key) => key }));
 jest.mock("../../libs/storage", () => ({
-  storage: { getObj: jest.fn(), setObj: jest.fn() },
+  storage: {
+    getObj: jest.fn(),
+    setObj: jest.fn(),
+    withTransaction: jest.fn(),
+    saveEdit: jest.fn(),
+  },
 }));
 jest.mock("../../libs/sync", () => ({ syncData: jest.fn() }));
 
@@ -29,6 +38,24 @@ let root, container, cache, session, originalResizeObserver;
 beforeEach(() => {
   storage.getObj.mockReset().mockResolvedValue(null);
   storage.setObj.mockReset().mockResolvedValue();
+  storage.withTransaction
+    .mockReset()
+    .mockImplementation((operation) => operation(storage));
+  storage.saveEdit
+    .mockReset()
+    .mockImplementation((key, valueOrFn, _syncKey, options = {}) =>
+      storage.withTransaction(async (transaction) => {
+        const previous = cloneStorageValue(
+          (await transaction.getObj(key)) ?? options.defaultValue
+        );
+        const value = cloneStorageValue(
+          typeof valueOrFn === "function" ? valueOrFn(previous) : valueOrFn
+        );
+        const changed = !isSameStorageValue(previous, value);
+        if (changed) await transaction.setObj(key, value);
+        return { value, changed, updateAt: 0 };
+      })
+    );
   originalResizeObserver = globalThis.ResizeObserver;
   globalThis.ResizeObserver = class {
     observe() {}

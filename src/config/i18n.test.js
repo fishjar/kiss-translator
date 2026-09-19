@@ -1,4 +1,4 @@
-import { I18N, UI_LANGS } from "./i18n";
+import { I18N, UI_LANGS, newI18n } from "./i18n";
 
 test("covers every supported locale for every registered label", () => {
   const locales = UI_LANGS.map(([locale]) => locale);
@@ -26,4 +26,12 @@ test("integrates Russian translations with M3 labels and product identity", () =
   expect(I18N.discard_api_changes_confirm.ru).toBe(
     I18N.discard_api_changes_confirm.en
   );
+});
+
+test("provides default text when key is not found", () => {
+  const i18n = newI18n("en");
+  expect(i18n("nonexistent_key")).toBe("nonexistent_key");
+  expect(i18n("nonexistent_key", "Fallback")).toBe("Fallback");
+  expect(i18n("nonexistent_key", "")).toBe("");
+  expect(i18n("app_name")).not.toBe("app_name");
 });

@@ -22,6 +22,7 @@ import {
   STOKEY_SETTING,
   DEFAULT_SETTING,
   GLOBLA_RULE,
+  OPT_POPUP_DEFAULT_VIEW_TEXT,
   resolveApiPromptList,
 } from "../../config";
 import { kissLog } from "../../libs/log";
@@ -329,22 +330,37 @@ export function Trantab({ isSeparate = false }) {
 
 export default function Popup() {
   const i18n = useI18n();
+  const { setting: globalSetting } = useSetting();
+  const previewMode =
+    process.env.NODE_ENV === "development" &&
+    new URLSearchParams(window.location.search).has("preview");
   const [rule, setRule] = useState(null);
   const [setting, setSetting] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("page");
-  const [isSeparate, setIsSeparate] = useState(false);
+  const [activeTab, setActiveTab] = useState(() =>
+    globalSetting?.popupDefaultView === OPT_POPUP_DEFAULT_VIEW_TEXT
+      ? "text"
+      : "page"
+  );
+  const [isSeparate, setIsSeparate] = useState(
+    () => !previewMode && window.location.hash.slice(1) === "tranbox"
+  );
   const popupShellRef = useRef(null);
+  const initialPageTabRef = useRef(activeTab === "page");
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
   const initialFocusGuardRef = useRef(true);
 
   useLayoutEffect(() => {
-    if (!isSeparate) {
+    if (!isSeparate && initialPageTabRef.current) {
       popupShellRef.current?.focus({ preventScroll: true });
     }
   }, [isSeparate]);
 
   useEffect(() => {
-    if (isSeparate || isLoading) return undefined;
+    if (isSeparate || isLoading || activeTabRef.current !== "page") {
+      return undefined;
+    }
 
     let activationTimer;
     const clearSafariAutofocus = () => {
@@ -387,9 +403,6 @@ export default function Popup() {
     let active = true;
     (async () => {
       try {
-        const previewMode =
-          process.env.NODE_ENV === "development" &&
-          new URLSearchParams(window.location.search).has("preview");
         if (previewMode) {
           setRule({
             ...GLOBLA_RULE,
@@ -430,7 +443,7 @@ export default function Popup() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [previewMode]);
 
   const openSeparateWindow = useCallback(() => {
     sendBgMsg(MSG_OPEN_SEPARATE_WINDOW);

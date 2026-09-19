@@ -1,5 +1,5 @@
 import Stack from "@mui/material/Stack";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -238,6 +238,9 @@ function FavAccordion({
 export default function FavWords() {
   const i18n = useI18n();
   const [showMoreExports, setShowMoreExports] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const pendingSave = useRef(false);
   // 全局生词管理 Hook，提供生词字典、单纯单词列表、合并导入与清空方法
   const { favList, wordList, mergeWords, clearWords } = useFavWords();
   const { setting } = useSetting();
@@ -249,28 +252,41 @@ export default function FavWords() {
   );
   const confirm = useConfirm();
 
-  // 导入解析方法：解析纯文本，按行提取逗号分隔的第一个字段作为有效单词进行合并
-  const handleImport = (data) => {
+  const persistWords = async (operation) => {
+    if (pendingSave.current) return;
+    pendingSave.current = true;
+    setSaving(true);
+    setSaveError("");
     try {
+      await operation();
+    } catch (error) {
+      kissLog("save favorite words", error);
+      setSaveError(i18n("error_got_some_wrong"));
+    } finally {
+      pendingSave.current = false;
+      setSaving(false);
+    }
+  };
+
+  // Parse the first CSV column and wait for persistence before releasing the action.
+  const handleImport = (data) =>
+    persistWords(async () => {
       const newWords = data
         .split("\n")
         .map((line) => line.split(",")[0].trim())
         .filter(isValidWord);
-      mergeWords(newWords);
-    } catch (err) {
-      kissLog("import rules", err);
-    }
-  };
-
-  // 清空整个生词库的二次确认对话框
-  const handleClearWords = async () => {
-    const isConfirmed = await confirm({
-      confirmText: i18n("confirm_title"),
-      cancelText: i18n("cancel"),
+      await mergeWords(newWords);
     });
-    if (isConfirmed) {
-      clearWords();
-    }
+
+  // Keep the confirmation and write within the pending action boundary.
+  const handleClearWords = async () => {
+    await persistWords(async () => {
+      const isConfirmed = await confirm({
+        confirmText: i18n("confirm_title"),
+        cancelText: i18n("cancel"),
+      });
+      if (isConfirmed) await clearWords();
+    });
   };
 
   // 导出为格式化纯文本 (.txt) 格式方法
@@ -479,6 +495,7 @@ export default function FavWords() {
       <Stack spacing={3}>
         {/* 生词本操作说明提示条 */}
         <Alert severity="info">{i18n("favorite_words_helper")}</Alert>
+        {saveError && <Alert severity="error">{saveError}</Alert>}
 
         {/* 导入、导出以及清空控制操作按钮栏 */}
         <Stack
@@ -517,6 +534,7 @@ export default function FavWords() {
             size="small"
             variant="outlined"
             onClick={handleClearWords}
+            disabled={saving}
             startIcon={<ClearAllIcon />}
           >
             {i18n("clear_all")}

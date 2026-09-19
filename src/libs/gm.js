@@ -1,5 +1,8 @@
 import { fetchGM } from "./fetch";
 import { genEventName } from "./utils";
+import { getGmMethod, getNativeGm } from "./gmMethods";
+
+export { getGmMethod, getNativeGm } from "./gmMethods";
 
 // 各项 GM (Greasemonkey) 跨沙盒通信指令
 const MSG_GM_xmlHttpRequest = "xmlHttpRequest";
@@ -7,6 +10,8 @@ const MSG_GM_xmlHttpRequestAbort = "xmlHttpRequestAbort";
 const MSG_GM_setValue = "setValue";
 const MSG_GM_getValue = "getValue";
 const MSG_GM_deleteValue = "deleteValue";
+const MSG_GM_addValueChangeListener = "addValueChangeListener";
+const MSG_GM_removeValueChangeListener = "removeValueChangeListener";
 const MSG_GM_info = "info";
 const GM_XHR_CALLBACKS = [
   "onloadstart",
@@ -24,49 +29,7 @@ const GM_XHR_TERMINAL_CALLBACKS = new Set([
   "ontimeout",
 ]);
 const gmRequestHandles = new Map();
-
-/**
- * 获取原生的 GM (Greasemonkey) 对象。
- * 兼容不同的油猴脚本管理器环境（部分管理器将其暴露为独立变量，部分挂载于 globalThis）。
- * @returns {Object|undefined} 返回原生的 GM 对象，若不存在则返回 undefined
- */
-export function getNativeGm() {
-  if (typeof GM !== "undefined") {
-    return GM;
-  }
-
-  return globalThis.GM;
-}
-
-/**
- * 通用方法：安全地获取并绑定对应的 GM API 接口。
- * 执行查找策略：
- * 1. 优先在传入的 fallbackObjects (例如沙盒桥接的 window.KISS_GM) 中查找。
- * 2. 其次在原生 GM Promise API (如 GM.setValue) 中查找。
- * 3. 最后回退查找旧版同步 API (如 GM_setValue)。
- * @param {string} method 新版 Promise 风格的 GM API 键名 (例如 "setValue")
- * @param {string} legacyMethod 旧版同步风格的 GM API 键名 (例如 "GM_setValue")
- * @param {Array<Object>} fallbackObjects 需要优先遍历的备选/代理对象数组
- * @returns {Function} 已绑定正确上下文 (this) 的可执行 GM API 函数
- * @throws {Error} 若在所有备选环境中均找不到该 API，则抛出异常
- */
-export function getGmMethod(method, legacyMethod, fallbackObjects = []) {
-  const gmObjects = [...fallbackObjects, getNativeGm()];
-  for (const obj of gmObjects) {
-    const api = obj?.[method];
-    if (typeof api === "function") {
-      // 必须绑定原始上下文，防止原生函数调用时丢失对象指针而报错 (Illegal invocation)
-      return api.bind(obj);
-    }
-  }
-
-  const legacyApi = globalThis[legacyMethod];
-  if (typeof legacyApi === "function") {
-    return legacyApi;
-  }
-
-  throw new Error(`GM API is not available: ${method}`);
-}
+const gmValueListeners = new Map();
 
 /**
  * 跨环境获取油猴脚本的元信息 (GM_info)。
@@ -121,21 +84,16 @@ export const adaptScript = (ping) => {
         }
       };
 
-      // 1. 注册接收回调的临时事件监听器
+      // Register the timeout before dispatch because a bridge can reply immediately.
       window.addEventListener(pong, handleEvent);
-
-      // 2. 向特权油猴脚本环境分发请求事件
-      window.dispatchEvent(
-        new CustomEvent(ping, { detail: { action, args, pong } })
-      );
-
-      // 3. 注册超时保险定时器，避免请求卡死造成内存监听器泄露
-      // REVIEW: 原实现中没有 clearTimeout 句柄。如果请求正常 resolve，
-      // 该定时器仍会触发并无害地执行一次 removeEventListener，但会堆积临时定时器。已在此处优化加入 timer 清理。
       timer = setTimeout(() => {
         window.removeEventListener(pong, handleEvent);
         reject(new Error("timeout"));
       }, timeout);
+
+      window.dispatchEvent(
+        new CustomEvent(ping, { detail: { action, args, pong } })
+      );
     });
 
   const xmlHttpRequest = (details) => {
@@ -190,6 +148,52 @@ export const adaptScript = (ping) => {
     };
   };
 
+  const valueListeners = new Map();
+  const removeValueChangeListener = async (listenerId) => {
+    const registration = valueListeners.get(listenerId);
+    if (!registration) return;
+    window.removeEventListener(listenerId, registration.listener);
+    if (!registration.removal) {
+      registration.removal = promiseGM(MSG_GM_removeValueChangeListener, {
+        listenerId,
+      }).then(
+        () => valueListeners.delete(listenerId),
+        (error) => {
+          registration.removal = undefined;
+          throw error;
+        }
+      );
+    }
+    await registration.removal;
+  };
+  const addValueChangeListener = async (key, callback) => {
+    const listenerId = `${genEventName()}-value`;
+    const listener = (event) => {
+      if (event.detail?.change) callback(...event.detail.change);
+    };
+    valueListeners.set(listenerId, { listener });
+    window.addEventListener(listenerId, listener);
+    try {
+      await promiseGM(MSG_GM_addValueChangeListener, { key, listenerId });
+      return listenerId;
+    } catch (error) {
+      // The caller never received this token, so retry orphan cleanup once.
+      void removeValueChangeListener(listenerId)
+        .catch(() => removeValueChangeListener(listenerId))
+        .catch(() => {
+          // A final lifecycle attempt never removes active BFCache subscriptions.
+          window.addEventListener(
+            "pagehide",
+            () => {
+              void removeValueChangeListener(listenerId).catch(() => {});
+            },
+            { once: true }
+          );
+        });
+      throw error;
+    }
+  };
+
   // 挂载垫片到宿主页面 window，使运行在普通页面沙盒中的 React / Web 业务代码可以像调用原生 GM 般顺畅
   window.KISS_GM = {
     fetch: (input, init) => promiseGM(MSG_GM_xmlHttpRequest, { input, init }),
@@ -197,6 +201,8 @@ export const adaptScript = (ping) => {
     setValue: (key, val) => promiseGM(MSG_GM_setValue, { key, val }),
     getValue: (key) => promiseGM(MSG_GM_getValue, { key }),
     deleteValue: (key) => promiseGM(MSG_GM_deleteValue, { key }),
+    addValueChangeListener,
+    removeValueChangeListener,
     getInfo: async () => {
       if (!window.GM_info) {
         window.GM_info = await promiseGM(MSG_GM_info);
@@ -275,6 +281,59 @@ export const handlePing = async (e) => {
         await getGmMethod("deleteValue", "GM_deleteValue")(args.key);
         res = "ok";
         break;
+      case MSG_GM_addValueChangeListener: {
+        const { key, listenerId } = args;
+        if (gmValueListeners.has(listenerId))
+          throw new Error("GM storage listener already exists");
+        const addListener = getGmMethod(
+          "addValueChangeListener",
+          "GM_addValueChangeListener"
+        );
+        const removeListener = getGmMethod(
+          "removeValueChangeListener",
+          "GM_removeValueChangeListener"
+        );
+        const registration = { active: true, removeListener };
+        gmValueListeners.set(listenerId, registration);
+        registration.pending = Promise.resolve().then(() =>
+          addListener(key, (...change) => {
+            if (registration.active) {
+              window.dispatchEvent(
+                new CustomEvent(listenerId, { detail: { change } })
+              );
+            }
+          })
+        );
+        try {
+          await registration.pending;
+          res = listenerId;
+        } catch (error) {
+          if (gmValueListeners.get(listenerId) === registration)
+            gmValueListeners.delete(listenerId);
+          throw error;
+        }
+        break;
+      }
+      case MSG_GM_removeValueChangeListener: {
+        const registration = gmValueListeners.get(args.listenerId);
+        if (registration) {
+          registration.active = false;
+          if (!registration.removal) {
+            registration.removal = registration.pending
+              .then((nativeId) => registration.removeListener(nativeId))
+              .then(
+                () => gmValueListeners.delete(args.listenerId),
+                (error) => {
+                  registration.removal = undefined;
+                  throw error;
+                }
+              );
+          }
+          await registration.removal;
+        }
+        res = "ok";
+        break;
+      }
       case MSG_GM_info:
         res = getGmInfo();
         break;

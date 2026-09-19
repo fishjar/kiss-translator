@@ -32,6 +32,7 @@ import {
   useState,
   useMemo,
   useEffect,
+  useLayoutEffect,
   useRef,
   useCallback,
 } from "react";
@@ -100,6 +101,7 @@ export default function TranForm({
   syncExternalTextWhileEditing = false,
   playgroundConfigHeader = null,
   popupStyle = false,
+  initialSettingsReady = true,
 }) {
   const i18n = useI18n();
   const dictionaryTabsId = useId();
@@ -122,6 +124,7 @@ export default function TranForm({
   const [langDetector, setLangDetector] = useState(initLangDetector);
   const [enDict, setEnDict] = useState(initEnDict);
   const [enSug, setEnSug] = useState(initEnSug);
+  const initialSettingsAppliedRef = useRef(initialSettingsReady);
   const [dictTab, setDictTab] = useState("default");
   const [showPopupServices, setShowPopupServices] = useState(false);
   const hasUserChangedDictTabRef = useRef(false);
@@ -164,6 +167,28 @@ export default function TranForm({
   const deLang = hasCurrentDetection ? detection.lang : "";
   const deLoading =
     Boolean(text.trim()) && (!hasCurrentDetection || detection.loading);
+
+  // The locked Playground can show local defaults before startup sync finishes.
+  // Adopt the complete initial settings before the unlocked form paints.
+  // Subsequent settings changes must preserve the user's choices.
+  useLayoutEffect(() => {
+    if (!initialSettingsReady || initialSettingsAppliedRef.current) return;
+    initialSettingsAppliedRef.current = true;
+    setFromLang(initFromLang);
+    setToLang(initToLang);
+    setToLang2(initToLang2);
+    setLangDetector(initLangDetector);
+    setEnDict(initEnDict);
+    setEnSug(initEnSug);
+  }, [
+    initialSettingsReady,
+    initFromLang,
+    initToLang,
+    initToLang2,
+    initLangDetector,
+    initEnDict,
+    initEnSug,
+  ]);
 
   // Focus the input at the end of its text when autofocus is enabled.
   // autoFocusInput may become true after asynchronous initialization.
