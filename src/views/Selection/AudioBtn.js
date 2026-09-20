@@ -1,6 +1,6 @@
 import IconButton from "@mui/material/IconButton";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAudio } from "../../hooks/Audio";
 import { canSpeak, speak } from "../../libs/speech";
 import queryString from "query-string";
@@ -78,27 +78,30 @@ export function BaiduAudioBtn({ text, lan = "uk", spd = 3 }) {
 
 export function BrowserTtsBtn({ text, lang = "en-US", title = "Speak" }) {
   const [speaking, setSpeaking] = useState(false);
+  const speakingRef = useRef(false);
 
   if (!text?.trim() || !canSpeak()) return null;
 
   const handleSpeak = () => {
-    if (speaking) return;
+    if (speakingRef.current) return;
 
     // Browser TTS has no audio element, so the button tracks playback itself.
+    speakingRef.current = true;
     setSpeaking(true);
-    const started = speak(text, lang, {
-      onEnd: () => setSpeaking(false),
-    });
-
-    if (!started) {
+    const onEnd = () => {
+      speakingRef.current = false;
       setSpeaking(false);
-    }
+    };
+    const started = speak(text, lang, { onEnd });
+
+    if (!started) onEnd();
   };
 
   return (
     <IconButton
       color={speaking ? "primary" : "default"}
-      disabled={speaking}
+      // A native disabled button loses keyboard focus while speech is starting.
+      aria-disabled={speaking}
       onClick={handleSpeak}
       size="small"
       title={title}
@@ -108,7 +111,7 @@ export function BrowserTtsBtn({ text, lang = "en-US", title = "Speak" }) {
       sx={{
         ml: 0.5,
         verticalAlign: "middle",
-        "&.Mui-disabled": speaking ? { color: "primary.main" } : undefined,
+        cursor: speaking ? "default" : undefined,
       }}
     >
       <VolumeUpIcon fontSize="inherit" />

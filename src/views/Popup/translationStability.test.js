@@ -129,13 +129,13 @@ describe("Trantab translation request stability", () => {
       expect(apiTranslate).toHaveBeenCalledTimes(1);
       expect(request.signal.aborted).toBe(false);
       expect(
-        container.querySelector(".kt-popup-translation-result__body")
-          .textContent
+        container.querySelector(".kt-translation-result textarea[readonly]")
+          .value
       ).toBe("Partial translation");
       act(() => request.onStreamChunk({ text: "Continued translation" }));
       expect(
-        container.querySelector(".kt-popup-translation-result__body")
-          .textContent
+        container.querySelector(".kt-translation-result textarea[readonly]")
+          .value
       ).toBe("Continued translation");
       expect(readClipboardTextIfAllowed).toHaveBeenCalledTimes(1);
     }

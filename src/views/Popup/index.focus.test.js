@@ -2,7 +2,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import Popup from ".";
-import { sendBgMsg } from "../../libs/msg";
+import { getCurTab, sendBgMsg } from "../../libs/msg";
 import { MSG_OPEN_OPTIONS } from "../../config";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -16,6 +16,11 @@ jest.mock("./loadData", () => ({
 }));
 
 jest.mock("../../libs/msg", () => ({
+  getCurTab: jest.fn(async () => ({
+    id: 1,
+    windowId: 1,
+    url: "https://example.com",
+  })),
   sendBgMsg: jest.fn(),
   sendTabMsg: (...args) => mockSendTabMsg(...args),
 }));
@@ -71,6 +76,11 @@ jest.mock("../Selection/TranForm", () => {
 
 describe("Popup focus", () => {
   beforeEach(() => {
+    getCurTab.mockResolvedValue({
+      id: 1,
+      windowId: 1,
+      url: "https://example.com",
+    });
     mockPopupContentAutofocus = false;
     mockSetting = { tranboxSetting: {} };
     mockSendTabMsg.mockResolvedValue(undefined);
@@ -320,7 +330,7 @@ describe("Popup focus", () => {
     });
 
     expect(container.textContent).toContain("content");
-    expect(container.textContent).not.toContain("load_setting_err");
+    expect(container.textContent).not.toContain("popup_page_unavailable");
 
     act(() => root.unmount());
     container.remove();
