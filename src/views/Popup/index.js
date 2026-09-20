@@ -397,18 +397,11 @@ export default function Popup() {
       },
     };
   }, [previewMode]);
-  const {
-    data,
-    tab,
-    generation,
-    isLoading,
-    setRule,
-    setSetting,
-    markUnavailable,
-  } = usePopupPage({
-    enabled: !isSeparate && !previewData,
-    initialData: previewData,
-  });
+  const { data, tab, generation, isLoading, setRule, markUnavailable } =
+    usePopupPage({
+      enabled: !isSeparate && !previewData,
+      initialData: previewData,
+    });
   const {
     rule,
     setting,
@@ -559,7 +552,6 @@ export default function Popup() {
             rule={rule}
             setting={setting}
             setRule={setRule}
-            setSetting={setSetting}
             handleOpenSetting={handleOpenSetting}
           />
         ) : isLoading ? (

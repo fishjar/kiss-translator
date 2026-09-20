@@ -105,6 +105,22 @@ const apiListControlSx = {
   flex: `0 0 ${API_LIST_CONTROL_SIZE}px`,
 };
 
+const apiFieldsGridSx = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr)",
+  gap: 2,
+  width: "100%",
+  margin: 0,
+  "& > .MuiGrid-item": {
+    minWidth: 0,
+    maxWidth: "100%",
+    padding: 0,
+  },
+  "@container api-detail (min-width: 480px)": {
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  },
+};
+
 const EPHONEAI_MODELS = [
   "gpt-5.4-mini",
   "gpt-5.4-nano",
@@ -773,7 +789,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         </Stack>
       </Stack>
       <Box>
-        <Grid container spacing={2} columns={12}>
+        <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
           <Grid item xs={12} sm={12} md={6} lg={6}>
             <TextField
               size="small"
@@ -875,7 +891,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
             />
           )}
           <Box>
-            <Grid container spacing={2} columns={12}>
+            <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
               <Grid item xs={12} sm={12} md={6} lg={6}>
                 <ReusableAutocomplete
                   freeSolo
@@ -1011,7 +1027,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
 
       {API_SPE_TYPES.batch.has(apiType) && (
         <Box>
-          <Grid container spacing={2} columns={12}>
+          <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
             <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
@@ -1090,7 +1106,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
 
       {hasRuntimeOptions && (
         <Box className="kt-api-runtime-options">
-          <Grid container spacing={2} columns={12}>
+          <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
             {API_SPE_TYPES.stream.has(apiType) && (
               <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
@@ -1167,7 +1183,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
       )}
 
       <Box>
-        <Grid container spacing={2} columns={12}>
+        <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
           <Grid item xs={12} sm={12} md={6} lg={6}>
             <ValidationInput
               size="small"
@@ -1212,7 +1228,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
 
       {API_SPE_TYPES.ai.has(apiType) && (
         <Box>
-          <Grid container spacing={2} columns={12}>
+          <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
             <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
@@ -1288,7 +1304,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
 
       {thinkingParam && (
         <Box>
-          <Grid container spacing={2} columns={12}>
+          <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
             <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
@@ -1350,7 +1366,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
       {showMore && (
         <>
           <Box>
-            <Grid container spacing={2} columns={12}>
+            <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
               <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   select
@@ -2260,7 +2276,12 @@ export default function Apis() {
             <Box
               className="kt-api-detail"
               ref={detailPanelRef}
-              sx={{ minWidth: 0, mt: "0 !important" }}
+              sx={{
+                minWidth: 0,
+                mt: "0 !important",
+                containerName: "api-detail",
+                containerType: "inline-size",
+              }}
             >
               <ApiFields
                 key={detailKey}

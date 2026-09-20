@@ -149,16 +149,6 @@ describe("popup translation controls", () => {
     ).toBe(true);
   });
 
-  test("wraps long scene labels", () => {
-    const sceneLabelRule = POPUP_STYLES.match(
-      /\.kt-popup-scene__label\s*\{([^}]*)\}/
-    )?.[1];
-
-    expect(sceneLabelRule).toContain("white-space: normal");
-    expect(sceneLabelRule).toContain("overflow-wrap: anywhere");
-    expect(sceneLabelRule).not.toContain("text-overflow: ellipsis");
-  });
-
   test("rotates the more-services icon when expanded", () => {
     expect(POPUP_STYLES).toMatch(
       /\.kt-popup-more-service\[aria-expanded="true"\] svg\s*\{[^}]*transform:\s*rotate\(180deg\);/

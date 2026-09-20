@@ -1,0 +1,2 @@
+export const SETTINGS_FONT_SIZE = 14;
+export const SETTINGS_HELPER_FONT_SIZE = 12;
