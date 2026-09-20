@@ -7,10 +7,10 @@ import { useGet } from "./Fetch";
  * 获取多语言文本的工具函数
  * @param {string} uiLang 当前界面语言 (如 'zh-CN', 'en')
  * @param {string} key 翻译键名
- * @param {string} defaultText 默认备用文本
+ * @param {string} defaultText 默认备用文本，缺少时使用 key
  * @returns {string} 本地化后的文本
  */
-export const getI18n = (uiLang, key, defaultText = "") => {
+export const getI18n = (uiLang, key, defaultText = key) => {
   return I18N?.[key]?.[uiLang] ?? defaultText;
 };
 
@@ -19,7 +19,7 @@ export const getI18n = (uiLang, key, defaultText = "") => {
 // render would invalidate their caches.
 export const useLangMap = (uiLang) => {
   return useCallback(
-    (key, defaultText = "") => getI18n(uiLang, key, defaultText),
+    (key, defaultText = key) => getI18n(uiLang, key, defaultText),
     [uiLang]
   );
 };
@@ -42,7 +42,7 @@ export const useI18n = () => {
  */
 export const useI18nMd = (key) => {
   const i18n = useI18n();
-  const fileName = i18n(key);
+  const fileName = i18n(key, "");
   // 从指定的 CDN 或是仓库根路径下载对应的 md 文件
   const url = fileName ? `${URL_RAW_PREFIX}/${fileName}` : "";
   return useGet(url);

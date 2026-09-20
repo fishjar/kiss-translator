@@ -2,7 +2,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import Popup from ".";
-import { sendBgMsg } from "../../libs/msg";
+import { getCurTab, sendBgMsg } from "../../libs/msg";
 import { MSG_OPEN_OPTIONS } from "../../config";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -16,6 +16,11 @@ jest.mock("./loadData", () => ({
 }));
 
 jest.mock("../../libs/msg", () => ({
+  getCurTab: jest.fn(async () => ({
+    id: 1,
+    windowId: 1,
+    url: "https://example.com",
+  })),
   sendBgMsg: jest.fn(),
   sendTabMsg: (...args) => mockSendTabMsg(...args),
 }));
@@ -57,17 +62,25 @@ jest.mock("./PopupCont", () => {
 
 jest.mock("../Selection/TranForm", () => {
   const React = require("react");
-  return () =>
+  return ({ autoFocusInput }) =>
     React.createElement(
       "div",
       null,
       "translation",
-      React.createElement("input", { "aria-label": "translation-input" })
+      React.createElement("input", {
+        "aria-label": "translation-input",
+        autoFocus: autoFocusInput,
+      })
     );
 });
 
 describe("Popup focus", () => {
   beforeEach(() => {
+    getCurTab.mockResolvedValue({
+      id: 1,
+      windowId: 1,
+      url: "https://example.com",
+    });
     mockPopupContentAutofocus = false;
     mockSetting = { tranboxSetting: {} };
     mockSendTabMsg.mockResolvedValue(undefined);
@@ -91,6 +104,33 @@ describe("Popup focus", () => {
     });
 
     expect(sendBgMsg).toHaveBeenCalledWith(MSG_OPEN_OPTIONS);
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  test("keeps input autofocus when the configured default is the text tab", async () => {
+    mockSetting = {
+      tranboxSetting: {},
+      autoTranslateClipboard: false,
+      popupDefaultView: "text",
+    };
+    mockSendTabMsg.mockReturnValue(new Promise(() => {}));
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<Popup />);
+      await Promise.resolve();
+    });
+
+    expect(
+      container.querySelector('[role="tab"][aria-selected="true"]').textContent
+    ).toBe("popup_text_translation");
+    expect(document.activeElement).toBe(
+      container.querySelector('[aria-label="translation-input"]')
+    );
+
     act(() => root.unmount());
     container.remove();
   });
@@ -290,7 +330,7 @@ describe("Popup focus", () => {
     });
 
     expect(container.textContent).toContain("content");
-    expect(container.textContent).not.toContain("load_setting_err");
+    expect(container.textContent).not.toContain("popup_page_unavailable");
 
     act(() => root.unmount());
     container.remove();

@@ -25,6 +25,8 @@ export const MSG_TRANS_TOGGLE_ONLY = "toggle_translate_only"; // 广播切换仅
 export const MSG_TRANS_TOGGLE_STYLE = "toggle_styles"; // 广播切换译文样式消息
 export const MSG_OPEN_TRANBOX = "open_tranbox"; // 广播开启划词翻译面板消息
 export const MSG_TRANS_GETRULE = "trans_getrule"; // 获取网页匹配的特定规则
+export const MSG_GET_FRAME_ID = "get_frame_id"; // Read the sender's browser frame ID.
+export const MSG_VALIDATE_DOCUMENT = "validate_document";
 export const MSG_TRANS_PUTRULE = "trans_putrule"; // 保存或应用网页翻译规则
 export const MSG_TRANS_CURRULE = "trans_currule"; // 发送当前页面所适配的有效规则
 export const MSG_TRANSBOX_TOGGLE = "toggle_transbox"; // 切换划词翻译框的显示与隐藏
@@ -61,3 +63,6 @@ export const MSG_XHR_DATA_YOUTUBE = "KISS_XHR_DATA_YOUTUBE"; // 传递 YouTube �
 // --- 字幕菜单控制状态类型 ---
 export const MSG_MENUS_PROGRESSED = "progressed"; // 进度事件
 export const MSG_MENUS_UPDATEFORM = "updateFormData"; // 更新表单参数数据
+
+export const MSG_TOUCH_TRANSLATE_MODE_SET = "touch_translate_mode_set";
+export const MSG_TOUCH_TRANSLATE_STATE = "touch_translate_state";

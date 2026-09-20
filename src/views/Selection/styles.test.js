@@ -1,12 +1,13 @@
 import { SELECTION_STYLES } from "./styles";
+import { TRANSLATION_PANEL_STYLES } from "../../components/TranslationPanel/styles";
 import { getCssAtRuleBodies } from "../../styles/testUtils";
 
 describe("selection Material 3 shapes", () => {
   test("bounds the overflow menu and keeps its items scrollable in short viewports", () => {
-    const menuRule = SELECTION_STYLES.match(
+    const menuRule = TRANSLATION_PANEL_STYLES.match(
       /\.kt-tranbox-header__menu\s*\{([^}]*)\}/
     )?.[1];
-    const itemRule = SELECTION_STYLES.match(
+    const itemRule = TRANSLATION_PANEL_STYLES.match(
       /\.kt-tranbox-header__menu button\s*\{([^}]*)\}/
     )?.[1];
     expect(menuRule).toContain("box-sizing: border-box");
@@ -17,26 +18,26 @@ describe("selection Material 3 shapes", () => {
   });
 
   test("uses restrained surface and menu radii", () => {
-    expect(SELECTION_STYLES).toMatch(
-      /\.KT-draggable-body\s*\{[^}]*border-radius:\s*16px !important;/
+    expect(TRANSLATION_PANEL_STYLES).toMatch(
+      /\.kt-translation-panel\s*\{[^}]*border-radius:\s*16px !important;/
     );
-    expect(SELECTION_STYLES).toMatch(
+    expect(TRANSLATION_PANEL_STYLES).toMatch(
       /\.kt-tranbox-header__menu\s*\{[^}]*border-radius:\s*4px;/
     );
-    expect(SELECTION_STYLES).toMatch(
+    expect(TRANSLATION_PANEL_STYLES).toMatch(
       /\.kt-tranbox-header__menu button\s*\{[^}]*border-radius:\s*8px;/
     );
-    expect(SELECTION_STYLES).toMatch(
+    expect(TRANSLATION_PANEL_STYLES).toMatch(
       /\.kt-tranbox-header \.MuiIconButton-root\[aria-pressed="true"\]:hover\s*\{[^}]*var\(--kt-onpric\) 8%/
     );
-    expect(SELECTION_STYLES).toMatch(
+    expect(TRANSLATION_PANEL_STYLES).toMatch(
       /\.kt-tranbox-header \.MuiIconButton-root\[aria-pressed="true"\]\.Mui-focusVisible,[\s\S]*?\[aria-pressed="true"\]:active\s*\{[^}]*var\(--kt-onpric\) 10%/
     );
-    expect(SELECTION_STYLES).not.toContain(
+    expect(TRANSLATION_PANEL_STYLES).not.toContain(
       ".KT-draggable-container .MuiStack-root { gap: 12px; }"
     );
     const hoverBodies = getCssAtRuleBodies(
-      SELECTION_STYLES,
+      TRANSLATION_PANEL_STYLES,
       "@media (hover: hover)"
     );
     expect(

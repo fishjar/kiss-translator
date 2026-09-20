@@ -7,9 +7,11 @@ jest.mock("../apis/index.js", () => ({
 }));
 
 jest.mock("../libs/storage.js", () => ({
-  debounceSyncMeta: jest.fn(),
   getWordsWithDefault: jest.fn().mockResolvedValue({}),
-  setWords: jest.fn(),
+  saveEdit: jest.fn(async (_key, update) => ({
+    value: update({}),
+    changed: true,
+  })),
 }));
 
 jest.mock("../libs/log.js", () => ({

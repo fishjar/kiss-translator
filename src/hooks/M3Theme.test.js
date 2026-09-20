@@ -1,9 +1,12 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
+import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import M3Theme from "./M3Theme";
+import { M3_FONT_FAMILY } from "../styles/m3";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -181,6 +184,114 @@ test("scopes the resolved Material 3 palette to its root", () => {
 
   act(() => root.unmount());
   container.remove();
+});
+
+test.each(["object", "callback"])(
+  "compact %s typography keeps M3 defaults and generates pixel sizes on small-root pages",
+  (kind) => {
+    const originalFontSize = document.documentElement.style.fontSize;
+    document.documentElement.style.fontSize = "10px";
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const typography = {
+      pxToRem: (size) => `${size}px`,
+      body1: { fontSize: 14 },
+      body2: { fontSize: 13 },
+      caption: { fontSize: 12 },
+      button: { fontSize: 13 },
+    };
+
+    try {
+      act(() => {
+        root.render(
+          <M3Theme
+            options={{
+              typography: kind === "callback" ? () => typography : typography,
+            }}
+          >
+            <Typography variant="h6">Heading</Typography>
+            <Typography variant="body1" id="compact-body">
+              Body
+            </Typography>
+            <Typography variant="body2" id="compact-detail">
+              Detail
+            </Typography>
+            <Typography variant="caption" id="compact-caption">
+              Caption
+            </Typography>
+            <Button>Action</Button>
+          </M3Theme>
+        );
+      });
+
+      const style = (selector) =>
+        getComputedStyle(container.querySelector(selector));
+      expect(style("h6").fontSize).toBe("20px");
+      expect(style("#compact-body").fontSize).toBe("14px");
+      expect(style("#compact-detail").fontSize).toBe("13px");
+      expect(style("#compact-caption").fontSize).toBe("12px");
+      expect(style("button").fontSize).toBe("13px");
+      expect(style("button").fontFamily.replace(/,\s*/g, ",")).toBe(
+        M3_FONT_FAMILY.replace(/,\s*/g, ",")
+      );
+      expect(style("button").fontWeight).toBe("650");
+      expect(style("button").textTransform).toBe("none");
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+      document.documentElement.style.fontSize = originalFontSize;
+    }
+  }
+);
+
+test("partial component options preserve M3 button defaults and focus treatment", () => {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  try {
+    act(() => {
+      root.render(
+        <M3Theme
+          options={{
+            components: {
+              MuiButton: {
+                defaultProps: { size: "small" },
+                styleOverrides: {
+                  root: { minHeight: 32 },
+                  sizeSmall: { fontSize: 12 },
+                },
+              },
+            },
+          }}
+        >
+          <Button>Action</Button>
+          <ThemeProbe />
+        </M3Theme>
+      );
+    });
+
+    const button = getComputedStyle(container.querySelector("button"));
+    expect(button.minHeight).toBe("32px");
+    expect(button.fontSize).toBe("12px");
+    expect(button.borderRadius).toBe("999px");
+    expect(capturedTheme.components.MuiButton.defaultProps).toMatchObject({
+      disableElevation: true,
+      size: "small",
+    });
+    expect(
+      capturedTheme.components.MuiButton.styleOverrides.root[
+        "&.Mui-focusVisible"
+      ]
+    ).toEqual({
+      outline: "3px solid #A8C7FA",
+      outlineOffset: 2,
+    });
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+  }
 });
 
 let capturedTheme;

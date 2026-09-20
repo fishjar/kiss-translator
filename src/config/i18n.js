@@ -1,3 +1,4 @@
+import { TOUCH_I18N } from "./i18n.touch";
 /**
  * @file i18n.js
  * @description 国际化本地化字典文件，包含支持的界面语言、自定义 API 请求帮助文档，以及多语言文案对照（支持中文、英文、繁体中文、日文、韩文）。
@@ -1066,6 +1067,7 @@ const SUBTITLE_PLAYGROUND_I18N = {
 };
 
 export const I18N = {
+  ...TOUCH_I18N,
   ...SETTINGS_I18N,
   ...RULE_EDITOR_I18N,
   ...SUBTITLE_PLAYGROUND_I18N,
@@ -1249,6 +1251,33 @@ export const I18N = {
     ko: `인터페이스 언어`,
     tr: `Arayüz Dili`,
     vi: "Ngôn ngữ giao diện",
+  },
+  popup_default_view: {
+    zh: `工具栏弹窗默认界面`,
+    en: `Toolbar Popup Default View`,
+    zh_TW: `工具列彈出視窗預設介面`,
+    ja: `ツールバーのポップアップ既定画面`,
+    ko: `도구 모음 팝업 기본 화면`,
+    tr: `Araç Çubuğu Açılır Penceresi Varsayılan Görünümü`,
+    vi: "Giao diện mặc định của cửa sổ bật lên trên thanh công cụ",
+  },
+  popup_default_view_page: {
+    zh: `网页翻译`,
+    en: `Web page translation`,
+    zh_TW: `網頁翻譯`,
+    ja: `ウェブページ翻訳`,
+    ko: `웹페이지 번역`,
+    tr: `Web sayfası çevirisi`,
+    vi: "Dịch trang web",
+  },
+  popup_default_view_text: {
+    zh: `文本翻译`,
+    en: `Text translation`,
+    zh_TW: `文字翻譯`,
+    ja: `テキスト翻訳`,
+    ko: `텍스트 번역`,
+    tr: `Metin çevirisi`,
+    vi: "Dịch văn bản",
   },
   version_warning: {
     zh: `当前版本 (v{0}) 不是最新版本 (v{1})，可以等待自动升级或手动`,
@@ -4087,6 +4116,33 @@ export const I18N = {
     tr: `Yükleniyor…`,
     vi: `Đang tải…`,
   },
+  popup_page_unavailable: {
+    zh: `当前页面暂时无法使用网页翻译，可能是浏览器特殊页面、扩展页面，或扩展没有访问此页面的权限。你仍可使用文本翻译。`,
+    en: `Page translation is currently unavailable. This may be a special browser page, an extension page, or a page the extension does not have permission to access. You can still use text translation.`,
+    zh_TW: `目前頁面暫時無法使用網頁翻譯，可能是瀏覽器特殊頁面、擴充功能頁面，或擴充功能沒有存取此頁面的權限。你仍可使用文字翻譯。`,
+    ja: `現在、このページではページ翻訳を利用できません。ブラウザーの特殊なページや拡張機能のページであるか、拡張機能にこのページへのアクセス権限がない可能性があります。テキスト翻訳は引き続き利用できます。`,
+    ko: `현재 이 페이지에서는 웹페이지 번역을 사용할 수 없습니다. 브라우저 특수 페이지나 확장 프로그램 페이지이거나, 확장 프로그램에 이 페이지에 대한 접근 권한이 없을 수 있습니다. 텍스트 번역은 계속 사용할 수 있습니다.`,
+    tr: `Şu anda bu sayfada sayfa çevirisi kullanılamıyor. Bu, özel bir tarayıcı sayfası veya uzantı sayfası olabilir ya da uzantının bu sayfaya erişim izni olmayabilir. Metin çevirisini kullanmaya devam edebilirsiniz.`,
+    vi: `Hiện chưa thể dịch trang này. Đây có thể là trang đặc biệt của trình duyệt, trang tiện ích mở rộng hoặc trang mà tiện ích chưa có quyền truy cập. Bạn vẫn có thể sử dụng tính năng dịch văn bản.`,
+  },
+  popup_action_failed: {
+    zh: `当前页面未能应用更改，请重试。`,
+    en: `The page could not apply this change. Please try again.`,
+    zh_TW: `目前頁面未能套用變更，請重試。`,
+    ja: `ページに変更を適用できませんでした。もう一度お試しください。`,
+    ko: `페이지에 변경 사항을 적용하지 못했습니다. 다시 시도하세요.`,
+    tr: `Sayfa bu değişikliği uygulayamadı. Lütfen tekrar deneyin.`,
+    vi: `Trang không thể áp dụng thay đổi này. Vui lòng thử lại.`,
+  },
+  popup_unavailable: {
+    zh: `当前页面不可用`,
+    en: `Unavailable on this page`,
+    zh_TW: `目前頁面無法使用`,
+    ja: `このページでは利用できません`,
+    ko: `이 페이지에서 사용할 수 없음`,
+    tr: `Bu sayfada kullanılamıyor`,
+    vi: `Không khả dụng trên trang này`,
+  },
   popup_more_services: {
     zh: `更多翻译服务`,
     en: `More translation services`,
@@ -6786,4 +6842,6 @@ Object.keys(I18N).forEach((key) => {
   I18N[key].ru = RU_I18N[key] ?? I18N[key].en;
 });
 
-export const newI18n = (lang) => (key) => I18N[key]?.[lang] || "";
+export const newI18n = (lang) => {
+  return (key, defaultText = key) => I18N[key]?.[lang] ?? defaultText;
+};

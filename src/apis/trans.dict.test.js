@@ -93,12 +93,13 @@ describe("handleDict", () => {
 
     expect(body.messages[0].content).toBe("Dictionary rules for library.");
     expect(body.messages[0].content).not.toContain("# Context");
-    expect(body.messages[body.messages.length - 1].content).toContain(
-      "所在段落：The library closes at six."
+    const userPrompt = body.messages[body.messages.length - 1].content;
+    expect(userPrompt).toContain(
+      "- Surrounding paragraph: The library closes at six."
     );
-    expect(body.messages[body.messages.length - 1].content).toContain(
-      "library"
-    );
+    expect(userPrompt).toContain("## [Target] (Required)");
+    expect(userPrompt).toMatch(/\nlibrary$/);
+    expect(userPrompt).not.toMatch(/\{\{(?:context|text)\}\}/);
   });
 
   test("allows empty dictionary user prompt", async () => {

@@ -1,8 +1,13 @@
 jest.mock("../config", () => ({
+  ...jest.requireActual("../config/client"),
   APP_LCNAME: "kiss-translator",
   KV_SETTING_KEY: "kiss-setting_v2.json",
   KV_RULES_KEY: "kiss-rules_v2.json",
   KV_WORDS_KEY: "kiss-words.json",
+  STOKEY_SETTING: "setting",
+  STOKEY_RULES: "rules",
+  STOKEY_WORDS: "words",
+  STOKEY_SYNC: "sync",
   KV_RULES_SHARE_KEY: "kiss-rules-share_v2.json",
   KV_SALT_SHARE: "share-salt",
   OPT_SYNCTYPE_WEBDAV: "WebDAV",
@@ -12,12 +17,17 @@ jest.mock("../config", () => ({
 jest.mock("./storage", () => ({
   getSyncWithDefault: jest.fn(),
   putSync: jest.fn(),
+  updateSyncState: jest.fn(),
   getSettingWithDefault: jest.fn(),
   getRulesWithDefault: jest.fn(),
   getWordsWithDefault: jest.fn(),
+  getSetting: jest.fn(),
+  getRules: jest.fn(),
+  getWords: jest.fn(),
   setSetting: jest.fn(),
   setRules: jest.fn(),
   setWords: jest.fn(),
+  storage: { withTransaction: jest.fn(), readSyncSnapshot: jest.fn() },
 }));
 
 jest.mock("../apis", () => ({
@@ -68,6 +78,10 @@ import {
   getWordsWithDefault,
   putSync,
   setSetting,
+  setRules,
+  setWords,
+  updateSyncState,
+  storage,
 } from "./storage";
 import { decryptSyncValue, encryptSyncValue } from "./syncCrypto";
 import { createClient, getPatcher } from "webdav";
@@ -80,6 +94,35 @@ const NEW_SYNC_ENCRYPT_KEY = "new-sync-encrypt-passphrase";
 const SETTING_KEY = "kiss-setting_v2.json";
 const RULES_KEY = "kiss-rules_v2.json";
 const WORDS_KEY = "kiss-words.json";
+
+beforeEach(() => {
+  const transaction = {
+    getObj: () => getSyncWithDefault(),
+    setObj: (key, value) =>
+      ({
+        setting: setSetting,
+        rules: setRules,
+        words: setWords,
+      })[key](value),
+  };
+  storage.withTransaction.mockImplementation((operation) =>
+    operation(transaction)
+  );
+  storage.readSyncSnapshot.mockImplementation(async (key) => ({
+    value: await {
+      setting: getSettingWithDefault,
+      rules: getRulesWithDefault,
+      words: getWordsWithDefault,
+    }[key](),
+    syncConfig: await getSyncWithDefault(),
+  }));
+  updateSyncState.mockImplementation(async (updater) => {
+    const current = await getSyncWithDefault();
+    const next = await updater(current, transaction);
+    if (next !== undefined) await putSync({ syncMeta: next.syncMeta });
+    return next ?? current;
+  });
+});
 
 const gistFileContent = (value, updateAt) =>
   JSON.stringify({
@@ -271,7 +314,13 @@ describe("GitHub Gist sync", () => {
 
     expect(apiCreateGist).not.toHaveBeenCalled();
     expect(apiGetGist).toHaveBeenCalledWith("fixed-new", SYNC_KEY);
-    expect(putSync).toHaveBeenNthCalledWith(1, { syncUrl: "fixed-new" });
+    expect(putSync).toHaveBeenCalledWith(
+      { syncUrl: "fixed-new" },
+      {
+        preserveDestination: true,
+        expectedDestinationRevision: 0,
+      }
+    );
     expect(result).toEqual({ value: { remote: true }, isNew: true });
   });
 
@@ -306,7 +355,13 @@ describe("GitHub Gist sync", () => {
       },
       SYNC_DESCRIPTION
     );
-    expect(putSync).toHaveBeenNthCalledWith(1, { syncUrl: "created-gist" });
+    expect(putSync).toHaveBeenCalledWith(
+      { syncUrl: "created-gist" },
+      {
+        preserveDestination: true,
+        expectedDestinationRevision: 0,
+      }
+    );
     expect(encryptSyncValue).toHaveBeenCalledWith(
       JSON.stringify({ local: true }),
       SYNC_ENCRYPT_KEY
@@ -618,9 +673,12 @@ describe("GitHub Gist sync", () => {
         },
       }),
     });
-    expect(putSync).toHaveBeenLastCalledWith({
-      syncEncryptKey: NEW_SYNC_ENCRYPT_KEY,
-    });
+    expect(putSync).toHaveBeenLastCalledWith(
+      {
+        syncEncryptKey: NEW_SYNC_ENCRYPT_KEY,
+      },
+      { preserveDestination: true }
+    );
   });
 
   test("keeps old encryption passphrase when re-encryption fails", async () => {

@@ -64,7 +64,7 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-support a:hover { background: var(--kt-sf2); }
 
 .kt-popup-tabs { min-height: 44px; margin: 0 14px; }
-.kt-popup-tabs .MuiTab-root { min-height: 44px; padding-block: 7px; }
+.kt-popup-tabs .MuiTab-root { min-height: 36px; padding-block: 5px; }
 .kt-popup-scroll { height: auto; overflow: visible; }
 .kt-popup-content { display: flex; flex-direction: column; gap: 14px; padding: 14px 18px 18px; }
 
@@ -229,14 +229,13 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-scene__state { display: block; margin-top: 1px; font-size: 10.5px; opacity: .72; }
 
 .kt-popup-site { padding: 14px; border: 0; border-radius: 12px; background: var(--kt-sf1); }
-.kt-popup-site__top { display: flex; align-items: center; gap: 8px; }
-.kt-popup-site__select { min-width: 0; flex: 1; padding: 3px 5px; border: 0; border-radius: 8px; outline: 0; background: transparent; color: var(--kt-on); font-size: 12.5px; font-weight: 650; }
-.kt-popup-site__badge { flex: none; padding: 4px 8px; border-radius: 999px; background: var(--kt-terc); color: var(--kt-onterc); font-size: 10.5px; font-weight: 700; }
+.kt-popup-site__top { min-height: 28px; display: flex; align-items: center; gap: 6px; }
+.kt-popup-site__select { min-width: 0; min-height: 28px; flex: 1; padding: 3px 5px; border: 0; border-radius: 8px; outline: 0; background: transparent; color: var(--kt-on); }
+.kt-popup-site .kt-popup-site__select { font-size: 12.5px; font-weight: 650; line-height: 1.4; }
+.kt-popup-site__badge { max-width: 50%; flex: 0 1 auto; padding: 3px 7px; border-radius: 999px; background: var(--kt-terc); color: var(--kt-onterc); font-size: 10.5px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
 .kt-popup-site__badge--blocked { background: var(--kt-errc); color: var(--kt-onerrc); }
-.kt-popup-site__actions { display: flex; align-items: center; gap: 4px; margin: 10px -4px -4px; }
-.kt-popup-site__actions .MuiButton-root { min-height: 36px; padding-inline: 12px; font-size: 11.5px; }
-.kt-popup-site__actions .MuiButton-root:first-child { flex: 1; }
-.kt-popup-site__actions .MuiIconButton-root { width: 36px; height: 36px; }
+.kt-popup-site__actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; margin-top: 4px; }
+.kt-popup-site__actions .MuiButton-root { min-width: 0; min-height: 34px; padding: 5px 8px; font-size: 11.5px; line-height: 1.35; overflow-wrap: anywhere; white-space: normal; }
 
 .kt-popup-disclosure-row { display: flex; align-items: center; gap: 4px; }
 .kt-popup-disclosure { width: auto; min-height: 38px; display: flex; flex: 1; align-items: center; gap: 8px; padding: 0 4px; border: 0; background: transparent; color: var(--kt-onv); cursor: pointer; font-size: 12.5px; font-weight: 650; }
@@ -244,6 +243,9 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-disclosure svg { transition: transform .35s var(--kt-spring); }
 .kt-popup-disclosure[aria-expanded="true"] svg { transform: rotate(180deg); }
 .kt-popup-advanced { display: flex; flex-direction: column; gap: 12px; animation: kt-m3-rise .35s var(--kt-spring); }
+.kt-popup-advanced[hidden] { display: none; }
+.kt-popup-advanced-tools { display: flex; flex-direction: column; gap: 4px; }
+.kt-popup-advanced-tools .MuiButton-root { min-width: 0; min-height: 36px; padding: 6px 12px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
 .kt-popup-style-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 100px), 1fr)); gap: 6px; margin: -2px; padding: 2px; }
 .kt-popup-style-chip { min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; padding: 5px 13px; border: 1px solid var(--kt-linev); border-radius: 8px; background: var(--kt-sf0); color: var(--kt-onv); cursor: pointer; font-size: 11.5px; font-weight: 650; overflow-wrap: anywhere; }
 .kt-popup-style-chip[aria-pressed="true"] { border-color: var(--kt-pri); background: var(--kt-pric); color: var(--kt-onpric); font-weight: 650; }
@@ -267,43 +269,7 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-footer__spacer { flex: 1; }
 .kt-popup-footer .MuiButton-root { min-height: 34px; padding-inline: 10px; font-size: 11.5px; }
 
-.kt-popup-text-panel { padding: 14px 18px 18px; animation: kt-m3-rise .35s var(--kt-spring); }
-.kt-popup-text-panel .MuiTabs-root { margin-bottom: 12px; }
-.kt-popup-translation-form { display: flex; flex-direction: column; gap: 12px; }
-.kt-popup-translation-input { overflow: visible; border: 1px solid transparent; border-radius: 16px; background: var(--kt-sf1); transition: border-color .25s, background .25s; }
-.kt-popup-translation-input--focused { border-color: var(--kt-pri); outline: 3px solid var(--kt-pri); outline-offset: 2px; background: var(--kt-sf0); }
-.kt-popup-translation-input textarea { width: 100%; min-height: 112px; display: block; resize: vertical; padding: 15px 15px 4px; border: 0; outline: 0; background: transparent; color: var(--kt-on); font-size: 13px; line-height: 1.55; }
-.kt-m3-root .kt-popup-translation-input textarea:focus { outline: none; }
-@supports selector(:focus-visible) {
-  .kt-m3-root .kt-popup-translation-input textarea:focus-visible { outline: none; }
-}
-.kt-popup-translation-input__footer { min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 10px 7px 15px; color: var(--kt-onv); font-size: 10.5px; }
-.kt-popup-translation-input__footer .MuiButton-root { min-height: 38px; padding-inline: 15px; }
-.kt-popup-translation-input__footer svg { width: 18px; height: 18px; }
-.kt-popup-translation-direction { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--kt-pri); font-size: 12px; font-weight: 650; }
-.kt-popup-translation-direction .kt-popup-language-select { width: 130px; max-width: calc(50% - 16px); min-width: 0; border-radius: 12px; background: var(--kt-sf2); color: var(--kt-on); font-size: 11.5px; font-weight: 650; }
-.kt-popup-translation-direction .kt-popup-language-select .MuiSelect-select { padding: 7px 28px !important; text-align: center; }
-.kt-popup-translation-direction .kt-popup-language-value { align-items: center; }
-.kt-popup-translation-direction .kt-popup-language-select .MuiSelect-icon { right: 6px; }
-.kt-popup-translation-services { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border-radius: 12px; background: var(--kt-sf1); animation: kt-m3-rise .3s var(--kt-spring); }
-.kt-popup-translation-services button { min-height: 34px; padding: 0 12px; border: 1px solid var(--kt-linev); border-radius: 8px; background: var(--kt-sf0); color: var(--kt-onv); cursor: pointer; font-size: 11px; font-weight: 650; }
-.kt-popup-translation-services button[aria-pressed="true"] { border-color: var(--kt-pri); background: var(--kt-pric); color: var(--kt-onpric); font-weight: 650; }
-.kt-popup-translation-results { display: flex; flex-direction: column; gap: 9px; }
-.kt-popup-translation-result { overflow: hidden; border: 1px solid var(--kt-linev); border-radius: 12px; background: var(--kt-sf0); }
-.kt-popup-translation-result > header { min-height: 46px; display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 14px; border-bottom: 1px solid var(--kt-linev); }
-.kt-popup-translation-result > header strong { min-width: 0; flex: 1; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.kt-popup-translation-result > header > span { padding: 3px 7px; border-radius: 999px; background: var(--kt-terc); color: var(--kt-onterc); font-family: ui-monospace, monospace; font-size: 9.5px; font-weight: 700; }
-.kt-popup-translation-result > header > div { display: flex; }
-.kt-popup-translation-result > header .MuiIconButton-root { width: 32px; height: 32px; padding: 5px; }
-.kt-popup-translation-result__body { min-width: 0; min-height: 68px; display: flex; align-items: flex-start; padding: 13px 14px 15px; color: var(--kt-on); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; word-break: break-word; }
-.kt-popup-translation-result__error { color: var(--kt-err); }
-.kt-popup-translation-result__empty { color: var(--kt-onv); }
-.kt-popup-translation-compare { min-height: 42px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px dashed var(--kt-line); border-radius: 999px; background: transparent; color: var(--kt-pri); cursor: pointer; font-size: 12px; font-weight: 650; }
-.kt-popup-translation-compare svg { width: 18px; height: 18px; transition: transform .3s var(--kt-spring); }
-.kt-popup-translation-compare[aria-expanded="true"] svg { transform: rotate(180deg); }
-.kt-popup-dictionary { overflow: hidden; padding: 10px 12px 12px; border: 1px solid var(--kt-linev); border-radius: 12px; background: var(--kt-sf0); }
-.kt-popup-dictionary .MuiTabs-root { margin-bottom: 8px; }
-.kt-popup-dictionary .MuiTab-root { min-height: 36px; font-size: 11.5px; }
+.kt-popup-text-panel { padding: 0; animation: kt-m3-rise .35s var(--kt-spring); }
 .kt-popup-empty { min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; color: var(--kt-onv); text-align: center; }
 .kt-popup-empty__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 
@@ -315,11 +281,9 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-section-label { margin-bottom: 5px; }
 .kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-scenes { gap: 6px; }
 .kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-scene { padding: 7px 10px; }
-.kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-site { padding: 10px 12px; }
-.kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-site__actions { margin: 7px -2px -2px; }
-.kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-site__actions .MuiButton-root { min-height: 34px; }
+.kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-site { padding: 8px 10px; }
 .kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-disclosure { min-height: 34px; }
-.kt-popup-shell--window .kt-popup-text-panel { animation: none; }
+.kt-popup-shell--window .kt-popup-text-panel { padding: 12px; animation: none; }
 
 @media (max-width: 395px) {
   .kt-popup-content { padding-inline: 14px; }

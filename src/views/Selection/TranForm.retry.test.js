@@ -40,7 +40,6 @@ const baseProps = {
   enSug: "-",
   aiDictApiSlug: "-",
   autoFocusInput: false,
-  popupStyle: true,
 };
 
 function TranslationPanel({ initialText = "Source text", marker, ...props }) {
@@ -89,13 +88,23 @@ describe("Explicit translation submissions", () => {
     await flushEffects();
   };
   const input = () =>
-    container.querySelector('textarea:not([aria-hidden="true"])');
-  const submitButton = () =>
-    [...container.querySelectorAll("button")].find(
-      (button) => button.textContent === "translate"
+    container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
     );
+  const submitButton = () =>
+    container.querySelector(
+      'button[title="submit"], button[title="translate"]'
+    );
+  const resultValues = () =>
+    [
+      ...container.querySelectorAll(
+        '.kt-translation-result textarea[readonly]:not([aria-hidden="true"])'
+      ),
+    ].map((result) => result.value);
+  const resultText = () => resultValues().join("\n");
   const updateDraft = (value) => {
     act(() => {
+      input().focus();
       const setValue = Object.getOwnPropertyDescriptor(
         HTMLTextAreaElement.prototype,
         "value"
@@ -117,25 +126,17 @@ describe("Explicit translation submissions", () => {
   };
 
   test.each([
-    ["popup", { popupStyle: true }, false],
-    ["popup", { popupStyle: true }, true],
-    ["selection", { popupStyle: false }, false],
-    ["selection", { popupStyle: false }, true],
-    ["playground", { popupStyle: false, isPlaygound: true }, false],
-    ["playground", { popupStyle: false, isPlaygound: true }, true],
+    ["selection", {}, false],
+    ["selection", {}, true],
+    ["playground", { isPlaygound: true }, false],
+    ["playground", { isPlaygound: true }, true],
   ])(
     "preserves LaTeX in %s results with layout %j (enabled: %s)",
     async (_surface, layout, parseLatex) => {
       const deferred = createDeferred();
       apiTranslate.mockReturnValueOnce(deferred.promise);
       await renderPanel({ ...layout, parseLatex });
-      const readResult = () =>
-        layout.popupStyle
-          ? container.querySelector(".kt-popup-translation-result__body")
-              .textContent
-          : container.querySelector(
-              'textarea[readonly]:not([aria-hidden="true"])'
-            ).value;
+      const readResult = () => resultValues()[0];
 
       await act(async () => {
         apiTranslate.mock.calls[0][0].onStreamChunk({
@@ -168,6 +169,7 @@ describe("Explicit translation submissions", () => {
 
       if (action === "button") {
         expect(submitButton().disabled).toBe(false);
+        expect(submitButton().getAttribute("aria-label")).toBe("translate");
         act(() => submitButton().click());
       } else {
         pressEnter({
@@ -185,7 +187,7 @@ describe("Explicit translation submissions", () => {
       expect(retryRequest.useCache).not.toBe(false);
       expect(firstRequest.signal.aborted).toBe(true);
       expect(retryRequest.signal.aborted).toBe(false);
-      expect(container.textContent).toContain("Translated text");
+      expect(resultText()).toContain("Translated text");
       expect(container.textContent).not.toContain("Temporary network error");
     }
   );
@@ -196,10 +198,6 @@ describe("Explicit translation submissions", () => {
     expect(input().hasAttribute("maxLength")).toBe(false);
     updateDraft(`  ${longText}  `);
     expect(input().value).toBe(`  ${longText}  `);
-    expect(
-      container.querySelector(".kt-popup-translation-input__footer span")
-        .textContent
-    ).toBe(String(longText.length + 4));
     expect(apiTranslate).toHaveBeenCalledTimes(1);
 
     act(() => submitButton().click());
@@ -236,11 +234,10 @@ describe("Explicit translation submissions", () => {
     expect(
       apiTranslate.mock.calls.map(([request]) => request.apiSetting.apiSlug)
     ).toEqual(["openai", "google", "openai", "google"]);
-    expect(
-      [...container.querySelectorAll(".kt-popup-translation-result__body")].map(
-        (result) => result.textContent
-      )
-    ).toEqual(["Recovered translation", "Recovered translation"]);
+    expect(resultValues()).toEqual([
+      "Recovered translation",
+      "Recovered translation",
+    ]);
   });
 
   test("retries a failed provider while another selected provider is pending", async () => {
@@ -268,8 +265,8 @@ describe("Explicit translation submissions", () => {
       pending.resolve({ trText: "Pending provider completed" });
       await pending.promise;
     });
-    expect(container.textContent).toContain("Translated text");
-    expect(container.textContent).toContain("Pending provider completed");
+    expect(resultText()).toContain("Translated text");
+    expect(resultText()).toContain("Pending provider completed");
     expect(apiTranslate).toHaveBeenCalledTimes(3);
   });
 
@@ -303,26 +300,59 @@ describe("Explicit translation submissions", () => {
       first.resolve({ trText: "Stale response" });
       await first.promise;
     });
-    expect(container.textContent).toContain("Retry partial result");
-    expect(container.textContent).not.toContain("Stale");
+    expect(resultText()).toContain("Retry partial result");
+    expect(resultText()).not.toContain("Stale");
 
     await act(async () => {
       retry.resolve({ trText: "Retry completed" });
       await retry.promise;
     });
-    expect(container.textContent).toContain("Retry completed");
+    expect(resultText()).toContain("Retry completed");
   });
 
-  test("keeps the active request while editing, blurring, or rerendering", async () => {
+  test("keeps the active request while editing or rerendering an unsubmitted draft", async () => {
     apiTranslate.mockImplementation(() => new Promise(() => {}));
     await renderPanel();
     const request = apiTranslate.mock.calls[0][0];
     act(() => input().focus());
     updateDraft("Unsubmitted draft");
-    act(() => input().blur());
     await renderPanel({ marker: "unrelated presentation update" });
 
     expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(request.signal.aborted).toBe(false);
+  });
+
+  test("keeps focus and the next draft after a keyboard submission", async () => {
+    apiTranslate.mockImplementation(() => new Promise(() => {}));
+    await renderPanel();
+    updateDraft("Submitted by keyboard");
+    const sourceInput = input();
+    expect(document.activeElement).toBe(sourceInput);
+
+    expect(pressEnter().defaultPrevented).toBe(true);
+    await flushEffects();
+    expect(apiTranslate).toHaveBeenCalledTimes(2);
+    const request = apiTranslate.mock.calls[1][0];
+    expect(request.text).toBe("Submitted by keyboard");
+    expect(input()).toBe(sourceInput);
+    expect(document.activeElement).toBe(sourceInput);
+
+    const nextDraft = "  Unsubmitted continuation  ";
+    act(() => {
+      // Continue typing without another focus event after the shortcut.
+      const setValue = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype,
+        "value"
+      ).set;
+      setValue.call(sourceInput, nextDraft);
+      sourceInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await renderPanel({ marker: "presentation update after submission" });
+
+    expect(document.activeElement).toBe(sourceInput);
+    expect(sourceInput.value).toBe(nextDraft);
+    expect(container.querySelector('button[title="submit"]')).not.toBeNull();
+    expect(apiTranslate).toHaveBeenCalledTimes(2);
     expect(request.signal.aborted).toBe(false);
   });
 
@@ -335,20 +365,24 @@ describe("Explicit translation submissions", () => {
     expect(apiTranslate).toHaveBeenCalledTimes(1);
   });
 
-  test("does not turn unchanged full-form blur commits into retries", async () => {
-    await renderPanel({ popupStyle: false, isPlaygound: true, toLang2: "en" });
-    act(() => input().focus());
-    act(() => input().blur());
-    await flushEffects();
-    expect(apiTranslate).toHaveBeenCalledTimes(1);
+  test.each([false, true])(
+    "commits changed text on blur without retrying unchanged input (Playground: %s)",
+    async (isPlaygound) => {
+      await renderPanel({ isPlaygound, toLang2: "en" });
+      act(() => input().focus());
+      act(() => input().blur());
+      await flushEffects();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
 
-    act(() => input().focus());
-    updateDraft("Updated full-form source");
-    act(() => input().blur());
-    await flushEffects();
-    expect(apiTranslate).toHaveBeenCalledTimes(2);
-    expect(apiTranslate.mock.calls[1][0].text).toBe("Updated full-form source");
-  });
+      updateDraft("Updated full-form source");
+      act(() => input().blur());
+      await flushEffects();
+      expect(apiTranslate).toHaveBeenCalledTimes(2);
+      expect(apiTranslate.mock.calls[1][0].text).toBe(
+        "Updated full-form source"
+      );
+    }
+  );
 
   test("keeps a draft during fullscreen reparenting and commits only a later blur", async () => {
     const host = document.createElement("div");
@@ -370,7 +404,7 @@ describe("Explicit translation submissions", () => {
     let appendChildSpy;
 
     try {
-      await renderPanel({ popupStyle: false, isPlaygound: true });
+      await renderPanel({ isPlaygound: true });
       act(() => input().focus());
       updateDraft("  Draft before fullscreen  ");
       const appendChild = section.appendChild;
