@@ -30,12 +30,11 @@ describe("settings segmented controls", () => {
 
     expect(trackRule).toContain("overflow: hidden");
     expect(trackRule).toContain("padding: 3px");
-    expect(trackRule).toContain("min-width: 260px");
+    expect(trackRule).toContain("min-width: 0");
     expect(trackRule).toContain("max-width: 100%");
     expect(buttonRule).toContain("min-height: 36px");
     expect(buttonRule).toContain("overflow: hidden");
-    expect(labelRule).toContain("text-overflow: ellipsis");
-    expect(labelRule).toContain("white-space: nowrap");
+    expect(labelRule).toContain("white-space: normal");
     expect(fallbackFocusRule).toContain("outline: none");
     expect(fallbackFocusRule).toContain(
       "box-shadow: inset 0 0 0 2px var(--kt-pri)"
