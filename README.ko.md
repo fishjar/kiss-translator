@@ -6,6 +6,27 @@
 
 [kiss-translator.webm](https://github.com/fishjar/kiss-translator/assets/1157624/f7ba8a5c-e4a8-4d5a-823a-5c5c67a0a47f)
 
+## 본 프로젝트를 후원해 주시는 스폰서에 감사드립니다
+
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="128" /></td>
+    <td>
+      <a href="https://go.apimart.ai/gh-gotranslatorrr" target="_blank">
+        <b>APIMart</b>는 AI 이미지 및 비디오 생성에 특화된 저비용 API 플랫폼입니다. GPT-Image-2는 장당 $0.006부터 시작하여 1달러로 160장 이상의 이미지를 생성할 수 있습니다. 이미지와 비디오를 하나의 비동기 API로 처리하며, 작업 제출 후 ID 획득 및 콜백으로 결과를 받아볼 수 있습니다. 수만 장 배치 처리에도 타임아웃이 없으며 코드 변경 없이 모델을 교체할 수 있습니다. 종량제 과금 방식 및 월 구독료 없음, 해당 링크를 통해 가입 후 바로 이용하실 수 있습니다.
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
+    <td>
+      <a href="https://platform.ephone.ai/" target="_blank">
+        <b>ePhone AI</b>는 개발자를 위한 AI 모델 API 중계 및 통합 플랫폼으로, OpenAI, Claude, Gemini, DeepSeek, GLM 등 다양한 대형 모델을 지원합니다.
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## 특징
 
 - [x] 심플함 유지
@@ -60,7 +81,7 @@
   - [x] 사용자 정의 전문 용어
 - [x] 사용자 정의 단축키
   - `Alt+Q` 번역 켜기
-  - `Alt+C` 스타일 전환
+  - `Alt+D` 독립 번역 창 열기
   - `Alt+K` 설정 팝업 열기
   - `Alt+S` 번역 팝업 열기 / 선택한 텍스트 번역
   - `Alt+O` 설정 페이지 열기
@@ -151,7 +172,12 @@
 - [x] **사용자 정의/AI 인터페이스 강화**: 스트리밍 전송, 컨텍스트 기억, 다중 턴 대화 등 고급 AI 기능을 지원합니다.
 - [x] **영어 사전 예비 메커니즘**: 번역 서비스가 실패할 경우 다른 사전으로 전환하거나 로컬 사전 조회로 대체합니다.
 - [x] **YouTube 자막 지원 최적화**: 스트리밍 자막의 병합 및 번역 경험을 개선하고, 끊김을 줄입니다.
-- [ ] **규칙 공동 구축 메커니즘 업그레이드**: 더 유연한 규칙 공유, 버전 관리 및 커뮤니티 검토 프로세스를 도입합니다.
+
+- [ ] **엣지 AI 컴퓨팅 지원**: 로컬 경량 LLM, ASR, OCR, TTS를 통한 보조 번역 구현.
+- [ ] **분산 공유 플랫폼**: 자막, 규칙 등을 공유하기 위한 분산 공유 메커니즘 도입.
+- [ ] **문서 번역 지원**: TXT, PDF, 이미지, 만화 등의 번역 지원.
+- [ ] **번역 에이전트**: 자체 개발 번역 Agent를 통한 지능형 번역 기능 구현.
+- [ ] **프로젝트 리팩터링**: 기능 모듈을 재구성하고 최신 프레임워크 및 기술을 사용하여 프로젝트 전면 재구축.
  
  특정 방향에 관심이 있다면, [Issues](https://github.com/fishjar/kiss-translator/issues)에서 토론하거나 PR을 제출해 주세요!
 
@@ -184,13 +210,3 @@ window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "togg
 ## 후원
 
 ![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399)
-
-## 스폰서
-
-<p align="center">
-<a href="https://platform.ephone.ai/" target="_blank">
-<img src="https://platform.ephone.ai/logo-e.png" width="96" /><br />
-<b>ePhone AI</b><br />
-개발자를 위한 AI 모델 API 중계 및 통합 플랫폼으로, OpenAI, Claude, Gemini, DeepSeek, GLM 등 다양한 대형 모델을 지원합니다.
-</a>
-</p>
