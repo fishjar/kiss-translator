@@ -113,9 +113,9 @@ describe("Prompts", () => {
     const visibleCategories = [
       PROMPT_CATEGORY_USER,
       PROMPT_CATEGORY_DICTIONARY,
+      PROMPT_CATEGORY_BATCH_SYSTEM,
     ];
     const hiddenCategories = [
-      PROMPT_CATEGORY_BATCH_SYSTEM,
       PROMPT_CATEGORY_SUBTITLE,
     ];
 

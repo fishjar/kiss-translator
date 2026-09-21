@@ -32,6 +32,7 @@ import {
   INPUT_PLACE_FROM,
   INPUT_PLACE_FROM_LANG,
   INPUT_PLACE_GLOSSARY,
+  INPUT_PLACE_SEGMENTS,
   INPUT_PLACE_SUMMARY,
   INPUT_PLACE_TEXT,
   INPUT_PLACE_TITLE,
@@ -59,7 +60,23 @@ const TRANSLATION_PROMPT_PLACEHOLDERS = [
   INPUT_PLACE_TITLE,
   INPUT_PLACE_DESCRIPTION,
   INPUT_PLACE_SUMMARY,
+  INPUT_PLACE_CONTEXT,
   INPUT_PLACE_TONE,
+  INPUT_PLACE_GLOSSARY,
+];
+
+const BATCH_TRANSLATION_PROMPT_PLACEHOLDERS = [
+  INPUT_PLACE_SEGMENTS,
+  INPUT_PLACE_TO,
+  INPUT_PLACE_FROM,
+  INPUT_PLACE_TO_LANG,
+  INPUT_PLACE_FROM_LANG,
+  INPUT_PLACE_TITLE,
+  INPUT_PLACE_DESCRIPTION,
+  INPUT_PLACE_SUMMARY,
+  INPUT_PLACE_CONTEXT,
+  INPUT_PLACE_TONE,
+  INPUT_PLACE_GLOSSARY,
 ];
 
 const SUBTITLE_PROMPT_PLACEHOLDERS = [
@@ -95,10 +112,11 @@ function getPromptPlaceholders(category) {
     return DICTIONARY_PROMPT_PLACEHOLDERS;
   }
 
-  if (
-    category === PROMPT_CATEGORY_USER ||
-    category === PROMPT_CATEGORY_BATCH_SYSTEM
-  ) {
+  if (category === PROMPT_CATEGORY_BATCH_SYSTEM) {
+    return BATCH_TRANSLATION_PROMPT_PLACEHOLDERS;
+  }
+
+  if (category === PROMPT_CATEGORY_USER) {
     return TRANSLATION_PROMPT_PLACEHOLDERS;
   }
 
@@ -194,7 +212,8 @@ function PromptFields({
   // Only show the second prompt for flows that consume userPrompt.
   const showUserPrompt =
     formData.category === PROMPT_CATEGORY_USER ||
-    formData.category === PROMPT_CATEGORY_DICTIONARY;
+    formData.category === PROMPT_CATEGORY_DICTIONARY ||
+    formData.category === PROMPT_CATEGORY_BATCH_SYSTEM;
 
   // Rebuilding the prompt list can replace objects without changing their content.
   // Reset the unsaved draft only when the persisted content changes.

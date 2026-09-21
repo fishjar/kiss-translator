@@ -1,9 +1,15 @@
 import {
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
+  defaultNobatchPromptConcise,
+  defaultNobatchUserPromptConcise,
   defaultSystemPrompt,
   defaultSystemPromptLines,
   defaultSystemPromptXml,
+  defaultSystemPromptJson,
+  defaultBatchUserPromptJson,
+  defaultBatchUserPromptLines,
+  defaultBatchUserPromptXml,
   defaultDictPrompt,
   defaultDictPromptEnJa,
   defaultDictPromptEnKo,
@@ -16,8 +22,20 @@ import {
   OPT_TRANS_GEMINI,
 } from "./api";
 
+// 聚合翻译协议定义
+export const PROMPT_PROTOCOL_LINE = "line";
+export const PROMPT_PROTOCOL_XML = "xml";
+export const PROMPT_PROTOCOL_JSON = "json";
+export const PROMPT_PROTOCOLS = [
+  PROMPT_PROTOCOL_LINE,
+  PROMPT_PROTOCOL_XML,
+  PROMPT_PROTOCOL_JSON,
+];
+
 // 定义各类预设提示词的唯一标识符 (Slug)
 export const PROMPT_SLUG_NOBATCH_TRANSLATION = "nobatch-translation";
+export const PROMPT_SLUG_NOBATCH_TRANSLATION_CONCISE =
+  "nobatch-translation-concise";
 export const PROMPT_SLUG_BATCH_TRANSLATION_JSON = "batch-translation-json";
 export const PROMPT_SLUG_BATCH_TRANSLATION_XML = "batch-translation-xml";
 export const PROMPT_SLUG_BATCH_TRANSLATION_LINE = "batch-translation-line";
@@ -46,7 +64,8 @@ export const PROMPT_TEMPLATE_CATEGORIES = [
 ];
 
 // 各类功能默认使用的提示词 Slug，当未配置时作为后备默认值
-export const DEFAULT_NOBATCH_PROMPT_SLUG = PROMPT_SLUG_NOBATCH_TRANSLATION;
+export const DEFAULT_NOBATCH_PROMPT_SLUG =
+  PROMPT_SLUG_NOBATCH_TRANSLATION_CONCISE;
 export const DEFAULT_BATCH_PROMPT_SLUG = PROMPT_SLUG_BATCH_TRANSLATION_JSON;
 export const DEFAULT_SUBTITLE_PROMPT_SLUG = PROMPT_SLUG_SUBTITLE_SEGMENTATION;
 export const DEFAULT_DICTIONARY_PROMPT_SLUG = PROMPT_SLUG_DICTIONARY_EN_ZH;
@@ -63,10 +82,18 @@ export const CURRENT_SETTINGS_VERSION = SETTINGS_VERSION_V3;
  */
 export const PRESET_PROMPTS = [
   {
+    slug: PROMPT_SLUG_NOBATCH_TRANSLATION_CONCISE,
+    category: PROMPT_CATEGORY_USER,
+    nameKey: "preset_prompt_nobatch_translation_concise",
+    name: "Single-sentence translation (Concise)",
+    systemPrompt: defaultNobatchPromptConcise,
+    userPrompt: defaultNobatchUserPromptConcise,
+  },
+  {
     slug: PROMPT_SLUG_NOBATCH_TRANSLATION,
     category: PROMPT_CATEGORY_USER,
     nameKey: "preset_prompt_nobatch_translation",
-    name: "Non-batch translation",
+    name: "Single-sentence translation (Legacy)",
     systemPrompt: defaultNobatchPrompt,
     userPrompt: defaultNobatchUserPrompt,
   },
@@ -75,24 +102,27 @@ export const PRESET_PROMPTS = [
     category: PROMPT_CATEGORY_BATCH_SYSTEM,
     nameKey: "preset_prompt_batch_translation_json",
     name: "Batch translation (JSON)",
-    systemPrompt: defaultSystemPrompt,
-    userPrompt: "",
+    protocol: PROMPT_PROTOCOL_JSON,
+    systemPrompt: defaultSystemPromptJson,
+    userPrompt: defaultBatchUserPromptJson,
   },
   {
     slug: PROMPT_SLUG_BATCH_TRANSLATION_XML,
     category: PROMPT_CATEGORY_BATCH_SYSTEM,
     nameKey: "preset_prompt_batch_translation_xml",
     name: "Batch translation (XML)",
+    protocol: PROMPT_PROTOCOL_XML,
     systemPrompt: defaultSystemPromptXml,
-    userPrompt: "",
+    userPrompt: defaultBatchUserPromptXml,
   },
   {
     slug: PROMPT_SLUG_BATCH_TRANSLATION_LINE,
     category: PROMPT_CATEGORY_BATCH_SYSTEM,
     nameKey: "preset_prompt_batch_translation_line",
     name: "Batch translation (LINE)",
+    protocol: PROMPT_PROTOCOL_LINE,
     systemPrompt: defaultSystemPromptLines,
-    userPrompt: "",
+    userPrompt: defaultBatchUserPromptLines,
   },
   {
     slug: PROMPT_SLUG_SUBTITLE_SEGMENTATION,
@@ -151,6 +181,7 @@ const PROMPT_STORAGE_FIELDS = [
   "slug",
   "category",
   "name",
+  "protocol",
   "systemPrompt",
   "userPrompt",
 ];
@@ -163,7 +194,7 @@ const PROMPT_STORAGE_FIELDS = [
  * @returns {Object} 规范化后的提示词对象
  */
 export function normalizePrompt(prompt = {}) {
-  return {
+  const normalized = {
     slug: String(prompt.slug || ""),
     category: String(prompt.category || ""),
     nameKey: String(prompt.nameKey || ""),
@@ -171,6 +202,12 @@ export function normalizePrompt(prompt = {}) {
     systemPrompt: String(prompt.systemPrompt || ""),
     userPrompt: String(prompt.userPrompt || ""),
   };
+
+  if (prompt.protocol) {
+    normalized.protocol = String(prompt.protocol);
+  }
+
+  return normalized;
 }
 
 /**
@@ -205,10 +242,11 @@ export function normalizeCustomPrompts(userPrompts = []) {
   return (Array.isArray(userPrompts) ? userPrompts : [])
     .map(normalizePrompt)
     .filter((prompt) => prompt.slug && !isPresetPromptSlug(prompt.slug))
-    .map(({ slug, category, name, systemPrompt, userPrompt }) => ({
+    .map(({ slug, category, name, protocol, systemPrompt, userPrompt }) => ({
       slug,
       category,
       name,
+      ...(protocol ? { protocol } : {}),
       systemPrompt,
       userPrompt,
     }));
@@ -273,11 +311,29 @@ function isSamePromptContent(prompt, sourcePrompt) {
   const normalizedPrompt = normalizePrompt(prompt);
   const normalizedSourcePrompt = normalizePrompt(sourcePrompt);
 
-  return (
-    normalizedPrompt.category === normalizedSourcePrompt.category &&
-    normalizedPrompt.systemPrompt === normalizedSourcePrompt.systemPrompt &&
-    normalizedPrompt.userPrompt === normalizedSourcePrompt.userPrompt
-  );
+  if (normalizedPrompt.category !== normalizedSourcePrompt.category) {
+    return false;
+  }
+
+  // 聚合翻译在历史 V1 迁移场景下没有 userPrompt，仅凭 systemPrompt 匹配预设
+  if (
+    normalizedPrompt.category === PROMPT_CATEGORY_BATCH_SYSTEM &&
+    !normalizedSourcePrompt.userPrompt
+  ) {
+    if (
+      normalizedPrompt.slug === PROMPT_SLUG_BATCH_TRANSLATION_JSON &&
+      normalizedSourcePrompt.systemPrompt === defaultSystemPrompt
+    ) {
+      return true;
+    }
+    return normalizedPrompt.systemPrompt === normalizedSourcePrompt.systemPrompt;
+  }
+
+  if (normalizedPrompt.systemPrompt !== normalizedSourcePrompt.systemPrompt) {
+    return false;
+  }
+
+  return normalizedPrompt.userPrompt === normalizedSourcePrompt.userPrompt;
 }
 
 function findPresetPromptByContent(sourcePrompt) {
@@ -398,6 +454,41 @@ export function getNobatchPromptOptions(prompts = []) {
  */
 export function getBatchPromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_BATCH_SYSTEM);
+}
+
+/**
+ * 获取所有翻译提示词综合选项（聚合与单句合并）
+ *
+ * @param {Array} prompts 全部可用提示词列表
+ * @returns {Array} 聚合与单句提示词集合，每项带有 isBatch 标记
+ */
+export function getAllTranslationPromptOptions(prompts = []) {
+  const batchOptions = getBatchPromptOptions(prompts).map((item) => ({
+    ...item,
+    isBatch: true,
+  }));
+  const nobatchOptions = getNobatchPromptOptions(prompts).map((item) => ({
+    ...item,
+    isBatch: false,
+  }));
+  return [...batchOptions, ...nobatchOptions];
+}
+
+/**
+ * 获取带 [聚合] / [单句] 前缀的翻译提示词展示名称
+ *
+ * @param {Object} prompt 提示词对象
+ * @param {Function} i18n 多语言翻译函数
+ * @returns {string} 带有模式前缀的展示名称
+ */
+export function getTranslationPromptDisplayName(prompt = {}, i18n) {
+  const baseName = getPromptDisplayName(prompt, i18n);
+  const isBatch =
+    prompt.isBatch !== undefined
+      ? Boolean(prompt.isBatch)
+      : prompt.category === PROMPT_CATEGORY_BATCH_SYSTEM;
+  const prefix = isBatch ? "[聚合] " : "[单句] ";
+  return `${prefix}${baseName}`;
 }
 
 /**
@@ -803,6 +894,8 @@ export function removePromptReferences(setting = {}, promptSlug) {
         batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
       };
       delete nextApi.systemPrompt;
+      delete nextApi.batchUserPrompt;
+      delete nextApi.batchProtocol;
       hasApiChanges = true;
     }
 
@@ -922,6 +1015,22 @@ export function resolveApiPromptSettings(
   if (batchPrompt && (hasBatchPromptReference || !hasBatchPromptInlineValue)) {
     nextApiSetting.batchPromptSlug = batchPrompt.slug;
     nextApiSetting.systemPrompt = batchPrompt.systemPrompt;
+    nextApiSetting.batchUserPrompt = batchPrompt.userPrompt;
+    if (batchPrompt.protocol) {
+      nextApiSetting.batchProtocol = batchPrompt.protocol;
+    } else {
+      delete nextApiSetting.batchProtocol;
+    }
+  } else if (batchPrompt) {
+    if (
+      nextApiSetting.batchUserPrompt === undefined &&
+      batchPrompt.userPrompt
+    ) {
+      nextApiSetting.batchUserPrompt = batchPrompt.userPrompt;
+    }
+    if (!nextApiSetting.batchProtocol && batchPrompt.protocol) {
+      nextApiSetting.batchProtocol = batchPrompt.protocol;
+    }
   }
 
   const hasNobatchPromptReference = hasPromptReferenceField(

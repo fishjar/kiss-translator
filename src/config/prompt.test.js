@@ -4,7 +4,9 @@ import {
   DEFAULT_NOBATCH_PROMPT_SLUG,
   DEFAULT_SUBTITLE_PROMPT_SLUG,
   PRESET_PROMPTS,
+  PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_CATEGORY_DICTIONARY,
+  PROMPT_SLUG_NOBATCH_TRANSLATION,
   PROMPT_SLUG_DICTIONARY_EN_JA,
   PROMPT_SLUG_DICTIONARY_EN_KO,
   PROMPT_SLUG_DICTIONARY_EN_RU,
@@ -16,6 +18,8 @@ import {
   SETTINGS_VERSION_V3,
   getDictionaryPromptOptions,
   getPromptDisplayName,
+  getAllTranslationPromptOptions,
+  getTranslationPromptDisplayName,
   migrateSettingPromptsToV2,
   migrateSettingToV3,
   normalizeCustomPrompts,
@@ -31,6 +35,8 @@ import {
   OPT_TRANS_GEMINI,
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
+  defaultNobatchPromptConcise,
+  defaultNobatchUserPromptConcise,
   defaultDictPrompt,
   defaultDictPromptEnJa,
   defaultDictPromptEnKo,
@@ -39,6 +45,7 @@ import {
   defaultDictUserPrompt,
   defaultSubtitlePrompt,
   defaultSystemPrompt,
+  defaultSystemPromptJson,
 } from "./api";
 import { I18N, UI_LANGS } from "./i18n";
 
@@ -163,7 +170,7 @@ describe("prompt settings", () => {
 
     expect(migrated.transApis[0]).toMatchObject({
       batchPromptSlug: DEFAULT_BATCH_PROMPT_SLUG,
-      nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
+      nobatchPromptSlug: PROMPT_SLUG_NOBATCH_TRANSLATION,
       subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
       dictPromptSlug: DEFAULT_DICTIONARY_PROMPT_SLUG,
     });
@@ -187,9 +194,9 @@ describe("prompt settings", () => {
       nobatchPromptSlug: DEFAULT_NOBATCH_PROMPT_SLUG,
       subtitlePromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG,
       dictPromptSlug: DEFAULT_DICTIONARY_PROMPT_SLUG,
-      systemPrompt: defaultSystemPrompt,
-      nobatchPrompt: defaultNobatchPrompt,
-      nobatchUserPrompt: defaultNobatchUserPrompt,
+      systemPrompt: defaultSystemPromptJson,
+      nobatchPrompt: defaultNobatchPromptConcise,
+      nobatchUserPrompt: defaultNobatchUserPromptConcise,
       subtitlePrompt: defaultSubtitlePrompt,
       dictPrompt: defaultDictPrompt,
       dictUserPrompt: defaultDictUserPrompt,
@@ -245,13 +252,41 @@ describe("prompt settings", () => {
     });
 
     expect(resolveApiPromptSettings(cleaned.transApis[0])).toMatchObject({
-      systemPrompt: defaultSystemPrompt,
-      nobatchPrompt: defaultNobatchPrompt,
-      nobatchUserPrompt: defaultNobatchUserPrompt,
+      systemPrompt: defaultSystemPromptJson,
+      nobatchPrompt: defaultNobatchPromptConcise,
+      nobatchUserPrompt: defaultNobatchUserPromptConcise,
       subtitlePrompt: defaultSubtitlePrompt,
       dictPrompt: defaultDictPrompt,
       dictUserPrompt: defaultDictUserPrompt,
     });
+  });
+
+  test("does not infer or assign protocol for legacy custom batch prompts without protocol", () => {
+    const legacyBatchPrompt = {
+      slug: "prompt_legacy_batch",
+      category: PROMPT_CATEGORY_BATCH_SYSTEM,
+      name: "Legacy Batch Prompt",
+      systemPrompt: "Legacy batch system prompt",
+      userPrompt: "",
+    };
+
+    const normalized = normalizePrompt(legacyBatchPrompt);
+    expect(normalized.protocol).toBeUndefined();
+
+    const normalizedCustom = normalizeCustomPrompts([legacyBatchPrompt]);
+    expect(normalizedCustom[0].protocol).toBeUndefined();
+
+    const resolved = resolveApiPromptSettings(
+      {
+        apiSlug: "openai",
+        batchPromptSlug: "prompt_legacy_batch",
+      },
+      [legacyBatchPrompt]
+    );
+
+    expect(resolved.batchProtocol).toBeUndefined();
+    expect(resolved.systemPrompt).toBe("Legacy batch system prompt");
+    expect(resolved.batchUserPrompt).toBe("");
   });
 
   test("does not read prompt id fields as prompt references", () => {
@@ -437,5 +472,19 @@ describe("prompt settings", () => {
     );
     expect(defaultDictUserPrompt).not.toContain("上下文");
     expect(defaultDictUserPrompt).not.toContain("目标文本");
+  });
+
+  test("aggregates batch and nobatch prompts with [聚合] and [单句] prefixes", () => {
+    const options = getAllTranslationPromptOptions(PRESET_PROMPTS);
+    expect(options.length).toBeGreaterThan(0);
+
+    const batchItem = options.find((p) => p.isBatch);
+    const nobatchItem = options.find((p) => !p.isBatch);
+
+    expect(batchItem).toBeDefined();
+    expect(nobatchItem).toBeDefined();
+
+    expect(getTranslationPromptDisplayName(batchItem)).toMatch(/^\[聚合\]\s+/);
+    expect(getTranslationPromptDisplayName(nobatchItem)).toMatch(/^\[单句\]\s+/);
   });
 });

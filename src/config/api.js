@@ -28,6 +28,7 @@ export const INPUT_PLACE_CONTEXT = "{{context}}"; // 当前选中文本所在上
 export const INPUT_PLACE_KEY = "{{key}}"; // API Key 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // AI 模型名称占位符
 export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 专业术语表占位符
+export const INPUT_PLACE_SEGMENTS = "{{segments}}"; // 聚合翻译文本片段占位符
 
 export const GEMINI_GENERATE_CONTENT_URL = `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`;
 export const GEMINI_INTERACTIONS_URL =
@@ -1170,6 +1171,12 @@ Source Text: ${INPUT_PLACE_TEXT}
 
 Translated Text:`;
 
+export const defaultNobatchPromptConcise = "";
+export const defaultNobatchUserPromptConcise = `${INPUT_PLACE_GLOSSARY}
+${INPUT_PLACE_TONE}
+Translate the following text into ${INPUT_PLACE_TO}. Preserve all HTML-like tags. Output ONLY the translated text without any explanation:
+${INPUT_PLACE_TEXT}`;
+
 export const defaultSystemPrompt = `Act as a translation API. Output a single raw JSON object only. No extra text or fences.
 
 Input:
@@ -1194,63 +1201,34 @@ Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLangua
 
 Fail-safe: On any error, return {"translations":[]}.`;
 
-export const defaultSystemPromptXml = `Act as a translation API. Output raw XML-like format only. No Markdown fences (xml). No conversational filler.
+export const defaultSystemPromptXml = `Act as a professional machine translation engine. Output raw XML format only (<root><t id="0">...</t></root>). No Markdown fences, no conversational filler.`;
 
-Input:
-{"targetLanguage":"<lang>","title":"<context>","description":"<context>","summary":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
+export const defaultSystemPromptLines = `Act as a professional machine translation engine. Output raw text lines in "ID | Text" format strictly. No Markdown fences, no conversational filler.`;
 
-Output Format:
-<root>
-    <t id="0" sourceLanguage="<detected_source_lang>">Translated text content...</t>
-    <t id="1" sourceLanguage="<detected_source_lang>">Translated text content...</t>
-</root>
+export const defaultSystemPromptJson = `Act as a professional machine translation engine. Output a raw JSON array strictly. No Markdown fences, no conversational filler.`;
 
-Rules:
-1.  **Strict Format**: Output ONLY the <root> element and its children. Do not include "xml" version declarations or markdown code blocks.
-2.  **Structure**: Maintain the exact "id" from the input in the "id" attribute. Detect the source language for the "sourceLanguage" attribute.
-3.  **HTML & Whitespace**: Preserve all HTML tags (e.g., <b>, <span>, <br>) and whitespace exactly as they appear in the structure. Only translate the text content inside them.
-4.  **Glossary**: Highest priority. Use the glossary value for translation. If the value is "", keep the source term as is.
-5.  **Do Not Translate**: Content inside <code>, <pre>, text in backticks ("code"), and placeholders like {1}, {{1}}, [1], [[1]].
-6.  **Context**: Use the "title" and "description" fields to understand the context for better translation accuracy, but do not output them.
-7.  **Tone**: Apply the specified "tone" (formal/casual).
+export const defaultBatchUserPromptLines = `${INPUT_PLACE_GLOSSARY}
+${INPUT_PLACE_TONE}
+Translate each numbered line below into ${INPUT_PLACE_TO}. Maintain the exact "{id} | {translation}" format for each line. Preserve all HTML-like tags, and keep <br> for internal newlines. Output ONLY the translated result without any additional explanation:
+${INPUT_PLACE_SEGMENTS}`;
 
-Example:
-Input:
-{"targetLanguage":"zh-CN","segments":[{"id":0,"text":"Hello <b>World</b>!"}],"glossary":{"World":"世界"},"tone":"formal"}
+export const defaultBatchUserPromptXml = `${INPUT_PLACE_TITLE}
+${INPUT_PLACE_DESCRIPTION}
+${INPUT_PLACE_SUMMARY}
+${INPUT_PLACE_CONTEXT}
+${INPUT_PLACE_GLOSSARY}
+${INPUT_PLACE_TONE}
+Translate the text within each <t id="..."> tag below into ${INPUT_PLACE_TO}. Maintain the exact <t id="..."> tag structure and id attributes. Preserve all internal HTML-like tags. Output ONLY the translated XML result without any additional explanation:
+${INPUT_PLACE_SEGMENTS}`;
 
-Output:
-<root>
-    <t id="0" sourceLanguage="en">你好 <b>世界</b>！</t>
-</root>`;
-
-export const defaultSystemPromptLines = `Act as a translation API. Output raw text lines in "ID | Text" format. No Markdown. No conversational filler.
-
-Input:
-{"targetLanguage":"<lang>","title":"<context>","description":"<context>","summary":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
-
-Output Format:
-<id> | <Translation for Segment>
-<id> | <Translation for Segment>
-...
-
-Rules:
-1.  **Strict Format**: Output exactly one line per segment using the format: "{id} | {translated_text}".
-2.  **ID Mapping**: You MUST copy the exact "id" from the input segment to the output line.
-3.  **Newline Handling**: If the translated text contains a newline, replace it with the HTML tag "<br>" to ensure it stays on a single line.
-4.  **Separator**: Use the pipe symbol " | " strictly to separate the ID and the text.
-5.  **Context**: Use title/description for context only; do not output them.
-6.  **HTML/Tags**: Preserve whitespace, HTML entities, and all HTML-like tags (e.g., <i1>, <b>). Translate inner text only.
-7.  **Glossary**: Highest priority. Follow 'glossary'. Use value for translation; if value is "", keep the key.
-8.  **Do Not Translate**: content in <code>, <pre>, text enclosed in backticks, or placeholders like {1}, {{1}}, [1].
-9.  **Tone**: Apply the specified tone.
-
-Example:
-Input: {"targetLanguage":"zh-CN","segments":[{"id":0,"text":"Hello."},{"id":1,"text":"Line 1\nLine 2"}],"glossary":{}}
-Output:
-0 | 你好。
-1 | 第一行<br>第二行
-
-Fail-safe: On error, return "{id} | {original_text}" line by line.`;
+export const defaultBatchUserPromptJson = `${INPUT_PLACE_TITLE}
+${INPUT_PLACE_DESCRIPTION}
+${INPUT_PLACE_SUMMARY}
+${INPUT_PLACE_CONTEXT}
+${INPUT_PLACE_GLOSSARY}
+${INPUT_PLACE_TONE}
+Translate the text field of each object in the JSON array below into ${INPUT_PLACE_TO}. Keep the id unchanged and output a raw JSON array. Output ONLY the translated JSON result without any additional explanation:
+${INPUT_PLACE_SEGMENTS}`;
 
 // const defaultSubtitlePrompt = `Goal: Convert raw subtitle event JSON into a clean, sentence-based JSON array.
 
@@ -1523,7 +1501,7 @@ const defaultApi = {
   dictPromptSlug: "dictionary-en-zh",
   nobatchPrompt: "",
   nobatchUserPrompt: "",
-  nobatchPromptSlug: "nobatch-translation",
+  nobatchPromptSlug: "nobatch-translation-concise",
   userPrompt: "",
   tone: BUILTIN_STONES[0], // 翻译风格
   placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符
