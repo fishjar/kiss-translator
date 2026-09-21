@@ -3,6 +3,7 @@ import ApiRoundedIcon from "@mui/icons-material/ApiRounded";
 import {
   API_SPE_TYPES,
   OPT_TRANS_ALIYUNBAILIAN,
+  OPT_TRANS_APIMART,
   OPT_TRANS_AZUREAI,
   OPT_TRANS_BAIDU,
   OPT_TRANS_BUILTINAI,
@@ -61,6 +62,7 @@ const API_ICON_FILES = {
   [OPT_TRANS_YANDEX]: "Yandex.svg",
   [OPT_TRANS_YANDEXFREE]: "Yandex.svg",
   [OPT_TRANS_EPHONEAI]: "ePhoneAI.png",
+  [OPT_TRANS_APIMART]: "APIMart.svg",
   [OPT_TRANS_OPENAI]: "OpenAI.svg",
   [OPT_TRANS_GEMINI]: "Gemini.svg",
   [OPT_TRANS_GEMINI_2]: "Gemini.svg",

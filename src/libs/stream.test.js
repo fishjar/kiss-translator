@@ -18,6 +18,7 @@ import {
 import {
   OPT_TRANS_CLAUDE,
   OPT_TRANS_EPHONEAI,
+  OPT_TRANS_APIMART,
   OPT_TRANS_GEMINI,
   OPT_TRANS_ORCAROUTER,
 } from "../config";
@@ -112,6 +113,14 @@ describe("getStreamDelta", () => {
     };
 
     expect(getStreamDelta(chunk, OPT_TRANS_EPHONEAI)).toBe("hello");
+  });
+
+  test("extracts APIMart as an OpenAI-compatible stream", () => {
+    const chunk = {
+      choices: [{ delta: { content: "world" } }],
+    };
+
+    expect(getStreamDelta(chunk, OPT_TRANS_APIMART)).toBe("world");
   });
 
   test("extracts OrcaRouter as an OpenAI-compatible stream", () => {
