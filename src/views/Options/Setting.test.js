@@ -418,3 +418,69 @@ describe("Settings popup default view", () => {
     act(() => root.unmount());
   });
 });
+
+describe("Settings check update", () => {
+  const updateSetting = jest.fn();
+  const updateFab = jest.fn();
+  const setting = {
+    checkUpdate: true,
+  };
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    mockIsExt = true;
+    updateSetting.mockReset();
+    updateFab.mockReset();
+    useSetting.mockReturnValue({ setting, updateSetting });
+    useFab.mockReturnValue({ fab: {}, updateFab });
+    useShortcut.mockReturnValue({ shortcut: [], setShortcut: jest.fn() });
+    browser.commands.getAll.mockResolvedValue([]);
+    hasClipboardReadPermission.mockResolvedValue(false);
+    useAlert.mockReturnValue({ success: jest.fn(), error: jest.fn(), info: jest.fn() });
+  });
+
+  async function renderSettings() {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Settings />);
+      await Promise.resolve();
+    });
+    return { container, root };
+  }
+
+  test("renders checkUpdate enabled by default and saves changes", async () => {
+    useSetting.mockReturnValue({ setting, updateSetting });
+    const { container, root } = await renderSettings();
+    const input = container.querySelector('input[name="checkUpdate"]');
+    const select = input
+      .closest(".MuiInputBase-root")
+      .querySelector('[role="combobox"]');
+
+    expect(input.value).toBe("true");
+    act(() => {
+      select.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    });
+    act(() => {
+      document.body
+        .querySelector('[role="option"][data-value="false"]')
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(updateSetting).toHaveBeenCalledWith({ checkUpdate: false });
+    act(() => root.unmount());
+  });
+
+  test("renders checkUpdate as false when setting is disabled", async () => {
+    useSetting.mockReturnValue({
+      setting: { checkUpdate: false },
+      updateSetting,
+    });
+    const { container, root } = await renderSettings();
+    const input = container.querySelector('input[name="checkUpdate"]');
+
+    expect(input.value).toBe("false");
+    act(() => root.unmount());
+  });
+});
