@@ -13,6 +13,7 @@ import {
   OPT_TRANS_QWENMT,
   OPT_TRANS_YANDEX,
   OPT_TRANS_YANDEXFREE,
+  PROMPT_CATEGORY_BATCH_SYSTEM,
 } from "../../config";
 import { fetchModelCatalog } from "../../libs/modelList";
 import { apiTranslate } from "../../apis";
@@ -21,6 +22,7 @@ import { SettingProvider } from "../../hooks/Setting";
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 HTMLElement.prototype.scrollTo = jest.fn();
 const mockConfirm = jest.fn();
+const mockUsePromptList = jest.fn(() => ({ prompts: [] }));
 
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key, fallback) => fallback || key,
@@ -33,7 +35,7 @@ jest.mock("../../hooks/Api", () => ({
 }));
 
 jest.mock("../../hooks/Prompt", () => ({
-  usePromptList: () => ({ prompts: [] }),
+  usePromptList: () => mockUsePromptList(),
 }));
 
 jest.mock("../../hooks/Confirm", () => ({
@@ -118,7 +120,8 @@ async function flushEffects() {
   });
 }
 
-async function renderApis(api = createApi(), update = jest.fn()) {
+async function renderApis(api = createApi(), update = jest.fn(), prompts = []) {
+  mockUsePromptList.mockReturnValue({ prompts });
   let apis = Array.isArray(api) ? api : [api];
   const reset = jest.fn();
   const container = document.createElement("div");
@@ -181,6 +184,7 @@ async function renderApis(api = createApi(), update = jest.fn()) {
 }
 
 async function renderStatefulApis(apis, strictMode = false) {
+  mockUsePromptList.mockReturnValue({ prompts: [] });
   const actualApiHooks = jest.requireActual("../../hooks/Api");
   useApiList.mockImplementation(actualApiHooks.useApiList);
   useApiItem.mockImplementation(actualApiHooks.useApiItem);
@@ -1333,7 +1337,9 @@ describe("Apis unsaved API switching", () => {
       cancelText: "cancel",
     });
     expect(view.apiListValue.addApi).not.toHaveBeenCalled();
-    expect(getInput(view.container, "url").value).toBe("https://draft.example/v1");
+    expect(getInput(view.container, "url").value).toBe(
+      "https://draft.example/v1"
+    );
 
     view.unmount();
   });
@@ -1832,6 +1838,66 @@ describe("Apis batch concurrency", () => {
 
     view.unmount();
   });
+
+  test("keeps legacy custom batch prompts in protocol-free compatibility mode", async () => {
+    const update = jest.fn();
+    const legacyPrompt = {
+      slug: "prompt_legacy_batch",
+      category: PROMPT_CATEGORY_BATCH_SYSTEM,
+      name: "Legacy Batch Prompt",
+      systemPrompt: "Return one translated line for each input segment.",
+      userPrompt: "",
+    };
+    const linePrompt = {
+      slug: "prompt_line_batch",
+      category: PROMPT_CATEGORY_BATCH_SYSTEM,
+      name: "LINE Batch Prompt",
+      protocol: "line",
+      systemPrompt: "Return numbered translated lines.",
+      userPrompt: "Translate:\n{{segments}}",
+    };
+    const view = await renderApis(
+      createApi({
+        useBatchFetch: true,
+        batchPromptSlug: linePrompt.slug,
+        systemPrompt: linePrompt.systemPrompt,
+        batchUserPrompt: linePrompt.userPrompt,
+        batchProtocol: linePrompt.protocol,
+      }),
+      update,
+      [legacyPrompt, linePrompt]
+    );
+
+    const selectPrompt = async (promptName) => {
+      const promptInput = getInput(view.container, "translationPromptSlug");
+      const combobox =
+        promptInput.parentElement.querySelector('[role="combobox"]');
+      await act(async () => {
+        combobox.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, cancelable: true })
+        );
+        await Promise.resolve();
+      });
+      const option = Array.from(
+        document.body.querySelectorAll('[role="option"]')
+      ).find((item) => item.textContent.includes(promptName));
+      await act(async () => option.click());
+    };
+
+    await selectPrompt(legacyPrompt.name);
+    await act(async () => Simulate.click(getSaveButton(view.container)));
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update.mock.calls[0][0]).toMatchObject({
+      useBatchFetch: true,
+      batchPromptSlug: legacyPrompt.slug,
+      systemPrompt: legacyPrompt.systemPrompt,
+      batchUserPrompt: "",
+    });
+    expect(update.mock.calls[0][0]).not.toHaveProperty("batchProtocol");
+
+    view.unmount();
+  });
 });
 
 describe("Apis temperature input", () => {
@@ -2298,6 +2364,20 @@ describe("Apis unknown model thinking warning", () => {
         usePool: false,
       })
     );
+
+    view.unmount();
+  });
+
+  test("renders all introductory alerts including the small model recommendation", async () => {
+    const view = await renderApis(createApi());
+    const infoAlert = view.container.querySelector(".MuiAlert-standardInfo");
+
+    expect(infoAlert).not.toBeNull();
+    expect(infoAlert.textContent).toContain("about_api");
+    expect(infoAlert.textContent).toContain("about_api_2");
+    expect(infoAlert.textContent).toContain("about_api_3");
+    expect(infoAlert.textContent).toContain("about_api_4");
+    expect(infoAlert.textContent).toContain("goto_custom_api_example");
 
     view.unmount();
   });

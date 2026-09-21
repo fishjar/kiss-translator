@@ -86,7 +86,6 @@ import {
   DEFAULT_BATCH_PROMPT_SLUG,
   DEFAULT_SUBTITLE_PROMPT_SLUG,
   DEFAULT_DICTIONARY_PROMPT_SLUG,
-  PROMPT_PROTOCOL_LINE,
   PROMPT_CATEGORY_BATCH_SYSTEM,
   getAllTranslationPromptOptions,
   getTranslationPromptDisplayName,
@@ -428,7 +427,11 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         newData.batchPromptSlug = prompt.slug;
         newData.systemPrompt = prompt.systemPrompt;
         newData.batchUserPrompt = prompt.userPrompt;
-        newData.batchProtocol = prompt.protocol || PROMPT_PROTOCOL_LINE;
+        if (prompt.protocol) {
+          newData.batchProtocol = prompt.protocol;
+        } else {
+          delete newData.batchProtocol;
+        }
       } else {
         newData.useBatchFetch = false;
         newData.nobatchPromptSlug = prompt.slug;
@@ -2103,6 +2106,8 @@ export default function Apis() {
           {i18n("about_api_2")}
           <br />
           {i18n("about_api_3")}
+          <br />
+          {i18n("about_api_4")}
           <Link
             href="https://github.com/fishjar/kiss-translator/blob/master/custom-api_v2.md"
             target="_blank"
