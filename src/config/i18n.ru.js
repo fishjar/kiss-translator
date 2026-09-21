@@ -621,5 +621,7 @@ export const RU_I18N = {
   horizontal: `По горизонтали`,
   text_shadow: `Тень текста`,
   advanced_css: `Дополнительный CSS`,
+  check_update: `Проверять обновления`,
+  check_update_helper: `Автоматически проверять наличие новой версии при открытии настроек`,
   close: `Закрыть`,
 };
