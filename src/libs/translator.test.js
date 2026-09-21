@@ -28,8 +28,12 @@ const { Translator } = require("./translator");
 
 const flushAsync = async () => {
   jest.runOnlyPendingTimers();
-  await Promise.resolve();
-  await Promise.resolve();
+  // Drain detection/request microtasks and the insertion/rendering frames.
+  for (let frame = 0; frame < 2; frame++) {
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    jest.advanceTimersByTime(16);
+  }
+  for (let i = 0; i < 8; i++) await Promise.resolve();
 };
 
 const createdTranslators = [];
@@ -374,6 +378,276 @@ describe("Translator rule styles", () => {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
     jest.clearAllMocks();
+  });
+
+  describe("batched translation updates", () => {
+    let frames;
+    let frameId;
+    let requestFrame;
+    let cancelFrame;
+    let scrollHeight;
+    let clientHeight;
+
+    const runFrame = async () => {
+      const callbacks = Array.from(frames.values());
+      frames.clear();
+      callbacks.forEach((callback) => callback());
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+    };
+
+    beforeEach(() => {
+      frames = new Map();
+      frameId = 0;
+      requestFrame = jest
+        .spyOn(window, "requestAnimationFrame")
+        .mockImplementation((callback) => {
+          frames.set(++frameId, callback);
+          return frameId;
+        });
+      cancelFrame = jest
+        .spyOn(window, "cancelAnimationFrame")
+        .mockImplementation((id) => frames.delete(id));
+      scrollHeight = jest
+        .spyOn(document.documentElement, "scrollHeight", "get")
+        .mockReturnValue(4000);
+      clientHeight = jest
+        .spyOn(document.documentElement, "clientHeight", "get")
+        .mockReturnValue(800);
+      document.body.innerHTML =
+        '<main id="root">' +
+        Array.from(
+          { length: 30 },
+          (_, i) => `<p>Original paragraph ${i}</p>`
+        ).join("") +
+        '</main><footer id="anchor">Reading anchor</footer>';
+      const anchor = document.getElementById("anchor");
+      document.elementFromPoint = jest.fn(() => anchor);
+      let scrollOffset = 0;
+      window.scrollBy.mockImplementation((x, y) => {
+        scrollOffset += y;
+      });
+      anchor.getBoundingClientRect = jest.fn(() => ({
+        width: 100,
+        height: 20,
+        top:
+          100 -
+          scrollOffset +
+          document.querySelectorAll(".kiss-translator-wrapper").length * 10,
+      }));
+    });
+
+    afterEach(() => {
+      createdTranslators.forEach((translator) => translator.stop());
+      requestFrame.mockRestore();
+      cancelFrame.mockRestore();
+      scrollHeight.mockRestore();
+      clientHeight.mockRestore();
+    });
+
+    test("measures once per batch and preserves the reading position across repeated toggles", async () => {
+      const translator = createTranslator({
+        transOnly: "true",
+        wrapOriginal: "true",
+      });
+      await flushAsync();
+      expect(frames.size).toBe(1);
+      expect(
+        document.querySelectorAll(".kiss-translator-wrapper")
+      ).toHaveLength(0);
+
+      for (let pass = 0; pass < 2; pass++) {
+        document.elementFromPoint.mockClear();
+        await runFrame();
+        expect(apiTranslate).toHaveBeenCalledTimes(30 * (pass + 1));
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper svg")
+        ).toHaveLength(30);
+        expect(document.elementFromPoint).toHaveBeenCalledTimes(1);
+        expect(window.scrollBy).toHaveBeenLastCalledWith(0, 300);
+        await runFrame();
+        expect(document.elementFromPoint).toHaveBeenCalledTimes(2);
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper svg")
+        ).toHaveLength(0);
+        expect(document.getElementById("root").textContent).not.toContain(
+          "Original"
+        );
+        translator.disable();
+        expect(document.elementFromPoint).toHaveBeenCalledTimes(3);
+        expect(window.scrollBy).toHaveBeenLastCalledWith(0, -300);
+        expect(
+          document.querySelectorAll(
+            ".kiss-translator-wrapper, .kiss-translator-original"
+          )
+        ).toHaveLength(0);
+        expect(document.querySelectorAll("#root p")).toHaveLength(30);
+        expect(document.getElementById("root").textContent).toContain(
+          "Original paragraph 29"
+        );
+        if (pass === 0) {
+          translator.enable();
+          await flushAsync();
+        }
+      }
+    });
+
+    test("cancels queued insertion and can immediately enable again", async () => {
+      const translator = createTranslator({ transOnly: "true" });
+      await flushAsync();
+      translator.disable();
+      expect(frames.size).toBe(0);
+      expect(apiTranslate).not.toHaveBeenCalled();
+      translator.enable();
+      await flushAsync();
+      await runFrame();
+      await runFrame();
+      expect(apiTranslate).toHaveBeenCalledTimes(30);
+      expect(
+        document.querySelectorAll(".kiss-translator-wrapper")
+      ).toHaveLength(30);
+      expect(document.getElementById("root").textContent).not.toContain(
+        "Original"
+      );
+    });
+
+    test.each(["true", "false"])(
+      "uses the latest original visibility when rendering was queued (transOnly: %s)",
+      async (transOnly) => {
+        const translator = createTranslator({ transOnly });
+        await flushAsync();
+        await runFrame();
+        translator.toggleTransOnly();
+        await runFrame();
+        expect(
+          document.querySelectorAll("template.kiss-translator-backup")
+        ).toHaveLength(transOnly === "true" ? 0 : 30);
+        const originalVisible = document
+          .getElementById("root")
+          .textContent.includes("Original");
+        expect(originalVisible).toBe(transOnly === "true");
+        translator.disable();
+        expect(document.getElementById("root").textContent).toContain(
+          "Original paragraph 29"
+        );
+      }
+    );
+
+    test.each(["disable", "stop", "rescan"])(
+      "discards queued rendering on %s",
+      async (action) => {
+        apiTranslate.mockResolvedValue({ trText: "Old result", isSame: false });
+        const translator = createTranslator({ transOnly: "true" });
+        await flushAsync();
+        await runFrame();
+        expect(frames.size).toBe(1);
+        translator[action]();
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper")
+        ).toHaveLength(0);
+        expect(document.getElementById("root").textContent).toContain(
+          "Original paragraph 0"
+        );
+        apiTranslate.mockResolvedValue({ trText: "New result", isSame: false });
+        await flushAsync();
+        await runFrame();
+        await runFrame();
+        expect(document.body.textContent).not.toContain("Old result");
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper")
+        ).toHaveLength(action === "rescan" ? 30 : 0);
+      }
+    );
+
+    test.each([false, true])(
+      "drops late requests after disabling (re-enable: %s)",
+      async (reEnable) => {
+        const finish = [];
+        apiTranslate.mockImplementation(
+          () => new Promise((resolve) => finish.push(resolve))
+        );
+        const translator = createTranslator({ transOnly: "true" });
+        await flushAsync();
+        await runFrame();
+        expect(finish).toHaveLength(30);
+        translator.disable();
+        apiTranslate.mockResolvedValue({ trText: "New result", isSame: false });
+        if (reEnable) translator.enable();
+        await flushAsync();
+        await runFrame();
+        finish.forEach((resolve) =>
+          resolve({ trText: "Stale result", isSame: false })
+        );
+        await flushAsync();
+        await runFrame();
+        expect(document.body.textContent).not.toContain("Stale result");
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper")
+        ).toHaveLength(reEnable ? 30 : 0);
+        if (!reEnable)
+          expect(document.body.textContent).toContain("Original paragraph 29");
+      }
+    );
+
+    test("ignores detached targets and translates new page content", async () => {
+      const translator = createTranslator({ transOnly: "true" });
+      await flushAsync();
+      const root = document.getElementById("root");
+      root.replaceChildren();
+      await runFrame();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      root.innerHTML = "<p>New page content</p>";
+      translator.rescan();
+      await flushAsync();
+      await runFrame();
+      await runFrame();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(root.textContent.trim()).toBe("Translated");
+    });
+
+    test("anchors to a surviving parent when a nested original is hidden", async () => {
+      document.getElementById("root").innerHTML =
+        '<p id="reading"><span><strong>Nested original text</strong></span></p>';
+      const reading = document.getElementById("reading");
+      const original = reading.querySelector("strong");
+      document.elementFromPoint.mockReturnValue(original);
+      reading.getBoundingClientRect = jest.fn(() => ({
+        width: 100,
+        height: 20,
+        top: reading.querySelector("template") ? 130 : 100,
+      }));
+      original.getBoundingClientRect = jest.fn(() => ({
+        width: 100,
+        height: 20,
+        top: 100,
+      }));
+      createTranslator({
+        transOnly: "true",
+        autoScan: "false",
+        selector: "#reading",
+      });
+      await flushAsync();
+      await runFrame();
+      await runFrame();
+      expect(original.isConnected).toBe(false);
+      expect(reading.getBoundingClientRect).toHaveBeenCalledTimes(2);
+      expect(window.scrollBy).toHaveBeenLastCalledWith(0, 30);
+    });
+
+    test.each(["hidden", "clip"])(
+      "does not scroll a document with overflow %s",
+      async (overflow) => {
+        document.documentElement.style.overflowY = overflow;
+        createTranslator();
+        await flushAsync();
+        await runFrame();
+        await runFrame();
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper")
+        ).toHaveLength(30);
+        expect(window.scrollBy).not.toHaveBeenCalled();
+        document.documentElement.style.overflowY = "";
+      }
+    );
   });
 
   describe("touch paragraph translation", () => {
@@ -1734,8 +2008,7 @@ describe("Translator rule styles", () => {
     await hoverNode(target);
     await hoverNode(target);
     resolveTranslation({ trText: "Delayed translation", isSame: false });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushAsync();
 
     const wrapper = document.querySelector(`.${Translator.KISS_CLASS.warpper}`);
     expect(wrapper).not.toBeNull();
@@ -3382,6 +3655,8 @@ describe("Translator rule styles", () => {
     );
     const drain = async () => {
       for (let i = 0; i < 8; i++) await Promise.resolve();
+      jest.advanceTimersByTime(16);
+      for (let i = 0; i < 8; i++) await Promise.resolve();
     };
     document.body.innerHTML = `
       <main id="root">
@@ -3747,6 +4022,8 @@ describe("Translator rule styles", () => {
         })
     );
     const drain = async () => {
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+      jest.advanceTimersByTime(16);
       for (let i = 0; i < 8; i++) await Promise.resolve();
     };
     document.body.innerHTML = `

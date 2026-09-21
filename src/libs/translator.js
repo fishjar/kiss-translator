@@ -517,6 +517,76 @@ export class Translator {
   #rescanQueue = new Set(); // “脏容器”队列
   #isQueueProcessing = false; // 队列处理状态标志
 
+  #translationUpdates = [];
+  #translationUpdateFrame = null;
+
+  // Batch writes across paragraphs before measuring layout again. Keep each
+  // promise tied to its node's processing state so cleanup can cancel it.
+  #queueTranslationUpdate(hostNode, callback, excludedElements = []) {
+    return new Promise((resolve, reject) => {
+      this.#translationUpdates.push({
+        hostNode,
+        callback,
+        excludedElements,
+        appliedRule: this.#processedNodes.get(hostNode),
+        runId: this.#runId,
+        resolve,
+        reject,
+      });
+      if (this.#translationUpdateFrame === null) {
+        this.#translationUpdateFrame = requestAnimationFrame(() => {
+          this.#translationUpdateFrame = null;
+          const updates = this.#translationUpdates;
+          this.#translationUpdates = [];
+          const excluded = new Set(
+            updates.flatMap((update) => update.excludedElements)
+          );
+          this.#withViewportAnchor(() => {
+            for (const update of updates) {
+              if (
+                update.runId !== this.#runId ||
+                !update.hostNode.isConnected ||
+                this.#processedNodes.get(update.hostNode) !== update.appliedRule
+              ) {
+                if (
+                  this.#processedNodes.get(update.hostNode) ===
+                  update.appliedRule
+                ) {
+                  this.#processedNodes.delete(update.hostNode);
+                }
+                update.resolve(false);
+                continue;
+              }
+              try {
+                update.resolve(update.callback());
+              } catch (err) {
+                update.reject(err);
+              }
+            }
+          }, excluded);
+        });
+      }
+    });
+  }
+
+  #cancelTranslationUpdates(shouldCancel = () => true) {
+    this.#translationUpdates = this.#translationUpdates.filter((update) => {
+      if (!shouldCancel(update.hostNode)) return true;
+      if (this.#processedNodes.get(update.hostNode) === update.appliedRule) {
+        this.#processedNodes.delete(update.hostNode);
+      }
+      update.resolve(false);
+      return false;
+    });
+    if (
+      !this.#translationUpdates.length &&
+      this.#translationUpdateFrame !== null
+    ) {
+      cancelAnimationFrame(this.#translationUpdateFrame);
+      this.#translationUpdateFrame = null;
+    }
+  }
+
   // 获取当前视口中的稳定锚点，用于 DOM 高度/结构发生改变（如插入译文）后保持滚动条位置，防止页面视觉闪烁或滚动位置发生偏移
   #captureViewportAnchor(excludedElements) {
     if (!document.elementFromPoint || !window.scrollBy) return null;
@@ -531,9 +601,11 @@ export class Translator {
       );
       const element = document.elementFromPoint(x, y);
       let anchor = this.#normalizeViewportAnchor(element);
-      // 如果锚点会在本次操作中被移除，则向上查找一个稳定的祖先节点
-      while (anchor && excludedElements?.has(anchor)) {
-        anchor = anchor.parentElement || anchor.getRootNode?.()?.host || null;
+      // Descendants of removed or hidden originals are unstable anchors too.
+      for (let node = anchor; node; ) {
+        const parent = node.parentElement || node.getRootNode?.()?.host || null;
+        if (excludedElements?.has(node)) anchor = parent;
+        node = parent;
       }
       if (!anchor?.isConnected) continue;
 
@@ -2100,9 +2172,13 @@ export class Translator {
     }
 
     if (this.#processedNodes.has(targetNode)) {
-      const hasPendingTranslation = Array.from(
-        this.#findTranslationWrappers(targetNode)
-      ).some((wrapper) => !this.#translationNodes.has(wrapper));
+      const hasPendingTranslation =
+        this.#translationUpdates.some(
+          ({ hostNode }) => hostNode === targetNode
+        ) ||
+        Array.from(this.#findTranslationWrappers(targetNode)).some(
+          (wrapper) => !this.#translationNodes.has(wrapper)
+        );
       if (hasPendingTranslation) {
         // 按住路径需要“再次按住还原”：移除仍处于 loading 的 wrapper，
         // 后续请求会通过 wrapper.isConnected 防护丢弃过期结果。
@@ -3234,6 +3310,7 @@ export class Translator {
   // 显示在原文下方，并留出上下间距（margin: 8px 0），便于对照阅读。
   async #translateNodeGroup(nodes, hostNode, deLang, options = {}) {
     if (options.valid && !options.valid()) return;
+    const currentRunId = this.#runId;
     const {
       transTag,
       textStyle,
@@ -3314,16 +3391,22 @@ export class Translator {
         }
       }
 
-      this.#withViewportAnchor(() => {
+      const inserted = await this.#queueTranslationUpdate(hostNode, () => {
+        if (
+          (options.valid && !options.valid()) ||
+          nodes.some((node) => node.parentNode !== hostNode)
+        )
+          return false;
         // 根据 transOrder 选项决定译文显示位置
         if (transOrder === "translation-first") {
           nodes[0].before(wrapper); // 译文在上
         } else {
           nodes[nodes.length - 1].after(wrapper); // 原文在上（默认）
         }
+        return true;
       });
-
-      const currentRunId = this.#runId;
+      if (!inserted || currentRunId !== this.#runId || !wrapper.isConnected)
+        return;
 
       // 1. 确定流式渲染模式状态
       const streamRenderMode = this.#apiSetting.streamRenderMode || "disabled";
@@ -3433,10 +3516,10 @@ export class Translator {
 
       // 如果翻译文本为空，或者识别出来的源语言与目标语言一致，则移除临时的翻译 Loading 容器
       if (!translatedText || isSameLang) {
-        this.#withViewportAnchor(() => {
+        await this.#queueTranslationUpdate(hostNode, () => {
           touchTranslationOwners.delete(wrapper);
           wrapper.remove();
-        });
+        }, [wrapper]);
         return;
       }
 
@@ -3453,66 +3536,78 @@ export class Translator {
       // 再安全地写入 inner.innerHTML，这完全符合现代高 CSP 标准站点的规范，非常专业。
       const trustedHTML = trustedTypesHelper.createHTML(htmlString);
 
-      this.#withViewportAnchor(() => {
-        inner.innerHTML = trustedHTML;
-      });
-
-      let originalWrapper = null;
-      if (wrapOriginal === "true") {
-        this.#withViewportAnchor(() => {
-          originalWrapper = this.#wrapOriginalNodes(nodes, originalTextStyle);
-        });
-      }
-
-      const translationData = {
-        nodes,
-        originalWrapper,
-        isHide: hideOrigin,
-      };
-      this.#translationNodes.set(wrapper, translationData);
-      if (hideOrigin) {
-        this.#withViewportAnchor(() => {
-          this.#removeOriginal(translationData, wrapper);
-        });
-      }
-
-      // 附加样式
-      this.#appendCssText(hostNode, selectStyle, "selectStyle");
-      this.#appendCssText(parentNode, parentStyle, "parentStyle");
-      this.#appendCssText(parentNode?.parentElement, grandStyle, "grandStyle");
-
-      // 高亮词汇
-      if (highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
-        this.#favoriteHighlightScopes.add(hostNode);
-        nodes.forEach((node) => this.#highlightWordsDeeply(node));
-      }
-
-      // 翻译完成钩子函数（在隔离沙盒内安全执行用户自定义的译后处理脚本）
-      // REVIEW: 共享 Sval 实例导致 Hook 竞态条件 (Race Condition) 隐患。
-      // 由于 interpreter 是全局单例，当页面中同时有多个并发的 translateNodeGroup 任务异步执行时，
-      // 同步运行的 `interpreter.run('exports.transEndHook = ...')` 会直接覆盖上一个任务尚未执行完毕的 exports.transEndHook 引用。
-      // 这可能导致后一个任务的 Hook 函数被错误地执行多次，或者前一个任务执行了不匹配的、新覆盖的 Hook 函数，出现非预期的运行时状态混乱。
-      if (transEndHook?.trim()) {
-        try {
-          interpreter.run(`exports.transEndHook = ${transEndHook}`);
-          interpreter.exports.transEndHook(
-            {
-              hostNode,
-              parentNode,
-              nodes,
-              wrapperNode: wrapper,
-              innerNode: inner,
-            },
-            {
-              text: processedString,
-              fromLang: deLang || this.#rule.fromLang,
-              toLang,
-            }
+      await this.#queueTranslationUpdate(
+        hostNode,
+        () => {
+          if (!wrapper.isConnected || (options.valid && !options.valid()))
+            return;
+          // The display mode may change while the response waits for a frame.
+          const hideOrigin = !options.touch && this.#rule.transOnly === "true";
+          const separator = wrapper.querySelector(
+            `:scope > br, :scope > .${Translator.KISS_CLASS.space}`
           );
-        } catch (err) {
-          kissLog("transEndHook", err);
-        }
-      }
+          if (separator) separator.hidden = hideOrigin;
+          inner.innerHTML = trustedHTML;
+
+          let originalWrapper = null;
+          if (wrapOriginal === "true") {
+            originalWrapper = this.#wrapOriginalNodes(nodes, originalTextStyle);
+          }
+
+          const translationData = {
+            nodes,
+            originalWrapper,
+            isHide: hideOrigin,
+          };
+          this.#translationNodes.set(wrapper, translationData);
+          if (hideOrigin) {
+            this.#removeOriginal(translationData, wrapper);
+          }
+
+          // 附加样式
+          this.#appendCssText(hostNode, selectStyle, "selectStyle");
+          this.#appendCssText(parentNode, parentStyle, "parentStyle");
+          this.#appendCssText(
+            parentNode?.parentElement,
+            grandStyle,
+            "grandStyle"
+          );
+
+          // 高亮词汇
+          if (highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
+            this.#favoriteHighlightScopes.add(hostNode);
+            nodes.forEach((node) => this.#highlightWordsDeeply(node));
+          }
+
+          // 翻译完成钩子函数（在隔离沙盒内安全执行用户自定义的译后处理脚本）
+          // REVIEW: 共享 Sval 实例导致 Hook 竞态条件 (Race Condition) 隐患。
+          // 由于 interpreter 是全局单例，当页面中同时有多个并发的 translateNodeGroup 任务异步执行时，
+          // 同步运行的 `interpreter.run('exports.transEndHook = ...')` 会直接覆盖上一个任务尚未执行完毕的 exports.transEndHook 引用。
+          // 这可能导致后一个任务的 Hook 函数被错误地执行多次，或者前一个任务执行了不匹配的、新覆盖的 Hook 函数，出现非预期的运行时状态混乱。
+          if (transEndHook?.trim()) {
+            try {
+              interpreter.run(`exports.transEndHook = ${transEndHook}`);
+              interpreter.exports.transEndHook(
+                {
+                  hostNode,
+                  parentNode,
+                  nodes,
+                  wrapperNode: wrapper,
+                  innerNode: inner,
+                },
+                {
+                  text: processedString,
+                  fromLang: deLang || this.#rule.fromLang,
+                  toLang,
+                }
+              );
+            } catch (err) {
+              kissLog("transEndHook", err);
+            }
+          }
+        },
+        nodes
+      );
     } catch (err) {
       // 容器已被还原移除时丢弃过期失败结果，避免 “Request terminated” 分支的
       // #cleanupDirectTranslations(hostNode) 误删宿主上随后产生的新译文，
@@ -4157,6 +4252,7 @@ overflow-wrap: anywhere !important;`;
 
   // 清理所有插入的译文dom
   #cleanupAllNodes() {
+    this.#cancelTranslationUpdates();
     this.#rootNodes.forEach((root) => this.#cleanupAllTranslations(root));
   }
 
@@ -4179,6 +4275,7 @@ overflow-wrap: anywhere !important;`;
 
   // 清理节点下面所有译文dom
   #cleanupAllTranslations(root) {
+    this.#cancelTranslationUpdates((node) => root.contains(node));
     this.#cleanupTranslationElements(
       root.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
     );
@@ -4186,6 +4283,7 @@ overflow-wrap: anywhere !important;`;
 
   // 清理子节点译文dom
   #cleanupDirectTranslations(node) {
+    this.#cancelTranslationUpdates((hostNode) => hostNode === node);
     this.#cleanupTranslationElements(this.#findTranslationWrappers(node));
   }
 
@@ -4597,6 +4695,7 @@ overflow-wrap: anywhere !important;`;
 
   // 停止监听，重置参数
   #resetOptions() {
+    this.#cancelTranslationUpdates();
     this.#rescanQueue = new Set();
     this.#isQueueProcessing = false;
     // 停止/重扫会清理实例状态，语言检测中的按住任务必须立即过期
