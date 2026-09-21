@@ -7,6 +7,10 @@ jest.mock("../libs/fetch", () => ({
   fnPolyfill: jest.fn(),
 }));
 
+jest.mock("../libs/browser", () => ({
+  isBuiltinAIAvailable: true,
+}));
+
 jest.mock("../libs/cache", () => ({
   getHttpCachePolyfill: jest.fn(),
   putHttpCachePolyfill: jest.fn(),
