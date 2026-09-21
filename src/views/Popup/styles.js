@@ -1,5 +1,3 @@
-import { SEPARATE_WINDOW_CONTENT_WIDTH } from "../../config/app";
-
 export const POPUP_STYLES = String.raw`
 .kt-popup-shell {
   width: 396px;
@@ -12,8 +10,7 @@ export const POPUP_STYLES = String.raw`
   color: var(--kt-on);
 }
 
-/* Fill the separate window while keeping its content centered and readable.
-   Dynamic viewport units account for the mobile browser toolbar. */
+/* The native window owns the frame; translation uses the available canvas. */
 .kt-popup-shell--window {
   width: 100%;
   min-width: 0;
@@ -22,9 +19,21 @@ export const POPUP_STYLES = String.raw`
 
 .kt-popup-shell--window .kt-popup-text-panel,
 .kt-popup-shell--window .kt-popup-loading {
-  width: min(${SEPARATE_WINDOW_CONTENT_WIDTH}px, 100%);
-  margin-inline: auto;
+  width: 100%;
+  margin: 0;
 }
+
+.kt-popup-shell--window .kt-popup-text-panel { min-height: 100dvh; display: flex; flex-direction: column; }
+.kt-popup-shell--window .kt-translation-panel,
+.kt-popup-shell--window .kt-translation-panel__body,
+.kt-popup-shell--window .kt-tranbox-content,
+.kt-popup-shell--window .kt-tranbox-content > .MuiStack-root { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.kt-popup-shell--window .kt-translation-source textarea:not([aria-hidden="true"]) { min-height: 72px; }
+.kt-popup-shell--window .kt-translation-result { flex: 1; display: flex; flex-direction: column; min-height: 180px; }
+.kt-popup-shell--window .kt-translation-result > .MuiFormControl-root,
+.kt-popup-shell--window .kt-translation-result .MuiInputBase-root { flex: 1; }
+.kt-popup-shell--window .kt-translation-result .MuiInputBase-root { align-items: stretch; }
+.kt-popup-shell--window .kt-translation-result textarea:not([aria-hidden="true"]) { flex: 1; height: auto !important; min-height: 140px; resize: none !important; }
 
 .kt-popup-shell.kt-popup-shell--content {
   width: 100%;
@@ -260,7 +269,7 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-section-label { margin-bottom: 5px; }
 .kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-site { padding: 8px 10px; }
 .kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-disclosure { min-height: 34px; }
-.kt-popup-shell--window .kt-popup-text-panel { padding: 12px; animation: none; }
+.kt-popup-shell--window .kt-popup-text-panel { padding: 0; animation: none; }
 
 @media (max-width: 395px) {
   .kt-popup-content { padding-inline: 14px; }

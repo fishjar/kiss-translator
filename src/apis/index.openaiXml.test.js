@@ -13,7 +13,6 @@ jest.mock("@streamparser/json", () => ({
 }));
 
 jest.mock("../libs/browser", () => ({
-  isBuiltinAIAvailable: true,
   isBg: () => false,
 }));
 

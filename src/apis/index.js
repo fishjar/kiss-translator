@@ -42,7 +42,6 @@ import {
 } from "./trans";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import { getBatchQueue } from "../libs/batchQueue";
-import { isBuiltinAIAvailable } from "../libs/browser";
 import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
 import { fnPolyfill } from "../libs/fetch";
 import { normalizeHttpTimeout } from "../libs/request";
@@ -558,10 +557,6 @@ export const apiTencentLangdetect = async (text) => {
  * @returns {Promise<string>} 检测出的语言
  */
 export const apiBuiltinAIDetect = async (text) => {
-  if (!isBuiltinAIAvailable) {
-    return "";
-  }
-
   // 跨运行环境调用 chrome.translation.canDetectLanguage() 垫片包装
   const [lang, error] = await fnPolyfill({
     fn: chromeDetect,
@@ -616,10 +611,6 @@ const resolveBuiltinAISourceLang = async (text) => {
  * 整合了超时管理与内置并发频率池（FetchPool），保证前台调用不易发生死锁。
  */
 const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
-  if (!isBuiltinAIAvailable) {
-    return ["", true];
-  }
-
   const { fetchInterval, fetchLimit, httpTimeout } = apiSetting;
   // 1. 获取限制并发的频率控制池，保障不频繁打爆本地 AI 进程
   const fetchPool = getFetchPool(fetchInterval, fetchLimit);

@@ -56,7 +56,3 @@ export const getContext = () => {
 // 辅助环境判定变量
 export const isBg = () => getContext() === "background";
 export const isOptions = () => getContext() === "options";
-
-// 判断当前浏览器内核中是否支持原生内置 AI (LanguageDetector 和 Translator，目前主要是 Chrome Dev 138+)
-export const isBuiltinAIAvailable =
-  "LanguageDetector" in globalThis && "Translator" in globalThis;

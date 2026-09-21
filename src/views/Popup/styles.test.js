@@ -184,12 +184,12 @@ describe("popup translation controls", () => {
   });
 });
 
-// Keep the background full-width and the content centered with readable lines.
+// Let the translation canvas follow its native window.
 describe("separate translation window layout", () => {
   const windowShellRule = POPUP_STYLES.match(
     /\.kt-popup-shell--window\s*\{([^}]*)\}/
   )?.[1];
-  const centeredRule = POPUP_STYLES.match(
+  const contentRule = POPUP_STYLES.match(
     /\.kt-popup-shell--window \.kt-popup-text-panel,[^{]*\{([^}]*)\}/
   )?.[1];
 
@@ -199,9 +199,10 @@ describe("separate translation window layout", () => {
     expect(windowShellRule).not.toMatch(/width:\s*min\(/);
   });
 
-  test("centers the content and caps how wide a line gets", () => {
-    expect(centeredRule).toContain("width: min(720px, 100%)");
-    expect(centeredRule).toContain("margin-inline: auto");
+  test("uses the native window width without an inset floating card", () => {
+    expect(contentRule).toContain("width: 100%");
+    expect(contentRule).toContain("margin: 0");
+    expect(contentRule).not.toContain("margin-inline: auto");
   });
 
   test("does not animate geometry while fitting the standalone window", () => {

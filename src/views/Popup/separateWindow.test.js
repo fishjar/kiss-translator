@@ -30,8 +30,8 @@ function readDefaultWindowBounds() {
 describe("separate translation window default size", () => {
   const bounds = readDefaultWindowBounds();
 
-  test("derives its width from the shared content cap", () => {
-    // Share the width cap with CSS to keep both surfaces consistent.
+  test("derives its initial width from the preferred content width", () => {
+    // Initial sizing does not constrain later user resizing.
     expect(bounds.widthExpr).toContain("SEPARATE_WINDOW_CONTENT_WIDTH");
   });
 
@@ -41,14 +41,21 @@ describe("separate translation window default size", () => {
   });
 });
 
-describe("separate window content cap", () => {
-  test("is the single source for the CSS panel width", () => {
-    expect(POPUP_STYLES).toContain(
-      `width: min(${SEPARATE_WINDOW_CONTENT_WIDTH}px, 100%)`
-    );
+describe("separate window content layout", () => {
+  test("lets the translation panel use the full window width", () => {
+    const panelRules = [...POPUP_STYLES.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, selector]) =>
+        selector.includes(".kt-popup-shell--window .kt-popup-text-panel")
+      )
+      .map(([, , declarations]) => declarations)
+      .join("\n");
+
+    expect(panelRules).toMatch(/width:\s*100%;/);
+    expect(panelRules).toMatch(/padding:\s*0;/);
+    expect(panelRules).not.toContain(`${SEPARATE_WINDOW_CONTENT_WIDTH}px`);
   });
 
-  test("stays wide enough to be worth capping", () => {
+  test("starts wide enough for the service and language controls", () => {
     expect(SEPARATE_WINDOW_CONTENT_WIDTH).toBeGreaterThanOrEqual(560);
   });
 });
