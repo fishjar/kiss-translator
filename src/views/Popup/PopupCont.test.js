@@ -147,10 +147,10 @@ function renderPopupCont(props = {}, { statefulRule = false } = {}) {
     handleOpenSetting: jest.fn(),
     ...props,
   };
+  const currentSetting = { ...setting, ...props.setting };
 
   function StatefulPopup() {
     const [currentRule, setCurrentRule] = useState({ ...rule, ...props.rule });
-    const [currentSetting] = useState({ ...setting, ...props.setting });
     return (
       <PopupCont
         {...popupProps}

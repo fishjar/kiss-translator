@@ -243,7 +243,7 @@ export default function PopupCont({
   );
 
   const dispatchPageAction = useCallback(
-    async (action, args, topFrame = false) => {
+    async (action, args) => {
       if (processActions) {
         const response = await processActions({ action, args });
         if (response?.error) throw new Error(response.error);
@@ -252,7 +252,7 @@ export default function PopupCont({
       const sequence = ++pageActionSequenceRef.current;
       let result;
       try {
-        result = await sendPageMessage(action, args, topFrame);
+        result = await sendPageMessage(action, args);
       } catch (error) {
         if (documentInfo) {
           // A frame can disappear after receiving the command. A separate

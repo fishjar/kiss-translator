@@ -29,12 +29,10 @@ jest.mock("../../libs/browser", () => ({
   browser: {
     windows: {
       getCurrent: jest.fn(),
-      remove: jest.fn(),
     },
     tabs: {
       getCurrent: jest.fn(),
       getZoom: jest.fn(),
-      remove: jest.fn(),
     },
     storage: {
       onChanged: {
@@ -307,8 +305,6 @@ describe("shared translation panel hosts", () => {
     readClipboardTextIfAllowed.mockReset();
     readClipboardTextIfAllowed.mockResolvedValue(null);
     browser.tabs.getCurrent.mockResolvedValue({ id: 7 });
-    browser.tabs.remove.mockReset();
-    browser.windows.remove.mockReset();
     browser.windows.getCurrent.mockResolvedValue({
       id: 4,
       type: "popup",

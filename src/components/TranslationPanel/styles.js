@@ -35,7 +35,7 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 
 .kt-tranbox-content { container-type: inline-size; container-name: kt-translation-content; padding: 14px !important; background: var(--kt-sf0) !important; color: var(--kt-on) !important; }
 .kt-translation-config-row { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
-.kt-translation-config-row > .kt-translation-config { flex: 1; min-width: 0; width: 0; }
+.kt-translation-config-row > .kt-translation-config { flex: 1; min-width: 0; }
 .kt-translation-config-actions { display: flex; justify-content: flex-end; }
 .kt-translation-config-actions .kt-tranbox-header--compact { padding: 0; }
 .kt-translation-panel__body .MuiGrid-container { width: 100%; margin: 0; padding: 5px; border-radius: 12px; background: var(--kt-sf1); }

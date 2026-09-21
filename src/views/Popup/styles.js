@@ -33,7 +33,8 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-shell--window .kt-translation-result > .MuiFormControl-root,
 .kt-popup-shell--window .kt-translation-result .MuiInputBase-root { flex: 1; }
 .kt-popup-shell--window .kt-translation-result .MuiInputBase-root { align-items: stretch; }
-.kt-popup-shell--window .kt-translation-result textarea:not([aria-hidden="true"]) { flex: 1; height: auto !important; min-height: 140px; resize: none !important; }
+/* Autosize can leave inline overflow:hidden when the stretched frame is shorter. */
+.kt-popup-shell--window .kt-translation-result textarea:not([aria-hidden="true"]) { flex: 1; height: auto !important; min-height: 140px; overflow-y: auto !important; resize: none !important; }
 
 .kt-popup-shell.kt-popup-shell--content {
   width: 100%;

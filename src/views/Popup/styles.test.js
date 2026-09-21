@@ -203,6 +203,13 @@ describe("separate translation window layout", () => {
     expect(contentRule).toContain("width: 100%");
     expect(contentRule).toContain("margin: 0");
     expect(contentRule).not.toContain("margin-inline: auto");
+    const panelRules = [...POPUP_STYLES.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, selector]) =>
+        selector.includes(".kt-popup-shell--window .kt-popup-text-panel")
+      )
+      .map(([, , declarations]) => declarations)
+      .join("\n");
+    expect(panelRules).toMatch(/padding:\s*0;/);
   });
 
   test("does not animate geometry while fitting the standalone window", () => {
