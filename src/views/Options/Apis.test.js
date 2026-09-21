@@ -1309,6 +1309,34 @@ describe("Apis unsaved API switching", () => {
 
     view.unmount();
   });
+
+  test("confirms before adding an API when current detail is dirty", async () => {
+    const selectedApi = createApi({ apiSlug: "alpha", apiName: "Alpha" });
+    const view = await renderApis([selectedApi]);
+    await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(false);
+
+    const addButton = view.container.querySelector("#add-api-button");
+    await act(async () => {
+      Simulate.click(addButton);
+    });
+    const menu = document.body.querySelector("#add-api-menu");
+    const menuItem = menu.querySelector('[role="menuitem"]');
+    await act(async () => {
+      Simulate.click(menuItem);
+      await Promise.resolve();
+    });
+
+    expect(mockConfirm).toHaveBeenCalledWith({
+      message: "This API has unsaved changes. Discard them?",
+      confirmText: "discard_changes",
+      cancelText: "cancel",
+    });
+    expect(view.apiListValue.addApi).not.toHaveBeenCalled();
+    expect(getInput(view.container, "url").value).toBe("https://draft.example/v1");
+
+    view.unmount();
+  });
 });
 
 describe("Apis with stateful API hooks", () => {
@@ -1698,6 +1726,67 @@ describe("Apis with stateful API hooks", () => {
       view.unmount();
     }
   });
+
+  test("immediately selects the newly added API and resets detail state", async () => {
+    const scrollMock = jest.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollMock;
+    const initialApi = createApi({ apiSlug: "initial", apiName: "Initial" });
+    const view = await renderStatefulApis([initialApi]);
+
+    try {
+      const addButton = view.container.querySelector("#add-api-button");
+      await act(async () => {
+        Simulate.click(addButton);
+      });
+      const menu = document.body.querySelector("#add-api-menu");
+      const menuItem = menu.querySelector('[role="menuitem"]');
+      await act(async () => {
+        Simulate.click(menuItem);
+      });
+      await flushEffects();
+
+      const selectedCard = view.container.querySelector(
+        '.kt-api-list__card[aria-current="true"]'
+      );
+      expect(selectedCard).not.toBeNull();
+      expect(selectedCard.textContent).not.toContain("Initial");
+
+      const detailName = getInput(view.container, "apiName");
+      expect(detailName.value).not.toBe("Initial");
+      expect(scrollMock).toHaveBeenCalledWith({
+        block: "nearest",
+        behavior: "smooth",
+      });
+    } finally {
+      delete window.HTMLElement.prototype.scrollIntoView;
+      view.unmount();
+    }
+  });
+
+  test("immediately selects the copied API after copying", async () => {
+    const initialApi = createApi({ apiSlug: "initial", apiName: "Initial" });
+    const view = await renderStatefulApis([initialApi]);
+
+    try {
+      const actionsButton = view.container.querySelector(
+        `#api-detail-actions-button-${initialApi.apiSlug}`
+      );
+      await act(async () => Simulate.click(actionsButton));
+      const copyItem = Array.from(
+        document.body.querySelectorAll('[role="menuitem"]')
+      ).find((item) => item.textContent === "copy_api");
+      await act(async () => Simulate.click(copyItem));
+      await flushEffects();
+
+      const selectedCard = view.container.querySelector(
+        '.kt-api-list__card[aria-current="true"]'
+      );
+      expect(selectedCard.textContent).toContain("Initial - copy");
+      expect(getInput(view.container, "apiName").value).toBe("Initial - copy");
+    } finally {
+      view.unmount();
+    }
+  });
 });
 
 describe("Apis batch concurrency", () => {
@@ -1714,6 +1803,14 @@ describe("Apis batch concurrency", () => {
         useContext: true,
       })
     );
+    const moreBtn = Array.from(view.container.querySelectorAll("button")).find(
+      (btn) => btn.textContent.includes("more")
+    );
+    if (moreBtn) {
+      act(() => {
+        Simulate.click(moreBtn);
+      });
+    }
     const concurrencyInput = getInput(view.container, "batchConcurrency");
 
     expect(concurrencyInput.value).toBe("1");
@@ -1721,6 +1818,17 @@ describe("Apis batch concurrency", () => {
     expect(view.container.textContent).toContain(
       "batch_concurrency_context_hint"
     );
+
+    // 验证合并后的单一翻译提示词控件存在，且旧的独立提示词控件不再在主界面单独渲染
+    expect(
+      view.container.querySelector('input[name="translationPromptSlug"]')
+    ).not.toBeNull();
+    expect(
+      view.container.querySelector('input[name="nobatchPromptSlug"]')
+    ).toBeNull();
+    expect(
+      view.container.querySelector('input[name="batchPromptSlug"]')
+    ).toBeNull();
 
     view.unmount();
   });

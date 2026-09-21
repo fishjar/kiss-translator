@@ -86,9 +86,11 @@ import {
   DEFAULT_BATCH_PROMPT_SLUG,
   DEFAULT_SUBTITLE_PROMPT_SLUG,
   DEFAULT_DICTIONARY_PROMPT_SLUG,
-  getBatchPromptOptions,
+  PROMPT_PROTOCOL_LINE,
+  PROMPT_CATEGORY_BATCH_SYSTEM,
+  getAllTranslationPromptOptions,
+  getTranslationPromptDisplayName,
   getDictionaryPromptOptions,
-  getNobatchPromptOptions,
   getPromptDisplayName,
   getSubtitlePromptOptions,
 } from "../../config";
@@ -404,6 +406,40 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     });
   };
 
+  const handleTranslationPromptChange = (e) => {
+    e?.preventDefault();
+    const { value } = e.target;
+    const prompt = translationPromptOptions.find((item) => item.slug === value);
+    if (!prompt) return;
+
+    setFormData((prevData) => {
+      const baseData = prevData?.apiSlug === apiSlug ? prevData : api || {};
+      const isBatch =
+        prompt.isBatch !== undefined
+          ? Boolean(prompt.isBatch)
+          : prompt.category === PROMPT_CATEGORY_BATCH_SYSTEM;
+
+      const newData = {
+        ...baseData,
+      };
+
+      if (isBatch) {
+        newData.useBatchFetch = true;
+        newData.batchPromptSlug = prompt.slug;
+        newData.systemPrompt = prompt.systemPrompt;
+        newData.batchUserPrompt = prompt.userPrompt;
+        newData.batchProtocol = prompt.protocol || PROMPT_PROTOCOL_LINE;
+      } else {
+        newData.useBatchFetch = false;
+        newData.nobatchPromptSlug = prompt.slug;
+        newData.nobatchPrompt = prompt.systemPrompt;
+        newData.nobatchUserPrompt = prompt.userPrompt;
+      }
+
+      return newData;
+    });
+  };
+
   const handleSave = () => {
     const nextFormData = { ...activeFormData };
     if (thinkingParam) {
@@ -559,14 +595,18 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
   )
     ? dictPromptSlug
     : DEFAULT_DICTIONARY_PROMPT_SLUG;
-  const nobatchPromptOptions = useMemo(
-    () => getNobatchPromptOptions(prompts),
+  const translationPromptOptions = useMemo(
+    () => getAllTranslationPromptOptions(prompts),
     [prompts]
   );
-  const batchPromptOptions = useMemo(
-    () => getBatchPromptOptions(prompts),
-    [prompts]
-  );
+  const selectedTranslationPromptSlug = useBatchFetch
+    ? selectedBatchPromptSlug
+    : selectedNobatchPromptSlug;
+  const effectiveTranslationPromptSlug = translationPromptOptions.some(
+    (p) => p.slug === selectedTranslationPromptSlug
+  )
+    ? selectedTranslationPromptSlug
+    : translationPromptOptions[0]?.slug || "";
   const subtitlePromptOptions = useMemo(
     () => getSubtitlePromptOptions(prompts),
     [prompts]
@@ -773,45 +813,14 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         </Stack>
       </Stack>
       <Box>
-        <Grid container spacing={2} columns={12}>
-          <Grid item xs={12} sm={12} md={6} lg={6}>
-            <TextField
-              size="small"
-              fullWidth
-              label={i18n("api_name")}
-              name="apiName"
-              value={apiName}
-              onChange={handleChange}
-            />
-          </Grid>
-          <Grid item xs={12} sm={12} md={6} lg={6}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              name="transAllnow"
-              value={transAllnow}
-              label={i18n("trigger_mode")}
-              onChange={handleChange}
-            >
-              <MenuItem value={false}>{i18n("mk_pagescroll")}</MenuItem>
-              <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
-            </TextField>
-          </Grid>
-          <Grid item xs={12} sm={12} md={6} lg={6}>
-            <ValidationInput
-              fullWidth
-              size="small"
-              label={i18n("pagescroll_root_margin")}
-              type="number"
-              name="rootMargin"
-              value={rootMargin}
-              onChange={handleChange}
-              min={0}
-              max={10000}
-            />
-          </Grid>
-        </Grid>
+        <TextField
+          size="small"
+          fullWidth
+          label={i18n("api_name")}
+          name="apiName"
+          value={apiName}
+          onChange={handleChange}
+        />
       </Box>
 
       {(!API_SPE_TYPES.machine.has(apiType) || apiType === OPT_TRANS_QWENMT) &&
@@ -1009,7 +1018,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         </>
       )}
 
-      {API_SPE_TYPES.batch.has(apiType) && (
+      {API_SPE_TYPES.batch.has(apiType) && !API_SPE_TYPES.ai.has(apiType) && (
         <Box>
           <Grid container spacing={2} columns={12}>
             <Grid item xs={12} sm={12} md={6} lg={6}>
@@ -1025,64 +1034,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
-              <ValidationInput
-                size="small"
-                fullWidth
-                label={i18n("batch_interval")}
-                type="number"
-                name="batchInterval"
-                value={batchInterval}
-                onChange={handleChange}
-                min={10}
-                max={10000}
-              />
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
-              <ValidationInput
-                size="small"
-                fullWidth
-                label={i18n("batch_size")}
-                type="number"
-                name="batchSize"
-                value={batchSize}
-                onChange={handleChange}
-                min={1}
-                max={100}
-              />
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
-              <ValidationInput
-                size="small"
-                fullWidth
-                label={i18n("batch_length")}
-                type="number"
-                name="batchLength"
-                value={batchLength}
-                onChange={handleChange}
-                min={1000}
-                max={100000}
-              />
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
-              <ValidationInput
-                size="small"
-                fullWidth
-                label={i18n("batch_concurrency")}
-                type="number"
-                name="batchConcurrency"
-                value={contextForcesSerialBatch ? 1 : batchConcurrency}
-                onChange={handleChange}
-                min={1}
-                max={100}
-                disabled={contextForcesSerialBatch}
-                helperText={
-                  contextForcesSerialBatch
-                    ? i18n("batch_concurrency_context_hint")
-                    : ""
-                }
-              />
             </Grid>
           </Grid>
         </Box>
@@ -1166,50 +1117,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         </Box>
       )}
 
-      <Box>
-        <Grid container spacing={2} columns={12}>
-          <Grid item xs={12} sm={12} md={6} lg={6}>
-            <ValidationInput
-              size="small"
-              fullWidth
-              label={i18n("fetch_limit")}
-              type="number"
-              name="fetchLimit"
-              value={fetchLimit}
-              onChange={handleChange}
-              min={1}
-              max={100}
-            />
-          </Grid>
-          <Grid item xs={12} sm={12} md={6} lg={6}>
-            <ValidationInput
-              size="small"
-              fullWidth
-              label={i18n("fetch_interval")}
-              type="number"
-              name="fetchInterval"
-              value={fetchInterval}
-              onChange={handleChange}
-              min={0}
-              max={5000}
-            />
-          </Grid>
-          <Grid item xs={12} sm={12} md={6} lg={6}>
-            <ValidationInput
-              size="small"
-              fullWidth
-              label={i18n("http_timeout")}
-              type="number"
-              name="httpTimeout"
-              value={httpTimeout}
-              onChange={handleChange}
-              min={1}
-              max={600}
-            />
-          </Grid>
-        </Grid>
-      </Box>
-
       {API_SPE_TYPES.ai.has(apiType) && (
         <Box>
           <Grid container spacing={2} columns={12}>
@@ -1218,32 +1125,14 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                 select
                 fullWidth
                 size="small"
-                name="nobatchPromptSlug"
-                value={selectedNobatchPromptSlug}
-                label={i18n("nobatch_prompt", "非聚合翻译提示词")}
-                onChange={handlePromptChange}
+                name="translationPromptSlug"
+                value={effectiveTranslationPromptSlug}
+                label={i18n("translation_prompt", "翻译提示词")}
+                onChange={handleTranslationPromptChange}
               >
-                {nobatchPromptOptions.map((prompt) => (
+                {translationPromptOptions.map((prompt) => (
                   <MenuItem key={prompt.slug} value={prompt.slug}>
-                    {getPromptDisplayName(prompt, i18n)}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
-              {/* AI 词典使用独立提示词，避免复用普通翻译提示词时输出格式不可控。 */}
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="batchPromptSlug"
-                value={selectedBatchPromptSlug}
-                label={i18n("batch_prompt", "聚合翻译提示词")}
-                onChange={handlePromptChange}
-              >
-                {batchPromptOptions.map((prompt) => (
-                  <MenuItem key={prompt.slug} value={prompt.slug}>
-                    {getPromptDisplayName(prompt, i18n)}
+                    {getTranslationPromptDisplayName(prompt, i18n)}
                   </MenuItem>
                 ))}
               </TextField>
@@ -1266,6 +1155,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
               </TextField>
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={6}>
+              {/* AI 词典使用独立提示词，避免复用普通翻译提示词时输出格式不可控。 */}
               <TextField
                 select
                 fullWidth
@@ -1349,6 +1239,144 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
 
       {showMore && (
         <>
+          {API_SPE_TYPES.batch.has(apiType) && (
+            <Box>
+              <Grid container spacing={2} columns={12}>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
+                  <ValidationInput
+                    size="small"
+                    fullWidth
+                    label={i18n("batch_interval")}
+                    type="number"
+                    name="batchInterval"
+                    value={batchInterval}
+                    onChange={handleChange}
+                    min={10}
+                    max={10000}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
+                  <ValidationInput
+                    size="small"
+                    fullWidth
+                    label={i18n("batch_size")}
+                    type="number"
+                    name="batchSize"
+                    value={batchSize}
+                    onChange={handleChange}
+                    min={1}
+                    max={100}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
+                  <ValidationInput
+                    size="small"
+                    fullWidth
+                    label={i18n("batch_length")}
+                    type="number"
+                    name="batchLength"
+                    value={batchLength}
+                    onChange={handleChange}
+                    min={1000}
+                    max={100000}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={12} md={6} lg={6}>
+                  <ValidationInput
+                    size="small"
+                    fullWidth
+                    label={i18n("batch_concurrency")}
+                    type="number"
+                    name="batchConcurrency"
+                    value={contextForcesSerialBatch ? 1 : batchConcurrency}
+                    onChange={handleChange}
+                    min={1}
+                    max={100}
+                    disabled={contextForcesSerialBatch}
+                    helperText={
+                      contextForcesSerialBatch
+                        ? i18n("batch_concurrency_context_hint")
+                        : ""
+                    }
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+          <Box>
+            <Grid container spacing={2} columns={12}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
+                <ValidationInput
+                  size="small"
+                  fullWidth
+                  label={i18n("fetch_limit")}
+                  type="number"
+                  name="fetchLimit"
+                  value={fetchLimit}
+                  onChange={handleChange}
+                  min={1}
+                  max={100}
+                />
+              </Grid>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
+                <ValidationInput
+                  size="small"
+                  fullWidth
+                  label={i18n("fetch_interval")}
+                  type="number"
+                  name="fetchInterval"
+                  value={fetchInterval}
+                  onChange={handleChange}
+                  min={0}
+                  max={5000}
+                />
+              </Grid>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
+                <ValidationInput
+                  size="small"
+                  fullWidth
+                  label={i18n("http_timeout")}
+                  type="number"
+                  name="httpTimeout"
+                  value={httpTimeout}
+                  onChange={handleChange}
+                  min={1}
+                  max={600}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+          <Box>
+            <Grid container spacing={2} columns={12}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  name="transAllnow"
+                  value={transAllnow}
+                  label={i18n("trigger_mode")}
+                  onChange={handleChange}
+                >
+                  <MenuItem value={false}>{i18n("mk_pagescroll")}</MenuItem>
+                  <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
+                <ValidationInput
+                  fullWidth
+                  size="small"
+                  label={i18n("pagescroll_root_margin")}
+                  type="number"
+                  name="rootMargin"
+                  value={rootMargin}
+                  onChange={handleChange}
+                  min={0}
+                  max={10000}
+                />
+              </Grid>
+            </Grid>
+          </Box>
           <Box>
             <Grid container spacing={2} columns={12}>
               <Grid item xs={12} sm={12} md={6} lg={6}>
@@ -1582,6 +1610,17 @@ function ApiListItem({
 
   const displayName = getApiDisplayName(api);
   const cardSelected = bulkMode ? checked : selected;
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (selected && !bulkMode) {
+      cardRef.current?.scrollIntoView?.({
+        block: "nearest",
+        behavior: "smooth",
+      });
+    }
+  }, [selected, bulkMode]);
+
   const handleCardKeyDown = (event) => {
     if (!event.altKey) return;
     const direction =
@@ -1605,6 +1644,7 @@ function ApiListItem({
       }}
     >
       <ListItemButton
+        ref={cardRef}
         className="kt-api-list__card"
         selected={cardSelected}
         onClick={handleContentClick}
@@ -1851,11 +1891,6 @@ export default function Apis() {
     setAnchorEl(null);
   };
 
-  const handleMenuItemClick = (apiType) => {
-    addApi(apiType);
-    handleClose();
-  };
-
   const handleSortMenuClose = () => {
     setSortAnchorEl(null);
   };
@@ -1872,6 +1907,32 @@ export default function Apis() {
       cancelText: i18n("cancel"),
     });
   }, [confirm, detailDirty, i18n]);
+
+  const handleMenuItemClick = async (apiType) => {
+    if (!(await confirmDiscardDetailChanges())) {
+      handleClose();
+      return;
+    }
+    const newApiSlug = addApi(apiType);
+    setDetailDirty(false);
+    setDetailKey((key) => key + 1);
+    if (newApiSlug) {
+      setSelectedApiSlug(newApiSlug);
+    }
+    handleClose();
+  };
+
+  const handleCopyApi = useCallback(
+    (sourceApi) => {
+      const newApiSlug = copyApi(sourceApi);
+      setDetailDirty(false);
+      setDetailKey((key) => key + 1);
+      if (newApiSlug) {
+        setSelectedApiSlug(newApiSlug);
+      }
+    },
+    [copyApi]
+  );
 
   const prepareListMutation = useCallback(async () => {
     if (!(await confirmDiscardDetailChanges())) return false;
@@ -2266,7 +2327,7 @@ export default function Apis() {
                 key={detailKey}
                 apiSlug={selectedApiItem.api.apiSlug}
                 deleteApi={deleteApi}
-                copyApi={copyApi}
+                copyApi={handleCopyApi}
                 onDirtyChange={setDetailDirty}
               />
             </Box>

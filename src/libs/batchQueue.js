@@ -2,7 +2,6 @@ import {
   DEFAULT_BATCH_INTERVAL,
   DEFAULT_BATCH_SIZE,
   DEFAULT_BATCH_LENGTH,
-  DEFAULT_BATCH_CONCURRENCY,
 } from "../config";
 
 /**
@@ -24,7 +23,7 @@ const BatchQueue = (
     batchInterval = DEFAULT_BATCH_INTERVAL,
     batchSize = DEFAULT_BATCH_SIZE,
     batchLength = DEFAULT_BATCH_LENGTH,
-    batchConcurrency = DEFAULT_BATCH_CONCURRENCY,
+    batchConcurrency = 1,
   } = {}
 ) => {
   const queue = []; // 存储待处理翻译任务的队列
@@ -33,7 +32,7 @@ const BatchQueue = (
     Number.isFinite(configuredBatchConcurrency) &&
     configuredBatchConcurrency >= 1
       ? Math.floor(configuredBatchConcurrency)
-      : DEFAULT_BATCH_CONCURRENCY;
+      : 1;
   let activeBatchCount = 0; // 当前正在执行的批次数
   let timer = null; // 用于延迟处理任务的定时器
 

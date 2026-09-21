@@ -143,6 +143,23 @@ export function sortApisAlphabetically(
 /**
  * 翻译 API 列表管理的自定义 Hook，支持列表筛选、新增、复制、删除和字母排序
  */
+function getUuid() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  if (
+    typeof globalThis !== "undefined" &&
+    typeof globalThis.crypto?.randomUUID === "function"
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export function useApiList() {
   const { transApis, updateSetting } = useApiState();
 
@@ -177,9 +194,9 @@ export function useApiList() {
       // 找到内置的该 API 类型的默认配置模版
       const defaultApiOpt =
         DEFAULT_API_LIST.find((da) => da.apiType === apiType) || {};
-      const uuid = crypto.randomUUID();
+      const uuid = getUuid();
       // 使用类型名拼合 UUID 保证 apiSlug 唯一，代表具体 API 实例
-      const apiSlug = `${apiType}_${crypto.randomUUID()}`;
+      const apiSlug = `${apiType}_${getUuid()}`;
       const apiName = `${apiType}_${uuid.slice(0, 8)}`;
       const newApi = {
         ...defaultApiOpt,
@@ -191,6 +208,7 @@ export function useApiList() {
         ...prev,
         transApis: [...(prev?.transApis || []), newApi],
       }));
+      return apiSlug;
     },
     [updateSetting]
   );
@@ -198,7 +216,7 @@ export function useApiList() {
   // 复制一份现有的 API 配置，并赋予新的 UUID 作为 Slug
   const copyApi = useCallback(
     (sourceApi) => {
-      const uuid = crypto.randomUUID();
+      const uuid = getUuid();
       const apiSlug = `${sourceApi.apiType}_${uuid}`;
       const apiName = `${sourceApi.apiName} - copy`;
       const newApi = {
@@ -210,6 +228,7 @@ export function useApiList() {
         ...prev,
         transApis: [...(prev?.transApis || []), newApi],
       }));
+      return apiSlug;
     },
     [updateSetting]
   );
