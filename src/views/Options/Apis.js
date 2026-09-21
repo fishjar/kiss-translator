@@ -56,6 +56,7 @@ import {
   // OPT_TRANS_OLLAMA,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_EPHONEAI,
+  OPT_TRANS_APIMART,
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_QWENMT,
   OPT_TRANS_YANDEX,
@@ -111,6 +112,13 @@ const EPHONEAI_MODELS = [
   "gpt-5.4-nano",
   "gemini-3.1-flash-lite-preview",
   "grok-4.20-beta-0309-non-reasoning",
+];
+
+const APIMART_MODELS = [
+  "gpt-5.6-luna",
+  "gpt-5.4-mini",
+  "deepseek-v4-flash",
+  "claude-3-5-haiku",
 ];
 
 const QWEN_MT_MODELS = [
@@ -628,9 +636,11 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     const baseOptions =
       apiType === OPT_TRANS_EPHONEAI
         ? EPHONEAI_MODELS
-        : apiType === OPT_TRANS_QWENMT
-          ? QWEN_MT_MODELS
-          : [];
+        : apiType === OPT_TRANS_APIMART
+          ? APIMART_MODELS
+          : apiType === OPT_TRANS_QWENMT
+            ? QWEN_MT_MODELS
+            : [];
     return Array.from(new Set([...baseOptions, ...modelOptions]));
   }, [apiType, modelOptions]);
 
