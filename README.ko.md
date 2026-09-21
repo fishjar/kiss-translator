@@ -10,7 +10,7 @@
 
 <table>
   <tr>
-    <td><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="128" /></td>
+    <td align="center"><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="128" /></td>
     <td>
       <a href="https://go.apimart.ai/gh-gotranslatorrr" target="_blank">
         <b>APIMart</b>는 AI 이미지 및 비디오 생성에 특화된 저비용 API 플랫폼입니다. GPT-Image-2는 장당 $0.006부터 시작하여 1달러로 160장 이상의 이미지를 생성할 수 있습니다. 이미지와 비디오를 하나의 비동기 API로 처리하며, 작업 제출 후 ID 획득 및 콜백으로 결과를 받아볼 수 있습니다. 수만 장 배치 처리에도 타임아웃이 없으며 코드 변경 없이 모델을 교체할 수 있습니다. 종량제 과금 방식 및 월 구독료 없음, 해당 링크를 통해 가입 후 바로 이용하실 수 있습니다.
@@ -18,7 +18,7 @@
     </td>
   </tr>
   <tr>
-    <td><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
+    <td align="center"><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
     <td>
       <a href="https://platform.ephone.ai/" target="_blank">
         <b>ePhone AI</b>는 개발자를 위한 AI 모델 API 중계 및 통합 플랫폼으로, OpenAI, Claude, Gemini, DeepSeek, GLM 등 다양한 대형 모델을 지원합니다.

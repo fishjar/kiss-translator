@@ -10,7 +10,7 @@
 
 <table>
   <tr>
-    <td><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="128" /></td>
+    <td align="center"><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="600" /></td>
     <td>
       <a href="https://go.apimart.ai/gh-gotranslatorrr" target="_blank">
         <b>APIMart</b> 是专注 AI 图片/视频生成的低价 API 平台，GPT-Image-2 低至 $0.006/张，1 美元可出图 160+ 张。图片、视频一套异步 API 通吃，提交任务拿 ID、回调取结果，跑批万张不超时、换模型不改代码。按量付费、无月费，通过此注册链接注册即可开用。
@@ -18,7 +18,7 @@
     </td>
   </tr>
   <tr>
-    <td><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
+    <td align="center"><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
     <td>
       <a href="https://platform.ephone.ai/" target="_blank">
         <b>ePhone AI</b> 是一个面向开发者的 AI 模型 API 中转与聚合平台，支持 OpenAI、Claude、Gemini、DeepSeek、GLM 等多家大模型。

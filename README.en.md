@@ -10,7 +10,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 
 <table>
   <tr>
-    <td><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="128" /></td>
+    <td align="center"><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="128" /></td>
     <td>
       <a href="https://go.apimart.ai/gh-gotranslatorrr" target="_blank">
         <b>APIMart</b> is a low-cost API platform for AI image & video generation — GPT-Image-2 from $0.006/image, 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, fetch results via polling or callback. Batch tens of thousands of images without timeouts, switch models without changing code. Pay-as-you-go with no monthly fee — sign up here to get started.
@@ -18,7 +18,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
     </td>
   </tr>
   <tr>
-    <td><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
+    <td align="center"><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
     <td>
       <a href="https://platform.ephone.ai/" target="_blank">
         <b>ePhone AI</b> is an AI model API relay and aggregation platform for developers, supporting multiple large models such as OpenAI, Claude, Gemini, DeepSeek, and GLM.
