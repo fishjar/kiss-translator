@@ -5,6 +5,7 @@ import {
   OPT_TRANS_GOOGLE_CLOUD,
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_AZUREAI,
+  OPT_TRANS_APIMART,
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
@@ -1616,6 +1617,7 @@ const genReqFuncs = {
   [OPT_TRANS_ZAI]: genOpenAI,
   [OPT_TRANS_DEEPLX]: genDeeplX,
   [OPT_TRANS_EPHONEAI]: genOpenAI,
+  [OPT_TRANS_APIMART]: genOpenAI,
   [OPT_TRANS_BAIDU]: genBaidu,
   [OPT_TRANS_TENCENT]: genTencent,
   [OPT_TRANS_VOLCENGINE]: genVolcengine,
@@ -1959,6 +1961,7 @@ export const parseTransRes = async (
       return typeof content === "string" ? [[content]] : [];
     }
     case OPT_TRANS_EPHONEAI:
+    case OPT_TRANS_APIMART:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:
     case OPT_TRANS_OPENCODEGO:
@@ -2066,6 +2069,7 @@ export const parseTransRes = async (
 function parseDictRes(res, apiType) {
   switch (apiType) {
     case OPT_TRANS_EPHONEAI:
+    case OPT_TRANS_APIMART:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:
     case OPT_TRANS_OPENCODEGO:
@@ -2682,6 +2686,7 @@ export const handleSubtitle = async ({
 
   switch (apiType) {
     case OPT_TRANS_EPHONEAI:
+    case OPT_TRANS_APIMART:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:
     case OPT_TRANS_OPENCODEGO:
@@ -2899,6 +2904,7 @@ export const handleSummarize = async ({
 
   switch (apiType) {
     case OPT_TRANS_EPHONEAI:
+    case OPT_TRANS_APIMART:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:
     case OPT_TRANS_OPENCODEGO:

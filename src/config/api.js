@@ -66,6 +66,7 @@ export const OPT_TRANS_DEEPL = "DeepL"; // DeepL 官方专业翻译 API
 export const OPT_TRANS_DEEPLX = "DeepLX"; // DeepLX 开源/自定义中转端
 export const OPT_TRANS_DEEPLFREE = "DeepLFree"; // DeepL 免费网页翻译接口
 export const OPT_TRANS_EPHONEAI = "ePhoneAI"; // ePhone AI 翻译服务
+export const OPT_TRANS_APIMART = "APIMart"; // APIMart 翻译服务
 export const OPT_TRANS_BAIDU = "Baidu"; // 百度翻译 API
 export const OPT_TRANS_TENCENT = "Tencent"; // 腾讯翻译君 API
 export const OPT_TRANS_VOLCENGINE = "Volcengine"; // 火山翻译 API
@@ -106,6 +107,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
   OPT_TRANS_EPHONEAI,
+  OPT_TRANS_APIMART,
   OPT_TRANS_OPENAI,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
@@ -143,6 +145,7 @@ export const API_SPE_TYPES = {
   // 大语言模型 AI 翻译引擎
   ai: new Set([
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
     OPT_TRANS_OPENAI,
     OPT_TRANS_DEEPSEEK,
     OPT_TRANS_OPENCODEGO,
@@ -182,6 +185,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持段落聚合（批处理合并）翻译的引擎
@@ -208,6 +212,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持带历史会话（Context）关联的翻译引擎
@@ -227,6 +232,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持流式文本返回（Server-Sent Events / Stream）的翻译引擎
@@ -246,14 +252,16 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
   ]),
   // 官方推荐/赞助商的翻译服务
-  sponsors: new Set([OPT_TRANS_EPHONEAI]),
+  sponsors: new Set([OPT_TRANS_EPHONEAI, OPT_TRANS_APIMART]),
   // 暗黑模式下图标反色
   darkIcon: new Set([
     OPT_TRANS_SILICONFLOW,
     OPT_TRANS_XIAOMIMIMO,
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
     OPT_TRANS_ZAI,
     OPT_TRANS_DEEPL,
     OPT_TRANS_DEEPLFREE,
@@ -562,6 +570,10 @@ export const THINKING_API_REGISTRY = {
         : null,
   },
   [OPT_TRANS_EPHONEAI]: {
+    adapter: "openai",
+    resolveCapability: ({ model }) => getOpenAIThinkingCapability(model),
+  },
+  [OPT_TRANS_APIMART]: {
     adapter: "openai",
     resolveCapability: ({ model }) => getOpenAIThinkingCapability(model),
   },
@@ -1099,6 +1111,7 @@ export const OPT_LANGS_TO_SPEC = {
     ["vi", "vi"],
   ]),
   [OPT_TRANS_EPHONEAI]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_APIMART]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_OPENAI]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_GEMINI]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_GEMINI_2]: OPT_LANGS_SPEC_NAME,
@@ -1660,6 +1673,13 @@ const defaultApiOpts = {
   [OPT_TRANS_EPHONEAI]: {
     ...defaultApi,
     url: "https://api.ephone.ai/v1/chat/completions",
+  },
+  [OPT_TRANS_APIMART]: {
+    ...defaultApi,
+    url: "https://api.apimart.ai/v1/chat/completions",
+    modelListUrl: "https://api.apimart.ai/v1/models",
+    model: "gpt-5.6-luna",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_OPENAI]: {
     ...defaultApi,

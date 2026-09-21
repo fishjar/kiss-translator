@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import {
+  OPT_TRANS_APIMART,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_OPENAI,
@@ -86,6 +87,15 @@ describe("getApiIconSrc", () => {
     ).toBe("/kiss-translator/api/OrcaRouter.svg");
   });
 
+  test("resolves the APIMart asset through the shared provider map", () => {
+    expect(
+      getApiIconSrc(OPT_TRANS_APIMART, {
+        runtime: undefined,
+        publicUrl: "/kiss-translator",
+      })
+    ).toBe("/kiss-translator/api/APIMart.svg");
+  });
+
   test("uses the bundled generic icon by default in a userscript", () => {
     mockIsGm = true;
 
@@ -124,6 +134,9 @@ describe("resolveApiIconPresentation", () => {
   test("preserves dark-mode inversion away from an explicit light surface", () => {
     expect(
       resolveApiIconPresentation(OPT_TRANS_OPENAI, { mode: "dark" }).filter
+    ).toBe("invert(100%)");
+    expect(
+      resolveApiIconPresentation(OPT_TRANS_APIMART, { mode: "dark" }).filter
     ).toBe("invert(100%)");
   });
 
