@@ -436,7 +436,11 @@ describe("Settings check update", () => {
     useShortcut.mockReturnValue({ shortcut: [], setShortcut: jest.fn() });
     browser.commands.getAll.mockResolvedValue([]);
     hasClipboardReadPermission.mockResolvedValue(false);
-    useAlert.mockReturnValue({ success: jest.fn(), error: jest.fn(), info: jest.fn() });
+    useAlert.mockReturnValue({
+      success: jest.fn(),
+      error: jest.fn(),
+      info: jest.fn(),
+    });
   });
 
   async function renderSettings() {

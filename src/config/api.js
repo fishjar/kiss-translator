@@ -1178,7 +1178,8 @@ ${INPUT_PLACE_GLOSSARY}
 Translate the Source Text below to ${INPUT_PLACE_TO}.
 1. Use the Context to ensure accuracy.
 2. Adapt the wording to match the specified Tone.
-3. Output ONLY the translated text. No markdown, no explanations.
+3. If a Source Text term exactly matches a Glossary entry, output ONLY that entry's value; never repeat the source term, never wrap the value in parentheses.
+4. Output ONLY the translated text. No markdown, no explanations.
 
 Source Text: ${INPUT_PLACE_TEXT}
 
@@ -1202,7 +1203,7 @@ Rules:
 1.  Use title/description for context only; do not output them.
 2.  Keep id, order, and count of segments.
 3.  Preserve whitespace, HTML entities, and all HTML-like tags (e.g., <i1>, <a1>). Translate inner text only.
-4.  Highest priority: Follow 'glossary'. Use value for translation; if value is "", keep the key.
+4.  Highest priority: Follow 'glossary'. Use value for translation; if value is "", keep the key. When a term matches the glossary, output ONLY the glossary value; never echo the source term alongside it and never wrap the value in parentheses.
 5.  Do not translate: content in <code>, <pre>, text enclosed in backticks, or placeholders like {1}, {{1}}, [1], [[1]].
 6.  Apply the specified tone to the translation.
 7.  Detect sourceLanguage for each segment.
@@ -1478,7 +1479,7 @@ Group the input word-level JSON array into readable, well-paced bilingual subtit
 3. Pause Indicators: An optional "pauseMs" field is the timeline gap in milliseconds after the current input item. If "pauseMs" is missing, treat it as 0 milliseconds and do not infer a pause. Larger positive values indicate stronger sentence boundaries, but grammatical correctness and semantic coherence always take priority.
 4. Exact Translation Alignment: Build "o" first from the exact source span covered by the current "e", starting after the previous "e". Then translate only the current "o" into "t". The "t" field MUST NOT omit that span, translate future input items, or carry text from adjacent segments.
 5. Silent Self-Check: Before returning, silently verify that every "e", "o", and "t" correspond one-to-one, every "o" matches its exact input range, all source-length limits are satisfied, and all input items are covered exactly once. Do not output the self-check or any reasoning.
-6. Translation Quality: Keep "t" concise, accurate, and natural while strictly adhering to the provided Context, Tone, and Glossary.
+6. Translation Quality: Keep "t" concise, accurate, and natural while strictly adhering to the provided Context, Tone, and Glossary. When a term matches the Glossary, output ONLY the glossary value; never echo the source term alongside it and never wrap the value in parentheses.
 
 # Example
 Input: [{"id":0,"text":"Once"},{"id":1,"text":"the"},{"id":2,"text":"assets"},{"id":3,"text":"are"},{"id":4,"text":"ready,"},{"id":5,"text":"open"},{"id":6,"text":"the"},{"id":7,"text":"storyboard"},{"id":8,"text":"tab.","pauseMs":850},{"id":9,"text":"This"},{"id":10,"text":"is"},{"id":11,"text":"where"},{"id":12,"text":"everything"},{"id":13,"text":"comes"},{"id":14,"text":"together."},{"id":15,"text":"If"},{"id":16,"text":"a"},{"id":17,"text":"scene"},{"id":18,"text":"does"},{"id":19,"text":"not"},{"id":20,"text":"match"},{"id":21,"text":"your"},{"id":22,"text":"idea,"},{"id":23,"text":"regenerate"},{"id":24,"text":"it"},{"id":25,"text":"or"},{"id":26,"text":"adjust"},{"id":27,"text":"the"},{"id":28,"text":"prompt"},{"id":29,"text":"carefully"},{"id":30,"text":"until"},{"id":31,"text":"it"},{"id":32,"text":"feels"},{"id":33,"text":"right."}]
@@ -1519,7 +1520,7 @@ const defaultApi = {
   tone: BUILTIN_STONES[0], // 翻译风格
   placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符
   placetag: BUILTIN_PLACETAGS[0], // 占位标签
-  aiTerms: "", // AI智能专业术语 （todo: 备用）
+  aiTerms: "", // AI智能专业术语（apiSetting.aiTerms，全路径生效：整页/划词/输入框/字幕；与规则级 #glossary 逐 key 合并时接口级覆盖同名）
   customHeader: "",
   customBody: "",
   reqHook: "", // request 钩子函数

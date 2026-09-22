@@ -372,7 +372,9 @@ describe("Batch Translation Protocols & Custom Batch User Prompt", () => {
       const userMessage = body.messages.find((m) => m.role === "user");
 
       expect(userMessage.content).not.toContain("Reference the following");
-      expect(userMessage.content).not.toContain("translation style must strictly");
+      expect(userMessage.content).not.toContain(
+        "translation style must strictly"
+      );
       expect(userMessage.content).toBe(
         `Translate each numbered line below into zh-CN. Maintain the exact "{id} | {translation}" format for each line. Preserve all HTML-like tags, and keep <br> for internal newlines. Output ONLY the translated result without any additional explanation:\n0 | Hello world`
       );
