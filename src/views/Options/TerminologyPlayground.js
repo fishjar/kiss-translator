@@ -299,6 +299,55 @@ function extractFinalUserPrompt(body) {
   return { recognized: false, text: null };
 }
 
+const HY_MT_GLOSSARY_HEADER = "Reference the following translations:";
+
+/** Read one glossary entry from the actual final user prompt. */
+function extractPromptGlossaryEntry(userText, key, value) {
+  const parsed = parseBody(userText);
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const glossary = parsed.glossary;
+    if (!glossary || typeof glossary !== "object" || Array.isArray(glossary)) {
+      return { found: false };
+    }
+    if (!Object.prototype.hasOwnProperty.call(glossary, key)) {
+      return { found: false };
+    }
+    return { found: true, actual: glossary[key], expected: value };
+  }
+
+  if (typeof parsed !== "string") return { found: false };
+  const lines = parsed.split(/\r?\n/);
+  const headerIndex = lines.findIndex(
+    (line) => line.trim() === HY_MT_GLOSSARY_HEADER
+  );
+  if (headerIndex !== -1) {
+    const prefix = `${key} translates to `;
+    for (let index = headerIndex + 1; index < lines.length; index++) {
+      const line = lines[index].trim();
+      if (!line) break;
+      if (line.startsWith(prefix)) {
+        return {
+          found: true,
+          actual: line.slice(prefix.length).trim(),
+          expected: value || key,
+        };
+      }
+    }
+  }
+
+  // Compatibility for custom/legacy templates that still render "- key: value".
+  const legacyPrefix = `- ${key}:`;
+  const legacyLine = lines
+    .map((line) => line.trim())
+    .find((line) => line.startsWith(legacyPrefix));
+  if (!legacyLine) return { found: false };
+  return {
+    found: true,
+    actual: legacyLine.slice(legacyPrefix.length).trim(),
+    expected: value || key,
+  };
+}
+
 /**
  * 把请求体里「字符串形式的嵌套 JSON」就地展开成对象（C4/V5）。
  *
@@ -558,7 +607,12 @@ function buildPromptLabel(
 }
 
 /** 根据快照检测每条术语的注入事实（D2）。 */
-function detectGlossaryDelivery({ rawRequest, entries, apiSnapshot }) {
+function detectGlossaryDelivery({
+  rawRequest,
+  finalUserPrompt,
+  entries,
+  apiSnapshot,
+}) {
   const result = new Map();
   const setState = (key, state, actualValue) =>
     result.set(key, { state, actualValue });
@@ -566,7 +620,7 @@ function detectGlossaryDelivery({ rawRequest, entries, apiSnapshot }) {
     entries.forEach(({ key }) => setState(key, "uncaptured"));
     return result;
   }
-  const { apiType, category, isBatch } = apiSnapshot;
+  const { apiType, category } = apiSnapshot;
   if (apiType === OPT_TRANS_CUSTOMIZE) {
     entries.forEach(({ key }) => setState(key, "missing"));
     return result;
@@ -584,34 +638,21 @@ function detectGlossaryDelivery({ rawRequest, entries, apiSnapshot }) {
     });
     return result;
   }
-  const finalPrompt = extractFinalUserPrompt(rawRequest.body);
-  if (!finalPrompt.recognized) {
+  if (!finalUserPrompt.recognized || finalUserPrompt.text == null) {
     entries.forEach(({ key }) => setState(key, "uncaptured"));
     return result;
   }
-  const userText = finalPrompt.text;
-  if (category === "ai" && isBatch) {
-    const promptObj = parseBody(userText);
-    const glossary = promptObj?.glossary ?? {};
+  if (category === "ai") {
     entries.forEach(({ key, value }) => {
-      if (!Object.prototype.hasOwnProperty.call(glossary, key))
-        return setState(key, "missing");
-      return glossary[key] === value
+      const entry = extractPromptGlossaryEntry(
+        finalUserPrompt.text,
+        key,
+        value
+      );
+      if (!entry.found) return setState(key, "missing");
+      return entry.actual === entry.expected
         ? setState(key, "delivered")
-        : setState(key, "mismatch", glossary[key]);
-    });
-    return result;
-  }
-  if (category === "ai" && !isBatch) {
-    const lines = (userText ?? "").split("\n");
-    entries.forEach(({ key, value }) => {
-      const prefix = `- ${key}:`;
-      const line = lines.find((l) => l.trim().startsWith(prefix));
-      if (!line) return setState(key, "missing");
-      const actual = line.slice(line.indexOf(":") + 1).trim();
-      return actual === value
-        ? setState(key, "delivered")
-        : setState(key, "mismatch", actual);
+        : setState(key, "mismatch", entry.actual);
     });
     return result;
   }
@@ -1491,12 +1532,21 @@ export default function TerminologyPlayground({
   // AI 术语例句轮换 seed（与本地术语区 termSeed 语义一致："" = 缺省确定性行为，递增轮换）。
   const [aiTermSeed, setAiTermSeed] = useState("");
 
+  // customBody 和请求钩子都可能改写消息；最终序列化 body 是唯一事实来源。
+  const finalUserPrompt = useMemo(() => {
+    if (aiTestState.status !== "done" || !aiTestState.rawRequest) {
+      return { recognized: false, text: null };
+    }
+    return extractFinalUserPrompt(aiTestState.rawRequest.body);
+  }, [aiTestState.status, aiTestState.rawRequest]);
+
   // 「已发出」通道判定（D2/D3）：只读请求时快照，不做 JSON 子串搜索
   // （例句必然包含术语 key，子串判定恒真、未发出不可达）。
   const deliveryMap = useMemo(() => {
     if (aiTestState.status !== "done" || !aiTestState.apiSnapshot) return null;
     return detectGlossaryDelivery({
       rawRequest: aiTestState.rawRequest,
+      finalUserPrompt,
       entries: aiTestState.glossaryEntries,
       apiSnapshot: aiTestState.apiSnapshot,
     });
@@ -1506,6 +1556,7 @@ export default function TerminologyPlayground({
     aiTestState.rawRequest,
     aiTestState.glossaryEntries,
     aiTestState.apiSnapshot,
+    finalUserPrompt,
   ]);
 
   // 接口类型分类：QwenMT 特例优先（虽属 machine 集合，但原生支持术语）。
@@ -2507,8 +2558,8 @@ export default function TerminologyPlayground({
                           )}
                         </Typography>
                         {/* 实际发出的提示词 —— 摘要视图专属。
-                            userMsg 在原始请求体里是转义串：批量是双重编码的 JSON 字符串
-                            （满屏 \" ），非批量是带字面 \n 的长文本，两者都难读。这里反转义后展示。
+                            从最终序列化 body 提取：批量提示词可能是双重编码的 JSON 字符串
+                            （满屏 \" ），非批量可能带字面 \n，两者都在这里反转义后展示。
                             原始 JSON 视图**不渲染本块**：那边 body 已由 expandNestedUserMessage
                             就地反转义，再显示一份就是重复噪音（这正是上一轮的设计失误）。 */}
                         <Box sx={{ mt: 0.5 }}>
@@ -2519,7 +2570,10 @@ export default function TerminologyPlayground({
                             )}
                           </Typography>
                           {(() => {
-                            if (!aiTestState.rawRequest) {
+                            if (
+                              !aiTestState.rawRequest ||
+                              !finalUserPrompt.recognized
+                            ) {
                               return (
                                 <Typography
                                   variant="caption"
@@ -2534,10 +2588,7 @@ export default function TerminologyPlayground({
                                 </Typography>
                               );
                             }
-                            const userText = extractUserPromptText(
-                              aiTestState.rawRequest.userMsg
-                            );
-                            const parsed = parseBody(userText);
+                            const parsed = parseBody(finalUserPrompt.text);
                             if (parsed == null || parsed === "") {
                               return (
                                 <Typography

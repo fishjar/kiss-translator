@@ -7,9 +7,43 @@ import TerminologyPlayground, {
   renderRichI18n,
 } from "./TerminologyPlayground";
 import { I18N, UI_LANGS } from "../../config/i18n";
-import { defaultSystemPrompt } from "../../config";
+import {
+  OPT_TRANS_OPENAI,
+  PROMPT_PROTOCOL_JSON,
+  PROMPT_PROTOCOL_LINE,
+  PROMPT_PROTOCOL_XML,
+  defaultBatchUserPromptJson,
+  defaultBatchUserPromptLines,
+  defaultBatchUserPromptXml,
+  defaultNobatchUserPrompt,
+  defaultNobatchUserPromptConcise,
+  defaultSystemPrompt,
+  defaultSystemPromptJson,
+  defaultSystemPromptLines,
+  defaultSystemPromptXml,
+} from "../../config";
+import { genTransReq } from "../../apis/trans";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+jest.mock("query-string", () => ({
+  stringify: (obj) => new URLSearchParams(obj).toString(),
+}));
+
+jest.mock("@streamparser/json", () =>
+  jest.requireActual(
+    "../../../node_modules/@streamparser/json/dist/cjs/index.js"
+  )
+);
+
+jest.mock("../../libs/fetch", () => ({
+  fetchData: jest.fn(),
+  fetchStream: jest.fn(),
+}));
+
+jest.mock("../../libs/docInfo", () => ({
+  getDocInfo: () => ({}),
+}));
 
 // 便于在测试中切换 web 模式提示与规则/日志行为。
 const mockMatchRule = jest.fn();
@@ -1645,6 +1679,34 @@ describe("TerminologyPlayground", () => {
     });
   }
 
+  async function generateFinalRequest(overrides = {}) {
+    const [url, init, userMsg] = await genTransReq({
+      apiType: OPT_TRANS_OPENAI,
+      apiSlug: "openai",
+      url: "https://api.openai.com/v1/chat/completions",
+      key: "sk-test",
+      model: "gpt-4",
+      useStream: false,
+      useBatchFetch: true,
+      from: "en",
+      to: "zh-CN",
+      fromLang: "en",
+      toLang: "zh-CN",
+      texts: [
+        "Please make sure the zorp is configured correctly before deploying.",
+      ],
+      glossary: { zorp: "数据管道" },
+      docInfo: {},
+      ...overrides,
+    });
+    return {
+      reqUrl: url,
+      reqHeaders: init.headers,
+      reqBody: init.body,
+      reqUserMsg: userMsg,
+    };
+  }
+
   test("1. 摘要默认：显示软提示词、提示词标签、译文；不出现原始 JSON 容器", async () => {
     mockResolvedTransApis.push(
       mockResolvedApi({
@@ -2167,6 +2229,152 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
+  test.each([
+    [
+      "LINE batch preset",
+      {
+        useBatchFetch: true,
+        batchProtocol: PROMPT_PROTOCOL_LINE,
+        batchUserPrompt: defaultBatchUserPromptLines,
+        systemPrompt: defaultSystemPromptLines,
+      },
+    ],
+    [
+      "XML batch preset",
+      {
+        useBatchFetch: true,
+        batchProtocol: PROMPT_PROTOCOL_XML,
+        batchUserPrompt: defaultBatchUserPromptXml,
+        systemPrompt: defaultSystemPromptXml,
+      },
+    ],
+    [
+      "JSON batch preset",
+      {
+        useBatchFetch: true,
+        batchProtocol: PROMPT_PROTOCOL_JSON,
+        batchUserPrompt: defaultBatchUserPromptJson,
+        systemPrompt: defaultSystemPromptJson,
+      },
+    ],
+    [
+      "default non-batch prompt",
+      {
+        useBatchFetch: false,
+        nobatchUserPrompt: defaultNobatchUserPrompt,
+      },
+    ],
+    [
+      "concise non-batch prompt",
+      {
+        useBatchFetch: false,
+        nobatchUserPrompt: defaultNobatchUserPromptConcise,
+      },
+    ],
+  ])(
+    "detects Hy-MT glossary delivery from a real genTransReq %s request",
+    async (_name, apiOverrides) => {
+      const generated = await generateFinalRequest(apiOverrides);
+      mockResolvedTransApis.push(
+        mockResolvedApi({
+          apiSlug: "openai",
+          apiName: "OpenAI",
+          ...apiOverrides,
+        })
+      );
+      mockApiTranslateWithCapture(generated);
+      const { container, root, setAiTermsDraft } = renderPlayground({
+        rule: null,
+      });
+      await flushEffects();
+      fillAiTerms(container, setAiTermsDraft, "zorp,数据管道");
+      await runAiTest(container);
+
+      expect(
+        container
+          .querySelector('[data-testid="terminology-ai-delivery-zorp"]')
+          .getAttribute("data-state")
+      ).toBe("delivered");
+      const actualPrompt = container.querySelector(
+        '[data-testid="terminology-ai-usermsg-json"]'
+      ).textContent;
+      expect(actualPrompt).toContain("Reference the following translations:");
+      expect(actualPrompt).toContain("zorp translates to 数据管道");
+
+      act(() => root.unmount());
+    }
+  );
+
+  test("treats an empty Hy-MT target as the generated self-mapping", async () => {
+    const apiOverrides = {
+      useBatchFetch: true,
+      batchProtocol: PROMPT_PROTOCOL_LINE,
+      batchUserPrompt: defaultBatchUserPromptLines,
+      systemPrompt: defaultSystemPromptLines,
+      glossary: { zorp: "" },
+    };
+    const generated = await generateFinalRequest(apiOverrides);
+    mockResolvedTransApis.push(
+      mockResolvedApi({
+        apiSlug: "openai",
+        apiName: "OpenAI",
+        ...apiOverrides,
+      })
+    );
+    mockApiTranslateWithCapture(generated);
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: null,
+    });
+    await flushEffects();
+    fillAiTerms(container, setAiTermsDraft, "zorp");
+    await runAiTest(container);
+
+    expect(
+      container
+        .querySelector('[data-testid="terminology-ai-delivery-zorp"]')
+        .getAttribute("data-state")
+    ).toBe("delivered");
+    expect(
+      container.querySelector('[data-testid="terminology-ai-usermsg-json"]')
+        .textContent
+    ).toContain("zorp translates to zorp");
+
+    act(() => root.unmount());
+  });
+
+  test("reports a mismatched value from the final Hy-MT block", async () => {
+    const apiOverrides = {
+      useBatchFetch: true,
+      batchProtocol: PROMPT_PROTOCOL_XML,
+      batchUserPrompt: defaultBatchUserPromptXml,
+      systemPrompt: defaultSystemPromptXml,
+      glossary: { zorp: "其它值" },
+    };
+    const generated = await generateFinalRequest(apiOverrides);
+    mockResolvedTransApis.push(
+      mockResolvedApi({
+        apiSlug: "openai",
+        apiName: "OpenAI",
+        ...apiOverrides,
+      })
+    );
+    mockApiTranslateWithCapture(generated);
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: null,
+    });
+    await flushEffects();
+    fillAiTerms(container, setAiTermsDraft, "zorp,数据管道");
+    await runAiTest(container);
+
+    const chip = container.querySelector(
+      '[data-testid="terminology-ai-delivery-zorp"]'
+    );
+    expect(chip.getAttribute("data-state")).toBe("mismatch");
+    expect(chip.textContent).toContain("其它值");
+
+    act(() => root.unmount());
+  });
+
   test("D2: delivery column shows 已发出 with glossary and 未发出 without (segments still contain the term)", async () => {
     mockResolvedTransApis.push(
       mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
@@ -2285,9 +2493,72 @@ describe("TerminologyPlayground", () => {
         .querySelector('[data-testid="terminology-ai-delivery-zorp"]')
         .getAttribute("data-state")
     ).toBe("missing");
+    const actualPrompt = container.querySelector(
+      '[data-testid="terminology-ai-usermsg-json"]'
+    ).textContent;
+    expect(actualPrompt).not.toContain("数据管道");
+    expect(actualPrompt).toContain("glossary");
 
     act(() => root.unmount());
   });
+
+  test.each([
+    [
+      "customBody",
+      {
+        customBody: JSON.stringify({
+          messages: [
+            { role: "user", content: "rewritten final prompt without terms" },
+          ],
+        }),
+      },
+    ],
+    [
+      "request hook",
+      {
+        reqHook:
+          '(ctx, req) => ({ ...req, body: { ...req.body, messages: [{ role: "user", content: "rewritten final prompt without terms" }] } })',
+      },
+    ],
+  ])(
+    "uses the final genTransReq body for both delivery and prompt display after %s",
+    async (_name, requestOverride) => {
+      const generated = await generateFinalRequest({
+        useBatchFetch: false,
+        nobatchUserPrompt: defaultNobatchUserPrompt,
+        ...requestOverride,
+      });
+      mockResolvedTransApis.push(
+        mockResolvedApi({
+          apiSlug: "openai",
+          apiName: "OpenAI",
+          useBatchFetch: false,
+          nobatchUserPrompt: defaultNobatchUserPrompt,
+          ...requestOverride,
+        })
+      );
+      mockApiTranslateWithCapture(generated);
+      const { container, root, setAiTermsDraft } = renderPlayground({
+        rule: null,
+      });
+      await flushEffects();
+      fillAiTerms(container, setAiTermsDraft, "zorp,数据管道");
+      await runAiTest(container);
+
+      expect(
+        container
+          .querySelector('[data-testid="terminology-ai-delivery-zorp"]')
+          .getAttribute("data-state")
+      ).toBe("missing");
+      const actualPrompt = container.querySelector(
+        '[data-testid="terminology-ai-usermsg-json"]'
+      ).textContent;
+      expect(actualPrompt).toContain("rewritten final prompt without terms");
+      expect(actualPrompt).not.toContain("数据管道");
+
+      act(() => root.unmount());
+    }
+  );
 
   test("D2: unknown final custom body is uncaptured instead of trusting stale userMsg", async () => {
     mockResolvedTransApis.push(
@@ -2312,6 +2583,10 @@ describe("TerminologyPlayground", () => {
         .querySelector('[data-testid="terminology-ai-delivery-zorp"]')
         .getAttribute("data-state")
     ).toBe("uncaptured");
+    expect(
+      container.querySelector('[data-testid="terminology-ai-usermsg-json"]')
+        .textContent
+    ).toContain("未捕获到提示词");
 
     act(() => root.unmount());
   });
@@ -2491,6 +2766,57 @@ describe("TerminologyPlayground", () => {
 
     act(() => root.unmount());
   });
+
+  test.each([
+    [
+      "OpenAI Responses",
+      {
+        input: [
+          {
+            role: "user",
+            content: [{ type: "input_text", text: batchUserMsgContent() }],
+          },
+        ],
+      },
+    ],
+    [
+      "Claude",
+      {
+        messages: [
+          {
+            role: "user",
+            content: [{ type: "text", text: batchUserMsgContent() }],
+          },
+        ],
+      },
+    ],
+  ])(
+    "extracts the final user prompt from %s request bodies",
+    async (_name, reqBody) => {
+      mockResolvedTransApis.push(
+        mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
+      );
+      mockApiTranslateWithCapture({ reqBody });
+      const { container, root, setAiTermsDraft } = renderPlayground({
+        rule: null,
+      });
+      await flushEffects();
+      fillAiTerms(container, setAiTermsDraft, "zorp,数据管道");
+      await runAiTest(container);
+
+      expect(
+        container.querySelector('[data-testid="terminology-ai-usermsg-json"]')
+          .textContent
+      ).toContain("数据管道");
+      expect(
+        container
+          .querySelector('[data-testid="terminology-ai-delivery-zorp"]')
+          .getAttribute("data-state")
+      ).toBe("delivered");
+
+      act(() => root.unmount());
+    }
+  );
 
   test("Gemini generateContent parts form expands and delivers 已发出", async () => {
     mockResolvedTransApis.push(
