@@ -518,7 +518,7 @@ export class Translator {
   #isQueueProcessing = false; // 队列处理状态标志
 
   #translationUpdates = [];
-  #translationUpdateFrame = null;
+  #cancelTranslationUpdateFlush = null;
 
   // Batch writes across paragraphs before measuring layout again. Keep each
   // promise tied to its node's processing state so cleanup can cancel it.
@@ -533,9 +533,9 @@ export class Translator {
         resolve,
         reject,
       });
-      if (this.#translationUpdateFrame === null) {
-        this.#translationUpdateFrame = requestAnimationFrame(() => {
-          this.#translationUpdateFrame = null;
+      if (this.#cancelTranslationUpdateFlush === null) {
+        const flushUpdates = () => {
+          this.#cancelTranslationUpdateFlush = null;
           const updates = this.#translationUpdates;
           this.#translationUpdates = [];
           const excluded = new Set(
@@ -564,7 +564,15 @@ export class Translator {
               }
             }
           }, excluded);
-        });
+        };
+        if (document.hidden) {
+          const timeoutId = setTimeout(flushUpdates, 0);
+          this.#cancelTranslationUpdateFlush = () => clearTimeout(timeoutId);
+        } else {
+          const frameId = requestAnimationFrame(flushUpdates);
+          this.#cancelTranslationUpdateFlush = () =>
+            cancelAnimationFrame(frameId);
+        }
       }
     });
   }
@@ -580,10 +588,10 @@ export class Translator {
     });
     if (
       !this.#translationUpdates.length &&
-      this.#translationUpdateFrame !== null
+      this.#cancelTranslationUpdateFlush !== null
     ) {
-      cancelAnimationFrame(this.#translationUpdateFrame);
-      this.#translationUpdateFrame = null;
+      this.#cancelTranslationUpdateFlush();
+      this.#cancelTranslationUpdateFlush = null;
     }
   }
 
