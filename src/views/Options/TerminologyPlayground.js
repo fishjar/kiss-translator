@@ -36,9 +36,9 @@ import {
   OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_QWENMT,
-  defaultSystemPrompt,
-  defaultSystemPromptXml,
-  defaultSystemPromptLines,
+  PROMPT_PROTOCOL_JSON,
+  PROMPT_PROTOCOL_LINE,
+  PROMPT_PROTOCOL_XML,
   defaultNobatchUserPrompt,
 } from "../../config";
 import { apiTranslate } from "../../apis";
@@ -549,7 +549,10 @@ function DeliveryChip({ state, actualValue, ...rest }) {
 }
 
 /** 根据快照判断术语注入通道（D3）。 */
-function buildInjectionChannel({ apiType, category, isBatch }, i18n) {
+function buildInjectionChannel(
+  { apiType, category, isBatch, batchProtocol },
+  i18n
+) {
   if (apiType === OPT_TRANS_CUSTOMIZE) {
     return i18n(
       "terminology_playground_channel_custom",
@@ -561,11 +564,15 @@ function buildInjectionChannel({ apiType, category, isBatch }, i18n) {
       "terminology_playground_channel_qwenmt",
       "服务端原生术语 translation_options.terms"
     );
-  if (category === "ai" && isBatch)
-    return i18n(
+  if (category === "ai" && isBatch) {
+    const protocol = String(batchProtocol || "custom").toUpperCase();
+    return formatI18n(
+      i18n,
       "terminology_playground_channel_batch",
-      "批量 JSON glossary 字段"
+      "批量 {protocol} {{glossary}} 占位符",
+      { protocol }
     );
+  }
   if (category === "ai" && !isBatch)
     return i18n(
       "terminology_playground_channel_nobatch",
@@ -576,18 +583,18 @@ function buildInjectionChannel({ apiType, category, isBatch }, i18n) {
 
 /** 根据快照计算提示词标签（Task 4）。 */
 function buildPromptLabel(
-  { apiType, category, isBatch, systemPrompt, nobatchUserPrompt },
+  { apiType, category, isBatch, batchProtocol, nobatchUserPrompt },
   i18n
 ) {
   if (category === "qwenmt" || apiType === OPT_TRANS_CUSTOMIZE) {
     return i18n("terminology_playground_prompt_none", "不使用翻译提示词");
   }
   if (category === "ai" && isBatch) {
-    if (systemPrompt === defaultSystemPrompt)
+    if (batchProtocol === PROMPT_PROTOCOL_JSON)
       return i18n("terminology_playground_prompt_json", "JSON 聚合翻译提示词");
-    if (systemPrompt === defaultSystemPromptXml)
+    if (batchProtocol === PROMPT_PROTOCOL_XML)
       return i18n("terminology_playground_prompt_xml", "XML 聚合翻译提示词");
-    if (systemPrompt === defaultSystemPromptLines)
+    if (batchProtocol === PROMPT_PROTOCOL_LINE)
       return i18n("terminology_playground_prompt_line", "LINE 聚合翻译提示词");
     return i18n(
       "terminology_playground_prompt_custom_batch",
@@ -1272,6 +1279,7 @@ export default function TerminologyPlayground({
       apiType: selectedApi.apiType,
       category: selectedApiCategory,
       isBatch,
+      batchProtocol: selectedApi.batchProtocol,
       model: selectedApi.model || "",
       host: getApiHost(selectedApi),
       maskedKey: getMaskedAuthSummary(selectedApi),
@@ -1280,7 +1288,7 @@ export default function TerminologyPlayground({
           apiType: selectedApi.apiType,
           category: selectedApiCategory,
           isBatch,
-          systemPrompt: selectedApi.systemPrompt,
+          batchProtocol: selectedApi.batchProtocol,
           nobatchUserPrompt: selectedApi.nobatchUserPrompt,
         },
         i18n
@@ -1290,6 +1298,7 @@ export default function TerminologyPlayground({
           apiType: selectedApi.apiType,
           category: selectedApiCategory,
           isBatch,
+          batchProtocol: selectedApi.batchProtocol,
         },
         i18n
       ),
@@ -1534,11 +1543,11 @@ export default function TerminologyPlayground({
 
   // customBody 和请求钩子都可能改写消息；最终序列化 body 是唯一事实来源。
   const finalUserPrompt = useMemo(() => {
-    if (aiTestState.status !== "done" || !aiTestState.rawRequest) {
+    if (!aiTestState.rawRequest) {
       return { recognized: false, text: null };
     }
     return extractFinalUserPrompt(aiTestState.rawRequest.body);
-  }, [aiTestState.status, aiTestState.rawRequest]);
+  }, [aiTestState.rawRequest]);
 
   // 「已发出」通道判定（D2/D3）：只读请求时快照，不做 JSON 子串搜索
   // （例句必然包含术语 key，子串判定恒真、未发出不可达）。

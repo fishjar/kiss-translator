@@ -1280,13 +1280,13 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
     "Thuật ngữ gốc phía máy chủ translation_options.terms"
   ),
   terminology_playground_channel_batch: terminologyPlaygroundText(
-    "批量 JSON glossary 字段",
-    "Batch JSON glossary field",
-    "批次 JSON glossary 欄位",
-    "バッチ JSON glossary フィールド",
-    "배치 JSON glossary 필드",
-    "Toplu JSON glossary alanı",
-    "Trường JSON glossary dạng lô"
+    "批量 {protocol} {{glossary}} 占位符",
+    "Batch {protocol} {{glossary}} placeholder",
+    "批次 {protocol} {{glossary}} 佔位符",
+    "バッチ {protocol} {{glossary}} プレースホルダー",
+    "배치 {protocol} {{glossary}} 플레이스홀더",
+    "Toplu {protocol} {{glossary}} yer tutucusu",
+    "Giữ chỗ {{glossary}} {protocol} dạng lô"
   ),
   terminology_playground_channel_nobatch: terminologyPlaygroundText(
     "非批量 {{glossary}} 占位符",

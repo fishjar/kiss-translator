@@ -73,6 +73,7 @@ const mockResolvedApi = (overrides = {}) => ({
   apiType: "OpenAI",
   isDisabled: false,
   useBatchFetch: true,
+  batchProtocol: PROMPT_PROTOCOL_JSON,
   systemPrompt: defaultSystemPrompt,
   ...overrides,
 });
@@ -2238,6 +2239,8 @@ describe("TerminologyPlayground", () => {
         batchUserPrompt: defaultBatchUserPromptLines,
         systemPrompt: defaultSystemPromptLines,
       },
+      "LINE 聚合翻译提示词",
+      "批量 LINE {{glossary}} 占位符",
     ],
     [
       "XML batch preset",
@@ -2247,6 +2250,8 @@ describe("TerminologyPlayground", () => {
         batchUserPrompt: defaultBatchUserPromptXml,
         systemPrompt: defaultSystemPromptXml,
       },
+      "XML 聚合翻译提示词",
+      "批量 XML {{glossary}} 占位符",
     ],
     [
       "JSON batch preset",
@@ -2256,6 +2261,8 @@ describe("TerminologyPlayground", () => {
         batchUserPrompt: defaultBatchUserPromptJson,
         systemPrompt: defaultSystemPromptJson,
       },
+      "JSON 聚合翻译提示词",
+      "批量 JSON {{glossary}} 占位符",
     ],
     [
       "default non-batch prompt",
@@ -2263,6 +2270,8 @@ describe("TerminologyPlayground", () => {
         useBatchFetch: false,
         nobatchUserPrompt: defaultNobatchUserPrompt,
       },
+      "非批量翻译提示词",
+      "非批量 {{glossary}} 占位符",
     ],
     [
       "concise non-batch prompt",
@@ -2270,10 +2279,12 @@ describe("TerminologyPlayground", () => {
         useBatchFetch: false,
         nobatchUserPrompt: defaultNobatchUserPromptConcise,
       },
+      "自定义非批量提示词",
+      "非批量 {{glossary}} 占位符",
     ],
   ])(
     "detects Hy-MT glossary delivery from a real genTransReq %s request",
-    async (_name, apiOverrides) => {
+    async (_name, apiOverrides, expectedPromptLabel, expectedChannel) => {
       const generated = await generateFinalRequest(apiOverrides);
       mockResolvedTransApis.push(
         mockResolvedApi({
@@ -2300,6 +2311,14 @@ describe("TerminologyPlayground", () => {
       ).textContent;
       expect(actualPrompt).toContain("Reference the following translations:");
       expect(actualPrompt).toContain("zorp translates to 数据管道");
+      expect(
+        container.querySelector('[data-testid="terminology-ai-prompt-label"]')
+          .textContent
+      ).toContain(expectedPromptLabel);
+      expect(
+        container.querySelector('[data-testid="terminology-ai-inject-channel"]')
+          .textContent
+      ).toContain(expectedChannel);
 
       act(() => root.unmount());
     }
@@ -3057,7 +3076,7 @@ describe("TerminologyPlayground", () => {
     expect(
       container.querySelector('[data-testid="terminology-ai-inject-channel"]')
         .textContent
-    ).toContain("批量 JSON glossary 字段");
+    ).toContain("批量 JSON {{glossary}} 占位符");
     expect(
       container
         .querySelector('[data-testid="terminology-ai-delivery-zorp"]')
@@ -3078,7 +3097,7 @@ describe("TerminologyPlayground", () => {
     expect(
       container.querySelector('[data-testid="terminology-ai-inject-channel"]')
         .textContent
-    ).toContain("批量 JSON glossary 字段");
+    ).toContain("批量 JSON {{glossary}} 占位符");
     expect(
       container.querySelector('[data-testid="terminology-ai-prompt-label"]')
         .textContent
@@ -3889,6 +3908,9 @@ describe("TerminologyPlayground", () => {
     const softGlossary = queryTestid("terminology-ai-soft-glossary");
     expect(softGlossary.textContent).toContain("zorp");
     expect(softGlossary.querySelectorAll(".MuiChip-root")).toHaveLength(0);
+    expect(queryTestid("terminology-ai-usermsg-json").textContent).toContain(
+      "用户消息-err"
+    );
 
     act(() => root.unmount());
   });
