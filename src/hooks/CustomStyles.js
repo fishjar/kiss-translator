@@ -4,6 +4,24 @@ import { DEFAULT_CUSTOM_STYLES, OPT_STYLE_ALL } from "../config/styles";
 import { builtinStylesMap } from "../libs/style";
 import { useI18n } from "./I18n";
 
+export const STYLE_SOURCE_BUILTIN = "builtin";
+export const STYLE_SOURCE_CUSTOM = "custom";
+
+export function getCompactStylePreviewCode(style) {
+  if (style?.source !== STYLE_SOURCE_BUILTIN || style?.isBuiltin !== true) {
+    return "";
+  }
+  return style.styleCode || "";
+}
+
+export function toPersistedCustomStyle(style = {}) {
+  return {
+    styleSlug: style.styleSlug,
+    styleName: style.styleName,
+    styleCode: style.styleCode,
+  };
+}
+
 // 内部状态 Hook，解构并提供用户自定义样式列表和更新方法
 function useStyleState() {
   const { setting, updateSetting } = useSetting();
@@ -83,14 +101,30 @@ export function useAllTextStyles() {
         styleSlug,
         styleName: i18n(styleSlug),
         styleCode: builtinStylesMap[styleSlug] || "",
+        source: STYLE_SOURCE_BUILTIN,
+        isBuiltin: true,
       })),
     [i18n]
   );
 
+  const normalizedCustomStyles = useMemo(
+    () =>
+      customStyles.map((style) => ({
+        ...style,
+        source: STYLE_SOURCE_CUSTOM,
+        isBuiltin: false,
+      })),
+    [customStyles]
+  );
+
   // 拼接系统内置和用户自定义样式，生成用于界面展示的所有文本样式集合
   const allTextStyles = useMemo(() => {
-    return [...builtinStyles, ...customStyles];
-  }, [builtinStyles, customStyles]);
+    return [...builtinStyles, ...normalizedCustomStyles];
+  }, [builtinStyles, normalizedCustomStyles]);
 
-  return { builtinStyles, customStyles, allTextStyles };
+  return {
+    builtinStyles,
+    customStyles: normalizedCustomStyles,
+    allTextStyles,
+  };
 }

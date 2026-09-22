@@ -46,7 +46,10 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MAX_UPLOAD_EVENTS = 100000;
 // 原始数据和结果框默认显示五行，并允许用户从右下角按需拉高查看区域。
 const RESIZABLE_TEXT_FIELD_SX = {
-  "& textarea": {
+  "& .MuiInputBase-root": {
+    overflow: "visible",
+  },
+  '& textarea:not([aria-hidden="true"])': {
     resize: "vertical !important",
     overflow: "auto !important",
   },
@@ -173,6 +176,7 @@ export default function SubtitleSegmentationPlayground({
   const [showLanguageRequired, setShowLanguageRequired] = useState(false);
   const abortRef = useRef(null);
   const languageSelectRef = useRef(null);
+  const uploadInputRef = useRef(null);
   // 索引只应拉取一次，通过 ref 读取当前语言，避免翻译函数变化导致重复请求。
   const i18nRef = useRef(i18n);
   i18nRef.current = i18n;
@@ -204,11 +208,14 @@ export default function SubtitleSegmentationPlayground({
   const prepared = useMemo(() => {
     if (!sourceValue) return null;
     try {
-      return prepareTimedTextEvents(parseSubtitleSource(sourceValue).events);
+      return prepareTimedTextEvents(
+        parseSubtitleSource(sourceValue).events,
+        fromLang
+      );
     } catch {
       return null;
     }
-  }, [sourceValue]);
+  }, [sourceValue, fromLang]);
   const estimatedChunkCount = segApi
     ? splitEventsIntoChunks(
         prepared?.flatEvents || [],
@@ -706,15 +713,25 @@ export default function SubtitleSegmentationPlayground({
           sx={{ minWidth: 0, gridColumn: "1 / -1" }}
           data-testid="segmentation-actions"
         >
-          <Stack direction="row" spacing={1} flexWrap="wrap">
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             <Button
               component="label"
               variant="outlined"
               startIcon={<UploadFileIcon />}
               disabled={loading}
+              onKeyDown={(event) => {
+                if (
+                  !event.repeat &&
+                  (event.key === "Enter" || event.key === " ")
+                ) {
+                  event.preventDefault();
+                  uploadInputRef.current?.click();
+                }
+              }}
             >
               {i18n("subtitle_playground_upload_json", "上传 JSON")}
               <input
+                ref={uploadInputRef}
                 hidden
                 type="file"
                 accept=".json,application/json"
@@ -724,7 +741,7 @@ export default function SubtitleSegmentationPlayground({
             <Button
               variant="contained"
               startIcon={
-                loading ? <CircularProgress size={16} /> : <PlayArrowIcon />
+                loading ? <CircularProgress size={20} /> : <PlayArrowIcon />
               }
               disabled={!sourceValue || loading}
               onClick={runTest}
@@ -779,12 +796,15 @@ export default function SubtitleSegmentationPlayground({
             {i18n("subtitle_playground_source_json", "原始字幕 JSON")}
           </Typography>
           <TextField
+            className="kt-resizable-text-field"
             fullWidth
             multiline
             rows={5}
             value={sourceText}
             InputProps={{ readOnly: true }}
             inputProps={{
+              className: "kt-resizable-textarea",
+              style: { resize: "vertical", overflow: "auto" },
               "aria-label": i18n(
                 "subtitle_playground_source_json",
                 "原始字幕 JSON"
@@ -799,12 +819,15 @@ export default function SubtitleSegmentationPlayground({
           </Typography>
           <Box sx={{ position: "relative" }}>
             <TextField
+              className="kt-resizable-text-field"
               fullWidth
               multiline
               rows={5}
               value={resultText}
               InputProps={{ readOnly: true }}
               inputProps={{
+                className: "kt-resizable-textarea",
+                style: { resize: "vertical", overflow: "auto" },
                 "aria-label": i18n("subtitle_playground_result", "断句结果"),
               }}
               sx={RESIZABLE_TEXT_FIELD_SX}
@@ -819,12 +842,16 @@ export default function SubtitleSegmentationPlayground({
                 top: 8,
                 right: 8,
                 p: 0.25,
-                borderRadius: 1,
+                borderRadius: "8px",
                 bgcolor: "background.paper",
                 boxShadow: 1,
               }}
             >
               <ToggleButtonGroup
+                aria-label={i18n(
+                  "subtitle_playground_result_format",
+                  "Result format"
+                )}
                 exclusive
                 size="small"
                 value={resultFormat}

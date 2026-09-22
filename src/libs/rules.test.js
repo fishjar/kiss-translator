@@ -1,5 +1,5 @@
 import { checkRules, matchRule, saveRule } from "./rules";
-import { getDisabledSubRules, getRulesWithDefault, setRules } from "./storage";
+import { getDisabledSubRules, getRulesWithDefault, saveEdit } from "./storage";
 import { loadOrFetchSubRules } from "./subRules";
 import { GLOBLA_RULE } from "../config/rules";
 import { OPT_TRANS_MICROSOFT, OPT_TRANS_TENCENT } from "../config/api";
@@ -7,7 +7,7 @@ import { DEFAULT_API_SETTING } from "../config";
 
 jest.mock("./storage", () => ({
   getRulesWithDefault: jest.fn(),
-  setRules: jest.fn(),
+  saveEdit: jest.fn(),
   getDisabledSubRules: jest.fn(),
 }));
 
@@ -64,6 +64,10 @@ describe("rules enabled state", () => {
     jest.clearAllMocks();
     getDisabledSubRules.mockResolvedValue([]);
     loadOrFetchSubRules.mockResolvedValue([]);
+    saveEdit.mockImplementation(async (_key, update) => ({
+      value: update(await getRulesWithDefault()),
+      changed: true,
+    }));
   });
 
   test("matches legacy personal rules without enabled field", async () => {
@@ -223,6 +227,34 @@ describe("rules enabled state", () => {
     }
   );
 
+  test("rebases a popup intent without mutating the latest rules or request", async () => {
+    const existing = Object.freeze({
+      pattern: "example.com",
+      selector: "article",
+      transOpen: "false",
+    });
+    const other = Object.freeze({ pattern: "other.example", selector: "main" });
+    const latest = Object.freeze([
+      other,
+      existing,
+      Object.freeze({ ...GLOBLA_RULE }),
+    ]);
+    const request = Object.freeze({
+      pattern: "example.com",
+      transOpen: "true",
+    });
+    getRulesWithDefault.mockResolvedValue(latest);
+    await saveRule(request);
+    const result = (await saveEdit.mock.results[0].value).value;
+    expect(result[0]).toMatchObject({
+      pattern: "example.com",
+      selector: "article",
+      transOpen: "true",
+    });
+    expect(result[1]).toBe(other);
+    expect(latest).toEqual([other, existing, GLOBLA_RULE]);
+  });
+
   test.each([
     ["enabled", "false", true, "true"],
     ["disabled", "true", false, "false"],
@@ -235,7 +267,7 @@ describe("rules enabled state", () => {
 
       await saveRule({ pattern: "example.com", isPlainText: popupValue });
 
-      expect(setRules).toHaveBeenCalledWith(
+      expect((await saveEdit.mock.results[0].value).value).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             pattern: "example.com",

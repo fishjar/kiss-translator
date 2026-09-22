@@ -5,8 +5,7 @@ import { EVENT_FAVORITE_WORD_CHANGE } from "../config";
 jest.mock("../libs/storage.js", () => ({
   getSettingWithDefault: jest.fn(() => Promise.resolve({ darkMode: "light" })),
   getWordsWithDefault: jest.fn(),
-  setWords: jest.fn(),
-  debounceSyncMeta: jest.fn(),
+  saveEdit: jest.fn(),
 }));
 
 jest.mock("../apis/index.js", () => ({
@@ -78,9 +77,11 @@ describe("YouTubeSubtitleList", () => {
     storage.getWordsWithDefault.mockImplementation(() =>
       Promise.resolve(favoriteWords)
     );
-    storage.setWords.mockImplementation((words) => {
+    storage.saveEdit.mockImplementation(async (_key, update) => {
+      const words = update(favoriteWords);
+      const changed = words !== favoriteWords;
       favoriteWords = words;
-      return Promise.resolve();
+      return { value: words, changed };
     });
   });
 
@@ -203,19 +204,19 @@ describe("YouTubeSubtitleList", () => {
 
     const storage = require("../libs/storage.js");
     const favoriteButton = document.querySelector(".kiss-favorite-word-button");
-    expect(storage.setWords).not.toHaveBeenCalled();
+    expect(storage.saveEdit).not.toHaveBeenCalled();
     expect(favoriteButton.getAttribute("aria-pressed")).toBe("false");
 
     favoriteButton.click();
     await flushPromises();
 
-    expect(storage.setWords).toHaveBeenCalledWith({
+    expect(favoriteWords).toEqual({
       ready: expect.objectContaining({
         phonetic: "/redi/",
         definition: "adj. 准备好的",
       }),
     });
-    expect(storage.setWords.mock.calls[0][0].ready.timestamp).toBeUndefined();
+    expect(favoriteWords.ready.timestamp).toBeUndefined();
 
     document.removeEventListener("kiss-add-word", addWordHandler);
     manager.destroy();
@@ -229,7 +230,6 @@ describe("YouTubeSubtitleList", () => {
       trs: [{ pos: "adj.", def: "准备好的" }],
       sentences: [{ eng: "ready to go", chs: "准备出发" }],
     });
-    const storage = require("../libs/storage.js");
     const videoEl = createVideoElement();
     const manager = new YouTubeSubtitleList(videoEl, () => "", {
       enableHoverLookup: true,
@@ -249,21 +249,20 @@ describe("YouTubeSubtitleList", () => {
     await apiMicrosoftDict.mock.results[0].value;
     await flushPromises();
 
-    expect(storage.setWords).toHaveBeenCalledWith({
+    expect(favoriteWords).toEqual({
       ready: expect.objectContaining({
         phonetic: "/redi/",
         definition: "adj. 准备好的",
         examples: [{ eng: "ready to go", chs: "准备出发" }],
       }),
     });
-    expect(storage.setWords.mock.calls[0][0].ready.timestamp).toBeUndefined();
+    expect(favoriteWords.ready.timestamp).toBeUndefined();
 
     manager.destroy();
     jest.useRealTimers();
   });
 
   test("toggles a vocabulary item's global favorite state", async () => {
-    const storage = require("../libs/storage.js");
     const handleFavoriteChange = jest.fn();
     document.addEventListener(EVENT_FAVORITE_WORD_CHANGE, handleFavoriteChange);
     const videoEl = createVideoElement();
@@ -294,14 +293,14 @@ describe("YouTubeSubtitleList", () => {
     button.click();
     await flushPromises();
 
-    expect(storage.setWords).toHaveBeenCalledWith({
+    expect(favoriteWords).toEqual({
       ready: expect.objectContaining({
         phonetic: "/redi/",
         definition: "adj. 准备好的",
         examples: item.examples,
       }),
     });
-    expect(storage.setWords.mock.calls[0][0].ready.timestamp).toBeUndefined();
+    expect(favoriteWords.ready.timestamp).toBeUndefined();
     expect(button.getAttribute("aria-pressed")).toBe("true");
     expect(handleFavoriteChange).toHaveBeenCalledWith(
       expect.objectContaining({

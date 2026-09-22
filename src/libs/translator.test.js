@@ -28,8 +28,12 @@ const { Translator } = require("./translator");
 
 const flushAsync = async () => {
   jest.runOnlyPendingTimers();
-  await Promise.resolve();
-  await Promise.resolve();
+  // Drain detection/request microtasks and the insertion/rendering frames.
+  for (let frame = 0; frame < 2; frame++) {
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    jest.advanceTimersByTime(16);
+  }
+  for (let i = 0; i < 8; i++) await Promise.resolve();
 };
 
 const createdTranslators = [];
@@ -100,6 +104,214 @@ function createPlainTextTranslator(rule = {}, setting = {}) {
 }
 
 describe("Translator rule styles", () => {
+  test("editor preview shares targets without modifying DOM or sending requests", () => {
+    document.body.innerHTML =
+      '<main id="root"><article><p id="a">First article text</p><p id="b" class="excluded">Ignored paragraph text</p></article></main>';
+    const translator = createTranslator(
+      { transOpen: "false", ignoreSelector: ".excluded" },
+      { preInit: false }
+    );
+    const before = document.body.innerHTML;
+    expect(translator.previewRule().targets.map((node) => node.id)).toEqual([
+      "a",
+    ]);
+    expect(document.body.innerHTML).toBe(before);
+    expect(apiTranslate).not.toHaveBeenCalled();
+    expect(tryDetectLang).not.toHaveBeenCalled();
+  });
+
+  test("changing manual targets removes old translations and discovers new targets", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="a">First article text</p><p id="b">Second article text</p></main>';
+    const translator = createTranslator({ autoScan: "false", selector: "#a" });
+    await flushAsync();
+    await flushAsync();
+    expect(
+      document.querySelector("#a .kiss-translator-wrapper")
+    ).not.toBeNull();
+    translator.updateRule({ selector: "#b" });
+    await flushAsync();
+    await flushAsync();
+    expect(document.querySelector("#a .kiss-translator-wrapper")).toBeNull();
+    expect(
+      document.querySelector("#b .kiss-translator-wrapper")
+    ).not.toBeNull();
+  });
+
+  test("entering the editor invalidates pending language detection and restores the switch", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Pending original article text</p></main>';
+    let finishDetect;
+    tryDetectLang.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishDetect = resolve;
+        })
+    );
+    const translator = createTranslator({ fromLang: "auto" });
+    await flushAsync();
+    const state = translator.beginRuleEditing();
+    expect(state.enabled).toBe(true);
+    finishDetect("en");
+    await flushAsync();
+    expect(apiTranslate).not.toHaveBeenCalled();
+    expect(document.querySelector(".kiss-translator-wrapper")).toBeNull();
+    translator.updateRule({ selector: ":not(*)", autoScan: "false" });
+    translator.endRuleEditing(state);
+    expect(translator.rule.transOpen).toBe("true");
+    expect(translator.previewRule().targets).toEqual([]);
+  });
+
+  test.each([false, true])(
+    "retries pending language detection across a translation toggle (enable before detection finishes: %s)",
+    async (enableBeforeDetection) => {
+      document.body.innerHTML =
+        '<main id="root"><p>Article pending language detection</p></main>';
+      let finishDetect;
+      tryDetectLang.mockImplementationOnce(
+        () => new Promise((resolve) => (finishDetect = resolve))
+      );
+      const translator = createTranslator({ fromLang: "auto" });
+      await flushAsync();
+      expect(finishDetect).toBeDefined();
+
+      translator.disable();
+      if (enableBeforeDetection) translator.enable();
+      finishDetect("en");
+      await flushAsync();
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(enableBeforeDetection ? 1 : 0);
+      if (!enableBeforeDetection) translator.enable();
+      await flushAsync();
+      await flushAsync();
+
+      expect(tryDetectLang).toHaveBeenCalledTimes(2);
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(document.querySelector(".kiss-translator-wrapper")).not.toBeNull();
+    }
+  );
+
+  test("a stale detection does not clear a newer task after rescanning", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Article with overlapping language detections</p></main>';
+    const detections = [];
+    tryDetectLang.mockImplementation(
+      () => new Promise((resolve) => detections.push(resolve))
+    );
+    const translator = createTranslator({ fromLang: "auto" });
+    await flushAsync();
+    translator.rescan();
+    await flushAsync();
+    expect(detections).toHaveLength(2);
+
+    detections[0]("en");
+    await flushAsync();
+    translator.updateRule({ transOnly: "true" });
+    await flushAsync();
+    expect(detections).toHaveLength(2);
+    expect(apiTranslate).not.toHaveBeenCalled();
+
+    detections[1]("en");
+    await flushAsync();
+    await flushAsync();
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll(".kiss-translator-wrapper")).toHaveLength(
+      1
+    );
+  });
+
+  test.each(["false", "true"])(
+    "preserves injected CSS throughout editing without rerunning initialization JS (transOpen: %s)",
+    async (transOpen) => {
+      document.body.innerHTML =
+        '<main id="root"><p>Article with site-specific styling</p></main>';
+      const translator = createTranslator(
+        {
+          transOpen,
+          injectCss: "#root { color: red; }",
+          injectJs: "KT.apiDectect('rule initialization');",
+        },
+        { preInit: true }
+      );
+      await flushAsync();
+      const selector = 'style[data-source="kiss-inject injectInternalCss"]';
+      const style = document.querySelector(selector);
+      expect(style).not.toBeNull();
+      const state = translator.beginRuleEditing();
+      expect(document.querySelector(selector)).toBe(style);
+
+      translator.setRuleEditingPreview(true);
+      await flushAsync();
+      translator.setRuleEditingPreview(false);
+      translator.endRuleEditing(state);
+      await flushAsync();
+      expect(document.querySelector(selector)).toBe(style);
+      expect(document.querySelectorAll(selector)).toHaveLength(1);
+      expect(tryDetectLang).toHaveBeenCalledTimes(1);
+      expect(tryDetectLang).toHaveBeenCalledWith("rule initialization");
+
+      translator.stop();
+      expect(document.querySelector(selector)).toBeNull();
+    }
+  );
+
+  test.each([false, true])(
+    "keeps pending and subsequent DOM rescans across a translation toggle (enable before idle: %s)",
+    async (enableBeforeIdle) => {
+      document.body.innerHTML =
+        '<main id="root"><p>Initial original article text</p></main>';
+      const translator = createTranslator();
+      await flushAsync();
+      await flushAsync();
+
+      const root = document.querySelector("#root");
+      root.insertAdjacentHTML(
+        "beforeend",
+        '<p id="pending">Article added before disabling translation</p>'
+      );
+      await Promise.resolve();
+      translator.disable();
+      if (enableBeforeIdle) translator.enable();
+      await flushAsync();
+      await flushAsync();
+      if (!enableBeforeIdle) translator.enable();
+      await flushAsync();
+      await flushAsync();
+      expect(
+        document.querySelector("#pending .kiss-translator-wrapper")
+      ).not.toBeNull();
+
+      apiTranslate.mockClear();
+      root.insertAdjacentHTML(
+        "beforeend",
+        '<p id="later">Article added after enabling translation</p>'
+      );
+      await Promise.resolve();
+      await flushAsync();
+      await flushAsync();
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalled();
+      expect(
+        document.querySelector("#later .kiss-translator-wrapper")
+      ).not.toBeNull();
+    }
+  );
+
+  test("manual preview excludes roots under ignored ancestors", () => {
+    document.body.innerHTML =
+      '<div class="excluded"><main id="root"><p>Ignored article text</p></main></div>';
+    const translator = createTranslator(
+      {
+        transOpen: "false",
+        autoScan: "false",
+        selector: "p",
+        ignoreSelector: ".excluded",
+      },
+      { preInit: false }
+    );
+    expect(translator.previewRule().targets).toEqual([]);
+  });
+
   let originalIntersectionObserver;
   let originalCSSStyleSheet;
   let originalScrollBy;
@@ -166,6 +378,575 @@ describe("Translator rule styles", () => {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
     jest.clearAllMocks();
+  });
+
+  describe("batched translation updates", () => {
+    let frames;
+    let frameId;
+    let requestFrame;
+    let cancelFrame;
+    let scrollHeight;
+    let clientHeight;
+
+    const runFrame = async () => {
+      const callbacks = Array.from(frames.values());
+      frames.clear();
+      callbacks.forEach((callback) => callback());
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+    };
+
+    beforeEach(() => {
+      frames = new Map();
+      frameId = 0;
+      requestFrame = jest
+        .spyOn(window, "requestAnimationFrame")
+        .mockImplementation((callback) => {
+          frames.set(++frameId, callback);
+          return frameId;
+        });
+      cancelFrame = jest
+        .spyOn(window, "cancelAnimationFrame")
+        .mockImplementation((id) => frames.delete(id));
+      scrollHeight = jest
+        .spyOn(document.documentElement, "scrollHeight", "get")
+        .mockReturnValue(4000);
+      clientHeight = jest
+        .spyOn(document.documentElement, "clientHeight", "get")
+        .mockReturnValue(800);
+      document.body.innerHTML =
+        '<main id="root">' +
+        Array.from(
+          { length: 30 },
+          (_, i) => `<p>Original paragraph ${i}</p>`
+        ).join("") +
+        '</main><footer id="anchor">Reading anchor</footer>';
+      const anchor = document.getElementById("anchor");
+      document.elementFromPoint = jest.fn(() => anchor);
+      let scrollOffset = 0;
+      window.scrollBy.mockImplementation((x, y) => {
+        scrollOffset += y;
+      });
+      anchor.getBoundingClientRect = jest.fn(() => ({
+        width: 100,
+        height: 20,
+        top:
+          100 -
+          scrollOffset +
+          document.querySelectorAll(".kiss-translator-wrapper").length * 10,
+      }));
+    });
+
+    afterEach(() => {
+      createdTranslators.forEach((translator) => translator.stop());
+      requestFrame.mockRestore();
+      cancelFrame.mockRestore();
+      scrollHeight.mockRestore();
+      clientHeight.mockRestore();
+    });
+
+    test("measures once per batch and preserves the reading position across repeated toggles", async () => {
+      const translator = createTranslator({
+        transOnly: "true",
+        wrapOriginal: "true",
+      });
+      await flushAsync();
+      expect(frames.size).toBe(1);
+      expect(
+        document.querySelectorAll(".kiss-translator-wrapper")
+      ).toHaveLength(0);
+
+      for (let pass = 0; pass < 2; pass++) {
+        document.elementFromPoint.mockClear();
+        await runFrame();
+        expect(apiTranslate).toHaveBeenCalledTimes(30 * (pass + 1));
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper svg")
+        ).toHaveLength(30);
+        expect(document.elementFromPoint).toHaveBeenCalledTimes(1);
+        expect(window.scrollBy).toHaveBeenLastCalledWith(0, 300);
+        await runFrame();
+        expect(document.elementFromPoint).toHaveBeenCalledTimes(2);
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper svg")
+        ).toHaveLength(0);
+        expect(document.getElementById("root").textContent).not.toContain(
+          "Original"
+        );
+        translator.disable();
+        expect(document.elementFromPoint).toHaveBeenCalledTimes(3);
+        expect(window.scrollBy).toHaveBeenLastCalledWith(0, -300);
+        expect(
+          document.querySelectorAll(
+            ".kiss-translator-wrapper, .kiss-translator-original"
+          )
+        ).toHaveLength(0);
+        expect(document.querySelectorAll("#root p")).toHaveLength(30);
+        expect(document.getElementById("root").textContent).toContain(
+          "Original paragraph 29"
+        );
+        if (pass === 0) {
+          translator.enable();
+          await flushAsync();
+        }
+      }
+    });
+
+    test("cancels queued insertion and can immediately enable again", async () => {
+      const translator = createTranslator({ transOnly: "true" });
+      await flushAsync();
+      translator.disable();
+      expect(frames.size).toBe(0);
+      expect(apiTranslate).not.toHaveBeenCalled();
+      translator.enable();
+      await flushAsync();
+      await runFrame();
+      await runFrame();
+      expect(apiTranslate).toHaveBeenCalledTimes(30);
+      expect(
+        document.querySelectorAll(".kiss-translator-wrapper")
+      ).toHaveLength(30);
+      expect(document.getElementById("root").textContent).not.toContain(
+        "Original"
+      );
+    });
+
+    test("starts translation while the document is hidden", async () => {
+      const hidden = jest
+        .spyOn(document, "hidden", "get")
+        .mockReturnValue(true);
+      try {
+        createTranslator();
+        await flushAsync();
+        expect(requestFrame).not.toHaveBeenCalled();
+        expect(apiTranslate).toHaveBeenCalledTimes(30);
+      } finally {
+        hidden.mockRestore();
+      }
+    });
+
+    test.each(["true", "false"])(
+      "uses the latest original visibility when rendering was queued (transOnly: %s)",
+      async (transOnly) => {
+        const translator = createTranslator({ transOnly });
+        await flushAsync();
+        await runFrame();
+        translator.toggleTransOnly();
+        await runFrame();
+        expect(
+          document.querySelectorAll("template.kiss-translator-backup")
+        ).toHaveLength(transOnly === "true" ? 0 : 30);
+        const originalVisible = document
+          .getElementById("root")
+          .textContent.includes("Original");
+        expect(originalVisible).toBe(transOnly === "true");
+        translator.disable();
+        expect(document.getElementById("root").textContent).toContain(
+          "Original paragraph 29"
+        );
+      }
+    );
+
+    test.each(["disable", "stop", "rescan"])(
+      "discards queued rendering on %s",
+      async (action) => {
+        apiTranslate.mockResolvedValue({ trText: "Old result", isSame: false });
+        const translator = createTranslator({ transOnly: "true" });
+        await flushAsync();
+        await runFrame();
+        expect(frames.size).toBe(1);
+        translator[action]();
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper")
+        ).toHaveLength(0);
+        expect(document.getElementById("root").textContent).toContain(
+          "Original paragraph 0"
+        );
+        apiTranslate.mockResolvedValue({ trText: "New result", isSame: false });
+        await flushAsync();
+        await runFrame();
+        await runFrame();
+        expect(document.body.textContent).not.toContain("Old result");
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper")
+        ).toHaveLength(action === "rescan" ? 30 : 0);
+      }
+    );
+
+    test.each([false, true])(
+      "drops late requests after disabling (re-enable: %s)",
+      async (reEnable) => {
+        const finish = [];
+        apiTranslate.mockImplementation(
+          () => new Promise((resolve) => finish.push(resolve))
+        );
+        const translator = createTranslator({ transOnly: "true" });
+        await flushAsync();
+        await runFrame();
+        expect(finish).toHaveLength(30);
+        translator.disable();
+        apiTranslate.mockResolvedValue({ trText: "New result", isSame: false });
+        if (reEnable) translator.enable();
+        await flushAsync();
+        await runFrame();
+        finish.forEach((resolve) =>
+          resolve({ trText: "Stale result", isSame: false })
+        );
+        await flushAsync();
+        await runFrame();
+        expect(document.body.textContent).not.toContain("Stale result");
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper")
+        ).toHaveLength(reEnable ? 30 : 0);
+        if (!reEnable)
+          expect(document.body.textContent).toContain("Original paragraph 29");
+      }
+    );
+
+    test("ignores detached targets and translates new page content", async () => {
+      const translator = createTranslator({ transOnly: "true" });
+      await flushAsync();
+      const root = document.getElementById("root");
+      root.replaceChildren();
+      await runFrame();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      root.innerHTML = "<p>New page content</p>";
+      translator.rescan();
+      await flushAsync();
+      await runFrame();
+      await runFrame();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(root.textContent.trim()).toBe("Translated");
+    });
+
+    test("anchors to a surviving parent when a nested original is hidden", async () => {
+      document.getElementById("root").innerHTML =
+        '<p id="reading"><span><strong>Nested original text</strong></span></p>';
+      const reading = document.getElementById("reading");
+      const original = reading.querySelector("strong");
+      document.elementFromPoint.mockReturnValue(original);
+      reading.getBoundingClientRect = jest.fn(() => ({
+        width: 100,
+        height: 20,
+        top: reading.querySelector("template") ? 130 : 100,
+      }));
+      original.getBoundingClientRect = jest.fn(() => ({
+        width: 100,
+        height: 20,
+        top: 100,
+      }));
+      createTranslator({
+        transOnly: "true",
+        autoScan: "false",
+        selector: "#reading",
+      });
+      await flushAsync();
+      await runFrame();
+      await runFrame();
+      expect(original.isConnected).toBe(false);
+      expect(reading.getBoundingClientRect).toHaveBeenCalledTimes(2);
+      expect(window.scrollBy).toHaveBeenLastCalledWith(0, 30);
+    });
+
+    test.each(["hidden", "clip"])(
+      "does not scroll a document with overflow %s",
+      async (overflow) => {
+        document.documentElement.style.overflowY = overflow;
+        createTranslator();
+        await flushAsync();
+        await runFrame();
+        await runFrame();
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper")
+        ).toHaveLength(30);
+        expect(window.scrollBy).not.toHaveBeenCalled();
+        document.documentElement.style.overflowY = "";
+      }
+    );
+  });
+
+  describe("touch paragraph translation", () => {
+    let savedPointer;
+    const tap = (node) => {
+      for (const type of ["pointerdown", "pointerup"]) {
+        const event = new MouseEvent(type, {
+          bubbles: true,
+          composed: true,
+          clientX: 100,
+          clientY: 100,
+        });
+        Object.defineProperties(event, {
+          pointerType: { value: "touch" },
+          pointerId: { value: 1 },
+        });
+        node.dispatchEvent(event);
+      }
+    };
+    beforeEach(() => {
+      savedPointer = window.PointerEvent;
+      Object.defineProperty(navigator, "maxTouchPoints", {
+        configurable: true,
+        value: 2,
+      });
+      window.PointerEvent = MouseEvent;
+      document.body.innerHTML =
+        '<main id="root"><p id="target">Hello touch paragraph</p></main>';
+    });
+    afterEach(() => {
+      window.PointerEvent = savedPointer;
+    });
+
+    test("keeps originals and inserts bilingual text below, then restores", async () => {
+      const translator = createTranslator(
+        {
+          transOpen: "false",
+          transOnly: "true",
+          transOrder: "translation-first",
+        },
+        { preInit: false }
+      );
+      const node = document.getElementById("target");
+      translator.setTouchMode("tap");
+      tap(node);
+      await flushAsync();
+      await flushAsync();
+      expect(node.textContent).toBe("Hello touch paragraphTranslated");
+      expect(node.lastChild.style.display).toBe("block");
+      tap(node);
+      expect(node.textContent).toBe("Hello touch paragraph");
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+    });
+
+    test("does not duplicate pending requests and drops late responses on exit", async () => {
+      let finish;
+      apiTranslate.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          })
+      );
+      const translator = createTranslator(
+        { transOpen: "false" },
+        { preInit: false }
+      );
+      const node = document.getElementById("target");
+      translator.setTouchMode("tap");
+      tap(node);
+      await flushAsync();
+      tap(node);
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      translator.setTouchMode("off");
+      finish({ trText: "Late translation", isSame: false });
+      await flushAsync();
+      expect(node.textContent).toBe("Hello touch paragraph");
+      expect(
+        node.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+      ).toBeNull();
+    });
+
+    test("cancels language detection before sending a translation request", async () => {
+      let finish;
+      tryDetectLang.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          })
+      );
+      const translator = createTranslator(
+        { transOpen: "false", fromLang: "auto" },
+        { preInit: false }
+      );
+      translator.setTouchMode("tap");
+      tap(document.getElementById("target"));
+      translator.setTouchMode("swipe");
+      finish("en");
+      await flushAsync();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(
+        document.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+      ).toBeNull();
+    });
+
+    test("honors blacklist and excluded paragraphs", () => {
+      const blocked = createTranslator(
+        { transOpen: "false" },
+        { mouseHoverSetting: { blacklist: "*" } }
+      );
+      expect(blocked.setTouchMode("tap")).toBe("off");
+      const translator = createTranslator({
+        transOpen: "false",
+        ignoreSelector: "#target",
+      });
+      translator.setTouchMode("tap");
+      tap(document.getElementById("target"));
+      expect(apiTranslate).not.toHaveBeenCalled();
+    });
+
+    test("translates the actual paragraph inside an accessible shadow root", async () => {
+      const host = document.createElement("section");
+      document.getElementById("root").appendChild(host);
+      const shadow = host.attachShadow({ mode: "open" });
+      Object.defineProperty(shadow, "adoptedStyleSheets", {
+        configurable: true,
+        writable: true,
+        value: [],
+      });
+      shadow.innerHTML = "<p>Shadow paragraph</p>";
+      const translator = createTranslator(
+        { transOpen: "false", scanAll: "true" },
+        { preInit: false }
+      );
+      translator.setTouchMode("tap");
+      await flushAsync();
+      tap(shadow.querySelector("p"));
+      await flushAsync();
+      await flushAsync();
+      expect(shadow.querySelector("p").textContent).toBe(
+        "Shadow paragraphTranslated"
+      );
+      expect(document.getElementById("target").textContent).toBe(
+        "Hello touch paragraph"
+      );
+    });
+
+    test("restores by tapping an ordinary child inside its own translation", async () => {
+      const translator = createTranslator(
+        { transOpen: "false" },
+        { preInit: false }
+      );
+      const node = document.getElementById("target");
+      translator.setTouchMode("tap");
+      tap(node);
+      await flushAsync();
+      await flushAsync();
+      tap(node.querySelector(`.${Translator.KISS_CLASS.inner}`));
+      expect(node.textContent).toBe("Hello touch paragraph");
+    });
+
+    test("touch language detection remains valid when mouse hold advances its generation", async () => {
+      let finish;
+      tryDetectLang.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          })
+      );
+      const other = document.createElement("p");
+      other.textContent = "Mouse paragraph";
+      document.getElementById("root").appendChild(other);
+      const translator = createTranslator(
+        { transOpen: "false", fromLang: "auto" },
+        {
+          preInit: false,
+          mouseHoverSetting: {
+            useMouseHover: true,
+            mouseHoverKeyHold: true,
+            mouseHoverHoldDelay: 25,
+            mouseHoverTransMode: "paragraph",
+          },
+        }
+      );
+      translator.setTouchMode("tap");
+      tap(document.getElementById("target"));
+      await hoverNode(other, 200, 200);
+      document.elementFromPoint = () => other;
+      other.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          button: 0,
+          clientX: 200,
+          clientY: 200,
+        })
+      );
+      jest.advanceTimersByTime(25);
+      await flushAsync();
+      finish("en");
+      await flushAsync();
+      await flushAsync();
+      expect(document.getElementById("target").textContent).toContain(
+        "Translated"
+      );
+    });
+
+    test("does not exempt forged wrappers or interactive translation children", async () => {
+      const translator = createTranslator(
+        { transOpen: "false" },
+        { preInit: false }
+      );
+      translator.setTouchMode("tap");
+      const node = document.getElementById("target");
+      tap(node);
+      await flushAsync();
+      await flushAsync();
+      const inner = node.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      inner.innerHTML = '<a href="#">Link</a><button>Retry</button>';
+      tap(inner.querySelector("a"));
+      tap(inner.querySelector("button"));
+      expect(
+        node.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+      ).not.toBeNull();
+      const fake = document.createElement("span");
+      fake.className = `${Translator.KISS_CLASS.warpper} notranslate`;
+      fake.textContent = "Fake";
+      node.appendChild(fake);
+      tap(fake);
+      expect(node.contains(fake)).toBe(true);
+    });
+
+    test("restores by swiping over translation text", async () => {
+      const translator = createTranslator(
+        { transOpen: "false" },
+        { preInit: false }
+      );
+      const node = document.getElementById("target");
+      translator.setTouchMode("tap");
+      tap(node);
+      await flushAsync();
+      await flushAsync();
+      translator.setTouchMode("swipe");
+      await flushAsync();
+      const inner = node.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      for (const [type, x] of [
+        ["pointerdown", 100],
+        ["pointerup", 180],
+      ]) {
+        const event = new MouseEvent(type, {
+          bubbles: true,
+          composed: true,
+          clientX: x,
+          clientY: 100,
+        });
+        Object.defineProperties(event, {
+          pointerType: { value: "touch" },
+          pointerId: { value: 1 },
+        });
+        inner.dispatchEvent(event);
+      }
+      expect(node.textContent).toBe("Hello touch paragraph");
+    });
+
+    test("plain text preprocessing remains safe while swipe mode is active", async () => {
+      document.getElementById("root").innerHTML = "<pre></pre>";
+      const pre = document.querySelector("pre");
+      pre.textContent = Array.from({ length: 150 }, (_, i) => `Line ${i}`).join(
+        "\n"
+      );
+      const translator = createPlainTextTranslator({}, { minLength: 0 });
+      translator.setTouchMode("swipe");
+      jest.advanceTimersByTime(100);
+      await Promise.resolve();
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
+      expect(pre.querySelectorAll(":scope > span")).toHaveLength(150);
+    });
+
+    test("keeps the selected mode after rescanning", async () => {
+      const translator = createTranslator({ transOpen: "false" });
+      translator.setTouchMode("tap");
+      translator.rescan();
+      tap(document.getElementById("target"));
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+    });
   });
 
   test("translates between detected Chinese variants when enabled", async () => {
@@ -1241,8 +2022,7 @@ describe("Translator rule styles", () => {
     await hoverNode(target);
     await hoverNode(target);
     resolveTranslation({ trText: "Delayed translation", isSame: false });
-    await Promise.resolve();
-    await Promise.resolve();
+    await flushAsync();
 
     const wrapper = document.querySelector(`.${Translator.KISS_CLASS.warpper}`);
     expect(wrapper).not.toBeNull();
@@ -2627,9 +3407,7 @@ describe("Translator rule styles", () => {
         clientY: 20,
       })
     );
-    document.dispatchEvent(
-      new MouseEvent("contextmenu", { bubbles: true })
-    );
+    document.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
     jest.advanceTimersByTime(400);
     await flushAsync();
     expect(
@@ -2888,6 +3666,8 @@ describe("Translator rule styles", () => {
         })
     );
     const drain = async () => {
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+      jest.advanceTimersByTime(16);
       for (let i = 0; i < 8; i++) await Promise.resolve();
     };
     document.body.innerHTML = `
@@ -3255,6 +4035,8 @@ describe("Translator rule styles", () => {
     );
     const drain = async () => {
       for (let i = 0; i < 8; i++) await Promise.resolve();
+      jest.advanceTimersByTime(16);
+      for (let i = 0; i < 8; i++) await Promise.resolve();
     };
     document.body.innerHTML = `
       <main id="root">
@@ -3319,9 +4101,7 @@ describe("Translator rule styles", () => {
     expect(
       document.querySelectorAll(`.${Translator.KISS_CLASS.inner}`)
     ).toHaveLength(7);
-    expect(document.getElementById("p7").textContent).toContain(
-      "Paragraph 7"
-    );
+    expect(document.getElementById("p7").textContent).toContain("Paragraph 7");
 
     document.dispatchEvent(
       new MouseEvent("mouseup", { bubbles: true, button: 0 })
@@ -3851,12 +4631,15 @@ describe("Translator rule styles", () => {
       ...document.querySelectorAll(`.${Translator.KISS_CLASS.inner}`),
     ].map((node) => node.textContent);
     expect(inners).toHaveLength(3);
-    expect(document.querySelector(`#mixed .${Translator.KISS_CLASS.inner}`))
-      .not.toBeNull();
-    expect(document.querySelector(`#line1 .${Translator.KISS_CLASS.inner}`))
-      .not.toBeNull();
-    expect(document.querySelector(`#line2 .${Translator.KISS_CLASS.inner}`))
-      .not.toBeNull();
+    expect(
+      document.querySelector(`#mixed .${Translator.KISS_CLASS.inner}`)
+    ).not.toBeNull();
+    expect(
+      document.querySelector(`#line1 .${Translator.KISS_CLASS.inner}`)
+    ).not.toBeNull();
+    expect(
+      document.querySelector(`#line2 .${Translator.KISS_CLASS.inner}`)
+    ).not.toBeNull();
   });
 
   test("excludes the mail title bar from the whole-area scope", async () => {
@@ -3903,8 +4686,7 @@ describe("Translator rule styles", () => {
     );
 
     expect(
-      document.querySelectorAll(`#body .${Translator.KISS_CLASS.inner}`)
-        .length
+      document.querySelectorAll(`#body .${Translator.KISS_CLASS.inner}`).length
     ).toBeGreaterThanOrEqual(3);
     expect(
       document.querySelector(`#title .${Translator.KISS_CLASS.inner}`)
@@ -4269,9 +5051,7 @@ describe("Translator rule styles", () => {
     document.elementFromPoint = () => wrapper;
     await hold();
 
-    expect(
-      span.querySelector(`.${Translator.KISS_CLASS.warpper}`)
-    ).toBeNull();
+    expect(span.querySelector(`.${Translator.KISS_CLASS.warpper}`)).toBeNull();
   });
 
   test("descends into the title span when the hold lands on the heading wrapper", async () => {
@@ -4669,6 +5449,19 @@ describe("Translator rule styles", () => {
       expect(
         document.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
       ).toHaveLength(0);
+
+      if (lifecycle === "disable") {
+        // 取消语言检测后不能残留 processed 标记，仍可单独按住翻译。
+        tryDetectLang.mockResolvedValue("en");
+        await hoverNode(first, 20, 20);
+        hold();
+        await flushAsync();
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalled();
+        expect(
+          first.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+        ).not.toBeNull();
+      }
     }
   });
 

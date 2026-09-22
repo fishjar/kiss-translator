@@ -7,9 +7,11 @@ jest.mock("../apis/index.js", () => ({
 }));
 
 jest.mock("../libs/storage.js", () => ({
-  debounceSyncMeta: jest.fn(),
   getWordsWithDefault: jest.fn().mockResolvedValue({}),
-  setWords: jest.fn(),
+  saveEdit: jest.fn(async (_key, update) => ({
+    value: update({}),
+    changed: true,
+  })),
 }));
 
 jest.mock("../libs/log.js", () => ({
@@ -181,6 +183,36 @@ describe("BilingualSubtitleManager", () => {
     manager.start();
 
     expect(getCaptionLines()).toEqual(["你好世界"]);
+    manager.destroy();
+  });
+
+  test.each([
+    [undefined, "\\(\\dot{x}_1\\) 是速度"],
+    [false, "\\(\\dot{x}_1\\) 是速度"],
+    [true, "ẋ₁ 是速度"],
+  ])("renders LaTeX with parseLatex %p as %p", async (parseLatex, expected) => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValue(deferred.promise);
+
+    const videoEl = createVideoElement();
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: [{ ...subtitle }],
+      setting: parseLatex === undefined ? setting : { ...setting, parseLatex },
+    });
+    manager.onSubtitleUpdate = jest.fn();
+
+    manager.start();
+    await Promise.resolve();
+
+    deferred.resolve({ trText: "\\(\\dot{x}_1\\) 是速度" });
+    await deferred.promise;
+    await Promise.resolve();
+
+    expect(manager.onSubtitleUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ translation: expected })
+    );
+
     manager.destroy();
   });
 

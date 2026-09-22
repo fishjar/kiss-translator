@@ -43,9 +43,123 @@ function getDisplayOrderedApis(apis = []) {
   return [...apis].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 }
 
+export const API_SORT_MODES = Object.freeze({
+  CUSTOM: "custom",
+  ASC: "asc",
+  DESC: "desc",
+});
+
+const API_NAME_COLLATOR = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+
+export function getApiDisplayName(api = {}) {
+  const displayName = [api.apiName, api.apiType, api.apiSlug].find(
+    (value) => typeof value === "string" && value.trim()
+  );
+
+  return displayName?.trim() || "";
+}
+
+export function compareApisByDisplayName(
+  firstApi,
+  secondApi,
+  direction = API_SORT_MODES.ASC
+) {
+  const multiplier = direction === API_SORT_MODES.DESC ? -1 : 1;
+  const displayNameComparison = API_NAME_COLLATOR.compare(
+    getApiDisplayName(firstApi),
+    getApiDisplayName(secondApi)
+  );
+
+  if (displayNameComparison !== 0) {
+    return displayNameComparison * multiplier;
+  }
+
+  return (
+    API_NAME_COLLATOR.compare(
+      firstApi?.apiSlug || "",
+      secondApi?.apiSlug || ""
+    ) * multiplier
+  );
+}
+
+function getAlphabeticallySortableApis(apis = []) {
+  return getDisplayOrderedApis(apis).filter(
+    (api) => api.sortOrder !== -1 && !api.isDisabled
+  );
+}
+
+function hasSameApiOrder(firstApis, secondApis) {
+  return (
+    firstApis.length === secondApis.length &&
+    firstApis.every((api, index) => api === secondApis[index])
+  );
+}
+
+export function getApiSortMode(apis = []) {
+  const sortableApis = getAlphabeticallySortableApis(apis);
+  const ascendingApis = [...sortableApis].sort((firstApi, secondApi) =>
+    compareApisByDisplayName(firstApi, secondApi, API_SORT_MODES.ASC)
+  );
+
+  if (hasSameApiOrder(sortableApis, ascendingApis)) {
+    return API_SORT_MODES.ASC;
+  }
+
+  const descendingApis = [...sortableApis].sort((firstApi, secondApi) =>
+    compareApisByDisplayName(firstApi, secondApi, API_SORT_MODES.DESC)
+  );
+
+  return hasSameApiOrder(sortableApis, descendingApis)
+    ? API_SORT_MODES.DESC
+    : API_SORT_MODES.CUSTOM;
+}
+
+export function sortApisAlphabetically(
+  apis = [],
+  direction = API_SORT_MODES.ASC
+) {
+  const displayOrderedApis = getDisplayOrderedApis(apis);
+  const pinnedApis = displayOrderedApis.filter(
+    (api) => api.sortOrder === -1 && !api.isDisabled
+  );
+  const normalApis = displayOrderedApis.filter(
+    (api) => api.sortOrder !== -1 && !api.isDisabled
+  );
+  const disabledApis = displayOrderedApis.filter((api) => api.isDisabled);
+  const sortedNormalApis = [...normalApis].sort((firstApi, secondApi) =>
+    compareApisByDisplayName(firstApi, secondApi, direction)
+  );
+
+  return normalizeApiOrder([
+    ...pinnedApis,
+    ...sortedNormalApis,
+    ...disabledApis,
+  ]);
+}
+
 /**
  * 翻译 API 列表管理的自定义 Hook，支持列表筛选、新增、复制、删除和字母排序
  */
+function getUuid() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  if (
+    typeof globalThis !== "undefined" &&
+    typeof globalThis.crypto?.randomUUID === "function"
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export function useApiList() {
   const { transApis, updateSetting } = useApiState();
 
@@ -80,9 +194,9 @@ export function useApiList() {
       // 找到内置的该 API 类型的默认配置模版
       const defaultApiOpt =
         DEFAULT_API_LIST.find((da) => da.apiType === apiType) || {};
-      const uuid = crypto.randomUUID();
+      const uuid = getUuid();
       // 使用类型名拼合 UUID 保证 apiSlug 唯一，代表具体 API 实例
-      const apiSlug = `${apiType}_${crypto.randomUUID()}`;
+      const apiSlug = `${apiType}_${getUuid()}`;
       const apiName = `${apiType}_${uuid.slice(0, 8)}`;
       const newApi = {
         ...defaultApiOpt,
@@ -94,6 +208,7 @@ export function useApiList() {
         ...prev,
         transApis: [...(prev?.transApis || []), newApi],
       }));
+      return apiSlug;
     },
     [updateSetting]
   );
@@ -101,7 +216,7 @@ export function useApiList() {
   // 复制一份现有的 API 配置，并赋予新的 UUID 作为 Slug
   const copyApi = useCallback(
     (sourceApi) => {
-      const uuid = crypto.randomUUID();
+      const uuid = getUuid();
       const apiSlug = `${sourceApi.apiType}_${uuid}`;
       const apiName = `${sourceApi.apiName} - copy`;
       const newApi = {
@@ -113,6 +228,7 @@ export function useApiList() {
         ...prev,
         transApis: [...(prev?.transApis || []), newApi],
       }));
+      return apiSlug;
     },
     [updateSetting]
   );
@@ -224,39 +340,13 @@ export function useApiList() {
     [updateSetting]
   );
 
-  // 对非置顶且未禁用的 API 按名称字母顺序进行排序
+  // Sort enabled, non-pinned APIs alphabetically by their visible names.
   const alphaSortApis = useCallback(
-    (direction = "asc") => {
+    (direction = API_SORT_MODES.ASC) => {
       updateSetting((prev) => {
-        const apis = prev?.transApis || [];
-        // 置顶的 API 保持原样 (sortOrder 为 -1)
-        const pinnedApis = apis.filter(
-          (a) => a.sortOrder === -1 && !a.isDisabled
-        );
-        // 已禁用的 API 提取出来（不参与首字母排序，依然放倒数）
-        const disabledApis = apis.filter((a) => a.isDisabled);
-        // 常规正常启用的 API 参与排序
-        const normalApis = apis.filter(
-          (a) => a.sortOrder !== -1 && !a.isDisabled
-        );
-
-        // 字母排序
-        const sorted = [...normalApis].sort((a, b) => {
-          const nameA = (a.apiName || "").toLowerCase();
-          const nameB = (b.apiName || "").toLowerCase();
-          return direction === "asc"
-            ? nameA.localeCompare(nameB)
-            : nameB.localeCompare(nameA);
-        });
-
-        // 重新拼合数组，顺序为：置顶的 API -> 重新排序后的常规 API -> 已禁用的 API
         return {
           ...prev,
-          transApis: normalizeApiOrder([
-            ...pinnedApis,
-            ...sorted,
-            ...disabledApis,
-          ]),
+          transApis: sortApisAlphabetically(prev?.transApis || [], direction),
         };
       });
     },

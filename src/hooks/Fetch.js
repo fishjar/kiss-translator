@@ -45,19 +45,44 @@ export const useAsync = () => {
  * @param {*} arg 传入参数
  */
 export const useAsyncNow = (fn, arg) => {
-  const { execute, ...asyncState } = useAsync();
+  const [state, setState] = useState({
+    data: null,
+    loading: false,
+    error: null,
+  });
 
-  // REVIEW: 此处未对竞态条件(Race Condition)进行处理。
-  // 若引用的 fn 或 arg 发生快速变化，前一次执行的 execute 回调在后一次执行之后才返回，
-  // 依然会触发 setData 将旧的/过期的数据覆盖最新的结果。
-  // 建议增加清理标识（如 let ignore = false），在依赖变化时执行清理以忽略过期请求。
   useEffect(() => {
-    if (fn) {
-      execute(fn, arg);
-    }
-  }, [execute, fn, arg]);
+    let active = true;
 
-  return { ...asyncState };
+    if (!fn) {
+      setState({ data: null, loading: false, error: null });
+      return () => {
+        active = false;
+      };
+    }
+
+    setState({ data: null, loading: true, error: null });
+    void (async () => {
+      try {
+        const data = await fn(arg);
+        if (active) setState({ data, loading: false, error: null });
+      } catch (err) {
+        if (active) {
+          setState({
+            data: null,
+            loading: false,
+            error: err?.message || "An unknown error occurred",
+          });
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [fn, arg]);
+
+  return state;
 };
 
 /**

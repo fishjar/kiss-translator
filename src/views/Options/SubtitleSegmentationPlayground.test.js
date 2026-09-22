@@ -126,6 +126,32 @@ describe("SubtitleSegmentationPlayground", () => {
     }
   });
 
+  test("opens the JSON picker from the keyboard and names the result format", async () => {
+    const { container, root } = renderPlayground();
+    await flushEffects();
+    const input = container.querySelector('input[type="file"]');
+    const clickInput = jest.spyOn(input, "click").mockImplementation(() => {});
+    const uploadButton = input.closest('[role="button"]');
+
+    for (const key of ["Enter", " "]) {
+      const event = new KeyboardEvent("keydown", {
+        key,
+        bubbles: true,
+        cancelable: true,
+      });
+      act(() => uploadButton.dispatchEvent(event));
+      expect(event.defaultPrevented).toBe(true);
+    }
+    expect(clickInput).toHaveBeenCalledTimes(2);
+    expect(
+      container
+        .querySelector(".MuiToggleButtonGroup-root")
+        .getAttribute("aria-label")
+    ).toBe("Result format");
+
+    act(() => root.unmount());
+  });
+
   afterEach(() => {
     delete global.fetch;
   });
@@ -186,6 +212,18 @@ describe("SubtitleSegmentationPlayground", () => {
     );
     expect(sourceArea.getAttribute("rows")).toBe("5");
     expect(resultArea.getAttribute("rows")).toBe("5");
+    expect(sourceArea.classList).toContain("kt-resizable-textarea");
+    expect(resultArea.classList).toContain("kt-resizable-textarea");
+    expect(sourceArea.closest(".kt-resizable-text-field")).not.toBeNull();
+    expect(resultArea.closest(".kt-resizable-text-field")).not.toBeNull();
+    expect(
+      getComputedStyle(sourceArea.closest(".MuiInputBase-root")).overflow
+    ).toBe("visible");
+    expect(getComputedStyle(sourceArea).resize).toBe("vertical");
+    expect(
+      getComputedStyle(resultArea.closest(".MuiInputBase-root")).overflow
+    ).toBe("visible");
+    expect(getComputedStyle(resultArea).resize).toBe("vertical");
     expect(container.textContent.indexOf("当前生效的断句配置")).toBeLessThan(
       container.textContent.indexOf("内置字幕样本")
     );
@@ -217,6 +255,77 @@ describe("SubtitleSegmentationPlayground", () => {
 
     act(() => root.unmount());
   });
+
+  test.each(["rule", "ai"])(
+    "%s preserves Korean ASR spaces after changing the source language",
+    async (mode) => {
+      const text = "오늘 날씨 정말 좋다";
+      const koreanSource = JSON.stringify({
+        events: [
+          {
+            tStartMs: 1000,
+            dDurationMs: 3000,
+            segs: [{ utf8: text, acAsrConf: 0 }],
+          },
+        ],
+      });
+      handleSubtitle.mockImplementation(async ({ events }) => [
+        {
+          start: events[0].start,
+          end: events[events.length - 1].end,
+          text: events.map((event) => event.text).join(" "),
+          translation: "天气真好",
+          _si: 0,
+          _ei: events.length - 1,
+        },
+      ]);
+      const { container, root } = renderPlayground({
+        subtitleSetting: {
+          segSlug: mode === "ai" ? "test-ai" : "-",
+          useAlgorithmBreaker: "rule",
+          chunkLength: 2000,
+          longSentenceThreshold: 120,
+          toLang: "zh-CN",
+        },
+        transApis: [{ apiSlug: "test-ai", apiType: "openai" }],
+      });
+      await flushEffects();
+      const input = container.querySelector('input[type="file"]');
+      const file = new File([koreanSource], "korean.json", {
+        type: "application/json",
+      });
+      Object.defineProperty(file, "text", { value: async () => koreanSource });
+      Object.defineProperty(input, "files", { value: [file] });
+      await act(async () => {
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        await Promise.resolve();
+      });
+
+      for (const language of ["ko", "en", "ko"]) {
+        await selectSourceLanguage(container, language);
+        const runButton = [...container.querySelectorAll("button")].find(
+          (button) => button.textContent.includes("运行测试")
+        );
+        await act(async () => {
+          runButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          await Promise.resolve();
+          await Promise.resolve();
+        });
+        expect(
+          container.querySelector('textarea[aria-label="断句结果"]').value
+        ).toContain(text);
+        if (mode === "ai") {
+          const { events, from } = handleSubtitle.mock.calls.slice(-1)[0][0];
+          expect(from).toBe(language);
+          expect(events).toHaveLength(language === "ko" ? 1 : 4);
+          if (language === "ko") {
+            expect(events[0]).toMatchObject({ text, start: 1000, end: 4000 });
+          }
+        }
+      }
+      act(() => root.unmount());
+    }
+  );
 
   test("uses useConfirm and previews completed AI cues while streaming", async () => {
     let resolveResponse;
@@ -285,6 +394,9 @@ describe("SubtitleSegmentationPlayground", () => {
         confirmText: "继续",
       })
     );
+    expect(
+      runButton.querySelector(".MuiCircularProgress-root").style.width
+    ).toBe("20px");
     expect(
       container.querySelector('textarea[aria-label="断句结果"]').value
     ).toContain("Hello world.");

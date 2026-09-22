@@ -33,7 +33,8 @@
   ],
   "web_accessible_resources": [
     "injector-subtitle.js",
-    "injector-shadowroot.js"
+    "injector-shadowroot.js",
+    "api/*"
   ],
   "commands": {
     "_execute_browser_action": {

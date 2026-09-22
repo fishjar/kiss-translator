@@ -107,6 +107,12 @@ function getPromptCacheFields(apiSetting = {}, promptScope, glossary = {}) {
 
   if (promptScope === PROMPT_CACHE_SCOPE_BATCH) {
     fields = [apiSetting.systemPrompt || ""];
+    if (apiSetting.batchUserPrompt) {
+      fields.push(apiSetting.batchUserPrompt);
+    }
+    if (apiSetting.batchProtocol) {
+      fields.push(apiSetting.batchProtocol);
+    }
   } else if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
     fields = [
       apiSetting.nobatchPrompt || "",

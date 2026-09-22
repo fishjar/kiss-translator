@@ -13,6 +13,10 @@ describe("translation box defaults", () => {
     expect(DEFAULT_SETTING.translateVariants).toBe(true);
   });
 
+  test("does not convert LaTeX in translations by default", () => {
+    expect(DEFAULT_SETTING.parseLatex).toBe(false);
+  });
+
   test("does not read the clipboard automatically by default", () => {
     expect(DEFAULT_SETTING.autoTranslateClipboard).toBe(false);
   });

@@ -1,7 +1,14 @@
-import { act } from "react";
+import { act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import Options from "./index";
+import Options, { normalizeOptionsHashPath } from "./index";
+import {
+  STOKEY_RULES,
+  STOKEY_SETTING,
+  STOKEY_SYNC,
+  STOKEY_WORDS,
+} from "../../config";
 import { trySyncRules, trySyncSetting, trySyncWords } from "../../libs/sync";
+import { refreshStorageKeys } from "../../libs/storageRefresh";
 import { kissLog } from "../../libs/log";
 import { adaptScript } from "../../libs/gm";
 import { runDataMigration } from "../../libs/storage";
@@ -11,50 +18,35 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let mockIsGm = false;
 const mockSettingProvider = jest.fn();
+const mockPageMounted = jest.fn();
 
 jest.mock("../../libs/client", () => ({
   get isGm() {
     return mockIsGm;
   },
 }));
-
 jest.mock("../../libs/sync", () => ({
   trySyncRules: jest.fn(),
   trySyncSetting: jest.fn(),
   trySyncWords: jest.fn(),
 }));
-
+jest.mock("../../libs/storageRefresh", () => ({
+  refreshStorageKeys: jest.fn(),
+}));
 jest.mock("../../libs/log", () => ({
   kissLog: jest.fn(),
-  LogLevel: {
-    INFO: { value: 3 },
-  },
+  LogLevel: { INFO: { value: 1 } },
 }));
-
-jest.mock("../../libs/gm", () => ({
-  adaptScript: jest.fn(),
-}));
-
-jest.mock("../../libs/storage", () => ({
-  runDataMigration: jest.fn(),
-}));
-
-jest.mock("../../libs/utils", () => ({
-  sleep: jest.fn(() => Promise.resolve()),
-}));
-
+jest.mock("../../libs/gm", () => ({ adaptScript: jest.fn() }));
+jest.mock("../../libs/storage", () => ({ runDataMigration: jest.fn() }));
+jest.mock("../../libs/utils", () => ({ sleep: jest.fn() }));
 jest.mock("../../hooks/Setting", () => ({
-  useSetting: () => ({
-    setting: { uiLang: "zh-CN" },
-    updateSetting: jest.fn(),
-  }),
   SettingProvider: function SettingProvider(props) {
     mockSettingProvider(props);
     return props.children;
   },
 }));
-
-jest.mock("../../hooks/Theme", () => {
+jest.mock("./OptionsTheme", () => {
   return function ThemeProvider(props) {
     return props.children;
   };
@@ -69,7 +61,6 @@ jest.mock("../../hooks/Confirm", () => ({
     return props.children;
   },
 }));
-
 jest.mock("@mui/material/Backdrop", () => {
   return function MockBackdrop(props) {
     const React = require("react");
@@ -79,42 +70,63 @@ jest.mock("@mui/material/Backdrop", () => {
           {
             "data-testid": props["data-testid"],
             "aria-label": props["aria-label"],
+            role: props.role,
           },
           props.children
         )
       : null;
   };
 });
-
 jest.mock("@mui/material/CircularProgress", () => {
   return function MockCircularProgress() {
+    return null;
+  };
+});
+jest.mock("./Layout", () => {
+  return function MockLayout() {
     const React = require("react");
-    return React.createElement("div", { "data-testid": "sync-spinner" });
+    const { Link, Outlet } = require("react-router-dom");
+    return React.createElement(
+      "div",
+      {},
+      React.createElement(
+        "header",
+        { "data-testid": "options-header" },
+        React.createElement("button", {}, "Change theme"),
+        React.createElement(Link, { to: "/words" }, "Favorite words")
+      ),
+      React.createElement(Outlet)
+    );
   };
 });
 
 function mockComponent(testId) {
   return function MockComponent() {
     const React = require("react");
-    return React.createElement("div", testId ? { "data-testid": testId } : {});
+    React.useEffect(() => {
+      mockPageMounted(testId);
+    }, []);
+    return React.createElement(
+      "div",
+      { "data-testid": testId },
+      React.createElement("button", {}, "Edit local data")
+    );
   };
 }
 
-jest.mock("./Header", () => mockComponent("options-header"));
-jest.mock("./Navigator", () => mockComponent("options-nav"));
 jest.mock("./Rules", () => mockComponent("rules-page"));
 jest.mock("./FavWords", () => mockComponent("words-page"));
 jest.mock("./Apis", () => mockComponent("apis-page"));
 jest.mock("./Setting", () => mockComponent("setting-page"));
-jest.mock("./About", () => mockComponent());
-jest.mock("./SyncSetting", () => mockComponent());
-jest.mock("./Prompts", () => mockComponent());
-jest.mock("./InputSetting", () => mockComponent());
-jest.mock("./Tranbox", () => mockComponent());
-jest.mock("./Playground", () => mockComponent());
-jest.mock("./MouseHover", () => mockComponent());
-jest.mock("./Subtitle", () => mockComponent());
-jest.mock("./StylesSetting", () => mockComponent());
+jest.mock("./StylesSetting", () => mockComponent("styles-page"));
+jest.mock("./SyncSetting", () => mockComponent("sync-page"));
+jest.mock("./About", () => mockComponent("about-page"));
+jest.mock("./Prompts", () => mockComponent("prompts-page"));
+jest.mock("./InputSetting", () => mockComponent("input-page"));
+jest.mock("./Tranbox", () => mockComponent("tranbox-page"));
+jest.mock("./Playground", () => mockComponent("playground-page"));
+jest.mock("./MouseHover", () => mockComponent("mousehover-page"));
+jest.mock("./Subtitle", () => mockComponent("subtitle-page"));
 
 function createDeferred() {
   let resolve;
@@ -126,26 +138,35 @@ function createDeferred() {
   return { promise, resolve, reject };
 }
 
-function renderOptions(hash) {
+const mountedViews = [];
+
+function renderOptions(hash, { strict = false } = {}) {
   window.location.hash = hash;
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-
   act(() => {
-    root.render(<Options />);
+    root.render(
+      strict ? (
+        <StrictMode>
+          <Options />
+        </StrictMode>
+      ) : (
+        <Options />
+      )
+    );
   });
-
-  return {
+  const view = {
     container,
-    root,
+    query: (testId) => container.querySelector(`[data-testid='${testId}']`),
     unmount: () => {
-      act(() => {
-        root.unmount();
-      });
+      act(() => root.unmount());
       container.remove();
+      mountedViews.splice(mountedViews.indexOf(view), 1);
     },
   };
+  mountedViews.push(view);
+  return view;
 }
 
 async function flushEffects() {
@@ -155,336 +176,368 @@ async function flushEffects() {
   });
 }
 
+async function resolveDeferred(deferred) {
+  await act(async () => {
+    deferred.resolve();
+    await deferred.promise;
+  });
+  await flushEffects();
+}
+
+function expectLocked(view, expected = true) {
+  expect(view.query("options-content").hasAttribute("inert")).toBe(expected);
+  expect(view.query("options-content").getAttribute("aria-busy")).toBe(
+    String(expected)
+  );
+  expect(Boolean(view.query("options-sync-backdrop"))).toBe(expected);
+}
+
+describe("normalizeOptionsHashPath", () => {
+  test.each([
+    ["#/", "/"],
+    ["#/?source=test", "/"],
+    ["#/rules/", "/rules"],
+    ["#/rules/?source=test", "/rules"],
+    ["", "/"],
+  ])("normalizes %p to %p", (hash, expected) => {
+    expect(normalizeOptionsHashPath(hash)).toBe(expected);
+  });
+});
+
 describe("Options startup sync", () => {
+  const originalName = process.env.REACT_APP_NAME;
+  const originalVersion = process.env.REACT_APP_VERSION;
+
   beforeEach(() => {
     mockIsGm = false;
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     trySyncRules.mockResolvedValue(undefined);
     trySyncSetting.mockResolvedValue(undefined);
     trySyncWords.mockResolvedValue(undefined);
+    refreshStorageKeys.mockResolvedValue(undefined);
     runDataMigration.mockResolvedValue(undefined);
     sleep.mockResolvedValue(undefined);
+    process.env.REACT_APP_NAME = "KISS Translator";
+    process.env.REACT_APP_VERSION = "2.0.25";
   });
 
   afterEach(() => {
+    [...mountedViews].forEach((view) => view.unmount());
     window.location.hash = "";
     delete window.APP_INFO;
+    if (originalName === undefined) delete process.env.REACT_APP_NAME;
+    else process.env.REACT_APP_NAME = originalName;
+    if (originalVersion === undefined) delete process.env.REACT_APP_VERSION;
+    else process.env.REACT_APP_VERSION = originalVersion;
   });
 
-  test("renders rules page while waiting for rules sync", async () => {
-    const rulesSync = createDeferred();
-    trySyncRules.mockReturnValueOnce(rulesSync.promise);
-
-    const view = renderOptions("#/rules");
-    await flushEffects();
-
-    expect(view.container.querySelector("[data-testid='rules-page']")).not.toBe(
-      null
-    );
-    expect(
-      view.container.querySelector("[data-testid='options-sync-backdrop']")
-    ).not.toBe(null);
-    expect(trySyncRules).toHaveBeenCalledTimes(1);
-    expect(trySyncSetting).not.toHaveBeenCalled();
-    expect(trySyncWords).not.toHaveBeenCalled();
-
-    await act(async () => {
-      rulesSync.resolve();
-      await rulesSync.promise;
-    });
-    await flushEffects();
-
-    expect(
-      view.container.querySelector("[data-testid='options-sync-backdrop']")
-    ).toBe(null);
-    expect(trySyncSetting).toHaveBeenCalledTimes(1);
-    expect(trySyncWords).toHaveBeenCalledTimes(1);
-
-    view.unmount();
-  });
-
-  test("waits for words sync on favorite words page", async () => {
-    const wordsSync = createDeferred();
-    trySyncWords.mockReturnValueOnce(wordsSync.promise);
-
-    const view = renderOptions("#/words");
-    await flushEffects();
-
-    expect(view.container.querySelector("[data-testid='words-page']")).not.toBe(
-      null
-    );
-    expect(
-      view.container.querySelector("[data-testid='options-sync-backdrop']")
-    ).not.toBe(null);
-    expect(trySyncWords).toHaveBeenCalledTimes(1);
-    expect(trySyncSetting).not.toHaveBeenCalled();
-    expect(trySyncRules).not.toHaveBeenCalled();
-
-    await act(async () => {
-      wordsSync.resolve();
-      await wordsSync.promise;
-    });
-    await flushEffects();
-
-    expect(
-      view.container.querySelector("[data-testid='options-sync-backdrop']")
-    ).toBe(null);
-    expect(trySyncSetting).toHaveBeenCalledTimes(1);
-    expect(trySyncRules).toHaveBeenCalledTimes(1);
-
-    view.unmount();
-  });
-
-  test("waits for setting sync on other pages", async () => {
-    const settingSync = createDeferred();
-    trySyncSetting.mockReturnValueOnce(settingSync.promise);
-
-    const view = renderOptions("#/apis");
-    await flushEffects();
-
-    expect(view.container.querySelector("[data-testid='apis-page']")).not.toBe(
-      null
-    );
-    expect(
-      view.container.querySelector("[data-testid='options-sync-backdrop']")
-    ).not.toBe(null);
-    expect(trySyncSetting).toHaveBeenCalledTimes(1);
-    expect(trySyncRules).not.toHaveBeenCalled();
-    expect(trySyncWords).not.toHaveBeenCalled();
-
-    await act(async () => {
-      settingSync.resolve();
-      await settingSync.promise;
-    });
-    await flushEffects();
-
-    expect(
-      view.container.querySelector("[data-testid='options-sync-backdrop']")
-    ).toBe(null);
-    expect(trySyncRules).toHaveBeenCalledTimes(1);
-    expect(trySyncWords).toHaveBeenCalledTimes(1);
-
-    view.unmount();
-  });
-
-  test("background sync failures do not reopen the backdrop", async () => {
-    trySyncRules.mockRejectedValueOnce(new Error("rules failed"));
-
-    const view = renderOptions("#/apis");
-    await flushEffects();
-
-    expect(
-      view.container.querySelector("[data-testid='options-sync-backdrop']")
-    ).toBe(null);
-    await flushEffects();
-
-    expect(kissLog).toHaveBeenCalledWith(
-      "sync options background",
-      "rules failed"
-    );
-    expect(
-      view.container.querySelector("[data-testid='options-sync-backdrop']")
-    ).toBe(null);
-
-    view.unmount();
-  });
-
-  test("waits for userscript GM bridge before mounting settings", async () => {
-    const originalName = process.env.REACT_APP_NAME;
-    const originalVersion = process.env.REACT_APP_VERSION;
-    let view;
-    const settingSync = createDeferred();
-    mockIsGm = true;
-    trySyncSetting.mockReturnValueOnce(settingSync.promise);
-    process.env.REACT_APP_NAME = "KISS Translator";
-    process.env.REACT_APP_VERSION = "2.0.25";
-    window.APP_INFO = {
-      name: "KISS Translator",
-      version: "2.0.25",
-      eventName: "kiss-ping",
-    };
-
-    try {
-      view = renderOptions("#/apis");
-
+  test.each([
+    ["#/?source=test", "setting-page"],
+    ["#/rules", "rules-page"],
+    ["#/words", "words-page"],
+    ["#/apis", "apis-page"],
+    ["#/styles", "styles-page"],
+  ])(
+    "renders local %s while shared settings sync is pending",
+    async (hash, page) => {
+      const settingSync = createDeferred();
+      trySyncSetting.mockReturnValueOnce(settingSync.promise);
+      const view = renderOptions(hash);
       await flushEffects();
 
-      expect(adaptScript).toHaveBeenCalledWith("kiss-ping");
-      expect(runDataMigration).toHaveBeenCalledTimes(1);
-      expect(runDataMigration.mock.invocationCallOrder[0]).toBeGreaterThan(
-        adaptScript.mock.invocationCallOrder[0]
-      );
+      expect(view.query(page)).not.toBe(null);
       expect(mockSettingProvider).toHaveBeenCalled();
-      expect(mockSettingProvider.mock.invocationCallOrder[0]).toBeGreaterThan(
-        runDataMigration.mock.invocationCallOrder[0]
-      );
-      expect(
-        view.container.querySelector("[data-testid='apis-page']")
-      ).not.toBe(null);
-      expect(
-        view.container.querySelector("[data-testid='options-sync-backdrop']")
-      ).not.toBe(null);
+      expectLocked(view);
       expect(trySyncSetting).toHaveBeenCalledTimes(1);
-      expect(trySyncSetting.mock.invocationCallOrder[0]).toBeGreaterThan(
-        runDataMigration.mock.invocationCallOrder[0]
-      );
-
-      await act(async () => {
-        settingSync.resolve();
-        await settingSync.promise;
-      });
-      await flushEffects();
-
-      expect(
-        view.container.querySelector("[data-testid='options-sync-backdrop']")
-      ).toBe(null);
-    } finally {
-      view?.unmount();
-      if (originalName === undefined) {
-        delete process.env.REACT_APP_NAME;
-      } else {
-        process.env.REACT_APP_NAME = originalName;
-      }
-      if (originalVersion === undefined) {
-        delete process.env.REACT_APP_VERSION;
-      } else {
-        process.env.REACT_APP_VERSION = originalVersion;
-      }
-    }
-  });
-
-  test("keeps userscript options loading while data migration is pending", async () => {
-    const originalName = process.env.REACT_APP_NAME;
-    const originalVersion = process.env.REACT_APP_VERSION;
-    let view;
-    const migration = createDeferred();
-    mockIsGm = true;
-    runDataMigration.mockReturnValueOnce(migration.promise);
-    process.env.REACT_APP_NAME = "KISS Translator";
-    process.env.REACT_APP_VERSION = "2.0.25";
-    window.APP_INFO = {
-      name: "KISS Translator",
-      version: "2.0.25",
-      eventName: "kiss-ping",
-    };
-
-    try {
-      view = renderOptions("#/apis");
-
-      await flushEffects();
-
-      expect(adaptScript).toHaveBeenCalledWith("kiss-ping");
-      expect(runDataMigration).toHaveBeenCalledTimes(1);
-      expect(mockSettingProvider).not.toHaveBeenCalled();
-      expect(view.container.querySelector("[data-testid='apis-page']")).toBe(
-        null
-      );
-      expect(
-        view.container.querySelector("[data-testid='options-sync-backdrop']")
-      ).not.toBe(null);
-      expect(trySyncSetting).not.toHaveBeenCalled();
       expect(trySyncRules).not.toHaveBeenCalled();
       expect(trySyncWords).not.toHaveBeenCalled();
 
-      await act(async () => {
-        migration.resolve();
-        await migration.promise;
-      });
-      await flushEffects();
-
-      expect(mockSettingProvider).toHaveBeenCalled();
+      await resolveDeferred(settingSync);
+      expectLocked(view, false);
       expect(
-        view.container.querySelector("[data-testid='apis-page']")
-      ).not.toBe(null);
-      expect(trySyncSetting).toHaveBeenCalledTimes(1);
-    } finally {
-      view?.unmount();
-      if (originalName === undefined) {
-        delete process.env.REACT_APP_NAME;
-      } else {
-        process.env.REACT_APP_NAME = originalName;
-      }
-      if (originalVersion === undefined) {
-        delete process.env.REACT_APP_VERSION;
-      } else {
-        process.env.REACT_APP_VERSION = originalVersion;
-      }
+        mockPageMounted.mock.calls.filter(([name]) => name === page)
+      ).toHaveLength(1);
     }
+  );
+
+  test("keeps rules visible and locked until persisted rules refresh completes", async () => {
+    const rulesSync = createDeferred();
+    const rulesRefresh = createDeferred();
+    trySyncRules.mockReturnValueOnce(rulesSync.promise);
+    refreshStorageKeys.mockImplementation((keys) =>
+      keys.includes(STOKEY_RULES) ? rulesRefresh.promise : Promise.resolve()
+    );
+    const view = renderOptions("#/rules");
+    await flushEffects();
+
+    expect(view.query("rules-page")).not.toBe(null);
+    expectLocked(view);
+    expect(refreshStorageKeys).toHaveBeenCalledWith([
+      STOKEY_SETTING,
+      STOKEY_SYNC,
+    ]);
+
+    await resolveDeferred(rulesSync);
+    expect(refreshStorageKeys).toHaveBeenCalledWith([
+      STOKEY_RULES,
+      STOKEY_SYNC,
+    ]);
+    expectLocked(view);
+    await resolveDeferred(rulesRefresh);
+    expectLocked(view, false);
   });
 
-  test("shows version mismatch error while mounted", async () => {
-    const originalName = process.env.REACT_APP_NAME;
-    const originalVersion = process.env.REACT_APP_VERSION;
-    let view;
+  test("the overview waits for rules after shared settings become ready", async () => {
+    const settingSync = createDeferred();
+    const rulesSync = createDeferred();
+    trySyncSetting.mockReturnValueOnce(settingSync.promise);
+    trySyncRules.mockReturnValueOnce(rulesSync.promise);
+    const view = renderOptions("#/");
+    await flushEffects();
+
+    expect(view.query("setting-page")).not.toBe(null);
+    expect(trySyncRules).not.toHaveBeenCalled();
+    await resolveDeferred(settingSync);
+    expect(trySyncRules).toHaveBeenCalledTimes(1);
+    expect(trySyncWords).not.toHaveBeenCalled();
+    expectLocked(view);
+    await resolveDeferred(rulesSync);
+    expectLocked(view, false);
+  });
+
+  test("syncs words before background rules when opened on favorite words", async () => {
+    const wordsSync = createDeferred();
+    trySyncWords.mockReturnValueOnce(wordsSync.promise);
+    const view = renderOptions("#/words");
+    await flushEffects();
+
+    expect(trySyncWords).toHaveBeenCalledTimes(1);
+    expect(trySyncRules).not.toHaveBeenCalled();
+    expectLocked(view);
+    await resolveDeferred(wordsSync);
+    expect(trySyncRules).toHaveBeenCalledTimes(1);
+    expectLocked(view, false);
+  });
+
+  test("refreshes background data without remounting an unlocked settings page", async () => {
+    const rulesSync = createDeferred();
+    const wordsSync = createDeferred();
+    trySyncRules.mockReturnValueOnce(rulesSync.promise);
+    trySyncWords.mockReturnValueOnce(wordsSync.promise);
+    const view = renderOptions("#/apis");
+    await flushEffects();
+
+    expectLocked(view, false);
+    expect(trySyncWords).not.toHaveBeenCalled();
+    await resolveDeferred(rulesSync);
+    await resolveDeferred(wordsSync);
+    expect(refreshStorageKeys).toHaveBeenCalledWith([
+      STOKEY_RULES,
+      STOKEY_SYNC,
+    ]);
+    expect(refreshStorageKeys).toHaveBeenCalledWith([
+      STOKEY_WORDS,
+      STOKEY_SYNC,
+    ]);
+    expectLocked(view, false);
+    expect(
+      mockPageMounted.mock.calls.filter(([name]) => name === "apis-page")
+    ).toHaveLength(1);
+  });
+
+  test("locks the destination route when its background words sync is pending", async () => {
+    const wordsSync = createDeferred();
+    trySyncWords.mockReturnValueOnce(wordsSync.promise);
+    const view = renderOptions("#/apis");
+    await flushEffects();
+    expectLocked(view, false);
+
+    act(() => view.container.querySelector("a[href='#/words']").click());
+    expect(view.query("words-page")).not.toBe(null);
+    expectLocked(view);
+    await resolveDeferred(wordsSync);
+    expectLocked(view, false);
+  });
+
+  test("keeps sync configuration locked until all startup syncs finish", async () => {
+    const wordsSync = createDeferred();
+    trySyncWords.mockReturnValueOnce(wordsSync.promise);
+    const view = renderOptions("#/sync");
+    await flushEffects();
+
+    expect(view.query("sync-page")).not.toBe(null);
+    expectLocked(view);
+    await resolveDeferred(wordsSync);
+    expectLocked(view, false);
+  });
+
+  test("uses native inert for mouse and keyboard exclusion across the whole shell", async () => {
+    const settingSync = createDeferred();
+    trySyncSetting.mockReturnValueOnce(settingSync.promise);
+    const view = renderOptions("#/apis");
+    await flushEffects();
+
+    const content = view.query("options-content");
+    expect(content.getAttribute("inert")).toBe("");
+    expect(view.query("options-header").closest("[inert]")).toBe(content);
+    expect(
+      view.query("apis-page").querySelector("button").closest("[inert]")
+    ).toBe(content);
+    expect(view.query("options-sync-backdrop").closest("[inert]")).toBe(null);
+
+    await resolveDeferred(settingSync);
+    expect(content.hasAttribute("inert")).toBe(false);
+  });
+
+  test("refreshes local state after a failed sync and releases its page", async () => {
+    trySyncRules.mockRejectedValueOnce(new Error("rules failed"));
+    const view = renderOptions("#/rules");
+    await flushEffects();
+
+    expect(kissLog).toHaveBeenCalledWith(
+      `sync options ${STOKEY_RULES}`,
+      "rules failed"
+    );
+    expect(refreshStorageKeys).toHaveBeenCalledWith([
+      STOKEY_RULES,
+      STOKEY_SYNC,
+    ]);
+    expect(view.query("rules-page")).not.toBe(null);
+    expectLocked(view, false);
+  });
+
+  test("does not make stale data editable when storage refresh fails", async () => {
+    refreshStorageKeys.mockRejectedValueOnce(new Error("storage unavailable"));
+    const view = renderOptions("#/apis");
+    await flushEffects();
+
+    expect(view.container.textContent).toContain("storage unavailable");
+    expect(view.query("apis-page")).toBe(null);
+  });
+
+  test("does not start duplicate syncs when StrictMode restarts effects", async () => {
+    const settingSync = createDeferred();
+    trySyncSetting.mockReturnValueOnce(settingSync.promise);
+    const view = renderOptions("#/apis", { strict: true });
+    await flushEffects();
+    expect(trySyncSetting).toHaveBeenCalledTimes(1);
+
+    await resolveDeferred(settingSync);
+    expect(trySyncRules).toHaveBeenCalledTimes(1);
+    expect(trySyncWords).toHaveBeenCalledTimes(1);
+    expect(refreshStorageKeys).toHaveBeenCalledTimes(3);
+    expectLocked(view, false);
+  });
+
+  test("settles pending work safely after unmount", async () => {
+    const settingSync = createDeferred();
+    trySyncSetting.mockReturnValueOnce(settingSync.promise);
+    const view = renderOptions("#/apis");
+    await flushEffects();
+    view.unmount();
+    const renderCount = mockSettingProvider.mock.calls.length;
+
+    await resolveDeferred(settingSync);
+    expect(mockSettingProvider).toHaveBeenCalledTimes(renderCount);
+    expect(refreshStorageKeys).toHaveBeenCalledTimes(3);
+  });
+
+  test("waits for an older compatible GM bridge and migration, then renders during network sync", async () => {
+    const bridgeWait = createDeferred();
+    const migration = createDeferred();
+    const settingSync = createDeferred();
     mockIsGm = true;
-    process.env.REACT_APP_NAME = "KISS Translator";
-    process.env.REACT_APP_VERSION = "2.0.25";
+    sleep.mockReturnValueOnce(bridgeWait.promise);
+    runDataMigration.mockReturnValueOnce(migration.promise);
+    trySyncSetting.mockReturnValueOnce(settingSync.promise);
+    const view = renderOptions("#/apis", { strict: true });
+    await flushEffects();
+
+    expect(mockSettingProvider).not.toHaveBeenCalled();
+    expect(adaptScript).not.toHaveBeenCalled();
+    expect(trySyncSetting).not.toHaveBeenCalled();
+    window.APP_INFO = {
+      name: "KISS Translator",
+      version: "2.0.24",
+      eventName: "kiss-ping",
+    };
+    await resolveDeferred(bridgeWait);
+    expect(adaptScript).toHaveBeenCalledTimes(1);
+    expect(adaptScript).toHaveBeenCalledWith("kiss-ping");
+    expect(runDataMigration).toHaveBeenCalledTimes(1);
+    expect(mockSettingProvider).not.toHaveBeenCalled();
+    expect(trySyncSetting).not.toHaveBeenCalled();
+
+    await resolveDeferred(migration);
+    expect(view.query("apis-page")).not.toBe(null);
+    expectLocked(view);
+    expect(trySyncSetting).toHaveBeenCalledTimes(1);
+    expect(runDataMigration.mock.invocationCallOrder[0]).toBeGreaterThan(
+      adaptScript.mock.invocationCallOrder[0]
+    );
+    expect(mockSettingProvider.mock.invocationCallOrder[0]).toBeGreaterThan(
+      runDataMigration.mock.invocationCallOrder[0]
+    );
+    await resolveDeferred(settingSync);
+    expectLocked(view, false);
+  });
+
+  test("finishes local migration before mounting extension settings or syncing", async () => {
+    const migration = createDeferred();
+    const settingSync = createDeferred();
+    runDataMigration.mockReturnValueOnce(migration.promise);
+    trySyncSetting.mockReturnValueOnce(settingSync.promise);
+    const view = renderOptions("#/apis", { strict: true });
+    await flushEffects();
+
+    expect(runDataMigration).toHaveBeenCalledTimes(1);
+    expect(mockSettingProvider).not.toHaveBeenCalled();
+    expect(trySyncSetting).not.toHaveBeenCalled();
+    await resolveDeferred(migration);
+    expect(view.query("apis-page")).not.toBe(null);
+    expectLocked(view);
+    await resolveDeferred(settingSync);
+    expectLocked(view, false);
+  });
+
+  test("does not expose editable settings after local migration fails", async () => {
+    runDataMigration.mockResolvedValueOnce(false);
+    const view = renderOptions("#/apis");
+    await flushEffects();
+
+    expect(view.container.textContent).toContain(
+      "Unable to migrate local settings"
+    );
+    expect(mockSettingProvider).not.toHaveBeenCalled();
+    expect(trySyncSetting).not.toHaveBeenCalled();
+  });
+
+  test("shows a version mismatch without reading storage", async () => {
+    mockIsGm = true;
     window.APP_INFO = {
       name: "KISS Translator",
       version: "2.1.0",
       eventName: "kiss-ping",
     };
+    const view = renderOptions("#/apis");
+    await flushEffects();
 
-    try {
-      view = renderOptions("#/apis");
-
-      await flushEffects();
-
-      expect(
-        view.container.textContent.includes("not the latest version")
-      ).toBe(true);
-      expect(adaptScript).not.toHaveBeenCalled();
-      expect(runDataMigration).not.toHaveBeenCalled();
-      expect(trySyncSetting).not.toHaveBeenCalled();
-      expect(mockSettingProvider).not.toHaveBeenCalled();
-    } finally {
-      view?.unmount();
-      if (originalName === undefined) {
-        delete process.env.REACT_APP_NAME;
-      } else {
-        process.env.REACT_APP_NAME = originalName;
-      }
-      if (originalVersion === undefined) {
-        delete process.env.REACT_APP_VERSION;
-      } else {
-        process.env.REACT_APP_VERSION = originalVersion;
-      }
-    }
+    expect(view.container.textContent).toContain("not the latest version");
+    expect(adaptScript).not.toHaveBeenCalled();
+    expect(runDataMigration).not.toHaveBeenCalled();
+    expect(trySyncSetting).not.toHaveBeenCalled();
+    expect(mockSettingProvider).not.toHaveBeenCalled();
   });
 
-  test("shows timeout error when userscript APP_INFO is unavailable", async () => {
-    const originalName = process.env.REACT_APP_NAME;
-    const originalVersion = process.env.REACT_APP_VERSION;
-    let view;
+  test("shows a timeout when the userscript bridge stays unavailable", async () => {
     mockIsGm = true;
-    process.env.REACT_APP_NAME = "KISS Translator";
-    process.env.REACT_APP_VERSION = "2.0.25";
+    const view = renderOptions("#/apis");
+    await flushEffects();
 
-    try {
-      view = renderOptions("#/apis");
-
-      await flushEffects();
-
-      expect(
-        view.container.textContent.includes("Time out. Please confirm")
-      ).toBe(true);
-      expect(sleep).toHaveBeenCalledTimes(8);
-      expect(adaptScript).not.toHaveBeenCalled();
-      expect(runDataMigration).not.toHaveBeenCalled();
-      expect(trySyncSetting).not.toHaveBeenCalled();
-      expect(mockSettingProvider).not.toHaveBeenCalled();
-    } finally {
-      view?.unmount();
-      if (originalName === undefined) {
-        delete process.env.REACT_APP_NAME;
-      } else {
-        process.env.REACT_APP_NAME = originalName;
-      }
-      if (originalVersion === undefined) {
-        delete process.env.REACT_APP_VERSION;
-      } else {
-        process.env.REACT_APP_VERSION = originalVersion;
-      }
-    }
+    expect(view.container.textContent).toContain("Time out. Please confirm");
+    expect(sleep).toHaveBeenCalledTimes(8);
+    expect(runDataMigration).not.toHaveBeenCalled();
+    expect(trySyncSetting).not.toHaveBeenCalled();
+    expect(mockSettingProvider).not.toHaveBeenCalled();
   });
 });

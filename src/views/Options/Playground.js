@@ -4,6 +4,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
+import Typography from "@mui/material/Typography";
 import TranForm from "../Selection/TranForm";
 import SubtitleSegmentationPlayground from "./SubtitleSegmentationPlayground";
 import TerminologyPlayground from "./TerminologyPlayground";
@@ -35,7 +36,7 @@ export const normalizePlaygroundLineBreaks = (text) =>
  * 翻译测试沙盒游乐场组件 (Playground)
  * 提供一个沙盒输入框，允许用户在设置页面内实时测试当前配置的各个翻译引擎与样式效果
  */
-export default function Playgound() {
+export default function Playgound({ initialSettingsReady = true }) {
   // 当前输入的测试文本状态
   const [text, setText] = useState("");
   // Playground 内的页签状态只影响页面展示，不写入用户设置。
@@ -137,6 +138,7 @@ export default function Playgound() {
     prompts,
     subtitleSetting,
     translateVariants,
+    parseLatex,
   } = setting || DEFAULT_SETTING;
   const resolvedTransApis = useMemo(
     () => resolveApiPromptList(transApis, prompts, subtitleSetting),
@@ -158,17 +160,22 @@ export default function Playgound() {
     aiDictPromptSlug,
   } = tranboxSetting || DEFAULT_TRANBOX_SETTING;
   return (
-    <Box>
+    <Box className="kt-playground">
       <Tabs
+        className="kt-playground__tabs"
         value={activeTab}
         onChange={(_, value) => setActiveTab(value)}
-        sx={{ mb: 2 }}
+        aria-label={i18n("playground", "Playground")}
       >
         <Tab
+          id="kt-playground-translation-tab"
+          aria-controls="kt-playground-translation-panel"
           value="translation"
           label={i18n("playground_text_translation", "文本翻译")}
         />
         <Tab
+          id="kt-playground-segmentation-tab"
+          aria-controls="kt-playground-segmentation-panel"
           value="segmentation"
           label={i18n("subtitle_segmentation", "字幕断句")}
         />
@@ -176,24 +183,13 @@ export default function Playgound() {
       </Tabs>
 
       {activeTab === "translation" && (
-        <>
-          <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                checked={mergeSingleLineBreaks}
-                onChange={(event) =>
-                  setMergeSingleLineBreaks(event.target.checked)
-                }
-              />
-            }
-            label={i18n(
-              "playground_merge_single_line_breaks",
-              "合并单个换行（保留段落）"
-            )}
-            sx={{ width: "fit-content", ml: 0, mb: 2 }}
-          />
+        <Box
+          id="kt-playground-translation-panel"
+          role="tabpanel"
+          aria-labelledby="kt-playground-translation-tab"
+        >
           <TranForm
+            initialSettingsReady={initialSettingsReady}
             text={text}
             translationText={translationText}
             setText={setText}
@@ -210,18 +206,56 @@ export default function Playgound() {
             aiDictPromptSlug={aiDictPromptSlug}
             prompts={prompts}
             translateVariants={translateVariants}
-            isPlaygound={true} // 标识为 Playground 环境以进行特定的渲染样式和交互处理
+            parseLatex={parseLatex}
+            isPlaygound={true}
             apiSlugsStorageKey={LS_API_SLUGS_KEY}
+            playgroundConfigHeader={
+              <Box className="kt-playground-config__header">
+                <Box className="kt-playground-config__copy">
+                  <Typography component="h2">
+                    {i18n("playground_translation_config_title", "翻译配置")}
+                  </Typography>
+                  <Typography component="p">
+                    {i18n(
+                      "playground_translation_config_description",
+                      "选择本次测试使用的服务、语言和辅助工具"
+                    )}
+                  </Typography>
+                </Box>
+                <FormControlLabel
+                  className="kt-playground-config__normalize"
+                  control={
+                    <Switch
+                      size="small"
+                      checked={mergeSingleLineBreaks}
+                      onChange={(event) =>
+                        setMergeSingleLineBreaks(event.target.checked)
+                      }
+                    />
+                  }
+                  label={i18n(
+                    "playground_merge_single_line_breaks",
+                    "合并单个换行（保留段落）"
+                  )}
+                />
+              </Box>
+            }
           />
-        </>
+        </Box>
       )}
 
       {activeTab === "segmentation" && (
-        <SubtitleSegmentationPlayground
-          subtitleSetting={subtitleSetting}
-          transApis={resolvedTransApis}
-          prompts={prompts}
-        />
+        <Box
+          id="kt-playground-segmentation-panel"
+          role="tabpanel"
+          aria-labelledby="kt-playground-segmentation-tab"
+        >
+          <SubtitleSegmentationPlayground
+            subtitleSetting={subtitleSetting}
+            transApis={resolvedTransApis}
+            prompts={prompts}
+          />
+        </Box>
       )}
 
       {activeTab === "terms" && (

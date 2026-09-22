@@ -94,6 +94,32 @@ Hook 中 `Prompt` 类型说明：
 `subtitlePrompt`    // 字幕翻译 System Prompt
 ```
 
+## OpenCode 会话请求头
+
+内置 `OpenCodeGo` 接口会自动添加 `x-opencode-session` 请求头。同一页面、同一接口配置与 URL 的请求复用一个随机 ID，包含聚合、非聚合、流式、字幕及摘要请求。刷新页面或 SPA 地址变化后开始新会话。ID 不包含页面地址、原文或 API Key。
+
+若使用 OpenAI 兼容接口接入 OpenCode，或需要手动指定会话 ID，可在该接口的 `Request Hook` 中填写：
+
+```js
+async (args, req = args.req) => {
+  // 为当前翻译会话指定一个 ID；同一会话内保持不变。
+  const sessionId = "8fd946a1-bb92-4aa6-9766-724c9e435832";
+  const headers = { ...req.headers };
+  // 清除已有的同名请求头，避免因大小写不同发送重复值。
+  for (const name of Object.keys(headers)) {
+    if (name.toLowerCase() === "x-opencode-session") delete headers[name];
+  }
+  headers["x-opencode-session"] = sessionId;
+  return { ...req, headers };
+};
+```
+
+第二个参数 `req`（亦可通过 `args.req` 获取）是已构造好的请求。保留它的 URL、body、method 和 userMsg，只补充请求头即可沿用原有翻译协议，`Response Hook` 无需更改。请勿在每次调用时重新生成随机 ID；开始新的翻译会话时再更换它。
+
+字幕请求不执行 `Request Hook`。需要为字幕手动指定 ID 时，请在“自定义请求头”中配置 JSON，例如 `{"x-opencode-session":"8fd946a1-bb92-4aa6-9766-724c9e435832"}`；内置接口会保留这个显式配置。
+
+参考：[OpenCode Go 对稳定 session ID 的要求](https://opencode.ai/docs/go/#where-can-i-use-it)。
+
 ## 谷歌翻译接口
 
 > 此接口不支持聚合

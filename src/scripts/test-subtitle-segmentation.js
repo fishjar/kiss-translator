@@ -94,7 +94,7 @@ async function run() {
     await fs.mkdir(sampleDir, { recursive: true });
 
     const { events, flatEvents, filteredNonSpeechCount } =
-      prepareTimedTextEvents(rawEvents);
+      prepareTimedTextEvents(rawEvents, fromLang);
     await writeJson(path.join(sampleDir, "raw.json"), sourceValue);
     await writeJson(path.join(sampleDir, "flat-events.json"), flatEvents);
 
