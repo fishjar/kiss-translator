@@ -53,8 +53,7 @@ import { debounce } from "../../libs/utils";
 import { parseAITerms } from "../../libs/utils";
 import {
   FATAL_DIAGNOSTIC_TYPES,
-  applyNaiveReplace,
-  applyTermReplace,
+  buildTermsMatcher,
   parseTerms,
 } from "../../libs/terms";
 import {
@@ -103,9 +102,6 @@ const fillApiDefaults = (api) => ({ ...API_RUNTIME_DEFAULTS, ...api });
 // 冲突矩阵 4 类固定演示用例（8 个术语，4 组独立冲突对，覆盖全部四类矩阵）。
 // 从 termTestUtils 获取，确保与单元测试共用同一套 fixture。
 const CONFLICT_MATRIX_SAMPLE = getDiagnosticSampleTerms();
-
-// 与翻译器 #serializeForTranslation 的空译文语义一致：无译文时保留原文。
-const REPLACER = (term, fullMatch) => term.value || fullMatch;
 
 // UI 默认展示上限（完整计算结果与 UI 展示分离，失败优先）。
 const DISPLAY_LIMIT = 4;
@@ -272,6 +268,35 @@ function extractUserPromptText(userMsg) {
     );
   }
   return null;
+}
+
+/** Extract the actual user prompt from the final serialized request body. */
+function extractFinalUserPrompt(body) {
+  const parsed = parseBody(body);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { recognized: false, text: null };
+  }
+
+  const containers = ["messages", "input", "contents"];
+  for (const key of containers) {
+    if (!Object.prototype.hasOwnProperty.call(parsed, key)) continue;
+    const value = parsed[key];
+    if (typeof value === "string") {
+      return { recognized: true, text: value };
+    }
+    if (!Array.isArray(value)) {
+      return { recognized: true, text: null };
+    }
+    const userMessage = [...value]
+      .reverse()
+      .find((item) => item?.role === "user" || item?.type === "user_input");
+    return {
+      recognized: true,
+      text: extractUserPromptText(userMessage),
+    };
+  }
+
+  return { recognized: false, text: null };
 }
 
 /**
@@ -559,7 +584,12 @@ function detectGlossaryDelivery({ rawRequest, entries, apiSnapshot }) {
     });
     return result;
   }
-  const userText = extractUserPromptText(rawRequest.userMsg);
+  const finalPrompt = extractFinalUserPrompt(rawRequest.body);
+  if (!finalPrompt.recognized) {
+    entries.forEach(({ key }) => setState(key, "uncaptured"));
+    return result;
+  }
+  const userText = finalPrompt.text;
   if (category === "ai" && isBatch) {
     const promptObj = parseBody(userText);
     const glossary = promptObj?.glossary ?? {};
@@ -850,12 +880,18 @@ export default function TerminologyPlayground({
         // 也复用，避免 runCompute 内触发 3 次 O(n²) 分析。
         const conflicts = detectTermConflicts(parsed);
         const cases = generateTermTestText(parsed, seed, { conflicts });
-        const results = cases.map((testCase) => ({
-          testCase,
-          assertion: assertTermReplacements(parsed, testCase),
-          fixed: applyTermReplace(testCase.text, parsed.terms, REPLACER),
-          naive: applyNaiveReplace(testCase.text, parsed),
-        }));
+        const matcher = buildTermsMatcher(parsed);
+        const results = cases.map((testCase) => {
+          const assertion = assertTermReplacements(parsed, testCase, {
+            matcher,
+          });
+          return {
+            testCase,
+            assertion,
+            fixed: assertion.fixed,
+            naive: assertion.naive,
+          };
+        });
 
         // 完整计算结果统计（不受 UI 展示上限影响）。
         const termCount = parsed.terms.length;
@@ -1388,6 +1424,10 @@ export default function TerminologyPlayground({
     computed && !computed.hasErrors ? computed.results?.[0] : null;
   const exampleText = exampleEntry?.testCase?.text ?? "";
   const exampleOk = exampleEntry?.assertion?.ok;
+  const skippedAutoSamples =
+    computed && !computed.hasErrors
+      ? (computed.results?.filter((entry) => entry.assertion?.skipped) ?? [])
+      : [];
 
   // AI 专业术语草稿（由父级 Playground 持有，跨页签/跨路由经 localStorage 临时留存）
   const aiGlossary = useMemo(() => parseAITerms(aiTermsDraft), [aiTermsDraft]);
@@ -1856,6 +1896,18 @@ export default function TerminologyPlayground({
               )}
             </Typography>
           </Box>
+        )}
+        {skippedAutoSamples.length > 0 && (
+          <Alert
+            severity="info"
+            sx={{ mt: 2 }}
+            data-testid="terminology-auto-sample-unsupported"
+          >
+            {i18n(
+              "terminology_playground_alert_no_example",
+              "部分正则术语无法可靠生成自动匹配样例，已跳过这些自动断言。"
+            )}
+          </Alert>
         )}
       </Paper>
 

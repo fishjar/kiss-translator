@@ -542,47 +542,21 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
-  test("shows failed assertion via example status and logs full detail", async () => {
+  test("skips regexes that cannot produce a reliable automatic sample", async () => {
     const { container, root } = renderPlayground({
-      // 正则术语插进自然模板后不能自匹配 → 首个用例断言失败。
       rule: { pattern: "*", terms: "API\\.\\d+,版本" },
     });
     await flushEffects();
 
-    // 例句旁徽标显示异常。
-    const status = container.querySelector(
-      '[data-testid="terminology-example-status"]'
-    );
-    expect(status).not.toBeNull();
-    expect(status.textContent).toContain("异常");
-
-    // 点击「测试」：弹出红色（error）Snackbar，含一行失败原因。
-    const testButton = container.querySelector(
-      '[data-testid="terminology-run-test"]'
-    );
-    act(() => {
-      testButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    expect(mockAlert.error).toHaveBeenCalled();
-    const errorBox = mockAlert.error.mock.calls.at(-1)[0];
-    const texts = errorBox.props.children
-      .map((c) => c.props.children)
-      .join("|");
-    expect(texts).toContain("未被命中");
-
-    // logger.error 输出完整 issue（type/message/detail）。
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      "[TermPlayground]",
-      expect.any(Array)
-    );
-    const issues = mockLogger.error.mock.calls.at(-1)[1];
-    expect(Array.isArray(issues)).toBe(true);
-    expect(issues.length).toBeGreaterThan(0);
-    for (const issue of issues) {
-      expect(issue).toHaveProperty("type");
-      expect(issue).toHaveProperty("message");
-      expect(issue).toHaveProperty("detail");
-    }
+    expect(
+      container.querySelector(
+        '[data-testid="terminology-auto-sample-unsupported"]'
+      )
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="terminology-example-status"]')
+    ).toBeNull();
+    expect(mockAlert.error).not.toHaveBeenCalled();
 
     act(() => root.unmount());
   });
@@ -710,9 +684,11 @@ describe("TerminologyPlayground", () => {
     expect(metaWarning).not.toBeNull();
     expect(metaWarning.textContent).toContain("Dr.whob");
     expect(metaWarning.textContent).toContain("反斜杠");
-    // 非致命：仍正常生成例句并显示通过徽标（Dr.whob 正则命中自然句）。
+    // 非致命，但一般正则不再用源码伪造例句。
     expect(
-      container.querySelector('[data-testid="terminology-example-status"]')
+      container.querySelector(
+        '[data-testid="terminology-auto-sample-unsupported"]'
+      )
     ).not.toBeNull();
 
     act(() => root.unmount());
@@ -1141,7 +1117,11 @@ describe("TerminologyPlayground", () => {
 
     // 异步加载此刻才完成：不得覆盖草稿，但 activeRuleData（规则 apiSlug）仍写回。
     await act(async () => {
-      resolveMatch({ pattern: "example.com", terms: "API,接口", apiSlug: "openai" });
+      resolveMatch({
+        pattern: "example.com",
+        terms: "API,接口",
+        apiSlug: "openai",
+      });
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -1604,27 +1584,36 @@ describe("TerminologyPlayground", () => {
     });
 
   /** 注入 mock 请求/响应数据的工厂函数 */
-  function mockApiTranslateWithCapture({
-    reqUrl = "https://api.openai.com/v1/chat/completions",
-    reqHeaders = { "Content-Type": "application/json" },
-    reqBody = { model: "gpt-4", messages: [{ role: "system", content: "" }] },
-    respBody = { choices: [{ message: { content: "测试翻译结果" } }] },
-    result = {
-      trText: "测试翻译结果",
-      srLang: "en",
-      srCode: "en",
-      isSame: false,
-    },
-    ...rest
-  } = {}) {
+  function mockApiTranslateWithCapture(options = {}) {
+    const {
+      reqUrl = "https://api.openai.com/v1/chat/completions",
+      reqHeaders = { "Content-Type": "application/json" },
+      respBody = { choices: [{ message: { content: "测试翻译结果" } }] },
+      result = {
+        trText: "测试翻译结果",
+        srLang: "en",
+        srCode: "en",
+        isSame: false,
+      },
+    } = options;
     mockApiTranslate.mockImplementation((opts = {}) => {
       const { capture } = opts;
       if (capture?.onRequest) {
         // reqUserMsg 用 in 判断而非解构默认值：Custom 用例要显式传 undefined（未捕获）。
         const userMsg =
-          "reqUserMsg" in rest
-            ? rest.reqUserMsg
+          "reqUserMsg" in options
+            ? options.reqUserMsg
             : { role: "user", content: "test" };
+        const reqBody =
+          "reqBody" in options
+            ? options.reqBody
+            : {
+                model: "gpt-4",
+                messages: [
+                  { role: "system", content: "" },
+                  ...(userMsg ? [userMsg] : []),
+                ],
+              };
         capture.onRequest(
           reqUrl,
           {
@@ -2252,6 +2241,68 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
+  test("D2: delivery follows the final body after customBody or a request hook replaces messages", async () => {
+    mockResolvedTransApis.push(
+      mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
+    );
+    mockApiTranslateWithCapture({
+      reqBody: {
+        model: "gpt-4",
+        messages: [
+          {
+            role: "user",
+            content: batchUserMsgContent({ glossary: {} }),
+          },
+        ],
+      },
+      reqUserMsg: {
+        role: "user",
+        content: batchUserMsgContent({ glossary: { zorp: "数据管道" } }),
+      },
+    });
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: null,
+    });
+    await flushEffects();
+    fillAiTerms(container, setAiTermsDraft, "zorp,数据管道");
+    await runAiTest(container);
+
+    expect(
+      container
+        .querySelector('[data-testid="terminology-ai-delivery-zorp"]')
+        .getAttribute("data-state")
+    ).toBe("missing");
+
+    act(() => root.unmount());
+  });
+
+  test("D2: unknown final custom body is uncaptured instead of trusting stale userMsg", async () => {
+    mockResolvedTransApis.push(
+      mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
+    );
+    mockApiTranslateWithCapture({
+      reqBody: { payload: "provider-specific" },
+      reqUserMsg: {
+        role: "user",
+        content: batchUserMsgContent({ glossary: { zorp: "数据管道" } }),
+      },
+    });
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: null,
+    });
+    await flushEffects();
+    fillAiTerms(container, setAiTermsDraft, "zorp,数据管道");
+    await runAiTest(container);
+
+    expect(
+      container
+        .querySelector('[data-testid="terminology-ai-delivery-zorp"]')
+        .getAttribute("data-state")
+    ).toBe("uncaptured");
+
+    act(() => root.unmount());
+  });
+
   test("D2: uncaptured requests render 未捕获 for all terms", async () => {
     mockResolvedTransApis.push(
       mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
@@ -2441,7 +2492,7 @@ describe("TerminologyPlayground", () => {
         "https://generativelanguage.googleapis.com/v1beta/models/gemini:generateContent?key=x",
       reqBody: {
         systemInstruction: { parts: [{ text: "sys" }] },
-        contents: [],
+        contents: [{ role: "user", parts: [{ text: batchUserMsgContent() }] }],
       },
       reqUserMsg: { role: "user", parts: [{ text: batchUserMsgContent() }] },
     });
@@ -2475,7 +2526,15 @@ describe("TerminologyPlayground", () => {
     );
     mockApiTranslateWithCapture({
       reqUrl: "https://generativelanguage.googleapis.com/v1beta/interactions",
-      reqBody: { system_instruction: "sys", input: [] },
+      reqBody: {
+        system_instruction: "sys",
+        input: [
+          {
+            type: "user_input",
+            content: [{ type: "text", text: batchUserMsgContent() }],
+          },
+        ],
+      },
       reqUserMsg: {
         type: "user_input",
         content: [{ type: "text", text: batchUserMsgContent() }],

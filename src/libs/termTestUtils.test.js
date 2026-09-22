@@ -1,4 +1,4 @@
-import { parseTerms } from "./terms";
+import { buildTermsMatcher, parseTerms } from "./terms";
 import {
   hashKey,
   detectTermConflicts,
@@ -125,6 +125,28 @@ describe("termTestUtils detectTermConflicts", () => {
 
 // ─── generateTermTestText ────────────────────────────────────────────────────
 describe("termTestUtils generateTermTestText", () => {
+  test("escaped literal regexes use concrete matching text", () => {
+    const parsed = parseTerms("C\\+\\+,语言");
+    const [testCase] = generateTermTestText(parsed);
+
+    expect(testCase.type).toBe("single");
+    expect(testCase.text).toContain("C++");
+    expect(testCase.text).not.toContain("C\\+\\+");
+    expect(assertTermReplacements(parsed, testCase).ok).toBe(true);
+  });
+
+  test("general regexes are skipped instead of reported as not found", () => {
+    const parsed = parseTerms("API\\d+,编号");
+    const [testCase] = generateTermTestText(parsed);
+    const result = assertTermReplacements(parsed, testCase);
+
+    expect(testCase).toMatchObject({
+      type: "unsupported",
+      reason: "auto-sample-unsupported",
+    });
+    expect(result).toMatchObject({ ok: true, skipped: true, issues: [] });
+    expect(result.evidence[0].type).toBe("auto-sample-unsupported");
+  });
   test("generates conflict test cases for all 4 types with direction expansion", () => {
     // 4 类冲突组合（8 个术语，4 个独立冲突对）
     // 类型 1：API,接口;APIKey,应用编程接口
@@ -352,6 +374,31 @@ describe("termTestUtils joinIntoParagraph", () => {
 
 // ─── assertTermReplacements ──────────────────────────────────────────────────
 describe("termTestUtils assertTermReplacements", () => {
+  test("keeps the actual matched text for an empty escaped-literal mapping", () => {
+    const parsed = parseTerms("C\\+\\+");
+    const [testCase] = generateTermTestText(parsed);
+    const result = assertTermReplacements(parsed, testCase);
+
+    expect(result.ok).toBe(true);
+    expect(result.fixed.output).toContain("C++");
+    expect(result.fixed.spans[0].replacement).toBe("C++");
+  });
+
+  test("reuses a prebuilt matcher and returns both engine results", () => {
+    const parsed = parseTerms("API,接口;SDK,工具包");
+    const matcher = buildTermsMatcher(parsed);
+    const cases = generateTermTestText(parsed);
+
+    for (const testCase of cases) {
+      const result = assertTermReplacements(parsed, testCase, { matcher });
+      expect(result.fixed).toEqual(
+        expect.objectContaining({ spans: expect.any(Array) })
+      );
+      expect(result.naive).toEqual(
+        expect.objectContaining({ spans: expect.any(Array) })
+      );
+    }
+  });
   // 标准替换器
   const replacer = (t, m) => t.value || m;
 
@@ -871,12 +918,17 @@ describe("termTestUtils 冲突分析记忆化（统一计划 20260829 Task 4）"
     }
     expect(
       cases.some(
-        (c) => c.type === "conflict" && (c.short.key === "API" || c.long.key === "APIKey")
+        (c) =>
+          c.type === "conflict" &&
+          (c.short.key === "API" || c.long.key === "APIKey")
       )
     ).toBe(false);
     // 无冲突术语走单术语用例
     const singleCases = cases.filter((c) => c.type === "single");
-    expect(singleCases.map((c) => c.term.key).sort()).toEqual(["API", "APIKey"]);
+    expect(singleCases.map((c) => c.term.key).sort()).toEqual([
+      "API",
+      "APIKey",
+    ]);
   });
 
   test("generateTermTestText 不传 conflicts 时保持向后兼容（内部自算）", () => {

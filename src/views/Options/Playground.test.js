@@ -196,7 +196,9 @@ test("mounts the terminology tab and forwards shared text state to it", async ()
   const forwarded = props.transApis[0];
   expect(forwarded.apiSlug).toBe("openai");
   expect(forwarded.useBatchFetch).toBe(true);
-  expect(forwarded.systemPrompt).toContain("Act as a translation API");
+  expect(forwarded.systemPrompt).toContain(
+    "Act as a professional machine translation engine"
+  );
 
   // 先回翻译页签写入文本，再切回术语页签，确认共享 text 通过 setText 提升正确更新。
   await act(async () => {

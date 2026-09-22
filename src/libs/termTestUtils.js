@@ -39,6 +39,31 @@ const SINGLE_TERM_TEMPLATES = [
   "The {term} feature will ship in the next release.",
 ];
 
+/**
+ * Return concrete text only when a regex source is entirely literal.
+ * Escaped regex punctuation is decoded (for example C\+\+ -> C++); regex
+ * operators and character-class escapes need a user-provided sample instead.
+ */
+function literalPatternSample(source) {
+  if (typeof source !== "string" || source === "") return null;
+  let sample = "";
+  const escapable = new Set("^$\\.*+?()[]{}|/-".split(""));
+
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+    if (char === "\\") {
+      const next = source[++i];
+      if (!next || !escapable.has(next)) return null;
+      sample += next;
+      continue;
+    }
+    if ("^$.*+?()[]{}|".includes(char)) return null;
+    sample += char;
+  }
+
+  return sample;
+}
+
 // 冲突对模板：同句同现 {short} 与 {long}。
 // 两条方向各一组，覆盖短词→长词（short-first）与长词→短词（long-first）
 // 两种自然语序；两组模板措辞不同，防止用机械交换词序冒充方向覆盖。
@@ -187,7 +212,7 @@ function termHitsKey(term, targetKey) {
  *   已算过时传入以复用，如 Playground runCompute 只分析一次）；不传则内部自算
  *   （向后兼容，CLI / 测试不受影响）
  * @returns {Array<{
- *   type: "conflict" | "single",
+ *   type: "conflict" | "single" | "unsupported",
  *   text: string,
  *   short?: object,
  *   long?: object,
@@ -208,12 +233,20 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
   if (terms.length === 0) return [];
 
   const cases = [];
+  const unsupportedTerms = new Map();
 
   // 1. 冲突对用例：每对冲突按两个方向各生成一条自然语境用例。
   //    冲突分析只算一次：调用方传入预计算结果则直接复用，否则内部自算。
   const conflicts = options?.conflicts ?? detectTermConflicts(parsedTerms);
   for (const conflict of conflicts) {
     const { short, long, shortHasValue, longHasValue } = conflict;
+    const shortSample = literalPatternSample(short.key);
+    const longSample = literalPatternSample(long.key);
+    if (shortSample === null || longSample === null) {
+      if (shortSample === null) unsupportedTerms.set(short.key, short);
+      if (longSample === null) unsupportedTerms.set(long.key, long);
+      continue;
+    }
     const conflictType = getConflictType(shortHasValue, longHasValue);
 
     // 选模板：用"冲突对组合 key + 方向 + seed"做 hash，保证同一对方向各自稳定
@@ -228,8 +261,8 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
       const template = pool[templateIndex];
 
       const text = template
-        .replace(/\{short\}/g, short.key)
-        .replace(/\{long\}/g, long.key);
+        .replace(/\{short\}/g, shortSample)
+        .replace(/\{long\}/g, longSample);
 
       cases.push({
         type: "conflict",
@@ -247,23 +280,43 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
   // 2. 无冲突术语的单术语用例
   const conflictKeys = new Set();
   for (const c of conflicts) {
+    if (
+      literalPatternSample(c.short.key) === null ||
+      literalPatternSample(c.long.key) === null
+    ) {
+      continue;
+    }
     conflictKeys.add(c.short.key);
     conflictKeys.add(c.long.key);
   }
 
   for (const term of terms) {
     if (conflictKeys.has(term.key)) continue;
+    const sample = literalPatternSample(term.key);
+    if (sample === null) {
+      unsupportedTerms.set(term.key, term);
+      continue;
+    }
 
     // 选模板
     const templateIndex =
       hashKey(withSeed(term.key)) % SINGLE_TERM_TEMPLATES.length;
     const template = SINGLE_TERM_TEMPLATES[templateIndex];
-    const text = template.replace(/\{term\}/g, term.key);
+    const text = template.replace(/\{term\}/g, sample);
 
     cases.push({
       type: "single",
       text,
       term,
+    });
+  }
+
+  for (const term of unsupportedTerms.values()) {
+    cases.push({
+      type: "unsupported",
+      text: "",
+      term,
+      reason: "auto-sample-unsupported",
     });
   }
 
@@ -300,6 +353,7 @@ export function joinIntoParagraph(cases) {
  * @param {Array|object} parsedTerms - 完整 parsedTerms
  * @param {object} testCase - generateTermTestText 返回的单个用例
  * @param {object} [options]
+ * @param {object} [options.matcher] - buildTermsMatcher 的预构建 matcher
  * @param {"fixed"|"naive"} [options.engine="fixed"] - 断言目标引擎：
  *   "fixed" 断言修复后引擎（默认，ok 反映修复后行为），并额外产出 evidence（旧引擎的误伤演示，不影响 ok）；
  *   "naive" 断言旧引擎复现输出（错误引擎输出会产生对应 issue，供负向用例/演示使用）。
@@ -313,6 +367,23 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
   const issues = [];
   const evidence = [];
   const engine = options.engine === "naive" ? "naive" : "fixed";
+
+  if (testCase?.type === "unsupported") {
+    return {
+      ok: true,
+      skipped: true,
+      issues: [],
+      evidence: [
+        {
+          type: "auto-sample-unsupported",
+          message: `术语 ${testCase.term?.key ?? ""} 无法自动生成可靠匹配样例`,
+          detail: { term: testCase.term },
+        },
+      ],
+      fixed: null,
+      naive: null,
+    };
+  }
 
   // 确保 parsedTerms 是数组
   const terms = Array.isArray(parsedTerms)
@@ -329,6 +400,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
         },
       ],
       evidence,
+      fixed: null,
+      naive: null,
     };
   }
 
@@ -344,6 +417,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
         },
       ],
       evidence,
+      fixed: null,
+      naive: null,
     };
   }
 
@@ -352,7 +427,7 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
 
   // 修复后引擎输出 + 旧引擎复现输出（使用 parseTerms 的真实 originalOrder，
   // 否则排序后的 terms 会让旧引擎"意外正确"，修复前/后对比证据失效）
-  const fixed = applyTermReplace(text, terms, replacer);
+  const fixed = applyTermReplace(text, terms, replacer, options.matcher);
   const naive = applyNaiveReplace(text, parsedTerms);
   const result = engine === "naive" ? naive : fixed;
   const { spans } = result;
@@ -391,7 +466,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
     } else {
       // 检查替换正确性
       for (const span of termSpans) {
-        const expectedReplacement = term.value || span.termKey; // 无译文时保持原文
+        const expectedReplacement =
+          term.value || text.slice(span.start, span.end); // 无译文时保持实际命中的原文
         if (span.replacement !== expectedReplacement) {
           issues.push({
             type: "single-term-wrong-replacement",
@@ -425,7 +501,7 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
       });
     }
 
-    return { ok: issues.length === 0, issues, evidence };
+    return { ok: issues.length === 0, issues, evidence, fixed, naive };
   }
 
   // 冲突类型用例
@@ -612,7 +688,7 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
       }
     }
 
-    return { ok: issues.length === 0, issues, evidence };
+    return { ok: issues.length === 0, issues, evidence, fixed, naive };
   }
 
   // 未知类型
@@ -626,6 +702,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
       },
     ],
     evidence,
+    fixed,
+    naive,
   };
 }
 
