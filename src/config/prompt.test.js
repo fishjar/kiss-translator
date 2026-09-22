@@ -485,6 +485,8 @@ describe("prompt settings", () => {
     expect(nobatchItem).toBeDefined();
 
     expect(getTranslationPromptDisplayName(batchItem)).toMatch(/^\[聚合\]\s+/);
-    expect(getTranslationPromptDisplayName(nobatchItem)).toMatch(/^\[单句\]\s+/);
+    expect(getTranslationPromptDisplayName(nobatchItem)).toMatch(
+      /^\[单句\]\s+/
+    );
   });
 });

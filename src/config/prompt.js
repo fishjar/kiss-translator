@@ -326,7 +326,9 @@ function isSamePromptContent(prompt, sourcePrompt) {
     ) {
       return true;
     }
-    return normalizedPrompt.systemPrompt === normalizedSourcePrompt.systemPrompt;
+    return (
+      normalizedPrompt.systemPrompt === normalizedSourcePrompt.systemPrompt
+    );
   }
 
   if (normalizedPrompt.systemPrompt !== normalizedSourcePrompt.systemPrompt) {

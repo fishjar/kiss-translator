@@ -35,7 +35,12 @@ import { resolveApiPromptSettings } from "../config/prompt";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
-import { parseTerms, buildTermsRegex, buildTermsMatcher, applyTermReplace } from "./terms";
+import {
+  parseTerms,
+  buildTermsRegex,
+  buildTermsMatcher,
+  applyTermReplace,
+} from "./terms";
 import { escapeHTML } from "./html";
 import { parseMathInText } from "./mathParse";
 import { apiMicrosoftDict, apiTranslate, apiYoudaoDict } from "../apis";

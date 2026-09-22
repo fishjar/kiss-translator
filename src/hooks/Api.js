@@ -144,7 +144,10 @@ export function sortApisAlphabetically(
  * 翻译 API 列表管理的自定义 Hook，支持列表筛选、新增、复制、删除和字母排序
  */
 function getUuid() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   if (

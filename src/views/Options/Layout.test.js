@@ -323,15 +323,16 @@ describe("fetchLatestVersion", () => {
     global.fetch
       .mockResolvedValueOnce({
         ok: true,
-        text: async () =>
-          "<html><body>Intercepted Portal</body></html>",
+        text: async () => "<html><body>Intercepted Portal</body></html>",
       })
       .mockResolvedValueOnce({
         ok: true,
         text: async () => "Login Required: Please visit http://auth.campus.edu",
       });
 
-    await expect(fetchLatestVersion()).rejects.toThrow("Invalid version format");
+    await expect(fetchLatestVersion()).rejects.toThrow(
+      "Invalid version format"
+    );
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });
@@ -346,7 +347,9 @@ describe("isValidVersion", () => {
   test("rejects v prefix, prerelease, HTML block pages, and invalid strings", () => {
     expect(isValidVersion("v2.0.32")).toBe(false);
     expect(isValidVersion("1.0.0-beta.1")).toBe(false);
-    expect(isValidVersion("<!DOCTYPE html><html><body>Blocked</body></html>")).toBe(false);
+    expect(
+      isValidVersion("<!DOCTYPE html><html><body>Blocked</body></html>")
+    ).toBe(false);
     expect(isValidVersion("Access Denied")).toBe(false);
     expect(isValidVersion("")).toBe(false);
     expect(isValidVersion(null)).toBe(false);
@@ -442,7 +445,8 @@ describe("Layout checkUpdate setting effect", () => {
     mockCheckUpdate = true;
     global.fetch.mockResolvedValue({
       ok: true,
-      text: async () => "<!DOCTYPE html><html><body>Access Denied</body></html>",
+      text: async () =>
+        "<!DOCTYPE html><html><body>Access Denied</body></html>",
     });
 
     const container = document.createElement("div");

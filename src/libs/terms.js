@@ -181,8 +181,7 @@ function isZeroWidthOnlyPattern(key) {
         key[i + 1] === "?" &&
         (key[i + 2] === "=" ||
           key[i + 2] === "!" ||
-          (key[i + 2] === "<" &&
-            (key[i + 3] === "=" || key[i + 3] === "!")));
+          (key[i + 2] === "<" && (key[i + 3] === "=" || key[i + 3] === "!")));
       if (isLookaround) {
         i = skipBalancedGroup(key, i);
         continue;
@@ -298,9 +297,7 @@ function scanWithTerms(text, regex, termList, replacer, matcher) {
     // 否则无法可靠反查，直接走原文保留兜底。phaseRegex 必须继承原正则全部 flags
     //（i/m/s 等），否则外部 /gi 场景下预扫描大小写不敏感语义丢失，术语被静默放弃。
     const mappingAligned = branchBaseGroups.length === termList.length;
-    phaseRegex = mappingAligned
-      ? new RegExp(regex.source, regex.flags)
-      : null;
+    phaseRegex = mappingAligned ? new RegExp(regex.source, regex.flags) : null;
   }
 
   // 复用共享正则/共享 matcher 时必须重置主扫描状态，保证跨调用幂等
@@ -793,9 +790,7 @@ export function buildTermsMatcher(parsedTerms) {
   return {
     termList,
     regex,
-    phaseRegex: mappingAligned
-      ? new RegExp(regex.source, regex.flags)
-      : null,
+    phaseRegex: mappingAligned ? new RegExp(regex.source, regex.flags) : null,
     branchBaseGroups,
     branchTermIndex,
     mappingAligned,

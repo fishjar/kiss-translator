@@ -2121,58 +2121,59 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
   // ── 诊断提示多语言（Task 5：替换 terms.js 内部硬编码中文直出）────────────
   terminology_playground_diag_empty_source_term: terminologyPlaygroundText(
     "第 {segmentIndex} 段「{segment}」的逗号前没有源术语（空源术语）",
-    "Segment {segmentIndex} \"{segment}\" has no source term before the comma (empty source term)",
+    'Segment {segmentIndex} "{segment}" has no source term before the comma (empty source term)',
     "第 {segmentIndex} 段「{segment}」的逗號前沒有來源術語（空來源術語）",
     "第 {segmentIndex} セグメント「{segment}」のカンマの前にソース用語がありません（空のソース用語）",
-    "{segmentIndex}번째 세그먼트 \"{segment}\"의 쉼표 앞에 소스 용어가 없습니다(빈 소스 용어)",
-    "Bölüm {segmentIndex} \"{segment}\" virgülün önünde kaynak terim içermiyor (boş kaynak terim)",
-    "Đoạn {segmentIndex} \"{segment}\" không có thuật ngữ nguồn trước dấu phẩy (thuật ngữ nguồn trống)"
+    '{segmentIndex}번째 세그먼트 "{segment}"의 쉼표 앞에 소스 용어가 없습니다(빈 소스 용어)',
+    'Bölüm {segmentIndex} "{segment}" virgülün önünde kaynak terim içermiyor (boş kaynak terim)',
+    'Đoạn {segmentIndex} "{segment}" không có thuật ngữ nguồn trước dấu phẩy (thuật ngữ nguồn trống)'
   ),
   terminology_playground_diag_invalid_regex: terminologyPlaygroundText(
     "第 {segmentIndex} 段「{segment}」无法作为正则解析：{error}",
-    "Segment {segmentIndex} \"{segment}\" cannot be parsed as regex: {error}",
+    'Segment {segmentIndex} "{segment}" cannot be parsed as regex: {error}',
     "第 {segmentIndex} 段「{segment}」無法作為正規表示式解析：{error}",
     "第 {segmentIndex} セグメント「{segment}」を正規表現として解析できません：{error}",
-    "{segmentIndex}번째 세그먼트 \"{segment}\"을(를) 정규식으로 구문 분석할 수 없습니다: {error}",
-    "Bölüm {segmentIndex} \"{segment}\" normal ifade olarak ayrıştırılamıyor: {error}",
-    "Đoạn {segmentIndex} \"{segment}\" không thể phân tích cú pháp dưới dạng biểu thức chính quy: {error}"
+    '{segmentIndex}번째 세그먼트 "{segment}"을(를) 정규식으로 구문 분석할 수 없습니다: {error}',
+    'Bölüm {segmentIndex} "{segment}" normal ifade olarak ayrıştırılamıyor: {error}',
+    'Đoạn {segmentIndex} "{segment}" không thể phân tích cú pháp dưới dạng biểu thức chính quy: {error}'
   ),
   terminology_playground_diag_empty_matching_pattern: terminologyPlaygroundText(
     "第 {segmentIndex} 段「{segment}」的正则可匹配空字符串（{key}），会在任意位置注入译文导致错乱，请改用非空匹配的正则",
-    "Segment {segmentIndex} \"{segment}\" has a regex that matches empty strings ({key}), which injects translations everywhere; please use a non-empty matching regex",
+    'Segment {segmentIndex} "{segment}" has a regex that matches empty strings ({key}), which injects translations everywhere; please use a non-empty matching regex',
     "第 {segmentIndex} 段「{segment}」的正規表示式可匹配空字串（{key}），會在任意位置注入譯文導致錯亂，請改用非空匹配的正規表示式",
     "第 {segmentIndex} セグメント「{segment}」の正規表現は空文字列に一致します（{key}）。任意の位置に訳文が注入されて乱れが生じるため、非空に一致する正規表現に変更してください",
-    "{segmentIndex}번째 세그먼트 \"{segment}\"의 정규식이 빈 문자열과 일치합니다({key}). 임의 위치에 번역이 삽입되어 오류가 발생하므로 비어 있지 않은 문자열과 일치하는 정규식으로 변경하세요",
-    "Bölüm {segmentIndex} \"{segment}\" normal ifadesi boş dizeyle eşleşiyor ({key}), her yere çeviri enjekte eder; lütfen boş olmayan bir eşleşme ifadesi kullanın",
-    "Biểu thức chính quy ở đoạn {segmentIndex} \"{segment}\" khớp với chuỗi rỗng ({key}), có thể chèn bản dịch ở mọi vị trí gây lỗi; vui lòng đổi sang biểu thức khớp chuỗi không rỗng"
+    '{segmentIndex}번째 세그먼트 "{segment}"의 정규식이 빈 문자열과 일치합니다({key}). 임의 위치에 번역이 삽입되어 오류가 발생하므로 비어 있지 않은 문자열과 일치하는 정규식으로 변경하세요',
+    'Bölüm {segmentIndex} "{segment}" normal ifadesi boş dizeyle eşleşiyor ({key}), her yere çeviri enjekte eder; lütfen boş olmayan bir eşleşme ifadesi kullanın',
+    'Biểu thức chính quy ở đoạn {segmentIndex} "{segment}" khớp với chuỗi rỗng ({key}), có thể chèn bản dịch ở mọi vị trí gây lỗi; vui lòng đổi sang biểu thức khớp chuỗi không rỗng'
   ),
   terminology_playground_diag_conflicting_mapping: terminologyPlaygroundText(
     "第 {segmentIndex} 段「{segment}」与第 {prevIndex} 段「{key},{prevValue}」同源但译文不同（冲突映射）",
-    "Segment {segmentIndex} \"{segment}\" shares the source with segment {prevIndex} \"{key},{prevValue}\" but has a different translation (conflicting mapping)",
+    'Segment {segmentIndex} "{segment}" shares the source with segment {prevIndex} "{key},{prevValue}" but has a different translation (conflicting mapping)',
     "第 {segmentIndex} 段「{segment}」與第 {prevIndex} 段「{key},{prevValue}」同源但譯文不同（衝突對應）",
     "第 {segmentIndex} セグメント「{segment}」は第 {prevIndex} セグメント「{key},{prevValue}」と同じソースですが訳文が異なります（競合マッピング）",
-    "{segmentIndex}번째 세그먼트 \"{segment}\"은(는) {prevIndex}번째 세그먼트 \"{key},{prevValue}\"와(과) 소스는 같으나 번역이 다릅니다(충돌 매핑)",
-    "Bölüm {segmentIndex} \"{segment}\", bölüm {prevIndex} \"{key},{prevValue}\" ile aynı kaynağa sahip ancak çevirisi farklı (çakışan eşleme)",
-    "Đoạn {segmentIndex} \"{segment}\" có cùng nguồn với đoạn {prevIndex} \"{key},{prevValue}\" nhưng bản dịch khác nhau (ánh xạ xung đột)"
+    '{segmentIndex}번째 세그먼트 "{segment}"은(는) {prevIndex}번째 세그먼트 "{key},{prevValue}"와(과) 소스는 같으나 번역이 다릅니다(충돌 매핑)',
+    'Bölüm {segmentIndex} "{segment}", bölüm {prevIndex} "{key},{prevValue}" ile aynı kaynağa sahip ancak çevirisi farklı (çakışan eşleme)',
+    'Đoạn {segmentIndex} "{segment}" có cùng nguồn với đoạn {prevIndex} "{key},{prevValue}" nhưng bản dịch khác nhau (ánh xạ xung đột)'
   ),
   terminology_playground_diag_conflicting_pattern: terminologyPlaygroundText(
     "第 {segmentIndexA} 段「{keyA}」与第 {segmentIndexB} 段「{keyB}」的正则同时命中同一原文「{literal}」（冲突映射），请转义或统一术语写法",
-    "Segment {segmentIndexA} \"{keyA}\" and segment {segmentIndexB} \"{keyB}\" regexes both match the same text \"{literal}\" (conflicting mapping); please escape or standardize",
+    'Segment {segmentIndexA} "{keyA}" and segment {segmentIndexB} "{keyB}" regexes both match the same text "{literal}" (conflicting mapping); please escape or standardize',
     "第 {segmentIndexA} 段「{keyA}」與第 {segmentIndexB} 段「{keyB}」的正規表示式同時命中同一原文「{literal}」（衝突對應），請跳脫或統一術語寫法",
     "第 {segmentIndexA} セグメント「{keyA}」と第 {segmentIndexB} セグメント「{keyB}」の正規表現が同じ原文「{literal}」に同時に一致します（競合マッピング）。エスケープするか表記を統一してください",
-    "{segmentIndexA}번째 세그먼트 \"{keyA}\"와(과) {segmentIndexB}번째 세그먼트 \"{keyB}\"의 정규식이 동일한 원문 \"{literal}\"과(과) 동시에 일치합니다(충돌 매핑). 이스케이프하거나 표기를 통일하세요",
-    "Bölüm {segmentIndexA} \"{keyA}\" ve bölüm {segmentIndexB} \"{keyB}\" normal ifadeleri aynı metinle \"{literal}\" eşleşiyor (çakışan eşleme); lütfen kaçışlayın veya birleştirin",
-    "Biểu thức chính quy ở đoạn {segmentIndexA} \"{keyA}\" và đoạn {segmentIndexB} \"{keyB}\" đều khớp cùng văn bản gốc \"{literal}\" (ánh xạ xung đột); vui lòng thoát ký tự hoặc thống nhất cách viết"
+    '{segmentIndexA}번째 세그먼트 "{keyA}"와(과) {segmentIndexB}번째 세그먼트 "{keyB}"의 정규식이 동일한 원문 "{literal}"과(과) 동시에 일치합니다(충돌 매핑). 이스케이프하거나 표기를 통일하세요',
+    'Bölüm {segmentIndexA} "{keyA}" ve bölüm {segmentIndexB} "{keyB}" normal ifadeleri aynı metinle "{literal}" eşleşiyor (çakışan eşleme); lütfen kaçışlayın veya birleştirin',
+    'Biểu thức chính quy ở đoạn {segmentIndexA} "{keyA}" và đoạn {segmentIndexB} "{keyB}" đều khớp cùng văn bản gốc "{literal}" (ánh xạ xung đột); vui lòng thoát ký tự hoặc thống nhất cách viết'
   ),
-  terminology_playground_diag_zero_width_matching_pattern: terminologyPlaygroundText(
-    "第 {segmentIndex} 段「{segment}」的正则不消费任何字符（{key}），会在原文任意位置零宽注入译文导致错乱，请改用消费字符的正则",
-    "Segment {segmentIndex} \"{segment}\" has a regex that consumes no characters ({key}), which injects translations at arbitrary positions of the text; please use a character-consuming regex",
-    "第 {segmentIndex} 段「{segment}」的正規表示式不消費任何字元（{key}），會在原文任意位置零寬注入譯文導致錯亂，請改用消費字元的正規表示式",
-    "第 {segmentIndex} セグメント「{segment}」の正規表現は文字を一切消費しません（{key}）。原文の任意の位置に幅ゼロで訳文が注入され崩れるため、文字を消費する正規表現に変更してください",
-    "{segmentIndex}번째 세그먼트 \"{segment}\"의 정규식은 문자를 전혀 소비하지 않습니다({key}). 원문의 임의 위치에 폭 0으로 번역이 삽입되어 깨지므로 문자를 소비하는 정규식으로 변경하세요",
-    "Bölüm {segmentIndex} \"{segment}\" normal ifadesi hiçbir karakter tüketmiyor ({key}); metnin rastgele konumlarına sıfır genişlikte çeviri enjekte ederek bozar. Lütfen karakter tüketen bir ifade kullanın",
-    "Biểu thức chính quy ở đoạn {segmentIndex} \"{segment}\" không tiêu thụ ký tự nào ({key}), sẽ chèn bản dịch vào vị trí tùy ý của văn bản khiến lỗi; vui lòng dùng biểu thức có tiêu thụ ký tự"
-  ),
+  terminology_playground_diag_zero_width_matching_pattern:
+    terminologyPlaygroundText(
+      "第 {segmentIndex} 段「{segment}」的正则不消费任何字符（{key}），会在原文任意位置零宽注入译文导致错乱，请改用消费字符的正则",
+      'Segment {segmentIndex} "{segment}" has a regex that consumes no characters ({key}), which injects translations at arbitrary positions of the text; please use a character-consuming regex',
+      "第 {segmentIndex} 段「{segment}」的正規表示式不消費任何字元（{key}），會在原文任意位置零寬注入譯文導致錯亂，請改用消費字元的正規表示式",
+      "第 {segmentIndex} セグメント「{segment}」の正規表現は文字を一切消費しません（{key}）。原文の任意の位置に幅ゼロで訳文が注入され崩れるため、文字を消費する正規表現に変更してください",
+      '{segmentIndex}번째 세그먼트 "{segment}"의 정규식은 문자를 전혀 소비하지 않습니다({key}). 원문의 임의 위치에 폭 0으로 번역이 삽입되어 깨지므로 문자를 소비하는 정규식으로 변경하세요',
+      'Bölüm {segmentIndex} "{segment}" normal ifadesi hiçbir karakter tüketmiyor ({key}); metnin rastgele konumlarına sıfır genişlikte çeviri enjekte ederek bozar. Lütfen karakter tüketen bir ifade kullanın',
+      'Biểu thức chính quy ở đoạn {segmentIndex} "{segment}" không tiêu thụ ký tự nào ({key}), sẽ chèn bản dịch vào vị trí tùy ý của văn bản khiến lỗi; vui lòng dùng biểu thức có tiêu thụ ký tự'
+    ),
 };
 
 export const I18N = {

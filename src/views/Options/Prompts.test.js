@@ -115,9 +115,7 @@ describe("Prompts", () => {
       PROMPT_CATEGORY_DICTIONARY,
       PROMPT_CATEGORY_BATCH_SYSTEM,
     ];
-    const hiddenCategories = [
-      PROMPT_CATEGORY_SUBTITLE,
-    ];
+    const hiddenCategories = [PROMPT_CATEGORY_SUBTITLE];
 
     for (const category of visibleCategories) {
       const { container, unmount } = renderPrompts(category);

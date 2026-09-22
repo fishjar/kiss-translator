@@ -1449,15 +1449,23 @@ describe("TranForm API selection persistence (apiSlugsStorageKey)", () => {
     await flushEffects();
 
     // 初始没有 TranCont
-    expect(view.container.querySelectorAll('[data-testid="tran-cont"]')).toHaveLength(0);
+    expect(
+      view.container.querySelectorAll('[data-testid="tran-cont"]')
+    ).toHaveLength(0);
 
     // 用户在下拉菜单勾选 openai
-    const apiSlugsInput = view.container.querySelector('input[name="apiSlugs"]');
+    const apiSlugsInput = view.container.querySelector(
+      'input[name="apiSlugs"]'
+    );
     const apiSlugsButton = apiSlugsInput
       .closest(".MuiInputBase-root")
-      .querySelector('[role="combobox"], [role="button"], [aria-haspopup="listbox"]');
+      .querySelector(
+        '[role="combobox"], [role="button"], [aria-haspopup="listbox"]'
+      );
     await act(async () => {
-      apiSlugsButton.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      apiSlugsButton.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true })
+      );
       await Promise.resolve();
     });
     await act(async () => {
@@ -1515,8 +1523,8 @@ describe("TranForm API selection persistence (apiSlugsStorageKey)", () => {
 
     // 无崩溃，保持 prop 默认的 google
     expect(
-      [...container.querySelectorAll('[data-testid="tran-cont"]')].map(
-        (el) => el.getAttribute("data-api-slug")
+      [...container.querySelectorAll('[data-testid="tran-cont"]')].map((el) =>
+        el.getAttribute("data-api-slug")
       )
     ).toEqual(["google"]);
 
@@ -1539,8 +1547,8 @@ describe("TranForm API selection persistence (apiSlugsStorageKey)", () => {
 
     // 只恢复有效的 openai，已禁用的 deepl 与不存在的 ghost 被过滤
     expect(
-      [...container.querySelectorAll('[data-testid="tran-cont"]')].map(
-        (el) => el.getAttribute("data-api-slug")
+      [...container.querySelectorAll('[data-testid="tran-cont"]')].map((el) =>
+        el.getAttribute("data-api-slug")
       )
     ).toEqual(["openai"]);
 
@@ -1558,7 +1566,9 @@ describe("TranForm API selection persistence (apiSlugsStorageKey)", () => {
     await flushEffects();
 
     // 用户显式选空 → 不展示任何翻译引擎
-    expect(container.querySelectorAll('[data-testid="tran-cont"]')).toHaveLength(0);
+    expect(
+      container.querySelectorAll('[data-testid="tran-cont"]')
+    ).toHaveLength(0);
 
     act(() => root.unmount());
   });

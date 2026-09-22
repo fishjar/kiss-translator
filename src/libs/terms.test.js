@@ -531,7 +531,12 @@ describe("terms P1 分支识别修复（lookbehind / 嵌套捕获组 / 零宽边
     // 该分支在 termList 中不存在——映射必然失败，必须走原文保留兜底。
     const parsed = parseTerms("API,接口;Baz,巴兹");
     const regex = new RegExp("(API)|(Baz)|(ghost)", "g");
-    const { output, spans } = applyTermReplace("API Baz", parsed, replacer, regex);
+    const { output, spans } = applyTermReplace(
+      "API Baz",
+      parsed,
+      replacer,
+      regex
+    );
     // 能映射的 API/Baz 正常替换；ghost 不会命中文本；不得丢任何字符。
     expect(output).toBe("接口 巴兹");
     expect(spans.map((s) => s.termKey)).toEqual(["API", "Baz"]);
@@ -540,7 +545,11 @@ describe("terms P1 分支识别修复（lookbehind / 嵌套捕获组 / 零宽边
   test("捕获组回归矩阵：普通嵌套、命名、非捕获、lookahead/lookbehind、多个命名组共存", () => {
     // 普通嵌套捕获组（既有回归）。
     expect(
-      applyTermReplace("Baz and Foo", parseTerms("(Foo|Bar),替换;Baz,巴兹").terms, replacer).output
+      applyTermReplace(
+        "Baz and Foo",
+        parseTerms("(Foo|Bar),替换;Baz,巴兹").terms,
+        replacer
+      ).output
     ).toBe("巴兹 and 替换");
 
     // 命名捕获组（既有回归）。
@@ -554,7 +563,11 @@ describe("terms P1 分支识别修复（lookbehind / 嵌套捕获组 / 零宽边
 
     // 非捕获组 + lookbehind 组合：非捕获组不占槽位，前后术语都不错位。
     const noncap = parseTerms("(?:Foo)bar,组合;Api,甲;(?<=x)y,乙");
-    const noncapOut = applyTermReplace("xy and Foobar and Api", noncap, replacer);
+    const noncapOut = applyTermReplace(
+      "xy and Foobar and Api",
+      noncap,
+      replacer
+    );
     expect(noncapOut.output).toBe("x乙 and 组合 and 甲");
 
     // lookahead 术语与其后置术语：lookahead 不消费字符，槽位照常映射。
@@ -563,9 +576,7 @@ describe("terms P1 分支识别修复（lookbehind / 嵌套捕获组 / 零宽边
     expect(lookaheadOut.output).toBe("先Bar 后");
 
     // 多个用户命名组 + 普通组混合：所有分支都保持正确映射。
-    const multiNamed = parseTerms(
-      "(?<a>X)(?<b>Y)\\d+,xy编号;(?<c>Q)R,qr"
-    );
+    const multiNamed = parseTerms("(?<a>X)(?<b>Y)\\d+,xy编号;(?<c>Q)R,qr");
     const multiNamedOut = applyTermReplace("XY42 and QR", multiNamed, replacer);
     expect(multiNamedOut.output).toBe("xy编号 and qr");
 
@@ -696,7 +707,11 @@ describe("terms 零宽防护与 flags 继承（统一计划 20260829 Task 2）",
     const out = applyTermReplace("John met Mary", parsed.terms, replacer);
     expect(out.output).toBe("人名 met 人名");
     expect(out.spans).toHaveLength(2);
-    expect(out.spans[0]).toMatchObject({ start: 0, end: 4, termKey: "[A-Z][a-z]+" });
+    expect(out.spans[0]).toMatchObject({
+      start: 0,
+      end: 4,
+      termKey: "[A-Z][a-z]+",
+    });
   });
 
   test("静态矩阵不重复归类：a*/x?/^ 仍由 empty-matching 门闸负责", () => {
@@ -707,9 +722,7 @@ describe("terms 零宽防护与 flags 继承（统一计划 20260829 Task 2）",
         parsed.diagnostics.some((d) => d.type === "empty-matching-pattern")
       ).toBe(true);
       expect(
-        parsed.diagnostics.some(
-          (d) => d.type === "zero-width-matching-pattern"
-        )
+        parsed.diagnostics.some((d) => d.type === "zero-width-matching-pattern")
       ).toBe(false);
     }
   });
@@ -758,9 +771,7 @@ describe("terms matcher 缓存与 naive 缓存（统一计划 20260829 Task 3）
   }
 
   test("matcher 快路径：物化后连续两次 applyTermReplace 增量编译均为 0", () => {
-    const parsed = parseTerms(
-      "API,接口;APIKey,应用编程接口;GPTs,智能体集合"
-    );
+    const parsed = parseTerms("API,接口;APIKey,应用编程接口;GPTs,智能体集合");
     const matcher = buildTermsMatcher(parsed);
     expect(matcher).not.toBeNull();
     const text = "The APIKey and GPTs and API here";
@@ -836,14 +847,39 @@ describe("terms matcher 缓存与 naive 缓存（统一计划 20260829 Task 3）
     const textB = "GPTs and GPT differ";
     const textB2 = "GPTs and GPT differ";
 
-    const soloA = applyTermReplace(textA, parsedA.terms, replacer, matcherA).output;
-    const soloB = applyTermReplace(textB, parsedB.terms, replacer, matcherB).output;
+    const soloA = applyTermReplace(
+      textA,
+      parsedA.terms,
+      replacer,
+      matcherA
+    ).output;
+    const soloB = applyTermReplace(
+      textB,
+      parsedB.terms,
+      replacer,
+      matcherB
+    ).output;
     const soloB2 = applyNaiveReplace(textB2, parsedB).output;
 
     // 交错：A → B → A → naive(B)，各自结果必须与单用完全一致
-    const i1 = applyTermReplace(textA, parsedA.terms, replacer, matcherA).output;
-    const i2 = applyTermReplace(textB, parsedB.terms, replacer, matcherB).output;
-    const i3 = applyTermReplace(textA, parsedA.terms, replacer, matcherA).output;
+    const i1 = applyTermReplace(
+      textA,
+      parsedA.terms,
+      replacer,
+      matcherA
+    ).output;
+    const i2 = applyTermReplace(
+      textB,
+      parsedB.terms,
+      replacer,
+      matcherB
+    ).output;
+    const i3 = applyTermReplace(
+      textA,
+      parsedA.terms,
+      replacer,
+      matcherA
+    ).output;
     const i4 = applyNaiveReplace(textB2, parsedB).output;
     expect(i1).toBe(soloA);
     expect(i2).toBe(soloB);
@@ -857,7 +893,12 @@ describe("terms matcher 缓存与 naive 缓存（统一计划 20260829 Task 3）
     const matcherA = buildTermsMatcher(parsedA);
     // 用 A 的 matcher 配 B 的 terms：身份校验不通过，必须丢弃 matcher 按 B 重建，
     // 保证任意契约破坏下输出仍正确（自愈）。
-    const out = applyTermReplace("Talk to GPTs", parsedB.terms, replacer, matcherA);
+    const out = applyTermReplace(
+      "Talk to GPTs",
+      parsedB.terms,
+      replacer,
+      matcherA
+    );
     expect(out.output).toBe("Talk to 智能体集合");
     expect(out.spans).toHaveLength(1);
   });
@@ -931,16 +972,16 @@ describe("terms fast/full 解析契约（Task 2）", () => {
     const full = parseTerms(input); // 默认 full
     expect(full.diagnosticsMode).toBe("full");
     expect(full.hasErrors).toBe(true);
-    expect(
-      full.diagnostics.some((d) => d.type === "conflicting-pattern")
-    ).toBe(true);
+    expect(full.diagnostics.some((d) => d.type === "conflicting-pattern")).toBe(
+      true
+    );
 
     const fast = parseTerms(input, { fullDiagnostics: false });
     expect(fast.diagnosticsMode).toBe("fast");
     // fast 跳过跨术语重叠分析：同一输入不产生 conflicting-pattern（不等于通过完整校验）。
-    expect(
-      fast.diagnostics.some((d) => d.type === "conflicting-pattern")
-    ).toBe(false);
+    expect(fast.diagnostics.some((d) => d.type === "conflicting-pattern")).toBe(
+      false
+    );
   });
 
   test("同一输入 fast/full 除 conflicting-pattern 外基础契约完全一致", () => {
@@ -995,12 +1036,12 @@ describe("terms fast/full 解析契约（Task 2）", () => {
     const fullElapsed = Date.now() - fullStart;
 
     // 结构断言是主证据：fast 结果中不存在任何 overlapping 诊断，full 存在。
-    expect(
-      fast.diagnostics.some((d) => d.type === "conflicting-pattern")
-    ).toBe(false);
-    expect(
-      full.diagnostics.some((d) => d.type === "conflicting-pattern")
-    ).toBe(true);
+    expect(fast.diagnostics.some((d) => d.type === "conflicting-pattern")).toBe(
+      false
+    );
+    expect(full.diagnostics.some((d) => d.type === "conflicting-pattern")).toBe(
+      true
+    );
     // 术语列表一致，证明 fast 只是跳过诊断分析、不是丢了合法条目。
     expect(fast.terms).toEqual(full.terms);
     // 宽松耗时对比，不锁窄毫秒阈值（CI 抖动免疫）。
@@ -1323,24 +1364,71 @@ describe("terms 冲突分析引擎加固（统一计划 20260829 Task 4）", () 
 describe("terms 字符级不变量对抗矩阵（统一计划 20260829 Task 6）", () => {
   const MATRIX_TERMS = [
     // 常规字面量 / 正则 / 捕获组 / 消费型环视
-    "API,接口", "APIKey,应用编程接口", "UI,界面", "UIView", "GPT;GPTs,智能体集合",
-    "foo.bar,点", "Dr\\.whob,医生", "API\\d+,编号", "colou?r,颜色", "[abc]+,集合", "[A-Z][a-z]+,专名",
-    "(?:ab)+,重复", "a|b,或者", "\\w+,词", "x", "xx,双x", "Foo(?=Bar),先;Baz,后",
-    "(?<=x)y,已选", "(?<!y)x,非y前x", "x\\b,词尾x", "(?<a>X)(?<b>Y)\\d+,xy编号",
-    "(?<c>Q)R,qr", "((ABCDEFG)),long", "手机,phone",
+    "API,接口",
+    "APIKey,应用编程接口",
+    "UI,界面",
+    "UIView",
+    "GPT;GPTs,智能体集合",
+    "foo.bar,点",
+    "Dr\\.whob,医生",
+    "API\\d+,编号",
+    "colou?r,颜色",
+    "[abc]+,集合",
+    "[A-Z][a-z]+,专名",
+    "(?:ab)+,重复",
+    "a|b,或者",
+    "\\w+,词",
+    "x",
+    "xx,双x",
+    "Foo(?=Bar),先;Baz,后",
+    "(?<=x)y,已选",
+    "(?<!y)x,非y前x",
+    "x\\b,词尾x",
+    "(?<a>X)(?<b>Y)\\d+,xy编号",
+    "(?<c>Q)R,qr",
+    "((ABCDEFG)),long",
+    "手机,phone",
     // 混合零宽臂（合法保留，运行期守卫兜底）
-    "a|(?=x),Y", "zz|(?=x),Y", "(?=x)y,z",
+    "a|(?=x),Y",
+    "zz|(?=x),Y",
+    "(?=x)y,z",
     // 非法正则语料（⑤不抛异常覆盖）
-    "bad[re,坏", "(unclosed,括", "*x,星", "[z,方括", "?y,问号",
+    "bad[re,坏",
+    "(unclosed,括",
+    "*x,星",
+    "[z,方括",
+    "?y,问号",
     // 空匹配 / 纯零宽（现状即被门闸 fatal 排除，不进 terms）
-    "a*,星", "(),空组", "^,尖", "(?=x),Y", "(?<=x),Y", "\\b,Y", "(?!x),Y", "\\B,Z",
+    "a*,星",
+    "(),空组",
+    "^,尖",
+    "(?=x),Y",
+    "(?<=x),Y",
+    "\\b,Y",
+    "(?!x),Y",
+    "\\B,Z",
   ];
 
   const MATRIX_TEXTS = [
-    "xx", "ab", "x", "ax", "xb", "FooBar Baz", "xy n", "APIKeys and APIs",
-    "myAPI", "The ReactNative app", "GPTs 与 GPT", "colours and color",
-    "XY42 and QR", "Dr.whob here", "API123编号", "中文与English混排",
-    "QR code for QR", "aXbXc", "  ",
+    "xx",
+    "ab",
+    "x",
+    "ax",
+    "xb",
+    "FooBar Baz",
+    "xy n",
+    "APIKeys and APIs",
+    "myAPI",
+    "The ReactNative app",
+    "GPTs 与 GPT",
+    "colours and color",
+    "XY42 and QR",
+    "Dr.whob here",
+    "API123编号",
+    "中文与English混排",
+    "QR code for QR",
+    "aXbXc",
+    "  ",
   ];
 
   // 防平凡通过（greenwash）守卫：以下组必须物化为合法术语并在矩阵文本上至少命中一次。
@@ -1354,7 +1442,9 @@ describe("terms 字符级不变量对抗矩阵（统一计划 20260829 Task 6）
   const matrixReplacer = (t, m) => t.value || m;
 
   function rebuildFromSpans(text, spans) {
-    const sorted = [...spans].sort((a, b) => a.start - b.start || a.end - b.end);
+    const sorted = [...spans].sort(
+      (a, b) => a.start - b.start || a.end - b.end
+    );
     let out = "";
     let cursor = 0;
     for (const s of sorted) {
@@ -1378,13 +1468,24 @@ describe("terms 字符级不变量对抗矩阵（统一计划 20260829 Task 6）
           try {
             result = run();
           } catch (e) {
-            violations.push({ termsString, text, inv: "no-throw", error: String(e) });
+            violations.push({
+              termsString,
+              text,
+              inv: "no-throw",
+              error: String(e),
+            });
             continue;
           }
           // ① spans 重建 === output
           const rebuilt = rebuildFromSpans(text, result.spans);
           if (rebuilt !== result.output) {
-            violations.push({ termsString, text, inv: "rebuild", rebuilt, output: result.output });
+            violations.push({
+              termsString,
+              text,
+              inv: "rebuild",
+              rebuilt,
+              output: result.output,
+            });
           }
           // ② span start<end 有序不重叠（零宽 span = 修复前事故形态，修复后必须绝迹）
           const sorted = [...result.spans].sort(
@@ -1392,13 +1493,24 @@ describe("terms 字符级不变量对抗矩阵（统一计划 20260829 Task 6）
           );
           for (const s of sorted) {
             if (!(s.start < s.end)) {
-              violations.push({ termsString, text, inv: "non-zero-width", span: s });
+              violations.push({
+                termsString,
+                text,
+                inv: "non-zero-width",
+                span: s,
+              });
               break;
             }
           }
           for (let i = 1; i < sorted.length; i++) {
             if (sorted[i].start < sorted[i - 1].end) {
-              violations.push({ termsString, text, inv: "non-overlap", a: sorted[i - 1], b: sorted[i] });
+              violations.push({
+                termsString,
+                text,
+                inv: "non-overlap",
+                a: sorted[i - 1],
+                b: sorted[i],
+              });
               break;
             }
           }
@@ -1425,7 +1537,8 @@ describe("terms 字符级不变量对抗矩阵（统一计划 20260829 Task 6）
       });
       let hits = 0;
       for (const text of MATRIX_TEXTS) {
-        hits += applyTermReplace(text, parsed.terms, matrixReplacer).spans.length;
+        hits += applyTermReplace(text, parsed.terms, matrixReplacer).spans
+          .length;
       }
       // 术语被误杀时 terms=[] → hits 恒为 0，本断言立即转红。
       expect(hits).toBeGreaterThanOrEqual(expected.minHits);
@@ -1441,7 +1554,9 @@ describe("terms 字符级不变量对抗矩阵（统一计划 20260829 Task 6）
         invalid: p.invalid,
         originalOrder: p.originalOrder,
         metaWarnings: p.metaWarnings,
-        baseDiags: p.diagnostics.filter((d) => d.type !== "conflicting-pattern"),
+        baseDiags: p.diagnostics.filter(
+          (d) => d.type !== "conflicting-pattern"
+        ),
       });
       expect(JSON.stringify(fields(fast))).toBe(JSON.stringify(fields(full)));
     }
