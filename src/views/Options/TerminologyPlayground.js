@@ -1741,7 +1741,7 @@ export default function TerminologyPlayground({
         >
           {i18n(
             "terminology_playground_terms_helper",
-            "术语键按正则语义解析；译文留空 = 不翻译（保留原文）；重复键只保留首次；术语按正则语义在原文任意位置匹配（与生产一致），建议长度长的术语写在前面。"
+            "术语键按正则语义解析；译文留空 = 不翻译（保留原文）；重复键只保留首次；术语按正则语义在原文任意位置匹配（与生产一致），建议长度长的术语写在前面。简单英文词若只需匹配独立单词，请显式添加边界（如 \\bAPI\\b）；该写法不适用于中文或 C++、.NET 等符号术语。"
           )}
         </FormHelperText>
         {computed?.fatalDiagnostics?.length > 0 && (

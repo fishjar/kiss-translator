@@ -372,11 +372,12 @@ describe("rules terms integration（规则链路：原始规则 → 合并 → T
   const { tryDetectLang } = require("./detect");
 
   const flushAsync = async () => {
-    // 译文 渲染链路较长（占位符还原 + 插入 wrapper），多轮推进 timer 与微任务
-    for (let i = 0; i < 5; i++) {
-      jest.runOnlyPendingTimers();
-      await Promise.resolve();
+    jest.runOnlyPendingTimers();
+    for (let frame = 0; frame < 2; frame++) {
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+      jest.advanceTimersByTime(16);
     }
+    for (let i = 0; i < 8; i++) await Promise.resolve();
   };
 
   const createApiSetting = (apiSlug, isDisabled = false) => ({

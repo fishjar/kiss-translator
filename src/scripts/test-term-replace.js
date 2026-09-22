@@ -8,12 +8,11 @@
 //   pnpm test:terms --verbose                 # 输出完整 detail
 //   pnpm test:terms --terms "bad[re"          # 非法正则测试
 //
-// 退出码：0（全部通过）/ 1（存在失败）
+// 退出码：0（至少一个真实断言通过且无失败）/ 1（失败或全部跳过）
 
 import {
   parseTerms,
-  applyTermReplace,
-  applyNaiveReplace,
+  buildTermsMatcher,
   FATAL_DIAGNOSTIC_TYPES,
   formatDiagnosticMessage,
 } from "../libs/terms";
@@ -29,9 +28,6 @@ import {
 //  类型 1：API(有) ↔ APIKey(有)   类型 2：UI(有) ↔ UIView(无)
 //  类型 3：GPT(无) ↔ GPTs(有)     类型 4：React(无) ↔ ReactNative(无)
 const BUILTIN_TERMS = getDiagnosticSampleTerms();
-
-// 标准替换器：有译文用译文，无译文保留原文
-const REPLACER = (term, fullMatch) => term.value || fullMatch;
 
 // ─── 参数解析 ────────────────────────────────────────────────────────────
 function parseArguments(argv) {
@@ -120,19 +116,17 @@ async function run() {
   const cases = generateTermTestText(parsed);
   console.log(`[INFO] 生成了 ${cases.length} 个测试用例\n`);
 
+  const matcher = buildTermsMatcher(parsed);
+  let totalPass = 0;
   let totalFail = 0;
-  let totalCases = 0;
+  let totalSkip = 0;
+  const totalCases = cases.length;
 
   for (let index = 0; index < cases.length; index++) {
     const testCase = cases[index];
-    totalCases++;
-
-    // 修复后 / 修复前输出
-    const fixed = applyTermReplace(testCase.text, parsed.terms, REPLACER);
-    const naive = applyNaiveReplace(testCase.text, parsed);
 
     // 结构化断言
-    const assertion = assertTermReplacements(parsed, testCase);
+    const assertion = assertTermReplacements(parsed, testCase, { matcher });
 
     const directionLabel =
       testCase.type === "conflict" && testCase.direction
@@ -148,13 +142,27 @@ async function run() {
         : `用例 ${index + 1}：单术语 — ${testCase.term?.key || "?"}`;
 
     console.log(`─── ${header} ───`);
-    console.log(`📄 自然文本: ${truncate(testCase.text)}`);
-    console.log(`✅ 修复后:   ${truncate(fixed.output)}`);
-    console.log(`❌ 修复前:   ${truncate(naive.output)}`);
-
-    if (assertion.ok) {
-      console.log(`   ${formatAssertion(true)} 断言通过`);
+    if (assertion.skipped) {
+      totalSkip++;
+      const reason = assertion.evidence[0];
+      console.log(`📄 自然文本: （未生成）`);
+      console.log(
+        `   ⚠️ [SKIP] ${reason?.message || "无法自动生成可靠匹配样例"}`
+      );
+      if (verbose && reason) {
+        console.log(`   ── detail ──`);
+        console.log(JSON.stringify(reason.detail, null, 2));
+      }
     } else {
+      console.log(`📄 自然文本: ${truncate(testCase.text)}`);
+      console.log(`✅ 修复后:   ${truncate(assertion.fixed?.output)}`);
+      console.log(`❌ 修复前:   ${truncate(assertion.naive?.output)}`);
+    }
+
+    if (!assertion.skipped && assertion.ok) {
+      totalPass++;
+      console.log(`   ${formatAssertion(true)} 断言通过`);
+    } else if (!assertion.skipped) {
       totalFail++;
       console.log(`   ${formatAssertion(false)} 断言失败`);
 
@@ -171,7 +179,7 @@ async function run() {
     }
 
     // 修复前/后对比证据（仅 verbose 模式）
-    if (verbose && assertion.evidence.length > 0) {
+    if (verbose && !assertion.skipped && assertion.evidence.length > 0) {
       for (const ev of assertion.evidence) {
         console.log(`   ℹ️ [evidence] ${ev.message}`);
         console.log(JSON.stringify(ev.detail, null, 2));
@@ -182,15 +190,23 @@ async function run() {
   }
 
   // 3. 汇总
-  const passCount = totalCases - totalFail;
+  const status =
+    totalFail > 0
+      ? "❌ 存在失败"
+      : totalPass === 0
+        ? "⚠️ 未执行有效断言"
+        : totalSkip > 0
+          ? "⚠️ 通过（存在跳过）"
+          : "✅ 全部通过";
   console.log(`═══════════════════════════════════════`);
   console.log(`总计: ${totalCases} 个用例`);
-  console.log(`通过: ${passCount}`);
+  console.log(`通过: ${totalPass}`);
   console.log(`失败: ${totalFail}`);
-  console.log(`状态: ${totalFail === 0 ? "✅ 全部通过" : "❌ 存在失败"}`);
+  console.log(`跳过: ${totalSkip}`);
+  console.log(`状态: ${status}`);
   console.log(`═══════════════════════════════════════`);
 
-  if (totalFail > 0) {
+  if (totalFail > 0 || totalPass === 0) {
     process.exitCode = 1;
   }
 }

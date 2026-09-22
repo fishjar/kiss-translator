@@ -780,6 +780,32 @@ describe("terms matcher 缓存与 naive 缓存（统一计划 20260829 Task 3）
     }
   });
 
+  test("主匹配捕获槽直接反查普通、嵌套、命名与 lookbehind 术语", () => {
+    const parsed = parseTerms(
+      "API,接口;((token)),嵌套;(?<=x)(?<letter>y),后顾"
+    );
+    const matcher = buildTermsMatcher(parsed);
+    const phaseExec = jest.spyOn(matcher.phaseRegex, "exec");
+
+    try {
+      const out = applyTermReplace(
+        "API token xy",
+        parsed.terms,
+        replacer,
+        matcher
+      );
+      expect(out.output).toBe("接口 嵌套 x后顾");
+      expect(out.spans.map((span) => span.termKey)).toEqual([
+        "API",
+        "((token))",
+        "(?<=x)(?<letter>y)",
+      ]);
+      expect(phaseExec).not.toHaveBeenCalled();
+    } finally {
+      phaseExec.mockRestore();
+    }
+  });
+
   test("matcher 物化形状：regex/phaseRegex/槽位表/flags 齐备且与 buildTermsRegex 同 source", () => {
     const parsed = parseTerms("API,接口;APIKey,应用编程接口");
     const matcher = buildTermsMatcher(parsed);

@@ -59,20 +59,35 @@ describe("test-term-replace CLI", () => {
     expect(stdout).toContain("✅ 断言通过");
   }, 60000);
 
-  test("exits 1 and emits structured failure details when assertions fail", async () => {
-    const { code, stdout } = await runCli([
-      "--terms",
-      "API\\.\\d+,版本", // 正则术语插入自然模板后不能自匹配 → 断言失败
-    ]);
+  test("exits 1 and reports an unsupported regex as skipped, not passed", async () => {
+    const { code, stdout } = await runCli(["--terms", "API\\.\\d+,版本"]);
 
     expect(code).toBe(1);
-    expect(stdout).toContain("❌ 断言失败");
-    expect(stdout).toContain("[single-term-not-found]");
-    expect(stdout).toContain("术语 API\\.\\d+ 未被命中");
-    expect(stdout).toContain("状态: ❌ 存在失败");
+    expect(stdout).toContain("⚠️ [SKIP]");
+    expect(stdout).toContain("术语 API\\.\\d+ 无法自动生成可靠匹配样例");
+    expect(stdout).not.toContain("✅ 断言通过");
+    expect(stdout).toContain("通过: 0");
+    expect(stdout).toContain("失败: 0");
+    expect(stdout).toContain("跳过: 1");
+    expect(stdout).toContain("状态: ⚠️ 未执行有效断言");
   }, 60000);
 
-  test("--verbose prints full structured detail for failing issues", async () => {
+  test("exits 0 when a real assertion passes alongside a skipped regex", async () => {
+    const { code, stdout } = await runCli([
+      "--terms",
+      "API,接口;Version\\.\\d+,版本",
+    ]);
+
+    expect(code).toBe(0);
+    expect(stdout).toContain("✅ 断言通过");
+    expect(stdout).toContain("⚠️ [SKIP]");
+    expect(stdout).toContain("通过: 1");
+    expect(stdout).toContain("失败: 0");
+    expect(stdout).toContain("跳过: 1");
+    expect(stdout).toContain("状态: ⚠️ 通过（存在跳过）");
+  }, 60000);
+
+  test("--verbose prints structured detail for skipped regexes", async () => {
     const { code, stdout } = await runCli([
       "--terms",
       "API\\.\\d+,版本",
@@ -80,12 +95,10 @@ describe("test-term-replace CLI", () => {
     ]);
 
     expect(code).toBe(1);
-    // verbose 输出 issue detail 的 JSON（含 spans/修复前后文本等完整上下文）。
+    expect(stdout).toContain("⚠️ [SKIP]");
     expect(stdout).toContain("── detail ──");
-    expect(stdout).toContain('"spans"');
-    expect(stdout).toContain('"fixedOutput"');
-    expect(stdout).toContain('"naiveOutput"');
-    expect(stdout).toContain('"text"');
+    expect(stdout).toContain('"key": "API\\\\.\\\\d+"');
+    expect(stdout).toContain('"value": "版本"');
   }, 60000);
 
   test("exits 1 and reports invalid regex terms", async () => {
@@ -131,8 +144,10 @@ describe("test-term-replace CLI", () => {
     // 不因尾巴逗号而拒绝整个输入、不报"输入存在非法段"。
     expect(stdout).not.toContain("输入存在非法段");
     expect(stdout).not.toContain("[FAIL]");
-    // 合法术语与保留规则仍生成用例并全部通过。
-    expect(stdout).toContain("✅ 全部通过");
+    // API 真实断言通过；Dr.who 是一般正则，无可靠自动样例时明确跳过。
+    expect(stdout).toContain("✅ 断言通过");
+    expect(stdout).toContain("⚠️ [SKIP]");
+    expect(stdout).toContain("状态: ⚠️ 通过（存在跳过）");
   }, 60000);
 
   test("uses the same built-in fixture as getDiagnosticSampleTerms()", async () => {

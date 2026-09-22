@@ -561,6 +561,19 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
+  test("explains explicit English word boundaries without changing symbol-term guidance", async () => {
+    const { container, root } = renderPlayground({ rule: null });
+    await flushEffects();
+
+    const helper = container.querySelector("#terminology-terms-helper");
+    expect(helper.textContent).toContain("\\bAPI\\b");
+    expect(helper.textContent).toContain("C++");
+    expect(helper.textContent).toContain(".NET");
+    expect(helper.textContent).toContain("不适用于中文");
+
+    act(() => root.unmount());
+  });
+
   test("test button runs local replacement on the example and shows a success snackbar", async () => {
     const { container, root, setText, setActiveTab } = renderPlayground({
       rule: { pattern: "*", terms: "API,接口;APIKey,应用编程接口" },

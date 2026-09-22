@@ -234,18 +234,17 @@ function countCaptureGroupsInSource(regexSrc) {
 }
 
 /**
- * 手动 exec 循环扫描替换，配合「分支槽位」预扫描把每次命中反查回所属术语。
+ * 手动 exec 循环扫描替换，通过「分支槽位」把每次命中反查回所属术语。
  *
  * 分支身份判定：
  *   组合正则 = patterns.join("|")，其中每个分支基座恰好是 term.pattern 的外层捕获组，
  *   因此在第 b 个分支上叠加 term 内部的捕获组后，分支 b 的基座槽位是一个确定数字。
- *   「分支 b 命中  ⇔  token[基座槽位] !== undefined」（alternation 同一时刻只有
+ *   「分支 b 命中  ⇔  match[基座槽位] !== undefined」（alternation 同一时刻只有
  *   一个分支参与捕获）是稳定不变量，不依赖用户捕获组的数量、命名或排列。
  *
- *   判定过程在「完整原文」上重放一次同样的组合正则扫描（独立实例，lastIndex 互不干扰），
- *   只命中到主扫描的当前 start 为止再取分支 —— 这保证了 lookbehind/lookahead 等依赖
- *   上下文的正则拿到与主扫描完全一致的语义（旧实现只对孤立的 fullMatch 反查，会因
- *   丢失前置/后置字符而失败）。
+ *   主扫描的 RegExpExecArray 已包含完整原文上的分支捕获槽，直接读取它们
+ *   不会丢失 lookbehind/lookahead 上下文。仅当主匹配的槽位异常未对齐时，
+ *   才用 phaseRegex 在完整原文上重放扫描兜底。
  *
  * 快路径：传入 buildTermsMatcher 物化的 matcher（其 termList 与本调用 termList
  * 同一引用）时，槽位表与 phaseRegex 直接复用，热路径零编译（Translator 逐文本
@@ -267,7 +266,6 @@ function scanWithTerms(text, regex, termList, replacer, matcher) {
 
   let branchBaseGroups; // 分支 → 基座捕获组编号
   let branchTermIndex; // 分支 → 术语下标
-  let mappingAligned;
   let phaseRegex;
 
   if (matcher && matcher.termList === termList && matcher.regex) {
@@ -275,7 +273,6 @@ function scanWithTerms(text, regex, termList, replacer, matcher) {
     regex = matcher.regex;
     branchBaseGroups = matcher.branchBaseGroups;
     branchTermIndex = matcher.branchTermIndex;
-    mappingAligned = matcher.mappingAligned;
     phaseRegex = matcher.phaseRegex;
   } else {
     // 慢路径：现场构建（兼容裸组合正则调用方）
@@ -297,10 +294,10 @@ function scanWithTerms(text, regex, termList, replacer, matcher) {
       nextBaseGroup += countCaptureGroupsInSource(patternSrc);
     }
 
-    // 槽位映射与 termList 严格对齐（每个术语恰好贡献一个分支）时才启用预扫描判定；
+    // 槽位映射与 termList 严格对齐（每个术语恰好贡献一个分支）时才物化回退正则；
     // 否则无法可靠反查，直接走原文保留兜底。phaseRegex 必须继承原正则全部 flags
     //（i/m/s 等），否则外部 /gi 场景下预扫描大小写不敏感语义丢失，术语被静默放弃。
-    mappingAligned = branchBaseGroups.length === termList.length;
+    const mappingAligned = branchBaseGroups.length === termList.length;
     phaseRegex = mappingAligned
       ? new RegExp(regex.source, regex.flags)
       : null;
@@ -315,8 +312,8 @@ function scanWithTerms(text, regex, termList, replacer, matcher) {
   let cursor = 0;
   let match;
 
-  // 预扫描：在完整原文上重放组合正则，直到到达主扫描命中的 start，
-  // 取该位置命中的分支基座槽位反查术语下标。
+  // 异常回退：主匹配的分支捕获槽位无法反查时，在完整原文上重放
+  // 组合正则直到当前 start。正常热路径不会调用 phaseRegex.exec。
   const resolvePhaseTermIndex = (start, fullMatch) => {
     if (!phaseRegex) return -1;
     for (;;) {
@@ -354,7 +351,16 @@ function scanWithTerms(text, regex, termList, replacer, matcher) {
       continue;
     }
 
-    const termIndex = resolvePhaseTermIndex(start, fullMatch);
+    let termIndex = -1;
+    for (let b = 0; b < branchBaseGroups.length; b++) {
+      if (match[branchBaseGroups[b]] !== undefined) {
+        termIndex = branchTermIndex[b];
+        break;
+      }
+    }
+    if (termIndex === -1) {
+      termIndex = resolvePhaseTermIndex(start, fullMatch);
+    }
 
     if (termIndex === -1) {
       // 无法映射到任何术语条目（契约破坏等）：原样写回本次命中的完整原文区间并前进，
@@ -746,14 +752,14 @@ export function buildTermsRegex(parsedTerms) {
 /**
  * 一次物化术语扫描上下文（matcher），供热路径零编译复用。
  *
- * Translator 对每个文本节点调用一次 applyTermReplace；把组合正则、phase 预扫描
+ * Translator 对每个文本节点调用一次 applyTermReplace；把组合正则、phase 回退
  * 正则、分支槽位表在规则解析时一次性物化，避免逐节点重建（每术语 1 次 new RegExp
  * 探针 + phaseRegex 编译）导致的页面级卡顿。
  *
  * 返回对象字段：
  *   - termList: 术语数组（与传入 parsed.terms 同一引用）
  *   - regex: 组合正则（g 标志）
- *   - phaseRegex: 预扫描正则（继承 regex 全部 flags；不对齐时为 null）
+ *   - phaseRegex: 异常回退正则（继承 regex 全部 flags；不对齐时为 null）
  *   - branchBaseGroups / branchTermIndex: 分支基座槽位表
  *   - mappingAligned: 槽位映射是否与 termList 严格对齐
  *   - flags: regex.flags
