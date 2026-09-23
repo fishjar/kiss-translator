@@ -28,7 +28,6 @@ import {
 import { kissLog } from "../../libs/log";
 import PopupCont from "./PopupCont";
 import TranslationPanelSurface from "../../components/TranslationPanel/Surface";
-import TranslationPanelHeader from "../../components/TranslationPanel/Header";
 import TranslationPanelContent from "../../components/TranslationPanel/Content";
 import { useSetting } from "../../hooks/Setting";
 import { useSeparateWindowBounds } from "../../hooks/SeparateWindowBounds";
@@ -163,7 +162,6 @@ export function Trantab({ isSeparate = false }) {
   useSeparateWindowBounds(isSeparate);
   const panelRef = useRef(null);
   const [text, setText] = useState("");
-  const [simpleStyle, setSimpleStyle] = useState(false);
   const i18n = useI18n();
   const { setting } = useSetting();
   const shouldReadClipboardInitially =
@@ -179,25 +177,6 @@ export function Trantab({ isSeparate = false }) {
   const readingClipboardRef = useRef(false);
   const lastClipboardTextRef = useRef("");
   const textRef = useRef(text);
-
-  const closeSeparateWindow = useCallback(async () => {
-    try {
-      const currentTab = await browser.tabs.getCurrent();
-      // The same route can also be opened in a normal browser window.
-      // Closing its own tab leaves unrelated tabs intact and closes a one-tab popup.
-      if (Number.isInteger(currentTab?.id) && currentTab.id >= 0) {
-        await browser.tabs.remove(currentTab.id);
-        return;
-      }
-    } catch (error) {
-      kissLog("close separate window", error);
-    }
-    window.close();
-  }, []);
-
-  useEffect(() => {
-    if (!text.trim()) setSimpleStyle(false);
-  }, [text]);
 
   useEffect(() => {
     textRef.current = text;
@@ -329,19 +308,7 @@ export function Trantab({ isSeparate = false }) {
 
   return (
     <div className="kt-popup-text-panel" ref={panelRef}>
-      <TranslationPanelSurface
-        embedded={!isSeparate}
-        header={
-          isSeparate ? (
-            <TranslationPanelHeader
-              onClose={closeSeparateWindow}
-              simpleStyle={simpleStyle}
-              setSimpleStyle={setSimpleStyle}
-              simpleStyleDisabled={!text.trim()}
-            />
-          ) : null
-        }
-      >
+      <TranslationPanelSurface embedded>
         <TranslationPanelContent
           text={text}
           setText={setText}
@@ -350,7 +317,7 @@ export function Trantab({ isSeparate = false }) {
           toLang={toLang}
           toLang2={toLang2}
           transApis={resolvedTransApis}
-          simpleStyle={isSeparate && simpleStyle && Boolean(text.trim())}
+          simpleStyle={false}
           langDetector={langDetector}
           enDict={enDict}
           enSug={enSug}

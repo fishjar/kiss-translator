@@ -1,5 +1,3 @@
-import { SEPARATE_WINDOW_CONTENT_WIDTH } from "../../config/app";
-
 export const POPUP_STYLES = String.raw`
 .kt-popup-shell {
   width: 396px;
@@ -12,7 +10,7 @@ export const POPUP_STYLES = String.raw`
   color: var(--kt-on);
 }
 
-/* Fill the separate window while keeping its content centered and readable.
+/* Fill the separate window with a fluid full-width layout.
    Dynamic viewport units account for the mobile browser toolbar. */
 .kt-popup-shell--window {
   width: 100%;
@@ -22,8 +20,8 @@ export const POPUP_STYLES = String.raw`
 
 .kt-popup-shell--window .kt-popup-text-panel,
 .kt-popup-shell--window .kt-popup-loading {
-  width: min(${SEPARATE_WINDOW_CONTENT_WIDTH}px, 100%);
-  margin-inline: auto;
+  width: 100%;
+  min-width: 0;
 }
 
 .kt-popup-shell.kt-popup-shell--content {
@@ -283,7 +281,7 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-scene { padding: 7px 10px; }
 .kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-site { padding: 8px 10px; }
 .kt-popup-shell:not(.kt-popup-shell--window) .kt-popup-disclosure { min-height: 34px; }
-.kt-popup-shell--window .kt-popup-text-panel { padding: 12px; animation: none; }
+.kt-popup-shell--window .kt-popup-text-panel { padding: 0; animation: none; }
 
 @media (max-width: 395px) {
   .kt-popup-content { padding-inline: 14px; }

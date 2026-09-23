@@ -41,14 +41,14 @@ describe("separate translation window default size", () => {
   });
 });
 
-describe("separate window content cap", () => {
-  test("is the single source for the CSS panel width", () => {
-    expect(POPUP_STYLES).toContain(
-      `width: min(${SEPARATE_WINDOW_CONTENT_WIDTH}px, 100%)`
+describe("separate window content width", () => {
+  test("uses full-width fluid layout inside the CSS panel", () => {
+    expect(POPUP_STYLES).toMatch(
+      /\.kt-popup-shell--window \.kt-popup-text-panel,\s*\.kt-popup-shell--window \.kt-popup-loading\s*\{[^}]*width:\s*100%;/
     );
   });
 
-  test("stays wide enough to be worth capping", () => {
+  test("keeps initial default width wide enough for comfortable reading", () => {
     expect(SEPARATE_WINDOW_CONTENT_WIDTH).toBeGreaterThanOrEqual(560);
   });
 });
