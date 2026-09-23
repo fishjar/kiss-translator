@@ -30,6 +30,9 @@ export function buildOverviewShortcutMap(setting, browserCommands = []) {
         configured.togglePopup
       )
     ),
+    separateWindow: normalizeShortcutKeys(
+      resolveCommand("openSeparateWindow", configured.openSeparateWindow)
+    ),
     style: normalizeShortcutKeys(
       resolveCommand("toggleStyle", configured.toggleStyle)
     ),

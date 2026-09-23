@@ -38,6 +38,7 @@ export default function OverviewHero() {
   const shortcuts = [
     [i18n("popup_translate_page"), shortcutMap.page],
     [i18n("open_menu"), shortcutMap.popup],
+    [i18n("open_separate_window"), shortcutMap.separateWindow],
     [i18n("text_style_alt"), shortcutMap.style],
     [i18n("selection_translate"), shortcutMap.selection],
     [i18n("input_translate"), shortcutMap.input],
@@ -81,7 +82,7 @@ export default function OverviewHero() {
       </div>
       <div className="kt-overview-shortcuts">
         <h2>{i18n("options_shortcuts")}</h2>
-        {shortcuts.map(([label, keys]) => (
+        {shortcuts.map(([label, keys = []]) => (
           <div className="kt-overview-shortcut" key={label}>
             <span>{label}</span>
             <span className="kt-overview-shortcut__keys">

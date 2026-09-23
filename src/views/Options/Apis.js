@@ -2309,7 +2309,8 @@ export default function Apis() {
               pl: "0 !important",
               pr: 0.5,
               "@container options-main (min-width: 760px)": {
-                maxHeight: "min(72vh, 720px)",
+                maxHeight: "calc(100vh - 420px)",
+                minHeight: 420,
               },
             }}
           >

@@ -36,6 +36,7 @@ jest.mock("../../hooks/Commands", () => ({
   useOverviewShortcuts: () => ({
     page: ["Ctrl", "Q"],
     popup: ["Ctrl", "K"],
+    separateWindow: ["Alt", "D"],
     style: ["Ctrl", "C"],
     selection: ["Ctrl", "S"],
     input: ["Ctrl", "I"],
@@ -58,6 +59,7 @@ describe("OverviewHero", () => {
     expect(container.textContent).toContain("translate_service");
     expect(container.textContent).toContain("from_lang");
     expect(container.textContent).toContain("to_lang");
+    expect(container.textContent).toContain("open_separate_window");
     expect(container.textContent).toContain("Ctrl");
 
     act(() => root.unmount());

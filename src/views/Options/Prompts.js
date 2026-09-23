@@ -553,8 +553,7 @@ export default function Prompts() {
             overflow: "hidden",
             "@container options-main (min-width: 760px)": {
               flexDirection: "row",
-              height: "calc(100vh - 140px)",
-              minHeight: 450,
+              alignItems: "flex-start",
             },
           }}
         >
@@ -569,7 +568,8 @@ export default function Prompts() {
               "@container options-main (min-width: 760px)": {
                 width: 280,
                 flex: "0 0 280px",
-                height: "100%",
+                height: "calc(100vh - 280px)",
+                minHeight: 420,
                 maxHeight: "none",
                 borderRight: `1px solid ${theme.palette.divider}`,
                 borderBottom: 0,
@@ -596,18 +596,16 @@ export default function Prompts() {
           <Box
             className="kt-prompt-editor__detail-panel"
             ref={detailPanelRef}
-            sx={{
+            sx={(theme) => ({
               flex: 1,
               minWidth: 0,
               p: 2,
               boxSizing: "border-box",
-              overscrollBehavior: "contain",
               "@container options-main (min-width: 760px)": {
-                height: "100%",
-                overflowY: "auto",
-                scrollbarGutter: "stable",
+                borderLeft: `1px solid ${theme.palette.divider}`,
+                marginLeft: "-1px",
               },
-            }}
+            })}
           >
             {selectedPrompt && (
               <PromptFields

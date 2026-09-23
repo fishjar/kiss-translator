@@ -148,6 +148,11 @@ describe("Prompts", () => {
       getComputedStyle(container.querySelector(".kt-prompt-editor__list-panel"))
         .maxHeight
     ).toBe("min(40vh, 360px)");
+    expect(
+      getComputedStyle(
+        container.querySelector(".kt-prompt-editor__detail-panel")
+      ).overscrollBehavior
+    ).not.toBe("contain");
     unmount();
   });
 
