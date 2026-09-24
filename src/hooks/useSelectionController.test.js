@@ -63,6 +63,9 @@ function createPanelTarget() {
 function TestController({
   onState,
   triggerMode = "click",
+  btnPositionMode = "fixed",
+  btnOffsetX = 0,
+  btnOffsetY = 0,
   tranboxInteractMode = "-",
   followSelection = false,
   boxOffsetY = 0,
@@ -74,9 +77,9 @@ function TestController({
   const tranboxSetting = {
     triggerMode,
     hideTranBtn: false,
-    btnPositionMode: "fixed",
-    btnOffsetX: 0,
-    btnOffsetY: 0,
+    btnPositionMode,
+    btnOffsetX,
+    btnOffsetY,
     tranboxInteractMode,
     toLang,
     ...(skipLangs === undefined ? {} : { skipLangs }),
@@ -124,10 +127,18 @@ function renderController(props = {}) {
   };
 }
 
-async function dispatchWindowMouseup(delay = 200) {
+async function dispatchWindowMouseup(
+  delay = 200,
+  { clientX = 0, clientY = 0 } = {}
+) {
   await act(async () => {
     window.dispatchEvent(
-      new MouseEvent("mouseup", { bubbles: true, button: 0 })
+      new MouseEvent("mouseup", {
+        bubbles: true,
+        button: 0,
+        clientX,
+        clientY,
+      })
     );
     jest.advanceTimersByTime(delay);
     await Promise.resolve();
@@ -150,9 +161,9 @@ async function dispatchPanelMouseup(target, composedPath) {
       bubbles: true,
       composed: true,
       button: 0,
+      clientX: 120,
+      clientY: 160,
     });
-    Object.defineProperty(event, "pageX", { value: 120 });
-    Object.defineProperty(event, "pageY", { value: 160 });
     Object.defineProperty(event, "composedPath", {
       value: () => composedPath,
     });
@@ -167,7 +178,10 @@ describe("useSelectionController", () => {
   let currentSelection;
   let windowGetSelectionSpy;
   let documentGetSelectionSpy;
+  const originalInnerWidth = window.innerWidth;
   const originalInnerHeight = window.innerHeight;
+  const originalScrollX = window.scrollX;
+  const originalScrollY = window.scrollY;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -184,10 +198,23 @@ describe("useSelectionController", () => {
   });
 
   afterEach(() => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: originalInnerWidth,
+    });
     Object.defineProperty(window, "innerHeight", {
       configurable: true,
       writable: true,
       value: originalInnerHeight,
+    });
+    Object.defineProperty(window, "scrollX", {
+      configurable: true,
+      value: originalScrollX,
+    });
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      value: originalScrollY,
     });
     windowGetSelectionSpy.mockRestore();
     documentGetSelectionSpy.mockRestore();
@@ -418,6 +445,160 @@ describe("useSelectionController", () => {
     });
   });
 
+  test("keeps the fixed trigger button inside the viewport", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 320,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 240,
+    });
+    Object.defineProperty(window, "scrollX", {
+      configurable: true,
+      value: 600,
+    });
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      value: 900,
+    });
+    const btnOffsetX = "12";
+    const btnOffsetY = "8";
+    const controller = renderController({ btnOffsetX, btnOffsetY });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 300,
+      right: 318,
+      top: 220,
+      bottom: 238,
+      width: 18,
+      height: 18,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.position).toEqual({ x: 280, y: 200 });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("clamps negative fixed offsets at the viewport origin", async () => {
+    const controller = renderController({
+      btnOffsetX: "-200",
+      btnOffsetY: "-200",
+    });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 2,
+      right: 10,
+      top: 2,
+      bottom: 12,
+      width: 8,
+      height: 10,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.position).toEqual({ x: 0, y: 0 });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("clamps pointer mode using viewport coordinates", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 320,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 240,
+    });
+    const controller = renderController({
+      btnPositionMode: "mouse",
+      btnOffsetX: "200",
+      btnOffsetY: "200",
+    });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph);
+    await dispatchWindowMouseup(200, { clientX: 318, clientY: 238 });
+
+    expect(controller.state.position).toEqual({ x: 280, y: 200 });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("reclamps a visible trigger button after viewport resize", async () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 320,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 240,
+    });
+    const controller = renderController();
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 260,
+      right: 280,
+      top: 180,
+      bottom: 200,
+      width: 20,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+    expect(controller.state.position).toEqual({ x: 280, y: 200 });
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 200,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 150,
+    });
+    act(() => window.dispatchEvent(new Event("resize")));
+
+    expect(controller.state.position).toEqual({ x: 160, y: 110 });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("hides a visible trigger button when the page scrolls", async () => {
+    const controller = renderController();
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph);
+    await dispatchWindowMouseup();
+    expect(controller.state.showBtn).toBe(true);
+
+    act(() => window.dispatchEvent(new Event("scroll")));
+
+    expect(controller.state.showBtn).toBe(false);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
   test("updates text immediately for page and panel selections in select mode", async () => {
     const controller = renderController({ triggerMode: "select" });
     const pageParagraph = createParagraph("The library is open.");
@@ -516,7 +697,9 @@ describe("useSelectionController", () => {
 
     expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
       x: 20,
-      y: 158,
+      // Selection top 420 - outer height (200 + TRANBOX_CHROME_HEIGHT 74) - boxOffsetY 10.
+      // Update this expectation when the constant in tranboxPosition.js changes.
+      y: 136,
     });
 
     act(() => {

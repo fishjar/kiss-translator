@@ -17,9 +17,15 @@ import {
   URL_CACHE_SUBTITLE,
   URL_CACHE_CONTEXT,
   OPT_LANGS_TO_CODE,
+  OPT_LANGDETECTOR_MAP,
+  OPT_TRANS_GOOGLE,
+  OPT_TRANS_BAIDU,
+  OPT_TRANS_TENCENT,
   defaultNobatchUserPrompt,
   defaultDictUserPrompt,
 } from "../config";
+import { getSetting } from "../libs/storage";
+import { kissLog } from "../libs/log";
 import { sha256, withTimeout } from "../libs/utils";
 import {
   isSameTranslationLanguage,
@@ -101,6 +107,12 @@ function getPromptCacheFields(apiSetting = {}, promptScope, glossary = {}) {
 
   if (promptScope === PROMPT_CACHE_SCOPE_BATCH) {
     fields = [apiSetting.systemPrompt || ""];
+    if (apiSetting.batchUserPrompt) {
+      fields.push(apiSetting.batchUserPrompt);
+    }
+    if (apiSetting.batchProtocol) {
+      fields.push(apiSetting.batchProtocol);
+    }
   } else if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
     fields = [
       apiSetting.nobatchPrompt || "",
@@ -569,6 +581,42 @@ export const apiBuiltinAIDetect = async (text) => {
   return "";
 };
 
+// 远程语言检测服务映射 (与 libs/detect.js 的 langdetectFns 保持一致，
+// 供 BuiltinAI 的自动检测回退使用；此处单独维护以避免与 detect.js 循环依赖)
+const LANGDETECT_FNS = {
+  [OPT_TRANS_GOOGLE]: apiGoogleLangdetect,
+  [OPT_TRANS_BAIDU]: apiBaiduLangdetect,
+  [OPT_TRANS_TENCENT]: apiTencentLangdetect,
+};
+
+/**
+ * BuiltinAI 自动检测源语言失败后的回退解析。
+ * 浏览器内置 LanguageDetector 不可用时，改用用户配置的远程语言检测服务
+ * 解析出具体源语言；全部失败时返回空串并保留原始错误。
+ * @param {string} text 待检测文本
+ * @returns {Promise<string>} 解析出的语言代码，失败返回 ""
+ */
+const resolveBuiltinAISourceLang = async (text) => {
+  try {
+    const setting = (await getSetting()) || {};
+    const { langDetector } = setting;
+    if (OPT_LANGDETECTOR_MAP.has(langDetector)) {
+      const detectFn = LANGDETECT_FNS[langDetector];
+      // BuiltinAI 检测器刚刚失败过，不再重复尝试
+      if (detectFn) {
+        const lang = await detectFn(text);
+        if (lang) {
+          const mappedLang = OPT_LANGS_TO_CODE[langDetector].get(lang) || lang;
+          return normalizeLanguageCode(mappedLang);
+        }
+      }
+    }
+  } catch (err) {
+    kissLog("detect lang fallback", err);
+  }
+  return "";
+};
+
 /**
  * 浏览器内置 Gemini Nano AI 翻译 API。
  * 整合了超时管理与内置并发频率池（FetchPool），保证前台调用不易发生死锁。
@@ -600,6 +648,36 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
 
   const [trText, srLang, error] = result;
   if (error) {
+    // 浏览器内置检测失败时，使用用户配置的检测服务解析具体源语言并重试一次。
+    if (
+      from === "auto" &&
+      String(error).includes("Automatic detection of source language failed")
+    ) {
+      const deLang = await resolveBuiltinAISourceLang(text);
+      if (deLang) {
+        const mappedFrom =
+          OPT_LANGS_FROM_SPEC[OPT_TRANS_BUILTINAI].get(deLang) || deLang;
+        const retry = await withTimeout(
+          fetchPool.push(fnPolyfill, {
+            fn: chromeTranslate,
+            msg: MSG_BUILTINAI_TRANSLATE,
+            text,
+            from: mappedFrom,
+            to,
+          }),
+          normalizeHttpTimeout(httpTimeout)
+        );
+        if (!retry) {
+          throw new Error("apiBuiltinAITranslate retry got null result");
+        }
+
+        const [trTextRetry, srLangRetry, errorRetry] = retry;
+        if (errorRetry) {
+          throw new Error(`apiBuiltinAITranslate got error: ${errorRetry}`);
+        }
+        return [trTextRetry, srLangRetry];
+      }
+    }
     throw new Error(`apiBuiltinAITranslate got error: ${error}`);
   }
 
@@ -637,6 +715,7 @@ export const apiTranslate = async ({
   translateVariants = true,
   textFormat = "text",
   signal,
+  capture,
 }) => {
   if (!text) {
     throw new Error("The text cannot be empty.");
@@ -750,6 +829,7 @@ export const apiTranslate = async ({
       onStreamChunk,
       docInfo,
       signal,
+      capture,
     });
   } else {
     // 2.3 不支持批量翻译、需要单个请求执行的 API (如某些流式大模型 API)
@@ -766,6 +846,7 @@ export const apiTranslate = async ({
       docInfo,
       onStreamChunk,
       signal,
+      capture,
     });
 
     for await (const item of generator) {
@@ -810,7 +891,7 @@ export const apiTranslate = async ({
   }
 
   if (!trText) {
-    throw new Error("tanslate api got empty trtext");
+    throw new Error("translate api got empty trtext");
   }
 
   // 判断是否发生了“源语言与目标语言相同”的无效翻译情况 (如英文网页翻译为英文)

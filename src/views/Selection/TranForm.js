@@ -7,6 +7,7 @@ import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import DoneIcon from "@mui/icons-material/Done";
+import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 import CircularProgress from "@mui/material/CircularProgress";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import { useI18n } from "../../hooks/I18n";
@@ -19,10 +20,20 @@ import {
   OPT_LANGS_MAP,
   OPT_DICT_MAP,
   OPT_SUG_MAP,
+  API_SPE_TYPES,
+  PROMPT_CATEGORY_DICTIONARY,
   PROMPT_MODE_FOLLOW_API,
   findPromptBySlug,
 } from "../../config";
-import { useState, useMemo, useEffect, useRef } from "react";
+import {
+  useId,
+  useState,
+  useMemo,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+} from "react";
 import TranCont from "./TranCont";
 import DictCont from "./DictCont";
 import AiDictCont from "./AiDictCont";
@@ -33,10 +44,68 @@ import { isValidWord, isSingleChineseChar } from "../../libs/utils";
 import { kissLog } from "../../libs/log";
 import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
+import { createMenuKeyDownHandler } from "../../libs/menuFocus";
+import { isShadowHostMoving } from "../../libs/shadowHost";
+
+export const formatLanguageOptionName = (name) => {
+  const parts = String(name || "")
+    .split(" - ")
+    .map((part) => part.trim());
+
+  if (parts.length === 2 && parts[0].toLowerCase() === parts[1].toLowerCase()) {
+    return parts[0];
+  }
+
+  return parts.join(" - ");
+};
+
+// Treat whitespace-only prompts as unconfigured.
+const hasPrompt = (value) => typeof value === "string" && Boolean(value.trim());
+
+const resolveActiveApiSlugs = (apiSlugs, optApis) => {
+  if (apiSlugs === undefined || apiSlugs === null) {
+    return optApis.slice(0, 1).map((api) => api.key);
+  }
+
+  const validSlugs = new Set(optApis.map((api) => api.key));
+  return apiSlugs.filter((slug) => validSlugs.has(slug));
+};
 
 /**
- * 翻译交互核心表单组件 (集成源/目标语言选择、多引擎翻译、词典展示、汉典展示、语言检测与文本输入)
+ * Translation form with language and service choices, dictionaries, detection, and text input.
  */
+
+// ─── 接口多选本地持久化（可选）───────────────────────────────────────────────
+// 仅当宿主显式传入 apiSlugsStorageKey 时启用（Playground 等），普通 Selection/TranForm
+// 不传 key 时行为完全不变。读取/写入全程异常降级：localStorage 不可用、脏 JSON、
+// 非数组、非字符串元素都视为"无可恢复值"，回落既有默认逻辑。
+// 有效存储的 [] 表示用户显式未选择接口（合法状态）；过滤后没有任何有效 slug 且非
+// 显式空选择则视为无可恢复值，走默认逻辑。
+function readStoredApiChoice(storageKey) {
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (raw === null) return { status: "none" };
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return { status: "none" };
+    if (parsed.some((slug) => typeof slug !== "string")) {
+      return { status: "none" };
+    }
+    // 去重：重复 slug 视为同一选择。
+    const slugs = [...new Set(parsed)];
+    return { status: "restored", slugs, isEmpty: slugs.length === 0 };
+  } catch {
+    return { status: "none" };
+  }
+}
+
+function writeStoredApiChoice(storageKey, slugs) {
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(slugs));
+  } catch {
+    // localStorage 不可用：静默降级，仅丢失跨刷新留存，不影响页面使用。
+  }
+}
+
 export default function TranForm({
   text,
   setText,
@@ -49,6 +118,7 @@ export default function TranForm({
   simpleStyle = false,
   langDetector: initLangDetector = "-",
   translateVariants = true,
+  parseLatex = false,
   enDict: initEnDict = "-",
   enSug: initEnSug = "-",
   aiDictApiSlug = "-",
@@ -58,13 +128,23 @@ export default function TranForm({
   isPlaygound = false,
   autoFocusInput = true,
   syncExternalTextWhileEditing = false,
+  apiSlugsStorageKey = undefined,
+  playgroundConfigHeader = null,
+  initialSettingsReady = true,
 }) {
   const i18n = useI18n();
+  const dictionaryTabsId = useId();
+  const defaultDictionaryTabId = `${dictionaryTabsId}-default-tab`;
+  const defaultDictionaryPanelId = `${dictionaryTabsId}-default-panel`;
+  const aiDictionaryTabId = `${dictionaryTabsId}-ai-tab`;
+  const aiDictionaryPanelId = `${dictionaryTabsId}-ai-panel`;
 
-  // 当前是否处于文本框获取焦点的编辑提交模式
+  // Keep the draft while focus moves between source and result controls.
   const [editMode, setEditMode] = useState(false);
-  // 输入框中临时编辑的文本，在失焦或点击提交时同步至外层全局 text 状态
+  // Keep draft input until blur or submission updates the outer text state.
   const [editText, setEditText] = useState(text);
+  const editTextRef = useRef(editText);
+  const [requestRevision, setRequestRevision] = useState(0);
   const [apiSlugs, setApiSlugs] = useState(initApiSlugs);
   const [hasUserChangedApiSlugs, setHasUserChangedApiSlugs] = useState(false);
   const [fromLang, setFromLang] = useState(initFromLang);
@@ -73,17 +153,89 @@ export default function TranForm({
   const [langDetector, setLangDetector] = useState(initLangDetector);
   const [enDict, setEnDict] = useState(initEnDict);
   const [enSug, setEnSug] = useState(initEnSug);
+  const initialSettingsAppliedRef = useRef(initialSettingsReady);
   const [dictTab, setDictTab] = useState("default");
   const hasUserChangedDictTabRef = useRef(false);
-  // 异步自动检测到的源文本语言代码 (例如 "en", "zh")
-  const [deLang, setDeLang] = useState("");
-  const [deLoading, setDeLoading] = useState(false);
+  // Bind detection results to their input and detector to ignore stale requests.
+  const [detection, setDetection] = useState({
+    key: "",
+    lang: "",
+    loading: false,
+  });
   const inputRef = useRef(null);
+  // 待恢复的本地持久化接口选择（对应当前 storageKey 渲染期只读一次）。
+  // 哨兵语义：undefined = 未初始化（渲染期读取一次的唯一时机）；null = 已处理。
+  // 处理终态置 null 而非 undefined，避免渲染期读取条件被终态重新武装——否则
+  // 每个处理周期确定性重读 localStorage，且后续 effect 会携带陈旧快照再次执行
+  // 恢复分支，回退用户在窗口期内做出的选择。
+  const pendingApiSlugsRestoreRef = useRef(undefined);
+  if (apiSlugsStorageKey && pendingApiSlugsRestoreRef.current === undefined) {
+    pendingApiSlugsRestoreRef.current = readStoredApiChoice(apiSlugsStorageKey);
+  }
+  const formRef = useRef(null);
+  const focusedTextControlRef = useRef(null);
+  const previousSimpleStyleRef = useRef(simpleStyle);
+  const [isShadowMenu, setIsShadowMenu] = useState(false);
+  const setInputRef = useCallback((input) => {
+    inputRef.current = input;
+    setIsShadowMenu(Boolean(input?.getRootNode()?.host));
+  }, []);
+  const selectMenuProps = useMemo(
+    () => ({
+      container: () => inputRef.current?.closest(".kt-m3-root"),
+      disableScrollLock: true,
+      // MUI's trap sees the shadow host as active and otherwise steals focus
+      // from the selected option. Its normal focus restoration still applies.
+      disableAutoFocus: isShadowMenu,
+      disableEnforceFocus: isShadowMenu,
+      MenuListProps: {
+        onKeyDownCapture: createMenuKeyDownHandler({
+          shadowOnly: true,
+          disableListWrap: true,
+        }),
+      },
+      sx: { zIndex: 2147483647 },
+    }),
+    [isShadowMenu]
+  );
 
-  // 允许自动聚焦时，将输入框聚焦并把光标定位在文本尾部。
-  // autoFocusInput 可在异步初始化完成后由 false 切换为 true。
+  const detectionKey = useMemo(
+    () => `${langDetector}\u0000${text}`,
+    [langDetector, text]
+  );
+  const hasCurrentDetection = detection.key === detectionKey;
+  const deLang = hasCurrentDetection ? detection.lang : "";
+  const deLoading =
+    Boolean(text.trim()) && (!hasCurrentDetection || detection.loading);
+
+  // The locked Playground can show local defaults before startup sync finishes.
+  // Adopt the complete initial settings before the unlocked form paints.
+  // Subsequent settings changes must preserve the user's choices.
+  useLayoutEffect(() => {
+    if (!initialSettingsReady || initialSettingsAppliedRef.current) return;
+    initialSettingsAppliedRef.current = true;
+    setFromLang(initFromLang);
+    setToLang(initToLang);
+    setToLang2(initToLang2);
+    setLangDetector(initLangDetector);
+    setEnDict(initEnDict);
+    setEnSug(initEnSug);
+  }, [
+    initialSettingsReady,
+    initFromLang,
+    initToLang,
+    initToLang2,
+    initLangDetector,
+    initEnDict,
+    initEnSug,
+  ]);
+
+  // Focus the input at the end of its text when autofocus is enabled.
+  // autoFocusInput may become true after asynchronous initialization.
   useEffect(() => {
-    if (!autoFocusInput) return;
+    const expanded = previousSimpleStyleRef.current && !simpleStyle;
+    previousSimpleStyleRef.current = simpleStyle;
+    if (simpleStyle || (!autoFocusInput && !expanded)) return;
 
     const input = inputRef.current;
     if (!input) return;
@@ -92,9 +244,9 @@ export default function TranForm({
 
     const len = input.value.length;
     input.setSelectionRange(len, len);
-  }, [autoFocusInput]);
+  }, [autoFocusInput, simpleStyle]);
 
-  // 监听划词/输入文本，如果是合法的英文单词，则分发自定义事件，便于其他监听器(如生词本系统)感知新单词
+  // Notify listeners, such as the vocabulary list, when selected or entered text is a valid English word.
   useEffect(() => {
     if (isValidWord(text)) {
       const event = new CustomEvent("kiss-add-word", {
@@ -104,53 +256,73 @@ export default function TranForm({
     }
   }, [text]);
 
-  // 同步外层传入的 API 启用列表状态
+  // Synchronize the selected APIs from the outer state.
   useEffect(() => {
     if (!hasUserChangedApiSlugs) {
       setApiSlugs(initApiSlugs);
     }
   }, [initApiSlugs, hasUserChangedApiSlugs]);
 
-  // 默认仅在非编辑态同步外部文本；主动文本翻译面板可选择让剪贴板更新覆盖临时编辑值。
-  useEffect(() => {
+  useLayoutEffect(() => {
+    editTextRef.current = editText;
+  }, [editText]);
+
+  // Commit external replacements before removed-control observers can submit a
+  // draft from the same render. Hosts opt in for clipboard and selection updates.
+  useLayoutEffect(() => {
     if (syncExternalTextWhileEditing || !editMode) {
+      editTextRef.current = text;
       setEditText(text);
     }
   }, [text, editMode, syncExternalTextWhileEditing]);
 
-  // 文本改变或配置切换时，发起异步语种检测
+  // Detect the language asynchronously when text or settings change.
   useEffect(() => {
+    let active = true;
     if (!text.trim()) {
-      setDeLang("");
-      return;
+      setDetection({ key: detectionKey, lang: "", loading: false });
+      return () => {
+        active = false;
+      };
     }
 
-    (async () => {
+    setDetection({ key: detectionKey, lang: "", loading: true });
+    void (async () => {
       try {
-        setDeLoading(true);
-        const deLang = await tryDetectLang(text, langDetector);
-        if (deLang) {
-          setDeLang(deLang);
+        const detectedLang = await tryDetectLang(text, langDetector);
+        if (active) {
+          setDetection({
+            key: detectionKey,
+            lang: detectedLang || "",
+            loading: false,
+          });
         }
       } catch (err) {
-        kissLog("tranbox: detect lang", err);
-      } finally {
-        setDeLoading(false);
+        if (active) {
+          kissLog("tranbox: detect lang", err);
+          setDetection({ key: detectionKey, lang: "", loading: false });
+        }
       }
     })();
-  }, [text, langDetector, setDeLang, setDeLoading]);
 
-  // 从剪贴板粘贴文本到翻译框
+    return () => {
+      active = false;
+    };
+  }, [text, langDetector, detectionKey]);
+
+  // Paste clipboard text into the translation input.
   const handlePaste = async () => {
     try {
-      const text = await navigator.clipboard.readText();
-      setText(text.trim());
+      const pastedText = (await navigator.clipboard.readText()).trim();
+      // Pasting replaces the draft even while focus stays in the text controls.
+      setEditText(pastedText);
+      setText(pastedText);
     } catch (err) {
       //
     }
   };
 
-  // 智能决策最终翻译的目标语言（实现源语种与主目标语种相同时，自动降级切换翻译到第二备用目标语种的逻辑）
+  // Use the secondary target when the detected source matches the primary target.
   const realToLang = useMemo(() => {
     if (
       fromLang === "auto" &&
@@ -164,7 +336,7 @@ export default function TranForm({
     return toLang;
   }, [fromLang, toLang, toLang2, deLang, translateVariants]);
 
-  // 过滤出未被禁用的翻译服务商
+  // Keep only enabled translation providers.
   const optApis = useMemo(
     () =>
       transApis
@@ -180,12 +352,42 @@ export default function TranForm({
   const xs = useMemo(() => (isPlaygound ? 6 : 4), [isPlaygound]);
   const md = useMemo(() => (isPlaygound ? 3 : 4), [isPlaygound]);
 
-  const activeApiSlugs = useMemo(() => {
-    const validSlugs = new Set(optApis.map((api) => api.key));
-    return apiSlugs.filter((slug) => validSlugs.has(slug));
-  }, [apiSlugs, optApis]);
+  const activeApiSlugs = useMemo(
+    () => resolveActiveApiSlugs(apiSlugs, optApis),
+    [apiSlugs, optApis]
+  );
 
-  // 默认词典覆盖英文单词和单个汉字：英文走 Bing/有道，单字走汉典。
+  // 本地持久化接口选择恢复（apiSlugsStorageKey 可选）。
+  // 在 initApiSlugs 同步 effect 之后声明，保证恢复值胜出且标记为用户选择（不再被外部 prop 覆盖）。
+  // 异步 transApis 尚未就绪（optApis 为空）时保持 pending，待其到达后重新过滤恢复。
+  useEffect(() => {
+    const pending = pendingApiSlugsRestoreRef.current;
+    if (!pending) return; // 无 key / 非 Playground 宿主：保持既有行为
+    if (pending.status === "none") {
+      pendingApiSlugsRestoreRef.current = null; // 无可恢复值：回落默认逻辑
+      return;
+    }
+    if (optApis.length === 0) return; // 等异步 transApis 到达后再过滤
+    pendingApiSlugsRestoreRef.current = null;
+
+    const validSlugs = new Set(optApis.map((api) => api.key));
+    const filtered = pending.slugs.filter((slug) => validSlugs.has(slug));
+
+    if (pending.isEmpty) {
+      // 有效存储 [] = 用户显式未选择接口：保持空选择，不被默认值覆盖
+      setHasUserChangedApiSlugs(true);
+      setApiSlugs([]);
+    } else if (filtered.length > 0) {
+      // 恢复仍在启用的有效接口
+      setHasUserChangedApiSlugs(true);
+      setApiSlugs(filtered);
+    }
+    // 过滤后无有效 slug 且非显式空选择 → 无可恢复值，走既有默认逻辑
+    // (optional chaining safe; deps: optApis only)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [optApis]);
+
+  // Use Bing/Youdao for English words and Zdic for single Chinese characters.
   const defaultDictAvailable =
     (isWord && OPT_DICT_MAP.has(enDict)) || isSingleChineseChar(text);
   const aiDictApiSetting = useMemo(() => {
@@ -193,19 +395,31 @@ export default function TranForm({
       return null;
     }
 
-    const apiSetting = transApis.find((api) => api.apiSlug === aiDictApiSlug);
+    // Stored slugs can outlive changes to API availability, API type, or prompt category.
+    // Recheck eligibility to avoid sending dictionary prompts to a non-AI endpoint.
+    const apiSetting = transApis.find(
+      (api) =>
+        api.apiSlug === aiDictApiSlug &&
+        !api.isDisabled &&
+        API_SPE_TYPES.ai.has(api.apiType)
+    );
     if (!apiSetting) {
       return null;
     }
 
-    // 跟随接口时必须确保 API 配置已经解析出了 dictPrompt，否则 AI 词典不可用。
+    // Following the API requires a resolved, nonblank dictPrompt.
+    // Empty prompts would create a billed request without useful instructions.
     if (aiDictPromptSlug === PROMPT_MODE_FOLLOW_API) {
-      return apiSetting.dictPrompt ? apiSetting : null;
+      return hasPrompt(apiSetting.dictPrompt) ? apiSetting : null;
     }
 
-    // 指定全局词典提示词时，用该提示词覆盖接口内置词典提示词。
+    // Override the API's dictionary prompt with the selected global prompt.
     const prompt = findPromptBySlug(prompts, aiDictPromptSlug);
-    if (!prompt) {
+    if (
+      !prompt ||
+      prompt.category !== PROMPT_CATEGORY_DICTIONARY ||
+      !hasPrompt(prompt.systemPrompt)
+    ) {
       return null;
     }
 
@@ -223,7 +437,7 @@ export default function TranForm({
       return;
     }
 
-    // 默认词典可用时优先展示更快、更稳定的本地/在线词典；否则自动切到 AI 词典。
+    // Prefer the faster default dictionary when available, otherwise select the AI dictionary.
     if (defaultDictAvailable) {
       setDictTab("default");
       return;
@@ -234,21 +448,144 @@ export default function TranForm({
     }
   }, [text, defaultDictAvailable, aiDictAvailable]);
 
+  const commitEditText = useCallback(() => {
+    setEditMode(false);
+    setText(editTextRef.current.trim());
+  }, [setText]);
+
+  useLayoutEffect(() => {
+    if (!editMode) return;
+    const form = formRef.current;
+    const commitRemovedControl = () => {
+      const control = focusedTextControlRef.current;
+      if (control && !form.contains(control)) {
+        focusedTextControlRef.current = null;
+        commitEditText();
+      }
+    };
+    // Removing a focused action does not emit blur. Results can remove their
+    // actions after streaming ends without rerendering this form.
+    commitRemovedControl();
+    const observer = new MutationObserver(commitRemovedControl);
+    observer.observe(form, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [editMode, commitEditText]);
+
+  const submitTranslation = () => {
+    // Keyboard submissions keep editing active while the input retains focus.
+    setText(editText.trim());
+    // Explicit submissions retry unchanged text; ordinary blur commits do not.
+    setRequestRevision((revision) => revision + 1);
+  };
+
+  const submitAndBlur = (event) => {
+    event.stopPropagation();
+    const input = inputRef.current;
+    // A focused input commits through blur, including inside a shadow root.
+    // Otherwise commit directly so pointer submissions update the text once.
+    if (input && input.getRootNode().activeElement === input) {
+      input.blur();
+    } else {
+      commitEditText();
+    }
+    setRequestRevision((revision) => revision + 1);
+  };
+
+  const preserveSourceFocus = useCallback((event) => {
+    const input = inputRef.current;
+    // Result actions use the current translation without submitting a draft.
+    // Preserve pointer focus without preventing keyboard navigation.
+    if (
+      event.button === 0 &&
+      event.target.closest("button") &&
+      input?.ownerDocument.hasFocus() &&
+      input?.getRootNode().activeElement === input
+    ) {
+      event.preventDefault();
+    }
+  }, []);
+
+  const translationResults = activeApiSlugs.map((slug) => (
+    <TranCont
+      key={slug}
+      text={translationText}
+      fromLang={fromLang}
+      toLang={realToLang}
+      simpleStyle={simpleStyle}
+      apiSlug={slug}
+      transApis={transApis}
+      isPlayground={isPlaygound}
+      translateVariants={translateVariants}
+      parseLatex={parseLatex}
+      detectedLang={deLang}
+      sourceDetectionPending={fromLang === "auto" && deLoading}
+      requestRevision={requestRevision}
+      onActionPointerDown={preserveSourceFocus}
+    />
+  ));
   return (
-    <Stack spacing={simpleStyle ? 1 : 2}>
-      {/* 极简模式下不展示任何语言、服务商配置栏以及原始文本框 */}
+    <Stack
+      ref={formRef}
+      className={isPlaygound ? "kt-playground-translator" : undefined}
+      spacing={simpleStyle ? 1 : 2}
+      useFlexGap={isPlaygound}
+      onFocusCapture={(event) => {
+        const control = event.target.closest?.(
+          ".kt-translation-source, .kt-translation-result"
+        );
+        focusedTextControlRef.current =
+          control && event.currentTarget.contains(control)
+            ? event.target
+            : null;
+      }}
+      onBlur={(event) => {
+        if (!editMode || isShadowHostMoving(event.target)) return;
+        const textControls = ".kt-translation-source, .kt-translation-result";
+        const current = event.target.closest?.(textControls);
+        const next = event.relatedTarget?.closest?.(textControls);
+        // Tab can reach the old result's copy/speech controls before submitting.
+        // Leaving this form's text controls still commits through normal blur.
+        if (
+          current &&
+          event.currentTarget.contains(current) &&
+          (!next || !event.currentTarget.contains(next))
+        ) {
+          commitEditText();
+        }
+      }}
+    >
+      {/* Hide language, provider, and source input controls in simple mode. */}
       {!simpleStyle && (
         <>
-          <Box>
-            {/* 各类服务参数、语种设置下拉菜单网格 */}
-            <Grid container spacing={2} columns={12}>
-              {/* 多选框：允许同时勾选多个翻译引擎进行结果对比 */}
-              <Grid item xs={xs} md={md}>
+          <Box className={isPlaygound ? "kt-playground-config" : undefined}>
+            {isPlaygound && playgroundConfigHeader}
+            {/* Service and language settings grid. */}
+            <Grid
+              className={
+                isPlaygound
+                  ? "kt-playground-config__grid"
+                  : "kt-translation-config"
+              }
+              container
+              spacing={2}
+              columns={12}
+            >
+              {/* Select multiple translation engines to compare their results. */}
+              <Grid
+                className={
+                  isPlaygound
+                    ? "kt-playground-config__service"
+                    : "kt-translation-config__service"
+                }
+                item
+                xs={xs}
+                md={md}
+              >
                 <TextField
                   select
                   SelectProps={{
                     multiple: true,
-                    MenuProps: { disablePortal: !isPlaygound },
+                    MenuProps: selectMenuProps,
                   }}
                   fullWidth
                   size="small"
@@ -258,6 +595,10 @@ export default function TranForm({
                   onChange={(e) => {
                     setHasUserChangedApiSlugs(true);
                     setApiSlugs(e.target.value);
+                    // 仅在宿主显式提供 storageKey 时写回（空数组 = 用户显式清空）。
+                    if (apiSlugsStorageKey) {
+                      writeStoredApiChoice(apiSlugsStorageKey, e.target.value);
+                    }
                   }}
                 >
                   {optApis.map(({ key, name }) => (
@@ -267,11 +608,18 @@ export default function TranForm({
                   ))}
                 </TextField>
               </Grid>
-              {/* 源语言 */}
-              <Grid item xs={xs} md={md}>
+              {/* Source language. */}
+              <Grid
+                className={
+                  isPlaygound ? undefined : "kt-translation-config__language"
+                }
+                item
+                xs={xs}
+                md={md}
+              >
                 <TextField
                   select
-                  SelectProps={{ MenuProps: { disablePortal: !isPlaygound } }}
+                  SelectProps={{ MenuProps: selectMenuProps }}
                   fullWidth
                   size="small"
                   name="fromLang"
@@ -283,16 +631,23 @@ export default function TranForm({
                 >
                   {OPT_LANGS_FROM.map(([lang, name]) => (
                     <MenuItem key={lang} value={lang}>
-                      {name}
+                      {formatLanguageOptionName(name)}
                     </MenuItem>
                   ))}
                 </TextField>
               </Grid>
-              {/* 目标语言 */}
-              <Grid item xs={xs} md={md}>
+              {/* Target language. */}
+              <Grid
+                className={
+                  isPlaygound ? undefined : "kt-translation-config__language"
+                }
+                item
+                xs={xs}
+                md={md}
+              >
                 <TextField
                   select
-                  SelectProps={{ MenuProps: { disablePortal: !isPlaygound } }}
+                  SelectProps={{ MenuProps: selectMenuProps }}
                   fullWidth
                   size="small"
                   name="toLang"
@@ -304,22 +659,20 @@ export default function TranForm({
                 >
                   {OPT_LANGS_TO.map(([lang, name]) => (
                     <MenuItem key={lang} value={lang}>
-                      {name}
+                      {formatLanguageOptionName(name)}
                     </MenuItem>
                   ))}
                 </TextField>
               </Grid>
 
-              {/* 如果是 Playground 设置测试环境，展示更丰富的参数调节滑块 */}
+              {/* Show additional configuration controls in the Playground. */}
               {isPlaygound && (
                 <>
-                  {/* 第二备用目标语言 */}
+                  {/* Secondary target language. */}
                   <Grid item xs={xs} md={md}>
                     <TextField
                       select
-                      SelectProps={{
-                        MenuProps: { disablePortal: !isPlaygound },
-                      }}
+                      SelectProps={{ MenuProps: selectMenuProps }}
                       fullWidth
                       size="small"
                       name="toLang2"
@@ -331,18 +684,16 @@ export default function TranForm({
                     >
                       {OPT_LANGS_TO.map(([lang, name]) => (
                         <MenuItem key={lang} value={lang}>
-                          {name}
+                          {formatLanguageOptionName(name)}
                         </MenuItem>
                       ))}
                     </TextField>
                   </Grid>
-                  {/* 查词所用英语词典 */}
+                  {/* English dictionary service. */}
                   <Grid item xs={xs} md={md}>
                     <TextField
                       select
-                      SelectProps={{
-                        MenuProps: { disablePortal: !isPlaygound },
-                      }}
+                      SelectProps={{ MenuProps: selectMenuProps }}
                       fullWidth
                       size="small"
                       name="enDict"
@@ -360,13 +711,11 @@ export default function TranForm({
                       ))}
                     </TextField>
                   </Grid>
-                  {/* 输入建议联想服务 */}
+                  {/* Input suggestion service. */}
                   <Grid item xs={xs} md={md}>
                     <TextField
                       select
-                      SelectProps={{
-                        MenuProps: { disablePortal: !isPlaygound },
-                      }}
+                      SelectProps={{ MenuProps: selectMenuProps }}
                       fullWidth
                       size="small"
                       name="enSug"
@@ -384,13 +733,11 @@ export default function TranForm({
                       ))}
                     </TextField>
                   </Grid>
-                  {/* 语种检测引擎选择 */}
+                  {/* Language detection engine. */}
                   <Grid item xs={xs} md={md}>
                     <TextField
                       select
-                      SelectProps={{
-                        MenuProps: { disablePortal: !isPlaygound },
-                      }}
+                      SelectProps={{ MenuProps: selectMenuProps }}
                       fullWidth
                       size="small"
                       name="langDetector"
@@ -408,19 +755,39 @@ export default function TranForm({
                       ))}
                     </TextField>
                   </Grid>
-                  {/* 语种检测的实时计算结果展示 (只读) */}
+                  {/* Read-only language detection result. */}
                   <Grid item xs={xs} md={md}>
                     <TextField
                       fullWidth
                       size="small"
                       name="deLang"
-                      value={deLang && OPT_LANGS_MAP.get(deLang)}
+                      value={
+                        deLang &&
+                        formatLanguageOptionName(OPT_LANGS_MAP.get(deLang))
+                      }
                       label={i18n("detected_result")}
-                      disabled
+                      placeholder="—"
+                      InputLabelProps={{ shrink: true }}
+                      inputProps={{ "aria-busy": deLoading }}
                       InputProps={{
-                        startAdornment: deLoading ? (
-                          <CircularProgress size={16} />
-                        ) : null,
+                        readOnly: true,
+                        startAdornment: (
+                          <Box
+                            sx={{
+                              width: 16,
+                              height: 16,
+                              display: "grid",
+                              placeItems: "center",
+                            }}
+                          >
+                            {deLoading && (
+                              <CircularProgress
+                                size={16}
+                                aria-label={i18n("detected_lang")}
+                              />
+                            )}
+                          </Box>
+                        ),
                       }}
                     />
                   </Grid>
@@ -429,18 +796,40 @@ export default function TranForm({
             </Grid>
           </Box>
 
-          {/* 原始文本输入区域 */}
-          <Box>
+          {/* Source text input. */}
+          <Box
+            className={
+              isPlaygound ? "kt-playground-translator__source" : undefined
+            }
+          >
             <TextField
+              className={`kt-translation-source ${
+                isPlaygound
+                  ? "kt-resizable-text-field kt-translation-text-field kt-translation-text-field--source"
+                  : "kt-resizable-text-field"
+              }`}
               size="small"
               label={i18n("original_text")}
+              InputLabelProps={isPlaygound ? { shrink: true } : undefined}
               fullWidth
               multiline
-              inputRef={inputRef}
-              minRows={isPlaygound ? 2 : 1}
+              inputRef={setInputRef}
+              minRows={isPlaygound ? 4 : 1}
               maxRows={10}
+              inputProps={{
+                className: "kt-resizable-textarea",
+                style: {
+                  resize: "vertical",
+                  ...(isPlaygound
+                    ? {}
+                    : { boxSizing: "border-box", paddingInlineEnd: 16 }),
+                },
+              }}
               sx={{
-                "& textarea": {
+                "& .MuiInputBase-root": {
+                  overflow: "visible",
+                },
+                '& textarea:not([aria-hidden="true"])': {
                   resize: "vertical",
                 },
               }}
@@ -451,45 +840,69 @@ export default function TranForm({
               onFocus={() => {
                 setEditMode(true);
               }}
-              // REVIEW: TextField 的 onBlur 会立即触发 setEditMode(false) 并提交数据，而 DoneIcon 的 onClick 也会执行相同逻辑。这会在点击提交按钮时产生多余重入。更关键的是，在某些系统或移动端环境下，onBlur 优先于 click 触发会使 EditMode 瞬间置为 false，导致 DoneIcon 被提早销毁而无法正常响应 onClick 事件。建议在图标按钮上改用 onMouseDown + preventDefault，或使用 onCommit 统一提交通道。
-              onBlur={() => {
-                setEditMode(false);
-                setText(editText.trim());
+              onKeyDown={(event) => {
+                if (event.nativeEvent.isComposing) return;
+                if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                  event.preventDefault();
+                  if (!event.repeat && editText.trim()) submitTranslation();
+                }
               }}
               InputProps={{
                 endAdornment: (
                   <Stack
+                    className={
+                      isPlaygound
+                        ? "kt-translation-text-field__actions"
+                        : undefined
+                    }
                     direction="row"
-                    sx={{
-                      position: "absolute",
-                      right: 0,
-                      top: 0,
-                    }}
+                    sx={
+                      isPlaygound
+                        ? undefined
+                        : {
+                            position: "absolute",
+                            right: 0,
+                            top: 0,
+                          }
+                    }
                   >
-                    {editMode ? (
-                      /* 编辑模式：显示提交勾选图标 */
+                    {editMode && editText !== text ? (
+                      /* Show the submit checkmark while editing. */
                       <IconButton
                         size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditMode(false);
-                          setText(editText.trim());
-                        }}
+                        onPointerDown={(e) => e.preventDefault()}
+                        onClick={submitAndBlur}
                         title={i18n("submit")}
+                        aria-label={i18n("submit")}
                       >
                         <DoneIcon fontSize="inherit" />
                       </IconButton>
                     ) : text ? (
-                      /* 有内容时：显示一键复制按钮 */
-                      <CopyBtn text={text} title={i18n("copy")} />
+                      /* Show the copy action when text is present. */
+                      <CopyBtn
+                        text={text}
+                        title={i18n("copy")}
+                        copiedLabel={i18n("copy_success", "Copied")}
+                      />
                     ) : (
-                      /* 无内容时：显示一键粘贴按钮 */
+                      /* Show the paste action when the input is empty. */
                       <IconButton
                         size="small"
                         onClick={handlePaste}
                         title={i18n("paste")}
                       >
                         <ContentPasteIcon fontSize="inherit" />
+                      </IconButton>
+                    )}
+                    {text && editText.trim() === text && (
+                      <IconButton
+                        size="small"
+                        onPointerDown={(event) => event.preventDefault()}
+                        onClick={submitAndBlur}
+                        title={i18n("translate")}
+                        aria-label={i18n("translate")}
+                      >
+                        <ReplayRoundedIcon fontSize="inherit" />
                       </IconButton>
                     )}
                   </Stack>
@@ -500,24 +913,36 @@ export default function TranForm({
         </>
       )}
 
-      {/* ---------------- 翻译及释义面板的按需渲染分发 ---------------- */}
-      {/* 1. 分别为每一个选定的翻译服务引擎渲染对应的 TranCont 内容翻译器 */}
-      {activeApiSlugs.map((slug) => (
-        <TranCont
-          key={slug}
-          text={translationText}
-          fromLang={fromLang}
-          toLang={realToLang}
-          simpleStyle={simpleStyle}
-          apiSlug={slug}
-          transApis={transApis}
-          translateVariants={translateVariants}
-        />
-      ))}
+      {/* Translation and definition panels. */}
+      {/* 1. Render a TranCont result for each selected translation service. */}
+      {isPlaygound ? (
+        <Stack
+          className="kt-playground-translator__results"
+          spacing={2}
+          useFlexGap
+        >
+          {translationResults.length > 0 ? (
+            translationResults
+          ) : (
+            <Box className="kt-playground-translator__empty" role="status">
+              {i18n(
+                "playground_translation_select_service",
+                "请先选择至少一个可用的翻译服务"
+              )}
+            </Box>
+          )}
+        </Stack>
+      ) : (
+        translationResults
+      )}
 
-      {/* 2. 根据可用能力在默认词典与 AI 词典之间分流展示 */}
+      {/* 2. Show the default and AI dictionaries according to availability. */}
       {(defaultDictAvailable || aiDictAvailable) && (
-        <Box>
+        <Box
+          className={
+            isPlaygound ? "kt-playground-translator__auxiliary" : undefined
+          }
+        >
           {aiDictAvailable ? (
             <>
               <Tabs
@@ -528,43 +953,58 @@ export default function TranForm({
                 }}
                 variant="scrollable"
                 allowScrollButtonsMobile
+                aria-label={i18n("default_dict", "Dictionary")}
                 sx={{ minHeight: 36, mb: 1 }}
               >
                 {defaultDictAvailable && (
                   <Tab
+                    id={defaultDictionaryTabId}
+                    aria-controls={defaultDictionaryPanelId}
                     value="default"
                     label={i18n("default_dict", "默认词典")}
                     sx={{ minHeight: 36, py: 0.5 }}
                   />
                 )}
                 <Tab
+                  id={aiDictionaryTabId}
+                  aria-controls={aiDictionaryPanelId}
                   value="ai"
                   label={i18n("ai_dict", "AI词典")}
                   sx={{ minHeight: 36, py: 0.5 }}
                 />
               </Tabs>
               {defaultDictAvailable && dictTab === "default" && (
-                <>
+                <Box
+                  id={defaultDictionaryPanelId}
+                  role="tabpanel"
+                  aria-labelledby={defaultDictionaryTabId}
+                >
                   {isWord && OPT_DICT_MAP.has(enDict) && (
                     <DictCont text={text} enDict={enDict} />
                   )}
                   {isSingleChineseChar(text) && <Zdic text={text} />}
-                </>
+                </Box>
               )}
               {(!defaultDictAvailable || dictTab === "ai") && (
-                <AiDictCont
-                  text={text}
-                  fromLang={fromLang}
-                  speechLang={fromLang === "auto" ? deLang : fromLang}
-                  toLang={realToLang}
-                  apiSetting={aiDictApiSetting}
-                  context={
-                    // 只在段落上下文确实包含当前文本时传入，避免手动输入内容复用旧划词上下文。
-                    selectionContext && selectionContext.includes(text)
-                      ? selectionContext
-                      : ""
-                  }
-                />
+                <Box
+                  id={aiDictionaryPanelId}
+                  role="tabpanel"
+                  aria-labelledby={aiDictionaryTabId}
+                >
+                  <AiDictCont
+                    text={text}
+                    fromLang={fromLang}
+                    speechLang={fromLang === "auto" ? deLang : fromLang}
+                    toLang={realToLang}
+                    apiSetting={aiDictApiSetting}
+                    context={
+                      // Pass context only when it contains the current text, so manual input cannot reuse stale selection context.
+                      selectionContext && selectionContext.includes(text)
+                        ? selectionContext
+                        : ""
+                    }
+                  />
+                </Box>
               )}
             </>
           ) : (
@@ -578,10 +1018,16 @@ export default function TranForm({
         </Box>
       )}
 
-      {/* 3. 如果是合法的英文单词且启用了输入建议，渲染联想建议组件 */}
-      {isWord && OPT_SUG_MAP.has(enSug) && (
-        <SugCont text={text} enSug={enSug} />
-      )}
+      {/* 3. Show enabled input suggestions for valid English words. */}
+      {isWord &&
+        OPT_SUG_MAP.has(enSug) &&
+        (isPlaygound ? (
+          <Box className="kt-playground-translator__auxiliary">
+            <SugCont text={text} enSug={enSug} />
+          </Box>
+        ) : (
+          <SugCont text={text} enSug={enSug} />
+        ))}
     </Stack>
   );
 }

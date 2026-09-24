@@ -2,14 +2,31 @@ import { YouTubeInitializer } from "./YouTubeCaptionProvider.js";
 import { isMatch } from "../libs/utils.js";
 import { DEFAULT_API_SETTING } from "../config/api.js";
 import { DEFAULT_SUBTITLE_SETTING } from "../config/setting.js";
+import { STOKEY_SETTING } from "../config/storage.js";
 import { logger } from "../libs/log.js";
 import { injectJs, INJECTOR } from "../injectors/index.js";
+import { saveEdit } from "../libs/storage.js";
 
 // 各视频平台对应的字幕初始化拦截器配置
 // 目前仅配置了 YouTube 的匹配规则 (pattern) 及其对应的初始化引导器 (YouTubeInitializer)
 const providers = [
   { pattern: "https://www.youtube.com", start: YouTubeInitializer },
 ];
+
+/** Persist only the subtitle position against the latest stored settings. */
+export function persistSubtitlePosition(positionRatio) {
+  return saveEdit(STOKEY_SETTING, (currentSetting) => ({
+    ...currentSetting,
+    subtitleSetting: {
+      ...(currentSetting.subtitleSetting || DEFAULT_SUBTITLE_SETTING),
+      positionRatio,
+    },
+  }))
+    .then(() => undefined)
+    .catch((err) => {
+      logger.warn("save subtitle position failed", err);
+    });
+}
 
 /**
  * 运行双语字幕翻译服务的主入口。
@@ -42,19 +59,26 @@ export function runSubtitle({ href, setting }) {
 
       // 2. 获取当前字幕翻译所关联的翻译 API 配置 (apiSetting)
       const transApis = setting.transApis || [];
+      const enabledTransApis = transApis.filter((api) => !api.isDisabled);
       const apiSetting =
-        transApis.find((api) => api.apiSlug === subtitleSetting.apiSlug) ||
+        enabledTransApis.find(
+          (api) => api.apiSlug === subtitleSetting.apiSlug
+        ) ||
+        enabledTransApis[0] ||
         DEFAULT_API_SETTING;
 
       // 3. 启动特定平台的字幕翻译与渲染引擎 (如 YouTubeCaptionProvider)
       // 将整理好的字幕配置、翻译 API 配置、所有已启用的 API 列表以及 UI 界面语言传递给对应的 provider
       provider.start({
         ...subtitleSetting,
+        apiSlug: apiSetting.apiSlug,
         apiSetting,
         transApis,
         prompts: setting.prompts,
         uiLang: setting.uiLang,
         translateVariants: setting.translateVariants ?? true,
+        parseLatex: setting.parseLatex ?? false,
+        onSubtitlePositionChange: persistSubtitlePosition,
       });
     }
   } catch (err) {

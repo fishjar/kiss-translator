@@ -5,7 +5,12 @@ import { Menus } from "./Menus";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-function renderMenus({ autoTranslate = true, updateSetting = jest.fn() } = {}) {
+function renderMenus({
+  apiSlug = "api-a",
+  autoTranslate = true,
+  updateSetting = jest.fn(),
+  transApis = [],
+} = {}) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -15,6 +20,7 @@ function renderMenus({ autoTranslate = true, updateSetting = jest.fn() } = {}) {
       <Menus
         i18n={(key) => key}
         formData={{
+          apiSlug,
           segSlug: "-",
           skipAd: false,
           isBilingual: true,
@@ -24,7 +30,7 @@ function renderMenus({ autoTranslate = true, updateSetting = jest.fn() } = {}) {
         }}
         updateSetting={updateSetting}
         downloadSubtitle={jest.fn()}
-        transApis={[]}
+        transApis={transApis}
       />
     );
   });
@@ -68,6 +74,70 @@ describe("subtitle Menus", () => {
       name: "autoTranslate",
       value: true,
     });
+    view.cleanup();
+  });
+
+  test("renders enabled translation services immediately after the toggle", () => {
+    const view = renderMenus({
+      transApis: [
+        { apiSlug: "api-a", apiName: "API A", apiType: "builtin" },
+        { apiSlug: "api-b", apiName: "API B", apiType: "builtin" },
+        {
+          apiSlug: "api-disabled",
+          apiName: "Disabled API",
+          apiType: "builtin",
+          isDisabled: true,
+        },
+      ],
+    });
+    const menuItems = view.container.firstElementChild.children;
+
+    expect(menuItems[0].textContent).toContain("enable_subtitle_translate");
+    expect(menuItems[1].textContent).toContain("translate_service");
+    expect(menuItems[2].textContent).toContain("ai_segmentation");
+
+    act(() => {
+      menuItems[1].firstElementChild.click();
+    });
+
+    expect(view.container.textContent).toContain("API A");
+    expect(view.container.textContent).toContain("API B");
+    expect(view.container.textContent).not.toContain("Disabled API");
+
+    const apiBOption = Array.from(view.container.querySelectorAll("div")).find(
+      (element) =>
+        element.textContent === "API B" && element.children.length === 0
+    );
+    act(() => {
+      apiBOption.click();
+    });
+
+    expect(view.updateSetting).toHaveBeenCalledWith({
+      name: "apiSlug",
+      value: "api-b",
+    });
+    view.cleanup();
+  });
+
+  test("disables translation service selection when no API is enabled", () => {
+    const view = renderMenus({
+      transApis: [
+        {
+          apiSlug: "api-disabled",
+          apiName: "Disabled API",
+          apiType: "builtin",
+          isDisabled: true,
+        },
+      ],
+    });
+    const serviceMenuItem = view.container.firstElementChild.children[1];
+
+    act(() => {
+      serviceMenuItem.firstElementChild.click();
+    });
+
+    expect(view.container.textContent).not.toContain("Disabled API");
+    expect(view.updateSetting).not.toHaveBeenCalled();
     view.cleanup();
   });
 });

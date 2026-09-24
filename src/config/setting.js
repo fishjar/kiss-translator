@@ -37,6 +37,14 @@ export const TRANS_MIN_LENGTH = 2; // 触发网页翻译的最小文本字符数
 export const TRANS_MAX_LENGTH = 100000; // 单次翻译的最大字符数
 export const TRANS_NEWLINE_LENGTH = 20; // 文本被认定为需要单独换行的长度限制
 
+// --- 工具栏弹窗默认界面 ---
+export const OPT_POPUP_DEFAULT_VIEW_PAGE = "page"; // 默认显示网页翻译界面
+export const OPT_POPUP_DEFAULT_VIEW_TEXT = "text"; // 默认显示文本翻译界面
+export const OPT_POPUP_DEFAULT_VIEW_ALL = [
+  OPT_POPUP_DEFAULT_VIEW_PAGE,
+  OPT_POPUP_DEFAULT_VIEW_TEXT,
+];
+
 // 默认不参与整页翻译的网站黑名单 (例如翻译工具本身、特定系统页，避免死循环翻译)
 export const DEFAULT_BLACKLIST = [
   "https://fishjar.github.io/kiss-translator/options.html",
@@ -192,6 +200,8 @@ export const DEFAULT_SUBTITLE_SETTING = {
   autoFavWord: false, // 字幕悬停查词成功后是否自动收藏单词
   showList: OPT_ENHANCE_MOBILE_OFF, // 是否在侧边/右侧显示字幕全文滚动历史面板
   hideSubtitleButton: false, // 是否隐藏 YouTube 播放器中的字幕功能按钮
+  rememberPosition: false, // 是否记住字幕拖动后的相对位置
+  positionRatio: 0.05, // 字幕底边相对播放器高度的比例
   aiContextSlug: "-", // 是否为字幕启用智能上下文，以获取更好的代词翻译效果
   segPromptMode: PROMPT_MODE_FOLLOW_API, // AI 断句提示词来源：接口默认或指定 subtitle prompt
   segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG, // 指定的 subtitle prompt slug，仅在指定提示词模式下生效
@@ -216,6 +226,12 @@ export const DEFAULT_SUBRULES_LIST = [
 export const DEFAULT_MOUSEHOVER_KEY = ["ControlLeft"]; // 默认触发悬停翻译的触发按键 (左 Ctrl 键)
 export const OPT_MOUSE_HOVER_DISPLAY_BILINGUAL = "bilingual"; // 鼠标悬停翻译：把译文插入页面形成双语对照
 export const OPT_MOUSE_HOVER_DISPLAY_BUBBLE = "bubble"; // 鼠标悬停翻译：用悬浮气泡展示译文，不改变页面布局
+export const OPT_MOUSE_HOVER_TRANS_PARAGRAPH = "paragraph"; // 按住左键触发时只翻译鼠标所在当前段
+export const OPT_MOUSE_HOVER_TRANS_REGION = "region"; // 按住左键触发时翻译最近的区域（最近的“多段落容器”）
+export const OPT_MOUSE_HOVER_TRANS_AREA = "area"; // 按住左键触发时翻译整篇文章/区域
+export const OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE = "inline"; // 按住左键译文跟随原文行内显示
+export const OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK = "block"; // 按住左键译文独立成块显示
+export const DEFAULT_MOUSE_HOVER_HOLD_DELAY = 800; // 按住鼠标左键多久后触发悬停翻译 (毫秒)
 export const DEFAULT_MOUSE_HOVER_BUBBLE_STYLE = `max-width: min(420px, calc(100vw - 32px));
 padding: 10px 12px;
 border-radius: 8px;
@@ -226,10 +242,18 @@ line-height: 1.5;
 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 backdrop-filter: blur(8px);`;
 export const DEFAULT_MOUSE_HOVER_SETTING = {
+  touchMode: "tap", // Preferred gesture; activation is document-local.
+  touchDirection: "right",
   useMouseHover: false, // 是否开启鼠标悬停翻译
   blacklist: "", // 鼠标悬停翻译禁用的网页黑名单
   mouseHoverKey: DEFAULT_MOUSEHOVER_KEY, // 主按键
   mouseHoverKey2: [], // 备用快捷按键
+  mouseHoverKeyHold: false, // 主触发方式是否使用“按住鼠标左键不放”
+  mouseHoverKey2Hold: false, // 备用触发方式是否使用“按住鼠标左键不放”
+  mouseHoverHoldDelay: DEFAULT_MOUSE_HOVER_HOLD_DELAY, // 按住左键触发翻译的等待时长 (毫秒)
+  mouseHoverTransMode: OPT_MOUSE_HOVER_TRANS_AREA, // 按住左键触发的翻译范围
+  mouseHoverTransDisplay: OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK, // 按住左键译文显示方式
+  mouseHoverPreventClick: false, // 按住链接/按钮翻译后松开是否阻止点击跳转（默认关闭）
   displayMode: OPT_MOUSE_HOVER_DISPLAY_BILINGUAL, // 鼠标悬停翻译展示模式
   apiSlug: GLOBAL_KEY, // 气泡模式翻译接口，默认跟随当前网页规则
   bubbleStyle: DEFAULT_MOUSE_HOVER_BUBBLE_STYLE, // 气泡模式的容器 CSS
@@ -248,6 +272,8 @@ export const DEFAULT_SETTING = {
   httpTimeout: DEFAULT_HTTP_TIMEOUT, // 接口请求超时时间
   clearCache: false, // 每次浏览器重启时，是否自动清空翻译结果的本地网络缓存
   autoTranslateClipboard: false, // 打开文本翻译面板或重新聚焦独立窗口时，是否自动翻译剪贴板文本
+  checkUpdate: true, // 打开设置页面时是否自动检查是否有新版本
+  popupDefaultView: OPT_POPUP_DEFAULT_VIEW_PAGE, // 工具栏弹窗打开时默认显示的界面
   injectRules: true, // 页面加载时是否自动匹配并注入云端订阅的翻译规则
   fabClickAction: 0, // 工具栏悬浮球按钮双击或单击的默认响应行为 (如开启/关闭翻译)
   // injectWebfix: true, // 是否注入修复补丁(作废)
@@ -261,7 +287,6 @@ export const DEFAULT_SETTING = {
   // owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则 (作废)
   transApis: DEFAULT_API_LIST, // 缓存的全部可用翻译 API 配置列表（数组格式）
   prompts: [], // 用户自定义提示词；预设提示词由 config/prompt.js 提供，不写入本地配置
-  deletedTransApiSlugs: [], // 用户手动删除的默认翻译接口标识
   // mouseKey: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译(移至rule，作废)
   shortcuts: DEFAULT_SHORTCUTS, // 键盘快捷键配置对象
   inputRule: DEFAULT_INPUT_RULE, // 输入框即时翻译相关配置
@@ -274,6 +299,7 @@ export const DEFAULT_SETTING = {
   // disableLangs: [], // 不翻译的语言(移至rule，作废)
   skipLangs: [], // 忽略翻译的语种代码列表 (即如果网页检测到是这些语言，则不触发自动整页翻译)
   translateVariants: true, // 是否继续翻译同一语言的不同变体（如简体中文与繁体中文）
+  parseLatex: false, // 是否将译文中的行内 LaTeX 公式转换为可读的 Unicode 文本
   transInterval: 100, // 两次段落翻译执行之间的等待延迟
   langDetector: "-", // 主动检测源语言的外部 API 服务选择 ("-" 表示由翻译 API 本身自动判定)
   mouseHoverSetting: DEFAULT_MOUSE_HOVER_SETTING, // 鼠标悬浮段落翻译的详细配置

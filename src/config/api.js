@@ -11,7 +11,7 @@ export const DEFAULT_BATCH_INTERVAL = 400; // 批处理合并请求的等待延�
 export const DEFAULT_BATCH_SIZE = 20; // 每次翻译请求最多合并发送的 DOM 段落数量
 export const DEFAULT_BATCH_LENGTH = 10000; // 每次翻译请求发送的最大字符数限制
 export const DEFAULT_BATCH_CONCURRENCY = 10; // 同时执行的聚合批次数量
-export const DEFAULT_CONTEXT_SIZE = 3; // AI 翻译时保留的上下文会话历史轮数
+export const DEFAULT_CONTEXT_SIZE = 3; // AI 翻译时上下文历史条数上限，按完整 user/assistant 轮次向下取整保留
 
 // --- 翻译内容替换占位符 ---
 export const INPUT_PLACE_URL = "{{url}}"; // 当前网页 URL 占位符
@@ -28,6 +28,7 @@ export const INPUT_PLACE_CONTEXT = "{{context}}"; // 当前选中文本所在上
 export const INPUT_PLACE_KEY = "{{key}}"; // API Key 占位符
 export const INPUT_PLACE_MODEL = "{{model}}"; // AI 模型名称占位符
 export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 专业术语表占位符
+export const INPUT_PLACE_SEGMENTS = "{{segments}}"; // 聚合翻译文本片段占位符
 
 export const GEMINI_GENERATE_CONTENT_URL = `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`;
 export const GEMINI_INTERACTIONS_URL =
@@ -65,6 +66,7 @@ export const OPT_TRANS_DEEPL = "DeepL"; // DeepL 官方专业翻译 API
 export const OPT_TRANS_DEEPLX = "DeepLX"; // DeepLX 开源/自定义中转端
 export const OPT_TRANS_DEEPLFREE = "DeepLFree"; // DeepL 免费网页翻译接口
 export const OPT_TRANS_EPHONEAI = "ePhoneAI"; // ePhone AI 翻译服务
+export const OPT_TRANS_APIMART = "APIMart"; // APIMart 翻译服务
 export const OPT_TRANS_BAIDU = "Baidu"; // 百度翻译 API
 export const OPT_TRANS_TENCENT = "Tencent"; // 腾讯翻译君 API
 export const OPT_TRANS_VOLCENGINE = "Volcengine"; // 火山翻译 API
@@ -105,6 +107,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,
   OPT_TRANS_EPHONEAI,
+  OPT_TRANS_APIMART,
   OPT_TRANS_OPENAI,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
@@ -142,6 +145,7 @@ export const API_SPE_TYPES = {
   // 大语言模型 AI 翻译引擎
   ai: new Set([
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
     OPT_TRANS_OPENAI,
     OPT_TRANS_DEEPSEEK,
     OPT_TRANS_OPENCODEGO,
@@ -181,6 +185,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持段落聚合（批处理合并）翻译的引擎
@@ -207,6 +212,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持带历史会话（Context）关联的翻译引擎
@@ -226,6 +232,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持流式文本返回（Server-Sent Events / Stream）的翻译引擎
@@ -245,14 +252,16 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
   ]),
   // 官方推荐/赞助商的翻译服务
-  sponsors: new Set([OPT_TRANS_EPHONEAI]),
+  sponsors: new Set([OPT_TRANS_EPHONEAI, OPT_TRANS_APIMART]),
   // 暗黑模式下图标反色
   darkIcon: new Set([
     OPT_TRANS_SILICONFLOW,
     OPT_TRANS_XIAOMIMIMO,
     OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
     OPT_TRANS_ZAI,
     OPT_TRANS_DEEPL,
     OPT_TRANS_DEEPLFREE,
@@ -316,16 +325,31 @@ const createOpenAIThinkingCapability = (efforts, defaults = {}) =>
     ...defaults,
   });
 
+const normalizeOpenAIModelName = (model = "") =>
+  String(model)
+    .trim()
+    .toLowerCase()
+    .replace(/^openai\//, "");
+
+export const isGPT6Astra = (model = "") =>
+  normalizeOpenAIModelName(model) === "gpt-6-astra";
+
 /**
  * 根据 OpenAI 模型名称解析已确认的思考能力。
  * @param {string} model OpenAI 或带 openai/ 前缀的模型名称。
  * @returns {Object|null} 已知模型的思考能力；未知模型返回 null。
  */
 const getOpenAIThinkingCapability = (model = "") => {
-  const normalizedModel = String(model)
-    .trim()
-    .toLowerCase()
-    .replace(/^openai\//, "");
+  const normalizedModel = normalizeOpenAIModelName(model);
+
+  if (normalizedModel === "gpt-6-astra") {
+    // https://developers.openai.com/api/docs/models/gpt-6-astra
+    // Astra 不支持关闭思考；沿用最低强度降级及其 UI 提示。
+    return createOpenAIThinkingCapability(
+      ["max", "xhigh", "high", "medium", "low"],
+      { disable: null }
+    );
+  }
 
   if (/^gpt-5\.6(?:-|$)/.test(normalizedModel)) {
     return createOpenAIThinkingCapability([
@@ -546,6 +570,10 @@ export const THINKING_API_REGISTRY = {
         : null,
   },
   [OPT_TRANS_EPHONEAI]: {
+    adapter: "openai",
+    resolveCapability: ({ model }) => getOpenAIThinkingCapability(model),
+  },
+  [OPT_TRANS_APIMART]: {
     adapter: "openai",
     resolveCapability: ({ model }) => getOpenAIThinkingCapability(model),
   },
@@ -871,7 +899,14 @@ export const getGeminiThinkingEfforts = ({ apiType, model = "" }) => {
     normalizedModel.startsWith("gemini-3") &&
     normalizedModel.includes("flash")
   ) {
-    return toGeminiEffortOptions(["high", "medium", "low", "minimal"]);
+    // Regular 3-series flash models reject "minimal"
+    // ("'minimal' is not a supported thinking level for this model");
+    // only the flash-lite variants accept it.
+    return toGeminiEffortOptions(
+      normalizedModel.includes("flash-lite")
+        ? ["high", "medium", "low", "minimal"]
+        : ["high", "medium", "low"]
+    );
   }
   return null;
 };
@@ -1076,6 +1111,7 @@ export const OPT_LANGS_TO_SPEC = {
     ["vi", "vi"],
   ]),
   [OPT_TRANS_EPHONEAI]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_APIMART]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_OPENAI]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_GEMINI]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_GEMINI_2]: OPT_LANGS_SPEC_NAME,
@@ -1142,11 +1178,18 @@ ${INPUT_PLACE_GLOSSARY}
 Translate the Source Text below to ${INPUT_PLACE_TO}.
 1. Use the Context to ensure accuracy.
 2. Adapt the wording to match the specified Tone.
-3. Output ONLY the translated text. No markdown, no explanations.
+3. If a Source Text term exactly matches a Glossary entry, output ONLY that entry's value; never repeat the source term, never wrap the value in parentheses.
+4. Output ONLY the translated text. No markdown, no explanations.
 
 Source Text: ${INPUT_PLACE_TEXT}
 
 Translated Text:`;
+
+export const defaultNobatchPromptConcise = "";
+export const defaultNobatchUserPromptConcise = `${INPUT_PLACE_GLOSSARY}
+${INPUT_PLACE_TONE}
+Translate the following text into ${INPUT_PLACE_TO}. Preserve all HTML-like tags. Output ONLY the translated text without any explanation:
+${INPUT_PLACE_TEXT}`;
 
 export const defaultSystemPrompt = `Act as a translation API. Output a single raw JSON object only. No extra text or fences.
 
@@ -1160,7 +1203,7 @@ Rules:
 1.  Use title/description for context only; do not output them.
 2.  Keep id, order, and count of segments.
 3.  Preserve whitespace, HTML entities, and all HTML-like tags (e.g., <i1>, <a1>). Translate inner text only.
-4.  Highest priority: Follow 'glossary'. Use value for translation; if value is "", keep the key.
+4.  Highest priority: Follow 'glossary'. Use value for translation; if value is "", keep the key. When a term matches the glossary, output ONLY the glossary value; never echo the source term alongside it and never wrap the value in parentheses.
 5.  Do not translate: content in <code>, <pre>, text enclosed in backticks, or placeholders like {1}, {{1}}, [1], [[1]].
 6.  Apply the specified tone to the translation.
 7.  Detect sourceLanguage for each segment.
@@ -1172,63 +1215,34 @@ Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLangua
 
 Fail-safe: On any error, return {"translations":[]}.`;
 
-export const defaultSystemPromptXml = `Act as a translation API. Output raw XML-like format only. No Markdown fences (xml). No conversational filler.
+export const defaultSystemPromptXml = `Act as a professional machine translation engine. Output raw XML format only (<root><t id="0">...</t></root>). No Markdown fences, no conversational filler.`;
 
-Input:
-{"targetLanguage":"<lang>","title":"<context>","description":"<context>","summary":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
+export const defaultSystemPromptLines = `Act as a professional machine translation engine. Output raw text lines in "ID | Text" format strictly. No Markdown fences, no conversational filler.`;
 
-Output Format:
-<root>
-    <t id="0" sourceLanguage="<detected_source_lang>">Translated text content...</t>
-    <t id="1" sourceLanguage="<detected_source_lang>">Translated text content...</t>
-</root>
+export const defaultSystemPromptJson = `Act as a professional machine translation engine. Output a raw JSON array strictly. No Markdown fences, no conversational filler.`;
 
-Rules:
-1.  **Strict Format**: Output ONLY the <root> element and its children. Do not include "xml" version declarations or markdown code blocks.
-2.  **Structure**: Maintain the exact "id" from the input in the "id" attribute. Detect the source language for the "sourceLanguage" attribute.
-3.  **HTML & Whitespace**: Preserve all HTML tags (e.g., <b>, <span>, <br>) and whitespace exactly as they appear in the structure. Only translate the text content inside them.
-4.  **Glossary**: Highest priority. Use the glossary value for translation. If the value is "", keep the source term as is.
-5.  **Do Not Translate**: Content inside <code>, <pre>, text in backticks ("code"), and placeholders like {1}, {{1}}, [1], [[1]].
-6.  **Context**: Use the "title" and "description" fields to understand the context for better translation accuracy, but do not output them.
-7.  **Tone**: Apply the specified "tone" (formal/casual).
+export const defaultBatchUserPromptLines = `${INPUT_PLACE_GLOSSARY}
+${INPUT_PLACE_TONE}
+Translate each numbered line below into ${INPUT_PLACE_TO}. Maintain the exact "{id} | {translation}" format for each line. Preserve all HTML-like tags, and keep <br> for internal newlines. Output ONLY the translated result without any additional explanation:
+${INPUT_PLACE_SEGMENTS}`;
 
-Example:
-Input:
-{"targetLanguage":"zh-CN","segments":[{"id":0,"text":"Hello <b>World</b>!"}],"glossary":{"World":"世界"},"tone":"formal"}
+export const defaultBatchUserPromptXml = `${INPUT_PLACE_TITLE}
+${INPUT_PLACE_DESCRIPTION}
+${INPUT_PLACE_SUMMARY}
+${INPUT_PLACE_CONTEXT}
+${INPUT_PLACE_GLOSSARY}
+${INPUT_PLACE_TONE}
+Translate the text within each <t id="..."> tag below into ${INPUT_PLACE_TO}. Maintain the exact <t id="..."> tag structure and id attributes. Preserve all internal HTML-like tags. Output ONLY the translated XML result without any additional explanation:
+${INPUT_PLACE_SEGMENTS}`;
 
-Output:
-<root>
-    <t id="0" sourceLanguage="en">你好 <b>世界</b>！</t>
-</root>`;
-
-export const defaultSystemPromptLines = `Act as a translation API. Output raw text lines in "ID | Text" format. No Markdown. No conversational filler.
-
-Input:
-{"targetLanguage":"<lang>","title":"<context>","description":"<context>","summary":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
-
-Output Format:
-<id> | <Translation for Segment>
-<id> | <Translation for Segment>
-...
-
-Rules:
-1.  **Strict Format**: Output exactly one line per segment using the format: "{id} | {translated_text}".
-2.  **ID Mapping**: You MUST copy the exact "id" from the input segment to the output line.
-3.  **Newline Handling**: If the translated text contains a newline, replace it with the HTML tag "<br>" to ensure it stays on a single line.
-4.  **Separator**: Use the pipe symbol " | " strictly to separate the ID and the text.
-5.  **Context**: Use title/description for context only; do not output them.
-6.  **HTML/Tags**: Preserve whitespace, HTML entities, and all HTML-like tags (e.g., <i1>, <b>). Translate inner text only.
-7.  **Glossary**: Highest priority. Follow 'glossary'. Use value for translation; if value is "", keep the key.
-8.  **Do Not Translate**: content in <code>, <pre>, text enclosed in backticks, or placeholders like {1}, {{1}}, [1].
-9.  **Tone**: Apply the specified tone.
-
-Example:
-Input: {"targetLanguage":"zh-CN","segments":[{"id":0,"text":"Hello."},{"id":1,"text":"Line 1\nLine 2"}],"glossary":{}}
-Output:
-0 | 你好。
-1 | 第一行<br>第二行
-
-Fail-safe: On error, return "{id} | {original_text}" line by line.`;
+export const defaultBatchUserPromptJson = `${INPUT_PLACE_TITLE}
+${INPUT_PLACE_DESCRIPTION}
+${INPUT_PLACE_SUMMARY}
+${INPUT_PLACE_CONTEXT}
+${INPUT_PLACE_GLOSSARY}
+${INPUT_PLACE_TONE}
+Translate the text field of each object in the JSON array below into ${INPUT_PLACE_TO}. Keep the id unchanged and output a raw JSON array. Output ONLY the translated JSON result without any additional explanation:
+${INPUT_PLACE_SEGMENTS}`;
 
 // const defaultSubtitlePrompt = `Goal: Convert raw subtitle event JSON into a clean, sentence-based JSON array.
 
@@ -1465,7 +1479,7 @@ Group the input word-level JSON array into readable, well-paced bilingual subtit
 3. Pause Indicators: An optional "pauseMs" field is the timeline gap in milliseconds after the current input item. If "pauseMs" is missing, treat it as 0 milliseconds and do not infer a pause. Larger positive values indicate stronger sentence boundaries, but grammatical correctness and semantic coherence always take priority.
 4. Exact Translation Alignment: Build "o" first from the exact source span covered by the current "e", starting after the previous "e". Then translate only the current "o" into "t". The "t" field MUST NOT omit that span, translate future input items, or carry text from adjacent segments.
 5. Silent Self-Check: Before returning, silently verify that every "e", "o", and "t" correspond one-to-one, every "o" matches its exact input range, all source-length limits are satisfied, and all input items are covered exactly once. Do not output the self-check or any reasoning.
-6. Translation Quality: Keep "t" concise, accurate, and natural while strictly adhering to the provided Context, Tone, and Glossary.
+6. Translation Quality: Keep "t" concise, accurate, and natural while strictly adhering to the provided Context, Tone, and Glossary. When a term matches the Glossary, output ONLY the glossary value; never echo the source term alongside it and never wrap the value in parentheses.
 
 # Example
 Input: [{"id":0,"text":"Once"},{"id":1,"text":"the"},{"id":2,"text":"assets"},{"id":3,"text":"are"},{"id":4,"text":"ready,"},{"id":5,"text":"open"},{"id":6,"text":"the"},{"id":7,"text":"storyboard"},{"id":8,"text":"tab.","pauseMs":850},{"id":9,"text":"This"},{"id":10,"text":"is"},{"id":11,"text":"where"},{"id":12,"text":"everything"},{"id":13,"text":"comes"},{"id":14,"text":"together."},{"id":15,"text":"If"},{"id":16,"text":"a"},{"id":17,"text":"scene"},{"id":18,"text":"does"},{"id":19,"text":"not"},{"id":20,"text":"match"},{"id":21,"text":"your"},{"id":22,"text":"idea,"},{"id":23,"text":"regenerate"},{"id":24,"text":"it"},{"id":25,"text":"or"},{"id":26,"text":"adjust"},{"id":27,"text":"the"},{"id":28,"text":"prompt"},{"id":29,"text":"carefully"},{"id":30,"text":"until"},{"id":31,"text":"it"},{"id":32,"text":"feels"},{"id":33,"text":"right."}]
@@ -1501,12 +1515,12 @@ const defaultApi = {
   dictPromptSlug: "dictionary-en-zh",
   nobatchPrompt: "",
   nobatchUserPrompt: "",
-  nobatchPromptSlug: "nobatch-translation",
+  nobatchPromptSlug: "nobatch-translation-concise",
   userPrompt: "",
   tone: BUILTIN_STONES[0], // 翻译风格
   placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符
   placetag: BUILTIN_PLACETAGS[0], // 占位标签
-  aiTerms: "", // AI智能专业术语 （todo: 备用）
+  aiTerms: "", // AI智能专业术语（apiSetting.aiTerms，全路径生效：整页/划词/输入框/字幕；与规则级 #glossary 逐 key 合并时接口级覆盖同名）
   customHeader: "",
   customBody: "",
   reqHook: "", // request 钩子函数
@@ -1524,7 +1538,7 @@ const defaultApi = {
   transAllnow: false, // 是否立即全部翻译
   rootMargin: 2000, // 滚动加载提前触发距离
   useContext: false, // 是否启用智能上下文
-  contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
+  contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文历史条数上限（按完整轮次取整）
   temperature: 0.0,
   maxTokens: 20480,
   thinkingMode: "disabled", // 思考模式：auto | enabled | disabled
@@ -1660,6 +1674,13 @@ const defaultApiOpts = {
   [OPT_TRANS_EPHONEAI]: {
     ...defaultApi,
     url: "https://api.ephone.ai/v1/chat/completions",
+  },
+  [OPT_TRANS_APIMART]: {
+    ...defaultApi,
+    url: "https://api.apimart.ai/v1/chat/completions",
+    modelListUrl: "https://api.apimart.ai/v1/models",
+    model: "gpt-5.6-luna",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_OPENAI]: {
     ...defaultApi,

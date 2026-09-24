@@ -1,16 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { SettingProvider } from "./hooks/Setting";
-import ThemeProvider from "./hooks/Theme";
+import ThemeProvider from "./views/Popup/PopupTheme";
 import Popup from "./views/Popup";
 
-// 标记当前上下文为 "popup"，方便其他共享库得知当前处于浏览器插件弹窗面板环境
+// Identify the popup context for shared libraries.
 globalThis.__KISS_CONTEXT__ = "popup";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    {/* 注入全局设置 Context 和主题 Context */}
+    {/* Provide global settings and theme contexts. */}
     <SettingProvider context="popup">
       <ThemeProvider>
         <Popup />

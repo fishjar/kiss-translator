@@ -22,12 +22,66 @@ import {
   CURRENT_SETTINGS_VERSION,
   DEFAULT_TRANBOX_SETTING,
   normalizeApiThinkingSettings,
+  KV_SETTING_KEY,
+  KV_RULES_KEY,
+  KV_WORDS_KEY,
 } from "../config";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
 import { kissLog } from "./log";
 import { debounce } from "./utils";
-import { getGmMethod } from "./gm";
+import { getGmMethod } from "./gmMethods";
+import { publishStorageWrite } from "./storageEvents";
+import { withStorageLock } from "./storageCoordination";
+import { cloneStorageValue, isSameStorageValue } from "./storageEquality";
+
+const SYNC_KEYS = {
+  [STOKEY_SETTING]: KV_SETTING_KEY,
+  [STOKEY_RULES]: KV_RULES_KEY,
+  [STOKEY_WORDS]: KV_WORDS_KEY,
+};
+const sameValue = isSameStorageValue;
+const EDIT_DEFAULTS = {
+  [STOKEY_SETTING]: DEFAULT_SETTING,
+  [STOKEY_RULES]: DEFAULT_RULES,
+  [STOKEY_WORDS]: {},
+  [STOKEY_SYNC]: DEFAULT_SYNC,
+  [STOKEY_FAB]: {},
+  [STOKEY_TRANBOX]: {},
+};
+const DESTINATION_FIELDS = [
+  "syncType",
+  "syncUrl",
+  "syncUser",
+  "syncKey",
+  "syncEncryptKey",
+];
+
+/** Update metadata under the same boundary as related business writes. */
+export function updateSyncState(updater, options) {
+  return withTransaction((transaction) =>
+    transaction.updateSyncState(updater, options)
+  );
+}
+
+function preserveNewerSyncMeta(current, incoming) {
+  const merged = { ...current, ...incoming };
+  Object.entries(current || {}).forEach(([key, meta]) => {
+    const next = incoming?.[key];
+    if (
+      !next ||
+      meta.updateAt > next.updateAt ||
+      (meta.updateAt === next.updateAt &&
+        (meta.syncAt > next.syncAt ||
+          (meta.syncAt === next.syncAt &&
+            ((meta.pendingUpload && !next.pendingUpload) ||
+              (meta.firstAttemptAt && !next.firstAttemptAt)))))
+    ) {
+      merged[key] = meta;
+    }
+  });
+  return merged;
+}
 
 /**
  * 获取适用于当前环境的 GM (Greasemonkey) 存储引擎方法集合。
@@ -53,7 +107,7 @@ function getGmStorage() {
  * @param {string} key 键名
  * @param {*} val 待写入的字符串数据
  */
-async function set(key, val) {
+async function rawSet(key, val) {
   if (isExt) {
     await browser.storage.local.set({ [key]: val });
   } else if (isGm) {
@@ -68,7 +122,7 @@ async function set(key, val) {
  * @param {string} key 键名
  * @returns {Promise<string|null>} 读取到的原始字符串数据
  */
-async function get(key) {
+async function rawGet(key) {
   if (isExt) {
     const val = await browser.storage.local.get([key]);
     return val[key];
@@ -83,7 +137,7 @@ async function get(key) {
  * 跨平台存储底层删除操作。
  * @param {string} key 键名
  */
-async function del(key) {
+async function rawDel(key) {
   if (isExt) {
     await browser.storage.local.remove([key]);
   } else if (isGm) {
@@ -99,7 +153,16 @@ async function del(key) {
  * @param {Object|Array} obj 待存入 of JS 对象或数组
  */
 async function setObj(key, obj) {
-  await set(key, JSON.stringify(obj));
+  return withTransaction(async (transaction) => {
+    if (key === STOKEY_SYNC) {
+      const current = await transaction.getObj(key);
+      return transaction.setObj(key, {
+        ...obj,
+        syncMeta: preserveNewerSyncMeta(current?.syncMeta, obj?.syncMeta),
+      });
+    }
+    await transaction.setObj(key, obj);
+  });
 }
 
 /**
@@ -108,9 +171,10 @@ async function setObj(key, obj) {
  * @param {Object|Array} obj 默认值对象
  */
 async function trySetObj(key, obj) {
-  if (!(await get(key))) {
-    await setObj(key, obj);
-  }
+  return withTransaction(async (transaction) => {
+    if ((await transaction.getObj(key)) === null)
+      await transaction.setObj(key, obj);
+  });
 }
 
 /**
@@ -118,8 +182,7 @@ async function trySetObj(key, obj) {
  * @param {string} key 键名
  * @returns {Promise<Object|Array|null>} 返回反序列化后的数据，发生解析错误或为空时返回 null
  */
-async function getObj(key) {
-  const val = await get(key);
+function parseStoredValue(val, key) {
   if (val === null || val === undefined) return null;
   try {
     return JSON.parse(val);
@@ -127,6 +190,294 @@ async function getObj(key) {
     kissLog("parse json in storage err: ", key);
   }
   return null;
+}
+
+async function getObj(key) {
+  return parseStoredValue(await rawGet(key), key);
+}
+
+const get = rawGet;
+
+async function set(key, value) {
+  return withStorageLock(async (coordinator) => {
+    if (coordinator?.commit)
+      await coordinator.commit([{ key, value, previous: await rawGet(key) }]);
+    else await rawSet(key, value);
+  });
+}
+
+async function del(key) {
+  return withTransaction((transaction) => transaction.del(key));
+}
+
+/** Stage writes, compensate failures, and notify only after persistence succeeds. */
+export function withTransaction(operation) {
+  return withStorageLock(async (coordinator) => {
+    const writes = new Map();
+    const originals = new Map();
+    const read = async (key) => {
+      if (writes.has(key)) return writes.get(key).value;
+      if (!originals.has(key)) originals.set(key, await getObj(key));
+      return originals.get(key);
+    };
+    const stage = async (key, value, remove = false, options = {}) => {
+      const current =
+        (await read(key)) ??
+        (key === STOKEY_SYNC && (options.syncStateUpdate || options.userEdit)
+          ? DEFAULT_SYNC
+          : null);
+      // Use the same defaults when comparing metadata-only changes.
+      const configurationBaseline = options.syncStateUpdate
+        ? writes.has(key)
+          ? writes.get(key).configurationBaseline
+          : current
+        : originals.get(key);
+      if (key === STOKEY_SYNC && value && current) {
+        const destinationChanged = DESTINATION_FIELDS.some(
+          (field) => current[field] !== value[field]
+        );
+        const revision = current.destinationRevision || 0;
+        value = {
+          ...value,
+          ...(current.destinationRevision !== undefined ||
+          (destinationChanged && !options.preserveDestination)
+            ? {
+                destinationRevision:
+                  revision +
+                  (destinationChanged && !options.preserveDestination ? 1 : 0),
+              }
+            : {}),
+          ...(destinationChanged && !options.preserveDestination
+            ? { syncMeta: {} }
+            : {}),
+        };
+      }
+      writes.set(key, { value, remove, configurationBaseline });
+      return value;
+    };
+    const transaction = {
+      getObj: read,
+      setObj: (key, value) => stage(key, value),
+      discard: (key) => writes.delete(key),
+      del: (key) => stage(key, null, true),
+      saveEdit: (key, valueOrFn, syncKey = SYNC_KEYS[key], options = {}) =>
+        stageEdit(transaction, stage, key, valueOrFn, syncKey, options),
+      updateSyncState: async (updater, { preserveDestination } = {}) => {
+        const current = (await read(STOKEY_SYNC)) ?? DEFAULT_SYNC;
+        const next = await updater(current, transaction);
+        if (next === undefined) return current;
+        return stage(STOKEY_SYNC, next, false, {
+          preserveDestination,
+          syncStateUpdate: true,
+        });
+      },
+    };
+    const result = await operation(transaction);
+    if (!writes.size) return result;
+    const persisted = new Map();
+    const stageRaw = async (key, value) => {
+      if (!persisted.has(key))
+        persisted.set(key, { previous: await rawGet(key), value });
+      else persisted.get(key).value = value;
+    };
+    for (const [key, { value, remove, configurationBaseline }] of writes) {
+      const configFields = (sync) => {
+        if (!sync) return sync;
+        const { syncMeta, ...configuration } = sync;
+        return configuration;
+      };
+      if (
+        isGm &&
+        key === STOKEY_SYNC &&
+        !remove &&
+        sameValue(configFields(configurationBaseline), configFields(value))
+      ) {
+        // Keep the original sync key and merge only metadata changed here.
+        // Re-read configuration so a delayed update cannot restore an old target.
+        const previous = configurationBaseline || DEFAULT_SYNC;
+        const current = (await getObj(key)) || DEFAULT_SYNC;
+        const changedDestination =
+          (current.destinationRevision || 0) !==
+            (previous.destinationRevision || 0) ||
+          DESTINATION_FIELDS.some(
+            (field) => current[field] !== previous[field]
+          );
+        if (changedDestination) {
+          writes.delete(key);
+          continue;
+        }
+        const changedMeta = Object.fromEntries(
+          Object.entries(value.syncMeta || {}).filter(
+            ([syncKey, meta]) => !sameValue(previous.syncMeta?.[syncKey], meta)
+          )
+        );
+        const syncMeta = preserveNewerSyncMeta(current.syncMeta, changedMeta);
+        Object.entries(changedMeta).forEach(([syncKey, meta]) => {
+          // An accepted remote version may be older than the local edit.
+          // Preserve newer metadata only if another origin changed this key.
+          if (
+            sameValue(current.syncMeta?.[syncKey], previous.syncMeta?.[syncKey])
+          )
+            syncMeta[syncKey] = meta;
+        });
+        const next = {
+          ...current,
+          syncMeta,
+        };
+        writes.get(key).value = next;
+        await stageRaw(key, JSON.stringify(next));
+        continue;
+      }
+      await stageRaw(key, remove ? null : JSON.stringify(value));
+    }
+    const attempted = [];
+    try {
+      if (coordinator?.commit) {
+        await coordinator.commit(
+          [...persisted].map(([key, entry]) => ({ key, ...entry }))
+        );
+      } else {
+        for (const [key, { value }] of persisted) {
+          attempted.push(key);
+          if (value === null) await rawDel(key);
+          else await rawSet(key, value);
+        }
+      }
+    } catch (error) {
+      for (const key of attempted.reverse()) {
+        const { previous, value } = persisted.get(key);
+        try {
+          // Avoid compensation when a newer value is already observable.
+          const stored = await rawGet(key);
+          if (value === null ? stored != null : stored !== value) {
+            // A concurrent writer makes the outcome of this edit indeterminate.
+            if (stored !== previous && (stored != null || previous != null))
+              error.storageOutcome = "unknown";
+            continue;
+          }
+          if (previous === undefined || previous === null) await rawDel(key);
+          else await rawSet(key, previous);
+        } catch (recoveryError) {
+          error.storageRecoveryFailed = true;
+          error.storageOutcome = "unknown";
+          kissLog("Unable to compensate a storage transaction", recoveryError);
+        }
+      }
+      error.storageOutcome ||= "not-committed";
+      throw error;
+    }
+    for (const [key, { value }] of writes) {
+      publishStorageWrite(key, value, key === STOKEY_SYNC);
+    }
+    return result;
+  }).catch((error) => {
+    error.storageOutcome ||= "not-committed";
+    throw error;
+  });
+}
+
+/** Stage a pure edit and its metadata without acquiring another lock. */
+async function stageEdit(
+  transaction,
+  stage,
+  key,
+  valueOrFn,
+  syncKey,
+  options = {}
+) {
+  const { timestamp = Date.now(), defaultValue = EDIT_DEFAULTS[key] } = options;
+  const captured =
+    typeof valueOrFn === "function" ? valueOrFn : cloneStorageValue(valueOrFn);
+  const capturedDefault = cloneStorageValue(defaultValue);
+  const previous = (await transaction.getObj(key)) ?? capturedDefault;
+  const computed =
+    typeof captured === "function"
+      ? captured(cloneStorageValue(previous))
+      : captured;
+  if (computed && typeof computed.then === "function") {
+    void Promise.resolve(computed).catch(() => {});
+    throw new TypeError("Storage edit updaters must be synchronous");
+  }
+  let value = cloneStorageValue(computed);
+  const current =
+    key === STOKEY_SYNC
+      ? previous
+      : syncKey
+        ? ((await transaction.getObj(STOKEY_SYNC)) ?? DEFAULT_SYNC)
+        : undefined;
+  const meta = current?.syncMeta?.[syncKey] || {};
+  if (key === STOKEY_SYNC && value) {
+    // Configuration edits cannot restore stale metadata or choose a revision.
+    const { destinationRevision, ...configuration } = value;
+    value = {
+      ...configuration,
+      syncMeta: cloneStorageValue(current?.syncMeta || {}),
+      ...(current?.destinationRevision !== undefined
+        ? { destinationRevision: current.destinationRevision }
+        : {}),
+    };
+  }
+  if (sameValue(previous, value))
+    return {
+      value: cloneStorageValue(previous),
+      changed: false,
+      updateAt: meta.updateAt || 0,
+    };
+  value = await stage(key, value, false, { userEdit: true });
+  let updateAt = meta.updateAt || 0;
+  if (syncKey) {
+    updateAt = Math.max(timestamp, updateAt + 1);
+    await transaction.updateSyncState(() => ({
+      ...current,
+      syncMeta: {
+        ...current.syncMeta,
+        [syncKey]: {
+          ...meta,
+          updateAt,
+          ...(meta.firstAttemptAt ? { pendingUpload: true } : {}),
+        },
+      },
+    }));
+  }
+  return { value: cloneStorageValue(value), changed: true, updateAt };
+}
+
+/** Keep an edit and its timestamp in the same ordered write operation. */
+export function saveEdit(
+  key,
+  valueOrFn,
+  syncKey = SYNC_KEYS[key],
+  options = {}
+) {
+  const captured =
+    typeof valueOrFn === "function" ? valueOrFn : cloneStorageValue(valueOrFn);
+  const capturedOptions = {
+    ...options,
+    timestamp: options.timestamp ?? Date.now(),
+    ...(options.defaultValue !== undefined
+      ? { defaultValue: cloneStorageValue(options.defaultValue) }
+      : {}),
+  };
+  return withTransaction((transaction) =>
+    transaction.saveEdit(key, captured, syncKey, capturedOptions)
+  );
+}
+
+/** Read business data and sync settings within the page's write boundary. */
+export function readSyncSnapshot(storageKey) {
+  return withTransaction(async (transaction) => {
+    const rawValue = await transaction.getObj(storageKey);
+    const syncConfig = (await transaction.getObj(STOKEY_SYNC)) || DEFAULT_SYNC;
+    const value =
+      storageKey === STOKEY_SETTING
+        ? normalizeStoredSetting(rawValue)
+        : storageKey === STOKEY_RULES
+          ? rawValue || DEFAULT_RULES
+          : storageKey === STOKEY_WORDS
+            ? rawValue || {}
+            : rawValue;
+    return { value, syncConfig };
+  });
 }
 
 /**
@@ -137,8 +488,10 @@ async function getObj(key) {
  * @param {Object} obj 待合并的数据切片
  */
 async function putObj(key, obj) {
-  const cur = (await getObj(key)) ?? {};
-  await setObj(key, { ...cur, ...obj });
+  return withTransaction(async (transaction) => {
+    const cur = (await transaction.getObj(key)) ?? {};
+    await transaction.setObj(key, { ...cur, ...obj });
+  });
 }
 
 /**
@@ -152,6 +505,9 @@ export const storage = {
   trySetObj,
   getObj,
   putObj,
+  withTransaction,
+  saveEdit,
+  readSyncSnapshot,
 };
 
 // --- 应用设置 (Settings) 数据存取 ---
@@ -188,34 +544,56 @@ export const migrateStoredSettingToV2 = async (
   return migrateSettingPromptsToV2(setting);
 };
 
+/** Return false if migration cannot persist settings; reads still reject. */
 export const runDataMigration = async () => {
   const rawSetting = await getSetting();
-  if (rawSetting && getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION) {
-    try {
+  if (!rawSetting) return true;
+
+  const needsSchemaMigration =
+    getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
+  const needsThemeMigration = typeof rawSetting.darkMode === "boolean";
+  if (!needsSchemaMigration && !needsThemeMigration) return true;
+
+  try {
+    let nextSetting = rawSetting;
+    if (needsSchemaMigration) {
       const v2Setting = await migrateStoredSettingToV2(rawSetting, rawSetting);
-      const nextSetting = migrateSettingToV3(v2Setting);
-      await setObj(STOKEY_SETTING, nextSetting);
-      kissLog(`Migration to V${CURRENT_SETTINGS_VERSION} completed.`);
-    } catch (err) {
-      kissLog(`Data migration to V${CURRENT_SETTINGS_VERSION} failed:`, err);
+      nextSetting = migrateSettingToV3(v2Setting);
     }
+    if (needsThemeMigration) {
+      nextSetting = {
+        ...nextSetting,
+        darkMode: rawSetting.darkMode ? "dark" : "light",
+      };
+    }
+    await setObj(STOKEY_SETTING, nextSetting);
+    kissLog(`Migration to V${CURRENT_SETTINGS_VERSION} completed.`);
+    return true;
+  } catch (err) {
+    kissLog(`Data migration to V${CURRENT_SETTINGS_VERSION} failed:`, err);
+    return false;
   }
 };
 
-export const getSettingWithDefault = async () => {
-  const rawSetting = await getSetting();
+export const normalizeStoredSetting = (rawSetting) => {
   if (!rawSetting) {
     // 新安装同样通过统一入口得到最终思考设置，避免默认配置绕过归一化。
     return mergeSettingWithDefault(DEFAULT_SETTING);
   }
 
-  const setting =
+  let setting =
     getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION
       ? migrateSettingToV3(rawSetting)
       : rawSetting;
 
+  if (typeof setting.darkMode === "boolean") {
+    setting = { ...setting, darkMode: setting.darkMode ? "dark" : "light" };
+  }
+
   return mergeSettingWithDefault(setting);
 };
+export const getSettingWithDefault = async () =>
+  normalizeStoredSetting(await getSetting());
 export const setSetting = async (val) => setObj(STOKEY_SETTING, val);
 export const putSetting = async (obj) => {
   const cur = (await getSetting()) ?? {};
@@ -303,14 +681,42 @@ export const debouncePutTranBox = debounce(putTranBox, 300);
 // --- 云同步元数据 (Sync Settings & Timestamps) 存取 ---
 export const getSync = () => getObj(STOKEY_SYNC);
 export const getSyncWithDefault = async () => (await getSync()) || DEFAULT_SYNC;
-export const putSync = (obj) => putObj(STOKEY_SYNC, obj);
-export const putSyncMeta = async (key) => {
-  const { syncMeta = {} } = await getSyncWithDefault();
-  syncMeta[key] = { ...(syncMeta[key] || {}), updateAt: Date.now() };
-  await putSync({ syncMeta });
+export const putSync = (obj, options) =>
+  updateSyncState((current) => {
+    if (
+      options?.expectedDestinationRevision !== undefined &&
+      (current.destinationRevision || 0) !== options.expectedDestinationRevision
+    ) {
+      throw new Error("Sync destination changed during the request");
+    }
+    return {
+      ...current,
+      ...obj,
+      ...(obj.syncMeta
+        ? {
+            syncMeta: preserveNewerSyncMeta(current.syncMeta, obj.syncMeta),
+          }
+        : {}),
+    };
+  }, options);
+export const putSyncMeta = (key) => {
+  const updateAt = Date.now();
+  return updateSyncState((current) => ({
+    ...current,
+    syncMeta: {
+      ...current.syncMeta,
+      [key]: {
+        ...current.syncMeta?.[key],
+        updateAt: Math.max(
+          updateAt,
+          (current.syncMeta?.[key]?.updateAt || 0) + 1
+        ),
+      },
+    },
+  }));
 };
-// 节流处理同步时间元数据的更新
-export const debounceSyncMeta = debounce(putSyncMeta, 300);
+// Keep the legacy name without delaying or discarding another key's metadata.
+export const debounceSyncMeta = putSyncMeta;
 
 // --- 百度云服务授权 Token 存取 ---
 export const getBdauth = () => getObj(STOKEY_BDAUTH);

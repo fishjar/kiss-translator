@@ -1,3 +1,4 @@
+/* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act, testing-library/render-result-naming-convention */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import TranCont from "./TranCont";
@@ -34,10 +35,23 @@ jest.mock("./CopyBtn", () => {
     );
 });
 
+jest.mock("./AudioBtn", () => {
+  const React = require("react");
+
+  return {
+    BrowserTtsBtn: ({ text }) =>
+      React.createElement(
+        "button",
+        { type: "button", "data-speech-text": text },
+        "speak"
+      ),
+  };
+});
+
 /**
- * 创建一个可由测试主动 resolve/reject 的 Promise。
+ * Create a Promise that tests can resolve or reject explicitly.
  *
- * @returns {{promise: Promise<unknown>, resolve: Function, reject: Function}} 可控 Promise 句柄。
+ * @returns {{promise: Promise<unknown>, resolve: Function, reject: Function}} Controllable Promise handle.
  */
 function createDeferred() {
   let resolve;
@@ -51,9 +65,9 @@ function createDeferred() {
 }
 
 /**
- * 将 React effect 与 Promise 微任务推进到稳定状态。
+ * Flush React effects and Promise microtasks.
  *
- * @returns {Promise<void>} 等待队列清空的 Promise。
+ * @returns {Promise<void>} Promise that resolves after the queues settle.
  */
 async function flushEffects() {
   await act(async () => {
@@ -103,10 +117,10 @@ const microsoftApiSetting = {
 };
 
 /**
- * 渲染划词翻译结果组件。
+ * Render the selection translation result component.
  *
- * @param {Object} props 覆盖默认组件参数。
- * @returns {{container: HTMLElement, root: Object}} React 根节点与容器。
+ * @param {Object} props Overrides for the default component props.
+ * @returns {{container: HTMLElement, root: Object}} React root and container.
  */
 function renderTranCont(props = {}) {
   const container = document.createElement("div");
@@ -135,6 +149,209 @@ describe("TranCont", () => {
     document.body.innerHTML = "";
   });
 
+  test("renders an explicit read-only empty state in the Playground", async () => {
+    const { container, root } = renderTranCont({
+      text: "",
+      isPlayground: true,
+    });
+    await flushEffects();
+
+    const textarea = container.querySelector("textarea");
+    expect(
+      container.querySelector(".kt-playground-translator__result")
+    ).not.toBeNull();
+    expect(textarea.readOnly).toBe(true);
+    expect(textarea.classList).toContain("kt-resizable-textarea");
+    expect(textarea.closest(".kt-resizable-text-field")).not.toBeNull();
+    expect(
+      getComputedStyle(textarea.closest(".MuiInputBase-root")).overflow
+    ).toBe("visible");
+    expect(getComputedStyle(textarea).resize).toBe("vertical");
+    expect(textarea.placeholder).toBe("playground_translation_empty_result");
+    expect(container.querySelector("button[data-copy-text]")).toBeNull();
+    expect(apiTranslate).not.toHaveBeenCalled();
+    act(() => root.unmount());
+  });
+
+  test("renders an accessible read-only result with copy and speech actions", async () => {
+    apiTranslate.mockResolvedValueOnce({ trText: "译文" });
+    const { container, root } = renderTranCont();
+    await flushEffects();
+
+    const result = container.querySelector(".kt-translation-result");
+    expect(result).not.toBeNull();
+    const textarea = result.querySelector('textarea:not([aria-hidden="true"])');
+    expect(textarea.value).toBe("译文");
+    expect(textarea.readOnly).toBe(true);
+    expect(textarea.getAttribute("aria-label")).toBe(
+      "translated_text - OpenAI"
+    );
+    expect(result.querySelector("[data-copy-text]").dataset.copyText).toBe(
+      "译文"
+    );
+    expect(result.querySelector("[data-speech-text]").dataset.speechText).toBe(
+      "译文"
+    );
+    act(() => root.unmount());
+  });
+
+  test.each([undefined, ""])(
+    "identifies a provider without a display name (%s) by its slug",
+    async (apiName) => {
+      apiTranslate.mockResolvedValueOnce({ trText: "Translated result" });
+      const { container, root } = renderTranCont({
+        transApis: [{ ...baseApiSetting, apiName }],
+      });
+      await flushEffects();
+
+      expect(container.querySelector("label").textContent).toBe(
+        "translated_text - openai"
+      );
+      expect(
+        container.querySelector("textarea").getAttribute("aria-label")
+      ).toBe("translated_text - openai");
+      expect(container.querySelector('[role="status"]').textContent).toBe(
+        "translated_text - openai: Translated result"
+      );
+      act(() => root.unmount());
+    }
+  );
+
+  test.each(["success", "error"])(
+    "announces the final %s without announcing streaming chunks",
+    async (outcome) => {
+      const deferred = createDeferred();
+      apiTranslate.mockReturnValueOnce(deferred.promise);
+      const { container, root } = renderTranCont();
+      await flushEffects();
+
+      const status = container.querySelector('[role="status"]');
+      expect(status).not.toBeNull();
+      expect(status.getAttribute("aria-live")).toBe("polite");
+      expect(status.getAttribute("aria-atomic")).toBe("true");
+      expect(status.textContent).toBe("");
+
+      act(() => {
+        apiTranslate.mock.calls[0][0].onStreamChunk({
+          text: "Partial translation",
+        });
+      });
+      expect(container.querySelector("textarea").value).toBe(
+        "Partial translation"
+      );
+      expect(status.textContent).toBe("");
+
+      await act(async () => {
+        if (outcome === "success") {
+          deferred.resolve({ trText: "Final translation" });
+        } else {
+          deferred.reject(new Error("Translation failed"));
+        }
+        await deferred.promise.catch(() => {});
+      });
+
+      expect(container.querySelector('[role="status"]')).toBe(status);
+      expect(status.textContent).toBe(
+        `translated_text - OpenAI: ${
+          outcome === "success" ? "Final translation" : "Translation failed"
+        }`
+      );
+      act(() => root.unmount());
+    }
+  );
+
+  test.each(["", " \t\r\n "])(
+    "keeps the result empty for empty or whitespace source %j",
+    async (text) => {
+      const { container, root } = renderTranCont({ text });
+      await flushEffects();
+
+      const textarea = container.querySelector(
+        'textarea[readonly]:not([aria-hidden="true"])'
+      );
+      expect(textarea.value).toBe("");
+      expect(textarea.getAttribute("aria-busy")).toBe("false");
+      expect(container.querySelector("[data-copy-text]")).toBeNull();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      act(() => root.unmount());
+    }
+  );
+
+  test("keeps the result empty when automatic detection matches the target language", async () => {
+    apiTranslate.mockResolvedValueOnce({
+      trText: "hello",
+      srLang: "en",
+      srCode: "en",
+      isSame: true,
+    });
+    const { container, root } = renderTranCont({
+      text: "hello",
+      fromLang: "auto",
+      toLang: "en",
+    });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "hello",
+        fromLang: "auto",
+        toLang: "en",
+      })
+    );
+    const textarea = container.querySelector(
+      'textarea[readonly]:not([aria-hidden="true"])'
+    );
+    expect(textarea.value).toBe("");
+    expect(textarea.getAttribute("aria-busy")).toBe("false");
+    expect(container.querySelector("[data-copy-text]")).toBeNull();
+    act(() => root.unmount());
+  });
+
+  test("keeps the result empty when a successful translation returns no text", async () => {
+    apiTranslate.mockResolvedValueOnce({ trText: "", isSame: false });
+    const { container, root } = renderTranCont();
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    const textarea = container.querySelector(
+      'textarea[readonly]:not([aria-hidden="true"])'
+    );
+    expect(textarea.value).toBe("");
+    expect(textarea.getAttribute("aria-busy")).toBe("false");
+    expect(container.querySelector("[data-copy-text]")).toBeNull();
+    act(() => root.unmount());
+  });
+
+  test("keeps the copy action hidden until translation text exists", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+    const { container, root } = renderTranCont();
+    await flushEffects();
+
+    const textarea = container.querySelector(
+      'textarea[readonly]:not([aria-hidden="true"])'
+    );
+    expect(textarea.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector("[data-copy-text]")).toBeNull();
+
+    await act(async () => {
+      apiTranslate.mock.calls[0][0].onStreamChunk({
+        text: "partial translation",
+        isComplete: false,
+      });
+    });
+    expect(container.querySelector("[data-copy-text]").dataset.copyText).toBe(
+      "partial translation"
+    );
+
+    await act(async () => {
+      deferred.resolve({ trText: "final translation" });
+      await deferred.promise;
+    });
+    expect(textarea.getAttribute("aria-busy")).toBe("false");
+    act(() => root.unmount());
+  });
+
   test("renders streaming chunks before the final translation", async () => {
     const deferred = createDeferred();
     apiTranslate.mockReturnValueOnce(deferred.promise);
@@ -144,9 +361,15 @@ describe("TranCont", () => {
 
     const textarea = container.querySelector("textarea");
     expect(textarea.value).toBe("");
+    expect(textarea.getAttribute("aria-busy")).toBe("true");
+    expect(
+      container.querySelector(
+        '[role="progressbar"][aria-label="popup_translating"]'
+      )
+    ).not.toBeNull();
 
     await act(async () => {
-      // 模拟底层 SSE 增量返回，输出框应立即展示已经到达的部分译文。
+      // Simulate an SSE chunk; the output should display the partial translation immediately.
       apiTranslate.mock.calls[0][0].onStreamChunk({
         text: "阶段译文",
         isComplete: false,
@@ -159,6 +382,7 @@ describe("TranCont", () => {
       await deferred.promise;
     });
     expect(textarea.value).toBe("最终译文");
+    expect(textarea.getAttribute("aria-busy")).toBe("false");
 
     act(() => {
       root.unmount();
@@ -326,6 +550,7 @@ describe("TranCont", () => {
       text: "First\n\nSecond\r\nThird\rFourth",
       apiSlug: "builtinai",
       transApis: [builtinApiSetting],
+      detectedLang: "en",
     });
     await flushEffects();
 
@@ -334,6 +559,12 @@ describe("TranCont", () => {
       "Second",
       "Third",
       "Fourth",
+    ]);
+    expect(apiTranslate.mock.calls.map(([args]) => args.fromLang)).toEqual([
+      "en",
+      "en",
+      "en",
+      "en",
     ]);
     expect(
       new Set(apiTranslate.mock.calls.map(([args]) => args.signal)).size
@@ -345,6 +576,133 @@ describe("TranCont", () => {
     act(() => {
       root.unmount();
     });
+  });
+
+  test("waits for complete-input detection before translating BuiltinAI fragments", async () => {
+    apiTranslate.mockResolvedValue({ trText: "translated" });
+    const { container, root } = renderTranCont({
+      text: "First\nSecond",
+      apiSlug: "builtinai",
+      transApis: [builtinApiSetting],
+      sourceDetectionPending: true,
+    });
+    await flushEffects();
+
+    expect(apiTranslate).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="progressbar"]')).not.toBeNull();
+
+    act(() => {
+      root.render(
+        <TranCont
+          text={"First\nSecond"}
+          fromLang="auto"
+          toLang="zh-CN"
+          apiSlug="builtinai"
+          transApis={[builtinApiSetting]}
+          detectedLang="en"
+          sourceDetectionPending={false}
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(2);
+    expect(apiTranslate.mock.calls.map(([args]) => args.fromLang)).toEqual([
+      "en",
+      "en",
+    ]);
+
+    act(() => root.unmount());
+  });
+
+  test("uses one auto seed and reuses its source language for remaining BuiltinAI fragments", async () => {
+    const seed = createDeferred();
+    apiTranslate
+      .mockReturnValueOnce(seed.promise)
+      .mockImplementation(async ({ text }) => ({
+        trText: `translated:${text}`,
+        srLang: "en",
+        srCode: "en",
+        isSame: false,
+      }));
+
+    const { container, root } = renderTranCont({
+      text: "First\nSecond\nThird",
+      apiSlug: "builtinai",
+      transApis: [builtinApiSetting],
+    });
+    await flushEffects();
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ text: "First", fromLang: "auto" })
+    );
+
+    await act(async () => {
+      seed.resolve({
+        trText: "translated:First",
+        srLang: "en",
+        srCode: "en",
+        isSame: false,
+      });
+      await seed.promise;
+      await Promise.resolve();
+    });
+
+    expect(apiTranslate).toHaveBeenCalledTimes(3);
+    expect(
+      apiTranslate.mock.calls.slice(1).map(([args]) => args.fromLang)
+    ).toEqual(["en", "en"]);
+    expect(container.querySelector("textarea").value).toBe(
+      "translated:First\ntranslated:Second\ntranslated:Third"
+    );
+
+    act(() => root.unmount());
+  });
+
+  test("stops BuiltinAI multiline translation when the auto seed fails", async () => {
+    apiTranslate.mockRejectedValueOnce(new Error("source detection failed"));
+
+    const { container, root } = renderTranCont({
+      text: "First\nSecond\nThird",
+      apiSlug: "builtinai",
+      transApis: [builtinApiSetting],
+    });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("textarea").value).toBe("");
+    expect(container.textContent).toContain("source detection failed");
+
+    act(() => root.unmount());
+  });
+
+  test("does not restart non-BuiltinAI translation when detection metadata changes", async () => {
+    apiTranslate.mockResolvedValue({ trText: "translated" });
+    const transApis = [baseApiSetting];
+    const { root } = renderTranCont({
+      transApis,
+      sourceDetectionPending: true,
+    });
+    await flushEffects();
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.render(
+        <TranCont
+          text="hello"
+          fromLang="auto"
+          toLang="zh-CN"
+          apiSlug="openai"
+          transApis={transApis}
+          detectedLang="en"
+          sourceDetectionPending={false}
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
   });
 
   test("shows a BuiltinAI fragment error without rendering a partial result", async () => {
@@ -359,6 +717,7 @@ describe("TranCont", () => {
       text: "First\nSecond",
       apiSlug: "builtinai",
       transApis: [builtinApiSetting],
+      detectedLang: "en",
     });
     await flushEffects();
 
@@ -381,6 +740,7 @@ describe("TranCont", () => {
       text: "First\nSecond",
       apiSlug: "builtinai",
       transApis: [builtinApiSetting],
+      detectedLang: "en",
     });
     await flushEffects();
 
@@ -473,7 +833,7 @@ describe("TranCont", () => {
     expect(apiTranslate.mock.calls[0][0].signal.aborted).toBe(true);
 
     await act(async () => {
-      // 旧请求即使晚返回，也不能覆盖新请求的最终译文。
+      // A late response from an old request must not overwrite the new translation.
       first.resolve({ trText: "旧译文" });
       await first.promise;
       second.resolve({ trText: "新译文" });
@@ -481,6 +841,104 @@ describe("TranCont", () => {
     });
 
     expect(container.querySelector("textarea").value).toBe("新译文");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("leaves LaTeX untouched while the addon is off", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+
+    const { container, root } = renderTranCont();
+    await flushEffects();
+    const textarea = container.querySelector("textarea");
+
+    await act(async () => {
+      apiTranslate.mock.calls[0][0].onStreamChunk({
+        text: "\\(\\dot{x}_1\\) 部分",
+        isComplete: false,
+      });
+    });
+    expect(textarea.value).toBe("\\(\\dot{x}_1\\) 部分");
+
+    await act(async () => {
+      deferred.resolve({ trText: "\\(\\dot{x}_1\\) 是速度" });
+      await deferred.promise;
+    });
+    expect(textarea.value).toBe("\\(\\dot{x}_1\\) 是速度");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("converts LaTeX in stream and final text when the addon is on", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+
+    const { container, root } = renderTranCont({ parseLatex: true });
+    await flushEffects();
+    const textarea = container.querySelector("textarea");
+
+    await act(async () => {
+      apiTranslate.mock.calls[0][0].onStreamChunk({
+        text: "\\(\\dot{x}_1\\) 部分",
+        isComplete: false,
+      });
+    });
+    expect(textarea.value).toBe("ẋ₁ 部分");
+
+    await act(async () => {
+      deferred.resolve({ trText: "\\(\\dot{x}_1\\) 是速度" });
+      await deferred.promise;
+    });
+    expect(textarea.value).toBe("ẋ₁ 是速度");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("converts LaTeX before the multiline de-escaping of an AI response", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+
+    // 多行原文会触发 `\\n|\\r` 反转义规则，`\right` 必须先被公式转换消化掉。
+    const { container, root } = renderTranCont({
+      parseLatex: true,
+      text: "hello\nworld",
+    });
+    await flushEffects();
+
+    await act(async () => {
+      deferred.resolve({ trText: "\\(\\left(x\\right)\\)" });
+      await deferred.promise;
+    });
+
+    const textarea = container.querySelector("textarea");
+    expect(textarea.value).toBe("(x)");
+    expect(textarea.value).not.toContain("ight");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("keeps the multiline de-escaping untouched while the addon is off", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+
+    const { container, root } = renderTranCont({ text: "hello\nworld" });
+    await flushEffects();
+
+    await act(async () => {
+      deferred.resolve({ trText: "第一行\\n第二行" });
+      await deferred.promise;
+    });
+
+    expect(container.querySelector("textarea").value).toBe("第一行\n第二行");
 
     act(() => {
       root.unmount();

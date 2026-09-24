@@ -6,6 +6,7 @@
 const quotes = [
   {
     en: "The unexamined life is not worth living.",
+    ru: "Неосмысленная жизнь не стоит того, чтобы её прожить.",
     zh: "未经审视的人生不值得过。",
     zh_TW: "未經審視的人生不值得過。",
     ja: "吟味されない人生は生きるに値しない。",
@@ -13,6 +14,7 @@ const quotes = [
   },
   {
     en: "I think, therefore I am.",
+    ru: "Мыслю, следовательно, существую.",
     zh: "我思故我在。",
     zh_TW: "我思故我在。",
     ja: "我思う、ゆえに我あり。",
@@ -20,6 +22,7 @@ const quotes = [
   },
   {
     en: "He who has a why to live for can bear almost any how.",
+    ru: "Тот, у кого есть «зачем» жить, вынесет почти любое «как».",
     zh: "知道为何而活的人，几乎能忍受任何一种生活。",
     zh_TW: "知道為何而活的人，幾乎能忍受任何一種生活。",
     ja: "生きるための「なぜ」を持つ者は、ほとんどあらゆる「どのように」にも耐えることができる。",
@@ -27,6 +30,7 @@ const quotes = [
   },
   {
     en: "Life is what happens when you're busy making other plans.",
+    ru: "Жизнь — это то, что происходит с нами, пока мы строим другие планы.",
     zh: "生活就是当你忙着制定其他计划时所发生的事情。",
     zh_TW: "生活就是當你忙著制定其他計劃時所發生的事情。",
     ja: "人生とは、他の計画を立てるのに忙しいときに起こるものだ。",
@@ -34,6 +38,7 @@ const quotes = [
   },
   {
     en: "Get busy living or get busy dying.",
+    ru: "Занимайся жизнью или занимайся смертью.",
     zh: "要么忙着活，要么忙着死。",
     zh_TW: "要么忙著活，要么忙著死。",
     ja: "必死に生きるか、必死に死ぬかだ。",
@@ -41,6 +46,7 @@ const quotes = [
   },
   {
     en: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.",
+    ru: "Мы есть то, что мы постоянно делаем. Совершенство — не действие, а привычка.",
     zh: "我们由我们反复做的事情构成的。因此，卓越不是一种行为，而是一种习惯。",
     zh_TW:
       "我們由我們反覆做的事情構成的。因此，卓越不是一種行為，而是一種習慣。",
@@ -49,6 +55,7 @@ const quotes = [
   },
   {
     en: "Man is condemned to be free.",
+    ru: "Человек обречён быть свободным.",
     zh: "人注定是自由的。",
     zh_TW: "人註定是自由的。",
     ja: "人間は自由であるように呪われている。",
@@ -56,6 +63,7 @@ const quotes = [
   },
   {
     en: "To be, or not to be: that is the question.",
+    ru: "Быть или не быть — вот в чём вопрос.",
     zh: "生存还是毁灭，这是一个问题。",
     zh_TW: "生存還是毀滅，這是一個問題。",
     ja: "生きるべきか、死ぬべきか、それが問題だ。",
@@ -63,6 +71,7 @@ const quotes = [
   },
   {
     en: "The purpose of life is not to be happy. It is to be useful, to be honorable, to be compassionate, to have it make some difference that you have lived and lived well.",
+    ru: "Цель жизни не в том, чтобы быть счастливым, а в том, чтобы быть полезным, достойным, сострадательным — чтобы твоя жизнь что-то значила.",
     zh: "人生的目的不是快乐，而是有用、高尚、富有同情心，让你活过并且活得好，从而使世界有所不同。",
     zh_TW:
       "人生的目的不是快樂，而是有用、高尚、富有同情心，讓你活過並且活得好，從而使世界有所不同。",
@@ -71,6 +80,7 @@ const quotes = [
   },
   {
     en: "Life is 10% what happens to us and 90% how we react to it.",
+    ru: "Жизнь на 10% состоит из того, что с нами происходит, и на 90% — из того, как мы на это реагируем.",
     zh: "生活 10% 取决于发生在我们身上的事，90% 取决于我们如何反应。",
     zh_TW: "生活 10% 取決於發生在我們身上的事，90% 取決於我們如何反應。",
     ja: "人生は、我々に起こることが10％で、それにどう反応するかが90％だ。",
@@ -78,6 +88,7 @@ const quotes = [
   },
   {
     en: "The two most important days in your life are the day you are born and the day you find out why.",
+    ru: "Два самых важных дня в вашей жизни — день, когда вы родились, и день, когда вы поняли зачем.",
     zh: "你一生中最重要的两天是：你出生的那天和你明白你为何出生的那天。",
     zh_TW: "你一生中最重要的兩天是：你出生的那天和你明白你為何出生的那天。",
     ja: "人生で最も重要な日は二日ある。生まれた日と、なぜ生まれたかを悟る日だ。",
@@ -85,6 +96,7 @@ const quotes = [
   },
   {
     en: "In three words I can sum up everything I've learned about life: it goes on.",
+    ru: "Всё, что я узнал о жизни, укладывается в три слова: она продолжается.",
     zh: "关于人生，我所学到的一切可以总结为三个词：它在继续。",
     zh_TW: "關於人生，我所學到的一切可以總結為三個詞：它在繼續。",
     ja: "人生について学んだすべてを3語でまとめることができる。それは「それでも続く」ということだ。",
@@ -92,6 +104,7 @@ const quotes = [
   },
   {
     en: "Not all those who wander are lost.",
+    ru: "Не всякий, кто блуждает, — заблудился.",
     zh: "并非所有流浪者都迷失了方向。",
     zh_TW: "並非所有流浪者都迷失了方向。",
     ja: "さまよう者がすべて道に迷っているわけではない。",
@@ -99,6 +112,7 @@ const quotes = [
   },
   {
     en: "Life is simple, but we insist on making it complicated.",
+    ru: "Жизнь проста, но мы упорно её усложняем.",
     zh: "生活本简单，但我们坚持要把它弄复杂。",
     zh_TW: "生活本簡單，但我們堅持要把它弄複雜。",
     ja: "人生はシンプルだ。だが我々はそれを複雑にしようと躍起になる。",
@@ -106,6 +120,7 @@ const quotes = [
   },
   {
     en: "Our life is what our thoughts make it.",
+    ru: "Наша жизнь такова, какой её делают наши мысли.",
     zh: "我们的生活是由我们的思想造成的。",
     zh_TW: "我們的生活是由我們的思想造成的。",
     ja: "我々の人生は、我々の思考が作るものだ。",
@@ -113,6 +128,7 @@ const quotes = [
   },
   {
     en: "Find purpose, the means will follow.",
+    ru: "Найди цель — средства найдутся.",
     zh: "找到目标，方法自会随之而来。",
     zh_TW: "找到目標，方法自會隨之而來。",
     ja: "目的を見つけよ、手段は後からついてくる。",
@@ -120,6 +136,7 @@ const quotes = [
   },
   {
     en: "The goal of life is living in agreement with nature.",
+    ru: "Цель жизни — жить в согласии с природой.",
     zh: "生活的目标是与自然和谐相处。",
     zh_TW: "生活的目標是與自然和諧相處。",
     ja: "人生の目標は、自然と調和して生きることである。",
@@ -127,6 +144,7 @@ const quotes = [
   },
   {
     en: "The only true wisdom is in knowing you know nothing.",
+    ru: "Единственная подлинная мудрость — знать, что ты ничего не знаешь.",
     zh: "唯一的真正智慧在于知道自己一无所有。",
     zh_TW: "唯一的真正智慧在於知道自己一無所有。",
     ja: "唯一真の知恵は、自分が何も知らないことを知ることにある。",
@@ -134,6 +152,7 @@ const quotes = [
   },
   {
     en: "Knowledge is power.",
+    ru: "Знание — сила.",
     zh: "知识就是力量。",
     zh_TW: "知識就是力量。",
     ja: "知識は力なり。",
@@ -141,6 +160,7 @@ const quotes = [
   },
   {
     en: "Knowing yourself is the beginning of all wisdom.",
+    ru: "Познание себя — начало всякой мудрости.",
     zh: "了解自己是所有智慧的开端。",
     zh_TW: "了解自己是所有智慧的開端。",
     ja: "自分自身を知ることが、すべての知恵の始まりである。",
@@ -148,6 +168,7 @@ const quotes = [
   },
   {
     en: "The journey of a thousand miles begins with a single step.",
+    ru: "Путь в тысячу ли начинается с первого шага.",
     zh: "千里之行，始于足下。",
     zh_TW: "千里之行，始於足下。",
     ja: "千里の道も一歩から。",
@@ -155,6 +176,7 @@ const quotes = [
   },
   {
     en: "The only source of knowledge is experience.",
+    ru: "Единственный источник знания — опыт.",
     zh: "知识的唯一来源是经验。",
     zh_TW: "知識的唯一來源是經驗。",
     ja: "知識の唯一の源泉は経験である。",
@@ -162,6 +184,7 @@ const quotes = [
   },
   {
     en: "A fool thinks himself to be wise, but a wise man knows himself to be a fool.",
+    ru: "Глупец считает себя мудрым, а мудрец знает, что он глупец.",
     zh: "愚者自以为聪明，智者自知愚蠢。",
     zh_TW: "愚者自以為聰明，智者自知愚蠢。",
     ja: "愚か者は自分を賢いと思うが、賢い者は自分が愚かであることを知っている。",
@@ -169,6 +192,7 @@ const quotes = [
   },
   {
     en: "We learn from failure, not from success!",
+    ru: "Мы учимся на неудачах, а не на успехах!",
     zh: "我们从失败中学习，而不是从成功中！",
     zh_TW: "我們從失敗中學習，而不是從成功中！",
     ja: "我々は成功からではなく、失敗から学ぶ！",
@@ -176,6 +200,7 @@ const quotes = [
   },
   {
     en: "The wise man is one who knows what he does not know.",
+    ru: "Мудр тот, кто знает, чего он не знает.",
     zh: "智者，知其所不知。",
     zh_TW: "智者，知其所不知。",
     ja: "賢い者とは、自分が何を知らないかを知っている者である。",
@@ -183,6 +208,7 @@ const quotes = [
   },
   {
     en: "To know that we know what we know, and that we do not know what we do not know, that is true knowledge.",
+    ru: "Знать, что мы знаем то, что знаем, и не знаем того, чего не знаем, — вот истинное знание.",
     zh: "知之为知之，不知为不知，是知也。",
     zh_TW: "知之為知之，不知為不知，是知也。",
     ja: "知るを知るとなし、知らざるを知らずとなす、これ知るなり。",
@@ -190,6 +216,7 @@ const quotes = [
   },
   {
     en: "Curiosity is the wick in the candle of learning.",
+    ru: "Любопытство — фитиль в свече познания.",
     zh: "好奇心是学习这支蜡烛的灯芯。",
     zh_TW: "好奇心是學習這支蠟燭的燈芯。",
     ja: "好奇心は、学習というロウソクの芯である。",
@@ -197,6 +224,7 @@ const quotes = [
   },
   {
     en: "It is the mark of an educated mind to be able to entertain a thought without accepting it.",
+    ru: "Признак образованного ума — способность обдумывать мысль, не принимая её.",
     zh: "能够容纳一种思想而不同意它，这是一个受过教育的头脑的标志。",
     zh_TW: "能夠容納一種思想而不同意它，這是一個受過教育的頭腦的標誌。",
     ja: "ある考えを受け入れずに、その考えを持ち続けることができるのが、教育ある精神の証である。",
@@ -204,6 +232,7 @@ const quotes = [
   },
   {
     en: "Never stop questioning.",
+    ru: "Никогда не переставай задавать вопросы.",
     zh: "永远不要停止提问。",
     zh_TW: "永遠不要停止提問。",
     ja: "疑問を持つことを決してやめるな。",
@@ -211,6 +240,7 @@ const quotes = [
   },
   {
     en: "The man who asks a question is a fool for a minute, the man who does not ask is a fool for life.",
+    ru: "Задающий вопрос глуп минуту; не спрашивающий глуп всю жизнь.",
     zh: "问问题的人，只傻一分钟；不问的人，傻一生。",
     zh_TW: "問問題的人，只傻一分鐘；不問的人，傻一生。",
     ja: "問う者は一時の恥、問わぬ者は一生の恥。",
@@ -218,6 +248,7 @@ const quotes = [
   },
   {
     en: "Wisdom is not a product of schooling but of the lifelong attempt to acquire it.",
+    ru: "Мудрость — не продукт обучения, а результат пожизненных попыток её обрести.",
     zh: "智慧不是学校教育的产物，而是终生努力获得的产物。",
     zh_TW: "智慧不是學校教育的產物，而是終生努力獲得的產物。",
     ja: "知恵とは学校教育の産物ではなく、生涯をかけて獲得しようと試みることで得られるものである。",
@@ -225,6 +256,7 @@ const quotes = [
   },
   {
     en: "The greatest enemy of knowledge is not ignorance, it is the illusion of knowledge.",
+    ru: "Главный враг знания — не невежество, а иллюзия знания.",
     zh: "知识最大的敌人不是无知，而是自以为拥有知识的幻觉。",
     zh_TW: "知識最大的敵人不是無知，而是自以為擁有知識的幻覺。",
     ja: "知識の最大の敵は無知ではなく、知っているという幻想である。",
@@ -232,6 +264,7 @@ const quotes = [
   },
   {
     en: "True wisdom comes to each of us when we realize how little we understand about life, ourselves, and the world around us.",
+    ru: "Истинная мудрость приходит к каждому, когда он понимает, как мало знает о жизни, о себе и об окружающем мире.",
     zh: "当我们认识到自己对生命、对自身、对周围世界了解得多么少时，真正的智慧才会降临到我们每个人身上。",
     zh_TW:
       "當我們認識到自己對生命、對自身、對周圍世界了解得多麼少時，真正的智慧才會降臨到我們每個人身上。",
@@ -240,6 +273,7 @@ const quotes = [
   },
   {
     en: "Beware of false knowledge; it is more dangerous than ignorance.",
+    ru: "Остерегайтесь ложного знания: оно опаснее невежества.",
     zh: "谨防虚假的知识；它比无知更危险。",
     zh_TW: "謹防虛假的知識；它比無知更危險。",
     ja: "偽りの知識に用心せよ。それは無知よりも危険である。",
@@ -247,6 +281,7 @@ const quotes = [
   },
   {
     en: "What does not kill me makes me stronger.",
+    ru: "Что меня не убивает, делает меня сильнее.",
     zh: "杀不死我的，使我更强大。",
     zh_TW: "殺不死我的，使我更強大。",
     ja: "私を殺さないものは、私をより強くする。",
@@ -254,6 +289,7 @@ const quotes = [
   },
   {
     en: "The only constant in life is change.",
+    ru: "Единственное постоянное в жизни — перемены.",
     zh: "生活中唯一不变的就是变化。",
     zh_TW: "生活中唯一不變的就是變化。",
     ja: "人生で唯一変わらないものは、変化そのものである。",
@@ -261,6 +297,7 @@ const quotes = [
   },
   {
     en: "If you are going through hell, keep going.",
+    ru: "Если идёшь через ад — иди не останавливаясь.",
     zh: "如果你正在经历地狱，那就继续走下去。",
     zh_TW: "如果你正在經歷地獄，那就繼續走下去。",
     ja: "地獄を経験しているなら、進み続けろ。",
@@ -268,6 +305,7 @@ const quotes = [
   },
   {
     en: "In the middle of difficulty lies opportunity.",
+    ru: "В середине трудности лежит возможность.",
     zh: "机会蕴藏在困难之中。",
     zh_TW: "機會蘊藏在困難之中。",
     ja: "困難の真っ只中に、好機がある。",
@@ -275,6 +313,7 @@ const quotes = [
   },
   {
     en: "It is not the strongest of the species that survive, nor the most intelligent, but the one most responsive to change.",
+    ru: "Выживает не самый сильный и не самый умный, а тот, кто лучше приспосабливается к переменам.",
     zh: "存活下来的物种不是最强壮的，也不是最聪明的，而是最能适应变化的。",
     zh_TW: "存活下來的物種不是最强壯的，也不是最聰明的，而是最能適應變化的。",
     ja: "生き残る種とは、最も強いものでも、最も知的なものでもない。最も変化に対応できるものである。",
@@ -282,6 +321,7 @@ const quotes = [
   },
   {
     en: "We must become the change we wish to see in the world.",
+    ru: "Мы должны сами стать теми переменами, которые хотим видеть в мире.",
     zh: "我们必须成为我们希望在世界上看到的改变。",
     zh_TW: "我們必須成為我們希望在世界上看到的改變。",
     ja: "世界に変化を望むなら、まず自らがその変化となれ。",
@@ -289,6 +329,7 @@ const quotes = [
   },
   {
     en: "A smooth sea never made a skilled sailor.",
+    ru: "Спокойное море не сделает моряка искусным.",
     zh: "平静的大海练不出熟练的水手。",
     zh_TW: "平靜的大海練不出熟練的水手。",
     ja: "穏やかな海は、熟練した船乗りを育てない。",
@@ -296,6 +337,7 @@ const quotes = [
   },
   {
     en: "Obstacles don't block the path, they are the path.",
+    ru: "Препятствия не преграждают путь — они и есть путь.",
     zh: "障碍不是挡住了路，障碍本身就是路。",
     zh_TW: "障礙不是擋住了路，障礙本身就是路。",
     ja: "障害は道を塞ぐものではなく、道そのものである。",
@@ -303,6 +345,7 @@ const quotes = [
   },
   {
     en: "Fall seven times, stand up eight.",
+    ru: "Упади семь раз — поднимись восемь.",
     zh: "七次跌倒，八次站起。",
     zh_TW: "七次跌倒，八次站起。",
     ja: "七転び八起き。",
@@ -310,6 +353,7 @@ const quotes = [
   },
   {
     en: "The art of life lies in a constant readjustment to our surroundings.",
+    ru: "Искусство жизни — в постоянном приспособлении к окружающему.",
     zh: "生活的艺术在于不断地调整自己以适应环境。",
     zh_TW: "生活的藝術在於不斷地調整自己以適應環境。",
     ja: "人生（じんせい）の芸術（げいじゅつ）は、我々（われわれ）の環境（かんきょう）に対（たい）する絶（た）え間（ま）ない再調整（さいちょうせい）にある。",
@@ -317,6 +361,7 @@ const quotes = [
   },
   {
     en: "Adversity introduces a man to himself.",
+    ru: "Беда знакомит человека с самим собой.",
     zh: "逆境使人认识自己。",
     zh_TW: "逆境使人認識自己。",
     ja: "逆境は、人に自分自身を教えてくれる。",
@@ -324,6 +369,7 @@ const quotes = [
   },
   {
     en: "The wound is the place where the Light enters you.",
+    ru: "Рана — это место, через которое в тебя входит свет.",
     zh: "伤口是光进入你内心的入口。",
     zh_TW: "傷口是光進入你內心的入口。",
     ja: "傷口は、光があなたの中に入る場所だ。",
@@ -331,6 +377,7 @@ const quotes = [
   },
   {
     en: "When we are no longer able to change a situation, we are challenged to change ourselves.",
+    ru: "Когда мы больше не в силах изменить ситуацию, нам брошен вызов изменить себя.",
     zh: "当我们无法改变现状时，我们就需要改变自己。",
     zh_TW: "當我們無法改變現狀時，我們就需要改變自己。",
     ja: "状況を変えることができなくなったとき、我々は自分自身を変えることを求められる。",
@@ -338,6 +385,7 @@ const quotes = [
   },
   {
     en: "Be the change you wish to see in the world.",
+    ru: "Будь той переменой, которую хочешь видеть в мире.",
     zh: "成为你希望在世界上看到的改变。",
     zh_TW: "成為你希望在世界上看到的改變。",
     ja: "あなたが世界に見たいと願う変化に、あなた自身がなりなさい。",
@@ -345,6 +393,7 @@ const quotes = [
   },
   {
     en: "Do not pray for an easy life, pray for the strength to endure a difficult one.",
+    ru: "Не молись о лёгкой жизни — молись о силе вынести трудную.",
     zh: "不要祈祷生活安逸，要祈祷有力量去忍受艰难的生活。",
     zh_TW: "不要祈禱生活安逸，要祈禱有力量去忍受艱難的生活。",
     ja: "楽な人生を祈るな。困難な人生を耐え抜く強さを祈れ。",
@@ -352,6 +401,7 @@ const quotes = [
   },
   {
     en: "A pessimist sees the difficulty in every opportunity; an optimist sees the opportunity in every difficulty.",
+    ru: "Пессимист видит трудность в каждой возможности; оптимист — возможность в каждой трудности.",
     zh: "悲观者在每个机会中都看到困难；乐观者在每个困难中都看到机会。",
     zh_TW: "悲觀者在每個機會中都看到困難；樂觀者在每個困難中都看到機會。",
     ja: "悲観主義者はあらゆる好機の中に困難を見る。楽観主義者はあらゆる困難の中に好機を見る。",
@@ -359,6 +409,7 @@ const quotes = [
   },
   {
     en: "It's not what happens to you, but how you react to it that matters.",
+    ru: "Важно не то, что с тобой случается, а то, как ты на это реагируешь.",
     zh: "重要的不是发生在你身上的事，而是你如何应对它。",
     zh_TW: "重要的不是發生在你身上的事，而是你如何應對它。",
     ja: "あなたに何が起こるかではなく、それにどう反応するかが重要だ。",
@@ -366,6 +417,7 @@ const quotes = [
   },
   {
     en: "To love oneself is the beginning of a lifelong romance.",
+    ru: "Любовь к себе — начало романа длиною в жизнь.",
     zh: "爱自己是终身浪漫的开始。",
     zh_TW: "愛自己是終身浪漫的開始。",
     ja: "自分自身を愛することは、一生続くロマンスの始まりだ。",
@@ -373,6 +425,7 @@ const quotes = [
   },
   {
     en: "Love is composed of a single soul inhabiting two bodies.",
+    ru: "Любовь — это одна душа, живущая в двух телах.",
     zh: "爱是栖息于两个身体中的同一个灵魂。",
     zh_TW: "愛是棲息於兩個身體中的同一個靈魂。",
     ja: "愛とは、二つの体に宿る一つの魂で構成されている。",
@@ -380,6 +433,7 @@ const quotes = [
   },
   {
     en: "Man is the measure of all things.",
+    ru: "Человек есть мера всех вещей.",
     zh: "人是万物的尺度。",
     zh_TW: "人是萬物的尺度。",
     ja: "人間は万物の尺度である。",
@@ -387,6 +441,7 @@ const quotes = [
   },
   {
     en: "The best and most beautiful things in this world cannot be seen or even heard, but must be felt with the heart.",
+    ru: "Лучшее и самое прекрасное в этом мире нельзя увидеть или услышать — это нужно почувствовать сердцем.",
     zh: "世界上最好最美的东西是看不见也听不见的，必须用心去感受。",
     zh_TW: "世界上最好最美的東西是看不見也聽不見的，必須用心去感受。",
     ja: "この世で最も素晴らしく、最も美しいものは、目で見たり聞いたりすることはできない。心で感じなければならない。",
@@ -394,6 +449,7 @@ const quotes = [
   },
   {
     en: "Where there is love there is life.",
+    ru: "Где любовь, там и жизнь.",
     zh: "有爱的地方就有生命。",
     zh_TW: "有愛的地方就有生命。",
     ja: "愛があるところに人生がある。",
@@ -401,6 +457,7 @@ const quotes = [
   },
   {
     en: "If you want to be loved, be lovable.",
+    ru: "Хочешь быть любимым — будь достойным любви.",
     zh: "如果你想被爱，就要变得可爱。",
     zh_TW: "如果你想被愛，就要變得可愛。",
     ja: "愛されたいなら、愛らしくあれ。",
@@ -408,6 +465,7 @@ const quotes = [
   },
   {
     en: "We are all in the gutter, but some of us are looking at the stars.",
+    ru: "Все мы в сточной канаве, но некоторые из нас смотрят на звёзды.",
     zh: "我们都身处沟渠，但仍有人仰望星空。",
     zh_TW: "我們都身處溝渠，但仍有人仰望星空。",
     ja: "我々はみな溝の中にいる。だが、そこから星を見上げている者もいるのだ。",
@@ -415,6 +473,7 @@ const quotes = [
   },
   {
     en: "The only thing we have to fear is fear itself.",
+    ru: "Единственное, чего нам следует бояться, — это сам страх.",
     zh: "我们唯一需要恐惧的就是恐惧本身。",
     zh_TW: "我們唯一需要恐懼的就是恐懼本身。",
     ja: "我々が恐れるべき唯一のものは、恐れそのものである。",
@@ -422,6 +481,7 @@ const quotes = [
   },
   {
     en: "Be kind, for everyone you meet is fighting a hard battle.",
+    ru: "Будь добр: каждый, кого ты встречаешь, ведёт свою тяжёлую битву.",
     zh: "要友善，因为你遇到的每个人都在打一场艰苦的战斗。",
     zh_TW: "要友善，因為你遇到的每個人都在打一場艱苦的戰鬥。",
     ja: "親切にしなさい。あなたが出会う誰もが、困難な戦いを戦っているのだから。",
@@ -429,6 +489,7 @@ const quotes = [
   },
   {
     en: "Man is born free, and everywhere he is in chains.",
+    ru: "Человек рождается свободным, но повсюду он в оковах.",
     zh: "人生而自由，却无往不在枷锁之中。",
     zh_TW: "人生而自由，卻無往不在枷鎖之中。",
     ja: "人は生まれながらにして自由だが、いたるところで鎖につながれている。",
@@ -436,6 +497,7 @@ const quotes = [
   },
   {
     en: "We love the things we love for what they are.",
+    ru: "Мы любим то, что любим, за то, что оно есть.",
     zh: "我们爱我们所爱之物，只因它们本来的样子。",
     zh_TW: "我們愛我們所愛之物，只因它們本來的樣子。",
     ja: "我々が愛するものを愛するのは、それがそれであるからだ。",
@@ -443,6 +505,7 @@ const quotes = [
   },
   {
     en: "Darkness cannot drive out darkness; only light can do that. Hate cannot drive out hate; only love can do that.",
+    ru: "Тьму не изгнать тьмой — только свет способен на это. Ненависть не изгнать ненавистью — только любовь способна на это.",
     zh: "黑暗无法驱逐黑暗，只有光明可以；仇恨无法驱逐仇恨，只有爱可以。",
     zh_TW: "黑暗無法驅逐黑暗，只有光明可以；仇恨無法驅逐仇恨，只有愛可以。",
     ja: "闇は闇を追い払うことはできない。光だけがそれを可能にする。憎しみは憎しみを追い払うことはできない。愛だけがそれを可能にする。",
@@ -450,6 +513,7 @@ const quotes = [
   },
   {
     en: "An eye for an eye only ends up making the whole world blind.",
+    ru: "Око за око — и весь мир ослепнет.",
     zh: "以眼还眼，只会让整个世界都盲目。",
     zh_TW: "以眼還眼，只會讓整個世界都盲目。",
     ja: "「目には目を」は、全世界を盲目にするだけだ。",
@@ -457,6 +521,7 @@ const quotes = [
   },
   {
     en: "Hell is other people.",
+    ru: "Ад — это другие.",
     zh: "他人即地狱。",
     zh_TW: "他人即地獄。",
     ja: "地獄とは、他人である。",
@@ -464,6 +529,7 @@ const quotes = [
   },
   {
     en: "You will not be punished for your anger, you will be punished by your anger.",
+    ru: "Тебя накажут не за твой гнев — тебя накажет сам твой гнев.",
     zh: "你不会因为你的愤怒而受到惩罚，你会被你的愤怒所惩罚。",
     zh_TW: "你不會因為你的憤怒而受到懲罰，你會被你的憤怒所懲罰。",
     ja: "あなたは怒りのために罰せられるのではない。怒りによって罰せられるのだ。",
@@ -471,6 +537,7 @@ const quotes = [
   },
   {
     en: "To err is human, to forgive divine.",
+    ru: "Человеку свойственно ошибаться, прощать — божественно.",
     zh: "犯错是人性，宽恕是神性。",
     zh_TW: "犯錯是人性，寬恕是神性。",
     ja: "過つは人の常、許すは神の業。",
@@ -478,6 +545,7 @@ const quotes = [
   },
   {
     en: "Man is the only creature who refuses to be what he is.",
+    ru: "Человек — единственное существо, которое отказывается быть тем, что оно есть.",
     zh: "人是唯一拒绝承认自己本质的生物。",
     zh_TW: "人是唯一拒絕承認自己本質的生物。",
     ja: "人間は、自分が何者であるかを拒否する唯一の生き物である。",
@@ -485,6 +553,7 @@ const quotes = [
   },
   {
     en: "Beauty is in the eye of the beholder.",
+    ru: "Красота в глазах смотрящего.",
     zh: "情人眼里出西施。",
     zh_TW: "情人眼裡出西施。",
     ja: "美は見る人の目の中にある。",
@@ -492,6 +561,7 @@ const quotes = [
   },
   {
     en: "All that we see or seem is but a dream within a dream.",
+    ru: "Всё, что мы видим и чем кажемся, — лишь сон во сне.",
     zh: "我们所见所感，皆如梦中之梦。",
     zh_TW: "我們所見所感，皆如夢中之夢。",
     ja: "我々が見たり感じたりするすべては、夢の中の夢にすぎない。",
@@ -499,6 +569,7 @@ const quotes = [
   },
   {
     en: "Everything you can imagine is real.",
+    ru: "Всё, что можно вообразить, реально.",
     zh: "你能想象的一切都是真实的。",
     zh_TW: "你能想像的一切都是真實的。",
     ja: "想像できることは、すべて現実なのだ。",
@@ -506,6 +577,7 @@ const quotes = [
   },
   {
     en: "The map is not the territory.",
+    ru: "Карта — не территория.",
     zh: "地图并非领土。",
     zh_TW: "地圖並非領土。",
     ja: "地図は領土ではない。",
@@ -513,6 +585,7 @@ const quotes = [
   },
   {
     en: "We don't see things as they are, we see them as we are.",
+    ru: "Мы видим вещи не такими, какие они есть, а такими, каковы мы сами.",
     zh: "我们看到的不是事物的原貌，而是我们自己的样子。",
     zh_TW: "我們看到的不是事物的原貌，而是我們自己的樣子。",
     ja: "我々は物事をあるがままに見ているのではない。我々があるがままに見ているのだ。",
@@ -520,6 +593,7 @@ const quotes = [
   },
   {
     en: "There are two ways to be fooled. One is to believe what isn't true; the other is to refuse to believe what is true.",
+    ru: "Обмануться можно двумя способами: поверить в то, чего нет, и отказаться верить в то, что есть.",
     zh: "被愚弄有两种方式。一种是相信不真实的东西；另一种是拒绝相信真实的东西。",
     zh_TW:
       "被愚弄有兩種方式。一種是相信不真實的東西；另一種是拒絕相信真實的東西。",
@@ -528,6 +602,7 @@ const quotes = [
   },
   {
     en: "Simplicity is the ultimate sophistication.",
+    ru: "Простота — высшая форма изысканности.",
     zh: "简约是极致的复杂。",
     zh_TW: "簡約是極致的複雜。",
     ja: "シンプルさは、究極の洗練である。",
@@ -535,6 +610,7 @@ const quotes = [
   },
   {
     en: "The truth will set you free.",
+    ru: "Истина сделает вас свободными.",
     zh: "真相将使你自由。",
     zh_TW: "真相將使你自由。",
     ja: "真実は、あなたを自由にする。",
@@ -542,6 +618,7 @@ const quotes = [
   },
   {
     en: "Reality is merely an illusion, albeit a very persistent one.",
+    ru: "Реальность — всего лишь иллюзия, хотя и очень стойкая.",
     zh: "现实只是一种幻觉，尽管是一种非常持久的幻觉。",
     zh_TW: "現實只是一種幻覺，儘管是一種非常持久的幻覺。",
     ja: "現実とは、非常に根強いただの幻想にすぎない。",
@@ -549,6 +626,7 @@ const quotes = [
   },
   {
     en: "What is rational is actual and what is actual is rational.",
+    ru: "Что разумно, то действительно; что действительно, то разумно.",
     zh: "凡是合乎理性的东西都是现实的，凡是现实的东西都是合乎理性的。",
     zh_TW: "凡是合乎理性的東西都是現實的，凡是現實的東西都是合乎理性的。",
     ja: "理性的なものは現実的であり、現実的なものは理性的である。",
@@ -556,6 +634,7 @@ const quotes = [
   },
   {
     en: "Truth is like the sun. You can shut it out for a time, but it ain't goin' away.",
+    ru: "Правда как солнце: на время её можно заслонить, но никуда она не денется.",
     zh: "真相就像太阳。你可以暂时将它遮住，但它不会消失。",
     zh_TW: "真相就像太陽。你可以暫時將它遮住，但它不會消失。",
     ja: "真実は太陽のようなものだ。一時的に隠すことはできても、決してなくなりはしない。",
@@ -563,6 +642,7 @@ const quotes = [
   },
   {
     en: "Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth.",
+    ru: "Всё, что мы слышим, — мнение, а не факт. Всё, что мы видим, — точка зрения, а не истина.",
     zh: "我们听到的一切都只是观点，而非事实。我们看到的一切都只是视角，而非真相。",
     zh_TW:
       "我們聽到的一切都只是觀點，而非事實。我們看到的一切都只是視角，而非真相。",
@@ -571,6 +651,7 @@ const quotes = [
   },
   {
     en: "There is no truth. There is only perception.",
+    ru: "Нет истины. Есть только восприятие.",
     zh: "没有真相，只有认知。",
     zh_TW: "沒有真相，只有認知。",
     ja: "真実などない。ただ認識があるだけだ。",
@@ -578,6 +659,7 @@ const quotes = [
   },
   {
     en: "If you look deep enough into anything, you will find mathematics.",
+    ru: "Если заглянуть достаточно глубоко в любую вещь, найдёшь математику.",
     zh: "如果你对任何事物看得足够深入，你都会发现数学。",
     zh_TW: "如果你對任何事物看得足夠深入，你都會發現數學。",
     ja: "何事も深く見つめれば、そこには数学がある。",
@@ -585,6 +667,7 @@ const quotes = [
   },
   {
     en: "The medium is the message.",
+    ru: "Средство сообщения и есть сообщение.",
     zh: "媒介即信息。",
     zh_TW: "媒介即訊息。",
     ja: "メディアはメッセージである。",
@@ -592,6 +675,7 @@ const quotes = [
   },
   {
     en: "Nothing is true, everything is permitted.",
+    ru: "Ничто не истинно, всё дозволено.",
     zh: "没有什么是真实的，一切都被允许。",
     zh_TW: "沒有什麼是真實的，一切都被允許。",
     ja: "真実などない、すべては許されている。",
@@ -599,6 +683,7 @@ const quotes = [
   },
   {
     en: "We are what we believe we are.",
+    ru: "Мы есть то, чем себя считаем.",
     zh: "我们相信自己是什么，我们就是什么。",
     zh_TW: "我們相信自己是什麼，我們就是什麼。",
     ja: "我々は、我々が信じる通りの人間である。",
@@ -606,6 +691,7 @@ const quotes = [
   },
   {
     en: "Yesterday is history, tomorrow is a mystery, but today is a gift. That is why it is called the present.",
+    ru: "Вчера — история, завтра — тайна, а сегодня — дар. Потому оно и зовётся настоящим.",
     zh: "昨天是历史，明天是谜团，但今天是礼物。这就是为什么它被称为‘现在’(Present)。",
     zh_TW:
       "昨天是歷史，明天是謎團，但今天是禮物。這就是為什麼它被稱為‘現在’(Present)。",
@@ -614,6 +700,7 @@ const quotes = [
   },
   {
     en: "Time is money.",
+    ru: "Время — деньги.",
     zh: "时间就是金钱。",
     zh_TW: "時間就是金錢。",
     ja: "時は金なり。",
@@ -621,6 +708,7 @@ const quotes = [
   },
   {
     en: "The only thing necessary for the triumph of evil is for good men to do nothing.",
+    ru: "Для торжества зла достаточно, чтобы добрые люди бездействовали.",
     zh: "邪恶得逞的唯一条件是好人袖手旁观。",
     zh_TW: "邪惡得逞的唯一條件是好人袖手旁觀。",
     ja: "悪が勝利するために必要なのは、善人が何もしないことだけである。",
@@ -628,6 +716,7 @@ const quotes = [
   },
   {
     en: "Carpe diem.",
+    ru: "Лови мгновение.",
     zh: "活在当下。",
     zh_TW: "活在當下。",
     ja: "今を生きよ（カルペ・ディエム）。",
@@ -635,6 +724,7 @@ const quotes = [
   },
   {
     en: "Do not dwell in the past, do not dream of the future, concentrate the mind on the present moment.",
+    ru: "Не живи прошлым, не мечтай о будущем — сосредоточь ум на настоящем мгновении.",
     zh: "不要沉湎于过去，不要幻想未来，集中精神活在当下。",
     zh_TW: "不要沉湎於過去，不要幻想未來，集中精神活在當下。",
     ja: "過去に生きるな、未来を夢見るな、現在の瞬間に心を集中させよ。",
@@ -642,6 +732,7 @@ const quotes = [
   },
   {
     en: "The best time to plant a tree was 20 years ago. The second best time is now.",
+    ru: "Лучшее время посадить дерево было двадцать лет назад. Второе лучшее — сейчас.",
     zh: "种树的最佳时机是20年前。其次是现在。",
     zh_TW: "種樹的最佳時機是20年前。其次是現在。",
     ja: "木を植えるのに最適な時期は20年前だった。二番目に最適な時期は、今だ。",
@@ -649,6 +740,7 @@ const quotes = [
   },
   {
     en: "Action speaks louder than words.",
+    ru: "Дела говорят громче слов.",
     zh: "事实胜于雄辩。",
     zh_TW: "事實勝於雄辯。",
     ja: "行動は言葉よりも雄弁である。",
@@ -656,6 +748,7 @@ const quotes = [
   },
   {
     en: "Honesty is the first chapter in the book of wisdom.",
+    ru: "Честность — первая глава в книге мудрости.",
     zh: "诚实是智慧之书的第一章。",
     zh_TW: "誠實是智慧之書的第一章。",
     ja: "誠実さは、知恵という本の第一章である。",
@@ -663,6 +756,7 @@ const quotes = [
   },
   {
     en: "Two things are infinite: the universe and human stupidity; and I'm not sure about the universe.",
+    ru: "Две вещи бесконечны: вселенная и человеческая глупость; впрочем, насчёт вселенной я не уверен.",
     zh: "有两样东西是无限的：宇宙和人类的愚蠢；而且我不太确定宇宙是否无限。",
     zh_TW: "有兩樣東西是無限的：宇宙和人類的愚蠢；而且我不太確定宇宙是否無限。",
     ja: "無限なものは二つある。宇宙と人間の愚かさだ。ただ、宇宙については私にもよく分からない。",
@@ -670,6 +764,7 @@ const quotes = [
   },
   {
     en: "You cannot step twice into the same river.",
+    ru: "Нельзя дважды войти в одну и ту же реку.",
     zh: "人不能两次踏进同一条河流。",
     zh_TW: "人不能兩次踏進同一條河流。",
     ja: "同（おな）じ川（かわ）に二度（にど）入（はい）ることはできない。",
@@ -677,6 +772,7 @@ const quotes = [
   },
   {
     en: "The future belongs to those who believe in the beauty of their dreams.",
+    ru: "Будущее принадлежит тем, кто верит в красоту своей мечты.",
     zh: "未来属于那些相信梦想之美的人。",
     zh_TW: "未來屬於那些相信夢想之美的人。",
     ja: "未来は、自分の夢の美しさを信じる者のものである。",
@@ -684,6 +780,7 @@ const quotes = [
   },
   {
     en: "Procrastination is the thief of time.",
+    ru: "Промедление — вор времени.",
     zh: "拖延是时间的大敌。",
     zh_TW: "拖延是時間的大敵。",
     ja: "先延ばしは時間泥棒である。",
@@ -691,6 +788,7 @@ const quotes = [
   },
   {
     en: "An investment in knowledge pays the best interest.",
+    ru: "Вложения в знания приносят наибольший процент.",
     zh: "投资知识，收益最佳。",
     zh_TW: "投資知識，收益最佳。",
     ja: "知識への投資は、最良の利息を生む。",
@@ -698,6 +796,7 @@ const quotes = [
   },
   {
     en: "I have not failed. I've just found 10,000 ways that won't work.",
+    ru: "Я не потерпел неудачу. Я просто нашёл 10 000 способов, которые не работают.",
     zh: "我没有失败。我只是找到了一万种行不通的方法。",
     zh_TW: "我沒有失敗。我只是找到了一萬種行不通的方法。",
     ja: "私は失敗したことがない。ただ、うまくいかない1万通りの方法を見つけただけだ。",
@@ -705,6 +804,7 @@ const quotes = [
   },
   {
     en: "That which is done, is done.",
+    ru: "Что сделано, то сделано.",
     zh: "木已成舟。",
     zh_TW: "木已成舟。",
     ja: "なされたことは、なされたことだ。（覆水盆に返らず）",

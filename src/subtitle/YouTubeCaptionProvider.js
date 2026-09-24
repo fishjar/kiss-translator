@@ -41,6 +41,8 @@ export class YouTubeCaptionProvider {
   #setting = {};
   // 每次进入新视频时恢复的持久化自动翻译偏好
   #defaultAutoTranslate = true;
+  // 当前页面是否由字幕快捷菜单显式覆盖了翻译服务
+  #hasRuntimeApiOverride = false;
 
   // 最终处理合并、翻译好的双语字幕数组（包含开始/结束时间、原文、翻译）
   #subtitles = [];
@@ -91,6 +93,10 @@ export class YouTubeCaptionProvider {
     this.#setting = {
       ...setting,
       autoTranslate: this.#defaultAutoTranslate,
+      onSubtitlePositionChange: (positionRatio) => {
+        this.#setting.positionRatio = positionRatio;
+        setting.onSubtitlePositionChange?.(positionRatio);
+      },
     };
     this.#i18n = newI18n(setting.uiLang || "zh");
     this.#playerUi = new YouTubePlayerUi({
@@ -320,6 +326,23 @@ export class YouTubeCaptionProvider {
   updateSetting({ name, value }) {
     if (this.#setting[name] === value) return;
 
+    if (name === "apiSlug") {
+      const apiSetting = this.#setting.transApis?.find(
+        (api) => api.apiSlug === value && !api.isDisabled
+      );
+      if (!apiSetting) return;
+
+      const previousApiSlug = this.#setting.apiSlug;
+      logger.debug("Youtube Provider: update setting", name, value);
+      this.#setting.apiSlug = value;
+      this.#setting.apiSetting = apiSetting;
+      this.#hasRuntimeApiOverride = true;
+      this.#playerUi.updateMenuProps();
+
+      this.#reProcessEvents({ previousApiSlug });
+      return;
+    }
+
     logger.debug("Youtube Provider: update setting", name, value);
     this.#setting[name] = value;
 
@@ -440,6 +463,7 @@ export class YouTubeCaptionProvider {
   #getMenuProps() {
     const {
       transApis,
+      apiSlug,
       segSlug,
       skipAd,
       isBilingual,
@@ -454,6 +478,7 @@ export class YouTubeCaptionProvider {
       transApis,
       progressed: this.#progressedNum,
       formData: {
+        apiSlug,
         segSlug,
         skipAd,
         isBilingual,
@@ -579,8 +604,10 @@ export class YouTubeCaptionProvider {
         return;
       }
 
-      const { events: subtitleEvents, flatEvents } =
-        prepareTimedTextEvents(events);
+      const { events: subtitleEvents, flatEvents } = prepareTimedTextEvents(
+        events,
+        fromLang
+      );
       if (!flatEvents?.length) {
         logger.debug("Youtube Provider: flatEvents not got:", videoId);
         return;
@@ -629,6 +656,7 @@ export class YouTubeCaptionProvider {
    * @param {Array<object>} param0.flatEvents 展平清洗后的单词节点流。
    * @param {string} param0.fromLang 字幕源语言代码。
    * @param {number} param0.processingVersion 当前异步任务的版本号快照。
+   * @param {AbortSignal} param0.signal 当前字幕处理生命周期的取消信号。
    * @returns {Promise<void>}
    */
   async #processEvents({
@@ -639,13 +667,16 @@ export class YouTubeCaptionProvider {
     signal,
   }) {
     try {
+      const processingSetting = this.#hasRuntimeApiOverride
+        ? { ...this.#setting, forceSubtitleRetranslate: true }
+        : this.#setting;
       const [subtitles, progressed, aiChunkScheduler] = await eventsToSubtitles(
         {
           videoId,
           events: this.#events,
           flatEvents,
           fromLang,
-          setting: this.#setting,
+          setting: processingSetting,
           processingVersion,
           isStaleProcessing: (version) => this.#isStaleProcessing(version),
           showNotification: (message, duration) =>
@@ -771,12 +802,14 @@ export class YouTubeCaptionProvider {
   }
 
   /**
-   * 当用户更改了断句设置时，触发对现有字幕的重新处理与渲染。
+   * 当用户更改了断句设置或主动切换翻译服务时，重新处理并渲染现有字幕。
    *
    * @private
+   * @param {object} [options] 重处理选项。
+   * @param {string|null} [options.previousApiSlug=null] 切换前的翻译服务标识。
    * @returns {void}
    */
-  #reProcessEvents() {
+  #reProcessEvents({ previousApiSlug = null } = {}) {
     if (!this.#setting.autoTranslate) return;
 
     this.#progressed = 0;
@@ -796,6 +829,9 @@ export class YouTubeCaptionProvider {
     this.#subtitleAbortController = new AbortController();
     this.#aiChunkScheduler = null;
     this.#destroyManager();
+    if (previousApiSlug && previousApiSlug !== this.#setting.apiSlug) {
+      clearMsgHistory(previousApiSlug);
+    }
     clearMsgHistory(this.#setting.apiSlug);
 
     this.#processEvents({

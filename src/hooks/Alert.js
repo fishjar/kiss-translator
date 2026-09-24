@@ -33,20 +33,14 @@ export function AlertProvider({ children }) {
   const [severity, setSeverity] = useState("info");
   // 状态控制：提示文本内容
   const [message, setMessage] = useState(null);
+  const [messageId, setMessageId] = useState(0);
 
   // 显示提示的辅助函数
   const showAlert = useCallback((msg, type) => {
-    // 先关闭当前的alert，然后再打开新的
-    // 这样可以重置autoHideDuration计时器
-    setOpen(false);
-    // 使用setTimeout确保状态更新完成后再打开新的alert
-    // REVIEW: 这里的 setTimeout(() => { ... }, 0) 在组件如果遭遇快速销毁/卸载（unmount）时，
-    // 定时器回调仍会被触发并更新已卸载组件的状态。虽然 React 18+ 移除了卸载更新警告，但最好能在卸载时清理该定时器，以避免潜在问题。
-    setTimeout(() => {
-      setMessage(msg);
-      setSeverity(type);
-      setOpen(true);
-    }, 0);
+    setMessage(msg);
+    setSeverity(type);
+    setMessageId((current) => current + 1);
+    setOpen(true);
   }, []);
 
   // 处理 Snackbar 关闭事件
@@ -73,6 +67,7 @@ export function AlertProvider({ children }) {
     <AlertContext.Provider value={value}>
       {children}
       <Snackbar
+        key={messageId}
         open={open}
         autoHideDuration={5000} // 自动隐藏时间为 5 秒
         onClose={handleClose}
@@ -82,8 +77,8 @@ export function AlertProvider({ children }) {
           onClose={handleClose}
           severity={severity}
           sx={{
-            minWidth: 300,
-            maxWidth: "80vw",
+            width: "min(300px, calc(100vw - 32px))",
+            maxWidth: "calc(100vw - 32px)",
             wordBreak: "break-word",
             overflowWrap: "anywhere",
           }}
