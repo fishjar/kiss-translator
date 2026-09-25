@@ -4,19 +4,11 @@ import {
   DEFAULT_BATCH_LENGTH,
 } from "../config";
 
-/**
- * 批处理队列工厂函数
- * 支持生成器模式：当 taskFn 是一个异步生成器时，它会 yield {id, result} 逐个异步返回结果；
- * 同时也支持传统的普通 Promise 模式，期待 taskFn 返回一个包含所有结果的数组。
- *
- * @param {Function} taskFn - 执行批处理翻译的函数
- * @param {object} options - 批处理配置项
- * @param {number} [options.batchInterval] - 触发批处理的最大延迟等待时间（毫秒）
- * @param {number} [options.batchSize] - 触发批处理的最大任务条数上限
- * @param {number} [options.batchLength] - 整个批次中所有文本内容的最大字符长度上限，防止超长报错
- * @param {number} [options.batchConcurrency] - 同时执行的最大批次数
- * @returns {object} 返回具有 addTask 和 destroy 方法的实例对象
- */
+const abortError = () =>
+  new DOMException("The operation was aborted.", "AbortError");
+const destroyedError = () => new Error("Queue instance was destroyed.");
+
+/** Batch requests while keeping each caller's cancellation independent. */
 const BatchQueue = (
   taskFn,
   {
@@ -26,225 +18,207 @@ const BatchQueue = (
     batchConcurrency = 1,
   } = {}
 ) => {
-  const queue = []; // 存储待处理翻译任务的队列
-  const configuredBatchConcurrency = Number(batchConcurrency);
+  const queue = [];
+  const activeBatches = new Set();
+  const configuredConcurrency = Number(batchConcurrency);
   const concurrency =
-    Number.isFinite(configuredBatchConcurrency) &&
-    configuredBatchConcurrency >= 1
-      ? Math.floor(configuredBatchConcurrency)
+    Number.isFinite(configuredConcurrency) && configuredConcurrency >= 1
+      ? Math.floor(configuredConcurrency)
       : 1;
-  let activeBatchCount = 0; // 当前正在执行的批次数
-  let timer = null; // 用于延迟处理任务的定时器
+  let timer = null;
+  let destroyed = false;
 
-  /**
-   * 处理当前队列中的任务
-   * // REVIEW: 1. 异步生成器中断与对齐隐患。这里强依赖底层 taskFn 异步生成器产出的每一项 item.id 能与 tasksToProcess 数组的索引精确对应。
-   * // 如果翻译源 API 在内部产生错误、提前 break 退出或返回了错误的 id（越界或不合法），会导致部分段落无法 resolve。
-   * // 并且如果流式迭代器由于任意异常（如超时）意外中断，在 catch 块中，所有未被 resolve 的任务都会被统一 reject 报错。
-   */
-  const processQueue = async () => {
-    // 每次开始处理，清除延迟定时器
-    if (timer) {
+  const clearTimer = () => {
+    if (timer !== null) {
       clearTimeout(timer);
       timer = null;
     }
+  };
 
-    // 如果队列为空或已经达到批次并发上限，则直接返回
-    if (queue.length === 0 || activeBatchCount >= concurrency) {
+  const settle = (task, method, value) => {
+    if (task.settled) return;
+    task.settled = true;
+    if (task.onAbort) {
+      task.args.signal.removeEventListener("abort", task.onAbort);
+      task.onAbort = null;
+    }
+    task[method](value);
+  };
+
+  const cancelTask = (task) => {
+    if (task.settled) return;
+    settle(task, "reject", abortError());
+
+    if (task.batch) {
+      // Never change dispatched indexes: other results still use those IDs.
+      if (task.batch.tasks.every((item) => item.settled)) {
+        task.batch.controller.abort();
+      }
+    } else {
+      const index = queue.indexOf(task);
+      if (index !== -1) queue.splice(index, 1);
+      if (queue.length === 0) clearTimer();
+    }
+  };
+
+  const scheduleProcessing = (delay = batchInterval) => {
+    if (
+      destroyed ||
+      timer !== null ||
+      activeBatches.size >= concurrency ||
+      queue.length === 0
+    ) {
+      return;
+    }
+    timer = setTimeout(processQueue, delay);
+  };
+
+  const processQueue = async () => {
+    clearTimer();
+    if (destroyed || queue.length === 0 || activeBatches.size >= concurrency) {
       return;
     }
 
-    activeBatchCount++;
-
-    let tasksToProcess = [];
-    let currentBatchLength = 0;
-    let endIndex = 0;
-
-    // 贪心策略：根据 batchSize 和字符长度 batchLength 计算本批次可以打包执行的任务范围
+    let length = 0;
+    let count = 0;
     for (const task of queue) {
       const textLength = task.payload?.length || 0;
       if (
-        endIndex >= batchSize ||
-        (currentBatchLength + textLength > batchLength && endIndex > 0)
+        count >= batchSize ||
+        (length + textLength > batchLength && count > 0)
       ) {
         break;
       }
-      currentBatchLength += textLength;
-      endIndex++;
+      length += textLength;
+      count++;
     }
+    if (count === 0) return;
 
-    // 从全局队列中截取要处理的任务
-    if (endIndex > 0) {
-      tasksToProcess = queue.splice(0, endIndex);
-    }
-
-    if (tasksToProcess.length === 0) {
-      activeBatchCount--;
-      return;
-    }
+    const tasks = queue.splice(0, count);
+    const batch = { tasks, controller: new AbortController() };
+    activeBatches.add(batch);
+    tasks.forEach((task) => {
+      task.batch = batch;
+    });
 
     try {
-      const payloads = tasksToProcess.map((item) => item.payload);
-      const batchArgs = tasksToProcess[0].args;
+      const firstArgs = tasks[0].args;
+      // Preserve the generic no-arguments API when nobody supplies a signal.
+      const batchArgs =
+        firstArgs || tasks.some((task) => task.args?.signal)
+          ? { ...firstArgs, signal: batch.controller.signal }
+          : firstArgs;
+      const result = taskFn(
+        tasks.map((task) => task.payload),
+        batchArgs
+      );
 
-      // 调用具体的翻译函数（可能返回 AsyncGenerator 或 Promise）
-      const generator = taskFn(payloads, batchArgs);
-
-      // 检查是否是异步生成器（用于流式逐句返回结果的翻译源，如 OpenAI/Gemini）
-      if (generator && typeof generator[Symbol.asyncIterator] === "function") {
-        for await (const item of generator) {
-          const id = item.id;
-          const isComplete = item.isComplete !== false; // 默认完成状态为 true
-          const taskItem = tasksToProcess[id];
-
-          if (taskItem) {
-            // 流式渲染的中间状态回调（当 isComplete 为 false 且有分块回调时）
-            if (!isComplete && taskItem.args?.onStreamChunk) {
-              taskItem.args.onStreamChunk({
-                id,
-                text: item.partialText,
-                isComplete: false,
-              });
-            }
-            // 单个段落完全翻译结束：触发回调并 resolve 对应任务的 Promise
-            if (isComplete) {
-              if (taskItem.args?.onStreamChunk) {
-                taskItem.args.onStreamChunk({
-                  id,
-                  text: item.result,
-                  isComplete: true,
-                });
-              }
-              if (!taskItem.resolved) {
-                taskItem.resolved = true;
-                taskItem.resolve(item.result);
-              }
-            }
-          }
+      if (result && typeof result[Symbol.asyncIterator] === "function") {
+        for await (const item of result) {
+          const task = tasks[item.id];
+          if (!task || task.settled) continue;
+          const isComplete = item.isComplete !== false;
+          task.args?.onStreamChunk?.({
+            id: item.id,
+            text: isComplete ? item.result : item.partialText,
+            isComplete,
+          });
+          // A callback can synchronously cancel its own request.
+          if (isComplete) settle(task, "resolve", item.result);
         }
-
-        // 兜底：处理生成器执行完毕后，仍未收到翻译结果的任务（标注异常）
-        tasksToProcess.forEach((taskItem, index) => {
-          if (!taskItem.resolved) {
-            taskItem.reject(
-              new Error(`No response for item at index ${index}`)
-            );
-          }
+        tasks.forEach((task, index) => {
+          settle(
+            task,
+            "reject",
+            new Error("No response for item at index " + index)
+          );
         });
       } else {
-        // 非生成器模式（兼容旧的 Promise 模式，一次性返回所有翻译结果）
-        const responses = await generator;
+        const responses = await result;
         if (!Array.isArray(responses)) {
           throw new Error("responses format error");
         }
-
-        tasksToProcess.forEach((taskItem, index) => {
-          const response = responses[index];
-          if (response) {
-            taskItem.resolve(response);
+        tasks.forEach((task, index) => {
+          if (responses[index]) {
+            settle(task, "resolve", responses[index]);
           } else {
-            taskItem.reject(
-              new Error(`No response for item at index ${index}`)
+            settle(
+              task,
+              "reject",
+              new Error("No response for item at index " + index)
             );
           }
         });
       }
     } catch (error) {
-      // 捕获异常，确保把这一批次尚未 resolved 的任务全部以 reject 异常形式结束
-      tasksToProcess.forEach((taskItem) => {
-        if (!taskItem.resolved) {
-          taskItem.resolved = true;
-          taskItem.reject(error);
-        }
-      });
+      tasks.forEach((task) => settle(task, "reject", error));
     } finally {
-      activeBatchCount--;
-      // 如果队列中还有残留任务，判断是否立即继续处理还是延迟等待
-      if (queue.length > 0) {
-        if (queue.length >= batchSize) {
-          setTimeout(processQueue, 0); // 达到批尺寸，立即起新的事件循环继续处理
-        } else {
-          scheduleProcessing(); // 未达批尺寸，安排延迟防抖执行
-        }
-      }
+      tasks.forEach((task) => {
+        task.batch = null;
+      });
+      // Cancellation settles callers immediately, but only completion of the
+      // task function/iterator releases this batch's concurrency slot.
+      activeBatches.delete(batch);
+      scheduleProcessing(queue.length >= batchSize ? 0 : batchInterval);
     }
   };
 
-  /**
-   * 安排下一次队列的延迟防抖执行
-   */
-  const scheduleProcessing = () => {
-    if (activeBatchCount < concurrency && !timer && queue.length > 0) {
-      timer = setTimeout(processQueue, batchInterval);
-    }
-  };
+  const addTask = (payload, args) => {
+    if (destroyed) return Promise.reject(destroyedError());
+    if (args?.signal?.aborted) return Promise.reject(abortError());
 
-  /**
-   * 向批处理队列添加一个新的翻译任务
-   * @param {string} data - 需要翻译的原文本内容
-   * @param {object} args - 附加参数（如流式回调等）
-   * @returns {Promise<string>}
-   */
-  const addTask = (data, args) => {
     return new Promise((resolve, reject) => {
-      const payload = data;
-      queue.push({ payload, resolve, reject, args });
+      const task = {
+        payload,
+        args,
+        resolve,
+        reject,
+        settled: false,
+        batch: null,
+        onAbort: null,
+      };
+      queue.push(task);
+      if (args?.signal) {
+        task.onAbort = () => cancelTask(task);
+        args.signal.addEventListener("abort", task.onAbort, { once: true });
+        if (args.signal.aborted) cancelTask(task);
+      }
+      if (task.settled) return;
 
-      // 如果当前积压的任务量已达批处理阈值，则立即开始处理
       if (queue.length >= batchSize) {
-        processQueue();
+        void processQueue();
       } else {
         scheduleProcessing();
       }
     });
   };
 
-  /**
-   * 销毁队列实例，拒绝所有队列中未决的任务并清理定时器
-   */
   const destroy = () => {
-    if (timer) {
-      clearTimeout(timer);
-      timer = null;
+    destroyed = true;
+    clearTimer();
+    queue.splice(0).forEach((task) => settle(task, "reject", destroyedError()));
+    for (const batch of activeBatches) {
+      batch.tasks.forEach((task) => settle(task, "reject", destroyedError()));
+      batch.controller.abort();
     }
-    queue.forEach((task) =>
-      task.reject(new Error("Queue instance was destroyed."))
-    );
-    queue.length = 0;
   };
 
   return { addTask, destroy };
 };
 
-// 全局注册的队列字典，key 通常是翻译服务标识 (apiSlug)，实现多引擎队列隔离
 const queueMap = new Map();
 
-/**
- * 获取指定 Key 的批处理队列实例（单例模式）
- * @param {string} key - 队列标识
- * @param {Function} taskFn - 执行函数
- * @param {object} options - 配置参数
- * @returns {object} BatchQueue 实例
- */
+/** Reuse a queue for a provider, language pair, and request configuration. */
 export const getBatchQueue = (key, taskFn, options) => {
-  if (queueMap.has(key)) {
-    return queueMap.get(key);
-  }
-
+  if (queueMap.has(key)) return queueMap.get(key);
   const queue = BatchQueue(taskFn, options);
   queueMap.set(key, queue);
   return queue;
 };
 
-/**
- * 销毁并清除所有活跃的批处理队列
- * // REVIEW: queueMap 内存泄漏隐患。本方法遍历了 queueMap 的所有 value 并调用了 queue.destroy()，
- * // 但并没有调用 `queueMap.clear()` 或从 Map 中删除这些被销毁的 queue 引用。
- * // 导致这些已被 destroy 的 BatchQueue 实例依然驻留在 Map 中，这不仅会产生内存泄漏，
- * // 还可能导致后续相同 key 再次调用 getBatchQueue(key) 时，返回一个已被 destroy 无法正常工作的死实例。
- */
+/** Cancel all outstanding work and allow subsequent calls to create new queues. */
 export const clearAllBatchQueue = () => {
-  for (const queue of queueMap.values()) {
-    queue.destroy();
-  }
+  const queues = [...queueMap.values()];
+  queueMap.clear();
+  queues.forEach((queue) => queue.destroy());
 };

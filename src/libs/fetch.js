@@ -94,17 +94,22 @@ export async function* fetchStream(
       signal: mergeAbortSignals([opts.signal, streamController.signal]),
     };
 
-    const streamPromise = fetchPool.push(async () => {
-      try {
-        for await (const chunk of requestStream(input, init, streamOpts)) {
-          asyncQueue.push(chunk);
+    const streamPromise = fetchPool
+      .push(async () => {
+        try {
+          for await (const chunk of requestStream(input, init, streamOpts)) {
+            asyncQueue.push(chunk);
+          }
+          asyncQueue.finish();
+        } catch (e) {
+          asyncQueue.error(e);
         }
-        asyncQueue.finish();
-      } catch (e) {
-        asyncQueue.error(e);
-      }
-      return null;
-    });
+        return null;
+      })
+      .catch((error) => {
+        // Clearing the pool can reject this task before its producer starts.
+        asyncQueue.error(error);
+      });
 
     try {
       yield* asyncQueue.iterate();

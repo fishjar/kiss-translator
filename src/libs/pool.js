@@ -86,7 +86,10 @@ class TaskPool {
     } catch (err) {
       kissLog("task pool", err);
       // 如果发生异常且重试次数未达到上限，则安排延迟重试
-      if (retry < this.#maxRetry) {
+      if (err?.name === "AbortError") {
+        // Cancellation is final and must never start another request.
+        reject(err);
+      } else if (retry < this.#maxRetry) {
         setTimeout(() => {
           // 将重试的任务重新放入队列头部，以保证重试任务优先被执行
           this.#pool.unshift({ ...task, retry: retry + 1 });

@@ -285,28 +285,29 @@ export const fetchHandle = async ({ input, init, opts = {} }) => {
 export const fnPolyfill = ({ fn, msg = MSG_FETCH, ...args }) => {
   if (isExt && !isBg()) {
     const signal = args.opts?.signal;
+    if (signal?.aborted) {
+      return Promise.reject(
+        new DOMException("The operation was aborted.", "AbortError")
+      );
+    }
     const safeArgs = {
       ...args,
       opts: { ...args.opts, signal: undefined },
     };
     const requestPromise = sendBgMsg(msg, safeArgs);
     if (signal) {
+      let abortBySignal;
       const abortPromise = new Promise((_, reject) => {
-        if (signal.aborted) {
+        abortBySignal = () =>
           reject(new DOMException("The operation was aborted.", "AbortError"));
-          return;
-        }
-        // sendMessage 是一次性请求，无法撤回 background 已发出的 fetch；这里至少让前台等待方立即结束。
-        signal.addEventListener(
-          "abort",
-          () =>
-            reject(
-              new DOMException("The operation was aborted.", "AbortError")
-            ),
-          { once: true }
-        );
+        // One-shot messages cannot cancel an already dispatched background
+        // fetch, but callers can stop waiting without retaining the listener.
+        signal.addEventListener("abort", abortBySignal, { once: true });
+        if (signal.aborted) abortBySignal();
       });
-      return Promise.race([requestPromise, abortPromise]);
+      return Promise.race([requestPromise, abortPromise]).finally(() => {
+        signal.removeEventListener("abort", abortBySignal);
+      });
     }
     // Content Script 直接跨域能力受限，普通请求统一交给 Background 代发。
     return requestPromise;
