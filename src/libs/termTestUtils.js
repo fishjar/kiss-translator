@@ -261,8 +261,8 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
       const template = pool[templateIndex];
 
       const text = template
-        .replace(/\{short\}/g, shortSample)
-        .replace(/\{long\}/g, longSample);
+        .replace(/\{short\}/g, () => shortSample)
+        .replace(/\{long\}/g, () => longSample);
 
       cases.push({
         type: "conflict",
@@ -302,7 +302,7 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
     const templateIndex =
       hashKey(withSeed(term.key)) % SINGLE_TERM_TEMPLATES.length;
     const template = SINGLE_TERM_TEMPLATES[templateIndex];
-    const text = template.replace(/\{term\}/g, sample);
+    const text = template.replace(/\{term\}/g, () => sample);
 
     cases.push({
       type: "single",

@@ -290,6 +290,56 @@ describe("termTestUtils generateTermTestText", () => {
   });
 });
 
+// ─── generateTermTestText 严格字面量 $ 样例完整性 ────────────────────────────
+describe("termTestUtils generateTermTestText strict literal $ sample integrity", () => {
+  // 严格字面量术语 Price\$& 去转义后样例为 Price$&；
+  // 字符串形 replace 会把 $& 展开为整匹配 {term}，污染样例导致引擎失配。
+  test("keeps $& sample verbatim in generated text", () => {
+    const parsed = parseTerms("Price\\$&");
+    const cases = generateTermTestText(parsed);
+    expect(cases.length).toBeGreaterThan(0);
+    for (const c of cases) {
+      expect(c.text).not.toContain("{term}");
+      expect(c.text).toContain("Price$&");
+    }
+  });
+
+  test("passes assertTermReplacements for strict literal $& term", () => {
+    const parsed = parseTerms("Price\\$&");
+    const cases = generateTermTestText(parsed);
+    for (const c of cases) {
+      const assertion = assertTermReplacements(parsed, c);
+      expect(assertion.ok).toBe(true);
+      expect(
+        assertion.issues.filter((i) => i.type === "single-term-not-found")
+      ).toEqual([]);
+    }
+  });
+
+  // 冲突对（A\$& 与 A\$&B 纯子串命中）走 {short}/{long} 双站点插值，
+  // 字符串形 replace 同样会展开 $& 污染两处样例。
+  // 注：断言范围限定于本修复保证的样例保真与命中语义；assertTermReplacements
+  // 对「无译文长词保留原文」的比较（replacement vs 带转义源形式的 termKey）
+  // 存在与 $& 污染无关的既有误报（conflict-type-4），不在本用例断言范围。
+  test("keeps $& verbatim for conflict pair samples", () => {
+    const parsed = parseTerms("A\\$&;A\\$&B");
+    const cases = generateTermTestText(parsed);
+    expect(cases.length).toBeGreaterThan(0);
+    for (const c of cases) {
+      expect(c.text).not.toContain("{short}");
+      expect(c.text).not.toContain("{long}");
+      expect(c.text).toContain("A$&");
+      const assertion = assertTermReplacements(parsed, c);
+      expect(
+        assertion.issues.filter((i) => i.type === "single-term-not-found")
+      ).toEqual([]);
+      const spanKeys = assertion.fixed.spans.map((s) => s.termKey);
+      expect(spanKeys).toContain("A\\$&");
+      expect(spanKeys).toContain("A\\$&B");
+    }
+  });
+});
+
 // ─── generateTermTestText 显式 seed 轮换（Task 11） ──────────────────────────
 describe("termTestUtils generateTermTestText seed rotation", () => {
   const parsed = parseTerms("API,接口;APIKey,应用编程接口;GPT,生成式预训练");
