@@ -106,6 +106,10 @@ const CONFLICT_MATRIX_SAMPLE = getDiagnosticSampleTerms();
 // UI 默认展示上限（完整计算结果与 UI 展示分离，失败优先）。
 const DISPLAY_LIMIT = 4;
 
+// AI 术语样例文本：功能数据（parseAITerms 的 key:value 载荷），非用户可见文案，
+// 严禁进入 i18n 字典（B3：i18n 译文格式变化不得改变功能数据）。
+const AI_TERMS_SAMPLE_TEXT = "zorp,数据管道\nquzzle,缓存节点";
+
 // 敏感键集合（大小写不敏感匹配）。
 const SENSITIVE_KEYS = new Set([
   "authorization",
@@ -126,7 +130,7 @@ function maskSensitiveJson(obj) {
     const val = copy[key];
     if (typeof val === "string" && SENSITIVE_KEYS.has(key.toLowerCase())) {
       if (val.startsWith("Bearer ")) {
-        copy[key] = `Bearer ${val.slice(7, 13)}****`;
+        copy[key] = `Bearer ${val.slice(7, 11)}****`;
       } else {
         copy[key] = `${val.slice(0, 4)}****`;
       }
@@ -235,7 +239,7 @@ function maskForDisplay(obj, skipKeys = ["glossary", "terms"]) {
     const val = copy[key];
     if (typeof val === "string" && SENSITIVE_KEYS.has(key.toLowerCase())) {
       if (val.startsWith("Bearer ")) {
-        copy[key] = `Bearer ${val.slice(7, 13)}****`;
+        copy[key] = `Bearer ${val.slice(7, 11)}****`;
       } else {
         copy[key] = `${val.slice(0, 4)}****`;
       }
@@ -817,6 +821,112 @@ function formatFatalDiagnostic(diagnostic, i18n) {
 }
 
 /**
+ * 把一条断言 issue 格式化为 UI 可读的多语言文案。
+ * 断言核心（termTestUtils.js）只保证稳定 messageKey + 结构化 params；
+ * 本函数按 messageKey 映射 I18N key 并注入参数，未知 messageKey 回退到
+ * 核心层中文 message（控制台/CLI 仍直接消费 message）。
+ */
+function formatAssertionIssue(issue, i18n) {
+  const it = issue || {};
+  const params = it.params || {};
+  switch (it.messageKey) {
+    case "no-terms":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_no_terms",
+        "无有效术语，无法断言。",
+        params
+      );
+    case "empty-text":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_empty_text",
+        "测试文本为空，无法断言。",
+        params
+      );
+    case "invalid-testcase":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_invalid_testcase",
+        "测试用例缺少 term 信息，无法断言。",
+        params
+      );
+    case "single-not-found":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_single_not_found",
+        "术语 {term} 未被命中。",
+        params
+      );
+    case "single-wrong-replacement":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_single_wrong_replacement",
+        "术语 {term} 替换结果不正确。",
+        params
+      );
+    case "conflict-long-not-hit":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_conflict_long_not_hit",
+        "长词 {long} 未被命中（短词 {short} 可能抢占）。",
+        params
+      );
+    case "conflict-long-cut":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_conflict_long_cut",
+        "长词 {long} 被短词 {short} 切割（检测到前缀误伤）。",
+        params
+      );
+    case "conflict-long-value-not-applied":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_conflict_long_value_not_applied",
+        "长词 {long} 有译文但未被替换（仍为原文）。",
+        params
+      );
+    case "conflict-long-no-value-replaced":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_conflict_long_no_value_replaced",
+        "长词 {long} 无译文但被替换为 \"{replacement}\"。",
+        params
+      );
+    case "conflict-short-value-not-applied":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_conflict_short_value_not_applied",
+        "短词 {short} 有译文但未被替换（单独出现时）。",
+        params
+      );
+    case "naive-prefix-cut":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_naive_prefix_cut",
+        "长词 {long} 被短词 {short} 切割（检测到前缀误伤）。",
+        params
+      );
+    case "naive-cut-residue":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_naive_cut_residue",
+        "不翻译长词 {long} 被切割出高亮残留（短词 {short} 内部命中）。",
+        params
+      );
+    case "unknown-type":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_unknown_type",
+        "未知的测试用例类型: {type}",
+        params
+      );
+    default:
+      return it.message || "";
+  }
+}
+
+/**
  * 把字典里的 Markdown-lite 标记渲染成 JSX：**粗体** → <strong>，`代码` → <code>。
  * 只支持这两种、不支持嵌套，足够覆盖本页说明文案；不引入 dangerouslySetInnerHTML。
  * 已知边界：代码段内部含 *（如 `. + * ? ( ) [ ] \ | ^ $`）时，因 ** 分支先判且
@@ -1154,7 +1264,8 @@ export default function TerminologyPlayground({
             {i18n("terminology_playground_alert_test_failed", "测试失败")}
           </Typography>
           <Typography variant="body2">
-            {assertion.issues[0]?.message ||
+            {(assertion.issues[0] &&
+              formatAssertionIssue(assertion.issues[0], i18n)) ||
               i18n("terminology_playground_none", "（无）")}
           </Typography>
         </Box>
@@ -1411,13 +1522,10 @@ export default function TerminologyPlayground({
   };
 
   // AI 术语区专属示例：填入默认 AI 专业术语样例并生成例句（不依赖本地术语库）。
+  // 样例文本是功能数据（喂给 parseAITerms 的 key:value 载荷），不是用户可见文案，
+  // 必须用模块常量而非 i18n 返回值：译文格式变化不应改变功能数据。
   const handleAiLoadSample = () => {
-    setAiTermsDraft(
-      i18n(
-        "terminology_playground_terms_sample",
-        "zorp,数据管道\nquzzle,缓存节点"
-      )
-    );
+    setAiTermsDraft(AI_TERMS_SAMPLE_TEXT);
   };
 
   // AI 例句换一个：递增 aiTermSeed 触发例句重新生成（与本地术语区 handleRotateSeed 一致）。
@@ -1597,6 +1705,9 @@ export default function TerminologyPlayground({
     // 改前改后本路径均恰 1 次分析，非性能优化。
     const cases = generateTermTestText(termsArray, aiTermSeed, {
       conflicts: detectTermConflicts(termsArray),
+      // AI 术语是 parseAITerms 解析的字面 key:value，不按正则解析；
+      // key 含元字符（C++、.NET）时用原文做样例，避免被排除出例句。
+      treatKeysAsLiteral: true,
     });
     return joinIntoParagraph(cases) || null;
   }, [aiTermsDraft, aiTermSeed]);
@@ -1621,7 +1732,19 @@ export default function TerminologyPlayground({
   // 默认接口：优先取 localStorage 恢复的有效选择，其次当前匹配规则的 apiSlug，再次第一个启用接口。
   // 用户手动选择后不再被默认逻辑覆盖。
   useEffect(() => {
-    if (availableApis.length === 0) return;
+    if (availableApis.length === 0) {
+      // 无可用接口：恢复引用中的脏 slug 无法校验，直接清除持久化值，
+      // 避免脏值永久留存（与下方"恢复的接口已被删除"清理语义一致）。
+      if (restoredApiSlugRef.current) {
+        restoredApiSlugRef.current = "";
+        try {
+          window.localStorage.removeItem(LS_AI_API_SLUG_KEY);
+        } catch {
+          // 静默降级。
+        }
+      }
+      return;
+    }
     const restored = restoredApiSlugRef.current;
     if (restored) {
       const restoredValid = availableApis.some(
@@ -1964,7 +2087,7 @@ export default function TerminologyPlayground({
             data-testid="terminology-auto-sample-unsupported"
           >
             {i18n(
-              "terminology_playground_alert_no_example",
+              "terminology_playground_alert_auto_sample_skipped",
               "部分正则术语无法可靠生成自动匹配样例，已跳过这些自动断言。"
             )}
           </Alert>
@@ -2056,10 +2179,7 @@ export default function TerminologyPlayground({
             "terminology_playground_terms_input_label",
             "AI 专业术语"
           )}
-          placeholder={i18n(
-            "terminology_playground_terms_sample",
-            "zorp,数据管道\nquzzle,缓存节点"
-          )}
+          placeholder={AI_TERMS_SAMPLE_TEXT}
           inputProps={{
             "aria-describedby": "terminology-ai-terms-helper",
           }}
@@ -2893,7 +3013,11 @@ export default function TerminologyPlayground({
                         </tr>
                       </thead>
                       <tbody>
-                        {aiTestState.glossaryEntries.map(
+                        {/* 有界渲染：对齐本地结果区 DISPLAY_LIMIT 上限，
+                            千条级术语表不产生千行 DOM；溢出数量在表尾提示。 */}
+                        {aiTestState.glossaryEntries
+                          .slice(0, DISPLAY_LIMIT)
+                          .map(
                           ({ source, key, value }) => {
                             const sourceLabel =
                               source === "input"
@@ -3015,6 +3139,24 @@ export default function TerminologyPlayground({
                         )}
                       </tbody>
                     </table>
+                    {aiTestState.glossaryEntries.length > DISPLAY_LIMIT && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ mt: 0.5, display: "block" }}
+                      >
+                        {formatI18n(
+                          i18n,
+                          "terminology_playground_check_more",
+                          "还有 {count} 条未展示。",
+                          {
+                            count:
+                              aiTestState.glossaryEntries.length -
+                              DISPLAY_LIMIT,
+                          }
+                        )}
+                      </Typography>
+                    )}
                   </Box>
                 </Box>
               )}

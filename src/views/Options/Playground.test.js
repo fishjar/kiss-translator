@@ -523,3 +523,122 @@ describe("draft persistence debounce", () => {
     expect(termsCalls()).toHaveLength(callsAfterUnmount);
   });
 });
+
+describe("draft multi-tab race and unload flush (M3/B1)", () => {
+  const TERMS_KEY = "kt-playground-terms-draft";
+  const AI_TERMS_KEY = "kt-playground-aiterms-draft";
+  const SEED_KEY = "kt-playground-term-seed";
+  const DRAFT_KEYS = [TERMS_KEY, AI_TERMS_KEY, SEED_KEY];
+
+  const mountView = () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    act(() => {
+      root.render(<Playground />);
+    });
+    return { host, root };
+  };
+  const openTermsTab = async (host) => {
+    const termsTab = [...host.querySelectorAll('[role="tab"]')].find(
+      (tab) => tab.textContent === "专业术语"
+    );
+    act(() => {
+      termsTab.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+  };
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    DRAFT_KEYS.forEach((key) => window.localStorage.removeItem(key));
+  });
+
+  afterEach(() => {
+    DRAFT_KEYS.forEach((key) => window.localStorage.removeItem(key));
+    document.body.innerHTML = "";
+  });
+
+  test("M3：pagehide/beforeunload 时三键同步 flush（含此前不持久化的 seed）", async () => {
+    const { host, root } = mountView();
+    await openTermsTab(host);
+
+    act(() => {
+      mockTerminology.mock.calls.at(-1)[0].setTermsDraft("P1");
+      mockTerminology.mock.calls.at(-1)[0].setAiTermsDraft("P2");
+      mockTerminology.mock.calls.at(-1)[0].setTermSeed("3");
+    });
+
+    // 防抖窗口未到期直接派发 pagehide：三键必须同步落盘（修复前无监听 → 红）。
+    act(() => {
+      window.dispatchEvent(new Event("pagehide"));
+    });
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("P1");
+    expect(window.localStorage.getItem(AI_TERMS_KEY)).toBe("P2");
+    expect(window.localStorage.getItem(SEED_KEY)).toBe("3");
+
+    // beforeunload 同样兜底。
+    act(() => {
+      mockTerminology.mock.calls.at(-1)[0].setTermsDraft("P1b");
+    });
+    act(() => {
+      window.dispatchEvent(new Event("beforeunload"));
+    });
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("P1b");
+
+    act(() => root.unmount());
+  });
+
+  test("M3：seed 持久化跨卸载/重挂载恢复", async () => {
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    act(() => {
+      mockTerminology.mock.calls.at(-1)[0].setTermSeed("7");
+    });
+    act(() => root.unmount());
+
+    const { host: host2, root: root2 } = mountView();
+    await openTermsTab(host2);
+    expect(mockTerminology.mock.calls.at(-1)[0].termSeed).toBe("7");
+    act(() => root2.unmount());
+  });
+
+  test("B1①：storage 事件把另一 Tab 的草稿更新同步进本地状态", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("A");
+
+    // 另一 Tab 直接改写 LS 并广播 storage 事件。
+    window.localStorage.setItem(TERMS_KEY, "B");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: "B" })
+      );
+    });
+    // 修复前无 storage 监听，本地仍为 A → 红。
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("B");
+
+    act(() => root.unmount());
+    // 卸载写回前比对：自身最后已知值 = B，与 LS 一致，写回不改变内容。
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("B");
+  });
+
+  test("B1②：另一 Tab 在感知之后又改写时，卸载写回不覆盖其新值", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+
+    window.localStorage.setItem(TERMS_KEY, "B");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: "B" })
+      );
+    });
+    // 另一 Tab 在本 Tab 感知之后、卸载之前又改写为 C（无 storage 事件：
+    // 例如该 Tab 关闭前的最后一次写盘）。
+    window.localStorage.setItem(TERMS_KEY, "C");
+    act(() => root.unmount());
+    // 修复前：无条件写回自身旧值，覆盖 C → 红；修复后：保留 C。
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("C");
+  });
+});
