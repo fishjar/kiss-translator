@@ -759,17 +759,6 @@ export default function PopupCont({
             )}
           </Button>
         </div>
-        {canEditRule && (
-          <div className="kt-popup-site__tools">
-            <Button
-              variant="text"
-              startIcon={<EditOutlinedIcon />}
-              onClick={handleOpenRuleEditor}
-            >
-              {i18n("rule_editor_open")}
-            </Button>
-          </div>
-        )}
       </div>
 
       <div className="kt-popup-disclosure-row">
@@ -856,6 +845,15 @@ export default function PopupCont({
               </>
             )}
             <div className="kt-popup-advanced-tools">
+              {canEditRule && (
+                <Button
+                  variant="text"
+                  startIcon={<EditOutlinedIcon />}
+                  onClick={handleOpenRuleEditor}
+                >
+                  {i18n("rule_editor_open")}
+                </Button>
+              )}
               <Button
                 variant="text"
                 startIcon={<DeleteSweepRoundedIcon />}

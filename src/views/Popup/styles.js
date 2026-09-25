@@ -223,9 +223,6 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-site__badge--blocked { background: var(--kt-errc); color: var(--kt-onerrc); }
 .kt-popup-site__actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; margin-top: 4px; }
 .kt-popup-site__actions .MuiButton-root { min-width: 0; min-height: 34px; padding: 5px 8px; font-size: 11.5px; line-height: 1.35; overflow-wrap: anywhere; white-space: normal; }
-.kt-popup-site__tools { display: flex; justify-content: flex-end; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--kt-linev); }
-.kt-popup-site__tools .MuiButton-root { min-width: 0; max-width: 100%; min-height: 34px; padding: 5px 8px; font-size: 11.5px; line-height: 1.35; overflow-wrap: anywhere; white-space: normal; }
-.kt-popup-site__tools .MuiButton-startIcon { flex: none; }
 
 .kt-popup-disclosure-row { display: flex; align-items: center; gap: 4px; }
 .kt-popup-disclosure { width: auto; min-height: 38px; display: flex; flex: 1; align-items: center; gap: 8px; padding: 0 4px; border: 0; background: transparent; color: var(--kt-onv); cursor: pointer; font-size: 12.5px; font-weight: 650; }
@@ -234,8 +231,10 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-disclosure[aria-expanded="true"] svg { transform: rotate(180deg); }
 .kt-popup-advanced { display: flex; flex-direction: column; gap: 12px; animation: kt-m3-rise .35s var(--kt-spring); }
 .kt-popup-advanced[hidden] { display: none; }
-.kt-popup-advanced-tools { display: flex; flex-direction: column; gap: 4px; }
-.kt-popup-advanced-tools .MuiButton-root { min-width: 0; min-height: 36px; padding: 6px 12px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.kt-popup-advanced-tools { display: flex; gap: 8px; }
+.kt-popup-advanced-tools .MuiButton-root { flex: 1; min-width: 0; min-height: 40px; padding: 8px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; white-space: normal; }
+.kt-popup-advanced-tools .MuiButton-startIcon { flex: none; }
+.kt-popup-advanced-tools .MuiButton-root:last-child { color: var(--kt-onv); }
 .kt-popup-style-chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 100px), 1fr)); gap: 6px; margin: -2px; padding: 2px; }
 .kt-popup-style-chip { min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; padding: 5px 13px; border: 1px solid var(--kt-linev); border-radius: 8px; background: var(--kt-sf0); color: var(--kt-onv); cursor: pointer; font-size: 11.5px; font-weight: 650; overflow-wrap: anywhere; }
 .kt-popup-style-chip[aria-pressed="true"] { border-color: var(--kt-pri); background: var(--kt-pric); color: var(--kt-onpric); font-weight: 650; }

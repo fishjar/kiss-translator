@@ -441,7 +441,7 @@ describe("PopupCont capability parity", () => {
     }
   });
 
-  test("groups site actions together while advanced options are collapsed", async () => {
+  test("groups rule editing and cache clearing only while advanced options are expanded", async () => {
     const view = renderPopupCont();
     try {
       await flushEffects();
@@ -458,7 +458,7 @@ describe("PopupCont capability parity", () => {
         Array.from(site.querySelectorAll("button")).map(
           (button) => button.textContent
         )
-      ).toEqual(["save_rule", "add_to_blacklist", "rule_editor_open"]);
+      ).toEqual(["save_rule", "add_to_blacklist"]);
       expect(site.querySelector("select").title).toBe(
         site.querySelector("select").value
       );
@@ -471,7 +471,7 @@ describe("PopupCont capability parity", () => {
         Array.from(
           advancedPanel.querySelectorAll(".kt-popup-advanced-tools button")
         ).map((button) => button.textContent)
-      ).toEqual(["clear_cache"]);
+      ).toEqual(["rule_editor_open", "clear_cache"]);
 
       disclosure.focus();
       act(() => disclosure.click());
@@ -521,8 +521,9 @@ describe("PopupCont capability parity", () => {
     const view = renderPopupCont({ processActions, isContent: true });
     try {
       await flushEffects();
+      openAdvancedOptions(view.container);
       const openEditor = Array.from(
-        view.container.querySelectorAll(".kt-popup-site button")
+        view.container.querySelectorAll(".kt-popup-advanced-tools button")
       ).find((button) => button.textContent === "rule_editor_open");
 
       await act(async () => openEditor.click());
@@ -549,8 +550,9 @@ describe("PopupCont capability parity", () => {
     const view = renderPopupCont();
     try {
       await flushEffects();
+      openAdvancedOptions(view.container);
       const openEditor = Array.from(
-        view.container.querySelectorAll(".kt-popup-site button")
+        view.container.querySelectorAll(".kt-popup-advanced-tools button")
       ).find((button) => button.textContent === "rule_editor_open");
 
       act(() => openEditor.click());
@@ -1662,6 +1664,7 @@ describe("PopupCont capability parity", () => {
     const view = renderPopupCont();
     try {
       await flushEffects();
+      openAdvancedOptions(view.container);
       await act(async () => {
         [...view.container.querySelectorAll("button")]
           .find((node) => node.textContent === "rule_editor_open")

@@ -310,6 +310,7 @@ describe("Page controls retained across text-tab navigation", () => {
       try {
         act(() => root.render(<Popup />));
         await flush();
+        act(() => container.querySelector(".kt-popup-disclosure").click());
         const editor = [...container.querySelectorAll("button")].find(
           (node) => node.textContent === "rule_editor_open"
         );
