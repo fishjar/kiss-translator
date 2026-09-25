@@ -235,8 +235,14 @@ describe("useApiList", () => {
       .mockReturnValueOnce("abcdefab-cdef-cdef-cdef-abcdefabcdef");
     const host = renderApiList();
 
-    act(() => host.hookResult.addApi(OPT_TRANS_OPENAI));
+    let addedApiSlug = "";
+    act(() => {
+      addedApiSlug = host.hookResult.addApi(OPT_TRANS_OPENAI);
+    });
 
+    expect(addedApiSlug).toBe(
+      `${OPT_TRANS_OPENAI}_abcdefab-cdef-cdef-cdef-abcdefabcdef`
+    );
     expect(mockUpdateSetting).toHaveBeenCalledTimes(1);
     const update = mockUpdateSetting.mock.calls[0][0];
     const previous = { keep: true, transApis: [] };
@@ -257,6 +263,15 @@ describe("useApiList", () => {
         },
       ],
     });
+
+    // Test copyApi return value
+    globalThis.crypto.randomUUID.mockReturnValueOnce("copy-uuid-1234");
+    let copiedApiSlug = "";
+    act(() => {
+      copiedApiSlug = host.hookResult.copyApi(next.transApis[0]);
+    });
+    expect(copiedApiSlug).toBe(`${OPT_TRANS_OPENAI}_copy-uuid-1234`);
+
     host.unmount();
   });
 

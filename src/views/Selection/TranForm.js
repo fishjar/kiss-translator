@@ -71,6 +71,35 @@ const resolveActiveApiSlugs = (apiSlugs, optApis) => {
   return apiSlugs.filter((slug) => validSlugs.has(slug));
 };
 
+// Persist service choices only when a host supplies apiSlugsStorageKey.
+// Invalid or unavailable storage falls back to the existing defaults. A stored
+// empty array explicitly selects no services; unavailable slugs are filtered
+// after the configured services become available.
+function readStoredApiChoice(storageKey) {
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (raw === null) return { status: "none" };
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return { status: "none" };
+    if (parsed.some((slug) => typeof slug !== "string")) {
+      return { status: "none" };
+    }
+    // Restore each service only once even if the stored list has duplicates.
+    const slugs = [...new Set(parsed)];
+    return { status: "restored", slugs, isEmpty: slugs.length === 0 };
+  } catch {
+    return { status: "none" };
+  }
+}
+
+function writeStoredApiChoice(storageKey, slugs) {
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(slugs));
+  } catch {
+    // Unavailable storage must not prevent changes within the current session.
+  }
+}
+
 /**
  * Translation form with language and service choices, dictionaries, detection, and text input.
  */
@@ -96,6 +125,7 @@ export default function TranForm({
   isPlaygound = false,
   autoFocusInput = true,
   syncExternalTextWhileEditing = false,
+  apiSlugsStorageKey = undefined,
   playgroundConfigHeader = null,
   configActions = null,
   initialSettingsReady = true,
@@ -131,6 +161,13 @@ export default function TranForm({
     loading: false,
   });
   const inputRef = useRef(null);
+  // Read a persisted choice once. Undefined means not initialized; null means
+  // restoration has finished. Keeping these states distinct prevents later
+  // renders from restoring a stale snapshot over the user's current choices.
+  const pendingApiSlugsRestoreRef = useRef(undefined);
+  if (apiSlugsStorageKey && pendingApiSlugsRestoreRef.current === undefined) {
+    pendingApiSlugsRestoreRef.current = readStoredApiChoice(apiSlugsStorageKey);
+  }
   const formRef = useRef(null);
   const focusedTextControlRef = useRef(null);
   const previousSimpleStyleRef = useRef(simpleStyle);
@@ -315,6 +352,34 @@ export default function TranForm({
     () => resolveActiveApiSlugs(apiSlugs, optApis),
     [apiSlugs, optApis]
   );
+
+  // Restore after the initial API sync effect so persisted choices take
+  // precedence over defaults. Wait for asynchronously loaded service settings
+  // before filtering the stored slugs against the available services.
+  useEffect(() => {
+    const pending = pendingApiSlugsRestoreRef.current;
+    if (!pending) return;
+    if (pending.status === "none") {
+      pendingApiSlugsRestoreRef.current = null;
+      return;
+    }
+    if (optApis.length === 0) return;
+    pendingApiSlugsRestoreRef.current = null;
+
+    const validSlugs = new Set(optApis.map((api) => api.key));
+    const filtered = pending.slugs.filter((slug) => validSlugs.has(slug));
+
+    if (pending.isEmpty) {
+      // A stored empty list is an explicit choice and must override defaults.
+      setHasUserChangedApiSlugs(true);
+      setApiSlugs([]);
+    } else if (filtered.length > 0) {
+      // Restore only services that remain available and enabled.
+      setHasUserChangedApiSlugs(true);
+      setApiSlugs(filtered);
+    }
+    // If no stored slug remains valid, retain the existing default selection.
+  }, [optApis]);
 
   // Use Bing/Youdao for English words and Zdic for single Chinese characters.
   const defaultDictAvailable =
@@ -535,6 +600,13 @@ export default function TranForm({
                     onChange={(e) => {
                       setHasUserChangedApiSlugs(true);
                       setApiSlugs(e.target.value);
+                      // Persist choices only when the host explicitly enables it.
+                      if (apiSlugsStorageKey) {
+                        writeStoredApiChoice(
+                          apiSlugsStorageKey,
+                          e.target.value
+                        );
+                      }
                     }}
                   >
                     {optApis.map(({ key, name }) => (

@@ -143,6 +143,11 @@ const userscriptWebpack = (config, env) => {
 // @connect       niutrans.com
 // @connect       api.ephone.ai
 // @connect       ephone.ai
+// @connect       api.apimart.ai
+// @connect       apimart.ai
+// @connect       go.apimart.ai
+// @connect       api.apib.ai
+// @connect       apib.ai
 // @connect       translate.volcengine.com
 // @connect       translate.api.cloud.yandex.net
 // @connect       translate.yandex.net

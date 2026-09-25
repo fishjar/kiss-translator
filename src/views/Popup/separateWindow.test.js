@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { SEPARATE_WINDOW_CONTENT_WIDTH } from "../../config/app";
+import { POPUP_STYLES } from "./styles";
 
 /**
  * Read the default separate window bounds from source.
@@ -40,7 +41,13 @@ describe("separate translation window default size", () => {
   });
 });
 
-describe("separate window preferred width", () => {
+describe("separate window content width", () => {
+  test("uses full-width fluid layout inside the CSS panel", () => {
+    expect(POPUP_STYLES).toMatch(
+      /\.kt-popup-shell--window \.kt-popup-text-panel,\s*\.kt-popup-shell--window \.kt-popup-loading\s*\{[^}]*width:\s*100%;/
+    );
+  });
+
   test("starts wide enough for the service and language controls", () => {
     expect(SEPARATE_WINDOW_CONTENT_WIDTH).toBeGreaterThanOrEqual(560);
   });

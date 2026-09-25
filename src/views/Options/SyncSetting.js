@@ -303,11 +303,17 @@ export default function SyncSetting() {
       <Stack spacing={3}>
         {/* 数据同步的风险警告与备份注意事项提示 */}
         <Alert severity="info">{i18n("sync_warn_encryption")}</Alert>
-        <Alert severity="warning">{i18n("sync_warn")}</Alert>
-        <Alert severity="warning">{i18n("sync_warn_2")}</Alert>
-        {isGistSync && (
-          <Alert severity="warning">{i18n("sync_warn_gist")}</Alert>
-        )}
+        <Alert severity="warning">
+          {i18n("sync_warn")}
+          <br />
+          {i18n("sync_warn_2")}
+          {isGistSync && (
+            <>
+              <br />
+              {i18n("sync_warn_gist")}
+            </>
+          )}
+        </Alert>
 
         <div
           className="kt-sync-methods"

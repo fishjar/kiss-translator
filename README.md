@@ -6,6 +6,27 @@
 
 [kiss-translator.webm](https://github.com/fishjar/kiss-translator/assets/1157624/f7ba8a5c-e4a8-4d5a-823a-5c5c67a0a47f)
 
+## 感谢以下赞助商对本项目的支持
+
+<table>
+  <tr>
+    <td align="center"><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="600" /></td>
+    <td>
+      <a href="https://go.apimart.ai/gh-gotranslatorrr" target="_blank">
+        <b>APIMart</b> 是专注 AI 图片/视频生成的低价 API 平台，GPT-Image-2 低至 $0.006/张，1 美元可出图 160+ 张。图片、视频一套异步 API 通吃，提交任务拿 ID、回调取结果，跑批万张不超时、换模型不改代码。按量付费、无月费，通过此注册链接注册即可开用。
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
+    <td>
+      <a href="https://platform.ephone.ai/" target="_blank">
+        <b>ePhone AI</b> 是一个面向开发者的 AI 模型 API 中转与聚合平台，支持 OpenAI、Claude、Gemini、DeepSeek、GLM 等多家大模型。
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## 特性
 
 - [x] 保持简约
@@ -60,7 +81,7 @@
   - [x] 自定义专业术语
 - [x] 自定义快捷键
   - `Alt+Q` 开启翻译
-  - `Alt+C` 切换样式
+  - `Alt+D` 打开独立翻译窗
   - `Alt+K` 打开设置弹窗
   - `Alt+S` 打开翻译弹窗/翻译选中文字
   - `Alt+O` 打开设置页面
@@ -164,7 +185,12 @@
 - [x] **强化自定义/AI 接口**：支持流式传输、上下文记忆、多轮对话等高级 AI 功能。
 - [x] **英文词典备灾机制**：当翻译服务失效时，可切换其他词典或 fallback 到本地词典查询。
 - [x] **优化 YouTube 字幕支持**：改进流式字幕的合并与翻译体验，减少断句。
-- [ ] **规则共建机制升级**：引入更灵活的规则分享、版本管理与社区评审流程。
+
+- [ ] **支持边缘AI计算**：实现本地轻量的 LLM、ASR、OCR、TTS 辅助翻译。
+- [ ] **分布式共享平台**：引入分布式共享机制，用于分享字幕、规则等。
+- [ ] **支持文档翻译**：支持翻译 TXT、PDF、图片、漫画等。
+- [ ] **翻译Agent**：自研翻译Aagent，实现智能化翻译功能。
+- [ ] **项目重构**：重新规划整理功能模块，使用现代框架和技术重构整个项目。
  
  如果你对某个方向感兴趣，欢迎在 [Issues](https://github.com/fishjar/kiss-translator/issues) 中讨论或提交 PR！
 
@@ -197,13 +223,3 @@ window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "togg
 ## 赞赏
 
 ![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399)
-
-## 赞助商
-
-<p align="center">
-<a href="https://platform.ephone.ai/" target="_blank">
-<img src="https://platform.ephone.ai/logo-e.png" width="96" /><br />
-<b>ePhone AI</b><br />
-一个面向开发者的 AI 模型 API 中转与聚合平台，支持 OpenAI、Claude、Gemini、DeepSeek、GLM 等多家大模型。
-</a>
-</p>

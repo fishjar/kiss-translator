@@ -1,13 +1,20 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import Layout, { fetchLatestVersion, isWideOptionsPage } from "./Layout";
+import Layout, {
+  fetchLatestVersion,
+  isWideOptionsPage,
+  isValidVersion,
+  isNewerVersion,
+} from "./Layout";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let mockPathname = "/";
+let mockCheckUpdate = true;
 
 beforeEach(() => {
   mockPathname = "/";
+  mockCheckUpdate = true;
 });
 
 test("uses the wide content rail for dense workspace pages", () => {
@@ -27,6 +34,9 @@ jest.mock("react-router-dom", () => ({
   useLocation: () => ({ pathname: mockPathname }),
 }));
 jest.mock("../../hooks/I18n", () => ({ useI18n: () => (key) => key }));
+jest.mock("../../hooks/Setting", () => ({
+  useSetting: () => ({ setting: { checkUpdate: mockCheckUpdate } }),
+}));
 jest.mock("./styles", () => ({ OPTIONS_STYLES: "" }));
 jest.mock("./Header", () => {
   const React = require("react");
@@ -294,5 +304,165 @@ describe("fetchLatestVersion", () => {
 
     await expect(fetchLatestVersion()).rejects.toBe(abortError);
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  test("retries the GitHub URL when primary URL returns an HTML block page with HTTP 200", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () =>
+          "<!DOCTYPE html><html><head><title>Network Blocked</title></head><body>Access Denied</body></html>",
+      })
+      .mockResolvedValueOnce({ ok: true, text: async () => " 2.0.33\n" });
+
+    await expect(fetchLatestVersion()).resolves.toBe("2.0.33");
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  test("rejects when both primary and GitHub URLs return invalid version text or HTML block page", async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => "<html><body>Intercepted Portal</body></html>",
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        text: async () => "Login Required: Please visit http://auth.campus.edu",
+      });
+
+    await expect(fetchLatestVersion()).rejects.toThrow(
+      "Invalid version format"
+    );
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("isValidVersion", () => {
+  test("accepts valid X.Y.Z digit formats", () => {
+    expect(isValidVersion("2.0.32")).toBe(true);
+    expect(isValidVersion("0.0.1")).toBe(true);
+    expect(isValidVersion(" 2.0.33 \n")).toBe(true);
+  });
+
+  test("rejects v prefix, prerelease, HTML block pages, and invalid strings", () => {
+    expect(isValidVersion("v2.0.32")).toBe(false);
+    expect(isValidVersion("1.0.0-beta.1")).toBe(false);
+    expect(
+      isValidVersion("<!DOCTYPE html><html><body>Blocked</body></html>")
+    ).toBe(false);
+    expect(isValidVersion("Access Denied")).toBe(false);
+    expect(isValidVersion("")).toBe(false);
+    expect(isValidVersion(null)).toBe(false);
+    expect(isValidVersion(undefined)).toBe(false);
+    expect(isValidVersion("2.0")).toBe(false);
+    expect(isValidVersion("2.0.0.1")).toBe(false);
+  });
+});
+
+describe("isNewerVersion", () => {
+  test("returns true when remote is strictly newer", () => {
+    expect(isNewerVersion("2.0.33", "2.0.32")).toBe(true);
+    expect(isNewerVersion("2.1.0", "2.0.32")).toBe(true);
+    expect(isNewerVersion("3.0.0", "2.0.32")).toBe(true);
+  });
+
+  test("returns false when remote is equal or older", () => {
+    expect(isNewerVersion("2.0.32", "2.0.32")).toBe(false);
+    expect(isNewerVersion("2.0.31", "2.0.32")).toBe(false);
+    expect(isNewerVersion("1.9.99", "2.0.32")).toBe(false);
+  });
+
+  test("returns false for invalid versions, v prefix, prerelease, or HTML block content", () => {
+    expect(isNewerVersion("v2.0.33", "2.0.32")).toBe(false);
+    expect(isNewerVersion("2.0.33", "v2.0.32")).toBe(false);
+    expect(isNewerVersion("2.0.32-beta.2", "2.0.32-beta.1")).toBe(false);
+    expect(isNewerVersion("<html>blocked</html>", "2.0.32")).toBe(false);
+    expect(isNewerVersion("2.0.33", "invalid")).toBe(false);
+    expect(isNewerVersion(null, "2.0.32")).toBe(false);
+  });
+});
+
+describe("Layout checkUpdate setting effect", () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    process.env.NODE_ENV = "development";
+    process.env.REACT_APP_VERSION = "2.0.32";
+    process.env.REACT_APP_VERSION_URL = "https://primary.example/version.txt";
+    global.fetch = jest.fn();
+  });
+
+  afterEach(() => {
+    process.env.NODE_ENV = originalNodeEnv;
+    global.fetch = originalFetch;
+  });
+
+  test("does not fetch latest version when checkUpdate is false", async () => {
+    mockCheckUpdate = false;
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<Layout />);
+      await Promise.resolve();
+    });
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(container.querySelector(".kt-options-version-alert")).toBeNull();
+
+    act(() => root.unmount());
+  });
+
+  test("fetches and displays version alert when checkUpdate is true and a newer version exists", async () => {
+    mockCheckUpdate = true;
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      text: async () => "2.0.35",
+    });
+
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<Layout />);
+      await Promise.resolve();
+    });
+
+    // Wait for promise resolution in useEffect
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(global.fetch).toHaveBeenCalled();
+    const alertEl = container.querySelector(".kt-options-version-alert");
+    expect(alertEl).not.toBeNull();
+
+    act(() => root.unmount());
+  });
+
+  test("does not display version alert when remote returns an HTML block page", async () => {
+    mockCheckUpdate = true;
+    global.fetch.mockResolvedValue({
+      ok: true,
+      text: async () =>
+        "<!DOCTYPE html><html><body>Access Denied</body></html>",
+    });
+
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<Layout />);
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector(".kt-options-version-alert")).toBeNull();
+
+    act(() => root.unmount());
   });
 });

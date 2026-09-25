@@ -6,6 +6,27 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 
 [kiss-translator.webm](https://github.com/fishjar/kiss-translator/assets/1157624/f7ba8a5c-e4a8-4d5a-823a-5c5c67a0a47f)
 
+## Thanks to the following sponsors for supporting this project
+
+<table>
+  <tr>
+    <td align="center"><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="128" /></td>
+    <td>
+      <a href="https://go.apimart.ai/gh-gotranslatorrr" target="_blank">
+        <b>APIMart</b> is a low-cost API platform for AI image & video generation — GPT-Image-2 from $0.006/image, 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, fetch results via polling or callback. Batch tens of thousands of images without timeouts, switch models without changing code. Pay-as-you-go with no monthly fee — sign up here to get started.
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
+    <td>
+      <a href="https://platform.ephone.ai/" target="_blank">
+        <b>ePhone AI</b> is an AI model API relay and aggregation platform for developers, supporting multiple large models such as OpenAI, Claude, Gemini, DeepSeek, and GLM.
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## Features
 
 - [x] Keep it simple, smart
@@ -60,7 +81,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
   - [x] Customized terminology
 - [x] Custom shortcut keys
   - `Alt+Q` Toggle Translation
-  - `Alt+C` Toggle Styles
+  - `Alt+D` Open Standalone Translation Window
   - `Alt+K` Open Setting Popup
   - `Alt+S` Open Translate Popup / Translate Selected Text
   - `Alt+O` Open Options Page
@@ -151,8 +172,13 @@ Settings page address: https://fishjar.github.io/kiss-translator/options.html
 - [x] **Advanced Custom/AI Interfaces**: Add support for streaming, context memory, multi-turn conversations, and other advanced AI features.
 - [x] **Fallback English Dictionary**: When translation services fail, fall back to a local dictionary lookup.
 - [x] **Improved YouTube Subtitle Support**: Enhance merging and translation experience for streaming subtitles, reducing sentence fragmentation.
-- [ ] **Upgraded Rule Collaboration System**: Introduce more flexible rule sharing, version management, and community review processes.
 
+- [ ] **Edge AI Computing Support**: Implement local, lightweight LLM, ASR, OCR, and TTS to assist translation.
+- [ ] **Distributed Sharing Platform**: Introduce a distributed sharing mechanism for sharing subtitles, rules, etc.
+- [ ] **Document Translation Support**: Support translating TXT, PDF, images, comics, etc.
+- [ ] **Translation Agent**: Develop an in-house translation agent to achieve intelligent translation capabilities.
+- [ ] **Project Refactoring**: Reorganize functional modules and refactor the entire project using modern frameworks and technologies.
+ 
  If you're interested in any of these directions, feel free to discuss in [Issues](https://github.com/fishjar/kiss-translator/issues) or submit a PR!
 
 ## Development Guidelines
@@ -184,13 +210,3 @@ window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "togg
 ## Appreciate
 
 ![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399)
-
-## Sponsors
-
-<p align="center">
-<a href="https://platform.ephone.ai/" target="_blank">
-<img src="https://platform.ephone.ai/logo-e.png" width="96" /><br />
-<b>ePhone AI</b><br />
-An AI model API relay and aggregation platform for developers, supporting multiple large models such as OpenAI, Claude, Gemini, DeepSeek, and GLM.
-</a>
-</p>

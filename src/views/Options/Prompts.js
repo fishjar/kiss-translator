@@ -32,6 +32,7 @@ import {
   INPUT_PLACE_FROM,
   INPUT_PLACE_FROM_LANG,
   INPUT_PLACE_GLOSSARY,
+  INPUT_PLACE_SEGMENTS,
   INPUT_PLACE_SUMMARY,
   INPUT_PLACE_TEXT,
   INPUT_PLACE_TITLE,
@@ -59,7 +60,23 @@ const TRANSLATION_PROMPT_PLACEHOLDERS = [
   INPUT_PLACE_TITLE,
   INPUT_PLACE_DESCRIPTION,
   INPUT_PLACE_SUMMARY,
+  INPUT_PLACE_CONTEXT,
   INPUT_PLACE_TONE,
+  INPUT_PLACE_GLOSSARY,
+];
+
+const BATCH_TRANSLATION_PROMPT_PLACEHOLDERS = [
+  INPUT_PLACE_SEGMENTS,
+  INPUT_PLACE_TO,
+  INPUT_PLACE_FROM,
+  INPUT_PLACE_TO_LANG,
+  INPUT_PLACE_FROM_LANG,
+  INPUT_PLACE_TITLE,
+  INPUT_PLACE_DESCRIPTION,
+  INPUT_PLACE_SUMMARY,
+  INPUT_PLACE_CONTEXT,
+  INPUT_PLACE_TONE,
+  INPUT_PLACE_GLOSSARY,
 ];
 
 const SUBTITLE_PROMPT_PLACEHOLDERS = [
@@ -95,10 +112,11 @@ function getPromptPlaceholders(category) {
     return DICTIONARY_PROMPT_PLACEHOLDERS;
   }
 
-  if (
-    category === PROMPT_CATEGORY_USER ||
-    category === PROMPT_CATEGORY_BATCH_SYSTEM
-  ) {
+  if (category === PROMPT_CATEGORY_BATCH_SYSTEM) {
+    return BATCH_TRANSLATION_PROMPT_PLACEHOLDERS;
+  }
+
+  if (category === PROMPT_CATEGORY_USER) {
     return TRANSLATION_PROMPT_PLACEHOLDERS;
   }
 
@@ -194,7 +212,8 @@ function PromptFields({
   // Only show the second prompt for flows that consume userPrompt.
   const showUserPrompt =
     formData.category === PROMPT_CATEGORY_USER ||
-    formData.category === PROMPT_CATEGORY_DICTIONARY;
+    formData.category === PROMPT_CATEGORY_DICTIONARY ||
+    formData.category === PROMPT_CATEGORY_BATCH_SYSTEM;
 
   // Rebuilding the prompt list can replace objects without changing their content.
   // Reset the unsaved draft only when the persisted content changes.
@@ -534,8 +553,7 @@ export default function Prompts() {
             overflow: "hidden",
             "@container options-main (min-width: 760px)": {
               flexDirection: "row",
-              height: "calc(100vh - 140px)",
-              minHeight: 450,
+              alignItems: "flex-start",
             },
           }}
         >
@@ -550,7 +568,8 @@ export default function Prompts() {
               "@container options-main (min-width: 760px)": {
                 width: 280,
                 flex: "0 0 280px",
-                height: "100%",
+                height: "calc(100vh - 280px)",
+                minHeight: 420,
                 maxHeight: "none",
                 borderRight: `1px solid ${theme.palette.divider}`,
                 borderBottom: 0,
@@ -577,18 +596,16 @@ export default function Prompts() {
           <Box
             className="kt-prompt-editor__detail-panel"
             ref={detailPanelRef}
-            sx={{
+            sx={(theme) => ({
               flex: 1,
               minWidth: 0,
               p: 2,
               boxSizing: "border-box",
-              overscrollBehavior: "contain",
               "@container options-main (min-width: 760px)": {
-                height: "100%",
-                overflowY: "auto",
-                scrollbarGutter: "stable",
+                borderLeft: `1px solid ${theme.palette.divider}`,
+                marginLeft: "-1px",
               },
-            }}
+            })}
           >
             {selectedPrompt && (
               <PromptFields

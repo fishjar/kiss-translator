@@ -201,6 +201,8 @@ describe("separate translation window layout", () => {
 
   test("uses the native window width without an inset floating card", () => {
     expect(contentRule).toContain("width: 100%");
+    expect(contentRule).toContain("min-width: 0");
+    expect(contentRule).not.toMatch(/width:\s*min\(/);
     expect(contentRule).toContain("margin: 0");
     expect(contentRule).not.toContain("margin-inline: auto");
     const panelRules = [...POPUP_STYLES.matchAll(/([^{}]+)\{([^{}]*)\}/g)]

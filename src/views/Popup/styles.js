@@ -20,6 +20,7 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-shell--window .kt-popup-text-panel,
 .kt-popup-shell--window .kt-popup-loading {
   width: 100%;
+  min-width: 0;
   margin: 0;
 }
 

@@ -287,6 +287,7 @@ export default function Settings() {
     translateVariants = true,
     parseLatex = false,
     autoTranslateClipboard = false,
+    checkUpdate = true,
     popupDefaultView = OPT_POPUP_DEFAULT_VIEW_PAGE,
   } = setting;
   const normalizedPopupDefaultView = OPT_POPUP_DEFAULT_VIEW_ALL.includes(
@@ -578,6 +579,22 @@ export default function Settings() {
                     {name}
                   </MenuItem>
                 ))}
+              </TextField>
+            </Grid>
+            {/* 是否在进入设置页时自动检查更新 */}
+            <Grid item xs={12} sm={12} md={6} lg={6}>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="checkUpdate"
+                value={checkUpdate}
+                label={i18n("check_update")}
+                helperText={i18n("check_update_helper")}
+                onChange={handleChange}
+              >
+                <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                <MenuItem value={false}>{i18n("disable")}</MenuItem>
               </TextField>
             </Grid>
           </Grid>

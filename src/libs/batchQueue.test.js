@@ -31,7 +31,7 @@ describe("BatchQueue batch concurrency", () => {
     jest.useRealTimers();
   });
 
-  test("uses the configured default concurrency when omitted", async () => {
+  test("uses the configured default concurrency when provided explicitly", async () => {
     const batches = Array.from({ length: DEFAULT_BATCH_CONCURRENCY + 1 }, () =>
       deferred()
     );
@@ -39,7 +39,10 @@ describe("BatchQueue batch concurrency", () => {
     batches.forEach((batch) => {
       taskFn.mockImplementationOnce(() => batch.promise);
     });
-    const queue = createBatchQueue(taskFn, { batchSize: 1 });
+    const queue = createBatchQueue(taskFn, {
+      batchSize: 1,
+      batchConcurrency: DEFAULT_BATCH_CONCURRENCY,
+    });
     const tasks = batches.map((_, index) => queue.addTask(`task-${index}`));
 
     expect(taskFn).toHaveBeenCalledTimes(DEFAULT_BATCH_CONCURRENCY);
@@ -60,16 +63,13 @@ describe("BatchQueue batch concurrency", () => {
     );
   });
 
-  test("keeps batches serial when concurrency is one", async () => {
+  test("keeps batches serial when concurrency is omitted", async () => {
     const batches = [deferred(), deferred()];
     const taskFn = jest
       .fn()
       .mockImplementationOnce(() => batches[0].promise)
       .mockImplementationOnce(() => batches[1].promise);
-    const queue = createBatchQueue(taskFn, {
-      batchSize: 1,
-      batchConcurrency: 1,
-    });
+    const queue = createBatchQueue(taskFn, { batchSize: 1 });
 
     const first = queue.addTask("first");
     const second = queue.addTask("second");

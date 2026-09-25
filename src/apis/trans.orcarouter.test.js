@@ -22,19 +22,21 @@ import {
   normalizeApiThinkingSetting,
   OPT_TRANS_ORCAROUTER,
   THINKING_API_REGISTRY,
+  resolveApiPromptSettings,
 } from "../config";
 import { fetchData } from "../libs/fetch";
 
-const getApiSetting = (update = {}) => ({
-  ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_ORCAROUTER),
-  useStream: false,
-  useBatchFetch: true,
-  key: "sk-orca-test-key",
-  fetchInterval: 0,
-  fetchLimit: 1,
-  httpTimeout: 1000,
-  ...update,
-});
+const getApiSetting = (update = {}) =>
+  resolveApiPromptSettings({
+    ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_ORCAROUTER),
+    useStream: false,
+    useBatchFetch: true,
+    key: "sk-orca-test-key",
+    fetchInterval: 0,
+    fetchLimit: 1,
+    httpTimeout: 1000,
+    ...update,
+  });
 
 const mockOnce = () => {
   fetchData.mockResolvedValueOnce({

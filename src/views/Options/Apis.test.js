@@ -13,6 +13,7 @@ import {
   OPT_TRANS_QWENMT,
   OPT_TRANS_YANDEX,
   OPT_TRANS_YANDEXFREE,
+  PROMPT_CATEGORY_BATCH_SYSTEM,
 } from "../../config";
 import { fetchModelCatalog } from "../../libs/modelList";
 import { apiTranslate } from "../../apis";
@@ -21,6 +22,7 @@ import { SettingProvider } from "../../hooks/Setting";
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 HTMLElement.prototype.scrollTo = jest.fn();
 const mockConfirm = jest.fn();
+const mockUsePromptList = jest.fn(() => ({ prompts: [] }));
 
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key, fallback) => fallback || key,
@@ -33,7 +35,7 @@ jest.mock("../../hooks/Api", () => ({
 }));
 
 jest.mock("../../hooks/Prompt", () => ({
-  usePromptList: () => ({ prompts: [] }),
+  usePromptList: () => mockUsePromptList(),
 }));
 
 jest.mock("../../hooks/Confirm", () => ({
@@ -118,7 +120,8 @@ async function flushEffects() {
   });
 }
 
-async function renderApis(api = createApi(), update = jest.fn()) {
+async function renderApis(api = createApi(), update = jest.fn(), prompts = []) {
+  mockUsePromptList.mockReturnValue({ prompts });
   let apis = Array.isArray(api) ? api : [api];
   const reset = jest.fn();
   const container = document.createElement("div");
@@ -181,6 +184,7 @@ async function renderApis(api = createApi(), update = jest.fn()) {
 }
 
 async function renderStatefulApis(apis, strictMode = false) {
+  mockUsePromptList.mockReturnValue({ prompts: [] });
   const actualApiHooks = jest.requireActual("../../hooks/Api");
   useApiList.mockImplementation(actualApiHooks.useApiList);
   useApiItem.mockImplementation(actualApiHooks.useApiItem);
@@ -1309,6 +1313,36 @@ describe("Apis unsaved API switching", () => {
 
     view.unmount();
   });
+
+  test("confirms before adding an API when current detail is dirty", async () => {
+    const selectedApi = createApi({ apiSlug: "alpha", apiName: "Alpha" });
+    const view = await renderApis([selectedApi]);
+    await editUrlDraft(view.container);
+    mockConfirm.mockResolvedValueOnce(false);
+
+    const addButton = view.container.querySelector("#add-api-button");
+    await act(async () => {
+      Simulate.click(addButton);
+    });
+    const menu = document.body.querySelector("#add-api-menu");
+    const menuItem = menu.querySelector('[role="menuitem"]');
+    await act(async () => {
+      Simulate.click(menuItem);
+      await Promise.resolve();
+    });
+
+    expect(mockConfirm).toHaveBeenCalledWith({
+      message: "This API has unsaved changes. Discard them?",
+      confirmText: "discard_changes",
+      cancelText: "cancel",
+    });
+    expect(view.apiListValue.addApi).not.toHaveBeenCalled();
+    expect(getInput(view.container, "url").value).toBe(
+      "https://draft.example/v1"
+    );
+
+    view.unmount();
+  });
 });
 
 describe("Apis with stateful API hooks", () => {
@@ -1698,6 +1732,67 @@ describe("Apis with stateful API hooks", () => {
       view.unmount();
     }
   });
+
+  test("immediately selects the newly added API and resets detail state", async () => {
+    const scrollMock = jest.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollMock;
+    const initialApi = createApi({ apiSlug: "initial", apiName: "Initial" });
+    const view = await renderStatefulApis([initialApi]);
+
+    try {
+      const addButton = view.container.querySelector("#add-api-button");
+      await act(async () => {
+        Simulate.click(addButton);
+      });
+      const menu = document.body.querySelector("#add-api-menu");
+      const menuItem = menu.querySelector('[role="menuitem"]');
+      await act(async () => {
+        Simulate.click(menuItem);
+      });
+      await flushEffects();
+
+      const selectedCard = view.container.querySelector(
+        '.kt-api-list__card[aria-current="true"]'
+      );
+      expect(selectedCard).not.toBeNull();
+      expect(selectedCard.textContent).not.toContain("Initial");
+
+      const detailName = getInput(view.container, "apiName");
+      expect(detailName.value).not.toBe("Initial");
+      expect(scrollMock).toHaveBeenCalledWith({
+        block: "nearest",
+        behavior: "smooth",
+      });
+    } finally {
+      delete window.HTMLElement.prototype.scrollIntoView;
+      view.unmount();
+    }
+  });
+
+  test("immediately selects the copied API after copying", async () => {
+    const initialApi = createApi({ apiSlug: "initial", apiName: "Initial" });
+    const view = await renderStatefulApis([initialApi]);
+
+    try {
+      const actionsButton = view.container.querySelector(
+        `#api-detail-actions-button-${initialApi.apiSlug}`
+      );
+      await act(async () => Simulate.click(actionsButton));
+      const copyItem = Array.from(
+        document.body.querySelectorAll('[role="menuitem"]')
+      ).find((item) => item.textContent === "copy_api");
+      await act(async () => Simulate.click(copyItem));
+      await flushEffects();
+
+      const selectedCard = view.container.querySelector(
+        '.kt-api-list__card[aria-current="true"]'
+      );
+      expect(selectedCard.textContent).toContain("Initial - copy");
+      expect(getInput(view.container, "apiName").value).toBe("Initial - copy");
+    } finally {
+      view.unmount();
+    }
+  });
 });
 
 describe("Apis batch concurrency", () => {
@@ -1714,6 +1809,14 @@ describe("Apis batch concurrency", () => {
         useContext: true,
       })
     );
+    const moreBtn = Array.from(view.container.querySelectorAll("button")).find(
+      (btn) => btn.textContent.includes("more")
+    );
+    if (moreBtn) {
+      act(() => {
+        Simulate.click(moreBtn);
+      });
+    }
     const concurrencyInput = getInput(view.container, "batchConcurrency");
 
     expect(concurrencyInput.value).toBe("1");
@@ -1721,6 +1824,77 @@ describe("Apis batch concurrency", () => {
     expect(view.container.textContent).toContain(
       "batch_concurrency_context_hint"
     );
+
+    // 验证合并后的单一翻译提示词控件存在，且旧的独立提示词控件不再在主界面单独渲染
+    expect(
+      view.container.querySelector('input[name="translationPromptSlug"]')
+    ).not.toBeNull();
+    expect(
+      view.container.querySelector('input[name="nobatchPromptSlug"]')
+    ).toBeNull();
+    expect(
+      view.container.querySelector('input[name="batchPromptSlug"]')
+    ).toBeNull();
+
+    view.unmount();
+  });
+
+  test("keeps legacy custom batch prompts in protocol-free compatibility mode", async () => {
+    const update = jest.fn();
+    const legacyPrompt = {
+      slug: "prompt_legacy_batch",
+      category: PROMPT_CATEGORY_BATCH_SYSTEM,
+      name: "Legacy Batch Prompt",
+      systemPrompt: "Return one translated line for each input segment.",
+      userPrompt: "",
+    };
+    const linePrompt = {
+      slug: "prompt_line_batch",
+      category: PROMPT_CATEGORY_BATCH_SYSTEM,
+      name: "LINE Batch Prompt",
+      protocol: "line",
+      systemPrompt: "Return numbered translated lines.",
+      userPrompt: "Translate:\n{{segments}}",
+    };
+    const view = await renderApis(
+      createApi({
+        useBatchFetch: true,
+        batchPromptSlug: linePrompt.slug,
+        systemPrompt: linePrompt.systemPrompt,
+        batchUserPrompt: linePrompt.userPrompt,
+        batchProtocol: linePrompt.protocol,
+      }),
+      update,
+      [legacyPrompt, linePrompt]
+    );
+
+    const selectPrompt = async (promptName) => {
+      const promptInput = getInput(view.container, "translationPromptSlug");
+      const combobox =
+        promptInput.parentElement.querySelector('[role="combobox"]');
+      await act(async () => {
+        combobox.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, cancelable: true })
+        );
+        await Promise.resolve();
+      });
+      const option = Array.from(
+        document.body.querySelectorAll('[role="option"]')
+      ).find((item) => item.textContent.includes(promptName));
+      await act(async () => option.click());
+    };
+
+    await selectPrompt(legacyPrompt.name);
+    await act(async () => Simulate.click(getSaveButton(view.container)));
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update.mock.calls[0][0]).toMatchObject({
+      useBatchFetch: true,
+      batchPromptSlug: legacyPrompt.slug,
+      systemPrompt: legacyPrompt.systemPrompt,
+      batchUserPrompt: "",
+    });
+    expect(update.mock.calls[0][0]).not.toHaveProperty("batchProtocol");
 
     view.unmount();
   });
@@ -2190,6 +2364,20 @@ describe("Apis unknown model thinking warning", () => {
         usePool: false,
       })
     );
+
+    view.unmount();
+  });
+
+  test("renders all introductory alerts including the small model recommendation", async () => {
+    const view = await renderApis(createApi());
+    const infoAlert = view.container.querySelector(".MuiAlert-standardInfo");
+
+    expect(infoAlert).not.toBeNull();
+    expect(infoAlert.textContent).toContain("about_api");
+    expect(infoAlert.textContent).toContain("about_api_2");
+    expect(infoAlert.textContent).toContain("about_api_3");
+    expect(infoAlert.textContent).toContain("about_api_4");
+    expect(infoAlert.textContent).toContain("goto_custom_api_example");
 
     view.unmount();
   });

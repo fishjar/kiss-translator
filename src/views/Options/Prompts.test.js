@@ -113,11 +113,9 @@ describe("Prompts", () => {
     const visibleCategories = [
       PROMPT_CATEGORY_USER,
       PROMPT_CATEGORY_DICTIONARY,
-    ];
-    const hiddenCategories = [
       PROMPT_CATEGORY_BATCH_SYSTEM,
-      PROMPT_CATEGORY_SUBTITLE,
     ];
+    const hiddenCategories = [PROMPT_CATEGORY_SUBTITLE];
 
     for (const category of visibleCategories) {
       const { container, unmount } = renderPrompts(category);
@@ -150,6 +148,11 @@ describe("Prompts", () => {
       getComputedStyle(container.querySelector(".kt-prompt-editor__list-panel"))
         .maxHeight
     ).toBe("min(40vh, 360px)");
+    expect(
+      getComputedStyle(
+        container.querySelector(".kt-prompt-editor__detail-panel")
+      ).overscrollBehavior
+    ).not.toBe("contain");
     unmount();
   });
 

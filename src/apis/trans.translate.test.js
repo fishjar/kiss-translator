@@ -1970,6 +1970,75 @@ describe("handleTranslate", () => {
     });
     expect(thirdBody.messages[2].role).toBe("user");
   });
+
+  test("capture 非流式：先捕获真实请求，再捕获原始响应", async () => {
+    const rawResponse = { choices: [{ message: { content: "你好" } }] };
+    fetchData.mockResolvedValueOnce(rawResponse);
+    const capture = { onRequest: jest.fn(), onResponse: jest.fn() };
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: getNobatchApiSetting({
+          nobatchUserPrompt: "Translate: {{text}}",
+        }),
+        usePool: false,
+        capture,
+      })
+    );
+
+    expect(result).toEqual([{ id: 0, result: ["你好"] }]);
+    expect(capture.onRequest).toHaveBeenCalledTimes(1);
+    expect(capture.onResponse).toHaveBeenCalledWith(rawResponse);
+    const [capturedInput, capturedInit, capturedUserMsg] =
+      capture.onRequest.mock.calls[0];
+    expect(capturedInput).toBe(fetchData.mock.calls[0][0]);
+    expect(capturedInit).toBe(fetchData.mock.calls[0][1]);
+    expect(capturedUserMsg).toEqual(
+      JSON.parse(capturedInit.body).messages.at(-1)
+    );
+  });
+
+  test("capture 流式：仍捕获请求，但不捕获响应", async () => {
+    async function* streamChunks() {
+      yield JSON.stringify({ choices: [{ delta: { content: "你好" } }] });
+    }
+    fetchStream.mockReturnValueOnce(streamChunks());
+    const capture = { onRequest: jest.fn(), onResponse: jest.fn() };
+
+    const result = await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: getNobatchApiSetting({
+          useStream: true,
+          streamRenderMode: "realtime",
+          nobatchUserPrompt: "Translate: {{text}}",
+        }),
+        usePool: false,
+        capture,
+      })
+    );
+
+    expect(result.at(-1)).toEqual({ id: 0, result: ["你好"] });
+    expect(capture.onRequest).toHaveBeenCalledTimes(1);
+    expect(capture.onResponse).not.toHaveBeenCalled();
+    expect(capture.onRequest.mock.calls[0][0]).toBe(
+      fetchStream.mock.calls[0][0]
+    );
+    expect(capture.onRequest.mock.calls[0][1]).toBe(
+      fetchStream.mock.calls[0][1]
+    );
+  });
 });
 
 describe("gemini thinking effort clamp (#1048)", () => {

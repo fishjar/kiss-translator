@@ -327,6 +327,7 @@ describe("shared translation panel hosts", () => {
     expect(
       view.container.querySelector(".kt-translation-panel--embedded")
     ).not.toBeNull();
+    expect(view.container.querySelector(".kt-tranbox-content")).not.toBeNull();
     expect(view.container.querySelector(".KT-draggable")).toBeNull();
     expect(view.container.querySelector(".kt-tranbox-header__drag")).toBeNull();
     expect(
@@ -356,6 +357,10 @@ describe("shared translation panel hosts", () => {
     ]);
     // Empty windows must keep their input available.
     expect(menuItems[0].disabled).toBe(true);
+    expect(
+      view.container.querySelector('[data-testid="tran-form"]').dataset
+        .simpleStyle
+    ).toBe("false");
   });
 
   test("embeds the same content without a second header in the popup tab", async () => {
@@ -489,13 +494,16 @@ describe("separate window auto-fit", () => {
     const panel = container.querySelector(".kt-popup-text-panel");
     const form = container.querySelector(".kt-tranbox-content");
     Object.defineProperty(form, "scrollHeight", { value: 500 });
-    Object.defineProperty(panel, "scrollHeight", { value: 582 });
-    expect(panel.querySelector(".kt-tranbox-header")).not.toBeNull();
+    Object.defineProperty(panel, "scrollHeight", { value: 528 });
+    expect(form.querySelector(".kt-tranbox-header--compact")).not.toBeNull();
+    expect(
+      panel.querySelector(".kt-translation-panel > .kt-tranbox-header")
+    ).toBeNull();
     act(() => rafCallbacks.forEach((callback) => callback()));
 
     expect(sendBgMsg).toHaveBeenCalledWith(
       MSG_FIT_SEPARATE_WINDOW,
-      expect.objectContaining({ height: 622 })
+      expect.objectContaining({ height: 568 })
     );
   });
 

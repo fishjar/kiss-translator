@@ -6,6 +6,27 @@
 
 [kiss-translator.webm](https://github.com/fishjar/kiss-translator/assets/1157624/f7ba8a5c-e4a8-4d5a-823a-5c5c67a0a47f)
 
+## 以下のスポンサー様のご支援に感謝いたします
+
+<table>
+  <tr>
+    <td align="center"><img src="https://github.com/user-attachments/assets/8c5f141d-9d13-46b0-832f-f6884db4e5d5" width="128" /></td>
+    <td>
+      <a href="https://go.apimart.ai/gh-gotranslatorrr" target="_blank">
+        <b>APIMart</b> はAI画像・動画生成に特化した低価格APIプラットフォームです。GPT-Image-2は1枚あたり$0.006から、1ドルで160枚以上の画像生成が可能です。画像・動画を統合した非同期APIを提供し、タスク送信でID取得、コールバックで結果取得。数万枚の一括処理でもタイムアウトせず、コードを変更せずにモデルを切り替えられます。従量課金制・月額料金なし。こちらの登録リンクからすぐにご利用いただけます。
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><img src="https://platform.ephone.ai/logo-e.png" width="96" /></td>
+    <td>
+      <a href="https://platform.ephone.ai/" target="_blank">
+        <b>ePhone AI</b> は開発者向けのAIモデルAPI中継・集約プラットフォームであり、OpenAI、Claude、Gemini、DeepSeek、GLMなど、複数の大規模モデルをサポートしています。
+      </a>
+    </td>
+  </tr>
+</table>
+
 ## 特徴
 
 - [x] シンプルさを維持
@@ -60,7 +81,7 @@
   - [x] カスタム専門用語
 - [x] カスタムショートカットキー
   - `Alt+Q` 翻訳をオン
-  - `Alt+C` スタイル切り替え
+  - `Alt+D` 独立翻訳ウィンドウを開く
   - `Alt+K` 設定ポップアップを開く
   - `Alt+S` 翻訳ポップアップを開く/選択テキストを翻訳
   - `Alt+O` 設定ページを開く
@@ -151,7 +172,12 @@ APIテストの失敗には、一般的に以下の原因が考えられます�
 - [x] **カスタム/AI APIの強化**：ストリーミング伝送、コンテキストメモリ、複数ラウンドの対話など、高度なAI機能をサポートします。
 - [x] **英語辞書のフォールバックメカニズム**：翻訳サービスが利用できない場合、他の辞書に切り替えるか、ローカル辞書での検索にフォールバックします。
 - [x] **YouTube字幕サポートの最適化**：ストリーミング字幕の結合と翻訳体験を改善し、途切れを減らします。
-- [ ] **ルール共同構築メカニズムのアップグレード**：より柔軟なルールの共有、バージョン管理、コミュニティレビュープロセスを導入します。
+
+- [ ] **エッジAIコンピューティングのサポート**：ローカルで軽量なLLM、ASR、OCR、TTSによる翻訳補助を実現。
+- [ ] **分散型共有プラットフォーム**：字幕やルールなどを共有するための分散型共有メカニズムを導入。
+- [ ] **ドキュメント翻訳のサポート**：TXT、PDF、画像、マンガなどの翻訳をサポート。
+- [ ] **翻訳エージェント**：独自の翻訳Agentを開発し、インテリジェントな翻訳機能を実現。
+- [ ] **プロジェクトのリファクタリング**：機能モジュールを再編成し、最新のフレームワークと技術を用いてプロジェクト全体を刷新。
  
  特定の方向に興味がある場合は、[Issues](https://github.com/fishjar/kiss-translator/issues) で議論したり、PRを送信したりすることを歓迎します！
 
@@ -184,13 +210,3 @@ window.dispatchEvent(new CustomEvent("kiss_translator", {detail: { action: "togg
 ## 寄付
 
 ![appreciate](https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399)
-
-## スポンサー
-
-<p align="center">
-<a href="https://platform.ephone.ai/" target="_blank">
-<img src="https://platform.ephone.ai/logo-e.png" width="96" /><br />
-<b>ePhone AI</b><br />
-開発者向けのAIモデルAPI中継・集約プラットフォーム。OpenAI、Claude、Gemini、DeepSeek、GLMなど、複数の大規模モデルをサポートしています。
-</a>
-</p>

@@ -107,6 +107,12 @@ function getPromptCacheFields(apiSetting = {}, promptScope, glossary = {}) {
 
   if (promptScope === PROMPT_CACHE_SCOPE_BATCH) {
     fields = [apiSetting.systemPrompt || ""];
+    if (apiSetting.batchUserPrompt) {
+      fields.push(apiSetting.batchUserPrompt);
+    }
+    if (apiSetting.batchProtocol) {
+      fields.push(apiSetting.batchProtocol);
+    }
   } else if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
     fields = [
       apiSetting.nobatchPrompt || "",
@@ -709,6 +715,7 @@ export const apiTranslate = async ({
   translateVariants = true,
   textFormat = "text",
   signal,
+  capture,
 }) => {
   if (!text) {
     throw new Error("The text cannot be empty.");
@@ -822,6 +829,7 @@ export const apiTranslate = async ({
       onStreamChunk,
       docInfo,
       signal,
+      capture,
     });
   } else {
     // 2.3 不支持批量翻译、需要单个请求执行的 API (如某些流式大模型 API)
@@ -838,6 +846,7 @@ export const apiTranslate = async ({
       docInfo,
       onStreamChunk,
       signal,
+      capture,
     });
 
     for await (const item of generator) {

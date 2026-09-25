@@ -180,4 +180,26 @@ describe("SyncSetting method selection", () => {
     ).toBe(true);
     view.unmount();
   });
+
+  test("renders warnings merged into a single warning alert", () => {
+    const workerView = renderSyncSetting(OPT_SYNCTYPE_WORKER);
+    const warningAlerts = workerView.container.querySelectorAll(
+      ".MuiAlert-standardWarning"
+    );
+    expect(warningAlerts).toHaveLength(1);
+    expect(warningAlerts[0].textContent).toContain("sync_warn");
+    expect(warningAlerts[0].textContent).toContain("sync_warn_2");
+    expect(warningAlerts[0].textContent).not.toContain("sync_warn_gist");
+    workerView.unmount();
+
+    const gistView = renderSyncSetting(OPT_SYNCTYPE_GIST);
+    const gistWarningAlerts = gistView.container.querySelectorAll(
+      ".MuiAlert-standardWarning"
+    );
+    expect(gistWarningAlerts).toHaveLength(1);
+    expect(gistWarningAlerts[0].textContent).toContain("sync_warn");
+    expect(gistWarningAlerts[0].textContent).toContain("sync_warn_2");
+    expect(gistWarningAlerts[0].textContent).toContain("sync_warn_gist");
+    gistView.unmount();
+  });
 });

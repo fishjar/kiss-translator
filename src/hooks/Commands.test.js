@@ -8,6 +8,7 @@ describe("buildOverviewShortcutMap", () => {
     shortcuts: {
       toggleTranslate: ["AltLeft", "KeyQ"],
       togglePopup: ["AltLeft", "KeyK"],
+      openSeparateWindow: ["AltLeft", "KeyD"],
       toggleStyle: ["AltLeft", "KeyC"],
       openSetting: ["AltLeft", "KeyO"],
     },
@@ -19,6 +20,7 @@ describe("buildOverviewShortcutMap", () => {
     expect(buildOverviewShortcutMap(setting)).toEqual({
       page: ["Left Alt", "Q"],
       popup: ["Left Alt", "K"],
+      separateWindow: ["Left Alt", "D"],
       style: ["Left Alt", "C"],
       selection: ["Left Alt", "S"],
       input: ["Left Alt", "I"],
@@ -31,11 +33,13 @@ describe("buildOverviewShortcutMap", () => {
       buildOverviewShortcutMap(setting, [
         { name: "toggleTranslate", shortcut: "Ctrl+Shift+Y" },
         { name: "_execute_action", shortcut: "Ctrl+Shift+K" },
+        { name: "openSeparateWindow", shortcut: "Alt+D" },
       ])
     ).toEqual(
       expect.objectContaining({
         page: ["Ctrl", "Shift", "Y"],
         popup: ["Ctrl", "Shift", "K"],
+        separateWindow: ["Alt", "D"],
       })
     );
   });
