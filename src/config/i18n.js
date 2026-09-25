@@ -1517,6 +1517,24 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
     "{count} satır daha gösterilmiyor.",
     "Còn {count} dòng chưa được hiển thị."
   ),
+  terminology_playground_check_expand: terminologyPlaygroundText(
+    "展开全部",
+    "Show all",
+    "展開全部",
+    "すべて表示",
+    "모두 펼치기",
+    "Tümünü göster",
+    "Hiện tất cả"
+  ),
+  terminology_playground_check_collapse: terminologyPlaygroundText(
+    "收起",
+    "Collapse",
+    "收起",
+    "折りたたむ",
+    "접기",
+    "Daralt",
+    "Thu gọn"
+  ),
   terminology_playground_alert_test_passed: terminologyPlaygroundText(
     "测试通过",
     "Test passed",

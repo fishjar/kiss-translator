@@ -1184,3 +1184,50 @@ describe("termTestUtils 冲突分析记忆化（统一计划 20260829 Task 4）"
     expect(conflictCases).toHaveLength(2);
   });
 });
+
+// ─── 零宽断言样例回验与空样例守卫 ───────────────────────────────────────────
+describe("termTestUtils zero-width assertion sample validation", () => {
+  test("M2 回归：\\bAPI\\b 自动样例仍生成且能被原始正则命中", () => {
+    const parsed = parseTerms("\\bAPI\\b");
+    const cases = generateTermTestText(parsed);
+    expect(
+      cases.some((c) => c.type === "single" && c.text.includes("API"))
+    ).toBe(true);
+    expect(cases.some((c) => c.type === "unsupported")).toBe(false);
+  });
+
+  test("零宽断言回验不通过时判 unsupported（零宽-only key 不再产出空样例用例）", () => {
+    // parseTerms 的纯零宽门闸会在解析期跳过 \b 段，零宽-only key 永远不会进入
+    // parsed.terms；为触达 literalPatternSample 对零宽-only key 的回验分支，按
+    // parseTerms 条目形态（key/value/pattern/isWord）手工构造术语，key 传正则源码原文。
+    const term = { key: "\\b", value: "", pattern: "(\\b)", isWord: false };
+    const cases = generateTermTestText([term]);
+    expect(cases).toHaveLength(1);
+    expect(cases[0]).toMatchObject({
+      type: "unsupported",
+      reason: "auto-sample-unsupported",
+    });
+  });
+
+  test("conflict 断言在长词 key 解码为空样例时不再挂起（空串 indexOf 恒命中）", () => {
+    // 同上：长词 \b 必须手工构造。修复前 spanInsideKey 收到空样例时
+    // indexOf("") 恒命中且越界后永不返回 -1，while 循环同步死循环；
+    // 修复后空样例直接放弃判定，返回结构化结果（ok 字段在位）。
+    const short = { key: "word", value: "", pattern: "(word)", isWord: true };
+    const long = { key: "\\b", value: "", pattern: "(\\b)", isWord: false };
+    const testCase = {
+      type: "conflict",
+      text: "plain text word here",
+      short,
+      long,
+      shortHasValue: false,
+      longHasValue: false,
+      conflictType: 4,
+      direction: "short-first",
+    };
+    const result = assertTermReplacements([short, long], testCase, {
+      engine: "naive",
+    });
+    expect(result).toHaveProperty("ok");
+  });
+});

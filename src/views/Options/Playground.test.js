@@ -641,4 +641,61 @@ describe("draft multi-tab race and unload flush (M3/B1)", () => {
     // 修复前：无条件写回自身旧值，覆盖 C → 红；修复后：保留 C。
     expect(window.localStorage.getItem(TERMS_KEY)).toBe("C");
   });
+
+  test("B1③：storage 事件即时同步 refs，pagehide 不回写过期 ref 旧值", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("A");
+
+    // 本 Tab 编辑中的值尚未落盘（防抖窗口内）。
+    act(() => {
+      mockTerminology.mock.calls.at(-1)[0].setTermsDraft("A2");
+    });
+    // 另一 Tab 改写为 B 并广播；广播处理与 pagehide 在同一次 React 提交前
+    // 连续触发（真实浏览器中 pagehide 可打断 effect 提交窗口）。
+    window.localStorage.setItem(TERMS_KEY, "B");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: "B" })
+      );
+      window.dispatchEvent(new Event("pagehide"));
+    });
+    // 修复前：flush 使用过期 ref 旧值 A2 写回，覆盖远端 B → 红。
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("B");
+
+    act(() => root.unmount());
+  });
+
+  test("B1④：非空远端术语草稿到达时置 termDraftTouched（空值不清 touched）", async () => {
+    // 空草稿初始态挂载（termDraftTouched 初始为 false），随后远端非空草稿
+    // 经 storage 广播到达。
+    window.localStorage.removeItem(TERMS_KEY);
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    window.localStorage.setItem(TERMS_KEY, "remote-draft");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: TERMS_KEY,
+          newValue: "remote-draft",
+        })
+      );
+    });
+    // 修复前：termDraftTouched 仍为 false，子组件挂载期草稿覆盖防护失效 → 红。
+    expect(mockTerminology.mock.calls.at(-1)[0].termDraftTouched).toBe(true);
+    act(() => root.unmount());
+
+    // 远端清空（newValue 为 null）不置 touched：空草稿不阻断默认示例填入。
+    window.localStorage.removeItem(TERMS_KEY);
+    const second = mountView();
+    await openTermsTab(second.host);
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: null })
+      );
+    });
+    expect(mockTerminology.mock.calls.at(-1)[0].termDraftTouched).toBe(false);
+    act(() => second.root.unmount());
+  });
 });

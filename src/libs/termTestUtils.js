@@ -47,6 +47,7 @@ const SINGLE_TERM_TEMPLATES = [
 function literalPatternSample(source) {
   if (typeof source !== "string" || source === "") return null;
   let sample = "";
+  let droppedZeroWidth = false;
   const escapable = new Set("^$\\.*+?()[]{}|/-".split(""));
 
   for (let i = 0; i < source.length; i++) {
@@ -54,15 +55,28 @@ function literalPatternSample(source) {
     if (char === "\\") {
       const next = source[++i];
       if (!next) return null;
-      // 零宽断言 \b/\B：解码为空串（不追加字符、不判 unsupported），
-      // 使 \bAPI\b 这类词边界术语能产出自动匹配样例。
-      if (next === "b" || next === "B") continue;
+      // 零宽断言 \b/\B：解码为空串并记录丢弃标记，样例构造完成后用原始
+      // 正则回验；回验不通过或样例为空说明无法构造可靠自动样例，交由
+      // 调用方按 unsupported 处理，避免例句与原始正则语义脱节。
+      if (next === "b" || next === "B") {
+        droppedZeroWidth = true;
+        continue;
+      }
       if (!escapable.has(next)) return null;
       sample += next;
       continue;
     }
     if ("^$.*+?()[]{}|".includes(char)) return null;
     sample += char;
+  }
+
+  if (droppedZeroWidth) {
+    try {
+      if (sample === "" || !new RegExp(source).test(sample)) return null;
+    } catch {
+      // 非法正则源码（上游 parseTerms 已拦截，此处兜底）按不支持处理。
+      return null;
+    }
   }
 
   return sample;
@@ -802,6 +816,9 @@ function spanInsideKey(text, span, key) {
   // 否则转义 key 恒 -1、永不判中。解码失败（非纯字面形态）时放弃判定。
   const sample = literalPatternSample(key);
   if (sample === null) return false;
+  // 空样例（理论上游已回验拦截，此处兜底）：空串 indexOf 恒命中且越界后
+  // 永不返回 -1，会让下方 while 陷入死循环，必须直接放弃判定。
+  if (sample === "") return false;
   let index = text.indexOf(sample);
   while (index !== -1) {
     if (span.start >= index && span.end <= index + sample.length) return true;

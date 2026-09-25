@@ -1623,6 +1623,9 @@ export default function TerminologyPlayground({
   }
   // 用户是否手动改过接口选择：手动选择后不再被默认逻辑覆盖。
   const apiSelectionTouchedRef = useRef(false);
+  // 本挂载周期内是否出现过非空接口列表：区分"加载中空态"与"确无接口"，
+  // 作为失效 slug 清理的闸门（列表从未非空时不允许判定失效）。
+  const haveSeenAvailableApisRef = useRef(false);
   // AI 测试目标语言：挂载时只读一次 localStorage（StrictMode 幂等，同 restoredApiSlugRef 先例），
   // 无有效持久化值时回落全局 tranboxSetting.toLang —— 与本下拉引入前的行为完全一致。
   const restoredToLangRef = useRef(null);
@@ -1641,6 +1644,9 @@ export default function TerminologyPlayground({
   // AI 测试状态：idle | testing | done | error（初始形态见 AI_TEST_INITIAL_STATE）
   const [aiTestState, setAiTestState] = useState(AI_TEST_INITIAL_STATE);
   const [showRequestRaw, setShowRequestRaw] = useState(false);
+  // AI 术语贡献表溢出展开/收起：默认折叠只渲染 DISPLAY_LIMIT 行（有界渲染
+  // 不变），用户显式点击后才渲染全部行；切换为纯展示态，不触发重算。
+  const [aiGlossaryExpanded, setAiGlossaryExpanded] = useState(false);
   const [showResponseRaw, setShowResponseRaw] = useState(false);
   const aiAbortRef = useRef(null);
   // AI 术语说明「更多」折叠（U4/U6）：常显 3 短句，长说明默认折叠。
@@ -1733,9 +1739,11 @@ export default function TerminologyPlayground({
   // 用户手动选择后不再被默认逻辑覆盖。
   useEffect(() => {
     if (availableApis.length === 0) {
-      // 无可用接口：恢复引用中的脏 slug 无法校验，直接清除持久化值，
-      // 避免脏值永久留存（与下方"恢复的接口已被删除"清理语义一致）。
-      if (restoredApiSlugRef.current) {
+      // 接口列表为空存在两种形态：设置数据异步加载中的暂态空，与确无可用
+      // 接口。仅当本挂载周期内已出现过非空列表（加载确认完成）后，才允许
+      // 判定恢复 slug 失效并清理脏值；列表尚空时保留持久化值，防止首帧
+      // 误删有效保存值。
+      if (haveSeenAvailableApisRef.current && restoredApiSlugRef.current) {
         restoredApiSlugRef.current = "";
         try {
           window.localStorage.removeItem(LS_AI_API_SLUG_KEY);
@@ -1745,6 +1753,7 @@ export default function TerminologyPlayground({
       }
       return;
     }
+    haveSeenAvailableApisRef.current = true;
     const restored = restoredApiSlugRef.current;
     if (restored) {
       const restoredValid = availableApis.some(
@@ -3014,9 +3023,13 @@ export default function TerminologyPlayground({
                       </thead>
                       <tbody>
                         {/* 有界渲染：对齐本地结果区 DISPLAY_LIMIT 上限，
-                            千条级术语表不产生千行 DOM；溢出数量在表尾提示。 */}
+                            千条级术语表不产生千行 DOM；用户显式展开后渲染
+                            全部条目，溢出数量在表尾提示。 */}
                         {aiTestState.glossaryEntries
-                          .slice(0, DISPLAY_LIMIT)
+                          .slice(
+                            0,
+                            aiGlossaryExpanded ? undefined : DISPLAY_LIMIT
+                          )
                           .map(
                           ({ source, key, value }) => {
                             const sourceLabel =
@@ -3140,22 +3153,43 @@ export default function TerminologyPlayground({
                       </tbody>
                     </table>
                     {aiTestState.glossaryEntries.length > DISPLAY_LIMIT && (
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ mt: 0.5, display: "block" }}
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        alignItems="center"
+                        sx={{ mt: 0.5 }}
                       >
-                        {formatI18n(
-                          i18n,
-                          "terminology_playground_check_more",
-                          "还有 {count} 条未展示。",
-                          {
-                            count:
-                              aiTestState.glossaryEntries.length -
-                              DISPLAY_LIMIT,
-                          }
+                        {!aiGlossaryExpanded && (
+                          <Typography variant="caption" color="text.secondary">
+                            {formatI18n(
+                              i18n,
+                              "terminology_playground_check_more",
+                              "还有 {count} 条未展示。",
+                              {
+                                count:
+                                  aiTestState.glossaryEntries.length -
+                                  DISPLAY_LIMIT,
+                              }
+                            )}
+                          </Typography>
                         )}
-                      </Typography>
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => setAiGlossaryExpanded((prev) => !prev)}
+                          data-testid="terminology-ai-glossary-toggle"
+                        >
+                          {aiGlossaryExpanded
+                            ? i18n(
+                                "terminology_playground_check_collapse",
+                                "收起"
+                              )
+                            : i18n(
+                                "terminology_playground_check_expand",
+                                "展开全部"
+                              )}
+                        </Button>
+                      </Stack>
                     )}
                   </Box>
                 </Box>

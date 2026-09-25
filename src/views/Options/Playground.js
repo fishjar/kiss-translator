@@ -181,11 +181,23 @@ export default function Playgound({ initialSettingsReady = true }) {
       // 归一化：他 Tab 删除键（newValue 为 null）视为清空草稿。
       const next = typeof event.newValue === "string" ? event.newValue : "";
       lastKnownValuesRef.current[event.key] = event.newValue;
+      // 立即同步对应草稿 ref 并取消未决防抖写：state 更新要等 effect 提交，
+      // 若 pagehide/beforeunload 在提交前触发，兜底 flush 会拿过期 ref 旧值
+      // 写回并覆盖远端新值；同步 ref 让兜底 flush 永远拿到广播后的最新值。
       if (event.key === LS_TERMS_KEY) {
+        termsDraftRef.current = next;
+        writeTermsDraft.cancel();
         setTermsDraft(next);
+        // 非空远端草稿到达视为用户已有内容：置 touched，防止子组件挂载期
+        // 用默认示例覆盖远端草稿（空值仅清空草稿，不改 touched）。
+        if (next.trim() !== "") setTermDraftTouched(true);
       } else if (event.key === LS_AITERMS_KEY) {
+        aiTermsDraftRef.current = next;
+        writeAiTermsDraft.cancel();
         setAiTermsDraft(next);
       } else {
+        termSeedRef.current = next;
+        writeTermSeed.cancel();
         setTermSeed(next);
       }
     };
@@ -193,7 +205,9 @@ export default function Playgound({ initialSettingsReady = true }) {
     return () => {
       window.removeEventListener("storage", onStorage);
     };
-  }, []);
+    // 三个防抖写入器均由 useMemo([]) 生成、跨渲染稳定，依赖仅为其满足
+    // exhaustive-deps 门禁，实际不会触发重订阅。
+  }, [writeTermsDraft, writeAiTermsDraft, writeTermSeed]);
   const i18n = useI18n();
   // 从全局钩子中读取设置
   const { setting } = useSetting();

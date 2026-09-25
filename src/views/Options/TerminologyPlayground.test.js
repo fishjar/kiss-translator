@@ -637,6 +637,8 @@ describe("TerminologyPlayground", () => {
       "terminology_playground_issue_naive_cut_residue",
       "terminology_playground_issue_unknown_type",
       "terminology_playground_check_more",
+      "terminology_playground_check_expand",
+      "terminology_playground_check_collapse",
     ];
     const LANGS = ["zh", "en", "zh_TW", "ja", "ko", "tr", "vi"];
     for (const key of REQUIRED_KEYS) {
@@ -1558,16 +1560,28 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
-  test("M4：无可用接口时仍清除持久化的脏 API slug", async () => {
+  test("M4：接口列表加载确认前（空列表首挂载）保留持久化 slug，确认失效后才清理", async () => {
     // mockResolvedTransApis 已在 beforeEach 清空（availableApis 为空场景）。
     window.localStorage.setItem("kt-playground-ai-api-slug", "bogus-slug");
-    const { container, root } = renderPlayground({ rule: null });
+    const { root } = renderPlayground({ rule: null });
     await flushEffects();
 
-    // 修复前：availableApis 为空时 effect 早退，脏 slug 永不清理。
-    expect(window.localStorage.getItem("kt-playground-ai-api-slug")).toBeNull();
-
+    // 列表尚空无法区分"加载中暂态"与"确无接口"：保留持久化值，防止首帧
+    // 异步加载窗口误删有效保存值（修复前立即清除 → 红）。
+    expect(window.localStorage.getItem("kt-playground-ai-api-slug")).toBe(
+      "bogus-slug"
+    );
     act(() => root.unmount());
+
+    // 后续挂载确认列表非空：恢复的脏 slug 校验失败即清理（既有失效清理
+    // 语义不变，脏值不会永久留存）。
+    mockResolvedTransApis.push(
+      mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
+    );
+    const { root: secondRoot } = renderPlayground({ rule: null });
+    await flushEffects();
+    expect(window.localStorage.getItem("kt-playground-ai-api-slug")).toBeNull();
+    act(() => secondRoot.unmount());
   });
 
   test("M7：Bearer 脱敏只暴露 4 字符（两处脱敏实现口径一致）", async () => {
@@ -1628,6 +1642,59 @@ describe("TerminologyPlayground", () => {
     expect(rowCount).toBeLessThanOrEqual(4);
     act(() => root.unmount());
   }, 30000);
+
+  test("B2b：溢出生效检测表提供展开/收起切换，展开后渲染全部条目", async () => {
+    mockResolvedTransApis.push(
+      mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
+    );
+    mockApiTranslate.mockResolvedValue({
+      trText: "测试翻译结果",
+      srLang: "en",
+      srCode: "en",
+      isSame: false,
+    });
+    const entries = [];
+    for (let i = 0; i < 6; i++) entries.push(`term${i},值${i}`);
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: null,
+    });
+    await flushEffects();
+    act(() => {
+      setAiTermsDraft(entries.join("\n"));
+    });
+    const aiTestButton = container.querySelector(
+      '[data-testid="terminology-ai-run-test"]'
+    );
+    act(() => {
+      aiTestButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushEffects();
+
+    const table = [...container.querySelectorAll("table")].find((t) =>
+      t.textContent.includes("术语（键→值）")
+    );
+    expect(table).toBeDefined();
+    const toggle = () =>
+      container.querySelector('[data-testid="terminology-ai-glossary-toggle"]');
+    // 修复前无切换入口（表尾只有静态提示文案）→ 红。
+    expect(toggle()).not.toBeNull();
+    expect(toggle().textContent).toBe("展开全部");
+    expect(table.querySelectorAll("tbody tr")).toHaveLength(4);
+
+    act(() => {
+      toggle().dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(table.querySelectorAll("tbody tr")).toHaveLength(6);
+    expect(toggle().textContent).toBe("收起");
+
+    act(() => {
+      toggle().dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(table.querySelectorAll("tbody tr")).toHaveLength(4);
+    expect(toggle().textContent).toBe("展开全部");
+
+    act(() => root.unmount());
+  });
 
   test("B3：AI 样例载入使用模块常量，与 i18n 字典完全解耦", async () => {
     // 解耦终态：样例 key 已从字典删除（无孤儿），i18n 查不到任何样例数据，
