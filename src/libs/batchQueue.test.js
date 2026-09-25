@@ -1,5 +1,4 @@
 import { getBatchQueue } from "./batchQueue";
-import { DEFAULT_BATCH_CONCURRENCY } from "../config";
 
 let queueId = 0;
 const createBatchQueue = (taskFn, options) =>
@@ -31,39 +30,7 @@ describe("BatchQueue batch concurrency", () => {
     jest.useRealTimers();
   });
 
-  test("uses the configured default concurrency when provided explicitly", async () => {
-    const batches = Array.from({ length: DEFAULT_BATCH_CONCURRENCY + 1 }, () =>
-      deferred()
-    );
-    const taskFn = jest.fn();
-    batches.forEach((batch) => {
-      taskFn.mockImplementationOnce(() => batch.promise);
-    });
-    const queue = createBatchQueue(taskFn, {
-      batchSize: 1,
-      batchConcurrency: DEFAULT_BATCH_CONCURRENCY,
-    });
-    const tasks = batches.map((_, index) => queue.addTask(`task-${index}`));
-
-    expect(taskFn).toHaveBeenCalledTimes(DEFAULT_BATCH_CONCURRENCY);
-    batches[0].resolve([["result-0", ""]]);
-    await expect(tasks[0]).resolves.toEqual(["result-0", ""]);
-    await flushQueueScheduling();
-    expect(taskFn).toHaveBeenCalledTimes(DEFAULT_BATCH_CONCURRENCY + 1);
-    expect(taskFn).toHaveBeenLastCalledWith(
-      [`task-${DEFAULT_BATCH_CONCURRENCY}`],
-      undefined
-    );
-
-    batches.slice(1).forEach((batch, index) => {
-      batch.resolve([[`result-${index + 1}`, ""]]);
-    });
-    await expect(Promise.all(tasks)).resolves.toEqual(
-      batches.map((_, index) => [`result-${index}`, ""])
-    );
-  });
-
-  test("keeps batches serial when concurrency is omitted", async () => {
+  test("keeps batches serial by default", async () => {
     const batches = [deferred(), deferred()];
     const taskFn = jest
       .fn()

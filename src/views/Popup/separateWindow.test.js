@@ -48,7 +48,7 @@ describe("separate window content width", () => {
     );
   });
 
-  test("starts wide enough for the service and language controls", () => {
+  test("keeps initial default width wide enough for comfortable reading", () => {
     expect(SEPARATE_WINDOW_CONTENT_WIDTH).toBeGreaterThanOrEqual(560);
   });
 });

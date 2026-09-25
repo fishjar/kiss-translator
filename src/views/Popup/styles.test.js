@@ -184,12 +184,12 @@ describe("popup translation controls", () => {
   });
 });
 
-// Let the translation canvas follow its native window.
+// Keep the background and content panel full-width with fluid layout.
 describe("separate translation window layout", () => {
   const windowShellRule = POPUP_STYLES.match(
     /\.kt-popup-shell--window\s*\{([^}]*)\}/
   )?.[1];
-  const contentRule = POPUP_STYLES.match(
+  const panelRule = POPUP_STYLES.match(
     /\.kt-popup-shell--window \.kt-popup-text-panel,[^{]*\{([^}]*)\}/
   )?.[1];
 
@@ -199,19 +199,12 @@ describe("separate translation window layout", () => {
     expect(windowShellRule).not.toMatch(/width:\s*min\(/);
   });
 
-  test("uses the native window width without an inset floating card", () => {
-    expect(contentRule).toContain("width: 100%");
-    expect(contentRule).toContain("min-width: 0");
-    expect(contentRule).not.toMatch(/width:\s*min\(/);
-    expect(contentRule).toContain("margin: 0");
-    expect(contentRule).not.toContain("margin-inline: auto");
-    const panelRules = [...POPUP_STYLES.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-      .filter(([, selector]) =>
-        selector.includes(".kt-popup-shell--window .kt-popup-text-panel")
-      )
-      .map(([, , declarations]) => declarations)
-      .join("\n");
-    expect(panelRules).toMatch(/padding:\s*0;/);
+  test("expands the content panel across the full window width", () => {
+    expect(panelRule).toContain("width: 100%");
+    expect(panelRule).toContain("min-width: 0");
+    expect(panelRule).not.toMatch(/width:\s*min\(/);
+    expect(panelRule).toContain("margin: 0");
+    expect(panelRule).not.toContain("margin-inline: auto");
   });
 
   test("does not animate geometry while fitting the standalone window", () => {

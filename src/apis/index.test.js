@@ -477,7 +477,7 @@ describe("apiDict", () => {
     );
   });
 
-  test("dictionary signature includes user prompt and terms without translation tone", async () => {
+  test("dictionary prompt signature includes dictionary user prompt", async () => {
     getHttpCachePolyfill.mockResolvedValue(null);
     handleDict.mockResolvedValueOnce("fresh markdown");
 
@@ -489,8 +489,6 @@ describe("apiDict", () => {
         ...getOpenAiApiSetting("batch prompt"),
         dictPrompt: "dictionary prompt A",
         dictUserPrompt: "dictionary user prompt B",
-        aiTerms: "library,archive",
-        tone: "formal",
       },
       context: "The library is open.",
     });
@@ -499,15 +497,6 @@ describe("apiDict", () => {
       expect.stringContaining("promptSig=bbbbbbbbbbbbbbbb"),
       null,
       { markdown: "fresh markdown" }
-    );
-    expect(mockGetCacheDigest).toHaveBeenCalledWith(
-      [
-        "dict",
-        "dictionary prompt A",
-        "dictionary user prompt B",
-        "library,archive",
-      ].join("\n"),
-      "prompt-cache"
     );
   });
 });

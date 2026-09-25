@@ -116,7 +116,7 @@ export async function* fetchStream(
     } finally {
       // 消费方提前停止读取时，主动中止池内任务，避免长连接继续占用请求额度。
       streamController.abort();
-      await streamPromise.catch(() => {});
+      await streamPromise;
     }
     return;
   }

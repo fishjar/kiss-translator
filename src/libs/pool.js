@@ -85,7 +85,6 @@ class TaskPool {
       resolve(res);
     } catch (err) {
       kissLog("task pool", err);
-      // 如果发生异常且重试次数未达到上限，则安排延迟重试
       if (err?.name === "AbortError") {
         // Cancellation is final and must never start another request.
         reject(err);
