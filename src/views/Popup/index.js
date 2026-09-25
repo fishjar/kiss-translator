@@ -28,6 +28,7 @@ import {
 import { kissLog } from "../../libs/log";
 import PopupCont from "./PopupCont";
 import TranslationPanelSurface from "../../components/TranslationPanel/Surface";
+import TranslationPanelHeader from "../../components/TranslationPanel/Header";
 import TranslationPanelContent from "../../components/TranslationPanel/Content";
 import { useSetting } from "../../hooks/Setting";
 import { useSeparateWindowBounds } from "../../hooks/SeparateWindowBounds";
@@ -115,18 +116,25 @@ function useFitSeparateWindow(enabled, panelRef) {
             SEPARATE_WINDOW_CONTENT_WIDTH,
             Math.max(1, (width - chromeWidth) / layoutZoom)
           );
-          const previousWidth = panel.style.getPropertyValue("width");
-          const previousPriority = panel.style.getPropertyPriority("width");
+          const measurementStyles = ["width", "min-height"].map((property) => ({
+            property,
+            value: panel.style.getPropertyValue(property),
+            priority: panel.style.getPropertyPriority(property),
+          }));
           let contentHeight;
           try {
             // Read at the final width without painting an intermediate layout.
             panel.style.setProperty("width", `${contentWidth}px`, "important");
+            // Measure natural content, not the current window's stretched canvas.
+            panel.style.setProperty("min-height", "0px", "important");
             contentHeight = panel.scrollHeight;
           } finally {
-            if (previousWidth) {
-              panel.style.setProperty("width", previousWidth, previousPriority);
-            } else {
-              panel.style.removeProperty("width");
+            for (const { property, value, priority } of measurementStyles) {
+              if (value) {
+                panel.style.setProperty(property, value, priority);
+              } else {
+                panel.style.removeProperty(property);
+              }
             }
           }
 
@@ -162,6 +170,7 @@ export function Trantab({ isSeparate = false }) {
   useSeparateWindowBounds(isSeparate);
   const panelRef = useRef(null);
   const [text, setText] = useState("");
+  const [simpleStyle, setSimpleStyle] = useState(false);
   const i18n = useI18n();
   const { setting } = useSetting();
   const shouldReadClipboardInitially =
@@ -177,6 +186,20 @@ export function Trantab({ isSeparate = false }) {
   const readingClipboardRef = useRef(false);
   const lastClipboardTextRef = useRef("");
   const textRef = useRef(text);
+
+  const separateWindowTitle = `${i18n("popup_text_translation")} · ${process.env.REACT_APP_NAME}`;
+  useEffect(() => {
+    if (!isSeparate) return undefined;
+    const previousTitle = document.title;
+    document.title = separateWindowTitle;
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [isSeparate, separateWindowTitle]);
+
+  useEffect(() => {
+    if (!text.trim()) setSimpleStyle(false);
+  }, [text]);
 
   useEffect(() => {
     textRef.current = text;
@@ -310,6 +333,16 @@ export function Trantab({ isSeparate = false }) {
     <div className="kt-popup-text-panel" ref={panelRef}>
       <TranslationPanelSurface embedded>
         <TranslationPanelContent
+          configActions={
+            isSeparate ? (
+              <TranslationPanelHeader
+                compact
+                simpleStyle={simpleStyle}
+                setSimpleStyle={setSimpleStyle}
+                simpleStyleDisabled={!text.trim()}
+              />
+            ) : null
+          }
           text={text}
           setText={setText}
           apiSlugs={apiSlugs}
@@ -317,7 +350,7 @@ export function Trantab({ isSeparate = false }) {
           toLang={toLang}
           toLang2={toLang2}
           transApis={resolvedTransApis}
-          simpleStyle={false}
+          simpleStyle={isSeparate && simpleStyle && Boolean(text.trim())}
           langDetector={langDetector}
           enDict={enDict}
           enSug={enSug}
@@ -364,18 +397,11 @@ export default function Popup() {
       },
     };
   }, [previewMode]);
-  const {
-    data,
-    tab,
-    generation,
-    isLoading,
-    setRule,
-    setSetting,
-    markUnavailable,
-  } = usePopupPage({
-    enabled: !isSeparate && !previewData,
-    initialData: previewData,
-  });
+  const { data, tab, generation, isLoading, setRule, markUnavailable } =
+    usePopupPage({
+      enabled: !isSeparate && !previewData,
+      initialData: previewData,
+    });
   const {
     rule,
     setting,
@@ -526,7 +552,6 @@ export default function Popup() {
             rule={rule}
             setting={setting}
             setRule={setRule}
-            setSetting={setSetting}
             handleOpenSetting={handleOpenSetting}
           />
         ) : isLoading ? (

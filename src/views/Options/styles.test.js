@@ -30,12 +30,14 @@ describe("settings segmented controls", () => {
 
     expect(trackRule).toContain("overflow: hidden");
     expect(trackRule).toContain("padding: 3px");
-    expect(trackRule).toContain("min-width: 260px");
+    expect(trackRule).toContain("width: 100%");
+    expect(trackRule).toContain("min-width: 0");
     expect(trackRule).toContain("max-width: 100%");
-    expect(buttonRule).toContain("min-height: 34px");
+    expect(buttonRule).toContain("min-height: 36px");
+    expect(buttonRule).toContain("min-width: 0");
     expect(buttonRule).toContain("overflow: hidden");
-    expect(labelRule).toContain("text-overflow: ellipsis");
-    expect(labelRule).toContain("white-space: nowrap");
+    expect(labelRule).toContain("white-space: normal");
+    expect(labelRule).toContain("overflow-wrap: anywhere");
     expect(fallbackFocusRule).toContain("outline: none");
     expect(fallbackFocusRule).toContain(
       "box-shadow: inset 0 0 0 2px var(--kt-pri)"
@@ -126,9 +128,6 @@ describe("settings layout boundaries", () => {
     expect(OPTIONS_STYLES).toContain("@media (max-width: 1179px)");
     expect(OPTIONS_STYLES).toContain(
       "@container options-main (max-width: 620px)"
-    );
-    expect(OPTIONS_STYLES).toMatch(
-      /\.kt-settings-row--trigger \.kt-settings-segmented\s*\{[^}]*width:\s*100%;/
     );
   });
 

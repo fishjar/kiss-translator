@@ -206,6 +206,8 @@ export function useApiList() {
         apiSlug,
         apiName,
         apiType,
+        isDisabled: false,
+        sortOrder: 0,
       };
       updateSetting((prev) => ({
         ...prev,
@@ -428,7 +430,7 @@ export function useApiItem(apiSlug) {
     [apiSlug, updateSetting]
   );
 
-  // 将当前 API 配置项重置回默认预设值，但保留 apiSlug, apiName, apiType 和已配置的密钥(key)
+  // Reset provider options while preserving identity, credentials, and list state.
   const reset = useCallback(() => {
     updateSetting((prev) => ({
       ...prev,
@@ -442,6 +444,8 @@ export function useApiItem(apiSlug) {
             apiName: item.apiName,
             apiType: item.apiType,
             key: item.key,
+            isDisabled: Boolean(item.isDisabled),
+            sortOrder: item.sortOrder ?? 0,
           };
         }
         return item;

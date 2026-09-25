@@ -252,33 +252,27 @@ describe("usePopupPage tab lifecycle", () => {
       .mockResolvedValue(data("fr"));
     const view = renderPage();
     await flushEffects();
-    const { setRule, setSetting, markUnavailable } = view.page;
+    const { setRule, markUnavailable } = view.page;
 
     updateTab({ url: "https://example.com/new", status: "complete" });
     await flushEffects();
     act(() => {
       setRule((previous) => ({ ...previous, toLang: "de" }));
-      setSetting((previous) => ({ ...previous, darkMode: "dark" }));
       markUnavailable();
     });
     expect(view.page.data).toEqual(data("fr"));
 
     act(() => {
       view.page.setRule((previous) => ({ ...previous, toLang: "ja" }));
-      view.page.setSetting((previous) => ({
-        ...previous,
-        darkMode: "light",
-      }));
     });
     expect(view.page.data.rule.toLang).toBe("ja");
-    expect(view.page.data.setting.darkMode).toBe("light");
   });
 
   test("clears unavailable receivers and invalidates their pending action setters", async () => {
     loadPopupData.mockResolvedValueOnce(data()).mockResolvedValue(undefined);
     const view = renderPage();
     await flushEffects();
-    const { generation, setRule, setSetting, markUnavailable } = view.page;
+    const { generation, setRule, markUnavailable } = view.page;
 
     act(() => markUnavailable());
     expect(view.page.data).toBeNull();
@@ -286,7 +280,6 @@ describe("usePopupPage tab lifecycle", () => {
     expect(view.page.generation).toBeGreaterThan(generation);
     act(() => {
       setRule({ transOpen: "true" });
-      setSetting({ darkMode: "dark" });
     });
     expect(view.page.data).toBeNull();
     await flushEffects();
@@ -322,7 +315,6 @@ describe("usePopupPage tab lifecycle", () => {
     const recoveredGeneration = view.page.generation;
     act(() => {
       previous.setRule({ toLang: "stale" });
-      previous.setSetting({ darkMode: "stale" });
       previous.markUnavailable();
     });
     expect(view.page.data.rule.toLang).toBe("fr");
@@ -588,7 +580,6 @@ describe("usePopupPage tab lifecycle", () => {
     const previous = view.page;
     act(() => {
       previous.setRule((rule) => ({ ...rule, toLang: "de" }));
-      previous.setSetting((setting) => ({ ...setting, darkMode: "dark" }));
     });
     updateTab({ status: "loading" });
     await flushEffects();
@@ -596,7 +587,6 @@ describe("usePopupPage tab lifecycle", () => {
     expect(view.page.generation).toBe(previous.generation);
     expect(view.page.isLoading).toBe(false);
     expect(view.page.data.rule.toLang).toBe("de");
-    expect(view.page.data.setting.darkMode).toBe("dark");
     updateTab({ status: "complete" });
     await flushEffects();
     expect(view.page.generation).toBe(previous.generation);

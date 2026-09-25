@@ -161,8 +161,8 @@ let separateWindowBoundsRevision = 0;
 let separateWindowBoundsRead = 0;
 
 // Start near the expected content size to reduce visible resizing during rendering.
-// MSG_FIT_SEPARATE_WINDOW adjusts the height after layout; content width is capped
-// by design in Popup/styles.js, with extra window width becoming side margins.
+// MSG_FIT_SEPARATE_WINDOW adjusts the initial height after layout.
+// Subsequent resizing uses the full window without a fixed content width cap.
 const SEPARATE_WINDOW_CHROME_ALLOWANCE = 24;
 const DEFAULT_SEPARATE_WINDOW_BOUNDS = {
   left: 100,

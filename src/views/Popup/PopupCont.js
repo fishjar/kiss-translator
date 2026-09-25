@@ -10,10 +10,8 @@ import {
 } from "react";
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
 import DeleteSweepRoundedIcon from "@mui/icons-material/DeleteSweepRounded";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import KeyboardRoundedIcon from "@mui/icons-material/KeyboardRounded";
-import MouseRoundedIcon from "@mui/icons-material/MouseRounded";
-import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import Alert from "@mui/material/Alert";
@@ -52,7 +50,6 @@ import { isInBlacklist } from "../../libs/blacklist";
 import { useSetting } from "../../hooks/Setting";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
 import { COLLAPSED_SERVICE_LIMIT, getVisibleServices } from "./services";
-import { usePopupFeatureToggles } from "./usePopupFeatureToggles";
 import CompactLanguageSelect from "./CompactLanguageSelect";
 import PopupStylePreview from "./PopupStylePreview";
 import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
@@ -88,7 +85,6 @@ export default function PopupCont({
   rule,
   setting,
   setRule,
-  setSetting,
   handleOpenSetting,
   processActions,
   targetTab,
@@ -247,7 +243,7 @@ export default function PopupCont({
   );
 
   const dispatchPageAction = useCallback(
-    async (action, args, topFrame = false) => {
+    async (action, args) => {
       if (processActions) {
         const response = await processActions({ action, args });
         if (response?.error) throw new Error(response.error);
@@ -256,7 +252,7 @@ export default function PopupCont({
       const sequence = ++pageActionSequenceRef.current;
       let result;
       try {
-        result = await sendPageMessage(action, args, topFrame);
+        result = await sendPageMessage(action, args);
       } catch (error) {
         if (documentInfo) {
           // A frame can disappear after receiving the command. A separate
@@ -443,14 +439,6 @@ export default function PopupCont({
     ]
   );
 
-  const { handleInputToggle, handleMouseHoverToggle, handleTransboxToggle } =
-    usePopupFeatureToggles({
-      setting,
-      setSetting,
-      dispatchPageAction,
-      onError: reportActionFailure,
-    });
-
   const handleOpenRuleEditor = useCallback(async () => {
     if (!canEditRule) return;
     try {
@@ -542,9 +530,6 @@ export default function PopupCont({
   const translationEnabled =
     canTranslatePage && (transOpen === true || transOpen === "true");
   const isPlainText = plainTextValue === true || plainTextValue === "true";
-  const tranboxEnabled = !!setting?.tranboxSetting?.transOpen;
-  const mouseHoverEnabled = !!setting?.mouseHoverSetting?.useMouseHover;
-  const inputEnabled = !!setting?.inputRule?.transOpen;
   const targetName =
     OPT_LANGS_TO.find(([key]) => key === toLang)?.[1] || toLang;
   const activeService = services.find(({ key }) => key === apiSlug);
@@ -568,33 +553,6 @@ export default function PopupCont({
   const serviceDisclosureLabel = showAllServices
     ? `${i18n("popup_collapse")}: ${i18n("popup_more_services")}`
     : `${i18n("popup_more_services")} (${hiddenServiceCount})`;
-
-  const scenes = [
-    {
-      key: "selection",
-      label: i18n("selection_translate"),
-      icon: SelectAllRoundedIcon,
-      enabled: tranboxEnabled,
-      available: capabilities?.selectionTranslation !== false,
-      onChange: handleTransboxToggle,
-    },
-    {
-      key: "hover",
-      label: i18n("mousehover_translate"),
-      icon: MouseRoundedIcon,
-      enabled: mouseHoverEnabled,
-      available: capabilities?.hoverTranslation !== false,
-      onChange: handleMouseHoverToggle,
-    },
-    {
-      key: "input",
-      label: i18n("input_translate"),
-      icon: KeyboardRoundedIcon,
-      enabled: inputEnabled,
-      available: isTopFrame && capabilities?.inputTranslation !== false,
-      onChange: handleInputToggle,
-    },
-  ];
 
   const advancedRows = [
     ["transOnly", i18n("show_only_translations"), transOnly === "true"],
@@ -823,37 +781,6 @@ export default function PopupCont({
       >
         {showAdvanced && (
           <>
-            <div className="kt-popup-scenes">
-              {scenes
-                .filter((scene) => scene.available)
-                .map((scene) => {
-                  const SceneIcon = scene.icon;
-                  return (
-                    <button
-                      type="button"
-                      className="kt-popup-scene"
-                      aria-pressed={scene.enabled}
-                      key={scene.key}
-                      onClick={() => void scene.onChange(!scene.enabled)}
-                    >
-                      <SceneIcon />
-                      <span className="kt-popup-scene__copy">
-                        <span
-                          className="kt-popup-scene__label"
-                          title={scene.label}
-                        >
-                          {scene.label}
-                        </span>
-                        <span className="kt-popup-scene__state">
-                          {i18n(
-                            scene.enabled ? "popup_enabled" : "popup_disabled"
-                          )}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-            </div>
             {canTranslatePage && (
               <>
                 <div>
@@ -919,7 +846,11 @@ export default function PopupCont({
             )}
             <div className="kt-popup-advanced-tools">
               {canEditRule && (
-                <Button variant="outlined" onClick={handleOpenRuleEditor}>
+                <Button
+                  variant="text"
+                  startIcon={<EditOutlinedIcon />}
+                  onClick={handleOpenRuleEditor}
+                >
                   {i18n("rule_editor_open")}
                 </Button>
               )}

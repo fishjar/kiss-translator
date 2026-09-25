@@ -249,14 +249,10 @@ export function usePopupPage({ enabled = true, initialData = null } = {}) {
     (update) => updateData("rule", update),
     [updateData]
   );
-  const setSetting = useCallback(
-    (update) => updateData("setting", update),
-    [updateData]
-  );
 
   const markUnavailable = useCallback(() => {
     rediscoverRef.current?.(page.generation);
   }, [page.generation]);
 
-  return { ...page, setRule, setSetting, markUnavailable };
+  return { ...page, setRule, markUnavailable };
 }

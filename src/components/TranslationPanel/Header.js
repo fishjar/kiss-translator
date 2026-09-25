@@ -56,6 +56,7 @@ export default function TranslationPanelHeader({
   onClose,
   onOpenSeparateWindow,
   draggable = false,
+  compact = false,
   simpleStyleDisabled = false,
   simpleStyle,
   setSimpleStyle,
@@ -152,7 +153,10 @@ export default function TranslationPanelHeader({
   return (
     // Keep stopPropagation on mouseup: the header also starts drags, and bubbling
     // the release event would interfere with the page's selection handling.
-    <div className="kt-tranbox-header" onMouseUp={(e) => e.stopPropagation()}>
+    <div
+      className={`kt-tranbox-header${compact ? " kt-tranbox-header--compact" : ""}`}
+      onMouseUp={(e) => e.stopPropagation()}
+    >
       {draggable && (
         <span className="kt-tranbox-header__drag" aria-hidden="true">
           <DragIndicatorRoundedIcon />
@@ -160,14 +164,16 @@ export default function TranslationPanelHeader({
       )}
 
       {/* Left: logo and version. */}
-      <span className="kt-tranbox-header__brand">
-        <span className="kt-tranbox-header__logo">
-          <Logo size={16} />
+      {!compact && (
+        <span className="kt-tranbox-header__brand">
+          <span className="kt-tranbox-header__logo">
+            <Logo size={16} />
+          </span>
+          <span className="kt-tranbox-header__title">
+            {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
+          </span>
         </span>
-        <span className="kt-tranbox-header__title">
-          {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
-        </span>
-      </span>
+      )}
 
       {/* Right: always-visible actions. */}
       <span className="kt-tranbox-header__actions">
@@ -206,9 +212,11 @@ export default function TranslationPanelHeader({
         </IconButton>
 
         {/* Close the translation panel. */}
-        <IconButton title={i18n("close")} onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
+        {onClose && (
+          <IconButton title={i18n("close")} onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        )}
       </span>
 
       {showMore && (
