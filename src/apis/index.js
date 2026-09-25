@@ -122,6 +122,7 @@ function getPromptCacheFields(apiSetting = {}, promptScope, glossary = {}) {
     return [
       apiSetting.dictPrompt || "",
       apiSetting.dictUserPrompt ?? defaultDictUserPrompt,
+      apiSetting.aiTerms || "",
     ];
   } else if (promptScope === PROMPT_CACHE_SCOPE_QWEN_MT) {
     fields = [];
