@@ -31,7 +31,9 @@ describe("pooled stream lifecycle", () => {
   test("rejects the iterator when the pool is cleared before transport starts", async () => {
     const stream = fetchStream("https://example.test", {}, { usePool: true });
     const next = stream.next();
-    const expectation = expect(next).rejects.toBe("the task pool was cleared");
+    const expectation = expect(next).rejects.toMatchObject({
+      name: "AbortError",
+    });
 
     clearFetchPool();
     await expectation;

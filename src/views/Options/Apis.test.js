@@ -448,12 +448,8 @@ describe("Apis ordering and master-detail layout", () => {
     expect(disabledSwitch.checked).toBe(true);
     await act(async () => disabledSwitch.click());
     expect(disabledSwitch.checked).toBe(false);
-    expect(
-      detail.querySelectorAll('[class*="MuiGrid-grid-lg-3"]')
-    ).toHaveLength(0);
-    expect(
-      detail.querySelectorAll('[class*="MuiGrid-grid-lg-6"]').length
-    ).toBeGreaterThan(0);
+    expect(getInput(detail, "apiName").value).toBe("Alpha");
+    expect(getInput(detail, "model").value).toBe("gpt-4");
 
     const footer = detail.querySelector(".kt-api-detail__footer");
     const footerButtonTexts = Array.from(footer.querySelectorAll("button")).map(
@@ -588,11 +584,14 @@ describe("Apis conditional option groups", () => {
     );
 
     expect(view.container.querySelector(".kt-api-runtime-options")).toBeNull();
-    expect(
-      Array.from(view.container.querySelectorAll(".MuiGrid-item")).filter(
-        (item) => !item.firstElementChild && !item.textContent.trim()
-      )
-    ).toHaveLength(0);
+    for (const name of [
+      "useStream",
+      "streamRenderMode",
+      "useContext",
+      "contextSize",
+    ]) {
+      expect(view.container.querySelector(`[name="${name}"]`)).toBeNull();
+    }
 
     view.unmount();
   });

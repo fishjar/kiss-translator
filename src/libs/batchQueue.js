@@ -100,6 +100,8 @@ const BatchQueue = (
     tasks.forEach((task) => {
       task.batch = batch;
     });
+    // A coalesced completion wakeup can leave several concurrency slots free.
+    if (queue.length >= batchSize) scheduleProcessing(0);
 
     try {
       const firstArgs = tasks[0].args;

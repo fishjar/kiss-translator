@@ -29,7 +29,6 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import Tooltip from "@mui/material/Tooltip";
-import Grid from "@mui/material/Grid";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import CheckBoxRoundedIcon from "@mui/icons-material/CheckBoxRounded";
@@ -112,11 +111,8 @@ const apiFieldsGridSx = {
   gridTemplateColumns: "minmax(0, 1fr)",
   gap: 2,
   width: "100%",
-  margin: 0,
-  "& > .MuiGrid-item": {
+  "& > *": {
     minWidth: 0,
-    maxWidth: "100%",
-    padding: 0,
   },
   "@container api-detail (min-width: 480px)": {
     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -913,8 +909,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
             />
           )}
           <Box>
-            <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+            <Box sx={apiFieldsGridSx}>
+              <Box>
                 <ReusableAutocomplete
                   freeSolo
                   size="small"
@@ -933,8 +929,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     error: modelListStatus === "error",
                   }}
                 />
-              </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+              </Box>
+              <Box>
                 <ReusableAutocomplete
                   freeSolo
                   size="small"
@@ -945,11 +941,11 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   value={tone}
                   onChange={handleChange}
                 />
-              </Grid>
+              </Box>
               {apiType !== OPT_TRANS_QWENMT &&
                 apiType !== OPT_TRANS_GEMINI &&
                 apiType !== OPT_TRANS_GEMINI_2 && (
-                  <Grid item xs={12} sm={12} md={6} lg={6}>
+                  <Box>
                     <ValidationInput
                       size="small"
                       fullWidth
@@ -965,10 +961,10 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                         step: 0.1,
                       }}
                     />
-                  </Grid>
+                  </Box>
                 )}
               {apiType !== OPT_TRANS_QWENMT && (
-                <Grid item xs={12} sm={12} md={6} lg={6}>
+                <Box>
                   <ValidationInput
                     size="small"
                     fullWidth
@@ -980,9 +976,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     min={0}
                     max={1000000}
                   />
-                </Grid>
+                </Box>
               )}
-            </Grid>
+            </Box>
           </Box>
         </>
       )}
@@ -1049,8 +1045,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
 
       {API_SPE_TYPES.batch.has(apiType) && !API_SPE_TYPES.ai.has(apiType) && (
         <Box>
-          <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
+          <Box sx={apiFieldsGridSx}>
+            <Box>
               <TextField
                 select
                 fullWidth
@@ -1063,16 +1059,16 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                 <MenuItem value={false}>{i18n("disable")}</MenuItem>
                 <MenuItem value={true}>{i18n("enable")}</MenuItem>
               </TextField>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Box>
       )}
 
       {hasRuntimeOptions && (
         <Box className="kt-api-runtime-options">
-          <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
+          <Box sx={apiFieldsGridSx}>
             {API_SPE_TYPES.stream.has(apiType) && (
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+              <Box>
                 <TextField
                   select
                   fullWidth
@@ -1085,11 +1081,11 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   <MenuItem value={false}>{i18n("disable")}</MenuItem>
                   <MenuItem value={true}>{i18n("enable")}</MenuItem>
                 </TextField>
-              </Grid>
+              </Box>
             )}
 
             {API_SPE_TYPES.stream.has(apiType) && useStream && (
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+              <Box>
                 <TextField
                   select
                   fullWidth
@@ -1107,12 +1103,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     {i18n("stream_render_segment")}
                   </MenuItem>
                 </TextField>
-              </Grid>
+              </Box>
             )}
 
             {API_SPE_TYPES.context.has(apiType) && (
               <>
-                <Grid item xs={12} sm={12} md={6} lg={6}>
+                <Box>
                   {" "}
                   <TextField
                     select
@@ -1126,8 +1122,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     <MenuItem value={false}>{i18n("disable")}</MenuItem>
                     <MenuItem value={true}>{i18n("enable")}</MenuItem>
                   </TextField>
-                </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={6}>
+                </Box>
+                <Box>
                   {" "}
                   <ValidationInput
                     size="small"
@@ -1139,17 +1135,17 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     min={1}
                     max={20}
                   />
-                </Grid>
+                </Box>
               </>
             )}
-          </Grid>
+          </Box>
         </Box>
       )}
 
       {API_SPE_TYPES.ai.has(apiType) && (
         <Box>
-          <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
+          <Box sx={apiFieldsGridSx}>
+            <Box>
               <TextField
                 select
                 fullWidth
@@ -1165,8 +1161,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   </MenuItem>
                 ))}
               </TextField>
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
+            </Box>
+            <Box>
               <TextField
                 select
                 fullWidth
@@ -1182,8 +1178,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   </MenuItem>
                 ))}
               </TextField>
-            </Grid>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
+            </Box>
+            <Box>
               {/* AI 词典使用独立提示词，避免复用普通翻译提示词时输出格式不可控。 */}
               <TextField
                 select
@@ -1200,15 +1196,15 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   </MenuItem>
                 ))}
               </TextField>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Box>
       )}
 
       {thinkingParam && (
         <Box>
-          <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
-            <Grid item xs={12} sm={12} md={6} lg={6}>
+          <Box sx={apiFieldsGridSx}>
+            <Box>
               <TextField
                 select
                 fullWidth
@@ -1236,9 +1232,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   {i18n("thinking_mode_disabled")}
                 </MenuItem>
               </TextField>
-            </Grid>
+            </Box>
             {thinkingMode === "enabled" && thinkingEfforts && (
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+              <Box>
                 <TextField
                   select
                   fullWidth
@@ -1260,9 +1256,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     </MenuItem>
                   )}
                 </TextField>
-              </Grid>
+              </Box>
             )}
-          </Grid>
+          </Box>
         </Box>
       )}
 
@@ -1270,8 +1266,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         <>
           {API_SPE_TYPES.batch.has(apiType) && (
             <Box>
-              <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
-                <Grid item xs={12} sm={12} md={6} lg={6}>
+              <Box sx={apiFieldsGridSx}>
+                <Box>
                   <ValidationInput
                     size="small"
                     fullWidth
@@ -1283,8 +1279,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     min={10}
                     max={10000}
                   />
-                </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={6}>
+                </Box>
+                <Box>
                   <ValidationInput
                     size="small"
                     fullWidth
@@ -1296,8 +1292,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     min={1}
                     max={100}
                   />
-                </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={6}>
+                </Box>
+                <Box>
                   <ValidationInput
                     size="small"
                     fullWidth
@@ -1309,8 +1305,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     min={1000}
                     max={100000}
                   />
-                </Grid>
-                <Grid item xs={12} sm={12} md={6} lg={6}>
+                </Box>
+                <Box>
                   <ValidationInput
                     size="small"
                     fullWidth
@@ -1328,13 +1324,13 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                         : ""
                     }
                   />
-                </Grid>
-              </Grid>
+                </Box>
+              </Box>
             </Box>
           )}
           <Box>
-            <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+            <Box sx={apiFieldsGridSx}>
+              <Box>
                 <ValidationInput
                   size="small"
                   fullWidth
@@ -1346,8 +1342,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   min={1}
                   max={100}
                 />
-              </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+              </Box>
+              <Box>
                 <ValidationInput
                   size="small"
                   fullWidth
@@ -1359,8 +1355,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   min={0}
                   max={5000}
                 />
-              </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+              </Box>
+              <Box>
                 <ValidationInput
                   size="small"
                   fullWidth
@@ -1372,12 +1368,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   min={1}
                   max={600}
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </Box>
           <Box>
-            <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+            <Box sx={apiFieldsGridSx}>
+              <Box>
                 <TextField
                   select
                   fullWidth
@@ -1390,8 +1386,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   <MenuItem value={false}>{i18n("mk_pagescroll")}</MenuItem>
                   <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
                 </TextField>
-              </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+              </Box>
+              <Box>
                 <ValidationInput
                   fullWidth
                   size="small"
@@ -1403,12 +1399,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   min={0}
                   max={10000}
                 />
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </Box>
           <Box>
-            <Grid container spacing={2} columns={12} sx={apiFieldsGridSx}>
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+            <Box sx={apiFieldsGridSx}>
+              <Box>
                 <TextField
                   select
                   fullWidth
@@ -1424,8 +1420,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     </MenuItem>
                   ))}
                 </TextField>
-              </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+              </Box>
+              <Box>
                 <TextField
                   select
                   fullWidth
@@ -1441,8 +1437,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     </MenuItem>
                   ))}
                 </TextField>
-              </Grid>
-              <Grid item xs={12} sm={12} md={6} lg={6}>
+              </Box>
+              <Box>
                 <TextField
                   select
                   fullWidth
@@ -1459,8 +1455,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     {i18n("format_attribute", "属性格式 <a i=1>")}
                   </MenuItem>
                 </TextField>
-              </Grid>
-            </Grid>
+              </Box>
+            </Box>
           </Box>
 
           {(API_SPE_TYPES.ai.has(apiType) || apiType === OPT_TRANS_QWENMT) && (

@@ -25,6 +25,23 @@ describe("TaskPool cancellation", () => {
     jest.useRealTimers();
   });
 
+  test("clears queued tasks with AbortError without starting them", async () => {
+    const task = jest.fn();
+    const pending = [pool.push(task), pool.push(task)];
+    const expectations = pending.map((result) =>
+      expect(result).rejects.toMatchObject({ name: "AbortError" })
+    );
+
+    pool.clear();
+    await Promise.all(expectations);
+    jest.runOnlyPendingTimers();
+    expect(task).not.toHaveBeenCalled();
+
+    const next = pool.push(() => "next result");
+    jest.runOnlyPendingTimers();
+    await expect(next).resolves.toBe("next result");
+  });
+
   test("rejects AbortError without retrying and releases the slot", async () => {
     const error = new DOMException("Cancelled", "AbortError");
     const task = jest.fn().mockRejectedValue(error);

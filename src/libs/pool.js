@@ -144,7 +144,7 @@ class TaskPool {
   clear() {
     // 拒绝队列中所有等待执行的任务
     for (const task of this.#pool) {
-      task.reject("the task pool was cleared");
+      task.reject(new DOMException("The task pool was cleared.", "AbortError"));
     }
 
     // 清空任务队列
