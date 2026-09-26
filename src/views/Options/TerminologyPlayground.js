@@ -2581,7 +2581,12 @@ export default function TerminologyPlayground({
                                 "AI 专业术语（软提示词注入）"
                               )}
                             </Typography>
-                            {aiTestState.glossaryEntries.map(
+                            {aiTestState.glossaryEntries
+                              .slice(
+                                0,
+                                aiGlossaryExpanded ? undefined : DISPLAY_LIMIT
+                              )
+                              .map(
                               ({ source, key, value }) => {
                                 const delivery = deliveryMap?.get(key);
                                 return (
@@ -2622,6 +2627,28 @@ export default function TerminologyPlayground({
                                   </Typography>
                                 );
                               }
+                            )}
+                            {aiTestState.glossaryEntries.length >
+                              DISPLAY_LIMIT && (
+                              <Button
+                                size="small"
+                                variant="text"
+                                sx={{ mt: 0.5 }}
+                                onClick={() =>
+                                  setAiGlossaryExpanded((prev) => !prev)
+                                }
+                                data-testid="terminology-ai-glossary-toggle-soft"
+                              >
+                                {aiGlossaryExpanded
+                                  ? i18n(
+                                      "terminology_playground_check_collapse",
+                                      "收起"
+                                    )
+                                  : i18n(
+                                      "terminology_playground_check_expand",
+                                      "展开全部"
+                                    )}
+                              </Button>
                             )}
                           </Box>
                         )}

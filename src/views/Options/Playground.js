@@ -118,6 +118,11 @@ export default function Playgound({ initialSettingsReady = true }) {
       if (window.localStorage.getItem(key) !== lastKnownValuesRef.current[key]) {
         return;
       }
+      // 远端删除/清空后键在 LS 中已不存在：空草稿无需落盘，跳过写入以免
+      // 以空串重建键、覆盖另一 Tab 的删除意图。
+      if (value === "" && window.localStorage.getItem(key) === null) {
+        return;
+      }
       window.localStorage.setItem(key, value);
       lastKnownValuesRef.current[key] = value;
     } catch {
@@ -177,6 +182,26 @@ export default function Playgound({ initialSettingsReady = true }) {
   // 归一化后同步进本地草稿 state 与"自身最后已知值"，保证后续写回比对正确。
   useEffect(() => {
     const onStorage = (event) => {
+      // localStorage.clear() 广播：event.key 为 null，三键一并视为清空。
+      // lastKnown 置 null 与清空后的 LS 缺失态对齐，配合 flush 的空值跳过
+      // 守卫，兜底 flush 与防抖尾写都不会用旧草稿重建任何键。
+      if (event.key === null) {
+        lastKnownValuesRef.current = {
+          [LS_TERMS_KEY]: null,
+          [LS_AITERMS_KEY]: null,
+          [LS_TERM_SEED_KEY]: null,
+        };
+        termsDraftRef.current = "";
+        aiTermsDraftRef.current = "";
+        termSeedRef.current = "";
+        writeTermsDraft.cancel();
+        writeAiTermsDraft.cancel();
+        writeTermSeed.cancel();
+        setTermsDraft("");
+        setAiTermsDraft("");
+        setTermSeed("");
+        return;
+      }
       if (!DRAFT_STORAGE_KEYS.includes(event.key)) return;
       // 归一化：他 Tab 删除键（newValue 为 null）视为清空草稿。
       const next = typeof event.newValue === "string" ? event.newValue : "";

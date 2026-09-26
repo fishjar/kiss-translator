@@ -697,5 +697,65 @@ describe("draft multi-tab race and unload flush (M3/B1)", () => {
     });
     expect(mockTerminology.mock.calls.at(-1)[0].termDraftTouched).toBe(false);
     act(() => second.root.unmount());
+
+    // 已 touched 后远端清空广播不清 touched：空草稿仅清空内容，不回退编辑标记。
+    // touched 唯一置位路径是 onStorage 的非空广播分支（setTermsDraft setter 不触碰
+    // touched），故先以一次非空 newValue 广播把 touched 置 true，再验证 null 广播不回退。
+    const fourth = mountView();
+    await openTermsTab(fourth.host);
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: "edited" })
+      );
+    });
+    expect(mockTerminology.mock.calls.at(-1)[0].termDraftTouched).toBe(true);
+    window.localStorage.removeItem(TERMS_KEY);
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: null })
+      );
+    });
+    // 回归契约：touched 保持 true，不被清空广播回退。
+    expect(mockTerminology.mock.calls.at(-1)[0].termDraftTouched).toBe(true);
+    act(() => fourth.root.unmount());
+  });
+
+  test("B1⑤：远端删除草稿后 pagehide 兜底不重建空键", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+
+    // 另一 Tab 删除键并广播；本 Tab 在防抖窗口外、pagehide 时触发兜底 flush。
+    window.localStorage.removeItem(TERMS_KEY);
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: null })
+      );
+      window.dispatchEvent(new Event("pagehide"));
+    });
+    // 修复前：flush 以空串 setItem 重建已删除的键，覆盖远端删除意图 → 红。
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe(null);
+    act(() => root.unmount());
+  });
+
+  test("B1⑥：localStorage.clear() 广播（event.key 为 null）同步清空三键草稿且不重建键", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    window.localStorage.setItem(AI_TERMS_KEY, "B");
+    window.localStorage.setItem(SEED_KEY, "3");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+
+    // 另一 Tab 真实执行 clear()（本 Tab 同源 LS 一并清空）后广播 key 为 null 的事件。
+    window.localStorage.clear();
+    act(() => {
+      window.dispatchEvent(new StorageEvent("storage", { key: null }));
+      window.dispatchEvent(new Event("pagehide"));
+    });
+    // 修复前：三键草稿 state/ref 不感知 clear，兜底 flush 用旧值重建键 → 红。
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("");
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe(null);
+    expect(window.localStorage.getItem(AI_TERMS_KEY)).toBe(null);
+    expect(window.localStorage.getItem(SEED_KEY)).toBe(null);
+    act(() => root.unmount());
   });
 });

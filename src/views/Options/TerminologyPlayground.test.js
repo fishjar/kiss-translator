@@ -4128,6 +4128,54 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
+  test("B2c：软术语块对 glossaryEntries 有界渲染：默认只展示 DISPLAY_LIMIT 条并可展开", async () => {
+    mockResolvedTransApis.push(
+      mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
+    );
+    mockApiTranslate.mockResolvedValue({
+      trText: "测试翻译结果",
+      srLang: "en",
+      srCode: "en",
+      isSame: false,
+    });
+    // arrange：构造 6 条术语（> DISPLAY_LIMIT=4），驱动一轮 AI 测试至 done
+    //（推进形态与 B2b 溢出检测表用例同构：填草稿 → runAiTest 至 done）。
+    const entries = [];
+    for (let i = 0; i < 6; i++) entries.push(`term${i},值${i}`);
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: null,
+    });
+    await flushEffects();
+    act(() => {
+      setAiTermsDraft(entries.join("\n"));
+    });
+    await runAiTest(container);
+
+    const softGlossary = queryTestid("terminology-ai-soft-glossary");
+    expect(softGlossary).not.toBeNull();
+    // 断言 1（有界）：软术语块默认仅渲染 DISPLAY_LIMIT(4) 条条目行。
+    // 条目 Typography 为 component="div"，块标题未指定 component 渲染为 p，
+    // 故 div.MuiTypography-root 只计入条目行，不污染计数。
+    expect(
+      softGlossary.querySelectorAll("div.MuiTypography-root")
+    ).toHaveLength(4);
+    // 断言 2（溢出不可见）：第 5/6 条（term4/term5）在默认态不得出现在软术语块
+    // DOM 中；该断言为验红契约，不允许放宽为"不崩溃即可"。
+    expect(softGlossary.textContent).not.toContain("term4");
+    expect(softGlossary.textContent).not.toContain("term5");
+    // act（展开）：点击软术语块独立展开开关（testid 见 Fix C Replacement 4b，
+    // 与检测表既有 terminology-ai-glossary-toggle 互不冲突，避免 done 态
+    // >4 条时 DOM 出现双 testid）。
+    clickTestid("terminology-ai-glossary-toggle-soft");
+    // 断言 3（展开全量）：展开后渲染全部 6 条，溢出条目 term4/term5 可见。
+    expect(
+      softGlossary.querySelectorAll("div.MuiTypography-root")
+    ).toHaveLength(6);
+    expect(softGlossary.textContent).toContain("term4");
+    expect(softGlossary.textContent).toContain("term5");
+    act(() => root.unmount());
+  });
+
   test("Task7: 取消 AI 测试后状态复位，按钮解锁且可立即发起下一轮", async () => {
     mockResolvedTransApis.push(
       mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
