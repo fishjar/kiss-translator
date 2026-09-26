@@ -758,4 +758,83 @@ describe("draft multi-tab race and unload flush (M3/B1)", () => {
     expect(window.localStorage.getItem(SEED_KEY)).toBe(null);
     act(() => root.unmount());
   });
+
+  test("B1⑦：另一 Tab 的 sessionStorage.clear() 广播（storageArea 指向 sessionStorage）不清空本地草稿", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    window.localStorage.setItem(AI_TERMS_KEY, "B");
+    window.localStorage.setItem(SEED_KEY, "3");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("A");
+
+    // 真实浏览器中另一 Tab 对同源 sessionStorage 执行 clear() 时，广播到本
+    // Tab 的 storage 事件 key 为 null 且 storageArea 指向 sessionStorage 对象。
+    window.sessionStorage.clear();
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: null,
+          storageArea: window.sessionStorage,
+        })
+      );
+    });
+    // 修复前：clear 分支不校验 storageArea，本地草稿内存态被误清空 → 红。
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("A");
+    expect(mockTerminology.mock.calls.at(-1)[0].aiTermsDraft).toBe("B");
+    expect(mockTerminology.mock.calls.at(-1)[0].termSeed).toBe("3");
+
+    act(() => root.unmount());
+    // 异源广播不触碰 lastKnown：卸载 flush 写回不改变 LS 实值。
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("A");
+    expect(window.localStorage.getItem(AI_TERMS_KEY)).toBe("B");
+    expect(window.localStorage.getItem(SEED_KEY)).toBe("3");
+  });
+
+  test("B1⑧：另一 Tab 的 sessionStorage 写入广播（storageArea 指向 sessionStorage）不覆盖本地草稿", async () => {
+    window.localStorage.setItem(TERMS_KEY, "local");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("local");
+
+    // 另一 Tab 对同源 sessionStorage 写入同名键并广播：key 命中草稿键名，
+    // 但 storageArea 指向 sessionStorage，与 localStorage 草稿无关。
+    window.sessionStorage.setItem(TERMS_KEY, "session-value");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: TERMS_KEY,
+          newValue: "session-value",
+          storageArea: window.sessionStorage,
+        })
+      );
+    });
+    // 修复前：per-key 分支不校验 storageArea，本地草稿被误同步为异源值 → 红。
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("local");
+
+    act(() => root.unmount());
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("local");
+    window.sessionStorage.removeItem(TERMS_KEY);
+  });
+
+  test("B1⑨：localStorage 真实广播（storageArea 恰为 window.localStorage）仍正常同步（防误伤回归锁）", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+
+    // 真实 localStorage 广播形态：storageArea 恰为 window.localStorage，
+    // 必须照常走 per-key 同步（守卫不得误伤合法同源广播）。
+    window.localStorage.setItem(TERMS_KEY, "B");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: TERMS_KEY,
+          newValue: "B",
+          storageArea: window.localStorage,
+        })
+      );
+    });
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("B");
+
+    act(() => root.unmount());
+  });
 });

@@ -182,6 +182,18 @@ export default function Playgound({ initialSettingsReady = true }) {
   // 归一化后同步进本地草稿 state 与"自身最后已知值"，保证后续写回比对正确。
   useEffect(() => {
     const onStorage = (event) => {
+      // 异源 storage 广播守卫：W3C 规范中 storageArea 指向被修改的 Storage
+      // 对象，另一 Tab 对同源 sessionStorage 的写入/清空也会广播到本 Tab
+      // （clear 广播 key 为 null），不校验来源会误触下方 clear/per-key 分支、
+      // 清空仅属 localStorage 草稿的本地内存态。
+      // storageArea 为 null（合成/旧式事件，无法判定来源）或恰为
+      // window.localStorage 时放行；非 null 且非 localStorage 一律忽略。
+      if (
+        event.storageArea !== null &&
+        event.storageArea !== window.localStorage
+      ) {
+        return;
+      }
       // localStorage.clear() 广播：event.key 为 null，三键一并视为清空。
       // lastKnown 置 null 与清空后的 LS 缺失态对齐，配合 flush 的空值跳过
       // 守卫，兜底 flush 与防抖尾写都不会用旧草稿重建任何键。
