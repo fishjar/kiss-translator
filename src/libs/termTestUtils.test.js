@@ -290,6 +290,56 @@ describe("termTestUtils generateTermTestText", () => {
   });
 });
 
+// ─── generateTermTestText 严格字面量 $ 样例完整性 ────────────────────────────
+describe("termTestUtils generateTermTestText strict literal $ sample integrity", () => {
+  // 严格字面量术语 Price\$& 去转义后样例为 Price$&；
+  // 字符串形 replace 会把 $& 展开为整匹配 {term}，污染样例导致引擎失配。
+  test("keeps $& sample verbatim in generated text", () => {
+    const parsed = parseTerms("Price\\$&");
+    const cases = generateTermTestText(parsed);
+    expect(cases.length).toBeGreaterThan(0);
+    for (const c of cases) {
+      expect(c.text).not.toContain("{term}");
+      expect(c.text).toContain("Price$&");
+    }
+  });
+
+  test("passes assertTermReplacements for strict literal $& term", () => {
+    const parsed = parseTerms("Price\\$&");
+    const cases = generateTermTestText(parsed);
+    for (const c of cases) {
+      const assertion = assertTermReplacements(parsed, c);
+      expect(assertion.ok).toBe(true);
+      expect(
+        assertion.issues.filter((i) => i.type === "single-term-not-found")
+      ).toEqual([]);
+    }
+  });
+
+  // 冲突对（A\$& 与 A\$&B 纯子串命中）走 {short}/{long} 双站点插值，
+  // 字符串形 replace 同样会展开 $& 污染两处样例。
+  // 注：断言范围限定于本用例保证的样例保真与命中语义；assertTermReplacements
+  // 对「无译文长词保留原文」的比较已与单术语分支同口径（replacement 对齐
+  // 命中的源文 slice，而非带转义的 termKey），无译文长词不会误报 conflict-type-4。
+  test("keeps $& verbatim for conflict pair samples", () => {
+    const parsed = parseTerms("A\\$&;A\\$&B");
+    const cases = generateTermTestText(parsed);
+    expect(cases.length).toBeGreaterThan(0);
+    for (const c of cases) {
+      expect(c.text).not.toContain("{short}");
+      expect(c.text).not.toContain("{long}");
+      expect(c.text).toContain("A$&");
+      const assertion = assertTermReplacements(parsed, c);
+      expect(
+        assertion.issues.filter((i) => i.type === "single-term-not-found")
+      ).toEqual([]);
+      const spanKeys = assertion.fixed.spans.map((s) => s.termKey);
+      expect(spanKeys).toContain("A\\$&");
+      expect(spanKeys).toContain("A\\$&B");
+    }
+  });
+});
+
 // ─── generateTermTestText 显式 seed 轮换（Task 11） ──────────────────────────
 describe("termTestUtils generateTermTestText seed rotation", () => {
   const parsed = parseTerms("API,接口;APIKey,应用编程接口;GPT,生成式预训练");
@@ -670,6 +720,202 @@ describe("termTestUtils assertTermReplacements", () => {
     expect(result.ok).toBe(false);
     expect(result.issues[0].type).toBe("empty-text");
   });
+
+  // ─── 转义 key 冲突对（span 口径对称性）────────────────────────────────────
+  // termKey 是正则源码（如 C\+Builder），replacement 是命中原文或译文
+  // （如 C+Builder）；冲突断言必须与单术语分支一样以"命中原 slice"为口径，
+  // 而不是与带转义的 termKey 比较。
+
+  test("转义冲突对（双方无译文，类型4）：全部冲突用例 ok === true", () => {
+    const parsed = parseTerms("C\\+;C\\+Builder");
+    const conflicts = detectTermConflicts(parsed);
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].shortHasValue).toBe(false);
+    expect(conflicts[0].longHasValue).toBe(false);
+
+    const cases = generateTermTestText(parsed).filter(
+      (c) => c.type === "conflict"
+    );
+    expect(cases.length).toBeGreaterThan(0);
+    for (const testCase of cases) {
+      const result = assertTermReplacements(parsed, testCase);
+      expect(result.ok).toBe(true);
+    }
+  });
+
+  test("转义冲突对（双方有译文，类型1）：全部冲突用例 ok === true", () => {
+    const parsed = parseTerms("C\\+,C星;C\\+Builder,C星Builder");
+    const conflicts = detectTermConflicts(parsed);
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].conflictType ?? 1).toBeDefined();
+
+    const cases = generateTermTestText(parsed).filter(
+      (c) => c.type === "conflict"
+    );
+    expect(cases.length).toBeGreaterThan(0);
+    for (const testCase of cases) {
+      expect(testCase.conflictType).toBe(1);
+      const result = assertTermReplacements(parsed, testCase);
+      expect(result.ok).toBe(true);
+    }
+  });
+
+  test("断言4：转义短词单独出现时被替换为译文且整体 ok === true", () => {
+    const parsed = parseTerms("C\\+,接口;C\\+Builder");
+    const conflicts = detectTermConflicts(parsed);
+    expect(conflicts).toHaveLength(1);
+
+    const cases = generateTermTestText(parsed).filter(
+      (c) => c.type === "conflict" && c.direction === "short-first"
+    );
+    expect(cases.length).toBeGreaterThan(0);
+    for (const testCase of cases) {
+      const result = assertTermReplacements(parsed, testCase);
+      // short-first 文本中短词 C+ 单独出现，应被替换为"接口"
+      expect(result.ok).toBe(true);
+      expect(result.fixed.output).toContain("接口");
+    }
+  });
+
+  test("转义冲突对：naive 引擎下产出前缀切割证据", () => {
+    const parsed = parseTerms("C\\+,X;C\\+Builder");
+    const cases = generateTermTestText(parsed).filter(
+      (c) => c.type === "conflict"
+    );
+    expect(cases.length).toBeGreaterThan(0);
+    const results = cases.map((c) => assertTermReplacements(parsed, c, { engine: "naive" }));
+    const hasCut = results.some((r) =>
+      r.issues.some(
+        (i) => i.type === "naive-prefix-cut" || i.type === "naive-cut-residue"
+      )
+    );
+    expect(hasCut).toBe(true);
+  });
+
+  test("真实产生的 issue 均携带受控 messageKey（UI 按 key 映射 i18n）", () => {
+    const KNOWN_KEYS = new Set([
+      "no-terms",
+      "empty-text",
+      "invalid-testcase",
+      "single-not-found",
+      "single-wrong-replacement",
+      "conflict-long-not-hit",
+      "conflict-long-cut",
+      "conflict-long-value-not-applied",
+      "conflict-long-no-value-replaced",
+      "conflict-short-value-not-applied",
+      "naive-prefix-cut",
+      "naive-cut-residue",
+      "unknown-type",
+    ]);
+    // naive 引擎下构造真实失败，收集全部 issue 的 messageKey
+    const parsed = parseTerms("API,接口;APIKey");
+    const cases = generateTermTestText(parsed);
+    const naiveResult = assertTermReplacements(parsed, cases[0], {
+      engine: "naive",
+    });
+    expect(naiveResult.issues.length).toBeGreaterThan(0);
+    const emptyResult = assertTermReplacements([], {
+      type: "single",
+      text: "x",
+      term: parseTerms("API,接口").terms[0],
+    });
+    const allKeys = [...naiveResult.issues, ...emptyResult.issues].map(
+      (i) => i.messageKey
+    );
+    expect(allKeys.length).toBeGreaterThan(0);
+    for (const key of allKeys) {
+      expect(KNOWN_KEYS.has(key)).toBe(true);
+      expect(key).toBeTruthy();
+    }
+  });
+});
+
+// ─── generateTermTestText treatKeysAsLiteral（AI 术语字面样例）───────────────
+// AI 术语（parseAITerms 字面 key:value）不按正则解析，key 含元字符（C++、
+// .NET）时字面原文做样例是安全且正确的。
+describe("termTestUtils generateTermTestText treatKeysAsLiteral", () => {
+  test("字面模式：元字符 key 产出含原文的 single 用例", () => {
+    const parsed = [{ key: "C++", value: "C 星" }];
+    const cases = generateTermTestText(parsed, "", {
+      treatKeysAsLiteral: true,
+    });
+    const singleCases = cases.filter((c) => c.type === "single");
+    expect(singleCases.length).toBeGreaterThan(0);
+    for (const c of singleCases) {
+      expect(c.text).toContain("C++");
+    }
+    // 断言通过性由等价正则形态（parseTerms 产出的 pattern 条目）验证：
+    // AI 裸条目无 pattern 字段，生产 AI 路径只消费样例文本，不做本地断言。
+    const regexForm = parseTerms("C\\+\\+,C 星");
+    const regexCases = generateTermTestText(regexForm);
+    for (const c of regexCases.filter((x) => x.type === "single")) {
+      expect(c.text).toContain("C++");
+      expect(assertTermReplacements(regexForm, c).ok).toBe(true);
+    }
+  });
+
+  test("默认（不传选项）：元字符 key 保持 unsupported，行为不变", () => {
+    const parsed = [{ key: "C++", value: "C 星" }];
+    const cases = generateTermTestText(parsed);
+    const unsupported = cases.filter((c) => c.type === "unsupported");
+    expect(unsupported.length).toBeGreaterThan(0);
+    expect(unsupported.some((c) => c.term?.key === "C++")).toBe(true);
+    expect(cases.some((c) => c.type === "single")).toBe(false);
+  });
+
+  test("字面模式：空白 key 跳过生成且不进 unsupported 计数", () => {
+    const blanks = [
+      { key: "", value: "空" },
+      { key: "  ", value: "空" },
+      { key: "\t", value: "空" },
+    ];
+    const parsed = parseTerms("API,接口");
+    const cases = generateTermTestText([...blanks, ...parsed.terms], "", {
+      treatKeysAsLiteral: true,
+    });
+    // 只为 API 产出用例；空白 key 不产出任何用例，也不作为 unsupported 出现
+    expect(cases.some((c) => c.term?.key === "API")).toBe(true);
+    for (const blank of ["", "  ", "\t"]) {
+      expect(cases.some((c) => c.term?.key === blank)).toBe(false);
+      expect(cases.some((c) => c.type === "unsupported" && c.term?.key === blank)).toBe(false);
+    }
+    // API 的 single 用例仍可断言通过（pattern 条目）
+    const apiCase = cases.find((c) => c.type === "single");
+    expect(apiCase).toBeDefined();
+    expect(assertTermReplacements(parsed.terms, apiCase).ok).toBe(true);
+  });
+});
+
+// ─── M2/M6：零宽转义样例 + 冲突对去重分隔符 ─────────────────────────────────
+describe("termTestUtils word-boundary escape and conflict pair dedup", () => {
+  test("M2：\\b 词边界转义解码为空串，\\bAPI\\b 产出自动样例而非 unsupported", () => {
+    const parsed = parseTerms("\\bAPI\\b");
+    const cases = generateTermTestText(parsed);
+    const single = cases.filter((c) => c.type === "single");
+    expect(single.length).toBeGreaterThan(0);
+    for (const c of single) {
+      expect(c.text).toContain("API");
+    }
+    expect(cases.some((c) => c.type === "unsupported")).toBe(false);
+  });
+
+  test("M2 回归：一般正则元字符仍判 unsupported（不放宽）", () => {
+    const parsed = parseTerms("API\\.\\d+,版本");
+    const cases = generateTermTestText(parsed);
+    expect(cases.some((c) => c.type === "unsupported")).toBe(true);
+  });
+
+  test("M6：含冒号 key 的冲突对独立记录（去重键不因 : 撞车）", () => {
+    const parsed = parseTerms("a:,v1;a,v2;a:b:c,v3");
+    const conflicts = detectTermConflicts(parsed);
+    // 3 对冲突：(a:, a:b:c)、(a, a:b:c)、(a, a:)，各自独立记录
+    expect(conflicts).toHaveLength(3);
+    const pairSigs = new Set(
+      conflicts.map((c) => `${c.short.key}\u0000${c.long.key}`)
+    );
+    expect(pairSigs.size).toBe(3);
+  });
 });
 
 // ─── getDiagnosticSampleTerms ────────────────────────────────────────────────
@@ -936,5 +1182,52 @@ describe("termTestUtils 冲突分析记忆化（统一计划 20260829 Task 4）"
     const cases = generateTermTestText(parsed);
     const conflictCases = cases.filter((c) => c.type === "conflict");
     expect(conflictCases).toHaveLength(2);
+  });
+});
+
+// ─── 零宽断言样例回验与空样例守卫 ───────────────────────────────────────────
+describe("termTestUtils zero-width assertion sample validation", () => {
+  test("M2 回归：\\bAPI\\b 自动样例仍生成且能被原始正则命中", () => {
+    const parsed = parseTerms("\\bAPI\\b");
+    const cases = generateTermTestText(parsed);
+    expect(
+      cases.some((c) => c.type === "single" && c.text.includes("API"))
+    ).toBe(true);
+    expect(cases.some((c) => c.type === "unsupported")).toBe(false);
+  });
+
+  test("零宽断言回验不通过时判 unsupported（零宽-only key 不再产出空样例用例）", () => {
+    // parseTerms 的纯零宽门闸会在解析期跳过 \b 段，零宽-only key 永远不会进入
+    // parsed.terms；为触达 literalPatternSample 对零宽-only key 的回验分支，按
+    // parseTerms 条目形态（key/value/pattern/isWord）手工构造术语，key 传正则源码原文。
+    const term = { key: "\\b", value: "", pattern: "(\\b)", isWord: false };
+    const cases = generateTermTestText([term]);
+    expect(cases).toHaveLength(1);
+    expect(cases[0]).toMatchObject({
+      type: "unsupported",
+      reason: "auto-sample-unsupported",
+    });
+  });
+
+  test("conflict 断言在长词 key 解码为空样例时不再挂起（空串 indexOf 恒命中）", () => {
+    // 同上：长词 \b 必须手工构造。修复前 spanInsideKey 收到空样例时
+    // indexOf("") 恒命中且越界后永不返回 -1，while 循环同步死循环；
+    // 修复后空样例直接放弃判定，返回结构化结果（ok 字段在位）。
+    const short = { key: "word", value: "", pattern: "(word)", isWord: true };
+    const long = { key: "\\b", value: "", pattern: "(\\b)", isWord: false };
+    const testCase = {
+      type: "conflict",
+      text: "plain text word here",
+      short,
+      long,
+      shortHasValue: false,
+      longHasValue: false,
+      conflictType: 4,
+      direction: "short-first",
+    };
+    const result = assertTermReplacements([short, long], testCase, {
+      engine: "naive",
+    });
+    expect(result).toHaveProperty("ok");
   });
 });

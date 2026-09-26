@@ -385,6 +385,12 @@ describe("TerminologyPlayground", () => {
       .replace(
         /\bi18n\(\s*"[a-z0-9_]+"\s*,\s*(["'`])(?:\\.|(?!\1)[\s\S])*?\1/g,
         "i18n(KEY"
+      )
+      // 5. AI 样例常量：功能数据（喂给 parseAITerms 的 key:value 载荷），
+      //    非用户可见文案，允许含中文（B3：i18n 返回值不得作为功能数据源）。
+      .replace(
+        /const AI_TERMS_SAMPLE_TEXT = (["'`])(?:\\.|(?!\1)[\s\S])*?\1;/g,
+        "const AI_TERMS_SAMPLE_TEXT = SAMPLE;"
       );
     const leftovers = stripped.match(/[\u4e00-\u9fa5]+/g) || [];
     expect(leftovers).toEqual([]);
@@ -594,6 +600,53 @@ describe("TerminologyPlayground", () => {
     expect(mockAlert.error).not.toHaveBeenCalled();
 
     act(() => root.unmount());
+  });
+
+  test("skipped auto samples show the dedicated warning copy (not the no-example copy)", async () => {
+    const { container, root } = renderPlayground({
+      rule: { pattern: "*", terms: "API\\.\\d+,版本" },
+    });
+    await flushEffects();
+
+    const alert = container.querySelector(
+      '[data-testid="terminology-auto-sample-unsupported"]'
+    );
+    expect(alert).not.toBeNull();
+    expect(alert.textContent).toContain(
+      "部分正则术语无法可靠生成自动匹配样例"
+    );
+    expect(alert.textContent).not.toContain("未生成可测试的例句");
+
+    act(() => root.unmount());
+  });
+
+  test("assertion-issue and auto-sample-skipped i18n keys are complete in all 7 languages", () => {
+    const REQUIRED_KEYS = [
+      "terminology_playground_alert_auto_sample_skipped",
+      "terminology_playground_issue_no_terms",
+      "terminology_playground_issue_empty_text",
+      "terminology_playground_issue_invalid_testcase",
+      "terminology_playground_issue_single_not_found",
+      "terminology_playground_issue_single_wrong_replacement",
+      "terminology_playground_issue_conflict_long_not_hit",
+      "terminology_playground_issue_conflict_long_cut",
+      "terminology_playground_issue_conflict_long_value_not_applied",
+      "terminology_playground_issue_conflict_long_no_value_replaced",
+      "terminology_playground_issue_conflict_short_value_not_applied",
+      "terminology_playground_issue_naive_prefix_cut",
+      "terminology_playground_issue_naive_cut_residue",
+      "terminology_playground_issue_unknown_type",
+      "terminology_playground_check_more",
+      "terminology_playground_check_expand",
+      "terminology_playground_check_collapse",
+    ];
+    const LANGS = ["zh", "en", "zh_TW", "ja", "ko", "tr", "vi"];
+    for (const key of REQUIRED_KEYS) {
+      for (const lang of LANGS) {
+        expect(I18N[key]?.[lang]).toEqual(expect.any(String));
+        expect(String(I18N[key]?.[lang]).length).toBeGreaterThan(0);
+      }
+    }
   });
 
   test("explains explicit English word boundaries without changing symbol-term guidance", async () => {
@@ -1504,6 +1557,166 @@ describe("TerminologyPlayground", () => {
       container.querySelector('[data-testid="terminology-ai-example"]')
     ).not.toBeNull();
 
+    act(() => root.unmount());
+  });
+
+  test("M4：接口列表加载确认前（空列表首挂载）保留持久化 slug，确认失效后才清理", async () => {
+    // mockResolvedTransApis 已在 beforeEach 清空（availableApis 为空场景）。
+    window.localStorage.setItem("kt-playground-ai-api-slug", "bogus-slug");
+    const { root } = renderPlayground({ rule: null });
+    await flushEffects();
+
+    // 列表尚空无法区分"加载中暂态"与"确无接口"：保留持久化值，防止首帧
+    // 异步加载窗口误删有效保存值（修复前立即清除 → 红）。
+    expect(window.localStorage.getItem("kt-playground-ai-api-slug")).toBe(
+      "bogus-slug"
+    );
+    act(() => root.unmount());
+
+    // 后续挂载确认列表非空：恢复的脏 slug 校验失败即清理（既有失效清理
+    // 语义不变，脏值不会永久留存）。
+    mockResolvedTransApis.push(
+      mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
+    );
+    const { root: secondRoot } = renderPlayground({ rule: null });
+    await flushEffects();
+    expect(window.localStorage.getItem("kt-playground-ai-api-slug")).toBeNull();
+    act(() => secondRoot.unmount());
+  });
+
+  test("M7：Bearer 脱敏只暴露 4 字符（两处脱敏实现口径一致）", async () => {
+    // 请求/响应 JSON 展示路径（maskForDisplay，导出函数）。
+    const masked = maskForDisplay({ Authorization: "Bearer abcdefghij" });
+    expect(masked.Authorization).toBe("Bearer abcd****");
+
+    // 鉴权摘要路径（maskSensitiveJson，经 UI 的 Key 摘要展示）：
+    // 6 字符段 "abcdef" 不得出现。
+    mockResolvedTransApis.push(
+      mockResolvedApi({
+        apiSlug: "openai",
+        apiName: "OpenAI",
+        key: "Bearer abcdefghij",
+      })
+    );
+    const { container, root } = renderPlayground({ rule: null });
+    await flushEffects();
+    expect(container.textContent).not.toContain("abcdef");
+    expect(container.textContent).not.toContain("abcdefghij");
+    act(() => root.unmount());
+  });
+
+  test("B2：AI 术语生效检测表渲染行数不超过展示上限", async () => {
+    mockResolvedTransApis.push(
+      mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
+    );
+    mockApiTranslate.mockResolvedValue({
+      trText: "测试翻译结果",
+      srLang: "en",
+      srCode: "en",
+      isSame: false,
+    });
+    const entries = [];
+    for (let i = 0; i < 1005; i++) entries.push(`term${i},值${i}`);
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: null,
+    });
+    await flushEffects();
+    act(() => {
+      setAiTermsDraft(entries.join("\n"));
+    });
+    const aiTestButton = container.querySelector(
+      '[data-testid="terminology-ai-run-test"]'
+    );
+    act(() => {
+      aiTestButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushEffects();
+
+    // 定位生效检测表（含「术语（键→值）」表头的 table）。
+    const table = [...container.querySelectorAll("table")].find((t) =>
+      t.textContent.includes("术语（键→值）")
+    );
+    expect(table).toBeDefined();
+    const rowCount = table.querySelectorAll("tbody tr").length;
+    // 修复前全量渲染 1005 行；修复后 ≤ 本地结果区同款上限（DISPLAY_LIMIT=4）。
+    expect(rowCount).toBeLessThanOrEqual(4);
+    act(() => root.unmount());
+  }, 30000);
+
+  test("B2b：溢出生效检测表提供展开/收起切换，展开后渲染全部条目", async () => {
+    mockResolvedTransApis.push(
+      mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
+    );
+    mockApiTranslate.mockResolvedValue({
+      trText: "测试翻译结果",
+      srLang: "en",
+      srCode: "en",
+      isSame: false,
+    });
+    const entries = [];
+    for (let i = 0; i < 6; i++) entries.push(`term${i},值${i}`);
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: null,
+    });
+    await flushEffects();
+    act(() => {
+      setAiTermsDraft(entries.join("\n"));
+    });
+    const aiTestButton = container.querySelector(
+      '[data-testid="terminology-ai-run-test"]'
+    );
+    act(() => {
+      aiTestButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushEffects();
+
+    const table = [...container.querySelectorAll("table")].find((t) =>
+      t.textContent.includes("术语（键→值）")
+    );
+    expect(table).toBeDefined();
+    const toggle = () =>
+      container.querySelector('[data-testid="terminology-ai-glossary-toggle"]');
+    // 修复前无切换入口（表尾只有静态提示文案）→ 红。
+    expect(toggle()).not.toBeNull();
+    expect(toggle().textContent).toBe("展开全部");
+    expect(table.querySelectorAll("tbody tr")).toHaveLength(4);
+
+    act(() => {
+      toggle().dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(table.querySelectorAll("tbody tr")).toHaveLength(6);
+    expect(toggle().textContent).toBe("收起");
+
+    act(() => {
+      toggle().dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(table.querySelectorAll("tbody tr")).toHaveLength(4);
+    expect(toggle().textContent).toBe("展开全部");
+
+    act(() => root.unmount());
+  });
+
+  test("B3：AI 样例载入使用模块常量，与 i18n 字典完全解耦", async () => {
+    // 解耦终态：样例 key 已从字典删除（无孤儿），i18n 查不到任何样例数据，
+    // 填入内容仍恒为模块常量（i18n 返回空/畸形串的情形被结构性排除）。
+    const sampleKey = "terminology_playground_terms_sample";
+    const SAMPLE_CONSTANT = "zorp,数据管道\nquzzle,缓存节点";
+    expect(I18N[sampleKey]).toBeUndefined();
+    const { container, root } = renderPlayground({ rule: null });
+    await flushEffects();
+    const sampleButton = container.querySelector(
+      '[data-testid="terminology-ai-sample"]'
+    );
+    act(() => {
+      sampleButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    const aiTextarea = container.querySelector(
+      '[data-testid="terminology-ai-terms-input"] textarea'
+    );
+    expect(aiTextarea.value).toBe(SAMPLE_CONSTANT);
+    expect(
+      container.querySelector('[data-testid="terminology-ai-example"]')
+    ).not.toBeNull();
     act(() => root.unmount());
   });
 
@@ -3912,6 +4125,54 @@ describe("TerminologyPlayground", () => {
       "用户消息-err"
     );
 
+    act(() => root.unmount());
+  });
+
+  test("B2c：软术语块对 glossaryEntries 有界渲染：默认只展示 DISPLAY_LIMIT 条并可展开", async () => {
+    mockResolvedTransApis.push(
+      mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
+    );
+    mockApiTranslate.mockResolvedValue({
+      trText: "测试翻译结果",
+      srLang: "en",
+      srCode: "en",
+      isSame: false,
+    });
+    // arrange：构造 6 条术语（> DISPLAY_LIMIT=4），驱动一轮 AI 测试至 done
+    //（推进形态与 B2b 溢出检测表用例同构：填草稿 → runAiTest 至 done）。
+    const entries = [];
+    for (let i = 0; i < 6; i++) entries.push(`term${i},值${i}`);
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: null,
+    });
+    await flushEffects();
+    act(() => {
+      setAiTermsDraft(entries.join("\n"));
+    });
+    await runAiTest(container);
+
+    const softGlossary = queryTestid("terminology-ai-soft-glossary");
+    expect(softGlossary).not.toBeNull();
+    // 断言 1（有界）：软术语块默认仅渲染 DISPLAY_LIMIT(4) 条条目行。
+    // 条目 Typography 为 component="div"，块标题未指定 component 渲染为 p，
+    // 故 div.MuiTypography-root 只计入条目行，不污染计数。
+    expect(
+      softGlossary.querySelectorAll("div.MuiTypography-root")
+    ).toHaveLength(4);
+    // 断言 2（溢出不可见）：第 5/6 条（term4/term5）在默认态不得出现在软术语块
+    // DOM 中；该断言为验红契约，不允许放宽为"不崩溃即可"。
+    expect(softGlossary.textContent).not.toContain("term4");
+    expect(softGlossary.textContent).not.toContain("term5");
+    // act（展开）：点击软术语块独立展开开关（testid 见 Fix C Replacement 4b，
+    // 与检测表既有 terminology-ai-glossary-toggle 互不冲突，避免 done 态
+    // >4 条时 DOM 出现双 testid）。
+    clickTestid("terminology-ai-glossary-toggle-soft");
+    // 断言 3（展开全量）：展开后渲染全部 6 条，溢出条目 term4/term5 可见。
+    expect(
+      softGlossary.querySelectorAll("div.MuiTypography-root")
+    ).toHaveLength(6);
+    expect(softGlossary.textContent).toContain("term4");
+    expect(softGlossary.textContent).toContain("term5");
     act(() => root.unmount());
   });
 
