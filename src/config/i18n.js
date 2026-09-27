@@ -1382,6 +1382,159 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
     "Test edilebilir örnek oluşturulmadı.",
     "Không tạo được câu ví dụ kiểm tra được."
   ),
+  terminology_playground_alert_auto_sample_skipped: terminologyPlaygroundText(
+    "部分正则术语无法可靠生成自动匹配样例，已跳过这些自动断言。",
+    "Some regex terms cannot reliably generate automatic matching samples; their auto assertions were skipped.",
+    "部分正規術語無法可靠產生自動匹配樣例，已略過這些自動斷言。",
+    "一部の正規表現用語は自動マッチングサンプルを確実に生成できないため、これらの自動アサーションをスキップしました。",
+    "일부 정규식 용어는 자동 매칭 샘플을 신뢰할 수 있게 생성할 수 없어 해당 자동 검증을 건너뛰었습니다.",
+    "Bazı regex terimleri için güvenilir otomatik eşleşme örneği üretilemedi; bu otomatik doğrulamalar atlandı.",
+    "Một số thuật ngữ regex không thể tạo mẫu khớp tự động đáng tin cậy, nên đã bỏ qua các kiểm chứng tự động đó."
+  ),
+  terminology_playground_issue_no_terms: terminologyPlaygroundText(
+    "无有效术语，无法断言。",
+    "No valid terms; assertion skipped.",
+    "無有效術語，無法斷言。",
+    "有効な用語がなく、アサーションをスキップしました。",
+    "유효한 용어가 없어 검증을 건너뛰었습니다.",
+    "Geçerli terim yok; doğrulama atlandı.",
+    "Không có thuật ngữ hợp lệ, bỏ qua kiểm chứng."
+  ),
+  terminology_playground_issue_empty_text: terminologyPlaygroundText(
+    "测试文本为空，无法断言。",
+    "Test text is empty; assertion skipped.",
+    "測試文字為空，無法斷言。",
+    "テストテキストが空のため、アサーションをスキップしました。",
+    "테스트 텍스트가 비어 있어 검증을 건너뛰었습니다.",
+    "Test metni boş; doğrulama atlandı.",
+    "Văn bản kiểm tra trống, bỏ qua kiểm chứng."
+  ),
+  terminology_playground_issue_invalid_testcase: terminologyPlaygroundText(
+    "测试用例缺少 term 信息，无法断言。",
+    "Test case is missing term info; assertion skipped.",
+    "測試用例缺少 term 資訊，無法斷言。",
+    "テストケースに用語情報がなく、アサーションをスキップしました。",
+    "테스트 케이스에 용어 정보가 없어 검증을 건너뛰었습니다.",
+    "Test ögesinde terim bilgisi eksik; doğrulama atlandı.",
+    "Ca kiểm thử thiếu thông tin thuật ngữ, bỏ qua kiểm chứng."
+  ),
+  terminology_playground_issue_single_not_found: terminologyPlaygroundText(
+    "术语 {term} 未被命中。",
+    "Term {term} was not matched.",
+    "術語 {term} 未被命中。",
+    "用語 {term} はマッチしませんでした。",
+    "용어 {term}이(가) 매칭되지 않았습니다.",
+    "{term} terimi eşleşmedi.",
+    "Thuật ngữ {term} không được khớp."
+  ),
+  terminology_playground_issue_single_wrong_replacement: terminologyPlaygroundText(
+    "术语 {term} 替换结果不正确。",
+    "Term {term} was replaced incorrectly.",
+    "術語 {term} 替換結果不正確。",
+    "用語 {term} の置換結果が正しくありません。",
+    "용어 {term}의 치환 결과가 올바르지 않습니다.",
+    "{term} terimi yanlış değiştirildi.",
+    "Thuật ngữ {term} bị thay thế sai."
+  ),
+  terminology_playground_issue_conflict_long_not_hit: terminologyPlaygroundText(
+    "长词 {long} 未被命中（短词 {short} 可能抢占）。",
+    "Long term {long} was not matched (short term {short} may have taken over).",
+    "長詞 {long} 未被命中（短詞 {short} 可能搶佔）。",
+    "長い用語 {long} がマッチしませんでした（短い用語 {short} が先に取得した可能性）。",
+    "긴 용어 {long}이(가) 매칭되지 않았습니다(짧은 용어 {short}가 선점했을 수 있음).",
+    "Uzun terim {long} eşleşmedi (kısa terim {short} öne geçmiş olabilir).",
+    "Thuật ngữ dài {long} không được khớp (thuật ngữ ngắn {short} có thể đã chiếm trước)."
+  ),
+  terminology_playground_issue_conflict_long_cut: terminologyPlaygroundText(
+    "长词 {long} 被短词 {short} 切割（检测到前缀误伤）。",
+    "Long term {long} was cut by short term {short} (prefix overwrite detected).",
+    "長詞 {long} 被短詞 {short} 切割（檢測到前綴誤傷）。",
+    "長い用語 {long} が短い用語 {short} によって切断されました（接頭辞の誤置換を検出）。",
+    "긴 용어 {long}이(가) 짧은 용어 {short}에 의해 잘렸습니다(접두어 오표적 감지).",
+    "Uzun terim {long}, kısa terim {short} tarafından kesildi (önekyazma saptandı).",
+    "Thuật ngữ dài {long} bị thuật ngữ ngắn {short} cắt ngang (phát hiện ghi đè tiền tố)."
+  ),
+  terminology_playground_issue_conflict_long_value_not_applied: terminologyPlaygroundText(
+    "长词 {long} 有译文但未被替换（仍为原文）。",
+    "Long term {long} has a translation but was not replaced (original text kept).",
+    "長詞 {long} 有譯文但未被替換（仍為原文）。",
+    "長い用語 {long} は訳があるのに置換されていません（原文のまま）。",
+    "긴 용어 {long}에 번역이 있는데도 치환되지 않았습니다(원문 유지).",
+    "Uzun terim {long} için çeviri var ama değiştirilmedi (öz metin korundu).",
+    "Thuật ngữ dài {long} có bản dịch nhưng không được thay thế (vẫn giữ nguyên văn)."
+  ),
+  terminology_playground_issue_conflict_long_no_value_replaced: terminologyPlaygroundText(
+    "长词 {long} 无译文但被替换为 \"{replacement}\"。",
+    "Long term {long} has no translation but was replaced with \"{replacement}\".",
+    "長詞 {long} 無譯文但被替換為「{replacement}」。",
+    "長い用語 {long} は訳がないのに「{replacement}」に置換されました。",
+    "긴 용어 {long}에 번역이 없는데도 \"{replacement}\"(으)로 치환되었습니다.",
+    "Çevirisi olmayan uzun terim {long}, \"{replacement}\" ile değiştirildi.",
+    "Thuật ngữ dài {long} không có bản dịch nhưng bị thay bằng \"{replacement}\"."
+  ),
+  terminology_playground_issue_conflict_short_value_not_applied: terminologyPlaygroundText(
+    "短词 {short} 有译文但未被替换（单独出现时）。",
+    "Short term {short} has a translation but was not replaced (standalone occurrence).",
+    "短詞 {short} 有譯文但未被替換（單獨出現時）。",
+    "短い用語 {short} は訳があるのに置換されていません（単独出現時）。",
+    "짧은 용어 {short}에 번역이 있는데도 치환되지 않았습니다(단독 출현 시).",
+    "Kısa terim {short} için çeviri var ama değiştirilmedi (tek başına geçtiğinde).",
+    "Thuật ngữ ngắn {short} có bản dịch nhưng không được thay thế (khi xuất hiện riêng lẻ)."
+  ),
+  terminology_playground_issue_naive_prefix_cut: terminologyPlaygroundText(
+    "长词 {long} 被短词 {short} 切割（检测到前缀误伤）。",
+    "Long term {long} was cut by short term {short} (prefix overwrite detected).",
+    "長詞 {long} 被短詞 {short} 切割（檢測到前綴誤傷）。",
+    "長い用語 {long} が短い用語 {short} によって切断されました（接頭辞の誤置換を検出）。",
+    "긴 용어 {long}이(가) 짧은 용어 {short}에 의해 잘렸습니다(접두어 오표적 감지).",
+    "Uzun terim {long}, kısa terim {short} tarafından kesildi (önekyazma saptandı).",
+    "Thuật ngữ dài {long} bị thuật ngữ ngắn {short} cắt ngang (phát hiện ghi đè tiền tố)."
+  ),
+  terminology_playground_issue_naive_cut_residue: terminologyPlaygroundText(
+    "不翻译长词 {long} 被切割出高亮残留（短词 {short} 内部命中）。",
+    "Untranslated long term {long} was cut leaving highlight residue (short term {short} matched inside).",
+    "不翻譯長詞 {long} 被切割出高亮殘留（短詞 {short} 內部命中）。",
+    "翻訳しない長い用語 {long} にハイライト残骸が生じました（短い用語 {short} が内部でマッチ）。",
+    "번역하지 않는 긴 용어 {long}에 하이라이트 잔여물이 생겼습니다(짧은 용어 {short} 내부 매칭).",
+    "Çevrilmeyen uzun terim {long} kesilerek vurgu artığı bıraktı (kısa terim {short} içeride eşleşti).",
+    "Thuật ngữ dài không dịch {long} bị cắt để lại phần làm nổi bật còn sót (thuật ngữ ngắn {short} khớp bên trong)."
+  ),
+  terminology_playground_issue_unknown_type: terminologyPlaygroundText(
+    "未知的测试用例类型: {type}",
+    "Unknown test case type: {type}",
+    "未知的測試用例類型: {type}",
+    "不明なテストケース種別: {type}",
+    "알 수 없는 테스트 케이스 유형: {type}",
+    "Bilinmeyen test ögesi türü: {type}",
+    "Loại ca kiểm thử không xác định: {type}"
+  ),
+  terminology_playground_check_more: terminologyPlaygroundText(
+    "还有 {count} 条未展示。",
+    "{count} more rows not shown.",
+    "還有 {count} 條未展示。",
+    "他の {count} 件は未表示です。",
+    "{count}개 항목이 더 있지만 표시되지 않았습니다.",
+    "{count} satır daha gösterilmiyor.",
+    "Còn {count} dòng chưa được hiển thị."
+  ),
+  terminology_playground_check_expand: terminologyPlaygroundText(
+    "展开全部",
+    "Show all",
+    "展開全部",
+    "すべて表示",
+    "모두 펼치기",
+    "Tümünü göster",
+    "Hiện tất cả"
+  ),
+  terminology_playground_check_collapse: terminologyPlaygroundText(
+    "收起",
+    "Collapse",
+    "收起",
+    "折りたたむ",
+    "접기",
+    "Daralt",
+    "Thu gọn"
+  ),
   terminology_playground_alert_test_passed: terminologyPlaygroundText(
     "测试通过",
     "Test passed",
@@ -1670,16 +1823,9 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
     "AI terimleri",
     "Thuật ngữ AI"
   ),
-  // 示例术语：zorp / quzzle 为造词，全语言保持不变（见计划 §4.1）。
-  terminology_playground_terms_sample: terminologyPlaygroundText(
-    "zorp,数据管道\nquzzle,缓存节点",
-    "zorp,data pipeline\nquzzle,cache node",
-    "zorp,資料管線\nquzzle,快取節點",
-    "zorp,データパイプライン\nquzzle,キャッシュノード",
-    "zorp,데이터 파이프라인\nquzzle,캐시 노드",
-    "zorp,veri hattı\nquzzle,önbellek düğümü",
-    "zorp,đường ống dữ liệu\nquzzle,nút bộ đệm"
-  ),
+  // 示例术语 zorp / quzzle 为造词，全语言保持不变；样例文本已按 B3 改为
+  // TerminologyPlayground 模块常量 AI_TERMS_SAMPLE_TEXT（功能数据不进 i18n），
+  // 原 terminology_playground_terms_sample 条目随之删除（无引用孤儿 key）。
   terminology_playground_terms_count: terminologyPlaygroundText(
     "解析出 {count} 条术语",
     "{count} terms parsed",
