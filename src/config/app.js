@@ -20,9 +20,8 @@ export const APP_CONSTS = {
 // 当前应用的版本，按点号拆分成数组 (例如: "1.0.2" -> ["1", "0", "2"])
 export const APP_VERSION = process.env.REACT_APP_VERSION.split(".");
 
-// Cap separate-window content width to keep text lines readable.
-// Popup/styles.js uses this limit; background.js derives the default window width.
-// Keep the constant here so the background bundle does not import view CSS.
+// Preferred content width when opening a new separate window.
+// Saved windows and user resizing remain free to use the full available width.
 export const SEPARATE_WINDOW_CONTENT_WIDTH = 720;
 
 // 主题模式常量

@@ -23,14 +23,11 @@ import { tryClearCaches } from "../../libs/cache";
 import { saveRule } from "../../libs/rules";
 import { isCurrentPopupDocument } from "../../libs/popupDocument";
 import {
-  MSG_MOUSEHOVER_TOGGLE,
   MSG_RULE_EDITOR,
   MSG_SAVE_RULE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
   MSG_TRANS_TOGGLE,
-  MSG_TRANSBOX_TOGGLE,
-  MSG_TRANSINPUT_TOGGLE,
   MSG_TOUCH_TRANSLATE_MODE_SET,
   MSG_TOUCH_TRANSLATE_STATE,
 } from "../../config";
@@ -113,10 +110,7 @@ function openAdvancedOptions(container) {
   act(() => container.querySelector(".kt-popup-disclosure").click());
 }
 
-function renderPopupCont(
-  props = {},
-  { statefulRule = false, statefulSetting = false } = {}
-) {
+function renderPopupCont(props = {}, { statefulRule = false } = {}) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -150,31 +144,26 @@ function renderPopupCont(
     rule,
     setting,
     setRule: jest.fn(),
-    setSetting: jest.fn(),
     handleOpenSetting: jest.fn(),
     ...props,
   };
+  const currentSetting = { ...setting, ...props.setting };
 
   function StatefulPopup() {
     const [currentRule, setCurrentRule] = useState({ ...rule, ...props.rule });
-    const [currentSetting, setCurrentSetting] = useState({
-      ...setting,
-      ...props.setting,
-    });
     return (
       <PopupCont
         {...popupProps}
         rule={currentRule}
         setRule={setCurrentRule}
         setting={currentSetting}
-        setSetting={setCurrentSetting}
       />
     );
   }
 
   act(() => {
     root.render(
-      statefulRule || statefulSetting ? (
+      statefulRule ? (
         <StrictMode>
           <StatefulPopup />
         </StrictMode>
@@ -452,7 +441,7 @@ describe("PopupCont capability parity", () => {
     }
   });
 
-  test("keeps site actions available while scene controls and tools are collapsed", async () => {
+  test("groups rule editing and cache clearing only while advanced options are expanded", async () => {
     const view = renderPopupCont();
     try {
       await flushEffects();
@@ -478,7 +467,6 @@ describe("PopupCont capability parity", () => {
 
       expect(disclosure.getAttribute("aria-expanded")).toBe("true");
       expect(advancedPanel.hidden).toBe(false);
-      expect(advancedPanel.querySelectorAll(".kt-popup-scene")).toHaveLength(3);
       expect(
         Array.from(
           advancedPanel.querySelectorAll(".kt-popup-advanced-tools button")
@@ -535,7 +523,7 @@ describe("PopupCont capability parity", () => {
       await flushEffects();
       openAdvancedOptions(view.container);
       const openEditor = Array.from(
-        view.container.querySelectorAll("button")
+        view.container.querySelectorAll(".kt-popup-advanced-tools button")
       ).find((button) => button.textContent === "rule_editor_open");
 
       await act(async () => openEditor.click());
@@ -564,7 +552,7 @@ describe("PopupCont capability parity", () => {
       await flushEffects();
       openAdvancedOptions(view.container);
       const openEditor = Array.from(
-        view.container.querySelectorAll("button")
+        view.container.querySelectorAll(".kt-popup-advanced-tools button")
       ).find((button) => button.textContent === "rule_editor_open");
 
       act(() => openEditor.click());
@@ -885,23 +873,28 @@ describe("PopupCont capability parity", () => {
     view.cleanup();
   });
 
-  test("keeps runtime-dependent subtitle control outside the Popup-only scope", async () => {
-    const view = renderPopupCont();
+  test("does not show feature shortcuts or change their saved settings", async () => {
+    const processActions = jest.fn();
+    const setting = {
+      tranboxSetting: { transOpen: true },
+      mouseHoverSetting: { useMouseHover: true },
+      inputRule: { transOpen: true },
+    };
+    const view = renderPopupCont({ processActions, setting });
     await flushEffects();
     openAdvancedOptions(view.container);
 
-    const featureLabelNodes = Array.from(
-      view.container.querySelectorAll(".kt-popup-scene__label")
+    ["selection_translate", "mousehover_translate", "input_translate"].forEach(
+      (label) => {
+        expect(view.container.textContent).not.toContain(label);
+      }
     );
-    const featureLabels = featureLabelNodes.map((node) => node.textContent);
-    expect(featureLabels).toEqual([
-      "selection_translate",
-      "mousehover_translate",
-      "input_translate",
-    ]);
-    expect(featureLabels).not.toContain("subtitle_translate");
-    featureLabelNodes.forEach((node) => {
-      expect(node.title).toBe(node.textContent);
+    expect(processActions).not.toHaveBeenCalled();
+    expect(mockUpdateSetting).not.toHaveBeenCalled();
+    expect(setting).toEqual({
+      tranboxSetting: { transOpen: true },
+      mouseHoverSetting: { useMouseHover: true },
+      inputRule: { transOpen: true },
     });
     view.cleanup();
   });
@@ -1331,54 +1324,6 @@ describe("PopupCont capability parity", () => {
     }
   );
 
-  test("dispatches one content action from a scene toggle", async () => {
-    const processActions = jest.fn(({ args }) => ({
-      setting: { tranboxSetting: { transOpen: args.enabled } },
-    }));
-    const view = renderPopupCont({ processActions }, { statefulSetting: true });
-    await flushEffects();
-    openAdvancedOptions(view.container);
-
-    const selectionScene = view.container.querySelector(
-      '.kt-popup-scene[aria-pressed="true"]'
-    );
-    await act(async () => selectionScene.click());
-
-    expect(processActions).toHaveBeenCalledTimes(1);
-    expect(processActions).toHaveBeenCalledWith({
-      action: MSG_TRANSBOX_TOGGLE,
-      args: { enabled: false },
-    });
-    expect(selectionScene.getAttribute("aria-pressed")).toBe("false");
-    expect(view.container.querySelector('[role="alert"]')).toBeNull();
-    view.cleanup();
-  });
-
-  test("sends the desired scene state through the tab message channel", async () => {
-    mockSendTopFrameMsg.mockResolvedValue({
-      rule: {},
-      setting: { mouseHoverSetting: { useMouseHover: true } },
-    });
-    const setSetting = jest.fn();
-    const view = renderPopupCont({ setSetting });
-    await flushEffects();
-    openAdvancedOptions(view.container);
-
-    const hoverScene = Array.from(
-      view.container.querySelectorAll(".kt-popup-scene")
-    ).find((scene) => scene.textContent.includes("mousehover_translate"));
-    await act(async () => {
-      hoverScene.click();
-      await Promise.resolve();
-    });
-
-    expect(mockSendTabMsg).toHaveBeenCalledWith(MSG_MOUSEHOVER_TOGGLE, {
-      enabled: true,
-    });
-    expect(setSetting).toHaveBeenCalledTimes(1);
-    view.cleanup();
-  });
-
   test("uses one captured tab for the site label, command, and state confirmation", async () => {
     mockSendTopFrameMsg.mockResolvedValue({ rule: { transOpen: "false" } });
     const view = renderPopupCont({
@@ -1608,15 +1553,13 @@ describe("PopupCont capability parity", () => {
         .disabled
     ).toBe(false);
     expect(
-      [...view.container.querySelectorAll(".kt-popup-scene")].map(
-        (node) => node.querySelector(".kt-popup-scene__label").textContent
-      )
-    ).toEqual(["selection_translate", "mousehover_translate"]);
+      view.container.querySelector(".kt-popup-advanced-grid")
+    ).not.toBeNull();
     expect(view.container.textContent).not.toContain("rule_editor_open");
     view.cleanup();
   });
 
-  test("offers only selection translation without an empty advanced panel in a PDF receiver", async () => {
+  test("keeps cache clearing available when a PDF receiver cannot translate the page", async () => {
     const view = renderPopupCont({
       capabilities: {
         pageTranslation: false,
@@ -1636,12 +1579,11 @@ describe("PopupCont capability parity", () => {
       expect(view.container.querySelector(".kt-popup-language-row")).toBeNull();
       openAdvancedOptions(view.container);
       expect(view.container.querySelector(".kt-popup-style-chips")).toBeNull();
-      expect(view.container.querySelectorAll(".kt-popup-scene")).toHaveLength(
-        1
-      );
+      expect(view.container.textContent).not.toContain("rule_editor_open");
       expect(
-        view.container.querySelector(".kt-popup-scene").textContent
-      ).toContain("selection_translate");
+        view.container.querySelector('button[aria-label="clear_cache"]')
+          .disabled
+      ).toBe(false);
       act(() => view.container.querySelector(".kt-popup-hero").click());
       expect(mockSendTabMsg).not.toHaveBeenCalled();
       const disclosure = view.container.querySelector(".kt-popup-disclosure");
@@ -1714,84 +1656,6 @@ describe("PopupCont capability parity", () => {
       view.cleanup();
     }
   );
-
-  test.each([
-    ["selection_translate", MSG_TRANSBOX_TOGGLE],
-    ["mousehover_translate", MSG_MOUSEHOVER_TOGGLE],
-    ["input_translate", MSG_TRANSINPUT_TOGGLE],
-  ])("rolls back %s after a rejected action", async (label, action) => {
-    const processActions = jest
-      .fn()
-      .mockResolvedValue({ error: "Unavailable" });
-    const view = renderPopupCont({ processActions }, { statefulSetting: true });
-    await flushEffects();
-    openAdvancedOptions(view.container);
-    const scene = [...view.container.querySelectorAll(".kt-popup-scene")].find(
-      (node) => node.textContent.includes(label)
-    );
-    const previous = scene.getAttribute("aria-pressed");
-
-    await act(async () => scene.click());
-
-    expect(processActions).toHaveBeenCalledWith({
-      action,
-      args: { enabled: previous !== "true" },
-    });
-    expect(scene.getAttribute("aria-pressed")).toBe(previous);
-    expect(
-      view.container.querySelector('[role="alert"]').textContent
-    ).toContain("popup_action_failed");
-    view.cleanup();
-  });
-
-  test("requires an authoritative feature state after a successful message", async () => {
-    mockSendTabMsg.mockResolvedValue({
-      setting: { mouseHoverSetting: { useMouseHover: true } },
-    });
-    mockSendTopFrameMsg.mockResolvedValue({
-      rule: {},
-      setting: { mouseHoverSetting: { useMouseHover: false } },
-    });
-    const view = renderPopupCont({}, { statefulSetting: true });
-    await flushEffects();
-    openAdvancedOptions(view.container);
-    const scene = [...view.container.querySelectorAll(".kt-popup-scene")].find(
-      (node) => node.textContent.includes("mousehover_translate")
-    );
-
-    await act(async () => scene.click());
-
-    expect(scene.getAttribute("aria-pressed")).toBe("false");
-    expect(
-      view.container.querySelector('[role="alert"]').textContent
-    ).toContain("popup_action_failed");
-    view.cleanup();
-  });
-
-  test("targets input translation at the captured top frame", async () => {
-    mockSendTopFrameMsg.mockResolvedValue({
-      rule: {},
-      setting: { inputRule: { transOpen: false } },
-    });
-    const view = renderPopupCont({
-      targetTab: { id: 42, url: "https://example.com" },
-    });
-    await flushEffects();
-    openAdvancedOptions(view.container);
-    await act(async () => {
-      [...view.container.querySelectorAll(".kt-popup-scene")]
-        .find((node) => node.textContent.includes("input_translate"))
-        .click();
-    });
-
-    expect(mockSendTopFrameMsg).toHaveBeenCalledWith(
-      MSG_TRANSINPUT_TOGGLE,
-      { enabled: false },
-      42
-    );
-    expect(mockSendTabMsg).not.toHaveBeenCalled();
-    view.cleanup();
-  });
 
   test("keeps the popup open when the rule editor has no receiver", async () => {
     const closeWindow = jest

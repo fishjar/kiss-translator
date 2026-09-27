@@ -94,24 +94,29 @@ export async function* fetchStream(
       signal: mergeAbortSignals([opts.signal, streamController.signal]),
     };
 
-    const streamPromise = fetchPool.push(async () => {
-      try {
-        for await (const chunk of requestStream(input, init, streamOpts)) {
-          asyncQueue.push(chunk);
+    const streamPromise = fetchPool
+      .push(async () => {
+        try {
+          for await (const chunk of requestStream(input, init, streamOpts)) {
+            asyncQueue.push(chunk);
+          }
+          asyncQueue.finish();
+        } catch (e) {
+          asyncQueue.error(e);
         }
-        asyncQueue.finish();
-      } catch (e) {
-        asyncQueue.error(e);
-      }
-      return null;
-    });
+        return null;
+      })
+      .catch((error) => {
+        // Clearing the pool can reject this task before its producer starts.
+        asyncQueue.error(error);
+      });
 
     try {
       yield* asyncQueue.iterate();
     } finally {
       // 消费方提前停止读取时，主动中止池内任务，避免长连接继续占用请求额度。
       streamController.abort();
-      await streamPromise.catch(() => {});
+      await streamPromise;
     }
     return;
   }

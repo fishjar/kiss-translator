@@ -104,6 +104,90 @@ describe("BatchQueue batch concurrency", () => {
     await expect(next).resolves.toEqual(["继续", ""]);
   });
 
+  test("refills all free slots when active batches finish together", async () => {
+    jest.useFakeTimers();
+    const batches = Array.from({ length: 5 }, deferred);
+    const taskFn = jest.fn();
+    batches.forEach((batch) =>
+      taskFn.mockImplementationOnce(() => batch.promise)
+    );
+    const queue = createBatchQueue(taskFn, {
+      batchSize: 1,
+      batchConcurrency: 2,
+    });
+    const results = ["a", "b", "c", "d", "e"].map((text) =>
+      queue.addTask(text)
+    );
+    expect(taskFn).toHaveBeenCalledTimes(2);
+
+    batches[0].resolve(["A"]);
+    batches[1].resolve(["B"]);
+    await Promise.all(results.slice(0, 2));
+    jest.runAllTimers();
+
+    expect(taskFn.mock.calls.map(([texts]) => texts)).toEqual([
+      ["a"],
+      ["b"],
+      ["c"],
+      ["d"],
+    ]);
+    batches[2].resolve(["C"]);
+    await results[2];
+    jest.runAllTimers();
+    expect(taskFn).toHaveBeenCalledTimes(5);
+
+    batches[3].resolve(["D"]);
+    batches[4].resolve(["E"]);
+    await expect(Promise.all(results)).resolves.toEqual([
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+    ]);
+  });
+
+  test("keeps a partial tail delayed while refilling full batches", async () => {
+    jest.useFakeTimers();
+    const batches = Array.from({ length: 4 }, deferred);
+    const taskFn = jest.fn();
+    batches.forEach((batch) =>
+      taskFn.mockImplementationOnce(() => batch.promise)
+    );
+    const queue = createBatchQueue(taskFn, {
+      batchSize: 2,
+      batchConcurrency: 2,
+      batchInterval: 100,
+    });
+    const results = ["a", "b", "c", "d", "e", "f", "g"].map((text) =>
+      queue.addTask(text)
+    );
+
+    batches[0].resolve(["A", "B"]);
+    batches[1].resolve(["C", "D"]);
+    await Promise.all(results.slice(0, 4));
+    jest.advanceTimersByTime(0);
+    expect(taskFn).toHaveBeenCalledTimes(3);
+
+    batches[2].resolve(["E", "F"]);
+    await Promise.all(results.slice(4, 6));
+    jest.advanceTimersByTime(99);
+    expect(taskFn).toHaveBeenCalledTimes(3);
+    jest.advanceTimersByTime(1);
+    expect(taskFn).toHaveBeenLastCalledWith(["g"], undefined);
+
+    batches[3].resolve(["G"]);
+    await expect(Promise.all(results)).resolves.toEqual([
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+    ]);
+  });
+
   test("holds a slot until an async generator finishes", async () => {
     const generatorGate = deferred();
     const nextBatch = deferred();

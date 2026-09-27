@@ -1,4 +1,5 @@
 import TextField from "@mui/material/TextField";
+import { SETTINGS_FONT_SIZE } from "./typography";
 
 // 等宽字体集常数，便于排版格式化代码
 const MONO_FONT =
@@ -20,7 +21,7 @@ export default function CodeField({ InputProps, ...rest }) {
         ...InputProps,
         sx: {
           fontFamily: MONO_FONT, // 强制应用等宽字体
-          fontSize: "0.875rem",
+          fontSize: SETTINGS_FONT_SIZE,
           ...(InputProps?.sx || {}),
         },
       }}

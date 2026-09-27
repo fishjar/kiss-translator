@@ -1744,13 +1744,22 @@ const defaultApiOpts = {
   },
 };
 
-// 内置翻译接口列表（带参数）
+const DEFAULT_ENABLED_API_TYPES = new Set([
+  OPT_TRANS_MICROSOFT,
+  OPT_TRANS_GOOGLE,
+  OPT_TRANS_GOOGLE_2,
+  OPT_TRANS_BUILTINAI,
+]);
+
+// Built-in presets remain available for explicit activation in settings.
 export const DEFAULT_API_LIST = OPT_ALL_TRANS_TYPES.map((apiType) =>
   normalizeApiThinkingSetting({
     ...defaultApiOpts[apiType],
     apiSlug: apiType,
     apiName: apiType,
     apiType,
+    isDisabled: !DEFAULT_ENABLED_API_TYPES.has(apiType),
+    sortOrder: DEFAULT_ENABLED_API_TYPES.has(apiType) ? 0 : 999,
   })
 );
 

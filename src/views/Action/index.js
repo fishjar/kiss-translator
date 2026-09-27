@@ -166,7 +166,6 @@ export default function Action({ translator, processActions }) {
                 rule={rule}
                 setting={setting}
                 setRule={setRule}
-                setSetting={setSetting}
                 handleOpenSetting={handleOpenSetting}
                 processActions={processActions}
                 isContent={true} // Identify the panel embedded in the page content.

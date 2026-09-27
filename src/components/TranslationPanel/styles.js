@@ -16,6 +16,8 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-tranbox-header__actions { display: flex; flex: none; align-items: center; gap: 1px; }
 .kt-tranbox-header .MuiIconButton-root { width: 34px; height: 34px; }
 .kt-tranbox-header .MuiIconButton-root svg { width: 18px; height: 18px; }
+.kt-tranbox-header--compact { flex: none; min-height: 0; padding: 8px 0; border: 0; border-radius: 0; }
+.kt-tranbox-header--compact .MuiIconButton-root { width: 40px; height: 40px; }
 .kt-tranbox-header .MuiIconButton-root[aria-pressed="true"] { background: var(--kt-pric); color: var(--kt-onpric); }
 @media (hover: hover) {
   .kt-tranbox-header .MuiIconButton-root[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--kt-onpric) 8%, var(--kt-pric)); }
@@ -32,11 +34,19 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-tranbox-header__menu svg { width: 18px; height: 18px; flex: none; }
 
 .kt-tranbox-content { container-type: inline-size; container-name: kt-translation-content; padding: 14px !important; background: var(--kt-sf0) !important; color: var(--kt-on) !important; }
+.kt-translation-config-row { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.kt-translation-config-row > .kt-translation-config { flex: 1; min-width: 0; }
+.kt-translation-config-actions { display: flex; justify-content: flex-end; }
+.kt-translation-config-actions .kt-tranbox-header--compact { padding: 0; }
 .kt-translation-panel__body .MuiGrid-container { width: 100%; margin: 0; padding: 5px; border-radius: 12px; background: var(--kt-sf1); }
 .kt-translation-panel__body .MuiGrid-item { padding: 5px !important; }
 @container kt-translation-content (width < 420px) {
   .kt-translation-config > .kt-translation-config__service { flex-basis: 100%; max-width: 100%; }
   .kt-translation-config > .kt-translation-config__language { flex-basis: 50%; max-width: 50%; }
+}
+@container kt-translation-content (width < 480px) {
+  .kt-translation-config-row .kt-translation-config__service { flex-basis: 100%; max-width: 100%; }
+  .kt-translation-config-row .kt-translation-config__language { flex-basis: 50%; max-width: 50%; }
 }
 .kt-translation-panel__body .MuiFilledInput-root { border-radius: 12px; }
 .kt-translation-panel__body .MuiInputLabel-root { font-size: 12px; }

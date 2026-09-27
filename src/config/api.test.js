@@ -1,5 +1,6 @@
 import {
   API_SPE_TYPES,
+  OPT_ALL_TRANS_TYPES,
   DEFAULT_API_LIST,
   DEFAULT_API_TYPE,
   OPT_LANGS_FROM_SPEC,
@@ -14,12 +15,15 @@ import {
   normalizeApiThinkingSettings,
   normalizeApiModelListUrls,
   OPT_TRANS_CLOUDFLAREAI,
+  OPT_TRANS_BUILTINAI,
   OPT_TRANS_DEEPSEEK,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_CEREBRAS,
   OPT_TRANS_CLAUDE,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
+  OPT_TRANS_GOOGLE,
+  OPT_TRANS_GOOGLE_2,
   OPT_TRANS_ALIYUNBAILIAN,
   OPT_TRANS_APIMART,
   OPT_TRANS_MICROSOFT,
@@ -41,6 +45,25 @@ test("uses Microsoft as the fallback default API", () => {
 test("includes Microsoft in the built-in API list", () => {
   expect(
     DEFAULT_API_LIST.some((api) => api.apiType === OPT_TRANS_MICROSOFT)
+  ).toBe(true);
+});
+
+test("enables only the four initial translators while retaining every preset", () => {
+  expect(DEFAULT_API_LIST.map((api) => api.apiType)).toEqual(
+    OPT_ALL_TRANS_TYPES
+  );
+  expect(
+    DEFAULT_API_LIST.filter((api) => !api.isDisabled).map((api) => api.apiType)
+  ).toEqual([
+    OPT_TRANS_BUILTINAI,
+    OPT_TRANS_GOOGLE,
+    OPT_TRANS_GOOGLE_2,
+    OPT_TRANS_MICROSOFT,
+  ]);
+  expect(
+    DEFAULT_API_LIST.filter((api) => api.isDisabled).every(
+      (api) => api.sortOrder === 999
+    )
   ).toBe(true);
 });
 
