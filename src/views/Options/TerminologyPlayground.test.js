@@ -1507,6 +1507,28 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
+  test("AI terms literal conflict semantics: regex-looking keys do not collide", async () => {
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: { pattern: "*", terms: "" },
+    });
+    await flushEffects();
+
+    // a+ 作为正则可命中 baa：修复前误判冲突并生成 2 条冲突例句（baa 出现
+    // 2 次）；修复后字面语义无冲突，各自一条单术语例句（baa 恰出现 1 次）。
+    act(() => {
+      setAiTermsDraft("a+,甲\nbaa,乙");
+    });
+    const aiExample = container.querySelector(
+      '[data-testid="terminology-ai-example"]'
+    );
+    expect(aiExample).not.toBeNull();
+    const text = aiExample.textContent;
+    expect(text).toContain("a+");
+    expect(text.split("baa").length - 1).toBe(1);
+
+    act(() => root.unmount());
+  });
+
   test("AI test is blocked with a hint when AI terms are empty", async () => {
     mockResolvedTransApis.push(
       mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
