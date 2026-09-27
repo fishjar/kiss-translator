@@ -1710,7 +1710,9 @@ export default function TerminologyPlayground({
     // runCompute 同一调用形态）。detectTermConflicts 自带 WeakMap 引用缓存，
     // 改前改后本路径均恰 1 次分析，非性能优化。
     const cases = generateTermTestText(termsArray, aiTermSeed, {
-      conflicts: detectTermConflicts(termsArray),
+      // AI 术语冲突分析同样必须用字面语义：key 不按正则解析，正则命中
+      // （如 a+ 命中 baa）在该路径是误报。
+      conflicts: detectTermConflicts(termsArray, { treatKeysAsLiteral: true }),
       // AI 术语是 parseAITerms 解析的字面 key:value，不按正则解析；
       // key 含元字符（C++、.NET）时用原文做样例，避免被排除出例句。
       treatKeysAsLiteral: true,

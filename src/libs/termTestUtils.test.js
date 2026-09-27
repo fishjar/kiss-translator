@@ -887,6 +887,65 @@ describe("termTestUtils generateTermTestText treatKeysAsLiteral", () => {
   });
 });
 
+// ─── detectTermConflicts treatKeysAsLiteral（AI 字面冲突语义）────────────────
+// AI 术语（parseAITerms 字面 key:value）不按正则解析：冲突检测必须只用字面
+// 子串判定，正则命中（如 a+ 命中 baa）在该模式下是误报。
+describe("termTestUtils detectTermConflicts treatKeysAsLiteral", () => {
+  test("字面模式：a+/baa 无字面重叠不判冲突；默认模式保持正则命中判冲突", () => {
+    const terms = [
+      { key: "a+", value: "X" },
+      { key: "baa", value: "Y" },
+    ];
+    const literal = detectTermConflicts(terms, { treatKeysAsLiteral: true });
+    expect(literal).toHaveLength(0);
+
+    // 默认（不传选项）：a+ 作为正则可命中 baa → 既有正则语义不变
+    const regexMode = detectTermConflicts(terms);
+    expect(regexMode).toHaveLength(1);
+    expect(regexMode[0].short.key).toBe("a+");
+    expect(regexMode[0].long.key).toBe("baa");
+  });
+
+  test("字面模式与默认模式记忆化互不串缓存（同一 parsed 引用）", () => {
+    const terms = [
+      { key: "a+", value: "X" },
+      { key: "baa", value: "Y" },
+    ];
+    // 先字面后默认
+    expect(detectTermConflicts(terms, { treatKeysAsLiteral: true })).toHaveLength(0);
+    expect(detectTermConflicts(terms)).toHaveLength(1);
+    // 双向预热后互换查询，结果仍各自正确（缓存未串）
+    expect(detectTermConflicts(terms)).toHaveLength(1);
+    expect(detectTermConflicts(terms, { treatKeysAsLiteral: true })).toHaveLength(0);
+  });
+});
+
+// ─── 冲突对字面样例含占位符字面量（单 pass 插值）─────────────────────────────
+describe("termTestUtils generateTermTestText conflict placeholder literal sample", () => {
+  test("短样例本身是 {long} 字面量：单 pass 插值后短样例独立出现不被污染", () => {
+    const terms = [
+      { key: "{long}", value: "甲" },
+      { key: "x{long}", value: "乙" },
+    ];
+    const conflicts = detectTermConflicts(terms, { treatKeysAsLiteral: true });
+    expect(conflicts).toHaveLength(1);
+    const cases = generateTermTestText(terms, "", {
+      conflicts,
+      treatKeysAsLiteral: true,
+    });
+    const conflictCases = cases.filter((c) => c.type === "conflict");
+    expect(conflictCases).toHaveLength(2); // short-first + long-first
+    for (const c of conflictCases) {
+      // 长样例 x{long} 必须完整出现
+      expect(c.text).toContain("x{long}");
+      // 剥离长样例后必须仍剩独立的短样例 {long}；修复前两段链式 replace
+      // 会把刚插入的 {long} 二次污染为 x{long}，剥离后不再含 {long}（红）。
+      const withoutLongSample = c.text.split("x{long}").join("");
+      expect(withoutLongSample).toContain("{long}");
+    }
+  });
+});
+
 // ─── M2/M6：零宽转义样例 + 冲突对去重分隔符 ─────────────────────────────────
 describe("termTestUtils word-boundary escape and conflict pair dedup", () => {
   test("M2：\\b 词边界转义解码为空串，\\bAPI\\b 产出自动样例而非 unsupported", () => {

@@ -127,15 +127,25 @@ const termConflictsCache = new WeakMap();
 /**
  * 检测 parsedTerms 中的长短词冲突对
  * @param {Array|object} parsedTerms - parseTerms 输出的 terms 数组或 { terms } 对象
+ * @param {object} [options]
+ * @param {boolean} [options.treatKeysAsLiteral=false] - 字面匹配模式：key 原文仅做
+ *   字面子串判定，跳过双向正则路径。AI 术语（parseAITerms 字面 key:value）不按
+ *   正则解析，正则命中在该模式下是误报（如 a+ 命中 baa）；缺省 false 保持既有
+ *   正则语义完全不变。
  * @returns {Array<{ short: object, long: object, shortHasValue: boolean, longHasValue: boolean }>}
  */
-export function detectTermConflicts(parsedTerms) {
+export function detectTermConflicts(parsedTerms, options = {}) {
+  const treatKeysAsLiteral = options?.treatKeysAsLiteral === true;
   const terms = Array.isArray(parsedTerms)
     ? parsedTerms
     : parsedTerms?.terms || [];
   if (terms.length < 2) return [];
 
-  const cached = termConflictsCache.get(terms);
+  // 记忆化按匹配模式分桶（"regex" / "literal"）：同一 parsed 引用在两种模式
+  // 下各自缓存结果，杜绝跨模式串缓存。
+  const cacheKey = treatKeysAsLiteral ? "literal" : "regex";
+  const cachedByMode = termConflictsCache.get(terms);
+  const cached = cachedByMode?.get(cacheKey);
   if (cached) return cached;
 
   const conflicts = [];
@@ -161,7 +171,12 @@ export function detectTermConflicts(parsedTerms) {
       }
 
       // 检查短词文本是否能命中长词 key
-      const hits = termHitsKey(short, long.key, { strictCache, regexCache });
+      const hits = termHitsKey(
+        short,
+        long.key,
+        { strictCache, regexCache },
+        treatKeysAsLiteral
+      );
       if (!hits) continue;
 
       // \u0000 分隔与 terms.js:508 同类签名对齐：key 含 ":" 时不会与分隔符
@@ -180,7 +195,11 @@ export function detectTermConflicts(parsedTerms) {
     }
   }
 
-  termConflictsCache.set(terms, conflicts);
+  if (cachedByMode) {
+    cachedByMode.set(cacheKey, conflicts);
+  } else {
+    termConflictsCache.set(terms, new Map([[cacheKey, conflicts]]));
+  }
   return conflicts;
 }
 
@@ -195,10 +214,15 @@ export function detectTermConflicts(parsedTerms) {
  * @param {{strictCache?: Map, regexCache?: Map}} [caches] - per-call 缓存
  *   （detectTermConflicts 单次调用内复用编译产物；缺省时行为不变，向后兼容
  *   CLI/测试直接调用）
+ * @param {boolean} [treatKeysAsLiteral=false] - 字面匹配模式：仅保留子串判定，
+ *   跳过 strict 白名单与双向正则路径（key 原文不按正则解释）
  */
-function termHitsKey(term, targetKey, caches) {
+function termHitsKey(term, targetKey, caches, treatKeysAsLiteral = false) {
   // 纯子串检查
   if (targetKey.includes(term.key)) return true;
+
+  // 字面匹配模式：key 原文不按正则解释，子串未命中即不冲突
+  if (treatKeysAsLiteral) return false;
 
   const strictPairKey = `${term.key}\u0000${targetKey}`;
   if (caches?.strictCache) {
@@ -300,7 +324,10 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
   const treatKeysAsLiteral = options?.treatKeysAsLiteral === true;
   const resolveSample = (key) =>
     treatKeysAsLiteral ? key : literalPatternSample(key);
-  const conflicts = options?.conflicts ?? detectTermConflicts(parsedTerms);
+  // 内部自算时透传字面模式：treatKeysAsLiteral 语义必须同时覆盖冲突分析与
+  // 样例生成，否则调用方只传字面选项而不传 conflicts 时会拿到正则语义冲突集。
+  const conflicts =
+    options?.conflicts ?? detectTermConflicts(parsedTerms, { treatKeysAsLiteral });
   for (const conflict of conflicts) {
     const { short, long, shortHasValue, longHasValue } = conflict;
     const shortSample = resolveSample(short.key);
@@ -326,9 +353,14 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
         hashKey(withSeed(`${pairKey}#${direction}`)) % pool.length;
       const template = pool[templateIndex];
 
-      const text = template
-        .replace(/\{short\}/g, () => shortSample)
-        .replace(/\{long\}/g, () => longSample);
+      // 单 pass 插值：一个正则同时匹配两种占位符，按捕获组取对应样例。
+      // 两段链式 replace 的第二轮会重扫第一轮刚插入的内容，字面样例本身含
+      // "{long}" 字面量时被二次污染；函数回调的单 pass 结果不会被重扫。
+      const text = template.replace(
+        /\{(short|long)\}/g,
+        (match, placeholder) =>
+          placeholder === "short" ? shortSample : longSample
+      );
 
       cases.push({
         type: "conflict",
