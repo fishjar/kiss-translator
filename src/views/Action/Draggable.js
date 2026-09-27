@@ -106,6 +106,8 @@ export default function Draggable({
   edge: savedEdge,
   show = true,
   snapEdge,
+  halfHide = true,
+  idleOpacity = 1,
   onStart,
   onMove,
   onPositionTransitionEnd,
@@ -130,7 +132,34 @@ export default function Draggable({
   // Set by applyTransform on its first invocation; the transition-gating
   // probe waits for it so the initial paint never animates the transform.
   const hasAppliedPositionRef = useRef(false);
-  const revealed = hover || focusWithin || expanded || Boolean(origin);
+  const wasExpandedRef = useRef(false);
+  const active = hover || focusWithin || expanded || Boolean(origin);
+  const revealed = !halfHide || active;
+
+  useEffect(() => {
+    if (expanded) {
+      wasExpandedRef.current = true;
+      return;
+    }
+    // Removing menu items may skip blur and mouseleave events.
+    // Read the local root so the same check works inside a shadow DOM.
+    const container = containerRef.current;
+    const focusedElement = container?.getRootNode().activeElement;
+    setFocusWithin(
+      Boolean(focusedElement && container.contains(focusedElement))
+    );
+    // Avoid reading hover before the initial edge position has been applied.
+    if (wasExpandedRef.current) {
+      wasExpandedRef.current = false;
+      // Hover hit testing can lag behind a removed menu until the next paint.
+      let hoverFrame = requestAnimationFrame(() => {
+        hoverFrame = requestAnimationFrame(() => {
+          setHover(Boolean(container?.matches(":hover")));
+        });
+      });
+      return () => cancelAnimationFrame(hoverFrame);
+    }
+  }, [expanded]);
 
   // Store proportional positions so they scale with viewport changes.
   // Edge snapping normalizes invalid coordinates from zero-sized viewports.
@@ -382,13 +411,13 @@ export default function Draggable({
     }
   };
 
-  // M3 FABs remain fully opaque; non-snapped panels still soften while dragging.
+  // Restore FAB opacity during interaction; panels still soften while dragging.
   const opacity = useMemo(() => {
     if (snapEdge) {
-      return 1;
+      return active ? 1 : idleOpacity;
     }
     return origin ? 0.8 : 1;
-  }, [origin, snapEdge]);
+  }, [active, idleOpacity, origin, snapEdge]);
 
   const transition =
     positionTransitionEnabled && !origin

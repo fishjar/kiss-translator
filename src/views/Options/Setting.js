@@ -6,6 +6,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Link from "@mui/material/Link";
+import Slider from "@mui/material/Slider";
+import FormHelperText from "@mui/material/FormHelperText";
 import { useSetting } from "../../hooks/Setting";
 import { useI18n } from "../../hooks/I18n";
 import { useAlert } from "../../hooks/Alert";
@@ -43,6 +45,12 @@ import {
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
 import { useFab } from "../../hooks/Fab";
+import {
+  FAB_MIN_OPACITY,
+  FAB_MIN_SIZE,
+  FAB_MAX_SIZE,
+  normalizeFabAppearance,
+} from "../../config/fab";
 import { sendBgMsg } from "../../libs/msg";
 import { tryClearCaches } from "../../libs/cache";
 import { kissLog, LogLevel } from "../../libs/log";
@@ -301,6 +309,19 @@ export default function Settings() {
     fabClickAction = 0,
     hideExceptionList = "",
   } = fab || {};
+  const { halfHide, opacity, size } = normalizeFabAppearance(fab);
+  const [opacityPercent, setOpacityPercent] = useState(
+    Math.round(opacity * 100)
+  );
+  const [sizePixels, setSizePixels] = useState(size);
+
+  useEffect(() => {
+    setOpacityPercent(Math.round(opacity * 100));
+  }, [opacity]);
+
+  useEffect(() => {
+    setSizePixels(size);
+  }, [size]);
 
   return (
     <Box>
@@ -635,6 +656,94 @@ export default function Settings() {
           <MenuItem value={false}>{i18n("show")}</MenuItem>
           <MenuItem value={true}>{i18n("hide")}</MenuItem>
         </TextField>
+
+        <TextField
+          select
+          fullWidth
+          size="small"
+          name="halfHide"
+          value={halfHide}
+          label={i18n("fab_half_hide")}
+          helperText={i18n("fab_half_hide_helper")}
+          onChange={(e) => updateFab({ halfHide: e.target.value })}
+        >
+          <MenuItem value={true}>{i18n("enable")}</MenuItem>
+          <MenuItem value={false}>{i18n("disable")}</MenuItem>
+        </TextField>
+
+        <Box sx={{ px: 1.5 }}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Typography id="fab-opacity-label" variant="body2">
+              {i18n("fab_opacity")}
+            </Typography>
+            <Typography
+              id="fab-opacity-value"
+              component="output"
+              variant="body2"
+            >
+              {opacityPercent}%
+            </Typography>
+          </Stack>
+          <Slider
+            name="opacity"
+            aria-labelledby="fab-opacity-label"
+            componentsProps={{
+              input: { "aria-describedby": "fab-opacity-helper" },
+            }}
+            value={opacityPercent}
+            min={FAB_MIN_OPACITY * 100}
+            max={100}
+            step={5}
+            getAriaValueText={(value) => `${value}%`}
+            valueLabelDisplay="auto"
+            valueLabelFormat={(value) => `${value}%`}
+            onChange={(_event, value) => setOpacityPercent(value)}
+            onChangeCommitted={(_event, value) =>
+              updateFab({ opacity: value / 100 })
+            }
+          />
+          <FormHelperText id="fab-opacity-helper" sx={{ mx: 0 }}>
+            {i18n("fab_opacity_helper")}
+          </FormHelperText>
+        </Box>
+
+        <Box sx={{ px: 1.5 }}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Typography id="fab-size-label" variant="body2">
+              {i18n("fab_size")}
+            </Typography>
+            <Typography id="fab-size-value" component="output" variant="body2">
+              {sizePixels} px
+            </Typography>
+          </Stack>
+          <Slider
+            name="size"
+            aria-labelledby="fab-size-label"
+            componentsProps={{
+              input: { "aria-describedby": "fab-size-helper" },
+            }}
+            value={sizePixels}
+            min={FAB_MIN_SIZE}
+            max={FAB_MAX_SIZE}
+            step={4}
+            getAriaValueText={(value) => `${value} px`}
+            valueLabelDisplay="auto"
+            valueLabelFormat={(value) => `${value} px`}
+            onChange={(_event, value) => setSizePixels(value)}
+            onChangeCommitted={(_event, value) => updateFab({ size: value })}
+          />
+          <FormHelperText id="fab-size-helper" sx={{ mx: 0 }}>
+            {i18n("fab_size_helper")}
+          </FormHelperText>
+        </Box>
 
         <TextField
           fullWidth

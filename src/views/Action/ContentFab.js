@@ -42,6 +42,7 @@ import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import useWindowSize from "../../hooks/WindowSize";
 import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
 import { ACTION_STYLES } from "./styles";
+import { DEFAULT_FAB, normalizeFabAppearance } from "../../config/fab";
 
 const selectionUnavailable = () => false;
 
@@ -82,17 +83,27 @@ export const FAB_POPPER_MODIFIERS = [
  * Supports dragging, edge snapping, and a Material 3 action menu.
  */
 export function ContentFabContent({
-  fabConfig: { x: fabX, y: fabY, edge: fabEdge, fabClickAction = 0 } = {},
+  fabConfig = {},
   processActions,
   getSelectionEnabled = selectionUnavailable,
 }) {
   const i18n = useI18n();
+  const {
+    x: fabX,
+    y: fabY,
+    edge: fabEdge,
+    fabClickAction = 0,
+  } = fabConfig || {};
+  const {
+    halfHide,
+    opacity,
+    size: fabSize,
+  } = normalizeFabAppearance(fabConfig);
   // Use the current tab's runtime state, which can differ from stored settings.
   const selectionEnabled = useSyncExternalStore(
     subscribeSelectionEnabled,
     getSelectionEnabled
   );
-  const fabWidth = 56; // Material 3 regular FAB size.
   const opensMenu = fabClickAction !== 1;
   const windowSize = useWindowSize();
   const [moved, setMoved] = useState(false); // Track whether a drag occurred.
@@ -230,13 +241,13 @@ export function ContentFabContent({
   const fabProps = useMemo(
     () => ({
       windowSize,
-      width: fabWidth,
-      height: fabWidth,
-      left: fabX ?? -fabWidth,
+      width: fabSize,
+      height: fabSize,
+      left: fabX ?? -fabSize,
       top: fabY ?? windowSize.h / 2,
       edge: fabEdge,
     }),
-    [windowSize, fabWidth, fabX, fabY, fabEdge]
+    [windowSize, fabSize, fabX, fabY, fabEdge]
   );
 
   const items = [
@@ -277,8 +288,10 @@ export function ContentFabContent({
   return (
     <Draggable
       key="fab"
-      snapEdge // Keep the idle FAB partially hidden at the viewport edge.
-      fitContent // The fixed menu must not be constrained by the 56px FAB wrapper.
+      snapEdge // Keep edge snapping independent of the half-hide preference.
+      halfHide={halfHide}
+      idleOpacity={opacity}
+      fitContent // The fixed menu must not be constrained by the FAB wrapper.
       expanded={opensMenu && open} // Keep the anchor fully revealed while the menu is open.
       {...fabProps}
       show={showFab}
@@ -290,6 +303,11 @@ export function ContentFabContent({
           id="kt-content-fab-button"
           ref={anchorRef}
           className="kt-content-fab"
+          style={{
+            "--kt-fab-size": `${fabSize}px`,
+            "--kt-fab-icon-size": `${Math.max(16, (fabSize * 24) / DEFAULT_FAB.size)}px`,
+            "--kt-fab-radius": `${(fabSize * 16) / DEFAULT_FAB.size}px`,
+          }}
           aria-expanded={opensMenu ? open : undefined}
           aria-haspopup={opensMenu ? "menu" : undefined}
           aria-controls={opensMenu && open ? "kt-content-fab-menu" : undefined}
