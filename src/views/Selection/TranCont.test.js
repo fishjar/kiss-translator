@@ -166,10 +166,40 @@ describe("TranCont", () => {
     expect(
       getComputedStyle(textarea.closest(".MuiInputBase-root")).overflow
     ).toBe("visible");
-    expect(getComputedStyle(textarea).resize).toBe("vertical");
+    expect(getComputedStyle(textarea).resize).toBe("none");
+    // 内容门控（空内容 → 不在场）：空态结果框不渲染手柄。
+    expect(
+      textarea
+        .closest(".MuiInputBase-root")
+        .querySelector('[role="separator"]')
+    ).toBeNull();
     expect(textarea.placeholder).toBe("playground_translation_empty_result");
     expect(container.querySelector("button[data-copy-text]")).toBeNull();
     expect(apiTranslate).not.toHaveBeenCalled();
+    act(() => root.unmount());
+  });
+
+  test("shows the drawn grip once a result arrives and locks the root height on keyboard adjust", async () => {
+    apiTranslate.mockResolvedValueOnce({ trText: "译文" });
+    const { container, root } = renderTranCont();
+    await flushEffects();
+
+    const resultTextarea = container.querySelector(
+      '.kt-translation-result textarea:not([aria-hidden="true"])'
+    );
+    expect(resultTextarea.value).toBe("译文");
+    const resultRoot = resultTextarea.closest(".MuiInputBase-root");
+    // 内容门控（有内容 → 在场）。
+    const grip = resultRoot.querySelector('[role="separator"]');
+    expect(grip).not.toBeNull();
+    expect(grip.getAttribute("aria-label")).toBe("field_resize_height");
+    act(() => {
+      grip.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+      );
+    });
+    expect(resultRoot.classList).toContain("kt-height-locked");
+    expect(resultRoot.style.height).toBe("40px");
     act(() => root.unmount());
   });
 

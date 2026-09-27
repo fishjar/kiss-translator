@@ -103,7 +103,38 @@ describe("Prompts", () => {
       expect(
         getComputedStyle(textarea.closest(".MuiInputBase-root")).overflow
       ).toBe("visible");
-      expect(getComputedStyle(textarea).resize).toBe("vertical");
+      expect(getComputedStyle(textarea).resize).toBe("none");
+      const fieldRoot = textarea.closest(".MuiInputBase-root");
+      // 内容门控（有内容 → 在场）：夹具提示词非空。
+      const grip = fieldRoot.querySelector('[role="separator"]');
+      expect(grip).not.toBeNull();
+      // 清空内容 → 手柄不在场；回填 → 重新在场（字段 onChange 经
+      // CodeField rest 透传，CodeField.js:15 `{...rest}`；原生 setter
+      // 先例同 TranForm.test.js 900-907）。
+      const setTextareaValue = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype,
+        "value"
+      ).set;
+      act(() => {
+        setTextareaValue.call(textarea, "");
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      expect(fieldRoot.querySelector('[role="separator"]')).toBeNull();
+      act(() => {
+        setTextareaValue.call(textarea, "filled");
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      expect(fieldRoot.querySelector('[role="separator"]')).not.toBeNull();
+      // 键盘锁定锚。
+      act(() => {
+        fieldRoot
+          .querySelector('[role="separator"]')
+          .dispatchEvent(
+            new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+          );
+      });
+      expect(fieldRoot.classList).toContain("kt-height-locked");
+      expect(fieldRoot.style.height).toBe("40px");
     });
 
     unmount();

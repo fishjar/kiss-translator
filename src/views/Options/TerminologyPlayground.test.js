@@ -23,6 +23,7 @@ import {
   defaultSystemPromptXml,
 } from "../../config";
 import { genTransReq } from "../../apis/trans";
+import { __resetSessionHeightMapForTests } from "../../hooks/useTextareaHeightLock";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -4274,17 +4275,18 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
-  test("no custom resize handles remain; both term textareas use native resize:vertical", async () => {
-    const { container, root } = renderPlayground({ rule: null });
+  test("term textareas use the drawn resize grip only when content or a locked height exists", async () => {
+    __resetSessionHeightMapForTests();
+    const { container, root, setAiTermsDraft } =
+      renderPlayground({ rule: null });
     await flushEffects();
-    // 回归护栏：组件树中不应出现任何自定义缩放手柄 testid。
+    // 回归护栏：组件树中不应出现任何旧式自定义缩放手柄 testid。
     expect(
       container.querySelector('[data-testid$="-resize-handle"]')
     ).toBeNull();
     expect(
       container.querySelector('[data-testid$="-resize-notch"]')
     ).toBeNull();
-    // 术语库输入框与 AI 术语输入框的 textarea 声明原生 vertical 缩放样式。
     const termsTextarea = container.querySelector(
       '[data-testid="terminology-terms-input"] textarea'
     );
@@ -4293,7 +4295,39 @@ describe("TerminologyPlayground", () => {
     );
     for (const textarea of [termsTextarea, aiTextarea]) {
       expect(textarea).not.toBeNull();
+      expect(getComputedStyle(textarea).resize).toBe("none");
     }
+
+    // 术语框挂载后由规则加载 effect 自动填入 ruleTerms || CONFLICT_MATRIX_SAMPLE
+    //（组件 1068-1072 行），内容非空 → 手柄在场（内容门控：有内容 → 在场）；
+    // AI 术语框无自动填充，保持空态 → 手柄不在场（内容门控：空内容 → 不在场）。
+    const termsRoot = termsTextarea.closest(".MuiInputBase-root");
+    const termsGrip = termsRoot.querySelector('[role="separator"]');
+    expect(termsGrip).not.toBeNull();
+    // 本文件 i18n 为真实翻译形态（非按 key 直传），label 断言非空即可。
+    expect(termsGrip.getAttribute("aria-label")).toBeTruthy();
+    expect(
+      aiTextarea
+        .closest(".MuiInputBase-root")
+        .querySelector('[role="separator"]')
+    ).toBeNull();
+
+    // 键盘锁定锚。
+    act(() => {
+      termsGrip.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+      );
+    });
+    expect(termsRoot.classList).toContain("kt-height-locked");
+    expect(termsRoot.style.height).toBe("40px");
+
+    // AI 术语框注入内容 → 手柄在场。
+    act(() => setAiTermsDraft("quzzle,缓存节点"));
+    expect(
+      aiTextarea
+        .closest(".MuiInputBase-root")
+        .querySelector('[role="separator"]')
+    ).not.toBeNull();
 
     act(() => root.unmount());
   });

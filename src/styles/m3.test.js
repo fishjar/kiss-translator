@@ -55,28 +55,23 @@ describe("M3 global motion", () => {
 });
 
 describe("M3 resizable textareas", () => {
-  test("keeps the native resize hit area usable without styling measurement nodes", () => {
+  test("keeps the scrollbar width rules, drops the native resizer restyle, and ships the locked-height CSS", () => {
     expect(M3_GLOBAL_CSS).toMatch(
       /textarea\.kt-resizable-textarea:not\(\[aria-hidden="true"\]\)::\-webkit-scrollbar\s*\{[^}]*width:\s*16px;[^}]*height:\s*16px;/
     );
-    const resizerBodies = getCssAtRuleBodies(
-      M3_GLOBAL_CSS,
+    expect(M3_GLOBAL_CSS).not.toContain(
       "@supports selector(textarea::-webkit-resizer)"
     );
-    expect(resizerBodies).toHaveLength(1);
-    expect(
-      resizerBodies.some((body) =>
-        /textarea\.kt-resizable-textarea:not\(\[aria-hidden="true"\]\)::\-webkit-resizer\s*\{[^}]*background-color:\s*transparent;[^}]*background-image:\s*linear-gradient\([\s\S]*?var\(--kt-onv\)[\s\S]*?background-position:\s*right 6px bottom 6px;[^}]*background-size:\s*10px 10px;/.test(
-          body
-        )
-      )
-    ).toBe(true);
+    expect(M3_GLOBAL_CSS).not.toContain("::-webkit-resizer");
+    expect(M3_GLOBAL_CSS).toMatch(
+      /\.kt-m3-root \.kt-height-locked\.MuiInputBase-root\s*\{[^}]*min-height:\s*0 !important;/
+    );
+    expect(M3_GLOBAL_CSS).toMatch(
+      /\.kt-m3-root \.kt-height-locked textarea:not\(\[aria-hidden="true"\]\)\s*\{[^}]*height:\s*100% !important;[^}]*min-height:\s*0 !important;[^}]*max-height:\s*none !important;[^}]*overflow:\s*auto !important;/
+    );
     expect(M3_GLOBAL_CSS).not.toContain(".MuiFilledInput-root::after");
     expect(M3_GLOBAL_CSS).not.toContain(
       ".kt-popup-translation-textarea::after"
-    );
-    expect(M3_GLOBAL_CSS.match(/::\-webkit-resizer\s*\{/g) || []).toHaveLength(
-      1
     );
   });
 });

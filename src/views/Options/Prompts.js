@@ -50,6 +50,8 @@ import {
 } from "../../config";
 import { usePromptList } from "../../hooks/Prompt";
 import CodeField from "./CodeField";
+import TextareaResizeGrip from "../../components/TextareaResizeGrip";
+import useTextareaHeightLock from "../../hooks/useTextareaHeightLock";
 
 const TRANSLATION_PROMPT_PLACEHOLDERS = [
   INPUT_PLACE_TEXT,
@@ -209,6 +211,14 @@ function PromptFields({
   const promptDisplayName = getPromptDisplayName(prompt, i18n);
   const systemPromptRef = useRef(null);
   const userPromptRef = useRef(null);
+  const systemHeightLock = useTextareaHeightLock(
+    "options-prompt-system",
+    systemPromptRef
+  );
+  const userHeightLock = useTextareaHeightLock(
+    "options-prompt-user",
+    userPromptRef
+  );
   // Only show the second prompt for flows that consume userPrompt.
   const showUserPrompt =
     formData.category === PROMPT_CATEGORY_USER ||
@@ -312,16 +322,28 @@ function PromptFields({
           minRows={3}
           maxRows={14}
           disabled={isPreset}
+          InputProps={{
+            endAdornment:
+              (formData.systemPrompt.trim() ||
+                systemHeightLock.lockedHeight != null) ? (
+                <TextareaResizeGrip
+                  target={systemHeightLock.textareaRef}
+                  onResize={systemHeightLock.applyHeight}
+                  value={systemHeightLock.lockedHeight}
+                  label={i18n("field_resize_height")}
+                />
+              ) : null,
+          }}
           inputProps={{
             className: "kt-resizable-textarea",
-            style: { resize: "vertical" },
+            style: { resize: "none" },
           }}
           sx={{
             "& .MuiInputBase-root": {
               overflow: "visible",
             },
             '& textarea:not([aria-hidden="true"])': {
-              resize: "vertical",
+              resize: "none",
             },
           }}
         />
@@ -352,16 +374,28 @@ function PromptFields({
             minRows={3}
             maxRows={14}
             disabled={isPreset}
+            InputProps={{
+              endAdornment:
+                (formData.userPrompt.trim() ||
+                  userHeightLock.lockedHeight != null) ? (
+                  <TextareaResizeGrip
+                    target={userHeightLock.textareaRef}
+                    onResize={userHeightLock.applyHeight}
+                    value={userHeightLock.lockedHeight}
+                    label={i18n("field_resize_height")}
+                  />
+                ) : null,
+            }}
             inputProps={{
               className: "kt-resizable-textarea",
-              style: { resize: "vertical" },
+              style: { resize: "none" },
             }}
             sx={{
               "& .MuiInputBase-root": {
                 overflow: "visible",
               },
               '& textarea:not([aria-hidden="true"])': {
-                resize: "vertical",
+                resize: "none",
               },
             }}
           />

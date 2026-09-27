@@ -234,29 +234,15 @@ export const M3_GLOBAL_CSS = String.raw`
   height: 16px;
 }
 
-@supports selector(textarea::-webkit-resizer) {
-  .kt-m3-root textarea.kt-resizable-textarea:not([aria-hidden="true"])::-webkit-resizer {
-    background-color: transparent;
-    background-image: linear-gradient(
-      135deg,
-      transparent 0 42%,
-      var(--kt-onv) 43% 51%,
-      transparent 52% 64%,
-      var(--kt-onv) 65% 73%,
-      transparent 74%
-    );
-    background-image: linear-gradient(
-      135deg,
-      transparent 0 42%,
-      color-mix(in srgb, var(--kt-onv) 68%, transparent) 43% 51%,
-      transparent 52% 64%,
-      color-mix(in srgb, var(--kt-onv) 68%, transparent) 65% 73%,
-      transparent 74%
-    );
-    background-repeat: no-repeat;
-    background-position: right 6px bottom 6px;
-    background-size: 10px 10px;
-  }
+.kt-m3-root .kt-height-locked.MuiInputBase-root {
+  min-height: 0 !important;
+}
+
+.kt-m3-root .kt-height-locked textarea:not([aria-hidden="true"]) {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: auto !important;
 }
 
 @keyframes kt-m3-pop {

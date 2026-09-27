@@ -46,6 +46,8 @@ import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import { isShadowHostMoving } from "../../libs/shadowHost";
+import TextareaResizeGrip from "../../components/TextareaResizeGrip";
+import useTextareaHeightLock from "../../hooks/useTextareaHeightLock";
 
 export const formatLanguageOptionName = (name) => {
   const parts = String(name || "")
@@ -177,8 +179,12 @@ export default function TranForm({
   const focusedTextControlRef = useRef(null);
   const previousSimpleStyleRef = useRef(simpleStyle);
   const [isShadowMenu, setIsShadowMenu] = useState(false);
+  const sourceHeightLock = useTextareaHeightLock(
+    isPlaygound ? "tranform-source-playground" : "tranform-source"
+  );
   const setInputRef = useCallback((input) => {
     inputRef.current = input;
+    sourceHeightLock.textareaRef.current = input;
     setIsShadowMenu(Boolean(input?.getRootNode()?.host));
   }, []);
   const selectMenuProps = useMemo(
@@ -840,7 +846,7 @@ export default function TranForm({
               inputProps={{
                 className: "kt-resizable-textarea",
                 style: {
-                  resize: "vertical",
+                  resize: "none",
                   ...(isPlaygound
                     ? {}
                     : { boxSizing: "border-box", paddingInlineEnd: 16 }),
@@ -851,7 +857,7 @@ export default function TranForm({
                   overflow: "visible",
                 },
                 '& textarea:not([aria-hidden="true"])': {
-                  resize: "vertical",
+                  resize: "none",
                 },
               }}
               value={editText}
@@ -870,6 +876,7 @@ export default function TranForm({
               }}
               InputProps={{
                 endAdornment: (
+                  <>
                   <Stack
                     className={
                       isPlaygound
@@ -927,6 +934,16 @@ export default function TranForm({
                       </IconButton>
                     )}
                   </Stack>
+                  {(editText.trim() ||
+                    sourceHeightLock.lockedHeight != null) && (
+                    <TextareaResizeGrip
+                      target={sourceHeightLock.textareaRef}
+                      onResize={sourceHeightLock.applyHeight}
+                      value={sourceHeightLock.lockedHeight}
+                      label={i18n("field_resize_height")}
+                    />
+                  )}
+                  </>
                 ),
               }}
             />

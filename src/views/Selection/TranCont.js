@@ -15,6 +15,8 @@ import { useI18n } from "../../hooks/I18n";
 import { parseMathInText } from "../../libs/mathParse";
 import CopyBtn from "./CopyBtn";
 import { BrowserTtsBtn } from "./AudioBtn";
+import TextareaResizeGrip from "../../components/TextareaResizeGrip";
+import useTextareaHeightLock from "../../hooks/useTextareaHeightLock";
 
 /**
  * Determine whether selection translation results can render incrementally.
@@ -168,6 +170,9 @@ export default function TranCont({
   const [error, setError] = useState("");
   const [attemptRevision, setAttemptRevision] = useState(requestRevision);
   const requestPendingRef = useRef(false);
+  const resultHeightLock = useTextareaHeightLock(
+    isPlayground ? "trancont-result-playground" : "trancont-result"
+  );
 
   // Resolve the translation API settings for this instance's slug.
   const apiSetting = useMemo(
@@ -356,12 +361,13 @@ export default function TranCont({
         InputLabelProps={isPlayground ? { shrink: true } : undefined}
         fullWidth
         multiline
+        inputRef={resultHeightLock.textareaRef}
         minRows={isPlayground ? 4 : undefined}
         maxRows={10}
         inputProps={{
           className: "kt-resizable-textarea",
           style: {
-            resize: "vertical",
+            resize: "none",
             ...(isPlayground
               ? {}
               : { boxSizing: "border-box", paddingInlineEnd: 16 }),
@@ -382,7 +388,7 @@ export default function TranCont({
             overflow: "visible",
           },
           '& textarea:not([aria-hidden="true"])': {
-            resize: "vertical",
+            resize: "none",
           },
         }}
         value={trText}
@@ -407,6 +413,7 @@ export default function TranCont({
             </Box>
           ),
           endAdornment: (
+            <>
             <Stack
               onPointerDown={onActionPointerDown}
               className={
@@ -437,6 +444,15 @@ export default function TranCont({
                 title={i18n("read_aloud")}
               />
             </Stack>
+            {(trText.trim() || resultHeightLock.lockedHeight != null) && (
+              <TextareaResizeGrip
+                target={resultHeightLock.textareaRef}
+                onResize={resultHeightLock.applyHeight}
+                value={resultHeightLock.lockedHeight}
+                label={i18n("field_resize_height")}
+              />
+            )}
+            </>
           ),
         }}
       />

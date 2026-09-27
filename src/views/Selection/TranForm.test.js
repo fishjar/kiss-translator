@@ -6,6 +6,7 @@ import TranForm, { formatLanguageOptionName } from "./TranForm";
 import { apiDict } from "../../apis";
 import { tryDetectLang } from "../../libs/detect";
 import { mountShadowHost } from "../../libs/shadowHost";
+import { __resetSessionHeightMapForTests } from "../../hooks/useTextareaHeightLock";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -520,6 +521,9 @@ describe("TranForm Playground presentation", () => {
   test.each([false, true])(
     "commits consecutive pointer submissions once each (shadow: %s)",
     async (shadow) => {
+      // hook 的会话高度 Map 模块级存活，test.each 各变体间需隔离，
+      // 否则上一变体的键盘锁定会让"清空 → 手柄不在场"断言落空。
+      __resetSessionHeightMapForTests();
       const setText = jest.fn();
       function EditableTranForm(props) {
         const [text, updateText] = useState(props.text);
@@ -554,7 +558,38 @@ describe("TranForm Playground presentation", () => {
         expect(
           getComputedStyle(textarea.closest(".MuiInputBase-root")).overflow
         ).toBe("visible");
-        expect(getComputedStyle(textarea).resize).toBe("vertical");
+        expect(getComputedStyle(textarea).resize).toBe("none");
+        const fieldRoot = textarea.closest(".MuiInputBase-root");
+        // 内容门控（有内容 → 在场）：初始文本 "before" 非空。
+        const grip = fieldRoot.querySelector('[role="separator"]');
+        expect(grip).not.toBeNull();
+        expect(grip.getAttribute("aria-label")).toBe("field_resize_height");
+        expect(grip.getAttribute("aria-orientation")).toBe("horizontal");
+        // 清空内容 → 手柄不在场；回填 → 重新在场（原生 value setter 先例：
+        // TranForm.test.js 900-907）。
+        const setTextareaValue = Object.getOwnPropertyDescriptor(
+          HTMLTextAreaElement.prototype,
+          "value"
+        ).set;
+        act(() => {
+          setTextareaValue.call(textarea, "");
+          textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+        expect(fieldRoot.querySelector('[role="separator"]')).toBeNull();
+        act(() => {
+          setTextareaValue.call(textarea, "before");
+          textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+        expect(fieldRoot.querySelector('[role="separator"]')).not.toBeNull();
+        act(() => {
+          fieldRoot
+            .querySelector('[role="separator"]')
+            .dispatchEvent(
+              new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+            );
+        });
+        expect(fieldRoot.classList).toContain("kt-height-locked");
+        expect(fieldRoot.style.height).toBe("40px");
 
         for (const [index, draft] of ["  after  ", "  again  "].entries()) {
           // Use native focus: a still-focused input cannot emit another focus event.

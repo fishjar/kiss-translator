@@ -160,6 +160,11 @@ describe("SubtitleSegmentationPlayground", () => {
     const { container, root } = renderPlayground();
     await flushEffects();
 
+    // 内容门控（空内容 → 不在场）：上传样本前源/结果框均为空。
+    expect(
+      container.querySelector('.MuiInputBase-root [role="separator"]')
+    ).toBeNull();
+
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/subtitle-samples/index.json"),
       expect.objectContaining({ signal: expect.any(AbortSignal) })
@@ -219,11 +224,29 @@ describe("SubtitleSegmentationPlayground", () => {
     expect(
       getComputedStyle(sourceArea.closest(".MuiInputBase-root")).overflow
     ).toBe("visible");
-    expect(getComputedStyle(sourceArea).resize).toBe("vertical");
+    expect(getComputedStyle(sourceArea).resize).toBe("none");
     expect(
       getComputedStyle(resultArea.closest(".MuiInputBase-root")).overflow
     ).toBe("visible");
-    expect(getComputedStyle(resultArea).resize).toBe("vertical");
+    expect(getComputedStyle(resultArea).resize).toBe("none");
+    // 内容门控（有内容 → 在场）：上传样本并运行后源/结果框均有内容。
+    const sourceGrip = sourceArea
+      .closest(".MuiInputBase-root")
+      .querySelector('[role="separator"]');
+    expect(sourceGrip).not.toBeNull();
+    expect(
+      resultArea
+        .closest(".MuiInputBase-root")
+        .querySelector('[role="separator"]')
+    ).not.toBeNull();
+    act(() => {
+      sourceGrip.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+      );
+    });
+    const sourceLockedRoot = sourceArea.closest(".MuiInputBase-root");
+    expect(sourceLockedRoot.classList).toContain("kt-height-locked");
+    expect(sourceLockedRoot.style.height).toBe("40px");
     expect(container.textContent.indexOf("当前生效的断句配置")).toBeLessThan(
       container.textContent.indexOf("内置字幕样本")
     );

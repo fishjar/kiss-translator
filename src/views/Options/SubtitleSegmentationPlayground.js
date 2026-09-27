@@ -40,6 +40,8 @@ import {
 } from "../../subtitle/subtitleSegmentationMetrics";
 import { DEFAULT_PARAMS } from "../../subtitle/sentenceBreaker";
 import { buildBilingualVtt } from "../../subtitle/vtt";
+import TextareaResizeGrip from "../../components/TextareaResizeGrip";
+import useTextareaHeightLock from "../../hooks/useTextareaHeightLock";
 
 const SAMPLE_BASE_URL = `${process.env.REACT_APP_SITEURL}/subtitle-samples`;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -50,7 +52,7 @@ const RESIZABLE_TEXT_FIELD_SX = {
     overflow: "visible",
   },
   '& textarea:not([aria-hidden="true"])': {
-    resize: "vertical !important",
+    resize: "none !important",
     overflow: "auto !important",
   },
 };
@@ -180,6 +182,8 @@ export default function SubtitleSegmentationPlayground({
   // 索引只应拉取一次，通过 ref 读取当前语言，避免翻译函数变化导致重复请求。
   const i18nRef = useRef(i18n);
   i18nRef.current = i18n;
+  const sourceHeightLock = useTextareaHeightLock("subtitle-playground-source");
+  const resultHeightLock = useTextareaHeightLock("subtitle-playground-result");
 
   const segApi = useMemo(
     () =>
@@ -801,10 +805,23 @@ export default function SubtitleSegmentationPlayground({
             multiline
             rows={5}
             value={sourceText}
-            InputProps={{ readOnly: true }}
+            inputRef={sourceHeightLock.textareaRef}
+            InputProps={{
+              readOnly: true,
+              endAdornment:
+                (sourceText.trim() ||
+                  sourceHeightLock.lockedHeight != null) ? (
+                  <TextareaResizeGrip
+                    target={sourceHeightLock.textareaRef}
+                    onResize={sourceHeightLock.applyHeight}
+                    value={sourceHeightLock.lockedHeight}
+                    label={i18n("field_resize_height")}
+                  />
+                ) : null,
+            }}
             inputProps={{
               className: "kt-resizable-textarea",
-              style: { resize: "vertical", overflow: "auto" },
+              style: { resize: "none", overflow: "auto" },
               "aria-label": i18n(
                 "subtitle_playground_source_json",
                 "原始字幕 JSON"
@@ -824,10 +841,23 @@ export default function SubtitleSegmentationPlayground({
               multiline
               rows={5}
               value={resultText}
-              InputProps={{ readOnly: true }}
+              inputRef={resultHeightLock.textareaRef}
+              InputProps={{
+                readOnly: true,
+                endAdornment:
+                  ((resultText || "").trim() ||
+                    resultHeightLock.lockedHeight != null) ? (
+                    <TextareaResizeGrip
+                      target={resultHeightLock.textareaRef}
+                      onResize={resultHeightLock.applyHeight}
+                      value={resultHeightLock.lockedHeight}
+                      label={i18n("field_resize_height")}
+                    />
+                  ) : null,
+              }}
               inputProps={{
                 className: "kt-resizable-textarea",
-                style: { resize: "vertical", overflow: "auto" },
+                style: { resize: "none", overflow: "auto" },
                 "aria-label": i18n("subtitle_playground_result", "断句结果"),
               }}
               sx={RESIZABLE_TEXT_FIELD_SX}
