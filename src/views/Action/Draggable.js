@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
 import { limitFloat, limitNumber } from "../../libs/utils";
 import { isMobile } from "../../libs/mobile";
 import { putFab } from "../../libs/storage";
@@ -193,7 +200,12 @@ export default function Draggable({
   }, [applyTransform, height, revealed, snapEdge, width]);
 
   // Snap to the locked edge and persist the resulting position.
-  useEffect(() => {
+  // Runs as a layout effect (not a passive effect): on mount this is the only
+  // path that writes the initial transform, so it must finish synchronously
+  // before the browser paints the first frame. A passive useEffect runs after
+  // the first paint, which lets the fixed top:0/left:0 container flash at the
+  // viewport origin before its saved position lands (#1116, PR #1117 review).
+  useLayoutEffect(() => {
     if (!snapEdge || !!origin) {
       return;
     }
