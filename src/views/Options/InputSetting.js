@@ -174,7 +174,9 @@ export default function InputSetting() {
             scene={inputRule}
             apis={enabledApis}
             label={i18n("translate_service")}
-            onChange={(apiSlugs) => updateInputRule({ apiSlugs, apiSlug: apiSlugs[0] || "" })}
+            onChange={(apiSlugs) =>
+              updateInputRule({ apiSlugs, apiSlug: apiSlugs[0] || "" })
+            }
           />
         </SettingsRow>
         <SettingsRow label={i18n("translation_prompt", "翻译提示词")}>

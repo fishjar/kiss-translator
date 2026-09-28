@@ -612,9 +612,7 @@ describe("TerminologyPlayground", () => {
       '[data-testid="terminology-auto-sample-unsupported"]'
     );
     expect(alert).not.toBeNull();
-    expect(alert.textContent).toContain(
-      "部分正则术语无法可靠生成自动匹配样例"
-    );
+    expect(alert.textContent).toContain("部分正则术语无法可靠生成自动匹配样例");
     expect(alert.textContent).not.toContain("未生成可测试的例句");
 
     act(() => root.unmount());

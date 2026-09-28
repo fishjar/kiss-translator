@@ -88,13 +88,17 @@ describe("settings storage migration", () => {
     ];
     window.localStorage.setItem(STOKEY_RULES, JSON.stringify(oldRules));
     await runDataMigration();
-    expect(readStoredJson(STOKEY_RULES_BACKUP_BEFORE_APISLUGS)).toEqual(oldRules);
+    expect(readStoredJson(STOKEY_RULES_BACKUP_BEFORE_APISLUGS)).toEqual(
+      oldRules
+    );
     expect(readStoredJson(STOKEY_RULES)).toEqual([
       { ...oldRules[0], apiSlugs: ["primary"] },
       { ...oldRules[1], apiSlugs: ["*"] },
     ]);
     await runDataMigration();
-    expect(readStoredJson(STOKEY_RULES_BACKUP_BEFORE_APISLUGS)).toEqual(oldRules);
+    expect(readStoredJson(STOKEY_RULES_BACKUP_BEFORE_APISLUGS)).toEqual(
+      oldRules
+    );
   });
 
   test.each([

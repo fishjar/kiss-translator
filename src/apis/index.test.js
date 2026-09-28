@@ -75,8 +75,19 @@ jest.mock("./trans", () => ({
   handleSummarize: jest.fn(),
 }));
 
-import { apiDict, apiSubtitle, apiTranslate } from "./index";
-import { handleDict, handleSubtitle, handleTranslate } from "./trans";
+import {
+  apiDict,
+  apiSubtitle,
+  apiTranslate,
+  apiSummarizeVideo,
+  getVideoSummarySignature,
+} from "./index";
+import {
+  handleDict,
+  handleSubtitle,
+  handleTranslate,
+  handleSummarize,
+} from "./trans";
 import { fetchData, fnPolyfill } from "../libs/fetch";
 import { getSetting } from "../libs/storage";
 import { withTimeout } from "../libs/utils";
@@ -1018,5 +1029,162 @@ describe("apiTranslate capture 透传", () => {
     expect(capture.onRequest).toHaveBeenCalledTimes(1);
     expect(capture.onResponse).toHaveBeenCalledTimes(1);
     expect(capture.onResponse.mock.calls[0][0]).toBe(rawResponse);
+  });
+});
+
+describe("apiSummarizeVideo and getVideoSummarySignature cache identity", () => {
+  beforeEach(() => {
+    mockGetCacheDigest.mockReset();
+    mockGetCacheDigest.mockImplementation(async (text, salt = "") => {
+      let hash = 0;
+      const combined = `${text}#${salt}`;
+      for (let i = 0; i < combined.length; i++) {
+        hash = (hash * 31 + combined.charCodeAt(i)) >>> 0;
+      }
+      return hash.toString(16).padStart(16, "0").repeat(4);
+    });
+    handleSummarize.mockReset();
+    getHttpCachePolyfill.mockReset();
+    putHttpCachePolyfill.mockReset();
+  });
+
+  test("getVideoSummarySignature differentiates transcript, title, prompt, and language changes", async () => {
+    const baseParams = {
+      videoId: "vid_123",
+      title: "Video Title",
+      description: "Video Description",
+      transcript: "This is the transcript content",
+      apiSetting: { apiSlug: "openai_chat" },
+      prompt: {
+        slug: "summary_default",
+        systemPrompt: "System instruction {{to}}",
+        userPrompt: "Summarize: {{transcript}}",
+      },
+      to: "zh-CN",
+    };
+
+    const baseSig = await getVideoSummarySignature(baseParams);
+    const sameSig = await getVideoSummarySignature({ ...baseParams });
+    expect(sameSig).toBe(baseSig);
+
+    // 修改字幕内容（如流式字幕补全）
+    const changedTranscriptSig = await getVideoSummarySignature({
+      ...baseParams,
+      transcript: "This is the transcript content with more appended lines",
+    });
+    expect(changedTranscriptSig).not.toBe(baseSig);
+
+    // 修改标题
+    const changedTitleSig = await getVideoSummarySignature({
+      ...baseParams,
+      title: "Updated Title",
+    });
+    expect(changedTitleSig).not.toBe(baseSig);
+
+    // 修改简介
+    const changedDescSig = await getVideoSummarySignature({
+      ...baseParams,
+      description: "Updated Description",
+    });
+    expect(changedDescSig).not.toBe(baseSig);
+
+    // 修改同一 slug 下的 userPrompt 自定义模板
+    const changedUserPromptSig = await getVideoSummarySignature({
+      ...baseParams,
+      prompt: {
+        ...baseParams.prompt,
+        userPrompt: "Generate bullet points: {{transcript}}",
+      },
+    });
+    expect(changedUserPromptSig).not.toBe(baseSig);
+
+    // 修改同一 slug 下的 systemPrompt
+    const changedSysPromptSig = await getVideoSummarySignature({
+      ...baseParams,
+      prompt: {
+        ...baseParams.prompt,
+        systemPrompt: "You are an expert summarizer in {{to}}",
+      },
+    });
+    expect(changedSysPromptSig).not.toBe(baseSig);
+
+    // 切换目标语言
+    const changedLangSig = await getVideoSummarySignature({
+      ...baseParams,
+      to: "ja",
+    });
+    expect(changedLangSig).not.toBe(baseSig);
+  });
+
+  test("先生成、再修改输入 回归测试：修改字幕、提示词或语言后能够穿透旧缓存", async () => {
+    const cacheMap = new Map();
+    getHttpCachePolyfill.mockImplementation(async (key) => cacheMap.get(key));
+    putHttpCachePolyfill.mockImplementation(async (key, _meta, val) =>
+      cacheMap.set(key, val)
+    );
+
+    handleSummarize.mockImplementation(
+      async ({ transcript, to }) => `Summary for [${transcript}] in ${to}`
+    );
+
+    const baseParams = {
+      videoId: "vid_test",
+      title: "Test Title",
+      description: "Test Desc",
+      transcript: "Initial subtitles",
+      apiSetting: { apiSlug: "openai" },
+      prompt: {
+        slug: "default_slug",
+        systemPrompt: "System",
+        userPrompt: "User: {{transcript}}",
+      },
+      to: "zh-CN",
+    };
+
+    // 1. 首次生成
+    const res1 = await apiSummarizeVideo(baseParams);
+    expect(res1).toBe("Summary for [Initial subtitles] in zh-CN");
+    expect(handleSummarize).toHaveBeenCalledTimes(1);
+
+    // 2. 相同输入再次打开总结，命中持久缓存
+    const res2 = await apiSummarizeVideo(baseParams);
+    expect(res2).toBe("Summary for [Initial subtitles] in zh-CN");
+    expect(handleSummarize).toHaveBeenCalledTimes(1);
+
+    // 3. 字幕补全更新后再次请求，缓存失效并重新生成
+    const res3 = await apiSummarizeVideo({
+      ...baseParams,
+      transcript: "Initial subtitles + completed subtitles",
+    });
+    expect(res3).toBe(
+      "Summary for [Initial subtitles + completed subtitles] in zh-CN"
+    );
+    expect(handleSummarize).toHaveBeenCalledTimes(2);
+
+    // 4. 修改同一 slug 的提示词模板后再次请求，缓存失效并重新生成
+    const res4 = await apiSummarizeVideo({
+      ...baseParams,
+      prompt: {
+        ...baseParams.prompt,
+        userPrompt: "Custom prompt: {{transcript}}",
+      },
+    });
+    expect(handleSummarize).toHaveBeenCalledTimes(3);
+
+    // 5. 切换目标语言后再次请求，缓存失效并重新生成
+    const res5 = await apiSummarizeVideo({
+      ...baseParams,
+      to: "en",
+    });
+    expect(res5).toBe("Summary for [Initial subtitles] in en");
+    expect(handleSummarize).toHaveBeenCalledTimes(4);
+
+    // 6. force: true 强制重新生成，即使用户输入未变也绕过缓存
+    const res6 = await apiSummarizeVideo({
+      ...baseParams,
+      force: true,
+    });
+    expect(res6).toBe("Summary for [Initial subtitles] in zh-CN");
+    expect(handleSummarize).toHaveBeenCalledTimes(5);
   });
 });

@@ -261,7 +261,10 @@ export default function Layout() {
       "/words": [i18n("favorite_words"), i18n("options_words_description")],
       "/local-ai": [
         i18n("local_ai_title", "本地 AI"),
-        i18n("local_ai_desc", "在浏览器本地运行轻量 AI 模型，无需上传网络，兼顾隐私与离线体验"),
+        i18n(
+          "local_ai_desc",
+          "在浏览器本地运行轻量 AI 模型，无需上传网络，兼顾隐私与离线体验"
+        ),
       ],
       "/file-translate": [
         i18n("file_translate_title", "文件翻译"),
@@ -292,8 +295,8 @@ export default function Layout() {
                 isFullWidthPage
                   ? "kt-options-main__inner--full"
                   : isWidePage
-                  ? "kt-options-main__inner--wide"
-                  : ""
+                    ? "kt-options-main__inner--wide"
+                    : ""
               }`.trim()}
             >
               <header className="kt-options-page-header">

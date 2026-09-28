@@ -25,9 +25,7 @@ jest.mock("../../localAi/fileOperations", () => ({
       groups.push({
         category: "llm",
         title: "大语言 / 翻译模型",
-        items: [
-          { id: "hy-mt2-1.8b", name: "Hy-MT2 1.8B", task: "llm" },
-        ],
+        items: [{ id: "hy-mt2-1.8b", name: "Hy-MT2 1.8B", task: "llm" }],
       });
     }
     return groups;
@@ -43,30 +41,32 @@ describe("LocalModelSelect", () => {
     document.body.appendChild(container);
     root = createRoot(container);
 
-    const { installedModelsForCapabilities } = require("../../localAi/fileOperations");
-    installedModelsForCapabilities.mockImplementation(async (capabilities = []) => {
-      const caps = Array.isArray(capabilities) ? capabilities : [];
-      const groups = [];
-      if (caps.includes("ocr")) {
-        groups.push({
-          category: "ocr",
-          title: "OCR / 识图模型",
-          items: [
-            { id: "ppocr-v6-medium", name: "PP-OCRv6 Medium", task: "ocr" },
-          ],
-        });
+    const {
+      installedModelsForCapabilities,
+    } = require("../../localAi/fileOperations");
+    installedModelsForCapabilities.mockImplementation(
+      async (capabilities = []) => {
+        const caps = Array.isArray(capabilities) ? capabilities : [];
+        const groups = [];
+        if (caps.includes("ocr")) {
+          groups.push({
+            category: "ocr",
+            title: "OCR / 识图模型",
+            items: [
+              { id: "ppocr-v6-medium", name: "PP-OCRv6 Medium", task: "ocr" },
+            ],
+          });
+        }
+        if (caps.includes("translation") || caps.includes("llm")) {
+          groups.push({
+            category: "llm",
+            title: "大语言 / 翻译模型",
+            items: [{ id: "hy-mt2-1.8b", name: "Hy-MT2 1.8B", task: "llm" }],
+          });
+        }
+        return groups;
       }
-      if (caps.includes("translation") || caps.includes("llm")) {
-        groups.push({
-          category: "llm",
-          title: "大语言 / 翻译模型",
-          items: [
-            { id: "hy-mt2-1.8b", name: "Hy-MT2 1.8B", task: "llm" },
-          ],
-        });
-      }
-      return groups;
-    });
+    );
   });
 
   afterEach(() => {

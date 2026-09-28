@@ -1,5 +1,12 @@
-import { YouTubeSubtitleList, renderMarkdownToElement } from "./YouTubeSubtitleList";
-import { apiMicrosoftDict, apiSummarizeVideo } from "../apis/index.js";
+import {
+  YouTubeSubtitleList,
+  renderMarkdownToElement,
+} from "./YouTubeSubtitleList";
+import {
+  apiMicrosoftDict,
+  apiSummarizeVideo,
+  getVideoSummarySignature,
+} from "../apis/index.js";
 import { openOptionsPage } from "../libs/navigation.js";
 import { EVENT_FAVORITE_WORD_CHANGE } from "../config";
 
@@ -12,6 +19,10 @@ jest.mock("../libs/storage.js", () => ({
 jest.mock("../apis/index.js", () => ({
   apiMicrosoftDict: jest.fn(),
   apiSummarizeVideo: jest.fn(),
+  getVideoSummarySignature: jest.fn(
+    async ({ videoId, apiSetting, to, transcript, prompt }) =>
+      `${videoId}:${apiSetting?.apiSlug}:${to}:${prompt?.slug || "default"}:${transcript}`
+  ),
 }));
 
 jest.mock("../libs/navigation.js", () => ({
@@ -69,15 +80,20 @@ function renderVisibleSubtitleItems(manager) {
 }
 
 async function flushPromises() {
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let i = 0; i < 20; i++) {
+    await Promise.resolve();
+  }
 }
 
 describe("YouTubeSubtitleList", () => {
   beforeEach(() => {
     apiMicrosoftDict.mockReset();
+    apiSummarizeVideo.mockReset();
+    getVideoSummarySignature.mockReset();
+    getVideoSummarySignature.mockImplementation(
+      async ({ videoId, apiSetting, to, transcript, prompt } = {}) =>
+        `${videoId}:${apiSetting?.apiSlug}:${to}:${prompt?.slug || "default"}:${transcript}`
+    );
     const storage = require("../libs/storage.js");
     favoriteWords = {};
     storage.getWordsWithDefault.mockImplementation(() =>
@@ -422,7 +438,9 @@ describe("YouTubeSubtitleList", () => {
       expect(manager.subtitleListEl.style.display).toBe("none");
 
       // Verify guide text and setting button
-      expect(manager.summaryScrollContainer.textContent).toContain("summary_empty_guide");
+      expect(manager.summaryScrollContainer.textContent).toContain(
+        "summary_empty_guide"
+      );
       const settingBtn = manager.summaryScrollContainer.querySelector("button");
       expect(settingBtn).not.toBeNull();
       expect(settingBtn.textContent).toBe("go_to_settings");
@@ -477,8 +495,12 @@ describe("YouTubeSubtitleList", () => {
       );
 
       // Verify rendered summary
-      expect(manager.summaryScrollContainer.querySelector("h4").textContent).toBe("核心概要");
-      expect(manager.summaryScrollContainer.querySelector("strong").textContent).toBe("要点");
+      expect(
+        manager.summaryScrollContainer.querySelector("h4").textContent
+      ).toBe("核心概要");
+      expect(
+        manager.summaryScrollContainer.querySelector("strong").textContent
+      ).toBe("要点");
 
       // Switching away and back uses cache without re-requesting
       apiSummarizeVideo.mockClear();
@@ -508,6 +530,63 @@ describe("YouTubeSubtitleList", () => {
       await flushPromises();
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
         expect.stringContaining("这是测试视频的总结内容")
+      );
+
+      manager.destroy();
+    });
+
+    test("re-fetches summary and invalidates panel cache when video transcript changes", async () => {
+      const videoEl = createVideoElement();
+      apiSummarizeVideo.mockResolvedValue("初始总结");
+
+      let currentTranscript = "initial transcript text 12345";
+      const getSummaryConfig = jest.fn(() => ({
+        summaryApiSlug: "openai_test",
+        summaryPromptSlug: "default_video_summary",
+        to: "zh-CN",
+        transApis: [{ apiSlug: "openai_test", apiType: "OpenAI" }],
+        prompts: [],
+      }));
+
+      const getVideoMetadata = jest.fn(() => ({
+        videoId: "test_vid_cache_inval",
+        title: "测试视频标题",
+        transcript: currentTranscript,
+      }));
+
+      const manager = new YouTubeSubtitleList(videoEl, (key) => key, {
+        getSummaryConfig,
+        getVideoMetadata,
+      });
+      manager.initialize([subtitle], [], 100);
+
+      // 1. 首次打开，触发生成
+      manager.summaryTabEl.click();
+      await flushPromises();
+      expect(apiSummarizeVideo).toHaveBeenCalledTimes(1);
+
+      // 2. 切走再切回，输入未变，命中面板内存缓存
+      apiSummarizeVideo.mockClear();
+      manager.subtitleTabEl.click();
+      manager.summaryTabEl.click();
+      await flushPromises();
+      expect(apiSummarizeVideo).not.toHaveBeenCalled();
+
+      // 3. 字幕内容发生变化（如异步加载完成或补全）
+      currentTranscript =
+        "initial transcript text 12345 + newly appended lines";
+      apiSummarizeVideo.mockResolvedValue("更新后的总结");
+
+      manager.subtitleTabEl.click();
+      manager.summaryTabEl.click();
+      await flushPromises();
+
+      // 缓存签名改变，面板内存缓存未命中，重新发起总结请求
+      expect(apiSummarizeVideo).toHaveBeenCalledTimes(1);
+      expect(apiSummarizeVideo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transcript: currentTranscript,
+        })
       );
 
       manager.destroy();
@@ -576,8 +655,12 @@ describe("YouTubeSubtitleList", () => {
       await flushPromises();
 
       // 验证下载卡片已渲染
-      expect(manager.summaryScrollContainer.textContent).toContain("model_downloading_title");
-      expect(manager.summaryScrollContainer.textContent).toContain("switch_to_network_ai");
+      expect(manager.summaryScrollContainer.textContent).toContain(
+        "model_downloading_title"
+      );
+      expect(manager.summaryScrollContainer.textContent).toContain(
+        "switch_to_network_ai"
+      );
 
       // 模拟接收后台推送的进度更新
       manager._handleBuiltinAiProgress({
@@ -597,9 +680,13 @@ describe("YouTubeSubtitleList", () => {
 
       // 弹出浮层
       expect(manager._modelSwitcherPopup).not.toBeNull();
-      const optionItem = manager._modelSwitcherPopup.querySelector("div[style*='cursor: pointer']");
+      const optionItem = manager._modelSwitcherPopup.querySelector(
+        "div[style*='cursor: pointer']"
+      );
       expect(optionItem.textContent).toContain("OpenAI GPT-4o");
-      expect(manager._modelSwitcherPopup.textContent).not.toContain("Azure Translation Only");
+      expect(manager._modelSwitcherPopup.textContent).not.toContain(
+        "Azure Translation Only"
+      );
 
       optionItem.click();
       await flushPromises();

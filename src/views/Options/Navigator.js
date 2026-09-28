@@ -105,7 +105,14 @@ export default function Navigator({ open, isMobile = false, onClose }) {
             DescriptionRoundedIcon,
           ],
           ...(isAutoTranslateClipboardSupported
-            ? [["local-ai", "本地 AI", "/local-ai", MemoryRoundedIcon]]
+            ? [
+                [
+                  "local-ai",
+                  i18n("local_ai_title", "本地 AI"),
+                  "/local-ai",
+                  MemoryRoundedIcon,
+                ],
+              ]
             : []),
         ],
       },

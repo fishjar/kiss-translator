@@ -67,13 +67,25 @@ describe("M2Theme", () => {
 
     // 检查组件默认属性与样式覆盖
     expect(capturedTheme.components.MuiButton.defaultProps.size).toBe("small");
-    expect(capturedTheme.components.MuiButton.styleOverrides.root.borderRadius).toBe(4);
-    expect(capturedTheme.components.MuiButton.styleOverrides.containedPrimary.color).toBe("#ffffff");
-    expect(capturedTheme.components.MuiTextField.defaultProps.size).toBe("small");
-    expect(capturedTheme.components.MuiTextField.defaultProps.variant).toBe("outlined");
+    expect(
+      capturedTheme.components.MuiButton.styleOverrides.root.borderRadius
+    ).toBe(4);
+    expect(
+      capturedTheme.components.MuiButton.styleOverrides.containedPrimary.color
+    ).toBe("#ffffff");
+    expect(capturedTheme.components.MuiTextField.defaultProps.size).toBe(
+      "small"
+    );
+    expect(capturedTheme.components.MuiTextField.defaultProps.variant).toBe(
+      "outlined"
+    );
     expect(capturedTheme.components.MuiChip.defaultProps.size).toBe("small");
-    expect(capturedTheme.components.MuiChip.styleOverrides.root.borderRadius).toBe(4);
-    expect(capturedTheme.components.MuiCard.styleOverrides.root.borderRadius).toBe(4);
+    expect(
+      capturedTheme.components.MuiChip.styleOverrides.root.borderRadius
+    ).toBe(4);
+    expect(
+      capturedTheme.components.MuiCard.styleOverrides.root.borderRadius
+    ).toBe(4);
   });
 
   test("resolves light mode correctly when set to light", () => {

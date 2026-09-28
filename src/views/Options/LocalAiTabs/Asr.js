@@ -22,8 +22,13 @@ import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { AsrClient } from "../../../localAi/core/asrClient";
-import { MicRecorder, decodeAudioFile, resampleTo16k, audioToWavBlob } from "../../../localAi/core/recorder";
-import { CATALOG } from "../../../localAi/core/catalog";
+import {
+  MicRecorder,
+  decodeAudioFile,
+  resampleTo16k,
+  audioToWavBlob,
+} from "../../../localAi/core/recorder";
+import { CATALOG, getModelDisplayName } from "../../../localAi/core/catalog";
 import { getSupportedAsrLanguages } from "../../../localAi/core/asrLanguages";
 import { setShared } from "../../../localAi/core/shared";
 import { useI18n } from "../../../hooks/I18n";
@@ -80,7 +85,10 @@ export default function AsrTab() {
     });
     client.onProgress = (p) => {
       const file = p.file ? ` ${p.file.split("/").pop()}` : "";
-      const pct = p.progress !== undefined && p.total ? ` ${Math.min(100, Math.round((p.progress / p.total) * 100))}%` : "";
+      const pct =
+        p.progress !== undefined && p.total
+          ? ` ${Math.min(100, Math.round((p.progress / p.total) * 100))}%`
+          : "";
       setProgressText(`${p.status ?? "loading"}${file}${pct}`);
     };
     client.onStateChange = (ready, reason) => {
@@ -93,7 +101,8 @@ export default function AsrTab() {
     return unsub;
   }, []);
 
-  const selectedManifest = ASR_MODELS.find((m) => m.id === selectedId) ?? ASR_MODELS[0];
+  const selectedManifest =
+    ASR_MODELS.find((m) => m.id === selectedId) ?? ASR_MODELS[0];
   const supportedLanguages = getSupportedAsrLanguages(selectedManifest);
   const preferredBackend = selectedManifest.backend[0] ?? "webgpu";
 
@@ -102,15 +111,24 @@ export default function AsrTab() {
   }, [preferredBackend]);
 
   useEffect(() => {
-    if (language !== "" && !supportedLanguages.some((l) => l.value === language)) {
+    if (
+      language !== "" &&
+      !supportedLanguages.some((l) => l.value === language)
+    ) {
       setLanguage(supportedLanguages[0]?.value ?? "zh-hans");
     }
   }, [selectedManifest.id, language, supportedLanguages]);
 
   const rec = recs[selectedId] ?? null;
   const modelInstalled = rec?.state === "installed";
-  const modelBusy = rec?.state === "downloading" || rec?.state === "queued" || rec?.state === "verifying";
-  const isLoaded = clientState === "ready" && loadedId === selectedId && loadedDevice === device;
+  const modelBusy =
+    rec?.state === "downloading" ||
+    rec?.state === "queued" ||
+    rec?.state === "verifying";
+  const isLoaded =
+    clientState === "ready" &&
+    loadedId === selectedId &&
+    loadedDevice === device;
 
   const loadModel = async () => {
     const m = selectedManifest;
@@ -196,15 +214,20 @@ export default function AsrTab() {
       const name = e instanceof DOMException ? e.name : "";
       setError(
         name === "NotAllowedError"
-          ? "麦克风权限被拒绝：请允许浏览器访问麦克风后重试"
-          : `录音启动失败：${e instanceof Error ? e.message : String(e)}`
+          ? i18n(
+              "local_ai_asr_mic_denied",
+              "麦克风权限被拒绝：请允许浏览器访问麦克风后重试"
+            )
+          : `${i18n("local_ai_asr_record_start_failed", "录音启动失败：")}${e instanceof Error ? e.message : String(e)}`
       );
     }
   };
 
   const doTranscribe = async (audio16k) => {
     if (!isLoaded) {
-      setError(i18n("local_ai_model_not_installed_hint", "当前模型未加载，请先加载模型"));
+      setError(
+        i18n("local_ai_load_model_first", "当前模型未加载，请先加载模型")
+      );
       return;
     }
     setRecognizing(true);
@@ -224,7 +247,9 @@ export default function AsrTab() {
     const targetFile = selectedFile || file;
     if (!targetFile) return;
     if (!isLoaded) {
-      setError(i18n("local_ai_model_not_installed_hint", "当前模型未加载，请先加载模型"));
+      setError(
+        i18n("local_ai_load_model_first", "当前模型未加载，请先加载模型")
+      );
       return;
     }
     setRecognizing(true);
@@ -232,7 +257,10 @@ export default function AsrTab() {
     setResult(null);
     try {
       const dec = await decodeAudioFile(targetFile);
-      const r = await client.transcribe(resampleTo16k(dec.audio, dec.sampleRate), language);
+      const r = await client.transcribe(
+        resampleTo16k(dec.audio, dec.sampleRate),
+        language
+      );
       setResult(r);
       setShared("asr", r.segments.map((s) => s.text).join(""));
     } catch (e) {
@@ -253,7 +281,9 @@ export default function AsrTab() {
       setRecWav(audioToWavBlob(stopped.audio, stopped.sampleRate));
     }
     if (stopped.duration < 0.3) {
-      setError("录音太短，请至少录制 0.5 秒");
+      setError(
+        i18n("local_ai_asr_record_too_short", "录音太短，请至少录制 0.5 秒")
+      );
       return;
     }
     void doTranscribe(resampleTo16k(stopped.audio, stopped.sampleRate));
@@ -293,54 +323,93 @@ export default function AsrTab() {
     <Stack spacing={2.5}>
       <Card variant="outlined">
         <CardContent sx={{ pb: "16px !important" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 1,
+              mb: 2,
+            }}
+          >
             <Typography variant="h6" fontWeight={600}>
               {i18n("local_ai_asr_title", "本地语音识别")}
             </Typography>
             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
               <Chip
                 size="small"
-                label={modelInstalled ? i18n("local_ai_models_state_installed", "已安装") : modelBusy ? i18n("local_ai_models_state_downloading", "下载中") : i18n("local_ai_models_state_not_installed", "未安装")}
+                label={
+                  modelInstalled
+                    ? i18n("local_ai_models_state_installed", "已安装")
+                    : modelBusy
+                      ? i18n("local_ai_models_state_downloading", "下载中")
+                      : i18n("local_ai_models_state_not_installed", "未安装")
+                }
                 color={modelInstalled ? "success" : "default"}
                 variant={modelInstalled ? "filled" : "outlined"}
               />
               <Chip
                 size="small"
-                label={isLoaded ? `已就绪 (${device.toUpperCase()})` : clientState === "loading" ? i18n("local_ai_model_loading", "加载中…") : "未加载"}
+                label={
+                  isLoaded
+                    ? `${i18n("local_ai_ready", "已就绪")} (${device.toUpperCase()})`
+                    : clientState === "loading"
+                      ? i18n("local_ai_model_loading", "加载中…")
+                      : i18n("local_ai_not_loaded", "未加载")
+                }
                 color={isLoaded ? "success" : "default"}
               />
             </Box>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 2,
+            }}
+          >
             <FormControl size="small" sx={{ minWidth: 220 }}>
-              <InputLabel id="asr-model-label">{i18n("local_ai_select_model", "选择模型")}</InputLabel>
+              <InputLabel id="asr-model-label">
+                {i18n("local_ai_select_model", "选择模型")}
+              </InputLabel>
               <Select
                 labelId="asr-model-label"
                 value={selectedId}
                 label={i18n("local_ai_select_model", "选择模型")}
                 onChange={(e) => setSelectedId(e.target.value)}
-                disabled={clientState === "loading" || recognizing || isRecording}
+                disabled={
+                  clientState === "loading" || recognizing || isRecording
+                }
               >
                 {ASR_MODELS.map((m) => (
                   <MenuItem key={m.id} value={m.id}>
-                    {m.name}
+                    {getModelDisplayName(m, i18n)}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel id="asr-backend-label">{i18n("local_ai_backend", "计算后端")}</InputLabel>
+              <InputLabel id="asr-backend-label">
+                {i18n("local_ai_backend", "计算后端")}
+              </InputLabel>
               <Select
                 labelId="asr-backend-label"
                 value={device}
                 label={i18n("local_ai_backend", "计算后端")}
                 onChange={(e) => setDevice(e.target.value)}
-                disabled={clientState === "loading" || recognizing || isRecording}
+                disabled={
+                  clientState === "loading" || recognizing || isRecording
+                }
               >
                 <MenuItem value="webgpu">WebGPU</MenuItem>
-                <MenuItem value="wasm" disabled={!selectedManifest.backend.includes("wasm")}>
+                <MenuItem
+                  value="wasm"
+                  disabled={!selectedManifest.backend.includes("wasm")}
+                >
                   WASM (CPU)
                 </MenuItem>
               </Select>
@@ -349,10 +418,20 @@ export default function AsrTab() {
             <Button
               variant="contained"
               size="small"
-              disabled={!modelInstalled || clientState === "loading" || recognizing || isRecording || isLoaded}
+              disabled={
+                !modelInstalled ||
+                clientState === "loading" ||
+                recognizing ||
+                isRecording ||
+                isLoaded
+              }
               onClick={() => void loadModel()}
             >
-              {clientState === "loading" ? i18n("local_ai_model_loading", "加载中…") : isLoaded ? i18n("local_ai_model_loaded", "模型已就绪") : i18n("local_ai_load_model", "加载模型")}
+              {clientState === "loading"
+                ? i18n("local_ai_model_loading", "加载中…")
+                : isLoaded
+                  ? i18n("local_ai_model_loaded", "模型已就绪")
+                  : i18n("local_ai_load_model", "加载模型")}
             </Button>
 
             {progressText && (
@@ -366,16 +445,27 @@ export default function AsrTab() {
 
       <Card variant="outlined">
         <CardContent sx={{ pb: "16px !important" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 1,
+              mb: 2,
+            }}
+          >
             <Typography variant="h6" fontWeight={600}>
-              音频录制与识别
+              {i18n("local_ai_asr_audio_card", "音频录制与识别")}
             </Typography>
             <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel id="asr-lang-label">识别语言</InputLabel>
+              <InputLabel id="asr-lang-label">
+                {i18n("local_ai_asr_lang", "识别语言")}
+              </InputLabel>
               <Select
                 labelId="asr-lang-label"
                 value={language}
-                label="识别语言"
+                label={i18n("local_ai_asr_lang", "识别语言")}
                 onChange={(e) => setLanguage(e.target.value)}
                 disabled={recognizing || isRecording}
               >
@@ -384,12 +474,21 @@ export default function AsrTab() {
                     {l.label}
                   </MenuItem>
                 ))}
-                <MenuItem value="">自动检测</MenuItem>
+                <MenuItem value="">
+                  {i18n("local_ai_asr_lang_auto", "自动检测")}
+                </MenuItem>
               </Select>
             </FormControl>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
             {!isRecording ? (
               <Button
                 variant="contained"
@@ -407,7 +506,8 @@ export default function AsrTab() {
                 startIcon={<StopRoundedIcon />}
                 onClick={stopRecording}
               >
-                {i18n("local_ai_asr_stop_record", "停止录音")} ({fmtTime(elapsed)})
+                {i18n("local_ai_asr_stop_record", "停止录音")} (
+                {fmtTime(elapsed)})
               </Button>
             )}
 
@@ -439,25 +539,53 @@ export default function AsrTab() {
               <Button
                 variant="text"
                 size="small"
-                startIcon={playingSource === "record" ? <PauseRoundedIcon /> : <PlayArrowRoundedIcon />}
+                startIcon={
+                  playingSource === "record" ? (
+                    <PauseRoundedIcon />
+                  ) : (
+                    <PlayArrowRoundedIcon />
+                  )
+                }
                 onClick={() => play(recWav, "record")}
               >
-                {playingSource === "record" ? "暂停录音" : "回放录音"}
+                {playingSource === "record"
+                  ? i18n("local_ai_asr_pause_record", "暂停录音")
+                  : i18n("local_ai_asr_playback_record", "回放录音")}
               </Button>
             )}
 
             {file && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-                <Typography variant="caption" color="text.secondary" sx={{ wordBreak: "break-all" }}>
-                  已选文件: {file.name} ({Math.round(file.size / 1024)} KB)
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ wordBreak: "break-all" }}
+                >
+                  {i18n("local_ai_asr_selected_file", "已选文件:")} {file.name}{" "}
+                  ({Math.round(file.size / 1024)} KB)
                 </Typography>
                 <Button
                   variant="outlined"
                   size="small"
-                  startIcon={playingSource === "file" ? <PauseRoundedIcon /> : <PlayArrowRoundedIcon />}
+                  startIcon={
+                    playingSource === "file" ? (
+                      <PauseRoundedIcon />
+                    ) : (
+                      <PlayArrowRoundedIcon />
+                    )
+                  }
                   onClick={() => play(file, "file")}
                 >
-                  {playingSource === "file" ? "暂停试听" : "试听音频"}
+                  {playingSource === "file"
+                    ? i18n("local_ai_asr_pause_preview", "暂停试听")
+                    : i18n("local_ai_asr_play_preview", "试听音频")}
                 </Button>
                 <Button
                   variant="contained"
@@ -467,7 +595,9 @@ export default function AsrTab() {
                   disabled={!isLoaded || recognizing || isRecording}
                   onClick={() => void transcribeFile()}
                 >
-                  {recognizing ? i18n("local_ai_asr_transcribing", "正在识别…") : i18n("local_ai_asr_start_transcribe", "开始识别")}
+                  {recognizing
+                    ? i18n("local_ai_asr_transcribing", "正在识别…")
+                    : i18n("local_ai_asr_start_transcribe", "开始识别")}
                 </Button>
               </Box>
             )}
@@ -490,12 +620,25 @@ export default function AsrTab() {
       {result && (
         <Card variant="outlined">
           <CardContent sx={{ pb: "16px !important" }}>
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 1,
+                mb: 2,
+              }}
+            >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Typography variant="h6" fontWeight={600}>
                   {i18n("local_ai_asr_results", "识别结果")}
                 </Typography>
-                <Chip size="small" label={`耗时 ${result.elapsedMs}ms · 音频时长 ${result.durationSeconds?.toFixed(1)}s`} variant="outlined" />
+                <Chip
+                  size="small"
+                  label={`${i18n("local_ai_elapsed", "耗时")} ${result.elapsedMs}ms · ${i18n("local_ai_asr_duration", "音频时长")} ${result.durationSeconds?.toFixed(1)}s`}
+                  variant="outlined"
+                />
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <FormControlLabel
@@ -508,7 +651,7 @@ export default function AsrTab() {
                   }
                   label={
                     <Typography variant="body2" color="text.secondary">
-                      词级时间戳
+                      {i18n("local_ai_asr_word_timestamps", "词级时间戳")}
                     </Typography>
                   }
                   sx={{ mr: 0.5 }}
@@ -519,7 +662,9 @@ export default function AsrTab() {
                   startIcon={<ContentCopyRoundedIcon />}
                   onClick={copyFullText}
                 >
-                  {copied ? i18n("local_ai_copied", "已复制") : i18n("local_ai_copy", "复制全文")}
+                  {copied
+                    ? i18n("local_ai_copied", "已复制")
+                    : i18n("local_ai_copy_all", "复制全文")}
                 </Button>
               </Box>
             </Box>
@@ -542,14 +687,43 @@ export default function AsrTab() {
             >
               {result.segments.map((seg, idx) => (
                 <Box key={idx}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.75 }}>
-                    <Typography variant="caption" color="text.secondary" fontFamily="monospace" sx={{ fontWeight: 600 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      mb: 0.75,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      fontFamily="monospace"
+                      sx={{ fontWeight: 600 }}
+                    >
                       [{seg.start.toFixed(1)}s – {seg.end.toFixed(1)}s]
                     </Typography>
-                    {seg.emotion && <Chip size="small" label={seg.emotion} variant="outlined" sx={{ height: 20, fontSize: 11 }} />}
-                    {seg.event && <Chip size="small" label={seg.event} variant="outlined" sx={{ height: 20, fontSize: 11 }} />}
+                    {seg.emotion && (
+                      <Chip
+                        size="small"
+                        label={seg.emotion}
+                        variant="outlined"
+                        sx={{ height: 20, fontSize: 11 }}
+                      />
+                    )}
+                    {seg.event && (
+                      <Chip
+                        size="small"
+                        label={seg.event}
+                        variant="outlined"
+                        sx={{ height: 20, fontSize: 11 }}
+                      />
+                    )}
                   </Box>
-                  <Typography variant="body1" sx={{ fontWeight: 500, lineHeight: 1.6 }}>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontWeight: 500, lineHeight: 1.6 }}
+                  >
                     {seg.text}
                   </Typography>
 
@@ -580,17 +754,29 @@ export default function AsrTab() {
                             borderColor: "divider",
                           }}
                         >
-                          <Typography variant="caption" sx={{ fontWeight: 600, color: "text.primary" }}>
+                          <Typography
+                            variant="caption"
+                            sx={{ fontWeight: 600, color: "text.primary" }}
+                          >
                             {w.text}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "monospace", fontSize: 11 }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              fontFamily: "monospace",
+                              fontSize: 11,
+                            }}
+                          >
                             {w.start.toFixed(2)}s–{w.end.toFixed(2)}s
                           </Typography>
                         </Box>
                       ))}
                     </Box>
                   )}
-                  {idx < result.segments.length - 1 && <Divider sx={{ mt: 2 }} />}
+                  {idx < result.segments.length - 1 && (
+                    <Divider sx={{ mt: 2 }} />
+                  )}
                 </Box>
               ))}
             </Box>

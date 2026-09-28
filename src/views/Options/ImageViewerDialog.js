@@ -48,7 +48,8 @@ export default function ImageViewerDialog({
     }
   }, [open, initialTab, activeTabProp, translatedUrl]);
 
-  const currentUrl = activeTab === "translated" && translatedUrl ? translatedUrl : sourceUrl;
+  const currentUrl =
+    activeTab === "translated" && translatedUrl ? translatedUrl : sourceUrl;
 
   const handleReset = useCallback(() => {
     setScale(1);
@@ -63,38 +64,47 @@ export default function ImageViewerDialog({
   }, []);
 
   // 滚轮平滑缩放
-  const handleWheel = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const factor = e.deltaY < 0 ? 1.15 : 0.85;
-    handleZoom(factor);
-  }, [handleZoom]);
+  const handleWheel = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const factor = e.deltaY < 0 ? 1.15 : 0.85;
+      handleZoom(factor);
+    },
+    [handleZoom]
+  );
 
   // 鼠标拖拽平移
-  const handleMouseDown = useCallback((e) => {
-    if (e.button !== 0) return;
-    setIsDragging(true);
-    hasDraggedRef.current = false;
-    dragStartRef.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-      startX: e.clientX,
-      startY: e.clientY,
-    };
-  }, [position]);
+  const handleMouseDown = useCallback(
+    (e) => {
+      if (e.button !== 0) return;
+      setIsDragging(true);
+      hasDraggedRef.current = false;
+      dragStartRef.current = {
+        x: e.clientX - position.x,
+        y: e.clientY - position.y,
+        startX: e.clientX,
+        startY: e.clientY,
+      };
+    },
+    [position]
+  );
 
-  const handleMouseMove = useCallback((e) => {
-    if (!isDragging) return;
-    const deltaX = Math.abs(e.clientX - dragStartRef.current.startX);
-    const deltaY = Math.abs(e.clientY - dragStartRef.current.startY);
-    if (deltaX > 4 || deltaY > 4) {
-      hasDraggedRef.current = true;
-    }
-    setPosition({
-      x: e.clientX - dragStartRef.current.x,
-      y: e.clientY - dragStartRef.current.y,
-    });
-  }, [isDragging]);
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!isDragging) return;
+      const deltaX = Math.abs(e.clientX - dragStartRef.current.startX);
+      const deltaY = Math.abs(e.clientY - dragStartRef.current.startY);
+      if (deltaX > 4 || deltaY > 4) {
+        hasDraggedRef.current = true;
+      }
+      setPosition({
+        x: e.clientX - dragStartRef.current.x,
+        y: e.clientY - dragStartRef.current.y,
+      });
+    },
+    [isDragging]
+  );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -206,8 +216,12 @@ export default function ImageViewerDialog({
                 },
               }}
             >
-              <ToggleButton value="source">{i18n("source_image_title", "原图预览")}</ToggleButton>
-              <ToggleButton value="translated">{i18n("translated_image_title", "译图结果")}</ToggleButton>
+              <ToggleButton value="source">
+                {i18n("source_image_title", "原图预览")}
+              </ToggleButton>
+              <ToggleButton value="translated">
+                {i18n("translated_image_title", "译图结果")}
+              </ToggleButton>
             </ToggleButtonGroup>
             <Divider
               orientation="vertical"
@@ -384,7 +398,7 @@ export default function ImageViewerDialog({
           <Box
             component="img"
             src={currentUrl}
-            alt="大图查看"
+            alt={i18n("image_viewer_alt", "大图查看")}
             draggable={false}
             sx={{
               maxWidth: "88vw",

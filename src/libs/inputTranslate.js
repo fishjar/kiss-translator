@@ -5,7 +5,10 @@ import {
   OPT_INPUT_DOT_DISABLE,
   OPT_INPUT_DOT_MOBILE,
 } from "../config";
-import { availableApisForScene, withScenePrompt } from "../config/serviceSelection";
+import {
+  availableApisForScene,
+  withScenePrompt,
+} from "../config/serviceSelection";
 import { resolveApiPromptSettings } from "../config/prompt";
 import { isMobile } from "./mobile";
 import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";

@@ -327,7 +327,8 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
   // 内部自算时透传字面模式：treatKeysAsLiteral 语义必须同时覆盖冲突分析与
   // 样例生成，否则调用方只传字面选项而不传 conflicts 时会拿到正则语义冲突集。
   const conflicts =
-    options?.conflicts ?? detectTermConflicts(parsedTerms, { treatKeysAsLiteral });
+    options?.conflicts ??
+    detectTermConflicts(parsedTerms, { treatKeysAsLiteral });
   for (const conflict of conflicts) {
     const { short, long, shortHasValue, longHasValue } = conflict;
     const shortSample = resolveSample(short.key);
@@ -378,7 +379,10 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
   // 2. 无冲突术语的单术语用例
   const conflictKeys = new Set();
   for (const c of conflicts) {
-    if (resolveSample(c.short.key) === null || resolveSample(c.long.key) === null) {
+    if (
+      resolveSample(c.short.key) === null ||
+      resolveSample(c.long.key) === null
+    ) {
       continue;
     }
     if (

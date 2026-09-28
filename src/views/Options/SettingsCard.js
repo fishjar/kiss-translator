@@ -188,9 +188,7 @@ export function SettingsSelect({
       hiddenLabel={isHiddenLabel}
       label={isHiddenLabel ? undefined : label}
       InputLabelProps={
-        !isHiddenLabel
-          ? { shrink: true, ...InputLabelProps }
-          : InputLabelProps
+        !isHiddenLabel ? { shrink: true, ...InputLabelProps } : InputLabelProps
       }
       size="small"
       variant={variant}

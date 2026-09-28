@@ -17,8 +17,16 @@ export default function LocalAi() {
   const [activeTab, setActiveTab] = useState("device");
 
   const tabs = [
-    { id: "device", label: i18n("local_ai_tab_device", "设备"), Component: Device },
-    { id: "models", label: i18n("local_ai_tab_models", "模型中心"), Component: Models },
+    {
+      id: "device",
+      label: i18n("local_ai_tab_device", "设备"),
+      Component: Device,
+    },
+    {
+      id: "models",
+      label: i18n("local_ai_tab_models", "模型中心"),
+      Component: Models,
+    },
     { id: "jev", label: i18n("local_ai_tab_jev", "JEV"), Component: Jev },
     { id: "asr", label: i18n("local_ai_tab_asr", "ASR"), Component: Asr },
     { id: "ocr", label: i18n("local_ai_tab_ocr", "OCR"), Component: Ocr },

@@ -20,8 +20,12 @@ import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { loadSettings, saveSettings } from "../../../localAi/core/settings";
-import { OCR_GROUPS } from "../../../localAi/core/catalog";
-import { formatBytes, formatEta, formatSpeed } from "../../../localAi/core/progress";
+import { OCR_GROUPS, getModelDisplayName } from "../../../localAi/core/catalog";
+import {
+  formatBytes,
+  formatEta,
+  formatSpeed,
+} from "../../../localAi/core/progress";
 import { useI18n } from "../../../hooks/I18n";
 
 function snapshot(rec) {
@@ -42,31 +46,66 @@ function matchesTaskFilter(task, filter) {
 }
 
 function FileRow({ file, fs, size }) {
+  const i18n = useI18n();
   const name = file.path.split("/").pop() ?? file.path;
-  const active = fs?.state === "downloading" || fs?.state === "verifying" || fs?.state === "queued";
+  const active =
+    fs?.state === "downloading" ||
+    fs?.state === "verifying" ||
+    fs?.state === "queued";
   const pct = fs ? Math.min(100, (fs.downloaded / size) * 100) : 0;
   return (
-    <Box sx={{ py: 0.75, borderBottom: "1px dashed", borderColor: "divider", "&:last-child": { borderBottom: "none" } }}>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-        <Typography variant="caption" sx={{ wordBreak: "break-all", flex: 1, fontFamily: "monospace" }}>
+    <Box
+      sx={{
+        py: 0.75,
+        borderBottom: "1px dashed",
+        borderColor: "divider",
+        "&:last-child": { borderBottom: "none" },
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 1,
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{ wordBreak: "break-all", flex: 1, fontFamily: "monospace" }}
+        >
           {name}
         </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ flexShrink: 0 }}
+        >
           {formatBytes(size)}
         </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ minWidth: 120, textAlign: "right", flexShrink: 0 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ minWidth: 120, textAlign: "right", flexShrink: 0 }}
+        >
           {fs && active
-            ? `${formatBytes(fs.downloaded)} · ${formatSpeed(fs.speed ?? 0)} · 剩余 ${formatEta(fs.etaSeconds)}`
+            ? `${formatBytes(fs.downloaded)} · ${formatSpeed(fs.speed ?? 0)} · ${i18n("local_ai_models_remaining", "剩余")} ${formatEta(fs.etaSeconds)}`
             : fs?.state === "installed"
-              ? "完成"
+              ? i18n("local_ai_models_completed", "完成")
               : fs?.state === "error"
-                ? "出错"
+                ? i18n("local_ai_models_state_error", "出错")
                 : fs?.state === "paused"
-                  ? `已下载 ${formatBytes(fs.downloaded)}`
+                  ? `${i18n("local_ai_models_downloaded", "已下载")} ${formatBytes(fs.downloaded)}`
                   : ""}
         </Typography>
       </Box>
-      {active && <LinearProgress variant="determinate" value={pct} sx={{ mt: 0.5, height: 4, borderRadius: 1 }} />}
+      {active && (
+        <LinearProgress
+          variant="determinate"
+          value={pct}
+          sx={{ mt: 0.5, height: 4, borderRadius: 1 }}
+        />
+      )}
     </Box>
   );
 }
@@ -85,8 +124,14 @@ function ModelCard({ rec }) {
   const [collapsed, setCollapsed] = useState(true);
   const manifest = rec.manifest;
   const total = manifest.files.reduce((s, f) => s + f.size, 0);
-  const downloaded = manifest.files.reduce((s, f) => s + (rec.files[f.path]?.downloaded ?? 0), 0);
-  const busyState = rec.state === "downloading" || rec.state === "queued" || rec.state === "verifying";
+  const downloaded = manifest.files.reduce(
+    (s, f) => s + (rec.files[f.path]?.downloaded ?? 0),
+    0
+  );
+  const busyState =
+    rec.state === "downloading" ||
+    rec.state === "queued" ||
+    rec.state === "verifying";
 
   const stateLabels = {
     "not-installed": i18n("local_ai_models_state_not_installed", "未安装"),
@@ -112,31 +157,79 @@ function ModelCard({ rec }) {
   return (
     <Card variant="outlined" sx={{ mb: 1.5 }}>
       <CardContent sx={{ pb: "16px !important" }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1, minWidth: 0 }}>
-            <IconButton size="small" onClick={() => setCollapsed(!collapsed)} sx={{ flexShrink: 0 }}>
-              {collapsed ? <KeyboardArrowDownRoundedIcon fontSize="small" /> : <KeyboardArrowUpRoundedIcon fontSize="small" />}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            <IconButton
+              size="small"
+              onClick={() => setCollapsed(!collapsed)}
+              sx={{ flexShrink: 0 }}
+            >
+              {collapsed ? (
+                <KeyboardArrowDownRoundedIcon fontSize="small" />
+              ) : (
+                <KeyboardArrowUpRoundedIcon fontSize="small" />
+              )}
             </IconButton>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ wordBreak: "break-word" }}>
-              {manifest.name}
+            <Typography
+              variant="subtitle1"
+              fontWeight={600}
+              sx={{ wordBreak: "break-word" }}
+            >
+              {getModelDisplayName(manifest, i18n)}
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              flexShrink: 0,
+            }}
+          >
             <Chip
               size="small"
-              label={manifest.task === "ocr-vlm" ? "VLM" : manifest.task.toUpperCase()}
+              label={
+                manifest.task === "ocr-vlm"
+                  ? "VLM"
+                  : manifest.task.toUpperCase()
+              }
               variant="outlined"
             />
             <Chip size="small" label={formatBytes(total)} variant="outlined" />
-            <Chip size="small" label={stateLabels[rec.state] || rec.state} {...getChipProps(rec.state, busyState)} />
+            <Chip
+              size="small"
+              label={stateLabels[rec.state] || rec.state}
+              {...getChipProps(rec.state, busyState)}
+            />
             {!busyState && rec.state !== "installed" && (
               <Button
                 variant="contained"
                 size="small"
                 startIcon={<DownloadRoundedIcon />}
-                onClick={() => void manager.download(manifest.id).catch((e) => console.error(e))}
+                onClick={() =>
+                  void manager
+                    .download(manifest.id)
+                    .catch((e) => console.error(e))
+                }
               >
-                {rec.state === "paused" ? i18n("local_ai_models_action_resume", "继续") : i18n("local_ai_models_action_download", "下载")}
+                {rec.state === "paused"
+                  ? i18n("local_ai_models_action_resume", "继续")
+                  : i18n("local_ai_models_action_download", "下载")}
               </Button>
             )}
             {busyState && (
@@ -157,7 +250,7 @@ function ModelCard({ rec }) {
                   disabled={busy}
                   onClick={() => act(() => manager.cancel(manifest.id))}
                 >
-                  取消
+                  {i18n("local_ai_models_cancel", "取消")}
                 </Button>
               </>
             )}
@@ -169,7 +262,11 @@ function ModelCard({ rec }) {
                 startIcon={<DeleteOutlineRoundedIcon />}
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm(`${i18n("local_ai_models_action_delete_confirm", "确定删除此模型的所有本地缓存文件吗？")}\n(${manifest.name})`)) {
+                  if (
+                    window.confirm(
+                      `${i18n("local_ai_models_action_delete_confirm", "确定删除此模型的所有本地缓存文件吗？")}\n(${getModelDisplayName(manifest, i18n)})`
+                    )
+                  ) {
                     void act(() => manager.remove(manifest.id));
                   }
                 }}
@@ -182,20 +279,40 @@ function ModelCard({ rec }) {
 
         {(busyState || rec.state === "paused") && total > 0 && (
           <Box sx={{ mt: 1.5 }}>
-            <LinearProgress variant="determinate" value={(downloaded / total) * 100} sx={{ height: 6, borderRadius: 1 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-              {formatBytes(downloaded)} / {formatBytes(total)}（{Math.floor((downloaded / total) * 100)}%）
+            <LinearProgress
+              variant="determinate"
+              value={(downloaded / total) * 100}
+              sx={{ height: 6, borderRadius: 1 }}
+            />
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: 0.5, display: "block" }}
+            >
+              {formatBytes(downloaded)} / {formatBytes(total)}（
+              {Math.floor((downloaded / total) * 100)}%）
             </Typography>
           </Box>
         )}
 
         <Collapse in={!collapsed} timeout="auto" unmountOnExit sx={{ mt: 1.5 }}>
           <Box sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1.5 }}>
-            <Typography variant="caption" fontWeight={600} color="text.secondary" gutterBottom sx={{ display: "block" }}>
-              包含文件：
+            <Typography
+              variant="caption"
+              fontWeight={600}
+              color="text.secondary"
+              gutterBottom
+              sx={{ display: "block" }}
+            >
+              {i18n("local_ai_models_included_files", "包含文件：")}
             </Typography>
             {manifest.files.map((f) => (
-              <FileRow key={f.path} file={f} fs={rec.files[f.path]} size={f.size} />
+              <FileRow
+                key={f.path}
+                file={f}
+                fs={rec.files[f.path]}
+                size={f.size}
+              />
             ))}
           </Box>
         </Collapse>
@@ -210,8 +327,11 @@ function ModelCard({ rec }) {
   );
 }
 
-const OCR_GROUP_BY_DET = Object.fromEntries(OCR_GROUPS.map((g) => [g.detId, g]));
-const isBusyState = (s) => s === "downloading" || s === "queued" || s === "verifying";
+const OCR_GROUP_BY_DET = Object.fromEntries(
+  OCR_GROUPS.map((g) => [g.detId, g])
+);
+const isBusyState = (s) =>
+  s === "downloading" || s === "queued" || s === "verifying";
 
 function groupState(recs) {
   const states = recs.map((r) => r.state);
@@ -229,8 +349,19 @@ function OcrGroupCard({ group, det, rec }) {
   const recs = [det, rec];
   const state = groupState(recs);
   const busyState = isBusyState(state);
-  const total = recs.reduce((s, r) => s + r.manifest.files.reduce((a, f) => a + f.size, 0), 0);
-  const downloaded = recs.reduce((s, r) => s + r.manifest.files.reduce((a, f) => a + (r.files[f.path]?.downloaded ?? 0), 0), 0);
+  const total = recs.reduce(
+    (s, r) => s + r.manifest.files.reduce((a, f) => a + f.size, 0),
+    0
+  );
+  const downloaded = recs.reduce(
+    (s, r) =>
+      s +
+      r.manifest.files.reduce(
+        (a, f) => a + (r.files[f.path]?.downloaded ?? 0),
+        0
+      ),
+    0
+  );
 
   const act = async (fn) => {
     setBusy(true);
@@ -256,19 +387,61 @@ function OcrGroupCard({ group, det, rec }) {
   return (
     <Card variant="outlined" sx={{ mb: 1.5 }}>
       <CardContent sx={{ pb: "16px !important" }}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1, minWidth: 0 }}>
-            <IconButton size="small" onClick={() => setCollapsed(!collapsed)} sx={{ flexShrink: 0 }}>
-              {collapsed ? <KeyboardArrowDownRoundedIcon fontSize="small" /> : <KeyboardArrowUpRoundedIcon fontSize="small" />}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            <IconButton
+              size="small"
+              onClick={() => setCollapsed(!collapsed)}
+              sx={{ flexShrink: 0 }}
+            >
+              {collapsed ? (
+                <KeyboardArrowDownRoundedIcon fontSize="small" />
+              ) : (
+                <KeyboardArrowUpRoundedIcon fontSize="small" />
+              )}
             </IconButton>
-            <Typography variant="subtitle1" fontWeight={600} sx={{ wordBreak: "break-word" }}>
-              {group.name}
+            <Typography
+              variant="subtitle1"
+              fontWeight={600}
+              sx={{ wordBreak: "break-word" }}
+            >
+              {getModelDisplayName(group, i18n)}
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
-            <Chip size="small" label="OCR 组合" variant="outlined" />
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              flexShrink: 0,
+            }}
+          >
+            <Chip
+              size="small"
+              label={i18n("local_ai_models_ocr_group", "OCR 组合")}
+              variant="outlined"
+            />
             <Chip size="small" label={formatBytes(total)} variant="outlined" />
-            <Chip size="small" label={stateLabels[state] || state} {...getChipProps(state, busyState)} />
+            <Chip
+              size="small"
+              label={stateLabels[state] || state}
+              {...getChipProps(state, busyState)}
+            />
             {!busyState && state !== "installed" && (
               <Button
                 variant="contained"
@@ -279,7 +452,9 @@ function OcrGroupCard({ group, det, rec }) {
                   void manager.download(rec.manifest.id);
                 }}
               >
-                {state === "paused" ? i18n("local_ai_models_action_resume", "继续") : i18n("local_ai_models_action_download", "下载组合")}
+                {state === "paused"
+                  ? i18n("local_ai_models_action_resume", "继续")
+                  : i18n("local_ai_models_download_group", "下载组合")}
               </Button>
             )}
             {busyState && (
@@ -288,7 +463,12 @@ function OcrGroupCard({ group, det, rec }) {
                   variant="outlined"
                   size="small"
                   disabled={busy}
-                  onClick={() => act(async () => { await manager.pause(det.manifest.id); await manager.pause(rec.manifest.id); })}
+                  onClick={() =>
+                    act(async () => {
+                      await manager.pause(det.manifest.id);
+                      await manager.pause(rec.manifest.id);
+                    })
+                  }
                 >
                   {i18n("local_ai_models_action_pause", "暂停")}
                 </Button>
@@ -297,9 +477,14 @@ function OcrGroupCard({ group, det, rec }) {
                   color="error"
                   size="small"
                   disabled={busy}
-                  onClick={() => act(async () => { await manager.cancel(det.manifest.id); await manager.cancel(rec.manifest.id); })}
+                  onClick={() =>
+                    act(async () => {
+                      await manager.cancel(det.manifest.id);
+                      await manager.cancel(rec.manifest.id);
+                    })
+                  }
                 >
-                  取消
+                  {i18n("local_ai_models_cancel", "取消")}
                 </Button>
               </>
             )}
@@ -311,12 +496,19 @@ function OcrGroupCard({ group, det, rec }) {
                 startIcon={<DeleteOutlineRoundedIcon />}
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm(`${i18n("local_ai_models_action_delete_confirm", "确定删除此模型的所有本地缓存文件吗？")}\n(${group.name})`)) {
-                    void act(async () => { await manager.remove(det.manifest.id); await manager.remove(rec.manifest.id); });
+                  if (
+                    window.confirm(
+                      `${i18n("local_ai_models_action_delete_confirm", "确定删除此模型的所有本地缓存文件吗？")}\n(${getModelDisplayName(group, i18n)})`
+                    )
+                  ) {
+                    void act(async () => {
+                      await manager.remove(det.manifest.id);
+                      await manager.remove(rec.manifest.id);
+                    });
                   }
                 }}
               >
-                {i18n("local_ai_models_action_delete", "删除组合")}
+                {i18n("local_ai_models_delete_group", "删除组合")}
               </Button>
             )}
           </Box>
@@ -324,9 +516,18 @@ function OcrGroupCard({ group, det, rec }) {
 
         {(busyState || state === "paused") && total > 0 && (
           <Box sx={{ mt: 1.5 }}>
-            <LinearProgress variant="determinate" value={(downloaded / total) * 100} sx={{ height: 6, borderRadius: 1 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
-              {formatBytes(downloaded)} / {formatBytes(total)}（{Math.floor((downloaded / total) * 100)}%）
+            <LinearProgress
+              variant="determinate"
+              value={(downloaded / total) * 100}
+              sx={{ height: 6, borderRadius: 1 }}
+            />
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: 0.5, display: "block" }}
+            >
+              {formatBytes(downloaded)} / {formatBytes(total)}（
+              {Math.floor((downloaded / total) * 100)}%）
             </Typography>
           </Box>
         )}
@@ -334,12 +535,24 @@ function OcrGroupCard({ group, det, rec }) {
         <Collapse in={!collapsed} timeout="auto" unmountOnExit sx={{ mt: 1.5 }}>
           <Box sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1.5 }}>
             {recs.map((r) => (
-              <Box key={r.manifest.id} sx={{ mb: 1.5, "&:last-child": { mb: 0 } }}>
-                <Typography variant="caption" fontWeight={600} color="text.secondary">
-                  {r.manifest.name}
+              <Box
+                key={r.manifest.id}
+                sx={{ mb: 1.5, "&:last-child": { mb: 0 } }}
+              >
+                <Typography
+                  variant="caption"
+                  fontWeight={600}
+                  color="text.secondary"
+                >
+                  {getModelDisplayName(r.manifest, i18n)}
                 </Typography>
                 {r.manifest.files.map((f) => (
-                  <FileRow key={f.path} file={f} fs={r.files[f.path]} size={f.size} />
+                  <FileRow
+                    key={f.path}
+                    file={f}
+                    fs={r.files[f.path]}
+                    size={f.size}
+                  />
                 ))}
               </Box>
             ))}
@@ -410,30 +623,50 @@ export default function ModelsTab() {
     return out;
   };
 
-  const filteredRecords = records.filter((r) => matchesTaskFilter(r.manifest.task, taskFilter));
+  const filteredRecords = records.filter((r) =>
+    matchesTaskFilter(r.manifest.task, taskFilter)
+  );
 
   return (
     <Box>
       <Card variant="outlined" sx={{ mb: 2.5 }}>
         <CardContent sx={{ pb: "16px !important" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 2,
+            }}
+          >
             <Box>
               <Typography variant="h6" fontWeight={600}>
                 {i18n("local_ai_tab_models", "模型中心")}
               </Typography>
               {storage && (
                 <Typography variant="caption" color="text.secondary">
-                  本地存储占用：{formatBytes(storage.usage)} / {formatBytes(storage.quota)}
+                  {i18n("local_ai_models_storage_usage", "本地存储占用：")}
+                  {formatBytes(storage.usage)} / {formatBytes(storage.quota)}
                 </Typography>
               )}
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                flexWrap: "wrap",
+              }}
+            >
               <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel id="local-ai-filter-label">任务分类</InputLabel>
+                <InputLabel id="local-ai-filter-label">
+                  {i18n("local_ai_models_task_category", "任务分类")}
+                </InputLabel>
                 <Select
                   labelId="local-ai-filter-label"
                   value={taskFilter}
-                  label="任务分类"
+                  label={i18n("local_ai_models_task_category", "任务分类")}
                   onChange={(e) => setTaskFilter(e.target.value)}
                 >
                   {taskFilters.map((opt) => (
@@ -445,16 +678,30 @@ export default function ModelsTab() {
               </FormControl>
 
               <FormControl size="small" sx={{ minWidth: 200 }}>
-                <InputLabel id="local-ai-mirror-label">{i18n("local_ai_models_mirror", "下载源镜像")}</InputLabel>
+                <InputLabel id="local-ai-mirror-label">
+                  {i18n("local_ai_models_mirror", "下载源镜像")}
+                </InputLabel>
                 <Select
                   labelId="local-ai-mirror-label"
                   value={settings?.mirror ?? "hf-mirror"}
                   label={i18n("local_ai_models_mirror", "下载源镜像")}
                   onChange={(e) => void changeMirror(e.target.value)}
                 >
-                  <MenuItem value="hf-mirror">{i18n("local_ai_models_mirror_hf_mirror", "HF 国内镜像 (hf-mirror.com)")}</MenuItem>
-                  <MenuItem value="modelscope">{i18n("local_ai_models_mirror_modelscope", "魔搭 (ModelScope)")}</MenuItem>
-                  <MenuItem value="huggingface">{i18n("local_ai_models_mirror_hf", "Hugging Face (官方)")}</MenuItem>
+                  <MenuItem value="hf-mirror">
+                    {i18n(
+                      "local_ai_models_mirror_hf_mirror",
+                      "HF 国内镜像 (hf-mirror.com)"
+                    )}
+                  </MenuItem>
+                  <MenuItem value="modelscope">
+                    {i18n(
+                      "local_ai_models_mirror_modelscope",
+                      "魔搭 (ModelScope)"
+                    )}
+                  </MenuItem>
+                  <MenuItem value="huggingface">
+                    {i18n("local_ai_models_mirror_hf", "Hugging Face (官方)")}
+                  </MenuItem>
                 </Select>
               </FormControl>
             </Box>
@@ -466,7 +713,9 @@ export default function ModelsTab() {
         {renderItems(
           filteredRecords,
           (r) => r.manifest.id,
-          (rec) => <ModelCard key={rec.manifest.id} rec={rec} />,
+          (rec) => (
+            <ModelCard key={rec.manifest.id} rec={rec} />
+          ),
           (g) => {
             const det = records.find((r) => r.manifest.id === g.detId);
             const rec = records.find((r) => r.manifest.id === g.recId);

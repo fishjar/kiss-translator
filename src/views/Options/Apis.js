@@ -874,8 +874,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   {value === "builtin"
                     ? i18n("api_source_type_builtin", "内置")
                     : value === "local"
-                    ? i18n("api_source_type_local", "本地")
-                    : i18n("api_source_type_network", "网络")}
+                      ? i18n("api_source_type_local", "本地")
+                      : i18n("api_source_type_network", "网络")}
                 </MenuItem>
               ))}
             </TextField>
@@ -919,7 +919,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
           <LocalModelSelect
             value={modelRef}
             capabilities={capabilities}
-            onChange={(value) => handleChange({ target: { name: "modelRef", value } })}
+            onChange={(value) =>
+              handleChange({ target: { name: "modelRef", value } })
+            }
           />
           <TextField
             select
@@ -934,13 +936,18 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
               "WebGPU（推荐，硬件 GPU 加速）；WASM（CPU 模式，高兼容）"
             )}
           >
-            <MenuItem value="webgpu">WebGPU（GPU 加速，推荐）</MenuItem>
-            <MenuItem value="wasm">WASM（CPU 模式，高兼容）</MenuItem>
+            <MenuItem value="webgpu">
+              {i18n("compute_device_webgpu", "WebGPU（GPU 加速，推荐）")}
+            </MenuItem>
+            <MenuItem value="wasm">
+              {i18n("compute_device_wasm", "WASM（CPU 模式，高兼容）")}
+            </MenuItem>
           </TextField>
         </Stack>
       )}
 
-      {sourceType === "network" && (!API_SPE_TYPES.machine.has(apiType) || apiType === OPT_TRANS_QWENMT) &&
+      {sourceType === "network" &&
+        (!API_SPE_TYPES.machine.has(apiType) || apiType === OPT_TRANS_QWENMT) &&
         apiType !== OPT_TRANS_BUILTINAI && (
           <>
             <TextField

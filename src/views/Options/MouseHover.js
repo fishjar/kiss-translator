@@ -233,9 +233,20 @@ export default function MouseHoverSetting() {
             >
               <OrderedApiSelect
                 scene={mouseHoverSetting}
-                apis={[{ apiSlug: GLOBAL_KEY, apiName: i18n("mousehover_follow_page_rule") }, ...enabledApis]}
+                apis={[
+                  {
+                    apiSlug: GLOBAL_KEY,
+                    apiName: i18n("mousehover_follow_page_rule"),
+                  },
+                  ...enabledApis,
+                ]}
                 label={i18n("translate_service")}
-                onChange={(apiSlugs) => updateMouseHoverSetting({ apiSlugs, apiSlug: apiSlugs[0] || GLOBAL_KEY })}
+                onChange={(apiSlugs) =>
+                  updateMouseHoverSetting({
+                    apiSlugs,
+                    apiSlug: apiSlugs[0] || GLOBAL_KEY,
+                  })
+                }
               />
             </SettingsRow>
           )}
@@ -244,7 +255,9 @@ export default function MouseHoverSetting() {
               <ScenePromptSelect
                 label={i18n("translation_prompt", "翻译提示词")}
                 value={mouseHoverSetting.promptSlug}
-                onChange={(promptSlug) => updateMouseHoverSetting({ promptSlug })}
+                onChange={(promptSlug) =>
+                  updateMouseHoverSetting({ promptSlug })
+                }
               />
             </SettingsRow>
           )}

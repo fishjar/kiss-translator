@@ -31,8 +31,8 @@ export default function M2Theme({
     previewMode === THEME_DARK || previewMode === THEME_LIGHT
       ? previewMode
       : darkMode === "dark" || (darkMode === "auto" && systemPrefersDark)
-      ? THEME_DARK
-      : THEME_LIGHT;
+        ? THEME_DARK
+        : THEME_LIGHT;
 
   const theme = useMemo(() => {
     let htmlFontSize = 16;

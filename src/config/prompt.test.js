@@ -505,6 +505,8 @@ describe("prompt settings", () => {
     expect(defaultSummary.systemPrompt).toContain("### 核心概要");
     expect(defaultSummary.systemPrompt).toContain("### 关键要点");
     expect(defaultSummary.userPrompt).toContain("{{transcript}}");
-    expect(UI_LANGS.every(([lang]) => I18N[defaultSummary.nameKey]?.[lang])).toBe(true);
+    expect(
+      UI_LANGS.every(([lang]) => I18N[defaultSummary.nameKey]?.[lang])
+    ).toBe(true);
   });
 });

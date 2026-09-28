@@ -39,11 +39,14 @@ import {
   OPTIONS_SYNC_KEYS,
 } from "./startup";
 
+import { useI18n } from "../../hooks/I18n";
+
 export { normalizeOptionsPath as normalizeOptionsHashPath } from "./paths";
 
 const LocalAi = lazy(() => import("./LocalAi"));
 
 function FileTranslateRedirect() {
+  const i18n = useI18n();
   useEffect(() => {
     openFileTranslatePage();
   }, []);
@@ -51,14 +54,17 @@ function FileTranslateRedirect() {
   return (
     <Box sx={{ p: 4, textAlign: "center" }}>
       <Typography variant="body1" sx={{ mb: 2 }}>
-        文件翻译已升级为独立全屏页面，正在新标签页中打开...
+        {i18n(
+          "file_translate_redirect_notice",
+          "文件翻译已升级为独立全屏页面，正在新标签页中打开..."
+        )}
       </Typography>
       <Button
         variant="contained"
         startIcon={<OpenInNewRoundedIcon />}
         onClick={() => openFileTranslatePage()}
       >
-        在新标签页中打开文件翻译
+        {i18n("file_translate_open_new_tab", "在新标签页中打开文件翻译")}
       </Button>
     </Box>
   );
@@ -170,8 +176,22 @@ export default function Options() {
                     <Route path="subtitle" element={<SubtitleSetting />} />
                     <Route path="apis" element={<Apis />} />
                     <Route path="prompts" element={<Prompts />} />
-                    {isAutoTranslateClipboardSupported && <Route path="local-ai" element={<Suspense fallback={null}><LocalAi /></Suspense>} />}
-                    {isAutoTranslateClipboardSupported && <Route path="file-translate" element={<FileTranslateRedirect />} />}
+                    {isAutoTranslateClipboardSupported && (
+                      <Route
+                        path="local-ai"
+                        element={
+                          <Suspense fallback={null}>
+                            <LocalAi />
+                          </Suspense>
+                        }
+                      />
+                    )}
+                    {isAutoTranslateClipboardSupported && (
+                      <Route
+                        path="file-translate"
+                        element={<FileTranslateRedirect />}
+                      />
+                    )}
                     <Route path="sync" element={<SyncSetting />} />
                     <Route path="words" element={<FavWords />} />
                     <Route

@@ -69,7 +69,9 @@ export default function Playgound({ initialSettingsReady = true }) {
   });
   // 例句轮换 seed（"" = 缺省确定性行为；切片按钮后递增轮换）。
   // 持久化到 localStorage：刷新后轮换状态不丢失（M3）。
-  const [termSeed, setTermSeed] = useState(() => readDraft(LS_TERM_SEED_KEY) ?? "");
+  const [termSeed, setTermSeed] = useState(
+    () => readDraft(LS_TERM_SEED_KEY) ?? ""
+  );
   // AI 专业术语草稿：与 termsDraft 一样提升到父级，并持久化到 localStorage。
   const [aiTermsDraft, setAiTermsDraft] = useState(
     () => readDraft(LS_AITERMS_KEY) ?? ""
@@ -115,7 +117,9 @@ export default function Playgound({ initialSettingsReady = true }) {
   // 带竞态比对的同步写盘：他 Tab 已改写（当前 LS ≠ 自身最后已知值）时放弃写入。
   const flushDraftIfUnchanged = (key, value) => {
     try {
-      if (window.localStorage.getItem(key) !== lastKnownValuesRef.current[key]) {
+      if (
+        window.localStorage.getItem(key) !== lastKnownValuesRef.current[key]
+      ) {
         return;
       }
       // 远端删除/清空后键在 LS 中已不存在：空草稿无需落盘，跳过写入以免

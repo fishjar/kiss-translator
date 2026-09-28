@@ -3,7 +3,7 @@ import { downloadBlobFile } from "../libs/utils.js";
 import { buildBilingualVtt, buildTranslationOnlyVtt } from "./vtt.js";
 import { getSettingWithDefault, saveEdit } from "../libs/storage.js";
 import { openOptionsPage } from "../libs/navigation.js";
-import { apiSummarizeVideo } from "../apis/index.js";
+import { apiSummarizeVideo, getVideoSummarySignature } from "../apis/index.js";
 import { DEFAULT_SUMMARY_PROMPT } from "../config/prompt.js";
 import { OPT_TRANS_BUILTINAI } from "../config/api.js";
 import { STOKEY_SETTING } from "../config/storage.js";
@@ -51,12 +51,20 @@ export function renderMarkdownToElement(markdownText, container) {
         strong.style.color = "var(--kt-text)";
         strong.style.fontWeight = "600";
         parentEl.appendChild(strong);
-      } else if (part.startsWith("*") && part.endsWith("*") && part.length >= 2) {
+      } else if (
+        part.startsWith("*") &&
+        part.endsWith("*") &&
+        part.length >= 2
+      ) {
         const em = document.createElement("em");
         em.textContent = part.slice(1, -1);
         em.style.color = "var(--kt-subtext)";
         parentEl.appendChild(em);
-      } else if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
+      } else if (
+        part.startsWith("`") &&
+        part.endsWith("`") &&
+        part.length >= 2
+      ) {
         const code = document.createElement("code");
         code.textContent = part.slice(1, -1);
         code.style.cssText = `background: var(--kt-time-bg); color: var(--kt-primary); padding: 1px 4px; border-radius: 3px; font-size: 0.9em; font-family: monospace;`;
@@ -1224,7 +1232,9 @@ export class YouTubeSubtitleList {
     regenBtn.textContent = this._t("regenerate_summary", "重新生成");
     regenBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
     this._attachBtnHover(regenBtn);
-    regenBtn.addEventListener("click", () => this.generateSummary({ force: true }));
+    regenBtn.addEventListener("click", () =>
+      this.generateSummary({ force: true })
+    );
     this.summaryRegenBtn = regenBtn;
 
     const copyBtn = document.createElement("button");
@@ -2024,6 +2034,63 @@ export class YouTubeSubtitleList {
   }
 
   /**
+   * 收集当前视频用于总结的完整输入参数与模型配置
+   */
+  _getSummaryParams(config) {
+    const meta = this.getVideoMetadata?.() || {};
+    const videoId = meta.videoId || this._getVideoId();
+    const title = meta.title || this._getYouTubeVideoTitle() || "";
+    const description = meta.description || "";
+    let transcript = meta.transcript;
+    if (!transcript) {
+      transcript = this.bilingualSubtitles
+        .map((s) => s.text)
+        .filter(Boolean)
+        .join(" ");
+    }
+    if (!transcript) {
+      transcript = this.rawSubtitleEvents
+        .map((e) => e.text || e.utf8)
+        .filter(Boolean)
+        .join(" ");
+    }
+
+    const transApis = config?.transApis || [];
+    let apiSetting = transApis.find(
+      (api) => api.apiSlug === config?.summaryApiSlug
+    );
+    if (!apiSetting) {
+      if (config?.summaryApiSlug === OPT_TRANS_BUILTINAI) {
+        apiSetting = {
+          apiType: OPT_TRANS_BUILTINAI,
+          apiSlug: OPT_TRANS_BUILTINAI,
+        };
+      } else {
+        apiSetting = {
+          apiType: config?.summaryApiSlug,
+          apiSlug: config?.summaryApiSlug,
+        };
+      }
+    }
+
+    const prompts = config?.prompts || [];
+    let prompt = prompts.find((p) => p.slug === config?.summaryPromptSlug);
+    if (!prompt) {
+      prompt = DEFAULT_SUMMARY_PROMPT;
+    }
+
+    return {
+      videoId,
+      title,
+      description,
+      transcript,
+      apiSetting,
+      prompt,
+      to: config?.to || "zh-CN",
+    };
+  }
+
+  /**
    * 当用户点击切换到“视频总结”Tab 时触发
    */
   async _onSummaryTabActivated() {
@@ -2034,13 +2101,15 @@ export class YouTubeSubtitleList {
     }
 
     if (this.summaryActionBar) this.summaryActionBar.style.display = "flex";
-    const videoId = this._getVideoId();
-    const cacheKey = `${videoId}:${config.summaryApiSlug}`;
-    if (this._summaryCache.has(cacheKey)) {
-      const cached = this._summaryCache.get(cacheKey);
-      this._currentSummaryText = cached;
-      this._renderSummaryContent(cached);
-      return;
+    const params = this._getSummaryParams(config);
+    if (params.transcript && params.transcript.trim().length >= 10) {
+      const summarySig = await getVideoSummarySignature(params);
+      if (this._summaryCache.has(summarySig)) {
+        const cached = this._summaryCache.get(summarySig);
+        this._currentSummaryText = cached;
+        this._renderSummaryContent(cached);
+        return;
+      }
     }
 
     if (!this._isSummarizing) {
@@ -2062,9 +2131,7 @@ export class YouTubeSubtitleList {
       : [];
 
     const activeApiSlug =
-      this._selectedSummaryApiSlug ||
-      fallbackConfig.summaryApiSlug ||
-      "-";
+      this._selectedSummaryApiSlug || fallbackConfig.summaryApiSlug || "-";
 
     // 缺少当前选定模型的配置或没有 transApis 时，从 storage 补充读取
     const needFetchStorage =
@@ -2099,11 +2166,7 @@ export class YouTubeSubtitleList {
       sub?.summaryPromptSlug ||
       "default_video_summary";
 
-    const to =
-      fallbackConfig.to ||
-      sub?.toLang ||
-      sub?.to ||
-      "zh-CN";
+    const to = fallbackConfig.to || sub?.toLang || sub?.to || "zh-CN";
 
     return {
       summaryApiSlug: finalApiSlug,
@@ -2146,13 +2209,31 @@ export class YouTubeSubtitleList {
     svg.style.cssText = `margin-bottom: 16px; color: var(--kt-subtext); opacity: 0.85;`;
 
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z");
-    const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    path.setAttribute(
+      "d",
+      "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+    );
+    const polyline = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "polyline"
+    );
     polyline.setAttribute("points", "14 2 14 8 20 8");
-    const line1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line1.setAttribute("x1", "16"); line1.setAttribute("y1", "13"); line1.setAttribute("x2", "8"); line1.setAttribute("y2", "13");
-    const line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line2.setAttribute("x1", "16"); line2.setAttribute("y1", "17"); line2.setAttribute("x2", "8"); line2.setAttribute("y2", "17");
+    const line1 = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "line"
+    );
+    line1.setAttribute("x1", "16");
+    line1.setAttribute("y1", "13");
+    line1.setAttribute("x2", "8");
+    line1.setAttribute("y2", "13");
+    const line2 = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "line"
+    );
+    line2.setAttribute("x1", "16");
+    line2.setAttribute("y1", "17");
+    line2.setAttribute("x2", "8");
+    line2.setAttribute("y2", "17");
     svg.append(path, polyline, line1, line2);
 
     const textEl = document.createElement("p");
@@ -2298,7 +2379,10 @@ export class YouTubeSubtitleList {
     const header = document.createElement("div");
     header.style.cssText = `display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: var(--kt-primary);`;
     const titleSpan = document.createElement("span");
-    titleSpan.textContent = this._t("model_downloading_title", "Chrome 内置模型下载中...");
+    titleSpan.textContent = this._t(
+      "model_downloading_title",
+      "Chrome 内置模型下载中..."
+    );
     header.appendChild(titleSpan);
 
     // 2. 进度条
@@ -2319,7 +2403,8 @@ export class YouTubeSubtitleList {
         this._downloadProgress.loaded
       )} / ${this._formatBytes(this._downloadProgress.total)})`;
     } else {
-      progressText.textContent = "Chrome 正在后台下载模型组件（约 1.5GB ~ 2GB）";
+      progressText.textContent =
+        "Chrome 正在后台下载模型组件（约 1.5GB ~ 2GB）";
     }
     this._downloadProgressText = progressText;
 
@@ -2350,8 +2435,14 @@ export class YouTubeSubtitleList {
     const switchBtn = document.createElement("button");
     switchBtn.textContent = `⚡ ${this._t("switch_to_network_ai", "切换为网络AI")}`;
     switchBtn.style.cssText = `padding: 7px 14px; background: var(--kt-primary, #1e88e5); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12.5px; font-weight: 500; transition: opacity 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);`;
-    switchBtn.addEventListener("mouseenter", () => (switchBtn.style.opacity = "0.9"));
-    switchBtn.addEventListener("mouseleave", () => (switchBtn.style.opacity = "1"));
+    switchBtn.addEventListener(
+      "mouseenter",
+      () => (switchBtn.style.opacity = "0.9")
+    );
+    switchBtn.addEventListener(
+      "mouseleave",
+      () => (switchBtn.style.opacity = "1")
+    );
     switchBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       this._showModelSwitcherPopup(switchBtn);
@@ -2362,7 +2453,9 @@ export class YouTubeSubtitleList {
     retryBtn.textContent = this._t("regenerate_summary", "重新生成");
     retryBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px;`;
     this._attachBtnHover(retryBtn);
-    retryBtn.addEventListener("click", () => this.generateSummary({ force: true }));
+    retryBtn.addEventListener("click", () =>
+      this.generateSummary({ force: true })
+    );
 
     // 取消 按钮
     const cancelBtn = document.createElement("button");
@@ -2375,7 +2468,14 @@ export class YouTubeSubtitleList {
     });
 
     btnGroup.append(switchBtn, retryBtn, cancelBtn);
-    card.append(header, progressWrapper, progressText, desc, stalledTip, btnGroup);
+    card.append(
+      header,
+      progressWrapper,
+      progressText,
+      desc,
+      stalledTip,
+      btnGroup
+    );
     this.summaryScrollContainer.appendChild(card);
   }
 
@@ -2403,7 +2503,8 @@ export class YouTubeSubtitleList {
       if (api.isDisabled) return false;
       if (
         excludeBuiltin &&
-        (api.apiType === OPT_TRANS_BUILTINAI || api.apiSlug === OPT_TRANS_BUILTINAI)
+        (api.apiType === OPT_TRANS_BUILTINAI ||
+          api.apiSlug === OPT_TRANS_BUILTINAI)
       ) {
         return false;
       }
@@ -2434,7 +2535,11 @@ export class YouTubeSubtitleList {
 
     // 计算绝对定位坐标（居中对齐按钮，且左右各保留 10px 边距）
     const rect = anchorEl.getBoundingClientRect();
-    const containerRect = this.container?.getBoundingClientRect() || { top: 0, left: 0, width: 350 };
+    const containerRect = this.container?.getBoundingClientRect() || {
+      top: 0,
+      left: 0,
+      width: 350,
+    };
     const popupWidth = 240;
     let left = rect.left - containerRect.left + (rect.width - popupWidth) / 2;
     if (left < 10) left = 10;
@@ -2540,7 +2645,10 @@ export class YouTubeSubtitleList {
         document.removeEventListener("click", handleOutsideClick);
       }
     };
-    setTimeout(() => document.addEventListener("click", handleOutsideClick), 10);
+    setTimeout(
+      () => document.addEventListener("click", handleOutsideClick),
+      10
+    );
 
     this.container.appendChild(popup);
     this._modelSwitcherPopup = popup;
@@ -2608,7 +2716,9 @@ export class YouTubeSubtitleList {
     retryBtn.textContent = this._t("regenerate_summary", "重新生成");
     retryBtn.style.cssText = `padding: 6px 14px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px;`;
     this._attachBtnHover(retryBtn);
-    retryBtn.addEventListener("click", () => this.generateSummary({ force: true }));
+    retryBtn.addEventListener("click", () =>
+      this.generateSummary({ force: true })
+    );
 
     const switchBtn = document.createElement("button");
     switchBtn.textContent = this._t("switch_summary_model", "切换总结模型");
@@ -2660,17 +2770,9 @@ export class YouTubeSubtitleList {
       return;
     }
 
-    const meta = this.getVideoMetadata?.() || {};
-    const videoId = meta.videoId || this._getVideoId();
-    const title = meta.title || this._getYouTubeVideoTitle() || "";
-    const description = meta.description || "";
-    let transcript = meta.transcript;
-    if (!transcript) {
-      transcript = this.bilingualSubtitles.map((s) => s.text).filter(Boolean).join(" ");
-    }
-    if (!transcript) {
-      transcript = this.rawSubtitleEvents.map((e) => e.text || e.utf8).filter(Boolean).join(" ");
-    }
+    const params = this._getSummaryParams(config);
+    const { videoId, title, description, transcript, apiSetting, prompt, to } =
+      params;
 
     if (!transcript || transcript.trim().length < 10) {
       this._renderSummaryError(
@@ -2682,26 +2784,8 @@ export class YouTubeSubtitleList {
     this._isSummarizing = true;
     this._renderSummaryLoading();
 
-    const cacheKey = `${videoId}:${config.summaryApiSlug}`;
-
-
     try {
-      const transApis = config.transApis || [];
-      let apiSetting = transApis.find((api) => api.apiSlug === config.summaryApiSlug);
-      if (!apiSetting) {
-        if (config.summaryApiSlug === OPT_TRANS_BUILTINAI) {
-          apiSetting = { apiType: OPT_TRANS_BUILTINAI, apiSlug: OPT_TRANS_BUILTINAI };
-        } else {
-          apiSetting = { apiType: config.summaryApiSlug, apiSlug: config.summaryApiSlug };
-        }
-      }
-
-      const prompts = config.prompts || [];
-      let prompt = prompts.find((p) => p.slug === config.summaryPromptSlug);
-      if (!prompt) {
-        prompt = DEFAULT_SUMMARY_PROMPT;
-      }
-
+      const summarySig = await getVideoSummarySignature(params);
       const summary = await apiSummarizeVideo({
         videoId,
         title,
@@ -2709,12 +2793,12 @@ export class YouTubeSubtitleList {
         transcript,
         apiSetting,
         prompt,
-        to: config.to || "zh-CN",
+        to,
         force,
       });
 
       if (summary) {
-        this._summaryCache.set(cacheKey, summary);
+        this._summaryCache.set(summarySig, summary);
         this._currentSummaryText = summary;
         this._renderSummaryContent(summary);
       } else {
@@ -2725,7 +2809,8 @@ export class YouTubeSubtitleList {
     } catch (err) {
       logger.error("generateSummary error", err);
       this._renderSummaryError(
-        err?.message || this._t("summary_failed", "生成视频总结失败，请检查服务配置或重试")
+        err?.message ||
+          this._t("summary_failed", "生成视频总结失败，请检查服务配置或重试")
       );
     } finally {
       this._isSummarizing = false;

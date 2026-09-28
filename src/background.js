@@ -58,7 +58,11 @@ import { saveRule } from "./libs/rules";
 import { getCurTabId } from "./libs/msg";
 import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
 import { kissLog, logger } from "./libs/log";
-import { chromeDetect, chromeTranslate, chromeSummarize } from "./libs/builtinAI";
+import {
+  chromeDetect,
+  chromeTranslate,
+  chromeSummarize,
+} from "./libs/builtinAI";
 import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
 import { isCurrentPopupDocument } from "./libs/popupDocument";

@@ -1573,7 +1573,11 @@ const defaultApiOpts = {
     sourceType: "builtin",
     capabilities: ["translation", "summarization"],
   },
-  [OPT_TRANS_SYSTEM_TTS]: { ...defaultApi, sourceType: "builtin", capabilities: ["tts"] },
+  [OPT_TRANS_SYSTEM_TTS]: {
+    ...defaultApi,
+    sourceType: "builtin",
+    capabilities: ["tts"],
+  },
   [OPT_TRANS_LOCALAI]: {
     ...defaultApi,
     sourceType: "local",

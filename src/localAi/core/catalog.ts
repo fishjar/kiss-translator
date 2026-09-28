@@ -919,3 +919,29 @@ export const OCR_GROUPS: OcrModelGroup[] = [
     recName: "PP-OCRv6_medium_rec",
   },
 ];
+
+/**
+ * 获取模型或 OCR 组合的国际化显示名称
+ */
+export function getModelDisplayName(
+  item: { id?: string; name?: string } | string | null | undefined,
+  i18n?: (key: string, fallback?: string) => string
+): string {
+  if (!item) return "";
+  const id = typeof item === "string" ? item : item.id;
+  const rawName = typeof item === "object" ? item.name : undefined;
+  const fallback = rawName || id || "";
+  if (!id || !i18n) return fallback;
+
+  if (id.startsWith("piper-")) {
+    const voiceId = id.replace("piper-", "");
+    return i18n("model_name_piper", `Piper ${voiceId}（英文，WASM）`).replace(
+      "{0}",
+      voiceId
+    );
+  }
+
+  const i18nKey = `model_name_${id.replace(/[-.]/g, "_")}`;
+  return i18n(i18nKey, fallback);
+}
+

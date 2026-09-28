@@ -33,8 +33,12 @@ const SOURCES = [
   { key: "llm", label: "LLM 回复" },
 ];
 
-const KOKORO_MODELS = CATALOG.filter((m) => m.task === "tts" && m.runtime === "transformers");
-const AUDIO8_MODELS = CATALOG.filter((m) => m.task === "tts" && m.runtime === "onnx");
+const KOKORO_MODELS = CATALOG.filter(
+  (m) => m.task === "tts" && m.runtime === "transformers"
+);
+const AUDIO8_MODELS = CATALOG.filter(
+  (m) => m.task === "tts" && m.runtime === "onnx"
+);
 const client = new TtsClient();
 
 export default function TtsTab() {
@@ -104,7 +108,10 @@ export default function TtsTab() {
     });
     client.onProgress = (p) => {
       const file = p.file ? ` ${p.file.split("/").pop()}` : "";
-      const pct = p.progress !== undefined && p.total ? ` ${Math.min(100, Math.round((p.progress / p.total) * 100))}%` : "";
+      const pct =
+        p.progress !== undefined && p.total
+          ? ` ${Math.min(100, Math.round((p.progress / p.total) * 100))}%`
+          : "";
       setProgressText(`${p.status ?? "loading"}${file}${pct}`);
     };
     client.onStateChange = (ready, reason) => {
@@ -127,9 +134,15 @@ export default function TtsTab() {
   const selectedManifest = models.find((m) => m.id === selectedId) ?? models[0];
   const rec = recs[selectedId] ?? null;
   const modelInstalled = rec?.state === "installed";
-  const modelBusy = rec?.state === "downloading" || rec?.state === "queued" || rec?.state === "verifying";
+  const modelBusy =
+    rec?.state === "downloading" ||
+    rec?.state === "queued" ||
+    rec?.state === "verifying";
   const effDevice = engine === "audio8" ? "wasm" : device;
-  const isLoaded = clientState === "ready" && loadedId === selectedId && loadedDevice === effDevice;
+  const isLoaded =
+    clientState === "ready" &&
+    loadedId === selectedId &&
+    loadedDevice === effDevice;
 
   const changeEngine = (e) => {
     setEngine(e);
@@ -175,14 +188,22 @@ export default function TtsTab() {
     if (s !== "manual") {
       const entry = getShared(s);
       setText(entry?.text ?? "");
-      if (!entry) setError("该来源暂无结果，请先到对应 Tab 生成。");
+      if (!entry)
+        setError(
+          i18n(
+            "local_ai_tts_source_empty",
+            "该来源暂无结果，请先到对应 Tab 生成。"
+          )
+        );
     }
   };
 
   const speak = () => {
     const t = text.trim();
     if (!t) {
-      setError("请输入或从其他 Tab 选择要朗读的文本。");
+      setError(
+        i18n("local_ai_tts_text_empty", "请输入或从其他 Tab 选择要朗读的文本。")
+      );
       return;
     }
     const synth = window.speechSynthesis;
@@ -200,7 +221,7 @@ export default function TtsTab() {
     u.onerror = (e) => {
       setSpeaking(false);
       if (e.error !== "canceled" && e.error !== "interrupted") {
-        setError(`朗读失败：${e.error}`);
+        setError(`${i18n("local_ai_tts_play_failed", "朗读失败：")}${e.error}`);
       }
     };
     synth.speak(u);
@@ -241,7 +262,16 @@ export default function TtsTab() {
     <Stack spacing={2.5}>
       <Card variant="outlined">
         <CardContent sx={{ pb: "16px !important" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 1,
+              mb: 2,
+            }}
+          >
             <Typography variant="h6" fontWeight={600}>
               {i18n("local_ai_tts_title", "本地语音合成")}
             </Typography>
@@ -251,16 +281,27 @@ export default function TtsTab() {
               exclusive
               onChange={(_, v) => v && changeEngine(v)}
             >
-              <ToggleButton value="system">{i18n("local_ai_tts_engine_system", "系统原生朗读")}</ToggleButton>
+              <ToggleButton value="system">
+                {i18n("local_ai_tts_engine_system", "系统原生朗读")}
+              </ToggleButton>
               <ToggleButton value="kokoro">Kokoro-82M (WebGPU)</ToggleButton>
               <ToggleButton value="audio8">Audio8 (ONNX)</ToggleButton>
             </ToggleButtonGroup>
           </Box>
 
           {engine !== "system" ? (
-            <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 2,
+              }}
+            >
               <FormControl size="small" sx={{ minWidth: 220 }}>
-                <InputLabel id="tts-model-label">{i18n("local_ai_select_model", "选择模型")}</InputLabel>
+                <InputLabel id="tts-model-label">
+                  {i18n("local_ai_select_model", "选择模型")}
+                </InputLabel>
                 <Select
                   labelId="tts-model-label"
                   value={selectedId}
@@ -278,13 +319,17 @@ export default function TtsTab() {
 
               {engine === "kokoro" && (
                 <FormControl size="small" sx={{ minWidth: 140 }}>
-                  <InputLabel id="tts-backend-label">{i18n("local_ai_backend", "计算后端")}</InputLabel>
+                  <InputLabel id="tts-backend-label">
+                    {i18n("local_ai_backend", "计算后端")}
+                  </InputLabel>
                   <Select
                     labelId="tts-backend-label"
                     value={device}
                     label={i18n("local_ai_backend", "计算后端")}
                     onChange={(e) => setDevice(e.target.value)}
-                    disabled={clientState === "loading" || synthState === "busy"}
+                    disabled={
+                      clientState === "loading" || synthState === "busy"
+                    }
                   >
                     <MenuItem value="webgpu">WebGPU</MenuItem>
                     <MenuItem value="wasm">WASM (CPU)</MenuItem>
@@ -295,15 +340,30 @@ export default function TtsTab() {
               <Button
                 variant="contained"
                 size="small"
-                disabled={!modelInstalled || clientState === "loading" || synthState === "busy" || isLoaded}
+                disabled={
+                  !modelInstalled ||
+                  clientState === "loading" ||
+                  synthState === "busy" ||
+                  isLoaded
+                }
                 onClick={() => void loadModel()}
               >
-                {clientState === "loading" ? i18n("local_ai_model_loading", "加载中…") : isLoaded ? i18n("local_ai_model_loaded", "模型已就绪") : i18n("local_ai_load_model", "加载模型")}
+                {clientState === "loading"
+                  ? i18n("local_ai_model_loading", "加载中…")
+                  : isLoaded
+                    ? i18n("local_ai_model_loaded", "模型已就绪")
+                    : i18n("local_ai_load_model", "加载模型")}
               </Button>
 
               <Chip
                 size="small"
-                label={modelInstalled ? i18n("local_ai_models_state_installed", "已安装") : modelBusy ? i18n("local_ai_models_state_downloading", "下载中") : i18n("local_ai_models_state_not_installed", "未安装")}
+                label={
+                  modelInstalled
+                    ? i18n("local_ai_models_state_installed", "已安装")
+                    : modelBusy
+                      ? i18n("local_ai_models_state_downloading", "下载中")
+                      : i18n("local_ai_models_state_not_installed", "未安装")
+                }
                 color={modelInstalled ? "success" : "default"}
               />
 
@@ -315,7 +375,10 @@ export default function TtsTab() {
             </Box>
           ) : (
             <Typography variant="body2" color="text.secondary">
-              使用操作系统自带的 SpeechSynthesis 语音朗读服务，无需下载离线模型（注：系统发音由系统底层直接输出，不支持导出与下载音频；如需下载语音文件，请切换至右侧离线模型）。
+              {i18n(
+                "local_ai_tts_system_desc",
+                "使用操作系统自带的 SpeechSynthesis 语音朗读服务，无需下载离线模型（注：系统发音由系统底层直接输出，不支持导出与下载音频；如需下载语音文件，请切换至右侧离线模型）。"
+              )}
             </Typography>
           )}
         </CardContent>
@@ -323,22 +386,33 @@ export default function TtsTab() {
 
       <Card variant="outlined">
         <CardContent sx={{ pb: "16px !important" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 1,
+              mb: 2,
+            }}
+          >
             <Typography variant="h6" fontWeight={600}>
-              合成与朗读
+              {i18n("local_ai_tts_synth_card", "合成与朗读")}
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel id="tts-source-label">文本来源</InputLabel>
+                <InputLabel id="tts-source-label">
+                  {i18n("local_ai_tts_source_label", "文本来源")}
+                </InputLabel>
                 <Select
                   labelId="tts-source-label"
                   value={source}
-                  label="文本来源"
+                  label={i18n("local_ai_tts_source_label", "文本来源")}
                   onChange={(e) => pickSource(e.target.value)}
                 >
                   {SOURCES.map((s) => (
                     <MenuItem key={s.key} value={s.key}>
-                      {s.label}
+                      {i18n(`local_ai_tts_source_${s.key}`, s.label)}
                     </MenuItem>
                   ))}
                 </Select>
@@ -346,11 +420,13 @@ export default function TtsTab() {
 
               {engine === "system" && voices.length > 0 && (
                 <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel id="sys-voice-label">系统音色</InputLabel>
+                  <InputLabel id="sys-voice-label">
+                    {i18n("local_ai_tts_sys_voice_label", "系统音色")}
+                  </InputLabel>
                   <Select
                     labelId="sys-voice-label"
                     value={voiceURI}
-                    label="系统音色"
+                    label={i18n("local_ai_tts_sys_voice_label", "系统音色")}
                     onChange={(e) => setVoiceURI(e.target.value)}
                   >
                     {voices.map((v) => (
@@ -364,11 +440,16 @@ export default function TtsTab() {
 
               {engine === "kokoro" && (
                 <FormControl size="small" sx={{ minWidth: 180 }}>
-                  <InputLabel id="kokoro-voice-label">Kokoro 音色</InputLabel>
+                  <InputLabel id="kokoro-voice-label">
+                    {i18n("local_ai_tts_kokoro_voice_label", "Kokoro 音色")}
+                  </InputLabel>
                   <Select
                     labelId="kokoro-voice-label"
                     value={kokoroVoice}
-                    label="Kokoro 音色"
+                    label={i18n(
+                      "local_ai_tts_kokoro_voice_label",
+                      "Kokoro 音色"
+                    )}
                     onChange={(e) => setKokoroVoice(e.target.value)}
                   >
                     {KOKORO_VOICES.map((v) => (
@@ -382,11 +463,16 @@ export default function TtsTab() {
 
               {engine === "audio8" && (
                 <FormControl size="small" sx={{ minWidth: 180 }}>
-                  <InputLabel id="audio8-voice-label">Audio8 音色</InputLabel>
+                  <InputLabel id="audio8-voice-label">
+                    {i18n("local_ai_tts_audio8_voice_label", "Audio8 音色")}
+                  </InputLabel>
                   <Select
                     labelId="audio8-voice-label"
                     value={audio8Voice}
-                    label="Audio8 音色"
+                    label={i18n(
+                      "local_ai_tts_audio8_voice_label",
+                      "Audio8 音色"
+                    )}
                     onChange={(e) => setAudio8Voice(e.target.value)}
                   >
                     {AUDIO8_PRESET_VOICES.map((v) => (
@@ -404,7 +490,10 @@ export default function TtsTab() {
             multiline
             rows={4}
             fullWidth
-            placeholder={i18n("local_ai_tts_input_placeholder", "请输入要朗读的文本…")}
+            placeholder={i18n(
+              "local_ai_tts_input_placeholder",
+              "请输入要朗读的文本…"
+            )}
             value={text}
             onChange={(e) => setText(e.target.value)}
             inputProps={{
@@ -420,8 +509,23 @@ export default function TtsTab() {
             }}
           />
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap", mb: 2 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, width: 220 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 3,
+              flexWrap: "wrap",
+              mb: 2,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+                width: 220,
+              }}
+            >
               <Typography variant="body2" sx={{ flexShrink: 0 }}>
                 {i18n("local_ai_tts_rate", "语速")} ({rate.toFixed(1)}x):
               </Typography>
@@ -437,11 +541,20 @@ export default function TtsTab() {
 
             {engine === "system" ? (
               speaking ? (
-                <Button variant="outlined" color="error" startIcon={<StopRoundedIcon />} onClick={stopSystem}>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<StopRoundedIcon />}
+                  onClick={stopSystem}
+                >
                   {i18n("local_ai_tts_stop", "停止朗读")}
                 </Button>
               ) : (
-                <Button variant="contained" startIcon={<PlayArrowRoundedIcon />} onClick={speak}>
+                <Button
+                  variant="contained"
+                  startIcon={<PlayArrowRoundedIcon />}
+                  onClick={speak}
+                >
                   {i18n("local_ai_tts_play", "开始朗读")}
                 </Button>
               )
@@ -452,7 +565,9 @@ export default function TtsTab() {
                 disabled={!isLoaded || synthState === "busy" || !text.trim()}
                 onClick={() => void synthesize()}
               >
-                {synthState === "busy" ? i18n("local_ai_tts_synthesizing", "正在合成…") : i18n("local_ai_tts_synthesize", "合成语音")}
+                {synthState === "busy"
+                  ? i18n("local_ai_tts_synthesizing", "正在合成…")
+                  : i18n("local_ai_tts_synthesize", "合成语音")}
               </Button>
             )}
           </Box>
@@ -476,7 +591,9 @@ export default function TtsTab() {
                 <audio controls src={audioUrl} style={{ height: 36 }} />
                 {stats && (
                   <Typography variant="caption" color="text.secondary">
-                    耗时 {stats.elapsedMs}ms · 音频时长 {stats.durationS.toFixed(1)}s
+                    {i18n("local_ai_tts_stats", "耗时 {0}ms · 音频时长 {1}s")
+                      .replace("{0}", String(stats.elapsedMs))
+                      .replace("{1}", stats.durationS.toFixed(1))}
                   </Typography>
                 )}
               </Box>

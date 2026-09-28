@@ -353,8 +353,13 @@ export const syncData = async (
 
   if (!isRequestCurrent()) return;
 
-  if (key === KV_SETTING_KEY && getSettingVersion(value) > CURRENT_SETTINGS_VERSION) {
-    throw new Error("Local settings were written by a newer client; update before syncing");
+  if (
+    key === KV_SETTING_KEY &&
+    getSettingVersion(value) > CURRENT_SETTINGS_VERSION
+  ) {
+    throw new Error(
+      "Local settings were written by a newer client; update before syncing"
+    );
   }
 
   const syncEncryptKey = syncEncryptKeyOverride ?? savedSyncEncryptKey;
@@ -457,7 +462,9 @@ export const syncData = async (
     key === KV_SETTING_KEY &&
     getSettingVersion(newVal) > CURRENT_SETTINGS_VERSION
   ) {
-    throw new Error("Settings were written by a newer client; update before syncing");
+    throw new Error(
+      "Settings were written by a newer client; update before syncing"
+    );
   }
   // 首次同步时本地与远端时间戳可能同为 0；此时内容不同仍需应用远端数据。
   const isNew =

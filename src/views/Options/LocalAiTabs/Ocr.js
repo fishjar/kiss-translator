@@ -16,7 +16,11 @@ import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { OcrClient } from "../../../localAi/core/ocrClient";
-import { OCR_GROUPS, getCatalogModel } from "../../../localAi/core/catalog";
+import {
+  OCR_GROUPS,
+  getCatalogModel,
+  getModelDisplayName,
+} from "../../../localAi/core/catalog";
 import { setShared } from "../../../localAi/core/shared";
 import { useI18n } from "../../../hooks/I18n";
 
@@ -51,7 +55,10 @@ export default function OcrTab() {
 
   useEffect(() => {
     const unsub = manager.subscribe((_id, r) => {
-      if (r.manifest.task === "ocr-detection" || r.manifest.task === "ocr-recognition") {
+      if (
+        r.manifest.task === "ocr-detection" ||
+        r.manifest.task === "ocr-recognition"
+      ) {
         setRecs((prev) => ({ ...prev, [r.manifest.id]: { ...r } }));
       }
     });
@@ -124,12 +131,17 @@ export default function OcrTab() {
     img.src = previewUrl;
   }, [result, previewUrl]);
 
-  const group = OCR_GROUPS.find((g) => g.id === selectedGroupId) ?? OCR_GROUPS[0];
+  const group =
+    OCR_GROUPS.find((g) => g.id === selectedGroupId) ?? OCR_GROUPS[0];
   const detRec = recs[group.detId];
   const recRec = recs[group.recId];
-  const bothInstalled = detRec?.state === "installed" && recRec?.state === "installed";
+  const bothInstalled =
+    detRec?.state === "installed" && recRec?.state === "installed";
   const anyBusy = [detRec, recRec].some(
-    (r) => r?.state === "downloading" || r?.state === "queued" || r?.state === "verifying"
+    (r) =>
+      r?.state === "downloading" ||
+      r?.state === "queued" ||
+      r?.state === "verifying"
   );
   const paddleLoaded = clientState === "ready" && loadedGroupId === group.id;
 
@@ -137,12 +149,14 @@ export default function OcrTab() {
     const detManifest = getCatalogModel(group.detId);
     const recManifest = getCatalogModel(group.recId);
     if (!detManifest || !recManifest) {
-      setError("模型清单缺失");
+      setError(i18n("local_ai_model_manifest_missing", "模型清单缺失"));
       return;
     }
     setError(null);
     setClientState("loading");
-    setProgressText("启动 PaddleOCR 引擎…");
+    setProgressText(
+      i18n("local_ai_ocr_engine_loading", "启动 PaddleOCR 引擎…")
+    );
     try {
       await client.load({
         detModelId: detManifest.id,
@@ -199,30 +213,44 @@ export default function OcrTab() {
               {i18n("local_ai_ocr_title", "本地文字识别 (PaddleOCR)")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              轻量级端侧文字检测与识别流水线，输出精确文字块位置坐标（Bounding Box / 多边形）与置信度
+              {i18n(
+                "local_ai_ocr_desc",
+                "轻量级端侧文字检测与识别流水线，输出精确文字块位置坐标（Bounding Box / 多边形）与置信度"
+              )}
             </Typography>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 2,
+            }}
+          >
             <FormControl size="small" sx={{ minWidth: 240 }}>
-              <InputLabel id="ocr-group-label">模型组合 (Det + Rec)</InputLabel>
+              <InputLabel id="ocr-group-label">
+                {i18n("local_ai_ocr_group_label", "模型组合 (Det + Rec)")}
+              </InputLabel>
               <Select
                 labelId="ocr-group-label"
                 value={selectedGroupId}
-                label="模型组合 (Det + Rec)"
+                label={i18n("local_ai_ocr_group_label", "模型组合 (Det + Rec)")}
                 onChange={(e) => setSelectedGroupId(e.target.value)}
                 disabled={clientState === "loading" || recognizing}
               >
                 {OCR_GROUPS.map((g) => (
                   <MenuItem key={g.id} value={g.id}>
-                    {g.name}
+                    {getModelDisplayName(g, i18n)}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel id="ocr-backend-label">{i18n("local_ai_backend", "计算后端")}</InputLabel>
+              <InputLabel id="ocr-backend-label">
+                {i18n("local_ai_backend", "计算后端")}
+              </InputLabel>
               <Select
                 labelId="ocr-backend-label"
                 value={device}
@@ -230,22 +258,31 @@ export default function OcrTab() {
                 onChange={(e) => setDevice(e.target.value)}
                 disabled={clientState === "loading" || recognizing}
               >
-                <MenuItem value="webgpu">WebGPU</MenuItem>
-                <MenuItem value="wasm">WASM</MenuItem>
+                <MenuItem value="webgpu">
+                  {i18n("compute_device_webgpu", "WebGPU")}
+                </MenuItem>
+                <MenuItem value="wasm">
+                  {i18n("compute_device_wasm", "WASM (CPU)")}
+                </MenuItem>
               </Select>
             </FormControl>
 
             <Button
               variant="contained"
               size="small"
-              disabled={!bothInstalled || clientState === "loading" || recognizing || paddleLoaded}
+              disabled={
+                !bothInstalled ||
+                clientState === "loading" ||
+                recognizing ||
+                paddleLoaded
+              }
               onClick={() => void loadGroup()}
             >
               {clientState === "loading"
                 ? i18n("local_ai_model_loading", "加载中…")
                 : paddleLoaded
-                ? i18n("local_ai_model_loaded", "模型已就绪")
-                : i18n("local_ai_load_model", "加载模型")}
+                  ? i18n("local_ai_model_loaded", "模型已就绪")
+                  : i18n("local_ai_load_model", "加载模型")}
             </Button>
 
             <Chip
@@ -254,8 +291,8 @@ export default function OcrTab() {
                 bothInstalled
                   ? i18n("local_ai_models_state_installed", "已安装")
                   : anyBusy
-                  ? i18n("local_ai_models_state_downloading", "下载中")
-                  : i18n("local_ai_models_state_not_installed", "未安装")
+                    ? i18n("local_ai_models_state_downloading", "下载中")
+                    : i18n("local_ai_models_state_not_installed", "未安装")
               }
               color={bothInstalled ? "success" : "default"}
             />
@@ -282,7 +319,7 @@ export default function OcrTab() {
             }}
           >
             <Typography variant="h6" fontWeight={600}>
-              图像上传与识别
+              {i18n("local_ai_ocr_image_card", "图像上传与识别")}
             </Typography>
             <Box sx={{ display: "flex", gap: 1 }}>
               <Button
@@ -292,7 +329,9 @@ export default function OcrTab() {
                 onClick={() => fileRef.current?.click()}
                 disabled={recognizing}
               >
-                {file ? "更换图片" : i18n("local_ai_ocr_upload_image", "选择图片")}
+                {file
+                  ? i18n("local_ai_ocr_change_image", "更换图片")
+                  : i18n("local_ai_ocr_upload_image", "选择图片")}
               </Button>
               <input
                 ref={fileRef}
@@ -321,7 +360,8 @@ export default function OcrTab() {
           {file && (
             <Box sx={{ mb: 2 }}>
               <Typography variant="caption" color="text.secondary">
-                当前文件: {file.name} ({Math.round(file.size / 1024)} KB)
+                {i18n("local_ai_ocr_current_file", "当前文件:")} {file.name} (
+                {Math.round(file.size / 1024)} KB)
               </Typography>
             </Box>
           )}
@@ -388,9 +428,14 @@ export default function OcrTab() {
                 </Typography>
                 <Chip
                   size="small"
-                  label={`检测 ${result.items.length} 块 · 总耗时 ${fmtMs(
-                    result.elapsedMs
-                  )} (Det ${fmtMs(result.detMs)} · Rec ${fmtMs(result.recMs)})`}
+                  label={`${i18n(
+                    "local_ai_ocr_detected_blocks",
+                    "检测 {0} 块 · 总耗时 {1}"
+                  )
+                    .replace("{0}", String(result.items.length))
+                    .replace("{1}", fmtMs(result.elapsedMs))} (Det ${fmtMs(
+                    result.detMs
+                  )} · Rec ${fmtMs(result.recMs)})`}
                   variant="outlined"
                 />
               </Box>
@@ -402,7 +447,7 @@ export default function OcrTab() {
               >
                 {copied
                   ? i18n("local_ai_copied", "已复制")
-                  : i18n("local_ai_copy", "复制文字")}
+                  : i18n("local_ai_ocr_copy_text", "复制文字")}
               </Button>
             </Box>
 
@@ -440,7 +485,7 @@ export default function OcrTab() {
                   <Typography variant="body2">{item.text}</Typography>
                   <Chip
                     size="small"
-                    label={`置信度: ${(item.score * 100).toFixed(1)}%`}
+                    label={`${i18n("local_ai_confidence", "置信度")}: ${(item.score * 100).toFixed(1)}%`}
                     variant="outlined"
                     sx={{ flexShrink: 0 }}
                   />

@@ -933,9 +933,12 @@ export function migrateSettingToV4(setting = {}) {
     transApis: Array.isArray(apis) ? [...apis, ...added] : apis,
   };
   if (previous.inputRule) migrated.inputRule = withList(previous.inputRule);
-  if (previous.subtitleSetting) migrated.subtitleSetting = withList(previous.subtitleSetting);
-  if (previous.mouseHoverSetting) migrated.mouseHoverSetting = withList(previous.mouseHoverSetting);
-  if (previous.tranboxSetting) migrated.tranboxSetting = withList(previous.tranboxSetting);
+  if (previous.subtitleSetting)
+    migrated.subtitleSetting = withList(previous.subtitleSetting);
+  if (previous.mouseHoverSetting)
+    migrated.mouseHoverSetting = withList(previous.mouseHoverSetting);
+  if (previous.tranboxSetting)
+    migrated.tranboxSetting = withList(previous.tranboxSetting);
   return migrated;
 }
 

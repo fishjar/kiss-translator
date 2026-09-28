@@ -6,13 +6,29 @@ jest.mock("webextension-polyfill", () => ({}));
 
 const setting = {
   transApis: [
-    { apiSlug: "primary", apiType: "Microsoft", apiName: "Primary", sourceType: "network", capabilities: ["translation"] },
-    { apiSlug: "backup", apiType: "Microsoft", apiName: "Backup", sourceType: "network", capabilities: ["translation"] },
+    {
+      apiSlug: "primary",
+      apiType: "Microsoft",
+      apiName: "Primary",
+      sourceType: "network",
+      capabilities: ["translation"],
+    },
+    {
+      apiSlug: "backup",
+      apiType: "Microsoft",
+      apiName: "Backup",
+      sourceType: "network",
+      capabilities: ["translation"],
+    },
   ],
   prompts: [],
   subtitleSetting: {},
 };
-const scene = { apiSlugs: ["primary", "backup"], fromLang: "auto", toLang: "zh-CN" };
+const scene = {
+  apiSlugs: ["primary", "backup"],
+  fromLang: "auto",
+  toLang: "zh-CN",
+};
 
 beforeEach(() => apiTranslate.mockReset());
 
@@ -27,28 +43,49 @@ test("preserves TXT line endings, blank lines and order while falling back", asy
     { source: "first", target: "译:first" },
     { source: "second", target: "译:second" },
   ]);
-  expect(apiTranslate.mock.calls.map(([args]) => args.apiSetting.apiSlug)).toEqual([
-    "primary", "backup", "primary", "backup",
-  ]);
+  expect(
+    apiTranslate.mock.calls.map(([args]) => args.apiSetting.apiSlug)
+  ).toEqual(["primary", "backup", "primary", "backup"]);
 });
 
 test("cancellation stops before requesting the next line", async () => {
   const abort = new AbortController();
   apiTranslate.mockImplementation(async () => ({ trText: "translated" }));
-  await expect(translateTxt("one\ntwo", scene, setting, abort.signal, () => abort.abort())).rejects.toMatchObject({ name: "AbortError" });
+  await expect(
+    translateTxt("one\ntwo", scene, setting, abort.signal, () => abort.abort())
+  ).rejects.toMatchObject({ name: "AbortError" });
   expect(apiTranslate).toHaveBeenCalledTimes(1);
 });
 
 test("installed local translation is used first and a failed local run falls back", async () => {
   apiTranslate.mockResolvedValue({ trText: "network output" });
   const localScene = { ...scene, apiSlugs: ["local", "backup"] };
-  const localSetting = { ...setting, transApis: [
-    { apiSlug: "local", apiType: "LocalAI", sourceType: "local", modelRef: "model-a", capabilities: ["translation"] },
-    ...setting.transApis,
-  ] };
-  const local = { installedModels: new Set(["model-a"]), translate: jest.fn().mockRejectedValue(new Error("device lost")) };
-  await expect(translateFileText("source", localScene, localSetting, undefined, local)).resolves.toBe("network output");
-  expect(local.translate).toHaveBeenCalledWith("model-a", "source", "zh-CN", undefined);
+  const localSetting = {
+    ...setting,
+    transApis: [
+      {
+        apiSlug: "local",
+        apiType: "LocalAI",
+        sourceType: "local",
+        modelRef: "model-a",
+        capabilities: ["translation"],
+      },
+      ...setting.transApis,
+    ],
+  };
+  const local = {
+    installedModels: new Set(["model-a"]),
+    translate: jest.fn().mockRejectedValue(new Error("device lost")),
+  };
+  await expect(
+    translateFileText("source", localScene, localSetting, undefined, local)
+  ).resolves.toBe("network output");
+  expect(local.translate).toHaveBeenCalledWith(
+    "model-a",
+    "source",
+    "zh-CN",
+    undefined
+  );
   expect(apiTranslate).toHaveBeenCalledTimes(1);
 });
 
@@ -62,7 +99,8 @@ describe("Markdown file translation", () => {
   } = require("./fileTranslate");
 
   test("masks and unmasks inline code, math, and links preserving URLs", () => {
-    const raw = "Use `npm install` and $x = y^2$ with [Guide](https://example.com) and ![Logo](https://img.png)";
+    const raw =
+      "Use `npm install` and $x = y^2$ with [Guide](https://example.com) and ![Logo](https://img.png)";
     const { masked, masks } = maskInlineElements(raw);
     expect(masked).not.toContain("`npm install`");
     expect(masked).not.toContain("$x = y^2$");
@@ -70,9 +108,14 @@ describe("Markdown file translation", () => {
     expect(masked).toContain("[Guide]");
     expect(masks.length).toBe(4);
 
-    const simulatedTranslated = masked.replace("Use", "使用").replace("Guide", "指南").replace("with", "配合");
+    const simulatedTranslated = masked
+      .replace("Use", "使用")
+      .replace("Guide", "指南")
+      .replace("with", "配合");
     const restored = unmaskInlineElements(simulatedTranslated, masks);
-    expect(restored).toBe("使用 `npm install` and $x = y^2$ 配合 [指南](https://example.com) and ![Logo](https://img.png)");
+    expect(restored).toBe(
+      "使用 `npm install` and $x = y^2$ 配合 [指南](https://example.com) and ![Logo](https://img.png)"
+    );
   });
 
   test("splits markdown into blocks and protects code fences and math blocks", () => {
@@ -96,13 +139,17 @@ describe("Markdown file translation", () => {
   });
 
   test("translates markdown preserving code blocks and generating bilingual and target versions", async () => {
-    apiTranslate.mockImplementation(async ({ text }) => ({ trText: `中:${text}` }));
+    apiTranslate.mockImplementation(async ({ text }) => ({
+      trText: `中:${text}`,
+    }));
     const md = `# Introduction\n\nThis is a paragraph with \`code\`.\n\n\`\`\`python\nprint(1)\n\`\`\`\n\n- First point`;
     const result = await translateMarkdown(md, scene, setting);
 
     // 纯译文 Markdown：代码块原样保留，文本被翻译，行内代码被保护还原
     expect(result.translatedMd).toContain("# 中:Introduction");
-    expect(result.translatedMd).toContain("中:This is a paragraph with `code`.");
+    expect(result.translatedMd).toContain(
+      "中:This is a paragraph with `code`."
+    );
     expect(result.translatedMd).toContain("```python\nprint(1)\n```");
     expect(result.translatedMd).toContain("- 中:First point");
 
@@ -121,7 +168,9 @@ describe("Markdown file translation", () => {
   });
 
   test("translates markdown table cells and preserves table alignments", async () => {
-    apiTranslate.mockImplementation(async ({ text }) => ({ trText: `译:${text}` }));
+    apiTranslate.mockImplementation(async ({ text }) => ({
+      trText: `译:${text}`,
+    }));
     const tableMd = `| Name | Age |\n| :--- | ---: |\n| Alice | 20 |\n| Bob | 25 |`;
     const { translateMarkdown } = require("./fileTranslate");
     const result = await translateMarkdown(tableMd, scene, setting);
@@ -138,7 +187,13 @@ describe("Markdown file translation", () => {
     apiTranslate.mockImplementation(async () => ({ trText: "ok" }));
     const { translateMarkdown } = require("./fileTranslate");
     await expect(
-      translateMarkdown("# H1\n\n# H2\n\n# H3", scene, setting, abort.signal, () => abort.abort())
+      translateMarkdown(
+        "# H1\n\n# H2\n\n# H3",
+        scene,
+        setting,
+        abort.signal,
+        () => abort.abort()
+      )
     ).rejects.toMatchObject({ name: "AbortError" });
   });
 
@@ -151,11 +206,15 @@ describe("Markdown file translation", () => {
     expect(renderMarkdownBlocksToHtml(blocks, { mode: "bilingual" })).toBe("");
 
     // 原文模式（左栏）正常渲染完整原文
-    expect(renderMarkdownBlocksToHtml(blocks, { mode: "source" })).toContain("Heading 1");
+    expect(renderMarkdownBlocksToHtml(blocks, { mode: "source" })).toContain(
+      "Heading 1"
+    );
 
     // 模拟仅第一块（标题）完成翻译
     blocks[0].targetText = "标题 1";
-    const partialTargetHtml = renderMarkdownBlocksToHtml(blocks, { mode: "target" });
+    const partialTargetHtml = renderMarkdownBlocksToHtml(blocks, {
+      mode: "target",
+    });
     // 已完成的标题上屏
     expect(partialTargetHtml).toContain("标题 1");
     // 未完成翻译的段落与引用绝不上屏
@@ -163,7 +222,9 @@ describe("Markdown file translation", () => {
     expect(partialTargetHtml).not.toContain("Blockquote");
 
     // 双语模式下同样仅上屏已完成的段落
-    const partialBilingualHtml = renderMarkdownBlocksToHtml(blocks, { mode: "bilingual" });
+    const partialBilingualHtml = renderMarkdownBlocksToHtml(blocks, {
+      mode: "bilingual",
+    });
     expect(partialBilingualHtml).toContain("Heading 1");
     expect(partialBilingualHtml).toContain("标题 1");
     expect(partialBilingualHtml).not.toContain("Paragraph text");
@@ -192,7 +253,11 @@ describe("Markdown file translation", () => {
       setting,
       undefined,
       (done, total, item, currentBlocks) => {
-        progressBlocksList.push({ done, total, hasBlocks: Boolean(currentBlocks) });
+        progressBlocksList.push({
+          done,
+          total,
+          hasBlocks: Boolean(currentBlocks),
+        });
       }
     );
 

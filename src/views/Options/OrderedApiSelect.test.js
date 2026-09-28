@@ -45,7 +45,9 @@ describe("OrderedApiSelect", () => {
     const select = container.querySelector(".kt-settings-select");
     expect(select).not.toBeNull();
     expect(select.classList.contains("kt-settings-select--full")).toBe(true);
-    expect(select.classList.contains("kt-settings-select--with-label")).toBe(true);
+    expect(select.classList.contains("kt-settings-select--with-label")).toBe(
+      true
+    );
 
     const label = container.querySelector("label");
     expect(label).not.toBeNull();
@@ -77,7 +79,9 @@ describe("OrderedApiSelect", () => {
     const select = container.querySelector(".kt-settings-select");
     expect(select).not.toBeNull();
     expect(select.classList.contains("kt-settings-select--full")).toBe(false);
-    expect(select.classList.contains("kt-settings-select--with-label")).toBe(false);
+    expect(select.classList.contains("kt-settings-select--with-label")).toBe(
+      false
+    );
 
     const label = container.querySelector("label");
     expect(label).toBeNull();
@@ -139,7 +143,9 @@ describe("ScenePromptSelect", () => {
     const select = container.querySelector(".kt-settings-select");
     expect(select).not.toBeNull();
     expect(select.classList.contains("kt-settings-select--full")).toBe(true);
-    expect(select.classList.contains("kt-settings-select--with-label")).toBe(true);
+    expect(select.classList.contains("kt-settings-select--with-label")).toBe(
+      true
+    );
 
     const label = container.querySelector("label");
     expect(label).not.toBeNull();
@@ -156,18 +162,16 @@ describe("ScenePromptSelect", () => {
 
     act(() => {
       root.render(
-        <ScenePromptSelect
-          label="翻译提示词"
-          value="p1"
-          onChange={jest.fn()}
-        />
+        <ScenePromptSelect label="翻译提示词" value="p1" onChange={jest.fn()} />
       );
     });
 
     const select = container.querySelector(".kt-settings-select");
     expect(select).not.toBeNull();
     expect(select.classList.contains("kt-settings-select--full")).toBe(false);
-    expect(select.classList.contains("kt-settings-select--with-label")).toBe(false);
+    expect(select.classList.contains("kt-settings-select--with-label")).toBe(
+      false
+    );
 
     const label = container.querySelector("label");
     expect(label).toBeNull();

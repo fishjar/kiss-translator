@@ -849,7 +849,9 @@ export default function SubtitleSetting() {
                 scene={subtitleSetting}
                 apis={enabledApis}
                 label={i18n("translate_service")}
-                onChange={(apiSlugs) => updateSubtitle({ apiSlugs, apiSlug: apiSlugs[0] || "" })}
+                onChange={(apiSlugs) =>
+                  updateSubtitle({ apiSlugs, apiSlug: apiSlugs[0] || "" })
+                }
               />
             </SettingsRow>
             <SettingsRow label={i18n("translation_prompt", "翻译提示词")}>
@@ -1005,7 +1007,8 @@ export default function SubtitleSetting() {
                         (p) => p.slug === summaryPromptSlug
                       )
                         ? summaryPromptSlug
-                        : summaryPromptOptions[0]?.slug || "default_video_summary"
+                        : summaryPromptOptions[0]?.slug ||
+                          "default_video_summary"
                     }
                     onChange={handleChange}
                     sx={{ minWidth: 200 }}

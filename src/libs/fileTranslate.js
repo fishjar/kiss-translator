@@ -1,19 +1,42 @@
 import { apiTranslate } from "../apis";
-import { availableApisForScene, withScenePrompt } from "../config/serviceSelection";
+import {
+  availableApisForScene,
+  withScenePrompt,
+} from "../config/serviceSelection";
 import { resolveApiPromptSettings } from "../config/prompt";
 
-export async function translateFileText(text, scene, setting, signal, localContext = {}) {
-  const candidates = availableApisForScene(scene, setting.transApis, "translation", localContext);
+export async function translateFileText(
+  text,
+  scene,
+  setting,
+  signal,
+  localContext = {}
+) {
+  const candidates = availableApisForScene(
+    scene,
+    setting.transApis,
+    "translation",
+    localContext
+  );
   if (!candidates.length) throw new Error("没有可用的翻译接口");
   let lastError;
   for (const candidate of candidates) {
     if (signal?.aborted) throw new DOMException("已取消", "AbortError");
     try {
       if (candidate.sourceType === "local") {
-        return await localContext.translate(candidate.modelRef, text, scene.toLang, signal);
+        return await localContext.translate(
+          candidate.modelRef,
+          text,
+          scene.toLang,
+          signal
+        );
       }
       const configured = withScenePrompt(candidate, scene);
-      const apiSetting = resolveApiPromptSettings(configured, setting.prompts, setting.subtitleSetting);
+      const apiSetting = resolveApiPromptSettings(
+        configured,
+        setting.prompts,
+        setting.subtitleSetting
+      );
       const result = await apiTranslate({
         text,
         fromLang: scene.fromLang,
@@ -24,7 +47,9 @@ export async function translateFileText(text, scene, setting, signal, localConte
         translateVariants: setting.translateVariants,
       });
       if (result?.trText) return result.trText;
-      lastError = new Error(`${candidate.apiName || candidate.apiSlug} 返回空结果`);
+      lastError = new Error(
+        `${candidate.apiName || candidate.apiSlug} 返回空结果`
+      );
     } catch (error) {
       if (signal?.aborted) throw error;
       lastError = error;
@@ -33,11 +58,20 @@ export async function translateFileText(text, scene, setting, signal, localConte
   throw lastError || new Error("全部翻译接口均不可用");
 }
 
-export async function translateTxt(content, scene, setting, signal, onProgress, localContext) {
+export async function translateTxt(
+  content,
+  scene,
+  setting,
+  signal,
+  onProgress,
+  localContext
+) {
   const parts = content.split(/(\r\n|\n|\r)/);
   const output = [];
   const comparisons = [];
-  const lines = parts.filter((_, index) => index % 2 === 0 && parts[index]?.trim()).length;
+  const lines = parts.filter(
+    (_, index) => index % 2 === 0 && parts[index]?.trim()
+  ).length;
   let completed = 0;
   for (let index = 0; index < parts.length; index += 2) {
     if (signal?.aborted) throw new DOMException("已取消", "AbortError");
@@ -51,7 +85,9 @@ export async function translateTxt(content, scene, setting, signal, onProgress, 
       const chunks = body.match(/[\s\S]{1,2000}/g) || [];
       const translated = [];
       for (const chunk of chunks) {
-        translated.push(await translateFileText(chunk, scene, setting, signal, localContext));
+        translated.push(
+          await translateFileText(chunk, scene, setting, signal, localContext)
+        );
       }
       const target = `${prefix}${translated.join("")}${suffix}`;
       output.push(target);
@@ -86,19 +122,27 @@ export function maskInlineElements(text) {
   });
 
   // 3. 保护图片 ![[alt]](url) 中的 url
-  current = current.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, (match, alt, url, title) => {
-    const key = `__KTIMGURL_${masks.length}__`;
-    masks.push({ key, original: url });
-    return title ? `![${alt}](${key} "${title}")` : `![${alt}](${key})`;
-  });
+  current = current.replace(
+    /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+    (match, alt, url, title) => {
+      const key = `__KTIMGURL_${masks.length}__`;
+      masks.push({ key, original: url });
+      return title ? `![${alt}](${key} "${title}")` : `![${alt}](${key})`;
+    }
+  );
 
   // 4. 保护链接 [text](url) 中的 url 部分（排除图片）
-  current = current.replace(/(^|[^!])\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, (match, lead, linkText, url, title) => {
-    const key = `__KTURL_${masks.length}__`;
-    masks.push({ key, original: url });
-    const linkStr = title ? `[${linkText}](${key} "${title}")` : `[${linkText}](${key})`;
-    return `${lead}${linkStr}`;
-  });
+  current = current.replace(
+    /(^|[^!])\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+    (match, lead, linkText, url, title) => {
+      const key = `__KTURL_${masks.length}__`;
+      masks.push({ key, original: url });
+      const linkStr = title
+        ? `[${linkText}](${key} "${title}")`
+        : `[${linkText}](${key})`;
+      return `${lead}${linkStr}`;
+    }
+  );
 
   // 5. 保护纯 HTML 标签 <tag ...>
   current = current.replace(/<[^>\n]+>/g, (match) => {
@@ -178,7 +222,8 @@ export function splitMarkdownBlocks(content) {
     if (trimmed.startsWith("$$")) {
       const mathLines = [line];
       i++;
-      const isSingleLineMath = trimmed.length > 2 && trimmed.slice(2).includes("$$");
+      const isSingleLineMath =
+        trimmed.length > 2 && trimmed.slice(2).includes("$$");
       if (!isSingleLineMath) {
         while (i < lines.length) {
           const nextLine = lines[i];
@@ -261,7 +306,9 @@ export function splitMarkdownBlocks(content) {
     }
 
     // 7. 列表项
-    const listMatch = line.match(/^(\s*(?:[-*+]|\d+\.)\s+(?:\[[ xX]\]\s+)?)(.*)$/);
+    const listMatch = line.match(
+      /^(\s*(?:[-*+]|\d+\.)\s+(?:\[[ xX]\]\s+)?)(.*)$/
+    );
     if (listMatch) {
       const prefix = listMatch[1];
       const text = listMatch[2];
@@ -318,13 +365,22 @@ export function renderInlineHtml(text) {
     .replace(/>/g, "&gt;");
 
   // 行内代码
-  html = html.replace(/`([^`\n]+)`/g, '<code class="kt-md-inline-code">$1</code>');
+  html = html.replace(
+    /`([^`\n]+)`/g,
+    '<code class="kt-md-inline-code">$1</code>'
+  );
   // 数学公式
   html = html.replace(/\$([^$\n]+)\$/g, '<span class="kt-md-math">$1</span>');
   // 图片
-  html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, '<img src="$2" alt="$1" style="max-width:100%; border-radius:4px;" />');
+  html = html.replace(
+    /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+    '<img src="$2" alt="$1" style="max-width:100%; border-radius:4px;" />'
+  );
   // 链接
-  html = html.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  html = html.replace(
+    /\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
   // 粗体
   html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/__([^_]+)__/g, "<strong>$1</strong>");
@@ -342,7 +398,10 @@ export function renderInlineHtml(text) {
 /**
  * 将 Markdown 块渲染为 HTML 富文本（支持 "source" 原文、"target" 纯译文、"bilingual" 双语穿插三种模式）
  */
-export function renderMarkdownBlocksToHtml(blocks, { mode = "target", textStyleClass = "" } = {}) {
+export function renderMarkdownBlocksToHtml(
+  blocks,
+  { mode = "target", textStyleClass = "" } = {}
+) {
   if (!blocks || !blocks.length) return "";
 
   const isBlockCompleted = (b) => {
@@ -368,7 +427,8 @@ export function renderMarkdownBlocksToHtml(blocks, { mode = "target", textStyleC
   }
 
   const parts = [];
-  const effectiveStyle = textStyleClass && textStyleClass !== "style_none" ? textStyleClass : "";
+  const effectiveStyle =
+    textStyleClass && textStyleClass !== "style_none" ? textStyleClass : "";
   const styleCls = effectiveStyle ? ` ${effectiveStyle}` : "";
 
   let inUl = false;
@@ -404,7 +464,9 @@ export function renderMarkdownBlocksToHtml(blocks, { mode = "target", textStyleC
     }
 
     if (block.type === "hr") {
-      parts.push('<hr class="kt-md-hr" style="border:none; border-top:1px solid rgba(128,128,128,0.3); margin: 16px 0;" />');
+      parts.push(
+        '<hr class="kt-md-hr" style="border:none; border-top:1px solid rgba(128,128,128,0.3); margin: 16px 0;" />'
+      );
       continue;
     }
 
@@ -440,9 +502,13 @@ export function renderMarkdownBlocksToHtml(blocks, { mode = "target", textStyleC
     if (block.type === "heading") {
       const tag = `h${block.level || 1}`;
       if (mode === "source") {
-        parts.push(`<${tag} class="kt-md-heading" style="margin: 14px 0 8px; font-weight: 700;">${renderInlineHtml(srcText)}</${tag}>`);
+        parts.push(
+          `<${tag} class="kt-md-heading" style="margin: 14px 0 8px; font-weight: 700;">${renderInlineHtml(srcText)}</${tag}>`
+        );
       } else if (mode === "target") {
-        parts.push(`<${tag} class="kt-md-heading${styleCls}" style="margin: 14px 0 8px; font-weight: 700;">${renderInlineHtml(tgtText)}</${tag}>`);
+        parts.push(
+          `<${tag} class="kt-md-heading${styleCls}" style="margin: 14px 0 8px; font-weight: 700;">${renderInlineHtml(tgtText)}</${tag}>`
+        );
       } else {
         parts.push(
           `<div class="kt-md-bilingual-block" style="margin: 14px 0 8px;">
@@ -456,9 +522,13 @@ export function renderMarkdownBlocksToHtml(blocks, { mode = "target", textStyleC
 
     if (block.type === "blockquote") {
       if (mode === "source") {
-        parts.push(`<blockquote class="kt-md-quote" style="border-left: 4px solid rgba(128,128,128,0.4); margin: 10px 0; padding-left: 12px; color: inherit;">${renderInlineHtml(srcText)}</blockquote>`);
+        parts.push(
+          `<blockquote class="kt-md-quote" style="border-left: 4px solid rgba(128,128,128,0.4); margin: 10px 0; padding-left: 12px; color: inherit;">${renderInlineHtml(srcText)}</blockquote>`
+        );
       } else if (mode === "target") {
-        parts.push(`<blockquote class="kt-md-quote${styleCls}" style="border-left: 4px solid rgba(128,128,128,0.4); margin: 10px 0; padding-left: 12px; color: inherit;">${renderInlineHtml(tgtText)}</blockquote>`);
+        parts.push(
+          `<blockquote class="kt-md-quote${styleCls}" style="border-left: 4px solid rgba(128,128,128,0.4); margin: 10px 0; padding-left: 12px; color: inherit;">${renderInlineHtml(tgtText)}</blockquote>`
+        );
       } else {
         parts.push(
           `<blockquote class="kt-md-quote kt-md-bilingual-block" style="border-left: 4px solid rgba(128,128,128,0.4); margin: 10px 0; padding-left: 12px; color: inherit;">
@@ -475,22 +545,30 @@ export function renderMarkdownBlocksToHtml(blocks, { mode = "target", textStyleC
       if (isOrdered) {
         if (!inOl) {
           closeLists();
-          parts.push('<ol class="kt-md-ol" style="margin: 6px 0; padding-left: 24px;">');
+          parts.push(
+            '<ol class="kt-md-ol" style="margin: 6px 0; padding-left: 24px;">'
+          );
           inOl = true;
         }
       } else {
         if (!inUl) {
           closeLists();
-          parts.push('<ul class="kt-md-ul" style="margin: 6px 0; padding-left: 24px;">');
+          parts.push(
+            '<ul class="kt-md-ul" style="margin: 6px 0; padding-left: 24px;">'
+          );
           inUl = true;
         }
       }
 
       if (mode === "source") {
-        parts.push(`<li style="margin: 4px 0;">${renderInlineHtml(srcText)}</li>`);
+        parts.push(
+          `<li style="margin: 4px 0;">${renderInlineHtml(srcText)}</li>`
+        );
       } else if (mode === "target") {
         const liClassAttr = effectiveStyle ? ` class="${effectiveStyle}"` : "";
-        parts.push(`<li${liClassAttr} style="margin: 4px 0;">${renderInlineHtml(tgtText)}</li>`);
+        parts.push(
+          `<li${liClassAttr} style="margin: 4px 0;">${renderInlineHtml(tgtText)}</li>`
+        );
       } else {
         parts.push(
           `<li style="margin: 6px 0;">
@@ -505,20 +583,32 @@ export function renderMarkdownBlocksToHtml(blocks, { mode = "target", textStyleC
     if (block.type === "table") {
       const lines = block.tableLines || [];
       if (lines.length >= 2) {
-        const headerCells = lines[0].split("|").slice(1, -1).map((s) => s.trim());
-        const dataRows = lines.slice(2).map((rowLine) => rowLine.split("|").slice(1, -1).map((s) => s.trim()));
+        const headerCells = lines[0]
+          .split("|")
+          .slice(1, -1)
+          .map((s) => s.trim());
+        const dataRows = lines.slice(2).map((rowLine) =>
+          rowLine
+            .split("|")
+            .slice(1, -1)
+            .map((s) => s.trim())
+        );
         const tgtHeaderCells = block.targetHeaderCells || headerCells;
         const tgtDataRows = block.targetDataRows || dataRows;
 
-        let tableHtml = '<table class="kt-md-table" style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13px;"><thead><tr>';
+        let tableHtml =
+          '<table class="kt-md-table" style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13px;"><thead><tr>';
         for (let col = 0; col < headerCells.length; col++) {
           const hSrc = headerCells[col] || "";
           const hTgt = tgtHeaderCells[col] || hSrc;
-          tableHtml += '<th style="border: 1px solid rgba(128,128,128,0.3); padding: 6px 10px; background: rgba(128,128,128,0.08); text-align: left;">';
+          tableHtml +=
+            '<th style="border: 1px solid rgba(128,128,128,0.3); padding: 6px 10px; background: rgba(128,128,128,0.08); text-align: left;">';
           if (mode === "source") {
             tableHtml += renderInlineHtml(hSrc);
           } else if (mode === "target") {
-            tableHtml += effectiveStyle ? `<span class="${effectiveStyle}">${renderInlineHtml(hTgt)}</span>` : renderInlineHtml(hTgt);
+            tableHtml += effectiveStyle
+              ? `<span class="${effectiveStyle}">${renderInlineHtml(hTgt)}</span>`
+              : renderInlineHtml(hTgt);
           } else {
             tableHtml += `<div style="color:rgba(128,128,128,0.8); font-size:12px;">${renderInlineHtml(hSrc)}</div><div class="kt-md-target${styleCls}">${renderInlineHtml(hTgt)}</div>`;
           }
@@ -533,11 +623,14 @@ export function renderMarkdownBlocksToHtml(blocks, { mode = "target", textStyleC
           for (let col = 0; col < headerCells.length; col++) {
             const cellSrc = rowSrc[col] || "";
             const cellTgt = rowTgt[col] || cellSrc;
-            tableHtml += '<td style="border: 1px solid rgba(128,128,128,0.3); padding: 6px 10px;">';
+            tableHtml +=
+              '<td style="border: 1px solid rgba(128,128,128,0.3); padding: 6px 10px;">';
             if (mode === "source") {
               tableHtml += renderInlineHtml(cellSrc);
             } else if (mode === "target") {
-              tableHtml += effectiveStyle ? `<span class="${effectiveStyle}">${renderInlineHtml(cellTgt)}</span>` : renderInlineHtml(cellTgt);
+              tableHtml += effectiveStyle
+                ? `<span class="${effectiveStyle}">${renderInlineHtml(cellTgt)}</span>`
+                : renderInlineHtml(cellTgt);
             } else {
               tableHtml += `<div style="color:rgba(128,128,128,0.8); font-size:12px;">${renderInlineHtml(cellSrc)}</div><div class="kt-md-target${styleCls}">${renderInlineHtml(cellTgt)}</div>`;
             }
@@ -553,9 +646,13 @@ export function renderMarkdownBlocksToHtml(blocks, { mode = "target", textStyleC
 
     // 普通段落
     if (mode === "source") {
-      parts.push(`<p class="kt-md-paragraph" style="margin: 8px 0; line-height: 1.7;">${renderInlineHtml(srcText)}</p>`);
+      parts.push(
+        `<p class="kt-md-paragraph" style="margin: 8px 0; line-height: 1.7;">${renderInlineHtml(srcText)}</p>`
+      );
     } else if (mode === "target") {
-      parts.push(`<p class="kt-md-paragraph${styleCls}" style="margin: 8px 0; line-height: 1.7;">${renderInlineHtml(tgtText)}</p>`);
+      parts.push(
+        `<p class="kt-md-paragraph${styleCls}" style="margin: 8px 0; line-height: 1.7;">${renderInlineHtml(tgtText)}</p>`
+      );
     } else {
       parts.push(
         `<div class="kt-md-bilingual-block" style="margin: 10px 0;">
@@ -617,7 +714,14 @@ export function generateStandaloneHtml(bodyHtml, title = "Translation Result") {
  * 翻译 Markdown 文档主流程
  * 采用并发入队调度，触发底层 BatchQueue 批量合并与 TaskPool 请求频率管控
  */
-export async function translateMarkdown(content, scene, setting, signal, onProgress, localContext) {
+export async function translateMarkdown(
+  content,
+  scene,
+  setting,
+  signal,
+  onProgress,
+  localContext
+) {
   const blocks = splitMarkdownBlocks(content);
   const comparisons = [];
 
@@ -627,8 +731,16 @@ export async function translateMarkdown(content, scene, setting, signal, onProgr
     if (!block.translatable) continue;
     if (block.type === "table") {
       const lines = block.tableLines || [];
-      const headerCells = lines[0].split("|").slice(1, -1).map((s) => s.trim());
-      const dataRows = lines.slice(2).map((r) => r.split("|").slice(1, -1).map((s) => s.trim()));
+      const headerCells = lines[0]
+        .split("|")
+        .slice(1, -1)
+        .map((s) => s.trim());
+      const dataRows = lines.slice(2).map((r) =>
+        r
+          .split("|")
+          .slice(1, -1)
+          .map((s) => s.trim())
+      );
       totalUnits += headerCells.filter(Boolean).length;
       for (const row of dataRows) {
         totalUnits += row.filter(Boolean).length;
@@ -649,13 +761,24 @@ export async function translateMarkdown(content, scene, setting, signal, onProgr
     }
 
     const { masked, masks } = maskInlineElements(rawText);
-    const translatedMasked = await translateFileText(masked, scene, setting, signal, localContext);
+    const translatedMasked = await translateFileText(
+      masked,
+      scene,
+      setting,
+      signal,
+      localContext
+    );
     const target = unmaskInlineElements(translatedMasked, masks);
 
     onResolved(target);
     completedUnits++;
     comparisons.push({ source: rawText, target });
-    onProgress?.(completedUnits, totalUnits, { source: rawText, target }, blocks);
+    onProgress?.(
+      completedUnits,
+      totalUnits,
+      { source: rawText, target },
+      blocks
+    );
   };
 
   // 收集待翻译任务队列并预设存储槽位
@@ -665,10 +788,20 @@ export async function translateMarkdown(content, scene, setting, signal, onProgr
 
     if (block.type === "table") {
       const lines = block.tableLines || [];
-      const headerCells = lines[0].split("|").slice(1, -1).map((s) => s.trim());
-      const dataRows = lines.slice(2).map((r) => r.split("|").slice(1, -1).map((s) => s.trim()));
+      const headerCells = lines[0]
+        .split("|")
+        .slice(1, -1)
+        .map((s) => s.trim());
+      const dataRows = lines.slice(2).map((r) =>
+        r
+          .split("|")
+          .slice(1, -1)
+          .map((s) => s.trim())
+      );
       block.targetHeaderCells = new Array(headerCells.length).fill(undefined);
-      block.targetDataRows = dataRows.map((r) => new Array(r.length).fill(undefined));
+      block.targetDataRows = dataRows.map((r) =>
+        new Array(r.length).fill(undefined)
+      );
 
       headerCells.forEach((cell, colIdx) => {
         if (!cell) {
@@ -786,8 +919,14 @@ export async function translateMarkdown(content, scene, setting, signal, onProgr
   const bilingualMd = bilingualMdParts.join("\n");
   const textStyle = scene?.textStyle || "style_none";
 
-  const translatedHtml = renderMarkdownBlocksToHtml(blocks, { mode: "target", textStyleClass: textStyle });
-  const bilingualHtml = renderMarkdownBlocksToHtml(blocks, { mode: "bilingual", textStyleClass: textStyle });
+  const translatedHtml = renderMarkdownBlocksToHtml(blocks, {
+    mode: "target",
+    textStyleClass: textStyle,
+  });
+  const bilingualHtml = renderMarkdownBlocksToHtml(blocks, {
+    mode: "bilingual",
+    textStyleClass: textStyle,
+  });
   const sourceHtml = renderMarkdownBlocksToHtml(blocks, { mode: "source" });
 
   return {
@@ -809,17 +948,23 @@ export function maskCodeAndMathBlocks(content) {
   if (!content) return { masked: "", masks: [] };
   const masks = [];
   // 保护多行代码块 ```...``` 或 ~~~...~~~
-  let masked = content.replace(/(^|\n)(\s*(?:`{3,}|~{3,})[\s\S]*?\n\s*(?:`{3,}|~{3,})\s*)/g, (match, prefix, block) => {
-    const key = `__KTCODEBLOCK_${masks.length}__`;
-    masks.push({ key, original: block });
-    return `${prefix}${key}`;
-  });
+  let masked = content.replace(
+    /(^|\n)(\s*(?:`{3,}|~{3,})[\s\S]*?\n\s*(?:`{3,}|~{3,})\s*)/g,
+    (match, prefix, block) => {
+      const key = `__KTCODEBLOCK_${masks.length}__`;
+      masks.push({ key, original: block });
+      return `${prefix}${key}`;
+    }
+  );
   // 保护数学公式块 $$...$$
-  masked = masked.replace(/(^|\n)(\s*\$\$[\s\S]*?\$\$\s*)/g, (match, prefix, block) => {
-    const key = `__KTMATHBLOCK_${masks.length}__`;
-    masks.push({ key, original: block });
-    return `${prefix}${key}`;
-  });
+  masked = masked.replace(
+    /(^|\n)(\s*\$\$[\s\S]*?\$\$\s*)/g,
+    (match, prefix, block) => {
+      const key = `__KTMATHBLOCK_${masks.length}__`;
+      masks.push({ key, original: block });
+      return `${prefix}${key}`;
+    }
+  );
   return { masked, masks };
 }
 
@@ -840,9 +985,21 @@ export function unmaskCodeAndMathBlocks(content, masks = []) {
 /**
  * 整篇 TXT 文档一次性翻译
  */
-export async function translateEntireTxt(content, scene, setting, signal, localContext) {
+export async function translateEntireTxt(
+  content,
+  scene,
+  setting,
+  signal,
+  localContext
+) {
   if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-  const translated = await translateFileText(content, scene, setting, signal, localContext);
+  const translated = await translateFileText(
+    content,
+    scene,
+    setting,
+    signal,
+    localContext
+  );
   return {
     text: translated,
     comparisons: [],
@@ -853,10 +1010,22 @@ export async function translateEntireTxt(content, scene, setting, signal, localC
 /**
  * 整篇 Markdown 文档一次性翻译
  */
-export async function translateEntireMarkdown(content, scene, setting, signal, localContext) {
+export async function translateEntireMarkdown(
+  content,
+  scene,
+  setting,
+  signal,
+  localContext
+) {
   if (signal?.aborted) throw new DOMException("已取消", "AbortError");
   const { masked, masks } = maskCodeAndMathBlocks(content);
-  const translatedMasked = await translateFileText(masked, scene, setting, signal, localContext);
+  const translatedMasked = await translateFileText(
+    masked,
+    scene,
+    setting,
+    signal,
+    localContext
+  );
   const translatedText = unmaskCodeAndMathBlocks(translatedMasked, masks);
 
   const blocks = splitMarkdownBlocks(translatedText);
@@ -941,7 +1110,8 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
   if (!imageBlob || !rows || rows.length === 0) return null;
   const hasPoly = rows.some((r) => r.poly && r.poly.length >= 3);
   if (!hasPoly) return null;
-  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  if (typeof window === "undefined" || typeof document === "undefined")
+    return null;
   const fontCss = resolveFontFamily(options?.fontFamily || options?.font);
 
   try {
@@ -1078,4 +1248,3 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
 }
 
 export { openFileTranslatePage } from "./navigation";
-

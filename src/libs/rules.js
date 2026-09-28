@@ -132,7 +132,11 @@ export const mergeRules = (baseRule, overrideRule) => {
   if (!baseRule) return { ...overrideRule };
 
   const merged = { ...baseRule };
-  if (Array.isArray(overrideRule.apiSlugs) && overrideRule.apiSlugs.length && overrideRule.apiSlugs[0] !== GLOBAL_KEY) {
+  if (
+    Array.isArray(overrideRule.apiSlugs) &&
+    overrideRule.apiSlugs.length &&
+    overrideRule.apiSlugs[0] !== GLOBAL_KEY
+  ) {
     merged.apiSlugs = [...overrideRule.apiSlugs];
   } else if (overrideRule.apiSlug && overrideRule.apiSlug !== GLOBAL_KEY) {
     merged.apiSlugs = [overrideRule.apiSlug];
@@ -403,9 +407,18 @@ export const checkRules = (rules) => {
           type(apiSlug) === "string" && apiSlug.trim() !== ""
             ? apiSlug.trim()
             : GLOBAL_KEY,
-        apiSlugs: Array.isArray(apiSlugs) && apiSlugs.length
-          ? [...new Set(apiSlugs.filter((slug) => typeof slug === "string" && slug))]
-          : [type(apiSlug) === "string" && apiSlug.trim() ? apiSlug.trim() : GLOBAL_KEY],
+        apiSlugs:
+          Array.isArray(apiSlugs) && apiSlugs.length
+            ? [
+                ...new Set(
+                  apiSlugs.filter((slug) => typeof slug === "string" && slug)
+                ),
+              ]
+            : [
+                type(apiSlug) === "string" && apiSlug.trim()
+                  ? apiSlug.trim()
+                  : GLOBAL_KEY,
+              ],
         fromLang: matchValue([GLOBAL_KEY, ...fromLangs], fromLang),
         toLang: matchValue([GLOBAL_KEY, ...toLangs], toLang),
         textStyle:

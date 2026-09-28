@@ -58,9 +58,7 @@ jest.mock("../../hooks/Setting", () => ({
 
 jest.mock("../../hooks/Prompt", () => ({
   usePromptList: () => ({
-    prompts: [
-      { slug: "prompt-1", name: "通用翻译", category: "translation" },
-    ],
+    prompts: [{ slug: "prompt-1", name: "通用翻译", category: "translation" }],
   }),
 }));
 
@@ -71,9 +69,7 @@ jest.mock("../../hooks/CustomStyles", () => ({
 }));
 
 jest.mock("../../libs/fileTranslate", () => ({
-  IMAGE_FONT_OPTIONS: [
-    { value: "default", label: "系统默认 (无衬线)" },
-  ],
+  IMAGE_FONT_OPTIONS: [{ value: "default", label: "系统默认 (无衬线)" }],
   translateFileText: jest.fn(),
   translateTxt: jest.fn(),
   translateMarkdown: jest.fn(),
@@ -136,12 +132,16 @@ describe("FileTranslatePage (M2 UI)", () => {
     expect(buttons.length).toBeGreaterThan(0);
 
     // 验证 Logo 链接指向 GitHub 仓库
-    const logoLink = container.querySelector('a[href="https://github.com/fishjar/kiss-translator"]');
+    const logoLink = container.querySelector(
+      'a[href="https://github.com/fishjar/kiss-translator"]'
+    );
     expect(logoLink).not.toBeNull();
     expect(logoLink.getAttribute("target")).toBe("_blank");
 
     // 验证初始状态：第二行展开，第一行最右侧渲染收起配置按钮（aria-expanded="true"）
-    const collapseBtn = container.querySelector('button[aria-label="收起配置"]');
+    const collapseBtn = container.querySelector(
+      'button[aria-label="收起配置"]'
+    );
     expect(collapseBtn).not.toBeNull();
     expect(collapseBtn.getAttribute("aria-expanded")).toBe("true");
 
@@ -158,7 +158,9 @@ describe("FileTranslatePage (M2 UI)", () => {
     await act(async () => {
       expandBtn.click();
     });
-    const reCollapseBtn = container.querySelector('button[aria-label="收起配置"]');
+    const reCollapseBtn = container.querySelector(
+      'button[aria-label="收起配置"]'
+    );
     expect(reCollapseBtn).not.toBeNull();
     expect(reCollapseBtn.getAttribute("aria-expanded")).toBe("true");
   });

@@ -372,8 +372,12 @@ describe("SettingsSelect", () => {
 
     const selectRoot = container.querySelector(".kt-settings-select");
     expect(selectRoot).not.toBeNull();
-    expect(selectRoot.classList.contains("kt-settings-select--full")).toBe(true);
-    expect(selectRoot.classList.contains("kt-settings-select--with-label")).toBe(true);
+    expect(selectRoot.classList.contains("kt-settings-select--full")).toBe(
+      true
+    );
+    expect(
+      selectRoot.classList.contains("kt-settings-select--with-label")
+    ).toBe(true);
 
     const labelElement = container.querySelector("label");
     expect(labelElement).not.toBeNull();
@@ -401,8 +405,12 @@ describe("SettingsSelect", () => {
 
     const selectRoot = container.querySelector(".kt-settings-select");
     expect(selectRoot).not.toBeNull();
-    expect(selectRoot.classList.contains("kt-settings-select--full")).toBe(false);
-    expect(selectRoot.classList.contains("kt-settings-select--with-label")).toBe(false);
+    expect(selectRoot.classList.contains("kt-settings-select--full")).toBe(
+      false
+    );
+    expect(
+      selectRoot.classList.contains("kt-settings-select--with-label")
+    ).toBe(false);
 
     const labelElement = container.querySelector("label");
     expect(labelElement).toBeNull();

@@ -20,7 +20,7 @@ import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { LlmClient, backendLabel } from "../../../localAi/core/llmClient";
-import { CATALOG } from "../../../localAi/core/catalog";
+import { CATALOG, getModelDisplayName } from "../../../localAi/core/catalog";
 import { setShared } from "../../../localAi/core/shared";
 import { useI18n } from "../../../hooks/I18n";
 
@@ -67,7 +67,9 @@ export default function LlmTab() {
   // 翻译测试
   const [targetLang, setTargetLang] = useState("Simplified Chinese");
   const [showPromptEditor, setShowPromptEditor] = useState(false);
-  const [promptTemplate, setPromptTemplate] = useState(DEFAULT_TRANSLATE_PROMPT);
+  const [promptTemplate, setPromptTemplate] = useState(
+    DEFAULT_TRANSLATE_PROMPT
+  );
   const [transInput, setTransInput] = useState(SAMPLE_HTML_TEXT);
   const [transOutput, setTransOutput] = useState("");
   const [translating, setTranslating] = useState(false);
@@ -109,17 +111,21 @@ export default function LlmTab() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
-  const selectedManifest = LLM_MODELS.find((m) => m.id === selectedId) ?? LLM_MODELS[0];
+  const selectedManifest =
+    LLM_MODELS.find((m) => m.id === selectedId) ?? LLM_MODELS[0];
   const rec = recs[selectedId] ?? null;
   const modelInstalled = rec?.state === "installed";
-  const modelBusy = rec?.state === "downloading" || rec?.state === "queued" || rec?.state === "verifying";
+  const modelBusy =
+    rec?.state === "downloading" ||
+    rec?.state === "queued" ||
+    rec?.state === "verifying";
   const isLoaded = clientState === "ready" && loadedId === selectedId;
 
   const loadModel = async () => {
     const m = selectedManifest;
     const file = m.files[0];
     if (!file) {
-      setError("该模型没有可用的文件");
+      setError(i18n("local_ai_no_files_for_model", "该模型没有可用的文件"));
       return;
     }
     const dev = m.backend.includes(device) ? device : m.backend[0];
@@ -137,10 +143,15 @@ export default function LlmTab() {
               nCtx: 2048,
             }
           : (() => {
-              const onnxFile = m.files.find((f) => f.path.endsWith(".onnx")) ?? m.files[0];
-              const dtype = onnxFile.path.match(/model_(.+)\.onnx$/)?.[1] ?? "q4f16";
-              const dataPrefix = onnxFile.path.slice(0, -".onnx".length) + ".onnx_data";
-              const chunks = m.files.filter((f) => f.path.startsWith(dataPrefix)).length;
+              const onnxFile =
+                m.files.find((f) => f.path.endsWith(".onnx")) ?? m.files[0];
+              const dtype =
+                onnxFile.path.match(/model_(.+)\.onnx$/)?.[1] ?? "q4f16";
+              const dataPrefix =
+                onnxFile.path.slice(0, -".onnx".length) + ".onnx_data";
+              const chunks = m.files.filter((f) =>
+                f.path.startsWith(dataPrefix)
+              ).length;
               return {
                 runtime: "onnx",
                 source: m.source,
@@ -164,7 +175,11 @@ export default function LlmTab() {
   const send = async () => {
     const text = input.trim();
     if (!text || busy || !isLoaded) return;
-    const next = [...messages, { role: "user", content: text }, { role: "assistant", content: "" }];
+    const next = [
+      ...messages,
+      { role: "user", content: text },
+      { role: "assistant", content: "" },
+    ];
     setMessages(next);
     setInput("");
     setStreaming(true);
@@ -177,7 +192,8 @@ export default function LlmTab() {
         setMessages((prev) => {
           const arr = [...prev];
           const last = arr[arr.length - 1];
-          if (last) arr[arr.length - 1] = { ...last, content: last.content + tok };
+          if (last)
+            arr[arr.length - 1] = { ...last, content: last.content + tok };
           return arr;
         });
       });
@@ -220,28 +236,58 @@ export default function LlmTab() {
     <Stack spacing={2.5}>
       <Card variant="outlined">
         <CardContent sx={{ pb: "16px !important" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 1,
+              mb: 2,
+            }}
+          >
             <Typography variant="h6" fontWeight={600}>
               {i18n("local_ai_llm_title", "本地大语言模型")}
             </Typography>
             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
               <Chip
                 size="small"
-                label={modelInstalled ? i18n("local_ai_models_state_installed", "已安装") : modelBusy ? i18n("local_ai_models_state_downloading", "下载中") : i18n("local_ai_models_state_not_installed", "未安装")}
+                label={
+                  modelInstalled
+                    ? i18n("local_ai_models_state_installed", "已安装")
+                    : modelBusy
+                      ? i18n("local_ai_models_state_downloading", "下载中")
+                      : i18n("local_ai_models_state_not_installed", "未安装")
+                }
                 color={modelInstalled ? "success" : "default"}
                 variant={modelInstalled ? "filled" : "outlined"}
               />
               <Chip
                 size="small"
-                label={isLoaded ? `已就绪 (${actualBackend ? backendLabel(actualBackend) : device.toUpperCase()})` : clientState === "loading" ? i18n("local_ai_model_loading", "加载中…") : "未加载"}
+                label={
+                  isLoaded
+                    ? `${i18n("local_ai_ready", "已就绪")} (${actualBackend ? backendLabel(actualBackend) : device.toUpperCase()})`
+                    : clientState === "loading"
+                      ? i18n("local_ai_model_loading", "加载中…")
+                      : i18n("local_ai_not_loaded", "未加载")
+                }
                 color={isLoaded ? "success" : "default"}
               />
             </Box>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 2,
+            }}
+          >
             <FormControl size="small" sx={{ minWidth: 220 }}>
-              <InputLabel id="llm-model-label">{i18n("local_ai_select_model", "选择模型")}</InputLabel>
+              <InputLabel id="llm-model-label">
+                {i18n("local_ai_select_model", "选择模型")}
+              </InputLabel>
               <Select
                 labelId="llm-model-label"
                 value={selectedId}
@@ -251,14 +297,16 @@ export default function LlmTab() {
               >
                 {LLM_MODELS.map((m) => (
                   <MenuItem key={m.id} value={m.id}>
-                    {m.name}
+                    {getModelDisplayName(m, i18n)}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel id="llm-backend-label">{i18n("local_ai_backend", "计算后端")}</InputLabel>
+              <InputLabel id="llm-backend-label">
+                {i18n("local_ai_backend", "计算后端")}
+              </InputLabel>
               <Select
                 labelId="llm-backend-label"
                 value={device}
@@ -277,10 +325,16 @@ export default function LlmTab() {
             <Button
               variant="contained"
               size="small"
-              disabled={!modelInstalled || clientState === "loading" || busy || isLoaded}
+              disabled={
+                !modelInstalled || clientState === "loading" || busy || isLoaded
+              }
               onClick={() => void loadModel()}
             >
-              {clientState === "loading" ? i18n("local_ai_model_loading", "加载中…") : isLoaded ? i18n("local_ai_model_loaded", "模型已就绪") : i18n("local_ai_load_model", "加载模型")}
+              {clientState === "loading"
+                ? i18n("local_ai_model_loading", "加载中…")
+                : isLoaded
+                  ? i18n("local_ai_model_loaded", "模型已就绪")
+                  : i18n("local_ai_load_model", "加载模型")}
             </Button>
 
             {progressText && (
@@ -294,25 +348,59 @@ export default function LlmTab() {
 
       <Card variant="outlined">
         <CardContent sx={{ pb: "16px !important" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 1,
+              mb: 2,
+            }}
+          >
             <Typography variant="h6" fontWeight={600}>
               {i18n("local_ai_llm_trans_test", "翻译测试卡片")}
             </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+                flexWrap: "wrap",
+              }}
+            >
               <FormControl size="small" sx={{ minWidth: 140 }}>
-                <InputLabel id="trans-lang-label">目标语言</InputLabel>
+                <InputLabel id="trans-lang-label">
+                  {i18n("local_ai_llm_target_lang", "目标语言")}
+                </InputLabel>
                 <Select
                   labelId="trans-lang-label"
                   value={targetLang}
-                  label="目标语言"
+                  label={i18n("local_ai_llm_target_lang", "目标语言")}
                   onChange={(e) => setTargetLang(e.target.value)}
                   disabled={busy}
                 >
-                  {TARGET_LANGUAGES.map((l) => (
-                    <MenuItem key={l.value} value={l.value}>
-                      {l.label}
-                    </MenuItem>
-                  ))}
+                  {TARGET_LANGUAGES.map((l) => {
+                    const langKeyMap = {
+                      "Simplified Chinese": "local_ai_lang_zh_hans",
+                      "Traditional Chinese": "local_ai_lang_zh_hant",
+                      English: "local_ai_lang_en",
+                      Japanese: "local_ai_lang_ja",
+                      Korean: "local_ai_lang_ko",
+                      French: "local_ai_lang_fr",
+                      German: "local_ai_lang_de",
+                      Spanish: "local_ai_lang_es",
+                      Russian: "local_ai_lang_ru",
+                    };
+                    const label = langKeyMap[l.value]
+                      ? i18n(langKeyMap[l.value], l.label)
+                      : l.label;
+                    return (
+                      <MenuItem key={l.value} value={l.value}>
+                        {label}
+                      </MenuItem>
+                    );
+                  })}
                 </Select>
               </FormControl>
               <Button
@@ -322,7 +410,9 @@ export default function LlmTab() {
                 startIcon={<TuneRoundedIcon />}
                 onClick={() => setShowPromptEditor((v) => !v)}
               >
-                {showPromptEditor ? "收起提示词" : "提示词模板"}
+                {showPromptEditor
+                  ? i18n("local_ai_llm_collapse_prompt", "收起提示词")
+                  : i18n("local_ai_llm_prompt_template", "提示词模板")}
               </Button>
               <Button
                 variant="contained"
@@ -331,16 +421,44 @@ export default function LlmTab() {
                 disabled={!isLoaded || busy || !transInput.trim()}
                 onClick={() => void translate()}
               >
-                {translating ? "翻译中…" : "执行翻译"}
+                {translating
+                  ? i18n("local_ai_llm_translating", "翻译中…")
+                  : i18n("local_ai_llm_run_trans", "执行翻译")}
               </Button>
             </Box>
           </Box>
 
-          <Collapse in={showPromptEditor} timeout="auto" unmountOnExit sx={{ mb: 2 }}>
-            <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1 }}>
+          <Collapse
+            in={showPromptEditor}
+            timeout="auto"
+            unmountOnExit
+            sx={{ mb: 2 }}
+          >
+            <Box
+              sx={{
+                p: 2,
+                bgcolor: "action.hover",
+                borderRadius: 1.5,
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  mb: 1,
+                }}
+              >
                 <Typography variant="caption" color="text.secondary">
-                  支持变量：<code>{"{{to}}"}</code>（目标语言）、<code>{"{{text}}"}</code>（待翻译文本）
+                  {i18n("local_ai_llm_vars_support", "支持变量：")}
+                  <code>{"{{to}}"}</code>
+                  {i18n("local_ai_llm_var_to_desc", "（目标语言）")}、
+                  <code>{"{{text}}"}</code>
+                  {i18n("local_ai_llm_var_text_desc", "（待翻译文本）")}
                 </Typography>
                 {promptTemplate !== DEFAULT_TRANSLATE_PROMPT && (
                   <Button
@@ -348,7 +466,7 @@ export default function LlmTab() {
                     disabled={busy}
                     onClick={() => setPromptTemplate(DEFAULT_TRANSLATE_PROMPT)}
                   >
-                    重置默认模板
+                    {i18n("local_ai_llm_reset_template", "重置默认模板")}
                   </Button>
                 )}
               </Box>
@@ -383,11 +501,14 @@ export default function LlmTab() {
                 disabled={busy}
                 onClick={() => setTransInput(SAMPLE_HTML_TEXT)}
               >
-                填入 HTML 示例
+                {i18n("local_ai_llm_fill_html_sample", "填入 HTML 示例")}
               </Button>
             </Box>
             <TextField
-              label="待翻译文本 (支持 HTML 结构保留测试)"
+              label={i18n(
+                "local_ai_llm_source_text_label",
+                "待翻译文本 (支持 HTML 结构保留测试)"
+              )}
               multiline
               rows={3}
               fullWidth
@@ -418,14 +539,21 @@ export default function LlmTab() {
                 }}
               >
                 <Typography variant="subtitle2" color="primary" gutterBottom>
-                  翻译结果：
+                  {i18n("local_ai_llm_trans_result", "翻译结果：")}
                 </Typography>
                 <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
                   {transOutput}
                 </Typography>
                 {transStats && (
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
-                    速度: {transStats.tokensPerSecond.toFixed(1)} tok/s · 生成: {transStats.outputTokens} tokens
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mt: 1, display: "block" }}
+                  >
+                    {i18n("local_ai_llm_speed", "速度:")}{" "}
+                    {transStats.tokensPerSecond.toFixed(1)} tok/s ·{" "}
+                    {i18n("local_ai_llm_generated", "生成:")}{" "}
+                    {transStats.outputTokens} tokens
                   </Typography>
                 )}
               </Box>
@@ -436,9 +564,16 @@ export default function LlmTab() {
 
       <Card variant="outlined">
         <CardContent sx={{ pb: "16px !important" }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              mb: 2,
+            }}
+          >
             <Typography variant="h6" fontWeight={600}>
-              模型交互对话
+              {i18n("local_ai_llm_chat_card", "模型交互对话")}
             </Typography>
             <Button
               variant="text"
@@ -447,7 +582,7 @@ export default function LlmTab() {
               onClick={() => setMessages([])}
               disabled={messages.length === 0 || busy}
             >
-              清空记录
+              {i18n("local_ai_llm_clear_chat", "清空记录")}
             </Button>
           </Box>
 
@@ -470,8 +605,15 @@ export default function LlmTab() {
             }}
           >
             {messages.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", my: "auto" }}>
-                暂无对话内容，输入消息开始交流
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textAlign: "center", my: "auto" }}
+              >
+                {i18n(
+                  "local_ai_llm_empty_chat",
+                  "暂无对话内容，输入消息开始交流"
+                )}
               </Typography>
             ) : (
               messages.map((msg, i) => (
@@ -482,16 +624,26 @@ export default function LlmTab() {
                     maxWidth: "80%",
                     p: 1.5,
                     borderRadius: 2,
-                    bgcolor: msg.role === "user" ? "primary.main" : "background.paper",
-                    color: msg.role === "user" ? "primary.contrastText" : "text.primary",
+                    bgcolor:
+                      msg.role === "user" ? "primary.main" : "background.paper",
+                    color:
+                      msg.role === "user"
+                        ? "primary.contrastText"
+                        : "text.primary",
                     boxShadow: 1,
                   }}
                 >
-                  <Typography variant="caption" sx={{ opacity: 0.8, display: "block", mb: 0.5 }}>
-                    {msg.role === "user" ? "用户" : "模型"}
+                  <Typography
+                    variant="caption"
+                    sx={{ opacity: 0.8, display: "block", mb: 0.5 }}
+                  >
+                    {msg.role === "user"
+                      ? i18n("local_ai_llm_role_user", "用户")
+                      : i18n("local_ai_llm_role_model", "模型")}
                   </Typography>
                   <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
-                    {msg.content || (streaming && i === messages.length - 1 ? "…" : "")}
+                    {msg.content ||
+                      (streaming && i === messages.length - 1 ? "…" : "")}
                   </Typography>
                 </Box>
               ))
@@ -499,8 +651,15 @@ export default function LlmTab() {
           </Box>
 
           {stats && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
-              生成速度: {stats.tokensPerSecond.toFixed(1)} tokens/s · 总计: {stats.outputTokens} tokens
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 1.5 }}
+            >
+              {i18n("local_ai_speed", "速度")}:{" "}
+              {stats.tokensPerSecond.toFixed(1)} tokens/s ·{" "}
+              {i18n("local_ai_llm_total_stats", "总计:")} {stats.outputTokens}{" "}
+              tokens
             </Typography>
           )}
 
@@ -511,7 +670,10 @@ export default function LlmTab() {
               multiline
               minRows={1}
               maxRows={6}
-              placeholder={i18n("local_ai_llm_placeholder", "输入消息… (Enter 发送, Shift+Enter 换行)")}
+              placeholder={i18n(
+                "local_ai_llm_input_placeholder",
+                "输入消息… (Enter 发送, Shift+Enter 换行)"
+              )}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -531,8 +693,13 @@ export default function LlmTab() {
               }}
             />
             {streaming ? (
-              <Button variant="outlined" color="error" startIcon={<StopRoundedIcon />} onClick={stop}>
-                停止
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<StopRoundedIcon />}
+                onClick={stop}
+              >
+                {i18n("local_ai_llm_stop", "停止")}
               </Button>
             ) : (
               <Button
@@ -541,7 +708,7 @@ export default function LlmTab() {
                 disabled={!isLoaded || busy || !input.trim()}
                 onClick={() => void send()}
               >
-                发送
+                {i18n("local_ai_llm_send", "发送")}
               </Button>
             )}
           </Box>

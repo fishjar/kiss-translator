@@ -225,7 +225,8 @@ const getSummarizerFactory = () => {
   }
   if (typeof window !== "undefined") {
     if (typeof window.Summarizer !== "undefined") return window.Summarizer;
-    if (typeof window.ai?.summarizer !== "undefined") return window.ai.summarizer;
+    if (typeof window.ai?.summarizer !== "undefined")
+      return window.ai.summarizer;
   }
   return null;
 };
@@ -278,20 +279,30 @@ class ChromeSummarizer {
           }
           if (avail === "downloading") {
             try {
-              summarizerFactory.create({
-                type: "key-points",
-                format: "markdown",
-                length: "medium",
-                monitor: (m) => {
-                  m?.addEventListener?.("downloadprogress", (e) => {
-                    const progress = e.total > 0 ? Math.round((e.loaded / e.total) * 100) : 0;
-                    onProgress?.({ loaded: e.loaded, total: e.total, percent: progress });
-                  });
-                },
-                ...options,
-              }).then((created) => {
-                this.#summarizer = created;
-              }).catch(() => {});
+              summarizerFactory
+                .create({
+                  type: "key-points",
+                  format: "markdown",
+                  length: "medium",
+                  monitor: (m) => {
+                    m?.addEventListener?.("downloadprogress", (e) => {
+                      const progress =
+                        e.total > 0
+                          ? Math.round((e.loaded / e.total) * 100)
+                          : 0;
+                      onProgress?.({
+                        loaded: e.loaded,
+                        total: e.total,
+                        percent: progress,
+                      });
+                    });
+                  },
+                  ...options,
+                })
+                .then((created) => {
+                  this.#summarizer = created;
+                })
+                .catch(() => {});
             } catch (_) {}
 
             throw new Error(
@@ -310,8 +321,13 @@ class ChromeSummarizer {
           length: "medium",
           monitor: (m) => {
             m?.addEventListener?.("downloadprogress", (e) => {
-              const progress = e.total > 0 ? Math.round((e.loaded / e.total) * 100) : 0;
-              onProgress?.({ loaded: e.loaded, total: e.total, percent: progress });
+              const progress =
+                e.total > 0 ? Math.round((e.loaded / e.total) * 100) : 0;
+              onProgress?.({
+                loaded: e.loaded,
+                total: e.total,
+                percent: progress,
+              });
             });
           },
           ...options,
@@ -333,4 +349,3 @@ const chromeSummarizer = new ChromeSummarizer();
 
 export const chromeSummarize = (args) =>
   chromeSummarizer.summarize(args.text, args.options, args.onProgress);
-

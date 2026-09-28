@@ -38,7 +38,10 @@ export default function OrderedApiSelect({
   ];
   selected.forEach((slug) => {
     if (!names.has(slug))
-      options.push({ value: slug, label: `${slug} (unavailable here)` });
+      options.push({
+        value: slug,
+        label: `${slug} (${i18n("api_unavailable_here", "unavailable here")})`,
+      });
   });
   const move = (index, offset) => {
     const next = [...selected];
@@ -51,8 +54,8 @@ export default function OrderedApiSelect({
         typeof values === "string"
           ? values
           : Array.isArray(values)
-          ? values[0]
-          : "";
+            ? values[0]
+            : "";
       onChange(nextSlug ? [nextSlug] : []);
       return;
     }
@@ -81,40 +84,40 @@ export default function OrderedApiSelect({
       {multiple &&
         showOrderList &&
         selected.map((slug, index) => (
-        <Box
-          key={slug}
-          sx={{
-            display: "flex",
-            gap: 1,
-            alignItems: "center",
-            mt: 0.5,
-            fontSize: "12px",
-            color: "text.secondary",
-          }}
-        >
-          <span>
-            {index + 1}. {names.get(slug) || slug}
-          </span>
-          <Button
-            size="small"
-            disabled={disabled || index === 0}
-            onClick={() => move(index, -1)}
-            aria-label={`${slug} up`}
-            sx={{ minWidth: 24, px: 0.5, py: 0 }}
+          <Box
+            key={slug}
+            sx={{
+              display: "flex",
+              gap: 1,
+              alignItems: "center",
+              mt: 0.5,
+              fontSize: "12px",
+              color: "text.secondary",
+            }}
           >
-            ↑
-          </Button>
-          <Button
-            size="small"
-            disabled={disabled || index === selected.length - 1}
-            onClick={() => move(index, 1)}
-            aria-label={`${slug} down`}
-            sx={{ minWidth: 24, px: 0.5, py: 0 }}
-          >
-            ↓
-          </Button>
-        </Box>
-      ))}
+            <span>
+              {index + 1}. {names.get(slug) || slug}
+            </span>
+            <Button
+              size="small"
+              disabled={disabled || index === 0}
+              onClick={() => move(index, -1)}
+              aria-label={`${slug} up`}
+              sx={{ minWidth: 24, px: 0.5, py: 0 }}
+            >
+              ↑
+            </Button>
+            <Button
+              size="small"
+              disabled={disabled || index === selected.length - 1}
+              onClick={() => move(index, 1)}
+              aria-label={`${slug} down`}
+              sx={{ minWidth: 24, px: 0.5, py: 0 }}
+            >
+              ↓
+            </Button>
+          </Box>
+        ))}
     </Box>
   );
 }

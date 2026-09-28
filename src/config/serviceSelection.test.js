@@ -8,16 +8,15 @@ import {
 
 test("legacy singular selection becomes an ordered one-item list", () => {
   expect(orderedApiSlugs({ apiSlug: "first" })).toEqual(["first"]);
-  expect(orderedApiSlugs({ apiSlug: "first", apiSlugs: ["second", "first"] })).toEqual([
-    "second",
-    "first",
-  ]);
+  expect(
+    orderedApiSlugs({ apiSlug: "first", apiSlugs: ["second", "first"] })
+  ).toEqual(["second", "first"]);
 });
 
 test("built-in AI is classified separately from network adapters", () => {
-  expect(normalizeApiCapabilities({ apiType: OPT_TRANS_BUILTINAI }).sourceType).toBe(
-    "builtin"
-  );
+  expect(
+    normalizeApiCapabilities({ apiType: OPT_TRANS_BUILTINAI }).sourceType
+  ).toBe("builtin");
   expect(normalizeApiCapabilities({ apiType: "Microsoft" }).sourceType).toBe(
     "network"
   );
@@ -25,13 +24,25 @@ test("built-in AI is classified separately from network adapters", () => {
 
 test("unimplemented capabilities and absent local models cannot be selected", () => {
   const apis = [
-    { apiSlug: "local", sourceType: "local", modelRef: "m", capabilities: ["translation"] },
+    {
+      apiSlug: "local",
+      sourceType: "local",
+      modelRef: "m",
+      capabilities: ["translation"],
+    },
     { apiSlug: "ocr", sourceType: "network", capabilities: ["ocr"] },
-    { apiSlug: "network", sourceType: "network", capabilities: ["translation"] },
+    {
+      apiSlug: "network",
+      sourceType: "network",
+      capabilities: ["translation"],
+    },
   ];
   expect(
-    availableApisForScene({ apiSlugs: ["local", "ocr", "network"] }, apis, "translation")
-      .map((api) => api.apiSlug)
+    availableApisForScene(
+      { apiSlugs: ["local", "ocr", "network"] },
+      apis,
+      "translation"
+    ).map((api) => api.apiSlug)
   ).toEqual(["network"]);
 });
 
@@ -47,7 +58,11 @@ test("supports ordered ocr capability selection and fallback with custom keys", 
   const apis = [
     { apiSlug: "primary-ocr", sourceType: "network", capabilities: ["ocr"] },
     { apiSlug: "fallback-ocr", sourceType: "network", capabilities: ["ocr"] },
-    { apiSlug: "trans-only", sourceType: "network", capabilities: ["translation"] },
+    {
+      apiSlug: "trans-only",
+      sourceType: "network",
+      capabilities: ["translation"],
+    },
   ];
   const scene = {
     ocrApiSlug: "primary-ocr",
@@ -100,8 +115,16 @@ test("normalizes summarization capability and verifies availability across built
   expect(isApiAvailableFor(apis[2], "summarization")).toBe(true);
 
   // 2. 本地 AI 模型安装时可用，未安装时不可用
-  expect(isApiAvailableFor(apis[1], "summarization", { installedModels: new Set(["hy-mt2-1.8b"]) })).toBe(true);
-  expect(isApiAvailableFor(apis[1], "summarization", { installedModels: new Set(["other-model"]) })).toBe(false);
+  expect(
+    isApiAvailableFor(apis[1], "summarization", {
+      installedModels: new Set(["hy-mt2-1.8b"]),
+    })
+  ).toBe(true);
+  expect(
+    isApiAvailableFor(apis[1], "summarization", {
+      installedModels: new Set(["other-model"]),
+    })
+  ).toBe(false);
 
   // 3. BuiltinAI: 依赖 globalThis.ai.summarizer
   const originalAi = globalThis.ai;
@@ -119,4 +142,3 @@ test("normalizes summarization capability and verifies availability across built
     }
   }
 });
-

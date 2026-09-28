@@ -66,10 +66,14 @@ import OrderedApiSelect from "../Options/OrderedApiSelect";
 import ScenePromptSelect from "../Options/ScenePromptSelect";
 import ImageViewerDialog from "../Options/ImageViewerDialog";
 import DarkModeButton from "../Options/DarkModeButton";
-import { availableApisForScene, orderedApiSlugs } from "../../config/serviceSelection";
+import {
+  availableApisForScene,
+  orderedApiSlugs,
+} from "../../config/serviceSelection";
 import {
   ALL_OCR_MODELS,
   OCR_GROUPS,
+  getModelDisplayName,
   installedLlmModels,
   recognizeFileImage,
   translateWithLocalModel,
@@ -131,8 +135,7 @@ export default function FileTranslateView() {
   const i18n = useI18n();
   const { setting, updateChild } = useSetting();
   const { allTextStyles } = useAllTextStyles();
-  const saved =
-    setting?.fileTranslateSetting || DEFAULT_FILE_TRANSLATE_SETTING;
+  const saved = setting?.fileTranslateSetting || DEFAULT_FILE_TRANSLATE_SETTING;
   const [mode, setMode] = useState("txt");
   const scene = saved[mode] || DEFAULT_FILE_TRANSLATE_SETTING[mode];
   const update = updateChild("fileTranslateSetting");
@@ -196,10 +199,7 @@ export default function FileTranslateView() {
     ocrApis[0];
 
   const currentOcrSlug = hasOcrService
-    ? scene.ocrApiSlug ||
-      scene.ocrApiSlugs?.[0] ||
-      activeOcrApi?.apiSlug ||
-      ""
+    ? scene.ocrApiSlug || scene.ocrApiSlugs?.[0] || activeOcrApi?.apiSlug || ""
     : "";
 
   const resolvedOcrModelId =
@@ -236,7 +236,7 @@ export default function FileTranslateView() {
     const options = ocrApis.map((api) => ({
       value: api.apiSlug,
       label: `${api.apiName || api.apiType || api.apiSlug}${
-        api.modelRef ? ` (${api.modelRef})` : ""
+        api.modelRef ? ` (${getModelDisplayName(api.modelRef, i18n)})` : ""
       }`,
     }));
     if (currentOcrSlug && !options.some((o) => o.value === currentOcrSlug)) {
@@ -528,8 +528,8 @@ export default function FileTranslateView() {
         ? bilingualMd || getBilingualText()
         : resultText || rows.map((r) => r.target).join("\n\n")
       : resultViewMode === "bilingual"
-      ? getBilingualText()
-      : resultText || rows.map((r) => r.target).join("\n\n");
+        ? getBilingualText()
+        : resultText || rows.map((r) => r.target).join("\n\n");
 
   // 下载 Markdown 格式文件 (.md)
   const handleDownloadMd = () => {
@@ -538,8 +538,7 @@ export default function FileTranslateView() {
       : "translation";
     const content = currentResultContent;
     if (!content) return;
-    const suffix =
-      resultViewMode === "bilingual" ? "bilingual" : "translated";
+    const suffix = resultViewMode === "bilingual" ? "bilingual" : "translated";
     downloadText(`${baseName}-${suffix}.md`, content);
   };
 
@@ -553,10 +552,13 @@ export default function FileTranslateView() {
     if (!bodyHtml) return;
     const standaloneHtml = generateStandaloneHtml(
       bodyHtml,
-      `${baseName} - ${resultViewMode === "bilingual" ? "双语对照" : "译文"}`
+      `${baseName} - ${
+        resultViewMode === "bilingual"
+          ? i18n("export_file_suffix_bilingual", "双语对照")
+          : i18n("export_file_suffix_target", "译文")
+      }`
     );
-    const suffix =
-      resultViewMode === "bilingual" ? "bilingual" : "translated";
+    const suffix = resultViewMode === "bilingual" ? "bilingual" : "translated";
     const blob = new Blob([standaloneHtml], {
       type: "text/html;charset=utf-8",
     });
@@ -581,8 +583,7 @@ export default function FileTranslateView() {
 
     const content = currentResultContent;
     if (!content) return;
-    const suffix =
-      resultViewMode === "bilingual" ? "bilingual" : "translated";
+    const suffix = resultViewMode === "bilingual" ? "bilingual" : "translated";
     downloadText(`${baseName}-${suffix}.txt`, content);
   };
 
@@ -787,8 +788,7 @@ export default function FileTranslateView() {
         // 用户主动取消
       } else {
         setError(
-          i18n("translate_failed", "翻译失败：") +
-            (err?.message || String(err))
+          i18n("translate_failed", "翻译失败：") + (err?.message || String(err))
         );
       }
     } finally {
@@ -1030,293 +1030,282 @@ export default function FileTranslateView() {
             </Box>
           </Box>
 
-        {/* 顶栏右侧：已选文件胶囊、操作按钮、系统辅助（统一高度 32px） */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            ml: 1.5,
-            flexShrink: 0,
-            flexWrap: "nowrap",
-            height: 32,
-          }}
-        >
-          {file && (
-            <Chip
-              icon={
-                mode === "image" ? (
-                  <ImageRoundedIcon sx={{ fontSize: 16 }} />
-                ) : (
-                  <InsertDriveFileRoundedIcon sx={{ fontSize: 16 }} />
-                )
-              }
-              label={`${file.name} (${formatFileSize(file.size)})`}
-              variant="outlined"
-              color="primary"
-              size="small"
-              onDelete={handleClearFile}
-              onClick={() => fileInputRef.current?.click()}
-              title={i18n(
-                "chip_file_hint",
-                "点击更换文件，点击叉号移除文件"
-              )}
-              sx={{
-                height: 32,
-                borderRadius: "4px",
-                maxWidth: 200,
-                fontSize: 12,
-                cursor: "pointer",
-                boxSizing: "border-box",
-                "& .MuiChip-label": {
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                },
-              }}
-            />
-          )}
+          {/* 顶栏右侧：已选文件胶囊、操作按钮、系统辅助（统一高度 32px） */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              ml: 1.5,
+              flexShrink: 0,
+              flexWrap: "nowrap",
+              height: 32,
+            }}
+          >
+            {file && (
+              <Chip
+                icon={
+                  mode === "image" ? (
+                    <ImageRoundedIcon sx={{ fontSize: 16 }} />
+                  ) : (
+                    <InsertDriveFileRoundedIcon sx={{ fontSize: 16 }} />
+                  )
+                }
+                label={`${file.name} (${formatFileSize(file.size)})`}
+                variant="outlined"
+                color="primary"
+                size="small"
+                onDelete={handleClearFile}
+                onClick={() => fileInputRef.current?.click()}
+                title={i18n("chip_file_hint", "点击更换文件，点击叉号移除文件")}
+                sx={{
+                  height: 32,
+                  borderRadius: "4px",
+                  maxWidth: 200,
+                  fontSize: 12,
+                  cursor: "pointer",
+                  boxSizing: "border-box",
+                  "& .MuiChip-label": {
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  },
+                }}
+              />
+            )}
 
-          {mode === "image" ? (
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
-              disabled={!file || busy || (mode === "image" && !hasOcrService)}
-              title={
-                mode === "image" && !hasOcrService
-                  ? i18n(
-                      "ocr_service_missing_guide",
-                      "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
-                    )
-                  : ""
-              }
-              onClick={() => run("paragraph")}
-              sx={{
-                height: 32,
-                borderRadius: "4px",
-                fontWeight: 600,
-                px: 1.75,
-                whiteSpace: "nowrap",
-                textTransform: "none",
-                fontSize: 13,
-                boxShadow: "none",
-                "&:hover": { boxShadow: "none" },
-              }}
-            >
-              {i18n("start_translation", "开始翻译")}
-            </Button>
-          ) : (
-            <>
-              <ButtonGroup
+            {mode === "image" ? (
+              <Button
                 variant="contained"
                 color="primary"
                 size="small"
-                disabled={!file || busy}
+                startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
+                disabled={!file || busy || (mode === "image" && !hasOcrService)}
+                title={
+                  mode === "image" && !hasOcrService
+                    ? i18n(
+                        "ocr_service_missing_guide",
+                        "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
+                      )
+                    : ""
+                }
+                onClick={() => run("paragraph")}
                 sx={{
                   height: 32,
                   borderRadius: "4px",
+                  fontWeight: 600,
+                  px: 1.75,
+                  whiteSpace: "nowrap",
+                  textTransform: "none",
+                  fontSize: 13,
                   boxShadow: "none",
                   "&:hover": { boxShadow: "none" },
-                  "& .MuiButtonGroup-grouped": {
-                    borderColor: "rgba(255, 255, 255, 0.25)",
-                  },
                 }}
               >
-                <Button
-                  startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
-                  onClick={() => handleStartTranslation(translateScope)}
-                  sx={{
-                    height: 32,
-                    fontWeight: 600,
-                    px: 1.5,
-                    whiteSpace: "nowrap",
-                    textTransform: "none",
-                    fontSize: 13,
-                    boxShadow: "none",
-                    "&:hover": { boxShadow: "none" },
-                  }}
-                >
-                  {translateScope === "entire"
-                    ? i18n("translate_entire", "整篇翻译")
-                    : i18n("translate_paragraph", "分段翻译")}
-                </Button>
-                <Button
-                  size="small"
+                {i18n("start_translation", "开始翻译")}
+              </Button>
+            ) : (
+              <>
+                <ButtonGroup
+                  variant="contained"
                   color="primary"
-                  onClick={(e) => setTranslateMenuAnchor(e.currentTarget)}
+                  size="small"
                   disabled={!file || busy}
                   sx={{
-                    px: 0.5,
-                    minWidth: 28,
                     height: 32,
+                    borderRadius: "4px",
                     boxShadow: "none",
                     "&:hover": { boxShadow: "none" },
-                  }}
-                  aria-label={i18n("select_translation_scope", "选择翻译模式")}
-                  title={i18n("select_translation_scope", "选择翻译模式")}
-                >
-                  <ArrowDropDownRoundedIcon sx={{ fontSize: 20 }} />
-                </Button>
-              </ButtonGroup>
-
-              <Menu
-                anchorEl={translateMenuAnchor}
-                open={Boolean(translateMenuAnchor)}
-                onClose={() => setTranslateMenuAnchor(null)}
-                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                transformOrigin={{ vertical: "top", horizontal: "right" }}
-              >
-                <MenuItem
-                  selected={translateScope === "paragraph"}
-                  onClick={() => {
-                    setTranslateScope("paragraph");
-                    setTranslateMenuAnchor(null);
+                    "& .MuiButtonGroup-grouped": {
+                      borderColor: "rgba(255, 255, 255, 0.25)",
+                    },
                   }}
                 >
-                  {i18n("scope_paragraph_label", "分段翻译 (默认)")}
-                </MenuItem>
-                <MenuItem
-                  selected={translateScope === "entire"}
-                  onClick={() => {
-                    setTranslateScope("entire");
-                    setTranslateMenuAnchor(null);
-                  }}
+                  <Button
+                    startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
+                    onClick={() => handleStartTranslation(translateScope)}
+                    sx={{
+                      height: 32,
+                      fontWeight: 600,
+                      px: 1.5,
+                      whiteSpace: "nowrap",
+                      textTransform: "none",
+                      fontSize: 13,
+                      boxShadow: "none",
+                      "&:hover": { boxShadow: "none" },
+                    }}
+                  >
+                    {translateScope === "entire"
+                      ? i18n("translate_entire", "整篇翻译")
+                      : i18n("translate_paragraph", "分段翻译")}
+                  </Button>
+                  <Button
+                    size="small"
+                    color="primary"
+                    onClick={(e) => setTranslateMenuAnchor(e.currentTarget)}
+                    disabled={!file || busy}
+                    sx={{
+                      px: 0.5,
+                      minWidth: 28,
+                      height: 32,
+                      boxShadow: "none",
+                      "&:hover": { boxShadow: "none" },
+                    }}
+                    aria-label={i18n(
+                      "select_translation_scope",
+                      "选择翻译模式"
+                    )}
+                    title={i18n("select_translation_scope", "选择翻译模式")}
+                  >
+                    <ArrowDropDownRoundedIcon sx={{ fontSize: 20 }} />
+                  </Button>
+                </ButtonGroup>
+
+                <Menu
+                  anchorEl={translateMenuAnchor}
+                  open={Boolean(translateMenuAnchor)}
+                  onClose={() => setTranslateMenuAnchor(null)}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                  transformOrigin={{ vertical: "top", horizontal: "right" }}
                 >
-                  {i18n("scope_entire_label", "整篇翻译 (全文连贯)")}
-                </MenuItem>
-              </Menu>
-            </>
-          )}
+                  <MenuItem
+                    selected={translateScope === "paragraph"}
+                    onClick={() => {
+                      setTranslateScope("paragraph");
+                      setTranslateMenuAnchor(null);
+                    }}
+                  >
+                    {i18n("scope_paragraph_label", "分段翻译 (默认)")}
+                  </MenuItem>
+                  <MenuItem
+                    selected={translateScope === "entire"}
+                    onClick={() => {
+                      setTranslateScope("entire");
+                      setTranslateMenuAnchor(null);
+                    }}
+                  >
+                    {i18n("scope_entire_label", "整篇翻译 (全文连贯)")}
+                  </MenuItem>
+                </Menu>
+              </>
+            )}
 
-          {busy && (
-            <Button
-              variant="outlined"
-              color="inherit"
-              size="small"
-              startIcon={<StopRoundedIcon sx={{ fontSize: 18 }} />}
-              onClick={() => controller.current?.abort()}
-              sx={{
-                height: 32,
-                borderRadius: "4px",
-                whiteSpace: "nowrap",
-                textTransform: "none",
-                fontSize: 13,
-                px: 1.5,
-              }}
-            >
-              {i18n("cancel", "取消")}
-            </Button>
-          )}
-
-          {mode === "markdown" ? (
-            <>
-              <ButtonGroup
+            {busy && (
+              <Button
                 variant="outlined"
                 color="inherit"
                 size="small"
-                disabled={!currentResultContent || busy}
+                startIcon={<StopRoundedIcon sx={{ fontSize: 18 }} />}
+                onClick={() => controller.current?.abort()}
                 sx={{
                   height: 32,
                   borderRadius: "4px",
+                  whiteSpace: "nowrap",
+                  textTransform: "none",
+                  fontSize: 13,
+                  px: 1.5,
                 }}
               >
-                <Button
-                  startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 18 }} />}
-                  onClick={handleDownloadMd}
+                {i18n("cancel", "取消")}
+              </Button>
+            )}
+
+            {mode === "markdown" ? (
+              <>
+                <ButtonGroup
+                  variant="outlined"
+                  color="inherit"
+                  size="small"
+                  disabled={!currentResultContent || busy}
                   sx={{
                     height: 32,
-                    textTransform: "none",
-                    fontSize: 13,
-                    px: 1.5,
-                    whiteSpace: "nowrap",
+                    borderRadius: "4px",
                   }}
                 >
-                  {resultViewMode === "bilingual"
-                    ? i18n("download_bilingual_md", "下载双语 MD")
-                    : i18n("download_md", "下载译文 MD")}
-                </Button>
-                <Button
-                  size="small"
-                  color="inherit"
-                  onClick={(e) => setDownloadMenuAnchor(e.currentTarget)}
-                  disabled={!currentResultContent || busy}
-                  sx={{ px: 0.5, minWidth: 28, height: 32 }}
-                  title={i18n("more_export_options", "更多导出选项")}
+                  <Button
+                    startIcon={
+                      <FileDownloadRoundedIcon sx={{ fontSize: 18 }} />
+                    }
+                    onClick={handleDownloadMd}
+                    sx={{
+                      height: 32,
+                      textTransform: "none",
+                      fontSize: 13,
+                      px: 1.5,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {resultViewMode === "bilingual"
+                      ? i18n("download_bilingual_md", "下载双语 MD")
+                      : i18n("download_md", "下载译文 MD")}
+                  </Button>
+                  <Button
+                    size="small"
+                    color="inherit"
+                    onClick={(e) => setDownloadMenuAnchor(e.currentTarget)}
+                    disabled={!currentResultContent || busy}
+                    sx={{ px: 0.5, minWidth: 28, height: 32 }}
+                    title={i18n("more_export_options", "更多导出选项")}
+                  >
+                    <ArrowDropDownRoundedIcon sx={{ fontSize: 20 }} />
+                  </Button>
+                </ButtonGroup>
+                <Menu
+                  anchorEl={downloadMenuAnchor}
+                  open={Boolean(downloadMenuAnchor)}
+                  onClose={() => setDownloadMenuAnchor(null)}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                  transformOrigin={{ vertical: "top", horizontal: "right" }}
                 >
-                  <ArrowDropDownRoundedIcon sx={{ fontSize: 20 }} />
-                </Button>
-              </ButtonGroup>
-              <Menu
-                anchorEl={downloadMenuAnchor}
-                open={Boolean(downloadMenuAnchor)}
-                onClose={() => setDownloadMenuAnchor(null)}
-                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                transformOrigin={{ vertical: "top", horizontal: "right" }}
+                  <MenuItem
+                    onClick={() => {
+                      setDownloadMenuAnchor(null);
+                      handleDownloadMd();
+                    }}
+                  >
+                    {i18n("export_markdown_file", "导出 Markdown 文档 (.md)")}
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setDownloadMenuAnchor(null);
+                      handleDownloadHtml();
+                    }}
+                  >
+                    {i18n("export_html_file", "导出 HTML 网页 (.html)")}
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : (
+              <Button
+                variant="outlined"
+                color="inherit"
+                size="small"
+                startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 18 }} />}
+                disabled={
+                  resultViewMode === "image"
+                    ? !translatedImageBlob || busy
+                    : !currentResultContent || busy
+                }
+                onClick={handleDownload}
+                sx={{
+                  height: 32,
+                  borderRadius: "4px",
+                  whiteSpace: "nowrap",
+                  textTransform: "none",
+                  fontSize: 13,
+                  px: 1.5,
+                }}
               >
-                <MenuItem
-                  onClick={() => {
-                    setDownloadMenuAnchor(null);
-                    handleDownloadMd();
-                  }}
-                >
-                  {i18n("export_markdown_file", "导出 Markdown 文档 (.md)")}
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    setDownloadMenuAnchor(null);
-                    handleDownloadHtml();
-                  }}
-                >
-                  {i18n("export_html_file", "导出 HTML 网页 (.html)")}
-                </MenuItem>
-              </Menu>
-            </>
-          ) : (
-            <Button
-              variant="outlined"
-              color="inherit"
-              size="small"
-              startIcon={<FileDownloadRoundedIcon sx={{ fontSize: 18 }} />}
-              disabled={
-                resultViewMode === "image"
-                  ? !translatedImageBlob || busy
-                  : !currentResultContent || busy
-              }
-              onClick={handleDownload}
-              sx={{
-                height: 32,
-                borderRadius: "4px",
-                whiteSpace: "nowrap",
-                textTransform: "none",
-                fontSize: 13,
-                px: 1.5,
-              }}
-            >
-              {resultViewMode === "image"
-                ? i18n("download_image_png", "下载译图 (PNG)")
-                : resultViewMode === "bilingual"
-                ? i18n("download_bilingual_txt", "下载双语 TXT")
-                : i18n("download_txt", "下载译文 TXT")}
-            </Button>
-          )}
+                {resultViewMode === "image"
+                  ? i18n("download_image_png", "下载译图 (PNG)")
+                  : resultViewMode === "bilingual"
+                    ? i18n("download_bilingual_txt", "下载双语 TXT")
+                    : i18n("download_txt", "下载译文 TXT")}
+              </Button>
+            )}
 
-          <DarkModeButton
-            size="small"
-            sx={{
-              width: 32,
-              height: 32,
-              p: 0.5,
-              color: "text.secondary",
-              "&:hover": { color: "text.primary" },
-            }}
-          />
-
-          <Tooltip title={i18n("open_options", "打开设置")}>
-            <IconButton
+            <DarkModeButton
               size="small"
-              onClick={() => openOptionsPage()}
               sx={{
                 width: 32,
                 height: 32,
@@ -1324,49 +1313,64 @@ export default function FileTranslateView() {
                 color: "text.secondary",
                 "&:hover": { color: "text.primary" },
               }}
-            >
-              <SettingsRoundedIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Tooltip>
+            />
 
-          {/* 折叠/展开配置小箭头按钮，始终常驻在第一行最右侧 */}
-          <Tooltip
-            title={
-              optionsExpanded
-                ? i18n("collapse_options", "收起配置")
-                : i18n("expand_options", "展开配置")
-            }
-          >
-            <IconButton
-              size="small"
-              onClick={() => setOptionsExpanded((prev) => !prev)}
-              aria-expanded={optionsExpanded}
-              aria-label={
+            <Tooltip title={i18n("open_options", "打开设置")}>
+              <IconButton
+                size="small"
+                onClick={() => openOptionsPage()}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  p: 0.5,
+                  color: "text.secondary",
+                  "&:hover": { color: "text.primary" },
+                }}
+              >
+                <SettingsRoundedIcon sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Tooltip>
+
+            {/* 折叠/展开配置小箭头按钮，始终常驻在第一行最右侧 */}
+            <Tooltip
+              title={
                 optionsExpanded
                   ? i18n("collapse_options", "收起配置")
                   : i18n("expand_options", "展开配置")
               }
-              sx={{
-                width: 32,
-                height: 32,
-                p: 0.5,
-                color: "text.secondary",
-                "&:hover": {
-                  color: "primary.main",
-                  bgcolor: "action.hover",
-                },
-              }}
             >
-              <KeyboardArrowDownRoundedIcon
+              <IconButton
+                size="small"
+                onClick={() => setOptionsExpanded((prev) => !prev)}
+                aria-expanded={optionsExpanded}
+                aria-label={
+                  optionsExpanded
+                    ? i18n("collapse_options", "收起配置")
+                    : i18n("expand_options", "展开配置")
+                }
                 sx={{
-                  fontSize: 20,
-                  transform: optionsExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s ease-in-out",
+                  width: 32,
+                  height: 32,
+                  p: 0.5,
+                  color: "text.secondary",
+                  "&:hover": {
+                    color: "primary.main",
+                    bgcolor: "action.hover",
+                  },
                 }}
-              />
-            </IconButton>
-          </Tooltip>
-        </Box>
+              >
+                <KeyboardArrowDownRoundedIcon
+                  sx={{
+                    fontSize: 20,
+                    transform: optionsExpanded
+                      ? "rotate(180deg)"
+                      : "rotate(0deg)",
+                    transition: "transform 0.2s ease-in-out",
+                  }}
+                />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
 
         {/* 第二行：流式展示核心下拉配置 */}
@@ -1469,10 +1473,7 @@ export default function FileTranslateView() {
               }}
             />
             <Typography variant="h6" sx={{ fontSize: 18, fontWeight: 600 }}>
-              {i18n(
-                "dropzone_prompt",
-                "点击选择文件 或 拖拽文件到此处"
-              )}
+              {i18n("dropzone_prompt", "点击选择文件 或 拖拽文件到此处")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               {i18n(
@@ -1535,7 +1536,14 @@ export default function FileTranslateView() {
                     gap: 1,
                   }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                      minWidth: 0,
+                    }}
+                  >
                     <Typography
                       variant="subtitle2"
                       sx={{
@@ -1546,61 +1554,61 @@ export default function FileTranslateView() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                        {mode === "txt"
-                          ? i18n("source_text_title", "原文内容")
-                          : mode === "markdown"
+                      {mode === "txt"
+                        ? i18n("source_text_title", "原文内容")
+                        : mode === "markdown"
                           ? i18n("source_markdown_title", "Markdown 原文")
                           : i18n("source_image_title", "原图预览")}
-                        <Typography
-                          component="span"
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ whiteSpace: "nowrap" }}
-                        >
-                          {mode === "txt" || mode === "markdown"
-                            ? `(${sourceText.length} ${i18n(
-                                "characters",
-                                "字符"
-                              )})`
-                            : `(${formatFileSize(file.size)})`}
-                        </Typography>
+                      <Typography
+                        component="span"
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ whiteSpace: "nowrap" }}
+                      >
+                        {mode === "txt" || mode === "markdown"
+                          ? `(${sourceText.length} ${i18n(
+                              "characters",
+                              "字符"
+                            )})`
+                          : `(${formatFileSize(file.size)})`}
                       </Typography>
+                    </Typography>
 
-                      {mode === "markdown" && sourceText && (
-                        <ToggleButtonGroup
-                          size="small"
-                          value={mdSourceView}
-                          exclusive
-                          onChange={(e, val) => val && setMdSourceView(val)}
-                          sx={{ height: 26, flexShrink: 0 }}
+                    {mode === "markdown" && sourceText && (
+                      <ToggleButtonGroup
+                        size="small"
+                        value={mdSourceView}
+                        exclusive
+                        onChange={(e, val) => val && setMdSourceView(val)}
+                        sx={{ height: 26, flexShrink: 0 }}
+                      >
+                        <ToggleButton
+                          value="preview"
+                          sx={{
+                            px: 1,
+                            py: 0.25,
+                            fontSize: 11,
+                            lineHeight: 1.2,
+                            whiteSpace: "nowrap",
+                          }}
                         >
-                          <ToggleButton
-                            value="preview"
-                            sx={{
-                              px: 1,
-                              py: 0.25,
-                              fontSize: 11,
-                              lineHeight: 1.2,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {i18n("md_preview_view", "渲染视图")}
-                          </ToggleButton>
-                          <ToggleButton
-                            value="source"
-                            sx={{
-                              px: 1,
-                              py: 0.25,
-                              fontSize: 11,
-                              lineHeight: 1.2,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {i18n("md_source_view", "源码")}
-                          </ToggleButton>
-                        </ToggleButtonGroup>
-                      )}
-                    </Box>
+                          {i18n("md_preview_view", "渲染视图")}
+                        </ToggleButton>
+                        <ToggleButton
+                          value="source"
+                          sx={{
+                            px: 1,
+                            py: 0.25,
+                            fontSize: 11,
+                            lineHeight: 1.2,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {i18n("md_source_view", "源码")}
+                        </ToggleButton>
+                      </ToggleButtonGroup>
+                    )}
+                  </Box>
 
                   {(mode === "txt" || mode === "markdown") && sourceText && (
                     <Button
@@ -1764,7 +1772,7 @@ export default function FileTranslateView() {
                       <Box
                         component="img"
                         src={preview}
-                        alt="原图预览"
+                        alt={i18n("source_image_title", "原图预览")}
                         sx={{
                           maxWidth: "100%",
                           maxHeight: "100%",
@@ -2035,7 +2043,11 @@ export default function FileTranslateView() {
                         {mode === "image" && !hasOcrService ? (
                           <>
                             <WarningAmberRoundedIcon
-                              sx={{ fontSize: 44, color: "warning.main", mb: 1.5 }}
+                              sx={{
+                                fontSize: 44,
+                                color: "warning.main",
+                                mb: 1.5,
+                              }}
                             />
                             <Typography
                               variant="body2"
@@ -2104,7 +2116,7 @@ export default function FileTranslateView() {
                           <Box
                             component="img"
                             src={translatedImageUrl}
-                            alt="译图结果"
+                            alt={i18n("translated_image_title", "译图结果")}
                             sx={{
                               maxWidth: "100%",
                               maxHeight: "100%",
@@ -2182,10 +2194,7 @@ export default function FileTranslateView() {
                                   "generating_translated_image",
                                   "正在合成译图..."
                                 )
-                              : i18n(
-                                  "no_translated_image",
-                                  "暂无生成的译图"
-                                )}
+                              : i18n("no_translated_image", "暂无生成的译图")}
                           </Typography>
                         </Box>
                       )
@@ -2270,7 +2279,11 @@ export default function FileTranslateView() {
                       {mode === "image" && !hasOcrService ? (
                         <>
                           <WarningAmberRoundedIcon
-                            sx={{ fontSize: 44, color: "warning.main", mb: 1.5 }}
+                            sx={{
+                              fontSize: 44,
+                              color: "warning.main",
+                              mb: 1.5,
+                            }}
                           />
                           <Typography
                             variant="body2"

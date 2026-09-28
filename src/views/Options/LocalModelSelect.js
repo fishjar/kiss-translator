@@ -3,6 +3,7 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import ListSubheader from "@mui/material/ListSubheader";
 import { useI18n } from "../../hooks/I18n";
+import { getModelDisplayName } from "../../localAi/core/catalog";
 
 export default function LocalModelSelect({
   value,
@@ -54,14 +55,17 @@ export default function LocalModelSelect({
 
       {groups.length === 0 && (
         <MenuItem value="" disabled>
-          {i18n("api_local_model_none", "暂无匹配能力的已安装模型（请先在本地 AI 中下载）")}
+          {i18n(
+            "api_local_model_none",
+            "暂无匹配能力的已安装模型（请先在本地 AI 中下载）"
+          )}
         </MenuItem>
       )}
 
       {groups.length === 1 &&
         groups[0].items.map((m) => (
           <MenuItem key={m.id} value={m.id}>
-            {m.name || m.id}
+            {getModelDisplayName(m, i18n) || m.id}
           </MenuItem>
         ))}
 
@@ -71,11 +75,11 @@ export default function LocalModelSelect({
             key={`header-${group.category}`}
             sx={{ lineHeight: "36px", fontWeight: 700 }}
           >
-            {group.title}
+            {i18n(`local_ai_group_${group.category}`, group.title)}
           </ListSubheader>,
           ...group.items.map((m) => (
             <MenuItem key={m.id} value={m.id} sx={{ pl: 3 }}>
-              {m.name || m.id}
+              {getModelDisplayName(m, i18n) || m.id}
             </MenuItem>
           )),
         ])}

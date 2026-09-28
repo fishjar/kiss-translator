@@ -310,3 +310,6 @@ export async function recognizeFileImage(
   if (signal?.aborted) throw new DOMException("已取消", "AbortError");
   return ocr.recognize(file, signal);
 }
+
+export { getModelDisplayName } from "./core/catalog";
+

@@ -68,6 +68,7 @@ import {
   PROMPT_PROTOCOL_XML,
   PROMPT_PROTOCOL_JSON,
   MSG_LOCAL_AI_RPC,
+  MSG_LOCAL_AI_CANCEL,
   MSG_BUILTINAI_SUMMARIZE,
 } from "../config";
 import { isExt } from "../libs/client";
@@ -2880,6 +2881,7 @@ export const handleSummarize = async ({
   apiSetting,
   prompt,
   to = "zh-CN",
+  signal,
 }) => {
   const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
 
@@ -2912,38 +2914,7 @@ export const handleSummarize = async ({
     return (summary || "").trim();
   }
 
-  // 2. 本地大模型 (LocalAI)
-  if (apiType === OPT_TRANS_LOCALAI) {
-    let localPrompt = prompt?.systemPrompt;
-    if (localPrompt) {
-      localPrompt = localPrompt.replaceAll(INPUT_PLACE_TO, to);
-    }
-    const contextLines = [
-      title && `Title: ${title}`,
-      description && `Description: ${description}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
-    if (contextLines) {
-      localPrompt = localPrompt ? `${localPrompt}\n\n${contextLines}` : contextLines;
-    }
-    const userContent = localPrompt ? `${localPrompt}\n\n${transcript}` : transcript;
-    const id = `local-summary-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const response = await sendBgMsg(MSG_LOCAL_AI_RPC, {
-      id,
-      service: "llm",
-      method: "chat",
-      payload: {
-        modelRef: apiSetting.modelRef,
-        messages: [{ role: "user", content: userContent }],
-        maxTokens: 2048,
-      },
-    });
-    if (typeof response === "string") return response.trim();
-    return (response?.text || "").trim();
-  }
-
-  // 3. 网络大模型与自定义接口
+  // 统一展开提示词模板，确保本地大模型与网络大模型均能正确支持自定义 userPrompt
   let userPrompt = prompt?.userPrompt;
   if (userPrompt) {
     userPrompt = userPrompt
@@ -2961,9 +2932,40 @@ export const handleSummarize = async ({
       .join("\n");
   }
 
-  const systemPrompt = (prompt?.systemPrompt || summarizeSystemPrompt)
-    .replaceAll(INPUT_PLACE_TO, to);
+  const systemPrompt = (
+    prompt?.systemPrompt || summarizeSystemPrompt
+  ).replaceAll(INPUT_PLACE_TO, to);
 
+  // 2. 本地大模型 (LocalAI)
+  if (apiType === OPT_TRANS_LOCALAI) {
+    const messages = [
+      ...buildSystemRoleMessages(systemPrompt),
+      { role: "user", content: userPrompt },
+    ];
+    const id = `local-summary-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const cancel = () => {
+      void sendBgMsg(MSG_LOCAL_AI_CANCEL, { id });
+    };
+    signal?.addEventListener("abort", cancel, { once: true });
+    try {
+      const response = await sendBgMsg(MSG_LOCAL_AI_RPC, {
+        id,
+        service: "llm",
+        method: "chat",
+        payload: {
+          modelRef: apiSetting.modelRef,
+          messages,
+          maxTokens: 2048,
+        },
+      });
+      if (typeof response === "string") return response.trim();
+      return (response?.text || "").trim();
+    } finally {
+      signal?.removeEventListener("abort", cancel);
+    }
+  }
+
+  // 3. 网络大模型与自定义接口
   const [input, init] = await genTransReq({
     ...apiSetting,
     // 字幕上下文总结需要一次性文本结果，不能继承段落翻译的流式输出设置。
@@ -2984,6 +2986,7 @@ export const handleSummarize = async ({
     fetchInterval,
     fetchLimit,
     httpTimeout,
+    signal,
   });
 
   if (!res) return "";

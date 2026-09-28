@@ -97,7 +97,7 @@ describe("ImageViewerDialog component", () => {
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
     });
-    const selectedBtn = dialog.querySelector('.Mui-selected');
+    const selectedBtn = dialog.querySelector(".Mui-selected");
     expect(selectedBtn?.getAttribute("value")).toBe("translated");
 
     // Escape 键关闭

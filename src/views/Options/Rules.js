@@ -123,7 +123,8 @@ const calculateInitialValues = (rule) => {
   // REVIEW: GLOBLA_RULE 存在拼写错误，疑似应为 GLOBAL_RULE。此处为兼容底层导出的拼写而沿用。
   const base = rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE;
   const merged = { ...base, ...(rule || {}) };
-  if (rule?.apiSlug && !Array.isArray(rule.apiSlugs)) merged.apiSlugs = [rule.apiSlug];
+  if (rule?.apiSlug && !Array.isArray(rule.apiSlugs))
+    merged.apiSlugs = [rule.apiSlug];
   return merged;
 };
 
@@ -410,10 +411,23 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
               <OrderedApiSelect
                 fullWidth
                 scene={formValues}
-                apis={rule?.pattern === "*" ? enabledApis : [{ apiSlug: GLOBAL_KEY, apiName: i18n("follow_global") }, ...enabledApis]}
+                apis={
+                  rule?.pattern === "*"
+                    ? enabledApis
+                    : [
+                        { apiSlug: GLOBAL_KEY, apiName: i18n("follow_global") },
+                        ...enabledApis,
+                      ]
+                }
                 label={i18n("translate_service")}
                 disabled={disabled}
-                onChange={(apiSlugs) => setFormValues((previous) => ({ ...previous, apiSlugs, apiSlug: apiSlugs[0] || GLOBAL_KEY }))}
+                onChange={(apiSlugs) =>
+                  setFormValues((previous) => ({
+                    ...previous,
+                    apiSlugs,
+                    apiSlug: apiSlugs[0] || GLOBAL_KEY,
+                  }))
+                }
               />
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={6}>
@@ -422,7 +436,9 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 label={i18n("translation_prompt", "翻译提示词")}
                 value={formValues.promptSlug}
                 disabled={disabled}
-                onChange={(promptSlug) => updateFormValue("promptSlug", promptSlug)}
+                onChange={(promptSlug) =>
+                  updateFormValue("promptSlug", promptSlug)
+                }
               />
             </Grid>
             {/* 源语言设置 */}

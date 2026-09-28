@@ -794,7 +794,9 @@ export const apiTranslate = async ({
     });
   } else if (apiType === OPT_TRANS_LOCALAI) {
     const id = `local-translation-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const cancel = () => { void sendBgMsg(MSG_LOCAL_AI_CANCEL, { id }); };
+    const cancel = () => {
+      void sendBgMsg(MSG_LOCAL_AI_CANCEL, { id });
+    };
     signal?.addEventListener("abort", cancel, { once: true });
     try {
       translation = await sendBgMsg(MSG_LOCAL_AI_RPC, {
@@ -1162,6 +1164,38 @@ export const apiSummarizeContext = async ({
 };
 
 /**
+ * 生成视频总结的确定性缓存签名。
+ * 综合视频 ID、接口 slug、模型标识、目标语言、提示词模板内容（系统与用户提示词）以及输入内容（标题、简介、字幕），
+ * 确保在字幕补全、元数据变更、修改提示词模板或切换语言时均能生成不同的签名。
+ */
+export const getVideoSummarySignature = async ({
+  videoId = "",
+  title = "",
+  description = "",
+  transcript = "",
+  apiSetting = {},
+  prompt = {},
+  to = "zh-CN",
+}) => {
+  const contentToDigest = [
+    videoId,
+    apiSetting?.apiSlug || "",
+    apiSetting?.modelRef || apiSetting?.model || "",
+    to,
+    prompt?.slug || "default",
+    prompt?.systemPrompt || "",
+    prompt?.userPrompt || "",
+    title,
+    description,
+    transcript,
+  ].join("\n---\n");
+
+  const digest = await getCacheDigest(contentToDigest, "video_summary_v1");
+  const sig = (digest || "").slice(0, 16);
+  return `${videoId || "video"}_${apiSetting?.apiSlug || "api"}_${to}_${sig}`;
+};
+
+/**
  * 对视频标题、简介和原始字幕原稿生成结构化 Markdown 视频总结 (Video Summary)。
  * 支持使用 BuiltinAI、LocalAI 或网络大模型，支持指定自定义总结提示词和目标语言，支持缓存与强制重新生成。
  */
@@ -1174,12 +1208,23 @@ export const apiSummarizeVideo = async ({
   prompt,
   to = "zh-CN",
   force = false,
+  signal,
 }) => {
+  const summarySig = await getVideoSummarySignature({
+    videoId,
+    title,
+    description,
+    transcript,
+    apiSetting,
+    prompt,
+    to,
+  });
+
   const cacheOpts = {
     apiSlug: apiSetting.apiSlug,
     videoId,
-    promptSlug: prompt?.slug || "default",
     to,
+    sig: summarySig,
     type: "video_summary",
   };
   const cacheInput = `${URL_CACHE_CONTEXT}?${queryString.stringify(cacheOpts)}`;
@@ -1198,6 +1243,7 @@ export const apiSummarizeVideo = async ({
     apiSetting,
     prompt,
     to,
+    signal,
   });
 
   if (summary) {
@@ -1207,4 +1253,3 @@ export const apiSummarizeVideo = async ({
 
   return "";
 };
-

@@ -931,7 +931,9 @@ describe("useSelectionController", () => {
       expect(controller.state.showBox).toBe(true);
 
       act(() => {
-        option.dispatchEvent(new MouseEvent("click", { bubbles: true, composed: true }));
+        option.dispatchEvent(
+          new MouseEvent("click", { bubbles: true, composed: true })
+        );
       });
       expect(controller.state.showBox).toBe(true);
 

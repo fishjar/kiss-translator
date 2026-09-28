@@ -139,8 +139,8 @@ export class RuntimeManager {
   } | null = null;
   private activeLlmReqId: string | null = null;
   private activeLlmChatReqId: string | null = null;
-  private translationRequests = new Map<string, string>();
-  private cancelledTranslations = new Set<string>();
+  private childRequests = new Map<string, string>();
+  private cancelledRequests = new Set<string>();
 
   // TTS Worker 状态
   private ttsWorker: Worker | null = null;
@@ -273,9 +273,9 @@ export class RuntimeManager {
     requestId: string,
     reason = "REQUEST_CANCELLED: 任务已取消"
   ): boolean {
-    const childId = this.translationRequests.get(requestId);
+    const childId = this.childRequests.get(requestId);
     if (childId) {
-      this.cancelledTranslations.add(requestId);
+      this.cancelledRequests.add(requestId);
       return this.scheduler.cancel(childId, reason);
     }
     return this.scheduler.cancel(requestId, reason);
@@ -357,50 +357,129 @@ export class RuntimeManager {
     }
   }
 
+  private async ensureLlmModel(
+    modelRef: string,
+    parentReqId: string,
+    priority?: number,
+    emitProgress?: (p: Omit<AiRpcProgress, "id">) => void,
+    emitStream?: (s: Omit<AiRpcStreamEvent, "id">) => void
+  ): Promise<ServiceSessionState> {
+    await this.modelManager.init();
+    const model = getCatalogModel(modelRef);
+    if (
+      !model ||
+      model.task !== "llm" ||
+      this.modelManager.get(modelRef)?.state !== "installed"
+    ) {
+      throw new Error("MODEL_NOT_INSTALLED: 本地大模型未安装");
+    }
+    const file = model.files[0];
+    if (!file) throw new Error("MODEL_LOAD_FAILED: 模型文件缺失");
+
+    const current = this.sessions.get("llm");
+    if (
+      current?.modelId !== model.dir ||
+      current.state === "unloaded" ||
+      !this.llmWorker
+    ) {
+      const device =
+        model.backend.includes("webgpu") &&
+        (navigator as Navigator & { gpu?: unknown }).gpu
+          ? "webgpu"
+          : "wasm";
+      const spec: LlmLoadSpec | LlmOnnxLoadSpec =
+        model.runtime === "wllama"
+          ? {
+              runtime: "wllama",
+              dir: model.dir,
+              file: file.path,
+              device,
+              nCtx: 2048,
+            }
+          : {
+              runtime: "onnx",
+              source: model.source,
+              dir: model.dir,
+              device,
+              dtype:
+                model.files
+                  .find((item) => item.path.endsWith(".onnx"))
+                  ?.path.match(/model_(.+)\.onnx$/)?.[1] ?? "q4f16",
+            };
+      const loadId = `${parentReqId}-load`;
+      this.childRequests.set(parentReqId, loadId);
+      try {
+        const loaded = await this.handleLlm(
+          {
+            id: loadId,
+            service: "llm",
+            method: "load",
+            payload: spec,
+            priority,
+          },
+          emitProgress || (() => {}),
+          emitStream || (() => {})
+        );
+        const session = this.sessions.get("llm");
+        if (!loaded.result || !session) {
+          throw new Error("MODEL_LOAD_FAILED: 本地模型加载失败");
+        }
+        return session;
+      } finally {
+        this.childRequests.delete(parentReqId);
+      }
+    }
+    return current;
+  }
+
   private async handleLocalTranslation(
     req: AiRpcRequest,
     emitProgress: (p: Omit<AiRpcProgress, "id">) => void,
     emitStream: (s: Omit<AiRpcStreamEvent, "id">) => void
   ): Promise<{ result: unknown; queueMs?: number; inferenceMs?: number }> {
     const { modelRef, text, fromLang, toLang } = req.payload as {
-      modelRef: string; text: string; fromLang: string; toLang: string;
+      modelRef: string;
+      text: string;
+      fromLang: string;
+      toLang: string;
     };
-    await this.modelManager.init();
-    const model = getCatalogModel(modelRef);
-    if (!model || model.task !== "llm" || this.modelManager.get(modelRef)?.state !== "installed") {
-      throw new Error("MODEL_NOT_INSTALLED: 本地翻译模型未安装");
-    }
-    const file = model.files[0];
-    if (!file) throw new Error("MODEL_LOAD_FAILED: 模型文件缺失");
-    const current = this.sessions.get("llm");
-    let session = current;
     try {
-      if (current?.modelId !== model.dir || current.state === "unloaded") {
-        const device = model.backend.includes("webgpu") && (navigator as Navigator & { gpu?: unknown }).gpu ? "webgpu" : "wasm";
-        const spec: LlmLoadSpec | LlmOnnxLoadSpec = model.runtime === "wllama"
-          ? { runtime: "wllama", dir: model.dir, file: file.path, device, nCtx: 2048 }
-          : { runtime: "onnx", source: model.source, dir: model.dir, device, dtype: model.files.find((item) => item.path.endsWith(".onnx"))?.path.match(/model_(.+)\.onnx$/)?.[1] ?? "q4f16" };
-        const loadId = `${req.id}-load`;
-        this.translationRequests.set(req.id, loadId);
-        const loaded = await this.handleLlm(
-          { id: loadId, service: "llm", method: "load", payload: spec, priority: req.priority },
-          emitProgress, emitStream
-        );
-        session = this.sessions.get("llm");
-        if (!loaded.result || !session) throw new Error("MODEL_LOAD_FAILED: 本地模型加载失败");
+      const session = await this.ensureLlmModel(
+        modelRef,
+        req.id,
+        req.priority,
+        emitProgress,
+        emitStream
+      );
+      if (this.cancelledRequests.has(req.id)) {
+        throw new Error("REQUEST_CANCELLED: 用户已取消");
       }
-      if (this.cancelledTranslations.has(req.id)) throw new Error("REQUEST_CANCELLED: 用户已取消");
       const chatId = `${req.id}-chat`;
-      this.translationRequests.set(req.id, chatId);
+      this.childRequests.set(req.id, chatId);
       const prompt = `Translate the following ${fromLang || "auto"} text into ${toLang}. Preserve placeholders and markup. Output only the translation.\n\n${text}`;
       const chat = await this.handleLlm(
-        { id: chatId, service: "llm", method: "chat", payload: { messages: [{ role: "user", content: prompt }], maxTokens: 2048 }, priority: req.priority, options: { sessionVersion: session?.sessionVersion } },
-        emitProgress, emitStream
+        {
+          id: chatId,
+          service: "llm",
+          method: "chat",
+          payload: {
+            messages: [{ role: "user", content: prompt }],
+            maxTokens: 2048,
+          },
+          priority: req.priority,
+          options: { sessionVersion: session?.sessionVersion },
+        },
+        emitProgress,
+        emitStream
       );
-      return { result: (chat.result as { text: string }).text, queueMs: chat.queueMs, inferenceMs: chat.inferenceMs };
+      return {
+        result: (chat.result as { text: string }).text,
+        queueMs: chat.queueMs,
+        inferenceMs: chat.inferenceMs,
+      };
     } finally {
-      this.translationRequests.delete(req.id);
-      this.cancelledTranslations.delete(req.id);
+      this.childRequests.delete(req.id);
+      this.cancelledRequests.delete(req.id);
     }
   }
 
@@ -1136,16 +1215,33 @@ export class RuntimeManager {
     }
 
     if (req.method === "chat") {
-      const { messages, maxTokens } = req.payload as {
+      const { messages, maxTokens, modelRef } = req.payload as {
         messages: ChatMessage[];
         maxTokens: number;
+        modelRef?: string;
       };
-      this.assertSessionVersion("llm", req.options?.sessionVersion);
+      let sessionVersionToCheck = req.options?.sessionVersion;
+      if (modelRef) {
+        const session = await this.ensureLlmModel(
+          modelRef,
+          req.id,
+          req.priority,
+          _emitProgress,
+          _emitStream
+        );
+        if (this.cancelledRequests.has(req.id)) {
+          throw new Error("REQUEST_CANCELLED: 用户已取消");
+        }
+        if (sessionVersionToCheck === undefined) {
+          sessionVersionToCheck = session.sessionVersion;
+        }
+      }
+      this.assertSessionVersion("llm", sessionVersionToCheck);
       if (!this.llmWorker) throw new Error("MODEL_UNLOADED: 模型尚未加载");
       this.pool.touch("llm");
       const scheduled = await this.scheduler.schedule(
         () => {
-          this.assertSessionVersion("llm", req.options?.sessionVersion);
+          this.assertSessionVersion("llm", sessionVersionToCheck);
           this.activeLlmReqId = req.id;
           this.activeLlmChatReqId = req.id;
           return new Promise<{

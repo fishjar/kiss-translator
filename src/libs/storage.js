@@ -552,17 +552,20 @@ export const migrateStoredSettingToV2 = async (
 export const runDataMigration = async () => {
   const rawSetting = await getSetting();
   const rawRules = await getRules();
-  const needsRuleMigration = Array.isArray(rawRules) && rawRules.some((rule) => rule && !Array.isArray(rule.apiSlugs));
+  const needsRuleMigration =
+    Array.isArray(rawRules) &&
+    rawRules.some((rule) => rule && !Array.isArray(rule.apiSlugs));
   if (!rawSetting && !needsRuleMigration) return true;
 
   const needsSchemaMigration =
     rawSetting && getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
   const needsThemeMigration = typeof rawSetting?.darkMode === "boolean";
-  if (!needsSchemaMigration && !needsThemeMigration && !needsRuleMigration) return true;
+  if (!needsSchemaMigration && !needsThemeMigration && !needsRuleMigration)
+    return true;
 
   try {
     let nextSetting = rawSetting;
-  if (needsSchemaMigration) {
+    if (needsSchemaMigration) {
       const v2Setting = await migrateStoredSettingToV2(rawSetting, rawSetting);
       if (getSettingVersion(v2Setting) < SETTINGS_VERSION_V4) {
         await setObj(STOKEY_SETTING_BACKUP_V3_BEFORE_V4, rawSetting);
@@ -575,7 +578,8 @@ export const runDataMigration = async () => {
         darkMode: rawSetting.darkMode ? "dark" : "light",
       };
     }
-    if (needsSchemaMigration || needsThemeMigration) await setObj(STOKEY_SETTING, nextSetting);
+    if (needsSchemaMigration || needsThemeMigration)
+      await setObj(STOKEY_SETTING, nextSetting);
     if (needsRuleMigration) {
       if (!(await getObj(STOKEY_RULES_BACKUP_BEFORE_APISLUGS))) {
         await setObj(STOKEY_RULES_BACKUP_BEFORE_APISLUGS, rawRules);
@@ -622,9 +626,11 @@ export const getRulesWithDefault = async () =>
   normalizeRuleApiSlugs((await getRules()) || DEFAULT_RULES);
 export const normalizeRuleApiSlugs = (rules) =>
   Array.isArray(rules)
-    ? rules.map((rule) => !rule || Array.isArray(rule.apiSlugs)
-        ? rule
-        : { ...rule, apiSlugs: rule.apiSlug ? [rule.apiSlug] : [] })
+    ? rules.map((rule) =>
+        !rule || Array.isArray(rule.apiSlugs)
+          ? rule
+          : { ...rule, apiSlugs: rule.apiSlug ? [rule.apiSlug] : [] }
+      )
     : rules;
 export const setRules = (val) => setObj(STOKEY_RULES, val);
 

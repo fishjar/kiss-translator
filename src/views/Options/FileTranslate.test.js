@@ -63,9 +63,7 @@ jest.mock("../../hooks/Setting", () => ({
 
 jest.mock("../../hooks/Prompt", () => ({
   usePromptList: () => ({
-    prompts: [
-      { slug: "prompt-1", name: "通用翻译", category: "translation" },
-    ],
+    prompts: [{ slug: "prompt-1", name: "通用翻译", category: "translation" }],
   }),
 }));
 
@@ -209,9 +207,7 @@ describe("FileTranslate view", () => {
       (b) => b.textContent
     );
     expect(
-      buttonTexts.some(
-        (t) => t.includes("分段翻译") || t.includes("开始翻译")
-      )
+      buttonTexts.some((t) => t.includes("分段翻译") || t.includes("开始翻译"))
     ).toBe(true);
     expect(buttonTexts.some((t) => t.includes("下载译文 TXT"))).toBe(true);
 
@@ -262,8 +258,9 @@ describe("FileTranslate view", () => {
     expect(container.textContent).toContain("翻译结果");
 
     // 点击开始翻译
-    const startBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent.includes("分段翻译") || b.textContent.includes("开始翻译")
+    const startBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) =>
+        b.textContent.includes("分段翻译") || b.textContent.includes("开始翻译")
     );
     expect(startBtn.disabled).toBe(false);
 
@@ -416,11 +413,13 @@ describe("FileTranslate view", () => {
     });
 
     // 1. 顶栏不展示底层模型列表，而是展示未配置 OCR 服务提示
-    expect(container.textContent).toContain("未配置 OCR 服务（请在服务配置中添加）");
+    expect(container.textContent).toContain(
+      "未配置 OCR 服务（请在服务配置中添加）"
+    );
 
     // 2. 开始翻译按钮处于禁用状态
-    const startBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent.includes("开始翻译")
+    const startBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent.includes("开始翻译")
     );
     expect(startBtn).toBeDefined();
     expect(startBtn.disabled).toBe(true);
@@ -484,8 +483,8 @@ describe("FileTranslate view", () => {
     expect(container.textContent).toContain("点击放大查看");
 
     // 开始翻译
-    const startBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent.includes("开始翻译")
+    const startBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent.includes("开始翻译")
     );
     await act(async () => {
       startBtn.click();
@@ -524,8 +523,8 @@ describe("FileTranslate view", () => {
     expect(container.textContent).toContain("测试翻译文本");
 
     // 点击原图放大，打开图片弹窗
-    const previewBox = container.querySelector('img[alt="原图预览"]')
-      ?.parentElement;
+    const previewBox =
+      container.querySelector('img[alt="原图预览"]')?.parentElement;
     expect(previewBox).not.toBeNull();
     await act(async () => {
       previewBox.click();
@@ -579,8 +578,8 @@ describe("FileTranslate view", () => {
         dropzone.dispatchEvent(dropEvent);
       });
 
-      const startBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-        b.textContent.includes("开始翻译")
+      const startBtn = Array.from(container.querySelectorAll("button")).find(
+        (b) => b.textContent.includes("开始翻译")
       );
       await act(async () => {
         startBtn.click();
@@ -641,8 +640,8 @@ describe("FileTranslate view", () => {
     });
 
     // 开始翻译
-    const startBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent.includes("开始翻译")
+    const startBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent.includes("开始翻译")
     );
     await act(async () => {
       startBtn.click();
@@ -679,7 +678,9 @@ describe("FileTranslate view", () => {
     const fakeFile = new File(["Hello world\nSecond paragraph"], "sample.txt", {
       type: "text/plain",
     });
-    fakeFile.text = jest.fn().mockResolvedValue("Hello world\nSecond paragraph");
+    fakeFile.text = jest
+      .fn()
+      .mockResolvedValue("Hello world\nSecond paragraph");
 
     await act(async () => {
       const dropEvent = new Event("drop", { bubbles: true });
@@ -689,8 +690,9 @@ describe("FileTranslate view", () => {
       dropzone.dispatchEvent(dropEvent);
     });
 
-    const startBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent.includes("分段翻译") || b.textContent.includes("开始翻译")
+    const startBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) =>
+        b.textContent.includes("分段翻译") || b.textContent.includes("开始翻译")
     );
     await act(async () => {
       startBtn.click();
@@ -722,7 +724,8 @@ describe("FileTranslate view", () => {
       translatedMd: "# 标题译文\n\n段落译文",
       bilingualMd: "# Title\n# 标题译文\n\nSource paragraph\n\n段落译文",
       translatedHtml: "<h1>标题译文</h1><p>段落译文</p>",
-      bilingualHtml: '<div class="kt-md-bilingual-block"><p class="kt-md-source">Source paragraph</p><p class="kt-md-target">段落译文</p></div>',
+      bilingualHtml:
+        '<div class="kt-md-bilingual-block"><p class="kt-md-source">Source paragraph</p><p class="kt-md-target">段落译文</p></div>',
       sourceHtml: "<h1>Title</h1><p>Source paragraph</p>",
       comparisons: [{ source: "Source paragraph", target: "段落译文" }],
     });
@@ -752,8 +755,9 @@ describe("FileTranslate view", () => {
     expect(container.textContent).toContain("源码");
 
     // 点击开始翻译
-    const startBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent.includes("分段翻译") || b.textContent.includes("开始翻译")
+    const startBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) =>
+        b.textContent.includes("分段翻译") || b.textContent.includes("开始翻译")
     );
     expect(startBtn).not.toBeNull();
     await act(async () => {
@@ -800,8 +804,8 @@ describe("FileTranslate view", () => {
     });
 
     // 选中“整篇翻译”
-    const entireMenuItem = Array.from(document.querySelectorAll("li")).find((li) =>
-      li.textContent.includes("整篇翻译")
+    const entireMenuItem = Array.from(document.querySelectorAll("li")).find(
+      (li) => li.textContent.includes("整篇翻译")
     );
     expect(entireMenuItem).not.toBeNull();
     await act(async () => {
@@ -809,9 +813,9 @@ describe("FileTranslate view", () => {
     });
 
     // 按钮文本变为“整篇翻译”
-    const entireStartBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent.includes("整篇翻译")
-    );
+    const entireStartBtn = Array.from(
+      container.querySelectorAll("button")
+    ).find((b) => b.textContent.includes("整篇翻译"));
     expect(entireStartBtn).not.toBeNull();
 
     // 点击执行整篇翻译
@@ -864,17 +868,17 @@ describe("FileTranslate view", () => {
     await act(async () => {
       dropdownBtn.click();
     });
-    const entireMenuItem = Array.from(document.querySelectorAll("li")).find((li) =>
-      li.textContent.includes("整篇翻译")
+    const entireMenuItem = Array.from(document.querySelectorAll("li")).find(
+      (li) => li.textContent.includes("整篇翻译")
     );
     await act(async () => {
       entireMenuItem.click();
     });
 
     // 点击整篇翻译
-    const entireStartBtn = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent.includes("整篇翻译")
-    );
+    const entireStartBtn = Array.from(
+      container.querySelectorAll("button")
+    ).find((b) => b.textContent.includes("整篇翻译"));
     await act(async () => {
       entireStartBtn.click();
     });
@@ -885,8 +889,8 @@ describe("FileTranslate view", () => {
     expect(translateEntireTxt).not.toHaveBeenCalled();
 
     // 点击取消
-    const cancelBtn = Array.from(document.querySelectorAll("button")).find((b) =>
-      b.textContent.trim() === "取消"
+    const cancelBtn = Array.from(document.querySelectorAll("button")).find(
+      (b) => b.textContent.trim() === "取消"
     );
     await act(async () => {
       cancelBtn.click();
@@ -897,8 +901,8 @@ describe("FileTranslate view", () => {
     await act(async () => {
       entireStartBtn.click();
     });
-    const confirmBtn = Array.from(document.querySelectorAll("button")).find((b) =>
-      b.textContent.includes("继续整篇翻译")
+    const confirmBtn = Array.from(document.querySelectorAll("button")).find(
+      (b) => b.textContent.includes("继续整篇翻译")
     );
     await act(async () => {
       confirmBtn.click();
@@ -936,10 +940,22 @@ describe("FileTranslate view", () => {
     expect(rightScrollBox).not.toBeNull();
 
     // 模拟容器滚动高度
-    Object.defineProperty(leftScrollBox, "scrollHeight", { value: 1000, configurable: true });
-    Object.defineProperty(leftScrollBox, "clientHeight", { value: 200, configurable: true });
-    Object.defineProperty(rightScrollBox, "scrollHeight", { value: 1800, configurable: true });
-    Object.defineProperty(rightScrollBox, "clientHeight", { value: 200, configurable: true });
+    Object.defineProperty(leftScrollBox, "scrollHeight", {
+      value: 1000,
+      configurable: true,
+    });
+    Object.defineProperty(leftScrollBox, "clientHeight", {
+      value: 200,
+      configurable: true,
+    });
+    Object.defineProperty(rightScrollBox, "scrollHeight", {
+      value: 1800,
+      configurable: true,
+    });
+    Object.defineProperty(rightScrollBox, "clientHeight", {
+      value: 200,
+      configurable: true,
+    });
 
     // 模拟左侧滚动到 50% (400 / 800)
     leftScrollBox.scrollTop = 400;
@@ -951,5 +967,3 @@ describe("FileTranslate view", () => {
     expect(rightScrollBox.scrollTop).toBe(800);
   });
 });
-
-

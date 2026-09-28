@@ -4,7 +4,10 @@ import { decodeHTMLEntities } from "../libs/html.js";
 import { parseMathInText } from "../libs/mathParse.js";
 import { apiTranslate } from "../apis/index.js";
 import { resolveApiPromptSettings } from "../config/prompt.js";
-import { availableApisForScene, withScenePrompt } from "../config/serviceSelection.js";
+import {
+  availableApisForScene,
+  withScenePrompt,
+} from "../config/serviceSelection.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import { isSubtitleModeEnabled } from "./modes.js";
 import {
@@ -724,14 +727,22 @@ export class BilingualSubtitleManager {
         prompts,
       } = this.#setting;
 
-      const candidates = availableApisForScene(this.#setting, this.#setting.transApis || [], "translation");
+      const candidates = availableApisForScene(
+        this.#setting,
+        this.#setting.transApis || [],
+        "translation"
+      );
       if (!candidates.length && rawApiSetting) candidates.push(rawApiSetting);
       let trText;
       let lastError;
       for (const candidate of candidates) {
         let streamed = false;
         try {
-          const apiSetting = resolveApiPromptSettings(withScenePrompt(candidate, this.#setting), prompts, this.#setting);
+          const apiSetting = resolveApiPromptSettings(
+            withScenePrompt(candidate, this.#setting),
+            prompts,
+            this.#setting
+          );
           const response = await apiTranslate({
             text: subtitle.text,
             fromLang,
@@ -745,8 +756,13 @@ export class BilingualSubtitleManager {
               updateSubtitleTranslation(normalizeStreamText(text));
             },
           });
-          if (response?.trText) { trText = response.trText; break; }
-          lastError = new Error(`${candidate.apiName || candidate.apiSlug} returned an empty result`);
+          if (response?.trText) {
+            trText = response.trText;
+            break;
+          }
+          lastError = new Error(
+            `${candidate.apiName || candidate.apiSlug} returned an empty result`
+          );
         } catch (error) {
           if (streamed || signal?.aborted) throw error;
           lastError = error;

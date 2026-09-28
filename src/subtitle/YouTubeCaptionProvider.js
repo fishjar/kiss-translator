@@ -1012,10 +1012,17 @@ export class YouTubeCaptionProvider {
         getVideoMetadata: () => ({
           videoId: this.#videoId,
           title: this.#docInfo?.title || document.title,
-          description: this.#fullDescription || this.#docInfo?.description || "",
+          description:
+            this.#fullDescription || this.#docInfo?.description || "",
           transcript:
-            this.#flatEvents?.map((e) => e.text).filter(Boolean).join(" ") ||
-            this.#subtitles?.map((s) => s.text).filter(Boolean).join(" "),
+            this.#flatEvents
+              ?.map((e) => e.text)
+              .filter(Boolean)
+              .join(" ") ||
+            this.#subtitles
+              ?.map((s) => s.text)
+              .filter(Boolean)
+              .join(" "),
         }),
       });
       this.#subtitleListManager.initialize(

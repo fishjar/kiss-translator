@@ -16,7 +16,7 @@ import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { LlmClient } from "../../../localAi/core/llmClient";
-import { CATALOG } from "../../../localAi/core/catalog";
+import { CATALOG, getModelDisplayName } from "../../../localAi/core/catalog";
 import { setShared } from "../../../localAi/core/shared";
 import {
   OCR_VLM_TASK_OPTIONS,
@@ -111,7 +111,9 @@ export default function VlmTab() {
     if (!vlmModel) return;
     setError(null);
     setVlmClientState("loading");
-    setVlmProgressText("启动 VLM 多模态大模型…");
+    setVlmProgressText(
+      i18n("local_ai_vlm_engine_loading", "启动 VLM 多模态大模型…")
+    );
     try {
       const isWllama = vlmModel.runtime === "wllama";
       const dtype = isWllama
@@ -188,11 +190,21 @@ export default function VlmTab() {
               {i18n("local_ai_vlm_title", "视觉语言大模型 (VLM)")}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              端到端多模态文档解析与图文理解，直接输出结构化 Markdown、复杂表格与公式
+              {i18n(
+                "local_ai_vlm_desc",
+                "端到端多模态文档解析与图文理解，直接输出结构化 Markdown、复杂表格与公式"
+              )}
             </Typography>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 2,
+            }}
+          >
             <FormControl size="small" sx={{ minWidth: 260 }}>
               <InputLabel id="vlm-model-label">
                 {i18n("local_ai_vlm_model", "VLM 模型")}
@@ -206,7 +218,7 @@ export default function VlmTab() {
               >
                 {VLM_MODELS.map((m) => (
                   <MenuItem key={m.id} value={m.id}>
-                    {m.name}
+                    {getModelDisplayName(m, i18n)}
                   </MenuItem>
                 ))}
               </Select>
@@ -229,7 +241,7 @@ export default function VlmTab() {
               >
                 {OCR_VLM_TASK_OPTIONS.map((opt) => (
                   <MenuItem key={opt.id} value={opt.id}>
-                    {opt.label}
+                    {i18n(`local_ai_vlm_task_${opt.id}`, opt.label)}
                   </MenuItem>
                 ))}
               </Select>
@@ -249,8 +261,8 @@ export default function VlmTab() {
               {vlmClientState === "loading"
                 ? i18n("local_ai_model_loading", "加载中…")
                 : vlmIsLoaded
-                ? i18n("local_ai_model_loaded", "模型已就绪")
-                : i18n("local_ai_load_model", "加载模型")}
+                  ? i18n("local_ai_model_loaded", "模型已就绪")
+                  : i18n("local_ai_load_model", "加载模型")}
             </Button>
 
             <Chip
@@ -259,8 +271,8 @@ export default function VlmTab() {
                 vlmInstalled
                   ? i18n("local_ai_models_state_installed", "已安装")
                   : vlmBusy
-                  ? i18n("local_ai_models_state_downloading", "下载中")
-                  : i18n("local_ai_models_state_not_installed", "未安装")
+                    ? i18n("local_ai_models_state_downloading", "下载中")
+                    : i18n("local_ai_models_state_not_installed", "未安装")
               }
               color={vlmInstalled ? "success" : "default"}
             />
@@ -287,7 +299,7 @@ export default function VlmTab() {
             }}
           >
             <Typography variant="h6" fontWeight={600}>
-              图像上传与解析
+              {i18n("local_ai_vlm_image_card", "图像上传与解析")}
             </Typography>
             <Box sx={{ display: "flex", gap: 1 }}>
               <Button
@@ -297,7 +309,9 @@ export default function VlmTab() {
                 onClick={() => fileRef.current?.click()}
                 disabled={parsing}
               >
-                {file ? "更换图片" : i18n("local_ai_vlm_upload_image", "选择图片")}
+                {file
+                  ? i18n("local_ai_vlm_change_image", "更换图片")
+                  : i18n("local_ai_vlm_upload_image", "选择图片")}
               </Button>
               <input
                 ref={fileRef}
@@ -326,7 +340,8 @@ export default function VlmTab() {
           {file && (
             <Box sx={{ mb: 2 }}>
               <Typography variant="caption" color="text.secondary">
-                当前文件: {file.name} ({Math.round(file.size / 1024)} KB)
+                {i18n("local_ai_vlm_current_file", "当前文件:")} {file.name} (
+                {Math.round(file.size / 1024)} KB)
               </Typography>
             </Box>
           )}
@@ -375,7 +390,7 @@ export default function VlmTab() {
                 {elapsedMs > 0 && (
                   <Chip
                     size="small"
-                    label={`总耗时 ${fmtMs(elapsedMs)}`}
+                    label={`${i18n("local_ai_total_time", "总耗时")} ${fmtMs(elapsedMs)}`}
                     variant="outlined"
                   />
                 )}
@@ -388,7 +403,7 @@ export default function VlmTab() {
               >
                 {copied
                   ? i18n("local_ai_copied", "已复制")
-                  : i18n("local_ai_copy", "复制内容")}
+                  : i18n("local_ai_vlm_copy_content", "复制内容")}
               </Button>
             </Box>
 
