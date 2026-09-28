@@ -47,18 +47,36 @@ const SINGLE_TERM_TEMPLATES = [
 function literalPatternSample(source) {
   if (typeof source !== "string" || source === "") return null;
   let sample = "";
+  let droppedZeroWidth = false;
   const escapable = new Set("^$\\.*+?()[]{}|/-".split(""));
 
   for (let i = 0; i < source.length; i++) {
     const char = source[i];
     if (char === "\\") {
       const next = source[++i];
-      if (!next || !escapable.has(next)) return null;
+      if (!next) return null;
+      // 零宽断言 \b/\B：解码为空串并记录丢弃标记，样例构造完成后用原始
+      // 正则回验；回验不通过或样例为空说明无法构造可靠自动样例，交由
+      // 调用方按 unsupported 处理，避免例句与原始正则语义脱节。
+      if (next === "b" || next === "B") {
+        droppedZeroWidth = true;
+        continue;
+      }
+      if (!escapable.has(next)) return null;
       sample += next;
       continue;
     }
     if ("^$.*+?()[]{}|".includes(char)) return null;
     sample += char;
+  }
+
+  if (droppedZeroWidth) {
+    try {
+      if (sample === "" || !new RegExp(source).test(sample)) return null;
+    } catch {
+      // 非法正则源码（上游 parseTerms 已拦截，此处兜底）按不支持处理。
+      return null;
+    }
   }
 
   return sample;
@@ -109,19 +127,33 @@ const termConflictsCache = new WeakMap();
 /**
  * 检测 parsedTerms 中的长短词冲突对
  * @param {Array|object} parsedTerms - parseTerms 输出的 terms 数组或 { terms } 对象
+ * @param {object} [options]
+ * @param {boolean} [options.treatKeysAsLiteral=false] - 字面匹配模式：key 原文仅做
+ *   字面子串判定，跳过双向正则路径。AI 术语（parseAITerms 字面 key:value）不按
+ *   正则解析，正则命中在该模式下是误报（如 a+ 命中 baa）；缺省 false 保持既有
+ *   正则语义完全不变。
  * @returns {Array<{ short: object, long: object, shortHasValue: boolean, longHasValue: boolean }>}
  */
-export function detectTermConflicts(parsedTerms) {
+export function detectTermConflicts(parsedTerms, options = {}) {
+  const treatKeysAsLiteral = options?.treatKeysAsLiteral === true;
   const terms = Array.isArray(parsedTerms)
     ? parsedTerms
     : parsedTerms?.terms || [];
   if (terms.length < 2) return [];
 
-  const cached = termConflictsCache.get(terms);
+  // 记忆化按匹配模式分桶（"regex" / "literal"）：同一 parsed 引用在两种模式
+  // 下各自缓存结果，杜绝跨模式串缓存。
+  const cacheKey = treatKeysAsLiteral ? "literal" : "regex";
+  const cachedByMode = termConflictsCache.get(terms);
+  const cached = cachedByMode?.get(cacheKey);
   if (cached) return cached;
 
   const conflicts = [];
   const seen = new Set(); // 去重："shortKey:longKey"
+  // per-call 编译缓存：单次 detectTermConflicts 内对同一 pattern 不重复编译
+  // （跨击键的 WeakMap 记忆化由 termConflictsCache 承担，二者互补）。
+  const strictCache = new Map();
+  const regexCache = new Map();
 
   for (let i = 0; i < terms.length; i++) {
     for (let j = 0; j < terms.length; j++) {
@@ -139,10 +171,18 @@ export function detectTermConflicts(parsedTerms) {
       }
 
       // 检查短词文本是否能命中长词 key
-      const hits = termHitsKey(short, long.key);
+      const hits = termHitsKey(
+        short,
+        long.key,
+        { strictCache, regexCache },
+        treatKeysAsLiteral
+      );
       if (!hits) continue;
 
-      const pairKey = `${short.key}:${long.key}`;
+      // \u0000 分隔与 terms.js:508 同类签名对齐：key 含 ":" 时不会与分隔符
+      // 撞车（理论加固；generateTermTestText 的模板 hash 输入 pairKey 独立声明，
+      // 保持 ":" 不动，避免既有例句模板选择整体平移）。
+      const pairKey = `${short.key}\u0000${long.key}`;
       if (seen.has(pairKey)) continue;
       seen.add(pairKey);
 
@@ -155,7 +195,11 @@ export function detectTermConflicts(parsedTerms) {
     }
   }
 
-  termConflictsCache.set(terms, conflicts);
+  if (cachedByMode) {
+    cachedByMode.set(cacheKey, conflicts);
+  } else {
+    termConflictsCache.set(terms, new Map([[cacheKey, conflicts]]));
+  }
   return conflicts;
 }
 
@@ -165,19 +209,48 @@ export function detectTermConflicts(parsedTerms) {
  * 白名单短路（统一计划 20260829 Task 4）：双方均为严格字面量时，正则命中与
  * 子串检查语义等价（严格字面量正则只匹配其去转义文本；对方源码中元字符必带
  * 前置反斜杠，去转义文本不可能跨界出现），直接返回子串检查结果，零编译。
+ * @param {object} term - 带有 key 字段的术语
+ * @param {string} targetKey - 目标 key 文本
+ * @param {{strictCache?: Map, regexCache?: Map}} [caches] - per-call 缓存
+ *   （detectTermConflicts 单次调用内复用编译产物；缺省时行为不变，向后兼容
+ *   CLI/测试直接调用）
+ * @param {boolean} [treatKeysAsLiteral=false] - 字面匹配模式：仅保留子串判定，
+ *   跳过 strict 白名单与双向正则路径（key 原文不按正则解释）
  */
-function termHitsKey(term, targetKey) {
+function termHitsKey(term, targetKey, caches, treatKeysAsLiteral = false) {
   // 纯子串检查
   if (targetKey.includes(term.key)) return true;
 
-  // 白名单短路：双方严格字面量 → 不可能再通过正则路径命中
+  // 字面匹配模式：key 原文不按正则解释，子串未命中即不冲突
+  if (treatKeysAsLiteral) return false;
+
+  const strictPairKey = `${term.key}\u0000${targetKey}`;
+  if (caches?.strictCache) {
+    const cachedStrict = caches.strictCache.get(strictPairKey);
+    if (cachedStrict === true) return false; // true = 双方严格字面量，正则路径不可能命中
+    if (cachedStrict === undefined) {
+      caches.strictCache.set(
+        strictPairKey,
+        isStrictLiteralPattern(term.key) && isStrictLiteralPattern(targetKey)
+      );
+    }
+  }
   if (isStrictLiteralPattern(term.key) && isStrictLiteralPattern(targetKey)) {
     return false;
   }
 
   // 正则匹配检查：term.key 作为正则匹配 targetKey
   try {
-    const regex = new RegExp(term.key);
+    let regex;
+    if (caches?.regexCache) {
+      regex = caches.regexCache.get(term.key);
+      if (regex === undefined) {
+        regex = new RegExp(term.key);
+        caches.regexCache.set(term.key, regex);
+      }
+    } else {
+      regex = new RegExp(term.key);
+    }
     if (regex.test(targetKey)) return true;
   } catch (e) {
     // parseTerms 已校验过，不会走到这里
@@ -186,7 +259,16 @@ function termHitsKey(term, targetKey) {
   // 反向检查：targetKey 作为正则匹配 term.key
   // 处理 targetKey 是 regex pattern 而 term.key 是文本的情况
   try {
-    const reverseRegex = new RegExp(targetKey);
+    let reverseRegex;
+    if (caches?.regexCache) {
+      reverseRegex = caches.regexCache.get(targetKey);
+      if (reverseRegex === undefined) {
+        reverseRegex = new RegExp(targetKey);
+        caches.regexCache.set(targetKey, reverseRegex);
+      }
+    } else {
+      reverseRegex = new RegExp(targetKey);
+    }
     if (reverseRegex.test(term.key)) return true;
   } catch (e) {
     // 非正则文本作为 regex 不安全时跳过
@@ -237,16 +319,27 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
 
   // 1. 冲突对用例：每对冲突按两个方向各生成一条自然语境用例。
   //    冲突分析只算一次：调用方传入预计算结果则直接复用，否则内部自算。
-  const conflicts = options?.conflicts ?? detectTermConflicts(parsedTerms);
+  //    treatKeysAsLiteral（AI 术语路径）：key 原文直接做样例（AI 术语不按
+  //    正则解析，含元字符的 key 用原文做样例是安全且正确的）。
+  const treatKeysAsLiteral = options?.treatKeysAsLiteral === true;
+  const resolveSample = (key) =>
+    treatKeysAsLiteral ? key : literalPatternSample(key);
+  // 内部自算时透传字面模式：treatKeysAsLiteral 语义必须同时覆盖冲突分析与
+  // 样例生成，否则调用方只传字面选项而不传 conflicts 时会拿到正则语义冲突集。
+  const conflicts =
+    options?.conflicts ?? detectTermConflicts(parsedTerms, { treatKeysAsLiteral });
   for (const conflict of conflicts) {
     const { short, long, shortHasValue, longHasValue } = conflict;
-    const shortSample = literalPatternSample(short.key);
-    const longSample = literalPatternSample(long.key);
+    const shortSample = resolveSample(short.key);
+    const longSample = resolveSample(long.key);
     if (shortSample === null || longSample === null) {
       if (shortSample === null) unsupportedTerms.set(short.key, short);
       if (longSample === null) unsupportedTerms.set(long.key, long);
       continue;
     }
+    // 字面模式下的空白 key：无内容可断言，跳过生成例句且不进 unsupported 计数
+    // （归入"无术语"既有语义，不计为"无法生成样例"的失败）。
+    if (shortSample.trim() === "" || longSample.trim() === "") continue;
     const conflictType = getConflictType(shortHasValue, longHasValue);
 
     // 选模板：用"冲突对组合 key + 方向 + seed"做 hash，保证同一对方向各自稳定
@@ -260,9 +353,14 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
         hashKey(withSeed(`${pairKey}#${direction}`)) % pool.length;
       const template = pool[templateIndex];
 
-      const text = template
-        .replace(/\{short\}/g, shortSample)
-        .replace(/\{long\}/g, longSample);
+      // 单 pass 插值：一个正则同时匹配两种占位符，按捕获组取对应样例。
+      // 两段链式 replace 的第二轮会重扫第一轮刚插入的内容，字面样例本身含
+      // "{long}" 字面量时被二次污染；函数回调的单 pass 结果不会被重扫。
+      const text = template.replace(
+        /\{(short|long)\}/g,
+        (match, placeholder) =>
+          placeholder === "short" ? shortSample : longSample
+      );
 
       cases.push({
         type: "conflict",
@@ -280,9 +378,12 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
   // 2. 无冲突术语的单术语用例
   const conflictKeys = new Set();
   for (const c of conflicts) {
+    if (resolveSample(c.short.key) === null || resolveSample(c.long.key) === null) {
+      continue;
+    }
     if (
-      literalPatternSample(c.short.key) === null ||
-      literalPatternSample(c.long.key) === null
+      treatKeysAsLiteral &&
+      (c.short.key.trim() === "" || c.long.key.trim() === "")
     ) {
       continue;
     }
@@ -292,17 +393,18 @@ export function generateTermTestText(parsedTerms, seed = "", options = {}) {
 
   for (const term of terms) {
     if (conflictKeys.has(term.key)) continue;
-    const sample = literalPatternSample(term.key);
+    const sample = resolveSample(term.key);
     if (sample === null) {
       unsupportedTerms.set(term.key, term);
       continue;
     }
+    if (treatKeysAsLiteral && sample.trim() === "") continue;
 
     // 选模板
     const templateIndex =
       hashKey(withSeed(term.key)) % SINGLE_TERM_TEMPLATES.length;
     const template = SINGLE_TERM_TEMPLATES[templateIndex];
-    const text = template.replace(/\{term\}/g, sample);
+    const text = template.replace(/\{term\}/g, () => sample);
 
     cases.push({
       type: "single",
@@ -376,6 +478,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
       evidence: [
         {
           type: "auto-sample-unsupported",
+          messageKey: "auto-sample-unsupported",
+          params: { term: testCase.term },
           message: `术语 ${testCase.term?.key ?? ""} 无法自动生成可靠匹配样例`,
           detail: { term: testCase.term },
         },
@@ -395,6 +499,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
       issues: [
         {
           type: "no-terms",
+          messageKey: "no-terms",
+          params: {},
           message: "无有效术语，无法断言",
           detail: { reason: "parsedTerms is empty" },
         },
@@ -412,6 +518,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
       issues: [
         {
           type: "empty-text",
+          messageKey: "empty-text",
+          params: {},
           message: "测试文本为空，无法断言",
           detail: { reason: "testCase.text is empty" },
         },
@@ -441,6 +549,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
         issues: [
           {
             type: "invalid-testcase",
+            messageKey: "invalid-testcase",
+            params: {},
             message: "单术语用例缺少 term 信息",
             detail: { testCase },
           },
@@ -454,6 +564,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
     if (termSpans.length === 0) {
       issues.push({
         type: "single-term-not-found",
+        messageKey: "single-not-found",
+        params: { term: term.key },
         message: `术语 ${term.key} 未被命中`,
         detail: {
           term,
@@ -471,6 +583,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
         if (span.replacement !== expectedReplacement) {
           issues.push({
             type: "single-term-wrong-replacement",
+            messageKey: "single-wrong-replacement",
+            params: { term: term.key },
             message: `术语 ${term.key} 替换结果不正确`,
             detail: {
               term,
@@ -516,6 +630,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
     if (longSpans.length === 0) {
       issues.push({
         type: `conflict-type-${conflictType}`,
+        messageKey: "conflict-long-not-hit",
+        params: { long: long.key, short: short.key },
         message: `长词 ${long.key} 未被命中（短词 ${short.key} 可能抢占）`,
         detail: {
           conflictType,
@@ -535,6 +651,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
             // 短词在长词区间内 → 前缀误伤
             issues.push({
               type: `conflict-type-${conflictType}`,
+              messageKey: "conflict-long-cut",
+              params: { long: long.key, short: short.key },
               message: `长词 ${long.key} 被短词 ${short.key} 切割（检测到前缀误伤）`,
               detail: {
                 conflictType,
@@ -556,9 +674,11 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
       for (const ls of longSpans) {
         if (longHasValue) {
           // 类型 1/3: 长词应有译文
-          if (ls.replacement === ls.termKey) {
+          if (ls.replacement === text.slice(ls.start, ls.end)) {
             issues.push({
               type: `conflict-type-${conflictType}`,
+              messageKey: "conflict-long-value-not-applied",
+              params: { long: long.key },
               message: `长词 ${long.key} 有译文但未被替换（仍为原文）`,
               detail: {
                 conflictType,
@@ -573,9 +693,11 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
           }
         } else {
           // 类型 2/4: 长词无译文，应保持原文
-          if (ls.replacement !== ls.termKey) {
+          if (ls.replacement !== text.slice(ls.start, ls.end)) {
             issues.push({
               type: `conflict-type-${conflictType}`,
+              messageKey: "conflict-long-no-value-replaced",
+              params: { long: long.key, replacement: ls.replacement },
               message: `长词 ${long.key} 无译文但被替换为 "${ls.replacement}"`,
               detail: {
                 conflictType,
@@ -601,9 +723,11 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
       if (insideLong) continue; // 已在断言 2 中处理
 
       if (shortHasValue) {
-        if (ss.replacement === ss.termKey) {
+        if (ss.replacement === text.slice(ss.start, ss.end)) {
           issues.push({
             type: `conflict-type-${conflictType}`,
+            messageKey: "conflict-short-value-not-applied",
+            params: { short: short.key },
             message: `短词 ${short.key} 有译文但未被替换（单独出现时）`,
             detail: {
               conflictType,
@@ -629,6 +753,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
           // 类型 1/2：短词有译文 → 长词被切出 "短词译文 + 残段"（如 接口Key）
           issues.push({
             type: "naive-prefix-cut",
+            messageKey: "naive-prefix-cut",
+            params: { long: long.key, short: short.key },
             message: `长词 ${long.key} 被短词 ${short.key} 切割（检测到前缀误伤）`,
             detail: {
               conflictType,
@@ -644,6 +770,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
           // 类型 4：都无译文 → 文本不变但长词被切出高亮残留（必须看 spans 才能发现）
           issues.push({
             type: "naive-cut-residue",
+            messageKey: "naive-cut-residue",
+            params: { long: long.key, short: short.key },
             message: `不翻译长词 ${long.key} 被切割出高亮残留（短词 ${short.key} 内部命中）`,
             detail: {
               conflictType,
@@ -697,6 +825,8 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
     issues: [
       {
         type: "unknown-testcase-type",
+        messageKey: "unknown-type",
+        params: { type: testCase.type },
         message: `未知的测试用例类型: ${testCase.type}`,
         detail: { testCase },
       },
@@ -714,10 +844,17 @@ export function assertTermReplacements(parsedTerms, testCase, options = {}) {
  * @param {string} key - 要检查的术语 key
  */
 function spanInsideKey(text, span, key) {
-  let index = text.indexOf(key);
+  // key 是正则源码（如 C\+Builder），必须解码为字面文本再对原文 indexOf，
+  // 否则转义 key 恒 -1、永不判中。解码失败（非纯字面形态）时放弃判定。
+  const sample = literalPatternSample(key);
+  if (sample === null) return false;
+  // 空样例（理论上游已回验拦截，此处兜底）：空串 indexOf 恒命中且越界后
+  // 永不返回 -1，会让下方 while 陷入死循环，必须直接放弃判定。
+  if (sample === "") return false;
+  let index = text.indexOf(sample);
   while (index !== -1) {
-    if (span.start >= index && span.end <= index + key.length) return true;
-    index = text.indexOf(key, index + 1);
+    if (span.start >= index && span.end <= index + sample.length) return true;
+    index = text.indexOf(sample, index + 1);
   }
   return false;
 }
@@ -742,12 +879,17 @@ function findNaiveCutEvidence({ naive, text, short, long, longHasValue }) {
 
   // 旧引擎下短词命中落在长词区间内、且长词整体从未命中 → 存在切割
   if (shortInsideLong && !naiveLongHit) {
+    // 残段拼接必须用解码后的字面文本，正则源码 slice 会拼出残缺串；
+    // 任一 key 无法解码（非纯字面形态）时放弃产出证据。
+    const longSample = literalPatternSample(long.key);
+    const shortSample = literalPatternSample(short.key);
+    if (longSample === null || shortSample === null) return null;
     if (short.value) {
       // 类型 1/2：短词有译文 → 长词被切出 "短词译文 + 残段"（如 接口Key）
       const residue =
-        long.key.slice(0, long.key.indexOf(short.key)) +
+        longSample.slice(0, longSample.indexOf(shortSample)) +
         short.value +
-        long.key.slice(long.key.indexOf(short.key) + short.key.length);
+        longSample.slice(longSample.indexOf(shortSample) + shortSample.length);
       return `将 ${long.key} 切割为 ${residue}`;
     }
     if (longHasValue) {

@@ -252,19 +252,17 @@ describe("Page controls retained across text-tab navigation", () => {
     expect(pagePanel.hidden).toBe(false);
   });
 
-  test("reconciles feature confirmation and keeps expanded controls while the page is hidden", async () => {
+  test("reconciles advanced rule confirmation and keeps expanded controls while the page is hidden", async () => {
     const pending = deferred();
     mockQueryPopupData.mockReturnValueOnce(pending.promise);
     act(() => root.render(<Popup />));
     await flush();
     act(() => container.querySelector(".kt-popup-disclosure").click());
-    const hover = () =>
-      [...container.querySelectorAll(".kt-popup-scene")].find((node) =>
-        node.textContent.includes("mousehover_translate")
-      );
-    act(() => hover().click());
+    const richText = () =>
+      container.querySelector('input[aria-label="richtext_alt"]');
+    act(() => richText().click());
     await flush();
-    expect(hover().getAttribute("aria-pressed")).toBe("true");
+    expect(richText().checked).toBe(false);
     act(() => container.querySelector("#kt-popup-text-tab").click());
     await flush();
     await act(async () => {
@@ -278,7 +276,7 @@ describe("Page controls retained across text-tab navigation", () => {
         .querySelector(".kt-popup-disclosure")
         .getAttribute("aria-expanded")
     ).toBe("true");
-    expect(hover().getAttribute("aria-pressed")).toBe("false");
+    expect(richText().checked).toBe(true);
   });
 
   test("reconciles rejected language edits while the page is hidden", async () => {

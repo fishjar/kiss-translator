@@ -523,3 +523,318 @@ describe("draft persistence debounce", () => {
     expect(termsCalls()).toHaveLength(callsAfterUnmount);
   });
 });
+
+describe("draft multi-tab race and unload flush (M3/B1)", () => {
+  const TERMS_KEY = "kt-playground-terms-draft";
+  const AI_TERMS_KEY = "kt-playground-aiterms-draft";
+  const SEED_KEY = "kt-playground-term-seed";
+  const DRAFT_KEYS = [TERMS_KEY, AI_TERMS_KEY, SEED_KEY];
+
+  const mountView = () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    act(() => {
+      root.render(<Playground />);
+    });
+    return { host, root };
+  };
+  const openTermsTab = async (host) => {
+    const termsTab = [...host.querySelectorAll('[role="tab"]')].find(
+      (tab) => tab.textContent === "专业术语"
+    );
+    act(() => {
+      termsTab.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+  };
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    DRAFT_KEYS.forEach((key) => window.localStorage.removeItem(key));
+  });
+
+  afterEach(() => {
+    DRAFT_KEYS.forEach((key) => window.localStorage.removeItem(key));
+    document.body.innerHTML = "";
+  });
+
+  test("M3：pagehide/beforeunload 时三键同步 flush（含此前不持久化的 seed）", async () => {
+    const { host, root } = mountView();
+    await openTermsTab(host);
+
+    act(() => {
+      mockTerminology.mock.calls.at(-1)[0].setTermsDraft("P1");
+      mockTerminology.mock.calls.at(-1)[0].setAiTermsDraft("P2");
+      mockTerminology.mock.calls.at(-1)[0].setTermSeed("3");
+    });
+
+    // 防抖窗口未到期直接派发 pagehide：三键必须同步落盘（修复前无监听 → 红）。
+    act(() => {
+      window.dispatchEvent(new Event("pagehide"));
+    });
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("P1");
+    expect(window.localStorage.getItem(AI_TERMS_KEY)).toBe("P2");
+    expect(window.localStorage.getItem(SEED_KEY)).toBe("3");
+
+    // beforeunload 同样兜底。
+    act(() => {
+      mockTerminology.mock.calls.at(-1)[0].setTermsDraft("P1b");
+    });
+    act(() => {
+      window.dispatchEvent(new Event("beforeunload"));
+    });
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("P1b");
+
+    act(() => root.unmount());
+  });
+
+  test("M3：seed 持久化跨卸载/重挂载恢复", async () => {
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    act(() => {
+      mockTerminology.mock.calls.at(-1)[0].setTermSeed("7");
+    });
+    act(() => root.unmount());
+
+    const { host: host2, root: root2 } = mountView();
+    await openTermsTab(host2);
+    expect(mockTerminology.mock.calls.at(-1)[0].termSeed).toBe("7");
+    act(() => root2.unmount());
+  });
+
+  test("B1①：storage 事件把另一 Tab 的草稿更新同步进本地状态", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("A");
+
+    // 另一 Tab 直接改写 LS 并广播 storage 事件。
+    window.localStorage.setItem(TERMS_KEY, "B");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: "B" })
+      );
+    });
+    // 修复前无 storage 监听，本地仍为 A → 红。
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("B");
+
+    act(() => root.unmount());
+    // 卸载写回前比对：自身最后已知值 = B，与 LS 一致，写回不改变内容。
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("B");
+  });
+
+  test("B1②：另一 Tab 在感知之后又改写时，卸载写回不覆盖其新值", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+
+    window.localStorage.setItem(TERMS_KEY, "B");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: "B" })
+      );
+    });
+    // 另一 Tab 在本 Tab 感知之后、卸载之前又改写为 C（无 storage 事件：
+    // 例如该 Tab 关闭前的最后一次写盘）。
+    window.localStorage.setItem(TERMS_KEY, "C");
+    act(() => root.unmount());
+    // 修复前：无条件写回自身旧值，覆盖 C → 红；修复后：保留 C。
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("C");
+  });
+
+  test("B1③：storage 事件即时同步 refs，pagehide 不回写过期 ref 旧值", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("A");
+
+    // 本 Tab 编辑中的值尚未落盘（防抖窗口内）。
+    act(() => {
+      mockTerminology.mock.calls.at(-1)[0].setTermsDraft("A2");
+    });
+    // 另一 Tab 改写为 B 并广播；广播处理与 pagehide 在同一次 React 提交前
+    // 连续触发（真实浏览器中 pagehide 可打断 effect 提交窗口）。
+    window.localStorage.setItem(TERMS_KEY, "B");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: "B" })
+      );
+      window.dispatchEvent(new Event("pagehide"));
+    });
+    // 修复前：flush 使用过期 ref 旧值 A2 写回，覆盖远端 B → 红。
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("B");
+
+    act(() => root.unmount());
+  });
+
+  test("B1④：非空远端术语草稿到达时置 termDraftTouched（空值不清 touched）", async () => {
+    // 空草稿初始态挂载（termDraftTouched 初始为 false），随后远端非空草稿
+    // 经 storage 广播到达。
+    window.localStorage.removeItem(TERMS_KEY);
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    window.localStorage.setItem(TERMS_KEY, "remote-draft");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: TERMS_KEY,
+          newValue: "remote-draft",
+        })
+      );
+    });
+    // 修复前：termDraftTouched 仍为 false，子组件挂载期草稿覆盖防护失效 → 红。
+    expect(mockTerminology.mock.calls.at(-1)[0].termDraftTouched).toBe(true);
+    act(() => root.unmount());
+
+    // 远端清空（newValue 为 null）不置 touched：空草稿不阻断默认示例填入。
+    window.localStorage.removeItem(TERMS_KEY);
+    const second = mountView();
+    await openTermsTab(second.host);
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: null })
+      );
+    });
+    expect(mockTerminology.mock.calls.at(-1)[0].termDraftTouched).toBe(false);
+    act(() => second.root.unmount());
+
+    // 已 touched 后远端清空广播不清 touched：空草稿仅清空内容，不回退编辑标记。
+    // touched 唯一置位路径是 onStorage 的非空广播分支（setTermsDraft setter 不触碰
+    // touched），故先以一次非空 newValue 广播把 touched 置 true，再验证 null 广播不回退。
+    const fourth = mountView();
+    await openTermsTab(fourth.host);
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: "edited" })
+      );
+    });
+    expect(mockTerminology.mock.calls.at(-1)[0].termDraftTouched).toBe(true);
+    window.localStorage.removeItem(TERMS_KEY);
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: null })
+      );
+    });
+    // 回归契约：touched 保持 true，不被清空广播回退。
+    expect(mockTerminology.mock.calls.at(-1)[0].termDraftTouched).toBe(true);
+    act(() => fourth.root.unmount());
+  });
+
+  test("B1⑤：远端删除草稿后 pagehide 兜底不重建空键", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+
+    // 另一 Tab 删除键并广播；本 Tab 在防抖窗口外、pagehide 时触发兜底 flush。
+    window.localStorage.removeItem(TERMS_KEY);
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: TERMS_KEY, newValue: null })
+      );
+      window.dispatchEvent(new Event("pagehide"));
+    });
+    // 修复前：flush 以空串 setItem 重建已删除的键，覆盖远端删除意图 → 红。
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe(null);
+    act(() => root.unmount());
+  });
+
+  test("B1⑥：localStorage.clear() 广播（event.key 为 null）同步清空三键草稿且不重建键", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    window.localStorage.setItem(AI_TERMS_KEY, "B");
+    window.localStorage.setItem(SEED_KEY, "3");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+
+    // 另一 Tab 真实执行 clear()（本 Tab 同源 LS 一并清空）后广播 key 为 null 的事件。
+    window.localStorage.clear();
+    act(() => {
+      window.dispatchEvent(new StorageEvent("storage", { key: null }));
+      window.dispatchEvent(new Event("pagehide"));
+    });
+    // 修复前：三键草稿 state/ref 不感知 clear，兜底 flush 用旧值重建键 → 红。
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("");
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe(null);
+    expect(window.localStorage.getItem(AI_TERMS_KEY)).toBe(null);
+    expect(window.localStorage.getItem(SEED_KEY)).toBe(null);
+    act(() => root.unmount());
+  });
+
+  test("B1⑦：另一 Tab 的 sessionStorage.clear() 广播（storageArea 指向 sessionStorage）不清空本地草稿", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    window.localStorage.setItem(AI_TERMS_KEY, "B");
+    window.localStorage.setItem(SEED_KEY, "3");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("A");
+
+    // 真实浏览器中另一 Tab 对同源 sessionStorage 执行 clear() 时，广播到本
+    // Tab 的 storage 事件 key 为 null 且 storageArea 指向 sessionStorage 对象。
+    window.sessionStorage.clear();
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: null,
+          storageArea: window.sessionStorage,
+        })
+      );
+    });
+    // 修复前：clear 分支不校验 storageArea，本地草稿内存态被误清空 → 红。
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("A");
+    expect(mockTerminology.mock.calls.at(-1)[0].aiTermsDraft).toBe("B");
+    expect(mockTerminology.mock.calls.at(-1)[0].termSeed).toBe("3");
+
+    act(() => root.unmount());
+    // 异源广播不触碰 lastKnown：卸载 flush 写回不改变 LS 实值。
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("A");
+    expect(window.localStorage.getItem(AI_TERMS_KEY)).toBe("B");
+    expect(window.localStorage.getItem(SEED_KEY)).toBe("3");
+  });
+
+  test("B1⑧：另一 Tab 的 sessionStorage 写入广播（storageArea 指向 sessionStorage）不覆盖本地草稿", async () => {
+    window.localStorage.setItem(TERMS_KEY, "local");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("local");
+
+    // 另一 Tab 对同源 sessionStorage 写入同名键并广播：key 命中草稿键名，
+    // 但 storageArea 指向 sessionStorage，与 localStorage 草稿无关。
+    window.sessionStorage.setItem(TERMS_KEY, "session-value");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: TERMS_KEY,
+          newValue: "session-value",
+          storageArea: window.sessionStorage,
+        })
+      );
+    });
+    // 修复前：per-key 分支不校验 storageArea，本地草稿被误同步为异源值 → 红。
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("local");
+
+    act(() => root.unmount());
+    expect(window.localStorage.getItem(TERMS_KEY)).toBe("local");
+    window.sessionStorage.removeItem(TERMS_KEY);
+  });
+
+  test("B1⑨：localStorage 真实广播（storageArea 恰为 window.localStorage）仍正常同步（防误伤回归锁）", async () => {
+    window.localStorage.setItem(TERMS_KEY, "A");
+    const { host, root } = mountView();
+    await openTermsTab(host);
+
+    // 真实 localStorage 广播形态：storageArea 恰为 window.localStorage，
+    // 必须照常走 per-key 同步（守卫不得误伤合法同源广播）。
+    window.localStorage.setItem(TERMS_KEY, "B");
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: TERMS_KEY,
+          newValue: "B",
+          storageArea: window.localStorage,
+        })
+      );
+    });
+    expect(mockTerminology.mock.calls.at(-1)[0].termsDraft).toBe("B");
+
+    act(() => root.unmount());
+  });
+});

@@ -238,11 +238,15 @@ describe("Draggable FAB edge locking", () => {
     act(() => jest.runOnlyPendingTimers());
 
     expect(draggable.style.transform).toBe("translate(300px, -20px)");
-    expect(putFab).toHaveBeenLastCalledWith({ x: 300, y: -20, edge: "top" });
+    // Normalization never changed the position, so no storage rewrite happens.
+    expect(putFab).not.toHaveBeenCalled();
   });
 
   test("hovering expands the FAB without changing its saved edge", () => {
     renderFab();
+    act(() => {
+      jest.advanceTimersByTime(32);
+    });
     expect(draggable.style.opacity).toBe("1");
     expect(draggable.style.transition).toContain("opacity");
     expect(draggable.style.transition).toContain("transform");
@@ -260,6 +264,18 @@ describe("Draggable FAB edge locking", () => {
     expect(draggable.style.transform).toBe("translate(580px, 200px)");
     expect(draggable.style.opacity).toBe("1");
     expect(putFab).toHaveBeenLastCalledWith({ x: 580, y: 200, edge: "right" });
+  });
+
+  test("keeps the transform transition disabled on mount until the first position is applied", () => {
+    renderFab();
+    expect(draggable.style.transform).toBe("translate(580px, 200px)");
+    expect(draggable.style.transition).toContain("opacity");
+    expect(draggable.style.transition).not.toContain("transform");
+
+    act(() => {
+      jest.advanceTimersByTime(32);
+    });
+    expect(draggable.style.transition).toContain("transform");
   });
 
   test("keyboard focus reveals the snapped FAB and blur hides it halfway", () => {
@@ -296,6 +312,9 @@ describe("Draggable FAB edge locking", () => {
 
   test("changes the locked edge only after a real drag", () => {
     renderFab();
+    act(() => {
+      jest.advanceTimersByTime(32);
+    });
     const handler = draggable.firstElementChild.firstElementChild;
 
     act(() => {
@@ -327,6 +346,16 @@ describe("Draggable FAB edge locking", () => {
 
     expect(draggable.style.transform).toBe("translate(290px, -20px)");
     expect(putFab).toHaveBeenLastCalledWith({ x: 290, y: -20, edge: "top" });
+  });
+
+  test("does not rewrite storage when the saved edge position is already normalized", () => {
+    renderFab();
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    expect(putFab).not.toHaveBeenCalled();
+    expect(draggable.style.transform).toBe("translate(580px, 200px)");
   });
 
   test("infers and persists an edge for legacy FAB positions", () => {

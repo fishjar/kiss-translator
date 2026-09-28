@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
 import { limitFloat, limitNumber } from "../../libs/utils";
 import { isMobile } from "../../libs/mobile";
 import { putFab } from "../../libs/storage";
@@ -120,6 +127,9 @@ export default function Draggable({
   );
   const containerRef = useRef(null);
   const draggedRef = useRef(false);
+  // Set by applyTransform on its first invocation; the transition-gating
+  // probe waits for it so the initial paint never animates the transform.
+  const hasAppliedPositionRef = useRef(false);
   const revealed = hover || focusWithin || expanded || Boolean(origin);
 
   // Store proportional positions so they scale with viewport changes.
@@ -139,6 +149,10 @@ export default function Draggable({
   // Apply the current position directly to the container.
   const applyTransform = useCallback((x, y) => {
     if (containerRef.current) {
+      // Marked inside the same branch as the transform write: on mount the
+      // container always exists, so the probe sees the flag as soon as the
+      // first real position has landed.
+      hasAppliedPositionRef.current = true;
       containerRef.current.style.transform = `translate(${x}px, ${y}px)`;
     }
   }, []);
@@ -186,7 +200,12 @@ export default function Draggable({
   }, [applyTransform, height, revealed, snapEdge, width]);
 
   // Snap to the locked edge and persist the resulting position.
-  useEffect(() => {
+  // Runs as a layout effect (not a passive effect): on mount this is the only
+  // path that writes the initial transform, so it must finish synchronously
+  // before the browser paints the first frame. A passive useEffect runs after
+  // the first paint, which lets the fixed top:0/left:0 container flash at the
+  // viewport origin before its saved position lands (#1116, PR #1117 review).
+  useLayoutEffect(() => {
     if (!snapEdge || !!origin) {
       return;
     }
@@ -226,8 +245,19 @@ export default function Draggable({
       x: edgePosition.x / windowWidth,
       y: edgePosition.y / windowHeight,
     };
-    setPosition(percentageEdge);
-    setFabPosition({ ...edgePosition, edge: activeEdge });
+    // Persist only when normalization actually changed the position or the
+    // edge. Re-writing identical values on every mount sends a redundant
+    // storage update for each new tab; skipping them also avoids a no-op
+    // re-render. Legacy positions (no valid stored edge) and clamped or
+    // non-finite coordinates always differ here and keep being persisted.
+    const unchanged =
+      activeEdge === edge &&
+      percentageEdge.x === position.x &&
+      percentageEdge.y === position.y;
+    if (!unchanged) {
+      setPosition(percentageEdge);
+      setFabPosition({ ...edgePosition, edge: activeEdge });
+    }
   }, [
     edge,
     origin,
@@ -243,8 +273,24 @@ export default function Draggable({
     applyTransform,
   ]);
 
+  // Enable the transform transition only after the first positional transform
+  // has been applied, so the initial paint lands on the saved position without
+  // flying in from the viewport origin. The probe polls once per animation
+  // frame; the frame cap keeps the reveal animation available even when
+  // requestAnimationFrame is throttled. Cleanup cancels any pending frame.
   useEffect(() => {
-    setPositionTransitionEnabled(true);
+    let frame = 0;
+    let rafId;
+    const enableWhenPositioned = () => {
+      if (hasAppliedPositionRef.current || frame >= 10) {
+        setPositionTransitionEnabled(true);
+        return;
+      }
+      frame += 1;
+      rafId = requestAnimationFrame(enableWhenPositioned);
+    };
+    rafId = requestAnimationFrame(enableWhenPositioned);
+    return () => cancelAnimationFrame(rafId);
   }, []);
 
   // Begin dragging and capture the initial coordinates.
