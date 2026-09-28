@@ -146,3 +146,50 @@ export interface DecisionEngine {
     questions: DecisionQuestions
   ): Promise<DecisionResult>;
 }
+
+export interface AddedToken {
+  id: number;
+  content: string;
+  lstrip: boolean;
+  rstrip: boolean;
+  normalized: boolean;
+  single_word: boolean;
+}
+
+export interface TokenizerJson {
+  added_tokens: AddedToken[];
+  normalizer: {
+    type: string;
+    pattern?: { String?: string };
+    content?: string;
+  } | null;
+  pre_tokenizer: {
+    type: string;
+    replacement?: string;
+    prepend_scheme?: string;
+    split?: boolean;
+  } | null;
+  [extra: string]: unknown;
+}
+
+export interface TokenizerConfig {
+  cls_token?: string | { content: string };
+  sep_token?: string | { content: string };
+  pad_token?: string | { content: string };
+  mask_token?: string | { content: string };
+  extra_special_tokens?: unknown;
+  tokenizer_class?: string;
+  [extra: string]: unknown;
+}
+
+export interface TokenizerLike {
+  readonly clsToken: string;
+  readonly sepToken: string;
+  readonly padToken: string;
+  readonly maskToken: string;
+  readonly clsTokenId: number;
+  readonly sepTokenId: number;
+  readonly padTokenId: number;
+  readonly maskTokenId: number;
+  encode(text: string): number[];
+}

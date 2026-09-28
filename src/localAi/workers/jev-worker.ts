@@ -1,8 +1,8 @@
 import * as ort from "onnxruntime-web";
 import { readFile } from "../core/opfs";
 import type { JevLoadSpec } from "../core/types";
+import { LayaTokenizer } from "../core/jev/tokenizer";
 import {
-  LayaTokenizer,
   buildSequence,
   collate,
   formatAnswers,

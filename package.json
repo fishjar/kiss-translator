@@ -100,7 +100,7 @@
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.1",
     "find-up": "^7.0.0",
-    "onnxruntime-web": "1.26.0-dev.20260416-b7804b056c",
+    "onnxruntime-web": "1.30.0",
     "prettier": "3.6.2",
     "react-app-rewired": "^2.2.1",
     "typescript": "~5.9.3",
@@ -111,6 +111,7 @@
   "pnpm": {
     "overrides": {
       "fast-xml-parser": "4.5.4",
+      "onnxruntime-web": "1.30.0",
       "shell-quote": "1.8.4",
       "websocket-driver": "0.7.5"
     }

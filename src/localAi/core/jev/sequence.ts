@@ -1,11 +1,11 @@
 import { pyJson } from "./pyjson";
 import { renderOptions } from "./questions";
-import type { TokenizerLike } from "./tokenizer";
 import type {
   Batch,
   DecisionState,
   InternalQuestion,
   PreparedItem,
+  TokenizerLike,
 } from "./types";
 import { QTYPES } from "./types";
 

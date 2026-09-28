@@ -32,6 +32,7 @@ import LlmOnnxWorker from "../workers/llm-onnx-worker?worker";
 import LlmWorker from "../workers/llm-worker?worker";
 // eslint-disable-next-line import/no-unresolved
 import TtsWorker from "../workers/tts-worker?worker";
+import { ORT_WASM_PATHS } from "../workers/ortOpfsBridge";
 import {
   nextRpcId,
   type AiRpcProgress,
@@ -544,7 +545,9 @@ export class RuntimeManager {
           ),
         };
       case "evictOne": {
-        const evicted = await this.pool.evictOne(p.excludeKey as string | undefined);
+        const evicted = await this.pool.evictOne(
+          p.excludeKey as string | undefined
+        );
         return { evicted };
       }
       default:
@@ -688,7 +691,10 @@ export class RuntimeManager {
           deadlineMs: req.deadlineMs,
           onCancel: (reason) => {
             // 不可中断的单次前向 Worker：直接终止并重建 Worker，释放 GPU 槽位
-            this.invalidateSession("decision", "JEV 推理已取消或超时，请重新加载模型");
+            this.invalidateSession(
+              "decision",
+              "JEV 推理已取消或超时，请重新加载模型"
+            );
             this.disposeJev(reason);
             void this.pool.unload("decision");
           },
@@ -858,7 +864,10 @@ export class RuntimeManager {
             priority: TASK_PRIORITY.ASR,
             deadlineMs: req.deadlineMs,
             onCancel: (reason) => {
-              this.invalidateSession("asr", "ASR 识别已取消或超时，请重新加载模型");
+              this.invalidateSession(
+                "asr",
+                "ASR 识别已取消或超时，请重新加载模型"
+              );
               this.disposeAsr(reason);
               void this.pool.unload("asr");
             },
@@ -909,19 +918,25 @@ export class RuntimeManager {
         (g) =>
           g.detName === rawSpec.detName ||
           g.recName === rawSpec.recName ||
-          (rawSpec.detModelId && (g.detId === rawSpec.detModelId || g.id === rawSpec.detModelId)) ||
-          (rawSpec.detDir && (g.detId.includes(rawSpec.detDir) || rawSpec.detDir.includes(g.id)))
+          (rawSpec.detModelId &&
+            (g.detId === rawSpec.detModelId || g.id === rawSpec.detModelId)) ||
+          (rawSpec.detDir &&
+            (g.detId.includes(rawSpec.detDir) || rawSpec.detDir.includes(g.id)))
       );
       const detManifest = rawSpec.detModelId
         ? getCatalogModel(rawSpec.detModelId)
         : group
           ? getCatalogModel(group.detId)
-          : CATALOG.find((m) => m.task === "ocr-detection" && m.dir === rawSpec.detDir);
+          : CATALOG.find(
+              (m) => m.task === "ocr-detection" && m.dir === rawSpec.detDir
+            );
       const recManifest = rawSpec.recModelId
         ? getCatalogModel(rawSpec.recModelId)
         : group
           ? getCatalogModel(group.recId)
-          : CATALOG.find((m) => m.task === "ocr-recognition" && m.dir === rawSpec.recDir);
+          : CATALOG.find(
+              (m) => m.task === "ocr-recognition" && m.dir === rawSpec.recDir
+            );
 
       const spec: OcrLoadSpec = {
         detDir: rawSpec.detDir || detManifest?.dir || "",
@@ -974,7 +989,7 @@ export class RuntimeManager {
               textRecognitionModelAsset: { url: recUrl },
               ortOptions: {
                 backend: spec.device === "webgpu" ? "webgpu" : "wasm",
-                wasmPaths: new URL("ort-wasm-1.24.3/", document.baseURI).href,
+                wasmPaths: ORT_WASM_PATHS as any,
               },
             });
             for (const u of this.ocrBlobUrls) URL.revokeObjectURL(u);
@@ -1056,7 +1071,10 @@ export class RuntimeManager {
           priority: TASK_PRIORITY.OCR,
           deadlineMs: req.deadlineMs,
           onCancel: async (reason) => {
-            this.invalidateSession("ocr", "OCR 识别已取消或超时，请重新加载模型");
+            this.invalidateSession(
+              "ocr",
+              "OCR 识别已取消或超时，请重新加载模型"
+            );
             await this.disposeOcr(reason);
             await this.pool.unload("ocr");
           },
@@ -1184,11 +1202,13 @@ export class RuntimeManager {
               this.disposeLlm();
             },
           });
-          return await new Promise<{ backend: "webgpu" | "cpu" }>((resolve, reject) => {
-            this.llmLoadWaiter?.reject(new Error("模型加载已被新请求取代"));
-            this.llmLoadWaiter = { resolve, reject };
-            w.postMessage({ type: "load", ...spec });
-          });
+          return await new Promise<{ backend: "webgpu" | "cpu" }>(
+            (resolve, reject) => {
+              this.llmLoadWaiter?.reject(new Error("模型加载已被新请求取代"));
+              this.llmLoadWaiter = { resolve, reject };
+              w.postMessage({ type: "load", ...spec });
+            }
+          );
         },
         {
           id: req.id,
@@ -1494,7 +1514,10 @@ export class RuntimeManager {
             priority: TASK_PRIORITY.TTS,
             deadlineMs: req.deadlineMs,
             onCancel: (reason) => {
-              this.invalidateSession("tts", "TTS 合成已取消或超时，请重新加载模型");
+              this.invalidateSession(
+                "tts",
+                "TTS 合成已取消或超时，请重新加载模型"
+              );
               this.disposeTts(reason);
               void this.pool.unload("tts");
             },

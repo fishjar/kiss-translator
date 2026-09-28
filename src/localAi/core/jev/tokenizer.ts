@@ -1,51 +1,12 @@
 import { PreTrainedTokenizer } from "@huggingface/transformers";
 
-export interface AddedToken {
-  id: number;
-  content: string;
-  lstrip: boolean;
-  rstrip: boolean;
-  normalized: boolean;
-  single_word: boolean;
-}
-
-export interface TokenizerJson {
-  added_tokens: AddedToken[];
-  normalizer: {
-    type: string;
-    pattern?: { String?: string };
-    content?: string;
-  } | null;
-  pre_tokenizer: {
-    type: string;
-    replacement?: string;
-    prepend_scheme?: string;
-    split?: boolean;
-  } | null;
-  [extra: string]: unknown;
-}
-
-export interface TokenizerConfig {
-  cls_token?: string | { content: string };
-  sep_token?: string | { content: string };
-  pad_token?: string | { content: string };
-  mask_token?: string | { content: string };
-  extra_special_tokens?: unknown;
-  tokenizer_class?: string;
-  [extra: string]: unknown;
-}
-
-export interface TokenizerLike {
-  readonly clsToken: string;
-  readonly sepToken: string;
-  readonly padToken: string;
-  readonly maskToken: string;
-  readonly clsTokenId: number;
-  readonly sepTokenId: number;
-  readonly padTokenId: number;
-  readonly maskTokenId: number;
-  encode(text: string): number[];
-}
+import type {
+  AddedToken,
+  TokenizerConfig,
+  TokenizerJson,
+  TokenizerLike,
+} from "./types";
+export type { AddedToken, TokenizerConfig, TokenizerJson, TokenizerLike };
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const isWhitespace = (ch: string) => /\p{White_Space}/u.test(ch);
@@ -61,7 +22,9 @@ interface AddedTokenInfo {
  * 1. tokenizer_class 归一化为 PreTrainedTokenizerFast
  * 2. extra_special_tokens 列表转为字典
  */
-export function normalizeTokenizerConfig(raw: TokenizerConfig): TokenizerConfig {
+export function normalizeTokenizerConfig(
+  raw: TokenizerConfig
+): TokenizerConfig {
   const cfg: TokenizerConfig = { ...raw };
   if (
     cfg.tokenizer_class === undefined ||
@@ -142,9 +105,7 @@ export class LayaTokenizer implements TokenizerLike {
         'LayaTokenizer supports a null or Replace(" " -> replacement) normalizer'
       );
     }
-    if (
-      tokenizerJson.added_tokens.some((a) => a.normalized || a.single_word)
-    ) {
+    if (tokenizerJson.added_tokens.some((a) => a.normalized || a.single_word)) {
       throw new Error(
         "LayaTokenizer requires added tokens with normalized=false and single_word=false"
       );

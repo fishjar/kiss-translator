@@ -6,6 +6,7 @@ settings:
 
 overrides:
   fast-xml-parser: 4.5.4
+  onnxruntime-web: 1.30.0
   shell-quote: 1.8.4
   websocket-driver: 0.7.5
 
@@ -129,8 +130,8 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0
       onnxruntime-web:
-        specifier: 1.26.0-dev.20260416-b7804b056c
-        version: 1.26.0-dev.20260416-b7804b056c
+        specifier: 1.30.0
+        version: 1.30.0
       prettier:
         specifier: 3.6.2
         version: 3.6.2
@@ -5011,9 +5012,6 @@ packages:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
     engines: {node: '>=6'}
 
-  onnxruntime-common@1.24.0-dev.20251116-b39e144322:
-    resolution: {integrity: sha512-BOoomdHYmNRL5r4iQ4bMvsl2t0/hzVQ3OM3PHD0gxeXu1PmggqBv3puZicEUVOA3AtHHYmqZtjMj9FOfGrATTw==}
-
   onnxruntime-common@1.24.3:
     resolution: {integrity: sha512-GeuPZO6U/LBJXvwdaqHbuUmoXiEdeCjWi/EG7Y1HNnDwJYuk6WUbNXpF6luSUY8yASul3cmUlLGrCCL1ZgVXqA==}
 
@@ -5023,9 +5021,6 @@ packages:
   onnxruntime-node@1.24.3:
     resolution: {integrity: sha512-JH7+czbc8ALA819vlTgcV+Q214/+VjGeBHDjX81+ZCD0PCVCIFGFNtT0V4sXG/1JXypKPgScQcB3ij/hk3YnTg==}
     os: [win32, darwin, linux]
-
-  onnxruntime-web@1.26.0-dev.20260416-b7804b056c:
-    resolution: {integrity: sha512-MD6Ss4GSpQBo6zqoJzyT9LRbKYs7x/JVN23FT24EcEvlqF4VuzPOeH6X38orZPKHQDbprn7K+SBpu0/mj2CQiw==}
 
   onnxruntime-web@1.30.0:
     resolution: {integrity: sha512-q0y+JrrtukXSzsBWEMccVfqX25LRmosXHF+CaRJmg8pZClzcV7svNc4rKY3jL02Vb7QmRMDs1SigqR4CXAfKYQ==}
@@ -8308,7 +8303,7 @@ snapshots:
       '@huggingface/jinja': 0.5.10
       '@huggingface/tokenizers': 0.1.3
       onnxruntime-node: 1.24.3
-      onnxruntime-web: 1.26.0-dev.20260416-b7804b056c
+      onnxruntime-web: 1.30.0
       sharp: 0.34.5
 
   '@humanwhocodes/config-array@0.13.0':
@@ -12792,8 +12787,6 @@ snapshots:
     dependencies:
       mimic-fn: 2.1.0
 
-  onnxruntime-common@1.24.0-dev.20251116-b39e144322: {}
-
   onnxruntime-common@1.24.3: {}
 
   onnxruntime-common@1.30.0: {}
@@ -12803,15 +12796,6 @@ snapshots:
       adm-zip: 0.5.18
       global-agent: 3.0.0
       onnxruntime-common: 1.24.3
-
-  onnxruntime-web@1.26.0-dev.20260416-b7804b056c:
-    dependencies:
-      flatbuffers: 25.9.23
-      guid-typescript: 1.0.9
-      long: 5.3.2
-      onnxruntime-common: 1.24.0-dev.20251116-b39e144322
-      platform: 1.3.6
-      protobufjs: 7.6.6
 
   onnxruntime-web@1.30.0:
     dependencies:

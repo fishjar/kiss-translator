@@ -19,10 +19,8 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import { CATALOG, getModelDisplayName } from "../../../localAi/core/catalog";
-import {
-  JEV_PRESETS,
-  detectScriptAndLanguage,
-} from "../../../localAi/core/jev";
+import { JEV_PRESETS } from "../../../localAi/core/jev/presets";
+import { detectScriptAndLanguage } from "../../../localAi/core/jev/lang";
 import { JevClient } from "../../../localAi/core/jevClient";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { useI18n } from "../../../hooks/I18n";
