@@ -4,6 +4,7 @@ const { WebpackManifestPlugin } = require("webpack-manifest-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const path = require("path");
+const fs = require("fs");
 // const webpack = require("webpack");
 
 const aliasLocalRuntime = (config) => {
@@ -55,8 +56,24 @@ const extWebpack = (config, env) => {
   config.output.assetModuleFilename = "media/[name][ext]";
   aliasLocalRuntime(config);
 
-  // REVIEW: 在 Webpack 5 环境下只设置 default: false 依然有触发 vendors 分包切片的可能，更安全的做法是直接设为 false 或显式清空 vendors 缓存组
-  config.optimization.splitChunks = { cacheGroups: { default: false } };
+  config.optimization.splitChunks = {
+    cacheGroups: {
+      default: false,
+      defaultVendors: false,
+      pageShared: {
+        chunks: (chunk) =>
+          ["popup", "options", "fileTranslate"].includes(chunk.name),
+        minChunks: 2,
+        minSize: 20000,
+        name: (_module, chunks) =>
+          `page-shared-${chunks
+            .map((chunk) => chunk.name)
+            .sort()
+            .join("-")}`,
+        enforce: true,
+      },
+    },
+  };
   config.optimization.runtimeChunk = false; // 禁用 runtime 独立分包
 
   // 3. 过滤掉原本 react-scripts 针对单页应用的插件实例
@@ -102,6 +119,39 @@ const extWebpack = (config, env) => {
     ...(config.ignoreWarnings || []),
     /Critical dependency: 'import\.meta' cannot be used as a standalone expression/,
   ];
+
+  config.plugins.push({
+    apply(compiler) {
+      compiler.hooks.done.tap("BundleModuleReport", (stats) => {
+        const destination = path.resolve(__dirname, "tmp/build-analysis");
+        fs.mkdirSync(destination, { recursive: true });
+        fs.writeFileSync(
+          path.join(
+            destination,
+            `${process.env.REACT_APP_CLIENT}-webpack.json`
+          ),
+          JSON.stringify(
+            stats.toJson({
+              all: false,
+              assets: true,
+              chunks: true,
+              chunkModules: true,
+              modules: true,
+              nestedModules: true,
+              dependentModules: true,
+              groupModulesByAttributes: false,
+              groupModulesByCacheStatus: false,
+              groupModulesByType: false,
+              groupModulesByPath: false,
+              modulesSpace: Infinity,
+              chunkModulesSpace: Infinity,
+              nestedModulesSpace: Infinity,
+            })
+          )
+        );
+      });
+    },
+  });
 
   return config;
 };
