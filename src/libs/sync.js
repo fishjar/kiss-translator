@@ -34,7 +34,6 @@ import {
   apiFetchText,
 } from "../apis";
 import { sha256, removeEndchar } from "./utils";
-import { createClient, getPatcher } from "webdav";
 import { fetchPatcher } from "./fetch";
 import { kissLog } from "./log";
 import { encryptSyncValue, decryptSyncValue } from "./syncCrypto";
@@ -47,17 +46,26 @@ import {
 let webdavRequestPatched = false;
 const GIST_SYNC_DESCRIPTION = "kiss translator sync files";
 
+let webdavModulePromise = null;
+const loadWebdav = () => {
+  if (!webdavModulePromise) {
+    webdavModulePromise = import("webdav");
+  }
+  return webdavModulePromise;
+};
+
 /**
  * 确保 WebDAV 库的 request 通道只被补丁一次。
  *
+ * @param {Object} webdav 动态加载的 webdav 模块
  * @returns {void}
  */
-const ensureWebdavRequestPatched = () => {
+const ensureWebdavRequestPatched = (webdav) => {
   if (webdavRequestPatched) return;
   webdavRequestPatched = true;
 
   // WebDAV 同步只在实际使用前安装补丁，避免模块导入时产生隐式全局副作用。
-  getPatcher().patch("request", (opts) => {
+  webdav.getPatcher().patch("request", (opts) => {
     return fetchPatcher(opts.url, {
       method: opts.method,
       headers: opts.headers,
@@ -83,9 +91,10 @@ const syncByWebdav = async (
   { syncUrl, syncUser, syncKey },
   { forceWrite = false } = {}
 ) => {
-  ensureWebdavRequestPatched();
+  const webdav = await loadWebdav();
+  ensureWebdavRequestPatched(webdav);
 
-  const client = createClient(syncUrl, {
+  const client = webdav.createClient(syncUrl, {
     username: syncUser,
     password: syncKey,
   });

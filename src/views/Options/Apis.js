@@ -16,6 +16,8 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import { useI18n } from "../../hooks/I18n";
+import { registerI18n } from "../../config/i18n";
+import { CUSTOM_API_HELP_I18N } from "../../config/locales/customApiHelp";
 import Typography from "@mui/material/Typography";
 import StarIcon from "@mui/icons-material/Star";
 import AddIcon from "@mui/icons-material/Add";
@@ -100,6 +102,8 @@ import {
 import ValidationInput from "../../hooks/ValidationInput";
 import { usePromptList } from "../../hooks/Prompt";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
+
+registerI18n(CUSTOM_API_HELP_I18N);
 
 const API_LIST_CONTROL_SIZE = 24;
 const API_LIST_CONTROL_GAP = 0.5;

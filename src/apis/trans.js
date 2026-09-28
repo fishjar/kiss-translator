@@ -75,7 +75,7 @@ import { isExt } from "../libs/client";
 import { isBg } from "../libs/browser";
 import { genDeeplFree } from "./deepl";
 import { genBaidu } from "./baidu";
-import { interpreter } from "../libs/interpreter";
+import { getInterpreter } from "../libs/interpreter";
 import {
   parseJsonObj,
   extractJson,
@@ -1820,6 +1820,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         userMsg,
         method,
       };
+      const interpreter = await getInterpreter();
       interpreter.run(`exports.reqHook = ${reqHook}`);
       const hookResult = await interpreter.exports.reqHook(
         {
@@ -1874,6 +1875,7 @@ export const parseTransRes = async (
   // 执行 response hook
   if (resHook?.trim()) {
     try {
+      const interpreter = await getInterpreter();
       interpreter.run(`exports.resHook = ${resHook}`);
       const hookResult = await interpreter.exports.resHook({
         apiType,

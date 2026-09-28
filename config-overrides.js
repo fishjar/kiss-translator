@@ -153,6 +153,30 @@ const extWebpack = (config, env) => {
     },
   });
 
+  // 生产环境优化：Terser 压缩优化，启用双轮死代码消除与调试代码剥离
+  if (isEnvProduction && Array.isArray(config.optimization.minimizer)) {
+    config.optimization.minimizer = config.optimization.minimizer.map((plugin) => {
+      if (plugin.constructor.name === "TerserPlugin") {
+        return new TerserPlugin({
+          terserOptions: {
+            ...plugin.options?.terserOptions,
+            compress: {
+              ...(plugin.options?.terserOptions?.compress || {}),
+              passes: 2,
+              pure_funcs: ["console.debug"],
+            },
+            format: {
+              ...(plugin.options?.terserOptions?.format || {}),
+              comments: false,
+            },
+          },
+          extractComments: false,
+        });
+      }
+      return plugin;
+    });
+  }
+
   return config;
 };
 

@@ -44,6 +44,8 @@ import {
 import { apiTranslate } from "../../apis";
 import { useAlert } from "../../hooks/Alert";
 import { useI18n } from "../../hooks/I18n";
+import { registerI18n } from "../../config/i18n";
+import { TERMINOLOGY_PLAYGROUND_I18N } from "../../config/locales/terminologyPlayground";
 import { useRules } from "../../hooks/Rules";
 import { useSetting } from "../../hooks/Setting";
 import { isWeb } from "../../libs/client";
@@ -64,6 +66,8 @@ import {
   joinIntoParagraph,
   selectDisplayedResults,
 } from "../../libs/termTestUtils";
+
+registerI18n(TERMINOLOGY_PLAYGROUND_I18N);
 
 // 占位符格式由 apiSetting.placeholder 配置决定，默认取内置第一项 "{ }" → 生成 {1}、{2}…
 const [PLACEHOLDER_START, PLACEHOLDER_END] = BUILTIN_PLACEHOLDERS[0].split(" ");

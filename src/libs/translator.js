@@ -36,7 +36,7 @@ import {
   availableApisForScene,
   withScenePrompt,
 } from "../config/serviceSelection";
-import { interpreter } from "./interpreter";
+import { getInterpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
 import {
@@ -3606,25 +3606,27 @@ export class Translator {
           // 同步运行的 `interpreter.run('exports.transEndHook = ...')` 会直接覆盖上一个任务尚未执行完毕的 exports.transEndHook 引用。
           // 这可能导致后一个任务的 Hook 函数被错误地执行多次，或者前一个任务执行了不匹配的、新覆盖的 Hook 函数，出现非预期的运行时状态混乱。
           if (transEndHook?.trim()) {
-            try {
-              interpreter.run(`exports.transEndHook = ${transEndHook}`);
-              interpreter.exports.transEndHook(
-                {
-                  hostNode,
-                  parentNode,
-                  nodes,
-                  wrapperNode: wrapper,
-                  innerNode: inner,
-                },
-                {
-                  text: processedString,
-                  fromLang: deLang || this.#rule.fromLang,
-                  toLang,
-                }
-              );
-            } catch (err) {
-              kissLog("transEndHook", err);
-            }
+            getInterpreter()
+              .then((interpreter) => {
+                interpreter.run(`exports.transEndHook = ${transEndHook}`);
+                interpreter.exports.transEndHook(
+                  {
+                    hostNode,
+                    parentNode,
+                    nodes,
+                    wrapperNode: wrapper,
+                    innerNode: inner,
+                  },
+                  {
+                    text: processedString,
+                    fromLang: deLang || this.#rule.fromLang,
+                    toLang,
+                  }
+                );
+              })
+              .catch((err) => {
+                kissLog("transEndHook", err);
+              });
           }
         },
         nodes
@@ -4210,7 +4212,7 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 发起翻译请求
-  #translateFetch(
+  async #translateFetch(
     text,
     deLang = "",
     onStreamChunk = null,
@@ -4252,6 +4254,7 @@ overflow-wrap: anywhere !important;`;
     // 这可能导致先前发起的、仍在执行准备阶段的请求，在调用 transStartHook 时执行成了后一个翻译源的钩子逻辑。
     if (transStartHook?.trim()) {
       try {
+        const interpreter = await getInterpreter();
         interpreter.run(`exports.transStartHook = ${transStartHook}`);
         const hookResult = interpreter.exports.transStartHook({
           ...args,
@@ -4957,7 +4960,7 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 注入JS/CSS
-  #initInjector() {
+  async #initInjector() {
     if (this.#isJsInjected) {
       return;
     }
@@ -4987,6 +4990,7 @@ overflow-wrap: anywhere !important;`;
         const glossary = { ...this.#glossary };
         const apisMap = this.#apisMap;
         const apiDectect = tryDetectLang;
+        const interpreter = await getInterpreter();
         interpreter.import({
           KT: {
             apiTranslate,
