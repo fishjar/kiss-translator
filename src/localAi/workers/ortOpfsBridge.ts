@@ -1,8 +1,6 @@
 import { env } from "@huggingface/transformers";
-import wasmUrl from "onnxruntime-web/ort-wasm-simd-threaded.jsep.wasm?url";
-import mjsUrl from "onnxruntime-web/ort-wasm-simd-threaded.jsep.mjs?url";
-
-export const ORT_WASM_PATHS = { wasm: wasmUrl, mjs: mjsUrl };
+import { ORT_WASM_PATHS } from "./ortAssets";
+export { ORT_WASM_PATHS } from "./ortAssets";
 
 let currentDir = "";
 let opfsIndex: Map<string, FileSystemFileHandle> | null = null;

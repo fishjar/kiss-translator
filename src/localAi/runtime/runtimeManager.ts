@@ -1,6 +1,4 @@
 import { PaddleOCR, type OcrResult } from "@paddleocr/paddleocr-js";
-// eslint-disable-next-line import/no-unresolved
-import workerEntryUrl from "../../../node_modules/@paddleocr/paddleocr-js/dist/assets/worker-entry-C9UNuyOJ.js?url";
 import { LocalModelManager } from "../core/modelManager";
 import { CATALOG, OCR_GROUPS, getCatalogModel } from "../core/catalog";
 import { readFile } from "../core/opfs";
@@ -22,17 +20,8 @@ import type {
   DecisionResult,
   DecisionState,
 } from "../core/jev";
-// eslint-disable-next-line import/no-unresolved
-import AsrWorker from "../workers/asr-worker?worker";
-// eslint-disable-next-line import/no-unresolved
-import JevWorker from "../workers/jev-worker?worker";
-// eslint-disable-next-line import/no-unresolved
-import LlmOnnxWorker from "../workers/llm-onnx-worker?worker";
-// eslint-disable-next-line import/no-unresolved
-import LlmWorker from "../workers/llm-worker?worker";
-// eslint-disable-next-line import/no-unresolved
-import TtsWorker from "../workers/tts-worker?worker";
-import { ORT_WASM_PATHS } from "../workers/ortOpfsBridge";
+import { ORT_WASM_PATHS } from "../workers/ortAssets";
+import { createLocalWorker } from "./workerUrls";
 import {
   nextRpcId,
   type AiRpcProgress,
@@ -560,7 +549,7 @@ export class RuntimeManager {
     if (!this.jevWorker) {
       const w = this.factories.createJevWorker
         ? this.factories.createJevWorker()
-        : new JevWorker();
+        : createLocalWorker("jev");
       this.jevWorker = w;
       w.onmessage = (e: MessageEvent) => {
         if (this.jevWorker !== w) return;
@@ -734,7 +723,7 @@ export class RuntimeManager {
     if (!this.asrWorker) {
       const w = this.factories.createAsrWorker
         ? this.factories.createAsrWorker()
-        : new AsrWorker();
+        : createLocalWorker("asr");
       this.asrWorker = w;
       w.onmessage = (e: MessageEvent) => {
         if (this.asrWorker !== w) return;
@@ -980,7 +969,7 @@ export class RuntimeManager {
             this.ocrInstance = await PaddleOCR.create({
               worker: {
                 createWorker: () =>
-                  new Worker(workerEntryUrl, { type: "module" }),
+                  createLocalWorker("ocr"),
               },
               initialize: true,
               textDetectionModelName: spec.detName,
@@ -1117,8 +1106,8 @@ export class RuntimeManager {
       const w = this.factories.createLlmWorker
         ? this.factories.createLlmWorker(runtime)
         : runtime === "onnx"
-          ? new LlmOnnxWorker()
-          : new LlmWorker();
+          ? createLocalWorker("llm-onnx")
+          : createLocalWorker("llm");
       this.llmWorker = w;
       this.llmWorkerRuntime = runtime;
       w.onmessage = (e: MessageEvent) => {
@@ -1384,7 +1373,7 @@ export class RuntimeManager {
     if (!this.ttsWorker) {
       const w = this.factories.createTtsWorker
         ? this.factories.createTtsWorker()
-        : new TtsWorker();
+        : createLocalWorker("tts");
       this.ttsWorker = w;
       w.onmessage = (e: MessageEvent) => {
         if (this.ttsWorker !== w) return;

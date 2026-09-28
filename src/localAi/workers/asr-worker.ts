@@ -3,7 +3,7 @@ import {
   type DataType,
   type DeviceType,
 } from "@huggingface/transformers";
-import * as ort from "onnxruntime-web";
+import * as ort from "onnxruntime-web/webgpu";
 import type { ASRSegment, ASRWord, AsrLoadSpec } from "../core/types";
 import { buildWordSegments, type RawWord } from "../core/asrSegments";
 import { mapAsrLanguage } from "../core/asrLanguages";

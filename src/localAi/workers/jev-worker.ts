@@ -1,4 +1,4 @@
-import * as ort from "onnxruntime-web";
+import * as ort from "onnxruntime-web/webgpu";
 import { readFile } from "../core/opfs";
 import type { JevLoadSpec } from "../core/types";
 import { LayaTokenizer } from "../core/jev/tokenizer";
@@ -18,7 +18,7 @@ import {
   type TokenizerConfig,
   type TokenizerJson,
 } from "../core/jev";
-import { ORT_WASM_PATHS } from "./ortOpfsBridge";
+import { ORT_WASM_PATHS } from "./ortAssets";
 
 if (ort.env.wasm) {
   ort.env.wasm.wasmPaths = ORT_WASM_PATHS;

@@ -4,6 +4,24 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { inspectBundle, checkBudget } from "./bundle-audit.mjs";
 import { fingerprint, ensureLocalAi } from "./local-ai-cache.mjs";
+import { preparePaddleAssets, extractOpenCv, OPENCV_WASM_SHA256 } from "./paddle-assets.mjs";
+import { sha256 } from "./bundle-audit.mjs";
+
+test("pinned OCR sources preserve WASM bytes and reject unrecognized binary data", async () => {
+  const root = await fixture();
+  try {
+    const result = await preparePaddleAssets(root);
+    assert.equal(result.wasmSha256, OPENCV_WASM_SHA256);
+    assert.equal(sha256(await fs.readFile(path.join(root, "opencv.wasm"))), OPENCV_WASM_SHA256);
+    const cv = await fs.readFile(path.join(root, "opencv.js"), "utf8");
+    assert.ok(!cv.includes("AGFzbQ"));
+    const ort = await fs.readFile(path.join(root, "src/runtime/ort.ts"), "utf8");
+    assert.ok(ort.includes('import("onnxruntime-web/webgpu")'));
+    assert.throws(() => extractOpenCv('"data:application/octet-stream;base64,AGFzbQ=="'), /fingerprint/);
+    await fs.writeFile(path.join(root, "package.json"), '{"version":"0.4.3"}');
+    await assert.rejects(preparePaddleAssets(path.join(root, "output"), root), /0.4.2/);
+  } finally { await fs.rm(root, { recursive: true }); }
+});
 
 async function fixture() {
   await fs.mkdir("tmp", { recursive: true });
