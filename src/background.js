@@ -19,6 +19,8 @@ import {
   MSG_UPDATE_CSP,
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
+  MSG_LOCAL_AI_RPC,
+  MSG_LOCAL_AI_CANCEL,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_TRANSLATE_ONLY,
   CMD_TOGGLE_STYLE,
@@ -58,6 +60,7 @@ import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
 import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
 import { isCurrentPopupDocument } from "./libs/popupDocument";
+import { localAiRequest, cancelLocalAiRequest } from "./libs/localAiBackground";
 
 globalThis.__KISS_CONTEXT__ = "background";
 installStorageCoordinator();
@@ -737,6 +740,8 @@ const messageHandlers = {
   [MSG_COMMAND_SHORTCUTS]: () => browser.commands.getAll(), // 获取 manifest 注册的所有快捷键
   [MSG_BUILTINAI_DETECT]: (args) => chromeDetect(args), // 触发 Chrome 127+ 内置 Gemini AI 语言检测
   [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args), // 触发 Chrome 内置 AI 翻译接口
+  [MSG_LOCAL_AI_RPC]: (request) => localAiRequest(request),
+  [MSG_LOCAL_AI_CANCEL]: ({ id }) => cancelLocalAiRequest(id),
   [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args), // 修改运行时的日志记录等级
   [MSG_CLEAR_CACHES]: () => tryClearCaches(), // 清空翻译缓存
   [MSG_OPEN_SEPARATE_WINDOW]: () => openSeparateWindowWithSavedBounds(), // 打开独立翻译小窗口

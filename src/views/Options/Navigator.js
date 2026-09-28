@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import ApiRoundedIcon from "@mui/icons-material/ApiRounded";
+import MemoryRoundedIcon from "@mui/icons-material/MemoryRounded";
+import FileUploadRoundedIcon from "@mui/icons-material/FileUploadRounded";
 import BookmarksRoundedIcon from "@mui/icons-material/BookmarksRounded";
 import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
 import CloudSyncRoundedIcon from "@mui/icons-material/CloudSyncRounded";
@@ -14,10 +16,13 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import SubtitlesRoundedIcon from "@mui/icons-material/SubtitlesRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import { NavLink } from "react-router-dom";
 import Logo from "../../components/Logo";
 import { useI18n } from "../../hooks/I18n";
 import { useSetting } from "../../hooks/Setting";
+import { isAutoTranslateClipboardSupported } from "../../libs/client";
+import { openFileTranslatePage } from "../../libs/navigation";
 
 function normalizeSearchText(text, uiLang) {
   try {
@@ -71,6 +76,17 @@ export default function Navigator({ open, isMobile = false, onClose }) {
             "/subtitle",
             SubtitlesRoundedIcon,
           ],
+          ...(isAutoTranslateClipboardSupported
+            ? [
+                [
+                  "file-translate",
+                  i18n("file_translate", "文件翻译"),
+                  "/file-translate",
+                  FileUploadRoundedIcon,
+                  true,
+                ],
+              ]
+            : []),
         ],
       },
       {
@@ -88,6 +104,9 @@ export default function Navigator({ open, isMobile = false, onClose }) {
             "/prompts",
             DescriptionRoundedIcon,
           ],
+          ...(isAutoTranslateClipboardSupported
+            ? [["local-ai", "本地 AI", "/local-ai", MemoryRoundedIcon]]
+            : []),
         ],
       },
       {
@@ -166,18 +185,37 @@ export default function Navigator({ open, isMobile = false, onClose }) {
               {group.label && (
                 <h2 className="kt-options-nav__label">{group.label}</h2>
               )}
-              {group.items.map(([id, label, path, Icon]) => (
-                <NavLink
-                  className="kt-options-nav__link"
-                  to={path}
-                  end={path === "/"}
-                  key={id}
-                  onClick={isMobile ? onClose : undefined}
-                >
-                  <Icon />
-                  <span>{label}</span>
-                </NavLink>
-              ))}
+              {group.items.map(([id, label, path, Icon, isExternal]) =>
+                isExternal ? (
+                  <button
+                    type="button"
+                    className="kt-options-nav__link"
+                    key={id}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (isMobile && onClose) onClose();
+                      openFileTranslatePage();
+                    }}
+                  >
+                    <Icon />
+                    <span style={{ flex: 1 }}>{label}</span>
+                    <OpenInNewRoundedIcon
+                      sx={{ fontSize: 16, opacity: 0.65, ml: "auto" }}
+                    />
+                  </button>
+                ) : (
+                  <NavLink
+                    className="kt-options-nav__link"
+                    to={path}
+                    end={path === "/"}
+                    key={id}
+                    onClick={isMobile ? onClose : undefined}
+                  >
+                    <Icon />
+                    <span>{label}</span>
+                  </NavLink>
+                )
+              )}
             </section>
           ))
         ) : (

@@ -455,6 +455,17 @@ describe("Apis ordering and master-detail layout", () => {
       detail.querySelectorAll('[class*="MuiGrid-grid-lg-6"]').length
     ).toBeGreaterThan(0);
 
+    const sourceTypeInput = detail.querySelector('input[name="sourceType"]');
+    const capabilitiesInput = detail.querySelector('input[name="capabilities"]');
+    expect(sourceTypeInput).not.toBeNull();
+    expect(capabilitiesInput).not.toBeNull();
+    const sourceGridItem = sourceTypeInput.closest(".MuiGrid-item");
+    const capabilitiesGridItem = capabilitiesInput.closest(".MuiGrid-item");
+    expect(sourceGridItem.classList.toString()).toContain("MuiGrid-grid-lg-6");
+    expect(capabilitiesGridItem.classList.toString()).toContain("MuiGrid-grid-lg-6");
+    const gridContainer = sourceGridItem.closest(".MuiGrid-container");
+    expect(gridContainer.parentElement.classList.contains("MuiStack-root")).toBe(false);
+
     const footer = detail.querySelector(".kt-api-detail__footer");
     const footerButtonTexts = Array.from(footer.querySelectorAll("button")).map(
       (button) => button.textContent

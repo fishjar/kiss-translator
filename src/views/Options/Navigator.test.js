@@ -14,14 +14,18 @@ jest.mock("../../hooks/I18n", () => ({
 jest.mock("../../hooks/Setting", () => ({
   useSetting: () => ({ setting: { uiLang: mockUiLang } }),
 }));
-jest.mock("../../components/Logo", () => {
-  const React = require("react");
-  return () => React.createElement("span", null, "logo");
-});
+const mockOpenFileTranslatePage = jest.fn();
+jest.mock("../../libs/navigation", () => ({
+  openFileTranslatePage: () => mockOpenFileTranslatePage(),
+}));
+jest.mock("../../libs/client", () => ({
+  isAutoTranslateClipboardSupported: true,
+}));
 
 beforeEach(() => {
   mockUiLang = "en";
   mockLabels = {};
+  mockOpenFileTranslatePage.mockReset();
 });
 
 describe("settings navigator semantics", () => {
@@ -112,6 +116,37 @@ describe("settings navigator semantics", () => {
     expect(
       container.querySelector('button[aria-label="options_close_navigation"]')
     ).toBeNull();
+
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  test("clicking file-translate external button invokes openFileTranslatePage", () => {
+    mockLabels = { file_translate: "文件翻译" };
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const handleClose = jest.fn();
+
+    act(() =>
+      root.render(
+        <MemoryRouter>
+          <Navigator open isMobile onClose={handleClose} />
+        </MemoryRouter>
+      )
+    );
+
+    const buttons = Array.from(
+      container.querySelectorAll("button.kt-options-nav__link")
+    );
+    const fileTranslateBtn = buttons.find((btn) =>
+      btn.textContent.includes("文件翻译")
+    );
+    expect(fileTranslateBtn).toBeDefined();
+
+    act(() => fileTranslateBtn.click());
+    expect(mockOpenFileTranslatePage).toHaveBeenCalledTimes(1);
+    expect(handleClose).toHaveBeenCalledTimes(1);
 
     act(() => root.unmount());
     container.remove();

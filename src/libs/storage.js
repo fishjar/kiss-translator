@@ -1,8 +1,10 @@
 import {
   STOKEY_SETTING,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
+  STOKEY_SETTING_BACKUP_V3_BEFORE_V4,
   STOKEY_SETTING_OLD,
   STOKEY_RULES,
+  STOKEY_RULES_BACKUP_BEFORE_APISLUGS,
   STOKEY_RULES_OLD,
   STOKEY_WORDS,
   STOKEY_FAB,
@@ -18,7 +20,9 @@ import {
   getSettingVersion,
   migrateSettingPromptsToV2,
   migrateSettingToV3,
+  migrateSettingToV4,
   SETTINGS_VERSION_V2,
+  SETTINGS_VERSION_V4,
   CURRENT_SETTINGS_VERSION,
   DEFAULT_TRANBOX_SETTING,
   normalizeApiThinkingSettings,
@@ -547,18 +551,23 @@ export const migrateStoredSettingToV2 = async (
 /** Return false if migration cannot persist settings; reads still reject. */
 export const runDataMigration = async () => {
   const rawSetting = await getSetting();
-  if (!rawSetting) return true;
+  const rawRules = await getRules();
+  const needsRuleMigration = Array.isArray(rawRules) && rawRules.some((rule) => rule && !Array.isArray(rule.apiSlugs));
+  if (!rawSetting && !needsRuleMigration) return true;
 
   const needsSchemaMigration =
-    getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
-  const needsThemeMigration = typeof rawSetting.darkMode === "boolean";
-  if (!needsSchemaMigration && !needsThemeMigration) return true;
+    rawSetting && getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
+  const needsThemeMigration = typeof rawSetting?.darkMode === "boolean";
+  if (!needsSchemaMigration && !needsThemeMigration && !needsRuleMigration) return true;
 
   try {
     let nextSetting = rawSetting;
-    if (needsSchemaMigration) {
+  if (needsSchemaMigration) {
       const v2Setting = await migrateStoredSettingToV2(rawSetting, rawSetting);
-      nextSetting = migrateSettingToV3(v2Setting);
+      if (getSettingVersion(v2Setting) < SETTINGS_VERSION_V4) {
+        await setObj(STOKEY_SETTING_BACKUP_V3_BEFORE_V4, rawSetting);
+      }
+      nextSetting = migrateSettingToV4(migrateSettingToV3(v2Setting));
     }
     if (needsThemeMigration) {
       nextSetting = {
@@ -566,7 +575,13 @@ export const runDataMigration = async () => {
         darkMode: rawSetting.darkMode ? "dark" : "light",
       };
     }
-    await setObj(STOKEY_SETTING, nextSetting);
+    if (needsSchemaMigration || needsThemeMigration) await setObj(STOKEY_SETTING, nextSetting);
+    if (needsRuleMigration) {
+      if (!(await getObj(STOKEY_RULES_BACKUP_BEFORE_APISLUGS))) {
+        await setObj(STOKEY_RULES_BACKUP_BEFORE_APISLUGS, rawRules);
+      }
+      await setRules(normalizeRuleApiSlugs(rawRules));
+    }
     kissLog(`Migration to V${CURRENT_SETTINGS_VERSION} completed.`);
     return true;
   } catch (err) {
@@ -583,7 +598,7 @@ export const normalizeStoredSetting = (rawSetting) => {
 
   let setting =
     getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION
-      ? migrateSettingToV3(rawSetting)
+      ? migrateSettingToV4(rawSetting)
       : rawSetting;
 
   if (typeof setting.darkMode === "boolean") {
@@ -604,7 +619,13 @@ export const putSetting = async (obj) => {
 export const getRules = () => getObj(STOKEY_RULES);
 export const getRulesOld = () => getObj(STOKEY_RULES_OLD);
 export const getRulesWithDefault = async () =>
-  (await getRules()) || DEFAULT_RULES;
+  normalizeRuleApiSlugs((await getRules()) || DEFAULT_RULES);
+export const normalizeRuleApiSlugs = (rules) =>
+  Array.isArray(rules)
+    ? rules.map((rule) => !rule || Array.isArray(rule.apiSlugs)
+        ? rule
+        : { ...rule, apiSlugs: rule.apiSlug ? [rule.apiSlug] : [] })
+    : rules;
 export const setRules = (val) => setObj(STOKEY_RULES, val);
 
 // --- 个人生词本词汇 (Fav Words) 数据存取 ---

@@ -6,7 +6,7 @@ import Layout from "./Layout";
 import SyncSetting from "./SyncSetting";
 import { SettingProvider } from "../../hooks/Setting";
 import ThemeProvider from "./OptionsTheme";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { isGm } from "../../libs/client";
 import { STOKEY_SETTING } from "../../config";
 import { AlertProvider } from "../../hooks/Alert";
@@ -27,6 +27,12 @@ import StylesSetting from "./StylesSetting";
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
 import InteractionLock from "./InteractionLock";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import { openFileTranslatePage } from "../../libs/navigation";
+import { isAutoTranslateClipboardSupported } from "../../libs/client";
 import {
   createOptionsStartup,
   getRequiredOptionsSyncKeys,
@@ -34,6 +40,29 @@ import {
 } from "./startup";
 
 export { normalizeOptionsPath as normalizeOptionsHashPath } from "./paths";
+
+const LocalAi = lazy(() => import("./LocalAi"));
+
+function FileTranslateRedirect() {
+  useEffect(() => {
+    openFileTranslatePage();
+  }, []);
+
+  return (
+    <Box sx={{ p: 4, textAlign: "center" }}>
+      <Typography variant="body1" sx={{ mb: 2 }}>
+        文件翻译已升级为独立全屏页面，正在新标签页中打开...
+      </Typography>
+      <Button
+        variant="contained"
+        startIcon={<OpenInNewRoundedIcon />}
+        onClick={() => openFileTranslatePage()}
+      >
+        在新标签页中打开文件翻译
+      </Button>
+    </Box>
+  );
+}
 
 function SyncBackdrop({ open }) {
   return (
@@ -141,6 +170,8 @@ export default function Options() {
                     <Route path="subtitle" element={<SubtitleSetting />} />
                     <Route path="apis" element={<Apis />} />
                     <Route path="prompts" element={<Prompts />} />
+                    {isAutoTranslateClipboardSupported && <Route path="local-ai" element={<Suspense fallback={null}><LocalAi /></Suspense>} />}
+                    {isAutoTranslateClipboardSupported && <Route path="file-translate" element={<FileTranslateRedirect />} />}
                     <Route path="sync" element={<SyncSetting />} />
                     <Route path="words" element={<FavWords />} />
                     <Route

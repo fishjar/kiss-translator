@@ -64,6 +64,7 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-nav__group:first-child { margin-top: 0; }
 .kt-options-nav__label { margin: 0 14px 6px; color: var(--kt-onv); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .kt-options-nav__link { min-height: 44px; display: flex; align-items: center; gap: 13px; padding: 0 16px; border-radius: 999px; color: var(--kt-onv); text-decoration: none; font-size: 13px; font-weight: 550; transition: background .3s var(--kt-spring), color .3s, transform .15s; }
+button.kt-options-nav__link { width: 100%; border: none; background: transparent; cursor: pointer; text-align: left; font: inherit; }
 @media (hover: hover) {
   .kt-options-nav__link:hover { background: var(--kt-sf2); color: var(--kt-on); }
 }
@@ -81,6 +82,7 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-main { min-width: 0; padding: 38px clamp(24px, 5vw, 72px) 80px; container-name: options-main; container-type: inline-size; }
 .kt-options-main__inner { width: min(790px, 100%); margin: 0 auto; }
 .kt-options-main__inner--wide { width: min(1120px, 100%); }
+.kt-options-main__inner--full { width: 100%; max-width: none; margin: 0; }
 .kt-options-page-header { margin: 0 0 26px; }
 .kt-options-page-header h1 { margin: 0; color: var(--kt-on); font-size: clamp(27px, 3vw, 31px); font-weight: 650; letter-spacing: -.035em; line-height: 1.2; }
 .kt-options-page-header p { margin: 8px 0 0; color: var(--kt-onv); font-size: 13.5px; line-height: 1.5; }
@@ -165,8 +167,9 @@ export const OPTIONS_STYLES = String.raw`
 .kt-settings-row--stacked .kt-settings-row__control { width: 100%; max-width: none; justify-content: stretch; }
 .kt-settings-row--trigger .kt-settings-segmented { width: 100%; }
 .kt-settings-select { min-width: 112px; max-width: 260px; }
-.kt-settings-select .MuiFilledInput-root { min-height: 40px; border-radius: 12px; }
-.kt-settings-select .MuiSelect-select { padding: 9px 34px 9px 14px; color: var(--kt-on); font-size: 12px; font-weight: 600; text-overflow: ellipsis; }
+.kt-settings-select--full { width: 100%; min-width: 0; max-width: none; }
+.kt-settings-select:not(.kt-settings-select--with-label) .MuiFilledInput-root { min-height: 40px; border-radius: 12px; }
+.kt-settings-select:not(.kt-settings-select--with-label) .MuiSelect-select { padding: 9px 34px 9px 14px; color: var(--kt-on); font-size: 12px; font-weight: 600; text-overflow: ellipsis; }
 .kt-settings-segmented { width: max-content; min-width: 260px; max-width: 100%; gap: 2px; overflow: hidden; padding: 3px; border: 1px solid color-mix(in srgb, var(--kt-linev) 72%, transparent); border-radius: 999px; background: var(--kt-sf2); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .04); }
 .kt-settings-segmented > button { min-height: 34px; flex: 1; overflow: hidden; padding-inline: 12px; border: 0 !important; border-radius: 999px !important; color: var(--kt-onv); font-size: 11.5px; text-transform: none; transition: background-color .2s ease, color .2s ease, box-shadow .2s ease; white-space: nowrap; }
 .kt-settings-segmented > button.Mui-selected { background: var(--kt-secc); color: var(--kt-onsecc); font-weight: 650; }

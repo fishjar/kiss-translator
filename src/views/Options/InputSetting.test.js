@@ -30,6 +30,9 @@ jest.mock("../../hooks/Api", () => ({
     enabledApis: [{ apiSlug: "Microsoft", apiName: "Microsoft" }],
   }),
 }));
+jest.mock("../../hooks/Prompt", () => ({
+  usePromptList: () => ({ prompts: [] }),
+}));
 jest.mock("./ShortcutInput", () => {
   const React = require("react");
   return () => React.createElement("div");
@@ -96,7 +99,7 @@ describe("InputSetting", () => {
     const content = container.querySelector(".kt-settings-advanced__content");
     const rows = content.querySelector(".kt-settings-advanced__rows");
     expect(rows.tagName).toBe("UL");
-    expect(rows.children).toHaveLength(3);
+    expect(rows.children).toHaveLength(4);
     expect(rows.querySelector(".kt-settings-card")).toBeNull();
 
     act(() => root.unmount());

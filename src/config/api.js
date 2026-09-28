@@ -49,6 +49,8 @@ export const OPT_SUG_MAP = new Set(OPT_SUG_ALL);
 
 // --- 翻译服务提供商标识常量 ---
 export const OPT_TRANS_BUILTINAI = "BuiltinAI"; // 浏览器内置 Gemini AI 翻译
+export const OPT_TRANS_SYSTEM_TTS = "SystemTTS";
+export const OPT_TRANS_LOCALAI = "LocalAI";
 export const OPT_TRANS_GOOGLE = "Google"; // 谷歌翻译服务
 export const OPT_TRANS_GOOGLE_2 = "Google2"; // 谷歌翻译 pa 网页 API (支持大批量 HTML)
 export const OPT_TRANS_GOOGLE_CLOUD = "GoogleCloud"; // Google Cloud Translation Basic API
@@ -85,6 +87,8 @@ export const OPT_TRANS_CUSTOMIZE = "Custom"; // 自定义翻译 API
 // 内置支持的翻译引擎
 export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_BUILTINAI,
+  OPT_TRANS_SYSTEM_TTS,
+  OPT_TRANS_LOCALAI,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_GOOGLE_2,
   OPT_TRANS_GOOGLE_CLOUD,
@@ -1502,6 +1506,9 @@ const defaultApi = {
   apiSlug: "", // 唯一标识
   apiName: "", // 接口名称
   apiType: "", // 接口类型
+  sourceType: "network", // 内置、本地或外部接口
+  capabilities: ["translation"], // 此适配器已实现的能力
+  modelRef: "", // 本地模型引用，仅标识符随配置同步
   url: "",
   key: "",
   model: "", // 模型名称
@@ -1559,7 +1566,9 @@ const defaultAiApiOpts = {
 };
 
 const defaultApiOpts = {
-  [OPT_TRANS_BUILTINAI]: defaultApi,
+  [OPT_TRANS_BUILTINAI]: { ...defaultApi, sourceType: "builtin" },
+  [OPT_TRANS_SYSTEM_TTS]: { ...defaultApi, sourceType: "builtin", capabilities: ["tts"] },
+  [OPT_TRANS_LOCALAI]: { ...defaultApi, sourceType: "local", capabilities: ["translation", "llm"], isDisabled: true },
   [OPT_TRANS_GOOGLE]: {
     ...defaultApi,
     url: "https://translate.googleapis.com/translate_a/single",

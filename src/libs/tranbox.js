@@ -7,14 +7,18 @@ import {
   DEFAULT_TRANBOX_SETTING,
   APP_CONSTS,
   resolveApiPromptList,
+  withScenePrompt,
 } from "../config";
 import { isolateShadowHost, mountShadowHost } from "./shadowHost";
 
 function resolvePromptProps(props = {}) {
+  const transApis = (props.transApis || []).map((api) =>
+    withScenePrompt(api, props.tranboxSetting)
+  );
   return {
     ...props,
     transApis: resolveApiPromptList(
-      props.transApis,
+      transApis,
       props.prompts,
       props.subtitleSetting
     ),

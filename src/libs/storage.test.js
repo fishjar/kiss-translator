@@ -1,8 +1,11 @@
 import {
   STOKEY_SETTING,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
+  STOKEY_RULES,
+  STOKEY_RULES_BACKUP_BEFORE_APISLUGS,
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V3,
+  SETTINGS_VERSION_V4,
   DEFAULT_SUBTITLE_SETTING,
   OPT_TRANS_DEEPSEEK,
   OPT_TRANS_OPENAI,
@@ -66,11 +69,27 @@ describe("settings storage migration", () => {
     const stored = readStoredJson(STOKEY_SETTING);
 
     expect(backup).toEqual(oldSetting);
-    expect(stored.version).toBe(SETTINGS_VERSION_V3);
+    expect(stored.version).toBe(SETTINGS_VERSION_V4);
     expect(stored.transApis[0].batchPromptSlug).toMatch(
       /^prompt_migrated_batch_/
     );
     expect(stored.transApis[0]).not.toHaveProperty("systemPrompt");
+  });
+
+  test("migrates web rule API choices once without dropping inherited markers", async () => {
+    const oldRules = [
+      { pattern: "*", apiSlug: "primary" },
+      { pattern: "example.com", apiSlug: "*" },
+    ];
+    window.localStorage.setItem(STOKEY_RULES, JSON.stringify(oldRules));
+    await runDataMigration();
+    expect(readStoredJson(STOKEY_RULES_BACKUP_BEFORE_APISLUGS)).toEqual(oldRules);
+    expect(readStoredJson(STOKEY_RULES)).toEqual([
+      { ...oldRules[0], apiSlugs: ["primary"] },
+      { ...oldRules[1], apiSlugs: ["*"] },
+    ]);
+    await runDataMigration();
+    expect(readStoredJson(STOKEY_RULES_BACKUP_BEFORE_APISLUGS)).toEqual(oldRules);
   });
 
   test.each([
@@ -88,8 +107,9 @@ describe("settings storage migration", () => {
 
       await runDataMigration();
 
-      expect(readStoredJson(STOKEY_SETTING)).toEqual({
+      expect(readStoredJson(STOKEY_SETTING)).toMatchObject({
         ...oldSetting,
+        version: SETTINGS_VERSION_V4,
         darkMode: expected,
       });
       expect(readStoredJson(STOKEY_SETTING_BACKUP_V1_BEFORE_V2)).toBe(null);
@@ -104,12 +124,12 @@ describe("settings storage migration", () => {
       await runDataMigration();
 
       expect(readStoredJson(STOKEY_SETTING)).toMatchObject({
-        version: SETTINGS_VERSION_V3,
+        version: SETTINGS_VERSION_V4,
         darkMode: "dark",
       });
-      expect(setItem).toHaveBeenCalledTimes(1);
+      expect(setItem).toHaveBeenCalledTimes(2);
       await runDataMigration();
-      expect(setItem).toHaveBeenCalledTimes(1);
+      expect(setItem).toHaveBeenCalledTimes(2);
     } finally {
       setItem.mockRestore();
     }
@@ -145,7 +165,7 @@ describe("settings storage migration", () => {
 
     const setting = await getSettingWithDefault();
 
-    expect(setting.version).toBe(SETTINGS_VERSION_V3);
+    expect(setting.version).toBe(SETTINGS_VERSION_V4);
     expect(setting.transApis[0].batchPromptSlug).toMatch(
       /^prompt_migrated_batch_/
     );
@@ -166,7 +186,7 @@ describe("settings storage migration", () => {
       const setItem = jest.spyOn(window.Storage.prototype, "setItem");
       try {
         await expect(getSettingWithDefault()).resolves.toMatchObject({
-          version: SETTINGS_VERSION_V3,
+          version: SETTINGS_VERSION_V4,
           darkMode: expected,
           uiLang: "en",
         });

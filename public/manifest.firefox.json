@@ -7,10 +7,9 @@
   "author": "Gabe<yugang2002@gmail.com>",
   "homepage_url": "https://github.com/fishjar/kiss-translator",
   "background": {
-    "scripts": [
-      "background.js"
-    ]
+    "page": "local-ai-background.html"
   },
+  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
   "content_scripts": [
     {
       "js": [

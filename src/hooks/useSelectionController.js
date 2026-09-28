@@ -133,7 +133,7 @@ function isTranboxEvent(e) {
 function isPanelInteractiveTarget(target) {
   return Boolean(
     target?.closest?.(
-      'button, input, textarea, select, [role="tab"], [role="button"]'
+      'button, input, textarea, select, [role="tab"], [role="button"], [role="option"], [role="menuitem"]'
     )
   );
 }
@@ -546,7 +546,9 @@ export default function useSelectionController({
   useEffect(() => {
     if (!hideClickAway) return;
 
-    const handleHideBox = () => {
+    const handleHideBox = (e) => {
+      // 忽略翻译框及其下拉菜单等内部元素的点击
+      if (isTranboxEvent(e)) return;
       const selection = window.getSelection();
       if (selection && selection.toString().trim() !== "") {
         return; // Ignore click away if user is selecting text on the page

@@ -20,7 +20,11 @@ import {
   API_SPE_TYPES,
   GEMINI_GENERATE_CONTENT_URL,
   OPT_TRANS_GEMINI,
+  DEFAULT_API_LIST,
+  OPT_TRANS_SYSTEM_TTS,
+  OPT_TRANS_LOCALAI,
 } from "./api";
+import { normalizeApiCapabilities, orderedApiSlugs } from "./serviceSelection";
 
 // 聚合翻译协议定义
 export const PROMPT_PROTOCOL_LINE = "line";
@@ -74,7 +78,8 @@ export const DEFAULT_DICTIONARY_PROMPT_SLUG = PROMPT_SLUG_DICTIONARY_EN_ZH;
 export const SETTINGS_VERSION_V1 = 1;
 export const SETTINGS_VERSION_V2 = 2;
 export const SETTINGS_VERSION_V3 = 3;
-export const CURRENT_SETTINGS_VERSION = SETTINGS_VERSION_V3;
+export const SETTINGS_VERSION_V4 = 4;
+export const CURRENT_SETTINGS_VERSION = SETTINGS_VERSION_V4;
 
 /**
  * 预设的提示词列表。包含了系统出厂自带的各种场景提示词模板。
@@ -869,6 +874,30 @@ export function migrateSettingToV3(setting = {}) {
   };
 }
 
+export function migrateSettingToV4(setting = {}) {
+  if (!setting || typeof setting !== "object") return setting;
+  const previous = migrateSettingToV3(setting);
+  if (getSettingVersion(previous) >= SETTINGS_VERSION_V4) return previous;
+  const withList = (scene) =>
+    scene ? { ...scene, apiSlugs: orderedApiSlugs(scene) } : scene;
+  const apis = Array.isArray(previous.transApis)
+    ? previous.transApis.map(normalizeApiCapabilities)
+    : previous.transApis;
+  const added = [OPT_TRANS_SYSTEM_TTS, OPT_TRANS_LOCALAI]
+    .filter((type) => !apis?.some((api) => api.apiType === type))
+    .map((type) => DEFAULT_API_LIST.find((api) => api.apiType === type));
+  const migrated = {
+    ...previous,
+    version: SETTINGS_VERSION_V4,
+    transApis: Array.isArray(apis) ? [...apis, ...added] : apis,
+  };
+  if (previous.inputRule) migrated.inputRule = withList(previous.inputRule);
+  if (previous.subtitleSetting) migrated.subtitleSetting = withList(previous.subtitleSetting);
+  if (previous.mouseHoverSetting) migrated.mouseHoverSetting = withList(previous.mouseHoverSetting);
+  if (previous.tranboxSetting) migrated.tranboxSetting = withList(previous.tranboxSetting);
+  return migrated;
+}
+
 /**
  * 删除某个自定义提示词后，级联更新所有引用了该提示词的接口配置。
  * 遍历各个 API 和字幕设置，如果它们正在使用被删除的提示词（根据 promptSlug 判断），
@@ -943,11 +972,17 @@ export function removePromptReferences(setting = {}, promptSlug) {
     "aiDictPromptSlug",
     promptSlug
   );
+  const hasTranboxPromptReference = hasPromptReference(
+    setting?.tranboxSetting,
+    "promptSlug",
+    promptSlug
+  );
 
   if (
     !hasApiChanges &&
     !hasSubtitlePromptReference &&
-    !hasTranboxDictPromptReference
+    !hasTranboxDictPromptReference &&
+    !hasTranboxPromptReference
   ) {
     return setting;
   }
@@ -968,8 +1003,15 @@ export function removePromptReferences(setting = {}, promptSlug) {
 
   if (hasTranboxDictPromptReference) {
     nextSetting.tranboxSetting = {
-      ...(setting?.tranboxSetting || {}),
+      ...(nextSetting.tranboxSetting || setting?.tranboxSetting || {}),
       aiDictPromptSlug: PROMPT_MODE_FOLLOW_API,
+    };
+  }
+
+  if (hasTranboxPromptReference) {
+    nextSetting.tranboxSetting = {
+      ...(nextSetting.tranboxSetting || setting?.tranboxSetting || {}),
+      promptSlug: "",
     };
   }
 

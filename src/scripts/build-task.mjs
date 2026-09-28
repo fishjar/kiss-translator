@@ -1,6 +1,52 @@
-#!/usr/bin/env zx
 import { argv, quote, $, ProcessOutput } from "zx";
+import crypto from "node:crypto";
 import { copySubtitleSamplesToWeb } from "./subtitle-samples.mjs";
+
+/**
+ * 递归计算 local-ai 源码目录与构建配置的指纹哈希（用于增量构建判定）
+ */
+async function computeLocalAiFingerprint() {
+  const root = "src/localAi";
+  const files = [];
+
+  async function walk(dir) {
+    const list = await fs.readdir(dir);
+    for (const item of list) {
+      const full = path.join(dir, item);
+      const stat = await fs.stat(full);
+      if (stat.isDirectory()) {
+        await walk(full);
+      } else {
+        files.push({
+          path: path.relative(".", full).replace(/\\/g, "/"),
+          mtime: stat.mtimeMs,
+          size: stat.size,
+        });
+      }
+    }
+  }
+
+  if (await fs.pathExists(root)) {
+    await walk(root);
+  }
+
+  const viteConfig = "vite.config.local-ai.ts";
+  if (await fs.pathExists(viteConfig)) {
+    const stat = await fs.stat(viteConfig);
+    files.push({
+      path: viteConfig,
+      mtime: stat.mtimeMs,
+      size: stat.size,
+    });
+  }
+
+  files.sort((a, b) => a.path.localeCompare(b.path));
+  const hash = crypto.createHash("sha1");
+  for (const f of files) {
+    hash.update(`${f.path}:${f.mtime}:${f.size};`);
+  }
+  return hash.digest("hex");
+}
 
 // 在 Windows 上使用 cmd.exe，避免 zx 默认使用 WSL bash 导致 node not found
 if (process.platform === "win32") {
@@ -138,6 +184,65 @@ try {
     const { version } = await fs.readJson("package.json");
     await fs.writeFile(inDest("version.txt"), version);
     console.log(chalk.green(`Version file generated: ${inDest("version.txt")}`));
+  }
+
+  if (["chrome", "firefox"].includes(target)) {
+    const runtimeDir = path.resolve(".local-ai-build");
+    const fingerprintFile = path.join(runtimeDir, ".build-hash");
+    const forceRebuild =
+      Boolean(argv["rebuild-local-ai"]) ||
+      Boolean(process.env.REBUILD_LOCAL_AI);
+
+    const currentFingerprint = await computeLocalAiFingerprint();
+    const hasBuiltRuntime =
+      (await fs.pathExists(path.join(runtimeDir, "offscreen.js"))) &&
+      (await fs.pathExists(fingerprintFile));
+
+    let isUpToDate = false;
+    if (!forceRebuild && hasBuiltRuntime) {
+      try {
+        const savedFingerprint = (
+          await fs.readFile(fingerprintFile, "utf-8")
+        ).trim();
+        isUpToDate = savedFingerprint === currentFingerprint;
+      } catch {
+        isUpToDate = false;
+      }
+    }
+
+    if (isUpToDate) {
+      console.log(
+        chalk.cyan(
+          "⚡ Local AI 源码未变动，复用现有构建缓存（跳过 Vite 编译）"
+        )
+      );
+    } else {
+      console.log(
+        chalk.yellow("🔨 正在通过 Vite 构建 Local AI 运行时（包含模型与离线 Worker）...")
+      );
+      await $({ stdio: "inherit" })`vite build --config vite.config.local-ai.ts`;
+      await fs.writeFile(fingerprintFile, currentFingerprint, "utf-8");
+      console.log(chalk.green("✅ Local AI 离线运行时构建完成并缓存指纹。"));
+    }
+
+    for (const entry of await fs.readdir(runtimeDir)) {
+      if (entry.startsWith(".")) continue;
+      await fs.copy(path.join(runtimeDir, entry), inDest(entry), {
+        overwrite: true,
+      });
+    }
+    const runtimeHtml =
+      '<!doctype html><html><head><meta charset="utf-8"></head><body><script type="module" src="/offscreen.js"></script></body></html>';
+    await fs.writeFile(inDest("offscreen.html"), runtimeHtml);
+    if (target === "firefox") {
+      await fs.writeFile(
+        inDest("local-ai-background.html"),
+        runtimeHtml.replace(
+          "</body>",
+          '<script src="/background.js"></script></body>'
+        )
+      );
+    }
   }
 
   console.log(

@@ -3,7 +3,16 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { WebpackManifestPlugin } = require("webpack-manifest-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
+const path = require("path");
 // const webpack = require("webpack");
+
+const aliasLocalRuntime = (config) => {
+  config.resolve.alias = {
+    ...config.resolve.alias,
+    [path.resolve(__dirname, "src/localAi/runtime/runtimeManager.ts") + "$"]:
+      path.resolve(__dirname, "src/localAi/runtime/runtimeManager.webpack.js"),
+  };
+};
 
 console.log("process.env.REACT_APP_CLIENT", process.env.REACT_APP_CLIENT);
 
@@ -38,11 +47,13 @@ const extWebpack = (config, env) => {
     content: paths.appSrc + "/content.js", // 内容注入核心脚本
     "injector-subtitle": paths.appSrc + "/injector-subtitle.js", // 字幕注入脚本
     "injector-shadowroot": paths.appSrc + "/injector-shadowroot.js", // ShadowRoot 拦截注入脚本
+    fileTranslate: paths.appSrc + "/fileTranslate.js", // 文件翻译独立页面
   };
 
   // 2. 将输出的文件命名重写为固定格式，方便 manifest.json 静态引用，防止文件哈希化导致引用失效
   config.output.filename = "[name].js";
   config.output.assetModuleFilename = "media/[name][ext]";
+  aliasLocalRuntime(config);
 
   // REVIEW: 在 Webpack 5 环境下只设置 default: false 依然有触发 vendors 分包切片的可能，更安全的做法是直接设为 false 或显式清空 vendors 缓存组
   config.optimization.splitChunks = { cacheGroups: { default: false } };
@@ -71,6 +82,14 @@ const extWebpack = (config, env) => {
       filename: "popup.html",
       minify,
     }),
+    // 为文件翻译独立页面定制生成对应的 HTML
+    new HtmlWebpackPlugin({
+      inject: true,
+      chunks: ["fileTranslate"],
+      template: paths.appHtml,
+      filename: "file-translate.html",
+      minify,
+    }),
     new WebpackManifestPlugin({
       fileName: "asset-manifest.json",
     }),
@@ -84,6 +103,7 @@ const extWebpack = (config, env) => {
 
 // 方案 B：油猴脚本 (Userscript) 编译覆盖配置
 const userscriptWebpack = (config, env) => {
+  aliasLocalRuntime(config);
   // 定义油猴脚本特有的 Meta 元数据头部信息 banner
   // REVIEW: @connect 声明中 generativelanguage.googleapis.com 出现了两次，建议删除一行冗余配置。
   const banner = `// ==UserScript==
@@ -233,12 +253,14 @@ const userscriptWebpack = (config, env) => {
 
 // 方案 C：本地开发网页模式的 Webpack 覆盖配置
 const webWebpack = (config, env) => {
+  aliasLocalRuntime(config);
   const names = ["HtmlWebpackPlugin"];
 
   config.entry = {
     main: paths.appIndexJs,
     options: paths.appSrc + "/options.js",
     content: paths.appSrc + "/userscript.js",
+    fileTranslate: paths.appSrc + "/fileTranslate.js",
   };
 
   config.output.filename = "[name].js";
@@ -266,6 +288,12 @@ const webWebpack = (config, env) => {
       chunks: ["content"],
       template: paths.appPublic + "/content.html",
       filename: "content.html",
+    }),
+    new HtmlWebpackPlugin({
+      inject: true,
+      chunks: ["fileTranslate"],
+      template: paths.appHtml,
+      filename: "file-translate.html",
     })
   );
 
@@ -287,6 +315,13 @@ switch (process.env.REACT_APP_CLIENT) {
 
 module.exports = {
   webpack: webpackConfig,
+  jest: (config) => {
+    config.testPathIgnorePatterns = [
+      ...(config.testPathIgnorePatterns || []),
+      "<rootDir>/src/localAi/",
+    ];
+    return config;
+  },
   devServer: (configFunction) => (proxy, allowedHost) => {
     const config = configFunction(proxy, allowedHost);
     const onBeforeSetupMiddleware = config.onBeforeSetupMiddleware;

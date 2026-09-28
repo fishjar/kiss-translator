@@ -13,6 +13,9 @@ import {
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
   OPT_TRANS_BUILTINAI,
+  OPT_TRANS_LOCALAI,
+  MSG_LOCAL_AI_RPC,
+  MSG_LOCAL_AI_CANCEL,
   OPT_TRANS_QWENMT,
   URL_CACHE_SUBTITLE,
   URL_CACHE_CONTEXT,
@@ -49,6 +52,7 @@ import { normalizeHttpTimeout } from "../libs/request";
 import { getFetchPool } from "../libs/pool";
 import { trustedTypesHelper } from "../libs/trustedTypes";
 import { getDocInfo } from "../libs/docInfo";
+import { sendBgMsg } from "../libs/msg";
 
 const PROMPT_CACHE_SALT = "prompt-cache";
 const PROMPT_CACHE_SCOPE_BATCH = "batch";
@@ -787,6 +791,20 @@ export const apiTranslate = async ({
       to,
       apiSetting,
     });
+  } else if (apiType === OPT_TRANS_LOCALAI) {
+    const id = `local-translation-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const cancel = () => { void sendBgMsg(MSG_LOCAL_AI_CANCEL, { id }); };
+    signal?.addEventListener("abort", cancel, { once: true });
+    try {
+      translation = await sendBgMsg(MSG_LOCAL_AI_RPC, {
+        id,
+        service: "translation",
+        method: "translate",
+        payload: { modelRef: apiSetting.modelRef, text, fromLang, toLang },
+      });
+    } finally {
+      signal?.removeEventListener("abort", cancel);
+    }
   } else if (useBatchFetch && API_SPE_TYPES.batch.has(apiType)) {
     // 2.2 支持批量翻译的传统接口 (如 Google/Microsoft/DeepL 等)
     // 使用 BatchQueue 进行零散文本大合并，节省网络交互次数，大幅提升网页整页翻译的载入速度

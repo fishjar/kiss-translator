@@ -4,6 +4,7 @@ import { decodeHTMLEntities } from "../libs/html.js";
 import { parseMathInText } from "../libs/mathParse.js";
 import { apiTranslate } from "../apis/index.js";
 import { resolveApiPromptSettings } from "../config/prompt.js";
+import { availableApisForScene, withScenePrompt } from "../config/serviceSelection.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import { isSubtitleModeEnabled } from "./modes.js";
 import {
@@ -723,25 +724,35 @@ export class BilingualSubtitleManager {
         prompts,
       } = this.#setting;
 
-      const apiSetting = resolveApiPromptSettings(
-        rawApiSetting,
-        prompts,
-        this.#setting
-      );
-
-      const { trText } = await apiTranslate({
-        text: subtitle.text,
-        fromLang,
-        toLang,
-        apiSetting,
-        docInfo,
-        translateVariants,
-        signal,
-        onStreamChunk: ({ text }) => {
-          // 字幕单句翻译的流式 chunk 只更新当前字幕对象，不改时间轴结构。
-          updateSubtitleTranslation(normalizeStreamText(text));
-        },
-      });
+      const candidates = availableApisForScene(this.#setting, this.#setting.transApis || [], "translation");
+      if (!candidates.length && rawApiSetting) candidates.push(rawApiSetting);
+      let trText;
+      let lastError;
+      for (const candidate of candidates) {
+        let streamed = false;
+        try {
+          const apiSetting = resolveApiPromptSettings(withScenePrompt(candidate, this.#setting), prompts, this.#setting);
+          const response = await apiTranslate({
+            text: subtitle.text,
+            fromLang,
+            toLang,
+            apiSetting,
+            docInfo,
+            translateVariants,
+            signal,
+            onStreamChunk: ({ text }) => {
+              streamed = true;
+              updateSubtitleTranslation(normalizeStreamText(text));
+            },
+          });
+          if (response?.trText) { trText = response.trText; break; }
+          lastError = new Error(`${candidate.apiName || candidate.apiSlug} returned an empty result`);
+        } catch (error) {
+          if (streamed || signal?.aborted) throw error;
+          lastError = error;
+        }
+      }
+      if (!trText) throw lastError || new Error("没有可用的字幕翻译接口");
       // 竞态校验：如翻译异步返回时会话 ID 已过时，丢弃结果防止脏数据覆盖
       if (sessionId !== this.#translationSessionId) return;
       updateSubtitleTranslation(trText);

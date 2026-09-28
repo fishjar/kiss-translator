@@ -181,7 +181,7 @@ export function useApiList() {
 
   // 获取所有启用的 API 列表
   const enabledApis = useMemo(
-    () => transApis.filter((api) => !api.isDisabled),
+    () => transApis.filter((api) => !api.isDisabled && (api.capabilities || ["translation"]).includes("translation")),
     [transApis]
   );
 

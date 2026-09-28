@@ -537,10 +537,12 @@ describe("Options startup with real storage hooks", () => {
     const host = renderOptions("#/apis");
     await flushEffects();
     expect(runDataMigration).toHaveBeenCalledTimes(1);
-    expect(browser.storage.local.set).toHaveBeenCalledTimes(1);
-    const normalized = JSON.parse(
-      browser.storage.local.set.mock.calls[0][0][STOKEY_SETTING]
+    expect(browser.storage.local.set).toHaveBeenCalledTimes(2);
+    const normalizedCall = browser.storage.local.set.mock.calls.find(
+      (call) => call[0]?.[STOKEY_SETTING]
     );
+    expect(normalizedCall).toBeDefined();
+    const normalized = JSON.parse(normalizedCall[0][STOKEY_SETTING]);
     expect(normalized).toMatchObject({
       marker: "legacy-setting",
       version: CURRENT_SETTINGS_VERSION,
@@ -576,7 +578,7 @@ describe("Options startup with real storage hooks", () => {
     });
     expect(storedValues.get(STOKEY_SETTING)).toEqual(remoteSetting);
     expect(trySyncSetting).toHaveBeenCalledTimes(1);
-    expect(browser.storage.local.set).toHaveBeenCalledTimes(2);
+    expect(browser.storage.local.set).toHaveBeenCalledTimes(5);
     expect(syncData).not.toHaveBeenCalled();
     expectInteractionBlocked(host, false);
   });

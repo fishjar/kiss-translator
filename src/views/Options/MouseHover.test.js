@@ -19,6 +19,10 @@ jest.mock("../../hooks/Api", () => ({
   useApiList: jest.fn(),
 }));
 
+jest.mock("../../hooks/Prompt", () => ({
+  usePromptList: () => ({ prompts: [] }),
+}));
+
 jest.mock("./ShortcutInput", () => () => null);
 
 const enabledApis = [
@@ -73,7 +77,7 @@ describe("MouseHover settings", () => {
       displayMode: "bubble",
       apiSlug: "*",
     });
-    const input = view.container.querySelector("input[name='apiSlug']");
+    const input = view.container.querySelector(".kt-settings-select input");
     const select = input.parentElement.querySelector("[role='combobox']");
 
     expect(input.value).toBe("*");
@@ -95,7 +99,7 @@ describe("MouseHover settings", () => {
       displayMode: "bubble",
       apiSlug: "*",
     });
-    const input = view.container.querySelector("input[name='apiSlug']");
+    const input = view.container.querySelector(".kt-settings-select input");
     const select = input.parentElement.querySelector("[role='combobox']");
 
     act(() => {
@@ -109,6 +113,7 @@ describe("MouseHover settings", () => {
     });
 
     expect(view.updateMouseHoverSetting).toHaveBeenCalledWith({
+      apiSlugs: ["bubble-api"],
       apiSlug: "bubble-api",
     });
     view.cleanup();

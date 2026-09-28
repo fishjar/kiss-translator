@@ -50,6 +50,7 @@ import { apiTranslate } from "../../apis";
 import { fetchModelCatalog } from "../../libs/modelList";
 import Box from "@mui/material/Box";
 import ReusableAutocomplete from "./ReusableAutocomplete";
+import LocalModelSelect from "./LocalModelSelect";
 import ShowMoreButton from "./ShowMoreButton";
 import {
   OPT_TRANS_DEEPLX,
@@ -73,6 +74,8 @@ import {
   DEFAULT_CONTEXT_SIZE,
   OPT_ALL_TRANS_TYPES,
   OPT_LANGS_LIST,
+  SOURCE_TYPES,
+  CAPABILITIES,
   API_SPE_TYPES,
   BUILTIN_STONES,
   BUILTIN_PLACEHOLDERS,
@@ -516,6 +519,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     temperature = 0,
     maxTokens = 20480,
     apiName = "",
+    sourceType = apiType === OPT_TRANS_BUILTINAI ? "builtin" : "network",
+    capabilities = ["translation"],
+    modelRef = "",
     isDisabled = false,
     useBatchFetch = false,
     useStream = false,
@@ -836,7 +842,67 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         />
       </Box>
 
-      {(!API_SPE_TYPES.machine.has(apiType) || apiType === OPT_TRANS_QWENMT) &&
+      <Box>
+        <Grid container spacing={2} columns={12}>
+          <Grid item xs={12} sm={12} md={6} lg={6}>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label={i18n("api_source_type", "来源类型")}
+              name="sourceType"
+              value={sourceType}
+              disabled
+              helperText={i18n("api_source_type_helper", "由接口适配器决定")}
+            >
+              {SOURCE_TYPES.map((value) => (
+                <MenuItem key={value} value={value}>
+                  {value === "builtin"
+                    ? i18n("api_source_type_builtin", "内置")
+                    : value === "local"
+                    ? i18n("api_source_type_local", "本地")
+                    : i18n("api_source_type_network", "网络")}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid item xs={12} sm={12} md={6} lg={6}>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label={i18n("api_capabilities", "能力类型")}
+              name="capabilities"
+              value={capabilities}
+              onChange={handleChange}
+              SelectProps={{
+                multiple: true,
+                renderValue: (selected) =>
+                  (Array.isArray(selected) ? selected : [])
+                    .map((val) => i18n(`capability_${val}`, val))
+                    .join(", "),
+              }}
+              helperText={
+                capabilities.some((item) => item !== "translation")
+                  ? i18n(
+                      "api_capabilities_helper",
+                      "新能力在适配器接入前为待接入状态"
+                    )
+                  : ""
+              }
+            >
+              {CAPABILITIES.map((value) => (
+                <MenuItem key={value} value={value}>
+                  {i18n(`capability_${value}`, value)}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+        </Grid>
+      </Box>
+      {sourceType === "local" && <LocalModelSelect value={modelRef} onChange={(value) => handleChange({ target: { name: "modelRef", value } })} />}
+
+      {sourceType === "network" && (!API_SPE_TYPES.machine.has(apiType) || apiType === OPT_TRANS_QWENMT) &&
         apiType !== OPT_TRANS_BUILTINAI && (
           <>
             <TextField

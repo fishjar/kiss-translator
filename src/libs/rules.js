@@ -132,6 +132,11 @@ export const mergeRules = (baseRule, overrideRule) => {
   if (!baseRule) return { ...overrideRule };
 
   const merged = { ...baseRule };
+  if (Array.isArray(overrideRule.apiSlugs) && overrideRule.apiSlugs.length && overrideRule.apiSlugs[0] !== GLOBAL_KEY) {
+    merged.apiSlugs = [...overrideRule.apiSlugs];
+  } else if (overrideRule.apiSlug && overrideRule.apiSlug !== GLOBAL_KEY) {
+    merged.apiSlugs = [overrideRule.apiSlug];
+  }
 
   // 1. 合并 CSS 选择器类型的属性，支持追加/剔除
   [
@@ -218,6 +223,10 @@ export const deriveRuleContext = (
     ...GLOBLA_RULE,
     ...(personalRules.find((r) => r.pattern === GLOBAL_KEY) || {}),
   };
+  const personalGlobal = personalRules.find((r) => r.pattern === GLOBAL_KEY);
+  if (personalGlobal?.apiSlug && !Array.isArray(personalGlobal.apiSlugs)) {
+    globalRule.apiSlugs = [personalGlobal.apiSlug];
+  }
 
   // Find the active personal rule, excluding the global rule.
   // The visual editor can keep editing a renamed rule even when its new
@@ -347,6 +356,7 @@ export const checkRules = (rules) => {
         injectJs,
         injectCss,
         apiSlug,
+        apiSlugs,
         fromLang,
         toLang,
         textStyle,
@@ -393,6 +403,9 @@ export const checkRules = (rules) => {
           type(apiSlug) === "string" && apiSlug.trim() !== ""
             ? apiSlug.trim()
             : GLOBAL_KEY,
+        apiSlugs: Array.isArray(apiSlugs) && apiSlugs.length
+          ? [...new Set(apiSlugs.filter((slug) => typeof slug === "string" && slug))]
+          : [type(apiSlug) === "string" && apiSlug.trim() ? apiSlug.trim() : GLOBAL_KEY],
         fromLang: matchValue([GLOBAL_KEY, ...fromLangs], fromLang),
         toLang: matchValue([GLOBAL_KEY, ...toLangs], toLang),
         textStyle:

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import Layout, {
   fetchLatestVersion,
   isWideOptionsPage,
+  isFullWidthOptionsPage,
   isValidVersion,
   isNewerVersion,
 } from "./Layout";
@@ -24,6 +25,12 @@ test("uses the wide content rail for dense workspace pages", () => {
   expect(isWideOptionsPage("/apis/")).toBe(true);
   expect(isWideOptionsPage("/prompts///")).toBe(true);
   expect(isWideOptionsPage("/input")).toBe(false);
+});
+
+test("uses full-width rail for file translation page", () => {
+  expect(isFullWidthOptionsPage("/file-translate")).toBe(true);
+  expect(isFullWidthOptionsPage("/file-translate/")).toBe(true);
+  expect(isFullWidthOptionsPage("/apis")).toBe(false);
 });
 
 jest.mock("react-router-dom", () => ({

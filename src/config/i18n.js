@@ -5,6 +5,7 @@ import { TOUCH_I18N } from "./i18n.touch";
  */
 
 import { SETTINGS_I18N } from "./locales/settings";
+import { LOCAL_AI_I18N } from "./locales/localAi";
 import { RU_I18N } from "./i18n.ru";
 import { RULE_EDITOR_I18N } from "./i18n.ruleEditor";
 
@@ -2179,6 +2180,7 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
 export const I18N = {
   ...TOUCH_I18N,
   ...SETTINGS_I18N,
+  ...LOCAL_AI_I18N,
   ...RULE_EDITOR_I18N,
   ...SUBTITLE_PLAYGROUND_I18N,
   ...TERMINOLOGY_PLAYGROUND_I18N,

@@ -87,6 +87,7 @@ export const DEFAULT_INPUT_RULE = {
   transOpen: true, // 是否开启输入框翻译功能
   blacklist: "", // 禁用输入框翻译的域名列表
   apiSlug: OPT_TRANS_MICROSOFT, // 默认使用的翻译服务 API 标识
+  apiSlugs: [OPT_TRANS_MICROSOFT],
   fromLang: "auto", // 默认自动检测输入源语言
   toLang: "en", // 默认翻译目标语言为英文
   triggerShortcut: DEFAULT_INPUT_SHORTCUT, // 快捷键组合
@@ -138,6 +139,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   fromLang: "auto",
   toLang: "zh-CN",
   toLang2: "en", // 第二目标语言，用于自动反向互译
+  promptSlug: "", // 划词翻译提示词，默认为空（跟随接口）
   tranboxShortcut: DEFAULT_TRANBOX_SHORTCUT,
   btnOffsetX: 0, // 翻译触发球相对光标的横向偏移像素
   btnOffsetY: 0, // 翻译触发球相对光标的纵向偏移像素
@@ -179,6 +181,7 @@ export const OPT_ENHANCE_MOBILE_OFF = "mobile_off"; // 移动端浏览器中默�
 export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否自动开启视频字幕翻译功能
   apiSlug: OPT_TRANS_MICROSOFT, // 默认的字幕翻译接口
+  apiSlugs: [OPT_TRANS_MICROSOFT],
   segSlug: "-", // 智能 AI 断句/字幕合并的算法选择 ("-" 表示禁用 AI 段落合并)
   forceSubtitleRetranslate: false, // AI 断句服务与翻译服务不同时，是否强制使用翻译服务重翻译文
   chunkLength: 1000, // 新配置默认使用更短 AI 分块；已保存的用户值仍由存储配置优先覆盖
@@ -256,7 +259,34 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
   mouseHoverPreventClick: false, // 按住链接/按钮翻译后松开是否阻止点击跳转（默认关闭）
   displayMode: OPT_MOUSE_HOVER_DISPLAY_BILINGUAL, // 鼠标悬停翻译展示模式
   apiSlug: GLOBAL_KEY, // 气泡模式翻译接口，默认跟随当前网页规则
+  apiSlugs: [GLOBAL_KEY],
   bubbleStyle: DEFAULT_MOUSE_HOVER_BUBBLE_STYLE, // 气泡模式的容器 CSS
+};
+
+export const DEFAULT_FILE_TRANSLATE_SETTING = {
+  txt: {
+    fromLang: "auto",
+    toLang: "zh-CN",
+    apiSlugs: [OPT_TRANS_MICROSOFT],
+    promptSlug: "",
+    textStyle: "style_none",
+  },
+  image: {
+    fromLang: "auto",
+    toLang: "zh-CN",
+    apiSlugs: [OPT_TRANS_MICROSOFT],
+    promptSlug: "",
+    ocrGroup: "ppocr-v5-mobile",
+    ocrDevice: "webgpu",
+    fontFamily: "default",
+  },
+  markdown: {
+    fromLang: "auto",
+    toLang: "zh-CN",
+    apiSlugs: [OPT_TRANS_MICROSOFT],
+    promptSlug: "",
+    textStyle: "style_none",
+  },
 };
 
 // --- 全局默认设置对象，存储于 local storage ---
@@ -291,6 +321,7 @@ export const DEFAULT_SETTING = {
   shortcuts: DEFAULT_SHORTCUTS, // 键盘快捷键配置对象
   inputRule: DEFAULT_INPUT_RULE, // 输入框即时翻译相关配置
   tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译及字典结果面板配置
+  fileTranslateSetting: DEFAULT_FILE_TRANSLATE_SETTING,
   // touchTranslate: 2, // 触屏翻译 {5:单指双击，6:单指三击，7:双指双击} (作废)
   touchModes: [2], // 触屏移动端翻译触发行为配置 (数组，支持多选，如单指双击/三击)
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用整页双语翻译的网址/黑名单列表

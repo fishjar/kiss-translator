@@ -2,10 +2,10 @@ import {
   DEFAULT_INPUT_RULE,
   DEFAULT_INPUT_SHORTCUT,
   OPT_LANGS_LIST,
-  DEFAULT_API_SETTING,
   OPT_INPUT_DOT_DISABLE,
   OPT_INPUT_DOT_MOBILE,
 } from "../config";
+import { availableApisForScene, withScenePrompt } from "../config/serviceSelection";
 import { resolveApiPromptSettings } from "../config/prompt";
 import { isMobile } from "./mobile";
 import { genEventName, removeEndchar, matchInputStr, sleep } from "./utils";
@@ -547,7 +547,7 @@ export class InputTranslator {
       return;
     }
 
-    const { apiSlug, transSign, triggerCount } = this.#config.inputRule;
+    const { transSign, triggerCount } = this.#config.inputRule;
     let { fromLang, toLang } = this.#config.inputRule;
 
     // 3. 获取文本
@@ -593,15 +593,12 @@ export class InputTranslator {
       }
     }
 
-    const rawApiSetting =
-      this.#config.transApis.find((api) => api.apiSlug === apiSlug) ||
-      DEFAULT_API_SETTING;
-
-    const apiSetting = resolveApiPromptSettings(
-      rawApiSetting,
-      this.#config.prompts,
-      this.#config.subtitleSetting
+    const candidates = availableApisForScene(
+      this.#config.inputRule,
+      this.#config.transApis,
+      "translation"
     );
+    if (!candidates.length) return;
 
     const loadingId = "kiss-loading-" + genEventName();
 
@@ -610,14 +607,30 @@ export class InputTranslator {
       this.hideFloatButton(); // 翻译期间隐藏按钮
 
       // 调用翻译 API
-      const { trText, isSame } = await apiTranslate({
-        text,
-        fromLang,
-        toLang,
-        apiSetting,
-        textFormat: "text",
-        translateVariants: this.#config.translateVariants,
-      });
+      let result;
+      let lastError;
+      for (const candidate of candidates) {
+        try {
+          const apiSetting = resolveApiPromptSettings(
+            withScenePrompt(candidate, this.#config.inputRule),
+            this.#config.prompts,
+            this.#config.subtitleSetting
+          );
+          result = await apiTranslate({
+            text,
+            fromLang,
+            toLang,
+            apiSetting,
+            textFormat: "text",
+            translateVariants: this.#config.translateVariants,
+          });
+          if (result?.trText) break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      if (!result?.trText && lastError) throw lastError;
+      const { trText, isSame } = result || {};
 
       // 输入框写回纯文本，开启后将模型输出的行内 LaTeX 转成可读的 Unicode
       const trimmedText = trText?.trim() || "";

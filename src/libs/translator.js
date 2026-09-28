@@ -32,6 +32,7 @@ import {
   newI18n,
 } from "../config";
 import { resolveApiPromptSettings } from "../config/prompt";
+import { availableApisForScene, withScenePrompt } from "../config/serviceSelection";
 import { interpreter } from "./interpreter";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
@@ -978,22 +979,19 @@ export class Translator {
   // 接口参数
   // todo: 不用频繁查找计算
   get #apiSetting() {
-    // return (
-    //   this.#setting.transApis.find(
-    //     (api) => api.apiSlug === this.#rule.apiSlug
-    //   ) || DEFAULT_API_SETTING
-    // );
-    return this.#apisMap.get(this.#rule.apiSlug) || DEFAULT_API_SETTING;
+    const fromScene = availableApisForScene(this.#rule, this.#setting.transApis, "translation")[0];
+    return fromScene || this.#apisMap.get(this.#rule.apiSlug) || DEFAULT_API_SETTING;
   }
 
   // 气泡模式可使用独立接口；配置失效时继续跟随当前网页规则。
   get #hoverBubbleApiSetting() {
-    const apiSlug = this.#setting.mouseHoverSetting?.apiSlug;
+    const scene = this.#setting.mouseHoverSetting;
+    const apiSlug = scene?.apiSlugs?.[0] || scene?.apiSlug;
     if (!apiSlug || apiSlug === GLOBAL_KEY) {
       return this.#apiSetting;
     }
 
-    const apiSetting = this.#apisMap.get(apiSlug);
+    const apiSetting = availableApisForScene(scene, this.#setting.transApis, "translation")[0] || this.#apisMap.get(apiSlug);
     return apiSetting && !apiSetting.isDisabled ? apiSetting : this.#apiSetting;
   }
 
@@ -4209,10 +4207,14 @@ overflow-wrap: anywhere !important;`;
   ) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
+    const hoverScene = apiSettingOverride && this.#setting.mouseHoverSetting;
+    const scene = hoverScene?.apiSlugs?.[0] && hoverScene.apiSlugs[0] !== GLOBAL_KEY
+      ? hoverScene
+      : this.#rule;
     const rawApiSetting = { ...(apiSettingOverride || this.#apiSetting) };
 
     const apiSetting = resolveApiPromptSettings(
-      rawApiSetting,
+      withScenePrompt(rawApiSetting, scene),
       this.#setting.prompts,
       this.#setting.subtitleSetting
     );
@@ -4251,7 +4253,32 @@ overflow-wrap: anywhere !important;`;
       }
     }
 
-    return apiTranslate(args);
+    if (args.apiSetting !== apiSetting) return apiTranslate(args);
+    const candidates = availableApisForScene(scene, this.#setting.transApis, "translation");
+    const activeCandidates = candidates.length > 0 ? candidates : [apiSetting].filter(Boolean);
+    if (!activeCandidates.length) return Promise.reject(new Error("没有可用的翻译接口"));
+    return (async () => {
+      let lastError;
+      for (const candidate of activeCandidates) {
+        let hasStreamed = false;
+        try {
+          const resolved = resolveApiPromptSettings(withScenePrompt(candidate, scene), this.#setting.prompts, this.#setting.subtitleSetting);
+          const result = await apiTranslate({
+            ...args,
+            apiSetting: resolved,
+            onStreamChunk: onStreamChunk
+              ? (...values) => { hasStreamed = true; return onStreamChunk(...values); }
+              : undefined,
+          });
+          if (result && result.trText !== undefined) return result;
+          lastError = new Error(`${candidate.apiName || candidate.apiSlug} 返回空结果`);
+        } catch (error) {
+          if (hasStreamed) throw error;
+          lastError = error;
+        }
+      }
+      throw lastError;
+    })();
   }
 
   // 查找指定节点下所有译文节点

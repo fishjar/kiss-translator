@@ -1,6 +1,8 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import OrderedApiSelect from "./OrderedApiSelect";
+import ScenePromptSelect from "./ScenePromptSelect";
 import CodeField from "./CodeField";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -120,7 +122,9 @@ export function queueDisabledSubRuleRemoval(
 const calculateInitialValues = (rule) => {
   // REVIEW: GLOBLA_RULE 存在拼写错误，疑似应为 GLOBAL_RULE。此处为兼容底层导出的拼写而沿用。
   const base = rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE;
-  return { ...base, ...(rule || {}) };
+  const merged = { ...base, ...(rule || {}) };
+  if (rule?.apiSlug && !Array.isArray(rule.apiSlugs)) merged.apiSlugs = [rule.apiSlug];
+  return merged;
 };
 
 // 规则编辑/添加表单字段组件
@@ -171,7 +175,6 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
     grandStyle = "", // 针对选择器祖父元素的样式
     injectJs = "", // 页面注入 JS 脚本
     injectCss = "", // 页面注入 CSS 样式
-    apiSlug, // 指定的翻译服务标识
     fromLang, // 源语言
     toLang, // 目标语言
     textStyle, // 预设译文样式 slug
@@ -404,23 +407,23 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
             </Grid>
             {/* 翻译引擎服务设置 */}
             <Grid item xs={12} sm={12} md={6} lg={6}>
-              <TextField
-                select
-                size="small"
+              <OrderedApiSelect
                 fullWidth
-                name="apiSlug"
-                value={apiSlug}
+                scene={formValues}
+                apis={rule?.pattern === "*" ? enabledApis : [{ apiSlug: GLOBAL_KEY, apiName: i18n("follow_global") }, ...enabledApis]}
                 label={i18n("translate_service")}
                 disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                {enabledApis.map((api) => (
-                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
-                    {api.apiName}
-                  </MenuItem>
-                ))}
-              </TextField>
+                onChange={(apiSlugs) => setFormValues((previous) => ({ ...previous, apiSlugs, apiSlug: apiSlugs[0] || GLOBAL_KEY }))}
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
+              <ScenePromptSelect
+                fullWidth
+                label={i18n("translation_prompt", "翻译提示词")}
+                value={formValues.promptSlug}
+                disabled={disabled}
+                onChange={(promptSlug) => updateFormValue("promptSlug", promptSlug)}
+              />
             </Grid>
             {/* 源语言设置 */}
             <Grid item xs={12} sm={12} md={6} lg={6}>

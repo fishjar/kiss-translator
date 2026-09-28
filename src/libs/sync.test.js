@@ -1,5 +1,6 @@
 jest.mock("../config", () => ({
   ...jest.requireActual("../config/client"),
+  ...jest.requireActual("../config/prompt"),
   APP_LCNAME: "kiss-translator",
   KV_SETTING_KEY: "kiss-setting_v2.json",
   KV_RULES_KEY: "kiss-rules_v2.json",

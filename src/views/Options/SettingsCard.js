@@ -173,19 +173,39 @@ export function SettingsSelect({
   label,
   multiple = false,
   disabled = false,
+  fullWidth = false,
+  hiddenLabel,
+  InputLabelProps,
+  className = "",
+  sx,
+  variant = "filled",
+  ...rest
 }) {
+  const isHiddenLabel = hiddenLabel !== undefined ? hiddenLabel : !fullWidth;
   return (
     <TextField
       select
-      hiddenLabel
+      hiddenLabel={isHiddenLabel}
+      label={isHiddenLabel ? undefined : label}
+      InputLabelProps={
+        !isHiddenLabel
+          ? { shrink: true, ...InputLabelProps }
+          : InputLabelProps
+      }
       size="small"
-      variant="filled"
-      className="kt-settings-select"
+      variant={variant}
+      fullWidth={fullWidth}
+      className={`kt-settings-select ${fullWidth ? "kt-settings-select--full" : ""} ${!isHiddenLabel ? "kt-settings-select--with-label" : ""} ${className}`.trim()}
       value={value}
       disabled={disabled}
-      SelectProps={{ multiple }}
+      SelectProps={{ multiple, displayEmpty: true }}
       inputProps={{ "aria-label": label }}
       onChange={(event) => onChange(event.target.value)}
+      sx={{
+        ...(fullWidth ? { width: "100%", maxWidth: "none" } : {}),
+        ...sx,
+      }}
+      {...rest}
     >
       {options.map((option) => {
         const normalized = Array.isArray(option)

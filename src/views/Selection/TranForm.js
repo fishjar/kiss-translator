@@ -46,6 +46,7 @@ import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import { isShadowHostMoving } from "../../libs/shadowHost";
+import { isApiAvailableFor } from "../../config/serviceSelection";
 
 export const formatLanguageOptionName = (name) => {
   const parts = String(name || "")
@@ -340,7 +341,7 @@ export default function TranForm({
   const optApis = useMemo(
     () =>
       transApis
-        .filter((api) => !api.isDisabled)
+        .filter((api) => isApiAvailableFor(api, "translation"))
         .map((api) => ({
           key: api.apiSlug,
           name: api.apiName || api.apiSlug,

@@ -2,6 +2,8 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
+import OrderedApiSelect from "./OrderedApiSelect";
+import ScenePromptSelect from "./ScenePromptSelect";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -38,7 +40,6 @@ import {
   SettingsRow,
   SettingsSection,
   SettingsSegmented,
-  SettingsSelect,
   SettingsSwitch,
 } from "./SettingsCard";
 
@@ -816,14 +817,18 @@ export default function SubtitleSetting() {
         <SettingsSection title={i18n("settings_quality_group")}>
           <SettingsCard>
             <SettingsRow label={i18n("translate_service")}>
-              <SettingsSelect
-                value={apiSlug}
+              <OrderedApiSelect
+                scene={subtitleSetting}
+                apis={enabledApis}
                 label={i18n("translate_service")}
-                onChange={(value) => updateSubtitle({ apiSlug: value })}
-                options={enabledApis.map((api) => ({
-                  value: api.apiSlug,
-                  label: api.apiName,
-                }))}
+                onChange={(apiSlugs) => updateSubtitle({ apiSlugs, apiSlug: apiSlugs[0] || "" })}
+              />
+            </SettingsRow>
+            <SettingsRow label={i18n("translation_prompt", "翻译提示词")}>
+              <ScenePromptSelect
+                label={i18n("translation_prompt", "翻译提示词")}
+                value={subtitleSetting.promptSlug}
+                onChange={(promptSlug) => updateSubtitle({ promptSlug })}
               />
             </SettingsRow>
             {/* Keep TextField so mismatched segmentation and translation

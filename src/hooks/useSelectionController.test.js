@@ -73,6 +73,7 @@ function TestController({
   setBoxPosition = jest.fn(),
   toLang = "zh-CN",
   skipLangs,
+  hideClickAway = false,
 }) {
   const tranboxSetting = {
     triggerMode,
@@ -91,7 +92,7 @@ function TestController({
     boxOffsetY,
     boxSize,
     setBoxPosition,
-    hideClickAway: false,
+    hideClickAway,
   });
 
   useEffect(() => {
@@ -895,6 +896,66 @@ describe("useSelectionController", () => {
 
     act(() => {
       controller.root.unmount();
+    });
+  });
+
+  describe("hideClickAway behavior", () => {
+    test("clicking outside closes the box when hideClickAway is true", () => {
+      const controller = renderController({ hideClickAway: true });
+      act(() => {
+        controller.state.handleOpenTranbox("hello");
+      });
+      expect(controller.state.showBox).toBe(true);
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      expect(controller.state.showBox).toBe(false);
+
+      act(() => {
+        controller.root.unmount();
+      });
+    });
+
+    test("clicking inside tranbox elements does not close the box when hideClickAway is true", () => {
+      const controller = renderController({ hideClickAway: true });
+      const { host, wrapper } = createPanelTarget();
+      const option = document.createElement("li");
+      option.setAttribute("role", "option");
+      option.textContent = "Google2";
+      wrapper.appendChild(option);
+
+      act(() => {
+        controller.state.handleOpenTranbox("hello");
+      });
+      expect(controller.state.showBox).toBe(true);
+
+      act(() => {
+        option.dispatchEvent(new MouseEvent("click", { bubbles: true, composed: true }));
+      });
+      expect(controller.state.showBox).toBe(true);
+
+      act(() => {
+        controller.root.unmount();
+        host.remove();
+      });
+    });
+
+    test("clicking outside does not close the box when hideClickAway is false", () => {
+      const controller = renderController({ hideClickAway: false });
+      act(() => {
+        controller.state.handleOpenTranbox("hello");
+      });
+      expect(controller.state.showBox).toBe(true);
+
+      act(() => {
+        window.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      expect(controller.state.showBox).toBe(true);
+
+      act(() => {
+        controller.root.unmount();
+      });
     });
   });
 });

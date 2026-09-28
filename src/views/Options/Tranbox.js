@@ -23,6 +23,8 @@ import {
   OPT_SKIPLANGS_SELECTION,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
+import OrderedApiSelect from "./OrderedApiSelect";
+import ScenePromptSelect from "./ScenePromptSelect";
 import { useCallback, useMemo } from "react";
 import { limitNumber } from "../../libs/utils";
 import { useTranbox } from "../../hooks/Tranbox";
@@ -90,7 +92,6 @@ export default function Tranbox() {
   // 解构当前划词翻译配置
   const {
     transOpen,
-    apiSlugs,
     singleWordNoTrans = false,
     autoFavWord = false,
     fromLang,
@@ -263,24 +264,22 @@ export default function Tranbox() {
             <Grid container spacing={2} columns={12}>
               {/* Translation services displayed together in the selection panel. */}
               <Grid item xs={12} sm={12} md={6} lg={6}>
-                <TextField
-                  select
+                <OrderedApiSelect
                   fullWidth
-                  size="small"
-                  name="apiSlugs"
-                  value={apiSlugs}
+                  scene={tranboxSetting}
+                  apis={enabledApis}
                   label={i18n("translate_service_multiple")}
-                  onChange={handleChange}
-                  SelectProps={{
-                    multiple: true,
-                  }}
-                >
-                  {enabledApis.map((api) => (
-                    <MenuItem key={api.apiSlug} value={api.apiSlug}>
-                      {api.apiName}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                  onChange={(next) => updateTranbox({ apiSlugs: next })}
+                />
+              </Grid>
+              {/* 划词翻译提示词设置 */}
+              <Grid item xs={12} sm={12} md={6} lg={6}>
+                <ScenePromptSelect
+                  fullWidth
+                  label={i18n("translation_prompt", "翻译提示词")}
+                  value={tranboxSetting.promptSlug || ""}
+                  onChange={(promptSlug) => updateTranbox({ promptSlug })}
+                />
               </Grid>
               {/* Default source language. */}
               <Grid item xs={12} sm={12} md={6} lg={6}>

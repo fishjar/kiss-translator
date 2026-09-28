@@ -103,4 +103,34 @@ describe("Tranbox language defaults", () => {
     act(() => root.unmount());
     container.remove();
   });
+
+  test("renders translation prompt select with default follow api", () => {
+    const updateTranbox = jest.fn();
+    useTranbox.mockReturnValue({
+      tranboxSetting: {
+        transOpen: true,
+        apiSlugs: ["google"],
+        promptSlug: "",
+        fromLang: "auto",
+        toLang: "zh-CN",
+        tranboxShortcut: [],
+      },
+      updateTranbox,
+    });
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(<Tranbox />));
+
+    act(() => container.querySelector(".MuiAccordionSummary-root").click());
+
+    const labels = Array.from(container.querySelectorAll("label")).map(
+      (el) => el.textContent
+    );
+    expect(labels).toContain("translation_prompt");
+
+    act(() => root.unmount());
+    container.remove();
+  });
 });
