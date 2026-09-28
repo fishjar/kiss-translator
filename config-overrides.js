@@ -5,7 +5,15 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const path = require("path");
 const fs = require("fs");
-// const webpack = require("webpack");
+let webpack;
+try {
+  webpack = require("webpack");
+} catch {
+  const req = require("module").createRequire(
+    require.resolve("react-scripts/package.json")
+  );
+  webpack = req("webpack");
+}
 
 const aliasLocalRuntime = (config) => {
   config.resolve.alias = {
@@ -183,6 +191,18 @@ const extWebpack = (config, env) => {
 // 方案 B：油猴脚本 (Userscript) 编译覆盖配置
 const userscriptWebpack = (config, env) => {
   aliasLocalRuntime(config);
+  config.resolve.alias = {
+    ...config.resolve.alias,
+    webdav$: path.resolve(__dirname, "src/libs/stubs/webdav-stub.js"),
+    [path.resolve(__dirname, "src/libs/interpreter.js")]: path.resolve(
+      __dirname,
+      "src/libs/stubs/interpreter-gm.js"
+    ),
+    "webextension-polyfill$": path.resolve(
+      __dirname,
+      "src/libs/stubs/empty-object.js"
+    ),
+  };
   // 定义油猴脚本特有的 Meta 元数据头部信息 banner
   // REVIEW: @connect 声明中 generativelanguage.googleapis.com 出现了两次，建议删除一行冗余配置。
   const banner = `// ==UserScript==
@@ -284,12 +304,16 @@ const userscriptWebpack = (config, env) => {
   config.optimization.runtimeChunk = false;
   config.optimization.minimize = env === "production";
 
-  // 生产环境压缩时，利用 Terser 插件排除普通注释，但在文件顶部注入油猴特有的 Preamble Banner 信息
+  // 生产环境压缩时，利用 Terser 插件排除普通注释，强化双轮死代码消除与调试剥离，文件顶部注入油猴 Meta Banner
   if (config.optimization.minimize) {
     config.optimization.minimizer = [
       new TerserPlugin({
         extractComments: false, // 阻止生成独立许可注释文件 .license.txt
         terserOptions: {
+          compress: {
+            passes: 2,
+            pure_funcs: ["console.debug"],
+          },
           format: {
             comments: false, // 移除所有其他代码注释
             preamble: banner, // 头部强制置入油猴 Meta 信息
@@ -307,6 +331,10 @@ const userscriptWebpack = (config, env) => {
   );
 
   config.plugins.push(
+    // 强制限制分包数量为 1，确保油猴脚本和页面脚本自包含，避免产生外部 chunk 导致 404 异常
+    new webpack.optimize.LimitChunkCountPlugin({
+      maxChunks: 1,
+    }),
     new HtmlWebpackPlugin({
       inject: true,
       chunks: ["main"],
@@ -318,13 +346,39 @@ const userscriptWebpack = (config, env) => {
       chunks: ["options"],
       template: paths.appHtml,
       filename: "options.html",
-    })
-    // new webpack.BannerPlugin({
-    //   banner,
-    //   raw: true,
-    //   entryOnly: true,
-    //   include: "kiss-translator.user",
-    // })
+    }),
+    {
+      apply(compiler) {
+        compiler.hooks.done.tap("BundleModuleReport", (stats) => {
+          const destination = path.resolve(__dirname, "tmp/build-analysis");
+          fs.mkdirSync(destination, { recursive: true });
+          fs.writeFileSync(
+            path.join(
+              destination,
+              `${process.env.REACT_APP_CLIENT}-webpack.json`
+            ),
+            JSON.stringify(
+              stats.toJson({
+                all: false,
+                assets: true,
+                chunks: true,
+                chunkModules: true,
+                modules: true,
+                nestedModules: true,
+                dependentModules: true,
+                groupModulesByAttributes: false,
+                groupModulesByCacheStatus: false,
+                groupModulesByType: false,
+                groupModulesByPath: false,
+                modulesSpace: Infinity,
+                chunkModulesSpace: Infinity,
+                nestedModulesSpace: Infinity,
+              })
+            )
+          );
+        });
+      },
+    }
   );
 
   return config;
