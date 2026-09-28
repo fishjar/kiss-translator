@@ -42,7 +42,7 @@
     "version:set": "zx src/scripts/update-version.mjs set",
     "build:chrome": "zx src/scripts/build-task.mjs --target=chrome",
     "build:chrome:clean": "zx src/scripts/build-task.mjs --target=chrome --rebuild-local-ai",
-    "build:local-ai": "vite build --config vite.config.local-ai.ts",
+    "build:local-ai": "node src/scripts/local-ai-cache.mjs",
     "build:edge": "zx src/scripts/build-task.mjs --target=edge",
     "build:safari-output": "zx src/scripts/build-task.mjs --target=safari",
     "build:thunderbird": "zx src/scripts/build-task.mjs --target=thunderbird",
@@ -59,7 +59,9 @@
     "test:local-ai": "vitest run src/localAi",
     "test:subtitle-segmentation": "babel-node src/scripts/test-subtitle-segmentation.js",
     "test:terms": "babel-node src/scripts/test-term-replace.js",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "analyze:chrome": "node src/scripts/bundle-audit.mjs",
+    "test:build": "node --test src/scripts/bundle-build.test.mjs"
   },
   "eslintConfig": {
     "extends": [
