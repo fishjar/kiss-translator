@@ -1,20 +1,16 @@
 import { supportsTouch } from "../../libs/touchCapability";
 import TouchTranslateControl from "../../components/TouchTranslateControl";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import TranslateIcon from "@mui/icons-material/Translate";
 import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import Fab from "@mui/material/Fab";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
 import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
-import SpeedDialIcon from "@mui/material/SpeedDialIcon";
 import {
   useState,
   useMemo,
@@ -42,7 +38,8 @@ import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import useWindowSize from "../../hooks/WindowSize";
 import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
 import { ACTION_STYLES } from "./styles";
-import { DEFAULT_FAB, normalizeFabAppearance } from "../../config/fab";
+import { normalizeFabAppearance } from "../../config/fab";
+import FloatingButton from "../../components/FloatingButton";
 
 const selectionUnavailable = () => false;
 
@@ -299,31 +296,18 @@ export function ContentFabContent({
       onMove={handleMove}
       onPositionTransitionEnd={updateMenuPosition}
       handler={
-        <Fab
+        <FloatingButton
           id="kt-content-fab-button"
           ref={anchorRef}
-          className="kt-content-fab"
-          style={{
-            "--kt-fab-size": `${fabSize}px`,
-            "--kt-fab-icon-size": `${Math.max(16, (fabSize * 24) / DEFAULT_FAB.size)}px`,
-            "--kt-fab-radius": `${(fabSize * 16) / DEFAULT_FAB.size}px`,
-          }}
+          size={fabSize}
+          opensMenu={opensMenu}
+          open={open}
           aria-expanded={opensMenu ? open : undefined}
           aria-haspopup={opensMenu ? "menu" : undefined}
           aria-controls={opensMenu && open ? "kt-content-fab-menu" : undefined}
           aria-label={i18n("translate")}
           onClick={handleClick}
-        >
-          {opensMenu ? (
-            <SpeedDialIcon
-              icon={<TranslateIcon />}
-              openIcon={<CloseRoundedIcon />}
-              open={open}
-            />
-          ) : (
-            <TranslateIcon />
-          )}
-        </Fab>
+        />
       }
     >
       <Popper

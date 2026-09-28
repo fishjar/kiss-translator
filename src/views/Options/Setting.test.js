@@ -350,6 +350,69 @@ describe("Settings floating button appearance", () => {
       expect(container.querySelector("#fab-size-value").textContent).toBe(
         "56 px"
       );
+      expect(
+        container
+          .querySelector(".kt-content-fab")
+          .style.getPropertyValue("--kt-fab-size")
+      ).toBe("56px");
+      expect(
+        container.querySelector(".kt-fab-preview-opacity").style.opacity
+      ).toBe("1");
+      expect(updateFab).not.toHaveBeenCalled();
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("keeps preview theme local while the floating button is globally hidden", async () => {
+    const pageSetting = Object.freeze({
+      uiLang: "en",
+      darkMode: "dark",
+      logLevel: 3,
+      clearCache: false,
+    });
+    const fabSetting = Object.freeze({
+      ...visibility,
+      halfHide: true,
+      opacity: 0.4,
+      size: 72,
+    });
+    useSetting.mockReturnValue({ setting: pageSetting, updateSetting });
+    useFab.mockReturnValue({ fab: fabSetting, updateFab });
+    const { container, root } = await renderAppearanceSettings();
+
+    try {
+      const stage = container.querySelector(".kt-fab-preview-stage");
+      const preview = stage.querySelector(".kt-content-fab");
+      expect(stage.getAttribute("data-theme")).toBe("light");
+      expect(preview.disabled).toBe(false);
+      expect(preview.getAttribute("aria-pressed")).toBe("false");
+      expect(preview.getAttribute("aria-label")).toBe("fab_preview_dark");
+      expect(preview.querySelector("svg")).not.toBeNull();
+
+      act(() => preview.click());
+      expect(stage.getAttribute("data-theme")).toBe("dark");
+      expect(preview.getAttribute("aria-pressed")).toBe("true");
+
+      act(() => preview.click());
+      expect(stage.getAttribute("data-theme")).toBe("light");
+      expect(preview.getAttribute("aria-pressed")).toBe("false");
+      expect(container.querySelector('input[name="isHide"]').value).toBe(
+        "true"
+      );
+      expect(container.querySelector('input[name="halfHide"]').value).toBe(
+        "true"
+      );
+      expect(container.querySelector('input[name="opacity"]').value).toBe("40");
+      expect(container.querySelector('input[name="size"]').value).toBe("72");
+      expect(pageSetting.darkMode).toBe("dark");
+      expect(fabSetting).toEqual({
+        ...visibility,
+        halfHide: true,
+        opacity: 0.4,
+        size: 72,
+      });
+      expect(updateSetting).not.toHaveBeenCalled();
       expect(updateFab).not.toHaveBeenCalled();
     } finally {
       act(() => root.unmount());
@@ -422,6 +485,9 @@ describe("Settings floating button appearance", () => {
           `${percent}%`
         );
         expect(slider.getAttribute("aria-valuetext")).toBe(`${percent}%`);
+        expect(
+          container.querySelector(".kt-fab-preview-opacity").style.opacity
+        ).toBe(String(opacity));
         expect(updateFab).toHaveBeenCalledTimes(1);
         expect(updateFab).toHaveBeenCalledWith({ opacity });
         expect(updateSetting).not.toHaveBeenCalled();
@@ -470,6 +536,11 @@ describe("Settings floating button appearance", () => {
           `${size} px`
         );
         expect(slider.getAttribute("aria-valuetext")).toBe(`${size} px`);
+        expect(
+          container
+            .querySelector(".kt-content-fab")
+            .style.getPropertyValue("--kt-fab-size")
+        ).toBe(`${size}px`);
         expect(updateFab).toHaveBeenCalledTimes(1);
         expect(updateFab).toHaveBeenCalledWith({ size });
         expect(updateSetting).not.toHaveBeenCalled();
@@ -495,6 +566,13 @@ describe("Settings floating button appearance", () => {
     const { container, root } = await renderAppearanceSettings();
 
     try {
+      const preview = container.querySelector(".kt-content-fab");
+      act(() => preview.click());
+      expect(
+        container
+          .querySelector(".kt-fab-preview-stage")
+          .getAttribute("data-theme")
+      ).toBe("dark");
       useFab.mockReturnValue({
         fab: { ...visibility, halfHide: false, opacity: 0.7, size: 88 },
         updateFab,
@@ -514,6 +592,20 @@ describe("Settings floating button appearance", () => {
       expect(container.querySelector("#fab-size-value").textContent).toBe(
         "88 px"
       );
+      expect(
+        container
+          .querySelector(".kt-content-fab")
+          .style.getPropertyValue("--kt-fab-size")
+      ).toBe("88px");
+      expect(
+        container.querySelector(".kt-fab-preview-opacity").style.opacity
+      ).toBe("0.7");
+      expect(
+        container
+          .querySelector(".kt-fab-preview-stage")
+          .getAttribute("data-theme")
+      ).toBe("dark");
+      expect(updateSetting).not.toHaveBeenCalled();
       expect(updateFab).not.toHaveBeenCalled();
     } finally {
       act(() => root.unmount());
