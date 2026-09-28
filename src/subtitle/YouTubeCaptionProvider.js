@@ -1002,6 +1002,21 @@ export class YouTubeCaptionProvider {
           this.#setting.enhanceMode
         ),
         autoFavWord: this.#setting.autoFavWord === true,
+        getSummaryConfig: () => ({
+          summaryApiSlug: this.#setting.summaryApiSlug,
+          summaryPromptSlug: this.#setting.summaryPromptSlug,
+          to: this.#setting.toLang || this.#setting.to || "zh-CN",
+          transApis: this.#setting.transApis || [],
+          prompts: this.#setting.prompts || [],
+        }),
+        getVideoMetadata: () => ({
+          videoId: this.#videoId,
+          title: this.#docInfo?.title || document.title,
+          description: this.#fullDescription || this.#docInfo?.description || "",
+          transcript:
+            this.#flatEvents?.map((e) => e.text).filter(Boolean).join(" ") ||
+            this.#subtitles?.map((s) => s.text).filter(Boolean).join(" "),
+        }),
       });
       this.#subtitleListManager.initialize(
         this.#subtitles,

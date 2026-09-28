@@ -250,7 +250,7 @@ export default function Layout() {
         i18n("options_subtitle_description"),
       ],
       "/apis": [
-        i18n("options_translation_services"),
+        i18n("options_service_config", "服务配置"),
         i18n("options_services_description"),
       ],
       "/prompts": [

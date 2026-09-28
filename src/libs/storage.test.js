@@ -359,7 +359,9 @@ describe("settings storage migration", () => {
 
       const setting = await getSettingWithDefault();
 
-      expect(setting.transApis).toHaveLength(savedApis.length);
+      expect(setting.transApis).toHaveLength(
+        version < SETTINGS_VERSION_V4 ? savedApis.length + 2 : savedApis.length
+      );
       savedApis.forEach((savedApi, index) => {
         const loadedApi = setting.transApis[index];
         [

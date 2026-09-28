@@ -208,6 +208,8 @@ export const DEFAULT_SUBTITLE_SETTING = {
   aiContextSlug: "-", // 是否为字幕启用智能上下文，以获取更好的代词翻译效果
   segPromptMode: PROMPT_MODE_FOLLOW_API, // AI 断句提示词来源：接口默认或指定 subtitle prompt
   segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG, // 指定的 subtitle prompt slug，仅在指定提示词模式下生效
+  summaryApiSlug: "-", // 视频总结服务 ("-" 表示禁用)
+  summaryPromptSlug: "default_video_summary", // 视频总结提示词 slug
 };
 
 // 预设配置规则的在线订阅 URL 地址列表 (从服务器拉取全球主流网站的最优适配 CSS 选择器规则)

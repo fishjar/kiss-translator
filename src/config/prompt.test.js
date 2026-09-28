@@ -6,6 +6,7 @@ import {
   PRESET_PROMPTS,
   PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_CATEGORY_DICTIONARY,
+  PROMPT_CATEGORY_SUMMARY,
   PROMPT_SLUG_NOBATCH_TRANSLATION,
   PROMPT_SLUG_DICTIONARY_EN_JA,
   PROMPT_SLUG_DICTIONARY_EN_KO,
@@ -17,6 +18,7 @@ import {
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V3,
   getDictionaryPromptOptions,
+  getSummaryPromptOptions,
   getPromptDisplayName,
   getAllTranslationPromptOptions,
   getTranslationPromptDisplayName,
@@ -488,5 +490,21 @@ describe("prompt settings", () => {
     expect(getTranslationPromptDisplayName(nobatchItem)).toMatch(
       /^\[单句\]\s+/
     );
+  });
+
+  test("exposes summary prompt templates and provides default video summary preset", () => {
+    const summaryPrompts = getSummaryPromptOptions(PRESET_PROMPTS);
+    expect(summaryPrompts.length).toBeGreaterThan(0);
+
+    const defaultSummary = summaryPrompts.find(
+      (p) => p.slug === "default_video_summary"
+    );
+    expect(defaultSummary).toBeDefined();
+    expect(defaultSummary.category).toBe(PROMPT_CATEGORY_SUMMARY);
+    expect(defaultSummary.systemPrompt).toContain("{{to}}");
+    expect(defaultSummary.systemPrompt).toContain("### 核心概要");
+    expect(defaultSummary.systemPrompt).toContain("### 关键要点");
+    expect(defaultSummary.userPrompt).toContain("{{transcript}}");
+    expect(UI_LANGS.every(([lang]) => I18N[defaultSummary.nameKey]?.[lang])).toBe(true);
   });
 });

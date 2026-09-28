@@ -22,8 +22,10 @@ import {
   DEFAULT_SUBTITLE_PROMPT_SLUG,
   PROMPT_MODE_FOLLOW_API,
   PROMPT_MODE_GLOBAL,
+  OPT_TRANS_BUILTINAI,
   getPromptDisplayName,
   getSubtitlePromptOptions,
+  getSummaryPromptOptions,
 } from "../../config";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
@@ -419,6 +421,19 @@ export default function SubtitleSetting() {
     () => getSubtitlePromptOptions(prompts),
     [prompts]
   );
+  const summaryPromptOptions = useMemo(
+    () => getSummaryPromptOptions(prompts),
+    [prompts]
+  );
+  const summaryApis = useMemo(() => {
+    return (enabledApis || []).filter(
+      (api) =>
+        !api.isDisabled &&
+        (Array.isArray(api.capabilities)
+          ? api.capabilities.includes("summarization")
+          : false)
+    );
+  }, [enabledApis]);
 
   // 通用表单变动提交
   const handleChange = (e) => {
@@ -487,7 +502,20 @@ export default function SubtitleSetting() {
     showLoadNotification = true,
     hideSubtitleButton = false,
     rememberPosition = false,
+    summaryApiSlug = "-",
+    summaryPromptSlug = "default_video_summary",
   } = subtitleSetting;
+
+  const activeSummaryApi = summaryApis.find(
+    (api) => api.apiSlug === summaryApiSlug
+  );
+  const isBuiltinSummary = activeSummaryApi?.apiType === OPT_TRANS_BUILTINAI;
+  const isBuiltinSummarizerSupported = useMemo(() => {
+    return (
+      typeof globalThis.Summarizer !== "undefined" ||
+      typeof globalThis.ai?.summarizer !== "undefined"
+    );
+  }, []);
 
   // 整理悬浮查词模式和字幕列表模式的回退逻辑
   const hoverLookupModeValue = normalizeSubtitleMode(
@@ -915,6 +943,82 @@ export default function SubtitleSetting() {
                 onChange={(checked) => updateSubtitle({ autoFavWord: checked })}
               />
             </SettingsRow>
+            <SettingsRow
+              label={i18n("video_summary_service", "视频总结服务")}
+              description={
+                isBuiltinSummary && !isBuiltinSummarizerSupported
+                  ? i18n(
+                      "builtin_ai_summarizer_unsupported_hint",
+                      "当前浏览器未检测到 Chrome Summarizer API（需要 Chrome 138+ 或在 chrome://flags 中开启实验性标志；若不可用，建议切换为网络 AI 或本地大模型）"
+                    )
+                  : i18n(
+                      "video_summary_service_helper",
+                      "启用后可在 YouTube 侧栏一键对视频字幕原稿生成结构化要点总结"
+                    )
+              }
+            >
+              <TextField
+                select
+                size="small"
+                name="summaryApiSlug"
+                value={summaryApiSlug || "-"}
+                onChange={handleChange}
+                sx={{ minWidth: 200 }}
+              >
+                <MenuItem value="-">{i18n("disable", "禁用")}</MenuItem>
+                {summaryApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName || api.apiType || api.apiSlug}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </SettingsRow>
+            {summaryApiSlug !== "-" && (
+              <SettingsRow
+                label={i18n("video_summary_prompt", "总结提示词")}
+                description={
+                  isBuiltinSummary
+                    ? i18n(
+                        "builtin_ai_keypoints_hint",
+                        "内置引擎使用官方标准要点参数 (Key-points / 5要点)"
+                      )
+                    : ""
+                }
+              >
+                {isBuiltinSummary ? (
+                  <TextField
+                    size="small"
+                    disabled
+                    value={i18n(
+                      "builtin_ai_keypoints_hint",
+                      "内置引擎使用官方标准要点参数 (Key-points / 5要点)"
+                    )}
+                    sx={{ minWidth: 280 }}
+                  />
+                ) : (
+                  <TextField
+                    select
+                    size="small"
+                    name="summaryPromptSlug"
+                    value={
+                      summaryPromptOptions.some(
+                        (p) => p.slug === summaryPromptSlug
+                      )
+                        ? summaryPromptSlug
+                        : summaryPromptOptions[0]?.slug || "default_video_summary"
+                    }
+                    onChange={handleChange}
+                    sx={{ minWidth: 200 }}
+                  >
+                    {summaryPromptOptions.map((prompt) => (
+                      <MenuItem key={prompt.slug} value={prompt.slug}>
+                        {getPromptDisplayName(prompt, i18n)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              </SettingsRow>
+            )}
           </SettingsCard>
         </SettingsSection>
 

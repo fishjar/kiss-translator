@@ -87,7 +87,7 @@ jest.mock("./Navigator", () => {
 });
 
 test.each([
-  ["/apis/", "options_translation_services", true],
+  ["/apis/", "options_service_config", true],
   ["/prompts///", "prompt_management", true],
   ["/playground/", "Playground", true],
   ["/rules/", "options_web_translation", false],

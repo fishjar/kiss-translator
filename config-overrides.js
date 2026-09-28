@@ -98,6 +98,11 @@ const extWebpack = (config, env) => {
     })
   );
 
+  config.ignoreWarnings = [
+    ...(config.ignoreWarnings || []),
+    /Critical dependency: 'import\.meta' cannot be used as a standalone expression/,
+  ];
+
   return config;
 };
 

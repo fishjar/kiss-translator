@@ -1160,3 +1160,51 @@ export const apiSummarizeContext = async ({
 
   return "";
 };
+
+/**
+ * 对视频标题、简介和原始字幕原稿生成结构化 Markdown 视频总结 (Video Summary)。
+ * 支持使用 BuiltinAI、LocalAI 或网络大模型，支持指定自定义总结提示词和目标语言，支持缓存与强制重新生成。
+ */
+export const apiSummarizeVideo = async ({
+  videoId,
+  title,
+  description,
+  transcript,
+  apiSetting,
+  prompt,
+  to = "zh-CN",
+  force = false,
+}) => {
+  const cacheOpts = {
+    apiSlug: apiSetting.apiSlug,
+    videoId,
+    promptSlug: prompt?.slug || "default",
+    to,
+    type: "video_summary",
+  };
+  const cacheInput = `${URL_CACHE_CONTEXT}?${queryString.stringify(cacheOpts)}`;
+
+  if (!force) {
+    const cache = await getHttpCachePolyfill(cacheInput);
+    if (cache) {
+      return cache;
+    }
+  }
+
+  const summary = await handleSummarize({
+    title,
+    description,
+    transcript,
+    apiSetting,
+    prompt,
+    to,
+  });
+
+  if (summary) {
+    putHttpCachePolyfill(cacheInput, null, summary);
+    return summary;
+  }
+
+  return "";
+};
+

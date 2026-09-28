@@ -535,6 +535,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     sourceType = apiType === OPT_TRANS_BUILTINAI ? "builtin" : "network",
     capabilities = ["translation"],
     modelRef = "",
+    device = "webgpu",
     isDisabled = false,
     useBatchFetch = false,
     useStream = false,
@@ -913,7 +914,31 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
           </Grid>
         </Grid>
       </Box>
-      {sourceType === "local" && <LocalModelSelect value={modelRef} onChange={(value) => handleChange({ target: { name: "modelRef", value } })} />}
+      {sourceType === "local" && (
+        <Stack spacing={2}>
+          <LocalModelSelect
+            value={modelRef}
+            capabilities={capabilities}
+            onChange={(value) => handleChange({ target: { name: "modelRef", value } })}
+          />
+          <TextField
+            select
+            fullWidth
+            size="small"
+            label={i18n("compute_device", "计算设备")}
+            name="device"
+            value={device || "webgpu"}
+            onChange={handleChange}
+            helperText={i18n(
+              "compute_device_helper",
+              "WebGPU（推荐，硬件 GPU 加速）；WASM（CPU 模式，高兼容）"
+            )}
+          >
+            <MenuItem value="webgpu">WebGPU（GPU 加速，推荐）</MenuItem>
+            <MenuItem value="wasm">WASM（CPU 模式，高兼容）</MenuItem>
+          </TextField>
+        </Stack>
+      )}
 
       {sourceType === "network" && (!API_SPE_TYPES.machine.has(apiType) || apiType === OPT_TRANS_QWENMT) &&
         apiType !== OPT_TRANS_BUILTINAI && (

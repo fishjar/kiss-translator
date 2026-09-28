@@ -59,12 +59,14 @@ export const PROMPT_CATEGORY_BATCH_SYSTEM = "batch system prompt";
 export const PROMPT_CATEGORY_USER = "user prompt";
 export const PROMPT_CATEGORY_SUBTITLE = "subtitle prompt";
 export const PROMPT_CATEGORY_DICTIONARY = "dictionary prompt";
+export const PROMPT_CATEGORY_SUMMARY = "summary prompt";
 // 允许在设置界面“提示词管理”中展示和维护的分类列表
 export const PROMPT_TEMPLATE_CATEGORIES = [
   PROMPT_CATEGORY_USER,
   PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_CATEGORY_SUBTITLE,
   PROMPT_CATEGORY_DICTIONARY,
+  PROMPT_CATEGORY_SUMMARY,
 ];
 
 // 各类功能默认使用的提示词 Slug，当未配置时作为后备默认值
@@ -73,6 +75,33 @@ export const DEFAULT_NOBATCH_PROMPT_SLUG =
 export const DEFAULT_BATCH_PROMPT_SLUG = PROMPT_SLUG_BATCH_TRANSLATION_JSON;
 export const DEFAULT_SUBTITLE_PROMPT_SLUG = PROMPT_SLUG_SUBTITLE_SEGMENTATION;
 export const DEFAULT_DICTIONARY_PROMPT_SLUG = PROMPT_SLUG_DICTIONARY_EN_ZH;
+export const PROMPT_SLUG_DEFAULT_VIDEO_SUMMARY = "default_video_summary";
+export const DEFAULT_SUMMARY_PROMPT_SLUG = PROMPT_SLUG_DEFAULT_VIDEO_SUMMARY;
+
+export const DEFAULT_SUMMARY_PROMPT = {
+  slug: PROMPT_SLUG_DEFAULT_VIDEO_SUMMARY,
+  category: PROMPT_CATEGORY_SUMMARY,
+  nameKey: "preset_prompt_default_video_summary",
+  name: "视频总结",
+  systemPrompt: `You are an expert video content summarizer. Analyze the video title, description, and transcript, then generate a clear, insightful Markdown summary in {{to}}.
+Structure your response as:
+### 核心概要
+(1-2 sentences summarizing the central theme)
+
+### 关键要点
+- **要点 1**: 核心要点说明
+- **要点 2**: 核心要点说明
+- **要点 3**: 核心要点说明
+- **要点 4**: 核心要点说明
+- **要点 5**: 核心要点说明
+
+Output clean Markdown only.`,
+  userPrompt: `Title: {{title}}
+Description: {{description}}
+
+Transcript:
+{{transcript}}`,
+};
 
 // 配置数据结构的版本号（用于检测并执行数据迁移升级逻辑）
 export const SETTINGS_VERSION_V1 = 1;
@@ -177,6 +206,7 @@ export const PRESET_PROMPTS = [
     systemPrompt: defaultDictPromptEnRu,
     userPrompt: defaultDictUserPrompt,
   },
+  DEFAULT_SUMMARY_PROMPT,
 ];
 
 const PRESET_PROMPT_SLUGS = new Set(
@@ -432,6 +462,7 @@ export function getPromptCategoryDisplayName(category, i18n) {
     [PROMPT_CATEGORY_USER]: "prompt_category_user",
     [PROMPT_CATEGORY_SUBTITLE]: "prompt_category_subtitle",
     [PROMPT_CATEGORY_DICTIONARY]: "prompt_category_dictionary",
+    [PROMPT_CATEGORY_SUMMARY]: "prompt_category_summary",
   };
 
   return i18n(keyMap[category], category || "");
@@ -518,6 +549,16 @@ export function getSubtitlePromptOptions(prompts = []) {
  */
 export function getDictionaryPromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_DICTIONARY);
+}
+
+/**
+ * 获取所有可用的“视频/长文总结”提示词选项
+ *
+ * @param {Array} prompts 全部可用提示词列表
+ * @returns {Array}
+ */
+export function getSummaryPromptOptions(prompts = []) {
+  return getPromptOptions(prompts, PROMPT_CATEGORY_SUMMARY);
 }
 
 function hasPromptReference(source = {}, promptSlugFieldName, promptSlug) {

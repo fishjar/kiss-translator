@@ -215,3 +215,122 @@ export const chromeDetect = (args) =>
   chromeTranslator.detectLanguage(args.text);
 export const chromeTranslate = (args) =>
   chromeTranslator.translateText(args.text, args.to, args.from);
+
+const getSummarizerFactory = () => {
+  if (typeof globalThis.Summarizer !== "undefined") {
+    return globalThis.Summarizer;
+  }
+  if (typeof globalThis.ai?.summarizer !== "undefined") {
+    return globalThis.ai.summarizer;
+  }
+  if (typeof window !== "undefined") {
+    if (typeof window.Summarizer !== "undefined") return window.Summarizer;
+    if (typeof window.ai?.summarizer !== "undefined") return window.ai.summarizer;
+  }
+  return null;
+};
+
+/**
+ * Chrome 浏览器内置 AI (Gemini Nano) Summarizer API 封装类。
+ */
+class ChromeSummarizer {
+  #summarizer = null;
+
+  async isAvailable() {
+    const summarizerFactory = getSummarizerFactory();
+    if (!summarizerFactory) {
+      return false;
+    }
+    try {
+      if (typeof summarizerFactory.availability === "function") {
+        const avail = await summarizerFactory.availability();
+        return avail !== "no" && avail !== "unavailable";
+      }
+      if (typeof summarizerFactory.capabilities === "function") {
+        const caps = await summarizerFactory.capabilities();
+        return caps?.available !== "no";
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async summarize(text, options = {}, onProgress = null) {
+    if (!text || typeof text !== "string") {
+      return ["", "Input text cannot be empty."];
+    }
+    try {
+      const summarizerFactory = getSummarizerFactory();
+      if (!summarizerFactory) {
+        throw new Error(
+          "Chrome Summarizer API is unavailable in this environment (requires Chrome 138+ or chrome://flags configuration: #optimization-guide-on-device-model and #summarization-api-for-gemini-nano)"
+        );
+      }
+
+      if (!this.#summarizer) {
+        if (typeof summarizerFactory.availability === "function") {
+          const avail = await summarizerFactory.availability();
+          if (avail === "no" || avail === "unavailable") {
+            throw new Error(
+              "Chrome Summarizer model is unavailable (check chrome://components for 'Optimization Guide On Device Model')"
+            );
+          }
+          if (avail === "downloading") {
+            try {
+              summarizerFactory.create({
+                type: "key-points",
+                format: "markdown",
+                length: "medium",
+                monitor: (m) => {
+                  m?.addEventListener?.("downloadprogress", (e) => {
+                    const progress = e.total > 0 ? Math.round((e.loaded / e.total) * 100) : 0;
+                    onProgress?.({ loaded: e.loaded, total: e.total, percent: progress });
+                  });
+                },
+                ...options,
+              }).then((created) => {
+                this.#summarizer = created;
+              }).catch(() => {});
+            } catch (_) {}
+
+            throw new Error(
+              "Chrome 内置大模型正在下载中（体积约 1.5GB ~ 2GB）。您可在 chrome://components 查看 'Optimization Guide On Device Model' 下载状态；若需立即生成总结，建议前往【字幕翻译设置】选用网络大模型或 LocalAI"
+            );
+          }
+          if (avail === "after-download" || avail === "downloadable") {
+            throw new Error(
+              `Chrome Summarizer 模型尚未就绪（状态: ${avail}），请在 chrome://components 中点击更新 'Optimization Guide On Device Model' 等待下载就绪`
+            );
+          }
+        }
+        this.#summarizer = await summarizerFactory.create({
+          type: "key-points",
+          format: "markdown",
+          length: "medium",
+          monitor: (m) => {
+            m?.addEventListener?.("downloadprogress", (e) => {
+              const progress = e.total > 0 ? Math.round((e.loaded / e.total) * 100) : 0;
+              onProgress?.({ loaded: e.loaded, total: e.total, percent: progress });
+            });
+          },
+          ...options,
+        });
+      }
+      const summary = await this.#summarizer.summarize(text, {
+        context: options.context,
+      });
+      return [summary, ""];
+    } catch (error) {
+      kissLog("ChromeSummarizer.summarize", error);
+      this.#summarizer = null;
+      return ["", error?.message || String(error)];
+    }
+  }
+}
+
+const chromeSummarizer = new ChromeSummarizer();
+
+export const chromeSummarize = (args) =>
+  chromeSummarizer.summarize(args.text, args.options, args.onProgress);
+

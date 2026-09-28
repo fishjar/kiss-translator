@@ -19,6 +19,8 @@ import {
   MSG_UPDATE_CSP,
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
+  MSG_BUILTINAI_SUMMARIZE,
+  MSG_BUILTINAI_PROGRESS,
   MSG_LOCAL_AI_RPC,
   MSG_LOCAL_AI_CANCEL,
   CMD_TOGGLE_TRANSLATE,
@@ -56,7 +58,7 @@ import { saveRule } from "./libs/rules";
 import { getCurTabId } from "./libs/msg";
 import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
 import { kissLog, logger } from "./libs/log";
-import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
+import { chromeDetect, chromeTranslate, chromeSummarize } from "./libs/builtinAI";
 import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
 import { isCurrentPopupDocument } from "./libs/popupDocument";
@@ -740,6 +742,15 @@ const messageHandlers = {
   [MSG_COMMAND_SHORTCUTS]: () => browser.commands.getAll(), // 获取 manifest 注册的所有快捷键
   [MSG_BUILTINAI_DETECT]: (args) => chromeDetect(args), // 触发 Chrome 127+ 内置 Gemini AI 语言检测
   [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args), // 触发 Chrome 内置 AI 翻译接口
+  [MSG_BUILTINAI_SUMMARIZE]: async (args, sender) => {
+    const tabId = sender?.tab?.id;
+    const onProgress = (progressData) => {
+      if (tabId != null) {
+        sendTabMsg(MSG_BUILTINAI_PROGRESS, progressData, undefined, tabId);
+      }
+    };
+    return chromeSummarize({ ...args, onProgress });
+  },
   [MSG_LOCAL_AI_RPC]: (request) => localAiRequest(request),
   [MSG_LOCAL_AI_CANCEL]: ({ id }) => cancelLocalAiRequest(id),
   [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args), // 修改运行时的日志记录等级

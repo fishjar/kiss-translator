@@ -94,7 +94,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
         items: [
           [
             "apis",
-            i18n("options_translation_services"),
+            i18n("options_service_config", "服务配置"),
             "/apis",
             ApiRoundedIcon,
           ],

@@ -1509,6 +1509,7 @@ const defaultApi = {
   sourceType: "network", // 内置、本地或外部接口
   capabilities: ["translation"], // 此适配器已实现的能力
   modelRef: "", // 本地模型引用，仅标识符随配置同步
+  device: "webgpu", // 本地模型运行设备：webgpu / wasm
   url: "",
   key: "",
   model: "", // 模型名称
@@ -1558,6 +1559,7 @@ const defaultApi = {
 
 // AI 翻译接口默认参数
 const defaultAiApiOpts = {
+  capabilities: ["translation", "summarization"], // 网络大模型接口默认具备翻译与总结能力
   useBatchFetch: true, // 是否启用聚合发送请求
   thinkingMode: "disabled", // 思考模式：auto | enabled | disabled
   thinkingEffort: "_default", // 思考强度：_default=接口默认,不注入参数
@@ -1566,9 +1568,18 @@ const defaultAiApiOpts = {
 };
 
 const defaultApiOpts = {
-  [OPT_TRANS_BUILTINAI]: { ...defaultApi, sourceType: "builtin" },
+  [OPT_TRANS_BUILTINAI]: {
+    ...defaultApi,
+    sourceType: "builtin",
+    capabilities: ["translation", "summarization"],
+  },
   [OPT_TRANS_SYSTEM_TTS]: { ...defaultApi, sourceType: "builtin", capabilities: ["tts"] },
-  [OPT_TRANS_LOCALAI]: { ...defaultApi, sourceType: "local", capabilities: ["translation", "llm"], isDisabled: true },
+  [OPT_TRANS_LOCALAI]: {
+    ...defaultApi,
+    sourceType: "local",
+    capabilities: ["translation", "llm", "summarization"],
+    isDisabled: true,
+  },
   [OPT_TRANS_GOOGLE]: {
     ...defaultApi,
     url: "https://translate.googleapis.com/translate_a/single",

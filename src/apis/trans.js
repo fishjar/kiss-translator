@@ -32,6 +32,8 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_LOCALAI,
   API_SPE_TYPES,
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO,
@@ -65,7 +67,11 @@ import {
   PROMPT_PROTOCOL_LINE,
   PROMPT_PROTOCOL_XML,
   PROMPT_PROTOCOL_JSON,
+  MSG_LOCAL_AI_RPC,
+  MSG_BUILTINAI_SUMMARIZE,
 } from "../config";
+import { isExt } from "../libs/client";
+import { isBg } from "../libs/browser";
 import { genDeeplFree } from "./deepl";
 import { genBaidu } from "./baidu";
 import { interpreter } from "../libs/interpreter";
@@ -96,6 +102,8 @@ import { getMsgHistory } from "./history";
 import { getOpenCodeSessionId } from "./opencode";
 import { parseBilingualVtt } from "../subtitle/vtt";
 import { getDocInfo } from "../libs/docInfo";
+import { chromeSummarize } from "../libs/builtinAI";
+import { sendBgMsg } from "../libs/msg";
 import {
   isLegacyIndexSubtitleItem,
   mapBoundaryItemToCue,
@@ -2870,16 +2878,91 @@ export const handleSummarize = async ({
   description,
   transcript,
   apiSetting,
+  prompt,
+  to = "zh-CN",
 }) => {
   const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
 
-  const userPrompt = [
-    title && `Title: ${title}`,
-    description && `Description: ${description}`,
-    `\nTranscript:\n${transcript}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  // 1. Chrome 内置 AI (Summarizer API)
+  if (apiType === OPT_TRANS_BUILTINAI) {
+    const context = [title, description].filter(Boolean).join("\n");
+    let summary = "";
+    let err = "";
+
+    if (isExt && !isBg()) {
+      const res = await sendBgMsg(MSG_BUILTINAI_SUMMARIZE, {
+        text: transcript,
+        options: { context: context || undefined },
+      });
+      summary = res?.[0] || "";
+      err = res?.[1] || "";
+    } else {
+      const [sum, error] = await chromeSummarize({
+        text: transcript,
+        options: { context: context || undefined },
+      });
+      summary = sum;
+      err = error;
+    }
+
+    if (err) {
+      kissLog("handleSummarize:builtinAI error", err);
+      throw new Error(err);
+    }
+    return (summary || "").trim();
+  }
+
+  // 2. 本地大模型 (LocalAI)
+  if (apiType === OPT_TRANS_LOCALAI) {
+    let localPrompt = prompt?.systemPrompt;
+    if (localPrompt) {
+      localPrompt = localPrompt.replaceAll(INPUT_PLACE_TO, to);
+    }
+    const contextLines = [
+      title && `Title: ${title}`,
+      description && `Description: ${description}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    if (contextLines) {
+      localPrompt = localPrompt ? `${localPrompt}\n\n${contextLines}` : contextLines;
+    }
+    const userContent = localPrompt ? `${localPrompt}\n\n${transcript}` : transcript;
+    const id = `local-summary-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const response = await sendBgMsg(MSG_LOCAL_AI_RPC, {
+      id,
+      service: "llm",
+      method: "chat",
+      payload: {
+        modelRef: apiSetting.modelRef,
+        messages: [{ role: "user", content: userContent }],
+        maxTokens: 2048,
+      },
+    });
+    if (typeof response === "string") return response.trim();
+    return (response?.text || "").trim();
+  }
+
+  // 3. 网络大模型与自定义接口
+  let userPrompt = prompt?.userPrompt;
+  if (userPrompt) {
+    userPrompt = userPrompt
+      .replaceAll("{{title}}", title || "")
+      .replaceAll("{{description}}", description || "")
+      .replaceAll("{{transcript}}", transcript || "")
+      .replaceAll(INPUT_PLACE_TO, to);
+  } else {
+    userPrompt = [
+      title && `Title: ${title}`,
+      description && `Description: ${description}`,
+      `\nTranscript:\n${transcript}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  const systemPrompt = (prompt?.systemPrompt || summarizeSystemPrompt)
+    .replaceAll(INPUT_PLACE_TO, to);
 
   const [input, init] = await genTransReq({
     ...apiSetting,
@@ -2887,11 +2970,11 @@ export const handleSummarize = async ({
     useStream: false,
     texts: [""],
     from: "auto",
-    to: "en",
+    to: to || "en",
     fromLang: "auto",
-    toLang: "en",
+    toLang: to || "en",
     useBatchFetch: false,
-    nobatchPrompt: summarizeSystemPrompt,
+    nobatchPrompt: systemPrompt,
     nobatchUserPrompt: userPrompt,
   });
 

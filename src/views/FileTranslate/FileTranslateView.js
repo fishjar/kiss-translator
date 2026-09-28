@@ -25,6 +25,7 @@ import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
 import ButtonGroup from "@mui/material/ButtonGroup";
 import Menu from "@mui/material/Menu";
@@ -65,11 +66,11 @@ import OrderedApiSelect from "../Options/OrderedApiSelect";
 import ScenePromptSelect from "../Options/ScenePromptSelect";
 import ImageViewerDialog from "../Options/ImageViewerDialog";
 import DarkModeButton from "../Options/DarkModeButton";
+import { availableApisForScene, orderedApiSlugs } from "../../config/serviceSelection";
 import {
   ALL_OCR_MODELS,
   OCR_GROUPS,
   installedLlmModels,
-  installedOcrGroups,
   recognizeFileImage,
   translateWithLocalModel,
 } from "../../localAi/fileOperations";
@@ -160,12 +161,92 @@ export default function FileTranslateView() {
   const [sourceHtml, setSourceHtml] = useState("");
   const [mdBlocks, setMdBlocks] = useState([]);
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState(null);
-  const [availableOcrGroups, setAvailableOcrGroups] = useState([]);
   const allOcrModels = ALL_OCR_MODELS || OCR_GROUPS;
-  const currentOcrModel = allOcrModels.find(
-    (m) => m.id === (scene.ocrGroup || "ppocr-v5-mobile")
-  );
+
+  // 筛选具备 OCR 能力的服务实例
+  const ocrApis = useMemo(() => {
+    return (setting?.transApis || []).filter(
+      (api) =>
+        !api.isDisabled &&
+        (Array.isArray(api.capabilities)
+          ? api.capabilities.includes("ocr") || api.capabilities.includes("vlm")
+          : false)
+    );
+  }, [setting?.transApis]);
+
+  const hasOcrService = ocrApis.length > 0;
+
+  // 有序候选 OCR 服务列表（首选服务不可用时按顺序自动回退）
+  const activeOcrCandidates = useMemo(() => {
+    return availableApisForScene(
+      scene,
+      setting?.transApis || [],
+      "ocr",
+      {},
+      "ocrApiSlugs",
+      "ocrApiSlug"
+    );
+  }, [scene, setting?.transApis]);
+
+  const activeOcrApi =
+    activeOcrCandidates[0] ||
+    ocrApis.find(
+      (api) => api.apiSlug === (scene.ocrApiSlug || scene.ocrApiSlugs?.[0])
+    ) ||
+    ocrApis[0];
+
+  const currentOcrSlug = hasOcrService
+    ? scene.ocrApiSlug ||
+      scene.ocrApiSlugs?.[0] ||
+      activeOcrApi?.apiSlug ||
+      ""
+    : "";
+
+  const resolvedOcrModelId =
+    activeOcrApi?.sourceType === "local" && activeOcrApi.modelRef
+      ? activeOcrApi.modelRef
+      : scene.ocrGroup || "ppocr-v5-mobile";
+
+  const currentOcrModel = allOcrModels.find((m) => m.id === resolvedOcrModelId);
   const isVlmModel = currentOcrModel?.category === "vlm";
+
+  const handleOcrServiceChange = (newSlug) => {
+    if (!newSlug) return;
+    const prevSlugs = orderedApiSlugs(scene, "ocrApiSlugs", "ocrApiSlug");
+    const nextSlugs = [newSlug, ...prevSlugs.filter((s) => s !== newSlug)];
+    patchScene({
+      ocrApiSlug: newSlug,
+      ocrApiSlugs: nextSlugs,
+    });
+  };
+
+  const ocrSelectOptions = useMemo(() => {
+    if (!hasOcrService) {
+      return [
+        {
+          value: "",
+          label: i18n(
+            "ocr_service_empty",
+            "未配置 OCR 服务（请在服务配置中添加）"
+          ),
+          disabled: true,
+        },
+      ];
+    }
+    const options = ocrApis.map((api) => ({
+      value: api.apiSlug,
+      label: `${api.apiName || api.apiType || api.apiSlug}${
+        api.modelRef ? ` (${api.modelRef})` : ""
+      }`,
+    }));
+    if (currentOcrSlug && !options.some((o) => o.value === currentOcrSlug)) {
+      options.push({
+        value: currentOcrSlug,
+        label: `${currentOcrSlug} (${i18n("api_unavailable", "当前不可用")})`,
+      });
+    }
+    return options;
+  }, [hasOcrService, ocrApis, currentOcrSlug, i18n]);
   const [progress, setProgress] = useState([0, 0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -239,21 +320,6 @@ export default function FileTranslateView() {
       );
     }
   }, [mode, textStyleClass, mdBlocks]);
-
-  // 获取本地已安装的 OCR 模型组
-  useEffect(() => {
-    let active = true;
-    Promise.resolve(installedOcrGroups?.())
-      .then((installed) => {
-        if (active) setAvailableOcrGroups(installed || []);
-      })
-      .catch(() => {
-        if (active) setAvailableOcrGroups([]);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   // 图片模式原图预览 URL 处理
   useEffect(() => {
@@ -649,11 +715,22 @@ export default function FileTranslateView() {
         setSourceHtml(result.sourceHtml);
         setMdBlocks(result.blocks || []);
       } else {
+        if (!hasOcrService) {
+          setError(
+            i18n(
+              "ocr_service_missing_guide",
+              "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
+            )
+          );
+          setBusy(false);
+          return;
+        }
+        const ocrDevice = activeOcrApi?.device || scene.ocrDevice || "webgpu";
         const recognized = await recognizeFileImage(
           file,
           {
-            groupId: scene.ocrGroup || "ppocr-v5-mobile",
-            device: scene.ocrDevice || "webgpu",
+            groupId: resolvedOcrModelId || "ppocr-v5-mobile",
+            device: ocrDevice,
           },
           abort.signal
         );
@@ -820,32 +897,10 @@ export default function FileTranslateView() {
               size="small"
               variant="outlined"
               hiddenLabel={false}
-              label={i18n("ocr_model", "OCR 识别模型")}
-              value={scene.ocrGroup || "ppocr-v5-mobile"}
-              options={allOcrModels.map((g) => ({
-                value: g.id,
-                label: `${g.category === "vlm" ? "[VLM] " : ""}${g.name} ${
-                  availableOcrGroups.includes(g.id)
-                    ? "· 已就绪"
-                    : "· 未安装"
-                }`,
-              }))}
-              onChange={(ocrGroup) => patchScene({ ocrGroup })}
-            />
-          </Box>
-          <Box sx={{ width: 125, flexShrink: 0 }}>
-            <SettingsSelect
-              fullWidth
-              size="small"
-              variant="outlined"
-              hiddenLabel={false}
-              label={i18n("compute_device", "计算设备")}
-              value={scene.ocrDevice || "webgpu"}
-              options={[
-                { value: "webgpu", label: "WebGPU" },
-                { value: "wasm", label: "WASM" },
-              ]}
-              onChange={(ocrDevice) => patchScene({ ocrDevice })}
+              label={i18n("ocr_service", "OCR 服务")}
+              value={currentOcrSlug}
+              options={ocrSelectOptions}
+              onChange={handleOcrServiceChange}
             />
           </Box>
           <Box sx={{ width: 135, flexShrink: 0 }}>
@@ -1028,7 +1083,15 @@ export default function FileTranslateView() {
               color="primary"
               size="small"
               startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
-              disabled={!file || busy}
+              disabled={!file || busy || (mode === "image" && !hasOcrService)}
+              title={
+                mode === "image" && !hasOcrService
+                  ? i18n(
+                      "ocr_service_missing_guide",
+                      "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
+                    )
+                  : ""
+              }
               onClick={() => run("paragraph")}
               sx={{
                 height: 32,
@@ -1966,19 +2029,52 @@ export default function FileTranslateView() {
                           textAlign: "center",
                           color: "text.secondary",
                           py: 6,
+                          px: 2,
                         }}
                       >
-                        <InsertDriveFileRoundedIcon
-                          sx={{ fontSize: 40, opacity: 0.35, mb: 1 }}
-                        />
-                        <Typography variant="body2">
-                          {busy
-                            ? i18n("translating", "正在翻译...")
-                            : i18n(
-                                "empty_result_prompt",
-                                "已就绪，请点击顶部“开始翻译”按钮"
+                        {mode === "image" && !hasOcrService ? (
+                          <>
+                            <WarningAmberRoundedIcon
+                              sx={{ fontSize: 44, color: "warning.main", mb: 1.5 }}
+                            />
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                mb: 2,
+                                maxWidth: 360,
+                                mx: "auto",
+                                color: "text.primary",
+                              }}
+                            >
+                              {i18n(
+                                "ocr_service_missing_guide",
+                                "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
                               )}
-                        </Typography>
+                            </Typography>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              color="primary"
+                              onClick={() => openOptionsPage("/apis")}
+                            >
+                              {i18n("goto_service_config", "前往服务配置")}
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <InsertDriveFileRoundedIcon
+                              sx={{ fontSize: 40, opacity: 0.35, mb: 1 }}
+                            />
+                            <Typography variant="body2">
+                              {busy
+                                ? i18n("translating", "正在翻译...")
+                                : i18n(
+                                    "empty_result_prompt",
+                                    "已就绪，请点击顶部“开始翻译”按钮"
+                                  )}
+                            </Typography>
+                          </>
+                        )}
                       </Box>
                     )
                   ) : rows.length > 0 || resultText ? (
@@ -2168,19 +2264,52 @@ export default function FileTranslateView() {
                         textAlign: "center",
                         color: "text.secondary",
                         py: 6,
+                        px: 2,
                       }}
                     >
-                      <InsertDriveFileRoundedIcon
-                        sx={{ fontSize: 40, opacity: 0.35, mb: 1 }}
-                      />
-                      <Typography variant="body2">
-                        {busy
-                          ? i18n("translating", "正在翻译...")
-                          : i18n(
-                              "empty_result_prompt",
-                              "已就绪，请点击顶部“开始翻译”按钮"
+                      {mode === "image" && !hasOcrService ? (
+                        <>
+                          <WarningAmberRoundedIcon
+                            sx={{ fontSize: 44, color: "warning.main", mb: 1.5 }}
+                          />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mb: 2,
+                              maxWidth: 360,
+                              mx: "auto",
+                              color: "text.primary",
+                            }}
+                          >
+                            {i18n(
+                              "ocr_service_missing_guide",
+                              "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
                             )}
-                      </Typography>
+                          </Typography>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            color="primary"
+                            onClick={() => openOptionsPage("/apis")}
+                          >
+                            {i18n("goto_service_config", "前往服务配置")}
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <InsertDriveFileRoundedIcon
+                            sx={{ fontSize: 40, opacity: 0.35, mb: 1 }}
+                          />
+                          <Typography variant="body2">
+                            {busy
+                              ? i18n("translating", "正在翻译...")
+                              : i18n(
+                                  "empty_result_prompt",
+                                  "已就绪，请点击顶部“开始翻译”按钮"
+                                )}
+                          </Typography>
+                        </>
+                      )}
                     </Box>
                   )}
                 </Box>

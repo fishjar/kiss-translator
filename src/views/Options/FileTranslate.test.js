@@ -8,15 +8,31 @@ jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key, fallback) => fallback || key,
 }));
 
+jest.mock("../../libs/navigation", () => ({
+  openFileTranslatePage: jest.fn(),
+  openOptionsPage: jest.fn(),
+}));
+
+const defaultMockTransApis = [
+  {
+    apiSlug: "primary",
+    apiType: "Microsoft",
+    apiName: "微软翻译",
+    capabilities: ["translation"],
+  },
+  {
+    apiSlug: "local-ocr",
+    apiType: "LocalAI",
+    apiName: "本地 OCR",
+    sourceType: "local",
+    capabilities: ["ocr"],
+    modelRef: "ppocr-v5-mobile",
+    device: "webgpu",
+  },
+];
+
 const mockSetting = {
-  transApis: [
-    {
-      apiSlug: "primary",
-      apiType: "Microsoft",
-      apiName: "微软翻译",
-      capabilities: ["translation"],
-    },
-  ],
+  transApis: [...defaultMockTransApis],
   prompts: [],
   fileTranslateSetting: {
     txt: {
@@ -27,6 +43,8 @@ const mockSetting = {
     },
     image: {
       apiSlugs: ["primary"],
+      ocrApiSlugs: ["local-ocr"],
+      ocrApiSlug: "local-ocr",
       fromLang: "auto",
       toLang: "zh-CN",
       promptSlug: "",
@@ -126,6 +144,7 @@ import {
   translateEntireMarkdown,
   synthesizeTranslatedImage,
 } from "../../libs/fileTranslate";
+import { openOptionsPage } from "../../libs/navigation";
 import {
   installedLlmModels,
   installedOcrGroups,
@@ -142,6 +161,7 @@ describe("FileTranslate view", () => {
     document.body.appendChild(container);
     root = createRoot(container);
     jest.clearAllMocks();
+    mockSetting.transApis = [...defaultMockTransApis];
 
     const mockCreate = () => "blob:http://localhost/fake-blob";
     const mockRevoke = () => {};
@@ -344,8 +364,8 @@ describe("FileTranslate view", () => {
       root.render(<FileTranslate />);
     });
 
-    // 未选文件时顶栏不展示 OCR 模型配置
-    expect(container.textContent).not.toContain("OCR 识别模型");
+    // 未选文件时顶栏不展示 OCR 服务配置
+    expect(container.textContent).not.toContain("OCR 服务");
 
     const dropzone = container.querySelector('[role="button"][tabindex="0"]');
     const fakeImage = new File(["fake-image"], "photo.png", {
@@ -361,10 +381,64 @@ describe("FileTranslate view", () => {
       dropzone.dispatchEvent(dropEvent);
     });
 
-    // 顶栏自适应展开 OCR 识别模型、计算设备和译文字体
-    expect(container.textContent).toContain("OCR 识别模型");
-    expect(container.textContent).toContain("计算设备");
+    // 顶栏自适应展开 OCR 服务和译文字体，计算设备已收敛至服务配置中不再在顶栏展示
+    expect(container.textContent).toContain("OCR 服务");
+    expect(container.textContent).not.toContain("计算设备");
     expect(container.textContent).toContain("译文字体");
+  });
+
+  test("disables start translation and guides user to service config when no OCR service is configured", async () => {
+    // 模拟用户未在服务配置中添加具备 OCR 能力的服务
+    mockSetting.transApis = [
+      {
+        apiSlug: "primary",
+        apiType: "Microsoft",
+        apiName: "微软翻译",
+        capabilities: ["translation"],
+      },
+    ];
+
+    await act(async () => {
+      root.render(<FileTranslate />);
+    });
+
+    const dropzone = container.querySelector('[role="button"][tabindex="0"]');
+    const fakeImage = new File(["fake-image"], "photo.png", {
+      type: "image/png",
+    });
+
+    await act(async () => {
+      const dropEvent = new Event("drop", { bubbles: true });
+      Object.defineProperty(dropEvent, "dataTransfer", {
+        value: { files: [fakeImage] },
+      });
+      dropzone.dispatchEvent(dropEvent);
+    });
+
+    // 1. 顶栏不展示底层模型列表，而是展示未配置 OCR 服务提示
+    expect(container.textContent).toContain("未配置 OCR 服务（请在服务配置中添加）");
+
+    // 2. 开始翻译按钮处于禁用状态
+    const startBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent.includes("开始翻译")
+    );
+    expect(startBtn).toBeDefined();
+    expect(startBtn.disabled).toBe(true);
+
+    // 3. 右侧展示引导文本及快捷跳转按钮
+    expect(container.textContent).toContain(
+      "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
+    );
+    const gotoConfigBtn = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent.includes("前往服务配置")
+    );
+    expect(gotoConfigBtn).toBeDefined();
+
+    // 4. 点击跳转按钮，调用 openOptionsPage("/apis")
+    await act(async () => {
+      gotoConfigBtn.click();
+    });
+    expect(openOptionsPage).toHaveBeenCalledWith("/apis");
   });
 
   test("handles image translation, view switching, synthesis, and image viewer dialog", async () => {
@@ -417,7 +491,14 @@ describe("FileTranslate view", () => {
       startBtn.click();
     });
 
-    expect(recognizeFileImage).toHaveBeenCalled();
+    expect(recognizeFileImage).toHaveBeenCalledWith(
+      fakeImage,
+      expect.objectContaining({
+        groupId: "ppocr-v5-mobile",
+        device: "webgpu",
+      }),
+      expect.anything()
+    );
     expect(translateFileText).toHaveBeenCalled();
     expect(synthesizeTranslatedImage).toHaveBeenCalled();
 
@@ -456,8 +537,22 @@ describe("FileTranslate view", () => {
   });
 
   test("shows clear explanation when VLM model is used and image view is selected", async () => {
+    mockSetting.transApis = [
+      ...defaultMockTransApis,
+      {
+        apiSlug: "vlm-ocr",
+        apiType: "LocalAI",
+        apiName: "本地 VLM",
+        sourceType: "local",
+        capabilities: ["vlm", "ocr"],
+        modelRef: "glm-ocr-onnx-q4",
+        device: "webgpu",
+      },
+    ];
     mockSetting.fileTranslateSetting.image = {
       ...mockSetting.fileTranslateSetting.image,
+      ocrApiSlug: "vlm-ocr",
+      ocrApiSlugs: ["vlm-ocr"],
       ocrGroup: "glm-ocr-onnx-q4",
     };
 
@@ -506,6 +601,9 @@ describe("FileTranslate view", () => {
       expect(container.textContent).toContain("PaddleOCR");
     } finally {
       delete mockSetting.fileTranslateSetting.image.ocrGroup;
+      delete mockSetting.fileTranslateSetting.image.ocrApiSlug;
+      delete mockSetting.fileTranslateSetting.image.ocrApiSlugs;
+      mockSetting.transApis = [...defaultMockTransApis];
     }
   });
 

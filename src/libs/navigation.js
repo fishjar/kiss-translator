@@ -24,25 +24,23 @@ export async function openFileTranslatePage() {
   window.open(url, "_blank");
 }
 
-/**
- * 打开设置页面
- */
-export async function openOptionsPage() {
+export async function openOptionsPage(path = "") {
+  const hash = path ? (path.startsWith("#") ? path : `#${path}`) : "";
   const browserApi = globalThis.browser || globalThis.chrome;
   try {
-    if (browserApi?.runtime?.openOptionsPage) {
+    if (!hash && browserApi?.runtime?.openOptionsPage) {
       await browserApi.runtime.openOptionsPage();
       return;
     }
     if (browserApi?.tabs?.create) {
       const getURL = browserApi?.runtime?.getURL || ((p) => p);
-      await browserApi.tabs.create({ url: getURL("options.html") });
+      await browserApi.tabs.create({ url: getURL(`options.html${hash}`) });
       return;
     }
   } catch (err) {
     // 忽略异常，降级 window.open
   }
   const getURL = browserApi?.runtime?.getURL;
-  const url = getURL ? getURL("options.html") : "options.html";
+  const url = getURL ? getURL(`options.html${hash}`) : `options.html${hash}`;
   window.open(url, "_blank");
 }
