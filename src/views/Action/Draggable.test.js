@@ -490,6 +490,47 @@ describe("Draggable FAB edge locking", () => {
     expect(draggable.style.transform).toBe("translate(580px, 200px)");
   });
 
+  test("saves a completed drag along the same fully visible edge only once", () => {
+    const fab = renderFab({ edge: "left", left: 0, top: 100, halfHide: false });
+    act(() => jest.runOnlyPendingTimers());
+    expect(putFab).not.toHaveBeenCalled();
+    const handler = draggable.firstElementChild.firstElementChild;
+
+    act(() => {
+      handler.dispatchEvent(
+        new MouseEvent("pointerdown", {
+          bubbles: true,
+          clientX: 20,
+          clientY: 120,
+        })
+      );
+    });
+    act(() => {
+      handler.dispatchEvent(
+        new MouseEvent("pointermove", {
+          bubbles: true,
+          clientX: 20,
+          clientY: 220,
+        })
+      );
+    });
+    act(() => {
+      handler.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }));
+    });
+    act(() => jest.runOnlyPendingTimers());
+
+    expect(draggable.style.transform).toBe("translate(0px, 200px)");
+    expect(putFab).toHaveBeenCalledTimes(1);
+    expect(putFab).toHaveBeenLastCalledWith({ x: 0, y: 200, edge: "left" });
+
+    setViewport(1200, 800);
+    rerenderFab(fab, { windowSize: { w: 1200, h: 800 } });
+    act(() => jest.runOnlyPendingTimers());
+
+    expect(draggable.style.transform).toBe("translate(0px, 400px)");
+    expect(putFab).toHaveBeenCalledTimes(1);
+  });
+
   test("infers and persists an edge for legacy FAB positions", () => {
     renderFab({ edge: undefined });
     act(() => jest.runOnlyPendingTimers());

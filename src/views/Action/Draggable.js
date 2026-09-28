@@ -129,6 +129,7 @@ export default function Draggable({
   );
   const containerRef = useRef(null);
   const draggedRef = useRef(false);
+  const hasPendingDragSaveRef = useRef(false);
   // Set by applyTransform on its first invocation; the transition-gating
   // probe waits for it so the initial paint never animates the transform.
   const hasAppliedPositionRef = useRef(false);
@@ -285,6 +286,10 @@ export default function Draggable({
       percentageEdge.y === position.y;
     if (!unchanged) {
       setPosition(percentageEdge);
+    }
+    // A completed drag may already be normalized by the pointer handlers.
+    if (!unchanged || hasPendingDragSaveRef.current) {
+      hasPendingDragSaveRef.current = false;
       setFabPosition({ ...edgePosition, edge: activeEdge });
     }
   }, [
@@ -370,6 +375,7 @@ export default function Draggable({
   const handlePointerUp = (e) => {
     e.stopPropagation();
     if (snapEdge && draggedRef.current) {
+      hasPendingDragSaveRef.current = true;
       const currentPosition = {
         x: latestPosition.current.x * windowWidth,
         y: latestPosition.current.y * windowHeight,
