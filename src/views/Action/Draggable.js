@@ -110,6 +110,7 @@ export default function Draggable({
   idleOpacity = 1,
   onStart,
   onMove,
+  onDeactivate,
   onPositionTransitionEnd,
   handler, // The drag handle.
   children, // The main content.
@@ -134,6 +135,7 @@ export default function Draggable({
   // probe waits for it so the initial paint never animates the transform.
   const hasAppliedPositionRef = useRef(false);
   const wasExpandedRef = useRef(false);
+  const hoverFrameRef = useRef(null);
   const active = hover || focusWithin || expanded || Boolean(origin);
   const revealed = !halfHide || active;
 
@@ -153,12 +155,18 @@ export default function Draggable({
     if (wasExpandedRef.current) {
       wasExpandedRef.current = false;
       // Hover hit testing can lag behind a removed menu until the next paint.
-      let hoverFrame = requestAnimationFrame(() => {
-        hoverFrame = requestAnimationFrame(() => {
+      hoverFrameRef.current = requestAnimationFrame(() => {
+        hoverFrameRef.current = requestAnimationFrame(() => {
+          hoverFrameRef.current = null;
           setHover(Boolean(container?.matches(":hover")));
         });
       });
-      return () => cancelAnimationFrame(hoverFrame);
+      return () => {
+        if (hoverFrameRef.current !== null) {
+          cancelAnimationFrame(hoverFrameRef.current);
+          hoverFrameRef.current = null;
+        }
+      };
     }
   }, [expanded]);
 
@@ -175,6 +183,44 @@ export default function Draggable({
   });
   // Debounce storage updates for the latest drag position.
   const setFabPosition = useMemo(() => debounce(putFab, 500), []);
+
+  useEffect(() => {
+    if (!snapEdge) return;
+
+    const container = containerRef.current;
+    const ownerDocument = container.ownerDocument;
+    const ownerWindow = ownerDocument.defaultView;
+    // Switching tabs can skip mouseleave and retain the focused element.
+    // Clear transient interaction state before the page becomes active again.
+    const deactivate = () => {
+      // Queued menu-close probes must not restore hover after reactivation.
+      wasExpandedRef.current = false;
+      if (hoverFrameRef.current !== null) {
+        cancelAnimationFrame(hoverFrameRef.current);
+        hoverFrameRef.current = null;
+      }
+      setHover(false);
+      setFocusWithin(false);
+      setOrigin(null);
+      draggedRef.current = false;
+      const activeElement = container.getRootNode().activeElement;
+      if (container.contains(activeElement)) activeElement.blur?.();
+      onDeactivate?.();
+    };
+    const handleVisibilityChange = () => {
+      if (ownerDocument.hidden) deactivate();
+    };
+
+    ownerWindow.addEventListener("blur", deactivate);
+    ownerDocument.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      ownerWindow.removeEventListener("blur", deactivate);
+      ownerDocument.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, [onDeactivate, snapEdge]);
 
   // Apply the current position directly to the container.
   const applyTransform = useCallback((x, y) => {

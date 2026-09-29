@@ -163,6 +163,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       api.cloudflare.com
 // @connect       openrouter.ai
 // @connect       api.orcarouter.ai
+// @connect       router.requesty.ai
 // @connect       localhost
 // @connect       127.0.0.1
 // @run-at        document-end
