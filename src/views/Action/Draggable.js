@@ -108,6 +108,7 @@ export default function Draggable({
   snapEdge,
   onStart,
   onMove,
+  onDeactivate,
   onPositionTransitionEnd,
   handler, // The drag handle.
   children, // The main content.
@@ -145,6 +146,38 @@ export default function Draggable({
   });
   // Debounce storage updates for the latest drag position.
   const setFabPosition = useMemo(() => debounce(putFab, 500), []);
+
+  useEffect(() => {
+    if (!snapEdge) return;
+
+    const container = containerRef.current;
+    const ownerDocument = container.ownerDocument;
+    const ownerWindow = ownerDocument.defaultView;
+    // Switching tabs can skip mouseleave and retain the focused element.
+    // Clear transient interaction state before the page becomes active again.
+    const deactivate = () => {
+      setHover(false);
+      setFocusWithin(false);
+      setOrigin(null);
+      draggedRef.current = false;
+      const activeElement = container.getRootNode().activeElement;
+      if (container.contains(activeElement)) activeElement.blur?.();
+      onDeactivate?.();
+    };
+    const handleVisibilityChange = () => {
+      if (ownerDocument.hidden) deactivate();
+    };
+
+    ownerWindow.addEventListener("blur", deactivate);
+    ownerDocument.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      ownerWindow.removeEventListener("blur", deactivate);
+      ownerDocument.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, [onDeactivate, snapEdge]);
 
   // Apply the current position directly to the container.
   const applyTransform = useCallback((x, y) => {
