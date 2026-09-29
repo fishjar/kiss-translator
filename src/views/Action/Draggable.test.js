@@ -70,6 +70,7 @@ describe("Draggable FAB edge locking", () => {
     act(() => root.unmount());
     container.remove();
     getBoundingClientRect.mockRestore();
+    jest.restoreAllMocks();
     putFab.mockReset();
     jest.useRealTimers();
     restoreViewport("clientWidth", originalClientWidth);
@@ -290,6 +291,93 @@ describe("Draggable FAB edge locking", () => {
     act(() => outside.focus());
     expect(draggable.style.transform).toBe("translate(580px, 200px)");
     outside.remove();
+  });
+
+  test("window blur cancels a drag without requiring a pointerup event", () => {
+    const onMove = jest.fn();
+    const onDeactivate = jest.fn();
+    renderFab({ onMove, onDeactivate });
+    const handler = draggable.firstElementChild.firstElementChild;
+    act(() => {
+      handler.dispatchEvent(
+        new MouseEvent("pointerdown", {
+          bubbles: true,
+          clientX: 590,
+          clientY: 210,
+        })
+      );
+    });
+    act(() => {
+      handler.dispatchEvent(
+        new MouseEvent("pointermove", {
+          bubbles: true,
+          clientX: 400,
+          clientY: 210,
+        })
+      );
+    });
+    expect(onMove).toHaveBeenCalledTimes(1);
+
+    act(() => window.dispatchEvent(new Event("blur")));
+
+    expect(onDeactivate).toHaveBeenCalledTimes(1);
+    expect(draggable.style.transform).toBe("translate(580px, 200px)");
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+      handler.dispatchEvent(
+        new MouseEvent("pointermove", {
+          bubbles: true,
+          clientX: 100,
+          clientY: 300,
+        })
+      );
+    });
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(draggable.style.transform).toBe("translate(580px, 200px)");
+  });
+
+  test("deactivation preserves focus outside the snapped control", () => {
+    const outside = document.createElement("button");
+    document.body.appendChild(outside);
+    const onDeactivate = jest.fn();
+    try {
+      renderFab({ onDeactivate });
+      act(() => outside.focus());
+
+      act(() => window.dispatchEvent(new Event("blur")));
+
+      expect(onDeactivate).toHaveBeenCalledTimes(1);
+      expect(document.activeElement).toBe(outside);
+    } finally {
+      outside.remove();
+    }
+  });
+
+  test("removes page deactivation listeners when the control unmounts", () => {
+    const addWindowListener = jest.spyOn(window, "addEventListener");
+    const removeWindowListener = jest.spyOn(window, "removeEventListener");
+    const addDocumentListener = jest.spyOn(document, "addEventListener");
+    const removeDocumentListener = jest.spyOn(document, "removeEventListener");
+    const onDeactivate = jest.fn();
+    renderFab({ onDeactivate });
+    const blurListener = addWindowListener.mock.calls.find(
+      ([type]) => type === "blur"
+    );
+    const visibilityListener = addDocumentListener.mock.calls.find(
+      ([type]) => type === "visibilitychange"
+    );
+    expect(blurListener).toBeDefined();
+    expect(visibilityListener).toBeDefined();
+
+    act(() => root.render(null));
+
+    expect(removeWindowListener).toHaveBeenCalledWith(...blurListener);
+    expect(removeDocumentListener).toHaveBeenCalledWith(...visibilityListener);
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(onDeactivate).not.toHaveBeenCalled();
   });
 
   test("ignores pointer movement when no drag is active", () => {

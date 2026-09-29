@@ -190,6 +190,9 @@ export function ContentFabContent({
 
   // Open the extension options page in a new browser tab.
   const openSettings = useCallback(() => {
+    // Navigation can synchronously deactivate this page. Do not restore focus
+    // afterward, which would reveal the FAB again when returning to this tab.
+    closeMenu();
     if (isExt) {
       sendBgMsg(MSG_OPEN_OPTIONS);
     } else {
@@ -199,7 +202,6 @@ export function ContentFabContent({
         "noopener,noreferrer"
       );
     }
-    closeMenu(true);
   }, [closeMenu]);
 
   // Ignore clicks after dragging to prevent accidental activation.
@@ -284,6 +286,7 @@ export function ContentFabContent({
       show={showFab}
       onStart={handleStart}
       onMove={handleMove}
+      onDeactivate={closeMenu}
       onPositionTransitionEnd={updateMenuPosition}
       handler={
         <Fab
