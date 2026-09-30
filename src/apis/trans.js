@@ -32,6 +32,7 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_API_ROUTE,
   OPT_TRANS_CUSTOMIZE,
   API_SPE_TYPES,
   INPUT_PLACE_FROM,
@@ -1678,6 +1679,7 @@ const genReqFuncs = {
   [OPT_TRANS_OPENROUTER]: genOpenRouter,
   [OPT_TRANS_ORCAROUTER]: genOrcaRouter,
   [OPT_TRANS_REQUESTY]: genRequesty,
+  [OPT_TRANS_API_ROUTE]: genOpenAI,
   [OPT_TRANS_CUSTOMIZE]: genCustom,
 };
 
@@ -2023,6 +2025,7 @@ export const parseTransRes = async (
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_REQUESTY:
+    case OPT_TRANS_API_ROUTE:
       modelMsg = res?.choices?.[0]?.message;
       if (history && userMsg) {
         // 成对写入与轮次截断守卫统一内聚在 addPair：空正文/非 assistant role 整对不写
@@ -2132,6 +2135,7 @@ function parseDictRes(res, apiType) {
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_REQUESTY:
+    case OPT_TRANS_API_ROUTE:
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content || "";
     case OPT_TRANS_GEMINI:
@@ -2753,6 +2757,7 @@ export const handleSubtitle = async ({
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_REQUESTY:
+    case OPT_TRANS_API_ROUTE:
     case OPT_TRANS_OLLAMA:
       return parseSTRes(
         res?.choices?.[0]?.message?.content ?? "",
@@ -2972,6 +2977,7 @@ export const handleSummarize = async ({
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_REQUESTY:
+    case OPT_TRANS_API_ROUTE:
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content?.trim() || "";
     case OPT_TRANS_GEMINI:
