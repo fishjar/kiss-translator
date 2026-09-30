@@ -154,6 +154,42 @@ test("candidates include the selected element and never copy text, links or inpu
   }
 });
 
+test("uses the same point picker for hover and click and preserves picked alternatives", () => {
+  const link = document.querySelector("a");
+  const title = document.querySelector("p");
+  const resolve = jest
+    .spyOn(session.picker, "elementsAtPoint")
+    .mockReturnValue([title, link]);
+  session.pick();
+  link.dispatchEvent(
+    new MouseEvent("mousemove", { bubbles: true, clientX: 20, clientY: 30 })
+  );
+  link.dispatchEvent(
+    new MouseEvent("mousemove", { bubbles: true, clientX: 40, clientY: 50 })
+  );
+  expect(resolve).not.toHaveBeenCalled();
+  jest.advanceTimersByTime(20);
+  expect(resolve).toHaveBeenCalledTimes(1);
+  expect(resolve).toHaveBeenLastCalledWith(40, 50, link);
+  expect(session.highlights.show).toHaveBeenLastCalledWith([
+    { element: title },
+  ]);
+  link.dispatchEvent(
+    new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      clientX: 40,
+      clientY: 50,
+    })
+  );
+  expect(session.state.selected).toBe(title);
+  expect(session.state.pickElements).toEqual([title, link]);
+  session.selectElement(document.querySelector("main"));
+  expect(session.state.pickElements).toContain(title);
+  session.cancelPick();
+  expect(session.hoverFrame).toBeNull();
+});
+
 test("candidates stay ordered by match count after the page changes", async () => {
   session.selectElement(document.querySelector("a"));
   const expectSorted = () => {

@@ -27,15 +27,82 @@ export const isPageElement = (element) =>
 const escapeId = (value) =>
   globalThis.CSS?.escape
     ? CSS.escape(value)
-    : Array.from(
-        value,
-        (char) => `\\${char.codePointAt(0).toString(16)} `
-      ).join("");
+    : /^[a-zA-Z_][\w-]*$/.test(value)
+      ? value
+      : Array.from(
+          value,
+          (char) => `\\${char.codePointAt(0).toString(16)} `
+        ).join("");
 const stable = (value) =>
   value.length <= 64 &&
-  !/(?:\d{5}|[a-f0-9]{10}|^(?:css|sc)-|^(?:active|selected|hover|focus|open)$)/i.test(
+  !/(?:\d{5}|[a-f0-9]{10}|^(?:css|sc)-|^m_[a-f0-9]{6,}$|module.*__|^(?:active|selected|hover|focus|open)$)/i.test(
     value
   );
+const stableId = (value) =>
+  stable(value) &&
+  !/^(?:mantine-|radix-|:r)|^(?=.{6,16}$)(?=.*[a-z])(?=.*\d)[a-z\d]+$/i.test(
+    value
+  ) &&
+  !/^(?=.{6,16}$)(?=.*[a-z])(?=.*[A-Z].*[A-Z])[a-zA-Z]+$/.test(value);
+const utilityClass = (value) =>
+  /^(?:mantine-focus-|(?:dark:|hover:|focus:|sm:|md:|lg:)|(?:flex|grid|block|inline|hidden|relative|absolute|fixed|sticky)$|(?:flex|grid|items|justify|gap|space|w|h|min|max|size|p|px|py|m|mx|my|bg|text|border|rounded|shadow|overflow|pointer-events)-)/.test(
+    value
+  );
+
+// CSS Modules keep the component and local names while changing the build hash.
+// Partial selectors deliberately omit that hash; exact classes remain fallbacks.
+function classDescriptor(name) {
+  const module = name.match(
+    /^([\w-]+-module(?:-scss-module)?)__[^_]+__([\w-]+)$/
+  );
+  if (module)
+    return {
+      selector: `[class*="${module[1]}__"][class*="__${module[2]}"]`,
+      quality: 75,
+    };
+  return {
+    selector: `.${escapeId(name)}`,
+    fragile: !stable(name),
+    quality: utilityClass(name) ? 5 : /^mantine-/.test(name) ? 25 : 70,
+  };
+}
+
+const classDescriptors = (element) =>
+  Array.from(element.classList)
+    .map(classDescriptor)
+    .filter((entry) => !entry.fragile)
+    .sort((a, b) => b.quality - a.quality);
+
+export function elementTextPreview(element) {
+  if (!isPageElement(element)) return "";
+  const walker = document.createTreeWalker(
+    element,
+    NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+    {
+      acceptNode: (node) =>
+        node.nodeType === 1 &&
+        (!isPageElement(node) ||
+          /^(?:script|style|noscript|input|textarea|select)$/.test(
+            node.localName
+          ) ||
+          node.getAttribute("aria-hidden") === "true")
+          ? NodeFilter.FILTER_REJECT
+          : NodeFilter.FILTER_ACCEPT,
+    }
+  );
+  let text = "";
+  let visited = 0;
+  for (
+    let node = walker.nextNode();
+    node && visited < 150 && text.length < 80;
+    node = walker.nextNode()
+  ) {
+    visited++;
+    if (node.nodeType === 3)
+      text += ` ${node.textContent.replace(/\s+/g, " ").trim()}`;
+  }
+  return text.trim().slice(0, 80);
+}
 export const describeElement = (element) =>
   element
     ? `${element.localName}${
@@ -56,10 +123,19 @@ export function queryPage(selector) {
 export const compareCandidates = (a, b) =>
   a.count - b.count || Number(a.fragile) - Number(b.fragile);
 
+export const recommendSelector = (candidates) =>
+  [...candidates].sort(
+    (a, b) =>
+      Number(a.fragile) - Number(b.fragile) ||
+      b.quality - a.quality ||
+      a.count - b.count ||
+      a.selector.length - b.selector.length
+  )[0];
+
 export function selectorCandidates(element) {
   if (!isPageElement(element)) return [];
   const candidates = new Map();
-  const add = (selector, kind, fragile = false) => {
+  const add = (selector, kind, fragile = false, quality = 0) => {
     if (candidates.has(selector)) return;
     try {
       const matches = queryPage(selector);
@@ -68,6 +144,7 @@ export function selectorCandidates(element) {
           selector,
           kind,
           fragile,
+          quality,
           count: matches.length,
         });
     } catch {
@@ -75,19 +152,41 @@ export function selectorCandidates(element) {
     }
   };
   const tag = element.localName;
-  const classes = Array.from(element.classList).filter(stable).slice(0, 3);
-  const local = classes.length
-    ? `${tag}${classes.map((c) => `.${escapeId(c)}`).join("")}`
-    : tag;
-  if (element.id) add(`#${escapeId(element.id)}`, "id", !stable(element.id));
+  const classes = classDescriptors(element);
+  const useful = classes.filter((entry) => entry.quality >= 70).slice(0, 3);
+  const local = `${tag}${useful.map((entry) => entry.selector).join("")}`;
+  if (element.id)
+    add(`#${escapeId(element.id)}`, "id", !stableId(element.id), 100);
   // Only a small allowlist of structural attributes; no text, URLs or form values.
   for (const key of ["role", "itemprop", "data-testid", "data-test"]) {
     const value = element.getAttribute(key);
     if (value && stable(value) && /^[\w -]+$/.test(value))
-      add(`${tag}[${key}="${value}"]`, "attribute");
+      add(`${tag}[${key}="${value}"]`, "attribute", false, 90);
   }
-  add(local, "similar");
-  classes.forEach((name) => add(`.${escapeId(name)}`, "class"));
+  // Presentation attributes become useful only together with a component scope.
+  const variants = ["data-size", "data-line-clamp"]
+    .map((key) => {
+      const value = element.getAttribute(key);
+      return value && stable(value) && /^[\w-]+$/.test(value)
+        ? `[${key}="${value}"]`
+        : "";
+    })
+    .join("");
+  add(local, "similar", false, useful.length ? 80 : 10);
+  if (variants && useful.length)
+    add(`${local}${variants}`, "attribute", false, 85);
+  classes.forEach(({ selector, quality }) =>
+    add(
+      selector,
+      selector.startsWith("[") ? "structure" : "class",
+      false,
+      quality
+    )
+  );
+  Array.from(element.classList)
+    .filter((name) => !stable(name))
+    .slice(0, 3)
+    .forEach((name) => add(`.${escapeId(name)}`, "class", true));
   let parent = element.parentElement;
   for (
     let depth = 0;
@@ -95,11 +194,20 @@ export function selectorCandidates(element) {
     depth++, parent = parent.parentElement
   ) {
     if (parent.id)
-      add(`#${escapeId(parent.id)} ${local}`, "container", !stable(parent.id));
-    const cls = Array.from(parent.classList).find(stable);
-    if (cls) add(`.${escapeId(cls)} ${local}`, "container");
+      add(
+        `#${escapeId(parent.id)} ${local}`,
+        "container",
+        !stableId(parent.id),
+        85
+      );
+    const cls = classDescriptors(parent).find((entry) => entry.quality >= 70);
+    if (cls) {
+      add(`${cls.selector} ${local}`, "container", false, 85);
+      if (variants)
+        add(`${cls.selector} ${tag}${variants}`, "structure", false, 95);
+    }
   }
-  add(tag, "tag");
+  add(tag, "tag", false, 10);
   const parts = [];
   let node = element;
   while (node && node !== document.documentElement) {
@@ -118,7 +226,14 @@ export function selectorCandidates(element) {
     node = node.parentElement;
   }
   add(parts.join(" > "), "position", true);
-  return Array.from(candidates.values()).sort(compareCandidates).slice(0, 14);
+  const all = Array.from(candidates.values()).sort(compareCandidates);
+  const result = all.slice(0, 14);
+  const recommended = recommendSelector(all);
+  if (recommended && !result.includes(recommended)) {
+    result[result.length - 1] = recommended;
+    result.sort(compareCandidates);
+  }
+  return result;
 }
 
 export function ancestorElements(element) {
