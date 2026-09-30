@@ -43,6 +43,7 @@ import {
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
 import { useFab } from "../../hooks/Fab";
+import { normalizeFabAppearance } from "../../config/fab";
 import { sendBgMsg } from "../../libs/msg";
 import { tryClearCaches } from "../../libs/cache";
 import { kissLog, LogLevel } from "../../libs/log";
@@ -50,6 +51,7 @@ import UploadButton from "./UploadButton";
 import DownloadButton from "./DownloadButton";
 import ValidationInput from "../../hooks/ValidationInput";
 import OverviewHero from "./OverviewHero";
+import FabAppearanceSetting from "./FabAppearanceSetting";
 
 /**
  * 包装单个快捷键录入表单项组件
@@ -301,6 +303,7 @@ export default function Settings() {
     fabClickAction = 0,
     hideExceptionList = "",
   } = fab || {};
+  const { halfHide } = normalizeFabAppearance(fab);
 
   return (
     <Box>
@@ -635,6 +638,22 @@ export default function Settings() {
           <MenuItem value={false}>{i18n("show")}</MenuItem>
           <MenuItem value={true}>{i18n("hide")}</MenuItem>
         </TextField>
+
+        <TextField
+          select
+          fullWidth
+          size="small"
+          name="halfHide"
+          value={halfHide}
+          label={i18n("fab_half_hide")}
+          helperText={i18n("fab_half_hide_helper")}
+          onChange={(e) => updateFab({ halfHide: e.target.value })}
+        >
+          <MenuItem value={true}>{i18n("enable")}</MenuItem>
+          <MenuItem value={false}>{i18n("disable")}</MenuItem>
+        </TextField>
+
+        <FabAppearanceSetting fab={fab} onChange={updateFab} />
 
         <TextField
           fullWidth

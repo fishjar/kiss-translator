@@ -1,20 +1,16 @@
 import { supportsTouch } from "../../libs/touchCapability";
 import TouchTranslateControl from "../../components/TouchTranslateControl";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import TranslateIcon from "@mui/icons-material/Translate";
 import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import Fab from "@mui/material/Fab";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
 import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
-import SpeedDialIcon from "@mui/material/SpeedDialIcon";
 import {
   useState,
   useMemo,
@@ -42,6 +38,8 @@ import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import useWindowSize from "../../hooks/WindowSize";
 import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
 import { ACTION_STYLES } from "./styles";
+import { normalizeFabAppearance } from "../../config/fab";
+import FloatingButton from "../../components/FloatingButton";
 
 const selectionUnavailable = () => false;
 
@@ -82,17 +80,27 @@ export const FAB_POPPER_MODIFIERS = [
  * Supports dragging, edge snapping, and a Material 3 action menu.
  */
 export function ContentFabContent({
-  fabConfig: { x: fabX, y: fabY, edge: fabEdge, fabClickAction = 0 } = {},
+  fabConfig = {},
   processActions,
   getSelectionEnabled = selectionUnavailable,
 }) {
   const i18n = useI18n();
+  const {
+    x: fabX,
+    y: fabY,
+    edge: fabEdge,
+    fabClickAction = 0,
+  } = fabConfig || {};
+  const {
+    halfHide,
+    opacity,
+    size: fabSize,
+  } = normalizeFabAppearance(fabConfig);
   // Use the current tab's runtime state, which can differ from stored settings.
   const selectionEnabled = useSyncExternalStore(
     subscribeSelectionEnabled,
     getSelectionEnabled
   );
-  const fabWidth = 56; // Material 3 regular FAB size.
   const opensMenu = fabClickAction !== 1;
   const windowSize = useWindowSize();
   const [moved, setMoved] = useState(false); // Track whether a drag occurred.
@@ -232,13 +240,13 @@ export function ContentFabContent({
   const fabProps = useMemo(
     () => ({
       windowSize,
-      width: fabWidth,
-      height: fabWidth,
-      left: fabX ?? -fabWidth,
+      width: fabSize,
+      height: fabSize,
+      left: fabX ?? -fabSize,
       top: fabY ?? windowSize.h / 2,
       edge: fabEdge,
     }),
-    [windowSize, fabWidth, fabX, fabY, fabEdge]
+    [windowSize, fabSize, fabX, fabY, fabEdge]
   );
 
   const items = [
@@ -279,8 +287,10 @@ export function ContentFabContent({
   return (
     <Draggable
       key="fab"
-      snapEdge // Keep the idle FAB partially hidden at the viewport edge.
-      fitContent // The fixed menu must not be constrained by the 56px FAB wrapper.
+      snapEdge // Keep edge snapping independent of the half-hide preference.
+      halfHide={halfHide}
+      idleOpacity={opacity}
+      fitContent // The fixed menu must not be constrained by the FAB wrapper.
       expanded={opensMenu && open} // Keep the anchor fully revealed while the menu is open.
       {...fabProps}
       show={showFab}
@@ -289,26 +299,18 @@ export function ContentFabContent({
       onDeactivate={closeMenu}
       onPositionTransitionEnd={updateMenuPosition}
       handler={
-        <Fab
+        <FloatingButton
           id="kt-content-fab-button"
           ref={anchorRef}
-          className="kt-content-fab"
+          size={fabSize}
+          opensMenu={opensMenu}
+          open={open}
           aria-expanded={opensMenu ? open : undefined}
           aria-haspopup={opensMenu ? "menu" : undefined}
           aria-controls={opensMenu && open ? "kt-content-fab-menu" : undefined}
           aria-label={i18n("translate")}
           onClick={handleClick}
-        >
-          {opensMenu ? (
-            <SpeedDialIcon
-              icon={<TranslateIcon />}
-              openIcon={<CloseRoundedIcon />}
-              open={open}
-            />
-          ) : (
-            <TranslateIcon />
-          )}
-        </Fab>
+        />
       }
     >
       <Popper

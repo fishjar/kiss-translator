@@ -268,8 +268,12 @@ describe("ExtCommands", () => {
   });
 });
 
-async function chooseBooleanOption(container, value) {
-  const input = container.querySelector('input[name="autoTranslateClipboard"]');
+async function chooseBooleanOption(
+  container,
+  value,
+  name = "autoTranslateClipboard"
+) {
+  const input = container.querySelector(`input[name="${name}"]`);
   const button = input
     .closest(".MuiInputBase-root")
     .querySelector('[role="combobox"]');
@@ -286,6 +290,328 @@ async function chooseBooleanOption(container, value) {
     await Promise.resolve();
   });
 }
+
+describe("Settings floating button appearance", () => {
+  const updateSetting = jest.fn();
+  const updateFab = jest.fn();
+  const visibility = {
+    isHide: true,
+    hideExceptionList: "https://example.com/*",
+  };
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    mockIsExt = true;
+    updateSetting.mockReset();
+    updateFab.mockReset();
+    useSetting.mockReturnValue({
+      setting: { uiLang: "en", logLevel: 3, clearCache: false },
+      updateSetting,
+    });
+    useFab.mockReturnValue({
+      fab: { ...visibility, halfHide: true, opacity: 0.4, size: 72 },
+      updateFab,
+    });
+    useShortcut.mockReturnValue({ shortcut: [], setShortcut: jest.fn() });
+    browser.commands.getAll.mockResolvedValue([]);
+    hasClipboardReadPermission.mockResolvedValue(false);
+    useAlert.mockReturnValue(alert);
+  });
+
+  async function renderAppearanceSettings() {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Settings />);
+    });
+    return { container, root };
+  }
+
+  test.each([
+    ["missing", undefined],
+    ["legacy", { isHide: false }],
+    ["invalid", { halfHide: "false", opacity: "invalid", size: "invalid" }],
+  ])("shows safe defaults for %s appearance settings", async (_label, fab) => {
+    useFab.mockReturnValue({ fab, updateFab });
+    const { container, root } = await renderAppearanceSettings();
+
+    try {
+      expect(container.querySelector('input[name="halfHide"]').value).toBe(
+        "true"
+      );
+      expect(container.querySelector('input[name="opacity"]').value).toBe(
+        "100"
+      );
+      expect(container.querySelector("#fab-opacity-value").textContent).toBe(
+        "100%"
+      );
+      expect(container.querySelector('input[name="size"]').value).toBe("56");
+      expect(container.querySelector("#fab-size-value").textContent).toBe(
+        "56 px"
+      );
+      expect(
+        container
+          .querySelector(".kt-content-fab")
+          .style.getPropertyValue("--kt-fab-size")
+      ).toBe("56px");
+      expect(
+        container.querySelector(".kt-fab-preview-opacity").style.opacity
+      ).toBe("1");
+      expect(updateFab).not.toHaveBeenCalled();
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("keeps preview theme local while the floating button is globally hidden", async () => {
+    const pageSetting = Object.freeze({
+      uiLang: "en",
+      darkMode: "dark",
+      logLevel: 3,
+      clearCache: false,
+    });
+    const fabSetting = Object.freeze({
+      ...visibility,
+      halfHide: true,
+      opacity: 0.4,
+      size: 72,
+    });
+    useSetting.mockReturnValue({ setting: pageSetting, updateSetting });
+    useFab.mockReturnValue({ fab: fabSetting, updateFab });
+    const { container, root } = await renderAppearanceSettings();
+
+    try {
+      const stage = container.querySelector(".kt-fab-preview-stage");
+      const preview = stage.querySelector(".kt-content-fab");
+      expect(stage.getAttribute("data-theme")).toBe("light");
+      expect(preview.disabled).toBe(false);
+      expect(preview.getAttribute("aria-pressed")).toBe("false");
+      expect(preview.getAttribute("aria-label")).toBe("fab_preview_dark");
+      expect(preview.querySelector("svg")).not.toBeNull();
+
+      act(() => preview.click());
+      expect(stage.getAttribute("data-theme")).toBe("dark");
+      expect(preview.getAttribute("aria-pressed")).toBe("true");
+
+      act(() => preview.click());
+      expect(stage.getAttribute("data-theme")).toBe("light");
+      expect(preview.getAttribute("aria-pressed")).toBe("false");
+      expect(container.querySelector('input[name="isHide"]').value).toBe(
+        "true"
+      );
+      expect(container.querySelector('input[name="halfHide"]').value).toBe(
+        "true"
+      );
+      expect(container.querySelector('input[name="opacity"]').value).toBe("40");
+      expect(container.querySelector('input[name="size"]').value).toBe("72");
+      expect(pageSetting.darkMode).toBe("dark");
+      expect(fabSetting).toEqual({
+        ...visibility,
+        halfHide: true,
+        opacity: 0.4,
+        size: 72,
+      });
+      expect(updateSetting).not.toHaveBeenCalled();
+      expect(updateFab).not.toHaveBeenCalled();
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test.each([
+    [false, true, false],
+    [true, false, true],
+  ])(
+    "saves half hiding independently when globally hidden=%s",
+    async (isHide, halfHide, nextHalfHide) => {
+      useFab.mockReturnValue({
+        fab: { ...visibility, isHide, halfHide, opacity: 0.4 },
+        updateFab,
+      });
+      const { container, root } = await renderAppearanceSettings();
+
+      try {
+        await chooseBooleanOption(container, nextHalfHide, "halfHide");
+
+        expect(updateFab).toHaveBeenCalledTimes(1);
+        expect(updateFab).toHaveBeenCalledWith({ halfHide: nextHalfHide });
+        expect(updateSetting).not.toHaveBeenCalled();
+        expect(container.querySelector('input[name="isHide"]').value).toBe(
+          String(isHide)
+        );
+        expect(
+          container.querySelector('textarea[name="hideExceptionList"]').value
+        ).toBe(visibility.hideExceptionList);
+      } finally {
+        act(() => root.unmount());
+      }
+    }
+  );
+
+  test.each([
+    [10, 0.1],
+    [45, 0.45],
+    [100, 1],
+  ])(
+    "saves %s%% opacity without changing visibility or exceptions",
+    async (percent, opacity) => {
+      const { container, root } = await renderAppearanceSettings();
+      const slider = container.querySelector('input[name="opacity"]');
+
+      try {
+        expect(slider.disabled).toBe(false);
+        expect(slider.min).toBe("10");
+        expect(slider.max).toBe("100");
+        expect(slider.step).toBe("5");
+        expect(
+          container.querySelector(`#${slider.getAttribute("aria-labelledby")}`)
+            .textContent
+        ).toBe("fab_opacity");
+        expect(
+          container.querySelector(`#${slider.getAttribute("aria-describedby")}`)
+            .textContent
+        ).toBe("fab_opacity_helper");
+
+        act(() => {
+          Object.getOwnPropertyDescriptor(
+            HTMLInputElement.prototype,
+            "value"
+          ).set.call(slider, String(percent));
+          slider.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+
+        expect(container.querySelector("#fab-opacity-value").textContent).toBe(
+          `${percent}%`
+        );
+        expect(slider.getAttribute("aria-valuetext")).toBe(`${percent}%`);
+        expect(
+          container.querySelector(".kt-fab-preview-opacity").style.opacity
+        ).toBe(String(opacity));
+        expect(updateFab).toHaveBeenCalledTimes(1);
+        expect(updateFab).toHaveBeenCalledWith({ opacity });
+        expect(updateSetting).not.toHaveBeenCalled();
+        expect(container.querySelector('input[name="isHide"]').value).toBe(
+          "true"
+        );
+        expect(
+          container.querySelector('textarea[name="hideExceptionList"]').value
+        ).toBe(visibility.hideExceptionList);
+      } finally {
+        act(() => root.unmount());
+      }
+    }
+  );
+
+  test.each([24, 32, 56, 96])(
+    "saves %spx size without changing other floating button settings",
+    async (size) => {
+      const { container, root } = await renderAppearanceSettings();
+      const slider = container.querySelector('input[name="size"]');
+
+      try {
+        expect(slider.disabled).toBe(false);
+        expect(slider.value).toBe("72");
+        expect(slider.min).toBe("24");
+        expect(slider.max).toBe("96");
+        expect(slider.step).toBe("4");
+        expect(
+          container.querySelector(`#${slider.getAttribute("aria-labelledby")}`)
+            .textContent
+        ).toBe("fab_size");
+        expect(
+          container.querySelector(`#${slider.getAttribute("aria-describedby")}`)
+            .textContent
+        ).toBe("fab_size_helper");
+
+        act(() => {
+          Object.getOwnPropertyDescriptor(
+            HTMLInputElement.prototype,
+            "value"
+          ).set.call(slider, String(size));
+          slider.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+
+        expect(container.querySelector("#fab-size-value").textContent).toBe(
+          `${size} px`
+        );
+        expect(slider.getAttribute("aria-valuetext")).toBe(`${size} px`);
+        expect(
+          container
+            .querySelector(".kt-content-fab")
+            .style.getPropertyValue("--kt-fab-size")
+        ).toBe(`${size}px`);
+        expect(updateFab).toHaveBeenCalledTimes(1);
+        expect(updateFab).toHaveBeenCalledWith({ size });
+        expect(updateSetting).not.toHaveBeenCalled();
+        expect(container.querySelector('input[name="opacity"]').value).toBe(
+          "40"
+        );
+        expect(container.querySelector('input[name="halfHide"]').value).toBe(
+          "true"
+        );
+        expect(container.querySelector('input[name="isHide"]').value).toBe(
+          "true"
+        );
+        expect(
+          container.querySelector('textarea[name="hideExceptionList"]').value
+        ).toBe(visibility.hideExceptionList);
+      } finally {
+        act(() => root.unmount());
+      }
+    }
+  );
+
+  test("reflects appearance updates received from another page", async () => {
+    const { container, root } = await renderAppearanceSettings();
+
+    try {
+      const preview = container.querySelector(".kt-content-fab");
+      act(() => preview.click());
+      expect(
+        container
+          .querySelector(".kt-fab-preview-stage")
+          .getAttribute("data-theme")
+      ).toBe("dark");
+      useFab.mockReturnValue({
+        fab: { ...visibility, halfHide: false, opacity: 0.7, size: 88 },
+        updateFab,
+      });
+      await act(async () => {
+        root.render(<Settings />);
+      });
+
+      expect(container.querySelector('input[name="halfHide"]').value).toBe(
+        "false"
+      );
+      expect(container.querySelector('input[name="opacity"]').value).toBe("70");
+      expect(container.querySelector("#fab-opacity-value").textContent).toBe(
+        "70%"
+      );
+      expect(container.querySelector('input[name="size"]').value).toBe("88");
+      expect(container.querySelector("#fab-size-value").textContent).toBe(
+        "88 px"
+      );
+      expect(
+        container
+          .querySelector(".kt-content-fab")
+          .style.getPropertyValue("--kt-fab-size")
+      ).toBe("88px");
+      expect(
+        container.querySelector(".kt-fab-preview-opacity").style.opacity
+      ).toBe("0.7");
+      expect(
+        container
+          .querySelector(".kt-fab-preview-stage")
+          .getAttribute("data-theme")
+      ).toBe("dark");
+      expect(updateSetting).not.toHaveBeenCalled();
+      expect(updateFab).not.toHaveBeenCalled();
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+});
 
 describe("AutoTranslateClipboardSetting", () => {
   beforeEach(() => {

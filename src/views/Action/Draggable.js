@@ -106,6 +106,8 @@ export default function Draggable({
   edge: savedEdge,
   show = true,
   snapEdge,
+  halfHide = true,
+  idleOpacity = 1,
   onStart,
   onMove,
   onDeactivate,
@@ -128,10 +130,45 @@ export default function Draggable({
   );
   const containerRef = useRef(null);
   const draggedRef = useRef(false);
+  const hasPendingDragSaveRef = useRef(false);
   // Set by applyTransform on its first invocation; the transition-gating
   // probe waits for it so the initial paint never animates the transform.
   const hasAppliedPositionRef = useRef(false);
-  const revealed = hover || focusWithin || expanded || Boolean(origin);
+  const wasExpandedRef = useRef(false);
+  const hoverFrameRef = useRef(null);
+  const active = hover || focusWithin || expanded || Boolean(origin);
+  const revealed = !halfHide || active;
+
+  useEffect(() => {
+    if (expanded) {
+      wasExpandedRef.current = true;
+      return;
+    }
+    // Removing menu items may skip blur and mouseleave events.
+    // Read the local root so the same check works inside a shadow DOM.
+    const container = containerRef.current;
+    const focusedElement = container?.getRootNode().activeElement;
+    setFocusWithin(
+      Boolean(focusedElement && container.contains(focusedElement))
+    );
+    // Avoid reading hover before the initial edge position has been applied.
+    if (wasExpandedRef.current) {
+      wasExpandedRef.current = false;
+      // Hover hit testing can lag behind a removed menu until the next paint.
+      hoverFrameRef.current = requestAnimationFrame(() => {
+        hoverFrameRef.current = requestAnimationFrame(() => {
+          hoverFrameRef.current = null;
+          setHover(Boolean(container?.matches(":hover")));
+        });
+      });
+      return () => {
+        if (hoverFrameRef.current !== null) {
+          cancelAnimationFrame(hoverFrameRef.current);
+          hoverFrameRef.current = null;
+        }
+      };
+    }
+  }, [expanded]);
 
   // Store proportional positions so they scale with viewport changes.
   // Edge snapping normalizes invalid coordinates from zero-sized viewports.
@@ -156,6 +193,12 @@ export default function Draggable({
     // Switching tabs can skip mouseleave and retain the focused element.
     // Clear transient interaction state before the page becomes active again.
     const deactivate = () => {
+      // Queued menu-close probes must not restore hover after reactivation.
+      wasExpandedRef.current = false;
+      if (hoverFrameRef.current !== null) {
+        cancelAnimationFrame(hoverFrameRef.current);
+        hoverFrameRef.current = null;
+      }
       setHover(false);
       setFocusWithin(false);
       setOrigin(null);
@@ -289,6 +332,10 @@ export default function Draggable({
       percentageEdge.y === position.y;
     if (!unchanged) {
       setPosition(percentageEdge);
+    }
+    // A completed drag may already be normalized by the pointer handlers.
+    if (!unchanged || hasPendingDragSaveRef.current) {
+      hasPendingDragSaveRef.current = false;
       setFabPosition({ ...edgePosition, edge: activeEdge });
     }
   }, [
@@ -374,6 +421,7 @@ export default function Draggable({
   const handlePointerUp = (e) => {
     e.stopPropagation();
     if (snapEdge && draggedRef.current) {
+      hasPendingDragSaveRef.current = true;
       const currentPosition = {
         x: latestPosition.current.x * windowWidth,
         y: latestPosition.current.y * windowHeight,
@@ -415,13 +463,13 @@ export default function Draggable({
     }
   };
 
-  // M3 FABs remain fully opaque; non-snapped panels still soften while dragging.
+  // Restore FAB opacity during interaction; panels still soften while dragging.
   const opacity = useMemo(() => {
     if (snapEdge) {
-      return 1;
+      return active ? 1 : idleOpacity;
     }
     return origin ? 0.8 : 1;
-  }, [origin, snapEdge]);
+  }, [active, idleOpacity, origin, snapEdge]);
 
   const transition =
     positionTransitionEnabled && !origin
