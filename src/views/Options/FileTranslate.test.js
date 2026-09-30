@@ -1,8 +1,13 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import FileTranslate from "./FileTranslate";
+import { validateInputFile } from "../../localAi/core/inputFiles";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+jest.mock("../../localAi/core/inputFiles", () => ({
+  validateInputFile: jest.fn().mockResolvedValue(undefined),
+}));
 
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key, fallback) => fallback || key,
@@ -440,8 +445,25 @@ describe("FileTranslate view", () => {
     expect(openOptionsPage).toHaveBeenCalledWith("/apis");
   });
 
+  test("rejects an oversized image before creating its preview", async () => {
+    validateInputFile.mockRejectedValueOnce(new Error("INPUT_LIMIT_EXCEEDED: 图片文件超过 10 MB 上限"));
+    await act(async () => root.render(<FileTranslate />));
+    const file = new File(["image"], "large.png", { type: "image/png" });
+    const dropzone = container.querySelector('[role="button"][tabindex="0"]');
+    await act(async () => {
+      const event = new Event("drop", { bubbles: true });
+      Object.defineProperty(event, "dataTransfer", { value: { files: [file] } });
+      dropzone.dispatchEvent(event);
+    });
+    expect(validateInputFile).toHaveBeenCalledWith(file, "image");
+    expect(container.textContent).toContain("图片文件超过 10 MB 上限");
+    expect(container.textContent).not.toContain("原图预览");
+    expect(recognizeFileImage).not.toHaveBeenCalled();
+  });
+
   test("handles image translation, view switching, synthesis, and image viewer dialog", async () => {
     recognizeFileImage.mockResolvedValueOnce({
+      inputAdjustments: [{ kind: "image", message: "图片已等比例缩小：3000×2000 → 1536×1024" }],
       items: [
         {
           text: "Sample OCR text",
@@ -498,6 +520,7 @@ describe("FileTranslate view", () => {
       }),
       expect.anything()
     );
+    expect(container.textContent).toContain("图片已等比例缩小：3000×2000 → 1536×1024");
     expect(translateFileText).toHaveBeenCalled();
     expect(synthesizeTranslatedImage).toHaveBeenCalled();
 

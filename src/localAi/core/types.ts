@@ -96,10 +96,35 @@ export interface DeviceProfile {
 
 export interface Settings {
   mirror: Mirror;
+  autoUnloadMinutes: number;
+  exclusiveResourceMode: boolean;
+  maxImageFileMB: number;
+  maxImageEdge: number;
+  maxAudioFileMB: number;
+  maxAsrMinutes: number;
+  maxTtsCharacters: number;
+}
+
+export const INPUT_LIMIT_KEYS = [
+  "maxImageFileMB", "maxImageEdge", "maxAudioFileMB", "maxAsrMinutes", "maxTtsCharacters",
+] as const;
+
+export interface InputAdjustment {
+  kind: "image" | "audio" | "text";
+  original: number;
+  processed: number;
+  message: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   mirror: "hf-mirror",
+  autoUnloadMinutes: 10,
+  exclusiveResourceMode: false,
+  maxImageFileMB: 10,
+  maxImageEdge: 1536,
+  maxAudioFileMB: 50,
+  maxAsrMinutes: 5,
+  maxTtsCharacters: 1000,
 };
 
 export const MIRROR_BASES: Record<Mirror, string> = {

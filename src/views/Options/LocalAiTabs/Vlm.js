@@ -1,3 +1,9 @@
+import { validateInputFile } from "../../../localAi/core/inputFiles";
+import {
+  ModelStatus,
+  UnloadModelButton,
+  useRuntimeService,
+} from "./RuntimeControls";
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -46,8 +52,6 @@ export default function VlmTab() {
   const [vlmTaskMode, setVlmTaskMode] = useState("doc");
   const [vlmDevice, setVlmDevice] = useState("webgpu");
   const [vlmRecs, setVlmRecs] = useState({});
-  const [vlmLoadedId, setVlmLoadedId] = useState(null);
-  const [vlmLoadedDevice, setVlmLoadedDevice] = useState(null);
   const [vlmClientState, setVlmClientState] = useState("idle");
   const [vlmProgressText, setVlmProgressText] = useState("");
   const [parsing, setParsing] = useState(false);
@@ -56,6 +60,7 @@ export default function VlmTab() {
 
   // 图像与错误状态
   const [file, setFile] = useState(null);
+  const selectionRef = useRef(0);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -85,9 +90,9 @@ export default function VlmTab() {
     vlmClient.onStateChange = (ready, reason) => {
       if (!ready) {
         setVlmClientState("idle");
-        setVlmLoadedId(null);
         if (reason) {
-          setError(reason);
+          if (!reason.includes("已卸载") && !reason.includes("闲置超时"))
+            setError(reason);
           addLog(reason, "error");
         }
       }
@@ -122,10 +127,12 @@ export default function VlmTab() {
     vlmRec?.state === "downloading" ||
     vlmRec?.state === "queued" ||
     vlmRec?.state === "verifying";
-  const vlmIsLoaded =
-    vlmClientState === "ready" &&
-    vlmLoadedId === vlmModelId &&
-    vlmLoadedDevice === vlmDevice;
+  const modelTarget = {
+    modelRef: vlmModelId,
+    loadSpec: { device: vlmDevice, nCtx: 8192 },
+  };
+  const runtime = useRuntimeService("llm", modelTarget);
+  const vlmIsLoaded = runtime.loaded;
 
   const loadVlm = async () => {
     if (!vlmModel) return;
@@ -135,7 +142,9 @@ export default function VlmTab() {
       i18n("local_ai_vlm_engine_loading", "启动 VLM 多模态大模型…")
     );
     const modelName = getModelDisplayName(vlmModel, i18n);
-    addLog(`准备加载 VLM 模型: ${modelName} (${vlmModel.runtime || "onnx"}, ${vlmDevice.toUpperCase()})…`);
+    addLog(
+      `准备加载 VLM 模型: ${modelName} (${vlmModel.runtime || "onnx"}, ${vlmDevice.toUpperCase()})…`
+    );
     try {
       const isWllama = vlmModel.runtime === "wllama";
       const dtype = isWllama
@@ -152,22 +161,26 @@ export default function VlmTab() {
         f.path.endsWith(".onnx_data")
       );
 
-      await vlmClient.load({
-        runtime: isWllama ? "wllama" : "onnx",
-        source: vlmModel.source,
-        dir: vlmModel.dir,
-        file: modelFile,
-        mmprojFile,
-        device: vlmDevice,
-        dtype,
-        n_ctx: 8192,
-        ...(hasExternalData ? { externalDataChunks: 1 } : {}),
-      });
+      await vlmClient.load(
+        {
+          runtime: isWllama ? "wllama" : "onnx",
+          source: vlmModel.source,
+          dir: vlmModel.dir,
+          file: modelFile,
+          mmprojFile,
+          device: vlmDevice,
+          dtype,
+          nCtx: 8192,
+          ...(hasExternalData ? { externalDataChunks: 1 } : {}),
+        },
+        modelTarget
+      );
       setVlmClientState("ready");
-      setVlmLoadedId(vlmModel.id);
-      setVlmLoadedDevice(vlmDevice);
       setVlmProgressText("");
-      addLog(`VLM 模型加载就绪: ${modelName} (${vlmDevice.toUpperCase()})`, "success");
+      addLog(
+        `VLM 模型加载就绪: ${modelName} (${vlmDevice.toUpperCase()})`,
+        "success"
+      );
     } catch (e) {
       setVlmClientState("idle");
       const err = e instanceof Error ? e.message : String(e);
@@ -177,7 +190,7 @@ export default function VlmTab() {
   };
 
   const runVlm = async () => {
-    if (!file || !vlmIsLoaded || !vlmModel) return;
+    if (!file || runtime.busy || !vlmInstalled || !vlmModel) return;
     setParsing(true);
     setError(null);
     setVlmMarkdown("");
@@ -185,6 +198,7 @@ export default function VlmTab() {
     addLog(`开始 VLM 解析 (图片: ${file.name}, 模式: ${vlmTaskMode})…`);
     try {
       const prompt = resolveOcrVlmPrompt(vlmModel.id, vlmTaskMode);
+      await validateInputFile(file, "image");
       const imgBuf = await file.arrayBuffer();
       const res = await vlmClient.chat(
         [{ role: "user", content: prompt, images: [imgBuf] }],
@@ -192,14 +206,18 @@ export default function VlmTab() {
         (token) => {
           setVlmMarkdown((prev) => prev + token);
         },
-        [imgBuf]
+        [imgBuf],
+        modelTarget
       );
       const text = res.text || "";
       const dur = performance.now() - startTime;
       setVlmMarkdown(text);
       setElapsedMs(dur);
       setShared("vlm", text);
-      addLog(`VLM 解析完成，耗时 ${fmtMs(dur)} (生成约 ${text.length} 字符)`, "success");
+      addLog(
+        `VLM 解析完成，耗时 ${fmtMs(dur)} (生成约 ${text.length} 字符)`,
+        "success"
+      );
     } catch (e) {
       const err = e instanceof Error ? e.message : String(e);
       setError(err);
@@ -221,9 +239,24 @@ export default function VlmTab() {
       <Card variant="outlined">
         <CardContent sx={{ pb: "16px !important" }}>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
-              {i18n("local_ai_vlm_title", "视觉语言大模型 (VLM)")}
-            </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1,
+                width: "100%",
+              }}
+            >
+              <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
+                {i18n("local_ai_vlm_title", "视觉语言大模型 (VLM)")}
+              </Typography>
+              <ModelStatus
+                installed={vlmInstalled}
+                downloading={vlmBusy}
+                runtime={runtime}
+              />
+            </Box>
             <Typography variant="body2" color="text.secondary">
               {i18n(
                 "local_ai_vlm_desc",
@@ -293,7 +326,9 @@ export default function VlmTab() {
                 onChange={(e) => setVlmDevice(e.target.value)}
                 disabled={vlmClientState === "loading" || parsing}
               >
-                {(vlmModel?.backend ?? ["webgpu", "wasm"]).includes("webgpu") && (
+                {(vlmModel?.backend ?? ["webgpu", "wasm"]).includes(
+                  "webgpu"
+                ) && (
                   <MenuItem value="webgpu">
                     {i18n("compute_device_webgpu", "WebGPU")}
                   </MenuItem>
@@ -310,6 +345,7 @@ export default function VlmTab() {
               variant="contained"
               size="small"
               disabled={
+                runtime.busy ||
                 !vlmInstalled ||
                 vlmClientState === "loading" ||
                 parsing ||
@@ -323,18 +359,17 @@ export default function VlmTab() {
                   ? i18n("local_ai_model_loaded", "模型已就绪")
                   : i18n("local_ai_load_model", "加载模型")}
             </Button>
-
-            <Chip
-              size="small"
-              label={
-                vlmInstalled
-                  ? i18n("local_ai_models_state_installed", "已安装")
-                  : vlmBusy
-                    ? i18n("local_ai_models_state_downloading", "下载中")
-                    : i18n("local_ai_models_state_not_installed", "未安装")
-              }
-              color={vlmInstalled ? "success" : "default"}
+            <UnloadModelButton
+              client={vlmClient}
+              runtime={runtime}
+              onError={setError}
             />
+            <Typography variant="caption" color="text.secondary">
+              {i18n(
+                "local_ai_llm_vlm_shared",
+                "LLM 与 VLM 共用模型，加载或卸载会影响另一功能。"
+              )}
+            </Typography>
 
             {vlmProgressText && (
               <Typography variant="caption" color="text.secondary">
@@ -379,14 +414,19 @@ export default function VlmTab() {
                 style={{ display: "none" }}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) setFile(f);
+                  const selection = ++selectionRef.current;
+                  if (f) void validateInputFile(f, "image")
+                    .then(() => {
+                      if (selection === selectionRef.current) { setFile(f); setError(null); }
+                    })
+                    .catch((e) => { if (selection === selectionRef.current) setError(e.message); });
                 }}
               />
               <Button
                 variant="contained"
                 size="small"
                 startIcon={<PlayArrowRoundedIcon />}
-                disabled={!file || !vlmIsLoaded || parsing}
+                disabled={!file || runtime.busy || !vlmInstalled || parsing}
                 onClick={() => void runVlm()}
               >
                 {parsing

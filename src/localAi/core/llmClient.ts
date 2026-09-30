@@ -1,8 +1,6 @@
-import type {
-  ChatMessage,
-  LlmLoadSpec,
-  LlmOnnxLoadSpec,
-} from "./types";
+import type { InputAdjustment } from "./types";
+import type { ModelTarget } from "./modelTarget";
+import type { ChatMessage, LlmLoadSpec, LlmOnnxLoadSpec } from "./types";
 import { nextRpcId } from "../runtime/rpc";
 import {
   runtimeHost,
@@ -13,6 +11,7 @@ import { TASK_PRIORITY } from "../runtime/taskScheduler";
 type LlmSpec = LlmLoadSpec | LlmOnnxLoadSpec;
 
 export interface LlmChatResult {
+  inputAdjustments?: InputAdjustment[];
   text: string;
   elapsedMs: number;
   tokensPerSecond?: number;
@@ -81,15 +80,24 @@ export class LlmClient {
     return this.currentVersion;
   }
 
-  async load(spec: LlmSpec): Promise<LlmLoadInfo> {
+  async load(spec: LlmSpec, target?: ModelTarget): Promise<LlmLoadInfo> {
     this.isLoading = true;
     try {
-      const info = await this.host.request<LlmSpec, LlmLoadInfo>(
+      const info = await this.host.request<
+        LlmSpec & Partial<ModelTarget>,
+        LlmLoadInfo
+      >(
         {
           id: nextRpcId("llm-load"),
           service: "llm",
           method: "load",
-          payload: spec,
+          payload: target
+            ? {
+                ...spec,
+                modelRef: target.modelRef,
+                loadSpec: { ...spec, ...target.loadSpec },
+              }
+            : spec,
           priority: TASK_PRIORITY.LLM,
         },
         {
@@ -112,16 +120,18 @@ export class LlmClient {
     messages: ChatMessage[],
     maxTokens: number,
     onToken: (text: string) => void,
-    _transfer?: Transferable[]
+    _transfer?: Transferable[],
+    target?: ModelTarget,
+    signal?: AbortSignal
   ): Promise<LlmChatResult> {
-    if (this.currentVersion === null) {
+    if (!target && this.currentVersion === null) {
       throw new Error("模型尚未加载");
     }
     const reqId = nextRpcId("llm-chat");
     this.activeChatReqId = reqId;
     const hasImages = messages.some((m) => m.images && m.images.length > 0);
     try {
-      return await this.host.request<
+      const result = await this.host.request<
         { messages: ChatMessage[]; maxTokens: number },
         LlmChatResult
       >(
@@ -129,15 +139,18 @@ export class LlmClient {
           id: reqId,
           service: "llm",
           method: "chat",
-          payload: { messages, maxTokens },
+          payload: { messages, maxTokens, ...target },
           priority: TASK_PRIORITY.LLM,
           options: {
-            sessionVersion: this.currentVersion,
+            sessionVersion: target
+              ? undefined
+              : (this.currentVersion ?? undefined),
             modelId: this.currentModelId ?? undefined,
           },
         },
         {
           timeoutMs: hasImages ? 300_000 : undefined,
+          signal,
           onProgress: (p) => {
             if (p.status) this.onProgress?.(p.status);
           },
@@ -148,6 +161,17 @@ export class LlmClient {
           },
         }
       );
+      if (target) {
+        const info = result as typeof result & {
+          modelId?: string;
+          sessionVersion?: number;
+        };
+        this.currentModelId = info.modelId ?? null;
+        this.currentVersion = info.sessionVersion ?? null;
+        this.isLoaded = this.currentVersion !== null;
+        this.onStateChange?.(this.isLoaded);
+      }
+      return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (
@@ -183,19 +207,22 @@ export class LlmClient {
       .catch(() => undefined);
   }
 
-  dispose(): void {
+  async unload(): Promise<void> {
+    await this.host.request({
+      id: nextRpcId("llm-unload"),
+      service: "llm",
+      method: "unload",
+      payload: {},
+    });
     this.isLoaded = false;
     this.currentVersion = null;
     this.currentModelId = null;
+    this.onStateChange?.(false);
+  }
+
+  dispose(): void {
     this.unsubState?.();
     this.unsubState = null;
-    void this.host
-      .request({
-        id: nextRpcId("llm-dispose"),
-        service: "llm",
-        method: "dispose",
-        payload: {},
-      })
-      .catch(() => undefined);
+    void this.unload().catch(() => undefined);
   }
 }

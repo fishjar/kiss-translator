@@ -1,4 +1,5 @@
 import { sharedModelManager } from "./core/modelManager";
+import { validateInputFile } from "./core/inputFiles";
 import { CATALOG, OCR_GROUPS, getCatalogModel } from "./core/catalog";
 import { OcrClient } from "./core/ocrClient";
 import { LlmClient } from "./core/llmClient";
@@ -229,6 +230,7 @@ export async function recognizeFileImage(
       : undefined;
   const signal =
     optionsOrSignal instanceof AbortSignal ? optionsOrSignal : maybeSignal;
+  await validateInputFile(file, "image", signal);
 
   await sharedModelManager.init();
   const selectedId = options?.groupId || "ppocr-v5-mobile";
@@ -258,7 +260,6 @@ export async function recognizeFileImage(
           device: options?.device || "webgpu",
           dtype: inferOnnxModelDtype(vlmModel.files.map((f) => f.path)),
         };
-    await vlm.load(spec);
     if (signal?.aborted) throw new DOMException("已取消", "AbortError");
 
     const prompt = resolveOcrVlmPrompt(vlmModel.id, "doc");
@@ -267,7 +268,9 @@ export async function recognizeFileImage(
       [{ role: "user", content: prompt, images: [imgBuf] }],
       4096,
       () => {},
-      [imgBuf]
+      [imgBuf],
+      { modelRef: vlmModel.id, loadSpec: spec },
+      signal
     );
 
     const fullText = chatRes.text || "";
@@ -278,6 +281,7 @@ export async function recognizeFileImage(
 
     return {
       text: fullText,
+      inputAdjustments: chatRes.inputAdjustments,
       items: lines.map((line) => ({
         text: line,
         poly: null,
@@ -287,13 +291,7 @@ export async function recognizeFileImage(
   }
 
   // 2. 传统 PaddleOCR 两阶段模型（带定位坐标框 poly）
-  let group = OCR_GROUPS.find((item) => item.id === selectedId);
-  if (!group) {
-    group = OCR_GROUPS.find((item) =>
-      sharedModelManager.get(item.detId)?.state === "installed" &&
-      sharedModelManager.get(item.recId)?.state === "installed"
-    );
-  }
+  const group = OCR_GROUPS.find((item) => item.id === selectedId);
   if (!group) throw new Error("请先在本地 AI 模型中心安装 OCR 检测和识别模型");
   const det = getCatalogModel(group.detId)!;
   const rec = getCatalogModel(group.recId)!;
@@ -306,9 +304,8 @@ export async function recognizeFileImage(
     recName: group.recName,
     device: options?.device || "webgpu",
   };
-  await ocr.load(spec);
   if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-  return ocr.recognize(file, signal);
+  return ocr.recognize(file, signal, { modelRef: group.id, loadSpec: spec });
 }
 
 export { getModelDisplayName } from "./core/catalog";

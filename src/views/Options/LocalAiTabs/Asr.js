@@ -1,3 +1,9 @@
+import { validateInputFile } from "../../../localAi/core/inputFiles";
+import {
+  ModelStatus,
+  UnloadModelButton,
+  useRuntimeService,
+} from "./RuntimeControls";
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -49,8 +55,6 @@ export default function AsrTab() {
   const [selectedId, setSelectedId] = useState(DEFAULT_ASR_ID);
   const [device, setDevice] = useState("wasm");
   const [recs, setRecs] = useState({});
-  const [loadedId, setLoadedId] = useState(null);
-  const [loadedDevice, setLoadedDevice] = useState(null);
   const [clientState, setClientState] = useState("idle");
   const [progressText, setProgressText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -61,6 +65,7 @@ export default function AsrTab() {
   const [language, setLanguage] = useState("zh-hans");
   const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
   const [file, setFile] = useState(null);
+  const selectionRef = useRef(0);
   const [recWav, setRecWav] = useState(null);
   const [playingSource, setPlayingSource] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -98,9 +103,9 @@ export default function AsrTab() {
     client.onStateChange = (ready, reason) => {
       if (!ready) {
         setClientState("idle");
-        setLoadedId(null);
         if (reason) {
-          setError(reason);
+          if (!reason.includes("已卸载") && !reason.includes("闲置超时"))
+            setError(reason);
           addLog(reason, "warn");
         }
       }
@@ -132,10 +137,9 @@ export default function AsrTab() {
     rec?.state === "downloading" ||
     rec?.state === "queued" ||
     rec?.state === "verifying";
-  const isLoaded =
-    clientState === "ready" &&
-    loadedId === selectedId &&
-    loadedDevice === device;
+  const modelTarget = { modelRef: selectedId, loadSpec: { device: device } };
+  const runtime = useRuntimeService("asr", modelTarget);
+  const isLoaded = runtime.loaded;
 
   const loadModel = async () => {
     const m = selectedManifest;
@@ -153,10 +157,8 @@ export default function AsrTab() {
         multilingual: m.multilingual !== false,
         wordTimestamps: m.wordTimestamps === true,
       };
-      await client.load(spec);
+      await client.load(spec, modelTarget);
       setClientState("ready");
-      setLoadedId(m.id);
-      setLoadedDevice(device);
       setProgressText("");
       addLog(`ASR 模型加载就绪 (${device.toUpperCase()})`, "success");
     } catch (e) {
@@ -235,17 +237,22 @@ export default function AsrTab() {
   };
 
   const doTranscribe = async (audio16k) => {
-    if (!isLoaded) {
-      const msg = i18n("local_ai_load_model_first", "当前模型未加载，请先加载模型");
+    if (!modelInstalled) {
+      const msg = i18n(
+        "local_ai_load_model_first",
+        "当前模型未加载，请先加载模型"
+      );
       setError(msg);
       addLog(msg, "warn");
       return;
     }
     setRecognizing(true);
     setError(null);
-    addLog(`开始语音识别 (${(audio16k.length / 16000).toFixed(1)}s 音频, 语言: ${language || "自动检测"})…`);
+    addLog(
+      `开始语音识别 (${(audio16k.length / 16000).toFixed(1)}s 音频, 语言: ${language || "自动检测"})…`
+    );
     try {
-      const r = await client.transcribe(audio16k, language);
+      const r = await client.transcribe(audio16k, language, modelTarget);
       setResult(r);
       setShared("asr", r.segments.map((s) => s.text).join(""));
       addLog(
@@ -264,8 +271,11 @@ export default function AsrTab() {
   const transcribeFile = async (selectedFile) => {
     const targetFile = selectedFile || file;
     if (!targetFile) return;
-    if (!isLoaded) {
-      const msg = i18n("local_ai_load_model_first", "当前模型未加载，请先加载模型");
+    if (!modelInstalled) {
+      const msg = i18n(
+        "local_ai_load_model_first",
+        "当前模型未加载，请先加载模型"
+      );
       setError(msg);
       addLog(msg, "warn");
       return;
@@ -273,13 +283,16 @@ export default function AsrTab() {
     setRecognizing(true);
     setError(null);
     setResult(null);
-    addLog(`解码音频文件: ${targetFile.name} (${Math.round(targetFile.size / 1024)} KB)…`);
+    addLog(
+      `解码音频文件: ${targetFile.name} (${Math.round(targetFile.size / 1024)} KB)…`
+    );
     try {
       const dec = await decodeAudioFile(targetFile);
       addLog(`重采样至 16kHz (原始采样率: ${dec.sampleRate}Hz)，开始转写…`);
       const r = await client.transcribe(
         resampleTo16k(dec.audio, dec.sampleRate),
-        language
+        language,
+        modelTarget
       );
       setResult(r);
       setShared("asr", r.segments.map((s) => s.text).join(""));
@@ -362,31 +375,11 @@ export default function AsrTab() {
             <Typography variant="h6" fontWeight={600}>
               {i18n("local_ai_asr_title", "本地语音识别")}
             </Typography>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <Chip
-                size="small"
-                label={
-                  modelInstalled
-                    ? i18n("local_ai_models_state_installed", "已安装")
-                    : modelBusy
-                      ? i18n("local_ai_models_state_downloading", "下载中")
-                      : i18n("local_ai_models_state_not_installed", "未安装")
-                }
-                color={modelInstalled ? "success" : "default"}
-                variant={modelInstalled ? "filled" : "outlined"}
-              />
-              <Chip
-                size="small"
-                label={
-                  isLoaded
-                    ? `${i18n("local_ai_ready", "已就绪")} (${device.toUpperCase()})`
-                    : clientState === "loading"
-                      ? i18n("local_ai_model_loading", "加载中…")
-                      : i18n("local_ai_not_loaded", "未加载")
-                }
-                color={isLoaded ? "success" : "default"}
-              />
-            </Box>
+            <ModelStatus
+              installed={modelInstalled}
+              downloading={modelBusy}
+              runtime={runtime}
+            />
           </Box>
 
           <Box
@@ -445,6 +438,7 @@ export default function AsrTab() {
               variant="contained"
               size="small"
               disabled={
+                runtime.busy ||
                 !modelInstalled ||
                 clientState === "loading" ||
                 recognizing ||
@@ -459,6 +453,11 @@ export default function AsrTab() {
                   ? i18n("local_ai_model_loaded", "模型已就绪")
                   : i18n("local_ai_load_model", "加载模型")}
             </Button>
+            <UnloadModelButton
+              client={client}
+              runtime={runtime}
+              onError={setError}
+            />
 
             {progressText && (
               <Typography variant="caption" color="text.secondary">
@@ -520,7 +519,7 @@ export default function AsrTab() {
                 variant="contained"
                 color="primary"
                 startIcon={<MicRoundedIcon />}
-                disabled={!isLoaded || recognizing}
+                disabled={runtime.busy || !modelInstalled || recognizing}
                 onClick={startRecording}
               >
                 {i18n("local_ai_asr_record", "开始录音")}
@@ -553,9 +552,12 @@ export default function AsrTab() {
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) {
-                  setFile(f);
-                  setError(null);
-                  setResult(null);
+                  const selection = ++selectionRef.current;
+                  void validateInputFile(f, "audio")
+                    .then(() => {
+                      if (selection === selectionRef.current) { setFile(f); setError(null); setResult(null); }
+                    })
+                    .catch((e) => { if (selection === selectionRef.current) setError(e.message); });
                 }
                 e.target.value = "";
               }}
@@ -618,7 +620,12 @@ export default function AsrTab() {
                   size="small"
                   color="primary"
                   startIcon={<PlayArrowRoundedIcon />}
-                  disabled={!isLoaded || recognizing || isRecording}
+                  disabled={
+                    runtime.busy ||
+                    !modelInstalled ||
+                    recognizing ||
+                    isRecording
+                  }
                   onClick={() => void transcribeFile()}
                 >
                   {recognizing

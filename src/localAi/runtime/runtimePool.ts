@@ -67,13 +67,13 @@ export class RuntimePool {
   async unload(key: string): Promise<boolean> {
     const item = this.entries.get(key);
     if (!item) return false;
+    await item.unloadFn();
     this.entries.delete(key);
-    try {
-      await item.unloadFn();
-    } catch {
-      // 忽略卸载清理异常
-    }
     return true;
+  }
+
+  forget(key: string): void {
+    this.entries.delete(key);
   }
 
   /**

@@ -1,3 +1,9 @@
+import { validateInputFile } from "../../../localAi/core/inputFiles";
+import {
+  ModelStatus,
+  UnloadModelButton,
+  useRuntimeService,
+} from "./RuntimeControls";
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -41,12 +47,12 @@ export default function OcrTab() {
   const [selectedGroupId, setSelectedGroupId] = useState(OCR_GROUPS[0].id);
   const [device, setDevice] = useState("webgpu");
   const [recs, setRecs] = useState({});
-  const [loadedGroupId, setLoadedGroupId] = useState(null);
   const [clientState, setClientState] = useState("idle");
   const [progressText, setProgressText] = useState("");
 
   // 图像与识别结果
   const [file, setFile] = useState(null);
+  const selectionRef = useRef(0);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [recognizing, setRecognizing] = useState(false);
   const [result, setResult] = useState(null);
@@ -81,9 +87,9 @@ export default function OcrTab() {
     client.onStateChange = (ready, reason) => {
       if (!ready) {
         setClientState("idle");
-        setLoadedGroupId(null);
         if (reason) {
-          setError(reason);
+          if (!reason.includes("已卸载") && !reason.includes("闲置超时"))
+            setError(reason);
           addLog(reason, "error");
         }
       }
@@ -152,7 +158,9 @@ export default function OcrTab() {
       r?.state === "queued" ||
       r?.state === "verifying"
   );
-  const paddleLoaded = clientState === "ready" && loadedGroupId === group.id;
+  const modelTarget = { modelRef: group.id, loadSpec: { device: device } };
+  const runtime = useRuntimeService("ocr", modelTarget);
+  const paddleLoaded = runtime.loaded;
 
   const loadGroup = async () => {
     const detManifest = getCatalogModel(group.detId);
@@ -167,24 +175,31 @@ export default function OcrTab() {
     setClientState("loading");
     const loadMsg = i18n("local_ai_ocr_engine_loading", "启动 PaddleOCR 引擎…");
     setProgressText(loadMsg);
-    addLog(`准备加载 OCR 模型组: ${group.detName} + ${group.recName} (${device})…`);
+    addLog(
+      `准备加载 OCR 模型组: ${group.detName} + ${group.recName} (${device})…`
+    );
     try {
-      await client.load({
-        detModelId: detManifest.id,
-        recModelId: recManifest.id,
-        source: detManifest.source,
-        detDir: detManifest.dir,
-        detFile: detManifest.files[0]?.path,
-        detName: group.detName,
-        recDir: recManifest.dir,
-        recFile: recManifest.files[0]?.path,
-        recName: group.recName,
-        device,
-      });
+      await client.load(
+        {
+          detModelId: detManifest.id,
+          recModelId: recManifest.id,
+          source: detManifest.source,
+          detDir: detManifest.dir,
+          detFile: detManifest.files[0]?.path,
+          detName: group.detName,
+          recDir: recManifest.dir,
+          recFile: recManifest.files[0]?.path,
+          recName: group.recName,
+          device,
+        },
+        modelTarget
+      );
       setClientState("ready");
-      setLoadedGroupId(group.id);
       setProgressText("");
-      addLog(`OCR 引擎与模型加载就绪 (${group.detName} + ${group.recName})`, "success");
+      addLog(
+        `OCR 引擎与模型加载就绪 (${group.detName} + ${group.recName})`,
+        "success"
+      );
     } catch (e) {
       setClientState("idle");
       const err = e instanceof Error ? e.message : String(e);
@@ -194,17 +209,22 @@ export default function OcrTab() {
   };
 
   const runPaddleOcr = async () => {
-    if (!file || !paddleLoaded) return;
+    if (!file || !bothInstalled) return;
     setRecognizing(true);
     setError(null);
     setResult(null);
-    addLog(`开始 OCR 文字识别 (图片: ${file.name}, 大小: ${Math.round(file.size / 1024)}KB)…`);
+    addLog(
+      `开始 OCR 文字识别 (图片: ${file.name}, 大小: ${Math.round(file.size / 1024)}KB)…`
+    );
     try {
-      const bmp = await createImageBitmap(file);
-      const res = await client.recognize(bmp);
+      await validateInputFile(file, "image");
+      const res = await client.recognize(file, undefined, modelTarget);
       setResult(res);
       setShared("ocr", res.items.map((i) => i.text).join("\n"));
-      addLog(`OCR 识别完成: 检测到 ${res.items.length} 处文字，耗时 ${res.elapsedMs}ms (Det: ${fmtMs(res.detMs)}, Rec: ${fmtMs(res.recMs)})`, "success");
+      addLog(
+        `OCR 识别完成: 检测到 ${res.items.length} 处文字，耗时 ${res.elapsedMs}ms (Det: ${fmtMs(res.detMs)}, Rec: ${fmtMs(res.recMs)})`,
+        "success"
+      );
     } catch (e) {
       const err = e instanceof Error ? e.message : String(e);
       setError(err);
@@ -227,9 +247,24 @@ export default function OcrTab() {
       <Card variant="outlined">
         <CardContent sx={{ pb: "16px !important" }}>
           <Box sx={{ mb: 2 }}>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
-              {i18n("local_ai_ocr_title", "本地文字识别 (PaddleOCR)")}
-            </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1,
+                width: "100%",
+              }}
+            >
+              <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
+                {i18n("local_ai_ocr_title", "本地文字识别 (PaddleOCR)")}
+              </Typography>
+              <ModelStatus
+                installed={bothInstalled}
+                downloading={anyBusy}
+                runtime={runtime}
+              />
+            </Box>
             <Typography variant="body2" color="text.secondary">
               {i18n(
                 "local_ai_ocr_desc",
@@ -289,6 +324,7 @@ export default function OcrTab() {
               variant="contained"
               size="small"
               disabled={
+                runtime.busy ||
                 !bothInstalled ||
                 clientState === "loading" ||
                 recognizing ||
@@ -302,17 +338,10 @@ export default function OcrTab() {
                   ? i18n("local_ai_model_loaded", "模型已就绪")
                   : i18n("local_ai_load_model", "加载模型")}
             </Button>
-
-            <Chip
-              size="small"
-              label={
-                bothInstalled
-                  ? i18n("local_ai_models_state_installed", "已安装")
-                  : anyBusy
-                    ? i18n("local_ai_models_state_downloading", "下载中")
-                    : i18n("local_ai_models_state_not_installed", "未安装")
-              }
-              color={bothInstalled ? "success" : "default"}
+            <UnloadModelButton
+              client={client}
+              runtime={runtime}
+              onError={setError}
             />
 
             {progressText && (
@@ -358,14 +387,21 @@ export default function OcrTab() {
                 style={{ display: "none" }}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) setFile(f);
+                  const selection = ++selectionRef.current;
+                  if (f) void validateInputFile(f, "image")
+                    .then(() => {
+                      if (selection === selectionRef.current) { setFile(f); setError(null); }
+                    })
+                    .catch((e) => { if (selection === selectionRef.current) setError(e.message); });
                 }}
               />
               <Button
                 variant="contained"
                 size="small"
                 startIcon={<PlayArrowRoundedIcon />}
-                disabled={!file || !paddleLoaded || recognizing}
+                disabled={
+                  !file || runtime.busy || !bothInstalled || recognizing
+                }
                 onClick={() => void runPaddleOcr()}
               >
                 {recognizing

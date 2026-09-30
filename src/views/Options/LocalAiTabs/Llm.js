@@ -1,10 +1,14 @@
+import {
+  ModelStatus,
+  UnloadModelButton,
+  useRuntimeService,
+} from "./RuntimeControls";
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import Select from "@mui/material/Select";
@@ -56,8 +60,6 @@ export default function LlmTab() {
   const [selectedId, setSelectedId] = useState(DEFAULT_LLM_ID);
   const [device, setDevice] = useState("webgpu");
   const [recs, setRecs] = useState({});
-  const [loadedId, setLoadedId] = useState(null);
-  const [actualBackend, setActualBackend] = useState(null);
   const [clientState, setClientState] = useState("idle");
   const [progressText, setProgressText] = useState("");
   const [messages, setMessages] = useState([]);
@@ -104,9 +106,9 @@ export default function LlmTab() {
     client.onStateChange = (ready, reason) => {
       if (!ready) {
         setClientState("idle");
-        setLoadedId(null);
         if (reason) {
-          setError(reason);
+          if (!reason.includes("已卸载") && !reason.includes("闲置超时"))
+            setError(reason);
           addLog(reason, "error");
         }
       }
@@ -127,7 +129,9 @@ export default function LlmTab() {
     rec?.state === "downloading" ||
     rec?.state === "queued" ||
     rec?.state === "verifying";
-  const isLoaded = clientState === "ready" && loadedId === selectedId;
+  const modelTarget = { modelRef: selectedId, loadSpec: { device: device } };
+  const runtime = useRuntimeService("llm", modelTarget);
+  const isLoaded = runtime.loaded;
 
   const loadModel = async () => {
     const m = selectedManifest;
@@ -173,12 +177,13 @@ export default function LlmTab() {
                 ...(chunks > 0 ? { externalDataChunks: chunks } : {}),
               };
             })();
-      const info = await client.load(spec);
-      setActualBackend(info.backend);
+      const info = await client.load(spec, modelTarget);
       setClientState("ready");
-      setLoadedId(m.id);
       setProgressText("");
-      addLog(`LLM 模型加载就绪: ${modelName} (${backendLabel(info.backend, i18n)})`, "success");
+      addLog(
+        `LLM 模型加载就绪: ${modelName} (${backendLabel(info.backend, i18n)})`,
+        "success"
+      );
     } catch (e) {
       setClientState("idle");
       const err = e instanceof Error ? e.message : String(e);
@@ -189,7 +194,7 @@ export default function LlmTab() {
 
   const send = async () => {
     const text = input.trim();
-    if (!text || busy || !isLoaded) return;
+    if (!text || busy || !modelInstalled) return;
     const next = [
       ...messages,
       { role: "user", content: text },
@@ -201,21 +206,32 @@ export default function LlmTab() {
     setError(null);
     setStats(null);
     lastAssistantRef.current = "";
-    addLog(`发送对话请求: "${text.slice(0, 30)}${text.length > 30 ? "…" : ""}"…`);
+    addLog(
+      `发送对话请求: "${text.slice(0, 30)}${text.length > 30 ? "…" : ""}"…`
+    );
     try {
-      const r = await client.chat(next, MAX_TOKENS, (tok) => {
-        lastAssistantRef.current += tok;
-        setMessages((prev) => {
-          const arr = [...prev];
-          const last = arr[arr.length - 1];
-          if (last)
-            arr[arr.length - 1] = { ...last, content: last.content + tok };
-          return arr;
-        });
-      });
+      const r = await client.chat(
+        next,
+        MAX_TOKENS,
+        (tok) => {
+          lastAssistantRef.current += tok;
+          setMessages((prev) => {
+            const arr = [...prev];
+            const last = arr[arr.length - 1];
+            if (last)
+              arr[arr.length - 1] = { ...last, content: last.content + tok };
+            return arr;
+          });
+        },
+        undefined,
+        modelTarget
+      );
       setStats(r);
       if (lastAssistantRef.current) setShared("llm", lastAssistantRef.current);
-      addLog(`对话生成完成 (${r.outputTokens} tokens, ${r.tokensPerSecond.toFixed(1)} tok/s)`, "success");
+      addLog(
+        `对话生成完成 (${r.outputTokens} tokens, ${r.tokensPerSecond.toFixed(1)} tok/s)`,
+        "success"
+      );
     } catch (e) {
       const err = e instanceof Error ? e.message : String(e);
       setError(err);
@@ -227,7 +243,7 @@ export default function LlmTab() {
 
   const translate = async () => {
     const text = transInput.trim();
-    if (!text || busy || !isLoaded) return;
+    if (!text || busy || !modelInstalled) return;
     const prompt = buildTranslatePrompt(promptTemplate, targetLang, text);
     const reqMessages = [{ role: "user", content: prompt }];
     setTranslating(true);
@@ -237,13 +253,22 @@ export default function LlmTab() {
     lastTransRef.current = "";
     addLog(`发送翻译请求 (目标语言: ${targetLang})…`);
     try {
-      const r = await client.chat(reqMessages, MAX_TOKENS, (tok) => {
-        lastTransRef.current += tok;
-        setTransOutput((prev) => prev + tok);
-      });
+      const r = await client.chat(
+        reqMessages,
+        MAX_TOKENS,
+        (tok) => {
+          lastTransRef.current += tok;
+          setTransOutput((prev) => prev + tok);
+        },
+        undefined,
+        modelTarget
+      );
       setTransStats(r);
       if (lastTransRef.current) setShared("llm", lastTransRef.current);
-      addLog(`翻译完成 (${r.outputTokens} tokens, ${r.tokensPerSecond.toFixed(1)} tok/s)`, "success");
+      addLog(
+        `翻译完成 (${r.outputTokens} tokens, ${r.tokensPerSecond.toFixed(1)} tok/s)`,
+        "success"
+      );
     } catch (e) {
       const err = e instanceof Error ? e.message : String(e);
       setError(err);
@@ -275,31 +300,11 @@ export default function LlmTab() {
             <Typography variant="h6" fontWeight={600}>
               {i18n("local_ai_llm_title", "本地大语言模型")}
             </Typography>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <Chip
-                size="small"
-                label={
-                  modelInstalled
-                    ? i18n("local_ai_models_state_installed", "已安装")
-                    : modelBusy
-                      ? i18n("local_ai_models_state_downloading", "下载中")
-                      : i18n("local_ai_models_state_not_installed", "未安装")
-                }
-                color={modelInstalled ? "success" : "default"}
-                variant={modelInstalled ? "filled" : "outlined"}
-              />
-              <Chip
-                size="small"
-                label={
-                  isLoaded
-                    ? `${i18n("local_ai_ready", "已就绪")} (${actualBackend ? backendLabel(actualBackend) : device.toUpperCase()})`
-                    : clientState === "loading"
-                      ? i18n("local_ai_model_loading", "加载中…")
-                      : i18n("local_ai_not_loaded", "未加载")
-                }
-                color={isLoaded ? "success" : "default"}
-              />
-            </Box>
+            <ModelStatus
+              installed={modelInstalled}
+              downloading={modelBusy}
+              runtime={runtime}
+            />
           </Box>
 
           <Box
@@ -352,7 +357,11 @@ export default function LlmTab() {
               variant="contained"
               size="small"
               disabled={
-                !modelInstalled || clientState === "loading" || busy || isLoaded
+                runtime.busy ||
+                !modelInstalled ||
+                clientState === "loading" ||
+                busy ||
+                isLoaded
               }
               onClick={() => void loadModel()}
             >
@@ -362,6 +371,17 @@ export default function LlmTab() {
                   ? i18n("local_ai_model_loaded", "模型已就绪")
                   : i18n("local_ai_load_model", "加载模型")}
             </Button>
+            <UnloadModelButton
+              client={client}
+              runtime={runtime}
+              onError={setError}
+            />
+            <Typography variant="caption" color="text.secondary">
+              {i18n(
+                "local_ai_llm_vlm_shared",
+                "LLM 与 VLM 共用模型，加载或卸载会影响另一功能。"
+              )}
+            </Typography>
 
             {progressText && (
               <Typography variant="caption" color="text.secondary">
@@ -444,7 +464,9 @@ export default function LlmTab() {
                 variant="contained"
                 size="small"
                 startIcon={<TranslateRoundedIcon />}
-                disabled={!isLoaded || busy || !transInput.trim()}
+                disabled={
+                  runtime.busy || !modelInstalled || busy || !transInput.trim()
+                }
                 onClick={() => void translate()}
               >
                 {translating
@@ -708,7 +730,7 @@ export default function LlmTab() {
                   void send();
                 }
               }}
-              disabled={!isLoaded || busy}
+              disabled={runtime.busy || !modelInstalled || busy}
               inputProps={{
                 className: "kt-resizable-textarea",
                 style: { resize: "vertical" },
@@ -731,7 +753,9 @@ export default function LlmTab() {
               <Button
                 variant="contained"
                 startIcon={<SendRoundedIcon />}
-                disabled={!isLoaded || busy || !input.trim()}
+                disabled={
+                  runtime.busy || !modelInstalled || busy || !input.trim()
+                }
                 onClick={() => void send()}
               >
                 {i18n("local_ai_llm_send", "发送")}

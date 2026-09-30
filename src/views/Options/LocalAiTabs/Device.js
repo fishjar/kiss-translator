@@ -20,6 +20,15 @@ import { CATALOG } from "../../../localAi/core/catalog";
 import { formatBytes } from "../../../localAi/core/progress";
 import { useI18n } from "../../../hooks/I18n";
 
+const backendGroups = [
+  { id: "jev", tasks: ["decision"] },
+  { id: "asr", tasks: ["asr"] },
+  { id: "ocr", tasks: ["ocr-detection", "ocr-recognition"] },
+  { id: "vlm", tasks: ["ocr-vlm"] },
+  { id: "llm", tasks: ["llm"] },
+  { id: "tts", tasks: ["tts"] },
+];
+
 function FeatureRow({ ok, label, detail, badgeText }) {
   const i18n = useI18n();
   const isStatus = badgeText !== "CPU" && badgeText !== "ENV";
@@ -272,50 +281,59 @@ export default function DeviceTab() {
             <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
               {i18n("local_ai_device_rec_backend", "推荐后端")}
             </Typography>
-            <Grid container spacing={1.5}>
-              {CATALOG.map((m) => {
-                const runnable = isModelRunnable(profile, m);
-                const backend = runnable
-                  ? pickBackend(profile, m)
-                  : i18n("local_ai_device_no_backend", "无可用后端");
-                return (
-                  <Grid item xs={12} sm={6} key={m.id}>
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 1.5,
-                        border: "1px solid",
-                        borderColor: "divider",
-                        bgcolor: "background.paper",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 1,
-                      }}
-                    >
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="body2" fontWeight={600} noWrap>
-                          {m.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          → {backend}
-                        </Typography>
-                      </Box>
-                      <Chip
-                        size="small"
-                        label={
-                          runnable
-                            ? i18n("local_ai_device_runnable", "可运行")
-                            : i18n("local_ai_device_not_runnable", "不可运行")
-                        }
-                        color={runnable ? "success" : "default"}
-                        variant={runnable ? "filled" : "outlined"}
-                      />
-                    </Box>
+            <Stack spacing={2.5}>
+              {backendGroups.map(({ id, tasks }) => (
+                <Box key={id}>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5 }}>
+                    {i18n(`local_ai_tab_${id}`, id.toUpperCase())}
+                  </Typography>
+                  <Grid container spacing={1.5}>
+                    {CATALOG.filter((m) => tasks.includes(m.task)).map((m) => {
+                      const runnable = isModelRunnable(profile, m);
+                      const backend = runnable
+                        ? pickBackend(profile, m)
+                        : i18n("local_ai_device_no_backend", "无可用后端");
+                      return (
+                        <Grid item xs={12} sm={6} key={m.id}>
+                          <Box
+                            sx={{
+                              p: 1.5,
+                              borderRadius: 1.5,
+                              border: "1px solid",
+                              borderColor: "divider",
+                              bgcolor: "background.paper",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: 1,
+                            }}
+                          >
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography variant="body2" fontWeight={600} noWrap>
+                                {m.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                → {backend}
+                              </Typography>
+                            </Box>
+                            <Chip
+                              size="small"
+                              label={
+                                runnable
+                                  ? i18n("local_ai_device_runnable", "可运行")
+                                  : i18n("local_ai_device_not_runnable", "不可运行")
+                              }
+                              color={runnable ? "success" : "default"}
+                              variant={runnable ? "filled" : "outlined"}
+                            />
+                          </Box>
                   </Grid>
                 );
               })}
-            </Grid>
+                  </Grid>
+                </Box>
+              ))}
+            </Stack>
           </CardContent>
         </Card>
       )}

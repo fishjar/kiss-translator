@@ -1,3 +1,5 @@
+import type { InputAdjustment } from "./types";
+import type { ModelTarget } from "./modelTarget";
 import type { TtsLoadSpec } from "./types";
 import { nextRpcId } from "../runtime/rpc";
 import {
@@ -15,6 +17,7 @@ export interface TtsProgress {
 }
 
 export interface SynthesizeResult {
+  inputAdjustments?: InputAdjustment[];
   audio: Float32Array;
   elapsedMs: number;
   sampleRate: number;
@@ -62,16 +65,22 @@ export class TtsClient {
     return this.currentVersion;
   }
 
-  async load(spec: TtsLoadSpec): Promise<void> {
+  async load(spec: TtsLoadSpec, target?: ModelTarget): Promise<void> {
     const res = await this.host.request<
-      TtsLoadSpec,
+      TtsLoadSpec & Partial<ModelTarget>,
       { ok: boolean; modelId?: string; sessionVersion?: number }
     >(
       {
         id: nextRpcId("tts-load"),
         service: "tts",
         method: "load",
-        payload: spec,
+        payload: target
+          ? {
+              ...spec,
+              modelRef: target.modelRef,
+              loadSpec: { ...spec, ...target.loadSpec },
+            }
+          : spec,
         priority: TASK_PRIORITY.TTS,
       },
       {
@@ -95,26 +104,41 @@ export class TtsClient {
   async synthesize(
     text: string,
     voice: string,
-    speed: number
+    speed: number,
+    target?: ModelTarget
   ): Promise<SynthesizeResult> {
-    if (this.currentVersion === null) throw new Error("模型尚未加载");
+    if (!target && this.currentVersion === null)
+      throw new Error("模型尚未加载");
     const reqId = nextRpcId("tts-synth");
     this.activeSynthReqId = reqId;
     try {
-      return await this.host.request<
+      const result = await this.host.request<
         { text: string; voice: string; speed: number },
         SynthesizeResult
       >({
         id: reqId,
         service: "tts",
         method: "synthesize",
-        payload: { text, voice, speed },
+        payload: { text, voice, speed, ...target },
         priority: TASK_PRIORITY.TTS,
         options: {
-          sessionVersion: this.currentVersion,
+          sessionVersion: target
+            ? undefined
+            : (this.currentVersion ?? undefined),
           modelId: this.currentModelId ?? undefined,
         },
-      });
+      }, { onProgress: (p) => this.onProgress?.(p) });
+      if (target) {
+        const info = result as typeof result & {
+          modelId?: string;
+          sessionVersion?: number;
+        };
+        this.currentModelId = info.modelId ?? null;
+        this.currentVersion = info.sessionVersion ?? null;
+        this.isLoaded = this.currentVersion !== null;
+        this.onStateChange?.(this.isLoaded);
+      }
+      return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (
@@ -143,19 +167,22 @@ export class TtsClient {
     }
   }
 
-  dispose(): void {
+  async unload(): Promise<void> {
+    await this.host.request({
+      id: nextRpcId("tts-unload"),
+      service: "tts",
+      method: "unload",
+      payload: {},
+    });
     this.isLoaded = false;
     this.currentVersion = null;
     this.currentModelId = null;
+    this.onStateChange?.(false);
+  }
+
+  dispose(): void {
     this.unsubState?.();
     this.unsubState = null;
-    void this.host
-      .request({
-        id: nextRpcId("tts-dispose"),
-        service: "tts",
-        method: "dispose",
-        payload: {},
-      })
-      .catch(() => undefined);
+    void this.unload().catch(() => undefined);
   }
 }

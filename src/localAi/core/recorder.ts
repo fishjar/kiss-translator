@@ -1,3 +1,5 @@
+import { validateInputFile } from "./inputFiles";
+
 export interface RecordingResult {
   audio: Float32Array;
   sampleRate: number;
@@ -12,6 +14,7 @@ export interface DecodedAudio {
 
 // 解码本地音频文件为单声道浮点波形（原始采样率，交给 resampleTo16k 处理）。
 export async function decodeAudioFile(file: File): Promise<DecodedAudio> {
+  await validateInputFile(file, "audio");
   const arrayBuffer = await file.arrayBuffer();
   const ctx = new AudioContext();
   try {

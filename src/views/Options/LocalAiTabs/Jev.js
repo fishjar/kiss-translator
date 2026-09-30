@@ -1,3 +1,8 @@
+import {
+  ModelStatus,
+  UnloadModelButton,
+  useRuntimeService,
+} from "./RuntimeControls";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -18,7 +23,6 @@ import Tooltip from "@mui/material/Tooltip";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import { CATALOG, getModelDisplayName } from "../../../localAi/core/catalog";
 import { JEV_PRESETS } from "../../../localAi/core/jev/presets";
 import { detectScriptAndLanguage } from "../../../localAi/core/jev/lang";
@@ -41,8 +45,6 @@ export default function JevTab() {
     DECISION_MODELS[0]?.id ?? "laya-multilingual-fp16"
   );
   const [backend, setBackend] = useState("webgpu");
-  const [loadedKey, setLoadedKey] = useState(null);
-  const [actualBackend, setActualBackend] = useState(null);
   const [loadingModel, setLoadingModel] = useState(false);
   const [loadStatus, setLoadStatus] = useState("");
 
@@ -73,9 +75,9 @@ export default function JevTab() {
     if (clientRef.current) {
       clientRef.current.onStateChange = (ready, reason) => {
         if (!ready) {
-          setLoadedKey(null);
           if (reason) {
-            setError(reason);
+            if (!reason.includes("已卸载") && !reason.includes("闲置超时"))
+              setError(reason);
             addLog(reason, "warn");
           }
         }
@@ -97,8 +99,12 @@ export default function JevTab() {
 
   const currentRec = records[currentManifest.id];
   const isInstalled = currentRec?.state === "installed";
-  const currentKey = `${currentManifest.id}:${backend}`;
-  const isReady = loadedKey === currentKey;
+  const modelTarget = {
+    modelRef: currentManifest.id,
+    loadSpec: { device: backend },
+  };
+  const runtime = useRuntimeService("decision", modelTarget);
+  const isReady = runtime.loaded;
 
   const parsedPreview = useMemo(() => {
     try {
@@ -133,7 +139,9 @@ export default function JevTab() {
     setError(null);
     setLoadingModel(true);
     setLoadStatus(i18n("local_ai_model_loading", "模型加载中…"));
-    addLog(`开始加载 JEV 模型: ${currentManifest.name} (${backend.toUpperCase()})`);
+    addLog(
+      `开始加载 JEV 模型: ${currentManifest.name} (${backend.toUpperCase()})`
+    );
     const client = clientRef.current;
     client.onProgress = (st) => {
       setLoadStatus(st);
@@ -154,39 +162,28 @@ export default function JevTab() {
         ?.path ?? "rl_agent_config.json";
 
     try {
-      const info = await client.load({
-        modelId: currentManifest.id,
-        source: currentManifest.source,
-        dir: currentManifest.dir,
-        modelFile,
-        tokenizerFile,
-        tokenizerConfigFile,
-        configFile,
-        device: backend,
-      });
-      setLoadedKey(currentKey);
-      setActualBackend(info.backend);
-      setLoadStatus(
-        `${i18n("local_ai_ready", "已就绪")} (${info.backend.toUpperCase()})`
+      const info = await client.load(
+        {
+          modelId: currentManifest.id,
+          source: currentManifest.source,
+          dir: currentManifest.dir,
+          modelFile,
+          tokenizerFile,
+          tokenizerConfigFile,
+          configFile,
+          device: backend,
+        },
+        modelTarget
       );
+      setLoadStatus("");
       addLog(`JEV 模型就绪 (${info.backend.toUpperCase()})`, "success");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setLoadedKey(null);
-      setActualBackend(null);
       setError(msg);
       addLog(`JEV 模型加载失败: ${msg}`, "error");
     } finally {
       setLoadingModel(false);
     }
-  };
-
-  const handleUnloadModel = async () => {
-    await clientRef.current?.unload();
-    setLoadedKey(null);
-    setActualBackend(null);
-    setLoadStatus("");
-    addLog("JEV 模型已卸载");
   };
 
   const handlePredict = async () => {
@@ -202,7 +199,8 @@ export default function JevTab() {
     try {
       const res = await clientRef.current.predict(
         parsedPreview.state,
-        parsedPreview.questions
+        parsedPreview.questions,
+        modelTarget
       );
       setResult(res);
       addLog(
@@ -266,26 +264,11 @@ export default function JevTab() {
             <Typography variant="h6" fontWeight={600}>
               {i18n("local_ai_jev_title", "JEV 决策引擎 (Laya System-1)")}
             </Typography>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <Chip
-                size="small"
-                label={
-                  isInstalled
-                    ? i18n("local_ai_models_state_installed", "已安装")
-                    : i18n("local_ai_models_state_not_installed", "未安装")
-                }
-                color={isInstalled ? "success" : "default"}
-                variant={isInstalled ? "filled" : "outlined"}
-              />
-              {isReady && actualBackend && (
-                <Chip
-                  size="small"
-                  icon={<CheckCircleRoundedIcon />}
-                  label={`${i18n("local_ai_loaded", "已加载")} · ${actualBackend.toUpperCase()}`}
-                  color="success"
-                />
-              )}
-            </Box>
+            <ModelStatus
+              installed={isInstalled}
+              downloading={false}
+              runtime={runtime}
+            />
           </Box>
 
           <Box
@@ -355,7 +338,7 @@ export default function JevTab() {
                   variant="contained"
                   size="small"
                   onClick={() => void handleLoadModel()}
-                  disabled={loadingModel || running || isReady}
+                  disabled={runtime.busy || loadingModel || running || isReady}
                 >
                   {loadingModel
                     ? i18n("local_ai_model_loading", "加载中…")
@@ -363,18 +346,14 @@ export default function JevTab() {
                       ? i18n("local_ai_model_loaded", "模型已就绪")
                       : i18n("local_ai_load_model", "加载模型")}
                 </Button>
-                {isReady && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => void handleUnloadModel()}
-                    disabled={running}
-                  >
-                    {i18n("local_ai_unload_model", "卸载模型")}
-                  </Button>
-                )}
               </>
             )}
+
+            <UnloadModelButton
+              client={clientRef.current}
+              runtime={runtime}
+              onError={setError}
+            />
 
             {loadStatus && (
               <Typography variant="caption" color="text.secondary">
@@ -440,7 +419,7 @@ export default function JevTab() {
 
               <Tooltip
                 title={
-                  !isReady
+                  !isInstalled
                     ? i18n(
                         "local_ai_jev_load_model_first",
                         "请先加载模型后再执行推理"
@@ -453,7 +432,12 @@ export default function JevTab() {
                     variant="contained"
                     startIcon={<PlayArrowRoundedIcon />}
                     onClick={() => void handlePredict()}
-                    disabled={!isReady || running || !parsedPreview.ok}
+                    disabled={
+                      runtime.busy ||
+                      !isInstalled ||
+                      running ||
+                      !parsedPreview.ok
+                    }
                   >
                     {running
                       ? i18n("local_ai_running", "正在运行…")

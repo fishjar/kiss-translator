@@ -2,7 +2,14 @@ import { PaddleOCR, type OcrResult } from "@paddleocr/paddleocr-js";
 import { LocalModelManager } from "../core/modelManager";
 import { CATALOG, OCR_GROUPS, getCatalogModel } from "../core/catalog";
 import { readFile } from "../core/opfs";
-import { loadSettings } from "../core/settings";
+import {
+  loadSettings,
+  normalizeSettings,
+  saveSettings,
+} from "../core/settings";
+import { resolveModelTarget } from "../core/modelTarget";
+import { DEFAULT_SETTINGS, INPUT_LIMIT_KEYS, type InputAdjustment, type Settings } from "../core/types";
+import { checkInputCancelled, cropAudio, cropTtsText, prepareImage } from "../core/inputLimits";
 import type {
   ASRSegment,
   AsrLoadSpec,
@@ -33,7 +40,11 @@ import {
   type ServiceSessionState,
 } from "./rpc";
 import { RuntimePool } from "./runtimePool";
-import { TASK_PRIORITY, TaskScheduler } from "./taskScheduler";
+import {
+  TASK_PRIORITY,
+  TaskScheduler,
+  type ScheduledTaskOptions,
+} from "./taskScheduler";
 
 type OcrInstance = Awaited<ReturnType<typeof PaddleOCR.create>>;
 
@@ -67,6 +78,18 @@ export class RuntimeManager {
   readonly modelManager: LocalModelManager;
   readonly pool: RuntimePool;
   readonly scheduler = new TaskScheduler(1);
+  private settings: Settings = { ...DEFAULT_SETTINGS };
+  private settingsReady: Promise<void>;
+  private settingsUpdates: Promise<unknown> = Promise.resolve();
+  private pendingServices = new Map<AiRpcService, number>();
+  private idleTimers = new Map<AiRpcService, ReturnType<typeof setTimeout>>();
+  private loadedSpecs = new Map<AiRpcService, string>();
+  private execution = new Map<
+    string,
+    { signal: AbortSignal; onCancel?: ScheduledTaskOptions["onCancel"] }
+  >();
+  private lastService: AiRpcService | undefined;
+  private requestIds = new Set<string>();
 
   private callbacks: RuntimeEventCallbacks;
   private factories: WorkerFactories;
@@ -157,9 +180,10 @@ export class RuntimeManager {
     this.modelManager.subscribe((id, rec) => {
       this.callbacks.onModelBroadcast?.(id, rec);
     });
-    void loadSettings()
-      .then((s) => this.modelManager.setMirror(s.mirror))
-      .catch(() => undefined);
+    this.settingsReady = loadSettings().then((s) => {
+      this.settings = s;
+      this.modelManager.setMirror(s.mirror);
+    });
   }
 
   setCallbacks(callbacks: RuntimeEventCallbacks): void {
@@ -170,14 +194,363 @@ export class RuntimeManager {
   }
 
   getSessionState(service: AiRpcService): ServiceSessionState {
-    return (
-      this.sessions.get(service) ?? {
+    return {
+      ...(this.sessions.get(service) ?? {
         service,
         modelId: null,
         sessionVersion: 0,
         state: "unloaded",
+      }),
+      busy:
+        (this.pendingServices.get(service) ?? 0) > 0 ||
+        this.sessions.get(service)?.state === "unloading",
+    };
+  }
+
+  private broadcastService(service: AiRpcService): void {
+    this.callbacks.onServiceState?.(this.getSessionState(service));
+  }
+
+  private clearIdleTimer(service: AiRpcService): void {
+    const timer = this.idleTimers.get(service);
+    if (timer) clearTimeout(timer);
+    this.idleTimers.delete(service);
+  }
+
+  private armIdleTimer(service: AiRpcService): void {
+    this.clearIdleTimer(service);
+    const state = this.getSessionState(service);
+    if (
+      !this.settings.autoUnloadMinutes ||
+      !state.modelId ||
+      state.busy ||
+      state.state === "unloaded"
+    )
+      return;
+    const version = state.sessionVersion;
+    const expiresAt = Date.now() + this.settings.autoUnloadMinutes * 60_000;
+    const check = () => {
+      if (this.idleTimers.get(service) !== timer) return;
+      if (Date.now() < expiresAt) {
+        timer = setTimeout(
+          check,
+          Math.min(expiresAt - Date.now(), 2_147_483_647)
+        );
+        this.idleTimers.set(service, timer);
+        (timer as any).unref?.();
+        return;
+      }
+      void this.scheduler
+        .schedule(
+          async () => {
+            const current = this.getSessionState(service);
+            if (
+              this.idleTimers.get(service) === timer &&
+              !current.busy &&
+              current.sessionVersion === version
+            ) {
+              await this.releaseService(service, "模型闲置超时，已自动卸载");
+            }
+          },
+          { priority: TASK_PRIORITY.PRELOAD }
+        )
+        .catch(() => undefined);
+    };
+    let timer = setTimeout(
+      check,
+      Math.min(this.settings.autoUnloadMinutes * 60_000, 2_147_483_647)
+    );
+    this.idleTimers.set(service, timer);
+    (timer as any).unref?.();
+  }
+
+  private async releaseService(
+    service: AiRpcService,
+    reason: string
+  ): Promise<void> {
+    this.clearIdleTimer(service);
+    const previous = this.sessions.get(service);
+    if (previous?.modelId) {
+      this.sessions.set(service, { ...previous, state: "unloading" });
+      this.broadcastService(service);
+    }
+    try {
+      // Await actual resource cleanup before a different service may create an instance.
+      if (service === "ocr") await this.disposeOcr();
+      else if (service === "llm") this.disposeLlm();
+      else if (service === "asr") this.disposeAsr();
+      else if (service === "tts") this.disposeTts();
+      else if (service === "decision") this.disposeJev();
+      this.pool.forget(service);
+      this.loadedSpecs.delete(service);
+      this.invalidateSession(service, reason);
+    } catch (error) {
+      if (previous) this.sessions.set(service, previous);
+      this.broadcastService(service);
+      throw error;
+    }
+  }
+
+  private async prepareService(service: AiRpcService): Promise<void> {
+    if (!this.settings.exclusiveResourceMode || service === "decision") return;
+    for (const other of ["asr", "ocr", "tts", "llm"] as const) {
+      const instance = {
+        asr: this.asrWorker,
+        ocr: this.ocrInstance,
+        tts: this.ttsWorker,
+        llm: this.llmWorker,
+      }[other];
+      if (
+        other !== service &&
+        (instance || this.getSessionState(other).modelId)
+      ) {
+        await this.releaseService(other, "因独享资源模式已卸载");
+      }
+    }
+  }
+
+  private async scheduleTask<T>(
+    req: AiRpcRequest,
+    fn: (signal: AbortSignal) => Promise<T>,
+    options: ScheduledTaskOptions = {}
+  ) {
+    const context = this.execution.get(req.id);
+    if (!context) return this.scheduler.schedule(fn, options);
+    if (context.signal.aborted) throw new Error(String(context.signal.reason));
+    context.onCancel = options.onCancel;
+    const started = performance.now();
+    const value = await fn(context.signal);
+    if (context.signal.aborted) throw new Error(String(context.signal.reason));
+    return { value, queueMs: 0, inferenceMs: performance.now() - started };
+  }
+
+  private hasServiceInstance(service: AiRpcService): boolean {
+    const instances: Partial<Record<AiRpcService, unknown>> = {
+      decision: this.jevWorker,
+      asr: this.asrWorker,
+      ocr: this.ocrInstance,
+      llm: this.llmWorker,
+      tts: this.ttsWorker,
+    };
+    return Boolean(instances[service]);
+  }
+
+  private async executeRequest(
+    req: AiRpcRequest,
+    progress: (p: Omit<AiRpcProgress, "id">) => void,
+    stream: (s: Omit<AiRpcStreamEvent, "id">) => void,
+    settings: Settings
+  ) {
+    const service = req.service === "translation" ? "llm" : req.service;
+    let payload = req.payload as any;
+    const target = payload?.modelRef
+      ? resolveModelTarget(service, payload)
+      : undefined;
+    if (!target && req.method !== "load")
+      this.assertSessionVersion(service, req.options?.sessionVersion);
+    if (target) {
+      await this.modelManager.init();
+      if (
+        target.installedIds.some(
+          (id) => this.modelManager.get(id)?.state !== "installed"
+        )
+      ) {
+        throw new Error("MODEL_NOT_INSTALLED: 指定模型未安装");
+      }
+    }
+    if (this.cancelledRequests.has(req.id))
+      throw new Error("REQUEST_CANCELLED: 请求已取消");
+    const result = await this.scheduler.schedule(
+      async (signal) => {
+        const context = { signal };
+        this.execution.set(req.id, context);
+        try {
+          const adjustments: InputAdjustment[] = [];
+          const adjusted = (item?: InputAdjustment) => {
+            if (item) {
+              adjustments.push(item);
+              progress({ type: "running", status: item.message });
+            }
+          };
+          let image: Awaited<ReturnType<typeof prepareImage>> | undefined;
+          checkInputCancelled(signal);
+          if (service === "ocr" && req.method === "recognize") {
+            image = await prepareImage(payload.blob, settings, signal);
+            payload = { ...payload, blob: image.blob };
+            adjusted(image.adjustment);
+          } else if (service === "llm" && req.method === "chat") {
+            const messages: ChatMessage[] = [];
+            for (const message of payload.messages as ChatMessage[]) {
+              const images: ArrayBuffer[] = [];
+              for (const bytes of message.images ?? []) {
+                const prepared = await prepareImage(new Blob([bytes]), settings, signal);
+                images.push(await prepared.blob.arrayBuffer());
+                adjusted(prepared.adjustment);
+                checkInputCancelled(signal);
+              }
+              messages.push({ ...message, ...(message.images ? { images } : {}) });
+            }
+            payload = { ...payload, messages };
+          } else if (service === "asr" && req.method === "transcribe") {
+            const cropped = cropAudio(payload.audio, settings);
+            payload = { ...payload, audio: cropped.audio };
+            adjusted(cropped.adjustment);
+          } else if (service === "tts" && req.method === "synthesize") {
+            const cropped = cropTtsText(payload.text, settings);
+            payload = { ...payload, text: cropped.text };
+            adjusted(cropped.adjustment);
+          }
+          req = { ...req, payload };
+          checkInputCancelled(signal);
+          if (!target && req.method !== "load")
+            this.assertSessionVersion(service, req.options?.sessionVersion);
+          await this.prepareService(service);
+          checkInputCancelled(signal);
+          if (target && req.method !== "load") {
+            const fingerprint = JSON.stringify(target.spec);
+            if (
+              !this.hasServiceInstance(service) ||
+              this.getSessionState(service).modelId !== target.modelId ||
+              this.loadedSpecs.get(service) !== fingerprint
+            ) {
+              if (this.getSessionState(service).modelId)
+                await this.releaseService(
+                  service,
+                  "模型配置已切换，旧模型已卸载"
+                );
+              progress({ type: "loading", status: "加载指定模型…" });
+              const loadedResult = await this.dispatch(
+                { ...req, service, method: "load", payload: target.spec },
+                progress,
+                stream
+              );
+              this.loadedSpecs.set(service, fingerprint);
+              const loaded = this.sessions.get(service);
+              if (loaded) {
+                loaded.loadSpec = target.spec;
+                const backend = (loadedResult.result as { backend?: string })
+                  ?.backend;
+                if (backend) loaded.backend = backend;
+              }
+            }
+            // Explicit targets are independent of an older page's session version.
+            req = {
+              ...req,
+              payload: { ...payload, modelRef: undefined },
+              options: {
+                ...req.options,
+                sessionVersion: this.getSessionState(service).sessionVersion,
+              },
+            };
+          }
+          if (target && req.method === "load") {
+            const fingerprint = JSON.stringify(target.spec);
+            if (
+              this.hasServiceInstance(service) &&
+              this.getSessionState(service).modelId === target.modelId &&
+              this.loadedSpecs.get(service) === fingerprint
+            ) {
+              return {
+                result: {
+                  ...this.getSessionState(service),
+                  backend: this.getSessionState(service).backend,
+                },
+              };
+            }
+            if (this.getSessionState(service).modelId)
+              await this.releaseService(
+                service,
+                "模型配置已切换，旧模型已卸载"
+              );
+            req = { ...req, payload: target.spec };
+          }
+          const isTranslation = req.service === "translation" && target;
+          const value = await this.dispatch(
+            isTranslation
+              ? {
+                  ...req,
+                  service: "llm",
+                  method: "chat",
+                  payload: {
+                    messages: [
+                      {
+                        role: "user",
+                        content: `Translate the following ${payload.fromLang || "auto"} text into ${payload.toLang}. Preserve placeholders and markup. Output only the translation.\n\n${payload.text}`,
+                      },
+                    ],
+                    maxTokens: 2048,
+                  },
+                }
+              : req,
+            progress,
+            stream
+          );
+          if (isTranslation)
+            value.result = (value.result as { text: string }).text;
+          if (image) {
+            const result = value.result as { width: number; height: number; items: { poly: [number, number][] }[] };
+            result.width = image.original.width;
+            result.height = image.original.height;
+            if (image.adjustment) {
+              const scaleX = image.original.width / image.size.width;
+              const scaleY = image.original.height / image.size.height;
+              result.items = result.items.map((item) => ({ ...item,
+                poly: item.poly.map(([x, y]) => [x * scaleX, y * scaleY] as [number, number]),
+              }));
+            }
+          }
+          if (adjustments.length && value.result && typeof value.result === "object") {
+            value.result = { ...value.result, inputAdjustments: adjustments };
+          }
+          if (req.method === "load")
+            this.loadedSpecs.set(service, JSON.stringify(req.payload));
+          const state = this.sessions.get(service);
+          if (
+            state &&
+            value.result &&
+            typeof value.result === "object" &&
+            "backend" in value.result
+          ) {
+            state.backend = String((value.result as any).backend);
+          }
+          if (state && req.method === "load")
+            state.loadSpec = req.payload as Record<string, unknown>;
+          if (
+            target &&
+            state &&
+            value.result &&
+            typeof value.result === "object"
+          ) {
+            value.result = {
+              ...value.result,
+              modelId: state.modelId,
+              sessionVersion: state.sessionVersion,
+            };
+          }
+          if (service !== "decision") this.lastService = service;
+          return value;
+        } catch (error) {
+          if (this.getSessionState(service).state === "loading")
+            await this.releaseService(service, "模型加载失败");
+          throw error;
+        } finally {
+          this.execution.delete(req.id);
+        }
+      },
+      {
+        id: req.id,
+        priority:
+          req.priority ??
+          ({ decision: 0, asr: 1, ocr: 2, tts: 3, llm: 4 } as any)[service],
+        deadlineMs: req.deadlineMs,
+        onCancel: (reason) => this.execution.get(req.id)?.onCancel?.(reason),
       }
     );
+    return {
+      ...result.value,
+      queueMs: result.queueMs,
+      inferenceMs: result.inferenceMs,
+    };
   }
 
   private beginLoadSession(
@@ -198,7 +571,7 @@ export class RuntimeManager {
       ...(reason ? { reason } : {}),
     };
     this.sessions.set(service, state);
-    this.callbacks.onServiceState?.(state);
+    this.broadcastService(service);
     return state;
   }
 
@@ -218,7 +591,7 @@ export class RuntimeManager {
       state: "ready",
     };
     this.sessions.set(service, state);
-    this.callbacks.onServiceState?.(state);
+    this.broadcastService(service);
     return state;
   }
 
@@ -226,6 +599,8 @@ export class RuntimeManager {
     service: AiRpcService,
     reason = "模型已卸载或被淘汰"
   ): ServiceSessionState {
+    this.clearIdleTimer(service);
+    this.loadedSpecs.delete(service);
     const nextVersion = ++this.versionCounter;
     const state: ServiceSessionState = {
       service,
@@ -235,7 +610,7 @@ export class RuntimeManager {
       reason,
     };
     this.sessions.set(service, state);
-    this.callbacks.onServiceState?.(state);
+    this.broadcastService(service);
     return state;
   }
 
@@ -263,12 +638,15 @@ export class RuntimeManager {
     requestId: string,
     reason = "REQUEST_CANCELLED: 任务已取消"
   ): boolean {
+    if (this.requestIds.has(requestId)) this.cancelledRequests.add(requestId);
     const childId = this.childRequests.get(requestId);
     if (childId) {
       this.cancelledRequests.add(requestId);
       return this.scheduler.cancel(childId, reason);
     }
-    return this.scheduler.cancel(requestId, reason);
+    return (
+      this.scheduler.cancel(requestId, reason) || this.requestIds.has(requestId)
+    );
   }
 
   async handleRequest(
@@ -279,6 +657,7 @@ export class RuntimeManager {
     }
   ): Promise<AiRpcResponse> {
     const t0 = performance.now();
+    this.requestIds.add(req.id);
     const emitProgress = (p: Omit<AiRpcProgress, "id">) => {
       const full: AiRpcProgress = { id: req.id, ...p };
       localHooks?.onProgress?.(full);
@@ -290,12 +669,63 @@ export class RuntimeManager {
       this.callbacks.onStream?.(full);
     };
 
-    try {
-      const { result, queueMs, inferenceMs } = await this.dispatch(
-        req,
-        emitProgress,
-        emitStream
+    const service = req.service === "translation" ? "llm" : req.service;
+    const managed =
+      ["decision", "asr", "ocr", "llm", "tts"].includes(service) &&
+      req.method !== "stop";
+    const unloading = req.method === "unload" || req.method === "dispose";
+    if (managed && !unloading) {
+      this.clearIdleTimer(service);
+      this.pendingServices.set(
+        service,
+        (this.pendingServices.get(service) ?? 0) + 1
       );
+      this.broadcastService(service);
+    }
+    try {
+      await this.settingsReady;
+      const settings = { ...this.settings };
+      if (
+        managed &&
+        unloading &&
+        (this.pendingServices.get(service) ?? 0) > 0
+      ) {
+        throw new Error("SERVICE_BUSY: 服务正在加载、执行或排队，请稍后卸载");
+      }
+      if (
+        managed &&
+        req.method === "load" &&
+        service === "llm" &&
+        !(req.payload as any)?.modelRef &&
+        this.activeLlmChatReqId &&
+        !this.settings.exclusiveResourceMode
+      ) {
+        this.scheduler.cancel(
+          this.activeLlmChatReqId,
+          "MODEL_SWITCHED: 正在切换或重新加载模型，当前生成已中止"
+        );
+      }
+      const { result, queueMs, inferenceMs } = managed
+        ? unloading
+          ? {
+              result: (
+                await this.scheduler.schedule(
+                  async () => {
+                    if ((this.pendingServices.get(service) ?? 0) > 0)
+                      throw new Error("SERVICE_BUSY: 服务正在使用");
+                    await this.releaseService(service, "模型已手动卸载");
+                    return { ok: true };
+                  },
+                  {
+                    id: req.id,
+                    priority: TASK_PRIORITY.DECISION,
+                    deadlineMs: req.deadlineMs,
+                  }
+                )
+              ).value,
+            }
+          : await this.executeRequest(req, emitProgress, emitStream, settings)
+        : await this.dispatch(req, emitProgress, emitStream);
       return {
         id: req.id,
         ok: true,
@@ -317,6 +747,17 @@ export class RuntimeManager {
           message: codeMatch?.[2] ?? message,
         },
       };
+    } finally {
+      this.requestIds.delete(req.id);
+      this.cancelledRequests.delete(req.id);
+      if (managed && !unloading) {
+        this.pendingServices.set(
+          service,
+          Math.max(0, (this.pendingServices.get(service) ?? 1) - 1)
+        );
+        this.broadcastService(service);
+        this.armIdleTimer(service);
+      }
     }
   }
 
@@ -485,7 +926,7 @@ export class RuntimeManager {
           mirror: this.modelManager.getMirror(),
         };
       case "setMirror":
-        this.modelManager.setMirror(p.mirror as Mirror);
+        await this.updateSettings({ mirror: p.mirror as Mirror });
         return { ok: true };
       case "download":
         return this.modelManager.startDownload(p.id as string);
@@ -520,11 +961,20 @@ export class RuntimeManager {
   private async handleRuntime(req: AiRpcRequest): Promise<unknown> {
     const p = (req.payload ?? {}) as Record<string, any>;
     switch (req.method) {
+      case "getSettings":
+        return { ...this.settings };
+      case "updateSettings":
+        return this.updateSettings(p as Partial<Settings>);
       case "status":
         return {
           pool: this.pool.list(),
           scheduler: this.scheduler.stats(),
-          sessions: Object.fromEntries(this.sessions.entries()),
+          sessions: Object.fromEntries(
+            ["decision", "asr", "ocr", "llm", "tts"].map((s) => [
+              s,
+              this.getSessionState(s as AiRpcService),
+            ])
+          ),
         };
       case "cancel":
         return {
@@ -542,6 +992,77 @@ export class RuntimeManager {
       default:
         throw new Error(`未知 runtime 方法: ${req.method}`);
     }
+  }
+
+  private updateSettings(patch: Partial<Settings>): Promise<Settings> {
+    const update = this.settingsUpdates
+      .catch(() => undefined)
+      .then(async () => {
+        for (const key of INPUT_LIMIT_KEYS) {
+          if (patch[key] !== undefined && (!Number.isSafeInteger(patch[key]) || patch[key]! <= 0))
+            throw new Error("INVALID_SETTINGS: 输入限制必须为正整数");
+        }
+        if (
+          patch.autoUnloadMinutes !== undefined &&
+          (!Number.isSafeInteger(patch.autoUnloadMinutes) ||
+            patch.autoUnloadMinutes < 0)
+        ) {
+          throw new Error("INVALID_SETTINGS: 时间必须为非负整数");
+        }
+        const next = normalizeSettings({ ...this.settings, ...patch });
+        await this.scheduler.schedule(
+          async () => {
+            if (
+              next.exclusiveResourceMode &&
+              !this.settings.exclusiveResourceMode
+            ) {
+              const entries = this.pool
+                .list()
+                .filter((e) => e.service !== "decision");
+              const order = ["asr", "ocr", "tts", "llm"];
+              entries.sort(
+                (a, b) =>
+                  b.lastUsed - a.lastUsed ||
+                  order.indexOf(a.service) - order.indexOf(b.service)
+              );
+              const keep =
+                entries.find((e) => e.service === this.lastService)?.service ??
+                entries[0]?.service;
+              for (const entry of entries)
+                if (entry.service !== keep)
+                  await this.releaseService(
+                    entry.service,
+                    "因独享资源模式已卸载"
+                  );
+            }
+            await saveSettings(next);
+            const timeChanged =
+              next.autoUnloadMinutes !== this.settings.autoUnloadMinutes;
+            this.settings = next;
+            this.modelManager.setMirror(next.mirror);
+            if (timeChanged)
+              for (const service of [
+                "decision",
+                "asr",
+                "ocr",
+                "llm",
+                "tts",
+              ] as const)
+                this.armIdleTimer(service);
+            this.callbacks.onServiceState?.({
+              service: "runtime",
+              state: "ready",
+              modelId: null,
+              sessionVersion: 0,
+              settings: next,
+            });
+          },
+          { priority: TASK_PRIORITY.DECISION }
+        );
+        return { ...next };
+      });
+    this.settingsUpdates = update;
+    return update;
   }
 
   // -------------------- JEV / Decision 服务 (P0) --------------------
@@ -620,12 +1141,13 @@ export class RuntimeManager {
         modelId: spec.modelId,
         state: "loading",
         pinned: true, // 文档 §11：Laya/JEV 常驻内存
-        unloadFn: () => {
-          this.invalidateSession("decision", "JEV 模型已被卸载或淘汰");
+        unloadFn: async () => {
           this.disposeJev();
+          this.invalidateSession("decision", "JEV 模型已被卸载或淘汰");
         },
       });
-      const scheduled = await this.scheduler.schedule(
+      const scheduled = await this.scheduleTask(
+        req,
         () =>
           new Promise<{ backend: "webgpu" | "wasm" }>((resolve, reject) => {
             this.jevLoadWaiter?.reject(new Error("JEV 模型加载被新请求取代"));
@@ -665,7 +1187,8 @@ export class RuntimeManager {
       this.assertSessionVersion("decision", req.options?.sessionVersion);
       this.pool.touch("decision");
       const subId = nextRpcId("jev");
-      const scheduled = await this.scheduler.schedule(
+      const scheduled = await this.scheduleTask(
+        req,
         () => {
           this.assertSessionVersion("decision", req.options?.sessionVersion);
           const w = this.ensureJevWorker();
@@ -784,12 +1307,13 @@ export class RuntimeManager {
         modelId: spec.dir,
         state: "loading",
         pinned: false,
-        unloadFn: () => {
-          this.invalidateSession("asr", "ASR 模型已被淘汰或卸载");
+        unloadFn: async () => {
           this.disposeAsr();
+          this.invalidateSession("asr", "ASR 模型已被淘汰或卸载");
         },
       });
-      const scheduled = await this.scheduler.schedule(
+      const scheduled = await this.scheduleTask(
+        req,
         () =>
           new Promise<void>((resolve, reject) => {
             this.asrLoadWaiter?.reject(new Error("模型加载已被新请求取代"));
@@ -829,7 +1353,8 @@ export class RuntimeManager {
       if (!this.asrWorker) throw new Error("MODEL_UNLOADED: 模型尚未加载");
       this.pool.setPinned("asr", true);
       try {
-        const scheduled = await this.scheduler.schedule(
+        const scheduled = await this.scheduleTask(
+          req,
           () => {
             this.assertSessionVersion("asr", req.options?.sessionVersion);
             return new Promise<{
@@ -945,12 +1470,13 @@ export class RuntimeManager {
         modelId,
         state: "loading",
         pinned: false,
-        unloadFn: () => {
+        unloadFn: async () => {
+          await this.disposeOcr();
           this.invalidateSession("ocr", "OCR 模型已被淘汰或卸载");
-          void this.disposeOcr();
         },
       });
-      const scheduled = await this.scheduler.schedule(
+      const scheduled = await this.scheduleTask(
+        req,
         async () => {
           emitProgress({ type: "loading", status: "读取本地模型 (OPFS)…" });
           await this.disposeOcr();
@@ -968,8 +1494,7 @@ export class RuntimeManager {
             emitProgress({ type: "loading", status: "初始化推理引擎…" });
             this.ocrInstance = await PaddleOCR.create({
               worker: {
-                createWorker: () =>
-                  createLocalWorker("ocr"),
+                createWorker: () => createLocalWorker("ocr"),
               },
               initialize: true,
               textDetectionModelName: spec.detName,
@@ -1030,7 +1555,8 @@ export class RuntimeManager {
       this.assertSessionVersion("ocr", req.options?.sessionVersion);
       if (!this.ocrInstance) throw new Error("MODEL_UNLOADED: 模型尚未加载");
       this.pool.touch("ocr");
-      const scheduled = await this.scheduler.schedule(
+      const scheduled = await this.scheduleTask(
+        req,
         async () => {
           this.assertSessionVersion("ocr", req.options?.sessionVersion);
           const results: OcrResult[] = await new Promise<OcrResult[]>(
@@ -1095,10 +1621,10 @@ export class RuntimeManager {
     this.ocrActiveWaiter?.reject(new Error(reason));
     this.ocrActiveWaiter = null;
     const inst = this.ocrInstance;
+    if (inst) await inst.dispose();
     this.ocrInstance = null;
     for (const u of this.ocrBlobUrls) URL.revokeObjectURL(u);
     this.ocrBlobUrls = [];
-    if (inst) await inst.dispose().catch(() => {});
   }
 
   // -------------------- LLM 服务 (P4) --------------------
@@ -1179,7 +1705,8 @@ export class RuntimeManager {
           "MODEL_SWITCHED: 正在切换或重新加载模型，当前生成已中止"
         );
       }
-      const scheduled = await this.scheduler.schedule(
+      const scheduled = await this.scheduleTask(
+        req,
         async () => {
           await this.pool.ensureCapacity("llm");
           const runtime = spec.runtime === "wllama" ? "wllama" : "onnx";
@@ -1191,9 +1718,9 @@ export class RuntimeManager {
             modelId,
             state: "loading",
             pinned: false,
-            unloadFn: () => {
-              this.invalidateSession("llm", "LLM 模型已被淘汰或卸载");
+            unloadFn: async () => {
               this.disposeLlm();
+              this.invalidateSession("llm", "LLM 模型已被淘汰或卸载");
             },
           });
           return await new Promise<{ backend: "webgpu" | "cpu" }>(
@@ -1253,7 +1780,8 @@ export class RuntimeManager {
       this.assertSessionVersion("llm", sessionVersionToCheck);
       if (!this.llmWorker) throw new Error("MODEL_UNLOADED: 模型尚未加载");
       this.pool.touch("llm");
-      const scheduled = await this.scheduler.schedule(
+      const scheduled = await this.scheduleTask(
+        req,
         () => {
           this.assertSessionVersion("llm", sessionVersionToCheck);
           this.activeLlmReqId = req.id;
@@ -1439,12 +1967,13 @@ export class RuntimeManager {
         modelId: spec.dir,
         state: "loading",
         pinned: false,
-        unloadFn: () => {
-          this.invalidateSession("tts", "TTS 模型已被淘汰或卸载");
+        unloadFn: async () => {
           this.disposeTts();
+          this.invalidateSession("tts", "TTS 模型已被淘汰或卸载");
         },
       });
-      const scheduled = await this.scheduler.schedule(
+      const scheduled = await this.scheduleTask(
+        req,
         () =>
           new Promise<void>((resolve, reject) => {
             this.ttsLoadWaiter?.reject(new Error("模型加载已被新请求取代"));
@@ -1485,7 +2014,8 @@ export class RuntimeManager {
       if (!this.ttsWorker) throw new Error("MODEL_UNLOADED: 模型尚未加载");
       this.pool.setPinned("tts", true);
       try {
-        const scheduled = await this.scheduler.schedule(
+        const scheduled = await this.scheduleTask(
+          req,
           () => {
             this.assertSessionVersion("tts", req.options?.sessionVersion);
             return new Promise<{

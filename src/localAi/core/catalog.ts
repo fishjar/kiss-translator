@@ -797,7 +797,7 @@ export const CATALOG: ModelManifest[] = [
     task: "decision",
     runtime: "onnx",
     format: "onnx",
-    backend: ["webgpu"],
+    backend: ["webgpu", "wasm"],
     languages: ["multilingual"],
     multilingual: true,
     source: "mizchi/laya-multilingual-onnx",

@@ -1,3 +1,5 @@
+import type { InputAdjustment } from "./types";
+import type { ModelTarget } from "./modelTarget";
 import type { OcrLoadSpec } from "./types";
 import { nextRpcId } from "../runtime/rpc";
 import {
@@ -13,6 +15,7 @@ export interface OcrLine {
 }
 
 export interface OcrImageResult {
+  inputAdjustments?: InputAdjustment[];
   width: number;
   height: number;
   items: OcrLine[];
@@ -79,13 +82,22 @@ export class OcrClient {
     });
   }
 
-  async load(spec: OcrLoadSpec): Promise<OcrLoadInfo> {
-    const info = await this.host.request<OcrLoadSpec, OcrLoadInfo>(
+  async load(spec: OcrLoadSpec, target?: ModelTarget): Promise<OcrLoadInfo> {
+    const info = await this.host.request<
+      OcrLoadSpec & Partial<ModelTarget>,
+      OcrLoadInfo
+    >(
       {
         id: nextRpcId("ocr-load"),
         service: "ocr",
         method: "load",
-        payload: spec,
+        payload: target
+          ? {
+              ...spec,
+              modelRef: target.modelRef,
+              loadSpec: { ...spec, ...target.loadSpec },
+            }
+          : spec,
         priority: TASK_PRIORITY.OCR,
       },
       {
@@ -101,22 +113,43 @@ export class OcrClient {
     return info;
   }
 
-  async recognize(blob: Blob, signal?: AbortSignal): Promise<OcrImageResult> {
-    if (this.currentVersion === null) throw new Error("模型尚未加载");
+  async recognize(
+    blob: Blob,
+    signal?: AbortSignal,
+    target?: ModelTarget
+  ): Promise<OcrImageResult> {
+    if (!target && this.currentVersion === null)
+      throw new Error("模型尚未加载");
     const reqId = nextRpcId("ocr-recognize");
     this.activeRecognizeReqId = reqId;
     try {
-      return await this.host.request<{ blob: Blob }, OcrImageResult>({
-        id: reqId,
-        service: "ocr",
-        method: "recognize",
-        payload: { blob },
-        priority: TASK_PRIORITY.OCR,
-        options: {
-          sessionVersion: this.currentVersion,
-          modelId: this.currentModelId ?? undefined,
+      const result = await this.host.request<{ blob: Blob }, OcrImageResult>(
+        {
+          id: reqId,
+          service: "ocr",
+          method: "recognize",
+          payload: { blob, ...target },
+          priority: TASK_PRIORITY.OCR,
+          options: {
+            sessionVersion: target
+              ? undefined
+              : (this.currentVersion ?? undefined),
+            modelId: this.currentModelId ?? undefined,
+          },
         },
-      }, { signal });
+        { signal }
+      );
+      if (target) {
+        const info = result as typeof result & {
+          modelId?: string;
+          sessionVersion?: number;
+        };
+        this.currentModelId = info.modelId ?? null;
+        this.currentVersion = info.sessionVersion ?? null;
+        this.isLoaded = this.currentVersion !== null;
+        this.onStateChange?.(this.isLoaded);
+      }
+      return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (
@@ -145,20 +178,23 @@ export class OcrClient {
     }
   }
 
-  async dispose(): Promise<void> {
+  async unload(): Promise<void> {
+    await this.host.request({
+      id: nextRpcId("ocr-unload"),
+      service: "ocr",
+      method: "unload",
+      payload: {},
+    });
     this.isLoaded = false;
     this.currentVersion = null;
     this.currentModelId = null;
+    this.onStateChange?.(false);
+  }
+
+  dispose(): void {
     this.unsubState?.();
     this.unsubState = null;
-    await this.host
-      .request({
-        id: nextRpcId("ocr-dispose"),
-        service: "ocr",
-        method: "dispose",
-        payload: {},
-      })
-      .catch(() => undefined);
+    void this.unload().catch(() => undefined);
   }
 
   get loaded(): boolean {

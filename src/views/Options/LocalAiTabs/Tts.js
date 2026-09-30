@@ -1,10 +1,14 @@
+import {
+  ModelStatus,
+  UnloadModelButton,
+  useRuntimeService,
+} from "./RuntimeControls";
 import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import Select from "@mui/material/Select";
@@ -51,8 +55,6 @@ export default function TtsTab() {
   const [selectedId, setSelectedId] = useState(KOKORO_MODELS[0]?.id ?? "");
   const [device, setDevice] = useState("webgpu");
   const [recs, setRecs] = useState({});
-  const [loadedId, setLoadedId] = useState(null);
-  const [loadedDevice, setLoadedDevice] = useState(null);
   const [clientState, setClientState] = useState("idle");
   const [progressText, setProgressText] = useState("");
   const [error, setError] = useState(null);
@@ -121,9 +123,9 @@ export default function TtsTab() {
     client.onStateChange = (ready, reason) => {
       if (!ready) {
         setClientState("idle");
-        setLoadedId(null);
         if (reason) {
-          setError(reason);
+          if (!reason.includes("已卸载") && !reason.includes("闲置超时"))
+            setError(reason);
           addLog(reason, "error");
         }
       }
@@ -146,10 +148,9 @@ export default function TtsTab() {
     rec?.state === "queued" ||
     rec?.state === "verifying";
   const effDevice = engine === "audio8" ? "wasm" : device;
-  const isLoaded =
-    clientState === "ready" &&
-    loadedId === selectedId &&
-    loadedDevice === effDevice;
+  const modelTarget = { modelRef: selectedId, loadSpec: { device: effDevice } };
+  const runtime = useRuntimeService("tts", modelTarget);
+  const isLoaded = runtime.loaded;
 
   const changeEngine = (e) => {
     setEngine(e);
@@ -175,15 +176,16 @@ export default function TtsTab() {
     setStats(null);
     addLog(`准备加载 TTS 模型: ${m.name} (${engine}, ${effDevice})…`);
     try {
-      await client.load({
-        engine: engine === "audio8" ? "audio8" : "kokoro",
-        source: m.source,
-        dir: m.dir,
-        device: effDevice,
-      });
+      await client.load(
+        {
+          engine: engine === "audio8" ? "audio8" : "kokoro",
+          source: m.source,
+          dir: m.dir,
+          device: effDevice,
+        },
+        modelTarget
+      );
       setClientState("ready");
-      setLoadedId(m.id);
-      setLoadedDevice(effDevice);
       setProgressText("");
       addLog(`TTS 模型加载就绪: ${m.name}`, "success");
     } catch (e) {
@@ -213,7 +215,10 @@ export default function TtsTab() {
   const speak = () => {
     const t = text.trim();
     if (!t) {
-      const msg = i18n("local_ai_tts_text_empty", "请输入或从其他 Tab 选择要朗读的文本。");
+      const msg = i18n(
+        "local_ai_tts_text_empty",
+        "请输入或从其他 Tab 选择要朗读的文本。"
+      );
       setError(msg);
       addLog(msg, "warn");
       return;
@@ -228,7 +233,9 @@ export default function TtsTab() {
     u.onstart = () => {
       setSpeaking(true);
       setError(null);
-      addLog(`开始系统原生朗读: "${t.slice(0, 30)}${t.length > 30 ? "…" : ""}"…`);
+      addLog(
+        `开始系统原生朗读: "${t.slice(0, 30)}${t.length > 30 ? "…" : ""}"…`
+      );
     };
     u.onend = () => {
       setSpeaking(false);
@@ -253,7 +260,7 @@ export default function TtsTab() {
 
   const synthesize = async () => {
     const t = text.trim();
-    if (!t || !isLoaded) return;
+    if (!t || !modelInstalled) return;
     setSynthState("busy");
     setError(null);
     setAudioUrl((prev) => {
@@ -262,9 +269,11 @@ export default function TtsTab() {
     });
     setStats(null);
     const voice = engine === "audio8" ? audio8Voice : kokoroVoice;
-    addLog(`开始语音合成: "${t.slice(0, 30)}${t.length > 30 ? "…" : ""}" (音色: ${voice}, 语速: ${rate.toFixed(1)}x)…`);
+    addLog(
+      `开始语音合成: "${t.slice(0, 30)}${t.length > 30 ? "…" : ""}" (音色: ${voice}, 语速: ${rate.toFixed(1)}x)…`
+    );
     try {
-      const r = await client.synthesize(t, voice, rate);
+      const r = await client.synthesize(t, voice, rate, modelTarget);
       const wav = audioToWavBlob(r.audio, r.sampleRate);
       setAudioUrl(URL.createObjectURL(wav));
       const dur = r.audio.length / r.sampleRate;
@@ -272,7 +281,10 @@ export default function TtsTab() {
         elapsedMs: r.elapsedMs,
         durationS: dur,
       });
-      addLog(`语音合成完成: 耗时 ${r.elapsedMs}ms, 音频时长 ${dur.toFixed(1)}s`, "success");
+      addLog(
+        `语音合成完成: 耗时 ${r.elapsedMs}ms, 音频时长 ${dur.toFixed(1)}s`,
+        "success"
+      );
     } catch (e) {
       const err = e instanceof Error ? e.message : String(e);
       setError(err);
@@ -299,19 +311,27 @@ export default function TtsTab() {
             <Typography variant="h6" fontWeight={600}>
               {i18n("local_ai_tts_title", "本地语音合成")}
             </Typography>
-            <ToggleButtonGroup
-              size="small"
-              value={engine}
-              exclusive
-              onChange={(_, v) => v && changeEngine(v)}
-            >
-              <ToggleButton value="system">
-                {i18n("local_ai_tts_engine_system", "系统原生朗读")}
-              </ToggleButton>
-              <ToggleButton value="kokoro">Kokoro-82M (WebGPU)</ToggleButton>
-              <ToggleButton value="audio8">Audio8 (ONNX)</ToggleButton>
-            </ToggleButtonGroup>
+            <ModelStatus
+              installed={modelInstalled}
+              downloading={modelBusy}
+              runtime={runtime}
+              system={engine === "system"}
+            />
           </Box>
+
+          <ToggleButtonGroup
+            sx={{ mb: 2, flexWrap: "wrap" }}
+            size="small"
+            value={engine}
+            exclusive
+            onChange={(_, v) => v && changeEngine(v)}
+          >
+            <ToggleButton value="system">
+              {i18n("local_ai_tts_engine_system", "系统原生朗读")}
+            </ToggleButton>
+            <ToggleButton value="kokoro">Kokoro-82M (WebGPU)</ToggleButton>
+            <ToggleButton value="audio8">Audio8 (ONNX)</ToggleButton>
+          </ToggleButtonGroup>
 
           {engine !== "system" ? (
             <Box
@@ -365,6 +385,7 @@ export default function TtsTab() {
                 variant="contained"
                 size="small"
                 disabled={
+                  runtime.busy ||
                   !modelInstalled ||
                   clientState === "loading" ||
                   synthState === "busy" ||
@@ -378,17 +399,10 @@ export default function TtsTab() {
                     ? i18n("local_ai_model_loaded", "模型已就绪")
                     : i18n("local_ai_load_model", "加载模型")}
               </Button>
-
-              <Chip
-                size="small"
-                label={
-                  modelInstalled
-                    ? i18n("local_ai_models_state_installed", "已安装")
-                    : modelBusy
-                      ? i18n("local_ai_models_state_downloading", "下载中")
-                      : i18n("local_ai_models_state_not_installed", "未安装")
-                }
-                color={modelInstalled ? "success" : "default"}
+              <UnloadModelButton
+                client={client}
+                runtime={runtime}
+                onError={setError}
               />
 
               {progressText && (
@@ -587,7 +601,12 @@ export default function TtsTab() {
                 <Button
                   variant="contained"
                   startIcon={<PlayArrowRoundedIcon />}
-                  disabled={!isLoaded || synthState === "busy" || !text.trim()}
+                  disabled={
+                    runtime.busy ||
+                    !modelInstalled ||
+                    synthState === "busy" ||
+                    !text.trim()
+                  }
                   onClick={() => void synthesize()}
                 >
                   {synthState === "busy"

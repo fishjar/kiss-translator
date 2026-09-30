@@ -1,4 +1,4 @@
-import type { ModelRecord } from "../core/types";
+import type { ModelRecord, Settings } from "../core/types";
 
 export const KISS_AI_RPC_CHANNEL = "kiss-ai-runtime-rpc";
 
@@ -14,6 +14,8 @@ export type AiRpcService =
   | "runtime";
 
 export type AiErrorCode =
+  | "INPUT_LIMIT_EXCEEDED"
+  | "INPUT_INVALID"
   | "MODEL_NOT_INSTALLED"
   | "MODEL_DOWNLOAD_FAILED"
   | "MODEL_HASH_MISMATCH"
@@ -35,8 +37,12 @@ export interface ServiceSessionState {
   service: AiRpcService;
   modelId: string | null;
   sessionVersion: number;
-  state: "unloaded" | "loading" | "ready" | "idle";
+  state: "unloaded" | "loading" | "ready" | "idle" | "unloading";
   reason?: string;
+  busy?: boolean;
+  backend?: string;
+  loadSpec?: Record<string, unknown>;
+  settings?: Settings;
 }
 
 export interface AiRpcRequest<T = unknown> {

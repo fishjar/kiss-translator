@@ -79,6 +79,7 @@ import { SettingsSelect } from "../Options/SettingsCard";
 import OrderedApiSelect from "../Options/OrderedApiSelect";
 import ScenePromptSelect from "../Options/ScenePromptSelect";
 import ImageViewerDialog from "../Options/ImageViewerDialog";
+import { validateInputFile } from "../../localAi/core/inputFiles";
 import DarkModeButton from "../Options/DarkModeButton";
 import {
   availableApisForScene,
@@ -336,6 +337,7 @@ export default function FileTranslateView() {
   const [progress, setProgress] = useState([0, 0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [inputNotices, setInputNotices] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "" });
   const [viewerState, setViewerState] = useState({
@@ -497,6 +499,7 @@ export default function FileTranslateView() {
 
   // 选入文件处理与全自动格式识别判定
   const selectFile = async (selected) => {
+    setInputNotices([]);
     // 换书或重选文件时：在任何异步操作前立即记录本次唯一任务会话 ID，并中止旧任务
     const currentTaskId = ++taskIdRef.current;
     if (controller.current) {
@@ -527,6 +530,15 @@ export default function FileTranslateView() {
     const isEpub =
       /\.epub$/i.test(selected.name) ||
       selected.type === "application/epub+zip";
+    if (isImage) {
+      try {
+        await validateInputFile(selected, "image");
+      } catch (err) {
+        if (taskIdRef.current === currentTaskId) setError(err.message);
+        return;
+      }
+      if (taskIdRef.current !== currentTaskId) return;
+    }
 
     if (!isTxt && !isMd && !isImage && !isEpub) {
       setFile(null);
@@ -1268,6 +1280,7 @@ export default function FileTranslateView() {
   // 执行翻译流程
   const run = async (scope = translateScope) => {
     if (!file || busy) return;
+    setInputNotices([]);
     controller.current?.abort();
     const abort = new AbortController();
     controller.current = abort;
@@ -1415,6 +1428,7 @@ export default function FileTranslateView() {
         );
         if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
         const items = recognized.items || [];
+        setInputNotices((recognized.inputAdjustments || []).map((item) => item.message));
         const nextRows = [];
         const total = items.length;
         for (let i = 0; i < total; i++) {
@@ -2254,6 +2268,11 @@ export default function FileTranslateView() {
       )}
 
       {/* 模块 2：下面全部用来浏览和翻译（未上传展示上传框，上传后展示左右双栏或窄屏上下双栏） */}
+      {inputNotices.length > 0 && (
+        <Alert severity="info" onClose={() => setInputNotices([])}>
+          {inputNotices.join("；")}
+        </Alert>
+      )}
       <Box
         sx={{
           flex: 1,

@@ -1,3 +1,5 @@
+import type { InputAdjustment } from "./types";
+import type { ModelTarget } from "./modelTarget";
 import type { ASRSegment, AsrLoadSpec } from "./types";
 import { nextRpcId } from "../runtime/rpc";
 import {
@@ -15,6 +17,7 @@ export interface AsrProgress {
 }
 
 export interface TranscribeResult {
+  inputAdjustments?: InputAdjustment[];
   segments: ASRSegment[];
   elapsedMs: number;
   durationSeconds: number;
@@ -62,16 +65,22 @@ export class AsrClient {
     return this.currentVersion;
   }
 
-  async load(spec: AsrLoadSpec): Promise<void> {
+  async load(spec: AsrLoadSpec, target?: ModelTarget): Promise<void> {
     const res = await this.host.request<
-      AsrLoadSpec,
+      AsrLoadSpec & Partial<ModelTarget>,
       { ok: boolean; modelId?: string; sessionVersion?: number }
     >(
       {
         id: nextRpcId("asr-load"),
         service: "asr",
         method: "load",
-        payload: spec,
+        payload: target
+          ? {
+              ...spec,
+              modelRef: target.modelRef,
+              loadSpec: { ...spec, ...target.loadSpec },
+            }
+          : spec,
         priority: TASK_PRIORITY.ASR,
       },
       {
@@ -94,13 +103,15 @@ export class AsrClient {
 
   async transcribe(
     audio: Float32Array,
-    language: string
+    language: string,
+    target?: ModelTarget
   ): Promise<TranscribeResult> {
-    if (this.currentVersion === null) throw new Error("模型尚未加载");
+    if (!target && this.currentVersion === null)
+      throw new Error("模型尚未加载");
     const reqId = nextRpcId("asr-transcribe");
     this.activeTranscribeReqId = reqId;
     try {
-      return await this.host.request<
+      const result = await this.host.request<
         { audio: Float32Array; language: string },
         TranscribeResult
       >(
@@ -108,10 +119,12 @@ export class AsrClient {
           id: reqId,
           service: "asr",
           method: "transcribe",
-          payload: { audio, language },
+          payload: { audio, language, ...target },
           priority: TASK_PRIORITY.ASR,
           options: {
-            sessionVersion: this.currentVersion,
+            sessionVersion: target
+              ? undefined
+              : (this.currentVersion ?? undefined),
             modelId: this.currentModelId ?? undefined,
           },
         },
@@ -127,6 +140,17 @@ export class AsrClient {
           },
         }
       );
+      if (target) {
+        const info = result as typeof result & {
+          modelId?: string;
+          sessionVersion?: number;
+        };
+        this.currentModelId = info.modelId ?? null;
+        this.currentVersion = info.sessionVersion ?? null;
+        this.isLoaded = this.currentVersion !== null;
+        this.onStateChange?.(this.isLoaded);
+      }
+      return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (
@@ -155,19 +179,22 @@ export class AsrClient {
     }
   }
 
-  dispose(): void {
+  async unload(): Promise<void> {
+    await this.host.request({
+      id: nextRpcId("asr-unload"),
+      service: "asr",
+      method: "unload",
+      payload: {},
+    });
     this.isLoaded = false;
     this.currentVersion = null;
     this.currentModelId = null;
+    this.onStateChange?.(false);
+  }
+
+  dispose(): void {
     this.unsubState?.();
     this.unsubState = null;
-    void this.host
-      .request({
-        id: nextRpcId("asr-dispose"),
-        service: "asr",
-        method: "dispose",
-        payload: {},
-      })
-      .catch(() => undefined);
+    void this.unload().catch(() => undefined);
   }
 }

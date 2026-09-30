@@ -19,7 +19,8 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
-import { loadSettings, saveSettings } from "../../../localAi/core/settings";
+import { runtimeHost } from "../../../localAi/runtime/runtimeHostAdapter";
+import { nextRpcId } from "../../../localAi/runtime/rpc";
 import { OCR_GROUPS, getModelDisplayName } from "../../../localAi/core/catalog";
 import {
   formatBytes,
@@ -567,6 +568,7 @@ export default function ModelsTab() {
   const i18n = useI18n();
   const [records, setRecords] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [settingsError, setSettingsError] = useState(null);
   const [storage, setStorage] = useState(null);
   const [taskFilter, setTaskFilter] = useState("all");
 
@@ -585,13 +587,23 @@ export default function ModelsTab() {
       setRecords(manager.list().map(snapshot));
     });
     void (async () => {
-      const s = await loadSettings();
+      const s = await runtimeHost.request({
+        id: nextRpcId("settings"),
+        service: "runtime",
+        method: "getSettings",
+        payload: {},
+      });
       setSettings(s);
-      manager.setMirror(s.mirror);
       await manager.init();
       setRecords(manager.list().map(snapshot));
-    })();
-    return unsub;
+    })().catch((e) => setSettingsError(String(e)));
+    const unsubSettings = runtimeHost.onServiceState((state) => {
+      if (state.settings) setSettings(state.settings);
+    });
+    return () => {
+      unsub();
+      unsubSettings();
+    };
   }, []);
 
   useEffect(() => {
@@ -599,10 +611,18 @@ export default function ModelsTab() {
   }, [records]);
 
   const changeMirror = async (mirror) => {
-    const s = { ...(settings ?? { mirror }), mirror };
-    setSettings(s);
-    manager.setMirror(mirror);
-    await saveSettings(s);
+    setSettingsError(null);
+    try {
+      const s = await runtimeHost.request({
+        id: nextRpcId("settings-update"),
+        service: "runtime",
+        method: "updateSettings",
+        payload: { mirror },
+      });
+      setSettings(s);
+    } catch (e) {
+      setSettingsError(e instanceof Error ? e.message : String(e));
+    }
   };
 
   const renderItems = (items, idOf, render, renderGroup) => {
@@ -629,6 +649,11 @@ export default function ModelsTab() {
 
   return (
     <Box>
+      {settingsError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {settingsError}
+        </Alert>
+      )}
       <Card variant="outlined" sx={{ mb: 2.5 }}>
         <CardContent sx={{ pb: "16px !important" }}>
           <Box

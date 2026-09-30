@@ -1,3 +1,4 @@
+import type { ModelTarget } from "./modelTarget";
 import type { JevLoadSpec } from "./types";
 import type {
   DecisionEngine,
@@ -52,13 +53,22 @@ export class JevClient implements DecisionEngine {
     });
   }
 
-  async load(spec: JevLoadSpec): Promise<JevLoadInfo> {
-    const info = await this.host.request<JevLoadSpec, JevLoadInfo>(
+  async load(spec: JevLoadSpec, target?: ModelTarget): Promise<JevLoadInfo> {
+    const info = await this.host.request<
+      JevLoadSpec & Partial<ModelTarget>,
+      JevLoadInfo
+    >(
       {
         id: nextRpcId("jev-load"),
         service: "decision",
         method: "load",
-        payload: spec,
+        payload: target
+          ? {
+              ...spec,
+              modelRef: target.modelRef,
+              loadSpec: { ...spec, ...target.loadSpec },
+            }
+          : spec,
         priority: TASK_PRIORITY.DECISION,
       },
       {
@@ -76,26 +86,41 @@ export class JevClient implements DecisionEngine {
 
   async predict(
     state: DecisionState,
-    questions: DecisionQuestions
+    questions: DecisionQuestions,
+    target?: ModelTarget
   ): Promise<DecisionResult> {
-    if (this.currentVersion === null) throw new Error("JEV 模型尚未加载");
+    if (!target && this.currentVersion === null)
+      throw new Error("JEV 模型尚未加载");
     const reqId = nextRpcId("jev-predict");
     this.activePredictReqId = reqId;
     try {
-      return await this.host.request<
+      const result = await this.host.request<
         { state: DecisionState; questions: DecisionQuestions },
         DecisionResult
       >({
         id: reqId,
         service: "decision",
         method: "predict",
-        payload: { state, questions },
+        payload: { state, questions, ...target },
         priority: TASK_PRIORITY.DECISION,
         options: {
-          sessionVersion: this.currentVersion,
+          sessionVersion: target
+            ? undefined
+            : (this.currentVersion ?? undefined),
           modelId: this.currentModelId ?? undefined,
         },
       });
+      if (target) {
+        const info = result as typeof result & {
+          modelId?: string;
+          sessionVersion?: number;
+        };
+        this.currentModelId = info.modelId ?? null;
+        this.currentVersion = info.sessionVersion ?? null;
+        this.isLoaded = this.currentVersion !== null;
+        this.onStateChange?.(this.isLoaded);
+      }
+      return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (
@@ -125,23 +150,22 @@ export class JevClient implements DecisionEngine {
   }
 
   async unload(): Promise<void> {
+    await this.host.request({
+      id: nextRpcId("jev-unload"),
+      service: "decision",
+      method: "unload",
+      payload: {},
+    });
     this.isLoaded = false;
     this.currentVersion = null;
     this.currentModelId = null;
-    await this.host
-      .request({
-        id: nextRpcId("jev-unload"),
-        service: "decision",
-        method: "unload",
-        payload: {},
-      })
-      .catch(() => undefined);
+    this.onStateChange?.(false);
   }
 
   dispose(): void {
     this.unsubState?.();
     this.unsubState = null;
-    void this.unload();
+    void this.unload().catch(() => undefined);
   }
 
   get loaded(): boolean {

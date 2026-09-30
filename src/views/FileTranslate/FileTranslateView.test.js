@@ -6,6 +6,10 @@ import FileTranslatePage from "./index";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+jest.mock("../../localAi/core/inputFiles", () => ({
+  validateInputFile: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key, fallback) => fallback || key,
 }));
