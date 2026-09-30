@@ -41,7 +41,7 @@
 - [x] 支持多种翻译服务
   - [x] Google/Microsoft
   - [x] Tencent/Volcengine
-  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter/OrcaRouter/Requesty
+  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter/OrcaRouter/Requesty/Cheaper Inference
   - [x] DeepL/DeepLX
   - [x] AzureAI/CloudflareAI
   - [x] Chrome浏览器内置AI翻译(BuiltinAI)
