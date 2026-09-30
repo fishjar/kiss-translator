@@ -154,6 +154,25 @@ test("candidates include the selected element and never copy text, links or inpu
   }
 });
 
+test("module selector recommendations survive committing to the draft", () => {
+  document.body.innerHTML = `
+    <main class="card">
+      <p class="before Cards-module__hash__title after" data-size="xl">Title</p>
+      <p class="Cards-module__hash__titleDescription" data-size="xl">Description</p>
+    </main>`;
+  const title = document.querySelector("p");
+  session.selectElement(title);
+  const recommendation = session.state.input;
+  expect(session.state.matches).toEqual([title]);
+  session.commitInput();
+  const stored = session.list().find((selector) => selector !== ".story");
+  expect(stored).toBe(recommendation);
+  title.className = "before Cards-module__newHash__title after";
+  expect(Array.from(document.querySelectorAll(stored))).toEqual([title]);
+  expect(session.state.dirty).toBe(true);
+  expect(saveSiteRule).not.toHaveBeenCalled();
+});
+
 test("uses the same point picker for hover and click and preserves picked alternatives", () => {
   const link = document.querySelector("a");
   const title = document.querySelector("p");

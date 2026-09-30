@@ -35,8 +35,7 @@ function visibleAtPoint(element, x, y, styles) {
 }
 
 function paintedAfter(element, hit, styles) {
-  if (element === hit || element.contains(hit) || hit.contains(element))
-    return true;
+  if (element === hit) return true;
   const path = (node) => {
     const nodes = [];
     for (; node; node = node.parentElement) nodes.unshift(node);
@@ -52,15 +51,20 @@ function paintedAfter(element, hit, styles) {
     let positioned = false;
     for (const node of nodes) {
       const style = styles(node);
-      positioned ||= style.position !== "static";
+      const position = style.position || "static";
+      const zIndex = style.zIndex || "auto";
+      const layoutItem =
+        node.parentElement &&
+        /^(?:inline-)?(?:flex|grid)$/.test(styles(node.parentElement).display);
+      positioned ||= position !== "static";
       if (
-        (style.position !== "static" && style.zIndex !== "auto") ||
-        /^(fixed|sticky)$/.test(style.position) ||
+        ((position !== "static" || layoutItem) && zIndex !== "auto") ||
+        /^(fixed|sticky)$/.test(position) ||
         (style.transform && style.transform !== "none") ||
         (style.opacity && Number(style.opacity) < 1) ||
         style.isolation === "isolate"
       )
-        return { z: Number.parseInt(style.zIndex, 10) || 0, positioned: true };
+        return { z: Number.parseInt(zIndex, 10) || 0, positioned: true };
     }
     return { z: 0, positioned };
   };
@@ -68,6 +72,10 @@ function paintedAfter(element, hit, styles) {
   const b = layer(right.slice(index));
   if (a.z !== b.z) return a.z > b.z;
   if (a.positioned !== b.positioned) return a.positioned;
+  // A descendant layer can cover its ancestor's own text. Empty branches
+  // represent that text; negative z-index comparisons have already been handled.
+  if (!left[index]) return false;
+  if (!right[index]) return true;
   return Boolean(right[index].compareDocumentPosition(left[index]) & 4);
 }
 

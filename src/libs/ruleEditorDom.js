@@ -51,15 +51,34 @@ const utilityClass = (value) =>
 
 // CSS Modules keep the component and local names while changing the build hash.
 // Partial selectors deliberately omit that hash; exact classes remain fallbacks.
+const moduleClass = /^([\w-]+-module(?:-scss-module)?)__[^_]+__([\w-]+)$/;
+const classTokenBoundary = (value, start) => {
+  // Class tokens can be separated by any of the five CSS whitespace characters.
+  const separators = [" ", "\t", "\\a ", "\\c ", "\\d "];
+  return `:is([class${start ? "^" : "$"}="${value}"],${separators
+    .map((space) => `[class*="${start ? space + value : value + space}"]`)
+    .join(",")})`;
+};
 function classDescriptor(name) {
-  const module = name.match(
-    /^([\w-]+-module(?:-scss-module)?)__[^_]+__([\w-]+)$/
-  );
-  if (module)
-    return {
-      selector: `[class*="${module[1]}__"][class*="__${module[2]}"]`,
-      quality: 75,
-    };
+  const module = name.match(moduleClass);
+  if (module) {
+    const selector =
+      classTokenBoundary(`${module[1]}__`, true) +
+      classTokenBoundary(`__${module[2]}`, false);
+    // Attribute fragments can belong to different tokens. Do not offer a
+    // component selector if it also matches such collisions on the page.
+    try {
+      const unambiguous = queryPage(selector).every((element) =>
+        Array.from(element.classList).some((token) => {
+          const other = token.match(moduleClass);
+          return other && other[1] === module[1] && other[2] === module[2];
+        })
+      );
+      if (unambiguous) return { selector, quality: 75 };
+    } catch {
+      /* Keep the exact class fallback if this browser cannot use :is(). */
+    }
+  }
   return {
     selector: `.${escapeId(name)}`,
     fragile: !stable(name),
@@ -178,7 +197,7 @@ export function selectorCandidates(element) {
   classes.forEach(({ selector, quality }) =>
     add(
       selector,
-      selector.startsWith("[") ? "structure" : "class",
+      selector.startsWith(".") ? "class" : "structure",
       false,
       quality
     )
@@ -204,7 +223,7 @@ export function selectorCandidates(element) {
     if (cls) {
       add(`${cls.selector} ${local}`, "container", false, 85);
       if (variants)
-        add(`${cls.selector} ${tag}${variants}`, "structure", false, 95);
+        add(`${cls.selector} ${local}${variants}`, "structure", false, 95);
     }
   }
   add(tag, "tag", false, 10);
