@@ -216,7 +216,7 @@ describe("FileTranslate view", () => {
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain("点击选择文件 或 拖拽文件到此处");
     expect(dropzone.textContent).toContain(
-      "支持 .txt 文本、.md Markdown 文档及 PNG、JPEG、WebP 格式图片"
+      "支持 .txt 文本、.md Markdown 文档、.epub 电子书及 PNG、JPEG、WebP 格式图片"
     );
 
     // 未上传文件时，左右双栏不展示
@@ -352,7 +352,7 @@ describe("FileTranslate view", () => {
     });
 
     expect(container.textContent).toContain(
-      "暂不支持该文件格式，支持 .txt 文本、.md Markdown 文档及 PNG、JPEG、WebP 图片"
+      "暂不支持该文件格式，支持 .txt 文本、.md Markdown 文档、.epub 电子书及 PNG、JPEG、WebP 图片"
     );
   });
 

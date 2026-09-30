@@ -59,7 +59,21 @@ import {
   splitMarkdownBlocks,
   renderMarkdownBlocksToHtml,
   generateStandaloneHtml,
+  parseEpubBook,
+  translateEpubChapter,
+  translateEpubBook,
+  exportEpubFromChapterStates,
+  injectFooterIntoXhtml,
 } from "../../libs/fileTranslate";
+import * as fflate from "fflate";
+import {
+  parseXhtmlToDoc,
+  serializeDocToXhtml,
+  embedEpubImagesAsDataUrls,
+  sanitizeEpubMarkup,
+} from "../../libs/epub/epubDomHandler";
+import EpubReaderView from "./EpubReaderView";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import { openOptionsPage } from "../../libs/navigation";
 import { SettingsSelect } from "../Options/SettingsCard";
 import OrderedApiSelect from "../Options/OrderedApiSelect";
@@ -93,6 +107,60 @@ function getTextStyleClass(styleSlug, allTextStyles) {
   } catch {
     return "";
   }
+}
+
+function getRawStyleCode(styleSlug, allTextStyles) {
+  if (!styleSlug || styleSlug === "style_none") return "";
+  const found = allTextStyles?.find((s) => s.styleSlug === styleSlug);
+  return found?.styleCode || builtinStylesMap[styleSlug] || "";
+}
+
+/**
+ * 提取当前 EPUB 各章节实际导出正文与状态的快照，用于导出结果精确缓存与失效比对
+ */
+function getEpubExportChapterSnapshot(
+  epubBookOrSpine,
+  chapterStates,
+  mode,
+  currentToLang,
+  navItemHref,
+  ncxItemHref
+) {
+  const isBook =
+    epubBookOrSpine &&
+    !Array.isArray(epubBookOrSpine) &&
+    epubBookOrSpine.spineItems;
+  const spineItems = isBook
+    ? epubBookOrSpine.spineItems
+    : epubBookOrSpine || [];
+  const navHref =
+    navItemHref || (isBook ? epubBookOrSpine.navItemHref : null);
+  const ncxHref =
+    ncxItemHref || (isBook ? epubBookOrSpine.ncxItemHref : null);
+
+  const snapshot = {};
+  const allPaths = new Set(spineItems.map((s) => s.fullPath));
+  if (navHref) allPaths.add(navHref);
+  if (ncxHref) allPaths.add(ncxHref);
+
+  for (const path of allPaths) {
+    const state = chapterStates?.[path];
+    const isLangMatch =
+      !state?.targetLang ||
+      !currentToLang ||
+      state.targetLang === currentToLang;
+    const isDone = state?.status === "done" && isLangMatch;
+    const content = isDone
+      ? mode === "target"
+        ? state?.targetXhtml || state?.targetHtml || ""
+        : state?.bilingualXhtml || state?.bilingualHtml || ""
+      : "";
+    snapshot[path] = {
+      status: isLangMatch ? state?.status || "idle" : "idle",
+      content,
+    };
+  }
+  return snapshot;
 }
 
 /**
@@ -147,6 +215,11 @@ export default function FileTranslateView() {
     [scene?.textStyle, allTextStyles]
   );
 
+  const rawStyleCode = useMemo(
+    () => getRawStyleCode(scene?.textStyle, allTextStyles),
+    [scene?.textStyle, allTextStyles]
+  );
+
   const [file, setFile] = useState(null);
   const [sourceText, setSourceText] = useState("");
   const [preview, setPreview] = useState("");
@@ -165,6 +238,17 @@ export default function FileTranslateView() {
   const [mdBlocks, setMdBlocks] = useState([]);
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState(null);
   const allOcrModels = ALL_OCR_MODELS || OCR_GROUPS;
+
+  // --- EPUB 模式专用状态 ---
+  const [epubBook, setEpubBook] = useState(null);
+  const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
+  const [epubViewMode, setEpubViewMode] = useState("bilingual");
+  const [chapterStates, setChapterStates] = useState({});
+  const [readerPreferences, setReaderPreferences] = useState({
+    fontSize: saved.epub?.readerPreferences?.fontSize || 16,
+    fontFamily: saved.epub?.readerPreferences?.fontFamily || "default",
+    themeId: saved.epub?.readerPreferences?.themeId || "default",
+  });
 
   // 筛选具备 OCR 能力的服务实例
   const ocrApis = useMemo(() => {
@@ -236,7 +320,9 @@ export default function FileTranslateView() {
     const options = ocrApis.map((api) => ({
       value: api.apiSlug,
       label: `${api.apiName || api.apiType || api.apiSlug}${
-        api.modelRef ? ` (${getModelDisplayName(api.modelRef, i18n)})` : ""
+        api.modelRef
+          ? ` (${typeof getModelDisplayName === "function" ? getModelDisplayName(api.modelRef, i18n) : api.modelRef})`
+          : ""
       }`,
     }));
     if (currentOcrSlug && !options.some((o) => o.value === currentOcrSlug)) {
@@ -269,6 +355,35 @@ export default function FileTranslateView() {
   const leftScrollRef = useRef(null);
   const rightScrollRef = useRef(null);
   const isSyncingScroll = useRef(false);
+  const taskIdRef = useRef(0);
+  const fileRef = useRef(null);
+  const epubExportCacheRef = useRef(new Map());
+
+  // 监听文件或图书切换，清空 EPUB 导出缓存
+  useEffect(() => {
+    epubExportCacheRef.current.clear();
+  }, [file, epubBook]);
+
+  // 监听语言切换，中止正在运行的任务并彻底清除旧语言译文与导出缓存
+  const lastLangsRef = useRef({
+    fromLang: scene?.fromLang,
+    toLang: scene?.toLang,
+  });
+  useEffect(() => {
+    const prev = lastLangsRef.current;
+    if (prev.toLang !== scene?.toLang || prev.fromLang !== scene?.fromLang) {
+      controller.current?.abort();
+      taskIdRef.current += 1;
+      setBusy(false);
+      setError("");
+      setChapterStates({});
+      epubExportCacheRef.current.clear();
+      lastLangsRef.current = {
+        fromLang: scene?.fromLang,
+        toLang: scene?.toLang,
+      };
+    }
+  }, [scene?.fromLang, scene?.toLang]);
 
   // 左右两栏按百分比联动滚动（通过互斥锁防循环触发）
   const handleLeftScroll = () => {
@@ -342,32 +457,22 @@ export default function FileTranslateView() {
   // 组件卸载时自动终止正在进行的翻译任务
   useEffect(() => () => controller.current?.abort(), []);
 
-  // 异步读取 TXT 文件内容
+  // 异步读取 TXT / Markdown 文件内容（纯读取，无副作用）
   const readTxtFile = async (selected) => {
-    try {
-      let content = "";
-      if (typeof selected.text === "function") {
-        content = await selected.text();
-      } else if (typeof selected.arrayBuffer === "function") {
-        const buffer = await selected.arrayBuffer();
-        content = new TextDecoder("utf-8").decode(buffer);
-      } else {
-        content = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result || "");
-          reader.onerror = reject;
-          reader.readAsText(selected, "utf-8");
-        });
-      }
-      setSourceText(content);
-      return content;
-    } catch (err) {
-      setError(
-        i18n("file_read_error", "读取文件失败：") +
-          (err?.message || String(err))
-      );
-      return "";
+    if (!selected) return "";
+    if (typeof selected.text === "function") {
+      return await selected.text();
     }
+    if (typeof selected.arrayBuffer === "function") {
+      const buffer = await selected.arrayBuffer();
+      return new TextDecoder("utf-8").decode(buffer);
+    }
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result || "");
+      reader.onerror = reject;
+      reader.readAsText(selected, "utf-8");
+    });
   };
 
   // 清理现有翻译结果
@@ -380,6 +485,9 @@ export default function FileTranslateView() {
     setSourceHtml("");
     setMdBlocks([]);
     setIsEntireTranslated(false);
+    setEpubBook(null);
+    setCurrentChapterIndex(0);
+    setChapterStates({});
     if (translatedImageUrl) {
       URL.revokeObjectURL(translatedImageUrl);
       setTranslatedImageUrl("");
@@ -389,13 +497,25 @@ export default function FileTranslateView() {
 
   // 选入文件处理与全自动格式识别判定
   const selectFile = async (selected) => {
+    // 换书或重选文件时：在任何异步操作前立即记录本次唯一任务会话 ID，并中止旧任务
+    const currentTaskId = ++taskIdRef.current;
+    if (controller.current) {
+      controller.current.abort();
+      controller.current = null;
+    }
+    fileRef.current = selected || null;
+    setBusy(false);
     setError("");
     resetResults();
     setProgress([0, 0]);
+    setConfirmDialogOpen(false);
+    // 开始任何异步读取前立即重置旧文件和旧结果，防止异步读取期间用旧状态启动翻译导致竞态
+    setFile(null);
+    setSourceText("");
+    setPreview("");
+    setEpubBook(null);
+    setChapterStates({});
     if (!selected) {
-      setFile(null);
-      setSourceText("");
-      setPreview("");
       return;
     }
 
@@ -404,46 +524,92 @@ export default function FileTranslateView() {
     const isImage =
       IMAGE_TYPES.has(selected.type) ||
       /\.(png|jpe?g|webp)$/i.test(selected.name);
+    const isEpub =
+      /\.epub$/i.test(selected.name) ||
+      selected.type === "application/epub+zip";
 
-    if (!isTxt && !isMd && !isImage) {
+    if (!isTxt && !isMd && !isImage && !isEpub) {
       setFile(null);
       setSourceText("");
       setPreview("");
       setError(
         i18n(
           "file_format_unsupported",
-          "暂不支持该文件格式，支持 .txt 文本、.md Markdown 文档及 PNG、JPEG、WebP 图片"
+          "暂不支持该文件格式，支持 .txt 文本、.md Markdown 文档、.epub 电子书及 PNG、JPEG、WebP 图片"
         )
       );
       return;
     }
 
+    if (isEpub) {
+      try {
+        let buffer;
+        if (typeof selected.arrayBuffer === "function") {
+          buffer = await selected.arrayBuffer();
+        } else {
+          buffer = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(selected);
+          });
+        }
+        if (taskIdRef.current !== currentTaskId) return;
+
+        const book = await parseEpubBook(buffer);
+        if (taskIdRef.current !== currentTaskId) return;
+
+        setMode("epub");
+        setFile(selected);
+        setEpubBook(book);
+        setCurrentChapterIndex(0);
+        setChapterStates({});
+      } catch (err) {
+        if (taskIdRef.current !== currentTaskId) return;
+        setError(err?.message || String(err));
+      }
+      return;
+    }
+
     const nextMode = isMd ? "markdown" : isTxt ? "txt" : "image";
-    setMode(nextMode);
-    setFile(selected);
 
     if (nextMode === "txt" || nextMode === "markdown") {
-      setResultViewMode("target");
-      if (nextMode === "markdown") {
-        setMdSourceView("preview");
-      }
-      const content = await readTxtFile(selected);
-      if (nextMode === "markdown" && content) {
-        try {
-          const blocks = splitMarkdownBlocks(content);
-          setMdBlocks(blocks);
-          setSourceHtml(renderMarkdownBlocksToHtml(blocks, { mode: "source" }));
-          // 在点击翻译前，右侧翻译结果保持空白，避免用户误以为上传完即完成翻译
-          setTranslatedHtml("");
-          setBilingualHtml("");
-        } catch {
-          setSourceHtml("");
-          setTranslatedHtml("");
-          setBilingualHtml("");
-          setMdBlocks([]);
+      try {
+        const content = await readTxtFile(selected);
+        if (taskIdRef.current !== currentTaskId) return;
+
+        setMode(nextMode);
+        setFile(selected);
+        setSourceText(content);
+        setResultViewMode("target");
+        if (nextMode === "markdown") {
+          setMdSourceView("preview");
         }
+        if (nextMode === "markdown" && content) {
+          try {
+            const blocks = splitMarkdownBlocks(content);
+            setMdBlocks(blocks);
+            setSourceHtml(renderMarkdownBlocksToHtml(blocks, { mode: "source" }));
+            setTranslatedHtml("");
+            setBilingualHtml("");
+          } catch {
+            setSourceHtml("");
+            setTranslatedHtml("");
+            setBilingualHtml("");
+            setMdBlocks([]);
+          }
+        }
+      } catch (err) {
+        if (taskIdRef.current !== currentTaskId) return;
+        setError(
+          i18n("file_read_error", "读取文件失败：") +
+            (err?.message || String(err))
+        );
       }
     } else {
+      if (taskIdRef.current !== currentTaskId) return;
+      setMode(nextMode);
+      setFile(selected);
       setResultViewMode("image");
     }
   };
@@ -473,11 +639,18 @@ export default function FileTranslateView() {
     }
   };
 
-  // 清除已选文件，重置回未上传状态
+  // 清除已选文件，重置回未上传状态（彻底中止旧任务控制器并自增 taskId 阻断异步回调）
   const handleClearFile = () => {
+    taskIdRef.current += 1;
+    controller.current?.abort();
+    controller.current = null;
+    fileRef.current = null;
+    setBusy(false);
+    setConfirmDialogOpen(false);
     setFile(null);
     setSourceText("");
     setPreview("");
+    epubExportCacheRef.current.clear();
     resetResults();
     setError("");
     setProgress([0, 0]);
@@ -550,13 +723,16 @@ export default function FileTranslateView() {
     const bodyHtml =
       resultViewMode === "bilingual" ? bilingualHtml : translatedHtml;
     if (!bodyHtml) return;
+    const exportLang = scene?.toLang || setting?.uiLang || "zh-CN";
     const standaloneHtml = generateStandaloneHtml(
       bodyHtml,
       `${baseName} - ${
         resultViewMode === "bilingual"
           ? i18n("export_file_suffix_bilingual", "双语对照")
           : i18n("export_file_suffix_target", "译文")
-      }`
+      }`,
+      "",
+      exportLang
     );
     const suffix = resultViewMode === "bilingual" ? "bilingual" : "translated";
     const blob = new Blob([standaloneHtml], {
@@ -587,11 +763,501 @@ export default function FileTranslateView() {
     downloadText(`${baseName}-${suffix}.txt`, content);
   };
 
+  // 下载双语 EPUB（支持全书已翻、部分已翻或纯原书调整样式导出）
+  const handleDownloadBilingualEpub = () => {
+    if (!epubBook) return;
+
+    try {
+      const fallbackBaseName = file?.name
+        ? file.name.replace(/\.[^.]+$/, "")
+        : "book";
+      const currentFontFamily = readerPreferences?.fontFamily || "";
+      const currentRawStyle = rawStyleCode || "";
+      const currentToLang = scene?.toLang || "";
+      const currentUiLang = setting?.uiLang || "";
+      const spineItems = epubBook.spineItems || [];
+
+      const cached = epubExportCacheRef.current.get("bilingual");
+      if (
+        cached &&
+        cached.fallbackBaseName === fallbackBaseName &&
+        cached.fontFamily === currentFontFamily &&
+        cached.rawStyleCode === currentRawStyle &&
+        cached.toLang === currentToLang &&
+        cached.uiLang === currentUiLang
+      ) {
+        const currentSnapshot = getEpubExportChapterSnapshot(
+          epubBook,
+          chapterStates,
+          "bilingual",
+          currentToLang
+        );
+        const curKeys = Object.keys(currentSnapshot);
+        const prevKeys = Object.keys(cached.snapshot || {});
+        const isMatch =
+          curKeys.length === prevKeys.length &&
+          curKeys.every((key) => {
+            const cur = currentSnapshot[key];
+            const prev = cached.snapshot?.[key];
+            return (
+              cur?.status === prev?.status && cur?.content === prev?.content
+            );
+          });
+
+        if (isMatch) {
+          downloadBlob(cached.result.filename, cached.result.blob);
+          return;
+        }
+      }
+
+      const result = exportEpubFromChapterStates(
+        epubBook,
+        chapterStates,
+        scene,
+        {
+          textStyleCode: rawStyleCode,
+          fontFamily: readerPreferences?.fontFamily,
+          fallbackBaseName,
+          uiLang: setting?.uiLang,
+        },
+        "bilingual"
+      );
+      epubExportCacheRef.current.set("bilingual", {
+        fallbackBaseName,
+        fontFamily: currentFontFamily,
+        rawStyleCode: currentRawStyle,
+        toLang: currentToLang,
+        uiLang: currentUiLang,
+        snapshot: getEpubExportChapterSnapshot(
+          epubBook,
+          chapterStates,
+          "bilingual",
+          currentToLang
+        ),
+        result,
+      });
+      downloadBlob(result.filename, result.blob);
+    } catch (e) {
+      console.error("export bilingual epub error:", e);
+      setSnackbar({
+        open: true,
+        message: i18n("export_failed", "导出 EPUB 失败"),
+      });
+    }
+  };
+
+  // 下载纯译文 EPUB（支持全书已翻、部分已翻或纯原书调整样式导出）
+  const handleDownloadTargetEpub = () => {
+    if (!epubBook) return;
+
+    try {
+      const fallbackBaseName = file?.name
+        ? file.name.replace(/\.[^.]+$/, "")
+        : "book";
+      const currentFontFamily = readerPreferences?.fontFamily || "";
+      const currentRawStyle = rawStyleCode || "";
+      const currentToLang = scene?.toLang || "";
+      const currentUiLang = setting?.uiLang || "";
+      const spineItems = epubBook.spineItems || [];
+
+      const cached = epubExportCacheRef.current.get("target");
+      if (
+        cached &&
+        cached.fallbackBaseName === fallbackBaseName &&
+        cached.fontFamily === currentFontFamily &&
+        cached.rawStyleCode === currentRawStyle &&
+        cached.toLang === currentToLang &&
+        cached.uiLang === currentUiLang
+      ) {
+        const currentSnapshot = getEpubExportChapterSnapshot(
+          epubBook,
+          chapterStates,
+          "target",
+          currentToLang
+        );
+        const curKeys = Object.keys(currentSnapshot);
+        const prevKeys = Object.keys(cached.snapshot || {});
+        const isMatch =
+          curKeys.length === prevKeys.length &&
+          curKeys.every((key) => {
+            const cur = currentSnapshot[key];
+            const prev = cached.snapshot?.[key];
+            return (
+              cur?.status === prev?.status && cur?.content === prev?.content
+            );
+          });
+
+        if (isMatch) {
+          downloadBlob(cached.result.filename, cached.result.blob);
+          return;
+        }
+      }
+
+      const result = exportEpubFromChapterStates(
+        epubBook,
+        chapterStates,
+        scene,
+        {
+          textStyleCode: rawStyleCode,
+          fontFamily: readerPreferences?.fontFamily,
+          fallbackBaseName,
+          uiLang: setting?.uiLang,
+        },
+        "target"
+      );
+      epubExportCacheRef.current.set("target", {
+        fallbackBaseName,
+        fontFamily: currentFontFamily,
+        rawStyleCode: currentRawStyle,
+        toLang: currentToLang,
+        uiLang: currentUiLang,
+        snapshot: getEpubExportChapterSnapshot(
+          epubBook,
+          chapterStates,
+          "target",
+          currentToLang
+        ),
+        result,
+      });
+      downloadBlob(result.filename, result.blob);
+    } catch (e) {
+      console.error("export target epub error:", e);
+      setSnackbar({
+        open: true,
+        message: i18n("export_failed", "导出 EPUB 失败"),
+      });
+    }
+  };
+
+  // 导出当前章节 HTML
+  const handleExportCurrentChapterHtml = () => {
+    const currentChapter = epubBook?.spineItems?.[currentChapterIndex];
+    if (!currentChapter) return;
+    const state = chapterStates[currentChapter.fullPath];
+    const isLangMatch =
+      !state?.targetLang ||
+      !scene?.toLang ||
+      state.targetLang === scene.toLang;
+    let htmlToExport = isLangMatch
+      ? epubViewMode === "target"
+        ? state?.targetHtml || ""
+        : epubViewMode === "source"
+          ? state?.sourceHtml || ""
+          : state?.bilingualHtml || state?.sourceHtml || ""
+      : epubViewMode === "source"
+        ? state?.sourceHtml || ""
+        : "";
+
+    // 未翻译章节若无 state.sourceHtml，回退从原始 filesMap 读取
+    if (!htmlToExport && epubBook?.filesMap?.[currentChapter.fullPath]) {
+      const bytes = epubBook.filesMap[currentChapter.fullPath];
+      if (bytes) {
+        htmlToExport = fflate.strFromU8(bytes);
+      }
+    }
+
+    if (!htmlToExport) return;
+    const bookTitle = epubBook?.title || "book";
+    const chapterTitle =
+      currentChapter.title || `chapter_${currentChapterIndex + 1}`;
+
+    // 解析文档，内嵌离线 Base64 图片，并提取干净的 body 内容以避免嵌套完整 XHTML
+    let cleanBodyHtml = htmlToExport;
+    try {
+      const doc = parseXhtmlToDoc(htmlToExport);
+      embedEpubImagesAsDataUrls(doc, currentChapter.fullPath, epubBook.filesMap);
+      cleanBodyHtml = doc.body ? doc.body.innerHTML : serializeDocToXhtml(doc);
+    } catch {
+      cleanBodyHtml = htmlToExport;
+    }
+
+    // 严格净化导出的 HTML 正文内容，彻底剥离潜在的 <script> 标签与 on* 事件属性
+    cleanBodyHtml = sanitizeEpubMarkup(cleanBodyHtml);
+
+    const exportLang =
+      epubViewMode === "source"
+        ? scene?.fromLang || setting?.uiLang || "zh-CN"
+        : scene?.toLang || setting?.uiLang || "zh-CN";
+    let standalone = generateStandaloneHtml(
+      cleanBodyHtml,
+      `${bookTitle} - ${chapterTitle}`,
+      rawStyleCode,
+      exportLang
+    );
+    standalone = injectFooterIntoXhtml(standalone, exportLang);
+    downloadText(`${bookTitle}-${chapterTitle}.html`, standalone);
+  };
+
+  // 试译当前章节
+  const handleTranslateCurrentChapter = async () => {
+    if (!epubBook || busy) return;
+    const currentChapter = epubBook.spineItems[currentChapterIndex];
+    if (!currentChapter) return;
+
+    controller.current?.abort();
+    const abort = new AbortController();
+    controller.current = abort;
+    const currentTaskId = ++taskIdRef.current;
+    setBusy(true);
+    setError("");
+
+    setChapterStates((prev) => ({
+      ...prev,
+      [currentChapter.fullPath]: {
+        ...(prev[currentChapter.fullPath] || {}),
+        status: "busy",
+      },
+    }));
+
+    try {
+      const installedModels = new Set(await installedLlmModels());
+      if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+      const localContext = {
+        installedModels,
+        translate: async (modelRef, text, toLang, signal) =>
+          translateWithLocalModel(modelRef, text, toLang, signal),
+      };
+
+      const result = await translateEpubChapter(
+        currentChapter.fullPath,
+        epubBook.filesMap,
+        scene,
+        setting,
+        abort.signal,
+        (done, total, detail) => {
+          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+          setProgress([done, total]);
+          if (detail?.partialBilingualHtml || detail?.partialTargetHtml) {
+            setChapterStates((prev) => {
+              if (taskIdRef.current !== currentTaskId) return prev;
+              return {
+                ...prev,
+                [currentChapter.fullPath]: {
+                  ...(prev[currentChapter.fullPath] || {}),
+                  status: "busy",
+                  bilingualHtml:
+                    detail.partialBilingualHtml ||
+                    prev[currentChapter.fullPath]?.bilingualHtml,
+                  targetHtml:
+                    detail.partialTargetHtml ||
+                    prev[currentChapter.fullPath]?.targetHtml,
+                  bilingualXhtml:
+                    detail.partialBilingualHtml ||
+                    prev[currentChapter.fullPath]?.bilingualXhtml,
+                  targetXhtml:
+                    detail.partialTargetHtml ||
+                    prev[currentChapter.fullPath]?.targetXhtml,
+                },
+              };
+            });
+          }
+        },
+        localContext
+      );
+
+      if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+
+      setChapterStates((prev) => {
+        if (taskIdRef.current !== currentTaskId) return prev;
+        return {
+          ...prev,
+          [currentChapter.fullPath]: {
+            status: "done",
+            targetLang: scene.toLang,
+            sourceHtml: result.sourceHtml,
+            targetHtml: result.targetHtml,
+            bilingualHtml: result.bilingualHtml,
+            targetXhtml: result.targetXhtml || result.targetHtml,
+            bilingualXhtml: result.bilingualXhtml || result.bilingualHtml,
+          },
+        };
+      });
+    } catch (err) {
+      if (taskIdRef.current !== currentTaskId) return;
+      if (!abort.signal.aborted) {
+        setError(err?.message || String(err));
+      }
+      setChapterStates((prev) => {
+        if (taskIdRef.current !== currentTaskId) return prev;
+        const previousState = prev[currentChapter.fullPath];
+        if (previousState?.status === "done") {
+          return prev;
+        }
+        return {
+          ...prev,
+          [currentChapter.fullPath]: {
+            status: "idle",
+            sourceHtml: previousState?.sourceHtml || "",
+          },
+        };
+      });
+    } finally {
+      if (taskIdRef.current === currentTaskId) {
+        setBusy(false);
+      }
+      if (controller.current === abort) {
+        controller.current = null;
+      }
+    }
+  };
+
+  // 翻译整本电子书
+  const handleTranslateEntireEpubBook = async () => {
+    if (!epubBook || busy) return;
+    controller.current?.abort();
+    const abort = new AbortController();
+    controller.current = abort;
+    const currentTaskId = ++taskIdRef.current;
+    setBusy(true);
+    setError("");
+    setProgress([0, epubBook.spineItems.length]);
+
+    try {
+      const installedModels = new Set(await installedLlmModels());
+      if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+      const localContext = {
+        installedModels,
+        translate: async (modelRef, text, toLang, signal) =>
+          translateWithLocalModel(modelRef, text, toLang, signal),
+      };
+
+      const result = await translateEpubBook(
+        epubBook,
+        scene,
+        setting,
+        abort.signal,
+        (doneChapters, totalChapters, doneParas, totalParas, detail) => {
+          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+          setProgress([doneChapters, totalChapters]);
+          if (detail?.currentChapter) {
+            const chPath = detail.currentChapter.fullPath;
+            if (detail.partialBilingualHtml || detail.partialTargetHtml) {
+              setChapterStates((prev) => {
+                if (taskIdRef.current !== currentTaskId) return prev;
+                return {
+                  ...prev,
+                  [chPath]: {
+                    ...(prev[chPath] || {}),
+                    status: "busy",
+                    bilingualHtml:
+                      detail.partialBilingualHtml ||
+                      prev[chPath]?.bilingualHtml,
+                    targetHtml:
+                      detail.partialTargetHtml ||
+                      prev[chPath]?.targetHtml,
+                    bilingualXhtml:
+                      detail.partialBilingualHtml ||
+                      prev[chPath]?.bilingualXhtml,
+                    targetXhtml:
+                      detail.partialTargetHtml ||
+                      prev[chPath]?.targetXhtml,
+                  },
+                };
+              });
+            }
+          }
+          if (detail?.chapterCompleted && detail?.currentChapter) {
+            const chPath = detail.currentChapter.fullPath;
+            setChapterStates((prev) => {
+              if (taskIdRef.current !== currentTaskId) return prev;
+              return {
+                ...prev,
+                [chPath]: {
+                  status: "done",
+                  targetLang: scene.toLang,
+                  bilingualHtml: detail.bilingualHtml,
+                  targetHtml: detail.targetHtml,
+                  sourceHtml: detail.sourceHtml,
+                  bilingualXhtml: detail.bilingualHtml,
+                  targetXhtml: detail.targetHtml,
+                },
+              };
+            });
+          }
+        },
+        localContext,
+        { textStyleCode: rawStyleCode }
+      );
+
+      if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+
+      if (result.chapterResults) {
+        const nextStates = {};
+        for (const [path, r] of Object.entries(result.chapterResults)) {
+          nextStates[path] = {
+            status: "done",
+            targetLang: scene.toLang,
+            sourceHtml: r.sourceHtml,
+            targetHtml: r.targetHtml,
+            bilingualHtml: r.bilingualHtml,
+            targetXhtml: r.targetXhtml || r.targetHtml,
+            bilingualXhtml: r.bilingualXhtml || r.bilingualHtml,
+          };
+        }
+        setChapterStates(nextStates);
+      }
+      setSnackbar({
+        open: true,
+        message: i18n(
+          "epub_translate_complete",
+          "整本电子书翻译完成，可以下载 EPUB 文件！"
+        ),
+      });
+    } catch (err) {
+      if (taskIdRef.current !== currentTaskId) return;
+      if (!abort.signal.aborted) {
+        setError(err?.message || String(err));
+      }
+      // 收敛那些处于 busy 状态的未完成章节为 idle，避免挂起
+      setChapterStates((prev) => {
+        if (taskIdRef.current !== currentTaskId) return prev;
+        const next = { ...prev };
+        let changed = false;
+        for (const [path, item] of Object.entries(next)) {
+          if (item?.status === "busy") {
+            next[path] = {
+              status: "idle",
+              sourceHtml: item?.sourceHtml || "",
+            };
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    } finally {
+      if (taskIdRef.current === currentTaskId) {
+        setBusy(false);
+      }
+      if (controller.current === abort) {
+        controller.current = null;
+      }
+    }
+  };
+
+  // 更新阅读排版偏好
+  const handleUpdateReaderPreferences = (patch) => {
+    const next = { ...readerPreferences, ...patch };
+    setReaderPreferences(next);
+    patchScene({ readerPreferences: next });
+  };
+
   // 检查并启动翻译（若为整篇翻译且字符数超过 10,000 则弹窗确认）
   const handleStartTranslation = async (scope = translateScope) => {
     setTranslateMenuAnchor(null);
     if (!file || busy) return;
-    const rawContent = sourceText || (file ? await readTxtFile(file) : "");
+    const currentTaskId = taskIdRef.current;
+    const targetFile = file;
+
+    const rawContent =
+      scope === "entire"
+        ? sourceText || (file ? await readTxtFile(file) : "")
+        : "";
+
+    // 校验异步读取文件期间，任务会话与选定文件未被变更
+    if (taskIdRef.current !== currentTaskId || file !== targetFile) {
+      return;
+    }
+
     if (scope === "entire" && rawContent.length > 10000) {
       setConfirmDialogOpen(true);
       return;
@@ -602,8 +1268,10 @@ export default function FileTranslateView() {
   // 执行翻译流程
   const run = async (scope = translateScope) => {
     if (!file || busy) return;
+    controller.current?.abort();
     const abort = new AbortController();
     controller.current = abort;
+    const currentTaskId = ++taskIdRef.current;
     setBusy(true);
     setError("");
     if (mode === "markdown") {
@@ -616,6 +1284,7 @@ export default function FileTranslateView() {
     setProgress([0, 0]);
     try {
       const installedModels = new Set(await installedLlmModels());
+      if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
       const localContext = {
         installedModels,
         translate: async (modelRef, text, toLang, signal) =>
@@ -626,6 +1295,7 @@ export default function FileTranslateView() {
         setIsEntireTranslated(true);
         setResultViewMode("target"); // 整篇翻译自动切换为译文视图
         const content = sourceText || (await readTxtFile(file));
+        if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
 
         if (mode === "txt") {
           const result = await translateEntireTxt(
@@ -635,6 +1305,7 @@ export default function FileTranslateView() {
             abort.signal,
             localContext
           );
+          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
           setRows([]);
           setResultText(result.text);
           setProgress([1, 1]);
@@ -646,6 +1317,7 @@ export default function FileTranslateView() {
             abort.signal,
             localContext
           );
+          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
           setRows([]);
           setResultText(result.translatedMd);
           setBilingualMd("");
@@ -658,6 +1330,7 @@ export default function FileTranslateView() {
       } else if (mode === "txt") {
         setIsEntireTranslated(false);
         const content = sourceText || (await readTxtFile(file));
+        if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
         const nextRows = [];
         const result = await translateTxt(
           content,
@@ -665,6 +1338,7 @@ export default function FileTranslateView() {
           setting,
           abort.signal,
           (done, total, item) => {
+            if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
             setProgress([done, total]);
             if (item) {
               nextRows.push(item);
@@ -673,11 +1347,13 @@ export default function FileTranslateView() {
           },
           localContext
         );
+        if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
         setRows(result.comparisons);
         setResultText(result.text);
       } else if (mode === "markdown") {
         setIsEntireTranslated(false);
         const content = sourceText || (await readTxtFile(file));
+        if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
         const nextRows = [];
         const result = await translateMarkdown(
           content,
@@ -685,6 +1361,7 @@ export default function FileTranslateView() {
           setting,
           abort.signal,
           (done, total, item, currentBlocks) => {
+            if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
             setProgress([done, total]);
             if (item) {
               nextRows.push(item);
@@ -708,6 +1385,7 @@ export default function FileTranslateView() {
           },
           localContext
         );
+        if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
         setRows(result.comparisons);
         setResultText(result.translatedMd);
         setBilingualMd(result.bilingualMd);
@@ -735,11 +1413,12 @@ export default function FileTranslateView() {
           },
           abort.signal
         );
+        if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
         const items = recognized.items || [];
         const nextRows = [];
         const total = items.length;
         for (let i = 0; i < total; i++) {
-          if (abort.signal.aborted) {
+          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) {
             throw new DOMException("已取消", "AbortError");
           }
           const item = items[i];
@@ -750,6 +1429,7 @@ export default function FileTranslateView() {
             abort.signal,
             localContext
           );
+          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
           const row = {
             source: item.text,
             target: trText,
@@ -773,6 +1453,7 @@ export default function FileTranslateView() {
                 fontFamily: scene.fontFamily || "default",
               }
             );
+            if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
             if (synthesized) {
               setTranslatedImageBlob(synthesized);
               const url = URL.createObjectURL(synthesized);
@@ -784,6 +1465,7 @@ export default function FileTranslateView() {
         }
       }
     } catch (err) {
+      if (taskIdRef.current !== currentTaskId) return;
       if (err?.name === "AbortError" || abort.signal.aborted) {
         // 用户主动取消
       } else {
@@ -792,8 +1474,12 @@ export default function FileTranslateView() {
         );
       }
     } finally {
-      setBusy(false);
-      controller.current = null;
+      if (taskIdRef.current === currentTaskId) {
+        setBusy(false);
+      }
+      if (controller.current === abort) {
+        controller.current = null;
+      }
     }
   };
 
@@ -819,7 +1505,16 @@ export default function FileTranslateView() {
           label={i18n("from_lang", "源语言")}
           value={scene.fromLang}
           options={OPT_LANGS_FROM_REVERSED}
-          onChange={(fromLang) => patchScene({ fromLang })}
+          onChange={(fromLang) => {
+            if (fromLang === scene.fromLang) return;
+            controller.current?.abort();
+            taskIdRef.current += 1;
+            setBusy(false);
+            setError("");
+            setChapterStates({});
+            epubExportCacheRef.current.clear();
+            patchScene({ fromLang });
+          }}
         />
       </Box>
       <ArrowForwardRoundedIcon
@@ -838,7 +1533,16 @@ export default function FileTranslateView() {
           label={i18n("to_lang", "目标语言")}
           value={scene.toLang}
           options={OPT_LANGS_TO_REVERSED}
-          onChange={(toLang) => patchScene({ toLang })}
+          onChange={(toLang) => {
+            if (toLang === scene.toLang) return;
+            controller.current?.abort();
+            taskIdRef.current += 1;
+            setBusy(false);
+            setError("");
+            setChapterStates({});
+            epubExportCacheRef.current.clear();
+            patchScene({ toLang });
+          }}
         />
       </Box>
 
@@ -869,8 +1573,8 @@ export default function FileTranslateView() {
         />
       </Box>
 
-      {/* 译文样式选项（在双语展示文本翻译时生效） */}
-      {(mode === "txt" || mode === "markdown") && (
+      {/* 译文样式选项（在双语展示文本与电子书翻译时生效） */}
+      {(mode === "txt" || mode === "markdown" || mode === "epub") && (
         <Box sx={{ width: 140, flexShrink: 0 }}>
           <SettingsSelect
             fullWidth
@@ -884,6 +1588,28 @@ export default function FileTranslateView() {
               label: s.styleName || i18n(s.styleSlug) || s.styleSlug,
             }))}
             onChange={(textStyle) => patchScene({ textStyle })}
+          />
+        </Box>
+      )}
+
+      {/* 富文本选项（EPUB 电子书翻译时生效，控制是否保留内联标签） */}
+      {mode === "epub" && (
+        <Box sx={{ width: 140, flexShrink: 0 }}>
+          <SettingsSelect
+            fullWidth
+            size="small"
+            variant="outlined"
+            hiddenLabel={false}
+            label={i18n("rich_text", "富文本")}
+            value={scene?.hasRichText ?? "true"}
+            options={[
+              { value: "true", label: i18n("rich_text_keep", "保留富文本") },
+              {
+                value: "false",
+                label: i18n("rich_text_strip", "纯净文本(忽略标签)"),
+              },
+            ]}
+            onChange={(hasRichText) => patchScene({ hasRichText })}
           />
         </Box>
       )}
@@ -955,7 +1681,7 @@ export default function FileTranslateView() {
         ref={fileInputRef}
         type="file"
         style={{ display: "none" }}
-        accept=".txt,.md,.markdown,text/plain,text/markdown,image/png,image/jpeg,image/webp"
+        accept=".txt,.md,.markdown,.epub,text/plain,text/markdown,application/epub+zip,image/png,image/jpeg,image/webp"
         onChange={(e) => {
           selectFile(e.target.files?.[0]);
           e.target.value = "";
@@ -1047,11 +1773,17 @@ export default function FileTranslateView() {
                 icon={
                   mode === "image" ? (
                     <ImageRoundedIcon sx={{ fontSize: 16 }} />
+                  ) : mode === "epub" ? (
+                    <MenuBookRoundedIcon sx={{ fontSize: 16 }} />
                   ) : (
                     <InsertDriveFileRoundedIcon sx={{ fontSize: 16 }} />
                   )
                 }
-                label={`${file.name} (${formatFileSize(file.size)})`}
+                label={
+                  mode === "epub" && epubBook
+                    ? `${epubBook.title} (${epubBook.spineItems.length} ${i18n("epub_chapters_count", "章")})`
+                    : `${file.name} (${formatFileSize(file.size)})`
+                }
                 variant="outlined"
                 color="primary"
                 size="small"
@@ -1074,7 +1806,29 @@ export default function FileTranslateView() {
               />
             )}
 
-            {mode === "image" ? (
+            {mode === "epub" ? (
+              <Button
+                variant="contained"
+                color="primary"
+                size="small"
+                startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
+                disabled={!file || busy || !epubBook}
+                onClick={handleTranslateEntireEpubBook}
+                sx={{
+                  height: 32,
+                  borderRadius: "4px",
+                  fontWeight: 600,
+                  px: 1.75,
+                  whiteSpace: "nowrap",
+                  textTransform: "none",
+                  fontSize: 13,
+                  boxShadow: "none",
+                  "&:hover": { boxShadow: "none" },
+                }}
+              >
+                {i18n("epub_translate_book", "翻译整本书")}
+              </Button>
+            ) : mode === "image" ? (
               <Button
                 variant="contained"
                 color="primary"
@@ -1210,7 +1964,86 @@ export default function FileTranslateView() {
               </Button>
             )}
 
-            {mode === "markdown" ? (
+            {mode === "epub" ? (
+              <>
+                <ButtonGroup
+                  variant="outlined"
+                  color="inherit"
+                  size="small"
+                  disabled={busy}
+                  sx={{
+                    height: 32,
+                    borderRadius: "4px",
+                  }}
+                >
+                  <Button
+                    startIcon={
+                      <FileDownloadRoundedIcon sx={{ fontSize: 18 }} />
+                    }
+                    onClick={
+                      epubViewMode === "target"
+                        ? handleDownloadTargetEpub
+                        : handleDownloadBilingualEpub
+                    }
+                    sx={{
+                      height: 32,
+                      textTransform: "none",
+                      fontSize: 13,
+                      px: 1.5,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {epubViewMode === "target"
+                      ? i18n("download_translated_epub", "下载译文 EPUB")
+                      : i18n("download_bilingual_epub", "下载双语 EPUB")}
+                  </Button>
+                  <Button
+                    size="small"
+                    color="inherit"
+                    onClick={(e) => setDownloadMenuAnchor(e.currentTarget)}
+                    disabled={busy}
+                    sx={{ px: 0.5, minWidth: 28, height: 32 }}
+                    title={i18n("more_export_options", "更多导出选项")}
+                  >
+                    <ArrowDropDownRoundedIcon sx={{ fontSize: 20 }} />
+                  </Button>
+                </ButtonGroup>
+                <Menu
+                  anchorEl={downloadMenuAnchor}
+                  open={Boolean(downloadMenuAnchor)}
+                  onClose={() => setDownloadMenuAnchor(null)}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                  transformOrigin={{ vertical: "top", horizontal: "right" }}
+                >
+                  <MenuItem
+                    disabled={!epubBook}
+                    onClick={() => {
+                      setDownloadMenuAnchor(null);
+                      handleDownloadBilingualEpub();
+                    }}
+                  >
+                    {i18n("download_bilingual_epub", "下载双语 EPUB (.epub)")}
+                  </MenuItem>
+                  <MenuItem
+                    disabled={!epubBook}
+                    onClick={() => {
+                      setDownloadMenuAnchor(null);
+                      handleDownloadTargetEpub();
+                    }}
+                  >
+                    {i18n("download_translated_epub", "下载译文 EPUB (.epub)")}
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setDownloadMenuAnchor(null);
+                      handleExportCurrentChapterHtml();
+                    }}
+                  >
+                    {i18n("export_chapter_html", "导出当前章节 HTML (.html)")}
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : mode === "markdown" ? (
               <>
                 <ButtonGroup
                   variant="outlined"
@@ -1478,10 +2311,29 @@ export default function FileTranslateView() {
             <Typography variant="body2" color="text.secondary">
               {i18n(
                 "dropzone_hint_all",
-                "支持 .txt 文本、.md Markdown 文档及 PNG、JPEG、WebP 格式图片"
+                "支持 .txt 文本、.md Markdown 文档、.epub 电子书及 PNG、JPEG、WebP 格式图片"
               )}
             </Typography>
           </Box>
+        ) : mode === "epub" && epubBook ? (
+          <EpubReaderView
+            epubBook={epubBook}
+            currentChapterIndex={currentChapterIndex}
+            onSelectChapter={(idx) => setCurrentChapterIndex(idx)}
+            epubViewMode={epubViewMode}
+            onChangeViewMode={(m) => setEpubViewMode(m)}
+            chapterStates={chapterStates}
+            busy={busy}
+            onTranslateChapter={handleTranslateCurrentChapter}
+            onTranslateBook={handleTranslateEntireEpubBook}
+            onCancel={() => controller.current?.abort()}
+            readerPreferences={readerPreferences}
+            onChangeReaderPreferences={handleUpdateReaderPreferences}
+            i18n={i18n}
+            textStyleClass={textStyleClass}
+            rawStyleCode={rawStyleCode}
+            hasRichText={scene?.hasRichText}
+          />
         ) : (
           /* 文件上传后：900px 以上左右双栏，900px 以下上下分割各占 50% 可用高度 */
           <Grid

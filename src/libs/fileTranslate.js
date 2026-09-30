@@ -1,9 +1,38 @@
+import * as fflate from "fflate";
 import { apiTranslate } from "../apis";
 import {
   availableApisForScene,
   withScenePrompt,
 } from "../config/serviceSelection";
 import { resolveApiPromptSettings } from "../config/prompt";
+import {
+  parseEpubBook,
+  parseXml,
+  normalizePath,
+  safeDecodeURI,
+} from "./epub/epubParser";
+import {
+  parseXhtmlToDoc,
+  extractTranslatableUnits,
+  applyTranslationToDoc,
+  serializeDocToXhtml,
+  unmaskEpubInlineElements,
+} from "./epub/epubDomHandler";
+import {
+  DEFAULT_EPUB_BILINGUAL_CSS,
+  updateOpfDocument,
+  getRelativePath,
+  injectCssIntoXhtml,
+  injectFooterIntoXhtml,
+  getEpubFooterHtml,
+  EPUB_FOOTER_HTML,
+  EPUB_FOOTER_LINK,
+  packEpub,
+  packEpubUint8Array,
+  updateNavDocument,
+  updateNcxDocument,
+  extractTitleMapFromChapterStates,
+} from "./epub/epubPacker";
 
 export async function translateFileText(
   text,
@@ -668,15 +697,35 @@ export function renderMarkdownBlocksToHtml(
 }
 
 /**
+ * 转义 HTML 特殊字符，防止在标签或文本节点中发生 XSS 注入
+ */
+export function escapeHtmlText(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
  * 包装为独立、美观的完整 HTML 网页文件字符串
  */
-export function generateStandaloneHtml(bodyHtml, title = "Translation Result") {
+export function generateStandaloneHtml(
+  bodyHtml,
+  title = "Translation Result",
+  customCss = "",
+  lang = "zh-CN"
+) {
+  const safeTitle = escapeHtmlText(title);
+  const safeLang = escapeHtmlText(lang || "zh-CN");
   return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="${safeLang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
+  <title>${safeTitle}</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -702,6 +751,13 @@ export function generateStandaloneHtml(bodyHtml, title = "Translation Result") {
     table th, table td { padding: 6px 13px; border: 1px solid #dfe2e5; }
     .kt-md-source { opacity: 0.75; font-size: 0.95em; }
     .kt-md-target { font-weight: 500; }
+    .kt-bilingual-target { ${customCss} }
+    .kt-epub-footer { display: flex; align-items: center; justify-content: center; margin-top: 3.5em; margin-bottom: 2em; padding: 0; text-align: center; clear: both; width: 100%; }
+    .kt-epub-footer, .kt-epub-footer * { text-align: center; }
+    .kt-epub-footer-line { display: inline-block; width: 48px; height: 1px; background-color: #d1d5db; vertical-align: middle; flex-shrink: 0; }
+    .kt-epub-footer-text { display: inline-block; margin: 0 14px; padding: 0; text-align: center; font-size: 0.82em; line-height: 1.5; color: #888888; white-space: nowrap; }
+    .kt-epub-footer a { color: #2563eb; text-decoration: none; word-break: break-all; }
+    .kt-epub-footer a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -1247,4 +1303,692 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
   }
 }
 
+/**
+ * 单个 EPUB 章节独立试译
+ */
+export async function translateEpubChapter(
+  chapterPath,
+  filesMap,
+  scene,
+  setting,
+  signal,
+  onProgress,
+  localContext
+) {
+  if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+  const bytes = filesMap[chapterPath];
+  if (!bytes) {
+    throw new Error(`找不到章节文件: ${chapterPath}`);
+  }
+  const xhtmlStr = fflate.strFromU8(bytes);
+  const doc = parseXhtmlToDoc(xhtmlStr);
+  const sourceHtml = serializeDocToXhtml(doc);
+
+  const hasRichText = scene?.hasRichText ?? "true";
+  const units = extractTranslatableUnits(doc, { hasRichText });
+  if (!units.length) {
+    return {
+      sourceHtml,
+      targetHtml: sourceHtml,
+      bilingualHtml: sourceHtml,
+      targetXhtml: sourceHtml,
+      bilingualXhtml: sourceHtml,
+      unitsCount: 0,
+      comparisons: [],
+    };
+  }
+
+  const textStyle = scene?.textStyle || "style_none";
+  const bilingualDoc = parseXhtmlToDoc(xhtmlStr);
+  const bilingualUnits = extractTranslatableUnits(bilingualDoc, { hasRichText });
+  const targetDoc = parseXhtmlToDoc(xhtmlStr);
+  const targetUnits = extractTranslatableUnits(targetDoc, { hasRichText });
+
+  const chapterAbort = new AbortController();
+  const onParentAbort = () => chapterAbort.abort();
+  if (signal?.aborted) {
+    chapterAbort.abort();
+  } else if (signal) {
+    signal.addEventListener("abort", onParentAbort, { once: true });
+  }
+
+  const comparisons = [];
+  let completedUnits = 0;
+  let lastEmitTime = 0;
+  let emitTimer = null;
+  let isCancelledOrFailed = false;
+
+  const emitLiveProgress = (lastPair, force = false) => {
+    if (isCancelledOrFailed || chapterAbort.signal.aborted) {
+      if (emitTimer) {
+        clearTimeout(emitTimer);
+        emitTimer = null;
+      }
+      return;
+    }
+    const now = Date.now();
+    const doEmit = () => {
+      if (isCancelledOrFailed || chapterAbort.signal.aborted) return;
+      lastEmitTime = Date.now();
+      try {
+        const partialBilingualHtml = serializeDocToXhtml(bilingualDoc);
+        const partialTargetHtml = serializeDocToXhtml(targetDoc);
+        onProgress?.(completedUnits, units.length, {
+          ...lastPair,
+          partialBilingualHtml,
+          partialTargetHtml,
+        });
+      } catch {
+        onProgress?.(completedUnits, units.length, lastPair);
+      }
+    };
+
+    if (force || now - lastEmitTime >= 120) {
+      if (emitTimer) {
+        clearTimeout(emitTimer);
+        emitTimer = null;
+      }
+      doEmit();
+    } else if (!emitTimer) {
+      emitTimer = setTimeout(() => {
+        emitTimer = null;
+        doEmit();
+      }, 120 - (now - lastEmitTime));
+    }
+  };
+
+  const translateUnit = async (unit) => {
+    if (chapterAbort.signal.aborted) throw new DOMException("已取消", "AbortError");
+    if (!unit.maskedText?.trim()) {
+      unit.targetHtml = unit.rawHtml;
+      return;
+    }
+
+    const translatedMasked = await translateFileText(
+      unit.maskedText,
+      scene,
+      setting,
+      chapterAbort.signal,
+      localContext
+    );
+    if (chapterAbort.signal.aborted) return;
+    const targetHtml = unmaskEpubInlineElements(translatedMasked, unit.masks);
+    unit.targetHtml = targetHtml;
+    completedUnits++;
+    const pair = { source: unit.rawHtml, target: targetHtml };
+    comparisons.push(pair);
+
+    // 实时同步更新到 live bilingualDoc 与 live targetDoc
+    const uIdx = units.indexOf(unit);
+    if (uIdx !== -1) {
+      if (bilingualUnits[uIdx]) {
+        bilingualUnits[uIdx].targetHtml = targetHtml;
+        applyTranslationToDoc([bilingualUnits[uIdx]], "bilingual", textStyle);
+      }
+      if (targetUnits[uIdx]) {
+        targetUnits[uIdx].targetHtml = targetHtml;
+        applyTranslationToDoc([targetUnits[uIdx]], "target");
+      }
+    }
+    emitLiveProgress(pair, false);
+  };
+
+  // 并发控制窗口 (类似 Markdown，最大 50 并发触发底层 BatchQueue)
+  const concurrencyLimit = 50;
+  let taskIndex = 0;
+  const activePromises = new Set();
+  let firstError = null;
+
+  try {
+    while (taskIndex < units.length || activePromises.size > 0) {
+      if (chapterAbort.signal.aborted) throw new DOMException("已取消", "AbortError");
+      while (taskIndex < units.length && activePromises.size < concurrencyLimit) {
+        if (chapterAbort.signal.aborted) throw new DOMException("已取消", "AbortError");
+        const unit = units[taskIndex++];
+        let p;
+        p = Promise.resolve()
+          .then(() => translateUnit(unit))
+          .finally(() => activePromises.delete(p));
+        activePromises.add(p);
+      }
+      if (activePromises.size > 0) {
+        await Promise.race(activePromises);
+        if (chapterAbort.signal.aborted) throw new DOMException("已取消", "AbortError");
+      }
+    }
+  } catch (err) {
+    firstError = err;
+    isCancelledOrFailed = true;
+    chapterAbort.abort();
+  } finally {
+    if (emitTimer) {
+      clearTimeout(emitTimer);
+      emitTimer = null;
+    }
+    if (signal) {
+      signal.removeEventListener("abort", onParentAbort);
+    }
+    if (firstError) {
+      isCancelledOrFailed = true;
+      if (activePromises.size > 0) {
+        await Promise.allSettled(Array.from(activePromises));
+      }
+      throw firstError;
+    }
+  }
+
+  const targetHtml = serializeDocToXhtml(targetDoc);
+  const bilingualHtml = serializeDocToXhtml(bilingualDoc);
+  emitLiveProgress({ source: "", target: "" }, true);
+
+  return {
+    sourceHtml,
+    targetHtml,
+    bilingualHtml,
+    targetXhtml: targetHtml,
+    bilingualXhtml: bilingualHtml,
+    unitsCount: units.length,
+    comparisons,
+  };
+}
+
+/**
+ * 全本 EPUB 流式逐章翻译与合规重打包导出
+ */
+export async function translateEpubBook(
+  epubBook,
+  scene,
+  setting,
+  signal,
+  onProgress,
+  localContext,
+  options = {}
+) {
+  if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+  const { filesMap, spineItems } = epubBook;
+  const chapterResults = {};
+
+  // 1. 收集待翻译项：spine 章节 + 未列入 spine 的 EPUB 3 导航文档 (nav.xhtml)
+  const itemsToTranslate = [...spineItems];
+  const hasNavOutsideSpine =
+    epubBook.navItemHref &&
+    filesMap[epubBook.navItemHref] &&
+    !spineItems.some((s) => s.fullPath === epubBook.navItemHref);
+  if (hasNavOutsideSpine) {
+    itemsToTranslate.push({
+      id: "kt-nav-toc",
+      href: epubBook.navItemHref,
+      fullPath: epubBook.navItemHref,
+      title: "目录导航",
+      isNavDoc: true,
+    });
+  }
+
+  const totalChapters = itemsToTranslate.length;
+  let completedChapters = 0;
+  let totalParagraphsCount = 0;
+
+  for (let cIdx = 0; cIdx < itemsToTranslate.length; cIdx++) {
+    if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+    const item = itemsToTranslate[cIdx];
+    const chapterDoneCount = cIdx;
+    const chapterRes = await translateEpubChapter(
+      item.fullPath,
+      filesMap,
+      scene,
+      setting,
+      signal,
+      (currentPara, totalParas, lastPair) => {
+        onProgress?.(
+          chapterDoneCount,
+          totalChapters,
+          currentPara,
+          totalParas,
+          {
+            currentChapter: item,
+            currentPara,
+            totalParas,
+            lastPair,
+            partialBilingualHtml: lastPair?.partialBilingualHtml,
+            partialTargetHtml: lastPair?.partialTargetHtml,
+          }
+        );
+      },
+      localContext,
+      options
+    );
+
+    chapterResults[item.fullPath] = chapterRes;
+    completedChapters++;
+    totalParagraphsCount += chapterRes.unitsCount;
+
+    onProgress?.(
+      completedChapters,
+      totalChapters,
+      chapterRes.unitsCount,
+      chapterRes.unitsCount,
+      {
+        currentChapter: item,
+        chapterCompleted: true,
+        bilingualHtml: chapterRes.bilingualHtml,
+        targetHtml: chapterRes.targetHtml,
+        sourceHtml: chapterRes.sourceHtml,
+      }
+    );
+  }
+
+  // 组装章节状态并提供双语与仅译文打包结果（通过惰性 getter 按需打包，避免翻译收尾时对整书重复全量打包）
+  const chapterStates = {};
+  for (const [path, res] of Object.entries(chapterResults)) {
+    chapterStates[path] = {
+      status: "done",
+      targetLang: scene?.toLang,
+      sourceHtml: res.sourceHtml,
+      targetHtml: res.targetHtml,
+      bilingualHtml: res.bilingualHtml,
+      targetXhtml: res.targetXhtml || res.targetHtml,
+      bilingualXhtml: res.bilingualXhtml || res.bilingualHtml,
+    };
+  }
+
+  // 同步更新 EPUB 2 NCX 目录（若有未匹配到正文标题的目录条目，进行补充翻译）
+  if (epubBook.ncxItemHref && filesMap[epubBook.ncxItemHref]) {
+    try {
+      const titleMap = extractTitleMapFromChapterStates(
+        epubBook,
+        chapterStates,
+        "target"
+      );
+      const rawNcx = fflate.strFromU8(filesMap[epubBook.ncxItemHref]);
+      const ncxDoc = parseXml(rawNcx);
+      const ncxDir = epubBook.ncxItemHref.includes("/")
+        ? epubBook.ncxItemHref.slice(
+            0,
+            epubBook.ncxItemHref.lastIndexOf("/") + 1
+          )
+        : "";
+
+      const navPoints = Array.from(
+        ncxDoc.getElementsByTagName ? ncxDoc.getElementsByTagName("*") : []
+      ).filter(
+        (el) => el.localName === "navPoint" || el.nodeName?.endsWith("navPoint")
+      );
+
+      for (const navPoint of navPoints) {
+        const allChildren = Array.from(
+          navPoint.getElementsByTagName ? navPoint.getElementsByTagName("*") : []
+        );
+        const contentEl = allChildren.find(
+          (el) => el.localName === "content" || el.nodeName?.endsWith("content")
+        );
+        const rawSrc = contentEl?.getAttribute("src");
+        if (!rawSrc) continue;
+
+        const [cleanSrc, rawHash = ""] = rawSrc.split("#");
+        const targetFullPath = normalizePath(ncxDir + safeDecodeURI(cleanSrc));
+        const fullKey = rawHash
+          ? `${targetFullPath}#${safeDecodeURI(rawHash)}`
+          : targetFullPath;
+
+        const hasEntry = rawHash
+          ? titleMap.has(fullKey)
+          : (titleMap.has(fullKey) || titleMap.has(targetFullPath));
+
+        if (!hasEntry) {
+          const labelEl = allChildren.find(
+            (el) =>
+              el.localName === "navLabel" || el.nodeName?.endsWith("navLabel")
+          );
+          const textEl = labelEl
+            ? Array.from(
+                labelEl.getElementsByTagName
+                  ? labelEl.getElementsByTagName("*")
+                  : []
+              ).find(
+                (el) => el.localName === "text" || el.nodeName?.endsWith("text")
+              )
+            : null;
+          const origText = textEl?.textContent?.trim();
+          if (origText) {
+            try {
+              const transTitle = await translateFileText(
+                origText,
+                scene,
+                setting,
+                signal,
+                localContext
+              );
+              if (transTitle) {
+                titleMap.set(fullKey, transTitle.trim());
+                if (!rawHash) {
+                  titleMap.set(targetFullPath, transTitle.trim());
+                }
+              }
+            } catch (e) {
+              console.warn("翻译 NCX 目录条目失败:", origText, e);
+            }
+          }
+        }
+      }
+
+      if (titleMap.size > 0) {
+        const updatedNcx = updateNcxDocument(rawNcx, titleMap, ncxDir);
+        // 保存改写后的 NCX 到章节结果与状态中，不污染原始 epubBook.filesMap
+        chapterResults[epubBook.ncxItemHref] = {
+          sourceHtml: rawNcx,
+          targetHtml: updatedNcx,
+          bilingualHtml: updatedNcx,
+          targetXhtml: updatedNcx,
+          bilingualXhtml: updatedNcx,
+          unitsCount: 0,
+        };
+        chapterStates[epubBook.ncxItemHref] = {
+          status: "done",
+          targetLang: scene?.toLang,
+          sourceHtml: rawNcx,
+          targetHtml: updatedNcx,
+          bilingualHtml: updatedNcx,
+          targetXhtml: updatedNcx,
+          bilingualXhtml: updatedNcx,
+        };
+      }
+    } catch (e) {
+      console.warn("全书翻译 NCX 同步更新失败:", e);
+    }
+  }
+
+  let cachedBilingualExport = null;
+  let cachedTargetExport = null;
+
+  return {
+    get targetBlob() {
+      if (!cachedTargetExport) {
+        cachedTargetExport = exportEpubFromChapterStates(
+          epubBook,
+          chapterStates,
+          scene,
+          options,
+          "target"
+        );
+      }
+      return cachedTargetExport.blob;
+    },
+    get bilingualBlob() {
+      if (!cachedBilingualExport) {
+        cachedBilingualExport = exportEpubFromChapterStates(
+          epubBook,
+          chapterStates,
+          scene,
+          options,
+          "bilingual"
+        );
+      }
+      return cachedBilingualExport.blob;
+    },
+    get targetFilesMap() {
+      if (!cachedTargetExport) {
+        cachedTargetExport = exportEpubFromChapterStates(
+          epubBook,
+          chapterStates,
+          scene,
+          options,
+          "target"
+        );
+      }
+      return cachedTargetExport.filesMap;
+    },
+    get bilingualFilesMap() {
+      if (!cachedBilingualExport) {
+        cachedBilingualExport = exportEpubFromChapterStates(
+          epubBook,
+          chapterStates,
+          scene,
+          options,
+          "bilingual"
+        );
+      }
+      return cachedBilingualExport.filesMap;
+    },
+    chapterResults,
+    chapterStates,
+    totalParagraphsCount,
+  };
+}
+
+/**
+ * 基于当前章节翻译状态与阅读排版样式导出完整的 EPUB 电子书
+ * 支持全书未翻译（纯调整字体/样式）、部分章节翻译或全书翻译完成三种场景
+ * @param {Object} epubBook parseEpubBook 解析出的图书对象
+ * @param {Object} chapterStates 章节状态字典（包含 bilingualXhtml / targetXhtml）
+ * @param {Object} scene 翻译场景配置（包含 toLang 等）
+ * @param {Object} options 导出选项（textStyleCode, fontFamily, fontCss 等）
+ * @param {string} mode "bilingual" 双语对照 | "target" 仅译文
+ * @returns {{ blob: Blob, filename: string, hasAnyTranslated: boolean }}
+ */
+export function exportEpubFromChapterStates(
+  epubBook,
+  chapterStates = {},
+  scene = {},
+  options = {},
+  mode = "bilingual"
+) {
+  if (!epubBook || !epubBook.filesMap) {
+    throw new Error("缺少有效的 EPUB 图书数据");
+  }
+
+  const spineItems = epubBook.spineItems || [];
+  const filesMap = { ...epubBook.filesMap, ...(options?.extraFilesMap || {}) };
+  const opfPath = epubBook.opfPath;
+  const opfDir = epubBook.opfDir || "";
+
+  // 1. 判断是否有任何章节被完整翻译（必须为 done 状态且目标语言匹配，防止未完成草稿或旧语言译文被误判）
+  const hasAnyTranslated = spineItems.some((item) => {
+    const state = chapterStates[item.fullPath];
+    const isLangMatch = !state?.targetLang || !scene?.toLang || state.targetLang === scene.toLang;
+    const isDone = state?.status === "done" && isLangMatch;
+    const content =
+      mode === "target"
+        ? state?.targetXhtml || state?.targetHtml
+        : state?.bilingualXhtml || state?.bilingualHtml;
+    return isDone && Boolean(content);
+  });
+
+  // 2. 组装各章节内容（仅已完整翻译完成且目标语言匹配的章节应用翻译结果，未完成、失败或非当前目标语言章节保持原文件字节）
+  for (const spineItem of spineItems) {
+    const state = chapterStates[spineItem.fullPath];
+    const isLangMatch = !state?.targetLang || !scene?.toLang || state.targetLang === scene.toLang;
+    const isDone = state?.status === "done" && isLangMatch;
+    const targetContent = state?.targetXhtml || state?.targetHtml;
+    const bilingualContent = state?.bilingualXhtml || state?.bilingualHtml;
+
+    if (isDone && mode === "target" && targetContent) {
+      filesMap[spineItem.fullPath] = fflate.strToU8(targetContent);
+    } else if (isDone && mode === "bilingual" && bilingualContent) {
+      filesMap[spineItem.fullPath] = fflate.strToU8(bilingualContent);
+    } else {
+      // 保持原始章节字节不变
+      filesMap[spineItem.fullPath] = epubBook.filesMap[spineItem.fullPath];
+    }
+  }
+
+  // 3. 构建并注入样式（译文样式 + 用户设置的正文字体）
+  let customCss = DEFAULT_EPUB_BILINGUAL_CSS;
+
+  // 注入正文字体样式规则
+  if (options.fontCss) {
+    customCss += `\n${options.fontCss}\n`;
+  } else if (options.fontFamily === "serif") {
+    customCss += `\nbody, p, div {\n  font-family: SimSun, "Songti SC", STSong, "Source Han Serif CN", Georgia, serif;\n}\n`;
+  } else if (options.fontFamily === "kaiti") {
+    customCss += `\nbody, p, div {\n  font-family: KaiTi, "Kaiti SC", STKaiti, BiauKai, serif;\n}\n`;
+  }
+
+  // 注入译文样式规则
+  if (options.textStyleCode) {
+    customCss += `\n.kt-bilingual-target {\n  ${options.textStyleCode}\n}\n`;
+  }
+
+  const cssRelativePath = "styles/kiss-translator-epub.css";
+  const cssFullPath = opfDir
+    ? `${opfDir}${cssRelativePath}`
+    : cssRelativePath;
+  filesMap[cssFullPath] = fflate.strToU8(customCss);
+
+  // 为每个章节的 head 注入样式表 link，并在 body 底部注入 KISS Translator 注明与链接
+  const exportLang =
+    options?.lang ||
+    (hasAnyTranslated
+      ? scene?.toLang
+      : options?.uiLang || scene?.uiLang || "zh");
+  for (const spineItem of spineItems) {
+    const originalXhtml = fflate.strFromU8(filesMap[spineItem.fullPath]);
+    const relCss = getRelativePath(spineItem.fullPath, cssFullPath);
+    const injected = injectFooterIntoXhtml(
+      injectCssIntoXhtml(originalXhtml, relCss),
+      exportLang
+    );
+    filesMap[spineItem.fullPath] = fflate.strToU8(injected);
+  }
+
+  // 4. 更新 OPF 元数据
+  if (opfPath && filesMap[opfPath]) {
+    const rawOpf = fflate.strFromU8(filesMap[opfPath]);
+    let titleSuffix = "";
+    let toLang = undefined;
+
+    if (hasAnyTranslated) {
+      titleSuffix = mode === "target" ? " [译]" : " [双语对照]";
+      toLang = scene?.toLang || options?.toLang || options?.targetLang || "zh-CN";
+    }
+
+    const updatedOpf = updateOpfDocument(rawOpf, {
+      toLang,
+      titleSuffix,
+      cssHref: cssRelativePath,
+    });
+    filesMap[opfPath] = fflate.strToU8(updatedOpf);
+  }
+
+  // 5. 同步改写目录文件 (EPUB 3 NAV XHTML 与 EPUB 2 NCX XML)
+  const titleMap = extractTitleMapFromChapterStates(epubBook, chapterStates, mode);
+
+  // 5.1 更新 EPUB 3 导航文档 (navItemHref)
+  if (epubBook.navItemHref && filesMap[epubBook.navItemHref]) {
+    const navState = chapterStates[epubBook.navItemHref];
+    const isLangMatch =
+      !navState?.targetLang ||
+      !scene?.toLang ||
+      navState.targetLang === scene.toLang;
+    const isDone = navState?.status === "done" && isLangMatch;
+    const navContent =
+      mode === "target"
+        ? navState?.targetXhtml || navState?.targetHtml
+        : navState?.bilingualXhtml || navState?.bilingualHtml;
+
+    if (isDone && navContent) {
+      filesMap[epubBook.navItemHref] = fflate.strToU8(navContent);
+    } else if (titleMap.size > 0) {
+      try {
+        const rawNav = fflate.strFromU8(filesMap[epubBook.navItemHref]);
+        const navDir = epubBook.navItemHref.includes("/")
+          ? epubBook.navItemHref.slice(
+              0,
+              epubBook.navItemHref.lastIndexOf("/") + 1
+            )
+          : "";
+        const updatedNav = updateNavDocument(rawNav, titleMap, navDir);
+        filesMap[epubBook.navItemHref] = fflate.strToU8(updatedNav);
+      } catch (err) {
+        console.warn("更新 NAV 目录失败:", err);
+      }
+    }
+
+    // 确保未在 spine 中的导航文档也获得样式表注入和页脚注明
+    if (!spineItems.some((s) => s.fullPath === epubBook.navItemHref)) {
+      const relCss = getRelativePath(epubBook.navItemHref, cssFullPath);
+      const navXhtml = fflate.strFromU8(filesMap[epubBook.navItemHref]);
+      filesMap[epubBook.navItemHref] = fflate.strToU8(
+        injectFooterIntoXhtml(injectCssIntoXhtml(navXhtml, relCss), exportLang)
+      );
+    }
+  }
+
+  // 5.2 更新 EPUB 2 NCX 目录 (ncxItemHref)
+  if (epubBook.ncxItemHref && filesMap[epubBook.ncxItemHref]) {
+    const ncxState = chapterStates[epubBook.ncxItemHref];
+    const isLangMatch =
+      !ncxState?.targetLang ||
+      !scene?.toLang ||
+      ncxState.targetLang === scene.toLang;
+    const isDone = ncxState?.status === "done" && isLangMatch;
+    const ncxContent =
+      mode === "target"
+        ? ncxState?.targetXhtml || ncxState?.targetHtml
+        : ncxState?.bilingualXhtml || ncxState?.bilingualHtml;
+
+    if (isDone && ncxContent) {
+      filesMap[epubBook.ncxItemHref] = fflate.strToU8(ncxContent);
+    } else if (titleMap.size > 0) {
+      try {
+        const rawNcx = fflate.strFromU8(
+          epubBook.filesMap?.[epubBook.ncxItemHref] ||
+            filesMap[epubBook.ncxItemHref]
+        );
+        const ncxDir = epubBook.ncxItemHref.includes("/")
+          ? epubBook.ncxItemHref.slice(
+              0,
+              epubBook.ncxItemHref.lastIndexOf("/") + 1
+            )
+          : "";
+        const updatedNcx = updateNcxDocument(rawNcx, titleMap, ncxDir);
+        filesMap[epubBook.ncxItemHref] = fflate.strToU8(updatedNcx);
+      } catch (err) {
+        console.warn("更新 NCX 目录失败:", err);
+      }
+    }
+  }
+
+  // 6. 生成二进制 Blob 与智能文件名
+  const uint8Array = packEpubUint8Array(filesMap);
+  const blob = new Blob([uint8Array], { type: "application/epub+zip" });
+  const baseName =
+    epubBook.title ||
+    (options.fallbackBaseName ? options.fallbackBaseName : "book");
+
+  const targetLang =
+    scene?.toLang ||
+    options?.targetLang ||
+    options?.toLang ||
+    "zh";
+  const targetLangSuffix =
+    targetLang.toLowerCase().split("-")[0] || "zh";
+
+  let filename;
+  if (!hasAnyTranslated) {
+    filename = `${baseName}.custom.epub`;
+  } else if (mode === "target") {
+    filename = `${baseName}.${targetLangSuffix}.epub`;
+  } else {
+    filename = `${baseName}.bilingual.epub`;
+  }
+
+  return {
+    blob,
+    uint8Array,
+    filename,
+    hasAnyTranslated,
+    filesMap,
+  };
+}
+
+export {
+  parseEpubBook,
+  packEpub,
+  packEpubUint8Array,
+  DEFAULT_EPUB_BILINGUAL_CSS,
+  getEpubFooterHtml,
+  EPUB_FOOTER_HTML,
+  EPUB_FOOTER_LINK,
+  injectFooterIntoXhtml,
+};
 export { openFileTranslatePage } from "./navigation";

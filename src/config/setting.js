@@ -289,6 +289,20 @@ export const DEFAULT_FILE_TRANSLATE_SETTING = {
     promptSlug: "",
     textStyle: "style_none",
   },
+  epub: {
+    fromLang: "auto",
+    toLang: "zh-CN",
+    apiSlugs: [OPT_TRANS_MICROSOFT],
+    promptSlug: "",
+    textStyle: "style_none",
+    hasRichText: "true",
+    viewMode: "bilingual",
+    readerPreferences: {
+      fontSize: 16,
+      fontFamily: "default",
+      themeId: "default",
+    },
+  },
 };
 
 // --- 全局默认设置对象，存储于 local storage ---
