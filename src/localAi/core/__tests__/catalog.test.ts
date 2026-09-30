@@ -35,6 +35,7 @@ describe("catalog", () => {
   it("getCatalogModel 按 id 查找", () => {
     expect(getCatalogModel("whisper-base-timestamped")?.task).toBe("asr");
     expect(getCatalogModel("glm-ocr-onnx-q4")?.task).toBe("ocr-vlm");
+    expect(getCatalogModel("glm-ocr-onnx-q4")?.backend).toEqual(["webgpu", "wasm"]);
     expect(getCatalogModel("paddleocr-vl-1.6-onnx-q8")?.task).toBe("ocr-vlm");
     expect(getCatalogModel("paddleocr-vl-1.6-q4")?.task).toBe("ocr-vlm");
     expect(getCatalogModel("audio8-tts-0.1b-int8")?.task).toBe("tts");

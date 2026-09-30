@@ -16,6 +16,7 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Tooltip from "@mui/material/Tooltip";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import { CATALOG, getModelDisplayName } from "../../../localAi/core/catalog";
@@ -24,6 +25,7 @@ import { detectScriptAndLanguage } from "../../../localAi/core/jev/lang";
 import { JevClient } from "../../../localAi/core/jevClient";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { useI18n } from "../../../hooks/I18n";
+import LogViewer, { useLocalAiLog } from "./LogViewer";
 
 const DECISION_MODELS = CATALOG.filter((m) => m.task === "decision");
 
@@ -57,6 +59,7 @@ export default function JevTab() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
 
   useEffect(() => {
     void manager.init().then(() => {
@@ -71,12 +74,15 @@ export default function JevTab() {
       clientRef.current.onStateChange = (ready, reason) => {
         if (!ready) {
           setLoadedKey(null);
-          if (reason) setError(reason);
+          if (reason) {
+            setError(reason);
+            addLog(reason, "warn");
+          }
         }
       };
     }
     return () => unsub();
-  }, []);
+  }, [addLog]);
 
   const currentManifest = useMemo(
     () => DECISION_MODELS.find((m) => m.id === modelId) ?? DECISION_MODELS[0],
@@ -127,8 +133,12 @@ export default function JevTab() {
     setError(null);
     setLoadingModel(true);
     setLoadStatus(i18n("local_ai_model_loading", "模型加载中…"));
+    addLog(`开始加载 JEV 模型: ${currentManifest.name} (${backend.toUpperCase()})`);
     const client = clientRef.current;
-    client.onProgress = (st) => setLoadStatus(st);
+    client.onProgress = (st) => {
+      setLoadStatus(st);
+      addLog(st);
+    };
 
     const modelFile =
       currentManifest.files.find((f) => f.path.endsWith(".onnx"))?.path ??
@@ -159,10 +169,13 @@ export default function JevTab() {
       setLoadStatus(
         `${i18n("local_ai_ready", "已就绪")} (${info.backend.toUpperCase()})`
       );
+      addLog(`JEV 模型就绪 (${info.backend.toUpperCase()})`, "success");
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
       setLoadedKey(null);
       setActualBackend(null);
-      setError(e instanceof Error ? e.message : String(e));
+      setError(msg);
+      addLog(`JEV 模型加载失败: ${msg}`, "error");
     } finally {
       setLoadingModel(false);
     }
@@ -173,25 +186,33 @@ export default function JevTab() {
     setLoadedKey(null);
     setActualBackend(null);
     setLoadStatus("");
+    addLog("JEV 模型已卸载");
   };
 
   const handlePredict = async () => {
     if (!parsedPreview.ok) {
-      setError(
-        `${i18n("local_ai_jev_error_questions_format", "Questions JSON 格式有误: ")}${parsedPreview.err}`
-      );
+      const err = `${i18n("local_ai_jev_error_questions_format", "Questions JSON 格式有误: ")}${parsedPreview.err}`;
+      setError(err);
+      addLog(err, "error");
       return;
     }
     setError(null);
     setRunning(true);
+    addLog("开始执行 JEV 决策推理…");
     try {
       const res = await clientRef.current.predict(
         parsedPreview.state,
         parsedPreview.questions
       );
       setResult(res);
+      addLog(
+        `JEV 决策推理完成，总耗时 ${res.timing?.totalMs ?? 0}ms (分词 ${res.timing?.tokenizeMs ?? 0}ms · ONNX ${res.timing?.onnxMs ?? 0}ms · 校准 ${res.timing?.postprocessMs ?? 0}ms)`,
+        "success"
+      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      addLog(`JEV 决策推理失败: ${msg}`, "error");
     } finally {
       setRunning(false);
     }
@@ -438,6 +459,17 @@ export default function JevTab() {
                       ? i18n("local_ai_running", "正在运行…")
                       : i18n("local_ai_jev_run", "执行 JEV 决策推理")}
                   </Button>
+                  {running && (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      sx={{ ml: 1 }}
+                      startIcon={<StopRoundedIcon />}
+                      onClick={() => clientRef.current?.stop()}
+                    >
+                      {i18n("local_ai_stop", "停止")}
+                    </Button>
+                  )}
                 </span>
               </Tooltip>
             </Box>
@@ -544,6 +576,13 @@ export default function JevTab() {
               {error}
             </Alert>
           )}
+
+          <LogViewer
+            logs={logs}
+            expanded={expanded}
+            setExpanded={setExpanded}
+            onClear={clearLogs}
+          />
         </CardContent>
       </Card>
 

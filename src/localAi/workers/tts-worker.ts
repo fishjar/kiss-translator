@@ -6,7 +6,7 @@ import {
   type DataType,
   type DeviceType,
 } from "@huggingface/transformers";
-import * as ort from "onnxruntime-web/webgpu";
+import * as ort from "onnxruntime-web";
 import { phonemize as espeakng } from "phonemizer";
 import {
   AUDIO8_DEFAULT_REF_TEXT,

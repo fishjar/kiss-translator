@@ -1,26 +1,8 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig } from "vite";
 import { resolve } from "node:path";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { patchOpencvCsp } from "./src/localAi/patchOpencvCsp";
 import { paddleBuild, paddleEntry } from "./src/localAi/paddleBuild";
-
-// 自动拦截并剔除 onnxruntime-web 静态探测引起的未引用 asyncify.wasm（节省 25.5MB）
-function removeUnusedWasmPlugin(): Plugin {
-  return {
-    name: "kiss-remove-unused-wasm",
-    generateBundle(_options, bundle) {
-      for (const fileName of Object.keys(bundle)) {
-        if (
-          fileName.includes("ort-wasm-simd-threaded.asyncify") &&
-          fileName.endsWith(".wasm")
-        ) {
-          delete bundle[fileName];
-          console.log(`[clean-assets] Removed unused wasm asset: ${fileName}`);
-        }
-      }
-    },
-  };
-}
 
 export default defineConfig({
   publicDir: resolve(__dirname, "src/localAi/assets"),
@@ -30,7 +12,6 @@ export default defineConfig({
   plugins: [
     paddleBuild(),
     patchOpencvCsp(),
-    removeUnusedWasmPlugin(),
     {
       name: "kiss-module-report",
       writeBundle(options, bundle) {

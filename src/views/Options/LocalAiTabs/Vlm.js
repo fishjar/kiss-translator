@@ -14,6 +14,7 @@ import InputLabel from "@mui/material/InputLabel";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { LlmClient } from "../../../localAi/core/llmClient";
 import { CATALOG, getModelDisplayName } from "../../../localAi/core/catalog";
@@ -25,6 +26,7 @@ import {
   supportsOcrVlmTaskSwitch,
 } from "../../../localAi/core/ocrVlmPrompts";
 import { useI18n } from "../../../hooks/I18n";
+import LogViewer, { useLocalAiLog } from "./LogViewer";
 
 const VLM_MODELS = CATALOG.filter((m) => m.task === "ocr-vlm");
 const VLM_MODEL_IDS = VLM_MODELS.map((m) => m.id);
@@ -37,13 +39,15 @@ function fmtMs(ms) {
 
 export default function VlmTab() {
   const i18n = useI18n();
+  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
 
   // VLM 状态
   const [vlmModelId, setVlmModelId] = useState(VLM_MODELS[0]?.id || "");
   const [vlmTaskMode, setVlmTaskMode] = useState("doc");
-  const [vlmDevice] = useState("webgpu");
+  const [vlmDevice, setVlmDevice] = useState("webgpu");
   const [vlmRecs, setVlmRecs] = useState({});
   const [vlmLoadedId, setVlmLoadedId] = useState(null);
+  const [vlmLoadedDevice, setVlmLoadedDevice] = useState(null);
   const [vlmClientState, setVlmClientState] = useState("idle");
   const [vlmProgressText, setVlmProgressText] = useState("");
   const [parsing, setParsing] = useState(false);
@@ -74,17 +78,23 @@ export default function VlmTab() {
       setVlmRecs(next);
     });
 
-    vlmClient.onProgress = (status) => setVlmProgressText(status);
+    vlmClient.onProgress = (status) => {
+      setVlmProgressText(status);
+      addLog(status);
+    };
     vlmClient.onStateChange = (ready, reason) => {
       if (!ready) {
         setVlmClientState("idle");
         setVlmLoadedId(null);
-        if (reason) setError(reason);
+        if (reason) {
+          setError(reason);
+          addLog(reason, "error");
+        }
       }
     };
 
     return unsub;
-  }, []);
+  }, [addLog]);
 
   useEffect(() => {
     setVlmMarkdown("");
@@ -99,13 +109,23 @@ export default function VlmTab() {
   }, [file]);
 
   const vlmModel = VLM_MODELS.find((m) => m.id === vlmModelId) ?? VLM_MODELS[0];
+
+  useEffect(() => {
+    if (vlmModel?.backend && !vlmModel.backend.includes(vlmDevice)) {
+      setVlmDevice(vlmModel.backend[0] || "wasm");
+    }
+  }, [vlmModel?.id, vlmModel?.backend, vlmDevice]);
+
   const vlmRec = vlmRecs[vlmModelId] ?? null;
   const vlmInstalled = vlmRec?.state === "installed";
   const vlmBusy =
     vlmRec?.state === "downloading" ||
     vlmRec?.state === "queued" ||
     vlmRec?.state === "verifying";
-  const vlmIsLoaded = vlmClientState === "ready" && vlmLoadedId === vlmModelId;
+  const vlmIsLoaded =
+    vlmClientState === "ready" &&
+    vlmLoadedId === vlmModelId &&
+    vlmLoadedDevice === vlmDevice;
 
   const loadVlm = async () => {
     if (!vlmModel) return;
@@ -114,6 +134,8 @@ export default function VlmTab() {
     setVlmProgressText(
       i18n("local_ai_vlm_engine_loading", "启动 VLM 多模态大模型…")
     );
+    const modelName = getModelDisplayName(vlmModel, i18n);
+    addLog(`准备加载 VLM 模型: ${modelName} (${vlmModel.runtime || "onnx"}, ${vlmDevice.toUpperCase()})…`);
     try {
       const isWllama = vlmModel.runtime === "wllama";
       const dtype = isWllama
@@ -126,9 +148,12 @@ export default function VlmTab() {
         ? vlmModel.files.find((f) => !f.path.includes("mmproj"))?.path ||
           vlmModel.files[0]?.path
         : undefined;
+      const hasExternalData = vlmModel.files.some((f) =>
+        f.path.endsWith(".onnx_data")
+      );
 
       await vlmClient.load({
-        runtime: vlmModel.runtime,
+        runtime: isWllama ? "wllama" : "onnx",
         source: vlmModel.source,
         dir: vlmModel.dir,
         file: modelFile,
@@ -136,13 +161,18 @@ export default function VlmTab() {
         device: vlmDevice,
         dtype,
         n_ctx: 8192,
+        ...(hasExternalData ? { externalDataChunks: 1 } : {}),
       });
       setVlmClientState("ready");
       setVlmLoadedId(vlmModel.id);
+      setVlmLoadedDevice(vlmDevice);
       setVlmProgressText("");
+      addLog(`VLM 模型加载就绪: ${modelName} (${vlmDevice.toUpperCase()})`, "success");
     } catch (e) {
       setVlmClientState("idle");
-      setError(e instanceof Error ? e.message : String(e));
+      const err = e instanceof Error ? e.message : String(e);
+      setError(err);
+      addLog(`VLM 模型加载失败: ${err}`, "error");
     }
   };
 
@@ -152,6 +182,7 @@ export default function VlmTab() {
     setError(null);
     setVlmMarkdown("");
     const startTime = performance.now();
+    addLog(`开始 VLM 解析 (图片: ${file.name}, 模式: ${vlmTaskMode})…`);
     try {
       const prompt = resolveOcrVlmPrompt(vlmModel.id, vlmTaskMode);
       const imgBuf = await file.arrayBuffer();
@@ -164,11 +195,15 @@ export default function VlmTab() {
         [imgBuf]
       );
       const text = res.text || "";
+      const dur = performance.now() - startTime;
       setVlmMarkdown(text);
-      setElapsedMs(performance.now() - startTime);
+      setElapsedMs(dur);
       setShared("vlm", text);
+      addLog(`VLM 解析完成，耗时 ${fmtMs(dur)} (生成约 ${text.length} 字符)`, "success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const err = e instanceof Error ? e.message : String(e);
+      setError(err);
+      addLog(`VLM 解析失败: ${err}`, "error");
     } finally {
       setParsing(false);
     }
@@ -244,6 +279,30 @@ export default function VlmTab() {
                     {i18n(`local_ai_vlm_task_${opt.id}`, opt.label)}
                   </MenuItem>
                 ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel id="vlm-backend-label">
+                {i18n("local_ai_backend", "计算后端")}
+              </InputLabel>
+              <Select
+                labelId="vlm-backend-label"
+                value={vlmDevice}
+                label={i18n("local_ai_backend", "计算后端")}
+                onChange={(e) => setVlmDevice(e.target.value)}
+                disabled={vlmClientState === "loading" || parsing}
+              >
+                {(vlmModel?.backend ?? ["webgpu", "wasm"]).includes("webgpu") && (
+                  <MenuItem value="webgpu">
+                    {i18n("compute_device_webgpu", "WebGPU")}
+                  </MenuItem>
+                )}
+                {(vlmModel?.backend ?? ["webgpu", "wasm"]).includes("wasm") && (
+                  <MenuItem value="wasm">
+                    {i18n("compute_device_wasm", "WASM (CPU)")}
+                  </MenuItem>
+                )}
               </Select>
             </FormControl>
 
@@ -334,6 +393,21 @@ export default function VlmTab() {
                   ? i18n("local_ai_vlm_parsing", "正在解析…")
                   : i18n("local_ai_vlm_run", "开始解析")}
               </Button>
+              {parsing && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  color="error"
+                  startIcon={<StopRoundedIcon />}
+                  onClick={() => {
+                    vlmClient.stop();
+                    setParsing(false);
+                    addLog("已手动停止 VLM 解析", "warn");
+                  }}
+                >
+                  {i18n("local_ai_stop", "停止")}
+                </Button>
+              )}
             </Box>
           </Box>
 
@@ -369,6 +443,13 @@ export default function VlmTab() {
               {error}
             </Alert>
           )}
+
+          <LogViewer
+            logs={logs}
+            expanded={expanded}
+            setExpanded={setExpanded}
+            onClear={clearLogs}
+          />
         </CardContent>
       </Card>
 

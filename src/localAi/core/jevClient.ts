@@ -28,6 +28,7 @@ export class JevClient implements DecisionEngine {
   private isLoaded = false;
   private currentVersion: number | null = null;
   private currentModelId: string | null = null;
+  private activePredictReqId: string | null = null;
   private readonly host: RuntimeHostAdapter;
   private unsubState: (() => void) | null = null;
 
@@ -78,12 +79,14 @@ export class JevClient implements DecisionEngine {
     questions: DecisionQuestions
   ): Promise<DecisionResult> {
     if (this.currentVersion === null) throw new Error("JEV 模型尚未加载");
+    const reqId = nextRpcId("jev-predict");
+    this.activePredictReqId = reqId;
     try {
       return await this.host.request<
         { state: DecisionState; questions: DecisionQuestions },
         DecisionResult
       >({
-        id: nextRpcId("jev-predict"),
+        id: reqId,
         service: "decision",
         method: "predict",
         payload: { state, questions },
@@ -104,6 +107,20 @@ export class JevClient implements DecisionEngine {
         this.onStateChange?.(false, msg);
       }
       throw err;
+    } finally {
+      if (this.activePredictReqId === reqId) {
+        this.activePredictReqId = null;
+      }
+    }
+  }
+
+  stop(): void {
+    if (this.activePredictReqId) {
+      this.host.cancel(
+        this.activePredictReqId,
+        "REQUEST_CANCELLED: 用户已中止 JEV 推理"
+      );
+      this.activePredictReqId = null;
     }
   }
 

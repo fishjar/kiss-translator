@@ -15,7 +15,7 @@ import {
   type Processor,
   type TextGenerationPipeline,
 } from "@huggingface/transformers";
-import * as ort from "onnxruntime-web/webgpu";
+import * as ort from "onnxruntime-web";
 import {
   buildPaddleOcrVlPatches,
   buildPaddleOcrVlPrompt,
@@ -239,6 +239,10 @@ async function doLoad(spec: LlmOnnxLoadSpec): Promise<"webgpu" | "wasm"> {
     return decBackend;
   }
   if (isGlmOcrModel(spec.source)) {
+    // GLM-OCR 的各 ONNX 子模型（embed_tokens / decoder / vision_encoder）
+    // 均带有独立的 .onnx_data 外部数据文件，必须显式启用外部数据支持，
+    // 否则 transformers.js 不会加载 .onnx_data，导致 ORT 报 Module.MountedFiles 错误。
+    baseOpts.use_external_data_format = true;
     vlmProcessor = await AutoProcessor.from_pretrained(spec.source, {
       progress_callback: progressCallback,
     });

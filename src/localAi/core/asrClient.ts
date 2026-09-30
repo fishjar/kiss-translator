@@ -30,6 +30,7 @@ export class AsrClient {
   private isLoaded = false;
   private currentVersion: number | null = null;
   private currentModelId: string | null = null;
+  private activeTranscribeReqId: string | null = null;
   private readonly host: RuntimeHostAdapter;
   private unsubState: (() => void) | null = null;
 
@@ -96,21 +97,36 @@ export class AsrClient {
     language: string
   ): Promise<TranscribeResult> {
     if (this.currentVersion === null) throw new Error("模型尚未加载");
+    const reqId = nextRpcId("asr-transcribe");
+    this.activeTranscribeReqId = reqId;
     try {
       return await this.host.request<
         { audio: Float32Array; language: string },
         TranscribeResult
-      >({
-        id: nextRpcId("asr-transcribe"),
-        service: "asr",
-        method: "transcribe",
-        payload: { audio, language },
-        priority: TASK_PRIORITY.ASR,
-        options: {
-          sessionVersion: this.currentVersion,
-          modelId: this.currentModelId ?? undefined,
+      >(
+        {
+          id: reqId,
+          service: "asr",
+          method: "transcribe",
+          payload: { audio, language },
+          priority: TASK_PRIORITY.ASR,
+          options: {
+            sessionVersion: this.currentVersion,
+            modelId: this.currentModelId ?? undefined,
+          },
         },
-      });
+        {
+          onProgress: (p) => {
+            this.onProgress?.({
+              status: p.status,
+              file: p.file,
+              progress: p.progress,
+              loaded: p.loaded,
+              total: p.total,
+            });
+          },
+        }
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (
@@ -122,6 +138,20 @@ export class AsrClient {
         this.onStateChange?.(false, msg);
       }
       throw err;
+    } finally {
+      if (this.activeTranscribeReqId === reqId) {
+        this.activeTranscribeReqId = null;
+      }
+    }
+  }
+
+  stop(): void {
+    if (this.activeTranscribeReqId) {
+      this.host.cancel(
+        this.activeTranscribeReqId,
+        "REQUEST_CANCELLED: 用户已中止识别"
+      );
+      this.activeTranscribeReqId = null;
     }
   }
 

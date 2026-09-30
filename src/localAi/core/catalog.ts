@@ -944,4 +944,3 @@ export function getModelDisplayName(
   const i18nKey = `model_name_${id.replace(/[-.]/g, "_")}`;
   return i18n(i18nKey, fallback);
 }
-

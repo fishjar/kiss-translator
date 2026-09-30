@@ -30,6 +30,7 @@ export class TtsClient {
   private isLoaded = false;
   private currentVersion: number | null = null;
   private currentModelId: string | null = null;
+  private activeSynthReqId: string | null = null;
   private readonly host: RuntimeHostAdapter;
   private unsubState: (() => void) | null = null;
 
@@ -97,12 +98,14 @@ export class TtsClient {
     speed: number
   ): Promise<SynthesizeResult> {
     if (this.currentVersion === null) throw new Error("模型尚未加载");
+    const reqId = nextRpcId("tts-synth");
+    this.activeSynthReqId = reqId;
     try {
       return await this.host.request<
         { text: string; voice: string; speed: number },
         SynthesizeResult
       >({
-        id: nextRpcId("tts-synth"),
+        id: reqId,
         service: "tts",
         method: "synthesize",
         payload: { text, voice, speed },
@@ -123,6 +126,20 @@ export class TtsClient {
         this.onStateChange?.(false, msg);
       }
       throw err;
+    } finally {
+      if (this.activeSynthReqId === reqId) {
+        this.activeSynthReqId = null;
+      }
+    }
+  }
+
+  stop(): void {
+    if (this.activeSynthReqId) {
+      this.host.cancel(
+        this.activeSynthReqId,
+        "REQUEST_CANCELLED: 用户已中止语音合成"
+      );
+      this.activeSynthReqId = null;
     }
   }
 

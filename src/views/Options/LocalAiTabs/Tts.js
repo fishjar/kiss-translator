@@ -25,6 +25,7 @@ import { CATALOG, KOKORO_VOICES } from "../../../localAi/core/catalog";
 import { AUDIO8_PRESET_VOICES } from "../../../localAi/core/audio8PresetVoices";
 import { audioToWavBlob } from "../../../localAi/core/recorder";
 import { useI18n } from "../../../hooks/I18n";
+import LogViewer, { useLocalAiLog } from "./LogViewer";
 
 const SOURCES = [
   { key: "manual", label: "手动输入" },
@@ -43,6 +44,7 @@ const client = new TtsClient();
 
 export default function TtsTab() {
   const i18n = useI18n();
+  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
 
   // 模型状态
   const [engine, setEngine] = useState("system");
@@ -112,17 +114,22 @@ export default function TtsTab() {
         p.progress !== undefined && p.total
           ? ` ${Math.min(100, Math.round((p.progress / p.total) * 100))}%`
           : "";
-      setProgressText(`${p.status ?? "loading"}${file}${pct}`);
+      const txt = `${p.status ?? "loading"}${file}${pct}`;
+      setProgressText(txt);
+      addLog(txt);
     };
     client.onStateChange = (ready, reason) => {
       if (!ready) {
         setClientState("idle");
         setLoadedId(null);
-        if (reason) setError(reason);
+        if (reason) {
+          setError(reason);
+          addLog(reason, "error");
+        }
       }
     };
     return unsub;
-  }, []);
+  }, [addLog]);
 
   useEffect(() => {
     return () => {
@@ -166,6 +173,7 @@ export default function TtsTab() {
       return null;
     });
     setStats(null);
+    addLog(`准备加载 TTS 模型: ${m.name} (${engine}, ${effDevice})…`);
     try {
       await client.load({
         engine: engine === "audio8" ? "audio8" : "kokoro",
@@ -177,9 +185,12 @@ export default function TtsTab() {
       setLoadedId(m.id);
       setLoadedDevice(effDevice);
       setProgressText("");
+      addLog(`TTS 模型加载就绪: ${m.name}`, "success");
     } catch (e) {
       setClientState("idle");
-      setError(e instanceof Error ? e.message : String(e));
+      const err = e instanceof Error ? e.message : String(e);
+      setError(err);
+      addLog(`TTS 模型加载失败: ${err}`, "error");
     }
   };
 
@@ -188,22 +199,23 @@ export default function TtsTab() {
     if (s !== "manual") {
       const entry = getShared(s);
       setText(entry?.text ?? "");
-      if (!entry)
-        setError(
-          i18n(
-            "local_ai_tts_source_empty",
-            "该来源暂无结果，请先到对应 Tab 生成。"
-          )
+      if (!entry) {
+        const msg = i18n(
+          "local_ai_tts_source_empty",
+          "该来源暂无结果，请先到对应 Tab 生成。"
         );
+        setError(msg);
+        addLog(msg, "warn");
+      }
     }
   };
 
   const speak = () => {
     const t = text.trim();
     if (!t) {
-      setError(
-        i18n("local_ai_tts_text_empty", "请输入或从其他 Tab 选择要朗读的文本。")
-      );
+      const msg = i18n("local_ai_tts_text_empty", "请输入或从其他 Tab 选择要朗读的文本。");
+      setError(msg);
+      addLog(msg, "warn");
       return;
     }
     const synth = window.speechSynthesis;
@@ -216,12 +228,18 @@ export default function TtsTab() {
     u.onstart = () => {
       setSpeaking(true);
       setError(null);
+      addLog(`开始系统原生朗读: "${t.slice(0, 30)}${t.length > 30 ? "…" : ""}"…`);
     };
-    u.onend = () => setSpeaking(false);
+    u.onend = () => {
+      setSpeaking(false);
+      addLog("系统原生朗读完成", "success");
+    };
     u.onerror = (e) => {
       setSpeaking(false);
       if (e.error !== "canceled" && e.error !== "interrupted") {
-        setError(`${i18n("local_ai_tts_play_failed", "朗读失败：")}${e.error}`);
+        const err = `${i18n("local_ai_tts_play_failed", "朗读失败：")}${e.error}`;
+        setError(err);
+        addLog(err, "error");
       }
     };
     synth.speak(u);
@@ -230,6 +248,7 @@ export default function TtsTab() {
   const stopSystem = () => {
     window.speechSynthesis?.cancel();
     setSpeaking(false);
+    addLog("已手动停止系统朗读", "warn");
   };
 
   const synthesize = async () => {
@@ -242,17 +261,22 @@ export default function TtsTab() {
       return null;
     });
     setStats(null);
+    const voice = engine === "audio8" ? audio8Voice : kokoroVoice;
+    addLog(`开始语音合成: "${t.slice(0, 30)}${t.length > 30 ? "…" : ""}" (音色: ${voice}, 语速: ${rate.toFixed(1)}x)…`);
     try {
-      const voice = engine === "audio8" ? audio8Voice : kokoroVoice;
       const r = await client.synthesize(t, voice, rate);
       const wav = audioToWavBlob(r.audio, r.sampleRate);
       setAudioUrl(URL.createObjectURL(wav));
+      const dur = r.audio.length / r.sampleRate;
       setStats({
         elapsedMs: r.elapsedMs,
-        durationS: r.audio.length / r.sampleRate,
+        durationS: dur,
       });
+      addLog(`语音合成完成: 耗时 ${r.elapsedMs}ms, 音频时长 ${dur.toFixed(1)}s`, "success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const err = e instanceof Error ? e.message : String(e);
+      setError(err);
+      addLog(`语音合成失败: ${err}`, "error");
     } finally {
       setSynthState("idle");
     }
@@ -559,16 +583,32 @@ export default function TtsTab() {
                 </Button>
               )
             ) : (
-              <Button
-                variant="contained"
-                startIcon={<PlayArrowRoundedIcon />}
-                disabled={!isLoaded || synthState === "busy" || !text.trim()}
-                onClick={() => void synthesize()}
-              >
-                {synthState === "busy"
-                  ? i18n("local_ai_tts_synthesizing", "正在合成…")
-                  : i18n("local_ai_tts_synthesize", "合成语音")}
-              </Button>
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                <Button
+                  variant="contained"
+                  startIcon={<PlayArrowRoundedIcon />}
+                  disabled={!isLoaded || synthState === "busy" || !text.trim()}
+                  onClick={() => void synthesize()}
+                >
+                  {synthState === "busy"
+                    ? i18n("local_ai_tts_synthesizing", "正在合成…")
+                    : i18n("local_ai_tts_synthesize", "合成语音")}
+                </Button>
+                {synthState === "busy" && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<StopRoundedIcon />}
+                    onClick={() => {
+                      client.stop();
+                      setSynthState("idle");
+                      addLog("已手动停止语音合成", "warn");
+                    }}
+                  >
+                    {i18n("local_ai_stop", "停止")}
+                  </Button>
+                )}
+              </Box>
             )}
           </Box>
 
@@ -615,6 +655,13 @@ export default function TtsTab() {
               {error}
             </Alert>
           )}
+
+          <LogViewer
+            logs={logs}
+            expanded={expanded}
+            setExpanded={setExpanded}
+            onClear={clearLogs}
+          />
         </CardContent>
       </Card>
     </Stack>

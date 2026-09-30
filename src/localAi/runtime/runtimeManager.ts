@@ -1007,7 +1007,11 @@ export class RuntimeManager {
             await this.pool.unload("ocr");
           },
         }
-      );
+      ).catch(async (err) => {
+        await this.disposeOcr();
+        await this.pool.unload("ocr");
+        throw err;
+      });
       this.commitLoadSession("ocr", modelId, session.sessionVersion);
       this.pool.markState("ocr", "ready");
       return {
@@ -1178,7 +1182,8 @@ export class RuntimeManager {
       const scheduled = await this.scheduler.schedule(
         async () => {
           await this.pool.ensureCapacity("llm");
-          const w = this.ensureLlmWorker(spec.runtime);
+          const runtime = spec.runtime === "wllama" ? "wllama" : "onnx";
+          const w = this.ensureLlmWorker(runtime);
           this.activeLlmReqId = req.id;
           this.pool.register({
             key: "llm",
@@ -1195,7 +1200,7 @@ export class RuntimeManager {
             (resolve, reject) => {
               this.llmLoadWaiter?.reject(new Error("模型加载已被新请求取代"));
               this.llmLoadWaiter = { resolve, reject };
-              w.postMessage({ type: "load", ...spec });
+              w.postMessage({ type: "load", ...spec, runtime });
             }
           );
         },

@@ -55,6 +55,7 @@ export class OcrClient {
   private isLoaded = false;
   private currentVersion: number | null = null;
   private currentModelId: string | null = null;
+  private activeRecognizeReqId: string | null = null;
   private readonly host: RuntimeHostAdapter;
   private unsubState: (() => void) | null = null;
 
@@ -102,9 +103,11 @@ export class OcrClient {
 
   async recognize(blob: Blob, signal?: AbortSignal): Promise<OcrImageResult> {
     if (this.currentVersion === null) throw new Error("模型尚未加载");
+    const reqId = nextRpcId("ocr-recognize");
+    this.activeRecognizeReqId = reqId;
     try {
       return await this.host.request<{ blob: Blob }, OcrImageResult>({
-        id: nextRpcId("ocr-recognize"),
+        id: reqId,
         service: "ocr",
         method: "recognize",
         payload: { blob },
@@ -125,6 +128,20 @@ export class OcrClient {
         this.onStateChange?.(false, msg);
       }
       throw err;
+    } finally {
+      if (this.activeRecognizeReqId === reqId) {
+        this.activeRecognizeReqId = null;
+      }
+    }
+  }
+
+  stop(): void {
+    if (this.activeRecognizeReqId) {
+      this.host.cancel(
+        this.activeRecognizeReqId,
+        "REQUEST_CANCELLED: 用户已中止文字识别"
+      );
+      this.activeRecognizeReqId = null;
     }
   }
 

@@ -861,5 +861,27 @@ describe("5. 下载与导入 RPC 只负责启动任务 (Download/Import Start-On
     expect(capturedSpec.detName).toBe("PP-OCRv6_medium_det");
     expect(capturedSpec.recName).toBe("PP-OCRv6_medium_rec");
   });
-});
 
+  it("OCR 初始化失败后清除加载状态和驻留记录", async () => {
+    const mgr = new RuntimeManager({
+      workerFactories: {
+        createOcrInstance: async () => {
+          throw new Error("another WebGPU EP inference session is being created.");
+        },
+      },
+    });
+    const response = await mgr.handleRequest({
+      id: "ocr-failed-load",
+      service: "ocr",
+      method: "load",
+      payload: {
+        detModelId: "ppocr-v6-medium-det",
+        recModelId: "ppocr-v6-medium-rec",
+        device: "webgpu",
+      },
+    });
+    expect(response.ok).toBe(false);
+    expect(mgr.getSessionState("ocr").state).toBe("unloaded");
+    expect(mgr.pool.list().some((entry) => entry.key === "ocr")).toBe(false);
+  });
+});

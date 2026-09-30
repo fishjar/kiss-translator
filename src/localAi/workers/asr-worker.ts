@@ -3,7 +3,7 @@ import {
   type DataType,
   type DeviceType,
 } from "@huggingface/transformers";
-import * as ort from "onnxruntime-web/webgpu";
+import * as ort from "onnxruntime-web";
 import type { ASRSegment, ASRWord, AsrLoadSpec } from "../core/types";
 import { buildWordSegments, type RawWord } from "../core/asrSegments";
 import { mapAsrLanguage } from "../core/asrLanguages";
@@ -407,6 +407,10 @@ self.onmessage = (e: MessageEvent<InMsg>) => {
         post({ type: "ready" });
       } else if (msg.type === "transcribe") {
         if (currentRuntime === "onnx") {
+          post({
+            type: "progress",
+            status: `开始 SenseVoice 语音识别 (${(msg.audio.length / SAMPLE_RATE).toFixed(1)}s 音频)…`,
+          });
           const res = await transcribeSenseVoice(msg.audio, msg.language);
           post({ type: "result", ...res });
           return;

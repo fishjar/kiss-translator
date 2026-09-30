@@ -1,4 +1,4 @@
-import * as ort from "onnxruntime-web/webgpu";
+import * as ort from "onnxruntime-web";
 import { readFile } from "../core/opfs";
 import type { JevLoadSpec } from "../core/types";
 import { LayaTokenizer } from "../core/jev/tokenizer";
@@ -30,6 +30,15 @@ let session: ort.InferenceSession | null = null;
 let tokenizer: LayaTokenizer | null = null;
 let agentConfig: AgentConfig | null = null;
 let loadingPromise: Promise<string> | null = null;
+let currentSpec: JevLoadSpec | null = null;
+let cachedModelBuf: ArrayBuffer | null = null;
+
+function hasNonFinite(arr: Float32Array): boolean {
+  for (let i = 0; i < arr.length; i++) {
+    if (!Number.isFinite(arr[i])) return true;
+  }
+  return false;
+}
 
 async function readJsonFromOpfs<T>(path: string): Promise<T> {
   const buf = await readFile(path);
@@ -43,6 +52,8 @@ async function disposeSession(): Promise<void> {
   tokenizer = null;
   agentConfig = null;
   currentKey = "";
+  currentSpec = null;
+  cachedModelBuf = null;
   if (s) {
     try {
       await s.release();
@@ -158,6 +169,8 @@ async function doLoad(spec: JevLoadSpec): Promise<string> {
       graphOptimizationLevel: spec.device === "webgpu" ? "basic" : "all",
     });
     currentKey = key;
+    currentSpec = spec;
+    cachedModelBuf = modelBuf;
     return spec.device;
   } catch (err) {
     if (spec.device === "webgpu") {
@@ -170,6 +183,8 @@ async function doLoad(spec: JevLoadSpec): Promise<string> {
         graphOptimizationLevel: "all",
       });
       currentKey = `${spec.modelId}:wasm`;
+      currentSpec = { ...spec, device: "wasm" };
+      cachedModelBuf = modelBuf;
       return "wasm";
     }
     throw err;
@@ -213,7 +228,37 @@ async function doPredict(
   const batch = collate(items, tokenizer.padTokenId);
   const tTokenize = performance.now();
 
-  const out = await runBatch(session, batch);
+  let out = await runBatch(session, batch);
+  if (
+    currentSpec &&
+    currentSpec.device === "webgpu" &&
+    (hasNonFinite(out.logits) || hasNonFinite(out.actLogits))
+  ) {
+    self.postMessage({
+      type: "progress",
+      status: "WebGPU INT8 输出非有限值（NaN/Inf），自动无缝回退至 WASM 重新计算…",
+    });
+    const modelBuf =
+      cachedModelBuf ??
+      (await readFile(`${currentSpec.dir}/${currentSpec.modelFile}`));
+    const oldSession = session;
+    const wasmSession = await ort.InferenceSession.create(
+      new Uint8Array(modelBuf),
+      {
+        executionProviders: ["wasm"],
+        graphOptimizationLevel: "all",
+      }
+    );
+    session = wasmSession;
+    currentKey = `${currentSpec.modelId}:wasm`;
+    currentSpec = { ...currentSpec, device: "wasm" };
+    try {
+      await oldSession?.release();
+    } catch {
+      // 忽略旧会话释放失败
+    }
+    out = await runBatch(session, batch);
+  }
   const tOnnx = performance.now();
 
   const formatted = formatAnswers({

@@ -14,6 +14,7 @@ import InputLabel from "@mui/material/InputLabel";
 import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { OcrClient } from "../../../localAi/core/ocrClient";
 import {
@@ -23,6 +24,7 @@ import {
 } from "../../../localAi/core/catalog";
 import { setShared } from "../../../localAi/core/shared";
 import { useI18n } from "../../../hooks/I18n";
+import LogViewer, { useLocalAiLog } from "./LogViewer";
 
 const OCR_MODEL_IDS = OCR_GROUPS.flatMap((g) => [g.detId, g.recId]);
 const client = new OcrClient();
@@ -33,6 +35,7 @@ function fmtMs(ms) {
 
 export default function OcrTab() {
   const i18n = useI18n();
+  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
 
   // PaddleOCR 状态
   const [selectedGroupId, setSelectedGroupId] = useState(OCR_GROUPS[0].id);
@@ -71,17 +74,23 @@ export default function OcrTab() {
       setRecs(next);
     });
 
-    client.onProgress = (status) => setProgressText(status);
+    client.onProgress = (status) => {
+      setProgressText(status);
+      addLog(status);
+    };
     client.onStateChange = (ready, reason) => {
       if (!ready) {
         setClientState("idle");
         setLoadedGroupId(null);
-        if (reason) setError(reason);
+        if (reason) {
+          setError(reason);
+          addLog(reason, "error");
+        }
       }
     };
 
     return unsub;
-  }, []);
+  }, [addLog]);
 
   useEffect(() => {
     setResult(null);
@@ -149,14 +158,16 @@ export default function OcrTab() {
     const detManifest = getCatalogModel(group.detId);
     const recManifest = getCatalogModel(group.recId);
     if (!detManifest || !recManifest) {
-      setError(i18n("local_ai_model_manifest_missing", "模型清单缺失"));
+      const msg = i18n("local_ai_model_manifest_missing", "模型清单缺失");
+      setError(msg);
+      addLog(msg, "error");
       return;
     }
     setError(null);
     setClientState("loading");
-    setProgressText(
-      i18n("local_ai_ocr_engine_loading", "启动 PaddleOCR 引擎…")
-    );
+    const loadMsg = i18n("local_ai_ocr_engine_loading", "启动 PaddleOCR 引擎…");
+    setProgressText(loadMsg);
+    addLog(`准备加载 OCR 模型组: ${group.detName} + ${group.recName} (${device})…`);
     try {
       await client.load({
         detModelId: detManifest.id,
@@ -173,9 +184,12 @@ export default function OcrTab() {
       setClientState("ready");
       setLoadedGroupId(group.id);
       setProgressText("");
+      addLog(`OCR 引擎与模型加载就绪 (${group.detName} + ${group.recName})`, "success");
     } catch (e) {
       setClientState("idle");
-      setError(e instanceof Error ? e.message : String(e));
+      const err = e instanceof Error ? e.message : String(e);
+      setError(err);
+      addLog(`OCR 模型加载失败: ${err}`, "error");
     }
   };
 
@@ -184,13 +198,17 @@ export default function OcrTab() {
     setRecognizing(true);
     setError(null);
     setResult(null);
+    addLog(`开始 OCR 文字识别 (图片: ${file.name}, 大小: ${Math.round(file.size / 1024)}KB)…`);
     try {
       const bmp = await createImageBitmap(file);
       const res = await client.recognize(bmp);
       setResult(res);
       setShared("ocr", res.items.map((i) => i.text).join("\n"));
+      addLog(`OCR 识别完成: 检测到 ${res.items.length} 处文字，耗时 ${res.elapsedMs}ms (Det: ${fmtMs(res.detMs)}, Rec: ${fmtMs(res.recMs)})`, "success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const err = e instanceof Error ? e.message : String(e);
+      setError(err);
+      addLog(`OCR 识别失败: ${err}`, "error");
     } finally {
       setRecognizing(false);
     }
@@ -354,6 +372,21 @@ export default function OcrTab() {
                   ? i18n("local_ai_ocr_recognizing", "正在识别…")
                   : i18n("local_ai_ocr_run", "开始识别")}
               </Button>
+              {recognizing && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  color="error"
+                  startIcon={<StopRoundedIcon />}
+                  onClick={() => {
+                    client.stop();
+                    setRecognizing(false);
+                    addLog("已手动停止文字识别", "warn");
+                  }}
+                >
+                  {i18n("local_ai_stop", "停止")}
+                </Button>
+              )}
             </Box>
           </Box>
 
@@ -408,6 +441,13 @@ export default function OcrTab() {
               {error}
             </Alert>
           )}
+
+          <LogViewer
+            logs={logs}
+            expanded={expanded}
+            setExpanded={setExpanded}
+            onClear={clearLogs}
+          />
         </CardContent>
       </Card>
 

@@ -23,6 +23,7 @@ import { LlmClient, backendLabel } from "../../../localAi/core/llmClient";
 import { CATALOG, getModelDisplayName } from "../../../localAi/core/catalog";
 import { setShared } from "../../../localAi/core/shared";
 import { useI18n } from "../../../hooks/I18n";
+import LogViewer, { useLocalAiLog } from "./LogViewer";
 
 const LLM_MODELS = CATALOG.filter((m) => m.task === "llm");
 const DEFAULT_LLM_ID = "qwen2.5-0.5b";
@@ -51,6 +52,7 @@ export function buildTranslatePrompt(template, to, text) {
 
 export default function LlmTab() {
   const i18n = useI18n();
+  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
   const [selectedId, setSelectedId] = useState(DEFAULT_LLM_ID);
   const [device, setDevice] = useState("webgpu");
   const [recs, setRecs] = useState({});
@@ -95,16 +97,22 @@ export default function LlmTab() {
       }
       setRecs(next);
     });
-    client.onProgress = (status) => setProgressText(status);
+    client.onProgress = (status) => {
+      setProgressText(status);
+      addLog(status);
+    };
     client.onStateChange = (ready, reason) => {
       if (!ready) {
         setClientState("idle");
         setLoadedId(null);
-        if (reason) setError(reason);
+        if (reason) {
+          setError(reason);
+          addLog(reason, "error");
+        }
       }
     };
     return unsub;
-  }, []);
+  }, [addLog]);
 
   useEffect(() => {
     const el = listRef.current;
@@ -125,13 +133,17 @@ export default function LlmTab() {
     const m = selectedManifest;
     const file = m.files[0];
     if (!file) {
-      setError(i18n("local_ai_no_files_for_model", "该模型没有可用的文件"));
+      const msg = i18n("local_ai_no_files_for_model", "该模型没有可用的文件");
+      setError(msg);
+      addLog(msg, "error");
       return;
     }
     const dev = m.backend.includes(device) ? device : m.backend[0];
     setError(null);
     setClientState("loading");
     setProgressText(i18n("local_ai_model_loading", "启动推理引擎…"));
+    const modelName = getModelDisplayName(m, i18n);
+    addLog(`准备加载 LLM 模型: ${modelName} (${m.runtime}, ${dev})…`);
     try {
       const spec =
         m.runtime === "wllama"
@@ -166,9 +178,12 @@ export default function LlmTab() {
       setClientState("ready");
       setLoadedId(m.id);
       setProgressText("");
+      addLog(`LLM 模型加载就绪: ${modelName} (${backendLabel(info.backend, i18n)})`, "success");
     } catch (e) {
       setClientState("idle");
-      setError(e instanceof Error ? e.message : String(e));
+      const err = e instanceof Error ? e.message : String(e);
+      setError(err);
+      addLog(`LLM 模型加载失败: ${err}`, "error");
     }
   };
 
@@ -186,6 +201,7 @@ export default function LlmTab() {
     setError(null);
     setStats(null);
     lastAssistantRef.current = "";
+    addLog(`发送对话请求: "${text.slice(0, 30)}${text.length > 30 ? "…" : ""}"…`);
     try {
       const r = await client.chat(next, MAX_TOKENS, (tok) => {
         lastAssistantRef.current += tok;
@@ -199,8 +215,11 @@ export default function LlmTab() {
       });
       setStats(r);
       if (lastAssistantRef.current) setShared("llm", lastAssistantRef.current);
+      addLog(`对话生成完成 (${r.outputTokens} tokens, ${r.tokensPerSecond.toFixed(1)} tok/s)`, "success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const err = e instanceof Error ? e.message : String(e);
+      setError(err);
+      addLog(`对话生成失败: ${err}`, "error");
     } finally {
       setStreaming(false);
     }
@@ -216,6 +235,7 @@ export default function LlmTab() {
     setTransStats(null);
     setError(null);
     lastTransRef.current = "";
+    addLog(`发送翻译请求 (目标语言: ${targetLang})…`);
     try {
       const r = await client.chat(reqMessages, MAX_TOKENS, (tok) => {
         lastTransRef.current += tok;
@@ -223,14 +243,20 @@ export default function LlmTab() {
       });
       setTransStats(r);
       if (lastTransRef.current) setShared("llm", lastTransRef.current);
+      addLog(`翻译完成 (${r.outputTokens} tokens, ${r.tokensPerSecond.toFixed(1)} tok/s)`, "success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const err = e instanceof Error ? e.message : String(e);
+      setError(err);
+      addLog(`翻译失败: ${err}`, "error");
     } finally {
       setTranslating(false);
     }
   };
 
-  const stop = () => client.stop();
+  const stop = () => {
+    client.stop();
+    addLog("已手动停止生成", "warn");
+  };
 
   return (
     <Stack spacing={2.5}>
@@ -718,6 +744,13 @@ export default function LlmTab() {
               {error}
             </Alert>
           )}
+
+          <LogViewer
+            logs={logs}
+            expanded={expanded}
+            setExpanded={setExpanded}
+            onClear={clearLogs}
+          />
         </CardContent>
       </Card>
     </Stack>

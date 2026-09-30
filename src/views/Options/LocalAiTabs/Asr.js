@@ -32,9 +32,10 @@ import { CATALOG, getModelDisplayName } from "../../../localAi/core/catalog";
 import { getSupportedAsrLanguages } from "../../../localAi/core/asrLanguages";
 import { setShared } from "../../../localAi/core/shared";
 import { useI18n } from "../../../hooks/I18n";
+import LogViewer, { useLocalAiLog } from "./LogViewer";
 
 const ASR_MODELS = CATALOG.filter((m) => m.task === "asr");
-const DEFAULT_ASR_ID = "whisper-base-timestamped";
+const DEFAULT_ASR_ID = "sensevoice-small";
 const client = new AsrClient();
 
 function fmtTime(sec) {
@@ -46,7 +47,7 @@ function fmtTime(sec) {
 export default function AsrTab() {
   const i18n = useI18n();
   const [selectedId, setSelectedId] = useState(DEFAULT_ASR_ID);
-  const [device, setDevice] = useState("webgpu");
+  const [device, setDevice] = useState("wasm");
   const [recs, setRecs] = useState({});
   const [loadedId, setLoadedId] = useState(null);
   const [loadedDevice, setLoadedDevice] = useState(null);
@@ -58,6 +59,7 @@ export default function AsrTab() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [language, setLanguage] = useState("zh-hans");
+  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
   const [file, setFile] = useState(null);
   const [recWav, setRecWav] = useState(null);
   const [playingSource, setPlayingSource] = useState(null);
@@ -89,17 +91,22 @@ export default function AsrTab() {
         p.progress !== undefined && p.total
           ? ` ${Math.min(100, Math.round((p.progress / p.total) * 100))}%`
           : "";
-      setProgressText(`${p.status ?? "loading"}${file}${pct}`);
+      const text = `${p.status ?? "loading"}${file}${pct}`;
+      setProgressText(text);
+      addLog(text);
     };
     client.onStateChange = (ready, reason) => {
       if (!ready) {
         setClientState("idle");
         setLoadedId(null);
-        if (reason) setError(reason);
+        if (reason) {
+          setError(reason);
+          addLog(reason, "warn");
+        }
       }
     };
     return unsub;
-  }, []);
+  }, [addLog]);
 
   const selectedManifest =
     ASR_MODELS.find((m) => m.id === selectedId) ?? ASR_MODELS[0];
@@ -135,6 +142,7 @@ export default function AsrTab() {
     setError(null);
     setClientState("loading");
     setProgressText(i18n("local_ai_model_loading", "启动推理引擎…"));
+    addLog(`开始加载 ASR 模型: ${m.name} (${device.toUpperCase()})`);
     try {
       const spec = {
         runtime: m.runtime === "onnx" ? "onnx" : "transformers",
@@ -150,9 +158,12 @@ export default function AsrTab() {
       setLoadedId(m.id);
       setLoadedDevice(device);
       setProgressText("");
+      addLog(`ASR 模型加载就绪 (${device.toUpperCase()})`, "success");
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
       setClientState("idle");
-      setError(e instanceof Error ? e.message : String(e));
+      setError(msg);
+      addLog(`ASR 模型加载失败: ${msg}`, "error");
     }
   };
 
@@ -225,19 +236,26 @@ export default function AsrTab() {
 
   const doTranscribe = async (audio16k) => {
     if (!isLoaded) {
-      setError(
-        i18n("local_ai_load_model_first", "当前模型未加载，请先加载模型")
-      );
+      const msg = i18n("local_ai_load_model_first", "当前模型未加载，请先加载模型");
+      setError(msg);
+      addLog(msg, "warn");
       return;
     }
     setRecognizing(true);
     setError(null);
+    addLog(`开始语音识别 (${(audio16k.length / 16000).toFixed(1)}s 音频, 语言: ${language || "自动检测"})…`);
     try {
       const r = await client.transcribe(audio16k, language);
       setResult(r);
       setShared("asr", r.segments.map((s) => s.text).join(""));
+      addLog(
+        `语音识别完成，共 ${r.segments.length} 个片段，耗时 ${r.elapsedMs}ms`,
+        "success"
+      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      addLog(`语音识别失败: ${msg}`, "error");
     } finally {
       setRecognizing(false);
     }
@@ -247,24 +265,32 @@ export default function AsrTab() {
     const targetFile = selectedFile || file;
     if (!targetFile) return;
     if (!isLoaded) {
-      setError(
-        i18n("local_ai_load_model_first", "当前模型未加载，请先加载模型")
-      );
+      const msg = i18n("local_ai_load_model_first", "当前模型未加载，请先加载模型");
+      setError(msg);
+      addLog(msg, "warn");
       return;
     }
     setRecognizing(true);
     setError(null);
     setResult(null);
+    addLog(`解码音频文件: ${targetFile.name} (${Math.round(targetFile.size / 1024)} KB)…`);
     try {
       const dec = await decodeAudioFile(targetFile);
+      addLog(`重采样至 16kHz (原始采样率: ${dec.sampleRate}Hz)，开始转写…`);
       const r = await client.transcribe(
         resampleTo16k(dec.audio, dec.sampleRate),
         language
       );
       setResult(r);
       setShared("asr", r.segments.map((s) => s.text).join(""));
+      addLog(
+        `文件语音识别完成，共 ${r.segments.length} 个片段，耗时 ${r.elapsedMs}ms`,
+        "success"
+      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      addLog(`语音识别失败: ${msg}`, "error");
     } finally {
       setRecognizing(false);
     }
@@ -599,12 +625,42 @@ export default function AsrTab() {
                     ? i18n("local_ai_asr_transcribing", "正在识别…")
                     : i18n("local_ai_asr_start_transcribe", "开始识别")}
                 </Button>
+                {recognizing && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color="error"
+                    startIcon={<StopRoundedIcon />}
+                    onClick={() => {
+                      client.stop();
+                      setRecognizing(false);
+                    }}
+                  >
+                    {i18n("local_ai_stop", "停止")}
+                  </Button>
+                )}
               </Box>
             )}
           </Box>
 
           {recognizing && (
-            <Alert severity="info" sx={{ mt: 2 }}>
+            <Alert
+              severity="info"
+              sx={{ mt: 2 }}
+              action={
+                <Button
+                  color="error"
+                  size="small"
+                  startIcon={<StopRoundedIcon />}
+                  onClick={() => {
+                    client.stop();
+                    setRecognizing(false);
+                  }}
+                >
+                  {i18n("local_ai_stop", "停止")}
+                </Button>
+              }
+            >
               {i18n("local_ai_asr_transcribing", "正在转写识别音频…")}
             </Alert>
           )}
@@ -614,6 +670,13 @@ export default function AsrTab() {
               {error}
             </Alert>
           )}
+
+          <LogViewer
+            logs={logs}
+            expanded={expanded}
+            setExpanded={setExpanded}
+            onClear={clearLogs}
+          />
         </CardContent>
       </Card>
 

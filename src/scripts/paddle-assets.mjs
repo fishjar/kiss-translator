@@ -11,9 +11,40 @@ export function extractOpenCv(code) {
   if (matches.length !== 1) throw new Error("Expected exactly one embedded OpenCV WASM");
   const bytes = Buffer.from(matches[0][1], "base64");
   if (sha256(bytes) !== OPENCV_WASM_SHA256) throw new Error("OpenCV WASM fingerprint changed");
-  const source = code.replace(matches[0][0], "opencvWasmUrl");
+  let source = code.replace(matches[0][0], "opencvWasmUrl");
+  // 注入 instantiateWasm 钩子：在 Web Worker / 扩展环境中直接通过 fetch 读取 ArrayBuffer 后实例化，
+  // 避免浏览器扩展环境下 instantiateStreaming MIME 类型限制与 Emscripten locateFile 路径拼接错误导致永久挂起
+  const instantiateWasmHook = `cv = cv || {};
+cv.instantiateWasm = function(info, receiveInstance) {
+  fetch(opencvWasmUrl)
+    .then(function(res) {
+      if (!res.ok) throw new Error("Failed to load opencv.wasm: " + res.statusText);
+      return res.arrayBuffer();
+    })
+    .then(function(bytes) {
+      return WebAssembly.instantiate(bytes, info);
+    })
+    .then(function(output) {
+      receiveInstance(output.instance, output.module);
+    })
+    .catch(function(err) {
+      console.error("[opencv] instantiateWasm failed:", err);
+      if (typeof abort === "function") abort(err);
+    });
+  return {};
+};`;
+  source = source.replace("cv = cv || {};", instantiateWasmHook);
   // Keep the original UMD factory and exports semantics inside a local scope.
   return { bytes, source: `import opencvWasmUrl from "./opencv.wasm?url";\nconst module = { exports: {} };\nconst exports = module.exports;\n${source}\nexport default module.exports;\n` };
+}
+
+export function serializeOcrModelInit(code) {
+  const concurrent = /const \[detModel, recModel\] = await Promise\.all\(\[\s*(createDetModel\(\{[\s\S]*?\}\)),\s*(createRecModel\(\{[\s\S]*?\}\))\s*\]\);/g;
+  const matches = [...code.matchAll(concurrent)];
+  if (matches.length !== 1) throw new Error("Expected one parallel PaddleOCR model initialization");
+  return code.replace(concurrent, (_match, det, rec) =>
+    `const detModel = await ${det};\n    const recModel = await ${rec}.catch(async (err) => {\n      await detModel.dispose();\n      throw err;\n    });`
+  );
 }
 
 export async function preparePaddleAssets(destination, sdkRoot = "node_modules/@paddleocr/paddleocr-js") {
@@ -31,11 +62,12 @@ export async function preparePaddleAssets(destination, sdkRoot = "node_modules/@
     if (relative.split("/").includes("..")) throw new Error("Unsafe PaddleOCR source path");
     const file = path.join(destination, relative);
     await fs.mkdir(path.dirname(file), { recursive: true });
-    let code = map.sourcesContent[i].replaceAll('"onnxruntime-web"', '"onnxruntime-web/webgpu"');
+    let code = map.sourcesContent[i];
     // Rollup's source map omits barrels with no executable statements. Resolve
     // these two live imports to the original leaf modules, without recreating SDK logic.
     code = code.replace('from "../../resources/index"', 'from "../../resources/model-asset"');
     code = code.replace('import { createDetModel, createRecModel } from "../../models/index";', 'import { createDetModel } from "../../models/det";\nimport { createRecModel } from "../../models/rec";');
+    if (relative === "src/pipelines/ocr/core.ts") code = serializeOcrModelInit(code);
     await fs.writeFile(file, code);
   }
   const getSource = (suffix) => map.sourcesContent[map.sources.findIndex((s) => s.endsWith(suffix))];

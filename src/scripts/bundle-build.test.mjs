@@ -16,7 +16,12 @@ test("pinned OCR sources preserve WASM bytes and reject unrecognized binary data
     const cv = await fs.readFile(path.join(root, "opencv.js"), "utf8");
     assert.ok(!cv.includes("AGFzbQ"));
     const ort = await fs.readFile(path.join(root, "src/runtime/ort.ts"), "utf8");
-    assert.ok(ort.includes('import("onnxruntime-web/webgpu")'));
+    assert.ok(ort.includes('import("onnxruntime-web")'));
+    const ocr = await fs.readFile(path.join(root, "src/pipelines/ocr/core.ts"), "utf8");
+    assert.ok(ocr.includes("const detModel = await createDetModel("));
+    assert.ok(ocr.includes("const recModel = await createRecModel("));
+    assert.ok(ocr.includes("await detModel.dispose()"));
+    assert.ok(!ocr.includes("const [detModel, recModel] = await Promise.all("));
     assert.throws(() => extractOpenCv('"data:application/octet-stream;base64,AGFzbQ=="'), /fingerprint/);
     await fs.writeFile(path.join(root, "package.json"), '{"version":"0.4.3"}');
     await assert.rejects(preparePaddleAssets(path.join(root, "output"), root), /0.4.2/);
