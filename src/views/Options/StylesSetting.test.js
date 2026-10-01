@@ -359,8 +359,18 @@ describe("StylesSetting textarea grip section", () => {
     const derivedKeys = TEXTAREA_GRIP_STYLE_KEYS.map(
       (key) => `grip_style_${key.replace(/-/g, "_")}`
     );
+    // 取 label 文本前剔除装饰节点（svg 与 aria-hidden 子树），避免断言与
+    // 选项内部 DOM 形态耦合：未来图标带文字、MUI 勾选标记或视觉隐藏包装
+    // 文本混入时，textContent 不被装饰内容污染。在克隆树上操作，不影响
+    // 活 DOM 与同套件后续用例。
     const labels = [...document.body.querySelectorAll('[role="option"]')].map(
-      (node) => node.textContent
+      (node) => {
+        const clone = node.cloneNode(true);
+        clone
+          .querySelectorAll("svg, [aria-hidden='true']")
+          .forEach((decor) => decor.remove());
+        return clone.textContent.trim();
+      }
     );
     expect(labels).toEqual(derivedKeys);
     await act(async () => view.root.unmount());

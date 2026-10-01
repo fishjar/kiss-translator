@@ -396,9 +396,10 @@ export function GripGlyph({ variant, size = 18 }) {
  * @param {{current: HTMLTextAreaElement|null}} props.target 目标 textarea ref。
  * @param {(height: number) => void} props.onResize 高度变更回调。
  * @param {number|null} [props.value] 当前锁定高度（aria-valuenow）。未锁定
- *   时回落挂载后补测的基线元素实测高度（不可测时回落最小高度），播报值
- *   按 aria-valuemax 钳制，保证 role="slider" 恒携带落在规范区间内的
- *   aria-valuenow。
+ *   时逐字播报挂载后补测的基线元素实测高度（不可测时回落最小高度），
+ *   aria-valuemin 亦随锁定态取值：锁定为经手柄可达的最小高度（64），
+ *   未锁定为补测回落值的托底下界（40），保证 role="slider" 恒携带落在
+ *   规范区间内的 aria-valuenow。
  * @param {string} props.label 无障碍名称（aria-label + title）。
  * @param {string} [props.variant] 手柄样式 key（见 GRIP_SVGS），缺省回落
  *   "concentric-smooth"；未知值同样回落，保证永不渲染空手柄。
@@ -678,26 +679,28 @@ export default function TextareaResizeGrip({
     onResize(clampHeight(baseHeight + delta));
   };
 
-  // slider 播报值：锁定时取锁定高度，未锁定时取挂载后补测的回落 state；
-  // 再按 [valuemin, valuemax] 双向钳制——锁定高度经会话记忆恢复或窗口
-  // 缩小后可能超出当前播报上界，非有限锁定值已按未锁定回落处理，ARIA
-  // slider 规范要求 valuenow 落在 [valuemin, valuemax] 区间内。valuetext
-  // 与 valuenow 同源同钳，读屏播报口径一致。
-  // 播报下界恒取钳制托底：三条可调路径（clampHeight/pointermove/
-  // clampGripMemoryHeight→applyHeight）不区分锁定态一律托底
-  // LOCKED_MIN_TARGET_HEIGHT_PX（64），未锁定分支播报 40 同样不可达。
-  // 播报「经手柄可达的最小高度」= 64；未锁定回落播报值（可低于 64 的
-  // 实测高度）按规范托到 [valuemin, valuemax] 内，真实高度不受影响。
+  // slider 播报值：锁定时取锁定高度并按 [valuemin, valuemax] 钳制——锁定
+  // 高度经会话记忆恢复或窗口缩小后可能超出当前播报上界；未锁定时取挂载
+  // 后补测的回落 state 逐字播报实测高度（fallbackHeight 本身已按
+  // MIN_TARGET_HEIGHT_PX 托底，见补测效应）。ARIA slider 规范要求
+  // valuenow 落在 [valuemin, valuemax] 区间内。valuetext 与 valuenow 同源
+  // 同钳，读屏播报口径一致。
+  // 播报下界按锁定态区分语义：锁定态取 LOCKED_MIN_TARGET_HEIGHT_PX（64，
+  // 经手柄可达的最小高度）；未锁定态取 MIN_TARGET_HEIGHT_PX（40，补测
+  // 回落值的既有托底），使短字段的实测高度（可低于 64）不再被托高播报。
+  // 三条可调路径（clampHeight/pointermove/clampGripMemoryHeight→
+  // applyHeight）的真实托底不区分锁定态一律为 64，与本播报口径互不影响。
   // 播报上界恒不低于播报下界（病态视口托底），valuenow 按有效上界钳制。
-  const ariaValueMin = LOCKED_MIN_TARGET_HEIGHT_PX;
+  const ariaValueMin = Number.isFinite(value)
+    ? LOCKED_MIN_TARGET_HEIGHT_PX
+    : MIN_TARGET_HEIGHT_PX;
   const effectiveMax = Math.max(ariaValueMin, ariaValueMax);
-  const reportedHeight = Math.max(
-    ariaValueMin,
-    Math.min(
-      Number.isFinite(value) ? Math.round(value) : fallbackHeight,
-      effectiveMax
-    )
-  );
+  const reportedHeight = Number.isFinite(value)
+    ? Math.max(
+        LOCKED_MIN_TARGET_HEIGHT_PX,
+        Math.min(Math.round(value), effectiveMax)
+      )
+    : Math.max(MIN_TARGET_HEIGHT_PX, Math.min(fallbackHeight, effectiveMax));
 
   return (
     <Box

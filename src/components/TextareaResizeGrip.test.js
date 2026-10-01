@@ -152,12 +152,13 @@ describe("TextareaResizeGrip", () => {
   // 挂载，回落最小高度；锁定态边界变更（B6 依赖收敛的合法补测触发）
   // 回落基线元素实测高度（jsdom offsetHeight 恒 0，经 spy 注入实测值
   // 验证测量路径）。同 props 重渲染不再逐渲染实测（见 B6 专用用例）。
-  // 回落播报值被播报下界（手柄可达最小高度 64）托底。
+  // 回落播报值逐字反映实测/回落口径：初始回落为补测托底下界
+  // MIN_TARGET_HEIGHT_PX（40），补测后播报实测值，不再被锁定下界托高。
   test("reports a slider value fallback while the height is unlocked", async () => {
     const onResize = jest.fn();
     const { grip, fieldRoot, root } = await renderGrip(onResize);
-    expect(grip.getAttribute("aria-valuenow")).toBe("64");
-    expect(grip.getAttribute("aria-valuetext")).toBe("64px");
+    expect(grip.getAttribute("aria-valuenow")).toBe("40");
+    expect(grip.getAttribute("aria-valuetext")).toBe("40px");
     jest.spyOn(fieldRoot, "offsetHeight", "get").mockReturnValue(128);
     // value undefined→null 的锁定态边界变更触发一次补测。
     await act(async () => {
@@ -168,10 +169,10 @@ describe("TextareaResizeGrip", () => {
     await act(async () => root.unmount());
   });
 
-  // ARIA 下界契约：播报下界恒取钳制托底 LOCKED_MIN_TARGET_HEIGHT_PX
-  // （64）——三条可调路径不区分锁定态一律托底 64，播报 40 即失实；
-  // valuemin/valuemax/valuenow 三者必须构成自洽区间（valuenow 落在
-  // [valuemin, valuemax]）。
+  // ARIA 下界契约：播报下界按锁定态区分——锁定态取
+  // LOCKED_MIN_TARGET_HEIGHT_PX（64，经手柄可达的最小高度），未锁定态
+  // 取 MIN_TARGET_HEIGHT_PX（40，补测回落值的托底下界）；valuenow 恒落
+  // 在 [valuemin, valuemax] 区间内。
   test("reports the locked lower bound in aria-valuemin and keeps the slider range self-consistent", async () => {
     const onResize = jest.fn();
     const { grip: lockedGrip, root: lockedRoot } = await renderGrip(
@@ -192,8 +193,39 @@ describe("TextareaResizeGrip", () => {
     const { grip: unlockedGrip, root: unlockedRoot } = await renderGrip(
       onResize
     );
-    expect(unlockedGrip.getAttribute("aria-valuemin")).toBe("64");
+    expect(unlockedGrip.getAttribute("aria-valuemin")).toBe("40");
     await act(async () => unlockedRoot.unmount());
+  });
+
+  // 未锁定真实播报：短字段（实测高度低于锁定下界 64）的 slider 播报值
+  // 必须逐字等于补测回落值，不得被托高到 64——aria-valuenow 的语义是
+  // 当前真实高度，播报失真对读屏用户不可解释。播报下界随锁定态取值：
+  // 未锁定 = MIN_TARGET_HEIGHT_PX（40，补测回落值的托底下界）。
+  test("announces the measured height verbatim for short unlocked fields", async () => {
+    const onResize = jest.fn();
+    const { grip, fieldRoot, root } = await renderGrip(onResize);
+    jest.spyOn(fieldRoot, "offsetHeight", "get").mockReturnValue(47);
+    // value undefined→null 的锁定态边界变更触发一次补测。
+    await act(async () => {
+      root.render(<GripHost onResize={onResize} value={null} />);
+    });
+    expect(grip.getAttribute("aria-valuenow")).toBe("47");
+    expect(grip.getAttribute("aria-valuetext")).toBe("47px");
+    expect(grip.getAttribute("aria-valuemin")).toBe("40");
+    await act(async () => root.unmount());
+  });
+
+  // 锁定态播报钳制不回归：锁定值仍按 [64, valuemax] 钳制播报，播报下界
+  // 取经手柄可达的最小高度 64。本用例为防御性断言（锁定值生产链路恒
+  // ≥64，src/hooks/useTextareaHeightLock.js:114/:190），防 prop 直传越界
+  // 回归。
+  test("clamps the announced value to the locked lower bound when locked", async () => {
+    const onResize = jest.fn();
+    const { grip, root } = await renderGrip(onResize, 47);
+    expect(grip.getAttribute("aria-valuemin")).toBe("64");
+    expect(grip.getAttribute("aria-valuenow")).toBe("64");
+    expect(grip.getAttribute("aria-valuetext")).toBe("64px");
+    await act(async () => root.unmount());
   });
 
   // aria-valuemax 不得停留在初始视口保守值：拖拽/键盘会话经 clampHeight
