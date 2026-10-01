@@ -21,11 +21,14 @@ import {
 import { css } from "@emotion/css";
 import { getRandomQuote } from "../../config/quotes";
 import { useSetting } from "../../hooks/Setting";
+import { GripGlyph } from "../../components/TextareaResizeGrip";
+import { useTextareaGripStyle } from "../../hooks/useTextareaHeightLock";
 import {
   SettingsCard,
   SettingsRow,
   SettingsSection,
   SettingsSegmented,
+  SettingsSelect,
 } from "./SettingsCard";
 
 /**
@@ -225,6 +228,27 @@ export function StyleAccordion({ customStyle, deleteStyle, updateStyle }) {
 }
 
 /**
+ * 下拉选项图标 + 文案的内联排布（参照 Apis.js MenuItem 内联图标先例；
+ * SettingsSelect 的 label 天然接受 React 节点，SettingsSelect 自身零改造）。
+ * 图标由 GripGlyph 纯展示渲染；hidden 项不渲染手柄，textarea 回退原生 resize。
+ *
+ * @param {string} variant 手柄样式 key。
+ * @param {string} text 选项文案。
+ * @returns {JSX.Element}
+ */
+function gripOptionLabel(variant, text) {
+  return (
+    <Box
+      component="span"
+      sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}
+    >
+      <GripGlyph variant={variant} />
+      {text}
+    </Box>
+  );
+}
+
+/**
  * 译文展现样式设置主页面组件 (StylesSetting)
  */
 export default function StylesSetting() {
@@ -249,6 +273,7 @@ export default function StylesSetting() {
   };
 
   const darkMode = setting.darkMode || "auto";
+  const gripStyle = useTextareaGripStyle();
 
   return (
     <Box>
@@ -263,6 +288,118 @@ export default function StylesSetting() {
                 { value: "light", label: i18n("settings_theme_light") },
                 { value: "dark", label: i18n("settings_theme_dark") },
                 { value: "auto", label: i18n("settings_theme_system") },
+              ]}
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </SettingsSection>
+
+      <SettingsSection title={i18n("settings_textarea_grip_style")}>
+        <SettingsCard>
+          <SettingsRow
+            label={i18n("settings_textarea_grip_style")}
+            description={i18n("settings_textarea_grip_style_desc")}
+          >
+            <SettingsSelect
+              value={gripStyle}
+              label={i18n("settings_textarea_grip_style")}
+              onChange={(value) => updateSetting({ textareaGripStyle: value })}
+              options={[
+                {
+                  value: "concentric-smooth",
+                  label: gripOptionLabel(
+                    "concentric-smooth",
+                    i18n("grip_style_concentric_smooth")
+                  ),
+                },
+                {
+                  value: "concentric-triple",
+                  label: gripOptionLabel(
+                    "concentric-triple",
+                    i18n("grip_style_concentric_triple")
+                  ),
+                },
+                {
+                  value: "corner-pill",
+                  label: gripOptionLabel(
+                    "corner-pill",
+                    i18n("grip_style_corner_pill")
+                  ),
+                },
+                {
+                  value: "dotted-concentric",
+                  label: gripOptionLabel(
+                    "dotted-concentric",
+                    i18n("grip_style_dotted_concentric")
+                  ),
+                },
+                {
+                  value: "dotted-single",
+                  label: gripOptionLabel(
+                    "dotted-single",
+                    i18n("grip_style_dotted_single")
+                  ),
+                },
+                {
+                  value: "triple-chevrons",
+                  label: gripOptionLabel(
+                    "triple-chevrons",
+                    i18n("grip_style_triple_chevrons")
+                  ),
+                },
+                {
+                  value: "diagonal-arrow",
+                  label: gripOptionLabel(
+                    "diagonal-arrow",
+                    i18n("grip_style_diagonal_arrow")
+                  ),
+                },
+                {
+                  value: "dual-pills",
+                  label: gripOptionLabel(
+                    "dual-pills",
+                    i18n("grip_style_dual_pills")
+                  ),
+                },
+                {
+                  value: "expanding-beads",
+                  label: gripOptionLabel(
+                    "expanding-beads",
+                    i18n("grip_style_expanding_beads")
+                  ),
+                },
+                {
+                  value: "chevrons-star",
+                  label: gripOptionLabel(
+                    "chevrons-star",
+                    i18n("grip_style_chevrons_star")
+                  ),
+                },
+                {
+                  value: "symmetric-division",
+                  label: gripOptionLabel(
+                    "symmetric-division",
+                    i18n("grip_style_symmetric_division")
+                  ),
+                },
+                {
+                  value: "percent-style",
+                  label: gripOptionLabel(
+                    "percent-style",
+                    i18n("grip_style_percent_style")
+                  ),
+                },
+                {
+                  value: "orbit-satellite",
+                  label: gripOptionLabel(
+                    "orbit-satellite",
+                    i18n("grip_style_orbit_satellite")
+                  ),
+                },
+                {
+                  value: "hidden",
+                  label: gripOptionLabel("hidden", i18n("grip_style_hidden")),
+                },
               ]}
             />
           </SettingsRow>

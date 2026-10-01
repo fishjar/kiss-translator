@@ -1,5 +1,19 @@
 import { POPUP_STYLES } from "./styles";
-import { getCssAtRuleBodies } from "../../styles/testUtils";
+import {
+  getCssAtRuleBodies,
+  stripTopLevelAtRuleBlocks,
+} from "../../styles/testUtils";
+
+// 顶层规则解析：块注释与任意 @keyword{...} 顶层块统一由共用 helper
+// stripTopLevelAtRuleBlocks（括号深度配平）剥除，仅对剩余顶层文本跑
+// 扁平规则正则。不引入解析器依赖，不再自备第二套 at-rule 正则。
+function parseTopLevelRules(css) {
+  const stripped = stripTopLevelAtRuleBlocks(css);
+  return [...stripped.matchAll(/([^{}]+)\{([^}]*)\}/g)].map((m) => ({
+    members: m[1].split(",").map((selector) => selector.trim()),
+    body: m[2],
+  }));
+}
 
 describe("Safari popup sizing", () => {
   test("keeps an intrinsic preferred width within the available container", () => {
@@ -220,5 +234,164 @@ describe("separate translation window layout", () => {
     // Dynamic units account for the mobile browser toolbar.
     expect(windowShellRule).toContain("min-height: 100dvh");
     expect(windowShellRule).not.toContain("min-height: 100vh");
+  });
+
+  test("leaves the result textarea resize behavior to TranCont inline styles", () => {
+    // 意见 B：窗口模式 CSS 不得压制 hidden 态原生 resize——
+    // resize:none 与 height:auto !important 均须移除，由内联样式全态接管。
+    const textareaRule = POPUP_STYLES.match(
+      /\.kt-popup-shell--window \.kt-translation-result textarea:not\(\[aria-hidden="true"\]\)\s*\{([^}]*)\}/
+    )?.[1];
+    expect(textareaRule).toBeDefined();
+    expect(textareaRule).not.toMatch(/resize\s*:/);
+    expect(textareaRule).not.toMatch(/height:\s*auto\s*!important/);
+    // 保留布局声明：flex/min-height 承载窗口拉伸，overflow-y 维持滚动语义。
+    expect(textareaRule).toContain("flex: 1");
+    expect(textareaRule).toContain("min-height: 140px");
+    expect(textareaRule).toContain("overflow-y: auto !important");
+  });
+});
+
+// 未锁定 + 非 hidden 手柄态下，结果 textarea 无任何内联高度（TranCont
+// 内联仅接管 resize，锁定态高度由 useTextareaHeightLock 的 rootProps 承
+// 载），窗口模式的高度唯一来源是本文件布局链。此处逐跳锁死链路，防止
+// 任一 flex/min-height 声明被误删后未锁定态塌成内容高度。
+describe("popup window result textarea flex chain", () => {
+  test("stretches the unlocked result textarea via an unbroken flex chain", () => {
+    const panelRule = POPUP_STYLES.match(
+      /\.kt-popup-shell--window \.kt-popup-text-panel\s*\{([^}]*)\}/
+    )?.[1];
+    expect(panelRule).toContain("display: flex");
+    expect(panelRule).toContain("flex-direction: column");
+    expect(panelRule).toContain("min-height: 100dvh");
+
+    const resultRule = POPUP_STYLES.match(
+      /\.kt-popup-shell--window \.kt-translation-result\s*\{([^}]*)\}/
+    )?.[1];
+    expect(resultRule).toContain("flex: 1");
+    expect(resultRule).toContain("display: flex");
+    expect(resultRule).toContain("flex-direction: column");
+    expect(resultRule).toContain("min-height: 180px");
+
+    // 顺序无关的规则捕获：解析全部 CSS 规则后按联合选择器成员逐条比对
+    // （成员被 format 重排/拆分不脆弱；失配时经长度与 some 断言干净变红，
+    // 而非 undefined toContain 抛错式失败）。flex: 1 是两成员共用的联合
+    // 规则体（跨行联合选择器，{ 前还有另一成员，不能对单成员直接锚 {），
+    // 分别对各成员断言。
+    const cssRules = parseTopLevelRules(POPUP_STYLES);
+    const formControlFlexBodies = cssRules
+      .filter((rule) =>
+        rule.members.includes(
+          ".kt-popup-shell--window .kt-translation-result > .MuiFormControl-root"
+        )
+      )
+      .map((rule) => rule.body);
+    expect(formControlFlexBodies.length).toBeGreaterThan(0);
+    expect(
+      formControlFlexBodies.some((body) => body.includes("flex: 1"))
+    ).toBe(true);
+
+    // align-items: stretch 与 flex: 1 是两条独立规则（同名成员选择器出现
+    // 两条规则体），收集后以 some 分别断言。
+    const inputBaseBodies = cssRules
+      .filter((rule) =>
+        rule.members.includes(
+          ".kt-popup-shell--window .kt-translation-result .MuiInputBase-root"
+        )
+      )
+      .map((rule) => rule.body);
+    expect(inputBaseBodies.length).toBeGreaterThan(0);
+    expect(
+      inputBaseBodies.some((body) => body.includes("flex: 1"))
+    ).toBe(true);
+    expect(
+      inputBaseBodies.some((body) => body.includes("align-items: stretch"))
+    ).toBe(true);
+
+    const textareaRule = POPUP_STYLES.match(
+      /\.kt-popup-shell--window \.kt-translation-result textarea:not\(\[aria-hidden="true"\]\)\s*\{([^}]*)\}/
+    )?.[1];
+    expect(textareaRule).toContain("flex: 1");
+    expect(textareaRule).toContain("min-height: 140px");
+  });
+
+  test("never reintroduces a css height or resize override on the result textarea", () => {
+    const textareaRule = POPUP_STYLES.match(
+      /\.kt-popup-shell--window \.kt-translation-result textarea:not\(\[aria-hidden="true"\]\)\s*\{([^}]*)\}/
+    )?.[1];
+    expect(textareaRule).toBeDefined();
+    expect(textareaRule).not.toMatch(/(?:^|[^-])height\s*:/);
+    expect(textareaRule).not.toMatch(/resize\s*:/);
+  });
+});
+
+// 注释/at-rule 错配回归护栏：带块注释前导的顶层规则必须解析为干净规则
+// （注释并入选择器即红）；@media/@supports 嵌套块整体剥离，不得产出把
+// at-rule 前导与嵌套首条规则并合的残缺规则。
+describe("popup stylesheet top-level rule parsing", () => {
+  test("parses the commented textarea rule as a clean top-level rule", () => {
+    const cssRules = parseTopLevelRules(POPUP_STYLES);
+    const textareaRule = cssRules.find((rule) =>
+      rule.members.includes(
+        '.kt-popup-shell--window .kt-translation-result textarea:not([aria-hidden="true"])'
+      )
+    );
+    expect(textareaRule).toBeDefined();
+    expect(textareaRule.body).toContain("flex: 1");
+    expect(textareaRule.body).toContain("min-height: 140px");
+  });
+
+  test("emits no polluted selectors from comments or at-rule preludes", () => {
+    const cssRules = parseTopLevelRules(POPUP_STYLES);
+    expect(cssRules.length).toBeGreaterThan(0);
+    for (const rule of cssRules) {
+      for (const member of rule.members) {
+        expect(member.startsWith("@")).toBe(false);
+        expect(member).not.toContain("{");
+      }
+    }
+  });
+});
+
+describe("stripTopLevelAtRuleBlocks (shared at-rule stripper)", () => {
+  test("strips @keyframes blocks the legacy media/supports-only regex misses", () => {
+    const css =
+      "@keyframes spin { from { transform: none; } to { transform: rotate(1turn); } } .a { color: red; }";
+    const out = stripTopLevelAtRuleBlocks(css);
+    expect(out).not.toContain("@keyframes");
+    expect(out).toContain(".a { color: red; }");
+  });
+
+  test("strips at-rules nested two levels deep", () => {
+    const css =
+      "@media (max-width: 100px) { @supports (display: grid) { .b { display: grid; } } } .c { margin: 0; }";
+    const out = stripTopLevelAtRuleBlocks(css);
+    expect(out).not.toContain("@media");
+    expect(out).not.toContain("@supports");
+    expect(out).not.toContain(".b");
+    expect(out).toContain(".c { margin: 0; }");
+  });
+
+  test("keeps plain top-level rules and blockless at-statements", () => {
+    const css = "@import url(x.css); .d { color: blue; } .e { color: green; }";
+    const out = stripTopLevelAtRuleBlocks(css);
+    expect(out).toContain("@import url(x.css);");
+    expect(out).toContain(".d { color: blue; }");
+    expect(out).toContain(".e { color: green; }");
+  });
+
+  test("normalizes non-string input to empty text", () => {
+    expect(stripTopLevelAtRuleBlocks(undefined)).toBe("");
+    expect(stripTopLevelAtRuleBlocks(null)).toBe("");
+  });
+
+  test("keeps degenerate at-rule inputs as plain text without hanging", () => {
+    // 退化输入域锁定：@ 后既无 { 也无 ;（裸 @ 前导）与未闭合块，均不得
+    // 抛错或挂起，剩余文本整体按普通顶层文本保留（jasmine 默认超时对
+    // 死循环类回归天然兜底，用例只断言输出形态、不做计时）。
+    expect(stripTopLevelAtRuleBlocks("@media")).toBe("@media");
+    const unclosed = stripTopLevelAtRuleBlocks("@media { .a { color: red }");
+    expect(unclosed).toContain("@media");
+    expect(unclosed).toContain(".a { color: red }");
   });
 });

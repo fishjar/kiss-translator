@@ -3,6 +3,10 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import TranCont from "./TranCont";
 import { apiTranslate } from "../../apis";
+import {
+  __getSessionHeightMapForTests,
+  __resetSessionHeightMapForTests,
+} from "../../hooks/useTextareaHeightLock";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -45,6 +49,23 @@ jest.mock("./AudioBtn", () => {
         { type: "button", "data-speech-text": text },
         "speak"
       ),
+  };
+});
+
+// 手柄样式：部分 mock（requireActual 保留真实默认导出），只替换
+// useTextareaGripStyle 驱动 corner-pill 等自绘样式行为。
+// 同时最小 mock ./Setting：斩断 requireActual(真实 hook) → ./Setting → Storage →
+// apis → query-string(ESM) 的未转译链；真实默认导出不调用 useSetting，零影响。
+jest.mock("../../hooks/Setting", () => ({
+  useSetting: () => ({ setting: {} }),
+}));
+const mockUseTextareaGripStyle = jest.fn(() => "concentric-smooth");
+jest.mock("../../hooks/useTextareaHeightLock", () => {
+  const actual = jest.requireActual("../../hooks/useTextareaHeightLock");
+  return {
+    ...actual,
+    __esModule: true,
+    useTextareaGripStyle: () => mockUseTextareaGripStyle(),
   };
 });
 
@@ -145,6 +166,7 @@ function renderTranCont(props = {}) {
 
 describe("TranCont", () => {
   beforeEach(() => {
+    __resetSessionHeightMapForTests();
     apiTranslate.mockReset();
     document.body.innerHTML = "";
   });
@@ -171,7 +193,7 @@ describe("TranCont", () => {
     expect(
       textarea
         .closest(".MuiInputBase-root")
-        .querySelector('[role="separator"]')
+        .querySelector('[role="slider"]')
     ).toBeNull();
     expect(textarea.placeholder).toBe("playground_translation_empty_result");
     expect(container.querySelector("button[data-copy-text]")).toBeNull();
@@ -190,7 +212,7 @@ describe("TranCont", () => {
     expect(resultTextarea.value).toBe("译文");
     const resultRoot = resultTextarea.closest(".MuiInputBase-root");
     // 内容门控（有内容 → 在场）。
-    const grip = resultRoot.querySelector('[role="separator"]');
+    const grip = resultRoot.querySelector('[role="slider"]');
     expect(grip).not.toBeNull();
     expect(grip.getAttribute("aria-label")).toBe("field_resize_height");
     act(() => {
@@ -201,6 +223,94 @@ describe("TranCont", () => {
     expect(resultRoot.classList).toContain("kt-height-locked");
     expect(resultRoot.style.height).toBe("40px");
     act(() => root.unmount());
+  });
+
+  test("clearing the result releases the locked height completely", async () => {
+    __resetSessionHeightMapForTests();
+    apiTranslate.mockResolvedValueOnce({ trText: "译文" });
+    const { container, root } = renderTranCont();
+    await flushEffects();
+
+    const resultTextarea = container.querySelector(
+      '.kt-translation-result textarea:not([aria-hidden="true"])'
+    );
+    const resultRoot = resultTextarea.closest(".MuiInputBase-root");
+    const grip = resultRoot.querySelector('[role="slider"]');
+    expect(grip).not.toBeNull();
+    act(() => {
+      grip.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+      );
+    });
+    expect(resultRoot.classList).toContain("kt-height-locked");
+
+    // 清空结果（text="" 重渲染触发 setTrText("")）→ 彻底解锁：手柄消失、
+    // root 类与内联高度还原。
+    act(() => {
+      root.render(
+        <TranCont
+          text=""
+          fromLang="auto"
+          toLang="zh-CN"
+          apiSlug="openai"
+          transApis={[baseApiSetting]}
+        />
+      );
+    });
+    await flushEffects();
+    expect(resultRoot.querySelector('[role="slider"]')).toBeNull();
+    expect(resultRoot.classList).not.toContain("kt-height-locked");
+    expect(resultRoot.style.height).toBe("");
+    act(() => root.unmount());
+  });
+
+  // 并存多实例（TranForm 以 key={slug} 渲染多个结果实例）时，会话高度
+  // 记忆必须按 apiSlug 隔离：共享键会让后挂载实例改写/清除先挂载实例
+  // 的记忆。断言面为会话记忆内容（挂载期空内容释放 effect 会抹平 DOM
+  // 级可观测性）。
+  test("scopes result height memories per provider slug", async () => {
+    __resetSessionHeightMapForTests();
+    apiTranslate.mockResolvedValueOnce({ trText: "A译文" });
+    const first = renderTranCont();
+    await flushEffects();
+    const aRoot = first.container
+      .querySelector('.kt-translation-result textarea:not([aria-hidden="true"])')
+      .closest(".MuiInputBase-root");
+    jest.spyOn(aRoot, "offsetHeight", "get").mockReturnValue(100);
+    act(() => {
+      aRoot
+        .querySelector('[role="slider"]')
+        .dispatchEvent(
+          new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+        );
+    });
+    expect(aRoot.style.height).toBe("112px");
+
+    apiTranslate.mockResolvedValueOnce({ trText: "B译文" });
+    const second = renderTranCont({
+      apiSlug: "google",
+      transApis: [googleApiSetting],
+    });
+    await flushEffects();
+    const bRoot = second.container
+      .querySelector('.kt-translation-result textarea:not([aria-hidden="true"])')
+      .closest(".MuiInputBase-root");
+    act(() => {
+      bRoot
+        .querySelector('[role="slider"]')
+        .dispatchEvent(
+          new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+        );
+    });
+    expect(bRoot.style.height).toBe("40px");
+
+    // 两条会话记忆并存：A 实例的 112 不被 B 实例的 40 改写或清除。
+    const memories = [...__getSessionHeightMapForTests().values()].sort(
+      (a, b) => a - b
+    );
+    expect(memories).toEqual([40, 112]);
+    act(() => first.root.unmount());
+    act(() => second.root.unmount());
   });
 
   test("renders an accessible read-only result with copy and speech actions", async () => {
@@ -995,5 +1105,94 @@ describe("TranCont", () => {
       deferred.resolve({ trText: "卸载后的译文" });
       await deferred.promise;
     });
+  });
+});
+
+describe("TranCont textarea grip style", () => {
+  beforeEach(() => {
+    __resetSessionHeightMapForTests();
+    apiTranslate.mockReset();
+    document.body.innerHTML = "";
+  });
+
+  afterEach(() => {
+    mockUseTextareaGripStyle.mockReset();
+    mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");
+  });
+
+  test("corner-pill renders the grip with the selected variant and locks resize", async () => {
+    mockUseTextareaGripStyle.mockReturnValue("corner-pill");
+    apiTranslate.mockResolvedValueOnce({ trText: "译文" });
+    const { container, root } = renderTranCont();
+    await flushEffects();
+
+    const textarea = container.querySelector(
+      '.kt-translation-result textarea:not([aria-hidden="true"])'
+    );
+    const fieldRoot = textarea.closest(".MuiInputBase-root");
+    const grip = fieldRoot.querySelector('[role="slider"]');
+    expect(grip).not.toBeNull();
+    expect(getComputedStyle(textarea).resize).toBe("none");
+    expect(grip.querySelector("svg path").getAttribute("d")).toBe(
+      "M14 6V9.5C14 11.985 11.985 14 9.5 14H6"
+    );
+    act(() => root.unmount());
+  });
+
+  // B1：hidden = 完全不渲染手柄 + textarea 原生 resize 回退（红：现实现
+  // 渲染空图形手柄且 resize 压成 none）。
+  test("hidden variant renders no grip and restores native resize", async () => {
+    mockUseTextareaGripStyle.mockReturnValue("hidden");
+    apiTranslate.mockResolvedValueOnce({ trText: "译文" });
+    const { container, root } = renderTranCont();
+    await flushEffects();
+
+    const textarea = container.querySelector(
+      '.kt-translation-result textarea:not([aria-hidden="true"])'
+    );
+    expect(textarea.style.resize).toBe("vertical");
+    expect(
+      textarea.closest(".MuiInputBase-root").querySelector('[role="slider"]')
+    ).toBeNull();
+    act(() => root.unmount());
+  });
+
+  // 意见 A：grip 样式切到 hidden 时自动释放会话高度锁（红：现实现残留
+  // kt-height-locked 与内联高度，字段被永久钉死）。
+  test("switching to hidden releases the session height lock", async () => {
+    mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");
+    apiTranslate.mockResolvedValue({ trText: "译文" });
+    const { container, root } = renderTranCont();
+    await flushEffects();
+
+    const textarea = container.querySelector(
+      '.kt-translation-result textarea:not([aria-hidden="true"])'
+    );
+    const fieldRoot = textarea.closest(".MuiInputBase-root");
+    const grip = fieldRoot.querySelector('[role="slider"]');
+    expect(grip).not.toBeNull();
+    await act(async () => {
+      grip.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+      );
+    });
+    expect(fieldRoot.classList).toContain("kt-height-locked");
+
+    mockUseTextareaGripStyle.mockReturnValue("hidden");
+    // 以新元素重渲染：复用同一元素对象会被 React 判等跳过提交。
+    await act(async () =>
+      root.render(
+        <TranCont
+          text="hello"
+          fromLang="auto"
+          toLang="zh-CN"
+          apiSlug="openai"
+          transApis={[baseApiSetting]}
+        />
+      )
+    );
+    expect(fieldRoot.classList).not.toContain("kt-height-locked");
+    expect(fieldRoot.style.height).toBe("");
+    act(() => root.unmount());
   });
 });

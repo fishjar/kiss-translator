@@ -2,6 +2,9 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { css as mockCss } from "@emotion/css";
 import StylesSetting, { StyleAccordion } from "./StylesSetting";
+import { TEXTAREA_GRIP_STYLE_KEYS } from "../../config/textareaGripStyles";
+import fs from "fs";
+import path from "path";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -30,24 +33,33 @@ jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key) => key,
 }));
 
-jest.mock("../../hooks/Setting", () => {
-  const setting = {
-    uiLang: "en",
-    darkMode: "auto",
-    customStyles: [
-      {
-        styleSlug: "custom-dangerous",
-        styleName: "Custom Dangerous",
-        styleCode: "position: fixed; inset: 0; z-index: 2147483647;",
-      },
-    ],
-  };
-  const updateSetting = jest.fn();
-
-  return {
-    useSetting: () => ({ setting, updateSetting }),
-  };
+// 稳定的 setting 引用避免 useAllTextStyles 抖动；textareaGripStyle 可被
+// updateSetting（字符串契约）或测试直接改写，驱动预览切换。mock 前缀变量
+// 供 jest.mock 工厂引用（babel-plugin-jest-hoist 允许）。
+const mockSetting = {
+  uiLang: "en",
+  darkMode: "auto",
+  textareaGripStyle: "concentric-smooth",
+  customStyles: [
+    {
+      styleSlug: "custom-dangerous",
+      styleName: "Custom Dangerous",
+      styleCode: "position: fixed; inset: 0; z-index: 2147483647;",
+    },
+  ],
+};
+const mockUpdateSetting = jest.fn((patch) => {
+  if (
+    patch &&
+    Object.prototype.hasOwnProperty.call(patch, "textareaGripStyle")
+  ) {
+    mockSetting.textareaGripStyle = patch.textareaGripStyle;
+  }
 });
+
+jest.mock("../../hooks/Setting", () => ({
+  useSetting: () => ({ setting: mockSetting, updateSetting: mockUpdateSetting }),
+}));
 
 jest.mock("../../hooks/Confirm", () => ({
   useConfirm: () => jest.fn(async () => true),
@@ -256,5 +268,137 @@ describe("StylesSetting style previews", () => {
     expect(nameInput.value).toBe("Unsaved style draft");
 
     view.cleanup();
+  });
+});
+
+async function flushMicrotasks() {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+}
+
+describe("StylesSetting textarea grip section", () => {
+  function renderGripSection() {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const render = () => {
+      act(() => {
+        root.render(<StylesSetting />);
+      });
+    };
+    render();
+    return {
+      container,
+      root,
+      rerender: render,
+      async cleanup() {
+        await act(async () => root.unmount());
+        container.remove();
+      },
+    };
+  }
+
+  async function openGripSelect(container) {
+    const select = container.querySelector(
+      ".kt-settings-select [role='combobox']"
+    );
+    expect(select).not.toBeNull();
+    await act(async () => {
+      select.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      await Promise.resolve();
+    });
+    return select;
+  }
+
+  beforeEach(() => {
+    mockUpdateSetting.mockClear();
+    mockSetting.textareaGripStyle = "concentric-smooth";
+  });
+
+  afterEach(async () => {
+    await flushMicrotasks();
+    document.body.innerHTML = "";
+  });
+
+  test("renders the grip section select with exactly 14 options", async () => {
+    const view = renderGripSection();
+    await openGripSelect(view.container);
+    const options = document.body.querySelectorAll('[role="option"]');
+    expect(options).toHaveLength(14);
+    await act(async () => view.root.unmount());
+    view.container.remove();
+  });
+
+  test("keeps the grip option value set identical to the grip registry keys", async () => {
+    // 单源护栏：下拉选项 value 集合必须逐项等于注册表 key 集合（含
+    // hidden）。注册表或选项数组单侧漂移时本断言必红，消除人工双写。
+    const view = renderGripSection();
+    await openGripSelect(view.container);
+    const optionValues = [
+      ...document.body.querySelectorAll('[role="option"]'),
+    ].map((option) => option.getAttribute("data-value"));
+    expect(optionValues).toEqual([...TEXTAREA_GRIP_STYLE_KEYS]);
+    await act(async () => view.root.unmount());
+    view.container.remove();
+  });
+
+  test("keeps every grip_style_* i18n key used by options derived from the shared list", () => {
+    // i18n 键对账护栏：StylesSetting 选项 JSX 内联硬编码的 i18n("grip_style_*")
+    // 字面量集合必须与单一事实源派生集合恒等（下划线形态归一回连字符）。
+    // 方法论：选项内联在 JSX 中无法直接 import 数据结构，故以源文本正则提取；
+    // 局限＝与 i18n("...") 书写形态耦合，调用形式变更时提取器需同步。
+    const source = fs.readFileSync(
+      path.join(__dirname, "StylesSetting.js"),
+      "utf8"
+    );
+    const used = [...source.matchAll(/i18n\("grip_style_([a-z_]+)"\)/g)].map(
+      (m) => m[1].replace(/_/g, "-")
+    );
+    // 提取器活性自检：必须命中 14 处，防正则失配导致集合为空而恒绿。
+    expect(used).toHaveLength(14);
+    expect(new Set(used).size).toBe(used.length);
+    // 判红能力自检：截短集必须判不等，防比较自身退化为恒真。
+    expect(used.sort()).not.toEqual(
+      [...TEXTAREA_GRIP_STYLE_KEYS].slice(0, 13).sort()
+    );
+    expect(used.sort()).toEqual([...TEXTAREA_GRIP_STYLE_KEYS].sort());
+  });
+
+  test("persists the selected grip style as a plain string value", async () => {
+    const view = renderGripSection();
+    await openGripSelect(view.container);
+    await act(async () => {
+      [...document.body.querySelectorAll('[role="option"]')]
+        .find((option) => option.getAttribute("data-value") === "corner-pill")
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+    // SettingsSelect onChange 契约：收到的是解包字符串，非 event 对象。
+    expect(mockUpdateSetting).toHaveBeenCalledWith({
+      textareaGripStyle: "corner-pill",
+    });
+    await act(async () => view.root.unmount());
+    view.container.remove();
+  });
+
+  test("embeds a grip glyph in every grip style option", async () => {
+    const view = renderGripSection();
+    await openGripSelect(view.container);
+    const options = [...document.body.querySelectorAll('[role="option"]')];
+    expect(options).toHaveLength(14);
+
+    // 每个样式项内嵌纯展示 svg（18×18 viewBox、aria-hidden）；hidden 项的
+    // svg 为空占位（无图形子元素）。
+    options.forEach((option) => {
+      const svg = option.querySelector("svg");
+      expect(svg).not.toBeNull();
+      expect(svg.getAttribute("viewBox")).toBe("0 0 18 18");
+      expect(svg.getAttribute("aria-hidden")).toBe("true");
+    });
+
+    await act(async () => view.root.unmount());
+    view.container.remove();
   });
 });
