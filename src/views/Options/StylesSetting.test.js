@@ -353,6 +353,16 @@ describe("StylesSetting textarea grip section", () => {
       (node) => node.getAttribute("data-value")
     );
     expect(values).toEqual([...TEXTAREA_GRIP_STYLE_KEYS]);
+    // 派生式护栏：本套件 useI18n mock 直返键名，label 必须逐项等于
+    // grip_style_<value 归一>（replace(/-/g,"_")），派生式被改坏即红；
+    // 键的七语言/RU 完整性由 src/config/i18n.test.js:5-14/:26-39 守护。
+    const derivedKeys = TEXTAREA_GRIP_STYLE_KEYS.map(
+      (key) => `grip_style_${key.replace(/-/g, "_")}`
+    );
+    const labels = [...document.body.querySelectorAll('[role="option"]')].map(
+      (node) => node.textContent
+    );
+    expect(labels).toEqual(derivedKeys);
     await act(async () => view.root.unmount());
     view.container.remove();
   });

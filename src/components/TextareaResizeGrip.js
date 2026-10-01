@@ -683,13 +683,13 @@ export default function TextareaResizeGrip({
   // 缩小后可能超出当前播报上界，非有限锁定值已按未锁定回落处理，ARIA
   // slider 规范要求 valuenow 落在 [valuemin, valuemax] 区间内。valuetext
   // 与 valuenow 同源同钳，读屏播报口径一致。
-  // 播报下界随锁定态取同一钳制托底：锁定时真实可调下界是
-  // LOCKED_MIN_TARGET_HEIGHT_PX（三条钳制路径全托底于此），未锁定回落
-  // 路径才是 MIN_TARGET_HEIGHT_PX。播报上界恒不低于播报下界（病态视口
-  // 下托底），valuenow 按有效上界钳制，保证 ARIA 区间自洽。
-  const ariaValueMin = Number.isFinite(value)
-    ? LOCKED_MIN_TARGET_HEIGHT_PX
-    : MIN_TARGET_HEIGHT_PX;
+  // 播报下界恒取钳制托底：三条可调路径（clampHeight/pointermove/
+  // clampGripMemoryHeight→applyHeight）不区分锁定态一律托底
+  // LOCKED_MIN_TARGET_HEIGHT_PX（64），未锁定分支播报 40 同样不可达。
+  // 播报「经手柄可达的最小高度」= 64；未锁定回落播报值（可低于 64 的
+  // 实测高度）按规范托到 [valuemin, valuemax] 内，真实高度不受影响。
+  // 播报上界恒不低于播报下界（病态视口托底），valuenow 按有效上界钳制。
+  const ariaValueMin = LOCKED_MIN_TARGET_HEIGHT_PX;
   const effectiveMax = Math.max(ariaValueMin, ariaValueMax);
   const reportedHeight = Math.max(
     ariaValueMin,

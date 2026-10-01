@@ -36,11 +36,17 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-shell--window .kt-translation-result .MuiInputBase-root { align-items: stretch; }
 /* height:auto !important 中和 multiline maxRows 走 TextareaAutosize 写入
    textarea 的内联 height/overflow（TranCont 内联样式只管
-   resize/boxSizing/padding，从不写 height；锁定态高度写在 FormControl
-   root 上，不落在 textarea），使 flex:1 + align-items:stretch 的拉伸在
-   未锁定短文本窗口态仍生效。resize/overflow 归 TranCont 内联样式管
-   （hidden 态回落 vertical 不能被 CSS 覆盖）。 */
+   resize/boxSizing/padding，从不写 height），使 flex:1 + align-items:stretch
+   的拉伸在未锁定短文本窗口态仍生效。resize/overflow 归 TranCont 内联样式
+   管（hidden 态回落 vertical 不能被 CSS 覆盖）。 */
 .kt-popup-shell--window .kt-translation-result textarea:not([aria-hidden="true"]) { flex: 1; height: auto !important; min-height: 140px; overflow-y: auto !important; }
+/* 锁定态覆盖：M3_GLOBAL_CSS 的 .kt-m3-root .kt-height-locked textarea
+   （height:100% !important，src/styles/m3.js:262-266）与本节 auto 规则
+   特异度相等，而 POPUP_STYLES 注入更晚（src/views/Popup/index.js:492），
+   同权重下后注入者胜——锁定态会被 auto 打回 TextareaAutosize，长译文
+   溢出固定高度的 MuiInputBase-root、滚动失效。本节以更高特异度
+   （3 class + :not([attr]) + 元素）显式钉回锁定态 100%，与注入顺序解耦。 */
+.kt-popup-shell--window .kt-translation-result .kt-height-locked textarea:not([aria-hidden="true"]) { height: 100% !important; }
 
 .kt-popup-shell.kt-popup-shell--content {
   width: 100%;

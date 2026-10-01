@@ -251,6 +251,17 @@ describe("separate translation window layout", () => {
     expect(textareaRule).toContain("min-height: 140px");
     expect(textareaRule).toContain("overflow-y: auto !important");
   });
+
+  test("pins the locked textarea back to 100 percent height in the window shell", () => {
+    // auto 中和规则与 M3_GLOBAL_CSS 的锁定态规则（.kt-m3-root
+    // .kt-height-locked textarea，height:100% !important）特异度相等，
+    // POPUP_STYLES 注入更晚者胜——必须以更高特异度的弹窗域规则显式钉回。
+    const lockedRule = POPUP_STYLES.match(
+      /\.kt-popup-shell--window \.kt-translation-result \.kt-height-locked textarea:not\(\[aria-hidden="true"\]\)\s*\{([^}]*)\}/
+    )?.[1];
+    expect(lockedRule).toBeDefined();
+    expect(lockedRule).toContain("height: 100% !important");
+  });
 });
 
 // 未锁定 + 非 hidden 手柄态下，结果 textarea 无任何内联高度（TranCont
