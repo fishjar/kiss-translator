@@ -38,9 +38,10 @@ import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
 import {
   parseTerms,
   buildTermsRegex,
-  buildTermsMatcher,
+  buildTermsMatcherForLibrary,
   applyTermReplace,
 } from "./terms";
+import { composeSources } from "./termsCompose";
 import { escapeHTML } from "./html";
 import { parseMathInText } from "./mathParse";
 import { apiMicrosoftDict, apiTranslate, apiYoudaoDict } from "../apis";
@@ -65,6 +66,63 @@ import { visitTranslationTargets } from "./translationTargets";
  */
 // Only wrappers created by this runtime are trusted across instance recreation.
 const touchTranslationOwners = new WeakMap();
+
+/**
+ * 把多种形态的术语库入参规整为 `{ libraries: [...] }`（按加载顺序）。
+ *
+ * 接受两种形态，保证向后兼容：
+ *  - 多库（当前）：`{ libraries: [{ id, name, source, text }] }`
+ *  - 三层（历史）：`{ custom, subscription }` → 展开为两库，顺序与原优先级一致
+ *
+ * 非法输入（null / 数字 / 字符串）一律降级为空库列表 —— 与"不传"等价，
+ * 这是既有测试锁定的行为（translatorLibraryTerms.test.js:82）。
+ *
+ * @param {*} libraryTerms
+ * @returns {{libraries: Array<{id: string, source: string, text: string}>}}
+ */
+function normalizeLibraryTerms(libraryTerms) {
+  const empty = { libraries: [] };
+  if (!libraryTerms || typeof libraryTerms !== "object") return empty;
+
+  if (Array.isArray(libraryTerms.libraries)) {
+    const libraries = libraryTerms.libraries
+      .filter((lib) => lib && typeof lib === "object")
+      .filter((lib) => typeof lib.text === "string" && lib.text.trim())
+      .map((lib, index) => ({
+        id: typeof lib.id === "string" && lib.id ? lib.id : `lib_${index}`,
+        name: typeof lib.name === "string" ? lib.name : "",
+        source:
+          typeof lib.source === "string"
+            ? lib.source
+            : lib.source?.type || "custom",
+        text: lib.text,
+      }));
+    return { libraries };
+  }
+
+  // 向后兼容：旧的三层形态
+  const libraries = [];
+  if (typeof libraryTerms.custom === "string" && libraryTerms.custom.trim()) {
+    libraries.push({
+      id: "custom",
+      name: "",
+      source: "custom",
+      text: libraryTerms.custom,
+    });
+  }
+  if (
+    typeof libraryTerms.subscription === "string" &&
+    libraryTerms.subscription.trim()
+  ) {
+    libraries.push({
+      id: "subscription",
+      name: "",
+      source: "subscription",
+      text: libraryTerms.subscription,
+    });
+  }
+  return { libraries };
+}
 
 export class Translator {
   // 块级判定缓存，避免对同一节点高频调用 window.getComputedStyle(el) 造成浏览器回流（Reflow）
@@ -356,6 +414,9 @@ export class Translator {
   #termEntries = []; // 排序后的术语条目（parseTerms 输出，供 applyTermReplace 使用）
   #combinedTermsRegex; // 专业术语正则表达式
   #termMatcher = null; // 术语扫描 matcher（buildTermsMatcher 一次物化，热路径零编译）
+  #libraryTerms = { libraries: [] }; // 术语库（多库，按加载顺序；靠前者优先级高）
+  #composedTermText = ""; // 三级合成后的术语文本（供诊断/调试）
+  #termOrigin = null; // 段号 → 来源映射（仅诊断用）
   #combinedSkipsRegex; // 跳过文本正则表达式
 
   #placeholderCache = null; // 缓存正则对象
@@ -1075,7 +1136,7 @@ export class Translator {
     return result;
   }
 
-  constructor({ rule = {}, setting = {}, favWords = [] }) {
+  constructor({ rule = {}, setting = {}, favWords = [], libraryTerms = {} }) {
     this.#setting = { ...Translator.DEFAULT_OPTIONS, ...setting };
     this.#rule = {
       ...Translator.DEFAULT_RULE,
@@ -1083,6 +1144,12 @@ export class Translator {
       isPlainText: rule.isPlainText === true || rule.isPlainText === "true",
     };
     this.#favWords = this.#dedupeFavoriteWords(favWords);
+    // 术语库（多库，按加载顺序）。缺省为空 → 行为与改造前完全一致。
+    //
+    // 两种入参形态都接受：
+    //   - 新（多库）：{ libraries: [{ id, name, source, text }, ...] }  按加载顺序
+    //   - 旧（三层）：{ custom, subscription }                          兼容既有测试
+    this.#libraryTerms = normalizeLibraryTerms(libraryTerms);
     this.#apisMap = new Map(
       this.#setting.transApis.map((api) => [api.apiSlug, api])
     );
@@ -1259,20 +1326,38 @@ export class Translator {
     shadowRoot.append(style);
   }
 
-  // 解析专业术语字符串
+  // 解析专业术语：三级合成（① 术语库自定义 > ② 术语订阅源 > ③ rule.terms）后统一解析
   #parseTerms(termsString) {
     this.#termEntries = [];
     this.#combinedTermsRegex = null;
     this.#termMatcher = null;
 
-    if (!termsString || typeof termsString !== "string") return;
+    // 多源合成：按加载顺序（术语库在前，规则层最后），靠前者同名胜出。
+    // 跨源同 key 由 composeSources 预去重（高优先级胜出），源内冲突仍保留给
+    // parseTerms 报出（见 termsCompose.js 的设计说明）。
+    // 契约：本方法接收的是**规则层**文本；术语库从 this.#libraryTerms 读取。
+    const composed = composeSources([
+      ...this.#libraryTerms.libraries,
+      {
+        id: "rule",
+        source: "rule",
+        text: typeof termsString === "string" ? termsString : "",
+      },
+    ]);
+    this.#composedTermText = composed.text;
+    this.#termOrigin = composed.originMap;
+
+    if (!composed.text) return;
 
     // 纯函数解析：按 key.length 降序、同 key 去重、非法正则收集。
     // fast 模式跳过跨术语 O(n²) 冲突分析，避免阻塞 Translator 初始化；
     // 跨术语 conflicting-pattern 诊断由 Playground / CLI 的完整模式负责。
-    const { terms, invalid, diagnostics, hasErrors } = parseTerms(termsString, {
-      fullDiagnostics: false,
-    });
+    const { terms, invalid, diagnostics, hasErrors } = parseTerms(
+      composed.text,
+      {
+        fullDiagnostics: false,
+      }
+    );
 
     if (invalid.length > 0) {
       invalid.forEach(({ key, error }) =>
@@ -1290,7 +1375,9 @@ export class Translator {
     this.#combinedTermsRegex = buildTermsRegex(terms);
     // matcher 一次物化槽位表与 phase 正则，逐文本节点扫描零编译；
     // 规则更新走 #parseTerms 整体重建，热更新自然失效。
-    this.#termMatcher = buildTermsMatcher(terms);
+    // 用分桶 matcher：术语库可能上万条，未分桶时页面翻译会卡死
+    //（实测 20,000 条：3.575ms/节点 → 分桶后 0.104ms/节点，34×）。
+    this.#termMatcher = buildTermsMatcherForLibrary(terms);
   }
 
   // #parseAITerms(termsString) {
@@ -5208,6 +5295,26 @@ overflow-wrap: anywhere !important;`;
 
   get rule() {
     return { ...this.#rule };
+  }
+
+  /** 三级合成后的术语文本（供诊断 / 测试断言） */
+  get composedTermText() {
+    return this.#composedTermText;
+  }
+
+  /** 段号 → 来源映射（仅诊断用：UI 反查"这条术语来自哪一层"） */
+  get termOrigin() {
+    return this.#termOrigin;
+  }
+
+  /** 解析后的术语条目（供测试与调试） */
+  get termEntries() {
+    return [...this.#termEntries];
+  }
+
+  /** 术语扫描 matcher（可用于断言是否走了分桶实现） */
+  get termMatcher() {
+    return this.#termMatcher;
   }
 
   get eventName() {

@@ -18,10 +18,13 @@ import {
   STOKEY_SETTING,
   STOKEY_RULES,
   STOKEY_WORDS,
+  STOKEY_TERMS,
   STOKEY_SYNC,
   KV_SETTING_KEY,
   KV_RULES_KEY,
   KV_WORDS_KEY,
+  KV_TERMS_KEY,
+  DEFAULT_TERMS,
   OPT_SYNCTYPE_WEBDAV,
 } from "../config";
 
@@ -165,7 +168,7 @@ describe("synchronization regression scenarios", () => {
       syncKey: "test-token",
       syncEncryptKey: "test-passphrase",
       syncMeta: Object.fromEntries(
-        [KV_SETTING_KEY, KV_RULES_KEY, KV_WORDS_KEY].map((key) => [
+        [KV_SETTING_KEY, KV_RULES_KEY, KV_WORDS_KEY, KV_TERMS_KEY].map((key) => [
           key,
           { updateAt: 90000, syncAt: 90001 },
         ])
@@ -175,6 +178,7 @@ describe("synchronization regression scenarios", () => {
       [KV_SETTING_KEY]: packet(KV_SETTING_KEY, initialSetting),
       [KV_RULES_KEY]: packet(KV_RULES_KEY, INITIAL_RULES),
       [KV_WORDS_KEY]: packet(KV_WORDS_KEY, INITIAL_WORDS),
+      [KV_TERMS_KEY]: packet(KV_TERMS_KEY, DEFAULT_TERMS),
     };
     remote = makeRemote(packets);
     createClient.mockReturnValue(remote);
@@ -192,6 +196,7 @@ describe("synchronization regression scenarios", () => {
       STOKEY_WORDS,
       STOKEY_RULES,
       STOKEY_SETTING,
+      STOKEY_TERMS,
       STOKEY_SYNC,
     ]) {
       await findStorageState(key)?.remove();

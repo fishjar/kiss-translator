@@ -8,6 +8,7 @@ import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
 import KeyboardRoundedIcon from "@mui/icons-material/KeyboardRounded";
 import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import SegmentRoundedIcon from "@mui/icons-material/SegmentRounded";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -95,6 +96,9 @@ export default function Navigator({ open, isMobile = false, onClose }) {
         items: [
           ["sync", i18n("options_data_sync"), "/sync", CloudSyncRoundedIcon],
           ["words", i18n("favorite_words"), "/words", BookmarksRoundedIcon],
+          // 术语库独立入口：此前术语设置藏在 Playground 与「更多」折叠内，
+          // 用户几乎找不到，故单列入口。
+          ["terms", i18n("terms_library"), "/terms", MenuBookRoundedIcon],
         ],
       },
       {

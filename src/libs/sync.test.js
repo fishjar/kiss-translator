@@ -4,9 +4,11 @@ jest.mock("../config", () => ({
   KV_SETTING_KEY: "kiss-setting_v2.json",
   KV_RULES_KEY: "kiss-rules_v2.json",
   KV_WORDS_KEY: "kiss-words.json",
+  KV_TERMS_KEY: "kiss-terms.json",
   STOKEY_SETTING: "setting",
   STOKEY_RULES: "rules",
   STOKEY_WORDS: "words",
+  STOKEY_TERMS: "terms",
   STOKEY_SYNC: "sync",
   KV_RULES_SHARE_KEY: "kiss-rules-share_v2.json",
   KV_SALT_SHARE: "share-salt",
@@ -21,12 +23,14 @@ jest.mock("./storage", () => ({
   getSettingWithDefault: jest.fn(),
   getRulesWithDefault: jest.fn(),
   getWordsWithDefault: jest.fn(),
+  getTermsWithDefault: jest.fn(),
   getSetting: jest.fn(),
   getRules: jest.fn(),
   getWords: jest.fn(),
   setSetting: jest.fn(),
   setRules: jest.fn(),
   setWords: jest.fn(),
+  setTerms: jest.fn(),
   storage: { withTransaction: jest.fn(), readSyncSnapshot: jest.fn() },
 }));
 
@@ -76,10 +80,12 @@ import {
   getRulesWithDefault,
   getSyncWithDefault,
   getWordsWithDefault,
+  getTermsWithDefault,
   putSync,
   setSetting,
   setRules,
   setWords,
+  setTerms,
   updateSyncState,
   storage,
 } from "./storage";
@@ -94,6 +100,7 @@ const NEW_SYNC_ENCRYPT_KEY = "new-sync-encrypt-passphrase";
 const SETTING_KEY = "kiss-setting_v2.json";
 const RULES_KEY = "kiss-rules_v2.json";
 const WORDS_KEY = "kiss-words.json";
+const TERMS_KEY = "kiss-terms.json";
 
 beforeEach(() => {
   const transaction = {
@@ -103,6 +110,7 @@ beforeEach(() => {
         setting: setSetting,
         rules: setRules,
         words: setWords,
+        terms: setTerms,
       })[key](value),
   };
   storage.withTransaction.mockImplementation((operation) =>
@@ -113,6 +121,7 @@ beforeEach(() => {
       setting: getSettingWithDefault,
       rules: getRulesWithDefault,
       words: getWordsWithDefault,
+      terms: getTermsWithDefault,
     }[key](),
     syncConfig: await getSyncWithDefault(),
   }));
@@ -604,6 +613,7 @@ describe("GitHub Gist sync", () => {
     getSettingWithDefault.mockResolvedValue({ setting: true });
     getRulesWithDefault.mockResolvedValue([{ pattern: "*" }]);
     getWordsWithDefault.mockResolvedValue({ hello: true });
+    getTermsWithDefault.mockResolvedValue({ terms: "API,接口" });
     apiGetGist.mockResolvedValue({ files: {} });
 
     Date.now.mockReturnValue(9999);
@@ -630,25 +640,39 @@ describe("GitHub Gist sync", () => {
     );
     expect(encryptSyncValue).toHaveBeenNthCalledWith(
       4,
+      JSON.stringify({ terms: "API,接口" }),
+      SYNC_ENCRYPT_KEY
+    );
+    expect(encryptSyncValue).toHaveBeenNthCalledWith(
+      5,
       JSON.stringify({ setting: true }),
       NEW_SYNC_ENCRYPT_KEY
     );
     expect(encryptSyncValue).toHaveBeenNthCalledWith(
-      5,
+      6,
       JSON.stringify([{ pattern: "*" }]),
       NEW_SYNC_ENCRYPT_KEY
     );
     expect(encryptSyncValue).toHaveBeenNthCalledWith(
-      6,
+      7,
       JSON.stringify({ hello: true }),
       NEW_SYNC_ENCRYPT_KEY
     );
-    const uploadedSetting = JSON.parse(apiUpdateGistFile.mock.calls[3][3]);
-    const uploadedRules = JSON.parse(apiUpdateGistFile.mock.calls[4][3]);
-    const uploadedWords = JSON.parse(apiUpdateGistFile.mock.calls[5][3]);
+    expect(encryptSyncValue).toHaveBeenNthCalledWith(
+      8,
+      JSON.stringify({ terms: "API,接口" }),
+      NEW_SYNC_ENCRYPT_KEY
+    );
+    // 4 个 store（setting/rules/words/terms）各上传两轮（旧口令校验 + 新口令回写），
+    // 故第二轮（forceSyncDataWithEncryptKey）的下标为 4/5/6/7。
+    const uploadedSetting = JSON.parse(apiUpdateGistFile.mock.calls[4][3]);
+    const uploadedRules = JSON.parse(apiUpdateGistFile.mock.calls[5][3]);
+    const uploadedWords = JSON.parse(apiUpdateGistFile.mock.calls[6][3]);
+    const uploadedTerms = JSON.parse(apiUpdateGistFile.mock.calls[7][3]);
     expect(uploadedSetting.updateAt).toBe(9999);
     expect(uploadedRules.updateAt).toBe(9999);
     expect(uploadedWords.updateAt).toBe(9999);
+    expect(uploadedTerms.updateAt).toBe(9999);
     expect(putSync).toHaveBeenCalledWith({
       syncMeta: expect.objectContaining({
         [SETTING_KEY]: {
@@ -668,6 +692,14 @@ describe("GitHub Gist sync", () => {
     expect(putSync).toHaveBeenCalledWith({
       syncMeta: expect.objectContaining({
         [WORDS_KEY]: {
+          updateAt: 9999,
+          syncAt: 9999,
+        },
+      }),
+    });
+    expect(putSync).toHaveBeenCalledWith({
+      syncMeta: expect.objectContaining({
+        [TERMS_KEY]: {
           updateAt: 9999,
           syncAt: 9999,
         },
@@ -721,6 +753,7 @@ describe("GitHub Gist sync", () => {
     getSettingWithDefault.mockResolvedValue({ setting: true });
     getRulesWithDefault.mockResolvedValue([]);
     getWordsWithDefault.mockResolvedValue({});
+    getTermsWithDefault.mockResolvedValue({ terms: "" });
     apiGetGist.mockResolvedValue({ files: {} });
 
     await changeSyncEncryptKey({

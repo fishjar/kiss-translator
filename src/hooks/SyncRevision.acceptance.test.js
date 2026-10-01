@@ -21,6 +21,8 @@ import {
   KV_SETTING_KEY,
   KV_RULES_KEY,
   KV_WORDS_KEY,
+  KV_TERMS_KEY,
+  DEFAULT_TERMS,
   OPT_SYNCTYPE_WEBDAV,
 } from "../config";
 
@@ -147,6 +149,7 @@ describe("F10 acceptance with real sync metadata and WebDAV comparison", () => {
         [KV_SETTING_KEY]: { updateAt: 90000, syncAt: 90001 },
         [KV_RULES_KEY]: { updateAt: 90000, syncAt: 90001 },
         [KV_WORDS_KEY]: { updateAt: 90000, syncAt: 90001 },
+        [KV_TERMS_KEY]: { updateAt: 90000, syncAt: 90001 },
       },
     });
     remotePackets = {
@@ -165,6 +168,9 @@ describe("F10 acceptance with real sync metadata and WebDAV comparison", () => {
         { remote: { createdAt: 100500 } },
         100500
       ),
+      // 术语库是第 4 个同步 store：远端须有对应文件，否则 getFileContents 返回
+      // undefined 会让 syncByWebdav 的 JSON.parse 抛错（F10 用例因此失败）。
+      [KV_TERMS_KEY]: makePacket(KV_TERMS_KEY, DEFAULT_TERMS, 90000),
     };
     blockedReply = deferred();
     wordReads = 0;

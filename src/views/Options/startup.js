@@ -3,17 +3,28 @@ import {
   STOKEY_SETTING,
   STOKEY_SYNC,
   STOKEY_WORDS,
+  STOKEY_TERMS,
 } from "../../config";
 import { isGm } from "../../libs/client";
 import { adaptScript } from "../../libs/gm";
 import { kissLog } from "../../libs/log";
 import { runDataMigration } from "../../libs/storage";
 import { refreshStorageKeys } from "../../libs/storageRefresh";
-import { trySyncRules, trySyncSetting, trySyncWords } from "../../libs/sync";
+import {
+  trySyncRules,
+  trySyncSetting,
+  trySyncWords,
+  trySyncTerms,
+} from "../../libs/sync";
 import { sleep } from "../../libs/utils";
 import { normalizeOptionsPath } from "./paths";
 
-export const OPTIONS_SYNC_KEYS = [STOKEY_SETTING, STOKEY_RULES, STOKEY_WORDS];
+export const OPTIONS_SYNC_KEYS = [
+  STOKEY_SETTING,
+  STOKEY_RULES,
+  STOKEY_WORDS,
+  STOKEY_TERMS,
+];
 
 export function getRequiredOptionsSyncKeys(path) {
   const pathname = normalizeOptionsPath(path);
@@ -27,6 +38,10 @@ export function getRequiredOptionsSyncKeys(path) {
   }
   if (pathname === "/words" || pathname.startsWith("/words/")) {
     return [STOKEY_SETTING, STOKEY_WORDS];
+  }
+  if (pathname === "/terms" || pathname.startsWith("/terms/")) {
+    // 术语库页依赖设置（订阅源列表在 setting 里）与术语库正文
+    return [STOKEY_SETTING, STOKEY_TERMS];
   }
   return [STOKEY_SETTING];
 }
@@ -94,6 +109,7 @@ export function createOptionsStartup() {
   const remaining = [
     [STOKEY_RULES, trySyncRules],
     [STOKEY_WORDS, trySyncWords],
+    [STOKEY_TERMS, trySyncTerms],
   ];
   const required = getRequiredOptionsSyncKeys(window.location.hash);
   if (required.includes(STOKEY_WORDS) && !required.includes(STOKEY_RULES)) {

@@ -254,6 +254,7 @@ export default function Layout() {
       ],
       "/sync": [i18n("options_data_sync"), i18n("options_sync_description")],
       "/words": [i18n("favorite_words"), i18n("options_words_description")],
+      "/terms": [i18n("terms_library"), i18n("terms_library_helper")],
       "/playground": ["Playground", ""],
       "/about": [i18n("about"), ""],
     };

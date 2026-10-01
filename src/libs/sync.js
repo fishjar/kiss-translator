@@ -3,6 +3,7 @@ import {
   KV_SETTING_KEY,
   KV_RULES_KEY,
   KV_WORDS_KEY,
+  KV_TERMS_KEY,
   KV_RULES_SHARE_KEY,
   KV_SALT_SHARE,
   OPT_SYNCTYPE_WEBDAV,
@@ -10,6 +11,7 @@ import {
   STOKEY_SETTING,
   STOKEY_RULES,
   STOKEY_WORDS,
+  STOKEY_TERMS,
 } from "../config";
 import {
   getSyncWithDefault,
@@ -17,9 +19,11 @@ import {
   getSettingWithDefault,
   getRulesWithDefault,
   getWordsWithDefault,
+  getTermsWithDefault,
   setSetting,
   setRules,
   setWords,
+  setTerms,
   updateSyncState,
   storage,
 } from "./storage";
@@ -410,6 +414,7 @@ export const syncData = async (
     [KV_SETTING_KEY]: STOKEY_SETTING,
     [KV_RULES_KEY]: STOKEY_RULES,
     [KV_WORDS_KEY]: STOKEY_WORDS,
+    [KV_TERMS_KEY]: STOKEY_TERMS,
   }[key];
   if (isFirstSync && originalMeta.pendingUpload && !forceRemoteRead) {
     // A failed first attempt preserves edits, but does not prove that this
@@ -666,6 +671,26 @@ export const trySyncWords = async () => {
 };
 
 /**
+ * 同步用户自定义术语库 (Terms Library)。若云端有更新，则覆盖本地。
+ * 注意：只有**用户自定义术语**参与同步；订阅术语源的内容缓存在本地独立键位
+ * (STOKEY_TERMCACHE_PREFIX)，不进 SYNC_KEYS，故不会被同步（见 spec §4.4）。
+ */
+const syncTerms = async (options) => {
+  return syncStoredValue(KV_TERMS_KEY, STOKEY_TERMS, options);
+};
+
+/**
+ * 包装错误捕获的术语库同步入口。
+ */
+export const trySyncTerms = async () => {
+  try {
+    await syncTerms();
+  } catch (err) {
+    kissLog("sync terms library", err.message);
+  }
+};
+
+/**
  * 同步并公开分享当前规则。
  * 将用户的规则数组推送到 Worker 云端服务，并生成一个基于 sha256 签名的唯一订阅分享链接。
  * @param {Object} params
@@ -697,13 +722,14 @@ export const syncShareRules = async ({ rules, syncUrl, syncKey }) => {
 };
 
 /**
- * 顺序同步个人设置、自定义规则以及生词本。
+ * 顺序同步个人设置、自定义规则、生词本以及自定义术语库。
  */
 export const syncSettingAndRules = async (options) => {
   const setting = await syncSetting(options);
   const rules = await syncRules(options);
   const words = await syncWords(options);
-  return { setting, rules, words };
+  const terms = await syncTerms(options);
+  return { setting, rules, words, terms };
 };
 
 /**
@@ -731,6 +757,7 @@ export const changeSyncEncryptKey = async ({
   if (synced.setting?.isNew) await setSetting(synced.setting.value);
   if (synced.rules?.isNew) await setRules(synced.rules.value);
   if (synced.words?.isNew) await setWords(synced.words.value);
+  if (synced.terms?.isNew) await setTerms(synced.terms.value);
 
   await forceSyncDataWithEncryptKey(
     KV_SETTING_KEY,
@@ -747,6 +774,11 @@ export const changeSyncEncryptKey = async ({
     await getWordsWithDefault(),
     newEncryptKey
   );
+  await forceSyncDataWithEncryptKey(
+    KV_TERMS_KEY,
+    await getTermsWithDefault(),
+    newEncryptKey
+  );
 
   await putSync(
     { syncEncryptKey: newEncryptKey },
@@ -761,4 +793,5 @@ export const trySyncSettingAndRules = async () => {
   await trySyncSetting();
   await trySyncRules();
   await trySyncWords();
+  await trySyncTerms();
 };

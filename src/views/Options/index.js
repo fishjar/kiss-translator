@@ -20,6 +20,7 @@ import Prompts from "./Prompts";
 import InputSetting from "./InputSetting";
 import Tranbox from "./Tranbox";
 import FavWords from "./FavWords";
+import TerminologyLibrary from "./TerminologyLibrary";
 import Playgound from "./Playground";
 import MouseHoverSetting from "./MouseHover";
 import SubtitleSetting from "./Subtitle";
@@ -143,6 +144,7 @@ export default function Options() {
                     <Route path="prompts" element={<Prompts />} />
                     <Route path="sync" element={<SyncSetting />} />
                     <Route path="words" element={<FavWords />} />
+                    <Route path="terms" element={<TerminologyLibrary />} />
                     <Route
                       path="playground"
                       element={
