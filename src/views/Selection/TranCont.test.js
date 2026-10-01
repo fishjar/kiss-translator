@@ -221,7 +221,7 @@ describe("TranCont", () => {
       );
     });
     expect(resultRoot.classList).toContain("kt-height-locked");
-    expect(resultRoot.style.height).toBe("40px");
+    expect(resultRoot.style.height).toBe("64px");
     act(() => root.unmount());
   });
 
@@ -302,13 +302,13 @@ describe("TranCont", () => {
           new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
         );
     });
-    expect(bRoot.style.height).toBe("40px");
+    expect(bRoot.style.height).toBe("64px");
 
-    // 两条会话记忆并存：A 实例的 112 不被 B 实例的 40 改写或清除。
+    // 两条会话记忆并存：A 实例的 112 不被 B 实例的 64 改写或清除。
     const memories = [...__getSessionHeightMapForTests().values()].sort(
       (a, b) => a - b
     );
-    expect(memories).toEqual([40, 112]);
+    expect(memories).toEqual([64, 112]);
     act(() => first.root.unmount());
     act(() => second.root.unmount());
   });

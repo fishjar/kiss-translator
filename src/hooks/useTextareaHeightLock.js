@@ -9,7 +9,7 @@ import {
 import { useSetting } from "./Setting";
 import {
   INPUT_BASE_ROOT_SELECTOR,
-  MIN_TARGET_HEIGHT_PX,
+  LOCKED_MIN_TARGET_HEIGHT_PX,
   VIEWPORT_GUTTER_PX,
   clampGripMemoryHeight,
   resolveGripStyle,
@@ -146,7 +146,7 @@ export default function useTextareaHeightLock(lockKey, textareaRef) {
     if (!Number.isFinite(remembered)) return;
     const raf = requestAnimationFrame(() => {
       const cap = measureViewportCapPx(targetRef.current);
-      if (cap == null || cap < MIN_TARGET_HEIGHT_PX) return;
+      if (cap == null || cap < LOCKED_MIN_TARGET_HEIGHT_PX) return;
       const clamped = clampGripMemoryHeight(remembered, cap);
       if (clamped !== lockedHeight) setLockedHeight(clamped);
     });
@@ -168,7 +168,7 @@ export default function useTextareaHeightLock(lockKey, textareaRef) {
         const remembered = sessionHeightMap.get(lockKey);
         if (!Number.isFinite(remembered)) return;
         const cap = measureViewportCapPx(targetRef.current);
-        if (cap == null || cap < MIN_TARGET_HEIGHT_PX) return;
+        if (cap == null || cap < LOCKED_MIN_TARGET_HEIGHT_PX) return;
         setLockedHeight(clampGripMemoryHeight(remembered, cap));
       });
     };

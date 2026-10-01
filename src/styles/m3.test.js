@@ -7,6 +7,10 @@ import {
   resolveM3ThemeMode,
 } from "./m3";
 import { getCssAtRuleBodies } from "./testUtils";
+import {
+  LOCKED_MIN_TARGET_HEIGHT_PX,
+  MIN_TARGET_HEIGHT_PX,
+} from "../components/TextareaResizeGrip";
 
 describe("M3 brand colors", () => {
   test("matches the handoff tokens for alternate brands", () => {
@@ -165,5 +169,16 @@ describe("M3 keyboard focus", () => {
         )
       )
     ).toBe(true);
+  });
+});
+
+describe("锁定态最小高度不变量", () => {
+  test("锁定下限扣除 root 纵向 padding(17) 与热区内边距(24) 后仍容纳单行(23)", () => {
+    // INV-1：LOCKED_MIN − 17 − 24 ≥ 23（等价：锁定下限内容盒 ≥ 单行）
+    expect(LOCKED_MIN_TARGET_HEIGHT_PX - 17 - 24).toBeGreaterThanOrEqual(23);
+  });
+
+  test("未锁定口径下限保持 40 不回归", () => {
+    expect(MIN_TARGET_HEIGHT_PX).toBe(40);
   });
 });

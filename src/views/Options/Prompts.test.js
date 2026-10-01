@@ -157,7 +157,7 @@ describe("Prompts", () => {
           );
       });
       expect(fieldRoot.classList).toContain("kt-height-locked");
-      expect(fieldRoot.style.height).toBe("40px");
+      expect(fieldRoot.style.height).toBe("64px");
     });
 
     unmount();
@@ -229,7 +229,7 @@ describe("Prompts", () => {
         );
     });
     expect(fieldRoot.classList).toContain("kt-height-locked");
-    expect(fieldRoot.style.height).toBe("40px");
+    expect(fieldRoot.style.height).toBe("64px");
 
     // 双击 → 显式解锁：手柄仍在场（内容 "system prompt" 非空），锁定回原。
     act(() => {
@@ -540,7 +540,7 @@ describe("Prompts", () => {
       .querySelector('textarea.kt-resizable-textarea:not([aria-hidden="true"])')
       .closest(".MuiInputBase-root");
     expect(restoredRoot.classList).toContain("kt-height-locked");
-    expect(restoredRoot.style.height).toBe("40px");
+    expect(restoredRoot.style.height).toBe("64px");
 
     unmount();
   });

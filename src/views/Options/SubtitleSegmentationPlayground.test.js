@@ -266,7 +266,7 @@ describe("SubtitleSegmentationPlayground", () => {
     });
     const sourceLockedRoot = sourceArea.closest(".MuiInputBase-root");
     expect(sourceLockedRoot.classList).toContain("kt-height-locked");
-    expect(sourceLockedRoot.style.height).toBe("40px");
+    expect(sourceLockedRoot.style.height).toBe("64px");
     expect(container.textContent.indexOf("当前生效的断句配置")).toBeLessThan(
       container.textContent.indexOf("内置字幕样本")
     );

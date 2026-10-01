@@ -247,7 +247,7 @@ describe("TextareaResizeGrip", () => {
     });
     firePointer(grip, "pointerdown", 100);
     firePointer(grip, "pointermove", -500);
-    expect(onResize).toHaveBeenLastCalledWith(40);
+    expect(onResize).toHaveBeenLastCalledWith(64);
     firePointer(grip, "pointermove", 2000);
     expect(onResize).toHaveBeenLastCalledWith(592);
     await act(async () => root.unmount());
@@ -270,8 +270,8 @@ describe("TextareaResizeGrip", () => {
 
   // A4 护栏：测量基准不可解析（closest 未命中）时键盘路径仅保下界钳制，
   // 不做视口/祖先上界钳制——innerHeight=30 下若命中基线，上限会被钳到
-  // floor(30 − 0 − 8) = 22 → 40；未命中则 52 原样上报（hook 侧「跳过重钳」
-  // 的对称口径由 useTextareaHeightLock.test.js 覆盖）。
+  // floor(30 − 0 − 8) = 22 → 64；未命中则 52 经下界托底上报 64（hook 侧
+  // 「跳过重钳」的对称口径由 useTextareaHeightLock.test.js 覆盖）。
   test("clamps keyboard output to the lower bound only when the baseline element is unresolvable", async () => {
     Object.defineProperty(window, "innerHeight", {
       configurable: true,
@@ -282,7 +282,7 @@ describe("TextareaResizeGrip", () => {
     const textarea = container.querySelector('[data-testid="target"]');
     jest.spyOn(textarea, "closest").mockReturnValue(null);
     fireKey(grip, "ArrowDown");
-    expect(onResize).toHaveBeenLastCalledWith(52);
+    expect(onResize).toHaveBeenLastCalledWith(64);
     await act(async () => root.unmount());
   });
 

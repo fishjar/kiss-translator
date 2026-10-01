@@ -4338,7 +4338,7 @@ describe("TerminologyPlayground", () => {
       );
     });
     expect(termsRoot.classList).toContain("kt-height-locked");
-    expect(termsRoot.style.height).toBe("40px");
+    expect(termsRoot.style.height).toBe("64px");
 
     // AI 术语框注入内容 → 手柄在场。
     act(() => setAiTermsDraft("quzzle,缓存节点"));

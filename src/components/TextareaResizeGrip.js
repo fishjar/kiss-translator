@@ -4,8 +4,16 @@ import Box from "@mui/material/Box";
 // 命中热区 24×24，大于 18×18 视觉弧线：按哪里能触发由代码定义，跨浏览器一致。
 const HOT_ZONE_PX = 24;
 // 拖动/键盘可调的最小目标高度（单行 23px + small 根节点纵向 padding 17px）。
-// 导出供 useTextareaHeightLock 的实测重钳共用同一最小高度护栏口径。
+// 导出供未锁定回落（fallbackHeight）与 aria-valuemin 播报下界共用。
 export const MIN_TARGET_HEIGHT_PX = 40;
+// 锁定/记忆口径的最小目标高度：在 40 的基础上叠加锁定态 textarea 的
+// padding-bottom 24px（= HOT_ZONE_PX 热区内边距）。锁定 root 高度被钳到
+// 该下限时，root 内容盒 = 64 − 17 = 47px，扣除 textarea 底部内边距 24px
+// 后内容高度恰为单行 23px，保证锁定下限处文字不被手柄热区遮挡。
+// 仅用于锁定/记忆钳制路径（clampGripMemoryHeight / clampHeight / 拖拽托底）；
+// 未锁定口径继续使用 MIN_TARGET_HEIGHT_PX。
+export const LOCKED_MIN_TARGET_HEIGHT_PX =
+  MIN_TARGET_HEIGHT_PX + HOT_ZONE_PX;
 // 方向键单次步进（Shift ×4）。
 const KEYBOARD_STEP_PX = 12;
 // 高度上界相对视口底部的安全留白。
@@ -26,11 +34,11 @@ export function clampGripMemoryHeight(
   viewportHeight = window.innerHeight
 ) {
   const rounded = Math.round(height);
-  if (!Number.isFinite(rounded)) return MIN_TARGET_HEIGHT_PX;
+  if (!Number.isFinite(rounded)) return LOCKED_MIN_TARGET_HEIGHT_PX;
   const max = Number.isFinite(viewportHeight)
-    ? Math.max(MIN_TARGET_HEIGHT_PX, Math.round(viewportHeight))
-    : MIN_TARGET_HEIGHT_PX;
-  return Math.max(MIN_TARGET_HEIGHT_PX, Math.min(rounded, max));
+    ? Math.max(LOCKED_MIN_TARGET_HEIGHT_PX, Math.round(viewportHeight))
+    : LOCKED_MIN_TARGET_HEIGHT_PX;
+  return Math.max(LOCKED_MIN_TARGET_HEIGHT_PX, Math.min(rounded, max));
 }
 
 // 样式注册表：key → { fill, content }（18×18 viewBox，currentColor 着色）。
@@ -519,20 +527,23 @@ export default function TextareaResizeGrip({
   const clampHeight = (height) => {
     const rounded = Number.isFinite(height)
       ? Math.round(height)
-      : MIN_TARGET_HEIGHT_PX;
+      : LOCKED_MIN_TARGET_HEIGHT_PX;
     const baselineEl = getBaselineEl();
-    if (!baselineEl) return Math.max(MIN_TARGET_HEIGHT_PX, rounded);
+    if (!baselineEl) return Math.max(LOCKED_MIN_TARGET_HEIGHT_PX, rounded);
     // 非会话路径（键盘步进）现测现算：视口与全部纵向可滚动祖先各层取
     // 最小者。拖拽会话边界已在 pointerdown 快照（见 handlePointerDown），
     // pointermove 仅做纯算术钳制，不逐事件实测 DOM。
     const boundsMax = measureBoundsMaxPx(baselineEl);
     const max = Number.isFinite(boundsMax)
-      ? Math.max(MIN_TARGET_HEIGHT_PX, boundsMax)
-      : MIN_TARGET_HEIGHT_PX;
+      ? Math.max(LOCKED_MIN_TARGET_HEIGHT_PX, boundsMax)
+      : LOCKED_MIN_TARGET_HEIGHT_PX;
     // 播报上界与实际钳制上界同步：窗口 resize / 滚动祖先钳制后，
     // aria-valuemax 不再停留在初始视口保守值。
     setAriaValueMax(max);
-    return Math.min(Math.max(rounded, MIN_TARGET_HEIGHT_PX), max);
+    return Math.min(
+      Math.max(rounded, LOCKED_MIN_TARGET_HEIGHT_PX),
+      max
+    );
   };
 
   // 会话终止共用路径：pointerup/cancel/lostpointercapture（经 endSession）
@@ -608,8 +619,8 @@ export default function TextareaResizeGrip({
       boundsMax: (() => {
         const raw = measureBoundsMaxPx(baselineEl);
         return Number.isFinite(raw)
-          ? Math.max(MIN_TARGET_HEIGHT_PX, raw)
-          : MIN_TARGET_HEIGHT_PX;
+          ? Math.max(LOCKED_MIN_TARGET_HEIGHT_PX, raw)
+          : LOCKED_MIN_TARGET_HEIGHT_PX;
       })(),
     };
     // 快照时刻同步播报上界：拖拽全程 aria-valuemax 与实际钳制上界一致。
@@ -625,7 +636,10 @@ export default function TextareaResizeGrip({
       session.startHeight + (event.clientY - session.startY)
     );
     onResize(
-      Math.min(Math.max(rounded, MIN_TARGET_HEIGHT_PX), session.boundsMax)
+      Math.min(
+        Math.max(rounded, LOCKED_MIN_TARGET_HEIGHT_PX),
+        session.boundsMax
+      )
     );
   };
 

@@ -606,7 +606,7 @@ describe("TranForm Playground presentation", () => {
             );
         });
         expect(fieldRoot.classList).toContain("kt-height-locked");
-        expect(fieldRoot.style.height).toBe("40px");
+        expect(fieldRoot.style.height).toBe("64px");
         // 锁定后清空内容 → 彻底解锁：手柄消失、root 还原；回填 → 手柄
         // 重新在场且高度从默认重新开始（会话记忆已被清除）。
         act(() => {

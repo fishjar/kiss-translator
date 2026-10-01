@@ -346,7 +346,7 @@ describe("useTextareaHeightLock", () => {
     expect(fieldRoot.style.height).toBe("592px");
     await act(async () => lock.applyHeight(10));
     await advanceFrame();
-    expect(fieldRoot.style.height).toBe("40px");
+    expect(fieldRoot.style.height).toBe("64px");
     await act(async () => root.unmount());
   });
 
@@ -367,7 +367,7 @@ describe("useTextareaHeightLock", () => {
   });
 
   // A1：cap 低于最小目标高度（基线整体在视口下缘之外）不构成可用上限：
-  // 跳过重钳，保留用户锁定高度。强行钳到 40 会把首屏之下字段的锁定高度
+  // 跳过重钳，保留用户锁定高度。强行钳到最小值会把首屏之下字段的锁定高度
   // 永久压扁且无自愈路径。
   test("keeps the locked height when the measured viewport cap is below the minimum", async () => {
     Object.defineProperty(window, "innerHeight", {
@@ -378,7 +378,7 @@ describe("useTextareaHeightLock", () => {
     const { root, fieldRoot } = await renderField(
       <FieldHost lockKey="viewport-floor" onChange={(api) => (lock = api)} />
     );
-    // 基线整体在视口下缘之外：cap = floor(600 − 700 − 8) = −108 < 40。
+    // 基线整体在视口下缘之外：cap = floor(600 − 700 − 8) = −108 < 64。
     jest
       .spyOn(fieldRoot, "getBoundingClientRect")
       .mockReturnValue({ top: 700, bottom: 900, width: 0, height: 200 });
@@ -403,7 +403,7 @@ describe("useTextareaHeightLock", () => {
     await advanceFrame();
     expect(lock.lockedHeight).toBe(400);
     // 收紧视口制造「clamped ≠ 旧 state」的重钳分支：
-    // cap = floor(300 − 200 − 8) = 92（≥ 40，避开 A1 的无效 cap 早退）。
+    // cap = floor(300 − 200 − 8) = 92（≥ 64，避开 A1 的无效 cap 早退）。
     Object.defineProperty(window, "innerHeight", {
       configurable: true,
       value: 300,
