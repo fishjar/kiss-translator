@@ -98,6 +98,7 @@ export interface Settings {
   mirror: Mirror;
   autoUnloadMinutes: number;
   exclusiveResourceMode: boolean;
+  residentMemoryBudgetMB: number;
   maxImageFileMB: number;
   maxImageEdge: number;
   maxAudioFileMB: number;
@@ -120,6 +121,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mirror: "hf-mirror",
   autoUnloadMinutes: 10,
   exclusiveResourceMode: false,
+  residentMemoryBudgetMB: 0,
   maxImageFileMB: 10,
   maxImageEdge: 1536,
   maxAudioFileMB: 50,

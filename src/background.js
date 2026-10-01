@@ -23,6 +23,8 @@ import {
   MSG_BUILTINAI_PROGRESS,
   MSG_LOCAL_AI_RPC,
   MSG_LOCAL_AI_CANCEL,
+  MSG_LOCAL_AI_SETTINGS,
+  MSG_LOCAL_AI_HOST,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_TRANSLATE_ONLY,
   CMD_TOGGLE_STYLE,
@@ -66,7 +68,7 @@ import {
 import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
 import { isCurrentPopupDocument } from "./libs/popupDocument";
-import { localAiRequest, cancelLocalAiRequest } from "./libs/localAiBackground";
+import { localAiRequest, cancelLocalAiRequest, localAiSettings, localAiHost } from "./libs/localAiBackground";
 
 globalThis.__KISS_CONTEXT__ = "background";
 installStorageCoordinator();
@@ -757,6 +759,8 @@ const messageHandlers = {
   },
   [MSG_LOCAL_AI_RPC]: (request) => localAiRequest(request),
   [MSG_LOCAL_AI_CANCEL]: ({ id }) => cancelLocalAiRequest(id),
+  [MSG_LOCAL_AI_SETTINGS]: (args) => localAiSettings(args),
+  [MSG_LOCAL_AI_HOST]: (args) => localAiHost(args),
   [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args), // 修改运行时的日志记录等级
   [MSG_CLEAR_CACHES]: () => tryClearCaches(), // 清空翻译缓存
   [MSG_OPEN_SEPARATE_WINDOW]: () => openSeparateWindowWithSavedBounds(), // 打开独立翻译小窗口

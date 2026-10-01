@@ -25,6 +25,7 @@ describe("local translation adapter", () => {
             onmessage: null,
             onerror: null,
             postMessage(message: any) {
+              if (message.type === "unload") queueMicrotask(() => worker.onmessage?.({ data: { type: "unloaded" } }));
               if (message.type === "load") queueMicrotask(() => worker.onmessage?.({ data: { type: "ready", backend: "cpu" } }));
               if (message.type === "chat") queueMicrotask(() => worker.onmessage?.({ data: { type: "done", text: "你好", elapsedMs: 1 } }));
             },
@@ -53,6 +54,7 @@ describe("local translation adapter", () => {
             onmessage: null,
             onerror: null,
             postMessage(message: any) {
+              if (message.type === "unload") queueMicrotask(() => worker.onmessage?.({ data: { type: "unloaded" } }));
               if (message.type === "load") {
                 loadedModelDir = message.dir;
                 queueMicrotask(() =>
@@ -111,6 +113,7 @@ describe("local translation adapter", () => {
             onmessage: null,
             onerror: null,
             postMessage(message: any) {
+              if (message.type === "unload") queueMicrotask(() => worker.onmessage?.({ data: { type: "unloaded" } }));
               if (message.type === "load") {
                 loadedDirs.push(message.dir);
                 queueMicrotask(() =>

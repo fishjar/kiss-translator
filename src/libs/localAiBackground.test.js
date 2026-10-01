@@ -1,4 +1,68 @@
-import { localAiRequest, cancelLocalAiRequest } from "./localAiBackground";
+import {
+  localAiRequest,
+  cancelLocalAiRequest,
+  localAiSettings,
+  localAiHost,
+} from "./localAiBackground";
+
+describe("local AI settings bridge", () => {
+  let originalChrome;
+  beforeEach(() => {
+    originalChrome = global.chrome;
+    global.chrome = { storage: { local: { get: jest.fn(), set: jest.fn() } } };
+  });
+  afterEach(() => {
+    global.chrome = originalChrome;
+  });
+  test("reads and writes only the shared local AI settings key", async () => {
+    global.chrome.storage.local.get.mockResolvedValue({
+      "kiss-ai-settings": { residentMemoryBudgetMB: 4096 },
+    });
+    expect(await localAiSettings({ action: "get" })).toEqual({
+      "kiss-ai-settings": { residentMemoryBudgetMB: 4096 },
+    });
+    const value = { residentMemoryBudgetMB: 2048 };
+    await localAiSettings({ action: "set", value });
+    expect(global.chrome.storage.local.get).toHaveBeenCalledWith(
+      "kiss-ai-settings"
+    );
+    expect(global.chrome.storage.local.set).toHaveBeenCalledWith({
+      "kiss-ai-settings": value,
+    });
+  });
+  test("propagates persistence failure and rejects unsupported actions", async () => {
+    global.chrome.storage.local.set.mockRejectedValue(Error("storage failed"));
+    await expect(localAiSettings({ action: "set", value: {} })).rejects.toThrow(
+      "storage failed"
+    );
+    await expect(localAiSettings({ action: "delete" })).rejects.toThrow(
+      "Unsupported"
+    );
+  });
+  test("creates and closes the shared host through the background protocol", async () => {
+    global.chrome.runtime = {
+      getURL: (path) => `chrome-extension://test/${path}`,
+      ContextType: { OFFSCREEN_DOCUMENT: "OFFSCREEN_DOCUMENT" },
+      getContexts: jest.fn().mockResolvedValue([]),
+    };
+    global.chrome.offscreen = {
+      Reason: { WORKERS: "WORKERS" },
+      createDocument: jest.fn(),
+      closeDocument: jest.fn(),
+    };
+    await localAiHost({ action: "ensure" });
+    expect(global.chrome.offscreen.createDocument).toHaveBeenCalledTimes(1);
+    global.chrome.runtime.getContexts.mockResolvedValue([{}]);
+    await localAiHost({ action: "close" });
+    expect(global.chrome.offscreen.closeDocument).toHaveBeenCalledTimes(1);
+    global.chrome.runtime.getContexts.mockResolvedValue([]);
+    await localAiHost({ action: "close" });
+    expect(global.chrome.offscreen.closeDocument).toHaveBeenCalledTimes(1);
+    await expect(localAiHost({ action: "other" })).rejects.toThrow(
+      "Unsupported"
+    );
+  });
+});
 
 describe("localAiBackground", () => {
   let mockChannels = [];

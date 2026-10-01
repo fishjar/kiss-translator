@@ -8,7 +8,7 @@ export interface ModelTarget {
 }
 
 /** Resolve only the model explicitly named by the caller. */
-export function resolveModelTarget(service: AiRpcService, target: ModelTarget) {
+export function resolveModelTarget(service: AiRpcService, target: ModelTarget): { spec: Record<string, any>; modelId: string; installedIds: string[] } {
   const overrides = target.loadSpec ?? {};
   if (service === "ocr") {
     const group = OCR_GROUPS.find((g) => g.id === target.modelRef);
@@ -47,8 +47,8 @@ export function resolveModelTarget(service: AiRpcService, target: ModelTarget) {
   const m = getCatalogModel(target.modelRef);
   if (
     !m ||
-    !(service === "llm"
-      ? ["llm", "ocr-vlm"].includes(m.task)
+    !(service === "vlm"
+      ? m.task === "ocr-vlm"
       : m.task === service)
   ) {
     throw new Error("INVALID_MODEL: 模型不存在或与服务不兼容");

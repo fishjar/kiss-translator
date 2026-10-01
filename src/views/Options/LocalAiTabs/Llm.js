@@ -378,8 +378,8 @@ export default function LlmTab() {
             />
             <Typography variant="caption" color="text.secondary">
               {i18n(
-                "local_ai_llm_vlm_shared",
-                "LLM 与 VLM 共用模型，加载或卸载会影响另一功能。"
+                "local_ai_language_services",
+                "LLM 与 VLM 独立驻留，当前推理串行。独享模式切换时先释放其他重模型，JEV 除外。"
               )}
             </Typography>
 

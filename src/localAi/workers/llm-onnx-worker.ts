@@ -50,6 +50,7 @@ type OutMsg =
       tokensPerSecond?: number;
       aborted?: boolean;
     }
+  | { type: "unloaded" }
   | { type: "error"; message: string };
 
 function post(msg: OutMsg): void {
@@ -82,29 +83,12 @@ let paddleVl: PaddleOcrVlSessions | null = null;
 const stoppingCriteria = new InterruptableStoppingCriteria();
 let stopRequested = false;
 
-function disposeGenerator(): void {
-  if (generator) {
-    const g = generator;
-    generator = null;
-    void g.dispose().catch(() => {
-      // 忽略释放失败
-    });
-  }
-  if (vlmModel) {
-    const m = vlmModel;
-    vlmModel = null;
-    vlmProcessor = null;
-    void m.dispose().catch(() => {
-      // 忽略释放失败
-    });
-  }
-  if (paddleVl) {
-    const p = paddleVl;
-    paddleVl = null;
-    void p.visionSession.release().catch(() => {});
-    void p.embeddingSession.release().catch(() => {});
-    void p.decoderSession.release().catch(() => {});
-  }
+async function disposeGenerator(): Promise<void> {
+  const g = generator, m = vlmModel, p = paddleVl;
+  generator = null; vlmModel = null; vlmProcessor = null; paddleVl = null;
+  const results = await Promise.allSettled([g?.dispose(), m?.dispose(), p?.visionSession.release(), p?.embeddingSession.release(), p?.decoderSession.release()]);
+  const failure = results.find((r) => r.status === "rejected");
+  if (failure?.status === "rejected") throw failure.reason;
 }
 
 function isGlmOcrModel(source: string): boolean {
@@ -155,7 +139,7 @@ async function createOrtSessionWithFallback(
 async function doLoad(spec: LlmOnnxLoadSpec): Promise<"webgpu" | "wasm"> {
   if (generator || vlmModel || paddleVl) {
     post({ type: "progress", status: "卸载旧模型…" });
-    disposeGenerator();
+    await disposeGenerator();
   }
   setOpfsModelDir(spec.dir);
   let device = spec.device as DeviceType;
@@ -592,7 +576,8 @@ self.onmessage = (e: MessageEvent<InMsg>) => {
       } else if (msg.type === "chat") {
         await doChat(msg.messages, msg.maxTokens);
       } else if (msg.type === "unload") {
-        disposeGenerator();
+        await disposeGenerator();
+        post({ type: "unloaded" });
       }
     } catch (err) {
       post({

@@ -3,7 +3,10 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import SettingsTab from "./Settings";
-import { DEFAULT_SETTINGS, INPUT_LIMIT_KEYS } from "../../../localAi/core/types";
+import {
+  DEFAULT_SETTINGS,
+  INPUT_LIMIT_KEYS,
+} from "../../../localAi/core/types";
 import { runtimeHost } from "../../../localAi/runtime/runtimeHostAdapter";
 
 jest.mock("../../../localAi/runtime/runtimeHostAdapter", () => ({
@@ -45,7 +48,9 @@ describe("local AI settings", () => {
     container.remove();
   });
   const edit = async (value, event = "blur", key) => {
-    const input = container.querySelector(key ? `input[data-limit="${key}"]` : 'input[type="number"]');
+    const input = container.querySelector(
+      key ? `input[data-limit="${key}"]` : 'input[type="number"]'
+    );
     await act(async () => {
       Simulate.change(input, { target: { value } });
     });
@@ -81,6 +86,20 @@ describe("local AI settings", () => {
     await edit("0");
     expect(writes()[1][0].payload).toEqual({ autoUnloadMinutes: 0 });
   });
+  it.each(["", "-1", "1.5"])(
+    "rejects invalid residency budget %s",
+    async (value) => {
+      await edit(value, "blur", "residentMemoryBudgetMB");
+      expect(writes()).toHaveLength(0);
+      expect(container.textContent).toContain("请输入非负整数");
+    }
+  );
+  it("saves residency budget and allows disabling it", async () => {
+    await edit("4096", "enter", "residentMemoryBudgetMB");
+    expect(writes()[0][0].payload).toEqual({ residentMemoryBudgetMB: 4096 });
+    await edit("0", "blur", "residentMemoryBudgetMB");
+    expect(writes()[1][0].payload).toEqual({ residentMemoryBudgetMB: 0 });
+  });
   it("shows a failed save and keeps the mode unchecked", async () => {
     runtimeHost.request.mockRejectedValueOnce(new Error("保存失败"));
     await act(async () => {
@@ -108,21 +127,33 @@ describe("local AI settings", () => {
       true
     );
   });
-  it.each(INPUT_LIMIT_KEYS)("shows and saves a positive %s limit", async (key) => {
-    expect(container.querySelector(`input[data-limit="${key}"]`).value).toBe(String(DEFAULT_SETTINGS[key]));
-    await edit("2", "enter", key);
-    expect(writes()[0][0].payload).toEqual({ [key]: 2 });
-  });
-  it.each(["", "0", "-1", "1.5"])("rejects an invalid input limit %s", async (value) => {
-    await edit(value, "blur", "maxImageEdge");
-    expect(writes()).toHaveLength(0);
-    expect(container.textContent).toContain("请输入正整数");
-  });
+  it.each(INPUT_LIMIT_KEYS)(
+    "shows and saves a positive %s limit",
+    async (key) => {
+      expect(container.querySelector(`input[data-limit="${key}"]`).value).toBe(
+        String(DEFAULT_SETTINGS[key])
+      );
+      await edit("2", "enter", key);
+      expect(writes()[0][0].payload).toEqual({ [key]: 2 });
+    }
+  );
+  it.each(["", "0", "-1", "1.5"])(
+    "rejects an invalid input limit %s",
+    async (value) => {
+      await edit(value, "blur", "maxImageEdge");
+      expect(writes()).toHaveLength(0);
+      expect(container.textContent).toContain("请输入正整数");
+    }
+  );
   it("shows a failed limit save and accepts a later broadcast", async () => {
     runtimeHost.request.mockRejectedValueOnce(new Error("保存失败"));
     await edit("2048", "blur", "maxImageEdge");
     expect(container.textContent).toContain("保存失败");
-    await act(async () => broadcast({ settings: { ...initial, maxImageEdge: 1024 } }));
-    expect(container.querySelector('input[data-limit="maxImageEdge"]').value).toBe("1024");
+    await act(async () =>
+      broadcast({ settings: { ...initial, maxImageEdge: 1024 } })
+    );
+    expect(
+      container.querySelector('input[data-limit="maxImageEdge"]').value
+    ).toBe("1024");
   });
 });

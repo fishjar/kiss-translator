@@ -16,16 +16,30 @@ import { DEFAULT_SETTINGS } from "../../../localAi/core/types";
 
 const inputFields = [
   ["maxImageFileMB", "图片文件大小上限（MB）", "超出上限的图片文件将被拒绝。"],
-  ["maxImageEdge", "图片最长边（像素）", "超出时等比例缩小图片，保留完整内容。"],
+  [
+    "maxImageEdge",
+    "图片最长边（像素）",
+    "超出时等比例缩小图片，保留完整内容。",
+  ],
   ["maxAudioFileMB", "音频文件大小上限（MB）", "超出上限的音频文件将被拒绝。"],
-  ["maxAsrMinutes", "ASR 音频时长上限（分钟）", "超出时仅识别音频开头部分，适用于上传、录音及其他调用。"],
-  ["maxTtsCharacters", "TTS 文字上限（字符）", "超出时仅合成开头部分；不限制系统原生朗读。"],
+  [
+    "maxAsrMinutes",
+    "ASR 音频时长上限（分钟）",
+    "超出时仅识别音频开头部分，适用于上传、录音及其他调用。",
+  ],
+  [
+    "maxTtsCharacters",
+    "TTS 文字上限（字符）",
+    "超出时仅合成开头部分；不限制系统原生朗读。",
+  ],
 ];
 
 export default function SettingsTab() {
   const i18n = useI18n();
   const [settings, setSettings] = useState(null);
   const [minutes, setMinutes] = useState("10");
+  const [budget, setBudget] = useState("0");
+  const [budgetInvalid, setBudgetInvalid] = useState(false);
   const [error, setError] = useState("");
   const [invalid, setInvalid] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -35,7 +49,15 @@ export default function SettingsTab() {
   const applySettings = useCallback((next) => {
     setSettings(next);
     setMinutes(String(next.autoUnloadMinutes));
-    setInputValues(Object.fromEntries(inputFields.map(([key]) => [key, String(next[key] ?? DEFAULT_SETTINGS[key])])));
+    setBudget(String(next.residentMemoryBudgetMB ?? 0));
+    setInputValues(
+      Object.fromEntries(
+        inputFields.map(([key]) => [
+          key,
+          String(next[key] ?? DEFAULT_SETTINGS[key]),
+        ])
+      )
+    );
   }, []);
   useEffect(() => {
     let active = true;
@@ -99,14 +121,22 @@ export default function SettingsTab() {
     const value = Number(raw);
     const bad = !raw.trim() || !Number.isSafeInteger(value) || value <= 0;
     setInputErrors((prev) => ({ ...prev, [key]: bad }));
-    if (!bad && settings && value !== settings[key]) void save({ [key]: value });
+    if (!bad && settings && value !== settings[key])
+      void save({ [key]: value });
+  };
+  const saveBudget = () => {
+    const value = Number(budget);
+    const bad = !budget.trim() || !Number.isSafeInteger(value) || value < 0;
+    setBudgetInvalid(bad);
+    if (!bad && settings && value !== settings.residentMemoryBudgetMB)
+      void save({ residentMemoryBudgetMB: value });
   };
   return (
     <Card variant="outlined">
       <CardContent>
         <Stack spacing={2.5}>
           <Typography variant="h6" fontWeight={600}>
-            {i18n("local_ai_tab_settings", "设置")}
+            {i18n("local_ai_runtime_settings", "运行时设置")}
           </Typography>
           {error && <Alert severity="error">{error}</Alert>}
           <TextField
@@ -140,6 +170,37 @@ export default function SettingsTab() {
             }
           />
           <Stack spacing={0.5}>
+            <TextField
+              label={i18n("local_ai_memory_budget", "模型驻留预算（估算 MB）")}
+              type="number"
+              value={budget}
+              inputProps={{
+                min: 0,
+                step: 1,
+                "data-limit": "residentMemoryBudgetMB",
+              }}
+              disabled={!settings || saving}
+              error={budgetInvalid}
+              onChange={(e) => {
+                setBudget(e.target.value);
+                setBudgetInvalid(false);
+              }}
+              onBlur={saveBudget}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  saveBudget();
+                }
+              }}
+              helperText={
+                budgetInvalid
+                  ? i18n("local_ai_minutes_invalid", "请输入非负整数")
+                  : i18n(
+                      "local_ai_memory_budget_help",
+                      "0 表示不限制估算预算。按权重两倍加 256 MB 估算，并非实际内存或显存；预算不足时卸载空闲模型。"
+                    )
+              }
+            />
             <FormControlLabel
               control={
                 <Switch
@@ -160,7 +221,10 @@ export default function SettingsTab() {
             </Typography>
           </Stack>
           <Typography variant="subtitle1" fontWeight={600}>
-            {i18n("local_ai_input_limits", "输入限制（适用于所有本地 AI 调用）")}
+            {i18n(
+              "local_ai_input_limits",
+              "输入限制（适用于所有本地 AI 调用）"
+            )}
           </Typography>
           {inputFields.map(([key, label, help]) => (
             <TextField
@@ -177,11 +241,19 @@ export default function SettingsTab() {
               }}
               onBlur={() => saveInput(key)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); saveInput(key); }
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  saveInput(key);
+                }
               }}
-              helperText={inputErrors[key]
-                ? i18n("local_ai_positive_integer", "请输入正整数（不能为 0）")
-                : i18n(`local_ai_${key}_help`, help)}
+              helperText={
+                inputErrors[key]
+                  ? i18n(
+                      "local_ai_positive_integer",
+                      "请输入正整数（不能为 0）"
+                    )
+                  : i18n(`local_ai_${key}_help`, help)
+              }
             />
           ))}
         </Stack>

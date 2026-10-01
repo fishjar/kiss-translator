@@ -43,6 +43,7 @@ function setup(ocrResult?: any) {
           queueMicrotask(() => {
             if (!terminated) w.onmessage?.({ data });
           });
+        if (msg.type === "unload") reply({ type: "unloaded" });
         if (msg.type === "load") {
           dir = msg.dir;
           events.push(`load:${dir}`);

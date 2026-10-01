@@ -17,6 +17,7 @@ export function normalizeSettings(value: unknown): Settings {
           ? 0
           : 10,
     exclusiveResourceMode: s.exclusiveResourceMode === true,
+    residentMemoryBudgetMB: Number.isSafeInteger(s.residentMemoryBudgetMB) && s.residentMemoryBudgetMB! >= 0 ? s.residentMemoryBudgetMB! : 0,
   };
 }
 
@@ -27,6 +28,10 @@ function isMirror(v: unknown): v is Settings["mirror"] {
 function extLocal() {
   const g = globalThis as {
     chrome?: {
+      runtime?: {
+        id?: string;
+        sendMessage: (message: unknown) => Promise<Record<string, unknown>>;
+      };
       storage?: {
         local?: {
           get: (key: string) => Promise<Record<string, unknown>>;
@@ -35,7 +40,14 @@ function extLocal() {
       };
     };
   };
-  return g.chrome?.storage?.local ?? null;
+  if (g.chrome?.storage?.local) return g.chrome.storage.local;
+  const runtime = g.chrome?.runtime;
+  if (!runtime?.id) return null;
+  // Offscreen 只开放 runtime API，持久化通过项目现有的后台消息协议。
+  return {
+    get: (_key: string) => runtime.sendMessage({ action: "local_ai_settings", args: { action: "get" } }),
+    set: (data: Record<string, unknown>) => runtime.sendMessage({ action: "local_ai_settings", args: { action: "set", value: data[KEY] } }).then(() => undefined),
+  };
 }
 
 export async function loadSettings(): Promise<Settings> {

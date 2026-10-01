@@ -19,6 +19,7 @@ interface ManagedEntry extends RuntimeEntry {
 }
 
 const EVICTION_ORDER: Record<string, number> = {
+  vlm: 0,
   llm: 0, // 最优先被 LRU 淘汰
   ocr: 1,
   translation: 2,
@@ -30,6 +31,21 @@ const EVICTION_ORDER: Record<string, number> = {
 export class RuntimePool {
   private entries = new Map<string, ManagedEntry>();
   private readonly maxResidentModels: number;
+  private memoryBudgetMB = 0;
+  private reservations = new Map<string, number>();
+
+  setMemoryBudget(memoryMB: number): void { this.memoryBudgetMB = memoryMB; }
+
+  async reserve(key: string, memoryMB: number): Promise<void> {
+    await this.ensureCapacity(key, memoryMB);
+    this.reservations.set(key, memoryMB);
+  }
+
+  async trimToBudget(memoryMB: number): Promise<void> {
+    while (memoryMB > 0 && this.list().reduce((n, e) => n + (e.memoryMB ?? 0), 0) > memoryMB) {
+      if (!await this.evictOne()) throw new Error("RESOURCE_BUDGET_EXCEEDED: 没有可淘汰的空闲模型");
+    }
+  }
 
   constructor(maxResidentModels = 4) {
     this.maxResidentModels = Math.max(1, maxResidentModels);
@@ -43,6 +59,7 @@ export class RuntimePool {
   ): void {
     this.entries.set(entry.key, {
       ...entry,
+      memoryMB: entry.memoryMB ?? this.reservations.get(entry.key),
       lastUsed: entry.lastUsed ?? Date.now(),
     });
   }
@@ -69,11 +86,13 @@ export class RuntimePool {
     if (!item) return false;
     await item.unloadFn();
     this.entries.delete(key);
+    this.reservations.delete(key);
     return true;
   }
 
   forget(key: string): void {
     this.entries.delete(key);
+    this.reservations.delete(key);
   }
 
   /**
@@ -101,10 +120,18 @@ export class RuntimePool {
     return victim.key;
   }
 
-  async ensureCapacity(excludeKey?: string): Promise<void> {
-    while (this.entries.size >= this.maxResidentModels) {
-      const evicted = await this.evictOne(excludeKey);
-      if (!evicted) break;
+  async ensureCapacity(excludeKey?: string, incomingMB = 0): Promise<void> {
+    const exceeds = () => {
+      const remaining = this.list().filter(e => e.key !== excludeKey);
+      return remaining.length >= this.maxResidentModels ||
+        (this.memoryBudgetMB > 0 && remaining.reduce((n, e) => n + (e.memoryMB ?? 0), incomingMB) > this.memoryBudgetMB);
+    };
+    // 单个模型已经超过预算时，保留现有模型，直接拒绝新加载。
+    if (this.memoryBudgetMB > 0 && incomingMB > this.memoryBudgetMB)
+      throw new Error("RESOURCE_BUDGET_EXCEEDED: 目标模型估算占用超过驻留预算");
+    while (exceeds()) {
+      if (!await this.evictOne(excludeKey))
+        throw new Error("RESOURCE_BUDGET_EXCEEDED: 没有可淘汰的空闲模型");
     }
   }
 

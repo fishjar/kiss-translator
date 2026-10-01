@@ -10,7 +10,7 @@ import Ocr from "./LocalAiTabs/Ocr";
 import Vlm from "./LocalAiTabs/Vlm";
 import Llm from "./LocalAiTabs/Llm";
 import Tts from "./LocalAiTabs/Tts";
-import Settings from "./LocalAiTabs/Settings";
+import Runtime from "./LocalAiTabs/Runtime";
 import { useI18n } from "../../hooks/I18n";
 
 export default function LocalAi() {
@@ -35,9 +35,9 @@ export default function LocalAi() {
     { id: "llm", label: i18n("local_ai_tab_llm", "LLM"), Component: Llm },
     { id: "tts", label: i18n("local_ai_tab_tts", "TTS"), Component: Tts },
     {
-      id: "settings",
-      label: i18n("local_ai_tab_settings", "设置"),
-      Component: Settings,
+      id: "runtime",
+      label: i18n("local_ai_tab_runtime", "运行时"),
+      Component: Runtime,
     },
   ];
 

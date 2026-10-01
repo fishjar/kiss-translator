@@ -1,8 +1,49 @@
 /* global chrome */
 const CHANNEL = "kiss-ai-runtime-rpc";
 let creating;
+let closing;
+
+export async function localAiSettings({ action, value }) {
+  const key = "kiss-ai-settings";
+  if (action === "get") return chrome.storage.local.get(key);
+  if (action === "set") {
+    await chrome.storage.local.set({ [key]: value });
+    return {};
+  }
+  throw new Error("Unsupported local AI settings action");
+}
+
+export async function localAiHost({ action }) {
+  if (action === "ensure") {
+    await ensureHost();
+    return {};
+  }
+  if (action === "close") {
+    if (closing) return closing;
+    closing = Promise.resolve()
+      .then(async () => {
+        if (creating) await creating;
+        const exists = chrome.runtime.getContexts
+          ? (
+              await chrome.runtime.getContexts({
+                contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
+                documentUrls: [chrome.runtime.getURL("offscreen.html")],
+              })
+            ).length > 0
+          : await chrome.offscreen.hasDocument();
+        if (exists) await chrome.offscreen.closeDocument();
+        return {};
+      })
+      .finally(() => {
+        closing = null;
+      });
+    return closing;
+  }
+  throw new Error("Unsupported local AI host action");
+}
 
 async function ensureHost() {
+  if (closing) await closing;
   if (typeof chrome === "undefined" || !chrome.offscreen?.createDocument)
     return;
   if (creating) return creating;

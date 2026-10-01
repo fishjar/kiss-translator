@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TASK_PRIORITY, TaskScheduler } from "../../runtime/taskScheduler";
 import { RuntimePool } from "../../runtime/runtimePool";
 import { RuntimeManager } from "../../runtime/runtimeManager";
@@ -28,6 +28,7 @@ function createMockWorker(
     onerror: null as ((e: ErrorEvent) => void) | null,
     postMessage(msg: any) {
       if (terminated) return;
+      if (msg.type === "unload") { workerObj.onmessage?.({ data: { type: "unloaded" } }); return; }
       handler(
         msg,
         (data) => {
@@ -48,7 +49,7 @@ function createMockWorker(
 }
 
 describe("1. 模型状态失真与会话版本控制 (Model State & Session Version)", () => {
-  it("LLM 页与 OCR(VLM) 页共用 LLM 服务：两页分别加载模型后，从第一页发起对话明确报『模型已切换』且不交给当前 Worker", async () => {
+  it("同一 LLM 服务的两个页面：两页分别加载模型后，从第一页发起对话明确报『模型已切换』且不交给当前 Worker", async () => {
     let workerChatCount = 0;
     let activeModelDir = "";
 
@@ -380,6 +381,70 @@ describe("2. 活跃任务取消、超时与 GPU 互斥保证 (Execution Cancella
 });
 
 describe("3. RPC 完整结束路径与 Offscreen 宿主关闭/重建 (Complete RPC Lifecycle)", () => {
+  it("关闭确认前不发送新请求，迟到的卸载通知不会结算新请求", async () => {
+    const sent: string[] = [];
+    const channel: any = { onmessage: null, close() {}, postMessage(message: any) {
+      if (message.kind === "ping") queueMicrotask(() => channel.onmessage({ data: { kind: "pong", id: message.id } }));
+      if (message.kind === "request") { sent.push(message.request.id); queueMicrotask(() => channel.onmessage({ data: { kind: "response", response: { id: message.request.id, ok: true, result: {} } } })); }
+    } };
+    const closeDocument = vi.fn(async () => {});
+    vi.stubGlobal("chrome", { offscreen: { closeDocument } });
+    try {
+      const host = new ChromiumOffscreenHost({ channelFactory: () => channel });
+      await host.request({ id: "before-close", service: "runtime", method: "status", payload: {} });
+      const closing = host.close();
+      const fresh = host.request({ id: "after-close", service: "runtime", method: "status", payload: {} });
+      await Promise.resolve(); await Promise.resolve();
+      expect(sent).toEqual(["before-close"]);
+      channel.onmessage({ data: { kind: "host-closed" } });
+      await closing; await fresh;
+      expect(sent).toEqual(["before-close", "after-close"]);
+      expect(closeDocument).toHaveBeenCalledTimes(1);
+    } finally { vi.unstubAllGlobals(); }
+  });
+  it("迟到的 host-closed 通知结算正在探活的 ping，新请求继续重建宿主", async () => {
+    let alive = false;
+    const channel: any = {
+      onmessage: null,
+      postMessage(message: RpcChannelEnvelope) {
+        if (message.kind === "ping" && alive)
+          queueMicrotask(() => channel.onmessage({ data: { kind: "pong", id: message.id } }));
+      },
+      close() {},
+    };
+    const create = vi.fn(async () => { alive = true; });
+    const host = new ChromiumOffscreenHost({ channelFactory: () => channel, ensureOffscreenFn: create });
+    const ensuring = host.ensure();
+    channel.onmessage({ data: { kind: "host-closed" } });
+    await ensuring;
+    expect(create).toHaveBeenCalledTimes(1);
+    expect((host as any).pingWaiters.size).toBe(0);
+  });
+  it("直接关闭成功后不再唤醒 Service Worker 重复关闭", async () => {
+    const closeDocument = vi.fn(async () => undefined);
+    const sendMessage = vi.fn(async () => undefined);
+    vi.stubGlobal("chrome", { offscreen: { closeDocument }, runtime: { sendMessage } });
+    try {
+      await new ChromiumOffscreenHost().close();
+      expect(closeDocument).toHaveBeenCalledTimes(1);
+      expect(sendMessage).not.toHaveBeenCalled();
+    } finally { vi.unstubAllGlobals(); }
+  });
+  it("关闭期间的刷新请求等待关闭完成，同一宿主只关闭一次", async () => {
+    let finishClose!: () => void;
+    const closeOffscreenFn = vi.fn(() => new Promise<void>(resolve => { finishClose = resolve; }));
+    const host = new ChromiumOffscreenHost({ closeOffscreenFn });
+    const ping = vi.spyOn(host as any, "pingOffscreen").mockResolvedValue(true);
+    const closing = host.close();
+    const secondClose = host.close();
+    const refreshing = host.ensure();
+    await Promise.resolve();
+    expect(closeOffscreenFn).toHaveBeenCalledTimes(1);
+    expect(ping).not.toHaveBeenCalled();
+    finishClose();
+    await Promise.all([closing, secondClose, refreshing]);
+    expect(ping).toHaveBeenCalledTimes(1);
+  });
   it("Offscreen 在请求进行中关闭时：清理所有 pending 计时器与 Map、拒绝旧请求且不重发；宿主重建后新请求正常成功", async () => {
     // 构建一对内存互通的模拟 BroadcastChannel
     const peers = new Set<{ onmessage: ((e: MessageEvent) => void) | null }>();

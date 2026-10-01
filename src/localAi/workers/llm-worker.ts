@@ -27,6 +27,7 @@ type OutMsg =
       tokensPerSecond?: number;
       aborted?: boolean;
     }
+  | { type: "unloaded" }
   | { type: "error"; message: string };
 
 function post(msg: OutMsg): void {
@@ -253,10 +254,10 @@ self.onmessage = (e: MessageEvent<InMsg>) => {
         await doChat(msg.messages, msg.maxTokens);
       } else if (msg.type === "unload") {
         if (wllama) {
-          await wllama.exit().catch(() => {
-            // 忽略释放失败
-          });
+          await wllama.exit();
+          wllama = null;
         }
+        post({ type: "unloaded" });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

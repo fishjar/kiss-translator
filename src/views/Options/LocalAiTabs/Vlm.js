@@ -22,7 +22,7 @@ import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
-import { LlmClient } from "../../../localAi/core/llmClient";
+import { VlmClient } from "../../../localAi/core/vlmClient";
 import { CATALOG, getModelDisplayName } from "../../../localAi/core/catalog";
 import { setShared } from "../../../localAi/core/shared";
 import {
@@ -37,7 +37,7 @@ import LogViewer, { useLocalAiLog } from "./LogViewer";
 const VLM_MODELS = CATALOG.filter((m) => m.task === "ocr-vlm");
 const VLM_MODEL_IDS = VLM_MODELS.map((m) => m.id);
 
-const vlmClient = new LlmClient();
+const vlmClient = new VlmClient();
 
 function fmtMs(ms) {
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
@@ -131,7 +131,7 @@ export default function VlmTab() {
     modelRef: vlmModelId,
     loadSpec: { device: vlmDevice, nCtx: 8192 },
   };
-  const runtime = useRuntimeService("llm", modelTarget);
+  const runtime = useRuntimeService("vlm", modelTarget);
   const vlmIsLoaded = runtime.loaded;
 
   const loadVlm = async () => {
@@ -366,8 +366,8 @@ export default function VlmTab() {
             />
             <Typography variant="caption" color="text.secondary">
               {i18n(
-                "local_ai_llm_vlm_shared",
-                "LLM 与 VLM 共用模型，加载或卸载会影响另一功能。"
+                "local_ai_language_services",
+                "LLM 与 VLM 独立驻留，当前推理串行。独享模式切换时先释放其他重模型，JEV 除外。"
               )}
             </Typography>
 

@@ -38,6 +38,7 @@ export interface RuntimeHostAdapter {
   ): Promise<ModelImportTaskResult>;
   cancelImportWaiter(taskId: string): void;
   getPendingCount(): number;
+  onPendingChange(cb: (count: number) => void): () => void;
 }
 
 interface PendingRpc {
@@ -65,6 +66,7 @@ const ALL_AI_SERVICES: AiRpcService[] = [
   "asr",
   "ocr",
   "llm",
+  "vlm",
   "tts",
 ];
 
@@ -89,11 +91,14 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
   private importWaiters = new Map<string, PendingImportWaiter>();
   private pingWaiters = new Map<
     string,
-    { resolve: () => void; timer: ReturnType<typeof setTimeout> }
+    { resolve: (alive: boolean) => void; timer: ReturnType<typeof setTimeout> }
   >();
   private modelListeners = new Set<(id: string, record: ModelRecord) => void>();
   private serviceListeners = new Set<(state: ServiceSessionState) => void>();
+  private pendingListeners = new Set<(count: number) => void>();
   private ensuring: Promise<void> | null = null;
+  private closing: Promise<void> | null = null;
+  private closeConfirmation: (() => void) | null = null;
   private readonly defaultTimeoutMs: number;
   private readonly channelFactory: (name: string) => BroadcastChannel;
   private readonly customEnsureFn?: () => Promise<void>;
@@ -109,6 +114,18 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
 
   getPendingCount(): number {
     return this.pending.size + this.importWaiters.size;
+  }
+
+  onPendingChange(cb: (count: number) => void): () => void {
+    this.pendingListeners.add(cb);
+    cb(this.getPendingCount());
+    return () => { this.pendingListeners.delete(cb); };
+  }
+
+  private notifyPending(): void {
+    for (const cb of this.pendingListeners) {
+      try { cb(this.getPendingCount()); } catch { /* 隔离订阅者异常 */ }
+    }
   }
 
   private getChannel(): BroadcastChannel {
@@ -129,6 +146,7 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
     const p = this.pending.get(id);
     if (!p) return;
     this.pending.delete(id);
+    this.notifyPending();
     clearTimeout(p.timer);
     p.cleanupSignal?.();
     if (outcome.ok) {
@@ -147,6 +165,7 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
     const w = this.importWaiters.get(taskId);
     if (!w) return;
     this.importWaiters.delete(taskId);
+    this.notifyPending();
     clearTimeout(w.timer);
     if (outcome.ok) {
       w.resolve(outcome.value);
@@ -198,6 +217,7 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
     for (const [id, w] of this.pingWaiters.entries()) {
       clearTimeout(w.timer);
       this.pingWaiters.delete(id);
+      w.resolve(false);
     }
     // 2. 拒绝并清理所有进行中的 pending 请求（不自动重发）
     const err = new Error(`HOST_CLOSED: ${reason}，进行中的请求已中断`);
@@ -238,7 +258,7 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
         if (w) {
           clearTimeout(w.timer);
           this.pingWaiters.delete(env.id);
-          w.resolve();
+          w.resolve(true);
         }
         break;
       }
@@ -288,6 +308,7 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
         break;
       }
       case "host-closed": {
+        this.closeConfirmation?.();
         this.handleHostClosed(env.reason);
         break;
       }
@@ -326,7 +347,7 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
         resolve(false);
       }, timeoutMs);
       this.pingWaiters.set(id, {
-        resolve: () => resolve(true),
+        resolve,
         timer,
       });
       try {
@@ -374,11 +395,13 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
       }
     }
     await chrome.runtime.sendMessage({
-      type: "kiss-ai:ensure-offscreen",
+      action: "local_ai_host", args: { action: "ensure" },
     });
   }
 
   async ensure(): Promise<void> {
+    // 状态订阅会立即请求刷新；等旧宿主关闭完再创建，避免关闭/重建互相覆盖。
+    if (this.closing) await this.closing;
     if (await this.pingOffscreen(250)) return;
     if (!this.ensuring) {
       this.ensuring = (async () => {
@@ -395,24 +418,28 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
   }
 
   async close(): Promise<void> {
-    // 先立即结算本地所有进行中的请求并广播状态失效
-    this.handleHostClosed("Offscreen 宿主已主动关闭");
-    if (this.customCloseFn) {
-      await this.customCloseFn();
-      return;
-    }
-    if (typeof chrome !== "undefined" && chrome.offscreen?.closeDocument) {
+    if (this.closing) return this.closing;
+    this.closing = Promise.resolve().then(async () => {
+      this.handleHostClosed("Offscreen 宿主已主动关闭");
+      if (this.customCloseFn) { await this.customCloseFn(); return; }
+      // closeDocument 可能先于 pagehide 广播完成；新请求必须等旧宿主通知落定。
+      let finish: (confirmed: boolean) => void = () => {};
+      const confirmation = this.channel ? new Promise<boolean>(resolve => {
+        const timer = setTimeout(() => finish(false), 1000);
+        finish = confirmed => { clearTimeout(timer); this.closeConfirmation = null; resolve(confirmed); };
+        this.closeConfirmation = () => finish(true);
+      }) : Promise.resolve(true);
       try {
-        await chrome.offscreen.closeDocument();
-      } catch {
-        // 忽略
-      }
-    }
-    if (typeof chrome !== "undefined" && chrome.runtime?.sendMessage) {
-      await chrome.runtime
-        .sendMessage({ type: "kiss-ai:close-offscreen" })
-        .catch(() => undefined);
-    }
+        let direct = false;
+        if (typeof chrome !== "undefined" && chrome.offscreen?.closeDocument) {
+          try { await chrome.offscreen.closeDocument(); direct = true; } catch { /* 改由后台关闭 */ }
+        }
+        if (!direct && typeof chrome !== "undefined" && chrome.runtime?.sendMessage)
+          await chrome.runtime.sendMessage({ action: "local_ai_host", args: { action: "close" } });
+        if (!await confirmation) throw new Error("HOST_CLOSED: 宿主关闭确认超时");
+      } finally { finish(false); }
+    }).finally(() => { this.closing = null; });
+    return this.closing;
   }
 
   cancel(
@@ -478,6 +505,7 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
         timer,
         cleanupSignal,
       });
+      this.notifyPending();
 
       try {
         ch.postMessage({
@@ -529,6 +557,7 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
         timeoutMs,
         timer,
       });
+      this.notifyPending();
     });
   }
 
@@ -536,6 +565,7 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
     const w = this.importWaiters.get(taskId);
     if (!w) return;
     this.importWaiters.delete(taskId);
+    this.notifyPending();
     clearTimeout(w.timer);
   }
 }
@@ -547,6 +577,7 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
 export class InPageRuntimeHost implements RuntimeHostAdapter {
   private modelListeners = new Set<(id: string, record: ModelRecord) => void>();
   private serviceListeners = new Set<(state: ServiceSessionState) => void>();
+  private pendingListeners = new Set<(count: number) => void>();
   private pending = new Map<
     string,
     {
@@ -572,6 +603,18 @@ export class InPageRuntimeHost implements RuntimeHostAdapter {
     return this.pending.size + this.importWaiters.size;
   }
 
+  onPendingChange(cb: (count: number) => void): () => void {
+    this.pendingListeners.add(cb);
+    cb(this.getPendingCount());
+    return () => { this.pendingListeners.delete(cb); };
+  }
+
+  private notifyPending(): void {
+    for (const cb of this.pendingListeners) {
+      try { cb(this.getPendingCount()); } catch { /* 隔离订阅者异常 */ }
+    }
+  }
+
   private settleImportWaiter(
     taskId: string,
     outcome:
@@ -581,6 +624,7 @@ export class InPageRuntimeHost implements RuntimeHostAdapter {
     const w = this.importWaiters.get(taskId);
     if (!w) return;
     this.importWaiters.delete(taskId);
+    this.notifyPending();
     clearTimeout(w.timer);
     if (outcome.ok) {
       w.resolve(outcome.value);
@@ -654,6 +698,7 @@ export class InPageRuntimeHost implements RuntimeHostAdapter {
       clearTimeout(p.timer);
       p.cleanupSignal?.();
       this.pending.delete(id);
+      this.notifyPending();
       this.ensureManager().cancelRequest(id, err.message);
       p.reject(err);
     }
@@ -690,6 +735,7 @@ export class InPageRuntimeHost implements RuntimeHostAdapter {
       clearTimeout(p.timer);
       p.cleanupSignal?.();
       this.pending.delete(requestId);
+      this.notifyPending();
       p.reject(new Error(reason));
     }
     this.ensureManager().cancelRequest(requestId, reason);
@@ -719,6 +765,7 @@ export class InPageRuntimeHost implements RuntimeHostAdapter {
         clearTimeout(entry.timer);
         entry.cleanupSignal?.();
         this.pending.delete(request.id);
+        this.notifyPending();
         if (outcome.ok) resolve(outcome.val);
         else reject(outcome.err);
       };
@@ -742,6 +789,7 @@ export class InPageRuntimeHost implements RuntimeHostAdapter {
       }
 
       this.pending.set(request.id, { reject, timer, cleanupSignal });
+      this.notifyPending();
 
       void mgr
         .handleRequest(request, {
@@ -812,6 +860,7 @@ export class InPageRuntimeHost implements RuntimeHostAdapter {
         timeoutMs,
         timer,
       });
+      this.notifyPending();
     });
   }
 
@@ -819,6 +868,7 @@ export class InPageRuntimeHost implements RuntimeHostAdapter {
     const w = this.importWaiters.get(taskId);
     if (!w) return;
     this.importWaiters.delete(taskId);
+    this.notifyPending();
     clearTimeout(w.timer);
   }
 }

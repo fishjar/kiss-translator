@@ -70,3 +70,5 @@ export const MSG_MENUS_UPDATEFORM = "updateFormData"; // 更新表单参数数�
 
 export const MSG_TOUCH_TRANSLATE_MODE_SET = "touch_translate_mode_set";
 export const MSG_TOUCH_TRANSLATE_STATE = "touch_translate_state";
+export const MSG_LOCAL_AI_SETTINGS = "local_ai_settings";
+export const MSG_LOCAL_AI_HOST = "local_ai_host";

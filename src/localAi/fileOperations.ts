@@ -2,14 +2,14 @@ import { sharedModelManager } from "./core/modelManager";
 import { validateInputFile } from "./core/inputFiles";
 import { CATALOG, OCR_GROUPS, getCatalogModel } from "./core/catalog";
 import { OcrClient } from "./core/ocrClient";
-import { LlmClient } from "./core/llmClient";
+import { VlmClient } from "./core/vlmClient";
 import { runtimeHost } from "./runtime/runtimeHostAdapter";
 import { nextRpcId } from "./runtime/rpc";
 import { inferOnnxModelDtype, resolveOcrVlmPrompt } from "./core/ocrVlmPrompts";
 import type { OcrLoadSpec } from "./core/types";
 
 const ocr = new OcrClient();
-const vlm = new LlmClient();
+const vlm = new VlmClient();
 
 export async function installedLlmModels(): Promise<string[]> {
   await sharedModelManager.init();
@@ -309,4 +309,3 @@ export async function recognizeFileImage(
 }
 
 export { getModelDisplayName } from "./core/catalog";
-

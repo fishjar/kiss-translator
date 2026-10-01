@@ -36,7 +36,7 @@ export function backendLabel(
 /**
  * LLM 客户端（基于 RuntimeHostAdapter RPC）：
  * - 记录加载成功时的 sessionVersion 与 modelId；
- * - 推理时携带 sessionVersion，防止与 OCR VLM 等共用 LLM 服务时发生模型状态失真；
+ * - 推理时携带 sessionVersion，防止同一服务的多个页面发生模型状态失真；
  * - 监听宿主 service-state 广播，在模型被切换或被 RuntimePool 淘汰时自动使就绪状态失效。
  */
 export class LlmClient {
@@ -50,10 +50,10 @@ export class LlmClient {
   private readonly host: RuntimeHostAdapter;
   private unsubState: (() => void) | null = null;
 
-  constructor(host: RuntimeHostAdapter = runtimeHost) {
+  constructor(host: RuntimeHostAdapter = runtimeHost, private readonly service: "llm" | "vlm" = "llm") {
     this.host = host;
     this.unsubState = this.host.onServiceState((st) => {
-      if (st.service !== "llm") return;
+      if (st.service !== this.service) return;
       // 当前客户端自身正在执行 load() 时忽略 loading 状态广播，避免误报“模型已切换”
       if (this.isLoading) return;
       if (
@@ -89,7 +89,7 @@ export class LlmClient {
       >(
         {
           id: nextRpcId("llm-load"),
-          service: "llm",
+          service: this.service,
           method: "load",
           payload: target
             ? {
@@ -137,7 +137,7 @@ export class LlmClient {
       >(
         {
           id: reqId,
-          service: "llm",
+          service: this.service,
           method: "chat",
           payload: { messages, maxTokens, ...target },
           priority: TASK_PRIORITY.LLM,
@@ -200,7 +200,7 @@ export class LlmClient {
     void this.host
       .request({
         id: nextRpcId("llm-stop"),
-        service: "llm",
+        service: this.service,
         method: "stop",
         payload: {},
       })
@@ -210,7 +210,7 @@ export class LlmClient {
   async unload(): Promise<void> {
     await this.host.request({
       id: nextRpcId("llm-unload"),
-      service: "llm",
+      service: this.service,
       method: "unload",
       payload: {},
     });

@@ -39,6 +39,7 @@ import {
   type ModelImportTaskResult,
   type ServiceSessionState,
 } from "./rpc";
+import { estimateModelMemoryMB } from "../core/modelMemory";
 import { RuntimePool } from "./runtimePool";
 import {
   TASK_PRIORITY,
@@ -51,7 +52,7 @@ type OcrInstance = Awaited<ReturnType<typeof PaddleOCR.create>>;
 export interface WorkerFactories {
   createJevWorker?: () => Worker;
   createAsrWorker?: () => Worker;
-  createLlmWorker?: (runtime: "wllama" | "onnx") => Worker;
+  createLlmWorker?: (runtime: "wllama" | "onnx", service?: "llm" | "vlm") => Worker;
   createTtsWorker?: () => Worker;
   createOcrInstance?: (spec: OcrLoadSpec) => Promise<OcrInstance>;
 }
@@ -65,6 +66,29 @@ export interface RuntimeEventCallbacks {
   workerFactories?: WorkerFactories;
   maxResidentModels?: number;
   llmStopGraceMs?: number;
+}
+
+function createLanguageModelState() {
+  return {
+    llmWorker: null as Worker | null,
+    llmWorkerRuntime: null as "wllama" | "onnx" | null,
+    llmLoadWaiter: null as null | {
+      resolve: (info: { backend: "webgpu" | "cpu" }) => void;
+      reject: (e: Error) => void;
+    },
+    llmChatWaiter: null as null | {
+      resolve: (r: {
+        text: string;
+        elapsedMs: number;
+        tokensPerSecond?: number;
+        aborted?: boolean;
+      }) => void;
+      reject: (e: Error) => void;
+    },
+    activeLlmReqId: null as string | null,
+    activeLlmChatReqId: null as string | null,
+    unloadWaiter: null as { resolve: () => void; reject: (error: Error) => void } | null,
+  };
 }
 
 /**
@@ -134,24 +158,7 @@ export class RuntimeManager {
     reject: (e: Error) => void;
   } | null = null;
 
-  // LLM Worker 状态
-  private llmWorker: Worker | null = null;
-  private llmWorkerRuntime: "wllama" | "onnx" | null = null;
-  private llmLoadWaiter: {
-    resolve: (info: { backend: "webgpu" | "cpu" }) => void;
-    reject: (e: Error) => void;
-  } | null = null;
-  private llmChatWaiter: {
-    resolve: (r: {
-      text: string;
-      elapsedMs: number;
-      tokensPerSecond?: number;
-      aborted?: boolean;
-    }) => void;
-    reject: (e: Error) => void;
-  } | null = null;
-  private activeLlmReqId: string | null = null;
-  private activeLlmChatReqId: string | null = null;
+  private languageModels = { llm: createLanguageModelState(), vlm: createLanguageModelState() };
   private childRequests = new Map<string, string>();
   private cancelledRequests = new Set<string>();
 
@@ -183,6 +190,7 @@ export class RuntimeManager {
     this.settingsReady = loadSettings().then((s) => {
       this.settings = s;
       this.modelManager.setMirror(s.mirror);
+      this.pool.setMemoryBudget(s.residentMemoryBudgetMB);
     });
   }
 
@@ -277,7 +285,7 @@ export class RuntimeManager {
     try {
       // Await actual resource cleanup before a different service may create an instance.
       if (service === "ocr") await this.disposeOcr();
-      else if (service === "llm") this.disposeLlm();
+      else if (service === "llm" || service === "vlm") await this.unloadLanguageModel(service);
       else if (service === "asr") this.disposeAsr();
       else if (service === "tts") this.disposeTts();
       else if (service === "decision") this.disposeJev();
@@ -285,7 +293,11 @@ export class RuntimeManager {
       this.loadedSpecs.delete(service);
       this.invalidateSession(service, reason);
     } catch (error) {
-      if (previous) this.sessions.set(service, previous);
+      if ((service === "llm" || service === "vlm") && !this.hasServiceInstance(service)) {
+        this.pool.forget(service);
+        this.loadedSpecs.delete(service);
+        this.invalidateSession(service, "RESOURCE_RELEASE_FAILED: 模型卸载失败，Worker 已终止");
+      } else if (previous) this.sessions.set(service, previous);
       this.broadcastService(service);
       throw error;
     }
@@ -293,12 +305,13 @@ export class RuntimeManager {
 
   private async prepareService(service: AiRpcService): Promise<void> {
     if (!this.settings.exclusiveResourceMode || service === "decision") return;
-    for (const other of ["asr", "ocr", "tts", "llm"] as const) {
+    for (const other of ["asr", "ocr", "tts", "llm", "vlm"] as const) {
       const instance = {
         asr: this.asrWorker,
         ocr: this.ocrInstance,
         tts: this.ttsWorker,
-        llm: this.llmWorker,
+        llm: this.languageModels.llm.llmWorker,
+        vlm: this.languageModels.vlm.llmWorker,
       }[other];
       if (
         other !== service &&
@@ -329,7 +342,8 @@ export class RuntimeManager {
       decision: this.jevWorker,
       asr: this.asrWorker,
       ocr: this.ocrInstance,
-      llm: this.llmWorker,
+      llm: this.languageModels.llm.llmWorker,
+      vlm: this.languageModels.vlm.llmWorker,
       tts: this.ttsWorker,
     };
     return Boolean(instances[service]);
@@ -378,7 +392,7 @@ export class RuntimeManager {
             image = await prepareImage(payload.blob, settings, signal);
             payload = { ...payload, blob: image.blob };
             adjusted(image.adjustment);
-          } else if (service === "llm" && req.method === "chat") {
+          } else if ((service === "llm" || service === "vlm") && req.method === "chat") {
             const messages: ChatMessage[] = [];
             for (const message of payload.messages as ChatMessage[]) {
               const images: ArrayBuffer[] = [];
@@ -404,6 +418,9 @@ export class RuntimeManager {
           checkInputCancelled(signal);
           if (!target && req.method !== "load")
             this.assertSessionVersion(service, req.options?.sessionVersion);
+          const incomingSpec = target?.spec ?? (req.method === "load" ? payload : undefined);
+          if (incomingSpec && settings.residentMemoryBudgetMB > 0 && estimateModelMemoryMB(incomingSpec) > settings.residentMemoryBudgetMB)
+            throw new Error("RESOURCE_BUDGET_EXCEEDED: 目标模型估算占用超过驻留预算");
           await this.prepareService(service);
           checkInputCancelled(signal);
           if (target && req.method !== "load") {
@@ -530,6 +547,10 @@ export class RuntimeManager {
           if (service !== "decision") this.lastService = service;
           return value;
         } catch (error) {
+          if ((service === "llm" || service === "vlm") && /out.of.memory|bad_alloc|内存不足/i.test(String(error))) {
+            await this.releaseService(service, "OUT_OF_MEMORY: 推理资源不足");
+            throw new Error(`OUT_OF_MEMORY: ${String(error)}`);
+          }
           if (this.getSessionState(service).state === "loading")
             await this.releaseService(service, "模型加载失败");
           throw error;
@@ -541,7 +562,7 @@ export class RuntimeManager {
         id: req.id,
         priority:
           req.priority ??
-          ({ decision: 0, asr: 1, ocr: 2, tts: 3, llm: 4 } as any)[service],
+          ({ decision: 0, asr: 1, ocr: 2, tts: 3, vlm: 2, llm: 4 } as any)[service],
         deadlineMs: req.deadlineMs,
         onCancel: (reason) => this.execution.get(req.id)?.onCancel?.(reason),
       }
@@ -671,7 +692,7 @@ export class RuntimeManager {
 
     const service = req.service === "translation" ? "llm" : req.service;
     const managed =
-      ["decision", "asr", "ocr", "llm", "tts"].includes(service) &&
+      ["decision", "asr", "ocr", "llm", "vlm", "tts"].includes(service) &&
       req.method !== "stop";
     const unloading = req.method === "unload" || req.method === "dispose";
     if (managed && !unloading) {
@@ -695,13 +716,13 @@ export class RuntimeManager {
       if (
         managed &&
         req.method === "load" &&
-        service === "llm" &&
+        (service === "llm" || service === "vlm") &&
         !(req.payload as any)?.modelRef &&
-        this.activeLlmChatReqId &&
+        this.languageModels[service === "vlm" ? "vlm" : "llm"].activeLlmChatReqId &&
         !this.settings.exclusiveResourceMode
       ) {
         this.scheduler.cancel(
-          this.activeLlmChatReqId,
+          this.languageModels[service === "vlm" ? "vlm" : "llm"].activeLlmChatReqId!,
           "MODEL_SWITCHED: 正在切换或重新加载模型，当前生成已中止"
         );
       }
@@ -766,6 +787,9 @@ export class RuntimeManager {
     emitProgress: (p: Omit<AiRpcProgress, "id">) => void,
     emitStream: (s: Omit<AiRpcStreamEvent, "id">) => void
   ): Promise<{ result: unknown; queueMs?: number; inferenceMs?: number }> {
+    if (req.method === "load" && ["decision", "asr", "ocr", "llm", "vlm", "tts"].includes(req.service)) {
+      await this.pool.reserve(req.service, estimateModelMemoryMB(req.payload as Record<string, unknown>));
+    }
     switch (req.service) {
       case "model":
         return { result: await this.handleModel(req) };
@@ -775,6 +799,7 @@ export class RuntimeManager {
         return this.handleAsr(req, emitProgress);
       case "ocr":
         return this.handleOcr(req, emitProgress);
+      case "vlm":
       case "llm":
         return this.handleLlm(req, emitProgress, emitStream);
       case "translation":
@@ -793,13 +818,14 @@ export class RuntimeManager {
     parentReqId: string,
     priority?: number,
     emitProgress?: (p: Omit<AiRpcProgress, "id">) => void,
-    emitStream?: (s: Omit<AiRpcStreamEvent, "id">) => void
+    emitStream?: (s: Omit<AiRpcStreamEvent, "id">) => void,
+    service: "llm" | "vlm" = "llm"
   ): Promise<ServiceSessionState> {
     await this.modelManager.init();
     const model = getCatalogModel(modelRef);
     if (
       !model ||
-      model.task !== "llm" ||
+      model.task !== (service === "vlm" ? "ocr-vlm" : "llm") ||
       this.modelManager.get(modelRef)?.state !== "installed"
     ) {
       throw new Error("MODEL_NOT_INSTALLED: 本地大模型未安装");
@@ -807,11 +833,11 @@ export class RuntimeManager {
     const file = model.files[0];
     if (!file) throw new Error("MODEL_LOAD_FAILED: 模型文件缺失");
 
-    const current = this.sessions.get("llm");
+    const current = this.sessions.get(service);
     if (
       current?.modelId !== model.dir ||
       current.state === "unloaded" ||
-      !this.llmWorker
+      !this.languageModels[service].llmWorker
     ) {
       const device =
         model.backend.includes("webgpu") &&
@@ -843,7 +869,7 @@ export class RuntimeManager {
         const loaded = await this.handleLlm(
           {
             id: loadId,
-            service: "llm",
+            service,
             method: "load",
             payload: spec,
             priority,
@@ -851,7 +877,7 @@ export class RuntimeManager {
           emitProgress || (() => {}),
           emitStream || (() => {})
         );
-        const session = this.sessions.get("llm");
+        const session = this.sessions.get(service);
         if (!loaded.result || !session) {
           throw new Error("MODEL_LOAD_FAILED: 本地模型加载失败");
         }
@@ -970,7 +996,7 @@ export class RuntimeManager {
           pool: this.pool.list(),
           scheduler: this.scheduler.stats(),
           sessions: Object.fromEntries(
-            ["decision", "asr", "ocr", "llm", "tts"].map((s) => [
+            ["decision", "asr", "ocr", "llm", "vlm", "tts"].map((s) => [
               s,
               this.getSessionState(s as AiRpcService),
             ])
@@ -1009,6 +1035,8 @@ export class RuntimeManager {
         ) {
           throw new Error("INVALID_SETTINGS: 时间必须为非负整数");
         }
+        if (patch.residentMemoryBudgetMB !== undefined && (!Number.isSafeInteger(patch.residentMemoryBudgetMB) || patch.residentMemoryBudgetMB < 0))
+          throw new Error("INVALID_SETTINGS: 驻留预算必须为非负整数");
         const next = normalizeSettings({ ...this.settings, ...patch });
         await this.scheduler.schedule(
           async () => {
@@ -1019,7 +1047,7 @@ export class RuntimeManager {
               const entries = this.pool
                 .list()
                 .filter((e) => e.service !== "decision");
-              const order = ["asr", "ocr", "tts", "llm"];
+              const order = ["asr", "ocr", "tts", "llm", "vlm"];
               entries.sort(
                 (a, b) =>
                   b.lastUsed - a.lastUsed ||
@@ -1035,7 +1063,9 @@ export class RuntimeManager {
                     "因独享资源模式已卸载"
                   );
             }
+            await this.pool.trimToBudget(next.residentMemoryBudgetMB);
             await saveSettings(next);
+            this.pool.setMemoryBudget(next.residentMemoryBudgetMB);
             const timeChanged =
               next.autoUnloadMinutes !== this.settings.autoUnloadMinutes;
             this.settings = next;
@@ -1046,6 +1076,7 @@ export class RuntimeManager {
                 "asr",
                 "ocr",
                 "llm",
+                "vlm",
                 "tts",
               ] as const)
                 this.armIdleTimer(service);
@@ -1628,64 +1659,73 @@ export class RuntimeManager {
   }
 
   // -------------------- LLM 服务 (P4) --------------------
-  private ensureLlmWorker(runtime: "wllama" | "onnx"): Worker {
-    if (!this.llmWorker || this.llmWorkerRuntime !== runtime) {
-      if (this.llmWorker) {
-        this.disposeLlm();
+  private ensureLlmWorker(runtime: "wllama" | "onnx", service: "llm" | "vlm"): Worker {
+    const slot = this.languageModels[service];
+    if (!slot.llmWorker || slot.llmWorkerRuntime !== runtime) {
+      if (slot.llmWorker) {
+        this.disposeLlm(service);
       }
       const w = this.factories.createLlmWorker
-        ? this.factories.createLlmWorker(runtime)
+        ? this.factories.createLlmWorker(runtime, service)
         : runtime === "onnx"
           ? createLocalWorker("llm-onnx")
           : createLocalWorker("llm");
-      this.llmWorker = w;
-      this.llmWorkerRuntime = runtime;
+      slot.llmWorker = w;
+      slot.llmWorkerRuntime = runtime;
       w.onmessage = (e: MessageEvent) => {
-        if (this.llmWorker !== w) return;
+        if (slot.llmWorker !== w) return;
         const data = e.data;
-        if (data.type === "progress" && this.activeLlmReqId) {
+        if (data.type === "progress" && slot.activeLlmReqId) {
           this.callbacks.onProgress?.({
-            id: this.activeLlmReqId,
+            id: slot.activeLlmReqId,
             type: "loading",
             status: data.status ?? "加载中",
           });
         } else if (data.type === "ready") {
-          this.llmLoadWaiter?.resolve({
+          slot.llmLoadWaiter?.resolve({
             backend: data.backend === "webgpu" ? "webgpu" : "cpu",
           });
-          this.llmLoadWaiter = null;
-        } else if (data.type === "token" && this.activeLlmReqId) {
+          slot.llmLoadWaiter = null;
+        } else if (data.type === "token" && slot.activeLlmReqId) {
           this.callbacks.onStream?.({
-            id: this.activeLlmReqId,
+            id: slot.activeLlmReqId,
             type: "token",
             text: data.text ?? "",
           });
         } else if (data.type === "done") {
-          this.llmChatWaiter?.resolve({
+          slot.llmChatWaiter?.resolve({
             text: data.text ?? "",
             elapsedMs: data.elapsedMs ?? 0,
             tokensPerSecond: data.tokensPerSecond,
             aborted: data.aborted,
           });
-          this.llmChatWaiter = null;
+          slot.llmChatWaiter = null;
+        } else if (data.type === "unloaded") {
+          slot.unloadWaiter?.resolve();
         } else if (data.type === "error") {
+          slot.unloadWaiter?.reject(new Error(data.message || "卸载失败"));
           const err = new Error(data.message || "LLM worker error");
-          this.llmLoadWaiter?.reject(err);
-          this.llmLoadWaiter = null;
-          this.llmChatWaiter?.reject(err);
-          this.llmChatWaiter = null;
+          slot.llmLoadWaiter?.reject(err);
+          slot.llmLoadWaiter = null;
+          slot.llmChatWaiter?.reject(err);
+          slot.llmChatWaiter = null;
         }
       };
       w.onerror = (e) => {
-        if (this.llmWorker !== w) return;
+        if (slot.llmWorker !== w) return;
+        slot.unloadWaiter?.reject(new Error(e.message || "Worker crashed"));
         const err = new Error(e.message || "LLM worker crashed");
-        this.llmLoadWaiter?.reject(err);
-        this.llmLoadWaiter = null;
-        this.llmChatWaiter?.reject(err);
-        this.llmChatWaiter = null;
+        slot.llmLoadWaiter?.reject(err);
+        slot.llmLoadWaiter = null;
+        slot.llmChatWaiter?.reject(err);
+        slot.llmChatWaiter = null;
+        this.disposeLlm(service, err.message);
+        this.pool.forget(service);
+        this.loadedSpecs.delete(service);
+        this.invalidateSession(service, err.message);
       };
     }
-    return this.llmWorker;
+    return slot.llmWorker;
   }
 
   private async handleLlm(
@@ -1693,40 +1733,43 @@ export class RuntimeManager {
     _emitProgress: (p: Omit<AiRpcProgress, "id">) => void,
     _emitStream: (s: Omit<AiRpcStreamEvent, "id">) => void
   ): Promise<{ result: unknown; queueMs?: number; inferenceMs?: number }> {
+    const service = req.service as "llm" | "vlm";
+    const slot = this.languageModels[service];
     if (req.method === "load") {
       const spec = req.payload as LlmLoadSpec | LlmOnnxLoadSpec;
       const modelId = spec.dir;
-      const session = this.beginLoadSession("llm", modelId);
+      const session = this.beginLoadSession(service, modelId);
       // 若有正在执行的生成任务，通过调度器取消它，由现有 onCancel 先发 stop 并等待 Worker 返回 done（超宽限期则 terminate）；
       // 绝不直接拒绝 llmChatWaiter 提前推进队列，确保旧任务真正停止并释放调度槽位后才开始新模型加载。
-      if (this.activeLlmChatReqId) {
+      if (slot.activeLlmChatReqId) {
         this.scheduler.cancel(
-          this.activeLlmChatReqId,
+          slot.activeLlmChatReqId,
           "MODEL_SWITCHED: 正在切换或重新加载模型，当前生成已中止"
         );
       }
       const scheduled = await this.scheduleTask(
         req,
         async () => {
-          await this.pool.ensureCapacity("llm");
+          await this.pool.ensureCapacity(service);
           const runtime = spec.runtime === "wllama" ? "wllama" : "onnx";
-          const w = this.ensureLlmWorker(runtime);
-          this.activeLlmReqId = req.id;
+          await this.unloadLanguageModel(service);
+          const w = this.ensureLlmWorker(runtime, service);
+          slot.activeLlmReqId = req.id;
           this.pool.register({
-            key: "llm",
-            service: "llm",
+            key: service,
+            service: service,
             modelId,
             state: "loading",
             pinned: false,
             unloadFn: async () => {
-              this.disposeLlm();
-              this.invalidateSession("llm", "LLM 模型已被淘汰或卸载");
+              await this.unloadLanguageModel(service);
+              this.invalidateSession(service, "LLM 模型已被淘汰或卸载");
             },
           });
           return await new Promise<{ backend: "webgpu" | "cpu" }>(
             (resolve, reject) => {
-              this.llmLoadWaiter?.reject(new Error("模型加载已被新请求取代"));
-              this.llmLoadWaiter = { resolve, reject };
+              slot.llmLoadWaiter?.reject(new Error("模型加载已被新请求取代"));
+              slot.llmLoadWaiter = { resolve, reject };
               w.postMessage({ type: "load", ...spec, runtime });
             }
           );
@@ -1736,14 +1779,14 @@ export class RuntimeManager {
           priority: TASK_PRIORITY.LLM,
           deadlineMs: req.deadlineMs,
           onCancel: (reason) => {
-            this.invalidateSession("llm", reason);
-            this.disposeLlm(reason);
-            void this.pool.unload("llm");
+            this.invalidateSession(service, reason);
+            this.disposeLlm(service, reason);
+            void this.pool.unload(service);
           },
         }
       );
-      this.commitLoadSession("llm", modelId, session.sessionVersion);
-      this.pool.markState("llm", "ready");
+      this.commitLoadSession(service, modelId, session.sessionVersion);
+      this.pool.markState(service, "ready");
       return {
         result: {
           ...scheduled.value,
@@ -1768,7 +1811,8 @@ export class RuntimeManager {
           req.id,
           req.priority,
           _emitProgress,
-          _emitStream
+          _emitStream,
+          service
         );
         if (this.cancelledRequests.has(req.id)) {
           throw new Error("REQUEST_CANCELLED: 用户已取消");
@@ -1777,37 +1821,39 @@ export class RuntimeManager {
           sessionVersionToCheck = session.sessionVersion;
         }
       }
-      this.assertSessionVersion("llm", sessionVersionToCheck);
-      if (!this.llmWorker) throw new Error("MODEL_UNLOADED: 模型尚未加载");
-      this.pool.touch("llm");
+      this.assertSessionVersion(service, sessionVersionToCheck);
+      if (!slot.llmWorker) throw new Error("MODEL_UNLOADED: 模型尚未加载");
+      this.pool.touch(service);
+      this.pool.setPinned(service, true);
+      try {
       const scheduled = await this.scheduleTask(
         req,
         () => {
-          this.assertSessionVersion("llm", sessionVersionToCheck);
-          this.activeLlmReqId = req.id;
-          this.activeLlmChatReqId = req.id;
+          this.assertSessionVersion(service, sessionVersionToCheck);
+          slot.activeLlmReqId = req.id;
+          slot.activeLlmChatReqId = req.id;
           return new Promise<{
             text: string;
             elapsedMs: number;
             tokensPerSecond?: number;
             aborted?: boolean;
           }>((resolve, reject) => {
-            this.llmChatWaiter?.reject(new Error("对话请求已被新请求取代"));
-            this.llmChatWaiter = {
+            slot.llmChatWaiter?.reject(new Error("对话请求已被新请求取代"));
+            slot.llmChatWaiter = {
               resolve: (val) => {
-                if (this.activeLlmChatReqId === req.id) {
-                  this.activeLlmChatReqId = null;
+                if (slot.activeLlmChatReqId === req.id) {
+                  slot.activeLlmChatReqId = null;
                 }
                 resolve(val);
               },
               reject: (err) => {
-                if (this.activeLlmChatReqId === req.id) {
-                  this.activeLlmChatReqId = null;
+                if (slot.activeLlmChatReqId === req.id) {
+                  slot.activeLlmChatReqId = null;
                 }
                 reject(err);
               },
             };
-            this.llmWorker?.postMessage({ type: "chat", messages, maxTokens });
+            slot.llmWorker?.postMessage({ type: "chat", messages, maxTokens });
           });
         },
         {
@@ -1817,33 +1863,26 @@ export class RuntimeManager {
           onCancel: async (reason) => {
             // 先向可中断的 LLM Worker 发送 stop，等待短暂宽限期确认停止；
             // 若在宽限期内未收到 done（如处于不可中断的预填充阶段），则直接 terminate 并使会话失效。
-            if (!this.llmChatWaiter) return;
-            this.llmWorker?.postMessage({ type: "stop" });
+            if (!slot.llmChatWaiter) return;
+            slot.llmWorker?.postMessage({ type: "stop" });
             await new Promise<void>((resolve) => {
               const timer = setTimeout(() => {
-                if (this.llmChatWaiter) {
-                  if (
-                    this.sessions.get("llm")?.sessionVersion ===
-                    req.options?.sessionVersion
-                  ) {
-                    this.invalidateSession(
-                      "llm",
-                      "LLM 任务强制终止，请重新加载模型"
-                    );
-                    void this.pool.unload("llm");
-                  }
-                  this.disposeLlm(reason);
+                if (slot.llmChatWaiter) {
+                  this.invalidateSession(service, "模型任务强制终止，请重新加载");
+                  this.pool.forget(service);
+                  this.loadedSpecs.delete(service);
+                  this.disposeLlm(service, reason);
                 }
                 resolve();
               }, this.llmStopGraceMs);
 
-              const origWaiter = this.llmChatWaiter;
+              const origWaiter = slot.llmChatWaiter;
               if (!origWaiter) {
                 clearTimeout(timer);
                 resolve();
                 return;
               }
-              this.llmChatWaiter = {
+              slot.llmChatWaiter = {
                 resolve: (val) => {
                   clearTimeout(timer);
                   origWaiter.resolve(val);
@@ -1859,46 +1898,70 @@ export class RuntimeManager {
           },
         }
       );
-      this.pool.markState("llm", "idle");
       return {
         result: scheduled.value,
         queueMs: scheduled.queueMs,
         inferenceMs: scheduled.inferenceMs,
       };
+      } finally {
+        this.pool.setPinned(service, false);
+        this.pool.markState(service, "idle");
+      }
     }
 
     if (req.method === "stop") {
-      if (this.activeLlmChatReqId) {
+      if (slot.activeLlmChatReqId) {
         this.scheduler.cancel(
-          this.activeLlmChatReqId,
+          slot.activeLlmChatReqId,
           "REQUEST_CANCELLED: 用户已停止生成"
         );
       } else {
-        this.llmWorker?.postMessage({ type: "stop" });
+        slot.llmWorker?.postMessage({ type: "stop" });
       }
       return { result: { ok: true } };
     }
 
     if (req.method === "dispose") {
-      this.invalidateSession("llm", "LLM 模型已卸载");
-      await this.pool.unload("llm");
-      this.disposeLlm();
+      this.invalidateSession(service, "LLM 模型已卸载");
+      await this.pool.unload(service);
+      this.disposeLlm(service);
       return { result: { ok: true } };
     }
 
     throw new Error(`未知 llm 方法: ${req.method}`);
   }
 
-  private disposeLlm(reason = "推理客户端已销毁"): void {
+  private async unloadLanguageModel(service: "llm" | "vlm"): Promise<void> {
+    const slot = this.languageModels[service];
+    if (!slot.llmWorker) return;
+    const worker = slot.llmWorker;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        slot.unloadWaiter = { resolve, reject };
+        timer = setTimeout(() => reject(new Error("RESOURCE_RELEASE_FAILED: 模型卸载超时")), 5000);
+        worker.postMessage({ type: "unload" });
+      });
+    } catch (error) {
+      throw new Error(`RESOURCE_RELEASE_FAILED: ${String(error)}`);
+    } finally {
+      clearTimeout(timer);
+      slot.unloadWaiter = null;
+      this.disposeLlm(service);
+    }
+  }
+
+  private disposeLlm(service: "llm" | "vlm" = "llm", reason = "推理客户端已销毁"): void {
+    const slot = this.languageModels[service];
     const err = new Error(reason);
-    this.llmLoadWaiter?.reject(err);
-    this.llmLoadWaiter = null;
-    this.llmChatWaiter?.reject(err);
-    this.llmChatWaiter = null;
-    this.activeLlmChatReqId = null;
-    this.llmWorker?.terminate();
-    this.llmWorker = null;
-    this.llmWorkerRuntime = null;
+    slot.llmLoadWaiter?.reject(err);
+    slot.llmLoadWaiter = null;
+    slot.llmChatWaiter?.reject(err);
+    slot.llmChatWaiter = null;
+    slot.activeLlmChatReqId = null;
+    slot.llmWorker?.terminate();
+    slot.llmWorker = null;
+    slot.llmWorkerRuntime = null;
   }
 
   // -------------------- TTS 服务 (P3) --------------------
