@@ -5,8 +5,12 @@ jest.mock("../../hooks/MouseHover", () => ({
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import ContentFab from "./ContentFab";
+import { MSG_OPEN_OPTIONS, MSG_TRANS_TOGGLE } from "../../config";
+import { sendBgMsg } from "../../libs/msg";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+let mockIsExt = true;
 
 jest.mock("../../hooks/Setting", () => ({
   SettingProvider: ({ children }) => children,
@@ -25,7 +29,11 @@ jest.mock("../../hooks/WindowSize", () => ({
 jest.mock("../../hooks/useFullscreenDetect", () => ({
   useFullscreenDetect: () => ({ isVideoFullscreen: false }),
 }));
-jest.mock("../../libs/client", () => ({ isExt: true }));
+jest.mock("../../libs/client", () => ({
+  get isExt() {
+    return mockIsExt;
+  },
+}));
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
 jest.mock("../../libs/mobile", () => ({ isMobile: false }));
 jest.mock("../../libs/storage", () => ({ putFab: jest.fn() }));
@@ -42,6 +50,8 @@ describe.each(["document", "shadow root"])(
     let outsideHost;
 
     beforeEach(() => {
+      mockIsExt = true;
+      sendBgMsg.mockReset();
       window.PointerEvent = MouseEvent;
       Object.defineProperty(navigator, "maxTouchPoints", {
         configurable: true,
@@ -82,11 +92,11 @@ describe.each(["document", "shadow root"])(
       jest.restoreAllMocks();
     });
 
-    function render() {
+    function render(fabConfig = {}) {
       act(() =>
         root.render(
           <ContentFab
-            fabConfig={{ x: 0, y: 100, edge: "left" }}
+            fabConfig={{ x: 0, y: 100, edge: "left", ...fabConfig }}
             processActions={processActions}
             getSelectionEnabled={() => false}
           />
@@ -96,6 +106,9 @@ describe.each(["document", "shadow root"])(
 
     const fab = () => container.querySelector(".kt-content-fab");
     const menu = () => container.querySelector(".kt-content-fab-menu");
+    const draggable = () => fab().parentElement.parentElement.parentElement;
+    const focusRoot = () =>
+      context === "shadow root" ? contentRoot : document;
     const click = (target) => act(() => target.click());
     const openMenu = () => {
       click(fab());
@@ -106,6 +119,281 @@ describe.each(["document", "shadow root"])(
       act(() =>
         target.dispatchEvent(new Event(type, { bubbles: true, composed: true }))
       );
+
+    const wrapper = () => fab().closest('[style*="position: fixed"]');
+
+    test("preserves the legacy appearance when preferences are missing", () => {
+      render();
+
+      expect(wrapper().style.transform).toBe("translate(-28px, 100px)");
+      expect(wrapper().style.opacity).toBe("1");
+    });
+
+    test.each([
+      ["left", 0, 100, [-12, 100], [-48, 100], [0, 100]],
+      ["right", 772, 100, [788, 100], [752, 100], [704, 100]],
+      ["top", 100, 0, [100, -12], [100, -48], [100, 0]],
+      ["bottom", 100, 572, [100, 588], [100, 552], [100, 504]],
+    ])(
+      "keeps the %s edge aligned when the saved button size changes",
+      (edge, x, y, small, large, full) => {
+        const config = { edge, x, y, opacity: 0.35 };
+        const transform = ([left, top]) => `translate(${left}px, ${top}px)`;
+        render({ ...config, size: 24 });
+        expect(wrapper().style.transform).toBe(transform(small));
+
+        render({ ...config, size: 96 });
+        expect(wrapper().style.transform).toBe(transform(large));
+        expect(wrapper().style.opacity).toBe("0.35");
+
+        render({ ...config, size: 96, halfHide: false });
+        expect(wrapper().style.transform).toBe(transform(full));
+        expect(wrapper().style.opacity).toBe("0.35");
+      }
+    );
+
+    test.each([
+      [null, -28],
+      ["80", -28],
+      [NaN, -28],
+      [Infinity, -28],
+      [0, -12],
+      [200, -48],
+    ])(
+      "keeps an invalid stored size %p within supported bounds",
+      (size, left) => {
+        render({ size });
+        expect(wrapper().style.transform).toBe(`translate(${left}px, 100px)`);
+      }
+    );
+
+    test.each(["click", "touch"])(
+      "restores appearance after an outside %s closes the menu",
+      (interaction) => {
+        render({ halfHide: false, opacity: 0.35 });
+
+        expect(wrapper().style.transform).toBe("translate(0px, 100px)");
+        expect(wrapper().style.opacity).toBe("0.35");
+
+        openMenu();
+        expect(wrapper().style.opacity).toBe("1");
+        expect(wrapper().style.transform).toBe("translate(0px, 100px)");
+
+        if (interaction === "touch") {
+          touch(outsideHost, "touchstart");
+          touch(outsideHost, "touchend");
+        } else {
+          click(outsideHost);
+        }
+        expect(menu()).toBeNull();
+        expect(wrapper().style.opacity).toBe("0.35");
+
+        render({ halfHide: true, opacity: 0.6 });
+        expect(wrapper().style.transform).toBe("translate(-28px, 100px)");
+        expect(wrapper().style.opacity).toBe("0.6");
+      }
+    );
+
+    test("keeps direct translation available with customized appearance", () => {
+      render({ halfHide: false, opacity: 0.25, size: 96, fabClickAction: 1 });
+      click(fab());
+
+      expect(processActions).toHaveBeenCalledWith({ action: MSG_TRANS_TOGGLE });
+      expect(menu()).toBeNull();
+    });
+
+    test.each([
+      [0, "0.1"],
+      [2, "1"],
+      [NaN, "1"],
+      ["0.4", "1"],
+      [null, "1"],
+    ])("keeps an invalid stored opacity %p visible", (opacity, expected) => {
+      render({ halfHide: null, opacity });
+
+      expect(wrapper().style.opacity).toBe(expected);
+      expect(wrapper().style.transform).toBe("translate(-28px, 100px)");
+    });
+
+    test.each([
+      ["extension", false],
+      ["userscript", true],
+    ])(
+      "opening settings in the %s retracts after leaving and returning to the tab",
+      (client, synchronousBlur) => {
+        mockIsExt = client === "extension";
+        const leaveWindow = () => window.dispatchEvent(new Event("blur"));
+        const openWindow = jest.spyOn(window, "open").mockImplementation(() => {
+          if (synchronousBlur) leaveWindow();
+          return null;
+        });
+        sendBgMsg.mockImplementation(() => {
+          setTimeout(leaveWindow, 0);
+        });
+        render();
+        act(() =>
+          draggable().dispatchEvent(
+            new MouseEvent("mouseover", { bubbles: true, composed: true })
+          )
+        );
+        openMenu();
+        const settingsItem = Array.from(
+          menu().querySelectorAll('[role="menuitem"]')
+        ).find((item) => item.textContent === "open_setting");
+        act(() => settingsItem.focus());
+        expect(focusRoot().activeElement).toBe(settingsItem);
+        expect(draggable().style.transform).toBe("translate(0px, 100px)");
+        const focusFab = jest.spyOn(fab(), "focus");
+
+        // Tab activation can happen during window.open or after a background
+        // message. Supply neither mouseleave nor an element blur event.
+        click(settingsItem);
+        act(() => jest.runOnlyPendingTimers());
+
+        if (mockIsExt) {
+          expect(sendBgMsg).toHaveBeenCalledWith(MSG_OPEN_OPTIONS);
+          expect(openWindow).not.toHaveBeenCalled();
+        } else {
+          expect(openWindow).toHaveBeenCalledWith(
+            process.env.REACT_APP_OPTIONSPAGE,
+            "_blank",
+            "noopener,noreferrer"
+          );
+          expect(sendBgMsg).not.toHaveBeenCalled();
+        }
+        expect(focusFab).not.toHaveBeenCalled();
+        expect(menu()).toBeNull();
+        expect(fab().getAttribute("aria-expanded")).toBe("false");
+        expect(draggable().style.transform).toBe("translate(-28px, 100px)");
+
+        act(() => window.dispatchEvent(new Event("focus")));
+
+        expect(draggable().style.transform).toBe("translate(-28px, 100px)");
+        expect(focusRoot().activeElement).not.toBe(fab());
+        act(() => fab().focus());
+        expect(draggable().style.transform).toBe("translate(0px, 100px)");
+      }
+    );
+
+    test.each(["window blur", "hidden document"])(
+      "%s dismisses the open menu and clears its retained focus",
+      (departure) => {
+        const hidden = jest.spyOn(document, "hidden", "get");
+        const visibility = jest.spyOn(document, "visibilityState", "get");
+        hidden.mockReturnValue(false);
+        visibility.mockReturnValue("visible");
+        render();
+        openMenu();
+        const focusedItem = focusRoot().activeElement;
+        expect(menu().contains(focusedItem)).toBe(true);
+
+        if (departure === "window blur") {
+          act(() => window.dispatchEvent(new Event("blur")));
+        } else {
+          act(() => document.dispatchEvent(new Event("visibilitychange")));
+          expect(menu()).not.toBeNull();
+          hidden.mockReturnValue(true);
+          visibility.mockReturnValue("hidden");
+          act(() => document.dispatchEvent(new Event("visibilitychange")));
+        }
+
+        expect(menu()).toBeNull();
+        expect(focusRoot().activeElement).not.toBe(focusedItem);
+        expect(draggable().style.transform).toBe("translate(-28px, 100px)");
+        hidden.mockReturnValue(false);
+        visibility.mockReturnValue("visible");
+        act(() => {
+          document.dispatchEvent(new Event("visibilitychange"));
+          window.dispatchEvent(new Event("focus"));
+        });
+        expect(menu()).toBeNull();
+        expect(draggable().style.transform).toBe("translate(-28px, 100px)");
+      }
+    );
+
+    test.each(["Escape", "Tab"])(
+      "%s still returns keyboard focus to the revealed FAB",
+      (key) => {
+        render();
+        openMenu();
+        act(() =>
+          focusRoot().activeElement.dispatchEvent(
+            new KeyboardEvent("keydown", {
+              key,
+              bubbles: true,
+              composed: true,
+              cancelable: true,
+            })
+          )
+        );
+
+        expect(menu()).toBeNull();
+        expect(focusRoot().activeElement).toBe(fab());
+        expect(draggable().style.transform).toBe("translate(0px, 100px)");
+      }
+    );
+
+    describe.each([true, false])(
+      "page deactivation with halfHide=%s",
+      (halfHide) => {
+        test.each([
+          ["window blur", null],
+          ["window blur", 0],
+          ["window blur", 16],
+          ["hidden document", null],
+          ["hidden document", 0],
+          ["hidden document", 16],
+        ])(
+          "%s clears retained hover with a menu-close frame delay of %p",
+          (departure, closeFrameDelay) => {
+            const hidden = jest.spyOn(document, "hidden", "get");
+            hidden.mockReturnValue(false);
+            render({ halfHide, opacity: 0.35, size: 96 });
+            act(() =>
+              draggable().dispatchEvent(
+                new MouseEvent("mouseover", { bubbles: true, composed: true })
+              )
+            );
+            openMenu();
+            jest.spyOn(draggable(), "matches").mockReturnValue(true);
+            expect(draggable().style.opacity).toBe("1");
+
+            if (closeFrameDelay !== null) {
+              click(outsideHost);
+              act(() => jest.advanceTimersByTime(closeFrameDelay));
+            }
+            if (departure === "window blur") {
+              act(() => window.dispatchEvent(new Event("blur")));
+            } else {
+              hidden.mockReturnValue(true);
+              act(() => document.dispatchEvent(new Event("visibilitychange")));
+            }
+
+            const idleTransform = halfHide
+              ? "translate(-48px, 100px)"
+              : "translate(0px, 100px)";
+            expect(menu()).toBeNull();
+            expect(draggable().style.opacity).toBe("0.35");
+            expect(draggable().style.transform).toBe(idleTransform);
+
+            // A background tab can resume queued frames only after reactivation.
+            hidden.mockReturnValue(false);
+            act(() => {
+              document.dispatchEvent(new Event("visibilitychange"));
+              window.dispatchEvent(new Event("focus"));
+              jest.advanceTimersByTime(50);
+            });
+
+            expect(menu()).toBeNull();
+            expect(draggable().style.opacity).toBe("0.35");
+            expect(draggable().style.transform).toBe(idleTransform);
+            act(() => fab().focus());
+            expect(draggable().style.opacity).toBe("1");
+            expect(draggable().style.transform).toBe("translate(0px, 100px)");
+          }
+        );
+      }
+    );
 
     test("real touch control survives Portal clicks and synchronizes on reopen", async () => {
       Object.defineProperty(navigator, "maxTouchPoints", {

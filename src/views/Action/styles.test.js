@@ -13,11 +13,11 @@ describe("content FAB Material 3 shape", () => {
       /\.kt-content-fab\.MuiFab-root\.Mui-focusVisible,[\s\S]*?\.kt-content-fab\.MuiFab-root:active\s*\{([^}]*)\}/
     )?.[1];
 
-    expect(baseRule).toContain("width: 56px");
-    expect(baseRule).toContain("height: 56px");
-    expect(baseRule).toContain("min-width: 56px");
-    expect(baseRule).toContain("min-height: 56px");
-    expect(baseRule).toContain("border-radius: 16px");
+    expect(baseRule).toContain("width: var(--kt-fab-size, 56px)");
+    expect(baseRule).toContain("height: var(--kt-fab-size, 56px)");
+    expect(baseRule).toContain("min-width: var(--kt-fab-size, 56px)");
+    expect(baseRule).toContain("min-height: var(--kt-fab-size, 56px)");
+    expect(baseRule).toContain("border-radius: var(--kt-fab-radius, 16px)");
     expect(baseRule).toContain("background-color: var(--kt-pric)");
     expect(baseRule).not.toMatch(/transition:[^;]*border-radius/);
     expect(hoverRule).toContain("var(--kt-onpric) 8%");

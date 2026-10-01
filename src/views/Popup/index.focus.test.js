@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import Popup from ".";
 import { getCurTab, sendBgMsg } from "../../libs/msg";
 import { MSG_OPEN_OPTIONS } from "../../config";
+import { kissLog } from "../../libs/log";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -27,6 +28,11 @@ jest.mock("../../libs/msg", () => ({
 
 jest.mock("../../libs/browser", () => ({
   browser: { runtime: { openOptionsPage: jest.fn() } },
+}));
+
+jest.mock("../../libs/log", () => ({
+  ...jest.requireActual("../../libs/log"),
+  kissLog: jest.fn(),
 }));
 
 jest.mock("../../hooks/I18n", () => ({
@@ -84,11 +90,21 @@ describe("Popup focus", () => {
     mockPopupContentAutofocus = false;
     mockSetting = { tranboxSetting: {} };
     mockSendTabMsg.mockResolvedValue(undefined);
-    sendBgMsg.mockClear();
+    sendBgMsg.mockReset();
+    kissLog.mockClear();
     window.history.replaceState({}, "", "/popup.html");
   });
 
-  test("opens settings through the background fallback channel", async () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  test("closes only after the background confirms that settings opened", async () => {
+    let confirmOpened;
+    sendBgMsg.mockReturnValue(
+      new Promise((resolve) => {
+        confirmOpened = resolve;
+      })
+    );
+    const closePopup = jest.spyOn(window, "close").mockImplementation(() => {});
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -104,6 +120,67 @@ describe("Popup focus", () => {
     });
 
     expect(sendBgMsg).toHaveBeenCalledWith(MSG_OPEN_OPTIONS);
+    expect(closePopup).not.toHaveBeenCalled();
+
+    await act(async () => {
+      confirmOpened(true);
+      await Promise.resolve();
+    });
+    expect(closePopup).toHaveBeenCalledTimes(1);
+
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  test.each([false, undefined])(
+    "keeps the popup open when the background does not confirm success: %s",
+    async (result) => {
+      sendBgMsg.mockResolvedValue(result);
+      const closePopup = jest
+        .spyOn(window, "close")
+        .mockImplementation(() => {});
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+      const root = createRoot(container);
+
+      await act(async () => {
+        root.render(<Popup />);
+        await Promise.resolve();
+      });
+      await act(async () => {
+        Array.from(container.querySelectorAll("button"))
+          .find((button) => button.textContent === "open-settings")
+          .click();
+        await Promise.resolve();
+      });
+
+      expect(closePopup).not.toHaveBeenCalled();
+      act(() => root.unmount());
+      container.remove();
+    }
+  );
+
+  test("handles a rejected settings message without closing the popup", async () => {
+    const error = new Error("Background is unavailable");
+    sendBgMsg.mockRejectedValue(error);
+    const closePopup = jest.spyOn(window, "close").mockImplementation(() => {});
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<Popup />);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "open-settings")
+        .click();
+      await Promise.resolve();
+    });
+
+    expect(closePopup).not.toHaveBeenCalled();
+    expect(kissLog).toHaveBeenCalledWith("open options page from popup", error);
     act(() => root.unmount());
     container.remove();
   });
