@@ -215,6 +215,71 @@ describe("TextareaResizeGrip", () => {
     await act(async () => root.unmount());
   });
 
+  // 未锁定短字段（实测 47px，低于锁定下限 64）的收缩 no-op 守卫：减高键
+  // 不得经锁定路径把高度反向抬到 64（高度与 slider 播报同步跳变）；
+  // 增高键与自 ≥64 基线的减高仍走既有锁定路径。
+  test("ignores ArrowUp shrink requests on an unlocked field already below the locked minimum", async () => {
+    const onResize = jest.fn();
+    const { grip, fieldRoot, root } = await renderGrip(onResize);
+    jest.spyOn(fieldRoot, "offsetHeight", "get").mockReturnValue(47);
+    // value undefined→null 的锁定态边界变更触发一次补测，播报实测 47。
+    await act(async () => {
+      root.render(<GripHost onResize={onResize} value={null} />);
+    });
+    expect(grip.getAttribute("aria-valuenow")).toBe("47");
+    fireKey(grip, "ArrowUp");
+    expect(onResize).not.toHaveBeenCalled();
+    expect(grip.getAttribute("aria-valuenow")).toBe("47");
+    await act(async () => root.unmount());
+  });
+
+  // 增高请求不受收缩守卫影响：47 + 12 = 59 < 64 经 clampHeight 托底 64，
+  // 属用户主动要求的增高方向（非反向增高），照常锁定。
+  test("keeps ArrowDown growth on an unlocked short field going through the locked path", async () => {
+    const onResize = jest.fn();
+    const { grip, fieldRoot, root } = await renderGrip(onResize);
+    jest.spyOn(fieldRoot, "offsetHeight", "get").mockReturnValue(47);
+    await act(async () => {
+      root.render(<GripHost onResize={onResize} value={null} />);
+    });
+    fireKey(grip, "ArrowDown");
+    expect(onResize).toHaveBeenLastCalledWith(64);
+    await act(async () => root.unmount());
+  });
+
+  // 自 ≥64 基线的减高不受守卫影响：80 − 48（Shift 步进）= 32，经
+  // clampHeight 托底 64，正常减高并锁定。
+  test("still routes ArrowUp shrink requests to the locked path when the unlocked baseline is at or above the locked minimum", async () => {
+    const onResize = jest.fn();
+    const { grip, fieldRoot, root } = await renderGrip(onResize);
+    jest.spyOn(fieldRoot, "offsetHeight", "get").mockReturnValue(80);
+    await act(async () => {
+      root.render(<GripHost onResize={onResize} value={null} />);
+    });
+    fireKey(grip, "ArrowUp", true);
+    expect(onResize).toHaveBeenLastCalledWith(64);
+    await act(async () => root.unmount());
+  });
+
+  // 拖拽收缩守卫：会话起点低于锁定下限时，目标仍低于下限的移动为 no-op；
+  // 目标恰达 64（边界值，严格小于比较不触发守卫）即恢复锁定路径。
+  test("ignores drag shrink moves below the locked minimum until the target crosses it", async () => {
+    const onResize = jest.fn();
+    const { grip, fieldRoot, root } = await renderGrip(onResize);
+    jest.spyOn(fieldRoot, "offsetHeight", "get").mockReturnValue(47);
+    await act(async () => {
+      root.render(<GripHost onResize={onResize} value={null} />);
+    });
+    firePointer(grip, "pointerdown", 100, 1);
+    // 上移 20px：目标 47 − 20 = 27 < 64，no-op。
+    firePointer(grip, "pointermove", 80, 1);
+    expect(onResize).not.toHaveBeenCalled();
+    // 下移 17px：目标 47 + 17 = 64，恰达下限，走锁定路径。
+    firePointer(grip, "pointermove", 117, 1);
+    expect(onResize).toHaveBeenLastCalledWith(64);
+    await act(async () => root.unmount());
+  });
+
   // 锁定态播报钳制不回归：锁定值仍按 [64, valuemax] 钳制播报，播报下界
   // 取经手柄可达的最小高度 64。本用例为防御性断言（锁定值生产链路恒
   // ≥64，src/hooks/useTextareaHeightLock.js:114/:190），防 prop 直传越界

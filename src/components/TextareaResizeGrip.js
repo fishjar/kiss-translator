@@ -636,6 +636,17 @@ export default function TextareaResizeGrip({
     const rounded = Math.round(
       session.startHeight + (event.clientY - session.startY)
     );
+    // 未锁定且会话起点实测已低于锁定下限时，目标仍低于下限的移动不可达：
+    // 锁定路径会把该目标托底到 LOCKED_MIN_TARGET_HEIGHT_PX，对收缩方向
+    // 等价于反向增高，高度与 slider 播报同步跳变。忽略该次移动，直到
+    // 目标跨过下限再走锁定路径；基线取会话快照，判定不随拖拽漂移。
+    if (
+      !Number.isFinite(value) &&
+      session.startHeight < LOCKED_MIN_TARGET_HEIGHT_PX &&
+      rounded < LOCKED_MIN_TARGET_HEIGHT_PX
+    ) {
+      return;
+    }
     onResize(
       Math.min(
         Math.max(rounded, LOCKED_MIN_TARGET_HEIGHT_PX),
@@ -676,7 +687,21 @@ export default function TextareaResizeGrip({
       : MIN_TARGET_HEIGHT_PX;
     const step = KEYBOARD_STEP_PX * (event.shiftKey ? 4 : 1);
     const delta = event.key === "ArrowDown" ? step : -step;
-    onResize(clampHeight(baseHeight + delta));
+    const candidate = baseHeight + delta;
+    // 未锁定且实测高度已低于锁定下限时，收缩请求（ArrowUp）的目标仍低于
+    // 下限则无可达目标：锁定路径会把它托底到 LOCKED_MIN_TARGET_HEIGHT_PX，
+    // 对减高键等价于反向增高，高度与 slider 播报同步跳变。该次按键消费为
+    // no-op（preventDefault 已先行，方向键不会滚动页面）；增高请求
+    // （ArrowDown，含托底到下限的结果）与自 ≥64 基线的减高不受影响。
+    if (
+      delta < 0 &&
+      !Number.isFinite(value) &&
+      baseHeight < LOCKED_MIN_TARGET_HEIGHT_PX &&
+      candidate < LOCKED_MIN_TARGET_HEIGHT_PX
+    ) {
+      return;
+    }
+    onResize(clampHeight(candidate));
   };
 
   // slider 播报值：锁定时取锁定高度并按 [valuemin, valuemax] 钳制——锁定
