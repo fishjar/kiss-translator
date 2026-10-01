@@ -459,8 +459,12 @@ export default function Popup() {
     };
   }, [isLoading, isSeparate]);
 
-  const handleOpenSetting = useCallback(() => {
-    sendBgMsg(MSG_OPEN_OPTIONS);
+  const handleOpenSetting = useCallback(async () => {
+    try {
+      if ((await sendBgMsg(MSG_OPEN_OPTIONS)) === true) window.close();
+    } catch (err) {
+      kissLog("open options page from popup", err);
+    }
   }, []);
 
   const openSeparateWindow = useCallback(() => {
