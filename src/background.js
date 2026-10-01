@@ -69,9 +69,11 @@ import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
 import { isCurrentPopupDocument } from "./libs/popupDocument";
 import { localAiRequest, cancelLocalAiRequest, localAiSettings, localAiHost } from "./libs/localAiBackground";
+import { installFileTranslationBackend } from "./fileTranslation/backend";
 
 globalThis.__KISS_CONTEXT__ = "background";
 installStorageCoordinator();
+installFileTranslationBackend();
 
 let openingOptionsPage = false;
 

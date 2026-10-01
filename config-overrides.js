@@ -56,7 +56,7 @@ const extWebpack = (config, env) => {
     content: paths.appSrc + "/content.js", // 内容注入核心脚本
     "injector-subtitle": paths.appSrc + "/injector-subtitle.js", // 字幕注入脚本
     "injector-shadowroot": paths.appSrc + "/injector-shadowroot.js", // ShadowRoot 拦截注入脚本
-    fileTranslate: paths.appSrc + "/fileTranslate.js", // 文件翻译独立页面
+    "file-bridge": paths.appSrc + "/fileBridge.js",
   };
 
   // 2. 将输出的文件命名重写为固定格式，方便 manifest.json 静态引用，防止文件哈希化导致引用失效
@@ -69,8 +69,7 @@ const extWebpack = (config, env) => {
       default: false,
       defaultVendors: false,
       pageShared: {
-        chunks: (chunk) =>
-          ["popup", "options", "fileTranslate"].includes(chunk.name),
+        chunks: (chunk) => ["popup", "options"].includes(chunk.name),
         minChunks: 2,
         minSize: 20000,
         name: (_module, chunks) =>
@@ -105,14 +104,6 @@ const extWebpack = (config, env) => {
       chunks: ["popup"],
       template: paths.appHtml,
       filename: "popup.html",
-      minify,
-    }),
-    // 为文件翻译独立页面定制生成对应的 HTML
-    new HtmlWebpackPlugin({
-      inject: true,
-      chunks: ["fileTranslate"],
-      template: paths.appHtml,
-      filename: "file-translate.html",
       minify,
     }),
     new WebpackManifestPlugin({
@@ -163,26 +154,28 @@ const extWebpack = (config, env) => {
 
   // 生产环境优化：Terser 压缩优化，启用双轮死代码消除与调试代码剥离
   if (isEnvProduction && Array.isArray(config.optimization.minimizer)) {
-    config.optimization.minimizer = config.optimization.minimizer.map((plugin) => {
-      if (plugin.constructor.name === "TerserPlugin") {
-        return new TerserPlugin({
-          terserOptions: {
-            ...plugin.options?.terserOptions,
-            compress: {
-              ...(plugin.options?.terserOptions?.compress || {}),
-              passes: 2,
-              pure_funcs: ["console.debug"],
+    config.optimization.minimizer = config.optimization.minimizer.map(
+      (plugin) => {
+        if (plugin.constructor.name === "TerserPlugin") {
+          return new TerserPlugin({
+            terserOptions: {
+              ...plugin.options?.terserOptions,
+              compress: {
+                ...(plugin.options?.terserOptions?.compress || {}),
+                passes: 2,
+                pure_funcs: ["console.debug"],
+              },
+              format: {
+                ...(plugin.options?.terserOptions?.format || {}),
+                comments: false,
+              },
             },
-            format: {
-              ...(plugin.options?.terserOptions?.format || {}),
-              comments: false,
-            },
-          },
-          extractComments: false,
-        });
+            extractComments: false,
+          });
+        }
+        return plugin;
       }
-      return plugin;
-    });
+    );
   }
 
   return config;
@@ -386,18 +379,33 @@ const userscriptWebpack = (config, env) => {
 
 // 方案 C：本地开发网页模式的 Webpack 覆盖配置
 const webWebpack = (config, env) => {
-  aliasLocalRuntime(config);
+  const homepageOnly = process.env.REACT_APP_WEB_APP === "homepage";
+  if (!homepageOnly) aliasLocalRuntime(config);
   const names = ["HtmlWebpackPlugin"];
 
   config.entry = {
     main: paths.appIndexJs,
-    options: paths.appSrc + "/options.js",
-    content: paths.appSrc + "/userscript.js",
+    ...(!homepageOnly
+      ? {
+          options: paths.appSrc + "/options.js",
+          content: paths.appSrc + "/userscript.js",
+        }
+      : {}),
     fileTranslate: paths.appSrc + "/fileTranslate.js",
   };
 
-  config.output.filename = "[name].js";
-  config.output.publicPath = "/";
+  config.output.filename =
+    homepageOnly && env === "production"
+      ? "assets/homepage/[name].[contenthash:8].js"
+      : "[name].js";
+  config.output.chunkFilename =
+    homepageOnly && env === "production"
+      ? "assets/homepage/[name].[contenthash:8].chunk.js"
+      : config.output.chunkFilename;
+  config.output.assetModuleFilename = homepageOnly
+    ? "assets/homepage/[name].[hash:8][ext]"
+    : config.output.assetModuleFilename;
+  config.output.publicPath = env === "production" ? "./" : "/";
 
   config.plugins = config.plugins.filter(
     (plugin) => !names.includes(plugin.constructor.name)
@@ -410,18 +418,22 @@ const webWebpack = (config, env) => {
       template: paths.appHtml,
       filename: "index.html",
     }),
-    new HtmlWebpackPlugin({
-      inject: true,
-      chunks: ["options"],
-      template: paths.appHtml,
-      filename: "options.html",
-    }),
-    new HtmlWebpackPlugin({
-      inject: true,
-      chunks: ["content"],
-      template: paths.appPublic + "/content.html",
-      filename: "content.html",
-    }),
+    ...(!homepageOnly
+      ? [
+          new HtmlWebpackPlugin({
+            inject: true,
+            chunks: ["options"],
+            template: paths.appHtml,
+            filename: "options.html",
+          }),
+          new HtmlWebpackPlugin({
+            inject: true,
+            chunks: ["content"],
+            template: paths.appPublic + "/content.html",
+            filename: "content.html",
+          }),
+        ]
+      : []),
     new HtmlWebpackPlugin({
       inject: true,
       chunks: ["fileTranslate"],
@@ -430,6 +442,53 @@ const webWebpack = (config, env) => {
     })
   );
 
+  if (homepageOnly) {
+    config.plugins.push({
+      apply(compiler) {
+        compiler.hooks.compilation.tap("FileWebBoundary", (compilation) => {
+          compilation.hooks.finishModules.tap("FileWebBoundary", (modules) => {
+            const resources = [...modules]
+              .map((module) => module.resource)
+              .filter(Boolean)
+              .map((resource) =>
+                path.relative(__dirname, resource).replace(/\\/g, "/")
+              );
+            const forbidden = resources.filter(
+              (resource) =>
+                /^(src\/(apis|localAi)\/|src\/libs\/(storage|browser|msg|request|fetch|cache|pool|fileTranslationService)\.[jt]s$)/.test(
+                  resource
+                ) || resource.includes("/webextension-polyfill/")
+            );
+            if (forbidden.length)
+              compilation.errors.push(
+                new Error(
+                  `文件翻译 Web 产物包含扩展服务依赖: ${forbidden.join(", ")}`
+                )
+              );
+            const reportDir = path.resolve(__dirname, "tmp/build-analysis");
+            fs.mkdirSync(reportDir, { recursive: true });
+            fs.writeFileSync(
+              path.join(reportDir, "homepage-modules.json"),
+              JSON.stringify(
+                resources
+                  .filter((resource) => resource.startsWith("src/"))
+                  .sort(),
+                null,
+                2
+              )
+            );
+          });
+        });
+      },
+    });
+    for (const plugin of config.plugins) {
+      if (plugin.constructor.name === "MiniCssExtractPlugin") {
+        plugin.options.filename = "assets/homepage/[name].[contenthash:8].css";
+        plugin.options.chunkFilename =
+          "assets/homepage/[name].[contenthash:8].chunk.css";
+      }
+    }
+  }
   return config;
 };
 

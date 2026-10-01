@@ -6,6 +6,54 @@ import FileTranslatePage from "./index";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+jest.mock("./State", () => ({
+  FileTranslationProvider: ({ children }) => children,
+  useFileTranslation: () => {
+    const { setting, updateChild } =
+      require("../../hooks/Setting").useSetting();
+    const ops = require("../../localAi/fileOperations");
+    const i18n = require("../../hooks/I18n").useI18n();
+    return {
+      context: {
+        scenes: setting.fileTranslateSetting,
+        services: setting.transApis,
+        prompts: require("../../hooks/Prompt").usePromptList().prompts,
+        styles: [],
+        models: [],
+        ocrModels: ops.ALL_OCR_MODELS || ops.OCR_GROUPS,
+      },
+      connected: true,
+      i18n,
+      uiLang: "zh",
+      allTextStyles: require("../../hooks/CustomStyles").useAllTextStyles()
+        .allTextStyles,
+      patchScene: (kind, patch) =>
+        updateChild("fileTranslateSetting")({
+          ...setting.fileTranslateSetting,
+          [kind]: { ...setting.fileTranslateSetting[kind], ...patch },
+        }),
+      client: {
+        recognize: (file, serviceId, signal) =>
+          ops.recognizeFileImage(
+            file,
+            {
+              groupId:
+                setting.transApis.find((api) => api.apiSlug === serviceId)
+                  ?.modelRef ||
+                setting.fileTranslateSetting.image.ocrGroup ||
+                "ppocr-v5-mobile",
+              device: setting.fileTranslateSetting.image.ocrDevice || "webgpu",
+            },
+            signal
+          ),
+      },
+      openSettings: require("../../libs/navigation").openOptionsPage,
+      toggleTheme: () => {},
+    };
+  },
+}));
+
+
 jest.mock("../../localAi/core/inputFiles", () => ({
   validateInputFile: jest.fn().mockResolvedValue(undefined),
 }));

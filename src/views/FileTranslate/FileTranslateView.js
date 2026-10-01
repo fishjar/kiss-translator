@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -39,9 +39,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DOMPurify from "dompurify";
 import { css } from "@emotion/css";
 import Logo from "../../components/Logo";
-import { useSetting } from "../../hooks/Setting";
-import { useI18n } from "../../hooks/I18n";
-import { useAllTextStyles } from "../../hooks/CustomStyles";
+import { useFileTranslation } from "./State";
 import { builtinStylesMap } from "../../libs/style";
 import {
   DEFAULT_FILE_TRANSLATE_SETTING,
@@ -74,25 +72,15 @@ import {
 } from "../../libs/epub/epubDomHandler";
 import EpubReaderView from "./EpubReaderView";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import { openOptionsPage } from "../../libs/navigation";
 import { SettingsSelect } from "../Options/SettingsCard";
-import OrderedApiSelect from "../Options/OrderedApiSelect";
-import ScenePromptSelect from "../Options/ScenePromptSelect";
-import ImageViewerDialog from "../Options/ImageViewerDialog";
-import { validateInputFile } from "../../localAi/core/inputFiles";
-import DarkModeButton from "../Options/DarkModeButton";
+import OrderedApiSelect from "./OrderedApiSelect";
+import ScenePromptSelect from "./ScenePromptSelect";
+import ImageViewerDialog from "./ImageViewerDialog";
+import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import {
   availableApisForScene,
   orderedApiSlugs,
 } from "../../config/serviceSelection";
-import {
-  ALL_OCR_MODELS,
-  OCR_GROUPS,
-  getModelDisplayName,
-  installedLlmModels,
-  recognizeFileImage,
-  translateWithLocalModel,
-} from "../../localAi/fileOperations";
 
 const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
@@ -134,10 +122,8 @@ function getEpubExportChapterSnapshot(
   const spineItems = isBook
     ? epubBookOrSpine.spineItems
     : epubBookOrSpine || [];
-  const navHref =
-    navItemHref || (isBook ? epubBookOrSpine.navItemHref : null);
-  const ncxHref =
-    ncxItemHref || (isBook ? epubBookOrSpine.ncxItemHref : null);
+  const navHref = navItemHref || (isBook ? epubBookOrSpine.navItemHref : null);
+  const ncxHref = ncxItemHref || (isBook ? epubBookOrSpine.ncxItemHref : null);
 
   const snapshot = {};
   const allPaths = new Set(spineItems.map((s) => s.fullPath));
@@ -201,15 +187,31 @@ function formatFileSize(bytes) {
 }
 
 export default function FileTranslateView() {
-  const i18n = useI18n();
-  const { setting, updateChild } = useSetting();
-  const { allTextStyles } = useAllTextStyles();
+  const {
+    connectionNotice,
+    connectionStatus,
+    context,
+    client,
+    connected,
+    i18n,
+    uiLang,
+    patchScene: saveScene,
+    allTextStyles,
+    openSettings: openOptionsPage,
+    toggleTheme,
+  } = useFileTranslation();
+  const setting = useMemo(
+    () => ({
+      transApis: context.services,
+      fileTranslateSetting: context.scenes,
+      uiLang,
+    }),
+    [context.services, context.scenes, uiLang]
+  );
   const saved = setting?.fileTranslateSetting || DEFAULT_FILE_TRANSLATE_SETTING;
   const [mode, setMode] = useState("txt");
   const scene = saved[mode] || DEFAULT_FILE_TRANSLATE_SETTING[mode];
-  const update = updateChild("fileTranslateSetting");
-  const patchScene = (patch) =>
-    update({ ...saved, [mode]: { ...scene, ...patch } });
+  const patchScene = (patch) => saveScene(mode, patch);
 
   const textStyleClass = useMemo(
     () => getTextStyleClass(scene?.textStyle, allTextStyles),
@@ -238,7 +240,11 @@ export default function FileTranslateView() {
   const [sourceHtml, setSourceHtml] = useState("");
   const [mdBlocks, setMdBlocks] = useState([]);
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState(null);
-  const allOcrModels = ALL_OCR_MODELS || OCR_GROUPS;
+  const allOcrModels = context.ocrModels;
+  const getModelDisplayName = useCallback(
+    (id) => context.models.find((model) => model.id === id)?.name || id,
+    [context.models]
+  );
 
   // --- EPUB 模式专用状态 ---
   const [epubBook, setEpubBook] = useState(null);
@@ -250,6 +256,10 @@ export default function FileTranslateView() {
     fontFamily: saved.epub?.readerPreferences?.fontFamily || "default",
     themeId: saved.epub?.readerPreferences?.themeId || "default",
   });
+  useEffect(() => {
+    if (connected && saved.epub?.readerPreferences)
+      setReaderPreferences(saved.epub.readerPreferences);
+  }, [connected, saved.epub?.readerPreferences]);
 
   // 筛选具备 OCR 能力的服务实例
   const ocrApis = useMemo(() => {
@@ -270,11 +280,17 @@ export default function FileTranslateView() {
       scene,
       setting?.transApis || [],
       "ocr",
-      {},
+      {
+        installedModels: new Set(
+          context.models
+            .filter((model) => model.state === "installed")
+            .map((model) => model.id)
+        ),
+      },
       "ocrApiSlugs",
       "ocrApiSlug"
     );
-  }, [scene, setting?.transApis]);
+  }, [scene, setting?.transApis, context.models]);
 
   const activeOcrApi =
     activeOcrCandidates[0] ||
@@ -324,7 +340,7 @@ export default function FileTranslateView() {
         api.modelRef
           ? ` (${typeof getModelDisplayName === "function" ? getModelDisplayName(api.modelRef, i18n) : api.modelRef})`
           : ""
-      }`,
+      }${api.ocrAvailable === false ? ` (${i18n("api_unavailable_here", "unavailable here")})` : ""}`,
     }));
     if (currentOcrSlug && !options.some((o) => o.value === currentOcrSlug)) {
       options.push({
@@ -333,7 +349,7 @@ export default function FileTranslateView() {
       });
     }
     return options;
-  }, [hasOcrService, ocrApis, currentOcrSlug, i18n]);
+  }, [hasOcrService, ocrApis, currentOcrSlug, i18n, getModelDisplayName]);
   const [progress, setProgress] = useState([0, 0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -458,6 +474,9 @@ export default function FileTranslateView() {
 
   // 组件卸载时自动终止正在进行的翻译任务
   useEffect(() => () => controller.current?.abort(), []);
+  useEffect(() => {
+    if (!connected) controller.current?.abort();
+  }, [connected]);
 
   // 异步读取 TXT / Markdown 文件内容（纯读取，无副作用）
   const readTxtFile = async (selected) => {
@@ -532,7 +551,13 @@ export default function FileTranslateView() {
       selected.type === "application/epub+zip";
     if (isImage) {
       try {
-        await validateInputFile(selected, "image");
+        if (
+          context.limits &&
+          selected.size > context.limits.maxImageFileMB * 1024 ** 2
+        )
+          throw new Error(
+            `图片文件超过 ${context.limits.maxImageFileMB} MB 上限`
+          );
       } catch (err) {
         if (taskIdRef.current === currentTaskId) setError(err.message);
         return;
@@ -601,7 +626,9 @@ export default function FileTranslateView() {
           try {
             const blocks = splitMarkdownBlocks(content);
             setMdBlocks(blocks);
-            setSourceHtml(renderMarkdownBlocksToHtml(blocks, { mode: "source" }));
+            setSourceHtml(
+              renderMarkdownBlocksToHtml(blocks, { mode: "source" })
+            );
             setTranslatedHtml("");
             setBilingualHtml("");
           } catch {
@@ -787,7 +814,6 @@ export default function FileTranslateView() {
       const currentRawStyle = rawStyleCode || "";
       const currentToLang = scene?.toLang || "";
       const currentUiLang = setting?.uiLang || "";
-      const spineItems = epubBook.spineItems || [];
 
       const cached = epubExportCacheRef.current.get("bilingual");
       if (
@@ -870,7 +896,6 @@ export default function FileTranslateView() {
       const currentRawStyle = rawStyleCode || "";
       const currentToLang = scene?.toLang || "";
       const currentUiLang = setting?.uiLang || "";
-      const spineItems = epubBook.spineItems || [];
 
       const cached = epubExportCacheRef.current.get("target");
       if (
@@ -947,9 +972,7 @@ export default function FileTranslateView() {
     if (!currentChapter) return;
     const state = chapterStates[currentChapter.fullPath];
     const isLangMatch =
-      !state?.targetLang ||
-      !scene?.toLang ||
-      state.targetLang === scene.toLang;
+      !state?.targetLang || !scene?.toLang || state.targetLang === scene.toLang;
     let htmlToExport = isLangMatch
       ? epubViewMode === "target"
         ? state?.targetHtml || ""
@@ -977,7 +1000,11 @@ export default function FileTranslateView() {
     let cleanBodyHtml = htmlToExport;
     try {
       const doc = parseXhtmlToDoc(htmlToExport);
-      embedEpubImagesAsDataUrls(doc, currentChapter.fullPath, epubBook.filesMap);
+      embedEpubImagesAsDataUrls(
+        doc,
+        currentChapter.fullPath,
+        epubBook.filesMap
+      );
       cleanBodyHtml = doc.body ? doc.body.innerHTML : serializeDocToXhtml(doc);
     } catch {
       cleanBodyHtml = htmlToExport;
@@ -1002,7 +1029,7 @@ export default function FileTranslateView() {
 
   // 试译当前章节
   const handleTranslateCurrentChapter = async () => {
-    if (!epubBook || busy) return;
+    if (!connected || !epubBook || busy) return;
     const currentChapter = epubBook.spineItems[currentChapterIndex];
     if (!currentChapter) return;
 
@@ -1022,13 +1049,8 @@ export default function FileTranslateView() {
     }));
 
     try {
-      const installedModels = new Set(await installedLlmModels());
       if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
-      const localContext = {
-        installedModels,
-        translate: async (modelRef, text, toLang, signal) =>
-          translateWithLocalModel(modelRef, text, toLang, signal),
-      };
+      const localContext = { kind: mode };
 
       const result = await translateEpubChapter(
         currentChapter.fullPath,
@@ -1037,7 +1059,8 @@ export default function FileTranslateView() {
         setting,
         abort.signal,
         (done, total, detail) => {
-          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+          if (abort.signal.aborted || taskIdRef.current !== currentTaskId)
+            return;
           setProgress([done, total]);
           if (detail?.partialBilingualHtml || detail?.partialTargetHtml) {
             setChapterStates((prev) => {
@@ -1115,7 +1138,7 @@ export default function FileTranslateView() {
 
   // 翻译整本电子书
   const handleTranslateEntireEpubBook = async () => {
-    if (!epubBook || busy) return;
+    if (!connected || !epubBook || busy) return;
     controller.current?.abort();
     const abort = new AbortController();
     controller.current = abort;
@@ -1125,13 +1148,8 @@ export default function FileTranslateView() {
     setProgress([0, epubBook.spineItems.length]);
 
     try {
-      const installedModels = new Set(await installedLlmModels());
       if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
-      const localContext = {
-        installedModels,
-        translate: async (modelRef, text, toLang, signal) =>
-          translateWithLocalModel(modelRef, text, toLang, signal),
-      };
+      const localContext = { kind: mode };
 
       const result = await translateEpubBook(
         epubBook,
@@ -1139,7 +1157,8 @@ export default function FileTranslateView() {
         setting,
         abort.signal,
         (doneChapters, totalChapters, doneParas, totalParas, detail) => {
-          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+          if (abort.signal.aborted || taskIdRef.current !== currentTaskId)
+            return;
           setProgress([doneChapters, totalChapters]);
           if (detail?.currentChapter) {
             const chPath = detail.currentChapter.fullPath;
@@ -1155,14 +1174,12 @@ export default function FileTranslateView() {
                       detail.partialBilingualHtml ||
                       prev[chPath]?.bilingualHtml,
                     targetHtml:
-                      detail.partialTargetHtml ||
-                      prev[chPath]?.targetHtml,
+                      detail.partialTargetHtml || prev[chPath]?.targetHtml,
                     bilingualXhtml:
                       detail.partialBilingualHtml ||
                       prev[chPath]?.bilingualXhtml,
                     targetXhtml:
-                      detail.partialTargetHtml ||
-                      prev[chPath]?.targetXhtml,
+                      detail.partialTargetHtml || prev[chPath]?.targetXhtml,
                   },
                 };
               });
@@ -1256,7 +1273,7 @@ export default function FileTranslateView() {
   // 检查并启动翻译（若为整篇翻译且字符数超过 10,000 则弹窗确认）
   const handleStartTranslation = async (scope = translateScope) => {
     setTranslateMenuAnchor(null);
-    if (!file || busy) return;
+    if (!connected || !file || busy) return;
     const currentTaskId = taskIdRef.current;
     const targetFile = file;
 
@@ -1279,7 +1296,7 @@ export default function FileTranslateView() {
 
   // 执行翻译流程
   const run = async (scope = translateScope) => {
-    if (!file || busy) return;
+    if (!connected || !file || busy) return;
     setInputNotices([]);
     controller.current?.abort();
     const abort = new AbortController();
@@ -1296,13 +1313,8 @@ export default function FileTranslateView() {
     }
     setProgress([0, 0]);
     try {
-      const installedModels = new Set(await installedLlmModels());
       if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
-      const localContext = {
-        installedModels,
-        translate: async (modelRef, text, toLang, signal) =>
-          translateWithLocalModel(modelRef, text, toLang, signal),
-      };
+      const localContext = { kind: mode };
 
       if (scope === "entire" && (mode === "txt" || mode === "markdown")) {
         setIsEntireTranslated(true);
@@ -1318,7 +1330,8 @@ export default function FileTranslateView() {
             abort.signal,
             localContext
           );
-          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+          if (abort.signal.aborted || taskIdRef.current !== currentTaskId)
+            return;
           setRows([]);
           setResultText(result.text);
           setProgress([1, 1]);
@@ -1330,7 +1343,8 @@ export default function FileTranslateView() {
             abort.signal,
             localContext
           );
-          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+          if (abort.signal.aborted || taskIdRef.current !== currentTaskId)
+            return;
           setRows([]);
           setResultText(result.translatedMd);
           setBilingualMd("");
@@ -1351,7 +1365,8 @@ export default function FileTranslateView() {
           setting,
           abort.signal,
           (done, total, item) => {
-            if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+            if (abort.signal.aborted || taskIdRef.current !== currentTaskId)
+              return;
             setProgress([done, total]);
             if (item) {
               nextRows.push(item);
@@ -1374,7 +1389,8 @@ export default function FileTranslateView() {
           setting,
           abort.signal,
           (done, total, item, currentBlocks) => {
-            if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+            if (abort.signal.aborted || taskIdRef.current !== currentTaskId)
+              return;
             setProgress([done, total]);
             if (item) {
               nextRows.push(item);
@@ -1417,18 +1433,16 @@ export default function FileTranslateView() {
           setBusy(false);
           return;
         }
-        const ocrDevice = activeOcrApi?.device || scene.ocrDevice || "webgpu";
-        const recognized = await recognizeFileImage(
+        const recognized = await client.recognize(
           file,
-          {
-            groupId: resolvedOcrModelId || "ppocr-v5-mobile",
-            device: ocrDevice,
-          },
+          currentOcrSlug,
           abort.signal
         );
         if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
         const items = recognized.items || [];
-        setInputNotices((recognized.inputAdjustments || []).map((item) => item.message));
+        setInputNotices(
+          (recognized.inputAdjustments || []).map((item) => item.message)
+        );
         const nextRows = [];
         const total = items.length;
         for (let i = 0; i < total; i++) {
@@ -1443,7 +1457,8 @@ export default function FileTranslateView() {
             abort.signal,
             localContext
           );
-          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+          if (abort.signal.aborted || taskIdRef.current !== currentTaskId)
+            return;
           const row = {
             source: item.text,
             target: trText,
@@ -1467,7 +1482,8 @@ export default function FileTranslateView() {
                 fontFamily: scene.fontFamily || "default",
               }
             );
-            if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+            if (abort.signal.aborted || taskIdRef.current !== currentTaskId)
+              return;
             if (synthesized) {
               setTranslatedImageBlob(synthesized);
               const url = URL.createObjectURL(synthesized);
@@ -1563,6 +1579,7 @@ export default function FileTranslateView() {
       {/* 翻译服务与提示词 */}
       <Box sx={{ width: 165, flexShrink: 0 }}>
         <OrderedApiSelect
+          i18n={i18n}
           multiple={false}
           fullWidth
           size="small"
@@ -1577,6 +1594,8 @@ export default function FileTranslateView() {
       </Box>
       <Box sx={{ width: 150, flexShrink: 0 }}>
         <ScenePromptSelect
+          i18n={i18n}
+          prompts={context.prompts}
           fullWidth
           size="small"
           variant="outlined"
@@ -1768,6 +1787,7 @@ export default function FileTranslateView() {
                 {i18n("file_translate", "文件翻译")}
               </Typography>
             </Box>
+            {connectionStatus}
           </Box>
 
           {/* 顶栏右侧：已选文件胶囊、操作按钮、系统辅助（统一高度 32px） */}
@@ -1848,7 +1868,12 @@ export default function FileTranslateView() {
                 color="primary"
                 size="small"
                 startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
-                disabled={!file || busy || (mode === "image" && !hasOcrService)}
+                disabled={
+                  !connected ||
+                  !file ||
+                  busy ||
+                  (mode === "image" && !hasOcrService)
+                }
                 title={
                   mode === "image" && !hasOcrService
                     ? i18n(
@@ -2151,7 +2176,9 @@ export default function FileTranslateView() {
               </Button>
             )}
 
-            <DarkModeButton
+            <IconButton
+              onClick={toggleTheme}
+              aria-label={i18n("theme_toggle", "切换主题")}
               size="small"
               sx={{
                 width: 32,
@@ -2160,7 +2187,9 @@ export default function FileTranslateView() {
                 color: "text.secondary",
                 "&:hover": { color: "text.primary" },
               }}
-            />
+            >
+              <DarkModeRoundedIcon />
+            </IconButton>
 
             <Tooltip title={i18n("open_options", "打开设置")}>
               <IconButton
@@ -2267,6 +2296,8 @@ export default function FileTranslateView() {
         </Alert>
       )}
 
+      {connectionNotice}
+
       {/* 模块 2：下面全部用来浏览和翻译（未上传展示上传框，上传后展示左右双栏或窄屏上下双栏） */}
       {inputNotices.length > 0 && (
         <Alert severity="info" onClose={() => setInputNotices([])}>
@@ -2343,6 +2374,7 @@ export default function FileTranslateView() {
             onChangeViewMode={(m) => setEpubViewMode(m)}
             chapterStates={chapterStates}
             busy={busy}
+            translationAvailable={connected}
             onTranslateChapter={handleTranslateCurrentChapter}
             onTranslateBook={handleTranslateEntireEpubBook}
             onCancel={() => controller.current?.abort()}
@@ -3205,6 +3237,7 @@ export default function FileTranslateView() {
 
       {/* 图片原图/译图放大弹窗 */}
       <ImageViewerDialog
+        i18n={i18n}
         open={viewerState.open}
         initialTab={viewerState.activeTab}
         activeTab={viewerState.activeTab}

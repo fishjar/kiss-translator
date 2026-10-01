@@ -1,9 +1,57 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import FileTranslate from "./FileTranslate";
-import { validateInputFile } from "../../localAi/core/inputFiles";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+jest.mock("../FileTranslate/State", () => ({
+  FileTranslationProvider: ({ children }) => children,
+  useFileTranslation: () => {
+    const { setting, updateChild } =
+      require("../../hooks/Setting").useSetting();
+    const ops = require("../../localAi/fileOperations");
+    const i18n = require("../../hooks/I18n").useI18n();
+    return {
+      context: {
+        scenes: setting.fileTranslateSetting,
+        services: setting.transApis,
+        prompts: require("../../hooks/Prompt").usePromptList().prompts,
+        styles: [],
+        models: [],
+        limits: { maxImageFileMB: 10 },
+        ocrModels: ops.ALL_OCR_MODELS || ops.OCR_GROUPS,
+      },
+      connected: true,
+      i18n,
+      uiLang: "zh",
+      allTextStyles: require("../../hooks/CustomStyles").useAllTextStyles()
+        .allTextStyles,
+      patchScene: (kind, patch) =>
+        updateChild("fileTranslateSetting")({
+          ...setting.fileTranslateSetting,
+          [kind]: { ...setting.fileTranslateSetting[kind], ...patch },
+        }),
+      client: {
+        recognize: (file, serviceId, signal) =>
+          ops.recognizeFileImage(
+            file,
+            {
+              groupId:
+                setting.transApis.find((api) => api.apiSlug === serviceId)
+                  ?.modelRef ||
+                setting.fileTranslateSetting.image.ocrGroup ||
+                "ppocr-v5-mobile",
+              device: setting.fileTranslateSetting.image.ocrDevice || "webgpu",
+            },
+            signal
+          ),
+      },
+      openSettings: require("../../libs/navigation").openOptionsPage,
+      toggleTheme: () => {},
+    };
+  },
+}));
+
 
 jest.mock("../../localAi/core/inputFiles", () => ({
   validateInputFile: jest.fn().mockResolvedValue(undefined),
@@ -446,16 +494,15 @@ describe("FileTranslate view", () => {
   });
 
   test("rejects an oversized image before creating its preview", async () => {
-    validateInputFile.mockRejectedValueOnce(new Error("INPUT_LIMIT_EXCEEDED: 图片文件超过 10 MB 上限"));
     await act(async () => root.render(<FileTranslate />));
     const file = new File(["image"], "large.png", { type: "image/png" });
+    Object.defineProperty(file, "size", { value: 10 * 1024 ** 2 + 1 });
     const dropzone = container.querySelector('[role="button"][tabindex="0"]');
     await act(async () => {
       const event = new Event("drop", { bubbles: true });
       Object.defineProperty(event, "dataTransfer", { value: { files: [file] } });
       dropzone.dispatchEvent(event);
     });
-    expect(validateInputFile).toHaveBeenCalledWith(file, "image");
     expect(container.textContent).toContain("图片文件超过 10 MB 上限");
     expect(container.textContent).not.toContain("原图预览");
     expect(recognizeFileImage).not.toHaveBeenCalled();

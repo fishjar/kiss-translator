@@ -1,7 +1,8 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
-import React, { act } from "react";
+import React, { act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import * as fflate from "fflate";
+import DOMPurify from "dompurify";
 import EpubReaderView, { sanitizeEpubReaderHtml } from "./EpubReaderView";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -355,7 +356,7 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     ).toBe(0);
   });
 
-  test("8. 目录栏宽度拖拽调整：支持通过鼠标拖动分割线调整宽度并持久化至 localStorage", () => {
+  test("8. 目录栏宽度拖拽调整：支持通过鼠标拖动分割线调整宽度并持久化至 localStorage", async () => {
     localStorage.removeItem("kiss_epub_toc_width");
 
     act(() => {
@@ -376,7 +377,7 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
 
     const tocCard = resizer.previousElementSibling;
     expect(tocCard).toBeTruthy();
-    expect(window.getComputedStyle(tocCard).width).toBe("270px");
+    expect(tocCard.style.getPropertyValue("--epub-toc-width")).toBe("270px");
 
     // 1. 模拟按住 resizer 向右拖拽 +80px (270 -> 350px)
     act(() => {
@@ -398,7 +399,8 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       );
     });
 
-    expect(window.getComputedStyle(tocCard).width).toBe("350px");
+    await act(() => new Promise(requestAnimationFrame));
+    expect(tocCard.style.getPropertyValue("--epub-toc-width")).toBe("350px");
 
     // 2. 模拟松开鼠标 (pointerup)
     act(() => {
@@ -433,7 +435,8 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     });
 
     // 应受保护限制在 MIN_TOC_WIDTH (180px)
-    expect(window.getComputedStyle(tocCard).width).toBe("180px");
+    await act(() => new Promise(requestAnimationFrame));
+    expect(tocCard.style.getPropertyValue("--epub-toc-width")).toBe("180px");
 
     act(() => {
       window.dispatchEvent(
@@ -444,6 +447,81 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       );
     });
     expect(localStorage.getItem("kiss_epub_toc_width")).toBe("180");
+  });
+
+  test("resize batches frames without rendering or sanitizing and cleans up cancel/unmount", () => {
+    localStorage.removeItem("kiss_epub_toc_width");
+    const originalRaf = window.requestAnimationFrame;
+    const originalCancel = window.cancelAnimationFrame;
+    const originalBodyStyle = document.body.style.cssText;
+    const frames = new Map();
+    let frameId = 0;
+    window.requestAnimationFrame = jest.fn((callback) => {
+      frames.set(++frameId, callback);
+      return frameId;
+    });
+    window.cancelAnimationFrame = jest.fn((id) => frames.delete(id));
+    const sanitize = jest.spyOn(DOMPurify, "sanitize");
+    const commits = jest.fn();
+    const pointer = (target, type, clientX) => act(() => {
+      target.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX, button: 0 }));
+    });
+    try {
+      document.body.style.cursor = "crosshair";
+      document.body.style.userSelect = "text";
+      act(() => root.render(
+        <StrictMode>
+          <React.Profiler id="reader" onRender={commits}>
+            <EpubReaderView epubBook={mockEpubBook} currentChapterIndex={0}
+              epubViewMode="source" chapterStates={{}} busy={false} i18n={mockI18n} />
+          </React.Profiler>
+        </StrictMode>
+      ));
+      const resizer = container.querySelector('[data-testid="epub-toc-resizer"]');
+      const card = resizer.previousElementSibling;
+      pointer(resizer, "pointerdown", 270);
+      sanitize.mockClear();
+      commits.mockClear();
+      window.requestAnimationFrame.mockClear();
+      for (const x of [300, 320, 350]) pointer(window, "pointermove", x);
+      expect(window.requestAnimationFrame).toHaveBeenCalledTimes(1);
+      expect(card.style.getPropertyValue("--epub-toc-width")).toBe("270px");
+      act(() => {
+        for (const callback of frames.values()) callback();
+        frames.clear();
+      });
+      expect(card.style.getPropertyValue("--epub-toc-width")).toBe("350px");
+      expect(commits).not.toHaveBeenCalled();
+      expect(sanitize).not.toHaveBeenCalled();
+      pointer(window, "pointermove", 400);
+      pointer(window, "pointerup", 450);
+      expect(card.style.getPropertyValue("--epub-toc-width")).toBe("450px");
+      expect(localStorage.getItem("kiss_epub_toc_width")).toBe("450");
+      expect(frames.size).toBe(0);
+      expect(sanitize).not.toHaveBeenCalled();
+      pointer(resizer, "pointerdown", 450);
+      pointer(window, "pointermove", 10000);
+      pointer(window, "pointercancel", 0);
+      expect(localStorage.getItem("kiss_epub_toc_width")).toBe("600");
+      expect(document.body.style.cursor).toBe("crosshair");
+      expect(document.body.style.userSelect).toBe("text");
+      pointer(resizer, "pointerdown", 600);
+      pointer(window, "pointermove", 500);
+      act(() => root.render(null));
+      expect(frames.size).toBe(0);
+      window.requestAnimationFrame.mockClear();
+      pointer(window, "pointermove", 300);
+      expect(window.requestAnimationFrame).not.toHaveBeenCalled();
+      expect(localStorage.getItem("kiss_epub_toc_width")).toBe("600");
+      expect(document.body.style.cursor).toBe("crosshair");
+      expect(document.body.style.userSelect).toBe("text");
+    } finally {
+      act(() => root.render(null));
+      sanitize.mockRestore();
+      window.requestAnimationFrame = originalRaf;
+      window.cancelAnimationFrame = originalCancel;
+      document.body.style.cssText = originalBodyStyle;
+    }
   });
 
   test("9. 双击分割线手柄重置为默认宽度 270px", () => {
@@ -464,14 +542,14 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
 
     const resizer = container.querySelector('[data-testid="epub-toc-resizer"]');
     const tocCard = resizer.previousElementSibling;
-    expect(window.getComputedStyle(tocCard).width).toBe("420px");
+    expect(tocCard.style.getPropertyValue("--epub-toc-width")).toBe("420px");
 
     // 双击分割线手柄
     act(() => {
       resizer.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
     });
 
-    expect(window.getComputedStyle(tocCard).width).toBe("270px");
+    expect(tocCard.style.getPropertyValue("--epub-toc-width")).toBe("270px");
     expect(localStorage.getItem("kiss_epub_toc_width")).toBe("270");
   });
 
@@ -580,6 +658,65 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
 
     if (originalCreate) {
       global.URL.createObjectURL = originalCreate;
+    }
+  });
+
+  test("StrictMode keeps displayed cover URLs alive and releases replaced books and unmounted resources", () => {
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    const liveUrls = new Set();
+    let count = 0;
+    URL.createObjectURL = jest.fn(() => {
+      const url = `blob:http://localhost/cover-${++count}`;
+      liveUrls.add(url);
+      return url;
+    });
+    URL.revokeObjectURL = jest.fn((url) => liveUrls.delete(url));
+    const html = '<html xmlns="http://www.w3.org/1999/xhtml"><body><img src="cover.jpg" alt="Cover" /></body></html>';
+    const book = {
+      ...mockEpubBook,
+      filesMap: {
+        ...mockEpubBook.filesMap,
+        "OEBPS/ch1.xhtml": fflate.strToU8(html),
+        "OEBPS/cover.jpg": new Uint8Array([1, 2, 3]),
+      },
+    };
+    const states = {
+      "OEBPS/ch1.xhtml": {
+        status: "done",
+        sourceHtml: html,
+        targetHtml: html.replace("</body>", "<p>Target</p></body>"),
+        bilingualHtml: html.replace("</body>", "<p>Bilingual</p></body>"),
+      },
+    };
+    const getRenderedCoverUrl = (epubBook, mode, index = 0) => {
+      act(() => {
+        root.render(
+          <StrictMode>
+            <EpubReaderView epubBook={epubBook} currentChapterIndex={index}
+              epubViewMode={mode} chapterStates={states} busy={false} i18n={mockI18n} />
+          </StrictMode>
+        );
+      });
+      const src = container.querySelector('img[alt="Cover"]').getAttribute("src");
+      expect(liveUrls.has(src)).toBe(true);
+      return src;
+    };
+    try {
+      getRenderedCoverUrl(book, "source");
+      getRenderedCoverUrl(book, "target");
+      const view = getRenderedCoverUrl(book, "bilingual");
+      expect(getRenderedCoverUrl(book, "bilingual", 1)).toBe(view);
+      const utils = getRenderedCoverUrl({ ...book, title: "Replacement" }, "bilingual");
+      expect(utils).not.toBe(view);
+      expect(liveUrls.has(view)).toBe(false);
+      act(() => root.render(null));
+      expect(liveUrls.size).toBe(0);
+      expect(URL.revokeObjectURL).toHaveBeenCalledTimes(count);
+    } finally {
+      act(() => root.render(null));
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
     }
   });
 

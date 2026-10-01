@@ -98,7 +98,10 @@ function TocTreeItem({
             fontSize: depth === 0 ? 12.5 : 12,
             fontWeight: isSelected ? 700 : depth === 0 ? 500 : 400,
             noWrap: true,
-            color: isSelected ? "primary.main" : "text.primary",
+            color: (theme) =>
+              isSelected && theme.palette.mode !== "dark"
+                ? theme.palette.primary.main
+                : theme.palette.text.primary,
           }}
         />
 
@@ -266,6 +269,7 @@ export default function EpubReaderView({
   busy,
   onTranslateChapter,
   onTranslateBook,
+  translationAvailable = true,
   onCancel,
   readerPreferences,
   onChangeReaderPreferences,
@@ -294,48 +298,62 @@ export default function EpubReaderView({
   });
 
   const [isResizingToc, setIsResizingToc] = useState(false);
-  const dragStartXRef = useRef(0);
-  const dragStartWidthRef = useRef(0);
+  const tocCardRef = useRef(null);
+  const resizeCleanupRef = useRef(null);
 
   const handleResizerPointerDown = useCallback(
     (e) => {
       if (e.button !== undefined && e.button !== 0) return;
+      if (resizeCleanupRef.current) return;
       e.preventDefault();
       setIsResizingToc(true);
-      dragStartXRef.current = e.clientX;
-      dragStartWidthRef.current = tocWidth;
-
-      const onPointerMove = (moveEvent) => {
-        const delta = moveEvent.clientX - dragStartXRef.current;
-        const rawWidth = dragStartWidthRef.current + delta;
-        const maxAllowed = Math.min(
-          MAX_TOC_WIDTH,
-          Math.max(MIN_TOC_WIDTH, Math.floor(window.innerWidth * 0.6))
-        );
-        const nextWidth = Math.max(MIN_TOC_WIDTH, Math.min(rawWidth, maxAllowed));
-        setTocWidth(nextWidth);
+      const startX = e.clientX;
+      const pointerId = e.pointerId;
+      const maxAllowed = Math.min(
+        MAX_TOC_WIDTH,
+        Math.max(MIN_TOC_WIDTH, Math.floor(window.innerWidth * 0.6))
+      );
+      const widthAt = (clientX) => Math.max(
+        MIN_TOC_WIDTH, Math.min(tocWidth + clientX - startX, maxAllowed)
+      );
+      let pendingWidth = tocWidth;
+      let frame = null;
+      const previousCursor = document.body.style.cursor;
+      const previousUserSelect = document.body.style.userSelect;
+      const applyWidth = () => {
+        tocCardRef.current?.style.setProperty("--epub-toc-width", `${pendingWidth}px`);
       };
-
-      const onPointerUp = (upEvent) => {
-        setIsResizingToc(false);
+      const onPointerMove = (moveEvent) => {
+        if (moveEvent.pointerId !== pointerId) return;
+        pendingWidth = widthAt(moveEvent.clientX);
+        if (frame !== null) return;
+        frame = requestAnimationFrame(() => {
+          frame = null;
+          applyWidth();
+        });
+      };
+      const cleanup = () => {
+        if (frame !== null) cancelAnimationFrame(frame);
+        frame = null;
         window.removeEventListener("pointermove", onPointerMove);
         window.removeEventListener("pointerup", onPointerUp);
         window.removeEventListener("pointercancel", onPointerUp);
-        document.body.style.removeProperty("cursor");
-        document.body.style.removeProperty("user-select");
-
-        const delta = upEvent.clientX - dragStartXRef.current;
-        const rawWidth = dragStartWidthRef.current + delta;
-        const maxAllowed = Math.min(
-          MAX_TOC_WIDTH,
-          Math.max(MIN_TOC_WIDTH, Math.floor(window.innerWidth * 0.6))
-        );
-        const finalWidth = Math.max(MIN_TOC_WIDTH, Math.min(rawWidth, maxAllowed));
+        document.body.style.cursor = previousCursor;
+        document.body.style.userSelect = previousUserSelect;
+        resizeCleanupRef.current = null;
+      };
+      const onPointerUp = (upEvent) => {
+        if (upEvent.pointerId !== pointerId) return;
+        if (upEvent.type === "pointerup") pendingWidth = widthAt(upEvent.clientX);
+        applyWidth();
+        cleanup();
+        setTocWidth(pendingWidth);
+        setIsResizingToc(false);
         try {
-          localStorage.setItem("kiss_epub_toc_width", String(finalWidth));
+          localStorage.setItem("kiss_epub_toc_width", String(pendingWidth));
         } catch {}
       };
-
+      resizeCleanupRef.current = cleanup;
       document.body.style.cursor = "col-resize";
       document.body.style.userSelect = "none";
       window.addEventListener("pointermove", onPointerMove);
@@ -354,8 +372,7 @@ export default function EpubReaderView({
 
   useEffect(() => {
     return () => {
-      document.body.style.removeProperty("cursor");
-      document.body.style.removeProperty("user-select");
+      resizeCleanupRef.current?.();
     };
   }, []);
 
@@ -788,11 +805,14 @@ export default function EpubReaderView({
     };
   }, [epubBook, clearChapterCache]);
 
-  // 计算全书各分卷拼接 HTML
-  const combinedHtml = useMemo(() => {
+  const [combinedHtml, setCombinedHtml] = useState("");
+
+  // 提交后创建章节资源，避免 StrictMode 清理后继续显示已释放的 Blob URL。
+  useEffect(() => {
     if (!spineItems.length || !epubBook?.filesMap) {
       clearChapterCache();
-      return "";
+      setCombinedHtml("");
+      return;
     }
 
     const currentSpinePaths = new Set(spineItems.map((s) => s.fullPath));
@@ -891,7 +911,7 @@ export default function EpubReaderView({
       return sectionHtml;
     });
 
-    return sections.join("\n");
+    setCombinedHtml(sections.join("\n"));
   }, [
     spineItems,
     epubBook,
@@ -902,6 +922,7 @@ export default function EpubReaderView({
   ]);
 
   const displayHtml = combinedHtml;
+  const sanitizedHtml = useMemo(() => sanitizeEpubReaderHtml(displayHtml), [displayHtml]);
 
   // 监听正文内容渲染或搜索关键词变化，自动更新高亮与计数
   useEffect(() => {
@@ -943,11 +964,13 @@ export default function EpubReaderView({
     >
       {/* 1. 左侧可折叠且可拖拽调整宽度的目录边栏 */}
       <Card
+        ref={tocCardRef}
+        style={{ "--epub-toc-width": `${tocWidth}px` }}
         variant="outlined"
         sx={{
-          width: tocCollapsed ? 0 : tocWidth,
-          minWidth: tocCollapsed ? 0 : tocWidth,
-          maxWidth: tocCollapsed ? 0 : tocWidth,
+          width: tocCollapsed ? 0 : "var(--epub-toc-width)",
+          minWidth: tocCollapsed ? 0 : "var(--epub-toc-width)",
+          maxWidth: tocCollapsed ? 0 : "var(--epub-toc-width)",
           display: "flex",
           flexDirection: "column",
           borderRadius: 1,
@@ -971,7 +994,14 @@ export default function EpubReaderView({
             gap: 1,
           }}
         >
-          <MenuBookRoundedIcon sx={{ fontSize: 18, color: "primary.main" }} />
+          <MenuBookRoundedIcon
+            sx={{
+              fontSize: 18,
+              color: (theme) => theme.palette.mode === "dark"
+                ? theme.palette.common.white
+                : theme.palette.primary.main,
+            }}
+          />
           <Typography variant="subtitle2" sx={{ fontWeight: 700, flex: 1 }}>
             {i18n("epub_toc_title", "书籍目录")} (
             {epubBook?.tocItems?.length || rawTocTree.length})
@@ -1293,7 +1323,7 @@ export default function EpubReaderView({
               size="small"
               variant="outlined"
               color="primary"
-              disabled={busy}
+              disabled={busy || !translationAvailable}
               onClick={handleTranslateChapterClick}
               sx={{
                 height: 30,
@@ -1482,7 +1512,11 @@ export default function EpubReaderView({
                       borderRadius: "50%",
                       bgcolor: theme.bg,
                       border: "2px solid",
-                      borderColor: isSelected ? "primary.main" : theme.border,
+                      borderColor: (muiTheme) => isSelected
+                        ? muiTheme.palette.mode === "dark"
+                          ? muiTheme.palette.common.white
+                          : muiTheme.palette.primary.main
+                        : theme.border,
                       cursor: "pointer",
                       boxShadow: isSelected ? 2 : 0,
                       display: "flex",
@@ -1494,7 +1528,16 @@ export default function EpubReaderView({
                   >
                     {isSelected && (
                       <CheckCircleRoundedIcon
-                        sx={{ fontSize: 16, color: "primary.main" }}
+                        sx={{
+                          fontSize: 16,
+                          borderRadius: "50%",
+                          color: (muiTheme) => muiTheme.palette.mode === "dark"
+                            ? muiTheme.palette.common.white
+                            : muiTheme.palette.primary.main,
+                          bgcolor: (muiTheme) => muiTheme.palette.mode === "dark"
+                            ? muiTheme.palette.background.paper
+                            : "transparent",
+                        }}
                       />
                     )}
                   </Box>
@@ -1693,7 +1736,7 @@ export default function EpubReaderView({
               },
             }}
             dangerouslySetInnerHTML={{
-              __html: sanitizeEpubReaderHtml(displayHtml),
+              __html: sanitizedHtml,
             }}
           />
         </Box>

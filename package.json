@@ -61,7 +61,12 @@
     "test:terms": "babel-node src/scripts/test-term-replace.js",
     "eject": "react-scripts eject",
     "analyze:chrome": "node src/scripts/bundle-audit.mjs",
-    "test:build": "node --test src/scripts/bundle-build.test.mjs"
+    "test:build": "node --test src/scripts/bundle-build.test.mjs",
+    "start:homepage": "cross-env REACT_APP_CLIENT=web PORT=3000 BROWSER=none react-app-rewired start",
+    "build:homepage": "zx src/scripts/build-task.mjs --target=homepage",
+    "build:edge-dev": "zx src/scripts/build-task.mjs --target=edge-dev",
+    "debug:edge": "node src/scripts/debug-edge.mjs",
+    "test:file-translation-build": "node --test src/scripts/file-translation-build.test.mjs"
   },
   "eslintConfig": {
     "extends": [

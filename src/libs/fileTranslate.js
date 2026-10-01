@@ -1,10 +1,5 @@
 import * as fflate from "fflate";
-import { apiTranslate } from "../apis";
-import {
-  availableApisForScene,
-  withScenePrompt,
-} from "../config/serviceSelection";
-import { resolveApiPromptSettings } from "../config/prompt";
+import { translateFileText } from "../fileTranslation/client";
 import {
   parseEpubBook,
   parseXml,
@@ -34,58 +29,7 @@ import {
   extractTitleMapFromChapterStates,
 } from "./epub/epubPacker";
 
-export async function translateFileText(
-  text,
-  scene,
-  setting,
-  signal,
-  localContext = {}
-) {
-  const candidates = availableApisForScene(
-    scene,
-    setting.transApis,
-    "translation",
-    localContext
-  );
-  if (!candidates.length) throw new Error("没有可用的翻译接口");
-  let lastError;
-  for (const candidate of candidates) {
-    if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-    try {
-      if (candidate.sourceType === "local") {
-        return await localContext.translate(
-          candidate.modelRef,
-          text,
-          scene.toLang,
-          signal
-        );
-      }
-      const configured = withScenePrompt(candidate, scene);
-      const apiSetting = resolveApiPromptSettings(
-        configured,
-        setting.prompts,
-        setting.subtitleSetting
-      );
-      const result = await apiTranslate({
-        text,
-        fromLang: scene.fromLang,
-        toLang: scene.toLang,
-        apiSetting,
-        textFormat: "text",
-        signal,
-        translateVariants: setting.translateVariants,
-      });
-      if (result?.trText) return result.trText;
-      lastError = new Error(
-        `${candidate.apiName || candidate.apiSlug} 返回空结果`
-      );
-    } catch (error) {
-      if (signal?.aborted) throw error;
-      lastError = error;
-    }
-  }
-  throw lastError || new Error("全部翻译接口均不可用");
-}
+export { translateFileText } from "../fileTranslation/client";
 
 export async function translateTxt(
   content,

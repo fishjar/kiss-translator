@@ -9,6 +9,7 @@ import {
 import { parseEpubBook } from "./epubParser";
 import { apiTranslate } from "../../apis";
 
+jest.mock("../../fileTranslation/client", () => jest.requireActual("../fileTranslationService"));
 jest.mock("../../apis", () => ({ apiTranslate: jest.fn() }));
 jest.mock("webextension-polyfill", () => ({}));
 

@@ -1,4 +1,4 @@
-import { argv, quote, $, ProcessOutput } from "zx";
+import { argv, quote, $, ProcessOutput, fs, path, chalk } from "zx";
 import { ensureLocalAi } from "./local-ai-cache.mjs";
 import { copySubtitleSamplesToWeb } from "./subtitle-samples.mjs";
 
@@ -44,10 +44,20 @@ try {
     console.log(chalk.green("✅ Copied Chrome build to Edge."));
   } else {
     // 标准 React 构建流程
-    const clientEnv = target === "web" ? "userscript" : target;
+    const clientEnv =
+      target === "web"
+        ? "userscript"
+        : target === "homepage"
+          ? "web"
+          : target === "edge-dev"
+            ? "chrome"
+            : target;
 
     process.env.BUILD_PATH = `./${targetDir}`;
     process.env.REACT_APP_CLIENT = clientEnv;
+    process.env.REACT_APP_WEB_APP = target === "homepage" ? "homepage" : "";
+    process.env.REACT_APP_FILE_BRIDGE_DEV =
+      target === "edge-dev" ? "true" : "false";
     process.env.FORCE_COLOR = "1";
     process.env.NODE_OPTIONS = [
       process.env.NODE_OPTIONS,
@@ -66,7 +76,7 @@ try {
   // -----------------------------------------------------------------------
   // 场景 A: Chrome, Edge, Safari (标准扩展)
   // -----------------------------------------------------------------------
-  if (["chrome", "edge", "safari"].includes(target)) {
+  if (["chrome", "edge", "edge-dev", "safari"].includes(target)) {
     // 1. 清理 HTML
     await fs.remove(inDest("content.html"));
 
@@ -142,7 +152,7 @@ try {
     );
   }
 
-  if (["chrome", "firefox"].includes(target)) {
+  if (["chrome", "edge-dev", "firefox"].includes(target)) {
     const runtimeDir = await ensureLocalAi({
       force:
         Boolean(argv["rebuild-local-ai"]) ||
@@ -166,6 +176,55 @@ try {
           '<script src="/background.js"></script></body>'
         )
       );
+    }
+  }
+
+  if (["chrome", "edge-dev", "firefox"].includes(target)) {
+    const manifest = await fs.readJson(inDest("manifest.json"));
+    const pages = process.env.REACT_APP_FILE_TRANSLATE_URL
+      ? [process.env.REACT_APP_FILE_TRANSLATE_URL]
+      : await fs.readJson("src/config/fileTranslationSites.json");
+    const matches = pages.map((url) => {
+      const page = new URL(url);
+      return `${page.origin}${page.pathname}*`;
+    });
+    matches.push(
+      "http://localhost:3000/file-translate.html*",
+      "http://127.0.0.1:3000/file-translate.html*"
+    );
+    manifest.content_scripts.push({
+      js: ["file-bridge.js"],
+      matches,
+      all_frames: false,
+      run_at: "document_start",
+    });
+    await fs.writeJson(inDest("manifest.json"), manifest, { spaces: 2 });
+  }
+
+  if (target === "homepage") {
+    for (const name of [
+      "manifest.json",
+      "manifest.firefox.json",
+      "manifest.thunderbird.json",
+      "content.html",
+      "_locales",
+      "api",
+    ])
+      await fs.remove(inDest(name));
+  }
+  if (target === "web") {
+    await $({
+      stdio: "inherit",
+    })`node src/scripts/build-task.mjs --target=homepage`;
+    const homepageDir = path.join(buildRoot, "homepage");
+    for (const name of [
+      "index.html",
+      "file-translate.html",
+      "assets",
+      "images",
+    ]) {
+      if (await fs.pathExists(path.join(homepageDir, name)))
+        await fs.copy(path.join(homepageDir, name), inDest(name));
     }
   }
 
