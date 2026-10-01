@@ -50,7 +50,7 @@ export class FileTranslationClient {
     )
       return;
     if (data.type === "disconnected") {
-      this.disconnect(fileError("DISCONNECTED", "扩展连接已断开，请重新连接"));
+      this.disconnect(fileError("DISCONNECTED", "扩展连接已断开，请重新连接"), true);
       return;
     }
     if (
@@ -70,9 +70,13 @@ export class FileTranslationClient {
     else request.resolve(data.result);
   }
 
-  async connect(extensionId) {
+  async connect(extensionId, { reconnecting = false } = {}) {
     if (this.session) return this.session;
     if (this.connecting) return this.connecting;
+    if (this.disposed) throw fileError("DISCONNECTED", "页面已关闭");
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+    const version = this.connectionVersion || 0;
     this.connecting = (async () => {
       this.available.clear();
       this.post({ type: "discover" });
@@ -112,15 +116,23 @@ export class FileTranslationClient {
           "扩展与网页协议不兼容，请更新扩展"
         );
       }
+      if (this.disposed || version !== (this.connectionVersion || 0))
+        throw fileError("DISCONNECTED", "连接已取消");
       this.session = session;
+      this.reconnectExtensionId = session.extensionId;
+      this.reconnectEnabled = true;
+      this.reconnectAttempts = 0;
       this.heartbeat = setInterval(
-        () =>
-          this.request("ping", {}, { timeoutMs: 10000 }).catch((error) =>
-            this.disconnect(error)
-          ),
+        () => {
+          const currentSession = this.session;
+          this.request("ping", {}, { timeoutMs: 10000 }).catch((error) => {
+            if (currentSession && this.session === currentSession)
+              this.disconnect(error, true);
+          });
+        },
         20000
       );
-      this.notify({ type: "connected", session: this.session });
+      this.notify({ type: "connected", session: this.session, reconnecting });
       return this.session;
     })().finally(() => {
       this.connecting = null;
@@ -177,7 +189,29 @@ export class FileTranslationClient {
     });
   }
 
-  disconnect(error = fileError("DISCONNECTED", "扩展连接已断开")) {
+  scheduleReconnect() {
+    if (!this.reconnectEnabled || this.disposed || this.reconnectTimer) return;
+    const delay = Math.min(1000 * 2 ** Math.min(this.reconnectAttempts || 0, 5), 30000);
+    this.reconnectAttempts = (this.reconnectAttempts || 0) + 1;
+    this.reconnectTimer = setTimeout(async () => {
+      this.reconnectTimer = null;
+      if (!this.reconnectEnabled || this.disposed) return;
+      this.notify({ type: "reconnecting" });
+      try {
+        await this.connect(this.reconnectExtensionId, { reconnecting: true });
+      } catch (error) {
+        if (!this.reconnectEnabled || this.disposed) return;
+        this.notify({ type: "reconnectFailed", error });
+        this.scheduleReconnect();
+      }
+    }, delay);
+  }
+
+  disconnect(error = fileError("DISCONNECTED", "扩展连接已断开"), reconnect = false) {
+    this.connectionVersion = (this.connectionVersion || 0) + 1;
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+    if (!reconnect) this.reconnectEnabled = false;
     this.post({ type: "disconnect" });
     clearInterval(this.heartbeat);
     this.pending.forEach((request) => {
@@ -187,6 +221,7 @@ export class FileTranslationClient {
     this.pending.clear();
     this.session = null;
     this.notify({ type: "disconnected", error });
+    if (reconnect) this.scheduleReconnect();
   }
 
   dispose() {
@@ -198,7 +233,7 @@ export class FileTranslationClient {
     this.target.removeEventListener("message", this.receive);
   }
 
-  async recognize(file, serviceId, signal) {
+  async recognize(file, serviceId, signal, scene) {
     const { uploadId } = await this.request(
       "uploadBegin",
       { size: file.size, type: file.type },
@@ -221,7 +256,7 @@ export class FileTranslationClient {
       }
       return await this.request(
         "recognizeImage",
-        { uploadId, serviceId },
+        { uploadId, serviceId, ...(scene ? { scene } : {}) },
         { signal }
       );
     } finally {

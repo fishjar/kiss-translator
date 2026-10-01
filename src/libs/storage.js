@@ -20,7 +20,7 @@ import {
   getSettingVersion,
   migrateSettingPromptsToV2,
   migrateSettingToV3,
-  migrateSettingToV4,
+  migrateSettingToV5,
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V4,
   CURRENT_SETTINGS_VERSION,
@@ -570,7 +570,7 @@ export const runDataMigration = async () => {
       if (getSettingVersion(v2Setting) < SETTINGS_VERSION_V4) {
         await setObj(STOKEY_SETTING_BACKUP_V3_BEFORE_V4, rawSetting);
       }
-      nextSetting = migrateSettingToV4(migrateSettingToV3(v2Setting));
+      nextSetting = migrateSettingToV5(migrateSettingToV3(v2Setting));
     }
     if (needsThemeMigration) {
       nextSetting = {
@@ -602,7 +602,7 @@ export const normalizeStoredSetting = (rawSetting) => {
 
   let setting =
     getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION
-      ? migrateSettingToV4(rawSetting)
+      ? migrateSettingToV5(rawSetting)
       : rawSetting;
 
   if (typeof setting.darkMode === "boolean") {

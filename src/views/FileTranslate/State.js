@@ -110,6 +110,21 @@ export function FileTranslationProvider({ children }) {
         setSession(null);
         setError(event.error.message);
       }
+      if (event.type === "reconnecting") setConnecting(true);
+      if (event.type === "reconnectFailed") {
+        setConnecting(false);
+        setError(event.error.message);
+      }
+      if (event.type === "connected" && event.reconnecting) {
+        setSession(event.session);
+        setConnecting(false);
+        setError("");
+        setExtensions([]);
+        refresh().catch((failure) => {
+          if (active.current && client === clientRef.current)
+            setError(failure.message);
+        });
+      }
       if (event.type === "contextChanged") {
         clearTimeout(refreshTimer);
         refreshTimer = setTimeout(

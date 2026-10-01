@@ -510,3 +510,76 @@ describe("prompt settings", () => {
     ).toBe(true);
   });
 });
+
+describe("visual parsing prompt settings", () => {
+  const {
+    PRESET_PROMPTS,
+    DEFAULT_VLM_PROMPT_SLUG,
+    PROMPT_CATEGORY_VLM,
+    getVlmPromptOptions,
+    resolveVlmPrompt,
+    migrateSettingToV5,
+    removePromptReferences,
+  } = require("./prompt");
+  test("uses the generic default and accepts only visual templates", () => {
+    expect(getVlmPromptOptions(PRESET_PROMPTS).length).toBe(6);
+    expect(resolveVlmPrompt([], "missing")).toContain("Markdown");
+    expect(
+      resolveVlmPrompt(
+        [
+          {
+            slug: "mine",
+            category: PROMPT_CATEGORY_VLM,
+            userPrompt: "OCR only",
+          },
+        ],
+        "mine"
+      )
+    ).toBe("OCR only");
+    expect(resolveVlmPrompt([], "nobatch-translation")).toBe(
+      resolveVlmPrompt([], DEFAULT_VLM_PROMPT_SLUG)
+    );
+  });
+  test("migrates old references without losing other settings and is idempotent", () => {
+    const old = {
+      version: 4,
+      transApis: [{ apiSlug: "a", vlmPromptSlug: "mine", tone: "formal" }],
+      fileTranslateSetting: {
+        image: { promptSlug: "translation", ocrGroup: "old" },
+      },
+    };
+    const next = migrateSettingToV5(old);
+    expect(next.version).toBe(5);
+    expect(next.transApis[0]).toMatchObject({
+      vlmPromptSlug: "mine",
+      tone: "formal",
+    });
+    expect(next.fileTranslateSetting.image).toMatchObject({
+      vlmPromptSlug: "",
+      promptSlug: "translation",
+      ocrGroup: "old",
+    });
+    expect(migrateSettingToV5(next)).toBe(next);
+  });
+  test("clears deleted visual references independently from translation", () => {
+    const next = removePromptReferences(
+      {
+        transApis: [
+          { vlmPromptSlug: "mine", nobatchPromptSlug: "translation" },
+        ],
+        fileTranslateSetting: {
+          image: { vlmPromptSlug: "mine", promptSlug: "translation" },
+        },
+      },
+      "mine"
+    );
+    expect(next.transApis[0]).toMatchObject({
+      vlmPromptSlug: DEFAULT_VLM_PROMPT_SLUG,
+      nobatchPromptSlug: "translation",
+    });
+    expect(next.fileTranslateSetting.image).toEqual({
+      vlmPromptSlug: "",
+      promptSlug: "translation",
+    });
+  });
+});

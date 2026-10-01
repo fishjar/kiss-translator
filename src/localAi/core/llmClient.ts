@@ -50,7 +50,10 @@ export class LlmClient {
   private readonly host: RuntimeHostAdapter;
   private unsubState: (() => void) | null = null;
 
-  constructor(host: RuntimeHostAdapter = runtimeHost, private readonly service: "llm" | "vlm" = "llm") {
+  constructor(
+    host: RuntimeHostAdapter = runtimeHost,
+    private readonly service: "llm" | "vlm" = "llm"
+  ) {
     this.host = host;
     this.unsubState = this.host.onServiceState((st) => {
       if (st.service !== this.service) return;
@@ -122,7 +125,8 @@ export class LlmClient {
     onToken: (text: string) => void,
     _transfer?: Transferable[],
     target?: ModelTarget,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    generation?: { temperature?: number }
   ): Promise<LlmChatResult> {
     if (!target && this.currentVersion === null) {
       throw new Error("模型尚未加载");
@@ -132,14 +136,14 @@ export class LlmClient {
     const hasImages = messages.some((m) => m.images && m.images.length > 0);
     try {
       const result = await this.host.request<
-        { messages: ChatMessage[]; maxTokens: number },
+        { messages: ChatMessage[]; maxTokens: number; temperature?: number },
         LlmChatResult
       >(
         {
           id: reqId,
           service: this.service,
           method: "chat",
-          payload: { messages, maxTokens, ...target },
+          payload: { messages, maxTokens, ...target, ...generation },
           priority: TASK_PRIORITY.LLM,
           options: {
             sessionVersion: target

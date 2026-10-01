@@ -43,6 +43,7 @@ import { useFileTranslation } from "./State";
 import { builtinStylesMap } from "../../libs/style";
 import {
   DEFAULT_FILE_TRANSLATE_SETTING,
+  PROMPT_CATEGORY_VLM,
   OPT_LANGS_FROM_REVERSED,
   OPT_LANGS_TO_REVERSED,
 } from "../../config";
@@ -78,7 +79,7 @@ import ScenePromptSelect from "./ScenePromptSelect";
 import ImageViewerDialog from "./ImageViewerDialog";
 import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
 import {
-  availableApisForScene,
+  availableImageApisForScene,
   orderedApiSlugs,
 } from "../../config/serviceSelection";
 
@@ -276,20 +277,13 @@ export default function FileTranslateView() {
 
   // 有序候选 OCR 服务列表（首选服务不可用时按顺序自动回退）
   const activeOcrCandidates = useMemo(() => {
-    return availableApisForScene(
-      scene,
-      setting?.transApis || [],
-      "ocr",
-      {
-        installedModels: new Set(
-          context.models
-            .filter((model) => model.state === "installed")
-            .map((model) => model.id)
-        ),
-      },
-      "ocrApiSlugs",
-      "ocrApiSlug"
-    );
+    return availableImageApisForScene(scene, setting?.transApis || [], {
+      installedModels: new Set(
+        context.models
+          .filter((model) => model.state === "installed")
+          .map((model) => model.id)
+      ),
+    });
   }, [scene, setting?.transApis, context.models]);
 
   const activeOcrApi =
@@ -309,7 +303,9 @@ export default function FileTranslateView() {
       : scene.ocrGroup || "ppocr-v5-mobile";
 
   const currentOcrModel = allOcrModels.find((m) => m.id === resolvedOcrModelId);
-  const isVlmModel = currentOcrModel?.category === "vlm";
+  const isVlmModel =
+    activeOcrApi?.capabilities?.includes("vlm") ||
+    currentOcrModel?.category === "vlm";
 
   const handleOcrServiceChange = (newSlug) => {
     if (!newSlug) return;
@@ -1433,11 +1429,33 @@ export default function FileTranslateView() {
           setBusy(false);
           return;
         }
-        const recognized = await client.recognize(
-          file,
-          currentOcrSlug,
-          abort.signal
-        );
+        let recognized, recognitionError;
+        const candidates = [
+          ...new Set(
+            [
+              currentOcrSlug,
+              ...activeOcrCandidates.map((api) => api.apiSlug),
+            ].filter(Boolean)
+          ),
+        ];
+        for (const serviceId of candidates) {
+          if (abort.signal.aborted)
+            throw new DOMException("已取消", "AbortError");
+          try {
+            recognized = await client.recognize(file, serviceId, abort.signal, {
+              vlmPromptSlug: scene.vlmPromptSlug || "",
+            });
+            if (recognized?.text?.trim() || recognized?.items?.length) break;
+            recognitionError = new Error("图片识别返回空结果");
+            recognized = null;
+          } catch (error) {
+            if (abort.signal.aborted || error.name === "AbortError")
+              throw error;
+            recognitionError = error;
+          }
+        }
+        if (!recognized)
+          throw recognitionError || new Error("没有可用的图片识别服务");
         if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
         const items = recognized.items || [];
         setInputNotices(
@@ -1605,6 +1623,23 @@ export default function FileTranslateView() {
           onChange={(promptSlug) => patchScene({ promptSlug })}
         />
       </Box>
+
+      {mode === "image" && isVlmModel && (
+        <Box sx={{ width: 170, flexShrink: 0 }}>
+          <ScenePromptSelect
+            i18n={i18n}
+            prompts={context.prompts}
+            category={PROMPT_CATEGORY_VLM}
+            fullWidth
+            size="small"
+            variant="outlined"
+            hiddenLabel={false}
+            label={i18n("vlm_prompt", "视觉解析提示词")}
+            value={scene.vlmPromptSlug || ""}
+            onChange={(vlmPromptSlug) => patchScene({ vlmPromptSlug })}
+          />
+        </Box>
+      )}
 
       {/* 译文样式选项（在双语展示文本与电子书翻译时生效） */}
       {(mode === "txt" || mode === "markdown" || mode === "epub") && (

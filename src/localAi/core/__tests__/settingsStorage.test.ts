@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadSettings, saveSettings } from "../settings";
+import { loadSettings, saveSettings, normalizeSettings } from "../settings";
 import { DEFAULT_SETTINGS } from "../types";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -23,5 +23,19 @@ describe("extension settings storage", () => {
   it("does not report a failed background write as successful", async () => {
     vi.stubGlobal("chrome", { runtime: { id: "extension", sendMessage: vi.fn(async () => { throw Error("storage failed"); }) } });
     await expect(saveSettings(DEFAULT_SETTINGS)).rejects.toThrow("storage failed");
+  });
+});
+
+
+describe("exclusive resource mode default", () => {
+  it("enables new and legacy settings while preserving explicit choices", async () => {
+    expect(DEFAULT_SETTINGS.exclusiveResourceMode).toBe(true);
+    expect(normalizeSettings({}).exclusiveResourceMode).toBe(true);
+    expect(normalizeSettings({ autoUnloadModels: false }).exclusiveResourceMode).toBe(true);
+    expect(normalizeSettings({ exclusiveResourceMode: false }).exclusiveResourceMode).toBe(false);
+    expect(normalizeSettings({ exclusiveResourceMode: true }).exclusiveResourceMode).toBe(true);
+    vi.stubGlobal("chrome", undefined);
+    vi.stubGlobal("localStorage", { getItem: () => null });
+    expect((await loadSettings()).exclusiveResourceMode).toBe(true);
   });
 });

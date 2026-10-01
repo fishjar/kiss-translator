@@ -278,6 +278,7 @@ export const DEFAULT_FILE_TRANSLATE_SETTING = {
     toLang: "zh-CN",
     apiSlugs: [OPT_TRANS_MICROSOFT],
     promptSlug: "",
+    vlmPromptSlug: "",
     ocrGroup: "ppocr-v5-mobile",
     ocrDevice: "webgpu",
     fontFamily: "default",

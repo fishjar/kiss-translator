@@ -221,7 +221,7 @@ export { OCR_GROUPS };
 
 export async function recognizeFileImage(
   file: Blob,
-  optionsOrSignal?: { groupId?: string; device?: "webgpu" | "wasm" } | AbortSignal,
+  optionsOrSignal?: { groupId?: string; device?: "webgpu" | "wasm"; prompt?: string; maxTokens?: number; temperature?: number } | AbortSignal,
   maybeSignal?: AbortSignal
 ) {
   const options =
@@ -262,15 +262,16 @@ export async function recognizeFileImage(
         };
     if (signal?.aborted) throw new DOMException("已取消", "AbortError");
 
-    const prompt = resolveOcrVlmPrompt(vlmModel.id, "doc");
+    const prompt = options?.prompt ?? resolveOcrVlmPrompt(vlmModel.id, "doc");
     const imgBuf = await file.arrayBuffer();
     const chatRes = await vlm.chat(
       [{ role: "user", content: prompt, images: [imgBuf] }],
-      4096,
+      options?.maxTokens ?? 4096,
       () => {},
       [imgBuf],
       { modelRef: vlmModel.id, loadSpec: spec },
-      signal
+      signal,
+      { temperature: options?.temperature },
     );
 
     const fullText = chatRes.text || "";

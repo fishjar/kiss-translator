@@ -140,4 +140,19 @@ describe("localAiBackground", () => {
       "REQUEST_TIMEOUT: 本地 AI 运行时超时已取消"
     );
   });
+  test("routes only matching token events and releases the channel after cancellation", async () => {
+    const abort = new AbortController(), onStream = jest.fn();
+    const pending = localAiRequest({ id: "stream-cancel" }, { signal: abort.signal, onStream });
+    const rejected = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    const channel = mockChannels.find((c) => c.lastMessage?.kind === "request");
+    expect(channel).toBeDefined();
+    channel.onmessage({ data: { kind: "stream", stream: { id: "other", type: "token", text: "ignore" } } });
+    channel.onmessage({ data: { kind: "stream", stream: { id: "stream-cancel", type: "token", text: "hello" } } });
+    expect(onStream).toHaveBeenCalledTimes(1);
+    abort.abort(); await rejected;
+    expect(channel.closed).toBe(true);
+    expect(mockChannels.some((c) => c.lastMessage?.kind === "cancel" && c.lastMessage.id === "stream-cancel")).toBe(true);
+  });
+
 });

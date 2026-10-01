@@ -2,6 +2,10 @@ import {
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_SYSTEM_TTS,
   OPT_TRANS_LOCALAI,
+  OPT_TRANS_GEMINI,
+  OPT_TRANS_CUSTOMIZE,
+  OPT_TRANS_CLOUDFLAREAI,
+  API_SPE_TYPES,
 } from "./api";
 
 export const SOURCE_TYPES = ["builtin", "local", "network"];
@@ -17,6 +21,32 @@ export const CAPABILITIES = [
   "tts",
   "llm",
 ];
+
+export const supportsVlmApi = (api) =>
+  api?.apiType === OPT_TRANS_LOCALAI ||
+  (API_SPE_TYPES.ai.has(api?.apiType) &&
+    ![OPT_TRANS_CUSTOMIZE, OPT_TRANS_CLOUDFLAREAI].includes(api?.apiType) &&
+    !(
+      api?.apiType === OPT_TRANS_GEMINI && /interactions/.test(api?.url || "")
+    ));
+
+export const supportsApiCapability = (api, capability) => {
+  if (api?.apiType === OPT_TRANS_LOCALAI)
+    return CAPABILITIES.includes(capability);
+  if (api?.apiType === OPT_TRANS_SYSTEM_TTS) return capability === "tts";
+  if (api?.apiType === OPT_TRANS_BUILTINAI)
+    return ["translation", "summarization"].includes(capability);
+  if (capability === "vlm") return supportsVlmApi(api);
+  if (API_SPE_TYPES.ai.has(api?.apiType))
+    return [
+      "translation",
+      "summarization",
+      "segmentation",
+      "dictionary",
+      "llm",
+    ].includes(capability);
+  return capability === "translation";
+};
 
 export const orderedApiSlugs = (
   scene,
@@ -60,6 +90,7 @@ export const isApiAvailableFor = (
 ) => {
   if (
     !api ||
+    (capability === "vlm" && !supportsVlmApi(api)) ||
     api.isDisabled ||
     !(api.capabilities || ["translation"]).includes(capability)
   )
@@ -101,6 +132,23 @@ export const availableApisForScene = (
   orderedApiSlugs(scene, listKey, singleKey)
     .map((slug) => apis?.find((api) => api.apiSlug === slug))
     .filter((api) => isApiAvailableFor(api, capability, context));
+
+export const availableImageApisForScene = (scene, apis, context = {}) =>
+  orderedApiSlugs(scene, "ocrApiSlugs", "ocrApiSlug")
+    .map((slug) => apis?.find((api) => api.apiSlug === slug))
+    .filter(
+      (api) =>
+        api &&
+        !api.isDisabled &&
+        (api.capabilities || []).some((cap) => ["ocr", "vlm"].includes(cap)) &&
+        (api.ocrAvailable !== undefined
+          ? api.ocrAvailable
+          : isApiAvailableFor(
+              api,
+              api.capabilities.includes("vlm") ? "vlm" : "ocr",
+              context
+            ))
+    );
 
 export const withScenePrompt = (api, scene) =>
   scene?.promptSlug

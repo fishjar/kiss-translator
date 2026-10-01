@@ -1799,9 +1799,10 @@ export class RuntimeManager {
     }
 
     if (req.method === "chat") {
-      const { messages, maxTokens, modelRef } = req.payload as {
+      const { messages, maxTokens, modelRef, temperature } = req.payload as {
         messages: ChatMessage[];
         maxTokens: number;
+        temperature?: number;
         modelRef?: string;
       };
       let sessionVersionToCheck = req.options?.sessionVersion;
@@ -1853,7 +1854,7 @@ export class RuntimeManager {
                 reject(err);
               },
             };
-            slot.llmWorker?.postMessage({ type: "chat", messages, maxTokens });
+            slot.llmWorker?.postMessage({ type: "chat", messages, maxTokens, ...(temperature !== undefined ? { temperature } : {}) });
           });
         },
         {

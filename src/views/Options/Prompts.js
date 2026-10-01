@@ -43,6 +43,7 @@ import {
   PROMPT_CATEGORY_DICTIONARY,
   PROMPT_CATEGORY_SUBTITLE,
   PROMPT_CATEGORY_USER,
+  PROMPT_CATEGORY_VLM,
   PROMPT_TEMPLATE_CATEGORIES,
   getPromptCategoryDisplayName,
   getPromptDisplayName,
@@ -213,7 +214,8 @@ function PromptFields({
   const showUserPrompt =
     formData.category === PROMPT_CATEGORY_USER ||
     formData.category === PROMPT_CATEGORY_DICTIONARY ||
-    formData.category === PROMPT_CATEGORY_BATCH_SYSTEM;
+    formData.category === PROMPT_CATEGORY_BATCH_SYSTEM ||
+    formData.category === PROMPT_CATEGORY_VLM;
 
   // Rebuilding the prompt list can replace objects without changing their content.
   // Reset the unsaved draft only when the persisted content changes.
@@ -300,44 +302,46 @@ function PromptFields({
         disabled={isPreset}
       />
 
-      <Stack spacing={1}>
-        <CodeField
-          className="kt-resizable-text-field"
-          size="small"
-          label={i18n("system_prompt", "系统提示词")}
-          name="systemPrompt"
-          value={formData.systemPrompt}
-          onChange={handleChange}
-          inputRef={systemPromptRef}
-          minRows={3}
-          maxRows={14}
-          disabled={isPreset}
-          inputProps={{
-            className: "kt-resizable-textarea",
-            style: { resize: "vertical" },
-          }}
-          sx={{
-            "& .MuiInputBase-root": {
-              overflow: "visible",
-            },
-            '& textarea:not([aria-hidden="true"])': {
-              resize: "vertical",
-            },
-          }}
-        />
-        {!isPreset && (
-          <PromptPlaceholderButtons
-            category={formData.category}
-            onInsert={(placeholder) =>
-              handleInsertPlaceholder(
-                "systemPrompt",
-                systemPromptRef,
-                placeholder
-              )
-            }
+      {formData.category !== PROMPT_CATEGORY_VLM && (
+        <Stack spacing={1}>
+          <CodeField
+            className="kt-resizable-text-field"
+            size="small"
+            label={i18n("system_prompt", "系统提示词")}
+            name="systemPrompt"
+            value={formData.systemPrompt}
+            onChange={handleChange}
+            inputRef={systemPromptRef}
+            minRows={3}
+            maxRows={14}
+            disabled={isPreset}
+            inputProps={{
+              className: "kt-resizable-textarea",
+              style: { resize: "vertical" },
+            }}
+            sx={{
+              "& .MuiInputBase-root": {
+                overflow: "visible",
+              },
+              '& textarea:not([aria-hidden="true"])': {
+                resize: "vertical",
+              },
+            }}
           />
-        )}
-      </Stack>
+          {!isPreset && (
+            <PromptPlaceholderButtons
+              category={formData.category}
+              onInsert={(placeholder) =>
+                handleInsertPlaceholder(
+                  "systemPrompt",
+                  systemPromptRef,
+                  placeholder
+                )
+              }
+            />
+          )}
+        </Stack>
+      )}
 
       {showUserPrompt && (
         <Stack spacing={1}>

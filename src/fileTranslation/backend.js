@@ -1,19 +1,20 @@
 import browser from "webextension-polyfill";
 import { DEFAULT_FILE_TRANSLATE_SETTING } from "../config/setting";
 import { STOKEY_SETTING } from "../config/storage";
-import { getAllPrompts } from "../config/prompt";
+import { getAllPrompts, resolveVlmPrompt } from "../config/prompt";
+import { recognizeNetworkImage } from "../apis/vision";
+import { prepareImage } from "../localAi/core/inputLimits";
 import {
   getSettingWithDefault,
   normalizeStoredSetting,
   saveEdit,
 } from "../libs/storage";
 import { executeFileTranslation } from "../libs/fileTranslationService";
-import { isApiAvailableFor } from "../config/serviceSelection";
+import { isApiAvailableFor, supportsVlmApi } from "../config/serviceSelection";
 import {
   ALL_OCR_MODELS,
   OCR_GROUPS,
   recognizeFileImage,
-  translateWithLocalModel,
 } from "../localAi/fileOperations";
 import { runtimeHost } from "../localAi/runtime/runtimeHostAdapter";
 import { normalizeSettings } from "../localAi/core/settings";
@@ -37,6 +38,7 @@ const API_FIELDS = [
   "isDisabled",
   "modelRef",
   "device",
+  "vlmPromptSlug",
 ];
 const pick = (value, keys) =>
   Object.fromEntries(
@@ -154,9 +156,12 @@ export async function getFileContext(signal) {
       }),
       ocrAvailable:
         !api.isDisabled &&
-        api.sourceType === "local" &&
         (api.capabilities || []).some((cap) => ["ocr", "vlm"].includes(cap)) &&
-        ocrInstalled(api.modelRef),
+        (api.sourceType === "local"
+          ? ocrInstalled(api.modelRef)
+          : api.sourceType === "network" &&
+            api.capabilities.includes("vlm") &&
+            supportsVlmApi(api)),
     })),
     prompts: getAllPrompts(setting.prompts).map((prompt) =>
       pick(prompt, ["slug", "name", "nameKey", "category"])
@@ -249,7 +254,6 @@ export async function executeFileMethod(method, params, signal, uploads) {
           .filter((record) => record.state === "installed")
           .map((record) => record.manifest.id)
       ),
-      translate: translateWithLocalModel,
     });
   }
   if (method === "recognizeImage") {
@@ -265,13 +269,46 @@ export async function executeFileMethod(method, params, signal, uploads) {
         !item.isDisabled &&
         (item.capabilities || []).some((cap) => ["ocr", "vlm"].includes(cap))
     );
-    if (!api || api.sourceType !== "local" || !api.modelRef)
-      throw fileError("SERVICE_UNAVAILABLE", "请选择已配置的本地 OCR 服务");
-    return recognizeFileImage(
-      new Blob(upload.chunks, { type: upload.type }),
-      { groupId: api.modelRef, device: api.device || "webgpu" },
-      signal
+    if (!api)
+      throw fileError("SERVICE_UNAVAILABLE", "请选择已配置的图片识别服务");
+    const scene = setting.fileTranslateSetting.image;
+    const patch = params.scene ? validateScenePatch("image", params.scene) : {};
+    const prompt = resolveVlmPrompt(
+      setting.prompts,
+      (patch.vlmPromptSlug ?? scene?.vlmPromptSlug) || api.vlmPromptSlug
     );
+    const file = new Blob(upload.chunks, { type: upload.type });
+    if (api.sourceType === "local" && api.modelRef) {
+      return recognizeFileImage(
+        file,
+        {
+          groupId: api.modelRef,
+          device: api.device || "webgpu",
+          prompt,
+          maxTokens: api.maxTokens,
+          temperature: api.temperature,
+        },
+        signal
+      );
+    }
+    if (
+      api.sourceType === "network" &&
+      api.capabilities.includes("vlm") &&
+      supportsVlmApi(api)
+    ) {
+      const prepared = await prepareImage(file, await inputSettings(), signal);
+      const result = await recognizeNetworkImage(
+        prepared.blob,
+        api,
+        prompt,
+        signal
+      );
+      return {
+        ...result,
+        inputAdjustments: prepared.adjustment ? [prepared.adjustment] : [],
+      };
+    }
+    throw fileError("SERVICE_UNAVAILABLE", "该服务尚未接入图片识别");
   }
   throw fileError("UNKNOWN_METHOD", "不支持的文件翻译接口");
 }
@@ -373,11 +410,12 @@ export function attachFileSession(port, execute = executeFileMethod) {
       }
       if (message.method === "uploadBegin") {
         const limits = await inputSettings();
+        const mimeType = params.type === "image/jpg" ? "image/jpeg" : params.type;
         if (
           !Number.isSafeInteger(params.size) ||
           params.size <= 0 ||
           params.size > limits.maxImageFileMB * 1024 ** 2 ||
-          !["image/png", "image/jpeg", "image/webp"].includes(params.type) ||
+          !["image/png", "image/jpeg", "image/webp"].includes(mimeType) ||
           uploads.size >= 1
         )
           throw fileError(
@@ -388,7 +426,7 @@ export function attachFileSession(port, execute = executeFileMethod) {
         const uploadId = crypto.randomUUID();
         const upload = {
           size: params.size,
-          type: params.type,
+          type: mimeType,
           chunks: [],
           received: 0,
           sequence: 0,

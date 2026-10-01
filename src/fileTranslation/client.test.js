@@ -1,5 +1,5 @@
 import { FileTranslationClient } from "./client";
-import { FILE_CHANNEL, IMAGE_CHUNK_BYTES } from "./protocol";
+import { FILE_CHANNEL, FILE_PROTOCOL, IMAGE_CHUNK_BYTES } from "./protocol";
 
 let counter = 0;
 beforeEach(() =>
@@ -157,4 +157,83 @@ test("multiple extension discoveries require an explicit selection", async () =>
     client.dispose();
     jest.useRealTimers();
   }
+});
+
+
+const flushPromises = async () => {
+  for (let i = 0; i < 8; i++) await Promise.resolve();
+};
+function enableBridge({ client, target, respond }) {
+  target.postMessage.mockImplementation((data) => {
+    if (data.type === "discover") client.receive({
+      source: target, origin: target.location.origin,
+      data: { channel: FILE_CHANNEL, direction: "extension", type: "available",
+        extensionId: "ext", bridgeId: "bridge" },
+    });
+    if (data.request?.method === "handshake") respond(data.request.requestId, {
+      protocolVersion: FILE_PROTOCOL, extensionId: "ext", sessionId: "restored",
+    });
+  });
+}
+
+test("heartbeat timeout reconnects to the same extension and restores the session", async () => {
+  jest.useFakeTimers();
+  const fixture = setup(), { client, target } = fixture;
+  const events = [];
+  client.subscribe((event) => events.push(event));
+  client.session = null;
+  enableBridge(fixture);
+  try {
+    const connection = client.connect("ext");
+    jest.advanceTimersByTime(500);
+    await connection;
+    jest.advanceTimersByTime(20000);
+    jest.advanceTimersByTime(10000);
+    await flushPromises();
+    expect(client.session).toBeNull();
+    expect(events.at(-1).type).toBe("disconnected");
+    jest.advanceTimersByTime(1000);
+    jest.advanceTimersByTime(500);
+    await flushPromises();
+    expect(client.session?.sessionId).toBe("restored");
+    expect(events.at(-1)).toMatchObject({ type: "connected", reconnecting: true });
+    expect(target.postMessage.mock.calls.filter(([data]) => data.type === "discover")).toHaveLength(2);
+  } finally { client.dispose(); jest.useRealTimers(); }
+});
+
+test("failed reconnects back off and disposal stops further attempts", async () => {
+  jest.useFakeTimers();
+  const { client } = setup();
+  client.reconnectEnabled = true;
+  client.reconnectExtensionId = "ext";
+  const connect = jest.spyOn(client, "connect").mockRejectedValue(new Error("missing"));
+  try {
+    client.disconnect(new Error("lost"), true);
+    jest.advanceTimersByTime(1000); await flushPromises();
+    expect(connect).toHaveBeenCalledTimes(1);
+    expect(connect).toHaveBeenCalledWith("ext", { reconnecting: true });
+    jest.advanceTimersByTime(1999); await flushPromises();
+    expect(connect).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(1); await flushPromises();
+    expect(connect).toHaveBeenCalledTimes(2);
+    client.dispose();
+    jest.advanceTimersByTime(60000); await flushPromises();
+    expect(connect).toHaveBeenCalledTimes(2);
+  } finally { client.dispose(); jest.useRealTimers(); }
+});
+
+test("a port disconnect schedules recovery, but intentional disconnect cancels it", async () => {
+  jest.useFakeTimers();
+  const { client, target } = setup();
+  client.reconnectEnabled = true;
+  const connect = jest.spyOn(client, "connect");
+  try {
+    client.receive({ source: target, origin: target.location.origin,
+      data: { channel: FILE_CHANNEL, direction: "extension", extensionId: "ext",
+        bridgeId: "bridge", type: "disconnected" } });
+    expect(client.reconnectTimer).toBeTruthy();
+    client.disconnect();
+    jest.advanceTimersByTime(60000); await flushPromises();
+    expect(connect).not.toHaveBeenCalled();
+  } finally { client.dispose(); jest.useRealTimers(); }
 });

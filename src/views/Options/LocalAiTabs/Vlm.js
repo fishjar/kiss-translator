@@ -10,6 +10,9 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
+import Collapse from "@mui/material/Collapse";
+import TextField from "@mui/material/TextField";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import Chip from "@mui/material/Chip";
 import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
@@ -50,6 +53,13 @@ export default function VlmTab() {
   // VLM 状态
   const [vlmModelId, setVlmModelId] = useState(VLM_MODELS[0]?.id || "");
   const [vlmTaskMode, setVlmTaskMode] = useState("doc");
+  const [showPromptEditor, setShowPromptEditor] = useState(false);
+  const [promptTemplate, setPromptTemplate] = useState(() =>
+    resolveOcrVlmPrompt(VLM_MODELS[0]?.id || "", "doc")
+  );
+  useEffect(() => {
+    setPromptTemplate(resolveOcrVlmPrompt(vlmModelId, vlmTaskMode));
+  }, [vlmModelId, vlmTaskMode]);
   const [vlmDevice, setVlmDevice] = useState("webgpu");
   const [vlmRecs, setVlmRecs] = useState({});
   const [vlmClientState, setVlmClientState] = useState("idle");
@@ -197,7 +207,7 @@ export default function VlmTab() {
     const startTime = performance.now();
     addLog(`开始 VLM 解析 (图片: ${file.name}, 模式: ${vlmTaskMode})…`);
     try {
-      const prompt = resolveOcrVlmPrompt(vlmModel.id, vlmTaskMode);
+      const prompt = promptTemplate;
       await validateInputFile(file, "image");
       const imgBuf = await file.arrayBuffer();
       const res = await vlmClient.chat(
@@ -395,7 +405,21 @@ export default function VlmTab() {
             <Typography variant="h6" fontWeight={600}>
               {i18n("local_ai_vlm_image_card", "图像上传与解析")}
             </Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              <Button
+                variant={showPromptEditor ? "contained" : "outlined"}
+                size="small"
+                startIcon={<TuneRoundedIcon />}
+                disabled={parsing}
+                onClick={() => setShowPromptEditor((v) => !v)}
+              >
+                {i18n(
+                  showPromptEditor
+                    ? "local_ai_llm_collapse_prompt"
+                    : "local_ai_llm_prompt_template",
+                  showPromptEditor ? "收起提示词" : "提示词模板"
+                )}
+              </Button>
               <Button
                 variant="outlined"
                 size="small"
@@ -415,18 +439,31 @@ export default function VlmTab() {
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   const selection = ++selectionRef.current;
-                  if (f) void validateInputFile(f, "image")
-                    .then(() => {
-                      if (selection === selectionRef.current) { setFile(f); setError(null); }
-                    })
-                    .catch((e) => { if (selection === selectionRef.current) setError(e.message); });
+                  if (f)
+                    void validateInputFile(f, "image")
+                      .then(() => {
+                        if (selection === selectionRef.current) {
+                          setFile(f);
+                          setError(null);
+                        }
+                      })
+                      .catch((e) => {
+                        if (selection === selectionRef.current)
+                          setError(e.message);
+                      });
                 }}
               />
               <Button
                 variant="contained"
                 size="small"
                 startIcon={<PlayArrowRoundedIcon />}
-                disabled={!file || runtime.busy || !vlmInstalled || parsing}
+                disabled={
+                  !file ||
+                  runtime.busy ||
+                  !vlmInstalled ||
+                  parsing ||
+                  !promptTemplate.trim()
+                }
                 onClick={() => void runVlm()}
               >
                 {parsing
@@ -451,6 +488,26 @@ export default function VlmTab() {
             </Box>
           </Box>
 
+          <Collapse in={showPromptEditor} unmountOnExit sx={{ mb: 2 }}>
+            <Button
+              size="small"
+              disabled={parsing}
+              onClick={() =>
+                setPromptTemplate(resolveOcrVlmPrompt(vlmModelId, vlmTaskMode))
+              }
+            >
+              {i18n("local_ai_llm_reset_template", "重置默认模板")}
+            </Button>
+            <TextField
+              multiline
+              minRows={3}
+              fullWidth
+              value={promptTemplate}
+              disabled={parsing}
+              label={i18n("vlm_prompt", "视觉解析提示词")}
+              onChange={(e) => setPromptTemplate(e.target.value)}
+            />
+          </Collapse>
           {file && (
             <Box sx={{ mb: 2 }}>
               <Typography variant="caption" color="text.secondary">

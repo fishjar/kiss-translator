@@ -12,7 +12,7 @@ import type { ChatMessage, LlmLoadSpec } from "../core/types";
 
 type InMsg =
   | ({ type: "load" } & LlmLoadSpec)
-  | { type: "chat"; messages: ChatMessage[]; maxTokens: number }
+  | { type: "chat"; messages: ChatMessage[]; maxTokens: number; temperature?: number }
   | { type: "stop" }
   | { type: "unload" };
 
@@ -170,7 +170,8 @@ function toWllamaMessages(messages: ChatMessage[]): ChatCompletionMessage[] {
 
 async function doChat(
   messages: ChatMessage[],
-  maxTokens: number
+  maxTokens: number,
+  temperature?: number
 ): Promise<void> {
   const engine = wllama;
   if (!engine || !engine.isModelLoaded()) throw new Error("模型尚未加载");
@@ -200,7 +201,7 @@ async function doChat(
     await engine.createChatCompletion({
       messages: toWllamaMessages(preparedMessages),
       max_tokens: maxTokens,
-      temperature: 0.3,
+      temperature: temperature ?? 0.3,
       stream: true,
       abortSignal: aborter.signal,
       onData: (chunk) => {
@@ -251,7 +252,7 @@ self.onmessage = (e: MessageEvent<InMsg>) => {
         const backend = await doLoad(msg);
         post({ type: "ready", backend });
       } else if (msg.type === "chat") {
-        await doChat(msg.messages, msg.maxTokens);
+        await doChat(msg.messages, msg.maxTokens, msg.temperature);
       } else if (msg.type === "unload") {
         if (wllama) {
           await wllama.exit();

@@ -20,6 +20,7 @@ jest.mock("webextension-polyfill", () => ({
   },
   tabs: { create: jest.fn() },
 }));
+jest.mock("../apis/vision", () => ({ recognizeNetworkImage: jest.fn() }));
 jest.mock("../libs/storage", () => ({
   getSettingWithDefault: jest.fn(),
   saveEdit: jest.fn(),
@@ -277,6 +278,34 @@ test("translation requests have no bridge count limit and do not consume other r
     await Promise.all(runs);
   }
 });
+
+test.each(["image/jpg", "", "image/bmp", "image/gif"])(
+  "upload MIME validation handles %p without relaxing the whitelist",
+  async (type) => {
+    const port = makePort();
+    const execute = jest.fn(async (method, params, signal, uploads) => {
+      expect(uploads.get(params.uploadId).type).toBe("image/jpeg");
+      return null;
+    });
+    const close = attachFileSession(port, execute);
+    try {
+      await port.receive({ requestId: "hello", method: "handshake", protocolVersion: FILE_PROTOCOL });
+      const sessionId = port.postMessage.mock.calls[0][0].result.sessionId;
+      await port.receive({ requestId: "begin", sessionId, method: "uploadBegin", params: { size: 3, type } });
+      const response = port.postMessage.mock.calls.find(([message]) => message.requestId === "begin")[0];
+      if (type === "image/jpg") {
+        expect(response.result.uploadId).toEqual(expect.any(String));
+        await port.receive({ requestId: "recognize", sessionId, method: "recognizeImage", params: { uploadId: response.result.uploadId } });
+        expect(execute).toHaveBeenCalledTimes(1);
+      } else {
+        expect(response.error.code).toBe("INPUT_LIMIT_EXCEEDED");
+        expect(execute).not.toHaveBeenCalled();
+      }
+    } finally {
+      close();
+    }
+  }
+);
 
 test("uploads reject wrong ordering and oversized chunks and are released on disconnect", async () => {
   const port = makePort();

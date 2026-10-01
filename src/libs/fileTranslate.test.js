@@ -65,7 +65,10 @@ test("cancellation stops before requesting the next line", async () => {
 });
 
 test("installed local translation is used first and a failed local run falls back", async () => {
-  apiTranslate.mockResolvedValue({ trText: "network output" });
+  apiTranslate.mockImplementation(async ({ apiSetting }) => {
+    if (apiSetting.sourceType === "local") throw new Error("device lost");
+    return { trText: "network output" };
+  });
   const localScene = { ...scene, apiSlugs: ["local", "backup"] };
   const localSetting = {
     ...setting,
@@ -87,13 +90,11 @@ test("installed local translation is used first and a failed local run falls bac
   await expect(
     translateFileText("source", localScene, localSetting, undefined, local)
   ).resolves.toBe("network output");
-  expect(local.translate).toHaveBeenCalledWith(
-    "model-a",
-    "source",
-    "zh-CN",
-    undefined
-  );
-  expect(apiTranslate).toHaveBeenCalledTimes(1);
+  expect(local.translate).not.toHaveBeenCalled();
+  expect(apiTranslate).toHaveBeenCalledTimes(2);
+  expect(apiTranslate.mock.calls[0][0]).toMatchObject({
+    apiSetting: { modelRef: "model-a", apiType: "LocalAI", nobatchUserPrompt: expect.any(String) },
+  });
 });
 
 describe("Markdown file translation", () => {

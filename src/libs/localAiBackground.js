@@ -74,28 +74,43 @@ async function ensureHost() {
   return creating;
 }
 
-function exchange(envelope, accept, timeout = 300000, onTimeout) {
+function exchange(envelope, accept, timeout = 300000, onTimeout, hooks = {}) {
   return new Promise((resolve, reject) => {
     const channel = new BroadcastChannel(CHANNEL);
+    const cleanup = () => {
+      clearTimeout(timer);
+      hooks.signal?.removeEventListener("abort", abort);
+      channel.close();
+    };
+    const abort = () => {
+      onTimeout?.();
+      cleanup();
+      reject(new DOMException("已取消", "AbortError"));
+    };
     const timer = setTimeout(() => {
       try {
         onTimeout?.();
       } finally {
-        channel.close();
+        cleanup();
         reject(new Error("Local AI runtime timed out"));
       }
     }, timeout);
     channel.onmessage = ({ data }) => {
+      hooks.onEvent?.(data);
       if (!accept(data)) return;
-      clearTimeout(timer);
-      channel.close();
+      cleanup();
       resolve(data);
     };
+    hooks.signal?.addEventListener("abort", abort, { once: true });
+    if (hooks.signal?.aborted) {
+      abort();
+      return;
+    }
     channel.postMessage(envelope);
   });
 }
 
-export async function localAiRequest(request) {
+export async function localAiRequest(request, hooks = {}) {
   await ensureHost();
   let ready = false;
   for (let attempt = 0; attempt < 8 && !ready; attempt++) {
@@ -115,13 +130,20 @@ export async function localAiRequest(request) {
   const envelope = await exchange(
     { kind: "request", request },
     (data) => data?.kind === "response" && data.response?.id === request.id,
-    300000,
+    hooks.timeoutMs ?? 300000,
     () => {
       // 超时时发送取消通知，避免运行时继续占用推理算力
       cancelLocalAiRequest(
         request.id,
         "REQUEST_TIMEOUT: 本地 AI 运行时超时已取消"
       );
+    },
+    {
+      signal: hooks.signal,
+      onEvent: (data) => {
+        if (data?.kind === "stream" && data.stream?.id === request.id)
+          hooks.onStream?.(data.stream);
+      },
     }
   );
   if (!envelope.response.ok)

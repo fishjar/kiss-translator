@@ -167,7 +167,7 @@ describe("resource lifecycle", () => {
   beforeEach(() => {
     vi.stubGlobal("chrome", {
       storage: {
-        local: { get: vi.fn(async () => ({})), set: vi.fn(async () => {}) },
+        local: { get: vi.fn(async () => ({ "kiss-ai-settings": { exclusiveResourceMode: false } })), set: vi.fn(async () => {}) },
       },
     });
   });
@@ -280,7 +280,7 @@ describe("resource lifecycle", () => {
   it("migrates settings and serially merges unrelated updates", async () => {
     expect(
       normalizeSettings({ mirror: "huggingface", autoUnloadModels: false })
-    ).toMatchObject({ autoUnloadMinutes: 0, exclusiveResourceMode: false });
+    ).toMatchObject({ autoUnloadMinutes: 0, exclusiveResourceMode: true });
     expect(normalizeSettings({})).toMatchObject({ autoUnloadMinutes: 10 });
     const { mgr } = setup();
     await Promise.all([

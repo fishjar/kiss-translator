@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TASK_PRIORITY, TaskScheduler } from "../../runtime/taskScheduler";
 import { RuntimePool } from "../../runtime/runtimePool";
 import { RuntimeManager } from "../../runtime/runtimeManager";
@@ -12,6 +12,8 @@ import { JevClient } from "../jevClient";
 import { OcrClient } from "../ocrClient";
 import { RemoteModelManager } from "../modelManager";
 import type { RpcChannelEnvelope } from "../../runtime/rpc";
+
+afterEach(() => vi.unstubAllGlobals());
 
 /** 构造可控的内存级 Mock Worker */
 function createMockWorker(
@@ -575,6 +577,7 @@ describe("3. RPC 完整结束路径与 Offscreen 宿主关闭/重建 (Complete R
 describe("4. 生成期间切换 LLM 模型 (Wait for Old Generation Stop Before New Load)", () => {
   it("旧 Worker 延迟响应 stop 时，新模型加载必须等旧 Worker 返回 done 释放槽位后才开始", async () => {
     const timeline: string[] = [];
+    vi.stubGlobal("localStorage", { getItem: () => JSON.stringify({ exclusiveResourceMode: false }), setItem: vi.fn() });
 
     const manager = new RuntimeManager({
       workerFactories: {

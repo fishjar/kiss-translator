@@ -35,7 +35,7 @@ import {
 
 type InMsg =
   | ({ type: "load" } & LlmOnnxLoadSpec)
-  | { type: "chat"; messages: ChatMessage[]; maxTokens: number }
+  | { type: "chat"; messages: ChatMessage[]; maxTokens: number; temperature?: number }
   | { type: "stop" }
   | { type: "unload" };
 
@@ -269,7 +269,8 @@ async function doLoad(spec: LlmOnnxLoadSpec): Promise<"webgpu" | "wasm"> {
 
 async function doChat(
   messages: ChatMessage[],
-  maxTokens: number
+  maxTokens: number,
+  temperature?: number
 ): Promise<void> {
   stoppingCriteria.reset();
   stopRequested = false;
@@ -538,7 +539,8 @@ async function doChat(
       messages.map((m) => ({ role: m.role, content: m.content })),
       {
         max_new_tokens: maxTokens,
-        do_sample: false,
+        do_sample: temperature !== undefined && temperature > 0,
+        ...(temperature !== undefined && temperature > 0 ? { temperature } : {}),
         streamer,
         stopping_criteria: stoppingCriteria,
       }
@@ -574,7 +576,7 @@ self.onmessage = (e: MessageEvent<InMsg>) => {
         const backend = await doLoad(msg);
         post({ type: "ready", backend });
       } else if (msg.type === "chat") {
-        await doChat(msg.messages, msg.maxTokens);
+        await doChat(msg.messages, msg.maxTokens, msg.temperature);
       } else if (msg.type === "unload") {
         await disposeGenerator();
         post({ type: "unloaded" });

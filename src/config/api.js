@@ -150,6 +150,7 @@ export const API_SPE_TYPES = {
   ]),
   // 大语言模型 AI 翻译引擎
   ai: new Set([
+    OPT_TRANS_LOCALAI,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
     OPT_TRANS_OPENAI,
@@ -198,6 +199,7 @@ export const API_SPE_TYPES = {
   ]),
   // 支持段落聚合（批处理合并）翻译的引擎
   batch: new Set([
+    OPT_TRANS_LOCALAI,
     OPT_TRANS_AZUREAI,
     OPT_TRANS_DEEPSEEK,
     OPT_TRANS_OPENCODEGO,
@@ -226,6 +228,7 @@ export const API_SPE_TYPES = {
   ]),
   // 支持带历史会话（Context）关联的翻译引擎
   context: new Set([
+    OPT_TRANS_LOCALAI,
     OPT_TRANS_DEEPSEEK,
     OPT_TRANS_OPENCODEGO,
     OPT_TRANS_SILICONFLOW,
@@ -247,6 +250,7 @@ export const API_SPE_TYPES = {
   ]),
   // 支持流式文本返回（Server-Sent Events / Stream）的翻译引擎
   stream: new Set([
+    OPT_TRANS_LOCALAI,
     OPT_TRANS_DEEPSEEK,
     OPT_TRANS_OPENCODEGO,
     OPT_TRANS_SILICONFLOW,
@@ -1533,6 +1537,7 @@ const defaultApi = {
   dictPrompt: "",
   dictUserPrompt: "",
   dictPromptSlug: "dictionary-en-zh",
+  vlmPromptSlug: "vlm-document",
   nobatchPrompt: "",
   nobatchUserPrompt: "",
   nobatchPromptSlug: "nobatch-translation-concise",

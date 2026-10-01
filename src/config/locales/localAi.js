@@ -1,4 +1,10 @@
 export const LOCAL_AI_I18N = {
+  prompt_category_vlm: { zh: "视觉解析（VLM）", en: "Visual parsing (VLM)" },
+  preset_prompt_vlm_document: {
+    zh: "视觉解析（Markdown）",
+    en: "Visual parsing (Markdown)",
+  },
+  vlm_prompt: { zh: "视觉解析提示词", en: "Visual parsing prompt" },
   local_ai_tab_runtime: {
     zh: "运行时",
     en: "Runtime",

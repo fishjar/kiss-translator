@@ -25,32 +25,22 @@ export async function executeFileTranslation(
   for (const candidate of candidates) {
     if (signal?.aborted) throw new DOMException("已取消", "AbortError");
     try {
-      let translated;
-      if (candidate.sourceType === "local") {
-        translated = await localContext.translate(
-          candidate.modelRef,
-          text,
-          scene.toLang,
-          signal
-        );
-      } else {
-        const apiSetting = resolveApiPromptSettings(
-          withScenePrompt(candidate, scene),
-          setting.prompts,
-          setting.subtitleSetting
-        );
-        const result = await apiTranslate({
-          text,
-          fromLang: scene.fromLang,
-          toLang: scene.toLang,
-          apiSetting,
-          textFormat: "text",
-          signal,
-          translateVariants: setting.translateVariants,
-          docInfo: {},
-        });
-        translated = result?.trText;
-      }
+      const apiSetting = resolveApiPromptSettings(
+        withScenePrompt(candidate, scene),
+        setting.prompts,
+        setting.subtitleSetting
+      );
+      const result = await apiTranslate({
+        text,
+        fromLang: scene.fromLang,
+        toLang: scene.toLang,
+        apiSetting,
+        textFormat: "text",
+        signal,
+        translateVariants: setting.translateVariants,
+        docInfo: {},
+      });
+      const translated = result?.trText;
       if (signal?.aborted) throw new DOMException("已取消", "AbortError");
       if (translated) return { text: translated, serviceId: candidate.apiSlug };
       lastError = new Error(

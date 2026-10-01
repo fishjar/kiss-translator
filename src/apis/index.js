@@ -146,6 +146,10 @@ async function getPromptCacheSig(apiSetting = {}, promptScope, glossary) {
   const promptText = [
     promptScope,
     ...getPromptCacheFields(apiSetting, promptScope, glossary),
+    ...(apiSetting.apiType === OPT_TRANS_LOCALAI ? [
+      apiSetting.modelRef, apiSetting.device, apiSetting.temperature, apiSetting.maxTokens,
+      apiSetting.useContext, apiSetting.contextSize,
+    ] : []),
   ].join("\n");
 
   return (await getCacheDigest(promptText, PROMPT_CACHE_SALT)).slice(0, 16);
@@ -792,22 +796,6 @@ export const apiTranslate = async ({
       to,
       apiSetting,
     });
-  } else if (apiType === OPT_TRANS_LOCALAI) {
-    const id = `local-translation-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const cancel = () => {
-      void sendBgMsg(MSG_LOCAL_AI_CANCEL, { id });
-    };
-    signal?.addEventListener("abort", cancel, { once: true });
-    try {
-      translation = await sendBgMsg(MSG_LOCAL_AI_RPC, {
-        id,
-        service: "translation",
-        method: "translate",
-        payload: { modelRef: apiSetting.modelRef, text, fromLang, toLang },
-      });
-    } finally {
-      signal?.removeEventListener("abort", cancel);
-    }
   } else if (useBatchFetch && API_SPE_TYPES.batch.has(apiType)) {
     // 2.2 支持批量翻译的传统接口 (如 Google/Microsoft/DeepL 等)
     // 使用 BatchQueue 进行零散文本大合并，节省网络交互次数，大幅提升网页整页翻译的载入速度
@@ -1095,6 +1083,10 @@ export const apiSubtitle = async ({
     chunkHash,
     fromLang,
     toLang,
+    ...(apiSetting.apiType === OPT_TRANS_LOCALAI ? {
+      modelRef: apiSetting.modelRef, device: apiSetting.device,
+      temperature: apiSetting.temperature, maxTokens: apiSetting.maxTokens,
+    } : {}),
     segVer: 4,
     promptSig: (await getCacheDigest(renderedPrompt, PROMPT_CACHE_SALT)).slice(
       0,

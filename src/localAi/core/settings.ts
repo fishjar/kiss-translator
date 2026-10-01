@@ -16,7 +16,9 @@ export function normalizeSettings(value: unknown): Settings {
         : s.autoUnloadModels === false
           ? 0
           : 10,
-    exclusiveResourceMode: s.exclusiveResourceMode === true,
+    exclusiveResourceMode: typeof s.exclusiveResourceMode === "boolean"
+      ? s.exclusiveResourceMode
+      : DEFAULT_SETTINGS.exclusiveResourceMode,
     residentMemoryBudgetMB: Number.isSafeInteger(s.residentMemoryBudgetMB) && s.residentMemoryBudgetMB! >= 0 ? s.residentMemoryBudgetMB! : 0,
   };
 }

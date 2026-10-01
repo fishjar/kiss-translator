@@ -100,6 +100,11 @@ import {
   getSubtitlePromptOptions,
 } from "../../config";
 import ValidationInput from "../../hooks/ValidationInput";
+import { supportsApiCapability } from "../../config/serviceSelection";
+import {
+  DEFAULT_VLM_PROMPT_SLUG,
+  getVlmPromptOptions,
+} from "../../config/prompt";
 import { usePromptList } from "../../hooks/Prompt";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
 
@@ -567,6 +572,30 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     subtitlePromptSlug = "",
     dictPromptSlug = "",
   } = activeFormData;
+  const hasCapability = (cap) =>
+    capabilities.includes(cap) && supportsApiCapability(activeFormData, cap);
+  const hasTranslation = hasCapability("translation");
+  const hasAiTranslation = hasTranslation && API_SPE_TYPES.ai.has(apiType);
+  const hasSegmentation = hasCapability("segmentation");
+  const hasDictionary = hasCapability("dictionary");
+  const hasVlm = hasCapability("vlm");
+  const hasLanguageModel =
+    API_SPE_TYPES.ai.has(apiType) &&
+    [
+      "translation",
+      "segmentation",
+      "dictionary",
+      "summarization",
+      "llm",
+      "vlm",
+    ].some(hasCapability);
+  const hasTextRuntime = hasAiTranslation || hasDictionary || hasSegmentation;
+  const vlmPromptOptions = getVlmPromptOptions(prompts);
+  const selectedVlmPromptSlug = vlmPromptOptions.some(
+    (p) => p.slug === activeFormData.vlmPromptSlug
+  )
+    ? activeFormData.vlmPromptSlug
+    : DEFAULT_VLM_PROMPT_SLUG;
   const contextForcesSerialBatch =
     useContext && API_SPE_TYPES.context.has(apiType);
 
@@ -599,7 +628,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     ? thinkingEffort
     : "_default";
   const hasRuntimeOptions =
-    API_SPE_TYPES.stream.has(apiType) || API_SPE_TYPES.context.has(apiType);
+    hasTextRuntime &&
+    (API_SPE_TYPES.stream.has(apiType) || API_SPE_TYPES.context.has(apiType));
   const showUnknownThinkingWarning =
     isUnknownThinkingModel && thinkingMode !== "auto";
   const showMinimumThinkingHelper = isThinkingMinimumFallback({
@@ -901,7 +931,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     .join(", "),
               }}
               helperText={
-                capabilities.some((item) => item !== "translation")
+                capabilities.some(
+                  (item) => !supportsApiCapability(activeFormData, item)
+                )
                   ? i18n(
                       "api_capabilities_helper",
                       "新能力在适配器接入前为待接入状态"
@@ -999,9 +1031,10 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         />
       )}
 
-      {(API_SPE_TYPES.ai.has(apiType) || apiType === OPT_TRANS_QWENMT) && (
+      {(hasLanguageModel ||
+        (hasTranslation && apiType === OPT_TRANS_QWENMT)) && (
         <>
-          {apiType !== OPT_TRANS_QWENMT && (
+          {sourceType === "network" && apiType !== OPT_TRANS_QWENMT && (
             <TextField
               size="small"
               fullWidth
@@ -1013,38 +1046,42 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
           )}
           <Box>
             <Box sx={apiFieldsGridSx}>
-              <Box>
-                <ReusableAutocomplete
-                  freeSolo
-                  size="small"
-                  fullWidth
-                  options={allModelOptions}
-                  name="model"
-                  label={"Model"}
-                  value={model}
-                  onChange={handleChange}
-                  onFocus={handleLoadModelList}
-                  loading={modelListStatus === "loading"}
-                  loadingText={i18n("model_list_loading")}
-                  noOptionsText={i18n("model_list_empty")}
-                  textFieldProps={{
-                    helperText: modelListHelperText,
-                    error: modelListStatus === "error",
-                  }}
-                />
-              </Box>
-              <Box>
-                <ReusableAutocomplete
-                  freeSolo
-                  size="small"
-                  fullWidth
-                  options={BUILTIN_STONES}
-                  name="tone"
-                  label={i18n("translation_style")}
-                  value={tone}
-                  onChange={handleChange}
-                />
-              </Box>
+              {sourceType === "network" && (
+                <Box>
+                  <ReusableAutocomplete
+                    freeSolo
+                    size="small"
+                    fullWidth
+                    options={allModelOptions}
+                    name="model"
+                    label={"Model"}
+                    value={model}
+                    onChange={handleChange}
+                    onFocus={handleLoadModelList}
+                    loading={modelListStatus === "loading"}
+                    loadingText={i18n("model_list_loading")}
+                    noOptionsText={i18n("model_list_empty")}
+                    textFieldProps={{
+                      helperText: modelListHelperText,
+                      error: modelListStatus === "error",
+                    }}
+                  />
+                </Box>
+              )}
+              {hasTranslation && (
+                <Box>
+                  <ReusableAutocomplete
+                    freeSolo
+                    size="small"
+                    fullWidth
+                    options={BUILTIN_STONES}
+                    name="tone"
+                    label={i18n("translation_style")}
+                    value={tone}
+                    onChange={handleChange}
+                  />
+                </Box>
+              )}
               {apiType !== OPT_TRANS_QWENMT &&
                 apiType !== OPT_TRANS_GEMINI &&
                 apiType !== OPT_TRANS_GEMINI_2 && (
@@ -1146,26 +1183,28 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         </>
       )}
 
-      {API_SPE_TYPES.batch.has(apiType) && !API_SPE_TYPES.ai.has(apiType) && (
-        <Box>
-          <Box sx={apiFieldsGridSx}>
-            <Box>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="useBatchFetch"
-                value={useBatchFetch}
-                label={i18n("use_batch_fetch")}
-                onChange={handleChange}
-              >
-                <MenuItem value={false}>{i18n("disable")}</MenuItem>
-                <MenuItem value={true}>{i18n("enable")}</MenuItem>
-              </TextField>
+      {hasTranslation &&
+        API_SPE_TYPES.batch.has(apiType) &&
+        !API_SPE_TYPES.ai.has(apiType) && (
+          <Box>
+            <Box sx={apiFieldsGridSx}>
+              <Box>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  name="useBatchFetch"
+                  value={useBatchFetch}
+                  label={i18n("use_batch_fetch")}
+                  onChange={handleChange}
+                >
+                  <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                  <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                </TextField>
+              </Box>
             </Box>
           </Box>
-        </Box>
-      )}
+        )}
 
       {hasRuntimeOptions && (
         <Box className="kt-api-runtime-options">
@@ -1209,7 +1248,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
               </Box>
             )}
 
-            {API_SPE_TYPES.context.has(apiType) && (
+            {hasAiTranslation && API_SPE_TYPES.context.has(apiType) && (
               <>
                 <Box>
                   {" "}
@@ -1245,66 +1284,91 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         </Box>
       )}
 
-      {API_SPE_TYPES.ai.has(apiType) && (
-        <Box>
-          <Box sx={apiFieldsGridSx}>
-            <Box>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="translationPromptSlug"
-                value={effectiveTranslationPromptSlug}
-                label={i18n("translation_prompt", "翻译提示词")}
-                onChange={handleTranslationPromptChange}
-              >
-                {translationPromptOptions.map((prompt) => (
-                  <MenuItem key={prompt.slug} value={prompt.slug}>
-                    {getTranslationPromptDisplayName(prompt, i18n)}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-            <Box>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="subtitlePromptSlug"
-                value={selectedSubtitlePromptSlug}
-                label={i18n("subtitle_prompt", "AI断句提示词")}
-                onChange={handlePromptChange}
-              >
-                {subtitlePromptOptions.map((prompt) => (
-                  <MenuItem key={prompt.slug} value={prompt.slug}>
-                    {getPromptDisplayName(prompt, i18n)}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-            <Box>
-              {/* AI 词典使用独立提示词，避免复用普通翻译提示词时输出格式不可控。 */}
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="dictPromptSlug"
-                value={selectedDictPromptSlug}
-                label={i18n("ai_dict_prompt", "AI词典提示词")}
-                onChange={handlePromptChange}
-              >
-                {dictionaryPromptOptions.map((prompt) => (
-                  <MenuItem key={prompt.slug} value={prompt.slug}>
-                    {getPromptDisplayName(prompt, i18n)}
-                  </MenuItem>
-                ))}
-              </TextField>
+      {(hasAiTranslation || hasSegmentation || hasDictionary || hasVlm) && (
+          <Box>
+            <Box sx={apiFieldsGridSx}>
+              {hasAiTranslation && (
+                <Box>
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    name="translationPromptSlug"
+                    value={effectiveTranslationPromptSlug}
+                    label={i18n("translation_prompt", "翻译提示词")}
+                    onChange={handleTranslationPromptChange}
+                  >
+                    {translationPromptOptions.map((prompt) => (
+                      <MenuItem key={prompt.slug} value={prompt.slug}>
+                        {getTranslationPromptDisplayName(prompt, i18n)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+              )}
+              {hasSegmentation && (
+                <Box>
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    name="subtitlePromptSlug"
+                    value={selectedSubtitlePromptSlug}
+                    label={i18n("subtitle_prompt", "AI断句提示词")}
+                    onChange={handlePromptChange}
+                  >
+                    {subtitlePromptOptions.map((prompt) => (
+                      <MenuItem key={prompt.slug} value={prompt.slug}>
+                        {getPromptDisplayName(prompt, i18n)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+              )}
+              {hasDictionary && (
+                <Box>
+                  {/* AI 词典使用独立提示词，避免复用普通翻译提示词时输出格式不可控。 */}
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    name="dictPromptSlug"
+                    value={selectedDictPromptSlug}
+                    label={i18n("ai_dict_prompt", "AI词典提示词")}
+                    onChange={handlePromptChange}
+                  >
+                    {dictionaryPromptOptions.map((prompt) => (
+                      <MenuItem key={prompt.slug} value={prompt.slug}>
+                        {getPromptDisplayName(prompt, i18n)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+              )}
+              {hasVlm && (
+                <Box>
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    name="vlmPromptSlug"
+                    value={selectedVlmPromptSlug}
+                    label={i18n("vlm_prompt", "视觉解析提示词")}
+                    onChange={handleChange}
+                  >
+                    {vlmPromptOptions.map((prompt) => (
+                      <MenuItem key={prompt.slug} value={prompt.slug}>
+                        {getPromptDisplayName(prompt, i18n)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+              )}
             </Box>
           </Box>
-        </Box>
       )}
 
-      {thinkingParam && (
+      {hasLanguageModel && thinkingParam && (
         <Box>
           <Box sx={apiFieldsGridSx}>
             <Box>
@@ -1365,32 +1429,83 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         </Box>
       )}
 
-      {showMore && (
-        <>
-          {API_SPE_TYPES.batch.has(apiType) && (
+      {showMore &&
+        (sourceType === "network" || hasTextRuntime || hasTranslation) && (
+          <>
+            {hasTranslation && API_SPE_TYPES.batch.has(apiType) && (
+              <Box>
+                <Box sx={apiFieldsGridSx}>
+                  <Box>
+                    <ValidationInput
+                      size="small"
+                      fullWidth
+                      label={i18n("batch_interval")}
+                      type="number"
+                      name="batchInterval"
+                      value={batchInterval}
+                      onChange={handleChange}
+                      min={10}
+                      max={10000}
+                    />
+                  </Box>
+                  <Box>
+                    <ValidationInput
+                      size="small"
+                      fullWidth
+                      label={i18n("batch_size")}
+                      type="number"
+                      name="batchSize"
+                      value={batchSize}
+                      onChange={handleChange}
+                      min={1}
+                      max={100}
+                    />
+                  </Box>
+                  <Box>
+                    <ValidationInput
+                      size="small"
+                      fullWidth
+                      label={i18n("batch_length")}
+                      type="number"
+                      name="batchLength"
+                      value={batchLength}
+                      onChange={handleChange}
+                      min={1000}
+                      max={100000}
+                    />
+                  </Box>
+                  <Box>
+                    <ValidationInput
+                      size="small"
+                      fullWidth
+                      label={i18n("batch_concurrency")}
+                      type="number"
+                      name="batchConcurrency"
+                      value={contextForcesSerialBatch ? 1 : batchConcurrency}
+                      onChange={handleChange}
+                      min={1}
+                      max={100}
+                      disabled={contextForcesSerialBatch}
+                      helperText={
+                        contextForcesSerialBatch
+                          ? i18n("batch_concurrency_context_hint")
+                          : ""
+                      }
+                    />
+                  </Box>
+                </Box>
+              </Box>
+            )}
             <Box>
               <Box sx={apiFieldsGridSx}>
                 <Box>
                   <ValidationInput
                     size="small"
                     fullWidth
-                    label={i18n("batch_interval")}
+                    label={i18n("fetch_limit")}
                     type="number"
-                    name="batchInterval"
-                    value={batchInterval}
-                    onChange={handleChange}
-                    min={10}
-                    max={10000}
-                  />
-                </Box>
-                <Box>
-                  <ValidationInput
-                    size="small"
-                    fullWidth
-                    label={i18n("batch_size")}
-                    type="number"
-                    name="batchSize"
-                    value={batchSize}
+                    name="fetchLimit"
+                    value={fetchLimit}
                     onChange={handleChange}
                     min={1}
                     max={100}
@@ -1400,248 +1515,207 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                   <ValidationInput
                     size="small"
                     fullWidth
-                    label={i18n("batch_length")}
+                    label={i18n("fetch_interval")}
                     type="number"
-                    name="batchLength"
-                    value={batchLength}
+                    name="fetchInterval"
+                    value={fetchInterval}
                     onChange={handleChange}
-                    min={1000}
-                    max={100000}
+                    min={0}
+                    max={5000}
                   />
                 </Box>
                 <Box>
                   <ValidationInput
                     size="small"
                     fullWidth
-                    label={i18n("batch_concurrency")}
+                    label={i18n("http_timeout")}
                     type="number"
-                    name="batchConcurrency"
-                    value={contextForcesSerialBatch ? 1 : batchConcurrency}
+                    name="httpTimeout"
+                    value={httpTimeout}
                     onChange={handleChange}
                     min={1}
-                    max={100}
-                    disabled={contextForcesSerialBatch}
-                    helperText={
-                      contextForcesSerialBatch
-                        ? i18n("batch_concurrency_context_hint")
-                        : ""
-                    }
+                    max={600}
                   />
                 </Box>
               </Box>
             </Box>
-          )}
-          <Box>
-            <Box sx={apiFieldsGridSx}>
-              <Box>
-                <ValidationInput
-                  size="small"
-                  fullWidth
-                  label={i18n("fetch_limit")}
-                  type="number"
-                  name="fetchLimit"
-                  value={fetchLimit}
-                  onChange={handleChange}
-                  min={1}
-                  max={100}
-                />
-              </Box>
-              <Box>
-                <ValidationInput
-                  size="small"
-                  fullWidth
-                  label={i18n("fetch_interval")}
-                  type="number"
-                  name="fetchInterval"
-                  value={fetchInterval}
-                  onChange={handleChange}
-                  min={0}
-                  max={5000}
-                />
-              </Box>
-              <Box>
-                <ValidationInput
-                  size="small"
-                  fullWidth
-                  label={i18n("http_timeout")}
-                  type="number"
-                  name="httpTimeout"
-                  value={httpTimeout}
-                  onChange={handleChange}
-                  min={1}
-                  max={600}
-                />
-              </Box>
-            </Box>
-          </Box>
-          <Box>
-            <Box sx={apiFieldsGridSx}>
-              <Box>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  name="transAllnow"
-                  value={transAllnow}
-                  label={i18n("trigger_mode")}
-                  onChange={handleChange}
-                >
-                  <MenuItem value={false}>{i18n("mk_pagescroll")}</MenuItem>
-                  <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
-                </TextField>
-              </Box>
-              <Box>
-                <ValidationInput
-                  fullWidth
-                  size="small"
-                  label={i18n("pagescroll_root_margin")}
-                  type="number"
-                  name="rootMargin"
-                  value={rootMargin}
-                  onChange={handleChange}
-                  min={0}
-                  max={10000}
-                />
-              </Box>
-            </Box>
-          </Box>
-          <Box>
-            <Box sx={apiFieldsGridSx}>
-              <Box>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  name="placeholder"
-                  value={placeholder}
-                  label={i18n("api_placeholder")}
-                  onChange={handleChange}
-                >
-                  {BUILTIN_PLACEHOLDERS.map((item) => (
-                    <MenuItem key={item} value={item}>
-                      {item}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
-              <Box>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  name="placetag"
-                  value={placetag}
-                  label={i18n("api_placetag")}
-                  onChange={handleChange}
-                >
-                  {BUILTIN_PLACETAGS.map((item) => (
-                    <MenuItem key={item} value={item}>
-                      {`<${item}>`}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Box>
-              <Box>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  name="placetagFormat"
-                  value={placetagFormat}
-                  label={i18n("placetag_format", "占位符格式")}
-                  onChange={handleChange}
-                >
-                  <MenuItem value="compact">
-                    {i18n("format_compact", "简洁格式 <a1>")}
-                  </MenuItem>
-                  <MenuItem value="attribute">
-                    {i18n("format_attribute", "属性格式 <a i=1>")}
-                  </MenuItem>
-                </TextField>
-              </Box>
-            </Box>
-          </Box>
-
-          {(API_SPE_TYPES.ai.has(apiType) || apiType === OPT_TRANS_QWENMT) && (
-            <TextField
-              size="small"
-              label={i18n("ai_terms")}
-              helperText={i18n("ai_terms_helper")}
-              name="aiTerms"
-              value={aiTerms}
-              onChange={handleChange}
-              multiline
-              maxRows={10}
-            />
-          )}
-
-          {apiType !== OPT_TRANS_BUILTINAI && (
-            <>
-              {" "}
-              <CodeField
-                size="small"
-                label={i18n("custom_header")}
-                name="customHeader"
-                value={customHeader}
-                onChange={handleChange}
-                maxRows={10}
-                helperText={i18n("custom_header_help")}
-              />
-              <CodeField
-                size="small"
-                label={i18n("custom_body")}
-                name="customBody"
-                value={customBody}
-                onChange={handleChange}
-                maxRows={10}
-                helperText={i18n(
-                  apiType === OPT_TRANS_GEMINI
-                    ? "gemini_interactions_custom_body_help"
-                    : "custom_body_help"
-                )}
-              />
-            </>
-          )}
-
-          {apiType !== OPT_TRANS_CUSTOMIZE &&
-            apiType !== OPT_TRANS_BUILTINAI && (
+            {hasTranslation && (
               <>
+                <Box>
+                  <Box sx={apiFieldsGridSx}>
+                    <Box>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        name="transAllnow"
+                        value={transAllnow}
+                        label={i18n("trigger_mode")}
+                        onChange={handleChange}
+                      >
+                        <MenuItem value={false}>
+                          {i18n("mk_pagescroll")}
+                        </MenuItem>
+                        <MenuItem value={true}>{i18n("mk_pageopen")}</MenuItem>
+                      </TextField>
+                    </Box>
+                    <Box>
+                      <ValidationInput
+                        fullWidth
+                        size="small"
+                        label={i18n("pagescroll_root_margin")}
+                        type="number"
+                        name="rootMargin"
+                        value={rootMargin}
+                        onChange={handleChange}
+                        min={0}
+                        max={10000}
+                      />
+                    </Box>
+                  </Box>
+                </Box>
+                <Box>
+                  <Box sx={apiFieldsGridSx}>
+                    <Box>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        name="placeholder"
+                        value={placeholder}
+                        label={i18n("api_placeholder")}
+                        onChange={handleChange}
+                      >
+                        {BUILTIN_PLACEHOLDERS.map((item) => (
+                          <MenuItem key={item} value={item}>
+                            {item}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Box>
+                    <Box>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        name="placetag"
+                        value={placetag}
+                        label={i18n("api_placetag")}
+                        onChange={handleChange}
+                      >
+                        {BUILTIN_PLACETAGS.map((item) => (
+                          <MenuItem key={item} value={item}>
+                            {`<${item}>`}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Box>
+                    <Box>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        name="placetagFormat"
+                        value={placetagFormat}
+                        label={i18n("placetag_format", "占位符格式")}
+                        onChange={handleChange}
+                      >
+                        <MenuItem value="compact">
+                          {i18n("format_compact", "简洁格式 <a1>")}
+                        </MenuItem>
+                        <MenuItem value="attribute">
+                          {i18n("format_attribute", "属性格式 <a i=1>")}
+                        </MenuItem>
+                      </TextField>
+                    </Box>
+                  </Box>
+                </Box>
+              </>
+            )}
+            {hasTranslation &&
+              (API_SPE_TYPES.ai.has(apiType) ||
+                apiType === OPT_TRANS_QWENMT) && (
+                <TextField
+                  size="small"
+                  label={i18n("ai_terms")}
+                  helperText={i18n("ai_terms_helper")}
+                  name="aiTerms"
+                  value={aiTerms}
+                  onChange={handleChange}
+                  multiline
+                  maxRows={10}
+                />
+              )}
+
+            {sourceType === "network" && apiType !== OPT_TRANS_BUILTINAI && (
+              <>
+                {" "}
                 <CodeField
                   size="small"
-                  label={"Request Hook"}
-                  name="reqHook"
-                  value={reqHook}
+                  label={i18n("custom_header")}
+                  name="customHeader"
+                  value={customHeader}
                   onChange={handleChange}
                   maxRows={10}
-                  FormHelperTextProps={{
-                    component: "div",
-                  }}
-                  helperText={
-                    <Box component="pre" sx={{ overflowX: "auto" }}>
-                      {i18n("request_hook_helper")}
-                    </Box>
-                  }
+                  helperText={i18n("custom_header_help")}
                 />
                 <CodeField
                   size="small"
-                  label={"Response Hook"}
-                  name="resHook"
-                  value={resHook}
+                  label={i18n("custom_body")}
+                  name="customBody"
+                  value={customBody}
                   onChange={handleChange}
                   maxRows={10}
-                  FormHelperTextProps={{
-                    component: "div",
-                  }}
-                  helperText={
-                    <Box component="pre" sx={{ overflowX: "auto" }}>
-                      {i18n("response_hook_helper")}
-                    </Box>
-                  }
+                  helperText={i18n(
+                    apiType === OPT_TRANS_GEMINI
+                      ? "gemini_interactions_custom_body_help"
+                      : "custom_body_help"
+                  )}
                 />
               </>
             )}
-        </>
-      )}
+
+            {sourceType === "network" &&
+              hasTranslation &&
+              apiType !== OPT_TRANS_CUSTOMIZE &&
+              apiType !== OPT_TRANS_BUILTINAI && (
+                <>
+                  <CodeField
+                    size="small"
+                    label={"Request Hook"}
+                    name="reqHook"
+                    value={reqHook}
+                    onChange={handleChange}
+                    maxRows={10}
+                    FormHelperTextProps={{
+                      component: "div",
+                    }}
+                    helperText={
+                      <Box component="pre" sx={{ overflowX: "auto" }}>
+                        {i18n("request_hook_helper")}
+                      </Box>
+                    }
+                  />
+                  <CodeField
+                    size="small"
+                    label={"Response Hook"}
+                    name="resHook"
+                    value={resHook}
+                    onChange={handleChange}
+                    maxRows={10}
+                    FormHelperTextProps={{
+                      component: "div",
+                    }}
+                    helperText={
+                      <Box component="pre" sx={{ overflowX: "auto" }}>
+                        {i18n("response_hook_helper")}
+                      </Box>
+                    }
+                  />
+                </>
+              )}
+          </>
+        )}
 
       <Stack
         className="kt-api-detail__footer"

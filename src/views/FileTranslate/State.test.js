@@ -187,3 +187,23 @@ test("connected language follows extension changes and falls back to homepage af
     jest.useRealTimers();
   }
 });
+
+
+test("automatic reconnect clears the notice and refreshes extension context", async () => {
+  const client = makeClient();
+  client.session = { sessionId: "first", extensionVersion: "2.1.0" };
+  client.connect.mockResolvedValue(client.session);
+  client.request.mockResolvedValue({ scenes: {}, services: [], prompts: [], styles: [], models: [], ocrModels: [] });
+  getFileClient.mockReturnValue(client);
+  await act(async () => root.render(<FileTranslationProvider><Content /></FileTranslationProvider>));
+  await act(async () => client.emit({ type: "disconnected", error: new Error("lost") }));
+  expect(value.connected).toBe(false);
+  await act(async () => client.emit({ type: "reconnecting" }));
+  expect(container.textContent).toContain("Connecting");
+  client.session = { sessionId: "restored", extensionVersion: "2.1.0" };
+  const before = client.request.mock.calls.length;
+  await act(async () => client.emit({ type: "connected", reconnecting: true, session: client.session }));
+  expect(value.connected).toBe(true);
+  expect(container.textContent).not.toContain("lost");
+  expect(client.request.mock.calls.length).toBe(before + 1);
+});

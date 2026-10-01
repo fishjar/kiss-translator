@@ -1153,6 +1153,7 @@ const genOpenAI = ({
   key,
   systemPrompt,
   userPrompt,
+  imageData,
   model,
   temperature,
   maxTokens,
@@ -1164,7 +1165,10 @@ const genOpenAI = ({
 }) => {
   const userMsg = {
     role: "user",
-    content: userPrompt,
+    content: imageData ? [
+      { type: "image_url", image_url: { url: `data:${imageData.type};base64,${imageData.base64}` } },
+      { type: "text", text: userPrompt },
+    ] : userPrompt,
   };
   const body = {
     model,
@@ -1260,6 +1264,7 @@ const genGemini = ({
   key,
   systemPrompt,
   userPrompt,
+  imageData,
   model,
   temperature,
   maxTokens,
@@ -1314,10 +1319,15 @@ const genGemini = ({
     url += (url.includes("?") ? "&" : "?") + "alt=sse";
   }
 
-  const userMsg = { role: "user", parts: [{ text: userPrompt }] };
+  const userMsg = { role: "user", parts: [
+    ...(imageData ? [{ inlineData: { mimeType: imageData.type, data: imageData.base64 } }] : []),
+    { text: userPrompt },
+  ] };
 
   const body = {
-    systemInstruction: { parts: [{ text: systemPrompt }] },
+    ...(systemPrompt?.trim()
+      ? { systemInstruction: { parts: [{ text: systemPrompt }] } }
+      : {}),
     contents: [...hisMsgs, userMsg],
     generationConfig: {
       maxOutputTokens: maxTokens,
@@ -1366,6 +1376,7 @@ const genGemini2 = ({
   key,
   systemPrompt,
   userPrompt,
+  imageData,
   model,
   temperature,
   maxTokens,
@@ -1377,7 +1388,10 @@ const genGemini2 = ({
 }) => {
   const userMsg = {
     role: "user",
-    content: userPrompt,
+    content: imageData ? [
+      { type: "image_url", image_url: { url: `data:${imageData.type};base64,${imageData.base64}` } },
+      { type: "text", text: userPrompt },
+    ] : userPrompt,
   };
   const body = {
     model,
@@ -1408,6 +1422,7 @@ const genClaude = ({
   key,
   systemPrompt,
   userPrompt,
+  imageData,
   model,
   temperature,
   maxTokens,
@@ -1418,7 +1433,10 @@ const genClaude = ({
 }) => {
   const userMsg = {
     role: "user",
-    content: userPrompt,
+    content: imageData ? [
+      { type: "image", source: { type: "base64", media_type: imageData.type, data: imageData.base64 } },
+      { type: "text", text: userPrompt },
+    ] : userPrompt,
   };
   const body = {
     model,
@@ -1452,6 +1470,7 @@ const genOpenRouter = ({
   key,
   systemPrompt,
   userPrompt,
+  imageData,
   model,
   temperature,
   maxTokens,
@@ -1462,7 +1481,10 @@ const genOpenRouter = ({
 }) => {
   const userMsg = {
     role: "user",
-    content: userPrompt,
+    content: imageData ? [
+      { type: "image_url", image_url: { url: `data:${imageData.type};base64,${imageData.base64}` } },
+      { type: "text", text: userPrompt },
+    ] : userPrompt,
   };
   const body = {
     model,
@@ -1495,6 +1517,7 @@ const genOrcaRouter = ({
   key,
   systemPrompt,
   userPrompt,
+  imageData,
   model,
   temperature,
   maxTokens,
@@ -1505,7 +1528,10 @@ const genOrcaRouter = ({
 }) => {
   const userMsg = {
     role: "user",
-    content: userPrompt,
+    content: imageData ? [
+      { type: "image_url", image_url: { url: `data:${imageData.type};base64,${imageData.base64}` } },
+      { type: "text", text: userPrompt },
+    ] : userPrompt,
   };
   const body = {
     model,
@@ -1542,6 +1568,7 @@ const genRequesty = ({
   key,
   systemPrompt,
   userPrompt,
+  imageData,
   model,
   temperature,
   maxTokens,
@@ -1552,7 +1579,10 @@ const genRequesty = ({
 }) => {
   const userMsg = {
     role: "user",
-    content: userPrompt,
+    content: imageData ? [
+      { type: "image_url", image_url: { url: `data:${imageData.type};base64,${imageData.base64}` } },
+      { type: "text", text: userPrompt },
+    ] : userPrompt,
   };
   const body = {
     model,
@@ -1589,6 +1619,7 @@ const genOllama = ({
   key,
   systemPrompt,
   userPrompt,
+  imageData,
   model,
   temperature,
   maxTokens,
@@ -1599,7 +1630,10 @@ const genOllama = ({
 }) => {
   const userMsg = {
     role: "user",
-    content: userPrompt,
+    content: imageData ? [
+      { type: "image_url", image_url: { url: `data:${imageData.type};base64,${imageData.base64}` } },
+      { type: "text", text: userPrompt },
+    ] : userPrompt,
   };
   const body = {
     model,
@@ -1654,7 +1688,20 @@ const genCustom = ({ texts, fromLang, toLang, url, key, useBatchFetch }) => {
   return { url, body, headers };
 };
 
+const genLocalAI = ({ modelRef, device, systemPrompt, userPrompt, hisMsgs = [], temperature = 0, maxTokens = 20480 }) => {
+  const userMsg = { role: "user", content: userPrompt };
+  return {
+    url: "local-ai://chat", userMsg,
+    body: {
+      modelRef, loadSpec: { device: device || "webgpu" },
+      messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
+      temperature, maxTokens,
+    },
+  };
+};
+
 const genReqFuncs = {
+  [OPT_TRANS_LOCALAI]: genLocalAI,
   [OPT_TRANS_GOOGLE]: genGoogle,
   [OPT_TRANS_GOOGLE_2]: genGoogle2,
   [OPT_TRANS_GOOGLE_CLOUD]: genGoogleCloud,
@@ -1771,7 +1818,10 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     args.url = keyPick(apiSlug, args.url, urlMap);
   }
 
-  if (API_SPE_TYPES.ai.has(apiType)) {
+  if (args.vlmPrompt !== undefined) {
+    args.systemPrompt = "";
+    args.userPrompt = args.vlmPrompt;
+  } else if (API_SPE_TYPES.ai.has(apiType)) {
     const docInfo = externalDocInfo || getDocInfo();
 
     let baseSystemPrompt = events
@@ -1841,10 +1891,10 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   }
 
   // 合并用户自定义headers和body
-  if (customHeader?.trim()) {
+  if (apiType !== OPT_TRANS_LOCALAI && customHeader?.trim()) {
     Object.assign(headers, parseJsonObj(customHeader));
   }
-  if (customBody?.trim()) {
+  if (apiType !== OPT_TRANS_LOCALAI && customBody?.trim()) {
     Object.assign(body, parseJsonObj(customBody));
   }
 
@@ -1860,7 +1910,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   }
 
   // 执行 request hook
-  if (reqHook?.trim() && !events) {
+  if (apiType !== OPT_TRANS_LOCALAI && reqHook?.trim() && !events) {
     try {
       const req = {
         url,
@@ -1922,7 +1972,7 @@ export const parseTransRes = async (
   }
 ) => {
   // 执行 response hook
-  if (resHook?.trim()) {
+  if (apiType !== OPT_TRANS_LOCALAI && resHook?.trim()) {
     try {
       const interpreter = await getInterpreter();
       interpreter.run(`exports.resHook = ${resHook}`);
@@ -2019,6 +2069,14 @@ export const parseTransRes = async (
     case OPT_TRANS_QWENMT: {
       const content = res?.choices?.[0]?.message?.content;
       return typeof content === "string" ? [[content]] : [];
+    }
+    case OPT_TRANS_LOCALAI: {
+      const message = res?.choices?.[0]?.message;
+      const parsed = parseAIRes(message?.content, useBatchFetch, batchProtocol);
+      if (alignBatchTranslations(parsed, texts.length).length !== texts.length)
+        throw new Error("Local translation returned incomplete segments");
+      if (history && userMsg) history.addPair(userMsg, message);
+      return parsed;
     }
     case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_APIMART:
@@ -2131,6 +2189,7 @@ function parseDictRes(res, apiType) {
   switch (apiType) {
     case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_APIMART:
+    case OPT_TRANS_LOCALAI:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:
     case OPT_TRANS_OPENCODEGO:
@@ -2370,7 +2429,12 @@ export async function* handleTranslate(
     useStream,
   } = apiSetting;
   if (useContext && API_SPE_TYPES.context.has(apiType)) {
-    history = getMsgHistory(apiSlug, contextSize);
+    const historyKey = apiType === OPT_TRANS_LOCALAI
+      ? JSON.stringify([apiSlug, apiSetting.modelRef, apiSetting.device, fromLang, toLang,
+          apiSetting.systemPrompt, apiSetting.nobatchPrompt, apiSetting.nobatchUserPrompt,
+          apiSetting.batchUserPrompt, apiSetting.batchProtocol, apiSetting.tone, apiSetting.aiTerms,
+          apiSetting.temperature, apiSetting.maxTokens, apiSetting.useBatchFetch, glossary, contextSize]) : apiSlug;
+    history = getMsgHistory(historyKey, contextSize);
     hisMsgs = history.getAll();
   }
 
@@ -2411,6 +2475,7 @@ export async function* handleTranslate(
     if (!response) {
       throw new Error("translate got empty response");
     }
+    if (signal?.aborted) throw new DOMException("已取消", "AbortError");
     capture?.onResponse?.(response);
 
     const result = await parseTransRes(response, {
@@ -2752,6 +2817,7 @@ export const handleSubtitle = async ({
   switch (apiType) {
     case OPT_TRANS_EPHONEAI:
     case OPT_TRANS_APIMART:
+    case OPT_TRANS_LOCALAI:
     case OPT_TRANS_OPENAI:
     case OPT_TRANS_DEEPSEEK:
     case OPT_TRANS_OPENCODEGO:
@@ -3008,8 +3074,10 @@ export const handleSummarize = async ({
         method: "chat",
         payload: {
           modelRef: apiSetting.modelRef,
+          ...(apiSetting.device ? { loadSpec: { device: apiSetting.device } } : {}),
           messages,
-          maxTokens: 2048,
+          maxTokens: apiSetting.maxTokens ?? 2048,
+          ...(apiSetting.temperature !== undefined ? { temperature: apiSetting.temperature } : {}),
         },
       });
       if (typeof response === "string") return response.trim();

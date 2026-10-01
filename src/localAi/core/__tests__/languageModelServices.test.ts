@@ -42,10 +42,36 @@ function setup() {
   const load = (service: "llm" | "vlm", modelRef = targets[service]) => rpc(service, "load", { modelRef, loadSpec: { device: "wasm" } });
   return { manager, rpc, load, events, workers, delay: (ms: number) => { unloadDelay = ms; }, fail: () => { unloadFailure = true; }, noAck: () => { noAck = true; }, hold: () => { hold = true; } };
 }
-beforeEach(() => vi.stubGlobal("localStorage", { getItem: () => null, setItem: vi.fn() }));
+beforeEach(() => vi.stubGlobal("localStorage", { getItem: () => JSON.stringify({ exclusiveResourceMode: false }), setItem: vi.fn() }));
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("independent language model services", () => {
+  it("unloads the previous model by default before loading another service", async () => {
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem: vi.fn() });
+    const s = setup();
+    await s.load("llm"); await s.load("vlm");
+    expect(s.manager.getSessionState("llm").state).toBe("unloaded");
+    expect(s.manager.getSessionState("vlm").state).toBe("ready");
+    expect(s.events.indexOf("released:llm")).toBeLessThan(s.events.indexOf("load:vlm"));
+    await s.rpc("vlm", "unload");
+  });
+
+  it("passes explicit generation parameters and requested device to the worker", async () => {
+    const s = setup();
+    await s.load("llm");
+    const sent = vi.spyOn(s.workers[0], "postMessage");
+    const response = await s.rpc("llm", "chat", {
+      modelRef: targets.llm, loadSpec: { device: "wasm" },
+      messages: [{ role: "system", content: "Translate" }, { role: "user", content: "hello" }],
+      temperature: 0, maxTokens: 123,
+    });
+    expect(response.ok).toBe(true);
+    expect(sent).toHaveBeenCalledWith(expect.objectContaining({ type: "chat", temperature: 0, maxTokens: 123,
+      messages: [{ role: "system", content: "Translate" }, { role: "user", content: "hello" }] }));
+    expect(s.manager.getSessionState("llm").loadSpec?.device).toBe("wasm");
+    await s.rpc("llm", "unload");
+  });
+
   it("routes compatible catalog models and rejects cross-service targets", () => {
     expect(resolveModelTarget("vlm", { modelRef: targets.vlm }).spec.runtime).toBe("wllama");
     expect(resolveModelTarget("vlm", { modelRef: "glm-ocr-onnx-q4" }).spec.runtime).toBe("onnx");

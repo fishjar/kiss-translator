@@ -6,6 +6,8 @@ import {
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V3,
   SETTINGS_VERSION_V4,
+  CURRENT_SETTINGS_VERSION,
+  DEFAULT_VLM_PROMPT_SLUG,
   DEFAULT_SUBTITLE_SETTING,
   DEFAULT_API_LIST,
   OPT_TRANS_BUILTINAI,
@@ -74,7 +76,7 @@ describe("settings storage migration", () => {
     const stored = readStoredJson(STOKEY_SETTING);
 
     expect(backup).toEqual(oldSetting);
-    expect(stored.version).toBe(SETTINGS_VERSION_V4);
+    expect(stored.version).toBe(CURRENT_SETTINGS_VERSION);
     expect(stored.transApis[0].batchPromptSlug).toMatch(
       /^prompt_migrated_batch_/
     );
@@ -118,7 +120,7 @@ describe("settings storage migration", () => {
 
       expect(readStoredJson(STOKEY_SETTING)).toMatchObject({
         ...oldSetting,
-        version: SETTINGS_VERSION_V4,
+        version: CURRENT_SETTINGS_VERSION,
         darkMode: expected,
       });
       expect(readStoredJson(STOKEY_SETTING_BACKUP_V1_BEFORE_V2)).toBe(null);
@@ -133,7 +135,7 @@ describe("settings storage migration", () => {
       await runDataMigration();
 
       expect(readStoredJson(STOKEY_SETTING)).toMatchObject({
-        version: SETTINGS_VERSION_V4,
+        version: CURRENT_SETTINGS_VERSION,
         darkMode: "dark",
       });
       expect(setItem).toHaveBeenCalledTimes(2);
@@ -174,7 +176,7 @@ describe("settings storage migration", () => {
 
     const setting = await getSettingWithDefault();
 
-    expect(setting.version).toBe(SETTINGS_VERSION_V4);
+    expect(setting.version).toBe(CURRENT_SETTINGS_VERSION);
     expect(setting.transApis[0].batchPromptSlug).toMatch(
       /^prompt_migrated_batch_/
     );
@@ -195,7 +197,7 @@ describe("settings storage migration", () => {
       const setItem = jest.spyOn(window.Storage.prototype, "setItem");
       try {
         await expect(getSettingWithDefault()).resolves.toMatchObject({
-          version: SETTINGS_VERSION_V4,
+          version: CURRENT_SETTINGS_VERSION,
           darkMode: expected,
           uiLang: "en",
         });
@@ -207,6 +209,59 @@ describe("settings storage migration", () => {
       }
     }
   );
+
+  test.each([false, true])(
+    "migrates V4 visual references through storage (persist: %p)",
+    async (persist) => {
+      const oldSetting = {
+        version: SETTINGS_VERSION_V4,
+        uiLang: "en",
+        transApis: [
+          { apiSlug: "missing", apiType: OPT_TRANS_OPENAI, tone: "formal" },
+          { apiSlug: "custom", apiType: OPT_TRANS_OPENAI, vlmPromptSlug: "mine" },
+          { apiSlug: "empty", apiType: OPT_TRANS_OPENAI, vlmPromptSlug: "" },
+        ],
+        fileTranslateSetting: { image: { ocrGroup: "old", promptSlug: "translation" } },
+      };
+      const serialized = JSON.stringify(oldSetting);
+      window.localStorage.setItem(STOKEY_SETTING, serialized);
+      const setItem = jest.spyOn(window.Storage.prototype, "setItem");
+      try {
+        if (persist) await runDataMigration();
+        const setting = persist ? readStoredJson(STOKEY_SETTING) : await getSettingWithDefault();
+        expect(setting).toMatchObject({
+          version: CURRENT_SETTINGS_VERSION,
+          uiLang: "en",
+          transApis: [
+            { apiSlug: "missing", vlmPromptSlug: DEFAULT_VLM_PROMPT_SLUG, tone: "formal" },
+            { apiSlug: "custom", vlmPromptSlug: "mine" },
+            { apiSlug: "empty", vlmPromptSlug: "" },
+          ],
+          fileTranslateSetting: { image: { vlmPromptSlug: "", ocrGroup: "old", promptSlug: "translation" } },
+        });
+        if (persist) {
+          expect(setItem).toHaveBeenCalled();
+          setItem.mockClear();
+          await runDataMigration();
+          expect(setItem).not.toHaveBeenCalled();
+          expect(readStoredJson(STOKEY_SETTING)).toEqual(setting);
+        } else {
+          expect(setItem).not.toHaveBeenCalled();
+          expect(window.localStorage.getItem(STOKEY_SETTING)).toBe(serialized);
+        }
+      } finally {
+        setItem.mockRestore();
+      }
+    }
+  );
+
+  test("preserves explicit V4 image visual references through both storage entry points", async () => {
+    const oldSetting = { version: SETTINGS_VERSION_V4, fileTranslateSetting: { image: { vlmPromptSlug: "mine" } } };
+    window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(oldSetting));
+    expect((await getSettingWithDefault()).fileTranslateSetting.image.vlmPromptSlug).toBe("mine");
+    await runDataMigration();
+    expect(readStoredJson(STOKEY_SETTING).fileTranslateSetting.image.vlmPromptSlug).toBe("mine");
+  });
 
   test("merges the language variant default without overriding an explicit choice", async () => {
     window.localStorage.setItem(

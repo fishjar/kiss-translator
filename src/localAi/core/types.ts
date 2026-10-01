@@ -120,7 +120,7 @@ export interface InputAdjustment {
 export const DEFAULT_SETTINGS: Settings = {
   mirror: "hf-mirror",
   autoUnloadMinutes: 10,
-  exclusiveResourceMode: false,
+  exclusiveResourceMode: true,
   residentMemoryBudgetMB: 0,
   maxImageFileMB: 10,
   maxImageEdge: 1536,

@@ -270,6 +270,10 @@ export const fetchPatcher = async (input, init = {}, opts) => {
  * @returns {Promise<*>} 解析后的响应数据。
  */
 export const fetchHandle = async ({ input, init, opts = {} }) => {
+  if (input === "local-ai://chat") {
+    const { requestLocalChat } = await import("./localAiTransport");
+    return requestLocalChat(init, opts);
+  }
   const res = await fetchPatcher(input, init, opts);
   return parseResponse(res, opts.expect);
 };

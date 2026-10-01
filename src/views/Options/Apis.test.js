@@ -68,6 +68,13 @@ jest.mock("../../libs/modelList", () => ({
   fetchModelCatalog: jest.fn(),
 }));
 
+jest.mock("./LocalModelSelect", () => {
+  const React = require("react");
+  return function LocalModelSelect() {
+    return React.createElement("div", null, "本地模型选择");
+  };
+});
+
 jest.mock("./ReusableAutocomplete", () => {
   return function MockReusableAutocomplete({
     name,
@@ -100,6 +107,7 @@ const { useApiList, useApiItem } = require("../../hooks/Api");
 
 function createApi(overrides = {}) {
   return {
+    capabilities: ["translation", "segmentation", "dictionary"],
     apiSlug: "OpenAI",
     apiName: "OpenAI",
     apiType: OPT_TRANS_OPENAI,
@@ -2396,5 +2404,133 @@ describe("Apis unknown model thinking warning", () => {
     expect(infoAlert.textContent).toContain("goto_custom_api_example");
 
     view.unmount();
+  });
+});
+
+describe("service capability field filtering", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+  test.each(["ocr", "asr", "tts", "jev"])(
+    "local %s hides all language and translation fields",
+    async (cap) => {
+      const view = await renderApis(
+        createApi({
+          apiType: "LocalAI",
+          sourceType: "local",
+          capabilities: [cap],
+        })
+      );
+      try {
+        for (const field of [
+          "tone",
+          "temperature",
+          "maxTokens",
+          "translationPromptSlug",
+          "subtitlePromptSlug",
+          "dictPromptSlug",
+          "vlmPromptSlug",
+          "useStream",
+          "modelListUrl",
+        ])
+          expect(view.container.querySelector(`[name="${field}"]`)).toBeNull();
+        expect(view.container.textContent).toContain("本地模型选择");
+      } finally {
+        view.unmount();
+      }
+    }
+  );
+  test("local translation exposes working AI options without network fields", async () => {
+    const view = await renderApis(
+      createApi({
+        apiType: "LocalAI",
+        sourceType: "local",
+        capabilities: ["translation"],
+      })
+    );
+    try {
+      for (const field of [
+        "tone",
+        "temperature",
+        "maxTokens",
+        "translationPromptSlug",
+        "useStream",
+        "useContext",
+      ])
+        expect(
+          view.container.querySelector(`[name="${field}"]`)
+        ).not.toBeNull();
+      for (const field of [
+        "modelListUrl",
+        "subtitlePromptSlug",
+        "dictPromptSlug",
+        "vlmPromptSlug",
+      ])
+        expect(view.container.querySelector(`[name="${field}"]`)).toBeNull();
+    } finally {
+      view.unmount();
+    }
+  });
+  test("VLM only shows its prompt and shared generation fields once", async () => {
+    const { PRESET_PROMPTS } = require("../../config/prompt");
+    const view = await renderApis(
+      createApi({ capabilities: ["vlm"] }),
+      jest.fn(),
+      PRESET_PROMPTS
+    );
+    try {
+      expect(getInput(view.container, "vlmPromptSlug").value).toBe(
+        "vlm-document"
+      );
+      for (const field of [
+        "tone",
+        "translationPromptSlug",
+        "subtitlePromptSlug",
+        "dictPromptSlug",
+        "useContext",
+        "useStream",
+      ])
+        expect(view.container.querySelector(`[name="${field}"]`)).toBeNull();
+      expect(
+        view.container.querySelectorAll('[name="maxTokens"]')
+      ).toHaveLength(1);
+    } finally {
+      view.unmount();
+    }
+  });
+  test("changing capabilities hides fields without clearing their saved values", async () => {
+    const update = jest.fn();
+    const api = createApi({
+      capabilities: ["translation", "dictionary", "vlm"],
+      tone: "formal",
+      dictPromptSlug: "custom-dict",
+      useBatchFetch: true,
+    });
+    const view = await renderApis(api, update);
+    try {
+      const control = getInput(view.container, "capabilities").parentElement.querySelector('[role="combobox"], [role="button"]');
+      await act(async () => Simulate.mouseDown(control, { button: 0 }));
+      for (const name of ["translation", "dictionary"]) {
+        const option = Array.from(document.body.querySelectorAll('[role="option"]')).find((item) => item.textContent === name);
+        await act(async () => Simulate.click(option));
+      }
+      await act(async () => Simulate.keyDown(document.body.querySelector('[role="listbox"]'), { key: "Escape" }));
+      expect(view.container.querySelector('[name="tone"]')).toBeNull();
+      expect(
+        view.container.querySelector('[name="dictPromptSlug"]')
+      ).toBeNull();
+      await act(async () => Simulate.click(getSaveButton(view.container)));
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          capabilities: ["vlm"],
+          tone: "formal",
+          dictPromptSlug: "custom-dict",
+          useBatchFetch: true,
+        })
+      );
+    } finally {
+      view.unmount();
+    }
   });
 });

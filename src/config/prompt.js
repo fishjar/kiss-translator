@@ -60,6 +60,8 @@ export const PROMPT_CATEGORY_USER = "user prompt";
 export const PROMPT_CATEGORY_SUBTITLE = "subtitle prompt";
 export const PROMPT_CATEGORY_DICTIONARY = "dictionary prompt";
 export const PROMPT_CATEGORY_SUMMARY = "summary prompt";
+export const PROMPT_CATEGORY_VLM = "vlm prompt";
+export const DEFAULT_VLM_PROMPT_SLUG = "vlm-document";
 // 允许在设置界面“提示词管理”中展示和维护的分类列表
 export const PROMPT_TEMPLATE_CATEGORIES = [
   PROMPT_CATEGORY_USER,
@@ -67,6 +69,7 @@ export const PROMPT_TEMPLATE_CATEGORIES = [
   PROMPT_CATEGORY_SUBTITLE,
   PROMPT_CATEGORY_DICTIONARY,
   PROMPT_CATEGORY_SUMMARY,
+  PROMPT_CATEGORY_VLM,
 ];
 
 // 各类功能默认使用的提示词 Slug，当未配置时作为后备默认值
@@ -108,13 +111,36 @@ export const SETTINGS_VERSION_V1 = 1;
 export const SETTINGS_VERSION_V2 = 2;
 export const SETTINGS_VERSION_V3 = 3;
 export const SETTINGS_VERSION_V4 = 4;
-export const CURRENT_SETTINGS_VERSION = SETTINGS_VERSION_V4;
+export const SETTINGS_VERSION_V5 = 5;
+export const CURRENT_SETTINGS_VERSION = SETTINGS_VERSION_V5;
 
 /**
  * 预设的提示词列表。包含了系统出厂自带的各种场景提示词模板。
  * 用户不能删除预设提示词，但可以基于它们复制出自定义的模板。
  */
 export const PRESET_PROMPTS = [
+  {
+    slug: DEFAULT_VLM_PROMPT_SLUG,
+    category: PROMPT_CATEGORY_VLM,
+    nameKey: "preset_prompt_vlm_document",
+    name: "视觉解析（Markdown）",
+    systemPrompt: "",
+    userPrompt:
+      "Extract all text from the image. Preserve reading order and table structure. Output only the recognition result in Markdown, without explanations. Do not invent content that is not visible.",
+  },
+  ...[
+    ["vlm-glm-text", "GLM-OCR 文档", "Text Recognition:"],
+    ["vlm-paddle-text", "PaddleOCR-VL 文档", "OCR:"],
+    ["vlm-table", "表格识别", "Table Recognition:"],
+    ["vlm-formula", "公式识别", "Formula Recognition:"],
+    ["vlm-unlimited-document", "Unlimited-OCR 文档", "document parsing."],
+  ].map(([slug, name, userPrompt]) => ({
+    slug,
+    name,
+    userPrompt,
+    category: PROMPT_CATEGORY_VLM,
+    systemPrompt: "",
+  })),
   {
     slug: PROMPT_SLUG_NOBATCH_TRANSLATION_CONCISE,
     category: PROMPT_CATEGORY_USER,
@@ -463,6 +489,7 @@ export function getPromptCategoryDisplayName(category, i18n) {
     [PROMPT_CATEGORY_SUBTITLE]: "prompt_category_subtitle",
     [PROMPT_CATEGORY_DICTIONARY]: "prompt_category_dictionary",
     [PROMPT_CATEGORY_SUMMARY]: "prompt_category_summary",
+    [PROMPT_CATEGORY_VLM]: "prompt_category_vlm",
   };
 
   return i18n(keyMap[category], category || "");
@@ -557,6 +584,19 @@ export function getDictionaryPromptOptions(prompts = []) {
  * @param {Array} prompts 全部可用提示词列表
  * @returns {Array}
  */
+export function getVlmPromptOptions(prompts = []) {
+  return getPromptOptions(prompts, PROMPT_CATEGORY_VLM);
+}
+
+export function resolveVlmPrompt(userPrompts = [], slug) {
+  const prompt = findPromptBySlug(userPrompts, slug);
+  return (
+    prompt?.category === PROMPT_CATEGORY_VLM
+      ? prompt
+      : findPromptBySlug([], DEFAULT_VLM_PROMPT_SLUG)
+  ).userPrompt;
+}
+
 export function getSummaryPromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_SUMMARY);
 }
@@ -951,6 +991,30 @@ export function migrateSettingToV4(setting = {}) {
  * @param {string} promptSlug 被删除的提示词 Slug
  * @returns {Object} 更新引用后的配置对象副本
  */
+export function migrateSettingToV5(setting = {}) {
+  if (!setting || typeof setting !== "object") return setting;
+  const previous = migrateSettingToV4(setting);
+  if (getSettingVersion(previous) >= SETTINGS_VERSION_V5) return previous;
+  return {
+    ...previous,
+    version: SETTINGS_VERSION_V5,
+    transApis: previous.transApis?.map((api) => ({
+      ...api,
+      vlmPromptSlug: api.vlmPromptSlug ?? DEFAULT_VLM_PROMPT_SLUG,
+    })),
+    ...(previous.fileTranslateSetting && {
+      fileTranslateSetting: {
+        ...previous.fileTranslateSetting,
+        image: {
+          ...previous.fileTranslateSetting.image,
+          vlmPromptSlug:
+            previous.fileTranslateSetting.image?.vlmPromptSlug ?? "",
+        },
+      },
+    }),
+  };
+}
+
 export function removePromptReferences(setting = {}, promptSlug) {
   if (!promptSlug || isPresetPromptSlug(promptSlug)) {
     return setting;
@@ -1003,9 +1067,18 @@ export function removePromptReferences(setting = {}, promptSlug) {
       hasApiChanges = true;
     }
 
+    if (hasPromptReference(api, "vlmPromptSlug", promptSlug)) {
+      nextApi = { ...nextApi, vlmPromptSlug: DEFAULT_VLM_PROMPT_SLUG };
+      hasApiChanges = true;
+    }
     return nextApi;
   });
 
+  const hasVlmSceneReference = hasPromptReference(
+    setting.fileTranslateSetting?.image,
+    "vlmPromptSlug",
+    promptSlug
+  );
   const hasSubtitlePromptReference = hasPromptReference(
     setting?.subtitleSetting,
     "segPromptSlug",
@@ -1024,6 +1097,7 @@ export function removePromptReferences(setting = {}, promptSlug) {
 
   if (
     !hasApiChanges &&
+    !hasVlmSceneReference &&
     !hasSubtitlePromptReference &&
     !hasTranboxDictPromptReference &&
     !hasTranboxPromptReference
@@ -1032,6 +1106,12 @@ export function removePromptReferences(setting = {}, promptSlug) {
   }
 
   const nextSetting = { ...setting };
+  if (hasVlmSceneReference) {
+    nextSetting.fileTranslateSetting = {
+      ...setting.fileTranslateSetting,
+      image: { ...setting.fileTranslateSetting.image, vlmPromptSlug: "" },
+    };
+  }
 
   if (hasApiChanges) {
     nextSetting.transApis = transApis;

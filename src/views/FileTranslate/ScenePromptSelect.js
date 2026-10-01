@@ -2,6 +2,7 @@ import {
   PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_CATEGORY_DICTIONARY,
   PROMPT_CATEGORY_SUBTITLE,
+  PROMPT_CATEGORY_VLM,
   getPromptDisplayName,
 } from "../../config";
 import { SettingsSelect } from "../Options/SettingsCard";
@@ -12,6 +13,7 @@ export default function ScenePromptSelect({
   value,
   onChange,
   disabled = false,
+  category,
   label,
   fullWidth = false,
   hiddenLabel,
@@ -23,7 +25,11 @@ export default function ScenePromptSelect({
   const isHiddenLabel = hiddenLabel !== undefined ? hiddenLabel : !fullWidth;
 
   const translationPrompts = (Array.isArray(prompts) ? prompts : []).filter(
-    (prompt) => prompt?.category !== PROMPT_CATEGORY_DICTIONARY
+    (prompt) =>
+      category
+        ? prompt?.category === category
+        : prompt?.category !== PROMPT_CATEGORY_DICTIONARY &&
+          prompt?.category !== PROMPT_CATEGORY_VLM
   );
 
   const getLabel = (prompt) => {
