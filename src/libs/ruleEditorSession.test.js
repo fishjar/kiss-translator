@@ -154,6 +154,61 @@ test("candidates include the selected element and never copy text, links or inpu
   }
 });
 
+test("module selector recommendations survive committing to the draft", () => {
+  document.body.innerHTML = `
+    <main class="card">
+      <p class="before Cards-module__hash__title after" data-size="xl">Title</p>
+      <p class="Cards-module__hash__titleDescription" data-size="xl">Description</p>
+    </main>`;
+  const title = document.querySelector("p");
+  session.selectElement(title);
+  const recommendation = session.state.input;
+  expect(session.state.matches).toEqual([title]);
+  session.commitInput();
+  const stored = session.list().find((selector) => selector !== ".story");
+  expect(stored).toBe(recommendation);
+  title.className = "before Cards-module__newHash__title after";
+  expect(Array.from(document.querySelectorAll(stored))).toEqual([title]);
+  expect(session.state.dirty).toBe(true);
+  expect(saveSiteRule).not.toHaveBeenCalled();
+});
+
+test("uses the same point picker for hover and click and preserves picked alternatives", () => {
+  const link = document.querySelector("a");
+  const title = document.querySelector("p");
+  const resolve = jest
+    .spyOn(session.picker, "elementsAtPoint")
+    .mockReturnValue([title, link]);
+  session.pick();
+  link.dispatchEvent(
+    new MouseEvent("mousemove", { bubbles: true, clientX: 20, clientY: 30 })
+  );
+  link.dispatchEvent(
+    new MouseEvent("mousemove", { bubbles: true, clientX: 40, clientY: 50 })
+  );
+  expect(resolve).not.toHaveBeenCalled();
+  jest.advanceTimersByTime(20);
+  expect(resolve).toHaveBeenCalledTimes(1);
+  expect(resolve).toHaveBeenLastCalledWith(40, 50, link);
+  expect(session.highlights.show).toHaveBeenLastCalledWith([
+    { element: title },
+  ]);
+  link.dispatchEvent(
+    new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      clientX: 40,
+      clientY: 50,
+    })
+  );
+  expect(session.state.selected).toBe(title);
+  expect(session.state.pickElements).toEqual([title, link]);
+  session.selectElement(document.querySelector("main"));
+  expect(session.state.pickElements).toContain(title);
+  session.cancelPick();
+  expect(session.hoverFrame).toBeNull();
+});
+
 test("candidates stay ordered by match count after the page changes", async () => {
   session.selectElement(document.querySelector("a"));
   const expectSorted = () => {

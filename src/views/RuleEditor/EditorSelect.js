@@ -5,7 +5,7 @@ import { getEditorPortalContainer } from "./portal";
 
 // Keep the menu in the editor's shadow tree so Emotion styles and page
 // isolation apply to both the field and its popup.
-export default function EditorSelect({ sx, ...props }) {
+export default function EditorSelect({ sx, renderValue, ...props }) {
   const field = useRef(null);
   const navigateMenu = useMemo(
     () =>
@@ -28,6 +28,7 @@ export default function EditorSelect({ sx, ...props }) {
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
       SelectProps={{
+        renderValue,
         MenuProps: {
           container: () => getEditorPortalContainer(field.current),
           disableScrollLock: true,
@@ -47,6 +48,7 @@ export default function EditorSelect({ sx, ...props }) {
               border: "1px solid",
               borderColor: "var(--kt-linev)",
               borderRadius: "12px",
+              maxWidth: "min(480px, calc(100vw - 24px))",
               bgcolor: "var(--kt-sf1)",
               color: "var(--kt-on)",
               boxShadow: "var(--kt-shadow-2)",

@@ -377,6 +377,49 @@ test("site pattern supports custom input and dropdown choices without saving", a
   expect(session.save).not.toHaveBeenCalled();
 });
 
+test("element menu offers children and picked alternatives with text previews", async () => {
+  const page = document.createElement("main");
+  page.innerHTML =
+    '<div class="card"><a><img></a><div class="footer"><p>Card title</p></div></div>';
+  document.body.append(page);
+  const card = page.querySelector(".card");
+  const footer = page.querySelector(".footer");
+  const title = page.querySelector("p");
+  session.selectElement = jest.fn();
+  session.hoverElement = jest.fn();
+  Object.assign(session.getSnapshot(), {
+    inspectorOpen: true,
+    selected: card,
+    ancestors: [page, card],
+    pickElements: [title],
+  });
+  const shadow = mountInShadow();
+  await render();
+  const field = [...shadow.querySelectorAll('div[role="combobox"]')].find(
+    (node) => node.textContent === "div.card"
+  );
+  act(() =>
+    field.dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, button: 0 })
+    )
+  );
+  const list = shadow.querySelector('[role="listbox"]');
+  expect(list.textContent).toContain("rule_editor_children");
+  expect(list.textContent).toContain("rule_editor_atPoint");
+  const option = [...list.querySelectorAll('[role="option"]')].find((node) =>
+    node.textContent.startsWith("div.footer")
+  );
+  expect(option.textContent).toContain("Card title");
+  act(() =>
+    option.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }))
+  );
+  expect(session.hoverElement).toHaveBeenCalledWith(footer);
+  click(option);
+  expect(session.selectElement).toHaveBeenCalledWith(footer);
+  expect(session.save).not.toHaveBeenCalled();
+  page.remove();
+});
+
 test("the main save and exit controls use the explicit draft workflow", async () => {
   await render();
   click(
