@@ -189,10 +189,12 @@ export default function TranCont({
   // exhaustive-deps 告警形态（发布面：CRA 下 warning 即构建失败）。
   const { releaseHeight: releaseResultHeight } = resultHeightLock;
   useLayoutEffect(() => {
-    if (!trText.trim()) {
+    // 释放判据用原文而非译文：新请求发起时 trText 先被清空，若监听
+    // trText 会在重译同一原文时误删会话高度记忆；仅原文清空才彻底解锁。
+    if (!text?.trim()) {
       releaseResultHeight();
     }
-  }, [trText, releaseResultHeight]);
+  }, [text, releaseResultHeight]);
 
   // Resolve the translation API settings for this instance's slug.
   const apiSetting = useMemo(

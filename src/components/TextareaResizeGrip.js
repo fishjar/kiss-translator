@@ -683,11 +683,19 @@ export default function TextareaResizeGrip({
   // 缩小后可能超出当前播报上界，非有限锁定值已按未锁定回落处理，ARIA
   // slider 规范要求 valuenow 落在 [valuemin, valuemax] 区间内。valuetext
   // 与 valuenow 同源同钳，读屏播报口径一致。
+  // 播报下界随锁定态取同一钳制托底：锁定时真实可调下界是
+  // LOCKED_MIN_TARGET_HEIGHT_PX（三条钳制路径全托底于此），未锁定回落
+  // 路径才是 MIN_TARGET_HEIGHT_PX。播报上界恒不低于播报下界（病态视口
+  // 下托底），valuenow 按有效上界钳制，保证 ARIA 区间自洽。
+  const ariaValueMin = Number.isFinite(value)
+    ? LOCKED_MIN_TARGET_HEIGHT_PX
+    : MIN_TARGET_HEIGHT_PX;
+  const effectiveMax = Math.max(ariaValueMin, ariaValueMax);
   const reportedHeight = Math.max(
-    MIN_TARGET_HEIGHT_PX,
+    ariaValueMin,
     Math.min(
       Number.isFinite(value) ? Math.round(value) : fallbackHeight,
-      ariaValueMax
+      effectiveMax
     )
   );
 
@@ -702,13 +710,14 @@ export default function TextareaResizeGrip({
       // 语义为 vertical（光标形态 cursor: "ns-resize" 同口径）。
       aria-orientation="vertical"
       aria-label={label}
-      // Escape 为显式解锁快捷键（与双击等价），经 aria-keyshortcuts 向
-      // 辅助技术播报该键盘可达入口。
-      aria-keyshortcuts="Escape"
+      // aria-keyshortcuts 同时声明拖动/键盘操作键与解锁键：ArrowUp/Down
+      // 虽是 slider 角色的隐含约定，显式声明可让辅助技术完整播报键盘
+      // 契约；Escape 与双击等价，为显式解锁入口。
+      aria-keyshortcuts="ArrowUp ArrowDown Escape"
       title={unlockHint ? `${label}${unlockHint}` : label}
       tabIndex={0}
-      aria-valuemin={MIN_TARGET_HEIGHT_PX}
-      aria-valuemax={ariaValueMax}
+      aria-valuemin={ariaValueMin}
+      aria-valuemax={effectiveMax}
       aria-valuenow={reportedHeight}
       aria-valuetext={`${reportedHeight}px`}
       onPointerDown={handlePointerDown}

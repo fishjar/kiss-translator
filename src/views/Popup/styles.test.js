@@ -237,14 +237,15 @@ describe("separate translation window layout", () => {
   });
 
   test("leaves the result textarea resize behavior to TranCont inline styles", () => {
-    // 意见 B：窗口模式 CSS 不得压制 hidden 态原生 resize——
-    // resize:none 与 height:auto !important 均须移除，由内联样式全态接管。
+    // 窗口模式 CSS 不得压制 hidden 态原生 resize（resize 归 TranCont 内联
+    // 样式全态接管）；height:auto !important 仅中和 TextareaAutosize 写入
+    // 的内联高度，使 flex 拉伸在未锁定短文本窗口态生效（防再删护栏）。
     const textareaRule = POPUP_STYLES.match(
       /\.kt-popup-shell--window \.kt-translation-result textarea:not\(\[aria-hidden="true"\]\)\s*\{([^}]*)\}/
     )?.[1];
     expect(textareaRule).toBeDefined();
     expect(textareaRule).not.toMatch(/resize\s*:/);
-    expect(textareaRule).not.toMatch(/height:\s*auto\s*!important/);
+    expect(textareaRule).toContain("height: auto !important");
     // 保留布局声明：flex/min-height 承载窗口拉伸，overflow-y 维持滚动语义。
     expect(textareaRule).toContain("flex: 1");
     expect(textareaRule).toContain("min-height: 140px");
@@ -315,12 +316,16 @@ describe("popup window result textarea flex chain", () => {
     expect(textareaRule).toContain("min-height: 140px");
   });
 
-  test("never reintroduces a css height or resize override on the result textarea", () => {
+  test("never reintroduces a css resize override or fixed height on the result textarea", () => {
     const textareaRule = POPUP_STYLES.match(
       /\.kt-popup-shell--window \.kt-translation-result textarea:not\(\[aria-hidden="true"\]\)\s*\{([^}]*)\}/
     )?.[1];
     expect(textareaRule).toBeDefined();
-    expect(textareaRule).not.toMatch(/(?:^|[^-])height\s*:/);
+    // height 唯一合法形态是中和 TextareaAutosize 的 auto !important；任何
+    // 固定像素/计算值高度与 resize 覆盖仍一律禁止。
+    expect(textareaRule.replace("height: auto !important", "")).not.toMatch(
+      /(?:^|[^-])height\s*:/
+    );
     expect(textareaRule).not.toMatch(/resize\s*:/);
   });
 });

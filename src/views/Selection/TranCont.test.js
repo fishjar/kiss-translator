@@ -264,6 +264,46 @@ describe("TranCont", () => {
     act(() => root.unmount());
   });
 
+  // 重译同一原文不得清掉会话高度记忆：新请求内部 setTrText("") 只是
+  // 中间态，释放判据须跟原文（text）走（契约：记忆在原文存续期内有效）。
+  // 断言路径复用同 apiSlug 的二次挂载实例（会话记忆键随 apiSlug，重挂载
+  // 恢复），两次断言取同一元素（.MuiInputBase-root 承载锁定类与内联高度，
+  // 与上方清空释放用例同口径）。
+  test("keeps the remembered height when a new request reuses the same source text", async () => {
+    __resetSessionHeightMapForTests();
+    apiTranslate.mockResolvedValueOnce({ trText: "第一版" });
+    const first = renderTranCont();
+    await flushEffects();
+    const firstRoot = first.container
+      .querySelector(
+        '.kt-translation-result textarea:not([aria-hidden="true"])'
+      )
+      .closest(".MuiInputBase-root");
+    const grip = firstRoot.querySelector('[role="slider"]');
+    await act(async () => {
+      grip.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })
+      );
+    });
+    const locked = firstRoot.style.height;
+    expect(locked).not.toBe("");
+    act(() => first.root.unmount());
+
+    // 同 apiSlug 同原文二次挂载：新请求内部会先 setTrText("") 再到达译文，
+    // 记忆必须存活（修复前会被中间态清空判据误删）。
+    apiTranslate.mockResolvedValueOnce({ trText: "重译" });
+    const second = renderTranCont();
+    await flushEffects();
+    const secondRoot = second.container
+      .querySelector(
+        '.kt-translation-result textarea:not([aria-hidden="true"])'
+      )
+      .closest(".MuiInputBase-root");
+    expect(secondRoot.classList).toContain("kt-height-locked");
+    expect(secondRoot.style.height).toBe(locked);
+    act(() => second.root.unmount());
+  });
+
   // 并存多实例（TranForm 以 key={slug} 渲染多个结果实例）时，会话高度
   // 记忆必须按 apiSlug 隔离：共享键会让后挂载实例改写/清除先挂载实例
   // 的记忆。断言面为会话记忆内容（挂载期空内容释放 effect 会抹平 DOM

@@ -139,9 +139,11 @@ describe("TextareaResizeGrip", () => {
     expect(grip.getAttribute("aria-valuemax")).toBe("600");
     expect(grip.getAttribute("aria-valuetext")).toBe("120px");
     expect(grip.tabIndex).toBe(0);
-    // Escape 是显式解锁快捷键（与双击等价），读屏与辅助技术经
-    // aria-keyshortcuts 获知该键盘可达入口。
-    expect(grip.getAttribute("aria-keyshortcuts")).toBe("Escape");
+    // aria-keyshortcuts 完整播报键盘契约：ArrowUp/Down 调整 + Escape
+    // 显式解锁（与双击等价），读屏与辅助技术经该属性获知全部入口。
+    expect(grip.getAttribute("aria-keyshortcuts")).toBe(
+      "ArrowUp ArrowDown Escape"
+    );
     await act(async () => root.unmount());
   });
 
@@ -163,6 +165,34 @@ describe("TextareaResizeGrip", () => {
     expect(grip.getAttribute("aria-valuenow")).toBe("128");
     expect(grip.getAttribute("aria-valuetext")).toBe("128px");
     await act(async () => root.unmount());
+  });
+
+  // ARIA 下界契约：播报下界随锁定态取同一钳制托底口径——锁定态（value
+  // 为有限数）真实可调下界是 LOCKED_MIN_TARGET_HEIGHT_PX（64），未锁定
+  // 回落路径才是 MIN_TARGET_HEIGHT_PX（40）；valuemin/valuemax/valuenow
+  // 三者必须构成自洽区间（valuenow 落在 [valuemin, valuemax]）。
+  test("reports the locked lower bound in aria-valuemin and keeps the slider range self-consistent", async () => {
+    const onResize = jest.fn();
+    const { grip: lockedGrip, root: lockedRoot } = await renderGrip(
+      onResize,
+      120
+    );
+    expect(lockedGrip.getAttribute("aria-valuemin")).toBe("64");
+    expect(
+      Number(lockedGrip.getAttribute("aria-valuemax"))
+    ).toBeGreaterThanOrEqual(64);
+    const lockedNow = Number(lockedGrip.getAttribute("aria-valuenow"));
+    expect(lockedNow).toBeGreaterThanOrEqual(64);
+    expect(lockedNow).toBeLessThanOrEqual(
+      Number(lockedGrip.getAttribute("aria-valuemax"))
+    );
+    await act(async () => lockedRoot.unmount());
+
+    const { grip: unlockedGrip, root: unlockedRoot } = await renderGrip(
+      onResize
+    );
+    expect(unlockedGrip.getAttribute("aria-valuemin")).toBe("40");
+    await act(async () => unlockedRoot.unmount());
   });
 
   // aria-valuemax 不得停留在初始视口保守值：拖拽/键盘会话经 clampHeight
@@ -946,8 +976,9 @@ describe("TextareaResizeGrip", () => {
     await act(async () => root.unmount());
   });
 
-  // 病态视口护栏：innerHeight 低于最小目标高度（40px）时，valuemax 不得
-  // 掉到 valuemin 之下；播报值经双向钳制后恒落在 [valuemin, valuemax]。
+  // 病态视口护栏：innerHeight 低于锁定下界（64px）时，ARIA 区间仍须自洽
+  // ——锁定态 valuemin=64，valuemax 经 effectiveMax 托底恒不低于 valuemin，
+  // valuenow 被有效上界钳制，三者同落 64px。
   test("keeps the slider bounds sane when the viewport is below the minimum height", async () => {
     Object.defineProperty(window, "innerHeight", {
       configurable: true,
@@ -955,9 +986,10 @@ describe("TextareaResizeGrip", () => {
     });
     const onResize = jest.fn();
     const { grip, root } = await renderGrip(onResize, 120);
-    expect(grip.getAttribute("aria-valuemax")).toBe("40");
-    expect(grip.getAttribute("aria-valuenow")).toBe("40");
-    expect(grip.getAttribute("aria-valuetext")).toBe("40px");
+    expect(grip.getAttribute("aria-valuemin")).toBe("64");
+    expect(grip.getAttribute("aria-valuemax")).toBe("64");
+    expect(grip.getAttribute("aria-valuenow")).toBe("64");
+    expect(grip.getAttribute("aria-valuetext")).toBe("64px");
     await act(async () => root.unmount());
   });
 });

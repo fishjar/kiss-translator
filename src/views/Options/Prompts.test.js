@@ -493,8 +493,8 @@ describe("Prompts", () => {
   });
 
   // 会话高度记忆按提示词 slug 隔离：切换选中提示词后字段不得继承上一份
-  // 提示词的锁定态（key={slug} remount + lockKey 随 slug），切回时恢复
-  // 各自记忆。
+  // 提示词的锁定态（编辑器 DOM 不重挂载，隔离由 hook lockKey 含 slug 承
+  // 担，见上方 B5 注释），切回时恢复各自记忆。
   test("scopes prompt height memories per prompt slug across selection switches", async () => {
     __resetSessionHeightMapForTests();
     const promptA = createPrompt(PROMPT_CATEGORY_USER, {

@@ -22,6 +22,7 @@ import { css } from "@emotion/css";
 import { getRandomQuote } from "../../config/quotes";
 import { useSetting } from "../../hooks/Setting";
 import { GripGlyph } from "../../components/TextareaResizeGrip";
+import { TEXTAREA_GRIP_STYLE_KEYS } from "../../config/textareaGripStyles";
 import { useTextareaGripStyle } from "../../hooks/useTextareaHeightLock";
 import {
   SettingsCard,
@@ -304,103 +305,13 @@ export default function StylesSetting() {
               value={gripStyle}
               label={i18n("settings_textarea_grip_style")}
               onChange={(value) => updateSetting({ textareaGripStyle: value })}
-              options={[
-                {
-                  value: "concentric-smooth",
-                  label: gripOptionLabel(
-                    "concentric-smooth",
-                    i18n("grip_style_concentric_smooth")
-                  ),
-                },
-                {
-                  value: "concentric-triple",
-                  label: gripOptionLabel(
-                    "concentric-triple",
-                    i18n("grip_style_concentric_triple")
-                  ),
-                },
-                {
-                  value: "corner-pill",
-                  label: gripOptionLabel(
-                    "corner-pill",
-                    i18n("grip_style_corner_pill")
-                  ),
-                },
-                {
-                  value: "dotted-concentric",
-                  label: gripOptionLabel(
-                    "dotted-concentric",
-                    i18n("grip_style_dotted_concentric")
-                  ),
-                },
-                {
-                  value: "dotted-single",
-                  label: gripOptionLabel(
-                    "dotted-single",
-                    i18n("grip_style_dotted_single")
-                  ),
-                },
-                {
-                  value: "triple-chevrons",
-                  label: gripOptionLabel(
-                    "triple-chevrons",
-                    i18n("grip_style_triple_chevrons")
-                  ),
-                },
-                {
-                  value: "diagonal-arrow",
-                  label: gripOptionLabel(
-                    "diagonal-arrow",
-                    i18n("grip_style_diagonal_arrow")
-                  ),
-                },
-                {
-                  value: "dual-pills",
-                  label: gripOptionLabel(
-                    "dual-pills",
-                    i18n("grip_style_dual_pills")
-                  ),
-                },
-                {
-                  value: "expanding-beads",
-                  label: gripOptionLabel(
-                    "expanding-beads",
-                    i18n("grip_style_expanding_beads")
-                  ),
-                },
-                {
-                  value: "chevrons-star",
-                  label: gripOptionLabel(
-                    "chevrons-star",
-                    i18n("grip_style_chevrons_star")
-                  ),
-                },
-                {
-                  value: "symmetric-division",
-                  label: gripOptionLabel(
-                    "symmetric-division",
-                    i18n("grip_style_symmetric_division")
-                  ),
-                },
-                {
-                  value: "percent-style",
-                  label: gripOptionLabel(
-                    "percent-style",
-                    i18n("grip_style_percent_style")
-                  ),
-                },
-                {
-                  value: "orbit-satellite",
-                  label: gripOptionLabel(
-                    "orbit-satellite",
-                    i18n("grip_style_orbit_satellite")
-                  ),
-                },
-                {
-                  value: "hidden",
-                  label: gripOptionLabel("hidden", i18n("grip_style_hidden")),
-                },
-              ]}
+              options={TEXTAREA_GRIP_STYLE_KEYS.map((key) => ({
+                value: key,
+                label: gripOptionLabel(
+                  key,
+                  i18n(`grip_style_${key.replace(/-/g, "_")}`)
+                ),
+              }))}
             />
           </SettingsRow>
         </SettingsCard>

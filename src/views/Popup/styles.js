@@ -34,9 +34,13 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-shell--window .kt-translation-result > .MuiFormControl-root,
 .kt-popup-shell--window .kt-translation-result .MuiInputBase-root { flex: 1; }
 .kt-popup-shell--window .kt-translation-result .MuiInputBase-root { align-items: stretch; }
-/* Layout only here: TranCont inline styles own resize/height in both hidden
-   and non-hidden grip states (CSS overrides would kill the hidden fallback). */
-.kt-popup-shell--window .kt-translation-result textarea:not([aria-hidden="true"]) { flex: 1; min-height: 140px; overflow-y: auto !important; }
+/* height:auto !important 中和 multiline maxRows 走 TextareaAutosize 写入
+   textarea 的内联 height/overflow（TranCont 内联样式只管
+   resize/boxSizing/padding，从不写 height；锁定态高度写在 FormControl
+   root 上，不落在 textarea），使 flex:1 + align-items:stretch 的拉伸在
+   未锁定短文本窗口态仍生效。resize/overflow 归 TranCont 内联样式管
+   （hidden 态回落 vertical 不能被 CSS 覆盖）。 */
+.kt-popup-shell--window .kt-translation-result textarea:not([aria-hidden="true"]) { flex: 1; height: auto !important; min-height: 140px; overflow-y: auto !important; }
 
 .kt-popup-shell.kt-popup-shell--content {
   width: 100%;

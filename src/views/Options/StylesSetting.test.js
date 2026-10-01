@@ -3,8 +3,6 @@ import { createRoot } from "react-dom/client";
 import { css as mockCss } from "@emotion/css";
 import StylesSetting, { StyleAccordion } from "./StylesSetting";
 import { TEXTAREA_GRIP_STYLE_KEYS } from "../../config/textareaGripStyles";
-import fs from "fs";
-import path from "path";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -344,26 +342,19 @@ describe("StylesSetting textarea grip section", () => {
     view.container.remove();
   });
 
-  test("keeps every grip_style_* i18n key used by options derived from the shared list", () => {
-    // i18n 键对账护栏：StylesSetting 选项 JSX 内联硬编码的 i18n("grip_style_*")
-    // 字面量集合必须与单一事实源派生集合恒等（下划线形态归一回连字符）。
-    // 方法论：选项内联在 JSX 中无法直接 import 数据结构，故以源文本正则提取；
-    // 局限＝与 i18n("...") 书写形态耦合，调用形式变更时提取器需同步。
-    const source = fs.readFileSync(
-      path.join(__dirname, "StylesSetting.js"),
-      "utf8"
+  test("renders every grip style key as an option derived from the shared list", async () => {
+    // 派生对账护栏：选项改由 TEXTAREA_GRIP_STYLE_KEYS.map 派生后，以
+    // 渲染面取代源码正则（正则提取器已无提取对象，活性自检失去意义）。
+    // 断言：下拉选项 value 集合与单一事实源恒等、顺序一致；MUI Menu 经
+    // portal 挂载到 document.body，与同套件其余用例同取径。
+    const view = renderGripSection();
+    await openGripSelect(view.container);
+    const values = [...document.body.querySelectorAll('[role="option"]')].map(
+      (node) => node.getAttribute("data-value")
     );
-    const used = [...source.matchAll(/i18n\("grip_style_([a-z_]+)"\)/g)].map(
-      (m) => m[1].replace(/_/g, "-")
-    );
-    // 提取器活性自检：必须命中 14 处，防正则失配导致集合为空而恒绿。
-    expect(used).toHaveLength(14);
-    expect(new Set(used).size).toBe(used.length);
-    // 判红能力自检：截短集必须判不等，防比较自身退化为恒真。
-    expect(used.sort()).not.toEqual(
-      [...TEXTAREA_GRIP_STYLE_KEYS].slice(0, 13).sort()
-    );
-    expect(used.sort()).toEqual([...TEXTAREA_GRIP_STYLE_KEYS].sort());
+    expect(values).toEqual([...TEXTAREA_GRIP_STYLE_KEYS]);
+    await act(async () => view.root.unmount());
+    view.container.remove();
   });
 
   test("persists the selected grip style as a plain string value", async () => {
