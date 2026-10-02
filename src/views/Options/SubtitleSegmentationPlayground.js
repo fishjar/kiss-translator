@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -40,12 +40,30 @@ import {
 } from "../../subtitle/subtitleSegmentationMetrics";
 import { DEFAULT_PARAMS } from "../../subtitle/sentenceBreaker";
 import { buildBilingualVtt } from "../../subtitle/vtt";
+import TextareaResizeGrip from "../../components/TextareaResizeGrip";
+import useTextareaHeightLock, {
+  useTextareaGripStyle,
+  useReleaseOnGripHidden,
+} from "../../hooks/useTextareaHeightLock";
 
 const SAMPLE_BASE_URL = `${process.env.REACT_APP_SITEURL}/subtitle-samples`;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MAX_UPLOAD_EVENTS = 100000;
 // 原始数据和结果框默认显示五行，并允许用户从右下角按需拉高查看区域。
+// 非 hidden 手柄样式下 textarea 的自绘手柄独占右下角，原生 resize 用
+// !important 压死；hidden 变体完全不渲染手柄（B1），textarea 回退原生
+// resize——两态各为模块级常量，调用点按 gripStyle 三元选择，保持零渲染
+// 期分配与共享引用。
 const RESIZABLE_TEXT_FIELD_SX = {
+  "& .MuiInputBase-root": {
+    overflow: "visible",
+  },
+  '& textarea:not([aria-hidden="true"])': {
+    resize: "none !important",
+    overflow: "auto !important",
+  },
+};
+const NATIVE_RESIZE_TEXT_FIELD_SX = {
   "& .MuiInputBase-root": {
     overflow: "visible",
   },
@@ -180,6 +198,25 @@ export default function SubtitleSegmentationPlayground({
   // 索引只应拉取一次，通过 ref 读取当前语言，避免翻译函数变化导致重复请求。
   const i18nRef = useRef(i18n);
   i18nRef.current = i18n;
+  const gripStyle = useTextareaGripStyle();
+  const sourceHeightLock = useTextareaHeightLock("subtitle-playground-source");
+  const resultHeightLock = useTextareaHeightLock("subtitle-playground-result");
+  useReleaseOnGripHidden(gripStyle, sourceHeightLock.releaseHeight);
+  useReleaseOnGripHidden(gripStyle, resultHeightLock.releaseHeight);
+
+  // 内容清空 → 彻底解锁：清除会话高度记忆并还原 root，手柄随内容门控
+  // 消失；门控表达式的锁定分支保留（服务于「有内容且已锁」的存续态）。
+  // resultText 在下方派生声明，其解锁 effect 紧随声明之后（规避 TDZ）。
+  // useLayoutEffect：空内容解锁须先于绘制，防重挂载首帧以记忆高度闪现。
+  // releaseHeight 为 useCallback([lockKey]) 产物（lockKey 不变则引用恒
+  // 定），经解构取稳定引用后进依赖数组——消除对 hook 返回对象整体的
+  // exhaustive-deps 告警形态（发布面：CRA 下 warning 即构建失败）。
+  const { releaseHeight: releaseSourceHeight } = sourceHeightLock;
+  useLayoutEffect(() => {
+    if (!(sourceText || "").trim()) {
+      releaseSourceHeight();
+    }
+  }, [sourceText, releaseSourceHeight]);
 
   const segApi = useMemo(
     () =>
@@ -509,6 +546,16 @@ export default function SubtitleSegmentationPlayground({
       : JSON.stringify(result, null, 2)
     : "";
 
+  // 结果内容清空（切语言/换样本等）→ 彻底解锁结果框高度锁。
+  // useLayoutEffect：空内容解锁须先于绘制，防重挂载首帧以记忆高度闪现。
+  // releaseHeight 解构稳定引用进依赖（同 source 侧，消除 exhaustive-deps）。
+  const { releaseHeight: releaseResultHeight } = resultHeightLock;
+  useLayoutEffect(() => {
+    if (!(resultText || "").trim()) {
+      releaseResultHeight();
+    }
+  }, [resultText, releaseResultHeight]);
+
   const downloadResult = () => {
     if (!resultText) return;
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -801,16 +848,40 @@ export default function SubtitleSegmentationPlayground({
             multiline
             rows={5}
             value={sourceText}
-            InputProps={{ readOnly: true }}
+            inputRef={sourceHeightLock.textareaRef}
+            InputProps={{
+              ...sourceHeightLock.rootProps,
+              readOnly: true,
+              endAdornment:
+                sourceText.trim() ||
+                sourceHeightLock.lockedHeight != null ? (
+                  <TextareaResizeGrip
+                    target={sourceHeightLock.textareaRef}
+                    onResize={sourceHeightLock.applyHeight}
+                    value={sourceHeightLock.lockedHeight}
+                    label={i18n("field_resize_height")}
+                    variant={gripStyle}
+                    onRelease={sourceHeightLock.releaseHeight}
+                    unlockHint={i18n("field_resize_unlock_hint")}
+                  />
+                ) : null,
+            }}
             inputProps={{
               className: "kt-resizable-textarea",
-              style: { resize: "vertical", overflow: "auto" },
+              style: {
+                resize: gripStyle === "hidden" ? "vertical" : "none",
+                overflow: "auto",
+              },
               "aria-label": i18n(
                 "subtitle_playground_source_json",
                 "原始字幕 JSON"
               ),
             }}
-            sx={RESIZABLE_TEXT_FIELD_SX}
+            sx={
+              gripStyle === "hidden"
+                ? NATIVE_RESIZE_TEXT_FIELD_SX
+                : RESIZABLE_TEXT_FIELD_SX
+            }
           />
         </Box>
         <Box sx={{ minWidth: 0 }}>
@@ -824,13 +895,37 @@ export default function SubtitleSegmentationPlayground({
               multiline
               rows={5}
               value={resultText}
-              InputProps={{ readOnly: true }}
+              inputRef={resultHeightLock.textareaRef}
+              InputProps={{
+                ...resultHeightLock.rootProps,
+                readOnly: true,
+                endAdornment:
+                  (resultText || "").trim() ||
+                  resultHeightLock.lockedHeight != null ? (
+                    <TextareaResizeGrip
+                      target={resultHeightLock.textareaRef}
+                      onResize={resultHeightLock.applyHeight}
+                      value={resultHeightLock.lockedHeight}
+                      label={i18n("field_resize_height")}
+                      variant={gripStyle}
+                      onRelease={resultHeightLock.releaseHeight}
+                      unlockHint={i18n("field_resize_unlock_hint")}
+                    />
+                  ) : null,
+              }}
               inputProps={{
                 className: "kt-resizable-textarea",
-                style: { resize: "vertical", overflow: "auto" },
+                style: {
+                  resize: gripStyle === "hidden" ? "vertical" : "none",
+                  overflow: "auto",
+                },
                 "aria-label": i18n("subtitle_playground_result", "断句结果"),
               }}
-              sx={RESIZABLE_TEXT_FIELD_SX}
+              sx={
+                gripStyle === "hidden"
+                  ? NATIVE_RESIZE_TEXT_FIELD_SX
+                  : RESIZABLE_TEXT_FIELD_SX
+              }
             />
             <Stack
               direction="row"

@@ -24,6 +24,13 @@ jest.mock("../../libs/speech", () => ({
 }));
 jest.mock("../../hooks/Audio", () => ({ useAudio: jest.fn() }));
 jest.mock("query-string", () => ({ stringify: jest.fn() }));
+// 手柄样式 hook 现静态 import ./Setting（读取全局 gripStyle）。顶层 import 会把
+// Setting 的 Storage→sync→webdav(ESM) 依赖链拉进本测试模块图；webdav 未被 Jest
+// 转译会解析崩溃。最小 mock ./Setting 斩断链，useTextareaGripStyle 回落缺省
+// concentric-smooth，与本用例既有断言一致。（与 TerminologyPlayground.test.js 同法。）
+jest.mock("../../hooks/Setting", () => ({
+  useSetting: () => ({ setting: {} }),
+}));
 jest.mock("../../views/Selection/DictCont", () => () => null);
 jest.mock("../../views/Selection/AiDictCont", () => () => null);
 jest.mock("../../views/Selection/SugCont", () => () => null);

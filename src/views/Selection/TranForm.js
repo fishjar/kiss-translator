@@ -46,6 +46,11 @@ import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import { isShadowHostMoving } from "../../libs/shadowHost";
+import TextareaResizeGrip from "../../components/TextareaResizeGrip";
+import useTextareaHeightLock, {
+  useTextareaGripStyle,
+  useReleaseOnGripHidden,
+} from "../../hooks/useTextareaHeightLock";
 
 export const formatLanguageOptionName = (name) => {
   const parts = String(name || "")
@@ -177,10 +182,30 @@ export default function TranForm({
   const focusedTextControlRef = useRef(null);
   const previousSimpleStyleRef = useRef(simpleStyle);
   const [isShadowMenu, setIsShadowMenu] = useState(false);
+  const gripStyle = useTextareaGripStyle();
+  const sourceHeightLock = useTextareaHeightLock(
+    isPlaygound ? "tranform-source-playground" : "tranform-source"
+  );
+  useReleaseOnGripHidden(gripStyle, sourceHeightLock.releaseHeight);
+
+  // 内容清空 → 彻底解锁：清除会话高度记忆并还原 root，手柄随内容门控
+  // 消失；门控表达式的锁定分支保留（服务于「有内容且已锁」的存续态）。
+  // useLayoutEffect：空内容解锁须先于绘制，防重挂载首帧以记忆高度闪现。
+  // releaseHeight/textareaRef 经解构取稳定引用后进依赖数组：releaseHeight
+  // 是 useCallback([lockKey]) 产物（lockKey 不变则引用恒定），textareaRef
+  // 是 useRef 产物（身份恒定）——行为零变更，消除对 hook 返回对象整体的
+  // exhaustive-deps 告警形态（发布面：CRA 下 warning 即构建失败）。
+  const { textareaRef, releaseHeight } = sourceHeightLock;
+  useLayoutEffect(() => {
+    if (!editText.trim()) {
+      releaseHeight();
+    }
+  }, [editText, releaseHeight]);
   const setInputRef = useCallback((input) => {
     inputRef.current = input;
+    textareaRef.current = input;
     setIsShadowMenu(Boolean(input?.getRootNode()?.host));
-  }, []);
+  }, [textareaRef]);
   const selectMenuProps = useMemo(
     () => ({
       container: () => inputRef.current?.closest(".kt-m3-root"),
@@ -840,7 +865,7 @@ export default function TranForm({
               inputProps={{
                 className: "kt-resizable-textarea",
                 style: {
-                  resize: "vertical",
+                  resize: gripStyle === "hidden" ? "vertical" : "none",
                   ...(isPlaygound
                     ? {}
                     : { boxSizing: "border-box", paddingInlineEnd: 16 }),
@@ -849,9 +874,6 @@ export default function TranForm({
               sx={{
                 "& .MuiInputBase-root": {
                   overflow: "visible",
-                },
-                '& textarea:not([aria-hidden="true"])': {
-                  resize: "vertical",
                 },
               }}
               value={editText}
@@ -869,64 +891,79 @@ export default function TranForm({
                 }
               }}
               InputProps={{
+                ...sourceHeightLock.rootProps,
                 endAdornment: (
-                  <Stack
-                    className={
-                      isPlaygound
-                        ? "kt-translation-text-field__actions"
-                        : undefined
-                    }
-                    direction="row"
-                    sx={
-                      isPlaygound
-                        ? undefined
-                        : {
-                            position: "absolute",
-                            right: 0,
-                            top: 0,
-                          }
-                    }
-                  >
-                    {editMode && editText !== text ? (
-                      /* Show the submit checkmark while editing. */
-                      <IconButton
-                        size="small"
-                        onPointerDown={(e) => e.preventDefault()}
-                        onClick={submitAndBlur}
-                        title={i18n("submit")}
-                        aria-label={i18n("submit")}
-                      >
-                        <DoneIcon fontSize="inherit" />
-                      </IconButton>
-                    ) : text ? (
-                      /* Show the copy action when text is present. */
-                      <CopyBtn
-                        text={text}
-                        title={i18n("copy")}
-                        copiedLabel={i18n("copy_success", "Copied")}
+                  <>
+                    <Stack
+                      className={
+                        isPlaygound
+                          ? "kt-translation-text-field__actions"
+                          : undefined
+                      }
+                      direction="row"
+                      sx={
+                        isPlaygound
+                          ? undefined
+                          : {
+                              position: "absolute",
+                              right: 0,
+                              top: 0,
+                            }
+                      }
+                    >
+                      {editMode && editText !== text ? (
+                        /* Show the submit checkmark while editing. */
+                        <IconButton
+                          size="small"
+                          onPointerDown={(e) => e.preventDefault()}
+                          onClick={submitAndBlur}
+                          title={i18n("submit")}
+                          aria-label={i18n("submit")}
+                        >
+                          <DoneIcon fontSize="inherit" />
+                        </IconButton>
+                      ) : text ? (
+                        /* Show the copy action when text is present. */
+                        <CopyBtn
+                          text={text}
+                          title={i18n("copy")}
+                          copiedLabel={i18n("copy_success", "Copied")}
+                        />
+                      ) : (
+                        /* Show the paste action when the input is empty. */
+                        <IconButton
+                          size="small"
+                          onClick={handlePaste}
+                          title={i18n("paste")}
+                        >
+                          <ContentPasteIcon fontSize="inherit" />
+                        </IconButton>
+                      )}
+                      {text && editText.trim() === text && (
+                        <IconButton
+                          size="small"
+                          onPointerDown={(event) => event.preventDefault()}
+                          onClick={submitAndBlur}
+                          title={i18n("translate")}
+                          aria-label={i18n("translate")}
+                        >
+                          <ReplayRoundedIcon fontSize="inherit" />
+                        </IconButton>
+                      )}
+                    </Stack>
+                    {(editText.trim() ||
+                      sourceHeightLock.lockedHeight != null) && (
+                      <TextareaResizeGrip
+                        target={sourceHeightLock.textareaRef}
+                        onResize={sourceHeightLock.applyHeight}
+                        value={sourceHeightLock.lockedHeight}
+                        label={i18n("field_resize_height")}
+                        variant={gripStyle}
+                        onRelease={sourceHeightLock.releaseHeight}
+                        unlockHint={i18n("field_resize_unlock_hint")}
                       />
-                    ) : (
-                      /* Show the paste action when the input is empty. */
-                      <IconButton
-                        size="small"
-                        onClick={handlePaste}
-                        title={i18n("paste")}
-                      >
-                        <ContentPasteIcon fontSize="inherit" />
-                      </IconButton>
                     )}
-                    {text && editText.trim() === text && (
-                      <IconButton
-                        size="small"
-                        onPointerDown={(event) => event.preventDefault()}
-                        onClick={submitAndBlur}
-                        title={i18n("translate")}
-                        aria-label={i18n("translate")}
-                      >
-                        <ReplayRoundedIcon fontSize="inherit" />
-                      </IconButton>
-                    )}
-                  </Stack>
+                  </>
                 ),
               }}
             />

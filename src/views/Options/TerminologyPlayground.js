@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -44,6 +44,11 @@ import {
 import { apiTranslate } from "../../apis";
 import { useAlert } from "../../hooks/Alert";
 import { useI18n } from "../../hooks/I18n";
+import TextareaResizeGrip from "../../components/TextareaResizeGrip";
+import useTextareaHeightLock, {
+  useTextareaGripStyle,
+  useReleaseOnGripHidden,
+} from "../../hooks/useTextareaHeightLock";
 import { useRules } from "../../hooks/Rules";
 import { useSetting } from "../../hooks/Setting";
 import { isWeb } from "../../libs/client";
@@ -998,7 +1003,6 @@ export default function TerminologyPlayground({
   const [loadError, setLoadError] = useState("");
   // 跟踪用户是否在异步初始加载完成前编辑了输入框，避免覆盖用户已编辑内容。
   const hasUserEdited = useRef(false);
-  // 输入框采用原生 resize:vertical 缩放，不引入自定义手柄。
 
   // 本地重算：解析 → 自然文本生成 → 结构化断言，并把完整 detail 打到控制台。
   // seed 用于例句轮换（同一 seed 确定不变；UI"换一个例句"递增 seed）。
@@ -1652,6 +1656,33 @@ export default function TerminologyPlayground({
   // AI 术语说明「更多」折叠（U4/U6）：常显 3 短句，长说明默认折叠。
   const [aiHelpOpen, setAiHelpOpen] = useState(false);
   // 请求/响应面板为普通 Box 容器，不做拖高。
+  // 两个术语输入框：锁定高度承载在 InputBase root 上（与其他消费者同构），
+  // 手柄按内容门控条件渲染（内容非空或已锁定高度才在场）。
+  const gripStyle = useTextareaGripStyle();
+  const termsHeightLock = useTextareaHeightLock("terminology-terms");
+  const aiTermsHeightLock = useTextareaHeightLock("terminology-ai-terms");
+  useReleaseOnGripHidden(gripStyle, termsHeightLock.releaseHeight);
+  useReleaseOnGripHidden(gripStyle, aiTermsHeightLock.releaseHeight);
+
+  // 内容清空 → 彻底解锁：清除会话高度记忆并还原 root，手柄随内容门控
+  // 消失；门控表达式的锁定分支保留（服务于「有内容且已锁」的存续态）。
+  // useLayoutEffect：空内容解锁须先于绘制，防重挂载首帧以记忆高度闪现
+  // （本端路径因草稿持久化实际不可达，按 5 端对称性防御性统一）。
+  // releaseHeight 为 useCallback([lockKey]) 产物（lockKey 不变则引用恒
+  // 定），经解构取稳定引用后进依赖数组——消除对 hook 返回对象整体的
+  // exhaustive-deps 告警形态（发布面：CRA 下 warning 即构建失败）。
+  const { releaseHeight: releaseTermsHeight } = termsHeightLock;
+  const { releaseHeight: releaseAiTermsHeight } = aiTermsHeightLock;
+  useLayoutEffect(() => {
+    if (!(termsDraft || "").trim()) {
+      releaseTermsHeight();
+    }
+  }, [termsDraft, releaseTermsHeight]);
+  useLayoutEffect(() => {
+    if (!(aiTermsDraft || "").trim()) {
+      releaseAiTermsHeight();
+    }
+  }, [aiTermsDraft, releaseAiTermsHeight]);
   // AI 术语例句轮换 seed（与本地术语区 termSeed 语义一致："" = 缺省确定性行为，递增轮换）。
   const [aiTermSeed, setAiTermSeed] = useState("");
 
@@ -1906,7 +1937,7 @@ export default function TerminologyPlayground({
           {i18n("terminology_playground_title", "专业术语库（本地替换预览）")}
         </Typography>
         {/* 术语库输入区：格式与规则表单的 terms 字段一致，初始值取当前匹配规则，不持久化。
-            使用浏览器原生 resize:vertical 缩放（右下角斜纹 grip），不引入自定义手柄。 */}
+            缩放由自绘手柄提供（跨浏览器一致），锁定高度承载在 InputBase root 上。 */}
         <TextField
           fullWidth
           multiline
@@ -1914,16 +1945,35 @@ export default function TerminologyPlayground({
           maxRows={10}
           value={termsDraft}
           onChange={handleTermsChange}
+          inputRef={termsHeightLock.textareaRef}
           label={i18n(
             "terminology_playground_terms_label",
             "术语库（键值对，每行或 ; 分隔）"
           )}
           inputProps={{
+            className: "kt-resizable-textarea",
             "aria-describedby": "terminology-terms-helper",
+            style: { resize: gripStyle === "hidden" ? "vertical" : "none" },
+          }}
+          InputProps={{
+            ...termsHeightLock.rootProps,
+            endAdornment:
+              (termsDraft || "").trim() ||
+              termsHeightLock.lockedHeight != null ? (
+                <TextareaResizeGrip
+                  target={termsHeightLock.textareaRef}
+                  onResize={termsHeightLock.applyHeight}
+                  value={termsHeightLock.lockedHeight}
+                  label={i18n("field_resize_height")}
+                  variant={gripStyle}
+                  onRelease={termsHeightLock.releaseHeight}
+                  unlockHint={i18n("field_resize_unlock_hint")}
+                />
+              ) : null,
           }}
           sx={{
-            "& textarea": {
-              resize: "vertical",
+            "& .MuiInputBase-root": {
+              overflow: "visible",
             },
           }}
           data-testid="terminology-terms-input"
@@ -2186,18 +2236,37 @@ export default function TerminologyPlayground({
           maxRows={10}
           value={aiTermsDraft}
           onChange={(e) => setAiTermsDraft(e.target.value)}
+          inputRef={aiTermsHeightLock.textareaRef}
           label={i18n(
             "terminology_playground_terms_input_label",
             "AI 专业术语"
           )}
           placeholder={AI_TERMS_SAMPLE_TEXT}
           inputProps={{
+            className: "kt-resizable-textarea",
             "aria-describedby": "terminology-ai-terms-helper",
+            style: { resize: gripStyle === "hidden" ? "vertical" : "none" },
+          }}
+          InputProps={{
+            ...aiTermsHeightLock.rootProps,
+            endAdornment:
+              (aiTermsDraft || "").trim() ||
+              aiTermsHeightLock.lockedHeight != null ? (
+                <TextareaResizeGrip
+                  target={aiTermsHeightLock.textareaRef}
+                  onResize={aiTermsHeightLock.applyHeight}
+                  value={aiTermsHeightLock.lockedHeight}
+                  label={i18n("field_resize_height")}
+                  variant={gripStyle}
+                  onRelease={aiTermsHeightLock.releaseHeight}
+                  unlockHint={i18n("field_resize_unlock_hint")}
+                />
+              ) : null,
           }}
           sx={{
             mt: 2,
-            "& textarea": {
-              resize: "vertical",
+            "& .MuiInputBase-root": {
+              overflow: "visible",
             },
           }}
           data-testid="terminology-ai-terms-input"

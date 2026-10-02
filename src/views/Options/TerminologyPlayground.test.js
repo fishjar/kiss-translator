@@ -23,6 +23,7 @@ import {
   defaultSystemPromptXml,
 } from "../../config";
 import { genTransReq } from "../../apis/trans";
+import { __resetSessionHeightMapForTests } from "../../hooks/useTextareaHeightLock";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -145,6 +146,18 @@ jest.mock("../../libs/client", () => {
   };
 });
 
+// 手柄样式：部分 mock（requireActual 保留真实默认导出与 __resetSessionHeightMapForTests
+// 具名导出，整模块 mock 会击穿后者），只替换 useTextareaGripStyle 驱动模式。
+const mockUseTextareaGripStyle = jest.fn(() => "concentric-smooth");
+jest.mock("../../hooks/useTextareaHeightLock", () => {
+  const actual = jest.requireActual("../../hooks/useTextareaHeightLock");
+  return {
+    ...actual,
+    __esModule: true,
+    useTextareaGripStyle: () => mockUseTextareaGripStyle(),
+  };
+});
+
 /** 等待 React effect 和异步事件处理器完成一次状态提交。 */
 async function flushEffects() {
   await act(async () => {
@@ -238,9 +251,16 @@ function renderPlayground(
   act(() => {
     root.render(<DraftHarness />);
   });
+  // 以新元素重渲染同一 DraftHarness：复用同一元素对象会被 React 判等跳过
+  // 提交，gripStyle 等 mock 切换不会生效；类型/位置不变，宿主 state 保留。
+  const rerender = () =>
+    act(() => {
+      root.render(<DraftHarness />);
+    });
   return {
     container,
     root,
+    rerender,
     setText: mockSetText,
     setActiveTab: mockSetActiveTab,
     setTermsDraft: mockSetTermsDraft,
@@ -4274,17 +4294,18 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
-  test("no custom resize handles remain; both term textareas use native resize:vertical", async () => {
-    const { container, root } = renderPlayground({ rule: null });
+  test("term textareas use the drawn resize grip only when content or a locked height exists", async () => {
+    __resetSessionHeightMapForTests();
+    const { container, root, setAiTermsDraft } =
+      renderPlayground({ rule: null });
     await flushEffects();
-    // 回归护栏：组件树中不应出现任何自定义缩放手柄 testid。
+    // 回归护栏：组件树中不应出现任何旧式自定义缩放手柄 testid。
     expect(
       container.querySelector('[data-testid$="-resize-handle"]')
     ).toBeNull();
     expect(
       container.querySelector('[data-testid$="-resize-notch"]')
     ).toBeNull();
-    // 术语库输入框与 AI 术语输入框的 textarea 声明原生 vertical 缩放样式。
     const termsTextarea = container.querySelector(
       '[data-testid="terminology-terms-input"] textarea'
     );
@@ -4293,7 +4314,39 @@ describe("TerminologyPlayground", () => {
     );
     for (const textarea of [termsTextarea, aiTextarea]) {
       expect(textarea).not.toBeNull();
+      expect(getComputedStyle(textarea).resize).toBe("none");
     }
+
+    // 术语框挂载后由规则加载 effect 自动填入 ruleTerms || CONFLICT_MATRIX_SAMPLE
+    //（组件 1068-1072 行），内容非空 → 手柄在场（内容门控：有内容 → 在场）；
+    // AI 术语框无自动填充，保持空态 → 手柄不在场（内容门控：空内容 → 不在场）。
+    const termsRoot = termsTextarea.closest(".MuiInputBase-root");
+    const termsGrip = termsRoot.querySelector('[role="slider"]');
+    expect(termsGrip).not.toBeNull();
+    // 本文件 i18n 为真实翻译形态（非按 key 直传），label 断言非空即可。
+    expect(termsGrip.getAttribute("aria-label")).toBeTruthy();
+    expect(
+      aiTextarea
+        .closest(".MuiInputBase-root")
+        .querySelector('[role="slider"]')
+    ).toBeNull();
+
+    // 键盘锁定锚。
+    act(() => {
+      termsGrip.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+      );
+    });
+    expect(termsRoot.classList).toContain("kt-height-locked");
+    expect(termsRoot.style.height).toBe("64px");
+
+    // AI 术语框注入内容 → 手柄在场。
+    act(() => setAiTermsDraft("quzzle,缓存节点"));
+    expect(
+      aiTextarea
+        .closest(".MuiInputBase-root")
+        .querySelector('[role="slider"]')
+    ).not.toBeNull();
 
     act(() => root.unmount());
   });
@@ -4322,4 +4375,166 @@ test("C1 Red：maskForDisplay 对零 own 键非纯对象返回类型标签而非
   }
   // own 键 "token" 命中 SENSITIVE_KEYS → 掩码路径 val.slice(0, 4) + "****"。
   expect(maskForDisplay(new WithOwnKey())).toEqual({ token: "secr****" });
+});
+
+describe("TerminologyPlayground textarea grip style", () => {
+  afterEach(() => {
+    __resetSessionHeightMapForTests();
+    mockUseTextareaGripStyle.mockReset();
+    mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");
+    document.body.innerHTML = "";
+  });
+
+  test("corner-pill renders the grip with the selected variant and locks resize", async () => {
+    mockUseTextareaGripStyle.mockReturnValue("corner-pill");
+    const { container, root } = renderPlayground({ rule: null });
+    await flushEffects();
+    await enterTerms(container, "zorp,xyz", { waitDebounce: false });
+
+    const textarea = container.querySelector(
+      '[data-testid="terminology-terms-input"] textarea'
+    );
+    const fieldRoot = textarea.closest(".MuiInputBase-root");
+    const grip = fieldRoot.querySelector('[role="slider"]');
+    expect(grip).not.toBeNull();
+    expect(getComputedStyle(textarea).resize).toBe("none");
+    expect(grip.querySelector("svg path").getAttribute("d")).toBe(
+      "M14 6V9.5C14 11.985 11.985 14 9.5 14H6"
+    );
+    act(() => root.unmount());
+  });
+
+  // B1：hidden = 完全不渲染手柄 + textarea 原生 resize 回退（红：现实现
+  // 渲染空图形手柄且 resize 压成 none）。
+  test("hidden variant renders no grip and restores native resize", async () => {
+    mockUseTextareaGripStyle.mockReturnValue("hidden");
+    const { container, root } = renderPlayground({ rule: null });
+    await flushEffects();
+    await enterTerms(container, "zorp,xyz", { waitDebounce: false });
+
+    const textarea = container.querySelector(
+      '[data-testid="terminology-terms-input"] textarea'
+    );
+    expect(textarea.style.resize).toBe("vertical");
+    expect(
+      textarea.closest(".MuiInputBase-root").querySelector('[role="slider"]')
+    ).toBeNull();
+    act(() => root.unmount());
+  });
+
+  // 意见 A：grip 样式切到 hidden 时自动释放会话高度锁（红：现实现残留
+  // kt-height-locked 与内联高度，字段被永久钉死）。
+  test("switching to hidden releases the session height lock", async () => {
+    mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");
+    __resetSessionHeightMapForTests();
+    const { container, root, rerender } = renderPlayground({ rule: null });
+    await flushEffects();
+    await enterTerms(container, "zorp,xyz", { waitDebounce: false });
+
+    const textarea = container.querySelector(
+      '[data-testid="terminology-terms-input"] textarea'
+    );
+    const fieldRoot = textarea.closest(".MuiInputBase-root");
+    const grip = fieldRoot.querySelector('[role="slider"]');
+    expect(grip).not.toBeNull();
+    act(() => {
+      grip.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+      );
+    });
+    expect(fieldRoot.classList).toContain("kt-height-locked");
+
+    mockUseTextareaGripStyle.mockReturnValue("hidden");
+    rerender();
+    expect(fieldRoot.classList).not.toContain("kt-height-locked");
+    expect(fieldRoot.style.height).toBe("");
+    act(() => root.unmount());
+  });
+
+  test("clearing either terms draft releases the height lock completely", async () => {
+    __resetSessionHeightMapForTests();
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: null,
+    });
+    await flushEffects();
+    await enterTerms(container, "zorp,xyz", { waitDebounce: false });
+
+    const textarea = container.querySelector(
+      '[data-testid="terminology-terms-input"] textarea'
+    );
+    const fieldRoot = textarea.closest(".MuiInputBase-root");
+    const grip = fieldRoot.querySelector('[role="slider"]');
+    expect(grip).not.toBeNull();
+    act(() => {
+      grip.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+      );
+    });
+    expect(fieldRoot.classList).toContain("kt-height-locked");
+
+    // 清空本地术语草稿 → 彻底解锁：手柄消失、root 还原（已编辑标记使
+    // 规则自动回填 effect 不再覆盖空草稿）。
+    await enterTerms(container, "", { waitDebounce: false });
+    expect(fieldRoot.querySelector('[role="slider"]')).toBeNull();
+    expect(fieldRoot.classList).not.toContain("kt-height-locked");
+    expect(fieldRoot.style.height).toBe("");
+
+    // AI 术语框同路径：注入 → 锁定 → 清空 → 解锁。
+    act(() => setAiTermsDraft("quzzle,缓存节点"));
+    const aiRoot = container
+      .querySelector('[data-testid="terminology-ai-terms-input"] textarea')
+      .closest(".MuiInputBase-root");
+    const aiGrip = aiRoot.querySelector('[role="slider"]');
+    expect(aiGrip).not.toBeNull();
+    act(() => {
+      aiGrip.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+      );
+    });
+    expect(aiRoot.classList).toContain("kt-height-locked");
+    act(() => setAiTermsDraft(""));
+    expect(aiRoot.querySelector('[role="slider"]')).toBeNull();
+    expect(aiRoot.classList).not.toContain("kt-height-locked");
+    expect(aiRoot.style.height).toBe("");
+
+    act(() => root.unmount());
+  });
+
+  test("keeps the terms draft lock across focus and blur re-renders", async () => {
+    __resetSessionHeightMapForTests();
+    const { container, root } = renderPlayground({ rule: null });
+    await flushEffects();
+    await enterTerms(container, "zorp,xyz", { waitDebounce: false });
+
+    const textarea = container.querySelector(
+      '[data-testid="terminology-terms-input"] textarea'
+    );
+    const fieldRoot = textarea.closest(".MuiInputBase-root");
+    const grip = fieldRoot.querySelector('[role="slider"]');
+    expect(grip).not.toBeNull();
+    act(() => {
+      grip.dispatchEvent(
+        new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })
+      );
+    });
+    expect(fieldRoot.classList).toContain("kt-height-locked");
+    const lockedHeight = fieldRoot.style.height;
+    expect(lockedHeight).not.toBe("");
+
+    act(() => {
+      textarea.focus();
+    });
+    expect(fieldRoot.classList).toContain("Mui-focused");
+    expect(fieldRoot.classList).toContain("kt-height-locked");
+    expect(fieldRoot.style.height).toBe(lockedHeight);
+
+    act(() => {
+      textarea.blur();
+    });
+    expect(fieldRoot.classList).not.toContain("Mui-focused");
+    expect(fieldRoot.classList).toContain("kt-height-locked");
+    expect(fieldRoot.style.height).toBe(lockedHeight);
+
+    act(() => root.unmount());
+  });
 });

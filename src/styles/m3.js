@@ -229,34 +229,46 @@ export const M3_GLOBAL_CSS = String.raw`
   background: transparent;
 }
 
+/* 类语义备忘：kt-resizable-textarea 现仅承载 16px 滚动条样式钩子；
+   原生 resizer 已由自绘手柄（TextareaResizeGrip）替代，视图侧不再依赖
+   原生 resize 行为。该类的 8 处消费见各视图 inputProps.className。 */
 .kt-m3-root textarea.kt-resizable-textarea:not([aria-hidden="true"])::-webkit-scrollbar {
   width: 16px;
   height: 16px;
 }
 
-@supports selector(textarea::-webkit-resizer) {
-  .kt-m3-root textarea.kt-resizable-textarea:not([aria-hidden="true"])::-webkit-resizer {
-    background-color: transparent;
-    background-image: linear-gradient(
-      135deg,
-      transparent 0 42%,
-      var(--kt-onv) 43% 51%,
-      transparent 52% 64%,
-      var(--kt-onv) 65% 73%,
-      transparent 74%
-    );
-    background-image: linear-gradient(
-      135deg,
-      transparent 0 42%,
-      color-mix(in srgb, var(--kt-onv) 68%, transparent) 43% 51%,
-      transparent 52% 64%,
-      color-mix(in srgb, var(--kt-onv) 68%, transparent) 65% 73%,
-      transparent 74%
-    );
-    background-repeat: no-repeat;
-    background-position: right 6px bottom 6px;
-    background-size: 10px 10px;
+.kt-m3-root .kt-height-locked.MuiInputBase-root {
+  min-height: 0 !important;
+}
+
+/* B7 手柄焦点环显式规则：不再静默依赖 m3 全局级联——Shadow DOM 场景
+   或后续全局 :focus/:focus-visible 规则调整（如新增 input 类豁免）不会
+   静默丢失焦点指示。口径与全局级联一致：鼠标 :focus 零指示，键盘
+   :focus-visible 3px 主色环 + 2px 偏移。 */
+.kt-m3-root .kt-resize-grip:focus {
+  outline: none;
+}
+
+@supports selector(:focus-visible) {
+  .kt-m3-root .kt-resize-grip:focus {
+    outline: none;
   }
+  .kt-m3-root .kt-resize-grip:focus-visible {
+    outline: 3px solid var(--kt-pri);
+    outline-offset: 2px;
+  }
+}
+
+.kt-m3-root .kt-height-locked textarea:not([aria-hidden="true"]) {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: auto !important;
+  /* 锁定态底部预留 24px 手柄热区：border-box 使 padding 计入 100% 高度
+     盒内（覆盖 .MuiInputBase-input 的 content-box 规则），内容最低行不
+     被角部浮层遮挡，边框盒也不溢出锁定 root。 */
+  box-sizing: border-box !important;
+  padding-bottom: 24px !important;
 }
 
 @keyframes kt-m3-pop {
