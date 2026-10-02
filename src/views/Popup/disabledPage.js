@@ -1,6 +1,7 @@
 import { isInBlacklist } from "../../libs/blacklist";
 import { kissLog } from "../../libs/log";
 import { deriveRuleContext } from "../../libs/rules";
+import { normalizeRuleApi } from "../../libs/apiSelection";
 import {
   getDisabledSubRules,
   getRulesWithDefault,
@@ -41,7 +42,7 @@ export async function loadDisabledPopupData(tab) {
       disabledPatterns: disabledPatterns || [],
     });
     return {
-      rule,
+      rule: normalizeRuleApi(rule, setting.transApis),
       setting,
       isDisabledPage: true,
       isTopFrame: true,

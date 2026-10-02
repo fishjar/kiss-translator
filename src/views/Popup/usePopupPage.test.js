@@ -137,6 +137,24 @@ describe("usePopupPage tab lifecycle", () => {
     expect(loadPopupData).toHaveBeenCalledTimes(1);
   });
 
+  test("normalizes an unavailable service before exposing the page snapshot", async () => {
+    const snapshot = {
+      rule: { apiSlug: "disabled", toLang: "fr" },
+      setting: {
+        transApis: [
+          { apiSlug: "disabled", isDisabled: true },
+          { apiSlug: "later", sortOrder: 5 },
+          { apiSlug: "first", sortOrder: -1 },
+        ],
+      },
+    };
+    loadPopupData.mockResolvedValue(snapshot);
+    const view = renderPage();
+    await flushEffects();
+    expect(view.page.data.rule).toEqual({ apiSlug: "first", toLang: "fr" });
+    expect(snapshot.rule.apiSlug).toBe("disabled");
+  });
+
   test("shows a stored disabled site only after no runtime can be loaded", async () => {
     const disabled = { ...data(), isDisabledPage: true };
     loadPopupData.mockResolvedValue(undefined);

@@ -74,6 +74,20 @@ test("honors disabled cached subscription rules without downloading replacements
   expect(loadOrFetchSubRules).not.toHaveBeenCalled();
 });
 
+test("uses the first enabled API in a disabled-site snapshot without writing its rule", async () => {
+  getSettingWithDefault.mockResolvedValue({
+    ...setting,
+    transApis: [
+      { apiSlug: "google", isDisabled: true },
+      { apiSlug: "later", sortOrder: 3 },
+      { apiSlug: "first", sortOrder: -1 },
+    ],
+  });
+  const snapshot = await loadDisabledPopupData(tab);
+  expect(snapshot.rule.apiSlug).toBe("first");
+  expect(loadOrFetchSubRules).not.toHaveBeenCalled();
+});
+
 test("uses local defaults when the selected subscription has no cache", async () => {
   getSubRules.mockResolvedValue(undefined);
   const snapshot = await loadDisabledPopupData(tab);

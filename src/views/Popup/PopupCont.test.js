@@ -181,15 +181,18 @@ function renderPopupCont(props = {}, { statefulRule = false } = {}) {
     ...props,
   };
   const currentSetting = { ...setting, ...props.setting };
+  let updateLiveSetting;
 
   function StatefulPopup() {
     const [currentRule, setCurrentRule] = useState({ ...rule, ...props.rule });
+    const [liveSetting, setLiveSetting] = useState(currentSetting);
+    updateLiveSetting = setLiveSetting;
     return (
       <PopupCont
         {...popupProps}
         rule={currentRule}
         setRule={setCurrentRule}
-        setting={currentSetting}
+        setting={liveSetting}
       />
     );
   }
@@ -208,6 +211,9 @@ function renderPopupCont(props = {}, { statefulRule = false } = {}) {
 
   return {
     container,
+    updateRuntimeSetting(nextSetting) {
+      act(() => updateLiveSetting(nextSetting));
+    },
     rerender(nextProps) {
       act(() => root.render(<PopupCont {...popupProps} {...nextProps} />));
     },
@@ -247,6 +253,271 @@ describe("PopupCont capability parity", () => {
   afterEach(() => {
     jest.useRealTimers();
     document.body.innerHTML = "";
+  });
+
+  test.each(["disabled", "removed"])(
+    "automatically selects the first enabled service for %s without saving a site rule",
+    async (apiSlug) => {
+      const transApis = [
+        {
+          apiSlug: "disabled",
+          apiName: "Disabled",
+          isDisabled: true,
+          sortOrder: -2,
+        },
+        { apiSlug: "later", apiName: "Later", sortOrder: 3 },
+        { apiSlug: "pinned", apiName: "Pinned", sortOrder: -1 },
+      ];
+      const processActions = jest.fn(({ args }) => ({ rule: args }));
+      const view = renderPopupCont(
+        { rule: { apiSlug }, setting: { transApis }, processActions },
+        { statefulRule: true }
+      );
+      try {
+        await flushEffects();
+        expect(processActions).toHaveBeenCalledTimes(1);
+        expect(processActions).toHaveBeenCalledWith({
+          action: MSG_TRANS_PUTRULE,
+          args: { apiSlug: "pinned" },
+        });
+        expect(
+          view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+            .textContent
+        ).toBe("Pinned");
+        expect(
+          view.container.querySelectorAll(".kt-popup-service")
+        ).toHaveLength(2);
+        expect(
+          view.container.querySelector(".kt-popup-more-service")
+        ).toBeNull();
+        expect(saveRule).not.toHaveBeenCalled();
+        expect(mockUpdateSetting).not.toHaveBeenCalled();
+      } finally {
+        view.cleanup();
+      }
+    }
+  );
+
+  test("uses current stored services when the page snapshot still contains a disabled choice", async () => {
+    const oldApis = [
+      { apiSlug: "google", apiName: "Google", sortOrder: 0 },
+      { apiSlug: "next", apiName: "Next", sortOrder: 1 },
+    ];
+    const processActions = jest.fn(({ args }) => ({ rule: args }));
+    const view = renderPopupCont(
+      { setting: { transApis: oldApis }, processActions },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      expect(processActions).not.toHaveBeenCalled();
+      mockContextSetting = {
+        blacklist: "",
+        transApis: [{ ...oldApis[0], isDisabled: true }, oldApis[1]],
+      };
+      view.updateRuntimeSetting({ transApis: oldApis });
+      await flushEffects();
+      expect(processActions).toHaveBeenCalledWith({
+        action: MSG_TRANS_PUTRULE,
+        args: { apiSlug: "next" },
+      });
+      expect(view.container.querySelectorAll(".kt-popup-service")).toHaveLength(
+        1
+      );
+      expect(
+        view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+          .textContent
+      ).toBe("Next");
+      expect(saveRule).not.toHaveBeenCalled();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("does not repeatedly retry a rejected automatic fallback", async () => {
+    const processActions = jest.fn(() => {
+      throw new Error("Receiver rejected fallback");
+    });
+    const view = renderPopupCont(
+      { rule: { apiSlug: "removed" }, processActions },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      await flushEffects();
+      expect(processActions).toHaveBeenCalledTimes(1);
+      expect(
+        view.container.querySelector(".kt-popup-action-error")
+      ).not.toBeNull();
+      expect(saveRule).not.toHaveBeenCalled();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test.each([false, true])(
+    "waits for the receiver's API snapshot before settling fallback (needs retry: %s)",
+    async (needsRetry) => {
+      jest.useFakeTimers();
+      const oldApis = [
+        { apiSlug: "old" },
+        { apiSlug: "next", isDisabled: true },
+      ];
+      const newApis = [
+        { apiSlug: "old", isDisabled: true },
+        { apiSlug: "next", apiName: "Next" },
+      ];
+      let writes = 0;
+      const processActions = jest.fn(({ action }) => {
+        if (action === MSG_TRANS_GETRULE)
+          return {
+            rule: { apiSlug: needsRetry ? "old" : "next" },
+            setting: { transApis: newApis },
+          };
+        writes += 1;
+        return writes === 1
+          ? { rule: { apiSlug: "old" }, setting: { transApis: oldApis } }
+          : { rule: { apiSlug: "next" }, setting: { transApis: newApis } };
+      });
+      const view = renderPopupCont(
+        {
+          rule: { apiSlug: "old" },
+          setting: { transApis: newApis },
+          processActions,
+        },
+        { statefulRule: true }
+      );
+      try {
+        await flushEffects();
+        expect(
+          view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+            .textContent
+        ).toBe("Next");
+        for (
+          let step = 0;
+          step < 3 && processActions.mock.calls.length < 2;
+          step += 1
+        ) {
+          await act(async () => jest.advanceTimersByTime(75));
+          await flushEffects();
+        }
+        expect(processActions).toHaveBeenCalledWith({
+          action: MSG_TRANS_GETRULE,
+          args: undefined,
+        });
+        expect(writes).toBe(needsRetry ? 2 : 1);
+        expect(
+          view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+            .textContent
+        ).toBe("Next");
+        expect(
+          view.container.querySelector(".kt-popup-action-error")
+        ).toBeNull();
+        expect(saveRule).not.toHaveBeenCalled();
+      } finally {
+        view.cleanup();
+      }
+    }
+  );
+
+  test("does not resend an old fallback after the user selects another available service", async () => {
+    jest.useFakeTimers();
+    const oldApis = [{ apiSlug: "old" }];
+    const newApis = [
+      { apiSlug: "next", apiName: "Next", sortOrder: 0 },
+      { apiSlug: "manual", apiName: "Manual", sortOrder: 1 },
+    ];
+    const processActions = jest.fn(({ args }) =>
+      args?.apiSlug === "manual"
+        ? { rule: { apiSlug: "manual" }, setting: { transApis: newApis } }
+        : { rule: { apiSlug: "old" }, setting: { transApis: oldApis } }
+    );
+    const view = renderPopupCont(
+      {
+        rule: { apiSlug: "old" },
+        setting: { transApis: newApis },
+        processActions,
+      },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      await act(async () =>
+        Array.from(view.container.querySelectorAll(".kt-popup-service"))
+          .find((button) => button.textContent === "Manual")
+          .click()
+      );
+      await act(async () => jest.advanceTimersByTime(75));
+      await flushEffects();
+      expect(processActions).toHaveBeenCalledTimes(2);
+      expect(
+        view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+          .textContent
+      ).toBe("Manual");
+      expect(view.container.querySelector(".kt-popup-action-error")).toBeNull();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("adopts a newer valid receiver choice instead of overriding it with automatic fallback", async () => {
+    jest.useFakeTimers();
+    const oldApis = [{ apiSlug: "old" }];
+    const newApis = [
+      { apiSlug: "next", apiName: "Next" },
+      { apiSlug: "manual", apiName: "Manual" },
+    ];
+    const processActions = jest.fn(({ action }) =>
+      action === MSG_TRANS_GETRULE
+        ? { rule: { apiSlug: "manual" }, setting: { transApis: newApis } }
+        : { rule: { apiSlug: "old" }, setting: { transApis: oldApis } }
+    );
+    const view = renderPopupCont(
+      {
+        rule: { apiSlug: "old" },
+        setting: { transApis: newApis },
+        processActions,
+      },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      await act(async () => jest.advanceTimersByTime(150));
+      await flushEffects();
+      expect(
+        processActions.mock.calls.filter(
+          ([message]) => message.action === MSG_TRANS_PUTRULE
+        )
+      ).toHaveLength(1);
+      expect(
+        view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+          .textContent
+      ).toBe("Manual");
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("does not invent a fallback when every service is disabled", async () => {
+    const processActions = jest.fn();
+    const view = renderPopupCont(
+      {
+        rule: { apiSlug: "google" },
+        setting: { transApis: [{ apiSlug: "google", isDisabled: true }] },
+        processActions,
+      },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      expect(view.container.querySelectorAll(".kt-popup-service")).toHaveLength(
+        0
+      );
+      expect(processActions).not.toHaveBeenCalled();
+      expect(saveRule).not.toHaveBeenCalled();
+    } finally {
+      view.cleanup();
+    }
   });
 
   test("rediscovers a disabled page after its blacklist changes in another extension page", async () => {

@@ -163,7 +163,7 @@ describe("common blacklist startup recovery", () => {
     await flushPendingStartup();
 
     expect(window.location.href).toBe(href);
-    expect(getSettingWithDefault).toHaveBeenCalledTimes(2);
+    expect(getSettingWithDefault).toHaveBeenCalledTimes(3);
     expect(TranslatorManager).toHaveBeenCalledTimes(1);
     expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
     expect(TranslatorManager.mock.calls[0][0].setting).toBe(unblockedSetting);
@@ -190,7 +190,7 @@ describe("common blacklist startup recovery", () => {
     listener(changes, "local");
     await flushPendingStartup();
 
-    expect(getSettingWithDefault).toHaveBeenCalledTimes(2);
+    expect(getSettingWithDefault).toHaveBeenCalledTimes(3);
     expect(TranslatorManager).toHaveBeenCalledTimes(1);
     expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
     expect(mockStorageRemoveListener).toHaveBeenCalledTimes(1);

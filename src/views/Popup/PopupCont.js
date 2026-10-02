@@ -38,6 +38,7 @@ import {
   MSG_TRANS_TOGGLE,
   MSG_RULE_EDITOR,
   MSG_TRANS_PUTRULE,
+  MSG_TRANS_GETRULE,
   MSG_SAVE_RULE,
   MSG_TOUCH_TRANSLATE_MODE_SET,
   MSG_TOUCH_TRANSLATE_STATE,
@@ -65,6 +66,7 @@ import GlobalFeatures from "./GlobalFeatures";
 import { queryPopupData } from "./loadData";
 import { useConfirmedPopupUpdate } from "./useConfirmedPopupUpdate";
 import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
+import { getEnabledApis, resolveApiSelection } from "../../libs/apiSelection";
 
 const isTouchAction = (action) =>
   action === MSG_TOUCH_TRANSLATE_STATE ||
@@ -81,6 +83,8 @@ export const POPUP_RULE_FIELDS = [
   "autoScan",
 ];
 const enabledValue = (value) => value === true || value === "true";
+const enabledApiSignature = (apis) =>
+  JSON.stringify(getEnabledApis(apis).map((api) => api.apiSlug));
 function handleRadioKeyDown(event) {
   if (
     ![
@@ -181,6 +185,10 @@ export default function PopupCont({
   const editorPendingRef = useRef(false);
   const ruleUpdatePendingRef = useRef(0);
   const ruleRef = useRef(rule);
+  const configuredApisRef = useRef(
+    contextSetting?.transApis || setting?.transApis || []
+  );
+  const serviceFallbackAttemptRef = useRef(null);
   const styleGridRef = useRef(null);
   const activeRef = useRef(true);
   const visibleRef = useRef(isVisible);
@@ -464,18 +472,55 @@ export default function PopupCont({
     onError: showActionError,
   });
   const putRuleValues = useCallback(
-    async (values) => {
+    async (values, { automatic = false } = {}) => {
       if (!canTranslatePage || isInCurrentBlacklist) return;
       ruleRef.current = { ...ruleRef.current, ...values };
       ruleUpdatePendingRef.current += 1;
       setRuleUpdatePending(ruleUpdatePendingRef.current);
       setSaveStatus("idle");
       try {
-        await updateRule(
-          values,
-          async () =>
-            (await dispatchPageAction(MSG_TRANS_PUTRULE, values))?.rule
-        );
+        await updateRule(values, async () => {
+          let response = await dispatchPageAction(MSG_TRANS_PUTRULE, values);
+          // Storage notifications and popup commands can reach separate
+          // renderers in a different order. Wait for the API list before
+          // treating an old receiver's normalized choice as a rejection.
+          if (Object.prototype.hasOwnProperty.call(values, "apiSlug")) {
+            for (let attempt = 0; attempt < 12; attempt += 1) {
+              if (
+                response?.rule?.apiSlug === values.apiSlug ||
+                !Array.isArray(response?.setting?.transApis)
+              )
+                break;
+              const expected = enabledApiSignature(configuredApisRef.current);
+              const received = enabledApiSignature(response.setting.transApis);
+              if (expected === received) break;
+              await new Promise((resolve) => window.setTimeout(resolve, 75));
+              if (
+                !activeRef.current ||
+                ruleRef.current?.apiSlug !== values.apiSlug
+              )
+                return response?.rule;
+              response = await dispatchPageAction(MSG_TRANS_GETRULE);
+              if (response?.rule?.apiSlug === values.apiSlug) break;
+              if (
+                Array.isArray(response?.setting?.transApis) &&
+                enabledApiSignature(response.setting.transApis) === expected
+              ) {
+                if (
+                  automatic &&
+                  resolveApiSelection(
+                    configuredApisRef.current,
+                    response?.rule?.apiSlug
+                  )?.apiSlug === response?.rule?.apiSlug
+                )
+                  break;
+                response = await dispatchPageAction(MSG_TRANS_PUTRULE, values);
+                break;
+              }
+            }
+          }
+          return response?.rule;
+        });
       } finally {
         ruleUpdatePendingRef.current -= 1;
         if (activeRef.current)
@@ -485,7 +530,7 @@ export default function PopupCont({
     [canTranslatePage, isInCurrentBlacklist, dispatchPageAction, updateRule]
   );
   const putRuleValue = useCallback(
-    (name, value) => putRuleValues({ [name]: value }),
+    (name, value, options) => putRuleValues({ [name]: value }, options),
     [putRuleValues]
   );
   const handleSwapLanguages = useCallback(() => {
@@ -647,20 +692,58 @@ export default function PopupCont({
     };
   }, [isContent, hasTargetTab, targetTabUrl, targetFaviconUrl]);
 
+  const configuredApis = useMemo(
+    () =>
+      Array.isArray(contextSetting?.transApis)
+        ? contextSetting.transApis
+        : setting?.transApis || [],
+    [contextSetting?.transApis, setting?.transApis]
+  );
+  useLayoutEffect(() => {
+    configuredApisRef.current = configuredApis;
+  }, [configuredApis]);
   const services = useMemo(
     () =>
-      (setting?.transApis || [])
-        .filter((api) => !api.isDisabled)
-        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
-        .map((api) => ({
-          key: api.apiSlug,
-          type: api.apiType || api.apiSlug,
-          name: api.apiName || api.apiSlug,
-        })),
-    [setting?.transApis]
+      getEnabledApis(configuredApis).map((api) => ({
+        key: api.apiSlug,
+        type: api.apiType || api.apiSlug,
+        name: api.apiName || api.apiSlug,
+      })),
+    [configuredApis]
   );
   const { transOpen, apiSlug, fromLang, toLang, textStyle, transOnly } =
     rule || {};
+  useEffect(() => {
+    if (!isVisible) return;
+    const resolved = resolveApiSelection(configuredApis, apiSlug);
+    if (!resolved || resolved.apiSlug === apiSlug) return;
+    const attempt = JSON.stringify([
+      targetTab?.id,
+      documentInfo?.token,
+      apiSlug,
+      resolved.apiSlug,
+      configuredApis.map((api) => [api.apiSlug, api.isDisabled, api.sortOrder]),
+    ]);
+    if (serviceFallbackAttemptRef.current === attempt) return;
+    serviceFallbackAttemptRef.current = attempt;
+    // Correct the effective page selection without persisting its site rule.
+    if (isDisabledPage || !canTranslatePage || isInCurrentBlacklist) {
+      setRule((previous) => ({ ...previous, apiSlug: resolved.apiSlug }));
+    } else {
+      void putRuleValue("apiSlug", resolved.apiSlug, { automatic: true });
+    }
+  }, [
+    configuredApis,
+    apiSlug,
+    isVisible,
+    isDisabledPage,
+    canTranslatePage,
+    isInCurrentBlacklist,
+    setRule,
+    putRuleValue,
+    targetTab?.id,
+    documentInfo?.token,
+  ]);
   const translationEnabled = canTranslatePage && enabledValue(transOpen);
   const isAutoSource =
     !fromLang || fromLang === "auto" || fromLang === "$global";

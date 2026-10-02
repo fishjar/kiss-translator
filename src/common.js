@@ -321,9 +321,18 @@ export async function run(isUserscript = false) {
       fabConfig.isHide = !fabConfig.isHide;
     }
 
+    // Rule/subscription loading may outlive an API edit. Refresh this list
+    // before constructing a runtime that can immediately start translating.
+    const latestApiSetting = isUserscript
+      ? setting
+      : await getSettingWithDefault();
+    const runtimeSetting = Array.isArray(latestApiSetting?.transApis)
+      ? { ...setting, transApis: latestApiSetting.transApis }
+      : setting;
+
     // 8. 创建翻译调度器管理器并启动
     const translatorManager = new TranslatorManager({
-      setting,
+      setting: runtimeSetting,
       rule,
       fabConfig,
       favWords,
@@ -339,7 +348,7 @@ export async function run(isUserscript = false) {
     }
 
     // 10. 启动视频字幕翻译子模块 (仅在顶级 frame 下运行)
-    runSubtitle({ href, setting, rule, isUserscript });
+    runSubtitle({ href, setting: runtimeSetting, rule, isUserscript });
 
     // 11. 在油猴环境下，每次进入顶级页面时尝试触发一次订阅规则的自动同步检查 (每日一次)
     if (isUserscript) {

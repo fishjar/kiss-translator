@@ -5,6 +5,7 @@ import { kissLog } from "../../libs/log";
 import { loadPopupData } from "./loadData";
 import { loadDisabledPopupData } from "./disabledPage";
 import { isCurrentPopupDocument } from "../../libs/popupDocument";
+import { normalizeRuleApi } from "../../libs/apiSelection";
 
 /** Keep page data and edits attached to the tab captured by this popup. */
 export function usePopupPage({ enabled = true, initialData = null } = {}) {
@@ -74,6 +75,10 @@ export function usePopupPage({ enabled = true, initialData = null } = {}) {
         const waiting =
           !available && retryWhileLoading && tab.status === "loading";
         if (available) {
+          data = {
+            ...data,
+            rule: normalizeRuleApi(data.rule, data.setting.transApis),
+          };
           currentDocument = data.document;
           documentGeneration = generation;
         }
