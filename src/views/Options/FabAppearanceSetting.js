@@ -9,6 +9,8 @@ import {
   FAB_MIN_OPACITY,
   FAB_MIN_SIZE,
   FAB_MAX_SIZE,
+  FAB_CLICK_ACTION_TRANSLATE,
+  FAB_CLICK_ACTION_POPUP,
   DEFAULT_FAB,
   normalizeFabAppearance,
 } from "../../config/fab";
@@ -186,7 +188,10 @@ export default function FabAppearanceSetting({ fab, onChange }) {
             >
               <FloatingButton
                 size={sizePixels}
-                opensMenu={fab?.fabClickAction !== 1}
+                opensMenu={
+                  fab?.fabClickAction !== FAB_CLICK_ACTION_TRANSLATE &&
+                  fab?.fabClickAction !== FAB_CLICK_ACTION_POPUP
+                }
                 className="kt-fab-preview-button"
                 aria-label={i18n("fab_preview_dark")}
                 aria-pressed={previewTheme === "dark"}
