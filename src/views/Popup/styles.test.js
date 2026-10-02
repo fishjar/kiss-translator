@@ -20,16 +20,16 @@ function getRuleBodies(selector) {
 }
 
 describe("toolbar popup sizing", () => {
-  test("keeps an intrinsic preferred width and scrolls at the popup boundary", () => {
+  test("exposes natural dimensions for native popup autosizing", () => {
     const shellRule = getRuleBodies(".kt-popup-shell")[0];
     const scrollRule = getRuleBodies(".kt-popup-scroll")[0];
 
     expect(shellRule).toContain("width: 396px");
-    expect(shellRule).toContain("max-width: 100%");
+    expect(shellRule).toContain("max-width: none");
     expect(shellRule).toContain("min-width: 0");
-    expect(shellRule).toContain("max-height: 600px");
-    expect(shellRule).toContain("overflow-y: auto");
-    expect(shellRule).toContain("scrollbar-width: thin");
+    expect(shellRule).toContain("max-height: none");
+    expect(shellRule).toContain("overflow: visible");
+    expect(shellRule).not.toMatch(/overflow-[xy]:/);
     expect(shellRule).not.toMatch(/max-(?:width|height):\s*100v[wh]/);
     expect(scrollRule).toContain("height: auto");
     expect(scrollRule).toContain("overflow: visible");
@@ -46,18 +46,12 @@ describe("toolbar popup sizing", () => {
     expect(POPUP_STYLES).not.toContain("kt-popup-style-chips--open");
   });
 
-  test("keeps scrolling inside short toolbar viewports", () => {
+  test("does not constrain native autosizing to its initial short viewport", () => {
     const shortViewportRules = getCssAtRuleBodies(
       POPUP_STYLES,
       "@media (max-height: 599px)"
     );
-    expect(
-      shortViewportRules.some((body) =>
-        body.includes(
-          ".kt-popup-shell:not(.kt-popup-shell--window):not(.kt-popup-shell--content) { max-height: 100dvh; }"
-        )
-      )
-    ).toBe(true);
+    expect(shortViewportRules).toEqual([]);
     expect(getRuleBodies(".kt-popup-shell:focus")[0]).toContain(
       "outline: none"
     );

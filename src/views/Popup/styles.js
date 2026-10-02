@@ -1,13 +1,12 @@
 export const POPUP_STYLES = String.raw`
 .kt-popup-shell {
   width: 396px;
-  /* Keep intrinsic toolbar popup sizing independent of its initial viewport. */
-  max-width: 100%;
+  /* Chrome measures this document from a minimal initial viewport. Expose its
+     natural size and let the document own scrolling after native clamping. */
+  max-width: none;
   min-width: 0;
-  max-height: 600px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: thin;
+  max-height: none;
+  overflow: visible;
   background: var(--kt-sf0);
   color: var(--kt-on);
   --kt-popup-muted: #5F6368;
@@ -285,12 +284,6 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-shell--window .kt-popup-text-panel { padding: 0; animation: none; }
 .kt-popup-empty { min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; color: var(--kt-onv); text-align: center; }
 .kt-popup-empty__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-
-/* A short popup viewport needs one scroll owner so its header remains sticky.
-   Keep the preferred width intrinsic; only the height follows the viewport. */
-@media (max-height: 599px) {
-  .kt-popup-shell:not(.kt-popup-shell--window):not(.kt-popup-shell--content) { max-height: 100dvh; }
-}
 
 @media (max-width: 359px) {
   .kt-popup-header { gap: 4px; padding-inline: 8px; }
