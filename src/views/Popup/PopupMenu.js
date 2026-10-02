@@ -35,6 +35,9 @@ export default function PopupMenu({
         anchorEl.ownerDocument.documentElement.classList.contains(
           "kt-toolbar-popup"
         ) &&
+        !anchorEl.ownerDocument.documentElement.classList.contains(
+          "kt-toolbar-popup--text"
+        ) &&
         scrollingElement
       ) {
         const missing =

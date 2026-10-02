@@ -154,6 +154,7 @@ describe("Popup menu placement", () => {
     act(() => root.unmount());
     container.remove();
     document.documentElement.classList.remove("kt-toolbar-popup");
+    document.documentElement.classList.remove("kt-toolbar-popup--text");
     document.documentElement.scrollTop = 0;
     scrollBy.mockRestore();
     geometry.mockRestore();
@@ -255,5 +256,19 @@ describe("Popup menu placement", () => {
     expect(scrollBy).not.toHaveBeenCalled();
     expect(document.documentElement.scrollTop).toBe(0);
     expect(document.body.style.overflow).toBe("");
+  });
+
+  test("keeps the fixed text card in place when its provider menu has little room", () => {
+    viewportHeight = 255;
+    anchorTop = 170;
+    document.documentElement.classList.add(
+      "kt-toolbar-popup",
+      "kt-toolbar-popup--text"
+    );
+    const paper = render({ direction: "down" });
+    expectDownwardPlacement(paper);
+    expect(paper.offsetHeight).toBeLessThan(60);
+    expect(scrollBy).not.toHaveBeenCalled();
+    expect(document.documentElement.scrollTop).toBe(0);
   });
 });

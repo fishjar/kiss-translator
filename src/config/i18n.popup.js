@@ -1,4 +1,62 @@
 const labels = {
+  popup_text_request_failed: [
+    "请求失败（{status}）",
+    "Request failed ({status})",
+    "請求失敗（{status}）",
+  ],
+  popup_text_auth_failed: [
+    "请在设置中检查 API Key",
+    "Check the API key in settings",
+    "請在設定中檢查 API Key",
+  ],
+  popup_text_failed: [
+    "翻译失败，请重试",
+    "Translation failed. Please try again.",
+    "翻譯失敗，請重試",
+  ],
+  popup_text_auto_badge: ["自动", "Auto", "自動"],
+  popup_text_source_placeholder: [
+    "输入要翻译的文本",
+    "Enter text to translate",
+    "輸入要翻譯的文字",
+  ],
+  popup_text_clear: ["清空原文", "Clear source text", "清空原文"],
+  popup_text_reload: ["重新翻译", "Translate again", "重新翻譯"],
+  popup_text_split_label: [
+    "调整原文和译文高度",
+    "Adjust source and translation heights",
+    "調整原文和譯文高度",
+  ],
+  popup_text_split_hint: [
+    "拖动调整高度，双击恢复；方向键调整",
+    "Drag to resize, double-click to reset; use arrow keys to adjust",
+    "拖曳調整高度，連按兩下恢復；方向鍵調整",
+  ],
+  popup_text_service_menu: [
+    "翻译服务 · 可多选，结果上下平铺",
+    "Translation services · Select multiple to stack results",
+    "翻譯服務 · 可多選，結果上下排列",
+  ],
+  popup_text_service_count: [
+    "{count} 个服务",
+    "{count} services",
+    "{count} 個服務",
+  ],
+  popup_text_select_service: [
+    "选择翻译服务",
+    "Choose translation services",
+    "選擇翻譯服務",
+  ],
+  popup_text_no_services: [
+    "请选择翻译服务以查看译文",
+    "Select a translation service to see results",
+    "請選擇翻譯服務以查看譯文",
+  ],
+  popup_text_result_empty: [
+    "译文将在这里显示",
+    "Translation will appear here.",
+    "譯文將在這裡顯示",
+  ],
   popup_no_services: [
     "未启用翻译服务",
     "No translation services enabled",

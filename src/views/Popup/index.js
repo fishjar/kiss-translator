@@ -41,6 +41,8 @@ import {
 import { readClipboardTextIfAllowed } from "../../libs/clipboard";
 import { POPUP_STYLES } from "./styles";
 import { usePopupPage } from "./usePopupPage";
+import usePopupPageHeight from "./usePopupPageHeight";
+import PopupTextPanel from "./PopupTextPanel";
 import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 
 /**
@@ -166,7 +168,7 @@ function useFitSeparateWindow(enabled, panelRef) {
 /**
  * Text translation panel for direct input in the popup.
  */
-export function Trantab({ isSeparate = false }) {
+export function Trantab({ isSeparate = false, isVisible = true }) {
   useSeparateWindowBounds(isSeparate);
   const panelRef = useRef(null);
   const [text, setText] = useState("");
@@ -329,6 +331,28 @@ export function Trantab({ isSeparate = false }) {
     parseLatex,
   } = setting;
 
+  if (!isSeparate) {
+    return (
+      <div className="kt-popup-text-panel" ref={panelRef}>
+        <PopupTextPanel
+          text={text}
+          setText={setText}
+          apiSlugs={apiSlugs}
+          fromLang={fromLang}
+          toLang={toLang}
+          toLang2={toLang2}
+          transApis={resolvedTransApis}
+          langDetector={langDetector}
+          translateVariants={translateVariants}
+          parseLatex={parseLatex}
+          autoFocusInput={autoFocusInput}
+          isVisible={isVisible}
+          syncExternalTextWhileEditing
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="kt-popup-text-panel" ref={panelRef}>
       <TranslationPanelSurface embedded>
@@ -381,6 +405,7 @@ export default function Popup() {
   const [isSeparate] = useState(
     () => !previewMode && window.location.hash.slice(1) === "tranbox"
   );
+  const [hasVisitedText, setHasVisitedText] = useState(activeTab === "text");
   const previewData = useMemo(() => {
     if (!previewMode) return null;
     return {
@@ -411,6 +436,17 @@ export default function Popup() {
     document: documentInfo,
   } = data || {};
   const popupShellRef = useRef(null);
+  const popupChromeRef = useRef(null);
+  const popupPageRef = useRef(null);
+  const pageHeight = usePopupPageHeight({
+    shellRef: popupShellRef,
+    chromeRef: popupChromeRef,
+    pageRef: popupPageRef,
+    activeTab,
+    isSeparate,
+    generation,
+    isLoading,
+  });
   const initialPageTabRef = useRef(activeTab === "page");
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
@@ -502,8 +538,16 @@ export default function Popup() {
 
   return (
     <main
-      className="kt-popup-shell"
+      className={`kt-popup-shell${activeTab === "text" && pageHeight ? " kt-popup-shell--text" : ""}`}
       ref={popupShellRef}
+      style={
+        pageHeight
+          ? {
+              "--kt-popup-page-height": `${pageHeight.height}px`,
+              "--kt-popup-header-height": `${pageHeight.header}px`,
+            }
+          : undefined
+      }
       tabIndex={-1}
       onPointerDownCapture={() => {
         initialFocusGuardRef.current = false;
@@ -513,7 +557,7 @@ export default function Popup() {
       }}
     >
       <style>{POPUP_STYLES}</style>
-      <div className="kt-popup-chrome">
+      <div className="kt-popup-chrome" ref={popupChromeRef}>
         <Header
           key={generation}
           openSeparateWindow={openSeparateWindow}
@@ -522,7 +566,10 @@ export default function Popup() {
           <Tabs
             className="kt-popup-tabs"
             value={activeTab}
-            onChange={(_event, value) => setActiveTab(value)}
+            onChange={(_event, value) => {
+              if (value === "text") setHasVisitedText(true);
+              setActiveTab(value);
+            }}
             aria-label={i18n("translate")}
           >
             {tabs.map((tab) => (
@@ -540,6 +587,7 @@ export default function Popup() {
       </div>
       <div
         id="kt-popup-page-panel"
+        ref={popupPageRef}
         role="tabpanel"
         aria-labelledby="kt-popup-page-tab"
         className="kt-popup-scroll"
@@ -597,14 +645,15 @@ export default function Popup() {
           </div>
         )}
       </div>
-      {activeTab === "text" && (
+      {hasVisitedText && (
         <div
           id="kt-popup-text-panel"
           role="tabpanel"
           aria-labelledby="kt-popup-text-tab"
-          className="kt-popup-scroll"
+          className="kt-popup-scroll kt-popup-scroll--text"
+          hidden={activeTab !== "text"}
         >
-          <Trantab />
+          <Trantab isVisible={activeTab === "text"} />
         </div>
       )}
     </main>

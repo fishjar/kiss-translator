@@ -125,6 +125,8 @@ jest.mock("../../components/Logo", () => ({
   default: () => null,
 }));
 
+jest.mock("./PopupTextPanel", () => jest.requireMock("../Selection/TranForm"));
+
 const flush = async () => {
   await act(async () => {
     await Promise.resolve();

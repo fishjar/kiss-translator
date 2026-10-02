@@ -80,6 +80,8 @@ jest.mock("../Selection/TranForm", () => {
     );
 });
 
+jest.mock("./PopupTextPanel", () => jest.requireMock("../Selection/TranForm"));
+
 const setting = {
   autoTranslateClipboard: true,
   tranboxSetting: {
@@ -369,14 +371,14 @@ describe("shared translation panel hosts", () => {
     ).toBe("false");
   });
 
-  test("embeds the same content without a second header in the popup tab", async () => {
+  test("uses the compact text editor without a second header in the popup tab", async () => {
     view = renderTrantab();
     await flushEffects();
 
     expect(
       view.container.querySelector(".kt-translation-panel--embedded")
-    ).not.toBeNull();
-    expect(view.container.querySelector(".kt-tranbox-content")).not.toBeNull();
+    ).toBeNull();
+    expect(view.container.querySelector(".kt-popup-text-panel")).not.toBeNull();
     expect(view.container.querySelector(".kt-tranbox-header")).toBeNull();
     expect(
       view.container.querySelector('[data-testid="tran-form"]').dataset

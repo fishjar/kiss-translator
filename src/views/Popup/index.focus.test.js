@@ -82,6 +82,8 @@ jest.mock("../Selection/TranForm", () => {
     );
 });
 
+jest.mock("./PopupTextPanel", () => jest.requireMock("../Selection/TranForm"));
+
 describe("Popup focus", () => {
   beforeEach(() => {
     getCurTab.mockResolvedValue({
