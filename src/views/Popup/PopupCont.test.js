@@ -498,23 +498,140 @@ describe("PopupCont capability parity", () => {
     }
   });
 
-  test("does not invent a fallback when every service is disabled", async () => {
-    const processActions = jest.fn();
+  test.each([
+    ["disabled", "true", [{ apiSlug: "google", isDisabled: true }]],
+    ["disabled", "false", [{ apiSlug: "google", isDisabled: true }]],
+    ["empty", "true", []],
+    ["empty", "false", []],
+  ])(
+    "disables translation for %s services with transOpen=%s",
+    async (_name, transOpen, transApis) => {
+      const processActions = jest.fn();
+      const view = renderPopupCont(
+        {
+          rule: { apiSlug: "google", transOpen },
+          setting: { transApis },
+          processActions,
+        },
+        { statefulRule: true }
+      );
+      try {
+        await flushEffects();
+        expect(
+          view.container.querySelectorAll(".kt-popup-service")
+        ).toHaveLength(0);
+        const emptyState = view.container.querySelector(
+          ".kt-popup-services-empty"
+        );
+        expect(emptyState.textContent).toBe("popup_no_services");
+        expect(emptyState.getAttribute("role")).toBe("status");
+        expect(view.container.querySelector(".kt-popup-services")).toBeNull();
+        expect(emptyState.querySelector("button")).toBeNull();
+        const translate = view.container.querySelector(
+          ".kt-popup-translate-button"
+        );
+        expect(translate.disabled).toBe(true);
+        expect(translate.getAttribute("aria-pressed")).toBe("false");
+        expect(translate.getAttribute("aria-busy")).toBe("false");
+        expect(
+          view.container.querySelector(".kt-popup-translate-check")
+        ).toBeNull();
+        await act(async () => translate.click());
+        expect(processActions).not.toHaveBeenCalled();
+        expect(saveRule).not.toHaveBeenCalled();
+      } finally {
+        view.cleanup();
+      }
+    }
+  );
+
+  test("recovers the translation action when a service becomes available again", async () => {
+    const api = { apiSlug: "google", apiName: "Google" };
+    const processActions = jest.fn(({ args }) => ({
+      rule:
+        args && "enabled" in args ? { transOpen: String(args.enabled) } : args,
+    }));
     const view = renderPopupCont(
       {
-        rule: { apiSlug: "google" },
-        setting: { transApis: [{ apiSlug: "google", isDisabled: true }] },
+        rule: { transOpen: "false" },
+        setting: { transApis: [api] },
         processActions,
       },
       { statefulRule: true }
     );
     try {
       await flushEffects();
-      expect(view.container.querySelectorAll(".kt-popup-service")).toHaveLength(
-        0
+      view.updateRuntimeSetting({ transApis: [{ ...api, isDisabled: true }] });
+      await flushEffects();
+      expect(
+        view.container.querySelector(".kt-popup-services-empty")
+      ).not.toBeNull();
+      expect(
+        view.container.querySelector(".kt-popup-translate-button").disabled
+      ).toBe(true);
+      view.updateRuntimeSetting({ transApis: [api] });
+      await flushEffects();
+      expect(
+        view.container.querySelector(".kt-popup-services-empty")
+      ).toBeNull();
+      const translate = view.container.querySelector(
+        ".kt-popup-translate-button"
       );
-      expect(processActions).not.toHaveBeenCalled();
-      expect(saveRule).not.toHaveBeenCalled();
+      expect(translate.disabled).toBe(false);
+      await act(async () => translate.click());
+      expect(processActions).toHaveBeenCalledWith({
+        action: MSG_TRANS_TOGGLE,
+        args: { enabled: true },
+      });
+      expect(translate.getAttribute("aria-pressed")).toBe("true");
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("closes an open service menu when the last available service is disabled", async () => {
+    const transApis = ["google", "second", "third", "fourth"].map(
+      (apiSlug) => ({ apiSlug })
+    );
+    const view = renderPopupCont(
+      { setting: { transApis } },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      act(() => view.container.querySelector(".kt-popup-more-service").click());
+      expect(
+        document.body.querySelectorAll(".kt-popup-service-option")
+      ).toHaveLength(4);
+      view.updateRuntimeSetting({
+        transApis: transApis.map((api) => ({ ...api, isDisabled: true })),
+      });
+      await flushEffects();
+      expect(document.body.querySelector(".kt-popup-service-menu")).toBeNull();
+      view.updateRuntimeSetting({ transApis });
+      await flushEffects();
+      expect(document.body.querySelector(".kt-popup-service-menu")).toBeNull();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("keeps blacklist recovery available without enabled services", async () => {
+    mockContextSetting = { blacklist: "example.com" };
+    const view = renderPopupCont({
+      setting: { transApis: [] },
+      isDisabledPage: true,
+      capabilities: { pageTranslation: false },
+    });
+    try {
+      await flushEffects();
+      const restore = view.container.querySelector(
+        ".kt-popup-translate-button"
+      );
+      expect(restore.disabled).toBe(false);
+      expect(restore.getAttribute("aria-label")).toBe("popup_restore_site");
+      await act(async () => restore.click());
+      expect(mockUpdateSetting).toHaveBeenCalled();
     } finally {
       view.cleanup();
     }

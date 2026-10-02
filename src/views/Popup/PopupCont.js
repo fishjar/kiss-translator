@@ -543,6 +543,10 @@ export default function PopupCont({
       if (
         !canTranslatePage ||
         isInCurrentBlacklist ||
+        !resolveApiSelection(
+          configuredApisRef.current,
+          ruleRef.current?.apiSlug
+        ) ||
         translationTogglePendingRef.current
       )
         return;
@@ -744,7 +748,19 @@ export default function PopupCont({
     targetTab?.id,
     documentInfo?.token,
   ]);
-  const translationEnabled = canTranslatePage && enabledValue(transOpen);
+  const hasEnabledServices = services.length > 0;
+  const translationEnabled =
+    canTranslatePage && hasEnabledServices && enabledValue(transOpen);
+  const translationUnavailable = !hasEnabledServices && !isInCurrentBlacklist;
+  const translationInProgress =
+    hasEnabledServices && (translationTogglePending || translationBusy);
+  useEffect(() => {
+    if (!hasEnabledServices) {
+      setOpenMenu((previous) =>
+        previous?.name === "service" ? null : previous
+      );
+    }
+  }, [hasEnabledServices]);
   const isAutoSource =
     !fromLang || fromLang === "auto" || fromLang === "$global";
   const visibleServices = useMemo(
@@ -784,13 +800,15 @@ export default function PopupCont({
     ? i18n("popup_restore_site")
     : !canTranslatePage
       ? i18n("popup_unavailable")
-      : translationError
-        ? i18n("rule_toggle_failed")
-        : translationBusy
-          ? i18n("popup_translating")
-          : translationEnabled
-            ? i18n("popup_translated")
-            : i18n("popup_translate_page");
+      : !hasEnabledServices
+        ? i18n("popup_translate_page")
+        : translationError
+          ? i18n("rule_toggle_failed")
+          : translationBusy
+            ? i18n("popup_translating")
+            : translationEnabled
+              ? i18n("popup_translated")
+              : i18n("popup_translate_page");
   const actionLabel = isInCurrentBlacklist
     ? i18n("popup_restore_site")
     : translationEnabled
@@ -835,8 +853,8 @@ export default function PopupCont({
   return (
     <section className="kt-popup-content">
       <div
-        className={`kt-popup-hero${translationEnabled ? " kt-popup-hero--translated" : ""}${isInCurrentBlacklist ? " kt-popup-hero--blocked" : ""}${translationBusy ? " kt-popup-hero--busy" : ""}`}
-        aria-busy={translationTogglePending || translationBusy}
+        className={`kt-popup-hero${translationEnabled ? " kt-popup-hero--translated" : ""}${isInCurrentBlacklist ? " kt-popup-hero--blocked" : ""}${translationBusy && hasEnabledServices ? " kt-popup-hero--busy" : ""}${translationUnavailable ? " kt-popup-hero--no-service" : ""}`}
+        aria-busy={translationInProgress}
       >
         <div className="kt-popup-hero__main">
           <div className="kt-popup-site-row">
@@ -912,17 +930,20 @@ export default function PopupCont({
             className="kt-popup-translate-button"
             aria-label={actionLabel}
             aria-pressed={translationEnabled}
-            aria-busy={translationTogglePending || translationBusy}
+            aria-busy={translationInProgress}
             title={
               isInCurrentBlacklist
                 ? i18n("popup_restore_scope_hint").replace(
                     "{domain}",
                     restorePattern || selectedDomain
                   )
-                : `${actionLabel}${pageShortcut ? ` (${pageShortcut})` : ""}`
+                : translationUnavailable
+                  ? i18n("popup_no_services")
+                  : `${actionLabel}${pageShortcut ? ` (${pageShortcut})` : ""}`
             }
             disabled={
               (!canTranslatePage && !isInCurrentBlacklist) ||
+              translationUnavailable ||
               translationTogglePending ||
               blacklistPending
             }
@@ -951,7 +972,7 @@ export default function PopupCont({
             )}
           </button>
           <span
-            className={`kt-popup-translate-label${translationError ? " kt-popup-translate-label--error" : ""}`}
+            className={`kt-popup-translate-label${translationError && hasEnabledServices ? " kt-popup-translate-label--error" : ""}`}
             role="status"
           >
             <span>{translationLabel}</span>
@@ -968,60 +989,71 @@ export default function PopupCont({
       </div>
       <div className="kt-popup-settings-grid" aria-disabled={blockedControls}>
         <div className="kt-popup-services-block">
-          <div
-            className="kt-popup-services"
-            role="radiogroup"
-            aria-label={i18n("translate_service")}
-            onKeyDown={handleRadioKeyDown}
-            style={{
-              gridTemplateColumns: `repeat(${Math.max(1, visibleServices.length)}, minmax(0, 1fr))`,
-            }}
-          >
-            {serviceIndex >= 0 && (
-              <span
-                className="kt-popup-segment-indicator"
-                aria-hidden="true"
+          {hasEnabledServices ? (
+            <>
+              <div
+                className="kt-popup-services"
+                role="radiogroup"
+                aria-label={i18n("translate_service")}
+                onKeyDown={handleRadioKeyDown}
                 style={{
-                  width: `${100 / visibleServices.length}%`,
-                  transform: `translateX(${serviceIndex * 100}%)`,
+                  gridTemplateColumns: `repeat(${Math.max(1, visibleServices.length)}, minmax(0, 1fr))`,
                 }}
-              />
-            )}
-            {visibleServices.map((service) => (
-              <button
-                type="button"
-                className="kt-popup-service"
-                role="radio"
-                aria-checked={service.key === apiSlug}
-                key={service.key}
-                title={service.name}
-                disabled={blockedControls}
-                onClick={() => void putRuleValue("apiSlug", service.key)}
               >
-                <ApiProviderIcon
-                  apiType={service.type}
-                  className="kt-service-logo"
-                  lightSurface
-                />
-                <span className="kt-popup-service__name">{service.name}</span>
-              </button>
-            ))}
-          </div>
-          {services.length > COLLAPSED_SERVICE_LIMIT && (
-            <button
-              type="button"
-              className="kt-popup-more-service"
-              aria-label={i18n("popup_more_services")}
-              aria-haspopup="menu"
-              aria-expanded={openMenu?.name === "service"}
-              disabled={blockedControls}
-              onClick={(event) => showMenu("service", event)}
-            >
-              +{hiddenServiceCount}
-              <ExpandMoreRoundedIcon aria-hidden="true" />
-            </button>
+                {serviceIndex >= 0 && (
+                  <span
+                    className="kt-popup-segment-indicator"
+                    aria-hidden="true"
+                    style={{
+                      width: `${100 / visibleServices.length}%`,
+                      transform: `translateX(${serviceIndex * 100}%)`,
+                    }}
+                  />
+                )}
+                {visibleServices.map((service) => (
+                  <button
+                    type="button"
+                    className="kt-popup-service"
+                    role="radio"
+                    aria-checked={service.key === apiSlug}
+                    key={service.key}
+                    title={service.name}
+                    disabled={blockedControls}
+                    onClick={() => void putRuleValue("apiSlug", service.key)}
+                  >
+                    <ApiProviderIcon
+                      apiType={service.type}
+                      className="kt-service-logo"
+                      lightSurface
+                    />
+                    <span className="kt-popup-service__name">
+                      {service.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {services.length > COLLAPSED_SERVICE_LIMIT && (
+                <button
+                  type="button"
+                  className="kt-popup-more-service"
+                  aria-label={i18n("popup_more_services")}
+                  aria-haspopup="menu"
+                  aria-expanded={openMenu?.name === "service"}
+                  disabled={blockedControls}
+                  onClick={(event) => showMenu("service", event)}
+                >
+                  +{hiddenServiceCount}
+                  <ExpandMoreRoundedIcon aria-hidden="true" />
+                </button>
+              )}
+              {dirtyDot("apiSlug")}
+            </>
+          ) : (
+            <div className="kt-popup-services-empty" role="status">
+              <LanguageRoundedIcon aria-hidden="true" />
+              <span>{i18n("popup_no_services")}</span>
+            </div>
           )}
-          {dirtyDot("apiSlug")}
         </div>
         <button
           type="button"

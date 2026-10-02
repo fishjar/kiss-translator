@@ -157,12 +157,19 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-translate-label.kt-popup-translate-label--error { color: var(--kt-err); }
 .kt-popup-translate-button:active { transform: scale(.94); }
 .kt-popup-hero--busy .kt-popup-translate-button:active { transform: none; }
+.kt-popup-hero--no-service .kt-popup-translate-button,
+.kt-popup-hero--no-service .kt-popup-translate-button:hover,
+.kt-popup-hero--no-service .kt-popup-translate-button:active { border-color: var(--kt-sf4); background: var(--kt-sf3); color: var(--kt-onv); box-shadow: none; cursor: not-allowed; transform: none; }
+.kt-popup-hero--no-service .kt-popup-translate-label { color: var(--kt-onv); }
 
 .kt-popup-settings-grid { position: relative; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 6px; transition: opacity .3s; }
 .kt-popup-settings-grid[aria-disabled="true"],
 .kt-popup-settings-grid--blocked { opacity: .38; pointer-events: none; }
 .kt-popup-services-block { position: relative; min-width: 0; grid-column: span 2; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 12px; background: var(--kt-sf2); }
 .kt-popup-services { position: relative; min-width: 0; display: grid; flex: 1; grid-template-columns: repeat(3,minmax(0,1fr)); overflow: visible; }
+.kt-popup-services-empty { min-width: 0; min-height: 36px; display: flex; flex: 1; align-items: center; justify-content: center; gap: 8px; padding: 0 8px; color: var(--kt-onv); font-size: 12.5px; font-weight: 500; text-align: center; }
+.kt-popup-services-empty > svg { width: 18px; height: 18px; flex: none; }
+.kt-popup-services-empty > span { min-width: 0; overflow-wrap: anywhere; }
 .kt-popup-segment-indicator { position: absolute; top: 0; bottom: 0; left: 0; width: 33.3333%; border-radius: 9px; background: var(--kt-sf0); box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 1px 4px rgba(0,0,0,.06); transition: transform .32s cubic-bezier(.3,1.25,.45,1); pointer-events: none; }
 .kt-popup-service { position: relative; min-width: 0; height: 36px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px; border: 0; border-radius: 9px; background: transparent; color: var(--kt-onv); font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: color .2s; }
 .kt-popup-service[aria-pressed="true"],

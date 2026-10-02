@@ -1,4 +1,9 @@
 const labels = {
+  popup_no_services: [
+    "未启用翻译服务",
+    "No translation services enabled",
+    "未啟用翻譯服務",
+  ],
   popup_auto_detect: ["自动检测", "Auto detect", "自動偵測"],
   popup_global_features: ["全局功能", "Global features", "全域功能"],
   popup_global_feature_scope: [
