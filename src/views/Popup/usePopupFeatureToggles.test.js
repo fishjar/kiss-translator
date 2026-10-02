@@ -29,10 +29,12 @@ const initialSetting = {
 
 function deferred() {
   let resolve;
-  const promise = new Promise((settle) => {
+  let reject;
+  const promise = new Promise((settle, fail) => {
     resolve = settle;
+    reject = fail;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 describe("Popup global feature preferences", () => {
@@ -138,6 +140,177 @@ describe("Popup global feature preferences", () => {
     });
     expect(storedSetting.tranboxSetting).toEqual(initialSetting.tranboxSetting);
     expect(latest.enabledCount).toBe(2);
+  });
+
+  test("settles a runtime confirmation while hidden and permits another toggle after returning", async () => {
+    const confirmation = deferred();
+    sendTabMsg.mockResolvedValue({});
+    queryPopupData
+      .mockReturnValueOnce(confirmation.promise)
+      .mockResolvedValue({ setting: initialSetting });
+    render();
+
+    let operation;
+    await act(async () => {
+      operation = latest.handleMouseHoverToggle(true);
+      await Promise.resolve();
+    });
+    expect(queryPopupData).toHaveBeenCalledTimes(1);
+    render({ ...props, isVisible: false });
+    await act(async () => latest.handleInputToggle(true));
+    expect(sendTabMsg).toHaveBeenCalledTimes(1);
+    expect(
+      latest.features.find((feature) => feature.name === "hover").pending
+    ).toBe(true);
+
+    await act(async () => {
+      confirmation.resolve({
+        setting: {
+          ...initialSetting,
+          mouseHoverSetting: {
+            ...initialSetting.mouseHoverSetting,
+            useMouseHover: true,
+          },
+        },
+      });
+      await operation;
+    });
+    expect(storedSetting.mouseHoverSetting.useMouseHover).toBe(true);
+    expect(latest.features.find((feature) => feature.name === "hover")).toEqual(
+      { name: "hover", enabled: true, pending: false, failed: false }
+    );
+
+    render({ ...props, isVisible: true });
+    await act(async () => latest.handleMouseHoverToggle(false));
+    expect(sendTabMsg).toHaveBeenCalledTimes(2);
+    expect(storedSetting.mouseHoverSetting.useMouseHover).toBe(false);
+    expect(
+      latest.features.find((feature) => feature.name === "hover").pending
+    ).toBe(false);
+  });
+
+  test("runs a queued preference reducer while its page controls are hidden", async () => {
+    let queuedUpdate;
+    const persistence = deferred();
+    updateSetting.mockImplementation((update) => {
+      queuedUpdate = update;
+      return persistence.promise;
+    });
+    const processActions = jest.fn(async ({ args }) => ({
+      setting: {
+        ...initialSetting,
+        inputRule: { ...initialSetting.inputRule, transOpen: args.enabled },
+      },
+    }));
+    render({ ...props, processActions });
+
+    let operation;
+    await act(async () => {
+      operation = latest.handleInputToggle(true);
+      await Promise.resolve();
+    });
+    expect(queuedUpdate).toEqual(expect.any(Function));
+    render({ ...props, processActions, isVisible: false });
+    storedSetting = queuedUpdate(storedSetting);
+    expect(storedSetting.inputRule).toEqual({ transOpen: true, toLang: "en" });
+    await act(async () => {
+      persistence.resolve(storedSetting);
+      await operation;
+    });
+    expect(latest.features.find((feature) => feature.name === "input")).toEqual(
+      { name: "input", enabled: true, pending: false, failed: false }
+    );
+    expect(processActions).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(["runtime", "persistence"])(
+    "rolls back a %s failure while hidden and clears the pending gate",
+    async (failure) => {
+      const response = deferred();
+      const processActions = jest.fn(async ({ args }) => ({
+        setting: {
+          ...initialSetting,
+          inputRule: { ...initialSetting.inputRule, transOpen: args.enabled },
+        },
+      }));
+      if (failure === "runtime")
+        processActions.mockReturnValueOnce(response.promise);
+      else updateSetting.mockReturnValueOnce(response.promise);
+      render({ ...props, processActions });
+
+      let operation;
+      await act(async () => {
+        operation = latest.handleInputToggle(true);
+        await Promise.resolve();
+      });
+      render({ ...props, processActions, isVisible: false });
+      await act(async () => {
+        response.reject(new Error(`${failure} failed`));
+        await operation;
+      });
+      expect(
+        latest.features.find((feature) => feature.name === "input")
+      ).toEqual({
+        name: "input",
+        enabled: false,
+        pending: false,
+        failed: true,
+      });
+      expect(storedSetting.inputRule.transOpen).toBe(false);
+      expect(processActions).toHaveBeenCalledTimes(
+        failure === "runtime" ? 1 : 2
+      );
+
+      render({ ...props, processActions, isVisible: true });
+      await act(async () => latest.handleInputToggle(true));
+      expect(storedSetting.inputRule.transOpen).toBe(true);
+      expect(
+        latest.features.find((feature) => feature.name === "input")
+      ).toEqual({
+        name: "input",
+        enabled: true,
+        pending: false,
+        failed: false,
+      });
+    }
+  );
+
+  test("a disabled-page status change does not retire an operation for the same receiver", async () => {
+    const command = deferred();
+    const processActions = jest.fn(() => command.promise);
+    render({ ...props, processActions });
+
+    let operation;
+    act(() => {
+      operation = latest.handleTransboxToggle(false);
+    });
+    render({
+      ...props,
+      processActions,
+      isDisabledPage: true,
+      isVisible: false,
+    });
+    await act(async () => {
+      command.resolve({
+        setting: {
+          ...initialSetting,
+          tranboxSetting: {
+            ...initialSetting.tranboxSetting,
+            transOpen: false,
+          },
+        },
+      });
+      await operation;
+    });
+    expect(storedSetting.tranboxSetting.transOpen).toBe(false);
+    expect(
+      latest.features.find((feature) => feature.name === "selection")
+    ).toEqual({
+      name: "selection",
+      enabled: false,
+      pending: false,
+      failed: false,
+    });
   });
 
   test("rejects an unconfirmed reply and shows a temporary row failure", async () => {
@@ -259,6 +432,42 @@ describe("Popup global feature preferences", () => {
     expect(updateSetting).not.toHaveBeenCalled();
     expect(sendTabMsg.mock.calls[0][0]).toBe(MSG_TRANSINPUT_TOGGLE);
   });
+
+  test.each(["document", "frame", "tab", "receiver"])(
+    "a retired %s identity cannot persist a late confirmation",
+    async (changedIdentity) => {
+      const command = deferred();
+      sendTabMsg.mockReturnValue(command.promise);
+      queryPopupData.mockResolvedValue({
+        setting: {
+          ...initialSetting,
+          inputRule: { ...initialSetting.inputRule, transOpen: true },
+        },
+      });
+      render();
+      let operation;
+      act(() => {
+        operation = latest.handleInputToggle(true);
+      });
+      const nextProps = {
+        ...props,
+        ...(changedIdentity === "document"
+          ? { documentInfo: { ...props.documentInfo, token: "next-document" } }
+          : changedIdentity === "frame"
+            ? { documentInfo: { ...props.documentInfo, frameId: 7 } }
+            : changedIdentity === "tab"
+              ? { targetTab: { id: 99 } }
+              : { processActions: jest.fn() }),
+      };
+      render(nextProps);
+      await act(async () => {
+        command.resolve({});
+        await operation;
+      });
+      expect(updateSetting).not.toHaveBeenCalled();
+      expect(storedSetting.inputRule.transOpen).toBe(false);
+    }
+  );
 
   test("concurrent feature changes merge against the latest stored settings", async () => {
     const processActions = jest.fn(async ({ action, args }) => ({

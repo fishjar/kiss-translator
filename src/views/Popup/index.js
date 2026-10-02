@@ -518,12 +518,6 @@ export default function Popup() {
           key={generation}
           openSeparateWindow={openSeparateWindow}
           openSettings={handleOpenSetting}
-          setting={setting}
-          capabilities={capabilities}
-          targetTab={tab}
-          documentInfo={documentInfo}
-          isDisabledPage={isDisabledPage}
-          onPageUnavailable={markUnavailable}
         >
           <Tabs
             className="kt-popup-tabs"

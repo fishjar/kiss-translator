@@ -104,6 +104,58 @@ describe("popup menus", () => {
   });
 });
 
+describe("persistent global feature segments", () => {
+  test("shares available width without inheriting blocked site dimming", () => {
+    const groupRule = getRuleBodies(".kt-popup-global-features")[0];
+    const segmentRule = getRuleBodies(".kt-popup-global-feature")[0];
+    expect(groupRule).toContain("height: 38px");
+    expect(groupRule).toContain("display: flex");
+    expect(groupRule).toContain("border: 1px solid var(--kt-sf4)");
+    expect(groupRule).toContain("border-radius: 12px");
+    expect(segmentRule).toContain("flex: 1");
+    expect(segmentRule).toContain("min-width: 0");
+    expect(segmentRule).toContain("height: 36px");
+    expect(
+      getRuleBodies(".kt-popup-global-feature + .kt-popup-global-feature")[0]
+    ).toContain("border-left: 1px solid var(--kt-sf4)");
+    const featureRules = parseTopLevelRules(POPUP_STYLES).filter((rule) =>
+      rule.members.some((selector) =>
+        selector.includes("kt-popup-global-feature")
+      )
+    );
+    for (const rule of featureRules) {
+      expect(rule.members.join(" ")).not.toContain("--blocked");
+      expect(rule.body).not.toMatch(/opacity:\s*\.38|pointer-events:\s*none/);
+    }
+    expect(POPUP_STYLES).not.toContain("kt-popup-header__global");
+    expect(POPUP_STYLES).not.toContain("kt-popup-header__badge");
+    expect(POPUP_STYLES).not.toContain("kt-popup-global-menu");
+  });
+
+  test("keeps enabled, disabled, pending and failure states visibly distinct", () => {
+    const enabledRule = getRuleBodies(
+      '.kt-popup-global-feature[aria-pressed="true"]'
+    )[0];
+    expect(enabledRule).toContain("background: var(--kt-pric)");
+    expect(enabledRule).toContain("color: var(--kt-onpric)");
+    expect(getRuleBodies(".kt-popup-global-feature")[0]).toContain(
+      "color: var(--kt-onv)"
+    );
+    expect(
+      getRuleBodies('.kt-popup-global-feature[aria-busy="true"]')[0]
+    ).toContain("opacity: 1");
+    expect(
+      getRuleBodies('.kt-popup-global-feature[data-error="true"]')[0]
+    ).toContain("color: var(--kt-err)");
+    expect(getRuleBodies(".kt-popup-global-feature > span")[0]).toContain(
+      "text-overflow: ellipsis"
+    );
+    expect(
+      getRuleBodies(".kt-popup-global-feature:focus-visible")[0]
+    ).toContain("box-shadow: inset");
+  });
+});
+
 describe("separate translation window layout", () => {
   const windowShellRule = getRuleBodies(".kt-popup-shell--window")[0];
   const panelRule = getRuleBodies(

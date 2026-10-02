@@ -61,6 +61,7 @@ import { COLLAPSED_SERVICE_LIMIT, getVisibleServices } from "./services";
 import CompactLanguageSelect from "./CompactLanguageSelect";
 import PopupStylePreview from "./PopupStylePreview";
 import PopupMenu from "./PopupMenu";
+import GlobalFeatures from "./GlobalFeatures";
 import { queryPopupData } from "./loadData";
 import { useConfirmedPopupUpdate } from "./useConfirmedPopupUpdate";
 import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
@@ -1076,6 +1077,18 @@ export default function PopupCont({
           {saveLabel}
         </button>
       </div>
+      {!isContent && (
+        <GlobalFeatures
+          setting={setting}
+          capabilities={capabilities}
+          processActions={processActions}
+          targetTab={targetTab}
+          documentInfo={documentInfo}
+          isDisabledPage={isDisabledPage}
+          isVisible={isVisible}
+          onPageUnavailable={onPageUnavailable}
+        />
+      )}
       {!blockedControls && (
         <TouchTranslateControl
           processActions={dispatchTouchAction}

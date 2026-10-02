@@ -1,6 +1,11 @@
 const labels = {
   popup_auto_detect: ["自动检测", "Auto detect", "自動偵測"],
   popup_global_features: ["全局功能", "Global features", "全域功能"],
+  popup_global_feature_scope: [
+    "{feature}：对所有网站生效",
+    "{feature}: applies to all websites",
+    "{feature}：對所有網站生效",
+  ],
   popup_global_features_hint: ["全局功能", "Global features", "全域功能"],
   popup_global_toggle_failed: ["失败", "Failed", "失敗"],
   popup_hover_translation: ["悬停翻译", "Hover translation", "懸停翻譯"],

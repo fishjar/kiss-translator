@@ -74,19 +74,11 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-header__spacer { flex: 1; }
 .kt-popup-header__drag { display: flex; flex: none; color: var(--kt-onv); cursor: move; }
 .kt-popup-header__actions { display: flex; flex: none; align-items: center; gap: 6px; margin-left: auto; }
-.kt-popup-header .MuiIconButton-root,
-.kt-popup-global-button { width: 32px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--kt-onv); }
-.kt-popup-header .MuiIconButton-root svg,
-.kt-popup-global-button svg { width: 20px; height: 20px; }
-.kt-popup-header .MuiIconButton-root:hover,
-.kt-popup-global-button:hover { background: var(--kt-sf2); }
-.kt-popup-header__global.MuiIconButton-root { position: relative; }
-.kt-popup-header__global.MuiIconButton-root[data-open="true"],
-.kt-popup-global-button[aria-expanded="true"] { background: var(--kt-sf3); }
+.kt-popup-header .MuiIconButton-root { width: 32px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--kt-onv); }
+.kt-popup-header .MuiIconButton-root svg { width: 20px; height: 20px; }
+.kt-popup-header .MuiIconButton-root:hover { background: var(--kt-sf2); }
 .kt-popup-header__sponsor.MuiIconButton-root { background: transparent; color: var(--kt-onv); }
 .kt-popup-header__sponsor.MuiIconButton-root:hover { background: var(--kt-sf2); }
-.kt-popup-header__badge,
-.kt-popup-global-count { position: absolute; top: 0; right: -1px; min-width: 15px; height: 15px; display: grid; place-items: center; padding: 0 3px; border-radius: 999px; background: var(--kt-pric); color: var(--kt-onpric); font-size: 9.5px; font-weight: 700; line-height: 1; box-shadow: 0 0 0 2px var(--kt-sf0); }
 .kt-popup-tabs.MuiTabs-root { min-width: 0; min-height: 34px; flex: 0 1 auto; margin: 0 0 0 2px; padding: 3px; border-radius: 12px; background: var(--kt-sf2); }
 .kt-popup-tabs .MuiTabs-flexContainer { gap: 2px; }
 .kt-popup-tabs .MuiTabs-indicator { display: none; }
@@ -217,6 +209,18 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-dirty-dot { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: var(--kt-pri); box-shadow: 0 0 0 2px var(--kt-sf0); pointer-events: none; }
 .kt-popup-dirty-dot--inline { position: static; width: 6px; height: 6px; flex: none; box-shadow: none; }
 
+.kt-popup-global-features { height: 38px; display: flex; border: 1px solid var(--kt-sf4); border-radius: 12px; overflow: hidden; }
+.kt-popup-global-feature { min-width: 0; height: 36px; display: flex; flex: 1; align-items: center; justify-content: center; gap: 4px; padding: 0 6px; border: 0; background: transparent; color: var(--kt-onv); font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: background .25s, color .25s; }
+.kt-popup-global-feature + .kt-popup-global-feature { border-left: 1px solid var(--kt-sf4); }
+.kt-popup-global-feature[aria-pressed="true"] { background: var(--kt-pric); color: var(--kt-onpric); }
+.kt-popup-global-feature > svg { width: 17px; height: 17px; flex: none; }
+.kt-popup-global-feature > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kt-popup-global-feature:hover { box-shadow: inset 0 0 0 99px rgba(31,31,31,.05); }
+.kt-popup-global-feature[data-error="true"] { color: var(--kt-err); }
+.kt-popup-global-feature[aria-busy="true"] { opacity: 1; cursor: progress; }
+/* An inset keyboard ring stays visible inside the clipped segmented frame. */
+.kt-popup-global-feature:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--kt-pri); }
+
 .kt-popup-bottom-actions { display: flex; align-items: center; gap: 2px; margin-top: -2px; }
 .kt-popup-disable-button,
 .kt-popup-cache-button { height: 32px; display: flex; align-items: center; gap: 5px; padding: 0 10px 0 8px; border: 0; border-radius: 12px; background: transparent; color: var(--kt-onv); font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: color .2s; }
@@ -269,14 +273,6 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-language-menu .kt-popup-menu-check { align-self: center; }
 .kt-popup-language-divider,
 .kt-popup-language-menu .MuiDivider-root { height: 1px; margin: 4px 6px; border: 0; background: var(--kt-sf3); }
-.kt-popup-global-menu.MuiPaper-root { padding: 8px; }
-.kt-popup-global-title { display: flex; align-items: center; gap: 6px; padding: 4px 8px 6px; font-size: 13px; font-weight: 700; }
-.kt-popup-global-title svg { width: 18px; height: 18px; flex: none; color: var(--kt-onv); }
-.kt-popup-global-row.MuiMenuItem-root { min-height: 40px; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 10px; font-size: 13px; font-weight: 600; }
-.kt-popup-global-row > svg { width: 20px; height: 20px; flex: none; color: var(--kt-onv); }
-.kt-popup-global-row__label { min-width: 0; flex: 1; white-space: nowrap; }
-.kt-popup-global-row .kt-popup-switch { margin-left: 14px; }
-.kt-popup-global-error { margin-left: 4px; color: var(--kt-err); font-size: 11px; white-space: nowrap; }
 
 .kt-popup-text-panel { padding: 0; animation: kt-m3-rise .35s var(--kt-spring); }
 .kt-popup-shell--window .kt-popup-text-panel { padding: 0; animation: none; }

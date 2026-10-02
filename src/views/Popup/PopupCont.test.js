@@ -29,6 +29,7 @@ import {
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
   MSG_TRANS_TOGGLE,
+  MSG_MOUSEHOVER_TOGGLE,
   MSG_TOUCH_TRANSLATE_MODE_SET,
   MSG_TOUCH_TRANSLATE_STATE,
   OPT_LANGS_FROM_REVERSED,
@@ -862,7 +863,7 @@ describe("PopupCont capability parity", () => {
     view.cleanup();
   });
 
-  test("does not show feature shortcuts or change their saved settings", async () => {
+  test("shows persistent global segments without changing preferences until clicked", async () => {
     const processActions = jest.fn();
     const setting = {
       tranboxSetting: { transOpen: true },
@@ -872,19 +873,126 @@ describe("PopupCont capability parity", () => {
     const view = renderPopupCont({ processActions, setting });
     await flushEffects();
 
-    ["selection_translate", "mousehover_translate", "input_translate"].forEach(
-      (label) => {
-        expect(view.container.textContent).not.toContain(label);
-      }
-    );
+    [
+      "selection_translate",
+      "popup_hover_translation",
+      "input_translate",
+    ].forEach((label) => {
+      expect(view.container.textContent).toContain(label);
+    });
     expect(processActions).not.toHaveBeenCalled();
     expect(mockUpdateSetting).not.toHaveBeenCalled();
+    const group = view.container.querySelector(".kt-popup-global-features");
+    expect(group.previousElementSibling.className).toBe(
+      "kt-popup-settings-grid"
+    );
+    expect(group.nextElementSibling.className).toBe("kt-popup-bottom-actions");
+    expect(group.getAttribute("role")).toBe("group");
+    expect(group.closest('[aria-disabled="true"]')).toBeNull();
     expect(setting).toEqual({
       tranboxSetting: { transOpen: true },
       mouseHoverSetting: { useMouseHover: true },
       inputRule: { transOpen: true },
     });
     view.cleanup();
+  });
+
+  test("confirms and persists a global toggle without dirtying or saving it in a site rule", async () => {
+    mockContextSetting = {
+      blacklist: "",
+      mouseHoverSetting: { useMouseHover: false, retained: true },
+    };
+    mockUpdateSetting.mockImplementation(async (reduce) => {
+      mockContextSetting = reduce(mockContextSetting);
+      return { value: mockContextSetting, changed: true };
+    });
+    const processActions = jest.fn(({ action, args }) =>
+      action === MSG_MOUSEHOVER_TOGGLE
+        ? { setting: { mouseHoverSetting: { useMouseHover: args.enabled } } }
+        : undefined
+    );
+    const view = renderPopupCont({ processActions });
+    try {
+      await flushEffects();
+      await act(async () =>
+        view.container
+          .querySelector('.kt-popup-global-feature[data-feature="hover"]')
+          .click()
+      );
+      expect(processActions).toHaveBeenCalledWith({
+        action: MSG_MOUSEHOVER_TOGGLE,
+        args: { enabled: true },
+      });
+      expect(mockContextSetting.mouseHoverSetting).toEqual({
+        useMouseHover: true,
+        retained: true,
+      });
+      expect(
+        view.container
+          .querySelector(".kt-popup-save-button")
+          .getAttribute("data-dirty-count")
+      ).toBe("0");
+      await act(async () =>
+        view.container.querySelector(".kt-popup-save-button").click()
+      );
+      expect(saveRule.mock.calls[0][0].pattern).toBe("example.com");
+      for (const name of ["tranboxSetting", "mouseHoverSetting", "inputRule"])
+        expect(saveRule.mock.calls[0][0]).not.toHaveProperty(name);
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("keeps permitted global preferences available in the disabled-site snapshot", async () => {
+    mockContextSetting = {
+      blacklist: "example.com",
+      mouseHoverSetting: { useMouseHover: false },
+    };
+    mockUpdateSetting.mockImplementation(async (reduce) => {
+      mockContextSetting = reduce(mockContextSetting);
+      return { value: mockContextSetting, changed: true };
+    });
+    const processActions = jest.fn();
+    const view = renderPopupCont({
+      isDisabledPage: true,
+      processActions,
+      capabilities: {
+        pageTranslation: false,
+        selectionTranslation: false,
+        hoverTranslation: true,
+        inputTranslation: true,
+      },
+    });
+    try {
+      await flushEffects();
+      expect(
+        view.container.querySelectorAll(".kt-popup-global-feature")
+      ).toHaveLength(2);
+      expect(
+        view.container
+          .querySelector(".kt-popup-global-features")
+          .closest('[aria-disabled="true"]')
+      ).toBeNull();
+      const hover = view.container.querySelector(
+        '.kt-popup-global-feature[data-feature="hover"]'
+      );
+      expect(hover.disabled).toBe(false);
+      await act(async () => hover.click());
+      expect(mockContextSetting.mouseHoverSetting.useMouseHover).toBe(true);
+      expect(processActions).not.toHaveBeenCalled();
+      expect(
+        view.container
+          .querySelector(".kt-popup-settings-grid")
+          .getAttribute("aria-disabled")
+      ).toBe("true");
+      expect(
+        view.container
+          .querySelector(".kt-popup-save-button")
+          .getAttribute("data-dirty-count")
+      ).toBe("0");
+    } finally {
+      view.cleanup();
+    }
   });
 
   test("dispatches one explicit page translation state from the main action", async () => {

@@ -90,13 +90,15 @@ export function usePopupFeatureToggles({
   }, []);
 
   useLayoutEffect(() => {
+    // Hidden controls keep settling operations for the same page receiver.
+    // Disabled-page status selects the path for new operations; rediscovery
+    // retires the parent document generation rather than this status flag.
     activityRef.current += 1;
   }, [
     documentInfo?.token,
+    documentInfo?.frameId,
     processActions,
     targetTab?.id,
-    isVisible,
-    isDisabledPage,
   ]);
 
   useLayoutEffect(() => {

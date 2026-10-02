@@ -11,9 +11,6 @@ jest.mock("../../hooks/I18n", () => ({
 }));
 
 jest.mock("../../components/Logo", () => () => null);
-jest.mock("../../hooks/Setting", () => ({
-  useSetting: () => ({ setting: {}, updateSetting: jest.fn() }),
-}));
 
 describe("Popup Header support menu", () => {
   let container;
@@ -130,7 +127,7 @@ describe("Popup Header support menu", () => {
     expect(container.querySelector(".kt-popup-header__identity")).toBeNull();
   });
 
-  test("the global badge and menu include only supported features", () => {
+  test("keeps exactly three header actions without global feature controls", () => {
     act(() => {
       root.render(
         <Header
@@ -139,20 +136,23 @@ describe("Popup Header support menu", () => {
             mouseHoverSetting: { useMouseHover: true },
             inputRule: { transOpen: false },
           }}
-          capabilities={{ hoverTranslation: false, inputTranslation: false }}
+          capabilities={{
+            selectionTranslation: true,
+            hoverTranslation: true,
+            inputTranslation: true,
+          }}
         />
       );
     });
 
-    expect(container.querySelector(".kt-popup-header__badge").textContent).toBe(
-      "1"
-    );
-    act(() =>
-      container.querySelector('[aria-label="popup_global_features"]').click()
-    );
-    const rows = document.body.querySelectorAll('[role="menuitemcheckbox"]');
-    expect(rows).toHaveLength(1);
-    expect(rows[0].getAttribute("aria-label")).toBe("selection_translate");
-    expect(rows[0].getAttribute("aria-checked")).toBe("true");
+    expect(
+      container.querySelectorAll(".kt-popup-header__actions button")
+    ).toHaveLength(3);
+    expect(container.querySelector(".kt-popup-header__global")).toBeNull();
+    expect(container.querySelector(".kt-popup-header__badge")).toBeNull();
+    expect(document.querySelector("#kt-popup-global-menu")).toBeNull();
+    expect(
+      container.querySelector('[aria-label="popup_global_features"]')
+    ).toBeNull();
   });
 });
