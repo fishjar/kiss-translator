@@ -1342,6 +1342,7 @@ export default function PopupCont({
       <PopupMenu
         {...menuProps("style")}
         className="kt-popup-style-menu"
+        direction={isContent ? "auto" : "down"}
         ariaLabel={i18n("text_style_alt")}
         estimatedHeight={Math.ceil(allTextStyles.length / 3) * 40 + 16}
       >

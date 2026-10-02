@@ -13,6 +13,7 @@ export default function PopupMenu({
   maxHeight = 320,
   estimatedHeight = 200,
   align = "auto",
+  direction = "auto",
   position,
   menuRole = "menu",
 }) {
@@ -22,11 +23,36 @@ export default function PopupMenu({
   useLayoutEffect(() => {
     if (!open || !anchorEl) return undefined;
     const update = () => {
-      const rect = anchorEl.getBoundingClientRect();
+      let rect = anchorEl.getBoundingClientRect();
       const viewport = anchorEl.ownerDocument.defaultView;
+      const scrollingElement = anchorEl.ownerDocument.scrollingElement;
+      const minimumHeight = Math.min(60, estimatedHeight, maxHeight);
+      // In a short native popup, make room for at least one style row before
+      // positioning downward. Injected panels must not scroll the host page.
+      if (
+        direction === "down" &&
+        positionTop === undefined &&
+        anchorEl.ownerDocument.documentElement.classList.contains(
+          "kt-toolbar-popup"
+        ) &&
+        scrollingElement
+      ) {
+        const missing =
+          minimumHeight - (viewport.innerHeight - rect.bottom - 12);
+        const remaining =
+          scrollingElement.scrollHeight -
+          scrollingElement.clientHeight -
+          scrollingElement.scrollTop;
+        const distance = Math.min(missing, remaining);
+        if (distance > 0) {
+          viewport.scrollBy({ top: Math.ceil(distance), behavior: "instant" });
+          rect = anchorEl.getBoundingClientRect();
+        }
+      }
       const below = Math.max(0, viewport.innerHeight - rect.bottom - 12);
       const above = Math.max(0, rect.top - 12);
       const upwards =
+        direction === "auto" &&
         positionTop === undefined &&
         below < Math.min(estimatedHeight, maxHeight) &&
         above > below;
@@ -40,14 +66,14 @@ export default function PopupMenu({
         vertical: upwards ? "bottom" : "top",
         horizontal: right ? "right" : "left",
         height: Math.max(
-          36,
+          direction === "down" ? 0 : 36,
           Math.min(
             maxHeight,
             positionTop !== undefined
               ? viewport.innerHeight - positionTop - 8
               : upwards
                 ? above
-                : below
+                : Math.floor(below)
           )
         ),
       });
@@ -66,6 +92,7 @@ export default function PopupMenu({
     maxHeight,
     estimatedHeight,
     align,
+    direction,
     positionTop,
     positionLeft,
   ]);
