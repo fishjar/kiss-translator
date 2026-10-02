@@ -41,7 +41,7 @@
 - [x] 複数の翻訳サービスをサポート
   - [x] Google/Microsoft
   - [x] Tencent/Volcengine
-  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter/OrcaRouter/Requesty
+  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter/OrcaRouter/Requesty/[API Route](https://www.api-route.com/docs/overview)
   - [x] DeepL/DeepLX
   - [x] AzureAI/CloudflareAI
   - [x] Chromeブラウザ内蔵AI翻訳(BuiltinAI)

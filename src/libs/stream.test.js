@@ -22,6 +22,7 @@ import {
   OPT_TRANS_GEMINI,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_API_ROUTE,
 } from "../config";
 
 describe("createRealtimeStreamParser", () => {
@@ -132,6 +133,12 @@ describe("getStreamDelta", () => {
 
     expect(getStreamDelta(chunk, OPT_TRANS_ORCAROUTER)).toBe("敏");
     expect(getStreamDelta({ choices: [] }, OPT_TRANS_ORCAROUTER)).toBe("");
+  });
+
+  test("extracts API Route as an OpenAI-compatible stream", () => {
+    const chunk = { choices: [{ delta: { content: "译文" } }] };
+    expect(getStreamDelta(chunk, OPT_TRANS_API_ROUTE)).toBe("译文");
+    expect(getStreamDelta({ choices: [] }, OPT_TRANS_API_ROUTE)).toBe("");
   });
 
   test("extracts Requesty as an OpenAI-compatible stream", () => {

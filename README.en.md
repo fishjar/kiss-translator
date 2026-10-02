@@ -41,7 +41,7 @@ A simple, open source [bilingual translation extension & Greasemonkey script](ht
 - [x] Supports multiple translation services
   - [x] Google/Microsoft
   - [x] Tencent/Volcengine
-  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter/OrcaRouter/Requesty
+  - [x] OpenAI/Gemini/Claude/Ollama/DeepSeek/OpenRouter/OrcaRouter/Requesty/[API Route](https://www.api-route.com/docs/overview)
   - [x] DeepL/DeepLX
   - [x] AzureAI / CloudflareAI
   - [x] Chrome built-in AI translation (BuiltinAI)
