@@ -34,6 +34,7 @@ jest.mock("../../libs/detect", () => ({
   tryDetectLang: jest.fn(async () => "en"),
 }));
 jest.mock("./PopupCont", () => () => null);
+jest.mock("./disabledPage", () => ({ loadDisabledPopupData: jest.fn() }));
 jest.mock("./Header", () => () => null);
 jest.mock("../Selection/DictCont", () => () => null);
 jest.mock("../Selection/AiDictCont", () => () => null);

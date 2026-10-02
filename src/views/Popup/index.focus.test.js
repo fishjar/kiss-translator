@@ -15,6 +15,7 @@ let mockSetting;
 jest.mock("./loadData", () => ({
   loadPopupData: () => mockSendTabMsg(),
 }));
+jest.mock("./disabledPage", () => ({ loadDisabledPopupData: jest.fn() }));
 
 jest.mock("../../libs/msg", () => ({
   getCurTab: jest.fn(async () => ({
@@ -45,11 +46,12 @@ jest.mock("../../hooks/Setting", () => ({
 
 jest.mock("./Header", () => {
   const React = require("react");
-  return ({ openSettings }) =>
+  return ({ openSettings, children }) =>
     React.createElement(
       "div",
       null,
       "header",
+      children,
       React.createElement(
         "button",
         { type: "button", onClick: openSettings },

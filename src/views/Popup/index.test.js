@@ -47,11 +47,17 @@ jest.mock("../../libs/msg", () => ({
   sendBgMsg: jest.fn(),
 }));
 jest.mock("./loadData", () => ({ loadPopupData: jest.fn() }));
+jest.mock("./disabledPage", () => ({ loadDisabledPopupData: jest.fn() }));
 jest.mock("./PopupCont", () => {
   const React = require("react");
   return () => React.createElement("div", { "data-testid": "page-panel" });
 });
-jest.mock("./Header", () => () => null);
+jest.mock(
+  "./Header",
+  () =>
+    ({ children }) =>
+      children
+);
 jest.mock("../Selection/TranForm", () => {
   const React = require("react");
   return ({

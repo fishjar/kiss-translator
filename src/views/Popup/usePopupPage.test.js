@@ -4,6 +4,7 @@ import { browser } from "../../libs/browser";
 import { getCurTab } from "../../libs/msg";
 import { loadPopupData } from "./loadData";
 import { usePopupPage } from "./usePopupPage";
+import { loadDisabledPopupData } from "./disabledPage";
 import { isCurrentPopupDocument } from "../../libs/popupDocument";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -41,6 +42,7 @@ jest.mock("../../libs/browser", () => {
 jest.mock("../../libs/msg", () => ({ getCurTab: jest.fn() }));
 jest.mock("../../libs/log", () => ({ kissLog: jest.fn() }));
 jest.mock("./loadData", () => ({ loadPopupData: jest.fn() }));
+jest.mock("./disabledPage", () => ({ loadDisabledPopupData: jest.fn() }));
 jest.mock("../../libs/popupDocument", () => ({
   isCurrentPopupDocument: jest.fn(),
 }));
@@ -108,6 +110,7 @@ describe("usePopupPage tab lifecycle", () => {
     jest.clearAllMocks();
     getCurTab.mockReset().mockResolvedValue(tab());
     loadPopupData.mockReset().mockResolvedValue(data());
+    loadDisabledPopupData.mockReset().mockResolvedValue(undefined);
     browser.tabs.get.mockReset();
     isCurrentPopupDocument.mockReset().mockResolvedValue(true);
     for (const name of ["onUpdated", "onRemoved", "onActivated"]) {
@@ -132,6 +135,57 @@ describe("usePopupPage tab lifecycle", () => {
     updateTab({ status: "loading" }, tab(29));
     expect(view.page.data).toEqual(data());
     expect(loadPopupData).toHaveBeenCalledTimes(1);
+  });
+
+  test("shows a stored disabled site only after no runtime can be loaded", async () => {
+    const disabled = { ...data(), isDisabledPage: true };
+    loadPopupData.mockResolvedValue(undefined);
+    loadDisabledPopupData.mockResolvedValue(disabled);
+    const view = renderPage();
+    await flushEffects();
+    expect(loadDisabledPopupData).toHaveBeenCalledWith(tab());
+    expect(view.page.data).toEqual(disabled);
+    expect(view.page.isLoading).toBe(false);
+  });
+
+  test("prefers a real runtime over any disabled-site fallback", async () => {
+    const view = renderPage();
+    await flushEffects();
+    expect(view.page.data).toEqual(data());
+    expect(loadDisabledPopupData).not.toHaveBeenCalled();
+  });
+
+  test("ignores a late disabled-site snapshot after navigating elsewhere", async () => {
+    const pending = deferred();
+    loadPopupData
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValue(data("fr"));
+    loadDisabledPopupData.mockReturnValueOnce(pending.promise);
+    const view = renderPage();
+    await flushEffects();
+    updateTab({ url: "https://other.example.com", status: "complete" });
+    await flushEffects();
+    pending.resolve({ ...data("stale"), isDisabledPage: true });
+    await flushEffects();
+    expect(view.page.data).toEqual(data("fr"));
+    expect(view.page.tab.url).toBe("https://other.example.com");
+  });
+
+  test("reloads an actual runtime after a disabled-site restore requests recovery", async () => {
+    loadPopupData
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValue(data("fr"));
+    loadDisabledPopupData.mockResolvedValue({
+      ...data(),
+      isDisabledPage: true,
+    });
+    const view = renderPage();
+    await flushEffects();
+    const disabledGeneration = view.page.generation;
+    act(() => view.page.markUnavailable());
+    await flushEffects();
+    expect(view.page.data).toEqual(data("fr"));
+    expect(view.page.generation).toBeGreaterThan(disabledGeneration);
   });
 
   test.each(["onUpdated", "onActivated"])(

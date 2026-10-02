@@ -11,6 +11,9 @@ jest.mock("../../hooks/I18n", () => ({
 }));
 
 jest.mock("../../components/Logo", () => () => null);
+jest.mock("../../hooks/Setting", () => ({
+  useSetting: () => ({ setting: {}, updateSetting: jest.fn() }),
+}));
 
 describe("Popup Header support menu", () => {
   let container;
@@ -82,8 +85,8 @@ describe("Popup Header support menu", () => {
       );
     });
 
-    expect(container.querySelector(".kt-popup-header__title").textContent).toBe(
-      process.env.REACT_APP_NAME || "KISS Translator"
+    expect(container.querySelector(".kt-popup-brand-button").title).toBe(
+      `${process.env.REACT_APP_NAME || "KISS Translator"} v${process.env.REACT_APP_VERSION}`
     );
     act(() => container.querySelector('[aria-label="popup_support"]').click());
     act(() => document.body.querySelector('[role="menuitem"]').click());
@@ -107,5 +110,49 @@ describe("Popup Header support menu", () => {
 
     act(() => close.click());
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("embeds the existing tab controls beside the logo", () => {
+    act(() => {
+      root.render(
+        <Header>
+          <div role="tablist">
+            <button role="tab">Page translation</button>
+            <button role="tab">Text translation</button>
+          </div>
+        </Header>
+      );
+    });
+
+    expect(
+      container.querySelector(".kt-popup-header [role='tablist']")
+    ).not.toBeNull();
+    expect(container.querySelector(".kt-popup-header__identity")).toBeNull();
+  });
+
+  test("the global badge and menu include only supported features", () => {
+    act(() => {
+      root.render(
+        <Header
+          setting={{
+            tranboxSetting: { transOpen: true },
+            mouseHoverSetting: { useMouseHover: true },
+            inputRule: { transOpen: false },
+          }}
+          capabilities={{ hoverTranslation: false, inputTranslation: false }}
+        />
+      );
+    });
+
+    expect(container.querySelector(".kt-popup-header__badge").textContent).toBe(
+      "1"
+    );
+    act(() =>
+      container.querySelector('[aria-label="popup_global_features"]').click()
+    );
+    const rows = document.body.querySelectorAll('[role="menuitemcheckbox"]');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].getAttribute("aria-label")).toBe("selection_translate");
+    expect(rows[0].getAttribute("aria-checked")).toBe("true");
   });
 });

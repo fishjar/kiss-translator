@@ -10,6 +10,7 @@ import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isInBlacklist } from "./libs/blacklist";
+import { createBlacklistStartupRecovery } from "./libs/blacklistStartup";
 import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
 import { injectInlineJs } from "./libs/injector";
@@ -171,6 +172,10 @@ async function getFavWords(rule) {
 }
 
 const IFRAME_TEXT_CHECK_TIMEOUT = 1000;
+const blacklistStartupRecovery = createBlacklistStartupRecovery({
+  getHref: () => document?.location?.href || "",
+  onUnblocked: () => run(),
+});
 const IFRAME_TEXT_IGNORE_SELECTOR = [
   "script",
   "style",
@@ -275,7 +280,14 @@ export async function run(isUserscript = false) {
 
     // 5. 网页黑名单校验，命中时彻底不启动翻译
     if (isInBlacklist(href, setting.blacklist)) {
+      if (!isUserscript) {
+        blacklistStartupRecovery.watch();
+      }
       return;
+    }
+
+    if (!isUserscript) {
+      blacklistStartupRecovery.cancel();
     }
 
     // 5.1. iframe 空内容拦截：默认允许 iframe 翻译，但空 iframe 不继续挂载后续脚本

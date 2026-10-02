@@ -407,6 +407,7 @@ export default function Popup() {
     setting,
     capabilities,
     isTopFrame,
+    isDisabledPage,
     document: documentInfo,
   } = data || {};
   const popupShellRef = useRef(null);
@@ -514,26 +515,34 @@ export default function Popup() {
       <style>{POPUP_STYLES}</style>
       <div className="kt-popup-chrome">
         <Header
+          key={generation}
           openSeparateWindow={openSeparateWindow}
           openSettings={handleOpenSetting}
-        />
-        <Tabs
-          className="kt-popup-tabs"
-          value={activeTab}
-          onChange={(_event, value) => setActiveTab(value)}
-          aria-label={i18n("translate")}
-          variant="fullWidth"
+          setting={setting}
+          capabilities={capabilities}
+          targetTab={tab}
+          documentInfo={documentInfo}
+          isDisabledPage={isDisabledPage}
+          onPageUnavailable={markUnavailable}
         >
-          {tabs.map((tab) => (
-            <Tab
-              value={tab.value}
-              label={tab.label}
-              id={tab.tabId}
-              aria-controls={tab.panelId}
-              key={tab.value}
-            />
-          ))}
-        </Tabs>
+          <Tabs
+            className="kt-popup-tabs"
+            value={activeTab}
+            onChange={(_event, value) => setActiveTab(value)}
+            aria-label={i18n("translate")}
+          >
+            {tabs.map((tab) => (
+              <Tab
+                value={tab.value}
+                label={<span className="kt-popup-tab-label">{tab.label}</span>}
+                title={tab.label}
+                id={tab.tabId}
+                aria-controls={tab.panelId}
+                key={tab.value}
+              />
+            ))}
+          </Tabs>
+        </Header>
       </div>
       <div
         id="kt-popup-page-panel"
@@ -553,6 +562,7 @@ export default function Popup() {
             onPageUnavailable={markUnavailable}
             capabilities={capabilities}
             isTopFrame={isTopFrame}
+            isDisabledPage={isDisabledPage}
             rule={rule}
             setting={setting}
             setRule={setRule}

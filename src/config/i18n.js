@@ -1,3 +1,4 @@
+import { POPUP_I18N } from "./i18n.popup";
 import { TOUCH_I18N } from "./i18n.touch";
 /**
  * @file i18n.js
@@ -2323,6 +2324,7 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
 };
 
 export const I18N = {
+  ...POPUP_I18N,
   ...TOUCH_I18N,
   ...SETTINGS_I18N,
   ...RULE_EDITOR_I18N,
