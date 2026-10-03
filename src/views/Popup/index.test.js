@@ -47,11 +47,17 @@ jest.mock("../../libs/msg", () => ({
   sendBgMsg: jest.fn(),
 }));
 jest.mock("./loadData", () => ({ loadPopupData: jest.fn() }));
+jest.mock("./disabledPage", () => ({ loadDisabledPopupData: jest.fn() }));
 jest.mock("./PopupCont", () => {
   const React = require("react");
   return () => React.createElement("div", { "data-testid": "page-panel" });
 });
-jest.mock("./Header", () => () => null);
+jest.mock(
+  "./Header",
+  () =>
+    ({ children }) =>
+      children
+);
 jest.mock("../Selection/TranForm", () => {
   const React = require("react");
   return ({
@@ -73,6 +79,8 @@ jest.mock("../Selection/TranForm", () => {
       React.createElement("span", { "data-testid": "source-text" }, text)
     );
 });
+
+jest.mock("./PopupTextPanel", () => jest.requireMock("../Selection/TranForm"));
 
 const setting = {
   autoTranslateClipboard: true,
@@ -363,14 +371,14 @@ describe("shared translation panel hosts", () => {
     ).toBe("false");
   });
 
-  test("embeds the same content without a second header in the popup tab", async () => {
+  test("uses the compact text editor without a second header in the popup tab", async () => {
     view = renderTrantab();
     await flushEffects();
 
     expect(
       view.container.querySelector(".kt-translation-panel--embedded")
-    ).not.toBeNull();
-    expect(view.container.querySelector(".kt-tranbox-content")).not.toBeNull();
+    ).toBeNull();
+    expect(view.container.querySelector(".kt-popup-text-panel")).not.toBeNull();
     expect(view.container.querySelector(".kt-tranbox-header")).toBeNull();
     expect(
       view.container.querySelector('[data-testid="tran-form"]').dataset
