@@ -258,7 +258,7 @@ describe("Popup menu placement", () => {
     expect(document.body.style.overflow).toBe("");
   });
 
-  test("keeps the fixed text card in place when its provider menu has little room", () => {
+  test("scrolls the whole text popup to make room below the provider menu", () => {
     viewportHeight = 255;
     anchorTop = 170;
     document.documentElement.classList.add(
@@ -267,8 +267,8 @@ describe("Popup menu placement", () => {
     );
     const paper = render({ direction: "down" });
     expectDownwardPlacement(paper);
-    expect(paper.offsetHeight).toBeLessThan(60);
-    expect(scrollBy).not.toHaveBeenCalled();
-    expect(document.documentElement.scrollTop).toBe(0);
+    expect(paper.offsetHeight).toBeGreaterThanOrEqual(50);
+    expect(scrollBy).toHaveBeenCalled();
+    expect(document.documentElement.scrollTop).toBeGreaterThan(0);
   });
 });

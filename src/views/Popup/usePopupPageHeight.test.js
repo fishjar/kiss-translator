@@ -13,9 +13,13 @@ describe("page height reference", () => {
   let bodyHeight;
   let originalScrollingElement;
   let originalInnerHeight;
+  let captureScrollPosition;
+  let maximumPageScroll;
 
   beforeEach(() => {
     bodyHeight = 432;
+    captureScrollPosition = undefined;
+    maximumPageScroll = Infinity;
     originalScrollingElement = Object.getOwnPropertyDescriptor(
       document,
       "scrollingElement"
@@ -58,7 +62,7 @@ describe("page height reference", () => {
     const shellRef = useRef(null);
     const chromeRef = useRef(null);
     const pageRef = useRef(null);
-    const reference = usePopupPageHeight({
+    const heightState = usePopupPageHeight({
       shellRef,
       chromeRef,
       pageRef,
@@ -67,6 +71,8 @@ describe("page height reference", () => {
       generation: 1,
       isLoading: false,
     });
+    const { reference } = heightState;
+    captureScrollPosition = heightState.captureScrollPosition;
     return (
       <main
         ref={(node) => {
@@ -86,12 +92,20 @@ describe("page height reference", () => {
           ref={(node) => {
             pageRef.current = node;
             if (node)
-              node.getBoundingClientRect = () => ({
-                height:
-                  !node.hidden || node.style.display === "block"
-                    ? bodyHeight
-                    : 0,
-              });
+              node.getBoundingClientRect = () => {
+                // Real layout clamps scrolling before a shorter page is measured.
+                if (
+                  !node.hidden &&
+                  document.documentElement.scrollTop > maximumPageScroll
+                )
+                  document.documentElement.scrollTop = maximumPageScroll;
+                return {
+                  height:
+                    !node.hidden || node.style.display === "block"
+                      ? bodyHeight
+                      : 0,
+                };
+              };
           }}
         >
           Page actions
@@ -101,7 +115,10 @@ describe("page height reference", () => {
     );
   }
 
-  const render = (props = {}) => act(() => root.render(<Harness {...props} />));
+  const render = (props = {}) => {
+    captureScrollPosition?.();
+    act(() => root.render(<Harness {...props} />));
+  };
 
   test("measures a hidden page at its own width and restores its styles", () => {
     const shell = document.createElement("main");
@@ -162,6 +179,19 @@ describe("page height reference", () => {
       jest.advanceTimersByTime(30);
     });
     expect(container.querySelector("output").textContent).toBe("448");
+  });
+
+  test("restores independent scroll positions when switching between page and text", () => {
+    render();
+    document.documentElement.scrollTop = 360;
+    maximumPageScroll = 200;
+    render({ activeTab: "page" });
+    expect(document.documentElement.scrollTop).toBe(180);
+    document.documentElement.scrollTop = 120;
+    render();
+    expect(document.documentElement.scrollTop).toBe(360);
+    render({ activeTab: "page" });
+    expect(document.documentElement.scrollTop).toBe(120);
   });
 
   test("leaves separate windows outside toolbar measurement and overflow mode", () => {

@@ -217,7 +217,7 @@ export default function PopupTextPanel({
 }) {
   const i18n = useI18n();
   const menuId = useId();
-  const cardRef = useRef(null);
+  const baseSizeRef = useRef(null);
   const inputRef = useRef(null);
   const draftRef = useRef(text);
   const dragRef = useRef(null);
@@ -269,15 +269,16 @@ export default function PopupTextPanel({
     (fromLang === "auto" && (detectionPending || draft.trim() !== text.trim()));
   const effectiveRatio = clampSourceRatio(sourceRatio, cardHeight);
 
-  // Preserve the stored preference while fitting both toolbars in short popups.
+  // Appended results never change the baseline used by the divider.
   useLayoutEffect(() => {
-    const card = cardRef.current;
-    if (!card) return undefined;
-    const measure = () => setCardHeight(card.getBoundingClientRect().height);
+    const baseline = baseSizeRef.current;
+    if (!baseline) return undefined;
+    const measure = () =>
+      setCardHeight(baseline.getBoundingClientRect().height);
     measure();
     const observer =
       typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
-    observer?.observe(card);
+    observer?.observe(baseline);
     window.addEventListener("resize", measure);
     return () => {
       observer?.disconnect();
@@ -333,7 +334,7 @@ export default function PopupTextPanel({
   const changeRatio = useCallback((nextRatio) => {
     const ratio = clampSourceRatio(
       nextRatio,
-      cardRef.current?.getBoundingClientRect().height
+      baseSizeRef.current?.getBoundingClientRect().height
     );
     setSourceRatio(ratio);
     try {
@@ -383,9 +384,13 @@ export default function PopupTextPanel({
     <div className="kt-popup-text-editor">
       <style>{POPUP_TEXT_STYLES}</style>
       <div
+        className="kt-popup-text-base-size"
+        ref={baseSizeRef}
+        aria-hidden="true"
+      />
+      <div
         className="kt-popup-text-card"
-        ref={cardRef}
-        style={{ "--kt-popup-text-source-ratio": `${effectiveRatio * 100}%` }}
+        style={{ "--kt-popup-text-source-fraction": effectiveRatio }}
         onBlurCapture={(event) => {
           if (!isVisible) return;
           const next = event.relatedTarget;
@@ -491,7 +496,8 @@ export default function PopupTextPanel({
             onPointerMove={(event) => {
               const drag = dragRef.current;
               if (!drag || drag.pointerId !== event.pointerId) return;
-              const height = cardRef.current?.getBoundingClientRect().height;
+              const height =
+                baseSizeRef.current?.getBoundingClientRect().height;
               if (height)
                 changeRatio(
                   drag.ratio + (event.clientY - drag.startY) / height

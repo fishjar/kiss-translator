@@ -438,7 +438,7 @@ export default function Popup() {
   const popupShellRef = useRef(null);
   const popupChromeRef = useRef(null);
   const popupPageRef = useRef(null);
-  const pageHeight = usePopupPageHeight({
+  const { reference: pageHeight, captureScrollPosition } = usePopupPageHeight({
     shellRef: popupShellRef,
     chromeRef: popupChromeRef,
     pageRef: popupPageRef,
@@ -567,6 +567,8 @@ export default function Popup() {
             className="kt-popup-tabs"
             value={activeTab}
             onChange={(_event, value) => {
+              // Capture before hiding a taller panel can clamp document scroll.
+              captureScrollPosition();
               if (value === "text") setHasVisitedText(true);
               setActiveTab(value);
             }}

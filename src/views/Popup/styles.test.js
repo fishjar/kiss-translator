@@ -35,11 +35,14 @@ describe("toolbar popup sizing", () => {
     expect(scrollRule).toContain("overflow: visible");
     expect(POPUP_STYLES).not.toContain("kt-popup-scroll--expanded");
     expect(getRuleBodies(".kt-popup-shell--text")[0]).toContain(
-      "height: var(--kt-popup-page-height)"
+      "min-height: var(--kt-popup-page-height)"
     );
     expect(
       getRuleBodies(".kt-popup-shell--text > .kt-popup-scroll--text")[0]
-    ).toContain("min(var(--kt-popup-page-height), 100dvh)");
+    ).toContain("overflow: visible");
+    expect(getRuleBodies("html.kt-toolbar-popup--text")[0]).toContain(
+      "overflow-y: auto"
+    );
     expect(getRuleBodies(".kt-popup-chrome")[0]).toContain("position: sticky");
   });
 

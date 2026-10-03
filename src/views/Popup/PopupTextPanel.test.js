@@ -70,9 +70,11 @@ describe("Popup text translation card", () => {
     geometry = jest
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
       .mockImplementation(function () {
-        const height = this.classList.contains("kt-popup-text-card")
+        const height = this.classList.contains("kt-popup-text-base-size")
           ? cardHeight
-          : 30;
+          : this.classList.contains("kt-popup-text-card")
+            ? cardHeight * Math.max(1, getResultSlugs().length)
+            : 30;
         const top = this.classList.contains("kt-popup-text-services") ? 200 : 0;
         return {
           x: 0,
@@ -202,8 +204,8 @@ describe("Popup text translation card", () => {
     expect(divider.getAttribute("aria-valuenow")).toBe("40");
     key(divider, "ArrowDown");
     expect(
-      parseFloat(card.style.getPropertyValue("--kt-popup-text-source-ratio"))
-    ).toBeCloseTo(42.5);
+      parseFloat(card.style.getPropertyValue("--kt-popup-text-source-fraction"))
+    ).toBeCloseTo(0.425);
     expect(
       Number(window.localStorage.getItem(SOURCE_RATIO_STORAGE_KEY))
     ).toBeCloseTo(0.425);
@@ -227,6 +229,15 @@ describe("Popup text translation card", () => {
 
   test("drags the divider with pointer capture and restores the ratio after remount", async () => {
     await render();
+    click(container.querySelector(".kt-popup-text-services"));
+    click(serviceOption("Google"));
+    await flushEffects();
+    key(container.querySelector(".kt-popup-text-services"), "Escape");
+    // Two results double the card height, but dragging retains the page baseline.
+    expect(
+      container.querySelector(".kt-popup-text-card").getBoundingClientRect()
+        .height
+    ).toBe(800);
     const divider = container.querySelector('[role="separator"]');
     divider.setPointerCapture = jest.fn();
     divider.hasPointerCapture = jest.fn(() => true);
@@ -260,8 +271,7 @@ describe("Popup text translation card", () => {
     await render();
     const card = container.querySelector(".kt-popup-text-card");
     expect(
-      parseFloat(card.style.getPropertyValue("--kt-popup-text-source-ratio")) /
-        100
+      parseFloat(card.style.getPropertyValue("--kt-popup-text-source-fraction"))
     ).toBeCloseTo(1 - 86 / 240);
     expect(
       container
@@ -271,8 +281,8 @@ describe("Popup text translation card", () => {
     expect(window.localStorage.getItem(SOURCE_RATIO_STORAGE_KEY)).toBe("0.78");
     cardHeight = 400;
     act(() => window.dispatchEvent(new Event("resize")));
-    expect(card.style.getPropertyValue("--kt-popup-text-source-ratio")).toBe(
-      "78%"
+    expect(card.style.getPropertyValue("--kt-popup-text-source-fraction")).toBe(
+      "0.78"
     );
     expect(window.localStorage.getItem(SOURCE_RATIO_STORAGE_KEY)).toBe("0.78");
     expect(apiTranslate).toHaveBeenCalledTimes(1);

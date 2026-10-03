@@ -281,16 +281,15 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-language-menu .MuiDivider-root { height: 1px; margin: 4px 6px; border: 0; background: var(--kt-sf3); }
 
 .kt-popup-text-panel { padding: 0; animation: kt-m3-rise .35s var(--kt-spring); }
-.kt-popup-shell--text { height: var(--kt-popup-page-height); overflow: hidden; }
-.kt-popup-shell--text > .kt-popup-scroll--text { display: flex; flex-direction: column; height: max(0px, calc(min(var(--kt-popup-page-height), 100dvh) - var(--kt-popup-header-height))); min-height: 0; overflow: hidden; padding: 4px 12px 12px; }
-.kt-popup-shell--text .kt-popup-text-panel { display: flex; flex: 1; flex-direction: column; height: 100%; min-width: 0; min-height: 0; animation: none; }
+.kt-popup-shell--text { min-height: var(--kt-popup-page-height); overflow: visible; --kt-popup-text-base-height: max(0px, calc(var(--kt-popup-page-height) - var(--kt-popup-header-height) - 16px)); }
+.kt-popup-shell--text > .kt-popup-scroll--text { height: auto; overflow: visible; padding: 4px 12px 12px; }
+.kt-popup-shell--text .kt-popup-text-panel { min-width: 0; animation: none; }
 .kt-popup-shell--window .kt-popup-text-panel { padding: 0; animation: none; }
 .kt-popup-empty { min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; color: var(--kt-onv); text-align: center; }
 .kt-popup-empty__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 
-/* The outer frame advertises page dimensions; only the text card fits the
-   clamped native viewport, keeping its two scrollable panes in view. */
-html.kt-toolbar-popup--text { overflow: hidden; }
+/* Results extend the document instead of sharing a nested scrolling pane. */
+html.kt-toolbar-popup--text { overflow-y: auto; }
 
 @media (max-width: 359px) {
   .kt-popup-header { gap: 4px; padding-inline: 8px; }

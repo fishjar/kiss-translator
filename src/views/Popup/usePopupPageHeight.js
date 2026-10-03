@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 /** Measure the same page instance without exposing a hidden panel to users. */
 export function measurePopupPageHeight(shell, chrome, page) {
@@ -34,7 +34,16 @@ export default function usePopupPageHeight({
   isLoading,
 }) {
   const [reference, setReference] = useState(null);
-  const pageScrollRef = useRef(0);
+  const pageScrollRef = useRef(null);
+  const textScrollRef = useRef(0);
+  const captureScrollPosition = useCallback(() => {
+    const owner = shellRef.current?.ownerDocument;
+    if (!owner || isSeparate) return;
+    const position = owner.scrollingElement?.scrollTop || 0;
+    if (owner.documentElement.classList.contains("kt-toolbar-popup--text"))
+      textScrollRef.current = position;
+    else pageScrollRef.current = position;
+  }, [isSeparate, shellRef]);
   useLayoutEffect(() => {
     if (isSeparate) return undefined;
     const shell = shellRef.current;
@@ -97,12 +106,14 @@ export default function usePopupPageHeight({
     const wasText = root.classList.contains("kt-toolbar-popup--text");
     const isText = activeTab === "text" && Boolean(reference);
     if (isText && !wasText) {
-      pageScrollRef.current = scrollingElement?.scrollTop || 0;
+      if (pageScrollRef.current === null)
+        pageScrollRef.current = scrollingElement?.scrollTop || 0;
       root.classList.add("kt-toolbar-popup--text");
-      if (scrollingElement) scrollingElement.scrollTop = 0;
+      if (scrollingElement) scrollingElement.scrollTop = textScrollRef.current;
     } else if (!isText && wasText) {
       root.classList.remove("kt-toolbar-popup--text");
-      if (scrollingElement) scrollingElement.scrollTop = pageScrollRef.current;
+      if (scrollingElement)
+        scrollingElement.scrollTop = pageScrollRef.current || 0;
     }
   }, [activeTab, isSeparate, reference, shellRef]);
 
@@ -114,10 +125,10 @@ export default function usePopupPageHeight({
       if (root.classList.contains("kt-toolbar-popup--text")) {
         root.classList.remove("kt-toolbar-popup--text");
         if (owner.scrollingElement)
-          owner.scrollingElement.scrollTop = pageScrollRef.current;
+          owner.scrollingElement.scrollTop = pageScrollRef.current || 0;
       }
     };
   }, [isSeparate, shellRef]);
 
-  return reference;
+  return { reference, captureScrollPosition };
 }
