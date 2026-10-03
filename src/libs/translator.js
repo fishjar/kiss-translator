@@ -59,18 +59,6 @@ import { sendBgMsg } from "./msg";
 import { getDocInfo } from "./docInfo";
 import { isInNonContent, visitTranslationTargets } from "./translationTargets";
 
-// 文本节点本身像源码：足够长、含语句符号，且符号占比达到 8%。
-// 只看该文本节点，不看宿主 textContent（其中包含已忽略子孙，会误伤正文）。
-function isSourceShapedText(text) {
-  const trimmed = text.trim();
-  if (trimmed.length < 24 || !/[;{}]/.test(trimmed)) return false;
-  let symbols = 0;
-  for (let i = 0; i < trimmed.length; i++) {
-    if ("{}[]();=<>".includes(trimmed[i])) symbols++;
-  }
-  return symbols * 100 >= trimmed.length * 8;
-}
-
 /**
  * @class Translator
  * @description 翻译核心逻辑封装
@@ -4034,8 +4022,6 @@ overflow-wrap: anywhere !important;`;
         if (isInNonContent(node)) return "";
         let text = node.textContent;
         if (!text.trim()) return "";
-        // 纯文本模式仍翻译 <pre> 中的源码；此处不读取宿主 textContent。
-        if (!this.#rule.isPlainText && isSourceShapedText(text)) return "";
 
         // 专业术语替换：matcher 一次物化（热路径零编译），applyTermReplace 内部重置 lastIndex
         if (this.#combinedTermsRegex) {

@@ -1089,52 +1089,27 @@ describe("Translator rule styles", () => {
     expect(wrapper.textContent).not.toContain("SML.load");
   });
 
-  test("does not translate or unhide a host whose only text is an iife", async () => {
-    document.body.innerHTML =
-      '<main id="root"><div id="host" style="max-height: 0; height: 0"></div></main>';
-    const host = document.getElementById("host");
-    host.append("(function(){var ctid='eKIzJc';return ctid;})();");
-    const authoredStyle = host.style.cssText;
+  test.each([
+    "Choose (A), (B), or (C); then continue.",
+    "Use [small], [medium], or [large]; choose one.",
+  ])(
+    "keeps punctuated prose %s in the request while excluding an embedded script",
+    async (sentence) => {
+      document.body.innerHTML =
+        '<main id="root"><p id="prose"></p><div><script id="embed"></script></div></main>';
+      document.getElementById("prose").textContent = sentence;
+      document.getElementById("embed").textContent =
+        `SML.load(["xxxxxz","xxxxxxxv1"], 'auto');`;
 
-    createTranslator();
-    await flushAsync();
+      createTranslator();
+      await flushAsync();
 
-    expect(apiTranslate).not.toHaveBeenCalled();
-    expect(host.querySelector(`.${Translator.KISS_CLASS.warpper}`)).toBeNull();
-    expect(authoredStyle).toContain("max-height: 0");
-    expect(host.style.cssText).toBe(authoredStyle);
-    expect(host.style.height).not.toBe("auto");
-  });
-
-  test("sends only the prose span when a sibling span is source-shaped", async () => {
-    document.body.innerHTML =
-      '<main id="root"><div id="host"><span id="prose">This sentence is ordinary prose for readers.</span><span id="code"></span></div></main>';
-    document.getElementById("code").textContent =
-      "(function(){var ctid='eKIzJc';return ctid;})();";
-
-    createTranslator();
-    await flushAsync();
-
-    expect(apiTranslate).toHaveBeenCalledTimes(1);
-    const requested = apiTranslate.mock.calls[0][0].text;
-    expect(requested).toContain("This sentence is ordinary prose for readers.");
-    expect(requested).not.toContain("ctid");
-    expect(requested.replace(/<[^>]*>/g, "")).toBe(
-      "This sentence is ordinary prose for readers."
-    );
-  });
-
-  test("still translates a sentence that uses the word function once", async () => {
-    const sentence = "This function returns the translated sentence intact.";
-    document.body.innerHTML = '<main id="root"><p id="prose"></p></main>';
-    document.getElementById("prose").textContent = sentence;
-
-    createTranslator();
-    await flushAsync();
-
-    expect(apiTranslate).toHaveBeenCalledTimes(1);
-    expect(apiTranslate.mock.calls[0][0].text).toBe(sentence);
-  });
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      const requested = apiTranslate.mock.calls[0][0].text;
+      expect(requested).toBe(sentence);
+      expect(requested).not.toContain("SML.load");
+    }
+  );
 
   test("does not target a script element when the manual selector includes script", async () => {
     document.body.innerHTML =
@@ -1155,18 +1130,6 @@ describe("Translator rule styles", () => {
     expect(
       document.querySelector(`script .${Translator.KISS_CLASS.warpper}`)
     ).toBeNull();
-  });
-
-  test("still translates pre contents that look like source in plain text mode", async () => {
-    const source = "(function(){var ctid='eKIzJc';return ctid;})();";
-    document.body.innerHTML = '<main id="root"><pre></pre></main>';
-    document.querySelector("pre").textContent = source;
-
-    createPlainTextTranslator({}, { minLength: 0 });
-    await flushAsync();
-
-    expect(apiTranslate).toHaveBeenCalledTimes(1);
-    expect(apiTranslate.mock.calls[0][0].text).toContain(source);
   });
 
   test("does not throw or insert a wrapper for an empty or whitespace-only script", async () => {
