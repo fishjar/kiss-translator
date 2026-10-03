@@ -75,6 +75,145 @@ export const DEFAULT_SYNC = {
   dataCaches: {}, // 各类缓存项的最近同步时间
 };
 
+// --- 术语库 (Terminology Libraries) 默认值 ---
+// 结构为「多库 + 一维顺序 + 前覆盖后」：
+//   libraries[] 按**加载顺序**排列（靠前者优先级高，同名术语由靠前者胜出）。
+//   每库有独立开关；关闭的库完全不参与合成。
+//
+// 存储分工（重要）：
+//   - STOKEY_TERMS.libraries[] 只存**元信息**（名字/简介/开关/署名/顺序）
+//   - 订阅库的**正文**存 STOKEY_TERMCACHE_PREFIX + url，不进同步
+//   依据：订阅内容是远端可变的共享数据，若参与同步会导致多客户端互相覆盖；
+//   而元信息（启用哪个订阅、命名为什么）参与同步是期望行为。
+export const DEFAULT_TERMS_LIBRARY_ID = "default"; // 默认库的固定 id（不用 UUID，便于识别与迁移）
+export const DEFAULT_TERMS = {
+  _v: 2, // 结构版本号，供未来迁移
+  libraries: [
+    {
+      id: DEFAULT_TERMS_LIBRARY_ID,
+      name: "", // 由 UI 用 i18n 填充显示名（避免把文案写进持久化数据）
+      description: "",
+      enabled: true,
+      terms: "",
+      source: { type: "custom" },
+      sortOrder: 0,
+    },
+  ],
+};
+// 术语库单库容量上限（条数）。超过则在导入/订阅时给出告警。
+// 依据：首字符分桶优化后实测 10,000 条约 0.10ms/千节点，余量充足；
+// 未分桶时 20,000 条会使单文本节点耗时 14ms（约 14 秒/页），故必须设上限。
+export const TERMS_LIBRARY_MAX_ENTRIES = 10000;
+
+/**
+ * 术语库顺序归一化。
+ *
+ * 规则（人类已确认）：
+ * - 默认库恒为 sortOrder 0 且恒在首位（不可拖、不可删）
+ * - 其余库按数组现有顺序依次编号 1, 2, 3 …（连续无空洞）
+ *
+ * 与 hooks/Api.js 的 normalizeApiOrder 同构，差异仅在于术语库只有
+ * 「默认库 + 其余」两段（API 有 pinned/normal/disabled 三段）。
+ *
+ * @param {Array<object>} libraries
+ * @returns {Array<object>} 归一化后的新数组（不修改入参）
+ */
+export function normalizeLibraryOrder(libraries = []) {
+  const list = Array.isArray(libraries) ? libraries : [];
+  const defaultLibs = list.filter(
+    (lib) => lib?.id === DEFAULT_TERMS_LIBRARY_ID
+  );
+  const others = list.filter((lib) => lib?.id !== DEFAULT_TERMS_LIBRARY_ID);
+  return [
+    ...defaultLibs.map((lib) => ({ ...lib, sortOrder: 0 })),
+    ...others.map((lib, index) => ({ ...lib, sortOrder: index + 1 })),
+  ];
+}
+
+/**
+ * 把任意形态的术语库数据规整为合法结构。
+ *
+ * 用途：读取持久化数据时兜底（结构缺失/字段类型错误/默认库丢失时不崩溃）。
+ * **不做旧版迁移**（迁移见 spec §6，按人类决定后置）。
+ *
+ * @param {*} value 持久化读出的原始值
+ * @returns {{_v: number, libraries: Array<object>}}
+ */
+export function normalizeTermsData(value) {
+  const libs = Array.isArray(value?.libraries) ? value.libraries : [];
+  const cleaned = libs
+    .filter((lib) => lib && typeof lib === "object")
+    .map((lib) => ({
+      id: typeof lib.id === "string" && lib.id ? lib.id : "",
+      name: typeof lib.name === "string" ? lib.name : "",
+      description: typeof lib.description === "string" ? lib.description : "",
+      enabled: lib.enabled !== false,
+      terms: typeof lib.terms === "string" ? lib.terms : "",
+      source:
+        lib.source && typeof lib.source === "object"
+          ? { ...lib.source }
+          : { type: "custom" },
+      sortOrder: Number.isFinite(lib.sortOrder) ? lib.sortOrder : 0,
+    }))
+    .filter((lib) => lib.id);
+
+  // 默认库必须存在（不可删除）：缺失则重建一个空的
+  if (!cleaned.some((lib) => lib.id === DEFAULT_TERMS_LIBRARY_ID)) {
+    cleaned.unshift({ ...DEFAULT_TERMS.libraries[0] });
+  }
+
+  return { _v: 2, libraries: normalizeLibraryOrder(cleaned) };
+}
+
+/**
+ * 生成库 id。
+ *
+ * - 订阅库：`sub_` + URL 的**同步**简单哈希（FNV-1a）
+ *   选同步哈希而非 sha256 的理由：sha256（utils.js:247）是 async 且依赖
+ *   crypto.subtle（需安全上下文）；库 id 只需**稳定 + 低碰撞**，
+ *   不需要密码学强度，且订阅库 id 必须在多设备间**可稳定推导**（同一 URL
+ *   得同一 id），否则同步时会被当成两个不同的库。
+ * - 用户新建：随机 UUID
+ *
+ * @param {string} [url] 订阅 URL；省略时生成随机 id
+ * @returns {string}
+ */
+export function makeLibraryId(url) {
+  if (!url || typeof url !== "string") {
+    return `lib_${makeRandomId()}`;
+  }
+  // FNV-1a 32bit：同步、无依赖、分布足够均匀
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < url.length; i++) {
+    hash ^= url.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  // 再做一轮变体，降低碰撞（同一 URL 必得同一结果）
+  let hash2 = 0x811c9dc5;
+  for (let i = url.length - 1; i >= 0; i--) {
+    hash2 ^= url.charCodeAt(i);
+    hash2 = Math.imul(hash2, 0x01000193) >>> 0;
+  }
+  return `sub_${hash.toString(16).padStart(8, "0")}${hash2
+    .toString(16)
+    .padStart(8, "0")}`;
+}
+
+/** 生成随机 id（复用 crypto.randomUUID，不可用时回退） */
+function makeRandomId() {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 // --- 输入框即时翻译图标(点)的显示策略 ---
 export const OPT_INPUT_DOT_DISABLE = "-"; // 彻底不显示图标
 export const OPT_INPUT_DOT_MOBILE = "mobile"; // 仅在移动端浏览器中显示
@@ -286,6 +425,11 @@ export const DEFAULT_SETTING = {
   // transOnly: false, // 是否仅显示译文(移至rule，作废)
   // transTitle: false, // 是否同时翻译页面标题(移至rule，作废)
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅的在线翻译规则列表
+  // 订阅的术语库源列表。结构为 [{ url, enabled }]。
+  // 与 subrulesList 的差异：术语源是**多源同时生效**（叠加语义，无"只能选一个"的限制），
+  // 故用 enabled 布尔而非 selected 单选（见 spec §1.4 / 决策 D3）。
+  // 仅本列表参与云同步；各源的术语内容缓存于 STOKEY_TERMCACHE_PREFIX + url，不参与同步。
+  subTermsList: [],
   // owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则 (作废)
   transApis: DEFAULT_API_LIST, // 缓存的全部可用翻译 API 配置列表（数组格式）
   prompts: [], // 用户自定义提示词；预设提示词由 config/prompt.js 提供，不写入本地配置

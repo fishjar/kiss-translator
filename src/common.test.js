@@ -9,6 +9,7 @@ jest.mock("./libs/storage", () => ({
   getSettingWithDefault: jest.fn(),
   getFabWithDefault: jest.fn(),
   getWordsWithDefault: jest.fn(),
+  getTermsWithDefault: jest.fn(async () => ({ terms: "" })),
   runDataMigration: jest.fn(),
 }));
 
@@ -29,6 +30,13 @@ jest.mock("./libs/rules", () => ({
 
 jest.mock("./libs/subRules", () => ({
   trySyncAllSubRules: jest.fn(),
+}));
+
+// 术语订阅源模块经 ../apis 拉入 query-string（ESM），Jest 无法转换该依赖，
+// 故与 ./libs/subRules 同样在此 mock 掉。
+jest.mock("./libs/subTerms", () => ({
+  composeSubTermsText: jest.fn(async () => ""),
+  trySyncAllSubTerms: jest.fn(),
 }));
 
 jest.mock("./libs/blacklist", () => ({

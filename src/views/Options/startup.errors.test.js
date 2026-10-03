@@ -2,6 +2,7 @@ jest.mock("../../config", () => ({
   STOKEY_SETTING: "settings",
   STOKEY_RULES: "rules",
   STOKEY_WORDS: "words",
+  STOKEY_TERMS: "terms",
   STOKEY_SYNC: "sync",
 }));
 jest.mock("../../libs/client", () => ({ isGm: true }));
@@ -14,6 +15,7 @@ jest.mock("../../libs/sync", () => ({
   trySyncRules: jest.fn(),
   trySyncSetting: jest.fn(),
   trySyncWords: jest.fn(),
+  trySyncTerms: jest.fn(),
 }));
 jest.mock("../../libs/log", () => ({ kissLog: jest.fn() }));
 jest.mock("../../libs/utils", () => ({

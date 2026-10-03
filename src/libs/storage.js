@@ -14,6 +14,7 @@ import {
   DEFAULT_SETTING,
   DEFAULT_RULES,
   DEFAULT_SYNC,
+  DEFAULT_TERMS,
   BUILTIN_RULES,
   getSettingVersion,
   migrateSettingPromptsToV2,
@@ -25,6 +26,10 @@ import {
   KV_SETTING_KEY,
   KV_RULES_KEY,
   KV_WORDS_KEY,
+  KV_TERMS_KEY,
+  STOKEY_TERMS,
+  STOKEY_TERMCACHE_PREFIX,
+  normalizeTermsData,
 } from "../config";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
@@ -39,6 +44,7 @@ const SYNC_KEYS = {
   [STOKEY_SETTING]: KV_SETTING_KEY,
   [STOKEY_RULES]: KV_RULES_KEY,
   [STOKEY_WORDS]: KV_WORDS_KEY,
+  [STOKEY_TERMS]: KV_TERMS_KEY,
 };
 const sameValue = isSameStorageValue;
 const EDIT_DEFAULTS = {
@@ -48,6 +54,7 @@ const EDIT_DEFAULTS = {
   [STOKEY_SYNC]: DEFAULT_SYNC,
   [STOKEY_FAB]: {},
   [STOKEY_TRANBOX]: {},
+  [STOKEY_TERMS]: DEFAULT_TERMS,
 };
 const DESTINATION_FIELDS = [
   "syncType",
@@ -618,6 +625,27 @@ export const getSubRulesWithDefault = async () => (await getSubRules()) || [];
 export const delSubRules = (url) => del(STOKEY_RULESCACHE_PREFIX + url);
 export const setSubRules = (url, val) =>
   setObj(STOKEY_RULESCACHE_PREFIX + url, val);
+
+// --- 术语库 (Terminology Libraries) 数据存取 ---
+// 参与云同步（已在 SYNC_KEYS / EDIT_DEFAULTS 注册）。
+// 结构：{ _v: 2, libraries: [{ id, name, description, enabled, terms, source, sortOrder }] }
+// 注意：订阅库的**正文**不在 libraries[] 内，而在下面的订阅缓存键位中。
+export const getTerms = async () => {
+  const raw = await getObj(STOKEY_TERMS);
+  // 读取时兜底：结构缺失/字段类型错误/默认库丢失都不崩溃，且始终保持默认库存在。
+  return normalizeTermsData(raw);
+};
+export const getTermsWithDefault = async () =>
+  (await getTerms()) || cloneStorageValue(DEFAULT_TERMS);
+export const setTerms = (val) => setObj(STOKEY_TERMS, normalizeTermsData(val));
+
+// --- 订阅术语源缓存 (Subscription Terms Cache) 数据存取 ---
+// 按 URL 分键，**不参与云同步**（不在 SYNC_KEYS 中，白名单机制天然隔离）。
+// 理由：订阅内容是远端可变的共享数据，若参与同步会互相覆盖（见 spec §4.4）。
+export const getSubTerms = (url) => getObj(STOKEY_TERMCACHE_PREFIX + url);
+export const delSubTerms = (url) => del(STOKEY_TERMCACHE_PREFIX + url);
+export const setSubTerms = (url, val) =>
+  setObj(STOKEY_TERMCACHE_PREFIX + url, val);
 
 /**
  * 获取指定订阅源中被用户手动禁用/屏蔽的匹配规则 (Pattern)。

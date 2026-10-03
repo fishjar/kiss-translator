@@ -3,12 +3,15 @@ import {
   getFabWithDefault,
   getSettingWithDefault,
   getWordsWithDefault,
+  getTermsWithDefault,
+  getSubTerms,
 } from "./libs/storage";
 import { isIframe } from "./libs/iframe";
 import { genEventName } from "./libs/utils";
 import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
+import { trySyncAllSubTerms } from "./libs/subTerms";
 import { isInBlacklist } from "./libs/blacklist";
 import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
@@ -170,6 +173,54 @@ async function getFavWords(rule) {
   return [];
 }
 
+/**
+ * 按**加载顺序**组装术语库源列表（供 Translator 合成）。
+ *
+ * 与 getFavWords 同构：读存储、返回纯数据、出错兜底返回空。
+ * 顺序即优先级（靠前者胜出），故必须严格保持 libraries[] 的数组顺序；
+ * 优先级链的"前覆盖后"由 Translator 内的 composeSources 负责。
+ *
+ * 订阅库的正文从缓存读取（不在 libraries[] 内）；关闭的库直接跳过。
+ *
+ * @returns {Promise<{libraries: Array<{id: string, name: string, source: string, text: string}>}>}
+ */
+async function getLibraryTerms() {
+  try {
+    const termsData = await getTermsWithDefault();
+    const libraries = Array.isArray(termsData?.libraries)
+      ? termsData.libraries
+      : [];
+
+    const out = [];
+    const subs = []; // 订阅库清单（**不过滤空内容**，否则从未同步过的源会被漏掉）
+    for (const lib of libraries) {
+      if (lib?.enabled === false) continue; // 关闭的库完全不参与（人类决策 D2）
+      const isSub = lib?.source?.type === "subscription" && lib.source.url;
+      let text = "";
+      if (isSub) {
+        subs.push({ url: lib.source.url, enabled: true });
+        // 订阅正文来自缓存；读不到（从未同步）则跳过合成（但仍保留在 subs 中）
+        const cached = await getSubTerms(lib.source.url);
+        text = typeof cached?.text === "string" ? cached.text : "";
+      } else {
+        text = typeof lib?.terms === "string" ? lib.terms : "";
+      }
+      if (!text || !text.trim()) continue; // 空库不参与合成，避免无谓开销
+      out.push({
+        id: lib.id,
+        name: typeof lib.name === "string" ? lib.name : "",
+        source: isSub ? "subscription" : "custom",
+        url: isSub ? lib.source.url : "",
+        text,
+      });
+    }
+    return { libraries: out, subTerms: subs };
+  } catch (err) {
+    logger.info("get library terms", err);
+    return { libraries: [], subTerms: [] };
+  }
+}
+
 const IFRAME_TEXT_CHECK_TIMEOUT = 1000;
 const IFRAME_TEXT_IGNORE_SELECTOR = [
   "script",
@@ -299,6 +350,9 @@ export async function run(isUserscript = false) {
     // 7. 匹配当前网页专用的规则 (三级规则合并：个人 > 订阅 > 内置全局)
     const rule = await matchRule(href, setting);
     const favWords = await getFavWords(rule);
+    const libraryTerms = await getLibraryTerms();
+    // 术语库中的订阅条目（供每日一次的自动同步检查使用）
+    const librarySubTerms = libraryTerms.subTerms || [];
     const fabConfig = { ...(await getFabWithDefault()) };
     // 名单命中时反转全局显隐：全局显示为黑名单，全局隐藏为白名单。
     if (
@@ -315,6 +369,7 @@ export async function run(isUserscript = false) {
       rule,
       fabConfig,
       favWords,
+      libraryTerms,
       isIframe,
       isUserscript,
       transboxOnly: isPdfDocument,
@@ -332,6 +387,9 @@ export async function run(isUserscript = false) {
     // 11. 在油猴环境下，每次进入顶级页面时尝试触发一次订阅规则的自动同步检查 (每日一次)
     if (isUserscript) {
       trySyncAllSubRules(setting);
+      // 术语订阅源同理：按源粒度判定 24h。单源失败不阻断其他源。
+      // 订阅列表现在并入术语库 libraries[]（与自定义库同一有序列表）。
+      trySyncAllSubTerms({ subTermsList: librarySubTerms });
     }
   } catch (err) {
     console.error("[KISS-Translator]", err);

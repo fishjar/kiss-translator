@@ -67,6 +67,9 @@ export default class TranslatorManager {
   #rule;
   #fabConfig;
   #favWords;
+  // 术语库两层文本。注意：restart() 会从快照回填，故快照与回填两处都要带上它，
+  // 否则 SPA 导航后术语库会静默丢失（见 restart 内的回填段）。
+  #libraryTerms;
   #isUserscript;
   #isIframe;
   #transboxOnly;
@@ -114,6 +117,7 @@ export default class TranslatorManager {
     rule,
     fabConfig,
     favWords,
+    libraryTerms,
     isIframe,
     isUserscript,
     transboxOnly = false,
@@ -122,6 +126,11 @@ export default class TranslatorManager {
     this.#rule = this.#cloneConfig(rule);
     this.#fabConfig = this.#cloneConfig(fabConfig);
     this.#favWords = this.#cloneConfig(favWords);
+    // 术语库两层文本（① 自定义 + ② 订阅）。缺省为空对象 → 与改造前完全一致。
+    this.#libraryTerms = this.#cloneConfig(libraryTerms) || {
+      custom: "",
+      subscription: "",
+    };
     this.#isIframe = isIframe;
     this.#isUserscript = isUserscript;
     this.#transboxOnly = transboxOnly;
@@ -185,6 +194,10 @@ export default class TranslatorManager {
     this.#rule = state.rule;
     this.#fabConfig = state.fabConfig;
     this.#favWords = state.favWords;
+    // ⚠️ 必须与 #snapshotRuntimeState 成对维护：漏掉本行会让 SPA 导航后
+    // 术语库被快照中的空值覆盖而静默丢失（restart 由 SPA 导航触发，
+    // 在 YouTube / GitHub 等站点属常态路径）。
+    this.#libraryTerms = state.libraryTerms;
 
     this.#createRuntimeModules();
     this.#refreshDocumentElementObserver();
@@ -253,6 +266,7 @@ export default class TranslatorManager {
       rule: this.#cloneConfig(this.#rule),
       setting: this.#cloneConfig(this.#setting),
       favWords: this.#cloneConfig(this.#favWords),
+      libraryTerms: this.#cloneConfig(this.#libraryTerms),
       isUserscript: this.#isUserscript,
       isIframe: this.#isIframe,
     });
@@ -362,6 +376,7 @@ export default class TranslatorManager {
       rule,
       fabConfig: this.#cloneConfig(this.#fabConfig),
       favWords: this.#cloneConfig(this.#favWords),
+      libraryTerms: this.#cloneConfig(this.#libraryTerms),
     };
   }
 

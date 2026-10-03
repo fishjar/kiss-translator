@@ -7,7 +7,12 @@ import {
   STOKEY_SYNC,
   STOKEY_WORDS,
 } from "../../config";
-import { trySyncRules, trySyncSetting, trySyncWords } from "../../libs/sync";
+import {
+  trySyncRules,
+  trySyncSetting,
+  trySyncWords,
+  trySyncTerms,
+} from "../../libs/sync";
 import { refreshStorageKeys } from "../../libs/storageRefresh";
 import { kissLog } from "../../libs/log";
 import { adaptScript } from "../../libs/gm";
@@ -29,6 +34,7 @@ jest.mock("../../libs/sync", () => ({
   trySyncRules: jest.fn(),
   trySyncSetting: jest.fn(),
   trySyncWords: jest.fn(),
+  trySyncTerms: jest.fn(),
 }));
 jest.mock("../../libs/storageRefresh", () => ({
   refreshStorageKeys: jest.fn(),
@@ -116,6 +122,7 @@ function mockComponent(testId) {
 
 jest.mock("./Rules", () => mockComponent("rules-page"));
 jest.mock("./FavWords", () => mockComponent("words-page"));
+jest.mock("./TerminologyLibrary", () => mockComponent("terms-page"));
 jest.mock("./Apis", () => mockComponent("apis-page"));
 jest.mock("./Setting", () => mockComponent("setting-page"));
 jest.mock("./StylesSetting", () => mockComponent("styles-page"));
@@ -425,7 +432,9 @@ describe("Options startup sync", () => {
     await resolveDeferred(settingSync);
     expect(trySyncRules).toHaveBeenCalledTimes(1);
     expect(trySyncWords).toHaveBeenCalledTimes(1);
-    expect(refreshStorageKeys).toHaveBeenCalledTimes(3);
+    expect(trySyncTerms).toHaveBeenCalledTimes(1);
+    // 4 个 store（setting/rules/words/terms）各刷新一次
+    expect(refreshStorageKeys).toHaveBeenCalledTimes(4);
     expectLocked(view, false);
   });
 
@@ -439,7 +448,7 @@ describe("Options startup sync", () => {
 
     await resolveDeferred(settingSync);
     expect(mockSettingProvider).toHaveBeenCalledTimes(renderCount);
-    expect(refreshStorageKeys).toHaveBeenCalledTimes(3);
+    expect(refreshStorageKeys).toHaveBeenCalledTimes(4);
   });
 
   test("waits for an older compatible GM bridge and migration, then renders during network sync", async () => {

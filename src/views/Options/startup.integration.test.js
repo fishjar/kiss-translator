@@ -56,6 +56,15 @@ jest.mock("../../libs/gm", () => ({ adaptScript: jest.fn() }));
 
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
 
+// 术语订阅源模块经 ../apis 拉入 query-string（ESM），Jest 无法转换该依赖。
+// 该套件渲染真实 Options 页（含 TerminologyLibrary），故必须在此 mock 掉。
+jest.mock("../../libs/subTerms", () => ({
+  composeSubTermsText: jest.fn(async () => ""),
+  trySyncAllSubTerms: jest.fn(),
+  loadOrFetchSubTerms: jest.fn(async () => ({ text: "", entries: 0 })),
+  removeSubTerms: jest.fn(),
+}));
+
 jest.mock("../../libs/log", () => ({
   kissLog: jest.fn(),
   logger: { setLevel: jest.fn(), error: jest.fn() },
@@ -83,7 +92,14 @@ jest.mock("../../libs/sync", () => ({
   trySyncSetting: jest.fn(),
   trySyncRules: jest.fn(),
   trySyncWords: jest.fn(),
+  trySyncTerms: jest.fn(),
 }));
+
+jest.mock("./TerminologyLibrary", () => {
+  return function MockTerminologyLibrary() {
+    return null;
+  };
+});
 
 jest.mock("./OptionsTheme", () => {
   return function MockTheme({ children }) {
