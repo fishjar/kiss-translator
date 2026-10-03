@@ -4644,6 +4644,15 @@ export const I18N = {
     tr: `Çevir`,
     vi: "Dịch",
   },
+  fab_click_popup: {
+    zh: `打开翻译面板`,
+    en: `Open Translation Panel`,
+    zh_TW: `開啟翻譯面板`,
+    ja: `翻訳パネルを開く`,
+    ko: `번역 패널 열기`,
+    tr: `Çeviri Panelini Aç`,
+    vi: "Mở bảng dịch",
+  },
   hide_tran_button: {
     zh: `隐藏翻译按钮`,
     en: `Hide Translate Button`,

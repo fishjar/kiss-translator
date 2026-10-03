@@ -2,6 +2,10 @@ export const FAB_MIN_OPACITY = 0.1;
 export const FAB_MIN_SIZE = 24;
 export const FAB_MAX_SIZE = 96;
 
+export const FAB_CLICK_ACTION_MENU = 0;
+export const FAB_CLICK_ACTION_TRANSLATE = 1;
+export const FAB_CLICK_ACTION_POPUP = 2;
+
 export const DEFAULT_FAB = {
   hideExceptionList: "",
   halfHide: true,

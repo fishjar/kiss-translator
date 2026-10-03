@@ -339,6 +339,7 @@ export const RU_I18N = {
   fab_click_action: `Действие по клику на кнопку`,
   fab_click_menu: `Всплывающее меню`,
   fab_click_translate: `Перевести`,
+  fab_click_popup: `Открыть панель перевода`,
   hide_tran_button: `Скрыть кнопку перевода`,
   hide_click_away: `Закрывать окно по клику вне его`,
   use_simple_style: `Использовать упрощённый интерфейс`,
