@@ -4,7 +4,7 @@ import { CATALOG } from "./catalog";
 export function estimateModelMemoryMB(spec: Record<string, unknown>): number {
   const models = CATALOG.filter(m => m.dir === spec.dir || m.dir === spec.detDir || m.dir === spec.recDir || m.id === spec.modelId);
   const bytes = models.reduce((total, m) => {
-    const weights = m.files.filter(f => /\.(?:gguf|onnx|onnx_data(?:_\d+)?)$/.test(f.path));
+    const weights = m.files.filter(f => /\.(?:gguf|onnx|onnx\.data|onnx_data(?:_\d+)?)$/.test(f.path));
     return total + (weights.length ? weights.reduce((n, f) => n + f.size, 0) : m.size);
   }, 0);
   return Math.ceil(2 * bytes / 1048576) + 256;

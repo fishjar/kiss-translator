@@ -22,6 +22,7 @@ const EVICTION_ORDER: Record<string, number> = {
   vlm: 0,
   llm: 0, // 最优先被 LRU 淘汰
   ocr: 1,
+  doc: 1,
   translation: 2,
   tts: 3,
   asr: 4,

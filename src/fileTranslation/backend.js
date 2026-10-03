@@ -18,6 +18,9 @@ import {
 } from "../localAi/fileOperations";
 import { runtimeHost } from "../localAi/runtime/runtimeHostAdapter";
 import { normalizeSettings } from "../localAi/core/settings";
+import { CATALOG, DOC_MODEL_ID } from "../localAi/core/catalog";
+import { DocClient } from "../localAi/core/docClient";
+import { resolveOcrVlmPrompt } from "../localAi/core/ocrVlmPrompts";
 import {
   FILE_CHANNEL,
   FILE_PROTOCOL,
@@ -92,12 +95,6 @@ export function validateScenePatch(kind, patch) {
 }
 
 async function modelRecords(setting, signal) {
-  if (
-    !setting.transApis?.some(
-      (api) => api.sourceType === "local" && !api.isDisabled
-    )
-  )
-    return [];
   const result = await runtimeHost.request(
     { id: crypto.randomUUID(), service: "model", method: "init", payload: {} },
     { signal }
@@ -174,6 +171,7 @@ export async function getFileContext(signal) {
       name: record.manifest.name,
       state: record.state,
       task: record.manifest.task,
+      backend: record.manifest.backend,
     })),
     ocrModels: ALL_OCR_MODELS,
     modelError,
@@ -185,6 +183,24 @@ export async function getFileContext(signal) {
 }
 
 export async function executeFileMethod(method, params, signal, uploads) {
+  if (method === "analyzeLayout" || method === "recognizeDocumentRegion") {
+    const task = method === "analyzeLayout" ? "doc-layout" : "ocr-vlm";
+    const modelId = params.modelId || (task === "doc-layout" ? DOC_MODEL_ID : "");
+    const model = CATALOG.find(m => m.id === modelId && m.task === task);
+    if (!model || !model.backend.includes(params.device)) throw fileError("INVALID_INPUT", "文档模型或计算后端无效");
+    if (method === "recognizeDocumentRegion" && !["doc","table","formula"].includes(params.taskMode)) throw fileError("INVALID_INPUT", "文档识别任务无效");
+    const upload = uploads.get(params.uploadId);
+    if (!upload || upload.received !== upload.size) throw fileError("INVALID_INPUT", "图片上传未完成");
+    uploads.delete(params.uploadId); clearTimeout(upload.timer);
+    const file = new Blob(upload.chunks, {type:upload.type});
+    if (task === "doc-layout") return new DocClient().analyze(file, {modelId,device:params.device},signal);
+    return recognizeFileImage(file,{groupId:modelId,device:params.device,prompt:resolveOcrVlmPrompt(modelId,params.taskMode)},signal);
+  }
+  if (method === "decideDocumentStructure") {
+    const model = CATALOG.find(m => m.id === params.modelId && m.task === "decision");
+    if (!model || !params.state || typeof params.state !== "object" || !Array.isArray(params.candidates) || params.candidates.length < 2 || params.candidates.length > 6 || params.candidates.some(c=>typeof c!=="string" || !c.trim() || c.length>100) || JSON.stringify(params.state).length>12000) throw fileError("INVALID_INPUT","文档判断输入无效");
+    return runtimeHost.request({id:crypto.randomUUID(),service:"decision",method:"predict",payload:{modelRef:model.id,state:params.state,questions:{structure:{type:"choice",instructions:"Choose the document structure best supported by the given evidence. Do not generate document content.",criteria:params.candidates}}}},{signal});
+  }
   if (method === "getContext") return getFileContext(signal);
   if (method === "patchScene") {
     const patch = validateScenePatch(params.kind, params.patch);
@@ -389,7 +405,7 @@ export function attachFileSession(port, execute = executeFileMethod) {
             extensionVersion: browser.runtime.getManifest().version,
             extensionId: browser.runtime.id,
             development: process.env.REACT_APP_FILE_BRIDGE_DEV === "true",
-            capabilities: ["translation", "ocr", "settings"],
+            capabilities: ["translation", "ocr", "settings", "doc", "doc-decision"],
             imageChunkBytes: IMAGE_CHUNK_BYTES,
           },
         });

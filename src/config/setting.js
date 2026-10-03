@@ -266,6 +266,13 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
 };
 
 export const DEFAULT_FILE_TRANSLATE_SETTING = {
+  pdf: {
+    fromLang: "auto", toLang: "zh-CN", apiSlugs: [OPT_TRANS_MICROSOFT],
+    promptSlug: "", textStyle: "style_none", parseMode: "smart", enableJev: "false",
+    layoutModel: "pp-doclayout-v3-onnx", layoutDevice: "wasm",
+    layoutApiSlug: "", layoutApiSlugs: [],
+    visionModel: "paddleocr-vl-1.6-onnx-q8", visionDevice: "webgpu", decisionModel: "laya-multilingual-int8",
+  },
   txt: {
     fromLang: "auto",
     toLang: "zh-CN",

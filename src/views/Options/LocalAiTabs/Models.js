@@ -43,6 +43,7 @@ function matchesTaskFilter(task, filter) {
   if (filter === "vlm") return task === "ocr-vlm";
   if (filter === "llm") return task === "llm";
   if (filter === "tts") return task === "tts";
+  if (filter === "doc") return task === "doc-layout";
   return true;
 }
 
@@ -580,6 +581,7 @@ export default function ModelsTab() {
     { value: "vlm", label: "VLM" },
     { value: "llm", label: "LLM" },
     { value: "tts", label: "TTS" },
+    { value: "doc", label: "DOC" },
   ];
 
   useEffect(() => {

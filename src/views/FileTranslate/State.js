@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import Alert from "@mui/material/Alert";
+import ReaderAlert from "./ReaderAlert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
@@ -316,13 +316,23 @@ export function FileTranslationProvider({ children }) {
     </Button>
   );
   const connectionNotice = !session ? (
-    <Box sx={{ px: 1.5, pt: 1.5, flexShrink: 0 }}>
-      <Alert
+    <Box sx={{ px: 1.5, pt: 1.25, flexShrink: 0 }}>
+      <ReaderAlert
         severity="info"
+        sx={{ borderRadius: 1 }}
         action={
           <Button
+            size="small"
             disabled={connecting}
             onClick={() => connect(selectedExtension || undefined)}
+            sx={{
+              py: 0.25,
+              px: 1.25,
+              fontSize: 12.5,
+              lineHeight: 1.4,
+              minWidth: "auto",
+              textTransform: "none",
+            }}
           >
             {connecting
               ? chinese
@@ -337,7 +347,7 @@ export function FileTranslationProvider({ children }) {
         {chinese
           ? "翻译需要连接 Edge、Chrome 或 Firefox 扩展。Safari、油猴和 Thunderbird 暂不支持；未连接时可解析和预览文件。"
           : "Connect an Edge, Chrome or Firefox extension to translate. Safari, userscripts and Thunderbird are not supported yet. Files can be parsed and previewed while disconnected."}
-      </Alert>
+      </ReaderAlert>
       {!!extensions.length && (
         <Select
           size="small"
@@ -352,9 +362,9 @@ export function FileTranslationProvider({ children }) {
         </Select>
       )}
       {(error || context.modelError) && (
-        <Alert severity="warning" sx={{ mt: 1 }}>
+        <ReaderAlert severity="warning" sx={{ mt: 0.75, borderRadius: 1 }}>
           {error || context.modelError}
-        </Alert>
+        </ReaderAlert>
       )}
     </Box>
   ) : null;

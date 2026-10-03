@@ -26,9 +26,10 @@ export async function downloadFileToTemp(
   file: ModelFile,
   tempPath: string,
   hooks: DownloadHooks,
-  base?: string
+  base?: string,
+  revision?: string
 ): Promise<void> {
-  const url = fileUrl(mirror, source, file.remotePath ?? file.path, base);
+  const url = fileUrl(mirror, source, file.remotePath ?? file.path, base, revision);
   let existing = (await opfs.statFile(tempPath)) ?? 0;
   if (existing >= file.size) existing = 0;
 

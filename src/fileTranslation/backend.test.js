@@ -7,6 +7,9 @@ import {
 } from "./backend";
 import { FILE_PROTOCOL, isFileBridgePage } from "./protocol";
 import { getSettingWithDefault, saveEdit } from "../libs/storage";
+import { DocClient } from "../localAi/core/docClient";
+import { runtimeHost } from "../localAi/runtime/runtimeHostAdapter";
+jest.mock("../localAi/core/docClient", () => ({ DocClient: jest.fn() }));
 
 jest.mock("webextension-polyfill", () => ({
   runtime: {
@@ -67,6 +70,31 @@ beforeEach(() => {
     customStyles: [],
     syncKey: "also-secret",
   });
+});
+
+test("DOC bridge consumes a completed owned upload and restricts task and backend", async () => {
+  const analyze = jest.fn(async () => ({ regions: [], backend: "wasm" }));
+  DocClient.mockImplementation(() => ({ analyze }));
+  const uploads = new Map([["owned", { received: 3, size: 3, type: "image/png", chunks: [new Uint8Array([1,2,3])] }]]);
+  const signal = new AbortController().signal;
+  await expect(executeFileMethod("analyzeLayout", {uploadId:"owned",modelId:"pp-doclayout-v3-onnx",device:"webgpu"},signal,uploads)).rejects.toMatchObject({code:"INVALID_INPUT"});
+  expect(uploads.has("owned")).toBe(true);
+  await expect(executeFileMethod("analyzeLayout", {uploadId:"owned",modelId:"pp-doclayout-v3-onnx",device:"wasm"},signal,uploads)).resolves.toMatchObject({backend:"wasm"});
+  expect(analyze).toHaveBeenCalledWith(expect.any(Blob), {modelId:"pp-doclayout-v3-onnx",device:"wasm"}, signal);
+  expect(uploads.has("owned")).toBe(false);
+  await expect(executeFileMethod("analyzeLayout", {uploadId:"owned",device:"wasm"},signal,uploads)).rejects.toMatchObject({code:"INVALID_INPUT"});
+});
+
+test("document decision bridge accepts bounded evidence with backend-owned instructions", async () => {
+  runtimeHost.request.mockResolvedValue({answers:{structure:{choice:"a",confidence:.9}}});
+  const signal=new AbortController().signal;
+  for(const invalid of [undefined, "content", {text:"x".repeat(12001)}]) {
+    await expect(executeFileMethod("decideDocumentStructure",{modelId:"laya-multilingual-int8",state:invalid,candidates:["a","b"]},signal,new Map())).rejects.toMatchObject({code:"INVALID_INPUT"});
+  }
+  await executeFileMethod("decideDocumentStructure",{modelId:"laya-multilingual-int8",state:{page:1},candidates:["a","b"],instructions:"untrusted"},signal,new Map());
+  const payload=runtimeHost.request.mock.calls.at(-1)[0].payload;
+  expect(payload.questions.structure.instructions).not.toContain("untrusted");
+  expect(payload.questions.structure.criteria).toEqual(["a","b"]);
 });
 
 function makePort() {

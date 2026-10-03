@@ -15,6 +15,7 @@ export function paddleBuild(): Plugin {
       await preparePaddleAssets(paddleDirectory);
     },
     resolveId(id, importer) {
+      if (id === "kiss-doc-opencv") return resolve(paddleDirectory, "opencv.js");
       if (id === "@techstark/opencv-js") {
         return importer?.replaceAll("\\", "/").includes("/tmp/paddleocr-0.4.2/")
           ? resolve(paddleDirectory, "opencv.js")

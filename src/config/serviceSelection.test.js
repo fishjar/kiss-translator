@@ -142,3 +142,42 @@ test("normalizes summarization capability and verifies availability across built
     }
   }
 });
+
+test("normalizes layout capability and verifies availableLayoutApisForScene", () => {
+  const { availableLayoutApisForScene } = require("./serviceSelection");
+  const normalized = normalizeApiCapabilities({
+    apiType: "LocalAI",
+    sourceType: "local",
+    capabilities: ["layout", "invalid_cap"],
+  });
+  expect(normalized.capabilities).toEqual(["layout"]);
+
+  const apis = [
+    {
+      apiSlug: "local-layout",
+      sourceType: "local",
+      apiType: "LocalAI",
+      modelRef: "pp-doclayout-v3-onnx",
+      capabilities: ["layout"],
+    },
+    {
+      apiSlug: "other-service",
+      sourceType: "network",
+      capabilities: ["translation"],
+    },
+  ];
+  const scene = {
+    layoutApiSlug: "local-layout",
+    layoutApiSlugs: ["local-layout"],
+  };
+
+  const availableWhenInstalled = availableLayoutApisForScene(scene, apis, {
+    installedModels: new Set(["pp-doclayout-v3-onnx"]),
+  });
+  expect(availableWhenInstalled.map((a) => a.apiSlug)).toEqual(["local-layout"]);
+
+  const availableWhenNotInstalled = availableLayoutApisForScene(scene, apis, {
+    installedModels: new Set(["other-model"]),
+  });
+  expect(availableWhenNotInstalled).toEqual([]);
+});

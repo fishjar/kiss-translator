@@ -57,7 +57,7 @@ if (
 await fetch("http://localhost:3000/file-translate.html", {
   signal: AbortSignal.timeout(5000),
 }).catch(() => {
-  throw new Error("请先运行 pnpm start:homepage，并保持服务运行。");
+  throw new Error("请先运行 pnpm start，并保持服务运行。");
 });
 await fs.mkdir(profile, { recursive: true });
 if (process.platform === "win32") {

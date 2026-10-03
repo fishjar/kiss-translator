@@ -1,0 +1,116 @@
+.kt-pdf-workspace {
+  flex: 1;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.kt-pdf-reading {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+.kt-pdf-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.kt-pdf-column-header {
+  padding: 8px 12px;
+  height: 48px;
+  min-height: 48px;
+  box-sizing: border-box;
+  overflow-x: auto;
+  flex-shrink: 0;
+  background: inherit;
+}
+.kt-pdf-column-header > * {
+  flex-shrink: 0;
+}
+.kt-pdf-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.kt-pdf-pages {
+  background: #8882;
+}
+.kt-pdf-markdown {
+  padding: 12px 22px;
+  line-height: 1.7;
+}
+.kt-pdf-toc {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.kt-pdf-block {
+  position: relative;
+  padding: 2px 0 10px;
+  border-bottom: 1px solid #8881;
+}
+.kt-pdf-block-actions {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.kt-pdf-block:hover .kt-pdf-block-actions,
+.kt-pdf-block:focus-within .kt-pdf-block-actions {
+  opacity: 1;
+}
+.kt-pdf-source {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  font-family: monospace;
+  font-size: 13px;
+}
+.kt-pdf-markdown img {
+  max-width: 100%;
+  height: auto;
+}
+.kt-pdf-markdown pre {
+  overflow: auto;
+  padding: 12px;
+  background: #8881;
+}
+.kt-pdf-markdown .kt-source {
+  opacity: 0.7;
+}
+.kt-pdf-markdown .kt-target {
+  margin-top: 0.4em;
+}
+.kt-pdf-markdown .kt-document-warning {
+  border-left: 3px solid #b78a26;
+  padding-left: 12px;
+}
+.kt-pdf-markdown .katex-display {
+  overflow: auto;
+}
+.kt-pdf-markdown table {
+  border-collapse: collapse;
+  display: block;
+  overflow: auto;
+}
+.kt-pdf-markdown td,
+.kt-pdf-markdown th {
+  padding: 6px 10px;
+  border: 1px solid #8886;
+}
+@media (max-width: 999px) {
+  .kt-pdf-block-actions {
+    opacity: 1;
+  }
+  .kt-pdf-markdown {
+    padding: 12px;
+  }
+}

@@ -1,3 +1,4 @@
+import TocDrawer from "./TocDrawer";
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -16,8 +17,9 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Popover from "@mui/material/Popover";
 import CircularProgress from "@mui/material/CircularProgress";
-import Alert from "@mui/material/Alert";
+import ReaderAlert from "./ReaderAlert";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
+import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import FormatSizeRoundedIcon from "@mui/icons-material/FormatSizeRounded";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
@@ -277,7 +279,7 @@ export default function EpubReaderView({
   textStyleClass = "",
   rawStyleCode = "",
 }) {
-  const [tocCollapsed, setTocCollapsed] = useState(false);
+  const [tocCollapsed, setTocCollapsed] = useState(true);
   const [tocSearch, setTocSearch] = useState("");
   const [fontMenuAnchor, setFontMenuAnchor] = useState(null);
   const [hintDismissed, setHintDismissed] = useState(false);
@@ -297,84 +299,12 @@ export default function EpubReaderView({
     return DEFAULT_TOC_WIDTH;
   });
 
-  const [isResizingToc, setIsResizingToc] = useState(false);
-  const tocCardRef = useRef(null);
-  const resizeCleanupRef = useRef(null);
-
-  const handleResizerPointerDown = useCallback(
-    (e) => {
-      if (e.button !== undefined && e.button !== 0) return;
-      if (resizeCleanupRef.current) return;
-      e.preventDefault();
-      setIsResizingToc(true);
-      const startX = e.clientX;
-      const pointerId = e.pointerId;
-      const maxAllowed = Math.min(
-        MAX_TOC_WIDTH,
-        Math.max(MIN_TOC_WIDTH, Math.floor(window.innerWidth * 0.6))
-      );
-      const widthAt = (clientX) => Math.max(
-        MIN_TOC_WIDTH, Math.min(tocWidth + clientX - startX, maxAllowed)
-      );
-      let pendingWidth = tocWidth;
-      let frame = null;
-      const previousCursor = document.body.style.cursor;
-      const previousUserSelect = document.body.style.userSelect;
-      const applyWidth = () => {
-        tocCardRef.current?.style.setProperty("--epub-toc-width", `${pendingWidth}px`);
-      };
-      const onPointerMove = (moveEvent) => {
-        if (moveEvent.pointerId !== pointerId) return;
-        pendingWidth = widthAt(moveEvent.clientX);
-        if (frame !== null) return;
-        frame = requestAnimationFrame(() => {
-          frame = null;
-          applyWidth();
-        });
-      };
-      const cleanup = () => {
-        if (frame !== null) cancelAnimationFrame(frame);
-        frame = null;
-        window.removeEventListener("pointermove", onPointerMove);
-        window.removeEventListener("pointerup", onPointerUp);
-        window.removeEventListener("pointercancel", onPointerUp);
-        document.body.style.cursor = previousCursor;
-        document.body.style.userSelect = previousUserSelect;
-        resizeCleanupRef.current = null;
-      };
-      const onPointerUp = (upEvent) => {
-        if (upEvent.pointerId !== pointerId) return;
-        if (upEvent.type === "pointerup") pendingWidth = widthAt(upEvent.clientX);
-        applyWidth();
-        cleanup();
-        setTocWidth(pendingWidth);
-        setIsResizingToc(false);
-        try {
-          localStorage.setItem("kiss_epub_toc_width", String(pendingWidth));
-        } catch {}
-      };
-      resizeCleanupRef.current = cleanup;
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-      window.addEventListener("pointermove", onPointerMove);
-      window.addEventListener("pointerup", onPointerUp);
-      window.addEventListener("pointercancel", onPointerUp);
-    },
-    [tocWidth]
-  );
-
-  const handleResizerDoubleClick = useCallback(() => {
-    setTocWidth(DEFAULT_TOC_WIDTH);
-    try {
-      localStorage.setItem("kiss_epub_toc_width", String(DEFAULT_TOC_WIDTH));
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      resizeCleanupRef.current?.();
-    };
-  }, []);
+  const tocToggleRef = useRef(null);
+  const changeTocWidth = (width) => {
+    setTocWidth(width);
+    try { localStorage.setItem("kiss_epub_toc_width", String(width)); } catch {}
+  };
+  useEffect(() => setTocCollapsed(true), [epubBook]);
 
   // 正文搜索相关状态与 DOM 引用
   const [searchQuery, setSearchQuery] = useState("");
@@ -962,27 +892,22 @@ export default function EpubReaderView({
         position: "relative",
       }}
     >
-      {/* 1. 左侧可折叠且可拖拽调整宽度的目录边栏 */}
+      {/* 2. 右侧单主阅读区 */}
       <Card
-        ref={tocCardRef}
-        style={{ "--epub-toc-width": `${tocWidth}px` }}
         variant="outlined"
         sx={{
-          width: tocCollapsed ? 0 : "var(--epub-toc-width)",
-          minWidth: tocCollapsed ? 0 : "var(--epub-toc-width)",
-          maxWidth: tocCollapsed ? 0 : "var(--epub-toc-width)",
+          flex: 1,
+          position: "relative",
+          minWidth: 0,
           display: "flex",
           flexDirection: "column",
           borderRadius: 1,
-          mr: 0,
           overflow: "hidden",
-          transition: isResizingToc
-            ? "none"
-            : "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-          opacity: tocCollapsed ? 0 : 1,
           bgcolor: "background.paper",
         }}
       >
+        <TocDrawer open={!tocCollapsed} onClose={() => setTocCollapsed(true)} toggleRef={tocToggleRef}
+          width={tocWidth} defaultWidth={DEFAULT_TOC_WIDTH} onWidthChange={changeTocWidth}>
         {/* 目录栏顶部 */}
         <Box
           sx={{
@@ -1053,61 +978,19 @@ export default function EpubReaderView({
             />
           ))}
         </List>
-      </Card>
-
-      {/* 拖拽调整目录宽度的分割线手柄 */}
-      {!tocCollapsed && (
-        <Box
-          data-testid="epub-toc-resizer"
-          onPointerDown={handleResizerPointerDown}
-          onDoubleClick={handleResizerDoubleClick}
-          title={i18n("drag_to_resize_toc", "按住拖动调整目录宽度，双击恢复默认")}
-          sx={{
-            width: 10,
-            cursor: "col-resize",
-            flexShrink: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-            zIndex: 10,
-            mx: 0.25,
-            userSelect: "none",
-            touchAction: "none",
-            "&::after": {
-              content: '""',
-              width: "2px",
-              height: "100%",
-              borderRadius: "1px",
-              backgroundColor: isResizingToc ? "primary.main" : "transparent",
-              transition: "background-color 0.15s ease",
-            },
-            "&:hover::after": {
-              backgroundColor: "primary.main",
-            },
-          }}
-        />
-      )}
-
-      {/* 2. 右侧单主阅读区 */}
-      <Card
-        variant="outlined"
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-          borderRadius: 1,
-          overflow: "hidden",
-          bgcolor: "background.paper",
-        }}
-      >
+        </TocDrawer>
         {/* 阅读区顶部工具栏 */}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            height: 48,
+            minHeight: 48,
+            boxSizing: "border-box",
+            overflowX: "auto",
+            flexShrink: 0,
+            "& > *": { flexShrink: 0 },
             p: 1,
             px: 1.5,
             borderBottom: "1px solid",
@@ -1123,7 +1006,7 @@ export default function EpubReaderView({
               alignItems: "center",
               gap: 1,
               minWidth: 0,
-              flex: 1,
+              flex: "1 0 auto",
             }}
           >
             <Tooltip
@@ -1135,19 +1018,18 @@ export default function EpubReaderView({
             >
               <IconButton
                 size="small"
+                ref={tocToggleRef}
+                aria-label={tocCollapsed ? "展开目录" : "折叠目录"}
+                aria-expanded={!tocCollapsed}
                 onClick={() => setTocCollapsed(!tocCollapsed)}
+                color={!tocCollapsed ? "primary" : "default"}
                 sx={{
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 1,
                   p: 0.5,
+                  borderRadius: 1,
+                  bgcolor: !tocCollapsed ? "action.selected" : "transparent",
                 }}
               >
-                {tocCollapsed ? (
-                  <ChevronRightRoundedIcon sx={{ fontSize: 18 }} />
-                ) : (
-                  <ChevronLeftRoundedIcon sx={{ fontSize: 18 }} />
-                )}
+                <MenuRoundedIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </Tooltip>
 
@@ -1562,38 +1444,26 @@ export default function EpubReaderView({
           !currentState?.bilingualHtml &&
           !hintDismissed &&
           epubViewMode !== "source" && (
-            <Alert
+            <ReaderAlert
               severity="info"
               onClose={() => setHintDismissed(true)}
               sx={{
-                py: 0.5,
+                position: "absolute",
+                top: 48,
+                left: 0,
+                right: 0,
+                zIndex: 3,
                 borderRadius: 0,
-                fontSize: 12,
-                alignItems: "center",
-                "& .MuiAlert-icon": {
-                  py: 0,
-                  my: 0,
-                  display: "flex",
-                  alignItems: "center",
-                },
-                "& .MuiAlert-message": {
-                  py: 0,
-                  display: "flex",
-                  alignItems: "center",
-                },
-                "& .MuiAlert-action": {
-                  py: 0,
-                  my: 0,
-                  display: "flex",
-                  alignItems: "center",
-                },
+                border: "none",
+                borderBottom: "none",
+                boxShadow: "none",
               }}
             >
               {i18n(
                 "epub_chapter_untranslated_hint",
                 "当前章节尚未翻译，正在显示原文。点击上方【试译当前章节】或【翻译整本书】即可生成译文。"
               )}
-            </Alert>
+            </ReaderAlert>
           )}
 
         {/* 核心阅读正文区域 (拟真实体纸张设计，与桌台背景底座分离) */}

@@ -40,6 +40,7 @@ import {
   type ServiceSessionState,
 } from "./rpc";
 import { estimateModelMemoryMB } from "../core/modelMemory";
+import type { DocLoadSpec } from "../core/docLayout";
 import { RuntimePool } from "./runtimePool";
 import {
   TASK_PRIORITY,
@@ -50,6 +51,7 @@ import {
 type OcrInstance = Awaited<ReturnType<typeof PaddleOCR.create>>;
 
 export interface WorkerFactories {
+  createDocWorker?: () => Worker;
   createJevWorker?: () => Worker;
   createAsrWorker?: () => Worker;
   createLlmWorker?: (runtime: "wllama" | "onnx", service?: "llm" | "vlm") => Worker;
@@ -121,6 +123,8 @@ export class RuntimeManager {
 
   // 每个服务的会话版本状态（解决多页面共用服务及 RuntimePool 淘汰时的状态失真）
   private sessions = new Map<AiRpcService, ServiceSessionState>();
+  private docWorker: Worker | null = null;
+  private docWaiters = new Map<string, { resolve: (value: any) => void; reject: (error: Error) => void }>();
   private versionCounter = 0;
 
   // JEV Worker 状态
@@ -289,6 +293,7 @@ export class RuntimeManager {
       else if (service === "asr") this.disposeAsr();
       else if (service === "tts") this.disposeTts();
       else if (service === "decision") this.disposeJev();
+      else if (service === "doc") this.disposeDoc(reason);
       this.pool.forget(service);
       this.loadedSpecs.delete(service);
       this.invalidateSession(service, reason);
@@ -305,13 +310,14 @@ export class RuntimeManager {
 
   private async prepareService(service: AiRpcService): Promise<void> {
     if (!this.settings.exclusiveResourceMode || service === "decision") return;
-    for (const other of ["asr", "ocr", "tts", "llm", "vlm"] as const) {
+    for (const other of ["asr", "ocr", "tts", "llm", "vlm", "doc"] as const) {
       const instance = {
         asr: this.asrWorker,
         ocr: this.ocrInstance,
         tts: this.ttsWorker,
         llm: this.languageModels.llm.llmWorker,
         vlm: this.languageModels.vlm.llmWorker,
+        doc: this.docWorker,
       }[other];
       if (
         other !== service &&
@@ -340,6 +346,7 @@ export class RuntimeManager {
   private hasServiceInstance(service: AiRpcService): boolean {
     const instances: Partial<Record<AiRpcService, unknown>> = {
       decision: this.jevWorker,
+      doc: this.docWorker,
       asr: this.asrWorker,
       ocr: this.ocrInstance,
       llm: this.languageModels.llm.llmWorker,
@@ -388,7 +395,7 @@ export class RuntimeManager {
           };
           let image: Awaited<ReturnType<typeof prepareImage>> | undefined;
           checkInputCancelled(signal);
-          if (service === "ocr" && req.method === "recognize") {
+          if ((service === "ocr" && req.method === "recognize") || (service === "doc" && req.method === "analyze")) {
             image = await prepareImage(payload.blob, settings, signal);
             payload = { ...payload, blob: image.blob };
             adjusted(image.adjustment);
@@ -505,6 +512,12 @@ export class RuntimeManager {
           if (isTranslation)
             value.result = (value.result as { text: string }).text;
           if (image) {
+            if (service === "doc") {
+              const result = value.result as { imageSize: {width:number;height:number}; regions: {bbox:number[];polygon:[number,number][]}[] };
+              const sx=image.original.width/image.size.width, sy=image.original.height/image.size.height;
+              result.imageSize={...image.original};
+              if(image.adjustment) result.regions=result.regions.map(region=>({...region,bbox:region.bbox.map((v,i)=>v*(i%2?sy:sx)),polygon:region.polygon.map(([x,y])=>[x*sx,y*sy])}));
+            } else {
             const result = value.result as { width: number; height: number; items: { poly: [number, number][] }[] };
             result.width = image.original.width;
             result.height = image.original.height;
@@ -514,6 +527,7 @@ export class RuntimeManager {
               result.items = result.items.map((item) => ({ ...item,
                 poly: item.poly.map(([x, y]) => [x * scaleX, y * scaleY] as [number, number]),
               }));
+            }
             }
           }
           if (adjustments.length && value.result && typeof value.result === "object") {
@@ -562,7 +576,7 @@ export class RuntimeManager {
         id: req.id,
         priority:
           req.priority ??
-          ({ decision: 0, asr: 1, ocr: 2, tts: 3, vlm: 2, llm: 4 } as any)[service],
+          ({ decision: 0, asr: 1, ocr: 2, doc: 2, tts: 3, vlm: 2, llm: 4 } as any)[service],
         deadlineMs: req.deadlineMs,
         onCancel: (reason) => this.execution.get(req.id)?.onCancel?.(reason),
       }
@@ -692,7 +706,7 @@ export class RuntimeManager {
 
     const service = req.service === "translation" ? "llm" : req.service;
     const managed =
-      ["decision", "asr", "ocr", "llm", "vlm", "tts"].includes(service) &&
+      ["decision", "asr", "ocr", "llm", "vlm", "tts", "doc"].includes(service) &&
       req.method !== "stop";
     const unloading = req.method === "unload" || req.method === "dispose";
     if (managed && !unloading) {
@@ -787,10 +801,12 @@ export class RuntimeManager {
     emitProgress: (p: Omit<AiRpcProgress, "id">) => void,
     emitStream: (s: Omit<AiRpcStreamEvent, "id">) => void
   ): Promise<{ result: unknown; queueMs?: number; inferenceMs?: number }> {
-    if (req.method === "load" && ["decision", "asr", "ocr", "llm", "vlm", "tts"].includes(req.service)) {
+    if (req.method === "load" && ["decision", "asr", "ocr", "llm", "vlm", "tts", "doc"].includes(req.service)) {
       await this.pool.reserve(req.service, estimateModelMemoryMB(req.payload as Record<string, unknown>));
     }
     switch (req.service) {
+      case "doc":
+        return this.handleDoc(req, emitProgress);
       case "model":
         return { result: await this.handleModel(req) };
       case "decision":
@@ -996,7 +1012,7 @@ export class RuntimeManager {
           pool: this.pool.list(),
           scheduler: this.scheduler.stats(),
           sessions: Object.fromEntries(
-            ["decision", "asr", "ocr", "llm", "vlm", "tts"].map((s) => [
+            ["decision", "asr", "ocr", "llm", "vlm", "tts", "doc"].map((s) => [
               s,
               this.getSessionState(s as AiRpcService),
             ])
@@ -1047,7 +1063,7 @@ export class RuntimeManager {
               const entries = this.pool
                 .list()
                 .filter((e) => e.service !== "decision");
-              const order = ["asr", "ocr", "tts", "llm", "vlm"];
+              const order = ["asr", "ocr", "tts", "llm", "vlm", "doc"];
               entries.sort(
                 (a, b) =>
                   b.lastUsed - a.lastUsed ||
@@ -1078,6 +1094,7 @@ export class RuntimeManager {
                 "llm",
                 "vlm",
                 "tts",
+                "doc",
               ] as const)
                 this.armIdleTimer(service);
             this.callbacks.onServiceState?.({
@@ -1963,6 +1980,53 @@ export class RuntimeManager {
     slot.llmWorker?.terminate();
     slot.llmWorker = null;
     slot.llmWorkerRuntime = null;
+  }
+
+  private disposeDoc(reason = "DOC 模型已卸载"): void {
+    this.docWorker?.terminate(); this.docWorker = null;
+    for (const waiter of this.docWaiters.values()) waiter.reject(new Error(reason));
+    this.docWaiters.clear();
+  }
+
+  private async handleDoc(req: AiRpcRequest, progress: (p: Omit<AiRpcProgress,"id">) => void) {
+    if (req.method === "unload" || req.method === "dispose") {
+      this.invalidateSession("doc", "DOC 模型已卸载");
+      await this.pool.unload("doc");
+      this.disposeDoc();
+      return { result: { ok: true } };
+    }
+    if (!["load", "analyze"].includes(req.method)) throw new Error("INPUT_INVALID: DOC 方法无效");
+    let loadVersion: number | undefined;
+    if (req.method === "load") {
+      const spec = req.payload as DocLoadSpec;
+      loadVersion = this.beginLoadSession("doc", spec.dir).sessionVersion;
+      this.disposeDoc("MODEL_SWITCHED: DOC 模型配置已改变");
+      this.docWorker = this.factories.createDocWorker?.() ?? createLocalWorker("doc");
+      const worker = this.docWorker;
+      worker.onmessage = ({data}) => {
+        if (this.docWorker !== worker) return;
+        if (data.type === "progress") { progress({type:"loading",status:data.status}); return; }
+        const waiter = this.docWaiters.get(data.id); if (!waiter) return;
+        this.docWaiters.delete(data.id);
+        if (data.type === "error") waiter.reject(new Error(data.message));
+        else waiter.resolve(data.result);
+      };
+      worker.onerror = event => {
+        if (this.docWorker !== worker) return;
+        this.disposeDoc(event.message || "DOC Worker crashed");
+        this.pool.forget("doc"); this.invalidateSession("doc", "DOC Worker 已终止");
+      };
+      this.pool.register({key:"doc",service:"doc",modelId:spec.dir,state:"loading",pinned:true,unloadFn:()=>{this.disposeDoc();this.invalidateSession("doc");}});
+    } else this.assertSessionVersion("doc", req.options?.sessionVersion);
+    this.pool.setPinned("doc",true);
+    try {
+      const result = await this.scheduleTask(req, () => new Promise<any>((resolve,reject) => {
+        this.docWaiters.set(req.id,{resolve,reject});
+        this.docWorker!.postMessage(req.method === "load" ? {id:req.id,type:"load",spec:req.payload} : {id:req.id,type:"analyze",blob:(req.payload as any).blob});
+      }), {id:req.id,onCancel:reason=>{this.disposeDoc(reason);this.pool.forget("doc");this.invalidateSession("doc",reason);}});
+      if (loadVersion !== undefined) this.commitLoadSession("doc",(req.payload as DocLoadSpec).dir,loadVersion);
+      return {result:result.value,queueMs:result.queueMs,inferenceMs:result.inferenceMs};
+    } finally { this.pool.setPinned("doc",false); this.pool.markState("doc","idle"); }
   }
 
   // -------------------- TTS 服务 (P3) --------------------

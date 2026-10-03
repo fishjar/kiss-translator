@@ -1,6 +1,7 @@
 export type Mirror = "hf-mirror" | "huggingface" | "modelscope";
 
 export type ModelTask =
+  | "doc-layout"
   | "decision"
   | "asr"
   | "ocr-detection"
@@ -44,6 +45,8 @@ export interface ModelManifest {
   size: number;
   files: ModelFile[];
   source: string;
+  revision?: string;
+  license?: string;
   // ModelScope 仓库路径与 HF 不同时指定（如 tencent/ vs Tencent-Hunyuan/）
   modelscopeSource?: string;
   dir: string;
@@ -149,7 +152,8 @@ export function fileUrl(
   mirror: Mirror,
   source: string,
   path: string,
-  base?: string
+  base?: string,
+  revision?: string
 ): string {
   if (base) {
     // 自定义基址：扩展内直接请求；web 走 dev proxy（该源无 CORS 头）
@@ -158,7 +162,8 @@ export function fileUrl(
     const u = new URL(full);
     return `/proxy/${u.host}${u.pathname}`;
   }
-  const tail = mirrorTail(mirror, source, path);
+  if (revision && mirror === "modelscope") throw new Error("此固定版本模型不支持 ModelScope，请选择 Hugging Face 或 hf-mirror");
+  const tail = revision ? `/${source}/resolve/${revision}/${path}` : mirrorTail(mirror, source, path);
   if (isExtensionContext) return `${MIRROR_BASES[mirror]}${tail}`;
   return `/proxy/${new URL(MIRROR_BASES[mirror]).host}${tail}`;
 }

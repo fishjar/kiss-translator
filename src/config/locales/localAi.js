@@ -2981,6 +2981,74 @@ export const LOCAL_AI_I18N = {
     vi: "PP-OCRv6 medium (Trung/Anh/Nhật/Pháp/Đức/TBN 50+ ngôn ngữ)",
     ru: "PP-OCRv6 medium (кит/англ/яп/фр/нем/исп 50+ языков)",
   },
+  local_ai_tab_doc: {
+    zh: "DOC",
+    en: "DOC",
+  },
+  local_ai_tab_layout: {
+    zh: "LAYOUT",
+    en: "LAYOUT",
+  },
+  local_ai_doc_title: {
+    zh: "本地文档版面分析 (PP-DocLayout)",
+    en: "Local Document Layout Analysis (PP-DocLayout)",
+  },
+  local_ai_doc_desc: {
+    zh: "面向文档图像与 PDF 页面的高精度版面分析流水线，识别正文段落、标题、表格、图片、公式及阅读顺序",
+    en: "High-precision layout analysis pipeline for document images and PDF pages, detecting paragraphs, titles, tables, figures, equations, and reading order",
+  },
+  local_ai_doc_card_title: {
+    zh: "文档图像与版面分析",
+    en: "Document Image & Layout Analysis",
+  },
+  local_ai_doc_upload_image: {
+    zh: "选择图片",
+    en: "Select Image",
+  },
+  local_ai_doc_change_image: {
+    zh: "更换图片",
+    en: "Change Image",
+  },
+  local_ai_doc_run: {
+    zh: "开始分析",
+    en: "Analyze Layout",
+  },
+  local_ai_doc_analyzing: {
+    zh: "正在分析…",
+    en: "Analyzing…",
+  },
+  local_ai_doc_threshold: {
+    zh: "置信度阈值",
+    en: "Confidence Threshold",
+  },
+  local_ai_doc_show_boxes: {
+    zh: "区域边框",
+    en: "Bounding Boxes",
+  },
+  local_ai_doc_show_labels: {
+    zh: "类别标签",
+    en: "Category Labels",
+  },
+  local_ai_doc_current_file: {
+    zh: "当前文件",
+    en: "Current file",
+  },
+  local_ai_doc_stats_regions: {
+    zh: "个区域",
+    en: "regions",
+  },
+  local_ai_doc_raw_json: {
+    zh: "原始 JSON 数据",
+    en: "Raw JSON Data",
+  },
+  local_ai_doc_copy_json: {
+    zh: "复制 JSON",
+    en: "Copy JSON",
+  },
+  local_ai_doc_reading_order: {
+    zh: "阅读顺序明细",
+    en: "Reading Order Details",
+  },
 };
 
 const UI_LANG_KEYS = ["en", "zh", "zh_TW", "ja", "ko", "tr", "vi", "ru"];

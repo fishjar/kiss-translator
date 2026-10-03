@@ -52,16 +52,16 @@ test("preserves TXT line endings, blank lines and order while falling back", asy
   ]);
   expect(
     apiTranslate.mock.calls.map(([args]) => args.apiSetting.apiSlug)
-  ).toEqual(["primary", "backup", "primary", "backup"]);
+  ).toEqual(["primary", "primary", "backup", "backup"]);
 });
 
-test("cancellation stops before requesting the next line", async () => {
+test("cancellation suppresses outstanding line results", async () => {
   const abort = new AbortController();
   apiTranslate.mockImplementation(async () => ({ trText: "translated" }));
   await expect(
     translateTxt("one\ntwo", scene, setting, abort.signal, () => abort.abort())
   ).rejects.toMatchObject({ name: "AbortError" });
-  expect(apiTranslate).toHaveBeenCalledTimes(1);
+  expect(apiTranslate).toHaveBeenCalledTimes(2);
 });
 
 test("installed local translation is used first and a failed local run falls back", async () => {

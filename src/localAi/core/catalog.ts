@@ -1,5 +1,7 @@
 import type { ModelManifest } from "./types";
 
+export const DOC_MODEL_ID = "pp-doclayout-v3-onnx";
+
 function manifest(
   m: Omit<ModelManifest, "size"> & { size?: number }
 ): ModelManifest {
@@ -107,6 +109,23 @@ export function getPiperVoiceByDir(dir: string): PiperVoice | undefined {
 }
 
 export const CATALOG: ModelManifest[] = [
+  manifest({
+    id: DOC_MODEL_ID,
+    name: "PP-DocLayoutV3 (ONNX · 文档布局)",
+    version: "Bei0001/PP-DocLayoutV3-ONNX@ff677269004f03007705f3e7f1bc8d0f4546d299",
+    revision: "ff677269004f03007705f3e7f1bc8d0f4546d299",
+    license: "Apache-2.0",
+    task: "doc-layout", runtime: "onnx", format: "onnx",
+    backend: ["wasm"],
+    source: "Bei0001/PP-DocLayoutV3-ONNX",
+    dir: "doc/pp-doclayout-v3",
+    files: [
+      { path: "PP-DocLayoutV3.onnx", size: 5088167, sha256: "c0721928ff08741bb208ebed539c77170db5234a68cb7e546e6cc9bc172a695b" },
+      { path: "PP-DocLayoutV3.onnx.data", size: 136774480, sha256: "34df3e4b79d7bbbf82abce1b4f3cde3d540fa57ad42ec8905c352b97c408d437" },
+      { path: "config.json", size: 2460, sha256: "3cf834b91d23a756b1519bce4db42c09e852f3e35c35092dd5a3e253a50c071a" },
+      { path: "preprocessor_config.json", size: 575, sha256: "519fe0187a43a1ca429e3ad8317bab8700f0d5e8fb3a6e3a0a413ffac078ba42" },
+    ],
+  }),
   // 词级时间戳版：decoder 额外导出 cross_attentions，transformers.js 内置
   // cross-attention + DTW 对齐产出精确词时间戳（generation_config 含 alignment_heads）
   manifest({

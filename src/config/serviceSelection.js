@@ -17,6 +17,7 @@ export const CAPABILITIES = [
   "jev",
   "asr",
   "ocr",
+  "layout",
   "vlm",
   "tts",
   "llm",
@@ -148,6 +149,19 @@ export const availableImageApisForScene = (scene, apis, context = {}) =>
               api.capabilities.includes("vlm") ? "vlm" : "ocr",
               context
             ))
+    );
+
+export const availableLayoutApisForScene = (scene, apis, context = {}) =>
+  orderedApiSlugs(scene, "layoutApiSlugs", "layoutApiSlug")
+    .map((slug) => apis?.find((api) => api.apiSlug === slug))
+    .filter(
+      (api) =>
+        api &&
+        !api.isDisabled &&
+        (api.capabilities || []).includes("layout") &&
+        (api.layoutAvailable !== undefined
+          ? api.layoutAvailable
+          : isApiAvailableFor(api, "layout", context))
     );
 
 export const withScenePrompt = (api, scene) =>

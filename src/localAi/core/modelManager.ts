@@ -328,7 +328,8 @@ export class LocalModelManager {
               this.emit(id, rec);
             },
           },
-          manifest.base
+          manifest.base,
+          manifest.revision
         );
 
         rec.state = "verifying";

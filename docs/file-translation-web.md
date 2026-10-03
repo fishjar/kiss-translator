@@ -29,7 +29,7 @@ API 密钥、请求地址、请求头和提示词正文不进入 Web 上下文�
 使用项目原有 pnpm 工具链。第一终端：
 
 ```powershell
-pnpm start:homepage
+pnpm start
 ```
 
 这是一个统一 dev server：

@@ -3,6 +3,7 @@ import type { ModelRecord, Settings } from "../core/types";
 export const KISS_AI_RPC_CHANNEL = "kiss-ai-runtime-rpc";
 
 export type AiRpcService =
+  | "doc"
   | "decision"
   | "asr"
   | "ocr"

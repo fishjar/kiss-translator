@@ -1,3 +1,4 @@
+import { runTranslationTasks } from "./translationTasks";
 import * as fflate from "fflate";
 import { translateFileText } from "../fileTranslation/client";
 import {
@@ -40,36 +41,37 @@ export async function translateTxt(
   localContext
 ) {
   const parts = content.split(/(\r\n|\n|\r)/);
-  const output = [];
+  const output = [...parts];
   const comparisons = [];
-  const lines = parts.filter(
-    (_, index) => index % 2 === 0 && parts[index]?.trim()
-  ).length;
+  const tasks = [];
   let completed = 0;
-  for (let index = 0; index < parts.length; index += 2) {
-    if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-    const source = parts[index] || "";
-    if (!source.trim()) {
-      output.push(source);
-    } else {
+  parts.forEach((source, index) => {
+    if (index % 2 || !source.trim()) return;
+    const rowIndex = tasks.length;
+    tasks.push(async (taskSignal) => {
       const prefix = source.match(/^\s*/)?.[0] || "";
       const suffix = source.match(/\s*$/)?.[0] || "";
       const body = source.slice(prefix.length, source.length - suffix.length);
       const chunks = body.match(/[\s\S]{1,2000}/g) || [];
-      const translated = [];
-      for (const chunk of chunks) {
-        translated.push(
-          await translateFileText(chunk, scene, setting, signal, localContext)
-        );
-      }
+      const translated = await runTranslationTasks(
+        chunks.map(
+          (chunk) => (chunkSignal) =>
+            translateFileText(chunk, scene, setting, chunkSignal, localContext)
+        ),
+        taskSignal
+      );
+      if (taskSignal.aborted) throw new DOMException("已取消", "AbortError");
       const target = `${prefix}${translated.join("")}${suffix}`;
-      output.push(target);
-      comparisons.push({ source, target });
-      completed++;
-      onProgress?.(completed, lines, { source, target });
-    }
-    if (index + 1 < parts.length) output.push(parts[index + 1]);
-  }
+      output[index] = target;
+      comparisons[rowIndex] = { source, target };
+      onProgress?.(++completed, tasks.length, {
+        source,
+        target,
+        index: rowIndex,
+      });
+    });
+  });
+  await runTranslationTasks(tasks, signal);
   return { text: output.join(""), comparisons };
 }
 
@@ -753,13 +755,15 @@ export async function translateMarkdown(
   let completedUnits = 0;
 
   // 辅助：翻译单个文本并保护其行内语法，翻译完成时流式回传快照
-  const translateUnit = async (rawText, onResolved) => {
+  const translateUnit = async (rawText, onResolved, signal) => {
     if (signal?.aborted) throw new DOMException("已取消", "AbortError");
     if (!rawText || !rawText.trim()) {
       onResolved(rawText);
       return;
     }
 
+    const comparisonIndex = comparisons.length;
+    comparisons.push(undefined);
     const { masked, masks } = maskInlineElements(rawText);
     const translatedMasked = await translateFileText(
       masked,
@@ -768,15 +772,16 @@ export async function translateMarkdown(
       signal,
       localContext
     );
+    if (signal?.aborted) throw new DOMException("已取消", "AbortError");
     const target = unmaskInlineElements(translatedMasked, masks);
 
     onResolved(target);
     completedUnits++;
-    comparisons.push({ source: rawText, target });
+    comparisons[comparisonIndex] = { source: rawText, target };
     onProgress?.(
       completedUnits,
       totalUnits,
-      { source: rawText, target },
+      { source: rawText, target, index: comparisonIndex },
       blocks
     );
   };
@@ -808,10 +813,14 @@ export async function translateMarkdown(
           block.targetHeaderCells[colIdx] = "";
           return;
         }
-        tasks.push(() =>
-          translateUnit(cell, (res) => {
-            block.targetHeaderCells[colIdx] = res;
-          })
+        tasks.push((taskSignal) =>
+          translateUnit(
+            cell,
+            (res) => {
+              block.targetHeaderCells[colIdx] = res;
+            },
+            taskSignal
+          )
         );
       });
 
@@ -821,46 +830,32 @@ export async function translateMarkdown(
             block.targetDataRows[rowIdx][colIdx] = "";
             return;
           }
-          tasks.push(() =>
-            translateUnit(cell, (res) => {
-              block.targetDataRows[rowIdx][colIdx] = res;
-            })
+          tasks.push((taskSignal) =>
+            translateUnit(
+              cell,
+              (res) => {
+                block.targetDataRows[rowIdx][colIdx] = res;
+              },
+              taskSignal
+            )
           );
         });
       });
     } else {
       block.targetText = undefined;
-      tasks.push(() =>
-        translateUnit(block.text, (res) => {
-          block.targetText = res;
-        })
+      tasks.push((taskSignal) =>
+        translateUnit(
+          block.text,
+          (res) => {
+            block.targetText = res;
+          },
+          taskSignal
+        )
       );
     }
   }
 
-  // 并发窗口：50 个任务并发推进。
-  // 这确保能在 BatchQueue 的窗口时间内迅速集齐 batchSize 任务触发聚合合并，
-  // 产生的真实网络请求则交由底层统一的 FetchPool / TaskPool 调度并发与间隔。
-  const concurrencyLimit = 50;
-  let taskIndex = 0;
-  const activePromises = new Set();
-
-  while (taskIndex < tasks.length || activePromises.size > 0) {
-    if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-    while (taskIndex < tasks.length && activePromises.size < concurrencyLimit) {
-      if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-      const task = tasks[taskIndex++];
-      const p = Promise.resolve().then(task);
-      activePromises.add(p);
-      p.finally(() => activePromises.delete(p));
-    }
-    if (activePromises.size > 0) {
-      await Promise.race(activePromises);
-      if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-    }
-  }
-
-  if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+  await runTranslationTasks(tasks, signal);
 
   // 组装纯译文 Markdown (translatedMd)
   const translatedMdParts = [];
@@ -1284,7 +1279,9 @@ export async function translateEpubChapter(
 
   const textStyle = scene?.textStyle || "style_none";
   const bilingualDoc = parseXhtmlToDoc(xhtmlStr);
-  const bilingualUnits = extractTranslatableUnits(bilingualDoc, { hasRichText });
+  const bilingualUnits = extractTranslatableUnits(bilingualDoc, {
+    hasRichText,
+  });
   const targetDoc = parseXhtmlToDoc(xhtmlStr);
   const targetUnits = extractTranslatableUnits(targetDoc, { hasRichText });
 
@@ -1334,15 +1331,18 @@ export async function translateEpubChapter(
       }
       doEmit();
     } else if (!emitTimer) {
-      emitTimer = setTimeout(() => {
-        emitTimer = null;
-        doEmit();
-      }, 120 - (now - lastEmitTime));
+      emitTimer = setTimeout(
+        () => {
+          emitTimer = null;
+          doEmit();
+        },
+        120 - (now - lastEmitTime)
+      );
     }
   };
 
-  const translateUnit = async (unit) => {
-    if (chapterAbort.signal.aborted) throw new DOMException("已取消", "AbortError");
+  const translateUnit = async (unit, index, taskSignal) => {
+    if (taskSignal.aborted) throw new DOMException("已取消", "AbortError");
     if (!unit.maskedText?.trim()) {
       unit.targetHtml = unit.rawHtml;
       return;
@@ -1352,15 +1352,15 @@ export async function translateEpubChapter(
       unit.maskedText,
       scene,
       setting,
-      chapterAbort.signal,
+      taskSignal,
       localContext
     );
-    if (chapterAbort.signal.aborted) return;
+    if (taskSignal.aborted) return;
     const targetHtml = unmaskEpubInlineElements(translatedMasked, unit.masks);
     unit.targetHtml = targetHtml;
     completedUnits++;
     const pair = { source: unit.rawHtml, target: targetHtml };
-    comparisons.push(pair);
+    comparisons[index] = pair;
 
     // 实时同步更新到 live bilingualDoc 与 live targetDoc
     const uIdx = units.indexOf(unit);
@@ -1377,48 +1377,20 @@ export async function translateEpubChapter(
     emitLiveProgress(pair, false);
   };
 
-  // 并发控制窗口 (类似 Markdown，最大 50 并发触发底层 BatchQueue)
-  const concurrencyLimit = 50;
-  let taskIndex = 0;
-  const activePromises = new Set();
-  let firstError = null;
-
   try {
-    while (taskIndex < units.length || activePromises.size > 0) {
-      if (chapterAbort.signal.aborted) throw new DOMException("已取消", "AbortError");
-      while (taskIndex < units.length && activePromises.size < concurrencyLimit) {
-        if (chapterAbort.signal.aborted) throw new DOMException("已取消", "AbortError");
-        const unit = units[taskIndex++];
-        let p;
-        p = Promise.resolve()
-          .then(() => translateUnit(unit))
-          .finally(() => activePromises.delete(p));
-        activePromises.add(p);
-      }
-      if (activePromises.size > 0) {
-        await Promise.race(activePromises);
-        if (chapterAbort.signal.aborted) throw new DOMException("已取消", "AbortError");
-      }
-    }
-  } catch (err) {
-    firstError = err;
+    await runTranslationTasks(
+      units.map(
+        (unit, index) => (taskSignal) => translateUnit(unit, index, taskSignal)
+      ),
+      chapterAbort.signal
+    );
+  } catch (error) {
     isCancelledOrFailed = true;
     chapterAbort.abort();
+    throw error;
   } finally {
-    if (emitTimer) {
-      clearTimeout(emitTimer);
-      emitTimer = null;
-    }
-    if (signal) {
-      signal.removeEventListener("abort", onParentAbort);
-    }
-    if (firstError) {
-      isCancelledOrFailed = true;
-      if (activePromises.size > 0) {
-        await Promise.allSettled(Array.from(activePromises));
-      }
-      throw firstError;
-    }
+    if (emitTimer) clearTimeout(emitTimer);
+    signal?.removeEventListener("abort", onParentAbort);
   }
 
   const targetHtml = serializeDocToXhtml(targetDoc);
@@ -1432,12 +1404,12 @@ export async function translateEpubChapter(
     targetXhtml: targetHtml,
     bilingualXhtml: bilingualHtml,
     unitsCount: units.length,
-    comparisons,
+    comparisons: comparisons.filter(Boolean),
   };
 }
 
 /**
- * 全本 EPUB 流式逐章翻译与合规重打包导出
+ * 全本 EPUB 并发提交翻译与合规重打包导出
  */
 export async function translateEpubBook(
   epubBook,
@@ -1472,54 +1444,60 @@ export async function translateEpubBook(
   let completedChapters = 0;
   let totalParagraphsCount = 0;
 
-  for (let cIdx = 0; cIdx < itemsToTranslate.length; cIdx++) {
-    if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-    const item = itemsToTranslate[cIdx];
-    const chapterDoneCount = cIdx;
-    const chapterRes = await translateEpubChapter(
-      item.fullPath,
-      filesMap,
-      scene,
-      setting,
-      signal,
-      (currentPara, totalParas, lastPair) => {
-        onProgress?.(
-          chapterDoneCount,
-          totalChapters,
-          currentPara,
-          totalParas,
-          {
-            currentChapter: item,
+  const results = await runTranslationTasks(
+    itemsToTranslate.map((item) => async (signal) => {
+      if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+      const chapterRes = await translateEpubChapter(
+        item.fullPath,
+        filesMap,
+        scene,
+        setting,
+        signal,
+        (currentPara, totalParas, lastPair) => {
+          if (signal.aborted) return;
+          onProgress?.(
+            completedChapters,
+            totalChapters,
             currentPara,
             totalParas,
-            lastPair,
-            partialBilingualHtml: lastPair?.partialBilingualHtml,
-            partialTargetHtml: lastPair?.partialTargetHtml,
-          }
-        );
-      },
-      localContext,
-      options
-    );
+            {
+              currentChapter: item,
+              currentPara,
+              totalParas,
+              lastPair,
+              partialBilingualHtml: lastPair?.partialBilingualHtml,
+              partialTargetHtml: lastPair?.partialTargetHtml,
+            }
+          );
+        },
+        localContext,
+        options
+      );
 
-    chapterResults[item.fullPath] = chapterRes;
-    completedChapters++;
-    totalParagraphsCount += chapterRes.unitsCount;
+      if (signal.aborted) throw new DOMException("已取消", "AbortError");
+      completedChapters++;
+      totalParagraphsCount += chapterRes.unitsCount;
 
-    onProgress?.(
-      completedChapters,
-      totalChapters,
-      chapterRes.unitsCount,
-      chapterRes.unitsCount,
-      {
-        currentChapter: item,
-        chapterCompleted: true,
-        bilingualHtml: chapterRes.bilingualHtml,
-        targetHtml: chapterRes.targetHtml,
-        sourceHtml: chapterRes.sourceHtml,
-      }
-    );
-  }
+      onProgress?.(
+        completedChapters,
+        totalChapters,
+        chapterRes.unitsCount,
+        chapterRes.unitsCount,
+        {
+          currentChapter: item,
+          chapterCompleted: true,
+          bilingualHtml: chapterRes.bilingualHtml,
+          targetHtml: chapterRes.targetHtml,
+          sourceHtml: chapterRes.sourceHtml,
+        }
+      );
+      return chapterRes;
+    }),
+    signal
+  );
+  itemsToTranslate.forEach((item, index) => {
+    chapterResults[item.fullPath] = results[index];
+  });
 
   // 组装章节状态并提供双语与仅译文打包结果（通过惰性 getter 按需打包，避免翻译收尾时对整书重复全量打包）
   const chapterStates = {};
@@ -1558,62 +1536,76 @@ export async function translateEpubBook(
         (el) => el.localName === "navPoint" || el.nodeName?.endsWith("navPoint")
       );
 
-      for (const navPoint of navPoints) {
-        const allChildren = Array.from(
-          navPoint.getElementsByTagName ? navPoint.getElementsByTagName("*") : []
-        );
-        const contentEl = allChildren.find(
-          (el) => el.localName === "content" || el.nodeName?.endsWith("content")
-        );
-        const rawSrc = contentEl?.getAttribute("src");
-        if (!rawSrc) continue;
-
-        const [cleanSrc, rawHash = ""] = rawSrc.split("#");
-        const targetFullPath = normalizePath(ncxDir + safeDecodeURI(cleanSrc));
-        const fullKey = rawHash
-          ? `${targetFullPath}#${safeDecodeURI(rawHash)}`
-          : targetFullPath;
-
-        const hasEntry = rawHash
-          ? titleMap.has(fullKey)
-          : (titleMap.has(fullKey) || titleMap.has(targetFullPath));
-
-        if (!hasEntry) {
-          const labelEl = allChildren.find(
-            (el) =>
-              el.localName === "navLabel" || el.nodeName?.endsWith("navLabel")
+      const scheduledTitles = new Set();
+      await runTranslationTasks(
+        navPoints.map((navPoint) => async (signal) => {
+          const allChildren = Array.from(
+            navPoint.getElementsByTagName
+              ? navPoint.getElementsByTagName("*")
+              : []
           );
-          const textEl = labelEl
-            ? Array.from(
-                labelEl.getElementsByTagName
-                  ? labelEl.getElementsByTagName("*")
-                  : []
-              ).find(
-                (el) => el.localName === "text" || el.nodeName?.endsWith("text")
-              )
-            : null;
-          const origText = textEl?.textContent?.trim();
-          if (origText) {
-            try {
-              const transTitle = await translateFileText(
-                origText,
-                scene,
-                setting,
-                signal,
-                localContext
-              );
-              if (transTitle) {
-                titleMap.set(fullKey, transTitle.trim());
-                if (!rawHash) {
-                  titleMap.set(targetFullPath, transTitle.trim());
+          const contentEl = allChildren.find(
+            (el) =>
+              el.localName === "content" || el.nodeName?.endsWith("content")
+          );
+          const rawSrc = contentEl?.getAttribute("src");
+          if (!rawSrc) return;
+
+          const [cleanSrc, rawHash = ""] = rawSrc.split("#");
+          const targetFullPath = normalizePath(
+            ncxDir + safeDecodeURI(cleanSrc)
+          );
+          const fullKey = rawHash
+            ? `${targetFullPath}#${safeDecodeURI(rawHash)}`
+            : targetFullPath;
+
+          const hasEntry = rawHash
+            ? titleMap.has(fullKey)
+            : titleMap.has(fullKey) || titleMap.has(targetFullPath);
+
+          if (!hasEntry && !scheduledTitles.has(fullKey)) {
+            scheduledTitles.add(fullKey);
+            const labelEl = allChildren.find(
+              (el) =>
+                el.localName === "navLabel" || el.nodeName?.endsWith("navLabel")
+            );
+            const textEl = labelEl
+              ? Array.from(
+                  labelEl.getElementsByTagName
+                    ? labelEl.getElementsByTagName("*")
+                    : []
+                ).find(
+                  (el) =>
+                    el.localName === "text" || el.nodeName?.endsWith("text")
+                )
+              : null;
+            const origText = textEl?.textContent?.trim();
+            if (origText) {
+              try {
+                const transTitle = await translateFileText(
+                  origText,
+                  scene,
+                  setting,
+                  signal,
+                  localContext
+                );
+                if (signal?.aborted)
+                  throw new DOMException("已取消", "AbortError");
+                if (transTitle) {
+                  titleMap.set(fullKey, transTitle.trim());
+                  if (!rawHash) {
+                    titleMap.set(targetFullPath, transTitle.trim());
+                  }
                 }
+              } catch (e) {
+                if (signal?.aborted) throw e;
+                console.warn("翻译 NCX 目录条目失败:", origText, e);
               }
-            } catch (e) {
-              console.warn("翻译 NCX 目录条目失败:", origText, e);
             }
           }
-        }
-      }
+        }),
+        signal
+      );
 
       if (titleMap.size > 0) {
         const updatedNcx = updateNcxDocument(rawNcx, titleMap, ncxDir);
@@ -1637,6 +1629,7 @@ export async function translateEpubBook(
         };
       }
     } catch (e) {
+      if (signal?.aborted) throw e;
       console.warn("全书翻译 NCX 同步更新失败:", e);
     }
   }

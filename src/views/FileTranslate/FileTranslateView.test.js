@@ -5,6 +5,16 @@ import * as fflate from "fflate";
 import FileTranslatePage from "./index";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+const originalResizeObserver = globalThis.ResizeObserver;
+beforeAll(() => {
+  globalThis.ResizeObserver = class {
+    constructor(callback) { this.callback = callback; }
+    observe() { this.callback([{ contentRect: { width: 1000 } }]); }
+    disconnect() {}
+  };
+});
+afterAll(() => { globalThis.ResizeObserver = originalResizeObserver; });
+
 
 jest.mock("./State", () => ({
   FileTranslationProvider: ({ children }) => children,
@@ -70,6 +80,24 @@ const mockSetting = {
       apiName: "微软翻译",
       capabilities: ["translation"],
     },
+    {
+      apiSlug: "local-layout",
+      apiType: "LocalAI",
+      apiName: "本地版面分析",
+      sourceType: "local",
+      modelRef: "pp-doclayout-v3-onnx",
+      device: "wasm",
+      capabilities: ["layout"],
+    },
+    {
+      apiSlug: "gpu-layout",
+      apiType: "LocalAI",
+      apiName: "GPU版面分析",
+      sourceType: "local",
+      modelRef: "pp-doclayout-v3-onnx",
+      device: "webgpu",
+      capabilities: ["layout"],
+    },
   ],
   prompts: [],
   fileTranslateSetting: {
@@ -96,8 +124,52 @@ const mockSetting = {
       ocrDevice: "webgpu",
       fontFamily: "default",
     },
+    pdf: {
+      apiSlugs: ["primary"],
+      fromLang: "auto",
+      toLang: "zh-CN",
+      promptSlug: "",
+      textStyle: "style_none",
+      parseMode: "smart",
+    },
   },
 };
+
+export const mockPdfWorkspaceActions = {
+  translate: jest.fn(),
+  parse: jest.fn(),
+  parseAndTranslate: jest.fn(),
+  oneClickTranslate: jest.fn(),
+  detectLayout: jest.fn(),
+  recognizeText: jest.fn(),
+  download: jest.fn(),
+  abort: jest.fn(),
+};
+
+jest.mock("./PdfWorkspace", () => {
+  const React = require("react");
+  return React.forwardRef((props, ref) => {
+    React.useImperativeHandle(ref, () => mockPdfWorkspaceActions);
+    React.useEffect(() => {
+      if (props.onStateChange) {
+        props.onStateChange({
+          phase: "ready",
+          progress: { done: 0, total: 10 },
+          pdf: { numPages: 10 },
+          result: { complete: false },
+          blocks: [{ id: "b1", text: "hello" }],
+          busy: false,
+          failedCount: 0,
+        });
+      }
+    }, []); // 仅在挂载时同步一次初始 mock 状态，避免死循环 re-render
+    return React.createElement(
+      "div",
+      { "data-testid": "pdf-workspace" },
+      "PDF Workspace"
+    );
+  });
+});
 
 const mockUpdateChild = jest.fn();
 
@@ -167,6 +239,182 @@ describe("FileTranslatePage (M2 UI)", () => {
       root.unmount();
     });
     container.remove();
+  });
+
+  test("image translation submits every OCR block and reassembles coordinates in source order", async () => {
+    const { recognizeFileImage } = require("../../localAi/fileOperations");
+    const { translateFileText, synthesizeTranslatedImage } = require("../../libs/fileTranslate");
+    const originalCreate = URL.createObjectURL, originalRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = jest.fn(() => "blob:image-test");
+    URL.revokeObjectURL = jest.fn();
+    const items = Array.from({ length: 51 }, (_, i) => ({ text: `Source${i}`, box: [i, 0, 5, 5], poly: [[i, 0], [i + 5, 0], [i, 5]] }));
+    const pending = [];
+    mockSetting.transApis.push({ apiSlug: "test-ocr", apiType: "Custom", sourceType: "network", capabilities: ["ocr"] });
+    recognizeFileImage.mockResolvedValue({ items });
+    translateFileText.mockReset().mockImplementation((text, scene, setting, signal) => new Promise((resolve) => pending.push({ text, resolve, signal })));
+    synthesizeTranslatedImage.mockReset().mockResolvedValue(null);
+    try {
+      await act(async () => root.render(<FileTranslatePage />));
+      const input = container.querySelector('input[type="file"]');
+      await act(async () => {
+        Object.defineProperty(input, "files", { value: [new File(["image"], "sample.png", { type: "image/png" })], configurable: true });
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      await act(async () => [...container.querySelectorAll("button")].find((button) => button.textContent.includes("一键翻译")).click());
+      expect(pending).toHaveLength(51);
+      expect(synthesizeTranslatedImage).not.toHaveBeenCalled();
+      await act(async () => [...pending].reverse().forEach(({ text, resolve }) => resolve(`译${text}`)));
+      expect(synthesizeTranslatedImage).toHaveBeenCalledTimes(1);
+      expect(synthesizeTranslatedImage.mock.calls[0][1]).toEqual(items.map((item) => ({ source: item.text, target: `译${item.text}`, poly: item.poly, box: item.box })));
+    } finally {
+      act(() => root.render(null));
+      mockSetting.transApis.pop();
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    }
+  });
+
+  describe("image stages", () => {
+    const ops = require("../../localAi/fileOperations");
+    const lib = require("../../libs/fileTranslate");
+    const poly = [[10, 20], [100, 20], [100, 60], [10, 60]];
+    let originalCreate, originalRevoke;
+    const button = (label) => [...container.querySelectorAll("button")].find((item) => item.textContent === label);
+    const upload = async (name = "sample.png") => {
+      await act(async () => {
+        const input = container.querySelector('input[type="file"]');
+        Object.defineProperty(input, "files", { value: [new File(["image"], name, { type: "image/png" })], configurable: true });
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    };
+    const openMenu = async () => act(async () => container.querySelector('[aria-label="图片处理步骤"]').click());
+    const menuItem = (label) => [...document.querySelectorAll('[role="menuitem"]')].find((item) => item.textContent === label);
+    const step = async (label) => {
+      await openMenu();
+      await act(async () => menuItem(label).click());
+    };
+    beforeEach(async () => {
+      originalCreate = URL.createObjectURL;
+      originalRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = jest.fn(() => "blob:stage-test");
+      URL.revokeObjectURL = jest.fn();
+      mockSetting.transApis.push({ apiSlug: "test-ocr", apiType: "Custom", sourceType: "network", capabilities: ["ocr"] });
+      ops.recognizeFileImage.mockReset().mockResolvedValue({ items: [{ text: "source block", poly }] });
+      lib.translateFileText.mockReset().mockResolvedValue("translated block");
+      lib.synthesizeTranslatedImage.mockReset().mockResolvedValue(new Blob(["png"]));
+    });
+    const setup = async () => {
+      await act(async () => root.render(<FileTranslatePage />));
+      await upload();
+    };
+    afterEach(() => {
+      act(() => root.render(null));
+      mockSetting.transApis.pop();
+      URL.createObjectURL = originalCreate;
+      URL.revokeObjectURL = originalRevoke;
+    });
+    test("stages reuse prior results, show source, copy/export source, and highlight regions", async () => {
+      await setup();
+      await openMenu();
+      expect(menuItem("翻译文本").getAttribute("aria-disabled")).toBe("true");
+      expect(menuItem("合成图片").getAttribute("aria-disabled")).toBe("true");
+      await act(async () => menuItem("识别文本").click());
+      expect(button("原文").getAttribute("aria-pressed")).toBe("true");
+      expect(container.textContent).toContain("source block");
+      expect(lib.translateFileText).not.toHaveBeenCalled();
+      expect(lib.synthesizeTranslatedImage).not.toHaveBeenCalled();
+      const img = container.querySelector('img[alt="原图预览"]');
+      Object.defineProperties(img, { naturalWidth: { value: 200 }, naturalHeight: { value: 100 } });
+      await act(async () => img.dispatchEvent(new Event("load")));
+      const text = [...container.querySelectorAll("span")].find((item) => item.textContent === "source block");
+      await act(async () => text.dispatchEvent(new MouseEvent("mouseover", { bubbles: true })));
+      expect(container.querySelector("polygon").getAttribute("points")).toBe("10,20 100,20 100,60 10,60");
+      await act(async () => text.dispatchEvent(new MouseEvent("mouseout", { bubbles: true })));
+      expect(container.querySelector("polygon")).toBeNull();
+      const clipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+      const writeText = jest.fn().mockResolvedValue();
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+      const click = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function () {
+        expect(this.download).toBe("sample-source.txt");
+      });
+      try {
+        await act(async () => button("复制").click());
+        expect(writeText).toHaveBeenCalledWith("source block");
+        await act(async () => [...container.querySelectorAll("button")].find((item) => item.textContent.includes("下载") && !item.disabled).click());
+        expect(click).toHaveBeenCalled();
+      } finally {
+        click.mockRestore();
+        if (clipboard) Object.defineProperty(navigator, "clipboard", clipboard);
+        else delete navigator.clipboard;
+      }
+      await step("翻译文本");
+      expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+      expect(lib.synthesizeTranslatedImage).not.toHaveBeenCalled();
+      expect(button("译文").getAttribute("aria-pressed")).toBe("true");
+      await step("合成图片");
+      expect(lib.translateFileText).toHaveBeenCalledTimes(1);
+      expect(button("译图").getAttribute("aria-pressed")).toBe("true");
+      await step("识别文本");
+      expect(container.querySelector('img[alt="译图结果"]')).toBeNull();
+      expect(container.textContent).not.toContain("translated block");
+    });
+    test("text-only recognition completes without synthesis", async () => {
+      await setup();
+      ops.recognizeFileImage.mockResolvedValue({ text: "plain text" });
+      await act(async () => button("一键翻译").click());
+      expect(lib.translateFileText.mock.calls[0][0]).toBe("plain text");
+      expect(lib.synthesizeTranslatedImage).not.toHaveBeenCalled();
+      expect(container.textContent).toContain("识别结果没有区域坐标");
+      expect(button("译文").getAttribute("aria-pressed")).toBe("true");
+    });
+    test("failed synthesis can be retried without OCR or translation", async () => {
+      await setup();
+      lib.synthesizeTranslatedImage.mockResolvedValueOnce(null);
+      await act(async () => button("一键翻译").click());
+      expect(container.textContent).toContain("图片合成失败");
+      await step("合成图片");
+      expect(lib.synthesizeTranslatedImage).toHaveBeenCalledTimes(2);
+      expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+      expect(lib.translateFileText).toHaveBeenCalledTimes(1);
+    });
+    test("cancel preserves OCR and prevents late translation writes; retry reuses OCR", async () => {
+      await setup();
+      let resolve;
+      lib.translateFileText.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+      await act(async () => button("一键翻译").click());
+      await act(async () => button("取消").click());
+      await act(async () => resolve("stale translation"));
+      await act(async () => button("原文").click());
+      expect(container.textContent).toContain("source block");
+      expect(container.textContent).not.toContain("stale translation");
+      await step("翻译文本");
+      expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+      expect(lib.translateFileText).toHaveBeenCalledTimes(2);
+    });
+    test("file replacement discards pending synthesis", async () => {
+      await setup();
+      let resolve;
+      lib.synthesizeTranslatedImage.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+      await act(async () => button("一键翻译").click());
+      await upload("replacement.png");
+      await act(async () => resolve(new Blob(["old image"])));
+      expect(container.querySelector('img[alt="译图结果"]')).toBeNull();
+      await openMenu();
+      expect(menuItem("翻译文本").getAttribute("aria-disabled")).toBe("true");
+    });
+    test("translation failure preserves source and completed rows", async () => {
+      await setup();
+      ops.recognizeFileImage.mockResolvedValue({ items: [{ text: "first", poly }, { text: "second", poly }] });
+      lib.translateFileText.mockResolvedValueOnce("first translated").mockRejectedValueOnce(new Error("service failed"));
+      await act(async () => button("一键翻译").click());
+      expect(container.textContent).toContain("service failed");
+      expect(container.textContent).toContain("first translated");
+      await openMenu();
+      expect(menuItem("合成图片").getAttribute("aria-disabled")).toBe("true");
+      await act(async () => menuItem("翻译文本").click());
+      expect(lib.translateFileText).toHaveBeenCalledTimes(4);
+      expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+    });
   });
 
   test("renders with M2 root container and outlined inputs", async () => {
@@ -1400,5 +1648,217 @@ describe("FileTranslatePage (M2 UI)", () => {
       downloadBilingualBtn.click();
     });
     expect(exportEpubFromChapterStates).toHaveBeenCalledTimes(2);
+  });
+
+  test.each([{}, { parseMode: "fast", toLang: "en", apiSlugs: ["primary"] }])(
+    "PDF 部分配置 %j 补齐语言、翻译服务和 DOC 设置",
+    async (partial) => {
+      const original = mockSetting.fileTranslateSetting.pdf;
+      mockSetting.fileTranslateSetting.pdf = partial;
+      try {
+        await act(async () => root.render(<FileTranslatePage />));
+        const input = container.querySelector('input[type="file"]');
+        await act(async () => {
+          Object.defineProperty(input, "files", {
+            value: [new File(["pdf"], "defaults.pdf", { type: "application/pdf" })],
+            configurable: true,
+          });
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        const valueFor = (label) => {
+          const field = Array.from(container.querySelectorAll(".MuiFormControl-root"))
+            .find((node) => node.querySelector("label")?.textContent === label);
+          return field?.querySelector("input")?.value;
+        };
+        expect(valueFor("源语言")).toBe("auto");
+        expect(valueFor("目标语言")).toBe(partial.toLang || "zh-CN");
+        expect(valueFor("翻译服务")).toBe(partial.apiSlugs?.[0] || "Microsoft");
+        expect(valueFor("界面分析服务")).toBe(
+          partial.parseMode === "fast" ? undefined : "local-layout"
+        );
+        expect(container.textContent).not.toContain("管理模型");
+      } finally {
+        mockSetting.fileTranslateSetting.pdf = original;
+      }
+    }
+  );
+
+  test("选择 .pdf 文件后正确切换至 PDF 模式，渲染统一顶栏文件 Chip、第二行解析模式下拉框与译文样式，并挂载 PDF 工作区", async () => {
+    mockPdfWorkspaceActions.translate.mockClear();
+    mockPdfWorkspaceActions.parseAndTranslate.mockClear();
+    mockPdfWorkspaceActions.download.mockClear();
+
+    await act(async () => {
+      root.render(<FileTranslatePage />);
+    });
+
+    const file = new File(["dummy pdf content"], "sample_book.pdf", {
+      type: "application/pdf",
+    });
+    file.arrayBuffer = async () => new ArrayBuffer(16);
+
+    const fileInput = container.querySelector('input[type="file"]');
+    await act(async () => {
+      Object.defineProperty(fileInput, "files", {
+        value: [file],
+        configurable: true,
+      });
+      fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    // 验证 PDF 工作区成功挂载
+    const pdfWorkspace = container.querySelector(
+      '[data-testid="pdf-workspace"]'
+    );
+    expect(pdfWorkspace).not.toBeNull();
+
+    // 验证顶栏文件 Chip 正常渲染，包含文件名与页数（10 页）
+    const chips = Array.from(container.querySelectorAll(".MuiChip-root"));
+    const fileChip = chips.find((c) =>
+      c.textContent?.includes("sample_book.pdf")
+    );
+    expect(fileChip).toBeDefined();
+    expect(fileChip.textContent).toContain("10 页");
+
+    // 验证第二行统一设置栏包含“解析模式”与“译文样式”下拉项
+    const labels = Array.from(
+      container.querySelectorAll(".MuiInputLabel-root")
+    );
+    const parseModeLabel = labels.find((l) =>
+      l.textContent?.includes("解析模式")
+    );
+    expect(parseModeLabel).toBeDefined();
+    const textStyleLabel = labels.find((l) =>
+      l.textContent?.includes("译文样式")
+    );
+    expect(textStyleLabel).toBeDefined();
+
+    const layoutServiceField = labels.find((label) => label.textContent === "界面分析服务")
+      .closest(".MuiFormControl-root");
+    await act(async () => {
+      layoutServiceField.querySelector('[role="combobox"]').dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true })
+      );
+    });
+    await act(async () => {
+      document.querySelector('[role="option"][data-value="gpu-layout"]').click();
+    });
+    expect(mockUpdateChild).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        pdf: expect.objectContaining({
+          layoutApiSlug: "gpu-layout",
+          layoutDevice: "webgpu",
+        }),
+      })
+    );
+
+    // 验证顶栏一键翻译与导出按钮存在
+    const buttons = Array.from(container.querySelectorAll("button"));
+    const translateBtn = buttons.find((b) =>
+      b.textContent?.includes("一键翻译")
+    );
+    expect(translateBtn).toBeDefined();
+
+    const downloadMdBtn = buttons.find((b) =>
+      b.textContent?.includes("下载 Markdown")
+    );
+    expect(downloadMdBtn).toBeDefined();
+
+    // 验证点击顶栏“一键翻译”联动调用 PdfWorkspace 的 oneClickTranslate
+    await act(async () => {
+      translateBtn.click();
+    });
+    expect(
+      mockPdfWorkspaceActions.oneClickTranslate.mock.calls.length +
+        mockPdfWorkspaceActions.parseAndTranslate.mock.calls.length
+    ).toBe(1);
+
+    // 验证点击顶栏“下载 Markdown”联动调用 PdfWorkspace 的 download("md")
+    await act(async () => {
+      downloadMdBtn.click();
+    });
+    expect(mockPdfWorkspaceActions.download).toHaveBeenCalledWith("md");
+
+    // 验证下拉菜单存在且点击“布局检测”联动调用 PdfWorkspace 的 detectLayout
+    const dropdownArrowBtn = buttons.find((b) =>
+      b.getAttribute("aria-label")?.includes("PDF 处理步骤")
+    );
+    expect(dropdownArrowBtn).toBeDefined();
+
+    await act(async () => {
+      dropdownArrowBtn.click();
+    });
+
+    const menuItems = Array.from(
+      document.querySelectorAll('[role="menuitem"]')
+    );
+    const detectLayoutItem = menuItems.find((m) =>
+      m.textContent?.includes("布局检测")
+    );
+    expect(detectLayoutItem).toBeDefined();
+
+    await act(async () => {
+      detectLayoutItem.click();
+    });
+    // 验证下拉菜单选择后仅切换模式，不立即执行
+    expect(mockPdfWorkspaceActions.detectLayout).toHaveBeenCalledTimes(0);
+    expect(translateBtn.textContent).toContain("布局检测");
+
+    // 验证点击主按钮才真正执行选中的动作
+    await act(async () => {
+      translateBtn.click();
+    });
+    expect(mockPdfWorkspaceActions.detectLayout).toHaveBeenCalledTimes(1);
+  });
+
+  test("PDF 模式下未配置界面分析服务时，下拉菜单中布局检测置灰禁用", async () => {
+    const originalApis = mockSetting.transApis;
+    mockSetting.transApis = originalApis.filter(
+      (api) => !api.capabilities?.includes("layout")
+    );
+
+    try {
+      await act(async () => root.render(<FileTranslatePage />));
+
+      const file = new File(["dummy pdf content"], "no_layout.pdf", {
+        type: "application/pdf",
+      });
+      file.arrayBuffer = async () => new ArrayBuffer(16);
+
+      const input = container.querySelector('input[type="file"]');
+      Object.defineProperty(input, "files", {
+        value: [file],
+        configurable: true,
+      });
+
+      await act(async () => {
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+
+      const buttons = Array.from(container.querySelectorAll("button"));
+      const dropdownArrowBtn = buttons.find((b) =>
+        b.getAttribute("aria-label")?.includes("PDF 处理步骤")
+      );
+      expect(dropdownArrowBtn).toBeDefined();
+
+      await act(async () => {
+        dropdownArrowBtn.click();
+      });
+
+      const menuItems = Array.from(
+        document.querySelectorAll('[role="menuitem"]')
+      );
+      const detectLayoutItem = menuItems.find((m) =>
+        m.textContent?.includes("布局检测")
+      );
+      expect(detectLayoutItem).toBeDefined();
+      expect(
+        detectLayoutItem.getAttribute("aria-disabled") === "true" ||
+          detectLayoutItem.hasAttribute("disabled") ||
+          detectLayoutItem.classList.contains("Mui-disabled")
+      ).toBe(true);
+    } finally {
+      mockSetting.transApis = originalApis;
+    }
   });
 });

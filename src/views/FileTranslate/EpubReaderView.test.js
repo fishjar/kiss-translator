@@ -6,6 +6,16 @@ import DOMPurify from "dompurify";
 import EpubReaderView, { sanitizeEpubReaderHtml } from "./EpubReaderView";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+const originalResizeObserver = globalThis.ResizeObserver;
+beforeAll(() => {
+  globalThis.ResizeObserver = class {
+    constructor(callback) { this.callback = callback; }
+    observe() { this.callback([{ contentRect: { width: 1000 } }]); }
+    disconnect() {}
+  };
+});
+afterAll(() => { globalThis.ResizeObserver = originalResizeObserver; });
+
 
 describe("EpubReaderView (EPUB 体验细节与样式)", () => {
   let container;
@@ -49,6 +59,22 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       root.unmount();
     });
     container.remove();
+  });
+
+  test("目录默认关闭，展开后点击章节跳转保持展开", () => {
+    act(() => root.render(<EpubReaderView epubBook={mockEpubBook} currentChapterIndex={0}
+      epubViewMode="source" chapterStates={{}} busy={false} i18n={mockI18n} onSelectChapter={jest.fn()} />));
+    const drawer = container.querySelector(".kt-toc-drawer");
+    expect(drawer.getAttribute("aria-hidden")).toBe("true");
+    const toggleBtn = container.querySelector('[aria-label="展开目录"]');
+    expect(toggleBtn.style.border).toBe("");
+    expect(toggleBtn.classList.contains("MuiIconButton-colorPrimary")).toBe(false);
+    act(() => toggleBtn.click());
+    expect(drawer.getAttribute("aria-hidden")).toBe("false");
+    expect(toggleBtn.getAttribute("aria-label")).toBe("折叠目录");
+    expect(toggleBtn.classList.contains("MuiIconButton-colorPrimary")).toBe(true);
+    act(() => drawer.querySelector(".MuiListItemButton-root").click());
+    expect(drawer.getAttribute("aria-hidden")).toBe("false");
   });
 
   test("1. 支持段落级流式上屏：在章节翻译中 (status === busy) 且存在 bilingualHtml 时立即呈现最新译文", () => {
@@ -372,12 +398,13 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       );
     });
 
-    const resizer = container.querySelector('[data-testid="epub-toc-resizer"]');
+    act(() => container.querySelector('[aria-label="展开目录"]').click());
+    const resizer = container.querySelector('[role="separator"][aria-label="目录宽度"]');
     expect(resizer).toBeTruthy();
 
-    const tocCard = resizer.previousElementSibling;
+    const tocCard = resizer.parentElement;
     expect(tocCard).toBeTruthy();
-    expect(tocCard.style.getPropertyValue("--epub-toc-width")).toBe("270px");
+    expect(tocCard.style.width).toBe("270px");
 
     // 1. 模拟按住 resizer 向右拖拽 +80px (270 -> 350px)
     act(() => {
@@ -400,7 +427,7 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     });
 
     await act(() => new Promise(requestAnimationFrame));
-    expect(tocCard.style.getPropertyValue("--epub-toc-width")).toBe("350px");
+    expect(tocCard.style.width).toBe("350px");
 
     // 2. 模拟松开鼠标 (pointerup)
     act(() => {
@@ -436,7 +463,7 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
 
     // 应受保护限制在 MIN_TOC_WIDTH (180px)
     await act(() => new Promise(requestAnimationFrame));
-    expect(tocCard.style.getPropertyValue("--epub-toc-width")).toBe("180px");
+    expect(tocCard.style.width).toBe("180px");
 
     act(() => {
       window.dispatchEvent(
@@ -477,25 +504,26 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
           </React.Profiler>
         </StrictMode>
       ));
-      const resizer = container.querySelector('[data-testid="epub-toc-resizer"]');
-      const card = resizer.previousElementSibling;
+      act(() => container.querySelector('[aria-label="展开目录"]').click());
+    const resizer = container.querySelector('[role="separator"][aria-label="目录宽度"]');
+      const card = resizer.parentElement;
       pointer(resizer, "pointerdown", 270);
       sanitize.mockClear();
       commits.mockClear();
       window.requestAnimationFrame.mockClear();
       for (const x of [300, 320, 350]) pointer(window, "pointermove", x);
       expect(window.requestAnimationFrame).toHaveBeenCalledTimes(1);
-      expect(card.style.getPropertyValue("--epub-toc-width")).toBe("270px");
+      expect(card.style.width).toBe("270px");
       act(() => {
         for (const callback of frames.values()) callback();
         frames.clear();
       });
-      expect(card.style.getPropertyValue("--epub-toc-width")).toBe("350px");
+      expect(card.style.width).toBe("350px");
       expect(commits).not.toHaveBeenCalled();
       expect(sanitize).not.toHaveBeenCalled();
       pointer(window, "pointermove", 400);
       pointer(window, "pointerup", 450);
-      expect(card.style.getPropertyValue("--epub-toc-width")).toBe("450px");
+      expect(card.style.width).toBe("450px");
       expect(localStorage.getItem("kiss_epub_toc_width")).toBe("450");
       expect(frames.size).toBe(0);
       expect(sanitize).not.toHaveBeenCalled();
@@ -540,16 +568,17 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       );
     });
 
-    const resizer = container.querySelector('[data-testid="epub-toc-resizer"]');
-    const tocCard = resizer.previousElementSibling;
-    expect(tocCard.style.getPropertyValue("--epub-toc-width")).toBe("420px");
+    act(() => container.querySelector('[aria-label="展开目录"]').click());
+    const resizer = container.querySelector('[role="separator"][aria-label="目录宽度"]');
+    const tocCard = resizer.parentElement;
+    expect(tocCard.style.width).toBe("420px");
 
     // 双击分割线手柄
     act(() => {
       resizer.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
     });
 
-    expect(tocCard.style.getPropertyValue("--epub-toc-width")).toBe("270px");
+    expect(tocCard.style.width).toBe("270px");
     expect(localStorage.getItem("kiss_epub_toc_width")).toBe("270");
   });
 

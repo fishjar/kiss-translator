@@ -49,6 +49,7 @@ export async function installedModelsForCapabilities(
     caps.includes("summarization");
   const wantAsr = caps.includes("asr");
   const wantTts = caps.includes("tts");
+  const wantLayout = caps.includes("layout");
 
   // 1. OCR 识图模型组
   if (wantOcr) {
@@ -139,6 +140,27 @@ export async function installedModelsForCapabilities(
         category: "tts",
         title: "语音合成 (TTS)",
         items: ttsItems,
+      });
+    }
+  }
+
+  // 5. 界面分析 (Layout) 模型组
+  if (wantLayout) {
+    const layoutItems: InstalledCapabilityModelItem[] = [];
+    for (const record of installedRecords) {
+      if (record.manifest.task === "doc-layout") {
+        layoutItems.push({
+          id: record.manifest.id,
+          name: record.manifest.name || record.manifest.id,
+          task: "doc-layout",
+        });
+      }
+    }
+    if (layoutItems.length > 0) {
+      groups.push({
+        category: "layout",
+        title: "界面分析 (Layout)",
+        items: layoutItems,
       });
     }
   }

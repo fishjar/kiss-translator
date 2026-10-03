@@ -47,7 +47,7 @@ export function resolveModelTarget(service: AiRpcService, target: ModelTarget): 
   const m = getCatalogModel(target.modelRef);
   if (
     !m ||
-    !(service === "vlm"
+    !(service === "doc" ? m.task === "doc-layout" : service === "vlm"
       ? m.task === "ocr-vlm"
       : m.task === service)
   ) {
@@ -58,7 +58,9 @@ export function resolveModelTarget(service: AiRpcService, target: ModelTarget): 
       ? "webgpu"
       : "wasm";
   let spec: Record<string, any>;
-  if (service === "asr") {
+  if (service === "doc") {
+    spec = { dir: m.dir, source: m.source, device, modelFile: m.files.find(f => f.path.endsWith(".onnx"))?.path, dataFile: m.files.find(f => f.path.endsWith(".onnx.data"))?.path };
+  } else if (service === "asr") {
     spec = {
       runtime: m.runtime === "onnx" ? "onnx" : "transformers",
       source: m.source,
@@ -134,6 +136,7 @@ export function resolveModelTarget(service: AiRpcService, target: ModelTarget): 
     "file",
     "mmprojFile",
     "modelFile",
+    "dataFile",
     "tokenizerFile",
     "configFile",
   ]) {

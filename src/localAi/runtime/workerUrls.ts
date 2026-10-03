@@ -1,4 +1,5 @@
 export type LocalWorkerName =
+  | "doc"
   | "asr"
   | "jev"
   | "llm"

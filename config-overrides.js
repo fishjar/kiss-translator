@@ -18,7 +18,9 @@ try {
 const aliasLocalRuntime = (config) => {
   config.resolve.alias = {
     ...config.resolve.alias,
-    [path.resolve(__dirname, "src/localAi/runtime/runtimeManager.ts") + "$"]:
+    [path.resolve(__dirname, "src/localAi/runtime/runtimeManager")]:
+      path.resolve(__dirname, "src/localAi/runtime/runtimeManager.webpack.js"),
+    [path.resolve(__dirname, "src/localAi/runtime/runtimeManager.ts")]:
       path.resolve(__dirname, "src/localAi/runtime/runtimeManager.webpack.js"),
   };
 };
@@ -380,6 +382,25 @@ const userscriptWebpack = (config, env) => {
 
 // 方案 C：本地开发网页模式的 Webpack 覆盖配置
 const webWebpack = (config, env) => {
+  config.plugins.push({
+    apply(compiler) {
+      compiler.hooks.thisCompilation.tap("PdfAssets", compilation => {
+        compilation.hooks.processAssets.tap({name:"PdfAssets",stage:compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL}, () => {
+          const pdfRoot = path.dirname(require.resolve("pdfjs-dist/package.json"));
+          const katexRoot = path.join(path.dirname(require.resolve("katex/package.json")), "dist");
+          const emit = (source, target) => {
+            if (fs.statSync(source).isDirectory()) {
+              for (const name of fs.readdirSync(source)) emit(path.join(source,name),`${target}/${name}`);
+            } else compilation.emitAsset(target,new compiler.webpack.sources.RawSource(fs.readFileSync(source)));
+          };
+          emit(path.join(pdfRoot,"build/pdf.worker.min.mjs"),"assets/pdf/pdf.worker.min.mjs");
+          for (const dir of ["cmaps","standard_fonts","wasm"]) emit(path.join(pdfRoot,dir),`assets/pdf/${dir}`);
+          emit(path.join(katexRoot,"katex.min.css"),"assets/pdf/katex.min.css");
+          emit(path.join(katexRoot,"fonts"),"assets/pdf/fonts");
+        });
+      });
+    },
+  });
   const homepageOnly = process.env.REACT_APP_WEB_APP === "homepage";
   if (!homepageOnly) aliasLocalRuntime(config);
   const names = ["HtmlWebpackPlugin"];

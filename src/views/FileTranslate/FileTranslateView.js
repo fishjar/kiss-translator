@@ -1,14 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Alert from "@mui/material/Alert";
+import { runTranslationTasks } from "../../libs/translationTasks";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import ReaderAlert from "./ReaderAlert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
-import IconButton from "@mui/material/IconButton";
-import LinearProgress from "@mui/material/LinearProgress";
-import Paper from "@mui/material/Paper";
-import Collapse from "@mui/material/Collapse";
 import Snackbar from "@mui/material/Snackbar";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
@@ -22,9 +27,6 @@ import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
 import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
 import ButtonGroup from "@mui/material/ButtonGroup";
@@ -38,14 +40,11 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogActions from "@mui/material/DialogActions";
 import DOMPurify from "dompurify";
 import { css } from "@emotion/css";
-import Logo from "../../components/Logo";
 import { useFileTranslation } from "./State";
 import { builtinStylesMap } from "../../libs/style";
 import {
   DEFAULT_FILE_TRANSLATE_SETTING,
   PROMPT_CATEGORY_VLM,
-  OPT_LANGS_FROM_REVERSED,
-  OPT_LANGS_TO_REVERSED,
 } from "../../config";
 import {
   IMAGE_FONT_OPTIONS,
@@ -72,18 +71,22 @@ import {
   sanitizeEpubMarkup,
 } from "../../libs/epub/epubDomHandler";
 import EpubReaderView from "./EpubReaderView";
+import FileTranslateToolbar from "./FileTranslateToolbar";
+import FileTranslateSettings from "./FileTranslateSettings";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
+import PictureAsPdfRoundedIcon from "@mui/icons-material/PictureAsPdfRounded";
 import { SettingsSelect } from "../Options/SettingsCard";
-import OrderedApiSelect from "./OrderedApiSelect";
 import ScenePromptSelect from "./ScenePromptSelect";
 import ImageViewerDialog from "./ImageViewerDialog";
-import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
+import ImageSourcePreview, { hasImagePolygon } from "./ImageSourcePreview";
 import {
   availableImageApisForScene,
+  availableLayoutApisForScene,
   orderedApiSlugs,
 } from "../../config/serviceSelection";
 
 const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const PdfWorkspace = lazy(() => import("./PdfWorkspace"));
 
 function getTextStyleClass(styleSlug, allTextStyles) {
   if (!styleSlug || styleSlug === "style_none") return "";
@@ -190,7 +193,6 @@ function formatFileSize(bytes) {
 export default function FileTranslateView() {
   const {
     connectionNotice,
-    connectionStatus,
     context,
     client,
     connected,
@@ -199,7 +201,6 @@ export default function FileTranslateView() {
     patchScene: saveScene,
     allTextStyles,
     openSettings: openOptionsPage,
-    toggleTheme,
   } = useFileTranslation();
   const setting = useMemo(
     () => ({
@@ -211,7 +212,10 @@ export default function FileTranslateView() {
   );
   const saved = setting?.fileTranslateSetting || DEFAULT_FILE_TRANSLATE_SETTING;
   const [mode, setMode] = useState("txt");
-  const scene = saved[mode] || DEFAULT_FILE_TRANSLATE_SETTING[mode];
+  const scene = useMemo(
+    () => ({ ...DEFAULT_FILE_TRANSLATE_SETTING[mode], ...saved[mode] }),
+    [mode, saved]
+  );
   const patchScene = (patch) => saveScene(mode, patch);
 
   const textStyleClass = useMemo(
@@ -232,6 +236,14 @@ export default function FileTranslateView() {
   const [resultViewMode, setResultViewMode] = useState(
     mode === "image" ? "image" : "target"
   );
+  const [imageActionAnchor, setImageActionAnchor] = useState(null);
+  const [pdfActionAnchor, setPdfActionAnchor] = useState(null);
+  const [pdfAction, setPdfAction] = useState("all");
+  const [imageStage, setImageStage] = useState("");
+  const [imageTranslationComplete, setImageTranslationComplete] = useState(false);
+  const [hoveredImageRow, setHoveredImageRow] = useState(null);
+  useEffect(() => setHoveredImageRow(null), [resultViewMode, file]);
+  const hasImageCoordinates = rows.some((row) => hasImagePolygon(row.poly));
   const [translatedImageBlob, setTranslatedImageBlob] = useState(null);
   const [translatedImageUrl, setTranslatedImageUrl] = useState("");
   const [mdSourceView, setMdSourceView] = useState("preview");
@@ -261,6 +273,18 @@ export default function FileTranslateView() {
     if (connected && saved.epub?.readerPreferences)
       setReaderPreferences(saved.epub.readerPreferences);
   }, [connected, saved.epub?.readerPreferences]);
+
+  // --- PDF 模式专用状态 ---
+  const pdfWorkspaceRef = useRef(null);
+  const [pdfState, setPdfState] = useState({
+    phase: "idle",
+    progress: null,
+    pdf: null,
+    result: null,
+    blocks: [],
+    busy: false,
+    failedCount: 0,
+  });
 
   // 筛选具备 OCR 能力的服务实例
   const ocrApis = useMemo(() => {
@@ -346,6 +370,97 @@ export default function FileTranslateView() {
     }
     return options;
   }, [hasOcrService, ocrApis, currentOcrSlug, i18n, getModelDisplayName]);
+
+  // 筛选具备界面分析（layout）能力的服务实例
+  const layoutApis = useMemo(() => {
+    return (setting?.transApis || []).filter(
+      (api) =>
+        !api.isDisabled &&
+        (Array.isArray(api.capabilities)
+          ? api.capabilities.includes("layout")
+          : false)
+    );
+  }, [setting?.transApis]);
+
+  const hasLayoutService = layoutApis.length > 0;
+
+  // 有序候选界面分析服务列表
+  const activeLayoutCandidates = useMemo(() => {
+    return availableLayoutApisForScene(scene, setting?.transApis || [], {
+      installedModels: new Set(
+        context.models
+          .filter((model) => model.state === "installed")
+          .map((model) => model.id)
+      ),
+    });
+  }, [scene, setting?.transApis, context.models]);
+
+  const activeLayoutApi =
+    activeLayoutCandidates[0] ||
+    layoutApis.find(
+      (api) =>
+        api.apiSlug === (scene.layoutApiSlug || scene.layoutApiSlugs?.[0])
+    ) ||
+    layoutApis[0];
+
+  const currentLayoutSlug = hasLayoutService
+    ? scene.layoutApiSlug ||
+      scene.layoutApiSlugs?.[0] ||
+      activeLayoutApi?.apiSlug ||
+      ""
+    : "";
+
+  const handleLayoutServiceChange = (newSlug) => {
+    if (!newSlug) return;
+    const prevSlugs = orderedApiSlugs(scene, "layoutApiSlugs", "layoutApiSlug");
+    const nextSlugs = [newSlug, ...prevSlugs.filter((s) => s !== newSlug)];
+    const targetApi = layoutApis.find((api) => api.apiSlug === newSlug);
+    patchScene({
+      layoutApiSlug: newSlug,
+      layoutApiSlugs: nextSlugs,
+      ...(targetApi?.modelRef ? { layoutModel: targetApi.modelRef } : {}),
+      ...(targetApi?.device ? { layoutDevice: targetApi.device } : {}),
+    });
+  };
+
+  const layoutSelectOptions = useMemo(() => {
+    if (!hasLayoutService) {
+      return [
+        {
+          value: "",
+          label: i18n(
+            "layout_service_empty",
+            "未配置界面分析服务（请在服务配置中添加）"
+          ),
+          disabled: true,
+        },
+      ];
+    }
+    const options = layoutApis.map((api) => ({
+      value: api.apiSlug,
+      label: `${api.apiName || api.apiType || api.apiSlug}${
+        api.modelRef
+          ? ` (${typeof getModelDisplayName === "function" ? getModelDisplayName(api.modelRef, i18n) : api.modelRef})`
+          : ""
+      }${api.layoutAvailable === false ? ` (${i18n("api_unavailable_here", "unavailable here")})` : ""}`,
+    }));
+    if (
+      currentLayoutSlug &&
+      !options.some((o) => o.value === currentLayoutSlug)
+    ) {
+      options.push({
+        value: currentLayoutSlug,
+        label: `${currentLayoutSlug} (${i18n("api_unavailable", "当前不可用")})`,
+      });
+    }
+    return options;
+  }, [
+    hasLayoutService,
+    layoutApis,
+    currentLayoutSlug,
+    i18n,
+    getModelDisplayName,
+  ]);
   const [progress, setProgress] = useState([0, 0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -362,7 +477,6 @@ export default function FileTranslateView() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isEntireTranslated, setIsEntireTranslated] = useState(false);
   // 顶栏第二行核心配置项展开/收起状态（默认展开）
-  const [optionsExpanded, setOptionsExpanded] = useState(true);
 
   const controller = useRef(null);
   const fileInputRef = useRef(null);
@@ -494,6 +608,10 @@ export default function FileTranslateView() {
 
   // 清理现有翻译结果
   const resetResults = () => {
+    setImageStage("");
+    setImageTranslationComplete(false);
+    setHoveredImageRow(null);
+    setImageActionAnchor(null);
     setRows([]);
     setResultText("");
     setBilingualMd("");
@@ -533,6 +651,15 @@ export default function FileTranslateView() {
     setPreview("");
     setEpubBook(null);
     setChapterStates({});
+    setPdfState({
+      phase: "idle",
+      progress: null,
+      pdf: null,
+      result: null,
+      blocks: [],
+      busy: false,
+      failedCount: 0,
+    });
     if (!selected) {
       return;
     }
@@ -545,6 +672,14 @@ export default function FileTranslateView() {
     const isEpub =
       /\.epub$/i.test(selected.name) ||
       selected.type === "application/epub+zip";
+    const isPdf =
+      /\.pdf$/i.test(selected.name) || selected.type === "application/pdf";
+    if (isPdf) {
+      setMode("pdf");
+      setFile(selected);
+      setSourceText("");
+      return;
+    }
     if (isImage) {
       try {
         if (
@@ -568,7 +703,7 @@ export default function FileTranslateView() {
       setError(
         i18n(
           "file_format_unsupported",
-          "暂不支持该文件格式，支持 .txt 文本、.md Markdown 文档、.epub 电子书及 PNG、JPEG、WebP 图片"
+          "暂不支持该文件格式，支持 PDF、TXT、Markdown、EPUB 及 PNG、JPEG、WebP 图片"
         )
       );
       return;
@@ -652,25 +787,8 @@ export default function FileTranslateView() {
   // 切换译文字体并对已完成翻译的图片进行热重绘
   const handleFontChange = async (fontFamily) => {
     patchScene({ fontFamily });
-    if (
-      file &&
-      mode === "image" &&
-      rows.length > 0 &&
-      rows.some((r) => r.poly && r.poly.length >= 3)
-    ) {
-      try {
-        const synthesized = await synthesizeTranslatedImage(file, rows, {
-          fontFamily,
-        });
-        if (synthesized) {
-          setTranslatedImageBlob(synthesized);
-          if (translatedImageUrl) URL.revokeObjectURL(translatedImageUrl);
-          const url = URL.createObjectURL(synthesized);
-          setTranslatedImageUrl(url);
-        }
-      } catch (e) {
-        console.error("Failed to update font for translated image:", e);
-      }
+    if (file && mode === "image" && translatedImageBlob && !busy) {
+      await runImageAction("synthesize", fontFamily);
     }
   };
 
@@ -689,6 +807,7 @@ export default function FileTranslateView() {
     resetResults();
     setError("");
     setProgress([0, 0]);
+    setPdfAction("all");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -731,7 +850,9 @@ export default function FileTranslateView() {
 
   // 当前视图对应的翻译结果文本
   const currentResultContent =
-    mode === "markdown"
+    mode === "image" && resultViewMode === "source"
+      ? rows.map((row) => row.source).join("\n\n")
+      : mode === "markdown"
       ? resultViewMode === "bilingual"
         ? bilingualMd || getBilingualText()
         : resultText || rows.map((r) => r.target).join("\n\n")
@@ -746,7 +867,7 @@ export default function FileTranslateView() {
       : "translation";
     const content = currentResultContent;
     if (!content) return;
-    const suffix = resultViewMode === "bilingual" ? "bilingual" : "translated";
+    const suffix = resultViewMode === "source" ? "source" : resultViewMode === "bilingual" ? "bilingual" : "translated";
     downloadText(`${baseName}-${suffix}.md`, content);
   };
 
@@ -769,7 +890,7 @@ export default function FileTranslateView() {
       "",
       exportLang
     );
-    const suffix = resultViewMode === "bilingual" ? "bilingual" : "translated";
+    const suffix = resultViewMode === "source" ? "source" : resultViewMode === "bilingual" ? "bilingual" : "translated";
     const blob = new Blob([standaloneHtml], {
       type: "text/html;charset=utf-8",
     });
@@ -794,7 +915,7 @@ export default function FileTranslateView() {
 
     const content = currentResultContent;
     if (!content) return;
-    const suffix = resultViewMode === "bilingual" ? "bilingual" : "translated";
+    const suffix = resultViewMode === "source" ? "source" : resultViewMode === "bilingual" ? "bilingual" : "translated";
     downloadText(`${baseName}-${suffix}.txt`, content);
   };
 
@@ -1290,6 +1411,285 @@ export default function FileTranslateView() {
     run(scope);
   };
 
+  // 图片各阶段共享任务保护，单步操作只消费上一阶段的结果。
+  const runImageAction = async (action, fontFamily = scene.fontFamily || "default") => {
+    setImageActionAnchor(null);
+    if (!file || busy || ((action !== "synthesize") && !connected)) return;
+    if ((action === "all" || action === "recognize") && !hasOcrService) return;
+    if (action === "translate" && !rows.length) return;
+    if (action === "synthesize" && (!imageTranslationComplete || !hasImageCoordinates)) return;
+    controller.current?.abort();
+    const abort = new AbortController();
+    controller.current = abort;
+    const currentTaskId = ++taskIdRef.current;
+    const assertCurrent = () => {
+      if (abort.signal.aborted || taskIdRef.current !== currentTaskId)
+        throw new DOMException("已取消", "AbortError");
+    };
+    setBusy(true);
+    setError("");
+    setProgress([0, 0]);
+    setHoveredImageRow(null);
+    setTranslatedImageBlob(null);
+    setTranslatedImageUrl("");
+    let nextRows = rows;
+    try {
+      if (action === "all" || action === "recognize") {
+        setImageStage("recognize");
+        setInputNotices([]);
+        setImageTranslationComplete(false);
+        setRows([]);
+        setResultViewMode("source");
+        let recognized, recognitionError;
+        const candidates = [
+          ...new Set(
+            [
+              currentOcrSlug,
+              ...activeOcrCandidates.map((api) => api.apiSlug),
+            ].filter(Boolean)
+          ),
+        ];
+        for (const serviceId of candidates) {
+          if (abort.signal.aborted)
+            throw new DOMException("已取消", "AbortError");
+          try {
+            recognized = await client.recognize(file, serviceId, abort.signal, {
+              vlmPromptSlug: scene.vlmPromptSlug || "",
+            });
+            if (recognized?.text?.trim() || recognized?.items?.length) break;
+            recognitionError = new Error("图片识别返回空结果");
+            recognized = null;
+          } catch (error) {
+            if (abort.signal.aborted || error.name === "AbortError")
+              throw error;
+            recognitionError = error;
+          }
+        }
+        if (!recognized)
+          throw recognitionError || new Error("没有可用的图片识别服务");
+        if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
+        const items = recognized.items?.length ? recognized.items :
+          (recognized.text || "").split(/\n+/).filter((text) => text.trim()).map((text) => ({ text }));
+        setInputNotices(
+          (recognized.inputAdjustments || []).map((item) => item.message)
+        );
+
+        nextRows = items.map((item) => ({ source: item.text, target: "", poly: item.poly, box: item.box }));
+        setRows(nextRows);
+      }
+      if (action === "all" || action === "translate") {
+        assertCurrent();
+        setImageStage("translate");
+        setImageTranslationComplete(false);
+        nextRows = nextRows.map((row) => ({ ...row, target: "" }));
+        setRows(nextRows);
+        setResultViewMode("target");
+        let completed = 0;
+        await runTranslationTasks(nextRows.map((row, index) => async (signal) => {
+          assertCurrent();
+          const target = await translateFileText(row.source, scene, setting, signal, { kind: "image" });
+          if (signal.aborted) throw new DOMException("已取消", "AbortError");
+          assertCurrent();
+          nextRows[index] = { ...row, target };
+          setRows([...nextRows]);
+          setProgress([++completed, nextRows.length]);
+        }), abort.signal);
+        assertCurrent();
+        setImageTranslationComplete(true);
+      }
+      if (action === "all" || action === "synthesize") {
+        assertCurrent();
+        if (nextRows.some((row) => hasImagePolygon(row.poly))) {
+          setImageStage("synthesize");
+          setProgress([0, 0]);
+          const blob = await synthesizeTranslatedImage(file, nextRows, { fontFamily });
+          assertCurrent();
+          if (!blob) throw new Error(i18n("image_synthesis_failed", "图片合成失败，请重试"));
+          setTranslatedImageBlob(blob);
+          setTranslatedImageUrl(URL.createObjectURL(blob));
+          setResultViewMode("image");
+        } else {
+          setInputNotices((previous) => [...previous, i18n("image_no_coordinates", "识别结果没有区域坐标，无法合成译图")]);
+        }
+      }
+    } catch (err) {
+      if (taskIdRef.current === currentTaskId && !abort.signal.aborted && err?.name !== "AbortError")
+        setError(err?.message || String(err));
+    } finally {
+      if (taskIdRef.current === currentTaskId) {
+        setBusy(false);
+        setImageStage("");
+      }
+      if (controller.current === abort) controller.current = null;
+    }
+  };
+
+  // PDF 动作模式对应的文案
+  const pdfActionLabel = useMemo(() => {
+    switch (pdfAction) {
+      case "detect":
+        return i18n("pdf_detect_layout", "布局检测");
+      case "recognize":
+        return i18n("pdf_recognize_text", "文本识别");
+      case "translate":
+        return i18n("pdf_translate_text", "文本翻译");
+      case "all":
+      default:
+        return pdfState.failedCount
+          ? i18n("retry_failed_translation", "重试失败翻译")
+          : i18n("pdf_translate_one_click", "一键翻译");
+    }
+  }, [pdfAction, pdfState.failedCount, i18n]);
+
+  // PDF 主操作按钮的禁用状态与提示
+  const pdfActionDisabledInfo = useMemo(() => {
+    if (!file || busy || pdfState.busy) {
+      return { disabled: true, reason: "" };
+    }
+    if (pdfAction === "detect") {
+      if (!hasLayoutService) {
+        return {
+          disabled: true,
+          reason: i18n(
+            "layout_service_empty",
+            "未配置界面分析服务（请在服务配置中添加）"
+          ),
+        };
+      }
+      return { disabled: false, reason: "" };
+    }
+    if (pdfAction === "recognize") {
+      if (!pdfState.hasLayoutResult) {
+        return {
+          disabled: true,
+          reason: i18n("pdf_detect_layout_first", "请先执行布局检测"),
+        };
+      }
+      return { disabled: false, reason: "" };
+    }
+    if (pdfAction === "translate") {
+      if (!connected) {
+        return {
+          disabled: true,
+          reason: i18n("service_not_connected", "服务未连接"),
+        };
+      }
+      if (!pdfState.blocks?.length) {
+        return {
+          disabled: true,
+          reason: i18n("pdf_recognize_text_first", "请先完成文本识别"),
+        };
+      }
+      return { disabled: false, reason: "" };
+    }
+    // "all" 一键翻译
+    if (!connected) {
+      return {
+        disabled: true,
+        reason: i18n("service_not_connected", "服务未连接"),
+      };
+    }
+    if (scene.parseMode === "smart" && !hasLayoutService) {
+      return {
+        disabled: true,
+        reason: i18n(
+          "layout_service_empty",
+          "未配置界面分析服务（请在服务配置中添加）"
+        ),
+      };
+    }
+    return { disabled: false, reason: "" };
+  }, [
+    file,
+    busy,
+    pdfState.busy,
+    pdfState.hasLayoutResult,
+    pdfState.blocks?.length,
+    pdfAction,
+    hasLayoutService,
+    connected,
+    scene.parseMode,
+    i18n,
+  ]);
+
+  // PDF 点击主按钮执行当前选中的动作
+  const handlePdfMainAction = () => {
+    if (!file || busy || pdfState.busy) return;
+    if (pdfAction === "detect") {
+      if (!hasLayoutService) {
+        setError(
+          i18n(
+            "layout_service_empty",
+            "未配置界面分析服务（请在服务配置中添加）"
+          )
+        );
+        return;
+      }
+      if (scene.parseMode !== "smart") {
+        patchScene({ parseMode: "smart" });
+      }
+      pdfWorkspaceRef.current?.detectLayout();
+    } else if (pdfAction === "recognize") {
+      if (!pdfState.hasLayoutResult) {
+        setError(i18n("pdf_detect_layout_first", "请先执行布局检测"));
+        return;
+      }
+      pdfWorkspaceRef.current?.recognizeText();
+    } else if (pdfAction === "translate") {
+      if (!connected || !pdfState.blocks?.length) return;
+      pdfWorkspaceRef.current?.translate();
+    } else {
+      // "all"
+      if (scene.parseMode === "smart" && !hasLayoutService) {
+        setError(
+          i18n(
+            "layout_service_empty",
+            "未配置界面分析服务（请在服务配置中添加）"
+          )
+        );
+        return;
+      }
+      if (pdfState.failedCount) {
+        pdfWorkspaceRef.current?.translate();
+      } else {
+        (
+          pdfWorkspaceRef.current?.oneClickTranslate ||
+          pdfWorkspaceRef.current?.parseAndTranslate
+        )?.();
+      }
+    }
+  };
+
+  // PDF 分步处理动作（兼容外部调用）
+  const runPdfAction = (action) => {
+    setPdfActionAnchor(null);
+    if (!file || busy || pdfState.busy) return;
+    if (action === "detectLayout" || action === "detect") {
+      if (!hasLayoutService) {
+        setError(
+          i18n(
+            "layout_service_empty",
+            "未配置界面分析服务（请在服务配置中添加）"
+          )
+        );
+        return;
+      }
+      if (scene.parseMode !== "smart") {
+        patchScene({ parseMode: "smart" });
+      }
+      pdfWorkspaceRef.current?.detectLayout();
+    } else if (action === "recognizeText" || action === "recognize") {
+      if (!pdfState.hasLayoutResult) {
+        setError(i18n("pdf_detect_layout_first", "请先执行布局检测"));
+        return;
+      }
+      pdfWorkspaceRef.current?.recognizeText();
+    } else if (action === "translateText" || action === "translate") {
+      if (!connected || !pdfState.blocks?.length) return;
+      pdfWorkspaceRef.current?.translate();
+    }
+  };
+
   // 执行翻译流程
   const run = async (scope = translateScope) => {
     if (!connected || !file || busy) return;
@@ -1365,8 +1765,8 @@ export default function FileTranslateView() {
               return;
             setProgress([done, total]);
             if (item) {
-              nextRows.push(item);
-              setRows([...nextRows]);
+              nextRows[item.index] = item;
+              setRows(nextRows.filter(Boolean));
             }
           },
           localContext
@@ -1389,8 +1789,8 @@ export default function FileTranslateView() {
               return;
             setProgress([done, total]);
             if (item) {
-              nextRows.push(item);
-              setRows([...nextRows]);
+              nextRows[item.index] = item;
+              setRows(nextRows.filter(Boolean));
             }
             if (currentBlocks) {
               setMdBlocks([...currentBlocks]);
@@ -1418,99 +1818,6 @@ export default function FileTranslateView() {
         setBilingualHtml(result.bilingualHtml);
         setSourceHtml(result.sourceHtml);
         setMdBlocks(result.blocks || []);
-      } else {
-        if (!hasOcrService) {
-          setError(
-            i18n(
-              "ocr_service_missing_guide",
-              "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
-            )
-          );
-          setBusy(false);
-          return;
-        }
-        let recognized, recognitionError;
-        const candidates = [
-          ...new Set(
-            [
-              currentOcrSlug,
-              ...activeOcrCandidates.map((api) => api.apiSlug),
-            ].filter(Boolean)
-          ),
-        ];
-        for (const serviceId of candidates) {
-          if (abort.signal.aborted)
-            throw new DOMException("已取消", "AbortError");
-          try {
-            recognized = await client.recognize(file, serviceId, abort.signal, {
-              vlmPromptSlug: scene.vlmPromptSlug || "",
-            });
-            if (recognized?.text?.trim() || recognized?.items?.length) break;
-            recognitionError = new Error("图片识别返回空结果");
-            recognized = null;
-          } catch (error) {
-            if (abort.signal.aborted || error.name === "AbortError")
-              throw error;
-            recognitionError = error;
-          }
-        }
-        if (!recognized)
-          throw recognitionError || new Error("没有可用的图片识别服务");
-        if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
-        const items = recognized.items || [];
-        setInputNotices(
-          (recognized.inputAdjustments || []).map((item) => item.message)
-        );
-        const nextRows = [];
-        const total = items.length;
-        for (let i = 0; i < total; i++) {
-          if (abort.signal.aborted || taskIdRef.current !== currentTaskId) {
-            throw new DOMException("已取消", "AbortError");
-          }
-          const item = items[i];
-          const trText = await translateFileText(
-            item.text,
-            scene,
-            setting,
-            abort.signal,
-            localContext
-          );
-          if (abort.signal.aborted || taskIdRef.current !== currentTaskId)
-            return;
-          const row = {
-            source: item.text,
-            target: trText,
-            poly: item.poly,
-            box: item.box,
-          };
-          nextRows.push(row);
-          setRows([...nextRows]);
-          setProgress([i + 1, total]);
-        }
-
-        if (
-          currentOcrModel?.supportsInpainting !== false &&
-          nextRows.some((r) => r.poly && r.poly.length >= 3)
-        ) {
-          try {
-            const synthesized = await synthesizeTranslatedImage(
-              file,
-              nextRows,
-              {
-                fontFamily: scene.fontFamily || "default",
-              }
-            );
-            if (abort.signal.aborted || taskIdRef.current !== currentTaskId)
-              return;
-            if (synthesized) {
-              setTranslatedImageBlob(synthesized);
-              const url = URL.createObjectURL(synthesized);
-              setTranslatedImageUrl(url);
-            }
-          } catch (synthErr) {
-            console.error("图像译文合成失败：", synthErr);
-          }
-        }
       }
     } catch (err) {
       if (taskIdRef.current !== currentTaskId) return;
@@ -1543,17 +1850,15 @@ export default function FileTranslateView() {
         flexWrap: "wrap",
       }}
     >
-      {/* 语言选择：源语言 -> 目标语言 */}
-      <Box sx={{ width: 155, flexShrink: 0 }}>
-        <SettingsSelect
-          fullWidth
-          size="small"
-          variant="outlined"
-          hiddenLabel={false}
-          label={i18n("from_lang", "源语言")}
-          value={scene.fromLang}
-          options={OPT_LANGS_FROM_REVERSED}
-          onChange={(fromLang) => {
+      <FileTranslateSettings
+        i18n={i18n}
+        scene={scene}
+        services={(setting?.transApis || []).filter((api) => !api.isDisabled)}
+        prompts={context.prompts}
+        onChange={(values) => {
+          if (values.fromLang !== undefined) {
+            const fromLang = values.fromLang;
+
             if (fromLang === scene.fromLang) return;
             controller.current?.abort();
             taskIdRef.current += 1;
@@ -1562,26 +1867,9 @@ export default function FileTranslateView() {
             setChapterStates({});
             epubExportCacheRef.current.clear();
             patchScene({ fromLang });
-          }}
-        />
-      </Box>
-      <ArrowForwardRoundedIcon
-        sx={{
-          fontSize: 16,
-          color: "text.disabled",
-          flexShrink: 0,
-        }}
-      />
-      <Box sx={{ width: 155, flexShrink: 0 }}>
-        <SettingsSelect
-          fullWidth
-          size="small"
-          variant="outlined"
-          hiddenLabel={false}
-          label={i18n("to_lang", "目标语言")}
-          value={scene.toLang}
-          options={OPT_LANGS_TO_REVERSED}
-          onChange={(toLang) => {
+          } else if (values.toLang !== undefined) {
+            const toLang = values.toLang;
+
             if (toLang === scene.toLang) return;
             controller.current?.abort();
             taskIdRef.current += 1;
@@ -1590,39 +1878,9 @@ export default function FileTranslateView() {
             setChapterStates({});
             epubExportCacheRef.current.clear();
             patchScene({ toLang });
-          }}
-        />
-      </Box>
-
-      {/* 翻译服务与提示词 */}
-      <Box sx={{ width: 165, flexShrink: 0 }}>
-        <OrderedApiSelect
-          i18n={i18n}
-          multiple={false}
-          fullWidth
-          size="small"
-          variant="outlined"
-          showOrderList={false}
-          hiddenLabel={false}
-          label={i18n("translate_service", "翻译服务")}
-          scene={scene}
-          apis={(setting?.transApis || []).filter((api) => !api.isDisabled)}
-          onChange={(apiSlugs) => patchScene({ apiSlugs })}
-        />
-      </Box>
-      <Box sx={{ width: 150, flexShrink: 0 }}>
-        <ScenePromptSelect
-          i18n={i18n}
-          prompts={context.prompts}
-          fullWidth
-          size="small"
-          variant="outlined"
-          hiddenLabel={false}
-          label={i18n("translation_prompt", "翻译提示词")}
-          value={scene.promptSlug || ""}
-          onChange={(promptSlug) => patchScene({ promptSlug })}
-        />
-      </Box>
+          } else patchScene(values);
+        }}
+      />
 
       {mode === "image" && isVlmModel && (
         <Box sx={{ width: 170, flexShrink: 0 }}>
@@ -1641,8 +1899,11 @@ export default function FileTranslateView() {
         </Box>
       )}
 
-      {/* 译文样式选项（在双语展示文本与电子书翻译时生效） */}
-      {(mode === "txt" || mode === "markdown" || mode === "epub") && (
+      {/* 译文样式选项（在双语展示文本、电子书与 PDF 翻译时生效） */}
+      {(mode === "txt" ||
+        mode === "markdown" ||
+        mode === "epub" ||
+        mode === "pdf") && (
         <Box sx={{ width: 140, flexShrink: 0 }}>
           <SettingsSelect
             fullWidth
@@ -1658,6 +1919,49 @@ export default function FileTranslateView() {
             onChange={(textStyle) => patchScene({ textStyle })}
           />
         </Box>
+      )}
+
+      {/* PDF 解析模式 */}
+      {mode === "pdf" && (
+        <>
+          <Box sx={{ width: 165, flexShrink: 0 }}>
+            <SettingsSelect
+              disabled={pdfState.busy}
+              fullWidth
+              size="small"
+              variant="outlined"
+              hiddenLabel={false}
+              label={i18n("pdf_parse_mode", "解析模式")}
+              value={scene.parseMode || "smart"}
+              options={[
+                {
+                  value: "smart",
+                  label: i18n("pdf_parse_mode_smart", "Smart (智能版面)"),
+                },
+                {
+                  value: "fast",
+                  label: i18n("pdf_parse_mode_fast", "Fast (纯文本快速)"),
+                },
+              ]}
+              onChange={(parseMode) => patchScene({ parseMode })}
+            />
+          </Box>
+          {scene.parseMode === "smart" && (
+            <Box sx={{ width: 220, flexShrink: 0 }}>
+              <SettingsSelect
+                fullWidth
+                size="small"
+                variant="outlined"
+                hiddenLabel={false}
+                disabled={pdfState.busy}
+                label={i18n("layout_service", "界面分析服务")}
+                value={currentLayoutSlug}
+                options={layoutSelectOptions}
+                onChange={handleLayoutServiceChange}
+              />
+            </Box>
+          )}
+        </>
       )}
 
       {/* 富文本选项（EPUB 电子书翻译时生效，控制是否保留内联标签） */}
@@ -1749,7 +2053,7 @@ export default function FileTranslateView() {
         ref={fileInputRef}
         type="file"
         style={{ display: "none" }}
-        accept=".txt,.md,.markdown,.epub,text/plain,text/markdown,application/epub+zip,image/png,image/jpeg,image/webp"
+        accept=".pdf,.txt,.md,.markdown,.epub,application/pdf,text/plain,text/markdown,application/epub+zip,image/png,image/jpeg,image/webp"
         onChange={(e) => {
           selectFile(e.target.files?.[0]);
           e.target.value = "";
@@ -1757,86 +2061,9 @@ export default function FileTranslateView() {
       />
 
       {/* 模块 1：顶部工具栏（>=1600px 单行展示，<1600px 折叠为双行并支持小箭头展开/收起） */}
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: 0,
-          px: 1.5,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          zIndex: 10,
-          position: "relative",
-          bgcolor: "background.paper",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {/* 第一行主栏：Logo、主操作按钮与展开箭头 */}
-        <Box
-          sx={{
-            minHeight: 56,
-            py: 0.5,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 1.5,
-            overflowX: "auto",
-            scrollbarWidth: "none",
-            "&::-webkit-scrollbar": { display: "none" },
-          }}
-        >
-          {/* 左侧：Logo 与标题 */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              flexShrink: 0,
-            }}
-          >
-            <Box
-              component="a"
-              href="https://github.com/fishjar/kiss-translator"
-              target="_blank"
-              rel="noreferrer noopener"
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                mr: 0.5,
-                flexShrink: 0,
-                textDecoration: "none",
-                color: "inherit",
-                cursor: "pointer",
-                "&:hover": {
-                  opacity: 0.85,
-                },
-              }}
-              title="KISS Translator (GitHub)"
-            >
-              <Logo size={24} />
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap" }}
-              >
-                {i18n("file_translate", "文件翻译")}
-              </Typography>
-            </Box>
-            {connectionStatus}
-          </Box>
-
-          {/* 顶栏右侧：已选文件胶囊、操作按钮、系统辅助（统一高度 32px） */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              ml: 1.5,
-              flexShrink: 0,
-              flexWrap: "nowrap",
-              height: 32,
-            }}
-          >
+      <FileTranslateToolbar
+        actions={
+          <>
             {file && (
               <Chip
                 icon={
@@ -1844,6 +2071,8 @@ export default function FileTranslateView() {
                     <ImageRoundedIcon sx={{ fontSize: 16 }} />
                   ) : mode === "epub" ? (
                     <MenuBookRoundedIcon sx={{ fontSize: 16 }} />
+                  ) : mode === "pdf" ? (
+                    <PictureAsPdfRoundedIcon sx={{ fontSize: 16 }} />
                   ) : (
                     <InsertDriveFileRoundedIcon sx={{ fontSize: 16 }} />
                   )
@@ -1851,7 +2080,9 @@ export default function FileTranslateView() {
                 label={
                   mode === "epub" && epubBook
                     ? `${epubBook.title} (${epubBook.spineItems.length} ${i18n("epub_chapters_count", "章")})`
-                    : `${file.name} (${formatFileSize(file.size)})`
+                    : mode === "pdf" && pdfState.pdf
+                      ? `${file.name} (${pdfState.pdf.numPages} ${i18n("pdf_pages_count", "页")})`
+                      : `${file.name} (${formatFileSize(file.size)})`
                 }
                 variant="outlined"
                 color="primary"
@@ -1875,6 +2106,11 @@ export default function FileTranslateView() {
               />
             )}
 
+            {mode === "image" && busy && (
+              <Typography variant="caption" role="status">
+                {imageStage === "recognize" ? i18n("image_recognizing", "正在识别...") : imageStage === "synthesize" ? i18n("image_synthesizing", "正在合成...") : i18n("translating", "正在翻译...")}
+              </Typography>
+            )}
             {mode === "epub" ? (
               <Button
                 variant="contained"
@@ -1897,41 +2133,175 @@ export default function FileTranslateView() {
               >
                 {i18n("epub_translate_book", "翻译整本书")}
               </Button>
+            ) : mode === "pdf" ? (
+              <>
+                <ButtonGroup
+                  variant="contained"
+                  size="small"
+                  sx={{ height: 32, boxShadow: "none" }}
+                >
+                  <Tooltip
+                    title={pdfActionDisabledInfo.reason || ""}
+                    placement="bottom"
+                    disableHoverListener={!pdfActionDisabledInfo.reason}
+                  >
+                    <span style={{ display: "inline-flex", height: "100%" }}>
+                      <Button
+                        startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
+                        disabled={pdfActionDisabledInfo.disabled}
+                        onClick={handlePdfMainAction}
+                        sx={{
+                          height: 32,
+                          fontWeight: 600,
+                          px: 1.75,
+                          whiteSpace: "nowrap",
+                          textTransform: "none",
+                          fontSize: 13,
+                          boxShadow: "none",
+                          borderTopRightRadius: 0,
+                          borderBottomRightRadius: 0,
+                          "&:hover": { boxShadow: "none" },
+                        }}
+                      >
+                        {pdfActionLabel}
+                      </Button>
+                    </span>
+                  </Tooltip>
+                  <Button
+                    size="small"
+                    disabled={!file || busy || pdfState.busy}
+                    aria-label={i18n("pdf_actions", "PDF 处理步骤")}
+                    aria-haspopup="menu"
+                    aria-expanded={Boolean(pdfActionAnchor)}
+                    onClick={(e) => setPdfActionAnchor(e.currentTarget)}
+                    sx={{ px: 0.5 }}
+                  >
+                    <ArrowDropDownRoundedIcon />
+                  </Button>
+                </ButtonGroup>
+                <Menu
+                  anchorEl={pdfActionAnchor}
+                  open={Boolean(pdfActionAnchor)}
+                  onClose={() => setPdfActionAnchor(null)}
+                >
+                  <MenuItem
+                    selected={pdfAction === "all"}
+                    disabled={!file || busy || pdfState.busy}
+                    onClick={() => {
+                      setPdfAction("all");
+                      setPdfActionAnchor(null);
+                    }}
+                  >
+                    {i18n("pdf_translate_one_click", "一键翻译")}
+                  </MenuItem>
+                  <Tooltip
+                    title={
+                      !hasLayoutService
+                        ? i18n(
+                            "layout_service_empty",
+                            "未配置界面分析服务（请在服务配置中添加）"
+                          )
+                        : ""
+                    }
+                    placement="right"
+                  >
+                    <span>
+                      <MenuItem
+                        selected={pdfAction === "detect"}
+                        disabled={
+                          !file || busy || pdfState.busy || !hasLayoutService
+                        }
+                        onClick={() => {
+                          setPdfAction("detect");
+                          setPdfActionAnchor(null);
+                        }}
+                      >
+                        {i18n("pdf_detect_layout", "布局检测")}
+                      </MenuItem>
+                    </span>
+                  </Tooltip>
+                  <Tooltip
+                    title={
+                      !pdfState.hasLayoutResult
+                        ? i18n("pdf_detect_layout_first", "请先执行布局检测")
+                        : ""
+                    }
+                    placement="right"
+                  >
+                    <span>
+                      <MenuItem
+                        selected={pdfAction === "recognize"}
+                        disabled={
+                          !file ||
+                          busy ||
+                          pdfState.busy ||
+                          !pdfState.hasLayoutResult
+                        }
+                        onClick={() => {
+                          setPdfAction("recognize");
+                          setPdfActionAnchor(null);
+                        }}
+                      >
+                        {i18n("pdf_recognize_text", "文本识别")}
+                      </MenuItem>
+                    </span>
+                  </Tooltip>
+                  <Tooltip
+                    title={
+                      !pdfState.blocks?.length
+                        ? i18n("pdf_recognize_text_first", "请先完成文本识别")
+                        : ""
+                    }
+                    placement="right"
+                  >
+                    <span>
+                      <MenuItem
+                        selected={pdfAction === "translate"}
+                        disabled={
+                          !file ||
+                          busy ||
+                          pdfState.busy ||
+                          !pdfState.blocks?.length ||
+                          !connected
+                        }
+                        onClick={() => {
+                          setPdfAction("translate");
+                          setPdfActionAnchor(null);
+                        }}
+                      >
+                        {i18n("pdf_translate_text", "文本翻译")}
+                      </MenuItem>
+                    </span>
+                  </Tooltip>
+                </Menu>
+              </>
             ) : mode === "image" ? (
-              <Button
-                variant="contained"
-                color="primary"
-                size="small"
-                startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
-                disabled={
-                  !connected ||
-                  !file ||
-                  busy ||
-                  (mode === "image" && !hasOcrService)
-                }
-                title={
-                  mode === "image" && !hasOcrService
-                    ? i18n(
-                        "ocr_service_missing_guide",
-                        "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
-                      )
-                    : ""
-                }
-                onClick={() => run("paragraph")}
-                sx={{
-                  height: 32,
-                  borderRadius: "4px",
-                  fontWeight: 600,
-                  px: 1.75,
-                  whiteSpace: "nowrap",
-                  textTransform: "none",
-                  fontSize: 13,
-                  boxShadow: "none",
-                  "&:hover": { boxShadow: "none" },
-                }}
-              >
-                {i18n("start_translation", "开始翻译")}
-              </Button>
+              <>
+                <ButtonGroup variant="contained" size="small" sx={{ height: 32, boxShadow: "none" }}>
+                  <Button startIcon={<PlayArrowRoundedIcon />} disabled={!connected || !file || busy || !hasOcrService}
+                    onClick={() => runImageAction("all")}>
+                    {i18n("image_translate_all", "一键翻译")}
+                  </Button>
+                  <Button disabled={!file || busy} aria-label={i18n("image_actions", "图片处理步骤")}
+                    aria-haspopup="menu" aria-expanded={Boolean(imageActionAnchor)}
+                    onClick={(event) => setImageActionAnchor(event.currentTarget)}>
+                    <ArrowDropDownRoundedIcon />
+                  </Button>
+                </ButtonGroup>
+                <Menu anchorEl={imageActionAnchor} open={Boolean(imageActionAnchor)} onClose={() => setImageActionAnchor(null)}>
+                  <MenuItem disabled={!connected || !hasOcrService || busy} onClick={() => runImageAction("recognize")}>
+                    {i18n("image_recognize", "识别文本")}
+                  </MenuItem>
+                  <MenuItem disabled={!connected || !rows.length || busy} onClick={() => runImageAction("translate")}
+                    title={!rows.length ? i18n("image_recognize_first", "请先识别文本") : ""}>
+                    {i18n("image_translate_text", "翻译文本")}
+                  </MenuItem>
+                  <MenuItem disabled={!imageTranslationComplete || !hasImageCoordinates || busy} onClick={() => runImageAction("synthesize")}
+                    title={!imageTranslationComplete ? i18n("image_translate_first", "请先完成文本翻译") : !hasImageCoordinates ? i18n("image_no_coordinates", "识别结果没有区域坐标，无法合成译图") : ""}>
+                    {i18n("image_synthesize", "合成图片")}
+                  </MenuItem>
+                </Menu>
+              </>
             ) : (
               <>
                 <ButtonGroup
@@ -2018,13 +2388,16 @@ export default function FileTranslateView() {
               </>
             )}
 
-            {busy && (
+            {(busy || (mode === "pdf" && pdfState.busy)) && (
               <Button
                 variant="outlined"
                 color="inherit"
                 size="small"
                 startIcon={<StopRoundedIcon sx={{ fontSize: 18 }} />}
-                onClick={() => controller.current?.abort()}
+                onClick={() => {
+                  controller.current?.abort();
+                  if (mode === "pdf") pdfWorkspaceRef.current?.abort();
+                }}
                 sx={{
                   height: 32,
                   borderRadius: "4px",
@@ -2114,6 +2487,77 @@ export default function FileTranslateView() {
                     }}
                   >
                     {i18n("export_chapter_html", "导出当前章节 HTML (.html)")}
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : mode === "pdf" ? (
+              <>
+                <ButtonGroup
+                  variant="outlined"
+                  color="inherit"
+                  size="small"
+                  disabled={!pdfState.blocks?.length || busy || pdfState.busy}
+                  sx={{
+                    height: 32,
+                    borderRadius: "4px",
+                  }}
+                >
+                  <Button
+                    startIcon={
+                      <FileDownloadRoundedIcon sx={{ fontSize: 18 }} />
+                    }
+                    onClick={() => pdfWorkspaceRef.current?.download("md")}
+                    sx={{
+                      height: 32,
+                      textTransform: "none",
+                      fontSize: 13,
+                      px: 1.5,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {i18n("download_md", "下载 Markdown")}
+                  </Button>
+                  <Button
+                    size="small"
+                    color="inherit"
+                    onClick={(e) => setDownloadMenuAnchor(e.currentTarget)}
+                    disabled={!pdfState.blocks?.length || busy || pdfState.busy}
+                    sx={{ px: 0.5, minWidth: 28, height: 32 }}
+                    title={i18n("more_export_options", "更多导出选项")}
+                  >
+                    <ArrowDropDownRoundedIcon sx={{ fontSize: 20 }} />
+                  </Button>
+                </ButtonGroup>
+                <Menu
+                  anchorEl={downloadMenuAnchor}
+                  open={Boolean(downloadMenuAnchor)}
+                  onClose={() => setDownloadMenuAnchor(null)}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                  transformOrigin={{ vertical: "top", horizontal: "right" }}
+                >
+                  <MenuItem
+                    onClick={() => {
+                      setDownloadMenuAnchor(null);
+                      pdfWorkspaceRef.current?.download("md");
+                    }}
+                  >
+                    {i18n("export_markdown_file", "导出 Markdown 文档 (.md)")}
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setDownloadMenuAnchor(null);
+                      pdfWorkspaceRef.current?.download("html");
+                    }}
+                  >
+                    {i18n("export_html_file", "导出独立 HTML (.html)")}
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setDownloadMenuAnchor(null);
+                      pdfWorkspaceRef.current?.download("zip");
+                    }}
+                  >
+                    {i18n("export_zip_file", "导出 Markdown + 资源 ZIP (.zip)")}
                   </MenuItem>
                 </Menu>
               </>
@@ -2210,134 +2654,39 @@ export default function FileTranslateView() {
                     : i18n("download_txt", "下载译文 TXT")}
               </Button>
             )}
-
-            <IconButton
-              onClick={toggleTheme}
-              aria-label={i18n("theme_toggle", "切换主题")}
-              size="small"
-              sx={{
-                width: 32,
-                height: 32,
-                p: 0.5,
-                color: "text.secondary",
-                "&:hover": { color: "text.primary" },
-              }}
-            >
-              <DarkModeRoundedIcon />
-            </IconButton>
-
-            <Tooltip title={i18n("open_options", "打开设置")}>
-              <IconButton
-                size="small"
-                onClick={() => openOptionsPage()}
-                sx={{
-                  width: 32,
-                  height: 32,
-                  p: 0.5,
-                  color: "text.secondary",
-                  "&:hover": { color: "text.primary" },
-                }}
-              >
-                <SettingsRoundedIcon sx={{ fontSize: 20 }} />
-              </IconButton>
-            </Tooltip>
-
-            {/* 折叠/展开配置小箭头按钮，始终常驻在第一行最右侧 */}
-            <Tooltip
-              title={
-                optionsExpanded
-                  ? i18n("collapse_options", "收起配置")
-                  : i18n("expand_options", "展开配置")
-              }
-            >
-              <IconButton
-                size="small"
-                onClick={() => setOptionsExpanded((prev) => !prev)}
-                aria-expanded={optionsExpanded}
-                aria-label={
-                  optionsExpanded
-                    ? i18n("collapse_options", "收起配置")
-                    : i18n("expand_options", "展开配置")
-                }
-                sx={{
-                  width: 32,
-                  height: 32,
-                  p: 0.5,
-                  color: "text.secondary",
-                  "&:hover": {
-                    color: "primary.main",
-                    bgcolor: "action.hover",
-                  },
-                }}
-              >
-                <KeyboardArrowDownRoundedIcon
-                  sx={{
-                    fontSize: 20,
-                    transform: optionsExpanded
-                      ? "rotate(180deg)"
-                      : "rotate(0deg)",
-                    transition: "transform 0.2s ease-in-out",
-                  }}
-                />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-
-        {/* 第二行：流式展示核心下拉配置 */}
-        <Collapse in={optionsExpanded} timeout="auto" unmountOnExit={false}>
-          <Box
-            sx={{
-              pt: 2,
-              pb: 1.25,
-              borderTop: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            {renderConfigControls()}
-          </Box>
-        </Collapse>
-
-        {/* 紧凑贴底进度条 */}
-        {busy && (
-          <Box
-            sx={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              width: "100%",
-            }}
-          >
-            <LinearProgress
-              variant={progress[1] ? "determinate" : "indeterminate"}
-              value={
-                progress[1] ? (progress[0] / progress[1]) * 100 : undefined
-              }
-              sx={{ height: 3 }}
-            />
-          </Box>
-        )}
-      </Paper>
+          </>
+        }
+        configuration={renderConfigControls()}
+        busy={busy || (mode === "pdf" && pdfState.busy)}
+        progress={
+          mode === "pdf" && pdfState.progress
+            ? [pdfState.progress.done, pdfState.progress.total]
+            : progress
+        }
+      />
 
       {/* 错误提示浮条 */}
       {error && (
-        <Alert
+        <ReaderAlert
           severity="error"
           onClose={() => setError("")}
-          sx={{ borderRadius: 0, py: 0.5, px: 1.5 }}
+          sx={{ mx: 1.5, mt: 1.25 }}
         >
           {error}
-        </Alert>
+        </ReaderAlert>
       )}
 
       {connectionNotice}
 
       {/* 模块 2：下面全部用来浏览和翻译（未上传展示上传框，上传后展示左右双栏或窄屏上下双栏） */}
       {inputNotices.length > 0 && (
-        <Alert severity="info" onClose={() => setInputNotices([])}>
+        <ReaderAlert
+          severity="info"
+          onClose={() => setInputNotices([])}
+          sx={{ mx: 1.5, mt: 1.25 }}
+        >
           {inputNotices.join("；")}
-        </Alert>
+        </ReaderAlert>
       )}
       <Box
         sx={{
@@ -2396,7 +2745,7 @@ export default function FileTranslateView() {
             <Typography variant="body2" color="text.secondary">
               {i18n(
                 "dropzone_hint_all",
-                "支持 .txt 文本、.md Markdown 文档、.epub 电子书及 PNG、JPEG、WebP 格式图片"
+                "支持 PDF、.txt 文本、.md Markdown 文档、.epub 电子书及 PNG、JPEG、WebP 格式图片"
               )}
             </Typography>
           </Box>
@@ -2420,6 +2769,19 @@ export default function FileTranslateView() {
             rawStyleCode={rawStyleCode}
             hasRichText={scene?.hasRichText}
           />
+        ) : mode === "pdf" && file ? (
+          <Suspense fallback={<Box p={3}>正在加载 PDF 阅读器…</Box>}>
+            <PdfWorkspace
+              ref={pdfWorkspaceRef}
+              key={taskIdRef.current}
+              file={file}
+              hasLayoutService={hasLayoutService}
+              activeLayoutApi={activeLayoutApi}
+              onStateChange={setPdfState}
+              onChangeFile={selectFile}
+              onClear={handleClearFile}
+            />
+          </Suspense>
         ) : (
           /* 文件上传后：900px 以上左右双栏，900px 以下上下分割各占 50% 可用高度 */
           <Grid
@@ -2480,12 +2842,14 @@ export default function FileTranslateView() {
                       alignItems: "center",
                       gap: 1.5,
                       minWidth: 0,
+                      flex: 1,
                     }}
                   >
                     <Typography
                       variant="subtitle2"
                       sx={{
                         fontWeight: 700,
+                        mr: "auto",
                         display: "flex",
                         alignItems: "center",
                         gap: 1,
@@ -2707,18 +3071,7 @@ export default function FileTranslateView() {
                       }
                       title={i18n("click_to_zoom", "点击放大查看原图")}
                     >
-                      <Box
-                        component="img"
-                        src={preview}
-                        alt={i18n("source_image_title", "原图预览")}
-                        sx={{
-                          maxWidth: "100%",
-                          maxHeight: "100%",
-                          objectFit: "contain",
-                          borderRadius: 1,
-                          boxShadow: 1,
-                        }}
-                      />
+                      <ImageSourcePreview src={preview} alt={i18n("source_image_title", "原图预览")} poly={hoveredImageRow?.poly} />
                       <Chip
                         className="kt-zoom-overlay"
                         icon={<ZoomInRoundedIcon />}
@@ -2787,12 +3140,14 @@ export default function FileTranslateView() {
                       alignItems: "center",
                       gap: 1.5,
                       minWidth: 0,
+                      flex: 1,
                     }}
                   >
                     <Typography
                       variant="subtitle2"
                       sx={{
                         fontWeight: 700,
+                        mr: "auto",
                         display: "flex",
                         alignItems: "center",
                         gap: 0.75,
@@ -2819,6 +3174,11 @@ export default function FileTranslateView() {
                       onChange={(e, val) => val && setResultViewMode(val)}
                       sx={{ height: 28, flexShrink: 0 }}
                     >
+                      {mode === "image" && (
+                        <ToggleButton value="source" sx={{ px: 1.25, py: 0.25, fontSize: 12 }}>
+                          {i18n("view_source_only", "原文")}
+                        </ToggleButton>
+                      )}
                       <ToggleButton
                         value="target"
                         sx={{
@@ -2897,7 +3257,9 @@ export default function FileTranslateView() {
                       onClick={() =>
                         copyText(
                           currentResultContent,
-                          resultViewMode === "bilingual"
+                          resultViewMode === "source"
+                            ? i18n("view_source_only", "原文")
+                            : resultViewMode === "bilingual"
                             ? i18n("bilingual_text", "双语")
                             : i18n("translated_text", "译文")
                         )
@@ -3019,8 +3381,8 @@ export default function FileTranslateView() {
                               {busy
                                 ? i18n("translating", "正在翻译...")
                                 : i18n(
-                                    "empty_result_prompt",
-                                    "已就绪，请点击顶部“开始翻译”按钮"
+                                    mode === "image" ? "image_ready_prompt" : "empty_result_prompt",
+                                    mode === "image" ? "已就绪，请点击顶部“一键翻译”或选择处理步骤" : "已就绪，请点击顶部“开始翻译”按钮"
                                   )}
                             </Typography>
                           </>
@@ -3079,7 +3441,7 @@ export default function FileTranslateView() {
                             }}
                           />
                         </Box>
-                      ) : isVlmModel ? (
+                      ) : !hasImageCoordinates ? (
                         <Box
                           sx={{
                             m: "auto",
@@ -3102,8 +3464,8 @@ export default function FileTranslateView() {
                             }}
                           >
                             {i18n(
-                              "vlm_no_inpainting_title",
-                              "VLM 端到端模型不支持生成译图"
+                              "image_no_coordinates",
+                              "识别结果没有区域坐标，无法合成译图"
                             )}
                           </Typography>
                           <Typography
@@ -3112,8 +3474,8 @@ export default function FileTranslateView() {
                             sx={{ lineHeight: 1.6 }}
                           >
                             {i18n(
-                              "vlm_no_inpainting_desc",
-                              "当前选中的 VLM 模型直接输出文本翻译，如需生成原位替换译图请选用 PaddleOCR 模型，或切换上方「译文」与「双语」查看对照。"
+                              "image_coordinates_hint",
+                              "请选择能返回区域坐标的 OCR 服务重新识别，或切换到文本视图查看结果。"
                             )}
                           </Typography>
                         </Box>
@@ -3146,7 +3508,9 @@ export default function FileTranslateView() {
                       >
                         {rows.length > 0 ? (
                           rows.map((row, idx) => (
-                            <Box key={idx}>
+                            <Box key={idx}
+                              onMouseEnter={mode === "image" ? () => setHoveredImageRow(row) : undefined}
+                              onMouseLeave={mode === "image" ? () => setHoveredImageRow(null) : undefined}>
                               {resultViewMode === "bilingual" && (
                                 <Typography
                                   variant="body2"
@@ -3182,7 +3546,7 @@ export default function FileTranslateView() {
                                       : undefined
                                   }
                                 >
-                                  {row.target}
+                                  {resultViewMode === "source" ? row.source : row.target}
                                 </span>
                               </Typography>
                             </Box>
@@ -3255,8 +3619,8 @@ export default function FileTranslateView() {
                             {busy
                               ? i18n("translating", "正在翻译...")
                               : i18n(
-                                  "empty_result_prompt",
-                                  "已就绪，请点击顶部“开始翻译”按钮"
+                                  mode === "image" ? "image_ready_prompt" : "empty_result_prompt",
+                                  mode === "image" ? "已就绪，请点击顶部“一键翻译”或选择处理步骤" : "已就绪，请点击顶部“开始翻译”按钮"
                                 )}
                           </Typography>
                         </>

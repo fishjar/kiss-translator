@@ -234,6 +234,18 @@ export class FileTranslationClient {
   }
 
   async recognize(file, serviceId, signal, scene) {
+    return this.uploadImage(file, "recognizeImage", { serviceId, ...(scene ? { scene } : {}) }, signal);
+  }
+
+  analyzeLayout(file, modelId, device, signal) {
+    return this.uploadImage(file, "analyzeLayout", { modelId, device }, signal);
+  }
+
+  recognizeDocumentRegion(file, modelId, taskMode, device, signal) {
+    return this.uploadImage(file, "recognizeDocumentRegion", { modelId, taskMode, device }, signal);
+  }
+
+  async uploadImage(file, method, params, signal) {
     const { uploadId } = await this.request(
       "uploadBegin",
       { size: file.size, type: file.type },
@@ -255,8 +267,8 @@ export class FileTranslationClient {
         );
       }
       return await this.request(
-        "recognizeImage",
-        { uploadId, serviceId, ...(scene ? { scene } : {}) },
+        method,
+        { uploadId, ...params },
         { signal }
       );
     } finally {

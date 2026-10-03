@@ -18,7 +18,7 @@ import { getRuntimeStatus } from "../../../localAi/core/runtimeClient";
 import { useI18n } from "../../../hooks/I18n";
 import Settings from "./Settings";
 
-const services = ["decision", "asr", "ocr", "llm", "vlm", "tts"];
+const services = ["decision", "asr", "ocr", "llm", "vlm", "tts", "doc"];
 
 export default function RuntimeTab() {
   const i18n = useI18n();

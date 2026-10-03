@@ -54,7 +54,7 @@ export default defineConfig({
         offscreen: resolve(__dirname, "src/localAi/offscreen.ts"),
         "ocr-worker": paddleEntry,
         ...Object.fromEntries(
-          ["asr", "jev", "llm", "llm-onnx", "tts"].map((name) => [
+          ["asr", "jev", "llm", "llm-onnx", "tts", "doc"].map((name) => [
             `${name}-worker`,
             resolve(__dirname, `src/localAi/workers/${name}-worker.ts`),
           ])

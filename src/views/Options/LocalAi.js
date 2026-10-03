@@ -11,6 +11,7 @@ import Vlm from "./LocalAiTabs/Vlm";
 import Llm from "./LocalAiTabs/Llm";
 import Tts from "./LocalAiTabs/Tts";
 import Runtime from "./LocalAiTabs/Runtime";
+import Layout from "./LocalAiTabs/Layout";
 import { useI18n } from "../../hooks/I18n";
 
 export default function LocalAi() {
@@ -31,6 +32,11 @@ export default function LocalAi() {
     { id: "jev", label: i18n("local_ai_tab_jev", "JEV"), Component: Jev },
     { id: "asr", label: i18n("local_ai_tab_asr", "ASR"), Component: Asr },
     { id: "ocr", label: i18n("local_ai_tab_ocr", "OCR"), Component: Ocr },
+    {
+      id: "layout",
+      label: i18n("local_ai_tab_layout", "LAYOUT"),
+      Component: Layout,
+    },
     { id: "vlm", label: i18n("local_ai_tab_vlm", "VLM"), Component: Vlm },
     { id: "llm", label: i18n("local_ai_tab_llm", "LLM"), Component: Llm },
     { id: "tts", label: i18n("local_ai_tab_tts", "TTS"), Component: Tts },
