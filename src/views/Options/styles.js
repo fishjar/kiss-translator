@@ -84,13 +84,18 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-nav__setting:hover, .kt-options-nav__setting[aria-current] { background: var(--kt-sf2); color: var(--kt-on); }
 .kt-options-page [data-settings-search-target] { outline: none; isolation: isolate; scroll-margin-block: 100px; }
 [data-settings-search-positioned] { position: relative; }
-.kt-options-page [data-settings-search-target]::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; background: var(--kt-pri); opacity: .045; pointer-events: none; animation: kt-settings-search-highlight 6s ease-in-out; }
+.kt-options-page [data-settings-search-target]::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: 12px; background: var(--kt-pri); opacity: 0; pointer-events: none; animation: kt-settings-search-highlight 6s ease-in-out; }
 @keyframes kt-settings-search-highlight {
-  0%, 50%, 100% { opacity: .045; }
+  0%, 50%, 100% { opacity: 0; }
   15%, 35%, 65%, 85% { opacity: .16; }
 }
+@keyframes kt-settings-search-highlight-static {
+  from { opacity: .1; }
+  to { opacity: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .kt-options-page [data-settings-search-target]::after { animation: none; opacity: .1; }
+  /* Keep a temporary static cue instead of the global reduced-motion shortcut. */
+  .kt-options-page [data-settings-search-target]::after { animation: kt-settings-search-highlight-static 6s step-end; animation-duration: 6s !important; }
 }
 .kt-options-sidebar__close { width: 40px; height: 40px; display: grid; place-items: center; position: absolute; top: 14px; right: 12px; z-index: 1; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--kt-onv); cursor: pointer; }
 @media (hover: hover) {
