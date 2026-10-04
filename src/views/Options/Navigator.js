@@ -174,15 +174,17 @@ export default function Navigator({ open, isMobile = false, onClose }) {
           placeholder={i18n("options_search")}
           aria-label={i18n("options_search")}
         />
-        <button
-          type="button"
-          className="kt-options-search__clear"
-          aria-label={i18n("options_clear_search")}
-          title={i18n("options_clear_search")}
-          onClick={clearSearch}
-        >
-          <CloseRoundedIcon />
-        </button>
+        {query.length > 0 && (
+          <button
+            type="button"
+            className="kt-options-search__clear"
+            aria-label={i18n("options_clear_search")}
+            title={i18n("options_clear_search")}
+            onClick={clearSearch}
+          >
+            <CloseRoundedIcon />
+          </button>
+        )}
       </div>
       <nav className="kt-options-nav">
         {visibleGroups.length ? (

@@ -179,7 +179,7 @@ test("groups concrete Chinese settings below their navigation category and links
   container.remove();
 });
 
-test("clears search and its target with an always available button while preserving the page", () => {
+test("shows clear while text is present, including after blur, and clears its target while preserving the page", () => {
   function Location() {
     const location = useLocation();
     return (
@@ -204,10 +204,7 @@ test("clears search and its target with an always available button while preserv
     )
   );
   const input = container.querySelector('input[type="search"]');
-  const clear = container.querySelector(
-    'button[aria-label="options_clear_search"]'
-  );
-  expect(clear).not.toBeNull();
+  expect(container.querySelector(".kt-options-search__clear")).toBeNull();
   act(() => {
     Object.getOwnPropertyDescriptor(
       HTMLInputElement.prototype,
@@ -218,6 +215,11 @@ test("clears search and its target with an always available button while preserv
   expect(
     container.querySelectorAll(".kt-options-nav__setting").length
   ).toBeGreaterThan(0);
+  const clear = container.querySelector(
+    'button[aria-label="options_clear_search"]'
+  );
+  expect(clear).not.toBeNull();
+  input.focus();
   input.blur();
   expect(container.querySelector(".kt-options-search__clear")).toBe(clear);
   act(() => clear.click());
@@ -229,7 +231,7 @@ test("clears search and its target with an always available button while preserv
   expect(container.querySelector("output").textContent).toBe(
     "/input?other=keep#section"
   );
-  expect(container.querySelector(".kt-options-search__clear")).toBe(clear);
+  expect(container.querySelector(".kt-options-search__clear")).toBeNull();
   act(() => root.unmount());
   container.remove();
 });
