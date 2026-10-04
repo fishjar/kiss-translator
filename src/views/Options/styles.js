@@ -73,6 +73,11 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-nav__link.active { background: var(--kt-pric); color: var(--kt-onpric); font-weight: 650; }
 .kt-options-nav__link svg { width: 20px; height: 20px; flex: none; }
 .kt-options-nav__empty { padding: 24px 16px; color: var(--kt-onv); font-size: 12px; text-align: center; }
+.kt-options-nav__result { margin-bottom: 12px; }
+.kt-options-nav__settings { margin: 4px 0 0 26px; padding: 0 0 0 12px; border-left: 1px solid var(--kt-linev); list-style: none; }
+.kt-options-nav__setting { display: block; padding: 9px 10px; border-radius: 10px; color: var(--kt-onv); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; text-decoration: none; }
+.kt-options-nav__setting:hover, .kt-options-nav__setting[aria-current] { background: var(--kt-sf2); color: var(--kt-on); }
+[data-settings-search-target] { outline: 3px solid var(--kt-pri); outline-offset: 4px; scroll-margin-block: 100px; }
 .kt-options-sidebar__close { width: 40px; height: 40px; display: grid; place-items: center; position: absolute; top: 14px; right: 12px; z-index: 1; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--kt-onv); cursor: pointer; }
 @media (hover: hover) {
   .kt-options-sidebar__close:hover { background: var(--kt-sf2); color: var(--kt-on); }

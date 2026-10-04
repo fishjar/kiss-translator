@@ -96,6 +96,11 @@ import {
 import ValidationInput from "../../hooks/ValidationInput";
 import { usePromptList } from "../../hooks/Prompt";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
+import {
+  useRevealSearchTarget,
+  useSettingsSearchTarget,
+} from "./SettingsSearchTarget";
+import { supportsApiSearchTarget } from "./apiSearch";
 
 const API_LIST_CONTROL_SIZE = 24;
 const API_LIST_CONTROL_GAP = 0.5;
@@ -248,6 +253,8 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
   const i18n = useI18n();
   const [formData, setFormData] = useState(() => api || {});
   const [showMore, setShowMore] = useState(false);
+  useRevealSearchTarget(setShowMore);
+  const searchTarget = useSettingsSearchTarget();
   const [modelOptions, setModelOptions] = useState([]);
   const [modelThinkingCapabilities, setModelThinkingCapabilities] = useState(
     {}
@@ -1084,27 +1091,28 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
               </Box>
             )}
 
-            {API_SPE_TYPES.stream.has(apiType) && useStream && (
-              <Box>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  name="streamRenderMode"
-                  value={streamRenderMode}
-                  label={i18n("stream_render_mode")}
-                  onChange={handleChange}
-                >
-                  <MenuItem value="disabled">{i18n("disable")}</MenuItem>
-                  <MenuItem value="realtime">
-                    {i18n("stream_render_realtime")}
-                  </MenuItem>
-                  <MenuItem value="segment">
-                    {i18n("stream_render_segment")}
-                  </MenuItem>
-                </TextField>
-              </Box>
-            )}
+            {API_SPE_TYPES.stream.has(apiType) &&
+              (useStream || searchTarget === "stream_render_mode") && (
+                <Box>
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    name="streamRenderMode"
+                    value={streamRenderMode}
+                    label={i18n("stream_render_mode")}
+                    onChange={handleChange}
+                  >
+                    <MenuItem value="disabled">{i18n("disable")}</MenuItem>
+                    <MenuItem value="realtime">
+                      {i18n("stream_render_realtime")}
+                    </MenuItem>
+                    <MenuItem value="segment">
+                      {i18n("stream_render_segment")}
+                    </MenuItem>
+                  </TextField>
+                </Box>
+              )}
 
             {API_SPE_TYPES.context.has(apiType) && (
               <>
@@ -1233,31 +1241,33 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                 </MenuItem>
               </TextField>
             </Box>
-            {thinkingMode === "enabled" && thinkingEfforts && (
-              <Box>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  name="thinkingEffort"
-                  value={selectedThinkingEffort}
-                  label={i18n("thinking_effort")}
-                  onChange={handleChange}
-                >
-                  {thinkingEfforts.map((e) => (
-                    <MenuItem key={e.value} value={e.value}>
-                      {e.label}
-                    </MenuItem>
-                  ))}
-                  {(apiType !== OPT_TRANS_OPENROUTER ||
-                    thinkingEffort === null) && (
-                    <MenuItem value="_default">
-                      {i18n("thinking_effort_default")}
-                    </MenuItem>
-                  )}
-                </TextField>
-              </Box>
-            )}
+            {(thinkingMode === "enabled" ||
+              searchTarget === "thinking_effort") &&
+              thinkingEfforts && (
+                <Box>
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    name="thinkingEffort"
+                    value={selectedThinkingEffort}
+                    label={i18n("thinking_effort")}
+                    onChange={handleChange}
+                  >
+                    {thinkingEfforts.map((e) => (
+                      <MenuItem key={e.value} value={e.value}>
+                        {e.label}
+                      </MenuItem>
+                    ))}
+                    {(apiType !== OPT_TRANS_OPENROUTER ||
+                      thinkingEffort === null) && (
+                      <MenuItem value="_default">
+                        {i18n("thinking_effort_default")}
+                      </MenuItem>
+                    )}
+                  </TextField>
+                </Box>
+              )}
           </Box>
         </Box>
       )}
@@ -1978,6 +1988,24 @@ export default function Apis() {
     },
     [confirmDiscardDetailChanges, selectedApiSlug]
   );
+
+  const searchTarget = useSettingsSearchTarget();
+  const handledSearchTarget = useRef("");
+  useEffect(() => {
+    if (!searchTarget) {
+      handledSearchTarget.current = "";
+      return;
+    }
+    if (handledSearchTarget.current === searchTarget || !selectedApiItem)
+      return;
+    handledSearchTarget.current = searchTarget;
+    if (supportsApiSearchTarget(selectedApiItem.api, searchTarget)) return;
+    const match = apiItems.find(({ api }) =>
+      supportsApiSearchTarget(api, searchTarget)
+    );
+    // Reuse the editor's discard confirmation when searching from a dirty form.
+    if (match) void handleSelectApi(match.api.apiSlug);
+  }, [searchTarget, selectedApiItem, apiItems, handleSelectApi]);
 
   const handleCheckApi = useCallback((event, apiSlug) => {
     event.stopPropagation();

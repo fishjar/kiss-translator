@@ -68,6 +68,10 @@ import { useApiList } from "../../hooks/Api";
 import ShowMoreButton from "./ShowMoreButton";
 import { useConfirm } from "../../hooks/Confirm";
 import { useAllTextStyles } from "../../hooks/CustomStyles";
+import {
+  useRevealSearchTarget,
+  useSettingsSearchTarget,
+} from "./SettingsSearchTarget";
 
 let disabledSubRuleWriteQueue = Promise.resolve();
 
@@ -141,6 +145,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
   const [formValues, setFormValues] = useState(initialFormValues);
   // 是否展示高级选项（订阅规则查看时不显示 rules，默认展示高级；自定义规则默认折叠高级选项）
   const [showMore, setShowMore] = useState(!rules);
+  useRevealSearchTarget(setShowMore);
   // 获取当前已启用的翻译服务 API 列表
   const { enabledApis } = useApiList();
   // 获取自定义文本样式列表
@@ -1504,6 +1509,7 @@ function SubRulesEdit({ subList, beginSubAdd, addSub, updateDataCache }) {
   const [inputError, setInputError] = useState("");
   // 控制是否展示 URL 输入栏
   const [showInput, setShowInput] = useState(false);
+  useRevealSearchTarget(setShowInput, ["subscribe_url"]);
   const [loading, setLoading] = useState(false);
   const requestIdRef = useRef(0);
   const mountedRef = useRef(false);
@@ -1793,6 +1799,18 @@ export default function Rules() {
   const i18n = useI18n();
   // 当前处于激活状态的标签页索引 (0: 全局规则, 1: 自定义规则, 2: 订阅规则)
   const [activeTab, setActiveTab] = useState(0);
+  const searchTarget = useSettingsSearchTarget();
+  useEffect(() => {
+    if (searchTarget) {
+      setActiveTab(
+        ["subscribe_rules", "subscribe_url"].includes(searchTarget)
+          ? 2
+          : searchTarget === "inject_rules"
+            ? 1
+            : 0
+      );
+    }
+  }, [searchTarget]);
   const subRules = useSubRules();
   const rules = useRules();
   // Keep cache writes alive when a subscription action outlasts its tab.
