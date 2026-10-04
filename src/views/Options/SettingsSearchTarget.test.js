@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import SettingsSearchTarget, {
   findSettingsSearchTarget,
   getSettingsSearchHighlight,
+  getSettingsSearchShape,
+  getSettingsSearchRadius,
 } from "./SettingsSearchTarget";
 import { SettingsAdvanced, SettingsRow } from "./SettingsCard";
 
@@ -59,6 +61,46 @@ test("highlights the complete setting scope without swallowing neighboring rows"
       getSettingsSearchHighlight(container.querySelector(selector)).id
     ).toBe(expected);
   }
+});
+
+test("uses straight highlights for list rows and rounded highlights for panels", () => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <ul><li id="row" class="kt-settings-row"><strong>Row</strong></li></ul>
+    <div class="kt-overview-settings"><div class="MuiGrid-container"><div id="overview-item" class="MuiGrid-item"><div class="MuiFormControl-root"><label>Overview</label></div></div></div></div>
+    <section id="panel" data-settings-search-id="panel"><h2>Panel</h2></section>
+  `;
+  expect(getSettingsSearchShape(container.querySelector("#row strong"))).toBe(
+    "row"
+  );
+  expect(
+    getSettingsSearchShape(container.querySelector("#overview-item label"))
+  ).toBe("row");
+  expect(getSettingsSearchShape(container.querySelector("#panel"))).toBe(
+    "panel"
+  );
+});
+
+test("preserves asymmetric corners, follows input shapes, and allows explicit overrides", () => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <section id="panel" style="border-top-left-radius:16px;border-top-right-radius:8px;border-bottom-right-radius:0px;border-bottom-left-radius:12px 20px"></section>
+    <div id="field" class="MuiFormControl-root"><div class="MuiInputBase-root" style="border-top-left-radius:10px;border-top-right-radius:10px;border-bottom-right-radius:10px;border-bottom-left-radius:10px"></div><span>Helper</span></div>
+    <div id="row" class="kt-settings-row"><div class="MuiInputBase-root" style="border-top-left-radius:10px"></div></div>
+    <section id="custom" style="--kt-settings-search-radius:0px"></section>
+  `;
+  document.body.appendChild(container);
+  expect(getSettingsSearchRadius(container.querySelector("#panel"))).toBe(
+    "16px 8px 0px 12px / 16px 8px 0px 20px"
+  );
+  expect(getSettingsSearchRadius(container.querySelector("#field"))).toBe(
+    "10px 10px 10px 10px / 10px 10px 10px 10px"
+  );
+  expect(getSettingsSearchRadius(container.querySelector("#row"))).toBe("0px");
+  expect(getSettingsSearchRadius(container.querySelector("#custom"))).toBe(
+    "0px"
+  );
+  container.remove();
 });
 
 test("guides a hidden conditional field to its prerequisite without changing settings", async () => {
@@ -118,10 +160,12 @@ test("opens a lazy advanced section, focuses the matching row, and cleans up on 
   expect(document.activeElement).toBe(row);
   expect(scroll).toHaveBeenCalledWith({ block: "center", behavior: "instant" });
   expect(container.querySelector("input").value).toBe("500");
+  expect(row.style.getPropertyValue("--kt-settings-search-radius")).toBe("0px");
   act(() => render(""));
   expect(container.querySelector("[data-settings-search-target]")).toBeNull();
   expect(row.hasAttribute("tabindex")).toBe(false);
   expect(row.hasAttribute("data-settings-search-positioned")).toBe(false);
+  expect(row.style.getPropertyValue("--kt-settings-search-radius")).toBe("");
   act(() => root.unmount());
   container.remove();
   HTMLElement.prototype.scrollIntoView = originalScroll;

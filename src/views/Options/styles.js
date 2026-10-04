@@ -84,10 +84,11 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-nav__setting:hover, .kt-options-nav__setting[aria-current] { background: var(--kt-sf2); color: var(--kt-on); }
 .kt-options-page [data-settings-search-target] { outline: none; isolation: isolate; scroll-margin-block: 100px; }
 [data-settings-search-positioned] { position: relative; }
-.kt-options-page [data-settings-search-target]::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: 12px; background: var(--kt-pri); opacity: 0; pointer-events: none; animation: kt-settings-search-highlight 6s ease-in-out; }
+.kt-options-page [data-settings-search-target]::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: var(--kt-settings-search-radius, 12px); background: var(--kt-pri); opacity: 0; pointer-events: none; animation: kt-settings-search-highlight 6s ease-in-out; }
 @keyframes kt-settings-search-highlight {
-  0%, 50%, 100% { opacity: 0; }
-  15%, 35%, 65%, 85% { opacity: .16; }
+  0%, 25%, 100% { opacity: 0; }
+  7.5%, 17.5%, 32.5%, 42.5% { opacity: .16; }
+  50%, 60% { opacity: .045; }
 }
 @keyframes kt-settings-search-highlight-static {
   from { opacity: .1; }
