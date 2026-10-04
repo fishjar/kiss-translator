@@ -150,6 +150,7 @@ export default function FabAppearanceSetting({ fab, onChange }) {
     <Box
       component="section"
       className="kt-fab-appearance"
+      data-settings-search-id="fab_appearance"
       aria-labelledby="fab-appearance-title"
     >
       <style>{FLOATING_BUTTON_STYLES}</style>
@@ -215,7 +216,7 @@ export default function FabAppearanceSetting({ fab, onChange }) {
           </Typography>
         </Box>
         <Box className="kt-fab-appearance-controls">
-          <Box>
+          <Box data-settings-search-id="fab_opacity">
             <Box className="kt-fab-appearance-label-row">
               <Typography
                 component="label"
@@ -254,7 +255,7 @@ export default function FabAppearanceSetting({ fab, onChange }) {
               {i18n("fab_opacity_helper")}
             </FormHelperText>
           </Box>
-          <Box>
+          <Box data-settings-search-id="fab_size">
             <Box className="kt-fab-appearance-label-row">
               <Typography
                 component="label"

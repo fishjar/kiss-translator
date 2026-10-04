@@ -5580,6 +5580,15 @@ export const I18N = {
     tr: `Ayarlarda ara`,
     vi: `Tìm trong cài đặt`,
   },
+  options_clear_search: {
+    zh: `退出搜索`,
+    en: `Clear search`,
+    zh_TW: `退出搜尋`,
+    ja: `検索をクリア`,
+    ko: `검색 지우기`,
+    tr: `Aramayı temizle`,
+    vi: `Xóa tìm kiếm`,
+  },
   options_open_navigation: {
     zh: `打开设置导航`,
     en: `Open settings navigation`,

@@ -14,7 +14,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import SubtitlesRoundedIcon from "@mui/icons-material/SubtitlesRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../../components/Logo";
 import { useI18n } from "../../hooks/I18n";
 import { useSetting } from "../../hooks/Setting";
@@ -28,7 +28,23 @@ export default function Navigator({ open, isMobile = false, onClose }) {
   } = useSetting();
   const [query, setQuery] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
   const searching = Boolean(query.trim());
+  const clearSearch = () => {
+    setQuery("");
+    const params = new URLSearchParams(location.search);
+    if (params.has("setting")) {
+      params.delete("setting");
+      navigate(
+        {
+          pathname: location.pathname,
+          search: params.toString() ? `?${params}` : "",
+          hash: location.hash,
+        },
+        { replace: true }
+      );
+    }
+  };
 
   const groups = useMemo(
     () =>
@@ -149,7 +165,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
           </span>
         </span>
       </a>
-      <label className="kt-options-search">
+      <div className="kt-options-search">
         <SearchRoundedIcon />
         <input
           type="search"
@@ -158,7 +174,16 @@ export default function Navigator({ open, isMobile = false, onClose }) {
           placeholder={i18n("options_search")}
           aria-label={i18n("options_search")}
         />
-      </label>
+        <button
+          type="button"
+          className="kt-options-search__clear"
+          aria-label={i18n("options_clear_search")}
+          title={i18n("options_clear_search")}
+          onClick={clearSearch}
+        >
+          <CloseRoundedIcon />
+        </button>
+      </div>
       <nav className="kt-options-nav">
         {visibleGroups.length ? (
           visibleGroups.map((group) => (

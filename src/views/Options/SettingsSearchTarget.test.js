@@ -2,6 +2,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import SettingsSearchTarget, {
   findSettingsSearchTarget,
+  getSettingsSearchHighlight,
 } from "./SettingsSearchTarget";
 import { SettingsAdvanced, SettingsRow } from "./SettingsCard";
 
@@ -24,6 +25,40 @@ test("locates links and accordion summaries as well as input labels", () => {
   expect(findSettingsSearchTarget(container, "Project details").tagName).toBe(
     "DIV"
   );
+});
+
+test("prefers a stable setting key over duplicate or renamed labels", () => {
+  const container = document.createElement("div");
+  container.innerHTML =
+    '<label>Appearance</label><section hidden data-settings-search-id="appearance"></section><section id="panel" data-settings-search-id="appearance"><h2>New appearance title</h2><input /></section>';
+  expect(
+    findSettingsSearchTarget(container, "Appearance", "appearance").id
+  ).toBe("panel");
+});
+
+test("highlights the complete setting scope without swallowing neighboring rows", () => {
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <section id="panel"><h2>Panel</h2><input /></section>
+    <ul><li id="row" class="kt-settings-row"><strong>Row</strong><div class="MuiFormControl-root"><label id="row-label">Row</label><input /></div></li><li>Other</li></ul>
+    <div id="field" class="MuiFormControl-root"><label>Field</label><input /><span>Helper</span></div>
+    <div id="switch" class="MuiFormControlLabel-root"><span class="MuiTypography-root">Switch</span><input type="checkbox" /></div>
+    <div id="custom" data-settings-search-scope><h3>Custom panel</h3><input /></div>
+    <div id="accordion" class="MuiAccordion-root"><div class="MuiAccordionSummary-root"><h3>Details</h3></div><input /></div>
+  `;
+  for (const [selector, expected] of [
+    ["#panel h2", "panel"],
+    ["#row strong", "row"],
+    ["#row-label", "row"],
+    ["#field label", "field"],
+    ["#switch span", "switch"],
+    ["#custom h3", "custom"],
+    ["#accordion h3", "accordion"],
+  ]) {
+    expect(
+      getSettingsSearchHighlight(container.querySelector(selector)).id
+    ).toBe(expected);
+  }
 });
 
 test("guides a hidden conditional field to its prerequisite without changing settings", async () => {
@@ -86,6 +121,7 @@ test("opens a lazy advanced section, focuses the matching row, and cleans up on 
   act(() => render(""));
   expect(container.querySelector("[data-settings-search-target]")).toBeNull();
   expect(row.hasAttribute("tabindex")).toBe(false);
+  expect(row.hasAttribute("data-settings-search-positioned")).toBe(false);
   act(() => root.unmount());
   container.remove();
   HTMLElement.prototype.scrollIntoView = originalScroll;

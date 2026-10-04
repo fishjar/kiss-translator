@@ -1,6 +1,6 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import Navigator from "./Navigator";
 import { I18N } from "../../config/i18n";
 
@@ -175,6 +175,61 @@ test("groups concrete Chinese settings below their navigation category and links
   expect(container.querySelectorAll(".kt-options-nav__setting")).toHaveLength(
     0
   );
+  act(() => root.unmount());
+  container.remove();
+});
+
+test("clears search and its target with an always available button while preserving the page", () => {
+  function Location() {
+    const location = useLocation();
+    return (
+      <output>
+        {location.pathname}
+        {location.search}
+        {location.hash}
+      </output>
+    );
+  }
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  act(() =>
+    root.render(
+      <MemoryRouter
+        initialEntries={["/input?setting=combo_timeout&other=keep#section"]}
+      >
+        <Navigator open />
+        <Location />
+      </MemoryRouter>
+    )
+  );
+  const input = container.querySelector('input[type="search"]');
+  const clear = container.querySelector(
+    'button[aria-label="options_clear_search"]'
+  );
+  expect(clear).not.toBeNull();
+  act(() => {
+    Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    ).set.call(input, "timeout");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(
+    container.querySelectorAll(".kt-options-nav__setting").length
+  ).toBeGreaterThan(0);
+  input.blur();
+  expect(container.querySelector(".kt-options-search__clear")).toBe(clear);
+  act(() => clear.click());
+  expect(input.value).toBe("");
+  expect(container.querySelectorAll(".kt-options-nav__link")).toHaveLength(13);
+  expect(container.querySelectorAll(".kt-options-nav__setting")).toHaveLength(
+    0
+  );
+  expect(container.querySelector("output").textContent).toBe(
+    "/input?other=keep#section"
+  );
+  expect(container.querySelector(".kt-options-search__clear")).toBe(clear);
   act(() => root.unmount());
   container.remove();
 });
