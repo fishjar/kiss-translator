@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 
 export const SettingsSearchContext = createContext({ target: "" });
+export const useSettingsSearchNavigation = () =>
+  useContext(SettingsSearchContext);
 export const useSettingsSearchTarget = () =>
-  useContext(SettingsSearchContext).target;
+  useSettingsSearchNavigation().target;
 
 export function useRevealSearchTarget(setOpen, targets) {
   const { target, navigationKey } = useContext(SettingsSearchContext);
@@ -114,53 +116,58 @@ export default function SettingsSearchTarget({
     let previousTabIndex;
     let previousRadius;
     let frame;
+    let fallbackReady = false;
     const observer = new MutationObserver(() => locate());
-    function locate(allowFallback = false) {
-      if (highlighted) return;
-      const element =
-        findSettingsSearchTarget(container, label, target) ||
-        (allowFallback && fallbackLabel
-          ? findSettingsSearchTarget(container, fallbackLabel)
-          : null);
-      if (!element) return;
-      observer.disconnect();
-      clearTimeout(timeout);
-      clearTimeout(fallbackTimeout);
-      highlighted = getSettingsSearchHighlight(element);
-      previousRadius = [
-        highlighted.style.getPropertyValue("--kt-settings-search-radius"),
-        highlighted.style.getPropertyPriority("--kt-settings-search-radius"),
-      ];
-      highlighted.style.setProperty(
-        "--kt-settings-search-radius",
-        getSettingsSearchRadius(highlighted)
-      );
-      previousTabIndex = highlighted.getAttribute("tabindex");
-      // Preserve positioned controls; only static wrappers need a containing
-      // block for the highlight layer. This also flushes a previous animation
-      // before another click on the same search result starts it again.
-      const position = getComputedStyle(highlighted).position;
-      if (!position || position === "static")
-        highlighted.setAttribute("data-settings-search-positioned", "");
-      highlighted.setAttribute("tabindex", "-1");
-      highlighted.setAttribute("data-settings-search-target", target);
+    function locate() {
+      if (highlighted || frame !== undefined) return;
+      // Navigation effects can replace a matching editor. Resolve the node
+      // after their updates commit, rather than keeping a soon-detached match.
       frame = requestAnimationFrame(() => {
+        frame = undefined;
+        const element =
+          findSettingsSearchTarget(container, label, target) ||
+          (fallbackReady && fallbackLabel
+            ? findSettingsSearchTarget(container, fallbackLabel)
+            : null);
+        if (!element) return;
+        observer.disconnect();
+        clearTimeout(fallbackTimeout);
+        highlighted = getSettingsSearchHighlight(element);
+        previousRadius = [
+          highlighted.style.getPropertyValue("--kt-settings-search-radius"),
+          highlighted.style.getPropertyPriority("--kt-settings-search-radius"),
+        ];
+        highlighted.style.setProperty(
+          "--kt-settings-search-radius",
+          getSettingsSearchRadius(highlighted)
+        );
+        previousTabIndex = highlighted.getAttribute("tabindex");
+        // Preserve positioned controls; only static wrappers need a containing
+        // block for the highlight layer. This also flushes a previous animation
+        // before another click on the same search result starts it again.
+        const position = getComputedStyle(highlighted).position;
+        if (!position || position === "static")
+          highlighted.setAttribute("data-settings-search-positioned", "");
+        highlighted.setAttribute("tabindex", "-1");
+        highlighted.setAttribute("data-settings-search-target", target);
         highlighted.scrollIntoView?.({ block: "center", behavior: "instant" });
         highlighted.focus({ preventScroll: true });
       });
     }
-    // Hooks and lazy advanced controls can finish rendering after navigation.
+    // Lazy controls and discard confirmations may finish after navigation.
+    // Keep observing until a match or cleanup, including slow user decisions.
     observer.observe(container, {
       childList: true,
       subtree: true,
       attributes: true,
     });
-    const fallbackTimeout = setTimeout(() => locate(true), 250);
-    const timeout = setTimeout(() => observer.disconnect(), 5000);
+    const fallbackTimeout = setTimeout(() => {
+      fallbackReady = true;
+      locate();
+    }, 250);
     locate();
     return () => {
       observer.disconnect();
-      clearTimeout(timeout);
       clearTimeout(fallbackTimeout);
       if (frame !== undefined) cancelAnimationFrame(frame);
       if (highlighted) {

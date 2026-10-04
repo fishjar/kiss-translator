@@ -303,6 +303,7 @@ export const getSettingsSearchLabel = (key, i18n) =>
 const SEARCH_PREREQUISITES = {
   original_text_style: "wrap_original",
   seg_prompt_mode: "ai_segmentation",
+  data_sync_url: "data_sync_type",
   data_sync_user: "data_sync_type",
   mousehover_hold_delay: "mousehover_hold_key",
   mousehover_hold_scope: "mousehover_hold_key",

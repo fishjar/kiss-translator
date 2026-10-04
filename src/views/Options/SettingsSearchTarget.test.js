@@ -170,3 +170,43 @@ test("opens a lazy advanced section, focuses the matching row, and cleans up on 
   container.remove();
   HTMLElement.prototype.scrollIntoView = originalScroll;
 });
+
+test("waits for a delayed editor without abandoning its search target", async () => {
+  jest.useFakeTimers();
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  const render = (ready) =>
+    root.render(
+      <SettingsSearchTarget
+        target="user_prompt"
+        label="User prompt"
+        navigationKey="search"
+      >
+        {ready ? (
+          <label>
+            User prompt
+            <input />
+          </label>
+        ) : (
+          <span>Waiting for confirmation</span>
+        )}
+      </SettingsSearchTarget>
+    );
+  try {
+    act(() => render(false));
+    act(() => jest.advanceTimersByTime(6000));
+    await act(async () => render(true));
+    act(() => jest.advanceTimersByTime(20));
+
+    const highlighted = container.querySelector(
+      '[data-settings-search-target="user_prompt"]'
+    );
+    expect(highlighted).not.toBeNull();
+    expect(document.activeElement).toBe(highlighted);
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    jest.useRealTimers();
+  }
+});

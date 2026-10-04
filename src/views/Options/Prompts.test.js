@@ -7,6 +7,7 @@ import {
   PROMPT_CATEGORY_USER,
 } from "../../config";
 import Prompts from "./Prompts";
+import { SettingsSearchContext } from "./SettingsSearchTarget";
 import { __resetSessionHeightMapForTests } from "../../hooks/useTextareaHeightLock";
 import { I18N } from "../../config/i18n";
 
@@ -85,8 +86,15 @@ function renderPrompts(promptsOrCategory, options = {}) {
 
   setPrompts(prompts);
 
+  let searchNavigation = options.searchNavigation || {};
+  const render = () => (
+    <SettingsSearchContext.Provider value={searchNavigation}>
+      <Prompts />
+    </SettingsSearchContext.Provider>
+  );
+
   act(() => {
-    root.render(<Prompts />);
+    root.render(render());
   });
 
   return {
@@ -95,8 +103,12 @@ function renderPrompts(promptsOrCategory, options = {}) {
     rerender(nextPrompts) {
       setPrompts(nextPrompts);
       act(() => {
-        root.render(<Prompts />);
+        root.render(render());
       });
+    },
+    async search(navigation) {
+      searchNavigation = navigation;
+      await act(async () => root.render(render()));
     },
     unmount: () => {
       act(() => root.unmount());
@@ -104,6 +116,67 @@ function renderPrompts(promptsOrCategory, options = {}) {
     },
   };
 }
+
+describe("Prompts search navigation", () => {
+  afterEach(() => {
+    mockUsePromptList.mockReset();
+    mockConfirm.mockReset();
+  });
+
+  test("selects a template with a user field and reopens it on repeated search", async () => {
+    const user = createPrompt(PROMPT_CATEGORY_USER);
+    const subtitle = createPrompt(PROMPT_CATEGORY_SUBTITLE);
+    const view = renderPrompts([subtitle, user]);
+    expect(view.container.querySelector('[name="userPrompt"]')).toBeNull();
+
+    await view.search({ target: "user_prompt", navigationKey: "first" });
+
+    expect(view.container.querySelector('[name="userPrompt"]')).not.toBeNull();
+    const subtitleButton = Array.from(
+      view.container.querySelectorAll(".MuiListItemButton-root")
+    ).find((button) => button.textContent === subtitle.name);
+    await act(async () => subtitleButton.click());
+    expect(view.container.querySelector('[name="userPrompt"]')).toBeNull();
+
+    await view.search({ target: "user_prompt", navigationKey: "second" });
+
+    expect(view.container.querySelector('[name="userPrompt"]')).not.toBeNull();
+    expect(mockConfirm).not.toHaveBeenCalled();
+    expect(view.promptListValue.updatePrompt).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  test("preserves an unsaved subtitle draft on cancel and confirms again on retry", async () => {
+    const subtitle = createPrompt(PROMPT_CATEGORY_SUBTITLE);
+    const view = renderPrompts([subtitle, createPrompt(PROMPT_CATEGORY_USER)]);
+    const input = view.container.querySelector('[name="name"]');
+    act(() => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      ).set.call(input, "Unsaved subtitle");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    mockConfirm.mockResolvedValueOnce(false);
+
+    await view.search({ target: "user_prompt", navigationKey: "first" });
+    view.rerender([subtitle, createPrompt(PROMPT_CATEGORY_USER)]);
+
+    expect(view.container.querySelector('[name="name"]').value).toBe(
+      "Unsaved subtitle"
+    );
+    expect(view.container.querySelector('[name="userPrompt"]')).toBeNull();
+    expect(mockConfirm).toHaveBeenCalledTimes(1);
+    mockConfirm.mockResolvedValueOnce(true);
+
+    await view.search({ target: "user_prompt", navigationKey: "second" });
+
+    expect(view.container.querySelector('[name="userPrompt"]')).not.toBeNull();
+    expect(mockConfirm).toHaveBeenCalledTimes(2);
+    expect(view.promptListValue.updatePrompt).not.toHaveBeenCalled();
+    view.unmount();
+  });
+});
 
 describe("Prompts", () => {
   afterEach(() => {

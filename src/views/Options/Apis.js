@@ -99,6 +99,7 @@ import ApiProviderIcon from "../../components/ApiProviderIcon";
 import {
   useRevealSearchTarget,
   useSettingsSearchTarget,
+  useSettingsSearchNavigation,
 } from "./SettingsSearchTarget";
 import { supportsApiSearchTarget } from "./apiSearch";
 
@@ -1989,23 +1990,27 @@ export default function Apis() {
     [confirmDiscardDetailChanges, selectedApiSlug]
   );
 
-  const searchTarget = useSettingsSearchTarget();
-  const handledSearchTarget = useRef("");
+  const { target: searchTarget, navigationKey } = useSettingsSearchNavigation();
+  const handledSearchTarget = useRef(null);
   useEffect(() => {
     if (!searchTarget) {
-      handledSearchTarget.current = "";
+      handledSearchTarget.current = null;
       return;
     }
-    if (handledSearchTarget.current === searchTarget || !selectedApiItem)
+    if (
+      (handledSearchTarget.current?.target === searchTarget &&
+        handledSearchTarget.current?.navigationKey === navigationKey) ||
+      !selectedApiItem
+    )
       return;
-    handledSearchTarget.current = searchTarget;
+    handledSearchTarget.current = { target: searchTarget, navigationKey };
     if (supportsApiSearchTarget(selectedApiItem.api, searchTarget)) return;
     const match = apiItems.find(({ api }) =>
       supportsApiSearchTarget(api, searchTarget)
     );
     // Reuse the editor's discard confirmation when searching from a dirty form.
     if (match) void handleSelectApi(match.api.apiSlug);
-  }, [searchTarget, selectedApiItem, apiItems, handleSelectApi]);
+  }, [searchTarget, navigationKey, selectedApiItem, apiItems, handleSelectApi]);
 
   const handleCheckApi = useCallback((event, apiSlug) => {
     event.stopPropagation();

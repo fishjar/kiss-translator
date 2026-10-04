@@ -70,7 +70,7 @@ import { useConfirm } from "../../hooks/Confirm";
 import { useAllTextStyles } from "../../hooks/CustomStyles";
 import {
   useRevealSearchTarget,
-  useSettingsSearchTarget,
+  useSettingsSearchNavigation,
 } from "./SettingsSearchTarget";
 
 let disabledSubRuleWriteQueue = Promise.resolve();
@@ -1799,7 +1799,7 @@ export default function Rules() {
   const i18n = useI18n();
   // 当前处于激活状态的标签页索引 (0: 全局规则, 1: 自定义规则, 2: 订阅规则)
   const [activeTab, setActiveTab] = useState(0);
-  const searchTarget = useSettingsSearchTarget();
+  const { target: searchTarget, navigationKey } = useSettingsSearchNavigation();
   useEffect(() => {
     if (searchTarget) {
       setActiveTab(
@@ -1810,7 +1810,7 @@ export default function Rules() {
             : 0
       );
     }
-  }, [searchTarget]);
+  }, [searchTarget, navigationKey]);
   const subRules = useSubRules();
   const rules = useRules();
   // Keep cache writes alive when a subscription action outlasts its tab.

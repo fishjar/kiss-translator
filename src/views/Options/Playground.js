@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSettingsSearchTarget } from "./SettingsSearchTarget";
+import { useSettingsSearchNavigation } from "./SettingsSearchTarget";
 import Box from "@mui/material/Box";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
@@ -46,7 +46,7 @@ export default function Playgound({ initialSettingsReady = true }) {
   const [text, setText] = useState("");
   // Playground 内的页签状态只影响页面展示，不写入用户设置。
   const [activeTab, setActiveTab] = useState("translation");
-  const searchTarget = useSettingsSearchTarget();
+  const { target: searchTarget, navigationKey } = useSettingsSearchNavigation();
   useEffect(() => {
     if (searchTarget)
       setActiveTab(
@@ -56,7 +56,7 @@ export default function Playgound({ initialSettingsReady = true }) {
             ? "terms"
             : "translation"
       );
-  }, [searchTarget]);
+  }, [searchTarget, navigationKey]);
   const [mergeSingleLineBreaks, setMergeSingleLineBreaks] = useState(false);
   // 专业术语页签草稿：术语输入、AI 术语输入、例句 seed 都提升到父级状态，
   // 不会随页签子组件卸载而销毁（页签往返不丢失用户草稿，且不写入正式规则）。
