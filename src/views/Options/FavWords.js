@@ -1,5 +1,6 @@
 import Stack from "@mui/material/Stack";
 import { useId, useMemo, useRef, useState } from "react";
+import { useRevealSearchTarget } from "./SettingsSearchTarget";
 import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -238,6 +239,7 @@ function FavAccordion({
 export default function FavWords() {
   const i18n = useI18n();
   const [showMoreExports, setShowMoreExports] = useState(false);
+  useRevealSearchTarget(setShowMoreExports, ["export_translation"]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const pendingSave = useRef(false);

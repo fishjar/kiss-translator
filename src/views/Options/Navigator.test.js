@@ -1,7 +1,8 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import Navigator from "./Navigator";
+import { I18N } from "../../config/i18n";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -9,7 +10,10 @@ let mockUiLang = "en";
 let mockLabels = {};
 
 jest.mock("../../hooks/I18n", () => ({
-  useI18n: () => (key) => mockLabels[key] || key,
+  useI18n:
+    () =>
+    (key, defaultText = key) =>
+      mockLabels[key] ?? defaultText,
 }));
 jest.mock("../../hooks/Setting", () => ({
   useSetting: () => ({ setting: { uiLang: mockUiLang } }),
@@ -58,10 +62,11 @@ describe("settings navigator semantics", () => {
         input.dispatchEvent(new Event("input", { bubbles: true }));
       });
 
-      const links = container.querySelectorAll(".kt-options-nav__link");
-      expect(links).toHaveLength(1);
-      expect(links[0].getAttribute("href")).toBe("/prompts");
-      expect(links[0].textContent).toBe(label);
+      const link = container.querySelector(
+        '.kt-options-nav__link[href="/prompts"]'
+      );
+      expect(link).not.toBeNull();
+      expect(link.textContent).toBe(label);
 
       act(() => root.unmount());
       container.remove();
@@ -116,4 +121,117 @@ describe("settings navigator semantics", () => {
     act(() => root.unmount());
     container.remove();
   });
+});
+
+test("groups concrete Chinese settings below their navigation category and links to the field", () => {
+  mockUiLang = "zh";
+  mockLabels = Object.fromEntries(
+    Object.entries(I18N).map(([key, translations]) => [key, translations.zh])
+  );
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  const onClose = jest.fn();
+  act(() =>
+    root.render(
+      <MemoryRouter>
+        <Navigator open isMobile onClose={onClose} />
+      </MemoryRouter>
+    )
+  );
+  const input = container.querySelector('input[type="search"]');
+  const search = (value) =>
+    act(() => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      ).set.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+  search("超时");
+  const results = [...container.querySelectorAll(".kt-options-nav__result")];
+  expect(results).toHaveLength(3);
+  for (const result of results) {
+    const category = result.querySelector(".kt-options-nav__link");
+    const list = result.querySelector("ul");
+    expect(list.getAttribute("aria-label")).toBe(category.textContent);
+    expect(category.nextElementSibling).toBe(list);
+  }
+  const target = container.querySelector(
+    'a[href="/input?setting=combo_timeout"]'
+  );
+  expect(target.textContent).toBe(I18N.combo_timeout.zh);
+  act(() => target.click());
+  expect(onClose).toHaveBeenCalledTimes(1);
+  expect(target.getAttribute("aria-current")).toBe("location");
+
+  search("无此设置xyz");
+  expect(container.querySelector(".kt-options-nav__empty").textContent).toBe(
+    I18N.options_no_results.zh
+  );
+  search("  ");
+  expect(container.querySelectorAll(".kt-options-nav__link")).toHaveLength(13);
+  expect(container.querySelectorAll(".kt-options-nav__setting")).toHaveLength(
+    0
+  );
+  act(() => root.unmount());
+  container.remove();
+});
+
+test("shows clear while text is present, including after blur, and clears its target while preserving the page", () => {
+  function Location() {
+    const location = useLocation();
+    return (
+      <output>
+        {location.pathname}
+        {location.search}
+        {location.hash}
+      </output>
+    );
+  }
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  act(() =>
+    root.render(
+      <MemoryRouter
+        initialEntries={["/input?setting=combo_timeout&other=keep#section"]}
+      >
+        <Navigator open />
+        <Location />
+      </MemoryRouter>
+    )
+  );
+  const input = container.querySelector('input[type="search"]');
+  expect(container.querySelector(".kt-options-search__clear")).toBeNull();
+  act(() => {
+    Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    ).set.call(input, "timeout");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(
+    container.querySelectorAll(".kt-options-nav__setting").length
+  ).toBeGreaterThan(0);
+  const clear = container.querySelector(
+    'button[aria-label="options_clear_search"]'
+  );
+  expect(clear).not.toBeNull();
+  input.focus();
+  input.blur();
+  expect(container.querySelector(".kt-options-search__clear")).toBe(clear);
+  act(() => clear.click());
+  expect(input.value).toBe("");
+  expect(container.querySelectorAll(".kt-options-nav__link")).toHaveLength(13);
+  expect(container.querySelectorAll(".kt-options-nav__setting")).toHaveLength(
+    0
+  );
+  expect(container.querySelector("output").textContent).toBe(
+    "/input?other=keep#section"
+  );
+  expect(container.querySelector(".kt-options-search__clear")).toBeNull();
+  act(() => root.unmount());
+  container.remove();
 });

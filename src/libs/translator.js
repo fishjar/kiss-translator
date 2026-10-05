@@ -56,7 +56,7 @@ import { injectInternalCss } from "./injector";
 import { isExt } from "./client";
 import { sendBgMsg } from "./msg";
 import { getDocInfo } from "./docInfo";
-import { visitTranslationTargets } from "./translationTargets";
+import { isInNonContent, visitTranslationTargets } from "./translationTargets";
 import { normalizeRuleApi } from "./apiSelection";
 import { isSameStorageValue } from "./storageEquality";
 
@@ -1929,6 +1929,7 @@ export class Translator {
     let current;
     while ((current = walker.nextNode())) {
       if (!current.nodeValue?.trim()) continue;
+      if (isInNonContent(current)) continue;
       if (leaf) return null; // 存在多个非空文本节点时不下钻
       leaf = current.parentElement;
     }
@@ -1950,6 +1951,7 @@ export class Translator {
     while ((current = walker.nextNode())) {
       const text = current.nodeValue?.trim() || "";
       if (!text) continue;
+      if (isInNonContent(current)) continue;
       if (
         current.parentElement?.closest?.(`.${Translator.KISS_CLASS.warpper}`)
       ) {
@@ -3002,6 +3004,7 @@ export class Translator {
   // 判断是否需要换行
   #shouldBreak(node) {
     if (!Translator.isElementOrFragment(node)) return false;
+    if (isInNonContent(node)) return true;
 
     let matchesKeepSelector = false;
     try {
@@ -4052,6 +4055,7 @@ overflow-wrap: anywhere !important;`;
 
       // 文本节点
       if (node.nodeType === Node.TEXT_NODE) {
+        if (isInNonContent(node)) return "";
         let text = node.textContent;
         if (!text.trim()) return "";
 
@@ -4076,6 +4080,8 @@ overflow-wrap: anywhere !important;`;
 
       // 元素节点
       if (node.nodeType === Node.ELEMENT_NODE) {
+        if (isInNonContent(node)) return "";
+
         // 收藏词高亮只影响原文显示，不应改变翻译请求的结构
         if (node.classList.contains(Translator.KISS_CLASS.highlight)) {
           return Array.from(node.childNodes, traverse).join("");
@@ -4117,6 +4123,8 @@ overflow-wrap: anywhere !important;`;
             kissLog("traverse child error", child.nodeName, err);
           }
         });
+
+        if (!innerContent) return "";
 
         if (
           this.#rule.hasRichText === "true" &&

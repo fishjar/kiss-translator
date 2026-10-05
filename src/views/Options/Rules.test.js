@@ -19,6 +19,9 @@ import {
 } from "../../libs/storage";
 import { OPT_SYNCTYPE_WORKER } from "../../config";
 import { OPTIONS_STYLES } from "./styles";
+import SettingsSearchTarget, {
+  findSettingsSearchTarget,
+} from "./SettingsSearchTarget";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -130,21 +133,31 @@ function createSubRules(overrides = {}) {
   };
 }
 
-function renderRules() {
+function renderRules(searchNavigation = {}) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
+  const render = () => (
+    <SettingsSearchTarget
+      target={searchNavigation.target}
+      label={searchNavigation.target}
+      navigationKey={searchNavigation.navigationKey}
+    >
+      <Rules />
+    </SettingsSearchTarget>
+  );
 
   act(() => {
-    root.render(<Rules />);
+    root.render(render());
   });
 
   return {
     container,
     root,
-    rerender: () => {
+    rerender: (navigation = searchNavigation) => {
+      searchNavigation = navigation;
       act(() => {
-        root.render(<Rules />);
+        root.render(render());
       });
     },
     unmount: () => {
@@ -229,6 +242,74 @@ async function selectOption(container, inputName, optionName) {
   });
   await flushEffects();
 }
+
+describe("Rules search navigation", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useRules.mockReturnValue({
+      list: [
+        { pattern: "example.com", apiSlug: "Tencent" },
+        { pattern: "*", apiSlug: "Tencent" },
+      ],
+      put: jest.fn(),
+    });
+    useSubRules.mockReturnValue(createSubRules());
+    useSyncCaches.mockReturnValue({
+      dataCaches: {},
+      updateDataCache: mockUpdateDataCache,
+      deleteDataCache: mockDeleteDataCache,
+      reloadSync: mockReloadSync,
+    });
+  });
+
+  test("locates the global field after replacing an expanded personal editor", async () => {
+    const view = renderRules();
+    await openPersonalTab(view);
+    const summary = Array.from(
+      view.container.querySelectorAll(".MuiAccordionSummary-root")
+    ).find((element) => element.textContent.includes("example.com"));
+    await act(async () => summary.click());
+    expect(
+      view.container.querySelector('#kt-rules-personal-panel [name="apiSlug"]')
+    ).not.toBeNull();
+
+    await act(async () =>
+      view.rerender({ target: "translate_service", navigationKey: "first" })
+    );
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    const highlighted = view.container.querySelector(
+      '[data-settings-search-target="translate_service"]'
+    );
+    expect(highlighted).not.toBeNull();
+    expect(highlighted.closest("#kt-rules-global-panel")).not.toBeNull();
+    expect(document.activeElement).toBe(highlighted);
+    view.unmount();
+  });
+
+  test("reopens the subscription tab on repeated search", async () => {
+    const view = renderRules({
+      target: "subscribe_url",
+      navigationKey: "first",
+    });
+    expect(
+      view.container.querySelector("#kt-rules-subscribe-panel").hidden
+    ).toBe(false);
+    await act(async () =>
+      getByRole(view.container, "tab", "global_rule").click()
+    );
+
+    view.rerender({ target: "subscribe_url", navigationKey: "second" });
+
+    expect(
+      view.container.querySelector("#kt-rules-subscribe-panel").hidden
+    ).toBe(false);
+    expect(
+      findSettingsSearchTarget(view.container, "subscribe_url")
+    ).toBeDefined();
+    view.unmount();
+  });
+});
 
 describe("Options Rules switch spacing", () => {
   let optionsStyle;

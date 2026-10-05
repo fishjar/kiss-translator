@@ -1,5 +1,6 @@
 import {
   Fragment,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -49,6 +50,7 @@ import {
   normalizePrompt,
 } from "../../config";
 import { usePromptList } from "../../hooks/Prompt";
+import { useSettingsSearchNavigation } from "./SettingsSearchTarget";
 import CodeField from "./CodeField";
 import TextareaResizeGrip from "../../components/TextareaResizeGrip";
 import useTextareaHeightLock, {
@@ -69,6 +71,11 @@ const TRANSLATION_PROMPT_PLACEHOLDERS = [
   INPUT_PLACE_TONE,
   INPUT_PLACE_GLOSSARY,
 ];
+
+const hasUserPromptField = ({ category }) =>
+  category === PROMPT_CATEGORY_USER ||
+  category === PROMPT_CATEGORY_DICTIONARY ||
+  category === PROMPT_CATEGORY_BATCH_SYSTEM;
 
 const BATCH_TRANSLATION_PROMPT_PLACEHOLDERS = [
   INPUT_PLACE_SEGMENTS,
@@ -247,10 +254,7 @@ function PromptFields({
     }
   }, [formData.userPrompt, releaseUserHeight]);
   // Only show the second prompt for flows that consume userPrompt.
-  const showUserPrompt =
-    formData.category === PROMPT_CATEGORY_USER ||
-    formData.category === PROMPT_CATEGORY_DICTIONARY ||
-    formData.category === PROMPT_CATEGORY_BATCH_SYSTEM;
+  const showUserPrompt = hasUserPromptField(formData);
 
   // Rebuilding the prompt list can replace objects without changing their content.
   // Reset the unsaved draft only when the persisted content changes.
@@ -546,14 +550,14 @@ export default function Prompts() {
     setAnchorEl(null);
   };
 
-  const confirmDiscardChanges = async () => {
+  const confirmDiscardChanges = useCallback(async () => {
     if (!editorDirty) return true;
     return confirm({
       message: i18n("discard_prompt_changes_confirm"),
       confirmText: i18n("discard_changes"),
       cancelText: i18n("cancel"),
     });
-  };
+  }, [confirm, editorDirty, i18n]);
 
   const handleAddPromptFromTemplate = async (template) => {
     if (!(await confirmDiscardChanges())) return;
@@ -570,13 +574,41 @@ export default function Prompts() {
     setSelectedPromptSlug(promptSlug);
   };
 
-  const handleSelectPrompt = async (prompt) => {
-    const promptSlug = normalizePrompt(prompt).slug;
-    if (promptSlug === selectedPromptSlug) return;
-    if (!(await confirmDiscardChanges())) return;
-    setEditorDirty(false);
-    setSelectedPromptSlug(promptSlug);
-  };
+  const handleSelectPrompt = useCallback(
+    async (prompt) => {
+      const promptSlug = normalizePrompt(prompt).slug;
+      if (promptSlug === selectedPromptSlug) return;
+      if (!(await confirmDiscardChanges())) return;
+      setEditorDirty(false);
+      setSelectedPromptSlug(promptSlug);
+    },
+    [selectedPromptSlug, confirmDiscardChanges]
+  );
+
+  const { target: searchTarget, navigationKey } = useSettingsSearchNavigation();
+  const handledSearchTarget = useRef(null);
+  useEffect(() => {
+    if (searchTarget !== "user_prompt") {
+      handledSearchTarget.current = null;
+      return;
+    }
+    if (
+      !selectedPrompt ||
+      (handledSearchTarget.current?.target === searchTarget &&
+        handledSearchTarget.current?.navigationKey === navigationKey)
+    )
+      return;
+    handledSearchTarget.current = { target: searchTarget, navigationKey };
+    if (hasUserPromptField(selectedPrompt)) return;
+    const match = prompts.find(hasUserPromptField);
+    if (match) void handleSelectPrompt(match);
+  }, [
+    searchTarget,
+    navigationKey,
+    selectedPrompt,
+    prompts,
+    handleSelectPrompt,
+  ]);
 
   return (
     <Box>

@@ -2,6 +2,7 @@ import { act, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import Apis from "./Apis";
+import { SettingsSearchContext } from "./SettingsSearchTarget";
 import {
   DEFAULT_API_LIST,
   OPT_TRANS_BUILTINAI,
@@ -11,6 +12,7 @@ import {
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_QWENMT,
+  OPT_TRANS_MICROSOFT,
   OPT_TRANS_YANDEX,
   OPT_TRANS_YANDEXFREE,
   PROMPT_CATEGORY_BATCH_SYSTEM,
@@ -120,7 +122,12 @@ async function flushEffects() {
   });
 }
 
-async function renderApis(api = createApi(), update = jest.fn(), prompts = []) {
+async function renderApis(
+  api = createApi(),
+  update = jest.fn(),
+  prompts = [],
+  searchNavigation = {}
+) {
   mockUsePromptList.mockReturnValue({ prompts });
   let apis = Array.isArray(api) ? api : [api];
   const reset = jest.fn();
@@ -150,12 +157,16 @@ async function renderApis(api = createApi(), update = jest.fn(), prompts = []) {
 
   configureApiMocks();
 
-  await act(async () => {
-    root.render(
-      <div className="kt-m3-root">
+  const render = () => (
+    <div className="kt-m3-root">
+      <SettingsSearchContext.Provider value={searchNavigation}>
         <Apis />
-      </div>
-    );
+      </SettingsSearchContext.Provider>
+    </div>
+  );
+
+  await act(async () => {
+    root.render(render());
   });
   await flushEffects();
 
@@ -166,12 +177,13 @@ async function renderApis(api = createApi(), update = jest.fn(), prompts = []) {
       apis = nextApis;
       configureApiMocks();
       await act(async () => {
-        root.render(
-          <div className="kt-m3-root">
-            <Apis />
-          </div>
-        );
+        root.render(render());
       });
+      await flushEffects();
+    },
+    search: async (navigation) => {
+      searchNavigation = navigation;
+      await act(async () => root.render(render()));
       await flushEffects();
     },
     reset,
@@ -274,6 +286,61 @@ async function editUrlDraft(container) {
   });
   return urlInput;
 }
+
+describe("Apis search navigation", () => {
+  afterEach(() => jest.clearAllMocks());
+
+  test("reselects a compatible service on another click of the same result", async () => {
+    const microsoft = createApi({
+      apiSlug: "Microsoft",
+      apiName: "Microsoft",
+      apiType: OPT_TRANS_MICROSOFT,
+    });
+    const update = jest.fn();
+    const view = await renderApis([createApi(), microsoft], update, [], {
+      target: "use_stream",
+      navigationKey: "first",
+    });
+    expect(view.container.querySelector('[name="useStream"]')).not.toBeNull();
+    await act(async () => getApiListItem(view.container, "Microsoft").click());
+    expect(view.container.querySelector('[name="useStream"]')).toBeNull();
+
+    await view.search({ target: "use_stream", navigationKey: "second" });
+
+    expect(getInput(view.container, "apiName").value).toBe("OpenAI");
+    expect(view.container.querySelector('[name="useStream"]')).not.toBeNull();
+    expect(update).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  test("allows retrying a search after cancelling discard of an API draft", async () => {
+    const microsoft = createApi({
+      apiSlug: "Microsoft",
+      apiName: "Microsoft",
+      apiType: OPT_TRANS_MICROSOFT,
+    });
+    const view = await renderApis([microsoft, createApi()]);
+    await act(async () => {
+      Simulate.change(getInput(view.container, "apiName"), {
+        target: { name: "apiName", value: "Unsaved Microsoft" },
+      });
+    });
+    mockConfirm.mockResolvedValueOnce(false);
+
+    await view.search({ target: "use_stream", navigationKey: "first" });
+
+    expect(getInput(view.container, "apiName").value).toBe("Unsaved Microsoft");
+    expect(mockConfirm).toHaveBeenCalledTimes(1);
+    mockConfirm.mockResolvedValueOnce(true);
+
+    await view.search({ target: "use_stream", navigationKey: "second" });
+
+    expect(getInput(view.container, "apiName").value).toBe("OpenAI");
+    expect(view.container.querySelector('[name="useStream"]')).not.toBeNull();
+    expect(mockConfirm).toHaveBeenCalledTimes(2);
+    view.unmount();
+  });
+});
 
 describe("Apis ordering and master-detail layout", () => {
   afterEach(() => {

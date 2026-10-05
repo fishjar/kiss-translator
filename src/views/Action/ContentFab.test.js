@@ -376,18 +376,52 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(draggableProps.expanded).toBe(false);
   });
 
-  test("a drag suppresses the click that ends it", () => {
-    render();
+  test("fabClickAction=2 opens the translation panel without the action menu", () => {
+    render({ fabClickAction: 2 });
 
-    act(() => {
-      draggableProps.onStart();
-      draggableProps.onMove();
-    });
+    expect(fab().getAttribute("aria-label")).toBe("fab_click_popup");
+    expect(fab().getAttribute("aria-haspopup")).toBe("dialog");
+    expect(fab().getAttribute("aria-expanded")).toBeNull();
+    expect(fab().getAttribute("aria-controls")).toBeNull();
+    expect(fab().querySelector(".MuiSpeedDialIcon-root")).toBeNull();
     clickFab();
 
-    expect(processActions).not.toHaveBeenCalled();
+    expect(processActions).toHaveBeenCalledTimes(1);
+    expect(processActions).toHaveBeenCalledWith({ action: MSG_POPUP_TOGGLE });
     expect(menuItems()).toHaveLength(0);
+    expect(draggableProps.expanded).toBe(false);
   });
+
+  test("switching to the panel action dismisses the menu and does not restore it later", () => {
+    render();
+    clickFab();
+    expect(menuItems()).toHaveLength(6);
+
+    render({ fabClickAction: 2 });
+    expect(menuItems()).toHaveLength(0);
+    render();
+    expect(menuItems()).toHaveLength(0);
+    expect(processActions).not.toHaveBeenCalled();
+
+    clickFab();
+    expect(menuItems()).toHaveLength(6);
+  });
+
+  test.each([0, 1, 2])(
+    "a drag suppresses the click that ends it in action mode %i",
+    (fabClickAction) => {
+      render({ fabClickAction });
+
+      act(() => {
+        draggableProps.onStart();
+        draggableProps.onMove();
+      });
+      clickFab();
+
+      expect(processActions).not.toHaveBeenCalled();
+      expect(menuItems()).toHaveLength(0);
+    }
+  );
 
   test.each([
     { x: -28, y: 0, edge: "left" },

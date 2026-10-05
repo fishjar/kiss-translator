@@ -14,6 +14,10 @@ import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
+import {
+  useSettingsSearchTarget,
+  useRevealSearchTarget,
+} from "./SettingsSearchTarget";
 
 export function SettingsSection({ title, children, className = "" }) {
   return (
@@ -258,11 +262,14 @@ export function SettingsAdvanced({
   const regionId = `kt-settings-advanced-region-${id}`;
   const [expanded, setExpanded] = useState(open);
   const [hasExpanded, setHasExpanded] = useState(open);
+  const searchTarget = useSettingsSearchTarget();
 
   useEffect(() => {
-    setExpanded(open);
-    if (open) setHasExpanded(true);
-  }, [open]);
+    setExpanded(open || Boolean(searchTarget));
+    if (open || searchTarget) setHasExpanded(true);
+  }, [open, searchTarget]);
+  useRevealSearchTarget(setExpanded);
+  useRevealSearchTarget(setHasExpanded);
 
   const handleChange = (_event, nextExpanded) => {
     setExpanded(nextExpanded);
@@ -278,6 +285,7 @@ export function SettingsAdvanced({
       <Accordion
         disableGutters
         expanded={expanded}
+        TransitionProps={{ timeout: searchTarget ? 0 : "auto" }}
         onChange={handleChange}
         className="kt-settings-advanced"
       >
