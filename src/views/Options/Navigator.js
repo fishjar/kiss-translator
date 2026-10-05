@@ -14,18 +14,12 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import SubtitlesRoundedIcon from "@mui/icons-material/SubtitlesRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../../components/Logo";
 import { useI18n } from "../../hooks/I18n";
 import { useSetting } from "../../hooks/Setting";
-
-function normalizeSearchText(text, uiLang) {
-  try {
-    return text.toLocaleLowerCase(uiLang?.replace(/_/g, "-") || undefined);
-  } catch {
-    return text.toLocaleLowerCase();
-  }
-}
+import { getSettingsSearchEntries, searchSettingsGroups } from "./search";
+import { isExt, isAutoTranslateClipboardSupported } from "../../libs/client";
 
 export default function Navigator({ open, isMobile = false, onClose }) {
   const i18n = useI18n();
@@ -33,90 +27,115 @@ export default function Navigator({ open, isMobile = false, onClose }) {
     setting: { uiLang },
   } = useSetting();
   const [query, setQuery] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searching = Boolean(query.trim());
+  const clearSearch = () => {
+    setQuery("");
+    const params = new URLSearchParams(location.search);
+    if (params.has("setting")) {
+      params.delete("setting");
+      navigate(
+        {
+          pathname: location.pathname,
+          search: params.toString() ? `?${params}` : "",
+          hash: location.hash,
+        },
+        { replace: true }
+      );
+    }
+  };
 
   const groups = useMemo(
-    () => [
-      {
-        label: i18n("options_group_general"),
-        items: [
-          ["overview", i18n("options_overview"), "/", TuneRoundedIcon],
-          [
-            "appearance",
-            i18n("options_appearance"),
-            "/styles",
-            PaletteRoundedIcon,
+    () =>
+      [
+        {
+          label: i18n("options_group_general"),
+          items: [
+            ["overview", i18n("options_overview"), "/", TuneRoundedIcon],
+            [
+              "appearance",
+              i18n("options_appearance"),
+              "/styles",
+              PaletteRoundedIcon,
+            ],
           ],
-        ],
-      },
-      {
-        label: i18n("options_group_scenarios"),
-        items: [
-          [
-            "web",
-            i18n("options_web_translation"),
-            "/rules",
-            LanguageRoundedIcon,
+        },
+        {
+          label: i18n("options_group_scenarios"),
+          items: [
+            [
+              "web",
+              i18n("options_web_translation"),
+              "/rules",
+              LanguageRoundedIcon,
+            ],
+            [
+              "selection",
+              i18n("selection_translate"),
+              "/tranbox",
+              SelectAllRoundedIcon,
+            ],
+            [
+              "hover",
+              i18n("touch_paragraph"),
+              "/mousehover",
+              SegmentRoundedIcon,
+            ],
+            ["input", i18n("input_translate"), "/input", KeyboardRoundedIcon],
+            [
+              "subtitle",
+              i18n("subtitle_translate"),
+              "/subtitle",
+              SubtitlesRoundedIcon,
+            ],
           ],
-          [
-            "selection",
-            i18n("selection_translate"),
-            "/tranbox",
-            SelectAllRoundedIcon,
+        },
+        {
+          label: i18n("options_group_services"),
+          items: [
+            [
+              "apis",
+              i18n("options_translation_services"),
+              "/apis",
+              ApiRoundedIcon,
+            ],
+            [
+              "prompts",
+              i18n("prompt_management"),
+              "/prompts",
+              DescriptionRoundedIcon,
+            ],
           ],
-          ["hover", i18n("touch_paragraph"), "/mousehover", SegmentRoundedIcon],
-          ["input", i18n("input_translate"), "/input", KeyboardRoundedIcon],
-          [
-            "subtitle",
-            i18n("subtitle_translate"),
-            "/subtitle",
-            SubtitlesRoundedIcon,
+        },
+        {
+          label: i18n("options_group_data"),
+          items: [
+            ["sync", i18n("options_data_sync"), "/sync", CloudSyncRoundedIcon],
+            ["words", i18n("favorite_words"), "/words", BookmarksRoundedIcon],
           ],
-        ],
-      },
-      {
-        label: i18n("options_group_services"),
-        items: [
-          [
-            "apis",
-            i18n("options_translation_services"),
-            "/apis",
-            ApiRoundedIcon,
+        },
+        {
+          label: "",
+          items: [
+            ["playground", "Playground", "/playground", BugReportRoundedIcon],
+            ["about", i18n("about"), "/about", InfoRoundedIcon],
           ],
-          [
-            "prompts",
-            i18n("prompt_management"),
-            "/prompts",
-            DescriptionRoundedIcon,
-          ],
-        ],
-      },
-      {
-        label: i18n("options_group_data"),
-        items: [
-          ["sync", i18n("options_data_sync"), "/sync", CloudSyncRoundedIcon],
-          ["words", i18n("favorite_words"), "/words", BookmarksRoundedIcon],
-        ],
-      },
-      {
-        label: "",
-        items: [
-          ["playground", "Playground", "/playground", BugReportRoundedIcon],
-          ["about", i18n("about"), "/about", InfoRoundedIcon],
-        ],
-      },
-    ],
-    [i18n]
+        },
+      ].map((group) => ({
+        ...group,
+        items: group.items.map((item) => [
+          ...item,
+          getSettingsSearchEntries(item[0], i18n, uiLang, {
+            isExt,
+            isAutoTranslateClipboardSupported,
+          }),
+        ]),
+      })),
+    [i18n, uiLang]
   );
 
-  const normalizedQuery = normalizeSearchText(query.trim(), uiLang);
-  const visibleGroups = groups
-    .map((group) => ({
-      ...group,
-      items: group.items.filter(([, label]) =>
-        normalizeSearchText(label, uiLang).includes(normalizedQuery)
-      ),
-    }))
-    .filter((group) => group.items.length);
+  const visibleGroups = searchSettingsGroups(groups, query, uiLang);
 
   return (
     <aside
@@ -146,7 +165,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
           </span>
         </span>
       </a>
-      <label className="kt-options-search">
+      <div className="kt-options-search">
         <SearchRoundedIcon />
         <input
           type="search"
@@ -155,7 +174,18 @@ export default function Navigator({ open, isMobile = false, onClose }) {
           placeholder={i18n("options_search")}
           aria-label={i18n("options_search")}
         />
-      </label>
+        {query.length > 0 && (
+          <button
+            type="button"
+            className="kt-options-search__clear"
+            aria-label={i18n("options_clear_search")}
+            title={i18n("options_clear_search")}
+            onClick={clearSearch}
+          >
+            <CloseRoundedIcon />
+          </button>
+        )}
+      </div>
       <nav className="kt-options-nav">
         {visibleGroups.length ? (
           visibleGroups.map((group) => (
@@ -166,17 +196,45 @@ export default function Navigator({ open, isMobile = false, onClose }) {
               {group.label && (
                 <h2 className="kt-options-nav__label">{group.label}</h2>
               )}
-              {group.items.map(([id, label, path, Icon]) => (
-                <NavLink
-                  className="kt-options-nav__link"
-                  to={path}
-                  end={path === "/"}
+              {group.items.map(([id, label, path, Icon, matches]) => (
+                <div
+                  className={searching ? "kt-options-nav__result" : undefined}
                   key={id}
-                  onClick={isMobile ? onClose : undefined}
                 >
-                  <Icon />
-                  <span>{label}</span>
-                </NavLink>
+                  <NavLink
+                    className="kt-options-nav__link"
+                    to={path}
+                    end={path === "/"}
+                    onClick={isMobile ? onClose : undefined}
+                  >
+                    <Icon />
+                    <span>{label}</span>
+                  </NavLink>
+                  {searching && matches.length > 0 && (
+                    <ul className="kt-options-nav__settings" aria-label={label}>
+                      {matches.map((entry) => {
+                        const search = `?setting=${encodeURIComponent(entry.key)}`;
+                        return (
+                          <li key={entry.key}>
+                            <Link
+                              className="kt-options-nav__setting"
+                              to={{ pathname: path, search }}
+                              aria-current={
+                                location.pathname === path &&
+                                location.search === search
+                                  ? "location"
+                                  : undefined
+                              }
+                              onClick={isMobile ? onClose : undefined}
+                            >
+                              {entry.label}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
               ))}
             </section>
           ))

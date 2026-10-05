@@ -53,10 +53,15 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-brand__name,
 .kt-options-brand__version { display: block; }
 .kt-options-brand__version { margin-top: 1px; color: var(--kt-onv); font-size: 10.5px; }
-.kt-options-search { display: flex; align-items: center; gap: 10px; margin: 0 14px 12px; padding: 0 15px; border-radius: 999px; background: var(--kt-sf3); color: var(--kt-onv); transition: outline-color .15s ease; }
+.kt-options-search { display: flex; align-items: center; gap: 10px; margin: 0 14px 12px; padding: 0 7px 0 15px; border-radius: 999px; background: var(--kt-sf3); color: var(--kt-onv); transition: outline-color .15s ease; }
 .kt-options-search:focus-within { outline: 3px solid var(--kt-pri); outline-offset: 2px; }
 .kt-options-search svg { width: 19px; height: 19px; flex: none; }
-.kt-options-search input { width: 100%; height: 46px; border: 0; outline: 0; background: transparent; font-size: 13px; }
+.kt-options-search input { width: 100%; min-width: 0; height: 46px; border: 0; outline: 0; background: transparent; font-size: 13px; }
+.kt-options-search input::-webkit-search-cancel-button { display: none; }
+.kt-options-search__clear { width: 32px; height: 32px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--kt-onv); cursor: pointer; }
+@media (hover: hover) {
+  .kt-options-search__clear:hover { background: var(--kt-sf2); color: var(--kt-on); }
+}
 .kt-m3-root .kt-options-search input:focus { outline: none; }
 @supports selector(:focus-visible) {
   .kt-m3-root .kt-options-search input:focus-visible { outline: none; }
@@ -73,6 +78,26 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-nav__link.active { background: var(--kt-pric); color: var(--kt-onpric); font-weight: 650; }
 .kt-options-nav__link svg { width: 20px; height: 20px; flex: none; }
 .kt-options-nav__empty { padding: 24px 16px; color: var(--kt-onv); font-size: 12px; text-align: center; }
+.kt-options-nav__result { margin-bottom: 12px; }
+.kt-options-nav__settings { margin: 4px 0 0 26px; padding: 0 0 0 12px; border-left: 1px solid var(--kt-linev); list-style: none; }
+.kt-options-nav__setting { display: block; padding: 9px 10px; border-radius: 10px; color: var(--kt-onv); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; text-decoration: none; }
+.kt-options-nav__setting:hover, .kt-options-nav__setting[aria-current] { background: var(--kt-sf2); color: var(--kt-on); }
+.kt-options-page [data-settings-search-target] { outline: none; isolation: isolate; scroll-margin-block: 100px; }
+[data-settings-search-positioned] { position: relative; }
+.kt-options-page [data-settings-search-target]::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: var(--kt-settings-search-radius, 12px); background: var(--kt-pri); opacity: 0; pointer-events: none; animation: kt-settings-search-highlight 6s ease-in-out; }
+@keyframes kt-settings-search-highlight {
+  0%, 25%, 100% { opacity: 0; }
+  7.5%, 17.5%, 32.5%, 42.5% { opacity: .16; }
+  50%, 60% { opacity: .045; }
+}
+@keyframes kt-settings-search-highlight-static {
+  from { opacity: .1; }
+  to { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Keep a temporary static cue instead of the global reduced-motion shortcut. */
+  .kt-options-page [data-settings-search-target]::after { animation: kt-settings-search-highlight-static 6s step-end; animation-duration: 6s !important; }
+}
 .kt-options-sidebar__close { width: 40px; height: 40px; display: grid; place-items: center; position: absolute; top: 14px; right: 12px; z-index: 1; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--kt-onv); cursor: pointer; }
 @media (hover: hover) {
   .kt-options-sidebar__close:hover { background: var(--kt-sf2); color: var(--kt-on); }
