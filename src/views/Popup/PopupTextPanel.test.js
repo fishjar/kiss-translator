@@ -45,6 +45,7 @@ describe("Popup text translation card", () => {
   let geometry;
   let setText;
   let cardHeight;
+  let resultOverflowHeight;
 
   beforeEach(() => {
     window.localStorage.clear();
@@ -67,13 +68,14 @@ describe("Popup text translation card", () => {
     tryDetectLang.mockReset();
     tryDetectLang.mockResolvedValue("en");
     cardHeight = 400;
+    resultOverflowHeight = 0;
     geometry = jest
       .spyOn(HTMLElement.prototype, "getBoundingClientRect")
       .mockImplementation(function () {
         const height = this.classList.contains("kt-popup-text-base-size")
           ? cardHeight
           : this.classList.contains("kt-popup-text-card")
-            ? cardHeight * Math.max(1, getResultSlugs().length)
+            ? cardHeight + resultOverflowHeight
             : 30;
         const top = this.classList.contains("kt-popup-text-services") ? 200 : 0;
         return {
@@ -227,17 +229,14 @@ describe("Popup text translation card", () => {
     expect(card.style.height).toBe("");
   });
 
-  test("drags the divider with pointer capture and restores the ratio after remount", async () => {
+  test("drags against the baseline when results grow and restores the ratio after remount", async () => {
     await render();
     click(container.querySelector(".kt-popup-text-services"));
     click(serviceOption("Google"));
     await flushEffects();
     key(container.querySelector(".kt-popup-text-services"), "Escape");
-    // Two results double the card height, but dragging retains the page baseline.
-    expect(
-      container.querySelector(".kt-popup-text-card").getBoundingClientRect()
-        .height
-    ).toBe(800);
+    // Simulate long results extending the card independently of provider count.
+    resultOverflowHeight = 400;
     const divider = container.querySelector('[role="separator"]');
     divider.setPointerCapture = jest.fn();
     divider.hasPointerCapture = jest.fn(() => true);

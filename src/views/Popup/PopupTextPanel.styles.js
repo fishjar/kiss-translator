@@ -49,7 +49,8 @@ export const POPUP_TEXT_STYLES = String.raw`
 .kt-popup-text-services__icons .kt-service-logo + .kt-service-logo { margin-left: -6px; }
 .kt-popup-text-target-actions { display: flex; flex: none; align-items: center; margin-left: auto; }
 .kt-popup-text-results { min-width: 0; min-height: var(--kt-popup-text-result-height); overflow: visible; }
-.kt-popup-text-result { min-width: 0; min-height: var(--kt-popup-text-result-height); padding: 0; }
+/* Reserve the page baseline once for the list; individual results grow with content. */
+.kt-popup-text-result { min-width: 0; min-height: min(80px, var(--kt-popup-text-result-height)); padding: 0; }
 .kt-popup-text-result + .kt-popup-text-result { border-top: 1px solid var(--kt-linev); }
 .kt-popup-text-result__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; min-height: 38px; padding: 6px 11px 3px 14px; }
 .kt-popup-text-result__provider { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--kt-onv); font-size: 12px; font-weight: 700; }
