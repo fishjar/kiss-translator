@@ -1423,11 +1423,25 @@ export class Translator {
           let nodes = new Set();
           let hasText = false;
           if (
-            Array.from(mutation.removedNodes).some(
-              (node) =>
-                !node.isConnected &&
-                touchTranslationOwners.get(node) === mutation.target
-            )
+            Array.from(mutation.removedNodes).some((node) => {
+              if (this.#isTranslationInsertion(node)) {
+                return (
+                  !node.isConnected &&
+                  touchTranslationOwners.get(node) === mutation.target
+                );
+              }
+              // Independent blocks do not contribute to their parent's source.
+              // Inline/text removals must override a queued discovery-only scan.
+              return (
+                node.nodeType === Node.TEXT_NODE ||
+                (Translator.isElementOrFragment(node) &&
+                  !(
+                    this.#rule.autoScan === "true" &&
+                    this.#isBlockNode(node) &&
+                    this.#shouldBreak(node)
+                  ))
+              );
+            })
           ) {
             this.#queueForRescan(mutation.target);
           }
@@ -4538,6 +4552,8 @@ overflow-wrap: anywhere !important;`;
       child.classList?.contains(Translator.KISS_CLASS.warpper)
     );
     if (!wrappers.length) return false;
+    // Rediscovery must retain the processing token used by pending DOM writes.
+    if (this.#processedNodes.has(hostNode)) return true;
 
     wrappers.forEach((wrapper) => {
       if (touchTranslationOwners.has(wrapper))

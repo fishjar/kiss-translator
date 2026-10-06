@@ -320,19 +320,10 @@ describe("Translator rule styles", () => {
       await flushAsync();
       await flushAsync();
     };
-    let savedMicrotask;
-
     beforeEach(() => {
-      savedMicrotask = global.queueMicrotask;
-      // Match browser observer delivery before the self-mutation guard expires.
-      global.queueMicrotask = (callback) => Promise.resolve().then(callback);
       const style = document.createElement("style");
       style.textContent = "span, kiss-translator { display: inline; }";
       document.head.appendChild(style);
-    });
-
-    afterEach(() => {
-      global.queueMicrotask = savedMicrotask;
     });
 
     test.each([
@@ -396,6 +387,93 @@ describe("Translator rule styles", () => {
       await flushMutations();
       expect(wrapper.textContent).toContain("Completed pending translation");
     });
+
+    test.each([
+      {},
+      { wrapOriginal: "true" },
+      { transOnly: "true" },
+      { wrapOriginal: "true", transOnly: "true" },
+    ])(
+      "renders a queued response after its card is reordered (%j)",
+      async (rule) => {
+        const frames = new Map();
+        let frameId = 0;
+        const requestFrame = jest
+          .spyOn(window, "requestAnimationFrame")
+          .mockImplementation((callback) => {
+            frames.set(++frameId, callback);
+            return frameId;
+          });
+        const cancelFrame = jest
+          .spyOn(window, "cancelAnimationFrame")
+          .mockImplementation((id) => frames.delete(id));
+        const runFrame = async () => {
+          const callbacks = [...frames.values()];
+          frames.clear();
+          callbacks.forEach((callback) => callback());
+          for (let i = 0; i < 8; i++) await Promise.resolve();
+        };
+
+        try {
+          document.body.innerHTML =
+            '<main id="root"><article><p>First card paragraph.</p></article><article><p>Second card paragraph.</p></article></main>';
+          const translator = createTranslator(rule);
+          await flushMutations();
+          await runFrame();
+          expect(apiTranslate).toHaveBeenCalledTimes(2);
+          expect(frames.size).toBe(1);
+          const root = document.getElementById("root");
+          const card = root.firstElementChild;
+          const wrapper = card.querySelector(wrapperSelector);
+          expect(wrapper.querySelector("svg")).not.toBeNull();
+
+          root.appendChild(card);
+          await flushMutations();
+          expect(card.querySelector(wrapperSelector)).toBe(wrapper);
+          await runFrame();
+          await flushMutations();
+          expect(wrapper.querySelector("svg")).toBeNull();
+          expect(wrapper.textContent).toContain("Translated");
+          expect(apiTranslate).toHaveBeenCalledTimes(2);
+
+          translator.disable();
+          expect(card.textContent).toBe("First card paragraph.");
+          expect(card.querySelector(wrapperSelector)).toBeNull();
+        } finally {
+          createdTranslators.forEach((translator) => translator.stop());
+          requestFrame.mockRestore();
+          cancelFrame.mockRestore();
+        }
+      }
+    );
+
+    test.each(["before", "after"])(
+      "invalidates source removal across observer deliveries (%s reorder)",
+      async (timing) => {
+        document.body.innerHTML =
+          '<main id="root"><p>First phrase. <span id="removed">Second phrase.</span></p><p>Other paragraph.</p></main>';
+        createTranslator();
+        await flushMutations();
+        const root = document.getElementById("root");
+        const p = root.firstElementChild;
+        const old = p.querySelector(wrapperSelector);
+        const other = root.lastElementChild.querySelector(wrapperSelector);
+        apiTranslate.mockClear();
+
+        if (timing === "before") document.getElementById("removed").remove();
+        else root.appendChild(p);
+        await Promise.resolve();
+        if (timing === "before") root.appendChild(p);
+        else document.getElementById("removed").remove();
+        await flushMutations();
+
+        expect(old.isConnected).toBe(false);
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe("First phrase.");
+        expect(p.querySelector(wrapperSelector)).not.toBeNull();
+        expect(other.isConnected).toBe(true);
+      }
+    );
 
     test.each([false, true])(
       "keeps or replaces pending language detection after a reorder (source edited: %s)",
@@ -637,6 +715,8 @@ describe("Translator rule styles", () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
+    // Match browser observer delivery before the self-mutation guard expires.
+    global.queueMicrotask = (callback) => Promise.resolve().then(callback);
     document.documentElement.innerHTML = "<head></head><body></body>";
     apiTranslate.mockResolvedValue({ trText: "Translated", isSame: false });
     apiMicrosoftDict.mockResolvedValue(null);
