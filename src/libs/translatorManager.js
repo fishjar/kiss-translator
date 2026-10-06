@@ -40,9 +40,11 @@ import {
   MSG_RULE_EDITOR,
   MSG_MOUSEHOVER_TOGGLE,
   MSG_TRANSINPUT_TOGGLE,
+  STOKEY_SETTING,
 } from "../config";
 import { logger } from "./log";
 import { getPopupDocumentIdentity } from "./popupDocument";
+import { isSameStorageValue } from "./storageEquality";
 import { MSG_GET_FRAME_ID, MSG_VALIDATE_DOCUMENT } from "../config/msg";
 
 /**
@@ -93,6 +95,9 @@ export default class TranslatorManager {
   #windowMessageHandler = null;
   #pageRestoreHandler = null;
   #spaNavigationHandler = null;
+  #storageChangeHandler = null;
+  #storageChanges = null;
+  #storageRevision = 0;
 
   // 运行期子模块实例。它们可能挂载 DOM，因此随 restart 销毁并重建。
   _translator = null;
@@ -131,6 +136,7 @@ export default class TranslatorManager {
     this.#windowMessageHandler = this.#handleWindowMessage.bind(this);
     this.#pageRestoreHandler = this.#handlePageRestore.bind(this);
     this.#spaNavigationHandler = this.#handleSpaNavigation.bind(this);
+    this.#storageChangeHandler = this.#handleStorageChange.bind(this);
   }
 
   /**
@@ -148,6 +154,7 @@ export default class TranslatorManager {
     this.#createRuntimeModules();
     this.#initializeDocumentInfo();
     this.#setupMessageListeners();
+    this.#setupStorageListener();
     if (!this.#transboxOnly) {
       this.#setupTouchOperations();
     }
@@ -176,6 +183,7 @@ export default class TranslatorManager {
       logger.info("TranslatorManager is not running.");
       return;
     }
+    this.#storageRevision += 1;
 
     // 必须在 destroy 前快照：Translator.stop() 会把实例内 rule.transOpen 改成 false。
     const state = this.#snapshotRuntimeState();
@@ -202,9 +210,12 @@ export default class TranslatorManager {
       logger.info("TranslatorManager is not running.");
       return;
     }
+    this.#storageRevision += 1;
 
     this.#clearSpaRefreshTimer();
     this.#teardownSpaListeners();
+    this.#storageChanges?.removeListener(this.#storageChangeHandler);
+    this.#storageChanges = null;
 
     window.removeEventListener(
       EVENT_KISS_TRANSLATOR,
@@ -618,6 +629,83 @@ export default class TranslatorManager {
     }
 
     window.addEventListener(EVENT_KISS_TRANSLATOR, this.#windowMessageHandler);
+  }
+
+  /** Keep the active document's API list current without recreating its UI. */
+  #setupStorageListener() {
+    const storageChanges = browser?.storage?.onChanged;
+    if (
+      this.#isUserscript ||
+      typeof storageChanges?.addListener !== "function" ||
+      typeof storageChanges?.removeListener !== "function"
+    ) {
+      return;
+    }
+    storageChanges.addListener(this.#storageChangeHandler);
+    this.#storageChanges = storageChanges;
+    const storageArea = browser?.storage?.local;
+    if (typeof storageArea?.get !== "function") return;
+
+    // Settings can change after common.run reads them but before this listener
+    // starts. Read once after subscribing, without replacing newer live state.
+    const revision = ++this.#storageRevision;
+    Promise.resolve()
+      .then(() => storageArea.get(STOKEY_SETTING))
+      .then((stored) => {
+        if (
+          !this.#isActive ||
+          revision !== this.#storageRevision ||
+          this.#storageChanges !== storageChanges
+        ) {
+          return;
+        }
+        this.#handleStorageChange(
+          { [STOKEY_SETTING]: { newValue: stored?.[STOKEY_SETTING] } },
+          "local"
+        );
+      })
+      .catch((error) => logger.debug("Read current API settings", error));
+  }
+
+  #handleStorageChange(changes, areaName) {
+    if (!this.#isActive || areaName !== "local") return;
+    if (!Object.prototype.hasOwnProperty.call(changes || {}, STOKEY_SETTING)) {
+      return;
+    }
+    this.#storageRevision += 1;
+    const value = changes?.[STOKEY_SETTING]?.newValue;
+    if (typeof value !== "string") return;
+
+    let setting;
+    try {
+      setting = JSON.parse(value);
+    } catch (_error) {
+      return;
+    }
+    if (
+      !setting ||
+      typeof setting !== "object" ||
+      Array.isArray(setting) ||
+      !Array.isArray(setting.transApis) ||
+      setting.transApis.some(
+        (api) =>
+          !api ||
+          typeof api !== "object" ||
+          Array.isArray(api) ||
+          typeof api.apiSlug !== "string" ||
+          !api.apiSlug.trim()
+      )
+    ) {
+      return;
+    }
+    if (isSameStorageValue(setting.transApis, this.#setting?.transApis)) {
+      return;
+    }
+
+    // Only the API list is live; runtime feature toggles retain their state.
+    const transApis = this.#cloneConfig(setting.transApis);
+    this.#setting = { ...this.#setting, transApis };
+    this._translator?.updateApiSettings(this.#cloneConfig(transApis));
   }
 
   /**

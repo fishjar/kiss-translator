@@ -82,8 +82,8 @@ describe("Popup Header support menu", () => {
       );
     });
 
-    expect(container.querySelector(".kt-popup-header__title").textContent).toBe(
-      process.env.REACT_APP_NAME || "KISS Translator"
+    expect(container.querySelector(".kt-popup-brand-button").title).toBe(
+      `${process.env.REACT_APP_NAME || "KISS Translator"} v${process.env.REACT_APP_VERSION}`
     );
     act(() => container.querySelector('[aria-label="popup_support"]').click());
     act(() => document.body.querySelector('[role="menuitem"]').click());
@@ -107,5 +107,52 @@ describe("Popup Header support menu", () => {
 
     act(() => close.click());
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("embeds the existing tab controls beside the logo", () => {
+    act(() => {
+      root.render(
+        <Header>
+          <div role="tablist">
+            <button role="tab">Page translation</button>
+            <button role="tab">Text translation</button>
+          </div>
+        </Header>
+      );
+    });
+
+    expect(
+      container.querySelector(".kt-popup-header [role='tablist']")
+    ).not.toBeNull();
+    expect(container.querySelector(".kt-popup-header__identity")).toBeNull();
+  });
+
+  test("keeps exactly three header actions without global feature controls", () => {
+    act(() => {
+      root.render(
+        <Header
+          setting={{
+            tranboxSetting: { transOpen: true },
+            mouseHoverSetting: { useMouseHover: true },
+            inputRule: { transOpen: false },
+          }}
+          capabilities={{
+            selectionTranslation: true,
+            hoverTranslation: true,
+            inputTranslation: true,
+          }}
+        />
+      );
+    });
+
+    expect(
+      container.querySelectorAll(".kt-popup-header__actions button")
+    ).toHaveLength(3);
+    expect(container.querySelector(".kt-popup-header__global")).toBeNull();
+    expect(container.querySelector(".kt-popup-header__badge")).toBeNull();
+    expect(document.querySelector("#kt-popup-global-menu")).toBeNull();
+    expect(
+      container.querySelector('[aria-label="popup_global_features"]')
+    ).toBeNull();
   });
 });

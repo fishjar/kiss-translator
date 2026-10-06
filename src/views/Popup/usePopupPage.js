@@ -3,7 +3,9 @@ import { browser } from "../../libs/browser";
 import { getCurTab } from "../../libs/msg";
 import { kissLog } from "../../libs/log";
 import { loadPopupData } from "./loadData";
+import { loadDisabledPopupData } from "./disabledPage";
 import { isCurrentPopupDocument } from "../../libs/popupDocument";
+import { normalizeRuleApi } from "../../libs/apiSelection";
 
 /** Keep page data and edits attached to the tab captured by this popup. */
 export function usePopupPage({ enabled = true, initialData = null } = {}) {
@@ -63,12 +65,20 @@ export function usePopupPage({ enabled = true, initialData = null } = {}) {
 
     const load = async (tab, generation, retryWhileLoading = true) => {
       try {
-        const data = await loadPopupData({ tabId: tab.id });
+        let data = await loadPopupData({ tabId: tab.id });
         if (!active || generation !== generationRef.current) return;
+        if (!data?.rule || !data?.setting || data.error) {
+          data = await loadDisabledPopupData(tab);
+          if (!active || generation !== generationRef.current) return;
+        }
         const available = data?.rule && data?.setting && !data.error;
         const waiting =
           !available && retryWhileLoading && tab.status === "loading";
         if (available) {
+          data = {
+            ...data,
+            rule: normalizeRuleApi(data.rule, data.setting.transApis),
+          };
           currentDocument = data.document;
           documentGeneration = generation;
         }

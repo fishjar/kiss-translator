@@ -677,6 +677,11 @@ describe("Prompts textarea grip style", () => {
       'textarea.kt-resizable-textarea:not([aria-hidden="true"])'
     );
     const fieldRoot = textarea.closest(".MuiInputBase-root");
+    // jsdom has no layout; start from a rendered height above the resize minimum.
+    Object.defineProperty(fieldRoot, "offsetHeight", {
+      configurable: true,
+      value: 120,
+    });
     act(() => {
       textarea.focus();
     });

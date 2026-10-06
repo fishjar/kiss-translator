@@ -76,7 +76,7 @@ function createTranslator(rule = {}, setting = {}, favWords = []) {
       rootMargin: 0,
       mouseHoverSetting: {},
       customStyles: [],
-      transApis: [],
+      transApis: [createApiSetting(DEFAULT_API_SETTING.apiSlug)],
       ...setting,
     },
     favWords,
@@ -378,6 +378,363 @@ describe("Translator rule styles", () => {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
     jest.clearAllMocks();
+  });
+
+  describe("available translation services", () => {
+    test.each(["disabled", "removed"])(
+      "normalizes a %s page service before translating",
+      async (apiSlug) => {
+        document.body.innerHTML =
+          '<main id="root"><p>Page service fallback</p></main>';
+        const savedRule = { apiSlug };
+        const laterApi = { ...createApiSetting("later"), sortOrder: 2 };
+        const firstApi = { ...createApiSetting("first"), sortOrder: -1 };
+        const tiedApi = { ...createApiSetting("tied"), sortOrder: -1 };
+        const disabledApi = {
+          ...createApiSetting("disabled", true),
+          sortOrder: -2,
+        };
+        const translator = createTranslator(savedRule, {
+          transApis: [disabledApi, laterApi, firstApi, tiedApi],
+        });
+        await flushAsync();
+        await flushAsync();
+
+        expect(translator.rule.apiSlug).toBe("first");
+        expect(savedRule.apiSlug).toBe(apiSlug);
+        expect(apiTranslate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            apiSetting: expect.objectContaining({ apiSlug: "first" }),
+          })
+        );
+      }
+    );
+
+    test("normalizes a stale putRule service and refreshes translated nodes", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Runtime service fallback</p></main>';
+      const firstApi = createApiSetting("first");
+      const currentApi = { ...createApiSetting("current"), sortOrder: 1 };
+      const translator = createTranslator(
+        { apiSlug: "current" },
+        {
+          transApis: [firstApi, currentApi, createApiSetting("disabled", true)],
+        }
+      );
+      await flushAsync();
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          apiSetting: expect.objectContaining({ apiSlug: "current" }),
+        })
+      );
+
+      translator.updateRule({ apiSlug: "disabled" });
+      await flushAsync();
+      await flushAsync();
+      expect(translator.rule.apiSlug).toBe("first");
+      expect(apiTranslate).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          apiSetting: expect.objectContaining({ apiSlug: "first" }),
+        })
+      );
+      expect(
+        document.querySelectorAll(".kiss-translator-wrapper")
+      ).toHaveLength(1);
+
+      apiTranslate.mockClear();
+      translator.updateRule({ apiSlug: "removed" });
+      await flushAsync();
+      expect(translator.rule.apiSlug).toBe("first");
+      expect(apiTranslate).not.toHaveBeenCalled();
+    });
+
+    test.each(["disabled", "removed"])(
+      "switches an active page when its service is %s in live settings",
+      async (change) => {
+        document.body.innerHTML =
+          '<main id="root"><p>Live service change</p></main>';
+        const currentApi = createApiSetting("current");
+        const firstApi = { ...createApiSetting("first"), sortOrder: -1 };
+        const translator = createTranslator(
+          { apiSlug: "current", transOnly: "true" },
+          {
+            transApis: [currentApi, firstApi],
+            mouseHoverSetting: { useMouseHover: true },
+          }
+        );
+        await flushAsync();
+        await flushAsync();
+        apiTranslate.mockClear();
+
+        translator.updateApiSettings([
+          { ...createApiSetting("later"), sortOrder: 1 },
+          ...(change === "disabled"
+            ? [{ ...currentApi, isDisabled: true, sortOrder: -2 }]
+            : []),
+          firstApi,
+        ]);
+        await flushAsync();
+        await flushAsync();
+
+        expect(translator.rule.apiSlug).toBe("first");
+        expect(translator.rule.transOpen).toBe("true");
+        expect(translator.rule.transOnly).toBe("true");
+        expect(translator.setting.mouseHoverSetting.useMouseHover).toBe(true);
+        expect(apiTranslate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            apiSetting: expect.objectContaining({ apiSlug: "first" }),
+          })
+        );
+        expect(
+          document.querySelectorAll(".kiss-translator-wrapper")
+        ).toHaveLength(1);
+      }
+    );
+
+    test("keeps a valid selection when the service display order changes", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Service order change</p></main>';
+      const currentApi = createApiSetting("current");
+      const firstApi = createApiSetting("first");
+      const translator = createTranslator(
+        { apiSlug: "current" },
+        { transApis: [currentApi, firstApi] }
+      );
+      await flushAsync();
+      await flushAsync();
+      const wrapper = document.querySelector(".kiss-translator-wrapper");
+      apiTranslate.mockClear();
+
+      translator.updateApiSettings([
+        { ...firstApi, sortOrder: -1 },
+        { ...currentApi, sortOrder: 1 },
+      ]);
+      await flushAsync();
+
+      expect(translator.rule.apiSlug).toBe("current");
+      expect(document.querySelector(".kiss-translator-wrapper")).toBe(wrapper);
+      expect(apiTranslate).not.toHaveBeenCalled();
+    });
+
+    test("discards a pending response when all services stop and resumes on enable", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Pending service response</p></main>';
+      let finishRequest;
+      apiTranslate.mockImplementationOnce(
+        () => new Promise((resolve) => (finishRequest = resolve))
+      );
+      const currentApi = createApiSetting("current");
+      const translator = createTranslator(
+        { apiSlug: "current", transOnly: "true" },
+        { transApis: [currentApi] }
+      );
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+
+      translator.updateApiSettings([{ ...currentApi, isDisabled: true }]);
+      finishRequest({ trText: "Stale translation", isSame: false });
+      await flushAsync();
+      await flushAsync();
+      expect(document.querySelector(".kiss-translator-wrapper")).toBeNull();
+      expect(document.getElementById("root").textContent).toBe(
+        "Pending service response"
+      );
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+
+      translator.updateApiSettings([currentApi]);
+      await flushAsync();
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(2);
+      expect(translator.rule.apiSlug).toBe("current");
+      expect(document.querySelector(".kiss-translator-wrapper")).not.toBeNull();
+    });
+
+    test("restarts pending serialization when the same service changes placeholders", async () => {
+      document.body.innerHTML = '<main id="root"><p>GPTs and GPT</p></main>';
+      let finishRequest;
+      apiTranslate
+        .mockImplementationOnce(
+          () => new Promise((resolve) => (finishRequest = resolve))
+        )
+        .mockImplementation(({ text }) =>
+          Promise.resolve({ trText: text, isSame: false })
+        );
+      const currentApi = {
+        ...createApiSetting("current"),
+        placeholder: "[[ ]]",
+      };
+      const translator = createTranslator(
+        { apiSlug: "current", terms: "GPT;GPTs,Agents" },
+        { transApis: [currentApi] }
+      );
+      await flushAsync();
+      expect(apiTranslate.mock.calls[0][0].text).toBe("[[1]] and [[2]]");
+
+      translator.updateApiSettings([{ ...currentApi, placeholder: "{{ }}" }]);
+      await flushAsync();
+      await flushAsync();
+      finishRequest({ trText: "[[1]] and [[2]]", isSame: false });
+      await flushAsync();
+
+      expect(apiTranslate).toHaveBeenCalledTimes(2);
+      expect(apiTranslate.mock.calls[1][0].text).toBe("{{1}} and {{2}}");
+      expect(document.querySelector(".kiss-translator-inner").textContent).toBe(
+        "Agents and GPT"
+      );
+    });
+
+    test("retranslates the original title on fallback and restores it with no service", async () => {
+      document.title = "Original title";
+      document.body.innerHTML = '<main id="root"><p>Article text</p></main>';
+      apiTranslate.mockImplementation(({ text, apiSetting }) =>
+        Promise.resolve({
+          trText: `${apiSetting.apiSlug}:${text}`,
+          isSame: false,
+        })
+      );
+      const currentApi = createApiSetting("current");
+      const firstApi = createApiSetting("first");
+      const translator = createTranslator(
+        { apiSlug: "current", transTitle: "true" },
+        { transApis: [currentApi, firstApi] }
+      );
+      await flushAsync();
+      await flushAsync();
+      expect(document.title).toBe("current:Original title");
+
+      translator.updateApiSettings([
+        { ...currentApi, isDisabled: true },
+        firstApi,
+      ]);
+      await flushAsync();
+      await flushAsync();
+      expect(document.title).toBe("first:Original title");
+
+      apiTranslate.mockClear();
+      translator.updateApiSettings([]);
+      await flushAsync();
+      expect(document.title).toBe("Original title");
+      expect(apiTranslate).not.toHaveBeenCalled();
+    });
+
+    test("does not send a stale hover request after live API changes during detection", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p id="target">Delayed hover detection</p></main>';
+      let finishDetection;
+      tryDetectLang.mockImplementationOnce(
+        () => new Promise((resolve) => (finishDetection = resolve))
+      );
+      const pageApi = createApiSetting("page");
+      const bubbleApi = createApiSetting("bubble");
+      const translator = createTranslator(
+        { transOpen: "false", fromLang: "auto", apiSlug: "page" },
+        {
+          transApis: [pageApi, bubbleApi],
+          preInit: true,
+          mouseHoverSetting: {
+            useMouseHover: true,
+            displayMode: "bubble",
+            apiSlug: "bubble",
+          },
+        }
+      );
+      await hoverNode(document.getElementById("target"));
+      translator.updateApiSettings([pageApi]);
+      finishDetection("en");
+      await flushAsync();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(
+        document.querySelector(".kiss-translator-hover-bubble")
+      ).toBeNull();
+
+      await hoverNode(document.getElementById("target"));
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiSetting: expect.objectContaining({ apiSlug: "page" }),
+        })
+      );
+    });
+
+    test("retries with the effective service after live fallback", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Retry fallback selection</p></main>';
+      const currentApi = createApiSetting("current");
+      const firstApi = createApiSetting("first");
+      const translator = createTranslator(
+        { apiSlug: "current" },
+        { transApis: [currentApi, firstApi] }
+      );
+      await flushAsync();
+      await flushAsync();
+      apiTranslate.mockClear();
+      apiTranslate.mockRejectedValueOnce(new Error("Fallback service error"));
+
+      translator.updateApiSettings([
+        { ...currentApi, isDisabled: true },
+        firstApi,
+      ]);
+      await flushAsync();
+      await flushAsync();
+      document
+        .querySelector(`.${Translator.KISS_CLASS.retry}`)
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await flushAsync();
+      await flushAsync();
+
+      expect(apiTranslate).toHaveBeenCalledTimes(2);
+      expect(
+        apiTranslate.mock.calls.map(([args]) => args.apiSetting.apiSlug)
+      ).toEqual(["first", "first"]);
+      expect(translator.rule.apiSlug).toBe("first");
+    });
+
+    test("does not preprocess a plain text page without enabled services", async () => {
+      document.body.innerHTML =
+        '<main id="root"><pre>First line\nSecond line</pre></main>';
+      const original = document.body.innerHTML;
+      createPlainTextTranslator({}, { transApis: [] });
+      await flushAsync();
+      expect(document.body.innerHTML).toBe(original);
+      expect(apiTranslate).not.toHaveBeenCalled();
+    });
+
+    test.each([[[]], [[createApiSetting("disabled", true)]]])(
+      "leaves the page unchanged without any enabled service",
+      async (transApis) => {
+        document.title = "Original page title";
+        document.body.innerHTML =
+          '<main id="root"><p id="target">No service available</p></main>';
+        const translator = createTranslator(
+          { apiSlug: "disabled", transTitle: "true" },
+          {
+            transApis,
+            preInit: true,
+            mouseHoverSetting: {
+              useMouseHover: true,
+              mouseHoverKey: [],
+              mouseHoverKey2: [],
+              displayMode: "bubble",
+              apiSlug: "disabled",
+            },
+          }
+        );
+        await flushAsync();
+        await hoverNode(document.getElementById("target"));
+        await flushAsync();
+        translator.updateRule({ apiSlug: "removed" });
+        await flushAsync();
+
+        expect(apiTranslate).not.toHaveBeenCalled();
+        expect(tryDetectLang).not.toHaveBeenCalled();
+        expect(document.title).toBe("Original page title");
+        expect(document.querySelector(".kiss-translator-wrapper")).toBeNull();
+        expect(
+          document.querySelector(".kiss-translator-hover-bubble")
+        ).toBeNull();
+      }
+    );
   });
 
   describe("batched translation updates", () => {
@@ -742,6 +1099,47 @@ describe("Translator rule styles", () => {
         node.querySelector(`.${Translator.KISS_CLASS.warpper}`)
       ).toBeNull();
     });
+
+    test.each(["disabled", "removed"])(
+      "invalidates a pending independent touch service when it is %s",
+      async (change) => {
+        let finishRequest;
+        apiTranslate.mockImplementationOnce(
+          () => new Promise((resolve) => (finishRequest = resolve))
+        );
+        const pageApi = createApiSetting("page");
+        const touchApi = createApiSetting("touch");
+        const translator = createTranslator(
+          { transOpen: "false", apiSlug: "page" },
+          {
+            preInit: false,
+            transApis: [pageApi, touchApi],
+            mouseHoverSetting: { apiSlug: "touch" },
+          }
+        );
+        const node = document.getElementById("target");
+        translator.setTouchMode("tap");
+        tap(node);
+        await flushAsync();
+        expect(apiTranslate.mock.calls[0][0].apiSetting.apiSlug).toBe("touch");
+
+        translator.updateApiSettings([
+          pageApi,
+          ...(change === "disabled" ? [{ ...touchApi, isDisabled: true }] : []),
+        ]);
+        finishRequest({ trText: "Stale touch result", isSame: false });
+        await flushAsync();
+        expect(node.textContent).toBe("Hello touch paragraph");
+        expect(translator.touchMode).toBe("tap");
+        expect(translator.rule.apiSlug).toBe("page");
+
+        tap(node);
+        await flushAsync();
+        await flushAsync();
+        expect(apiTranslate.mock.calls[1][0].apiSetting.apiSlug).toBe("page");
+        expect(node.textContent).toBe("Hello touch paragraphTranslated");
+      }
+    );
 
     test("cancels language detection before sending a translation request", async () => {
       let finish;
@@ -1978,34 +2376,146 @@ describe("Translator rule styles", () => {
     expect(pre.querySelectorAll(":scope > span")).toHaveLength(150);
   });
 
-  test("stops stale plain text pre preprocessing when run changes", async () => {
+  test.each(["disable", "stop", "mode-off", "navigation"])(
+    "preserves the complete pending plain text source on %s",
+    async (action) => {
+      global.IntersectionObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+      document.body.innerHTML = '<main id="root"><pre></pre></main>';
+      const pre = document.querySelector("pre");
+      const source = Array.from(
+        { length: 150 },
+        (_, index) => `Line ${index + 1}`
+      ).join("\n");
+      pre.textContent = source;
+      const translator = createPlainTextTranslator({}, { minLength: 0 });
+      expect(pre.querySelectorAll(":scope > span")).toHaveLength(20);
+
+      if (action === "disable") translator.disable();
+      if (action === "stop") translator.stop();
+      if (action === "mode-off") translator.updateRule({ isPlainText: false });
+      if (action === "navigation") pre.remove();
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
+
+      expect(pre.textContent).toBe(source);
+      expect(pre.querySelectorAll(":scope > span")).toHaveLength(0);
+      expect(pre.dataset.kissPreprocessed).toBeUndefined();
+      expect(apiTranslate).not.toHaveBeenCalled();
+    }
+  );
+
+  test("resumes lazy plain text preprocessing after disabling and enabling", async () => {
     global.IntersectionObserver = class {
-      constructor() {}
-
       observe() {}
-
       unobserve() {}
-
       disconnect() {}
     };
     document.body.innerHTML = '<main id="root"><pre></pre></main>';
     const pre = document.querySelector("pre");
-    pre.textContent = Array.from(
+    const source = Array.from(
       { length: 150 },
       (_, index) => `Line ${index + 1}`
     ).join("\n");
-
+    pre.textContent = source;
     const translator = createPlainTextTranslator({}, { minLength: 0 });
-    const initialChunkCount = pre.querySelectorAll(":scope > span").length;
-
     translator.disable();
-    jest.runOnlyPendingTimers();
-    await Promise.resolve();
+    expect(pre.textContent).toBe(source);
+    translator.enable();
+    expect(pre.querySelectorAll(":scope > span")).toHaveLength(20);
 
-    expect(pre.querySelectorAll(":scope > span")).toHaveLength(
-      initialChunkCount
-    );
+    for (let batch = 0; batch < 4; batch++) {
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
+    }
+    expect(
+      Array.from(pre.querySelectorAll(":scope > span"))
+        .map((chunk) => chunk.textContent)
+        .join("\n")
+    ).toBe(source);
+    expect(apiTranslate).not.toHaveBeenCalled();
   });
+
+  test.each(["disabled", "removed", "reconfigured", "all-disabled"])(
+    "preserves every pending plain text chunk when the API is %s",
+    async (change) => {
+      let intersectionCallback;
+      global.IntersectionObserver = class {
+        constructor(callback) {
+          intersectionCallback = callback;
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+      document.body.innerHTML = '<main id="root"><pre></pre></main>';
+      const pre = document.querySelector("pre");
+      const source = Array.from(
+        { length: 150 },
+        (_, index) => `Original line ${index + 1}`
+      ).join("\n");
+      pre.textContent = source;
+      const currentApi = createApiSetting("current");
+      const firstApi = createApiSetting("first");
+      const translator = createPlainTextTranslator(
+        { apiSlug: "current" },
+        { transApis: [currentApi, firstApi], minLength: 0 }
+      );
+      expect(pre.querySelectorAll(":scope > span")).toHaveLength(20);
+
+      const nextApis =
+        change === "all-disabled"
+          ? [
+              { ...currentApi, isDisabled: true },
+              { ...firstApi, isDisabled: true },
+            ]
+          : change === "removed"
+            ? [firstApi]
+            : [
+                change === "disabled"
+                  ? { ...currentApi, isDisabled: true }
+                  : { ...currentApi, placeholder: "[[ ]]" },
+                firstApi,
+              ];
+      translator.updateApiSettings(nextApis);
+      expect(pre.querySelectorAll(":scope > span").length).toBeLessThanOrEqual(
+        20
+      );
+      for (let batch = 0; batch < 4; batch++) {
+        jest.runOnlyPendingTimers();
+        await Promise.resolve();
+      }
+
+      if (change === "all-disabled") {
+        expect(pre.textContent).toBe(source);
+        expect(pre.querySelectorAll(":scope > span")).toHaveLength(0);
+        expect(apiTranslate).not.toHaveBeenCalled();
+      } else {
+        const chunks = Array.from(pre.querySelectorAll(":scope > span"));
+        expect(chunks).toHaveLength(150);
+        expect(chunks.map((chunk) => chunk.textContent).join("\n")).toBe(
+          source
+        );
+        intersectionCallback([{ target: chunks[0], isIntersecting: true }]);
+        await flushAsync();
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            apiSetting: expect.objectContaining({
+              apiSlug: change === "reconfigured" ? "current" : "first",
+              isDisabled: false,
+            }),
+          })
+        );
+        expect(
+          apiTranslate.mock.calls.some(([args]) => args.apiSetting.isDisabled)
+        ).toBe(false);
+      }
+    }
+  );
 
   test("only translates visible plain text chunks", async () => {
     const observed = [];

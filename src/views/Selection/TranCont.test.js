@@ -25,7 +25,12 @@ jest.mock("../../config", () => ({
 }));
 
 jest.mock("../../hooks/I18n", () => ({
-  useI18n: () => (key) => key,
+  useI18n: () => (key) =>
+    ({
+      popup_text_request_failed: "Request failed ({status})",
+      popup_text_auth_failed: "Check your API Key in Settings.",
+      popup_text_failed: "Translation failed. Please retry.",
+    })[key] || key,
 }));
 
 jest.mock("./CopyBtn", () => {
@@ -50,6 +55,16 @@ jest.mock("./AudioBtn", () => {
         "speak"
       ),
   };
+});
+
+jest.mock("../../components/ApiProviderIcon", () => {
+  const React = require("react");
+
+  return ({ apiType }) =>
+    React.createElement("span", {
+      "data-provider-api": apiType,
+      "aria-hidden": true,
+    });
 });
 
 // 手柄样式：部分 mock（requireActual 保留真实默认导出），只替换
@@ -171,6 +186,437 @@ describe("TranCont", () => {
     document.body.innerHTML = "";
   });
 
+  describe("popup results", () => {
+    test("formats a raw unauthorized response without exposing request diagnostics", async () => {
+      const rawError = `Uncaught Error: ${JSON.stringify({
+        url: "https://api.openai.com/v1/chat/completions?key=secret",
+        status: 401,
+        statusText: "Unauthorized",
+        response: { error: { message: "Fixture authorization failure (401)" } },
+      })}\n    at apiTranslate (https://example.com/background.js:10:3)`;
+      apiTranslate.mockRejectedValueOnce(new Error(rawError));
+      const { container, root } = renderTranCont({ isPopup: true });
+      await flushEffects();
+
+      expect(
+        container.querySelector(".kt-popup-text-result__error p").textContent
+      ).toBe("Request failed (401): Check your API Key in Settings.");
+      expect(container.textContent).not.toContain("https://");
+      expect(container.textContent).not.toContain("secret");
+      expect(container.textContent).not.toContain("statusText");
+      expect(container.textContent).not.toContain("Uncaught Error");
+      expect(
+        container.querySelector(".kt-popup-text-result__retry")
+      ).not.toBeNull();
+      act(() => root.unmount());
+    });
+
+    test.each([
+      [
+        JSON.stringify({
+          url: "https://example.com/translate",
+          status: 429,
+          response: JSON.stringify({
+            error: { message: "Rate limit exceeded." },
+          }),
+        }),
+        "Request failed (429): Rate limit exceeded.",
+      ],
+      [
+        JSON.stringify({
+          status: 503,
+          response: { message: "Service temporarily unavailable." },
+        }),
+        "Request failed (503): Service temporarily unavailable.",
+      ],
+      [
+        "This model does not support the selected language.",
+        "This model does not support the selected language.",
+      ],
+      ["Unauthorized", "Check your API Key in Settings."],
+      [
+        JSON.stringify({ debug: { url: "https://example.com/translate" } }),
+        "Translation failed. Please retry.",
+      ],
+      [
+        JSON.stringify([{ status: 401, url: "https://example.com/translate" }]),
+        "Translation failed. Please retry.",
+      ],
+      [
+        "https://example.com/translate\n    at apiTranslate",
+        "Translation failed. Please retry.",
+      ],
+    ])(
+      "uses a concise popup error for %s",
+      async (rawError, expectedMessage) => {
+        apiTranslate.mockRejectedValueOnce(new Error(rawError));
+        const { container, root } = renderTranCont({ isPopup: true });
+        await flushEffects();
+        expect(
+          container.querySelector(".kt-popup-text-result__error p").textContent
+        ).toBe(expectedMessage);
+        expect(container.textContent).not.toContain("https://");
+        act(() => root.unmount());
+      }
+    );
+
+    test("preserves raw request errors in the default selection result", async () => {
+      const rawError = JSON.stringify({
+        url: "https://example.com/translate",
+        status: 401,
+        response: { error: { message: "Unauthorized" } },
+      });
+      apiTranslate.mockRejectedValueOnce(new Error(rawError));
+      const { container, root } = renderTranCont();
+      await flushEffects();
+      expect(
+        container.querySelector(".MuiFormHelperText-root").textContent
+      ).toBe(rawError);
+      act(() => root.unmount());
+    });
+
+    test("waits for a detection-dependent target before sending one popup request", async () => {
+      apiTranslate.mockResolvedValueOnce({ trText: "Detected target result" });
+      const { container, root } = renderTranCont({
+        isPopup: true,
+        waitForSourceDetection: true,
+        sourceDetectionPending: true,
+      });
+      await flushEffects();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(
+        container
+          .querySelector(".kt-popup-text-result")
+          .getAttribute("aria-busy")
+      ).toBe("true");
+      expect(
+        container.querySelector(".kt-popup-text-result__loading")
+      ).not.toBeNull();
+
+      act(() => {
+        root.render(
+          <TranCont
+            text="hello"
+            fromLang="auto"
+            toLang="en"
+            apiSlug="openai"
+            transApis={[baseApiSetting]}
+            isPopup
+            waitForSourceDetection
+            sourceDetectionPending={false}
+            detectedLang="zh-CN"
+          />
+        );
+      });
+      await flushEffects();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: "hello",
+          fromLang: "auto",
+          toLang: "en",
+        })
+      );
+      expect(
+        container.querySelector(".kt-popup-text-result__content").textContent
+      ).toBe("Detected target result");
+      act(() => root.unmount());
+    });
+
+    test("preserves ordinary selection requests while optional detection is pending", async () => {
+      apiTranslate.mockResolvedValueOnce({ trText: "Selection result" });
+      const { container, root } = renderTranCont({
+        sourceDetectionPending: true,
+      });
+      await flushEffects();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(container.querySelector("textarea").value).toBe(
+        "Selection result"
+      );
+      act(() => root.unmount());
+    });
+
+    test("uses the shared streaming request and enables actions for partial text", async () => {
+      const deferred = createDeferred();
+      apiTranslate.mockReturnValueOnce(deferred.promise);
+      const { container, root } = renderTranCont({ isPopup: true });
+      await flushEffects();
+      const result = container.querySelector(".kt-popup-text-result");
+      expect(container.querySelector("textarea")).toBeNull();
+      expect(result.getAttribute("aria-busy")).toBe("true");
+      expect(
+        result.querySelectorAll(
+          ".kt-popup-text-result__actions button:disabled"
+        )
+      ).toHaveLength(2);
+      expect(
+        result.querySelector(".kt-popup-text-result__provider").textContent
+      ).toBe("OpenAI");
+      expect(apiTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: "hello",
+          apiSetting: baseApiSetting,
+          textFormat: "text",
+          onStreamChunk: expect.any(Function),
+        })
+      );
+
+      await act(async () => {
+        apiTranslate.mock.calls[0][0].onStreamChunk({ text: "Partial result" });
+      });
+      expect(
+        result.querySelector(".kt-popup-text-result__content").textContent
+      ).toBe("Partial result");
+      expect(result.querySelector("[data-copy-text]").dataset.copyText).toBe(
+        "Partial result"
+      );
+      expect(
+        result.querySelector("[data-speech-text]").dataset.speechText
+      ).toBe("Partial result");
+
+      await act(async () => {
+        deferred.resolve({ trText: "Final result" });
+        await deferred.promise;
+      });
+      expect(
+        result.querySelector(".kt-popup-text-result__content").textContent
+      ).toBe("Final result");
+      expect(result.getAttribute("aria-busy")).toBe("false");
+      expect(result.querySelector(".kt-popup-text-result__loading")).toBeNull();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      act(() => root.unmount());
+    });
+
+    test("moves single-provider actions between toolbar hosts without restarting a request", async () => {
+      const deferred = createDeferred();
+      apiTranslate.mockReturnValueOnce(deferred.promise);
+      const firstToolbar = document.createElement("div");
+      const secondToolbar = document.createElement("div");
+      document.body.append(firstToolbar, secondToolbar);
+      const { container, root } = renderTranCont({
+        isPopup: true,
+        showProvider: false,
+        actionContainer: firstToolbar,
+      });
+      await flushEffects();
+      const signal = apiTranslate.mock.calls[0][0].signal;
+      expect(
+        firstToolbar.querySelector(".kt-popup-text-result__actions")
+      ).not.toBeNull();
+      expect(
+        container.querySelector(".kt-popup-text-result__header")
+      ).toBeNull();
+      expect(
+        container.querySelector(".kt-popup-text-result__provider")
+      ).toBeNull();
+
+      act(() => {
+        root.render(
+          <TranCont
+            text="hello"
+            fromLang="auto"
+            toLang="zh-CN"
+            apiSlug="openai"
+            transApis={[baseApiSetting]}
+            isPopup
+            showProvider={false}
+            actionContainer={secondToolbar}
+          />
+        );
+      });
+      await flushEffects();
+      expect(
+        firstToolbar.querySelector(".kt-popup-text-result__actions")
+      ).toBeNull();
+      expect(
+        secondToolbar.querySelector(".kt-popup-text-result__actions")
+      ).not.toBeNull();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(signal.aborted).toBe(false);
+
+      await act(async () => {
+        deferred.resolve({ trText: "Toolbar result" });
+        await deferred.promise;
+      });
+      expect(
+        secondToolbar.querySelector("[data-copy-text]").dataset.copyText
+      ).toBe("Toolbar result");
+      expect(
+        container.querySelector(".kt-popup-text-result__content").textContent
+      ).toBe("Toolbar result");
+      act(() => root.unmount());
+      expect(
+        secondToolbar.querySelector(".kt-popup-text-result__actions")
+      ).toBeNull();
+    });
+
+    test("appends keyed provider results without refetching an existing provider", async () => {
+      apiTranslate.mockImplementation(({ apiSetting }) =>
+        Promise.resolve({ trText: `${apiSetting.apiSlug} result` })
+      );
+      const container = document.createElement("div");
+      const toolbar = document.createElement("div");
+      document.body.append(container, toolbar);
+      const root = createRoot(container);
+      const apis = [baseApiSetting, googleApiSetting];
+      const renderResults = (slugs) => {
+        act(() => {
+          root.render(
+            <>
+              {slugs.map((apiSlug) => (
+                <TranCont
+                  key={apiSlug}
+                  text="hello"
+                  fromLang="auto"
+                  toLang="zh-CN"
+                  apiSlug={apiSlug}
+                  transApis={[...apis]}
+                  isPopup
+                  showProvider={slugs.length > 1}
+                  actionContainer={slugs.length === 1 ? toolbar : null}
+                />
+              ))}
+            </>
+          );
+        });
+      };
+      renderResults(["openai"]);
+      await flushEffects();
+      const firstResult = container.querySelector('[data-api-slug="openai"]');
+      const firstSignal = apiTranslate.mock.calls[0][0].signal;
+      expect(
+        firstResult.querySelector(".kt-popup-text-result__provider")
+      ).toBeNull();
+      expect(toolbar.querySelector("[data-copy-text]").dataset.copyText).toBe(
+        "openai result"
+      );
+
+      renderResults(["openai", "google"]);
+      await flushEffects();
+      expect(container.querySelector('[data-api-slug="openai"]')).toBe(
+        firstResult
+      );
+      expect(container.querySelectorAll(".kt-popup-text-result")).toHaveLength(
+        2
+      );
+      expect(
+        firstResult.querySelector(".kt-popup-text-result__provider").textContent
+      ).toBe("OpenAI");
+      expect(
+        toolbar.querySelector(".kt-popup-text-result__actions")
+      ).toBeNull();
+      expect(
+        apiTranslate.mock.calls.map(([args]) => args.apiSetting.apiSlug)
+      ).toEqual(["openai", "google"]);
+      expect(firstSignal.aborted).toBe(false);
+
+      renderResults(["openai"]);
+      await flushEffects();
+      expect(apiTranslate).toHaveBeenCalledTimes(2);
+      expect(firstSignal.aborted).toBe(false);
+      expect(toolbar.querySelector("[data-copy-text]").dataset.copyText).toBe(
+        "openai result"
+      );
+      act(() => root.unmount());
+    });
+
+    test("retries errors per provider and keeps an explicit reload independent", async () => {
+      apiTranslate
+        .mockRejectedValueOnce(new Error("Provider unavailable"))
+        .mockResolvedValueOnce({ trText: "Retry result" })
+        .mockResolvedValueOnce({ trText: "Reload result" });
+      const { container, root } = renderTranCont({ isPopup: true });
+      await flushEffects();
+      const error = container.querySelector(".kt-popup-text-result__error");
+      expect(error.getAttribute("role")).toBe("alert");
+      expect(error.textContent).toContain("Provider unavailable");
+      expect(
+        container.querySelectorAll(
+          ".kt-popup-text-result__actions button:disabled"
+        )
+      ).toHaveLength(2);
+      act(() => {
+        error
+          .querySelector(".kt-popup-text-result__retry")
+          .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      await flushEffects();
+      expect(
+        container.querySelector(".kt-popup-text-result__error")
+      ).toBeNull();
+      expect(
+        container.querySelector(".kt-popup-text-result__content").textContent
+      ).toBe("Retry result");
+      expect(apiTranslate).toHaveBeenCalledTimes(2);
+
+      act(() => {
+        root.render(
+          <TranCont
+            text="hello"
+            fromLang="auto"
+            toLang="zh-CN"
+            apiSlug="openai"
+            transApis={[baseApiSetting]}
+            isPopup
+            requestRevision={1}
+          />
+        );
+      });
+      await flushEffects();
+      expect(apiTranslate).toHaveBeenCalledTimes(3);
+      expect(
+        container.querySelector(".kt-popup-text-result__content").textContent
+      ).toBe("Reload result");
+      act(() => root.unmount());
+    });
+
+    test("keeps an empty provider section and disabled actions without sending a request", async () => {
+      const { container, root } = renderTranCont({ text: "", isPopup: true });
+      await flushEffects();
+      expect(
+        container.querySelector(".kt-popup-text-result__provider").textContent
+      ).toBe("OpenAI");
+      expect(
+        container.querySelector(".kt-popup-text-result__empty").textContent
+      ).toBe("popup_text_result_empty");
+      expect(
+        container.querySelectorAll(
+          ".kt-popup-text-result__actions button:disabled"
+        )
+      ).toHaveLength(2);
+      expect(apiTranslate).not.toHaveBeenCalled();
+      act(() => root.unmount());
+    });
+
+    test("does not clear a selection result height memory when the popup is empty", async () => {
+      apiTranslate.mockResolvedValueOnce({ trText: "Selection result" });
+      const selection = renderTranCont();
+      await flushEffects();
+      act(() => {
+        selection.container
+          .querySelector('[role="slider"]')
+          .dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })
+          );
+      });
+      const rememberedHeight = __getSessionHeightMapForTests().get(
+        "trancont-result:openai"
+      );
+      expect(rememberedHeight).toBeGreaterThan(0);
+
+      const popup = renderTranCont({ text: "", isPopup: true });
+      await flushEffects();
+      expect(
+        __getSessionHeightMapForTests().get("trancont-result:openai")
+      ).toBe(rememberedHeight);
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      act(() => {
+        popup.root.unmount();
+        selection.root.unmount();
+      });
+    });
+  });
+
   test("renders an explicit read-only empty state in the Playground", async () => {
     const { container, root } = renderTranCont({
       text: "",
@@ -191,9 +637,7 @@ describe("TranCont", () => {
     expect(getComputedStyle(textarea).resize).toBe("none");
     // 内容门控（空内容 → 不在场）：空态结果框不渲染手柄。
     expect(
-      textarea
-        .closest(".MuiInputBase-root")
-        .querySelector('[role="slider"]')
+      textarea.closest(".MuiInputBase-root").querySelector('[role="slider"]')
     ).toBeNull();
     expect(textarea.placeholder).toBe("playground_translation_empty_result");
     expect(container.querySelector("button[data-copy-text]")).toBeNull();
@@ -282,7 +726,7 @@ describe("TranCont", () => {
     const grip = firstRoot.querySelector('[role="slider"]');
     await act(async () => {
       grip.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })
+        new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })
       );
     });
     const locked = firstRoot.style.height;
@@ -314,7 +758,9 @@ describe("TranCont", () => {
     const first = renderTranCont();
     await flushEffects();
     const aRoot = first.container
-      .querySelector('.kt-translation-result textarea:not([aria-hidden="true"])')
+      .querySelector(
+        '.kt-translation-result textarea:not([aria-hidden="true"])'
+      )
       .closest(".MuiInputBase-root");
     jest.spyOn(aRoot, "offsetHeight", "get").mockReturnValue(100);
     act(() => {
@@ -333,7 +779,9 @@ describe("TranCont", () => {
     });
     await flushEffects();
     const bRoot = second.container
-      .querySelector('.kt-translation-result textarea:not([aria-hidden="true"])')
+      .querySelector(
+        '.kt-translation-result textarea:not([aria-hidden="true"])'
+      )
       .closest(".MuiInputBase-root");
     act(() => {
       bRoot
