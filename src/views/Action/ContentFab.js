@@ -38,7 +38,12 @@ import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import useWindowSize from "../../hooks/WindowSize";
 import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
 import { ACTION_STYLES } from "./styles";
-import { normalizeFabAppearance } from "../../config/fab";
+import {
+  FAB_CLICK_ACTION_MENU,
+  FAB_CLICK_ACTION_TRANSLATE,
+  FAB_CLICK_ACTION_POPUP,
+  normalizeFabAppearance,
+} from "../../config/fab";
 import FloatingButton from "../../components/FloatingButton";
 
 const selectionUnavailable = () => false;
@@ -89,7 +94,7 @@ export function ContentFabContent({
     x: fabX,
     y: fabY,
     edge: fabEdge,
-    fabClickAction = 0,
+    fabClickAction = FAB_CLICK_ACTION_MENU,
   } = fabConfig || {};
   const {
     halfHide,
@@ -101,7 +106,9 @@ export function ContentFabContent({
     subscribeSelectionEnabled,
     getSelectionEnabled
   );
-  const opensMenu = fabClickAction !== 1;
+  const opensPopup = fabClickAction === FAB_CLICK_ACTION_POPUP;
+  const opensMenu =
+    fabClickAction !== FAB_CLICK_ACTION_TRANSLATE && !opensPopup;
   const windowSize = useWindowSize();
   const [moved, setMoved] = useState(false); // Track whether a drag occurred.
   const [showFab, setShowFab] = useState(true);
@@ -129,6 +136,10 @@ export function ContentFabContent({
     setOpen(false);
     if (restoreFocus) anchorRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!opensMenu) closeMenu();
+  }, [closeMenu, opensMenu]);
 
   useEffect(() => {
     if (!opensMenu || !open) return;
@@ -217,13 +228,18 @@ export function ContentFabContent({
     if (moved) {
       return;
     }
-    // fabClickAction === 1 keeps the legacy direct translation action.
+    if (opensPopup) {
+      // Let the panel manage focus when it opens and closes.
+      closeMenu();
+      processActions({ action: MSG_POPUP_TOGGLE });
+      return;
+    }
     if (!opensMenu) {
       runAction(MSG_TRANS_TOGGLE);
       return;
     }
     setOpen((current) => !current);
-  }, [moved, opensMenu, runAction]);
+  }, [closeMenu, moved, opensMenu, opensPopup, processActions, runAction]);
 
   // Close the menu and return focus to the FAB before menu items unmount.
   const handleMenuKeyDown = useCallback(
@@ -306,9 +322,9 @@ export function ContentFabContent({
           opensMenu={opensMenu}
           open={open}
           aria-expanded={opensMenu ? open : undefined}
-          aria-haspopup={opensMenu ? "menu" : undefined}
+          aria-haspopup={opensMenu ? "menu" : opensPopup ? "dialog" : undefined}
           aria-controls={opensMenu && open ? "kt-content-fab-menu" : undefined}
-          aria-label={i18n("translate")}
+          aria-label={i18n(opensPopup ? "fab_click_popup" : "translate")}
           onClick={handleClick}
         />
       }

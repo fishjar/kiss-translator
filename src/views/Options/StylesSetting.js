@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRevealSearchTarget } from "./SettingsSearchTarget";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
@@ -21,11 +22,15 @@ import {
 import { css } from "@emotion/css";
 import { getRandomQuote } from "../../config/quotes";
 import { useSetting } from "../../hooks/Setting";
+import { GripGlyph } from "../../components/TextareaResizeGrip";
+import { TEXTAREA_GRIP_STYLE_KEYS } from "../../config/textareaGripStyles";
+import { useTextareaGripStyle } from "../../hooks/useTextareaHeightLock";
 import {
   SettingsCard,
   SettingsRow,
   SettingsSection,
   SettingsSegmented,
+  SettingsSelect,
 } from "./SettingsCard";
 
 /**
@@ -176,6 +181,7 @@ function StyleFields({ customStyle, deleteStyle, updateStyle, isBuiltin }) {
  */
 export function StyleAccordion({ customStyle, deleteStyle, updateStyle }) {
   const [expanded, setExpanded] = useState(false);
+  useRevealSearchTarget(setExpanded, ["style_name", "style_code"]);
   const i18n = useI18n();
   const { isBuiltin } = customStyle;
   const previewCode = getCompactStylePreviewCode(customStyle);
@@ -225,6 +231,27 @@ export function StyleAccordion({ customStyle, deleteStyle, updateStyle }) {
 }
 
 /**
+ * 下拉选项图标 + 文案的内联排布（参照 Apis.js MenuItem 内联图标先例；
+ * SettingsSelect 的 label 天然接受 React 节点，SettingsSelect 自身零改造）。
+ * 图标由 GripGlyph 纯展示渲染；hidden 项不渲染手柄，textarea 回退原生 resize。
+ *
+ * @param {string} variant 手柄样式 key。
+ * @param {string} text 选项文案。
+ * @returns {JSX.Element}
+ */
+function gripOptionLabel(variant, text) {
+  return (
+    <Box
+      component="span"
+      sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}
+    >
+      <GripGlyph variant={variant} />
+      {text}
+    </Box>
+  );
+}
+
+/**
  * 译文展现样式设置主页面组件 (StylesSetting)
  */
 export default function StylesSetting() {
@@ -232,6 +259,16 @@ export default function StylesSetting() {
   const { setting, updateSetting } = useSetting();
   const [showStyleManager, setShowStyleManager] = useState(false);
   const [hasOpenedStyleManager, setHasOpenedStyleManager] = useState(false);
+  useRevealSearchTarget(setShowStyleManager, [
+    "settings_style_library",
+    "style_name",
+    "style_code",
+  ]);
+  useRevealSearchTarget(setHasOpenedStyleManager, [
+    "settings_style_library",
+    "style_name",
+    "style_code",
+  ]);
   // 自定义 CSS 列表 Hook
   const { addStyle, deleteStyle, updateStyle } = useStyleList();
   // 系统内置的只读样式配置列表
@@ -249,6 +286,7 @@ export default function StylesSetting() {
   };
 
   const darkMode = setting.darkMode || "auto";
+  const gripStyle = useTextareaGripStyle();
 
   return (
     <Box>
@@ -264,6 +302,28 @@ export default function StylesSetting() {
                 { value: "dark", label: i18n("settings_theme_dark") },
                 { value: "auto", label: i18n("settings_theme_system") },
               ]}
+            />
+          </SettingsRow>
+        </SettingsCard>
+      </SettingsSection>
+
+      <SettingsSection title={i18n("settings_textarea_grip_style")}>
+        <SettingsCard>
+          <SettingsRow
+            label={i18n("settings_textarea_grip_style")}
+            description={i18n("settings_textarea_grip_style_desc")}
+          >
+            <SettingsSelect
+              value={gripStyle}
+              label={i18n("settings_textarea_grip_style")}
+              onChange={(value) => updateSetting({ textareaGripStyle: value })}
+              options={TEXTAREA_GRIP_STYLE_KEYS.map((key) => ({
+                value: key,
+                label: gripOptionLabel(
+                  key,
+                  i18n(`grip_style_${key.replace(/-/g, "_")}`)
+                ),
+              }))}
             />
           </SettingsRow>
         </SettingsCard>

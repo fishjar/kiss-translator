@@ -268,7 +268,7 @@ describe("ExtCommands", () => {
   });
 });
 
-async function chooseBooleanOption(
+async function chooseSelectOption(
   container,
   value,
   name = "autoTranslateClipboard"
@@ -290,6 +290,117 @@ async function chooseBooleanOption(
     await Promise.resolve();
   });
 }
+
+describe("Settings floating button click action", () => {
+  const updateSetting = jest.fn();
+  const updateFab = jest.fn();
+  const storedFab = {
+    isHide: false,
+    hideExceptionList: "https://example.com/*",
+    halfHide: true,
+    opacity: 0.4,
+    size: 72,
+  };
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    mockIsExt = true;
+    updateSetting.mockReset();
+    updateFab.mockReset();
+    useSetting.mockReturnValue({
+      setting: {
+        uiLang: "en",
+        minLength: 2,
+        maxLength: 100000,
+        logLevel: 3,
+        clearCache: false,
+      },
+      updateSetting,
+    });
+    useFab.mockReturnValue({ fab: storedFab, updateFab });
+    useShortcut.mockReturnValue({ shortcut: [], setShortcut: jest.fn() });
+    browser.commands.getAll.mockResolvedValue([]);
+    hasClipboardReadPermission.mockResolvedValue(false);
+    useAlert.mockReturnValue(alert);
+  });
+
+  async function openSettings() {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Settings />);
+    });
+    return { container, root };
+  }
+
+  test.each([
+    [0, "fab_click_menu"],
+    [1, "fab_click_translate"],
+    [2, "fab_click_popup"],
+  ])(
+    "saves and restores floating button click action %s",
+    async (action, label) => {
+      useFab.mockReturnValue({
+        fab: { ...storedFab, fabClickAction: action === 0 ? 2 : 0 },
+        updateFab,
+      });
+      const { container, root } = await openSettings();
+
+      try {
+        await chooseSelectOption(container, action, "fabClickAction");
+
+        expect(updateFab).toHaveBeenCalledTimes(1);
+        expect(updateFab).toHaveBeenCalledWith({ fabClickAction: action });
+        expect(updateSetting).not.toHaveBeenCalled();
+      } finally {
+        act(() => root.unmount());
+      }
+
+      const savedFab = { ...storedFab, ...updateFab.mock.calls[0][0] };
+      updateFab.mockClear();
+      useFab.mockReturnValue({ fab: savedFab, updateFab });
+      const reopened = await openSettings();
+
+      try {
+        const input = reopened.container.querySelector(
+          'input[name="fabClickAction"]'
+        );
+        expect(input.value).toBe(String(action));
+        expect(
+          input.closest(".MuiInputBase-root").querySelector('[role="combobox"]')
+            .textContent
+        ).toBe(label);
+        expect(
+          reopened.container.querySelector('input[name="opacity"]').value
+        ).toBe("40");
+        expect(
+          reopened.container.querySelector('textarea[name="hideExceptionList"]')
+            .value
+        ).toBe(storedFab.hideExceptionList);
+        expect(updateFab).not.toHaveBeenCalled();
+      } finally {
+        act(() => reopened.root.unmount());
+      }
+    }
+  );
+
+  test("offers the translation panel action outside extension mode", async () => {
+    mockIsExt = false;
+    const { container, root } = await openSettings();
+
+    try {
+      expect(
+        container.querySelector('input[name="fabClickAction"]').value
+      ).toBe("0");
+      await chooseSelectOption(container, 2, "fabClickAction");
+      expect(updateFab).toHaveBeenCalledWith({ fabClickAction: 2 });
+      expect(updateSetting).not.toHaveBeenCalled();
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+});
 
 describe("Settings floating button appearance", () => {
   const updateSetting = jest.fn();
@@ -432,7 +543,7 @@ describe("Settings floating button appearance", () => {
       const { container, root } = await renderAppearanceSettings();
 
       try {
-        await chooseBooleanOption(container, nextHalfHide, "halfHide");
+        await chooseSelectOption(container, nextHalfHide, "halfHide");
 
         expect(updateFab).toHaveBeenCalledTimes(1);
         expect(updateFab).toHaveBeenCalledWith({ halfHide: nextHalfHide });
@@ -636,7 +747,7 @@ describe("AutoTranslateClipboardSetting", () => {
       await Promise.resolve();
     });
 
-    await chooseBooleanOption(container, true);
+    await chooseSelectOption(container, true);
 
     expect(requestClipboardReadPermission).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith(true);
@@ -657,7 +768,7 @@ describe("AutoTranslateClipboardSetting", () => {
       await Promise.resolve();
     });
 
-    await chooseBooleanOption(container, true);
+    await chooseSelectOption(container, true);
 
     expect(onChange).toHaveBeenCalledWith(false);
     expect(alert.warning).toHaveBeenCalledWith("clipboard_permission_denied");

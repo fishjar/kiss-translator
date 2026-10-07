@@ -1,6 +1,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import Playground, { normalizePlaygroundLineBreaks } from "./Playground";
+import { SettingsSearchContext } from "./SettingsSearchTarget";
 import { defaultSystemPrompt } from "../../config";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -54,6 +55,34 @@ jest.mock("./TerminologyPlayground", () => {
     mockTerminology(props);
     return React.createElement("div", { "data-testid": "terminology-tab" });
   };
+});
+
+test("reopens the segmentation tab on repeated search navigation", async () => {
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  const render = (navigationKey) =>
+    root.render(
+      <SettingsSearchContext.Provider
+        value={{ target: "subtitle_segmentation", navigationKey }}
+      >
+        <Playground />
+      </SettingsSearchContext.Provider>
+    );
+  act(() => render("first"));
+  expect(
+    container.querySelector('[data-testid="segmentation-tab"]')
+  ).not.toBeNull();
+  act(() => container.querySelector("#kt-playground-translation-tab").click());
+  expect(
+    container.querySelector('[data-testid="translation-tab"]')
+  ).not.toBeNull();
+
+  act(() => render("second"));
+
+  expect(
+    container.querySelector('[data-testid="segmentation-tab"]')
+  ).not.toBeNull();
+  act(() => root.unmount());
 });
 
 test("moves the existing translator into the text tab and exposes segmentation testing", async () => {

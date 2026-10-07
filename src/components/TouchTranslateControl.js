@@ -59,7 +59,7 @@ function useTouchState(processActions) {
   return { state, failed, dispatch };
 }
 
-function ConnectedTouchControl({ processActions }) {
+function ConnectedTouchControl({ processActions, inlineFeedback = false }) {
   const i18n = useI18n();
   const { state, failed, dispatch } = useTouchState(processActions);
   const { updateMouseHoverSetting } = useMouseHoverSetting();
@@ -100,17 +100,28 @@ function ConnectedTouchControl({ processActions }) {
           {i18n(state.direction === "left" ? "touch_left" : "touch_right")}
         </MenuItem>
       </TextField>
-      {(failed || !state.supported || state.blocked) && (
-        <Alert severity="info">
-          {i18n(
-            failed
-              ? "touch_failed"
-              : state.blocked
-                ? "touch_blocked"
-                : "touch_unsupported"
-          )}
-        </Alert>
-      )}
+      {(failed || !state.supported || state.blocked) &&
+        (inlineFeedback ? (
+          <span role="status" className="kt-popup-action-error">
+            {i18n(
+              failed
+                ? "touch_failed"
+                : state.blocked
+                  ? "touch_blocked"
+                  : "touch_unsupported"
+            )}
+          </span>
+        ) : (
+          <Alert severity="info">
+            {i18n(
+              failed
+                ? "touch_failed"
+                : state.blocked
+                  ? "touch_blocked"
+                  : "touch_unsupported"
+            )}
+          </Alert>
+        ))}
     </Stack>
   );
 }

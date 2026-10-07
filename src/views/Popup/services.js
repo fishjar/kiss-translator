@@ -1,4 +1,4 @@
-export const COLLAPSED_SERVICE_LIMIT = 2;
+export const COLLAPSED_SERVICE_LIMIT = 3;
 
 export function getVisibleServices(services, activeKey, showAllServices) {
   if (showAllServices || services.length <= COLLAPSED_SERVICE_LIMIT) {
@@ -11,5 +11,7 @@ export function getVisibleServices(services, activeKey, showAllServices) {
   }
 
   const activeService = services.find(({ key }) => key === activeKey);
-  return activeService ? [services[0], activeService] : firstServices;
+  return activeService
+    ? [...services.slice(0, COLLAPSED_SERVICE_LIMIT - 1), activeService]
+    : firstServices;
 }

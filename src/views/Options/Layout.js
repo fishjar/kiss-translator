@@ -7,6 +7,12 @@ import { useMediaQueryMatch } from "../../hooks/MediaQuery";
 import { useSetting } from "../../hooks/Setting";
 import { OPTIONS_STYLES } from "./styles";
 import { normalizeOptionsPath } from "./paths";
+import {
+  getSettingsSearchTarget,
+  getSettingsSearchLabel,
+  getSettingsSearchPrerequisite,
+} from "./search";
+import SettingsSearchTarget from "./SettingsSearchTarget";
 
 const WIDE_PAGE_PATHS = new Set(["/apis", "/playground", "/prompts"]);
 const FULL_WIDTH_PAGE_PATHS = new Set(["/file-translate"]);
@@ -98,6 +104,8 @@ export default function Layout() {
   const isMobile = useMediaQueryMatch("(max-width: 1179px)");
   const isWidePage = isWideOptionsPage(pathname);
   const isFullWidthPage = isFullWidthOptionsPage(pathname);
+  const searchTarget = getSettingsSearchTarget(pathname, location.search);
+  const prerequisite = getSettingsSearchPrerequisite(pathname, searchTarget);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "test") return undefined;
@@ -319,9 +327,16 @@ export default function Layout() {
                   </a>
                 </div>
               )}
-              <div className="kt-options-page">
+              <SettingsSearchTarget
+                target={searchTarget}
+                label={
+                  searchTarget ? getSettingsSearchLabel(searchTarget, i18n) : ""
+                }
+                navigationKey={location.key}
+                fallbackLabel={prerequisite ? i18n(prerequisite) : ""}
+              >
                 <Outlet />
-              </div>
+              </SettingsSearchTarget>
             </div>
           </main>
         </div>

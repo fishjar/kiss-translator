@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { apiTranslate } from "../../apis";
 import { useSetting } from "../../hooks/Setting";
 import { readClipboardTextIfAllowed } from "../../libs/clipboard";
+import { tryDetectLang } from "../../libs/detect";
 import { Trantab } from ".";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -34,6 +35,7 @@ jest.mock("../../libs/detect", () => ({
   tryDetectLang: jest.fn(async () => "en"),
 }));
 jest.mock("./PopupCont", () => () => null);
+jest.mock("./disabledPage", () => ({ loadDisabledPopupData: jest.fn() }));
 jest.mock("./Header", () => () => null);
 jest.mock("../Selection/DictCont", () => () => null);
 jest.mock("../Selection/AiDictCont", () => () => null);
@@ -97,6 +99,8 @@ describe("Trantab translation request stability", () => {
     root = createRoot(container);
     apiTranslate.mockReset();
     apiTranslate.mockImplementation(() => new Promise(() => {}));
+    tryDetectLang.mockReset();
+    tryDetectLang.mockResolvedValue("en");
     readClipboardTextIfAllowed.mockReset();
     readClipboardTextIfAllowed.mockResolvedValue("Clipboard source text");
   });
@@ -129,13 +133,15 @@ describe("Trantab translation request stability", () => {
       expect(apiTranslate).toHaveBeenCalledTimes(1);
       expect(request.signal.aborted).toBe(false);
       expect(
-        container.querySelector(".kt-translation-result textarea[readonly]")
-          .value
+        container.querySelector(
+          '.kt-popup-text-result[data-api-slug="openai"] .kt-popup-text-result__content'
+        ).textContent
       ).toBe("Partial translation");
       act(() => request.onStreamChunk({ text: "Continued translation" }));
       expect(
-        container.querySelector(".kt-translation-result textarea[readonly]")
-          .value
+        container.querySelector(
+          '.kt-popup-text-result[data-api-slug="openai"] .kt-popup-text-result__content'
+        ).textContent
       ).toBe("Continued translation");
       expect(readClipboardTextIfAllowed).toHaveBeenCalledTimes(1);
     }

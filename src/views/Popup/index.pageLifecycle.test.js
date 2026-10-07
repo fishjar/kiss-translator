@@ -2,7 +2,11 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import Popup from "./index";
-import { MSG_TRANS_TOGGLE } from "../../config";
+import {
+  MSG_TRANS_TOGGLE,
+  OPT_LANGS_FROM_REVERSED,
+  OPT_LANGS_TO_REVERSED,
+} from "../../config";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const mockTab = {
@@ -78,6 +82,7 @@ jest.mock("./loadData", () => ({
   loadPopupData: (...args) => mockLoadPopupData(...args),
   queryPopupData: (...args) => mockQueryPopupData(...args),
 }));
+jest.mock("./disabledPage", () => ({ loadDisabledPopupData: jest.fn() }));
 jest.mock("../../hooks/I18n", () => ({ useI18n: () => (key) => key }));
 jest.mock("../../hooks/Setting", () => ({
   useSetting: () => ({ setting: mockSetting, updateSetting: jest.fn() }),
@@ -120,6 +125,8 @@ jest.mock("../../components/Logo", () => ({
   default: () => null,
 }));
 
+jest.mock("./PopupTextPanel", () => jest.requireMock("../Selection/TranForm"));
+
 const flush = async () => {
   await act(async () => {
     await Promise.resolve();
@@ -161,12 +168,12 @@ describe("Page controls retained across text-tab navigation", () => {
       act(() => root.render(<Popup />));
       await flush();
       const mainSwitch = () =>
-        container.querySelector('input[aria-label="popup_translate_page"]');
-      expect(mainSwitch().checked).toBe(false);
+        container.querySelector(".kt-popup-translate-button");
+      expect(mainSwitch().getAttribute("aria-pressed")).toBe("false");
       act(() => mainSwitch().click());
       await flush();
       expect(mockSendTabMsg.mock.calls[0][0]).toBe(MSG_TRANS_TOGGLE);
-      expect(mainSwitch().checked).toBe(true);
+      expect(mainSwitch().getAttribute("aria-pressed")).toBe("true");
       expect(mockQueryPopupData).toHaveBeenCalledTimes(1);
       act(() => container.querySelector("#kt-popup-text-tab").click());
       await flush();
@@ -184,7 +191,7 @@ describe("Page controls retained across text-tab navigation", () => {
       await flush();
       expect(mainSwitch()).not.toBeNull();
       expect(mainSwitch().disabled).toBe(false);
-      expect(mainSwitch().checked).toBe(false);
+      expect(mainSwitch().getAttribute("aria-pressed")).toBe("false");
     }
   );
 
@@ -196,14 +203,14 @@ describe("Page controls retained across text-tab navigation", () => {
     act(() => root.render(<Popup />));
     await flush();
     const mainSwitch = () =>
-      container.querySelector('input[aria-label="popup_translate_page"]');
+      container.querySelector(".kt-popup-translate-button");
     act(() => mainSwitch().click());
     await flush();
     act(() => container.querySelector("#kt-popup-text-tab").click());
     await flush();
     act(() => container.querySelector("#kt-popup-page-tab").click());
     await flush();
-    expect(mainSwitch().checked).toBe(true);
+    expect(mainSwitch().getAttribute("aria-pressed")).toBe("true");
     expect(mainSwitch().disabled).toBe(true);
     act(() => mainSwitch().click());
     await flush();
@@ -221,14 +228,14 @@ describe("Page controls retained across text-tab navigation", () => {
     await flush();
     act(() => container.querySelector("#kt-popup-page-tab").click());
     await flush();
-    expect(mainSwitch().checked).toBe(true);
+    expect(mainSwitch().getAttribute("aria-pressed")).toBe("true");
     expect(mainSwitch().disabled).toBe(false);
     act(() => mainSwitch().click());
     await flush();
     expect(mockQueryPopupData).toHaveBeenCalledTimes(2);
     expect(container.querySelector(".kt-popup-empty")).toBeNull();
     expect(mainSwitch()).not.toBeNull();
-    expect(mainSwitch().checked).toBe(false);
+    expect(mainSwitch().getAttribute("aria-pressed")).toBe("false");
   });
 
   test("links separate panels and does not mount text translation before it is selected", async () => {
@@ -252,17 +259,17 @@ describe("Page controls retained across text-tab navigation", () => {
     expect(pagePanel.hidden).toBe(false);
   });
 
-  test("reconciles advanced rule confirmation and keeps expanded controls while the page is hidden", async () => {
+  test("reconciles page-option confirmation while retaining hidden controls", async () => {
     const pending = deferred();
     mockQueryPopupData.mockReturnValueOnce(pending.promise);
     act(() => root.render(<Popup />));
     await flush();
-    act(() => container.querySelector(".kt-popup-disclosure").click());
     const richText = () =>
-      container.querySelector('input[aria-label="richtext_alt"]');
+      container.querySelector('[role="switch"][aria-label="richtext_alt"]');
+    const retainedControl = richText();
     act(() => richText().click());
     await flush();
-    expect(richText().checked).toBe(false);
+    expect(richText().getAttribute("aria-checked")).toBe("false");
     act(() => container.querySelector("#kt-popup-text-tab").click());
     await flush();
     await act(async () => {
@@ -271,12 +278,8 @@ describe("Page controls retained across text-tab navigation", () => {
     await flush();
     act(() => container.querySelector("#kt-popup-page-tab").click());
     await flush();
-    expect(
-      container
-        .querySelector(".kt-popup-disclosure")
-        .getAttribute("aria-expanded")
-    ).toBe("true");
-    expect(richText().checked).toBe(true);
+    expect(richText()).toBe(retainedControl);
+    expect(richText().getAttribute("aria-checked")).toBe("true");
   });
 
   test("reconciles rejected language edits while the page is hidden", async () => {
@@ -294,9 +297,15 @@ describe("Page controls retained across text-tab navigation", () => {
     await flush();
     act(() => container.querySelector("#kt-popup-page-tab").click());
     await flush();
-    const languages = container.querySelectorAll(".kt-popup-language input");
-    expect(languages[0].value).toBe("en");
-    expect(languages[1].value).toBe("zh-CN");
+    const languages = container.querySelectorAll(
+      ".kt-popup-language [role='combobox']"
+    );
+    expect(languages[0].title).toBe(
+      OPT_LANGS_FROM_REVERSED.find(([key]) => key === "en")[1]
+    );
+    expect(languages[1].title).toBe(
+      OPT_LANGS_TO_REVERSED.find(([key]) => key === "zh-CN")[1]
+    );
   });
 
   test.each([false, true])(
@@ -310,10 +319,7 @@ describe("Page controls retained across text-tab navigation", () => {
       try {
         act(() => root.render(<Popup />));
         await flush();
-        act(() => container.querySelector(".kt-popup-disclosure").click());
-        const editor = [...container.querySelectorAll("button")].find(
-          (node) => node.textContent === "rule_editor_open"
-        );
+        const editor = container.querySelector(".kt-popup-editor-button");
         act(() => editor.click());
         await flush();
         if (hidden) {

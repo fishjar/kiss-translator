@@ -9,6 +9,8 @@ import {
   FAB_MIN_OPACITY,
   FAB_MIN_SIZE,
   FAB_MAX_SIZE,
+  FAB_CLICK_ACTION_TRANSLATE,
+  FAB_CLICK_ACTION_POPUP,
   DEFAULT_FAB,
   normalizeFabAppearance,
 } from "../../config/fab";
@@ -150,6 +152,7 @@ export default function FabAppearanceSetting({ fab, onChange }) {
     <Box
       component="section"
       className="kt-fab-appearance"
+      data-settings-search-id="fab_appearance"
       aria-labelledby="fab-appearance-title"
     >
       <style>{FLOATING_BUTTON_STYLES}</style>
@@ -186,7 +189,10 @@ export default function FabAppearanceSetting({ fab, onChange }) {
             >
               <FloatingButton
                 size={sizePixels}
-                opensMenu={fab?.fabClickAction !== 1}
+                opensMenu={
+                  fab?.fabClickAction !== FAB_CLICK_ACTION_TRANSLATE &&
+                  fab?.fabClickAction !== FAB_CLICK_ACTION_POPUP
+                }
                 className="kt-fab-preview-button"
                 aria-label={i18n("fab_preview_dark")}
                 aria-pressed={previewTheme === "dark"}
@@ -215,7 +221,7 @@ export default function FabAppearanceSetting({ fab, onChange }) {
           </Typography>
         </Box>
         <Box className="kt-fab-appearance-controls">
-          <Box>
+          <Box data-settings-search-id="fab_opacity">
             <Box className="kt-fab-appearance-label-row">
               <Typography
                 component="label"
@@ -254,7 +260,7 @@ export default function FabAppearanceSetting({ fab, onChange }) {
               {i18n("fab_opacity_helper")}
             </FormHelperText>
           </Box>
-          <Box>
+          <Box data-settings-search-id="fab_size">
             <Box className="kt-fab-appearance-label-row">
               <Typography
                 component="label"

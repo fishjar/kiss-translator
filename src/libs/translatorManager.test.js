@@ -48,6 +48,7 @@ jest.mock("../config", () => ({
   MSG_TOUCH_TRANSLATE_MODE_SET: "touch-mode-set",
   MSG_TOUCH_TRANSLATE_STATE: "touch-state",
   MSG_TRANSINPUT_TOGGLE: "transinput-toggle",
+  STOKEY_SETTING: "kiss-setting",
   OPT_SHORTCUT_TRANSLATE: "translate",
   OPT_SHORTCUT_TRANSONLY: "transonly",
   OPT_SHORTCUT_STYLE: "style",
@@ -58,6 +59,15 @@ jest.mock("../config", () => ({
 
 jest.mock("./browser", () => ({
   browser: {
+    storage: {
+      local: {
+        get: jest.fn(),
+      },
+      onChanged: {
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+      },
+    },
     runtime: {
       sendMessage: jest.fn(),
       onMessage: {
@@ -85,6 +95,9 @@ jest.mock("./translator", () => ({
       toggleTransOnly: jest.fn(),
       toggleStyle: jest.fn(),
       updateRule: jest.fn(),
+      updateApiSettings: jest.fn(function updateApiSettings(transApis) {
+        this.setting = { ...this.setting, transApis };
+      }),
       toggleTransbox: jest.fn(function toggleTransbox() {
         this.setting.tranboxSetting.transOpen =
           !this.setting.tranboxSetting.transOpen;
@@ -204,6 +217,9 @@ function setupMockConstructors() {
       toggleTransOnly: jest.fn(),
       toggleStyle: jest.fn(),
       updateRule: jest.fn(),
+      updateApiSettings: jest.fn(function updateApiSettings(transApis) {
+        this.setting = { ...this.setting, transApis };
+      }),
       toggleTransbox: jest.fn(function toggleTransbox() {
         this.setting.tranboxSetting.transOpen =
           !this.setting.tranboxSetting.transOpen;
@@ -308,6 +324,18 @@ async function flushMutationObserver() {
   await Promise.resolve();
 }
 
+async function flushStorageRead() {
+  for (let step = 0; step < 6; step += 1) await Promise.resolve();
+}
+
+function deferredStorageRead() {
+  let resolve;
+  const promise = new Promise((settle) => {
+    resolve = settle;
+  });
+  return { promise, resolve };
+}
+
 function sendRuntimeMessage(message) {
   const runtimeHandler = browser.runtime.onMessage.addListener.mock.calls[0][0];
   const sendResponse = jest.fn();
@@ -323,12 +351,18 @@ function sendRuntimeMessageAsync(message) {
   });
 }
 
+function sendSettingChange(setting, areaName = "local") {
+  const handler = browser.storage.onChanged.addListener.mock.calls[0][0];
+  handler({ "kiss-setting": { newValue: JSON.stringify(setting) } }, areaName);
+}
+
 describe("TranslatorManager SPA lifecycle", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     document.documentElement.innerHTML = "<head></head><body></body>";
     jest.clearAllMocks();
     browser.runtime.sendMessage.mockReset().mockResolvedValue(12);
+    browser.storage.local.get.mockReset().mockResolvedValue({});
     mockPopupDocumentIdentity.mockReset();
     mockPopupDocumentIdentity.mockReturnValue({
       token: "current-document",
@@ -457,6 +491,404 @@ describe("TranslatorManager SPA lifecycle", () => {
     jest.runOnlyPendingTimers();
 
     expect(Translator).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(["disabled", "removed"])(
+    "updates the active API list when the selected service is %s",
+    (change) => {
+      const transApis = [
+        { apiSlug: "selected", sortOrder: 0 },
+        { apiSlug: "fallback", sortOrder: 1 },
+      ];
+      const manager = createManager({
+        rule: { transOpen: "true", apiSlug: "selected", toLang: "fr" },
+        setting: { transApis, uiLang: "en" },
+      });
+      manager.start();
+      const translator = manager._translator;
+      translator.setting.mouseHoverSetting.useMouseHover = true;
+      translator.setting.inputRule.transOpen = false;
+      translator.updateApiSettings.mockImplementation(
+        function updateApis(apis) {
+          this.setting = { ...this.setting, transApis: apis };
+          this.rule = { ...this.rule, apiSlug: "fallback" };
+        }
+      );
+      const nextApis =
+        change === "disabled"
+          ? [{ ...transApis[0], isDisabled: true }, transApis[1]]
+          : [transApis[1]];
+
+      sendSettingChange({
+        transApis: nextApis,
+        uiLang: "zh-CN",
+        mouseHoverSetting: { useMouseHover: false },
+        inputRule: { transOpen: true },
+      });
+
+      expect(translator.updateApiSettings).toHaveBeenCalledWith(nextApis);
+      expect(manager._translator).toBe(translator);
+      expect(Translator).toHaveBeenCalledTimes(1);
+      expect(translator.stop).not.toHaveBeenCalled();
+      expect(mockPopupInstances[0].destroy).not.toHaveBeenCalled();
+      expect(sendRuntimeMessage({ action: "trans-getrule" })).toMatchObject({
+        rule: { transOpen: "true", apiSlug: "fallback", toLang: "fr" },
+        setting: {
+          transApis: nextApis,
+          uiLang: "en",
+          mouseHoverSetting: { useMouseHover: true },
+          inputRule: { transOpen: false },
+        },
+      });
+
+      manager.restart("api-settings-test");
+      expect(mockTranslatorArgs[1].setting.transApis).toEqual(nextApis);
+      expect(mockTranslatorArgs[1].rule.apiSlug).toBe("fallback");
+    }
+  );
+
+  test("catches API changes made between the initial settings read and manager startup", async () => {
+    const initialApis = [{ apiSlug: "selected" }];
+    const currentApis = [{ apiSlug: "fallback" }];
+    browser.storage.local.get.mockResolvedValueOnce({
+      "kiss-setting": JSON.stringify({
+        transApis: currentApis,
+        uiLang: "zh-CN",
+        mouseHoverSetting: { useMouseHover: false },
+      }),
+    });
+    const manager = createManager({
+      setting: { transApis: initialApis, uiLang: "en" },
+    });
+    manager.start();
+    const translator = manager._translator;
+    translator.setting.mouseHoverSetting.useMouseHover = true;
+    await flushStorageRead();
+
+    expect(browser.storage.local.get).toHaveBeenCalledWith("kiss-setting");
+    expect(
+      browser.storage.onChanged.addListener.mock.invocationCallOrder[0]
+    ).toBeLessThan(browser.storage.local.get.mock.invocationCallOrder[0]);
+    expect(translator.updateApiSettings).toHaveBeenCalledWith(currentApis);
+    expect(translator.setting).toMatchObject({
+      transApis: currentApis,
+      uiLang: "en",
+      mouseHoverSetting: { useMouseHover: true },
+    });
+    expect(manager._translator).toBe(translator);
+    expect(Translator).toHaveBeenCalledTimes(1);
+    expect(translator.stop).not.toHaveBeenCalled();
+    expect(mockPopupInstances[0].destroy).not.toHaveBeenCalled();
+
+    manager.start();
+    manager.restart("catch-up-read-test");
+    await flushStorageRead();
+    expect(browser.storage.local.get).toHaveBeenCalledTimes(1);
+  });
+
+  test("a later settings event wins over an older startup read", async () => {
+    const read = deferredStorageRead();
+    browser.storage.local.get.mockReturnValueOnce(read.promise);
+    const manager = createManager({
+      setting: { transApis: [{ apiSlug: "initial" }] },
+    });
+    manager.start();
+    await flushStorageRead();
+    const currentApis = [{ apiSlug: "current" }];
+    sendSettingChange({ transApis: currentApis });
+    read.resolve({
+      "kiss-setting": JSON.stringify({ transApis: [{ apiSlug: "outdated" }] }),
+    });
+    await flushStorageRead();
+
+    expect(manager._translator.setting.transApis).toEqual(currentApis);
+    expect(manager._translator.updateApiSettings).toHaveBeenCalledTimes(1);
+  });
+
+  test("ignores a startup read that finishes after the manager stops", async () => {
+    const read = deferredStorageRead();
+    browser.storage.local.get.mockReturnValueOnce(read.promise);
+    const manager = createManager({
+      setting: { transApis: [{ apiSlug: "initial" }] },
+    });
+    manager.start();
+    await flushStorageRead();
+    const translator = manager._translator;
+    manager.stop();
+    read.resolve({
+      "kiss-setting": JSON.stringify({ transApis: [{ apiSlug: "outdated" }] }),
+    });
+    await flushStorageRead();
+
+    expect(translator.updateApiSettings).not.toHaveBeenCalled();
+    expect(manager._translator).toBeNull();
+    expect(Translator).toHaveBeenCalledTimes(1);
+  });
+
+  test("an earlier start cannot overwrite a later start's caught-up API list", async () => {
+    const firstRead = deferredStorageRead();
+    const currentApis = [{ apiSlug: "current" }];
+    browser.storage.local.get
+      .mockReturnValueOnce(firstRead.promise)
+      .mockResolvedValueOnce({
+        "kiss-setting": JSON.stringify({ transApis: currentApis }),
+      });
+    const manager = createManager({
+      setting: { transApis: [{ apiSlug: "initial" }] },
+    });
+    manager.start();
+    await flushStorageRead();
+    manager.stop();
+    manager.start();
+    await flushStorageRead();
+    firstRead.resolve({
+      "kiss-setting": JSON.stringify({ transApis: [{ apiSlug: "outdated" }] }),
+    });
+    await flushStorageRead();
+
+    expect(manager._translator.setting.transApis).toEqual(currentApis);
+    expect(manager._translator.updateApiSettings).toHaveBeenCalledTimes(1);
+    expect(browser.storage.local.get).toHaveBeenCalledTimes(2);
+  });
+
+  test("a runtime restart preserves its snapshot over a pending startup read", async () => {
+    const read = deferredStorageRead();
+    browser.storage.local.get.mockReturnValueOnce(read.promise);
+    const manager = createManager({
+      setting: { transApis: [{ apiSlug: "initial" }] },
+    });
+    manager.start();
+    await flushStorageRead();
+    const currentApis = [{ apiSlug: "runtime-current" }];
+    manager._translator.updateApiSettings(currentApis);
+    manager.restart("api-snapshot-test");
+    read.resolve({
+      "kiss-setting": JSON.stringify({ transApis: [{ apiSlug: "outdated" }] }),
+    });
+    await flushStorageRead();
+
+    expect(manager._translator.setting.transApis).toEqual(currentApis);
+    expect(manager._translator.updateApiSettings).not.toHaveBeenCalled();
+    expect(browser.storage.local.get).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(["reject", "throw"])(
+    "keeps the settings listener usable when startup reads %s",
+    async (failure) => {
+      if (failure === "reject") {
+        browser.storage.local.get.mockRejectedValueOnce(
+          new Error("Read failed")
+        );
+      } else {
+        browser.storage.local.get.mockImplementationOnce(() => {
+          throw new Error("Read failed");
+        });
+      }
+      const manager = createManager({
+        setting: { transApis: [{ apiSlug: "initial" }] },
+      });
+      manager.start();
+      await flushStorageRead();
+      expect(manager._translator.updateApiSettings).not.toHaveBeenCalled();
+      const currentApis = [{ apiSlug: "current" }];
+      sendSettingChange({ transApis: currentApis });
+      expect(manager._translator.setting.transApis).toEqual(currentApis);
+    }
+  );
+
+  test.each([
+    {
+      name: "sort order",
+      nextApis: [
+        { apiSlug: "other", sortOrder: 0 },
+        { apiSlug: "selected", sortOrder: 10 },
+      ],
+    },
+    {
+      name: "an added service",
+      nextApis: [
+        { apiSlug: "selected", sortOrder: 0 },
+        { apiSlug: "other", sortOrder: 1 },
+        { apiSlug: "new", sortOrder: 2 },
+      ],
+    },
+    {
+      name: "another removed service",
+      nextApis: [{ apiSlug: "selected", sortOrder: 0 }],
+    },
+  ])("keeps a valid selection after editing $name", ({ nextApis }) => {
+    const manager = createManager({
+      rule: { transOpen: "false", apiSlug: "selected" },
+      setting: {
+        transApis: [
+          { apiSlug: "selected", sortOrder: 0 },
+          { apiSlug: "other", sortOrder: 1 },
+        ],
+      },
+    });
+    manager.start();
+    const translator = manager._translator;
+
+    sendSettingChange({ transApis: nextApis });
+    sendSettingChange({ transApis: nextApis, uiLang: "zh-CN" });
+
+    expect(translator.updateApiSettings).toHaveBeenCalledTimes(1);
+    expect(translator.updateApiSettings).toHaveBeenCalledWith(nextApis);
+    expect(sendRuntimeMessage({ action: "trans-getrule" })).toMatchObject({
+      rule: { transOpen: "false", apiSlug: "selected" },
+      setting: { transApis: nextApis },
+    });
+    expect(Translator).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    undefined,
+    null,
+    "not-json",
+    JSON.stringify(null),
+    JSON.stringify([]),
+    JSON.stringify("settings"),
+    JSON.stringify({ uiLang: "zh-CN" }),
+    JSON.stringify({ transApis: null }),
+    JSON.stringify({ transApis: {} }),
+    JSON.stringify({ transApis: [null] }),
+    JSON.stringify({ transApis: [[]] }),
+    JSON.stringify({ transApis: [{}] }),
+    JSON.stringify({ transApis: [{ apiSlug: " " }] }),
+    JSON.stringify({ transApis: [{ apiSlug: 1 }] }),
+    { transApis: [{ apiSlug: "fallback" }] },
+  ])("ignores malformed or missing API settings: %p", (newValue) => {
+    const manager = createManager({
+      setting: { transApis: [{ apiSlug: "selected" }] },
+    });
+    manager.start();
+    const handler = browser.storage.onChanged.addListener.mock.calls[0][0];
+
+    handler({ "kiss-setting": { newValue } }, "local");
+
+    expect(manager._translator.updateApiSettings).not.toHaveBeenCalled();
+    expect(manager._translator.setting.transApis).toEqual([
+      { apiSlug: "selected" },
+    ]);
+    expect(Translator).toHaveBeenCalledTimes(1);
+  });
+
+  test("ignores other storage keys, areas, and unchanged API settings", () => {
+    const transApis = [{ apiSlug: "selected", sortOrder: 1 }];
+    const manager = createManager({ setting: { transApis } });
+    manager.start();
+    const handler = browser.storage.onChanged.addListener.mock.calls[0][0];
+    const nextValue = JSON.stringify({ transApis: [{ apiSlug: "fallback" }] });
+
+    handler(undefined, "local");
+    handler({ other: { newValue: nextValue } }, "local");
+    handler({ "kiss-setting": { newValue: nextValue } }, "sync");
+    sendSettingChange({ transApis, uiLang: "zh-CN" });
+    sendSettingChange({ transApis: [{ sortOrder: 1, apiSlug: "selected" }] });
+
+    expect(manager._translator.updateApiSettings).not.toHaveBeenCalled();
+    expect(manager._translator.setting.transApis).toEqual(transApis);
+  });
+
+  test("maintains one storage listener across start and restart, then cleans up", () => {
+    const manager = createManager({
+      setting: { transApis: [{ apiSlug: "selected" }] },
+    });
+    manager.start();
+    manager.start();
+    manager.restart("listener-test");
+    const handler = browser.storage.onChanged.addListener.mock.calls[0][0];
+
+    expect(browser.storage.onChanged.addListener).toHaveBeenCalledTimes(1);
+    manager.stop();
+    manager.stop();
+    expect(browser.storage.onChanged.removeListener).toHaveBeenCalledTimes(1);
+    expect(browser.storage.onChanged.removeListener).toHaveBeenCalledWith(
+      handler
+    );
+    handler(
+      { "kiss-setting": { newValue: JSON.stringify({ transApis: [] }) } },
+      "local"
+    );
+    expect(mockTranslatorInstances[1].updateApiSettings).not.toHaveBeenCalled();
+
+    manager.start();
+    expect(browser.storage.onChanged.addListener).toHaveBeenCalledTimes(2);
+    expect(browser.storage.onChanged.addListener.mock.calls[1][0]).toBe(
+      handler
+    );
+  });
+
+  test("does not register extension storage events in userscript mode", () => {
+    const manager = createManager({ isUserscript: true, isIframe: true });
+    manager.start();
+    manager.stop();
+
+    expect(browser.storage.onChanged.addListener).not.toHaveBeenCalled();
+    expect(browser.storage.onChanged.removeListener).not.toHaveBeenCalled();
+    expect(browser.storage.local.get).not.toHaveBeenCalled();
+  });
+
+  test.each([undefined, {}, { get: null }])(
+    "keeps live events working without optional local storage reads: %p",
+    (local) => {
+      const previousLocal = browser.storage.local;
+      browser.storage.local = local;
+      try {
+        const manager = createManager({
+          setting: { transApis: [{ apiSlug: "initial" }] },
+        });
+        manager.start();
+        const currentApis = [{ apiSlug: "current" }];
+        sendSettingChange({ transApis: currentApis });
+        expect(manager._translator.setting.transApis).toEqual(currentApis);
+        expect(browser.storage.onChanged.addListener).toHaveBeenCalledTimes(1);
+      } finally {
+        browser.storage.local = previousLocal;
+      }
+    }
+  );
+
+  test.each([
+    undefined,
+    {},
+    { onChanged: { addListener: jest.fn() } },
+    { onChanged: { removeListener: jest.fn() } },
+  ])("supports unavailable extension storage events: %p", (storage) => {
+    const previousStorage = browser.storage;
+    browser.storage = storage;
+    try {
+      const manager = createManager();
+      manager.start();
+      manager.stop();
+      expect(Translator).toHaveBeenCalledTimes(1);
+      if (storage?.onChanged?.addListener) {
+        expect(storage.onChanged.addListener).not.toHaveBeenCalled();
+      }
+    } finally {
+      browser.storage = previousStorage;
+    }
+  });
+
+  test("keeps an empty API list current for transbox-only restarts", () => {
+    const manager = createManager({
+      transboxOnly: true,
+      setting: { transApis: [{ apiSlug: "selected" }], uiLang: "en" },
+    });
+    manager.start();
+
+    sendSettingChange({ transApis: [], uiLang: "zh-CN" });
+
+    expect(
+      sendRuntimeMessage({ action: "trans-getrule" }).setting
+    ).toMatchObject({
+      transApis: [],
+      uiLang: "en",
+      tranboxSetting: { transOpen: true },
+    });
+    manager.restart("api-settings-test");
+    expect(mockTransboxArgs[1].transApis).toEqual([]);
+    expect(Translator).not.toHaveBeenCalled();
   });
 
   test("preserves disabled translation and UI settings across restart", async () => {
