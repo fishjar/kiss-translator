@@ -1140,6 +1140,7 @@ describe("Options Rules drafts", () => {
   test.each([
     ["transOnlyRevertDelay", 0.5, "0.6", "0.5"],
     ["transOnlyRevertDelay", "0.5", "0.6", "0.50"],
+    ["transOnlyRevertDelay", 0, "0.1", "0"],
     ["splitLength", "100", "101", "100"],
   ])(
     "does not warn when %s returns to the same numeric value (%p)",
@@ -1167,6 +1168,46 @@ describe("Options Rules drafts", () => {
       expect(
         view.container.querySelector("#kt-rules-personal-panel").hidden
       ).toBe(false);
+    }
+  );
+
+  test.each([
+    ["transOnlyRevertDelay", 0, "0", true],
+    ["transOnlyRevertDelay", "0", "0.00", false],
+    ["splitLength", "0", "0", true],
+  ])(
+    "preserves personal zero inheritance when editing %s (%p)",
+    async (name, initial, changed, modified) => {
+      const { mergeRules } = jest.requireActual("../../libs/rules");
+      ruleList = ruleList.map((rule) =>
+        rule.pattern === "example.com" ? { ...rule, [name]: initial } : rule
+      );
+      view.rerender();
+      await openPersonalTab(view);
+      // This suite drives React DOM directly without Testing Library queries.
+      // eslint-disable-next-line testing-library/no-container
+      const summary = view.container.querySelector(".MuiAccordionSummary-root");
+      await act(async () => summary.click());
+      changeField(view.container, name, "1");
+      changeField(view.container, name, changed);
+      if (name === "splitLength") {
+        // eslint-disable-next-line testing-library/no-container
+        const input = view.container.querySelector(`[name="${name}"]`);
+        act(() =>
+          input.dispatchEvent(new FocusEvent("focusout", { bubbles: true }))
+        );
+      }
+      expect(unloadIsBlocked()).toBe(modified);
+      expect(getButtonByText(view.container, "save").disabled).toBe(!modified);
+      if (!modified) return;
+
+      await act(async () => getButtonByText(view.container, "save").click());
+      const saved = mockPutRule.mock.calls[0][1];
+      const global = { [name]: "10" };
+      expect(mergeRules(global, { [name]: initial })[name]).not.toEqual(
+        mergeRules(global, saved)[name]
+      );
+      expect(unloadIsBlocked()).toBe(false);
     }
   );
 

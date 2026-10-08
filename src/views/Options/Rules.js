@@ -143,12 +143,17 @@ const getComparableFormValues = (values) => {
   // Number inputs and older saved rules can represent the same value differently.
   for (const name of ["splitLength", "transOnlyRevertDelay"]) {
     const value = comparable[name];
+    // Personal numeric zero inherits; a string zero overrides the global value.
+    if (comparable.pattern !== GLOBAL_KEY && value === 0) continue;
     if (
       (typeof value === "number" ||
         (typeof value === "string" && value.trim() !== "")) &&
       Number.isFinite(Number(value))
     ) {
-      comparable[name] = Number(value);
+      comparable[name] =
+        comparable.pattern !== GLOBAL_KEY && Number(value) === 0
+          ? "0"
+          : Number(value);
     }
   }
   return comparable;
@@ -1150,12 +1155,20 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
 }
 
 // 规则折叠面板组件，用于展示和启用/禁用单个规则
-function RuleAccordion({ rule, rules, sourceUrl, isExpanded = false }) {
+function RuleAccordion({
+  rule,
+  rules,
+  sourceUrl,
+  isExpanded = false,
+  draftId: suppliedDraftId,
+}) {
   const i18n = useI18n();
   const { confirmDiscard } = useRuleDrafts();
-  const draftId = rules
-    ? `rule:${rule.pattern}`
-    : `subscription:${sourceUrl}:${rule.pattern}`;
+  const draftId =
+    suppliedDraftId ??
+    (rules
+      ? `rule:${rule.pattern}`
+      : `subscription:${sourceUrl}:${rule.pattern}`);
   // 面板展开状态
   const [expanded, setExpanded] = useState(isExpanded);
   const isPersonalRule = !!rules && rule.pattern !== GLOBAL_KEY;
@@ -1376,6 +1389,32 @@ function ShareButton({ rules, injectRules, selectedUrl }) {
 function UserRules({ subRules, rules }) {
   const i18n = useI18n();
   const { drafts } = useRuleDrafts();
+  const ruleKeysRef = useRef({ keys: new Map(), nextKey: 0 });
+  const getRuleKey = (pattern) => {
+    const state = ruleKeysRef.current;
+    if (!state.keys.has(pattern)) state.keys.set(pattern, ++state.nextKey);
+    return state.keys.get(pattern);
+  };
+  const editableRules = {
+    ...rules,
+    put: async (pattern, values) => {
+      const nextPattern = values.pattern;
+      if (!nextPattern || nextPattern === pattern)
+        return rules.put(pattern, values);
+
+      // The optimistic rename and any rollback must keep the draft mounted.
+      const keys = ruleKeysRef.current.keys;
+      keys.set(nextPattern, getRuleKey(pattern));
+      try {
+        const result = await rules.put(pattern, values);
+        keys.delete(pattern);
+        return result;
+      } catch (error) {
+        keys.delete(nextPattern);
+        throw error;
+      }
+    },
+  };
   // 控制是否显示“添加新规则”的表单面板
   const [showAdd, setShowAdd] = useState(false);
   // 获取当前偏好设置并更新设置方法
@@ -1506,12 +1545,17 @@ function UserRules({ subRules, rules }) {
           .filter(
             (rule) =>
               rule.pattern !== "*" &&
-              (drafts.has(`rule:${rule.pattern}`) ||
+              (drafts.has(`rule:${getRuleKey(rule.pattern)}`) ||
                 rule.pattern.includes(keyword) ||
                 keyword.includes(rule.pattern))
           )
           .map((rule) => (
-            <RuleAccordion key={rule.pattern} rule={rule} rules={rules} />
+            <RuleAccordion
+              key={getRuleKey(rule.pattern)}
+              rule={rule}
+              rules={editableRules}
+              draftId={`rule:${getRuleKey(rule.pattern)}`}
+            />
           ))}
       </Box>
 
