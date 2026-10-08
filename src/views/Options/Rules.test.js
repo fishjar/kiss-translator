@@ -58,13 +58,18 @@ jest.mock("../../hooks/Setting", () => ({
   }),
 }));
 
+const mockConfirm = jest.fn();
+
 jest.mock("../../hooks/Confirm", () => ({
-  useConfirm: () => jest.fn(),
+  useConfirm: () => mockConfirm,
 }));
 
 jest.mock("../../hooks/Api", () => ({
   useApiList: () => ({
-    enabledApis: [{ apiSlug: "Tencent", apiName: "Tencent" }],
+    enabledApis: [
+      { apiSlug: "Tencent", apiName: "Tencent" },
+      { apiSlug: "Microsoft", apiName: "Microsoft" },
+    ],
   }),
 }));
 
@@ -115,6 +120,8 @@ const mockReloadSync = jest.fn();
 
 beforeEach(() => {
   mockReloadSync.mockResolvedValue(undefined);
+  mockConfirm.mockReset().mockResolvedValue(false);
+  mockPutRule.mockReset();
 });
 
 function createSubRules(overrides = {}) {
@@ -174,6 +181,24 @@ async function flushEffects() {
     await Promise.resolve();
     await Promise.resolve();
   });
+}
+
+function changeField(container, name, value) {
+  const input = container.querySelector(`[name="${name}"]`);
+  const prototype =
+    input instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype;
+  act(() => {
+    Object.getOwnPropertyDescriptor(prototype, "value").set.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+function unloadIsBlocked() {
+  const event = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(event);
+  return event.defaultPrevented;
 }
 
 async function openSubscribeTab(view) {
@@ -856,6 +881,349 @@ describe("Options Rules global tab", () => {
   });
 });
 
+describe("Options Rules drafts", () => {
+  let ruleList;
+  let view;
+
+  beforeEach(() => {
+    ruleList = [
+      { pattern: "example.com", enabled: true, apiSlug: "Tencent" },
+      {
+        pattern: "*",
+        rootsSelector: "body",
+        selector: "p",
+        apiSlug: "Tencent",
+      },
+    ];
+    useRules.mockImplementation(() => ({
+      list: ruleList,
+      put: mockPutRule,
+      add: jest.fn(),
+    }));
+    useSubRules.mockReturnValue(createSubRules({ selectedRules: [] }));
+    useSyncCaches.mockReturnValue({
+      dataCaches: {},
+      updateDataCache: mockUpdateDataCache,
+      deleteDataCache: mockDeleteDataCache,
+      reloadSync: mockReloadSync,
+    });
+    view = renderRules();
+  });
+
+  afterEach(() => view.unmount());
+
+  test("opens editable with a disabled save, and cancel keeps fields editable", async () => {
+    const rootField = view.container.querySelector('[name="rootsSelector"]');
+    expect(rootField.disabled).toBe(false);
+    expect(getButtonByText(view.container, "save").disabled).toBe(true);
+    expect(view.container.textContent).not.toContain("cancel");
+    expect(getButtonByText(view.container, "restore_default")).toBeDefined();
+    expect(unloadIsBlocked()).toBe(false);
+
+    changeField(view.container, "rootsSelector", "main");
+    expect(getButtonByText(view.container, "save").disabled).toBe(false);
+    expect(unloadIsBlocked()).toBe(true);
+    await act(async () => getButtonByText(view.container, "cancel").click());
+    expect(rootField.value).toBe("body");
+    expect(rootField.disabled).toBe(false);
+    expect(getButtonByText(view.container, "save").disabled).toBe(true);
+    expect(unloadIsBlocked()).toBe(false);
+  });
+
+  test("locates and highlights auto scan without changing settings or losing a draft", async () => {
+    const originalScroll = HTMLElement.prototype.scrollIntoView;
+    const scroll = jest.fn();
+    HTMLElement.prototype.scrollIntoView = scroll;
+    try {
+      changeField(view.container, "rootsSelector", "main");
+      const jump = getButtonByLabel(view.container, "go_to_auto_scan_page");
+      await act(async () => jump.click());
+      const autoScan = view.container
+        .querySelector('input[name="autoScan"]')
+        .closest(".MuiFormControl-root");
+      expect(scroll).toHaveBeenCalledWith({
+        block: "center",
+        behavior: "smooth",
+      });
+      expect(document.activeElement).toBe(autoScan);
+      expect(autoScan.getAttribute("data-settings-search-target")).toBe(
+        "auto_scan_page"
+      );
+      expect(view.container.querySelector('input[name="autoScan"]').value).toBe(
+        "true"
+      );
+      expect(view.container.querySelector('[name="rootsSelector"]').value).toBe(
+        "main"
+      );
+      expect(unloadIsBlocked()).toBe(true);
+      expect(mockConfirm).not.toHaveBeenCalled();
+      expect(mockPutRule).not.toHaveBeenCalled();
+      await act(async () => jump.click());
+      expect(scroll).toHaveBeenCalledTimes(2);
+      await selectOption(view.container, "autoScan", "disable");
+      expect(view.container.querySelector('[name="selector"]').disabled).toBe(
+        false
+      );
+      expect(
+        view.container.querySelector(
+          'button[aria-label="go_to_auto_scan_page"]'
+        )
+      ).toBeNull();
+    } finally {
+      if (originalScroll) HTMLElement.prototype.scrollIntoView = originalScroll;
+      else delete HTMLElement.prototype.scrollIntoView;
+    }
+  });
+
+  test.each([
+    ["fully visible", 200, 248, false],
+    ["below the viewport", 760, 808, true],
+    ["covered by the mobile header", 32, 80, true],
+  ])(
+    "only scrolls when auto scan is not fully visible (%s)",
+    async (_, top, bottom, shouldScroll) => {
+      const originalScroll = HTMLElement.prototype.scrollIntoView;
+      const scroll = jest.fn();
+      HTMLElement.prototype.scrollIntoView = scroll;
+      const header = document.createElement("header");
+      header.className = "kt-options-mobile-header";
+      document.body.appendChild(header);
+      jest
+        .spyOn(header, "getBoundingClientRect")
+        .mockReturnValue({ bottom: 64 });
+      const autoScan = view.container
+        .querySelector('input[name="autoScan"]')
+        .closest(".MuiFormControl-root");
+      jest
+        .spyOn(autoScan, "getBoundingClientRect")
+        .mockReturnValue({ top, bottom, height: bottom - top });
+      try {
+        await act(async () =>
+          getButtonByLabel(view.container, "go_to_auto_scan_page").click()
+        );
+        expect(scroll).toHaveBeenCalledTimes(shouldScroll ? 1 : 0);
+        expect(document.activeElement).toBe(autoScan);
+        expect(autoScan.getAttribute("data-settings-search-target")).toBe(
+          "auto_scan_page"
+        );
+        expect(unloadIsBlocked()).toBe(false);
+        expect(mockPutRule).not.toHaveBeenCalled();
+      } finally {
+        header.remove();
+        if (originalScroll)
+          HTMLElement.prototype.scrollIntoView = originalScroll;
+        else delete HTMLElement.prototype.scrollIntoView;
+      }
+    }
+  );
+
+  test("clears the warning only after persistence succeeds and remains editable", async () => {
+    let finishSave;
+    mockPutRule.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishSave = resolve;
+      })
+    );
+    changeField(view.container, "rootsSelector", "main");
+    await act(async () => getButtonByText(view.container, "save").click());
+    expect(unloadIsBlocked()).toBe(true);
+    expect(getButtonByText(view.container, "save").disabled).toBe(true);
+    await act(async () => finishSave());
+    expect(unloadIsBlocked()).toBe(false);
+    expect(
+      view.container.querySelector('[name="rootsSelector"]').disabled
+    ).toBe(false);
+    changeField(view.container, "rootsSelector", "article");
+    await act(async () => getButtonByText(view.container, "cancel").click());
+    expect(view.container.querySelector('[name="rootsSelector"]').value).toBe(
+      "main"
+    );
+  });
+
+  test("keeps the draft and unload warning after a failed save", async () => {
+    mockPutRule.mockRejectedValueOnce(new Error("Storage unavailable"));
+    changeField(view.container, "rootsSelector", "main");
+    await act(async () => getButtonByText(view.container, "save").click());
+    expect(unloadIsBlocked()).toBe(true);
+    expect(getButtonByText(view.container, "save").disabled).toBe(false);
+    expect(view.container.querySelector('[name="rootsSelector"]').value).toBe(
+      "main"
+    );
+    expect(mockAlert.error).toHaveBeenCalledWith("Storage unavailable");
+  });
+
+  test("preserves cancelled tab switches and discards only after confirmation", async () => {
+    changeField(view.container, "rootsSelector", "main");
+    await openPersonalTab(view);
+    expect(mockConfirm).toHaveBeenCalledWith({
+      message: "discard_rule_changes_confirm",
+      confirmText: "discard_changes",
+      cancelText: "cancel",
+    });
+    expect(view.container.querySelector("#kt-rules-global-panel").hidden).toBe(
+      false
+    );
+    expect(view.container.querySelector('[name="rootsSelector"]').value).toBe(
+      "main"
+    );
+    mockConfirm.mockResolvedValueOnce(true);
+    await openPersonalTab(view);
+    expect(
+      view.container.querySelector("#kt-rules-personal-panel").hidden
+    ).toBe(false);
+    expect(unloadIsBlocked()).toBe(false);
+    expect(mockPutRule).not.toHaveBeenCalled();
+  });
+
+  test("confirms collapse and warns again when a cancelled collapse is retried", async () => {
+    changeField(view.container, "rootsSelector", "main");
+    const summary = view.container.querySelector(".MuiAccordionSummary-root");
+    await act(async () => summary.click());
+    expect(view.container.querySelector('[name="rootsSelector"]').value).toBe(
+      "main"
+    );
+    mockConfirm.mockResolvedValueOnce(true);
+    await act(async () => summary.click());
+    expect(mockConfirm).toHaveBeenCalledTimes(2);
+    expect(view.container.querySelector('[name="rootsSelector"]')).toBeNull();
+    expect(unloadIsBlocked()).toBe(false);
+  });
+
+  test("preserves dirty drafts during settings search and retries cancelled search", async () => {
+    changeField(view.container, "rootsSelector", "main");
+    await act(async () =>
+      view.rerender({ target: "subscribe_url", navigationKey: "first" })
+    );
+    expect(view.container.querySelector("#kt-rules-global-panel").hidden).toBe(
+      false
+    );
+    expect(view.container.querySelector('[name="rootsSelector"]').value).toBe(
+      "main"
+    );
+    mockConfirm.mockResolvedValueOnce(true);
+    await act(async () =>
+      view.rerender({ target: "subscribe_url", navigationKey: "second" })
+    );
+    expect(
+      view.container.querySelector("#kt-rules-subscribe-panel").hidden
+    ).toBe(false);
+    expect(unloadIsBlocked()).toBe(false);
+  });
+
+  test("retains drafts when equivalent objects or unrelated rule fields update", async () => {
+    changeField(view.container, "rootsSelector", "main");
+    ruleList = ruleList.map((rule) => ({ ...rule }));
+    view.rerender();
+    expect(view.container.querySelector('[name="rootsSelector"]').value).toBe(
+      "main"
+    );
+    ruleList = ruleList.map((rule) => ({ ...rule, enabled: false }));
+    view.rerender();
+    expect(view.container.querySelector('[name="rootsSelector"]').value).toBe(
+      "main"
+    );
+    await act(async () => getButtonByText(view.container, "save").click());
+    expect(mockPutRule).toHaveBeenCalledWith(
+      "*",
+      expect.objectContaining({ rootsSelector: "main", enabled: false })
+    );
+  });
+
+  test("removes the warning when an input returns to its saved value", () => {
+    changeField(view.container, "rootsSelector", "main");
+    expect(unloadIsBlocked()).toBe(true);
+    changeField(view.container, "rootsSelector", "body");
+    expect(unloadIsBlocked()).toBe(false);
+    expect(getButtonByText(view.container, "save").disabled).toBe(true);
+  });
+
+  test.each([
+    ["transOnlyRevertDelay", 0.5, "0.6", "0.5"],
+    ["transOnlyRevertDelay", "0.5", "0.6", "0.50"],
+    ["splitLength", "100", "101", "100"],
+  ])(
+    "does not warn when %s returns to the same numeric value (%p)",
+    async (name, initial, changed, restored) => {
+      ruleList = ruleList.map((rule) =>
+        rule.pattern === "*" ? { ...rule, [name]: initial } : rule
+      );
+      view.rerender();
+      const blurField = () => {
+        const input = view.container.querySelector(`[name="${name}"]`);
+        act(() =>
+          input.dispatchEvent(new FocusEvent("focusout", { bubbles: true }))
+        );
+      };
+      changeField(view.container, name, changed);
+      blurField();
+      expect(unloadIsBlocked()).toBe(true);
+      changeField(view.container, name, restored);
+      blurField();
+      expect(unloadIsBlocked()).toBe(false);
+      expect(getButtonByText(view.container, "save").disabled).toBe(true);
+      expect(view.container.textContent).not.toContain("cancel");
+      await openPersonalTab(view);
+      expect(mockConfirm).not.toHaveBeenCalled();
+      expect(
+        view.container.querySelector("#kt-rules-personal-panel").hidden
+      ).toBe(false);
+    }
+  );
+
+  test("does not warn after typing and clearing an omitted optional field", async () => {
+    await openPersonalTab(view);
+    await act(async () =>
+      view.container.querySelector(".MuiAccordionSummary-root").click()
+    );
+    await act(async () => getButtonByText(view.container, "more").click());
+    changeField(view.container, "injectCss", "body { color: red; }");
+    expect(unloadIsBlocked()).toBe(true);
+    changeField(view.container, "injectCss", "");
+    expect(unloadIsBlocked()).toBe(false);
+    expect(getButtonByText(view.container, "save").disabled).toBe(true);
+    await openSubscribeTab(view);
+    expect(mockConfirm).not.toHaveBeenCalled();
+  });
+
+  test("clearing a personal delay restores inheritance without treating zero as empty", async () => {
+    await openPersonalTab(view);
+    await act(async () =>
+      view.container.querySelector(".MuiAccordionSummary-root").click()
+    );
+    changeField(view.container, "transOnlyRevertDelay", "0.6");
+    expect(unloadIsBlocked()).toBe(true);
+    changeField(view.container, "transOnlyRevertDelay", "0");
+    expect(unloadIsBlocked()).toBe(true);
+    changeField(view.container, "transOnlyRevertDelay", "");
+    expect(unloadIsBlocked()).toBe(false);
+    expect(getButtonByText(view.container, "save").disabled).toBe(true);
+    await openSubscribeTab(view);
+    expect(mockConfirm).not.toHaveBeenCalled();
+  });
+
+  test("reverting one option still warns when another option remains changed", async () => {
+    changeField(view.container, "rootsSelector", "main");
+    await selectOption(view.container, "autoScan", "disable");
+    await selectOption(view.container, "autoScan", "enable");
+    expect(unloadIsBlocked()).toBe(true);
+    await openPersonalTab(view);
+    expect(mockConfirm).toHaveBeenCalled();
+    expect(view.container.querySelector('[name="rootsSelector"]').value).toBe(
+      "main"
+    );
+  });
+
+  test("warns for an unfinished new rule and clears the warning on cancel", async () => {
+    await openPersonalTab(view);
+    await act(async () => getButtonByText(view.container, "add").click());
+    expect(unloadIsBlocked()).toBe(false);
+    changeField(view.container, "pattern", "new.example");
+    expect(unloadIsBlocked()).toBe(true);
+    await act(async () => getButtonByText(view.container, "cancel").click());
+    expect(unloadIsBlocked()).toBe(false);
+  });
+});
+
 describe("Options Rules personal tab", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -1072,15 +1440,11 @@ describe("Options Rules personal tab", () => {
     });
     await flushEffects();
 
-    const editButton = getButtonByText(view.container, "edit");
-    expect(window.getComputedStyle(editButton.parentElement).flexWrap).toBe(
+    const saveButton = getButtonByText(view.container, "save");
+    expect(saveButton.disabled).toBe(true);
+    expect(window.getComputedStyle(saveButton.parentElement).flexWrap).toBe(
       "wrap"
     );
-    await act(async () => {
-      editButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    await flushEffects();
-
     await selectOption(view.container, "wrapOriginal", "enable");
 
     expect(
@@ -1090,7 +1454,7 @@ describe("Options Rules personal tab", () => {
       view.container.querySelector('input[name="originalTextStyle"]')
     ).not.toBeNull();
 
-    const saveButton = getButtonByText(view.container, "save");
+    expect(saveButton.disabled).toBe(false);
     await act(async () => {
       saveButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });

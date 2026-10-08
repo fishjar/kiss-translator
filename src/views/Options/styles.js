@@ -138,6 +138,12 @@ export const OPTIONS_STYLES = String.raw`
 .kt-options-page .MuiAccordion-root.Mui-expanded { margin-block: 0; }
 .kt-options-page .MuiAccordion-root:not(:last-child) { margin-bottom: 8px; }
 .kt-options-page .kt-rule-accordion:not(:last-child) { margin-bottom: 8px; }
+.kt-options-page .kt-rule-field--locked .MuiFilledInput-root.Mui-disabled { background-color: var(--kt-sf2); }
+.kt-options-page .kt-rule-field--locked .MuiInputBase-input.Mui-disabled { -webkit-text-fill-color: var(--kt-onv); color: var(--kt-onv); }
+.kt-options-page .kt-rule-field--locked .MuiInputLabel-root.Mui-disabled,
+.kt-options-page .kt-rule-field--locked .MuiFormHelperText-root.Mui-disabled { color: var(--kt-onv); }
+.kt-options-page .kt-rule-field--jump .MuiInputBase-root { cursor: pointer; }
+.kt-options-page .kt-rule-field--jump .MuiInputBase-input.Mui-disabled { pointer-events: none; }
 .kt-options-page .MuiAccordionSummary-root { min-height: 58px; padding-inline: 18px; }
 .kt-options-page .MuiAccordionSummary-root.kt-rule-summary--with-switch { padding-inline-start: 76px; }
 .kt-options-page .MuiButton-root { white-space: nowrap; }
