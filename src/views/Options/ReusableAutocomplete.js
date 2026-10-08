@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
+import useDropdownDismiss from "./useDropdownDismiss";
 
 /**
  * 一个可复用的 Autocomplete 组件，增加了 name 属性和标准化的 onChange 事件
@@ -17,12 +18,30 @@ export default function ReusableAutocomplete({
   value,
   onChange,
   textFieldProps = {},
+  onOpen,
+  onClose,
+  open: controlledOpen,
+  slotProps = {},
   ...rest
 }) {
   // 本地 inputValue 用来暂存用户的文本输入框输入（对于 freeSolo 可输入非列表项的值很有用）
   const [inputValue, setInputValue] = useState(value || "");
   // 用以标识是否是选择下拉项提交的值变化，避免在 onBlur 时发生二次冗余的重复 onChange 提交
   const isChangeCommitted = useRef(false);
+  const fieldRef = useRef(null);
+  const popupRef = useRef(null);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen ?? localOpen;
+  const closeDropdown = (event, reason) => {
+    setLocalOpen(false);
+    onClose?.(event, reason);
+  };
+  useDropdownDismiss({
+    open,
+    popupRef,
+    anchorEl: fieldRef.current,
+    onClose: closeDropdown,
+  });
 
   // 外部传入值受控响应
   useEffect(() => {
@@ -75,8 +94,24 @@ export default function ReusableAutocomplete({
       onInputChange={handleInputChange}
       onBlur={handleBlur}
       {...rest}
+      open={open}
+      onOpen={(event) => {
+        setLocalOpen(true);
+        onOpen?.(event);
+      }}
+      onClose={closeDropdown}
+      slotProps={{
+        ...slotProps,
+        popper: { ...slotProps.popper, ref: popupRef },
+      }}
       renderInput={(params) => (
-        <TextField {...params} {...textFieldProps} name={name} label={label} />
+        <TextField
+          {...params}
+          {...textFieldProps}
+          ref={fieldRef}
+          name={name}
+          label={label}
+        />
       )}
     />
   );
