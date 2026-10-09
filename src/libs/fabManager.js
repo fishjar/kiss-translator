@@ -1,12 +1,15 @@
 import ShadowDomManager from "./shadowDomManager";
 import { APP_CONSTS } from "../config";
 import ContentFab from "../views/Action/ContentFab";
+import { shortcutRegister } from "./shortcut";
 
 /**
  * 网页内悬浮球（Float Action Button）管理器
  * 负责实例化并挂载 ContentFab 组件，它被包裹在隔离的 Shadow DOM 容器中以防止外部网页 CSS 样式对其产生干扰。
  */
 export class FabManager extends ShadowDomManager {
+  #clearShortcut;
+
   /**
    * 构造函数
    * @param {object} params
@@ -25,5 +28,15 @@ export class FabManager extends ShadowDomManager {
     if (!fabConfig?.isHide) {
       this.show();
     }
+
+    // Register even when hidden, for both extensions and userscripts.
+    this.#clearShortcut = shortcutRegister(["AltLeft", "KeyB"], () =>
+      this.show()
+    );
+  }
+
+  destroy() {
+    this.#clearShortcut();
+    super.destroy();
   }
 }

@@ -5,12 +5,14 @@ import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
+import Divider from "@mui/material/Divider";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
 import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
+import Switch from "@mui/material/Switch";
 import {
   useState,
   useMemo,
@@ -32,6 +34,7 @@ import {
   MSG_TRANSBOX_TOGGLE,
 } from "../../config";
 import { useI18n } from "../../hooks/I18n";
+import { useFab } from "../../hooks/Fab";
 import { isExt } from "../../libs/client";
 import { sendBgMsg } from "../../libs/msg";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
@@ -88,8 +91,10 @@ export function ContentFabContent({
   fabConfig = {},
   processActions,
   getSelectionEnabled = selectionUnavailable,
+  onClose,
 }) {
   const i18n = useI18n();
+  const { fab, updateFab } = useFab();
   const {
     x: fabX,
     y: fabY,
@@ -114,6 +119,7 @@ export function ContentFabContent({
   const [showFab, setShowFab] = useState(true);
   const [touchOpen, setTouchOpen] = useState(false);
   const [open, setOpen] = useState(false); // Action menu visibility.
+  const [savingVisibility, setSavingVisibility] = useState(false);
   const anchorRef = useRef(null);
   const menuRef = useRef(null);
   const popperRef = useRef(null);
@@ -222,6 +228,23 @@ export function ContentFabContent({
       );
     }
   }, [closeMenu]);
+
+  const toggleVisibility = async () => {
+    const isHide = !fab?.isHide;
+    setSavingVisibility(true);
+    try {
+      await updateFab({ isHide });
+      closeMenu();
+      if (isHide) {
+        window.alert(i18n("fab_hidden_shortcut_hint"));
+        onClose?.();
+      }
+    } catch (_error) {
+      window.alert(i18n("popup_save_failed"));
+    } finally {
+      setSavingVisibility(false);
+    }
+  };
 
   // Ignore clicks after dragging to prevent accidental activation.
   const handleClick = useCallback(() => {
@@ -361,6 +384,25 @@ export function ContentFabContent({
                 <ListItemText>{label}</ListItemText>
               </MenuItem>
             ))}
+            <Divider />
+            <MenuItem
+              className="kt-content-fab-menu__item"
+              role="menuitemcheckbox"
+              aria-checked={!fab?.isHide}
+              disabled={savingVisibility}
+              onClick={toggleVisibility}
+            >
+              <ListItemText>
+                {i18n(fab?.isHide ? "fab_always_show" : "fab_turn_off")}
+              </ListItemText>
+              <Switch
+                size="small"
+                checked={!fab?.isHide}
+                tabIndex={-1}
+                inputProps={{ "aria-hidden": true }}
+                sx={{ pointerEvents: "none" }}
+              />
+            </MenuItem>
           </MenuList>
           {touchOpen && (
             <TouchTranslateControl processActions={processActions} />
