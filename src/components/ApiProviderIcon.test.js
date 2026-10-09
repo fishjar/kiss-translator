@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import {
   OPT_TRANS_APIMART,
+  OPT_TRANS_CHEAPERINFERENCE,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_OPENAI,
@@ -95,6 +96,15 @@ describe("getApiIconSrc", () => {
         publicUrl: "/kiss-translator",
       })
     ).toBe("/kiss-translator/api/Requesty.svg");
+  });
+
+  test("resolves the Cheaper Inference asset through the shared provider map", () => {
+    expect(
+      getApiIconSrc(OPT_TRANS_CHEAPERINFERENCE, {
+        runtime: undefined,
+        publicUrl: "/kiss-translator",
+      })
+    ).toBe("/kiss-translator/api/CheaperInference.svg");
   });
 
   test("resolves the APIMart asset through the shared provider map", () => {
