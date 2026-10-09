@@ -16,12 +16,22 @@ export class FabManager extends ShadowDomManager {
    * @param {Function} params.processActions - 动作执行处理器
    * @param {object} params.fabConfig - 悬浮球的配置参数
    */
-  constructor({ processActions, fabConfig, getSelectionEnabled }) {
+  constructor({
+    processActions,
+    fabConfig,
+    getSelectionEnabled,
+    onVisibilityChange,
+  }) {
     super({
       id: APP_CONSTS.fabID,
       className: "notranslate",
       reactComponent: ContentFab,
-      props: { processActions, fabConfig, getSelectionEnabled },
+      props: {
+        processActions,
+        fabConfig,
+        getSelectionEnabled,
+        onVisibilityChange,
+      },
     });
 
     // 如果配置没有指明隐藏，则在初始化时自动显示悬浮球

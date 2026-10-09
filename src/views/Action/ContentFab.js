@@ -44,6 +44,7 @@ import { useFab } from "../../hooks/Fab";
 import { isExt } from "../../libs/client";
 import { sendBgMsg } from "../../libs/msg";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
+import { isFabHiddenOnPage } from "../../libs/fabVisibility";
 import useWindowSize from "../../hooks/WindowSize";
 import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
 import { ACTION_STYLES } from "./styles";
@@ -98,9 +99,11 @@ export function ContentFabContent({
   processActions,
   getSelectionEnabled = selectionUnavailable,
   onClose,
+  onVisibilityChange,
 }) {
   const i18n = useI18n();
   const { fab, updateFab } = useFab();
+  const hideOnPage = isFabHiddenOnPage(fab, window.location.href);
   const {
     x: fabX,
     y: fabY,
@@ -237,12 +240,15 @@ export function ContentFabContent({
   }, [closeMenu]);
 
   const toggleVisibility = async () => {
+    // Matching exceptions invert this global preference on the current page.
     const isHide = !fab?.isHide;
+    const nextHideOnPage = !hideOnPage;
     setSavingVisibility(true);
     try {
       await updateFab({ isHide });
+      onVisibilityChange?.(nextHideOnPage);
       closeMenu();
-      if (isHide) {
+      if (nextHideOnPage) {
         setNotice("fab_hidden_shortcut_hint");
       }
     } catch (_error) {
@@ -399,19 +405,19 @@ export function ContentFabContent({
             <MenuItem
               className="kt-content-fab-menu__item"
               role="menuitemcheckbox"
-              aria-checked={!fab?.isHide}
+              aria-checked={!hideOnPage}
               disabled={savingVisibility}
               onClick={toggleVisibility}
             >
               <ListItemIcon>
-                {fab?.isHide ? (
+                {hideOnPage ? (
                   <VisibilityRoundedIcon />
                 ) : (
                   <VisibilityOffRoundedIcon />
                 )}
               </ListItemIcon>
               <ListItemText>
-                {i18n(fab?.isHide ? "fab_always_show" : "fab_turn_off")}
+                {i18n(hideOnPage ? "fab_always_show" : "fab_turn_off")}
               </ListItemText>
             </MenuItem>
           </MenuList>

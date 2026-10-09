@@ -69,6 +69,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   let selectionEnabled;
   let updateFab;
   let onClose;
+  let onVisibilityChange;
   const getSelectionEnabled = () => selectionEnabled;
 
   beforeEach(() => {
@@ -83,6 +84,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     selectionEnabled = true;
     updateFab = jest.fn().mockResolvedValue();
     onClose = jest.fn();
+    onVisibilityChange = jest.fn();
     useFab.mockReturnValue({ fab: {}, updateFab });
     jest.spyOn(window, "alert").mockImplementation(() => {});
     host = document.createElement("div");
@@ -111,6 +113,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
           processActions={processActions}
           getSelectionEnabled={getSelectionEnabled}
           onClose={onClose}
+          onVisibilityChange={onVisibilityChange}
         />
       )
     );
@@ -386,7 +389,9 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(toggle.getAttribute("aria-disabled")).toBe("true");
     expect(onClose).not.toHaveBeenCalled();
     expect(window.alert).not.toHaveBeenCalled();
+    expect(onVisibilityChange).not.toHaveBeenCalled();
     await act(async () => finishSave());
+    expect(onVisibilityChange).toHaveBeenCalledWith(true);
 
     const dialog = container.querySelector('[role="dialog"]');
     expect(dialog.textContent).toContain("fab_hidden_shortcut_hint");
@@ -415,6 +420,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     await act(async () => toggle.click());
 
     expect(updateFab).toHaveBeenCalledWith({ isHide: false });
+    expect(onVisibilityChange).toHaveBeenCalledWith(false);
     expect(window.alert).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
     expect(menuItems()).toHaveLength(0);
@@ -429,6 +435,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
 
     const dialog = container.querySelector('[role="dialog"]');
     expect(dialog.textContent).toContain("popup_save_failed");
+    expect(onVisibilityChange).not.toHaveBeenCalled();
     expect(window.alert).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
     expect(menuItems()).toHaveLength(7);
@@ -436,6 +443,37 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     act(() => dialog.querySelector("button").click());
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  test.each([false, true])(
+    "toggles the effective page preference for a matching exception (global hide: %s)",
+    async (isHide) => {
+      const stored = { isHide, hideExceptionList: "*", size: 72 };
+      useFab.mockReturnValue({ fab: stored, updateFab });
+      render({ ...stored, isHide: !isHide });
+      clickFab();
+      const toggle = menuItems().at(-1);
+      expect(toggle.getAttribute("aria-checked")).toBe(String(isHide));
+      expect(toggle.textContent).toBe(
+        isHide ? "fab_turn_off" : "fab_always_show"
+      );
+
+      await act(async () => toggle.click());
+
+      expect(updateFab).toHaveBeenCalledWith({ isHide: !isHide });
+      expect(onVisibilityChange).toHaveBeenCalledWith(isHide);
+      expect(stored).toEqual({ isHide, hideExceptionList: "*", size: 72 });
+      expect(menuItems()).toHaveLength(0);
+      const dialog = container.querySelector('[role="dialog"]');
+      expect(dialog?.textContent ?? "").toBe(
+        isHide ? "hide_fab_buttonfab_hidden_shortcut_hintclose" : ""
+      );
+      expect(onClose).not.toHaveBeenCalled();
+      if (isHide) {
+        act(() => dialog.querySelector("button").click());
+      }
+      expect(onClose).toHaveBeenCalledTimes(Number(isHide));
+    }
+  );
 
   test.each(["Escape", "backdrop"])(
     "dismissing the shortcut reminder with %s hides the FAB",
