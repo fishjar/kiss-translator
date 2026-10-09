@@ -370,7 +370,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(menuItems()).toHaveLength(0);
   });
 
-  test("saves only the hide preference and reminds before hiding the FAB", async () => {
+  test("saves only the hide preference and shows a themed reminder before hiding", async () => {
     let finishSave;
     updateFab.mockReturnValue(new Promise((resolve) => (finishSave = resolve)));
     render();
@@ -386,15 +386,20 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(toggle.getAttribute("aria-disabled")).toBe("true");
     expect(onClose).not.toHaveBeenCalled();
     expect(window.alert).not.toHaveBeenCalled();
-    window.alert.mockImplementation(() => {
-      expect(onClose).not.toHaveBeenCalled();
-    });
     await act(async () => finishSave());
 
-    expect(window.alert).toHaveBeenCalledWith("fab_hidden_shortcut_hint");
-    expect(onClose).toHaveBeenCalledTimes(1);
+    const dialog = container.querySelector('[role="dialog"]');
+    expect(dialog.textContent).toContain("fab_hidden_shortcut_hint");
+    expect(dialog.getRootNode()).toBe(focusRoot);
+    expect(dialog.closest(".kt-m3-root")).not.toBeNull();
+    expect(dialog.closest('[data-testid="draggable"]')).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(window.alert).not.toHaveBeenCalled();
     expect(menuItems()).toHaveLength(0);
     expect(processActions).not.toHaveBeenCalled();
+
+    act(() => dialog.querySelector("button").click());
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   test("a temporarily shown FAB can restore the always-show preference", async () => {
@@ -404,6 +409,8 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     const toggle = menuItems().at(-1);
     expect(toggle.getAttribute("aria-checked")).toBe("false");
     expect(toggle.textContent).toBe("fab_always_show");
+    expect(toggle.querySelector(".MuiListItemIcon-root")).not.toBeNull();
+    expect(toggle.querySelector("input")).toBeNull();
 
     await act(async () => toggle.click());
 
@@ -420,11 +427,42 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
 
     await act(async () => menuItems().at(-1).click());
 
-    expect(window.alert).toHaveBeenCalledWith("popup_save_failed");
+    const dialog = container.querySelector('[role="dialog"]');
+    expect(dialog.textContent).toContain("popup_save_failed");
+    expect(window.alert).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
     expect(menuItems()).toHaveLength(7);
     expect(menuItems().at(-1).getAttribute("aria-disabled")).toBeNull();
+    act(() => dialog.querySelector("button").click());
+    expect(onClose).not.toHaveBeenCalled();
   });
+
+  test.each(["Escape", "backdrop"])(
+    "dismissing the shortcut reminder with %s hides the FAB",
+    async (dismissal) => {
+      render();
+      clickFab();
+      await act(async () => menuItems().at(-1).click());
+      const dialog = container.querySelector('[role="dialog"]');
+      if (dismissal === "Escape") {
+        act(() =>
+          dialog.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+          )
+        );
+      } else {
+        const backdrop = dialog.closest(".MuiDialog-container");
+        act(() => {
+          backdrop.dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true })
+          );
+          backdrop.click();
+        });
+      }
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(window.alert).not.toHaveBeenCalled();
+    }
+  );
 
   // Preserve the existing direct-translation behavior of fabClickAction === 1.
   // The action menu must not add an extra click for users with this setting.

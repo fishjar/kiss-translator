@@ -5,6 +5,14 @@ import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
@@ -12,7 +20,6 @@ import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
 import Paper from "@mui/material/Paper";
 import Popper from "@mui/material/Popper";
-import Switch from "@mui/material/Switch";
 import {
   useState,
   useMemo,
@@ -120,6 +127,7 @@ export function ContentFabContent({
   const [touchOpen, setTouchOpen] = useState(false);
   const [open, setOpen] = useState(false); // Action menu visibility.
   const [savingVisibility, setSavingVisibility] = useState(false);
+  const [notice, setNotice] = useState("");
   const anchorRef = useRef(null);
   const menuRef = useRef(null);
   const popperRef = useRef(null);
@@ -236,14 +244,19 @@ export function ContentFabContent({
       await updateFab({ isHide });
       closeMenu();
       if (isHide) {
-        window.alert(i18n("fab_hidden_shortcut_hint"));
-        onClose?.();
+        setNotice("fab_hidden_shortcut_hint");
       }
     } catch (_error) {
-      window.alert(i18n("popup_save_failed"));
+      setNotice("popup_save_failed");
     } finally {
       setSavingVisibility(false);
     }
+  };
+
+  const closeNotice = () => {
+    setNotice("");
+    // Keep the host visible until its shortcut reminder has been dismissed.
+    if (notice === "fab_hidden_shortcut_hint") onClose?.();
   };
 
   // Ignore clicks after dragging to prevent accidental activation.
@@ -392,16 +405,16 @@ export function ContentFabContent({
               disabled={savingVisibility}
               onClick={toggleVisibility}
             >
+              <ListItemIcon>
+                {fab?.isHide ? (
+                  <VisibilityRoundedIcon />
+                ) : (
+                  <VisibilityOffRoundedIcon />
+                )}
+              </ListItemIcon>
               <ListItemText>
                 {i18n(fab?.isHide ? "fab_always_show" : "fab_turn_off")}
               </ListItemText>
-              <Switch
-                size="small"
-                checked={!fab?.isHide}
-                tabIndex={-1}
-                inputProps={{ "aria-hidden": true }}
-                sx={{ pointerEvents: "none" }}
-              />
             </MenuItem>
           </MenuList>
           {touchOpen && (
@@ -409,6 +422,34 @@ export function ContentFabContent({
           )}
         </Paper>
       </Popper>
+      <Dialog
+        open={Boolean(notice)}
+        // Retain shadow-root styles without inheriting the draggable transform.
+        container={() => anchorRef.current?.closest(".kt-m3-root")}
+        disableEnforceFocus
+        disableRestoreFocus
+        disableScrollLock
+        onClose={closeNotice}
+        aria-labelledby="kt-content-fab-notice-title"
+        aria-describedby="kt-content-fab-notice-message"
+        maxWidth="xs"
+        fullWidth
+        sx={{ zIndex: 2147483647 }}
+      >
+        <DialogTitle id="kt-content-fab-notice-title">
+          {i18n("hide_fab_button")}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="kt-content-fab-notice-message">
+            {i18n(notice)}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button autoFocus onClick={closeNotice}>
+            {i18n("close")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Draggable>
   );
 }
