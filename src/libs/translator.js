@@ -2963,8 +2963,11 @@ export class Translator {
     highlights.forEach((highlight) => {
       const textNode = document.createTextNode(highlight.textContent || "");
       this.#skipMoNodes.add(textNode);
-      highlight.replaceWith(textNode);
-      this.#mergeFavoriteHighlightText(textNode);
+      // Merging can remove an adjacent source node that was never highlighted.
+      this.#withIgnoredMutations([highlight.parentNode], () => {
+        highlight.replaceWith(textNode);
+        this.#mergeFavoriteHighlightText(textNode);
+      });
     });
   }
 

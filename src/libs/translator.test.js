@@ -770,35 +770,103 @@ describe("Translator rule styles", () => {
       expect(document.querySelector(wrapperSelector)).toBe(wrapper);
     });
 
-    test.each([
-      OPT_HIGHLIGHT_WORDS_BEFORETRANS,
-      OPT_HIGHLIGHT_WORDS_AFTERTRANS,
-    ])("preserves translations when favorites change (%s)", async (mode) => {
-      const text = "Library tools improve library research";
-      document.body.innerHTML = `<main id="root"><p>${text}</p></main>`;
-      createTranslator({ highlightWords: mode }, { minLength: 0 });
-      await flushMutations();
-      const wrapper = document.querySelector(wrapperSelector);
-      expect(wrapper.textContent).toContain("Translated");
-      apiTranslate.mockClear();
-
-      for (const isFavorite of [true, false]) {
-        document.dispatchEvent(
-          new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
-            detail: { word: "library", isFavorite },
-          })
-        );
+    test.each(
+      [OPT_HIGHLIGHT_WORDS_BEFORETRANS, OPT_HIGHLIGHT_WORDS_AFTERTRANS].flatMap(
+        (mode) => [
+          [mode, ["Library tools improve library research"], 2],
+          [mode, ["Library", " tools improve research"], 1],
+          [mode, ["Explore ", "Library", " tools improve research"], 1],
+        ]
+      )
+    )(
+      "preserves translations when favorites change (%s, source nodes: %j)",
+      async (mode, sourceParts, highlightCount) => {
+        document.body.innerHTML = '<main id="root"><p></p></main>';
+        const p = document.querySelector("p");
+        p.append(...sourceParts.map((text) => document.createTextNode(text)));
+        createTranslator({ highlightWords: mode }, { minLength: 0 });
         await flushMutations();
-        await flushMutations();
-
-        expect(apiTranslate).not.toHaveBeenCalled();
-        expect(document.querySelector(wrapperSelector)).toBe(wrapper);
+        expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+          sourceParts.join(""),
+        ]);
+        const wrapper = p.querySelector(wrapperSelector);
         expect(wrapper.textContent).toContain("Translated");
-        expect(
-          document.querySelectorAll(`.${Translator.KISS_CLASS.highlight}`)
-        ).toHaveLength(isFavorite ? 2 : 0);
+        apiTranslate.mockClear();
+
+        for (const isFavorite of [true, false]) {
+          document.dispatchEvent(
+            new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+              detail: { word: "library", isFavorite },
+            })
+          );
+          await flushMutations();
+          await flushMutations();
+
+          expect(apiTranslate).not.toHaveBeenCalled();
+          expect(p.querySelector(wrapperSelector)).toBe(wrapper);
+          expect(wrapper.textContent).toContain("Translated");
+          expect(
+            p.querySelectorAll(`.${Translator.KISS_CLASS.highlight}`)
+          ).toHaveLength(isFavorite ? highlightCount : 0);
+        }
       }
-    });
+    );
+
+    test.each(
+      [OPT_HIGHLIGHT_WORDS_BEFORETRANS, OPT_HIGHLIGHT_WORDS_AFTERTRANS].flatMap(
+        (mode) => [
+          [mode, "edit"],
+          [mode, "remove"],
+        ]
+      )
+    )(
+      "retranslates genuine source changes after removing a favorite (%s, %s)",
+      async (mode, change) => {
+        document.body.innerHTML = '<main id="root"><p></p></main>';
+        const p = document.querySelector("p");
+        // The third source node remains outside the favorite's text merge.
+        const source = document.createTextNode(" across articles");
+        p.append(
+          document.createTextNode("Library"),
+          document.createTextNode(" tools improve research"),
+          source
+        );
+        createTranslator({ highlightWords: mode }, { minLength: 0 });
+        await flushMutations();
+        const wrapper = p.querySelector(wrapperSelector);
+        expect(wrapper.textContent).toContain("Translated");
+        apiTranslate.mockClear();
+
+        for (const isFavorite of [true, false]) {
+          document.dispatchEvent(
+            new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+              detail: { word: "library", isFavorite },
+            })
+          );
+          await flushMutations();
+        }
+        expect(apiTranslate).not.toHaveBeenCalled();
+        expect(p.querySelector(wrapperSelector)).toBe(wrapper);
+        expect(source.parentNode).toBe(p);
+
+        if (change === "edit") {
+          source.nodeValue = " across updated articles";
+        } else {
+          source.remove();
+        }
+        await flushMutations();
+
+        expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+          change === "edit"
+            ? "Library tools improve research across updated articles"
+            : "Library tools improve research",
+        ]);
+        expect(wrapper.isConnected).toBe(false);
+        expect(p.querySelector(wrapperSelector).textContent).toContain(
+          "Translated"
+        );
+      }
+    );
 
     test("retranslates genuine source replacements and inline removals after splitting", async () => {
       document.body.innerHTML =
