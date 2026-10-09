@@ -2847,7 +2847,10 @@ export class Translator {
     });
 
     if (newNodes.length > 0) {
-      textNode.replaceWith(...newNodes);
+      // Marking new nodes alone does not suppress removal of the old source.
+      this.#withIgnoredMutations([textNode.parentNode], () =>
+        textNode.replaceWith(...newNodes)
+      );
     }
   }
 
@@ -3028,7 +3031,10 @@ export class Translator {
         return newNode;
       });
 
-      node.replaceWith(...newNodes);
+      // Sentence splitting changes DOM structure without changing the source.
+      this.#withIgnoredMutations([parentNode], () =>
+        node.replaceWith(...newNodes)
+      );
     });
 
     const sentenceEndRegexForTest = /(?:[。！？?!]+|(?<!\d)\.)\s*$/;
@@ -3056,7 +3062,7 @@ export class Translator {
         br.className = Translator.KISS_CLASS.br;
         this.#skipMoNodes.add(br);
 
-        node.after(br);
+        this.#withIgnoredMutations([parentNode], () => node.after(br));
       }
     });
   }

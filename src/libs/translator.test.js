@@ -36,6 +36,13 @@ const flushAsync = async () => {
   for (let i = 0; i < 8; i++) await Promise.resolve();
 };
 
+const flushMutations = async () => {
+  await Promise.resolve();
+  await flushAsync();
+  await flushAsync();
+  await flushAsync();
+};
+
 const createdTranslators = [];
 
 const hoverNode = async (node, x = 20, y = 20) => {
@@ -314,12 +321,6 @@ describe("Translator rule styles", () => {
 
   describe("DOM reorder rescans", () => {
     const wrapperSelector = `.${Translator.KISS_CLASS.warpper}`;
-    const flushMutations = async () => {
-      await Promise.resolve();
-      await flushAsync();
-      await flushAsync();
-      await flushAsync();
-    };
     beforeEach(() => {
       const style = document.createElement("style");
       style.textContent = "span, kiss-translator { display: inline; }";
@@ -704,6 +705,134 @@ describe("Translator rule styles", () => {
       await flushMutations();
       expect(apiTranslate).toHaveBeenCalledTimes(1);
       expect(card.querySelector(wrapperSelector)).not.toBeNull();
+    });
+  });
+
+  describe("self-authored text mutations", () => {
+    const wrapperSelector = `.${Translator.KISS_CLASS.warpper}`;
+
+    beforeEach(() => {
+      const style = document.createElement("style");
+      style.textContent = "span, kiss-translator { display: inline; }";
+      document.head.appendChild(style);
+    });
+
+    test.each([
+      { splitParagraph: "split_punctuation" },
+      { splitParagraph: "split_textlength", splitLength: 10 },
+      { splitParagraph: "split_textlength", splitLength: 100 },
+    ])("translates unchanged split source only once (%j)", async (rule) => {
+      document.body.innerHTML =
+        '<main id="root"><p>First sentence. Second sentence.</p></main>';
+      createTranslator(rule);
+      await flushMutations();
+
+      const expected =
+        rule.splitLength === 100
+          ? ["First sentence. Second sentence."]
+          : ["First sentence.", "Second sentence."];
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual(
+        expected
+      );
+      const wrappers = [...document.querySelectorAll(wrapperSelector)];
+      expect(wrappers).toHaveLength(expected.length);
+      expect(
+        wrappers.every((wrapper) => wrapper.textContent.includes("Translated"))
+      ).toBe(true);
+
+      apiTranslate.mockClear();
+      await flushMutations();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect([...document.querySelectorAll(wrapperSelector)]).toEqual(wrappers);
+    });
+
+    test.each([
+      OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+    ])("translates highlighted source only once (%s)", async (mode) => {
+      const text = "A model evaluation security incident report";
+      document.body.innerHTML = `<main id="root"><p>${text}</p></main>`;
+      createTranslator({ highlightWords: mode }, {}, ["incident"]);
+      await flushMutations();
+
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        text,
+      ]);
+      expect(
+        document.querySelector(`.${Translator.KISS_CLASS.highlight}`)
+          .textContent
+      ).toBe("incident");
+      const wrapper = document.querySelector(wrapperSelector);
+      expect(wrapper.textContent).toContain("Translated");
+      apiTranslate.mockClear();
+      await flushMutations();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(document.querySelector(wrapperSelector)).toBe(wrapper);
+    });
+
+    test.each([
+      OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+    ])("preserves translations when favorites change (%s)", async (mode) => {
+      const text = "Library tools improve library research";
+      document.body.innerHTML = `<main id="root"><p>${text}</p></main>`;
+      createTranslator({ highlightWords: mode }, { minLength: 0 });
+      await flushMutations();
+      const wrapper = document.querySelector(wrapperSelector);
+      expect(wrapper.textContent).toContain("Translated");
+      apiTranslate.mockClear();
+
+      for (const isFavorite of [true, false]) {
+        document.dispatchEvent(
+          new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+            detail: { word: "library", isFavorite },
+          })
+        );
+        await flushMutations();
+        await flushMutations();
+
+        expect(apiTranslate).not.toHaveBeenCalled();
+        expect(document.querySelector(wrapperSelector)).toBe(wrapper);
+        expect(wrapper.textContent).toContain("Translated");
+        expect(
+          document.querySelectorAll(`.${Translator.KISS_CLASS.highlight}`)
+        ).toHaveLength(isFavorite ? 2 : 0);
+      }
+    });
+
+    test("retranslates genuine source replacements and inline removals after splitting", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>First sentence. Second sentence.</p></main>';
+      createTranslator({ splitParagraph: "split_punctuation" });
+      await flushMutations();
+      const p = document.querySelector("p");
+      const oldWrappers = [...p.querySelectorAll(wrapperSelector)];
+      apiTranslate.mockClear();
+
+      p.textContent = "Updated sentence. Another sentence.";
+      await flushMutations();
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Updated sentence.",
+        "Another sentence.",
+      ]);
+      expect(oldWrappers.every((wrapper) => !wrapper.isConnected)).toBe(true);
+
+      p.insertAdjacentHTML(
+        "afterbegin",
+        '<span id="removed">Delete this phrase. </span>'
+      );
+      await flushMutations();
+      const beforeRemoval = [...p.querySelectorAll(wrapperSelector)];
+      apiTranslate.mockClear();
+      document.getElementById("removed").remove();
+      await flushMutations();
+
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Updated sentence.",
+        "Another sentence.",
+      ]);
+      expect(beforeRemoval.every((wrapper) => !wrapper.isConnected)).toBe(true);
+      expect(p.querySelectorAll(wrapperSelector)).toHaveLength(2);
     });
   });
 
