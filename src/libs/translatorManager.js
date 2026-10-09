@@ -308,6 +308,10 @@ export default class TranslatorManager {
         processActions: this.#processActions.bind(this),
         fabConfig: this.#cloneConfig(this.#fabConfig),
         getSelectionEnabled: () => Boolean(this._transboxManager?.isEnabled()),
+        onVisibilityChange: (isHide) => {
+          // Persist the confirmed page preference across SPA runtime recreation.
+          this.#fabConfig = { ...this.#fabConfig, isHide };
+        },
       });
     }
   }

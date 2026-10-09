@@ -289,6 +289,7 @@ function setupMockConstructors() {
 function createManager({
   rule = { transOpen: "true" },
   setting = {},
+  fabConfig = { isHide: false },
   isUserscript = false,
   isIframe = false,
   transboxOnly = false,
@@ -304,7 +305,7 @@ function createManager({
       ...setting,
     },
     rule,
-    fabConfig: { isHide: false },
+    fabConfig,
     favWords: [],
     isIframe,
     isUserscript,
@@ -401,6 +402,28 @@ describe("TranslatorManager SPA lifecycle", () => {
     expect(mockFabInstances[0].destroy).toHaveBeenCalledTimes(1);
     expect(browser.runtime.onMessage.addListener).toHaveBeenCalledTimes(1);
   });
+
+  test.each([false, true])(
+    "preserves a confirmed FAB page preference after replacing the body (initial hide: %s)",
+    async (isHide) => {
+      const fabConfig = { isHide, hideExceptionList: "*", size: 72 };
+      const manager = createManager({ fabConfig });
+      manager.start();
+      const { onVisibilityChange } = FabManager.mock.calls[0][0];
+      onVisibilityChange(!isHide);
+
+      replaceBody();
+      await flushMutationObserver();
+      jest.runOnlyPendingTimers();
+
+      expect(FabManager).toHaveBeenCalledTimes(2);
+      expect(FabManager.mock.calls[1][0].fabConfig).toEqual({
+        ...fabConfig,
+        isHide: !isHide,
+      });
+      expect(fabConfig.isHide).toBe(isHide);
+    }
+  );
 
   test("touch mode is document-local and survives runtime recreation", () => {
     const manager = createManager();

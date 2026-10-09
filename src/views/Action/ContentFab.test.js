@@ -13,11 +13,14 @@ import {
   MSG_TRANSBOX_TOGGLE,
 } from "../../config";
 import { sendBgMsg } from "../../libs/msg";
+import { useFab } from "../../hooks/Fab";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let mockIsVideoFullscreen = false;
 let draggableProps = null;
+
+jest.mock("../../hooks/Fab", () => ({ useFab: jest.fn() }));
 
 jest.mock("../../hooks/Setting", () => ({
   SettingProvider: ({ children }) => children,
@@ -64,6 +67,9 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   let root;
   let processActions;
   let selectionEnabled;
+  let updateFab;
+  let onClose;
+  let onVisibilityChange;
   const getSelectionEnabled = () => selectionEnabled;
 
   beforeEach(() => {
@@ -76,6 +82,11 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     draggableProps = null;
     processActions = jest.fn();
     selectionEnabled = true;
+    updateFab = jest.fn().mockResolvedValue();
+    onClose = jest.fn();
+    onVisibilityChange = jest.fn();
+    useFab.mockReturnValue({ fab: {}, updateFab });
+    jest.spyOn(window, "alert").mockImplementation(() => {});
     host = document.createElement("div");
     document.body.appendChild(host);
     focusRoot =
@@ -101,6 +112,8 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
           fabConfig={fabConfig}
           processActions={processActions}
           getSelectionEnabled={getSelectionEnabled}
+          onClose={onClose}
+          onVisibilityChange={onVisibilityChange}
         />
       )
     );
@@ -169,6 +182,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
       "open_menu",
       "open_setting",
       "touch_paragraph",
+      "fab_turn_off",
     ]);
     expect(fab().querySelectorAll(".MuiSpeedDialIcon-root svg")).toHaveLength(
       2
@@ -244,7 +258,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(menuItems()[2].getAttribute("aria-disabled")).toBe("true");
     act(() => menuItems()[2].click());
     expect(processActions).not.toHaveBeenCalled();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
 
     pressMenuKey("ArrowDown");
     expect(focusRoot.activeElement).toBe(menuItems()[1]);
@@ -299,11 +313,11 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     pressMenuKey("ArrowUp");
     expect(focusRoot.activeElement).toBe(menuItems()[1]);
     expect(pressMenuKey("End").defaultPrevented).toBe(true);
-    expect(focusRoot.activeElement).toBe(menuItems()[5]);
+    expect(focusRoot.activeElement).toBe(menuItems()[6]);
     pressMenuKey("ArrowDown");
     expect(focusRoot.activeElement).toBe(menuItems()[0]);
     pressMenuKey("ArrowUp");
-    expect(focusRoot.activeElement).toBe(menuItems()[5]);
+    expect(focusRoot.activeElement).toBe(menuItems()[6]);
     expect(pressMenuKey("Home").defaultPrevented).toBe(true);
     expect(focusRoot.activeElement).toBe(menuItems()[0]);
     expect(processActions).not.toHaveBeenCalled();
@@ -359,6 +373,135 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(menuItems()).toHaveLength(0);
   });
 
+  test("saves only the hide preference and shows a themed reminder before hiding", async () => {
+    let finishSave;
+    updateFab.mockReturnValue(new Promise((resolve) => (finishSave = resolve)));
+    render();
+    clickFab();
+    const toggle = menuItems().at(-1);
+    expect(toggle.getAttribute("role")).toBe("menuitemcheckbox");
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    expect(toggle.textContent).toBe("fab_turn_off");
+
+    act(() => toggle.click());
+
+    expect(updateFab).toHaveBeenCalledWith({ isHide: true });
+    expect(toggle.getAttribute("aria-disabled")).toBe("true");
+    expect(onClose).not.toHaveBeenCalled();
+    expect(window.alert).not.toHaveBeenCalled();
+    expect(onVisibilityChange).not.toHaveBeenCalled();
+    await act(async () => finishSave());
+    expect(onVisibilityChange).toHaveBeenCalledWith(true);
+
+    const dialog = container.querySelector('[role="dialog"]');
+    expect(dialog.textContent).toContain("fab_hidden_shortcut_hint");
+    expect(dialog.getRootNode()).toBe(focusRoot);
+    expect(dialog.closest(".kt-m3-root")).not.toBeNull();
+    expect(dialog.closest('[data-testid="draggable"]')).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(window.alert).not.toHaveBeenCalled();
+    expect(menuItems()).toHaveLength(0);
+    expect(processActions).not.toHaveBeenCalled();
+
+    act(() => dialog.querySelector("button").click());
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("a temporarily shown FAB can restore the always-show preference", async () => {
+    useFab.mockReturnValue({ fab: { isHide: true }, updateFab });
+    render({ isHide: true });
+    clickFab();
+    const toggle = menuItems().at(-1);
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    expect(toggle.textContent).toBe("fab_always_show");
+    expect(toggle.querySelector(".MuiListItemIcon-root")).not.toBeNull();
+    expect(toggle.querySelector("input")).toBeNull();
+
+    await act(async () => toggle.click());
+
+    expect(updateFab).toHaveBeenCalledWith({ isHide: false });
+    expect(onVisibilityChange).toHaveBeenCalledWith(false);
+    expect(window.alert).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(menuItems()).toHaveLength(0);
+  });
+
+  test("keeps the FAB and menu available if saving the preference fails", async () => {
+    updateFab.mockRejectedValue(new Error("Storage unavailable"));
+    render();
+    clickFab();
+
+    await act(async () => menuItems().at(-1).click());
+
+    const dialog = container.querySelector('[role="dialog"]');
+    expect(dialog.textContent).toContain("popup_save_failed");
+    expect(onVisibilityChange).not.toHaveBeenCalled();
+    expect(window.alert).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(menuItems()).toHaveLength(7);
+    expect(menuItems().at(-1).getAttribute("aria-disabled")).toBeNull();
+    act(() => dialog.querySelector("button").click());
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  test.each([false, true])(
+    "toggles the effective page preference for a matching exception (global hide: %s)",
+    async (isHide) => {
+      const stored = { isHide, hideExceptionList: "*", size: 72 };
+      useFab.mockReturnValue({ fab: stored, updateFab });
+      render({ ...stored, isHide: !isHide });
+      clickFab();
+      const toggle = menuItems().at(-1);
+      expect(toggle.getAttribute("aria-checked")).toBe(String(isHide));
+      expect(toggle.textContent).toBe(
+        isHide ? "fab_turn_off" : "fab_always_show"
+      );
+
+      await act(async () => toggle.click());
+
+      expect(updateFab).toHaveBeenCalledWith({ isHide: !isHide });
+      expect(onVisibilityChange).toHaveBeenCalledWith(isHide);
+      expect(stored).toEqual({ isHide, hideExceptionList: "*", size: 72 });
+      expect(menuItems()).toHaveLength(0);
+      const dialog = container.querySelector('[role="dialog"]');
+      expect(dialog?.textContent ?? "").toBe(
+        isHide ? "hide_fab_buttonfab_hidden_shortcut_hintclose" : ""
+      );
+      expect(onClose).not.toHaveBeenCalled();
+      if (isHide) {
+        act(() => dialog.querySelector("button").click());
+      }
+      expect(onClose).toHaveBeenCalledTimes(Number(isHide));
+    }
+  );
+
+  test.each(["Escape", "backdrop"])(
+    "dismissing the shortcut reminder with %s hides the FAB",
+    async (dismissal) => {
+      render();
+      clickFab();
+      await act(async () => menuItems().at(-1).click());
+      const dialog = container.querySelector('[role="dialog"]');
+      if (dismissal === "Escape") {
+        act(() =>
+          dialog.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+          )
+        );
+      } else {
+        const backdrop = dialog.closest(".MuiDialog-container");
+        act(() => {
+          backdrop.dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true })
+          );
+          backdrop.click();
+        });
+      }
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(window.alert).not.toHaveBeenCalled();
+    }
+  );
+
   // Preserve the existing direct-translation behavior of fabClickAction === 1.
   // The action menu must not add an extra click for users with this setting.
   test("fabClickAction=1 translates directly and never opens the menu", () => {
@@ -395,7 +538,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   test("switching to the panel action dismisses the menu and does not restore it later", () => {
     render();
     clickFab();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
 
     render({ fabClickAction: 2 });
     expect(menuItems()).toHaveLength(0);
@@ -404,7 +547,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(processActions).not.toHaveBeenCalled();
 
     clickFab();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
   });
 
   test.each([0, 1, 2])(
@@ -434,7 +577,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(draggableProps.expanded).toBe(true);
 
     act(() => draggableProps.onStart());
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
     act(() => draggableProps.onMove());
 
     expect(menuItems()).toHaveLength(0);
@@ -446,7 +589,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
 
     act(() => draggableProps.onStart());
     clickFab();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
     expect(draggableProps.expanded).toBe(true);
   });
 
@@ -466,7 +609,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   test("entering video fullscreen closes an open menu", () => {
     render();
     clickFab();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
 
     mockIsVideoFullscreen = true;
     act(() =>
