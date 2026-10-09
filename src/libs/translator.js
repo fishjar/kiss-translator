@@ -530,7 +530,8 @@ export class Translator {
   #mo; // MutationObserver
   #dmm; // DebounceMouseMover
 
-  #rescanQueue = new Set(); // “脏容器”队列
+  // A discovery-only scan must not override an already queued content update.
+  #rescanQueue = new Map();
   #isQueueProcessing = false; // 队列处理状态标志
 
   #translationUpdates = [];
@@ -1377,16 +1378,39 @@ export class Translator {
   // 监控页面动态变化
   #createMutationObserver() {
     return new MutationObserver((mutations) => {
+      const removedParents = new Map();
+      const insertedBeforeRemoval = new Set();
+      const changedTargets = new Set();
       for (const mutation of mutations) {
-        if (
-          this.#ignoredMutationTargets.has(mutation.target) ||
-          this.#skipMoNodes.has(mutation.target) ||
-          this.#plainTextPreprocessingNodes.has(mutation.target) ||
-          mutation.nextSibling?.tagName?.toLowerCase() ===
-            this.#translationTagName
-        ) {
-          continue;
+        if (this.#isIgnoredMutation(mutation)) continue;
+        if (mutation.type === "characterData") {
+          if (mutation.oldValue !== mutation.target.nodeValue) {
+            changedTargets.add(mutation.target);
+          }
+        } else if (mutation.type === "childList") {
+          for (const node of mutation.removedNodes) {
+            if (!removedParents.has(node)) removedParents.set(node, new Set());
+            removedParents.get(node).add(mutation.target);
+          }
+          for (const node of mutation.addedNodes) {
+            if (!removedParents.has(node)) insertedBeforeRemoval.add(node);
+          }
+          if (
+            Array.from(mutation.addedNodes).some(
+              (node) => !this.#isTranslationInsertion(node)
+            ) ||
+            // An externally removed wrapper also makes its host stale.
+            Array.from(mutation.removedNodes).some(
+              (node) => !this.#skipMoNodes.has(node)
+            )
+          ) {
+            changedTargets.add(mutation.target);
+          }
         }
+      }
+
+      for (const mutation of mutations) {
+        if (this.#isIgnoredMutation(mutation)) continue;
 
         if (mutation.type === "characterData") {
           if (
@@ -1398,13 +1422,31 @@ export class Translator {
         } else if (mutation.type === "childList") {
           let nodes = new Set();
           let hasText = false;
+          if (
+            Array.from(mutation.removedNodes).some((node) => {
+              if (this.#isTranslationInsertion(node)) {
+                return (
+                  !node.isConnected &&
+                  touchTranslationOwners.get(node) === mutation.target
+                );
+              }
+              // Independent blocks do not contribute to their parent's source.
+              // Inline/text removals must override a queued discovery-only scan.
+              return (
+                node.nodeType === Node.TEXT_NODE ||
+                (Translator.isElementOrFragment(node) &&
+                  !(
+                    this.#rule.autoScan === "true" &&
+                    this.#isBlockNode(node) &&
+                    this.#shouldBreak(node)
+                  ))
+              );
+            })
+          ) {
+            this.#queueForRescan(mutation.target);
+          }
           mutation.addedNodes.forEach((node) => {
-            if (
-              this.#skipMoNodes.has(node) ||
-              node.nodeName?.toLowerCase() === this.#translationTagName
-            ) {
-              return;
-            }
+            if (this.#isTranslationInsertion(node)) return;
 
             if (node.nodeType === Node.TEXT_NODE) {
               hasText = true;
@@ -1415,11 +1457,50 @@ export class Translator {
           if (hasText) {
             this.#queueForRescan(mutation.target);
           } else {
-            nodes.forEach((node) => this.#queueForRescan(node));
+            nodes.forEach((node) => {
+              const parents = removedParents.get(node);
+              // Same identity and same parent prove a reorder, not a clone or
+              // an insertion from outside the observed tree. Inline reorders,
+              // cross-parent moves and source edits still need invalidation.
+              const preserveTranslations =
+                parents?.size === 1 &&
+                parents.has(mutation.target) &&
+                !insertedBeforeRemoval.has(node) &&
+                node.parentNode === mutation.target &&
+                node.isConnected &&
+                this.#rule.autoScan === "true" &&
+                this.#isBlockNode(node) &&
+                this.#shouldBreak(node) &&
+                !Array.from(changedTargets).some((target) =>
+                  node.contains(target)
+                );
+              this.#queueForRescan(node, preserveTranslations);
+            });
           }
         }
       }
     });
+  }
+
+  #isTranslationInsertion(node) {
+    return (
+      this.#skipMoNodes.has(node) ||
+      node.nodeName?.toLowerCase() === this.#translationTagName
+    );
+  }
+
+  #isIgnoredMutation(mutation) {
+    const target = mutation.target;
+    return (
+      this.#ignoredMutationTargets.has(target) ||
+      (mutation.type === "characterData" &&
+        this.#ignoredMutationTargets.has(target.parentNode)) ||
+      this.#skipMoNodes.has(target) ||
+      this.#plainTextPreprocessingNodes.has(target) ||
+      this.#isKissIgnoredNode(
+        target.nodeType === Node.TEXT_NODE ? target.parentElement : target
+      )
+    );
   }
 
   #withIgnoredMutations(targets, callback) {
@@ -2401,15 +2482,17 @@ export class Translator {
   }
 
   // “脏容器”队列
-  #queueForRescan(target) {
-    this.#rescanQueue.add(target);
+  #queueForRescan(target, preserveTranslations = false) {
+    if (!this.#rescanQueue.has(target) || !preserveTranslations) {
+      this.#rescanQueue.set(target, preserveTranslations);
+    }
     if (!this.#isQueueProcessing) {
       this.#isQueueProcessing = true;
       // 开关翻译不取消 DOM 扫描；仅重建扫描状态时废弃旧队列。
       const queue = this.#rescanQueue;
       scheduleIdle(() => {
         if (queue !== this.#rescanQueue || this.#editorPaused) return;
-        queue.forEach((t) => this.#rescanContainer(t));
+        queue.forEach((preserve, t) => this.#rescanContainer(t, preserve));
         queue.clear();
         this.#isQueueProcessing = false;
       }, 100);
@@ -2417,15 +2500,18 @@ export class Translator {
   }
 
   // 处理“脏容器”
-  #rescanContainer(changedNode) {
+  #rescanContainer(changedNode, preserveTranslations = false) {
     // DOM 发生变化，按住翻译的区域单元缓存不再可靠，全部失效
     this.#holdUnitsCache = new WeakMap();
 
     const container = this.#findChangeContainer(changedNode);
     if (!container) return;
 
-    this.#processedNodes.delete(container); // 删除处理状态，允许重新翻译
-    this.#cleanupAllTranslations(container);
+    if (!preserveTranslations) {
+      this.#processedNodes.delete(container); // 删除处理状态，允许重新翻译
+      this.#cleanupAllTranslations(container);
+    }
+    // Even a reorder scans for previously undiscovered translation targets.
     this.#scanNode(container);
   }
 
@@ -2655,6 +2741,7 @@ export class Translator {
       if (
         (options.valid && !options.valid()) ||
         runId !== this.#runId ||
+        this.#processedNodes.get(node) !== appliedRule ||
         this.#editorPaused ||
         (generation !== undefined && generation !== this.#holdGeneration)
       ) {
@@ -2760,7 +2847,10 @@ export class Translator {
     });
 
     if (newNodes.length > 0) {
-      textNode.replaceWith(...newNodes);
+      // Marking new nodes alone does not suppress removal of the old source.
+      this.#withIgnoredMutations([textNode.parentNode], () =>
+        textNode.replaceWith(...newNodes)
+      );
     }
   }
 
@@ -2873,8 +2963,11 @@ export class Translator {
     highlights.forEach((highlight) => {
       const textNode = document.createTextNode(highlight.textContent || "");
       this.#skipMoNodes.add(textNode);
-      highlight.replaceWith(textNode);
-      this.#mergeFavoriteHighlightText(textNode);
+      // Merging can remove an adjacent source node that was never highlighted.
+      this.#withIgnoredMutations([highlight.parentNode], () => {
+        highlight.replaceWith(textNode);
+        this.#mergeFavoriteHighlightText(textNode);
+      });
     });
   }
 
@@ -2941,7 +3034,10 @@ export class Translator {
         return newNode;
       });
 
-      node.replaceWith(...newNodes);
+      // Sentence splitting changes DOM structure without changing the source.
+      this.#withIgnoredMutations([parentNode], () =>
+        node.replaceWith(...newNodes)
+      );
     });
 
     const sentenceEndRegexForTest = /(?:[。！？?!]+|(?<!\d)\.)\s*$/;
@@ -2969,7 +3065,7 @@ export class Translator {
         br.className = Translator.KISS_CLASS.br;
         this.#skipMoNodes.add(br);
 
-        node.after(br);
+        this.#withIgnoredMutations([parentNode], () => node.after(br));
       }
     });
   }
@@ -4330,7 +4426,12 @@ overflow-wrap: anywhere !important;`;
     });
 
     this.#withViewportAnchor(() => {
-      wrappers.forEach((el) => this.#removeTranslationElement(el));
+      // Cleanup normalizes adjacent source text; that is our own write, not a
+      // second page edit requiring another translation request.
+      this.#withIgnoredMutations(
+        wrappers.map((wrapper) => wrapper.parentNode),
+        () => wrappers.forEach((el) => this.#removeTranslationElement(el))
+      );
     }, excludedAnchors);
   }
 
@@ -4460,6 +4561,8 @@ overflow-wrap: anywhere !important;`;
       child.classList?.contains(Translator.KISS_CLASS.warpper)
     );
     if (!wrappers.length) return false;
+    // Rediscovery must retain the processing token used by pending DOM writes.
+    if (this.#processedNodes.has(hostNode)) return true;
 
     wrappers.forEach((wrapper) => {
       if (touchTranslationOwners.has(wrapper))
@@ -4757,7 +4860,7 @@ overflow-wrap: anywhere !important;`;
   // 停止监听，重置参数
   #resetOptions() {
     this.#cancelTranslationUpdates();
-    this.#rescanQueue = new Set();
+    this.#rescanQueue = new Map();
     this.#isQueueProcessing = false;
     // 停止/重扫会清理实例状态，语言检测中的按住任务必须立即过期
     this.#holdGeneration += 1;
