@@ -13,7 +13,6 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import Divider from "@mui/material/Divider";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";
@@ -397,7 +396,6 @@ export function ContentFabContent({
                 <ListItemText>{label}</ListItemText>
               </MenuItem>
             ))}
-            <Divider />
             <MenuItem
               className="kt-content-fab-menu__item"
               role="menuitemcheckbox"
