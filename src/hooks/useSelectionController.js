@@ -272,17 +272,17 @@ export default function useSelectionController({
     };
     const handlePointerDown = (event) => {
       invalidatePendingSelection();
+      // Keep the dismissed range across later presses while the panel is hidden.
+      // Only a selection change should allow that range to trigger again.
+      if (!showBox || isTranboxEvent(event) || isTranButtonEvent(event)) return;
       const selection = window.getSelection();
-      selectionAtPressRef.current =
-        showBox && !isTranboxEvent(event) && !isTranButtonEvent(event)
-          ? {
-              text: selection?.toString()?.trim(),
-              anchorNode: selection?.anchorNode,
-              anchorOffset: selection?.anchorOffset,
-              focusNode: selection?.focusNode,
-              focusOffset: selection?.focusOffset,
-            }
-          : null;
+      selectionAtPressRef.current = {
+        text: selection?.toString()?.trim(),
+        anchorNode: selection?.anchorNode,
+        anchorOffset: selection?.anchorOffset,
+        focusNode: selection?.focusNode,
+        focusOffset: selection?.focusOffset,
+      };
     };
     const handleVisibilityChange = () => {
       if (document.hidden) invalidatePendingSelection();
@@ -292,11 +292,13 @@ export default function useSelectionController({
       if (!previous || previous.changed) return;
       const selection = window.getSelection();
       if (
+        previous.text !== selection?.toString()?.trim() ||
         ["anchorNode", "anchorOffset", "focusNode", "focusOffset"].some(
           (key) => previous[key] !== selection?.[key]
         )
       ) {
         previous.changed = true;
+        selectionAtPressRef.current = null;
       }
     };
     window.addEventListener("pointerdown", handlePointerDown, true);

@@ -171,24 +171,48 @@ describe.each(["document", "shadow"])(
       expect(document.activeElement).toBe(outside);
     });
 
-    test("hides on an intercepted outside press even with a retained selection", async () => {
-      render();
-      const range = document.createRange();
-      range.selectNodeContents(source);
-      window.getSelection().addRange(range);
-      blank.addEventListener("pointerdown", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-      });
-      pointer(blank);
-      expect(panel()).toBeNull();
-      act(() =>
-        blank.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }))
-      );
-      await flush(200);
-      expect(panel()).toBeNull();
-      expect(state.showBtn).toBe(false);
-    });
+    test.each([false, true])(
+      "repeated outside presses with a retained selection keep the panel hidden (minimal: %s)",
+      async (simpleStyle) => {
+        render({ simpleStyle });
+        const range = document.createRange();
+        range.selectNodeContents(source);
+        window.getSelection().addRange(range);
+        blank.addEventListener("mousedown", (event) => event.preventDefault());
+        blank.addEventListener("pointerdown", (event) =>
+          event.stopPropagation()
+        );
+        const finishOutsideClick = () => {
+          blank.dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, cancelable: true })
+          );
+          blank.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+          blank.click();
+        };
+
+        for (let press = 0; press < 3; press += 1) {
+          pointer(blank);
+          expect(panel()).toBeNull();
+          act(finishOutsideClick);
+          await flush(200);
+          expect(panel()).toBeNull();
+          expect(state.showBtn).toBe(false);
+        }
+
+        // Clearing the dismissed range allows the same text to be selected again.
+        window.getSelection().removeAllRanges();
+        act(() => document.dispatchEvent(new Event("selectionchange")));
+        pointer(source);
+        window.getSelection().addRange(range);
+        act(() => {
+          document.dispatchEvent(new Event("selectionchange"));
+          source.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+        });
+        await flush(200);
+        expect(panel()).not.toBeNull();
+        expect(state.text).toBe("Selected source");
+      }
+    );
 
     test("internal pointer blur restores panel focus after source submission", async () => {
       render();
