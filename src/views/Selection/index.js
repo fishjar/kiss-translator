@@ -30,7 +30,7 @@ export default function Selection({
   extStyles,
 }) {
   const i18n = newI18n(uiLang || "zh");
-  // 1. Manage the panel's size, position, simple mode, and click-away behavior.
+  // 1. Manage the panel's size, position, simple mode, and hide-on-blur setting.
   const {
     boxSize,
     setBoxSize,
@@ -65,7 +65,6 @@ export default function Selection({
     boxOffsetY,
     boxSize,
     setBoxPosition,
-    hideClickAway,
   });
 
   // 3. Register global panel shortcuts, including Escape to close.

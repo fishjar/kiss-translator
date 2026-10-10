@@ -144,7 +144,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   boxOffsetX: 0, // 翻译结果框的横向偏移像素
   boxOffsetY: 10, // 翻译结果框的纵向偏移像素
   hideTranBtn: false, // 是否隐藏翻译悬浮球（即直接展示框或通过快捷键开启）
-  hideClickAway: false, // 鼠标点击页面空白处时，是否关闭翻译框
+  hideClickAway: false, // Hide the panel when focus leaves it (false pins it).
   simpleStyle: false, // 是否启用极简无边框设计风格
   followSelection: false, // 翻译结果框位置是否贴紧选中文本中心
   autoHeight: false, // 翻译结果框高度是否自适应其文本内容长度
