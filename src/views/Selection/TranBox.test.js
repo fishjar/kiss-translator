@@ -99,7 +99,7 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
   const openMenu = () => act(() => actions()[1].click());
   const activeElement = () => container.getRootNode().activeElement;
 
-  test("keeps the lock, overflow and close actions always reachable", () => {
+  test("keeps the pin, overflow and close actions always reachable", () => {
     render();
 
     expect(header()).not.toBeNull();
@@ -290,7 +290,7 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
     expect(mockToggleDarkMode).toHaveBeenCalled();
   });
 
-  test("the lock and close actions keep working from the action cluster", () => {
+  test("the pin and close actions keep working from the action cluster", () => {
     render();
 
     act(() => actions()[0].click());
@@ -300,7 +300,7 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
     expect(handlers.setShowBox).toHaveBeenCalledWith(false);
   });
 
-  test.each(["lock", "content"])(
+  test.each(["pin", "content"])(
     "clicking the real panel %s closes the menu and stays isolated from the page",
     (target) => {
       render();
@@ -311,7 +311,7 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
       try {
         act(() => {
           const element =
-            target === "lock"
+            target === "pin"
               ? actions()[0]
               : container.querySelector(".kt-tranbox-content");
           element.click();
@@ -319,7 +319,7 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
 
         expect(menu()).toBeNull();
         expect(onPageClick).not.toHaveBeenCalled();
-        if (target === "lock") {
+        if (target === "pin") {
           expect(handlers.setHideClickAway).toHaveBeenCalled();
         }
       } finally {
@@ -342,11 +342,20 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
 
   test("toggle state is exposed to assistive tech", () => {
     render({ hideClickAway: true, simpleStyle: true, followSelection: true });
-    expect(actions()[0].getAttribute("aria-pressed")).toBe("true");
+    expect(actions()[0].getAttribute("aria-pressed")).toBe("false");
+    expect(
+      actions()[0].querySelector('[data-testid="PushPinOutlinedIcon"]')
+    ).not.toBeNull();
 
     openMenu();
     expect(menuItems()[1].getAttribute("aria-checked")).toBe("true");
     expect(menuItems()[2].getAttribute("aria-checked")).toBe("true");
+
+    render({ hideClickAway: false });
+    expect(actions()[0].getAttribute("aria-pressed")).toBe("true");
+    expect(
+      actions()[0].querySelector('[data-testid="PushPinIcon"]')
+    ).not.toBeNull();
   });
 
   test("clicking outside closes the overflow menu", () => {

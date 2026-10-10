@@ -82,7 +82,7 @@ export default function useTranBoxState(tranboxSetting) {
 
   // 极简样式状态
   const [simpleStyle, setSimpleStyle] = useState(initSimpleStyle);
-  // 点击空白处是否收起状态
+  // Preserve the existing setting key: false pins the panel, true hides on blur.
   const [hideClickAway, setHideClickAway] = useState(initHideClickAway);
   // 是否跟随文字选区定位状态
   const [followSelection, setFollowSelection] = useState(initFollowMouse);
