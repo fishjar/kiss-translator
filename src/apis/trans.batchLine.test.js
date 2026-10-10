@@ -889,4 +889,212 @@ describe("Batch Translation Protocols & Custom Batch User Prompt", () => {
       ]);
     });
   });
+
+  describe("handleTranslate - HTML text format keeps rich-text tags", () => {
+    test("returns JSON html translations unchanged, including tags and entities", async () => {
+      fetchData.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: `{"translations":[{"id":0,"text":"使用 &amp;lt; 来显示 <i1>标签</i1> &lt;","sourceLanguage":"en"}]}`,
+            },
+          },
+        ],
+      });
+
+      const apiSetting = getTestApiSetting({
+        systemPrompt: "",
+        batchUserPrompt: defaultBatchUserPromptJson,
+        batchProtocol: PROMPT_PROTOCOL_JSON,
+        useStream: false,
+      });
+
+      const results = [];
+      for await (const chunk of handleTranslate(["Show < with a tag"], {
+        from: "en",
+        to: "zh-CN",
+        apiSetting,
+        textFormat: "html",
+      })) {
+        results.push(chunk);
+      }
+
+      expect(results).toEqual([
+        {
+          id: 0,
+          result: ["使用 &amp;lt; 来显示 <i1>标签</i1> &lt;", "en"],
+        },
+      ]);
+    });
+
+    test("keeps LINE html placeholders and still rewrites <br> to newlines", async () => {
+      fetchData.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: "0 | 你好 <i1>世界</i1><br>下一行",
+            },
+          },
+        ],
+      });
+
+      const apiSetting = getTestApiSetting({
+        systemPrompt: "",
+        batchUserPrompt: defaultBatchUserPromptLines,
+        batchProtocol: PROMPT_PROTOCOL_LINE,
+        useStream: false,
+      });
+
+      const results = [];
+      for await (const chunk of handleTranslate(["Hello world"], {
+        from: "en",
+        to: "zh-CN",
+        apiSetting,
+        textFormat: "html",
+      })) {
+        results.push(chunk);
+      }
+
+      expect(results).toEqual([
+        { id: 0, result: ["你好 <i1>世界</i1>\n下一行", ""] },
+      ]);
+    });
+
+    test("keeps inner tags and entities in XML html translations", async () => {
+      fetchData.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: `<root><t id="0" sourceLanguage="en">你好 <b>React</b> &amp;lt;</t></root>`,
+            },
+          },
+        ],
+      });
+
+      const apiSetting = getTestApiSetting({
+        systemPrompt: "",
+        batchUserPrompt: defaultBatchUserPromptXml,
+        batchProtocol: PROMPT_PROTOCOL_XML,
+        useStream: false,
+      });
+
+      const results = [];
+      for await (const chunk of handleTranslate(["Hello React"], {
+        from: "en",
+        to: "zh-CN",
+        apiSetting,
+        textFormat: "html",
+      })) {
+        results.push(chunk);
+      }
+
+      expect(results).toEqual([
+        { id: 0, result: ["你好 <b>React</b> &amp;lt;", "en"] },
+      ]);
+    });
+
+    test("decodes plain-text JSON entities and strips tags when textFormat is text", async () => {
+      fetchData.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: `{"translations":[{"id":0,"text":"Tom &amp; Jerry","sourceLanguage":"en"},{"id":1,"text":"A <b>B</b>","sourceLanguage":"en"}]}`,
+            },
+          },
+        ],
+      });
+
+      const apiSetting = getTestApiSetting({
+        systemPrompt: "",
+        batchUserPrompt: defaultBatchUserPromptJson,
+        batchProtocol: PROMPT_PROTOCOL_JSON,
+        useStream: false,
+      });
+
+      const results = [];
+      for await (const chunk of handleTranslate(["Tom & Jerry", "A B"], {
+        from: "en",
+        to: "zh-CN",
+        apiSetting,
+        textFormat: "text",
+      })) {
+        results.push(chunk);
+      }
+
+      expect(results).toEqual([
+        { id: 0, result: ["Tom & Jerry", "en"] },
+        { id: 1, result: ["A B", "en"] },
+      ]);
+    });
+
+    test("decodes plain-text JSON entities and strips tags when textFormat is omitted", async () => {
+      fetchData.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: `{"translations":[{"id":0,"text":"Tom &amp; Jerry","sourceLanguage":"en"},{"id":1,"text":"A <b>B</b>","sourceLanguage":"en"}]}`,
+            },
+          },
+        ],
+      });
+
+      const apiSetting = getTestApiSetting({
+        systemPrompt: "",
+        batchUserPrompt: defaultBatchUserPromptJson,
+        batchProtocol: PROMPT_PROTOCOL_JSON,
+        useStream: false,
+      });
+
+      const results = [];
+      for await (const chunk of handleTranslate(["Tom & Jerry", "A B"], {
+        from: "en",
+        to: "zh-CN",
+        apiSetting,
+      })) {
+        results.push(chunk);
+      }
+
+      expect(results).toEqual([
+        { id: 0, result: ["Tom & Jerry", "en"] },
+        { id: 1, result: ["A B", "en"] },
+      ]);
+    });
+
+    test("gap-fills an incomplete LINE html stream chunk and keeps placeholders", async () => {
+      const streamChunks = async function* () {
+        yield JSON.stringify({
+          choices: [{ delta: { content: "0 | 你好 <i1>世界</i1>" } }],
+        });
+      };
+      fetchStream.mockReturnValueOnce(streamChunks());
+
+      const apiSetting = getTestApiSetting({
+        systemPrompt: "",
+        batchUserPrompt: defaultBatchUserPromptLines,
+        batchProtocol: PROMPT_PROTOCOL_LINE,
+        useStream: true,
+      });
+
+      const results = [];
+      for await (const chunk of handleTranslate(["Hello"], {
+        from: "en",
+        to: "zh-CN",
+        apiSetting,
+        textFormat: "html",
+      })) {
+        results.push(chunk);
+      }
+
+      expect(fetchStream).toHaveBeenCalledTimes(1);
+      expect(fetchData).not.toHaveBeenCalled();
+      expect(results.filter((item) => item.result)).toEqual([
+        { id: 0, result: ["你好 <i1>世界</i1>", ""] },
+      ]);
+    });
+  });
 });
