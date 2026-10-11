@@ -708,6 +708,210 @@ describe("Translator rule styles", () => {
     });
   });
 
+  describe("layout control mutations", () => {
+    const wrapperSelector = `.${Translator.KISS_CLASS.warpper}`;
+
+    beforeEach(() => {
+      const style = document.createElement("style");
+      style.textContent = "span, button, kiss-translator { display: inline; }";
+      document.head.appendChild(style);
+    });
+
+    test.each([
+      {},
+      { wrapOriginal: "true" },
+      { transOnly: "true" },
+      { wrapOriginal: "true", transOnly: "true" },
+    ])(
+      "keeps independent paragraphs when an inline layout control toggles (%j)",
+      async (rule) => {
+        document.body.innerHTML =
+          '<main id="root"><div id="spoiler"><div><p>Unchanged comment paragraph.</p></div></div></main>';
+        createTranslator(rule);
+        await flushMutations();
+        const spoiler = document.getElementById("spoiler");
+        const paragraph = spoiler.querySelector("p");
+        const wrapper = paragraph.querySelector(wrapperSelector);
+        expect(wrapper).not.toBeNull();
+        apiTranslate.mockClear();
+
+        for (let i = 0; i < 3; i++) {
+          const control = document.createElement("button");
+          control.textContent = "Show More";
+          spoiler.appendChild(control);
+          await flushMutations();
+          expect(paragraph.querySelector(wrapperSelector)).toBe(wrapper);
+          control.remove();
+          await flushMutations();
+          expect(paragraph.querySelector(wrapperSelector)).toBe(wrapper);
+        }
+
+        expect(apiTranslate).not.toHaveBeenCalled();
+      }
+    );
+
+    test("retains a pending paragraph response when its sibling control is removed", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="spoiler"><div><p>Pending comment paragraph.</p></div><button>Show More</button></div></main>';
+      let finish;
+      apiTranslate.mockImplementation(({ text }) =>
+        text === "Pending comment paragraph."
+          ? new Promise((resolve) => (finish = resolve))
+          : Promise.resolve({ trText: "Control translation", isSame: false })
+      );
+      createTranslator({ transOnly: "true" });
+      await flushMutations();
+      const spoiler = document.getElementById("spoiler");
+      const paragraph = spoiler.querySelector("p");
+      const wrapper = paragraph.querySelector(wrapperSelector);
+      apiTranslate.mockClear();
+      spoiler.querySelector("button").remove();
+      await flushMutations();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(paragraph.querySelector(wrapperSelector)).toBe(wrapper);
+      finish({ trText: "Completed comment translation", isSame: false });
+      await flushMutations();
+      expect(wrapper.textContent).toContain("Completed comment translation");
+    });
+
+    test("translates new inline content without clearing an independent paragraph", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="container"><p>Unchanged child paragraph.</p></div></main>';
+      createTranslator();
+      await flushMutations();
+      const container = document.getElementById("container");
+      const childWrapper = container
+        .querySelector("p")
+        .querySelector(wrapperSelector);
+      apiTranslate.mockClear();
+      container.insertAdjacentHTML(
+        "beforeend",
+        "<span>New inline content.</span>"
+      );
+      await flushMutations();
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "New inline content.",
+      ]);
+      expect(container.querySelector("p").querySelector(wrapperSelector)).toBe(
+        childWrapper
+      );
+    });
+
+    test("updates changed parent text without clearing independent child translations", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="container">Original parent text.<p>Unchanged child paragraph.</p></div></main>';
+      createTranslator();
+      await flushMutations();
+      const container = document.getElementById("container");
+      const childWrapper = container
+        .querySelector("p")
+        .querySelector(wrapperSelector);
+      const parentWrapper = container.querySelector(
+        `:scope > ${wrapperSelector}`
+      );
+      apiTranslate.mockClear();
+      container.firstChild.nodeValue = "Updated parent text.";
+      await flushMutations();
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Updated parent text.",
+      ]);
+      expect(parentWrapper.isConnected).toBe(false);
+      expect(container.querySelector("p").querySelector(wrapperSelector)).toBe(
+        childWrapper
+      );
+    });
+
+    test("still updates a genuine inline source removal beside an independent paragraph", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="container">Keep this phrase. <span id="removed">Remove this phrase.</span><p>Unchanged child paragraph.</p></div></main>';
+      createTranslator();
+      await flushMutations();
+      const container = document.getElementById("container");
+      const childWrapper = container
+        .querySelector("p")
+        .querySelector(wrapperSelector);
+      apiTranslate.mockClear();
+      document.getElementById("removed").remove();
+      await flushMutations();
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Keep this phrase.",
+      ]);
+      expect(container.querySelector("p").querySelector(wrapperSelector)).toBe(
+        childWrapper
+      );
+    });
+
+    test("keeps split lines and favorite highlights in an unchanged child paragraph", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="container">Original parent text.<p>Hello friends. Another sentence.</p></div></main>';
+      createTranslator(
+        {
+          splitParagraph: "split_punctuation",
+          highlightWords: OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+        },
+        {},
+        ["Hello"]
+      );
+      await flushMutations();
+      const container = document.getElementById("container");
+      const paragraph = container.querySelector("p");
+      const wrappers = [...paragraph.querySelectorAll(wrapperSelector)];
+      const breaks = [...paragraph.querySelectorAll(".kiss-translator-br")];
+      const highlight = paragraph.querySelector(".kiss-translator-highlight");
+      expect(breaks.length).toBeGreaterThan(0);
+      expect(highlight).not.toBeNull();
+      apiTranslate.mockClear();
+      container.firstChild.nodeValue = "Updated parent text.";
+      await flushMutations();
+      expect([...paragraph.querySelectorAll(wrapperSelector)]).toEqual(
+        wrappers
+      );
+      expect([...paragraph.querySelectorAll(".kiss-translator-br")]).toEqual(
+        breaks
+      );
+      expect(paragraph.querySelector(".kiss-translator-highlight")).toBe(
+        highlight
+      );
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Updated parent text.",
+      ]);
+    });
+
+    test("cleans cloned translations when text and elements are inserted together", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="container"><p>Existing paragraph.</p></div></main>';
+      createTranslator();
+      await flushMutations();
+      const container = document.getElementById("container");
+      const paragraph = container.querySelector("p");
+      const old = paragraph.querySelector(wrapperSelector);
+      const clone = paragraph.cloneNode(true);
+      apiTranslate.mockClear();
+      container.append("New parent text.", clone);
+      await flushMutations();
+      expect(paragraph.querySelector(wrapperSelector)).toBe(old);
+      expect(clone.querySelectorAll(wrapperSelector)).toHaveLength(1);
+      expect(apiTranslate.mock.calls.map(([args]) => args.text).sort()).toEqual(
+        ["Existing paragraph.", "New parent text."]
+      );
+    });
+  });
+
+  test("continues detecting real text edits after source cleanup merges adjacent nodes", async () => {
+    document.body.innerHTML = '<main id="root"><p id="target"></p></main>';
+    const paragraph = document.getElementById("target");
+    paragraph.append("Keep ", "this text.");
+    createTranslator();
+    await flushMutations();
+    for (const text of ["First edit.", "Second edit."]) {
+      apiTranslate.mockClear();
+      paragraph.firstChild.nodeValue = text;
+      await flushMutations();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).toContain(text);
+    }
+  });
+
   describe("self-authored text mutations", () => {
     const wrapperSelector = `.${Translator.KISS_CLASS.warpper}`;
 

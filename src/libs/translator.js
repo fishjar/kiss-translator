@@ -530,7 +530,7 @@ export class Translator {
   #mo; // MutationObserver
   #dmm; // DebounceMouseMover
 
-  // A discovery-only scan must not override an already queued content update.
+  // Discovery and host-only updates must not override a queued subtree update.
   #rescanQueue = new Map();
   #isQueueProcessing = false; // 队列处理状态标志
 
@@ -1417,7 +1417,7 @@ export class Translator {
             mutation.oldValue !== mutation.target.nodeValue &&
             !this.#combinedSkipsRegex.test(mutation.target.nodeValue)
           ) {
-            this.#queueForRescan(mutation.target.parentElement);
+            this.#queueForRescan(mutation.target.parentElement, false, true);
           }
         } else if (mutation.type === "childList") {
           let nodes = new Set();
@@ -1443,7 +1443,7 @@ export class Translator {
               );
             })
           ) {
-            this.#queueForRescan(mutation.target);
+            this.#queueForRescan(mutation.target, false, true);
           }
           mutation.addedNodes.forEach((node) => {
             if (this.#isTranslationInsertion(node)) return;
@@ -1455,28 +1455,27 @@ export class Translator {
             }
           });
           if (hasText) {
-            this.#queueForRescan(mutation.target);
-          } else {
-            nodes.forEach((node) => {
-              const parents = removedParents.get(node);
-              // Same identity and same parent prove a reorder, not a clone or
-              // an insertion from outside the observed tree. Inline reorders,
-              // cross-parent moves and source edits still need invalidation.
-              const preserveTranslations =
-                parents?.size === 1 &&
-                parents.has(mutation.target) &&
-                !insertedBeforeRemoval.has(node) &&
-                node.parentNode === mutation.target &&
-                node.isConnected &&
-                this.#rule.autoScan === "true" &&
-                this.#isBlockNode(node) &&
-                this.#shouldBreak(node) &&
-                !Array.from(changedTargets).some((target) =>
-                  node.contains(target)
-                );
-              this.#queueForRescan(node, preserveTranslations);
-            });
+            this.#queueForRescan(mutation.target, false, true);
           }
+          nodes.forEach((node) => {
+            const parents = removedParents.get(node);
+            // Same identity and same parent prove a reorder, not a clone or
+            // an insertion from outside the observed tree. Inline reorders,
+            // cross-parent moves and source edits still need invalidation.
+            const preserveTranslations =
+              parents?.size === 1 &&
+              parents.has(mutation.target) &&
+              !insertedBeforeRemoval.has(node) &&
+              node.parentNode === mutation.target &&
+              node.isConnected &&
+              this.#rule.autoScan === "true" &&
+              this.#isBlockNode(node) &&
+              this.#shouldBreak(node) &&
+              !Array.from(changedTargets).some((target) =>
+                node.contains(target)
+              );
+            this.#queueForRescan(node, preserveTranslations);
+          });
         }
       }
     });
@@ -2482,9 +2481,21 @@ export class Translator {
   }
 
   // “脏容器”队列
-  #queueForRescan(target, preserveTranslations = false) {
-    if (!this.#rescanQueue.has(target) || !preserveTranslations) {
-      this.#rescanQueue.set(target, preserveTranslations);
+  #queueForRescan(
+    target,
+    preserveTranslations = false,
+    preserveDescendants = false
+  ) {
+    const queued = this.#rescanQueue.get(target);
+    if (
+      !queued ||
+      (!preserveTranslations &&
+        (queued.preserveTranslations || !preserveDescendants))
+    ) {
+      this.#rescanQueue.set(target, {
+        preserveTranslations,
+        preserveDescendants,
+      });
     }
     if (!this.#isQueueProcessing) {
       this.#isQueueProcessing = true;
@@ -2492,7 +2503,9 @@ export class Translator {
       const queue = this.#rescanQueue;
       scheduleIdle(() => {
         if (queue !== this.#rescanQueue || this.#editorPaused) return;
-        queue.forEach((preserve, t) => this.#rescanContainer(t, preserve));
+        queue.forEach(({ preserveTranslations, preserveDescendants }, t) =>
+          this.#rescanContainer(t, preserveTranslations, preserveDescendants)
+        );
         queue.clear();
         this.#isQueueProcessing = false;
       }, 100);
@@ -2500,7 +2513,11 @@ export class Translator {
   }
 
   // 处理“脏容器”
-  #rescanContainer(changedNode, preserveTranslations = false) {
+  #rescanContainer(
+    changedNode,
+    preserveTranslations = false,
+    preserveDescendants = false
+  ) {
     // DOM 发生变化，按住翻译的区域单元缓存不再可靠，全部失效
     this.#holdUnitsCache = new WeakMap();
 
@@ -2509,7 +2526,21 @@ export class Translator {
 
     if (!preserveTranslations) {
       this.#processedNodes.delete(container); // 删除处理状态，允许重新翻译
-      this.#cleanupAllTranslations(container);
+      if (this.#rule.autoScan !== "true") {
+        this.#cleanupAllTranslations(container);
+      } else if (preserveDescendants) {
+        // A host's inline source/control edit does not change independent
+        // descendant paragraphs. Clearing them can feed layout observer loops.
+        this.#cleanupDirectTranslations(container);
+      } else {
+        // Inserted or moved subtrees may contain stale/duplicated wrappers.
+        // If an inline insertion resolves to an ancestor host, only that host's
+        // own source changed; its other descendants keep their translations.
+        this.#cleanupAllTranslations(changedNode);
+        if (container !== changedNode) {
+          this.#cleanupDirectTranslations(container);
+        }
+      }
     }
     // Even a reorder scans for previously undiscovered translation targets.
     this.#scanNode(container);
@@ -3070,31 +3101,40 @@ export class Translator {
     });
   }
 
-  // 清除高亮
-  #removeHighlights(parentNode) {
+  #cleanupSourceArtifacts(parentNode) {
     if (!parentNode) return;
-
-    const highlightedElements = parentNode.querySelectorAll(
-      `.${Translator.KISS_CLASS.highlight}`
-    );
-
-    highlightedElements.forEach((element) => {
-      const textNode = document.createTextNode(element.textContent);
-      element.replaceWith(textNode);
-    });
-
-    parentNode.normalize();
-  }
-
-  // 移除br
-  #removeBrTags(parentNode) {
-    if (!parentNode) return;
-
-    parentNode
-      .querySelectorAll(`.${Translator.KISS_CLASS.br}`)
-      .forEach((br) => br.remove());
-
-    parentNode.normalize();
+    const stack = [parentNode];
+    while (stack.length) {
+      const current = stack.pop();
+      this.#withIgnoredMutations([current], () => {
+        for (const child of Array.from(current.children)) {
+          if (
+            this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS &&
+            child.classList.contains(Translator.KISS_CLASS.highlight)
+          ) {
+            child.replaceWith(document.createTextNode(child.textContent));
+          } else if (child.classList.contains(Translator.KISS_CLASS.br)) {
+            child.remove();
+          } else if (!this.#shouldBreak(child)) {
+            stack.push(child);
+          }
+        }
+        // normalize() also descends into independent paragraphs and can change
+        // their saved source nodes. Merge only this unit's inline source.
+        for (const child of Array.from(current.childNodes)) {
+          if (
+            child.nodeType === Node.TEXT_NODE &&
+            child.parentNode === current
+          ) {
+            while (child.nextSibling?.nodeType === Node.TEXT_NODE) {
+              const next = child.nextSibling;
+              child.nodeValue += next.nodeValue;
+              next.remove();
+            }
+          }
+        }
+      });
+    }
   }
 
   // 判断是否需要换行
@@ -4615,11 +4655,7 @@ overflow-wrap: anywhere !important;`;
     touchTranslationOwners.delete(el);
     el.remove();
 
-    // todo: 可能不应深度清除
-    if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
-      this.#removeHighlights(parentElement);
-    }
-    this.#removeBrTags(parentElement);
+    this.#cleanupSourceArtifacts(parentElement);
   }
 
   // 恢复原文
