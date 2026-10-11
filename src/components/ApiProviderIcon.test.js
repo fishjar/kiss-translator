@@ -9,6 +9,7 @@ import {
   OPT_TRANS_OPENAI,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_API_ROUTE,
   OPT_TRANS_SILICONFLOW,
 } from "../config";
 import ApiProviderIcon, {
@@ -86,6 +87,15 @@ describe("getApiIconSrc", () => {
         publicUrl: "/kiss-translator",
       })
     ).toBe("/kiss-translator/api/OrcaRouter.svg");
+  });
+
+  test("resolves the API Route asset through the shared provider map", () => {
+    expect(
+      getApiIconSrc(OPT_TRANS_API_ROUTE, {
+        runtime: undefined,
+        publicUrl: "/kiss-translator",
+      })
+    ).toBe("/kiss-translator/api/APIRoute.png");
   });
 
   test("resolves the Requesty asset through the shared provider map", () => {

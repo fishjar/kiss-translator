@@ -81,6 +81,7 @@ export const OPT_TRANS_OLLAMA = "Ollama"; // 本地部署 Ollama 模型翻译
 export const OPT_TRANS_OPENROUTER = "OpenRouter"; // OpenRouter 多模型聚合 API 翻译
 export const OPT_TRANS_ORCAROUTER = "OrcaRouter"; // OrcaRouter 多模型聚合 API 翻译
 export const OPT_TRANS_REQUESTY = "Requesty"; // Requesty 多模型聚合 API 翻译
+export const OPT_TRANS_API_ROUTE = "API Route"; // API Route 多模型聚合 API 翻译
 export const OPT_TRANS_CUSTOMIZE = "Custom"; // 自定义翻译 API
 
 // 内置支持的翻译引擎
@@ -118,6 +119,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_API_ROUTE,
   OPT_TRANS_CUSTOMIZE,
 ];
 
@@ -163,6 +165,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_REQUESTY,
+    OPT_TRANS_API_ROUTE,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持多 API Key 轮询/备用的引擎
@@ -188,6 +191,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_REQUESTY,
+    OPT_TRANS_API_ROUTE,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
@@ -216,6 +220,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_REQUESTY,
+    OPT_TRANS_API_ROUTE,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
@@ -237,6 +242,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_REQUESTY,
+    OPT_TRANS_API_ROUTE,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
@@ -258,6 +264,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_REQUESTY,
+    OPT_TRANS_API_ROUTE,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
   ]),
@@ -597,6 +604,10 @@ export const THINKING_API_REGISTRY = {
     resolveCapability: ({ model }) => getOpenAIThinkingCapability(model),
   },
   [OPT_TRANS_REQUESTY]: {
+    adapter: "openai",
+    resolveCapability: ({ model }) => getOpenAIThinkingCapability(model),
+  },
+  [OPT_TRANS_API_ROUTE]: {
     adapter: "openai",
     resolveCapability: ({ model }) => getOpenAIThinkingCapability(model),
   },
@@ -1131,6 +1142,7 @@ export const OPT_LANGS_TO_SPEC = {
   [OPT_TRANS_OPENROUTER]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_ORCAROUTER]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_REQUESTY]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_API_ROUTE]: OPT_LANGS_SPEC_NAME,
   [OPT_TRANS_CLOUDFLAREAI]: new Map([
     ...OPT_LANGS_SPEC_DEFAULT,
     ["auto", "en"],
@@ -1754,6 +1766,13 @@ const defaultApiOpts = {
     url: "https://router.requesty.ai/v1/chat/completions",
     modelListUrl: "https://router.requesty.ai/v1/models",
     model: "openai/gpt-4o-mini",
+    ...defaultAiApiOpts,
+  },
+  [OPT_TRANS_API_ROUTE]: {
+    ...defaultApi,
+    url: "https://global.api-route.com/v1/chat/completions",
+    modelListUrl: "https://global.api-route.com/v1/models",
+    model: "deepseek-v4-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CUSTOMIZE]: {
