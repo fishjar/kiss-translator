@@ -475,9 +475,16 @@ const buildSubtitleUserPrompt = ({ formattedEvents }) =>
  * 完美解决大模型在翻译时常混杂的 Markdown、未闭合 JSON、XML、数字列表及无规换行文本的纠错与规避问题。
  * @param {string} raw 大模型返回的原始字符串内容
  * @param {boolean} useBatchFetch 是否为批量翻译模式
+ * @param {string} [batchProtocol=""] 聚合协议；声明后解析失败时禁止按行伪造 id
+ * @param {"text"|"html"} [textFormat="text"] html 保留模型原文中的标签与实体，text 解码 HTML 实体
  * @returns {Array<[string, string]>} 解析后的双元组列表 [译文, 源语言检测结果]
  */
-const parseAIRes = (raw, useBatchFetch = true, batchProtocol = "") => {
+const parseAIRes = (
+  raw,
+  useBatchFetch = true,
+  batchProtocol = "",
+  textFormat = "text"
+) => {
   if (!raw) {
     return [];
   }
@@ -490,11 +497,16 @@ const parseAIRes = (raw, useBatchFetch = true, batchProtocol = "") => {
   // 剥离 Markdown 常用的 ```json...``` 代码块包裹
   let content = stripMarkdownCodeBlock(raw).trim();
 
+  // 页面翻译把行内节点序列化成 <i1> 这类占位标签。decodeHTMLEntities 经
+  // textContent 会剥掉它们，html 路径必须原样交还给还原逻辑；纯文本仍解码实体。
+  const decodeText =
+    textFormat === "html" ? (text) => text : decodeHTMLEntities;
+
   // JSON/XML/LINE 三种聚合格式统一交给共享字符串解析器处理。
   // 这里不再直接使用 DOMParser 解析 XML，避免浏览器 Trusted Types / DOMPurify
   // 清洗自定义标签后导致非流式路径拿不到 <t> 译文。
   const structuredSegments = parseCompleteTranslationSegments(content, {
-    decodeText: decodeHTMLEntities,
+    decodeText,
   });
   if (structuredSegments.length > 0) {
     return structuredSegments;
@@ -512,7 +524,7 @@ const parseAIRes = (raw, useBatchFetch = true, batchProtocol = "") => {
 
   // 兜底策略：仅对未声明协议的旧配置/自定义提示词，保留纯文本按行切割解析（按行号注入 id）
   return content.split("\n").map((line, i) => {
-    const text = decodeHTMLEntities(line.replace(/<br\s*\/?>/gi, "\n").trim());
+    const text = decodeText(line.replace(/<br\s*\/?>/gi, "\n").trim());
     return { id: i, translation: [text, ""] };
   });
 };
@@ -2028,7 +2040,12 @@ export const parseTransRes = async (
         // 成对写入与轮次截断守卫统一内聚在 addPair：空正文/非 assistant role 整对不写
         history.addPair(userMsg, modelMsg);
       }
-      return parseAIRes(modelMsg?.content, useBatchFetch, batchProtocol);
+      return parseAIRes(
+        modelMsg?.content,
+        useBatchFetch,
+        batchProtocol,
+        textFormat
+      );
     case OPT_TRANS_GEMINI:
       // Gemini Interactions steps may include thought items.
       // Their context replay semantics are outside this history-correctness fix.
@@ -2042,7 +2059,12 @@ export const parseTransRes = async (
           history.add(userMsg, modelMsg);
         }
       }
-      return parseAIRes(geminiResponseText(res), useBatchFetch, batchProtocol);
+      return parseAIRes(
+        geminiResponseText(res),
+        useBatchFetch,
+        batchProtocol,
+        textFormat
+      );
     case OPT_TRANS_CLAUDE: {
       // 历史上下文取值必须做形态归一化，原因有三：
       // 1. 形态防御：响应 content 存在多种形态 —— Anthropic 标准的块数组
@@ -2076,7 +2098,8 @@ export const parseTransRes = async (
       return parseAIRes(
         res?.content?.[0]?.text ?? "",
         useBatchFetch,
-        batchProtocol
+        batchProtocol,
+        textFormat
       );
     }
     case OPT_TRANS_CLOUDFLAREAI:
@@ -2094,7 +2117,12 @@ export const parseTransRes = async (
       if (history && userMsg) {
         history.addPair(userMsg, modelMsg);
       }
-      return parseAIRes(modelMsg?.content, useBatchFetch, batchProtocol);
+      return parseAIRes(
+        modelMsg?.content,
+        useBatchFetch,
+        batchProtocol,
+        textFormat
+      );
     case OPT_TRANS_CUSTOMIZE:
       if (useBatchFetch) {
         return (res?.translations ?? res)?.map((item) => [item.text, item.src]);
@@ -2446,6 +2474,7 @@ export async function* handleTranslate(
           httpTimeout,
           signal,
           streamRenderMode: apiSetting.streamRenderMode || "disabled",
+          textFormat,
         }
       )) {
         if (chunk?.result && chunk.id !== undefined) {
@@ -2498,6 +2527,7 @@ async function* handleTranslateStreamInternal(
     httpTimeout,
     signal,
     streamRenderMode,
+    textFormat = "text",
   }
 ) {
   const results = new Array(texts.length).fill(null);
@@ -2593,7 +2623,12 @@ async function* handleTranslateStreamInternal(
   const hasEmpty = results.some((r) => !r);
   const newlyYieldable = [];
   if (hasEmpty) {
-    const parsed = parseAIRes(fullContent, useBatchFetch, batchProtocol);
+    const parsed = parseAIRes(
+      fullContent,
+      useBatchFetch,
+      batchProtocol,
+      textFormat
+    );
     for (let i = 0; i < parsed.length; i++) {
       const item = parsed[i];
       let id;
