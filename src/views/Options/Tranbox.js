@@ -411,7 +411,7 @@ export default function Tranbox() {
                   <MenuItem value={true}>{i18n("hide")}</MenuItem>
                 </TextField>
               </Grid>
-              {/* Close the translation panel when clicking outside it. */}
+              {/* Hide an unpinned translation panel when focus leaves it. */}
               <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
