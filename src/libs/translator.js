@@ -2503,17 +2503,28 @@ export class Translator {
       const queue = this.#rescanQueue;
       scheduleIdle(() => {
         if (queue !== this.#rescanQueue || this.#editorPaused) return;
-        queue.forEach(({ preserveTranslations, preserveDescendants }, t) =>
-          this.#rescanContainer(t, preserveTranslations, preserveDescendants)
+        const containers = new Set();
+        // Invalidate the entire batch before scanning. An ancestor scan can
+        // start immediate child translation that a later cleanup would cancel.
+        queue.forEach(
+          ({ preserveTranslations, preserveDescendants }, target) => {
+            const container = this.#invalidateChangedContainer(
+              target,
+              preserveTranslations,
+              preserveDescendants
+            );
+            if (container) containers.add(container);
+          }
         );
         queue.clear();
+        containers.forEach((container) => this.#scanNode(container));
         this.#isQueueProcessing = false;
       }, 100);
     }
   }
 
   // 处理“脏容器”
-  #rescanContainer(
+  #invalidateChangedContainer(
     changedNode,
     preserveTranslations = false,
     preserveDescendants = false
@@ -2529,21 +2540,19 @@ export class Translator {
       if (this.#rule.autoScan !== "true") {
         this.#cleanupAllTranslations(container);
       } else if (preserveDescendants) {
-        // A host's inline source/control edit does not change independent
-        // descendant paragraphs. Clearing them can feed layout observer loops.
-        this.#cleanupDirectTranslations(container);
+        this.#cleanupUnitTranslations(container);
       } else {
         // Inserted or moved subtrees may contain stale/duplicated wrappers.
         // If an inline insertion resolves to an ancestor host, only that host's
         // own source changed; its other descendants keep their translations.
         this.#cleanupAllTranslations(changedNode);
         if (container !== changedNode) {
-          this.#cleanupDirectTranslations(container);
+          this.#cleanupUnitTranslations(container);
         }
       }
     }
-    // Even a reorder scans for previously undiscovered translation targets.
-    this.#scanNode(container);
+    // Even a reorder must discover previously untranslated targets.
+    return container;
   }
 
   // 重新观察
@@ -4481,6 +4490,29 @@ overflow-wrap: anywhere !important;`;
     this.#cleanupTranslationElements(
       root.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
     );
+  }
+
+  #cleanupUnitTranslations(root) {
+    const hosts = new Set();
+    const wrappers = [];
+    const stack = [root];
+    while (stack.length) {
+      const node = stack.pop();
+      hosts.add(node);
+      for (const child of node.children) {
+        if (child.classList.contains(Translator.KISS_CLASS.warpper)) {
+          wrappers.push(child);
+        } else if (!this.#shouldBreak(child)) {
+          stack.push(child);
+        }
+      }
+    }
+    // Inline hosts can become part of their parent's source after an edit.
+    // Invalidate their pending detection/rendering too, while leaving
+    // independent descendant paragraphs and their saved source nodes intact.
+    this.#cancelTranslationUpdates((node) => hosts.has(node));
+    hosts.forEach((node) => this.#processedNodes.delete(node));
+    this.#cleanupTranslationElements(wrappers);
   }
 
   // 清理子节点译文dom
