@@ -135,7 +135,6 @@ describe("Translator rule styles", () => {
       offsetWidth: { configurable: true, value: 0 },
       offsetHeight: { configurable: true, value: 0 },
     });
-
     createTranslator();
     await flushAsync();
 
