@@ -1430,16 +1430,12 @@ export class Translator {
                   touchTranslationOwners.get(node) === mutation.target
                 );
               }
-              // Independent blocks do not contribute to their parent's source.
+              // Independent units do not contribute to their parent's source.
               // Inline/text removals must override a queued discovery-only scan.
               return (
                 node.nodeType === Node.TEXT_NODE ||
                 (Translator.isElementOrFragment(node) &&
-                  !(
-                    this.#rule.autoScan === "true" &&
-                    this.#isBlockNode(node) &&
-                    this.#shouldBreak(node)
-                  ))
+                  !this.#isIndependentTranslationSubtree(node))
               );
             })
           ) {
@@ -1468,9 +1464,7 @@ export class Translator {
               !insertedBeforeRemoval.has(node) &&
               node.parentNode === mutation.target &&
               node.isConnected &&
-              this.#rule.autoScan === "true" &&
-              this.#isBlockNode(node) &&
-              this.#shouldBreak(node) &&
+              this.#isIndependentTranslationSubtree(node) &&
               !Array.from(changedTargets).some((target) =>
                 node.contains(target)
               );
@@ -2537,9 +2531,7 @@ export class Translator {
 
     if (!preserveTranslations) {
       this.#processedNodes.delete(container); // 删除处理状态，允许重新翻译
-      if (this.#rule.autoScan !== "true") {
-        this.#cleanupAllTranslations(container);
-      } else if (preserveDescendants) {
+      if (preserveDescendants) {
         this.#cleanupUnitTranslations(container);
       } else {
         // Inserted or moved subtrees may contain stale/duplicated wrappers.
@@ -3144,6 +3136,18 @@ export class Translator {
         }
       });
     }
+  }
+
+  #isIndependentTranslationSubtree(node) {
+    if (!Translator.isElementOrFragment(node) || !this.#shouldBreak(node))
+      return false;
+    if (this.#rule.autoScan === "true") return this.#isBlockNode(node);
+    // Selected descendants are separate units in manual mode too. Their
+    // enclosing cards can move without changing the selected source.
+    return (
+      node.matches?.(this.#rule.selector) ||
+      Boolean(node.querySelector(this.#rule.selector))
+    );
   }
 
   // 判断是否需要换行
