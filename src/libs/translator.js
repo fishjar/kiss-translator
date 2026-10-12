@@ -4205,8 +4205,16 @@ overflow-wrap: anywhere !important;`;
             node.tagName?.toUpperCase() === "IMG" ||
             node.tagName?.toUpperCase() === "SVG"
           ) {
-            node.style.width = `${node.offsetWidth}px`;
-            node.style.height = `${node.offsetHeight}px`;
+            const serializedNode = node.cloneNode(true);
+            const width = node.offsetWidth;
+            const height = node.offsetHeight;
+            if (width > 0) {
+              serializedNode.style.width = `${width}px`;
+            }
+            if (height > 0) {
+              serializedNode.style.height = `${height}px`;
+            }
+            return pushReplace(serializedNode.outerHTML);
           }
           return pushReplace(node.outerHTML);
         }

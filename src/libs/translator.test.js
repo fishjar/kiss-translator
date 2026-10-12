@@ -127,6 +127,22 @@ describe("Translator rule styles", () => {
     expect(tryDetectLang).not.toHaveBeenCalled();
   });
 
+  test("translation does not force unloaded inline images to zero size", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Mod description <img id="preview" src="preview.jpg"></p></main>';
+    const image = document.getElementById("preview");
+    Object.defineProperties(image, {
+      offsetWidth: { configurable: true, value: 0 },
+      offsetHeight: { configurable: true, value: 0 },
+    });
+    createTranslator();
+    await flushAsync();
+
+    expect(image.style.width).toBe("");
+    expect(image.style.height).toBe("");
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+  });
+
   test("changing manual targets removes old translations and discovers new targets", async () => {
     document.body.innerHTML =
       '<main id="root"><p id="a">First article text</p><p id="b">Second article text</p></main>';
