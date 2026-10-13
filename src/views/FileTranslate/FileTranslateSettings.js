@@ -58,7 +58,6 @@ export default function FileTranslateSettings({
       <Box sx={{ width: 165, flexShrink: 0 }}>
         <ServiceSelect
           i18n={i18n}
-          showModelNotice={false}
           disabled={disabled}
           fullWidth
           size="small"

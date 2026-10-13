@@ -25,7 +25,7 @@ import {
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import ServiceSelect from "./ServiceSelect";
-import LocalServiceNotice from "../../components/LocalServiceNotice";
+import LocalServiceNotice from "../../components/ExtensionLocalServiceNotice";
 import ScenePromptSelect from "./ScenePromptSelect";
 import { useCallback, useMemo } from "react";
 import { limitNumber } from "../../libs/utils";

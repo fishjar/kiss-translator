@@ -1,48 +1,16 @@
-import { useEffect, useState } from "react";
 import { Alert, Button } from "@mui/material";
 import localModelTasks from "../config/localModelTasks.json";
-import { openOptionsPage } from "../libs/navigation";
 
 /** File translation supplies the extension's model context, never the web page's OPFS. */
 export default function LocalServiceNotice({
   apis = [],
   models,
   i18n,
-  onDownload = () => openOptionsPage("/local-ai"),
+  onDownload,
   sx,
 }) {
-  const [records, setRecords] = useState(null);
   const hasLocal = apis.some((api) => api?.apiType === "LocalAI");
-  useEffect(() => {
-    if (!hasLocal || models !== undefined) return;
-    let active = true;
-    let unsubscribe;
-    import("../localAi/core/modelManager")
-      .then(async ({ sharedModelManager: manager }) => {
-        if (!active) return;
-        const refresh = () => {
-          if (active)
-            setRecords(
-              manager.list().map((record) => ({
-                id: record.manifest.id,
-                state: record.state,
-              }))
-            );
-        };
-        unsubscribe = manager.subscribe(refresh);
-        await manager.init();
-        refresh();
-      })
-      .catch(() => {
-        if (active) setRecords(null);
-      });
-    return () => {
-      active = false;
-      unsubscribe?.();
-    };
-  }, [hasLocal, models]);
-
-  const available = models === undefined ? records : models;
+  const available = models;
   if (!hasLocal || !available) return null;
   const installed = new Set(
     available

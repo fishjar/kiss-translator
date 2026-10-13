@@ -1,7 +1,9 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import LocalServiceNotice from "./LocalServiceNotice";
+import ExtensionLocalServiceNotice from "./ExtensionLocalServiceNotice";
 import { sharedModelManager as manager } from "../localAi/core/modelManager";
+jest.mock("../libs/navigation", () => ({ openOptionsPage: jest.fn() }));
 jest.mock("../localAi/core/modelManager", () => ({
   sharedModelManager: {
     init: jest.fn(async () => {}),
@@ -65,7 +67,7 @@ test("uses backend state in file translation and warns until both OCR components
 test("scene selectors subscribe to installation changes and ignore network services", async () => {
   manager.list.mockReturnValue([]);
   await act(async () =>
-    root.render(<LocalServiceNotice apis={apis} i18n={i18n} />)
+    root.render(<ExtensionLocalServiceNotice apis={apis} i18n={i18n} />)
   );
   expect(container.textContent).toContain("未下载");
   manager.list.mockReturnValue(
@@ -78,7 +80,7 @@ test("scene selectors subscribe to installation changes and ignore network servi
   expect(container.textContent).toBe("");
   await act(async () =>
     root.render(
-      <LocalServiceNotice apis={[{ apiType: "OpenAI" }]} i18n={i18n} />
+      <ExtensionLocalServiceNotice apis={[{ apiType: "OpenAI" }]} i18n={i18n} />
     )
   );
   expect(container.textContent).toBe("");
@@ -89,4 +91,50 @@ test("a failed backend model query is not reported as an undownloaded model", as
   );
   expect(container.textContent).toBe("");
   expect(manager.init).not.toHaveBeenCalled();
+});
+
+test("missing models warn while unknown state stays silent", async () => {
+  await act(async () =>
+    root.render(<LocalServiceNotice apis={apis} models={[]} i18n={i18n} />)
+  );
+  expect(container.textContent).toContain("未下载");
+  await act(async () =>
+    root.render(<LocalServiceNotice apis={apis} i18n={i18n} />)
+  );
+  expect(container.textContent).toBe("");
+  expect(manager.init).not.toHaveBeenCalled();
+});
+test("extension subscription is cleaned up and network services skip initialization", async () => {
+  const unsubscribe = jest.fn();
+  manager.subscribe.mockReturnValue(unsubscribe);
+  manager.list.mockReturnValue([]);
+  await act(async () =>
+    root.render(
+      <ExtensionLocalServiceNotice apis={[{ apiType: "OpenAI" }]} i18n={i18n} />
+    )
+  );
+  expect(manager.init).not.toHaveBeenCalled();
+  await act(async () =>
+    root.render(<ExtensionLocalServiceNotice apis={apis} i18n={i18n} />)
+  );
+  expect(manager.init).toHaveBeenCalledTimes(1);
+  await act(async () => root.render(null));
+  expect(unsubscribe).toHaveBeenCalledTimes(1);
+});
+
+test("extension download opens model settings and initialization failure stays silent", async () => {
+  manager.list.mockReturnValue([]);
+  await act(async () =>
+    root.render(<ExtensionLocalServiceNotice apis={apis} i18n={i18n} />)
+  );
+  await act(async () => container.querySelector("button").click());
+  expect(require("../libs/navigation").openOptionsPage).toHaveBeenCalledWith(
+    "/local-ai"
+  );
+  await act(async () => root.render(null));
+  manager.init.mockRejectedValueOnce(new Error("unavailable"));
+  await act(async () =>
+    root.render(<ExtensionLocalServiceNotice apis={apis} i18n={i18n} />)
+  );
+  expect(container.textContent).toBe("");
 });

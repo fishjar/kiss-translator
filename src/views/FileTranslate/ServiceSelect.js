@@ -3,7 +3,6 @@ import {
   supportsApiCapability,
 } from "../../config/serviceSelection";
 import { SettingsSelect } from "../Options/SettingsCard";
-import LocalServiceNotice from "../../components/LocalServiceNotice";
 
 export default function ServiceSelect({
   i18n,
@@ -14,7 +13,6 @@ export default function ServiceSelect({
   fullWidth = false,
   hiddenLabel,
   multiple = false,
-  showModelNotice = true,
   ...rest
 }) {
   const selected = multiple ? scene.apiSlugs || [] : scene.apiSlug || "";
@@ -38,7 +36,6 @@ export default function ServiceSelect({
       });
   }
   return (
-    <>
     <SettingsSelect
       name={multiple ? "apiSlugs" : "apiSlug"}
       {...rest}
@@ -50,10 +47,5 @@ export default function ServiceSelect({
       options={options}
       onChange={onChange}
     />
-    {showModelNotice && <LocalServiceNotice
-      apis={apis.filter((api) => (multiple ? selected : [selected]).includes(api.apiSlug))}
-      i18n={i18n} sx={{ mt: 1 }}
-    />}
-    </>
   );
 }

@@ -4,7 +4,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
 import ServiceSelect from "./ServiceSelect";
-import LocalServiceNotice from "../../components/LocalServiceNotice";
+import LocalServiceNotice from "../../components/ExtensionLocalServiceNotice";
 import ScenePromptSelect from "./ScenePromptSelect";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";

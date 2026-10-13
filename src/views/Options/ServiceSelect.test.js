@@ -4,6 +4,15 @@ import ServiceSelect from "./ServiceSelect";
 import ScenePromptSelect from "./ScenePromptSelect";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+jest.mock("../../components/ExtensionLocalServiceNotice", () => ({
+  __esModule: true,
+  default: ({ apis }) =>
+    require("react").createElement(
+      "div",
+      { "data-testid": "model-notice" },
+      apis.map((api) => api.apiSlug).join(",")
+    ),
+}));
 
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key, fallback) => fallback || key,
@@ -179,4 +188,32 @@ describe("ScenePromptSelect", () => {
     act(() => root.unmount());
     container.remove();
   });
+});
+
+test("model notice follows single or multiple selection and can be hidden", () => {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  const props = {
+    scene: { apiSlug: "first", apiSlugs: ["second", "third"] },
+    apis: ["first", "second", "third"].map((apiSlug) => ({
+      apiSlug,
+      apiName: apiSlug,
+    })),
+    onChange: jest.fn(),
+  };
+  act(() => root.render(<ServiceSelect {...props} />));
+  expect(
+    container.querySelector('[data-testid="model-notice"]').textContent
+  ).toBe("first");
+  act(() => root.render(<ServiceSelect {...props} multiple />));
+  expect(
+    container.querySelector('[data-testid="model-notice"]').textContent
+  ).toBe("second,third");
+  act(() =>
+    root.render(<ServiceSelect {...props} multiple showModelNotice={false} />)
+  );
+  expect(container.querySelector('[data-testid="model-notice"]')).toBeNull();
+  act(() => root.unmount());
+  container.remove();
 });
