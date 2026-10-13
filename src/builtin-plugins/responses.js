@@ -123,11 +123,16 @@ function parseQwenmtResponse(res) {
 
 function parseLocalaiResponse(
   res,
-  { texts, history, userMsg, useBatchFetch, batchProtocol },
+  { texts, history, userMsg, useBatchFetch, batchProtocol, textFormat },
   { parseAIRes, alignBatchTranslations }
 ) {
   const message = res?.choices?.[0]?.message;
-  const parsed = parseAIRes(message?.content, useBatchFetch, batchProtocol);
+  const parsed = parseAIRes(
+    message?.content,
+    useBatchFetch,
+    batchProtocol,
+    textFormat
+  );
   if (alignBatchTranslations(parsed, texts.length).length !== texts.length)
     throw new Error("Local translation returned incomplete segments");
   if (history && userMsg) history.addPair(userMsg, message);
@@ -136,7 +141,7 @@ function parseLocalaiResponse(
 
 function parseEphoneaiResponse(
   res,
-  { history, userMsg, useBatchFetch, batchProtocol },
+  { history, userMsg, useBatchFetch, batchProtocol, textFormat },
   { parseAIRes }
 ) {
   let modelMsg = "";
@@ -145,12 +150,17 @@ function parseEphoneaiResponse(
     // 成对写入与轮次截断守卫统一内聚在 addPair：空正文/非 assistant role 整对不写
     history.addPair(userMsg, modelMsg);
   }
-  return parseAIRes(modelMsg?.content, useBatchFetch, batchProtocol);
+  return parseAIRes(
+    modelMsg?.content,
+    useBatchFetch,
+    batchProtocol,
+    textFormat
+  );
 }
 
 function parseGeminiResponse(
   res,
-  { history, userMsg, useBatchFetch, batchProtocol },
+  { history, userMsg, useBatchFetch, batchProtocol, textFormat },
   { parseAIRes }
 ) {
   let modelMsg = "";
@@ -164,12 +174,17 @@ function parseGeminiResponse(
       history.add(userMsg, modelMsg);
     }
   }
-  return parseAIRes(geminiResponseText(res), useBatchFetch, batchProtocol);
+  return parseAIRes(
+    geminiResponseText(res),
+    useBatchFetch,
+    batchProtocol,
+    textFormat
+  );
 }
 
 function parseClaudeResponse(
   res,
-  { history, userMsg, useBatchFetch, batchProtocol },
+  { history, userMsg, useBatchFetch, batchProtocol, textFormat },
   { parseAIRes }
 ) {
   let modelMsg = "";
@@ -206,7 +221,8 @@ function parseClaudeResponse(
   return parseAIRes(
     res?.content?.[0]?.text ?? "",
     useBatchFetch,
-    batchProtocol
+    batchProtocol,
+    textFormat
   );
 }
 
@@ -216,7 +232,7 @@ function parseCloudflareaiResponse(res) {
 
 function parseOllamaResponse(
   res,
-  { history, userMsg, useBatchFetch, batchProtocol },
+  { history, userMsg, useBatchFetch, batchProtocol, textFormat },
   { parseAIRes }
 ) {
   let modelMsg = "";
@@ -224,7 +240,12 @@ function parseOllamaResponse(
   if (history && userMsg) {
     history.addPair(userMsg, modelMsg);
   }
-  return parseAIRes(modelMsg?.content, useBatchFetch, batchProtocol);
+  return parseAIRes(
+    modelMsg?.content,
+    useBatchFetch,
+    batchProtocol,
+    textFormat
+  );
 }
 
 function parseCustomizeResponse(res, { useBatchFetch }) {

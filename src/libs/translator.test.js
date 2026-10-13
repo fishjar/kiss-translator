@@ -44,6 +44,13 @@ const flushAsync = async () => {
   for (let i = 0; i < 8; i++) await Promise.resolve();
 };
 
+const flushMutations = async () => {
+  await Promise.resolve();
+  await flushAsync();
+  await flushAsync();
+  await flushAsync();
+};
+
 const createdTranslators = [];
 
 const hoverNode = async (node, x = 20, y = 20) => {
@@ -126,6 +133,22 @@ describe("Translator rule styles", () => {
     expect(document.body.innerHTML).toBe(before);
     expect(apiTranslate).not.toHaveBeenCalled();
     expect(tryDetectLang).not.toHaveBeenCalled();
+  });
+
+  test("translation does not force unloaded inline images to zero size", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Mod description <img id="preview" src="preview.jpg"></p></main>';
+    const image = document.getElementById("preview");
+    Object.defineProperties(image, {
+      offsetWidth: { configurable: true, value: 0 },
+      offsetHeight: { configurable: true, value: 0 },
+    });
+    createTranslator();
+    await flushAsync();
+
+    expect(image.style.width).toBe("");
+    expect(image.style.height).toBe("");
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
   });
 
   test("changing manual targets removes old translations and discovers new targets", async () => {
@@ -320,6 +343,1065 @@ describe("Translator rule styles", () => {
     expect(translator.previewRule().targets).toEqual([]);
   });
 
+  describe("DOM reorder rescans", () => {
+    const wrapperSelector = `.${Translator.KISS_CLASS.warpper}`;
+    beforeEach(() => {
+      const style = document.createElement("style");
+      style.textContent = "span, kiss-translator { display: inline; }";
+      document.head.appendChild(style);
+    });
+
+    test.each(
+      [{}, { autoScan: "false", selector: "p" }].flatMap((scanRule) =>
+        [
+          {},
+          { wrapOriginal: "true" },
+          { transOnly: "true" },
+          { wrapOriginal: "true", transOnly: "true" },
+        ].map((displayRule) => ({ ...scanRule, ...displayRule }))
+      )
+    )(
+      "keeps existing wrappers while reordered cards and new cards are scanned (%j)",
+      async (rule) => {
+        document.body.innerHTML =
+          '<main id="root"><article id="first"><p>First card paragraph.</p></article><article id="second"><p>Second card paragraph.</p></article></main>';
+        createTranslator(rule);
+        await flushMutations();
+        const root = document.getElementById("root");
+        const first = document.getElementById("first");
+        const wrappers = [...root.querySelectorAll(wrapperSelector)];
+        expect(wrappers).toHaveLength(2);
+        apiTranslate.mockClear();
+
+        for (let i = 0; i < 3; i++) {
+          root.appendChild(first);
+          await flushMutations();
+          root.insertBefore(first, root.firstChild);
+          await flushMutations();
+        }
+        expect([...root.querySelectorAll(wrapperSelector)]).toEqual(wrappers);
+        expect(apiTranslate).not.toHaveBeenCalled();
+
+        root.appendChild(first);
+        const added = document.createElement("article");
+        added.innerHTML = "<p>New card paragraph.</p>";
+        root.appendChild(added);
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe("New card paragraph.");
+        expect(added.querySelector(wrapperSelector)).not.toBeNull();
+        expect(wrappers.every((wrapper) => wrapper.isConnected)).toBe(true);
+      }
+    );
+
+    test("retains a pending response while its card is reordered", async () => {
+      document.body.innerHTML =
+        '<main id="root"><article><p>Pending card paragraph.</p></article><article><p>Stable card paragraph.</p></article></main>';
+      let finish;
+      apiTranslate.mockImplementation(({ text }) =>
+        text === "Pending card paragraph."
+          ? new Promise((resolve) => (finish = resolve))
+          : Promise.resolve({ trText: "Stable translation", isSame: false })
+      );
+      createTranslator();
+      await flushMutations();
+      const root = document.getElementById("root");
+      const card = root.firstElementChild;
+      const wrapper = card.querySelector(wrapperSelector);
+      root.appendChild(card);
+      await flushMutations();
+      expect(apiTranslate).toHaveBeenCalledTimes(2);
+      expect(card.querySelector(wrapperSelector)).toBe(wrapper);
+      finish({ trText: "Completed pending translation", isSame: false });
+      await flushMutations();
+      expect(wrapper.textContent).toContain("Completed pending translation");
+    });
+
+    test.each([
+      {},
+      { wrapOriginal: "true" },
+      { transOnly: "true" },
+      { wrapOriginal: "true", transOnly: "true" },
+    ])(
+      "renders a queued response after its card is reordered (%j)",
+      async (rule) => {
+        const frames = new Map();
+        let frameId = 0;
+        const requestFrame = jest
+          .spyOn(window, "requestAnimationFrame")
+          .mockImplementation((callback) => {
+            frames.set(++frameId, callback);
+            return frameId;
+          });
+        const cancelFrame = jest
+          .spyOn(window, "cancelAnimationFrame")
+          .mockImplementation((id) => frames.delete(id));
+        const runFrame = async () => {
+          const callbacks = [...frames.values()];
+          frames.clear();
+          callbacks.forEach((callback) => callback());
+          for (let i = 0; i < 8; i++) await Promise.resolve();
+        };
+
+        try {
+          document.body.innerHTML =
+            '<main id="root"><article><p>First card paragraph.</p></article><article><p>Second card paragraph.</p></article></main>';
+          const translator = createTranslator(rule);
+          await flushMutations();
+          await runFrame();
+          expect(apiTranslate).toHaveBeenCalledTimes(2);
+          expect(frames.size).toBe(1);
+          const root = document.getElementById("root");
+          const card = root.firstElementChild;
+          const wrapper = card.querySelector(wrapperSelector);
+          expect(wrapper.querySelector("svg")).not.toBeNull();
+
+          root.appendChild(card);
+          await flushMutations();
+          expect(card.querySelector(wrapperSelector)).toBe(wrapper);
+          await runFrame();
+          await flushMutations();
+          expect(wrapper.querySelector("svg")).toBeNull();
+          expect(wrapper.textContent).toContain("Translated");
+          expect(apiTranslate).toHaveBeenCalledTimes(2);
+
+          translator.disable();
+          expect(card.textContent).toBe("First card paragraph.");
+          expect(card.querySelector(wrapperSelector)).toBeNull();
+        } finally {
+          createdTranslators.forEach((translator) => translator.stop());
+          requestFrame.mockRestore();
+          cancelFrame.mockRestore();
+        }
+      }
+    );
+
+    test.each(["before", "after"])(
+      "invalidates source removal across observer deliveries (%s reorder)",
+      async (timing) => {
+        document.body.innerHTML =
+          '<main id="root"><p>First phrase. <span id="removed">Second phrase.</span></p><p>Other paragraph.</p></main>';
+        createTranslator();
+        await flushMutations();
+        const root = document.getElementById("root");
+        const p = root.firstElementChild;
+        const old = p.querySelector(wrapperSelector);
+        const other = root.lastElementChild.querySelector(wrapperSelector);
+        apiTranslate.mockClear();
+
+        if (timing === "before") document.getElementById("removed").remove();
+        else root.appendChild(p);
+        await Promise.resolve();
+        if (timing === "before") root.appendChild(p);
+        else document.getElementById("removed").remove();
+        await flushMutations();
+
+        expect(old.isConnected).toBe(false);
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe("First phrase.");
+        expect(p.querySelector(wrapperSelector)).not.toBeNull();
+        expect(other.isConnected).toBe(true);
+      }
+    );
+
+    test.each([false, true])(
+      "keeps or replaces pending language detection after a reorder (source edited: %s)",
+      async (edited) => {
+        document.body.innerHTML =
+          '<main id="root"><article><p>Initial card paragraph.</p></article></main>';
+        const detections = [];
+        tryDetectLang.mockImplementation(
+          () => new Promise((resolve) => detections.push(resolve))
+        );
+        createTranslator({ fromLang: "auto" });
+        await flushMutations();
+        const root = document.getElementById("root");
+        root.appendChild(root.firstElementChild);
+        if (edited) {
+          root.querySelector("p").firstChild.nodeValue =
+            "Updated card paragraph.";
+        }
+        await flushMutations();
+        expect(detections).toHaveLength(edited ? 2 : 1);
+        detections.forEach((finish) => finish("en"));
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe(
+          edited ? "Updated card paragraph." : "Initial card paragraph."
+        );
+        expect(root.querySelectorAll(wrapperSelector)).toHaveLength(1);
+      }
+    );
+
+    test.each(["text", "replacement", "new-child", "removed-child"])(
+      "invalidates a reordered card when its source changes (%s)",
+      async (change) => {
+        document.body.innerHTML =
+          '<main id="root"><article><p>Initial card paragraph.</p><p>Removable card paragraph.</p></article><article><p>Other card paragraph.</p></article></main>';
+        createTranslator();
+        await flushMutations();
+        const root = document.getElementById("root");
+        const card = root.firstElementChild;
+        const p = card.querySelector("p");
+        const old = p.querySelector(wrapperSelector);
+        apiTranslate.mockClear();
+        root.appendChild(card);
+        if (change === "text")
+          p.firstChild.nodeValue = "Updated card paragraph.";
+        if (change === "replacement") p.textContent = "Updated card paragraph.";
+        if (change === "new-child") {
+          card.insertAdjacentHTML("beforeend", "<p>New nested paragraph.</p>");
+        }
+        if (change === "removed-child") card.lastElementChild.remove();
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalled();
+        expect(old.isConnected).toBe(false);
+        expect(p.querySelector(wrapperSelector)).not.toBeNull();
+        const texts = apiTranslate.mock.calls.map(([args]) => args.text);
+        expect(texts).toContain(
+          change === "text" || change === "replacement"
+            ? "Updated card paragraph."
+            : "Initial card paragraph."
+        );
+        expect(texts.includes("New nested paragraph.")).toBe(
+          change === "new-child"
+        );
+        expect(texts.includes("Removable card paragraph.")).toBe(
+          change !== "removed-child"
+        );
+      }
+    );
+
+    test.each(["before", "after"])(
+      "does not let a reorder erase a queued source update (%s reorder)",
+      async (timing) => {
+        document.body.innerHTML =
+          '<main id="root"><p>Initial paragraph.</p><p>Other paragraph.</p></main>';
+        createTranslator();
+        await flushMutations();
+        const root = document.getElementById("root");
+        const p = root.firstElementChild;
+        apiTranslate.mockClear();
+        if (timing === "before") p.firstChild.nodeValue = "Updated paragraph.";
+        else root.appendChild(p);
+        await Promise.resolve();
+        if (timing === "before") root.appendChild(p);
+        else p.firstChild.nodeValue = "Updated paragraph.";
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe("Updated paragraph.");
+      }
+    );
+
+    test.each([
+      "new",
+      "clone",
+      "new-then-reorder",
+      "clone-then-reorder",
+      "outside-root",
+    ])(
+      "discovers newly inserted content despite similar nodes (%s)",
+      async (kind) => {
+        document.body.innerHTML =
+          '<aside id="outside"><p>Outside paragraph.</p></aside><main id="root"><p>Existing paragraph.</p></main>';
+        createTranslator();
+        await flushMutations();
+        const root = document.getElementById("root");
+        const old = root.querySelector(wrapperSelector);
+        apiTranslate.mockClear();
+        let added;
+        if (kind.startsWith("clone"))
+          added = root.firstElementChild.cloneNode(true);
+        else if (kind === "outside-root")
+          added = document.querySelector("aside p");
+        else {
+          added = document.createElement("p");
+          added.textContent = "Existing paragraph.";
+        }
+        root.insertBefore(added, root.firstChild);
+        if (kind.endsWith("then-reorder")) root.appendChild(added);
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(added.querySelectorAll(wrapperSelector)).toHaveLength(1);
+        expect(old.isConnected).toBe(true);
+      }
+    );
+
+    test("rescans content edited while detached across observer deliveries", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Original paragraph.</p><p>Other paragraph.</p></main>';
+      createTranslator();
+      await flushMutations();
+      const root = document.getElementById("root");
+      const p = root.firstElementChild;
+      apiTranslate.mockClear();
+      p.remove();
+      await Promise.resolve();
+      p.firstChild.nodeValue = "Offline updated paragraph.";
+      await Promise.resolve();
+      root.appendChild(p);
+      await flushMutations();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).toBe(
+        "Offline updated paragraph."
+      );
+    });
+
+    test("invalidates a card moved between parents", async () => {
+      document.body.innerHTML =
+        '<main id="root"><section id="a"><article><p>Moving paragraph.</p></article></section><section id="b"><p>Existing destination paragraph.</p></section></main>';
+      createTranslator();
+      await flushMutations();
+      const card = document.querySelector("article");
+      const old = card.querySelector(wrapperSelector);
+      apiTranslate.mockClear();
+      document.getElementById("b").appendChild(card);
+      await flushMutations();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(old.isConnected).toBe(false);
+      expect(card.querySelector(wrapperSelector)).not.toBeNull();
+    });
+
+    test("retranslates reordered inline text in its new reading order", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p><span>First phrase.</span> <span>Second phrase.</span></p></main>';
+      createTranslator();
+      await flushMutations();
+      const p = document.querySelector("p");
+      const first = p.firstChild;
+      const old = p.querySelector(wrapperSelector);
+      apiTranslate.mockClear();
+      p.insertBefore(first, old);
+      await flushMutations();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      const text = apiTranslate.mock.calls[0][0].text;
+      expect(text.indexOf("Second phrase.")).toBeLessThan(
+        text.indexOf("First phrase.")
+      );
+      expect(old.isConnected).toBe(false);
+    });
+
+    test("translates genuine text inserted immediately before a wrapper", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Initial paragraph.</p></main>';
+      createTranslator();
+      await flushMutations();
+      const p = document.querySelector("p");
+      const old = p.querySelector(wrapperSelector);
+      apiTranslate.mockClear();
+      p.insertBefore(document.createTextNode(" New original text."), old);
+      await flushMutations();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).toBe(
+        "Initial paragraph. New original text."
+      );
+      expect(old.isConnected).toBe(false);
+    });
+
+    test("continues invalidating reorders when a keep selector groups the card with its parent", async () => {
+      document.body.innerHTML =
+        '<main id="root"><article><p>Moving paragraph.</p></article><article><p>Other paragraph.</p></article></main>';
+      createTranslator({ keepSelector: "article" });
+      await flushMutations();
+      const root = document.getElementById("root");
+      const card = root.firstElementChild;
+      const old = card.querySelector(wrapperSelector);
+      apiTranslate.mockClear();
+      root.appendChild(card);
+      await flushMutations();
+      expect(apiTranslate).toHaveBeenCalled();
+      expect(old.isConnected).toBe(false);
+      expect(card.querySelector(wrapperSelector)).not.toBeNull();
+    });
+
+    test("rebuilds a missing wrapper even when its card was only reordered", async () => {
+      document.body.innerHTML =
+        '<main id="root"><article><p>Card paragraph.</p></article><p>Other paragraph.</p></main>';
+      createTranslator();
+      await flushMutations();
+      const root = document.getElementById("root");
+      const card = root.firstElementChild;
+      apiTranslate.mockClear();
+      card.querySelector(wrapperSelector).remove();
+      root.appendChild(card);
+      await flushMutations();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(card.querySelector(wrapperSelector)).not.toBeNull();
+    });
+  });
+
+  describe("layout control mutations", () => {
+    const wrapperSelector = `.${Translator.KISS_CLASS.warpper}`;
+
+    beforeEach(() => {
+      const style = document.createElement("style");
+      style.textContent = "span, button, kiss-translator { display: inline; }";
+      document.head.appendChild(style);
+    });
+
+    test.each(
+      [{}, { autoScan: "false", selector: "p" }].flatMap((scanRule) =>
+        [
+          {},
+          { wrapOriginal: "true" },
+          { transOnly: "true" },
+          { wrapOriginal: "true", transOnly: "true" },
+        ].map((displayRule) => ({ ...scanRule, ...displayRule }))
+      )
+    )(
+      "keeps independent paragraphs when an inline layout control toggles (%j)",
+      async (rule) => {
+        document.body.innerHTML =
+          '<main id="root"><div id="spoiler"><div><p>Unchanged comment paragraph.</p></div></div></main>';
+        createTranslator(rule);
+        await flushMutations();
+        const spoiler = document.getElementById("spoiler");
+        const paragraph = spoiler.querySelector("p");
+        const wrapper = paragraph.querySelector(wrapperSelector);
+        expect(wrapper).not.toBeNull();
+        apiTranslate.mockClear();
+
+        for (let i = 0; i < 3; i++) {
+          const control = document.createElement("button");
+          control.textContent = "Show More";
+          spoiler.appendChild(control);
+          await flushMutations();
+          expect(paragraph.querySelector(wrapperSelector)).toBe(wrapper);
+          control.remove();
+          await flushMutations();
+          expect(paragraph.querySelector(wrapperSelector)).toBe(wrapper);
+        }
+
+        expect(apiTranslate).not.toHaveBeenCalled();
+      }
+    );
+
+    test.each(["true", "false"])(
+      "retains a pending paragraph response when its sibling control is removed (autoScan: %s)",
+      async (autoScan) => {
+        document.body.innerHTML =
+          '<main id="root"><div id="spoiler"><div><p>Pending comment paragraph.</p></div><button>Show More</button></div></main>';
+        let finish;
+        apiTranslate.mockImplementation(({ text }) =>
+          text === "Pending comment paragraph."
+            ? new Promise((resolve) => (finish = resolve))
+            : Promise.resolve({ trText: "Control translation", isSame: false })
+        );
+        createTranslator({ autoScan, selector: "p", transOnly: "true" });
+        await flushMutations();
+        const spoiler = document.getElementById("spoiler");
+        const paragraph = spoiler.querySelector("p");
+        const wrapper = paragraph.querySelector(wrapperSelector);
+        apiTranslate.mockClear();
+        spoiler.querySelector("button").remove();
+        await flushMutations();
+        expect(apiTranslate).not.toHaveBeenCalled();
+        expect(paragraph.querySelector(wrapperSelector)).toBe(wrapper);
+        finish({ trText: "Completed comment translation", isSame: false });
+        await flushMutations();
+        expect(wrapper.textContent).toContain("Completed comment translation");
+      }
+    );
+
+    test.each(["edit", "remove", "insert"])(
+      "updates only the affected selected paragraph after a real source change (%s)",
+      async (change) => {
+        document.body.innerHTML =
+          '<main id="root"><div id="card"><p id="target">First phrase. <span id="source">Second phrase.</span></p><p id="stable">Unchanged paragraph.</p></div></main>';
+        createTranslator({ autoScan: "false", selector: "p" });
+        await flushMutations();
+        const paragraph = document.getElementById("target");
+        const old = paragraph.querySelector(wrapperSelector);
+        const stable = document
+          .getElementById("stable")
+          .querySelector(wrapperSelector);
+        apiTranslate.mockClear();
+
+        if (change === "edit")
+          document.getElementById("source").firstChild.nodeValue =
+            "Updated phrase.";
+        else if (change === "remove")
+          document.getElementById("source").remove();
+        else
+          paragraph.insertBefore(
+            document.createTextNode(" Added phrase."),
+            old
+          );
+        await flushMutations();
+
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        const text = apiTranslate.mock.calls[0][0].text;
+        expect(text).toContain("First phrase.");
+        if (change === "edit") expect(text).toContain("Updated phrase.");
+        else if (change === "remove")
+          expect(text).not.toContain("Second phrase.");
+        else expect(text).toContain("Added phrase.");
+        expect(old.isConnected).toBe(false);
+        expect(paragraph.querySelector(wrapperSelector)).not.toBeNull();
+        expect(
+          document.getElementById("stable").querySelector(wrapperSelector)
+        ).toBe(stable);
+      }
+    );
+
+    test.each(["new", "clone", "move", "edited-reorder"])(
+      "invalidates new or changed selected subtrees (%s)",
+      async (change) => {
+        document.body.innerHTML =
+          '<main id="root"><section id="first"><article><p>Original comment.</p></article></section><section id="second"><p>Unchanged comment.</p></section></main>';
+        createTranslator({ autoScan: "false", selector: "p" });
+        await flushMutations();
+        const first = document.getElementById("first");
+        const second = document.getElementById("second");
+        const card = first.querySelector("article");
+        const old = card.querySelector(wrapperSelector);
+        const stable = second.querySelector(wrapperSelector);
+        apiTranslate.mockClear();
+
+        let added = card;
+        if (change === "new") {
+          added = document.createElement("article");
+          added.innerHTML = "<p>New comment.</p>";
+          first.appendChild(added);
+        } else if (change === "clone") {
+          added = card.cloneNode(true);
+          first.appendChild(added);
+        } else if (change === "move") second.appendChild(card);
+        else {
+          first.appendChild(card);
+          card.querySelector("p").firstChild.nodeValue = "Updated comment.";
+        }
+        await flushMutations();
+
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe(
+          change === "new"
+            ? "New comment."
+            : change === "edited-reorder"
+              ? "Updated comment."
+              : "Original comment."
+        );
+        expect(added.querySelectorAll(wrapperSelector)).toHaveLength(1);
+        expect(second.querySelector("p").querySelector(wrapperSelector)).toBe(
+          stable
+        );
+        expect(old.isConnected).toBe(change === "new" || change === "clone");
+      }
+    );
+
+    test("translates new inline content without clearing an independent paragraph", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="container"><p>Unchanged child paragraph.</p></div></main>';
+      createTranslator();
+      await flushMutations();
+      const container = document.getElementById("container");
+      const childWrapper = container
+        .querySelector("p")
+        .querySelector(wrapperSelector);
+      apiTranslate.mockClear();
+      container.insertAdjacentHTML(
+        "beforeend",
+        "<span>New inline content.</span>"
+      );
+      await flushMutations();
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "New inline content.",
+      ]);
+      expect(container.querySelector("p").querySelector(wrapperSelector)).toBe(
+        childWrapper
+      );
+    });
+
+    test.each(
+      ["text", "element"].flatMap((kind) =>
+        [
+          {},
+          { wrapOriginal: "true" },
+          { transOnly: "true" },
+          { wrapOriginal: "true", transOnly: "true" },
+        ].map((rule) => [kind, rule])
+      )
+    )(
+      "merges an inline translation into its parent after insertion (%s, %j)",
+      async (kind, rule) => {
+        document.body.innerHTML =
+          '<main id="root"><p id="target"><span id="inline">Original inline phrase.</span></p><p id="stable">Unchanged paragraph.</p></main>';
+        const translator = createTranslator(rule);
+        await flushMutations();
+        const paragraph = document.getElementById("target");
+        const old = paragraph.querySelector(wrapperSelector);
+        const stable = document
+          .getElementById("stable")
+          .querySelector(wrapperSelector);
+        expect(old.parentElement.id).toBe("inline");
+        apiTranslate.mockClear();
+
+        if (kind === "text") paragraph.append(" New appended phrase.");
+        else {
+          paragraph.insertAdjacentHTML(
+            "beforeend",
+            "<span>New appended phrase.</span>"
+          );
+        }
+        await flushMutations();
+
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        const text = apiTranslate.mock.calls[0][0].text;
+        expect(text).toContain("Original inline phrase.");
+        expect(text).toContain("New appended phrase.");
+        expect(old.isConnected).toBe(false);
+        expect(paragraph.querySelectorAll(wrapperSelector)).toHaveLength(1);
+        expect(paragraph.querySelector(wrapperSelector).parentElement).toBe(
+          paragraph
+        );
+        expect(stable.isConnected).toBe(true);
+
+        translator.disable();
+        expect(paragraph.textContent).toContain("Original inline phrase.");
+        expect(paragraph.textContent).toContain("New appended phrase.");
+        expect(paragraph.querySelector(wrapperSelector)).toBeNull();
+      }
+    );
+
+    test("cleans merged inline translations while retaining independent descendants", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="container"><span id="inline">Original inline phrase.</span><p>Unchanged child paragraph.</p></div></main>';
+      createTranslator({ transOnly: "true" });
+      await flushMutations();
+      const container = document.getElementById("container");
+      const old = container
+        .querySelector("span")
+        .querySelector(wrapperSelector);
+      const stable = container
+        .querySelector("p")
+        .querySelector(wrapperSelector);
+      expect(old).not.toBeNull();
+      expect(stable).not.toBeNull();
+      apiTranslate.mockClear();
+
+      container.insertBefore(
+        document.createTextNode(" New parent text."),
+        container.querySelector("p")
+      );
+      await flushMutations();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).toContain(
+        "Original inline phrase."
+      );
+      expect(old.isConnected).toBe(false);
+      expect(container.querySelector("p").querySelector(wrapperSelector)).toBe(
+        stable
+      );
+    });
+
+    test.each(["detection", "response"])(
+      "invalidates a pending inline translation when its parent takes over (%s)",
+      async (pending) => {
+        document.body.innerHTML =
+          '<main id="root"><p id="target"><span>Original inline phrase.</span></p></main>';
+        let finish;
+        if (pending === "detection") {
+          tryDetectLang.mockImplementationOnce(
+            () => new Promise((resolve) => (finish = resolve))
+          );
+        } else {
+          apiTranslate.mockImplementationOnce(
+            () => new Promise((resolve) => (finish = resolve))
+          );
+        }
+        const translator = createTranslator({
+          fromLang: "auto",
+          transOnly: "true",
+        });
+        await flushMutations();
+        const paragraph = document.getElementById("target");
+        apiTranslate.mockClear();
+
+        paragraph.append(" New appended phrase.");
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toContain(
+          "Original inline phrase."
+        );
+        expect(apiTranslate.mock.calls[0][0].text).toContain(
+          "New appended phrase."
+        );
+        const wrapper = paragraph.querySelector(wrapperSelector);
+        expect(wrapper.parentElement).toBe(paragraph);
+        finish(
+          pending === "detection"
+            ? "en"
+            : { trText: "Outdated inline translation", isSame: false }
+        );
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(paragraph.querySelectorAll(wrapperSelector)).toHaveLength(1);
+        expect(paragraph.querySelector(wrapperSelector)).toBe(wrapper);
+        expect(wrapper.textContent).not.toContain(
+          "Outdated inline translation"
+        );
+
+        translator.disable();
+        expect(paragraph.textContent).toContain("Original inline phrase.");
+        expect(paragraph.textContent).toContain("New appended phrase.");
+      }
+    );
+
+    test.each(["new", "clone"])(
+      "translates mixed insertions once with immediate full-page translation (%s)",
+      async (kind) => {
+        document.body.innerHTML =
+          '<main id="root"><div id="container"><p>Existing paragraph.</p></div></main>';
+        createTranslator(
+          {},
+          {
+            transApis: [
+              {
+                ...createApiSetting(DEFAULT_API_SETTING.apiSlug),
+                transAllnow: true,
+              },
+            ],
+          }
+        );
+        await flushMutations();
+        const container = document.getElementById("container");
+        const paragraph = container.querySelector("p");
+        const old = paragraph.querySelector(wrapperSelector);
+        const added =
+          kind === "clone"
+            ? paragraph.cloneNode(true)
+            : document.createElement("p");
+        if (kind === "new") added.textContent = "New inserted paragraph.";
+        apiTranslate.mockClear();
+
+        container.append("New parent text.", added);
+        await flushMutations();
+        expect(
+          apiTranslate.mock.calls.map(([args]) => args.text).sort()
+        ).toEqual(
+          [
+            kind === "clone"
+              ? "Existing paragraph."
+              : "New inserted paragraph.",
+            "New parent text.",
+          ].sort()
+        );
+        expect(added.querySelectorAll(wrapperSelector)).toHaveLength(1);
+        expect(paragraph.querySelector(wrapperSelector)).toBe(old);
+      }
+    );
+
+    test("updates changed parent text without clearing independent child translations", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="container">Original parent text.<p>Unchanged child paragraph.</p></div></main>';
+      createTranslator();
+      await flushMutations();
+      const container = document.getElementById("container");
+      const childWrapper = container
+        .querySelector("p")
+        .querySelector(wrapperSelector);
+      const parentWrapper = container.querySelector(
+        `:scope > ${wrapperSelector}`
+      );
+      apiTranslate.mockClear();
+      container.firstChild.nodeValue = "Updated parent text.";
+      await flushMutations();
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Updated parent text.",
+      ]);
+      expect(parentWrapper.isConnected).toBe(false);
+      expect(container.querySelector("p").querySelector(wrapperSelector)).toBe(
+        childWrapper
+      );
+    });
+
+    test("still updates a genuine inline source removal beside an independent paragraph", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="container">Keep this phrase. <span id="removed">Remove this phrase.</span><p>Unchanged child paragraph.</p></div></main>';
+      createTranslator();
+      await flushMutations();
+      const container = document.getElementById("container");
+      const childWrapper = container
+        .querySelector("p")
+        .querySelector(wrapperSelector);
+      apiTranslate.mockClear();
+      document.getElementById("removed").remove();
+      await flushMutations();
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Keep this phrase.",
+      ]);
+      expect(container.querySelector("p").querySelector(wrapperSelector)).toBe(
+        childWrapper
+      );
+    });
+
+    test("keeps split lines and favorite highlights in an unchanged child paragraph", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="container">Original parent text.<p>Hello friends. Another sentence.</p></div></main>';
+      createTranslator(
+        {
+          splitParagraph: "split_punctuation",
+          highlightWords: OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+        },
+        {},
+        ["Hello"]
+      );
+      await flushMutations();
+      const container = document.getElementById("container");
+      const paragraph = container.querySelector("p");
+      const wrappers = [...paragraph.querySelectorAll(wrapperSelector)];
+      const breaks = [...paragraph.querySelectorAll(".kiss-translator-br")];
+      const highlight = paragraph.querySelector(".kiss-translator-highlight");
+      expect(breaks.length).toBeGreaterThan(0);
+      expect(highlight).not.toBeNull();
+      apiTranslate.mockClear();
+      container.firstChild.nodeValue = "Updated parent text.";
+      await flushMutations();
+      expect([...paragraph.querySelectorAll(wrapperSelector)]).toEqual(
+        wrappers
+      );
+      expect([...paragraph.querySelectorAll(".kiss-translator-br")]).toEqual(
+        breaks
+      );
+      expect(paragraph.querySelector(".kiss-translator-highlight")).toBe(
+        highlight
+      );
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Updated parent text.",
+      ]);
+    });
+
+    test("cleans cloned translations when text and elements are inserted together", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="container"><p>Existing paragraph.</p></div></main>';
+      createTranslator();
+      await flushMutations();
+      const container = document.getElementById("container");
+      const paragraph = container.querySelector("p");
+      const old = paragraph.querySelector(wrapperSelector);
+      const clone = paragraph.cloneNode(true);
+      apiTranslate.mockClear();
+      container.append("New parent text.", clone);
+      await flushMutations();
+      expect(paragraph.querySelector(wrapperSelector)).toBe(old);
+      expect(clone.querySelectorAll(wrapperSelector)).toHaveLength(1);
+      expect(apiTranslate.mock.calls.map(([args]) => args.text).sort()).toEqual(
+        ["Existing paragraph.", "New parent text."]
+      );
+    });
+  });
+
+  test("continues detecting real text edits after source cleanup merges adjacent nodes", async () => {
+    document.body.innerHTML = '<main id="root"><p id="target"></p></main>';
+    const paragraph = document.getElementById("target");
+    paragraph.append("Keep ", "this text.");
+    createTranslator();
+    await flushMutations();
+    for (const text of ["First edit.", "Second edit."]) {
+      apiTranslate.mockClear();
+      paragraph.firstChild.nodeValue = text;
+      await flushMutations();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).toContain(text);
+    }
+  });
+
+  describe("self-authored text mutations", () => {
+    const wrapperSelector = `.${Translator.KISS_CLASS.warpper}`;
+
+    beforeEach(() => {
+      const style = document.createElement("style");
+      style.textContent = "span, kiss-translator { display: inline; }";
+      document.head.appendChild(style);
+    });
+
+    test.each([
+      { splitParagraph: "split_punctuation" },
+      { splitParagraph: "split_textlength", splitLength: 10 },
+      { splitParagraph: "split_textlength", splitLength: 100 },
+    ])("translates unchanged split source only once (%j)", async (rule) => {
+      document.body.innerHTML =
+        '<main id="root"><p>First sentence. Second sentence.</p></main>';
+      createTranslator(rule);
+      await flushMutations();
+
+      const expected =
+        rule.splitLength === 100
+          ? ["First sentence. Second sentence."]
+          : ["First sentence.", "Second sentence."];
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual(
+        expected
+      );
+      const wrappers = [...document.querySelectorAll(wrapperSelector)];
+      expect(wrappers).toHaveLength(expected.length);
+      expect(
+        wrappers.every((wrapper) => wrapper.textContent.includes("Translated"))
+      ).toBe(true);
+
+      apiTranslate.mockClear();
+      await flushMutations();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect([...document.querySelectorAll(wrapperSelector)]).toEqual(wrappers);
+    });
+
+    test.each([
+      OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+    ])("translates highlighted source only once (%s)", async (mode) => {
+      const text = "A model evaluation security incident report";
+      document.body.innerHTML = `<main id="root"><p>${text}</p></main>`;
+      createTranslator({ highlightWords: mode }, {}, ["incident"]);
+      await flushMutations();
+
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        text,
+      ]);
+      expect(
+        document.querySelector(`.${Translator.KISS_CLASS.highlight}`)
+          .textContent
+      ).toBe("incident");
+      const wrapper = document.querySelector(wrapperSelector);
+      expect(wrapper.textContent).toContain("Translated");
+      apiTranslate.mockClear();
+      await flushMutations();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(document.querySelector(wrapperSelector)).toBe(wrapper);
+    });
+
+    test.each(
+      [OPT_HIGHLIGHT_WORDS_BEFORETRANS, OPT_HIGHLIGHT_WORDS_AFTERTRANS].flatMap(
+        (mode) => [
+          [mode, ["Library tools improve library research"], 2],
+          [mode, ["Library", " tools improve research"], 1],
+          [mode, ["Explore ", "Library", " tools improve research"], 1],
+        ]
+      )
+    )(
+      "preserves translations when favorites change (%s, source nodes: %j)",
+      async (mode, sourceParts, highlightCount) => {
+        document.body.innerHTML = '<main id="root"><p></p></main>';
+        const p = document.querySelector("p");
+        p.append(...sourceParts.map((text) => document.createTextNode(text)));
+        createTranslator({ highlightWords: mode }, { minLength: 0 });
+        await flushMutations();
+        expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+          sourceParts.join(""),
+        ]);
+        const wrapper = p.querySelector(wrapperSelector);
+        expect(wrapper.textContent).toContain("Translated");
+        apiTranslate.mockClear();
+
+        for (const isFavorite of [true, false]) {
+          document.dispatchEvent(
+            new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+              detail: { word: "library", isFavorite },
+            })
+          );
+          await flushMutations();
+          await flushMutations();
+
+          expect(apiTranslate).not.toHaveBeenCalled();
+          expect(p.querySelector(wrapperSelector)).toBe(wrapper);
+          expect(wrapper.textContent).toContain("Translated");
+          expect(
+            p.querySelectorAll(`.${Translator.KISS_CLASS.highlight}`)
+          ).toHaveLength(isFavorite ? highlightCount : 0);
+        }
+      }
+    );
+
+    test.each(
+      [OPT_HIGHLIGHT_WORDS_BEFORETRANS, OPT_HIGHLIGHT_WORDS_AFTERTRANS].flatMap(
+        (mode) => [
+          [mode, "edit"],
+          [mode, "remove"],
+        ]
+      )
+    )(
+      "retranslates genuine source changes after removing a favorite (%s, %s)",
+      async (mode, change) => {
+        document.body.innerHTML = '<main id="root"><p></p></main>';
+        const p = document.querySelector("p");
+        // The third source node remains outside the favorite's text merge.
+        const source = document.createTextNode(" across articles");
+        p.append(
+          document.createTextNode("Library"),
+          document.createTextNode(" tools improve research"),
+          source
+        );
+        createTranslator({ highlightWords: mode }, { minLength: 0 });
+        await flushMutations();
+        const wrapper = p.querySelector(wrapperSelector);
+        expect(wrapper.textContent).toContain("Translated");
+        apiTranslate.mockClear();
+
+        for (const isFavorite of [true, false]) {
+          document.dispatchEvent(
+            new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+              detail: { word: "library", isFavorite },
+            })
+          );
+          await flushMutations();
+        }
+        expect(apiTranslate).not.toHaveBeenCalled();
+        expect(p.querySelector(wrapperSelector)).toBe(wrapper);
+        expect(source.parentNode).toBe(p);
+
+        if (change === "edit") {
+          source.nodeValue = " across updated articles";
+        } else {
+          source.remove();
+        }
+        await flushMutations();
+
+        expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+          change === "edit"
+            ? "Library tools improve research across updated articles"
+            : "Library tools improve research",
+        ]);
+        expect(wrapper.isConnected).toBe(false);
+        expect(p.querySelector(wrapperSelector).textContent).toContain(
+          "Translated"
+        );
+      }
+    );
+
+    test("retranslates genuine source replacements and inline removals after splitting", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>First sentence. Second sentence.</p></main>';
+      createTranslator({ splitParagraph: "split_punctuation" });
+      await flushMutations();
+      const p = document.querySelector("p");
+      const oldWrappers = [...p.querySelectorAll(wrapperSelector)];
+      apiTranslate.mockClear();
+
+      p.textContent = "Updated sentence. Another sentence.";
+      await flushMutations();
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Updated sentence.",
+        "Another sentence.",
+      ]);
+      expect(oldWrappers.every((wrapper) => !wrapper.isConnected)).toBe(true);
+
+      p.insertAdjacentHTML(
+        "afterbegin",
+        '<span id="removed">Delete this phrase. </span>'
+      );
+      await flushMutations();
+      const beforeRemoval = [...p.querySelectorAll(wrapperSelector)];
+      apiTranslate.mockClear();
+      document.getElementById("removed").remove();
+      await flushMutations();
+
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Updated sentence.",
+        "Another sentence.",
+      ]);
+      expect(beforeRemoval.every((wrapper) => !wrapper.isConnected)).toBe(true);
+      expect(p.querySelectorAll(wrapperSelector)).toHaveLength(2);
+    });
+  });
+
   let originalIntersectionObserver;
   let originalCSSStyleSheet;
   let originalScrollBy;
@@ -328,6 +1410,8 @@ describe("Translator rule styles", () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
+    // Match browser observer delivery before the self-mutation guard expires.
+    global.queueMicrotask = (callback) => Promise.resolve().then(callback);
     document.documentElement.innerHTML = "<head></head><body></body>";
     apiTranslate.mockResolvedValue({ trText: "Translated", isSame: false });
     apiMicrosoftDict.mockResolvedValue(null);

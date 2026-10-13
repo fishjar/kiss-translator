@@ -15,6 +15,9 @@ let mockIsExt = true;
 jest.mock("../../hooks/Setting", () => ({
   SettingProvider: ({ children }) => children,
 }));
+jest.mock("../../hooks/Fab", () => ({
+  useFab: () => ({ fab: {}, updateFab: jest.fn() }),
+}));
 jest.mock("../../hooks/M3Theme", () => ({
   __esModule: true,
   default: ({ children }) => children,

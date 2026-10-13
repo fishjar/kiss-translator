@@ -899,8 +899,8 @@ describe("useSelectionController", () => {
     });
   });
 
-  describe("hideClickAway behavior", () => {
-    test("clicking outside closes the box when hideClickAway is true", () => {
+  describe("panel focus owns click-away dismissal", () => {
+    test("does not independently dismiss the box on legacy click-away events", () => {
       const controller = renderController({ hideClickAway: true });
       act(() => {
         controller.state.handleOpenTranbox("hello");
@@ -910,7 +910,7 @@ describe("useSelectionController", () => {
       act(() => {
         window.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       });
-      expect(controller.state.showBox).toBe(false);
+      expect(controller.state.showBox).toBe(true);
 
       act(() => {
         controller.root.unmount();

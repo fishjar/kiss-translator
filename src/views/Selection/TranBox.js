@@ -7,6 +7,7 @@ import { resolveApiPromptList, withScenePrompt } from "../../config";
 import { sendBgMsg } from "../../libs/msg";
 import { isExt } from "../../libs/client";
 import { isValidWord } from "../../libs/utils";
+import useTranboxFocus from "../../hooks/useTranboxFocus";
 
 export { getOverflowMenuPosition } from "../../components/TranslationPanel/Header";
 
@@ -20,6 +21,11 @@ export default function TranBox(props) {
   const setHideClickAway = props.setHideClickAway;
   const followSelection = props.followSelection;
   const setFollowSelection = props.setFollowSelection;
+  const panelRef = useTranboxFocus({
+    showBox: props.showBox,
+    hideOnBlur: hideClickAway,
+    setShowBox: props.setShowBox,
+  });
 
   let realApiSlugs = props.tranboxSetting.apiSlugs;
   // Skip translation for single words when configured to show only dictionary results and suggestions.
@@ -47,6 +53,7 @@ export default function TranBox(props) {
 
   return props.showBox ? (
     <DraggableResizable
+      panelRef={panelRef}
       position={props.boxPosition}
       size={props.boxSize}
       setSize={props.setBoxSize}

@@ -10,6 +10,7 @@ import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isInBlacklist } from "./libs/blacklist";
+import { isFabHiddenOnPage } from "./libs/fabVisibility";
 import { createBlacklistStartupRecovery } from "./libs/blacklistStartup";
 import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
@@ -312,13 +313,9 @@ export async function run(isUserscript = false) {
     const rule = await matchRule(href, setting);
     const favWords = await getFavWords(rule);
     const fabConfig = { ...(await getFabWithDefault()) };
-    // 名单命中时反转全局显隐：全局显示为黑名单，全局隐藏为白名单。
-    if (
-      !isIframe &&
-      !isPdfDocument &&
-      isInBlacklist(href, fabConfig.hideExceptionList)
-    ) {
-      fabConfig.isHide = !fabConfig.isHide;
+    // Resolve the same page preference used by the FAB visibility action.
+    if (!isIframe && !isPdfDocument) {
+      fabConfig.isHide = isFabHiddenOnPage(fabConfig, href);
     }
 
     // Rule/subscription loading may outlive an API edit. Refresh this list

@@ -12,6 +12,9 @@ jest.mock("../../components/TouchTranslateControl", () => () => null);
 jest.mock("../../hooks/Setting", () => ({
   SettingProvider: ({ children }) => children,
 }));
+jest.mock("../../hooks/Fab", () => ({
+  useFab: () => ({ fab: {}, updateFab: jest.fn() }),
+}));
 jest.mock("../../hooks/M3Theme", () => {
   const React = require("react");
   return {

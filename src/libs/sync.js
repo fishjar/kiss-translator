@@ -70,6 +70,8 @@ const ensureWebdavRequestPatched = (webdav) => {
       method: opts.method,
       headers: opts.headers,
       body: opts.data,
+      // PROPFIND shows the current file, so the GET must not come from the HTTP cache.
+      cache: "no-store",
     });
   });
 };

@@ -97,6 +97,41 @@ export function getSettingsSearchRadius(element) {
   );
 }
 
+export function highlightSettingsTarget(element, target, behavior = "instant") {
+  const highlighted = getSettingsSearchHighlight(element);
+  const previousRadius = [
+    highlighted.style.getPropertyValue("--kt-settings-search-radius"),
+    highlighted.style.getPropertyPriority("--kt-settings-search-radius"),
+  ];
+  highlighted.style.setProperty(
+    "--kt-settings-search-radius",
+    getSettingsSearchRadius(highlighted)
+  );
+  const previousTabIndex = highlighted.getAttribute("tabindex");
+  // Reading styles also restarts the pulse after a previous highlight is cleared.
+  const position = getComputedStyle(highlighted).position;
+  if (!position || position === "static")
+    highlighted.setAttribute("data-settings-search-positioned", "");
+  highlighted.setAttribute("tabindex", "-1");
+  highlighted.setAttribute("data-settings-search-target", target);
+  if (behavior !== null)
+    highlighted.scrollIntoView?.({ block: "center", behavior });
+  highlighted.focus({ preventScroll: true });
+
+  return () => {
+    highlighted.removeAttribute("data-settings-search-target");
+    highlighted.removeAttribute("data-settings-search-positioned");
+    if (previousRadius[0])
+      highlighted.style.setProperty(
+        "--kt-settings-search-radius",
+        ...previousRadius
+      );
+    else highlighted.style.removeProperty("--kt-settings-search-radius");
+    if (previousTabIndex === null) highlighted.removeAttribute("tabindex");
+    else highlighted.setAttribute("tabindex", previousTabIndex);
+  };
+}
+
 export default function SettingsSearchTarget({
   target,
   label,
@@ -113,8 +148,7 @@ export default function SettingsSearchTarget({
     const container = pageRef.current;
     if (!target || !label || !container) return undefined;
     let highlighted;
-    let previousTabIndex;
-    let previousRadius;
+    let clearHighlight;
     let frame;
     let fallbackReady = false;
     const observer = new MutationObserver(() => locate());
@@ -132,26 +166,8 @@ export default function SettingsSearchTarget({
         if (!element) return;
         observer.disconnect();
         clearTimeout(fallbackTimeout);
-        highlighted = getSettingsSearchHighlight(element);
-        previousRadius = [
-          highlighted.style.getPropertyValue("--kt-settings-search-radius"),
-          highlighted.style.getPropertyPriority("--kt-settings-search-radius"),
-        ];
-        highlighted.style.setProperty(
-          "--kt-settings-search-radius",
-          getSettingsSearchRadius(highlighted)
-        );
-        previousTabIndex = highlighted.getAttribute("tabindex");
-        // Preserve positioned controls; only static wrappers need a containing
-        // block for the highlight layer. This also flushes a previous animation
-        // before another click on the same search result starts it again.
-        const position = getComputedStyle(highlighted).position;
-        if (!position || position === "static")
-          highlighted.setAttribute("data-settings-search-positioned", "");
-        highlighted.setAttribute("tabindex", "-1");
-        highlighted.setAttribute("data-settings-search-target", target);
-        highlighted.scrollIntoView?.({ block: "center", behavior: "instant" });
-        highlighted.focus({ preventScroll: true });
+        highlighted = element;
+        clearHighlight = highlightSettingsTarget(element, target);
       });
     }
     // Lazy controls and discard confirmations may finish after navigation.
@@ -170,18 +186,7 @@ export default function SettingsSearchTarget({
       observer.disconnect();
       clearTimeout(fallbackTimeout);
       if (frame !== undefined) cancelAnimationFrame(frame);
-      if (highlighted) {
-        highlighted.removeAttribute("data-settings-search-target");
-        highlighted.removeAttribute("data-settings-search-positioned");
-        if (previousRadius[0])
-          highlighted.style.setProperty(
-            "--kt-settings-search-radius",
-            ...previousRadius
-          );
-        else highlighted.style.removeProperty("--kt-settings-search-radius");
-        if (previousTabIndex === null) highlighted.removeAttribute("tabindex");
-        else highlighted.setAttribute("tabindex", previousTabIndex);
-      }
+      clearHighlight?.();
     };
   }, [target, label, navigationKey, fallbackLabel]);
 

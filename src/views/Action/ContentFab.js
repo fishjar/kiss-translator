@@ -5,6 +5,14 @@ import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";
@@ -32,9 +40,11 @@ import {
   MSG_TRANSBOX_TOGGLE,
 } from "../../config";
 import { useI18n } from "../../hooks/I18n";
+import { useFab } from "../../hooks/Fab";
 import { isExt } from "../../libs/client";
 import { sendBgMsg } from "../../libs/msg";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
+import { isFabHiddenOnPage } from "../../libs/fabVisibility";
 import useWindowSize from "../../hooks/WindowSize";
 import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
 import { ACTION_STYLES } from "./styles";
@@ -88,8 +98,12 @@ export function ContentFabContent({
   fabConfig = {},
   processActions,
   getSelectionEnabled = selectionUnavailable,
+  onClose,
+  onVisibilityChange,
 }) {
   const i18n = useI18n();
+  const { fab, updateFab } = useFab();
+  const hideOnPage = isFabHiddenOnPage(fab, window.location.href);
   const {
     x: fabX,
     y: fabY,
@@ -114,6 +128,8 @@ export function ContentFabContent({
   const [showFab, setShowFab] = useState(true);
   const [touchOpen, setTouchOpen] = useState(false);
   const [open, setOpen] = useState(false); // Action menu visibility.
+  const [savingVisibility, setSavingVisibility] = useState(false);
+  const [notice, setNotice] = useState("");
   const anchorRef = useRef(null);
   const menuRef = useRef(null);
   const popperRef = useRef(null);
@@ -222,6 +238,31 @@ export function ContentFabContent({
       );
     }
   }, [closeMenu]);
+
+  const toggleVisibility = async () => {
+    // Matching exceptions invert this global preference on the current page.
+    const isHide = !fab?.isHide;
+    const nextHideOnPage = !hideOnPage;
+    setSavingVisibility(true);
+    try {
+      await updateFab({ isHide });
+      onVisibilityChange?.(nextHideOnPage);
+      closeMenu();
+      if (nextHideOnPage) {
+        setNotice("fab_hidden_shortcut_hint");
+      }
+    } catch (_error) {
+      setNotice("popup_save_failed");
+    } finally {
+      setSavingVisibility(false);
+    }
+  };
+
+  const closeNotice = () => {
+    setNotice("");
+    // Keep the host visible until its shortcut reminder has been dismissed.
+    if (notice === "fab_hidden_shortcut_hint") onClose?.();
+  };
 
   // Ignore clicks after dragging to prevent accidental activation.
   const handleClick = useCallback(() => {
@@ -361,12 +402,58 @@ export function ContentFabContent({
                 <ListItemText>{label}</ListItemText>
               </MenuItem>
             ))}
+            <MenuItem
+              className="kt-content-fab-menu__item"
+              role="menuitemcheckbox"
+              aria-checked={!hideOnPage}
+              disabled={savingVisibility}
+              onClick={toggleVisibility}
+            >
+              <ListItemIcon>
+                {hideOnPage ? (
+                  <VisibilityRoundedIcon />
+                ) : (
+                  <VisibilityOffRoundedIcon />
+                )}
+              </ListItemIcon>
+              <ListItemText>
+                {i18n(hideOnPage ? "fab_always_show" : "fab_turn_off")}
+              </ListItemText>
+            </MenuItem>
           </MenuList>
           {touchOpen && (
             <TouchTranslateControl processActions={processActions} />
           )}
         </Paper>
       </Popper>
+      <Dialog
+        open={Boolean(notice)}
+        // Retain shadow-root styles without inheriting the draggable transform.
+        container={() => anchorRef.current?.closest(".kt-m3-root")}
+        disableEnforceFocus
+        disableRestoreFocus
+        disableScrollLock
+        onClose={closeNotice}
+        aria-labelledby="kt-content-fab-notice-title"
+        aria-describedby="kt-content-fab-notice-message"
+        maxWidth="xs"
+        fullWidth
+        sx={{ zIndex: 2147483647 }}
+      >
+        <DialogTitle id="kt-content-fab-notice-title">
+          {i18n("hide_fab_button")}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="kt-content-fab-notice-message">
+            {i18n(notice)}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button autoFocus onClick={closeNotice}>
+            {i18n("close")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Draggable>
   );
 }
