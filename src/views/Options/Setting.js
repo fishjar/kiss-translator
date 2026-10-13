@@ -43,6 +43,12 @@ import {
 import { useShortcut } from "../../hooks/Shortcut";
 import ShortcutInput from "./ShortcutInput";
 import { useFab } from "../../hooks/Fab";
+import {
+  FAB_CLICK_ACTION_MENU,
+  FAB_CLICK_ACTION_TRANSLATE,
+  FAB_CLICK_ACTION_POPUP,
+  normalizeFabAppearance,
+} from "../../config/fab";
 import { sendBgMsg } from "../../libs/msg";
 import { tryClearCaches } from "../../libs/cache";
 import { kissLog, LogLevel } from "../../libs/log";
@@ -50,6 +56,7 @@ import UploadButton from "./UploadButton";
 import DownloadButton from "./DownloadButton";
 import ValidationInput from "../../hooks/ValidationInput";
 import OverviewHero from "./OverviewHero";
+import FabAppearanceSetting from "./FabAppearanceSetting";
 
 /**
  * 包装单个快捷键录入表单项组件
@@ -298,9 +305,10 @@ export default function Settings() {
   // 解构 FAB 悬浮球的显隐状态及点击后的默认交互行为
   const {
     isHide = false,
-    fabClickAction = 0,
+    fabClickAction = FAB_CLICK_ACTION_MENU,
     hideExceptionList = "",
   } = fab || {};
+  const { halfHide } = normalizeFabAppearance(fab);
 
   return (
     <Box>
@@ -390,7 +398,7 @@ export default function Settings() {
                 }
               />
             )}
-            {/* 点击悬浮球时触发的行为 (直接展示菜单或立即启动全文双语翻译) */}
+            {/* Choose the action triggered by clicking the floating button. */}
             <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 select
@@ -401,8 +409,15 @@ export default function Settings() {
                 label={i18n("fab_click_action")}
                 onChange={(e) => updateFab({ fabClickAction: e.target.value })}
               >
-                <MenuItem value={0}>{i18n("fab_click_menu")}</MenuItem>
-                <MenuItem value={1}>{i18n("fab_click_translate")}</MenuItem>
+                <MenuItem value={FAB_CLICK_ACTION_MENU}>
+                  {i18n("fab_click_menu")}
+                </MenuItem>
+                <MenuItem value={FAB_CLICK_ACTION_TRANSLATE}>
+                  {i18n("fab_click_translate")}
+                </MenuItem>
+                <MenuItem value={FAB_CLICK_ACTION_POPUP}>
+                  {i18n("fab_click_popup")}
+                </MenuItem>
               </TextField>
             </Grid>
             {/* 单个 DOM 文本块触发网页翻译的最小有效文本长度 */}
@@ -635,6 +650,22 @@ export default function Settings() {
           <MenuItem value={false}>{i18n("show")}</MenuItem>
           <MenuItem value={true}>{i18n("hide")}</MenuItem>
         </TextField>
+
+        <TextField
+          select
+          fullWidth
+          size="small"
+          name="halfHide"
+          value={halfHide}
+          label={i18n("fab_half_hide")}
+          helperText={i18n("fab_half_hide_helper")}
+          onChange={(e) => updateFab({ halfHide: e.target.value })}
+        >
+          <MenuItem value={true}>{i18n("enable")}</MenuItem>
+          <MenuItem value={false}>{i18n("disable")}</MenuItem>
+        </TextField>
+
+        <FabAppearanceSetting fab={fab} onChange={updateFab} />
 
         <TextField
           fullWidth

@@ -1,3 +1,4 @@
+import { POPUP_I18N } from "./i18n.popup";
 import { TOUCH_I18N } from "./i18n.touch";
 /**
  * @file i18n.js
@@ -1382,6 +1383,163 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
     "Test edilebilir örnek oluşturulmadı.",
     "Không tạo được câu ví dụ kiểm tra được."
   ),
+  terminology_playground_alert_auto_sample_skipped: terminologyPlaygroundText(
+    "部分正则术语无法可靠生成自动匹配样例，已跳过这些自动断言。",
+    "Some regex terms cannot reliably generate automatic matching samples; their auto assertions were skipped.",
+    "部分正規術語無法可靠產生自動匹配樣例，已略過這些自動斷言。",
+    "一部の正規表現用語は自動マッチングサンプルを確実に生成できないため、これらの自動アサーションをスキップしました。",
+    "일부 정규식 용어는 자동 매칭 샘플을 신뢰할 수 있게 생성할 수 없어 해당 자동 검증을 건너뛰었습니다.",
+    "Bazı regex terimleri için güvenilir otomatik eşleşme örneği üretilemedi; bu otomatik doğrulamalar atlandı.",
+    "Một số thuật ngữ regex không thể tạo mẫu khớp tự động đáng tin cậy, nên đã bỏ qua các kiểm chứng tự động đó."
+  ),
+  terminology_playground_issue_no_terms: terminologyPlaygroundText(
+    "无有效术语，无法断言。",
+    "No valid terms; assertion skipped.",
+    "無有效術語，無法斷言。",
+    "有効な用語がなく、アサーションをスキップしました。",
+    "유효한 용어가 없어 검증을 건너뛰었습니다.",
+    "Geçerli terim yok; doğrulama atlandı.",
+    "Không có thuật ngữ hợp lệ, bỏ qua kiểm chứng."
+  ),
+  terminology_playground_issue_empty_text: terminologyPlaygroundText(
+    "测试文本为空，无法断言。",
+    "Test text is empty; assertion skipped.",
+    "測試文字為空，無法斷言。",
+    "テストテキストが空のため、アサーションをスキップしました。",
+    "테스트 텍스트가 비어 있어 검증을 건너뛰었습니다.",
+    "Test metni boş; doğrulama atlandı.",
+    "Văn bản kiểm tra trống, bỏ qua kiểm chứng."
+  ),
+  terminology_playground_issue_invalid_testcase: terminologyPlaygroundText(
+    "测试用例缺少 term 信息，无法断言。",
+    "Test case is missing term info; assertion skipped.",
+    "測試用例缺少 term 資訊，無法斷言。",
+    "テストケースに用語情報がなく、アサーションをスキップしました。",
+    "테스트 케이스에 용어 정보가 없어 검증을 건너뛰었습니다.",
+    "Test ögesinde terim bilgisi eksik; doğrulama atlandı.",
+    "Ca kiểm thử thiếu thông tin thuật ngữ, bỏ qua kiểm chứng."
+  ),
+  terminology_playground_issue_single_not_found: terminologyPlaygroundText(
+    "术语 {term} 未被命中。",
+    "Term {term} was not matched.",
+    "術語 {term} 未被命中。",
+    "用語 {term} はマッチしませんでした。",
+    "용어 {term}이(가) 매칭되지 않았습니다.",
+    "{term} terimi eşleşmedi.",
+    "Thuật ngữ {term} không được khớp."
+  ),
+  terminology_playground_issue_single_wrong_replacement:
+    terminologyPlaygroundText(
+      "术语 {term} 替换结果不正确。",
+      "Term {term} was replaced incorrectly.",
+      "術語 {term} 替換結果不正確。",
+      "用語 {term} の置換結果が正しくありません。",
+      "용어 {term}의 치환 결과가 올바르지 않습니다.",
+      "{term} terimi yanlış değiştirildi.",
+      "Thuật ngữ {term} bị thay thế sai."
+    ),
+  terminology_playground_issue_conflict_long_not_hit: terminologyPlaygroundText(
+    "长词 {long} 未被命中（短词 {short} 可能抢占）。",
+    "Long term {long} was not matched (short term {short} may have taken over).",
+    "長詞 {long} 未被命中（短詞 {short} 可能搶佔）。",
+    "長い用語 {long} がマッチしませんでした（短い用語 {short} が先に取得した可能性）。",
+    "긴 용어 {long}이(가) 매칭되지 않았습니다(짧은 용어 {short}가 선점했을 수 있음).",
+    "Uzun terim {long} eşleşmedi (kısa terim {short} öne geçmiş olabilir).",
+    "Thuật ngữ dài {long} không được khớp (thuật ngữ ngắn {short} có thể đã chiếm trước)."
+  ),
+  terminology_playground_issue_conflict_long_cut: terminologyPlaygroundText(
+    "长词 {long} 被短词 {short} 切割（检测到前缀误伤）。",
+    "Long term {long} was cut by short term {short} (prefix overwrite detected).",
+    "長詞 {long} 被短詞 {short} 切割（檢測到前綴誤傷）。",
+    "長い用語 {long} が短い用語 {short} によって切断されました（接頭辞の誤置換を検出）。",
+    "긴 용어 {long}이(가) 짧은 용어 {short}에 의해 잘렸습니다(접두어 오표적 감지).",
+    "Uzun terim {long}, kısa terim {short} tarafından kesildi (önekyazma saptandı).",
+    "Thuật ngữ dài {long} bị thuật ngữ ngắn {short} cắt ngang (phát hiện ghi đè tiền tố)."
+  ),
+  terminology_playground_issue_conflict_long_value_not_applied:
+    terminologyPlaygroundText(
+      "长词 {long} 有译文但未被替换（仍为原文）。",
+      "Long term {long} has a translation but was not replaced (original text kept).",
+      "長詞 {long} 有譯文但未被替換（仍為原文）。",
+      "長い用語 {long} は訳があるのに置換されていません（原文のまま）。",
+      "긴 용어 {long}에 번역이 있는데도 치환되지 않았습니다(원문 유지).",
+      "Uzun terim {long} için çeviri var ama değiştirilmedi (öz metin korundu).",
+      "Thuật ngữ dài {long} có bản dịch nhưng không được thay thế (vẫn giữ nguyên văn)."
+    ),
+  terminology_playground_issue_conflict_long_no_value_replaced:
+    terminologyPlaygroundText(
+      '长词 {long} 无译文但被替换为 "{replacement}"。',
+      'Long term {long} has no translation but was replaced with "{replacement}".',
+      "長詞 {long} 無譯文但被替換為「{replacement}」。",
+      "長い用語 {long} は訳がないのに「{replacement}」に置換されました。",
+      '긴 용어 {long}에 번역이 없는데도 "{replacement}"(으)로 치환되었습니다.',
+      'Çevirisi olmayan uzun terim {long}, "{replacement}" ile değiştirildi.',
+      'Thuật ngữ dài {long} không có bản dịch nhưng bị thay bằng "{replacement}".'
+    ),
+  terminology_playground_issue_conflict_short_value_not_applied:
+    terminologyPlaygroundText(
+      "短词 {short} 有译文但未被替换（单独出现时）。",
+      "Short term {short} has a translation but was not replaced (standalone occurrence).",
+      "短詞 {short} 有譯文但未被替換（單獨出現時）。",
+      "短い用語 {short} は訳があるのに置換されていません（単独出現時）。",
+      "짧은 용어 {short}에 번역이 있는데도 치환되지 않았습니다(단독 출현 시).",
+      "Kısa terim {short} için çeviri var ama değiştirilmedi (tek başına geçtiğinde).",
+      "Thuật ngữ ngắn {short} có bản dịch nhưng không được thay thế (khi xuất hiện riêng lẻ)."
+    ),
+  terminology_playground_issue_naive_prefix_cut: terminologyPlaygroundText(
+    "长词 {long} 被短词 {short} 切割（检测到前缀误伤）。",
+    "Long term {long} was cut by short term {short} (prefix overwrite detected).",
+    "長詞 {long} 被短詞 {short} 切割（檢測到前綴誤傷）。",
+    "長い用語 {long} が短い用語 {short} によって切断されました（接頭辞の誤置換を検出）。",
+    "긴 용어 {long}이(가) 짧은 용어 {short}에 의해 잘렸습니다(접두어 오표적 감지).",
+    "Uzun terim {long}, kısa terim {short} tarafından kesildi (önekyazma saptandı).",
+    "Thuật ngữ dài {long} bị thuật ngữ ngắn {short} cắt ngang (phát hiện ghi đè tiền tố)."
+  ),
+  terminology_playground_issue_naive_cut_residue: terminologyPlaygroundText(
+    "不翻译长词 {long} 被切割出高亮残留（短词 {short} 内部命中）。",
+    "Untranslated long term {long} was cut leaving highlight residue (short term {short} matched inside).",
+    "不翻譯長詞 {long} 被切割出高亮殘留（短詞 {short} 內部命中）。",
+    "翻訳しない長い用語 {long} にハイライト残骸が生じました（短い用語 {short} が内部でマッチ）。",
+    "번역하지 않는 긴 용어 {long}에 하이라이트 잔여물이 생겼습니다(짧은 용어 {short} 내부 매칭).",
+    "Çevrilmeyen uzun terim {long} kesilerek vurgu artığı bıraktı (kısa terim {short} içeride eşleşti).",
+    "Thuật ngữ dài không dịch {long} bị cắt để lại phần làm nổi bật còn sót (thuật ngữ ngắn {short} khớp bên trong)."
+  ),
+  terminology_playground_issue_unknown_type: terminologyPlaygroundText(
+    "未知的测试用例类型: {type}",
+    "Unknown test case type: {type}",
+    "未知的測試用例類型: {type}",
+    "不明なテストケース種別: {type}",
+    "알 수 없는 테스트 케이스 유형: {type}",
+    "Bilinmeyen test ögesi türü: {type}",
+    "Loại ca kiểm thử không xác định: {type}"
+  ),
+  terminology_playground_check_more: terminologyPlaygroundText(
+    "还有 {count} 条未展示。",
+    "{count} more rows not shown.",
+    "還有 {count} 條未展示。",
+    "他の {count} 件は未表示です。",
+    "{count}개 항목이 더 있지만 표시되지 않았습니다.",
+    "{count} satır daha gösterilmiyor.",
+    "Còn {count} dòng chưa được hiển thị."
+  ),
+  terminology_playground_check_expand: terminologyPlaygroundText(
+    "展开全部",
+    "Show all",
+    "展開全部",
+    "すべて表示",
+    "모두 펼치기",
+    "Tümünü göster",
+    "Hiện tất cả"
+  ),
+  terminology_playground_check_collapse: terminologyPlaygroundText(
+    "收起",
+    "Collapse",
+    "收起",
+    "折りたたむ",
+    "접기",
+    "Daralt",
+    "Thu gọn"
+  ),
   terminology_playground_alert_test_passed: terminologyPlaygroundText(
     "测试通过",
     "Test passed",
@@ -1670,16 +1828,9 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
     "AI terimleri",
     "Thuật ngữ AI"
   ),
-  // 示例术语：zorp / quzzle 为造词，全语言保持不变（见计划 §4.1）。
-  terminology_playground_terms_sample: terminologyPlaygroundText(
-    "zorp,数据管道\nquzzle,缓存节点",
-    "zorp,data pipeline\nquzzle,cache node",
-    "zorp,資料管線\nquzzle,快取節點",
-    "zorp,データパイプライン\nquzzle,キャッシュノード",
-    "zorp,데이터 파이프라인\nquzzle,캐시 노드",
-    "zorp,veri hattı\nquzzle,önbellek düğümü",
-    "zorp,đường ống dữ liệu\nquzzle,nút bộ đệm"
-  ),
+  // 示例术语 zorp / quzzle 为造词，全语言保持不变；样例文本已按 B3 改为
+  // TerminologyPlayground 模块常量 AI_TERMS_SAMPLE_TEXT（功能数据不进 i18n），
+  // 原 terminology_playground_terms_sample 条目随之删除（无引用孤儿 key）。
   terminology_playground_terms_count: terminologyPlaygroundText(
     "解析出 {count} 条术语",
     "{count} terms parsed",
@@ -2177,6 +2328,7 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
 };
 
 export const I18N = {
+  ...POPUP_I18N,
   ...TOUCH_I18N,
   ...SETTINGS_I18N,
   ...RULE_EDITOR_I18N,
@@ -4453,6 +4605,33 @@ export const I18N = {
     tr: `Yüzen Eylem Düğmesini Gizle`,
     vi: "Ẩn nút nổi",
   },
+  fab_always_show: {
+    zh: `始终显示悬浮按钮`,
+    en: `Always show floating button`,
+    zh_TW: `始終顯示浮動按鈕`,
+    ja: `フローティングボタンを常に表示`,
+    ko: `플로팅 버튼 항상 표시`,
+    tr: `Yüzen düğmeyi her zaman göster`,
+    vi: `Luôn hiển thị nút nổi`,
+  },
+  fab_turn_off: {
+    zh: `关闭悬浮按钮`,
+    en: `Turn off floating button`,
+    zh_TW: `關閉浮動按鈕`,
+    ja: `フローティングボタンを非表示`,
+    ko: `플로팅 버튼 끄기`,
+    tr: `Yüzen düğmeyi kapat`,
+    vi: `Tắt nút nổi`,
+  },
+  fab_hidden_shortcut_hint: {
+    zh: `悬浮按钮已关闭。可以使用 Alt+B 临时呼出悬浮按钮。`,
+    en: `The floating button is turned off. Press Alt+B to temporarily show it.`,
+    zh_TW: `浮動按鈕已關閉。可以使用 Alt+B 暫時叫出浮動按鈕。`,
+    ja: `フローティングボタンを非表示にしました。Alt+B で一時的に表示できます。`,
+    ko: `플로팅 버튼이 꺼졌습니다. Alt+B를 눌러 일시적으로 표시할 수 있습니다.`,
+    tr: `Yüzen düğme kapatıldı. Geçici olarak göstermek için Alt+B tuşlarına basın.`,
+    vi: `Nút nổi đã tắt. Nhấn Alt+B để tạm thời hiển thị nút.`,
+  },
   fab_exception_list: {
     zh: `悬浮按钮特例名单`,
     en: `Fab Button Exception List`,
@@ -4498,6 +4677,15 @@ export const I18N = {
     tr: `Çevir`,
     vi: "Dịch",
   },
+  fab_click_popup: {
+    zh: `打开翻译面板`,
+    en: `Open Translation Panel`,
+    zh_TW: `開啟翻譯面板`,
+    ja: `翻訳パネルを開く`,
+    ko: `번역 패널 열기`,
+    tr: `Çeviri Panelini Aç`,
+    vi: "Mở bảng dịch",
+  },
   hide_tran_button: {
     zh: `隐藏翻译按钮`,
     en: `Hide Translate Button`,
@@ -4508,13 +4696,13 @@ export const I18N = {
     vi: "Ẩn nút dịch",
   },
   hide_click_away: {
-    zh: `点击外部关闭弹窗`,
-    en: `Click outside to close the pop-up window`,
-    zh_TW: `點選外部區域關閉彈出視窗`,
-    ja: `外部クリックでポップアップを閉じる`,
-    ko: `바깥쪽 클릭 시 팝업 닫기`,
-    tr: `Açılır Pencereyi Kapatmak İçin Dışarıyı Tıklayın`,
-    vi: "Nhấp bên ngoài để đóng cửa sổ bật lên",
+    zh: `失去焦点时隐藏弹窗`,
+    en: `Hide the panel when focus is lost`,
+    zh_TW: `失去焦點時隱藏彈出視窗`,
+    ja: `フォーカスを失ったときにパネルを非表示`,
+    ko: `포커스를 잃으면 패널 숨기기`,
+    tr: `Odak kaybolduğunda paneli gizle`,
+    vi: "Ẩn bảng khi mất tiêu điểm",
   },
   use_simple_style: {
     zh: `使用简洁界面`,
@@ -5434,6 +5622,15 @@ export const I18N = {
     tr: `Ayarlarda ara`,
     vi: `Tìm trong cài đặt`,
   },
+  options_clear_search: {
+    zh: `退出搜索`,
+    en: `Clear search`,
+    zh_TW: `退出搜尋`,
+    ja: `検索をクリア`,
+    ko: `검색 지우기`,
+    tr: `Aramayı temizle`,
+    vi: `Xóa tìm kiếm`,
+  },
   options_open_navigation: {
     zh: `打开设置导航`,
     en: `Open settings navigation`,
@@ -6045,6 +6242,171 @@ export const I18N = {
     ko: `번역 상자 높이 자동 조절`,
     tr: `Çeviri Kutusu Uyarlanabilir Yükseklik`,
     vi: "Hộp dịch tự động chiều cao",
+  },
+  field_resize_height: {
+    zh: `拖动调整高度`,
+    en: `Drag to adjust height`,
+    zh_TW: `拖曳調整高度`,
+    ja: `ドラッグで高さを調整`,
+    ko: `드래그하여 높이 조절`,
+    tr: `Yüksekliği ayarlamak için sürükleyin`,
+    vi: "Kéo để điều chỉnh chiều cao",
+  },
+  // 契约：各语言值须自带前导空格与括号（zh/zh_TW 全角括号无前导空格，
+  // 其余半角括号带一个前导空格）。消费方（TextareaResizeGrip）将其与
+  // label 无分隔符直连拼接，此处不得改存纯文案，否则 tooltip 粘连。
+  field_resize_unlock_hint: {
+    zh: `（双击或按 Esc 解锁高度）`,
+    en: ` (Double-click or press Esc to unlock height)`,
+    zh_TW: `（雙擊或按 Esc 解鎖高度）`,
+    ja: ` (ダブルクリックまたは Esc キーで高さを解除)`,
+    ko: ` (더블클릭 또는 Esc 키로 높이 잠금 해제)`,
+    tr: ` (Yükseklik kilidini açmak için çift tıklayın veya Esc tuşuna basın)`,
+    vi: ` (Nhấp đúp hoặc nhấn Esc để mở khóa chiều cao)`,
+  },
+  settings_textarea_grip_style: {
+    zh: `输入框拉伸手柄`,
+    en: `Textarea resize grip`,
+    zh_TW: `輸入框拉伸手柄`,
+    ja: `入力欄サイズ変更ハンドル`,
+    ko: `입력창 크기 조절 핸들`,
+    tr: `Metin alanı boyutlandırma tutamacı`,
+    vi: `Tay cản chỉnh kích thước ô nhập`,
+  },
+  settings_textarea_grip_style_desc: {
+    zh: `自定义输入框右下角拉伸手柄的样式`,
+    en: `Customize the resize grip at the bottom-right corner of textareas`,
+    zh_TW: `自訂輸入框右下角拉伸手柄的樣式`,
+    ja: `入力欄右下のサイズ変更ハンドルの見た目をカスタマイズします`,
+    ko: `입력창 오른쪽 아래 크기 조절 핸들의 모양을 사용자 지정합니다`,
+    tr: `Metin alanlarının sağ alt köşesindeki boyutlandırma tutamacının görünümünü özelleştirir`,
+    vi: `Tùy chỉnh kiểu tay cản ở góc dưới bên phải của ô nhập văn bản`,
+  },
+  grip_style_concentric_smooth: {
+    zh: `双同心弧`,
+    en: `Double concentric arcs`,
+    zh_TW: `雙同心弧`,
+    ja: `二重同心円弧`,
+    ko: `이중 동심원 호`,
+    tr: `Çift eşmerkezli yay`,
+    vi: `Cung đồng tâm đôi`,
+  },
+  grip_style_concentric_triple: {
+    zh: `三同心弧`,
+    en: `Triple concentric arcs`,
+    zh_TW: `三同心弧`,
+    ja: `三重同心円弧`,
+    ko: `삼중 동심원 호`,
+    tr: `Üçlü eşmerkezli yay`,
+    vi: `Cung đồng tâm ba`,
+  },
+  grip_style_corner_pill: {
+    zh: `角部圆胶囊`,
+    en: `Rounded corner pill`,
+    zh_TW: `角部圓膠囊`,
+    ja: `角の丸いカプセル`,
+    ko: `모서리 알약 모양`,
+    tr: `Köşe hap şekli`,
+    vi: `Viên thuốc bo tròn ở góc`,
+  },
+  grip_style_dotted_concentric: {
+    zh: `点状同心`,
+    en: `Dotted concentric arcs`,
+    zh_TW: `點狀同心`,
+    ja: `点線の同心円弧`,
+    ko: `점선 동심원 호`,
+    tr: `Noktalı eşmerkezli yay`,
+    vi: `Cung đồng tâm chấm`,
+  },
+  grip_style_dotted_single: {
+    zh: `单排点状`,
+    en: `Single dotted arc`,
+    zh_TW: `單排點狀`,
+    ja: `一列の点`,
+    ko: `한 줄 점선`,
+    tr: `Tek sıra nokta`,
+    vi: `Hàng chấm đơn`,
+  },
+  grip_style_triple_chevrons: {
+    zh: `三重 V 形`,
+    en: `Triple chevrons`,
+    zh_TW: `三重 V 形`,
+    ja: `三重シェブロン`,
+    ko: `삼중 셰브런`,
+    tr: `Üçlü chevron`,
+    vi: `Ba dấu mũ`,
+  },
+  grip_style_diagonal_arrow: {
+    zh: `斜向箭头`,
+    en: `Diagonal arrow`,
+    zh_TW: `斜向箭頭`,
+    ja: `斜め矢印`,
+    ko: `대각선 화살표`,
+    tr: `Çapraz ok`,
+    vi: `Mũi tên chéo`,
+  },
+  grip_style_dual_pills: {
+    zh: `双胶囊`,
+    en: `Double pills`,
+    zh_TW: `雙膠囊`,
+    ja: `二重カプセル`,
+    ko: `이중 알약 모양`,
+    tr: `Çift hap şekli`,
+    vi: `Hai viên thuốc`,
+  },
+  grip_style_expanding_beads: {
+    zh: `渐大圆珠`,
+    en: `Expanding beads`,
+    zh_TW: `漸大圓珠`,
+    ja: `大きくなるビーズ`,
+    ko: `점점 커지는 구슬`,
+    tr: `Büyüyen boncuklar`,
+    vi: `Hạt tròn to dần`,
+  },
+  grip_style_chevrons_star: {
+    zh: `V 形星芒`,
+    en: `Chevron star`,
+    zh_TW: `V 形星芒`,
+    ja: `シェブロンスター`,
+    ko: `셰브런 별`,
+    tr: `Chevron yıldızı`,
+    vi: `Sao dấu mũ`,
+  },
+  grip_style_symmetric_division: {
+    zh: `对称分割线`,
+    en: `Symmetric divider`,
+    zh_TW: `對稱分割線`,
+    ja: `対称の仕切り線`,
+    ko: `대칭 구분선`,
+    tr: `Simetrik ayırıcı çizgi`,
+    vi: `Đường phân cách đối xứng`,
+  },
+  grip_style_percent_style: {
+    zh: `百分比风格`,
+    en: `Percent style`,
+    zh_TW: `百分比風格`,
+    ja: `パーセント風`,
+    ko: `백분율 스타일`,
+    tr: `Yüzde biçemi`,
+    vi: `Kiểu dấu phần trăm`,
+  },
+  grip_style_orbit_satellite: {
+    zh: `轨道卫星`,
+    en: `Orbit satellite`,
+    zh_TW: `軌道衛星`,
+    ja: `軌道衛星`,
+    ko: `궤도 위성`,
+    tr: `Yörünge uydusu`,
+    vi: `Vệ tinh quỹ đạo`,
+  },
+  grip_style_hidden: {
+    zh: `隐藏（使用原生拉伸）`,
+    en: `Hidden (native resize)`,
+    zh_TW: `隱藏（使用原生拉伸）`,
+    ja: `非表示（ネイティブのリサイズ）`,
+    ko: `숨김(기본 리사이즈)`,
+    tr: `Gizli (yerleşik yeniden boyutlandırma)`,
+    vi: `Ẩn (thay đổi kích thước gốc)`,
   },
   tranbox_interact_mode: {
     zh: `翻译框内交互模式`,
@@ -6902,13 +7264,13 @@ export const I18N = {
     vi: "To import vocabulary, please use a txt file with one word per line.",
   },
   btn_tip_click_away: {
-    zh: `失焦隐藏/显示`,
-    en: `Loss of focus hide/show`,
-    zh_TW: `失焦隱藏/顯示`,
-    ja: `フォーカスを失った時に非表示/表示`,
-    ko: `포커스 잃을 시 숨기기/표시`,
-    tr: `Odak Kaybında Gizle/Göster`,
-    vi: "Loss of focus hide/show",
+    zh: `固定弹窗（取消固定后失焦隐藏）`,
+    en: `Pin panel (unpin to hide on focus loss)`,
+    zh_TW: `固定彈出視窗（取消固定後失焦隱藏）`,
+    ja: `パネルを固定（固定解除後はフォーカスを失うと非表示）`,
+    ko: `패널 고정 (고정 해제 시 포커스를 잃으면 숨김)`,
+    tr: `Paneli sabitle (sabitlemeyi kaldırınca odak kaybında gizle)`,
+    vi: "Ghim bảng (bỏ ghim để ẩn khi mất tiêu điểm)",
   },
   btn_tip_follow_selection: {
     zh: `跟随/固定模式`,

@@ -30,8 +30,8 @@ function readDefaultWindowBounds() {
 describe("separate translation window default size", () => {
   const bounds = readDefaultWindowBounds();
 
-  test("derives its width from the shared content cap", () => {
-    // Share the width cap with CSS to keep both surfaces consistent.
+  test("derives its initial width from the preferred content width", () => {
+    // Initial sizing does not constrain later user resizing.
     expect(bounds.widthExpr).toContain("SEPARATE_WINDOW_CONTENT_WIDTH");
   });
 

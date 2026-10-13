@@ -4,7 +4,12 @@ import {
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V3,
   DEFAULT_SUBTITLE_SETTING,
+  DEFAULT_API_LIST,
+  OPT_TRANS_BUILTINAI,
   OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_GOOGLE,
+  OPT_TRANS_GOOGLE_2,
+  OPT_TRANS_MICROSOFT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_TENCENT,
 } from "../config";
@@ -287,6 +292,74 @@ describe("settings storage migration", () => {
       thinkingEffort: null,
     });
   });
+
+  test("enables only the initial four services for a fresh installation", async () => {
+    const setting = await getSettingWithDefault();
+
+    expect(setting.transApis).toHaveLength(DEFAULT_API_LIST.length);
+    expect(
+      setting.transApis
+        .filter((api) => !api.isDisabled)
+        .map((api) => api.apiType)
+    ).toEqual([
+      OPT_TRANS_BUILTINAI,
+      OPT_TRANS_GOOGLE,
+      OPT_TRANS_GOOGLE_2,
+      OPT_TRANS_MICROSOFT,
+    ]);
+  });
+
+  test.each([1, SETTINGS_VERSION_V2, SETTINGS_VERSION_V3])(
+    "preserves saved service activation choices from settings version %p",
+    async (version) => {
+      const savedApis = [
+        {
+          ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_OPENAI),
+          isDisabled: false,
+          sortOrder: -1,
+          key: "saved-key",
+        },
+        {
+          ...DEFAULT_API_LIST.find(
+            (api) => api.apiType === OPT_TRANS_MICROSOFT
+          ),
+          isDisabled: true,
+          sortOrder: 999,
+        },
+        {
+          apiSlug: "legacy-tencent",
+          apiType: OPT_TRANS_TENCENT,
+        },
+      ];
+      const storedSetting = { version, transApis: savedApis };
+      window.localStorage.setItem(
+        STOKEY_SETTING,
+        JSON.stringify(storedSetting)
+      );
+
+      const setting = await getSettingWithDefault();
+
+      expect(setting.transApis).toHaveLength(savedApis.length);
+      savedApis.forEach((savedApi, index) => {
+        const loadedApi = setting.transApis[index];
+        [
+          "apiSlug",
+          "apiName",
+          "apiType",
+          "isDisabled",
+          "sortOrder",
+          "key",
+        ].forEach((field) => {
+          if (Object.prototype.hasOwnProperty.call(savedApi, field)) {
+            expect(loadedApi).toHaveProperty(field, savedApi[field]);
+          } else {
+            expect(loadedApi).not.toHaveProperty(field);
+          }
+        });
+      });
+      expect(readStoredJson(STOKEY_SETTING)).toEqual(storedSetting);
+    }
+  );
 
   test.each(["none", "minimal", "_default"])(
     "loads legacy Astra disabled effort %s as low without rewriting storage",

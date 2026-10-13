@@ -62,36 +62,42 @@ import { isCurrentPopupDocument } from "./libs/popupDocument";
 globalThis.__KISS_CONTEXT__ = "background";
 installStorageCoordinator();
 
-let openingOptionsPage = false;
+let openingOptionsPage = null;
 
 /**
  * Open the extension settings with the native API when available.
  * Fall back to a new tab when the native API is unavailable or fails.
+ * Concurrent callers share the operation and receive its success status.
  */
-async function openOptionsPage() {
-  if (openingOptionsPage) return;
+function openOptionsPage() {
+  if (openingOptionsPage) return openingOptionsPage;
 
-  openingOptionsPage = true;
-  try {
-    if (typeof browser.runtime.openOptionsPage === "function") {
-      try {
-        await browser.runtime.openOptionsPage();
-        return;
-      } catch (err) {
-        kissLog("open options page with runtime API", err);
+  openingOptionsPage = Promise.resolve()
+    .then(async () => {
+      if (typeof browser.runtime.openOptionsPage === "function") {
+        try {
+          await browser.runtime.openOptionsPage();
+          return true;
+        } catch (err) {
+          kissLog("open options page with runtime API", err);
+        }
       }
-    }
 
-    try {
-      await browser.tabs.create({
-        url: browser.runtime.getURL("options.html"),
-      });
-    } catch (err) {
-      kissLog("open options page in new tab", err);
-    }
-  } finally {
-    openingOptionsPage = false;
-  }
+      try {
+        await browser.tabs.create({
+          url: browser.runtime.getURL("options.html"),
+        });
+        return true;
+      } catch (err) {
+        kissLog("open options page in new tab", err);
+        return false;
+      }
+    })
+    .finally(() => {
+      openingOptionsPage = null;
+    });
+
+  return openingOptionsPage;
 }
 
 /**
@@ -161,8 +167,8 @@ let separateWindowBoundsRevision = 0;
 let separateWindowBoundsRead = 0;
 
 // Start near the expected content size to reduce visible resizing during rendering.
-// MSG_FIT_SEPARATE_WINDOW adjusts the height after layout; content width is capped
-// by design in Popup/styles.js, with extra window width becoming side margins.
+// MSG_FIT_SEPARATE_WINDOW adjusts the initial height after layout.
+// Subsequent resizing uses the full window without a fixed content width cap.
 const SEPARATE_WINDOW_CHROME_ALLOWANCE = 24;
 const DEFAULT_SEPARATE_WINDOW_BOUNDS = {
   left: 100,

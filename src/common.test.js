@@ -129,6 +129,45 @@ describe("common iframe startup", () => {
     });
   });
 
+  test("refreshes APIs changed during rule loading before a runtime can translate", async () => {
+    const initial = {
+      blacklist: "",
+      logLevel: 1,
+      transApis: [{ apiSlug: "old", isDisabled: false }],
+      mouseHoverSetting: { useMouseHover: true },
+    };
+    const latest = {
+      ...initial,
+      transApis: [
+        { apiSlug: "old", isDisabled: true },
+        { apiSlug: "first", sortOrder: -1 },
+      ],
+    };
+    getSettingWithDefault
+      .mockResolvedValueOnce(initial)
+      .mockResolvedValueOnce(latest);
+    let finishRules;
+    matchRule.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishRules = resolve;
+      })
+    );
+    const startup = run();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(TranslatorManager).not.toHaveBeenCalled();
+    finishRules({ transOpen: "true", highlightWords: "-" });
+    await startup;
+    expect(TranslatorManager.mock.calls[0][0].setting.transApis).toEqual(
+      latest.transApis
+    );
+    expect(
+      TranslatorManager.mock.calls[0][0].setting.mouseHoverSetting.useMouseHover
+    ).toBe(true);
+    expect(initial.transApis).toEqual([{ apiSlug: "old", isDisabled: false }]);
+    expect(getSettingWithDefault).toHaveBeenCalledTimes(2);
+  });
+
   afterEach(() => {
     if (originalOptionsPage === undefined) {
       delete process.env.REACT_APP_OPTIONSPAGE;

@@ -22,17 +22,17 @@ import { getVisibleServices } from "./services";
 import { tryClearCaches } from "../../libs/cache";
 import { saveRule } from "../../libs/rules";
 import { isCurrentPopupDocument } from "../../libs/popupDocument";
+import { getRulesWithDefault } from "../../libs/storage";
 import {
-  MSG_MOUSEHOVER_TOGGLE,
   MSG_RULE_EDITOR,
   MSG_SAVE_RULE,
   MSG_TRANS_GETRULE,
   MSG_TRANS_PUTRULE,
   MSG_TRANS_TOGGLE,
-  MSG_TRANSBOX_TOGGLE,
-  MSG_TRANSINPUT_TOGGLE,
+  MSG_MOUSEHOVER_TOGGLE,
   MSG_TOUCH_TRANSLATE_MODE_SET,
   MSG_TOUCH_TRANSLATE_STATE,
+  OPT_LANGS_FROM_REVERSED,
 } from "../../config";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -60,7 +60,8 @@ let mockIsExt = false;
 let mockContextSetting = { blacklist: "" };
 
 jest.mock("../../hooks/I18n", () => ({
-  useI18n: () => (key, fallback) => fallback || key,
+  useI18n: () => (key, fallback) =>
+    key === "popup_restore_scope_hint" ? "Restore {domain}" : fallback || key,
 }));
 
 jest.mock("../../hooks/Setting", () => ({
@@ -98,6 +99,9 @@ jest.mock("../../libs/log", () => ({
   kissLog: jest.fn(),
 }));
 jest.mock("../../libs/rules", () => ({ saveRule: jest.fn() }));
+jest.mock("../../libs/storage", () => ({
+  getRulesWithDefault: jest.fn(async () => []),
+}));
 jest.mock("../../libs/popupDocument", () => ({
   isCurrentPopupDocument: jest.fn(async () => true),
 }));
@@ -109,14 +113,37 @@ async function flushEffects() {
   });
 }
 
-function openAdvancedOptions(container) {
-  act(() => container.querySelector(".kt-popup-disclosure").click());
+function styleChoices() {
+  return [...document.body.querySelectorAll(".kt-popup-style-chip")];
 }
 
-function renderPopupCont(
-  props = {},
-  { statefulRule = false, statefulSetting = false } = {}
-) {
+function openStyleMenu(container) {
+  act(() => container.querySelector(".kt-popup-style-select").click());
+}
+
+async function selectStyle(container, name) {
+  openStyleMenu(container);
+  const choice = styleChoices().find((item) => item.textContent.includes(name));
+  await act(async () => choice.click());
+}
+
+function languageValues(container) {
+  return [...container.querySelectorAll(".kt-popup-language-select")].map(
+    (button) =>
+      OPT_LANGS_FROM_REVERSED.find(([, name]) => name === button.title)?.[0] ||
+      button.title
+  );
+}
+
+async function selectScope(container, pattern) {
+  act(() => container.querySelector(".kt-popup-pattern-button").click());
+  const choice = [...document.body.querySelectorAll('[role="menuitem"]')].find(
+    (item) => item.textContent.includes(pattern)
+  );
+  await act(async () => choice.click());
+}
+
+function renderPopupCont(props = {}, { statefulRule = false } = {}) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -150,31 +177,29 @@ function renderPopupCont(
     rule,
     setting,
     setRule: jest.fn(),
-    setSetting: jest.fn(),
     handleOpenSetting: jest.fn(),
     ...props,
   };
+  const currentSetting = { ...setting, ...props.setting };
+  let updateLiveSetting;
 
   function StatefulPopup() {
     const [currentRule, setCurrentRule] = useState({ ...rule, ...props.rule });
-    const [currentSetting, setCurrentSetting] = useState({
-      ...setting,
-      ...props.setting,
-    });
+    const [liveSetting, setLiveSetting] = useState(currentSetting);
+    updateLiveSetting = setLiveSetting;
     return (
       <PopupCont
         {...popupProps}
         rule={currentRule}
         setRule={setCurrentRule}
-        setting={currentSetting}
-        setSetting={setCurrentSetting}
+        setting={liveSetting}
       />
     );
   }
 
   act(() => {
     root.render(
-      statefulRule || statefulSetting ? (
+      statefulRule ? (
         <StrictMode>
           <StatefulPopup />
         </StrictMode>
@@ -186,6 +211,9 @@ function renderPopupCont(
 
   return {
     container,
+    updateRuntimeSetting(nextSetting) {
+      act(() => updateLiveSetting(nextSetting));
+    },
     rerender(nextProps) {
       act(() => root.render(<PopupCont {...popupProps} {...nextProps} />));
     },
@@ -217,12 +245,447 @@ describe("PopupCont capability parity", () => {
     mockContextSetting = { blacklist: "" };
     saveRule.mockReset();
     saveRule.mockResolvedValue({ changed: true });
+    getRulesWithDefault.mockReset();
+    getRulesWithDefault.mockResolvedValue([]);
     mockCss.mockClear();
   });
 
   afterEach(() => {
     jest.useRealTimers();
     document.body.innerHTML = "";
+  });
+
+  test.each(["disabled", "removed"])(
+    "automatically selects the first enabled service for %s without saving a site rule",
+    async (apiSlug) => {
+      const transApis = [
+        {
+          apiSlug: "disabled",
+          apiName: "Disabled",
+          isDisabled: true,
+          sortOrder: -2,
+        },
+        { apiSlug: "later", apiName: "Later", sortOrder: 3 },
+        { apiSlug: "pinned", apiName: "Pinned", sortOrder: -1 },
+      ];
+      const processActions = jest.fn(({ args }) => ({ rule: args }));
+      const view = renderPopupCont(
+        { rule: { apiSlug }, setting: { transApis }, processActions },
+        { statefulRule: true }
+      );
+      try {
+        await flushEffects();
+        expect(processActions).toHaveBeenCalledTimes(1);
+        expect(processActions).toHaveBeenCalledWith({
+          action: MSG_TRANS_PUTRULE,
+          args: { apiSlug: "pinned" },
+        });
+        expect(
+          view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+            .textContent
+        ).toBe("Pinned");
+        expect(
+          view.container.querySelectorAll(".kt-popup-service")
+        ).toHaveLength(2);
+        expect(
+          view.container.querySelector(".kt-popup-more-service")
+        ).toBeNull();
+        expect(saveRule).not.toHaveBeenCalled();
+        expect(mockUpdateSetting).not.toHaveBeenCalled();
+      } finally {
+        view.cleanup();
+      }
+    }
+  );
+
+  test("uses current stored services when the page snapshot still contains a disabled choice", async () => {
+    const oldApis = [
+      { apiSlug: "google", apiName: "Google", sortOrder: 0 },
+      { apiSlug: "next", apiName: "Next", sortOrder: 1 },
+    ];
+    const processActions = jest.fn(({ args }) => ({ rule: args }));
+    const view = renderPopupCont(
+      { setting: { transApis: oldApis }, processActions },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      expect(processActions).not.toHaveBeenCalled();
+      mockContextSetting = {
+        blacklist: "",
+        transApis: [{ ...oldApis[0], isDisabled: true }, oldApis[1]],
+      };
+      view.updateRuntimeSetting({ transApis: oldApis });
+      await flushEffects();
+      expect(processActions).toHaveBeenCalledWith({
+        action: MSG_TRANS_PUTRULE,
+        args: { apiSlug: "next" },
+      });
+      expect(view.container.querySelectorAll(".kt-popup-service")).toHaveLength(
+        1
+      );
+      expect(
+        view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+          .textContent
+      ).toBe("Next");
+      expect(saveRule).not.toHaveBeenCalled();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("does not repeatedly retry a rejected automatic fallback", async () => {
+    const processActions = jest.fn(() => {
+      throw new Error("Receiver rejected fallback");
+    });
+    const view = renderPopupCont(
+      { rule: { apiSlug: "removed" }, processActions },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      await flushEffects();
+      expect(processActions).toHaveBeenCalledTimes(1);
+      expect(
+        view.container.querySelector(".kt-popup-action-error")
+      ).not.toBeNull();
+      expect(saveRule).not.toHaveBeenCalled();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test.each([false, true])(
+    "waits for the receiver's API snapshot before settling fallback (needs retry: %s)",
+    async (needsRetry) => {
+      jest.useFakeTimers();
+      const oldApis = [
+        { apiSlug: "old" },
+        { apiSlug: "next", isDisabled: true },
+      ];
+      const newApis = [
+        { apiSlug: "old", isDisabled: true },
+        { apiSlug: "next", apiName: "Next" },
+      ];
+      let writes = 0;
+      const processActions = jest.fn(({ action }) => {
+        if (action === MSG_TRANS_GETRULE)
+          return {
+            rule: { apiSlug: needsRetry ? "old" : "next" },
+            setting: { transApis: newApis },
+          };
+        writes += 1;
+        return writes === 1
+          ? { rule: { apiSlug: "old" }, setting: { transApis: oldApis } }
+          : { rule: { apiSlug: "next" }, setting: { transApis: newApis } };
+      });
+      const view = renderPopupCont(
+        {
+          rule: { apiSlug: "old" },
+          setting: { transApis: newApis },
+          processActions,
+        },
+        { statefulRule: true }
+      );
+      try {
+        await flushEffects();
+        expect(
+          view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+            .textContent
+        ).toBe("Next");
+        for (
+          let step = 0;
+          step < 3 && processActions.mock.calls.length < 2;
+          step += 1
+        ) {
+          await act(async () => jest.advanceTimersByTime(75));
+          await flushEffects();
+        }
+        expect(processActions).toHaveBeenCalledWith({
+          action: MSG_TRANS_GETRULE,
+          args: undefined,
+        });
+        expect(writes).toBe(needsRetry ? 2 : 1);
+        expect(
+          view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+            .textContent
+        ).toBe("Next");
+        expect(
+          view.container.querySelector(".kt-popup-action-error")
+        ).toBeNull();
+        expect(saveRule).not.toHaveBeenCalled();
+      } finally {
+        view.cleanup();
+      }
+    }
+  );
+
+  test("does not resend an old fallback after the user selects another available service", async () => {
+    jest.useFakeTimers();
+    const oldApis = [{ apiSlug: "old" }];
+    const newApis = [
+      { apiSlug: "next", apiName: "Next", sortOrder: 0 },
+      { apiSlug: "manual", apiName: "Manual", sortOrder: 1 },
+    ];
+    const processActions = jest.fn(({ args }) =>
+      args?.apiSlug === "manual"
+        ? { rule: { apiSlug: "manual" }, setting: { transApis: newApis } }
+        : { rule: { apiSlug: "old" }, setting: { transApis: oldApis } }
+    );
+    const view = renderPopupCont(
+      {
+        rule: { apiSlug: "old" },
+        setting: { transApis: newApis },
+        processActions,
+      },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      await act(async () =>
+        Array.from(view.container.querySelectorAll(".kt-popup-service"))
+          .find((button) => button.textContent === "Manual")
+          .click()
+      );
+      await act(async () => jest.advanceTimersByTime(75));
+      await flushEffects();
+      expect(processActions).toHaveBeenCalledTimes(2);
+      expect(
+        view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+          .textContent
+      ).toBe("Manual");
+      expect(view.container.querySelector(".kt-popup-action-error")).toBeNull();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("adopts a newer valid receiver choice instead of overriding it with automatic fallback", async () => {
+    jest.useFakeTimers();
+    const oldApis = [{ apiSlug: "old" }];
+    const newApis = [
+      { apiSlug: "next", apiName: "Next" },
+      { apiSlug: "manual", apiName: "Manual" },
+    ];
+    const processActions = jest.fn(({ action }) =>
+      action === MSG_TRANS_GETRULE
+        ? { rule: { apiSlug: "manual" }, setting: { transApis: newApis } }
+        : { rule: { apiSlug: "old" }, setting: { transApis: oldApis } }
+    );
+    const view = renderPopupCont(
+      {
+        rule: { apiSlug: "old" },
+        setting: { transApis: newApis },
+        processActions,
+      },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      await act(async () => jest.advanceTimersByTime(150));
+      await flushEffects();
+      expect(
+        processActions.mock.calls.filter(
+          ([message]) => message.action === MSG_TRANS_PUTRULE
+        )
+      ).toHaveLength(1);
+      expect(
+        view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+          .textContent
+      ).toBe("Manual");
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test.each([
+    ["disabled", "true", [{ apiSlug: "google", isDisabled: true }]],
+    ["disabled", "false", [{ apiSlug: "google", isDisabled: true }]],
+    ["empty", "true", []],
+    ["empty", "false", []],
+  ])(
+    "disables translation for %s services with transOpen=%s",
+    async (_name, transOpen, transApis) => {
+      const processActions = jest.fn();
+      const view = renderPopupCont(
+        {
+          rule: { apiSlug: "google", transOpen },
+          setting: { transApis },
+          processActions,
+        },
+        { statefulRule: true }
+      );
+      try {
+        await flushEffects();
+        expect(
+          view.container.querySelectorAll(".kt-popup-service")
+        ).toHaveLength(0);
+        const emptyState = view.container.querySelector(
+          ".kt-popup-services-empty"
+        );
+        expect(emptyState.textContent).toBe("popup_no_services");
+        expect(emptyState.getAttribute("role")).toBe("status");
+        expect(view.container.querySelector(".kt-popup-services")).toBeNull();
+        expect(emptyState.querySelector("button")).toBeNull();
+        const translate = view.container.querySelector(
+          ".kt-popup-translate-button"
+        );
+        expect(translate.disabled).toBe(true);
+        expect(translate.getAttribute("aria-pressed")).toBe("false");
+        expect(translate.getAttribute("aria-busy")).toBe("false");
+        expect(
+          view.container.querySelector(".kt-popup-translate-check")
+        ).toBeNull();
+        await act(async () => translate.click());
+        expect(processActions).not.toHaveBeenCalled();
+        expect(saveRule).not.toHaveBeenCalled();
+      } finally {
+        view.cleanup();
+      }
+    }
+  );
+
+  test("recovers the translation action when a service becomes available again", async () => {
+    const api = { apiSlug: "google", apiName: "Google" };
+    const processActions = jest.fn(({ args }) => ({
+      rule:
+        args && "enabled" in args ? { transOpen: String(args.enabled) } : args,
+    }));
+    const view = renderPopupCont(
+      {
+        rule: { transOpen: "false" },
+        setting: { transApis: [api] },
+        processActions,
+      },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      view.updateRuntimeSetting({ transApis: [{ ...api, isDisabled: true }] });
+      await flushEffects();
+      expect(
+        view.container.querySelector(".kt-popup-services-empty")
+      ).not.toBeNull();
+      expect(
+        view.container.querySelector(".kt-popup-translate-button").disabled
+      ).toBe(true);
+      view.updateRuntimeSetting({ transApis: [api] });
+      await flushEffects();
+      expect(
+        view.container.querySelector(".kt-popup-services-empty")
+      ).toBeNull();
+      const translate = view.container.querySelector(
+        ".kt-popup-translate-button"
+      );
+      expect(translate.disabled).toBe(false);
+      await act(async () => translate.click());
+      expect(processActions).toHaveBeenCalledWith({
+        action: MSG_TRANS_TOGGLE,
+        args: { enabled: true },
+      });
+      expect(translate.getAttribute("aria-pressed")).toBe("true");
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("closes an open service menu when the last available service is disabled", async () => {
+    const transApis = ["google", "second", "third", "fourth"].map(
+      (apiSlug) => ({ apiSlug })
+    );
+    const view = renderPopupCont(
+      { setting: { transApis } },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      act(() => view.container.querySelector(".kt-popup-more-service").click());
+      expect(
+        document.body.querySelectorAll(".kt-popup-service-option")
+      ).toHaveLength(4);
+      view.updateRuntimeSetting({
+        transApis: transApis.map((api) => ({ ...api, isDisabled: true })),
+      });
+      await flushEffects();
+      expect(document.body.querySelector(".kt-popup-service-menu")).toBeNull();
+      view.updateRuntimeSetting({ transApis });
+      await flushEffects();
+      expect(document.body.querySelector(".kt-popup-service-menu")).toBeNull();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("keeps blacklist recovery available without enabled services", async () => {
+    mockContextSetting = { blacklist: "example.com" };
+    const view = renderPopupCont({
+      setting: { transApis: [] },
+      isDisabledPage: true,
+      capabilities: { pageTranslation: false },
+    });
+    try {
+      await flushEffects();
+      const restore = view.container.querySelector(
+        ".kt-popup-translate-button"
+      );
+      expect(restore.disabled).toBe(false);
+      expect(restore.getAttribute("aria-label")).toBe("popup_restore_site");
+      await act(async () => restore.click());
+      expect(mockUpdateSetting).toHaveBeenCalled();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("rediscovers a disabled page after its blacklist changes in another extension page", async () => {
+    mockContextSetting = { blacklist: "example.com" };
+    const onPageUnavailable = jest.fn();
+    const view = renderPopupCont({
+      isDisabledPage: true,
+      targetTab: { id: 42, url: "https://example.com/page" },
+      capabilities: { pageTranslation: false },
+      onPageUnavailable,
+    });
+    try {
+      await flushEffects();
+      expect(onPageUnavailable).not.toHaveBeenCalled();
+      mockSendTopFrameMsg.mockResolvedValue({
+        rule: { transOpen: "false" },
+        setting: {},
+        document: { token: "resumed", frameId: 0 },
+      });
+      mockContextSetting = { blacklist: "" };
+      view.rerender({});
+      await flushEffects();
+      expect(mockSendTopFrameMsg).toHaveBeenCalledWith(
+        MSG_TRANS_GETRULE,
+        undefined,
+        42
+      );
+      expect(onPageUnavailable).toHaveBeenCalledTimes(1);
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("ignores disabled-page recovery when the popup is retired before the receiver replies", async () => {
+    let reply;
+    mockSendTopFrameMsg.mockReturnValue(
+      new Promise((resolve) => {
+        reply = resolve;
+      })
+    );
+    const onPageUnavailable = jest.fn();
+    const view = renderPopupCont({
+      isDisabledPage: true,
+      targetTab: { id: 42, url: "https://example.com/page" },
+      capabilities: { pageTranslation: false },
+      onPageUnavailable,
+    });
+    await flushEffects();
+    view.cleanup();
+    await act(async () => reply({ rule: { transOpen: "false" }, setting: {} }));
+    expect(onPageUnavailable).not.toHaveBeenCalled();
   });
 
   test("real touch controls appear below the hero and use the page receiver", async () => {
@@ -452,46 +915,34 @@ describe("PopupCont capability parity", () => {
     }
   });
 
-  test("keeps site actions available while scene controls and tools are collapsed", async () => {
+  test("keeps page options and site tools available without an advanced disclosure", async () => {
     const view = renderPopupCont();
     try {
       await flushEffects();
-      const disclosure = view.container.querySelector(".kt-popup-disclosure");
-      const advancedPanel = document.getElementById(
-        disclosure.getAttribute("aria-controls")
-      );
-      const site = view.container.querySelector(".kt-popup-site");
-
-      expect(disclosure.getAttribute("aria-expanded")).toBe("false");
-      expect(advancedPanel.hidden).toBe(true);
-      expect(advancedPanel.querySelector("button")).toBeNull();
+      expect(view.container.querySelector(".kt-popup-disclosure")).toBeNull();
       expect(
-        Array.from(site.querySelectorAll("button")).map(
-          (button) => button.textContent
-        )
-      ).toEqual(["save_rule", "add_to_blacklist"]);
-      expect(site.querySelector("select").title).toBe(
-        site.querySelector("select").value
-      );
-
-      openAdvancedOptions(view.container);
-
-      expect(disclosure.getAttribute("aria-expanded")).toBe("true");
-      expect(advancedPanel.hidden).toBe(false);
-      expect(advancedPanel.querySelectorAll(".kt-popup-scene")).toHaveLength(3);
+        [
+          ...view.container.querySelectorAll(
+            '.kt-popup-option-row[role="switch"]'
+          ),
+        ].map((row) => row.getAttribute("aria-label"))
+      ).toEqual([
+        "autoscan_alt",
+        "scan_all_nodes",
+        "richtext_alt",
+        "plain_text_translate",
+      ]);
       expect(
-        Array.from(
-          advancedPanel.querySelectorAll(".kt-popup-advanced-tools button")
-        ).map((button) => button.textContent)
-      ).toEqual(["rule_editor_open", "clear_cache"]);
-
-      disclosure.focus();
-      act(() => disclosure.click());
-
-      expect(disclosure.getAttribute("aria-expanded")).toBe("false");
-      expect(advancedPanel.hidden).toBe(true);
-      expect(advancedPanel.querySelector("button")).toBeNull();
-      expect(document.activeElement).toBe(disclosure);
+        view.container.querySelector(".kt-popup-editor-button")
+      ).not.toBeNull();
+      expect(
+        view.container.querySelector(".kt-popup-save-button")
+      ).not.toBeNull();
+      expect(
+        view.container.querySelector(".kt-popup-cache-button")
+      ).not.toBeNull();
+      expect(view.container.querySelector(".MuiSnackbar-root")).toBeNull();
+      expect(view.container.querySelector('[role="alert"]')).toBeNull();
     } finally {
       view.cleanup();
     }
@@ -503,23 +954,18 @@ describe("PopupCont capability parity", () => {
     try {
       await flushEffects();
       const siteButtons = view.container.querySelectorAll(
-        ".kt-popup-site__actions button"
+        ".kt-popup-save-button, .kt-popup-disable-button"
       );
       expect(siteButtons).toHaveLength(2);
       siteButtons.forEach((button) => expect(button.disabled).toBe(true));
 
-      openAdvancedOptions(view.container);
-      const clearCache = view.container.querySelector(
-        'button[aria-label="clear_cache"]'
-      );
+      const clearCache = view.container.querySelector(".kt-popup-cache-button");
       expect(clearCache.disabled).toBe(false);
 
       await act(async () => clearCache.click());
 
       expect(tryClearCaches).toHaveBeenCalledTimes(1);
-      expect(
-        view.container.querySelector('[role="alert"]').textContent
-      ).toContain("clear_success");
+      expect(view.container.textContent).toContain("popup_cache_cleared");
     } finally {
       view.cleanup();
     }
@@ -533,10 +979,9 @@ describe("PopupCont capability parity", () => {
     const view = renderPopupCont({ processActions, isContent: true });
     try {
       await flushEffects();
-      openAdvancedOptions(view.container);
-      const openEditor = Array.from(
-        view.container.querySelectorAll("button")
-      ).find((button) => button.textContent === "rule_editor_open");
+      const openEditor = view.container.querySelector(
+        ".kt-popup-editor-button"
+      );
 
       await act(async () => openEditor.click());
 
@@ -562,10 +1007,9 @@ describe("PopupCont capability parity", () => {
     const view = renderPopupCont();
     try {
       await flushEffects();
-      openAdvancedOptions(view.container);
-      const openEditor = Array.from(
-        view.container.querySelectorAll("button")
-      ).find((button) => button.textContent === "rule_editor_open");
+      const openEditor = view.container.querySelector(
+        ".kt-popup-editor-button"
+      );
 
       act(() => openEditor.click());
 
@@ -601,10 +1045,7 @@ describe("PopupCont capability parity", () => {
     );
     await flushEffects();
     const swap = view.container.querySelector(".kt-popup-swap");
-    const languages = () =>
-      Array.from(
-        view.container.querySelectorAll(".kt-popup-language-select input")
-      ).map((input) => input.value);
+    const languages = () => languageValues(view.container);
 
     expect(languages()).toEqual(["en", "fr"]);
     act(() => swap.click());
@@ -661,11 +1102,7 @@ describe("PopupCont capability parity", () => {
       action: MSG_TRANS_PUTRULE,
       args: { fromLang: "en", toLang: "fr" },
     });
-    expect(
-      Array.from(
-        view.container.querySelectorAll(".kt-popup-language-select input")
-      ).map((input) => input.value)
-    ).toEqual(["en", "fr"]);
+    expect(languageValues(view.container)).toEqual(["en", "fr"]);
 
     await act(async () =>
       view.container.querySelector(".kt-popup-service").click()
@@ -680,100 +1117,42 @@ describe("PopupCont capability parity", () => {
     view.cleanup();
   });
 
-  test("keeps the active style visible and the disclosure after all visible styles", async () => {
-    const view = renderPopupCont({}, { statefulRule: true });
-    await flushEffects();
-
-    const advancedButton = Array.from(
-      view.container.querySelectorAll("button")
-    ).find((button) => button.textContent.includes("popup_advanced_options"));
-    act(() => advancedButton.click());
-    expect(view.container.querySelectorAll("label label")).toHaveLength(0);
-    expect(
-      view.container.querySelector('input[aria-label="show_only_translations"]')
-    ).not.toBeNull();
-
-    let styleButtons = view.container.querySelectorAll(
-      ".kt-popup-style-chip:not(.kt-popup-style-more)"
-    );
-    expect(styleButtons).toHaveLength(5);
-    expect(
-      view.container.querySelector(
-        '.kt-popup-style-chip[aria-pressed="true"] small'
-      ).textContent
-    ).toBe("Style 6");
-
-    const allStylesButton = view.container.querySelector(
-      ".kt-popup-style-more"
-    );
-    expect(
-      allStylesButton.parentElement.classList.contains("kt-popup-style-chips")
-    ).toBe(true);
-    expect(allStylesButton.textContent).toContain("+2");
-    expect(allStylesButton.getAttribute("aria-label")).toBe(
-      "popup_all_styles (2)"
-    );
-    expect(allStylesButton.getAttribute("aria-expanded")).toBe("false");
-    expect(allStylesButton.nextElementSibling).toBeNull();
-    allStylesButton.focus();
-    act(() => allStylesButton.click());
-
-    styleButtons = view.container.querySelectorAll(
-      ".kt-popup-style-chip:not(.kt-popup-style-more)"
-    );
-    expect(styleButtons).toHaveLength(7);
-    expect(allStylesButton.textContent).toContain("popup_collapse");
-    expect(allStylesButton.getAttribute("aria-expanded")).toBe("true");
-    expect(allStylesButton.previousElementSibling.textContent).toContain(
-      "Style 6"
-    );
-    expect(allStylesButton.nextElementSibling).toBeNull();
-    expect(document.activeElement).toBe(allStylesButton);
-
-    const newlyVisibleStyle = Array.from(styleButtons).find((button) =>
-      button.textContent.includes("Style 5")
-    );
-    newlyVisibleStyle.focus();
-    act(() => newlyVisibleStyle.click());
-    expect(document.activeElement).toBe(newlyVisibleStyle);
-    allStylesButton.focus();
-    act(() => allStylesButton.click());
-
-    expect(
-      view.container.querySelectorAll(
-        ".kt-popup-style-chip:not(.kt-popup-style-more)"
-      )
-    ).toHaveLength(5);
-    expect(
-      view.container.querySelector(
-        '.kt-popup-style-chip[aria-pressed="true"] small'
-      ).textContent
-    ).toBe("Style 5");
-    expect(allStylesButton.getAttribute("aria-expanded")).toBe("false");
-    expect(allStylesButton.textContent).toContain("+2");
-    expect(allStylesButton.nextElementSibling).toBeNull();
-    expect(document.activeElement).toBe(allStylesButton);
-    view.cleanup();
-  });
-
-  test("previews built-in styles without compiling custom style code", async () => {
-    const view = renderPopupCont();
-    await flushEffects();
-
-    const advancedButton = Array.from(
-      view.container.querySelectorAll("button")
-    ).find((button) => button.textContent.includes("popup_advanced_options"));
-    act(() => advancedButton.click());
-
-    const compiledStyleCode = JSON.stringify(mockCss.mock.calls);
-    expect(compiledStyleCode).toContain(mockStyles[0].styleCode);
-    expect(compiledStyleCode).not.toContain(DANGEROUS_STYLE_CODE);
-
-    const customStyleButton = Array.from(
-      view.container.querySelectorAll(".kt-popup-style-chip")
-    ).find((button) => button.textContent.includes("Style 6"));
-    expect(customStyleButton.querySelector("span").className).toBe("");
-    view.cleanup();
+  test("shows all style choices in a portal menu and keeps the selected custom style", async () => {
+    const processActions = jest.fn(({ args }) => ({ rule: args }));
+    const view = renderPopupCont({ processActions }, { statefulRule: true });
+    try {
+      await flushEffects();
+      const trigger = view.container.querySelector(".kt-popup-style-select");
+      expect(trigger.textContent).toContain("Style 6");
+      expect(styleChoices()).toHaveLength(0);
+      openStyleMenu(view.container);
+      const choices = styleChoices();
+      expect(choices).toHaveLength(7);
+      expect(
+        choices.find((item) => item.getAttribute("aria-pressed") === "true")
+          .textContent
+      ).toContain("Style 6");
+      expect(view.container.querySelector(".kt-popup-style-chip")).toBeNull();
+      expect(JSON.stringify(mockCss.mock.calls)).toContain(
+        mockStyles[0].styleCode
+      );
+      expect(JSON.stringify(mockCss.mock.calls)).not.toContain(
+        DANGEROUS_STYLE_CODE
+      );
+      const nextStyle = choices.find((item) =>
+        item.textContent.includes("Style 5")
+      );
+      await act(async () => nextStyle.click());
+      expect(processActions).toHaveBeenCalledWith({
+        action: MSG_TRANS_PUTRULE,
+        args: { textStyle: "style_5" },
+      });
+      expect(trigger.textContent).toContain("Style 5");
+      expect(trigger.getAttribute("aria-expanded")).toBe("false");
+      expect(view.container.querySelector(".MuiSnackbar-root")).toBeNull();
+    } finally {
+      view.cleanup();
+    }
   });
 
   test("waits for cache clearing before showing success", async () => {
@@ -786,20 +1165,15 @@ describe("PopupCont capability parity", () => {
     );
     const view = renderPopupCont();
     await flushEffects();
-    openAdvancedOptions(view.container);
-    const clearCache = view.container.querySelector(
-      'button[aria-label="clear_cache"]'
-    );
+    const clearCache = view.container.querySelector(".kt-popup-cache-button");
 
     act(() => clearCache.click());
     expect(tryClearCaches).toHaveBeenCalledTimes(1);
-    expect(view.container.textContent).not.toContain("clear_success");
-    expect(view.container.textContent).not.toContain("clear_failed");
+    expect(view.container.textContent).not.toContain("popup_cache_cleared");
+    expect(view.container.textContent).not.toContain("popup_cache_failed");
 
     await act(async () => resolveClear(true));
-    expect(
-      view.container.querySelector('[role="alert"]').textContent
-    ).toContain("clear_success");
+    expect(view.container.textContent).toContain("popup_cache_cleared");
     view.cleanup();
   });
 
@@ -807,36 +1181,28 @@ describe("PopupCont capability parity", () => {
     tryClearCaches.mockResolvedValueOnce(false);
     const view = renderPopupCont();
     await flushEffects();
-    openAdvancedOptions(view.container);
-    const clearCache = view.container.querySelector(
-      'button[aria-label="clear_cache"]'
-    );
+    const clearCache = view.container.querySelector(".kt-popup-cache-button");
 
     await act(async () => clearCache.click());
-    expect(
-      view.container.querySelector('[role="alert"]').textContent
-    ).toContain("clear_failed");
-    expect(view.container.textContent).not.toContain("clear_success");
+    expect(view.container.textContent).toContain("popup_cache_failed");
+    expect(view.container.textContent).not.toContain("popup_cache_cleared");
     view.cleanup();
   });
 
-  test("restarts Snackbar timing for consecutive messages", async () => {
+  test("restores the cache action after its inline result timeout", async () => {
+    jest.useFakeTimers();
     const view = renderPopupCont();
-    await flushEffects();
-    openAdvancedOptions(view.container);
-    const clearCache = view.container.querySelector(
-      'button[aria-label="clear_cache"]'
-    );
-
-    await act(async () => clearCache.click());
-    const firstSnackbar = document.body.querySelector(".MuiSnackbar-root");
-    expect(firstSnackbar.textContent).toContain("clear_success");
-
-    await act(async () => clearCache.click());
-    const secondSnackbar = document.body.querySelector(".MuiSnackbar-root");
-    expect(secondSnackbar).not.toBe(firstSnackbar);
-    expect(secondSnackbar.textContent).toContain("clear_success");
-    view.cleanup();
+    try {
+      await flushEffects();
+      const clearCache = view.container.querySelector(".kt-popup-cache-button");
+      await act(async () => clearCache.click());
+      expect(clearCache.textContent).not.toContain("clear_cache");
+      expect(view.container.querySelector(".MuiSnackbar-root")).toBeNull();
+      act(() => jest.advanceTimersByTime(2000));
+      expect(clearCache.textContent).toContain("clear_cache");
+    } finally {
+      view.cleanup();
+    }
   });
 
   test("leaves browser popup support actions in the header menu", async () => {
@@ -877,47 +1243,158 @@ describe("PopupCont capability parity", () => {
     await flushEffects();
 
     expect(
-      view.container.querySelector(".kt-popup-hero__subtitle").textContent
+      view.container.querySelector(".kt-popup-translate-button").title
     ).toContain("Alt+Q");
     expect(
-      view.container.querySelector(".kt-popup-hero__subtitle").textContent
+      view.container.querySelector(".kt-popup-translate-button").title
     ).not.toContain("AltLeft+KeyQ");
     view.cleanup();
   });
 
-  test("keeps runtime-dependent subtitle control outside the Popup-only scope", async () => {
-    const view = renderPopupCont();
+  test("shows persistent global segments without changing preferences until clicked", async () => {
+    const processActions = jest.fn();
+    const setting = {
+      tranboxSetting: { transOpen: true },
+      mouseHoverSetting: { useMouseHover: true },
+      inputRule: { transOpen: true },
+    };
+    const view = renderPopupCont({ processActions, setting });
     await flushEffects();
-    openAdvancedOptions(view.container);
 
-    const featureLabelNodes = Array.from(
-      view.container.querySelectorAll(".kt-popup-scene__label")
-    );
-    const featureLabels = featureLabelNodes.map((node) => node.textContent);
-    expect(featureLabels).toEqual([
+    [
       "selection_translate",
-      "mousehover_translate",
+      "popup_hover_translation",
       "input_translate",
-    ]);
-    expect(featureLabels).not.toContain("subtitle_translate");
-    featureLabelNodes.forEach((node) => {
-      expect(node.title).toBe(node.textContent);
+    ].forEach((label) => {
+      expect(view.container.textContent).toContain(label);
+    });
+    expect(processActions).not.toHaveBeenCalled();
+    expect(mockUpdateSetting).not.toHaveBeenCalled();
+    const group = view.container.querySelector(".kt-popup-global-features");
+    expect(group.previousElementSibling.className).toBe(
+      "kt-popup-settings-grid"
+    );
+    expect(group.nextElementSibling.className).toBe("kt-popup-bottom-actions");
+    expect(group.getAttribute("role")).toBe("group");
+    expect(group.closest('[aria-disabled="true"]')).toBeNull();
+    expect(setting).toEqual({
+      tranboxSetting: { transOpen: true },
+      mouseHoverSetting: { useMouseHover: true },
+      inputRule: { transOpen: true },
     });
     view.cleanup();
   });
 
-  test("dispatches one explicit page translation state from the main switch", async () => {
+  test("confirms and persists a global toggle without dirtying or saving it in a site rule", async () => {
+    mockContextSetting = {
+      blacklist: "",
+      mouseHoverSetting: { useMouseHover: false, retained: true },
+    };
+    mockUpdateSetting.mockImplementation(async (reduce) => {
+      mockContextSetting = reduce(mockContextSetting);
+      return { value: mockContextSetting, changed: true };
+    });
+    const processActions = jest.fn(({ action, args }) =>
+      action === MSG_MOUSEHOVER_TOGGLE
+        ? { setting: { mouseHoverSetting: { useMouseHover: args.enabled } } }
+        : undefined
+    );
+    const view = renderPopupCont({ processActions });
+    try {
+      await flushEffects();
+      await act(async () =>
+        view.container
+          .querySelector('.kt-popup-global-feature[data-feature="hover"]')
+          .click()
+      );
+      expect(processActions).toHaveBeenCalledWith({
+        action: MSG_MOUSEHOVER_TOGGLE,
+        args: { enabled: true },
+      });
+      expect(mockContextSetting.mouseHoverSetting).toEqual({
+        useMouseHover: true,
+        retained: true,
+      });
+      expect(
+        view.container
+          .querySelector(".kt-popup-save-button")
+          .getAttribute("data-dirty-count")
+      ).toBe("0");
+      await act(async () =>
+        view.container.querySelector(".kt-popup-save-button").click()
+      );
+      expect(saveRule.mock.calls[0][0].pattern).toBe("example.com");
+      for (const name of ["tranboxSetting", "mouseHoverSetting", "inputRule"])
+        expect(saveRule.mock.calls[0][0]).not.toHaveProperty(name);
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("keeps permitted global preferences available in the disabled-site snapshot", async () => {
+    mockContextSetting = {
+      blacklist: "example.com",
+      mouseHoverSetting: { useMouseHover: false },
+    };
+    mockUpdateSetting.mockImplementation(async (reduce) => {
+      mockContextSetting = reduce(mockContextSetting);
+      return { value: mockContextSetting, changed: true };
+    });
+    const processActions = jest.fn();
+    const view = renderPopupCont({
+      isDisabledPage: true,
+      processActions,
+      capabilities: {
+        pageTranslation: false,
+        selectionTranslation: false,
+        hoverTranslation: true,
+        inputTranslation: true,
+      },
+    });
+    try {
+      await flushEffects();
+      expect(
+        view.container.querySelectorAll(".kt-popup-global-feature")
+      ).toHaveLength(2);
+      expect(
+        view.container
+          .querySelector(".kt-popup-global-features")
+          .closest('[aria-disabled="true"]')
+      ).toBeNull();
+      const hover = view.container.querySelector(
+        '.kt-popup-global-feature[data-feature="hover"]'
+      );
+      expect(hover.disabled).toBe(false);
+      await act(async () => hover.click());
+      expect(mockContextSetting.mouseHoverSetting.useMouseHover).toBe(true);
+      expect(processActions).not.toHaveBeenCalled();
+      expect(
+        view.container
+          .querySelector(".kt-popup-settings-grid")
+          .getAttribute("aria-disabled")
+      ).toBe("true");
+      expect(
+        view.container
+          .querySelector(".kt-popup-save-button")
+          .getAttribute("data-dirty-count")
+      ).toBe("0");
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("dispatches one explicit page translation state from the main action", async () => {
     const processActions = jest.fn(({ args }) => ({
       rule: { transOpen: args.enabled ? "true" : "false" },
     }));
     const view = renderPopupCont({ processActions }, { statefulRule: true });
     await flushEffects();
 
-    const mainSwitch = view.container.querySelector(
-      'input[aria-label="popup_translate_page"]'
+    const mainAction = view.container.querySelector(
+      ".kt-popup-translate-button"
     );
     await act(async () => {
-      mainSwitch.click();
+      mainAction.click();
       await Promise.resolve();
     });
 
@@ -926,7 +1403,7 @@ describe("PopupCont capability parity", () => {
       action: MSG_TRANS_TOGGLE,
       args: { enabled: false },
     });
-    expect(mainSwitch.checked).toBe(false);
+    expect(mainAction.getAttribute("aria-pressed")).toBe("false");
     expect(view.container.querySelector('[role="alert"]')).toBeNull();
     view.cleanup();
   });
@@ -941,7 +1418,7 @@ describe("PopupCont capability parity", () => {
         })
     );
     let liveRule = {
-      transOpen: "true",
+      transOpen: "false",
       apiSlug: "google",
       fromLang: "auto",
       toLang: "zh-CN",
@@ -949,28 +1426,30 @@ describe("PopupCont capability parity", () => {
     const setRule = jest.fn((update) => {
       liveRule = typeof update === "function" ? update(liveRule) : update;
     });
-    const view = renderPopupCont({ processActions, setRule });
+    const view = renderPopupCont({ processActions, setRule, rule: liveRule });
     await flushEffects();
 
-    const mainSwitch = view.container.querySelector(
-      'input[aria-label="popup_translate_page"]'
+    const mainAction = view.container.querySelector(
+      ".kt-popup-translate-button"
     );
-    act(() => mainSwitch.click());
-    expect(liveRule.transOpen).toBe("false");
-    expect(mainSwitch.disabled).toBe(true);
-    expect(mainSwitch.getAttribute("aria-busy")).toBe("true");
+    act(() => mainAction.click());
+    expect(liveRule.transOpen).toBe("true");
+    expect(mainAction.disabled).toBe(true);
+    expect(mainAction.getAttribute("aria-busy")).toBe("true");
     expect(
       view.container.querySelector(".kt-popup-hero").getAttribute("aria-busy")
     ).toBe("true");
 
-    act(() => view.container.querySelector(".kt-popup-hero").click());
+    act(() =>
+      view.container.querySelector(".kt-popup-translate-button").click()
+    );
     expect(processActions).toHaveBeenCalledTimes(1);
 
     liveRule = { ...liveRule, apiSlug: "deepl", toLang: "fr" };
     await act(async () => {
       resolveAction({
         rule: {
-          transOpen: "false",
+          transOpen: "true",
           apiSlug: "stale-service",
           toLang: "stale-language",
         },
@@ -978,7 +1457,7 @@ describe("PopupCont capability parity", () => {
       await Promise.resolve();
     });
 
-    expect(mainSwitch.disabled).toBe(false);
+    expect(mainAction.disabled).toBe(false);
     expect(
       view.container.querySelector(".kt-popup-hero").getAttribute("aria-busy")
     ).toBe("true");
@@ -988,7 +1467,7 @@ describe("PopupCont capability parity", () => {
     ).toBe("false");
 
     expect(liveRule).toMatchObject({
-      transOpen: "false",
+      transOpen: "true",
       apiSlug: "deepl",
       toLang: "fr",
     });
@@ -1027,11 +1506,11 @@ describe("PopupCont capability parity", () => {
     const view = renderPopupCont({ setRule });
     await flushEffects();
 
-    const mainSwitch = view.container.querySelector(
-      'input[aria-label="popup_translate_page"]'
+    const mainAction = view.container.querySelector(
+      ".kt-popup-translate-button"
     );
     await act(async () => {
-      mainSwitch.click();
+      mainAction.click();
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -1070,21 +1549,23 @@ describe("PopupCont capability parity", () => {
     const view = renderPopupCont({ setRule });
     await flushEffects();
 
-    const mainSwitch = view.container.querySelector(
-      'input[aria-label="popup_translate_page"]'
+    const mainAction = view.container.querySelector(
+      ".kt-popup-translate-button"
     );
     await act(async () => {
-      mainSwitch.click();
+      mainAction.click();
       await Promise.resolve();
       await Promise.resolve();
     });
 
     expect(liveRule.transOpen).toBe("true");
     expect(setRule).toHaveBeenCalledTimes(2);
-    const alert = view.container.querySelector('[role="alert"]');
+    const alert = view.container.querySelector(
+      ".kt-popup-translate-label--error"
+    );
     expect(alert).not.toBeNull();
     expect(alert.textContent).toContain("rule_toggle_failed");
-    expect(alert.className).toContain("MuiAlert-filledError");
+    expect(view.container.querySelector(".MuiSnackbar-root")).toBeNull();
     view.cleanup();
   });
 
@@ -1102,9 +1583,7 @@ describe("PopupCont capability parity", () => {
     await flushEffects();
 
     await act(async () => {
-      view.container
-        .querySelector('input[aria-label="popup_translate_page"]')
-        .click();
+      view.container.querySelector(".kt-popup-translate-button").click();
     });
     await flushEffects();
 
@@ -1140,68 +1619,91 @@ describe("PopupCont capability parity", () => {
     const view = renderPopupCont({ setRule });
     await flushEffects();
 
-    const mainSwitch = view.container.querySelector(
-      'input[aria-label="popup_translate_page"]'
+    const mainAction = view.container.querySelector(
+      ".kt-popup-translate-button"
     );
     await act(async () => {
-      mainSwitch.click();
+      mainAction.click();
       await Promise.resolve();
       await Promise.resolve();
     });
 
     expect(liveRule.transOpen).toBe("true");
-    expect(
-      view.container.querySelector('[role="alert"]').textContent
-    ).toContain("rule_toggle_failed");
+    expect(view.container.textContent).toContain("rule_toggle_failed");
     view.cleanup();
   });
 
-  test("labels and exposes the service disclosure state", async () => {
+  test("selects an overflow service from a portal menu without growing the service row", async () => {
     const setting = {
-      transApis: ["google", "deepl", "microsoft", "openai"].map((apiSlug) => ({
-        apiSlug,
-        apiName: apiSlug,
-        apiType: apiSlug,
-      })),
-      tranboxSetting: { transOpen: true },
-      mouseHoverSetting: { useMouseHover: false },
-      inputRule: { transOpen: true },
-      shortcuts: { toggleTranslate: ["AltLeft", "KeyQ"] },
+      transApis: ["google", "deepl", "microsoft", "openai", "claude"].map(
+        (apiSlug) => ({
+          apiSlug,
+          apiName: apiSlug,
+          apiType: apiSlug,
+        })
+      ),
     };
-    const view = renderPopupCont({ setting });
-    await flushEffects();
-
-    const moreServices = view.container.querySelector(".kt-popup-more-service");
-    expect(moreServices.getAttribute("aria-label")).toBe(
-      "popup_more_services (2)"
+    const processActions = jest.fn(({ args }) => ({ rule: args }));
+    const view = renderPopupCont(
+      { setting, processActions },
+      { statefulRule: true }
     );
-    expect(moreServices.getAttribute("aria-expanded")).toBe("false");
-
-    act(() => moreServices.click());
-
-    expect(moreServices.getAttribute("aria-label")).toBe(
-      "popup_collapse: popup_more_services"
-    );
-    expect(moreServices.getAttribute("aria-expanded")).toBe("true");
-    expect(moreServices.className).toContain("kt-popup-more-service--open");
-    view.cleanup();
+    try {
+      await flushEffects();
+      const visibleServices = () => [
+        ...view.container.querySelectorAll(".kt-popup-service"),
+      ];
+      expect(visibleServices()).toHaveLength(3);
+      const moreServices = view.container.querySelector(
+        ".kt-popup-more-service"
+      );
+      expect(moreServices.getAttribute("aria-expanded")).toBe("false");
+      act(() => moreServices.click());
+      expect(moreServices.getAttribute("aria-expanded")).toBe("true");
+      const choices = [...document.body.querySelectorAll('[role="menuitem"]')];
+      const overflowService = choices.find((choice) =>
+        choice.textContent.includes("openai")
+      );
+      expect(overflowService).toBeDefined();
+      expect(view.container.contains(overflowService)).toBe(false);
+      await act(async () => overflowService.click());
+      expect(processActions).toHaveBeenCalledWith({
+        action: MSG_TRANS_PUTRULE,
+        args: { apiSlug: "openai" },
+      });
+      expect(visibleServices()).toHaveLength(3);
+      expect(visibleServices().map((service) => service.textContent)).toEqual([
+        "google",
+        "deepl",
+        "openai",
+      ]);
+      expect(moreServices.getAttribute("aria-expanded")).toBe("false");
+    } finally {
+      view.cleanup();
+    }
   });
 
-  test("describes a site outside the blacklist without implying translation is active", async () => {
+  test("shows the normal translation action without a disabled-site badge", async () => {
     const view = renderPopupCont();
-    await flushEffects();
-
-    expect(
-      view.container.querySelector(".kt-popup-site__badge").textContent
-    ).toBe("popup_domain_allowed");
-    view.cleanup();
+    try {
+      await flushEffects();
+      expect(
+        view.container.querySelector(".kt-popup-hero--blocked")
+      ).toBeNull();
+      expect(
+        view.container.querySelector(".kt-popup-translate-button").disabled
+      ).toBe(false);
+      expect(
+        view.container.querySelector(".kt-popup-blocked-badge")
+      ).toBeNull();
+    } finally {
+      view.cleanup();
+    }
   });
 
   test.each(["add", "remove"])(
-    "rebases a blacklist %s and waits for persistence before reporting success",
+    "rebases a blacklist %s and waits for persistence before showing its result",
     async (operation) => {
-      const actionLabel =
-        operation === "add" ? "add_to_blacklist" : "remove_from_blacklist";
       mockContextSetting = {
         blacklist: operation === "remove" ? "example.com" : "",
       };
@@ -1212,11 +1714,13 @@ describe("PopupCont capability parity", () => {
       const view = renderPopupCont();
       try {
         await flushEffects();
-        const action = Array.from(
-          view.container.querySelectorAll("button")
-        ).find((button) => button.textContent === actionLabel);
+        const action =
+          operation === "remove"
+            ? view.container.querySelector(".kt-popup-translate-button")
+            : [...view.container.querySelectorAll("button")].find((button) =>
+                button.textContent.includes("popup_disable_site")
+              );
         act(() => action.click());
-
         const reduce = mockUpdateSetting.mock.calls[0][0];
         const current = {
           blacklist: "example.com,other.example",
@@ -1225,7 +1729,7 @@ describe("PopupCont capability parity", () => {
         const value = reduce(current);
         expect(value).toEqual(
           operation === "add"
-            ? current
+            ? { blacklist: "example.com\nother.example", retained: true }
             : { blacklist: "other.example", retained: true }
         );
         if (operation === "add") {
@@ -1233,31 +1737,86 @@ describe("PopupCont capability parity", () => {
             "other.example\nexample.com"
           );
         }
-        expect(view.container.querySelector('[role="alert"]')).toBeNull();
-
+        expect(view.container.querySelector(".MuiSnackbar-root")).toBeNull();
         await act(async () => completeSave({ value, changed: true }));
-
-        expect(view.container.querySelector('[role="alert"]').textContent).toBe(
-          `${actionLabel}: example.com`
-        );
+        expect(view.container.querySelector('[role="alert"]')).toBeNull();
       } finally {
         view.cleanup();
       }
     }
   );
 
-  test("reports a blacklist write failure without a success message", async () => {
+  test("reports a blacklist write failure inline and keeps page controls enabled", async () => {
     mockUpdateSetting.mockRejectedValueOnce(new Error("Storage unavailable"));
     const view = renderPopupCont();
     try {
       await flushEffects();
-      const action = Array.from(view.container.querySelectorAll("button")).find(
-        (button) => button.textContent === "add_to_blacklist"
+      const action = [...view.container.querySelectorAll("button")].find(
+        (button) => button.textContent.includes("popup_disable_site")
       );
       await act(async () => action.click());
+      expect(
+        view.container.querySelector(".kt-popup-action-error")
+      ).not.toBeNull();
+      expect(
+        view.container.querySelector(".kt-popup-translate-button").disabled
+      ).toBe(false);
+      expect(view.container.querySelector(".MuiSnackbar-root")).toBeNull();
+    } finally {
+      view.cleanup();
+    }
+  });
 
-      expect(view.container.querySelector('[role="alert"]').textContent).toBe(
-        "error_got_some_wrong"
+  test("restores only the selected blacklist scope and preserves overlapping broad entries", async () => {
+    mockContextSetting = {
+      blacklist: "docs.example.com\n*.example.com\nother.example\n*",
+      retained: true,
+    };
+    mockUpdateSetting.mockImplementation(async (reduce) => {
+      const value = reduce(mockContextSetting);
+      mockContextSetting = value;
+      return { value, changed: true };
+    });
+    const view = renderPopupCont({
+      targetTab: { id: 42, url: "https://docs.example.com/page" },
+    });
+    try {
+      await flushEffects();
+      const restore = view.container.querySelector(
+        ".kt-popup-translate-button"
+      );
+      expect(restore.getAttribute("aria-label")).toBe("popup_restore_site");
+      expect(
+        [
+          ...view.container.querySelectorAll(
+            '.kt-popup-option-row[role="switch"]'
+          ),
+        ].every((row) => row.disabled)
+      ).toBe(true);
+      expect(
+        view.container.querySelector(".kt-popup-style-select").disabled
+      ).toBe(true);
+      expect(restore.title).toContain("docs.example.com");
+      await act(async () => restore.click());
+      expect(mockContextSetting).toEqual({
+        blacklist: "*.example.com\nother.example\n*",
+        retained: true,
+      });
+      expect(restore.getAttribute("aria-label")).toBe("popup_restore_site");
+      await selectScope(view.container, "*.example.com");
+      expect(restore.title).toContain("*.example.com");
+      await act(async () => restore.click());
+      expect(mockContextSetting).toEqual({
+        blacklist: "other.example\n*",
+        retained: true,
+      });
+      expect(restore.getAttribute("aria-label")).toBe("popup_restore_site");
+      expect(
+        view.container.querySelector(".kt-popup-style-select").disabled
+      ).toBe(true);
+      expect(mockSendTabMsg).not.toHaveBeenCalledWith(
+        MSG_TRANS_TOGGLE,
+        expect.anything()
       );
     } finally {
       view.cleanup();
@@ -1265,7 +1824,7 @@ describe("PopupCont capability parity", () => {
   });
 
   test.each([false, true])(
-    "waits for a saved rule before reporting success (extension content: %s)",
+    "waits for a rule save and includes the live translation flag (extension content: %s)",
     async (extensionContent) => {
       mockIsExt = extensionContent;
       const persist = extensionContent ? mockSendBgMsg : saveRule;
@@ -1279,25 +1838,20 @@ describe("PopupCont capability parity", () => {
       const view = renderPopupCont({ isContent: extensionContent });
       try {
         await flushEffects();
-        const action = Array.from(
-          view.container.querySelectorAll("button")
-        ).find((button) => button.textContent === "save_rule");
+        const action = view.container.querySelector(".kt-popup-save-button");
         act(() => action.click());
-
-        const domain = view.container.querySelector(
-          ".kt-popup-site__select"
-        ).value;
+        expect(action.getAttribute("data-save-status")).toBe("saving");
+        const domain = extensionContent
+          ? new URL(window.location.href).hostname
+          : "example.com";
         expect(persist).toHaveBeenCalledWith(
           ...(extensionContent ? [MSG_SAVE_RULE] : []),
-          expect.objectContaining({ pattern: domain })
+          expect.objectContaining({ pattern: domain, transOpen: "true" })
         );
-        expect(view.container.querySelector('[role="alert"]')).toBeNull();
-
+        expect(action.disabled).toBe(true);
         await act(async () => completeSave({ changed: true }));
-
-        expect(view.container.querySelector('[role="alert"]').textContent).toBe(
-          `save_rule: ${domain}`
-        );
+        expect(action.getAttribute("data-save-status")).toBe("saved");
+        expect(view.container.querySelector(".MuiSnackbar-root")).toBeNull();
       } finally {
         view.cleanup();
       }
@@ -1305,7 +1859,7 @@ describe("PopupCont capability parity", () => {
   );
 
   test.each([false, true])(
-    "reports a rejected rule save without success (extension content: %s)",
+    "keeps a rejected rule save retryable (extension content: %s)",
     async (extensionContent) => {
       mockIsExt = extensionContent;
       const persist = extensionContent ? mockSendBgMsg : saveRule;
@@ -1317,66 +1871,209 @@ describe("PopupCont capability parity", () => {
       const view = renderPopupCont({ isContent: extensionContent });
       try {
         await flushEffects();
-        const action = Array.from(
-          view.container.querySelectorAll("button")
-        ).find((button) => button.textContent === "save_rule");
+        const action = view.container.querySelector(".kt-popup-save-button");
         await act(async () => action.click());
-
-        expect(view.container.querySelector('[role="alert"]').textContent).toBe(
-          "error_got_some_wrong"
-        );
+        expect(action.getAttribute("data-save-status")).toBe("error");
+        expect(action.disabled).toBe(false);
+        expect(view.container.querySelector(".MuiSnackbar-root")).toBeNull();
       } finally {
         view.cleanup();
       }
     }
   );
 
-  test("dispatches one content action from a scene toggle", async () => {
-    const processActions = jest.fn(({ args }) => ({
-      setting: { tranboxSetting: { transOpen: args.enabled } },
-    }));
-    const view = renderPopupCont({ processActions }, { statefulSetting: true });
-    await flushEffects();
-    openAdvancedOptions(view.container);
-
-    const selectionScene = view.container.querySelector(
-      '.kt-popup-scene[aria-pressed="true"]'
-    );
-    await act(async () => selectionScene.click());
-
-    expect(processActions).toHaveBeenCalledTimes(1);
-    expect(processActions).toHaveBeenCalledWith({
-      action: MSG_TRANSBOX_TOGGLE,
-      args: { enabled: false },
-    });
-    expect(selectionScene.getAttribute("aria-pressed")).toBe("false");
-    expect(view.container.querySelector('[role="alert"]')).toBeNull();
-    view.cleanup();
+  test("recognizes an existing rule for the initially selected site", async () => {
+    getRulesWithDefault.mockResolvedValue([
+      { pattern: "*" },
+      { pattern: "example.com", apiSlug: "google" },
+    ]);
+    const view = renderPopupCont();
+    try {
+      await flushEffects();
+      const action = view.container.querySelector(".kt-popup-save-button");
+      expect(action.getAttribute("data-dirty-count")).toBe("0");
+      expect(action.textContent).toContain("popup_saved");
+      expect(saveRule).not.toHaveBeenCalled();
+    } finally {
+      view.cleanup();
+    }
   });
 
-  test("sends the desired scene state through the tab message channel", async () => {
-    mockSendTopFrameMsg.mockResolvedValue({
-      rule: {},
-      setting: { mouseHoverSetting: { useMouseHover: true } },
-    });
-    const setSetting = jest.fn();
-    const view = renderPopupCont({ setSetting });
-    await flushEffects();
-    openAdvancedOptions(view.container);
+  test("keeps a completed save marked saved when the initial rule read resolves later", async () => {
+    let completeInitialRead;
+    getRulesWithDefault.mockReturnValueOnce(
+      new Promise((resolve) => {
+        completeInitialRead = resolve;
+      })
+    );
+    const view = renderPopupCont();
+    try {
+      await flushEffects();
+      const save = view.container.querySelector(".kt-popup-save-button");
+      await act(async () => save.click());
+      expect(save.getAttribute("data-save-status")).toBe("saved");
+      await act(async () => completeInitialRead([{ pattern: "*" }]));
+      expect(save.textContent).toContain("popup_saved");
+      expect(save.disabled).toBe(true);
+      expect(save.getAttribute("data-dirty-count")).toBe("0");
+    } finally {
+      view.cleanup();
+    }
+  });
 
-    const hoverScene = Array.from(
-      view.container.querySelectorAll(".kt-popup-scene")
-    ).find((scene) => scene.textContent.includes("mousehover_translate"));
-    await act(async () => {
-      hoverScene.click();
-      await Promise.resolve();
-    });
+  test("operates service and display radios and the style grid with arrow keys", async () => {
+    const processActions = jest.fn(({ args }) => ({ rule: args }));
+    const view = renderPopupCont(
+      {
+        processActions,
+        setting: {
+          transApis: ["google", "deepl", "microsoft"].map((apiSlug) => ({
+            apiSlug,
+            apiName: apiSlug,
+          })),
+        },
+      },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      const service = view.container.querySelector(
+        '.kt-popup-service[aria-checked="true"]'
+      );
+      service.focus();
+      await act(async () =>
+        service.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "ArrowRight",
+            bubbles: true,
+            cancelable: true,
+          })
+        )
+      );
+      expect(document.activeElement.textContent).toBe("deepl");
+      expect(
+        view.container.querySelector('.kt-popup-service[aria-checked="true"]')
+          .textContent
+      ).toBe("deepl");
+      const bilingual = view.container.querySelector(
+        '.kt-popup-display-mode [aria-checked="true"]'
+      );
+      bilingual.focus();
+      await act(async () =>
+        bilingual.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "End",
+            bubbles: true,
+            cancelable: true,
+          })
+        )
+      );
+      expect(
+        view.container.querySelector(
+          '.kt-popup-display-mode [aria-checked="true"]'
+        ).textContent
+      ).toBe("popup_translation_only");
+      openStyleMenu(view.container);
+      const choices = styleChoices();
+      choices[0].focus();
+      act(() =>
+        choices[0].dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "ArrowDown",
+            bubbles: true,
+            cancelable: true,
+          })
+        )
+      );
+      expect(document.activeElement).toBe(choices[3]);
+      expect(processActions).toHaveBeenCalledTimes(2);
+      await act(async () => document.activeElement.click());
+      expect(processActions).toHaveBeenLastCalledWith({
+        action: MSG_TRANS_PUTRULE,
+        args: { textStyle: "style_3" },
+      });
+    } finally {
+      view.cleanup();
+    }
+  });
 
-    expect(mockSendTabMsg).toHaveBeenCalledWith(MSG_MOUSEHOVER_TOGGLE, {
-      enabled: true,
-    });
-    expect(setSetting).toHaveBeenCalledTimes(1);
-    view.cleanup();
+  test("counts only the nine site fields and excludes translation and global settings", async () => {
+    const rule = {
+      fromLang: "en",
+      toLang: "fr",
+      apiSlug: "google",
+      textStyle: "style_6",
+      transOnly: "false",
+      hasRichText: "true",
+      scanAll: "false",
+      isPlainText: false,
+      autoScan: "true",
+      transOpen: "false",
+    };
+    const view = renderPopupCont({ rule });
+    try {
+      await flushEffects();
+      const save = view.container.querySelector(".kt-popup-save-button");
+      view.rerender({
+        rule: { ...rule, transOpen: "true" },
+        setting: { blacklist: "other.example" },
+      });
+      expect(save.getAttribute("data-dirty-count")).toBe("0");
+      view.rerender({
+        rule: {
+          ...rule,
+          fromLang: "fr",
+          toLang: "en",
+          apiSlug: "deepl",
+          textStyle: "style_0",
+          transOnly: "true",
+          hasRichText: "false",
+          scanAll: "true",
+          isPlainText: true,
+          autoScan: "false",
+          transOpen: "true",
+        },
+      });
+      expect(save.getAttribute("data-dirty-count")).toBe("9");
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("preserves a newer edit when an earlier save completes", async () => {
+    let completeSave;
+    saveRule.mockReturnValueOnce(
+      new Promise((resolve) => (completeSave = resolve))
+    );
+    const processActions = jest.fn(({ args }) => ({ rule: args }));
+    const view = renderPopupCont({ processActions }, { statefulRule: true });
+    try {
+      await flushEffects();
+      const save = view.container.querySelector(".kt-popup-save-button");
+      await act(async () =>
+        view.container
+          .querySelector('.kt-popup-option-row[aria-label="autoscan_alt"]')
+          .click()
+      );
+      expect(save.getAttribute("data-dirty-count")).toBe("1");
+      act(() => save.click());
+      expect(saveRule.mock.calls[0][0].autoScan).toBe("false");
+      await act(async () =>
+        view.container
+          .querySelector('.kt-popup-option-row[aria-label="scan_all_nodes"]')
+          .click()
+      );
+      await act(async () => completeSave());
+      expect(save.getAttribute("data-dirty-count")).toBe("1");
+      expect(
+        view.container
+          .querySelector('.kt-popup-option-row[aria-label="scan_all_nodes"]')
+          .getAttribute("aria-checked")
+      ).toBe("true");
+      expect(save.disabled).toBe(false);
+    } finally {
+      view.cleanup();
+    }
   });
 
   test("uses one captured tab for the site label, command, and state confirmation", async () => {
@@ -1387,13 +2084,11 @@ describe("PopupCont capability parity", () => {
     await flushEffects();
 
     expect(mockGetCurTab).not.toHaveBeenCalled();
-    expect(view.container.querySelector(".kt-popup-site__select").value).toBe(
-      "captured.example"
-    );
+    expect(
+      view.container.querySelector(".kt-popup-pattern-button").textContent
+    ).toContain("captured.example");
     await act(async () => {
-      view.container
-        .querySelector('input[aria-label="popup_translate_page"]')
-        .click();
+      view.container.querySelector(".kt-popup-translate-button").click();
     });
     expect(mockSendTabMsg).toHaveBeenCalledWith(
       MSG_TRANS_TOGGLE,
@@ -1431,7 +2126,7 @@ describe("PopupCont capability parity", () => {
     try {
       await flushEffects();
       await act(async () =>
-        view.container.querySelector(".kt-popup-hero").click()
+        view.container.querySelector(".kt-popup-translate-button").click()
       );
       expect(mockSendTabMsg).toHaveBeenCalledTimes(1);
       expect(mockSendTabMsg).toHaveBeenCalledWith(
@@ -1443,12 +2138,11 @@ describe("PopupCont capability parity", () => {
         documentInfo.token
       );
       expect(
-        view.container.querySelector('input[aria-label="popup_translate_page"]')
-          .checked
-      ).toBe(false);
-      expect(
-        view.container.querySelector('[role="alert"]').textContent
-      ).toContain("rule_toggle_failed");
+        view.container
+          .querySelector(".kt-popup-translate-button")
+          .getAttribute("aria-pressed")
+      ).toBe("false");
+      expect(view.container.textContent).toContain("rule_toggle_failed");
     } finally {
       view.cleanup();
     }
@@ -1473,7 +2167,7 @@ describe("PopupCont capability parity", () => {
     try {
       await flushEffects();
       await act(async () =>
-        view.container.querySelector(".kt-popup-hero").click()
+        view.container.querySelector(".kt-popup-translate-button").click()
       );
       expect(mockSendTabMsg).toHaveBeenNthCalledWith(
         1,
@@ -1493,9 +2187,10 @@ describe("PopupCont capability parity", () => {
         documentInfo.token
       );
       expect(
-        view.container.querySelector('input[aria-label="popup_translate_page"]')
-          .checked
-      ).toBe(true);
+        view.container
+          .querySelector(".kt-popup-translate-button")
+          .getAttribute("aria-pressed")
+      ).toBe("true");
       expect(view.container.querySelector('[role="alert"]')).toBeNull();
     } finally {
       view.cleanup();
@@ -1530,20 +2225,18 @@ describe("PopupCont capability parity", () => {
       try {
         await flushEffects();
         await act(async () =>
-          view.container.querySelector(".kt-popup-hero").click()
+          view.container.querySelector(".kt-popup-translate-button").click()
         );
         expect(mockSendTabMsg).toHaveBeenCalledTimes(2);
         expect(onPageUnavailable).toHaveBeenCalledTimes(
           receiverAvailable ? 0 : 1
         );
         expect(
-          view.container.querySelector(
-            'input[aria-label="popup_translate_page"]'
-          ).checked
-        ).toBe(false);
-        expect(
-          view.container.querySelector('[role="alert"]').textContent
-        ).toContain("rule_toggle_failed");
+          view.container
+            .querySelector(".kt-popup-translate-button")
+            .getAttribute("aria-pressed")
+        ).toBe("false");
+        expect(view.container.textContent).toContain("rule_toggle_failed");
       } finally {
         view.cleanup();
       }
@@ -1561,20 +2254,19 @@ describe("PopupCont capability parity", () => {
       const view = renderPopupCont({ targetTab });
       try {
         await flushEffects();
-        const select = view.container.querySelector(".kt-popup-site__select");
-        act(() => {
-          select.value = "*.example.com";
-          select.dispatchEvent(new Event("change", { bubbles: true }));
-        });
+        await selectScope(view.container, "*.example.com");
         view.rerender({ targetTab: { ...targetTab, status: "complete" } });
         await flushEffects();
-        expect(select.value).toBe("*.example.com");
-        const label = action === "save" ? "save_rule" : "add_to_blacklist";
-        await act(async () =>
-          [...view.container.querySelectorAll("button")]
-            .find((button) => button.textContent === label)
-            .click()
-        );
+        expect(
+          view.container.querySelector(".kt-popup-pattern-button").textContent
+        ).toContain("*.example.com");
+        const button =
+          action === "save"
+            ? view.container.querySelector(".kt-popup-save-button")
+            : [...view.container.querySelectorAll("button")].find((candidate) =>
+                candidate.textContent.includes("popup_disable_site")
+              );
+        await act(async () => button.click());
         if (action === "save") {
           expect(saveRule).toHaveBeenCalledWith(
             expect.objectContaining({ pattern: "*.example.com" })
@@ -1601,22 +2293,18 @@ describe("PopupCont capability parity", () => {
       },
     });
     await flushEffects();
-    openAdvancedOptions(view.container);
 
     expect(
-      view.container.querySelector('input[aria-label="popup_translate_page"]')
-        .disabled
+      view.container.querySelector(".kt-popup-translate-button").disabled
     ).toBe(false);
     expect(
-      [...view.container.querySelectorAll(".kt-popup-scene")].map(
-        (node) => node.querySelector(".kt-popup-scene__label").textContent
-      )
-    ).toEqual(["selection_translate", "mousehover_translate"]);
+      view.container.querySelector(".kt-popup-settings-grid")
+    ).not.toBeNull();
     expect(view.container.textContent).not.toContain("rule_editor_open");
     view.cleanup();
   });
 
-  test("offers only selection translation without an empty advanced panel in a PDF receiver", async () => {
+  test("keeps cache clearing available when a PDF receiver cannot translate the page", async () => {
     const view = renderPopupCont({
       capabilities: {
         pageTranslation: false,
@@ -1628,47 +2316,28 @@ describe("PopupCont capability parity", () => {
     });
     try {
       await flushEffects();
-      const mainSwitch = view.container.querySelector(
-        'input[aria-label="popup_translate_page"]'
+      const mainAction = view.container.querySelector(
+        ".kt-popup-translate-button"
       );
-      expect(mainSwitch.disabled).toBe(true);
-      expect(mainSwitch.checked).toBe(false);
-      expect(view.container.querySelector(".kt-popup-language-row")).toBeNull();
-      openAdvancedOptions(view.container);
-      expect(view.container.querySelector(".kt-popup-style-chips")).toBeNull();
-      expect(view.container.querySelectorAll(".kt-popup-scene")).toHaveLength(
-        1
-      );
+      expect(mainAction.disabled).toBe(true);
+      expect(mainAction.getAttribute("aria-pressed")).toBe("false");
       expect(
-        view.container.querySelector(".kt-popup-scene").textContent
-      ).toContain("selection_translate");
-      act(() => view.container.querySelector(".kt-popup-hero").click());
+        view.container
+          .querySelector(".kt-popup-language-row")
+          .getAttribute("aria-disabled")
+      ).toBe("true");
+      expect(
+        view.container.querySelector(".kt-popup-style-select").disabled
+      ).toBe(true);
+      expect(
+        view.container.querySelector(".kt-popup-editor-button")
+      ).toBeNull();
+      expect(
+        view.container.querySelector(".kt-popup-cache-button").disabled
+      ).toBe(false);
+      act(() => mainAction.click());
       expect(mockSendTabMsg).not.toHaveBeenCalled();
-      const disclosure = view.container.querySelector(".kt-popup-disclosure");
-
-      if (disclosure) {
-        if (disclosure.getAttribute("aria-expanded") !== "true") {
-          act(() => disclosure.click());
-        }
-        const panelId = disclosure.getAttribute("aria-controls");
-        expect(panelId).toBeTruthy();
-        const panel = document.getElementById(panelId);
-        expect(panel).not.toBeNull();
-        expect(panel.hidden).toBe(false);
-        expect(disclosure.getAttribute("aria-expanded")).toBe("true");
-        const availableControls = [
-          ...panel.querySelectorAll(
-            "button:not([disabled]), input:not([disabled]), select:not([disabled])"
-          ),
-        ].filter(
-          (control) =>
-            !control.closest("[hidden]") &&
-            control.getAttribute("aria-disabled") !== "true"
-        );
-        expect(availableControls.length).toBeGreaterThan(0);
-      } else {
-        expect(view.container.querySelector(".kt-popup-advanced")).toBeNull();
-      }
+      expect(view.container.querySelector(".kt-popup-disclosure")).toBeNull();
     } finally {
       view.cleanup();
     }
@@ -1684,114 +2353,30 @@ describe("PopupCont capability parity", () => {
         { statefulRule: true }
       );
       await flushEffects();
-      openAdvancedOptions(view.container);
+      if (control === "style") openStyleMenu(view.container);
       const clickTarget =
         control === "service"
           ? view.container.querySelector(".kt-popup-service")
           : control === "style"
-            ? view.container.querySelectorAll(".kt-popup-style-chip")[1]
+            ? styleChoices().find((choice) =>
+                choice.textContent.includes("Style 0")
+              )
             : view.container.querySelector(".kt-popup-swap");
 
       await act(async () => clickTarget.click());
       await flushEffects();
 
       expect(
-        view.container.querySelector('.kt-popup-service[aria-pressed="true"]')
+        view.container.querySelector('.kt-popup-service[aria-checked="true"]')
       ).toBeNull();
       expect(
-        view.container.querySelector(
-          '.kt-popup-style-chip[aria-pressed="true"] small'
-        ).textContent
-      ).toBe("Style 6");
-      expect(
-        [
-          ...view.container.querySelectorAll(".kt-popup-language-select input"),
-        ].map((node) => node.value)
-      ).toEqual(["en", "fr"]);
-      expect(
-        view.container.querySelector('[role="alert"]').textContent
-      ).toContain("popup_action_failed");
+        view.container.querySelector(".kt-popup-style-select").textContent
+      ).toContain("Style 6");
+      expect(languageValues(view.container)).toEqual(["en", "fr"]);
+      expect(view.container.textContent).toContain("popup_action_failed");
       view.cleanup();
     }
   );
-
-  test.each([
-    ["selection_translate", MSG_TRANSBOX_TOGGLE],
-    ["mousehover_translate", MSG_MOUSEHOVER_TOGGLE],
-    ["input_translate", MSG_TRANSINPUT_TOGGLE],
-  ])("rolls back %s after a rejected action", async (label, action) => {
-    const processActions = jest
-      .fn()
-      .mockResolvedValue({ error: "Unavailable" });
-    const view = renderPopupCont({ processActions }, { statefulSetting: true });
-    await flushEffects();
-    openAdvancedOptions(view.container);
-    const scene = [...view.container.querySelectorAll(".kt-popup-scene")].find(
-      (node) => node.textContent.includes(label)
-    );
-    const previous = scene.getAttribute("aria-pressed");
-
-    await act(async () => scene.click());
-
-    expect(processActions).toHaveBeenCalledWith({
-      action,
-      args: { enabled: previous !== "true" },
-    });
-    expect(scene.getAttribute("aria-pressed")).toBe(previous);
-    expect(
-      view.container.querySelector('[role="alert"]').textContent
-    ).toContain("popup_action_failed");
-    view.cleanup();
-  });
-
-  test("requires an authoritative feature state after a successful message", async () => {
-    mockSendTabMsg.mockResolvedValue({
-      setting: { mouseHoverSetting: { useMouseHover: true } },
-    });
-    mockSendTopFrameMsg.mockResolvedValue({
-      rule: {},
-      setting: { mouseHoverSetting: { useMouseHover: false } },
-    });
-    const view = renderPopupCont({}, { statefulSetting: true });
-    await flushEffects();
-    openAdvancedOptions(view.container);
-    const scene = [...view.container.querySelectorAll(".kt-popup-scene")].find(
-      (node) => node.textContent.includes("mousehover_translate")
-    );
-
-    await act(async () => scene.click());
-
-    expect(scene.getAttribute("aria-pressed")).toBe("false");
-    expect(
-      view.container.querySelector('[role="alert"]').textContent
-    ).toContain("popup_action_failed");
-    view.cleanup();
-  });
-
-  test("targets input translation at the captured top frame", async () => {
-    mockSendTopFrameMsg.mockResolvedValue({
-      rule: {},
-      setting: { inputRule: { transOpen: false } },
-    });
-    const view = renderPopupCont({
-      targetTab: { id: 42, url: "https://example.com" },
-    });
-    await flushEffects();
-    openAdvancedOptions(view.container);
-    await act(async () => {
-      [...view.container.querySelectorAll(".kt-popup-scene")]
-        .find((node) => node.textContent.includes("input_translate"))
-        .click();
-    });
-
-    expect(mockSendTopFrameMsg).toHaveBeenCalledWith(
-      MSG_TRANSINPUT_TOGGLE,
-      { enabled: false },
-      42
-    );
-    expect(mockSendTabMsg).not.toHaveBeenCalled();
-    view.cleanup();
-  });
 
   test("keeps the popup open when the rule editor has no receiver", async () => {
     const closeWindow = jest
@@ -1800,16 +2385,15 @@ describe("PopupCont capability parity", () => {
     const view = renderPopupCont();
     try {
       await flushEffects();
-      openAdvancedOptions(view.container);
-      await act(async () => {
-        [...view.container.querySelectorAll("button")]
-          .find((node) => node.textContent === "rule_editor_open")
-          .click();
-      });
+      await act(async () =>
+        view.container.querySelector(".kt-popup-editor-button").click()
+      );
       expect(closeWindow).not.toHaveBeenCalled();
       expect(
-        view.container.querySelector('[role="alert"]').textContent
-      ).toContain("popup_action_failed");
+        view.container
+          .querySelector(".kt-popup-editor-button")
+          .getAttribute("data-error")
+      ).toBe("true");
     } finally {
       view.cleanup();
       closeWindow.mockRestore();
@@ -1846,11 +2430,7 @@ describe("PopupCont capability parity", () => {
     await act(async () => finishOldAction());
     await flushEffects();
 
-    expect(
-      [
-        ...view.container.querySelectorAll(".kt-popup-language-select input"),
-      ].map((node) => node.value)
-    ).toEqual(["en", "fr"]);
+    expect(languageValues(view.container)).toEqual(["en", "fr"]);
     expect(onPageUnavailable).not.toHaveBeenCalled();
     expect(view.container.querySelector('[role="alert"]')).toBeNull();
     view.cleanup();
@@ -1879,26 +2459,19 @@ describe("PopupCont capability parity", () => {
       { statefulRule: true }
     );
     await flushEffects();
-    openAdvancedOptions(view.container);
 
     act(() => view.container.querySelectorAll(".kt-popup-service")[1].click());
-    await act(async () =>
-      view.container.querySelectorAll(".kt-popup-style-chip")[1].click()
-    );
+    await selectStyle(view.container, "Style 0");
     await act(async () => failService(new Error("Page action rejected")));
 
     expect(
-      view.container.querySelector('.kt-popup-service[aria-pressed="true"]')
+      view.container.querySelector('.kt-popup-service[aria-checked="true"]')
         .textContent
     ).toContain("google");
     expect(
-      view.container.querySelector(
-        '.kt-popup-style-chip[aria-pressed="true"] small'
-      ).textContent
-    ).toBe("Style 0");
-    expect(
-      view.container.querySelector('[role="alert"]').textContent
-    ).toContain("popup_action_failed");
+      view.container.querySelector(".kt-popup-style-select").textContent
+    ).toContain("Style 0");
+    expect(view.container.textContent).toContain("popup_action_failed");
     view.cleanup();
   });
 
@@ -1930,11 +2503,7 @@ describe("PopupCont capability parity", () => {
       })
     );
 
-    expect(
-      [
-        ...view.container.querySelectorAll(".kt-popup-language-select input"),
-      ].map((node) => node.value)
-    ).toEqual(["fr", "en"]);
+    expect(languageValues(view.container)).toEqual(["fr", "en"]);
     view.cleanup();
   });
 });
@@ -1947,10 +2516,11 @@ describe("getVisibleServices", () => {
     { key: "deepl", name: "DeepL" },
   ];
 
-  test("shows two services while preserving an active service outside the first two", () => {
-    expect(getVisibleServices(services, "microsoft", false)).toEqual([
+  test("shows three services while preserving an active service outside the first three", () => {
+    expect(getVisibleServices(services, "deepl", false)).toEqual([
       services[0],
-      services[2],
+      services[1],
+      services[3],
     ]);
   });
 
@@ -1958,9 +2528,9 @@ describe("getVisibleServices", () => {
     expect(getVisibleServices(services, "microsoft", true)).toEqual(services);
   });
 
-  test("falls back to the first two services when the active key is stale", () => {
+  test("falls back to the first three services when the active key is stale", () => {
     expect(getVisibleServices(services, "missing", false)).toEqual(
-      services.slice(0, 2)
+      services.slice(0, 3)
     );
   });
 });

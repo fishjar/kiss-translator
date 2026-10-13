@@ -21,6 +21,7 @@ import {
   OPT_TRANS_APIMART,
   OPT_TRANS_GEMINI,
   OPT_TRANS_ORCAROUTER,
+  OPT_TRANS_REQUESTY,
 } from "../config";
 
 describe("createRealtimeStreamParser", () => {
@@ -131,6 +132,16 @@ describe("getStreamDelta", () => {
 
     expect(getStreamDelta(chunk, OPT_TRANS_ORCAROUTER)).toBe("敏");
     expect(getStreamDelta({ choices: [] }, OPT_TRANS_ORCAROUTER)).toBe("");
+  });
+
+  test("extracts Requesty as an OpenAI-compatible stream", () => {
+    const chunk = {
+      choices: [{ delta: { content: "敏" }, finish_reason: null, index: 0 }],
+      object: "chat.completion.chunk",
+    };
+
+    expect(getStreamDelta(chunk, OPT_TRANS_REQUESTY)).toBe("敏");
+    expect(getStreamDelta({ choices: [] }, OPT_TRANS_REQUESTY)).toBe("");
   });
 
   test("extracts only text step deltas from Gemini interactions", () => {

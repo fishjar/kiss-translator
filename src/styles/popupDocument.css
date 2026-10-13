@@ -1,0 +1,15 @@
+/* Native toolbar popups must advertise their size before React can render.
+   Keep these rules out of separate windows and injected content panels. */
+html.kt-toolbar-popup,
+html.kt-toolbar-popup body,
+html.kt-toolbar-popup #root {
+  min-width: 396px;
+}
+
+html.kt-toolbar-popup {
+  scrollbar-width: thin;
+}
+
+html.kt-toolbar-popup body {
+  margin: 0;
+}

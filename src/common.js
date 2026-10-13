@@ -10,6 +10,8 @@ import { handlePing, injectScript } from "./libs/gm";
 import { matchRule } from "./libs/rules";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { isInBlacklist } from "./libs/blacklist";
+import { isFabHiddenOnPage } from "./libs/fabVisibility";
+import { createBlacklistStartupRecovery } from "./libs/blacklistStartup";
 import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
 import { injectInlineJs } from "./libs/injector";
@@ -171,6 +173,10 @@ async function getFavWords(rule) {
 }
 
 const IFRAME_TEXT_CHECK_TIMEOUT = 1000;
+const blacklistStartupRecovery = createBlacklistStartupRecovery({
+  getHref: () => document?.location?.href || "",
+  onUnblocked: () => run(),
+});
 const IFRAME_TEXT_IGNORE_SELECTOR = [
   "script",
   "style",
@@ -275,7 +281,14 @@ export async function run(isUserscript = false) {
 
     // 5. 网页黑名单校验，命中时彻底不启动翻译
     if (isInBlacklist(href, setting.blacklist)) {
+      if (!isUserscript) {
+        blacklistStartupRecovery.watch();
+      }
       return;
+    }
+
+    if (!isUserscript) {
+      blacklistStartupRecovery.cancel();
     }
 
     // 5.1. iframe 空内容拦截：默认允许 iframe 翻译，但空 iframe 不继续挂载后续脚本
@@ -300,18 +313,23 @@ export async function run(isUserscript = false) {
     const rule = await matchRule(href, setting);
     const favWords = await getFavWords(rule);
     const fabConfig = { ...(await getFabWithDefault()) };
-    // 名单命中时反转全局显隐：全局显示为黑名单，全局隐藏为白名单。
-    if (
-      !isIframe &&
-      !isPdfDocument &&
-      isInBlacklist(href, fabConfig.hideExceptionList)
-    ) {
-      fabConfig.isHide = !fabConfig.isHide;
+    // Resolve the same page preference used by the FAB visibility action.
+    if (!isIframe && !isPdfDocument) {
+      fabConfig.isHide = isFabHiddenOnPage(fabConfig, href);
     }
+
+    // Rule/subscription loading may outlive an API edit. Refresh this list
+    // before constructing a runtime that can immediately start translating.
+    const latestApiSetting = isUserscript
+      ? setting
+      : await getSettingWithDefault();
+    const runtimeSetting = Array.isArray(latestApiSetting?.transApis)
+      ? { ...setting, transApis: latestApiSetting.transApis }
+      : setting;
 
     // 8. 创建翻译调度器管理器并启动
     const translatorManager = new TranslatorManager({
-      setting,
+      setting: runtimeSetting,
       rule,
       fabConfig,
       favWords,
@@ -327,7 +345,7 @@ export async function run(isUserscript = false) {
     }
 
     // 10. 启动视频字幕翻译子模块 (仅在顶级 frame 下运行)
-    runSubtitle({ href, setting, rule, isUserscript });
+    runSubtitle({ href, setting: runtimeSetting, rule, isUserscript });
 
     // 11. 在油猴环境下，每次进入顶级页面时尝试触发一次订阅规则的自动同步检查 (每日一次)
     if (isUserscript) {

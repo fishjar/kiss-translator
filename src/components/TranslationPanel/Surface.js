@@ -13,10 +13,12 @@ export default function TranslationPanelSurface({
   embedded = false,
   className = "",
   bodyClassName = "",
+  tabIndex,
 }) {
   return (
     <Paper
       ref={panelRef}
+      tabIndex={tabIndex}
       className={`kt-translation-panel ${
         embedded ? "kt-translation-panel--embedded" : ""
       } ${className}`}

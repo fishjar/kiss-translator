@@ -1,10 +1,74 @@
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import ReactMarkdown from "react-markdown";
+import DOMPurify from "dompurify";
 import { useI18n, useI18nMd } from "../../hooks/I18n";
 import Button from "@mui/material/Button";
 import Logo from "../../components/Logo";
 import { SettingsAdvanced } from "./SettingsCard";
+
+// What the README's HTML blocks (e.g. the sponsors table) may use.
+const README_HTML = {
+  RETURN_DOM_FRAGMENT: true,
+  ALLOWED_TAGS: [
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "p",
+    "div",
+    "br",
+  ].concat(["a", "img", "b", "strong", "em", "i", "span"]),
+  ALLOWED_ATTR: [
+    "href",
+    "target",
+    "src",
+    "alt",
+    "title",
+    "width",
+    "height",
+    "align",
+  ],
+};
+
+const toHast = (node) => {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return { type: "text", value: node.data };
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return null;
+  }
+  const properties = Object.fromEntries(
+    Array.from(node.attributes, ({ name, value }) => [name, value])
+  );
+  if (node.localName === "a" && properties.target === "_blank") {
+    properties.rel = ["noopener", "noreferrer"];
+  }
+  return {
+    type: "element",
+    tagName: node.localName,
+    properties,
+    children: Array.from(node.childNodes, toHast).filter(Boolean),
+  };
+};
+
+/**
+ * react-markdown 8 prints raw HTML as text. Sanitize each top-level HTML block
+ * of the remote README with DOMPurify and pass it on as elements; inline HTML
+ * fragments cannot be sanitized alone and are dropped by `skipHtml`.
+ */
+export const rehypeReadmeHtml = () => (tree) => {
+  tree.children = tree.children.flatMap((node) =>
+    node.type === "raw"
+      ? Array.from(
+          DOMPurify.sanitize(node.value, README_HTML).childNodes,
+          toHast
+        ).filter(Boolean)
+      : [node]
+  );
+};
 
 /**
  * Render the localized project details in Markdown.
@@ -18,7 +82,9 @@ function AboutDetails() {
       <CircularProgress size={24} />
     </div>
   ) : (
-    <ReactMarkdown>{error ? i18n("about_md_local") : data}</ReactMarkdown>
+    <ReactMarkdown skipHtml rehypePlugins={[rehypeReadmeHtml]}>
+      {error ? i18n("about_md_local") : data}
+    </ReactMarkdown>
   );
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -44,6 +44,11 @@ import {
 import { apiTranslate } from "../../apis";
 import { useAlert } from "../../hooks/Alert";
 import { useI18n } from "../../hooks/I18n";
+import TextareaResizeGrip from "../../components/TextareaResizeGrip";
+import useTextareaHeightLock, {
+  useTextareaGripStyle,
+  useReleaseOnGripHidden,
+} from "../../hooks/useTextareaHeightLock";
 import { useRules } from "../../hooks/Rules";
 import { useSetting } from "../../hooks/Setting";
 import { isWeb } from "../../libs/client";
@@ -106,6 +111,10 @@ const CONFLICT_MATRIX_SAMPLE = getDiagnosticSampleTerms();
 // UI 默认展示上限（完整计算结果与 UI 展示分离，失败优先）。
 const DISPLAY_LIMIT = 4;
 
+// AI 术语样例文本：功能数据（parseAITerms 的 key:value 载荷），非用户可见文案，
+// 严禁进入 i18n 字典（B3：i18n 译文格式变化不得改变功能数据）。
+const AI_TERMS_SAMPLE_TEXT = "zorp,数据管道\nquzzle,缓存节点";
+
 // 敏感键集合（大小写不敏感匹配）。
 const SENSITIVE_KEYS = new Set([
   "authorization",
@@ -126,7 +135,7 @@ function maskSensitiveJson(obj) {
     const val = copy[key];
     if (typeof val === "string" && SENSITIVE_KEYS.has(key.toLowerCase())) {
       if (val.startsWith("Bearer ")) {
-        copy[key] = `Bearer ${val.slice(7, 13)}****`;
+        copy[key] = `Bearer ${val.slice(7, 11)}****`;
       } else {
         copy[key] = `${val.slice(0, 4)}****`;
       }
@@ -235,7 +244,7 @@ function maskForDisplay(obj, skipKeys = ["glossary", "terms"]) {
     const val = copy[key];
     if (typeof val === "string" && SENSITIVE_KEYS.has(key.toLowerCase())) {
       if (val.startsWith("Bearer ")) {
-        copy[key] = `Bearer ${val.slice(7, 13)}****`;
+        copy[key] = `Bearer ${val.slice(7, 11)}****`;
       } else {
         copy[key] = `${val.slice(0, 4)}****`;
       }
@@ -817,6 +826,112 @@ function formatFatalDiagnostic(diagnostic, i18n) {
 }
 
 /**
+ * 把一条断言 issue 格式化为 UI 可读的多语言文案。
+ * 断言核心（termTestUtils.js）只保证稳定 messageKey + 结构化 params；
+ * 本函数按 messageKey 映射 I18N key 并注入参数，未知 messageKey 回退到
+ * 核心层中文 message（控制台/CLI 仍直接消费 message）。
+ */
+function formatAssertionIssue(issue, i18n) {
+  const it = issue || {};
+  const params = it.params || {};
+  switch (it.messageKey) {
+    case "no-terms":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_no_terms",
+        "无有效术语，无法断言。",
+        params
+      );
+    case "empty-text":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_empty_text",
+        "测试文本为空，无法断言。",
+        params
+      );
+    case "invalid-testcase":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_invalid_testcase",
+        "测试用例缺少 term 信息，无法断言。",
+        params
+      );
+    case "single-not-found":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_single_not_found",
+        "术语 {term} 未被命中。",
+        params
+      );
+    case "single-wrong-replacement":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_single_wrong_replacement",
+        "术语 {term} 替换结果不正确。",
+        params
+      );
+    case "conflict-long-not-hit":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_conflict_long_not_hit",
+        "长词 {long} 未被命中（短词 {short} 可能抢占）。",
+        params
+      );
+    case "conflict-long-cut":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_conflict_long_cut",
+        "长词 {long} 被短词 {short} 切割（检测到前缀误伤）。",
+        params
+      );
+    case "conflict-long-value-not-applied":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_conflict_long_value_not_applied",
+        "长词 {long} 有译文但未被替换（仍为原文）。",
+        params
+      );
+    case "conflict-long-no-value-replaced":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_conflict_long_no_value_replaced",
+        '长词 {long} 无译文但被替换为 "{replacement}"。',
+        params
+      );
+    case "conflict-short-value-not-applied":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_conflict_short_value_not_applied",
+        "短词 {short} 有译文但未被替换（单独出现时）。",
+        params
+      );
+    case "naive-prefix-cut":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_naive_prefix_cut",
+        "长词 {long} 被短词 {short} 切割（检测到前缀误伤）。",
+        params
+      );
+    case "naive-cut-residue":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_naive_cut_residue",
+        "不翻译长词 {long} 被切割出高亮残留（短词 {short} 内部命中）。",
+        params
+      );
+    case "unknown-type":
+      return formatI18n(
+        i18n,
+        "terminology_playground_issue_unknown_type",
+        "未知的测试用例类型: {type}",
+        params
+      );
+    default:
+      return it.message || "";
+  }
+}
+
+/**
  * 把字典里的 Markdown-lite 标记渲染成 JSX：**粗体** → <strong>，`代码` → <code>。
  * 只支持这两种、不支持嵌套，足够覆盖本页说明文案；不引入 dangerouslySetInnerHTML。
  * 已知边界：代码段内部含 *（如 `. + * ? ( ) [ ] \ | ^ $`）时，因 ** 分支先判且
@@ -888,7 +1003,6 @@ export default function TerminologyPlayground({
   const [loadError, setLoadError] = useState("");
   // 跟踪用户是否在异步初始加载完成前编辑了输入框，避免覆盖用户已编辑内容。
   const hasUserEdited = useRef(false);
-  // 输入框采用原生 resize:vertical 缩放，不引入自定义手柄。
 
   // 本地重算：解析 → 自然文本生成 → 结构化断言，并把完整 detail 打到控制台。
   // seed 用于例句轮换（同一 seed 确定不变；UI"换一个例句"递增 seed）。
@@ -1154,7 +1268,8 @@ export default function TerminologyPlayground({
             {i18n("terminology_playground_alert_test_failed", "测试失败")}
           </Typography>
           <Typography variant="body2">
-            {assertion.issues[0]?.message ||
+            {(assertion.issues[0] &&
+              formatAssertionIssue(assertion.issues[0], i18n)) ||
               i18n("terminology_playground_none", "（无）")}
           </Typography>
         </Box>
@@ -1411,13 +1526,10 @@ export default function TerminologyPlayground({
   };
 
   // AI 术语区专属示例：填入默认 AI 专业术语样例并生成例句（不依赖本地术语库）。
+  // 样例文本是功能数据（喂给 parseAITerms 的 key:value 载荷），不是用户可见文案，
+  // 必须用模块常量而非 i18n 返回值：译文格式变化不应改变功能数据。
   const handleAiLoadSample = () => {
-    setAiTermsDraft(
-      i18n(
-        "terminology_playground_terms_sample",
-        "zorp,数据管道\nquzzle,缓存节点"
-      )
-    );
+    setAiTermsDraft(AI_TERMS_SAMPLE_TEXT);
   };
 
   // AI 例句换一个：递增 aiTermSeed 触发例句重新生成（与本地术语区 handleRotateSeed 一致）。
@@ -1515,6 +1627,9 @@ export default function TerminologyPlayground({
   }
   // 用户是否手动改过接口选择：手动选择后不再被默认逻辑覆盖。
   const apiSelectionTouchedRef = useRef(false);
+  // 本挂载周期内是否出现过非空接口列表：区分"加载中空态"与"确无接口"，
+  // 作为失效 slug 清理的闸门（列表从未非空时不允许判定失效）。
+  const haveSeenAvailableApisRef = useRef(false);
   // AI 测试目标语言：挂载时只读一次 localStorage（StrictMode 幂等，同 restoredApiSlugRef 先例），
   // 无有效持久化值时回落全局 tranboxSetting.toLang —— 与本下拉引入前的行为完全一致。
   const restoredToLangRef = useRef(null);
@@ -1533,11 +1648,41 @@ export default function TerminologyPlayground({
   // AI 测试状态：idle | testing | done | error（初始形态见 AI_TEST_INITIAL_STATE）
   const [aiTestState, setAiTestState] = useState(AI_TEST_INITIAL_STATE);
   const [showRequestRaw, setShowRequestRaw] = useState(false);
+  // AI 术语贡献表溢出展开/收起：默认折叠只渲染 DISPLAY_LIMIT 行（有界渲染
+  // 不变），用户显式点击后才渲染全部行；切换为纯展示态，不触发重算。
+  const [aiGlossaryExpanded, setAiGlossaryExpanded] = useState(false);
   const [showResponseRaw, setShowResponseRaw] = useState(false);
   const aiAbortRef = useRef(null);
   // AI 术语说明「更多」折叠（U4/U6）：常显 3 短句，长说明默认折叠。
   const [aiHelpOpen, setAiHelpOpen] = useState(false);
   // 请求/响应面板为普通 Box 容器，不做拖高。
+  // 两个术语输入框：锁定高度承载在 InputBase root 上（与其他消费者同构），
+  // 手柄按内容门控条件渲染（内容非空或已锁定高度才在场）。
+  const gripStyle = useTextareaGripStyle();
+  const termsHeightLock = useTextareaHeightLock("terminology-terms");
+  const aiTermsHeightLock = useTextareaHeightLock("terminology-ai-terms");
+  useReleaseOnGripHidden(gripStyle, termsHeightLock.releaseHeight);
+  useReleaseOnGripHidden(gripStyle, aiTermsHeightLock.releaseHeight);
+
+  // 内容清空 → 彻底解锁：清除会话高度记忆并还原 root，手柄随内容门控
+  // 消失；门控表达式的锁定分支保留（服务于「有内容且已锁」的存续态）。
+  // useLayoutEffect：空内容解锁须先于绘制，防重挂载首帧以记忆高度闪现
+  // （本端路径因草稿持久化实际不可达，按 5 端对称性防御性统一）。
+  // releaseHeight 为 useCallback([lockKey]) 产物（lockKey 不变则引用恒
+  // 定），经解构取稳定引用后进依赖数组——消除对 hook 返回对象整体的
+  // exhaustive-deps 告警形态（发布面：CRA 下 warning 即构建失败）。
+  const { releaseHeight: releaseTermsHeight } = termsHeightLock;
+  const { releaseHeight: releaseAiTermsHeight } = aiTermsHeightLock;
+  useLayoutEffect(() => {
+    if (!(termsDraft || "").trim()) {
+      releaseTermsHeight();
+    }
+  }, [termsDraft, releaseTermsHeight]);
+  useLayoutEffect(() => {
+    if (!(aiTermsDraft || "").trim()) {
+      releaseAiTermsHeight();
+    }
+  }, [aiTermsDraft, releaseAiTermsHeight]);
   // AI 术语例句轮换 seed（与本地术语区 termSeed 语义一致："" = 缺省确定性行为，递增轮换）。
   const [aiTermSeed, setAiTermSeed] = useState("");
 
@@ -1596,7 +1741,12 @@ export default function TerminologyPlayground({
     // runCompute 同一调用形态）。detectTermConflicts 自带 WeakMap 引用缓存，
     // 改前改后本路径均恰 1 次分析，非性能优化。
     const cases = generateTermTestText(termsArray, aiTermSeed, {
-      conflicts: detectTermConflicts(termsArray),
+      // AI 术语冲突分析同样必须用字面语义：key 不按正则解析，正则命中
+      // （如 a+ 命中 baa）在该路径是误报。
+      conflicts: detectTermConflicts(termsArray, { treatKeysAsLiteral: true }),
+      // AI 术语是 parseAITerms 解析的字面 key:value，不按正则解析；
+      // key 含元字符（C++、.NET）时用原文做样例，避免被排除出例句。
+      treatKeysAsLiteral: true,
     });
     return joinIntoParagraph(cases) || null;
   }, [aiTermsDraft, aiTermSeed]);
@@ -1621,7 +1771,22 @@ export default function TerminologyPlayground({
   // 默认接口：优先取 localStorage 恢复的有效选择，其次当前匹配规则的 apiSlug，再次第一个启用接口。
   // 用户手动选择后不再被默认逻辑覆盖。
   useEffect(() => {
-    if (availableApis.length === 0) return;
+    if (availableApis.length === 0) {
+      // 接口列表为空存在两种形态：设置数据异步加载中的暂态空，与确无可用
+      // 接口。仅当本挂载周期内已出现过非空列表（加载确认完成）后，才允许
+      // 判定恢复 slug 失效并清理脏值；列表尚空时保留持久化值，防止首帧
+      // 误删有效保存值。
+      if (haveSeenAvailableApisRef.current && restoredApiSlugRef.current) {
+        restoredApiSlugRef.current = "";
+        try {
+          window.localStorage.removeItem(LS_AI_API_SLUG_KEY);
+        } catch {
+          // 静默降级。
+        }
+      }
+      return;
+    }
+    haveSeenAvailableApisRef.current = true;
     const restored = restoredApiSlugRef.current;
     if (restored) {
       const restoredValid = availableApis.some(
@@ -1772,7 +1937,7 @@ export default function TerminologyPlayground({
           {i18n("terminology_playground_title", "专业术语库（本地替换预览）")}
         </Typography>
         {/* 术语库输入区：格式与规则表单的 terms 字段一致，初始值取当前匹配规则，不持久化。
-            使用浏览器原生 resize:vertical 缩放（右下角斜纹 grip），不引入自定义手柄。 */}
+            缩放由自绘手柄提供（跨浏览器一致），锁定高度承载在 InputBase root 上。 */}
         <TextField
           fullWidth
           multiline
@@ -1780,16 +1945,35 @@ export default function TerminologyPlayground({
           maxRows={10}
           value={termsDraft}
           onChange={handleTermsChange}
+          inputRef={termsHeightLock.textareaRef}
           label={i18n(
             "terminology_playground_terms_label",
             "术语库（键值对，每行或 ; 分隔）"
           )}
           inputProps={{
+            className: "kt-resizable-textarea",
             "aria-describedby": "terminology-terms-helper",
+            style: { resize: gripStyle === "hidden" ? "vertical" : "none" },
+          }}
+          InputProps={{
+            ...termsHeightLock.rootProps,
+            endAdornment:
+              (termsDraft || "").trim() ||
+              termsHeightLock.lockedHeight != null ? (
+                <TextareaResizeGrip
+                  target={termsHeightLock.textareaRef}
+                  onResize={termsHeightLock.applyHeight}
+                  value={termsHeightLock.lockedHeight}
+                  label={i18n("field_resize_height")}
+                  variant={gripStyle}
+                  onRelease={termsHeightLock.releaseHeight}
+                  unlockHint={i18n("field_resize_unlock_hint")}
+                />
+              ) : null,
           }}
           sx={{
-            "& textarea": {
-              resize: "vertical",
+            "& .MuiInputBase-root": {
+              overflow: "visible",
             },
           }}
           data-testid="terminology-terms-input"
@@ -1964,7 +2148,7 @@ export default function TerminologyPlayground({
             data-testid="terminology-auto-sample-unsupported"
           >
             {i18n(
-              "terminology_playground_alert_no_example",
+              "terminology_playground_alert_auto_sample_skipped",
               "部分正则术语无法可靠生成自动匹配样例，已跳过这些自动断言。"
             )}
           </Alert>
@@ -2052,21 +2236,37 @@ export default function TerminologyPlayground({
           maxRows={10}
           value={aiTermsDraft}
           onChange={(e) => setAiTermsDraft(e.target.value)}
+          inputRef={aiTermsHeightLock.textareaRef}
           label={i18n(
             "terminology_playground_terms_input_label",
             "AI 专业术语"
           )}
-          placeholder={i18n(
-            "terminology_playground_terms_sample",
-            "zorp,数据管道\nquzzle,缓存节点"
-          )}
+          placeholder={AI_TERMS_SAMPLE_TEXT}
           inputProps={{
+            className: "kt-resizable-textarea",
             "aria-describedby": "terminology-ai-terms-helper",
+            style: { resize: gripStyle === "hidden" ? "vertical" : "none" },
+          }}
+          InputProps={{
+            ...aiTermsHeightLock.rootProps,
+            endAdornment:
+              (aiTermsDraft || "").trim() ||
+              aiTermsHeightLock.lockedHeight != null ? (
+                <TextareaResizeGrip
+                  target={aiTermsHeightLock.textareaRef}
+                  onResize={aiTermsHeightLock.applyHeight}
+                  value={aiTermsHeightLock.lockedHeight}
+                  label={i18n("field_resize_height")}
+                  variant={gripStyle}
+                  onRelease={aiTermsHeightLock.releaseHeight}
+                  unlockHint={i18n("field_resize_unlock_hint")}
+                />
+              ) : null,
           }}
           sx={{
             mt: 2,
-            "& textarea": {
-              resize: "vertical",
+            "& .MuiInputBase-root": {
+              overflow: "visible",
             },
           }}
           data-testid="terminology-ai-terms-input"
@@ -2452,8 +2652,12 @@ export default function TerminologyPlayground({
                                 "AI 专业术语（软提示词注入）"
                               )}
                             </Typography>
-                            {aiTestState.glossaryEntries.map(
-                              ({ source, key, value }) => {
+                            {aiTestState.glossaryEntries
+                              .slice(
+                                0,
+                                aiGlossaryExpanded ? undefined : DISPLAY_LIMIT
+                              )
+                              .map(({ source, key, value }) => {
                                 const delivery = deliveryMap?.get(key);
                                 return (
                                   <Typography
@@ -2492,7 +2696,28 @@ export default function TerminologyPlayground({
                                     )}
                                   </Typography>
                                 );
-                              }
+                              })}
+                            {aiTestState.glossaryEntries.length >
+                              DISPLAY_LIMIT && (
+                              <Button
+                                size="small"
+                                variant="text"
+                                sx={{ mt: 0.5 }}
+                                onClick={() =>
+                                  setAiGlossaryExpanded((prev) => !prev)
+                                }
+                                data-testid="terminology-ai-glossary-toggle-soft"
+                              >
+                                {aiGlossaryExpanded
+                                  ? i18n(
+                                      "terminology_playground_check_collapse",
+                                      "收起"
+                                    )
+                                  : i18n(
+                                      "terminology_playground_check_expand",
+                                      "展开全部"
+                                    )}
+                              </Button>
                             )}
                           </Box>
                         )}
@@ -2893,8 +3118,15 @@ export default function TerminologyPlayground({
                         </tr>
                       </thead>
                       <tbody>
-                        {aiTestState.glossaryEntries.map(
-                          ({ source, key, value }) => {
+                        {/* 有界渲染：对齐本地结果区 DISPLAY_LIMIT 上限，
+                            千条级术语表不产生千行 DOM；用户显式展开后渲染
+                            全部条目，溢出数量在表尾提示。 */}
+                        {aiTestState.glossaryEntries
+                          .slice(
+                            0,
+                            aiGlossaryExpanded ? undefined : DISPLAY_LIMIT
+                          )
+                          .map(({ source, key, value }) => {
                             const sourceLabel =
                               source === "input"
                                 ? i18n(
@@ -3011,10 +3243,48 @@ export default function TerminologyPlayground({
                                 </td>
                               </tr>
                             );
-                          }
-                        )}
+                          })}
                       </tbody>
                     </table>
+                    {aiTestState.glossaryEntries.length > DISPLAY_LIMIT && (
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        alignItems="center"
+                        sx={{ mt: 0.5 }}
+                      >
+                        {!aiGlossaryExpanded && (
+                          <Typography variant="caption" color="text.secondary">
+                            {formatI18n(
+                              i18n,
+                              "terminology_playground_check_more",
+                              "还有 {count} 条未展示。",
+                              {
+                                count:
+                                  aiTestState.glossaryEntries.length -
+                                  DISPLAY_LIMIT,
+                              }
+                            )}
+                          </Typography>
+                        )}
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => setAiGlossaryExpanded((prev) => !prev)}
+                          data-testid="terminology-ai-glossary-toggle"
+                        >
+                          {aiGlossaryExpanded
+                            ? i18n(
+                                "terminology_playground_check_collapse",
+                                "收起"
+                              )
+                            : i18n(
+                                "terminology_playground_check_expand",
+                                "展开全部"
+                              )}
+                        </Button>
+                      </Stack>
+                    )}
                   </Box>
                 </Box>
               )}

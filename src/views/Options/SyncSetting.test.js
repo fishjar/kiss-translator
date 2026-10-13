@@ -7,6 +7,8 @@ import {
   OPT_SYNCTYPE_WORKER,
 } from "../../config";
 import SyncSetting from "./SyncSetting";
+import SettingsSearchTarget from "./SettingsSearchTarget";
+import { getSettingsSearchPrerequisite } from "./search";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -64,12 +66,22 @@ jest.mock("../../libs/log", () => ({
   LogLevel: { INFO: { value: 1 } },
 }));
 
-function renderSyncSetting(initialSyncType) {
+function renderSyncSetting(initialSyncType, target = "") {
   mockInitialSyncType = initialSyncType;
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  act(() => root.render(<SyncSetting />));
+  act(() =>
+    root.render(
+      <SettingsSearchTarget
+        target={target}
+        label={target}
+        fallbackLabel={getSettingsSearchPrerequisite("/sync", target)}
+      >
+        <SyncSetting />
+      </SettingsSearchTarget>
+    )
+  );
 
   const radios = () => [
     ...container.querySelectorAll('.kt-sync-method[role="radio"]'),
@@ -97,6 +109,23 @@ function pressKey(element, key) {
 describe("SyncSetting method selection", () => {
   beforeEach(() => {
     mockUpdateSync.mockReset();
+  });
+
+  test("guides a Gist URL search to the sync type without changing preferences", async () => {
+    const view = renderSyncSetting(OPT_SYNCTYPE_GIST, "data_sync_url");
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 300)));
+
+    expect(view.container.querySelector('[name="syncUrl"]')).toBeNull();
+    expect(
+      view.container.querySelector(
+        '[data-settings-search-target="data_sync_url"]'
+      )
+    ).toBe(view.container.querySelector(".kt-sync-methods"));
+    expect(view.radioFor(OPT_SYNCTYPE_GIST).getAttribute("aria-checked")).toBe(
+      "true"
+    );
+    expect(mockUpdateSync).not.toHaveBeenCalled();
+    view.unmount();
   });
 
   test("keeps only the selected method in the tab order", () => {

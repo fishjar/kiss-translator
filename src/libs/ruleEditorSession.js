@@ -20,9 +20,11 @@ import {
   isEditorElement,
   isPageElement,
   queryPage,
+  recommendSelector,
   RuleHighlights,
   selectorCandidates,
 } from "./ruleEditorDom";
+import { RuleElementPicker } from "./ruleEditorPicker";
 
 export class RuleEditorSession {
   constructor({ translator, onExit }) {
@@ -46,6 +48,7 @@ export class RuleEditorSession {
       inspectorOpen: false,
       selected: null,
       ancestors: [],
+      pickElements: [],
       candidates: [],
       entries: [],
       matches: [],
@@ -85,6 +88,17 @@ export class RuleEditorSession {
     this.runtimeState = this.translator.beginRuleEditing();
     this.highlights = new RuleHighlights();
     this.href = window.location.href;
+    this.picker = new RuleElementPicker();
+    this.updateHover = () => {
+      this.hoverFrame = null;
+      if (!this.state.picking || !this.hoverPoint) return;
+      const { x, y, target } = this.hoverPoint;
+      const element = this.picker.elementsAtPoint(x, y, target)[0];
+      if (this.hovered !== element) {
+        this.hovered = element;
+        this.highlights.show(element ? [{ element }] : []);
+      }
+    };
     this.handlePointer = (event) => {
       if (this.state.picking && event.type === "contextmenu") {
         event.preventDefault();
@@ -94,24 +108,32 @@ export class RuleEditorSession {
       }
       if (isEditorElement(event.target)) return;
       if (!this.state.picking || this.state.translated) return;
-      const element = event.target;
       if (event.type === "mousemove") {
-        if (this.hovered !== element) {
-          this.hovered = element;
-          this.highlights.show(isPageElement(element) ? [{ element }] : []);
-        }
+        this.hoverPoint = {
+          x: event.clientX,
+          y: event.clientY,
+          target: event.target,
+        };
+        if (!this.hoverFrame)
+          this.hoverFrame = requestAnimationFrame(this.updateHover);
         return;
       }
       event.preventDefault();
       event.stopImmediatePropagation();
       if (event.type === "click") {
+        const elements = this.picker.elementsAtPoint(
+          event.clientX,
+          event.clientY,
+          event.target
+        );
+        const element = elements[0] || event.target;
         if (
           element.localName === "iframe" ||
           !isPageElement(element) ||
           element.shadowRoot
         ) {
           this.emit({ notice: "unsupported-element" });
-        } else this.selectElement(element);
+        } else this.selectElement(element, elements);
       }
     };
     this.pointerEvents = [
@@ -197,6 +219,7 @@ export class RuleEditorSession {
         )
       )
         return;
+      this.picker.invalidate();
       if (!this.refreshTimer)
         this.refreshTimer = setTimeout(() => {
           this.refreshTimer = null;
@@ -421,6 +444,7 @@ export class RuleEditorSession {
           ? {
               selected: null,
               ancestors: [],
+              pickElements: [],
               candidates: [],
               notice: "element-removed",
             }
@@ -432,15 +456,16 @@ export class RuleEditorSession {
       this.emit({ matches: [], matchIndex: 0, validation: error.message });
     }
   }
-  selectElement(element) {
+  selectElement(element, pickElements = this.state.pickElements) {
     if (!isPageElement(element)) return;
+    this.stopHover();
     this.activeMatch = null;
     const candidates = selectorCandidates(element);
-    const recommended =
-      candidates.find((candidate) => !candidate.fragile) || candidates[0];
+    const recommended = recommendSelector(candidates);
     this.emit({
       selected: element,
       ancestors: ancestorElements(element),
+      pickElements: pickElements.filter((node) => node.isConnected),
       candidates,
       picking: false,
       inspectorOpen: true,
@@ -454,9 +479,11 @@ export class RuleEditorSession {
   pick() {
     this.showTranslation(false);
     this.hovered = null;
-    this.emit({ picking: true, whole: false, notice: "" });
+    this.picker?.invalidate();
+    this.emit({ picking: true, pickElements: [], whole: false, notice: "" });
   }
   cancelPick() {
+    this.stopHover();
     this.hovered = null;
     this.emit({ picking: false });
     this.refresh();
@@ -464,12 +491,14 @@ export class RuleEditorSession {
   closeInspector() {
     if (this.state.saving) return;
     clearTimeout(this.inputTimer);
+    this.stopHover();
     this.activeMatch = null;
     this.emit({
       inspectorOpen: false,
       picking: false,
       selected: null,
       ancestors: [],
+      pickElements: [],
       candidates: [],
       input: "",
       editing: null,
@@ -528,6 +557,16 @@ export class RuleEditorSession {
     this.showTranslation(false);
     this.emit({ whole, picking: false });
     this.refresh();
+  }
+  hoverElement(element) {
+    if (this.state.translated || this.state.picking || !isPageElement(element))
+      return;
+    this.highlights.show(this.classify([element]), element);
+  }
+  stopHover() {
+    if (this.hoverFrame) cancelAnimationFrame(this.hoverFrame);
+    this.hoverFrame = null;
+    this.hoverPoint = null;
   }
   navigate(direction) {
     // Resolve pending selector input and dynamic page changes before moving.
@@ -715,6 +754,8 @@ export class RuleEditorSession {
   dispose(restore = true) {
     if (this.disposed) return;
     this.disposed = true;
+    this.stopHover();
+    this.picker?.invalidate();
     clearTimeout(this.refreshTimer);
     clearTimeout(this.inputTimer);
     clearInterval(this.routeTimer);

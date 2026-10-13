@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  ListSubheader,
   IconButton,
   MenuItem,
   Snackbar,
@@ -39,7 +40,11 @@ import {
   STOKEY_RULE_EDITOR_POSITION,
   STOKEY_RULE_INSPECTOR_POSITION,
 } from "../../config";
-import { describeElement } from "../../libs/ruleEditorDom";
+import {
+  describeElement,
+  elementTextPreview,
+  isPageElement,
+} from "../../libs/ruleEditorDom";
 import {
   EMPTY_SELECTOR,
   SELECTOR_FIELDS,
@@ -100,23 +105,63 @@ const cardActionStyle = {
 
 function CandidateList({ session, state, t }) {
   const busy = state.saving || state.loading;
+  const ancestors = state.ancestors.filter((element) => element.isConnected);
+  const children = Array.from(state.selected?.children || []).filter(
+    isPageElement
+  );
+  const atPoint = (state.pickElements || []).filter(
+    (element) =>
+      element.isConnected &&
+      !ancestors.includes(element) &&
+      !children.includes(element)
+  );
+  const elements = [...ancestors, ...children, ...atPoint];
+  const elementOptions = (nodes) =>
+    nodes.map((element) => (
+      <MenuItem
+        key={elements.indexOf(element)}
+        value={elements.indexOf(element)}
+        sx={codeStyle}
+        onMouseEnter={() => session.hoverElement(element)}
+        onMouseLeave={() => session.refresh()}
+        onFocus={() => session.hoverElement(element)}
+        onBlur={() => session.refresh()}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography component="code" sx={{ ...codeStyle, display: "block" }}>
+            {describeElement(element)}
+          </Typography>
+          {!!elementTextPreview(element) && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block" }}
+            >
+              {elementTextPreview(element)}
+            </Typography>
+          )}
+        </Box>
+      </MenuItem>
+    ));
   return (
     <Stack spacing={1}>
-      {!!state.ancestors.length && (
+      {!!elements.length && (
         <EditorSelect
           label={t("element")}
-          value={state.ancestors.indexOf(state.selected)}
+          value={elements.indexOf(state.selected)}
           disabled={busy}
           onChange={(event) =>
-            session.selectElement(state.ancestors[Number(event.target.value)])
+            session.selectElement(elements[Number(event.target.value)])
           }
+          renderValue={(value) => describeElement(elements[Number(value)])}
           inputProps={{ style: codeStyle }}
         >
-          {state.ancestors.map((element, index) => (
-            <MenuItem key={index} value={index} sx={codeStyle}>
-              {describeElement(element)}
-            </MenuItem>
-          ))}
+          <ListSubheader>{t("ancestors")}</ListSubheader>
+          {elementOptions(ancestors)}
+          {!!children.length && <ListSubheader>{t("children")}</ListSubheader>}
+          {elementOptions(children)}
+          {!!atPoint.length && <ListSubheader>{t("atPoint")}</ListSubheader>}
+          {elementOptions(atPoint)}
         </EditorSelect>
       )}
       {!!state.candidates.length && (

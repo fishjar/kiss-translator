@@ -1,4 +1,10 @@
-import { Routes, Route, HashRouter, useLocation } from "react-router-dom";
+import {
+  Route,
+  createHashRouter,
+  createRoutesFromElements,
+  RouterProvider,
+  useLocation,
+} from "react-router-dom";
 import About from "./About";
 import Rules from "./Rules";
 import Setting from "./Setting";
@@ -6,7 +12,7 @@ import Layout from "./Layout";
 import SyncSetting from "./SyncSetting";
 import { SettingProvider } from "../../hooks/Setting";
 import ThemeProvider from "./OptionsTheme";
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { isGm } from "../../libs/client";
 import { STOKEY_SETTING } from "../../config";
 import { AlertProvider } from "../../hooks/Alert";
@@ -52,7 +58,10 @@ function SyncBackdrop({ open }) {
   );
 }
 
-function OptionsContent({ pendingKeys, children }) {
+const OptionsSyncContext = createContext(OPTIONS_SYNC_KEYS);
+
+function OptionsContent({ children }) {
+  const pendingKeys = useContext(OptionsSyncContext);
   const { pathname } = useLocation();
   const syncing = getRequiredOptionsSyncKeys(pathname).some((key) =>
     pendingKeys.includes(key)
@@ -65,6 +74,58 @@ function OptionsContent({ pendingKeys, children }) {
       </InteractionLock>
       <SyncBackdrop open={syncing} />
     </>
+  );
+}
+
+function OptionsPlayground() {
+  const pendingKeys = useContext(OptionsSyncContext);
+  return (
+    <Playgound initialSettingsReady={!pendingKeys.includes(STOKEY_SETTING)} />
+  );
+}
+
+function OptionsRouter({ pendingKeys }) {
+  const [router, setRouter] = useState(null);
+  useEffect(() => {
+    // Data routing lets unsaved drafts block links, searches and browser Back.
+    const nextRouter = createHashRouter(
+      createRoutesFromElements(
+        <Route
+          path="/"
+          element={
+            <OptionsContent>
+              <AlertProvider>
+                <ConfirmProvider>
+                  <Layout />
+                </ConfirmProvider>
+              </AlertProvider>
+            </OptionsContent>
+          }
+        >
+          <Route index element={<Setting />} />
+          <Route path="rules" element={<Rules guardNavigation />} />
+          <Route path="styles" element={<StylesSetting />} />
+          <Route path="input" element={<InputSetting />} />
+          <Route path="tranbox" element={<Tranbox />} />
+          <Route path="mousehover" element={<MouseHoverSetting />} />
+          <Route path="subtitle" element={<SubtitleSetting />} />
+          <Route path="apis" element={<Apis />} />
+          <Route path="prompts" element={<Prompts />} />
+          <Route path="sync" element={<SyncSetting />} />
+          <Route path="words" element={<FavWords />} />
+          <Route path="playground" element={<OptionsPlayground />} />
+          <Route path="about" element={<About />} />
+        </Route>
+      )
+    );
+    setRouter(nextRouter);
+    return () => nextRouter.dispose();
+  }, []);
+
+  return (
+    <OptionsSyncContext.Provider value={pendingKeys}>
+      {router ? <RouterProvider router={router} /> : <SyncBackdrop open />}
+    </OptionsSyncContext.Provider>
   );
 }
 
@@ -126,40 +187,7 @@ export default function Options() {
   return (
     <SettingProvider context="options">
       <ThemeProvider>
-        <HashRouter>
-          <OptionsContent pendingKeys={pendingKeys}>
-            <AlertProvider>
-              <ConfirmProvider>
-                <Routes>
-                  <Route path="/" element={<Layout />}>
-                    <Route index element={<Setting />} />
-                    <Route path="rules" element={<Rules />} />
-                    <Route path="styles" element={<StylesSetting />} />
-                    <Route path="input" element={<InputSetting />} />
-                    <Route path="tranbox" element={<Tranbox />} />
-                    <Route path="mousehover" element={<MouseHoverSetting />} />
-                    <Route path="subtitle" element={<SubtitleSetting />} />
-                    <Route path="apis" element={<Apis />} />
-                    <Route path="prompts" element={<Prompts />} />
-                    <Route path="sync" element={<SyncSetting />} />
-                    <Route path="words" element={<FavWords />} />
-                    <Route
-                      path="playground"
-                      element={
-                        <Playgound
-                          initialSettingsReady={
-                            !pendingKeys.includes(STOKEY_SETTING)
-                          }
-                        />
-                      }
-                    />
-                    <Route path="about" element={<About />} />
-                  </Route>
-                </Routes>
-              </ConfirmProvider>
-            </AlertProvider>
-          </OptionsContent>
-        </HashRouter>
+        <OptionsRouter pendingKeys={pendingKeys} />
       </ThemeProvider>
     </SettingProvider>
   );

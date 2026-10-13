@@ -4,8 +4,6 @@ import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
-import LockIcon from "@mui/icons-material/Lock";
-import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -56,6 +54,7 @@ export default function TranslationPanelHeader({
   onClose,
   onOpenSeparateWindow,
   draggable = false,
+  compact = false,
   simpleStyleDisabled = false,
   simpleStyle,
   setSimpleStyle,
@@ -152,7 +151,10 @@ export default function TranslationPanelHeader({
   return (
     // Keep stopPropagation on mouseup: the header also starts drags, and bubbling
     // the release event would interfere with the page's selection handling.
-    <div className="kt-tranbox-header" onMouseUp={(e) => e.stopPropagation()}>
+    <div
+      className={`kt-tranbox-header${compact ? " kt-tranbox-header--compact" : ""}`}
+      onMouseUp={(e) => e.stopPropagation()}
+    >
       {draggable && (
         <span className="kt-tranbox-header__drag" aria-hidden="true">
           <DragIndicatorRoundedIcon />
@@ -160,25 +162,29 @@ export default function TranslationPanelHeader({
       )}
 
       {/* Left: logo and version. */}
-      <span className="kt-tranbox-header__brand">
-        <span className="kt-tranbox-header__logo">
-          <Logo size={16} />
+      {!compact && (
+        <span className="kt-tranbox-header__brand">
+          <span className="kt-tranbox-header__logo">
+            <Logo size={16} />
+          </span>
+          <span className="kt-tranbox-header__title">
+            {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
+          </span>
         </span>
-        <span className="kt-tranbox-header__title">
-          {`${process.env.REACT_APP_NAME} v${process.env.REACT_APP_VERSION}`}
-        </span>
-      </span>
+      )}
 
       {/* Right: always-visible actions. */}
       <span className="kt-tranbox-header__actions">
-        {/* Lock the panel against outside clicks. */}
+        {/* Pinning keeps the panel visible when focus moves outside it. */}
         {setHideClickAway && (
           <IconButton
             title={i18n("btn_tip_click_away")}
-            aria-pressed={hideClickAway}
+            aria-label={i18n("btn_tip_click_away")}
+            aria-pressed={!hideClickAway}
+            color={hideClickAway ? "default" : "primary"}
             onClick={() => setHideClickAway((pre) => !pre)}
           >
-            {hideClickAway ? <LockOpenIcon /> : <LockIcon />}
+            {hideClickAway ? <PushPinOutlinedIcon /> : <PushPinIcon />}
           </IconButton>
         )}
 
@@ -206,9 +212,11 @@ export default function TranslationPanelHeader({
         </IconButton>
 
         {/* Close the translation panel. */}
-        <IconButton title={i18n("close")} onClick={onClose}>
-          <CloseIcon />
-        </IconButton>
+        {onClose && (
+          <IconButton title={i18n("close")} onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        )}
       </span>
 
       {showMore && (

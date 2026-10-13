@@ -17,7 +17,7 @@ export function useRules() {
   // 添加单条规则，但限制通配符 "*" 规则的添加，且过滤重复 pattern 规则
   const add = useCallback(
     (rule) => {
-      save((prev) => {
+      return save((prev) => {
         if (
           rule.pattern === "*" ||
           prev.some((item) => item.pattern === rule.pattern)
@@ -51,7 +51,7 @@ export function useRules() {
   // 修改/替换特定 pattern 规则的内部属性数据
   const put = useCallback(
     (pattern, obj) => {
-      save((prev) => {
+      return save((prev) => {
         return prev.map((item) =>
           item.pattern === pattern ? { ...item, ...obj } : item
         );

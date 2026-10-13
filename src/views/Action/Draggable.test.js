@@ -70,6 +70,7 @@ describe("Draggable FAB edge locking", () => {
     act(() => root.unmount());
     container.remove();
     getBoundingClientRect.mockRestore();
+    jest.restoreAllMocks();
     putFab.mockReset();
     jest.useRealTimers();
     restoreViewport("clientWidth", originalClientWidth);
@@ -155,6 +156,42 @@ describe("Draggable FAB edge locking", () => {
     expect(draggable.style.transform).toBe("translate(1180px, 400px)");
   });
 
+  test.each([
+    ["left", -20, 100, { x: 0, y: 100 }, { x: 0, y: 200 }],
+    ["right", 580, 100, { x: 560, y: 100 }, { x: 1160, y: 200 }],
+    ["top", 250, -20, { x: 250, y: 0 }, { x: 500, y: 0 }],
+    ["bottom", 250, 380, { x: 250, y: 360 }, { x: 500, y: 760 }],
+  ])(
+    "keeps the %s edge fully visible and persisted when half-hide is disabled",
+    (edge, left, top, initial, resized) => {
+      const fab = renderFab({ edge, left, top, halfHide: false });
+      act(() => jest.runOnlyPendingTimers());
+
+      expect(draggable.style.transform).toBe(
+        `translate(${initial.x}px, ${initial.y}px)`
+      );
+      expect(putFab).toHaveBeenLastCalledWith({ ...initial, edge });
+      putFab.mockClear();
+
+      setViewport(1200, 800);
+      act(() => window.dispatchEvent(new Event("resize")));
+      expect(draggable.style.transform).toBe(
+        `translate(${resized.x}px, ${resized.y}px)`
+      );
+
+      rerenderFab(fab, { windowSize: { w: 1200, h: 800 } });
+      act(() => jest.runOnlyPendingTimers());
+      expect(draggable.style.transform).toBe(
+        `translate(${resized.x}px, ${resized.y}px)`
+      );
+      if (edge === "left" || edge === "top") {
+        expect(putFab).not.toHaveBeenCalled();
+      } else {
+        expect(putFab).toHaveBeenLastCalledWith({ ...resized, edge });
+      }
+    }
+  );
+
   test("constrains a content panel to its requested width", () => {
     renderFab({
       width: 360,
@@ -180,6 +217,7 @@ describe("Draggable FAB edge locking", () => {
       edge: undefined,
       snapEdge: false,
       usePaper: true,
+      idleOpacity: 0.3,
       onStart,
       handler: (
         <div>
@@ -190,6 +228,7 @@ describe("Draggable FAB edge locking", () => {
     });
 
     const button = draggable.querySelector("button");
+    expect(draggable.style.opacity).toBe("1");
     act(() =>
       button.dispatchEvent(
         new MouseEvent("pointerdown", {
@@ -213,6 +252,12 @@ describe("Draggable FAB edge locking", () => {
       )
     );
     expect(onStart).toHaveBeenCalledTimes(1);
+    expect(draggable.style.opacity).toBe("0.8");
+
+    act(() =>
+      surface.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }))
+    );
+    expect(draggable.style.opacity).toBe("1");
   });
 
   test.each([
@@ -238,11 +283,15 @@ describe("Draggable FAB edge locking", () => {
     act(() => jest.runOnlyPendingTimers());
 
     expect(draggable.style.transform).toBe("translate(300px, -20px)");
-    expect(putFab).toHaveBeenLastCalledWith({ x: 300, y: -20, edge: "top" });
+    // Normalization never changed the position, so no storage rewrite happens.
+    expect(putFab).not.toHaveBeenCalled();
   });
 
   test("hovering expands the FAB without changing its saved edge", () => {
     renderFab();
+    act(() => {
+      jest.advanceTimersByTime(32);
+    });
     expect(draggable.style.opacity).toBe("1");
     expect(draggable.style.transition).toContain("opacity");
     expect(draggable.style.transition).toContain("transform");
@@ -262,6 +311,18 @@ describe("Draggable FAB edge locking", () => {
     expect(putFab).toHaveBeenLastCalledWith({ x: 580, y: 200, edge: "right" });
   });
 
+  test("keeps the transform transition disabled on mount until the first position is applied", () => {
+    renderFab();
+    expect(draggable.style.transform).toBe("translate(580px, 200px)");
+    expect(draggable.style.transition).toContain("opacity");
+    expect(draggable.style.transition).not.toContain("transform");
+
+    act(() => {
+      jest.advanceTimersByTime(32);
+    });
+    expect(draggable.style.transition).toContain("transform");
+  });
+
   test("keyboard focus reveals the snapped FAB and blur hides it halfway", () => {
     const outside = document.createElement("button");
     document.body.appendChild(outside);
@@ -274,6 +335,172 @@ describe("Draggable FAB edge locking", () => {
     act(() => outside.focus());
     expect(draggable.style.transform).toBe("translate(580px, 200px)");
     outside.remove();
+  });
+
+  test.each([true, false])(
+    "restores opacity during interaction with halfHide=%s",
+    (halfHide) => {
+      const outside = document.createElement("button");
+      document.body.appendChild(outside);
+      const fab = renderFab({
+        halfHide,
+        idleOpacity: 0.3,
+        handler: <button type="button">fab</button>,
+      });
+      const handler = draggable.querySelector("button");
+      const idleTransform = halfHide
+        ? "translate(580px, 200px)"
+        : "translate(560px, 200px)";
+      expect(draggable.style.opacity).toBe("0.3");
+      expect(draggable.style.transform).toBe(idleTransform);
+
+      act(() =>
+        draggable.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }))
+      );
+      expect(draggable.style.opacity).toBe("1");
+      act(() =>
+        draggable.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }))
+      );
+      expect(draggable.style.opacity).toBe("0.3");
+      expect(draggable.style.transform).toBe(idleTransform);
+
+      act(() => handler.focus());
+      expect(draggable.style.opacity).toBe("1");
+      act(() => outside.focus());
+      expect(draggable.style.opacity).toBe("0.3");
+      expect(draggable.style.transform).toBe(idleTransform);
+
+      rerenderFab(fab, { expanded: true });
+      expect(draggable.style.opacity).toBe("1");
+      expect(draggable.style.transform).toBe("translate(560px, 200px)");
+      rerenderFab(fab, { expanded: false });
+      expect(draggable.style.opacity).toBe("0.3");
+      expect(draggable.style.transform).toBe(idleTransform);
+
+      rerenderFab(fab, { idleOpacity: 0.6, halfHide: !halfHide });
+      expect(draggable.style.opacity).toBe("0.6");
+      expect(draggable.style.transform).toBe(
+        halfHide ? "translate(560px, 200px)" : "translate(580px, 200px)"
+      );
+      outside.remove();
+    }
+  );
+
+  test("clears menu hover when an overlay closes without a mouseleave event", () => {
+    const outside = document.createElement("button");
+    document.body.appendChild(outside);
+    const fab = renderFab({
+      idleOpacity: 0.35,
+      handler: <button type="button">fab</button>,
+    });
+    const handler = draggable.querySelector("button");
+    rerenderFab(fab, {
+      expanded: true,
+      children: <button data-testid="menu-action">Action</button>,
+    });
+    const action = draggable.querySelector('[data-testid="menu-action"]');
+    act(() => {
+      action.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      action.focus();
+    });
+    expect(draggable.style.opacity).toBe("1");
+
+    act(() => handler.focus());
+    rerenderFab(fab, { expanded: false, children: null });
+    expect(draggable.style.opacity).toBe("1");
+
+    act(() => outside.focus());
+    act(() => jest.advanceTimersByTime(50));
+    expect(draggable.style.opacity).toBe("0.35");
+    expect(draggable.style.transform).toBe("translate(580px, 200px)");
+    outside.remove();
+  });
+
+  test("window blur cancels a drag without requiring a pointerup event", () => {
+    const onMove = jest.fn();
+    const onDeactivate = jest.fn();
+    renderFab({ onMove, onDeactivate });
+    const handler = draggable.firstElementChild.firstElementChild;
+    act(() => {
+      handler.dispatchEvent(
+        new MouseEvent("pointerdown", {
+          bubbles: true,
+          clientX: 590,
+          clientY: 210,
+        })
+      );
+    });
+    act(() => {
+      handler.dispatchEvent(
+        new MouseEvent("pointermove", {
+          bubbles: true,
+          clientX: 400,
+          clientY: 210,
+        })
+      );
+    });
+    expect(onMove).toHaveBeenCalledTimes(1);
+
+    act(() => window.dispatchEvent(new Event("blur")));
+
+    expect(onDeactivate).toHaveBeenCalledTimes(1);
+    expect(draggable.style.transform).toBe("translate(580px, 200px)");
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+      handler.dispatchEvent(
+        new MouseEvent("pointermove", {
+          bubbles: true,
+          clientX: 100,
+          clientY: 300,
+        })
+      );
+    });
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(draggable.style.transform).toBe("translate(580px, 200px)");
+  });
+
+  test("deactivation preserves focus outside the snapped control", () => {
+    const outside = document.createElement("button");
+    document.body.appendChild(outside);
+    const onDeactivate = jest.fn();
+    try {
+      renderFab({ onDeactivate });
+      act(() => outside.focus());
+
+      act(() => window.dispatchEvent(new Event("blur")));
+
+      expect(onDeactivate).toHaveBeenCalledTimes(1);
+      expect(document.activeElement).toBe(outside);
+    } finally {
+      outside.remove();
+    }
+  });
+
+  test("removes page deactivation listeners when the control unmounts", () => {
+    const addWindowListener = jest.spyOn(window, "addEventListener");
+    const removeWindowListener = jest.spyOn(window, "removeEventListener");
+    const addDocumentListener = jest.spyOn(document, "addEventListener");
+    const removeDocumentListener = jest.spyOn(document, "removeEventListener");
+    const onDeactivate = jest.fn();
+    renderFab({ onDeactivate });
+    const blurListener = addWindowListener.mock.calls.find(
+      ([type]) => type === "blur"
+    );
+    const visibilityListener = addDocumentListener.mock.calls.find(
+      ([type]) => type === "visibilitychange"
+    );
+    expect(blurListener).toBeDefined();
+    expect(visibilityListener).toBeDefined();
+
+    act(() => root.render(null));
+
+    expect(removeWindowListener).toHaveBeenCalledWith(...blurListener);
+    expect(removeDocumentListener).toHaveBeenCalledWith(...visibilityListener);
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(onDeactivate).not.toHaveBeenCalled();
   });
 
   test("ignores pointer movement when no drag is active", () => {
@@ -294,39 +521,102 @@ describe("Draggable FAB edge locking", () => {
     expect(onMove).not.toHaveBeenCalled();
   });
 
-  test("changes the locked edge only after a real drag", () => {
+  test.each([
+    [true, 290, -20],
+    [false, 270, 0],
+  ])(
+    "snaps and restores idle opacity after dragging with halfHide=%s",
+    (halfHide, x, y) => {
+      renderFab({ halfHide, idleOpacity: 0.3 });
+      act(() => {
+        jest.advanceTimersByTime(32);
+      });
+      const handler = draggable.firstElementChild.firstElementChild;
+      expect(draggable.style.opacity).toBe("0.3");
+
+      act(() => {
+        handler.dispatchEvent(
+          new MouseEvent("pointerdown", {
+            bubbles: true,
+            clientX: 590,
+            clientY: 210,
+          })
+        );
+      });
+      expect(draggable.style.transition).not.toContain("transform");
+      expect(draggable.style.opacity).toBe("1");
+      act(() => {
+        handler.dispatchEvent(
+          new MouseEvent("pointermove", {
+            bubbles: true,
+            clientX: 300,
+            clientY: 0,
+          })
+        );
+      });
+      act(() => {
+        handler.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }));
+      });
+      expect(draggable.style.transition).toContain("transform");
+      expect(draggable.style.opacity).toBe("0.3");
+      act(() => {
+        jest.runOnlyPendingTimers();
+      });
+
+      expect(draggable.style.transform).toBe(`translate(${x}px, ${y}px)`);
+      expect(putFab).toHaveBeenLastCalledWith({ x, y, edge: "top" });
+    }
+  );
+
+  test("does not rewrite storage when the saved edge position is already normalized", () => {
     renderFab();
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    expect(putFab).not.toHaveBeenCalled();
+    expect(draggable.style.transform).toBe("translate(580px, 200px)");
+  });
+
+  test("saves a completed drag along the same fully visible edge only once", () => {
+    const fab = renderFab({ edge: "left", left: 0, top: 100, halfHide: false });
+    act(() => jest.runOnlyPendingTimers());
+    expect(putFab).not.toHaveBeenCalled();
     const handler = draggable.firstElementChild.firstElementChild;
 
     act(() => {
       handler.dispatchEvent(
         new MouseEvent("pointerdown", {
           bubbles: true,
-          clientX: 590,
-          clientY: 210,
+          clientX: 20,
+          clientY: 120,
         })
       );
     });
-    expect(draggable.style.transition).not.toContain("transform");
     act(() => {
       handler.dispatchEvent(
         new MouseEvent("pointermove", {
           bubbles: true,
-          clientX: 300,
-          clientY: 0,
+          clientX: 20,
+          clientY: 220,
         })
       );
     });
     act(() => {
       handler.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }));
     });
-    expect(draggable.style.transition).toContain("transform");
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    act(() => jest.runOnlyPendingTimers());
 
-    expect(draggable.style.transform).toBe("translate(290px, -20px)");
-    expect(putFab).toHaveBeenLastCalledWith({ x: 290, y: -20, edge: "top" });
+    expect(draggable.style.transform).toBe("translate(0px, 200px)");
+    expect(putFab).toHaveBeenCalledTimes(1);
+    expect(putFab).toHaveBeenLastCalledWith({ x: 0, y: 200, edge: "left" });
+
+    setViewport(1200, 800);
+    rerenderFab(fab, { windowSize: { w: 1200, h: 800 } });
+    act(() => jest.runOnlyPendingTimers());
+
+    expect(draggable.style.transform).toBe("translate(0px, 400px)");
+    expect(putFab).toHaveBeenCalledTimes(1);
   });
 
   test("infers and persists an edge for legacy FAB positions", () => {
