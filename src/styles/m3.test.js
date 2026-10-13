@@ -89,7 +89,8 @@ describe("M3 resizable textareas", () => {
     //   .kt-m3-root textarea.kt-resizable-textarea:not([aria-hidden="true"])::-webkit-scrollbar（:232）
     //   .kt-m3-root .kt-height-locked textarea:not([aria-hidden="true"])（:241）
     const selectorText = M3_GLOBAL_CSS.replace(/@supports[^{]*\{/g, "");
-    const textareaSelectors = selectorText.match(/[^\n{}]*textarea[^\n{}]*\{/g) ?? [];
+    const textareaSelectors =
+      selectorText.match(/[^\n{}]*textarea[^\n{}]*\{/g) ?? [];
     expect(textareaSelectors.length).toBeGreaterThanOrEqual(3);
     for (const raw of textareaSelectors) {
       const selector = raw.replace(/\{$/, "").trim();

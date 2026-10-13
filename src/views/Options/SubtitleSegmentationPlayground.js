@@ -857,8 +857,7 @@ export default function SubtitleSegmentationPlayground({
               ...sourceHeightLock.rootProps,
               readOnly: true,
               endAdornment:
-                sourceText.trim() ||
-                sourceHeightLock.lockedHeight != null ? (
+                sourceText.trim() || sourceHeightLock.lockedHeight != null ? (
                   <TextareaResizeGrip
                     target={sourceHeightLock.textareaRef}
                     onResize={sourceHeightLock.applyHeight}

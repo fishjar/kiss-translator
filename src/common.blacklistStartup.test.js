@@ -105,7 +105,10 @@ describe("common blacklist startup recovery", () => {
     });
 
     ({ getSettingWithDefault, runDataMigration } = require("./libs/storage"));
-    const { getFabWithDefault, getWordsWithDefault } = require("./libs/storage");
+    const {
+      getFabWithDefault,
+      getWordsWithDefault,
+    } = require("./libs/storage");
     ({ matchRule } = require("./libs/rules"));
     TranslatorManager = require("./libs/translatorManager").default;
     const { isInBlacklist } = require("./libs/blacklist");

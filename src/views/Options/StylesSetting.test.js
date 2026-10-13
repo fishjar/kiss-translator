@@ -56,7 +56,10 @@ const mockUpdateSetting = jest.fn((patch) => {
 });
 
 jest.mock("../../hooks/Setting", () => ({
-  useSetting: () => ({ setting: mockSetting, updateSetting: mockUpdateSetting }),
+  useSetting: () => ({
+    setting: mockSetting,
+    updateSetting: mockUpdateSetting,
+  }),
 }));
 
 jest.mock("../../hooks/Confirm", () => ({

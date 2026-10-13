@@ -255,9 +255,7 @@ describe("SubtitleSegmentationPlayground", () => {
       .querySelector('[role="slider"]');
     expect(sourceGrip).not.toBeNull();
     expect(
-      resultArea
-        .closest(".MuiInputBase-root")
-        .querySelector('[role="slider"]')
+      resultArea.closest(".MuiInputBase-root").querySelector('[role="slider"]')
     ).not.toBeNull();
     act(() => {
       sourceGrip.dispatchEvent(
@@ -552,7 +550,9 @@ describe("SubtitleSegmentationPlayground textarea grip style", () => {
 
   async function uploadSource(container) {
     const input = container.querySelector('input[type="file"]');
-    const file = new File([source], "sample.json", { type: "application/json" });
+    const file = new File([source], "sample.json", {
+      type: "application/json",
+    });
     Object.defineProperty(file, "text", { value: async () => source });
     Object.defineProperty(input, "files", { value: [file] });
     await act(async () => {
