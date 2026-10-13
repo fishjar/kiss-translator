@@ -390,6 +390,11 @@ const userscriptWebpack = (config, env) => {
 
 // 方案 C：本地开发网页模式的 Webpack 覆盖配置
 const webWebpack = (config, env) => {
+  config.module.rules.push({
+    test: /[\\/]pdfjs-dist[\\/]web[\\/]pdf_viewer\.css$/,
+    enforce: "pre",
+    use: path.resolve(__dirname, "src/scripts/pdf-viewer-css-loader.cjs"),
+  });
   config.plugins.push({
     apply(compiler) {
       compiler.hooks.thisCompilation.tap("PdfAssets", compilation => {
