@@ -47,6 +47,15 @@ export const fetchData = async (
     }
   }
 
+  if (input === "local-ai://chat") {
+    const run = async () => {
+      let content = "";
+      for await (const chunk of requestStream(input, init, opts))
+        content += JSON.parse(chunk).choices?.[0]?.delta?.content || "";
+      return { choices: [{ message: { role: "assistant", content } }] };
+    };
+    return usePool ? getFetchPool(fetchInterval, fetchLimit).push(run) : run();
+  }
   if (usePool) {
     const fetchPool = getFetchPool(fetchInterval, fetchLimit);
     return fetchPool.push(fnPolyfill, { fn: fetchHandle, input, init, opts });

@@ -94,7 +94,10 @@ export function ConfirmProvider({ children }) {
               {dialogConfig.title}
             </DialogTitle>
             <DialogContent>
-              <DialogContentText id="confirm-dialog-description">
+              <DialogContentText
+                component="div"
+                id="confirm-dialog-description"
+              >
                 {dialogConfig.message}
               </DialogContentText>
             </DialogContent>

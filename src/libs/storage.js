@@ -1,6 +1,7 @@
 import {
   STOKEY_SETTING,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
+  STOKEY_SETTING_BACKUP_V3_BEFORE_V4,
   STOKEY_SETTING_OLD,
   STOKEY_RULES,
   STOKEY_RULES_OLD,
@@ -18,7 +19,9 @@ import {
   getSettingVersion,
   migrateSettingPromptsToV2,
   migrateSettingToV3,
+  migrateSettingToV5,
   SETTINGS_VERSION_V2,
+  SETTINGS_VERSION_V4,
   CURRENT_SETTINGS_VERSION,
   DEFAULT_TRANBOX_SETTING,
   normalizeApiThinkingSettings,
@@ -550,15 +553,18 @@ export const runDataMigration = async () => {
   if (!rawSetting) return true;
 
   const needsSchemaMigration =
-    getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
-  const needsThemeMigration = typeof rawSetting.darkMode === "boolean";
+    rawSetting && getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
+  const needsThemeMigration = typeof rawSetting?.darkMode === "boolean";
   if (!needsSchemaMigration && !needsThemeMigration) return true;
 
   try {
     let nextSetting = rawSetting;
     if (needsSchemaMigration) {
       const v2Setting = await migrateStoredSettingToV2(rawSetting, rawSetting);
-      nextSetting = migrateSettingToV3(v2Setting);
+      if (getSettingVersion(v2Setting) < SETTINGS_VERSION_V4) {
+        await setObj(STOKEY_SETTING_BACKUP_V3_BEFORE_V4, rawSetting);
+      }
+      nextSetting = migrateSettingToV5(migrateSettingToV3(v2Setting));
     }
     if (needsThemeMigration) {
       nextSetting = {
@@ -566,7 +572,8 @@ export const runDataMigration = async () => {
         darkMode: rawSetting.darkMode ? "dark" : "light",
       };
     }
-    await setObj(STOKEY_SETTING, nextSetting);
+    if (needsSchemaMigration || needsThemeMigration)
+      await setObj(STOKEY_SETTING, nextSetting);
     kissLog(`Migration to V${CURRENT_SETTINGS_VERSION} completed.`);
     return true;
   } catch (err) {
@@ -583,7 +590,7 @@ export const normalizeStoredSetting = (rawSetting) => {
 
   let setting =
     getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION
-      ? migrateSettingToV3(rawSetting)
+      ? migrateSettingToV5(rawSetting)
       : rawSetting;
 
   if (typeof setting.darkMode === "boolean") {
@@ -603,8 +610,7 @@ export const putSetting = async (obj) => {
 // --- 用户翻译规则 (Rules) 数据存取 ---
 export const getRules = () => getObj(STOKEY_RULES);
 export const getRulesOld = () => getObj(STOKEY_RULES_OLD);
-export const getRulesWithDefault = async () =>
-  (await getRules()) || DEFAULT_RULES;
+export const getRulesWithDefault = async () => (await getRules()) || DEFAULT_RULES;
 export const setRules = (val) => setObj(STOKEY_RULES, val);
 
 // --- 个人生词本词汇 (Fav Words) 数据存取 ---

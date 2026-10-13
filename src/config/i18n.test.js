@@ -1,3 +1,12 @@
+import fs from "fs";
+import path from "path";
+import { parseSync } from "@babel/core";
+import { LOCAL_AI_I18N } from "./locales/localAi";
+import { FILE_TRANSLATE_I18N } from "./locales/fileTranslate";
+import { RULE_EDITOR_I18N } from "./i18n.ruleEditor";
+import { SUBTITLE_PLAYGROUND_I18N } from "./locales/subtitlePlayground";
+import { TERMINOLOGY_PLAYGROUND_I18N } from "./locales/terminologyPlayground";
+import { CUSTOM_API_HELP_I18N } from "./locales/customApiHelp";
 import { I18N, UI_LANGS, newI18n } from "./i18n";
 import { RU_I18N } from "./i18n.ru";
 import { TEXTAREA_GRIP_STYLE_KEYS } from "./textareaGripStyles";
@@ -62,4 +71,60 @@ test("provides default text when key is not found", () => {
   expect(i18n("nonexistent_key", "Fallback")).toBe("Fallback");
   expect(i18n("nonexistent_key", "")).toBe("");
   expect(i18n("app_name")).not.toBe("app_name");
+});
+
+test("all static UI translation keys are registered, including calls with a fallback", () => {
+  const dictionary = {
+    ...I18N,
+    ...LOCAL_AI_I18N,
+    ...FILE_TRANSLATE_I18N,
+    ...RULE_EDITOR_I18N,
+    ...SUBTITLE_PLAYGROUND_I18N,
+    ...TERMINOLOGY_PLAYGROUND_I18N,
+    ...CUSTOM_API_HELP_I18N,
+  };
+  const missing = [];
+  const duplicateLocaleKeys = [];
+  const visit = (node, file) => {
+    if (!node || typeof node !== "object") return;
+    if (node.type === "ObjectExpression" && file.includes(`${path.sep}locales${path.sep}`)) {
+      const keys = node.properties
+        .filter((property) => property.type === "ObjectProperty" && !property.computed)
+        .map((property) => property.key.name || property.key.value);
+      keys.forEach((key, index) => {
+        if (keys.indexOf(key) !== index) duplicateLocaleKeys.push(`${file}:${key}`);
+      });
+    }
+    if (
+      node.type === "CallExpression" &&
+      node.callee?.name === "i18n" &&
+      node.arguments[0]?.type === "StringLiteral" &&
+      !dictionary[node.arguments[0].value]
+    ) {
+      missing.push(file + ":" + node.arguments[0].value);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach((item) => visit(item, file));
+      else if (value && typeof value === "object") visit(value, file);
+    }
+  };
+  const scan = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const file = path.join(directory, entry.name);
+      if (entry.isDirectory()) scan(file);
+      else if (file.endsWith(".js") && !file.includes(".test.")) {
+        visit(
+          parseSync(fs.readFileSync(file, "utf8"), {
+            babelrc: false,
+            configFile: false,
+            parserOpts: { plugins: ["jsx"] },
+          }),
+          file
+        );
+      }
+    }
+  };
+  scan(path.resolve(__dirname, ".."));
+  expect(missing).toEqual([]);
+  expect(duplicateLocaleKeys).toEqual([]);
 });

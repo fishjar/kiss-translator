@@ -20,7 +20,12 @@ import {
   API_SPE_TYPES,
   GEMINI_GENERATE_CONTENT_URL,
   OPT_TRANS_GEMINI,
+  DEFAULT_API_LIST,
+  OPT_TRANS_SYSTEM_TTS,
+  OPT_TRANS_LOCALAI,
 } from "./api";
+import { normalizeApiCapabilities } from "./serviceSelection";
+import { withBuiltinProvider } from "../builtin-plugins";
 
 // 聚合翻译协议定义
 export const PROMPT_PROTOCOL_LINE = "line";
@@ -55,12 +60,17 @@ export const PROMPT_CATEGORY_BATCH_SYSTEM = "batch system prompt";
 export const PROMPT_CATEGORY_USER = "user prompt";
 export const PROMPT_CATEGORY_SUBTITLE = "subtitle prompt";
 export const PROMPT_CATEGORY_DICTIONARY = "dictionary prompt";
+export const PROMPT_CATEGORY_SUMMARY = "summary prompt";
+export const PROMPT_CATEGORY_VLM = "vlm prompt";
+export const DEFAULT_VLM_PROMPT_SLUG = "vlm-document";
 // 允许在设置界面“提示词管理”中展示和维护的分类列表
 export const PROMPT_TEMPLATE_CATEGORIES = [
   PROMPT_CATEGORY_USER,
   PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_CATEGORY_SUBTITLE,
   PROMPT_CATEGORY_DICTIONARY,
+  PROMPT_CATEGORY_SUMMARY,
+  PROMPT_CATEGORY_VLM,
 ];
 
 // 各类功能默认使用的提示词 Slug，当未配置时作为后备默认值
@@ -69,18 +79,65 @@ export const DEFAULT_NOBATCH_PROMPT_SLUG =
 export const DEFAULT_BATCH_PROMPT_SLUG = PROMPT_SLUG_BATCH_TRANSLATION_JSON;
 export const DEFAULT_SUBTITLE_PROMPT_SLUG = PROMPT_SLUG_SUBTITLE_SEGMENTATION;
 export const DEFAULT_DICTIONARY_PROMPT_SLUG = PROMPT_SLUG_DICTIONARY_EN_ZH;
+export const PROMPT_SLUG_DEFAULT_VIDEO_SUMMARY = "default_video_summary";
+export const DEFAULT_SUMMARY_PROMPT_SLUG = PROMPT_SLUG_DEFAULT_VIDEO_SUMMARY;
+
+export const DEFAULT_SUMMARY_PROMPT = {
+  slug: PROMPT_SLUG_DEFAULT_VIDEO_SUMMARY,
+  category: PROMPT_CATEGORY_SUMMARY,
+  nameKey: "preset_prompt_default_video_summary",
+  name: "视频总结",
+  systemPrompt: `Summarize the video using the provided title, description, and transcript. Write the entire summary, including headings, in {{to}}.
+
+Use the transcript as the primary source and the title and description as context. Include only information supported by the input. Do not invent facts or conclusions.
+
+Output Markdown with two sections:
+- Overview: 1–2 sentences describing the main topic.
+- Key Takeaways: up to 5 distinct bullet points, with a short bold label for each. Use fewer points when the content does not support 5.
+
+Translate the section headings into {{to}}. Return only the summary, without a preamble or Markdown code fences.`,
+  userPrompt: `Title: {{title}}
+Description: {{description}}
+
+Transcript:
+{{transcript}}`,
+};
 
 // 配置数据结构的版本号（用于检测并执行数据迁移升级逻辑）
 export const SETTINGS_VERSION_V1 = 1;
 export const SETTINGS_VERSION_V2 = 2;
 export const SETTINGS_VERSION_V3 = 3;
-export const CURRENT_SETTINGS_VERSION = SETTINGS_VERSION_V3;
+export const SETTINGS_VERSION_V4 = 4;
+export const SETTINGS_VERSION_V5 = 5;
+export const CURRENT_SETTINGS_VERSION = SETTINGS_VERSION_V5;
 
 /**
  * 预设的提示词列表。包含了系统出厂自带的各种场景提示词模板。
  * 用户不能删除预设提示词，但可以基于它们复制出自定义的模板。
  */
 export const PRESET_PROMPTS = [
+  {
+    slug: DEFAULT_VLM_PROMPT_SLUG,
+    category: PROMPT_CATEGORY_VLM,
+    nameKey: "preset_prompt_vlm_document",
+    name: "视觉解析（Markdown）",
+    systemPrompt: "",
+    userPrompt:
+      "Extract all visible text from the image in its original language. Preserve reading order, paragraph breaks, and table structure. Do not translate, summarize, or invent missing or unreadable content. Return only the extracted content in Markdown, without explanations or Markdown code fences.",
+  },
+  ...[
+    ["vlm-glm-text", "GLM-OCR Document", "Text Recognition:"],
+    ["vlm-paddle-text", "PaddleOCR-VL Document", "OCR:"],
+    ["vlm-table", "Table Recognition", "Table Recognition:"],
+    ["vlm-formula", "Formula Recognition", "Formula Recognition:"],
+    ["vlm-unlimited-document", "Unlimited-OCR Document", "document parsing."],
+  ].map(([slug, name, userPrompt]) => ({
+    slug,
+    name,
+    userPrompt,
+    category: PROMPT_CATEGORY_VLM,
+    systemPrompt: "",
+  })),
   {
     slug: PROMPT_SLUG_NOBATCH_TRANSLATION_CONCISE,
     category: PROMPT_CATEGORY_USER,
@@ -172,6 +229,7 @@ export const PRESET_PROMPTS = [
     systemPrompt: defaultDictPromptEnRu,
     userPrompt: defaultDictUserPrompt,
   },
+  DEFAULT_SUMMARY_PROMPT,
 ];
 
 const PRESET_PROMPT_SLUGS = new Set(
@@ -427,6 +485,8 @@ export function getPromptCategoryDisplayName(category, i18n) {
     [PROMPT_CATEGORY_USER]: "prompt_category_user",
     [PROMPT_CATEGORY_SUBTITLE]: "prompt_category_subtitle",
     [PROMPT_CATEGORY_DICTIONARY]: "prompt_category_dictionary",
+    [PROMPT_CATEGORY_SUMMARY]: "prompt_category_summary",
+    [PROMPT_CATEGORY_VLM]: "prompt_category_vlm",
   };
 
   return i18n(keyMap[category], category || "");
@@ -513,6 +573,29 @@ export function getSubtitlePromptOptions(prompts = []) {
  */
 export function getDictionaryPromptOptions(prompts = []) {
   return getPromptOptions(prompts, PROMPT_CATEGORY_DICTIONARY);
+}
+
+/**
+ * 获取所有可用的“视频/长文总结”提示词选项
+ *
+ * @param {Array} prompts 全部可用提示词列表
+ * @returns {Array}
+ */
+export function getVlmPromptOptions(prompts = []) {
+  return getPromptOptions(prompts, PROMPT_CATEGORY_VLM);
+}
+
+export function resolveVlmPrompt(userPrompts = [], slug) {
+  const prompt = findPromptBySlug(userPrompts, slug);
+  return (
+    prompt?.category === PROMPT_CATEGORY_VLM
+      ? prompt
+      : findPromptBySlug([], DEFAULT_VLM_PROMPT_SLUG)
+  ).userPrompt;
+}
+
+export function getSummaryPromptOptions(prompts = []) {
+  return getPromptOptions(prompts, PROMPT_CATEGORY_SUMMARY);
 }
 
 function hasPromptReference(source = {}, promptSlugFieldName, promptSlug) {
@@ -869,6 +952,24 @@ export function migrateSettingToV3(setting = {}) {
   };
 }
 
+export function migrateSettingToV4(setting = {}) {
+  if (!setting || typeof setting !== "object") return setting;
+  const previous = migrateSettingToV3(setting);
+  if (getSettingVersion(previous) >= SETTINGS_VERSION_V4) return previous;
+  const apis = Array.isArray(previous.transApis)
+    ? previous.transApis.map(normalizeApiCapabilities)
+    : previous.transApis;
+  const added = [OPT_TRANS_SYSTEM_TTS, OPT_TRANS_LOCALAI]
+    .filter((type) => !apis?.some((api) => api.apiType === type))
+    .map((type) => DEFAULT_API_LIST.find((api) => api.apiType === type));
+  const migrated = {
+    ...previous,
+    version: SETTINGS_VERSION_V4,
+    transApis: Array.isArray(apis) ? [...apis, ...added] : apis,
+  };
+  return migrated;
+}
+
 /**
  * 删除某个自定义提示词后，级联更新所有引用了该提示词的接口配置。
  * 遍历各个 API 和字幕设置，如果它们正在使用被删除的提示词（根据 promptSlug 判断），
@@ -878,6 +979,30 @@ export function migrateSettingToV3(setting = {}) {
  * @param {string} promptSlug 被删除的提示词 Slug
  * @returns {Object} 更新引用后的配置对象副本
  */
+export function migrateSettingToV5(setting = {}) {
+  if (!setting || typeof setting !== "object") return setting;
+  const previous = migrateSettingToV4(setting);
+  if (getSettingVersion(previous) >= SETTINGS_VERSION_V5) return previous;
+  return {
+    ...previous,
+    version: SETTINGS_VERSION_V5,
+    transApis: previous.transApis?.map((api) => ({
+      ...api,
+      vlmPromptSlug: api.vlmPromptSlug ?? DEFAULT_VLM_PROMPT_SLUG,
+    })),
+    ...(previous.fileTranslateSetting && {
+      fileTranslateSetting: {
+        ...previous.fileTranslateSetting,
+        image: {
+          ...previous.fileTranslateSetting.image,
+          vlmPromptSlug:
+            previous.fileTranslateSetting.image?.vlmPromptSlug ?? "",
+        },
+      },
+    }),
+  };
+}
+
 export function removePromptReferences(setting = {}, promptSlug) {
   if (!promptSlug || isPresetPromptSlug(promptSlug)) {
     return setting;
@@ -930,9 +1055,18 @@ export function removePromptReferences(setting = {}, promptSlug) {
       hasApiChanges = true;
     }
 
+    if (hasPromptReference(api, "vlmPromptSlug", promptSlug)) {
+      nextApi = { ...nextApi, vlmPromptSlug: DEFAULT_VLM_PROMPT_SLUG };
+      hasApiChanges = true;
+    }
     return nextApi;
   });
 
+  const hasVlmSceneReference = hasPromptReference(
+    setting.fileTranslateSetting?.image,
+    "vlmPromptSlug",
+    promptSlug
+  );
   const hasSubtitlePromptReference = hasPromptReference(
     setting?.subtitleSetting,
     "segPromptSlug",
@@ -943,16 +1077,29 @@ export function removePromptReferences(setting = {}, promptSlug) {
     "aiDictPromptSlug",
     promptSlug
   );
+  const hasTranboxPromptReference = hasPromptReference(
+    setting?.tranboxSetting,
+    "promptSlug",
+    promptSlug
+  );
 
   if (
     !hasApiChanges &&
+    !hasVlmSceneReference &&
     !hasSubtitlePromptReference &&
-    !hasTranboxDictPromptReference
+    !hasTranboxDictPromptReference &&
+    !hasTranboxPromptReference
   ) {
     return setting;
   }
 
   const nextSetting = { ...setting };
+  if (hasVlmSceneReference) {
+    nextSetting.fileTranslateSetting = {
+      ...setting.fileTranslateSetting,
+      image: { ...setting.fileTranslateSetting.image, vlmPromptSlug: "" },
+    };
+  }
 
   if (hasApiChanges) {
     nextSetting.transApis = transApis;
@@ -968,8 +1115,15 @@ export function removePromptReferences(setting = {}, promptSlug) {
 
   if (hasTranboxDictPromptReference) {
     nextSetting.tranboxSetting = {
-      ...(setting?.tranboxSetting || {}),
+      ...(nextSetting.tranboxSetting || setting?.tranboxSetting || {}),
       aiDictPromptSlug: PROMPT_MODE_FOLLOW_API,
+    };
+  }
+
+  if (hasTranboxPromptReference) {
+    nextSetting.tranboxSetting = {
+      ...(nextSetting.tranboxSetting || setting?.tranboxSetting || {}),
+      promptSlug: "",
     };
   }
 
@@ -993,6 +1147,69 @@ export function resolveApiPromptSettings(
 ) {
   if (!apiSetting) {
     return apiSetting;
+  }
+
+  if (apiSetting.scenePromptSlug) {
+    const prompt = findPromptBySlug(userPrompts, apiSetting.scenePromptSlug);
+    apiSetting = {
+      ...apiSetting,
+      useBatchFetch: prompt?.category === PROMPT_CATEGORY_BATCH_SYSTEM,
+      ...(prompt?.category === PROMPT_CATEGORY_BATCH_SYSTEM && {
+        batchPromptSlug: prompt.slug,
+      }),
+    };
+    delete apiSetting.scenePromptSlug;
+  }
+
+  // External handlers use explicit host prompts or their own snapshot defaults.
+  if (
+    apiSetting.provider &&
+    apiSetting.provider.implementation?.kind !== "native"
+  ) {
+    const next = { ...apiSetting };
+    // Missing references retain the plugin snapshot rather than acquiring native defaults.
+    for (const [slugKey, systemKey, userKey, slot] of [
+      ["batchPromptSlug", "systemPrompt", "batchUserPrompt", "batch"],
+      ["nobatchPromptSlug", "nobatchPrompt", "nobatchUserPrompt", "nobatch"],
+      ["dictPromptSlug", "dictPrompt", "dictUserPrompt", "dictionary"],
+      ["subtitlePromptSlug", "subtitlePrompt", undefined, "subtitle"],
+      ["vlmPromptSlug", "vlmPrompt", undefined, "vlm"],
+    ]) {
+      const prompt = next[slugKey]
+        ? findPromptBySlug(userPrompts, next[slugKey])
+        : next.provider.defaultPrompts?.[slot];
+      if (!prompt) {
+        // Empty legacy host defaults are not explicit plugin prompt templates.
+        if (!next[slugKey] && ["batch", "nobatch"].includes(slot)) {
+          if (next[systemKey] === "") delete next[systemKey];
+          if (userKey && next[userKey] === "") delete next[userKey];
+        }
+        continue;
+      }
+      next[systemKey] = prompt.systemPrompt;
+      if (userKey) next[userKey] = prompt.userPrompt;
+      if (
+        (slot === "batch" && next.useBatchFetch) ||
+        (slot === "nobatch" && !next.useBatchFetch)
+      ) {
+        next.outputProtocol = next[slugKey]
+          ? slot === "batch"
+            ? prompt.protocol || "json"
+            : "text"
+          : prompt.protocol || "json";
+      }
+    }
+    if (
+      subtitleSetting.segPromptMode === PROMPT_MODE_GLOBAL &&
+      subtitleSetting.segPromptSlug
+    ) {
+      const prompt = findPromptBySlug(
+        userPrompts,
+        subtitleSetting.segPromptSlug
+      );
+      if (prompt) next.subtitlePrompt = prompt.systemPrompt;
+    }
+    return next;
   }
 
   const cleanedApiSetting = removeLegacyApiPromptIds(apiSetting);
@@ -1122,7 +1339,9 @@ export function resolveApiPromptSettings(
     nextApiSetting.dictUserPrompt = dictPrompt.userPrompt;
   }
 
-  return nextApiSetting;
+  // Scene callers already resolve prompts here. Project old built-ins at the same
+  // read-only boundary so existing apiSlug references enter compiled routing.
+  return withBuiltinProvider(nextApiSetting);
 }
 
 /**

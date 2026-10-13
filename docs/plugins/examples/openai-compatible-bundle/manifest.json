@@ -1,0 +1,449 @@
+{
+  "manifestVersion": 1,
+  "id": "example-openai-compatible-bundle",
+  "name": "OpenAI 兼容协议示例",
+  "version": "1.6.1",
+  "apiVersion": "1",
+  "description": "SDK v1 的多接口、多能力、JSON/JS 混合示例。",
+  "permissions": {
+    "network": [
+      "https://api.openai.com"
+    ],
+    "endpointFields": [
+      "baseUrl"
+    ]
+  },
+  "sharedSettings": [
+    {
+      "key": "baseUrl",
+      "label": "API 基础地址（包含 /v1）",
+      "type": "text",
+      "defaultValue": "https://api.openai.com/v1",
+      "required": true,
+      "labelI18n": {
+        "zh": "API 基础地址（包含 /v1）",
+        "en": "API base URL (including /v1)",
+        "zh_TW": "API 基礎地址（包含 /v1）",
+        "ja": "APIベースURL（/v1を含む）",
+        "ko": "API 기본 URL (/v1 포함)",
+        "tr": "API temel URL'si (/v1 dahil)",
+        "vi": "URL gốc API (gồm /v1)",
+        "ru": "Базовый URL API (включая /v1)"
+      }
+    },
+    {
+      "key": "apiKey",
+      "label": "API Key",
+      "type": "password",
+      "isSecret": true,
+      "required": true
+    }
+  ],
+  "services": [
+    {
+      "id": "chat-completions",
+      "name": "文本生成与翻译",
+      "implementation": {
+        "kind": "script",
+        "entry": "services/chat.js"
+      },
+      "capabilities": {
+        "chat": {
+          "handler": "chat",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModes": [
+            "complete",
+            "stream"
+          ]
+        },
+        "translate": {
+          "handler": "translate",
+          "batch": {
+            "supported": true
+          },
+          "outputModes": [
+            "complete",
+            "stream"
+          ]
+        }
+      },
+      "settings": [
+        {
+          "key": "model",
+          "label": "支持 Chat Completions 的文本模型",
+          "type": "text",
+          "required": true,
+          "defaultValue": "gpt-6-luna",
+          "labelI18n": {
+            "zh": "支持 Chat Completions 的文本模型",
+            "en": "Text model supporting Chat Completions",
+            "zh_TW": "支持 Chat Completions 的文本模型",
+            "ja": "Chat Completions対応テキストモデル",
+            "ko": "Chat Completions 지원 텍스트 모델",
+            "tr": "Chat Completions destekleyen metin modeli",
+            "vi": "Mô hình văn bản hỗ trợ Chat Completions",
+            "ru": "Текстовая модель с поддержкой Chat Completions"
+          }
+        },
+        {
+          "key": "translationTemperature",
+          "label": "翻译采样温度（推理模式 none 时生效）",
+          "type": "number",
+          "defaultValue": 0,
+          "min": 0,
+          "max": 2,
+          "visibleForCapabilities": [
+            "translate"
+          ],
+          "labelI18n": {
+            "zh": "翻译采样温度（推理模式 none 时生效）",
+            "en": "Translation temperature (when reasoning is none)",
+            "zh_TW": "翻譯採樣溫度（推理模式 none 時生效）",
+            "ja": "翻訳温度（推論none時）",
+            "ko": "번역 온도(추론 none일 때)",
+            "tr": "Çeviri sıcaklığı (akıl yürütme none iken)",
+            "vi": "Nhiệt độ dịch (khi suy luận none)",
+            "ru": "Температура перевода (при reasoning none)"
+          }
+        }
+      ],
+      "modelField": "model",
+      "models": [
+        {
+          "id": "gpt-6-luna",
+          "name": "gpt-6-luna"
+        },
+        {
+          "id": "gpt-6.1-sol",
+          "name": "gpt-6.1-sol"
+        },
+        {
+          "id": "gpt-6-astra",
+          "name": "gpt-6-astra"
+        }
+      ],
+      "defaultPrompts": {
+        "batch": {
+          "protocol": "json",
+          "systemPrompt": "Translate the input items from {{sourceLanguage}} to {{targetLanguage}}. Return only a JSON array of {id,text}, keeping every ID. Glossary: {{glossary}}. Context: {{context}}",
+          "userPrompt": "{{segments}}"
+        },
+        "nobatch": {
+          "protocol": "text",
+          "systemPrompt": "Translate the source text from {{sourceLanguage}} to {{targetLanguage}}. Output only the translated text, without explanations or Markdown fences. Glossary: {{glossary}}. Context: {{context}}",
+          "userPrompt": "{{text}}"
+        }
+      },
+      "nameI18n": {
+        "zh": "文本生成与翻译",
+        "en": "Text generation and translation",
+        "zh_TW": "文字生成與翻譯",
+        "ja": "テキスト生成と翻訳",
+        "ko": "텍스트 생성 및 번역",
+        "tr": "Metin oluşturma ve çeviri",
+        "vi": "Tạo văn bản và dịch",
+        "ru": "Генерация текста и перевод"
+      }
+    },
+    {
+      "id": "transcriptions",
+      "name": "音频转写",
+      "implementation": {
+        "kind": "declarative",
+        "entry": "services/transcription.json"
+      },
+      "capabilities": {
+        "transcribe": {
+          "handler": "transcribe",
+          "timestamps": false,
+          "outputModes": [
+            "complete"
+          ]
+        }
+      },
+      "settings": [
+        {
+          "key": "model",
+          "label": "转写模型",
+          "type": "text",
+          "defaultValue": "gpt-transcribe",
+          "required": true,
+          "labelI18n": {
+            "zh": "转写模型",
+            "en": "Transcription model",
+            "zh_TW": "轉寫模型",
+            "ja": "文字起こしモデル",
+            "ko": "전사 모델",
+            "tr": "Döküm modeli",
+            "vi": "Mô hình chép lời",
+            "ru": "Модель транскрипции"
+          }
+        }
+      ],
+      "modelField": "model",
+      "models": [
+        {
+          "id": "gpt-transcribe",
+          "name": "gpt-transcribe"
+        }
+      ],
+      "nameI18n": {
+        "zh": "音频转写",
+        "en": "Audio transcription",
+        "zh_TW": "音頻轉寫",
+        "ja": "音声文字起こし",
+        "ko": "오디오 전사",
+        "tr": "Ses dökümü",
+        "vi": "Chép lời âm thanh",
+        "ru": "Транскрипция аудио"
+      }
+    },
+    {
+      "id": "speech",
+      "name": "音频合成",
+      "implementation": {
+        "kind": "declarative",
+        "entry": "services/speech.json"
+      },
+      "capabilities": {
+        "synthesizeSpeech": {
+          "handler": "synthesizeSpeech",
+          "outputModes": [
+            "complete"
+          ]
+        }
+      },
+      "settings": [
+        {
+          "key": "model",
+          "label": "音频模型",
+          "type": "text",
+          "defaultValue": "gpt-4o-mini-tts",
+          "required": true,
+          "labelI18n": {
+            "zh": "音频模型",
+            "en": "Audio model",
+            "zh_TW": "音頻模型",
+            "ja": "音声モデル",
+            "ko": "오디오 모델",
+            "tr": "Ses modeli",
+            "vi": "Mô hình âm thanh",
+            "ru": "Аудиомодель"
+          }
+        },
+        {
+          "key": "voice",
+          "label": "音色",
+          "type": "select",
+          "defaultValue": "marin",
+          "required": true,
+          "visibleForCapabilities": [
+            "synthesizeSpeech"
+          ],
+          "options": [
+            {
+              "value": "alloy",
+              "label": "alloy"
+            },
+            {
+              "value": "ash",
+              "label": "ash"
+            },
+            {
+              "value": "ballad",
+              "label": "ballad"
+            },
+            {
+              "value": "coral",
+              "label": "coral"
+            },
+            {
+              "value": "echo",
+              "label": "echo"
+            },
+            {
+              "value": "fable",
+              "label": "fable"
+            },
+            {
+              "value": "nova",
+              "label": "nova"
+            },
+            {
+              "value": "onyx",
+              "label": "onyx"
+            },
+            {
+              "value": "sage",
+              "label": "sage"
+            },
+            {
+              "value": "shimmer",
+              "label": "shimmer"
+            },
+            {
+              "value": "verse",
+              "label": "verse"
+            },
+            {
+              "value": "marin",
+              "label": "marin"
+            },
+            {
+              "value": "cedar",
+              "label": "cedar"
+            }
+          ],
+          "labelI18n": {
+            "zh": "音色",
+            "en": "Voice",
+            "zh_TW": "音色",
+            "ja": "音声",
+            "ko": "음색",
+            "tr": "Ses",
+            "vi": "Giọng",
+            "ru": "Голос"
+          }
+        }
+      ],
+      "modelField": "model",
+      "models": [
+        {
+          "id": "gpt-4o-mini-tts",
+          "name": "gpt-4o-mini-tts"
+        },
+        {
+          "id": "gpt-4o-mini-tts-2025-12-15",
+          "name": "gpt-4o-mini-tts-2025-12-15"
+        }
+      ],
+      "nameI18n": {
+        "zh": "音频合成",
+        "en": "Audio synthesis",
+        "zh_TW": "音頻合成",
+        "ja": "音声合成",
+        "ko": "오디오 합성",
+        "tr": "Ses sentezi",
+        "vi": "Tổng hợp âm thanh",
+        "ru": "Синтез аудио"
+      }
+    },
+    {
+      "id": "vision",
+      "name": "图片文字识别",
+      "implementation": {
+        "kind": "script",
+        "entry": "services/vision.js"
+      },
+      "capabilities": {
+        "parseImage": {
+          "handler": "parseImage",
+          "coordinates": false,
+          "outputModes": [
+            "complete"
+          ],
+          "inputModalities": [
+            "image"
+          ]
+        }
+      },
+      "settings": [
+        {
+          "key": "model",
+          "label": "支持图片的 Chat Completions 模型",
+          "type": "text",
+          "required": true,
+          "defaultValue": "gpt-6-luna",
+          "labelI18n": {
+            "zh": "支持图片的 Chat Completions 模型",
+            "en": "Chat Completions model supporting images",
+            "zh_TW": "支持圖片的 Chat Completions 模型",
+            "ja": "画像対応Chat Completionsモデル",
+            "ko": "이미지 지원 Chat Completions 모델",
+            "tr": "Görselleri destekleyen Chat Completions modeli",
+            "vi": "Mô hình Chat Completions hỗ trợ ảnh",
+            "ru": "Модель Chat Completions с поддержкой изображений"
+          }
+        }
+      ],
+      "modelField": "model",
+      "models": [
+        {
+          "id": "gpt-6-luna",
+          "name": "gpt-6-luna"
+        },
+        {
+          "id": "gpt-6.1-sol",
+          "name": "gpt-6.1-sol"
+        },
+        {
+          "id": "gpt-6-astra",
+          "name": "gpt-6-astra"
+        }
+      ],
+      "defaultPrompts": {
+        "vlm": {
+          "systemPrompt": "Extract the visible text faithfully. Output only the recognized text."
+        }
+      },
+      "nameI18n": {
+        "zh": "图片文字识别",
+        "en": "Image text recognition",
+        "zh_TW": "圖片文字識別",
+        "ja": "画像文字認識",
+        "ko": "이미지 문자 인식",
+        "tr": "Görüntüden metin tanıma",
+        "vi": "Nhận dạng chữ trong ảnh",
+        "ru": "Распознавание текста на изображениях"
+      }
+    },
+    {
+      "id": "signed-dictionary",
+      "name": "签名词典（mock/自定义服务）",
+      "implementation": {
+        "kind": "script",
+        "entry": "services/signed-dictionary.js"
+      },
+      "capabilities": {
+        "dictionary": {
+          "handler": "dictionary",
+          "outputModes": [
+            "complete"
+          ]
+        }
+      },
+      "nameI18n": {
+        "zh": "签名词典（mock/自定义服务）",
+        "en": "Signed dictionary (mock/custom service)",
+        "zh_TW": "簽名詞典（mock/自定義服務）",
+        "ja": "署名辞書（mock/カスタムサービス）",
+        "ko": "서명 사전(mock/사용자 정의 서비스)",
+        "tr": "İmzalı sözlük (mock/özel hizmet)",
+        "vi": "Từ điển có chữ ký (mock/dịch vụ tùy chỉnh)",
+        "ru": "Подписанный словарь (mock/пользовательский сервис)"
+      }
+    }
+  ],
+  "nameI18n": {
+    "zh": "OpenAI 兼容协议示例",
+    "en": "OpenAI-compatible example",
+    "zh_TW": "OpenAI 兼容協議示例",
+    "ja": "OpenAI互換サンプル",
+    "ko": "OpenAI 호환 예제",
+    "tr": "OpenAI uyumlu örnek",
+    "vi": "Ví dụ tương thích OpenAI",
+    "ru": "Пример совместимости с OpenAI"
+  },
+  "descriptionI18n": {
+    "zh": "SDK v1 的多接口、多能力、JSON/JS 混合示例。",
+    "en": "SDK v1 example with multiple APIs, capabilities, and JSON/JS implementations.",
+    "zh_TW": "SDK v1 的多介面、多能力、JSON/JS 混合範例。",
+    "ja": "複数API・機能とJSON/JS実装を含むSDK v1サンプル。",
+    "ko": "다중 API와 기능, JSON/JS 구현을 포함하는 SDK v1 예제.",
+    "tr": "Birden fazla API, yetenek ve JSON/JS uygulaması içeren SDK v1 örneği.",
+    "vi": "Ví dụ SDK v1 với nhiều API, khả năng và triển khai JSON/JS.",
+    "ru": "Пример SDK v1 с несколькими API, возможностями и реализациями JSON/JS."
+  }
+}

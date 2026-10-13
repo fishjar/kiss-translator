@@ -4,6 +4,10 @@ import { decodeHTMLEntities } from "../libs/html.js";
 import { parseMathInText } from "../libs/mathParse.js";
 import { apiTranslate } from "../apis/index.js";
 import { resolveApiPromptSettings } from "../config/prompt.js";
+import {
+  availableApiForScene,
+  withScenePrompt,
+} from "../config/serviceSelection.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import { isSubtitleModeEnabled } from "./modes.js";
 import {
@@ -723,13 +727,19 @@ export class BilingualSubtitleManager {
         prompts,
       } = this.#setting;
 
+      const selectedApi =
+        availableApiForScene(
+          this.#setting,
+          this.#setting.transApis || [],
+          "translate"
+        ) || (!this.#setting.transApis && rawApiSetting);
+      if (!selectedApi) throw new Error("没有可用的字幕翻译接口");
       const apiSetting = resolveApiPromptSettings(
-        rawApiSetting,
+        withScenePrompt(selectedApi, this.#setting),
         prompts,
         this.#setting
       );
-
-      const { trText } = await apiTranslate({
+      const response = await apiTranslate({
         text: subtitle.text,
         fromLang,
         toLang,
@@ -738,10 +748,11 @@ export class BilingualSubtitleManager {
         translateVariants,
         signal,
         onStreamChunk: ({ text }) => {
-          // 字幕单句翻译的流式 chunk 只更新当前字幕对象，不改时间轴结构。
           updateSubtitleTranslation(normalizeStreamText(text));
         },
       });
+      const trText = response?.trText;
+      if (!trText) throw new Error("字幕翻译返回空结果");
       // 竞态校验：如翻译异步返回时会话 ID 已过时，丢弃结果防止脏数据覆盖
       if (sessionId !== this.#translationSessionId) return;
       updateSubtitleTranslation(trText);

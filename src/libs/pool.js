@@ -1,11 +1,15 @@
-import { DEFAULT_FETCH_INTERVAL, DEFAULT_FETCH_LIMIT } from "../config";
+// Used by the Offscreen Broker too: import pure constants, not the page configuration barrel.
+import {
+  DEFAULT_FETCH_INTERVAL,
+  DEFAULT_FETCH_LIMIT,
+} from "../config/apiConstants";
 import { kissLog } from "./log";
 
 /**
  * 任务池（TaskPool）
  * 用于控制异步任务（如网络请求）的并发数、最小执行间隔和重试机制，防止请求过于密集被翻译服务封禁。
  */
-class TaskPool {
+export class TaskPool {
   #pool = []; // 待执行的任务队列
 
   #maxRetry = 2; // 最大重试次数
@@ -16,6 +20,7 @@ class TaskPool {
   #currentConcurrent = 0; // 当前正在执行的任务数
   #lastExecutionTime = 0; // 上一个任务的启动时间戳，用于计算延迟
   #schedulerTimer = null; // 用于调度下一个任务的延迟定时器
+  #retrying = new Set();
 
   /**
    * 构造函数
@@ -88,10 +93,17 @@ class TaskPool {
       if (err?.name === "AbortError") {
         // Cancellation is final and must never start another request.
         reject(err);
-      } else if (retry < this.#maxRetry) {
-        setTimeout(() => {
+      } else if (
+        !task.settled &&
+        retry < (task.options.maxRetries ?? this.#maxRetry)
+      ) {
+        this.#retrying.add(task);
+        task.retryTimer = setTimeout(() => {
+          this.#retrying.delete(task);
+          if (task.settled) return;
           // 将重试的任务重新放入队列头部，以保证重试任务优先被执行
-          this.#pool.unshift({ ...task, retry: retry + 1 });
+          task.retry = retry + 1;
+          this.#pool.unshift(task);
           this.#scheduleNext();
         }, this.#retryInterval);
       } else {
@@ -111,9 +123,31 @@ class TaskPool {
    * @param {*} args - 函数的参数
    * @returns {Promise} 返回一个在任务完成后 resolve 的 Promise
    */
-  push(fn, args) {
+  push(fn, args, options = {}) {
     return new Promise((resolve, reject) => {
-      this.#pool.push({ fn, args, resolve, reject, retry: 0 });
+      const task = { fn, args, options, retry: 0, settled: false };
+      const settle = (callback, value) => {
+        if (task.settled) return;
+        task.settled = true;
+        clearTimeout(task.retryTimer);
+        this.#retrying.delete(task);
+        options.signal?.removeEventListener("abort", cancel);
+        callback(value);
+      };
+      task.resolve = (value) => settle(resolve, value);
+      task.reject = (error) => settle(reject, error);
+      const cancel = () => {
+        this.#pool = this.#pool.filter((entry) => entry !== task);
+        task.reject(
+          new DOMException("The operation was aborted.", "AbortError")
+        );
+      };
+      options.signal?.addEventListener("abort", cancel, { once: true });
+      if (options.signal?.aborted) {
+        cancel();
+        return;
+      }
+      this.#pool.push(task);
       this.#scheduleNext();
     });
   }
@@ -136,14 +170,11 @@ class TaskPool {
 
   /**
    * 清空任务池
-   * // REVIEW: 定时器未清理风险。如果有些任务在 catch 块中，已经处于 setTimeout 延迟重试阶段（重试定时器还未触发），
-   * // 此时调用 clear()，由于这些任务还没有被放回 #pool 队列中，所以 clear() 无法将它们 reject 并清理。
-   * // 当 #retryInterval 延迟到期后，setTimeout 回调仍会触发并把任务 unshift 进 #pool，然后重新触发调度启动，
-   * // 这会导致已经被 clear 清理的请求池重新产生残留的“僵尸重试任务”继续运行。
    */
   clear() {
     // 拒绝队列中所有等待执行的任务
-    for (const task of this.#pool) {
+    // Retry waits are pending tasks too; rejecting them prevents delayed replay after clear.
+    for (const task of [...this.#pool, ...this.#retrying]) {
       task.reject(new DOMException("The task pool was cleared.", "AbortError"));
     }
 
@@ -174,7 +205,7 @@ export const getFetchPool = (interval, limit) => {
       interval ?? DEFAULT_FETCH_INTERVAL,
       limit ?? DEFAULT_FETCH_LIMIT
     );
-  } else if (interval && limit) {
+  } else if (interval >= 0 && limit >= 1) {
     updateFetchPool(interval, limit);
   }
   return fetchPool;

@@ -132,7 +132,6 @@ export const mergeRules = (baseRule, overrideRule) => {
   if (!baseRule) return { ...overrideRule };
 
   const merged = { ...baseRule };
-
   // 1. 合并 CSS 选择器类型的属性，支持追加/剔除
   [
     "selector",
@@ -218,7 +217,6 @@ export const deriveRuleContext = (
     ...GLOBLA_RULE,
     ...(personalRules.find((r) => r.pattern === GLOBAL_KEY) || {}),
   };
-
   // Find the active personal rule, excluding the global rule.
   // The visual editor can keep editing a renamed rule even when its new
   // pattern no longer matches the page used to select elements.

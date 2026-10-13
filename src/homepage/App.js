@@ -257,13 +257,27 @@ function Hero({ content, tokens }) {
           </Button>
           <Button
             component={Link}
-            href={process.env.REACT_APP_OPTIONSPAGE}
+            href={
+              process.env.NODE_ENV === "development"
+                ? "options.html"
+                : process.env.REACT_APP_OPTIONSPAGE
+            }
             variant="text"
             size="large"
             startIcon={<SettingsIcon />}
             sx={{ minHeight: 48 }}
           >
             {content.openOptions}
+          </Button>
+          <Button
+            component={Link}
+            href="file-translate.html"
+            variant="outlined"
+            size="large"
+            startIcon={<TranslateIcon />}
+            sx={{ minHeight: 48 }}
+          >
+            {content.fileTranslation}
           </Button>
         </Stack>
         <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>

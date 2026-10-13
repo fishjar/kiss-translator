@@ -19,11 +19,15 @@ jest.mock("../../hooks/Api", () => ({
   useApiList: jest.fn(),
 }));
 
+jest.mock("../../hooks/Prompt", () => ({
+  usePromptList: () => ({ prompts: [] }),
+}));
+
 jest.mock("./ShortcutInput", () => () => null);
 
 const enabledApis = [
-  { apiSlug: "page-api", apiName: "Page API" },
-  { apiSlug: "bubble-api", apiName: "Bubble API" },
+  { apiSlug: "page-api", apiType: "Microsoft", apiName: "Page API" },
+  { apiSlug: "bubble-api", apiType: "Microsoft", apiName: "Bubble API" },
 ];
 
 function renderMouseHover(mouseHoverSetting) {
@@ -73,7 +77,7 @@ describe("MouseHover settings", () => {
       displayMode: "bubble",
       apiSlug: "*",
     });
-    const input = view.container.querySelector("input[name='apiSlug']");
+    const input = view.container.querySelector(".kt-settings-select input");
     const select = input.parentElement.querySelector("[role='combobox']");
 
     expect(input.value).toBe("*");
@@ -95,7 +99,7 @@ describe("MouseHover settings", () => {
       displayMode: "bubble",
       apiSlug: "*",
     });
-    const input = view.container.querySelector("input[name='apiSlug']");
+    const input = view.container.querySelector(".kt-settings-select input");
     const select = input.parentElement.querySelector("[role='combobox']");
 
     act(() => {

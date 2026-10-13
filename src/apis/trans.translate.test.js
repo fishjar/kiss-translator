@@ -359,7 +359,7 @@ describe("handleTranslate", () => {
     expect(result).toEqual([{ id: 0, result: ["你好", "en"] }]);
   });
 
-  test("sends one QwenMT user message with native terms and built-in style", async () => {
+  test.each([false, true])("QwenMT stays non-streaming with useStream=%s and sends native terms and style", async (useStream) => {
     fetchData.mockResolvedValueOnce({
       choices: [{ message: { role: "assistant", content: "译文" } }],
     });
@@ -377,7 +377,7 @@ describe("handleTranslate", () => {
           url: "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
           key: "qwen-key",
           model: "qwen-mt-flash",
-          useStream: false,
+          useStream,
           useBatchFetch: false,
           tone: "technical",
           aiTerms: "React,React\ncomponent,接口组件",
@@ -411,6 +411,8 @@ describe("handleTranslate", () => {
       },
     });
     expect(body.messages).toHaveLength(1);
+    expect(body.stream).not.toBe(true);
+    expect(fetchStream).not.toHaveBeenCalled();
     expect(result).toEqual([{ id: 0, result: ["译文"] }]);
   });
 

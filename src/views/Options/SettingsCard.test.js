@@ -6,6 +6,7 @@ import {
   SettingsRange,
   SettingsRow,
   SettingsSegmented,
+  SettingsSelect,
 } from "./SettingsCard";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -345,6 +346,77 @@ describe("SettingsSegmented", () => {
     expect(view.onChange).not.toHaveBeenCalled();
 
     view.unmount();
+  });
+});
+
+describe("SettingsSelect", () => {
+  test("renders with visible label and fullWidth styling when fullWidth is true", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <SettingsSelect
+          fullWidth
+          label="Test Label"
+          value="opt1"
+          options={[
+            { value: "opt1", label: "Option 1" },
+            { value: "opt2", label: "Option 2" },
+          ]}
+          onChange={jest.fn()}
+        />
+      );
+    });
+
+    const selectRoot = container.querySelector(".kt-settings-select");
+    expect(selectRoot).not.toBeNull();
+    expect(selectRoot.classList.contains("kt-settings-select--full")).toBe(
+      true
+    );
+    expect(
+      selectRoot.classList.contains("kt-settings-select--with-label")
+    ).toBe(true);
+
+    const labelElement = container.querySelector("label");
+    expect(labelElement).not.toBeNull();
+    expect(labelElement.textContent).toBe("Test Label");
+
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  test("renders compact and hiddenLabel when fullWidth is not set", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <SettingsSelect
+          label="Hidden Test"
+          value="opt1"
+          options={[{ value: "opt1", label: "Option 1" }]}
+          onChange={jest.fn()}
+        />
+      );
+    });
+
+    const selectRoot = container.querySelector(".kt-settings-select");
+    expect(selectRoot).not.toBeNull();
+    expect(selectRoot.classList.contains("kt-settings-select--full")).toBe(
+      false
+    );
+    expect(
+      selectRoot.classList.contains("kt-settings-select--with-label")
+    ).toBe(false);
+
+    const labelElement = container.querySelector("label");
+    expect(labelElement).toBeNull();
+
+    act(() => root.unmount());
+    container.remove();
   });
 });
 

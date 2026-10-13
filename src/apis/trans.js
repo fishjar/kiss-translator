@@ -1,45 +1,22 @@
-import queryString from "query-string";
 import {
-  OPT_TRANS_GOOGLE,
-  OPT_TRANS_GOOGLE_2,
-  OPT_TRANS_GOOGLE_CLOUD,
-  OPT_TRANS_MICROSOFT,
-  OPT_TRANS_AZUREAI,
-  OPT_TRANS_APIMART,
-  OPT_TRANS_DEEPL,
-  OPT_TRANS_DEEPLFREE,
-  OPT_TRANS_DEEPLX,
-  OPT_TRANS_DEEPSEEK,
+  parseNativeDictionaryResponse as parseDictRes,
+  parseNativeSummaryResponse,
+  parseNativeSubtitleResponse,
+} from "../builtin-plugins/textResponses";
+import { nativeResponseParsers } from "../builtin-plugins/responses";
+import { getStreamDelta } from "../builtin-plugins/streamResponses";
+import { getBuiltinServiceDefinition } from "../builtin-plugins/definitions";
+import { buildSystemRoleMessages } from "../builtin-plugins/messages";
+import { nativeRequestBuilders as genReqFuncs } from "../builtin-plugins/requests";
+
+import {
   OPT_TRANS_OPENCODEGO,
-  OPT_TRANS_SILICONFLOW,
-  OPT_TRANS_XIAOMIMIMO,
-  OPT_TRANS_ALIYUNBAILIAN,
-  OPT_TRANS_QWENMT,
-  OPT_TRANS_CEREBRAS,
-  OPT_TRANS_ZAI,
-  OPT_TRANS_EPHONEAI,
-  OPT_TRANS_BAIDU,
-  OPT_TRANS_TENCENT,
-  OPT_TRANS_VOLCENGINE,
-  OPT_TRANS_YANDEX,
-  OPT_TRANS_YANDEXFREE,
-  OPT_TRANS_OPENAI,
   OPT_TRANS_GEMINI,
-  OPT_TRANS_GEMINI_2,
-  OPT_TRANS_CLAUDE,
-  OPT_TRANS_CLOUDFLAREAI,
-  OPT_TRANS_OLLAMA,
-  OPT_TRANS_OPENROUTER,
-  OPT_TRANS_ORCAROUTER,
-  OPT_TRANS_REQUESTY,
-  OPT_TRANS_CUSTOMIZE,
-  API_SPE_TYPES,
+  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_LOCALAI,
   INPUT_PLACE_FROM,
   INPUT_PLACE_TO,
   INPUT_PLACE_TEXT,
-  INPUT_PLACE_KEY,
-  INPUT_PLACE_MODEL,
-  DEFAULT_USER_AGENT,
   defaultSystemPrompt,
   defaultSubtitlePrompt,
   defaultNobatchPrompt,
@@ -56,31 +33,29 @@ import {
   defaultSystemPromptLines,
   INPUT_PLACE_SUMMARY,
   INPUT_PLACE_CONTEXT,
-  GEMINI25_BUDGETS,
-  THINKING_API_REGISTRY,
-  isGPT6Astra,
   isGeminiInteractionsUrl,
-  normalizeGeminiModelName,
-  normalizeThinkingSettings,
-  BUILTIN_STONES,
   PROMPT_PROTOCOL_LINE,
   PROMPT_PROTOCOL_XML,
   PROMPT_PROTOCOL_JSON,
+  MSG_LOCAL_AI_RPC,
+  MSG_LOCAL_AI_CANCEL,
+  MSG_BUILTINAI_SUMMARIZE,
 } from "../config";
-import { genDeeplFree } from "./deepl";
-import { genBaidu } from "./baidu";
-import { interpreter } from "../libs/interpreter";
+import { isExt } from "../libs/client";
+import { isBg } from "../libs/browser";
+
+import {
+  callLegacyRequestHook,
+  callLegacyResponseHook,
+} from "../providers/legacyHooks";
+
 import {
   parseJsonObj,
   extractJson,
   stripMarkdownCodeBlock,
   parseAITerms,
 } from "../libs/utils";
-import {
-  decodeHTMLEntities,
-  decodeHTMLTranslationText,
-  encodeHTMLTranslationText,
-} from "../libs/html";
+import { decodeHTMLEntities } from "../libs/html";
 import { parseCompleteTranslationSegments } from "../libs/aiResponseParser";
 import {
   parseStreamingSegments,
@@ -88,7 +63,6 @@ import {
   createStreamingSubtitleParser,
   createRealtimeStreamParser,
   detectStreamFormat,
-  getStreamDelta,
 } from "../libs/stream";
 import { createSubtitleIndexAligner } from "../libs/subtitleIndexAlign";
 import { kissLog } from "../libs/log";
@@ -97,34 +71,14 @@ import { getMsgHistory } from "./history";
 import { getOpenCodeSessionId } from "./opencode";
 import { parseBilingualVtt } from "../subtitle/vtt";
 import { getDocInfo } from "../libs/docInfo";
+import { chromeSummarize } from "../libs/builtinAI";
+import { sendBgMsg } from "../libs/msg";
 import {
   isLegacyIndexSubtitleItem,
   mapBoundaryItemToCue,
 } from "../subtitle/subtitleBoundaryProtocol";
 
-const keyMap = new Map();
-const urlMap = new Map();
-
-// 轮询key/url
-// 轮询 Key / URL 负载均衡。
-// 用于在配置了多个 API 密钥或自定义 URL 端点时，分摊频率并降低单 Key 被限流限额的风险。
-const keyPick = (apiSlug, key = "", cacheMap) => {
-  const keys = key
-    .split(/\n|,/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  if (keys.length === 0) {
-    return "";
-  }
-
-  // 从轮询缓存 cacheMap 中提取上一次使用的 Index，计算本次轮询的 Index 并写回缓存
-  const preIndex = cacheMap.get(apiSlug) ?? -1;
-  const curIndex = (preIndex + 1) % keys.length;
-  cacheMap.set(apiSlug, curIndex);
-
-  return keys[curIndex];
-};
+import { selectNativeEndpoint } from "../builtin-plugins/credentials";
 
 /**
  * 依据配置参数和当前页面元数据生成大模型 Prompt 系统指示。
@@ -638,29 +592,6 @@ const usesIndexSubtitleInput = (prompt = "") => {
   return detectSubtitleProtocol(prompt) !== "vtt-legacy";
 };
 
-const geminiText = (parts) =>
-  Array.isArray(parts)
-    ? parts
-        .filter((p) => !p.thought && p.text)
-        .map((p) => p.text)
-        .join("")
-    : "";
-
-const geminiInteractionText = (res) =>
-  Array.isArray(res?.steps)
-    ? res.steps
-        .filter((step) => step?.type === "model_output")
-        .flatMap((step) => (Array.isArray(step.content) ? step.content : []))
-        .filter((content) => content?.type === "text" && content.text)
-        .map((content) => content.text)
-        .join("")
-    : "";
-
-const geminiResponseText = (res) =>
-  Array.isArray(res?.steps)
-    ? geminiInteractionText(res)
-    : geminiText(res?.candidates?.[0]?.content?.parts);
-
 const parseIndexSubtitleRes = (raw, events, fromLang = "auto") => {
   // 对齐器只建一次词表：buildResult 在截断修复兜底时可能执行两次。
   const aligner = createSubtitleIndexAligner(events);
@@ -753,946 +684,6 @@ const parseSTRes = (raw, events = null, fromLang = "auto") => {
   return [];
 };
 
-const siliconflowEffortMap = {
-  max: 32768,
-  high: 16384,
-  medium: 8192,
-  low: 4096,
-  minimal: 2048,
-};
-
-/**
- * 将统一思考设置写入 DeepSeek 风格请求体。
- * @param {Object} body 待修改的请求体。
- * @param {Object} settings 已规范化的思考设置。
- * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
- * @param {string|null} settings.thinkingEffort 最终思考强度。
- * @returns {void}
- */
-const applyDeepSeekThinking = (body, { thinkingMode, thinkingEffort }) => {
-  body.thinking = { type: thinkingMode };
-  if (thinkingMode === "enabled" && thinkingEffort) {
-    body.reasoning_effort = thinkingEffort;
-  }
-};
-
-/**
- * 将统一思考模式写入布尔开关型接口。
- * @param {Object} body 待修改的请求体。
- * @param {Object} settings 已规范化的思考设置。
- * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
- * @returns {void}
- */
-const applyBooleanThinking = (body, { thinkingMode }) => {
-  body.enable_thinking = thinkingMode === "enabled";
-};
-
-/**
- * 将统一思考设置写入硅基流动请求体。
- * @param {Object} body 待修改的请求体。
- * @param {Object} settings 已规范化的思考设置。
- * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
- * @param {string|null} settings.thinkingEffort 最终思考强度。
- * @returns {void}
- */
-const applySiliconFlowThinking = (body, { thinkingMode, thinkingEffort }) => {
-  body.enable_thinking = thinkingMode === "enabled";
-  if (thinkingMode === "enabled" && thinkingEffort) {
-    body.thinking_budget = siliconflowEffortMap[thinkingEffort] || 8192;
-  }
-};
-
-/**
- * 将统一思考强度写入 OpenAI 兼容请求体。
- * @param {Object} body 待修改的请求体。
- * @param {Object} settings 已规范化的思考设置。
- * @param {string|null} settings.thinkingEffort 最终思考强度或关闭值。
- * @returns {void}
- */
-const applyOpenAIThinking = (body, { thinkingEffort }) => {
-  if (thinkingEffort !== null) body.reasoning_effort = thinkingEffort;
-};
-
-/**
- * 将统一思考设置写入 OpenRouter reasoning 对象。
- * @param {Object} body 待修改的请求体。
- * @param {Object} settings 已规范化的思考设置。
- * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
- * @param {string|null} settings.thinkingEffort 最终思考强度或关闭值。
- * @returns {void}
- */
-const applyOpenRouterThinking = (body, { thinkingMode, thinkingEffort }) => {
-  if (thinkingMode === "enabled" && thinkingEffort === null) {
-    body.reasoning = { enabled: true };
-    return;
-  }
-  if (thinkingEffort !== null) body.reasoning = { effort: thinkingEffort };
-};
-
-/**
- * 将统一思考设置写入 Claude 原生请求体。
- * @param {Object} body 待修改的请求体。
- * @param {Object} settings 已规范化的思考设置。
- * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
- * @param {string|null} settings.thinkingEffort 最终思考强度。
- * @returns {void}
- */
-const applyClaudeThinking = (body, { thinkingMode, thinkingEffort }) => {
-  const usesMinimumEffort =
-    thinkingMode === "disabled" && thinkingEffort !== null;
-  body.thinking = {
-    type:
-      thinkingMode === "enabled" || usesMinimumEffort ? "adaptive" : "disabled",
-  };
-  if (thinkingEffort) body.output_config = { effort: thinkingEffort };
-};
-
-/**
- * 将 3.x 非 lite flash 模型不支持的 minimal 强度兜底降为 low。
- * 设置页按模型能力只提供支持的档位，但旧版本保存的配置或同步数据
- * 可能仍带着 minimal，直接发送会被整个请求以 400 拒绝 (#1048)。
- * @param {string} model 当前模型名称。
- * @param {string|number} effort 待处理的思考强度。
- * @returns {string|number} 处理后的强度。
- */
-const clampGeminiEffort = (model, effort) => {
-  if (effort !== "minimal" || typeof model !== "string") {
-    return effort;
-  }
-  const normalizedModel = normalizeGeminiModelName(model);
-  if (
-    normalizedModel.startsWith("gemini-3") &&
-    normalizedModel.includes("flash") &&
-    !normalizedModel.includes("flash-lite")
-  ) {
-    return "low";
-  }
-  return effort;
-};
-
-/**
- * 按 Gemini 实际协议将统一思考设置写入对应请求层级。
- * @param {Object} body 待修改的 Gemini 请求体。
- * @param {Object} settings 已规范化的思考设置与请求上下文。
- * @param {string} settings.apiType Gemini 原生或 OpenAI 兼容接口类型。
- * @param {string} settings.url 实际请求地址。
- * @param {string} settings.model Gemini 模型名称。
- * @param {"enabled"|"disabled"} settings.thinkingMode 最终思考模式。
- * @param {string|number|null} settings.thinkingEffort 最终思考强度或预算。
- * @returns {void}
- */
-const applyGeminiThinking = (
-  body,
-  { apiType, url, model, thinkingMode, thinkingEffort }
-) => {
-  // Gemini 的三种兼容协议字段位置不同，但共用同一份模式与强度解析结果。
-  if (apiType === OPT_TRANS_GEMINI_2) {
-    if (thinkingEffort !== null) body.reasoning_effort = thinkingEffort;
-    return;
-  }
-
-  // null 表示配置阶段已经确认当前关闭方式无需发送思考强度字段。
-  if (thinkingEffort === null) return;
-
-  if (isGeminiInteractionsUrl(url)) {
-    body.generation_config.thinking_level = clampGeminiEffort(
-      model,
-      thinkingEffort
-    );
-    return;
-  }
-
-  const normalizedModel = normalizeGeminiModelName(model);
-  if (normalizedModel.startsWith("gemini-2.5-")) {
-    const thinkingBudget =
-      thinkingMode === "disabled" &&
-      normalizedModel.startsWith("gemini-2.5-pro")
-        ? 128
-        : typeof thinkingEffort === "number"
-          ? thinkingEffort
-          : GEMINI25_BUDGETS[thinkingEffort];
-    body.generationConfig.thinkingConfig = { thinkingBudget };
-    return;
-  }
-
-  body.generationConfig.thinkingConfig = {
-    thinkingLevel: clampGeminiEffort(model, thinkingEffort),
-  };
-};
-
-const THINKING_ADAPTERS = {
-  deepseek: applyDeepSeekThinking,
-  boolean: applyBooleanThinking,
-  siliconflow: applySiliconFlowThinking,
-  openai: applyOpenAIThinking,
-  openrouter: applyOpenRouterThinking,
-  claude: applyClaudeThinking,
-  gemini: applyGeminiThinking,
-};
-
-/**
- * 将配置阶段已经归一化的两个思考字段写入对应协议请求体。
- * @param {Object} body 待修改的请求体。
- * @param {Object} options 思考设置与接口上下文。
- * @param {string} options.apiType 翻译接口类型。
- * @param {string} [options.url] 实际请求地址。
- * @param {string} [options.model] 当前模型名称。
- * @param {"auto"|"enabled"|"disabled"} [options.thinkingMode] 用户选择的思考模式。
- * @param {string|number|null} [options.thinkingEffort] 已归一化的最终思考强度或关闭值。
- * @returns {void} 自动模式和能力未确认的设置不会修改请求体。
- */
-const applyThinkingParameters = (body, options) => {
-  const registration = THINKING_API_REGISTRY[options.apiType];
-  if (
-    !registration ||
-    options.thinkingMode === "auto" ||
-    options.thinkingEffort === "_default" ||
-    options.thinkingEffort === undefined
-  ) {
-    return;
-  }
-
-  THINKING_ADAPTERS[registration.adapter]?.(body, options);
-};
-
-const genGoogle = ({ texts, from, to, url, key }) => {
-  const params = queryString.stringify({
-    client: "gtx",
-    dt: "t",
-    dj: 1,
-    ie: "UTF-8",
-    sl: from,
-    tl: to,
-    q: texts.join(" "),
-  });
-  url = `${url}?${params}`;
-  const headers = {
-    "Content-type": "application/json",
-  };
-  if (key) {
-    headers.Authorization = `Bearer ${key}`;
-  }
-
-  return { url, headers, method: "GET" };
-};
-
-const genGoogle2 = ({ texts, from, to, url, key, textFormat = "text" }) => {
-  const requestTexts =
-    textFormat === "html" ? texts : texts.map(encodeHTMLTranslationText);
-  const body = [[requestTexts, from, to], "wt_lib"];
-  const headers = {
-    "Content-Type": "application/json+protobuf",
-    "X-Goog-API-Key": key,
-  };
-
-  return { url, body, headers };
-};
-
-const genGoogleCloud = ({ texts, from, to, url, key, textFormat = "text" }) => {
-  const body = {
-    q: texts,
-    target: to,
-    format: textFormat,
-    ...(from !== "auto" && { source: from }),
-  };
-  const headers = {
-    "Content-type": "application/json",
-    "X-Goog-Api-Key": key,
-  };
-
-  return { url, body, headers };
-};
-
-const genYandex = ({ texts, from, to, url, key, folderId }) => {
-  const body = {
-    folderId,
-    texts,
-    targetLanguageCode: to,
-    ...(from !== "auto" && { sourceLanguageCode: from }),
-  };
-  const headers = {
-    "Content-type": "application/json",
-    Authorization: `Api-Key ${key}`,
-  };
-
-  return { url, body, headers };
-};
-
-const genYandexFree = ({ texts, from, to }) => {
-  let id = "";
-  for (let i = 0; i < 32; i++) {
-    id += Math.floor(Math.random() * 16).toString(16);
-  }
-  const params = queryString.stringify({
-    id: `${id}-0-0`,
-    srv: "android",
-    source_lang: from,
-    target_lang: to,
-    text: texts[0],
-  });
-  const url = `https://translate.yandex.net/api/v1/tr.json/translate?${params}`;
-
-  return { url, method: "POST" };
-};
-
-const genMicrosoft = ({ texts, from, to }) => {
-  // Edge 前端内部端点：无需鉴权，Body 为纯字符串数组；from 留空表示自动检测。
-  const params = queryString.stringify({
-    from: from || "",
-    to,
-    isEnterpriseClient: false,
-  });
-  const url = `https://edge.microsoft.com/translate/translatetext?${params}`;
-  const headers = {
-    "Content-type": "application/json",
-  };
-
-  return { url, body: texts, headers };
-};
-
-const genAzureAI = ({ texts, from, to, url, key, region }) => {
-  const params = queryString.stringify({
-    from,
-    to,
-  });
-  url = url.endsWith("&") ? `${url}${params}` : `${url}&${params}`;
-  const headers = {
-    "Content-type": "application/json",
-    "Ocp-Apim-Subscription-Key": key,
-    "Ocp-Apim-Subscription-Region": region,
-  };
-  const body = texts.map((text) => ({ Text: text }));
-
-  return { url, body, headers };
-};
-
-const genDeepl = ({ texts, from, to, url, key }) => {
-  const body = {
-    text: texts,
-    target_lang: to,
-    source_lang: from,
-    // split_sentences: "0",
-  };
-  const headers = {
-    "Content-type": "application/json",
-    Authorization: `DeepL-Auth-Key ${key}`,
-  };
-
-  return { url, body, headers };
-};
-
-const genDeeplX = ({ texts, from, to, url, key }) => {
-  const body = {
-    text: texts.join(" "),
-    target_lang: to,
-    source_lang: from,
-  };
-
-  const headers = {
-    "Content-type": "application/json",
-  };
-  if (key) {
-    headers.Authorization = `Bearer ${key}`;
-  }
-
-  return { url, body, headers };
-};
-
-const genTencent = ({ texts, from, to }) => {
-  const body = {
-    header: {
-      fn: "auto_translation",
-      client_key:
-        "browser-chrome-110.0.0-Mac OS-df4bd4c5-a65d-44b2-a40f-42f34f3535f2-1677486696487",
-    },
-    type: "plain",
-    model_category: "normal",
-    source: {
-      text_list: texts,
-      lang: from,
-    },
-    target: {
-      lang: to,
-    },
-  };
-
-  const url = "https://transmart.qq.com/api/imt";
-  const headers = {
-    "Content-Type": "application/json",
-    "user-agent": DEFAULT_USER_AGENT,
-    referer: "https://transmart.qq.com/zh-CN/index",
-  };
-
-  return { url, body, headers };
-};
-
-const genVolcengine = ({ texts, from, to }) => {
-  const body = {
-    source_language: from,
-    target_language: to,
-    text: texts.join(" "),
-  };
-
-  const url = "https://translate.volcengine.com/crx/translate/v1";
-  const headers = {
-    "Content-type": "application/json",
-  };
-
-  return { url, body, headers };
-};
-
-const buildSystemRoleMessages = (systemPrompt) =>
-  systemPrompt?.trim()
-    ? [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-      ]
-    : [];
-
-const genOpenAI = ({
-  url,
-  key,
-  systemPrompt,
-  userPrompt,
-  model,
-  temperature,
-  maxTokens,
-  hisMsgs = [],
-  useStream = false,
-  apiType,
-  thinkingMode,
-  thinkingEffort,
-}) => {
-  const userMsg = {
-    role: "user",
-    content: userPrompt,
-  };
-  const body = {
-    model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
-    temperature,
-    max_completion_tokens: maxTokens,
-    stream: useStream,
-  };
-
-  // Astra 不支持 temperature，与是否显式设置思考强度无关。
-  // https://developers.openai.com/api/docs/guides/latest-model
-  if (isGPT6Astra(model)) delete body.temperature;
-
-  applyThinkingParameters(body, {
-    apiType,
-    url,
-    model,
-    thinkingMode,
-    thinkingEffort,
-  });
-
-  const headers = {
-    "Content-type": "application/json",
-    Authorization: `Bearer ${key}`, // OpenAI
-    // "api-key": key, // Azure OpenAI
-  };
-
-  return { url, body, headers, userMsg };
-};
-
-const getQwenMtDomains = (tone = "") => {
-  const normalizedTone = String(tone).trim();
-  if (!normalizedTone) return "";
-
-  return BUILTIN_STONES.includes(normalizedTone)
-    ? `Translate in a ${normalizedTone.toLowerCase()} style.`
-    : normalizedTone;
-};
-
-const getQwenMtTerms = (glossary = {}, aiTerms = "") => {
-  const mergedTerms = { ...glossary, ...parseAITerms(aiTerms) };
-  return Object.entries(mergedTerms)
-    .filter(([source]) => String(source).trim())
-    .map(([source, target]) => {
-      const normalizedTarget = String(target ?? "");
-      return {
-        source,
-        target: normalizedTarget.trim() ? normalizedTarget : source,
-      };
-    });
-};
-
-const genQwenMt = ({
-  url,
-  key,
-  model,
-  texts,
-  from,
-  to,
-  glossary,
-  aiTerms,
-  tone,
-}) => {
-  const translationOptions = {
-    source_lang: from,
-    target_lang: to,
-  };
-  const terms = getQwenMtTerms(glossary, aiTerms);
-  const domains = getQwenMtDomains(tone);
-
-  if (terms.length) translationOptions.terms = terms;
-  if (domains) translationOptions.domains = domains;
-
-  const userMsg = {
-    role: "user",
-    content: texts[0],
-  };
-  const body = {
-    model,
-    messages: [userMsg],
-    translation_options: translationOptions,
-  };
-  const headers = {
-    "Content-type": "application/json",
-    Authorization: `Bearer ${key}`,
-  };
-
-  return { url, body, headers, userMsg };
-};
-
-const genGemini = ({
-  url,
-  key,
-  systemPrompt,
-  userPrompt,
-  model,
-  temperature,
-  maxTokens,
-  hisMsgs = [],
-  useStream = false,
-  apiType,
-  thinkingMode,
-  thinkingEffort,
-}) => {
-  url = url
-    .replaceAll(INPUT_PLACE_MODEL, model)
-    .replaceAll(INPUT_PLACE_KEY, key);
-
-  // 官方 Interactions 与 generateContent 的请求体、上下文和流式事件均不同，必须按 URL 分流。
-  if (isGeminiInteractionsUrl(url)) {
-    const userMsg = {
-      type: "user_input",
-      content: [{ type: "text", text: userPrompt }],
-    };
-    const generationConfig = {
-      max_output_tokens: maxTokens,
-      temperature,
-    };
-
-    const body = {
-      model,
-      system_instruction: systemPrompt,
-      input: [...hisMsgs, userMsg],
-      stream: useStream,
-      // Interactions 默认会在服务端保存会话；翻译历史由客户端维护，因此显式关闭存储。
-      store: false,
-      generation_config: generationConfig,
-    };
-    applyThinkingParameters(body, {
-      apiType,
-      url,
-      model,
-      thinkingMode,
-      thinkingEffort,
-    });
-    const headers = {
-      "Content-type": "application/json",
-      "x-goog-api-key": key,
-    };
-
-    return { url, body, headers, userMsg };
-  }
-
-  // 自定义代理通常只实现 generateContent，不能随官方默认端点一起强制迁移协议。
-  if (useStream) {
-    url = url.replace(":generateContent", ":streamGenerateContent");
-    url += (url.includes("?") ? "&" : "?") + "alt=sse";
-  }
-
-  const userMsg = { role: "user", parts: [{ text: userPrompt }] };
-
-  const body = {
-    systemInstruction: { parts: [{ text: systemPrompt }] },
-    contents: [...hisMsgs, userMsg],
-    generationConfig: {
-      maxOutputTokens: maxTokens,
-      temperature,
-    },
-  };
-
-  applyThinkingParameters(body, {
-    apiType,
-    url,
-    model,
-    thinkingMode,
-    thinkingEffort,
-  });
-
-  Object.assign(body, {
-    safetySettings: [
-      {
-        category: "HARM_CATEGORY_HARASSMENT",
-        threshold: "BLOCK_NONE",
-      },
-      {
-        category: "HARM_CATEGORY_HATE_SPEECH",
-        threshold: "BLOCK_NONE",
-      },
-      {
-        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-        threshold: "BLOCK_NONE",
-      },
-      {
-        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-        threshold: "BLOCK_NONE",
-      },
-    ],
-  });
-  const headers = {
-    "Content-type": "application/json",
-    "x-goog-api-key": key,
-  };
-
-  return { url, body, headers, userMsg };
-};
-
-const genGemini2 = ({
-  url,
-  key,
-  systemPrompt,
-  userPrompt,
-  model,
-  temperature,
-  maxTokens,
-  hisMsgs = [],
-  useStream = false,
-  apiType,
-  thinkingMode,
-  thinkingEffort,
-}) => {
-  const userMsg = {
-    role: "user",
-    content: userPrompt,
-  };
-  const body = {
-    model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
-    temperature,
-    max_tokens: maxTokens,
-    stream: useStream,
-  };
-
-  applyThinkingParameters(body, {
-    apiType,
-    url,
-    model,
-    thinkingMode,
-    thinkingEffort,
-  });
-
-  const headers = {
-    "Content-type": "application/json",
-    Authorization: `Bearer ${key}`,
-  };
-
-  return { url, body, headers, userMsg };
-};
-
-const genClaude = ({
-  url,
-  key,
-  systemPrompt,
-  userPrompt,
-  model,
-  temperature,
-  maxTokens,
-  hisMsgs = [],
-  useStream = false,
-  thinkingMode,
-  thinkingEffort,
-}) => {
-  const userMsg = {
-    role: "user",
-    content: userPrompt,
-  };
-  const body = {
-    model,
-    ...(systemPrompt?.trim() ? { system: systemPrompt } : {}),
-    messages: [...hisMsgs, userMsg],
-    temperature,
-    max_tokens: maxTokens,
-    stream: useStream,
-  };
-
-  applyThinkingParameters(body, {
-    apiType: OPT_TRANS_CLAUDE,
-    url,
-    model,
-    thinkingMode,
-    thinkingEffort,
-  });
-
-  const headers = {
-    "Content-type": "application/json",
-    "anthropic-version": "2023-06-01",
-    "anthropic-dangerous-direct-browser-access": "true",
-    "x-api-key": key,
-  };
-
-  return { url, body, headers, userMsg };
-};
-
-const genOpenRouter = ({
-  url,
-  key,
-  systemPrompt,
-  userPrompt,
-  model,
-  temperature,
-  maxTokens,
-  hisMsgs = [],
-  useStream = false,
-  thinkingMode,
-  thinkingEffort,
-}) => {
-  const userMsg = {
-    role: "user",
-    content: userPrompt,
-  };
-  const body = {
-    model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
-    temperature,
-    max_tokens: maxTokens,
-    stream: useStream,
-  };
-
-  applyThinkingParameters(body, {
-    apiType: OPT_TRANS_OPENROUTER,
-    url,
-    model,
-    thinkingMode,
-    thinkingEffort,
-  });
-
-  const headers = {
-    "Content-type": "application/json",
-    Authorization: `Bearer ${key}`,
-    "HTTP-Referer": "https://fishjar.github.io/kiss-translator/",
-    "X-OpenRouter-Title": "KISS Translator",
-  };
-
-  return { url, body, headers, userMsg };
-};
-
-const genOrcaRouter = ({
-  url,
-  key,
-  systemPrompt,
-  userPrompt,
-  model,
-  temperature,
-  maxTokens,
-  hisMsgs = [],
-  useStream = false,
-  thinkingMode,
-  thinkingEffort,
-}) => {
-  const userMsg = {
-    role: "user",
-    content: userPrompt,
-  };
-  const body = {
-    model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
-    temperature,
-    max_completion_tokens: maxTokens,
-    stream: useStream,
-  };
-
-  // 与 OpenAI 直连保持一致，Astra 不发送自动生成的温度参数。
-  if (isGPT6Astra(model)) delete body.temperature;
-
-  applyThinkingParameters(body, {
-    apiType: OPT_TRANS_ORCAROUTER,
-    url,
-    model,
-    thinkingMode,
-    thinkingEffort,
-  });
-
-  const headers = {
-    "Content-type": "application/json",
-    Authorization: `Bearer ${key}`,
-    // 聚合网关的调用来源标识，便于在 OrcaRouter 控制台区分本扩展的用量
-    "HTTP-Referer": "https://fishjar.github.io/kiss-translator/",
-    "X-Title": "KISS Translator",
-  };
-
-  return { url, body, headers, userMsg };
-};
-
-const genRequesty = ({
-  url,
-  key,
-  systemPrompt,
-  userPrompt,
-  model,
-  temperature,
-  maxTokens,
-  hisMsgs = [],
-  useStream = false,
-  thinkingMode,
-  thinkingEffort,
-}) => {
-  const userMsg = {
-    role: "user",
-    content: userPrompt,
-  };
-  const body = {
-    model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
-    temperature,
-    max_completion_tokens: maxTokens,
-    stream: useStream,
-  };
-
-  // 与 OpenAI 直连保持一致，Astra 不发送自动生成的温度参数。
-  if (isGPT6Astra(model)) delete body.temperature;
-
-  applyThinkingParameters(body, {
-    apiType: OPT_TRANS_REQUESTY,
-    url,
-    model,
-    thinkingMode,
-    thinkingEffort,
-  });
-
-  const headers = {
-    "Content-type": "application/json",
-    Authorization: `Bearer ${key}`,
-    // 聚合网关的调用来源标识，便于在 Requesty 控制台区分本扩展的用量
-    "HTTP-Referer": "https://fishjar.github.io/kiss-translator/",
-    "X-Title": "KISS Translator",
-  };
-
-  return { url, body, headers, userMsg };
-};
-
-const genOllama = ({
-  url,
-  key,
-  systemPrompt,
-  userPrompt,
-  model,
-  temperature,
-  maxTokens,
-  hisMsgs = [],
-  useStream = false,
-  thinkingMode,
-  thinkingEffort,
-}) => {
-  const userMsg = {
-    role: "user",
-    content: userPrompt,
-  };
-  const body = {
-    model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
-    temperature,
-    max_tokens: maxTokens,
-  };
-
-  applyThinkingParameters(body, {
-    apiType: OPT_TRANS_OLLAMA,
-    url,
-    model,
-    thinkingMode,
-    thinkingEffort,
-  });
-  body.stream = useStream;
-
-  const headers = {
-    "Content-type": "application/json",
-  };
-  if (key) {
-    headers.Authorization = `Bearer ${key}`;
-  }
-
-  return { url, body, headers, userMsg };
-};
-
-const genCloudflareAI = ({ texts, from, to, url, key }) => {
-  const body = {
-    text: texts.join(" "),
-    source_lang: from,
-    target_lang: to,
-  };
-
-  const headers = {
-    "Content-type": "application/json",
-    Authorization: `Bearer ${key}`,
-  };
-
-  return { url, body, headers };
-};
-
-const genCustom = ({ texts, fromLang, toLang, url, key, useBatchFetch }) => {
-  const body = useBatchFetch
-    ? { texts, from: fromLang, to: toLang }
-    : { text: texts[0], from: fromLang, to: toLang };
-  const headers = {
-    "Content-type": "application/json",
-    Authorization: `Bearer ${key}`,
-  };
-
-  return { url, body, headers };
-};
-
-const genReqFuncs = {
-  [OPT_TRANS_GOOGLE]: genGoogle,
-  [OPT_TRANS_GOOGLE_2]: genGoogle2,
-  [OPT_TRANS_GOOGLE_CLOUD]: genGoogleCloud,
-  [OPT_TRANS_YANDEX]: genYandex,
-  [OPT_TRANS_YANDEXFREE]: genYandexFree,
-  [OPT_TRANS_MICROSOFT]: genMicrosoft,
-  [OPT_TRANS_AZUREAI]: genAzureAI,
-  [OPT_TRANS_DEEPL]: genDeepl,
-  [OPT_TRANS_DEEPLFREE]: genDeeplFree,
-  [OPT_TRANS_DEEPSEEK]: genOpenAI,
-  [OPT_TRANS_OPENCODEGO]: genOpenAI,
-  [OPT_TRANS_SILICONFLOW]: genOpenAI,
-  [OPT_TRANS_XIAOMIMIMO]: genOpenAI,
-  [OPT_TRANS_ALIYUNBAILIAN]: genOpenAI,
-  [OPT_TRANS_QWENMT]: genQwenMt,
-  [OPT_TRANS_CEREBRAS]: genOpenAI,
-  [OPT_TRANS_ZAI]: genOpenAI,
-  [OPT_TRANS_DEEPLX]: genDeeplX,
-  [OPT_TRANS_EPHONEAI]: genOpenAI,
-  [OPT_TRANS_APIMART]: genOpenAI,
-  [OPT_TRANS_BAIDU]: genBaidu,
-  [OPT_TRANS_TENCENT]: genTencent,
-  [OPT_TRANS_VOLCENGINE]: genVolcengine,
-  [OPT_TRANS_OPENAI]: genOpenAI,
-  [OPT_TRANS_GEMINI]: genGemini,
-  [OPT_TRANS_GEMINI_2]: genGemini2,
-  [OPT_TRANS_CLAUDE]: genClaude,
-  [OPT_TRANS_CLOUDFLAREAI]: genCloudflareAI,
-  [OPT_TRANS_OLLAMA]: genOllama,
-  [OPT_TRANS_OPENROUTER]: genOpenRouter,
-  [OPT_TRANS_ORCAROUTER]: genOrcaRouter,
-  [OPT_TRANS_REQUESTY]: genRequesty,
-  [OPT_TRANS_CUSTOMIZE]: genCustom,
-};
-
 /**
  * 构建统一的 Fetch init 对象。
  * 对请求体和方法做健全处理。
@@ -1740,10 +731,10 @@ const genInit = ({
  * @returns
  */
 export const genTransReq = async ({ reqHook, ...args }) => {
+  Object.assign(args, selectNativeEndpoint(args));
   const {
     apiType,
     apiSlug,
-    key,
     systemPrompt,
     batchUserPrompt,
     batchProtocol,
@@ -1766,15 +757,10 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     docInfo: externalDocInfo,
   } = args;
 
-  if (API_SPE_TYPES.mulkeys.has(apiType)) {
-    args.key = keyPick(apiSlug, key, keyMap);
-  }
-
-  if (apiType === OPT_TRANS_DEEPLX) {
-    args.url = keyPick(apiSlug, args.url, urlMap);
-  }
-
-  if (API_SPE_TYPES.ai.has(apiType)) {
+  if (args.vlmPrompt !== undefined) {
+    args.systemPrompt = "";
+    args.userPrompt = args.vlmPrompt;
+  } else if (getBuiltinServiceDefinition(apiType)?.usesMessages) {
     const docInfo = externalDocInfo || getDocInfo();
 
     let baseSystemPrompt = events
@@ -1844,10 +830,10 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   }
 
   // 合并用户自定义headers和body
-  if (customHeader?.trim()) {
+  if (apiType !== OPT_TRANS_LOCALAI && customHeader?.trim()) {
     Object.assign(headers, parseJsonObj(customHeader));
   }
-  if (customBody?.trim()) {
+  if (apiType !== OPT_TRANS_LOCALAI && customBody?.trim()) {
     Object.assign(body, parseJsonObj(customBody));
   }
 
@@ -1863,7 +849,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   }
 
   // 执行 request hook
-  if (reqHook?.trim() && !events) {
+  if (apiType !== OPT_TRANS_LOCALAI && reqHook?.trim() && !events) {
     try {
       const req = {
         url,
@@ -1872,8 +858,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         userMsg,
         method,
       };
-      interpreter.run(`exports.reqHook = ${reqHook}`);
-      const hookResult = await interpreter.exports.reqHook(
+      const hookResult = await callLegacyRequestHook(
+        reqHook,
         {
           ...args,
           defaultSystemPrompt,
@@ -1924,10 +910,9 @@ export const parseTransRes = async (
   }
 ) => {
   // 执行 response hook
-  if (resHook?.trim()) {
+  if (apiType !== OPT_TRANS_LOCALAI && resHook?.trim()) {
     try {
-      interpreter.run(`exports.resHook = ${resHook}`);
-      const hookResult = await interpreter.exports.resHook({
+      const hookResult = await callLegacyResponseHook(resHook, {
         apiType,
         userMsg,
         res,
@@ -1954,181 +939,27 @@ export const parseTransRes = async (
     }
   }
 
-  let modelMsg = "";
-
-  // todo: 根据结果抛出实际异常信息
-  switch (apiType) {
-    case OPT_TRANS_GOOGLE:
-      return [[res?.sentences?.map((item) => item.trans).join(" "), res?.src]];
-    case OPT_TRANS_GOOGLE_2:
-      return res?.[0]?.map((_, i) => [
-        textFormat === "text"
-          ? decodeHTMLTranslationText(res?.[0]?.[i])
-          : res?.[0]?.[i],
-        res?.[1]?.[i],
-      ]);
-    case OPT_TRANS_GOOGLE_CLOUD:
-      return res?.data?.translations?.map((item) => [
-        textFormat === "text"
-          ? decodeHTMLEntities(item.translatedText)
-          : item.translatedText,
-        item.detectedSourceLanguage,
-      ]);
-    case OPT_TRANS_YANDEX:
-      return res?.translations?.map((item) => [
-        item.text,
-        item.detectedLanguageCode,
-      ]);
-    case OPT_TRANS_YANDEXFREE:
-      return [[res?.text?.[0], res?.lang?.split("-")?.[0]]];
-    case OPT_TRANS_MICROSOFT:
-    case OPT_TRANS_AZUREAI:
-      return res?.map((item) => [
-        item.translations.map((item) => item.text).join(" "),
-        item.detectedLanguage?.language,
-      ]);
-    case OPT_TRANS_DEEPL:
-      return res?.translations?.map((item) => [
-        item.text,
-        item.detected_source_language,
-      ]);
-    case OPT_TRANS_DEEPLFREE:
-      return [
-        [
-          res?.result?.texts?.map((item) => item.text).join(" "),
-          res?.result?.lang,
-        ],
-      ];
-    case OPT_TRANS_DEEPLX:
-      return [[res?.data, res?.source_lang]];
-    case OPT_TRANS_BAIDU:
-      if (res.type === 1) {
-        return [
-          [
-            Object.keys(JSON.parse(res.result).content[0].mean[0].cont)[0],
-            res.from,
-          ],
-        ];
-      } else if (res.type === 2) {
-        return [[res.data.map((item) => item.dst).join(" "), res.from]];
-      }
-      break;
-    case OPT_TRANS_TENCENT:
-      return res?.auto_translation?.map((text) => [text, res?.src_lang]);
-    case OPT_TRANS_VOLCENGINE:
-      return [[res?.translation, res?.detected_language]];
-    case OPT_TRANS_QWENMT: {
-      const content = res?.choices?.[0]?.message?.content;
-      return typeof content === "string" ? [[content]] : [];
-    }
-    case OPT_TRANS_EPHONEAI:
-    case OPT_TRANS_APIMART:
-    case OPT_TRANS_OPENAI:
-    case OPT_TRANS_DEEPSEEK:
-    case OPT_TRANS_OPENCODEGO:
-    case OPT_TRANS_SILICONFLOW:
-    case OPT_TRANS_XIAOMIMIMO:
-    case OPT_TRANS_ALIYUNBAILIAN:
-    case OPT_TRANS_CEREBRAS:
-    case OPT_TRANS_ZAI:
-    case OPT_TRANS_GEMINI_2:
-    case OPT_TRANS_OPENROUTER:
-    case OPT_TRANS_ORCAROUTER:
-    case OPT_TRANS_REQUESTY:
-      modelMsg = res?.choices?.[0]?.message;
-      if (history && userMsg) {
-        // 成对写入与轮次截断守卫统一内聚在 addPair：空正文/非 assistant role 整对不写
-        history.addPair(userMsg, modelMsg);
-      }
-      return parseAIRes(
-        modelMsg?.content,
+  const parser = nativeResponseParsers[apiType];
+  if (parser) {
+    const result = parser(
+      res,
+      {
+        texts,
+        from,
+        to,
+        fromLang,
+        toLang,
+        langMap,
+        history,
+        userMsg,
+        apiType,
         useBatchFetch,
         batchProtocol,
-        textFormat
-      );
-    case OPT_TRANS_GEMINI:
-      // Gemini Interactions steps may include thought items.
-      // Their context replay semantics are outside this history-correctness fix.
-      if (history && Array.isArray(res?.steps)) {
-        history.clear();
-        history.add(...res.steps);
-      } else {
-        // Gemini generateContent 路径行为未变更：modelMsg 可为 undefined，由既有守卫拦截。
-        modelMsg = res?.candidates?.[0]?.content;
-        if (history && userMsg && modelMsg) {
-          history.add(userMsg, modelMsg);
-        }
-      }
-      return parseAIRes(
-        geminiResponseText(res),
-        useBatchFetch,
-        batchProtocol,
-        textFormat
-      );
-    case OPT_TRANS_CLAUDE: {
-      // 历史上下文取值必须做形态归一化，原因有三：
-      // 1. 形态防御：响应 content 存在多种形态 —— Anthropic 标准的块数组
-      //    [{type:"text",text:"…"}]、第三方实现可能返回的纯字符串、以及单对象
-      //    {type:"text",text:"…"}。只写 .map(...) 会在字符串形态上抛 TypeError
-      //    让整页翻译崩溃，只写 content?.text 又取不到块数组里的文本，故三分支全覆盖。
-      // 2. 网关现实：Claude 模型价格昂贵且平台随意封号，实际拿来翻译的机会很少；
-      //    现实中这个 /messages 接口多由第三方开源网关模拟 Claude Message 协议提供，
-      //    并不能真实代表 Anthropic 原装 Claude 的体验，响应形态更需要宽容。
-      // 3. 历史教训：本行旧写法是 res?.content?.text —— 块数组没有 .text 属性，
-      //    于是开启「智能上下文」时写进历史的 assistant 条目全是空壳 {role:"assistant"}，
-      //    上下文功能对 Claude 实际失效。2026-08 由用户抓包发现并修复。
-      // 取全部文本块拼接而非只取 [0]：历史上下文应完整保留模型输出，
-      // 与下方解析译文只取首块（最小变更）是两种用途。
-      // 是否写入历史由 addPair 的统一守卫裁决：role 缺失或无可用文本的响应
-      // 整对不写，与其它协议分支语义一致；多块拼接/thinking-first 的统一语义
-      // 不在本修复范围内。
-      const pickClaudeText = (c) =>
-        Array.isArray(c)
-          ? c
-              .map((b) => b?.text)
-              .filter(Boolean)
-              .join("")
-          : typeof c === "string"
-            ? c
-            : (c?.text ?? "");
-      modelMsg = { role: res?.role, content: pickClaudeText(res?.content) };
-      if (history && userMsg) {
-        history.addPair(userMsg, modelMsg);
-      }
-      return parseAIRes(
-        res?.content?.[0]?.text ?? "",
-        useBatchFetch,
-        batchProtocol,
-        textFormat
-      );
-    }
-    case OPT_TRANS_CLOUDFLAREAI:
-      return [[res?.result?.translated_text]];
-    case OPT_TRANS_OLLAMA:
-      modelMsg = res?.choices?.[0]?.message;
-
-      // const deepModels = thinkIgnore
-      //   .split(",")
-      //   .filter((model) => model?.trim());
-      // if (deepModels.some((model) => res?.model?.startsWith(model))) {
-      //   modelMsg?.content.replace(/<think>[\s\S]*<\/think>/i, "");
-      // }
-
-      if (history && userMsg) {
-        history.addPair(userMsg, modelMsg);
-      }
-      return parseAIRes(
-        modelMsg?.content,
-        useBatchFetch,
-        batchProtocol,
-        textFormat
-      );
-    case OPT_TRANS_CUSTOMIZE:
-      if (useBatchFetch) {
-        return (res?.translations ?? res)?.map((item) => [item.text, item.src]);
-      }
-      return [[res.text, res.src || res.from]];
-    default:
+        textFormat,
+      },
+      { parseAIRes, alignBatchTranslations }
+    );
+    if (result !== undefined) return result;
   }
 
   throw new Error("parse translate result: apiType not matched", apiType);
@@ -2144,36 +975,6 @@ export const parseTransRes = async (
  * @param {string} apiType API 类型
  * @returns {string} 模型生成的 Markdown 内容
  */
-function parseDictRes(res, apiType) {
-  switch (apiType) {
-    case OPT_TRANS_EPHONEAI:
-    case OPT_TRANS_APIMART:
-    case OPT_TRANS_OPENAI:
-    case OPT_TRANS_DEEPSEEK:
-    case OPT_TRANS_OPENCODEGO:
-    case OPT_TRANS_SILICONFLOW:
-    case OPT_TRANS_XIAOMIMIMO:
-    case OPT_TRANS_ALIYUNBAILIAN:
-    case OPT_TRANS_CEREBRAS:
-    case OPT_TRANS_ZAI:
-    case OPT_TRANS_GEMINI_2:
-    case OPT_TRANS_OPENROUTER:
-    case OPT_TRANS_ORCAROUTER:
-    case OPT_TRANS_REQUESTY:
-    case OPT_TRANS_OLLAMA:
-      return res?.choices?.[0]?.message?.content || "";
-    case OPT_TRANS_GEMINI:
-      return geminiResponseText(res);
-    case OPT_TRANS_CLAUDE:
-      return res?.content?.[0]?.text || "";
-    case OPT_TRANS_CUSTOMIZE:
-      if (typeof res === "string") return res;
-      return res?.text || res?.result || "";
-    default:
-  }
-
-  throw new Error("parse dictionary result: apiType not matched", apiType);
-}
 
 /**
  * 发起 AI 词典请求并返回 Markdown 结果。
@@ -2194,7 +995,32 @@ function parseDictRes(res, apiType) {
  * @param {AbortSignal} [params.signal] 取消信号
  * @returns {Promise<string>} Markdown 格式的词典解析结果
  */
-export const handleDict = async ({
+/** Scene entry selects a capability; compiled adapters call the native implementation below. */
+export const handleDict = async (options) => {
+  if (!options.apiSetting.provider) return handleNativeDict(options);
+  const { invokeTextScene } = await import("../providers/sceneAdapter");
+  return invokeTextScene(
+    options.apiSetting,
+    "dictionary",
+    {
+      text: options.text,
+      sourceLanguage: options.fromLang,
+      language: options.toLang,
+      context: options.context || "",
+      instructions: options.apiSetting.dictPrompt,
+      userPrompt: options.apiSetting.dictUserPrompt,
+    },
+    {
+      signal: options.signal,
+      nativeOptions: options,
+      onText:
+        options.onStreamChunk &&
+        ((markdown) => options.onStreamChunk({ markdown })),
+    }
+  );
+};
+
+export const handleNativeDict = async ({
   text,
   from,
   to,
@@ -2210,6 +1036,29 @@ export const handleDict = async ({
     throw new DOMException("The operation was aborted.", "AbortError");
   }
 
+  if (
+    apiSetting.provider &&
+    apiSetting.provider.implementation.kind !== "native"
+  ) {
+    const { invokeTextScene } = await import("../providers/sceneAdapter");
+    return invokeTextScene(
+      apiSetting,
+      "dictionary",
+      {
+        text,
+        sourceLanguage: fromLang,
+        language: toLang,
+        context,
+        instructions: apiSetting.dictPrompt,
+        userPrompt: apiSetting.dictUserPrompt,
+      },
+      {
+        signal,
+        onText: onStreamChunk && ((markdown) => onStreamChunk({ markdown })),
+      }
+    );
+  }
+
   const {
     apiType,
     fetchInterval,
@@ -2221,7 +1070,9 @@ export const handleDict = async ({
   const enableStream =
     Boolean(onStreamChunk) &&
     apiSetting.useStream &&
-    API_SPE_TYPES.stream.has(apiType);
+    getBuiltinServiceDefinition(
+      apiType
+    )?.capabilities.dictionary?.outputModes.includes("stream");
   if (!dictPrompt) {
     throw new Error("AI dictionary prompt is empty.");
   }
@@ -2271,9 +1122,10 @@ export const handleDict = async ({
           fullContent += delta;
           // 流式模型可能先输出 Markdown 代码围栏，边流式展示边剥离可避免 UI 闪出 ```。
           fullContent = stripMarkdownCodeBlock(fullContent, true);
-          onStreamChunk({ markdown: fullContent });
+          await onStreamChunk({ markdown: fullContent });
         } catch (error) {
-          if (error?.isAIStreamTerminal) throw error;
+          if (error?.isAIStreamTerminal || error?.isProviderStreamError)
+            throw error;
           // 忽略单个 SSE 数据帧解析失败，等待后续帧继续输出。
         }
       }
@@ -2285,7 +1137,7 @@ export const handleDict = async ({
 
       return markdown;
     } catch (err) {
-      if (err?.name === "AbortError") {
+      if (err?.name === "AbortError" || err?.isProviderStreamError) {
         throw err;
       }
 
@@ -2355,7 +1207,16 @@ export const handleDict = async ({
  * @yields {{id: number, result: [string, string]}} 流式模式下逐个返回结果
  * @returns {Promise<Array>} 非流式模式下返回完整结果数组
  */
-export async function* handleTranslate(
+export async function* handleTranslate(texts, options) {
+  if (!options.apiSetting.provider) {
+    yield* handleNativeTranslate(texts, options);
+    return;
+  }
+  const { translatePlugin } = await import("../providers/translationAdapter");
+  yield* translatePlugin(texts, { ...options, nativeOptions: options });
+}
+
+export async function* handleNativeTranslate(
   texts = [],
   {
     from,
@@ -2374,6 +1235,23 @@ export async function* handleTranslate(
 ) {
   if (signal?.aborted) return;
 
+  if (
+    apiSetting.provider &&
+    apiSetting.provider.implementation.kind !== "native"
+  ) {
+    const { translatePlugin } = await import("../providers/translationAdapter");
+    yield* translatePlugin(texts, {
+      apiSetting,
+      fromLang,
+      toLang,
+      glossary,
+      signal,
+      docInfo,
+      textFormat,
+    });
+    return;
+  }
+
   let history = null;
   let hisMsgs = [];
   const {
@@ -2386,14 +1264,38 @@ export async function* handleTranslate(
     httpTimeout,
     useStream,
   } = apiSetting;
-  if (useContext && API_SPE_TYPES.context.has(apiType)) {
-    history = getMsgHistory(apiSlug, contextSize);
+  if (useContext && getBuiltinServiceDefinition(apiType)?.supportsContext) {
+    const historyKey =
+      apiType === OPT_TRANS_LOCALAI
+        ? JSON.stringify([
+            apiSlug,
+            apiSetting.modelRef,
+            apiSetting.device,
+            fromLang,
+            toLang,
+            apiSetting.systemPrompt,
+            apiSetting.nobatchPrompt,
+            apiSetting.nobatchUserPrompt,
+            apiSetting.batchUserPrompt,
+            apiSetting.batchProtocol,
+            apiSetting.tone,
+            apiSetting.aiTerms,
+            apiSetting.temperature,
+            apiSetting.maxTokens,
+            apiSetting.useBatchFetch,
+            glossary,
+            contextSize,
+          ])
+        : apiSlug;
+    history = getMsgHistory(historyKey, contextSize);
     hisMsgs = history.getAll();
   }
 
   const enableStream =
-    useStream &&
-    API_SPE_TYPES.stream.has(apiType) &&
+    useStream !== false &&
+    getBuiltinServiceDefinition(
+      apiType
+    )?.capabilities.translate?.outputModes.includes("stream") &&
     !(
       apiType === OPT_TRANS_GEMINI &&
       useContext &&
@@ -2428,6 +1330,7 @@ export async function* handleTranslate(
     if (!response) {
       throw new Error("translate got empty response");
     }
+    if (signal?.aborted) throw new DOMException("已取消", "AbortError");
     capture?.onResponse?.(response);
 
     const result = await parseTransRes(response, {
@@ -2702,7 +1605,18 @@ async function* handleTranslateStreamInternal(
  * @param {AbortSignal} [params.signal] 调用方生命周期取消信号，会下传到 fetch/fetchStream。
  * @returns {Promise<Array<Object>>} 完整字幕句子数组。
  */
-export const handleSubtitle = async ({
+export const handleSubtitle = async (options) => {
+  if (!options.apiSetting.provider) return handleNativeSubtitle(options);
+  const { segmentPlugin } = await import("../providers/sceneAdapter");
+  return segmentPlugin(options.events, {
+    ...options,
+    nativeOptions: options,
+    instructions: options.apiSetting.subtitlePrompt,
+    context: options.docInfo?.summary,
+  });
+};
+
+export const handleNativeSubtitle = async ({
   events,
   from,
   to,
@@ -2711,10 +1625,26 @@ export const handleSubtitle = async ({
   onSubtitleChunk,
   signal,
 }) => {
+  if (
+    apiSetting.provider &&
+    apiSetting.provider.implementation.kind !== "native"
+  ) {
+    const { segmentPlugin } = await import("../providers/sceneAdapter");
+    return segmentPlugin(events, {
+      apiSetting,
+      from,
+      to,
+      signal,
+      instructions: apiSetting.subtitlePrompt,
+      context: docInfo?.summary,
+    });
+  }
   const { apiType, fetchInterval, fetchLimit, httpTimeout, useStream } =
     apiSetting;
   const enableStream =
-    Boolean(onSubtitleChunk) && useStream && API_SPE_TYPES.stream.has(apiType);
+    Boolean(onSubtitleChunk) &&
+    useStream !== false &&
+    getBuiltinServiceDefinition(apiType)?.supportsSubtitleCallbackStream;
 
   const [input, init] = await genTransReq({
     ...apiSetting,
@@ -2750,7 +1680,7 @@ export const handleSubtitle = async ({
       kissLog("subtitle stream failed, fallback to non-stream", err);
     }
 
-    return handleSubtitle({
+    return handleNativeSubtitle({
       events,
       from,
       to,
@@ -2773,81 +1703,11 @@ export const handleSubtitle = async ({
     return [];
   }
 
-  switch (apiType) {
-    case OPT_TRANS_EPHONEAI:
-    case OPT_TRANS_APIMART:
-    case OPT_TRANS_OPENAI:
-    case OPT_TRANS_DEEPSEEK:
-    case OPT_TRANS_OPENCODEGO:
-    case OPT_TRANS_SILICONFLOW:
-    case OPT_TRANS_XIAOMIMIMO:
-    case OPT_TRANS_ALIYUNBAILIAN:
-    case OPT_TRANS_CEREBRAS:
-    case OPT_TRANS_ZAI:
-    case OPT_TRANS_GEMINI_2:
-    case OPT_TRANS_OPENROUTER:
-    case OPT_TRANS_ORCAROUTER:
-    case OPT_TRANS_REQUESTY:
-    case OPT_TRANS_OLLAMA:
-      return parseSTRes(
-        res?.choices?.[0]?.message?.content ?? "",
-        events,
-        from
-      );
-    case OPT_TRANS_GEMINI: {
-      const { thinkingMode } = apiSetting;
-      const thinkingWasOn =
-        thinkingMode && thinkingMode !== "auto" && thinkingMode !== "disabled";
-
-      // REVIEW: 本地 AI (Gemini Nano) 强大的降级容灾容错逻辑！
-      // 字幕翻译时，如果开启了推理链 (Thinking)，可能会因推理产生大量额外 Token，
-      // 触发 Gemini 发生 finishReason === "MAX_TOKENS" 的阶段性提前截断中止。
-      // 遇到该截断限制时，此处自动将推理降到当前模型支持的最低等级并重新发送重试，
-      // 尽量保留输出 token 以取得完整字幕。
-      const outputWasTruncated = Array.isArray(res?.steps)
-        ? res?.status === "incomplete" || res?.status === "budget_exceeded"
-        : res?.candidates?.[0]?.finishReason === "MAX_TOKENS";
-      if (outputWasTruncated && thinkingWasOn) {
-        // 运行时只在实际发生截断重试时归一化一次关闭状态，普通请求不再解析模型能力。
-        const retryThinkingSettings = normalizeThinkingSettings({
-          ...apiSetting,
-          thinkingMode: "disabled",
-          thinkingEffort: "_default",
-        });
-        const [retryInput, retryInit] = await genTransReq({
-          ...apiSetting,
-          // Gemini 字幕重试同样需要完整 JSON/VTT 结果，避免把 SSE 当普通响应解析。
-          useStream: false,
-          ...retryThinkingSettings,
-          events,
-          from,
-          to,
-          fromLang: from,
-          toLang: to,
-          docInfo,
-        });
-        const retryRes = await fetchData(retryInput, retryInit, {
-          useCache: false,
-          usePool: true,
-          fetchInterval,
-          fetchLimit,
-          httpTimeout,
-        });
-        const retryText = geminiResponseText(retryRes);
-        if (retryText) {
-          return parseSTRes(retryText, events, from);
-        }
-      }
-      return parseSTRes(geminiResponseText(res), events, from);
-    }
-    case OPT_TRANS_CLAUDE:
-      return parseSTRes(res?.content?.[0]?.text ?? "", events, from);
-    case OPT_TRANS_CUSTOMIZE:
-      return res;
-    default:
-  }
-
-  return [];
+  return parseNativeSubtitleResponse(
+    res,
+    { apiSetting, events, from, to, docInfo, signal },
+    { parseSTRes, genTransReq, fetchData }
+  );
 };
 
 /**
@@ -2952,33 +1812,152 @@ Cover these aspects:
 
 Output plain text only. No markdown, no formatting, no headers.`;
 
-export const handleSummarize = async ({
+export const handleSummarize = async (options) => {
+  if (!options.apiSetting.provider) return handleNativeSummarize(options);
+  const { invokeTextScene } = await import("../providers/sceneAdapter");
+  return invokeTextScene(
+    options.apiSetting,
+    "summarize",
+    {
+      text: options.transcript,
+      language: options.to || "zh-CN",
+      instructions: options.prompt?.systemPrompt,
+      userPrompt: options.prompt?.userPrompt,
+      context: [options.title, options.description].filter(Boolean).join("\n"),
+    },
+    { signal: options.signal, nativeOptions: options }
+  );
+};
+
+export const handleNativeSummarize = async ({
   title,
   description,
   transcript,
   apiSetting,
+  prompt,
+  to = "zh-CN",
+  signal,
+  cacheMode,
 }) => {
+  if (
+    apiSetting.provider &&
+    apiSetting.provider.implementation.kind !== "native"
+  ) {
+    const { invokeTextScene } = await import("../providers/sceneAdapter");
+    return invokeTextScene(
+      apiSetting,
+      "summarize",
+      {
+        text: transcript,
+        language: to,
+        instructions: prompt?.systemPrompt,
+        userPrompt: prompt?.userPrompt,
+        context: [title, description].filter(Boolean).join("\n"),
+      },
+      { signal }
+    );
+  }
   const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
 
-  const userPrompt = [
-    title && `Title: ${title}`,
-    description && `Description: ${description}`,
-    `\nTranscript:\n${transcript}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  // 1. Chrome 内置 AI (Summarizer API)
+  if (apiType === OPT_TRANS_BUILTINAI) {
+    const context = [title, description].filter(Boolean).join("\n");
+    let summary = "";
+    let err = "";
 
+    if (isExt && !isBg()) {
+      const res = await sendBgMsg(MSG_BUILTINAI_SUMMARIZE, {
+        text: transcript,
+        options: { context: context || undefined },
+      });
+      summary = res?.[0] || "";
+      err = res?.[1] || "";
+    } else {
+      const [sum, error] = await chromeSummarize({
+        text: transcript,
+        options: { context: context || undefined },
+      });
+      summary = sum;
+      err = error;
+    }
+
+    if (err) {
+      kissLog("handleSummarize:builtinAI error", err);
+      throw new Error(err);
+    }
+    return (summary || "").trim();
+  }
+
+  // 统一展开提示词模板，确保本地大模型与网络大模型均能正确支持自定义 userPrompt
+  let userPrompt = prompt?.userPrompt;
+  if (userPrompt) {
+    userPrompt = userPrompt
+      .replaceAll("{{title}}", title || "")
+      .replaceAll("{{description}}", description || "")
+      .replaceAll("{{transcript}}", transcript || "")
+      .replaceAll(INPUT_PLACE_TO, to);
+  } else {
+    userPrompt = [
+      title && `Title: ${title}`,
+      description && `Description: ${description}`,
+      `\nTranscript:\n${transcript}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  const systemPrompt = (
+    prompt?.systemPrompt || summarizeSystemPrompt
+  ).replaceAll(INPUT_PLACE_TO, to);
+
+  // 2. 本地大模型 (LocalAI)
+  if (apiType === OPT_TRANS_LOCALAI) {
+    const messages = [
+      ...buildSystemRoleMessages(systemPrompt),
+      { role: "user", content: userPrompt },
+    ];
+    const id = `local-summary-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const cancel = () => {
+      void sendBgMsg(MSG_LOCAL_AI_CANCEL, { id });
+    };
+    signal?.addEventListener("abort", cancel, { once: true });
+    try {
+      const response = await sendBgMsg(MSG_LOCAL_AI_RPC, {
+        id,
+        service: "llm",
+        method: "chat",
+        options: { cacheMode },
+        payload: {
+          modelRef: apiSetting.modelRef,
+          ...(apiSetting.device
+            ? { loadSpec: { device: apiSetting.device } }
+            : {}),
+          messages,
+          maxTokens: apiSetting.maxTokens ?? 2048,
+          ...(apiSetting.temperature !== undefined
+            ? { temperature: apiSetting.temperature }
+            : {}),
+        },
+      });
+      if (typeof response === "string") return response.trim();
+      return (response?.text || "").trim();
+    } finally {
+      signal?.removeEventListener("abort", cancel);
+    }
+  }
+
+  // 3. 网络大模型与自定义接口
   const [input, init] = await genTransReq({
     ...apiSetting,
     // 字幕上下文总结需要一次性文本结果，不能继承段落翻译的流式输出设置。
     useStream: false,
     texts: [""],
     from: "auto",
-    to: "en",
+    to: to || "en",
     fromLang: "auto",
-    toLang: "en",
+    toLang: to || "en",
     useBatchFetch: false,
-    nobatchPrompt: summarizeSystemPrompt,
+    nobatchPrompt: systemPrompt,
     nobatchUserPrompt: userPrompt,
   });
 
@@ -2988,40 +1967,10 @@ export const handleSummarize = async ({
     fetchInterval,
     fetchLimit,
     httpTimeout,
+    signal,
   });
 
   if (!res) return "";
 
-  switch (apiType) {
-    case OPT_TRANS_EPHONEAI:
-    case OPT_TRANS_APIMART:
-    case OPT_TRANS_OPENAI:
-    case OPT_TRANS_DEEPSEEK:
-    case OPT_TRANS_OPENCODEGO:
-    case OPT_TRANS_SILICONFLOW:
-    case OPT_TRANS_XIAOMIMIMO:
-    case OPT_TRANS_ALIYUNBAILIAN:
-    case OPT_TRANS_CEREBRAS:
-    case OPT_TRANS_ZAI:
-    case OPT_TRANS_GEMINI_2:
-    case OPT_TRANS_OPENROUTER:
-    case OPT_TRANS_ORCAROUTER:
-    case OPT_TRANS_REQUESTY:
-    case OPT_TRANS_OLLAMA:
-      return res?.choices?.[0]?.message?.content?.trim() || "";
-    case OPT_TRANS_GEMINI:
-      return geminiResponseText(res).trim() || "";
-    case OPT_TRANS_CLAUDE:
-      return res?.content?.[0]?.text?.trim() || "";
-    case OPT_TRANS_CUSTOMIZE:
-      if (typeof res === "string") return res.trim();
-      return (
-        res?.choices?.[0]?.message?.content?.trim() ||
-        geminiText(res?.candidates?.[0]?.content?.parts).trim() ||
-        res?.content?.[0]?.text?.trim() ||
-        ""
-      );
-    default:
-      return "";
-  }
+  return parseNativeSummaryResponse(res, apiType);
 };

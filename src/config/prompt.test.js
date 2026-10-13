@@ -6,6 +6,7 @@ import {
   PRESET_PROMPTS,
   PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_CATEGORY_DICTIONARY,
+  PROMPT_CATEGORY_SUMMARY,
   PROMPT_SLUG_NOBATCH_TRANSLATION,
   PROMPT_SLUG_DICTIONARY_EN_JA,
   PROMPT_SLUG_DICTIONARY_EN_KO,
@@ -17,6 +18,7 @@ import {
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V3,
   getDictionaryPromptOptions,
+  getSummaryPromptOptions,
   getPromptDisplayName,
   getAllTranslationPromptOptions,
   getTranslationPromptDisplayName,
@@ -488,5 +490,96 @@ describe("prompt settings", () => {
     expect(getTranslationPromptDisplayName(nobatchItem)).toMatch(
       /^\[单句\]\s+/
     );
+  });
+
+  test("exposes summary prompt templates and provides default video summary preset", () => {
+    const summaryPrompts = getSummaryPromptOptions(PRESET_PROMPTS);
+    expect(summaryPrompts.length).toBeGreaterThan(0);
+
+    const defaultSummary = summaryPrompts.find(
+      (p) => p.slug === "default_video_summary"
+    );
+    expect(defaultSummary).toBeDefined();
+    expect(defaultSummary.category).toBe(PROMPT_CATEGORY_SUMMARY);
+    expect(defaultSummary.systemPrompt).toContain("{{to}}");
+    expect(defaultSummary.systemPrompt).toContain("Overview:");
+    expect(defaultSummary.systemPrompt).toContain("Key Takeaways:");
+    expect(defaultSummary.userPrompt).toContain("{{transcript}}");
+    expect(
+      UI_LANGS.every(([lang]) => I18N[defaultSummary.nameKey]?.[lang])
+    ).toBe(true);
+  });
+});
+
+describe("visual parsing prompt settings", () => {
+  const {
+    PRESET_PROMPTS,
+    DEFAULT_VLM_PROMPT_SLUG,
+    PROMPT_CATEGORY_VLM,
+    getVlmPromptOptions,
+    resolveVlmPrompt,
+    migrateSettingToV5,
+    removePromptReferences,
+  } = require("./prompt");
+  test("uses the generic default and accepts only visual templates", () => {
+    expect(getVlmPromptOptions(PRESET_PROMPTS).length).toBe(6);
+    expect(resolveVlmPrompt([], "missing")).toContain("Markdown");
+    expect(
+      resolveVlmPrompt(
+        [
+          {
+            slug: "mine",
+            category: PROMPT_CATEGORY_VLM,
+            userPrompt: "OCR only",
+          },
+        ],
+        "mine"
+      )
+    ).toBe("OCR only");
+    expect(resolveVlmPrompt([], "nobatch-translation")).toBe(
+      resolveVlmPrompt([], DEFAULT_VLM_PROMPT_SLUG)
+    );
+  });
+  test("migrates old references without losing other settings and is idempotent", () => {
+    const old = {
+      version: 4,
+      transApis: [{ apiSlug: "a", vlmPromptSlug: "mine", tone: "formal" }],
+      fileTranslateSetting: {
+        image: { promptSlug: "translation", ocrGroup: "old" },
+      },
+    };
+    const next = migrateSettingToV5(old);
+    expect(next.version).toBe(5);
+    expect(next.transApis[0]).toMatchObject({
+      vlmPromptSlug: "mine",
+      tone: "formal",
+    });
+    expect(next.fileTranslateSetting.image).toMatchObject({
+      vlmPromptSlug: "",
+      promptSlug: "translation",
+      ocrGroup: "old",
+    });
+    expect(migrateSettingToV5(next)).toBe(next);
+  });
+  test("clears deleted visual references independently from translation", () => {
+    const next = removePromptReferences(
+      {
+        transApis: [
+          { vlmPromptSlug: "mine", nobatchPromptSlug: "translation" },
+        ],
+        fileTranslateSetting: {
+          image: { vlmPromptSlug: "mine", promptSlug: "translation" },
+        },
+      },
+      "mine"
+    );
+    expect(next.transApis[0]).toMatchObject({
+      vlmPromptSlug: DEFAULT_VLM_PROMPT_SLUG,
+      nobatchPromptSlug: "translation",
+    });
+    expect(next.fileTranslateSetting.image).toEqual({
+      vlmPromptSlug: "",
+      promptSlug: "translation",
+    });
   });
 });

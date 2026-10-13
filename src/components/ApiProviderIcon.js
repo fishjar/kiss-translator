@@ -1,4 +1,5 @@
 import Box from "@mui/material/Box";
+import { useEffect, useState } from "react";
 import ApiRoundedIcon from "@mui/icons-material/ApiRounded";
 import {
   API_SPE_TYPES,
@@ -113,6 +114,7 @@ export function getApiIconSrc(
 
 export default function ApiProviderIcon({
   apiType,
+  provider,
   label = "",
   size = 22,
   imageSize = 14,
@@ -121,7 +123,52 @@ export default function ApiProviderIcon({
   className = "",
   sx = {},
 }) {
-  const src = getApiIconSrc(apiType);
+  const [pluginIcon, setPluginIcon] = useState("");
+  const [packageRevision, setPackageRevision] = useState(0);
+  const pluginId = provider?.source?.external && provider.source.pluginId;
+  const pluginVersion = provider?.source?.version;
+  useEffect(() => {
+    if (!pluginId) return;
+    const invalidate = () => setPackageRevision((revision) => revision + 1);
+    let active = true;
+    let unsubscribe = () => {};
+    import("../providers/packageStore")
+      .then(({ subscribeProviderPackageChanges }) => {
+        if (active) unsubscribe = subscribeProviderPackageChanges(invalidate);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [pluginId]);
+  useEffect(() => {
+    let active = true;
+    let objectUrl;
+    setPluginIcon("");
+    if (pluginId) {
+      // Icons are optional local package data, never credentials or synced instance data.
+      import("../providers/packageStore")
+        .then(({ getProviderPackage }) => getProviderPackage(pluginId))
+        .then((pack) => {
+          if (!active || !pack?.icon || pack.manifest.version !== pluginVersion)
+            return;
+          const bytes = Uint8Array.from(atob(pack.icon.data), (c) =>
+            c.charCodeAt(0)
+          );
+          objectUrl = URL.createObjectURL(
+            new Blob([bytes], { type: pack.icon.mimeType })
+          );
+          setPluginIcon(objectUrl);
+        })
+        .catch(() => {});
+    }
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [pluginId, pluginVersion, packageRevision]);
+  const src = pluginIcon || getApiIconSrc(apiType);
   const presentation = resolveApiIconPresentation(apiType, { lightSurface });
 
   return (
@@ -145,6 +192,9 @@ export default function ApiProviderIcon({
           component="img"
           src={src}
           alt={label}
+          onError={() => {
+            if (pluginIcon) setPluginIcon("");
+          }}
           sx={(theme) => {
             const imagePresentation = resolveApiIconPresentation(apiType, {
               mode: theme.palette.mode,

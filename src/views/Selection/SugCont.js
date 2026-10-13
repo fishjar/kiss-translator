@@ -6,6 +6,26 @@ import { apiBaiduSuggest, apiYoudaoSuggest } from "../../apis";
 import Stack from "@mui/material/Stack";
 import { OPT_SUG_BAIDU, OPT_SUG_YOUDAO } from "../../config";
 import { useAsyncNow } from "../../hooks/Fetch";
+import { useEffect, useState } from "react";
+
+function SugProvider({ text, serviceId }) {
+  const [state, setState] = useState({ loading: true });
+  useEffect(() => {
+    let active = true;
+    let call;
+    setState({ loading: true });
+    import("../../providers/savedService").then(async ({ invokeSavedService }) => {
+      if (!active) return;
+      call = invokeSavedService(serviceId, "suggest", { text });
+      const result = await call.result;
+      if (active) setState({ items: result.items });
+    }).catch(error => { if (active) setState({ error: error.message }); });
+    return () => { active = false; call?.cancel(); };
+  }, [text, serviceId]);
+  if (state.loading) return <CircularProgress size={16} />;
+  if (state.error) return <Alert severity="error">{state.error}</Alert>;
+  return (state.items || []).map((item, index) => <Typography key={index}>{item}</Typography>);
+}
 
 /**
  * 百度输入建议/联想词列表组件
@@ -90,7 +110,7 @@ export default function SugCont({ text, enSug }) {
   return (
     <Stack spacing={1}>
       <Divider />
-      {sugMap[enSug] || <Typography>Sug not support</Typography>}
+      {sugMap[enSug] || (enSug && enSug !== "-" ? <SugProvider text={text} serviceId={enSug} /> : null)}
     </Stack>
   );
 }

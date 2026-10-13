@@ -1,0 +1,1046 @@
+{
+  "items": [
+    {
+      "str": "∂",
+      "dir": "ltr",
+      "width": 5.7927321,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        153.12100260999998,
+        416.939976
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "∂t ",
+      "dir": "ltr",
+      "width": 11.640009700000014,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        151.2,
+        402.06
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "u",
+      "dir": "ltr",
+      "width": 6.240005200000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        162.8400097,
+        409.6200063
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "i",
+      "dir": "ltr",
+      "width": 3.0851056000000003,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        169.08,
+        407.94
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "+",
+      "dir": "ltr",
+      "width": 8.487279800000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        175.2,
+        409.62
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "n",
+      "dir": "ltr",
+      "width": 5.3912984,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        191.28,
+        423.18
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "∑",
+      "dir": "ltr",
+      "width": 15.7527404,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        186,
+        419.94
+      ],
+      "fontName": "g_d0_f12",
+      "hasEOL": false
+    },
+    {
+      "str": "j",
+      "dir": "ltr",
+      "width": 3.6120172000000004,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        186.36,
+        396.66
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "=1",
+      "dir": "ltr",
+      "width": 11.064379960000014,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        190.43936488000003,
+        396.66
+      ],
+      "fontName": "g_d0_f7",
+      "hasEOL": false
+    },
+    {
+      "str": "u",
+      "dir": "ltr",
+      "width": 6.240005200000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        203.64,
+        409.62
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "j",
+      "dir": "ltr",
+      "width": 3.6120172000000004,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        209.88,
+        407.94
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "∂u",
+      "dir": "ltr",
+      "width": 12.601101410000005,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        216.24,
+        416.94
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "i",
+      "dir": "ltr",
+      "width": 3.0851056000000003,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        228.84,
+        415.26
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "∂x",
+      "dir": "ltr",
+      "width": 12.601101410000005,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        215.76,
+        402.06
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "j",
+      "dir": "ltr",
+      "width": 3.6120172000000004,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        228.36,
+        400.38
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "=",
+      "dir": "ltr",
+      "width": 8.487279800000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        237.36,
+        409.62
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "ν",
+      "dir": "ltr",
+      "width": 5.3890954,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        248.88000960000002,
+        409.62
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "∆",
+      "dir": "ltr",
+      "width": 9.0872803,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        255.00001470000004,
+        409.62
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "u",
+      "dir": "ltr",
+      "width": 6.240005200000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        264.1200223,
+        409.62
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "i",
+      "dir": "ltr",
+      "width": 3.0851056000000003,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        270.36,
+        407.94
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "−",
+      "dir": "ltr",
+      "width": 8.487279800000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        276.36,
+        409.62
+      ],
+      "fontName": "g_d0_f9",
+      "hasEOL": false
+    },
+    {
+      "str": "∂p",
+      "dir": "ltr",
+      "width": 11.848373510000005,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        290.760012,
+        416.9400061
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "∂x",
+      "dir": "ltr",
+      "width": 12.601101410000005,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        288.6,
+        402.06
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "i",
+      "dir": "ltr",
+      "width": 3.0851056000000003,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        301.2,
+        400.38
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "+",
+      "dir": "ltr",
+      "width": 8.487279800000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        308.52,
+        409.62
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "f",
+      "dir": "ltr",
+      "width": 5.345459,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        319.4400091,
+        409.62
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "i",
+      "dir": "ltr",
+      "width": 3.0851056000000003,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        324.84,
+        407.94
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "(",
+      "dir": "ltr",
+      "width": 4.243639900000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        328.44,
+        409.62
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "x, t",
+      "dir": "ltr",
+      "width": 14.985830670000034,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        332.6400035,
+        409.62
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": ")",
+      "dir": "ltr",
+      "width": 4.243639900000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        347.640016,
+        409.62
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "(",
+      "dir": "ltr",
+      "width": 4.243639900000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        373.80112871,
+        409.62
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "x",
+      "dir": "ltr",
+      "width": 6.240005200000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        378.0000413,
+        409.62
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "∈",
+      "dir": "ltr",
+      "width": 7.276369700000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        387.240049,
+        409.62
+      ],
+      "fontName": "g_d0_f9",
+      "hasEOL": false
+    },
+    {
+      "str": "R",
+      "dir": "ltr",
+      "width": 7.8763702,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        397.5600576,
+        409.62
+      ],
+      "fontName": "g_d0_f4",
+      "hasEOL": false
+    },
+    {
+      "str": "n",
+      "dir": "ltr",
+      "width": 5.3912984,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        405.48,
+        414.06
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": ", t",
+      "dir": "ltr",
+      "width": 11.860373520000026,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        411.36,
+        409.62
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "\u0001",
+      "dir": "ltr",
+      "width": 8.487279800000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        426.2400124,
+        409.62
+      ],
+      "fontName": "g_d0_f10",
+      "hasEOL": false
+    },
+    {
+      "str": "0)",
+      "dir": "ltr",
+      "width": 9.646917129999975,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        437.760022,
+        409.62
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "(1)",
+      "dir": "ltr",
+      "width": 13.839284260000063,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        511.44444704,
+        409.62
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "div u",
+      "dir": "ltr",
+      "width": 24.37420212999999,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        158.87978959999998,
+        371.6999684
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "=",
+      "dir": "ltr",
+      "width": 8.487279800000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        186.36090341,
+        371.6999684
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "n",
+      "dir": "ltr",
+      "width": 5.3912984,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        203.04,
+        385.38
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "∑",
+      "dir": "ltr",
+      "width": 15.7527404,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        197.88,
+        382.14
+      ],
+      "fontName": "g_d0_f12",
+      "hasEOL": false
+    },
+    {
+      "str": "i",
+      "dir": "ltr",
+      "width": 3.0851056000000003,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        198.6,
+        358.86
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "=1",
+      "dir": "ltr",
+      "width": 11.064379960000014,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        201.71946939999998,
+        358.86
+      ],
+      "fontName": "g_d0_f7",
+      "hasEOL": false
+    },
+    {
+      "str": "∂u",
+      "dir": "ltr",
+      "width": 12.601101410000005,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        216.72,
+        379.14
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "i",
+      "dir": "ltr",
+      "width": 3.0851056000000003,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        229.32,
+        377.46
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "∂x",
+      "dir": "ltr",
+      "width": 12.601101410000005,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        216.72,
+        364.26
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "i",
+      "dir": "ltr",
+      "width": 3.0851056000000003,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        229.32,
+        362.58
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "= 0",
+      "dir": "ltr",
+      "width": 16.976741420000003,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        237.36,
+        371.7
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "(",
+      "dir": "ltr",
+      "width": 4.243639900000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        373.08229492000004,
+        371.7
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "x",
+      "dir": "ltr",
+      "width": 6.240005200000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        377.28011660000004,
+        371.7
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "∈",
+      "dir": "ltr",
+      "width": 7.276369700000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        386.64012440000005,
+        371.7
+      ],
+      "fontName": "g_d0_f9",
+      "hasEOL": false
+    },
+    {
+      "str": "R",
+      "dir": "ltr",
+      "width": 7.8763702,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        396.96013300000004,
+        371.7
+      ],
+      "fontName": "g_d0_f4",
+      "hasEOL": false
+    },
+    {
+      "str": "n",
+      "dir": "ltr",
+      "width": 5.3912984,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        404.88,
+        376.26
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": ", t",
+      "dir": "ltr",
+      "width": 11.740373420000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        410.76,
+        371.7
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "\u0001",
+      "dir": "ltr",
+      "width": 8.487279800000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        425.6400124,
+        371.7
+      ],
+      "fontName": "g_d0_f10",
+      "hasEOL": false
+    },
+    {
+      "str": "0)",
+      "dir": "ltr",
+      "width": 9.646917129999975,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        437.0400219,
+        371.7
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "(2)",
+      "dir": "ltr",
+      "width": 13.839284260000063,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        511.44444753999994,
+        371.7
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": true
+    }
+  ],
+  "styles": {
+    "g_d0_f1": {
+      "fontFamily": "serif",
+      "ascent": 0.698,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f2": {
+      "fontFamily": "serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f3": {
+      "fontFamily": "serif",
+      "ascent": 0.698,
+      "descent": -0.207,
+      "vertical": false
+    },
+    "g_d0_f4": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f5": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f6": {
+      "fontFamily": "serif",
+      "ascent": 0.698,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f7": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f8": {
+      "fontFamily": "monospace",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f9": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f10": {
+      "fontFamily": "monospace",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f11": {
+      "fontFamily": "serif",
+      "ascent": 0.698,
+      "descent": -0.206,
+      "vertical": false
+    },
+    "g_d0_f12": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f13": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f14": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f15": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f16": {
+      "fontFamily": "serif",
+      "ascent": 0.698,
+      "descent": -0.206,
+      "vertical": false
+    }
+  }
+}

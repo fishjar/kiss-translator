@@ -133,7 +133,7 @@ function isTranboxEvent(e) {
 function isPanelInteractiveTarget(target) {
   return Boolean(
     target?.closest?.(
-      'button, input, textarea, select, [role="tab"], [role="button"]'
+      'button, input, textarea, select, [role="tab"], [role="button"], [role="option"], [role="menuitem"]'
     )
   );
 }

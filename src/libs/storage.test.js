@@ -1,8 +1,20 @@
-import {
+// These storage fixtures use localStorage rather than extension storage.
+const originalClient = process.env.REACT_APP_CLIENT;
+process.env.REACT_APP_CLIENT = "web";
+afterAll(() => {
+  if (originalClient === undefined) delete process.env.REACT_APP_CLIENT;
+  else process.env.REACT_APP_CLIENT = originalClient;
+});
+
+const {
   STOKEY_SETTING,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
+  STOKEY_RULES,
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V3,
+  SETTINGS_VERSION_V4,
+  CURRENT_SETTINGS_VERSION,
+  DEFAULT_VLM_PROMPT_SLUG,
   DEFAULT_SUBTITLE_SETTING,
   DEFAULT_API_LIST,
   OPT_TRANS_BUILTINAI,
@@ -12,8 +24,8 @@ import {
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_TENCENT,
-} from "../config";
-import { getSettingWithDefault, runDataMigration } from "./storage";
+} = require("../config");
+const { getSettingWithDefault, runDataMigration } = require("./storage");
 
 // 存储测试不涉及流式解析，隔离 ESM-only 依赖以免 Jest 27 在加载阶段失败。
 jest.mock("@streamparser/json", () => ({ JSONParser: jest.fn() }));
@@ -36,6 +48,18 @@ function loadGmStorageModule() {
 }
 
 describe("settings storage migration", () => {
+  test("existing service instances and scene choices are not supplemented by new install defaults", async () => {
+    const existing = {
+      version: CURRENT_SETTINGS_VERSION,
+      transApis: [{ apiSlug: "mine", apiType: "LocalAI", apiName: "My service", modelRef: "hy-mt2-1.8b", device: "wasm" }],
+      fileTranslateSetting: { pdf: { apiSlug: "mine" } },
+    };
+    window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(existing));
+    const setting = await getSettingWithDefault();
+    expect(setting.transApis).toHaveLength(1);
+    expect(setting.transApis[0]).toMatchObject(existing.transApis[0]);
+    expect(setting.fileTranslateSetting.pdf.apiSlug).toBe("mine");
+  });
   beforeEach(() => {
     window.localStorage.clear();
     delete window.KISS_GM;
@@ -71,11 +95,18 @@ describe("settings storage migration", () => {
     const stored = readStoredJson(STOKEY_SETTING);
 
     expect(backup).toEqual(oldSetting);
-    expect(stored.version).toBe(SETTINGS_VERSION_V3);
+    expect(stored.version).toBe(CURRENT_SETTINGS_VERSION);
     expect(stored.transApis[0].batchPromptSlug).toMatch(
       /^prompt_migrated_batch_/
     );
     expect(stored.transApis[0]).not.toHaveProperty("systemPrompt");
+  });
+
+  test("does not migrate single-service rules into fallback lists", async () => {
+    const rules = [{ pattern: "*", apiSlug: "primary" }, { pattern: "example.com", apiSlug: "*" }];
+    window.localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+    await runDataMigration();
+    expect(readStoredJson(STOKEY_RULES)).toEqual(rules);
   });
 
   test.each([
@@ -93,8 +124,9 @@ describe("settings storage migration", () => {
 
       await runDataMigration();
 
-      expect(readStoredJson(STOKEY_SETTING)).toEqual({
+      expect(readStoredJson(STOKEY_SETTING)).toMatchObject({
         ...oldSetting,
+        version: CURRENT_SETTINGS_VERSION,
         darkMode: expected,
       });
       expect(readStoredJson(STOKEY_SETTING_BACKUP_V1_BEFORE_V2)).toBe(null);
@@ -109,12 +141,12 @@ describe("settings storage migration", () => {
       await runDataMigration();
 
       expect(readStoredJson(STOKEY_SETTING)).toMatchObject({
-        version: SETTINGS_VERSION_V3,
+        version: CURRENT_SETTINGS_VERSION,
         darkMode: "dark",
       });
-      expect(setItem).toHaveBeenCalledTimes(1);
+      expect(setItem).toHaveBeenCalledTimes(2);
       await runDataMigration();
-      expect(setItem).toHaveBeenCalledTimes(1);
+      expect(setItem).toHaveBeenCalledTimes(2);
     } finally {
       setItem.mockRestore();
     }
@@ -150,7 +182,7 @@ describe("settings storage migration", () => {
 
     const setting = await getSettingWithDefault();
 
-    expect(setting.version).toBe(SETTINGS_VERSION_V3);
+    expect(setting.version).toBe(CURRENT_SETTINGS_VERSION);
     expect(setting.transApis[0].batchPromptSlug).toMatch(
       /^prompt_migrated_batch_/
     );
@@ -171,7 +203,7 @@ describe("settings storage migration", () => {
       const setItem = jest.spyOn(window.Storage.prototype, "setItem");
       try {
         await expect(getSettingWithDefault()).resolves.toMatchObject({
-          version: SETTINGS_VERSION_V3,
+          version: CURRENT_SETTINGS_VERSION,
           darkMode: expected,
           uiLang: "en",
         });
@@ -183,6 +215,59 @@ describe("settings storage migration", () => {
       }
     }
   );
+
+  test.each([false, true])(
+    "migrates V4 visual references through storage (persist: %p)",
+    async (persist) => {
+      const oldSetting = {
+        version: SETTINGS_VERSION_V4,
+        uiLang: "en",
+        transApis: [
+          { apiSlug: "missing", apiType: OPT_TRANS_OPENAI, tone: "formal" },
+          { apiSlug: "custom", apiType: OPT_TRANS_OPENAI, vlmPromptSlug: "mine" },
+          { apiSlug: "empty", apiType: OPT_TRANS_OPENAI, vlmPromptSlug: "" },
+        ],
+        fileTranslateSetting: { image: { ocrGroup: "old", promptSlug: "translation" } },
+      };
+      const serialized = JSON.stringify(oldSetting);
+      window.localStorage.setItem(STOKEY_SETTING, serialized);
+      const setItem = jest.spyOn(window.Storage.prototype, "setItem");
+      try {
+        if (persist) await runDataMigration();
+        const setting = persist ? readStoredJson(STOKEY_SETTING) : await getSettingWithDefault();
+        expect(setting).toMatchObject({
+          version: CURRENT_SETTINGS_VERSION,
+          uiLang: "en",
+          transApis: [
+            { apiSlug: "missing", vlmPromptSlug: DEFAULT_VLM_PROMPT_SLUG, tone: "formal" },
+            { apiSlug: "custom", vlmPromptSlug: "mine" },
+            { apiSlug: "empty", vlmPromptSlug: "" },
+          ],
+          fileTranslateSetting: { image: { vlmPromptSlug: "", ocrGroup: "old", promptSlug: "translation" } },
+        });
+        if (persist) {
+          expect(setItem).toHaveBeenCalled();
+          setItem.mockClear();
+          await runDataMigration();
+          expect(setItem).not.toHaveBeenCalled();
+          expect(readStoredJson(STOKEY_SETTING)).toEqual(setting);
+        } else {
+          expect(setItem).not.toHaveBeenCalled();
+          expect(window.localStorage.getItem(STOKEY_SETTING)).toBe(serialized);
+        }
+      } finally {
+        setItem.mockRestore();
+      }
+    }
+  );
+
+  test("preserves explicit V4 image visual references through both storage entry points", async () => {
+    const oldSetting = { version: SETTINGS_VERSION_V4, fileTranslateSetting: { image: { vlmPromptSlug: "mine" } } };
+    window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(oldSetting));
+    expect((await getSettingWithDefault()).fileTranslateSetting.image.vlmPromptSlug).toBe("mine");
+    await runDataMigration();
+    expect(readStoredJson(STOKEY_SETTING).fileTranslateSetting.image.vlmPromptSlug).toBe("mine");
+  });
 
   test("merges the language variant default without overriding an explicit choice", async () => {
     window.localStorage.setItem(
@@ -339,7 +424,9 @@ describe("settings storage migration", () => {
 
       const setting = await getSettingWithDefault();
 
-      expect(setting.transApis).toHaveLength(savedApis.length);
+      expect(setting.transApis).toHaveLength(
+        version < SETTINGS_VERSION_V4 ? savedApis.length + 2 : savedApis.length
+      );
       savedApis.forEach((savedApi, index) => {
         const loadedApi = setting.transApis[index];
         [

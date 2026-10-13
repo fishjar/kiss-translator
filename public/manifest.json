@@ -1,5 +1,8 @@
 {
   "manifest_version": 3,
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "name": "__MSG_app_name__",
   "description": "__MSG_app_description__",
   "version": "2.1.1",
@@ -82,6 +85,7 @@
   },
   "permissions": [
     "storage",
+    "offscreen",
     "tts",
     "contextMenus",
     "scripting",
