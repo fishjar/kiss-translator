@@ -371,7 +371,7 @@ function PromptFields({
           }}
           inputProps={{
             className: "kt-resizable-textarea",
-              style: { resize: gripStyle === "hidden" ? "vertical" : "none" },
+            style: { resize: gripStyle === "hidden" ? "vertical" : "none" },
           }}
           sx={{
             "& .MuiInputBase-root": {

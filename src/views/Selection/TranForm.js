@@ -201,11 +201,14 @@ export default function TranForm({
       releaseHeight();
     }
   }, [editText, releaseHeight]);
-  const setInputRef = useCallback((input) => {
-    inputRef.current = input;
-    textareaRef.current = input;
-    setIsShadowMenu(Boolean(input?.getRootNode()?.host));
-  }, [textareaRef]);
+  const setInputRef = useCallback(
+    (input) => {
+      inputRef.current = input;
+      textareaRef.current = input;
+      setIsShadowMenu(Boolean(input?.getRootNode()?.host));
+    },
+    [textareaRef]
+  );
   const selectMenuProps = useMemo(
     () => ({
       container: () => inputRef.current?.closest(".kt-m3-root"),

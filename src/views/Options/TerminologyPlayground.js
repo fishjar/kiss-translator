@@ -895,7 +895,7 @@ function formatAssertionIssue(issue, i18n) {
       return formatI18n(
         i18n,
         "terminology_playground_issue_conflict_long_no_value_replaced",
-        "长词 {long} 无译文但被替换为 \"{replacement}\"。",
+        '长词 {long} 无译文但被替换为 "{replacement}"。',
         params
       );
     case "conflict-short-value-not-applied":
@@ -2657,8 +2657,7 @@ export default function TerminologyPlayground({
                                 0,
                                 aiGlossaryExpanded ? undefined : DISPLAY_LIMIT
                               )
-                              .map(
-                              ({ source, key, value }) => {
+                              .map(({ source, key, value }) => {
                                 const delivery = deliveryMap?.get(key);
                                 return (
                                   <Typography
@@ -2697,8 +2696,7 @@ export default function TerminologyPlayground({
                                     )}
                                   </Typography>
                                 );
-                              }
-                            )}
+                              })}
                             {aiTestState.glossaryEntries.length >
                               DISPLAY_LIMIT && (
                               <Button
@@ -3128,8 +3126,7 @@ export default function TerminologyPlayground({
                             0,
                             aiGlossaryExpanded ? undefined : DISPLAY_LIMIT
                           )
-                          .map(
-                          ({ source, key, value }) => {
+                          .map(({ source, key, value }) => {
                             const sourceLabel =
                               source === "input"
                                 ? i18n(
@@ -3246,8 +3243,7 @@ export default function TerminologyPlayground({
                                 </td>
                               </tr>
                             );
-                          }
-                        )}
+                          })}
                       </tbody>
                     </table>
                     {aiTestState.glossaryEntries.length > DISPLAY_LIMIT && (

@@ -632,9 +632,7 @@ describe("TerminologyPlayground", () => {
       '[data-testid="terminology-auto-sample-unsupported"]'
     );
     expect(alert).not.toBeNull();
-    expect(alert.textContent).toContain(
-      "部分正则术语无法可靠生成自动匹配样例"
-    );
+    expect(alert.textContent).toContain("部分正则术语无法可靠生成自动匹配样例");
     expect(alert.textContent).not.toContain("未生成可测试的例句");
 
     act(() => root.unmount());
@@ -4296,8 +4294,9 @@ describe("TerminologyPlayground", () => {
 
   test("term textareas use the drawn resize grip only when content or a locked height exists", async () => {
     __resetSessionHeightMapForTests();
-    const { container, root, setAiTermsDraft } =
-      renderPlayground({ rule: null });
+    const { container, root, setAiTermsDraft } = renderPlayground({
+      rule: null,
+    });
     await flushEffects();
     // 回归护栏：组件树中不应出现任何旧式自定义缩放手柄 testid。
     expect(
@@ -4326,9 +4325,7 @@ describe("TerminologyPlayground", () => {
     // 本文件 i18n 为真实翻译形态（非按 key 直传），label 断言非空即可。
     expect(termsGrip.getAttribute("aria-label")).toBeTruthy();
     expect(
-      aiTextarea
-        .closest(".MuiInputBase-root")
-        .querySelector('[role="slider"]')
+      aiTextarea.closest(".MuiInputBase-root").querySelector('[role="slider"]')
     ).toBeNull();
 
     // 键盘锁定锚。
@@ -4343,9 +4340,7 @@ describe("TerminologyPlayground", () => {
     // AI 术语框注入内容 → 手柄在场。
     act(() => setAiTermsDraft("quzzle,缓存节点"));
     expect(
-      aiTextarea
-        .closest(".MuiInputBase-root")
-        .querySelector('[role="slider"]')
+      aiTextarea.closest(".MuiInputBase-root").querySelector('[role="slider"]')
     ).not.toBeNull();
 
     act(() => root.unmount());

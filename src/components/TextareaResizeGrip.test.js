@@ -190,9 +190,8 @@ describe("TextareaResizeGrip", () => {
     );
     await act(async () => lockedRoot.unmount());
 
-    const { grip: unlockedGrip, root: unlockedRoot } = await renderGrip(
-      onResize
-    );
+    const { grip: unlockedGrip, root: unlockedRoot } =
+      await renderGrip(onResize);
     expect(unlockedGrip.getAttribute("aria-valuemin")).toBe("40");
     await act(async () => unlockedRoot.unmount());
   });
@@ -303,9 +302,11 @@ describe("TextareaResizeGrip", () => {
     document.body.appendChild(outerPanel);
     outerPanel.appendChild(container);
     const originalGetComputedStyle = window.getComputedStyle;
-    jest.spyOn(window, "getComputedStyle").mockImplementation((el) =>
-      el === outerPanel ? { overflowY: "auto" } : originalGetComputedStyle(el)
-    );
+    jest
+      .spyOn(window, "getComputedStyle")
+      .mockImplementation((el) =>
+        el === outerPanel ? { overflowY: "auto" } : originalGetComputedStyle(el)
+      );
     jest.spyOn(outerPanel, "getBoundingClientRect").mockReturnValue({
       top: 0,
       bottom: 300,
@@ -472,11 +473,13 @@ describe("TextareaResizeGrip", () => {
     outerPanel.appendChild(innerPanel);
     innerPanel.appendChild(container);
     const originalGetComputedStyle = window.getComputedStyle;
-    jest.spyOn(window, "getComputedStyle").mockImplementation((el) =>
-      el === outerPanel || el === innerPanel
-        ? { overflowY: "auto" }
-        : originalGetComputedStyle(el)
-    );
+    jest
+      .spyOn(window, "getComputedStyle")
+      .mockImplementation((el) =>
+        el === outerPanel || el === innerPanel
+          ? { overflowY: "auto" }
+          : originalGetComputedStyle(el)
+      );
     jest.spyOn(outerPanel, "getBoundingClientRect").mockReturnValue({
       top: 0,
       bottom: 300,
@@ -549,7 +552,12 @@ describe("TextareaResizeGrip", () => {
   test("releases the height on Escape keydown without altering arrow-key resize", async () => {
     const onRelease = jest.fn();
     const onResize = jest.fn();
-    const { grip, root } = await renderGrip(onResize, 120, undefined, onRelease);
+    const { grip, root } = await renderGrip(
+      onResize,
+      120,
+      undefined,
+      onRelease
+    );
     // 未聚焦的其他键不触发解锁（对照样本：非 Escape 键走既有分支）。
     fireKey(grip, "Enter");
     expect(onRelease).not.toHaveBeenCalled();
@@ -988,7 +996,9 @@ describe("TextareaResizeGrip", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
-    jest.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(128);
+    jest
+      .spyOn(HTMLElement.prototype, "offsetHeight", "get")
+      .mockReturnValue(128);
     await act(async () => {
       root.render(<GripHost onResize={onResize} />);
     });

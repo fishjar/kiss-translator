@@ -1428,15 +1428,16 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
     "{term} terimi eşleşmedi.",
     "Thuật ngữ {term} không được khớp."
   ),
-  terminology_playground_issue_single_wrong_replacement: terminologyPlaygroundText(
-    "术语 {term} 替换结果不正确。",
-    "Term {term} was replaced incorrectly.",
-    "術語 {term} 替換結果不正確。",
-    "用語 {term} の置換結果が正しくありません。",
-    "용어 {term}의 치환 결과가 올바르지 않습니다.",
-    "{term} terimi yanlış değiştirildi.",
-    "Thuật ngữ {term} bị thay thế sai."
-  ),
+  terminology_playground_issue_single_wrong_replacement:
+    terminologyPlaygroundText(
+      "术语 {term} 替换结果不正确。",
+      "Term {term} was replaced incorrectly.",
+      "術語 {term} 替換結果不正確。",
+      "用語 {term} の置換結果が正しくありません。",
+      "용어 {term}의 치환 결과가 올바르지 않습니다.",
+      "{term} terimi yanlış değiştirildi.",
+      "Thuật ngữ {term} bị thay thế sai."
+    ),
   terminology_playground_issue_conflict_long_not_hit: terminologyPlaygroundText(
     "长词 {long} 未被命中（短词 {short} 可能抢占）。",
     "Long term {long} was not matched (short term {short} may have taken over).",
@@ -1455,33 +1456,36 @@ const TERMINOLOGY_PLAYGROUND_I18N = {
     "Uzun terim {long}, kısa terim {short} tarafından kesildi (önekyazma saptandı).",
     "Thuật ngữ dài {long} bị thuật ngữ ngắn {short} cắt ngang (phát hiện ghi đè tiền tố)."
   ),
-  terminology_playground_issue_conflict_long_value_not_applied: terminologyPlaygroundText(
-    "长词 {long} 有译文但未被替换（仍为原文）。",
-    "Long term {long} has a translation but was not replaced (original text kept).",
-    "長詞 {long} 有譯文但未被替換（仍為原文）。",
-    "長い用語 {long} は訳があるのに置換されていません（原文のまま）。",
-    "긴 용어 {long}에 번역이 있는데도 치환되지 않았습니다(원문 유지).",
-    "Uzun terim {long} için çeviri var ama değiştirilmedi (öz metin korundu).",
-    "Thuật ngữ dài {long} có bản dịch nhưng không được thay thế (vẫn giữ nguyên văn)."
-  ),
-  terminology_playground_issue_conflict_long_no_value_replaced: terminologyPlaygroundText(
-    "长词 {long} 无译文但被替换为 \"{replacement}\"。",
-    "Long term {long} has no translation but was replaced with \"{replacement}\".",
-    "長詞 {long} 無譯文但被替換為「{replacement}」。",
-    "長い用語 {long} は訳がないのに「{replacement}」に置換されました。",
-    "긴 용어 {long}에 번역이 없는데도 \"{replacement}\"(으)로 치환되었습니다.",
-    "Çevirisi olmayan uzun terim {long}, \"{replacement}\" ile değiştirildi.",
-    "Thuật ngữ dài {long} không có bản dịch nhưng bị thay bằng \"{replacement}\"."
-  ),
-  terminology_playground_issue_conflict_short_value_not_applied: terminologyPlaygroundText(
-    "短词 {short} 有译文但未被替换（单独出现时）。",
-    "Short term {short} has a translation but was not replaced (standalone occurrence).",
-    "短詞 {short} 有譯文但未被替換（單獨出現時）。",
-    "短い用語 {short} は訳があるのに置換されていません（単独出現時）。",
-    "짧은 용어 {short}에 번역이 있는데도 치환되지 않았습니다(단독 출현 시).",
-    "Kısa terim {short} için çeviri var ama değiştirilmedi (tek başına geçtiğinde).",
-    "Thuật ngữ ngắn {short} có bản dịch nhưng không được thay thế (khi xuất hiện riêng lẻ)."
-  ),
+  terminology_playground_issue_conflict_long_value_not_applied:
+    terminologyPlaygroundText(
+      "长词 {long} 有译文但未被替换（仍为原文）。",
+      "Long term {long} has a translation but was not replaced (original text kept).",
+      "長詞 {long} 有譯文但未被替換（仍為原文）。",
+      "長い用語 {long} は訳があるのに置換されていません（原文のまま）。",
+      "긴 용어 {long}에 번역이 있는데도 치환되지 않았습니다(원문 유지).",
+      "Uzun terim {long} için çeviri var ama değiştirilmedi (öz metin korundu).",
+      "Thuật ngữ dài {long} có bản dịch nhưng không được thay thế (vẫn giữ nguyên văn)."
+    ),
+  terminology_playground_issue_conflict_long_no_value_replaced:
+    terminologyPlaygroundText(
+      '长词 {long} 无译文但被替换为 "{replacement}"。',
+      'Long term {long} has no translation but was replaced with "{replacement}".',
+      "長詞 {long} 無譯文但被替換為「{replacement}」。",
+      "長い用語 {long} は訳がないのに「{replacement}」に置換されました。",
+      '긴 용어 {long}에 번역이 없는데도 "{replacement}"(으)로 치환되었습니다.',
+      'Çevirisi olmayan uzun terim {long}, "{replacement}" ile değiştirildi.',
+      'Thuật ngữ dài {long} không có bản dịch nhưng bị thay bằng "{replacement}".'
+    ),
+  terminology_playground_issue_conflict_short_value_not_applied:
+    terminologyPlaygroundText(
+      "短词 {short} 有译文但未被替换（单独出现时）。",
+      "Short term {short} has a translation but was not replaced (standalone occurrence).",
+      "短詞 {short} 有譯文但未被替換（單獨出現時）。",
+      "短い用語 {short} は訳があるのに置換されていません（単独出現時）。",
+      "짧은 용어 {short}에 번역이 있는데도 치환되지 않았습니다(단독 출현 시).",
+      "Kısa terim {short} için çeviri var ama değiştirilmedi (tek başına geçtiğinde).",
+      "Thuật ngữ ngắn {short} có bản dịch nhưng không được thay thế (khi xuất hiện riêng lẻ)."
+    ),
   terminology_playground_issue_naive_prefix_cut: terminologyPlaygroundText(
     "长词 {long} 被短词 {short} 切割（检测到前缀误伤）。",
     "Long term {long} was cut by short term {short} (prefix overwrite detected).",
