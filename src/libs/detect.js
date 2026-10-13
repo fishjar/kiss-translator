@@ -43,6 +43,15 @@ const langdetectFns = {
 export const tryDetectLang = async (text, langDetector = "-") => {
   let deLang = "";
 
+  // Existing detector type values stay valid; additional values are service instance IDs.
+  if (langDetector && langDetector !== "-" && !OPT_LANGDETECTOR_MAP.has(langDetector)) {
+    try {
+      const { invokeSavedService } = await import("../providers/savedService");
+      const result = await invokeSavedService(langDetector, "detectLanguage", { text }).result;
+      deLang = normalizeLanguageCode(result.language);
+    } catch (err) { kissLog("detect lang provider", err); }
+  }
+
   // 1. 如果配置了特定的远程/内置 AI 语言检测服务，则首选该服务进行识别
   if (OPT_LANGDETECTOR_MAP.has(langDetector)) {
     try {

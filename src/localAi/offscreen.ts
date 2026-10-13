@@ -10,8 +10,11 @@ import {
   type RpcChannelEnvelope,
 } from "./runtime/rpc";
 import { RuntimeManager } from "./runtime/runtimeManager";
+import { installProviderHost } from "../providers/host";
+import { invokeInstance } from "../providers/runtime";
 
 const channel = new BroadcastChannel(KISS_AI_RPC_CHANNEL);
+installProviderHost(undefined, invokeInstance);
 
 const runtimeManager = new RuntimeManager({
   onProgress: (progress) => {

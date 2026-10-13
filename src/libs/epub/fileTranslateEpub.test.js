@@ -52,7 +52,7 @@ describe("EPUB 翻译流水线单元测试", () => {
   };
 
   const scene = {
-    apiSlugs: ["primary"],
+    apiSlug: "primary",
     fromLang: "en",
     toLang: "zh-CN",
     textStyle: "style_underline",
@@ -65,7 +65,7 @@ describe("EPUB 翻译流水线单元测试", () => {
         apiType: "Microsoft",
         apiName: "Primary",
         sourceType: "network",
-        capabilities: ["translation"],
+        enabledCapabilities: ["translate"],
         isDisabled: false,
       },
     ],

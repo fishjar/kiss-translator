@@ -4,6 +4,7 @@ import {
   localAiSettings,
   localAiHost,
 } from "./localAiBackground";
+import { acquireProviderHost } from "../providers/hostLease";
 
 describe("local AI settings bridge", () => {
   let originalChrome;
@@ -61,6 +62,27 @@ describe("local AI settings bridge", () => {
     await expect(localAiHost({ action: "other" })).rejects.toThrow(
       "Unsupported"
     );
+  });
+  test("a Provider arriving during a close vetoes teardown and still obtains the existing host", async () => {
+    let answer;
+    const contexts = new Promise(resolve => { answer = resolve; });
+    global.chrome.runtime = {
+      getURL: path => `chrome-extension://test/${path}`,
+      ContextType: { OFFSCREEN_DOCUMENT: "OFFSCREEN_DOCUMENT" },
+      getContexts: jest.fn().mockImplementationOnce(() => contexts).mockResolvedValue([{}]),
+    };
+    global.chrome.offscreen = { createDocument: jest.fn(), closeDocument: jest.fn(), Reason: { WORKERS: "WORKERS" } };
+    const closing = localAiHost({ action: "close" });
+    await Promise.resolve();
+    const release = acquireProviderHost();
+    try {
+      const ensuring = localAiHost({ action: "ensure" });
+      answer([{}]);
+      await expect(closing).rejects.toMatchObject({ code: "HOST_BUSY" });
+      await expect(ensuring).resolves.toEqual({});
+      expect(global.chrome.offscreen.closeDocument).not.toHaveBeenCalled();
+      expect(global.chrome.offscreen.createDocument).not.toHaveBeenCalled();
+    } finally { release(); }
   });
 });
 

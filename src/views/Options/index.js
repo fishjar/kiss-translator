@@ -43,6 +43,21 @@ import { useI18n } from "../../hooks/I18n";
 
 export { normalizeOptionsPath as normalizeOptionsHashPath } from "./paths";
 
+const ProviderPlugins =
+  process.env.REACT_APP_CLIENT === "chrome" ||
+  process.env.REACT_APP_CLIENT === "firefox"
+    ? lazy(() => import("./ProviderPlugins"))
+    : UnsupportedProviderPlugins;
+
+function UnsupportedProviderPlugins() {
+  const i18n = useI18n();
+  return <Alert severity="info">{i18n("provider_plugins_unsupported")}</Alert>;
+}
+
+function LoadingProviderPlugins() {
+  const i18n = useI18n();
+  return <div>{i18n("provider_plugins_loading")}</div>;
+}
 const LocalAi = lazy(() => import("./LocalAi"));
 
 function FileTranslateRedirect() {
@@ -175,6 +190,14 @@ export default function Options() {
                     <Route path="mousehover" element={<MouseHoverSetting />} />
                     <Route path="subtitle" element={<SubtitleSetting />} />
                     <Route path="apis" element={<Apis />} />
+                    <Route
+                      path="plugins"
+                      element={
+                        <Suspense fallback={<LoadingProviderPlugins />}>
+                          <ProviderPlugins />
+                        </Suspense>
+                      }
+                    />
                     <Route path="prompts" element={<Prompts />} />
                     {isAutoTranslateClipboardSupported && (
                       <Route

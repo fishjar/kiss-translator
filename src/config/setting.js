@@ -9,7 +9,6 @@ import {
   OPT_SUG_YOUDAO,
   DEFAULT_HTTP_TIMEOUT,
   OPT_TRANS_MICROSOFT,
-  DEFAULT_API_LIST,
   OPT_LANGS_TO,
 } from "./api";
 import {
@@ -18,6 +17,7 @@ import {
   PROMPT_MODE_FOLLOW_API,
 } from "./prompt";
 import { GLOBAL_KEY } from "./rules";
+import { defaultServices } from "./defaultServices";
 import { DEFAULT_CUSTOM_STYLES } from "./styles";
 
 // --- 默认系统快捷键映射 ---
@@ -87,7 +87,6 @@ export const DEFAULT_INPUT_RULE = {
   transOpen: true, // 是否开启输入框翻译功能
   blacklist: "", // 禁用输入框翻译的域名列表
   apiSlug: OPT_TRANS_MICROSOFT, // 默认使用的翻译服务 API 标识
-  apiSlugs: [OPT_TRANS_MICROSOFT],
   fromLang: "auto", // 默认自动检测输入源语言
   toLang: "en", // 默认翻译目标语言为英文
   triggerShortcut: DEFAULT_INPUT_SHORTCUT, // 快捷键组合
@@ -140,6 +139,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   toLang: "zh-CN",
   toLang2: "en", // 第二目标语言，用于自动反向互译
   promptSlug: "", // 划词翻译提示词，默认为空（跟随接口）
+  ttsApiSlug: "", // 云端朗读服务；空字符串使用系统朗读
   tranboxShortcut: DEFAULT_TRANBOX_SHORTCUT,
   btnOffsetX: 0, // 翻译触发球相对光标的横向偏移像素
   btnOffsetY: 0, // 翻译触发球相对光标的纵向偏移像素
@@ -181,7 +181,6 @@ export const OPT_ENHANCE_MOBILE_OFF = "mobile_off"; // 移动端浏览器中默�
 export const DEFAULT_SUBTITLE_SETTING = {
   enabled: true, // 是否自动开启视频字幕翻译功能
   apiSlug: OPT_TRANS_MICROSOFT, // 默认的字幕翻译接口
-  apiSlugs: [OPT_TRANS_MICROSOFT],
   segSlug: "-", // 智能 AI 断句/字幕合并的算法选择 ("-" 表示禁用 AI 段落合并)
   forceSubtitleRetranslate: false, // AI 断句服务与翻译服务不同时，是否强制使用翻译服务重翻译文
   chunkLength: 1000, // 新配置默认使用更短 AI 分块；已保存的用户值仍由存储配置优先覆盖
@@ -261,46 +260,44 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
   mouseHoverPreventClick: false, // 按住链接/按钮翻译后松开是否阻止点击跳转（默认关闭）
   displayMode: OPT_MOUSE_HOVER_DISPLAY_BILINGUAL, // 鼠标悬停翻译展示模式
   apiSlug: GLOBAL_KEY, // 气泡模式翻译接口，默认跟随当前网页规则
-  apiSlugs: [GLOBAL_KEY],
   bubbleStyle: DEFAULT_MOUSE_HOVER_BUBBLE_STYLE, // 气泡模式的容器 CSS
 };
 
 export const DEFAULT_FILE_TRANSLATE_SETTING = {
   pdf: {
-    fromLang: "auto", toLang: "zh-CN", apiSlugs: [OPT_TRANS_MICROSOFT],
+    fromLang: "auto", toLang: "zh-CN", apiSlug: OPT_TRANS_MICROSOFT,
     promptSlug: "", textStyle: "style_none", parseMode: "smart", enableJev: "false",
     layoutModel: "pp-doclayout-v3-onnx", layoutDevice: "wasm",
-    layoutApiSlug: "", layoutApiSlugs: [],
-    visionModel: "paddleocr-vl-1.6-onnx-q8", visionDevice: "webgpu", decisionModel: "laya-multilingual-int8",
+    layoutApiSlug: "",
+    recognitionService: null, visionServiceSlug: "", vlmPromptSlug: "", decisionModel: "laya-multilingual-int8",
   },
   txt: {
+    apiSlug: OPT_TRANS_MICROSOFT,
     fromLang: "auto",
     toLang: "zh-CN",
-    apiSlugs: [OPT_TRANS_MICROSOFT],
     promptSlug: "",
     textStyle: "style_none",
   },
   image: {
+    apiSlug: OPT_TRANS_MICROSOFT,
     fromLang: "auto",
     toLang: "zh-CN",
-    apiSlugs: [OPT_TRANS_MICROSOFT],
     promptSlug: "",
     vlmPromptSlug: "",
-    ocrGroup: "ppocr-v5-mobile",
-    ocrDevice: "webgpu",
+    recognitionService: null,
     fontFamily: "default",
   },
   markdown: {
+    apiSlug: OPT_TRANS_MICROSOFT,
     fromLang: "auto",
     toLang: "zh-CN",
-    apiSlugs: [OPT_TRANS_MICROSOFT],
     promptSlug: "",
     textStyle: "style_none",
   },
   epub: {
+    apiSlug: OPT_TRANS_MICROSOFT,
     fromLang: "auto",
     toLang: "zh-CN",
-    apiSlugs: [OPT_TRANS_MICROSOFT],
     promptSlug: "",
     textStyle: "style_none",
     hasRichText: "true",
@@ -341,7 +338,7 @@ export const DEFAULT_SETTING = {
   // transTitle: false, // 是否同时翻译页面标题(移至rule，作废)
   subrulesList: DEFAULT_SUBRULES_LIST, // 订阅的在线翻译规则列表
   // owSubrule: DEFAULT_OW_RULE, // 覆写订阅规则 (作废)
-  transApis: DEFAULT_API_LIST, // 缓存的全部可用翻译 API 配置列表（数组格式）
+  transApis: defaultServices(), // 新装及重置使用的服务实例
   prompts: [], // 用户自定义提示词；预设提示词由 config/prompt.js 提供，不写入本地配置
   // mouseKey: OPT_TIMING_PAGESCROLL, // 翻译时机/鼠标悬停翻译(移至rule，作废)
   shortcuts: DEFAULT_SHORTCUTS, // 键盘快捷键配置对象

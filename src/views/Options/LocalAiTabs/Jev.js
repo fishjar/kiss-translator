@@ -61,7 +61,7 @@ export default function JevTab() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
-  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
+  const { logs, addLog, clearLogs } = useLocalAiLog();
 
   useEffect(() => {
     void manager.init().then(() => {
@@ -560,13 +560,6 @@ export default function JevTab() {
               {error}
             </Alert>
           )}
-
-          <LogViewer
-            logs={logs}
-            expanded={expanded}
-            setExpanded={setExpanded}
-            onClear={clearLogs}
-          />
         </CardContent>
       </Card>
 
@@ -930,6 +923,10 @@ export default function JevTab() {
           </CardContent>
         </Card>
       )}
+      <LogViewer
+        logs={logs}
+        onClear={clearLogs}
+      />
     </Stack>
   );
 }

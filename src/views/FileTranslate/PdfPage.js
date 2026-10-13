@@ -1,41 +1,39 @@
 import { useEffect, useRef, useState } from "react";
+import CircularProgress from "@mui/material/CircularProgress";
 import { PDFJS } from "../../libs/pdf/pdfDocument";
 import "pdfjs-dist/web/pdf_viewer.css";
 
 const REGION_TYPE_LABELS = {
-  paragraph: "正文",
-  text: "正文",
-  content: "正文",
-  abstract: "摘要",
-  doc_title: "文档标题",
-  paragraph_title: "标题",
-  heading: "标题",
-  figure_title: "图标题",
-  table: "表格",
-  chart: "图表",
-  formula: "公式",
-  formula_number: "公式序号",
-  image: "图片",
-  header: "页眉",
-  footer: "页脚",
-  number: "页码",
-  reference: "参考文献",
-  reference_content: "文献内容",
-  footnote: "脚注",
-  vision_footnote: "脚注",
-  algorithm: "算法",
-  aside_text: "旁注",
-  seal: "印章",
+  paragraph: ["pdf_region_body", "正文"],
+  text: ["pdf_region_body", "正文"],
+  content: ["pdf_region_body", "正文"],
+  abstract: ["pdf_region_abstract", "摘要"],
+  doc_title: ["pdf_region_document_title", "文档标题"],
+  paragraph_title: ["pdf_region_title", "标题"],
+  heading: ["pdf_region_title", "标题"],
+  figure_title: ["pdf_region_figure_title", "图标题"],
+  table: ["pdf_region_table", "表格"],
+  chart: ["pdf_region_chart", "图表"],
+  formula: ["pdf_region_formula", "公式"],
+  formula_number: ["pdf_region_formula_number", "公式序号"],
+  image: ["pdf_region_image", "图片"],
+  header: ["pdf_region_header", "页眉"],
+  footer: ["pdf_region_footer", "页脚"],
+  number: ["pdf_region_page_number", "页码"],
+  reference: ["pdf_region_reference", "参考文献"],
+  reference_content: ["pdf_region_reference_content", "文献内容"],
+  footnote: ["pdf_region_footnote", "脚注"],
+  vision_footnote: ["pdf_region_footnote", "脚注"],
+  algorithm: ["pdf_region_algorithm", "算法"],
+  aside_text: ["pdf_region_aside", "旁注"],
+  seal: ["pdf_region_seal", "印章"],
 };
 
-function getRegionLabel(type, label) {
-  return (
-    REGION_TYPE_LABELS[type] ||
-    REGION_TYPE_LABELS[label] ||
-    type ||
-    label ||
-    "区域"
-  );
+function getRegionLabel(type, label, i18n) {
+  const entry = REGION_TYPE_LABELS[type] || REGION_TYPE_LABELS[label];
+  return entry
+    ? i18n?.(entry[0], entry[1]) || entry[1]
+    : type || label || i18n?.("pdf_region_generic", "区域") || "区域";
 }
 
 export default function PdfPage({
@@ -49,6 +47,9 @@ export default function PdfPage({
   regions = [],
   showLayout = false,
   onToggleRegion,
+  disabled = false,
+  recognizingRegionId,
+  i18n,
 }) {
   const container = useRef(null),
     canvas = useRef(null),
@@ -161,7 +162,10 @@ export default function PdfPage({
         <span
           style={{ position: "absolute", top: 12, left: 12, color: "#666" }}
         >
-          第 {number} 页
+          {(i18n?.("pdf_source_page", "第 $1 页") || "第 $1 页").replace(
+            "$1",
+            number
+          )}
         </span>
       )}
       {error && (
@@ -185,17 +189,27 @@ export default function PdfPage({
             const y = r.bbox[1] * scale;
             const w = Math.max(6, (r.bbox[2] - r.bbox[0]) * scale);
             const h = Math.max(6, (r.bbox[3] - r.bbox[1]) * scale);
-            const typeLabel = getRegionLabel(r.type, r.label);
+            const typeLabel = getRegionLabel(r.type, r.label, i18n);
 
             return (
               <div
                 key={r.id}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onToggleRegion?.(number, r.id);
+                  if (!disabled) onToggleRegion?.(number, r.id);
                 }}
                 title={`${typeLabel} - ${
-                  isEnabled ? "点击排除文本识别" : "已排除，点击恢复识别"
+                  recognizingRegionId === r.id
+                    ? i18n?.("pdf_recognizing_region", "正在识别") || "正在识别"
+                    : isEnabled
+                      ? i18n?.(
+                          "pdf_region_click_exclude",
+                          "点击排除文本识别"
+                        ) || "点击排除文本识别"
+                      : i18n?.(
+                          "pdf_region_click_include",
+                          "已排除，点击恢复识别"
+                        ) || "已排除，点击恢复识别"
                 }`}
                 style={{
                   position: "absolute",
@@ -204,7 +218,7 @@ export default function PdfPage({
                   width: w,
                   height: h,
                   pointerEvents: "auto",
-                  cursor: "pointer",
+                  cursor: disabled ? "default" : "pointer",
                   border: isEnabled
                     ? "1.5px solid #1976d2"
                     : "1.5px dashed #9e9e9e",
@@ -218,42 +232,73 @@ export default function PdfPage({
                 <span
                   style={{
                     position: "absolute",
-                    top: 0,
+                    bottom: "calc(100% + 2px)",
                     left: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "3px",
+                    maxWidth: Math.max(14, displayWidth - x),
                     fontSize: "10px",
                     lineHeight: "12px",
                     padding: "1px 4px",
                     backgroundColor: isEnabled ? "#1976d2" : "#757575",
                     color: "#fff",
-                    borderRadius: "0 0 3px 0",
+                    borderRadius: "3px 3px 0 0",
                     userSelect: "none",
                     whiteSpace: "nowrap",
                     opacity: 0.9,
                   }}
                 >
-                  {typeLabel}
-                  {!isEnabled && " (排除)"}
+                  <span
+                    style={{ overflow: "hidden", textOverflow: "ellipsis" }}
+                  >
+                    {typeLabel}
+                    {!isEnabled &&
+                      ` (${i18n?.("pdf_region_excluded", "排除") || "排除"})`}
+                  </span>
+                  {recognizingRegionId === r.id && (
+                    <CircularProgress
+                      size={10}
+                      color="inherit"
+                      aria-label={
+                        i18n?.("pdf_recognizing_region", "正在识别") ||
+                        "正在识别"
+                      }
+                      sx={{ flexShrink: 0 }}
+                    />
+                  )}
                 </span>
               </div>
             );
           })}
         </div>
       )}
-      {highlight?.page === number && (
-        <div
-          style={{
-            position: "absolute",
-            pointerEvents: "none",
-            left: highlight.bbox[0] * scale,
-            top: highlight.bbox[1] * scale,
-            width: (highlight.bbox[2] - highlight.bbox[0]) * scale,
-            height: (highlight.bbox[3] - highlight.bbox[1]) * scale,
-            background: "#ffcc0038",
-            outline: "2px solid #f5b400",
-            zIndex: 4,
-          }}
-        />
-      )}
+      {(Array.isArray(highlight) ? highlight : highlight ? [highlight] : [])
+        .filter(
+          (fragment) =>
+            fragment.page === number &&
+            fragment.bbox?.length === 4 &&
+            fragment.bbox.every(Number.isFinite) &&
+            fragment.bbox[2] > fragment.bbox[0] &&
+            fragment.bbox[3] > fragment.bbox[1]
+        )
+        .map((fragment, index) => (
+          <div
+            key={index}
+            className="kt-pdf-source-highlight"
+            style={{
+              position: "absolute",
+              pointerEvents: "none",
+              left: fragment.bbox[0] * scale,
+              top: fragment.bbox[1] * scale,
+              width: (fragment.bbox[2] - fragment.bbox[0]) * scale,
+              height: (fragment.bbox[3] - fragment.bbox[1]) * scale,
+              background: "#ffcc0038",
+              outline: "2px solid #f5b400",
+              zIndex: 4,
+            }}
+          />
+        ))}
     </div>
   );
 }

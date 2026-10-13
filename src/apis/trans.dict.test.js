@@ -17,11 +17,9 @@ jest.mock("../libs/stream", () => ({
   createStreamingSubtitleParser: jest.fn(),
   createRealtimeStreamParser: jest.fn(),
   detectStreamFormat: jest.fn(),
-  getStreamDelta: jest.fn(),
 }));
 
 import { fetchData, fetchStream } from "../libs/fetch";
-import { getStreamDelta } from "../libs/stream";
 import { DEFAULT_API_LIST, OPT_TRANS_OPENAI } from "../config";
 import { handleDict } from "./trans";
 
@@ -40,7 +38,6 @@ describe("handleDict", () => {
   beforeEach(() => {
     fetchData.mockReset();
     fetchStream.mockReset();
-    getStreamDelta.mockReset();
   });
 
   test("uses dictionary system and user prompts with context placeholders", async () => {
@@ -129,12 +126,13 @@ describe("handleDict", () => {
 
   test("streams dictionary markdown when callback is provided", async () => {
     fetchStream.mockImplementation(async function* () {
-      yield JSON.stringify({ chunk: 1 });
-      yield JSON.stringify({ chunk: 2 });
+      yield JSON.stringify({
+        choices: [{ delta: { content: "## library\n" } }],
+      });
+      yield JSON.stringify({
+        choices: [{ delta: { content: "A place for books." } }],
+      });
     });
-    getStreamDelta
-      .mockReturnValueOnce("## library\n")
-      .mockReturnValueOnce("A place for books.");
 
     const chunks = [];
     const result = await handleDict({

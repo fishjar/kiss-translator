@@ -1151,6 +1151,18 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
       img.close();
     }
 
+    // 取消的区域优先保留原图，避免邻近文字的背景遮罩或重叠框覆盖它们。
+    const preservePolygons = options.preservePolygons || [];
+    let originalCanvas;
+    if (preservePolygons.length) {
+      originalCanvas = document.createElement("canvas");
+      originalCanvas.width = width;
+      originalCanvas.height = height;
+      const originalContext = originalCanvas.getContext("2d");
+      if (!originalContext) return null;
+      originalContext.drawImage(canvas, 0, 0);
+    }
+
     // 逐个替换文字位置
     for (const row of rows) {
       if (!row.target || !row.poly || row.poly.length < 3) continue;
@@ -1228,6 +1240,19 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
       ctx.textBaseline = "middle";
       ctx.textAlign = "center";
       ctx.fillText(text, minX + boxW / 2, minY + boxH / 2, boxW);
+    }
+
+    if (originalCanvas) {
+      ctx.save();
+      ctx.beginPath();
+      for (const poly of preservePolygons) {
+        ctx.moveTo(...poly[0]);
+        poly.slice(1).forEach((point) => ctx.lineTo(...point));
+        ctx.closePath();
+      }
+      ctx.clip();
+      ctx.drawImage(originalCanvas, 0, 0);
+      ctx.restore();
     }
 
     if (canvas.toBlob) {

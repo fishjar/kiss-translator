@@ -8,6 +8,8 @@ import MenuItem from "@mui/material/MenuItem";
 import Link from "@mui/material/Link";
 import { useSetting } from "../../hooks/Setting";
 import { useI18n } from "../../hooks/I18n";
+import { supportsApiCapability } from "../../config/serviceSelection";
+import { isApiConfigured } from "../../config/serviceSelection";
 import { useAlert } from "../../hooks/Alert";
 import { isAutoTranslateClipboardSupported, isExt } from "../../libs/client";
 import { browser } from "../../libs/browser";
@@ -544,6 +546,8 @@ export default function Settings() {
                     {item}
                   </MenuItem>
                 ))}
+                {!OPT_LANGDETECTOR_ALL.includes(langDetector) && langDetector !== "-" && !(setting.transApis || []).some(api => api.apiSlug === langDetector && !api.isDisabled && isApiConfigured(api) && supportsApiCapability(api, "detectLanguage")) && <MenuItem value={langDetector}>{i18n("service_configured_unavailable")}</MenuItem>}
+                {(setting.transApis || []).filter(api => !api.isDisabled && isApiConfigured(api) && supportsApiCapability(api, "detectLanguage")).map(api => <MenuItem key={api.apiSlug} value={api.apiSlug}>{api.apiName}</MenuItem>)}
               </TextField>
             </Grid>
             {/* Translate variants of the same language, such as Simplified and Traditional Chinese. */}

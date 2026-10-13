@@ -53,7 +53,8 @@ export async function exportDocument(
   for (const asset of assets || []) {
     const path = `assets/${asset.name}`,
       replacement = format === "html" ? await dataUrl(asset.blob) : path;
-    markdown = markdown.split(asset.url).join(replacement);
+    if (asset.url) markdown = markdown.split(asset.url).join(replacement);
+    markdown = markdown.split(path).join(replacement);
     files[path] = new Uint8Array(await asset.blob.arrayBuffer());
   }
   let blob;

@@ -22,7 +22,6 @@ import {
   OPT_SPLIT_PARAGRAPH_PUNCTUATION,
   OPT_SPLIT_PARAGRAPH_DISABLE,
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
-  API_SPE_TYPES,
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
   EVENT_FAVORITE_WORD_CHANGE,
@@ -32,10 +31,11 @@ import {
 } from "../config";
 import { resolveApiPromptSettings } from "../config/prompt";
 import {
-  availableApisForScene,
+  availableApiForScene,
   withScenePrompt,
 } from "../config/serviceSelection";
 import { getInterpreter } from "./interpreter";
+import { supportsServiceFeature } from "../providers/features";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
 import {
@@ -1007,26 +1007,19 @@ export class Translator {
   // 接口参数
   // todo: 不用频繁查找计算
   get #apiSetting() {
-    const fromScene = availableApisForScene(
-      this.#rule,
-      this.#setting.transApis,
-      "translation"
-    )[0];
-    const api = fromScene || this.#apisMap.get(this.#rule.apiSlug);
+    const api = availableApiForScene(this.#rule, this.#setting.transApis);
     return api && !api.isDisabled ? api : undefined;
   }
 
   // 气泡模式可使用独立接口；配置失效时继续跟随当前网页规则。
   get #hoverBubbleApiSetting() {
     const scene = this.#setting.mouseHoverSetting;
-    const apiSlug = scene?.apiSlugs?.[0] || scene?.apiSlug;
+    const apiSlug = scene?.apiSlug;
     if (!apiSlug || apiSlug === GLOBAL_KEY) {
       return this.#apiSetting;
     }
 
-    const apiSetting =
-      availableApisForScene(scene, this.#setting.transApis, "translation")[0] ||
-      this.#apisMap.get(apiSlug);
+    const apiSetting = availableApiForScene(scene, this.#setting.transApis);
     return apiSetting && !apiSetting.isDisabled ? apiSetting : this.#apiSetting;
   }
 
@@ -3465,7 +3458,7 @@ export class Translator {
       const isStreamRender =
         streamRenderMode !== "disabled" &&
         this.#apiSetting.useStream &&
-        API_SPE_TYPES.stream.has(this.#apiSetting.apiType);
+        supportsServiceFeature(this.#apiSetting, "stream");
 
       // REVIEW: 极佳的性能优化设计 (RequestAnimationFrame 缓冲刷新)！
       // 大模型流式输出（onStreamChunk）返回速率极快（每秒可达几十次）。
@@ -4269,7 +4262,7 @@ overflow-wrap: anywhere !important;`;
     const fromLang = deLang || this.#rule.fromLang;
     const hoverScene = apiSettingOverride && this.#setting.mouseHoverSetting;
     const scene =
-      hoverScene?.apiSlugs?.[0] && hoverScene.apiSlugs[0] !== GLOBAL_KEY
+      hoverScene?.apiSlug && hoverScene.apiSlug !== GLOBAL_KEY
         ? hoverScene
         : this.#rule;
     const selectedApi = apiSettingOverride || this.#apiSetting;
@@ -4321,47 +4314,7 @@ overflow-wrap: anywhere !important;`;
       }
     }
 
-    if (args.apiSetting !== apiSetting) return apiTranslate(args);
-    const candidates = availableApisForScene(
-      scene,
-      this.#setting.transApis,
-      "translation"
-    );
-    const activeCandidates =
-      candidates.length > 0 ? candidates : [apiSetting].filter(Boolean);
-    if (!activeCandidates.length)
-      return Promise.reject(new Error("没有可用的翻译接口"));
-    return (async () => {
-      let lastError;
-      for (const candidate of activeCandidates) {
-        let hasStreamed = false;
-        try {
-          const resolved = resolveApiPromptSettings(
-            withScenePrompt(candidate, scene),
-            this.#setting.prompts,
-            this.#setting.subtitleSetting
-          );
-          const result = await apiTranslate({
-            ...args,
-            apiSetting: resolved,
-            onStreamChunk: onStreamChunk
-              ? (...values) => {
-                  hasStreamed = true;
-                  return onStreamChunk(...values);
-                }
-              : undefined,
-          });
-          if (result && result.trText !== undefined) return result;
-          lastError = new Error(
-            `${candidate.apiName || candidate.apiSlug} 返回空结果`
-          );
-        } catch (error) {
-          if (hasStreamed) throw error;
-          lastError = error;
-        }
-      }
-      throw lastError;
-    })();
+    return apiTranslate(args);
   }
 
   // 查找指定节点下所有译文节点
@@ -5325,17 +5278,14 @@ overflow-wrap: anywhere !important;`;
     this.#setting = { ...this.#setting, transApis: nextApis };
     this.#apisMap = new Map(nextApis.map((api) => [api.apiSlug, api]));
     const nextRule = normalizeRuleApi(this.#rule, nextApis);
-    const nextApi =
-      availableApisForScene(nextRule, nextApis, "translation")[0] ||
-      this.#apisMap.get(nextRule.apiSlug);
+    const nextApi = availableApiForScene(nextRule, nextApis);
     const enabledApi = nextApi && !nextApi.isDisabled ? nextApi : undefined;
     const selectionChanged = oldApi?.apiSlug !== enabledApi?.apiSlug;
     const hoverScene = this.#setting.mouseHoverSetting;
-    const hoverApiSlug = hoverScene?.apiSlugs?.[0] || hoverScene?.apiSlug;
+    const hoverApiSlug = hoverScene?.apiSlug;
     const hoverApi =
       hoverApiSlug && hoverApiSlug !== GLOBAL_KEY
-        ? availableApisForScene(hoverScene, nextApis, "translation")[0] ||
-          this.#apisMap.get(hoverApiSlug)
+        ? availableApiForScene(hoverScene, nextApis)
         : undefined;
     const nextHoverApi =
       hoverApi && !hoverApi.isDisabled ? hoverApi : enabledApi;

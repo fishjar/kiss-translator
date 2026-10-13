@@ -40,6 +40,7 @@ export default function AiDictCont({
   toLang,
   apiSetting,
   context = "",
+  ttsApiSlug = "",
 }) {
   const i18n = useI18n();
   const [markdown, setMarkdown] = useState("");
@@ -182,6 +183,7 @@ export default function AiDictCont({
           <CircularProgress size={12} sx={{ mr: 0.5, flexShrink: 0 }} />
         )}
         <BrowserTtsBtn
+          serviceId={ttsApiSlug}
           text={text}
           lang={speechLang || fromLang || "en-US"}
           title={i18n("read_aloud")}

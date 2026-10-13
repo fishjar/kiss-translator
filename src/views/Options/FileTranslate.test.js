@@ -2,7 +2,15 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import FileTranslate from "./FileTranslate";
 
+jest.mock("../FileTranslate/PdfWorkspace", () => {
+  const React = require("react");
+  return React.forwardRef(() => null);
+});
+
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+const originalResizeObserver = globalThis.ResizeObserver;
+beforeAll(() => { globalThis.ResizeObserver = class { observe() {} disconnect() {} }; });
+afterAll(() => { globalThis.ResizeObserver = originalResizeObserver; });
 
 jest.mock("../FileTranslate/State", () => ({
   FileTranslationProvider: ({ children }) => children,
@@ -32,12 +40,12 @@ jest.mock("../FileTranslate/State", () => ({
           [kind]: { ...setting.fileTranslateSetting[kind], ...patch },
         }),
       client: {
-        recognize: (file, serviceId, signal) =>
+        recognize: (file, selection, signal) =>
           ops.recognizeFileImage(
             file,
             {
               groupId:
-                setting.transApis.find((api) => api.apiSlug === serviceId)
+                setting.transApis.find((api) => api.apiSlug === selection?.apiSlug)
                   ?.modelRef ||
                 setting.fileTranslateSetting.image.ocrGroup ||
                 "ppocr-v5-mobile",
@@ -71,14 +79,14 @@ const defaultMockTransApis = [
     apiSlug: "primary",
     apiType: "Microsoft",
     apiName: "微软翻译",
-    capabilities: ["translation"],
+    enabledCapabilities: ["translate"],
   },
   {
     apiSlug: "local-ocr",
     apiType: "LocalAI",
     apiName: "本地 OCR",
     sourceType: "local",
-    capabilities: ["ocr"],
+    enabledCapabilities: ["recognizeText"],
     modelRef: "ppocr-v5-mobile",
     device: "webgpu",
   },
@@ -89,15 +97,14 @@ const mockSetting = {
   prompts: [],
   fileTranslateSetting: {
     txt: {
-      apiSlugs: ["primary"],
+      apiSlug: "primary",
       fromLang: "auto",
       toLang: "zh-CN",
       promptSlug: "",
     },
     image: {
-      apiSlugs: ["primary"],
-      ocrApiSlugs: ["local-ocr"],
-      ocrApiSlug: "local-ocr",
+      apiSlug: "primary",
+      recognitionService: { apiSlug: "local-ocr", capability: "recognizeText" },
       fromLang: "auto",
       toLang: "zh-CN",
       promptSlug: "",
@@ -213,6 +220,7 @@ describe("FileTranslate view", () => {
     root = createRoot(container);
     jest.clearAllMocks();
     mockSetting.transApis = [...defaultMockTransApis];
+    mockSetting.fileTranslateSetting.image.recognitionService = { apiSlug: "local-ocr", capability: "recognizeText" };
 
     const mockCreate = () => "blob:http://localhost/fake-blob";
     const mockRevoke = () => {};
@@ -260,7 +268,7 @@ describe("FileTranslate view", () => {
       (b) => b.textContent
     );
     expect(
-      buttonTexts.some((t) => t.includes("分段翻译") || t.includes("开始翻译"))
+      buttonTexts.some((t) => t.includes("一键翻译"))
     ).toBe(true);
     expect(buttonTexts.some((t) => t.includes("下载译文 TXT"))).toBe(true);
 
@@ -269,7 +277,7 @@ describe("FileTranslate view", () => {
     expect(dropzone).not.toBeNull();
     expect(dropzone.textContent).toContain("点击选择文件 或 拖拽文件到此处");
     expect(dropzone.textContent).toContain(
-      "支持 .txt 文本、.md Markdown 文档、.epub 电子书及 PNG、JPEG、WebP 格式图片"
+      "支持 PDF、.txt 文本、.md Markdown 文档、.epub 电子书及 PNG、JPEG、WebP 格式图片"
     );
 
     // 未上传文件时，左右双栏不展示
@@ -313,7 +321,7 @@ describe("FileTranslate view", () => {
     // 点击开始翻译
     const startBtn = Array.from(container.querySelectorAll("button")).find(
       (b) =>
-        b.textContent.includes("分段翻译") || b.textContent.includes("开始翻译")
+        b.textContent.includes("分段翻译") || b.textContent.includes("一键翻译")
     );
     expect(startBtn.disabled).toBe(false);
 
@@ -392,8 +400,8 @@ describe("FileTranslate view", () => {
     });
 
     const dropzone = container.querySelector('[role="button"][tabindex="0"]');
-    const invalidFile = new File(["binary"], "doc.pdf", {
-      type: "application/pdf",
+    const invalidFile = new File(["binary"], "doc.docx", {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
 
     await act(async () => {
@@ -405,7 +413,7 @@ describe("FileTranslate view", () => {
     });
 
     expect(container.textContent).toContain(
-      "暂不支持该文件格式，支持 .txt 文本、.md Markdown 文档、.epub 电子书及 PNG、JPEG、WebP 图片"
+      "暂不支持该文件格式，支持 PDF、TXT、Markdown、EPUB 及 PNG、JPEG、WebP 图片"
     );
   });
 
@@ -415,7 +423,7 @@ describe("FileTranslate view", () => {
     });
 
     // 未选文件时顶栏不展示 OCR 服务配置
-    expect(container.textContent).not.toContain("OCR 服务");
+    expect(container.textContent).not.toContain("文本识别服务");
 
     const dropzone = container.querySelector('[role="button"][tabindex="0"]');
     const fakeImage = new File(["fake-image"], "photo.png", {
@@ -432,19 +440,20 @@ describe("FileTranslate view", () => {
     });
 
     // 顶栏自适应展开 OCR 服务和译文字体，计算设备已收敛至服务配置中不再在顶栏展示
-    expect(container.textContent).toContain("OCR 服务");
+    expect(container.textContent).toContain("文本识别服务");
     expect(container.textContent).not.toContain("计算设备");
     expect(container.textContent).toContain("译文字体");
   });
 
   test("disables start translation and guides user to service config when no OCR service is configured", async () => {
+    mockSetting.fileTranslateSetting.image.recognitionService = null;
     // 模拟用户未在服务配置中添加具备 OCR 能力的服务
     mockSetting.transApis = [
       {
         apiSlug: "primary",
         apiType: "Microsoft",
         apiName: "微软翻译",
-        capabilities: ["translation"],
+        enabledCapabilities: ["translate"],
       },
     ];
 
@@ -467,19 +476,19 @@ describe("FileTranslate view", () => {
 
     // 1. 顶栏不展示底层模型列表，而是展示未配置 OCR 服务提示
     expect(container.textContent).toContain(
-      "未配置 OCR 服务（请在服务配置中添加）"
+      "请选择识别服务"
     );
 
     // 2. 开始翻译按钮处于禁用状态
     const startBtn = Array.from(container.querySelectorAll("button")).find(
-      (b) => b.textContent.includes("开始翻译")
+      (b) => b.textContent.includes("一键翻译")
     );
     expect(startBtn).toBeDefined();
     expect(startBtn.disabled).toBe(true);
 
     // 3. 右侧展示引导文本及快捷跳转按钮
     expect(container.textContent).toContain(
-      "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
+      "请选择文本识别服务（OCR / VLM）"
     );
     const gotoConfigBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent.includes("前往服务配置")
@@ -553,7 +562,7 @@ describe("FileTranslate view", () => {
 
     // 开始翻译
     const startBtn = Array.from(container.querySelectorAll("button")).find(
-      (b) => b.textContent.includes("开始翻译")
+      (b) => b.textContent.includes("一键翻译")
     );
     await act(async () => {
       startBtn.click();
@@ -613,16 +622,14 @@ describe("FileTranslate view", () => {
         apiType: "LocalAI",
         apiName: "本地 VLM",
         sourceType: "local",
-        capabilities: ["vlm", "ocr"],
+        enabledCapabilities: ["parseImage"],
         modelRef: "glm-ocr-onnx-q4",
         device: "webgpu",
       },
     ];
     mockSetting.fileTranslateSetting.image = {
       ...mockSetting.fileTranslateSetting.image,
-      ocrApiSlug: "vlm-ocr",
-      ocrApiSlugs: ["vlm-ocr"],
-      ocrGroup: "glm-ocr-onnx-q4",
+      recognitionService: { apiSlug: "vlm-ocr", capability: "parseImage" },
     };
 
     recognizeFileImage.mockResolvedValueOnce({
@@ -649,7 +656,7 @@ describe("FileTranslate view", () => {
       });
 
       const startBtn = Array.from(container.querySelectorAll("button")).find(
-        (b) => b.textContent.includes("开始翻译")
+        (b) => b.textContent.includes("一键翻译")
       );
       await act(async () => {
         startBtn.click();
@@ -666,13 +673,14 @@ describe("FileTranslate view", () => {
         imageViewBtn.click();
       });
 
-      expect(container.textContent).toContain("VLM 端到端模型不支持生成译图");
-      expect(container.textContent).toContain("PaddleOCR");
+      expect(container.textContent).toContain("识别结果没有区域坐标，无法合成译图");
+      expect(container.textContent).toContain("仅输出文本");
     } finally {
       delete mockSetting.fileTranslateSetting.image.ocrGroup;
-      delete mockSetting.fileTranslateSetting.image.ocrApiSlug;
+      mockSetting.fileTranslateSetting.image.recognitionService = null;
       delete mockSetting.fileTranslateSetting.image.ocrApiSlugs;
       mockSetting.transApis = [...defaultMockTransApis];
+    mockSetting.fileTranslateSetting.image.recognitionService = { apiSlug: "local-ocr", capability: "recognizeText" };
     }
   });
 
@@ -711,7 +719,7 @@ describe("FileTranslate view", () => {
 
     // 开始翻译
     const startBtn = Array.from(container.querySelectorAll("button")).find(
-      (b) => b.textContent.includes("开始翻译")
+      (b) => b.textContent.includes("一键翻译")
     );
     await act(async () => {
       startBtn.click();
@@ -762,7 +770,7 @@ describe("FileTranslate view", () => {
 
     const startBtn = Array.from(container.querySelectorAll("button")).find(
       (b) =>
-        b.textContent.includes("分段翻译") || b.textContent.includes("开始翻译")
+        b.textContent.includes("分段翻译") || b.textContent.includes("一键翻译")
     );
     await act(async () => {
       startBtn.click();
@@ -827,7 +835,7 @@ describe("FileTranslate view", () => {
     // 点击开始翻译
     const startBtn = Array.from(container.querySelectorAll("button")).find(
       (b) =>
-        b.textContent.includes("分段翻译") || b.textContent.includes("开始翻译")
+        b.textContent.includes("分段翻译") || b.textContent.includes("一键翻译")
     );
     expect(startBtn).not.toBeNull();
     await act(async () => {
@@ -882,17 +890,7 @@ describe("FileTranslate view", () => {
       entireMenuItem.click();
     });
 
-    // 按钮文本变为“整篇翻译”
-    const entireStartBtn = Array.from(
-      container.querySelectorAll("button")
-    ).find((b) => b.textContent.includes("整篇翻译"));
-    expect(entireStartBtn).not.toBeNull();
-
-    // 点击执行整篇翻译
-    await act(async () => {
-      entireStartBtn.click();
-    });
-
+    // 菜单项直接启动整篇翻译，主按钮仍是一键分段翻译。
     expect(translateEntireTxt).toHaveBeenCalledWith(
       "Short article content",
       expect.anything(),
@@ -945,14 +943,6 @@ describe("FileTranslate view", () => {
       entireMenuItem.click();
     });
 
-    // 点击整篇翻译
-    const entireStartBtn = Array.from(
-      container.querySelectorAll("button")
-    ).find((b) => b.textContent.includes("整篇翻译"));
-    await act(async () => {
-      entireStartBtn.click();
-    });
-
     // 验证弹窗出现，且尚未调用翻译
     expect(document.body.textContent).toContain("确认整篇翻译？");
     expect(document.body.textContent).toContain("当前文档超过 10,000 字符");
@@ -969,7 +959,14 @@ describe("FileTranslate view", () => {
 
     // 再次点击整篇翻译并确认
     await act(async () => {
-      entireStartBtn.click();
+      dropdownBtn.click();
+    });
+    const retryEntireItem = Array.from(document.querySelectorAll("li")).find(
+      (li) => li.textContent.includes("整篇翻译")
+    );
+    expect(retryEntireItem).toBeDefined();
+    await act(async () => {
+      retryEntireItem.click();
     });
     const confirmBtn = Array.from(document.querySelectorAll("button")).find(
       (b) => b.textContent.includes("继续整篇翻译")

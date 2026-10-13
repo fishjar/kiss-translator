@@ -1,3 +1,24 @@
+import { localizeServiceName } from "../../providers/localization";
+import { useProviderI18n } from "../../hooks/ProviderI18n";
+import SensitiveTextField from "./SensitiveTextField";
+import QuickTranslationTest from "./QuickTranslationTest";
+import ThinkingOptions from "./ThinkingOptions";
+import useServiceFeedback, { describeConfigurationError } from "./ServiceFeedback";
+import CapabilityOptions from "./CapabilityOptions";
+import {
+  ServiceFormHeader,
+  BooleanServiceOption,
+  serviceTransportFeatures,
+} from "./ServiceForm";
+import {
+  supportedApiCapabilities,
+  enabledApiCapabilities,
+  projectApiCapabilities,
+} from "../../config/serviceSelection";
+import {
+  validateEnabledCapabilities,
+  reconcileEnabledCapabilities,
+} from "../../providers/capabilities";
 import {
   useState,
   useEffect,
@@ -6,20 +27,25 @@ import {
   useLayoutEffect,
   useRef,
 } from "react";
+import PluginInstanceFields from "./PluginInstanceFields";
+import NativeCapabilityTest from "./NativeCapabilityTest";
+import {
+  builtinFieldBounds,
+  builtinSettingFields,
+  validateBuiltinSettingChanges,
+} from "../../builtin-plugins/fields";
 import Stack from "@mui/material/Stack";
-import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
 import Button from "@mui/material/Button";
-import LoadingButton from "@mui/lab/LoadingButton";
 import MenuItem from "@mui/material/MenuItem";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
 import { useI18n } from "../../hooks/I18n";
 import { registerI18n } from "../../config/i18n";
 import { CUSTOM_API_HELP_I18N } from "../../config/locales/customApiHelp";
 import Typography from "@mui/material/Typography";
-import StarIcon from "@mui/icons-material/Star";
+import AddServiceMenu from "./AddServiceMenu";
+import { ServiceReplacement } from "./ServiceUpgrade";
+import { instanceTestSignature } from "../../providers/upgrade";
 import AddIcon from "@mui/icons-material/Add";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import PushPinIcon from "@mui/icons-material/PushPin";
@@ -27,6 +53,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import BlockIcon from "@mui/icons-material/Block";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import Alert from "@mui/material/Alert";
+import { useAlert } from "../../hooks/Alert";
 import Menu from "@mui/material/Menu";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -37,8 +64,6 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import CheckBoxRoundedIcon from "@mui/icons-material/CheckBoxRounded";
 import CheckBoxOutlineBlankRoundedIcon from "@mui/icons-material/CheckBoxOutlineBlankRounded";
 import Link from "@mui/material/Link";
-import { useSetting } from "../../hooks/Setting";
-import { useAlert } from "../../hooks/Alert";
 import {
   API_SORT_MODES,
   getApiDisplayName,
@@ -47,8 +72,6 @@ import {
   useApiItem,
 } from "../../hooks/Api";
 import { useConfirm } from "../../hooks/Confirm";
-import { resolveApiPromptSettings } from "../../config/prompt";
-import { apiTranslate } from "../../apis";
 import { fetchModelCatalog } from "../../libs/modelList";
 import Box from "@mui/material/Box";
 import ReusableAutocomplete from "./ReusableAutocomplete";
@@ -74,10 +97,6 @@ import {
   DEFAULT_BATCH_LENGTH,
   DEFAULT_BATCH_CONCURRENCY,
   DEFAULT_CONTEXT_SIZE,
-  OPT_ALL_TRANS_TYPES,
-  OPT_LANGS_LIST,
-  SOURCE_TYPES,
-  CAPABILITIES,
   API_SPE_TYPES,
   BUILTIN_STONES,
   BUILTIN_PLACEHOLDERS,
@@ -159,114 +178,57 @@ const QWEN_MT_MODELS = [
   "qwen-mt-turbo",
 ];
 
-function TestButton({ api }) {
-  const i18n = useI18n();
-  const alert = useAlert();
-  const { setting: { prompts, subtitleSetting, uiLang } = {} } = useSetting();
-  const [loading, setLoading] = useState(false);
-  const handleApiTest = async () => {
-    try {
-      setLoading(true);
-      const text = "The quick brown fox jumps over the lazy dog.";
 
-      const apiSetting = resolveApiPromptSettings(
-        { ...api },
-        prompts,
-        subtitleSetting
-      );
-
-      // 测试译文目标语言跟随界面语言；界面语言为英文（与原文相同）时回退到简体中文
-      const fromLang = "en";
-      const UI_LANG_TO_TRANS = { zh: "zh-CN", zh_TW: "zh-TW" };
-      let toLang = UI_LANG_TO_TRANS[uiLang] || uiLang;
-      if (!OPT_LANGS_LIST.includes(toLang) || toLang === fromLang) {
-        toLang = "zh-CN";
-      }
-
-      const { trText } = await apiTranslate({
-        text,
-        fromLang,
-        toLang,
-        apiSetting,
-        useCache: false,
-        usePool: false,
-      });
-      if (!trText) {
-        throw new Error("empty result");
-      }
-      alert.success(
-        <>
-          <div>{i18n("test_success")}</div>
-          <div>{text}</div>
-          <div>{trText}</div>
-        </>
-      );
-    } catch (err) {
-      // alert.error(`${i18n("test_failed")}: ${err.message}`);
-      let msg = err.message;
-      try {
-        msg = JSON.stringify(JSON.parse(err.message), null, 2);
-      } catch (err) {
-        // skip
-      }
-      alert.error(
-        <>
-          <div>{i18n("test_failed")}</div>
-          {msg === err.message ? <div>{msg}</div> : <pre>{msg}</pre>}
-        </>
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
+function ApiFields({
+  apiSlug,
+  deleteApi,
+  copyApi,
+  onCollapse,
+  onDirtyChange,
+  onUpgrade,
+  onTestSuccess,
+}) {
+  const { api } = useApiItem(apiSlug);
+  if (api?.provider && api.provider.implementation.kind !== "native")
+    return (
+      <PluginInstanceFields
+        key={apiSlug}
+        api={api}
+        onUpgrade={onUpgrade}
+        onTestSuccess={onTestSuccess}
+        deleteApi={deleteApi}
+        copyApi={copyApi}
+        onCollapse={onCollapse}
+        onDirtyChange={onDirtyChange}
+      />
+    );
   return (
-    <LoadingButton
-      size="small"
-      variant="outlined"
-      onClick={handleApiTest}
-      loading={loading}
-    >
-      {i18n("click_test")}
-    </LoadingButton>
-  );
-}
-
-/**
- * 敏感文本输入框。
- * 失焦时仅展示圆点，避免 API 密钥在配置页面长期明文暴露；
- * 聚焦编辑时恢复真实值，确保保存、测试和多行密钥逻辑仍使用原始字段值。
- */
-function SensitiveTextField({ value = "", onChange, inputProps, ...props }) {
-  const [editing, setEditing] = useState(false);
-  const displayValue = editing
-    ? value
-    : String(value)
-        .split("\n")
-        .map((line) => (line ? "•".repeat(Math.min(line.length, 24)) : ""))
-        .join("\n");
-
-  return (
-    <TextField
-      {...props}
-      value={displayValue}
-      onFocus={() => setEditing(true)}
-      onBlur={() => setEditing(false)}
-      onChange={editing ? onChange : undefined}
-      inputProps={{
-        ...inputProps,
-        readOnly: !editing,
-      }}
+    <LegacyApiFields
+      apiSlug={apiSlug}
+      deleteApi={deleteApi}
+      copyApi={copyApi}
+      onCollapse={onCollapse}
+      onDirtyChange={onDirtyChange}
     />
   );
 }
 
-function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
+function LegacyApiFields({
+  apiSlug,
+  deleteApi,
+  copyApi,
+  onCollapse,
+  onDirtyChange,
+}) {
   const { api, update, reset } = useApiItem(apiSlug);
   const { prompts } = usePromptList();
   const i18n = useI18n();
   const [formData, setFormData] = useState(() => api || {});
   const [showMore, setShowMore] = useState(false);
+  const { showFeedback, feedbackDialog } = useServiceFeedback();
+  const [saving, setSaving] = useState(false);
+  const pendingSave = useRef(false);
+  const alert = useAlert();
   useRevealSearchTarget(setShowMore);
   const searchTarget = useSettingsSearchTarget();
   const [modelOptions, setModelOptions] = useState([]);
@@ -285,7 +247,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
 
   useLayoutEffect(() => {
     // Capture the baseline before React processes the queued state update.
-    const previousApi = lastSyncedApiRef.current;
+    // Keep edits relative to the committed baseline during an optimistic write.
+    // A failed write may publish the old API again before its promise rejects.
+    const previousApi = pendingSave.current || lastSyncedApiRef.current;
     setFormData((currentFormData) => {
       if (
         !api ||
@@ -379,6 +343,14 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
       }
     }
 
+    if (["model", "modelRef"].includes(name)) {
+      const baseData = formData?.apiSlug === apiSlug ? formData : api || {};
+      const supported = supportedApiCapabilities({ ...baseData, [name]: value });
+      const previous = enabledApiCapabilities(baseData);
+      if (supported.length && !previous.some((item) => supported.includes(item)))
+        alert.info(i18n("plugin_model_switched_capabilities_supported_by_the_new_model_are_enabled_che"));
+    }
+
     setFormData((prevData) => {
       const baseData = prevData?.apiSlug === apiSlug ? prevData : api || {};
       const newData = {
@@ -386,6 +358,15 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         [name]: value,
       };
 
+      if (["model", "modelRef", "device", "url"].includes(name)) {
+        const supported = supportedApiCapabilities(newData);
+        const previous = enabledApiCapabilities(baseData);
+        const enabled = ["model", "modelRef"].includes(name)
+          ? reconcileEnabledCapabilities(previous, supported)
+          : previous.filter((item) => supported.includes(item));
+        if (JSON.stringify(enabled) !== JSON.stringify(previous))
+          newData.enabledCapabilities = enabled;
+      }
       if (name === "useStream" && value === false) {
         newData.streamRenderMode = "disabled";
       }
@@ -484,8 +465,25 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (pendingSave.current) return;
     const nextFormData = { ...activeFormData };
+    delete nextFormData.capabilities;
+    const warnings = [];
+    for (const validate of [
+      () =>
+        validateEnabledCapabilities(
+          projectApiCapabilities(nextFormData),
+          nextFormData.enabledCapabilities ?? enabledApiCapabilities(nextFormData)
+        ),
+      () => validateBuiltinSettingChanges(lastSyncedApiRef.current, nextFormData),
+    ]) {
+      try {
+        validate();
+      } catch (error) {
+        warnings.push(describeConfigurationError(error, builtinSettingFields, i18n));
+      }
+    }
     if (thinkingParam) {
       // Revalidate the final fields so test requests and saved settings stay aligned.
       Object.assign(
@@ -500,9 +498,27 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
       );
     }
     setFormData(nextFormData);
-    update(nextFormData);
-    if (activeFormData.isDisabled || activeFormData.sortOrder === -1) {
-      onCollapse?.();
+    pendingSave.current = lastSyncedApiRef.current;
+    setSaving(true);
+    try {
+      await update(nextFormData);
+      if (warnings.length) {
+        showFeedback({
+          title: i18n("plugin_configuration_saved"),
+          message: i18n("plugin_configuration_saved_check_the_following_issues_before_using_this_servi").replace("{0}", () => warnings.join("\n")),
+        });
+      } else if (nextFormData.isDisabled || nextFormData.sortOrder === -1) {
+        onCollapse?.();
+      }
+    } catch (error) {
+      showFeedback({
+        title: i18n("plugin_save_failed"),
+        severity: "error",
+        message: error.message,
+      });
+    } finally {
+      pendingSave.current = false;
+      setSaving(false);
     }
   };
 
@@ -515,7 +531,11 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
 
   const handleCopy = () => {
     setActionsAnchorEl(null);
-    copyApi(activeFormData);
+    try {
+      copyApi(activeFormData);
+    } catch (error) {
+      showFeedback({ title: i18n("plugin_operation_failed"), severity: "error", message: error.message });
+    }
   };
 
   const handleDelete = async () => {
@@ -550,12 +570,10 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     maxTokens = 20480,
     apiName = "",
     sourceType = apiType === OPT_TRANS_BUILTINAI ? "builtin" : "network",
-    capabilities = ["translation"],
     modelRef = "",
     device = "webgpu",
-    isDisabled = false,
     useBatchFetch = false,
-    useStream = false,
+    useStream = true,
     streamRenderMode = "disabled",
     transAllnow = false,
     rootMargin = 500,
@@ -571,7 +589,6 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     placetagFormat = "compact",
     region = "",
     folderId = "",
-    sortOrder = 0,
     aiTerms = "",
     thinkingMode = "disabled",
     thinkingEffort = "_default",
@@ -580,26 +597,29 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     subtitlePromptSlug = "",
     dictPromptSlug = "",
   } = activeFormData;
-  const hasCapability = (cap) =>
-    capabilities.includes(cap) && supportsApiCapability(activeFormData, cap);
-  const hasTranslation = hasCapability("translation");
+  const hasCapability = (cap) => supportsApiCapability(activeFormData, cap);
+  const { batch: hasBatch, stream: hasStreaming } =
+    serviceTransportFeatures(activeFormData);
+  const hasModelSelector =
+    sourceType === "local" ||
+    (sourceType === "network" &&
+      (API_SPE_TYPES.ai.has(apiType) || apiType === OPT_TRANS_QWENMT));
+  const hasTranslation = hasCapability("translate");
   const hasAiTranslation = hasTranslation && API_SPE_TYPES.ai.has(apiType);
-  const hasSegmentation = hasCapability("segmentation");
+  const hasSegmentation = hasCapability("segmentSubtitle");
   const hasDictionary = hasCapability("dictionary");
-  const hasVlm = hasCapability("vlm");
+  const hasVlm =
+    hasCapability("parseImage");
   const hasLanguageModel =
     API_SPE_TYPES.ai.has(apiType) &&
-    [
-      "translation",
-      "segmentation",
-      "dictionary",
-      "summarization",
-      "llm",
-      "vlm",
-    ].some(hasCapability);
+    (["translate", "segmentSubtitle", "dictionary", "summarize", "chat"].some(
+      hasCapability
+    ) ||
+      hasVlm);
   const hasTextRuntime = hasAiTranslation || hasDictionary || hasSegmentation;
   const vlmPromptOptions = getVlmPromptOptions(prompts);
-  const selectedVlmPromptSlug = vlmPromptOptions.some(
+  const selectedVlmPromptSlug = sourceType === "local" && !activeFormData.vlmPromptSlug
+    ? "" : vlmPromptOptions.some(
     (p) => p.slug === activeFormData.vlmPromptSlug
   )
     ? activeFormData.vlmPromptSlug
@@ -636,8 +656,9 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
     ? thinkingEffort
     : "_default";
   const hasRuntimeOptions =
-    hasTextRuntime &&
-    (API_SPE_TYPES.stream.has(apiType) || API_SPE_TYPES.context.has(apiType));
+    hasStreaming || (hasTextRuntime && API_SPE_TYPES.context.has(apiType));
+  const hasMoreFields =
+    sourceType === "network" || hasTextRuntime || hasTranslation;
   const showUnknownThinkingWarning =
     isUnknownThinkingModel && thinkingMode !== "auto";
   const showMinimumThinkingHelper = isThinkingMinimumFallback({
@@ -828,310 +849,230 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
   ]);
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        className="kt-api-detail__header"
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        spacing={2}
-        useFlexGap
-        flexWrap="wrap"
-      >
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            component="h2"
-            sx={{ fontSize: 16, fontWeight: 700, lineHeight: 1.3 }}
-          >
-            {getApiDisplayName(activeFormData)}
-          </Typography>
-          <Typography color="text.secondary" sx={{ mt: 0.25, fontSize: 12 }}>
-            {apiType}
-          </Typography>
-        </Box>
-        <Stack
-          className="kt-api-detail__status-actions"
-          direction="row"
-          alignItems="center"
-          spacing={1}
-          useFlexGap
-          flexWrap="wrap"
-        >
-          <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                name="isDisabled"
-                checked={isDisabled}
-                onChange={handleChange}
-              />
-            }
-            label={i18n("is_disabled")}
-          />
-          <FormControlLabel
-            control={
-              <Switch
-                size="small"
-                name="isPinned"
-                checked={sortOrder === -1}
-                onChange={(event) => {
-                  setFormData((prev) => ({
-                    ...(prev?.apiSlug === apiSlug ? prev : api || {}),
-                    sortOrder: event.target.checked ? -1 : 0,
-                  }));
-                }}
-                disabled={isDisabled}
-              />
-            }
-            label={i18n("is_pinned")}
-          />
-        </Stack>
-      </Stack>
-      <Box>
-        <TextField
-          size="small"
-          fullWidth
-          label={i18n("api_name")}
-          name="apiName"
-          value={apiName}
-          onChange={handleChange}
+    <Stack spacing={3} useFlexGap>
+      <Stack className="kt-service-card kt-service-configuration" spacing={3}>
+        <ServiceFormHeader
+          api={activeFormData}
+          onChange={(name, value) => handleChange({ target: { name, value } })}
         />
-      </Box>
-
-      <Box>
-        <Grid container spacing={2} columns={12}>
-          <Grid item xs={12} sm={12} md={6} lg={6}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label={i18n("api_source_type", "来源类型")}
-              name="sourceType"
-              value={sourceType}
-              disabled
-              helperText={i18n("api_source_type_helper", "由接口适配器决定")}
-            >
-              {SOURCE_TYPES.map((value) => (
-                <MenuItem key={value} value={value}>
-                  {value === "builtin"
-                    ? i18n("api_source_type_builtin", "内置")
-                    : value === "local"
-                      ? i18n("api_source_type_local", "本地")
-                      : i18n("api_source_type_network", "网络")}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-          <Grid item xs={12} sm={12} md={6} lg={6}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label={i18n("api_capabilities", "能力类型")}
-              name="capabilities"
-              value={capabilities}
-              onChange={handleChange}
-              SelectProps={{
-                multiple: true,
-                renderValue: (selected) =>
-                  (Array.isArray(selected) ? selected : [])
-                    .map((val) => i18n(`capability_${val}`, val))
-                    .join(", "),
-              }}
-              helperText={
-                capabilities.some(
-                  (item) => !supportsApiCapability(activeFormData, item)
-                )
-                  ? i18n(
-                      "api_capabilities_helper",
-                      "新能力在适配器接入前为待接入状态"
-                    )
-                  : ""
-              }
-            >
-              {CAPABILITIES.map((value) => (
-                <MenuItem key={value} value={value}>
-                  {i18n(`capability_${value}`, value)}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-        </Grid>
-      </Box>
-      {sourceType === "local" && (
-        <Stack spacing={2}>
-          <LocalModelSelect
-            value={modelRef}
-            capabilities={capabilities}
-            onChange={(value) =>
-              handleChange({ target: { name: "modelRef", value } })
-            }
-          />
+        <Box>
           <TextField
-            select
-            fullWidth
             size="small"
-            label={i18n("compute_device", "计算设备")}
-            name="device"
-            value={device || "webgpu"}
+            fullWidth
+            label={i18n("api_name")}
+            name="apiName"
+            value={apiName}
             onChange={handleChange}
-            helperText={i18n(
-              "compute_device_helper",
-              "WebGPU（推荐，硬件 GPU 加速）；WASM（CPU 模式，高兼容）"
-            )}
-          >
-            <MenuItem value="webgpu">
-              {i18n("compute_device_webgpu", "WebGPU（GPU 加速，推荐）")}
-            </MenuItem>
-            <MenuItem value="wasm">
-              {i18n("compute_device_wasm", "WASM（CPU 模式，高兼容）")}
-            </MenuItem>
-          </TextField>
-        </Stack>
-      )}
+          />
+        </Box>
 
-      {sourceType === "network" &&
-        (!API_SPE_TYPES.machine.has(apiType) || apiType === OPT_TRANS_QWENMT) &&
-        apiType !== OPT_TRANS_BUILTINAI && (
-          <>
-            <TextField
-              size="small"
-              label={"URL"}
-              name="url"
-              value={url}
-              onChange={handleChange}
-              multiline={apiType === OPT_TRANS_DEEPLX}
-              maxRows={10}
-              helperText={
-                apiType === OPT_TRANS_DEEPLX ? i18n("mulkeys_help") : ""
+        {sourceType === "local" && (
+          <Stack spacing={2}>
+            <LocalModelSelect
+              value={modelRef}
+              onChange={(value) =>
+                handleChange({ target: { name: "modelRef", value } })
               }
             />
-            <SensitiveTextField
+            <TextField
+              select
+              fullWidth
               size="small"
-              label={"Key"}
-              name="key"
-              value={key}
+              label={i18n("compute_device", "计算设备")}
+              name="device"
+              value={device || "webgpu"}
               onChange={handleChange}
-              multiline={API_SPE_TYPES.mulkeys.has(apiType)}
-              maxRows={10}
-              helperText={keyHelper}
-            />
-          </>
+              helperText={i18n(
+                "compute_device_helper",
+                "WebGPU（推荐，硬件 GPU 加速）；WASM（CPU 模式，高兼容）"
+              )}
+            >
+              <MenuItem value="webgpu">
+                {i18n("compute_device_webgpu", "WebGPU（GPU 加速，推荐）")}
+              </MenuItem>
+              <MenuItem value="wasm">
+                {i18n("compute_device_wasm", "WASM（CPU 模式，高兼容）")}
+              </MenuItem>
+            </TextField>
+          </Stack>
         )}
 
-      {apiType === OPT_TRANS_AZUREAI && (
-        <TextField
-          size="small"
-          label={"Region"}
-          name="region"
-          value={region}
-          onChange={handleChange}
-        />
-      )}
+        {sourceType === "local" && (
+          <CapabilityOptions
+            api={activeFormData}
+            onChange={(value) =>
+              handleChange({ target: { name: "enabledCapabilities", value } })
+            }
+          />
+        )}
 
-      {apiType === OPT_TRANS_YANDEX && (
-        <TextField
-          size="small"
-          label={"Folder ID"}
-          name="folderId"
-          value={folderId}
-          onChange={handleChange}
-        />
-      )}
-
-      {(hasLanguageModel ||
-        (hasTranslation && apiType === OPT_TRANS_QWENMT)) && (
-        <>
-          {sourceType === "network" && apiType !== OPT_TRANS_QWENMT && (
-            <TextField
-              size="small"
-              fullWidth
-              label={i18n("model_list_url")}
-              name="modelListUrl"
-              value={modelListUrl}
-              onChange={handleChange}
-            />
+        {sourceType === "network" &&
+          (!API_SPE_TYPES.machine.has(apiType) ||
+            apiType === OPT_TRANS_QWENMT) &&
+          apiType !== OPT_TRANS_BUILTINAI && (
+            <>
+              <TextField
+                size="small"
+                label={"URL"}
+                name="url"
+                value={url}
+                onChange={handleChange}
+                multiline={apiType === OPT_TRANS_DEEPLX}
+                maxRows={10}
+                helperText={
+                  apiType === OPT_TRANS_DEEPLX ? i18n("mulkeys_help") : ""
+                }
+              />
+              <SensitiveTextField
+                size="small"
+                label={"Key"}
+                name="key"
+                value={key}
+                onChange={handleChange}
+                multiline={API_SPE_TYPES.mulkeys.has(apiType)}
+                maxRows={10}
+                helperText={keyHelper}
+              />
+            </>
           )}
-          <Box>
-            <Box sx={apiFieldsGridSx}>
-              {sourceType === "network" && (
-                <Box>
-                  <ReusableAutocomplete
-                    freeSolo
-                    size="small"
-                    fullWidth
-                    options={allModelOptions}
-                    name="model"
-                    label={"Model"}
-                    value={model}
-                    onChange={handleChange}
-                    onFocus={handleLoadModelList}
-                    loading={modelListStatus === "loading"}
-                    loadingText={i18n("model_list_loading")}
-                    noOptionsText={i18n("model_list_empty")}
-                    textFieldProps={{
-                      helperText: modelListHelperText,
-                      error: modelListStatus === "error",
-                    }}
-                  />
-                </Box>
-              )}
-              {hasTranslation && (
-                <Box>
-                  <ReusableAutocomplete
-                    freeSolo
-                    size="small"
-                    fullWidth
-                    options={BUILTIN_STONES}
-                    name="tone"
-                    label={i18n("translation_style")}
-                    value={tone}
-                    onChange={handleChange}
-                  />
-                </Box>
-              )}
-              {apiType !== OPT_TRANS_QWENMT &&
-                apiType !== OPT_TRANS_GEMINI &&
-                apiType !== OPT_TRANS_GEMINI_2 && (
-                  <Box>
-                    <ValidationInput
+
+        {apiType === OPT_TRANS_AZUREAI && (
+          <TextField
+            size="small"
+            label={"Region"}
+            name="region"
+            value={region}
+            onChange={handleChange}
+          />
+        )}
+
+        {apiType === OPT_TRANS_YANDEX && (
+          <TextField
+            size="small"
+            label={"Folder ID"}
+            name="folderId"
+            value={folderId}
+            onChange={handleChange}
+          />
+        )}
+
+        {!hasModelSelector && (
+          <CapabilityOptions
+            api={activeFormData}
+            onChange={(value) =>
+              handleChange({ target: { name: "enabledCapabilities", value } })
+            }
+          />
+        )}
+
+        {(hasLanguageModel ||
+          (sourceType === "network" &&
+            (API_SPE_TYPES.ai.has(apiType) ||
+              apiType === OPT_TRANS_QWENMT))) && (
+          <>
+            {sourceType === "network" && apiType !== OPT_TRANS_QWENMT && (
+              <TextField
+                size="small"
+                fullWidth
+                label={i18n("model_list_url")}
+                name="modelListUrl"
+                value={modelListUrl}
+                onChange={handleChange}
+              />
+            )}
+            <Box>
+              <Box sx={apiFieldsGridSx}>
+                {sourceType === "network" && (
+                  <Box sx={{ gridColumn: "1 / -1" }}>
+                    <ReusableAutocomplete
+                      freeSolo
                       size="small"
                       fullWidth
-                      label={"Temperature (0.0-2.0)"}
-                      type="number"
-                      name="temperature"
-                      value={temperature}
+                      options={allModelOptions}
+                      name="model"
+                      label={"Model"}
+                      value={model}
                       onChange={handleChange}
-                      min={0.0}
-                      max={2.0}
-                      isFloat={true}
-                      inputProps={{
-                        step: 0.1,
+                      onFocus={handleLoadModelList}
+                      loading={modelListStatus === "loading"}
+                      loadingText={i18n("model_list_loading")}
+                      noOptionsText={i18n("model_list_empty")}
+                      textFieldProps={{
+                        helperText: modelListHelperText,
+                        error: modelListStatus === "error",
                       }}
                     />
                   </Box>
                 )}
-              {apiType !== OPT_TRANS_QWENMT && (
-                <Box>
-                  <ValidationInput
-                    size="small"
-                    fullWidth
-                    label={"Max Tokens (0-1000000)"}
-                    type="number"
-                    name="maxTokens"
-                    value={maxTokens}
-                    onChange={handleChange}
-                    min={0}
-                    max={1000000}
-                  />
-                </Box>
-              )}
+                {sourceType === "network" && (
+                  <Box sx={{ gridColumn: "1 / -1" }}>
+                    <CapabilityOptions
+                      api={activeFormData}
+                      onChange={(value) =>
+                        handleChange({
+                          target: { name: "enabledCapabilities", value },
+                        })
+                      }
+                    />
+                  </Box>
+                )}
+                {hasTranslation && (
+                  <Box>
+                    <ReusableAutocomplete
+                      freeSolo
+                      size="small"
+                      fullWidth
+                      options={BUILTIN_STONES}
+                      name="tone"
+                      label={i18n("translation_style")}
+                      value={tone}
+                      onChange={handleChange}
+                    />
+                  </Box>
+                )}
+                {hasLanguageModel &&
+                  apiType !== OPT_TRANS_QWENMT &&
+                  apiType !== OPT_TRANS_GEMINI &&
+                  apiType !== OPT_TRANS_GEMINI_2 && (
+                    <Box>
+                      <ValidationInput
+                        validateOnBlur={false}
+                        size="small"
+                        fullWidth
+                        label={"Temperature (0.0-2.0)"}
+                        type="number"
+                        name="temperature"
+                        value={temperature}
+                        onChange={handleChange}
+                        {...builtinFieldBounds.temperature}
+                        isFloat={true}
+                        inputProps={{
+                          step: 0.1,
+                        }}
+                      />
+                    </Box>
+                  )}
+                {hasLanguageModel && apiType !== OPT_TRANS_QWENMT && (
+                  <Box>
+                    <ValidationInput
+                      validateOnBlur={false}
+                      size="small"
+                      fullWidth
+                      label={"Max Tokens (0-1000000)"}
+                      type="number"
+                      name="maxTokens"
+                      value={maxTokens}
+                      onChange={handleChange}
+                      {...builtinFieldBounds.maxTokens}
+                    />
+                  </Box>
+                )}
+              </Box>
             </Box>
-          </Box>
-        </>
-      )}
+          </>
+        )}
 
-      {/* {apiType === OPT_TRANS_OLLAMA && (
+        {/* {apiType === OPT_TRANS_OLLAMA && (
         <>
           <TextField
             select
@@ -1154,146 +1095,136 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
         </>
       )} */}
 
-      {apiType === OPT_TRANS_CUSTOMIZE && (
-        <>
-          <CodeField
-            size="small"
-            label={"Request Hook"}
-            name="reqHook"
-            value={reqHook}
-            onChange={handleChange}
-            maxRows={10}
-            FormHelperTextProps={{
-              component: "div",
-            }}
-            helperText={
-              <Box component="pre" sx={{ overflowX: "auto" }}>
-                {i18n("request_hook_helper")}
-              </Box>
-            }
-          />
-          <CodeField
-            size="small"
-            label={"Response Hook"}
-            name="resHook"
-            value={resHook}
-            onChange={handleChange}
-            maxRows={10}
-            FormHelperTextProps={{
-              component: "div",
-            }}
-            helperText={
-              <Box component="pre" sx={{ overflowX: "auto" }}>
-                {i18n("response_hook_helper")}
-              </Box>
-            }
-          />
-        </>
-      )}
+        {apiType === OPT_TRANS_CUSTOMIZE && (
+          <>
+            <CodeField
+              size="small"
+              label={"Request Hook"}
+              name="reqHook"
+              value={reqHook}
+              onChange={handleChange}
+              maxRows={10}
+              FormHelperTextProps={{
+                component: "div",
+              }}
+              helperText={
+                <Box component="pre" sx={{ overflowX: "auto" }}>
+                  {i18n("request_hook_helper")}
+                </Box>
+              }
+            />
+            <CodeField
+              size="small"
+              label={"Response Hook"}
+              name="resHook"
+              value={resHook}
+              onChange={handleChange}
+              maxRows={10}
+              FormHelperTextProps={{
+                component: "div",
+              }}
+              helperText={
+                <Box component="pre" sx={{ overflowX: "auto" }}>
+                  {i18n("response_hook_helper")}
+                </Box>
+              }
+            />
+          </>
+        )}
 
-      {hasTranslation &&
-        API_SPE_TYPES.batch.has(apiType) &&
-        !API_SPE_TYPES.ai.has(apiType) && (
+        {hasBatch && (
           <Box>
             <Box sx={apiFieldsGridSx}>
               <Box>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
+                <BooleanServiceOption
                   name="useBatchFetch"
-                  value={useBatchFetch}
                   label={i18n("use_batch_fetch")}
-                  onChange={handleChange}
-                >
-                  <MenuItem value={false}>{i18n("disable")}</MenuItem>
-                  <MenuItem value={true}>{i18n("enable")}</MenuItem>
-                </TextField>
+                  value={useBatchFetch}
+                  onChange={(value) =>
+                    handleChange({ target: { name: "useBatchFetch", value } })
+                  }
+                />
               </Box>
             </Box>
           </Box>
         )}
 
-      {hasRuntimeOptions && (
-        <Box className="kt-api-runtime-options">
-          <Box sx={apiFieldsGridSx}>
-            {API_SPE_TYPES.stream.has(apiType) && (
-              <Box>
-                <TextField
-                  select
-                  fullWidth
-                  size="small"
-                  name="useStream"
-                  value={useStream}
-                  label={i18n("use_stream")}
-                  onChange={handleChange}
-                >
-                  <MenuItem value={false}>{i18n("disable")}</MenuItem>
-                  <MenuItem value={true}>{i18n("enable")}</MenuItem>
-                </TextField>
-              </Box>
-            )}
-
-            {API_SPE_TYPES.stream.has(apiType) &&
-              (useStream || searchTarget === "stream_render_mode") && (
+        {hasRuntimeOptions && (
+          <Box className="kt-api-runtime-options">
+            <Box sx={apiFieldsGridSx}>
+              {hasStreaming && (
                 <Box>
-                  <TextField
-                    select
-                    fullWidth
-                    size="small"
-                    name="streamRenderMode"
-                    value={streamRenderMode}
-                    label={i18n("stream_render_mode")}
-                    onChange={handleChange}
-                  >
-                    <MenuItem value="disabled">{i18n("disable")}</MenuItem>
-                    <MenuItem value="realtime">
-                      {i18n("stream_render_realtime")}
-                    </MenuItem>
-                    <MenuItem value="segment">
-                      {i18n("stream_render_segment")}
-                    </MenuItem>
-                  </TextField>
+                  <BooleanServiceOption
+                    name="useStream"
+                    label={i18n("use_stream")}
+                    value={useStream}
+                    onChange={(value) =>
+                      handleChange({ target: { name: "useStream", value } })
+                    }
+                  />
                 </Box>
               )}
 
-            {hasAiTranslation && API_SPE_TYPES.context.has(apiType) && (
-              <>
-                <Box>
-                  {" "}
-                  <TextField
-                    select
-                    size="small"
-                    fullWidth
-                    name="useContext"
-                    value={useContext}
-                    label={i18n("use_context")}
-                    onChange={handleChange}
-                  >
-                    <MenuItem value={false}>{i18n("disable")}</MenuItem>
-                    <MenuItem value={true}>{i18n("enable")}</MenuItem>
-                  </TextField>
-                </Box>
-                <Box>
-                  {" "}
-                  <ValidationInput
-                    size="small"
-                    fullWidth
-                    label={i18n("context_size")}
-                    name="contextSize"
-                    value={contextSize}
-                    onChange={handleChange}
-                    min={1}
-                    max={20}
-                  />
-                </Box>
-              </>
-            )}
-          </Box>
-        </Box>
-      )}
+              {hasStreaming &&
+                (useStream || searchTarget === "stream_render_mode") && (
+                  <Box>
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      name="streamRenderMode"
+                      value={streamRenderMode}
+                      label={i18n("stream_render_mode")}
+                      onChange={handleChange}
+                    >
+                      <MenuItem value="disabled">{i18n("disable")}</MenuItem>
+                      <MenuItem value="realtime">
+                        {i18n("stream_render_realtime")}
+                      </MenuItem>
+                      <MenuItem value="segment">
+                        {i18n("stream_render_segment")}
+                      </MenuItem>
+                    </TextField>
+                  </Box>
+                )}
 
-      {(hasAiTranslation || hasSegmentation || hasDictionary || hasVlm) && (
+              {hasAiTranslation && API_SPE_TYPES.context.has(apiType) && (
+                <>
+                  <Box>
+                    {" "}
+                    <TextField
+                      select
+                      size="small"
+                      fullWidth
+                      name="useContext"
+                      value={useContext}
+                      label={i18n("use_context")}
+                      onChange={handleChange}
+                    >
+                      <MenuItem value={false}>{i18n("disable")}</MenuItem>
+                      <MenuItem value={true}>{i18n("enable")}</MenuItem>
+                    </TextField>
+                  </Box>
+                  <Box>
+                    {" "}
+                    <ValidationInput
+                      validateOnBlur={false}
+                      size="small"
+                      fullWidth
+                      label={i18n("context_size")}
+                      name="contextSize"
+                      value={contextSize}
+                      onChange={handleChange}
+                      {...builtinFieldBounds.contextSize}
+                    />
+                  </Box>
+                </>
+              )}
+            </Box>
+          </Box>
+        )}
+
+        {(hasAiTranslation || hasSegmentation || hasDictionary || hasVlm) && (
           <Box>
             <Box sx={apiFieldsGridSx}>
               {hasAiTranslation && (
@@ -1362,9 +1293,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     size="small"
                     name="vlmPromptSlug"
                     value={selectedVlmPromptSlug}
+                    SelectProps={{ displayEmpty: sourceType === "local" }}
+                    InputLabelProps={{ shrink: sourceType === "local" || undefined }}
                     label={i18n("vlm_prompt", "视觉解析提示词")}
                     onChange={handleChange}
                   >
+                    {sourceType === "local" && <MenuItem value="">{i18n("service_model_default_prompt")}</MenuItem>}
                     {vlmPromptOptions.map((prompt) => (
                       <MenuItem key={prompt.slug} value={prompt.slug}>
                         {getPromptDisplayName(prompt, i18n)}
@@ -1375,79 +1309,37 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
               )}
             </Box>
           </Box>
-      )}
+        )}
 
-      {hasLanguageModel && thinkingParam && (
-        <Box>
-          <Box sx={apiFieldsGridSx}>
-            <Box>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="thinkingMode"
-                value={thinkingMode}
-                label={i18n("thinking_mode")}
-                onChange={handleChange}
-                error={showUnknownThinkingWarning}
-                helperText={
-                  showUnknownThinkingWarning
-                    ? i18n("thinking_unknown_model_helper")
-                    : showMinimumThinkingHelper
-                      ? i18n("gemini_thinking_minimum_helper")
-                      : i18n("thinking_mode_helper")
-                }
-              >
-                <MenuItem value="auto">
-                  {i18n("thinking_mode_default")}
-                </MenuItem>
-                <MenuItem value="enabled">
-                  {i18n("thinking_mode_enabled")}
-                </MenuItem>
-                <MenuItem value="disabled">
-                  {i18n("thinking_mode_disabled")}
-                </MenuItem>
-              </TextField>
-            </Box>
-            {(thinkingMode === "enabled" ||
-              searchTarget === "thinking_effort") &&
-              thinkingEfforts && (
-                <Box>
-                  <TextField
-                    select
-                    fullWidth
-                    size="small"
-                    name="thinkingEffort"
-                    value={selectedThinkingEffort}
-                    label={i18n("thinking_effort")}
-                    onChange={handleChange}
-                  >
-                    {thinkingEfforts.map((e) => (
-                      <MenuItem key={e.value} value={e.value}>
-                        {e.label}
-                      </MenuItem>
-                    ))}
-                    {(apiType !== OPT_TRANS_OPENROUTER ||
-                      thinkingEffort === null) && (
-                      <MenuItem value="_default">
-                        {i18n("thinking_effort_default")}
-                      </MenuItem>
-                    )}
-                  </TextField>
-                </Box>
-              )}
-          </Box>
-        </Box>
-      )}
+        {hasLanguageModel && thinkingParam && (
+          <ThinkingOptions
+            mode={thinkingMode}
+            effort={selectedThinkingEffort}
+            efforts={thinkingEfforts}
+            onChange={(name, value) => handleChange({ target: { name, value } })}
+            error={showUnknownThinkingWarning}
+            helperText={
+              showUnknownThinkingWarning
+                ? i18n("thinking_unknown_model_helper")
+                : showMinimumThinkingHelper
+                  ? i18n("gemini_thinking_minimum_helper")
+                  : i18n("thinking_mode_helper")
+            }
+            showEffort={searchTarget === "thinking_effort"}
+            allowDefaultEffort={
+              apiType !== OPT_TRANS_OPENROUTER || thinkingEffort === null
+            }
+          />
+        )}
 
-      {showMore &&
-        (sourceType === "network" || hasTextRuntime || hasTranslation) && (
+        {showMore && hasMoreFields && (
           <>
-            {hasTranslation && API_SPE_TYPES.batch.has(apiType) && (
+            {hasBatch && (
               <Box>
                 <Box sx={apiFieldsGridSx}>
                   <Box>
                     <ValidationInput
+                      validateOnBlur={false}
                       size="small"
                       fullWidth
                       label={i18n("batch_interval")}
@@ -1455,12 +1347,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                       name="batchInterval"
                       value={batchInterval}
                       onChange={handleChange}
-                      min={10}
-                      max={10000}
+                      {...builtinFieldBounds.batchInterval}
                     />
                   </Box>
                   <Box>
                     <ValidationInput
+                      validateOnBlur={false}
                       size="small"
                       fullWidth
                       label={i18n("batch_size")}
@@ -1468,12 +1360,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                       name="batchSize"
                       value={batchSize}
                       onChange={handleChange}
-                      min={1}
-                      max={100}
+                      {...builtinFieldBounds.batchSize}
                     />
                   </Box>
                   <Box>
                     <ValidationInput
+                      validateOnBlur={false}
                       size="small"
                       fullWidth
                       label={i18n("batch_length")}
@@ -1481,12 +1373,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                       name="batchLength"
                       value={batchLength}
                       onChange={handleChange}
-                      min={1000}
-                      max={100000}
+                      {...builtinFieldBounds.batchLength}
                     />
                   </Box>
                   <Box>
                     <ValidationInput
+                      validateOnBlur={false}
                       size="small"
                       fullWidth
                       label={i18n("batch_concurrency")}
@@ -1494,8 +1386,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                       name="batchConcurrency"
                       value={contextForcesSerialBatch ? 1 : batchConcurrency}
                       onChange={handleChange}
-                      min={1}
-                      max={100}
+                      {...builtinFieldBounds.batchConcurrency}
                       disabled={contextForcesSerialBatch}
                       helperText={
                         contextForcesSerialBatch
@@ -1511,6 +1402,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
               <Box sx={apiFieldsGridSx}>
                 <Box>
                   <ValidationInput
+                    validateOnBlur={false}
                     size="small"
                     fullWidth
                     label={i18n("fetch_limit")}
@@ -1518,12 +1410,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     name="fetchLimit"
                     value={fetchLimit}
                     onChange={handleChange}
-                    min={1}
-                    max={100}
+                    {...builtinFieldBounds.fetchLimit}
                   />
                 </Box>
                 <Box>
                   <ValidationInput
+                    validateOnBlur={false}
                     size="small"
                     fullWidth
                     label={i18n("fetch_interval")}
@@ -1531,12 +1423,12 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     name="fetchInterval"
                     value={fetchInterval}
                     onChange={handleChange}
-                    min={0}
-                    max={5000}
+                    {...builtinFieldBounds.fetchInterval}
                   />
                 </Box>
                 <Box>
                   <ValidationInput
+                    validateOnBlur={false}
                     size="small"
                     fullWidth
                     label={i18n("http_timeout")}
@@ -1544,8 +1436,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     name="httpTimeout"
                     value={httpTimeout}
                     onChange={handleChange}
-                    min={1}
-                    max={600}
+                    {...builtinFieldBounds.httpTimeout}
                   />
                 </Box>
               </Box>
@@ -1572,6 +1463,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                     </Box>
                     <Box>
                       <ValidationInput
+                        validateOnBlur={false}
                         fullWidth
                         size="small"
                         label={i18n("pagescroll_root_margin")}
@@ -1579,8 +1471,7 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
                         name="rootMargin"
                         value={rootMargin}
                         onChange={handleChange}
-                        min={0}
-                        max={10000}
+                        {...builtinFieldBounds.rootMargin}
                       />
                     </Box>
                   </Box>
@@ -1728,71 +1619,83 @@ function ApiFields({ apiSlug, deleteApi, copyApi, onCollapse, onDirtyChange }) {
           </>
         )}
 
-      <Stack
-        className="kt-api-detail__footer"
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        spacing={2}
-        useFlexGap
-        flexWrap="wrap"
-      >
         <Stack
-          className="kt-api-detail__primary-actions"
+          className="kt-api-detail__footer"
           direction="row"
           alignItems="center"
-          spacing={1}
+          justifyContent="space-between"
+          spacing={2}
+          useFlexGap
+          flexWrap="wrap"
         >
-          <Button
-            size="small"
-            variant="contained"
-            onClick={handleSave}
-            disabled={!isModified}
+          <Stack
+            className="kt-api-detail__primary-actions"
+            direction="row"
+            alignItems="center"
+            spacing={1}
           >
-            {i18n("save")}
-          </Button>
-          <TestButton api={activeFormData} />
-        </Stack>
-        <Stack
-          className="kt-api-detail__secondary-actions"
-          direction="row"
-          alignItems="center"
-          spacing={1}
-        >
-          <ShowMoreButton showMore={showMore} onChange={setShowMore} />
-          <Button
-            id={`api-detail-actions-button-${apiSlug}`}
-            size="small"
-            variant="outlined"
-            aria-controls={
-              actionsMenuOpen ? `api-detail-actions-menu-${apiSlug}` : undefined
-            }
-            aria-haspopup="menu"
-            aria-expanded={actionsMenuOpen ? "true" : undefined}
-            endIcon={<KeyboardArrowDownIcon />}
-            onClick={(event) => setActionsAnchorEl(event.currentTarget)}
+            <Button
+              size="small"
+              variant="contained"
+              onClick={handleSave}
+              disabled={!isModified || saving}
+            >
+              {i18n("save")}
+            </Button>
+          </Stack>
+          <Stack
+            className="kt-api-detail__secondary-actions"
+            direction="row"
+            alignItems="center"
+            spacing={1}
           >
-            {i18n("api_actions")}
-          </Button>
+            {hasMoreFields && (
+              <ShowMoreButton showMore={showMore} onChange={setShowMore} />
+            )}
+            <Button
+              id={`api-detail-actions-button-${apiSlug}`}
+              size="small"
+              variant="outlined"
+              aria-controls={
+                actionsMenuOpen
+                  ? `api-detail-actions-menu-${apiSlug}`
+                  : undefined
+              }
+              aria-haspopup="menu"
+              aria-expanded={actionsMenuOpen ? "true" : undefined}
+              endIcon={<KeyboardArrowDownIcon />}
+              onClick={(event) => setActionsAnchorEl(event.currentTarget)}
+            >
+              {i18n("api_actions")}
+            </Button>
+          </Stack>
+          <Menu
+            id={`api-detail-actions-menu-${apiSlug}`}
+            anchorEl={actionsAnchorEl}
+            open={actionsMenuOpen}
+            onClose={() => setActionsAnchorEl(null)}
+            MenuListProps={{
+              "aria-labelledby": `api-detail-actions-button-${apiSlug}`,
+            }}
+          >
+            <MenuItem onClick={handleReset}>{i18n("restore_default")}</MenuItem>
+            <MenuItem onClick={handleCopy}>{i18n("copy_api")}</MenuItem>
+            <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
+              {i18n("delete")}
+            </MenuItem>
+          </Menu>
         </Stack>
-        <Menu
-          id={`api-detail-actions-menu-${apiSlug}`}
-          anchorEl={actionsAnchorEl}
-          open={actionsMenuOpen}
-          onClose={() => setActionsAnchorEl(null)}
-          MenuListProps={{
-            "aria-labelledby": `api-detail-actions-button-${apiSlug}`,
-          }}
-        >
-          <MenuItem onClick={handleReset}>{i18n("restore_default")}</MenuItem>
-          <MenuItem onClick={handleCopy}>{i18n("copy_api")}</MenuItem>
-          <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
-            {i18n("delete")}
-          </MenuItem>
-        </Menu>
-      </Stack>
 
-      {/* {apiType === OPT_TRANS_CUSTOMIZE && <pre>{i18n("custom_api_help")}</pre>} */}
+        {/* {apiType === OPT_TRANS_CUSTOMIZE && <pre>{i18n("custom_api_help")}</pre>} */}
+      </Stack>
+      <NativeCapabilityTest
+        key={apiSlug}
+        api={activeFormData}
+        translationTest={
+          hasTranslation ? <QuickTranslationTest api={activeFormData} /> : null
+        }
+      />
+      {feedbackDialog}
     </Stack>
   );
 }
@@ -1812,6 +1715,7 @@ function ApiListItem({
   onDragEnd,
   onMove,
 }) {
+  const providerText = useProviderI18n();
   const handleContentClick = (event) => {
     if (bulkMode) {
       onCheck(event, api.apiSlug);
@@ -1821,7 +1725,7 @@ function ApiListItem({
     onSelect();
   };
 
-  const displayName = getApiDisplayName(api);
+  const displayName = localizeServiceName(api, providerText) || getApiDisplayName(api);
   const cardSelected = bulkMode ? checked : selected;
   const cardRef = useRef(null);
 
@@ -1944,6 +1848,7 @@ function ApiListItem({
         <ApiProviderIcon
           className="kt-api-provider-icon"
           apiType={api.apiType}
+          provider={api.provider}
           size={38}
           imageSize={22}
           disabled={api.isDisabled}
@@ -1977,7 +1882,9 @@ function ApiListItem({
               whiteSpace: "nowrap",
             })}
           >
-            {api.model || api.apiType}
+            {api.pluginConfig?.[api.provider?.modelField || "model"] ||
+              api.model ||
+              api.apiType}
           </Typography>
         </Box>
       </ListItemButton>
@@ -2000,6 +1907,8 @@ export default function Apis() {
     reorderApis,
   } = useApiList();
   const confirm = useConfirm();
+  const [upgrade, setUpgrade] = useState(null);
+  const [tested, setTested] = useState({});
 
   const [detailKey, setDetailKey] = useState(0);
   const [detailDirty, setDetailDirty] = useState(false);
@@ -2009,15 +1918,6 @@ export default function Apis() {
   const [draggingApiSlug, setDraggingApiSlug] = useState("");
   const [dragOverApiSlug, setDragOverApiSlug] = useState("");
   const detailPanelRef = useRef(null);
-
-  const apiTypes = useMemo(
-    () =>
-      OPT_ALL_TRANS_TYPES.map((type) => ({
-        type,
-        label: type,
-      })),
-    []
-  );
 
   const apiItems = useMemo(
     () => transApis.map((api) => ({ api })),
@@ -2121,12 +2021,16 @@ export default function Apis() {
     });
   }, [confirm, detailDirty, i18n]);
 
-  const handleMenuItemClick = async (apiType) => {
+  const handleMenuItemClick = async (apiType, oldSlug) => {
     if (!(await confirmDiscardDetailChanges())) {
       handleClose();
       return;
     }
     const newApiSlug = addApi(apiType);
+    if (oldSlug) {
+      setUpgrade({ oldSlug, newSlug: newApiSlug });
+      setTested({});
+    }
     setDetailDirty(false);
     setDetailKey((key) => key + 1);
     if (newApiSlug) {
@@ -2469,41 +2373,21 @@ export default function Apis() {
               </Stack>
             )}
           </Stack>
-          <Menu
-            id="add-api-menu"
+          <AddServiceMenu
             anchorEl={anchorEl}
-            open={open}
             onClose={handleClose}
-            container={() => addApiButtonRef.current?.closest(".kt-m3-root")}
-            disableScrollLock
-            MenuListProps={{
-              "aria-labelledby": "add-api-button",
-            }}
-          >
-            {apiTypes.map((apiOption) => (
-              <MenuItem
-                key={apiOption.type}
-                onClick={() => handleMenuItemClick(apiOption.type)}
-                sx={{ gap: 1 }}
-              >
-                <ApiProviderIcon
-                  className="kt-api-provider-icon"
-                  apiType={apiOption.type}
-                  size={38}
-                  imageSize={22}
-                  lightSurface
-                />
-                <Box component="span" sx={{ flex: 1 }}>
-                  {apiOption.label}
-                </Box>
-                {API_SPE_TYPES.sponsors.has(apiOption.type) && (
-                  <StarIcon color="warning" sx={{ marginLeft: "0.2em" }} />
-                )}
-              </MenuItem>
-            ))}
-          </Menu>
+            onSelect={handleMenuItemClick}
+          />
         </Box>
 
+        {upgrade && (
+          <ServiceReplacement
+            key={upgrade.newSlug}
+            upgrade={upgrade}
+            tested={tested}
+            onComplete={() => setUpgrade(null)}
+          />
+        )}
         <Box
           className="kt-api-master-detail"
           sx={{
@@ -2572,6 +2456,14 @@ export default function Apis() {
                 deleteApi={deleteApi}
                 copyApi={handleCopyApi}
                 onDirtyChange={setDetailDirty}
+                onUpgrade={handleMenuItemClick}
+                onTestSuccess={(api, capability) => {
+                  if (upgrade?.newSlug === api.apiSlug)
+                    setTested((previous) => ({
+                      ...previous,
+                      [capability]: instanceTestSignature(api),
+                    }));
+                }}
               />
             </Box>
           )}

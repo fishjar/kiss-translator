@@ -3,7 +3,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import { useI18n } from "../../hooks/I18n";
 import ShortcutInput from "./ShortcutInput";
-import OrderedApiSelect from "./OrderedApiSelect";
+import ServiceSelect from "./ServiceSelect";
 import ScenePromptSelect from "./ScenePromptSelect";
 import TextField from "@mui/material/TextField";
 import { useMouseHoverSetting } from "../../hooks/MouseHover";
@@ -231,7 +231,7 @@ export default function MouseHoverSetting() {
               label={i18n("translate_service")}
               description={i18n("mousehover_bubble_api_helper")}
             >
-              <OrderedApiSelect
+              <ServiceSelect
                 scene={mouseHoverSetting}
                 apis={[
                   {
@@ -241,10 +241,9 @@ export default function MouseHoverSetting() {
                   ...enabledApis,
                 ]}
                 label={i18n("translate_service")}
-                onChange={(apiSlugs) =>
+                onChange={(apiSlug) =>
                   updateMouseHoverSetting({
-                    apiSlugs,
-                    apiSlug: apiSlugs[0] || GLOBAL_KEY,
+                    apiSlug: apiSlug || GLOBAL_KEY,
                   })
                 }
               />

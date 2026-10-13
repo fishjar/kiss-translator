@@ -100,12 +100,8 @@ jest.mock("../../hooks/Setting", () => ({
 jest.mock("../../hooks/I18n", () => {
   // 模拟真实 useI18n 的中文文案（直接读字典），避免动态 key（如冲突类型描述）退化为 fallback。
   const { I18N } = require("../../config/i18n");
-  return {
-    useI18n:
-      () =>
-      (key, fallback = "") =>
-        I18N[key]?.zh ?? fallback,
-  };
+  const i18n = (key, fallback = "") => I18N[key]?.zh ?? fallback;
+  return { useI18n: () => i18n };
 });
 
 jest.mock("../../hooks/Rules", () => ({

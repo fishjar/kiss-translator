@@ -1,3 +1,5 @@
+import { isApiConfigured } from "../config/serviceSelection";
+import { supportsApiCapability } from "../config/serviceSelection";
 import { logger } from "../libs/log.js";
 import { downloadBlobFile } from "../libs/utils.js";
 import { buildBilingualVtt, buildTranslationOnlyVtt } from "./vtt.js";
@@ -2509,8 +2511,7 @@ export class YouTubeSubtitleList {
         return false;
       }
       return (
-        Array.isArray(api.capabilities) &&
-        api.capabilities.includes("summarization")
+        isApiConfigured(api) && supportsApiCapability(api, "summarize")
       );
     });
 

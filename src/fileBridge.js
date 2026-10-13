@@ -1,15 +1,46 @@
 import browser from "webextension-polyfill";
 import { FILE_CHANNEL, isFileBridgePage } from "./fileTranslation/protocol";
 
-if (window === window.top && isFileBridgePage(window.location.href)) {
+const bridgeKey = "__kissFileTranslationBridge";
+if (
+  window === window.top &&
+  isFileBridgePage(window.location.href) &&
+  !window[bridgeKey]?.isActive()
+) {
+  window[bridgeKey]?.dispose();
+  const extensionId = browser.runtime.id;
   let port;
   let bridgeId;
+  let disposed = false;
+  const isActive = () => {
+    try {
+      return !disposed && browser.runtime.id === extensionId;
+    } catch {
+      return false;
+    }
+  };
+  const closePort = () => {
+    const previous = port;
+    port = null;
+    try {
+      previous?.disconnect();
+    } catch {
+      // The old extension context may already have been invalidated.
+    }
+  };
+  const dispose = () => {
+    disposed = true;
+    closePort();
+    window.removeEventListener("message", receive);
+    window.removeEventListener("pagehide", closePort);
+    if (window[bridgeKey]?.dispose === dispose) delete window[bridgeKey];
+  };
   const post = (message) =>
     window.postMessage(
       {
         channel: FILE_CHANNEL,
         direction: "extension",
-        extensionId: browser.runtime.id,
+        extensionId,
         bridgeId,
         ...message,
       },
@@ -30,7 +61,9 @@ if (window === window.top && isFileBridgePage(window.location.href)) {
         post({ type: "disconnected" });
       });
     } catch {
+      closePort();
       post({ type: "disconnected" });
+      if (!isActive()) dispose();
     }
   };
   const receive = ({ source, origin, data }) => {
@@ -41,23 +74,33 @@ if (window === window.top && isFileBridgePage(window.location.href)) {
       data.direction !== "web"
     )
       return;
+    if (!isActive()) {
+      post({ type: "disconnected" });
+      dispose();
+      return;
+    }
     if (data.type === "discover") {
       connect();
       if (port) post({ type: "available" });
     } else if (
       port &&
-      data.extensionId === browser.runtime.id &&
+      data.extensionId === extensionId &&
       data.bridgeId === bridgeId
     ) {
       if (data.type === "disconnect") {
-        port.disconnect();
-        port = null;
-      } else if (data.type === "request") port.postMessage(data.request);
+        closePort();
+      } else if (data.type === "request") {
+        try {
+          port.postMessage(data.request);
+        } catch {
+          closePort();
+          post({ type: "disconnected" });
+          if (!isActive()) dispose();
+        }
+      }
     }
   };
   window.addEventListener("message", receive);
-  window.addEventListener("pagehide", () => {
-    port?.disconnect();
-    port = null;
-  });
+  window.addEventListener("pagehide", closePort);
+  window[bridgeKey] = { isActive, dispose };
 }

@@ -63,7 +63,7 @@ export default function AsrTab() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [language, setLanguage] = useState("zh-hans");
-  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
+  const { logs, addLog, clearLogs } = useLocalAiLog();
   const [file, setFile] = useState(null);
   const selectionRef = useRef(0);
   const [recWav, setRecWav] = useState(null);
@@ -677,13 +677,6 @@ export default function AsrTab() {
               {error}
             </Alert>
           )}
-
-          <LogViewer
-            logs={logs}
-            expanded={expanded}
-            setExpanded={setExpanded}
-            onClear={clearLogs}
-          />
         </CardContent>
       </Card>
 
@@ -853,6 +846,10 @@ export default function AsrTab() {
           </CardContent>
         </Card>
       )}
+      <LogViewer
+        logs={logs}
+        onClear={clearLogs}
+      />
     </Stack>
   );
 }

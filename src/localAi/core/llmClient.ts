@@ -40,6 +40,7 @@ export function backendLabel(
  * - 监听宿主 service-state 广播，在模型被切换或被 RuntimePool 淘汰时自动使就绪状态失效。
  */
 export class LlmClient {
+  cacheMode: "default" | "refresh" | "off" = "default";
   onProgress: ((status: string) => void) | null = null;
   onStateChange: ((ready: boolean, reason?: string) => void) | null = null;
   private isLoaded = false;
@@ -126,7 +127,7 @@ export class LlmClient {
     _transfer?: Transferable[],
     target?: ModelTarget,
     signal?: AbortSignal,
-    generation?: { temperature?: number }
+    generation?: { temperature?: number; onProgress?: (status: string) => void }
   ): Promise<LlmChatResult> {
     if (!target && this.currentVersion === null) {
       throw new Error("模型尚未加载");
@@ -143,9 +144,10 @@ export class LlmClient {
           id: reqId,
           service: this.service,
           method: "chat",
-          payload: { messages, maxTokens, ...target, ...generation },
+          payload: { messages, maxTokens, ...target, temperature: generation?.temperature },
           priority: TASK_PRIORITY.LLM,
           options: {
+            cacheMode: target?.cacheMode || this.cacheMode,
             sessionVersion: target
               ? undefined
               : (this.currentVersion ?? undefined),
@@ -156,7 +158,7 @@ export class LlmClient {
           timeoutMs: hasImages ? 300_000 : undefined,
           signal,
           onProgress: (p) => {
-            if (p.status) this.onProgress?.(p.status);
+            if (p.status) { this.onProgress?.(p.status); generation?.onProgress?.(p.status); }
           },
           onStream: (ev) => {
             if (ev.type === "token") {

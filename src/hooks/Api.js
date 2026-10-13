@@ -1,3 +1,5 @@
+import { isApiConfigured } from "../config/serviceSelection";
+import { supportsApiCapability } from "../config/serviceSelection";
 import { useCallback, useMemo } from "react";
 import {
   DEFAULT_API_LIST,
@@ -6,6 +8,8 @@ import {
   normalizeApiThinkingSettings,
 } from "../config";
 import { useSetting } from "./Setting";
+import { createBuiltinInstance } from "../builtin-plugins";
+import { validateBuiltinSettingChanges } from "../builtin-plugins/fields";
 
 // 内部辅助 Hook，获取翻译 API 的排序状态和更新配置的方法
 function useApiState() {
@@ -185,7 +189,7 @@ export function useApiList() {
       transApis.filter(
         (api) =>
           !api.isDisabled &&
-          (api.capabilities || ["translation"]).includes("translation")
+          isApiConfigured(api) && supportsApiCapability(api, "translate")
       ),
     [transApis]
   );
@@ -199,6 +203,13 @@ export function useApiList() {
   // 添加一个新的自定义 API
   const addApi = useCallback(
     (apiType) => {
+      if (typeof apiType === "object") {
+        updateSetting((prev) => ({
+          ...prev,
+          transApis: [...(prev?.transApis || []), apiType],
+        }));
+        return apiType.apiSlug;
+      }
       // 找到内置的该 API 类型的默认配置模版
       const defaultApiOpt =
         DEFAULT_API_LIST.find((da) => da.apiType === apiType) || {};
@@ -206,14 +217,16 @@ export function useApiList() {
       // 使用类型名拼合 UUID 保证 apiSlug 唯一，代表具体 API 实例
       const apiSlug = `${apiType}_${getUuid()}`;
       const apiName = `${apiType}_${uuid.slice(0, 8)}`;
-      const newApi = {
-        ...defaultApiOpt,
-        apiSlug,
-        apiName,
-        apiType,
-        isDisabled: false,
-        sortOrder: 0,
-      };
+      const newApi = DEFAULT_API_LIST.some((item) => item.apiType === apiType)
+        ? createBuiltinInstance(apiType, apiSlug, apiName)
+        : {
+            ...defaultApiOpt,
+            apiSlug,
+            apiName,
+            apiType,
+            isDisabled: false,
+            sortOrder: 0,
+          };
       updateSetting((prev) => ({
         ...prev,
         transApis: [...(prev?.transApis || []), newApi],
@@ -230,17 +243,27 @@ export function useApiList() {
       const apiSlug = `${sourceApi.apiType}_${uuid}`;
       const apiName = `${sourceApi.apiName} - copy`;
       const newApi = {
-        ...sourceApi,
+        // Configuration and execution snapshots belong to the new instance too.
+        ...JSON.parse(JSON.stringify(sourceApi)),
         apiSlug,
         apiName,
       };
+      if (
+        !sourceApi.provider ||
+        sourceApi.provider.implementation?.kind === "native"
+      )
+        validateBuiltinSettingChanges(
+          transApis.find((api) => api.apiSlug === sourceApi.apiSlug) ||
+            sourceApi,
+          newApi
+        );
       updateSetting((prev) => ({
         ...prev,
         transApis: [...(prev?.transApis || []), newApi],
       }));
       return apiSlug;
     },
-    [updateSetting]
+    [transApis, updateSetting]
   );
 
   // 批量删除翻译 API。
@@ -425,7 +448,7 @@ export function useApiItem(apiSlug) {
   // 更新当前 API 项的某些属性数据，并防止 Slug 被意外更改
   const update = useCallback(
     (updateData) => {
-      updateSetting((prev) => ({
+      return updateSetting((prev) => ({
         ...prev,
         transApis: (prev?.transApis || []).map((item) =>
           item.apiSlug === apiSlug ? { ...item, ...updateData, apiSlug } : item

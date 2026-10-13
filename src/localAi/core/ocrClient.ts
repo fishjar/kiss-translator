@@ -53,6 +53,7 @@ export function ocrBackendLabel(
  * 携带 sessionVersion 并在模型被切换或 RuntimePool 淘汰时使就绪状态失效。
  */
 export class OcrClient {
+  cacheMode: "default" | "refresh" | "off" = "default";
   onProgress: ((status: string) => void) | null = null;
   onStateChange: ((ready: boolean, reason?: string) => void) | null = null;
   private isLoaded = false;
@@ -116,7 +117,8 @@ export class OcrClient {
   async recognize(
     blob: Blob,
     signal?: AbortSignal,
-    target?: ModelTarget
+    target?: ModelTarget,
+    onProgress?: (status: string) => void
   ): Promise<OcrImageResult> {
     if (!target && this.currentVersion === null)
       throw new Error("模型尚未加载");
@@ -131,13 +133,14 @@ export class OcrClient {
           payload: { blob, ...target },
           priority: TASK_PRIORITY.OCR,
           options: {
+            cacheMode: target?.cacheMode || this.cacheMode,
             sessionVersion: target
               ? undefined
               : (this.currentVersion ?? undefined),
             modelId: this.currentModelId ?? undefined,
           },
         },
-        { signal }
+        { signal, onProgress: (p) => { if (p.status) { this.onProgress?.(p.status); onProgress?.(p.status); } } }
       );
       if (target) {
         const info = result as typeof result & {

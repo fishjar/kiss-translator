@@ -77,6 +77,20 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     expect(drawer.getAttribute("aria-hidden")).toBe("false");
   });
 
+  test("目录标签优先使用翻译而非默认文案", () => {
+    const translatedI18n = (key, fallback) => ({
+      expand_toc: "Expand contents",
+      collapse_toc: "Collapse contents",
+    }[key] || fallback || key);
+    act(() => root.render(<EpubReaderView epubBook={mockEpubBook} currentChapterIndex={0}
+      epubViewMode="source" chapterStates={{}} busy={false} i18n={translatedI18n} onSelectChapter={jest.fn()} />));
+    const toggle = container.querySelector('[aria-label="Expand contents"]');
+    expect(toggle).not.toBeNull();
+    act(() => toggle.click());
+    expect(toggle.getAttribute("aria-label")).toBe("Collapse contents");
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  });
+
   test("1. 支持段落级流式上屏：在章节翻译中 (status === busy) 且存在 bilingualHtml 时立即呈现最新译文", () => {
     const chapterStates = {
       "OEBPS/ch1.xhtml": {

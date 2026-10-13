@@ -3,6 +3,8 @@ import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import { runtimeHost } from "../../../localAi/runtime/runtimeHostAdapter";
 import { nextRpcId } from "../../../localAi/runtime/rpc";
 import { resolveModelTarget } from "../../../localAi/core/modelTarget";
@@ -114,10 +116,18 @@ export function ModelStatus({
   );
 }
 
-export function UnloadModelButton({ client, runtime, onError }) {
+export function UnloadModelButton({ client, runtime, onError, cacheable = true }) {
   const i18n = useI18n();
   const [unloading, setUnloading] = useState(false);
+  const [ignoreCache, setIgnoreCache] = useState(false);
+  useEffect(() => {
+    if (client && cacheable) client.cacheMode = ignoreCache ? "refresh" : "default";
+  }, [client, ignoreCache, cacheable]);
   return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      {cacheable && <FormControlLabel label={i18n("local_ai_ignore_cache", "忽略缓存")}
+        control={<Checkbox size="small" checked={ignoreCache} disabled={runtime.busy || unloading}
+          onChange={(event) => setIgnoreCache(event.target.checked)} />} />}
     <Tooltip
       title={i18n(
         "local_ai_unload_current",
@@ -146,5 +156,6 @@ export function UnloadModelButton({ client, runtime, onError }) {
         </Button>
       </span>
     </Tooltip>
+    </Box>
   );
 }

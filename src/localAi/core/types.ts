@@ -98,6 +98,9 @@ export interface DeviceProfile {
 }
 
 export interface Settings {
+  inferenceCacheEnabled: boolean;
+  inferenceCacheMB: number;
+  inferenceCacheDays: number;
   mirror: Mirror;
   autoUnloadMinutes: number;
   exclusiveResourceMode: boolean;
@@ -121,6 +124,9 @@ export interface InputAdjustment {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  inferenceCacheEnabled: true,
+  inferenceCacheMB: 256,
+  inferenceCacheDays: 30,
   mirror: "hf-mirror",
   autoUnloadMinutes: 10,
   exclusiveResourceMode: true,

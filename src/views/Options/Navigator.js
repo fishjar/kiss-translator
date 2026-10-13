@@ -120,6 +120,17 @@ export default function Navigator({ open, isMobile = false, onClose }) {
               "/prompts",
               DescriptionRoundedIcon,
             ],
+            ...(["chrome", "firefox"].includes(process.env.REACT_APP_CLIENT) &&
+            typeof indexedDB !== "undefined"
+              ? [
+                  [
+                    "plugins",
+                    i18n("provider_plugins", "接口插件"),
+                    "/plugins",
+                    ApiRoundedIcon,
+                  ],
+                ]
+              : []),
             ...(isAutoTranslateClipboardSupported
               ? [
                   [

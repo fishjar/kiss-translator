@@ -17,6 +17,7 @@ import { runtimeHost } from "../../../localAi/runtime/runtimeHostAdapter";
 import { getRuntimeStatus } from "../../../localAi/core/runtimeClient";
 import { useI18n } from "../../../hooks/I18n";
 import Settings from "./Settings";
+import InferenceCache from "./InferenceCache";
 
 const services = ["decision", "asr", "ocr", "llm", "vlm", "tts", "doc"];
 
@@ -63,6 +64,7 @@ export default function RuntimeTab() {
   }, [refresh]);
   return (
     <Stack spacing={2}>
+      <InferenceCache />
       <Card variant="outlined">
         <CardContent>
           <Stack spacing={2}>

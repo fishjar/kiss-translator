@@ -1,12 +1,20 @@
-import {
+// This suite covers base web defaults; extension defaults have their own suite.
+const originalClient = process.env.REACT_APP_CLIENT;
+process.env.REACT_APP_CLIENT = "web";
+afterAll(() => {
+  if (originalClient === undefined) delete process.env.REACT_APP_CLIENT;
+  else process.env.REACT_APP_CLIENT = originalClient;
+});
+
+const {
   DEFAULT_INPUT_RULE,
   DEFAULT_MOUSE_HOVER_SETTING,
   DEFAULT_SETTING,
   DEFAULT_SUBTITLE_SETTING,
   DEFAULT_TRANBOX_SETTING,
-} from "./setting";
-import { DEFAULT_API_LIST, OPT_TRANS_MICROSOFT } from "./api";
-import { GLOBAL_KEY } from "./rules";
+} = require("./setting");
+const { DEFAULT_API_LIST, OPT_TRANS_MICROSOFT } = require("./api");
+const { GLOBAL_KEY } = require("./rules");
 
 describe("translation box defaults", () => {
   test("translates language variants by default", () => {

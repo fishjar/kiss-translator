@@ -8,6 +8,7 @@ import {
   saveSettings,
 } from "../core/settings";
 import { resolveModelTarget } from "../core/modelTarget";
+import { InferenceCache, inferenceCacheKey, INFERENCE_CACHE_VERSION } from "../core/inferenceCache";
 import { DEFAULT_SETTINGS, INPUT_LIMIT_KEYS, type InputAdjustment, type Settings } from "../core/types";
 import { checkInputCancelled, cropAudio, cropTtsText, prepareImage } from "../core/inputLimits";
 import type {
@@ -101,6 +102,7 @@ function createLanguageModelState() {
  * 3. 活跃推理任务的真实执行层停止/终止（LLM 发送 stop 并在超时后回退 terminate；不可中断 Worker 直接 terminate 重建）
  */
 export class RuntimeManager {
+  private inferenceCache = new InferenceCache();
   readonly modelManager: LocalModelManager;
   readonly pool: RuntimePool;
   readonly scheduler = new TaskScheduler(1);
@@ -381,6 +383,9 @@ export class RuntimeManager {
     }
     if (this.cancelledRequests.has(req.id))
       throw new Error("REQUEST_CANCELLED: 请求已取消");
+    const cacheGeneration = settings.inferenceCacheEnabled && req.options?.cacheMode !== "off" &&
+      ["transcribe", "recognize", "analyze", "chat", "predict", "translate"].includes(req.method)
+      ? await this.inferenceCache.generation() : null;
     const result = await this.scheduler.schedule(
       async (signal) => {
         const context = { signal };
@@ -489,6 +494,45 @@ export class RuntimeManager {
             req = { ...req, payload: target.spec };
           }
           const isTranslation = req.service === "translation" && target;
+          let cacheKey: string | undefined;
+          const cacheable = settings.inferenceCacheEnabled && req.options?.cacheMode !== "off" &&
+            ({ asr: "transcribe", ocr: "recognize", doc: "analyze", llm: "chat", vlm: "chat", decision: "predict", translation: "translate" } as Record<string, string>)[req.service] === req.method;
+          if (cacheable && cacheGeneration !== null) {
+            try {
+              await this.modelManager.init();
+              const spec = target?.spec || this.getSessionState(service).loadSpec;
+              const records = target ? target.installedIds.map((id) => this.modelManager.get(id))
+                : this.modelManager.list().filter((record) => spec &&
+                  [spec.dir, spec.detDir, spec.recDir].includes(record.manifest.dir));
+              if (spec && records.length && records.every((record) => record?.state === "installed" && record.manifest?.version)) {
+                cacheKey = await inferenceCacheKey({ version: INFERENCE_CACHE_VERSION,
+                  service: req.service, method: req.method, spec,
+                  backend: this.getSessionState(service).backend || spec.device,
+                  models: records.map((record) => ({ manifest: record!.manifest, installed: record!.downloadedAt })),
+                  payload: { ...payload, modelRef: undefined, loadSpec: undefined, cacheMode: undefined },
+                  image: image ? { original: image.original, size: image.size } : undefined,
+                  adjustments,
+                });
+                const cached = req.options?.cacheMode === "refresh" ? null : await this.inferenceCache.get(cacheKey, settings);
+                checkInputCancelled(signal);
+                if (cached) {
+                  let result = cached.value;
+                  if (target && result && typeof result === "object") result = { ...result,
+                    modelId: this.getSessionState(service).modelId,
+                    sessionVersion: this.getSessionState(service).sessionVersion };
+                  progress({ type: "running", status: "CACHE_HIT" });
+                  if ((service === "llm" || service === "vlm") && !isTranslation)
+                    stream({ type: "token", text: result.text });
+                  return { result, cacheHit: true, queueMs: 0, inferenceMs: 0 };
+                }
+              }
+            } catch (error) {
+              checkInputCancelled(signal);
+              cacheKey = undefined;
+            }
+          }
+          if (({ ocr: "recognize", vlm: "chat" } as Record<string, string>)[req.service] === req.method)
+            progress({ type: "running", status: "INFERENCE_START" });
           const value = await this.dispatch(
             isTranslation
               ? {
@@ -559,6 +603,14 @@ export class RuntimeManager {
             };
           }
           if (service !== "decision") this.lastService = service;
+          checkInputCancelled(signal);
+          if (cacheKey && !(value.result as any)?.aborted &&
+            (!(service === "llm" || service === "vlm") ||
+              (isTranslation ? String(value.result).trim() : (value.result as any)?.text?.trim()))) {
+            const stored = value.result && Object.getPrototypeOf(value.result) === Object.prototype ? { ...value.result } as any : value.result;
+            if (stored && typeof stored === "object") { delete stored.sessionVersion; delete stored.modelId; }
+            await this.inferenceCache.put(cacheKey, stored, cacheGeneration, this.settings, signal);
+          }
           return value;
         } catch (error) {
           if ((service === "llm" || service === "vlm") && /out.of.memory|bad_alloc|内存不足/i.test(String(error))) {
@@ -583,8 +635,8 @@ export class RuntimeManager {
     );
     return {
       ...result.value,
-      queueMs: result.queueMs,
-      inferenceMs: result.inferenceMs,
+      queueMs: (result.value as any).cacheHit ? 0 : result.queueMs,
+      inferenceMs: (result.value as any).cacheHit ? 0 : result.inferenceMs,
     };
   }
 
@@ -740,7 +792,7 @@ export class RuntimeManager {
           "MODEL_SWITCHED: 正在切换或重新加载模型，当前生成已中止"
         );
       }
-      const { result, queueMs, inferenceMs } = managed
+      const { result, queueMs, inferenceMs, cacheHit }: { result: unknown; queueMs?: number; inferenceMs?: number; cacheHit?: boolean } = managed
         ? unloading
           ? {
               result: (
@@ -766,6 +818,7 @@ export class RuntimeManager {
         ok: true,
         result,
         usage: {
+          cacheHit,
           queueMs,
           inferenceMs,
           totalMs: Math.round((performance.now() - t0) * 10) / 10,
@@ -1003,6 +1056,11 @@ export class RuntimeManager {
   private async handleRuntime(req: AiRpcRequest): Promise<unknown> {
     const p = (req.payload ?? {}) as Record<string, any>;
     switch (req.method) {
+      case "cacheStats":
+        return this.inferenceCache.stats(this.settings);
+      case "clearInferenceCache":
+        await this.inferenceCache.clear();
+        return { ok: true };
       case "getSettings":
         return { ...this.settings };
       case "updateSettings":
@@ -1054,6 +1112,9 @@ export class RuntimeManager {
         if (patch.residentMemoryBudgetMB !== undefined && (!Number.isSafeInteger(patch.residentMemoryBudgetMB) || patch.residentMemoryBudgetMB < 0))
           throw new Error("INVALID_SETTINGS: 驻留预算必须为非负整数");
         const next = normalizeSettings({ ...this.settings, ...patch });
+        for (const key of ["inferenceCacheMB", "inferenceCacheDays"] as const)
+          if (patch[key] !== undefined && (!Number.isSafeInteger(patch[key]) || patch[key]! <= 0))
+            throw new Error("INVALID_SETTINGS: 缓存容量和有效期必须为正整数");
         await this.scheduler.schedule(
           async () => {
             if (

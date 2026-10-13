@@ -64,6 +64,14 @@ const extWebpack = (config, env) => {
   // 2. 将输出的文件命名重写为固定格式，方便 manifest.json 静态引用，防止文件哈希化导致引用失效
   config.output.filename = "[name].js";
   config.output.assetModuleFilename = "media/[name][ext]";
+  // 动态依赖随入口打包；保留分块注册机制，让 HTML 加载的页面共享模块正常启动。
+  config.module.parser = {
+    ...config.module.parser,
+    javascript: {
+      ...config.module.parser?.javascript,
+      dynamicImportMode: "eager",
+    },
+  };
   aliasLocalRuntime(config);
 
   config.optimization.splitChunks = {
@@ -530,6 +538,7 @@ switch (process.env.REACT_APP_CLIENT) {
 module.exports = {
   webpack: webpackConfig,
   jest: (config) => {
+    if (!process.env.REACT_APP_CLIENT) process.env.REACT_APP_CLIENT = "chrome";
     config.testPathIgnorePatterns = [
       ...(config.testPathIgnorePatterns || []),
       "<rootDir>/src/localAi/",

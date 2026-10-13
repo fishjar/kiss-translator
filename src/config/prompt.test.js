@@ -502,8 +502,8 @@ describe("prompt settings", () => {
     expect(defaultSummary).toBeDefined();
     expect(defaultSummary.category).toBe(PROMPT_CATEGORY_SUMMARY);
     expect(defaultSummary.systemPrompt).toContain("{{to}}");
-    expect(defaultSummary.systemPrompt).toContain("### 核心概要");
-    expect(defaultSummary.systemPrompt).toContain("### 关键要点");
+    expect(defaultSummary.systemPrompt).toContain("Overview:");
+    expect(defaultSummary.systemPrompt).toContain("Key Takeaways:");
     expect(defaultSummary.userPrompt).toContain("{{transcript}}");
     expect(
       UI_LANGS.every(([lang]) => I18N[defaultSummary.nameKey]?.[lang])

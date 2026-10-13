@@ -41,7 +41,7 @@ function fmtMs(ms) {
 
 export default function OcrTab() {
   const i18n = useI18n();
-  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
+  const { logs, addLog, clearLogs } = useLocalAiLog();
 
   // PaddleOCR 状态
   const [selectedGroupId, setSelectedGroupId] = useState(OCR_GROUPS[0].id);
@@ -477,13 +477,6 @@ export default function OcrTab() {
               {error}
             </Alert>
           )}
-
-          <LogViewer
-            logs={logs}
-            expanded={expanded}
-            setExpanded={setExpanded}
-            onClear={clearLogs}
-          />
         </CardContent>
       </Card>
 
@@ -571,6 +564,10 @@ export default function OcrTab() {
           </CardContent>
         </Card>
       )}
+      <LogViewer
+        logs={logs}
+        onClear={clearLogs}
+      />
     </Stack>
   );
 }

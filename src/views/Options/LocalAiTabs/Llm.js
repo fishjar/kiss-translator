@@ -56,7 +56,7 @@ export function buildTranslatePrompt(template, to, text) {
 
 export default function LlmTab() {
   const i18n = useI18n();
-  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
+  const { logs, addLog, clearLogs } = useLocalAiLog();
   const [selectedId, setSelectedId] = useState(DEFAULT_LLM_ID);
   const [device, setDevice] = useState("webgpu");
   const [recs, setRecs] = useState({});
@@ -768,15 +768,12 @@ export default function LlmTab() {
               {error}
             </Alert>
           )}
-
-          <LogViewer
-            logs={logs}
-            expanded={expanded}
-            setExpanded={setExpanded}
-            onClear={clearLogs}
-          />
         </CardContent>
       </Card>
+      <LogViewer
+        logs={logs}
+        onClear={clearLogs}
+      />
     </Stack>
   );
 }

@@ -115,6 +115,7 @@
     "bestzip": "^2.2.1",
     "cross-env": "^7.0.3",
     "dotenv": "^17.2.1",
+    "fake-indexeddb": "^6.2.5",
     "find-up": "^7.0.0",
     "onnxruntime-web": "1.26.0-dev.20260416-b7804b056c",
     "prettier": "3.6.2",

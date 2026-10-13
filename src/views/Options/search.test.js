@@ -1,4 +1,6 @@
-import { I18N } from "../../config/i18n";
+import { I18N, registerI18n } from "../../config/i18n";
+import { TERMINOLOGY_PLAYGROUND_I18N } from "../../config/locales/terminologyPlayground";
+import { SUBTITLE_PLAYGROUND_I18N } from "../../config/locales/subtitlePlayground";
 import {
   SETTINGS_SEARCH_KEYS,
   SETTINGS_SEARCH_LABELS,
@@ -6,6 +8,12 @@ import {
   getSettingsSearchTarget,
   searchSettingsGroups,
 } from "./search";
+
+// The Options entry imports Playground pages, which register these dictionaries.
+beforeAll(() => {
+  registerI18n(TERMINOLOGY_PLAYGROUND_I18N);
+  registerI18n(SUBTITLE_PLAYGROUND_I18N);
+});
 
 const labels = {
   overview: "options_overview",
@@ -43,17 +51,16 @@ function search(query, lang = "zh") {
 }
 
 test("every indexed field has a localized label and appears once per page", () => {
+  const missing = [];
   for (const keys of Object.values(SETTINGS_SEARCH_KEYS)) {
     expect(new Set(keys).size).toBe(keys.length);
     for (const key of keys) {
-      expect(SETTINGS_SEARCH_LABELS[key] || I18N[key]?.zh).toEqual(
-        expect.any(String)
-      );
-      expect(SETTINGS_SEARCH_LABELS[key] || I18N[key]?.en).toEqual(
-        expect.any(String)
-      );
+      for (const lang of ["zh", "en"])
+        if (typeof (SETTINGS_SEARCH_LABELS[key] || I18N[key]?.[lang]) !== "string")
+          missing.push(`${key}:${lang}`);
     }
   }
+  expect(missing).toEqual([]);
 });
 
 test.each([

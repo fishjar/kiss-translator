@@ -21,7 +21,6 @@ import ReaderAlert from "./ReaderAlert";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import FormatSizeRoundedIcon from "@mui/icons-material/FormatSizeRounded";
-import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -208,6 +207,7 @@ export const EPUB_READER_THEMES = [
   {
     id: "default",
     name: "经典纯白",
+    nameKey: "epub_theme_white",
     bg: "#FFFFFF",
     deskBg: "#F0F2F5",
     text: "#1F2937",
@@ -217,6 +217,7 @@ export const EPUB_READER_THEMES = [
   {
     id: "sepia",
     name: "羊皮纸米黄",
+    nameKey: "epub_theme_sepia",
     bg: "#F8F1E3",
     deskBg: "#E8DECB",
     text: "#2C2621",
@@ -226,6 +227,7 @@ export const EPUB_READER_THEMES = [
   {
     id: "eyecare",
     name: "柔和护眼绿",
+    nameKey: "epub_theme_green",
     bg: "#EBF3EA",
     deskBg: "#D7E4D5",
     text: "#1C3829",
@@ -235,6 +237,7 @@ export const EPUB_READER_THEMES = [
   {
     id: "dark",
     name: "夜间深黑",
+    nameKey: "epub_theme_dark",
     bg: "#18181B",
     deskBg: "#09090B",
     text: "#D4D4D8",
@@ -247,16 +250,19 @@ export const EPUB_FONT_PRESETS = [
   {
     id: "default",
     label: "系统默认 (无衬线)",
+    labelKey: "epub_font_default",
     font: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif',
   },
   {
     id: "serif",
     label: "衬线体 (宋体/明朝)",
+    labelKey: "epub_font_serif",
     font: 'SimSun, "Songti SC", STSong, "Source Han Serif CN", Georgia, serif',
   },
   {
     id: "kaiti",
     label: "楷体 (传统优美)",
+    labelKey: "epub_font_kaiti",
     font: 'KaiTi, "Kaiti SC", STKaiti, BiauKai, serif',
   },
 ];
@@ -1019,7 +1025,7 @@ export default function EpubReaderView({
               <IconButton
                 size="small"
                 ref={tocToggleRef}
-                aria-label={tocCollapsed ? "展开目录" : "折叠目录"}
+                aria-label={tocCollapsed ? i18n("expand_toc", "展开目录") : i18n("collapse_toc", "折叠目录")}
                 aria-expanded={!tocCollapsed}
                 onClick={() => setTocCollapsed(!tocCollapsed)}
                 color={!tocCollapsed ? "primary" : "default"}
@@ -1368,7 +1374,7 @@ export default function EpubReaderView({
                   boxShadow: "none",
                 }}
               >
-                {font.label}
+                {i18n(font.labelKey, font.label)}
               </Button>
             ))}
           </Box>
@@ -1383,7 +1389,7 @@ export default function EpubReaderView({
             {EPUB_READER_THEMES.map((theme) => {
               const isSelected = readerPreferences?.themeId === theme.id;
               return (
-                <Tooltip key={theme.id} title={theme.name}>
+                <Tooltip key={theme.id} title={i18n(theme.nameKey, theme.name)}>
                   <Box
                     onClick={() =>
                       onChangeReaderPreferences?.({ themeId: theme.id })

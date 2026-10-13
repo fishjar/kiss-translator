@@ -5,13 +5,14 @@ import { normalizeHttpTimeout, mergeAbortSignals } from "./request";
 export const LOCAL_AI_CHAT_URL = "local-ai://chat";
 
 export async function requestLocalChat(init, opts = {}, onToken) {
-  const payload = JSON.parse(init.body);
+  const { cacheMode, ...payload } = JSON.parse(init.body);
   const result = await localAiRequest(
     {
       id: `local-chat-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       service: "llm",
       method: "chat",
       payload,
+      options: { cacheMode },
     },
     {
       signal: opts.signal,

@@ -28,6 +28,7 @@ export interface TranscribeResult {
  * 携带 sessionVersion 并在模型被切换或 RuntimePool 淘汰时使就绪状态失效。
  */
 export class AsrClient {
+  cacheMode: "default" | "refresh" | "off" = "default";
   onProgress: ((p: AsrProgress) => void) | null = null;
   onStateChange: ((ready: boolean, reason?: string) => void) | null = null;
   private isLoaded = false;
@@ -122,6 +123,7 @@ export class AsrClient {
           payload: { audio, language, ...target },
           priority: TASK_PRIORITY.ASR,
           options: {
+            cacheMode: target?.cacheMode || this.cacheMode,
             sessionVersion: target
               ? undefined
               : (this.currentVersion ?? undefined),

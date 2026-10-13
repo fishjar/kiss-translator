@@ -1,3 +1,4 @@
+import { isApiConfigured } from "../../config/serviceSelection";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Tabs from "@mui/material/Tabs";
@@ -20,7 +21,6 @@ import {
   OPT_LANGS_MAP,
   OPT_DICT_MAP,
   OPT_SUG_MAP,
-  API_SPE_TYPES,
   PROMPT_CATEGORY_DICTIONARY,
   PROMPT_MODE_FOLLOW_API,
   findPromptBySlug,
@@ -46,7 +46,7 @@ import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import { isShadowHostMoving } from "../../libs/shadowHost";
-import { isApiAvailableFor } from "../../config/serviceSelection";
+import { isApiAvailableFor, supportsApiCapability } from "../../config/serviceSelection";
 import TextareaResizeGrip from "../../components/TextareaResizeGrip";
 import useTextareaHeightLock, {
   useTextareaGripStyle,
@@ -129,6 +129,7 @@ export default function TranForm({
   enSug: initEnSug = "-",
   aiDictApiSlug = "-",
   aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
+  ttsApiSlug = "",
   prompts = [],
   selectionContext = "",
   isPlaygound = false,
@@ -370,7 +371,7 @@ export default function TranForm({
   const optApis = useMemo(
     () =>
       transApis
-        .filter((api) => isApiAvailableFor(api, "translation"))
+        .filter((api) => isApiAvailableFor(api, "translate"))
         .map((api) => ({
           key: api.apiSlug,
           name: api.apiName || api.apiSlug,
@@ -431,7 +432,7 @@ export default function TranForm({
       (api) =>
         api.apiSlug === aiDictApiSlug &&
         !api.isDisabled &&
-        API_SPE_TYPES.ai.has(api.apiType)
+        isApiConfigured(api) && supportsApiCapability(api, "dictionary")
     );
     if (!apiSetting) {
       return null;
@@ -440,6 +441,7 @@ export default function TranForm({
     // Following the API requires a resolved, nonblank dictPrompt.
     // Empty prompts would create a billed request without useful instructions.
     if (aiDictPromptSlug === PROMPT_MODE_FOLLOW_API) {
+      if (apiSetting.provider?.implementation.kind !== "native" && apiSetting.provider) return apiSetting;
       return hasPrompt(apiSetting.dictPrompt) ? apiSetting : null;
     }
 
@@ -537,6 +539,7 @@ export default function TranForm({
 
   const translationResults = activeApiSlugs.map((slug) => (
     <TranCont
+      ttsApiSlug={ttsApiSlug}
       key={slug}
       text={translationText}
       fromLang={fromLang}
@@ -1054,6 +1057,7 @@ export default function TranForm({
                   aria-labelledby={aiDictionaryTabId}
                 >
                   <AiDictCont
+                    ttsApiSlug={ttsApiSlug}
                     text={text}
                     fromLang={fromLang}
                     speechLang={fromLang === "auto" ? deLang : fromLang}

@@ -610,7 +610,7 @@ describe("YouTubeSubtitleList", () => {
             apiType: "OpenAI",
             sourceType: "network",
             isDisabled: false,
-            capabilities: ["translation", "summarization"],
+            enabledCapabilities: ["translate", "summarize"],
           },
           {
             apiSlug: "azure_trans_only",
@@ -618,7 +618,7 @@ describe("YouTubeSubtitleList", () => {
             apiType: "AzureAI",
             sourceType: "network",
             isDisabled: false,
-            capabilities: ["translation"], // 未开启总结能力
+            enabledCapabilities: ["translate"], // 未开启总结能力
           },
         ],
       });
@@ -634,7 +634,7 @@ describe("YouTubeSubtitleList", () => {
             apiType: "OpenAI",
             sourceType: "network",
             isDisabled: false,
-            capabilities: ["translation", "summarization"],
+            enabledCapabilities: ["translate", "summarize"],
           },
         ],
       }));

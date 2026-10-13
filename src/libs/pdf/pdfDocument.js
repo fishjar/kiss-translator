@@ -84,7 +84,7 @@ export async function openPdf(file, onPassword, signal) {
   }
 }
 
-export async function renderPdfRegion(page, bbox, signal, scale = 1.5) {
+export async function renderPdfRegion(page, bbox, signal, scale = 1.5, masks = []) {
   const viewport = page.getViewport({ scale }),
     full = page.getViewport({ scale: 1 });
   const box = bbox || [0, 0, full.width, full.height];
@@ -95,7 +95,7 @@ export async function renderPdfRegion(page, bbox, signal, scale = 1.5) {
       page,
       bbox,
       signal,
-      scale * Math.sqrt(16000000 / (width * height))
+      scale * Math.sqrt(16000000 / (width * height)), masks
     );
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -112,6 +112,16 @@ export async function renderPdfRegion(page, bbox, signal, scale = 1.5) {
   try {
     if (signal?.aborted) throw new DOMException("已取消", "AbortError");
     await task.promise;
+    if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+    const context = canvas.getContext("2d");
+    context.fillStyle = "white";
+    for (const mask of masks) {
+      const left = Math.max(box[0], mask[0]), top = Math.max(box[1], mask[1]);
+      const right = Math.min(box[2], mask[2]), bottom = Math.min(box[3], mask[3]);
+      if (right > left && bottom > top)
+        context.fillRect((left - box[0]) * scale, (top - box[1]) * scale,
+          (right - left) * scale, (bottom - top) * scale);
+    }
     return await new Promise((resolve, reject) =>
       canvas.toBlob(
         (blob) => (blob ? resolve(blob) : reject(new Error("页面渲染失败"))),

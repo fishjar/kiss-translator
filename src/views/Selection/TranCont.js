@@ -10,6 +10,7 @@ import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { apiTranslate } from "../../apis";
+import { supportsServiceFeature } from "../../providers/features";
 import {
   API_SPE_TYPES,
   OPT_TRANS_BUILTINAI,
@@ -35,7 +36,7 @@ import useTextareaHeightLock, {
 const canRenderStream = (apiSetting) =>
   Boolean(
     apiSetting?.useStream &&
-      API_SPE_TYPES.stream.has(apiSetting.apiType) &&
+      supportsServiceFeature(apiSetting, "stream") &&
       (apiSetting.streamRenderMode || "disabled") !== "disabled"
   );
 
@@ -260,6 +261,7 @@ export default function TranCont({
   actionContainer = null,
   requestRevision = 0,
   onActionPointerDown,
+  ttsApiSlug = "",
 }) {
   const i18n = useI18n();
   const [trText, setTrText] = useState("");
@@ -459,6 +461,7 @@ export default function TranCont({
               copiedLabel={i18n("copy_success", "Copied")}
             />
             <BrowserTtsBtn
+              serviceId={ttsApiSlug}
               text={trText}
               lang={toLang}
               title={i18n("read_aloud")}
@@ -696,6 +699,7 @@ export default function TranCont({
                   />
                 )}
                 <BrowserTtsBtn
+                  serviceId={ttsApiSlug}
                   text={trText}
                   lang={toLang}
                   title={i18n("read_aloud")}

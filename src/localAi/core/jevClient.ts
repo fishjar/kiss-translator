@@ -24,6 +24,7 @@ export interface JevLoadInfo {
  * 实现统一 DecisionEngine 接口，携带 sessionVersion 并监听宿主状态变化。
  */
 export class JevClient implements DecisionEngine {
+  cacheMode: "default" | "refresh" | "off" = "default";
   onProgress: ((status: string) => void) | null = null;
   onStateChange: ((ready: boolean, reason?: string) => void) | null = null;
   private isLoaded = false;
@@ -104,12 +105,13 @@ export class JevClient implements DecisionEngine {
         payload: { state, questions, ...target },
         priority: TASK_PRIORITY.DECISION,
         options: {
+          cacheMode: target?.cacheMode || this.cacheMode,
           sessionVersion: target
             ? undefined
             : (this.currentVersion ?? undefined),
           modelId: this.currentModelId ?? undefined,
         },
-      });
+      }, { onProgress: (p) => { if (p.status) this.onProgress?.(p.status); } });
       if (target) {
         const info = result as typeof result & {
           modelId?: string;

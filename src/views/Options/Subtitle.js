@@ -1,8 +1,10 @@
+import { isApiConfigured } from "../../config/serviceSelection";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
-import OrderedApiSelect from "./OrderedApiSelect";
+import ServiceSelect from "./ServiceSelect";
+import LocalServiceNotice from "../../components/LocalServiceNotice";
 import ScenePromptSelect from "./ScenePromptSelect";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
@@ -32,6 +34,7 @@ import Alert from "@mui/material/Alert";
 import Switch from "@mui/material/Switch";
 import { useSubtitle } from "../../hooks/Subtitle";
 import { useApiList } from "../../hooks/Api";
+import { supportsApiCapability } from "../../config/serviceSelection";
 import { usePromptList } from "../../hooks/Prompt";
 import ValidationInput from "../../hooks/ValidationInput";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -415,7 +418,8 @@ export default function SubtitleSetting() {
   // 字幕设置 Hook
   const { subtitleSetting, updateSubtitle } = useSubtitle();
   // 启用的翻译引擎列表与 AI 模型引擎列表
-  const { enabledApis, aiEnabledApis } = useApiList();
+  const { enabledApis, aiEnabledApis, transApis } = useApiList();
+  const segmentationApis = (transApis || aiEnabledApis).filter((api) => !api.isDisabled && isApiConfigured(api) && supportsApiCapability(api, "segmentSubtitle"));
   const { prompts } = usePromptList();
   const subtitlePromptOptions = useMemo(
     () => getSubtitlePromptOptions(prompts),
@@ -426,14 +430,12 @@ export default function SubtitleSetting() {
     [prompts]
   );
   const summaryApis = useMemo(() => {
-    return (enabledApis || []).filter(
+    return (transApis || enabledApis || []).filter(
       (api) =>
         !api.isDisabled &&
-        (Array.isArray(api.capabilities)
-          ? api.capabilities.includes("summarization")
-          : false)
+        isApiConfigured(api) && supportsApiCapability(api, "summarize")
     );
-  }, [enabledApis]);
+  }, [enabledApis, transApis]);
 
   // 通用表单变动提交
   const handleChange = (e) => {
@@ -845,12 +847,12 @@ export default function SubtitleSetting() {
         <SettingsSection title={i18n("settings_quality_group")}>
           <SettingsCard>
             <SettingsRow label={i18n("translate_service")}>
-              <OrderedApiSelect
+              <ServiceSelect
                 scene={subtitleSetting}
                 apis={enabledApis}
                 label={i18n("translate_service")}
-                onChange={(apiSlugs) =>
-                  updateSubtitle({ apiSlugs, apiSlug: apiSlugs[0] || "" })
+                onChange={(apiSlug) =>
+                  updateSubtitle({ apiSlug })
                 }
               />
             </SettingsRow>
@@ -861,7 +863,8 @@ export default function SubtitleSetting() {
                 onChange={(promptSlug) => updateSubtitle({ promptSlug })}
               />
             </SettingsRow>
-            {/* Keep TextField so mismatched segmentation and translation
+              <LocalServiceNotice apis={enabledApis.filter((api) => [segSlug, summaryApiSlug, aiContextSlug].includes(api.apiSlug))} i18n={i18n} />
+              {/* Keep TextField so mismatched segmentation and translation
                 services retain their helper text and error state. */}
             <SettingsRow label={i18n("ai_segmentation")}>
               <TextField
@@ -889,7 +892,7 @@ export default function SubtitleSetting() {
                 }}
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                {aiEnabledApis.map((api) => (
+                {segmentationApis.map((api) => (
                   <MenuItem key={api.apiSlug} value={api.apiSlug}>
                     {api.apiName}
                   </MenuItem>
@@ -1096,7 +1099,7 @@ export default function SubtitleSetting() {
                 onChange={handleChange}
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                {aiEnabledApis.map((api) => (
+                {summaryApis.map((api) => (
                   <MenuItem key={api.apiSlug} value={api.apiSlug}>
                     {api.apiName}
                   </MenuItem>

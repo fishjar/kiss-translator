@@ -13,159 +13,98 @@ const vlm = new VlmClient();
 
 export async function installedLlmModels(): Promise<string[]> {
   await sharedModelManager.init();
-  return sharedModelManager.list()
-    .filter((record) => record.state === "installed" && record.manifest.task === "llm")
+  return sharedModelManager
+    .list()
+    .filter(
+      (record) => record.state === "installed" && record.manifest.task === "llm"
+    )
     .map((record) => record.manifest.id);
 }
 
-export interface InstalledCapabilityModelItem {
+export interface ServiceModelItem {
   id: string;
   name: string;
   task: string;
+  installed: boolean;
+  unavailableReasons: string[];
 }
 
-export interface InstalledCapabilityModelGroup {
+export interface ServiceModelGroup {
   category: string;
   title: string;
-  items: InstalledCapabilityModelItem[];
+  items: ServiceModelItem[];
 }
 
-export async function installedModelsForCapabilities(
-  capabilities: string[] = ["translation"]
-): Promise<InstalledCapabilityModelGroup[]> {
-  await sharedModelManager.init();
-  const installedRecords = sharedModelManager.list().filter((record) => record.state === "installed");
-  const installedIds = new Set(installedRecords.map((record) => record.manifest.id));
-
-  const groups: InstalledCapabilityModelGroup[] = [];
-  const caps = Array.isArray(capabilities) && capabilities.length > 0
-    ? capabilities
-    : ["translation"];
-
-  const wantOcr = caps.includes("ocr") || caps.includes("vlm");
-  const wantLlm =
-    caps.includes("llm") ||
-    caps.includes("translation") ||
-    caps.includes("summarization");
-  const wantAsr = caps.includes("asr");
-  const wantTts = caps.includes("tts");
-  const wantLayout = caps.includes("layout");
-
-  // 1. OCR 识图模型组
-  if (wantOcr) {
-    const ocrItems: InstalledCapabilityModelItem[] = [];
-    for (const group of OCR_GROUPS) {
-      if (installedIds.has(group.detId) && installedIds.has(group.recId)) {
-        ocrItems.push({
-          id: group.id,
-          name: group.name,
-          task: "ocr",
-        });
-      }
+/** Show the complete service catalogue without loading any model for inference. */
+export async function serviceModelOptions(): Promise<ServiceModelGroup[]> {
+  const { detectDevice } = await import("./core/deviceManager");
+  const [, device] = await Promise.all([
+    sharedModelManager.init(),
+    detectDevice(),
+  ]);
+  const records = sharedModelManager.list();
+  const installed = new Set(
+    records
+      .filter((record) => record.state === "installed")
+      .map((record) => record.manifest.id)
+  );
+  const models = new Map(CATALOG.map((model) => [model.id, model]));
+  // Preserve installed custom models alongside the built-in catalogue.
+  for (const record of records)
+    if (!models.has(record.manifest.id))
+      models.set(record.manifest.id, record.manifest);
+  const definitions = [
+    ["ocr", "OCR / 文字识别", "ocr"],
+    ["vlm", "VLM / 识图与文档解析", "ocr-vlm"],
+    ["llm", "大语言 / 翻译 / 总结模型", "llm"],
+    ["asr", "语音识别 (ASR)", "asr"],
+    ["tts", "语音合成 (TTS)", "tts"],
+    ["layout", "界面分析 (Layout)", "doc-layout"],
+    ["decision", "JEV", "decision"],
+  ];
+  const reasons = (backends: string[]) => {
+    const result: string[] = [];
+    if (
+      !backends.some((backend) =>
+        backend === "webgpu"
+          ? device.webgpu
+          : backend === "wasm" && device.wasmSimd
+      )
+    ) {
+      result.push(
+        backends.includes("wasm")
+          ? "当前环境不支持所需的 WebGPU/WASM SIMD"
+          : "当前环境不支持 WebGPU"
+      );
     }
-    for (const m of CATALOG) {
-      if (m.task === "ocr-vlm" && installedIds.has(m.id)) {
-        ocrItems.push({
-          id: m.id,
-          name: m.name,
-          task: "ocr-vlm",
-        });
-      }
-    }
-    if (ocrItems.length > 0) {
-      groups.push({
-        category: "ocr",
-        title: "OCR / 识图模型",
-        items: ocrItems,
-      });
-    }
-  }
-
-  // 2. 大语言 / 翻译 / 总结模型组
-  if (wantLlm) {
-    const llmItems: InstalledCapabilityModelItem[] = [];
-    for (const record of installedRecords) {
-      if (record.manifest.task === "llm") {
-        llmItems.push({
-          id: record.manifest.id,
-          name: record.manifest.name || record.manifest.id,
-          task: "llm",
-        });
-      }
-    }
-    if (llmItems.length > 0) {
-      groups.push({
-        category: "llm",
-        title: "大语言 / 翻译 / 总结模型",
-        items: llmItems,
-      });
-    }
-  }
-
-  // 3. 语音识别 (ASR)
-  if (wantAsr) {
-    const asrItems: InstalledCapabilityModelItem[] = [];
-    for (const record of installedRecords) {
-      if (record.manifest.task === "asr") {
-        asrItems.push({
-          id: record.manifest.id,
-          name: record.manifest.name || record.manifest.id,
-          task: "asr",
-        });
-      }
-    }
-    if (asrItems.length > 0) {
-      groups.push({
-        category: "asr",
-        title: "语音识别 (ASR)",
-        items: asrItems,
-      });
-    }
-  }
-
-  // 4. 语音合成 (TTS)
-  if (wantTts) {
-    const ttsItems: InstalledCapabilityModelItem[] = [];
-    for (const record of installedRecords) {
-      if (record.manifest.task === "tts") {
-        ttsItems.push({
-          id: record.manifest.id,
-          name: record.manifest.name || record.manifest.id,
-          task: "tts",
-        });
-      }
-    }
-    if (ttsItems.length > 0) {
-      groups.push({
-        category: "tts",
-        title: "语音合成 (TTS)",
-        items: ttsItems,
-      });
-    }
-  }
-
-  // 5. 界面分析 (Layout) 模型组
-  if (wantLayout) {
-    const layoutItems: InstalledCapabilityModelItem[] = [];
-    for (const record of installedRecords) {
-      if (record.manifest.task === "doc-layout") {
-        layoutItems.push({
-          id: record.manifest.id,
-          name: record.manifest.name || record.manifest.id,
-          task: "doc-layout",
-        });
-      }
-    }
-    if (layoutItems.length > 0) {
-      groups.push({
-        category: "layout",
-        title: "界面分析 (Layout)",
-        items: layoutItems,
-      });
-    }
-  }
-
-  return groups;
+    return result;
+  };
+  return definitions
+    .map(([category, title, task]) => ({
+      category,
+      title,
+      items: [
+        ...(category === "ocr"
+          ? OCR_GROUPS.map((group) => ({
+              id: group.id,
+              name: group.name,
+              task: "ocr",
+              installed: [group.detId, group.recId].every((id) => installed.has(id)),
+              unavailableReasons: reasons(["wasm", "webgpu"]),
+            }))
+          : []),
+        ...Array.from(models.values())
+          .filter((model) => category !== "ocr" && model.task === task)
+          .map((model) => ({
+            id: model.id,
+            name: model.name,
+            task: model.task,
+            installed: installed.has(model.id),
+            unavailableReasons: reasons(model.backend),
+          })),
+      ],
+    }))
+    .filter((group) => group.items.length);
 }
 
 export async function translateWithLocalModel(
@@ -174,12 +113,15 @@ export async function translateWithLocalModel(
   toLang: string,
   signal?: AbortSignal
 ): Promise<string> {
-  return runtimeHost.request({
-    id: nextRpcId("file-translate"),
-    service: "translation",
-    method: "translate",
-    payload: { modelRef, text, fromLang: "auto", toLang },
-  }, { signal });
+  return runtimeHost.request(
+    {
+      id: nextRpcId("file-translate"),
+      service: "translation",
+      method: "translate",
+      payload: { modelRef, text, fromLang: "auto", toLang },
+    },
+    { signal }
+  );
 }
 
 export async function summarizeWithLocalModel(
@@ -189,16 +131,19 @@ export async function summarizeWithLocalModel(
   signal?: AbortSignal
 ): Promise<string> {
   const userContent = prompt ? `${prompt}\n\n${text}` : text;
-  const response: any = await runtimeHost.request({
-    id: nextRpcId("local-summary"),
-    service: "llm",
-    method: "chat",
-    payload: {
-      modelRef,
-      messages: [{ role: "user", content: userContent }],
-      maxTokens: 2048,
+  const response: any = await runtimeHost.request(
+    {
+      id: nextRpcId("local-summary"),
+      service: "llm",
+      method: "chat",
+      payload: {
+        modelRef,
+        messages: [{ role: "user", content: userContent }],
+        maxTokens: 2048,
+      },
     },
-  }, { signal });
+    { signal }
+  );
   if (typeof response === "string") return response;
   return response?.text || "";
 }
@@ -227,9 +172,10 @@ export const ALL_OCR_MODELS: OcrModelOption[] = [
 
 export async function installedOcrGroups(): Promise<string[]> {
   await sharedModelManager.init();
-  const readyPaddle = OCR_GROUPS.filter((item) =>
-    sharedModelManager.get(item.detId)?.state === "installed" &&
-    sharedModelManager.get(item.recId)?.state === "installed"
+  const readyPaddle = OCR_GROUPS.filter(
+    (item) =>
+      sharedModelManager.get(item.detId)?.state === "installed" &&
+      sharedModelManager.get(item.recId)?.state === "installed"
   ).map((item) => item.id);
 
   const readyVlm = CATALOG.filter((m) => m.task === "ocr-vlm")
@@ -243,7 +189,17 @@ export { OCR_GROUPS };
 
 export async function recognizeFileImage(
   file: Blob,
-  optionsOrSignal?: { groupId?: string; device?: "webgpu" | "wasm"; prompt?: string; maxTokens?: number; temperature?: number } | AbortSignal,
+  optionsOrSignal?:
+    | {
+        groupId?: string;
+        device?: "webgpu" | "wasm";
+        prompt?: string;
+        maxTokens?: number;
+        temperature?: number;
+        onProgress?: (status: string) => void;
+        cacheMode?: "default" | "refresh" | "off";
+      }
+    | AbortSignal,
   maybeSignal?: AbortSignal
 ) {
   const options =
@@ -258,7 +214,9 @@ export async function recognizeFileImage(
   const selectedId = options?.groupId || "ppocr-v5-mobile";
 
   // 1. 检查是否为 VLM 端到端多模态大模型
-  const vlmModel = CATALOG.find((m) => m.id === selectedId && m.task === "ocr-vlm");
+  const vlmModel = CATALOG.find(
+    (m) => m.id === selectedId && m.task === "ocr-vlm"
+  );
   if (vlmModel) {
     if (sharedModelManager.get(vlmModel.id)?.state !== "installed") {
       throw new Error(`请先在本地 AI 模型中心安装 ${vlmModel.name}`);
@@ -271,7 +229,8 @@ export async function recognizeFileImage(
           file:
             vlmModel.files.find((f) => !f.path.includes("mmproj"))?.path ||
             vlmModel.files[0]!.path,
-          mmprojFile: vlmModel.files.find((f) => f.path.includes("mmproj"))?.path,
+          mmprojFile: vlmModel.files.find((f) => f.path.includes("mmproj"))
+            ?.path,
           device: options?.device || "webgpu",
           nCtx: 8192,
         }
@@ -291,9 +250,9 @@ export async function recognizeFileImage(
       options?.maxTokens ?? 4096,
       () => {},
       [imgBuf],
-      { modelRef: vlmModel.id, loadSpec: spec },
+      { modelRef: vlmModel.id, loadSpec: spec, cacheMode: options?.cacheMode },
       signal,
-      { temperature: options?.temperature },
+      { temperature: options?.temperature, onProgress: options?.onProgress }
     );
 
     const fullText = chatRes.text || "";
@@ -328,7 +287,7 @@ export async function recognizeFileImage(
     device: options?.device || "webgpu",
   };
   if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-  return ocr.recognize(file, signal, { modelRef: group.id, loadSpec: spec });
+  return ocr.recognize(file, signal, { modelRef: group.id, loadSpec: spec, cacheMode: options?.cacheMode }, options?.onProgress);
 }
 
 export { getModelDisplayName } from "./core/catalog";

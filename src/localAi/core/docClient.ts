@@ -8,6 +8,7 @@ import type { DocLoadSpec, LayoutResult } from "./docLayout";
 import type { ModelTarget } from "./modelTarget";
 
 export class DocClient {
+  cacheMode: "default" | "refresh" | "off" = "default";
   public onProgress?: (status: string) => void;
   public onStateChange?: (ready: boolean, reason?: string) => void;
   private isLoaded = false;
@@ -72,7 +73,7 @@ export class DocClient {
 
   async analyze(
     blob: Blob,
-    options: { modelId?: string; device?: string } = {},
+    options: { modelId?: string; device?: string; cacheMode?: "default" | "refresh" | "off" } = {},
     signal?: AbortSignal
   ): Promise<LayoutResult> {
     const reqId = nextRpcId("doc-analyze");
@@ -83,6 +84,7 @@ export class DocClient {
           id: reqId,
           service: "doc",
           method: "analyze",
+          options: { cacheMode: options.cacheMode || this.cacheMode },
           payload: {
             blob,
             modelRef: options.modelId || DOC_MODEL_ID,

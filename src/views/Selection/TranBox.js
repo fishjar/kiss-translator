@@ -68,6 +68,7 @@ export default function TranBox(props) {
       onClick={(e) => e.stopPropagation()}
     >
       <TranslationPanelContent
+        ttsApiSlug={props.tranboxSetting.ttsApiSlug || ""}
         simpleStyle={simpleStyle}
         text={props.text}
         setText={props.setText}

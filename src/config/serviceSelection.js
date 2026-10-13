@@ -2,169 +2,139 @@ import {
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_SYSTEM_TTS,
   OPT_TRANS_LOCALAI,
-  OPT_TRANS_GEMINI,
-  OPT_TRANS_CUSTOMIZE,
-  OPT_TRANS_CLOUDFLAREAI,
-  API_SPE_TYPES,
-} from "./api";
+} from "./apiConstants";
+import {
+  PROVIDER_CAPABILITIES,
+  supportsProviderCapability,
+  supportedCapabilities,
+  getSupportedCapabilityDescriptor,
+} from "../providers/capabilities";
+import { getBuiltinServiceDefinition } from "../builtin-plugins/definitions";
+import { resolveBuiltinCapabilities } from "../builtin-plugins/capabilities";
+import localModelTasks from "./localModelTasks.json";
+import { validateServiceConfig } from "../providers/instances";
 
 export const SOURCE_TYPES = ["builtin", "local", "network"];
-export const CAPABILITIES = [
-  "translation",
-  "summarization",
-  "segmentation",
-  "dictionary",
-  "jev",
-  "asr",
-  "ocr",
-  "layout",
-  "vlm",
-  "tts",
-  "llm",
-];
+export const CAPABILITIES = PROVIDER_CAPABILITIES;
 
+/** Pure metadata projection shared by forms, selectors and task admission. */
+export function projectApiCapabilities(api) {
+  if (!api) return {};
+  const definition = getBuiltinServiceDefinition(api.apiType);
+  if (
+    !definition ||
+    (api.provider && api.provider.implementation?.kind !== "native")
+  )
+    return api;
+  return {
+    ...api,
+    provider: {
+      ...definition,
+      apiVersion: "1",
+      ...api.provider,
+      capabilities: Object.fromEntries(
+        Object.entries(resolveBuiltinCapabilities(api)).filter(
+          ([name]) => !api.provider || api.provider.capabilities?.[name]
+        )
+      ),
+    },
+  };
+}
+export const supportedApiCapabilities = (api) =>
+  supportedCapabilities(projectApiCapabilities(api));
+export const enabledApiCapabilities = (api) =>
+  supportedApiCapabilities(api).filter(
+    (name) =>
+      api.enabledCapabilities === undefined ||
+      (Array.isArray(api.enabledCapabilities) &&
+        api.enabledCapabilities.includes(name))
+  );
+export const supportsApiCapability = (api, capability) =>
+  supportsProviderCapability(
+    { ...projectApiCapabilities(api), isDisabled: false },
+    capability
+  );
 export const supportsVlmApi = (api) =>
-  api?.apiType === OPT_TRANS_LOCALAI ||
-  (API_SPE_TYPES.ai.has(api?.apiType) &&
-    ![OPT_TRANS_CUSTOMIZE, OPT_TRANS_CLOUDFLAREAI].includes(api?.apiType) &&
-    !(
-      api?.apiType === OPT_TRANS_GEMINI && /interactions/.test(api?.url || "")
-    ));
-
-export const supportsApiCapability = (api, capability) => {
-  if (api?.apiType === OPT_TRANS_LOCALAI)
-    return CAPABILITIES.includes(capability);
-  if (api?.apiType === OPT_TRANS_SYSTEM_TTS) return capability === "tts";
-  if (api?.apiType === OPT_TRANS_BUILTINAI)
-    return ["translation", "summarization"].includes(capability);
-  if (capability === "vlm") return supportsVlmApi(api);
-  if (API_SPE_TYPES.ai.has(api?.apiType))
-    return [
-      "translation",
-      "summarization",
-      "segmentation",
-      "dictionary",
-      "llm",
-    ].includes(capability);
-  return capability === "translation";
-};
-
-export const orderedApiSlugs = (
-  scene,
-  listKey = "apiSlugs",
-  singleKey = "apiSlug"
-) => {
-  const list = Array.isArray(scene?.[listKey])
-    ? scene[listKey].filter((slug) => typeof slug === "string" && slug)
-    : [];
-  if (list.length > 0) {
-    return [...new Set(list)];
+  supportsApiCapability(api, "parseImage");
+/** Readiness is separate from support: an incomplete instance remains fully editable. */
+export function isApiConfigured(api) {
+  if (!api?.provider || api.provider.implementation?.kind === "native") return true;
+  try {
+    validateServiceConfig(api.provider, api.pluginConfig, enabledApiCapabilities(api));
+    return true;
+  } catch {
+    return false;
   }
-  return typeof scene?.[singleKey] === "string" && scene[singleKey]
-    ? [scene[singleKey]]
-    : [];
-};
-
+}
+export const supportedApiFeature = (api, capability) =>
+  getSupportedCapabilityDescriptor(projectApiCapabilities(api), capability);
 export const normalizeApiCapabilities = (api) => ({
   ...api,
   sourceType: SOURCE_TYPES.includes(api.sourceType)
     ? api.sourceType
-    : api.apiType === OPT_TRANS_BUILTINAI
-      ? "builtin"
-      : api.apiType === OPT_TRANS_SYSTEM_TTS
+    : api.apiType === OPT_TRANS_LOCALAI
+      ? "local"
+      : [OPT_TRANS_BUILTINAI, OPT_TRANS_SYSTEM_TTS].includes(api.apiType)
         ? "builtin"
         : "network",
-  capabilities: Array.isArray(api.capabilities)
-    ? [
-        ...new Set(
-          api.capabilities.filter((item) => CAPABILITIES.includes(item))
-        ),
-      ]
-    : ["translation"],
 });
-
-// Capability declarations alone never make an unimplemented adapter usable.
 export const isApiAvailableFor = (
   api,
-  capability = "translation",
+  capability = "translate",
   context = {}
 ) => {
-  if (
-    !api ||
-    (capability === "vlm" && !supportsVlmApi(api)) ||
-    api.isDisabled ||
-    !(api.capabilities || ["translation"]).includes(capability)
-  )
+  const projected = projectApiCapabilities(api);
+  if (!supportsProviderCapability(projected, capability, context.requirements))
     return false;
-  if (api.sourceType === "local") {
-    if (api.apiType !== OPT_TRANS_LOCALAI || !api.modelRef) return false;
-    if (context.installedModels)
-      return context.installedModels.has(api.modelRef);
+  if (!projected.provider?.implementation?.kind) return false;
+  if (projected.provider.implementation.kind !== "native") {
+    if (!isApiConfigured(projected)) return false;
     return ["chrome", "edge", "firefox"].includes(process.env.REACT_APP_CLIENT);
   }
-  if (api.sourceType === "builtin" && api.apiType === OPT_TRANS_BUILTINAI) {
-    if (capability === "translation") {
-      return typeof globalThis.Translator !== "undefined";
+  if (api.apiType === OPT_TRANS_LOCALAI) {
+    if (!["chrome", "edge", "firefox"].includes(process.env.REACT_APP_CLIENT))
+      return false;
+    if (context.installedModels) {
+      const group = localModelTasks.ocrGroups.find(
+        (item) => item.id === api.modelRef
+      );
+      return group
+        ? context.installedModels.has(group.detId) &&
+            context.installedModels.has(group.recId)
+        : context.installedModels.has(api.modelRef);
     }
-    if (capability === "summarization") {
+  }
+  if (api.apiType === OPT_TRANS_BUILTINAI) {
+    if (capability === "translate")
+      return typeof globalThis.Translator !== "undefined";
+    if (capability === "summarize")
       return (
         typeof globalThis.Summarizer !== "undefined" ||
         typeof globalThis.ai?.summarizer !== "undefined"
       );
-    }
+    if (capability === "detectLanguage")
+      return typeof globalThis.LanguageDetector !== "undefined";
     return false;
   }
-  if (api.sourceType === "builtin" && api.apiType === OPT_TRANS_SYSTEM_TTS) {
+  if (api.apiType === OPT_TRANS_SYSTEM_TTS)
     return (
-      capability === "tts" && typeof globalThis.speechSynthesis !== "undefined"
+      capability === "speak" &&
+      (typeof globalThis.speechSynthesis !== "undefined" ||
+        typeof globalThis.chrome?.tts?.speak === "function")
     );
-  }
   return true;
 };
-
-export const availableApisForScene = (
+export const availableApiForScene = (
   scene,
   apis,
-  capability = "translation",
+  capability = "translate",
   context = {},
-  listKey = "apiSlugs",
   singleKey = "apiSlug"
-) =>
-  orderedApiSlugs(scene, listKey, singleKey)
-    .map((slug) => apis?.find((api) => api.apiSlug === slug))
-    .filter((api) => isApiAvailableFor(api, capability, context));
-
-export const availableImageApisForScene = (scene, apis, context = {}) =>
-  orderedApiSlugs(scene, "ocrApiSlugs", "ocrApiSlug")
-    .map((slug) => apis?.find((api) => api.apiSlug === slug))
-    .filter(
-      (api) =>
-        api &&
-        !api.isDisabled &&
-        (api.capabilities || []).some((cap) => ["ocr", "vlm"].includes(cap)) &&
-        (api.ocrAvailable !== undefined
-          ? api.ocrAvailable
-          : isApiAvailableFor(
-              api,
-              api.capabilities.includes("vlm") ? "vlm" : "ocr",
-              context
-            ))
-    );
-
-export const availableLayoutApisForScene = (scene, apis, context = {}) =>
-  orderedApiSlugs(scene, "layoutApiSlugs", "layoutApiSlug")
-    .map((slug) => apis?.find((api) => api.apiSlug === slug))
-    .filter(
-      (api) =>
-        api &&
-        !api.isDisabled &&
-        (api.capabilities || []).includes("layout") &&
-        (api.layoutAvailable !== undefined
-          ? api.layoutAvailable
-          : isApiAvailableFor(api, "layout", context))
-    );
-
+) => {
+  const api = apis?.find((api) => api.apiSlug === scene?.[singleKey]);
+  return isApiAvailableFor(api, capability, context) ? api : undefined;
+};
 export const withScenePrompt = (api, scene) =>
   scene?.promptSlug
-    ? { ...api, nobatchPromptSlug: scene.promptSlug, useBatchFetch: false }
+    ? { ...api, scenePromptSlug: scene.promptSlug, nobatchPromptSlug: scene.promptSlug, useBatchFetch: false }
     : api;

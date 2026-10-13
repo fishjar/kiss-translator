@@ -24,7 +24,8 @@ import {
   OPT_TRANS_SYSTEM_TTS,
   OPT_TRANS_LOCALAI,
 } from "./api";
-import { normalizeApiCapabilities, orderedApiSlugs } from "./serviceSelection";
+import { normalizeApiCapabilities } from "./serviceSelection";
+import { withBuiltinProvider } from "../builtin-plugins";
 
 // 聚合翻译协议定义
 export const PROMPT_PROTOCOL_LINE = "line";
@@ -86,19 +87,15 @@ export const DEFAULT_SUMMARY_PROMPT = {
   category: PROMPT_CATEGORY_SUMMARY,
   nameKey: "preset_prompt_default_video_summary",
   name: "视频总结",
-  systemPrompt: `You are an expert video content summarizer. Analyze the video title, description, and transcript, then generate a clear, insightful Markdown summary in {{to}}.
-Structure your response as:
-### 核心概要
-(1-2 sentences summarizing the central theme)
+  systemPrompt: `Summarize the video using the provided title, description, and transcript. Write the entire summary, including headings, in {{to}}.
 
-### 关键要点
-- **要点 1**: 核心要点说明
-- **要点 2**: 核心要点说明
-- **要点 3**: 核心要点说明
-- **要点 4**: 核心要点说明
-- **要点 5**: 核心要点说明
+Use the transcript as the primary source and the title and description as context. Include only information supported by the input. Do not invent facts or conclusions.
 
-Output clean Markdown only.`,
+Output Markdown with two sections:
+- Overview: 1–2 sentences describing the main topic.
+- Key Takeaways: up to 5 distinct bullet points, with a short bold label for each. Use fewer points when the content does not support 5.
+
+Translate the section headings into {{to}}. Return only the summary, without a preamble or Markdown code fences.`,
   userPrompt: `Title: {{title}}
 Description: {{description}}
 
@@ -126,14 +123,14 @@ export const PRESET_PROMPTS = [
     name: "视觉解析（Markdown）",
     systemPrompt: "",
     userPrompt:
-      "Extract all text from the image. Preserve reading order and table structure. Output only the recognition result in Markdown, without explanations. Do not invent content that is not visible.",
+      "Extract all visible text from the image in its original language. Preserve reading order, paragraph breaks, and table structure. Do not translate, summarize, or invent missing or unreadable content. Return only the extracted content in Markdown, without explanations or Markdown code fences.",
   },
   ...[
-    ["vlm-glm-text", "GLM-OCR 文档", "Text Recognition:"],
-    ["vlm-paddle-text", "PaddleOCR-VL 文档", "OCR:"],
-    ["vlm-table", "表格识别", "Table Recognition:"],
-    ["vlm-formula", "公式识别", "Formula Recognition:"],
-    ["vlm-unlimited-document", "Unlimited-OCR 文档", "document parsing."],
+    ["vlm-glm-text", "GLM-OCR Document", "Text Recognition:"],
+    ["vlm-paddle-text", "PaddleOCR-VL Document", "OCR:"],
+    ["vlm-table", "Table Recognition", "Table Recognition:"],
+    ["vlm-formula", "Formula Recognition", "Formula Recognition:"],
+    ["vlm-unlimited-document", "Unlimited-OCR Document", "document parsing."],
   ].map(([slug, name, userPrompt]) => ({
     slug,
     name,
@@ -959,8 +956,6 @@ export function migrateSettingToV4(setting = {}) {
   if (!setting || typeof setting !== "object") return setting;
   const previous = migrateSettingToV3(setting);
   if (getSettingVersion(previous) >= SETTINGS_VERSION_V4) return previous;
-  const withList = (scene) =>
-    scene ? { ...scene, apiSlugs: orderedApiSlugs(scene) } : scene;
   const apis = Array.isArray(previous.transApis)
     ? previous.transApis.map(normalizeApiCapabilities)
     : previous.transApis;
@@ -972,13 +967,6 @@ export function migrateSettingToV4(setting = {}) {
     version: SETTINGS_VERSION_V4,
     transApis: Array.isArray(apis) ? [...apis, ...added] : apis,
   };
-  if (previous.inputRule) migrated.inputRule = withList(previous.inputRule);
-  if (previous.subtitleSetting)
-    migrated.subtitleSetting = withList(previous.subtitleSetting);
-  if (previous.mouseHoverSetting)
-    migrated.mouseHoverSetting = withList(previous.mouseHoverSetting);
-  if (previous.tranboxSetting)
-    migrated.tranboxSetting = withList(previous.tranboxSetting);
   return migrated;
 }
 
@@ -1161,6 +1149,69 @@ export function resolveApiPromptSettings(
     return apiSetting;
   }
 
+  if (apiSetting.scenePromptSlug) {
+    const prompt = findPromptBySlug(userPrompts, apiSetting.scenePromptSlug);
+    apiSetting = {
+      ...apiSetting,
+      useBatchFetch: prompt?.category === PROMPT_CATEGORY_BATCH_SYSTEM,
+      ...(prompt?.category === PROMPT_CATEGORY_BATCH_SYSTEM && {
+        batchPromptSlug: prompt.slug,
+      }),
+    };
+    delete apiSetting.scenePromptSlug;
+  }
+
+  // External handlers use explicit host prompts or their own snapshot defaults.
+  if (
+    apiSetting.provider &&
+    apiSetting.provider.implementation?.kind !== "native"
+  ) {
+    const next = { ...apiSetting };
+    // Missing references retain the plugin snapshot rather than acquiring native defaults.
+    for (const [slugKey, systemKey, userKey, slot] of [
+      ["batchPromptSlug", "systemPrompt", "batchUserPrompt", "batch"],
+      ["nobatchPromptSlug", "nobatchPrompt", "nobatchUserPrompt", "nobatch"],
+      ["dictPromptSlug", "dictPrompt", "dictUserPrompt", "dictionary"],
+      ["subtitlePromptSlug", "subtitlePrompt", undefined, "subtitle"],
+      ["vlmPromptSlug", "vlmPrompt", undefined, "vlm"],
+    ]) {
+      const prompt = next[slugKey]
+        ? findPromptBySlug(userPrompts, next[slugKey])
+        : next.provider.defaultPrompts?.[slot];
+      if (!prompt) {
+        // Empty legacy host defaults are not explicit plugin prompt templates.
+        if (!next[slugKey] && ["batch", "nobatch"].includes(slot)) {
+          if (next[systemKey] === "") delete next[systemKey];
+          if (userKey && next[userKey] === "") delete next[userKey];
+        }
+        continue;
+      }
+      next[systemKey] = prompt.systemPrompt;
+      if (userKey) next[userKey] = prompt.userPrompt;
+      if (
+        (slot === "batch" && next.useBatchFetch) ||
+        (slot === "nobatch" && !next.useBatchFetch)
+      ) {
+        next.outputProtocol = next[slugKey]
+          ? slot === "batch"
+            ? prompt.protocol || "json"
+            : "text"
+          : prompt.protocol || "json";
+      }
+    }
+    if (
+      subtitleSetting.segPromptMode === PROMPT_MODE_GLOBAL &&
+      subtitleSetting.segPromptSlug
+    ) {
+      const prompt = findPromptBySlug(
+        userPrompts,
+        subtitleSetting.segPromptSlug
+      );
+      if (prompt) next.subtitlePrompt = prompt.systemPrompt;
+    }
+    return next;
+  }
+
   const cleanedApiSetting = removeLegacyApiPromptIds(apiSetting);
   const nextApiSetting =
     cleanedApiSetting === apiSetting ? { ...apiSetting } : cleanedApiSetting;
@@ -1288,7 +1339,9 @@ export function resolveApiPromptSettings(
     nextApiSetting.dictUserPrompt = dictPrompt.userPrompt;
   }
 
-  return nextApiSetting;
+  // Scene callers already resolve prompts here. Project old built-ins at the same
+  // read-only boundary so existing apiSlug references enter compiled routing.
+  return withBuiltinProvider(nextApiSetting);
 }
 
 /**

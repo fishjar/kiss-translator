@@ -288,9 +288,12 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
 .kt-api-list__item,
 .kt-api-list__card { min-width: 0; width: 100%; }
 .kt-api-provider-icon { width: 38px !important; height: 38px !important; border: 1px solid var(--kt-linev); border-radius: 50%; background: #fff; }
-.kt-api-detail { min-width: 0; padding: 22px; border: 1px solid var(--kt-linev); border-radius: 16px; background: var(--kt-sf0); animation: kt-m3-rise .35s var(--kt-spring); }
+.kt-api-detail { min-width: 0; animation: kt-m3-rise .35s var(--kt-spring); }
+.kt-service-card { min-width: 0; padding: 22px; border: 1px solid var(--kt-linev); border-radius: 16px; background: var(--kt-sf0); }
+.kt-service-test__actions { padding-top: 16px; border-top: 1px solid var(--kt-linev); }
 .kt-api-detail__header { padding-bottom: 16px; border-bottom: 1px solid var(--kt-linev); }
 .kt-api-detail__footer { padding-top: 16px; border-top: 1px solid var(--kt-linev); }
+.kt-api-detail__footer > :last-child { margin-inline-start: auto !important; }
 .kt-api-detail__primary-actions,
 .kt-api-detail__secondary-actions,
 .kt-api-detail__status-actions { flex-wrap: wrap; }

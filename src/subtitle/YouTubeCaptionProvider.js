@@ -335,7 +335,6 @@ export class YouTubeCaptionProvider {
       const previousApiSlug = this.#setting.apiSlug;
       logger.debug("Youtube Provider: update setting", name, value);
       this.#setting.apiSlug = value;
-      this.#setting.apiSlugs = [value];
       this.#setting.apiSetting = apiSetting;
       this.#hasRuntimeApiOverride = true;
       this.#playerUi.updateMenuProps();

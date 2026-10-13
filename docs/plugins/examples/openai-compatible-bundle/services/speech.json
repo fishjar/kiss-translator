@@ -1,0 +1,23 @@
+{
+  "rulesVersion": 1,
+  "handlers": {
+    "synthesizeSpeech": {
+      "request": {
+        "url": { "$url": { "base": "config.baseUrl", "path": "audio/speech" } },
+        "method": "POST",
+        "headers": { "Content-Type": "application/json" },
+        "auth": { "type": "bearer", "secret": { "$secret": "apiKey" } },
+        "bodyType": "json",
+        "body": {
+          "model": { "$ref": "config.model" },
+          "voice": { "$ref": "config.voice" },
+          "input": { "$ref": "input.text" },
+          "speed": { "$ref": "input.speed", "omitIfEmpty": true },
+          "response_format": "mp3"
+        },
+        "responseType": "asset"
+      },
+      "response": { "kind": "asset" }
+    }
+  }
+}

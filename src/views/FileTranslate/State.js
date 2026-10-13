@@ -15,12 +15,22 @@ import Select from "@mui/material/Select";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import { getFileClient } from "../../fileTranslation/client";
 import { DEFAULT_FILE_TRANSLATE_SETTING } from "../../config/setting";
-import { I18N } from "../../config/i18n";
+import { I18N, UI_LANGS } from "../../config/i18n";
 import { OPT_STYLE_ALL } from "../../config/styles";
 import { builtinStylesMap } from "../../libs/style";
 import { useHomepageSettings } from "../../homepage/useHomepageSettings";
 
 const Context = createContext(null);
+const LANGUAGE_STORAGE_KEY = "kiss-file-translate-lang";
+const validLanguage = (language) => UI_LANGS.some(([code]) => code === language);
+const readLanguage = () => {
+  try {
+    const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    return validLanguage(stored) ? stored : "";
+  } catch {
+    return "";
+  }
+};
 const EMPTY = {
   scenes: DEFAULT_FILE_TRANSLATE_SETTING,
   services: [],
@@ -38,9 +48,10 @@ export function FileTranslationProvider({ children }) {
   const preferences = useHomepageSettings();
   const [context, setContext] = useState(EMPTY);
   const [session, setSession] = useState(null);
+  const [cachedLanguage, setCachedLanguage] = useState(readLanguage);
   const language =
-    session && context.uiLang
-      ? context.uiLang
+    cachedLanguage
+      ? cachedLanguage
       : preferences.language === "zh_CN"
         ? "zh"
         : preferences.language;
@@ -57,6 +68,20 @@ export function FileTranslationProvider({ children }) {
   const [extensions, setExtensions] = useState([]);
   const [selectedExtension, setSelectedExtension] = useState("");
   const [connecting, setConnecting] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [reconnectAt, setReconnectAt] = useState(null);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!reconnectAt) return;
+    const update = () => setNow(Date.now());
+    update();
+    const timer = setInterval(update, 1000);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, [reconnectAt]);
   const clientRef = useRef(null);
   const writes = useRef(Promise.resolve());
   const active = useRef(false);
@@ -64,27 +89,56 @@ export function FileTranslationProvider({ children }) {
     const client = clientRef.current;
     const sessionId = client?.session?.sessionId;
     if (!sessionId) return;
-    const next = await client.request("getContext");
+    let next;
+    try {
+      next = await client.request("getContext");
+    } catch (failure) {
+      if (
+        active.current && client === clientRef.current &&
+        sessionId === client.session?.sessionId
+      ) throw failure;
+      return;
+    }
     if (
       active.current &&
       client === clientRef.current &&
       sessionId === client.session?.sessionId
-    )
+    ) {
       setContext(next);
+      if (validLanguage(next.uiLang)) {
+        setCachedLanguage(next.uiLang);
+        try {
+          window.localStorage.setItem(LANGUAGE_STORAGE_KEY, next.uiLang);
+        } catch {
+          // Keep the current language even when persistent storage is unavailable.
+        }
+      }
+    }
   }, []);
   const connect = useCallback(
     async (extensionId) => {
       setConnecting(true);
+      setReconnectAt(null);
       setError("");
       const client = clientRef.current;
+      const version = client.connectionVersion;
       try {
         const next = await client.connect(extensionId);
-        if (!active.current || client !== clientRef.current) return;
+        if (
+          !active.current || client !== clientRef.current ||
+          version !== client.connectionVersion
+        ) return;
         setSession(next);
+        setConnecting(false);
+        setReconnectAt(null);
         setExtensions([]);
+        setSelectedExtension(next.extensionId);
         await refresh();
       } catch (failure) {
-        if (!active.current || client !== clientRef.current || client.disposed)
+        if (
+          !active.current || client !== clientRef.current || client.disposed ||
+          version !== client.connectionVersion
+        )
           return;
         setError(failure.message);
         if (failure.extensions) {
@@ -92,7 +146,10 @@ export function FileTranslationProvider({ children }) {
           setSelectedExtension(failure.extensions[0]);
         }
       } finally {
-        if (active.current && client === clientRef.current)
+        if (
+          active.current && client === clientRef.current &&
+          version === client.connectionVersion
+        )
           setConnecting(false);
       }
     },
@@ -108,18 +165,34 @@ export function FileTranslationProvider({ children }) {
       if (!active.current || client !== clientRef.current) return;
       if (event.type === "disconnected") {
         setSession(null);
+        setConnecting(false);
+        setReconnectAt(null);
         setError(event.error.message);
       }
-      if (event.type === "reconnecting") setConnecting(true);
+      if (event.type === "connecting" || event.type === "reconnecting") {
+        setConnecting(true);
+        setReconnecting(event.type === "reconnecting" || event.reconnecting);
+        setReconnectAt(null);
+      }
+      if (event.type === "reconnectScheduled") {
+        setReconnectAt(event.reconnectAt);
+        setNow(Date.now());
+      }
       if (event.type === "reconnectFailed") {
         setConnecting(false);
         setError(event.error.message);
+        if (event.error.extensions) {
+          setExtensions(event.error.extensions);
+          setSelectedExtension(event.error.extensions[0]);
+        }
       }
       if (event.type === "connected" && event.reconnecting) {
         setSession(event.session);
         setConnecting(false);
+        setReconnectAt(null);
         setError("");
         setExtensions([]);
+        setSelectedExtension(event.session.extensionId);
         refresh().catch((failure) => {
           if (active.current && client === clientRef.current)
             setError(failure.message);
@@ -264,13 +337,17 @@ export function FileTranslationProvider({ children }) {
   }, []);
   const statusLabel = connecting
     ? chinese
-      ? "连接中…"
-      : "Connecting…"
+      ? reconnecting ? "正在重连…" : "连接中…"
+      : reconnecting ? "Reconnecting…" : "Connecting…"
     : session
       ? `${chinese ? "已连接" : "Connected"} · ${session.extensionVersion}`
       : chinese
-        ? "未连接"
-        : "Disconnected";
+        ? reconnectAt
+          ? `未连接 · ${Math.max(0, Math.ceil((reconnectAt - now) / 1000))} 秒后重连`
+          : "未连接"
+        : reconnectAt
+          ? `Disconnected · Reconnecting in ${Math.max(0, Math.ceil((reconnectAt - now) / 1000))}s`
+          : "Disconnected";
   const connectionStatus = (
     <Button
       size="small"
@@ -336,11 +413,11 @@ export function FileTranslationProvider({ children }) {
           >
             {connecting
               ? chinese
-                ? "连接中…"
-                : "Connecting…"
+                ? reconnecting ? "正在重连…" : "连接中…"
+                : reconnecting ? "Reconnecting…" : "Connecting…"
               : chinese
-                ? "连接扩展"
-                : "Connect extension"}
+                ? reconnectAt ? "立即重连" : "连接扩展"
+                : reconnectAt ? "Reconnect now" : "Connect extension"}
           </Button>
         }
       >

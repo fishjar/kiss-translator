@@ -13,6 +13,7 @@ function ValidationInput({
   min, // 最小值约束
   max, // 最大值约束
   isFloat = false, // 是否允许输入浮点数（默认为整数）
+  validateOnBlur = true,
   inputProps,
   ...props // 其他传递给 TextField 的属性
 }) {
@@ -27,10 +28,21 @@ function ValidationInput({
   // 处理本地输入框的值变更
   const handleLocalChange = (e) => {
     setLocalValue(e.target.value);
+    if (!validateOnBlur) {
+      const raw = e.target.value;
+      const numeric = Number(raw);
+      onChange({
+        target: {
+          name,
+          value: raw !== "" && Number.isFinite(numeric) ? numeric : raw,
+        },
+      });
+    }
   };
 
   // 核心校验逻辑：在输入框失去焦点 (onBlur) 时触发
   const handleBlur = () => {
+    if (!validateOnBlur) return;
     const numValue = Number(localValue);
 
     // 如果输入的不是一个合法的数字，则自动回滚为原有的 prop value

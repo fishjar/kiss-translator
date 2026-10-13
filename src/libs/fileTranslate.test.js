@@ -4,12 +4,60 @@ import {
   translateTxt,
   generateStandaloneHtml,
   escapeHtmlText,
+  synthesizeTranslatedImage,
 } from "./fileTranslate";
 import { apiTranslate } from "../apis";
 
 jest.mock("../fileTranslation/client", () => jest.requireActual("./fileTranslationService"));
 jest.mock("../apis", () => ({ apiTranslate: jest.fn() }));
 jest.mock("webextension-polyfill", () => ({}));
+
+test("image synthesis restores excluded polygons after drawing neighboring translated text", async () => {
+  const originalBitmap = globalThis.createImageBitmap;
+  const image = { width: 100, height: 100, close: jest.fn() };
+  globalThis.createImageBitmap = jest.fn(async () => image);
+  const operations = [];
+  const context = {
+    drawImage: jest.fn((source) => operations.push(["draw", source])),
+    fillRect: jest.fn(() => operations.push(["mask"])),
+    fillText: jest.fn(() => operations.push(["text"])),
+    getImageData: () => ({ data: [255, 255, 255, 255] }),
+    measureText: () => ({ width: 10 }),
+    save: jest.fn(), beginPath: jest.fn(), moveTo: jest.fn(), lineTo: jest.fn(),
+    closePath: jest.fn(), clip: jest.fn(() => operations.push(["clip"])), restore: jest.fn(),
+  };
+  const originalContext = { drawImage: jest.fn() };
+  const createElement = document.createElement.bind(document);
+  const canvases = [];
+  const create = jest.spyOn(document, "createElement").mockImplementation((tag) => {
+    const element = createElement(tag);
+    if (tag === "canvas") {
+      const index = canvases.length;
+      canvases.push(element);
+      element.getContext = () => index === 0 ? context : originalContext;
+      element.toBlob = (callback) => callback(new Blob(["png"], { type: "image/png" }));
+    }
+    return element;
+  });
+  const poly = [[10, 10], [30, 10], [30, 30], [10, 30]];
+  const excluded = [[25, 10], [40, 10], [40, 30], [25, 30]];
+  try {
+    const result = await synthesizeTranslatedImage(new Blob(["image"]), [{ source: "selected", target: "translated", poly }], {
+      preservePolygons: [excluded],
+    });
+    expect(result.type).toBe("image/png");
+    expect(originalContext.drawImage).toHaveBeenCalledWith(canvases[0], 0, 0);
+    expect(operations.map(([operation]) => operation)).toEqual(["draw", "mask", "text", "clip", "draw"]);
+    expect(context.moveTo).toHaveBeenCalledWith(25, 10);
+    expect(context.lineTo.mock.calls).toEqual([[40, 10], [40, 30], [25, 30]]);
+    expect(context.drawImage).toHaveBeenLastCalledWith(canvases[1], 0, 0);
+    expect(context.restore).toHaveBeenCalledTimes(1);
+    expect(image.close).toHaveBeenCalledTimes(1);
+  } finally {
+    create.mockRestore();
+    globalThis.createImageBitmap = originalBitmap;
+  }
+});
 
 const setting = {
   transApis: [
@@ -18,30 +66,30 @@ const setting = {
       apiType: "Microsoft",
       apiName: "Primary",
       sourceType: "network",
-      capabilities: ["translation"],
+      enabledCapabilities: ["translate"],
     },
     {
       apiSlug: "backup",
       apiType: "Microsoft",
       apiName: "Backup",
       sourceType: "network",
-      capabilities: ["translation"],
+      enabledCapabilities: ["translate"],
     },
   ],
   prompts: [],
   subtitleSetting: {},
 };
 const scene = {
-  apiSlugs: ["primary", "backup"],
+  apiSlug: "primary",
+  apiSlugs: ["backup"],
   fromLang: "auto",
   toLang: "zh-CN",
 };
 
 beforeEach(() => apiTranslate.mockReset());
 
-test("preserves TXT line endings, blank lines and order while falling back", async () => {
+test("preserves TXT line endings, blank lines and order with the selected service", async () => {
   apiTranslate.mockImplementation(async ({ text, apiSetting }) => {
-    if (apiSetting.apiSlug === "primary") throw new Error("offline");
     return { trText: `译:${text}` };
   });
   const result = await translateTxt("first\r\n\r\nsecond\n", scene, setting);
@@ -52,7 +100,7 @@ test("preserves TXT line endings, blank lines and order while falling back", asy
   ]);
   expect(
     apiTranslate.mock.calls.map(([args]) => args.apiSetting.apiSlug)
-  ).toEqual(["primary", "primary", "backup", "backup"]);
+  ).toEqual(["primary", "primary"]);
 });
 
 test("cancellation suppresses outstanding line results", async () => {
@@ -64,12 +112,12 @@ test("cancellation suppresses outstanding line results", async () => {
   expect(apiTranslate).toHaveBeenCalledTimes(2);
 });
 
-test("installed local translation is used first and a failed local run falls back", async () => {
+test("a failed selected local service never calls the leftover network fallback", async () => {
   apiTranslate.mockImplementation(async ({ apiSetting }) => {
     if (apiSetting.sourceType === "local") throw new Error("device lost");
     return { trText: "network output" };
   });
-  const localScene = { ...scene, apiSlugs: ["local", "backup"] };
+  const localScene = { ...scene, apiSlug: "local", apiSlugs: ["backup"] };
   const localSetting = {
     ...setting,
     transApis: [
@@ -77,23 +125,23 @@ test("installed local translation is used first and a failed local run falls bac
         apiSlug: "local",
         apiType: "LocalAI",
         sourceType: "local",
-        modelRef: "model-a",
-        capabilities: ["translation"],
+        modelRef: "hy-mt2-1.8b",
+        enabledCapabilities: ["translate"],
       },
       ...setting.transApis,
     ],
   };
   const local = {
-    installedModels: new Set(["model-a"]),
+    installedModels: new Set(["hy-mt2-1.8b"]),
     translate: jest.fn().mockRejectedValue(new Error("device lost")),
   };
   await expect(
     translateFileText("source", localScene, localSetting, undefined, local)
-  ).resolves.toBe("network output");
+  ).rejects.toThrow("device lost");
   expect(local.translate).not.toHaveBeenCalled();
-  expect(apiTranslate).toHaveBeenCalledTimes(2);
+  expect(apiTranslate).toHaveBeenCalledTimes(1);
   expect(apiTranslate.mock.calls[0][0]).toMatchObject({
-    apiSetting: { modelRef: "model-a", apiType: "LocalAI", nobatchUserPrompt: expect.any(String) },
+    apiSetting: { modelRef: "hy-mt2-1.8b", apiType: "LocalAI", nobatchUserPrompt: expect.any(String) },
   });
 });
 

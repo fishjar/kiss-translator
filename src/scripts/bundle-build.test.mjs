@@ -91,6 +91,9 @@ test("content fingerprints, verified cache hits, corrupt cache repair and failed
   try {
     for (const dir of [
       "src/localAi",
+      "src/providers",
+      "src/config",
+      "src/libs",
       "src/scripts",
       "node_modules/vite",
       "node_modules/typescript",
@@ -122,6 +125,9 @@ test("content fingerprints, verified cache hits, corrupt cache repair and failed
     await fs.writeFile(file, "bbbb");
     await fs.utimes(file, stat.atime, stat.mtime);
     assert.notEqual(await fingerprint(root), before);
+    const beforeProvider = await fingerprint(root);
+    await fs.writeFile(path.join(root, "src/providers/host.js"), "provider-change");
+    assert.notEqual(await fingerprint(root), beforeProvider);
     const afterSource = await fingerprint(root);
     await fs.writeFile(path.join(root, "pnpm-lock.yaml"), "bbbb");
     assert.notEqual(await fingerprint(root), afterSource);

@@ -14,7 +14,12 @@ import {
 } from "./search";
 import SettingsSearchTarget from "./SettingsSearchTarget";
 
-const WIDE_PAGE_PATHS = new Set(["/apis", "/playground", "/prompts"]);
+const WIDE_PAGE_PATHS = new Set([
+  "/apis",
+  "/plugins",
+  "/playground",
+  "/prompts",
+]);
 const FULL_WIDTH_PAGE_PATHS = new Set(["/file-translate"]);
 
 export const isWideOptionsPage = (pathname) =>
@@ -264,6 +269,13 @@ export default function Layout() {
       "/prompts": [
         i18n("prompt_management"),
         i18n("options_prompts_description"),
+      ],
+      "/plugins": [
+        i18n("provider_plugins", "接口插件"),
+        i18n(
+          "provider_plugins_description",
+          "管理外部插件包、安装来源和模板更新"
+        ),
       ],
       "/sync": [i18n("options_data_sync"), i18n("options_sync_description")],
       "/words": [i18n("favorite_words"), i18n("options_words_description")],

@@ -48,7 +48,7 @@ function fmtMs(ms) {
 
 export default function VlmTab() {
   const i18n = useI18n();
-  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
+  const { logs, addLog, clearLogs } = useLocalAiLog();
 
   // VLM 状态
   const [vlmModelId, setVlmModelId] = useState(VLM_MODELS[0]?.id || "");
@@ -540,13 +540,6 @@ export default function VlmTab() {
               {error}
             </Alert>
           )}
-
-          <LogViewer
-            logs={logs}
-            expanded={expanded}
-            setExpanded={setExpanded}
-            onClear={clearLogs}
-          />
         </CardContent>
       </Card>
 
@@ -606,6 +599,10 @@ export default function VlmTab() {
           </CardContent>
         </Card>
       )}
+      <LogViewer
+        logs={logs}
+        onClear={clearLogs}
+      />
     </Stack>
   );
 }

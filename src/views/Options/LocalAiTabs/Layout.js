@@ -85,7 +85,7 @@ function getRegionStyle(label) {
 
 export default function LayoutTab() {
   const i18n = useI18n();
-  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
+  const { logs, addLog, clearLogs } = useLocalAiLog();
 
   // 模型与运行环境配置
   const [selectedId, setSelectedId] = useState(DOC_MODEL_ID);
@@ -799,16 +799,12 @@ export default function LayoutTab() {
               </Accordion>
             </Stack>
           )}
-
-          {/* 运行日志：统一放置在操作卡片内部最下方 */}
-          <LogViewer
-            logs={logs}
-            expanded={expanded}
-            setExpanded={setExpanded}
-            onClear={clearLogs}
-          />
         </CardContent>
       </Card>
+      <LogViewer
+        logs={logs}
+        onClear={clearLogs}
+      />
     </Stack>
   );
 }

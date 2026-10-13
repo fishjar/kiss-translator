@@ -39,3 +39,9 @@ package-lock.json
 !.agents/skills/release-kiss-translator/
 !.agents/skills/release-kiss-translator/**
 .claude
+
+# Generated provider example and local acceptance artifacts
+/docs/plugins/examples/*-ui/
+/docs/plugins/examples/service-ui-followups/
+/docs/plugins/examples/provider-validation-report.json
+/docs/plugins/examples/service-form-feature-audit.json

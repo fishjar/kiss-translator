@@ -256,6 +256,22 @@ describe("BilingualSubtitleManager", () => {
     manager.destroy();
   });
 
+
+  test("selected subtitle failure never invokes the leftover fallback service", async () => {
+    const primary = { apiSlug: "primary", apiType: "Microsoft" };
+    apiTranslate.mockRejectedValue(new Error("selected failed"));
+    const manager = new BilingualSubtitleManager({
+      videoEl: createVideoElement(),
+      formattedSubtitles: [{ ...subtitle }],
+      setting: { ...setting, apiSlug: "primary", apiSlugs: ["backup"], apiSetting: primary, transApis: [primary, { ...primary, apiSlug: "backup" }] },
+    });
+    manager.repairChunkTranslations([{ ...subtitle, translation: "[Translation failed]" }]);
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate.mock.calls[0][0].apiSetting.apiSlug).toBe("primary");
+    manager.destroy();
+  });
+
   test("repairs failed chunk translations immediately", async () => {
     const deferred = createDeferred();
     apiTranslate.mockReturnValue(deferred.promise);

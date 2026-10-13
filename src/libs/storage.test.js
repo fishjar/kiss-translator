@@ -1,8 +1,15 @@
-import {
+// These storage fixtures use localStorage rather than extension storage.
+const originalClient = process.env.REACT_APP_CLIENT;
+process.env.REACT_APP_CLIENT = "web";
+afterAll(() => {
+  if (originalClient === undefined) delete process.env.REACT_APP_CLIENT;
+  else process.env.REACT_APP_CLIENT = originalClient;
+});
+
+const {
   STOKEY_SETTING,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
   STOKEY_RULES,
-  STOKEY_RULES_BACKUP_BEFORE_APISLUGS,
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V3,
   SETTINGS_VERSION_V4,
@@ -17,8 +24,8 @@ import {
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_TENCENT,
-} from "../config";
-import { getSettingWithDefault, runDataMigration } from "./storage";
+} = require("../config");
+const { getSettingWithDefault, runDataMigration } = require("./storage");
 
 // 存储测试不涉及流式解析，隔离 ESM-only 依赖以免 Jest 27 在加载阶段失败。
 jest.mock("@streamparser/json", () => ({ JSONParser: jest.fn() }));
@@ -41,6 +48,18 @@ function loadGmStorageModule() {
 }
 
 describe("settings storage migration", () => {
+  test("existing service instances and scene choices are not supplemented by new install defaults", async () => {
+    const existing = {
+      version: CURRENT_SETTINGS_VERSION,
+      transApis: [{ apiSlug: "mine", apiType: "LocalAI", apiName: "My service", modelRef: "hy-mt2-1.8b", device: "wasm" }],
+      fileTranslateSetting: { pdf: { apiSlug: "mine" } },
+    };
+    window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(existing));
+    const setting = await getSettingWithDefault();
+    expect(setting.transApis).toHaveLength(1);
+    expect(setting.transApis[0]).toMatchObject(existing.transApis[0]);
+    expect(setting.fileTranslateSetting.pdf.apiSlug).toBe("mine");
+  });
   beforeEach(() => {
     window.localStorage.clear();
     delete window.KISS_GM;
@@ -83,24 +102,11 @@ describe("settings storage migration", () => {
     expect(stored.transApis[0]).not.toHaveProperty("systemPrompt");
   });
 
-  test("migrates web rule API choices once without dropping inherited markers", async () => {
-    const oldRules = [
-      { pattern: "*", apiSlug: "primary" },
-      { pattern: "example.com", apiSlug: "*" },
-    ];
-    window.localStorage.setItem(STOKEY_RULES, JSON.stringify(oldRules));
+  test("does not migrate single-service rules into fallback lists", async () => {
+    const rules = [{ pattern: "*", apiSlug: "primary" }, { pattern: "example.com", apiSlug: "*" }];
+    window.localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
     await runDataMigration();
-    expect(readStoredJson(STOKEY_RULES_BACKUP_BEFORE_APISLUGS)).toEqual(
-      oldRules
-    );
-    expect(readStoredJson(STOKEY_RULES)).toEqual([
-      { ...oldRules[0], apiSlugs: ["primary"] },
-      { ...oldRules[1], apiSlugs: ["*"] },
-    ]);
-    await runDataMigration();
-    expect(readStoredJson(STOKEY_RULES_BACKUP_BEFORE_APISLUGS)).toEqual(
-      oldRules
-    );
+    expect(readStoredJson(STOKEY_RULES)).toEqual(rules);
   });
 
   test.each([

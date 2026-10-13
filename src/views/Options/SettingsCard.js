@@ -1,3 +1,4 @@
+import ListSubheader from "@mui/material/ListSubheader";
 import { useEffect, useId, useRef, useState } from "react";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import Accordion from "@mui/material/Accordion";
@@ -213,6 +214,7 @@ export function SettingsSelect({
         const normalized = Array.isArray(option)
           ? { value: option[0], label: option[1] }
           : option;
+        if (normalized.groupLabel) return <ListSubheader key={normalized.groupLabel}>{normalized.groupLabel}</ListSubheader>;
         return (
           <MenuItem key={normalized.value} value={normalized.value}>
             {normalized.label}

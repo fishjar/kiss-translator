@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { textRegion } from "../../../libs/pdf/formulaGeometry";
 import { nativeTableRegions } from "../../../libs/pdf/nativeTables";
 import {
   buildLines,
@@ -270,4 +271,39 @@ describe("PDF structural flow", () => {
     const l = { ...line("Unmatched", 30, 60), spans: [{ id: "s1" }] };
     expect(paragraphBlocks(raw, [l], [])[0].text).toBe("Unmatched");
   });
+});
+
+it("does not merge neighboring text regions or unassigned prose across layout boundaries", () => {
+  const spans = [
+    { id: "first", text: "First region", font: "regular", fontSize: 10, baseline: 60, bbox: [30, 50, 100, 60] },
+    { id: "second", text: "Second region", font: "regular", fontSize: 10, baseline: 60.0001, bbox: [102, 50, 170, 60] },
+    { id: "outside", text: "Outside detector", font: "regular", fontSize: 10, baseline: 75, bbox: [30, 65, 100, 75] },
+  ];
+  const raw = { page: 1, width: 600, height: 800, spans };
+  const regions = [{ id: "first-region", type: "paragraph", bbox: [28, 48, 101, 62] },
+    { id: "second-region", type: "paragraph", bbox: [102, 48, 172, 62] }];
+  expect(buildLines(raw, regions)).toHaveLength(3);
+  expect(paragraphBlocks(raw, buildLines(raw, regions), regions).map((block) => block.text))
+    .toEqual(["First region", "Second region", "Outside detector"]);
+});
+
+
+it.each([[0, 0, 72], [NaN, -0.2, 72], [0.7, -0.2, 73], [0, -1, 72]])(
+  "uses valid font metrics or the existing fallback for ascent %s and descent %s", (ascent, descent, expectedTop) => {
+  const raw = rawPageFromText({ items: [{ str: "x", fontName: "f", transform: [10, 0, 0, 10, 20, 20], width: 5 }],
+    styles: { f: { ascent, descent } } }, { transform: [1, 0, 0, -1, 0, 100], scale: 1, width: 100, height: 100 }, 1);
+  expect(raw.spans[0].bbox[1]).toBe(expectedTop);
+  expect(raw.spans[0].baseline).toBe(80);
+});
+
+it("prioritizes explicit formula numbers and the smallest formula without deleting neighboring text", () => {
+  const body = { id: "body", type: "paragraph", bbox: [0, 0, 300, 100] };
+  const outer = { id: "outer", type: "formula", bbox: [20, 20, 200, 70] };
+  const inner = { id: "inner", type: "inline-formula", bbox: [30, 30, 80, 50] };
+  const number = { id: "number", type: "formula_number", bbox: [180, 30, 195, 50] };
+  const regions = [body, outer, inner, number];
+  expect(textRegion([35, 35, 70, 45], regions)?.id).toBe("inner");
+  expect(textRegion([180, 35, 190, 45], regions)?.id).toBe("number");
+  expect(textRegion([220, 35, 260, 45], regions)?.id).toBe("body");
+  expect(textRegion([35, 35, 70, 45], [inner, { ...inner, id: "tied" }])?.id).toBe("inner");
 });

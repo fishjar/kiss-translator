@@ -122,6 +122,27 @@ const getBuiltinAiApiSetting = (httpTimeout) => ({
   httpTimeout,
 });
 
+test("text refresh replaces the default cache entry while off skips both reads and writes", async () => {
+  jest.clearAllMocks();
+  getFetchPool.mockReturnValue({ push: (fn, args) => fn(args) });
+  withTimeout.mockImplementation((promise) => promise);
+  mockGetCacheDigest.mockResolvedValue("a".repeat(64));
+  const args = { text: "cache text", fromLang: "en", toLang: "zh-CN", apiSetting: getBuiltinAiApiSetting(30) };
+  getHttpCachePolyfill.mockResolvedValue({ trText: "old" });
+  expect((await apiTranslate(args)).trText).toBe("old");
+  const key = getHttpCachePolyfill.mock.calls.at(-1)[0];
+  fnPolyfill.mockResolvedValue(["new", "en", ""]);
+  getHttpCachePolyfill.mockClear();
+  expect((await apiTranslate({ ...args, cacheMode: "refresh" })).trText).toBe("new");
+  expect(getHttpCachePolyfill).not.toHaveBeenCalled();
+  expect(putHttpCachePolyfill).toHaveBeenCalledWith(key, null, expect.objectContaining({ trText: "new" }));
+  putHttpCachePolyfill.mockClear();
+  await apiTranslate({ ...args, cacheMode: "off" });
+  expect(getHttpCachePolyfill).not.toHaveBeenCalled();
+  expect(putHttpCachePolyfill).not.toHaveBeenCalled();
+  getHttpCachePolyfill.mockReset();
+});
+
 describe("apiSubtitle cache identity", () => {
   const events = [{ start: 100, end: 900, text: "hello" }];
 
@@ -1132,7 +1153,7 @@ describe("apiSummarizeVideo and getVideoSummarySignature cache identity", () => 
       title: "Test Title",
       description: "Test Desc",
       transcript: "Initial subtitles",
-      apiSetting: { apiSlug: "openai" },
+      apiSetting: { apiSlug: "openai", apiType: "OpenAI" },
       prompt: {
         slug: "default_slug",
         systemPrompt: "System",

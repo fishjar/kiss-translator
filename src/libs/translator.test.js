@@ -1,3 +1,11 @@
+// The DOM fixtures exercise the web injector without extension runtime mocks.
+const originalClient = process.env.REACT_APP_CLIENT;
+process.env.REACT_APP_CLIENT = "web";
+afterAll(() => {
+  if (originalClient === undefined) delete process.env.REACT_APP_CLIENT;
+  else process.env.REACT_APP_CLIENT = originalClient;
+});
+
 jest.mock("../apis", () => ({
   apiMicrosoftDict: jest.fn(),
   apiTranslate: jest.fn(),
@@ -381,13 +389,26 @@ describe("Translator rule styles", () => {
   });
 
   describe("available translation services", () => {
-    test("uses ordered scene services and rescans when their runtime configuration changes", async () => {
+    test("selected service failure never requests Google2 from a leftover list", async () => {
+      document.body.innerHTML = '<main id="root"><p>Selected plugin service</p></main>';
+      apiTranslate.mockRejectedValue(new Error("selected service failed"));
+      createTranslator(
+        { apiSlug: "deepseek-instance", apiSlugs: ["google2"] },
+        { transApis: [createApiSetting("deepseek-instance"), createApiSetting("google2")] }
+      );
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].apiSetting.apiSlug).toBe("deepseek-instance");
+      expect(document.querySelector(`.${Translator.KISS_CLASS.retry}`)).not.toBeNull();
+    });
+
+    test("uses the selected service despite leftover lists and rescans when its configuration changes", async () => {
       document.body.innerHTML =
         '<main id="root"><p>Ordered scene service</p></main>';
       const legacyApi = createApiSetting("legacy");
       const sceneApi = createApiSetting("scene");
       const translator = createTranslator(
-        { apiSlug: "legacy", apiSlugs: ["disabled", "scene"] },
+        { apiSlug: "scene", apiSlugs: ["disabled", "legacy"] },
         { transApis: [legacyApi, createApiSetting("disabled", true), sceneApi] }
       );
       await flushAsync();

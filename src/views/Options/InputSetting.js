@@ -11,7 +11,7 @@ import {
   DEFAULT_INPUT_RULE,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
-import OrderedApiSelect from "./OrderedApiSelect";
+import ServiceSelect from "./ServiceSelect";
 import ScenePromptSelect from "./ScenePromptSelect";
 import { useInputRule } from "../../hooks/InputRule";
 import { useCallback } from "react";
@@ -170,12 +170,12 @@ export default function InputSetting() {
 
       <SettingsAdvanced rows label={i18n("settings_detailed_controls")}>
         <SettingsRow label={i18n("translate_service")}>
-          <OrderedApiSelect
+          <ServiceSelect
             scene={inputRule}
             apis={enabledApis}
             label={i18n("translate_service")}
-            onChange={(apiSlugs) =>
-              updateInputRule({ apiSlugs, apiSlug: apiSlugs[0] || "" })
+            onChange={(apiSlug) =>
+              updateInputRule({ apiSlug })
             }
           />
         </SettingsRow>

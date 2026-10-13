@@ -48,7 +48,7 @@ const client = new TtsClient();
 
 export default function TtsTab() {
   const i18n = useI18n();
-  const { logs, expanded, setExpanded, addLog, clearLogs } = useLocalAiLog();
+  const { logs, addLog, clearLogs } = useLocalAiLog();
 
   // 模型状态
   const [engine, setEngine] = useState("system");
@@ -399,7 +399,8 @@ export default function TtsTab() {
                     ? i18n("local_ai_model_loaded", "模型已就绪")
                     : i18n("local_ai_load_model", "加载模型")}
               </Button>
-              <UnloadModelButton
+            <UnloadModelButton
+              cacheable={false}
                 client={client}
                 runtime={runtime}
                 onError={setError}
@@ -674,15 +675,12 @@ export default function TtsTab() {
               {error}
             </Alert>
           )}
-
-          <LogViewer
-            logs={logs}
-            expanded={expanded}
-            setExpanded={setExpanded}
-            onClear={clearLogs}
-          />
         </CardContent>
       </Card>
+      <LogViewer
+        logs={logs}
+        onClear={clearLogs}
+      />
     </Stack>
   );
 }

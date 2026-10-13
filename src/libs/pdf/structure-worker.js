@@ -10,14 +10,14 @@ self.onmessage = ({ data }) => {
   try {
     if (data.type === "page") {
       const raw = rawPageFromText(data.content, data.viewport, data.page),
-        lines = buildLines(raw),
+        lines = buildLines(raw, data.regions),
         blocks = paragraphBlocks(raw, lines, data.regions);
       self.postMessage({ id: data.id, result: { raw, lines, blocks } });
     } else if (data.type === "raw")
       self.postMessage({
         id: data.id,
         result: {
-          blocks: paragraphBlocks(data.raw, buildLines(data.raw), data.regions),
+          blocks: paragraphBlocks(data.raw, buildLines(data.raw, data.regions), data.regions),
         },
       });
     else if (data.type === "order") {

@@ -1,8 +1,10 @@
+import { sha256 } from "../libs/utils";
+import { enabledApiCapabilities, supportedApiFeature, projectApiCapabilities } from "../config/serviceSelection";
 import browser from "webextension-polyfill";
 import { DEFAULT_FILE_TRANSLATE_SETTING } from "../config/setting";
 import { STOKEY_SETTING } from "../config/storage";
-import { getAllPrompts, resolveVlmPrompt } from "../config/prompt";
-import { recognizeNetworkImage } from "../apis/vision";
+import { getAllPrompts, resolveVlmPrompt, resolveApiPromptSettings } from "../config/prompt";
+import { providerCacheSignature } from "../providers/cache";
 import { prepareImage } from "../localAi/core/inputLimits";
 import {
   getSettingWithDefault,
@@ -10,17 +12,16 @@ import {
   saveEdit,
 } from "../libs/storage";
 import { executeFileTranslation } from "../libs/fileTranslationService";
-import { isApiAvailableFor, supportsVlmApi } from "../config/serviceSelection";
-import {
-  ALL_OCR_MODELS,
-  OCR_GROUPS,
-  recognizeFileImage,
-} from "../localAi/fileOperations";
+import { isApiAvailableFor } from "../config/serviceSelection";
+import { ALL_OCR_MODELS } from "../localAi/fileOperations";
 import { runtimeHost } from "../localAi/runtime/runtimeHostAdapter";
+import { cachedFileResult } from "./resultCache";
 import { normalizeSettings } from "../localAi/core/settings";
 import { CATALOG, DOC_MODEL_ID } from "../localAi/core/catalog";
-import { DocClient } from "../localAi/core/docClient";
-import { resolveOcrVlmPrompt } from "../localAi/core/ocrVlmPrompts";
+import { hasCompleteCoordinates } from "./recognition";
+import { createNativeRegistry } from "../builtin-plugins/runtime";
+import { createAssetStore } from "../providers/transport";
+import { invokeBackgroundPlugin } from "../providers/backgroundInvocation";
 import {
   FILE_CHANNEL,
   FILE_PROTOCOL,
@@ -31,13 +32,16 @@ import {
 } from "./protocol";
 
 const SCENES = Object.keys(DEFAULT_FILE_TRANSLATE_SETTING);
-const EXTRA_FIELDS = ["apiSlug", "ocrApiSlug", "ocrApiSlugs"];
+const EXTRA_FIELDS = [
+  "apiSlug",
+  "layoutApiSlug",
+];
 const API_FIELDS = [
   "apiSlug",
   "apiName",
   "apiType",
   "sourceType",
-  "capabilities",
+  "enabledCapabilities",
   "isDisabled",
   "modelRef",
   "device",
@@ -62,13 +66,12 @@ export function validateScenePatch(kind, patch) {
   for (const [key, value] of Object.entries(patch)) {
     if (![...Object.keys(defaults), ...EXTRA_FIELDS].includes(key))
       throw fileError("INVALID_INPUT", `不能修改设置字段 ${key}`);
-    if (key === "apiSlugs" || key === "ocrApiSlugs") {
-      if (
-        !Array.isArray(value) ||
-        value.length > 100 ||
-        value.some((item) => typeof item !== "string" || item.length > 200)
-      )
-        throw fileError("INVALID_INPUT", "服务列表无效");
+    if (key === "recognitionService") {
+      if (value !== null && (!value || typeof value !== "object" || Array.isArray(value) ||
+          Object.keys(value).some((field) => !["apiSlug", "capability"].includes(field)) ||
+          typeof value.apiSlug !== "string" || !value.apiSlug || value.apiSlug.length > 200 ||
+          !["recognizeText", "parseImage"].includes(value.capability)))
+        throw fileError("INVALID_INPUT", "识别服务选择无效");
     } else if (key === "readerPreferences") {
       if (
         !value ||
@@ -107,8 +110,61 @@ async function inputSettings() {
   return normalizeSettings(stored["kiss-ai-settings"]);
 }
 
+// Both image scenes use the same bounded broker path. Keeping it static avoids
+// Webpack's document-based lazy chunk loader in the MV3 background worker.
+async function invokeImageProvider(
+  api,
+  capability,
+  prepared,
+  signal,
+  extra = {}
+) {
+  const assets = createAssetStore();
+  try {
+    const { cacheMode, onProgress, requireCoordinates, ...extraInput } = extra;
+    const input = { ...extraInput, ...(api.apiType === "LocalAI" && cacheMode && { cacheMode }), image: assets.put(prepared.blob), imageSize: prepared.size };
+    return await cachedFileResult({ api, capability, policy: await inputSettings(), cacheMode, signal, onProgress,
+      validate: (result) => {
+        if (capability === "analyzeLayout") return;
+        if (!result.text?.trim()) throw fileError("INVALID_RESPONSE", "识别返回空结果");
+        if ((requireCoordinates || supportedApiFeature(api, capability)?.coordinates) && !hasCompleteCoordinates(result.items || []))
+          throw fileError("INVALID_RESPONSE", "识别服务未返回完整有效的文字坐标");
+      },
+      input: { ...extraInput, image: prepared.blob, imageSize: prepared.size }, run: async () => {
+    const call = api.provider && api.provider.implementation?.kind !== "native"
+      ? invokeBackgroundPlugin(api, capability, input, { signal, assets })
+      : createNativeRegistry(() => api, { assets }).invoke(api.apiSlug, capability, input, { signal });
+    const events = (async () => {
+      const iterator = call.events[Symbol.asyncIterator]();
+      for (;;) {
+        const next = await iterator.next();
+        if (next.done) break;
+        const status = next.value.message;
+        if (status === "CACHE_HIT" || status === "INFERENCE_START")
+          onProgress?.({ type: status === "CACHE_HIT" ? "cache-hit" : "inference" });
+      }
+    })();
+    events.catch(() => {});
+    try {
+      const result = await call.result;
+      await events;
+      return result;
+    } finally {
+      call.cancel();
+    }
+    } });
+  } finally {
+    assets.clear();
+  }
+}
+
 export async function getFileContext(signal) {
   const setting = await getSettingWithDefault();
+  const promptSignature = await sha256(JSON.stringify(getAllPrompts(setting.prompts)));
+  const translationSignatures = new Map(await Promise.all(setting.transApis.map(async (api) => [
+    api.apiSlug, await providerCacheSignature(resolveApiPromptSettings(api, setting.prompts, setting.subtitleSetting),
+      "translate", { promptSignature }),
+  ])));
   let records = [],
     modelError = "";
   try {
@@ -123,12 +179,6 @@ export async function getFileContext(signal) {
       .filter((record) => record.state === "installed")
       .map((record) => record.manifest.id)
   );
-  const ocrInstalled = (id) => {
-    const group = OCR_GROUPS.find((item) => item.id === id);
-    return group
-      ? installed.has(group.detId) && installed.has(group.recId)
-      : installed.has(id);
-  };
   return {
     uiLang: setting.uiLang,
     scenes: Object.fromEntries(
@@ -148,17 +198,26 @@ export async function getFileContext(signal) {
     ),
     services: setting.transApis.map((api) => ({
       ...pick(api, API_FIELDS),
-      translationAvailable: isApiAvailableFor(api, "translation", {
+      translationSignature: translationSignatures.get(api.apiSlug),
+      provider: {
+        apiVersion: "1",
+        implementation: { kind: projectApiCapabilities(api).provider?.implementation?.kind },
+        capabilities: Object.fromEntries(enabledApiCapabilities(api).map((cap) => [cap, supportedApiFeature(api, cap)])),
+      },
+      translationAvailable: isApiAvailableFor(api, "translate", {
         installedModels: installed,
       }),
-      ocrAvailable:
-        !api.isDisabled &&
-        (api.capabilities || []).some((cap) => ["ocr", "vlm"].includes(cap)) &&
-        (api.sourceType === "local"
-          ? ocrInstalled(api.modelRef)
-          : api.sourceType === "network" &&
-            api.capabilities.includes("vlm") &&
-            supportsVlmApi(api)),
+      layoutAvailable: isApiAvailableFor(api, "analyzeLayout", {
+        installedModels: installed,
+      }),
+      enabledCapabilities: enabledApiCapabilities(api),
+      recognitionFeatures: Object.fromEntries(["recognizeText", "parseImage"].filter((cap) => enabledApiCapabilities(api).includes(cap)).map((cap) => [cap, {
+        coordinates: supportedApiFeature(api, cap)?.coordinates === true,
+        taskModes: supportedApiFeature(api, cap)?.taskModes || ["doc"],
+        available: isApiAvailableFor(api, cap, { installedModels: installed }),
+      }])),
+      recognitionSignature: JSON.stringify([api.apiType, api.modelRef, api.device, api.model, api.provider?.source?.version, api.provider?.capabilities, api.vlmPromptSlug, api.maxTokens, api.temperature, promptSignature,
+        Object.fromEntries((api.provider?.settings || []).filter((field) => field.type !== "password" && !field.isSecret).map((field) => [field.key, api.pluginConfig?.[field.key]]))]),
     })),
     prompts: getAllPrompts(setting.prompts).map((prompt) =>
       pick(prompt, ["slug", "name", "nameKey", "category"])
@@ -182,24 +241,124 @@ export async function getFileContext(signal) {
   };
 }
 
-export async function executeFileMethod(method, params, signal, uploads) {
-  if (method === "analyzeLayout" || method === "recognizeDocumentRegion") {
-    const task = method === "analyzeLayout" ? "doc-layout" : "ocr-vlm";
-    const modelId = params.modelId || (task === "doc-layout" ? DOC_MODEL_ID : "");
-    const model = CATALOG.find(m => m.id === modelId && m.task === task);
-    if (!model || !model.backend.includes(params.device)) throw fileError("INVALID_INPUT", "文档模型或计算后端无效");
-    if (method === "recognizeDocumentRegion" && !["doc","table","formula"].includes(params.taskMode)) throw fileError("INVALID_INPUT", "文档识别任务无效");
+export async function executeFileMethod(method, params, signal, uploads, onProgress) {
+  if (method === "analyzeLayout") {
+    if (method === "analyzeLayout" && params.serviceId) {
+      const api = (await getSettingWithDefault()).transApis.find(
+        (item) => item.apiSlug === params.serviceId
+      );
+      if (!isApiAvailableFor(api, "analyzeLayout"))
+        throw fileError("SERVICE_UNAVAILABLE", "所选版面服务不可用");
+      if (api.provider && api.provider.implementation?.kind !== "native") {
+        const upload = uploads.get(params.uploadId);
+        if (!upload || upload.received !== upload.size)
+          throw fileError("INVALID_INPUT", "图片上传未完成");
+        uploads.delete(params.uploadId);
+        clearTimeout(upload.timer);
+        const prepared = await prepareImage(
+          new Blob(upload.chunks, { type: upload.type }),
+          await inputSettings(),
+          signal
+        );
+        const result = await invokeImageProvider(
+          api,
+          "analyzeLayout",
+          prepared,
+          signal,
+          { cacheMode: params.cacheMode, onProgress }
+        );
+        return {
+          imageSize: prepared.size,
+          regions: result.regions.map((region) => ({
+            type: region.type,
+            order: region.order,
+            polygon: region.poly,
+            // Valid polygons may have many points; avoid spreading them as call arguments.
+            bbox: region.poly.reduce(
+              ([left, top, right, bottom], [x, y]) => [
+                Math.min(left, x),
+                Math.min(top, y),
+                Math.max(right, x),
+                Math.max(bottom, y),
+              ],
+              [Infinity, Infinity, -Infinity, -Infinity]
+            ),
+          })),
+        };
+      }
+      // Existing native models retain their scheduler/session ownership.
+      params = {
+        ...params,
+        modelId: api.modelRef,
+        device: api.device || "wasm",
+      };
+    }
+    const modelId = params.modelId || DOC_MODEL_ID;
+    const model = CATALOG.find((m) => m.id === modelId && m.task === "doc-layout");
+    if (!model || !model.backend.includes(params.device))
+      throw fileError("INVALID_INPUT", "文档模型或计算后端无效");
     const upload = uploads.get(params.uploadId);
-    if (!upload || upload.received !== upload.size) throw fileError("INVALID_INPUT", "图片上传未完成");
-    uploads.delete(params.uploadId); clearTimeout(upload.timer);
-    const file = new Blob(upload.chunks, {type:upload.type});
-    if (task === "doc-layout") return new DocClient().analyze(file, {modelId,device:params.device},signal);
-    return recognizeFileImage(file,{groupId:modelId,device:params.device,prompt:resolveOcrVlmPrompt(modelId,params.taskMode)},signal);
+    if (!upload || upload.received !== upload.size)
+      throw fileError("INVALID_INPUT", "图片上传未完成");
+    uploads.delete(params.uploadId);
+    clearTimeout(upload.timer);
+    const file = new Blob(upload.chunks, { type: upload.type });
+      // This complete-result bridge needs no client state observer. Reuse the
+      // shared runtime directly; never add a per-page listener or unload its model.
+      return runtimeHost.request(
+        {
+          id: crypto.randomUUID(),
+          service: "doc",
+          method: "analyze",
+          options: { cacheMode: params.cacheMode },
+          payload: {
+            blob: file,
+            modelRef: modelId,
+            loadSpec: { device: params.device },
+          },
+        },
+        { signal }
+      );
   }
+
   if (method === "decideDocumentStructure") {
-    const model = CATALOG.find(m => m.id === params.modelId && m.task === "decision");
-    if (!model || !params.state || typeof params.state !== "object" || !Array.isArray(params.candidates) || params.candidates.length < 2 || params.candidates.length > 6 || params.candidates.some(c=>typeof c!=="string" || !c.trim() || c.length>100) || JSON.stringify(params.state).length>12000) throw fileError("INVALID_INPUT","文档判断输入无效");
-    return runtimeHost.request({id:crypto.randomUUID(),service:"decision",method:"predict",payload:{modelRef:model.id,state:params.state,questions:{structure:{type:"choice",instructions:"Choose the document structure best supported by the given evidence. Do not generate document content.",criteria:params.candidates}}}},{signal});
+    const model = CATALOG.find(
+      (m) => m.id === params.modelId && m.task === "decision"
+    );
+    if (
+      !model ||
+      !params.state ||
+      typeof params.state !== "object" ||
+      !Array.isArray(params.candidates) ||
+      params.candidates.length < 2 ||
+      params.candidates.length > 6 ||
+      params.candidates.some(
+        (c) => typeof c !== "string" || !c.trim() || c.length > 100
+      ) ||
+      JSON.stringify(params.state).length > 12000
+    )
+      throw fileError("INVALID_INPUT", "文档判断输入无效");
+    return runtimeHost.request(
+      {
+        id: crypto.randomUUID(),
+        service: "decision",
+        method: "predict",
+        options: { cacheMode: params.cacheMode },
+        payload: {
+          modelRef: model.id,
+          state: params.state,
+          questions: {
+            structure: {
+              type: "choice",
+              instructions:
+                "Choose the document structure best supported by the given evidence. Do not generate document content.",
+              criteria: params.candidates,
+            },
+          },
+        },
+      },
+      { signal }
+    );
   }
   if (method === "getContext") return getFileContext(signal);
   if (method === "patchScene") {
@@ -256,7 +415,7 @@ export async function executeFileMethod(method, params, signal, uploads) {
     const records = await modelRecords(
       {
         transApis: setting.transApis.filter((api) =>
-          (scene.apiSlugs || [scene.apiSlug]).includes(api.apiSlug)
+          scene.apiSlug === api.apiSlug
         ),
       },
       signal
@@ -265,6 +424,7 @@ export async function executeFileMethod(method, params, signal, uploads) {
       return [];
     });
     return executeFileTranslation(params.text, scene, setting, signal, {
+      cacheMode: params.cacheMode,
       installedModels: new Set(
         records
           .filter((record) => record.state === "installed")
@@ -273,58 +433,50 @@ export async function executeFileMethod(method, params, signal, uploads) {
     });
   }
   if (method === "recognizeImage") {
+    const capability = params.capability;
+    const mode = params.taskMode || "doc";
+    if (!["recognizeText", "parseImage"].includes(capability) ||
+        !["doc", "table", "formula"].includes(mode) ||
+        (params.requireCoordinates !== undefined && typeof params.requireCoordinates !== "boolean"))
+      throw fileError("INVALID_INPUT", "识别能力或任务无效");
+    const setting = await getSettingWithDefault();
+    const api = setting.transApis.find((item) => item.apiSlug === params.serviceId);
+    const requirements = { taskMode: mode, coordinates: params.requireCoordinates === true };
+    const records = api?.apiType === "LocalAI" ? await modelRecords(setting, signal) : [];
+    if (!isApiAvailableFor(api, capability, {
+      requirements,
+      ...(api?.apiType === "LocalAI" && { installedModels: new Set(records.filter((r) => r.state === "installed").map((r) => r.manifest.id)) }),
+    })) throw fileError("SERVICE_UNAVAILABLE", "所选识别服务不可用，或不支持当前任务/坐标要求");
     const upload = uploads.get(params.uploadId);
     if (!upload || upload.received !== upload.size)
       throw fileError("INVALID_INPUT", "图片上传未完成");
     uploads.delete(params.uploadId);
     clearTimeout(upload.timer);
-    const setting = await getSettingWithDefault();
-    const api = setting.transApis.find(
-      (item) =>
-        item.apiSlug === params.serviceId &&
-        !item.isDisabled &&
-        (item.capabilities || []).some((cap) => ["ocr", "vlm"].includes(cap))
-    );
-    if (!api)
-      throw fileError("SERVICE_UNAVAILABLE", "请选择已配置的图片识别服务");
-    const scene = setting.fileTranslateSetting.image;
-    const patch = params.scene ? validateScenePatch("image", params.scene) : {};
-    const prompt = resolveVlmPrompt(
-      setting.prompts,
-      (patch.vlmPromptSlug ?? scene?.vlmPromptSlug) || api.vlmPromptSlug
-    );
-    const file = new Blob(upload.chunks, { type: upload.type });
-    if (api.sourceType === "local" && api.modelRef) {
-      return recognizeFileImage(
-        file,
-        {
-          groupId: api.modelRef,
-          device: api.device || "webgpu",
-          prompt,
-          maxTokens: api.maxTokens,
-          temperature: api.temperature,
-        },
-        signal
-      );
+    const prepared = await prepareImage(new Blob(upload.chunks, { type: upload.type }), await inputSettings(), signal);
+    const promptSlug = params.promptSlug || (mode === "doc" ? api.vlmPromptSlug : "");
+    let prompt;
+    if (capability === "parseImage") {
+      if (promptSlug) prompt = resolveVlmPrompt(setting.prompts, promptSlug);
+      else if (api.apiType !== "LocalAI" && (!api.provider || api.provider.implementation?.kind === "native"))
+        prompt = mode === "table" ? "Extract the table as HTML. Preserve all cell contents and spans. Do not translate or explain."
+          : mode === "formula" ? "Extract the formula as LaTeX. Do not translate or explain."
+          : resolveVlmPrompt(setting.prompts, "");
     }
-    if (
-      api.sourceType === "network" &&
-      api.capabilities.includes("vlm") &&
-      supportsVlmApi(api)
-    ) {
-      const prepared = await prepareImage(file, await inputSettings(), signal);
-      const result = await recognizeNetworkImage(
-        prepared.blob,
-        api,
-        prompt,
-        signal
-      );
-      return {
-        ...result,
-        inputAdjustments: prepared.adjustment ? [prepared.adjustment] : [],
-      };
-    }
-    throw fileError("SERVICE_UNAVAILABLE", "该服务尚未接入图片识别");
+    const result = await invokeImageProvider(api, capability, prepared, signal, { mode, requireCoordinates: params.requireCoordinates, cacheMode: params.cacheMode, onProgress, ...(prompt && { prompt }) });
+    if (!result.text?.trim()) throw fileError("INVALID_RESPONSE", "识别返回空结果");
+    if ((params.requireCoordinates || supportedApiFeature(api, capability)?.coordinates) && !hasCompleteCoordinates(result.items || []))
+      throw fileError("INVALID_RESPONSE", "识别服务未返回完整有效的文字坐标");
+    const sx = prepared.original.width / prepared.size.width;
+    const sy = prepared.original.height / prepared.size.height;
+    return {
+      ...result,
+      items: (result.items?.length ? result.items : result.text.split(/\r?\n/).filter(Boolean).map((text) => ({ text, poly: null })))
+        .map((item) => ({ ...item, poly: item.poly?.map(([x, y]) => [x * sx, y * sy]) || null })),
+      imageSize: prepared.original,
+      serviceId: api.apiSlug,
+      capability,
+      inputAdjustments: [...(result.inputAdjustments || []), ...(prepared.adjustment ? [prepared.adjustment] : [])],
+    };
   }
   throw fileError("UNKNOWN_METHOD", "不支持的文件翻译接口");
 }
@@ -405,7 +557,13 @@ export function attachFileSession(port, execute = executeFileMethod) {
             extensionVersion: browser.runtime.getManifest().version,
             extensionId: browser.runtime.id,
             development: process.env.REACT_APP_FILE_BRIDGE_DEV === "true",
-            capabilities: ["translation", "ocr", "settings", "doc", "doc-decision"],
+            capabilities: [
+              "translation",
+              "ocr",
+              "settings",
+              "doc",
+              "doc-decision",
+            ],
             imageChunkBytes: IMAGE_CHUNK_BYTES,
           },
         });
@@ -426,7 +584,8 @@ export function attachFileSession(port, execute = executeFileMethod) {
       }
       if (message.method === "uploadBegin") {
         const limits = await inputSettings();
-        const mimeType = params.type === "image/jpg" ? "image/jpeg" : params.type;
+        const mimeType =
+          params.type === "image/jpg" ? "image/jpeg" : params.type;
         if (
           !Number.isSafeInteger(params.size) ||
           params.size <= 0 ||
@@ -490,7 +649,10 @@ export function attachFileSession(port, execute = executeFileMethod) {
           message.method,
           params,
           controller.signal,
-          uploads
+          uploads,
+          (progress) => {
+            if (!controller.signal.aborted) send({ type: "progress", requestId: id, sessionId, progress });
+          }
         );
         if (controller.signal.aborted)
           throw new DOMException("已取消", "AbortError");

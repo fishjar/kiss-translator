@@ -14,8 +14,9 @@ jest.mock("../../hooks/Tranbox", () => ({
 }));
 
 jest.mock("../../hooks/Api", () => ({
-  useApiList: () => ({ enabledApis: [], aiEnabledApis: [] }),
+  useApiList: () => ({ enabledApis: [], aiEnabledApis: [], transApis: mockServices }),
 }));
+let mockServices = [];
 
 jest.mock("../../hooks/Prompt", () => ({
   usePromptList: () => ({ prompts: [] }),
@@ -27,6 +28,26 @@ jest.mock("./ShortcutInput", () => () => null);
 jest.mock("../../hooks/ValidationInput", () => () => null);
 
 describe("Tranbox language defaults", () => {
+  test("legacy native speech and suggestion instances remain selectable while disabled instances are excluded", () => {
+    mockServices = [
+      { apiSlug: "legacy-tts", apiName: "Legacy speech", apiType: "LocalAI", modelRef: "kokoro-82m" },
+      { apiSlug: "legacy-sug", apiName: "Legacy suggestions", apiType: "Baidu" },
+      { apiSlug: "disabled-tts", apiName: "Disabled speech", apiType: "SystemTTS", isDisabled: true },
+    ];
+    useTranbox.mockReturnValue({ tranboxSetting: { apiSlugs: [], ttsApiSlug: "legacy-tts", enSug: "legacy-sug" }, updateTranbox: jest.fn() });
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => root.render(<Tranbox />));
+      act(() => container.querySelector(".MuiAccordionSummary-root").click());
+      expect(container.textContent).toContain("Legacy speech");
+      expect(container.textContent).toContain("Legacy suggestions");
+      const field = [...container.querySelectorAll("input")].find((input) => input.value === "legacy-tts").closest(".MuiFormControl-root");
+      act(() => field.querySelector('[role="combobox"]').dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 })));
+      expect([...document.querySelectorAll('[role="option"]')].map((option) => option.textContent)).not.toContain("Disabled speech");
+    } finally { act(() => root.unmount()); container.remove(); mockServices = []; }
+  });
   test("shows no ignored language when legacy settings omit skipLangs", () => {
     useTranbox.mockReturnValue({
       tranboxSetting: {

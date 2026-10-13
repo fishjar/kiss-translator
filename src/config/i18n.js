@@ -1,3 +1,4 @@
+import { PROVIDER_PLUGINS_I18N } from "./locales/providerPlugins";
 import { POPUP_I18N } from "./i18n.popup";
 import { TOUCH_I18N } from "./i18n.touch";
 /**
@@ -23,6 +24,7 @@ export const I18N = {
   ...POPUP_I18N,
   ...TOUCH_I18N,
   ...SETTINGS_I18N,
+  ...PROVIDER_PLUGINS_I18N,
   app_name: {
     zh: `简约翻译`,
     en: `KISS Translator`,
@@ -6370,7 +6372,7 @@ export const I18N = {
 // Merge Russian translations after registering all labels, including M3 settings.
 // Fall back to English for labels without a Russian translation.
 Object.keys(I18N).forEach((key) => {
-  I18N[key].ru = RU_I18N[key] ?? I18N[key].en;
+  I18N[key].ru = RU_I18N[key] ?? I18N[key].ru ?? I18N[key].en;
 });
 
 export function registerI18n(dict) {

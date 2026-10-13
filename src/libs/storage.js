@@ -4,7 +4,6 @@ import {
   STOKEY_SETTING_BACKUP_V3_BEFORE_V4,
   STOKEY_SETTING_OLD,
   STOKEY_RULES,
-  STOKEY_RULES_BACKUP_BEFORE_APISLUGS,
   STOKEY_RULES_OLD,
   STOKEY_WORDS,
   STOKEY_FAB,
@@ -551,17 +550,12 @@ export const migrateStoredSettingToV2 = async (
 /** Return false if migration cannot persist settings; reads still reject. */
 export const runDataMigration = async () => {
   const rawSetting = await getSetting();
-  const rawRules = await getRules();
-  const needsRuleMigration =
-    Array.isArray(rawRules) &&
-    rawRules.some((rule) => rule && !Array.isArray(rule.apiSlugs));
-  if (!rawSetting && !needsRuleMigration) return true;
+  if (!rawSetting) return true;
 
   const needsSchemaMigration =
     rawSetting && getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
   const needsThemeMigration = typeof rawSetting?.darkMode === "boolean";
-  if (!needsSchemaMigration && !needsThemeMigration && !needsRuleMigration)
-    return true;
+  if (!needsSchemaMigration && !needsThemeMigration) return true;
 
   try {
     let nextSetting = rawSetting;
@@ -580,12 +574,6 @@ export const runDataMigration = async () => {
     }
     if (needsSchemaMigration || needsThemeMigration)
       await setObj(STOKEY_SETTING, nextSetting);
-    if (needsRuleMigration) {
-      if (!(await getObj(STOKEY_RULES_BACKUP_BEFORE_APISLUGS))) {
-        await setObj(STOKEY_RULES_BACKUP_BEFORE_APISLUGS, rawRules);
-      }
-      await setRules(normalizeRuleApiSlugs(rawRules));
-    }
     kissLog(`Migration to V${CURRENT_SETTINGS_VERSION} completed.`);
     return true;
   } catch (err) {
@@ -622,16 +610,7 @@ export const putSetting = async (obj) => {
 // --- 用户翻译规则 (Rules) 数据存取 ---
 export const getRules = () => getObj(STOKEY_RULES);
 export const getRulesOld = () => getObj(STOKEY_RULES_OLD);
-export const getRulesWithDefault = async () =>
-  normalizeRuleApiSlugs((await getRules()) || DEFAULT_RULES);
-export const normalizeRuleApiSlugs = (rules) =>
-  Array.isArray(rules)
-    ? rules.map((rule) =>
-        !rule || Array.isArray(rule.apiSlugs)
-          ? rule
-          : { ...rule, apiSlugs: rule.apiSlug ? [rule.apiSlug] : [] }
-      )
-    : rules;
+export const getRulesWithDefault = async () => (await getRules()) || DEFAULT_RULES;
 export const setRules = (val) => setObj(STOKEY_RULES, val);
 
 // --- 个人生词本词汇 (Fav Words) 数据存取 ---

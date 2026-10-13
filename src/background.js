@@ -69,11 +69,14 @@ import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
 import { isCurrentPopupDocument } from "./libs/popupDocument";
 import { localAiRequest, cancelLocalAiRequest, localAiSettings, localAiHost } from "./libs/localAiBackground";
+import { installProviderRelay } from "./providers/background";
 import { installFileTranslationBackend } from "./fileTranslation/backend";
+import { restoreFileTranslationBridges } from "./fileTranslation/bridgeRecovery";
 
 globalThis.__KISS_CONTEXT__ = "background";
 installStorageCoordinator();
 installFileTranslationBackend();
+restoreFileTranslationBridges();
 
 let openingOptionsPage = null;
 
@@ -902,6 +905,7 @@ async function handleStreamFetch(port, args) {
  * 监听 runtime.onConnect 连接事件。
  * 筛选流式专属端口名 PORT_STREAM_FETCH，监听 start 开始指令并启动 handleStreamFetch 异步流处理程序。
  */
+installProviderRelay();
 browser.runtime.onConnect.addListener((port) => {
   if (port.name === PORT_STREAM_FETCH) {
     port.onMessage.addListener((message) => {

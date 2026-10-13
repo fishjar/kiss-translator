@@ -23,6 +23,7 @@ jest.mock(
   "./Settings",
   () => () => require("react").createElement("div", null, "运行时设置")
 );
+jest.mock("./InferenceCache", () => () => null);
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 describe("runtime sessions", () => {
@@ -59,7 +60,7 @@ describe("runtime sessions", () => {
       [...container.querySelectorAll("tbody tr")].map(
         (row) => row.firstChild.textContent
       )
-    ).toEqual(["decision", "asr", "ocr", "llm", "vlm", "tts"]);
+    ).toEqual(["decision", "asr", "ocr", "llm", "vlm", "tts", "doc"]);
     expect(container.textContent).toContain("cpu");
     expect(container.textContent).toContain("估算驻留: 1194 MB");
     expect(container.textContent.indexOf("会话与任务")).toBeLessThan(

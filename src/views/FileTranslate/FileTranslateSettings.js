@@ -2,7 +2,7 @@ import { Box } from "@mui/material";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { OPT_LANGS_FROM_REVERSED, OPT_LANGS_TO_REVERSED } from "../../config";
 import { SettingsSelect } from "../Options/SettingsCard";
-import OrderedApiSelect from "./OrderedApiSelect";
+import ServiceSelect from "./ServiceSelect";
 import ScenePromptSelect from "./ScenePromptSelect";
 
 export default function FileTranslateSettings({
@@ -56,19 +56,18 @@ export default function FileTranslateSettings({
 
       {/* 翻译服务与提示词 */}
       <Box sx={{ width: 165, flexShrink: 0 }}>
-        <OrderedApiSelect
+        <ServiceSelect
           i18n={i18n}
-          multiple={false}
+          showModelNotice={false}
           disabled={disabled}
           fullWidth
           size="small"
           variant="outlined"
-          showOrderList={false}
           hiddenLabel={false}
           label={i18n("translate_service", "翻译服务")}
           scene={scene}
           apis={services}
-          onChange={(apiSlugs) => onChange({ apiSlugs })}
+          onChange={(apiSlug) => onChange({ apiSlug })}
         />
       </Box>
       <Box sx={{ width: 150, flexShrink: 0 }}>

@@ -9,7 +9,8 @@ const require = createRequire(import.meta.url);
 
 export async function fingerprint(root = process.cwd()) {
   const inputs = ["package.json", "pnpm-lock.yaml", "vite.config.local-ai.ts"];
-  for (const dir of ["src/localAi", "src/scripts"]) {
+  // The shared host imports Provider runners and their config/lib dependencies.
+  for (const dir of ["src/localAi", "src/providers", "src/config", "src/libs", "src/scripts"]) {
     for (const file of await walkFiles(path.join(root, dir)))
       inputs.push(path.relative(root, file));
   }

@@ -6,6 +6,9 @@ const KEY = "kiss-ai-settings";
 export function normalizeSettings(value: unknown): Settings {
   const s = (value ?? {}) as Partial<Settings> & { autoUnloadModels?: boolean };
   return {
+    inferenceCacheEnabled: typeof s.inferenceCacheEnabled === "boolean" ? s.inferenceCacheEnabled : true,
+    inferenceCacheMB: Number.isSafeInteger(s.inferenceCacheMB) && s.inferenceCacheMB! > 0 ? s.inferenceCacheMB! : 256,
+    inferenceCacheDays: Number.isSafeInteger(s.inferenceCacheDays) && s.inferenceCacheDays! > 0 ? s.inferenceCacheDays! : 30,
     ...Object.fromEntries(INPUT_LIMIT_KEYS.map((key) => [key,
       Number.isSafeInteger(s[key]) && s[key]! > 0 ? s[key] : DEFAULT_SETTINGS[key],
     ])) as Pick<Settings, typeof INPUT_LIMIT_KEYS[number]>,

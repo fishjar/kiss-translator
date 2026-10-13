@@ -72,7 +72,6 @@ export const DEFAULT_RULE = {
   terms: "", // 本地化专有名词/术语表字典 (格式：原文=译文)
   aiTerms: "", // 发送给大模型的专有名词/术语表
   apiSlug: GLOBAL_KEY, // 本网页指定的翻译 API 标识名 (继承/覆盖全局)
-  apiSlugs: [GLOBAL_KEY],
   fromLang: GLOBAL_KEY, // 网页源语言代码 (继承/覆盖全局)
   toLang: GLOBAL_KEY, // 目标语言代码 (继承/覆盖全局)
   textStyle: GLOBAL_KEY, // 译文样式类型 (继承/覆盖全局)
@@ -126,7 +125,6 @@ export const GLOBLA_RULE = {
   terms: "",
   aiTerms: "",
   apiSlug: OPT_TRANS_MICROSOFT, // 默认采用微软翻译
-  apiSlugs: [OPT_TRANS_MICROSOFT],
   fromLang: "auto", // 默认自动识别原文语言
   toLang: "zh-CN", // 默认翻译为简体中文
   textStyle: OPT_STYLE_NONE, // 默认译文不加额外线条/高亮背景

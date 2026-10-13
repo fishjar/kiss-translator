@@ -1,0 +1,82 @@
+{
+  "backends": {
+    "pp-doclayout-v3-onnx": ["wasm"],
+    "whisper-base-timestamped": ["webgpu"],
+    "whisper-small-timestamped": ["webgpu"],
+    "whisper-medium-timestamped": ["webgpu"],
+    "whisper-large-v3-turbo-timestamped": ["webgpu"],
+    "sensevoice-small": ["wasm", "webgpu"],
+    "ppocr-v5-mobile-det": ["webgpu", "wasm"],
+    "ppocr-v5-mobile-rec": ["webgpu", "wasm"],
+    "ppocr-v6-tiny-det": ["webgpu", "wasm"],
+    "ppocr-v6-tiny-rec": ["webgpu", "wasm"],
+    "ppocr-v6-small-det": ["webgpu", "wasm"],
+    "ppocr-v6-small-rec": ["webgpu", "wasm"],
+    "ppocr-v6-medium-det": ["webgpu", "wasm"],
+    "ppocr-v6-medium-rec": ["webgpu", "wasm"],
+    "kokoro-82m": ["webgpu", "wasm"],
+    "audio8-tts-0.1b-int8": ["wasm"],
+    "qwen2.5-0.5b": ["webgpu", "wasm"],
+    "qwen2.5-1.5b": ["webgpu", "wasm"],
+    "qwen2.5-3b": ["webgpu", "wasm"],
+    "glm-ocr-onnx-q4": ["webgpu", "wasm"],
+    "paddleocr-vl-1.6-onnx-q8": ["webgpu", "wasm"],
+    "paddleocr-vl-1.6-q4": ["webgpu", "wasm"],
+    "unlimited-ocr-iq2m": ["webgpu", "wasm"],
+    "hy-mt2-1.8b": ["webgpu", "wasm"],
+    "hy-mt2-1.8b-onnx": ["webgpu", "wasm"],
+    "laya-multilingual-fp16": ["webgpu", "wasm"],
+    "laya-multilingual-int8": ["webgpu", "wasm"]
+  },
+  "models": {
+    "pp-doclayout-v3-onnx": "doc-layout",
+    "whisper-base-timestamped": "asr",
+    "whisper-small-timestamped": "asr",
+    "whisper-medium-timestamped": "asr",
+    "whisper-large-v3-turbo-timestamped": "asr",
+    "sensevoice-small": "asr",
+    "ppocr-v5-mobile-det": "ocr-detection",
+    "ppocr-v5-mobile-rec": "ocr-recognition",
+    "ppocr-v6-tiny-det": "ocr-detection",
+    "ppocr-v6-tiny-rec": "ocr-recognition",
+    "ppocr-v6-small-det": "ocr-detection",
+    "ppocr-v6-small-rec": "ocr-recognition",
+    "ppocr-v6-medium-det": "ocr-detection",
+    "ppocr-v6-medium-rec": "ocr-recognition",
+    "kokoro-82m": "tts",
+    "audio8-tts-0.1b-int8": "tts",
+    "qwen2.5-0.5b": "llm",
+    "qwen2.5-1.5b": "llm",
+    "qwen2.5-3b": "llm",
+    "glm-ocr-onnx-q4": "ocr-vlm",
+    "paddleocr-vl-1.6-onnx-q8": "ocr-vlm",
+    "paddleocr-vl-1.6-q4": "ocr-vlm",
+    "unlimited-ocr-iq2m": "ocr-vlm",
+    "hy-mt2-1.8b": "llm",
+    "hy-mt2-1.8b-onnx": "llm",
+    "laya-multilingual-fp16": "decision",
+    "laya-multilingual-int8": "decision"
+  },
+  "ocrGroups": [
+    {
+      "id": "ppocr-v5-mobile",
+      "detId": "ppocr-v5-mobile-det",
+      "recId": "ppocr-v5-mobile-rec"
+    },
+    {
+      "id": "ppocr-v6-tiny",
+      "detId": "ppocr-v6-tiny-det",
+      "recId": "ppocr-v6-tiny-rec"
+    },
+    {
+      "id": "ppocr-v6-small",
+      "detId": "ppocr-v6-small-det",
+      "recId": "ppocr-v6-small-rec"
+    },
+    {
+      "id": "ppocr-v6-medium",
+      "detId": "ppocr-v6-medium-det",
+      "recId": "ppocr-v6-medium-rec"
+    }
+  ]
+}

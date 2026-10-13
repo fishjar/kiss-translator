@@ -60,6 +60,7 @@ export interface AiRpcRequest<T = unknown> {
     modelId?: string;
     backend?: string;
     sessionVersion?: number;
+    cacheMode?: "default" | "refresh" | "off";
   };
 }
 
@@ -73,6 +74,7 @@ export interface AiRpcResponse<T = unknown> {
     retryable?: boolean;
   };
   usage?: {
+    cacheHit?: boolean;
     queueMs?: number;
     loadMs?: number;
     inferenceMs?: number;

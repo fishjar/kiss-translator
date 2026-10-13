@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
+import { hasCompleteCoordinates } from "../../fileTranslation/recognition";
 
-export const hasImagePolygon = (poly) => poly?.length >= 3 && poly.every((point) =>
-    Array.isArray(point) && point.length >= 2 && Number.isFinite(point[0]) && Number.isFinite(point[1]));
+export const hasImagePolygon = (poly) => hasCompleteCoordinates([{ text: "region", poly }]);
 
-export default function ImageSourcePreview({ src, alt, poly }) {
+export default function ImageSourcePreview({
+  src, alt, rows = [], showRegions = true, disabled = false,
+  onToggleRegion, regionLabel, selectLabel, excludeLabel,
+}) {
   const container = useRef(null);
   const image = useRef(null);
   const [bounds, setBounds] = useState(null);
@@ -23,16 +26,41 @@ export default function ImageSourcePreview({ src, alt, poly }) {
     observer.observe(image.current);
     return () => observer.disconnect();
   }, [src]);
-  const valid = hasImagePolygon(poly);
   return (
     <Box ref={container} sx={{ position: "relative", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 0 }}>
       <Box component="img" ref={image} src={src} alt={alt} onLoad={measure}
         sx={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 1, boxShadow: 1 }} />
-      {bounds && valid && (
-        <Box component="svg" aria-hidden="true" data-testid="image-region-overlay"
+      {bounds && showRegions && rows.some((row) => hasImagePolygon(row.poly)) && (
+        <Box component="svg" data-testid="image-region-overlay"
           viewBox={`0 0 ${bounds.naturalWidth} ${bounds.naturalHeight}`}
           sx={{ position: "absolute", left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height, pointerEvents: "none", color: "primary.main" }}>
-          <polygon points={poly.map((point) => point.join(",")).join(" ")} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+          {rows.map((row, index) => {
+            if (!hasImagePolygon(row.poly)) return null;
+            const enabled = row.enabled !== false;
+            const label = `${regionLabel?.(row, index) || row.source} — ${enabled ? excludeLabel : selectLabel}`;
+            const toggle = (event) => {
+              event.stopPropagation();
+              if (!disabled) onToggleRegion?.(index);
+            };
+            return (
+              <Box component="polygon" key={index} role="button" tabIndex={disabled ? -1 : 0}
+                aria-label={label} aria-pressed={enabled} aria-disabled={disabled}
+                points={row.poly.map((point) => point.join(",")).join(" ")}
+                fill={enabled ? "rgba(25, 118, 210, 0.08)" : "rgba(158, 158, 158, 0.15)"}
+                stroke={enabled ? "#1976d2" : "#9e9e9e"} strokeDasharray={enabled ? undefined : "4 3"}
+                strokeWidth="1.5" vectorEffect="non-scaling-stroke" onClick={toggle}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    toggle(event);
+                  }
+                }}
+                sx={{ pointerEvents: "all", outline: "none", cursor: disabled ? "default" : "pointer",
+                  "&:focus-visible": { strokeWidth: 3 } }}>
+                <title>{label}</title>
+              </Box>
+            );
+          })}
         </Box>
       )}
     </Box>

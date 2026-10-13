@@ -1,3 +1,4 @@
+import { apiGoogleLangdetect, apiBaiduLangdetect, apiTencentLangdetect, apiBaiduSuggest, apiYoudaoSuggest } from "../builtin-plugins/discovery";
 import queryString from "query-string";
 import { fetchData } from "../libs/fetch";
 import {
@@ -48,8 +49,13 @@ import { chromeDetect, chromeTranslate } from "../libs/builtinAI";
 import { fnPolyfill } from "../libs/fetch";
 import { normalizeHttpTimeout } from "../libs/request";
 import { getFetchPool } from "../libs/pool";
+import { supportsServiceFeature } from "../providers/features";
+import { getCapabilityDescriptor } from "../providers/capabilities";
+import { supportsApiCapability } from "../config/serviceSelection";
 import { trustedTypesHelper } from "../libs/trustedTypes";
 import { getDocInfo } from "../libs/docInfo";
+import { providerCacheSignature } from "../providers/cache";
+export { apiGoogleLangdetect, apiBaiduLangdetect, apiTencentLangdetect, apiBaiduSuggest, apiYoudaoSuggest };
 
 const PROMPT_CACHE_SALT = "prompt-cache";
 const PROMPT_CACHE_SCOPE_BATCH = "batch";
@@ -233,37 +239,7 @@ export const apiFetch = (url) => fetchData(url);
 export const apiFetchText = (url) =>
   fetchData(url, undefined, { expect: "text" });
 
-/**
- * 谷歌语言识别 API。
- * @param {string} text 待识别的原文文本
- * @returns {Promise<string>} 识别出的 ISO 语言简写代码 (e.g. "en")
- */
-export const apiGoogleLangdetect = async (text) => {
-  const params = {
-    client: "gtx",
-    dt: "t",
-    dj: 1,
-    ie: "UTF-8",
-    sl: "auto",
-    tl: "zh-CN",
-    q: text,
-  };
-  const input = `https://translate.googleapis.com/translate_a/single?${queryString.stringify(params)}`;
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-    },
-  };
-  // 语言识别通常调用频繁，此处开启 useCache: true 节省请求开销
-  const res = await fetchData(input, init, { useCache: true });
 
-  if (res?.src) {
-    await putHttpCachePolyfill(input, init, res);
-    return res.src;
-  }
-
-  return "";
-};
 
 /**
  * 微软 Edge 在线词典检索（Bing 词典 HTML 爬取解析）。
@@ -394,90 +370,11 @@ export const apiMicrosoftDict = async (text) => {
   return res;
 };
 
-/**
- * 百度语言识别 API。
- * @param {string} text 待识别的原文文本
- * @returns {Promise<string>} 语言简写代码
- */
-export const apiBaiduLangdetect = async (text) => {
-  const input = "https://fanyi.baidu.com/langdetect";
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-    },
-    method: "POST",
-    body: JSON.stringify({
-      query: text,
-    }),
-  };
-  const res = await fetchData(input, init, { useCache: true });
 
-  if (res?.error === 0) {
-    await putHttpCachePolyfill(input, init, res);
-    return res.lan;
-  }
 
-  return "";
-};
 
-/**
- * 百度输入建议 API (用于输入翻译功能)。
- * @param {string} text 输入的关键词
- * @returns {Promise<Array<Object>>} 建议列表
- */
-export const apiBaiduSuggest = async (text) => {
-  const input = "https://fanyi.baidu.com/sug";
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-    },
-    method: "POST",
-    body: JSON.stringify({
-      kw: text,
-    }),
-  };
-  const res = await fetchData(input, init, { useCache: true });
 
-  if (res?.errno === 0) {
-    await putHttpCachePolyfill(input, init, res);
-    return res.data;
-  }
 
-  return [];
-};
-
-/**
- * 有道输入建议 API。
- * @param {string} text 关键词
- * @returns {Promise<Array<Object>>} 有道联想建议数据
- */
-export const apiYoudaoSuggest = async (text) => {
-  const params = {
-    num: 5,
-    ver: 3.0,
-    doctype: "json",
-    cache: false,
-    le: "en",
-    q: text,
-  };
-  const input = `https://dict.youdao.com/suggest?${queryString.stringify(params)}`;
-  const init = {
-    headers: {
-      accept: "application/json, text/plain, */*",
-      "accept-language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7,ja;q=0.6",
-      "content-type": "application/x-www-form-urlencoded",
-    },
-    method: "GET",
-  };
-  const res = await fetchData(input, init, { useCache: true });
-
-  if (res?.result?.code === 200) {
-    await putHttpCachePolyfill(input, init, res);
-    return res.data.entries;
-  }
-
-  return [];
-};
 
 /**
  * 有道词典 API。
@@ -528,40 +425,7 @@ export const apiBaiduTTS = (text, lan = "uk", spd = 3) => {
   return fetchData(input);
 };
 
-/**
- * 腾讯 Transmart 语言识别 API。
- * @param {string} text 原文文本
- * @returns {Promise<string>} 语言简写代号
- */
-export const apiTencentLangdetect = async (text) => {
-  const input = "https://transmart.qq.com/api/imt";
-  const body = JSON.stringify({
-    header: {
-      fn: "text_analysis",
-      client_key:
-        "browser-chrome-110.0.0-Mac OS-df4bd4c5-a65d-44b2-a40f-42f34f3535f2-1677486696487",
-    },
-    text,
-  });
-  const init = {
-    headers: {
-      "Content-type": "application/json",
-      "user-agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-      referer: "https://transmart.qq.com/zh-CN/index",
-    },
-    method: "POST",
-    body,
-  };
-  const res = await fetchData(input, init, { useCache: true });
 
-  if (res?.language) {
-    await putHttpCachePolyfill(input, init, res);
-    return res.language;
-  }
-
-  return "";
-};
 
 /**
  * 现代浏览器 (Chrome 127+) 内置 Gemini Nano AI 本地语言识别 API。
@@ -717,6 +581,7 @@ export const apiTranslate = async ({
   onStreamChunk,
   docInfo,
   useCache = true,
+  cacheMode = "default",
   usePool = true,
   translateVariants = true,
   textFormat = "text",
@@ -730,7 +595,10 @@ export const apiTranslate = async ({
     throw new DOMException("The operation was aborted.", "AbortError");
   }
 
-  const { apiType, apiSlug, useBatchFetch } = apiSetting;
+  if (!supportsApiCapability(apiSetting, "translate"))
+    throw Object.assign(new Error("Translation capability is disabled or unsupported."), { code: "CAPABILITY_DISABLED" });
+  const { apiType, apiSlug } = apiSetting;
+  const useBatchFetch = apiSetting.useBatchFetch && cacheMode === "default";
   const langMap = OPT_LANGS_TO_SPEC[apiType] || OPT_LANGS_SPEC_DEFAULT;
   const fromMap = OPT_LANGS_FROM_SPEC[apiType] || langMap;
   const from = fromMap.get(fromLang);
@@ -744,11 +612,14 @@ export const apiTranslate = async ({
   // 这可以确保用户在升级扩展插件后，旧版本的翻译缓存会被自动作废，防止旧的翻译 Prompt/规则影响新版效果。
   // 此外，如果当前是视频字幕翻译，还会缓存前 50 字符的上下文视频摘要信息，使上下文关联缓存更智能。
   const [v1, v2] = process.env.REACT_APP_VERSION.split(".");
-  const promptSig = await getPromptCacheSig(
+  let promptSig = await getPromptCacheSig(
     apiSetting,
     getTranslatePromptCacheScope(apiSetting),
     glossary
   );
+  if (apiSetting.provider) {
+    promptSig = await providerCacheSignature(apiSetting, "translate", { promptSig, glossary, docInfo, fromLang, toLang, textFormat });
+  }
   const cacheOpts = {
     apiSlug,
     text,
@@ -763,7 +634,7 @@ export const apiTranslate = async ({
   const cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
 
   // 1. 查询本地 HTTP/CacheStorage 缓存
-  if (useCache) {
+  if (useCache && cacheMode === "default") {
     const cache = await getHttpCachePolyfill(cacheInput);
     if (cache?.trText) {
       return {
@@ -793,7 +664,7 @@ export const apiTranslate = async ({
       to,
       apiSetting,
     });
-  } else if (useBatchFetch && API_SPE_TYPES.batch.has(apiType)) {
+  } else if (useBatchFetch && supportsServiceFeature(apiSetting, "batch")) {
     // 2.2 支持批量翻译的传统接口 (如 Google/Microsoft/DeepL 等)
     // 使用 BatchQueue 进行零散文本大合并，节省网络交互次数，大幅提升网页整页翻译的载入速度
     const {
@@ -805,7 +676,7 @@ export const apiTranslate = async ({
       useStream,
       useContext,
     } = apiSetting;
-    const enableStream = useStream && API_SPE_TYPES.stream.has(apiType);
+    const enableStream = useStream !== false && supportsServiceFeature(apiSetting, "stream");
     const configuredBatchConcurrency = Number(batchConcurrency);
     const effectiveBatchConcurrency =
       useContext && API_SPE_TYPES.context.has(apiType)
@@ -817,7 +688,9 @@ export const apiTranslate = async ({
     const key = `${apiSlug}_${fromLang}_${toLang}_${textFormat}_${enableStream ? "stream" : "batch"}_${promptSig}_${effectiveBatchConcurrency}`;
     const queue = getBatchQueue(key, handleTranslate, {
       batchInterval,
-      batchSize,
+      batchSize: getCapabilityDescriptor(apiSetting, "translate")?.batch?.maxItems
+        ? Math.min(batchSize || 10, getCapabilityDescriptor(apiSetting, "translate").batch.maxItems)
+        : batchSize,
       batchLength,
       batchConcurrency: effectiveBatchConcurrency,
     });
@@ -890,7 +763,7 @@ export const apiTranslate = async ({
   if (Array.isArray(translation)) {
     [trText, srLang = ""] = translation;
     if (srLang) {
-      srCode = OPT_LANGS_TO_CODE[apiType].get(srLang) || "";
+      srCode = OPT_LANGS_TO_CODE[apiType]?.get(srLang) || (apiSetting.provider && apiSetting.provider.implementation.kind !== "native" ? normalizeLanguageCode(srLang) : "");
     }
   } else if (typeof translation === "string") {
     trText = translation;
@@ -911,7 +784,7 @@ export const apiTranslate = async ({
   });
 
   // 4. 将成功的结果写入本地网络缓存中
-  if (useCache) {
+  if (useCache && cacheMode !== "off" && !signal?.aborted) {
     putHttpCachePolyfill(cacheInput, null, { trText, isSame, srLang, srCode });
   }
 
@@ -955,7 +828,7 @@ export const apiDict = async ({
   }
 
   const { apiType } = apiSetting;
-  if (!API_SPE_TYPES.ai.has(apiType)) {
+  if (!supportsApiCapability(apiSetting, "dictionary")) {
     throw new Error("AI dictionary only supports AI APIs.");
   }
 
@@ -985,7 +858,9 @@ export const apiDict = async ({
     fromLang,
     toLang,
     version: [v1, v2].join("."),
-    promptSig: await getPromptCacheSig(apiSetting, PROMPT_CACHE_SCOPE_DICT),
+    promptSig: apiSetting.provider
+      ? await providerCacheSignature(apiSetting, "dictionary", { promptSig: await getPromptCacheSig(apiSetting, PROMPT_CACHE_SCOPE_DICT), context, docInfo: effectiveDocInfo, fromLang, toLang })
+      : await getPromptCacheSig(apiSetting, PROMPT_CACHE_SCOPE_DICT),
     contextSig: contextSig.slice(0, 16),
   };
   const cacheInput = `${URL_CACHE_DICT}?${queryString.stringify(cacheOpts)}`;
@@ -1039,6 +914,7 @@ export const apiSubtitle = async ({
   onSubtitleChunk,
   signal,
 }) => {
+  if (!supportsApiCapability(apiSetting, "segmentSubtitle")) throw Object.assign(new Error("Subtitle capability is disabled or unsupported."), { code: "CAPABILITY_DISABLED" });
   if (!events?.length) return [];
   const formattedEvents = formatIndexSubtitleEvents(
     events,
@@ -1085,7 +961,7 @@ export const apiSubtitle = async ({
       temperature: apiSetting.temperature, maxTokens: apiSetting.maxTokens,
     } : {}),
     segVer: 4,
-    promptSig: (await getCacheDigest(renderedPrompt, PROMPT_CACHE_SALT)).slice(
+    promptSig: (apiSetting.provider ? await providerCacheSignature(apiSetting, "segmentSubtitle", { renderedPrompt, docInfo, fromLang, toLang }) : await getCacheDigest(renderedPrompt, PROMPT_CACHE_SALT)).slice(
       0,
       16
     ),
@@ -1127,7 +1003,8 @@ export const apiSummarizeContext = async ({
   transcript,
   apiSetting,
 }) => {
-  const cacheOpts = { apiSlug: apiSetting.apiSlug, videoId };
+  if (!supportsApiCapability(apiSetting, "summarize")) throw Object.assign(new Error("Summary capability is disabled or unsupported."), { code: "CAPABILITY_DISABLED" });
+  const cacheOpts = { apiSlug: apiSetting.apiSlug, videoId, ...((apiSetting.provider || apiSetting.enabledCapabilities) && { providerSig: await providerCacheSignature(apiSetting, "summarize", { title, description, transcript }) }) };
   const cacheInput = `${URL_CACHE_CONTEXT}?${queryString.stringify(cacheOpts)}`;
 
   // 1. 读取总结摘要缓存，避免每次打开同一视频重复对长文本请求总结
@@ -1179,7 +1056,7 @@ export const getVideoSummarySignature = async ({
     transcript,
   ].join("\n---\n");
 
-  const digest = await getCacheDigest(contentToDigest, "video_summary_v1");
+  const digest = (apiSetting?.provider || apiSetting?.enabledCapabilities) ? await providerCacheSignature(apiSetting, "summarize", { contentToDigest }) : await getCacheDigest(contentToDigest, "video_summary_v1");
   const sig = (digest || "").slice(0, 16);
   return `${videoId || "video"}_${apiSetting?.apiSlug || "api"}_${to}_${sig}`;
 };
@@ -1199,6 +1076,7 @@ export const apiSummarizeVideo = async ({
   force = false,
   signal,
 }) => {
+  if (!supportsApiCapability(apiSetting, "summarize")) throw Object.assign(new Error("Summary capability is disabled or unsupported."), { code: "CAPABILITY_DISABLED" });
   const summarySig = await getVideoSummarySignature({
     videoId,
     title,
@@ -1233,6 +1111,7 @@ export const apiSummarizeVideo = async ({
     prompt,
     to,
     signal,
+    cacheMode: force ? "refresh" : undefined,
   });
 
   if (summary) {

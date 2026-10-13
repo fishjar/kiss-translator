@@ -26,8 +26,8 @@ jest.mock("../../hooks/Prompt", () => ({
 jest.mock("./ShortcutInput", () => () => null);
 
 const enabledApis = [
-  { apiSlug: "page-api", apiName: "Page API" },
-  { apiSlug: "bubble-api", apiName: "Bubble API" },
+  { apiSlug: "page-api", apiType: "Microsoft", apiName: "Page API" },
+  { apiSlug: "bubble-api", apiType: "Microsoft", apiName: "Bubble API" },
 ];
 
 function renderMouseHover(mouseHoverSetting) {
@@ -113,7 +113,6 @@ describe("MouseHover settings", () => {
     });
 
     expect(view.updateMouseHoverSetting).toHaveBeenCalledWith({
-      apiSlugs: ["bubble-api"],
       apiSlug: "bubble-api",
     });
     view.cleanup();

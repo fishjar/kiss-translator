@@ -3,6 +3,7 @@ import { inferOnnxModelDtype } from "./ocrVlmPrompts";
 import type { AiRpcService } from "../runtime/rpc";
 
 export interface ModelTarget {
+  cacheMode?: "default" | "refresh" | "off";
   modelRef: string;
   loadSpec?: Record<string, any>;
 }

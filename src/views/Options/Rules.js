@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import OrderedApiSelect from "./OrderedApiSelect";
+import ServiceSelect from "./ServiceSelect";
 import ScenePromptSelect from "./ScenePromptSelect";
 import CodeField from "./CodeField";
 import Button from "@mui/material/Button";
@@ -127,8 +127,6 @@ const calculateInitialValues = (rule) => {
   // REVIEW: GLOBLA_RULE 存在拼写错误，疑似应为 GLOBAL_RULE。此处为兼容底层导出的拼写而沿用。
   const base = rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE;
   const merged = { ...base, ...(rule || {}) };
-  if (rule?.apiSlug && !Array.isArray(rule.apiSlugs))
-    merged.apiSlugs = [rule.apiSlug];
   return merged;
 };
 
@@ -413,7 +411,7 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
             </Grid>
             {/* 翻译引擎服务设置 */}
             <Grid item xs={12} sm={12} md={6} lg={6}>
-              <OrderedApiSelect
+              <ServiceSelect
                 fullWidth
                 scene={formValues}
                 apis={
@@ -426,11 +424,10 @@ function RuleFields({ rule, rules, setShow, setKeyword }) {
                 }
                 label={i18n("translate_service")}
                 disabled={disabled}
-                onChange={(apiSlugs) =>
+                onChange={(apiSlug) =>
                   setFormValues((previous) => ({
                     ...previous,
-                    apiSlugs,
-                    apiSlug: apiSlugs[0] || GLOBAL_KEY,
+                    apiSlug: apiSlug || GLOBAL_KEY,
                   }))
                 }
               />

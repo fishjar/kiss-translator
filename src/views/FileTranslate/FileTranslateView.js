@@ -1,3 +1,6 @@
+import { recognitionFeature, recognitionOptions, hasCompleteCoordinates } from "../../fileTranslation/recognition";
+import { isApiConfigured } from "../../config/serviceSelection";
+import { supportsApiCapability } from "../../config/serviceSelection";
 import { runTranslationTasks } from "../../libs/translationTasks";
 import {
   lazy,
@@ -15,6 +18,8 @@ import Card from "@mui/material/Card";
 import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
 import Snackbar from "@mui/material/Snackbar";
+import Switch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
@@ -73,6 +78,7 @@ import {
 import EpubReaderView from "./EpubReaderView";
 import FileTranslateToolbar from "./FileTranslateToolbar";
 import FileTranslateSettings from "./FileTranslateSettings";
+import LocalServiceNotice from "../../components/LocalServiceNotice";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import PictureAsPdfRoundedIcon from "@mui/icons-material/PictureAsPdfRounded";
 import { SettingsSelect } from "../Options/SettingsCard";
@@ -80,9 +86,7 @@ import ScenePromptSelect from "./ScenePromptSelect";
 import ImageViewerDialog from "./ImageViewerDialog";
 import ImageSourcePreview, { hasImagePolygon } from "./ImageSourcePreview";
 import {
-  availableImageApisForScene,
-  availableLayoutApisForScene,
-  orderedApiSlugs,
+  availableApiForScene,
 } from "../../config/serviceSelection";
 
 const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -229,6 +233,8 @@ export default function FileTranslateView() {
   );
 
   const [file, setFile] = useState(null);
+  const [ignoreCache, setIgnoreCache] = useState(false);
+  useEffect(() => setIgnoreCache(false), [file]);
   const [sourceText, setSourceText] = useState("");
   const [preview, setPreview] = useState("");
   const [rows, setRows] = useState([]);
@@ -238,12 +244,23 @@ export default function FileTranslateView() {
   );
   const [imageActionAnchor, setImageActionAnchor] = useState(null);
   const [pdfActionAnchor, setPdfActionAnchor] = useState(null);
-  const [pdfAction, setPdfAction] = useState("all");
   const [imageStage, setImageStage] = useState("");
-  const [imageTranslationComplete, setImageTranslationComplete] = useState(false);
-  const [hoveredImageRow, setHoveredImageRow] = useState(null);
-  useEffect(() => setHoveredImageRow(null), [resultViewMode, file]);
-  const hasImageCoordinates = rows.some((row) => hasImagePolygon(row.poly));
+  const [imageFailure, setImageFailure] = useState(null);
+  const imageFailurePrompt = imageFailure &&
+    i18n(
+      `image_${imageFailure.stage}_failed_prompt`,
+      {
+        recognize: "文本识别失败，请重试",
+        translate: "文本翻译失败，请重试",
+        synthesize: "图片合成失败，请重试",
+      }[imageFailure.stage]
+    );
+  const [showImageRegions, setShowImageRegions] = useState(true);
+  const selectedImageRows = rows.filter((row) => row.enabled !== false && row.source?.trim());
+  const imageTranslationComplete = selectedImageRows.length > 0 &&
+    selectedImageRows.every((row) => row.translated);
+  const hasImageCoordinates = hasCompleteCoordinates(selectedImageRows, "source");
+  const resultRows = mode === "image" && resultViewMode !== "source" ? selectedImageRows : rows;
   const [translatedImageBlob, setTranslatedImageBlob] = useState(null);
   const [translatedImageUrl, setTranslatedImageUrl] = useState("");
   const [mdSourceView, setMdSourceView] = useState("preview");
@@ -253,7 +270,6 @@ export default function FileTranslateView() {
   const [sourceHtml, setSourceHtml] = useState("");
   const [mdBlocks, setMdBlocks] = useState([]);
   const [downloadMenuAnchor, setDownloadMenuAnchor] = useState(null);
-  const allOcrModels = context.ocrModels;
   const getModelDisplayName = useCallback(
     (id) => context.models.find((model) => model.id === id)?.name || id,
     [context.models]
@@ -286,138 +302,75 @@ export default function FileTranslateView() {
     failedCount: 0,
   });
 
-  // 筛选具备 OCR 能力的服务实例
-  const ocrApis = useMemo(() => {
-    return (setting?.transApis || []).filter(
-      (api) =>
-        !api.isDisabled &&
-        (Array.isArray(api.capabilities)
-          ? api.capabilities.includes("ocr") || api.capabilities.includes("vlm")
-          : false)
-    );
-  }, [setting?.transApis]);
-
-  const hasOcrService = ocrApis.length > 0;
-
-  // 有序候选 OCR 服务列表（首选服务不可用时按顺序自动回退）
-  const activeOcrCandidates = useMemo(() => {
-    return availableImageApisForScene(scene, setting?.transApis || [], {
-      installedModels: new Set(
-        context.models
-          .filter((model) => model.state === "installed")
-          .map((model) => model.id)
-      ),
-    });
-  }, [scene, setting?.transApis, context.models]);
-
-  const activeOcrApi =
-    activeOcrCandidates[0] ||
-    ocrApis.find(
-      (api) => api.apiSlug === (scene.ocrApiSlug || scene.ocrApiSlugs?.[0])
-    ) ||
-    ocrApis[0];
-
-  const currentOcrSlug = hasOcrService
-    ? scene.ocrApiSlug || scene.ocrApiSlugs?.[0] || activeOcrApi?.apiSlug || ""
-    : "";
-
-  const resolvedOcrModelId =
-    activeOcrApi?.sourceType === "local" && activeOcrApi.modelRef
-      ? activeOcrApi.modelRef
-      : scene.ocrGroup || "ppocr-v5-mobile";
-
-  const currentOcrModel = allOcrModels.find((m) => m.id === resolvedOcrModelId);
-  const isVlmModel =
-    activeOcrApi?.capabilities?.includes("vlm") ||
-    currentOcrModel?.category === "vlm";
-
-  const handleOcrServiceChange = (newSlug) => {
-    if (!newSlug) return;
-    const prevSlugs = orderedApiSlugs(scene, "ocrApiSlugs", "ocrApiSlug");
-    const nextSlugs = [newSlug, ...prevSlugs.filter((s) => s !== newSlug)];
-    patchScene({
-      ocrApiSlug: newSlug,
-      ocrApiSlugs: nextSlugs,
-    });
+  const recognitionSelection = scene.recognitionService;
+  const activeRecognitionApi = (setting?.transApis || []).find((api) => api.apiSlug === recognitionSelection?.apiSlug);
+  const selectedRecognitionFeature = recognitionFeature(activeRecognitionApi, recognitionSelection?.capability);
+  const hasRecognitionService = Boolean(selectedRecognitionFeature);
+  const isVlmRecognition = recognitionSelection?.capability === "parseImage";
+  const recognitionSelectOptions = recognitionOptions(setting?.transApis || [], recognitionSelection, i18n, mode === "pdf");
+  const handleRecognitionChange = (value) => {
+    if (mode === "image") {
+      controller.current?.abort();
+      taskIdRef.current += 1;
+      setBusy(false);
+      setError("");
+      setRows([]);
+      imageRecognition.current = null;
+      setImageFailure(null);
+      setTranslatedImageBlob(null);
+      setTranslatedImageUrl("");
+    }
+    patchScene({ recognitionService: value ? JSON.parse(value) : null });
   };
-
-  const ocrSelectOptions = useMemo(() => {
-    if (!hasOcrService) {
-      return [
-        {
-          value: "",
-          label: i18n(
-            "ocr_service_empty",
-            "未配置 OCR 服务（请在服务配置中添加）"
-          ),
-          disabled: true,
-        },
-      ];
-    }
-    const options = ocrApis.map((api) => ({
-      value: api.apiSlug,
-      label: `${api.apiName || api.apiType || api.apiSlug}${
-        api.modelRef
-          ? ` (${typeof getModelDisplayName === "function" ? getModelDisplayName(api.modelRef, i18n) : api.modelRef})`
-          : ""
-      }${api.ocrAvailable === false ? ` (${i18n("api_unavailable_here", "unavailable here")})` : ""}`,
-    }));
-    if (currentOcrSlug && !options.some((o) => o.value === currentOcrSlug)) {
-      options.push({
-        value: currentOcrSlug,
-        label: `${currentOcrSlug} (${i18n("api_unavailable", "当前不可用")})`,
-      });
-    }
-    return options;
-  }, [hasOcrService, ocrApis, currentOcrSlug, i18n, getModelDisplayName]);
+  const visionOptions = [
+    { value: "", label: i18n("vision_service_select", "请选择视觉解析服务") },
+    ...(setting?.transApis || []).filter((api) => {
+      const feature = recognitionFeature(api, "parseImage");
+      return feature && (feature.taskModes || ["doc"]).some((task) => ["table", "formula"].includes(task));
+    }).map((api) => ({ value: api.apiSlug, label: api.apiName || api.apiSlug })),
+  ];
+  if (scene.visionServiceSlug && !visionOptions.some((option) => option.value === scene.visionServiceSlug))
+    visionOptions.push({ value: scene.visionServiceSlug, label: `${scene.visionServiceSlug} (${i18n("api_unavailable_here", "当前不可用")})` });
 
   // 筛选具备界面分析（layout）能力的服务实例
   const layoutApis = useMemo(() => {
     return (setting?.transApis || []).filter(
       (api) =>
         !api.isDisabled &&
-        (Array.isArray(api.capabilities)
-          ? api.capabilities.includes("layout")
-          : false)
+        isApiConfigured(api) && supportsApiCapability(api, "analyzeLayout")
     );
   }, [setting?.transApis]);
 
   const hasLayoutService = layoutApis.length > 0;
 
-  // 有序候选界面分析服务列表
-  const activeLayoutCandidates = useMemo(() => {
-    return availableLayoutApisForScene(scene, setting?.transApis || [], {
-      installedModels: new Set(
-        context.models
-          .filter((model) => model.state === "installed")
-          .map((model) => model.id)
-      ),
-    });
-  }, [scene, setting?.transApis, context.models]);
-
-  const activeLayoutApi =
-    activeLayoutCandidates[0] ||
-    layoutApis.find(
-      (api) =>
-        api.apiSlug === (scene.layoutApiSlug || scene.layoutApiSlugs?.[0])
-    ) ||
-    layoutApis[0];
+  const activeLayoutApi = useMemo(() => {
+    const api = scene.layoutApiSlug
+      ? availableApiForScene(
+          scene,
+          setting?.transApis || [],
+          "analyzeLayout",
+          {
+            installedModels: new Set(
+              context.models
+                .filter((model) => model.state === "installed")
+                .map((model) => model.id)
+            ),
+          },
+          "layoutApiSlug"
+        )
+      : layoutApis.find((api) => api.layoutAvailable !== false);
+    return api?.layoutAvailable !== false ? api : undefined;
+  }, [scene, setting?.transApis, context.models, layoutApis]);
 
   const currentLayoutSlug = hasLayoutService
-    ? scene.layoutApiSlug ||
-      scene.layoutApiSlugs?.[0] ||
-      activeLayoutApi?.apiSlug ||
-      ""
+    ? scene.layoutApiSlug || activeLayoutApi?.apiSlug || ""
     : "";
 
   const handleLayoutServiceChange = (newSlug) => {
     if (!newSlug) return;
-    const prevSlugs = orderedApiSlugs(scene, "layoutApiSlugs", "layoutApiSlug");
-    const nextSlugs = [newSlug, ...prevSlugs.filter((s) => s !== newSlug)];
     const targetApi = layoutApis.find((api) => api.apiSlug === newSlug);
     patchScene({
       layoutApiSlug: newSlug,
-      layoutApiSlugs: nextSlugs,
       ...(targetApi?.modelRef ? { layoutModel: targetApi.modelRef } : {}),
       ...(targetApi?.device ? { layoutDevice: targetApi.device } : {}),
     });
@@ -472,7 +425,6 @@ export default function FileTranslateView() {
     activeTab: "source",
   });
 
-  const [translateScope, setTranslateScope] = useState("paragraph"); // "paragraph" | "entire"
   const [translateMenuAnchor, setTranslateMenuAnchor] = useState(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isEntireTranslated, setIsEntireTranslated] = useState(false);
@@ -485,6 +437,51 @@ export default function FileTranslateView() {
   const isSyncingScroll = useRef(false);
   const taskIdRef = useRef(0);
   const fileRef = useRef(null);
+  const imageRecognition = useRef(null);
+  const imageTranslationKey = JSON.stringify({ fromLang: scene.fromLang, toLang: scene.toLang,
+    apiSlug: scene.apiSlug, promptSlug: scene.promptSlug,
+    serviceSignature: context.services.find((api) => api.apiSlug === scene.apiSlug)?.translationSignature,
+    prompt: context.prompts?.find((prompt) => prompt.slug === scene.promptSlug) });
+  const previousImageTranslationKey = useRef(imageTranslationKey);
+  useEffect(() => {
+    if (previousImageTranslationKey.current === imageTranslationKey) return;
+    previousImageTranslationKey.current = imageTranslationKey;
+    if (mode !== "image") return;
+    controller.current?.abort();
+    taskIdRef.current += 1;
+    setBusy(false);
+    setImageStage("");
+    setImageFailure(null);
+    setRows((previous) => previous.map((row) => ({ ...row, target: "", translated: false,
+      translationKey: undefined, error: undefined })));
+    setTranslatedImageBlob(null);
+    setTranslatedImageUrl("");
+  }, [mode, imageTranslationKey]);
+  const recognitionPromptSlug = scene.vlmPromptSlug || activeRecognitionApi?.vlmPromptSlug || "";
+  const imageRecognitionSignature = JSON.stringify({
+    selection: recognitionSelection,
+    service: activeRecognitionApi,
+    promptSlug: recognitionPromptSlug,
+    prompt: context.prompts?.find((prompt) => prompt.slug === recognitionPromptSlug),
+  });
+  const hasCurrentImageRecognition = imageRecognition.current?.ready &&
+    imageRecognition.current.file === file &&
+    imageRecognition.current.signature === imageRecognitionSignature;
+  useEffect(() => {
+    const previous = imageRecognition.current;
+    if (!previous || (mode === "image" && previous.file === file &&
+      previous.signature === imageRecognitionSignature)) return;
+    controller.current?.abort();
+    taskIdRef.current += 1;
+    imageRecognition.current = null;
+    setBusy(false);
+    setRows([]);
+    setImageStage("");
+    setImageFailure(null);
+    setInputNotices([]);
+    setTranslatedImageBlob(null);
+    setTranslatedImageUrl("");
+  }, [mode, file, imageRecognitionSignature]);
   const epubExportCacheRef = useRef(new Map());
 
   // 监听文件或图书切换，清空 EPUB 导出缓存
@@ -609,8 +606,9 @@ export default function FileTranslateView() {
   // 清理现有翻译结果
   const resetResults = () => {
     setImageStage("");
-    setImageTranslationComplete(false);
-    setHoveredImageRow(null);
+    setImageFailure(null);
+    imageRecognition.current = null;
+    setShowImageRegions(true);
     setImageActionAnchor(null);
     setRows([]);
     setResultText("");
@@ -807,7 +805,7 @@ export default function FileTranslateView() {
     resetResults();
     setError("");
     setProgress([0, 0]);
-    setPdfAction("all");
+    setPdfActionAnchor(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -844,8 +842,8 @@ export default function FileTranslateView() {
 
   // 组装双语文本
   const getBilingualText = () => {
-    if (!rows || rows.length === 0) return "";
-    return rows.map((r) => `${r.source}\n${r.target}`).join("\n\n");
+    if (!resultRows.length) return "";
+    return resultRows.map((r) => `${r.source}\n${r.target}`).join("\n\n");
   };
 
   // 当前视图对应的翻译结果文本
@@ -853,12 +851,12 @@ export default function FileTranslateView() {
     mode === "image" && resultViewMode === "source"
       ? rows.map((row) => row.source).join("\n\n")
       : mode === "markdown"
-      ? resultViewMode === "bilingual"
-        ? bilingualMd || getBilingualText()
-        : resultText || rows.map((r) => r.target).join("\n\n")
-      : resultViewMode === "bilingual"
-        ? getBilingualText()
-        : resultText || rows.map((r) => r.target).join("\n\n");
+        ? resultViewMode === "bilingual"
+          ? bilingualMd || getBilingualText()
+          : resultText || resultRows.map((r) => r.target).join("\n\n")
+        : resultViewMode === "bilingual"
+          ? getBilingualText()
+          : resultText || resultRows.map((r) => r.target).join("\n\n");
 
   // 下载 Markdown 格式文件 (.md)
   const handleDownloadMd = () => {
@@ -867,7 +865,12 @@ export default function FileTranslateView() {
       : "translation";
     const content = currentResultContent;
     if (!content) return;
-    const suffix = resultViewMode === "source" ? "source" : resultViewMode === "bilingual" ? "bilingual" : "translated";
+    const suffix =
+      resultViewMode === "source"
+        ? "source"
+        : resultViewMode === "bilingual"
+          ? "bilingual"
+          : "translated";
     downloadText(`${baseName}-${suffix}.md`, content);
   };
 
@@ -890,7 +893,12 @@ export default function FileTranslateView() {
       "",
       exportLang
     );
-    const suffix = resultViewMode === "source" ? "source" : resultViewMode === "bilingual" ? "bilingual" : "translated";
+    const suffix =
+      resultViewMode === "source"
+        ? "source"
+        : resultViewMode === "bilingual"
+          ? "bilingual"
+          : "translated";
     const blob = new Blob([standaloneHtml], {
       type: "text/html;charset=utf-8",
     });
@@ -915,7 +923,12 @@ export default function FileTranslateView() {
 
     const content = currentResultContent;
     if (!content) return;
-    const suffix = resultViewMode === "source" ? "source" : resultViewMode === "bilingual" ? "bilingual" : "translated";
+    const suffix =
+      resultViewMode === "source"
+        ? "source"
+        : resultViewMode === "bilingual"
+          ? "bilingual"
+          : "translated";
     downloadText(`${baseName}-${suffix}.txt`, content);
   };
 
@@ -1167,7 +1180,7 @@ export default function FileTranslateView() {
 
     try {
       if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
-      const localContext = { kind: mode };
+      const localContext = { kind: mode, cacheMode: ignoreCache ? "refresh" : undefined };
 
       const result = await translateEpubChapter(
         currentChapter.fullPath,
@@ -1266,7 +1279,7 @@ export default function FileTranslateView() {
 
     try {
       if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
-      const localContext = { kind: mode };
+      const localContext = { kind: mode, cacheMode: ignoreCache ? "refresh" : undefined };
 
       const result = await translateEpubBook(
         epubBook,
@@ -1388,7 +1401,7 @@ export default function FileTranslateView() {
   };
 
   // 检查并启动翻译（若为整篇翻译且字符数超过 10,000 则弹窗确认）
-  const handleStartTranslation = async (scope = translateScope) => {
+  const handleStartTranslation = async (scope = "paragraph") => {
     setTranslateMenuAnchor(null);
     if (!connected || !file || busy) return;
     const currentTaskId = taskIdRef.current;
@@ -1411,13 +1424,29 @@ export default function FileTranslateView() {
     run(scope);
   };
 
-  // 图片各阶段共享任务保护，单步操作只消费上一阶段的结果。
-  const runImageAction = async (action, fontFamily = scene.fontFamily || "default") => {
+  const toggleImageRegion = (index) => {
+    if (busy || !hasImagePolygon(rows[index]?.poly)) return;
+    setRows((previous) => previous.map((row, rowIndex) => rowIndex === index
+      ? { ...row, enabled: row.enabled === false } : row));
+    setTranslatedImageBlob(null);
+    setTranslatedImageUrl("");
+  };
+
+  // 图片各阶段共享任务保护，一键翻译复用当前有效识别与选区。
+  const runImageAction = async (
+    action,
+    fontFamily = scene.fontFamily || "default"
+  ) => {
     setImageActionAnchor(null);
-    if (!file || busy || ((action !== "synthesize") && !connected)) return;
-    if ((action === "all" || action === "recognize") && !hasOcrService) return;
-    if (action === "translate" && !rows.length) return;
-    if (action === "synthesize" && (!imageTranslationComplete || !hasImageCoordinates)) return;
+    if (!file || busy || (action !== "synthesize" && !connected)) return;
+    if ((action === "all" || action === "recognize") && !hasRecognitionService) return;
+    if ((action === "translate" || (action === "all" && hasCurrentImageRecognition)) &&
+      !selectedImageRows.length) return;
+    if (
+      action === "synthesize" &&
+      (!imageTranslationComplete || !hasImageCoordinates)
+    )
+      return;
     controller.current?.abort();
     const abort = new AbortController();
     controller.current = abort;
@@ -1429,92 +1458,135 @@ export default function FileTranslateView() {
     setBusy(true);
     setError("");
     setProgress([0, 0]);
-    setHoveredImageRow(null);
     setTranslatedImageBlob(null);
     setTranslatedImageUrl("");
+    setImageFailure(null);
+    let currentStage = action;
     let nextRows = rows;
     try {
-      if (action === "all" || action === "recognize") {
+      if (action === "recognize" || (action === "all" && (!hasCurrentImageRecognition || ignoreCache))) {
+        currentStage = "recognize";
         setImageStage("recognize");
         setInputNotices([]);
-        setImageTranslationComplete(false);
+        imageRecognition.current = { file, signature: imageRecognitionSignature, ready: false };
+        setShowImageRegions(true);
         setRows([]);
         setResultViewMode("source");
-        let recognized, recognitionError;
-        const candidates = [
-          ...new Set(
-            [
-              currentOcrSlug,
-              ...activeOcrCandidates.map((api) => api.apiSlug),
-            ].filter(Boolean)
-          ),
-        ];
-        for (const serviceId of candidates) {
-          if (abort.signal.aborted)
-            throw new DOMException("已取消", "AbortError");
-          try {
-            recognized = await client.recognize(file, serviceId, abort.signal, {
-              vlmPromptSlug: scene.vlmPromptSlug || "",
-            });
-            if (recognized?.text?.trim() || recognized?.items?.length) break;
-            recognitionError = new Error("图片识别返回空结果");
-            recognized = null;
-          } catch (error) {
-            if (abort.signal.aborted || error.name === "AbortError")
-              throw error;
-            recognitionError = error;
-          }
-        }
-        if (!recognized)
-          throw recognitionError || new Error("没有可用的图片识别服务");
+        const recognized = await client.recognize(file, recognitionSelection, abort.signal, {
+          promptSlug: scene.vlmPromptSlug || "",
+          ...(ignoreCache && { cacheMode: "refresh" }),
+        });
+        if (!recognized?.text?.trim() && !recognized?.items?.some((item) => item.text?.trim()))
+          throw new Error("图片识别返回空结果");
         if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
-        const items = recognized.items?.length ? recognized.items :
-          (recognized.text || "").split(/\n+/).filter((text) => text.trim()).map((text) => ({ text }));
-        setInputNotices(
-          (recognized.inputAdjustments || []).map((item) => item.message)
-        );
+        const items = recognized.items?.length
+          ? recognized.items
+          : (recognized.text || "")
+              .split(/\n+/)
+              .filter((text) => text.trim())
+              .map((text) => ({ text }));
+        setInputNotices([
+          ...(recognized.inputAdjustments || []).map((item) => item.message),
+          ...(!items.some((item) => hasImagePolygon(item.poly)) ? [
+            i18n("image_region_selection_unavailable", "识别结果没有文字坐标，无法通过线框选择，将翻译全部文字"),
+          ] : []),
+        ]);
 
-        nextRows = items.map((item) => ({ source: item.text, target: "", poly: item.poly, box: item.box }));
+        nextRows = items.map((item) => ({
+          source: item.text,
+          target: "",
+          enabled: true,
+          translated: false,
+          poly: item.poly,
+          box: item.box,
+        }));
+        if (action === "all") {
+          nextRows = nextRows.map((row) => {
+            const old = rows.find((previous) => previous.source === row.source && JSON.stringify(previous.poly) === JSON.stringify(row.poly));
+            return old ? { ...row, enabled: old.enabled } : row;
+          });
+        }
+        imageRecognition.current.ready = true;
         setRows(nextRows);
       }
       if (action === "all" || action === "translate") {
         assertCurrent();
+        currentStage = "translate";
         setImageStage("translate");
-        setImageTranslationComplete(false);
-        nextRows = nextRows.map((row) => ({ ...row, target: "" }));
+        nextRows = nextRows.map((row) => (ignoreCache || row.translationKey !== imageTranslationKey) && row.enabled !== false && row.source?.trim()
+          ? { ...row, target: "", translated: false } : row);
         setRows(nextRows);
         setResultViewMode("target");
         let completed = 0;
-        await runTranslationTasks(nextRows.map((row, index) => async (signal) => {
-          assertCurrent();
-          const target = await translateFileText(row.source, scene, setting, signal, { kind: "image" });
-          if (signal.aborted) throw new DOMException("已取消", "AbortError");
-          assertCurrent();
-          nextRows[index] = { ...row, target };
-          setRows([...nextRows]);
-          setProgress([++completed, nextRows.length]);
-        }), abort.signal);
+        const tasks = nextRows.map((row, index) => ({ row, index }))
+          .filter(({ row }) => row.enabled !== false && row.source?.trim() && (!row.translated || ignoreCache));
+        setProgress([0, tasks.length]);
+        await runTranslationTasks(
+          tasks.map(({ row, index }) => async (signal) => {
+            assertCurrent();
+            let target;
+            try {
+              target = await translateFileText(
+              row.source,
+              scene,
+              setting,
+              signal,
+              { kind: "image", cacheMode: ignoreCache || row.error ? "refresh" : undefined }
+            );
+            } catch (error) {
+              if (!signal.aborted && taskIdRef.current === currentTaskId) {
+                nextRows[index] = { ...row, error: error.message };
+                setRows([...nextRows]);
+              }
+              throw error;
+            }
+            if (signal.aborted) throw new DOMException("已取消", "AbortError");
+            assertCurrent();
+            nextRows[index] = { ...row, target, translated: true, translationKey: imageTranslationKey, error: undefined };
+            setRows([...nextRows]);
+            setProgress([++completed, tasks.length]);
+          }),
+          abort.signal
+        );
         assertCurrent();
-        setImageTranslationComplete(true);
       }
       if (action === "all" || action === "synthesize") {
         assertCurrent();
-        if (nextRows.some((row) => hasImagePolygon(row.poly))) {
+        const selected = nextRows.filter((row) => row.enabled !== false && row.source?.trim());
+        if (hasCompleteCoordinates(selected, "source")) {
+          currentStage = "synthesize";
           setImageStage("synthesize");
           setProgress([0, 0]);
-          const blob = await synthesizeTranslatedImage(file, nextRows, { fontFamily });
+          const blob = await synthesizeTranslatedImage(file, selected, {
+            fontFamily,
+            preservePolygons: nextRows.filter((row) => row.enabled === false && hasImagePolygon(row.poly))
+              .map((row) => row.poly),
+          });
           assertCurrent();
-          if (!blob) throw new Error(i18n("image_synthesis_failed", "图片合成失败，请重试"));
+          if (!blob)
+            throw new Error(
+              i18n("image_synthesis_failed", "图片合成失败，请重试")
+            );
           setTranslatedImageBlob(blob);
           setTranslatedImageUrl(URL.createObjectURL(blob));
           setResultViewMode("image");
         } else {
-          setInputNotices((previous) => [...previous, i18n("image_no_coordinates", "识别结果没有区域坐标，无法合成译图")]);
+          setInputNotices((previous) => [
+            ...previous,
+            i18n("image_no_coordinates", "识别结果没有区域坐标，无法合成译图"),
+          ]);
         }
       }
     } catch (err) {
-      if (taskIdRef.current === currentTaskId && !abort.signal.aborted && err?.name !== "AbortError")
-        setError(err?.message || String(err));
+      if (
+        taskIdRef.current === currentTaskId &&
+        !abort.signal.aborted &&
+        err?.name !== "AbortError"
+      ) {
+        const message = err?.message || String(err);
+        setError(message);
+        setImageFailure({ stage: currentStage, message });
+      }
     } finally {
       if (taskIdRef.current === currentTaskId) {
         setBusy(false);
@@ -1524,29 +1596,19 @@ export default function FileTranslateView() {
     }
   };
 
-  // PDF 动作模式对应的文案
-  const pdfActionLabel = useMemo(() => {
-    switch (pdfAction) {
-      case "detect":
-        return i18n("pdf_detect_layout", "布局检测");
-      case "recognize":
-        return i18n("pdf_recognize_text", "文本识别");
-      case "translate":
-        return i18n("pdf_translate_text", "文本翻译");
-      case "all":
-      default:
-        return pdfState.failedCount
-          ? i18n("retry_failed_translation", "重试失败翻译")
-          : i18n("pdf_translate_one_click", "一键翻译");
-    }
-  }, [pdfAction, pdfState.failedCount, i18n]);
-
-  // PDF 主操作按钮的禁用状态与提示
-  const pdfActionDisabledInfo = useMemo(() => {
-    if (!file || busy || pdfState.busy) {
+  // 主按钮和菜单使用同一套动作前置条件。
+  const getPdfActionDisabledInfo = (action) => {
+    const translatingDuringRecognition = action === "translate" && pdfState.recognitionBusy && !pdfState.translationBusy && !pdfState.automaticBusy;
+    if (!file || busy || (pdfState.busy && !translatingDuringRecognition)) {
       return { disabled: true, reason: "" };
     }
-    if (pdfAction === "detect") {
+    if (!connected) {
+      return {
+        disabled: true,
+        reason: i18n("service_not_connected", "服务未连接"),
+      };
+    }
+    if (action === "detect") {
       if (!hasLayoutService) {
         return {
           disabled: true,
@@ -1558,7 +1620,7 @@ export default function FileTranslateView() {
       }
       return { disabled: false, reason: "" };
     }
-    if (pdfAction === "recognize") {
+    if (action === "recognize") {
       if (!pdfState.hasLayoutResult) {
         return {
           disabled: true,
@@ -1567,28 +1629,16 @@ export default function FileTranslateView() {
       }
       return { disabled: false, reason: "" };
     }
-    if (pdfAction === "translate") {
-      if (!connected) {
+    if (action === "translate") {
+      if (pdfState.canTranslate === false || (pdfState.canTranslate === undefined && (!pdfState.blocks?.length || !pdfState.result?.complete))) {
         return {
           disabled: true,
-          reason: i18n("service_not_connected", "服务未连接"),
-        };
-      }
-      if (!pdfState.blocks?.length) {
-        return {
-          disabled: true,
-          reason: i18n("pdf_recognize_text_first", "请先完成文本识别"),
+          reason: i18n("pdf_ready_translation_empty", "暂无已识别且待翻译的内容"),
         };
       }
       return { disabled: false, reason: "" };
     }
     // "all" 一键翻译
-    if (!connected) {
-      return {
-        disabled: true,
-        reason: i18n("service_not_connected", "服务未连接"),
-      };
-    }
     if (scene.parseMode === "smart" && !hasLayoutService) {
       return {
         disabled: true,
@@ -1599,99 +1649,33 @@ export default function FileTranslateView() {
       };
     }
     return { disabled: false, reason: "" };
-  }, [
-    file,
-    busy,
-    pdfState.busy,
-    pdfState.hasLayoutResult,
-    pdfState.blocks?.length,
-    pdfAction,
-    hasLayoutService,
-    connected,
-    scene.parseMode,
-    i18n,
-  ]);
+  };
+  const pdfActionDisabledInfo = getPdfActionDisabledInfo("all");
 
-  // PDF 点击主按钮执行当前选中的动作
-  const handlePdfMainAction = () => {
-    if (!file || busy || pdfState.busy) return;
-    if (pdfAction === "detect") {
-      if (!hasLayoutService) {
-        setError(
-          i18n(
-            "layout_service_empty",
-            "未配置界面分析服务（请在服务配置中添加）"
-          )
-        );
-        return;
-      }
+  // 菜单直接执行指定动作，主按钮始终执行一键翻译。
+  const runPdfAction = (action) => {
+    setPdfActionAnchor(null);
+    if (getPdfActionDisabledInfo(action).disabled) return;
+    if (action === "detect") {
       if (scene.parseMode !== "smart") {
         patchScene({ parseMode: "smart" });
       }
       pdfWorkspaceRef.current?.detectLayout();
-    } else if (pdfAction === "recognize") {
-      if (!pdfState.hasLayoutResult) {
-        setError(i18n("pdf_detect_layout_first", "请先执行布局检测"));
-        return;
-      }
+    } else if (action === "recognize") {
       pdfWorkspaceRef.current?.recognizeText();
-    } else if (pdfAction === "translate") {
-      if (!connected || !pdfState.blocks?.length) return;
+    } else if (action === "translate") {
       pdfWorkspaceRef.current?.translate();
     } else {
       // "all"
-      if (scene.parseMode === "smart" && !hasLayoutService) {
-        setError(
-          i18n(
-            "layout_service_empty",
-            "未配置界面分析服务（请在服务配置中添加）"
-          )
-        );
-        return;
-      }
-      if (pdfState.failedCount) {
-        pdfWorkspaceRef.current?.translate();
-      } else {
-        (
-          pdfWorkspaceRef.current?.oneClickTranslate ||
-          pdfWorkspaceRef.current?.parseAndTranslate
-        )?.();
-      }
-    }
-  };
-
-  // PDF 分步处理动作（兼容外部调用）
-  const runPdfAction = (action) => {
-    setPdfActionAnchor(null);
-    if (!file || busy || pdfState.busy) return;
-    if (action === "detectLayout" || action === "detect") {
-      if (!hasLayoutService) {
-        setError(
-          i18n(
-            "layout_service_empty",
-            "未配置界面分析服务（请在服务配置中添加）"
-          )
-        );
-        return;
-      }
-      if (scene.parseMode !== "smart") {
-        patchScene({ parseMode: "smart" });
-      }
-      pdfWorkspaceRef.current?.detectLayout();
-    } else if (action === "recognizeText" || action === "recognize") {
-      if (!pdfState.hasLayoutResult) {
-        setError(i18n("pdf_detect_layout_first", "请先执行布局检测"));
-        return;
-      }
-      pdfWorkspaceRef.current?.recognizeText();
-    } else if (action === "translateText" || action === "translate") {
-      if (!connected || !pdfState.blocks?.length) return;
-      pdfWorkspaceRef.current?.translate();
+      (
+        pdfWorkspaceRef.current?.oneClickTranslate ||
+        pdfWorkspaceRef.current?.parseAndTranslate
+      )?.();
     }
   };
 
   // 执行翻译流程
-  const run = async (scope = translateScope) => {
+  const run = async (scope = "paragraph") => {
     if (!connected || !file || busy) return;
     setInputNotices([]);
     controller.current?.abort();
@@ -1710,7 +1694,7 @@ export default function FileTranslateView() {
     setProgress([0, 0]);
     try {
       if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
-      const localContext = { kind: mode };
+      const localContext = { kind: mode, cacheMode: ignoreCache ? "refresh" : undefined };
 
       if (scope === "entire" && (mode === "txt" || mode === "markdown")) {
         setIsEntireTranslated(true);
@@ -1882,7 +1866,7 @@ export default function FileTranslateView() {
         }}
       />
 
-      {mode === "image" && isVlmModel && (
+      {(mode === "image" || mode === "pdf") && isVlmRecognition && (
         <Box sx={{ width: 170, flexShrink: 0 }}>
           <ScenePromptSelect
             i18n={i18n}
@@ -1986,21 +1970,28 @@ export default function FileTranslateView() {
         </Box>
       )}
 
-      {/* 图片模式下自适应呈现 OCR 与字体选项 */}
+      {(mode === "image" || mode === "pdf") && (
+        <Box sx={{ width: 250, flexShrink: 0 }}>
+          <SettingsSelect fullWidth size="small" variant="outlined" hiddenLabel={false}
+            disabled={busy || pdfState.busy}
+            label={i18n("recognition_service", "文本识别服务")}
+            value={recognitionSelection ? JSON.stringify(recognitionSelection) : ""}
+            options={recognitionSelectOptions} onChange={handleRecognitionChange} />
+        </Box>
+      )}
+      {mode === "pdf" && (
+        <Box sx={{ width: 220, flexShrink: 0 }}>
+          <SettingsSelect fullWidth size="small" variant="outlined" hiddenLabel={false}
+            disabled={pdfState.busy} label={i18n("vision_service", "表格/公式解析服务")}
+            value={scene.visionServiceSlug || ""} options={visionOptions}
+            onChange={(visionServiceSlug) => patchScene({ visionServiceSlug })} />
+        </Box>
+      )}
       {mode === "image" && (
         <>
-          <Box sx={{ width: 180, flexShrink: 0 }}>
-            <SettingsSelect
-              fullWidth
-              size="small"
-              variant="outlined"
-              hiddenLabel={false}
-              label={i18n("ocr_service", "OCR 服务")}
-              value={currentOcrSlug}
-              options={ocrSelectOptions}
-              onChange={handleOcrServiceChange}
-            />
-          </Box>
+          {selectedRecognitionFeature && !selectedRecognitionFeature.coordinates && (
+            <Typography variant="caption" color="text.secondary">{i18n("recognition_text_only_hint", "所选服务仅输出文本，可查看译文与双语，无法原位合成译图。")}</Typography>
+          )}
           <Box sx={{ width: 135, flexShrink: 0 }}>
             <SettingsSelect
               fullWidth
@@ -2015,6 +2006,7 @@ export default function FileTranslateView() {
           </Box>
         </>
       )}
+      {file && <FormControlLabel sx={{ ml: 0, mr: 0, flexShrink: 0 }} control={<Switch size="small" checked={ignoreCache} disabled={busy || pdfState.busy} onChange={(event) => setIgnoreCache(event.target.checked)} />} label={i18n("file_ignore_cache", "忽略缓存")} />}
     </Box>
   );
 
@@ -2108,7 +2100,11 @@ export default function FileTranslateView() {
 
             {mode === "image" && busy && (
               <Typography variant="caption" role="status">
-                {imageStage === "recognize" ? i18n("image_recognizing", "正在识别...") : imageStage === "synthesize" ? i18n("image_synthesizing", "正在合成...") : i18n("translating", "正在翻译...")}
+                {imageStage === "recognize"
+                  ? i18n("image_recognizing", "正在识别...")
+                  : imageStage === "synthesize"
+                    ? i18n("image_synthesizing", "正在合成...")
+                    : i18n("translating", "正在翻译...")}
               </Typography>
             )}
             {mode === "epub" ? (
@@ -2117,7 +2113,7 @@ export default function FileTranslateView() {
                 color="primary"
                 size="small"
                 startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
-                disabled={!file || busy || !epubBook}
+                disabled={!connected || !file || busy || !epubBook}
                 onClick={handleTranslateEntireEpubBook}
                 sx={{
                   height: 32,
@@ -2131,7 +2127,7 @@ export default function FileTranslateView() {
                   "&:hover": { boxShadow: "none" },
                 }}
               >
-                {i18n("epub_translate_book", "翻译整本书")}
+                {i18n("file_translate_one_click", "一键翻译")}
               </Button>
             ) : mode === "pdf" ? (
               <>
@@ -2147,9 +2143,11 @@ export default function FileTranslateView() {
                   >
                     <span style={{ display: "inline-flex", height: "100%" }}>
                       <Button
-                        startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
+                        startIcon={
+                          <PlayArrowRoundedIcon sx={{ fontSize: 18 }} />
+                        }
                         disabled={pdfActionDisabledInfo.disabled}
-                        onClick={handlePdfMainAction}
+                        onClick={() => runPdfAction("all")}
                         sx={{
                           height: 32,
                           fontWeight: 600,
@@ -2163,13 +2161,13 @@ export default function FileTranslateView() {
                           "&:hover": { boxShadow: "none" },
                         }}
                       >
-                        {pdfActionLabel}
+                        {i18n("pdf_translate_one_click", "一键翻译")}
                       </Button>
                     </span>
                   </Tooltip>
                   <Button
                     size="small"
-                    disabled={!file || busy || pdfState.busy}
+                    disabled={!file || busy || (pdfState.busy && (!pdfState.recognitionBusy || pdfState.automaticBusy))}
                     aria-label={i18n("pdf_actions", "PDF 处理步骤")}
                     aria-haspopup="menu"
                     aria-expanded={Boolean(pdfActionAnchor)}
@@ -2184,90 +2182,40 @@ export default function FileTranslateView() {
                   open={Boolean(pdfActionAnchor)}
                   onClose={() => setPdfActionAnchor(null)}
                 >
-                  <MenuItem
-                    selected={pdfAction === "all"}
-                    disabled={!file || busy || pdfState.busy}
-                    onClick={() => {
-                      setPdfAction("all");
-                      setPdfActionAnchor(null);
-                    }}
-                  >
-                    {i18n("pdf_translate_one_click", "一键翻译")}
-                  </MenuItem>
                   <Tooltip
-                    title={
-                      !hasLayoutService
-                        ? i18n(
-                            "layout_service_empty",
-                            "未配置界面分析服务（请在服务配置中添加）"
-                          )
-                        : ""
-                    }
+                    title={getPdfActionDisabledInfo("detect").reason}
                     placement="right"
                   >
                     <span>
                       <MenuItem
-                        selected={pdfAction === "detect"}
-                        disabled={
-                          !file || busy || pdfState.busy || !hasLayoutService
-                        }
-                        onClick={() => {
-                          setPdfAction("detect");
-                          setPdfActionAnchor(null);
-                        }}
+                        disabled={getPdfActionDisabledInfo("detect").disabled}
+                        onClick={() => runPdfAction("detect")}
                       >
                         {i18n("pdf_detect_layout", "布局检测")}
                       </MenuItem>
                     </span>
                   </Tooltip>
                   <Tooltip
-                    title={
-                      !pdfState.hasLayoutResult
-                        ? i18n("pdf_detect_layout_first", "请先执行布局检测")
-                        : ""
-                    }
+                    title={getPdfActionDisabledInfo("recognize").reason}
                     placement="right"
                   >
                     <span>
                       <MenuItem
-                        selected={pdfAction === "recognize"}
-                        disabled={
-                          !file ||
-                          busy ||
-                          pdfState.busy ||
-                          !pdfState.hasLayoutResult
-                        }
-                        onClick={() => {
-                          setPdfAction("recognize");
-                          setPdfActionAnchor(null);
-                        }}
+                        disabled={getPdfActionDisabledInfo("recognize").disabled}
+                        onClick={() => runPdfAction("recognize")}
                       >
                         {i18n("pdf_recognize_text", "文本识别")}
                       </MenuItem>
                     </span>
                   </Tooltip>
                   <Tooltip
-                    title={
-                      !pdfState.blocks?.length
-                        ? i18n("pdf_recognize_text_first", "请先完成文本识别")
-                        : ""
-                    }
+                    title={getPdfActionDisabledInfo("translate").reason}
                     placement="right"
                   >
                     <span>
                       <MenuItem
-                        selected={pdfAction === "translate"}
-                        disabled={
-                          !file ||
-                          busy ||
-                          pdfState.busy ||
-                          !pdfState.blocks?.length ||
-                          !connected
-                        }
-                        onClick={() => {
-                          setPdfAction("translate");
-                          setPdfActionAnchor(null);
-                        }}
+                        disabled={getPdfActionDisabledInfo("translate").disabled}
+                        onClick={() => runPdfAction("translate")}
                       >
                         {i18n("pdf_translate_text", "文本翻译")}
                       </MenuItem>
@@ -2277,27 +2225,72 @@ export default function FileTranslateView() {
               </>
             ) : mode === "image" ? (
               <>
-                <ButtonGroup variant="contained" size="small" sx={{ height: 32, boxShadow: "none" }}>
-                  <Button startIcon={<PlayArrowRoundedIcon />} disabled={!connected || !file || busy || !hasOcrService}
-                    onClick={() => runImageAction("all")}>
+                <ButtonGroup
+                  variant="contained"
+                  size="small"
+                  sx={{ height: 32, boxShadow: "none" }}
+                >
+                  <Button
+                    startIcon={<PlayArrowRoundedIcon />}
+                    disabled={!connected || !file || busy || !hasRecognitionService ||
+                      (hasCurrentImageRecognition && !selectedImageRows.length)}
+                    title={hasCurrentImageRecognition && !selectedImageRows.length
+                      ? i18n("image_select_region_first", "请至少选择一个文字区域") : ""}
+                    onClick={() => runImageAction("all")}
+                  >
                     {i18n("image_translate_all", "一键翻译")}
                   </Button>
-                  <Button disabled={!file || busy} aria-label={i18n("image_actions", "图片处理步骤")}
-                    aria-haspopup="menu" aria-expanded={Boolean(imageActionAnchor)}
-                    onClick={(event) => setImageActionAnchor(event.currentTarget)}>
+                  <Button
+                    disabled={!file || busy}
+                    aria-label={i18n("image_actions", "图片处理步骤")}
+                    aria-haspopup="menu"
+                    aria-expanded={Boolean(imageActionAnchor)}
+                    onClick={(event) =>
+                      setImageActionAnchor(event.currentTarget)
+                    }
+                  >
                     <ArrowDropDownRoundedIcon />
                   </Button>
                 </ButtonGroup>
-                <Menu anchorEl={imageActionAnchor} open={Boolean(imageActionAnchor)} onClose={() => setImageActionAnchor(null)}>
-                  <MenuItem disabled={!connected || !hasOcrService || busy} onClick={() => runImageAction("recognize")}>
+                <Menu
+                  anchorEl={imageActionAnchor}
+                  open={Boolean(imageActionAnchor)}
+                  onClose={() => setImageActionAnchor(null)}
+                >
+                  <MenuItem
+                    disabled={!connected || !hasRecognitionService || busy}
+                    onClick={() => runImageAction("recognize")}
+                  >
                     {i18n("image_recognize", "识别文本")}
                   </MenuItem>
-                  <MenuItem disabled={!connected || !rows.length || busy} onClick={() => runImageAction("translate")}
-                    title={!rows.length ? i18n("image_recognize_first", "请先识别文本") : ""}>
+                  <MenuItem
+                    disabled={!connected || !selectedImageRows.length || busy}
+                    onClick={() => runImageAction("translate")}
+                    title={
+                      !rows.length ? i18n("image_recognize_first", "请先识别文本")
+                        : !selectedImageRows.length ? i18n("image_select_region_first", "请至少选择一个文字区域") : ""
+                    }
+                  >
                     {i18n("image_translate_text", "翻译文本")}
                   </MenuItem>
-                  <MenuItem disabled={!imageTranslationComplete || !hasImageCoordinates || busy} onClick={() => runImageAction("synthesize")}
-                    title={!imageTranslationComplete ? i18n("image_translate_first", "请先完成文本翻译") : !hasImageCoordinates ? i18n("image_no_coordinates", "识别结果没有区域坐标，无法合成译图") : ""}>
+                  <MenuItem
+                    disabled={
+                      !imageTranslationComplete || !hasImageCoordinates || busy
+                    }
+                    onClick={() => runImageAction("synthesize")}
+                    title={
+                      !selectedImageRows.length
+                        ? i18n("image_select_region_first", "请至少选择一个文字区域")
+                        : !imageTranslationComplete
+                        ? i18n("image_translate_first", "请先完成文本翻译")
+                        : !hasImageCoordinates
+                          ? i18n(
+                              "image_no_coordinates",
+                              "识别结果没有区域坐标，无法合成译图"
+                            )
+                          : ""
+                    }
+                  >
                     {i18n("image_synthesize", "合成图片")}
                   </MenuItem>
                 </Menu>
@@ -2308,7 +2301,7 @@ export default function FileTranslateView() {
                   variant="contained"
                   color="primary"
                   size="small"
-                  disabled={!file || busy}
+                  disabled={!connected || !file || busy}
                   sx={{
                     height: 32,
                     borderRadius: "4px",
@@ -2321,7 +2314,7 @@ export default function FileTranslateView() {
                 >
                   <Button
                     startIcon={<PlayArrowRoundedIcon sx={{ fontSize: 18 }} />}
-                    onClick={() => handleStartTranslation(translateScope)}
+                    onClick={() => handleStartTranslation("paragraph")}
                     sx={{
                       height: 32,
                       fontWeight: 600,
@@ -2333,9 +2326,7 @@ export default function FileTranslateView() {
                       "&:hover": { boxShadow: "none" },
                     }}
                   >
-                    {translateScope === "entire"
-                      ? i18n("translate_entire", "整篇翻译")
-                      : i18n("translate_paragraph", "分段翻译")}
+                    {i18n("file_translate_one_click", "一键翻译")}
                   </Button>
                   <Button
                     size="small"
@@ -2367,20 +2358,14 @@ export default function FileTranslateView() {
                   transformOrigin={{ vertical: "top", horizontal: "right" }}
                 >
                   <MenuItem
-                    selected={translateScope === "paragraph"}
-                    onClick={() => {
-                      setTranslateScope("paragraph");
-                      setTranslateMenuAnchor(null);
-                    }}
+                    disabled={!connected || !file || busy}
+                    onClick={() => handleStartTranslation("paragraph")}
                   >
                     {i18n("scope_paragraph_label", "分段翻译 (默认)")}
                   </MenuItem>
                   <MenuItem
-                    selected={translateScope === "entire"}
-                    onClick={() => {
-                      setTranslateScope("entire");
-                      setTranslateMenuAnchor(null);
-                    }}
+                    disabled={!connected || !file || busy}
+                    onClick={() => handleStartTranslation("entire")}
                   >
                     {i18n("scope_entire_label", "整篇翻译 (全文连贯)")}
                   </MenuItem>
@@ -2665,6 +2650,17 @@ export default function FileTranslateView() {
         }
       />
 
+      {connected && <LocalServiceNotice
+        apis={(setting?.transApis || []).filter((api) => [
+          scene.apiSlug,
+          ...(["image", "pdf"].includes(mode) ? [recognitionSelection?.apiSlug] : []),
+          ...(mode === "pdf" ? [scene.visionServiceSlug, currentLayoutSlug] : []),
+        ].includes(api.apiSlug))}
+        models={context.modelError ? null : context.models} i18n={i18n}
+        onDownload={() => openOptionsPage("/local-ai")}
+        sx={{ mx: 1.5, mt: 1.25 }}
+      />}
+
       {/* 错误提示浮条 */}
       {error && (
         <ReaderAlert
@@ -2686,6 +2682,11 @@ export default function FileTranslateView() {
           sx={{ mx: 1.5, mt: 1.25 }}
         >
           {inputNotices.join("；")}
+        </ReaderAlert>
+      )}
+      {mode === "image" && rows.length > 0 && !selectedImageRows.length && (
+        <ReaderAlert severity="info" sx={{ mx: 1.5, mt: 1.25 }}>
+          {i18n("image_select_region_first", "请至少选择一个文字区域")}
         </ReaderAlert>
       )}
       <Box
@@ -2773,6 +2774,7 @@ export default function FileTranslateView() {
           <Suspense fallback={<Box p={3}>正在加载 PDF 阅读器…</Box>}>
             <PdfWorkspace
               ref={pdfWorkspaceRef}
+              ignoreCache={ignoreCache}
               key={taskIdRef.current}
               file={file}
               hasLayoutService={hasLayoutService}
@@ -2876,6 +2878,14 @@ export default function FileTranslateView() {
                       </Typography>
                     </Typography>
 
+                    {mode === "image" && rows.some((row) => hasImagePolygon(row.poly)) && (
+                      <FormControlLabel
+                        sx={{ m: 0, whiteSpace: "nowrap" }}
+                        label={<Typography variant="caption">{i18n("image_text_regions", "文字线框")}</Typography>}
+                        control={<Switch size="small" checked={showImageRegions}
+                          onChange={(_, checked) => setShowImageRegions(checked)} />}
+                      />
+                    )}
                     {mode === "markdown" && sourceText && (
                       <ToggleButtonGroup
                         size="small"
@@ -3071,7 +3081,17 @@ export default function FileTranslateView() {
                       }
                       title={i18n("click_to_zoom", "点击放大查看原图")}
                     >
-                      <ImageSourcePreview src={preview} alt={i18n("source_image_title", "原图预览")} poly={hoveredImageRow?.poly} />
+                      <ImageSourcePreview
+                        src={preview}
+                        alt={i18n("source_image_title", "原图预览")}
+                        rows={rows}
+                        showRegions={showImageRegions}
+                        disabled={busy}
+                        onToggleRegion={toggleImageRegion}
+                        regionLabel={(row, index) => `${i18n("image_text_region", "文字区域")} ${index + 1}: ${row.source}`}
+                        selectLabel={i18n("image_region_select", "点击参与翻译")}
+                        excludeLabel={i18n("image_region_exclude", "点击取消翻译")}
+                      />
                       <Chip
                         className="kt-zoom-overlay"
                         icon={<ZoomInRoundedIcon />}
@@ -3162,7 +3182,7 @@ export default function FileTranslateView() {
                           color="text.secondary"
                           sx={{ whiteSpace: "nowrap" }}
                         >
-                          ({rows.length} {i18n("paragraphs", "段落")})
+                          ({resultRows.length} {i18n("paragraphs", "段落")})
                         </Typography>
                       )}
                     </Typography>
@@ -3175,7 +3195,10 @@ export default function FileTranslateView() {
                       sx={{ height: 28, flexShrink: 0 }}
                     >
                       {mode === "image" && (
-                        <ToggleButton value="source" sx={{ px: 1.25, py: 0.25, fontSize: 12 }}>
+                        <ToggleButton
+                          value="source"
+                          sx={{ px: 1.25, py: 0.25, fontSize: 12 }}
+                        >
                           {i18n("view_source_only", "原文")}
                         </ToggleButton>
                       )}
@@ -3260,8 +3283,8 @@ export default function FileTranslateView() {
                           resultViewMode === "source"
                             ? i18n("view_source_only", "原文")
                             : resultViewMode === "bilingual"
-                            ? i18n("bilingual_text", "双语")
-                            : i18n("translated_text", "译文")
+                              ? i18n("bilingual_text", "双语")
+                              : i18n("translated_text", "译文")
                         )
                       }
                       sx={{ height: 28, fontSize: 12, minWidth: 0, px: 1 }}
@@ -3340,7 +3363,7 @@ export default function FileTranslateView() {
                           px: 2,
                         }}
                       >
-                        {mode === "image" && !hasOcrService ? (
+                        {mode === "image" && !hasRecognitionService ? (
                           <>
                             <WarningAmberRoundedIcon
                               sx={{
@@ -3360,7 +3383,7 @@ export default function FileTranslateView() {
                             >
                               {i18n(
                                 "ocr_service_missing_guide",
-                                "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
+                                "请选择文本识别服务（OCR / VLM）"
                               )}
                             </Typography>
                             <Button
@@ -3380,9 +3403,15 @@ export default function FileTranslateView() {
                             <Typography variant="body2">
                               {busy
                                 ? i18n("translating", "正在翻译...")
-                                : i18n(
-                                    mode === "image" ? "image_ready_prompt" : "empty_result_prompt",
-                                    mode === "image" ? "已就绪，请点击顶部“一键翻译”或选择处理步骤" : "已就绪，请点击顶部“开始翻译”按钮"
+                                : mode === "image" && imageFailure
+                                  ? imageFailurePrompt
+                                  : i18n(
+                                    mode === "image"
+                                      ? "image_ready_prompt"
+                                      : "empty_result_prompt",
+                                    mode === "image"
+                                      ? "已就绪，请点击顶部“一键翻译”或选择处理步骤"
+                                      : "已就绪，请点击顶部“一键翻译”按钮"
                                   )}
                             </Typography>
                           </>
@@ -3463,20 +3492,18 @@ export default function FileTranslateView() {
                               color: "text.primary",
                             }}
                           >
-                            {i18n(
-                              "image_no_coordinates",
-                              "识别结果没有区域坐标，无法合成译图"
-                            )}
+                            {!selectedImageRows.length
+                              ? i18n("image_select_region_first", "请至少选择一个文字区域")
+                              : i18n("image_no_coordinates", "识别结果没有区域坐标，无法合成译图")}
                           </Typography>
                           <Typography
                             variant="body2"
                             color="text.secondary"
                             sx={{ lineHeight: 1.6 }}
                           >
-                            {i18n(
-                              "image_coordinates_hint",
-                              "请选择能返回区域坐标的 OCR 服务重新识别，或切换到文本视图查看结果。"
-                            )}
+                            {!selectedImageRows.length
+                              ? i18n("image_restore_region_hint", "点击原图文字线框可恢复选择")
+                              : i18n("image_coordinates_hint", "请选择能返回区域坐标的 OCR 服务重新识别，或切换到文本视图查看结果。")}
                           </Typography>
                         </Box>
                       ) : (
@@ -3507,10 +3534,8 @@ export default function FileTranslateView() {
                         }}
                       >
                         {rows.length > 0 ? (
-                          rows.map((row, idx) => (
-                            <Box key={idx}
-                              onMouseEnter={mode === "image" ? () => setHoveredImageRow(row) : undefined}
-                              onMouseLeave={mode === "image" ? () => setHoveredImageRow(null) : undefined}>
+                          resultRows.map((row, idx) => (
+                            <Box key={idx}>
                               {resultViewMode === "bilingual" && (
                                 <Typography
                                   variant="body2"
@@ -3546,7 +3571,9 @@ export default function FileTranslateView() {
                                       : undefined
                                   }
                                 >
-                                  {resultViewMode === "source" ? row.source : row.target}
+                                  {resultViewMode === "source"
+                                    ? row.source
+                                    : row.target}
                                 </span>
                               </Typography>
                             </Box>
@@ -3578,7 +3605,7 @@ export default function FileTranslateView() {
                         px: 2,
                       }}
                     >
-                      {mode === "image" && !hasOcrService ? (
+                      {mode === "image" && !hasRecognitionService ? (
                         <>
                           <WarningAmberRoundedIcon
                             sx={{
@@ -3598,7 +3625,7 @@ export default function FileTranslateView() {
                           >
                             {i18n(
                               "ocr_service_missing_guide",
-                              "未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务"
+                              "请选择文本识别服务（OCR / VLM）"
                             )}
                           </Typography>
                           <Button
@@ -3618,9 +3645,15 @@ export default function FileTranslateView() {
                           <Typography variant="body2">
                             {busy
                               ? i18n("translating", "正在翻译...")
-                              : i18n(
-                                  mode === "image" ? "image_ready_prompt" : "empty_result_prompt",
-                                  mode === "image" ? "已就绪，请点击顶部“一键翻译”或选择处理步骤" : "已就绪，请点击顶部“开始翻译”按钮"
+                              : mode === "image" && imageFailure
+                                ? imageFailurePrompt
+                                : i18n(
+                                  mode === "image"
+                                    ? "image_ready_prompt"
+                                    : "empty_result_prompt",
+                                  mode === "image"
+                                    ? "已就绪，请点击顶部“一键翻译”或选择处理步骤"
+                                    : "已就绪，请点击顶部“一键翻译”按钮"
                                 )}
                           </Typography>
                         </>
