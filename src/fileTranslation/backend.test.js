@@ -12,7 +12,9 @@ import { getSettingWithDefault, saveEdit } from "../libs/storage";
 import { runtimeHost } from "../localAi/runtime/runtimeHostAdapter";
 import { invokeBackgroundPlugin } from "../providers/backgroundInvocation";
 import { prepareImage } from "../localAi/core/inputLimits";
-jest.mock("../builtin-plugins/runtime", () => ({ createNativeRegistry: jest.fn() }));
+jest.mock("../builtin-plugins/runtime", () => ({
+  createNativeRegistry: jest.fn(),
+}));
 jest.mock("../providers/backgroundInvocation", () => ({
   invokeBackgroundPlugin: jest.fn(),
 }));
@@ -54,10 +56,17 @@ jest.mock("../localAi/core/settings", () => ({
 
 let counter = 0;
 beforeEach(() => {
-  browser.storage.local.get.mockImplementation(async (key) => typeof key === "string" && key.startsWith("kiss-provider-plugin-grant:") ? { [key]: { enabled: true, origins: [] } } : {});
+  browser.storage.local.get.mockImplementation(async (key) =>
+    typeof key === "string" && key.startsWith("kiss-provider-plugin-grant:")
+      ? { [key]: { enabled: true, origins: [] } }
+      : {}
+  );
   Object.defineProperty(global, "crypto", {
     configurable: true,
-    value: { randomUUID: () => `id-${++counter}`, subtle: require("crypto").webcrypto.subtle },
+    value: {
+      randomUUID: () => `id-${++counter}`,
+      subtle: require("crypto").webcrypto.subtle,
+    },
   });
   getSettingWithDefault.mockResolvedValue({
     uiLang: "zh",
@@ -178,7 +187,8 @@ test("layout instance routing preserves real polygons and never trusts webpage m
         enabledCapabilities: ["analyzeLayout"],
         provider: {
           apiVersion: "1",
-          source: { pluginId: "test-plugin" }, settings: [],
+          source: { pluginId: "test-plugin" },
+          settings: [],
           implementation: { kind: "script" },
           capabilities: {
             analyzeLayout: { handler: "layout", outputModes: ["complete"] },
@@ -288,7 +298,11 @@ test("context projects service metadata without credentials or arbitrary setting
     enabledCapabilities: ["translate"],
     translationAvailable: true,
     layoutAvailable: false,
-    provider: { apiVersion: "1", implementation: { kind: "native" }, capabilities: { translate: expect.any(Object) } },
+    provider: {
+      apiVersion: "1",
+      implementation: { kind: "native" },
+      capabilities: { translate: expect.any(Object) },
+    },
     recognitionFeatures: {},
     recognitionSignature: expect.any(String),
     translationSignature: expect.any(String),
@@ -297,17 +311,29 @@ test("context projects service metadata without credentials or arbitrary setting
   expect(result).not.toHaveProperty("syncKey");
 });
 
-test.each(["key", "prompt"])("translation signatures invalidate %s edits without exposing credentials", async (field) => {
-  const saved = await getSettingWithDefault();
-  const previous = (await getFileContext()).services[0].translationSignature;
-  const next = JSON.parse(JSON.stringify(saved));
-  if (field === "key") next.transApis[0].key = "changed-secret";
-  else next.prompts = [{ slug: "own-prompt", category: "user prompt", name: "Own", systemPrompt: "changed prompt", userPrompt: "{{text}}" }];
-  getSettingWithDefault.mockResolvedValueOnce(next);
-  const result = await getFileContext();
-  expect(result.services[0].translationSignature).not.toBe(previous);
-  expect(JSON.stringify(result)).not.toContain("changed-secret");
-});
+test.each(["key", "prompt"])(
+  "translation signatures invalidate %s edits without exposing credentials",
+  async (field) => {
+    const saved = await getSettingWithDefault();
+    const previous = (await getFileContext()).services[0].translationSignature;
+    const next = JSON.parse(JSON.stringify(saved));
+    if (field === "key") next.transApis[0].key = "changed-secret";
+    else
+      next.prompts = [
+        {
+          slug: "own-prompt",
+          category: "user prompt",
+          name: "Own",
+          systemPrompt: "changed prompt",
+          userPrompt: "{{text}}",
+        },
+      ];
+    getSettingWithDefault.mockResolvedValueOnce(next);
+    const result = await getFileContext();
+    expect(result.services[0].translationSignature).not.toBe(previous);
+    expect(JSON.stringify(result)).not.toContain("changed-secret");
+  }
+);
 
 test("only known scene fields and correctly typed nested patches are accepted", () => {
   expect(() => validateScenePatch("txt", { apiKey: "new" })).toThrow();
@@ -651,47 +677,206 @@ test("uploads reject wrong ordering and oversized chunks and are released on dis
 });
 
 function imageService(id, capabilities) {
-  return { apiSlug: id, apiType: "Plugin", sourceType: "network", enabledCapabilities: Object.keys(capabilities),
-    provider: { apiVersion: "1", source: { pluginId: "test-plugin" }, implementation: { kind: "script" }, settings: [], capabilities } };
+  return {
+    apiSlug: id,
+    apiType: "Plugin",
+    sourceType: "network",
+    enabledCapabilities: Object.keys(capabilities),
+    provider: {
+      apiVersion: "1",
+      source: { pluginId: "test-plugin" },
+      implementation: { kind: "script" },
+      settings: [],
+      capabilities,
+    },
+  };
 }
 function ownedImage() {
-  return new Map([["owned", { received: 5, size: 5, type: "image/png", chunks: ["image"] }]]);
+  return new Map([
+    ["owned", { received: 5, size: 5, type: "image/png", chunks: ["image"] }],
+  ]);
 }
 function recognitionInvocation(result) {
   return { events: (async function* () {})(), result, cancel: jest.fn() };
 }
 test("single recognition validates modes and restores crop coordinates after preprocessing", async () => {
-  getSettingWithDefault.mockResolvedValue({ transApis: [imageService("ocr", {
-    recognizeText: { handler: "ocr", coordinates: true },
-  })], prompts: [] });
-  prepareImage.mockResolvedValue({ blob: new Blob(["image"]), original: { width: 200, height: 400 }, size: { width: 100, height: 200 } });
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [
+      imageService("ocr", {
+        recognizeText: { handler: "ocr", coordinates: true },
+      }),
+    ],
+    prompts: [],
+  });
+  prepareImage.mockResolvedValue({
+    blob: new Blob(["image"]),
+    original: { width: 200, height: 400 },
+    size: { width: 100, height: 200 },
+  });
   invokeBackgroundPlugin.mockClear();
-  invokeBackgroundPlugin.mockReturnValue(recognitionInvocation(Promise.resolve({ text: "line", format: "text", items: [
-    { text: "line", poly: [[10, 20], [50, 20], [50, 40], [10, 40]] },
-  ] })));
-  const result = await executeFileMethod("recognizeImage", { uploadId: "owned", serviceId: "ocr", capability: "recognizeText", taskMode: "doc", requireCoordinates: true }, new AbortController().signal, ownedImage());
-  expect(result.items[0].poly).toEqual([[20, 40], [100, 40], [100, 80], [20, 80]]);
+  invokeBackgroundPlugin.mockReturnValue(
+    recognitionInvocation(
+      Promise.resolve({
+        text: "line",
+        format: "text",
+        items: [
+          {
+            text: "line",
+            poly: [
+              [10, 20],
+              [50, 20],
+              [50, 40],
+              [10, 40],
+            ],
+          },
+        ],
+      })
+    )
+  );
+  const result = await executeFileMethod(
+    "recognizeImage",
+    {
+      uploadId: "owned",
+      serviceId: "ocr",
+      capability: "recognizeText",
+      taskMode: "doc",
+      requireCoordinates: true,
+    },
+    new AbortController().signal,
+    ownedImage()
+  );
+  expect(result.items[0].poly).toEqual([
+    [20, 40],
+    [100, 40],
+    [100, 80],
+    [20, 80],
+  ]);
   expect(result.imageSize).toEqual({ width: 200, height: 400 });
   expect(result.serviceId).toBe("ocr");
   expect(invokeBackgroundPlugin).toHaveBeenCalledTimes(1);
-  await expect(executeFileMethod("recognizeImage", { uploadId: "owned", serviceId: "ocr", capability: "recognizeText", taskMode: "table" }, new AbortController().signal, ownedImage())).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
+  await expect(
+    executeFileMethod(
+      "recognizeImage",
+      {
+        uploadId: "owned",
+        serviceId: "ocr",
+        capability: "recognizeText",
+        taskMode: "table",
+      },
+      new AbortController().signal,
+      ownedImage()
+    )
+  ).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
   expect(invokeBackgroundPlugin).toHaveBeenCalledTimes(1);
 });
 test("selected failure never invokes another available recognition service", async () => {
-  getSettingWithDefault.mockResolvedValue({ transApis: [imageService("selected", { parseImage: { handler: "parse" } }), imageService("other", { recognizeText: { handler: "ocr" } })], prompts: [] });
-  prepareImage.mockResolvedValue({ blob: new Blob(["image"]), original: { width: 100, height: 200 }, size: { width: 100, height: 200 } });
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [
+      imageService("selected", { parseImage: { handler: "parse" } }),
+      imageService("other", { recognizeText: { handler: "ocr" } }),
+    ],
+    prompts: [],
+  });
+  prepareImage.mockResolvedValue({
+    blob: new Blob(["image"]),
+    original: { width: 100, height: 200 },
+    size: { width: 100, height: 200 },
+  });
   invokeBackgroundPlugin.mockClear();
-  invokeBackgroundPlugin.mockImplementation(() => recognitionInvocation(Promise.reject(new Error("selected failed"))));
-  await expect(executeFileMethod("recognizeImage", { uploadId: "owned", serviceId: "selected", capability: "parseImage" }, new AbortController().signal, ownedImage())).rejects.toThrow("selected failed");
+  invokeBackgroundPlugin.mockImplementation(() =>
+    recognitionInvocation(Promise.reject(new Error("selected failed")))
+  );
+  await expect(
+    executeFileMethod(
+      "recognizeImage",
+      { uploadId: "owned", serviceId: "selected", capability: "parseImage" },
+      new AbortController().signal,
+      ownedImage()
+    )
+  ).rejects.toThrow("selected failed");
   expect(invokeBackgroundPlugin).toHaveBeenCalledTimes(1);
   expect(invokeBackgroundPlugin.mock.calls[0][0].apiSlug).toBe("selected");
-  await expect(executeFileMethod("recognizeImage", { uploadId: "owned", serviceId: "deleted", capability: "parseImage" }, new AbortController().signal, ownedImage())).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
+  await expect(
+    executeFileMethod(
+      "recognizeImage",
+      { uploadId: "owned", serviceId: "deleted", capability: "parseImage" },
+      new AbortController().signal,
+      ownedImage()
+    )
+  ).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
   expect(invokeBackgroundPlugin).toHaveBeenCalledTimes(1);
 });
 test("recognition patch is a nullable single service and rejects old candidate/model fields", () => {
   const selection = { apiSlug: "ocr", capability: "recognizeText" };
-  expect(validateScenePatch("image", { recognitionService: selection })).toEqual({ recognitionService: selection });
-  expect(validateScenePatch("pdf", { recognitionService: null, visionServiceSlug: "vlm" })).toEqual({ recognitionService: null, visionServiceSlug: "vlm" });
-  for (const patch of [{ recognitionService: [selection] }, { recognitionService: { ...selection, capability: "chat" } }, { ocrApiSlugs: ["ocr"] }, { visionModel: "model" }])
+  expect(
+    validateScenePatch("image", { recognitionService: selection })
+  ).toEqual({ recognitionService: selection });
+  expect(
+    validateScenePatch("pdf", {
+      recognitionService: null,
+      visionServiceSlug: "vlm",
+    })
+  ).toEqual({ recognitionService: null, visionServiceSlug: "vlm" });
+  for (const patch of [
+    { recognitionService: [selection] },
+    { recognitionService: { ...selection, capability: "chat" } },
+    { ocrApiSlugs: ["ocr"] },
+    { visionModel: "model" },
+  ])
     expect(() => validateScenePatch("image", patch)).toThrow();
+});
+
+test.each([560, 680, 840, 880, 1020, 1400])(
+  "EPUB page width %s is accepted and survives context projection",
+  async (pageWidth) => {
+    expect(
+      validateScenePatch("epub", { readerPreferences: { pageWidth } })
+    ).toEqual({ readerPreferences: { pageWidth } });
+    const setting = await getSettingWithDefault();
+    setting.fileTranslateSetting.epub = {
+      readerPreferences: { pageWidth, fontSize: 20, themeId: "sepia" },
+    };
+    const context = await getFileContext();
+    expect(context.scenes.epub.readerPreferences).toEqual({
+      pageWidth,
+      fontSize: 20,
+      themeId: "sepia",
+    });
+  }
+);
+test.each([559, 1401, "840", null, NaN, Infinity])(
+  "invalid EPUB page width %s is rejected",
+  (pageWidth) => {
+    expect(() =>
+      validateScenePatch("epub", { readerPreferences: { pageWidth } })
+    ).toThrow("阅读设置无效");
+  }
+);
+test("page width merges with existing reader settings in storage", async () => {
+  saveEdit.mockImplementation(async (_key, update) => ({
+    value: update({
+      fileTranslateSetting: {
+        epub: {
+          readerPreferences: {
+            fontSize: 20,
+            fontFamily: "serif",
+            themeId: "sepia",
+          },
+        },
+      },
+    }),
+  }));
+  expect(
+    await executeFileMethod("patchScene", {
+      kind: "epub",
+      patch: { readerPreferences: { pageWidth: 1020 } },
+    })
+  ).toEqual({
+    readerPreferences: {
+      pageWidth: 1020,
+      fontSize: 20,
+      fontFamily: "serif",
+      themeId: "sepia",
+    },
+  });
 });

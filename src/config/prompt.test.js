@@ -583,3 +583,103 @@ describe("visual parsing prompt settings", () => {
     });
   });
 });
+
+describe("scene translation prompt overrides", () => {
+  const { withScenePrompt } = require("./serviceSelection");
+  const prompts = [
+    {
+      slug: "single-scene",
+      category: "user prompt",
+      systemPrompt: "single system",
+      userPrompt: "{{text}}",
+    },
+    {
+      slug: "batch-scene",
+      category: "batch system prompt",
+      systemPrompt: "batch system",
+      userPrompt: "{{text}}",
+      protocol: "xml",
+    },
+    {
+      slug: "legacy-scene",
+      category: "batch system prompt",
+      systemPrompt: "legacy batch",
+      userPrompt: "{{text}}",
+    },
+    {
+      slug: "summary-scene",
+      category: "summary prompt",
+      systemPrompt: "summary",
+    },
+  ];
+  const service = (supported, enabled = false) => ({
+    apiSlug: "external",
+    useBatchFetch: enabled,
+    nobatchPrompt: "own single",
+    nobatchUserPrompt: "own input",
+    systemPrompt: "own batch",
+    batchUserPrompt: "own batch input",
+    batchProtocol: "json",
+    provider: {
+      implementation: { kind: "external" },
+      capabilities: { translate: { batch: { supported } } },
+    },
+  });
+  test("batch scene enables batching without changing the service, even when its switch is off", () => {
+    const api = service(true);
+    const original = JSON.parse(JSON.stringify(api));
+    const result = resolveApiPromptSettings(
+      withScenePrompt(api, { promptSlug: "batch-scene" }),
+      prompts
+    );
+    expect(result).toMatchObject({
+      useBatchFetch: true,
+      systemPrompt: "batch system",
+      outputProtocol: "xml",
+      nobatchPrompt: "own single",
+    });
+    expect(api).toEqual(original);
+  });
+  test("single scene disables batching and only overrides the single template", () => {
+    const api = service(true, true);
+    const result = resolveApiPromptSettings(
+      withScenePrompt(api, { promptSlug: "single-scene" }),
+      prompts
+    );
+    expect(result).toMatchObject({
+      useBatchFetch: false,
+      nobatchPrompt: "single system",
+      systemPrompt: "own batch",
+      batchProtocol: "json",
+    });
+    expect(api.useBatchFetch).toBe(true);
+  });
+  test.each(["batch-scene", "missing-scene", "summary-scene"])(
+    "unsupported or invalid scene %s retains all service configuration",
+    (slug) => {
+      const api = service(false);
+      expect(
+        resolveApiPromptSettings(
+          withScenePrompt(api, { promptSlug: slug }),
+          prompts
+        )
+      ).toEqual(resolveApiPromptSettings(api, prompts));
+    }
+  );
+  test("legacy batch scenes preserve protocol-free handling", () => {
+    const result = resolveApiPromptSettings(
+      withScenePrompt(
+        { apiType: "OpenAI", useBatchFetch: false, batchProtocol: "json" },
+        { promptSlug: "legacy-scene" }
+      ),
+      prompts
+    );
+    expect(result.useBatchFetch).toBe(true);
+    expect(result).not.toHaveProperty("batchProtocol");
+  });
+  test("follow service retains its configured batching mode", () => {
+    const api = service(true, true);
+    expect(withScenePrompt(api, { promptSlug: "" })).toBe(api);
+    expect(resolveApiPromptSettings(api, prompts).useBatchFetch).toBe(true);
+  });
+});

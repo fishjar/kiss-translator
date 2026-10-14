@@ -71,6 +71,8 @@ export default function FileTranslateSettings({
       </Box>
       <Box sx={{ width: 150, flexShrink: 0 }}>
         <ScenePromptSelect
+          scene={scene}
+          apis={services}
           i18n={i18n}
           prompts={prompts}
           disabled={disabled}

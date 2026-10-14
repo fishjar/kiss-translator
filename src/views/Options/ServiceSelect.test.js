@@ -21,8 +21,8 @@ jest.mock("../../hooks/I18n", () => ({
 jest.mock("../../hooks/Prompt", () => ({
   usePromptList: () => ({
     prompts: [
-      { slug: "p1", name: "Custom Prompt 1", category: "translation" },
-      { slug: "p2", name: "Batch Prompt 2", category: "batch_system" },
+      { slug: "p1", name: "Custom Prompt 1", category: "user prompt" },
+      { slug: "p2", name: "Batch Prompt 2", category: "batch system prompt" },
     ],
   }),
 }));

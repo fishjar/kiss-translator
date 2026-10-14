@@ -265,11 +265,20 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
 
 export const DEFAULT_FILE_TRANSLATE_SETTING = {
   pdf: {
-    fromLang: "auto", toLang: "zh-CN", apiSlug: OPT_TRANS_MICROSOFT,
-    promptSlug: "", textStyle: "style_none", parseMode: "smart", enableJev: "false",
-    layoutModel: "pp-doclayout-v3-onnx", layoutDevice: "wasm",
+    fromLang: "auto",
+    toLang: "zh-CN",
+    apiSlug: OPT_TRANS_MICROSOFT,
+    promptSlug: "",
+    textStyle: "style_none",
+    parseMode: "smart",
+    enableJev: "false",
+    layoutModel: "pp-doclayout-v3-onnx",
+    layoutDevice: "wasm",
     layoutApiSlug: "",
-    recognitionService: null, visionServiceSlug: "", vlmPromptSlug: "", decisionModel: "laya-multilingual-int8",
+    recognitionService: null,
+    visionServiceSlug: "",
+    vlmPromptSlug: "",
+    decisionModel: "laya-multilingual-int8",
   },
   txt: {
     apiSlug: OPT_TRANS_MICROSOFT,
@@ -303,6 +312,7 @@ export const DEFAULT_FILE_TRANSLATE_SETTING = {
     hasRichText: "true",
     viewMode: "bilingual",
     readerPreferences: {
+      pageWidth: 840,
       fontSize: 16,
       fontFamily: "default",
       themeId: "default",

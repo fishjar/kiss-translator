@@ -1,9 +1,17 @@
 import { sha256 } from "../libs/utils";
-import { enabledApiCapabilities, supportedApiFeature, projectApiCapabilities } from "../config/serviceSelection";
+import {
+  enabledApiCapabilities,
+  supportedApiFeature,
+  projectApiCapabilities,
+} from "../config/serviceSelection";
 import browser from "webextension-polyfill";
 import { DEFAULT_FILE_TRANSLATE_SETTING } from "../config/setting";
 import { STOKEY_SETTING } from "../config/storage";
-import { getAllPrompts, resolveVlmPrompt, resolveApiPromptSettings } from "../config/prompt";
+import {
+  getAllPrompts,
+  resolveVlmPrompt,
+  resolveApiPromptSettings,
+} from "../config/prompt";
 import { providerCacheSignature } from "../providers/cache";
 import { prepareImage } from "../localAi/core/inputLimits";
 import {
@@ -32,10 +40,7 @@ import {
 } from "./protocol";
 
 const SCENES = Object.keys(DEFAULT_FILE_TRANSLATE_SETTING);
-const EXTRA_FIELDS = [
-  "apiSlug",
-  "layoutApiSlug",
-];
+const EXTRA_FIELDS = ["apiSlug", "layoutApiSlug"];
 const API_FIELDS = [
   "apiSlug",
   "apiName",
@@ -67,10 +72,19 @@ export function validateScenePatch(kind, patch) {
     if (![...Object.keys(defaults), ...EXTRA_FIELDS].includes(key))
       throw fileError("INVALID_INPUT", `不能修改设置字段 ${key}`);
     if (key === "recognitionService") {
-      if (value !== null && (!value || typeof value !== "object" || Array.isArray(value) ||
-          Object.keys(value).some((field) => !["apiSlug", "capability"].includes(field)) ||
-          typeof value.apiSlug !== "string" || !value.apiSlug || value.apiSlug.length > 200 ||
-          !["recognizeText", "parseImage"].includes(value.capability)))
+      if (
+        value !== null &&
+        (!value ||
+          typeof value !== "object" ||
+          Array.isArray(value) ||
+          Object.keys(value).some(
+            (field) => !["apiSlug", "capability"].includes(field)
+          ) ||
+          typeof value.apiSlug !== "string" ||
+          !value.apiSlug ||
+          value.apiSlug.length > 200 ||
+          !["recognizeText", "parseImage"].includes(value.capability))
+      )
         throw fileError("INVALID_INPUT", "识别服务选择无效");
     } else if (key === "readerPreferences") {
       if (
@@ -78,8 +92,13 @@ export function validateScenePatch(kind, patch) {
         Array.isArray(value) ||
         typeof value !== "object" ||
         Object.keys(value).some(
-          (field) => !["fontSize", "fontFamily", "themeId"].includes(field)
+          (field) =>
+            !["pageWidth", "fontSize", "fontFamily", "themeId"].includes(field)
         ) ||
+        (value.pageWidth !== undefined &&
+          (!Number.isFinite(value.pageWidth) ||
+            value.pageWidth < 560 ||
+            value.pageWidth > 1400)) ||
         (value.fontSize !== undefined &&
           (!Number.isFinite(value.fontSize) ||
             value.fontSize < 8 ||
@@ -122,37 +141,66 @@ async function invokeImageProvider(
   const assets = createAssetStore();
   try {
     const { cacheMode, onProgress, requireCoordinates, ...extraInput } = extra;
-    const input = { ...extraInput, ...(api.apiType === "LocalAI" && cacheMode && { cacheMode }), image: assets.put(prepared.blob), imageSize: prepared.size };
-    return await cachedFileResult({ api, capability, policy: await inputSettings(), cacheMode, signal, onProgress,
+    const input = {
+      ...extraInput,
+      ...(api.apiType === "LocalAI" && cacheMode && { cacheMode }),
+      image: assets.put(prepared.blob),
+      imageSize: prepared.size,
+    };
+    return await cachedFileResult({
+      api,
+      capability,
+      policy: await inputSettings(),
+      cacheMode,
+      signal,
+      onProgress,
       validate: (result) => {
         if (capability === "analyzeLayout") return;
-        if (!result.text?.trim()) throw fileError("INVALID_RESPONSE", "识别返回空结果");
-        if ((requireCoordinates || supportedApiFeature(api, capability)?.coordinates) && !hasCompleteCoordinates(result.items || []))
-          throw fileError("INVALID_RESPONSE", "识别服务未返回完整有效的文字坐标");
+        if (!result.text?.trim())
+          throw fileError("INVALID_RESPONSE", "识别返回空结果");
+        if (
+          (requireCoordinates ||
+            supportedApiFeature(api, capability)?.coordinates) &&
+          !hasCompleteCoordinates(result.items || [])
+        )
+          throw fileError(
+            "INVALID_RESPONSE",
+            "识别服务未返回完整有效的文字坐标"
+          );
       },
-      input: { ...extraInput, image: prepared.blob, imageSize: prepared.size }, run: async () => {
-    const call = api.provider && api.provider.implementation?.kind !== "native"
-      ? invokeBackgroundPlugin(api, capability, input, { signal, assets })
-      : createNativeRegistry(() => api, { assets }).invoke(api.apiSlug, capability, input, { signal });
-    const events = (async () => {
-      const iterator = call.events[Symbol.asyncIterator]();
-      for (;;) {
-        const next = await iterator.next();
-        if (next.done) break;
-        const status = next.value.message;
-        if (status === "CACHE_HIT" || status === "INFERENCE_START")
-          onProgress?.({ type: status === "CACHE_HIT" ? "cache-hit" : "inference" });
-      }
-    })();
-    events.catch(() => {});
-    try {
-      const result = await call.result;
-      await events;
-      return result;
-    } finally {
-      call.cancel();
-    }
-    } });
+      input: { ...extraInput, image: prepared.blob, imageSize: prepared.size },
+      run: async () => {
+        const call =
+          api.provider && api.provider.implementation?.kind !== "native"
+            ? invokeBackgroundPlugin(api, capability, input, { signal, assets })
+            : createNativeRegistry(() => api, { assets }).invoke(
+                api.apiSlug,
+                capability,
+                input,
+                { signal }
+              );
+        const events = (async () => {
+          const iterator = call.events[Symbol.asyncIterator]();
+          for (;;) {
+            const next = await iterator.next();
+            if (next.done) break;
+            const status = next.value.message;
+            if (status === "CACHE_HIT" || status === "INFERENCE_START")
+              onProgress?.({
+                type: status === "CACHE_HIT" ? "cache-hit" : "inference",
+              });
+          }
+        })();
+        events.catch(() => {});
+        try {
+          const result = await call.result;
+          await events;
+          return result;
+        } finally {
+          call.cancel();
+        }
+      },
+    });
   } finally {
     assets.clear();
   }
@@ -160,11 +208,25 @@ async function invokeImageProvider(
 
 export async function getFileContext(signal) {
   const setting = await getSettingWithDefault();
-  const promptSignature = await sha256(JSON.stringify(getAllPrompts(setting.prompts)));
-  const translationSignatures = new Map(await Promise.all(setting.transApis.map(async (api) => [
-    api.apiSlug, await providerCacheSignature(resolveApiPromptSettings(api, setting.prompts, setting.subtitleSetting),
-      "translate", { promptSignature }),
-  ])));
+  const promptSignature = await sha256(
+    JSON.stringify(getAllPrompts(setting.prompts))
+  );
+  const translationSignatures = new Map(
+    await Promise.all(
+      setting.transApis.map(async (api) => [
+        api.apiSlug,
+        await providerCacheSignature(
+          resolveApiPromptSettings(
+            api,
+            setting.prompts,
+            setting.subtitleSetting
+          ),
+          "translate",
+          { promptSignature }
+        ),
+      ])
+    )
+  );
   let records = [],
     modelError = "";
   try {
@@ -189,6 +251,7 @@ export async function getFileContext(signal) {
         ]);
         if (scene.readerPreferences)
           scene.readerPreferences = pick(scene.readerPreferences, [
+            "pageWidth",
             "fontSize",
             "fontFamily",
             "themeId",
@@ -201,8 +264,15 @@ export async function getFileContext(signal) {
       translationSignature: translationSignatures.get(api.apiSlug),
       provider: {
         apiVersion: "1",
-        implementation: { kind: projectApiCapabilities(api).provider?.implementation?.kind },
-        capabilities: Object.fromEntries(enabledApiCapabilities(api).map((cap) => [cap, supportedApiFeature(api, cap)])),
+        implementation: {
+          kind: projectApiCapabilities(api).provider?.implementation?.kind,
+        },
+        capabilities: Object.fromEntries(
+          enabledApiCapabilities(api).map((cap) => [
+            cap,
+            supportedApiFeature(api, cap),
+          ])
+        ),
       },
       translationAvailable: isApiAvailableFor(api, "translate", {
         installedModels: installed,
@@ -211,13 +281,37 @@ export async function getFileContext(signal) {
         installedModels: installed,
       }),
       enabledCapabilities: enabledApiCapabilities(api),
-      recognitionFeatures: Object.fromEntries(["recognizeText", "parseImage"].filter((cap) => enabledApiCapabilities(api).includes(cap)).map((cap) => [cap, {
-        coordinates: supportedApiFeature(api, cap)?.coordinates === true,
-        taskModes: supportedApiFeature(api, cap)?.taskModes || ["doc"],
-        available: isApiAvailableFor(api, cap, { installedModels: installed }),
-      }])),
-      recognitionSignature: JSON.stringify([api.apiType, api.modelRef, api.device, api.model, api.provider?.source?.version, api.provider?.capabilities, api.vlmPromptSlug, api.maxTokens, api.temperature, promptSignature,
-        Object.fromEntries((api.provider?.settings || []).filter((field) => field.type !== "password" && !field.isSecret).map((field) => [field.key, api.pluginConfig?.[field.key]]))]),
+      recognitionFeatures: Object.fromEntries(
+        ["recognizeText", "parseImage"]
+          .filter((cap) => enabledApiCapabilities(api).includes(cap))
+          .map((cap) => [
+            cap,
+            {
+              coordinates: supportedApiFeature(api, cap)?.coordinates === true,
+              taskModes: supportedApiFeature(api, cap)?.taskModes || ["doc"],
+              available: isApiAvailableFor(api, cap, {
+                installedModels: installed,
+              }),
+            },
+          ])
+      ),
+      recognitionSignature: JSON.stringify([
+        api.apiType,
+        api.modelRef,
+        api.device,
+        api.model,
+        api.provider?.source?.version,
+        api.provider?.capabilities,
+        api.vlmPromptSlug,
+        api.maxTokens,
+        api.temperature,
+        promptSignature,
+        Object.fromEntries(
+          (api.provider?.settings || [])
+            .filter((field) => field.type !== "password" && !field.isSecret)
+            .map((field) => [field.key, api.pluginConfig?.[field.key]])
+        ),
+      ]),
     })),
     prompts: getAllPrompts(setting.prompts).map((prompt) =>
       pick(prompt, ["slug", "name", "nameKey", "category"])
@@ -241,7 +335,13 @@ export async function getFileContext(signal) {
   };
 }
 
-export async function executeFileMethod(method, params, signal, uploads, onProgress) {
+export async function executeFileMethod(
+  method,
+  params,
+  signal,
+  uploads,
+  onProgress
+) {
   if (method === "analyzeLayout") {
     if (method === "analyzeLayout" && params.serviceId) {
       const api = (await getSettingWithDefault()).transApis.find(
@@ -294,7 +394,9 @@ export async function executeFileMethod(method, params, signal, uploads, onProgr
       };
     }
     const modelId = params.modelId || DOC_MODEL_ID;
-    const model = CATALOG.find((m) => m.id === modelId && m.task === "doc-layout");
+    const model = CATALOG.find(
+      (m) => m.id === modelId && m.task === "doc-layout"
+    );
     if (!model || !model.backend.includes(params.device))
       throw fileError("INVALID_INPUT", "文档模型或计算后端无效");
     const upload = uploads.get(params.uploadId);
@@ -303,22 +405,22 @@ export async function executeFileMethod(method, params, signal, uploads, onProgr
     uploads.delete(params.uploadId);
     clearTimeout(upload.timer);
     const file = new Blob(upload.chunks, { type: upload.type });
-      // This complete-result bridge needs no client state observer. Reuse the
-      // shared runtime directly; never add a per-page listener or unload its model.
-      return runtimeHost.request(
-        {
-          id: crypto.randomUUID(),
-          service: "doc",
-          method: "analyze",
-          options: { cacheMode: params.cacheMode },
-          payload: {
-            blob: file,
-            modelRef: modelId,
-            loadSpec: { device: params.device },
-          },
+    // This complete-result bridge needs no client state observer. Reuse the
+    // shared runtime directly; never add a per-page listener or unload its model.
+    return runtimeHost.request(
+      {
+        id: crypto.randomUUID(),
+        service: "doc",
+        method: "analyze",
+        options: { cacheMode: params.cacheMode },
+        payload: {
+          blob: file,
+          modelRef: modelId,
+          loadSpec: { device: params.device },
         },
-        { signal }
-      );
+      },
+      { signal }
+    );
   }
 
   if (method === "decideDocumentStructure") {
@@ -414,8 +516,8 @@ export async function executeFileMethod(method, params, signal, uploads, onProgr
     const scene = { ...setting.fileTranslateSetting[params.kind], ...patch };
     const records = await modelRecords(
       {
-        transApis: setting.transApis.filter((api) =>
-          scene.apiSlug === api.apiSlug
+        transApis: setting.transApis.filter(
+          (api) => scene.apiSlug === api.apiSlug
         ),
       },
       signal
@@ -435,47 +537,107 @@ export async function executeFileMethod(method, params, signal, uploads, onProgr
   if (method === "recognizeImage") {
     const capability = params.capability;
     const mode = params.taskMode || "doc";
-    if (!["recognizeText", "parseImage"].includes(capability) ||
-        !["doc", "table", "formula"].includes(mode) ||
-        (params.requireCoordinates !== undefined && typeof params.requireCoordinates !== "boolean"))
+    if (
+      !["recognizeText", "parseImage"].includes(capability) ||
+      !["doc", "table", "formula"].includes(mode) ||
+      (params.requireCoordinates !== undefined &&
+        typeof params.requireCoordinates !== "boolean")
+    )
       throw fileError("INVALID_INPUT", "识别能力或任务无效");
     const setting = await getSettingWithDefault();
-    const api = setting.transApis.find((item) => item.apiSlug === params.serviceId);
-    const requirements = { taskMode: mode, coordinates: params.requireCoordinates === true };
-    const records = api?.apiType === "LocalAI" ? await modelRecords(setting, signal) : [];
-    if (!isApiAvailableFor(api, capability, {
-      requirements,
-      ...(api?.apiType === "LocalAI" && { installedModels: new Set(records.filter((r) => r.state === "installed").map((r) => r.manifest.id)) }),
-    })) throw fileError("SERVICE_UNAVAILABLE", "所选识别服务不可用，或不支持当前任务/坐标要求");
+    const api = setting.transApis.find(
+      (item) => item.apiSlug === params.serviceId
+    );
+    const requirements = {
+      taskMode: mode,
+      coordinates: params.requireCoordinates === true,
+    };
+    const records =
+      api?.apiType === "LocalAI" ? await modelRecords(setting, signal) : [];
+    if (
+      !isApiAvailableFor(api, capability, {
+        requirements,
+        ...(api?.apiType === "LocalAI" && {
+          installedModels: new Set(
+            records
+              .filter((r) => r.state === "installed")
+              .map((r) => r.manifest.id)
+          ),
+        }),
+      })
+    )
+      throw fileError(
+        "SERVICE_UNAVAILABLE",
+        "所选识别服务不可用，或不支持当前任务/坐标要求"
+      );
     const upload = uploads.get(params.uploadId);
     if (!upload || upload.received !== upload.size)
       throw fileError("INVALID_INPUT", "图片上传未完成");
     uploads.delete(params.uploadId);
     clearTimeout(upload.timer);
-    const prepared = await prepareImage(new Blob(upload.chunks, { type: upload.type }), await inputSettings(), signal);
-    const promptSlug = params.promptSlug || (mode === "doc" ? api.vlmPromptSlug : "");
+    const prepared = await prepareImage(
+      new Blob(upload.chunks, { type: upload.type }),
+      await inputSettings(),
+      signal
+    );
+    const promptSlug =
+      params.promptSlug || (mode === "doc" ? api.vlmPromptSlug : "");
     let prompt;
     if (capability === "parseImage") {
       if (promptSlug) prompt = resolveVlmPrompt(setting.prompts, promptSlug);
-      else if (api.apiType !== "LocalAI" && (!api.provider || api.provider.implementation?.kind === "native"))
-        prompt = mode === "table" ? "Extract the table as HTML. Preserve all cell contents and spans. Do not translate or explain."
-          : mode === "formula" ? "Extract the formula as LaTeX. Do not translate or explain."
-          : resolveVlmPrompt(setting.prompts, "");
+      else if (
+        api.apiType !== "LocalAI" &&
+        (!api.provider || api.provider.implementation?.kind === "native")
+      )
+        prompt =
+          mode === "table"
+            ? "Extract the table as HTML. Preserve all cell contents and spans. Do not translate or explain."
+            : mode === "formula"
+              ? "Extract the formula as LaTeX. Do not translate or explain."
+              : resolveVlmPrompt(setting.prompts, "");
     }
-    const result = await invokeImageProvider(api, capability, prepared, signal, { mode, requireCoordinates: params.requireCoordinates, cacheMode: params.cacheMode, onProgress, ...(prompt && { prompt }) });
-    if (!result.text?.trim()) throw fileError("INVALID_RESPONSE", "识别返回空结果");
-    if ((params.requireCoordinates || supportedApiFeature(api, capability)?.coordinates) && !hasCompleteCoordinates(result.items || []))
+    const result = await invokeImageProvider(
+      api,
+      capability,
+      prepared,
+      signal,
+      {
+        mode,
+        requireCoordinates: params.requireCoordinates,
+        cacheMode: params.cacheMode,
+        onProgress,
+        ...(prompt && { prompt }),
+      }
+    );
+    if (!result.text?.trim())
+      throw fileError("INVALID_RESPONSE", "识别返回空结果");
+    if (
+      (params.requireCoordinates ||
+        supportedApiFeature(api, capability)?.coordinates) &&
+      !hasCompleteCoordinates(result.items || [])
+    )
       throw fileError("INVALID_RESPONSE", "识别服务未返回完整有效的文字坐标");
     const sx = prepared.original.width / prepared.size.width;
     const sy = prepared.original.height / prepared.size.height;
     return {
       ...result,
-      items: (result.items?.length ? result.items : result.text.split(/\r?\n/).filter(Boolean).map((text) => ({ text, poly: null })))
-        .map((item) => ({ ...item, poly: item.poly?.map(([x, y]) => [x * sx, y * sy]) || null })),
+      items: (result.items?.length
+        ? result.items
+        : result.text
+            .split(/\r?\n/)
+            .filter(Boolean)
+            .map((text) => ({ text, poly: null }))
+      ).map((item) => ({
+        ...item,
+        poly: item.poly?.map(([x, y]) => [x * sx, y * sy]) || null,
+      })),
       imageSize: prepared.original,
       serviceId: api.apiSlug,
       capability,
-      inputAdjustments: [...(result.inputAdjustments || []), ...(prepared.adjustment ? [prepared.adjustment] : [])],
+      inputAdjustments: [
+        ...(result.inputAdjustments || []),
+        ...(prepared.adjustment ? [prepared.adjustment] : []),
+      ],
     };
   }
   throw fileError("UNKNOWN_METHOD", "不支持的文件翻译接口");
@@ -651,7 +813,8 @@ export function attachFileSession(port, execute = executeFileMethod) {
           controller.signal,
           uploads,
           (progress) => {
-            if (!controller.signal.aborted) send({ type: "progress", requestId: id, sessionId, progress });
+            if (!controller.signal.aborted)
+              send({ type: "progress", requestId: id, sessionId, progress });
           }
         );
         if (controller.signal.aborted)
