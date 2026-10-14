@@ -21,6 +21,19 @@ beforeEach(() => {
     { id: 3, url: "http://localhost:3000/file-translate.html-extra" },
     { id: 4, url: "https://example.com/file-translate.html" },
     { id: 5 },
+    {
+      id: 6,
+      url: "https://kiss-translator-dev.rayjar.com/file-translate?test=1#preview",
+    },
+    {
+      id: 7,
+      url: "https://kiss-translator-dev.rayjar.com/file-translate-extra",
+    },
+    {
+      id: 8,
+      url: "https://kiss-translator-dev.rayjar.com/file-translate/other",
+    },
+    { id: 9, url: "https://kiss-translator-dev.rayjar.com/file-translate/" },
   ]);
   browser.scripting.executeScript.mockResolvedValue([]);
   browser.tabs.executeScript.mockResolvedValue([]);
@@ -37,6 +50,7 @@ test("restores only allowed pages and only their top frame", async () => {
   ).toEqual([
     { target: { tabId: 1, frameIds: [0] }, files: ["file-bridge.js"] },
     { target: { tabId: 2, frameIds: [0] }, files: ["file-bridge.js"] },
+    { target: { tabId: 6, frameIds: [0] }, files: ["file-bridge.js"] },
   ]);
   expect(browser.tabs.executeScript).not.toHaveBeenCalled();
 });
@@ -50,7 +64,12 @@ test("uses the MV2 injection API for Firefox", async () => {
     allFrames: false,
     runAt: "document_start",
   });
-  expect(browser.tabs.executeScript).toHaveBeenCalledTimes(2);
+  expect(browser.tabs.executeScript).toHaveBeenCalledWith(6, {
+    file: "file-bridge.js",
+    allFrames: false,
+    runAt: "document_start",
+  });
+  expect(browser.tabs.executeScript).toHaveBeenCalledTimes(3);
   expect(browser.scripting.executeScript).not.toHaveBeenCalled();
 });
 
@@ -59,7 +78,7 @@ test("one closed or inaccessible tab does not prevent other recoveries", async (
     new Error("tab closed")
   );
   await restoreFileTranslationBridges();
-  expect(browser.scripting.executeScript).toHaveBeenCalledTimes(2);
+  expect(browser.scripting.executeScript).toHaveBeenCalledTimes(3);
   expect(kissLog).toHaveBeenCalledTimes(1);
 });
 

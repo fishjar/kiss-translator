@@ -350,6 +350,26 @@ test("scene patches merge with the latest value inside the storage transaction",
 
 test("production bridge allows local and online pages but rejects other origins and paths", () => {
   process.env.REACT_APP_FILE_BRIDGE_DEV = "false";
+  for (const base of [
+    "https://kiss-translator.rayjar.com",
+    "https://fishjar.github.io/kiss-translator",
+    "https://kiss-translator-dev.rayjar.com",
+  ]) {
+    for (const suffix of ["", ".html"]) {
+      const url = `${base}/file-translate${suffix}`;
+      expect(isFileBridgePage(url)).toBe(true);
+      expect(isFileBridgePage(`${url}?test=1#preview`)).toBe(true);
+      expect(isFileBridgePage(`${url}/`)).toBe(false);
+      expect(isFileBridgePage(`${url}/other`)).toBe(false);
+      expect(isFileBridgePage(`${url}-extra`)).toBe(false);
+      const wrongOrigin = new URL(url);
+      wrongOrigin.hostname += ".evil.com";
+      expect(isFileBridgePage(wrongOrigin.href)).toBe(false);
+      const wrongPort = new URL(url);
+      wrongPort.port = "3001";
+      expect(isFileBridgePage(wrongPort.href)).toBe(false);
+    }
+  }
   expect(
     isFileBridgePage(
       "https://fishjar.github.io/kiss-translator/file-translate.html?test=1"

@@ -61,6 +61,14 @@ for (const target of ["edge-dev", "chrome", "firefox"])
       bridge.matches.filter((url) => url.startsWith("https:")),
       sites.map((url) => `${url}*`)
     );
+    for (const base of [
+      "https://kiss-translator.rayjar.com",
+      "https://fishjar.github.io/kiss-translator",
+      "https://kiss-translator-dev.rayjar.com",
+    ]) {
+      assert.ok(bridge.matches.includes(`${base}/file-translate.html*`));
+      assert.ok(bridge.matches.includes(`${base}/file-translate*`));
+    }
     assert.deepEqual(
       bridge.matches.filter((url) => url.startsWith("http:")),
       [
