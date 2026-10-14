@@ -25,6 +25,7 @@ import {
   OPT_TRANS_LOCALAI,
 } from "./api";
 import { normalizeApiCapabilities } from "./serviceSelection";
+import { supportsServiceFeature } from "../providers/features";
 import { withBuiltinProvider } from "../builtin-plugins";
 
 // 聚合翻译协议定义
@@ -1151,13 +1152,14 @@ export function resolveApiPromptSettings(
 
   if (apiSetting.scenePromptSlug) {
     const prompt = findPromptBySlug(userPrompts, apiSetting.scenePromptSlug);
-    apiSetting = {
-      ...apiSetting,
-      useBatchFetch: prompt?.category === PROMPT_CATEGORY_BATCH_SYSTEM,
-      ...(prompt?.category === PROMPT_CATEGORY_BATCH_SYSTEM && {
-        batchPromptSlug: prompt.slug,
-      }),
-    };
+    const isBatch = prompt?.category === PROMPT_CATEGORY_BATCH_SYSTEM;
+    const isSingle = prompt?.category === PROMPT_CATEGORY_USER;
+    apiSetting = { ...apiSetting };
+    if (isSingle || (isBatch && supportsServiceFeature(apiSetting, "batch"))) {
+      apiSetting.useBatchFetch = isBatch;
+      apiSetting[isBatch ? "batchPromptSlug" : "nobatchPromptSlug"] =
+        prompt.slug;
+    }
     delete apiSetting.scenePromptSlug;
   }
 

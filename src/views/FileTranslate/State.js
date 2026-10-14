@@ -22,7 +22,8 @@ import { useHomepageSettings } from "../../homepage/useHomepageSettings";
 
 const Context = createContext(null);
 const LANGUAGE_STORAGE_KEY = "kiss-file-translate-lang";
-const validLanguage = (language) => UI_LANGS.some(([code]) => code === language);
+const validLanguage = (language) =>
+  UI_LANGS.some(([code]) => code === language);
 const readLanguage = () => {
   try {
     const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
@@ -49,12 +50,11 @@ export function FileTranslationProvider({ children }) {
   const [context, setContext] = useState(EMPTY);
   const [session, setSession] = useState(null);
   const [cachedLanguage, setCachedLanguage] = useState(readLanguage);
-  const language =
-    cachedLanguage
-      ? cachedLanguage
-      : preferences.language === "zh_CN"
-        ? "zh"
-        : preferences.language;
+  const language = cachedLanguage
+    ? cachedLanguage
+    : preferences.language === "zh_CN"
+      ? "zh"
+      : preferences.language;
   const chinese = language.startsWith("zh");
   const i18n = useCallback(
     (key, fallback = key) => I18N[key]?.[language] ?? fallback,
@@ -65,6 +65,7 @@ export function FileTranslationProvider({ children }) {
       language === "zh" ? "zh-CN" : language.replace("_", "-");
   }, [language]);
   const [error, setError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [extensions, setExtensions] = useState([]);
   const [selectedExtension, setSelectedExtension] = useState("");
   const [connecting, setConnecting] = useState(false);
@@ -94,9 +95,11 @@ export function FileTranslationProvider({ children }) {
       next = await client.request("getContext");
     } catch (failure) {
       if (
-        active.current && client === clientRef.current &&
+        active.current &&
+        client === clientRef.current &&
         sessionId === client.session?.sessionId
-      ) throw failure;
+      )
+        throw failure;
       return;
     }
     if (
@@ -125,9 +128,11 @@ export function FileTranslationProvider({ children }) {
       try {
         const next = await client.connect(extensionId);
         if (
-          !active.current || client !== clientRef.current ||
+          !active.current ||
+          client !== clientRef.current ||
           version !== client.connectionVersion
-        ) return;
+        )
+          return;
         setSession(next);
         setConnecting(false);
         setReconnectAt(null);
@@ -136,7 +141,9 @@ export function FileTranslationProvider({ children }) {
         await refresh();
       } catch (failure) {
         if (
-          !active.current || client !== clientRef.current || client.disposed ||
+          !active.current ||
+          client !== clientRef.current ||
+          client.disposed ||
           version !== client.connectionVersion
         )
           return;
@@ -147,7 +154,8 @@ export function FileTranslationProvider({ children }) {
         }
       } finally {
         if (
-          active.current && client === clientRef.current &&
+          active.current &&
+          client === clientRef.current &&
           version === client.connectionVersion
         )
           setConnecting(false);
@@ -251,6 +259,12 @@ export function FileTranslationProvider({ children }) {
           )
             return;
           await client.request("patchScene", { kind, patch });
+          if (
+            active.current &&
+            client === clientRef.current &&
+            sessionId === client.session?.sessionId
+          )
+            setSaveError("");
         })
         .catch((failure) => {
           if (
@@ -258,7 +272,7 @@ export function FileTranslationProvider({ children }) {
             client === clientRef.current &&
             sessionId === client.session?.sessionId
           ) {
-            setError(failure.message);
+            setSaveError(failure.message);
             refresh().catch(() => {});
           }
         });
@@ -337,8 +351,12 @@ export function FileTranslationProvider({ children }) {
   }, []);
   const statusLabel = connecting
     ? chinese
-      ? reconnecting ? "正在重连…" : "连接中…"
-      : reconnecting ? "Reconnecting…" : "Connecting…"
+      ? reconnecting
+        ? "正在重连…"
+        : "连接中…"
+      : reconnecting
+        ? "Reconnecting…"
+        : "Connecting…"
     : session
       ? `${chinese ? "已连接" : "Connected"} · ${session.extensionVersion}`
       : chinese
@@ -364,6 +382,7 @@ export function FileTranslationProvider({ children }) {
       }
       title={
         error ||
+        saveError ||
         context.modelError ||
         (session
           ? `${session.development ? (chinese ? "开发构建 · " : "Development build · ") : ""}${chinese ? "点击刷新配置" : "Click to refresh settings"}`
@@ -371,7 +390,7 @@ export function FileTranslationProvider({ children }) {
       }
       color={
         session
-          ? error || context.modelError
+          ? error || saveError || context.modelError
             ? "warning"
             : "success"
           : "inherit"
@@ -413,11 +432,19 @@ export function FileTranslationProvider({ children }) {
           >
             {connecting
               ? chinese
-                ? reconnecting ? "正在重连…" : "连接中…"
-                : reconnecting ? "Reconnecting…" : "Connecting…"
+                ? reconnecting
+                  ? "正在重连…"
+                  : "连接中…"
+                : reconnecting
+                  ? "Reconnecting…"
+                  : "Connecting…"
               : chinese
-                ? reconnectAt ? "立即重连" : "连接扩展"
-                : reconnectAt ? "Reconnect now" : "Connect extension"}
+                ? reconnectAt
+                  ? "立即重连"
+                  : "连接扩展"
+                : reconnectAt
+                  ? "Reconnect now"
+                  : "Connect extension"}
           </Button>
         }
       >
@@ -438,9 +465,9 @@ export function FileTranslationProvider({ children }) {
           ))}
         </Select>
       )}
-      {(error || context.modelError) && (
+      {(error || saveError || context.modelError) && (
         <ReaderAlert severity="warning" sx={{ mt: 0.75, borderRadius: 1 }}>
-          {error || context.modelError}
+          {error || saveError || context.modelError}
         </ReaderAlert>
       )}
     </Box>

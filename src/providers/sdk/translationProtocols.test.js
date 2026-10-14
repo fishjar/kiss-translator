@@ -126,7 +126,13 @@ test.each([
 ])("scene prompt %s selects encoding and parsing together", (slug) => {
   const api = resolveApiPromptSettings(
     withScenePrompt(
-      { apiSlug: "plugin", provider: { implementation: { kind: "script" } } },
+      {
+        apiSlug: "plugin",
+        provider: {
+          implementation: { kind: "script" },
+          capabilities: { translate: { batch: { supported: true } } },
+        },
+      },
       { promptSlug: slug }
     )
   );

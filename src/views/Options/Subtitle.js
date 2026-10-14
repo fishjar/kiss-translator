@@ -419,7 +419,12 @@ export default function SubtitleSetting() {
   const { subtitleSetting, updateSubtitle } = useSubtitle();
   // 启用的翻译引擎列表与 AI 模型引擎列表
   const { enabledApis, aiEnabledApis, transApis } = useApiList();
-  const segmentationApis = (transApis || aiEnabledApis).filter((api) => !api.isDisabled && isApiConfigured(api) && supportsApiCapability(api, "segmentSubtitle"));
+  const segmentationApis = (transApis || aiEnabledApis).filter(
+    (api) =>
+      !api.isDisabled &&
+      isApiConfigured(api) &&
+      supportsApiCapability(api, "segmentSubtitle")
+  );
   const { prompts } = usePromptList();
   const subtitlePromptOptions = useMemo(
     () => getSubtitlePromptOptions(prompts),
@@ -433,7 +438,8 @@ export default function SubtitleSetting() {
     return (transApis || enabledApis || []).filter(
       (api) =>
         !api.isDisabled &&
-        isApiConfigured(api) && supportsApiCapability(api, "summarize")
+        isApiConfigured(api) &&
+        supportsApiCapability(api, "summarize")
     );
   }, [enabledApis, transApis]);
 
@@ -851,20 +857,25 @@ export default function SubtitleSetting() {
                 scene={subtitleSetting}
                 apis={enabledApis}
                 label={i18n("translate_service")}
-                onChange={(apiSlug) =>
-                  updateSubtitle({ apiSlug })
-                }
+                onChange={(apiSlug) => updateSubtitle({ apiSlug })}
               />
             </SettingsRow>
             <SettingsRow label={i18n("translation_prompt", "翻译提示词")}>
               <ScenePromptSelect
+                scene={subtitleSetting}
+                apis={enabledApis}
                 label={i18n("translation_prompt", "翻译提示词")}
                 value={subtitleSetting.promptSlug}
                 onChange={(promptSlug) => updateSubtitle({ promptSlug })}
               />
             </SettingsRow>
-              <LocalServiceNotice apis={enabledApis.filter((api) => [segSlug, summaryApiSlug, aiContextSlug].includes(api.apiSlug))} i18n={i18n} />
-              {/* Keep TextField so mismatched segmentation and translation
+            <LocalServiceNotice
+              apis={enabledApis.filter((api) =>
+                [segSlug, summaryApiSlug, aiContextSlug].includes(api.apiSlug)
+              )}
+              i18n={i18n}
+            />
+            {/* Keep TextField so mismatched segmentation and translation
                 services retain their helper text and error state. */}
             <SettingsRow label={i18n("ai_segmentation")}>
               <TextField

@@ -54,13 +54,17 @@ export const supportsApiCapability = (api, capability) =>
     { ...projectApiCapabilities(api), isDisabled: false },
     capability
   );
-export const supportsVlmApi = (api) =>
-  supportsApiCapability(api, "parseImage");
+export const supportsVlmApi = (api) => supportsApiCapability(api, "parseImage");
 /** Readiness is separate from support: an incomplete instance remains fully editable. */
 export function isApiConfigured(api) {
-  if (!api?.provider || api.provider.implementation?.kind === "native") return true;
+  if (!api?.provider || api.provider.implementation?.kind === "native")
+    return true;
   try {
-    validateServiceConfig(api.provider, api.pluginConfig, enabledApiCapabilities(api));
+    validateServiceConfig(
+      api.provider,
+      api.pluginConfig,
+      enabledApiCapabilities(api)
+    );
     return true;
   } catch {
     return false;
@@ -135,6 +139,4 @@ export const availableApiForScene = (
   return isApiAvailableFor(api, capability, context) ? api : undefined;
 };
 export const withScenePrompt = (api, scene) =>
-  scene?.promptSlug
-    ? { ...api, scenePromptSlug: scene.promptSlug, nobatchPromptSlug: scene.promptSlug, useBatchFetch: false }
-    : api;
+  scene?.promptSlug ? { ...api, scenePromptSlug: scene.promptSlug } : api;

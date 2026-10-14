@@ -585,6 +585,14 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
             </Grid>
             <Grid item xs={12} sm={12} md={6} lg={6}>
               <ScenePromptSelect
+                scene={{
+                  ...formValues,
+                  apiSlug:
+                    formValues.apiSlug === GLOBAL_KEY
+                      ? globalRule?.apiSlug
+                      : formValues.apiSlug,
+                }}
+                apis={enabledApis}
                 fullWidth
                 label={i18n("translation_prompt", "翻译提示词")}
                 value={formValues.promptSlug}

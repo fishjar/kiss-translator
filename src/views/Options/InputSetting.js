@@ -174,13 +174,13 @@ export default function InputSetting() {
             scene={inputRule}
             apis={enabledApis}
             label={i18n("translate_service")}
-            onChange={(apiSlug) =>
-              updateInputRule({ apiSlug })
-            }
+            onChange={(apiSlug) => updateInputRule({ apiSlug })}
           />
         </SettingsRow>
         <SettingsRow label={i18n("translation_prompt", "翻译提示词")}>
           <ScenePromptSelect
+            scene={inputRule}
+            apis={enabledApis}
             label={i18n("translation_prompt", "翻译提示词")}
             value={inputRule.promptSlug}
             onChange={(promptSlug) => updateInputRule({ promptSlug })}

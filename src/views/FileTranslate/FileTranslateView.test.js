@@ -55,8 +55,9 @@ jest.mock("./State", () => ({
             file,
             {
               groupId:
-                setting.transApis.find((api) => api.apiSlug === selection?.apiSlug)
-                  ?.modelRef ||
+                setting.transApis.find(
+                  (api) => api.apiSlug === selection?.apiSlug
+                )?.modelRef ||
                 setting.fileTranslateSetting.image.ocrGroup ||
                 "ppocr-v5-mobile",
               device: setting.fileTranslateSetting.image.ocrDevice || "webgpu",
@@ -259,14 +260,27 @@ describe("FileTranslatePage (M2 UI)", () => {
 
   describe("toolbar actions", () => {
     test("a selected undownloaded local translation service shows the model download entry", async () => {
-      const openSettings = jest.spyOn(require("../../libs/navigation"), "openOptionsPage").mockResolvedValue(undefined);
+      const openSettings = jest
+        .spyOn(require("../../libs/navigation"), "openOptionsPage")
+        .mockResolvedValue(undefined);
       const original = mockSetting.fileTranslateSetting.txt.apiSlug;
-      mockSetting.transApis.push({ apiSlug: "local-translate", apiName: "本地翻译模型", apiType: "LocalAI", modelRef: "hy-mt2-1.8b", device: "webgpu", enabledCapabilities: ["translate"] });
+      mockSetting.transApis.push({
+        apiSlug: "local-translate",
+        apiName: "本地翻译模型",
+        apiType: "LocalAI",
+        modelRef: "hy-mt2-1.8b",
+        device: "webgpu",
+        enabledCapabilities: ["translate"],
+      });
       mockSetting.fileTranslateSetting.txt.apiSlug = "local-translate";
       try {
         await act(async () => root.render(<FileTranslatePage />));
-        expect(container.textContent).toContain("本地翻译模型：本地模型未下载或下载不完整");
-        const button = [...container.querySelectorAll("button")].find((item) => item.textContent === "下载模型");
+        expect(container.textContent).toContain(
+          "本地翻译模型：本地模型未下载或下载不完整"
+        );
+        const button = [...container.querySelectorAll("button")].find(
+          (item) => item.textContent === "下载模型"
+        );
         expect(button).toBeDefined();
         await act(async () => button.click());
         expect(openSettings).toHaveBeenCalledWith("/local-ai");
@@ -276,7 +290,10 @@ describe("FileTranslatePage (M2 UI)", () => {
         openSettings.mockRestore();
       }
     });
-    const button = (label) => [...container.querySelectorAll("button")].find((item) => item.textContent === label);
+    const button = (label) =>
+      [...container.querySelectorAll("button")].find(
+        (item) => item.textContent === label
+      );
     const menuItems = () => [...document.querySelectorAll('[role="menuitem"]')];
     const upload = async (name, content = "hello") => {
       const file = new File([content], name);
@@ -284,42 +301,72 @@ describe("FileTranslatePage (M2 UI)", () => {
       file.arrayBuffer = async () => new ArrayBuffer(16);
       await act(async () => {
         const input = container.querySelector('input[type="file"]');
-        Object.defineProperty(input, "files", { value: [file], configurable: true });
+        Object.defineProperty(input, "files", {
+          value: [file],
+          configurable: true,
+        });
         input.dispatchEvent(new Event("change", { bubbles: true }));
       });
     };
-    const openMenu = async (label) => act(async () => container.querySelector(`[aria-label="${label}"]`).click());
+    const openMenu = async (label) =>
+      act(async () =>
+        container.querySelector(`[aria-label="${label}"]`).click()
+      );
 
-    test.each(["txt", "md"])("%s menu runs immediately and leaves the main action as paragraph translation", async (extension) => {
-      const lib = require("../../libs/fileTranslate");
-      const paragraph = extension === "txt" ? lib.translateTxt : lib.translateMarkdown;
-      const entire = extension === "txt" ? lib.translateEntireTxt : lib.translateEntireMarkdown;
-      const result = { text: "translated", comparisons: [], translatedMd: "translated", blocks: [] };
-      paragraph.mockReset().mockResolvedValue(result);
-      entire.mockReset().mockResolvedValue(result);
-      await act(async () => root.render(<FileTranslatePage />));
-      await upload(`sample.${extension}`);
-      await openMenu("选择翻译模式");
-      expect(menuItems().map((item) => item.textContent)).toEqual(["分段翻译 (默认)", "整篇翻译 (全文连贯)"]);
-      await act(async () => menuItems()[1].click());
-      expect(entire).toHaveBeenCalledTimes(1);
-      expect(paragraph).not.toHaveBeenCalled();
-      expect(container.querySelector('[aria-label="选择翻译模式"]').getAttribute("aria-expanded")).not.toBe("true");
-      expect(button("一键翻译")).toBeDefined();
-      await act(async () => button("一键翻译").click());
-      expect(paragraph).toHaveBeenCalledTimes(1);
-      expect(entire).toHaveBeenCalledTimes(1);
-      await openMenu("选择翻译模式");
-      expect(menuItems().map((item) => item.textContent)).toEqual(["分段翻译 (默认)", "整篇翻译 (全文连贯)"]);
-      await act(async () => menuItems()[0].click());
-      expect(paragraph).toHaveBeenCalledTimes(2);
-      await upload(`replacement.${extension}`);
-      expect(button("一键翻译")).toBeDefined();
-    });
+    test.each(["txt", "md"])(
+      "%s menu runs immediately and leaves the main action as paragraph translation",
+      async (extension) => {
+        const lib = require("../../libs/fileTranslate");
+        const paragraph =
+          extension === "txt" ? lib.translateTxt : lib.translateMarkdown;
+        const entire =
+          extension === "txt"
+            ? lib.translateEntireTxt
+            : lib.translateEntireMarkdown;
+        const result = {
+          text: "translated",
+          comparisons: [],
+          translatedMd: "translated",
+          blocks: [],
+        };
+        paragraph.mockReset().mockResolvedValue(result);
+        entire.mockReset().mockResolvedValue(result);
+        await act(async () => root.render(<FileTranslatePage />));
+        await upload(`sample.${extension}`);
+        await openMenu("选择翻译模式");
+        expect(menuItems().map((item) => item.textContent)).toEqual([
+          "分段翻译 (默认)",
+          "整篇翻译 (全文连贯)",
+        ]);
+        await act(async () => menuItems()[1].click());
+        expect(entire).toHaveBeenCalledTimes(1);
+        expect(paragraph).not.toHaveBeenCalled();
+        expect(
+          container
+            .querySelector('[aria-label="选择翻译模式"]')
+            .getAttribute("aria-expanded")
+        ).not.toBe("true");
+        expect(button("一键翻译")).toBeDefined();
+        await act(async () => button("一键翻译").click());
+        expect(paragraph).toHaveBeenCalledTimes(1);
+        expect(entire).toHaveBeenCalledTimes(1);
+        await openMenu("选择翻译模式");
+        expect(menuItems().map((item) => item.textContent)).toEqual([
+          "分段翻译 (默认)",
+          "整篇翻译 (全文连贯)",
+        ]);
+        await act(async () => menuItems()[0].click());
+        expect(paragraph).toHaveBeenCalledTimes(2);
+        await upload(`replacement.${extension}`);
+        expect(button("一键翻译")).toBeDefined();
+      }
+    );
 
     test("long entire translation still asks for content confirmation", async () => {
       const lib = require("../../libs/fileTranslate");
-      lib.translateEntireTxt.mockReset().mockResolvedValue({ text: "translated" });
+      lib.translateEntireTxt
+        .mockReset()
+        .mockResolvedValue({ text: "translated" });
       await act(async () => root.render(<FileTranslatePage />));
       await upload("long.txt", "a".repeat(10001));
       await openMenu("选择翻译模式");
@@ -327,15 +374,20 @@ describe("FileTranslatePage (M2 UI)", () => {
       expect(document.querySelector('[role="dialog"]')).not.toBeNull();
       expect(lib.translateEntireTxt).not.toHaveBeenCalled();
       expect(button("一键翻译")).toBeDefined();
-      await act(async () => [...document.querySelectorAll('[role="dialog"] button')]
-        .find((item) => item.textContent === "继续整篇翻译").click());
+      await act(async () =>
+        [...document.querySelectorAll('[role="dialog"] button')]
+          .find((item) => item.textContent === "继续整篇翻译")
+          .click()
+      );
       expect(lib.translateEntireTxt).toHaveBeenCalledTimes(1);
       expect(button("一键翻译")).toBeDefined();
     });
 
     test("PDF menu actions execute once in fixed order and never replace the main action", async () => {
       mockPdfStateOverrides = { hasLayoutResult: true };
-      Object.values(mockPdfWorkspaceActions).forEach((action) => action.mockClear());
+      Object.values(mockPdfWorkspaceActions).forEach((action) =>
+        action.mockClear()
+      );
       await act(async () => root.render(<FileTranslatePage />));
       await upload("sample.pdf");
       const labels = ["布局检测", "文本识别", "文本翻译"];
@@ -344,49 +396,106 @@ describe("FileTranslatePage (M2 UI)", () => {
         await openMenu("PDF 处理步骤");
         expect(menuItems().map((item) => item.textContent)).toEqual(labels);
         await act(async () => menuItems()[index].click());
-        expect(mockPdfWorkspaceActions[actions[index]]).toHaveBeenCalledTimes(1);
-        expect(container.querySelector('[aria-label="PDF 处理步骤"]').getAttribute("aria-expanded")).toBe("false");
+        expect(mockPdfWorkspaceActions[actions[index]]).toHaveBeenCalledTimes(
+          1
+        );
+        expect(
+          container
+            .querySelector('[aria-label="PDF 处理步骤"]')
+            .getAttribute("aria-expanded")
+        ).toBe("false");
         expect(button("一键翻译")).toBeDefined();
       }
       await act(async () => button("一键翻译").click());
-      expect(mockPdfWorkspaceActions.oneClickTranslate).toHaveBeenCalledTimes(1);
+      expect(mockPdfWorkspaceActions.oneClickTranslate).toHaveBeenCalledTimes(
+        1
+      );
       expect(mockPdfWorkspaceActions.detectLayout).toHaveBeenCalledTimes(1);
     });
 
     test.each([
       [{ hasLayoutResult: false, blocks: [] }, true, [false, true, true]],
       [{}, false, [true, true, true]],
-      [{ hasLayoutResult: true, result: { complete: false } }, true, [false, false, true]],
-    ])("PDF action admission matches the current prerequisites: %j", async (state, connected, disabled) => {
-      mockConnected = connected;
-      mockPdfStateOverrides = state;
-      await act(async () => root.render(<FileTranslatePage />));
-      await upload("sample.pdf");
-      await openMenu("PDF 处理步骤");
-      expect(menuItems().map((item) => item.getAttribute("aria-disabled") === "true")).toEqual(disabled);
-      expect(button("一键翻译").disabled).toBe(disabled[0]);
-    });
+      [
+        { hasLayoutResult: true, result: { complete: false } },
+        true,
+        [false, false, true],
+      ],
+    ])(
+      "PDF action admission matches the current prerequisites: %j",
+      async (state, connected, disabled) => {
+        mockConnected = connected;
+        mockPdfStateOverrides = state;
+        await act(async () => root.render(<FileTranslatePage />));
+        await upload("sample.pdf");
+        await openMenu("PDF 处理步骤");
+        expect(
+          menuItems().map(
+            (item) => item.getAttribute("aria-disabled") === "true"
+          )
+        ).toEqual(disabled);
+        expect(button("一键翻译").disabled).toBe(disabled[0]);
+      }
+    );
 
     test.each([
-      [{ busy: true, recognitionBusy: true, translationBusy: false, automaticBusy: false, canTranslate: true }, [true, true, false]],
-      [{ busy: true, recognitionBusy: true, translationBusy: true, automaticBusy: false, canTranslate: false }, [true, true, true]],
-      [{ busy: true, recognitionBusy: true, translationBusy: false, automaticBusy: false, canTranslate: false }, [true, true, true]],
-    ])("PDF recognition permits only ready incremental translation: %j", async (state, disabled) => {
-      mockPdfStateOverrides = state;
-      await act(async () => root.render(<FileTranslatePage />));
-      await upload("incremental.pdf");
-      expect(container.querySelector('[aria-label="PDF 处理步骤"]').disabled).toBe(false);
-      await openMenu("PDF 处理步骤");
-      expect(menuItems().map((item) => item.getAttribute("aria-disabled") === "true")).toEqual(disabled);
-      expect(button("一键翻译").disabled).toBe(true);
-    });
+      [
+        {
+          busy: true,
+          recognitionBusy: true,
+          translationBusy: false,
+          automaticBusy: false,
+          canTranslate: true,
+        },
+        [true, true, false],
+      ],
+      [
+        {
+          busy: true,
+          recognitionBusy: true,
+          translationBusy: true,
+          automaticBusy: false,
+          canTranslate: false,
+        },
+        [true, true, true],
+      ],
+      [
+        {
+          busy: true,
+          recognitionBusy: true,
+          translationBusy: false,
+          automaticBusy: false,
+          canTranslate: false,
+        },
+        [true, true, true],
+      ],
+    ])(
+      "PDF recognition permits only ready incremental translation: %j",
+      async (state, disabled) => {
+        mockPdfStateOverrides = state;
+        await act(async () => root.render(<FileTranslatePage />));
+        await upload("incremental.pdf");
+        expect(
+          container.querySelector('[aria-label="PDF 处理步骤"]').disabled
+        ).toBe(false);
+        await openMenu("PDF 处理步骤");
+        expect(
+          menuItems().map(
+            (item) => item.getAttribute("aria-disabled") === "true"
+          )
+        ).toEqual(disabled);
+        expect(button("一键翻译").disabled).toBe(true);
+      }
+    );
 
     test("PDF toolbar disables all actions while a task is busy", async () => {
       mockPdfStateOverrides = { busy: true };
       await act(async () => root.render(<FileTranslatePage />));
       await upload("sample.pdf");
       expect(button("一键翻译").disabled).toBe(true);
-      expect(container.querySelector('[aria-label="PDF 处理步骤"]').disabled).toBe(true);
+      expect(
+        container.querySelector('[aria-label="PDF 处理步骤"]').disabled
+      ).toBe(true);
     });
 
     test("PDF main action resumes the whole pipeline even with failed translations", async () => {
@@ -397,7 +506,9 @@ describe("FileTranslatePage (M2 UI)", () => {
       await upload("retry.pdf");
       await act(async () => button("一键翻译").click());
       expect(mockPdfWorkspaceActions.translate).not.toHaveBeenCalled();
-      expect(mockPdfWorkspaceActions.oneClickTranslate).toHaveBeenCalledTimes(1);
+      expect(mockPdfWorkspaceActions.oneClickTranslate).toHaveBeenCalledTimes(
+        1
+      );
       expect(button("一键翻译")).toBeDefined();
     });
   });
@@ -426,7 +537,9 @@ describe("FileTranslatePage (M2 UI)", () => {
       apiSlug: "test-ocr",
       apiType: "Plugin",
       sourceType: "network",
-      recognitionFeatures: { recognizeText: { coordinates: true, available: true } },
+      recognitionFeatures: {
+        recognizeText: { coordinates: true, available: true },
+      },
       enabledCapabilities: ["recognizeText"],
     });
     recognizeFileImage.mockResolvedValue({ items });
@@ -533,7 +646,13 @@ describe("FileTranslatePage (M2 UI)", () => {
         apiSlug: "test-ocr",
         apiType: "Plugin",
         sourceType: "network",
-        recognitionFeatures: { recognizeText: { coordinates: true, taskModes: ["doc"], available: true } },
+        recognitionFeatures: {
+          recognizeText: {
+            coordinates: true,
+            taskModes: ["doc"],
+            available: true,
+          },
+        },
         enabledCapabilities: ["recognizeText"],
       });
       ops.recognizeFileImage
@@ -554,52 +673,85 @@ describe("FileTranslatePage (M2 UI)", () => {
       URL.createObjectURL = originalCreate;
       URL.revokeObjectURL = originalRevoke;
     });
-    test.each(["toLang", "apiSlug", "promptSlug", "service"])("image translation invalidates %s changes without repeating OCR", async (field) => {
-      await setup();
-      await step("识别文本");
-      await step("翻译文本");
-      expect(lib.translateFileText).toHaveBeenCalledTimes(1);
-      const scene = mockSetting.fileTranslateSetting.image;
-      const savedScenes = mockSetting.fileTranslateSetting;
-      const api = mockSetting.transApis.find((item) => item.apiSlug === scene.apiSlug);
-      const oldSignature = api?.translationSignature;
-      try {
-        if (field === "service") api.translationSignature = "changed-service";
-        else mockSetting.fileTranslateSetting = { ...savedScenes, image: { ...scene,
-          [field]: { toLang: "ja", apiSlug: "replacement", promptSlug: "new-prompt" }[field] } };
-        await act(async () => root.render(<FileTranslatePage />));
+    test.each(["toLang", "apiSlug", "promptSlug", "service"])(
+      "image translation invalidates %s changes without repeating OCR",
+      async (field) => {
+        await setup();
+        await step("识别文本");
         await step("翻译文本");
-        expect(lib.translateFileText).toHaveBeenCalledTimes(2);
-        expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
-        expect(lib.translateFileText.mock.calls.at(-1)[0]).toBe("source block");
-      } finally {
-        mockSetting.fileTranslateSetting = savedScenes;
-        if (api) { if (oldSignature === undefined) delete api.translationSignature;
-          else api.translationSignature = oldSignature; }
+        expect(lib.translateFileText).toHaveBeenCalledTimes(1);
+        const scene = mockSetting.fileTranslateSetting.image;
+        const savedScenes = mockSetting.fileTranslateSetting;
+        const api = mockSetting.transApis.find(
+          (item) => item.apiSlug === scene.apiSlug
+        );
+        const oldSignature = api?.translationSignature;
+        try {
+          if (field === "service") api.translationSignature = "changed-service";
+          else
+            mockSetting.fileTranslateSetting = {
+              ...savedScenes,
+              image: {
+                ...scene,
+                [field]: {
+                  toLang: "ja",
+                  apiSlug: "replacement",
+                  promptSlug: "new-prompt",
+                }[field],
+              },
+            };
+          await act(async () => root.render(<FileTranslatePage />));
+          await step("翻译文本");
+          expect(lib.translateFileText).toHaveBeenCalledTimes(2);
+          expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+          expect(lib.translateFileText.mock.calls.at(-1)[0]).toBe(
+            "source block"
+          );
+        } finally {
+          mockSetting.fileTranslateSetting = savedScenes;
+          if (api) {
+            if (oldSignature === undefined) delete api.translationSignature;
+            else api.translationSignature = oldSignature;
+          }
+        }
       }
-    });
+    );
     test("ignore cache is temporary and forces image recognition and text translation", async () => {
       await setup();
-      const cacheSwitch = () => [...container.querySelectorAll('input[type="checkbox"]')]
-        .find((input) => input.closest("label")?.textContent.includes("忽略缓存"));
+      const cacheSwitch = () =>
+        [...container.querySelectorAll('input[type="checkbox"]')].find(
+          (input) => input.closest("label")?.textContent.includes("忽略缓存")
+        );
       expect(cacheSwitch().checked).toBe(false);
       await step("识别文本");
-      expect(ops.recognizeFileImage.mock.calls.at(-1)[1].cacheMode).toBeUndefined();
+      expect(
+        ops.recognizeFileImage.mock.calls.at(-1)[1].cacheMode
+      ).toBeUndefined();
       await step("翻译文本");
       expect(lib.translateFileText).toHaveBeenCalledTimes(1);
       await step("翻译文本");
       expect(lib.translateFileText).toHaveBeenCalledTimes(1);
       expect(cacheSwitch().closest(".MuiCollapse-root")).not.toBeNull();
       await act(async () => cacheSwitch().click());
-      await act(async () => container.querySelector('button[aria-label="收起配置"]').click());
-      expect(container.querySelector('button[aria-label="展开配置"]')).not.toBeNull();
+      await act(async () =>
+        container.querySelector('button[aria-label="收起配置"]').click()
+      );
+      expect(
+        container.querySelector('button[aria-label="展开配置"]')
+      ).not.toBeNull();
       expect(cacheSwitch().checked).toBe(true);
-      await act(async () => container.querySelector('button[aria-label="展开配置"]').click());
+      await act(async () =>
+        container.querySelector('button[aria-label="展开配置"]').click()
+      );
       expect(cacheSwitch().checked).toBe(true);
       await step("翻译文本");
-      expect(lib.translateFileText.mock.calls.at(-1)[4].cacheMode).toBe("refresh");
+      expect(lib.translateFileText.mock.calls.at(-1)[4].cacheMode).toBe(
+        "refresh"
+      );
       await step("识别文本");
-      expect(ops.recognizeFileImage.mock.calls.at(-1)[1].cacheMode).toBe("refresh");
+      expect(ops.recognizeFileImage.mock.calls.at(-1)[1].cacheMode).toBe(
+        "refresh"
+      );
       await setup();
       expect(cacheSwitch().checked).toBe(false);
     });
@@ -671,44 +823,75 @@ describe("FileTranslatePage (M2 UI)", () => {
     });
     test("region selection filters translation, synthesis, display, copy and export while retaining all source text", async () => {
       await setup();
-      ops.recognizeFileImage.mockResolvedValueOnce({ items: [
-        { text: "selected first", poly },
-        { text: "excluded second", poly },
-        { text: "selected third", poly },
-      ] });
+      ops.recognizeFileImage.mockResolvedValueOnce({
+        items: [
+          { text: "selected first", poly },
+          { text: "excluded second", poly },
+          { text: "selected third", poly },
+        ],
+      });
       await step("识别文本");
       await measurePreview();
-      await act(async () => regions()[1].dispatchEvent(new MouseEvent("click", { bubbles: true })));
+      await act(async () =>
+        regions()[1].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      );
       expect(regions()[1].getAttribute("aria-pressed")).toBe("false");
       expect(document.querySelector('[role="dialog"]')).toBeNull();
       let finishFirst;
-      lib.translateFileText.mockImplementationOnce(() => new Promise((resolve) => { finishFirst = resolve; }))
+      lib.translateFileText
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finishFirst = resolve;
+            })
+        )
         .mockResolvedValueOnce("translated third");
       await act(async () => button("一键翻译").click());
-      expect(lib.translateFileText.mock.calls.map((call) => call[0])).toEqual(["selected first", "selected third"]);
+      expect(lib.translateFileText.mock.calls.map((call) => call[0])).toEqual([
+        "selected first",
+        "selected third",
+      ]);
       expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
       expect(regions()[0].getAttribute("aria-disabled")).toBe("true");
-      await act(async () => regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true })));
+      await act(async () =>
+        regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      );
       expect(regions()[0].getAttribute("aria-pressed")).toBe("true");
       await act(async () => finishFirst("translated first"));
-      expect(lib.synthesizeTranslatedImage.mock.calls[0][1].map((row) => row.source)).toEqual(["selected first", "selected third"]);
-      expect(lib.synthesizeTranslatedImage.mock.calls[0][1].map((row) => row.target)).toEqual(["translated first", "translated third"]);
+      expect(
+        lib.synthesizeTranslatedImage.mock.calls[0][1].map((row) => row.source)
+      ).toEqual(["selected first", "selected third"]);
+      expect(
+        lib.synthesizeTranslatedImage.mock.calls[0][1].map((row) => row.target)
+      ).toEqual(["translated first", "translated third"]);
 
-      const originalClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+      const originalClipboard = Object.getOwnPropertyDescriptor(
+        navigator,
+        "clipboard"
+      );
       const writeText = jest.fn().mockResolvedValue();
-      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
-      const anchorClick = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText },
+      });
+      const anchorClick = jest
+        .spyOn(HTMLAnchorElement.prototype, "click")
+        .mockImplementation(() => {});
       try {
         for (const [view, content] of [
           ["原文", "selected first\n\nexcluded second\n\nselected third"],
           ["译文", "translated first\n\ntranslated third"],
-          ["双语", "selected first\ntranslated first\n\nselected third\ntranslated third"],
+          [
+            "双语",
+            "selected first\ntranslated first\n\nselected third\ntranslated third",
+          ],
         ]) {
           await act(async () => button(view).click());
           await act(async () => button("复制").click());
           expect(writeText).toHaveBeenLastCalledWith(content);
-          const downloadButton = [...container.querySelectorAll("button")]
-            .find((item) => item.textContent.includes("下载") && !item.disabled);
+          const downloadButton = [...container.querySelectorAll("button")].find(
+            (item) => item.textContent.includes("下载") && !item.disabled
+          );
           await act(async () => downloadButton.click());
           const blob = URL.createObjectURL.mock.calls.at(-1)[0];
           const exported = await new Promise((resolve) => {
@@ -718,12 +901,14 @@ describe("FileTranslatePage (M2 UI)", () => {
           });
           expect(exported).toBe(content);
         }
-        const resultCard = [...container.querySelectorAll(".MuiCard-root")]
-          .find((card) => card.textContent.includes("翻译结果"));
+        const resultCard = [
+          ...container.querySelectorAll(".MuiCard-root"),
+        ].find((card) => card.textContent.includes("翻译结果"));
         expect(resultCard.textContent).not.toContain("excluded second");
       } finally {
         anchorClick.mockRestore();
-        if (originalClipboard) Object.defineProperty(navigator, "clipboard", originalClipboard);
+        if (originalClipboard)
+          Object.defineProperty(navigator, "clipboard", originalClipboard);
         else delete navigator.clipboard;
       }
     });
@@ -732,7 +917,9 @@ describe("FileTranslatePage (M2 UI)", () => {
       await setup();
       await step("识别文本");
       await measurePreview();
-      await act(async () => regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true })));
+      await act(async () =>
+        regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      );
       expect(button("一键翻译").disabled).toBe(true);
       expect(container.textContent).toContain("请至少选择一个文字区域");
       await act(async () => button("译图").click());
@@ -742,35 +929,58 @@ describe("FileTranslatePage (M2 UI)", () => {
       expect(menuItem("合成图片").getAttribute("aria-disabled")).toBe("true");
       await act(async () => menuItem("识别文本").click());
       expect(regions()[0].getAttribute("aria-pressed")).toBe("true");
-      await act(async () => regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true })));
-      const regionSwitch = () => [...container.querySelectorAll('input[type="checkbox"]')]
-        .find((input) => input.closest("label")?.textContent.includes("文字线框"));
+      await act(async () =>
+        regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      );
+      const regionSwitch = () =>
+        [...container.querySelectorAll('input[type="checkbox"]')].find(
+          (input) => input.closest("label")?.textContent.includes("文字线框")
+        );
       await act(async () => regionSwitch().click());
       expect(regions()).toHaveLength(0);
       await act(async () => regionSwitch().click());
       expect(regions()[0].getAttribute("aria-pressed")).toBe("false");
-      await act(async () => regions()[0].dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+      await act(async () =>
+        regions()[0].dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+        )
+      );
       expect(button("一键翻译").disabled).toBe(false);
       expect(regions()[0].getAttribute("aria-pressed")).toBe("true");
     });
 
     test("selection changes invalidate generated images and synthesis follows selected completion", async () => {
       await setup();
-      ops.recognizeFileImage.mockResolvedValueOnce({ items: [{ text: "first", poly }, { text: "second", poly }] });
+      ops.recognizeFileImage.mockResolvedValueOnce({
+        items: [
+          { text: "first", poly },
+          { text: "second", poly },
+        ],
+      });
       await step("识别文本");
       await measurePreview();
-      await act(async () => regions()[1].dispatchEvent(new MouseEvent("click", { bubbles: true })));
+      await act(async () =>
+        regions()[1].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      );
       await act(async () => button("一键翻译").click());
       expect(container.querySelector('img[alt="译图结果"]')).not.toBeNull();
-      await act(async () => regions()[1].dispatchEvent(new MouseEvent("click", { bubbles: true })));
+      await act(async () =>
+        regions()[1].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      );
       expect(container.querySelector('img[alt="译图结果"]')).toBeNull();
       await openMenu();
       expect(menuItem("合成图片").getAttribute("aria-disabled")).toBe("true");
       await act(async () => menuItem("翻译文本").click());
       expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
-      await act(async () => regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true })));
+      await act(async () =>
+        regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      );
       await step("合成图片");
-      expect(lib.synthesizeTranslatedImage.mock.calls.at(-1)[1].map((row) => row.source)).toEqual(["second"]);
+      expect(
+        lib.synthesizeTranslatedImage.mock.calls
+          .at(-1)[1]
+          .map((row) => row.source)
+      ).toEqual(["second"]);
       expect(lib.translateFileText).toHaveBeenCalledTimes(2);
     });
 
@@ -779,9 +989,16 @@ describe("FileTranslatePage (M2 UI)", () => {
       await step("识别文本");
       await measurePreview();
       let finish;
-      lib.translateFileText.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+      lib.translateFileText.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          })
+      );
       await step("翻译文本");
-      const service = mockSetting.transApis.find((api) => api.apiSlug === "test-ocr");
+      const service = mockSetting.transApis.find(
+        (api) => api.apiSlug === "test-ocr"
+      );
       service.modelRef = "replacement-model";
       try {
         await act(async () => root.render(<FileTranslatePage />));
@@ -790,18 +1007,29 @@ describe("FileTranslatePage (M2 UI)", () => {
         expect(regions()).toHaveLength(0);
         await act(async () => button("一键翻译").click());
         expect(ops.recognizeFileImage).toHaveBeenCalledTimes(2);
-      } finally { delete service.modelRef; }
+      } finally {
+        delete service.modelRef;
+      }
     });
 
     test("mixed coordinate results always include unlocated text and disable image synthesis", async () => {
       await setup();
-      ops.recognizeFileImage.mockResolvedValueOnce({ items: [{ text: "located", poly }, { text: "unlocated", poly: null }] });
+      ops.recognizeFileImage.mockResolvedValueOnce({
+        items: [
+          { text: "located", poly },
+          { text: "unlocated", poly: null },
+        ],
+      });
       await step("识别文本");
       await measurePreview();
       expect(regions()).toHaveLength(1);
-      await act(async () => regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true })));
+      await act(async () =>
+        regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      );
       await act(async () => button("一键翻译").click());
-      expect(lib.translateFileText.mock.calls.map((call) => call[0])).toEqual(["unlocated"]);
+      expect(lib.translateFileText.mock.calls.map((call) => call[0])).toEqual([
+        "unlocated",
+      ]);
       expect(lib.synthesizeTranslatedImage).not.toHaveBeenCalled();
       expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
     });
@@ -862,19 +1090,34 @@ describe("FileTranslatePage (M2 UI)", () => {
       expect(menuItem("翻译文本").getAttribute("aria-disabled")).toBe("true");
     });
     test("recognition failure does not select another available service", async () => {
-      mockSetting.transApis.push({ apiSlug: "other", apiType: "LocalAI", modelRef: "paddleocr-vl-1.6-onnx-q8", device: "webgpu", enabledCapabilities: ["parseImage"] });
+      mockSetting.transApis.push({
+        apiSlug: "other",
+        apiType: "LocalAI",
+        modelRef: "paddleocr-vl-1.6-onnx-q8",
+        device: "webgpu",
+        enabledCapabilities: ["parseImage"],
+      });
       try {
         await setup();
-        ops.recognizeFileImage.mockRejectedValueOnce(new Error("selected recognition failed"));
+        ops.recognizeFileImage.mockRejectedValueOnce(
+          new Error("selected recognition failed")
+        );
         await act(async () => button("一键翻译").click());
         expect(container.textContent).toContain("selected recognition failed");
         expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
         expect(lib.translateFileText).not.toHaveBeenCalled();
-      } finally { mockSetting.transApis.pop(); }
+      } finally {
+        mockSetting.transApis.pop();
+      }
     });
     test("partial coordinates preserve text translation but disable image synthesis", async () => {
       await setup();
-      ops.recognizeFileImage.mockResolvedValueOnce({ items: [{ text: "located", poly }, { text: "unlocated", poly: null }] });
+      ops.recognizeFileImage.mockResolvedValueOnce({
+        items: [
+          { text: "located", poly },
+          { text: "unlocated", poly: null },
+        ],
+      });
       await act(async () => button("一键翻译").click());
       expect(lib.translateFileText).toHaveBeenCalledTimes(2);
       expect(lib.synthesizeTranslatedImage).not.toHaveBeenCalled();
@@ -883,11 +1126,15 @@ describe("FileTranslatePage (M2 UI)", () => {
     });
     test("recognition failure stays failed after alert dismissal and resets on retry", async () => {
       await setup();
-      ops.recognizeFileImage.mockRejectedValueOnce(new Error("Text result is required."));
+      ops.recognizeFileImage.mockRejectedValueOnce(
+        new Error("Text result is required.")
+      );
       await act(async () => button("一键翻译").click());
       expect(container.textContent).toContain("文本识别失败，请重试");
       expect(container.textContent).not.toContain("已就绪");
-      await act(async () => container.querySelector('.MuiAlert-action button').click());
+      await act(async () =>
+        container.querySelector(".MuiAlert-action button").click()
+      );
       expect(container.textContent).not.toContain("Text result is required.");
       for (const label of ["译图", "原文"]) {
         await act(async () => button(label).click());
@@ -900,14 +1147,21 @@ describe("FileTranslatePage (M2 UI)", () => {
     });
     test("replacement and cancellation discard late recognition failures", async () => {
       await setup();
-      ops.recognizeFileImage.mockRejectedValueOnce(new Error("recognition failed"));
+      ops.recognizeFileImage.mockRejectedValueOnce(
+        new Error("recognition failed")
+      );
       await step("识别文本");
       await upload("replacement.png");
       expect(container.textContent).toContain("已就绪");
       expect(container.textContent).not.toContain("文本识别失败");
       for (const replace of [false, true]) {
         let reject;
-        ops.recognizeFileImage.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
+        ops.recognizeFileImage.mockImplementationOnce(
+          () =>
+            new Promise((_, fail) => {
+              reject = fail;
+            })
+        );
         await act(async () => button("一键翻译").click());
         if (replace) await upload("new.png");
         else await act(async () => button("取消").click());
@@ -943,7 +1197,9 @@ describe("FileTranslatePage (M2 UI)", () => {
       expect(menuItem("合成图片").getAttribute("aria-disabled")).toBe("true");
       await act(async () => menuItem("翻译文本").click());
       expect(lib.translateFileText).toHaveBeenCalledTimes(3);
-      expect(lib.translateFileText.mock.calls.at(-1)[4]).toMatchObject({ cacheMode: "refresh" });
+      expect(lib.translateFileText.mock.calls.at(-1)[4]).toMatchObject({
+        cacheMode: "refresh",
+      });
       expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
     });
   });
@@ -2240,7 +2496,9 @@ describe("FileTranslatePage (M2 UI)", () => {
         };
         expect(valueFor("源语言")).toBe("auto");
         expect(valueFor("目标语言")).toBe(partial.toLang || "zh-CN");
-        expect(valueFor("翻译服务")).toBe(partial.apiSlug || partial.apiSlugs?.[0] || "Microsoft");
+        expect(valueFor("翻译服务")).toBe(
+          partial.apiSlug || partial.apiSlugs?.[0] || "Microsoft"
+        );
         expect(valueFor("界面分析服务")).toBe(
           partial.parseMode === "fast" ? undefined : "local-layout"
         );
@@ -2434,6 +2692,111 @@ describe("FileTranslatePage (M2 UI)", () => {
       ).toBe(true);
     } finally {
       mockSetting.transApis = originalApis;
+    }
+  });
+
+  test("EPUB width survives settings echoes, reconnect and a new mount", async () => {
+    const originalScenes = mockSetting.fileTranslateSetting;
+    mockSetting.fileTranslateSetting = {
+      ...originalScenes,
+      epub: {
+        apiSlug: "primary",
+        fromLang: "auto",
+        toLang: "zh-CN",
+        promptSlug: "",
+        readerPreferences: {
+          fontSize: 20,
+          fontFamily: "serif",
+          themeId: "sepia",
+        },
+      },
+    };
+    mockUpdateChild.mockImplementation((scenes) => {
+      mockSetting.fileTranslateSetting = scenes;
+    });
+    const zip = fflate.zipSync({
+      mimetype: fflate.strToU8("application/epub+zip"),
+      "META-INF/container.xml": fflate.strToU8(
+        '<container><rootfiles><rootfile full-path="content.opf"/></rootfiles></container>'
+      ),
+      "content.opf": fflate.strToU8(
+        '<package xmlns="http://www.idpf.org/2007/opf"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Width Test</dc:title></metadata><manifest><item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="ch1"/></spine></package>'
+      ),
+      "ch1.xhtml": fflate.strToU8(
+        '<html xmlns="http://www.w3.org/1999/xhtml"><body><p>Width test text</p></body></html>'
+      ),
+    });
+    const file = new File([zip], "width.epub", {
+      type: "application/epub+zip",
+    });
+    file.arrayBuffer = async () => zip.buffer;
+    const loadFile = async () => {
+      const input = container.querySelector('input[type="file"]');
+      await act(async () => {
+        Object.defineProperty(input, "files", {
+          value: [file],
+          configurable: true,
+        });
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    };
+    const openPreferences = async () => {
+      const button = [...container.querySelectorAll("button")].find((item) =>
+        item.textContent.includes("Aa")
+      );
+      await act(async () => button.click());
+    };
+    const rerender = () => act(async () => root.render(<FileTranslatePage />));
+    try {
+      await rerender();
+      await loadFile();
+      await openPreferences();
+      expect(document.body.textContent).toContain("840 px");
+      for (const [label, width] of [
+        ["W+", 880],
+        ["W+", 920],
+        ["W-", 880],
+        ["窄版 (680)", 680],
+        ["适中 (840)", 840],
+        ["宽版 (1020)", 1020],
+      ]) {
+        const button = [...document.querySelectorAll("button")].find(
+          (item) => item.textContent === label
+        );
+        await act(async () => button.click());
+        // Simulate the backend returning a fresh copy of the saved preferences.
+        mockSetting.fileTranslateSetting = JSON.parse(
+          JSON.stringify(mockSetting.fileTranslateSetting)
+        );
+        await rerender();
+        expect(document.body.textContent).toContain(`${width} px`);
+        expect(mockSetting.fileTranslateSetting.epub.readerPreferences).toEqual(
+          {
+            pageWidth: width,
+            fontSize: 20,
+            fontFamily: "serif",
+            themeId: "sepia",
+          }
+        );
+        expect(
+          getComputedStyle(container.querySelector(".kt-epub-reader-body"))
+            .maxWidth
+        ).toBe(`${width}px`);
+      }
+      mockConnected = false;
+      await rerender();
+      mockConnected = true;
+      await rerender();
+      expect(document.body.textContent).toContain("1020 px");
+      act(() => root.unmount());
+      root = createRoot(container);
+      await rerender();
+      await loadFile();
+      await openPreferences();
+      expect(document.body.textContent).toContain("1020 px");
+    } finally {
+      mockSetting.fileTranslateSetting = originalScenes;
+      mockUpdateChild.mockReset();
     }
   });
 });

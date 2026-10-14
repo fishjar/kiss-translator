@@ -252,6 +252,8 @@ export default function MouseHoverSetting() {
           {displayMode === OPT_MOUSE_HOVER_DISPLAY_BUBBLE && (
             <SettingsRow label={i18n("translation_prompt", "翻译提示词")}>
               <ScenePromptSelect
+                scene={mouseHoverSetting}
+                apis={enabledApis}
                 label={i18n("translation_prompt", "翻译提示词")}
                 value={mouseHoverSetting.promptSlug}
                 onChange={(promptSlug) =>
