@@ -65,6 +65,8 @@ for (const target of ["edge-dev", "chrome", "firefox"])
       "https://kiss-translator.rayjar.com",
       "https://fishjar.github.io/kiss-translator",
       "https://kiss-translator-dev.rayjar.com",
+      "https://kiss-translator-dev.pages.dev",
+      "https://kiss-translator.pages.dev",
     ]) {
       assert.ok(bridge.matches.includes(`${base}/file-translate.html*`));
       assert.ok(bridge.matches.includes(`${base}/file-translate*`));

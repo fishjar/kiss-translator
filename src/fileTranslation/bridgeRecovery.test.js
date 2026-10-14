@@ -82,6 +82,50 @@ test("one closed or inaccessible tab does not prevent other recoveries", async (
   expect(kissLog).toHaveBeenCalledTimes(1);
 });
 
+for (const manifestVersion of [2, 3]) {
+  test.each([
+    "https://kiss-translator-dev.pages.dev/file-translate.html",
+    "https://kiss-translator-dev.pages.dev/file-translate",
+    "https://kiss-translator.pages.dev/file-translate.html",
+    "https://kiss-translator.pages.dev/file-translate",
+  ])(
+    `restores Pages URL %s in MV${manifestVersion} only in the top frame`,
+    async (url) => {
+      process.env.REACT_APP_CLIENT =
+        manifestVersion === 2 ? "firefox" : "chrome";
+      browser.runtime.getManifest.mockReturnValue({
+        manifest_version: manifestVersion,
+      });
+      browser.tabs.query.mockResolvedValue([
+        { id: 1, url: `${url}?test=1#preview` },
+        { id: 2, url: `${url}-extra` },
+        { id: 3, url: `${url}/other` },
+        { id: 4, url: `${url}/` },
+        { id: 5, url: url.replace("https://", "https://preview.") },
+      ]);
+      await restoreFileTranslationBridges();
+      if (manifestVersion === 2) {
+        expect(browser.tabs.executeScript.mock.calls).toEqual([
+          [
+            1,
+            {
+              file: "file-bridge.js",
+              allFrames: false,
+              runAt: "document_start",
+            },
+          ],
+        ]);
+        expect(browser.scripting.executeScript).not.toHaveBeenCalled();
+      } else {
+        expect(browser.scripting.executeScript.mock.calls).toEqual([
+          [{ target: { tabId: 1, frameIds: [0] }, files: ["file-bridge.js"] }],
+        ]);
+        expect(browser.tabs.executeScript).not.toHaveBeenCalled();
+      }
+    }
+  );
+}
+
 test("query failures are handled and unsupported builds do not inject", async () => {
   browser.tabs.query.mockRejectedValueOnce(new Error("unavailable"));
   await expect(restoreFileTranslationBridges()).resolves.toBeUndefined();

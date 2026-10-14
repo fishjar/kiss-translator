@@ -354,6 +354,8 @@ test("production bridge allows local and online pages but rejects other origins 
     "https://kiss-translator.rayjar.com",
     "https://fishjar.github.io/kiss-translator",
     "https://kiss-translator-dev.rayjar.com",
+    "https://kiss-translator-dev.pages.dev",
+    "https://kiss-translator.pages.dev",
   ]) {
     for (const suffix of ["", ".html"]) {
       const url = `${base}/file-translate${suffix}`;
@@ -392,6 +394,8 @@ test("production bridge allows local and online pages but rejects other origins 
     "http://localhost.evil.com:3000/file-translate.html",
     "https://fishjar.github.io/other/file-translate.html",
     "https://fishjar.github.io.evil.com/kiss-translator/file-translate.html",
+    "https://7c6c8b49.kiss-translator-dev.pages.dev/file-translate",
+    "https://dev.kiss-translator.pages.dev/file-translate",
   ])
     expect(isFileBridgePage(url)).toBe(false);
   process.env.REACT_APP_FILE_BRIDGE_DEV = "true";
