@@ -4243,9 +4243,9 @@ overflow-wrap: anywhere !important;`;
           return Array.from(node.childNodes, traverse).join("");
         }
 
-        if (this.#isIgnoredElement(node)) {
-          return "";
-        }
+        // KISS 自身的 UI 必须整体丢弃，不能进入占位符
+        // （用户自定义的 keepSelector 有可能命中这些节点）
+        if (node.matches?.(Translator.KISS_IGNORE_SELECTOR)) return "";
 
         let matchesKeepSelector = false;
         try {
@@ -4254,10 +4254,21 @@ overflow-wrap: anywhere !important;`;
           kissLog("keepSelector match error", this.#rule.keepSelector, err);
         }
 
-        if (
-          (this.#rule.hasRichText === "true" &&
-            Translator.TAGS.REPLACE.has(node.tagName)) ||
+        // “保留原文”的行内元素优先于忽略判定：内置忽略列表里的 .notranslate、
+        // [translate='no'] 只表示“不翻译”，若先被忽略分支整棵丢弃，请求文本会
+        // 出现空洞，译文也无法还原这段行内内容
+        // （如 <code class="notranslate">）。
+        const keepOriginalInline =
           matchesKeepSelector ||
+          (this.#rule.hasRichText === "true" &&
+            Translator.TAGS.REPLACE.has(node.tagName));
+
+        if (this.#isIgnoredElement(node) && !keepOriginalInline) {
+          return "";
+        }
+
+        if (
+          keepOriginalInline ||
           // node.matches(this.#ignoreSelector) ||
           !node.textContent.trim()
         ) {
