@@ -783,7 +783,9 @@ describe("termTestUtils assertTermReplacements", () => {
       (c) => c.type === "conflict"
     );
     expect(cases.length).toBeGreaterThan(0);
-    const results = cases.map((c) => assertTermReplacements(parsed, c, { engine: "naive" }));
+    const results = cases.map((c) =>
+      assertTermReplacements(parsed, c, { engine: "naive" })
+    );
     const hasCut = results.some((r) =>
       r.issues.some(
         (i) => i.type === "naive-prefix-cut" || i.type === "naive-cut-residue"
@@ -878,7 +880,9 @@ describe("termTestUtils generateTermTestText treatKeysAsLiteral", () => {
     expect(cases.some((c) => c.term?.key === "API")).toBe(true);
     for (const blank of ["", "  ", "\t"]) {
       expect(cases.some((c) => c.term?.key === blank)).toBe(false);
-      expect(cases.some((c) => c.type === "unsupported" && c.term?.key === blank)).toBe(false);
+      expect(
+        cases.some((c) => c.type === "unsupported" && c.term?.key === blank)
+      ).toBe(false);
     }
     // API 的 single 用例仍可断言通过（pattern 条目）
     const apiCase = cases.find((c) => c.type === "single");
@@ -912,11 +916,15 @@ describe("termTestUtils detectTermConflicts treatKeysAsLiteral", () => {
       { key: "baa", value: "Y" },
     ];
     // 先字面后默认
-    expect(detectTermConflicts(terms, { treatKeysAsLiteral: true })).toHaveLength(0);
+    expect(
+      detectTermConflicts(terms, { treatKeysAsLiteral: true })
+    ).toHaveLength(0);
     expect(detectTermConflicts(terms)).toHaveLength(1);
     // 双向预热后互换查询，结果仍各自正确（缓存未串）
     expect(detectTermConflicts(terms)).toHaveLength(1);
-    expect(detectTermConflicts(terms, { treatKeysAsLiteral: true })).toHaveLength(0);
+    expect(
+      detectTermConflicts(terms, { treatKeysAsLiteral: true })
+    ).toHaveLength(0);
   });
 });
 

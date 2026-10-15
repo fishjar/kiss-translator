@@ -260,6 +260,11 @@ describe("useApiList", () => {
           apiType: OPT_TRANS_OPENAI,
           isDisabled: false,
           sortOrder: 0,
+          enabledCapabilities: ["translate", "summarize", "dictionary", "segmentSubtitle", "chat"],
+          provider: expect.objectContaining({
+            apiVersion: "1",
+            implementation: { kind: "native", entry: OPT_TRANS_OPENAI },
+          }),
         },
       ],
     });
@@ -304,6 +309,28 @@ describe("useApiList", () => {
     }
   );
 
+  test("copied plugin config and execution snapshot are independent before storage serialization", () => {
+    globalThis.crypto.randomUUID.mockReturnValue("copy-uuid");
+    const source = createApi("source", "Source", 0, {
+      pluginConfig: { model: "original", tuning: { speed: 1 } },
+      provider: {
+        settings: [{ key: "model", type: "text" }],
+        capabilities: { chat: { handler: "chat" } },
+      },
+    });
+    const host = renderApiList();
+    act(() => host.hookResult.copyApi(source));
+    const copied = mockUpdateSetting.mock.calls[0][0]({ transApis: [source] })
+      .transApis[1];
+    copied.pluginConfig.tuning.speed = 2;
+    copied.provider.capabilities.chat.handler = "modified";
+    copied.provider.settings[0].type = "password";
+    expect(source.pluginConfig.tuning.speed).toBe(1);
+    expect(source.provider.capabilities.chat.handler).toBe("chat");
+    expect(source.provider.settings[0].type).toBe("text");
+    host.unmount();
+  });
+
   test("deletes a default API without creating deletion markers", () => {
     const microsoft = DEFAULT_API_LIST.find(
       (api) => api.apiType === OPT_TRANS_MICROSOFT
@@ -329,6 +356,19 @@ describe("useApiList", () => {
 describe("useApiItem reset", () => {
   beforeEach(() => {
     mockUpdateSetting.mockReset();
+  });
+
+  test("update returns the storage promise and preserves empty configuration", async () => {
+    const api = createApi("one", "One", 0, { key: "before" });
+    mockSetting = { transApis: [api] };
+    const host = renderApiHook(useApiItem, api.apiSlug);
+    const failed = Promise.reject(new Error("storage failure"));
+    mockUpdateSetting.mockReturnValueOnce(failed);
+    const pending = host.hookResult.update({ key: "", httpTimeout: 0 });
+    expect(pending).toBe(failed);
+    await expect(pending).rejects.toThrow("storage failure");
+    expect(mockUpdateSetting.mock.calls[0][0](mockSetting).transApis[0]).toMatchObject({ key: "", httpTimeout: 0 });
+    host.unmount();
   });
 
   test.each([

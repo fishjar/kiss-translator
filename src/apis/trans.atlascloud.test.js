@@ -30,6 +30,7 @@ import { fetchData } from "../libs/fetch";
 const getApiSetting = (update = {}) =>
   resolveApiPromptSettings({
     ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_ATLASCLOUD),
+    isDisabled: false,
     useStream: false,
     useBatchFetch: true,
     key: "apikey-atlas-test-key",

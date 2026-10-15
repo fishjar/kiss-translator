@@ -1,0 +1,4 @@
+{
+  "systemPrompt": "Translate the input items from {{sourceLanguage}} to {{targetLanguage}}. Return only a JSON array of {id,text}, keeping every ID. Glossary: {{glossary}}. Context: {{context}}",
+  "userPrompt": "{{segments}}"
+}

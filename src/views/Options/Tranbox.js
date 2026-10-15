@@ -1,3 +1,4 @@
+import { isApiConfigured } from "../../config/serviceSelection";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -23,6 +24,9 @@ import {
   OPT_SKIPLANGS_SELECTION,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
+import ServiceSelect from "./ServiceSelect";
+import LocalServiceNotice from "../../components/ExtensionLocalServiceNotice";
+import ScenePromptSelect from "./ScenePromptSelect";
 import { useCallback, useMemo } from "react";
 import { limitNumber } from "../../libs/utils";
 import { useTranbox } from "../../hooks/Tranbox";
@@ -31,6 +35,7 @@ import { useApiList } from "../../hooks/Api";
 import ValidationInput from "../../hooks/ValidationInput";
 import { usePromptList } from "../../hooks/Prompt";
 import { useOverviewShortcuts } from "../../hooks/Commands";
+import { supportsApiCapability } from "../../config/serviceSelection";
 import {
   SettingsAdvanced,
   SettingsCard,
@@ -52,7 +57,26 @@ export default function Tranbox() {
   const shortcutMap = useOverviewShortcuts({ tranboxSetting });
   // 启用的 API 引擎
   // AI 词典只能调用大模型接口，因此这里额外读取已启用的 AI API 列表。
-  const { enabledApis, aiEnabledApis } = useApiList();
+  const { enabledApis, aiEnabledApis, transApis } = useApiList();
+  const dictionaryApis = (transApis || aiEnabledApis).filter(
+    (api) =>
+      !api.isDisabled &&
+      isApiConfigured(api) &&
+      supportsApiCapability(api, "dictionary")
+  );
+  const ttsApis = (transApis || []).filter(
+    (api) =>
+      !api.isDisabled &&
+      isApiConfigured(api) &&
+      (supportsApiCapability(api, "synthesizeSpeech") ||
+        supportsApiCapability(api, "speak"))
+  );
+  const suggestApis = (transApis || []).filter(
+    (api) =>
+      !api.isDisabled &&
+      isApiConfigured(api) &&
+      supportsApiCapability(api, "suggest")
+  );
   const { prompts } = usePromptList();
   // 仅展示词典分类提示词，避免误选翻译或字幕断句提示词。
   const dictionaryPromptOptions = useMemo(
@@ -90,7 +114,6 @@ export default function Tranbox() {
   // 解构当前划词翻译配置
   const {
     transOpen,
-    apiSlugs,
     singleWordNoTrans = false,
     autoFavWord = false,
     fromLang,
@@ -222,13 +245,19 @@ export default function Tranbox() {
                 onChange={(value) => updateTranbox({ aiDictApiSlug: value })}
                 options={[
                   { value: "-", label: i18n("disable") },
-                  ...aiEnabledApis.map((api) => ({
+                  ...dictionaryApis.map((api) => ({
                     value: api.apiSlug,
                     label: api.apiName,
                   })),
                 ]}
               />
             </SettingsRow>
+            <LocalServiceNotice
+              apis={dictionaryApis.filter(
+                (api) => api.apiSlug === aiDictApiSlug
+              )}
+              i18n={i18n}
+            />
             <SettingsRow
               label={i18n("auto_fav_word")}
               description={i18n("settings_auto_favorite_description")}
@@ -263,26 +292,61 @@ export default function Tranbox() {
             <Grid container spacing={2} columns={12}>
               {/* Translation services displayed together in the selection panel. */}
               <Grid item xs={12} sm={12} md={6} lg={6}>
-                <TextField
-                  select
+                <ServiceSelect
+                  multiple
                   fullWidth
-                  size="small"
-                  name="apiSlugs"
-                  value={apiSlugs}
+                  scene={tranboxSetting}
+                  apis={enabledApis}
                   label={i18n("translate_service_multiple")}
-                  onChange={handleChange}
-                  SelectProps={{
-                    multiple: true,
-                  }}
+                  onChange={(next) => updateTranbox({ apiSlugs: next })}
+                />
+              </Grid>
+              {/* 划词翻译提示词设置 */}
+              <Grid item xs={12} sm={12} md={6} lg={6}>
+                <ScenePromptSelect
+                  scene={tranboxSetting}
+                  apis={enabledApis}
+                  fullWidth
+                  label={i18n("translation_prompt", "翻译提示词")}
+                  value={tranboxSetting.promptSlug || ""}
+                  onChange={(promptSlug) => updateTranbox({ promptSlug })}
+                />
+              </Grid>
+              {/* Default source language. */}
+              <Grid item xs={12} sm={12} md={6} lg={6}>
+                <TextField
+                  fullWidth
+                  select
+                  size="small"
+                  label={i18n("service_reading")}
+                  value={tranboxSetting.ttsApiSlug || ""}
+                  onChange={(event) =>
+                    updateTranbox({ ttsApiSlug: event.target.value })
+                  }
                 >
-                  {enabledApis.map((api) => (
+                  <MenuItem value="">{i18n("capability_speak")}</MenuItem>
+                  {tranboxSetting.ttsApiSlug &&
+                    !ttsApis.some(
+                      (api) => api.apiSlug === tranboxSetting.ttsApiSlug
+                    ) && (
+                      <MenuItem value={tranboxSetting.ttsApiSlug}>
+                        {i18n("service_configured_unavailable")}
+                      </MenuItem>
+                    )}
+                  {ttsApis.map((api) => (
                     <MenuItem key={api.apiSlug} value={api.apiSlug}>
                       {api.apiName}
                     </MenuItem>
                   ))}
                 </TextField>
+                <LocalServiceNotice
+                  apis={ttsApis.filter(
+                    (api) => api.apiSlug === tranboxSetting.ttsApiSlug
+                  )}
+                  i18n={i18n}
+                  sx={{ mt: 1 }}
+                />
               </Grid>
-              {/* Default source language. */}
               <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth
@@ -376,6 +440,18 @@ export default function Tranbox() {
                       {item}
                     </MenuItem>
                   ))}
+                  {!OPT_SUG_ALL.includes(enSug) &&
+                    enSug !== "-" &&
+                    !suggestApis.some((api) => api.apiSlug === enSug) && (
+                      <MenuItem value={enSug}>
+                        {i18n("service_configured_unavailable")}
+                      </MenuItem>
+                    )}
+                  {suggestApis.map((api) => (
+                    <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                      {api.apiName}
+                    </MenuItem>
+                  ))}
                 </TextField>
               </Grid>
               {/* Position the trigger button at the selection corner or pointer release location. */}
@@ -411,7 +487,7 @@ export default function Tranbox() {
                   <MenuItem value={true}>{i18n("hide")}</MenuItem>
                 </TextField>
               </Grid>
-              {/* Close the translation panel when clicking outside it. */}
+              {/* Hide an unpinned translation panel when focus leaves it. */}
               <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   fullWidth

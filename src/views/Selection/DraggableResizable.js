@@ -190,6 +190,7 @@ function Pointer({
 export default function DraggableResizable({
   header,
   children,
+  panelRef,
   position = {
     x: 0,
     y: 0,
@@ -316,6 +317,8 @@ export default function DraggableResizable({
       />
 
       <TranslationPanelSurface
+        panelRef={panelRef}
+        tabIndex={panelRef ? -1 : undefined}
         className="KT-draggable-body"
         bodyClassName="KT-draggable-container"
         width={size.w}

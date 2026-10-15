@@ -1,6 +1,6 @@
 import IconButton from "@mui/material/IconButton";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAudio } from "../../hooks/Audio";
 import { canSpeak, speak } from "../../libs/speech";
 import queryString from "query-string";
@@ -76,7 +76,131 @@ export function BaiduAudioBtn({ text, lan = "uk", spd = 3 }) {
   return <AudioBtn src={src} />;
 }
 
-export function BrowserTtsBtn({ text, lang = "en-US", title = "Speak" }) {
+export function BrowserTtsBtn({
+  text,
+  lang = "en-US",
+  title = "Speak",
+  serviceId = "",
+}) {
+  if (serviceId)
+    return (
+      <CloudTtsBtn
+        text={text}
+        lang={lang}
+        title={title}
+        serviceId={serviceId}
+      />
+    );
+  return <NativeTtsBtn text={text} lang={lang} title={title} />;
+}
+
+function CloudTtsBtn({ text, lang, title, serviceId }) {
+  const active = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [error, setError] = useState("");
+  const stop = () => {
+    const current = active.current;
+    active.current = null;
+    current?.call?.cancel();
+    if (current?.audio) {
+      current.audio.onended = null;
+      current.audio.onerror = null;
+    }
+    current?.audio?.pause();
+    current?.call?.assets.clear();
+    if (current?.url) URL.revokeObjectURL(current.url);
+    setPlaying(false);
+  };
+  useEffect(
+    () => () => {
+      const current = active.current;
+      active.current = null;
+      if (current?.audio) {
+        current.audio.onended = null;
+        current.audio.onerror = null;
+      }
+      current?.call?.cancel();
+      current?.audio?.pause();
+      current?.call?.assets.clear();
+      if (current?.url) URL.revokeObjectURL(current.url);
+    },
+    [serviceId, text, lang]
+  );
+  useEffect(() => {
+    setPlaying(false);
+    setError("");
+  }, [serviceId, text, lang]);
+  const play = async () => {
+    if (active.current) {
+      stop();
+      return;
+    }
+    const job = {};
+    active.current = job;
+    setPlaying(true);
+    setError("");
+    try {
+      const { invokeSavedService } = await import(
+        "../../providers/savedService"
+      );
+      const { getSettingWithDefault } = await import("../../libs/storage");
+      const { supportsApiCapability } = await import(
+        "../../config/serviceSelection"
+      );
+      const instance = (await getSettingWithDefault()).transApis.find(
+        (api) => api.apiSlug === serviceId
+      );
+      const capability =
+        supportsApiCapability(instance, "speak") &&
+        !supportsApiCapability(instance, "synthesizeSpeech")
+          ? "speak"
+          : "synthesizeSpeech";
+      if (active.current !== job) return;
+      job.call = invokeSavedService(serviceId, capability, {
+        text,
+        language: lang,
+      });
+      const result = await job.call.result;
+      if (active.current !== job) return;
+      if (capability === "speak") {
+        stop();
+        return;
+      }
+      job.url = URL.createObjectURL(job.call.assets.get(result.audio));
+      job.audio = new Audio(job.url);
+      job.audio.onended = () => {
+        if (active.current === job) stop();
+      };
+      job.audio.onerror = () => {
+        if (active.current === job) {
+          setError("音频播放失败");
+          stop();
+        }
+      };
+      await job.audio.play();
+    } catch (err) {
+      if (active.current === job) {
+        setError(err.message);
+        stop();
+      }
+    }
+  };
+  if (!text?.trim()) return null;
+  return (
+    <IconButton
+      size="small"
+      title={error || title}
+      aria-label={title}
+      aria-pressed={playing}
+      color={playing ? "primary" : "default"}
+      onClick={play}
+    >
+      <VolumeUpIcon fontSize="inherit" />
+    </IconButton>
+  );
+}
+
+function NativeTtsBtn({ text, lang = "en-US", title = "Speak" }) {
   const [speaking, setSpeaking] = useState(false);
   const speakingRef = useRef(false);
 

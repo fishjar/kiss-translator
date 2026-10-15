@@ -4,8 +4,6 @@ import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
-import LockIcon from "@mui/icons-material/Lock";
-import LockOpenIcon from "@mui/icons-material/LockOpen";
 import CloseIcon from "@mui/icons-material/Close";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -177,14 +175,16 @@ export default function TranslationPanelHeader({
 
       {/* Right: always-visible actions. */}
       <span className="kt-tranbox-header__actions">
-        {/* Lock the panel against outside clicks. */}
+        {/* Pinning keeps the panel visible when focus moves outside it. */}
         {setHideClickAway && (
           <IconButton
             title={i18n("btn_tip_click_away")}
-            aria-pressed={hideClickAway}
+            aria-label={i18n("btn_tip_click_away")}
+            aria-pressed={!hideClickAway}
+            color={hideClickAway ? "default" : "primary"}
             onClick={() => setHideClickAway((pre) => !pre)}
           >
-            {hideClickAway ? <LockOpenIcon /> : <LockIcon />}
+            {hideClickAway ? <PushPinOutlinedIcon /> : <PushPinIcon />}
           </IconButton>
         )}
 

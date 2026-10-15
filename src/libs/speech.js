@@ -49,8 +49,10 @@ function speakWithWebSpeech(text, lang, callbacks = {}) {
   try {
     const utterance = new globalThis.SpeechSynthesisUtterance(text);
     utterance.lang = lang;
-    utterance.onend = callbacks.onEnd;
-    utterance.onerror = callbacks.onEnd;
+    if (callbacks.voice) utterance.voice = globalThis.speechSynthesis.getVoices().find(voice => voice.name === callbacks.voice) || null;
+    if (callbacks.speed !== undefined) utterance.rate = callbacks.speed;
+    utterance.onend = () => callbacks.onEnd?.("end");
+    utterance.onerror = event => callbacks.onEnd?.(["interrupted", "canceled"].includes(event.error) ? "interrupted" : "error");
     globalThis.speechSynthesis.speak(utterance);
     return true;
   } catch (err) {
@@ -70,10 +72,10 @@ export function speak(text, lang = "en-US", callbacks = {}) {
   let ended = false;
 
   // Chrome TTS 和 Web Speech 都可能从多个终态路径回调，需保证只结束一次。
-  const onEnd = () => {
+  const onEnd = (reason = "end") => {
     if (ended) return;
     ended = true;
-    callbacks.onEnd?.();
+    callbacks.onEnd?.(reason);
   };
 
   if (hasChromeTts()) {
@@ -82,26 +84,33 @@ export function speak(text, lang = "en-US", callbacks = {}) {
         utteranceText,
         {
           lang: normalizedLang,
+          ...(callbacks.voice && { voiceName: callbacks.voice }),
+          ...(callbacks.speed !== undefined && { rate: callbacks.speed }),
           onEvent: (event) => {
             if (FINAL_CHROME_TTS_EVENTS.has(event?.type)) {
-              onEnd();
+              onEnd(event.type);
             }
           },
         },
         () => {
           // 读取 lastError，避免 Chrome 控制台出现 Unchecked runtime.lastError。
           if (globalThis.chrome?.runtime?.lastError) {
-            if (!speakWithWebSpeech(utteranceText, normalizedLang, { onEnd })) {
-              onEnd();
+            if (!speakWithWebSpeech(utteranceText, normalizedLang, { ...callbacks, onEnd })) {
+              onEnd("error");
             }
           }
         }
       );
       return true;
     } catch (err) {
-      return speakWithWebSpeech(utteranceText, normalizedLang, { onEnd });
+      return speakWithWebSpeech(utteranceText, normalizedLang, { ...callbacks, onEnd });
     }
   }
 
-  return speakWithWebSpeech(utteranceText, normalizedLang, { onEnd });
+  return speakWithWebSpeech(utteranceText, normalizedLang, { ...callbacks, onEnd });
+}
+
+export function stopSpeech() {
+  globalThis.chrome?.tts?.stop?.();
+  globalThis.speechSynthesis?.cancel?.();
 }

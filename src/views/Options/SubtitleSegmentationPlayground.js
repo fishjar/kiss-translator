@@ -26,6 +26,8 @@ import {
 import { detectSubtitleProtocol, handleSubtitle } from "../../apis/trans";
 import { useConfirm } from "../../hooks/Confirm";
 import { useI18n } from "../../hooks/I18n";
+import { registerI18n } from "../../config/i18n";
+import { SUBTITLE_PLAYGROUND_I18N } from "../../config/locales/subtitlePlayground";
 import { downloadBlobFile } from "../../libs/utils";
 import { aiSegment } from "../../subtitle/youtubeAiSegmentation";
 import {
@@ -45,6 +47,8 @@ import useTextareaHeightLock, {
   useTextareaGripStyle,
   useReleaseOnGripHidden,
 } from "../../hooks/useTextareaHeightLock";
+
+registerI18n(SUBTITLE_PLAYGROUND_I18N);
 
 const SAMPLE_BASE_URL = `${process.env.REACT_APP_SITEURL}/subtitle-samples`;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -853,8 +857,7 @@ export default function SubtitleSegmentationPlayground({
               ...sourceHeightLock.rootProps,
               readOnly: true,
               endAdornment:
-                sourceText.trim() ||
-                sourceHeightLock.lockedHeight != null ? (
+                sourceText.trim() || sourceHeightLock.lockedHeight != null ? (
                   <TextareaResizeGrip
                     target={sourceHeightLock.textareaRef}
                     onResize={sourceHeightLock.applyHeight}

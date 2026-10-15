@@ -29,6 +29,7 @@ import { fetchData } from "../libs/fetch";
 const getApiSetting = (update = {}) =>
   resolveApiPromptSettings({
     ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_ORCAROUTER),
+    isDisabled: false,
     useStream: false,
     useBatchFetch: true,
     key: "sk-orca-test-key",

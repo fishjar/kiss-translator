@@ -1,0 +1,96 @@
+{
+  "rulesVersion": 2,
+  "handlers": {
+    "chat": {
+      "protocol": "openai-chat-completions",
+      "task": "chat",
+      "request": {
+        "baseUrl": {
+          "$ref": "config.baseUrl"
+        },
+        "model": {
+          "$ref": "config.model"
+        },
+        "auth": {
+          "type": "bearer",
+          "secret": {
+            "$secret": "apiKey"
+          }
+        },
+        "parameters": {
+          "thinking": {
+            "$if": {
+              "$ref": "config.thinkingMode",
+              "equals": "auto"
+            },
+            "else": {
+              "type": {
+                "$ref": "config.thinkingMode"
+              }
+            }
+          },
+          "reasoning_effort": {
+            "$if": {
+              "$ref": "config.thinkingMode",
+              "equals": "enabled"
+            },
+            "then": {
+              "$ref": "config.thinkingEffort",
+              "omitValues": ["_default"]
+            }
+          }
+        }
+      }
+    },
+    "translate": {
+      "protocol": "openai-chat-completions",
+      "task": "translate",
+      "request": {
+        "baseUrl": {
+          "$ref": "config.baseUrl"
+        },
+        "model": {
+          "$ref": "config.model"
+        },
+        "auth": {
+          "type": "bearer",
+          "secret": {
+            "$secret": "apiKey"
+          }
+        },
+        "parameters": {
+          "thinking": {
+            "$if": {
+              "$ref": "config.thinkingMode",
+              "equals": "auto"
+            },
+            "else": {
+              "type": {
+                "$ref": "config.thinkingMode"
+              }
+            }
+          },
+          "reasoning_effort": {
+            "$if": {
+              "$ref": "config.thinkingMode",
+              "equals": "enabled"
+            },
+            "then": {
+              "$ref": "config.thinkingEffort",
+              "omitValues": ["_default"]
+            }
+          },
+          "temperature": {
+            "$if": {
+              "$ref": "config.thinkingMode",
+              "equals": "disabled"
+            },
+            "then": {
+              "$ref": "config.translationTemperature"
+            }
+          }
+        }
+      }
+    }
+  }
+}

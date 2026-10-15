@@ -1,7 +1,17 @@
+import { isApiConfigured } from "../config/serviceSelection";
+import { supportsApiCapability } from "../config/serviceSelection";
 import { logger } from "../libs/log.js";
 import { downloadBlobFile } from "../libs/utils.js";
 import { buildBilingualVtt, buildTranslationOnlyVtt } from "./vtt.js";
-import { getSettingWithDefault } from "../libs/storage.js";
+import { getSettingWithDefault, saveEdit } from "../libs/storage.js";
+import { openOptionsPage } from "../libs/navigation.js";
+import { apiSummarizeVideo, getVideoSummarySignature } from "../apis/index.js";
+import { DEFAULT_SUMMARY_PROMPT } from "../config/prompt.js";
+import { OPT_TRANS_BUILTINAI } from "../config/api.js";
+import { STOKEY_SETTING } from "../config/storage.js";
+import { DEFAULT_SUBTITLE_SETTING } from "../config/setting.js";
+import { MSG_BUILTINAI_PROGRESS } from "../config/msg.js";
+import { browser } from "../libs/browser.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import {
   addWordHoverStyles,
@@ -19,6 +29,116 @@ import { createFavoriteButton } from "./favoriteWords.js";
  * 3. 拦截鼠标 hover/划词事件广播，实现增量生词本收录功能。
  * 4. 支持将收录的生词以 JSON、CSV（带 Excel BOM 字符防乱码）、纯文本、Markdown 格式导出及下载。
  */
+/**
+ * 轻量且安全的 Markdown 转 DOM 渲染器。
+ * 避免使用 innerHTML 字符串拼接，直接基于 DOM API 构建结构，确保兼容 YouTube Trusted Types 与 CSP 策略。
+ *
+ * @param {string} markdownText 待解析的 Markdown 文本
+ * @param {HTMLElement} container 目标挂载容器
+ */
+export function renderMarkdownToElement(markdownText, container) {
+  container.replaceChildren();
+  if (!markdownText) return;
+
+  const lines = markdownText.split("\n");
+  let currentList = null;
+
+  const processInline = (text, parentEl) => {
+    // 处理 **加粗**、*斜体*、`代码`
+    const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
+    for (const part of parts) {
+      if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+        const strong = document.createElement("strong");
+        strong.textContent = part.slice(2, -2);
+        strong.style.color = "var(--kt-text)";
+        strong.style.fontWeight = "600";
+        parentEl.appendChild(strong);
+      } else if (
+        part.startsWith("*") &&
+        part.endsWith("*") &&
+        part.length >= 2
+      ) {
+        const em = document.createElement("em");
+        em.textContent = part.slice(1, -1);
+        em.style.color = "var(--kt-subtext)";
+        parentEl.appendChild(em);
+      } else if (
+        part.startsWith("`") &&
+        part.endsWith("`") &&
+        part.length >= 2
+      ) {
+        const code = document.createElement("code");
+        code.textContent = part.slice(1, -1);
+        code.style.cssText = `background: var(--kt-time-bg); color: var(--kt-primary); padding: 1px 4px; border-radius: 3px; font-size: 0.9em; font-family: monospace;`;
+        parentEl.appendChild(code);
+      } else if (part) {
+        parentEl.appendChild(document.createTextNode(part));
+      }
+    }
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      currentList = null;
+      continue;
+    }
+
+    if (line.startsWith("#### ")) {
+      currentList = null;
+      const h4 = document.createElement("h5");
+      h4.style.cssText = `margin: 12px 0 6px 0; font-size: 13px; font-weight: 600; color: var(--kt-text);`;
+      processInline(line.slice(5), h4);
+      container.appendChild(h4);
+    } else if (line.startsWith("### ")) {
+      currentList = null;
+      const h3 = document.createElement("h4");
+      h3.style.cssText = `margin: 14px 0 6px 0; font-size: 14px; font-weight: 600; color: var(--kt-primary); display: flex; align-items: center; gap: 6px;`;
+      processInline(line.slice(4), h3);
+      container.appendChild(h3);
+    } else if (line.startsWith("## ")) {
+      currentList = null;
+      const h2 = document.createElement("h3");
+      h2.style.cssText = `margin: 16px 0 8px 0; font-size: 15px; font-weight: 600; color: var(--kt-primary);`;
+      processInline(line.slice(3), h2);
+      container.appendChild(h2);
+    } else if (line.startsWith("# ")) {
+      currentList = null;
+      const h1 = document.createElement("h2");
+      h1.style.cssText = `margin: 18px 0 10px 0; font-size: 16px; font-weight: 700; color: var(--kt-text);`;
+      processInline(line.slice(2), h1);
+      container.appendChild(h1);
+    } else if (line.startsWith("- ") || line.startsWith("* ")) {
+      if (!currentList || currentList.tagName !== "UL") {
+        currentList = document.createElement("ul");
+        currentList.style.cssText = `margin: 4px 0 8px 0; padding-left: 20px; list-style-type: disc;`;
+        container.appendChild(currentList);
+      }
+      const li = document.createElement("li");
+      li.style.cssText = `margin-bottom: 6px; font-size: 13px; line-height: 1.5; color: var(--kt-text);`;
+      processInline(line.slice(2), li);
+      currentList.appendChild(li);
+    } else if (/^\d+\.\s/.test(line)) {
+      if (!currentList || currentList.tagName !== "OL") {
+        currentList = document.createElement("ol");
+        currentList.style.cssText = `margin: 4px 0 8px 0; padding-left: 20px; list-style-type: decimal;`;
+        container.appendChild(currentList);
+      }
+      const text = line.replace(/^\d+\.\s/, "");
+      const li = document.createElement("li");
+      li.style.cssText = `margin-bottom: 6px; font-size: 13px; line-height: 1.5; color: var(--kt-text);`;
+      processInline(text, li);
+      currentList.appendChild(li);
+    } else {
+      currentList = null;
+      const p = document.createElement("p");
+      p.style.cssText = `margin: 6px 0 8px 0; font-size: 13px; line-height: 1.5; color: var(--kt-text);`;
+      processInline(line, p);
+      container.appendChild(p);
+    }
+  }
+}
+
 export class YouTubeSubtitleList {
   /**
    * @param {HTMLVideoElement} videoElement YouTube 的原生视频播放器 DOM 节点
@@ -26,12 +146,19 @@ export class YouTubeSubtitleList {
   constructor(
     videoElement,
     i18n = (key, defaultText = key) => defaultText,
-    { enableHoverLookup = false, autoFavWord = false } = {}
+    {
+      enableHoverLookup = false,
+      autoFavWord = false,
+      getSummaryConfig = null,
+      getVideoMetadata = null,
+    } = {}
   ) {
     this.videoEl = videoElement;
     this.i18n = i18n;
     this.enableHoverLookup = enableHoverLookup;
     this.autoFavWord = autoFavWord;
+    this.getSummaryConfig = getSummaryConfig;
+    this.getVideoMetadata = getVideoMetadata;
 
     // --- 数据源缓存 ---
     // 双语字幕主列表数组。结构：{ start: number, end: number, text: string, translation: string }
@@ -39,19 +166,52 @@ export class YouTubeSubtitleList {
     this.rawSubtitleEvents = [];
     // 生词本收录数组。结构：{ word, phonetic, definition, examples: [], timestamp }
     this.vocabulary = [];
+    this._summaryCache = new Map();
+    this._isSummarizing = false;
+    this._currentSummaryText = "";
 
     // --- DOM 节点引用缓存 ---
     this.container = null; // 右侧字幕/生词面板的最外层根容器节点
     this.subtitleTabEl = null; // 字幕 Tab 按钮引用，用于随处理进度刷新标题文案
+    this.vocabularyTabEl = null; // 生词本 Tab 按钮引用
+    this.summaryTabEl = null; // 视频总结 Tab 按钮引用
     this.subtitleListEl = null; // 字幕列表面板的 DOM 引用
     this.vocabularyListEl = null; // 生词本面板的 DOM 引用
+    this.summaryListEl = null; // 视频总结面板的 DOM 引用
+    this.summaryScrollContainer = null; // 视频总结独立滚动视口
+    this.summaryActionBar = null; // 视频总结操作工具条
+    this.summaryRegenBtn = null; // 重新生成按钮
+    this.summaryCopyBtn = null; // 复制总结按钮
     this.subtitleScrollContainer = null; // 字幕列表的专用独立纵向滚动容器
     this._cachedSubtitleItems = []; // 缓存每一个字幕行 li 节点引用的数组，避免在滚动同步高亮时高频执行 querySelector 带来的重排 (Reflow) 损耗，提升滚动性能
+
+    // --- 内置 AI 模型下载与模型快捷切换状态 ---
+    this._downloadProgress = { loaded: 0, total: 0, percent: 0 };
+    this._downloadStalledTimer = null;
+    this._downloadLastLoaded = 0;
+    this._downloadStalled = false;
+    this._modelSwitcherPopup = null;
+    this._downloadProgressCard = null;
+    this._downloadProgressBar = null;
+    this._downloadProgressText = null;
+    this._downloadStalledTip = null;
+    this._selectedSummaryApiSlug = null;
+
+    this._onBgMessage = (message) => {
+      if (message?.action === MSG_BUILTINAI_PROGRESS) {
+        this._handleBuiltinAiProgress(message.args);
+      }
+    };
+    if (browser?.runtime?.onMessage?.addListener) {
+      try {
+        browser.runtime.onMessage.addListener(this._onBgMessage);
+      } catch (_) {}
+    }
 
     // --- 状态管理 ---
     this.subtitleProgress = 0; // 当前字幕断句/处理进度百分比，用于显示在“双语字幕”Tab 后
     this.loopAutoScroll = null; // 自动滚动的定时器 ID
-    this.activeTab = "subtitles"; // 当前激活的 Tab: 'subtitles' 或 'vocabulary'
+    this.activeTab = "subtitles"; // 当前激活的 Tab: 'subtitles'、'vocabulary' 或 'summary'
     this._lastActiveIndex = -1; // 上一次高亮的字幕索引位置
     this._virtualHeights = []; // 虚拟列表每一行的缓存高度；未测量行先使用估算值，显示后再用真实高度回写
     this._virtualOffsets = [0]; // 前缀和偏移表，用于通过 scrollTop 快速定位应该渲染的字幕区间
@@ -241,15 +401,32 @@ export class YouTubeSubtitleList {
     this._wordTooltipController = null;
     document.removeEventListener("kiss-add-word", this.handleWordAdded);
     window.removeEventListener("message", this.handleJumpMessage);
+    if (this._onBgMessage && browser?.runtime?.onMessage?.removeListener) {
+      try {
+        browser.runtime.onMessage.removeListener(this._onBgMessage);
+      } catch (_) {}
+    }
+    this._clearDownloadStalledTimer();
+    if (this._modelSwitcherPopup) {
+      this._modelSwitcherPopup.remove();
+      this._modelSwitcherPopup = null;
+    }
     if (this.container) {
       this.container.remove();
       this.container = null;
     }
     this.subtitleTabEl = null;
+    this.vocabularyTabEl = null;
+    this.summaryTabEl = null;
     this.subtitleListEl = null;
     this.vocabularyListEl = null;
-    this.subtitleScrollContainer = null;
+    this.summaryListEl = null;
+    this.summaryScrollContainer = null;
+    this.summaryActionBar = null;
+    this.summaryRegenBtn = null;
+    this.summaryCopyBtn = null;
     this.subtitleListUl = null;
+    this._summaryCache?.clear();
     this.bilingualSubtitles = [];
     this.rawSubtitleEvents = [];
     this._cachedSubtitleItems = [];
@@ -768,33 +945,51 @@ export class YouTubeSubtitleList {
             darkMode === "dark" || (darkMode === "auto" && prefersDark);
 
           const lightVars = {
-            "--kt-bg": "rgba(255, 255, 255, 0.9)",
+            "--kt-bg": "rgba(255, 255, 255, 0.95)",
             "--kt-border": "1px solid rgba(0, 0, 0, 0.1)",
-            "--kt-text": "#333",
-            "--kt-subtext": "#666",
+            "--kt-text": "#1a1a1a",
+            "--kt-subtext": "#606060",
             "--kt-primary": "#1e88e5",
             "--kt-time-bg": "rgba(30, 136, 229, 0.1)",
-            "--kt-divider": "rgba(240,240,240,0.6)",
+            "--kt-divider": "rgba(0, 0, 0, 0.08)",
             "--kt-active-bg": "rgba(30, 136, 229, 0.1)",
             "--kt-btn-bg": "var(--kt-primary)",
             "--kt-btn-color": "white",
             "--kt-btn-border": "none",
-            "--kt-btn-hover-bg": "rgba(30,136,229,0.85)",
+            "--kt-btn-hover-bg": "rgba(30, 136, 229, 0.85)",
+            "--kt-card-bg": "#ffffff",
+            "--kt-card-border": "1px solid rgba(0, 0, 0, 0.12)",
+            "--kt-card-shadow": "0 6px 24px rgba(0, 0, 0, 0.14)",
+            "--kt-hover-bg": "rgba(0, 0, 0, 0.05)",
+            "--kt-tag-bg": "rgba(0, 0, 0, 0.06)",
+            "--kt-tag-color": "#555555",
+            "--kt-warning-color": "#b45309",
+            "--kt-warning-bg": "rgba(245, 158, 11, 0.12)",
+            "--kt-warning-border": "rgba(245, 158, 11, 0.35)",
           };
 
           const darkVars = {
-            "--kt-bg": "rgba(18,18,18,0.85)",
+            "--kt-bg": "rgba(18, 18, 18, 0.85)",
             "--kt-border": "1px solid rgba(255, 255, 255, 0.06)",
-            "--kt-text": "#e6e6e6",
-            "--kt-subtext": "#bdbdbd",
+            "--kt-text": "#f1f1f1",
+            "--kt-subtext": "#aaaaaa",
             "--kt-primary": "#90caf9",
-            "--kt-time-bg": "rgba(144,202,249,0.08)",
-            "--kt-divider": "rgba(255,255,255,0.06)",
-            "--kt-active-bg": "rgba(144,202,249,0.12)",
-            "--kt-btn-bg": "linear-gradient(180deg,#0f0f0f,#1b1b1b)",
+            "--kt-time-bg": "rgba(144, 202, 249, 0.08)",
+            "--kt-divider": "rgba(255, 255, 255, 0.08)",
+            "--kt-active-bg": "rgba(144, 202, 249, 0.12)",
+            "--kt-btn-bg": "linear-gradient(180deg, #0f0f0f, #1b1b1b)",
             "--kt-btn-color": "#e6e6e6",
-            "--kt-btn-border": "1px solid rgba(255,255,255,0.04)",
-            "--kt-btn-hover-bg": "linear-gradient(180deg,#141414,#262626)",
+            "--kt-btn-border": "1px solid rgba(255, 255, 255, 0.04)",
+            "--kt-btn-hover-bg": "linear-gradient(180deg, #141414, #262626)",
+            "--kt-card-bg": "#282828",
+            "--kt-card-border": "1px solid rgba(255, 255, 255, 0.12)",
+            "--kt-card-shadow": "0 8px 28px rgba(0, 0, 0, 0.65)",
+            "--kt-hover-bg": "rgba(255, 255, 255, 0.08)",
+            "--kt-tag-bg": "rgba(255, 255, 255, 0.1)",
+            "--kt-tag-color": "#bbbbbb",
+            "--kt-warning-color": "#fbbf24",
+            "--kt-warning-bg": "rgba(245, 158, 11, 0.15)",
+            "--kt-warning-border": "rgba(245, 158, 11, 0.4)",
           };
 
           const vars = isDark ? darkVars : lightVars;
@@ -853,11 +1048,15 @@ export class YouTubeSubtitleList {
     this.subtitleTabEl = subtitleTab;
     this._updateSubtitleTabLabel();
     const vocabularyTab = document.createElement("button");
+    this.vocabularyTabEl = vocabularyTab;
     vocabularyTab.textContent = this._t("vocabulary_book", "生词本");
+    const summaryTab = document.createElement("button");
+    this.summaryTabEl = summaryTab;
+    summaryTab.textContent = this._t("video_summary", "视频总结");
 
     // 动态控制 Tab 激活态与未激活态 CSS 的映射函数
     const styleTab = (tab, isActive) => {
-      tab.style.cssText = `padding: 12px 16px; cursor: pointer; border: none; background: transparent; font-size: 15px; font-weight: ${isActive ? "600" : "500"}; color: ${isActive ? "var(--kt-primary)" : "var(--kt-text)"}; border-bottom: 2px solid ${isActive ? "var(--kt-primary)" : "transparent"}; margin-bottom: -1px; outline: none;`;
+      tab.style.cssText = `padding: 12px 14px; cursor: pointer; border: none; background: transparent; font-size: 14px; font-weight: ${isActive ? "600" : "500"}; color: ${isActive ? "var(--kt-primary)" : "var(--kt-text)"}; border-bottom: 2px solid ${isActive ? "var(--kt-primary)" : "transparent"}; margin-bottom: -1px; outline: none; white-space: nowrap; flex-shrink: 0;`;
     };
 
     // 关闭侧边列表栏的“×”小按钮
@@ -1013,19 +1212,56 @@ export class YouTubeSubtitleList {
     this.subtitleListEl.appendChild(this.subtitleScrollContainer);
 
     // ----------------------------------------------------
+    // ----------------------------------------------------
     // [Tab 2]: 生词本面板
     // ----------------------------------------------------
     this.vocabularyListEl = document.createElement("div");
     this.vocabularyListEl.id = "kiss-youtube-vocabulary-list";
     this.vocabularyListEl.style.cssText = `display: none; flex-direction: column; height: 100%; overflow: hidden;`;
 
+    // ----------------------------------------------------
+    // [Tab 3]: 视频总结面板
+    // ----------------------------------------------------
+    this.summaryListEl = document.createElement("div");
+    this.summaryListEl.id = "kiss-youtube-summary-list";
+    this.summaryListEl.style.cssText = `display: none; flex-direction: column; height: 100%; overflow: hidden;`;
+
+    const summaryActionBar = document.createElement("div");
+    summaryActionBar.style.cssText = `padding: 10px 16px; border-bottom: 1px solid var(--kt-divider); display: none; justify-content: center; gap: 8px; flex-shrink: 0;`;
+    this.summaryActionBar = summaryActionBar;
+
+    const regenBtn = document.createElement("button");
+    regenBtn.textContent = this._t("regenerate_summary", "重新生成");
+    regenBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
+    this._attachBtnHover(regenBtn);
+    regenBtn.addEventListener("click", () =>
+      this.generateSummary({ force: true })
+    );
+    this.summaryRegenBtn = regenBtn;
+
+    const copyBtn = document.createElement("button");
+    copyBtn.textContent = this._t("copy_summary", "复制总结");
+    copyBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
+    this._attachBtnHover(copyBtn);
+    copyBtn.addEventListener("click", () => this._handleCopySummary());
+    this.summaryCopyBtn = copyBtn;
+
+    summaryActionBar.append(regenBtn, copyBtn);
+    this.summaryListEl.appendChild(summaryActionBar);
+
+    this.summaryScrollContainer = document.createElement("div");
+    this.summaryScrollContainer.style.cssText = `overflow-y: auto; flex: 1; padding: 16px 20px; position: relative; box-sizing: border-box;`;
+    this.summaryListEl.appendChild(this.summaryScrollContainer);
+
     // Tab 点击事件联动
     subtitleTab.addEventListener("click", () => {
       this.activeTab = "subtitles";
       styleTab(subtitleTab, true);
       styleTab(vocabularyTab, false);
+      styleTab(summaryTab, false);
       this.subtitleListEl.style.display = "flex";
       this.vocabularyListEl.style.display = "none";
+      this.summaryListEl.style.display = "none";
       // 优先处理隐藏期间记录的跳转目标；没有待滚动目标时，再按当前 scrollTop 正常刷新虚拟窗口。
       if (!this._scrollPendingSubtitleTabIndex()) {
         this._scheduleVirtualRender(true);
@@ -1035,21 +1271,38 @@ export class YouTubeSubtitleList {
       this.activeTab = "vocabulary";
       styleTab(subtitleTab, false);
       styleTab(vocabularyTab, true);
+      styleTab(summaryTab, false);
       this.subtitleListEl.style.display = "none";
       this.vocabularyListEl.style.display = "flex";
+      this.summaryListEl.style.display = "none";
       // 点击切换时，若是生词被标记为 Dirty (未绘制最新变动)，在此统一重绘
       if (this._vocabularyDirty) {
         this._renderVocabulary();
         this._vocabularyDirty = false;
       }
     });
+    summaryTab.addEventListener("click", () => {
+      this.activeTab = "summary";
+      styleTab(subtitleTab, false);
+      styleTab(vocabularyTab, false);
+      styleTab(summaryTab, true);
+      this.subtitleListEl.style.display = "none";
+      this.vocabularyListEl.style.display = "none";
+      this.summaryListEl.style.display = "flex";
+      this._onSummaryTabActivated();
+    });
 
     // 缺省激活字幕 Tab
     styleTab(subtitleTab, true);
     styleTab(vocabularyTab, false);
+    styleTab(summaryTab, false);
 
-    tabHeader.append(subtitleTab, vocabularyTab, closeBtn);
-    tabContentContainer.append(this.subtitleListEl, this.vocabularyListEl);
+    tabHeader.append(subtitleTab, vocabularyTab, summaryTab, closeBtn);
+    tabContentContainer.append(
+      this.subtitleListEl,
+      this.vocabularyListEl,
+      this.summaryListEl
+    );
     this.container.append(tabHeader, tabContentContainer);
   }
 
@@ -1751,6 +2004,817 @@ export class YouTubeSubtitleList {
       return titleElement ? titleElement.textContent : "YouTube Video";
     } catch (e) {
       return "YouTube Video";
+    }
+  }
+
+  // ==================================================================================
+  // Video Summary: 视频总结面板渲染与生命周期处理
+  // ==================================================================================
+
+  /**
+   * 为通用按钮绑定基于容器主题变量的 hover 悬浮高亮反馈
+   */
+  _attachBtnHover(btn) {
+    btn.addEventListener("mouseenter", () => {
+      try {
+        const hover = getComputedStyle(this.container).getPropertyValue(
+          "--kt-btn-hover-bg"
+        );
+        if (hover) btn.style.background = hover;
+        btn.style.transform = "translateY(-1px)";
+      } catch (e) {}
+    });
+    btn.addEventListener("mouseleave", () => {
+      try {
+        const normal = getComputedStyle(this.container).getPropertyValue(
+          "--kt-btn-bg"
+        );
+        if (normal) btn.style.background = normal;
+        btn.style.transform = "translateY(0)";
+      } catch (e) {}
+    });
+  }
+
+  /**
+   * 收集当前视频用于总结的完整输入参数与模型配置
+   */
+  _getSummaryParams(config) {
+    const meta = this.getVideoMetadata?.() || {};
+    const videoId = meta.videoId || this._getVideoId();
+    const title = meta.title || this._getYouTubeVideoTitle() || "";
+    const description = meta.description || "";
+    let transcript = meta.transcript;
+    if (!transcript) {
+      transcript = this.bilingualSubtitles
+        .map((s) => s.text)
+        .filter(Boolean)
+        .join(" ");
+    }
+    if (!transcript) {
+      transcript = this.rawSubtitleEvents
+        .map((e) => e.text || e.utf8)
+        .filter(Boolean)
+        .join(" ");
+    }
+
+    const transApis = config?.transApis || [];
+    let apiSetting = transApis.find(
+      (api) => api.apiSlug === config?.summaryApiSlug
+    );
+    if (!apiSetting) {
+      if (config?.summaryApiSlug === OPT_TRANS_BUILTINAI) {
+        apiSetting = {
+          apiType: OPT_TRANS_BUILTINAI,
+          apiSlug: OPT_TRANS_BUILTINAI,
+        };
+      } else {
+        apiSetting = {
+          apiType: config?.summaryApiSlug,
+          apiSlug: config?.summaryApiSlug,
+        };
+      }
+    }
+
+    const prompts = config?.prompts || [];
+    let prompt = prompts.find((p) => p.slug === config?.summaryPromptSlug);
+    if (!prompt) {
+      prompt = DEFAULT_SUMMARY_PROMPT;
+    }
+
+    return {
+      videoId,
+      title,
+      description,
+      transcript,
+      apiSetting,
+      prompt,
+      to: config?.to || "zh-CN",
+    };
+  }
+
+  /**
+   * 当用户点击切换到“视频总结”Tab 时触发
+   */
+  async _onSummaryTabActivated() {
+    const config = await this._resolveSummaryConfig();
+    if (!config || !config.summaryApiSlug || config.summaryApiSlug === "-") {
+      this._renderSummaryGuide();
+      return;
+    }
+
+    if (this.summaryActionBar) this.summaryActionBar.style.display = "flex";
+    const params = this._getSummaryParams(config);
+    if (params.transcript && params.transcript.trim().length >= 10) {
+      const summarySig = await getVideoSummarySignature(params);
+      if (this._summaryCache.has(summarySig)) {
+        const cached = this._summaryCache.get(summarySig);
+        this._currentSummaryText = cached;
+        this._renderSummaryContent(cached);
+        return;
+      }
+    }
+
+    if (!this._isSummarizing) {
+      await this.generateSummary({ force: false });
+    }
+  }
+
+  /**
+   * 动态获取最新的总结配置（优先从构造回调读取，降级从本地配置读取）
+   */
+  async _resolveSummaryConfig() {
+    let fallbackConfig = this.getSummaryConfig?.() || {};
+    let sub = null;
+    let transApis = Array.isArray(fallbackConfig.transApis)
+      ? [...fallbackConfig.transApis]
+      : [];
+    let prompts = Array.isArray(fallbackConfig.prompts)
+      ? [...fallbackConfig.prompts]
+      : [];
+
+    const activeApiSlug =
+      this._selectedSummaryApiSlug || fallbackConfig.summaryApiSlug || "-";
+
+    // 缺少当前选定模型的配置或没有 transApis 时，从 storage 补充读取
+    const needFetchStorage =
+      transApis.length === 0 ||
+      (activeApiSlug !== "-" &&
+        activeApiSlug !== OPT_TRANS_BUILTINAI &&
+        !transApis.some((api) => api.apiSlug === activeApiSlug));
+
+    if (needFetchStorage) {
+      try {
+        const stored = await getSettingWithDefault();
+        sub = stored?.subtitleSetting || {};
+        if (Array.isArray(stored?.transApis) && stored.transApis.length > 0) {
+          transApis = stored.transApis;
+        }
+        if (Array.isArray(stored?.prompts) && stored.prompts.length > 0) {
+          prompts = stored.prompts;
+        }
+      } catch (e) {
+        logger.warn("resolveSummaryConfig failed to get setting", e);
+      }
+    }
+
+    const finalApiSlug =
+      this._selectedSummaryApiSlug ||
+      fallbackConfig.summaryApiSlug ||
+      sub?.summaryApiSlug ||
+      "-";
+
+    const activePromptSlug =
+      fallbackConfig.summaryPromptSlug ||
+      sub?.summaryPromptSlug ||
+      "default_video_summary";
+
+    const to = fallbackConfig.to || sub?.toLang || sub?.to || "zh-CN";
+
+    return {
+      summaryApiSlug: finalApiSlug,
+      summaryPromptSlug: activePromptSlug,
+      to,
+      transApis,
+      prompts,
+    };
+  }
+
+  /**
+   * 获取当前播放视频的 ID
+   */
+  _getVideoId() {
+    const meta = this.getVideoMetadata?.();
+    if (meta?.videoId) return meta.videoId;
+    return this._getYouTubeVideoId() || "";
+  }
+
+  /**
+   * 未启用总结服务时渲染的引导界面
+   */
+  _renderSummaryGuide() {
+    if (this.summaryActionBar) this.summaryActionBar.style.display = "none";
+    if (!this.summaryScrollContainer) return;
+    this.summaryScrollContainer.replaceChildren();
+
+    const guideCard = document.createElement("div");
+    guideCard.style.cssText = `display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 220px; text-align: center; padding: 24px 16px; box-sizing: border-box;`;
+
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", "42");
+    svg.setAttribute("height", "42");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.8");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.style.cssText = `margin-bottom: 16px; color: var(--kt-subtext); opacity: 0.85;`;
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute(
+      "d",
+      "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+    );
+    const polyline = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "polyline"
+    );
+    polyline.setAttribute("points", "14 2 14 8 20 8");
+    const line1 = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "line"
+    );
+    line1.setAttribute("x1", "16");
+    line1.setAttribute("y1", "13");
+    line1.setAttribute("x2", "8");
+    line1.setAttribute("y2", "13");
+    const line2 = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "line"
+    );
+    line2.setAttribute("x1", "16");
+    line2.setAttribute("y1", "17");
+    line2.setAttribute("x2", "8");
+    line2.setAttribute("y2", "17");
+    svg.append(path, polyline, line1, line2);
+
+    const textEl = document.createElement("p");
+    textEl.style.cssText = `font-size: 14px; line-height: 1.5; color: var(--kt-subtext); margin: 0 0 20px 0; max-width: 280px;`;
+    textEl.textContent = this._t(
+      "summary_empty_guide",
+      "尚未配置视频总结服务，请前往【字幕翻译设置】开启"
+    );
+
+    const settingBtn = document.createElement("button");
+    settingBtn.textContent = this._t("go_to_settings", "前往设置");
+    settingBtn.style.cssText = `padding: 8px 20px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 200ms ease, transform 160ms ease;`;
+    this._attachBtnHover(settingBtn);
+    settingBtn.addEventListener("click", () => {
+      openOptionsPage("/subtitle");
+    });
+
+    guideCard.append(svg, textEl, settingBtn);
+    this.summaryScrollContainer.appendChild(guideCard);
+  }
+
+  /**
+   * 总结中过渡状态渲染
+   */
+  _renderSummaryLoading() {
+    if (this.summaryActionBar) this.summaryActionBar.style.display = "flex";
+    if (this.summaryRegenBtn) this.summaryRegenBtn.disabled = true;
+    if (!this.summaryScrollContainer) return;
+    this.summaryScrollContainer.replaceChildren();
+
+    const loadingContainer = document.createElement("div");
+    loadingContainer.style.cssText = `display: flex; flex-direction: column; align-items: center; justify-content: center; height: 180px; gap: 14px; color: var(--kt-subtext);`;
+
+    const spinner = document.createElement("div");
+    spinner.style.cssText = `width: 24px; height: 24px; border: 2.5px solid var(--kt-divider); border-top-color: var(--kt-primary); border-radius: 50%; animation: kt-spin 0.8s linear infinite;`;
+
+    if (!document.getElementById("kt-spin-keyframes")) {
+      const style = document.createElement("style");
+      style.id = "kt-spin-keyframes";
+      style.textContent = `@keyframes kt-spin { to { transform: rotate(360deg); } }`;
+      document.head.appendChild(style);
+    }
+
+    const tip = document.createElement("span");
+    tip.textContent = this._t("summarizing", "正在总结视频内容...");
+    tip.style.fontSize = "13px";
+
+    loadingContainer.append(spinner, tip);
+    this.summaryScrollContainer.appendChild(loadingContainer);
+  }
+
+  /**
+   * 成功获取到 Markdown 总结结果并渲染
+   */
+  _renderSummaryContent(summary) {
+    if (this.summaryActionBar) this.summaryActionBar.style.display = "flex";
+    if (this.summaryRegenBtn) this.summaryRegenBtn.disabled = false;
+    if (!this.summaryScrollContainer) return;
+    this.summaryScrollContainer.replaceChildren();
+
+    const contentDiv = document.createElement("div");
+    contentDiv.style.cssText = `padding: 4px 0; font-size: 13px; line-height: 1.6; color: var(--kt-text);`;
+    renderMarkdownToElement(summary, contentDiv);
+    this.summaryScrollContainer.appendChild(contentDiv);
+  }
+
+  /**
+   * 格式化字节数
+   */
+  _formatBytes(bytes) {
+    if (!bytes || bytes <= 0) return "0 MB";
+    const mb = bytes / (1024 * 1024);
+    if (mb >= 1024) {
+      return `${(mb / 1024).toFixed(1)} GB`;
+    }
+    return `${Math.round(mb)} MB`;
+  }
+
+  /**
+   * 收到后台推送的 BuiltinAI 模型下载进度
+   */
+  _handleBuiltinAiProgress(progressData) {
+    if (!progressData) return;
+    const { loaded = 0, total = 0, percent = 0 } = progressData;
+    this._downloadProgress = { loaded, total, percent };
+
+    if (loaded > this._downloadLastLoaded) {
+      this._downloadLastLoaded = loaded;
+      this._downloadStalled = false;
+      this._resetDownloadStalledTimer();
+    }
+
+    if (this._downloadProgressBar) {
+      this._downloadProgressBar.style.width = `${Math.max(6, Math.min(100, percent))}%`;
+    }
+    if (this._downloadProgressText) {
+      if (total > 0) {
+        this._downloadProgressText.textContent = `${percent}% (${this._formatBytes(
+          loaded
+        )} / ${this._formatBytes(total)})`;
+      } else if (loaded > 0) {
+        this._downloadProgressText.textContent = this._formatBytes(loaded);
+      }
+    }
+    if (this._downloadStalledTip && !this._downloadStalled) {
+      this._downloadStalledTip.style.display = "none";
+    }
+  }
+
+  _resetDownloadStalledTimer() {
+    this._clearDownloadStalledTimer();
+    this._downloadStalledTimer = setTimeout(() => {
+      this._downloadStalled = true;
+      if (this._downloadStalledTip) {
+        this._downloadStalledTip.style.display = "block";
+      }
+    }, 20000);
+  }
+
+  _clearDownloadStalledTimer() {
+    if (this._downloadStalledTimer) {
+      clearTimeout(this._downloadStalledTimer);
+      this._downloadStalledTimer = null;
+    }
+  }
+
+  /**
+   * 渲染 Chrome 内置模型下载进度与快捷切换为网络 AI 视图
+   */
+  _renderModelDownloadingView(errorMessage = "") {
+    if (this.summaryActionBar) this.summaryActionBar.style.display = "flex";
+    if (this.summaryRegenBtn) this.summaryRegenBtn.disabled = false;
+    if (!this.summaryScrollContainer) return;
+    this.summaryScrollContainer.replaceChildren();
+
+    this._resetDownloadStalledTimer();
+
+    const card = document.createElement("div");
+    card.style.cssText = `display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 220px; padding: 20px 16px; text-align: center; color: var(--kt-text); gap: 12px; box-sizing: border-box;`;
+    this._downloadProgressCard = card;
+
+    // 1. 标题
+    const header = document.createElement("div");
+    header.style.cssText = `display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: var(--kt-primary);`;
+    const titleSpan = document.createElement("span");
+    titleSpan.textContent = this._t(
+      "model_downloading_title",
+      "Chrome 内置模型下载中..."
+    );
+    header.appendChild(titleSpan);
+
+    // 2. 进度条
+    const progressWrapper = document.createElement("div");
+    progressWrapper.style.cssText = `width: 100%; max-width: 320px; background: var(--kt-divider, rgba(255,255,255,0.12)); height: 8px; border-radius: 4px; overflow: hidden; position: relative; margin: 4px 0;`;
+
+    const initialPercent = this._downloadProgress?.percent || 0;
+    const progressBar = document.createElement("div");
+    progressBar.style.cssText = `width: ${Math.max(6, Math.min(100, initialPercent))}%; height: 100%; background: var(--kt-primary, #3ea6ff); border-radius: 4px; transition: width 0.3s ease;`;
+    progressWrapper.appendChild(progressBar);
+    this._downloadProgressBar = progressBar;
+
+    // 3. 进度文本
+    const progressText = document.createElement("div");
+    progressText.style.cssText = `font-size: 12px; color: var(--kt-subtext); font-variant-numeric: tabular-nums;`;
+    if (this._downloadProgress?.total > 0) {
+      progressText.textContent = `${this._downloadProgress.percent}% (${this._formatBytes(
+        this._downloadProgress.loaded
+      )} / ${this._formatBytes(this._downloadProgress.total)})`;
+    } else {
+      progressText.textContent =
+        "Chrome 正在后台下载模型组件（约 1.5GB ~ 2GB）";
+    }
+    this._downloadProgressText = progressText;
+
+    // 4. 描述说明
+    const desc = document.createElement("p");
+    desc.style.cssText = `font-size: 12.5px; color: var(--kt-subtext); margin: 2px 0 0 0; line-height: 1.5; max-width: 340px;`;
+    desc.textContent = this._t(
+      "model_downloading_desc",
+      "Chrome 正在后台下载 Gemini Nano 大模型（体积约 1.5GB ~ 2GB）。受网络环境影响，若下载较慢，建议切换为网络大模型："
+    );
+
+    // 5. 停滞提示
+    const stalledTip = document.createElement("div");
+    stalledTip.style.cssText = `font-size: 12px; color: var(--kt-warning-color, #b45309); background: var(--kt-warning-bg, rgba(245, 158, 11, 0.12)); border: 1px solid var(--kt-warning-border, rgba(245, 158, 11, 0.35)); border-radius: 6px; padding: 8px 12px; line-height: 1.45; max-width: 340px; display: ${
+      this._downloadStalled ? "block" : "none"
+    }; text-align: left; box-sizing: border-box;`;
+    stalledTip.textContent = this._t(
+      "model_download_stalled",
+      "下载较为缓慢或停滞，可能因网络无法连接 Google 官方模型服务器，建议切换为网络 AI"
+    );
+    this._downloadStalledTip = stalledTip;
+
+    // 6. 操作按钮
+    const btnGroup = document.createElement("div");
+    btnGroup.style.cssText = `display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; margin-top: 6px;`;
+
+    // 切换为网络AI 按钮 (高亮主按钮)
+    const switchBtn = document.createElement("button");
+    switchBtn.textContent = `⚡ ${this._t("switch_to_network_ai", "切换为网络AI")}`;
+    switchBtn.style.cssText = `padding: 7px 14px; background: var(--kt-primary, #1e88e5); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12.5px; font-weight: 500; transition: opacity 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);`;
+    switchBtn.addEventListener(
+      "mouseenter",
+      () => (switchBtn.style.opacity = "0.9")
+    );
+    switchBtn.addEventListener(
+      "mouseleave",
+      () => (switchBtn.style.opacity = "1")
+    );
+    switchBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this._showModelSwitcherPopup(switchBtn);
+    });
+
+    // 重新生成/检查 按钮
+    const retryBtn = document.createElement("button");
+    retryBtn.textContent = this._t("regenerate_summary", "重新生成");
+    retryBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px;`;
+    this._attachBtnHover(retryBtn);
+    retryBtn.addEventListener("click", () =>
+      this.generateSummary({ force: true })
+    );
+
+    // 取消 按钮
+    const cancelBtn = document.createElement("button");
+    cancelBtn.textContent = this._t("cancel_action", "取消");
+    cancelBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px;`;
+    this._attachBtnHover(cancelBtn);
+    cancelBtn.addEventListener("click", () => {
+      this._clearDownloadStalledTimer();
+      this._renderSummaryGuide();
+    });
+
+    btnGroup.append(switchBtn, retryBtn, cancelBtn);
+    card.append(
+      header,
+      progressWrapper,
+      progressText,
+      desc,
+      stalledTip,
+      btnGroup
+    );
+    this.summaryScrollContainer.appendChild(card);
+  }
+
+  /**
+   * 弹出网络/其他可用 AI 模型选择菜单
+   * @param {HTMLElement} anchorEl 触发弹出的锚点按钮
+   * @param {object} [options={}]
+   * @param {boolean} [options.excludeBuiltin=true] 是否排除 BuiltinAI
+   */
+  async _showModelSwitcherPopup(anchorEl, { excludeBuiltin = true } = {}) {
+    if (this._modelSwitcherPopup) {
+      this._modelSwitcherPopup.remove();
+      this._modelSwitcherPopup = null;
+      return;
+    }
+
+    let transApis = [];
+    try {
+      const stored = await getSettingWithDefault();
+      transApis = stored?.transApis || [];
+    } catch (_) {}
+
+    // 严格过滤出未禁用且勾选了“总结能力 (summarization)”的服务
+    const availableModels = transApis.filter((api) => {
+      if (api.isDisabled) return false;
+      if (
+        excludeBuiltin &&
+        (api.apiType === OPT_TRANS_BUILTINAI ||
+          api.apiSlug === OPT_TRANS_BUILTINAI)
+      ) {
+        return false;
+      }
+      return (
+        isApiConfigured(api) && supportsApiCapability(api, "summarize")
+      );
+    });
+
+    const popup = document.createElement("div");
+    popup.style.cssText = `
+      position: absolute;
+      z-index: 10000;
+      background: var(--kt-card-bg, #ffffff);
+      color: var(--kt-text, #1a1a1a);
+      border: var(--kt-card-border, 1px solid rgba(0, 0, 0, 0.12));
+      border-radius: 8px;
+      box-shadow: var(--kt-card-shadow, 0 6px 24px rgba(0, 0, 0, 0.15));
+      padding: 6px;
+      width: 240px;
+      box-sizing: border-box;
+      max-height: 250px;
+      overflow-y: auto;
+      font-size: 12.5px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--kt-divider, rgba(0,0,0,0.15)) transparent;
+    `;
+
+    // 计算绝对定位坐标（居中对齐按钮，且左右各保留 10px 边距）
+    const rect = anchorEl.getBoundingClientRect();
+    const containerRect = this.container?.getBoundingClientRect() || {
+      top: 0,
+      left: 0,
+      width: 350,
+    };
+    const popupWidth = 240;
+    let left = rect.left - containerRect.left + (rect.width - popupWidth) / 2;
+    if (left < 10) left = 10;
+    if (left + popupWidth > containerRect.width - 10) {
+      left = containerRect.width - popupWidth - 10;
+    }
+    const top = rect.bottom - containerRect.top + 6;
+
+    popup.style.left = `${Math.round(left)}px`;
+    popup.style.top = `${Math.round(top)}px`;
+
+    const title = document.createElement("div");
+    title.style.cssText = `
+      padding: 6px 8px 8px 8px;
+      font-weight: 600;
+      color: var(--kt-subtext, #666666);
+      border-bottom: 1px solid var(--kt-divider, rgba(0, 0, 0, 0.08));
+      font-size: 11.5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    `;
+    title.textContent = this._t("select_summary_model", "选择总结 AI 模型");
+    popup.appendChild(title);
+
+    if (availableModels.length === 0) {
+      const emptyTip = document.createElement("div");
+      emptyTip.style.cssText = `padding: 14px 10px; text-align: center; color: var(--kt-subtext, #666666);`;
+      emptyTip.textContent = this._t(
+        "no_network_ai_available",
+        "暂无启用的网络大模型，请前往设置开启"
+      );
+
+      const goBtn = document.createElement("button");
+      goBtn.textContent = this._t("go_to_settings", "前往设置");
+      goBtn.style.cssText = `margin-top: 8px; padding: 5px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 11.5px;`;
+      goBtn.addEventListener("click", () => {
+        popup.remove();
+        this._modelSwitcherPopup = null;
+        openOptionsPage("/apis");
+      });
+      emptyTip.appendChild(goBtn);
+      popup.appendChild(emptyTip);
+    } else {
+      availableModels.forEach((api) => {
+        const item = document.createElement("div");
+        item.style.cssText = `
+          padding: 8px 10px;
+          margin-top: 2px;
+          border-radius: 6px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          color: var(--kt-text, #1a1a1a);
+          transition: background 150ms ease;
+        `;
+        item.addEventListener("mouseenter", () => {
+          item.style.background = "var(--kt-hover-bg, rgba(0, 0, 0, 0.06))";
+        });
+        item.addEventListener("mouseleave", () => {
+          item.style.background = "transparent";
+        });
+
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = api.apiName || api.apiType;
+        nameSpan.style.cssText = `
+          color: var(--kt-text, #1a1a1a);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 12.5px;
+          font-weight: 500;
+        `;
+
+        const tagSpan = document.createElement("span");
+        tagSpan.textContent = api.sourceType === "local" ? "Local" : "Network";
+        tagSpan.style.cssText = `
+          font-size: 10.5px;
+          padding: 2px 6px;
+          border-radius: 4px;
+          background: var(--kt-tag-bg, rgba(0, 0, 0, 0.06));
+          color: var(--kt-tag-color, #555555);
+          flex-shrink: 0;
+          font-weight: 500;
+        `;
+
+        item.append(nameSpan, tagSpan);
+        item.addEventListener("click", async () => {
+          popup.remove();
+          this._modelSwitcherPopup = null;
+          await this._switchToModel(api.apiSlug);
+        });
+        popup.appendChild(item);
+      });
+    }
+
+    const handleOutsideClick = (e) => {
+      if (!popup.contains(e.target) && e.target !== anchorEl) {
+        popup.remove();
+        this._modelSwitcherPopup = null;
+        document.removeEventListener("click", handleOutsideClick);
+      }
+    };
+    setTimeout(
+      () => document.addEventListener("click", handleOutsideClick),
+      10
+    );
+
+    this.container.appendChild(popup);
+    this._modelSwitcherPopup = popup;
+  }
+
+  /**
+   * 切换至指定 AI 模型并持久化保存至 subtitleSetting.summaryApiSlug
+   */
+  async _switchToModel(apiSlug) {
+    this._clearDownloadStalledTimer();
+
+    // 1. 立即更新内部状态，覆盖当前生效的模型
+    this._selectedSummaryApiSlug = apiSlug;
+
+    // 2. 立即将界面置为加载中，给予即时视觉反馈
+    this._renderSummaryLoading();
+
+    // 3. 异步持久化配置至存储（不阻塞后续调用）
+    saveEdit(STOKEY_SETTING, (currentSetting) => ({
+      ...currentSetting,
+      subtitleSetting: {
+        ...(currentSetting?.subtitleSetting || DEFAULT_SUBTITLE_SETTING),
+        summaryApiSlug: apiSlug,
+      },
+    })).catch((err) => {
+      logger.warn("save summary api slug failed", err);
+    });
+
+    // 4. 重置正在总结标记，立即发起总结
+    this._isSummarizing = false;
+    await this.generateSummary({ force: true });
+  }
+
+  /**
+   * 生成失败或异常状态渲染
+   */
+  _renderSummaryError(errorMessage) {
+    if (this.summaryActionBar) this.summaryActionBar.style.display = "flex";
+    if (this.summaryRegenBtn) this.summaryRegenBtn.disabled = false;
+    if (!this.summaryScrollContainer) return;
+
+    if (
+      typeof errorMessage === "string" &&
+      (errorMessage.includes("内置大模型正在下载中") ||
+        errorMessage.includes("Optimization Guide On Device Model") ||
+        errorMessage.includes("downloading"))
+    ) {
+      this._renderModelDownloadingView(errorMessage);
+      return;
+    }
+
+    this.summaryScrollContainer.replaceChildren();
+
+    const errorDiv = document.createElement("div");
+    errorDiv.style.cssText = `display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 160px; padding: 16px 12px; text-align: center; color: var(--kt-subtext); gap: 12px;`;
+
+    const text = document.createElement("p");
+    text.style.cssText = `font-size: 13px; color: #ff5252; margin: 0; line-height: 1.5; word-break: break-word;`;
+    text.textContent = errorMessage;
+
+    const btnRow = document.createElement("div");
+    btnRow.style.cssText = `display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;`;
+
+    const retryBtn = document.createElement("button");
+    retryBtn.textContent = this._t("regenerate_summary", "重新生成");
+    retryBtn.style.cssText = `padding: 6px 14px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px;`;
+    this._attachBtnHover(retryBtn);
+    retryBtn.addEventListener("click", () =>
+      this.generateSummary({ force: true })
+    );
+
+    const switchBtn = document.createElement("button");
+    switchBtn.textContent = this._t("switch_summary_model", "切换总结模型");
+    switchBtn.style.cssText = `padding: 6px 14px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px;`;
+    this._attachBtnHover(switchBtn);
+    switchBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this._showModelSwitcherPopup(switchBtn, { excludeBuiltin: false });
+    });
+
+    btnRow.append(retryBtn, switchBtn);
+    errorDiv.append(text, btnRow);
+    this.summaryScrollContainer.appendChild(errorDiv);
+  }
+
+  /**
+   * 复制当前视频总结到剪贴板
+   */
+  async _handleCopySummary() {
+    if (!this._currentSummaryText) return;
+    try {
+      await navigator.clipboard.writeText(this._currentSummaryText);
+      if (this.summaryCopyBtn) {
+        const originalText = this.summaryCopyBtn.textContent;
+        this.summaryCopyBtn.textContent = this._t("copied", "已复制");
+        setTimeout(() => {
+          if (this.summaryCopyBtn) {
+            this.summaryCopyBtn.textContent = originalText;
+          }
+        }, 2000);
+      }
+    } catch (e) {
+      logger.warn("copy summary failed", e);
+    }
+  }
+
+  /**
+   * 触发视频总结核心生成流程
+   *
+   * @param {object} [options={}]
+   * @param {boolean} [options.force=false] 是否强制忽略缓存重新生成
+   */
+  async generateSummary({ force = false } = {}) {
+    if (this._isSummarizing) return;
+
+    const config = await this._resolveSummaryConfig();
+    if (!config || !config.summaryApiSlug || config.summaryApiSlug === "-") {
+      this._renderSummaryGuide();
+      return;
+    }
+
+    const params = this._getSummaryParams(config);
+    const { videoId, title, description, transcript, apiSetting, prompt, to } =
+      params;
+
+    if (!transcript || transcript.trim().length < 10) {
+      this._renderSummaryError(
+        this._t("summary_waiting_subtitles", "等待字幕加载完成后再生成总结...")
+      );
+      return;
+    }
+
+    this._isSummarizing = true;
+    this._renderSummaryLoading();
+
+    try {
+      const summarySig = await getVideoSummarySignature(params);
+      const summary = await apiSummarizeVideo({
+        videoId,
+        title,
+        description,
+        transcript,
+        apiSetting,
+        prompt,
+        to,
+        force,
+      });
+
+      if (summary) {
+        this._summaryCache.set(summarySig, summary);
+        this._currentSummaryText = summary;
+        this._renderSummaryContent(summary);
+      } else {
+        this._renderSummaryError(
+          this._t("summary_failed", "生成视频总结失败，请检查服务配置或重试")
+        );
+      }
+    } catch (err) {
+      logger.error("generateSummary error", err);
+      this._renderSummaryError(
+        err?.message ||
+          this._t("summary_failed", "生成视频总结失败，请检查服务配置或重试")
+      );
+    } finally {
+      this._isSummarizing = false;
     }
   }
 }

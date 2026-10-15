@@ -29,6 +29,7 @@ import { fetchData } from "../libs/fetch";
 const getApiSetting = (update = {}) =>
   resolveApiPromptSettings({
     ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_REQUESTY),
+    isDisabled: false,
     useStream: false,
     useBatchFetch: true,
     key: "requesty-test-key",

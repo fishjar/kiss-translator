@@ -19,6 +19,12 @@ import {
   MSG_UPDATE_CSP,
   MSG_BUILTINAI_DETECT,
   MSG_BUILTINAI_TRANSLATE,
+  MSG_BUILTINAI_SUMMARIZE,
+  MSG_BUILTINAI_PROGRESS,
+  MSG_LOCAL_AI_RPC,
+  MSG_LOCAL_AI_CANCEL,
+  MSG_LOCAL_AI_SETTINGS,
+  MSG_LOCAL_AI_HOST,
   CMD_TOGGLE_TRANSLATE,
   CMD_TOGGLE_TRANSLATE_ONLY,
   CMD_TOGGLE_STYLE,
@@ -54,13 +60,23 @@ import { saveRule } from "./libs/rules";
 import { getCurTabId } from "./libs/msg";
 import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
 import { kissLog, logger } from "./libs/log";
-import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
+import {
+  chromeDetect,
+  chromeTranslate,
+  chromeSummarize,
+} from "./libs/builtinAI";
 import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
 import { isCurrentPopupDocument } from "./libs/popupDocument";
+import { localAiRequest, cancelLocalAiRequest, localAiSettings, localAiHost } from "./libs/localAiBackground";
+import { installProviderRelay } from "./providers/background";
+import { installFileTranslationBackend } from "./fileTranslation/backend";
+import { restoreFileTranslationBridges } from "./fileTranslation/bridgeRecovery";
 
 globalThis.__KISS_CONTEXT__ = "background";
 installStorageCoordinator();
+installFileTranslationBackend();
+restoreFileTranslationBridges();
 
 let openingOptionsPage = null;
 
@@ -743,6 +759,19 @@ const messageHandlers = {
   [MSG_COMMAND_SHORTCUTS]: () => browser.commands.getAll(), // 获取 manifest 注册的所有快捷键
   [MSG_BUILTINAI_DETECT]: (args) => chromeDetect(args), // 触发 Chrome 127+ 内置 Gemini AI 语言检测
   [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args), // 触发 Chrome 内置 AI 翻译接口
+  [MSG_BUILTINAI_SUMMARIZE]: async (args, sender) => {
+    const tabId = sender?.tab?.id;
+    const onProgress = (progressData) => {
+      if (tabId != null) {
+        sendTabMsg(MSG_BUILTINAI_PROGRESS, progressData, undefined, tabId);
+      }
+    };
+    return chromeSummarize({ ...args, onProgress });
+  },
+  [MSG_LOCAL_AI_RPC]: (request) => localAiRequest(request),
+  [MSG_LOCAL_AI_CANCEL]: ({ id }) => cancelLocalAiRequest(id),
+  [MSG_LOCAL_AI_SETTINGS]: (args) => localAiSettings(args),
+  [MSG_LOCAL_AI_HOST]: (args) => localAiHost(args),
   [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args), // 修改运行时的日志记录等级
   [MSG_CLEAR_CACHES]: () => tryClearCaches(), // 清空翻译缓存
   [MSG_OPEN_SEPARATE_WINDOW]: () => openSeparateWindowWithSavedBounds(), // 打开独立翻译小窗口
@@ -876,6 +905,7 @@ async function handleStreamFetch(port, args) {
  * 监听 runtime.onConnect 连接事件。
  * 筛选流式专属端口名 PORT_STREAM_FETCH，监听 start 开始指令并启动 handleStreamFetch 异步流处理程序。
  */
+installProviderRelay();
 browser.runtime.onConnect.addListener((port) => {
   if (port.name === PORT_STREAM_FETCH) {
     port.onMessage.addListener((message) => {

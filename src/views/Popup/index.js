@@ -324,6 +324,7 @@ export function Trantab({ isSeparate = false, isVisible = true }) {
       toLang2,
       aiDictApiSlug,
       aiDictPromptSlug,
+      ttsApiSlug,
     },
     langDetector = {},
     prompts = [],
@@ -380,6 +381,7 @@ export function Trantab({ isSeparate = false, isVisible = true }) {
           enSug={enSug}
           aiDictApiSlug={aiDictApiSlug}
           aiDictPromptSlug={aiDictPromptSlug}
+          ttsApiSlug={ttsApiSlug}
           prompts={prompts}
           translateVariants={translateVariants}
           parseLatex={parseLatex}

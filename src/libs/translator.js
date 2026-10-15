@@ -22,7 +22,6 @@ import {
   OPT_SPLIT_PARAGRAPH_PUNCTUATION,
   OPT_SPLIT_PARAGRAPH_DISABLE,
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
-  API_SPE_TYPES,
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
   EVENT_FAVORITE_WORD_CHANGE,
@@ -31,7 +30,12 @@ import {
   newI18n,
 } from "../config";
 import { resolveApiPromptSettings } from "../config/prompt";
-import { interpreter } from "./interpreter";
+import {
+  availableApiForScene,
+  withScenePrompt,
+} from "../config/serviceSelection";
+import { getInterpreter } from "./interpreter";
+import { supportsServiceFeature } from "../providers/features";
 import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
 import {
@@ -530,7 +534,7 @@ export class Translator {
   #mo; // MutationObserver
   #dmm; // DebounceMouseMover
 
-  // A discovery-only scan must not override an already queued content update.
+  // Discovery and host-only updates must not override a queued subtree update.
   #rescanQueue = new Map();
   #isQueueProcessing = false; // 队列处理状态标志
 
@@ -1004,18 +1008,19 @@ export class Translator {
   // 接口参数
   // todo: 不用频繁查找计算
   get #apiSetting() {
-    const api = this.#apisMap.get(this.#rule.apiSlug);
+    const api = availableApiForScene(this.#rule, this.#setting.transApis);
     return api && !api.isDisabled ? api : undefined;
   }
 
   // 气泡模式可使用独立接口；配置失效时继续跟随当前网页规则。
   get #hoverBubbleApiSetting() {
-    const apiSlug = this.#setting.mouseHoverSetting?.apiSlug;
+    const scene = this.#setting.mouseHoverSetting;
+    const apiSlug = scene?.apiSlug;
     if (!apiSlug || apiSlug === GLOBAL_KEY) {
       return this.#apiSetting;
     }
 
-    const apiSetting = this.#apisMap.get(apiSlug);
+    const apiSetting = availableApiForScene(scene, this.#setting.transApis);
     return apiSetting && !apiSetting.isDisabled ? apiSetting : this.#apiSetting;
   }
 
@@ -1417,7 +1422,7 @@ export class Translator {
             mutation.oldValue !== mutation.target.nodeValue &&
             !this.#combinedSkipsRegex.test(mutation.target.nodeValue)
           ) {
-            this.#queueForRescan(mutation.target.parentElement);
+            this.#queueForRescan(mutation.target.parentElement, false, true);
           }
         } else if (mutation.type === "childList") {
           let nodes = new Set();
@@ -1430,20 +1435,16 @@ export class Translator {
                   touchTranslationOwners.get(node) === mutation.target
                 );
               }
-              // Independent blocks do not contribute to their parent's source.
+              // Independent units do not contribute to their parent's source.
               // Inline/text removals must override a queued discovery-only scan.
               return (
                 node.nodeType === Node.TEXT_NODE ||
                 (Translator.isElementOrFragment(node) &&
-                  !(
-                    this.#rule.autoScan === "true" &&
-                    this.#isBlockNode(node) &&
-                    this.#shouldBreak(node)
-                  ))
+                  !this.#isIndependentTranslationSubtree(node))
               );
             })
           ) {
-            this.#queueForRescan(mutation.target);
+            this.#queueForRescan(mutation.target, false, true);
           }
           mutation.addedNodes.forEach((node) => {
             if (this.#isTranslationInsertion(node)) return;
@@ -1455,28 +1456,25 @@ export class Translator {
             }
           });
           if (hasText) {
-            this.#queueForRescan(mutation.target);
-          } else {
-            nodes.forEach((node) => {
-              const parents = removedParents.get(node);
-              // Same identity and same parent prove a reorder, not a clone or
-              // an insertion from outside the observed tree. Inline reorders,
-              // cross-parent moves and source edits still need invalidation.
-              const preserveTranslations =
-                parents?.size === 1 &&
-                parents.has(mutation.target) &&
-                !insertedBeforeRemoval.has(node) &&
-                node.parentNode === mutation.target &&
-                node.isConnected &&
-                this.#rule.autoScan === "true" &&
-                this.#isBlockNode(node) &&
-                this.#shouldBreak(node) &&
-                !Array.from(changedTargets).some((target) =>
-                  node.contains(target)
-                );
-              this.#queueForRescan(node, preserveTranslations);
-            });
+            this.#queueForRescan(mutation.target, false, true);
           }
+          nodes.forEach((node) => {
+            const parents = removedParents.get(node);
+            // Same identity and same parent prove a reorder, not a clone or
+            // an insertion from outside the observed tree. Inline reorders,
+            // cross-parent moves and source edits still need invalidation.
+            const preserveTranslations =
+              parents?.size === 1 &&
+              parents.has(mutation.target) &&
+              !insertedBeforeRemoval.has(node) &&
+              node.parentNode === mutation.target &&
+              node.isConnected &&
+              this.#isIndependentTranslationSubtree(node) &&
+              !Array.from(changedTargets).some((target) =>
+                node.contains(target)
+              );
+            this.#queueForRescan(node, preserveTranslations);
+          });
         }
       }
     });
@@ -2482,9 +2480,21 @@ export class Translator {
   }
 
   // “脏容器”队列
-  #queueForRescan(target, preserveTranslations = false) {
-    if (!this.#rescanQueue.has(target) || !preserveTranslations) {
-      this.#rescanQueue.set(target, preserveTranslations);
+  #queueForRescan(
+    target,
+    preserveTranslations = false,
+    preserveDescendants = false
+  ) {
+    const queued = this.#rescanQueue.get(target);
+    if (
+      !queued ||
+      (!preserveTranslations &&
+        (queued.preserveTranslations || !preserveDescendants))
+    ) {
+      this.#rescanQueue.set(target, {
+        preserveTranslations,
+        preserveDescendants,
+      });
     }
     if (!this.#isQueueProcessing) {
       this.#isQueueProcessing = true;
@@ -2492,15 +2502,32 @@ export class Translator {
       const queue = this.#rescanQueue;
       scheduleIdle(() => {
         if (queue !== this.#rescanQueue || this.#editorPaused) return;
-        queue.forEach((preserve, t) => this.#rescanContainer(t, preserve));
+        const containers = new Set();
+        // Invalidate the entire batch before scanning. An ancestor scan can
+        // start immediate child translation that a later cleanup would cancel.
+        queue.forEach(
+          ({ preserveTranslations, preserveDescendants }, target) => {
+            const container = this.#invalidateChangedContainer(
+              target,
+              preserveTranslations,
+              preserveDescendants
+            );
+            if (container) containers.add(container);
+          }
+        );
         queue.clear();
+        containers.forEach((container) => this.#scanNode(container));
         this.#isQueueProcessing = false;
       }, 100);
     }
   }
 
   // 处理“脏容器”
-  #rescanContainer(changedNode, preserveTranslations = false) {
+  #invalidateChangedContainer(
+    changedNode,
+    preserveTranslations = false,
+    preserveDescendants = false
+  ) {
     // DOM 发生变化，按住翻译的区域单元缓存不再可靠，全部失效
     this.#holdUnitsCache = new WeakMap();
 
@@ -2509,10 +2536,20 @@ export class Translator {
 
     if (!preserveTranslations) {
       this.#processedNodes.delete(container); // 删除处理状态，允许重新翻译
-      this.#cleanupAllTranslations(container);
+      if (preserveDescendants) {
+        this.#cleanupUnitTranslations(container);
+      } else {
+        // Inserted or moved subtrees may contain stale/duplicated wrappers.
+        // If an inline insertion resolves to an ancestor host, only that host's
+        // own source changed; its other descendants keep their translations.
+        this.#cleanupAllTranslations(changedNode);
+        if (container !== changedNode) {
+          this.#cleanupUnitTranslations(container);
+        }
+      }
     }
-    // Even a reorder scans for previously undiscovered translation targets.
-    this.#scanNode(container);
+    // Even a reorder must discover previously untranslated targets.
+    return container;
   }
 
   // 重新观察
@@ -3070,31 +3107,52 @@ export class Translator {
     });
   }
 
-  // 清除高亮
-  #removeHighlights(parentNode) {
+  #cleanupSourceArtifacts(parentNode) {
     if (!parentNode) return;
-
-    const highlightedElements = parentNode.querySelectorAll(
-      `.${Translator.KISS_CLASS.highlight}`
-    );
-
-    highlightedElements.forEach((element) => {
-      const textNode = document.createTextNode(element.textContent);
-      element.replaceWith(textNode);
-    });
-
-    parentNode.normalize();
+    const stack = [parentNode];
+    while (stack.length) {
+      const current = stack.pop();
+      this.#withIgnoredMutations([current], () => {
+        for (const child of Array.from(current.children)) {
+          if (
+            this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS &&
+            child.classList.contains(Translator.KISS_CLASS.highlight)
+          ) {
+            child.replaceWith(document.createTextNode(child.textContent));
+          } else if (child.classList.contains(Translator.KISS_CLASS.br)) {
+            child.remove();
+          } else if (!this.#shouldBreak(child)) {
+            stack.push(child);
+          }
+        }
+        // normalize() also descends into independent paragraphs and can change
+        // their saved source nodes. Merge only this unit's inline source.
+        for (const child of Array.from(current.childNodes)) {
+          if (
+            child.nodeType === Node.TEXT_NODE &&
+            child.parentNode === current
+          ) {
+            while (child.nextSibling?.nodeType === Node.TEXT_NODE) {
+              const next = child.nextSibling;
+              child.nodeValue += next.nodeValue;
+              next.remove();
+            }
+          }
+        }
+      });
+    }
   }
 
-  // 移除br
-  #removeBrTags(parentNode) {
-    if (!parentNode) return;
-
-    parentNode
-      .querySelectorAll(`.${Translator.KISS_CLASS.br}`)
-      .forEach((br) => br.remove());
-
-    parentNode.normalize();
+  #isIndependentTranslationSubtree(node) {
+    if (!Translator.isElementOrFragment(node) || !this.#shouldBreak(node))
+      return false;
+    if (this.#rule.autoScan === "true") return this.#isBlockNode(node);
+    // Selected descendants are separate units in manual mode too. Their
+    // enclosing cards can move without changing the selected source.
+    return (
+      node.matches?.(this.#rule.selector) ||
+      Boolean(node.querySelector(this.#rule.selector))
+    );
   }
 
   // 判断是否需要换行
@@ -3549,7 +3607,7 @@ export class Translator {
       const isStreamRender =
         streamRenderMode !== "disabled" &&
         this.#apiSetting.useStream &&
-        API_SPE_TYPES.stream.has(this.#apiSetting.apiType);
+        supportsServiceFeature(this.#apiSetting, "stream");
 
       // REVIEW: 极佳的性能优化设计 (RequestAnimationFrame 缓冲刷新)！
       // 大模型流式输出（onStreamChunk）返回速率极快（每秒可达几十次）。
@@ -3721,25 +3779,27 @@ export class Translator {
           // 同步运行的 `interpreter.run('exports.transEndHook = ...')` 会直接覆盖上一个任务尚未执行完毕的 exports.transEndHook 引用。
           // 这可能导致后一个任务的 Hook 函数被错误地执行多次，或者前一个任务执行了不匹配的、新覆盖的 Hook 函数，出现非预期的运行时状态混乱。
           if (transEndHook?.trim()) {
-            try {
-              interpreter.run(`exports.transEndHook = ${transEndHook}`);
-              interpreter.exports.transEndHook(
-                {
-                  hostNode,
-                  parentNode,
-                  nodes,
-                  wrapperNode: wrapper,
-                  innerNode: inner,
-                },
-                {
-                  text: processedString,
-                  fromLang: deLang || this.#rule.fromLang,
-                  toLang,
-                }
-              );
-            } catch (err) {
-              kissLog("transEndHook", err);
-            }
+            getInterpreter()
+              .then((interpreter) => {
+                interpreter.run(`exports.transEndHook = ${transEndHook}`);
+                interpreter.exports.transEndHook(
+                  {
+                    hostNode,
+                    parentNode,
+                    nodes,
+                    wrapperNode: wrapper,
+                    innerNode: inner,
+                  },
+                  {
+                    text: processedString,
+                    fromLang: deLang || this.#rule.fromLang,
+                    toLang,
+                  }
+                );
+              })
+              .catch((err) => {
+                kissLog("transEndHook", err);
+              });
           }
         },
         nodes
@@ -4205,8 +4265,16 @@ overflow-wrap: anywhere !important;`;
             node.tagName?.toUpperCase() === "IMG" ||
             node.tagName?.toUpperCase() === "SVG"
           ) {
-            node.style.width = `${node.offsetWidth}px`;
-            node.style.height = `${node.offsetHeight}px`;
+            const serializedNode = node.cloneNode(true);
+            const width = node.offsetWidth;
+            const height = node.offsetHeight;
+            if (width > 0) {
+              serializedNode.style.width = `${width}px`;
+            }
+            if (height > 0) {
+              serializedNode.style.height = `${height}px`;
+            }
+            return pushReplace(serializedNode.outerHTML);
           }
           return pushReplace(node.outerHTML);
         }
@@ -4341,7 +4409,7 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 发起翻译请求
-  #translateFetch(
+  async #translateFetch(
     text,
     deLang = "",
     onStreamChunk = null,
@@ -4349,6 +4417,11 @@ overflow-wrap: anywhere !important;`;
   ) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
+    const hoverScene = apiSettingOverride && this.#setting.mouseHoverSetting;
+    const scene =
+      hoverScene?.apiSlug && hoverScene.apiSlug !== GLOBAL_KEY
+        ? hoverScene
+        : this.#rule;
     const selectedApi = apiSettingOverride || this.#apiSetting;
     if (!selectedApi || selectedApi.isDisabled) {
       return Promise.reject(
@@ -4358,7 +4431,7 @@ overflow-wrap: anywhere !important;`;
     const rawApiSetting = { ...selectedApi };
 
     const apiSetting = resolveApiPromptSettings(
-      rawApiSetting,
+      withScenePrompt(rawApiSetting, scene),
       this.#setting.prompts,
       this.#setting.subtitleSetting
     );
@@ -4384,6 +4457,7 @@ overflow-wrap: anywhere !important;`;
     // 这可能导致先前发起的、仍在执行准备阶段的请求，在调用 transStartHook 时执行成了后一个翻译源的钩子逻辑。
     if (transStartHook?.trim()) {
       try {
+        const interpreter = await getInterpreter();
         interpreter.run(`exports.transStartHook = ${transStartHook}`);
         const hookResult = interpreter.exports.transStartHook({
           ...args,
@@ -4441,6 +4515,29 @@ overflow-wrap: anywhere !important;`;
     this.#cleanupTranslationElements(
       root.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
     );
+  }
+
+  #cleanupUnitTranslations(root) {
+    const hosts = new Set();
+    const wrappers = [];
+    const stack = [root];
+    while (stack.length) {
+      const node = stack.pop();
+      hosts.add(node);
+      for (const child of node.children) {
+        if (child.classList.contains(Translator.KISS_CLASS.warpper)) {
+          wrappers.push(child);
+        } else if (!this.#shouldBreak(child)) {
+          stack.push(child);
+        }
+      }
+    }
+    // Inline hosts can become part of their parent's source after an edit.
+    // Invalidate their pending detection/rendering too, while leaving
+    // independent descendant paragraphs and their saved source nodes intact.
+    this.#cancelTranslationUpdates((node) => hosts.has(node));
+    hosts.forEach((node) => this.#processedNodes.delete(node));
+    this.#cleanupTranslationElements(wrappers);
   }
 
   // 清理子节点译文dom
@@ -4615,11 +4712,7 @@ overflow-wrap: anywhere !important;`;
     touchTranslationOwners.delete(el);
     el.remove();
 
-    // todo: 可能不应深度清除
-    if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
-      this.#removeHighlights(parentElement);
-    }
-    this.#removeBrTags(parentElement);
+    this.#cleanupSourceArtifacts(parentElement);
   }
 
   // 恢复原文
@@ -5057,7 +5150,7 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 注入JS/CSS
-  #initInjector() {
+  async #initInjector() {
     if (this.#isJsInjected) {
       return;
     }
@@ -5087,6 +5180,7 @@ overflow-wrap: anywhere !important;`;
         const glossary = { ...this.#glossary };
         const apisMap = this.#apisMap;
         const apiDectect = tryDetectLang;
+        const interpreter = await getInterpreter();
         interpreter.import({
           KT: {
             apiTranslate,
@@ -5367,13 +5461,14 @@ overflow-wrap: anywhere !important;`;
     this.#setting = { ...this.#setting, transApis: nextApis };
     this.#apisMap = new Map(nextApis.map((api) => [api.apiSlug, api]));
     const nextRule = normalizeRuleApi(this.#rule, nextApis);
-    const nextApi = this.#apisMap.get(nextRule.apiSlug);
+    const nextApi = availableApiForScene(nextRule, nextApis);
     const enabledApi = nextApi && !nextApi.isDisabled ? nextApi : undefined;
     const selectionChanged = oldApi?.apiSlug !== enabledApi?.apiSlug;
-    const hoverApiSlug = this.#setting.mouseHoverSetting?.apiSlug;
+    const hoverScene = this.#setting.mouseHoverSetting;
+    const hoverApiSlug = hoverScene?.apiSlug;
     const hoverApi =
       hoverApiSlug && hoverApiSlug !== GLOBAL_KEY
-        ? this.#apisMap.get(hoverApiSlug)
+        ? availableApiForScene(hoverScene, nextApis)
         : undefined;
     const nextHoverApi =
       hoverApi && !hoverApi.isDisabled ? hoverApi : enabledApi;

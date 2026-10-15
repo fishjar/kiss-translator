@@ -12,8 +12,7 @@ export const MIN_TARGET_HEIGHT_PX = 40;
 // 后内容高度恰为单行 23px，保证锁定下限处文字不被手柄热区遮挡。
 // 仅用于锁定/记忆钳制路径（clampGripMemoryHeight / clampHeight / 拖拽托底）；
 // 未锁定口径继续使用 MIN_TARGET_HEIGHT_PX。
-export const LOCKED_MIN_TARGET_HEIGHT_PX =
-  MIN_TARGET_HEIGHT_PX + HOT_ZONE_PX;
+export const LOCKED_MIN_TARGET_HEIGHT_PX = MIN_TARGET_HEIGHT_PX + HOT_ZONE_PX;
 // 方向键单次步进（Shift ×4）。
 const KEYBOARD_STEP_PX = 12;
 // 高度上界相对视口底部的安全留白。
@@ -541,10 +540,7 @@ export default function TextareaResizeGrip({
     // 播报上界与实际钳制上界同步：窗口 resize / 滚动祖先钳制后，
     // aria-valuemax 不再停留在初始视口保守值。
     setAriaValueMax(max);
-    return Math.min(
-      Math.max(rounded, LOCKED_MIN_TARGET_HEIGHT_PX),
-      max
-    );
+    return Math.min(Math.max(rounded, LOCKED_MIN_TARGET_HEIGHT_PX), max);
   };
 
   // 会话终止共用路径：pointerup/cancel/lostpointercapture（经 endSession）

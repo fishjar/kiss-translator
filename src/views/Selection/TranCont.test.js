@@ -1435,6 +1435,23 @@ describe("TranCont", () => {
     });
   });
 
+  test("a user plugin streams by its declared translation feature without a vendor classification", async () => {
+    const plugin = {
+      ...baseApiSetting,
+      apiType: "Plugin",
+      provider: {
+        capabilities: { translate: { outputModes: ["complete", "stream"] } },
+      },
+    };
+    apiTranslate.mockResolvedValueOnce({ trText: "插件译文" });
+    const rendered = renderTranCont({ transApis: [plugin] });
+    await flushEffects();
+    expect(apiTranslate.mock.calls[0][0].onStreamChunk).toEqual(
+      expect.any(Function)
+    );
+    act(() => rendered.root.unmount());
+  });
+
   test("aborts stale request and prevents stale result overwrite", async () => {
     const first = createDeferred();
     const second = createDeferred();

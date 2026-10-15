@@ -1,3 +1,4 @@
+import ListSubheader from "@mui/material/ListSubheader";
 import { useEffect, useId, useRef, useState } from "react";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import Accordion from "@mui/material/Accordion";
@@ -177,24 +178,43 @@ export function SettingsSelect({
   label,
   multiple = false,
   disabled = false,
+  fullWidth = false,
+  hiddenLabel,
+  InputLabelProps,
+  className = "",
+  sx,
+  variant = "filled",
+  ...rest
 }) {
+  const isHiddenLabel = hiddenLabel !== undefined ? hiddenLabel : !fullWidth;
   return (
     <TextField
       select
-      hiddenLabel
+      hiddenLabel={isHiddenLabel}
+      label={isHiddenLabel ? undefined : label}
+      InputLabelProps={
+        !isHiddenLabel ? { shrink: true, ...InputLabelProps } : InputLabelProps
+      }
       size="small"
-      variant="filled"
-      className="kt-settings-select"
+      variant={variant}
+      fullWidth={fullWidth}
+      className={`kt-settings-select ${fullWidth ? "kt-settings-select--full" : ""} ${!isHiddenLabel ? "kt-settings-select--with-label" : ""} ${className}`.trim()}
       value={value}
       disabled={disabled}
-      SelectProps={{ multiple }}
+      SelectProps={{ multiple, displayEmpty: true }}
       inputProps={{ "aria-label": label }}
       onChange={(event) => onChange(event.target.value)}
+      sx={{
+        ...(fullWidth ? { width: "100%", maxWidth: "none" } : {}),
+        ...sx,
+      }}
+      {...rest}
     >
       {options.map((option) => {
         const normalized = Array.isArray(option)
           ? { value: option[0], label: option[1] }
           : option;
+        if (normalized.groupLabel) return <ListSubheader key={normalized.groupLabel}>{normalized.groupLabel}</ListSubheader>;
         return (
           <MenuItem key={normalized.value} value={normalized.value}>
             {normalized.label}

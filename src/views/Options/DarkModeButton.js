@@ -5,7 +5,7 @@ import IconButton from "@mui/material/IconButton";
 import { useDarkMode } from "../../hooks/ColorMode";
 import { useI18n } from "../../hooks/I18n";
 
-export default function DarkModeButton() {
+export default function DarkModeButton({ size, sx, ...props }) {
   const { darkMode, toggleDarkMode } = useDarkMode();
   const i18n = useI18n();
   const normalizedMode = ["light", "dark", "auto"].includes(darkMode)
@@ -36,11 +36,14 @@ export default function DarkModeButton() {
 
   return (
     <IconButton
+      size={size}
+      sx={sx}
       onClick={toggleDarkMode}
       aria-label={accessibleLabel}
       title={accessibleLabel}
+      {...props}
     >
-      <Icon />
+      <Icon fontSize={size === "small" ? "small" : undefined} />
     </IconButton>
   );
 }

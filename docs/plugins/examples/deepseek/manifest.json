@@ -1,0 +1,301 @@
+{
+  "manifestVersion": 1,
+  "id": "example-deepseek",
+  "name": "DeepSeek 示例",
+  "version": "1.2.1",
+  "apiVersion": "1",
+  "description": "DeepSeek Chat Completions：聊天、批量翻译、流式输出与思考模式。",
+  "permissions": {
+    "network": [
+      "https://api.deepseek.com"
+    ],
+    "endpointFields": [
+      "baseUrl"
+    ]
+  },
+  "sharedSettings": [
+    {
+      "key": "baseUrl",
+      "label": "API 基础地址",
+      "type": "text",
+      "defaultValue": "https://api.deepseek.com",
+      "required": true,
+      "labelI18n": {
+        "zh": "API 基础地址",
+        "en": "API base URL",
+        "zh_TW": "API 基礎地址",
+        "ja": "APIベースURL",
+        "ko": "API 기본 URL",
+        "tr": "API temel URL'si",
+        "vi": "URL gốc API",
+        "ru": "Базовый URL API"
+      }
+    },
+    {
+      "key": "apiKey",
+      "label": "API Key",
+      "type": "password",
+      "isSecret": true,
+      "required": true
+    }
+  ],
+  "services": [
+    {
+      "id": "chat-completions",
+      "name": "DeepSeek 文本生成与翻译",
+      "implementation": {
+        "kind": "declarative",
+        "entry": "services/chat.json"
+      },
+      "capabilities": {
+        "chat": {
+          "handler": "chat",
+          "inputModalities": [
+            "text"
+          ],
+          "outputModes": [
+            "complete",
+            "stream"
+          ]
+        },
+        "translate": {
+          "handler": "translate",
+          "batch": {
+            "supported": true
+          },
+          "outputModes": [
+            "complete",
+            "stream"
+          ]
+        }
+      },
+      "settings": [
+        {
+          "key": "model",
+          "label": "DeepSeek 模型",
+          "type": "text",
+          "required": true,
+          "defaultValue": "deepseek-flash",
+          "labelI18n": {
+            "zh": "DeepSeek 模型",
+            "en": "DeepSeek model",
+            "zh_TW": "DeepSeek 模型",
+            "ja": "DeepSeekモデル",
+            "ko": "DeepSeek 모델",
+            "tr": "DeepSeek modeli",
+            "vi": "Mô hình DeepSeek",
+            "ru": "Модель DeepSeek"
+          }
+        },
+        {
+          "key": "translationTemperature",
+          "label": "翻译采样温度",
+          "type": "number",
+          "defaultValue": 0,
+          "min": 0,
+          "max": 2,
+          "visibleForCapabilities": [
+            "translate"
+          ],
+          "labelI18n": {
+            "zh": "翻译采样温度",
+            "en": "Translation temperature",
+            "zh_TW": "翻譯採樣溫度",
+            "ja": "翻訳サンプリング温度",
+            "ko": "번역 샘플링 온도",
+            "tr": "Çeviri sıcaklığı",
+            "vi": "Nhiệt độ lấy mẫu dịch",
+            "ru": "Температура перевода"
+          }
+        },
+        {
+          "key": "thinkingMode",
+          "label": "思考模式",
+          "type": "select",
+          "defaultValue": "disabled",
+          "options": [
+            {
+              "label": "接口默认",
+              "value": "auto",
+              "labelI18n": {
+                "zh": "接口默认",
+                "en": "API Default",
+                "zh_TW": "介面預設",
+                "ja": "APIデフォルト",
+                "ko": "API 기본값",
+                "tr": "API Varsayılanı",
+                "vi": "Mặc định API",
+                "ru": "По умолчанию для интерфейса"
+              }
+            },
+            {
+              "label": "开启思考",
+              "value": "enabled",
+              "labelI18n": {
+                "zh": "开启思考",
+                "en": "Enable Thinking",
+                "zh_TW": "開啟思考",
+                "ja": "思考を有効",
+                "ko": "사고 활성화",
+                "tr": "Düşünmeyi Etkinleştir",
+                "vi": "Bật suy nghĩ",
+                "ru": "Включить размышление"
+              }
+            },
+            {
+              "label": "关闭思考",
+              "value": "disabled",
+              "labelI18n": {
+                "zh": "关闭思考",
+                "en": "Disable Thinking",
+                "zh_TW": "關閉思考",
+                "ja": "思考を無効",
+                "ko": "사고 비활성화",
+                "tr": "Düşünmeyi Devre Dışı Bırak",
+                "vi": "Tắt suy nghĩ",
+                "ru": "Отключить размышление"
+              }
+            }
+          ],
+          "labelI18n": {
+            "zh": "思考模式",
+            "en": "Thinking Mode",
+            "zh_TW": "思考模式",
+            "ja": "思考モード",
+            "ko": "사고 모드",
+            "tr": "Düşünme Modu",
+            "vi": "Chế độ suy nghĩ",
+            "ru": "Режим размышления"
+          }
+        },
+        {
+          "key": "thinkingEffort",
+          "label": "思考强度",
+          "type": "select",
+          "defaultValue": "high",
+          "options": [
+            {
+              "label": "低",
+              "value": "low",
+              "labelI18n": {
+                "zh": "低",
+                "en": "Low",
+                "zh_TW": "低",
+                "ja": "低",
+                "ko": "낮음",
+                "tr": "Düşük",
+                "vi": "Thấp",
+                "ru": "Низкий"
+              }
+            },
+            {
+              "label": "高",
+              "value": "high",
+              "labelI18n": {
+                "zh": "高",
+                "en": "High",
+                "zh_TW": "高",
+                "ja": "高",
+                "ko": "높음",
+                "tr": "Yüksek",
+                "vi": "Cao",
+                "ru": "Высокий"
+              }
+            },
+            {
+              "label": "最高",
+              "value": "max",
+              "labelI18n": {
+                "zh": "最高",
+                "en": "Maximum",
+                "zh_TW": "最高",
+                "ja": "最大",
+                "ko": "최대",
+                "tr": "En yüksek",
+                "vi": "Tối đa",
+                "ru": "Максимальный"
+              }
+            },
+            {
+              "label": "接口默认",
+              "value": "_default",
+              "labelI18n": {
+                "zh": "接口默认",
+                "en": "API Default",
+                "zh_TW": "介面預設",
+                "ja": "APIデフォルト",
+                "ko": "API 기본값",
+                "tr": "API Varsayılanı",
+                "vi": "Mặc định API",
+                "ru": "По умолчанию для интерфейса"
+              }
+            }
+          ],
+          "labelI18n": {
+            "zh": "思考强度",
+            "en": "Thinking Effort",
+            "zh_TW": "思考強度",
+            "ja": "思考レベル",
+            "ko": "사고 수준",
+            "tr": "Düşünme Çabası",
+            "vi": "Mức độ suy nghĩ",
+            "ru": "Интенсивность размышления"
+          }
+        }
+      ],
+      "modelField": "model",
+      "models": [
+        {
+          "id": "deepseek-flash",
+          "name": "deepseek-flash"
+        },
+        {
+          "id": "deepseek-v4-pro",
+          "name": "deepseek-v4-pro"
+        }
+      ],
+      "defaultPrompts": {
+        "batch": {
+          "protocol": "json",
+          "systemPrompt": "Translate the input items from {{sourceLanguage}} to {{targetLanguage}}. Return only a JSON array of {id,text}, keeping every ID. Glossary: {{glossary}}. Context: {{context}}",
+          "userPrompt": "{{segments}}"
+        },
+        "nobatch": {
+          "protocol": "text",
+          "systemPrompt": "Translate the source text from {{sourceLanguage}} to {{targetLanguage}}. Output only the translated text, without explanations or Markdown fences. Glossary: {{glossary}}. Context: {{context}}",
+          "userPrompt": "{{text}}"
+        }
+      },
+      "nameI18n": {
+        "zh": "DeepSeek 文本生成与翻译",
+        "en": "DeepSeek text generation and translation",
+        "zh_TW": "DeepSeek 文本生成與翻譯",
+        "ja": "DeepSeekテキスト生成と翻訳",
+        "ko": "DeepSeek 텍스트 생성 및 번역",
+        "tr": "DeepSeek metin oluşturma ve çeviri",
+        "vi": "Tạo văn bản và dịch DeepSeek",
+        "ru": "Генерация текста и перевод DeepSeek"
+      }
+    }
+  ],
+  "nameI18n": {
+    "zh": "DeepSeek 示例",
+    "en": "DeepSeek example",
+    "zh_TW": "DeepSeek 示例",
+    "ja": "DeepSeekサンプル",
+    "ko": "DeepSeek 예제",
+    "tr": "DeepSeek örneği",
+    "vi": "Ví dụ DeepSeek",
+    "ru": "Пример DeepSeek"
+  },
+  "descriptionI18n": {
+    "zh": "DeepSeek Chat Completions：聊天、批量翻译、流式输出与思考模式。",
+    "en": "DeepSeek Chat Completions: chat, batch translation, streaming and thinking modes.",
+    "zh_TW": "DeepSeek Chat Completions：聊天、批次翻譯、串流輸出與思考模式。",
+    "ja": "DeepSeek Chat Completions：チャット、一括翻訳、ストリーミング、思考モード。",
+    "ko": "DeepSeek Chat Completions: 채팅, 일괄 번역, 스트리밍 및 사고 모드.",
+    "tr": "DeepSeek Chat Completions: sohbet, toplu çeviri, akış ve düşünme modları.",
+    "vi": "DeepSeek Chat Completions: trò chuyện, dịch hàng loạt, luồng và chế độ suy nghĩ.",
+    "ru": "DeepSeek Chat Completions: чат, пакетный перевод, потоковый вывод и режимы размышления."
+  }
+}

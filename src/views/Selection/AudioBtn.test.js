@@ -2,8 +2,43 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { AudioBtn, BrowserTtsBtn } from "./AudioBtn";
 import { canSpeak, speak } from "../../libs/speech";
+import { invokeSavedService } from "../../providers/savedService";
+import { getSettingWithDefault } from "../../libs/storage";
+jest.mock("../../providers/savedService", () => ({
+  invokeSavedService: jest.fn(),
+}));
+jest.mock("../../libs/storage", () => ({ getSettingWithDefault: jest.fn() }));
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+test("a saved legacy SystemTTS instance plays through speak without requiring a provider snapshot", async () => {
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [
+      { apiSlug: "legacy-speech", apiType: "SystemTTS", enabledCapabilities: ["speak"] },
+    ],
+  });
+  invokeSavedService.mockReturnValue({
+    result: Promise.resolve({ status: "ended" }),
+    cancel: jest.fn(),
+    assets: { clear: jest.fn() },
+  });
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await act(async () =>
+      root.render(<BrowserTtsBtn text="hello" serviceId="legacy-speech" />)
+    );
+    await act(async () => container.querySelector("button").click());
+    expect(invokeSavedService).toHaveBeenCalledWith("legacy-speech", "speak", {
+      text: "hello",
+      language: "en-US",
+    });
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+  }
+});
 
 jest.mock("../../libs/speech", () => ({
   canSpeak: jest.fn(),

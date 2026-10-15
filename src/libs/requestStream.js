@@ -228,6 +228,11 @@ async function* fetchStreamGM(
  * @returns {AsyncGenerator<string>} 逐条产出 SSE data 字段。
  */
 export async function* fetchStreamNative(input, init = {}, opts = {}) {
+  if (input === "local-ai://chat") {
+    const { streamLocalChat } = await import("./localAiTransport");
+    yield* streamLocalChat(init, opts);
+    return;
+  }
   const options = typeof opts === "number" ? { httpTimeout: opts } : opts || {};
   const timeout = normalizeHttpTimeout(options.httpTimeout);
   const signal = mergeAbortSignals([

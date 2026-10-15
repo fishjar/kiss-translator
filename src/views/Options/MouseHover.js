@@ -3,6 +3,8 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import { useI18n } from "../../hooks/I18n";
 import ShortcutInput from "./ShortcutInput";
+import ServiceSelect from "./ServiceSelect";
+import ScenePromptSelect from "./ScenePromptSelect";
 import TextField from "@mui/material/TextField";
 import { useMouseHoverSetting } from "../../hooks/MouseHover";
 import { useApiList } from "../../hooks/Api";
@@ -124,13 +126,6 @@ export default function MouseHoverSetting() {
     [updateMouseHoverSetting]
   );
 
-  const handleApiChange = useCallback(
-    (e) => {
-      updateMouseHoverSetting({ apiSlug: e.target.value });
-    },
-    [updateMouseHoverSetting]
-  );
-
   // Normalize the current mouse hover settings.
   const {
     useMouseHover = true,
@@ -144,12 +139,8 @@ export default function MouseHoverSetting() {
     mouseHoverPreventClick = false,
     blacklist = "",
     displayMode = OPT_MOUSE_HOVER_DISPLAY_BILINGUAL,
-    apiSlug = GLOBAL_KEY,
     bubbleStyle = DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
   } = mouseHoverSetting;
-  const selectedApiSlug = enabledApis.some((api) => api.apiSlug === apiSlug)
-    ? apiSlug
-    : GLOBAL_KEY;
 
   return (
     <Box>
@@ -240,26 +231,35 @@ export default function MouseHoverSetting() {
               label={i18n("translate_service")}
               description={i18n("mousehover_bubble_api_helper")}
             >
-              <TextField
-                select
-                hiddenLabel
-                size="small"
-                variant="filled"
-                className="kt-settings-select"
-                name="apiSlug"
-                value={selectedApiSlug}
-                inputProps={{ "aria-label": i18n("translate_service") }}
-                onChange={handleApiChange}
-              >
-                <MenuItem value={GLOBAL_KEY}>
-                  {i18n("mousehover_follow_page_rule")}
-                </MenuItem>
-                {enabledApis.map((api) => (
-                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
-                    {api.apiName}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <ServiceSelect
+                scene={mouseHoverSetting}
+                apis={[
+                  {
+                    apiSlug: GLOBAL_KEY,
+                    apiName: i18n("mousehover_follow_page_rule"),
+                  },
+                  ...enabledApis,
+                ]}
+                label={i18n("translate_service")}
+                onChange={(apiSlug) =>
+                  updateMouseHoverSetting({
+                    apiSlug: apiSlug || GLOBAL_KEY,
+                  })
+                }
+              />
+            </SettingsRow>
+          )}
+          {displayMode === OPT_MOUSE_HOVER_DISPLAY_BUBBLE && (
+            <SettingsRow label={i18n("translation_prompt", "翻译提示词")}>
+              <ScenePromptSelect
+                scene={mouseHoverSetting}
+                apis={enabledApis}
+                label={i18n("translation_prompt", "翻译提示词")}
+                value={mouseHoverSetting.promptSlug}
+                onChange={(promptSlug) =>
+                  updateMouseHoverSetting({ promptSlug })
+                }
+              />
             </SettingsRow>
           )}
         </SettingsCard>

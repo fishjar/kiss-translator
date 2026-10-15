@@ -42,8 +42,11 @@ import {
   defaultNobatchUserPrompt,
 } from "../../config";
 import { apiTranslate } from "../../apis";
+import { supportsServiceFeature } from "../../providers/features";
 import { useAlert } from "../../hooks/Alert";
 import { useI18n } from "../../hooks/I18n";
+import { registerI18n } from "../../config/i18n";
+import { TERMINOLOGY_PLAYGROUND_I18N } from "../../config/locales/terminologyPlayground";
 import TextareaResizeGrip from "../../components/TextareaResizeGrip";
 import useTextareaHeightLock, {
   useTextareaGripStyle,
@@ -69,6 +72,8 @@ import {
   joinIntoParagraph,
   selectDisplayedResults,
 } from "../../libs/termTestUtils";
+
+registerI18n(TERMINOLOGY_PLAYGROUND_I18N);
 
 // 占位符格式由 apiSetting.placeholder 配置决定，默认取内置第一项 "{ }" → 生成 {1}、{2}…
 const [PLACEHOLDER_START, PLACEHOLDER_END] = BUILTIN_PLACEHOLDERS[0].split(" ");
@@ -895,7 +900,7 @@ function formatAssertionIssue(issue, i18n) {
       return formatI18n(
         i18n,
         "terminology_playground_issue_conflict_long_no_value_replaced",
-        "长词 {long} 无译文但被替换为 \"{replacement}\"。",
+        '长词 {long} 无译文但被替换为 "{replacement}"。',
         params
       );
     case "conflict-short-value-not-applied":
@@ -1388,7 +1393,7 @@ export default function TerminologyPlayground({
     // 切换接口选择器不会重置结果区，若读 selectedApi 会输出与 rawRequest 矛盾的结论。
     const isBatch =
       !!selectedApi.useBatchFetch &&
-      API_SPE_TYPES.batch.has(selectedApi.apiType);
+      supportsServiceFeature(selectedApi, "batch");
     const apiSnapshot = {
       apiName: selectedApi.apiName || selectedApi.apiType || "",
       apiType: selectedApi.apiType,
@@ -2657,8 +2662,7 @@ export default function TerminologyPlayground({
                                 0,
                                 aiGlossaryExpanded ? undefined : DISPLAY_LIMIT
                               )
-                              .map(
-                              ({ source, key, value }) => {
+                              .map(({ source, key, value }) => {
                                 const delivery = deliveryMap?.get(key);
                                 return (
                                   <Typography
@@ -2697,8 +2701,7 @@ export default function TerminologyPlayground({
                                     )}
                                   </Typography>
                                 );
-                              }
-                            )}
+                              })}
                             {aiTestState.glossaryEntries.length >
                               DISPLAY_LIMIT && (
                               <Button
@@ -3128,8 +3131,7 @@ export default function TerminologyPlayground({
                             0,
                             aiGlossaryExpanded ? undefined : DISPLAY_LIMIT
                           )
-                          .map(
-                          ({ source, key, value }) => {
+                          .map(({ source, key, value }) => {
                             const sourceLabel =
                               source === "input"
                                 ? i18n(
@@ -3246,8 +3248,7 @@ export default function TerminologyPlayground({
                                 </td>
                               </tr>
                             );
-                          }
-                        )}
+                          })}
                       </tbody>
                     </table>
                     {aiTestState.glossaryEntries.length > DISPLAY_LIMIT && (

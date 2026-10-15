@@ -24,11 +24,17 @@ import { SettingProvider } from "../../hooks/Setting";
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 HTMLElement.prototype.scrollTo = jest.fn();
 const mockConfirm = jest.fn();
+const mockAlertInfo = jest.fn();
 const mockUsePromptList = jest.fn(() => ({ prompts: [] }));
 
-jest.mock("../../hooks/I18n", () => ({
-  useI18n: () => (key, fallback) => fallback || key,
-}));
+jest.mock("../../hooks/I18n", () => {
+  const i18n = (key, fallback) =>
+    /^(plugin_|capability_|service_|provider_plugins|api_source_type_)/.test(key)
+      ? require("../../config/locales/localAi").LOCAL_AI_I18N[key]?.zh ||
+        require("../../config/i18n").newI18n("zh")(key, fallback)
+      : fallback || key;
+  return { useI18n: () => i18n };
+});
 
 jest.mock("../../hooks/Api", () => ({
   ...jest.requireActual("../../hooks/Api"),
@@ -46,6 +52,7 @@ jest.mock("../../hooks/Confirm", () => ({
 
 jest.mock("../../hooks/Alert", () => ({
   useAlert: () => ({
+    info: mockAlertInfo,
     success: jest.fn(),
     error: jest.fn(),
   }),
@@ -69,6 +76,22 @@ jest.mock("../../apis", () => ({
 jest.mock("../../libs/modelList", () => ({
   fetchModelCatalog: jest.fn(),
 }));
+
+jest.mock("./LocalModelSelect", () => {
+  const React = require("react");
+  return function LocalModelSelect({ value, onChange }) {
+    return React.createElement(
+      "div",
+      null,
+      "本地模型选择",
+      React.createElement("input", {
+        name: "modelRef",
+        value: value || "",
+        onChange: (event) => onChange(event.target.value),
+      })
+    );
+  };
+});
 
 jest.mock("./ReusableAutocomplete", () => {
   return function MockReusableAutocomplete({
@@ -102,6 +125,7 @@ const { useApiList, useApiItem } = require("../../hooks/Api");
 
 function createApi(overrides = {}) {
   return {
+    enabledCapabilities: ["translate", "segmentSubtitle", "dictionary"],
     apiSlug: "OpenAI",
     apiName: "OpenAI",
     apiType: OPT_TRANS_OPENAI,
@@ -114,6 +138,49 @@ function createApi(overrides = {}) {
     ...overrides,
   };
 }
+
+describe("service save feedback", () => {
+  test("saves an out-of-range native draft before warning and keeps a pinned detail expanded", async () => {
+    let complete;
+    const update = jest.fn(() => new Promise((resolve) => { complete = resolve; }));
+    const view = await renderApis(createApi({ sortOrder: -1 }), update);
+    await act(async () => Simulate.change(getInput(view.container, "temperature"), { target: { value: "5" } }));
+    await act(async () => Simulate.blur(getInput(view.container, "temperature")));
+    await act(async () => Simulate.click(getSaveButton(view.container)));
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ temperature: 5 }));
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(getSaveButton(view.container).disabled).toBe(true);
+    await act(async () => complete());
+    expect(document.querySelector('[role="dialog"]').textContent).toContain("配置已保存");
+    expect(document.querySelector('[role="dialog"]').textContent).toContain("temperature 数值超出");
+    expect(getInput(view.container, "temperature").value).toBe("5");
+    await act(async () => Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "知道了").click());
+    expect(update).toHaveBeenCalledTimes(1);
+    view.unmount();
+  });
+
+  test("native storage failure restores the edited draft after optimistic rollback and permits retry", async () => {
+    const original = createApi();
+    let fail;
+    const update = jest.fn(() => new Promise((_, reject) => { fail = reject; }));
+    const view = await renderApis(original, update);
+    await act(async () => Simulate.change(getInput(view.container, "apiName"), { target: { name: "apiName", value: "Keep draft" } }));
+    await act(async () => Simulate.click(getSaveButton(view.container)));
+    const saved = update.mock.calls[0][0];
+    await view.rerender([saved]);
+    await view.rerender([original]);
+    await act(async () => fail(new Error("写入失败")));
+    expect(document.querySelector('[role="dialog"]').textContent).toContain("保存失败");
+    expect(getInput(view.container, "apiName").value).toBe("Keep draft");
+    expect(getSaveButton(view.container).disabled).toBe(false);
+    await act(async () => Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "知道了").click());
+    update.mockResolvedValueOnce(undefined);
+    await act(async () => Simulate.click(getSaveButton(view.container)));
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(document.querySelector('#service-feedback-title')).toBeNull();
+    view.unmount();
+  });
+});
 
 async function flushEffects() {
   await act(async () => {
@@ -518,13 +585,33 @@ describe("Apis ordering and master-detail layout", () => {
     expect(getInput(detail, "apiName").value).toBe("Alpha");
     expect(getInput(detail, "model").value).toBe("gpt-4");
 
+    expect(detail.querySelector('input[name="sourceType"]')).toBeNull();
+    expect(
+      detail.querySelector(".kt-api-detail__header").textContent
+    ).toContain("网络");
+    const capabilitiesInput = getInput(detail, "enabledCapabilities");
+    expect(
+      getInput(detail, "model").compareDocumentPosition(capabilitiesInput) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
     const footer = detail.querySelector(".kt-api-detail__footer");
     const footerButtonTexts = Array.from(footer.querySelectorAll("button")).map(
       (button) => button.textContent
     );
     expect(footerButtonTexts).toEqual(
-      expect.arrayContaining(["save", "click_test", "api_actions"])
+      expect.arrayContaining(["save", "api_actions"])
     );
+    const testCard = detail.querySelector(".kt-service-test");
+    const configCard = detail.querySelector(".kt-service-configuration");
+    expect(detail.querySelectorAll(".kt-service-card")).toHaveLength(2);
+    expect(
+      configCard.compareDocumentPosition(testCard) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(testCard.textContent).toContain("执行测试");
+    expect(testCard.textContent).toContain("快捷翻译测试");
+    expect(footer.textContent).not.toContain("快捷翻译测试");
     expect(footer.textContent).not.toContain("restore_default");
     expect(footer.textContent).not.toContain("copy_api");
     expect(footer.textContent).not.toContain("delete");
@@ -603,7 +690,9 @@ describe("Apis ordering and master-detail layout", () => {
         expect(menu.closest(".kt-m3-root")).toBe(
           view.container.querySelector(".kt-m3-root")
         );
-        expect(menu.querySelector(".kt-api-provider-icon")).not.toBeNull();
+        expect(menu.textContent).toContain("系统服务");
+        expect(menu.textContent).toContain("网络接口");
+        expect(menu.textContent).toContain("外部插件");
 
         await act(async () => {
           if (closeMethod === "Escape") {
@@ -613,10 +702,24 @@ describe("Apis ordering and master-detail layout", () => {
           } else if (closeMethod === "backdrop click") {
             Simulate.click(menu.querySelector(".MuiBackdrop-root"));
           } else {
-            Simulate.click(menu.querySelector('[role="menuitem"]'));
+            Simulate.click(
+              Array.from(menu.querySelectorAll('[role="menuitem"]')).find(
+                (item) => item.textContent.includes("网络接口")
+              )
+            );
           }
         });
         act(() => jest.advanceTimersByTime(1000));
+        if (closeMethod === "service selection") {
+          await act(async () =>
+            Simulate.click(
+              document.body.querySelector(
+                '[role="menu"][aria-label="网络接口"] [role="menuitem"]'
+              )
+            )
+          );
+          act(() => jest.advanceTimersByTime(1000));
+        }
 
         expect(document.body.querySelector("#add-api-menu")).toBeNull();
         expect(view.apiListValue.addApi).toHaveBeenCalledTimes(
@@ -1391,7 +1494,16 @@ describe("Apis unsaved API switching", () => {
       Simulate.click(addButton);
     });
     const menu = document.body.querySelector("#add-api-menu");
-    const menuItem = menu.querySelector('[role="menuitem"]');
+    await act(async () =>
+      Simulate.click(
+        Array.from(menu.querySelectorAll('[role="menuitem"]')).find((item) =>
+          item.textContent.includes("网络接口")
+        )
+      )
+    );
+    const menuItem = document.body.querySelector(
+      '[role="menu"][aria-label="网络接口"] [role="menuitem"]'
+    );
     await act(async () => {
       Simulate.click(menuItem);
       await Promise.resolve();
@@ -1661,7 +1773,7 @@ describe("Apis with stateful API hooks", () => {
             apiTranslate.mockResolvedValue({ trText: "Translated text" });
             const testButton = Array.from(
               view.container.querySelectorAll("button")
-            ).find((button) => button.textContent === "click_test");
+            ).find((button) => button.textContent === "快捷翻译测试");
             await act(async () => testButton.click());
             expect(apiTranslate).toHaveBeenLastCalledWith(
               expect.objectContaining({
@@ -1811,7 +1923,16 @@ describe("Apis with stateful API hooks", () => {
         Simulate.click(addButton);
       });
       const menu = document.body.querySelector("#add-api-menu");
-      const menuItem = menu.querySelector('[role="menuitem"]');
+      await act(async () =>
+        Simulate.click(
+          Array.from(menu.querySelectorAll('[role="menuitem"]')).find((item) =>
+            item.textContent.includes("网络接口")
+          )
+        )
+      );
+      const menuItem = document.body.querySelector(
+        '[role="menu"][aria-label="网络接口"] [role="menuitem"]'
+      );
       await act(async () => {
         Simulate.click(menuItem);
       });
@@ -2071,7 +2192,7 @@ describe("Apis Yandex fields", () => {
     await act(async () => {
       Simulate.click(
         Array.from(view.container.querySelectorAll("button")).find(
-          (button) => button.textContent === "click_test"
+          (button) => button.textContent === "快捷翻译测试"
         )
       );
       await Promise.resolve();
@@ -2167,7 +2288,7 @@ describe("Apis static thinking normalization", () => {
       await act(async () => {
         Simulate.click(
           Array.from(view.container.querySelectorAll("button")).find(
-            (button) => button.textContent === "click_test"
+            (button) => button.textContent === "快捷翻译测试"
           )
         );
         await Promise.resolve();
@@ -2236,7 +2357,7 @@ describe("Apis static thinking normalization", () => {
     await act(async () => {
       Simulate.click(
         Array.from(view.container.querySelectorAll("button")).find(
-          (button) => button.textContent === "click_test"
+          (button) => button.textContent === "快捷翻译测试"
         )
       );
       await Promise.resolve();
@@ -2277,7 +2398,7 @@ describe("Apis static thinking normalization", () => {
     await act(async () => {
       Simulate.click(
         Array.from(view.container.querySelectorAll("button")).find(
-          (button) => button.textContent === "click_test"
+          (button) => button.textContent === "快捷翻译测试"
         )
       );
       await Promise.resolve();
@@ -2351,7 +2472,7 @@ describe("Apis unknown model thinking warning", () => {
 
       const testButton = Array.from(
         view.container.querySelectorAll("button")
-      ).find((button) => button.textContent === "click_test");
+      ).find((button) => button.textContent === "快捷翻译测试");
       await act(async () => {
         Simulate.click(testButton);
         await Promise.resolve();
@@ -2413,7 +2534,7 @@ describe("Apis unknown model thinking warning", () => {
     );
     const testButton = Array.from(
       view.container.querySelectorAll("button")
-    ).find((button) => button.textContent === "click_test");
+    ).find((button) => button.textContent === "快捷翻译测试");
 
     await act(async () => {
       Simulate.click(testButton);
@@ -2447,4 +2568,213 @@ describe("Apis unknown model thinking warning", () => {
 
     view.unmount();
   });
+});
+
+describe("service capability field filtering", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+  });
+  test.each(["recognizeText", "transcribe", "synthesizeSpeech", "evaluate"])(
+    "local %s hides all language and translation fields",
+    async (cap) => {
+      const view = await renderApis(
+        createApi({
+          apiType: "LocalAI",
+          sourceType: "local",
+          enabledCapabilities: [cap],
+          modelRef: {
+            recognizeText: "ppocr-v5-mobile",
+            transcribe: "whisper-base-timestamped",
+            synthesizeSpeech: "kokoro-82m",
+            evaluate: "laya-multilingual-int8",
+          }[cap],
+          device: "wasm",
+        })
+      );
+      try {
+        for (const field of [
+          "tone",
+          "temperature",
+          "maxTokens",
+          "translationPromptSlug",
+          "subtitlePromptSlug",
+          "dictPromptSlug",
+          "vlmPromptSlug",
+          "useStream",
+          "modelListUrl",
+        ])
+          expect(view.container.querySelector(`[name="${field}"]`)).toBeNull();
+        expect(view.container.textContent).toContain("本地模型选择");
+      } finally {
+        view.unmount();
+      }
+    }
+  );
+  test("local translation exposes working AI options without network fields", async () => {
+    const view = await renderApis(
+      createApi({
+        apiType: "LocalAI",
+        sourceType: "local",
+        enabledCapabilities: ["translate"],
+        modelRef: "hy-mt2-1.8b",
+      })
+    );
+    try {
+      for (const field of [
+        "tone",
+        "temperature",
+        "maxTokens",
+        "translationPromptSlug",
+        "useStream",
+        "useContext",
+      ])
+        expect(
+          view.container.querySelector(`[name="${field}"]`)
+        ).not.toBeNull();
+      for (const field of [
+        "modelListUrl",
+        "subtitlePromptSlug",
+        "dictPromptSlug",
+        "vlmPromptSlug",
+      ])
+        expect(view.container.querySelector(`[name="${field}"]`)).toBeNull();
+    } finally {
+      view.unmount();
+    }
+  });
+  test("VLM only shows its prompt and shared generation fields once", async () => {
+    const { PRESET_PROMPTS } = require("../../config/prompt");
+    const view = await renderApis(
+      createApi({ apiType: "LocalAI", modelRef: "paddleocr-vl-1.6-onnx-q8", device: "webgpu", vlmPromptSlug: "vlm-document", enabledCapabilities: ["parseImage"] }),
+      jest.fn(),
+      PRESET_PROMPTS
+    );
+    try {
+      expect(getInput(view.container, "vlmPromptSlug").value).toBe(
+        "vlm-document"
+      );
+      for (const field of [
+        "tone",
+        "translationPromptSlug",
+        "subtitlePromptSlug",
+        "dictPromptSlug",
+        "useContext",
+        "useStream",
+      ])
+        expect(view.container.querySelector(`[name="${field}"]`)).toBeNull();
+      expect(
+        view.container.querySelectorAll('[name="maxTokens"]')
+      ).toHaveLength(1);
+    } finally {
+      view.unmount();
+    }
+  });
+  test("changing capabilities hides fields without clearing their saved values", async () => {
+    const update = jest.fn();
+    const api = createApi({
+      enabledCapabilities: ["translate", "dictionary", "chat"],
+      tone: "formal",
+      dictPromptSlug: "custom-dict",
+      useBatchFetch: true,
+    });
+    const view = await renderApis(api, update);
+    try {
+      const capabilitySelect = getInput(view.container, "enabledCapabilities")
+        .closest(".MuiInputBase-root")
+        .querySelector('[role="combobox"],[role="button"]');
+      await act(async () =>
+        Simulate.mouseDown(capabilitySelect, { button: 0 })
+      );
+      for (const name of ["translate", "dictionary"]) {
+        await act(async () =>
+          Simulate.click(
+            document.body.querySelector(`[role="option"][data-value="${name}"]`)
+          )
+        );
+      }
+      await act(async () =>
+        Simulate.keyDown(document.body.querySelector('[role="listbox"]'), {
+          key: "Escape",
+        })
+      );
+      expect(view.container.querySelector('[name="tone"]')).toBeNull();
+      expect(
+        view.container.querySelector('[name="dictPromptSlug"]')
+      ).toBeNull();
+      await act(async () => Simulate.click(getSaveButton(view.container)));
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          enabledCapabilities: ["chat"],
+          tone: "formal",
+          dictPromptSlug: "custom-dict",
+          useBatchFetch: true,
+        })
+      );
+    } finally {
+      view.unmount();
+    }
+  });
+  test("switching a model after all capabilities are off announces the new defaults", async () => {
+    mockAlertInfo.mockClear();
+    const view = await renderApis(
+      createApi({
+        apiType: "LocalAI",
+        sourceType: "local",
+        modelRef: "whisper-base-timestamped",
+        device: "webgpu",
+        enabledCapabilities: [],
+      })
+    );
+    try {
+      expect(view.container.textContent).toContain("未启用任何能力");
+      const input = getInput(view.container, "modelRef");
+      await act(async () =>
+        Simulate.change(input, { target: { value: "hy-mt2-1.8b" } })
+      );
+      expect(
+        getInput(view.container, "enabledCapabilities")
+          .value.split(",")
+          .includes("translate")
+      ).toBe(true);
+      expect(
+        view.container.querySelector('[name="enabledCapabilities.transcribe"]')
+      ).toBeNull();
+      expect(mockAlertInfo).toHaveBeenCalledTimes(1);
+      expect(mockAlertInfo).toHaveBeenCalledWith("模型已切换，已启用新模型支持的能力，请检查能力选择");
+      expect(view.container.textContent).not.toContain("模型已切换");
+      expect(
+        view.container.querySelector(".MuiAlert-standardError")
+      ).toBeNull();
+    } finally {
+      view.unmount();
+    }
+  });
+});
+
+test("quick translation cancels its request when its service detail unmounts", async () => {
+  let finish;
+  apiTranslate.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  const view = await renderApis(createApi());
+  let unmounted = false;
+  try {
+    const testButton = Array.from(
+      view.container.querySelectorAll("button")
+    ).find((button) => button.textContent === "快捷翻译测试");
+    await act(async () => Simulate.click(testButton));
+    const signal = apiTranslate.mock.calls.at(-1)[0].signal;
+    expect(signal.aborted).toBe(false);
+    view.unmount();
+    unmounted = true;
+    expect(signal.aborted).toBe(true);
+    await act(async () => finish({ trText: "late translation" }));
+  } finally {
+    if (!unmounted) view.unmount();
+    jest.clearAllMocks();
+  }
 });

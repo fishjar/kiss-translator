@@ -1,7 +1,11 @@
+import { isApiConfigured } from "../../config/serviceSelection";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
+import ServiceSelect from "./ServiceSelect";
+import LocalServiceNotice from "../../components/ExtensionLocalServiceNotice";
+import ScenePromptSelect from "./ScenePromptSelect";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -20,14 +24,17 @@ import {
   DEFAULT_SUBTITLE_PROMPT_SLUG,
   PROMPT_MODE_FOLLOW_API,
   PROMPT_MODE_GLOBAL,
+  OPT_TRANS_BUILTINAI,
   getPromptDisplayName,
   getSubtitlePromptOptions,
+  getSummaryPromptOptions,
 } from "../../config";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
 import Switch from "@mui/material/Switch";
 import { useSubtitle } from "../../hooks/Subtitle";
 import { useApiList } from "../../hooks/Api";
+import { supportsApiCapability } from "../../config/serviceSelection";
 import { usePromptList } from "../../hooks/Prompt";
 import ValidationInput from "../../hooks/ValidationInput";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -38,7 +45,6 @@ import {
   SettingsRow,
   SettingsSection,
   SettingsSegmented,
-  SettingsSelect,
   SettingsSwitch,
 } from "./SettingsCard";
 
@@ -412,12 +418,30 @@ export default function SubtitleSetting() {
   // 字幕设置 Hook
   const { subtitleSetting, updateSubtitle } = useSubtitle();
   // 启用的翻译引擎列表与 AI 模型引擎列表
-  const { enabledApis, aiEnabledApis } = useApiList();
+  const { enabledApis, aiEnabledApis, transApis } = useApiList();
+  const segmentationApis = (transApis || aiEnabledApis).filter(
+    (api) =>
+      !api.isDisabled &&
+      isApiConfigured(api) &&
+      supportsApiCapability(api, "segmentSubtitle")
+  );
   const { prompts } = usePromptList();
   const subtitlePromptOptions = useMemo(
     () => getSubtitlePromptOptions(prompts),
     [prompts]
   );
+  const summaryPromptOptions = useMemo(
+    () => getSummaryPromptOptions(prompts),
+    [prompts]
+  );
+  const summaryApis = useMemo(() => {
+    return (transApis || enabledApis || []).filter(
+      (api) =>
+        !api.isDisabled &&
+        isApiConfigured(api) &&
+        supportsApiCapability(api, "summarize")
+    );
+  }, [enabledApis, transApis]);
 
   // 通用表单变动提交
   const handleChange = (e) => {
@@ -486,7 +510,20 @@ export default function SubtitleSetting() {
     showLoadNotification = true,
     hideSubtitleButton = false,
     rememberPosition = false,
+    summaryApiSlug = "-",
+    summaryPromptSlug = "default_video_summary",
   } = subtitleSetting;
+
+  const activeSummaryApi = summaryApis.find(
+    (api) => api.apiSlug === summaryApiSlug
+  );
+  const isBuiltinSummary = activeSummaryApi?.apiType === OPT_TRANS_BUILTINAI;
+  const isBuiltinSummarizerSupported = useMemo(() => {
+    return (
+      typeof globalThis.Summarizer !== "undefined" ||
+      typeof globalThis.ai?.summarizer !== "undefined"
+    );
+  }, []);
 
   // 整理悬浮查词模式和字幕列表模式的回退逻辑
   const hoverLookupModeValue = normalizeSubtitleMode(
@@ -816,16 +853,28 @@ export default function SubtitleSetting() {
         <SettingsSection title={i18n("settings_quality_group")}>
           <SettingsCard>
             <SettingsRow label={i18n("translate_service")}>
-              <SettingsSelect
-                value={apiSlug}
+              <ServiceSelect
+                scene={subtitleSetting}
+                apis={enabledApis}
                 label={i18n("translate_service")}
-                onChange={(value) => updateSubtitle({ apiSlug: value })}
-                options={enabledApis.map((api) => ({
-                  value: api.apiSlug,
-                  label: api.apiName,
-                }))}
+                onChange={(apiSlug) => updateSubtitle({ apiSlug })}
               />
             </SettingsRow>
+            <SettingsRow label={i18n("translation_prompt", "翻译提示词")}>
+              <ScenePromptSelect
+                scene={subtitleSetting}
+                apis={enabledApis}
+                label={i18n("translation_prompt", "翻译提示词")}
+                value={subtitleSetting.promptSlug}
+                onChange={(promptSlug) => updateSubtitle({ promptSlug })}
+              />
+            </SettingsRow>
+            <LocalServiceNotice
+              apis={enabledApis.filter((api) =>
+                [segSlug, summaryApiSlug, aiContextSlug].includes(api.apiSlug)
+              )}
+              i18n={i18n}
+            />
             {/* Keep TextField so mismatched segmentation and translation
                 services retain their helper text and error state. */}
             <SettingsRow label={i18n("ai_segmentation")}>
@@ -854,7 +903,7 @@ export default function SubtitleSetting() {
                 }}
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                {aiEnabledApis.map((api) => (
+                {segmentationApis.map((api) => (
                   <MenuItem key={api.apiSlug} value={api.apiSlug}>
                     {api.apiName}
                   </MenuItem>
@@ -910,6 +959,83 @@ export default function SubtitleSetting() {
                 onChange={(checked) => updateSubtitle({ autoFavWord: checked })}
               />
             </SettingsRow>
+            <SettingsRow
+              label={i18n("video_summary_service", "视频总结服务")}
+              description={
+                isBuiltinSummary && !isBuiltinSummarizerSupported
+                  ? i18n(
+                      "builtin_ai_summarizer_unsupported_hint",
+                      "当前浏览器未检测到 Chrome Summarizer API（需要 Chrome 138+ 或在 chrome://flags 中开启实验性标志；若不可用，建议切换为网络 AI 或本地大模型）"
+                    )
+                  : i18n(
+                      "video_summary_service_helper",
+                      "启用后可在 YouTube 侧栏一键对视频字幕原稿生成结构化要点总结"
+                    )
+              }
+            >
+              <TextField
+                select
+                size="small"
+                name="summaryApiSlug"
+                value={summaryApiSlug || "-"}
+                onChange={handleChange}
+                sx={{ minWidth: 200 }}
+              >
+                <MenuItem value="-">{i18n("disable", "禁用")}</MenuItem>
+                {summaryApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName || api.apiType || api.apiSlug}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </SettingsRow>
+            {summaryApiSlug !== "-" && (
+              <SettingsRow
+                label={i18n("video_summary_prompt", "总结提示词")}
+                description={
+                  isBuiltinSummary
+                    ? i18n(
+                        "builtin_ai_keypoints_hint",
+                        "内置引擎使用官方标准要点参数 (Key-points / 5要点)"
+                      )
+                    : ""
+                }
+              >
+                {isBuiltinSummary ? (
+                  <TextField
+                    size="small"
+                    disabled
+                    value={i18n(
+                      "builtin_ai_keypoints_hint",
+                      "内置引擎使用官方标准要点参数 (Key-points / 5要点)"
+                    )}
+                    sx={{ minWidth: 280 }}
+                  />
+                ) : (
+                  <TextField
+                    select
+                    size="small"
+                    name="summaryPromptSlug"
+                    value={
+                      summaryPromptOptions.some(
+                        (p) => p.slug === summaryPromptSlug
+                      )
+                        ? summaryPromptSlug
+                        : summaryPromptOptions[0]?.slug ||
+                          "default_video_summary"
+                    }
+                    onChange={handleChange}
+                    sx={{ minWidth: 200 }}
+                  >
+                    {summaryPromptOptions.map((prompt) => (
+                      <MenuItem key={prompt.slug} value={prompt.slug}>
+                        {getPromptDisplayName(prompt, i18n)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              </SettingsRow>
+            )}
           </SettingsCard>
         </SettingsSection>
 
@@ -984,7 +1110,7 @@ export default function SubtitleSetting() {
                 onChange={handleChange}
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                {aiEnabledApis.map((api) => (
+                {summaryApis.map((api) => (
                   <MenuItem key={api.apiSlug} value={api.apiSlug}>
                     {api.apiName}
                   </MenuItem>

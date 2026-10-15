@@ -1,10 +1,13 @@
+import { useMemo } from "react";
 import DraggableResizable from "./DraggableResizable";
 import TranslationPanelHeader from "../../components/TranslationPanel/Header";
 import TranslationPanelContent from "../../components/TranslationPanel/Content";
 import { MSG_OPEN_SEPARATE_WINDOW } from "../../config/msg";
+import { resolveApiPromptList, withScenePrompt } from "../../config";
 import { sendBgMsg } from "../../libs/msg";
 import { isExt } from "../../libs/client";
 import { isValidWord } from "../../libs/utils";
+import useTranboxFocus from "../../hooks/useTranboxFocus";
 
 export { getOverflowMenuPosition } from "../../components/TranslationPanel/Header";
 
@@ -18,6 +21,11 @@ export default function TranBox(props) {
   const setHideClickAway = props.setHideClickAway;
   const followSelection = props.followSelection;
   const setFollowSelection = props.setFollowSelection;
+  const panelRef = useTranboxFocus({
+    showBox: props.showBox,
+    hideOnBlur: hideClickAway,
+    setShowBox: props.setShowBox,
+  });
 
   let realApiSlugs = props.tranboxSetting.apiSlugs;
   // Skip translation for single words when configured to show only dictionary results and suggestions.
@@ -26,8 +34,26 @@ export default function TranBox(props) {
     realApiSlugs = [];
   }
 
+  const resolvedTransApis = useMemo(() => {
+    if (!props.transApis) return [];
+    const withPrompt = props.transApis.map((api) =>
+      withScenePrompt(api, props.tranboxSetting)
+    );
+    return resolveApiPromptList(
+      withPrompt,
+      props.prompts,
+      props.subtitleSetting
+    );
+  }, [
+    props.transApis,
+    props.tranboxSetting,
+    props.prompts,
+    props.subtitleSetting,
+  ]);
+
   return props.showBox ? (
     <DraggableResizable
+      panelRef={panelRef}
       position={props.boxPosition}
       size={props.boxSize}
       setSize={props.setBoxSize}
@@ -49,6 +75,7 @@ export default function TranBox(props) {
       onClick={(e) => e.stopPropagation()}
     >
       <TranslationPanelContent
+        ttsApiSlug={props.tranboxSetting.ttsApiSlug || ""}
         simpleStyle={simpleStyle}
         text={props.text}
         setText={props.setText}
@@ -57,7 +84,7 @@ export default function TranBox(props) {
         fromLang={props.tranboxSetting.fromLang}
         toLang={props.tranboxSetting.toLang}
         toLang2={props.tranboxSetting.toLang2}
-        transApis={props.transApis}
+        transApis={resolvedTransApis}
         prompts={props.prompts}
         langDetector={props.langDetector}
         translateVariants={props.translateVariants}

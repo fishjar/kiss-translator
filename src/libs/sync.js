@@ -10,6 +10,8 @@ import {
   STOKEY_SETTING,
   STOKEY_RULES,
   STOKEY_WORDS,
+  CURRENT_SETTINGS_VERSION,
+  getSettingVersion,
 } from "../config";
 import {
   getSyncWithDefault,
@@ -32,7 +34,6 @@ import {
   apiFetchText,
 } from "../apis";
 import { sha256, removeEndchar } from "./utils";
-import { createClient, getPatcher } from "webdav";
 import { fetchPatcher } from "./fetch";
 import { kissLog } from "./log";
 import { encryptSyncValue, decryptSyncValue } from "./syncCrypto";
@@ -45,21 +46,32 @@ import {
 let webdavRequestPatched = false;
 const GIST_SYNC_DESCRIPTION = "kiss translator sync files";
 
+let webdavModulePromise = null;
+const loadWebdav = () => {
+  if (!webdavModulePromise) {
+    webdavModulePromise = import("webdav");
+  }
+  return webdavModulePromise;
+};
+
 /**
  * 确保 WebDAV 库的 request 通道只被补丁一次。
  *
+ * @param {Object} webdav 动态加载的 webdav 模块
  * @returns {void}
  */
-const ensureWebdavRequestPatched = () => {
+const ensureWebdavRequestPatched = (webdav) => {
   if (webdavRequestPatched) return;
   webdavRequestPatched = true;
 
   // WebDAV 同步只在实际使用前安装补丁，避免模块导入时产生隐式全局副作用。
-  getPatcher().patch("request", (opts) => {
+  webdav.getPatcher().patch("request", (opts) => {
     return fetchPatcher(opts.url, {
       method: opts.method,
       headers: opts.headers,
       body: opts.data,
+      // PROPFIND shows the current file, so the GET must not come from the HTTP cache.
+      cache: "no-store",
     });
   });
 };
@@ -81,9 +93,10 @@ const syncByWebdav = async (
   { syncUrl, syncUser, syncKey },
   { forceWrite = false } = {}
 ) => {
-  ensureWebdavRequestPatched();
+  const webdav = await loadWebdav();
+  ensureWebdavRequestPatched(webdav);
 
-  const client = createClient(syncUrl, {
+  const client = webdav.createClient(syncUrl, {
     username: syncUser,
     password: syncKey,
   });
@@ -351,6 +364,15 @@ export const syncData = async (
 
   if (!isRequestCurrent()) return;
 
+  if (
+    key === KV_SETTING_KEY &&
+    getSettingVersion(value) > CURRENT_SETTINGS_VERSION
+  ) {
+    throw new Error(
+      "Local settings were written by a newer client; update before syncing"
+    );
+  }
+
   const syncEncryptKey = syncEncryptKeyOverride ?? savedSyncEncryptKey;
 
   // 若未填写必要的同步参数，则直接退出不报错
@@ -447,6 +469,14 @@ export const syncData = async (
     syncEncryptKey
   );
   const newVal = JSON.parse(res.value);
+  if (
+    key === KV_SETTING_KEY &&
+    getSettingVersion(newVal) > CURRENT_SETTINGS_VERSION
+  ) {
+    throw new Error(
+      "Settings were written by a newer client; update before syncing"
+    );
+  }
   // 首次同步时本地与远端时间戳可能同为 0；此时内容不同仍需应用远端数据。
   const isNew =
     res.updateAt > updateAt ||

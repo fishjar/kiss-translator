@@ -1,0 +1,838 @@
+{
+  "items": [
+    {
+      "str": "The Euler and Navier–Stokes equations describe the motion of a fluid in",
+      "dir": "ltr",
+      "width": 357.7530253999996,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        85.07999879999994,
+        488.2198678
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "R",
+      "dir": "ltr",
+      "width": 7.8763702,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        447.4890280799999,
+        488.2198678
+      ],
+      "fontName": "g_d0_f4",
+      "hasEOL": false
+    },
+    {
+      "str": "n",
+      "dir": "ltr",
+      "width": 5.3912984,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        455.4,
+        492.18
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "(",
+      "dir": "ltr",
+      "width": 4.243639900000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        461.28,
+        488.22
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "n",
+      "dir": "ltr",
+      "width": 6.54546,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        465.48000349999995,
+        488.22
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "= 2 or 3).",
+      "dir": "ltr",
+      "width": 48.39713123999999,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        476.88001299999996,
+        488.22
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": true
+    },
+    {
+      "str": "These equations are to be solved for an unknown velocity vector",
+      "dir": "ltr",
+      "width": 308.37189334,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        71.99967559999999,
+        474.0599882
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "u",
+      "dir": "ltr",
+      "width": 6.240005200000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        384.36866318,
+        474.0599882
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "(",
+      "dir": "ltr",
+      "width": 4.243639900000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        390.60866838,
+        474.0599882
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "x, t",
+      "dir": "ltr",
+      "width": 14.985830670000034,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        394.80867187999996,
+        474.0599882
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": ") = (",
+      "dir": "ltr",
+      "width": 23.446928629999984,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        409.80868438,
+        474.0599882
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "u",
+      "dir": "ltr",
+      "width": 6.240005200000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        433.20870388,
+        474.0599882
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "i",
+      "dir": "ltr",
+      "width": 3.0851056000000003,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        439.44,
+        472.38
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "(",
+      "dir": "ltr",
+      "width": 4.243639900000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        443.04,
+        474.06
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "x, t",
+      "dir": "ltr",
+      "width": 14.985830670000034,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        447.2400035,
+        474.06
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "))",
+      "dir": "ltr",
+      "width": 8.44473430999999,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        462.240016,
+        474.06
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "1",
+      "dir": "ltr",
+      "width": 4.3451116,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        470.64,
+        472.38
+      ],
+      "fontName": "g_d0_f7",
+      "hasEOL": false
+    },
+    {
+      "str": "\u0001",
+      "dir": "ltr",
+      "width": 6.8193052000000005,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        474.95914784,
+        472.38
+      ],
+      "fontName": "g_d0_f8",
+      "hasEOL": false
+    },
+    {
+      "str": "i",
+      "dir": "ltr",
+      "width": 3.0851056000000003,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        481.79830768,
+        472.38
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "\u0001",
+      "dir": "ltr",
+      "width": 6.8193052000000005,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        484.91777708,
+        472.38
+      ],
+      "fontName": "g_d0_f8",
+      "hasEOL": false
+    },
+    {
+      "str": "n",
+      "dir": "ltr",
+      "width": 5.3912984,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        491.75693692,
+        472.38
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "∈",
+      "dir": "ltr",
+      "width": 7.276369700000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        501,
+        474.06
+      ],
+      "fontName": "g_d0_f9",
+      "hasEOL": false
+    },
+    {
+      "str": "R",
+      "dir": "ltr",
+      "width": 7.8763702,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        511.5600088,
+        474.06
+      ],
+      "fontName": "g_d0_f4",
+      "hasEOL": false
+    },
+    {
+      "str": "n",
+      "dir": "ltr",
+      "width": 5.3912984,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        519.48,
+        478.02
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "and pressure",
+      "dir": "ltr",
+      "width": 60.30550480000003,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        72,
+        459.9
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "p",
+      "dir": "ltr",
+      "width": 5.487277300000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        135.60223482,
+        459.9
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "(",
+      "dir": "ltr",
+      "width": 4.243639900000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        141.12223942,
+        459.9
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "x, t",
+      "dir": "ltr",
+      "width": 14.985830670000004,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        145.32224292,
+        459.9
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": ")",
+      "dir": "ltr",
+      "width": 4.243639900000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        160.32225542,
+        459.9
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "∈",
+      "dir": "ltr",
+      "width": 7.276369700000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        167.64226152,
+        459.9
+      ],
+      "fontName": "g_d0_f9",
+      "hasEOL": false
+    },
+    {
+      "str": "R",
+      "dir": "ltr",
+      "width": 7.8763702,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        177.84227002,
+        459.9
+      ],
+      "fontName": "g_d0_f4",
+      "hasEOL": false
+    },
+    {
+      "str": ", defined for position",
+      "dir": "ltr",
+      "width": 98.4862638900001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        185.76227662,
+        459.9
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "x",
+      "dir": "ltr",
+      "width": 6.240005200000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        287.76454344,
+        459.9
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "∈",
+      "dir": "ltr",
+      "width": 7.276369700000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        297.00455114,
+        459.9
+      ],
+      "fontName": "g_d0_f9",
+      "hasEOL": false
+    },
+    {
+      "str": "R",
+      "dir": "ltr",
+      "width": 7.8763702,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        307.32455974,
+        459.9
+      ],
+      "fontName": "g_d0_f4",
+      "hasEOL": false
+    },
+    {
+      "str": "n",
+      "dir": "ltr",
+      "width": 5.3912984,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        315.24,
+        463.86
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": "and time",
+      "dir": "ltr",
+      "width": 42.174580599999956,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        324.72,
+        459.9
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "t",
+      "dir": "ltr",
+      "width": 3.9381851,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        370.44112901000005,
+        459.9
+      ],
+      "fontName": "g_d0_f6",
+      "hasEOL": false
+    },
+    {
+      "str": "\u0001",
+      "dir": "ltr",
+      "width": 8.487279800000001,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        377.40113481000003,
+        459.9
+      ],
+      "fontName": "g_d0_f10",
+      "hasEOL": false
+    },
+    {
+      "str": "0. We restrict attention here",
+      "dir": "ltr",
+      "width": 136.49793193,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        388.92114441,
+        459.9
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": true
+    },
+    {
+      "str": "to incompressible fluids filling all of",
+      "dir": "ltr",
+      "width": 169.54377765000027,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        71.9997894,
+        445.73998819999997
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "R",
+      "dir": "ltr",
+      "width": 7.8763702,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        245.28429744,
+        445.73998819999997
+      ],
+      "fontName": "g_d0_f4",
+      "hasEOL": false
+    },
+    {
+      "str": "n",
+      "dir": "ltr",
+      "width": 5.3912984,
+      "height": 7.6364,
+      "transform": [
+        7.6364,
+        0,
+        0,
+        7.6364,
+        253.2,
+        449.7
+      ],
+      "fontName": "g_d0_f5",
+      "hasEOL": false
+    },
+    {
+      "str": ". The",
+      "dir": "ltr",
+      "width": 26.68911314999998,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        259.08,
+        445.74
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    },
+    {
+      "str": "Navier–Stokes",
+      "dir": "ltr",
+      "width": 66.97860127000003,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        289.32111611,
+        445.74
+      ],
+      "fontName": "g_d0_f11",
+      "hasEOL": false
+    },
+    {
+      "str": "equations are then given by",
+      "dir": "ltr",
+      "width": 131.90520083000004,
+      "height": 10.9091,
+      "transform": [
+        10.9091,
+        0,
+        0,
+        10.9091,
+        360.12335693,
+        445.74
+      ],
+      "fontName": "g_d0_f3",
+      "hasEOL": false
+    }
+  ],
+  "styles": {
+    "g_d0_f1": {
+      "fontFamily": "serif",
+      "ascent": 0.698,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f2": {
+      "fontFamily": "serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f3": {
+      "fontFamily": "serif",
+      "ascent": 0.698,
+      "descent": -0.207,
+      "vertical": false
+    },
+    "g_d0_f4": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f5": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f6": {
+      "fontFamily": "serif",
+      "ascent": 0.698,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f7": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f8": {
+      "fontFamily": "monospace",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f9": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f10": {
+      "fontFamily": "monospace",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f11": {
+      "fontFamily": "serif",
+      "ascent": 0.698,
+      "descent": -0.206,
+      "vertical": false
+    },
+    "g_d0_f12": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f13": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f14": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f15": {
+      "fontFamily": "sans-serif",
+      "ascent": 0,
+      "descent": 0,
+      "vertical": false
+    },
+    "g_d0_f16": {
+      "fontFamily": "serif",
+      "ascent": 0.698,
+      "descent": -0.206,
+      "vertical": false
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { PROVIDER_PLUGINS_I18N } from "./locales/providerPlugins";
 import { POPUP_I18N } from "./i18n.popup";
 import { TOUCH_I18N } from "./i18n.touch";
 /**
@@ -7,7 +8,6 @@ import { TOUCH_I18N } from "./i18n.touch";
 
 import { SETTINGS_I18N } from "./locales/settings";
 import { RU_I18N } from "./i18n.ru";
-import { RULE_EDITOR_I18N } from "./i18n.ruleEditor";
 
 export const UI_LANGS = [
   ["en", "English"],
@@ -20,2316 +20,11 @@ export const UI_LANGS = [
   ["ru", "Русский"],
 ];
 
-const customApiLangs = `["en", "English - English"],
-["zh-CN", "Simplified Chinese - 简体中文"],
-["zh-TW", "Traditional Chinese - 繁體中文"],
-["ar", "Arabic - العربية"],
-["bg", "Bulgarian - Български"],
-["ca", "Catalan - Català"],
-["hr", "Croatian - Hrvatski"],
-["cs", "Czech - Čeština"],
-["da", "Danish - Dansk"],
-["nl", "Dutch - Nederlands"],
-["fi", "Finnish - Suomi"],
-["fr", "French - Français"],
-["de", "German - Deutsch"],
-["el", "Greek - Ελληνικά"],
-["hi", "Hindi - हिन्दी"],
-["hu", "Hungarian - Magyar"],
-["id", "Indonesian - Indonesia"],
-["it", "Italian - Italiano"],
-["ja", "Japanese - 日本語"],
-["ko", "Korean - 한국어"],
-["ms", "Malay - Melayu"],
-["mt", "Maltese - Malti"],
-["nb", "Norwegian - Norsk Bokmål"],
-["pl", "Polish - Polski"],
-["pt", "Portuguese - Português"],
-["ro", "Romanian - Română"],
-["ru", "Russian - Русский"],
-["sk", "Slovak - Slovenčina"],
-["sl", "Slovenian - Slovenščina"],
-["es", "Spanish - Español"],
-["sv", "Swedish - Svenska"],
-["ta", "Tamil - தமிழ்"],
-["te", "Telugu - తెలుగు"],
-["th", "Thai - ไทย"],
-["tr", "Turkish - Türkçe"],
-["uk", "Ukrainian - Українська"],
-["vi", "Vietnamese - Tiếng Việt"],
-`;
-
-const customApiHelpZH = `// 请求数据默认格式
-{
-  "url": "{{url}}",
-  "method": "POST",
-  "headers": {
-    "Content-type": "application/json",
-    "Authorization": "Bearer {{key}}"
-  },
-  "body": {
-    "text": "{{text}}", // 待翻译文字
-    "from": "{{from}}", // 文字的语言（可能为空）
-    "to": "{{to}}",     // 目标语言
-  },
-}
-
-
-// 返回数据默认格式
-{
-  text: "", // 翻译后的文字
-  from: "", // 识别的源语言
-  to: "",   // 目标语言（可选）
-}
-
-
-// Hook 范例
-// URL
-https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN
-
-// Request Hook
-(text, from, to, url, key) => [url, {
-  headers: {
-      "Content-type": "application/json",
-  },
-  method: "GET",
-  body: null,
-}]
-
-// Response Hook
-// 其中返回数组第一个值表示译文字符串，第二个值为布尔值，表示原文语言与目标语言是否相同
-(res, text, from, to) => [res.sentences.map((item) => item.trans).join(" "), to === res.src]
-
-
-// 支持的语言代码如下
-${customApiLangs}
-`;
-
-const customApiHelpEN = `// Default request
-{
-  "url": "{{url}}",
-  "method": "POST",
-  "headers": {
-    "Content-type": "application/json",
-    "Authorization": "Bearer {{key}}"
-  },
-  "body": {
-    "text": "{{text}}", // Text to be translated
-    "from": "{{from}}", // The language of the text (may be empty)
-    "to": "{{to}}",     // Target language
-  },
-}
-
-
-// Default response
-{
-  text: "", // translated text
-  from: "", // Recognized source language
-  to: "",   // Target language (optional)
-}
-
-
-/// Hook Example
-// URL
-https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN
-
-// Request Hook
-(text, from, to, url, key) => [url, {
-  headers: {
-      "Content-type": "application/json",
-  },
-  method: "GET",
-  body: null,
-}]
-
-// Response Hook
-// In the returned array, the first value is the translated string, while the second value is a boolean
-// that indicates whether the source language is the same as the target language.
-(res, text, from, to) => [res.sentences.map((item) => item.trans).join(" "), to === res.src]
-
-
-// The supported language codes are as follows
-${customApiLangs}
-`;
-
-const requestHookHelperZH = `1、第一个参数包含如下字段：'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...
-2、返回值必须是包含以下字段的对象： 'url', 'body', 'headers', 'method'
-3、如返回空值，则hook函数不会产生任何效果。
-
-// 示例
-async (args, { url, body, headers, userMsg, method } = {}) => {
-  return { url, body, headers, userMsg, method };
-}`;
-
-const requestHookHelperEN = `1. The first parameter contains the following fields: 'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...
-2. The return value must be an object containing the following fields: 'url', 'body', 'headers', 'method'
-3. If a null value is returned, the hook function will have no effect.
-
-// Example
-async (args, { url, body, headers, userMsg, method } = {}) => {
-  return { url, body, headers, userMsg, method };
-}`;
-
-const responsetHookHelperZH = `1、第一个参数包含如下字段：'res', ...
-2、返回值必须是包含以下字段的对象： 'translations'
-  （'translations' 应为一个二维数组：[[译文, 原文语言]]）
-3、如返回空值，则hook函数不会产生任何效果。
-
-// 示例
-async ({ res, ...args }) => {
-  const translations = [["你好", "en"]];
-  const modelMsg = {}; // 用于AI上下文
-  return { translations, modelMsg };
-}`;
-
-const responsetHookHelperEN = `1. The first parameter contains the following fields: 'res', ...
-2. The return value must be an object containing the following fields: 'translations'
-  ('translations' should be a two-dimensional array: [[translation, source language]]).
-3. If a null value is returned, the hook function will have no effect.
-
-// Example
-async ({ res, ...args }) => {
-  const translations = [["你好", "en"]];
-  const modelMsg = {}; // For AI context
-  return { translations, modelMsg };
-}`;
-
-const customApiHelpTW = `// 請求資料預設格式
-{
-  "url": "{{url}}",
-  "method": "POST",
-  "headers": {
-    "Content-type": "application/json",
-    "Authorization": "Bearer {{key}}"
-  },
-  "body": {
-    "text": "{{text}}", // 待翻譯文字
-    "from": "{{from}}", // 文字的語言（可能為空）
-    "to": "{{to}}",     // 目標語言
-  },
-}
-
-
-// 回傳資料預設格式
-{
-  text: "", // 翻譯後的文字
-  from: "", // 辨識的來源語言
-  to: "",   // 目標語言（選填）
-}
-
-
-// Hook 範例
-// URL
-https://translate.googleapis.com/translate_a/single?client=gtx&dj=1&dt=t&ie=UTF-8&q={{text}}&sl=en&tl=zh-CN
-
-// Request Hook
-(text, from, to, url, key) => [url, {
-  headers: {
-      "Content-type": "application/json",
-  },
-  method: "GET",
-  body: null,
-}]
-
-// Response Hook
-// 其中回傳陣列第一個值表示譯文字串，第二個值為布林值，表示原文語言與目標語言是否相同
-(res, text, from, to) => [res.sentences.map((item) => item.trans).join(" "), to === res.src]
-
-
-// 支援的語言代碼如下
-${customApiLangs}
-`;
-
-const requestHookHelperTW = `1、第一個參數包含如下欄位：'texts', 'from', 'to', 'url', 'key', 'model', 'systemPrompt', ...
-2、回傳值必須是包含以下欄位的物件： 'url', 'body', 'headers', 'method'
-3、若回傳空值，則 hook 函式不會產生任何效果。
-
-// 範例
-async (args, { url, body, headers, userMsg, method } = {}) => {
-  return { url, body, headers, userMsg, method };
-}`;
-
-const responsetHookHelperTW = `1、第一個參數包含如下欄位：'res', ...
-2、回傳值必須是包含以下欄位的物件： 'translations'
-  （'translations' 應為一個二維陣列：[[譯文, 原文語言]]）
-3、若回傳空值，則 hook 函式不會產生任何效果。
-
-// 範例
-async ({ res, ...args }) => {
-  const translations = [["你好", "en"]];
-  const modelMsg = {}; // 用於 AI 上下文
-  return { translations, modelMsg };
-}`;
-
-/** Build a centralized seven-language text mapping for the subtitle playground. */
-const subtitlePlaygroundText = (zh, en, zh_TW, ja, ko, tr, vi) => ({
-  zh,
-  en,
-  zh_TW,
-  ja,
-  ko,
-  tr,
-  vi,
-});
-
-const SUBTITLE_PLAYGROUND_I18N = {
-  playground_text_translation: subtitlePlaygroundText(
-    "文本翻译",
-    "Text translation",
-    "文字翻譯",
-    "テキスト翻訳",
-    "텍스트 번역",
-    "Metin çevirisi",
-    "Dịch văn bản"
-  ),
-  playground_translation_config_title: subtitlePlaygroundText(
-    "翻译配置",
-    "Translation setup",
-    "翻譯設定",
-    "翻訳設定",
-    "번역 설정",
-    "Çeviri ayarları",
-    "Thiết lập bản dịch"
-  ),
-  playground_translation_config_description: subtitlePlaygroundText(
-    "选择本次测试使用的服务、语言和辅助工具",
-    "Choose the services, languages, and helpers for this test",
-    "選擇本次測試使用的服務、語言和輔助工具",
-    "このテストで使用するサービス、言語、補助機能を選択",
-    "이 테스트에 사용할 서비스, 언어 및 보조 도구 선택",
-    "Bu test için hizmetleri, dilleri ve yardımcıları seçin",
-    "Chọn dịch vụ, ngôn ngữ và công cụ hỗ trợ cho lần thử này"
-  ),
-  playground_translation_empty_result: subtitlePlaygroundText(
-    "输入原文后，译文将在这里显示",
-    "Enter source text to see the translation here",
-    "輸入原文後，譯文會顯示在這裡",
-    "原文を入力すると、ここに翻訳が表示されます",
-    "원문을 입력하면 여기에 번역이 표시됩니다",
-    "Kaynak metni girin; çeviri burada görünecek",
-    "Nhập văn bản nguồn để xem bản dịch tại đây"
-  ),
-  playground_translation_select_service: subtitlePlaygroundText(
-    "请先选择至少一个可用的翻译服务",
-    "Select at least one available translation service",
-    "請先選擇至少一個可用的翻譯服務",
-    "利用可能な翻訳サービスを1つ以上選択してください",
-    "사용 가능한 번역 서비스를 하나 이상 선택하세요",
-    "En az bir kullanılabilir çeviri hizmeti seçin",
-    "Chọn ít nhất một dịch vụ dịch khả dụng"
-  ),
-  playground_merge_single_line_breaks: subtitlePlaygroundText(
-    "合并单个换行（保留段落）",
-    "Merge single line breaks (preserve paragraphs)",
-    "合併單個換行（保留段落）",
-    "単一改行を結合（段落は保持）",
-    "단일 줄바꿈 병합(문단 유지)",
-    "Tek satır sonlarını birleştir (paragrafları koru)",
-    "Gộp ngắt dòng đơn (giữ đoạn)"
-  ),
-  subtitle_segmentation: subtitlePlaygroundText(
-    "字幕断句",
-    "Subtitle segmentation",
-    "字幕斷句",
-    "字幕分割",
-    "자막 분할",
-    "Altyazı bölümleme",
-    "Phân đoạn phụ đề"
-  ),
-  subtitle_playground_invalid_events: subtitlePlaygroundText(
-    "字幕文件没有有效的 events 数组",
-    "The subtitle file has no valid events array",
-    "字幕檔案沒有有效的 events 陣列",
-    "字幕ファイルに有効な events 配列がありません",
-    "자막 파일에 유효한 events 배열이 없습니다",
-    "Altyazı dosyasında geçerli bir events dizisi yok",
-    "Tệp phụ đề không có mảng events hợp lệ"
-  ),
-  subtitle_playground_event_limit: subtitlePlaygroundText(
-    "字幕事件数量不能超过 {max}",
-    "Subtitle events cannot exceed {max}",
-    "字幕事件數量不能超過 {max}",
-    "字幕イベント数は {max} を超えられません",
-    "자막 이벤트 수는 {max}개를 초과할 수 없습니다",
-    "Altyazı olayı sayısı {max} değerini aşamaz",
-    "Số sự kiện phụ đề không được vượt quá {max}"
-  ),
-  subtitle_playground_missing_segments: subtitlePlaygroundText(
-    "字幕文件缺少 YouTube json3 的 segs 数据",
-    "The subtitle file is missing YouTube json3 segs data",
-    "字幕檔案缺少 YouTube json3 的 segs 資料",
-    "字幕ファイルに YouTube json3 の segs データがありません",
-    "자막 파일에 YouTube json3 segs 데이터가 없습니다",
-    "Altyazı dosyasında YouTube json3 segs verisi yok",
-    "Tệp phụ đề thiếu dữ liệu segs YouTube json3"
-  ),
-  subtitle_playground_remote_size_invalid: subtitlePlaygroundText(
-    "远程字幕样本大小校验失败",
-    "Remote subtitle sample size validation failed",
-    "遠端字幕樣本大小驗證失敗",
-    "リモート字幕サンプルのサイズ検証に失敗しました",
-    "원격 자막 샘플 크기 검증에 실패했습니다",
-    "Uzak altyazı örneği boyut doğrulaması başarısız",
-    "Xác thực kích thước mẫu phụ đề từ xa thất bại"
-  ),
-  subtitle_playground_remote_hash_invalid: subtitlePlaygroundText(
-    "远程字幕样本哈希校验失败",
-    "Remote subtitle sample hash validation failed",
-    "遠端字幕樣本雜湊驗證失敗",
-    "リモート字幕サンプルのハッシュ検証に失敗しました",
-    "원격 자막 샘플 해시 검증에 실패했습니다",
-    "Uzak altyazı örneği karma doğrulaması başarısız",
-    "Xác thực hash mẫu phụ đề từ xa thất bại"
-  ),
-  subtitle_playground_remote_index_failed: subtitlePlaygroundText(
-    "远程字幕样本索引加载失败，可以继续上传本地 JSON",
-    "Failed to load the remote sample index. You can still upload a local JSON file",
-    "遠端字幕樣本索引載入失敗，仍可上傳本機 JSON",
-    "リモート字幕サンプルの索引を読み込めませんでした。ローカル JSON は引き続きアップロードできます",
-    "원격 자막 샘플 색인을 불러오지 못했습니다. 로컬 JSON은 계속 업로드할 수 있습니다",
-    "Uzak örnek dizini yüklenemedi. Yerel bir JSON dosyası yükleyebilirsiniz",
-    "Không tải được chỉ mục mẫu từ xa. Bạn vẫn có thể tải lên tệp JSON cục bộ"
-  ),
-  subtitle_playground_sample_load_failed: subtitlePlaygroundText(
-    "字幕样本加载失败：{message}",
-    "Failed to load subtitle sample: {message}",
-    "字幕樣本載入失敗：{message}",
-    "字幕サンプルの読み込みに失敗しました：{message}",
-    "자막 샘플을 불러오지 못했습니다: {message}",
-    "Altyazı örneği yüklenemedi: {message}",
-    "Không tải được mẫu phụ đề: {message}"
-  ),
-  subtitle_playground_file_too_large: subtitlePlaygroundText(
-    "字幕文件不能超过 10MB",
-    "The subtitle file cannot exceed 10 MB",
-    "字幕檔案不能超過 10MB",
-    "字幕ファイルは 10 MB を超えられません",
-    "자막 파일은 10MB를 초과할 수 없습니다",
-    "Altyazı dosyası 10 MB'ı aşamaz",
-    "Tệp phụ đề không được vượt quá 10 MB"
-  ),
-  subtitle_playground_file_parse_failed: subtitlePlaygroundText(
-    "字幕文件解析失败：{message}",
-    "Failed to parse subtitle file: {message}",
-    "字幕檔案解析失敗：{message}",
-    "字幕ファイルの解析に失敗しました：{message}",
-    "자막 파일을 분석하지 못했습니다: {message}",
-    "Altyazı dosyası ayrıştırılamadı: {message}",
-    "Không phân tích được tệp phụ đề: {message}"
-  ),
-  subtitle_playground_ai_confirm_title: subtitlePlaygroundText(
-    "发送 AI 断句请求",
-    "Send AI segmentation requests",
-    "傳送 AI 斷句請求",
-    "AI 字幕分割リクエストを送信",
-    "AI 자막 분할 요청 보내기",
-    "AI bölümleme isteklerini gönder",
-    "Gửi yêu cầu phân đoạn AI"
-  ),
-  subtitle_playground_ai_confirm_message: subtitlePlaygroundText(
-    "将使用 {api} / {model} 发送约 {count} 个字幕请求。样本文本会发送到当前 AI 服务。",
-    "About {count} subtitle requests will be sent using {api} / {model}. The sample text will be sent to the current AI service.",
-    "將使用 {api} / {model} 傳送約 {count} 個字幕請求。樣本文字會傳送到目前的 AI 服務。",
-    "{api} / {model} を使用して約 {count} 件の字幕リクエストを送信します。サンプルテキストは現在の AI サービスに送信されます。",
-    "{api} / {model}을 사용해 약 {count}개의 자막 요청을 보냅니다. 샘플 텍스트가 현재 AI 서비스로 전송됩니다.",
-    "{api} / {model} kullanılarak yaklaşık {count} altyazı isteği gönderilecek. Örnek metin mevcut AI hizmetine gönderilecektir.",
-    "Khoảng {count} yêu cầu phụ đề sẽ được gửi bằng {api} / {model}. Văn bản mẫu sẽ được gửi đến dịch vụ AI hiện tại."
-  ),
-  subtitle_playground_default_model: subtitlePlaygroundText(
-    "默认模型",
-    "Default model",
-    "預設模型",
-    "既定のモデル",
-    "기본 모델",
-    "Varsayılan model",
-    "Mô hình mặc định"
-  ),
-  subtitle_playground_continue: subtitlePlaygroundText(
-    "继续",
-    "Continue",
-    "繼續",
-    "続行",
-    "계속",
-    "Devam",
-    "Tiếp tục"
-  ),
-  subtitle_playground_test_failed: subtitlePlaygroundText(
-    "字幕断句失败：{message}",
-    "Subtitle segmentation failed: {message}",
-    "字幕斷句失敗：{message}",
-    "字幕分割に失敗しました：{message}",
-    "자막 분할에 실패했습니다: {message}",
-    "Altyazı bölümleme başarısız: {message}",
-    "Phân đoạn phụ đề thất bại: {message}"
-  ),
-  subtitle_playground_prompt_global: subtitlePlaygroundText(
-    "全局字幕设置",
-    "Global subtitle settings",
-    "全域字幕設定",
-    "グローバル字幕設定",
-    "전역 자막 설정",
-    "Genel altyazı ayarları",
-    "Cài đặt phụ đề toàn cục"
-  ),
-  subtitle_playground_prompt_preset: subtitlePlaygroundText(
-    "接口预设",
-    "API preset",
-    "介面預設",
-    "API プリセット",
-    "API 프리셋",
-    "API ön ayarı",
-    "Cài sẵn API"
-  ),
-  subtitle_playground_prompt_custom: subtitlePlaygroundText(
-    "接口自定义",
-    "API custom",
-    "介面自訂",
-    "API カスタム",
-    "API 사용자 지정",
-    "Özel API",
-    "API tùy chỉnh"
-  ),
-  subtitle_playground_config_title: subtitlePlaygroundText(
-    "当前生效的断句配置",
-    "Active segmentation configuration",
-    "目前生效的斷句設定",
-    "現在有効な字幕分割設定",
-    "현재 적용 중인 자막 분할 설정",
-    "Etkin bölümleme yapılandırması",
-    "Cấu hình phân đoạn đang hoạt động"
-  ),
-  subtitle_playground_mode: subtitlePlaygroundText(
-    "模式",
-    "Mode",
-    "模式",
-    "モード",
-    "모드",
-    "Mod",
-    "Chế độ"
-  ),
-  subtitle_playground_api: subtitlePlaygroundText(
-    "API",
-    "API",
-    "API",
-    "API",
-    "API",
-    "API",
-    "API"
-  ),
-  subtitle_playground_type_model: subtitlePlaygroundText(
-    "类型 / 模型",
-    "Type / model",
-    "類型 / 模型",
-    "タイプ / モデル",
-    "유형 / 모델",
-    "Tür / model",
-    "Loại / mô hình"
-  ),
-  subtitle_playground_prompt: subtitlePlaygroundText(
-    "提示词",
-    "Prompt",
-    "提示詞",
-    "プロンプト",
-    "프롬프트",
-    "İstem",
-    "Lời nhắc"
-  ),
-  subtitle_playground_api_default: subtitlePlaygroundText(
-    "接口默认",
-    "API default",
-    "介面預設",
-    "API の既定値",
-    "API 기본값",
-    "API varsayılanı",
-    "Mặc định API"
-  ),
-  subtitle_playground_prompt_value: subtitlePlaygroundText(
-    "{prompt}（{source}）",
-    "{prompt} ({source})",
-    "{prompt}（{source}）",
-    "{prompt}（{source}）",
-    "{prompt} ({source})",
-    "{prompt} ({source})",
-    "{prompt} ({source})"
-  ),
-  subtitle_playground_chunk_length: subtitlePlaygroundText(
-    "Chunk 长度",
-    "Chunk length",
-    "Chunk 長度",
-    "チャンク長",
-    "청크 길이",
-    "Parça uzunluğu",
-    "Độ dài đoạn"
-  ),
-  subtitle_playground_estimated_chunks: subtitlePlaygroundText(
-    "预计 Chunk",
-    "Estimated chunks",
-    "預估 Chunk",
-    "推定チャンク数",
-    "예상 청크 수",
-    "Tahmini parça sayısı",
-    "Số đoạn ước tính"
-  ),
-  subtitle_playground_target_language: subtitlePlaygroundText(
-    "目标语言",
-    "Target language",
-    "目標語言",
-    "翻訳先言語",
-    "대상 언어",
-    "Hedef dil",
-    "Ngôn ngữ đích"
-  ),
-  subtitle_playground_streaming: subtitlePlaygroundText(
-    "流式",
-    "Streaming",
-    "串流",
-    "ストリーミング",
-    "스트리밍",
-    "Akış",
-    "Truyền trực tuyến"
-  ),
-  subtitle_playground_enabled: subtitlePlaygroundText(
-    "启用",
-    "Enabled",
-    "啟用",
-    "有効",
-    "사용",
-    "Etkin",
-    "Đã bật"
-  ),
-  subtitle_playground_disabled: subtitlePlaygroundText(
-    "关闭",
-    "Disabled",
-    "關閉",
-    "無効",
-    "사용 안 함",
-    "Devre dışı",
-    "Đã tắt"
-  ),
-  subtitle_playground_protocol: subtitlePlaygroundText(
-    "协议",
-    "Protocol",
-    "協定",
-    "プロトコル",
-    "프로토콜",
-    "Protokol",
-    "Giao thức"
-  ),
-  subtitle_playground_legacy_compatible: subtitlePlaygroundText(
-    "兼容旧协议",
-    "Legacy protocol compatible",
-    "相容舊協定",
-    "旧プロトコル互換",
-    "이전 프로토콜 호환",
-    "Eski protokolle uyumlu",
-    "Tương thích giao thức cũ"
-  ),
-  subtitle_playground_protocol_value: subtitlePlaygroundText(
-    "{protocol}（{compatibility}）",
-    "{protocol} ({compatibility})",
-    "{protocol}（{compatibility}）",
-    "{protocol}（{compatibility}）",
-    "{protocol} ({compatibility})",
-    "{protocol} ({compatibility})",
-    "{protocol} ({compatibility})"
-  ),
-  subtitle_playground_statistical_mode: subtitlePlaygroundText(
-    "统计断句",
-    "Statistical segmentation",
-    "統計斷句",
-    "統計的字幕分割",
-    "통계 자막 분할",
-    "İstatistiksel bölümleme",
-    "Phân đoạn thống kê"
-  ),
-  subtitle_playground_rule_mode: subtitlePlaygroundText(
-    "规则断句",
-    "Rule-based segmentation",
-    "規則斷句",
-    "ルールベース字幕分割",
-    "규칙 기반 자막 분할",
-    "Kural tabanlı bölümleme",
-    "Phân đoạn theo quy tắc"
-  ),
-  subtitle_playground_max_duration: subtitlePlaygroundText(
-    "最大时长",
-    "Maximum duration",
-    "最長時長",
-    "最大時間",
-    "최대 길이",
-    "Azami süre",
-    "Thời lượng tối đa"
-  ),
-  subtitle_playground_max_words: subtitlePlaygroundText(
-    "最大词数",
-    "Maximum words",
-    "最多詞數",
-    "最大単語数",
-    "최대 단어 수",
-    "Azami kelime",
-    "Số từ tối đa"
-  ),
-  subtitle_playground_min_boundary_score: subtitlePlaygroundText(
-    "最小边界评分",
-    "Minimum boundary score",
-    "最小邊界分數",
-    "最小境界スコア",
-    "최소 경계 점수",
-    "Asgari sınır puanı",
-    "Điểm ranh giới tối thiểu"
-  ),
-  subtitle_playground_min_sentence_words: subtitlePlaygroundText(
-    "最小句子词数",
-    "Minimum sentence words",
-    "最少句子詞數",
-    "文の最小単語数",
-    "문장 최소 단어 수",
-    "Asgari cümle kelimesi",
-    "Số từ câu tối thiểu"
-  ),
-  subtitle_playground_source_language: subtitlePlaygroundText(
-    "源语言",
-    "Source language",
-    "來源語言",
-    "元言語",
-    "원본 언어",
-    "Kaynak dil",
-    "Ngôn ngữ nguồn"
-  ),
-  subtitle_playground_source_language_label: subtitlePlaygroundText(
-    "字幕源语言",
-    "Subtitle source language",
-    "字幕來源語言",
-    "字幕の元言語",
-    "자막 원본 언어",
-    "Altyazı kaynak dili",
-    "Ngôn ngữ nguồn phụ đề"
-  ),
-  subtitle_playground_language_required: subtitlePlaygroundText(
-    "规则和统计断句不支持 AutoDetect，请选择具体的字幕源语言。",
-    "Rule-based and statistical segmentation do not support AutoDetect. Select a specific subtitle source language.",
-    "規則和統計斷句不支援 AutoDetect，請選擇具體的字幕來源語言。",
-    "ルールおよび統計的字幕分割では AutoDetect を使用できません。字幕の元言語を選択してください。",
-    "규칙 및 통계 자막 분할은 AutoDetect를 지원하지 않습니다. 자막 원본 언어를 선택하세요.",
-    "Kural tabanlı ve istatistiksel bölümleme AutoDetect'i desteklemez. Belirli bir altyazı kaynak dili seçin.",
-    "Phân đoạn theo quy tắc và thống kê không hỗ trợ Tự động phát hiện. Hãy chọn ngôn ngữ nguồn phụ đề cụ thể."
-  ),
-  subtitle_playground_long_sentence_threshold: subtitlePlaygroundText(
-    "长句阈值",
-    "Long-sentence threshold",
-    "長句門檻",
-    "長文しきい値",
-    "긴 문장 임계값",
-    "Uzun cümle eşiği",
-    "Ngưỡng câu dài"
-  ),
-  subtitle_playground_chunk_risk: subtitlePlaygroundText(
-    "当前 AI Chunk 长度高于推荐默认值 1000，长输入可能增加漏句或边界退化风险。",
-    "The current AI chunk length exceeds the recommended default of 1000. Long input may increase the risk of missing text or degraded boundaries.",
-    "目前 AI Chunk 長度高於建議預設值 1000，長輸入可能增加漏句或邊界退化風險。",
-    "現在の AI チャンク長は推奨既定値 1000 を超えています。長い入力では文の欠落や境界精度低下のリスクが高まります。",
-    "현재 AI 청크 길이가 권장 기본값 1000보다 큽니다. 긴 입력은 문장 누락이나 경계 품질 저하 위험을 높일 수 있습니다.",
-    "Geçerli AI parça uzunluğu önerilen varsayılan 1000 değerini aşıyor. Uzun girdiler eksik metin veya sınır kalitesi düşüşü riskini artırabilir.",
-    "Độ dài đoạn AI hiện tại vượt quá mặc định khuyến nghị 1000. Đầu vào dài có thể tăng rủi ro thiếu văn bản hoặc suy giảm ranh giới."
-  ),
-  subtitle_playground_builtin_sample: subtitlePlaygroundText(
-    "内置字幕样本",
-    "Built-in subtitle sample",
-    "內建字幕樣本",
-    "内蔵字幕サンプル",
-    "내장 자막 샘플",
-    "Yerleşik altyazı örneği",
-    "Mẫu phụ đề tích hợp"
-  ),
-  subtitle_playground_select_sample: subtitlePlaygroundText(
-    "请选择远程样本",
-    "Select a remote sample",
-    "請選擇遠端樣本",
-    "リモートサンプルを選択",
-    "원격 샘플을 선택하세요",
-    "Uzak bir örnek seçin",
-    "Chọn mẫu từ xa"
-  ),
-  subtitle_playground_upload_json: subtitlePlaygroundText(
-    "上传 JSON",
-    "Upload JSON",
-    "上傳 JSON",
-    "JSON をアップロード",
-    "JSON 업로드",
-    "JSON yükle",
-    "Tải lên JSON"
-  ),
-  subtitle_playground_run: subtitlePlaygroundText(
-    "运行测试",
-    "Run test",
-    "執行測試",
-    "テストを実行",
-    "테스트 실행",
-    "Testi çalıştır",
-    "Chạy kiểm tra"
-  ),
-  subtitle_playground_progress: subtitlePlaygroundText(
-    "正在处理 Chunk {completed}/{total}",
-    "Processing chunk {completed}/{total}",
-    "正在處理 Chunk {completed}/{total}",
-    "チャンク {completed}/{total} を処理中",
-    "청크 처리 중 {completed}/{total}",
-    "Parça işleniyor {completed}/{total}",
-    "Đang xử lý đoạn {completed}/{total}"
-  ),
-  subtitle_playground_source_json: subtitlePlaygroundText(
-    "原始字幕 JSON",
-    "Original subtitle JSON",
-    "原始字幕 JSON",
-    "元の字幕 JSON",
-    "원본 자막 JSON",
-    "Orijinal altyazı JSON",
-    "JSON phụ đề gốc"
-  ),
-  subtitle_playground_result: subtitlePlaygroundText(
-    "断句结果",
-    "Segmentation result",
-    "斷句結果",
-    "字幕分割結果",
-    "자막 분할 결과",
-    "Bölümleme sonucu",
-    "Kết quả phân đoạn"
-  ),
-  subtitle_playground_result_format: subtitlePlaygroundText(
-    "结果格式",
-    "Result format",
-    "結果格式",
-    "結果形式",
-    "결과 형식",
-    "Sonuç biçimi",
-    "Định dạng kết quả"
-  ),
-  subtitle_playground_download: subtitlePlaygroundText(
-    "下载",
-    "Download",
-    "下載",
-    "ダウンロード",
-    "다운로드",
-    "İndir",
-    "Tải xuống"
-  ),
-  subtitle_playground_stats_title: subtitlePlaygroundText(
-    "断句统计信息",
-    "Segmentation statistics",
-    "斷句統計資訊",
-    "字幕分割の統計",
-    "자막 분할 통계",
-    "Bölümleme istatistikleri",
-    "Thống kê phân đoạn"
-  ),
-  subtitle_playground_metric_processing: subtitlePlaygroundText(
-    "处理耗时",
-    "Processing time",
-    "處理耗時",
-    "処理時間",
-    "처리 시간",
-    "İşleme süresi",
-    "Thời gian xử lý"
-  ),
-  subtitle_playground_metric_raw_events: subtitlePlaygroundText(
-    "原始事件",
-    "Raw events",
-    "原始事件",
-    "元イベント",
-    "원본 이벤트",
-    "Ham olaylar",
-    "Sự kiện thô"
-  ),
-  subtitle_playground_metric_canonical_events: subtitlePlaygroundText(
-    "规范化事件",
-    "Canonical events",
-    "正規化事件",
-    "正規化イベント",
-    "정규화 이벤트",
-    "Standart olaylar",
-    "Sự kiện chuẩn hóa"
-  ),
-  subtitle_playground_metric_flat_events: subtitlePlaygroundText(
-    "Flat Events",
-    "Flat events",
-    "Flat Events",
-    "フラットイベント",
-    "플랫 이벤트",
-    "Düz olaylar",
-    "Sự kiện phẳng"
-  ),
-  subtitle_playground_metric_filtered_non_speech: subtitlePlaygroundText(
-    "已过滤非语音片段",
-    "Filtered non-speech segments",
-    "已過濾非語音片段",
-    "除外した非音声区間",
-    "필터링된 비음성 구간",
-    "Filtrelenen konuşma dışı bölümler",
-    "Đã lọc đoạn không phải lời nói"
-  ),
-  subtitle_playground_metric_cues: subtitlePlaygroundText(
-    "字幕条目",
-    "Subtitle cues",
-    "字幕項目",
-    "字幕キュー",
-    "자막 큐",
-    "Altyazı öğeleri",
-    "Mục phụ đề"
-  ),
-  subtitle_playground_metric_source_duration: subtitlePlaygroundText(
-    "源时间跨度",
-    "Source duration",
-    "來源時間跨度",
-    "元の時間範囲",
-    "원본 시간 범위",
-    "Kaynak süresi",
-    "Thời lượng nguồn"
-  ),
-  subtitle_playground_metric_covered_duration: subtitlePlaygroundText(
-    "覆盖时长",
-    "Covered duration",
-    "涵蓋時長",
-    "カバー時間",
-    "포함 시간",
-    "Kapsanan süre",
-    "Thời lượng bao phủ"
-  ),
-  subtitle_playground_metric_text_coverage: subtitlePlaygroundText(
-    "文本覆盖率",
-    "Text coverage",
-    "文字涵蓋率",
-    "テキスト網羅率",
-    "텍스트 포함률",
-    "Metin kapsamı",
-    "Độ bao phủ văn bản"
-  ),
-  subtitle_playground_metric_empty_cues: subtitlePlaygroundText(
-    "空字幕",
-    "Empty cues",
-    "空字幕",
-    "空の字幕",
-    "빈 자막",
-    "Boş altyazılar",
-    "Mục trống"
-  ),
-  subtitle_playground_metric_invalid_cues: subtitlePlaygroundText(
-    "无效字幕",
-    "Invalid cues",
-    "無效字幕",
-    "無効な字幕",
-    "유효하지 않은 자막",
-    "Geçersiz altyazılar",
-    "Mục không hợp lệ"
-  ),
-  subtitle_playground_metric_overlaps: subtitlePlaygroundText(
-    "时间重叠",
-    "Time overlaps",
-    "時間重疊",
-    "時間の重複",
-    "시간 겹침",
-    "Zaman çakışmaları",
-    "Trùng lặp thời gian"
-  ),
-  subtitle_playground_metric_non_monotonic: subtitlePlaygroundText(
-    "时间倒退",
-    "Non-monotonic time",
-    "時間倒退",
-    "時間の逆行",
-    "시간 역행",
-    "Geri giden zaman",
-    "Thời gian không đơn điệu"
-  ),
-  subtitle_playground_metric_missing_text: subtitlePlaygroundText(
-    "文本遗漏",
-    "Missing text",
-    "文字遺漏",
-    "欠落テキスト",
-    "누락 텍스트",
-    "Eksik metin",
-    "Văn bản thiếu"
-  ),
-  subtitle_playground_metric_duplicated_text: subtitlePlaygroundText(
-    "文本重复",
-    "Duplicated text",
-    "文字重複",
-    "重複テキスト",
-    "중복 텍스트",
-    "Yinelenen metin",
-    "Văn bản trùng lặp"
-  ),
-  subtitle_playground_metric_avg_chars: subtitlePlaygroundText(
-    "平均字符",
-    "Average characters",
-    "平均字元",
-    "平均文字数",
-    "평균 문자 수",
-    "Ortalama karakter",
-    "Ký tự trung bình"
-  ),
-  subtitle_playground_metric_p95_chars: subtitlePlaygroundText(
-    "P95 字符",
-    "P95 characters",
-    "P95 字元",
-    "P95 文字数",
-    "P95 문자 수",
-    "P95 karakter",
-    "Ký tự P95"
-  ),
-  subtitle_playground_metric_max_chars: subtitlePlaygroundText(
-    "最大字符",
-    "Maximum characters",
-    "最多字元",
-    "最大文字数",
-    "최대 문자 수",
-    "Azami karakter",
-    "Ký tự tối đa"
-  ),
-  subtitle_playground_metric_avg_words: subtitlePlaygroundText(
-    "平均词数",
-    "Average words",
-    "平均詞數",
-    "平均単語数",
-    "평균 단어 수",
-    "Ortalama kelime",
-    "Số từ trung bình"
-  ),
-  subtitle_playground_metric_p95_words: subtitlePlaygroundText(
-    "P95 词数",
-    "P95 words",
-    "P95 詞數",
-    "P95 単語数",
-    "P95 단어 수",
-    "P95 kelime",
-    "Số từ P95"
-  ),
-  subtitle_playground_metric_max_words: subtitlePlaygroundText(
-    "最大词数",
-    "Maximum words",
-    "最多詞數",
-    "最大単語数",
-    "최대 단어 수",
-    "Azami kelime",
-    "Số từ tối đa"
-  ),
-  subtitle_playground_metric_avg_duration: subtitlePlaygroundText(
-    "平均时长",
-    "Average duration",
-    "平均時長",
-    "平均時間",
-    "평균 길이",
-    "Ortalama süre",
-    "Thời lượng trung bình"
-  ),
-  subtitle_playground_metric_p95_duration: subtitlePlaygroundText(
-    "P95 时长",
-    "P95 duration",
-    "P95 時長",
-    "P95 時間",
-    "P95 길이",
-    "P95 süre",
-    "Thời lượng P95"
-  ),
-  subtitle_playground_metric_max_duration: subtitlePlaygroundText(
-    "最大时长",
-    "Maximum duration",
-    "最長時長",
-    "最大時間",
-    "최대 길이",
-    "Azami süre",
-    "Thời lượng tối đa"
-  ),
-  subtitle_playground_structure_error: subtitlePlaygroundText(
-    "结构错误：{errors}",
-    "Structure errors: {errors}",
-    "結構錯誤：{errors}",
-    "構造エラー：{errors}",
-    "구조 오류: {errors}",
-    "Yapı hataları: {errors}",
-    "Lỗi cấu trúc: {errors}"
-  ),
-  subtitle_playground_readability_warning: subtitlePlaygroundText(
-    "可读性警告：超长文本 {longText}，超过 10 秒 {longDuration}，短碎片 {fragments}，泄漏的非语音字幕 {nonSpeech}",
-    "Readability warnings: long text {longText}, over 10 seconds {longDuration}, short fragments {fragments}, leaked non-speech cues {nonSpeech}",
-    "可讀性警告：過長文字 {longText}，超過 10 秒 {longDuration}，短片段 {fragments}，洩漏的非語音字幕 {nonSpeech}",
-    "可読性の警告：長すぎるテキスト {longText}、10 秒超 {longDuration}、短い断片 {fragments}、混入した非音声字幕 {nonSpeech}",
-    "가독성 경고: 너무 긴 텍스트 {longText}, 10초 초과 {longDuration}, 짧은 조각 {fragments}, 유출된 비음성 자막 {nonSpeech}",
-    "Okunabilirlik uyarıları: uzun metin {longText}, 10 saniyeyi aşan {longDuration}, kısa parçalar {fragments}, sızan konuşma dışı altyazılar {nonSpeech}",
-    "Cảnh báo khả đọc: văn bản dài {longText}, trên 10 giây {longDuration}, đoạn ngắn {fragments}, mục không phải lời nói bị lọt {nonSpeech}"
-  ),
-  subtitle_playground_ai_stats: subtitlePlaygroundText(
-    "AI：协议 {protocol}，Chunk {chunks}，请求 {requests}，重试 {retries}，降级字幕 {fallbacks}，无效响应 {invalid}",
-    "AI: protocol {protocol}, chunks {chunks}, requests {requests}, retries {retries}, fallback cues {fallbacks}, invalid responses {invalid}",
-    "AI：協定 {protocol}，Chunk {chunks}，請求 {requests}，重試 {retries}，降級字幕 {fallbacks}，無效回應 {invalid}",
-    "AI：プロトコル {protocol}、チャンク {chunks}、リクエスト {requests}、再試行 {retries}、フォールバック字幕 {fallbacks}、無効な応答 {invalid}",
-    "AI: 프로토콜 {protocol}, 청크 {chunks}, 요청 {requests}, 재시도 {retries}, 대체 자막 {fallbacks}, 유효하지 않은 응답 {invalid}",
-    "AI: protokol {protocol}, parça {chunks}, istek {requests}, yeniden deneme {retries}, yedek altyazı {fallbacks}, geçersiz yanıt {invalid}",
-    "AI: giao thức {protocol}, đoạn {chunks}, yêu cầu {requests}, thử lại {retries}, mục dự phòng {fallbacks}, phản hồi không hợp lệ {invalid}"
-  ),
-};
-
-/** 为专业术语工作台集中生成七种界面语言的文案映射。 */
-const terminologyPlaygroundText = (zh, en, zh_TW, ja, ko, tr, vi) => ({
-  zh,
-  en,
-  zh_TW,
-  ja,
-  ko,
-  tr,
-  vi,
-});
-
-const TERMINOLOGY_PLAYGROUND_I18N = {
-  terminology_playground: terminologyPlaygroundText(
-    "专业术语",
-    "Terminology",
-    "專業術語",
-    "専門用語",
-    "전문 용어",
-    "Terminoloji",
-    "Thuật ngữ chuyên môn"
-  ),
-  terminology_playground_title: terminologyPlaygroundText(
-    "专业术语库（本地替换预览）",
-    "Terminology list (local replacement preview)",
-    "專業術語庫（本機替換預覽）",
-    "専門用語リスト（ローカル置換プレビュー）",
-    "전문 용어 목록 (로컬 교체 미리보기)",
-    "Terminoloji listesi (yerel değiştirme önizlemesi)",
-    "Danh sách thuật ngữ (xem trước thay thế cục bộ)"
-  ),
-  terminology_playground_terms_label: terminologyPlaygroundText(
-    "术语库（键值对，每行或 ; 分隔）",
-    "Terms (key,value, one per line or separated by ;)",
-    "術語庫（鍵值對，每行或 ; 分隔）",
-    "用語リスト（key,value、改行または「;」区切り）",
-    "용어 목록 (key,value, 한 줄에 하나 또는 ; 로 구분)",
-    "Terimler (key,value, her satırda bir veya ; ile ayrılmış)",
-    "Thuật ngữ (key,value, mỗi dòng một mục hoặc ngăn cách bằng ;)"
-  ),
-  terminology_playground_terms_helper: terminologyPlaygroundText(
-    "术语键按正则语义解析：含正则元字符（如 .）需转义，例如字面点号写为 Dr\\.whob；译文留空 = 不翻译（保留原文，只写术语键不加尾部逗号）；重复的术语键只保留首次；术语按正则语义在原文任意位置匹配（与生产一致），建议长度长的术语写在前面。简单英文词若只需匹配独立单词，请显式添加边界（如 \\bAPI\\b）；该写法不适用于中文或 C++、.NET 等符号术语。",
-    "Term keys are parsed as regex: escape regex metacharacters (e.g. a literal dot as Dr\\.whob). An empty value keeps the original (write the key only, without a trailing comma); duplicate keys keep the first; terms match anywhere in the source text by regex semantics (identical to production), so put longer terms first. To match a simple English word only when it stands alone, add explicit boundaries (for example \\bAPI\\b); this does not apply to Chinese or symbol terms such as C++ and .NET.",
-    "術語鍵依正則語意解析：含正則元字元（如 .）需跳脫，例如字面點號寫為 Dr\\.whob；譯文留空 = 不翻譯（保留原文，只寫術語鍵不加尾部逗號）；重複的術語鍵只保留首次；術語依正則語意在原文任意位置匹配（與生產一致），建議長度較長的術語寫在前面。簡單英文詞若只需匹配獨立單詞，請明確加入邊界（如 \\bAPI\\b）；此寫法不適用於中文或 C++、.NET 等符號術語。",
-    "用語 key は正規表現として解析されます。正規表現メタ文字（例：.）はエスケープが必要です（例：リテラルのドットは Dr\\.whob）。value を空にすると翻訳しません（原文保持、カンマなしで key のみ記述）。重複 key は最初のみ有効です。用語は正規表現の意味で原文の任意の位置に一致します（本番と同一）。長い用語ほど先に書くことを推奨します。単純な英単語だけを独立した語として一致させる場合は、境界を明示してください（例：\\bAPI\\b）。これは中国語や C++、.NET などの記号を含む用語には適用されません。",
-    "용어 key 는 정규식으로 해석됩니다. 정규식 메타 문자(예: .)는 이스케이프가 필요합니다(예: 리터럴 점은 Dr\\.whob). value 가 비어 있으면 번역하지 않고 원문을 유지합니다(key 만 작성, 끝에 쉼표 없음). 중복 key 는 첫 번째만 유지됩니다. 용어는 정규식 의미로 원문의 어느 위치에서나 일치합니다(프로덕션과 동일). 길이가 긴 용어를 앞에 쓰는 것을 권장합니다. 간단한 영어 단어를 독립된 단어로만 일치시키려면 경계를 명시하세요(예: \\bAPI\\b). 이 방식은 중국어나 C++, .NET 같은 기호 용어에는 적용되지 않습니다.",
-    "Terim anahtarları normal ifade olarak ayrıştırılır: normal ifade meta karakterlerini (ör. .) kaçışlayın (ör. değişmez nokta Dr\\.whob). Boş value = çevrilmez (orijinal korunur, virgülsüz yalnızca key yazın); aynı key'den yalnızca ilki tutulur. Terimler normal ifade anlamına göre kaynak metnin herhangi bir yerinde eşleşir (üretimle aynı); daha uzun terimleri önce yazın. Basit bir İngilizce sözcüğü yalnızca bağımsız olduğunda eşleştirmek için açık sınırlar ekleyin (ör. \\bAPI\\b); bu yöntem Çince veya C++ ve .NET gibi simgeli terimler için geçerli değildir.",
-    "Khóa thuật ngữ được phân tích cú pháp như regex: hãy thoát các ký tự đặc biệt regex (ví dụ dấu chấm chữ thường viết là Dr\\.whob). value trống = không dịch (giữ nguyên văn bản, chỉ viết key không thêm dấu phẩy cuối); key trùng chỉ giữ lần đầu. Thuật ngữ khớp ở bất kỳ vị trí nào trong văn bản gốc theo ngữ nghĩa regex (giống bản chính thức); nên đặt thuật ngữ dài hơn ở trước. Để chỉ khớp một từ tiếng Anh đơn giản khi nó đứng độc lập, hãy thêm ranh giới rõ ràng (ví dụ \\bAPI\\b); cách này không áp dụng cho tiếng Trung hoặc thuật ngữ có ký hiệu như C++ và .NET."
-  ),
-  terminology_playground_sample: terminologyPlaygroundText(
-    "填入冲突矩阵 4 类示例",
-    "Load the 4-type conflict sample",
-    "填入衝突矩陣 4 類範例",
-    "4 タイプの衝突サンプルを入力",
-    "충돌 매트릭스 4가지 유형 샘플 입력",
-    "4 tür çakışma örneğini yükle",
-    "Tải mẫu 4 loại xung đột"
-  ),
-  terminology_playground_rule_load_failed: terminologyPlaygroundText(
-    "当前规则术语加载失败，已回退到全局规则：{message}",
-    "Failed to load the active rule terms, fell back to the global rule: {message}",
-    "目前規則術語載入失敗，已回退到全域規則：{message}",
-    "現在のルール用語の読み込みに失敗し、グローバルルールにフォールバックしました：{message}",
-    "현재 규칙 용어를 불러오지 못해 전역 규칙으로 대체했습니다: {message}",
-    "Etkin kural terimleri yüklenemedi, genel kurala geri dönüldü: {message}",
-    "Không tải được thuật ngữ của quy tắc hiện tại, đã quay về quy tắc toàn cục: {message}"
-  ),
-  terminology_playground_placeholder_label: terminologyPlaygroundText(
-    "占位符格式",
-    "Placeholder format",
-    "佔位符格式",
-    "プレースホルダー形式",
-    "플레이스홀더 형식",
-    "Yer tutucu biçimi",
-    "Định dạng placeholder"
-  ),
-  terminology_playground_seed_label: terminologyPlaygroundText(
-    "例句序号",
-    "Example seed",
-    "例句序號",
-    "例文シード",
-    "예문 시드",
-    "Örnek tohumu",
-    "Seed câu ví dụ"
-  ),
-  terminology_playground_rotate_seed: terminologyPlaygroundText(
-    "换一个例句",
-    "Change example",
-    "換一句例句",
-    "別の例文を表示",
-    "다른 예문 보기",
-    "Örneği değiştir",
-    "Đổi câu ví dụ"
-  ),
-  terminology_playground_invalid_terms: terminologyPlaygroundText(
-    "检测到 {count} 条非法术语段，未生成本地替换结果：{reasons}",
-    "{count} illegal term segments detected, so no local replacement was produced: {reasons}",
-    "偵測到 {count} 條非法術語段，未產生本機替換結果：{reasons}",
-    "不正な用語セグメントが {count} 件あるため、ローカル置換は生成されませんでした：{reasons}",
-    "잘못된 용어 세그먼트 {count}개가 감지되어 로컬 교체가 생성되지 않았습니다: {reasons}",
-    "{count} geçersiz terim bölümü algılandı, yerel değiştirme üretilmedi: {reasons}",
-    "Đã phát hiện {count} đoạn thuật ngữ không hợp lệ, không tạo thay thế cục bộ: {reasons}"
-  ),
-  terminology_playground_invalid_state: terminologyPlaygroundText(
-    "存在被拒绝的非法段（已跳过，不影响仍可应用的合法术语）。为免误导，未生成整体“通过”摘要；仍可应用的合法术语：{terms}。完整诊断见控制台（logger.error [TermPlayground]）。",
-    'Some segments were rejected (skipped; they do not affect valid terms that still apply). To avoid a misleading result, no overall "pass" summary was generated; valid terms that still apply: {terms}. Full diagnostics are in the console (logger.error [TermPlayground]).',
-    "存在被拒絕的非法段（已略過，不影響仍可應用的合法術語）。為免誤導，未產生整體「通過」摘要；仍可應用的合法術語：{terms}。完整診斷見控制台（logger.error [TermPlayground]）。",
-    "拒否された不正なセグメントがあります（スキップ済み。適用可能な有効な用語には影響しません）。誤解を避けるため全体の「成功」サマリーは生成していません。適用可能な有効な用語：{terms}。完全な診断はコンソール（logger.error [TermPlayground]）をご覧ください。",
-    "거부된 잘못된 세그먼트가 있습니다(건너뜀. 여전히 적용되는 유효한 용어에는 영향 없음). 오해를 피하기 위해 전체 '통과' 요약은 생성하지 않았습니다. 여전히 적용되는 유효한 용어: {terms}. 전체 진단은 콘솔(logger.error [TermPlayground])을 확인하세요.",
-    "Reddedilen geçersiz bölümler var (atlandı; hâlâ uygulanabilir geçerli terimleri etkilemez). Yanıltıcı sonuç vermemek için genel 'geçti' özeti oluşturulmadı; hâlâ uygulanabilir geçerli terimler: {terms}. Tam teşhis konsoldadır (logger.error [TermPlayground]).",
-    "Có đoạn không hợp lệ đã bị từ chối (được bỏ qua; không ảnh hưởng đến thuật ngữ hợp lệ vẫn được áp dụng). Để tránh gây hiểu nhầm, không tạo bản tóm tắt 'đạt' tổng thể; các thuật ngữ hợp lệ vẫn được áp dụng: {terms}. Chẩn đoán đầy đủ trong console (logger.error [TermPlayground])."
-  ),
-  terminology_playground_none: terminologyPlaygroundText(
-    "（无）",
-    "(none)",
-    "（無）",
-    "（なし）",
-    "(없음)",
-    "(yok)",
-    "(không có)"
-  ),
-  terminology_playground_meta_warning: terminologyPlaygroundText(
-    "{count} 个术语含未转义正则元字符（术语按正则语义解析）：{terms}。若要字面匹配，请在字符前加反斜杠，例如 Dr.whob 应写为 Dr\\.whob。",
-    "{count} terms contain unescaped regex metacharacters (terms are parsed as regex): {terms}. For a literal match, prefix the character with a backslash, e.g. write Dr\\.whob for Dr.whob.",
-    "{count} 個術語含未跳脫正則元字元（術語依正則語意解析）：{terms}。若要字面匹配，請在字元前加反斜線，例如 Dr.whob 應寫為 Dr\\.whob。",
-    "{count} 件の用語にエスケープされていない正規表現メタ文字があります（用語は正規表現として解析）：{terms}。リテラル一致にするには文字の前にバックスラッシュを付けます。例：Dr.whob は Dr\\.whob と記述。",
-    "{count}개 용어에 이스케이프되지 않은 정규식 메타 문자가 있습니다(용어는 정규식으로 해석됨): {terms}. 리터럴 일치를 원하면 문자 앞에 백슬래시를 추가하세요(예: Dr.whob → Dr\\.whob).",
-    "{count} terim, kaçışlanmamış normal ifade meta karakterleri içeriyor (terimler normal ifade olarak ayrıştırılır): {terms}. Birebir eşleşme için karakterden önce ters eğik çizgi koyun, ör. Dr.whob yerine Dr\\.whob yazın.",
-    "{count} thuật ngữ chứa ký tự đặc biệt regex chưa thoát (thuật ngữ được phân tích như regex): {terms}. Để khớp ký tự theo nghĩa đen, hãy thêm dấu gạch chéo ngược trước ký tự, ví dụ viết Dr\\.whob cho Dr.whob."
-  ),
-  terminology_playground_web_note: terminologyPlaygroundText(
-    "当前为 web 模式（普通浏览器标签页）：AI 翻译请求可能被浏览器 CORS 拦截（多数 AI 接口未开放跨域）。本地术语替换预览不受影响；真实 AI 翻译测试请在打包后的扩展（background 代发）或油猴（GM.xmlHttpRequest）环境中验证。",
-    "You are in web mode (a normal browser tab): AI translation requests may be blocked by browser CORS (most AI APIs do not allow cross-origin access). Local term replacement preview is unaffected; verify real AI translation in a packaged extension (background proxy) or a userscript (GM.xmlHttpRequest) environment.",
-    "目前為 web 模式（一般瀏覽器分頁）：AI 翻譯請求可能被瀏覽器 CORS 攔截（多數 AI 介面未開放跨域）。本機術語替換預覽不受影響；真實 AI 翻譯測試請在打包後的擴充功能（background 代發）或油猴（GM.xmlHttpRequest）環境中驗證。",
-    "現在は web モード（通常のブラウザータブ）です：AI 翻訳リクエストはブラウザーの CORS でブロックされる可能性があります（多くの AI API はクロスオリジンを許可していません）。ローカル用語置換プレビューには影響しません。実際の AI 翻訳テストは、パッケージ化した拡張機能（background 経由）またはユーザースクリプト（GM.xmlHttpRequest）環境で検証してください。",
-    "현재 web 모드(일반 브라우저 탭)입니다: AI 번역 요청이 브라우저 CORS로 차단될 수 있습니다(대부분 AI API가 교차 출처를 허용하지 않음). 로컬 용어 교체 미리보기에는 영향을 주지 않습니다. 실제 AI 번역 테스트는 패키징된 확장 프로그램(background 대리 요청) 또는 유저스크립트(GM.xmlHttpRequest) 환경에서 검증하세요.",
-    "Şu anda web modundasınız (normal bir tarayıcı sekmesi): AI çeviri istekleri tarayıcı CORS tarafından engellenebilir (çoğu AI API'si çapraz kaynak erişimine izin vermez). Yerel terim değiştirme önizlemesi etkilenmez. Gerçek AI çeviri testini paketlenmiş uzantı (background vekâleti) veya kullanıcı betiği (GM.xmlHttpRequest) ortamında doğrulayın.",
-    "Bạn đang ở chế độ web (tab trình duyệt thông thường): các yêu cầu dịch AI có thể bị chặn bởi CORS của trình duyệt (hầu hết API AI không cho phép truy cập chéo nguồn gốc). Xem trước thay thế thuật ngữ cục bộ không bị ảnh hưởng. Hãy xác minh kiểm tra dịch AI thực trong môi trường tiện ích mở rộng đã đóng gói (ủy quyền background) hoặc userscript (GM.xmlHttpRequest)."
-  ),
-  // ── _delivery_*：四态 Chip 与实际值包装 ─────────────────────────────
-  terminology_playground_delivery_delivered: terminologyPlaygroundText(
-    "已发出",
-    "Sent",
-    "已發送",
-    "送信済み",
-    "전송됨",
-    "Gönderildi",
-    "Đã gửi"
-  ),
-  terminology_playground_delivery_mismatch: terminologyPlaygroundText(
-    "值不一致",
-    "Value mismatch",
-    "值不一致",
-    "値が不一致",
-    "값 불일치",
-    "Değer uyuşmuyor",
-    "Giá trị không khớp"
-  ),
-  terminology_playground_delivery_missing: terminologyPlaygroundText(
-    "未发出",
-    "Not sent",
-    "未發送",
-    "未送信",
-    "전송되지 않음",
-    "Gönderilmedi",
-    "Không gửi"
-  ),
-  terminology_playground_delivery_uncaptured: terminologyPlaygroundText(
-    "未捕获",
-    "Not captured",
-    "未捕獲",
-    "未検出",
-    "검출 안 됨",
-    "Yakalanamadı",
-    "Không phát hiện"
-  ),
-  terminology_playground_delivery_value_wrap: terminologyPlaygroundText(
-    "{label}（实际值：{value}）",
-    "{label} (actual: {value})",
-    "{label}（實際值：{value}）",
-    "{label}（実際の値：{value}）",
-    "{label}（실제 값：{value}）",
-    "{label} (gerçek değer: {value})",
-    "{label}（giá trị thực: {value}）"
-  ),
-  terminology_playground_delivery_empty: terminologyPlaygroundText(
-    "（空）",
-    "(empty)",
-    "（空）",
-    "（空）",
-    "（없음）",
-    "(boş)",
-    "（trống）"
-  ),
-
-  // ── _channel_*：注入通道描述 ────────────────────────────────────────
-  terminology_playground_channel_custom: terminologyPlaygroundText(
-    "自定义接口：不注入提示词与术语（需自行实现 reqHook）",
-    "Custom API: no prompt or terms injected (implement reqHook yourself)",
-    "自訂介面：不注入提示詞與術語（需自行實作 reqHook）",
-    "カスタムAPI：プロンプトや用語を注入しません（reqHook を自分で実装）",
-    "사용자 정의 API: 프롬프트와 용어를 주입하지 않음 (reqHook 직접 구현 필요)",
-    "Özel API: istem veya terim enjekte edilmez (reqHook'u kendiniz uygulayın)",
-    "API tùy chỉnh: không chèn lời nhắc và thuật ngữ (tự triển khai reqHook)"
-  ),
-  terminology_playground_channel_qwenmt: terminologyPlaygroundText(
-    "服务端原生术语 translation_options.terms",
-    "Server-side native terms translation_options.terms",
-    "服務端原生術語 translation_options.terms",
-    "サーバー側ネイティブ用語 translation_options.terms",
-    "서버 네이티브 용어 translation_options.terms",
-    "Sunucu tarafı yerel terimler translation_options.terms",
-    "Thuật ngữ gốc phía máy chủ translation_options.terms"
-  ),
-  terminology_playground_channel_batch: terminologyPlaygroundText(
-    "批量 {protocol} {{glossary}} 占位符",
-    "Batch {protocol} {{glossary}} placeholder",
-    "批次 {protocol} {{glossary}} 佔位符",
-    "バッチ {protocol} {{glossary}} プレースホルダー",
-    "배치 {protocol} {{glossary}} 플레이스홀더",
-    "Toplu {protocol} {{glossary}} yer tutucusu",
-    "Giữ chỗ {{glossary}} {protocol} dạng lô"
-  ),
-  terminology_playground_channel_nobatch: terminologyPlaygroundText(
-    "非批量 {{glossary}} 占位符",
-    "Non-batch {{glossary}} placeholder",
-    "非批次 {{glossary}} 佔位符",
-    "非バッチ {{glossary}} プレースホルダー",
-    "비배치 {{glossary}} 플레이스홀더",
-    "Batch olmayan {{glossary}} yer tutucusu",
-    "Giữ chỗ {{glossary}} không theo lô"
-  ),
-
-  // ── _prompt_*：提示词标签 ───────────────────────────────────────────
-  terminology_playground_prompt_none: terminologyPlaygroundText(
-    "不使用翻译提示词",
-    "No translation prompt used",
-    "不使用翻譯提示詞",
-    "翻訳プロンプトを使用しない",
-    "번역 프롬프트를 사용하지 않음",
-    "Çeviri istemi kullanılmaz",
-    "Không dùng lời khách dịch"
-  ),
-  terminology_playground_prompt_json: terminologyPlaygroundText(
-    "JSON 聚合翻译提示词",
-    "JSON batch translation prompt",
-    "JSON 聚合翻譯提示詞",
-    "JSON 一括翻訳プロンプト",
-    "JSON 일괄 번역 프롬프트",
-    "JSON toplu çeviri istemi",
-    "Lời khách dịch lô JSON"
-  ),
-  terminology_playground_prompt_xml: terminologyPlaygroundText(
-    "XML 聚合翻译提示词",
-    "XML batch translation prompt",
-    "XML 聚合翻譯提示詞",
-    "XML 一括翻訳プロンプト",
-    "XML 일괄 번역 프롬프트",
-    "XML toplu çeviri istemi",
-    "Lời khách dịch lô XML"
-  ),
-  terminology_playground_prompt_line: terminologyPlaygroundText(
-    "LINE 聚合翻译提示词",
-    "LINE batch translation prompt",
-    "LINE 聚合翻譯提示詞",
-    "LINE 一括翻訳プロンプト",
-    "LINE 일괄 번역 프롬프트",
-    "LINE toplu çeviri istemi",
-    "Lời khách dịch lô LINE"
-  ),
-  terminology_playground_prompt_custom_batch: terminologyPlaygroundText(
-    "自定义聚合提示词",
-    "Custom batch prompt",
-    "自訂聚合提示詞",
-    "カスタム一括プロンプト",
-    "사용자 정의 일괄 프롬프트",
-    "Özel toplu istem",
-    "Lời khách lô tùy chỉnh"
-  ),
-  terminology_playground_prompt_nobatch: terminologyPlaygroundText(
-    "非批量翻译提示词",
-    "Non-batch translation prompt",
-    "非批次翻譯提示詞",
-    "非バッチ翻訳プロンプト",
-    "비배치 번역 프롬프트",
-    "Batch olmayan çeviri istemi",
-    "Lời khách dịch không theo lô"
-  ),
-  terminology_playground_prompt_custom_nobatch: terminologyPlaygroundText(
-    "自定义非批量提示词",
-    "Custom non-batch prompt",
-    "自訂非批次提示詞",
-    "カスタム非バッチプロンプト",
-    "사용자 정의 비배치 프롬프트",
-    "Özel non-batch istemi",
-    "Custom prompt không theo lô"
-  ),
-
-  // ── _alert_*：Snackbar 与错误弹窗文案 ──────────────────────────────
-  terminology_playground_alert_invalid_terms: terminologyPlaygroundText(
-    "存在非法术语段，请先修正输入后再测试。",
-    "Invalid term segments found. Fix the input before testing.",
-    "存在非法術語段，請先修正輸入後再測試。",
-    "不正な用語セグメントがあります。テスト前に入力を修正してください。",
-    "잘못된 용어 세그먼트가 있습니다. 테스트 전에 입력을 수정하세요.",
-    "Geçersiz terim bölümleri var; testten önce girdiyi düzeltin.",
-    "Có đoạn thuật ngữ không hợp lệ; hãy sửa đầu vào trước khi kiểm tra."
-  ),
-  terminology_playground_alert_no_example: terminologyPlaygroundText(
-    "未生成可测试的例句。",
-    "No testable example was generated.",
-    "未產生可測試的例句。",
-    "テスト可能な例文が生成されませんでした。",
-    "테스트 가능한 예문이 생성되지 않았습니다.",
-    "Test edilebilir örnek oluşturulmadı.",
-    "Không tạo được câu ví dụ kiểm tra được."
-  ),
-  terminology_playground_alert_auto_sample_skipped: terminologyPlaygroundText(
-    "部分正则术语无法可靠生成自动匹配样例，已跳过这些自动断言。",
-    "Some regex terms cannot reliably generate automatic matching samples; their auto assertions were skipped.",
-    "部分正規術語無法可靠產生自動匹配樣例，已略過這些自動斷言。",
-    "一部の正規表現用語は自動マッチングサンプルを確実に生成できないため、これらの自動アサーションをスキップしました。",
-    "일부 정규식 용어는 자동 매칭 샘플을 신뢰할 수 있게 생성할 수 없어 해당 자동 검증을 건너뛰었습니다.",
-    "Bazı regex terimleri için güvenilir otomatik eşleşme örneği üretilemedi; bu otomatik doğrulamalar atlandı.",
-    "Một số thuật ngữ regex không thể tạo mẫu khớp tự động đáng tin cậy, nên đã bỏ qua các kiểm chứng tự động đó."
-  ),
-  terminology_playground_issue_no_terms: terminologyPlaygroundText(
-    "无有效术语，无法断言。",
-    "No valid terms; assertion skipped.",
-    "無有效術語，無法斷言。",
-    "有効な用語がなく、アサーションをスキップしました。",
-    "유효한 용어가 없어 검증을 건너뛰었습니다.",
-    "Geçerli terim yok; doğrulama atlandı.",
-    "Không có thuật ngữ hợp lệ, bỏ qua kiểm chứng."
-  ),
-  terminology_playground_issue_empty_text: terminologyPlaygroundText(
-    "测试文本为空，无法断言。",
-    "Test text is empty; assertion skipped.",
-    "測試文字為空，無法斷言。",
-    "テストテキストが空のため、アサーションをスキップしました。",
-    "테스트 텍스트가 비어 있어 검증을 건너뛰었습니다.",
-    "Test metni boş; doğrulama atlandı.",
-    "Văn bản kiểm tra trống, bỏ qua kiểm chứng."
-  ),
-  terminology_playground_issue_invalid_testcase: terminologyPlaygroundText(
-    "测试用例缺少 term 信息，无法断言。",
-    "Test case is missing term info; assertion skipped.",
-    "測試用例缺少 term 資訊，無法斷言。",
-    "テストケースに用語情報がなく、アサーションをスキップしました。",
-    "테스트 케이스에 용어 정보가 없어 검증을 건너뛰었습니다.",
-    "Test ögesinde terim bilgisi eksik; doğrulama atlandı.",
-    "Ca kiểm thử thiếu thông tin thuật ngữ, bỏ qua kiểm chứng."
-  ),
-  terminology_playground_issue_single_not_found: terminologyPlaygroundText(
-    "术语 {term} 未被命中。",
-    "Term {term} was not matched.",
-    "術語 {term} 未被命中。",
-    "用語 {term} はマッチしませんでした。",
-    "용어 {term}이(가) 매칭되지 않았습니다.",
-    "{term} terimi eşleşmedi.",
-    "Thuật ngữ {term} không được khớp."
-  ),
-  terminology_playground_issue_single_wrong_replacement: terminologyPlaygroundText(
-    "术语 {term} 替换结果不正确。",
-    "Term {term} was replaced incorrectly.",
-    "術語 {term} 替換結果不正確。",
-    "用語 {term} の置換結果が正しくありません。",
-    "용어 {term}의 치환 결과가 올바르지 않습니다.",
-    "{term} terimi yanlış değiştirildi.",
-    "Thuật ngữ {term} bị thay thế sai."
-  ),
-  terminology_playground_issue_conflict_long_not_hit: terminologyPlaygroundText(
-    "长词 {long} 未被命中（短词 {short} 可能抢占）。",
-    "Long term {long} was not matched (short term {short} may have taken over).",
-    "長詞 {long} 未被命中（短詞 {short} 可能搶佔）。",
-    "長い用語 {long} がマッチしませんでした（短い用語 {short} が先に取得した可能性）。",
-    "긴 용어 {long}이(가) 매칭되지 않았습니다(짧은 용어 {short}가 선점했을 수 있음).",
-    "Uzun terim {long} eşleşmedi (kısa terim {short} öne geçmiş olabilir).",
-    "Thuật ngữ dài {long} không được khớp (thuật ngữ ngắn {short} có thể đã chiếm trước)."
-  ),
-  terminology_playground_issue_conflict_long_cut: terminologyPlaygroundText(
-    "长词 {long} 被短词 {short} 切割（检测到前缀误伤）。",
-    "Long term {long} was cut by short term {short} (prefix overwrite detected).",
-    "長詞 {long} 被短詞 {short} 切割（檢測到前綴誤傷）。",
-    "長い用語 {long} が短い用語 {short} によって切断されました（接頭辞の誤置換を検出）。",
-    "긴 용어 {long}이(가) 짧은 용어 {short}에 의해 잘렸습니다(접두어 오표적 감지).",
-    "Uzun terim {long}, kısa terim {short} tarafından kesildi (önekyazma saptandı).",
-    "Thuật ngữ dài {long} bị thuật ngữ ngắn {short} cắt ngang (phát hiện ghi đè tiền tố)."
-  ),
-  terminology_playground_issue_conflict_long_value_not_applied: terminologyPlaygroundText(
-    "长词 {long} 有译文但未被替换（仍为原文）。",
-    "Long term {long} has a translation but was not replaced (original text kept).",
-    "長詞 {long} 有譯文但未被替換（仍為原文）。",
-    "長い用語 {long} は訳があるのに置換されていません（原文のまま）。",
-    "긴 용어 {long}에 번역이 있는데도 치환되지 않았습니다(원문 유지).",
-    "Uzun terim {long} için çeviri var ama değiştirilmedi (öz metin korundu).",
-    "Thuật ngữ dài {long} có bản dịch nhưng không được thay thế (vẫn giữ nguyên văn)."
-  ),
-  terminology_playground_issue_conflict_long_no_value_replaced: terminologyPlaygroundText(
-    "长词 {long} 无译文但被替换为 \"{replacement}\"。",
-    "Long term {long} has no translation but was replaced with \"{replacement}\".",
-    "長詞 {long} 無譯文但被替換為「{replacement}」。",
-    "長い用語 {long} は訳がないのに「{replacement}」に置換されました。",
-    "긴 용어 {long}에 번역이 없는데도 \"{replacement}\"(으)로 치환되었습니다.",
-    "Çevirisi olmayan uzun terim {long}, \"{replacement}\" ile değiştirildi.",
-    "Thuật ngữ dài {long} không có bản dịch nhưng bị thay bằng \"{replacement}\"."
-  ),
-  terminology_playground_issue_conflict_short_value_not_applied: terminologyPlaygroundText(
-    "短词 {short} 有译文但未被替换（单独出现时）。",
-    "Short term {short} has a translation but was not replaced (standalone occurrence).",
-    "短詞 {short} 有譯文但未被替換（單獨出現時）。",
-    "短い用語 {short} は訳があるのに置換されていません（単独出現時）。",
-    "짧은 용어 {short}에 번역이 있는데도 치환되지 않았습니다(단독 출현 시).",
-    "Kısa terim {short} için çeviri var ama değiştirilmedi (tek başına geçtiğinde).",
-    "Thuật ngữ ngắn {short} có bản dịch nhưng không được thay thế (khi xuất hiện riêng lẻ)."
-  ),
-  terminology_playground_issue_naive_prefix_cut: terminologyPlaygroundText(
-    "长词 {long} 被短词 {short} 切割（检测到前缀误伤）。",
-    "Long term {long} was cut by short term {short} (prefix overwrite detected).",
-    "長詞 {long} 被短詞 {short} 切割（檢測到前綴誤傷）。",
-    "長い用語 {long} が短い用語 {short} によって切断されました（接頭辞の誤置換を検出）。",
-    "긴 용어 {long}이(가) 짧은 용어 {short}에 의해 잘렸습니다(접두어 오표적 감지).",
-    "Uzun terim {long}, kısa terim {short} tarafından kesildi (önekyazma saptandı).",
-    "Thuật ngữ dài {long} bị thuật ngữ ngắn {short} cắt ngang (phát hiện ghi đè tiền tố)."
-  ),
-  terminology_playground_issue_naive_cut_residue: terminologyPlaygroundText(
-    "不翻译长词 {long} 被切割出高亮残留（短词 {short} 内部命中）。",
-    "Untranslated long term {long} was cut leaving highlight residue (short term {short} matched inside).",
-    "不翻譯長詞 {long} 被切割出高亮殘留（短詞 {short} 內部命中）。",
-    "翻訳しない長い用語 {long} にハイライト残骸が生じました（短い用語 {short} が内部でマッチ）。",
-    "번역하지 않는 긴 용어 {long}에 하이라이트 잔여물이 생겼습니다(짧은 용어 {short} 내부 매칭).",
-    "Çevrilmeyen uzun terim {long} kesilerek vurgu artığı bıraktı (kısa terim {short} içeride eşleşti).",
-    "Thuật ngữ dài không dịch {long} bị cắt để lại phần làm nổi bật còn sót (thuật ngữ ngắn {short} khớp bên trong)."
-  ),
-  terminology_playground_issue_unknown_type: terminologyPlaygroundText(
-    "未知的测试用例类型: {type}",
-    "Unknown test case type: {type}",
-    "未知的測試用例類型: {type}",
-    "不明なテストケース種別: {type}",
-    "알 수 없는 테스트 케이스 유형: {type}",
-    "Bilinmeyen test ögesi türü: {type}",
-    "Loại ca kiểm thử không xác định: {type}"
-  ),
-  terminology_playground_check_more: terminologyPlaygroundText(
-    "还有 {count} 条未展示。",
-    "{count} more rows not shown.",
-    "還有 {count} 條未展示。",
-    "他の {count} 件は未表示です。",
-    "{count}개 항목이 더 있지만 표시되지 않았습니다.",
-    "{count} satır daha gösterilmiyor.",
-    "Còn {count} dòng chưa được hiển thị."
-  ),
-  terminology_playground_check_expand: terminologyPlaygroundText(
-    "展开全部",
-    "Show all",
-    "展開全部",
-    "すべて表示",
-    "모두 펼치기",
-    "Tümünü göster",
-    "Hiện tất cả"
-  ),
-  terminology_playground_check_collapse: terminologyPlaygroundText(
-    "收起",
-    "Collapse",
-    "收起",
-    "折りたたむ",
-    "접기",
-    "Daralt",
-    "Thu gọn"
-  ),
-  terminology_playground_alert_test_passed: terminologyPlaygroundText(
-    "测试通过",
-    "Test passed",
-    "測試通過",
-    "テスト成功",
-    "테스트 통과",
-    "Test geçti",
-    "Kiểm tra đạt"
-  ),
-  terminology_playground_alert_example_label: terminologyPlaygroundText(
-    "例句：",
-    "Example: ",
-    "例句：",
-    "例文：",
-    "예문: ",
-    "Örnek: ",
-    "Ví dụ: "
-  ),
-  terminology_playground_alert_replaced_label: terminologyPlaygroundText(
-    "替换后：",
-    "Replaced: ",
-    "替換後：",
-    "置換後：",
-    "교체 후: ",
-    "Değiştirilmiş: ",
-    "Sau thay thế: "
-  ),
-  terminology_playground_alert_test_failed: terminologyPlaygroundText(
-    "测试失败",
-    "Test failed",
-    "測試失敗",
-    "テスト失敗",
-    "테스트 실패",
-    "Test başarısız",
-    "Kiểm tra thất bại"
-  ),
-  terminology_playground_alert_no_api: terminologyPlaygroundText(
-    "请先在顶部选择要测试的翻译接口。",
-    "Select a translation API at the top first.",
-    "請先在頂部選擇要測試的翻譯介面。",
-    "先に上部でテストする翻訳 API を選択してください。",
-    "먼저 상단에서 테스트할 번역 API를 선택하세요.",
-    "Önce üstten test edilecek çeviri API'sini seçin.",
-    "Hãy chọn API dịch để kiểm tra ở phía trên trước."
-  ),
-  terminology_playground_alert_api_not_supported: terminologyPlaygroundText(
-    "该接口不支持 AI 专业术语",
-    "This API does not support AI terms",
-    "該介面不支援 AI 專業術語",
-    "この API は AI 専門用語をサポートしていません",
-    "이 API는 AI 전문 용어를 지원하지 않습니다",
-    "Bu API AI terimlerini desteklemiyor",
-    "API này không hỗ trợ thuật ngữ AI"
-  ),
-  terminology_playground_alert_api_not_supported_body:
-    terminologyPlaygroundText(
-      "{apiName} 是 {type}接口，不支持注入提示词，AI 专业术语（规则级/接口级）不会生效。 请选 AI 接口（OpenAI 兼容/Gemini/Claude 等）。",
-      "{apiName} is a {type} API. It does not support prompt injection, so AI terms (rule-level/API-level) will not take effect. Choose an AI API (OpenAI-compatible/Gemini/Claude, etc.).",
-      "{apiName} 是{type}介面，不支援注入提示詞，AI 專業術語（規則級/介面級）不會生效。請選 AI 介面（OpenAI 相容/Gemini/Claude 等）。",
-      "{apiName} は{type} API です。プロンプト注入に対応していないため、AI 専門用語（ルールレベル/APIレベル）は反映されません。AI 対応 API（OpenAI 互換/Gemini/Claude など）を選択してください。",
-      "{apiName}는 {type} API입니다. 프롬프트 주입을 지원하지 않아 AI 전문 용어(규칙급/API급)가 적용되지 않습니다. AI API(OpenAI 호환/Gemini/Claude 등)를 선택하세요.",
-      "{apiName} bir {type} API'sidir. Prompt enjeksiyonu desteklemediğinden AI terimleri (kural/API düzeyi) uygulanmaz. Bir AI API'si (OpenAI uyumlu/Gemini/Claude vb.) seçin.",
-      "{apiName} là API {type}. Không hỗ trợ prompt injection nên thuật ngữ AI (cấp quy tắc/cấp API) sẽ không hiệu lực. Hãy chọn API AI (tương thích OpenAI/Gemini/Claude...)."
-    ),
-  terminology_playground_api_type_machine: terminologyPlaygroundText(
-    "机器翻译",
-    "machine translation",
-    "機器翻譯",
-    "機械翻訳",
-    "기계 번역",
-    "makine çevirisi",
-    "dịch máy"
-  ),
-  terminology_playground_api_type_traditional: terminologyPlaygroundText(
-    "传统翻译",
-    "traditional translation",
-    "傳統翻譯",
-    "従来型翻訳",
-    "전통 번역",
-    "geleneksel çeviri",
-    "dịch truyền thống"
-  ),
-  terminology_playground_alert_ai_terms_required: terminologyPlaygroundText(
-    "请先输入 AI 专业术语以生成测试例句。",
-    "Enter AI terms to generate a test example first.",
-    "請先輸入 AI 專業術語以產生測試例句。",
-    "先に AI 専門用語を入力してテスト例を生成してください。",
-    "먼저 AI 전문 용어를 입력하여 테스트 예문을 생성하세요.",
-    "Önce AI terimlerini girip bir test örneği oluşturun.",
-    "Hãy nhập thuật ngữ AI để tạo câu ví dụ kiểm tra trước."
-  ),
-  terminology_playground_alert_ai_test_failed: terminologyPlaygroundText(
-    "AI 翻译测试失败",
-    "AI translation test failed",
-    "AI 翻譯測試失敗",
-    "AI 翻訳テストに失敗",
-    "AI 번역 테스트 실패",
-    "AI çeviri testi başarısız",
-    "Kiểm tra dịch AI thất bại"
-  ),
-
-  // ── _api_*：接口选择器区 ────────────────────────────────────────────
-  terminology_playground_api_title: terminologyPlaygroundText(
-    "接口选择",
-    "API selection",
-    "介面選擇",
-    "API 選択",
-    "API 선택",
-    "API seçimi",
-    "Chọn API"
-  ),
-  terminology_playground_api_desc: terminologyPlaygroundText(
-    "机器翻译与传统翻译接口（Microsoft、DeepL、Google 等）不支持 AI 专业术语；AI 模型接口与 QwenMT 支持。",
-    "Machine- and traditional-translation APIs (Microsoft, DeepL, Google, etc.) do not support AI terms; AI model APIs and QwenMT do.",
-    "機器翻譯與傳統翻譯介面（Microsoft、DeepL、Google 等）不支援 AI 專業術語；AI 模型介面與 QwenMT 支援。",
-    "機械翻訳・従来型翻訳 API（Microsoft、DeepL、Google など）は AI 専門用語に非対応です。AI モデル API と QwenMT は対応します。",
-    "기계 번역 및 전통 번역 API(Microsoft, DeepL, Google 등)는 AI 전문 용어를 지원하지 않습니다. AI 모델 API와 QwenMT는 지원합니다.",
-    "Makine ve geleneksel çeviri API'leri (Microsoft, DeepL, Google vb.) AI terimlerini desteklemez; AI model API'leri ve QwenMT destekler.",
-    "API dịch máy và dịch truyền thống (Microsoft, DeepL, Google...) không hỗ trợ thuật ngữ AI; API mô hình AI và QwenMT thì có."
-  ),
-  terminology_playground_api_label: terminologyPlaygroundText(
-    "翻译接口",
-    "Translation API",
-    "翻譯介面",
-    "翻訳 API",
-    "번역 API",
-    "Çeviri API'si",
-    "API dịch"
-  ),
-  terminology_playground_api_none: terminologyPlaygroundText(
-    "未配置可用接口，请先到「接口设置」页配置",
-    'No usable API configured; add one on the "API Settings" page first.',
-    "未配置可用介面，請先到「介面設定」頁配置",
-    "有効な API が設定されていません。「API 設定」ページで先に追加してください。",
-    "사용 가능한 API가 설정되지 않았습니다. 먼저 「API 설정」페이지에서 추가하세요.",
-    'Etkin API yapılandırılmamış; önce "API Ayarları" sayfasında ekleyin.',
-    'Chưa cấu hình API khả dụng; hãy thêm ở trang "Cài đặt API" trước.'
-  ),
-  terminology_playground_api_machine_note: terminologyPlaygroundText(
-    "当前为{type}，AI 专业术语无法生效。",
-    "Currently {type}; AI terms cannot take effect.",
-    "目前為{type}，AI 專業術語無法生效。",
-    "現在は{type}です。AI 専門用語は反映されません。",
-    "현재 {type}입니다. AI 전문 용어는 적용되지 않습니다.",
-    "Şu anda {type}; AI terimleri etkili olamaz.",
-    "Hiện là {type}; thuật ngữ AI không thể có hiệu lực."
-  ),
-  terminology_playground_api_qwenmt_note: terminologyPlaygroundText(
-    "当前为 QwenMT，AI 专业术语可生效。",
-    "Currently QwenMT; AI terms can take effect.",
-    "目前為 QwenMT，AI 專業術語可生效。",
-    "現在は QwenMT です。AI 専門用語が反映されます。",
-    "현재 QwenMT입니다. AI 전문 용어가 적용됩니다.",
-    "Şu anda QwenMT; AI terimleri etkili olabilir.",
-    "Hiện là QwenMT; thuật ngữ AI có thể có hiệu lực."
-  ),
-  terminology_playground_api_ai_note: terminologyPlaygroundText(
-    "当前为 AI 翻译，AI 专业术语可生效。",
-    "Currently AI translation; AI terms can take effect.",
-    "目前為 AI 翻譯，AI 專業術語可生效。",
-    "現在は AI 翻訳です。AI 専門用語が反映されます。",
-    "현재 AI 번역입니다. AI 전문 용어가 적용됩니다.",
-    "Şu anda AI çevirisi; AI terimleri etkili olabilir.",
-    "Hiện là dịch AI; thuật ngữ AI có thể có hiệu lực."
-  ),
-
-  // ── _local_*：本地术语区按钮与标签 ──────────────────────────────────
-  terminology_playground_local_test: terminologyPlaygroundText(
-    "测试",
-    "Test",
-    "測試",
-    "テスト",
-    "테스트",
-    "Test",
-    "Kiểm tra"
-  ),
-  terminology_playground_local_default: terminologyPlaygroundText(
-    "默认",
-    "Default",
-    "預設",
-    "デフォルト",
-    "기본",
-    "Varsayılan",
-    "Mặc định"
-  ),
-  terminology_playground_local_example: terminologyPlaygroundText(
-    "例句",
-    "Example",
-    "例句",
-    "例文",
-    "예문",
-    "Örnek",
-    "Ví dụ"
-  ),
-  terminology_playground_local_pass: terminologyPlaygroundText(
-    "本地替换通过",
-    "Local replace OK",
-    "本地替換通過",
-    "ローカル置換 合格",
-    "로컬 치환 통과",
-    "Yerel değiştirme başarılı",
-    "Thay thế cục bộ đạt"
-  ),
-  terminology_playground_local_fail: terminologyPlaygroundText(
-    "本地替换异常",
-    "Local replace failed",
-    "本地替換異常",
-    "ローカル置換 失敗",
-    "로컬 치환 실패",
-    "Yerel değiştirme hatası",
-    "Lỗi thay thế cục bộ"
-  ),
-  // 徽标语义澄清：该断言只覆盖本地正则替换自检，不代表 AI 接口的遵循效果。
-  terminology_playground_local_replace_hint: terminologyPlaygroundText(
-    "本地自检：已对当前例句执行一次正则替换断言，全部术语命中并按预期替换；不代表 AI 接口的实际遵循效果。",
-    "Local self-check: a regex replacement assertion ran on this example; all terms matched and were replaced as expected. It does not reflect actual AI API adherence.",
-    "本地自檢：已對當前例句執行一次正則替換斷言，全部術語命中並按預期替換；不代表 AI 介面的實際遵循效果。",
-    "ローカル自己チェック：この例文に正規表現置換アサーションを実行し、全用語が命中・期待どおりに置換されました。AI API の実際の遵守を示すものではありません。",
-    "로컬 자가 검사: 현재 예문에 정규식 치환 단언을 실행했으며 모든 용어가 일치하고 예상대로 치환되었습니다. AI API의 실제 준수 여부를 나타내지 않습니다.",
-    "Yerel öz-denetim: Bu örnek üzerinde regex değiştirme doğrulaması çalıştırıldı; tüm terimler eşleşti ve beklendiği gibi değiştirildi. AI API'nin gerçek uyumunu yansıtmaz.",
-    "Tự kiểm tra cục bộ: Đã chạy xác nhận thay thế regex trên ví dụ này; mọi thuật ngữ đều khớp và được thay đúng như mong đợi. Không phản ánh mức tuân thủ thực tế của AI API."
-  ),
-
-  // ── _terms_*：AI 专业术语输入区 ─────────────────────────────────────
-  terminology_playground_terms_title: terminologyPlaygroundText(
-    "AI 专业术语（术语表预览 + 真实 AI 翻译测试）",
-    "AI terms (glossary preview + real AI translation test)",
-    "AI 專業術語（術語表預覽 + 真實 AI 翻譯測試）",
-    "AI 専門用語（用語集プレビュー + 実際の AI 翻訳テスト）",
-    "AI 전문 용어(용어 사전 미리보기 + 실제 AI 번역 테스트)",
-    "AI terimleri (sözlük önizlemesi + gerçek AI çeviri testi)",
-    "Thuật ngữ AI (xem trước glossary + kiểm tra dịch AI thực)"
-  ),
-  terminology_playground_terms_help_intro: terminologyPlaygroundText(
-    "键值对，每行或 `;` 分隔。选 AI 接口后点「测试」发起真实请求。 术语表为**软注入**，模型不保证遵循。",
-    'Key-value pairs, one per line or separated by `;`. Select an AI API and click "Test" to send a real request. The glossary is a **soft injection**; the model does not guarantee to follow it.',
-    "鍵值對，每行或 `;` 分隔。選 AI 介面後點「測試」發起真實請求。術語表為**軟注入**，模型不保證遵循。",
-    "key:value、1行1つまたは `;` 区切りです。AI 対応 API を選んで「テスト」をクリックすると実際のリクエストを送信します。用語集は**ソフト注入**で、モデルは必ず従うとは限りません。",
-    'key:value, 한 줄에 하나 또는 `;` 로 구분합니다. AI API를 선택하고 "테스트"를 클릭하면 실제 요청을 보냅니다. 용어 사전은 **소프트 주입**이며 모델이 반드시 따르는 것은 아닙니다.',
-    'key:value çiftleri, her satırda bir veya `;` ile ayrılmış. Bir AI API\'si seçip "Test"e tıklayınca gerçek bir istek gönderilir. Sözlük **yumuşak enjeksiyon**dur; modelin uyacağı garanti edilmez.',
-    'Cặp key:value, mỗi dòng một mục hoặc ngăn cách bằng `;`. Chọn API AI và bấm "Kiểm tra" để gửi yêu cầu thực. Glossary được **nhúng mềm**; model không đảm bảo tuân theo.'
-  ),
-  terminology_playground_terms_help_more: terminologyPlaygroundText(
-    "更多",
-    "More",
-    "更多",
-    "もっと見る",
-    "더 보기",
-    "Daha fazla",
-    "Xem thêm"
-  ),
-  terminology_playground_terms_help_collapse: terminologyPlaygroundText(
-    "收起",
-    "Collapse",
-    "收起",
-    "閉じる",
-    "접기",
-    "Kapat",
-    "Thu gọn"
-  ),
-  // 译者须知：** 与 ` 标记必须保留，标记内文本可翻译。
-  terminology_playground_terms_help_detail_a: terminologyPlaygroundText(
-    "本区数据为临时测试数据，已自动保留上一次输入，正式保存请复制到「规则/接口设置」页。 AI 专业术语不支持正则表达式。 注意：术语表是通过提示词**软注入**的，模型不保证一定遵循；遇到强先验词 （模型已熟知的专有名词/固定译法，如 API、token）可能压不住，建议用造词 （如 zorp,数据管道）排除干扰。要**必定**替换请写到本地专业术语 （规则 → 术语）：那是正则硬替换、原词不进请求，但注意它按正则语义解析， 元字符 `. + * ? ( ) [ ] \\ | ^ $` 需转义，且只作用于整页翻译的段落正文。 AI 专业术语仅作辅助。",
-    "The data here is temporary test data; the last input is kept automatically. To save it for real, copy it to the Rules/API Settings page. AI terms do not support regex. Note: the glossary is **soft-injected** via the prompt, and the model does not guarantee to follow it. Strong prior terms (well-known names or fixed translations the model already knows, e.g. API, token) may not be suppressed, so we recommend using invented terms (e.g. `zorp,data pipeline`) to remove interference. For a **guaranteed** replacement, put it in the local terms (Rule → Terms): that is a hard regex replacement and the original word is not sent, but note it is parsed by regex semantics, metacharacters `. + * ? ( ) [ ] \\ | ^ $` must be escaped, and it only applies to the body of the page translation.",
-    "本區資料為臨時測試資料，已自動保留上次輸入，正式儲存請複製到「規則/介面設定」頁。AI 專業術語不支援正則。注意：術語表是透過提示詞**軟注入**的，模型不保證一定遵循；遇到強先驗詞（模型已熟知的專有名稱/固定譯法，如 API、token）可能壓不住，建議用造詞（如 zorp,資料管線）排除干擾。要**必定**替換請寫到本機專業術語（規則 → 術語）：那是正則硬替換、原詞不進請求，但注意它依正則語意解析，元字符 `. + * ? ( ) [ ] \\ | ^ $` 需跳脫，且只作用於整頁翻譯的段落正文。AI 專業術語僅作輔助。",
-    "ここは一時的なテストデータです。前回の入力は自動で保持され、正式に保存するには「ルール/API設定」ページへコピーしてください。AI専門用語は正規表現非対応。用語集はプロンプトによる**ソフト注入**で、モデルが必ず従うとは限りません。強い事前知識のある用語（API、パッケージなどモデルが既に知っている固有名）は抑制できない場合があるため、造語（例：zorp,データパイプライン）で干渉を排除することを推奨します。**確実に**置換したい場合はローカル専門用語（ルール → 用語）に書いてください：正規表現によるハード置換で原文はリクエストに送られませんが、正規表現メタ文字 `. + * ? ( ) [ ] \\ | ^ $` はエスケープが必要で、ページ翻訳の本文にのみ適用されます。AI専門用語は補助です。",
-    '여기 데이터는 임시 테스트 데이터입니다. 마지막 입력은 자동으로 유지되며 실제 저장은 "규칙/API 설정" 페이지에 복사하세요. AI 용어는 정규식을 지원하지 않습니다. 용어집은 프롬프트를 통해 **소프트 주입**되며 모델이 반드시 따르지 않습니다. 강한 사전 지식(모델이 아는 고유명사/고정 번역, 예: API, package)은 눌리지 않을 수 있으니 인공 단어(예: zorp,데이터 파이프라인)로 간섭을 제거하는 것을 권장합니다. **반드시** 교체하려면 로컬 전문 용어(규칙 → 용어)에 작성하세요. 정규식 하드 교체로 원본이 요청에 포함되지 않지만 정규식 의미로 해석되므로 메타 문자 `. + * ? ( ) [ ] \\ | ^ $` 는 이스케이프해야 하며 페이지 본문에만 적용됩니다. AI 전문 용어는 보조적입니다.',
-    'Buradaki veri geçici test verisidir; son girdi otomatik saklanır, kalıcı kayıt için "Kurallar/API Ayarları" sayfasına kopyalayın. AI terimleri regex desteklemez. Sözlük istem yoluyla **yumuşak enjekte** edilir ve modelin uyacağı garanti edilmez; güçlü önceliği (modelin zaten bildiği özel isimler/teslim çeviriler, ör. API, token) bastırılamaz, bu yüzden uydurma terimler (ör. zorp) ile etkileşimi giderin. **Kesin** uygulama için yerel terimlere (Kural → Terimler) yazın: bu regex ile sert değiştirmedir ve orijinal kelime gönderilmez; ancak regex meta karakterleri (`. + * ? ( ) [ ] \\ | ^ $`) kaçışlanmalı ve yalnızca sayfa çevirisinin gövdesine uygulanır. AI terimleri yalnızca yardımcıdır.',
-    'Dữ liệu ở đây là dữ liệu kiểm tra tạm thời; nhập cuối được giữ tự động, muốn lưu chính thức hãy copy sang trang "Quy tắc/Cài đặt API". Thuật ngữ AI không hỗ trợ regex. Glossary được **nhúng mềm** qua prompt; model không đảm bảo tuân theo. Với từ mạnh tiên nghiệm (tên riêng/bản dịch cố định model đã biết, như API, token) có thể không chặn được, nên dùng từ chế ra (như zorp,đường ống dữ liệu) để loại nhiễu. Muốn **chắc chắn** thay thế hãy viết vào thuật ngữ cục bộ (Quy tắc → Thuật ngữ): đó là thay thế cứng bằng regex, từ gốc không vào yêu cầu; nhưng nó được phân tích theo ngữ nghĩa regex, ký tự đặc biệt `. + * ? ( ) [ ] \\ | ^ $` phải thoát và chỉ tác dụng lên thân bài dịch toàn trang. Thuật ngữ AI chỉ mang tính hỗ trợ.'
-  ),
-  terminology_playground_terms_help_detail_b: terminologyPlaygroundText(
-    "另外，接口的**「聚合发送翻译请求」开关会影响遵循率**：开启时术语作为结构化 `glossary` 字段发出，且系统提示词带「最高优先级、只输出术语值」的显式指令； 关闭时术语退化为提示词里的 `- 原词: 译文` 文本行，无结构、指令权重低， 小参数模型（8B 级）经常压不住。实测 Qwen3-8B 关闭聚合时替换不稳定、开启后显著改善； Qwen3.6-27B 与 Gemini 3.5 Flash Lite 两种模式都能稳定替换。**术语不生效时优先试着开启聚合。**",
-    'Also, the API\'s **"batch send translation request" switch affects adherence**: when enabled, terms are sent as a structured `glossary` field and the system prompt carries an explicit "highest priority, output term values only" instruction; when disabled, terms degrade to `- original: translation` text lines in the prompt, with no structure and low instruction weight, which small models (8B class) often fail to follow. In practice Qwen3-8B is unstable without the aggregate switch and significantly better with it; Qwen3.6-27B and Gemini 3.5 Flash Lite follow both modes stably. **Prefer turning on aggregation when terms do not take effect.**',
-    "另外，介面的**「聚合傳送翻譯請求」開關會影響遵循率**：開啟時術語作為結構化 `glossary` 欄位發出，且系統提示詞帶「最高優先級、只輸出術語值」的顯式指令；關閉時術語退化為提示詞裡的 `- 原詞: 譯文` 文字行，無結構、指令權重低，小參數模型（8B 級）經常壓不住。實測 Qwen3-8B 關閉聚合時替換不穩定、開啟後顯著改善；Qwen3.6-27B 與 Gemini 3.5 Flash Lite 兩種模式都能穩定替換。**術語不生效時優先試著開啟聚合。**",
-    "また、API の**「一括送信翻訳リクエスト」スイッチは順守率に影響します**：ON のとき用語は構造化 `glossary` フィールドとして送られ、システムプロンプトに「最優先・用語値のみ出力」の明示命令が付きます。OFF のとき用語はプロンプト内の `- 原語: 訳語` テキスト行に退化し、構造がなく命令の重みが低いため、小規模モデル（8B級）では抑えられないことがよくあります。実測では Qwen3-8B は集約OFF で置換が不安定、ON で大幅改善。Qwen3.6-27B と Gemini 3.5 Flash Lite はどちらも安定しています。**用語が効かないときはまず集約をONにしてください。**",
-    '또한 인터페이스의 **"일괄 보내기" 스위치는 준수율에 영향을**: 켜져 있으면 용어가 구조적 `glossary` 필드로 나가고 시스템 프롬프트에 "최우선, 용어 값만 출력" 명령이 포함됩니다. 꺼져 있으면 용어는 프롬프트의 `- 원어: 번역` 텍스트로 퇴화하고 구조가 없어 명령 가중치가 낮아 소규모 모델(8B 급)이 자주 못 지킵니다. Qwen3-8B 실제 측정에서는 일괄 꺼짐 시 불안정, 켜짐 시 크게 개선; Qwen3.6-27B와 Gemini 3.5 Flash Lite는 두 모드 모두 안정적입니다. **용어가 적용되지 않으면 먼저 일괄을 켜보세요.**',
-    'Ayrıca API\'nin **"toplu gönder" anahtarı uyum oranını etkiler**: açıkken terimler yapısal `glossary` alanı olarak gönderilir ve sistem istemine "en yüksek öncelik, yalnızca terim değeri" talimatı eklenir. Kapalıyken terimler `- kelime: çeviri` metin satırlarına dönüşür, yapı ve öncelik ağırlığı düşer; küçük modeller (8B) çoğunlukla uyamaz. Qwen3-8B kapatılınca tutarsız, açılınca belirgin iyileşti; Qwen3.6-27B ve Gemini 3.5 Flash Lite her iki modda da sabittir. **Terimler uygulanmazsa önce toplu özelliği açmayı deneyin.**',
-    'Ngoài ra, **công tắc "gửi lô" của API ảnh hưởng tỷ lệ tuân thủ**: khi bật, thuật ngữ được gửi dưới dạng trường `glossary` có cấu trúc và prompt hệ thống có chỉ thị rõ "ưu tiên cao nhất, chỉ xuất giá trị thuật ngữ"; khi tắt, thuật ngữ suy thành dòng văn bản `- từ gốc: bản dịch`, không cấu trúc và trọng số chỉ dẫn thấp, model nhỏ (cấp 8B) thường không giữ được. Qwen3-8B tắt lô thay thế không ổn định, bật lên cải thiện rõ; Qwen3.6-27B và Gemini 3.5 Flash Lite đều ổn định ở cả hai chế độ. **Nếu thuật ngữ không hiệu quả, hãy thử bật lô trước.**'
-  ),
-  terminology_playground_terms_input_label: terminologyPlaygroundText(
-    "AI 专业术语",
-    "AI terms",
-    "AI 專業術語",
-    "AI 専門用語",
-    "AI 전문 용어",
-    "AI terimleri",
-    "Thuật ngữ AI"
-  ),
-  // 示例术语 zorp / quzzle 为造词，全语言保持不变；样例文本已按 B3 改为
-  // TerminologyPlayground 模块常量 AI_TERMS_SAMPLE_TEXT（功能数据不进 i18n），
-  // 原 terminology_playground_terms_sample 条目随之删除（无引用孤儿 key）。
-  terminology_playground_terms_count: terminologyPlaygroundText(
-    "解析出 {count} 条术语",
-    "{count} terms parsed",
-    "解析出 {count} 條術語",
-    "{count} 件の用語を解析",
-    "{count}개 용어 파싱됨",
-    "{count} terim ayrıştırıldı",
-    "Đã phân tích {count} thuật ngữ"
-  ),
-  terminology_playground_terms_helper_empty: terminologyPlaygroundText(
-    "输入键值对格式的术语，每行或 ; 分隔",
-    "Enter terms in key,value format, one per line or separated by ;",
-    "輸入鍵值對格式的術語，每行或 ; 分隔",
-    "key,value 形式の用語を入力（改行または「;」区切り）",
-    "key,value 형식으로 용어 입력(한 줄에 하나 또는 ; 구분)",
-    "key,value biçiminde terimleri girin (her satırda bir veya ; ile)",
-    "Nhập thuật ngữ dạng key,value, mỗi dòng một mục hoặc ngăn cách bằng ;"
-  ),
-  terminology_playground_terms_parsed_title: terminologyPlaygroundText(
-    "解析后的术语表键值对（将按此格式合并到提示词中的术语表占位符）：",
-    "Parsed glossary key/value pairs (merged into the glossary placeholder in this format):",
-    "解析後的術語表鍵值對（將依此格式合併到提示詞中的術語表佔位符）：",
-    "解析後の用語集のキー/値（この形式で用語集プレースホルダーにマージされます）：",
-    "파싱된 용어 사전 key/value(이 형식으로 glossary placeholder에 병합됨):",
-    "Ayrıştırılan sözlük key/value çiftleri (bu biçimde sözlük yer tutucusuna birleştirilir):",
-    "Cặp key/value glossary đã phân tích (sẽ được hợp vào placeholder glossary theo định dạng này):"
-  ),
-  terminology_playground_terms_col_term: terminologyPlaygroundText(
-    "术语（键）",
-    "Term (key)",
-    "術語（鍵）",
-    "用語（key）",
-    "용어(key)",
-    "Terim (key)",
-    "Thuật ngữ (key)"
-  ),
-  terminology_playground_terms_col_value: terminologyPlaygroundText(
-    "定义（值）",
-    "Definition (value)",
-    "定義（值）",
-    "定義（value）",
-    "정의(value)",
-    "Tanım (value)",
-    "Định nghĩa (value)"
-  ),
-  terminology_playground_terms_col_format: terminologyPlaygroundText(
-    "提示词格式",
-    "Prompt format",
-    "提示詞格式",
-    "プロンプト形式",
-    "프롬프트 형식",
-    "İstem biçimi",
-    "Định dạng prompt"
-  ),
-  terminology_playground_terms_no_translation: terminologyPlaygroundText(
-    "（无译文，保留原文）",
-    "(no translation; keep original)",
-    "（無譯文，保留原文）",
-    "（訳なし、原文保持）",
-    "（번역 없음, 원문 유지）",
-    "(çeviri yok, orijinal korunur)",
-    "（không dịch, giữ nguyên văn bản）"
-  ),
-  terminology_playground_terms_example_title: terminologyPlaygroundText(
-    "AI 术语例句",
-    "AI term example",
-    "AI 術語例句",
-    "AI 用語の例文",
-    "AI 용어 예문",
-    "AI terimi örneği",
-    "Ví dụ thuật ngữ AI"
-  ),
-  terminology_playground_terms_hint: terminologyPlaygroundText(
-    "要专门测试某一个术语是否生效，只需填入该术语；其他术语留空有助于观察单个术语的生效情况。",
-    "To test whether a specific term takes effect, enter only that term; leaving others empty makes it easier to observe a single term's effect.",
-    "若要專門測試某個術語是否生效，只需填入該術語；其他術語留空有助於觀察單一術語的生效情況。",
-    "特定の用語が効くかテストするにはその用語だけを入力してください；他は空にすると単一の用語の効果を観察しやすくなります。",
-    "특정 용어가 적용되는지 테스트하려면 그 용어만 입력하세요; 다른 용어를 비워두면 단일 용어의 적용 여부를 관찰하기 쉽습니다.",
-    "Belirli bir terimin etki edip etmediğini test etmek için yalnızca o terimi girin; diğerleri boş bırakmak tek terimin etkisini gözlemlemeyi kolaylaştırır.",
-    "Muốn kiểm tra một thuật ngữ cụ thể có hiệu quả, chỉ cần nhập thuật ngữ đó; để trống các thuật ngữ khác giúp quan sát hiệu quả từng thuật ngữ."
-  ),
-  terminology_playground_terms_sample_button: terminologyPlaygroundText(
-    "填入示例",
-    "Load sample",
-    "填入示例",
-    "サンプルを入力",
-    "샘플 입력",
-    "Örneği yükle",
-    "Nhập mẫu"
-  ),
-  terminology_playground_terms_rotate_button: terminologyPlaygroundText(
-    "换一个例句",
-    "Change example",
-    "換一個例句",
-    "別の例を表示",
-    "다른 예문",
-    "Örneği değiştir",
-    "Đổi ví dụ"
-  ),
-  terminology_playground_terms_testing: terminologyPlaygroundText(
-    "测试中…",
-    "Testing…",
-    "測試中…",
-    "テスト中…",
-    "테스트 중…",
-    "Test ediliyor…",
-    "Đang kiểm tra…"
-  ),
-  terminology_playground_terms_test: terminologyPlaygroundText(
-    "测试",
-    "Test",
-    "測試",
-    "テスト",
-    "테스트",
-    "Test",
-    "Kiểm tra"
-  ),
-  terminology_playground_terms_cancel: terminologyPlaygroundText(
-    "取消",
-    "Cancel",
-    "取消",
-    "キャンセル",
-    "취소",
-    "İptal",
-    "Hủy"
-  ),
-
-  // ── _result_*：测试结果区（含发送/接收面板） ────────────────────────
-  terminology_playground_result_title: terminologyPlaygroundText(
-    "测试结果（{name}）",
-    "Test result ({name})",
-    "測試結果（{name}）",
-    "テスト結果（{name}）",
-    "테스트 결과({name})",
-    "Test sonucu ({name})",
-    "Kết quả kiểm tra ({name})"
-  ),
-  terminology_playground_result_req_title: terminologyPlaygroundText(
-    "发送的请求（Request）",
-    "Sent request (Request)",
-    "傳送的請求（Request）",
-    "送信リクエスト（Request）",
-    "보낸 요청(Request)",
-    "Gönderilen istek (Request)",
-    "Yêu cầu đã gửi (Request)"
-  ),
-  terminology_playground_result_req_view_summary: terminologyPlaygroundText(
-    "返回摘要视图",
-    "Back to summary view",
-    "返回摘要視圖",
-    "サマリビューに戻る",
-    "요약 보기로 돌아가기",
-    "Özet görünüme dön",
-    "Về chế độ xem tóm tắt"
-  ),
-  terminology_playground_result_req_view_json: terminologyPlaygroundText(
-    "查看原始 JSON",
-    "View raw JSON",
-    "查看原始 JSON",
-    "生 JSON を表示",
-    "원시 JSON 보기",
-    "Ham JSON'ı görüntüle",
-    "Xem JSON thô"
-  ),
-  terminology_playground_result_req_uncaptured: terminologyPlaygroundText(
-    "未捕获到请求",
-    "Request not captured",
-    "未捕獲到請求",
-    "リクエストを検出できません",
-    "요청을 포착하지 못함",
-    "İstek yakalanamadı",
-    "Không phát hiện yêu cầu"
-  ),
-  terminology_playground_result_soft_glossary_title: terminologyPlaygroundText(
-    "AI 专业术语（软提示词注入）",
-    "AI terms (soft prompt injection)",
-    "AI 專業術語（軟提示詞注入）",
-    "AI 専門用語（ソフトプロンプト注入）",
-    "AI 전문 용어(소프트 프롬프트 주입)",
-    "AI terimleri (yumuşak istem enjeksiyonu)",
-    "Thuật ngữ AI (prompt nhúng mềm)"
-  ),
-  terminology_playground_result_prompt_label: terminologyPlaygroundText(
-    "翻译提示词：",
-    "Translation prompt: ",
-    "翻譯提示詞：",
-    "翻訳プロンプト：",
-    "번역 프롬프트: ",
-    "Çeviri istemi: ",
-    "Lời khách dịch: "
-  ),
-  terminology_playground_result_channel_label: terminologyPlaygroundText(
-    "注入通道：",
-    "Injection channel: ",
-    "注入通道：",
-    "注入チャネル：",
-    "주입 채널: ",
-    "Enjeksiyon kanalı: ",
-    "Kênh nhúng: "
-  ),
-  terminology_playground_result_request_label: terminologyPlaygroundText(
-    "翻译例句：",
-    "Translation example: ",
-    "翻譯例句：",
-    "翻訳例：",
-    "번역 예문: ",
-    "Çeviri örneği: ",
-    "Ví dụ dịch: "
-  ),
-  terminology_playground_result_model_host: terminologyPlaygroundText(
-    "模型：{model} · 接口地址：{host}",
-    "Model: {model} · API URL: {host}",
-    "模型：{model} · 介面地址：{host}",
-    "モデル：{model} · API URL：{host}",
-    "모델: {model} · API 주소: {host}",
-    "Model: {model} · API adresi: {host}",
-    "Mô hình: {model} · URL API: {host}"
-  ),
-  terminology_playground_result_auth: terminologyPlaygroundText(
-    "鉴权：{key}",
-    "Auth: {key}",
-    "鑒權：{key}",
-    "認証：{key}",
-    "인증: {key}",
-    "Kimlik: {key}",
-    "Xác thực: {key}"
-  ),
-  terminology_playground_result_actual_prompt: terminologyPlaygroundText(
-    "实际发出的提示词",
-    "Actual prompt sent",
-    "實際傳送的提示詞",
-    "実際に送信したプロンプト",
-    "실제로 보낸 프롬프트",
-    "Gönderilen gerçek istem",
-    "Prompt thực tế đã gửi"
-  ),
-  terminology_playground_result_uncaptured_prompt: terminologyPlaygroundText(
-    "未捕获到提示词",
-    "Prompt not captured",
-    "未捕獲提示詞",
-    "プロンプトを検出できません",
-    "프롬프트 포착 실패",
-    "İstem yakalanamadı",
-    "Không phát hiện prompt"
-  ),
-  terminology_playground_result_resp_title: terminologyPlaygroundText(
-    "接收的响应（Response）",
-    "Received response (Response)",
-    "接收的響應（Response）",
-    "受信レスポンス（Response）",
-    "받은 응답(Response)",
-    "Alınan yanıt (Response)",
-    "Phản hồi nhận được (Response)"
-  ),
-  terminology_playground_result_resp_uncaptured: terminologyPlaygroundText(
-    "未捕获到响应（可能失败/被取消）",
-    "Response not captured (may have failed/been cancelled)",
-    "未捕獲響應（可能失敗/被取消）",
-    "レスポンスを検出できません（失敗/キャンセル）",
-    "응답 포착 실패(실패/취소 가능)",
-    "Yanıt yakalanamadı (başarısız/iptal edilmiş olabilir)",
-    "Không phát phản hồi (có thể thất bại/đã hủy)"
-  ),
-  terminology_playground_result_translation_label: terminologyPlaygroundText(
-    "翻译译文：",
-    "Translation: ",
-    "翻譯譯文：",
-    "翻訳文：",
-    "번역문: ",
-    "Çeviri: ",
-    "Bản dịch: "
-  ),
-  terminology_playground_result_lang_same: terminologyPlaygroundText(
-    "语言：{lang}（{code}）· 同语言：{same}",
-    "Language: {lang} ({code}) · Same language: {same}",
-    "語言：{lang}（{code}）· 同語言：{same}",
-    "言語：{lang}（{code}）· 同一言語：{same}",
-    "언어: {lang}({code}) · 같은 언어: {same}",
-    "Dil: {lang} ({code}) · Aynı dil: {same}",
-    "Ngôn ngữ: {lang} ({code}) · Cùng ngôn ngữ: {same}"
-  ),
-  terminology_playground_result_yes: terminologyPlaygroundText(
-    "是",
-    "Yes",
-    "是",
-    "はい",
-    "예",
-    "Evet",
-    "Có"
-  ),
-  terminology_playground_result_no: terminologyPlaygroundText(
-    "否",
-    "No",
-    "否",
-    "いいえ",
-    "아니요",
-    "Hayır",
-    "Không"
-  ),
-  // ── _check_*：术语表贡献与生效检测表 ────────────────────────────────
-  terminology_playground_check_heuristic: terminologyPlaygroundText(
-    "以下术语表生效检测为启发式参考（模型可能改写措辞/加括号/不保留占位符），真实对照以上方原始返回译文为准。",
-    "The following glossary effect check is a heuristic (the model may rephrase, add parentheses, or drop placeholders); treat the raw translated output above as the ground truth.",
-    "以下術語表生效檢測為啟發式參考（模型可能改寫措辭/加括號/不保留佔位符），請以上方原始返回譯文為準。",
-    "以下の用語集の効果判定はヒューリスティック参考です（モデルが表現を変えたり括弧を付けたりする可能性があります）。上部の生の翻訳出力を基準にしてください。",
-    "아래 용어 사전 적용 검사는 휴리스틱 참고입니다(모델이 표현을 바꾸거나 괄호를 추가할 수 있음). 위의 원시 번역 출력을 기준으로 하세요.",
-    "Aşağıdaki sözlük uygulama kontrolü buluşsal bir referanstır (model ifadeyi değiştirebilir parantez ekleyebilir); yukarıdaki ham çeviri çıktısını esas alın.",
-    "Kiểm tra hiệu lực glossary bên dưới chỉ là tham khảo heuristic (model có thể viết lại/hay thêm ngoặc); hãy dựa vào bản dịch gốc ở trên."
-  ),
-  terminology_playground_check_title: terminologyPlaygroundText(
-    "术语表贡献与生效检测",
-    "Glossary contribution and effect check",
-    "術語表貢獻與生效檢測",
-    "用語集の貢献と効果の確認",
-    "용어 사전 기여 및 적용 확인",
-    "Sözlük katkısı ve etki kontrolü",
-    "Đóng góp glossary và kiểm tra hiệu lực"
-  ),
-  terminology_playground_check_col_source: terminologyPlaygroundText(
-    "来源",
-    "Source",
-    "來源",
-    "ソース",
-    "출처",
-    "Kaynak",
-    "Nguồn"
-  ),
-  terminology_playground_check_col_term: terminologyPlaygroundText(
-    "术语（键→值）",
-    "Term (key→value)",
-    "術語（鍵→值）",
-    "用語（key→value）",
-    "용어(key→value)",
-    "Terim (key→value)",
-    "Thuật ngữ (key→value)"
-  ),
-  terminology_playground_check_col_delivered: terminologyPlaygroundText(
-    "已发出（事实）",
-    "Sent (fact)",
-    "已發送（事實）",
-    "送信（事実）",
-    "전송됨(실제)",
-    "Gönderildi (gerçek)",
-    "Đã gửi (thực tế)"
-  ),
-  terminology_playground_check_col_hit: terminologyPlaygroundText(
-    "译文命中（启发式）",
-    "Translation hit (heuristic)",
-    "譯文命中（啟發式）",
-    "訳語一致（ヒューリスティック）",
-    "번역 일치(휴리스틱)",
-    "Çeviri vuruşu (heuristic)",
-    "Trúng bản dịch (heuristic)"
-  ),
-  terminology_playground_check_source_input: terminologyPlaygroundText(
-    "用户输入",
-    "User input",
-    "用戶輸入",
-    "ユーザー入力",
-    "사용자 입력",
-    "Kullanıcı girdisi",
-    "Người dùng nhập"
-  ),
-  terminology_playground_check_source_api: terminologyPlaygroundText(
-    "接口级",
-    "API level",
-    "介面級",
-    "API レベル",
-    "API 급",
-    "API düzeyi",
-    "Cấp API"
-  ),
-  terminology_playground_check_source_rule: terminologyPlaygroundText(
-    "规则级",
-    "Rule level",
-    "規則級",
-    "ルールレベル",
-    "규칙급",
-    "Kural düzeyi",
-    "Cấp quy tắc"
-  ),
-  terminology_playground_check_hit_empty: terminologyPlaygroundText(
-    "不翻译（空值）",
-    "No translation (empty value)",
-    "不翻譯（空值）",
-    "翻訳しない（空値）",
-    "번역 안 함(빈 값)",
-    "Çevrilmez (boş değer)",
-    "Không dịch (giá trị rỗng)"
-  ),
-  terminology_playground_check_hit_not_covered: terminologyPlaygroundText(
-    "例句未覆盖",
-    "Not covered by the example",
-    "例未覆蓋",
-    "例文でカバーされず",
-    "예문 미포함",
-    "Örnekte kapsanmıyor",
-    "Ví dụ không bao phủ"
-  ),
-  terminology_playground_check_hit_applied: terminologyPlaygroundText(
-    "已应用",
-    "Applied",
-    "已套用",
-    "適用済み",
-    "적용됨",
-    "Uygulandı",
-    "Đã áp dụng"
-  ),
-  terminology_playground_check_hit_not_applied: terminologyPlaygroundText(
-    "未应用",
-    "Not applied",
-    "未套用",
-    "未適用",
-    "미적용",
-    "Uygulanmadı",
-    "Chưa áp dụng"
-  ),
-  terminology_playground_check_empty_value: terminologyPlaygroundText(
-    "（空值）",
-    "(empty value)",
-    "（空值）",
-    "（空値）",
-    "(빈 값)",
-    "(boş değer)",
-    "（giá trị rỗng）"
-  ),
-
-  // ── _truncated：截断提示 ────────────────────────────────────────────
-  terminology_playground_truncated: terminologyPlaygroundText(
-    "…[已省略 {n} 字符]",
-    "…[{n} characters omitted]",
-    "…[已省略 {n} 字元]",
-    "…[{n} 文字省略]",
-    "…[{n}자 생략됨]",
-    "…[{n} karakter atlandı]",
-    "…[{n} ký tự bị lược bỏ]"
-  ),
-
-  // ── 诊断提示多语言（Task 5：替换 terms.js 内部硬编码中文直出）────────────
-  terminology_playground_diag_empty_source_term: terminologyPlaygroundText(
-    "第 {segmentIndex} 段「{segment}」的逗号前没有源术语（空源术语）",
-    'Segment {segmentIndex} "{segment}" has no source term before the comma (empty source term)',
-    "第 {segmentIndex} 段「{segment}」的逗號前沒有來源術語（空來源術語）",
-    "第 {segmentIndex} セグメント「{segment}」のカンマの前にソース用語がありません（空のソース用語）",
-    '{segmentIndex}번째 세그먼트 "{segment}"의 쉼표 앞에 소스 용어가 없습니다(빈 소스 용어)',
-    'Bölüm {segmentIndex} "{segment}" virgülün önünde kaynak terim içermiyor (boş kaynak terim)',
-    'Đoạn {segmentIndex} "{segment}" không có thuật ngữ nguồn trước dấu phẩy (thuật ngữ nguồn trống)'
-  ),
-  terminology_playground_diag_invalid_regex: terminologyPlaygroundText(
-    "第 {segmentIndex} 段「{segment}」无法作为正则解析：{error}",
-    'Segment {segmentIndex} "{segment}" cannot be parsed as regex: {error}',
-    "第 {segmentIndex} 段「{segment}」無法作為正規表示式解析：{error}",
-    "第 {segmentIndex} セグメント「{segment}」を正規表現として解析できません：{error}",
-    '{segmentIndex}번째 세그먼트 "{segment}"을(를) 정규식으로 구문 분석할 수 없습니다: {error}',
-    'Bölüm {segmentIndex} "{segment}" normal ifade olarak ayrıştırılamıyor: {error}',
-    'Đoạn {segmentIndex} "{segment}" không thể phân tích cú pháp dưới dạng biểu thức chính quy: {error}'
-  ),
-  terminology_playground_diag_empty_matching_pattern: terminologyPlaygroundText(
-    "第 {segmentIndex} 段「{segment}」的正则可匹配空字符串（{key}），会在任意位置注入译文导致错乱，请改用非空匹配的正则",
-    'Segment {segmentIndex} "{segment}" has a regex that matches empty strings ({key}), which injects translations everywhere; please use a non-empty matching regex',
-    "第 {segmentIndex} 段「{segment}」的正規表示式可匹配空字串（{key}），會在任意位置注入譯文導致錯亂，請改用非空匹配的正規表示式",
-    "第 {segmentIndex} セグメント「{segment}」の正規表現は空文字列に一致します（{key}）。任意の位置に訳文が注入されて乱れが生じるため、非空に一致する正規表現に変更してください",
-    '{segmentIndex}번째 세그먼트 "{segment}"의 정규식이 빈 문자열과 일치합니다({key}). 임의 위치에 번역이 삽입되어 오류가 발생하므로 비어 있지 않은 문자열과 일치하는 정규식으로 변경하세요',
-    'Bölüm {segmentIndex} "{segment}" normal ifadesi boş dizeyle eşleşiyor ({key}), her yere çeviri enjekte eder; lütfen boş olmayan bir eşleşme ifadesi kullanın',
-    'Biểu thức chính quy ở đoạn {segmentIndex} "{segment}" khớp với chuỗi rỗng ({key}), có thể chèn bản dịch ở mọi vị trí gây lỗi; vui lòng đổi sang biểu thức khớp chuỗi không rỗng'
-  ),
-  terminology_playground_diag_conflicting_mapping: terminologyPlaygroundText(
-    "第 {segmentIndex} 段「{segment}」与第 {prevIndex} 段「{key},{prevValue}」同源但译文不同（冲突映射）",
-    'Segment {segmentIndex} "{segment}" shares the source with segment {prevIndex} "{key},{prevValue}" but has a different translation (conflicting mapping)',
-    "第 {segmentIndex} 段「{segment}」與第 {prevIndex} 段「{key},{prevValue}」同源但譯文不同（衝突對應）",
-    "第 {segmentIndex} セグメント「{segment}」は第 {prevIndex} セグメント「{key},{prevValue}」と同じソースですが訳文が異なります（競合マッピング）",
-    '{segmentIndex}번째 세그먼트 "{segment}"은(는) {prevIndex}번째 세그먼트 "{key},{prevValue}"와(과) 소스는 같으나 번역이 다릅니다(충돌 매핑)',
-    'Bölüm {segmentIndex} "{segment}", bölüm {prevIndex} "{key},{prevValue}" ile aynı kaynağa sahip ancak çevirisi farklı (çakışan eşleme)',
-    'Đoạn {segmentIndex} "{segment}" có cùng nguồn với đoạn {prevIndex} "{key},{prevValue}" nhưng bản dịch khác nhau (ánh xạ xung đột)'
-  ),
-  terminology_playground_diag_conflicting_pattern: terminologyPlaygroundText(
-    "第 {segmentIndexA} 段「{keyA}」与第 {segmentIndexB} 段「{keyB}」的正则同时命中同一原文「{literal}」（冲突映射），请转义或统一术语写法",
-    'Segment {segmentIndexA} "{keyA}" and segment {segmentIndexB} "{keyB}" regexes both match the same text "{literal}" (conflicting mapping); please escape or standardize',
-    "第 {segmentIndexA} 段「{keyA}」與第 {segmentIndexB} 段「{keyB}」的正規表示式同時命中同一原文「{literal}」（衝突對應），請跳脫或統一術語寫法",
-    "第 {segmentIndexA} セグメント「{keyA}」と第 {segmentIndexB} セグメント「{keyB}」の正規表現が同じ原文「{literal}」に同時に一致します（競合マッピング）。エスケープするか表記を統一してください",
-    '{segmentIndexA}번째 세그먼트 "{keyA}"와(과) {segmentIndexB}번째 세그먼트 "{keyB}"의 정규식이 동일한 원문 "{literal}"과(과) 동시에 일치합니다(충돌 매핑). 이스케이프하거나 표기를 통일하세요',
-    'Bölüm {segmentIndexA} "{keyA}" ve bölüm {segmentIndexB} "{keyB}" normal ifadeleri aynı metinle "{literal}" eşleşiyor (çakışan eşleme); lütfen kaçışlayın veya birleştirin',
-    'Biểu thức chính quy ở đoạn {segmentIndexA} "{keyA}" và đoạn {segmentIndexB} "{keyB}" đều khớp cùng văn bản gốc "{literal}" (ánh xạ xung đột); vui lòng thoát ký tự hoặc thống nhất cách viết'
-  ),
-  terminology_playground_diag_zero_width_matching_pattern:
-    terminologyPlaygroundText(
-      "第 {segmentIndex} 段「{segment}」的正则不消费任何字符（{key}），会在原文任意位置零宽注入译文导致错乱，请改用消费字符的正则",
-      'Segment {segmentIndex} "{segment}" has a regex that consumes no characters ({key}), which injects translations at arbitrary positions of the text; please use a character-consuming regex',
-      "第 {segmentIndex} 段「{segment}」的正規表示式不消費任何字元（{key}），會在原文任意位置零寬注入譯文導致錯亂，請改用消費字元的正規表示式",
-      "第 {segmentIndex} セグメント「{segment}」の正規表現は文字を一切消費しません（{key}）。原文の任意の位置に幅ゼロで訳文が注入され崩れるため、文字を消費する正規表現に変更してください",
-      '{segmentIndex}번째 세그먼트 "{segment}"의 정규식은 문자를 전혀 소비하지 않습니다({key}). 원문의 임의 위치에 폭 0으로 번역이 삽입되어 깨지므로 문자를 소비하는 정규식으로 변경하세요',
-      'Bölüm {segmentIndex} "{segment}" normal ifadesi hiçbir karakter tüketmiyor ({key}); metnin rastgele konumlarına sıfır genişlikte çeviri enjekte ederek bozar. Lütfen karakter tüketen bir ifade kullanın',
-      'Biểu thức chính quy ở đoạn {segmentIndex} "{segment}" không tiêu thụ ký tự nào ({key}), sẽ chèn bản dịch vào vị trí tùy ý của văn bản khiến lỗi; vui lòng dùng biểu thức có tiêu thụ ký tự'
-    ),
-};
-
 export const I18N = {
   ...POPUP_I18N,
   ...TOUCH_I18N,
   ...SETTINGS_I18N,
-  ...RULE_EDITOR_I18N,
-  ...SUBTITLE_PLAYGROUND_I18N,
-  ...TERMINOLOGY_PLAYGROUND_I18N,
+  ...PROVIDER_PLUGINS_I18N,
   app_name: {
     zh: `简约翻译`,
     en: `KISS Translator`,
@@ -2365,33 +60,6 @@ export const I18N = {
     ko: `사전`,
     tr: `Sözlük`,
     vi: `Từ điển`,
-  },
-  custom_api_help: {
-    zh: customApiHelpZH,
-    en: customApiHelpEN,
-    zh_TW: customApiHelpTW,
-    ja: customApiHelpEN,
-    ko: customApiHelpEN,
-    tr: customApiHelpEN,
-    vi: customApiHelpEN,
-  },
-  request_hook_helper: {
-    zh: requestHookHelperZH,
-    en: requestHookHelperEN,
-    zh_TW: requestHookHelperTW,
-    ja: requestHookHelperEN,
-    ko: requestHookHelperEN,
-    tr: requestHookHelperEN,
-    vi: requestHookHelperEN,
-  },
-  response_hook_helper: {
-    zh: responsetHookHelperZH,
-    en: responsetHookHelperEN,
-    zh_TW: responsetHookHelperTW,
-    ja: responsetHookHelperEN,
-    ko: responsetHookHelperEN,
-    tr: responsetHookHelperEN,
-    vi: responsetHookHelperEN,
   },
   translate_alt: {
     zh: `网页翻译`,
@@ -3347,6 +1015,15 @@ export const I18N = {
     ko: `AI 영어-러시아어 사전`,
     tr: `AI İngilizce-Rusça Sözlük`,
     vi: "Từ điển Anh-Nga AI",
+  },
+  preset_prompt_default_video_summary: {
+    zh: `视频总结`,
+    en: `Video Summary`,
+    zh_TW: `影片總結`,
+    ja: `動画要約`,
+    ko: `동영상 요약`,
+    tr: `Video Özeti`,
+    vi: `Tóm tắt video`,
   },
   inject_rules: {
     zh: `注入订阅规则`,
@@ -4692,13 +2369,13 @@ export const I18N = {
     vi: "Ẩn nút dịch",
   },
   hide_click_away: {
-    zh: `点击外部关闭弹窗`,
-    en: `Click outside to close the pop-up window`,
-    zh_TW: `點選外部區域關閉彈出視窗`,
-    ja: `外部クリックでポップアップを閉じる`,
-    ko: `바깥쪽 클릭 시 팝업 닫기`,
-    tr: `Açılır Pencereyi Kapatmak İçin Dışarıyı Tıklayın`,
-    vi: "Nhấp bên ngoài để đóng cửa sổ bật lên",
+    zh: `失去焦点时隐藏弹窗`,
+    en: `Hide the panel when focus is lost`,
+    zh_TW: `失去焦點時隱藏彈出視窗`,
+    ja: `フォーカスを失ったときにパネルを非表示`,
+    ko: `포커스를 잃으면 패널 숨기기`,
+    tr: `Odak kaybolduğunda paneli gizle`,
+    vi: "Ẩn bảng khi mất tiêu điểm",
   },
   use_simple_style: {
     zh: `使用简洁界面`,
@@ -5556,13 +3233,382 @@ export const I18N = {
     vi: `Dịch trang web`,
   },
   options_translation_services: {
-    zh: `翻译服务`,
-    en: `Translation services`,
-    zh_TW: `翻譯服務`,
-    ja: `翻訳サービス`,
-    ko: `번역 서비스`,
-    tr: `Çeviri hizmetleri`,
-    vi: `Dịch vụ dịch thuật`,
+    zh: `服务配置`,
+    en: `Service configuration`,
+    zh_TW: `服務配置`,
+    ja: `サービス設定`,
+    ko: `서비스 설정`,
+    tr: `Hizmet yapılandırması`,
+    vi: `Cấu hình dịch vụ`,
+  },
+  options_service_config: {
+    zh: `服务配置`,
+    en: `Service configuration`,
+    zh_TW: `服務配置`,
+    ja: `サービス設定`,
+    ko: `서비스 설정`,
+    tr: `Hizmet yapılandırması`,
+    vi: `Cấu hình dịch vụ`,
+  },
+  ocr_service: {
+    zh: `OCR 服务`,
+    en: `OCR service`,
+    zh_TW: `OCR 服務`,
+    ja: `OCR サービス`,
+    ko: `OCR 서비스`,
+    tr: `OCR hizmeti`,
+    vi: `Dịch vụ OCR`,
+  },
+  ocr_service_empty: {
+    zh: `未配置 OCR 服务（请在服务配置中添加）`,
+    en: `No OCR service configured (please add in Service Configuration)`,
+    zh_TW: `未配置 OCR 服務（請在服務配置中新增）`,
+    ja: `OCR サービスが設定されていません（サービス設定で追加してください）`,
+    ko: `OCR 서비스가 설정되지 않음 (서비스 설정에서 추가하세요)`,
+    tr: `OCR hizmeti yapılandırılmadı (lütfen Hizmet Yapılandırmasından ekleyin)`,
+    vi: `Chưa cấu hình dịch vụ OCR (vui lòng thêm trong Cấu hình dịch vụ)`,
+  },
+  layout_service: {
+    zh: `界面分析服务`,
+    en: `Layout Service`,
+    zh_TW: `介面分析服務`,
+    ja: `レイアウトサービス`,
+    ko: `레이아웃 서비스`,
+    tr: `Düzen Hizmeti`,
+    vi: `Dịch vụ phân tích bố cục`,
+  },
+  layout_service_empty: {
+    zh: `未配置界面分析服务（请在服务配置中添加）`,
+    en: `No layout service configured (please add in Service Configuration)`,
+    zh_TW: `未配置介面分析服務（請在服務配置中新增）`,
+    ja: `レイアウトサービスが設定されていません（サービス設定で追加してください）`,
+    ko: `레이아웃 서비스가 설정되지 않음 (서비스 설정에서 추가하세요)`,
+    tr: `Düzen hizmeti yapılandırılmadı (lütfen Hizmet Yapılandırmasından ekleyin)`,
+    vi: `Chưa cấu hình dịch vụ phân tích bố cục (vui lòng thêm trong Cấu hình dịch vụ)`,
+  },
+  ocr_service_missing_guide: {
+    zh: `未配置 OCR 服务，请先前往【服务配置】添加具备 OCR 能力的服务`,
+    en: `No OCR service configured. Please add an OCR-capable service in Service Configuration first.`,
+    zh_TW: `未配置 OCR 服務，請先前往【服務配置】新增具備 OCR 能力的服務`,
+    ja: `OCR サービスが設定されていません。先に「サービス設定」で OCR 機能を持つサービスを追加してください`,
+    ko: `OCR 서비스가 설정되지 않았습니다. 먼저 [서비스 설정]에서 OCR 기능이 있는 서비스를 추가하세요`,
+    tr: `OCR hizmeti yapılandırılmadı. Lütfen önce Hizmet Yapılandırmasından OCR özellikli bir hizmet ekleyin.`,
+    vi: `Chưa cấu hình dịch vụ OCR. Vui lòng thêm dịch vụ có khả năng OCR trong Cấu hình dịch vụ trước.`,
+  },
+  goto_service_config: {
+    zh: `前往服务配置`,
+    en: `Go to Service Configuration`,
+    zh_TW: `前往服務配置`,
+    ja: `サービス設定へ移動`,
+    ko: `서비스 설정으로 이동`,
+    tr: `Hizmet Yapılandırmasına Git`,
+    vi: `Đi tới Cấu hình dịch vụ`,
+  },
+  compute_device_helper: {
+    zh: `WebGPU（推荐，硬件 GPU 加速）；WASM（CPU 模式，高兼容）`,
+    en: `WebGPU (Recommended, hardware GPU acceleration); WASM (CPU mode, high compatibility)`,
+    zh_TW: `WebGPU（推薦，硬體 GPU 加速）；WASM（CPU 模式，高相容性）`,
+    ja: `WebGPU（推奨、ハードウェア GPU 高速化）；WASM（CPU モード、高互換性）`,
+    ko: `WebGPU (권장, 하드웨어 GPU 가속); WASM (CPU 모드, 높은 호환성)`,
+    tr: `WebGPU (Önerilen, donanım GPU hızlandırma); WASM (CPU modu, yüksek uyumluluk)`,
+    vi: `WebGPU (Khuyên dùng, tăng tốc GPU phần cứng); WASM (Chế độ CPU, tương thích cao)`,
+  },
+  capability_translation: {
+    zh: `文本翻译`,
+    en: `Translation`,
+    zh_TW: `文字翻譯`,
+    ja: `テキスト翻訳`,
+    ko: `텍스트 번역`,
+    tr: `Metin Çevirisi`,
+    vi: `Dịch văn bản`,
+  },
+  capability_summarization: {
+    zh: `内容总结`,
+    en: `Summarization`,
+    zh_TW: `內容總結`,
+    ja: `要約`,
+    ko: `콘텐츠 요약`,
+    tr: `İçerik Özeti`,
+    vi: `Tóm tắt nội dung`,
+  },
+  capability_ocr: {
+    zh: `文字识别 (OCR)`,
+    en: `Text Recognition (OCR)`,
+    zh_TW: `文字辨識 (OCR)`,
+    ja: `文字認識 (OCR)`,
+    ko: `문자 인식 (OCR)`,
+    tr: `Metin Tanıma (OCR)`,
+    vi: `Nhận dạng văn bản (OCR)`,
+  },
+  capability_layout: {
+    zh: `界面分析 (Layout)`,
+    en: `Layout Analysis`,
+    zh_TW: `介面分析 (Layout)`,
+    ja: `レイアウト解析 (Layout)`,
+    ko: `레이아웃 분석 (Layout)`,
+    tr: `Düzen Analizi (Layout)`,
+    vi: `Phân tích bố cục (Layout)`,
+  },
+  capability_vlm: {
+    zh: `多模态视觉 (VLM)`,
+    en: `Vision Language (VLM)`,
+    zh_TW: `多模態視覺 (VLM)`,
+    ja: `ビジョン言語 (VLM)`,
+    ko: `비전 언어 (VLM)`,
+    tr: `Görüntü Dili (VLM)`,
+    vi: `Thị giác ngôn ngữ (VLM)`,
+  },
+  capability_tts: {
+    zh: `语音合成 (TTS)`,
+    en: `Speech Synthesis (TTS)`,
+    zh_TW: `語音合成 (TTS)`,
+    ja: `音声合成 (TTS)`,
+    ko: `음성 합성 (TTS)`,
+    tr: `Metin Okuma (TTS)`,
+    vi: `Tổng hợp giọng nói (TTS)`,
+  },
+  capability_asr: {
+    zh: `语音识别 (ASR)`,
+    en: `Speech Recognition (ASR)`,
+    zh_TW: `語音辨識 (ASR)`,
+    ja: `音声認識 (ASR)`,
+    ko: `음성 인식 (ASR)`,
+    tr: `Ses Tanıma (ASR)`,
+    vi: `Nhận dạng giọng nói (ASR)`,
+  },
+  capability_llm: {
+    zh: `大语言模型 (LLM)`,
+    en: `Language Model (LLM)`,
+    zh_TW: `大型語言模型 (LLM)`,
+    ja: `大規模言語モデル (LLM)`,
+    ko: `대형 언어 모델 (LLM)`,
+    tr: `Büyük Dil Modeli (LLM)`,
+    vi: `Mô hình ngôn ngữ lớn (LLM)`,
+  },
+  capability_segmentation: {
+    zh: `断句分块`,
+    en: `Segmentation`,
+    zh_TW: `斷句分塊`,
+    ja: `文分割`,
+    ko: `문장 분할`,
+    tr: `Cümle Bölütleme`,
+    vi: `Phân đoạn câu`,
+  },
+  capability_dictionary: {
+    zh: `词典查词`,
+    en: `Dictionary`,
+    zh_TW: `辭典查詞`,
+    ja: `辞書引き`,
+    ko: `사전 검색`,
+    tr: `Sözlük Arama`,
+    vi: `Tra từ điển`,
+  },
+  capability_jev: {
+    zh: `日语动词分析`,
+    en: `Japanese Verb Analysis`,
+    zh_TW: `日語動詞分析`,
+    ja: `日本語動詞分析`,
+    ko: `일본어 동사 분석`,
+    tr: `Japonca Fiil Analizi`,
+    vi: `Phân tích động từ tiếng Nhật`,
+  },
+  prompt_category_summary: {
+    zh: `总结提示词`,
+    en: `Summary Prompt`,
+    zh_TW: `總結提示詞`,
+    ja: `要約プロンプト`,
+    ko: `요약 프롬프트`,
+    tr: `Özet İstemi`,
+    vi: `Lời nhắc tóm tắt`,
+  },
+  video_summary: {
+    zh: `视频总结`,
+    en: `Video Summary`,
+    zh_TW: `影片總結`,
+    ja: `動画要約`,
+    ko: `동영상 요약`,
+    tr: `Video Özeti`,
+    vi: `Tóm tắt video`,
+  },
+  video_summary_service: {
+    zh: `视频总结服务`,
+    en: `Video Summary Service`,
+    zh_TW: `影片總結服務`,
+    ja: `動画要約サービス`,
+    ko: `동영상 요약 서비스`,
+    tr: `Video Özeti Hizmeti`,
+    vi: `Dịch vụ tóm tắt video`,
+  },
+  video_summary_prompt: {
+    zh: `总结提示词`,
+    en: `Summary Prompt`,
+    zh_TW: `總結提示詞`,
+    ja: `要約プロンプト`,
+    ko: `요약 프롬프트`,
+    tr: `Özet İstemi`,
+    vi: `Lời nhắc tóm tắt`,
+  },
+  video_summary_service_helper: {
+    zh: `启用后可在 YouTube 侧栏一键对视频字幕原稿生成结构化要点总结`,
+    en: `Generate structured bullet-point summaries of the video transcript in the YouTube sidebar`,
+    zh_TW: `啟用後可在 YouTube 側欄一鍵對影片字幕原稿產生結構化要點總結`,
+    ja: `有効にすると YouTube サイドバーで動画字幕から箇条書き要約を生成できます`,
+    ko: `활성화하면 YouTube 사이드바에서 동영상 자막 원본을 바탕으로 핵심 요약을 생성할 수 있습니다`,
+    tr: `Etkinleştirildiğinde YouTube kenar çubuğunda video altyazılarından yapılandırılmış madde imli özetler oluşturun`,
+    vi: `Khi bật, tạo bản tóm tắt có cấu trúc dạng gạch đầu dòng từ phụ đề video trong thanh bên YouTube`,
+  },
+  builtin_ai_keypoints_hint: {
+    zh: `内置引擎使用官方标准要点参数 (Key-points / 5要点)`,
+    en: `Built-in engine uses official standard key-points parameters (Key-points / 5 items)`,
+    zh_TW: `內建引擎使用官方標準要點參數 (Key-points / 5要點)`,
+    ja: `内蔵エンジンは公式の標準要点パラメータ（Key-points / 5項目）を使用します`,
+    ko: `내장 엔진은 공식 표준 핵심 요약 매개변수 (Key-points / 5개 항목)를 사용합니다`,
+    tr: `Yerleşik motor resmi standart temel nokta parametrelerini kullanır (Key-points / 5 madde)`,
+    vi: `Công cụ tích hợp sử dụng tham số điểm chính tiêu chuẩn chính thức (Key-points / 5 mục)`,
+  },
+  builtin_ai_summarizer_unsupported_hint: {
+    zh: `当前浏览器未检测到 Chrome Summarizer API（需要 Chrome 138+ 或在 chrome://flags 中开启实验性标志；若不可用，建议切换为网络 AI 或本地大模型）`,
+    en: `Chrome Summarizer API not detected in current browser (requires Chrome 138+ or experimental flags in chrome://flags; network AI or local LLM recommended if unavailable)`,
+    zh_TW: `目前瀏覽器未偵測到 Chrome Summarizer API（需要 Chrome 138+ 或在 chrome://flags 中開啟實驗性標誌；若不可用，建議切換為網路 AI 或本機大模型）`,
+    ja: `現在のブラウザで Chrome Summarizer API が検出されませんでした（Chrome 138+ または chrome://flags での実験フラグ有効化が必要です。利用できない場合はネットワークAIやローカルモデルへの切替を推奨します）`,
+    ko: `현재 브라우저에서 Chrome Summarizer API가 감지되지 않았습니다 (Chrome 138+ 또는 chrome://flags에서 실험 플래그 활성화 필요. 사용 불가능할 경우 네트워크 AI 또는 로컬 대형 모델 전환 권장)`,
+    tr: `Mevcut tarayıcıda Chrome Summarizer API algılanmadı (Chrome 138+ veya chrome://flags altında deneysel bayrak gereklidir; kullanılamıyorsa ağ yapay zekası veya yerel modele geçmeniz önerilir)`,
+    vi: `Không tìm thấy Chrome Summarizer API trong trình duyệt hiện tại (yêu cầu Chrome 138+ hoặc cờ thử nghiệm trong chrome://flags; nên chuyển sang AI mạng hoặc mô hình cục bộ nếu không khả dụng)`,
+  },
+  summary_empty_guide: {
+    zh: `尚未配置视频总结服务，请前往【字幕翻译设置】开启`,
+    en: `No video summary service configured. Please enable it in Subtitle Settings.`,
+    zh_TW: `尚未配置影片總結服務，請前往【字幕翻譯設定】開啟`,
+    ja: `動画要約サービスが未設定です。「字幕翻訳設定」で有効にしてください`,
+    ko: `동영상 요약 서비스가 설정되지 않았습니다. [자막 번역 설정]에서 활성화하세요`,
+    tr: `Video özeti hizmeti yapılandırılmadı. Lütfen Altyazı Ayarlarından etkinleştirin.`,
+    vi: `Chưa cấu hình dịch vụ tóm tắt video. Vui lòng bật trong Cài đặt phụ đề.`,
+  },
+  go_to_settings: {
+    zh: `前往设置`,
+    en: `Go to Settings`,
+    zh_TW: `前往設定`,
+    ja: `設定へ移動`,
+    ko: `설정으로 이동`,
+    tr: `Ayarlara Git`,
+    vi: `Đi tới Cài đặt`,
+  },
+  summary_failed: {
+    zh: `生成视频总结失败，请检查服务配置或重试`,
+    en: `Failed to generate video summary. Please check service configuration or retry.`,
+    zh_TW: `產生影片總結失敗，請檢查服務設定或重試`,
+    ja: `動画要約の生成に失敗しました。サービス設定を確認するか再試行してください`,
+    ko: `동영상 요약 생성에 실패했습니다. 서비스 구성을 확인하거나 다시 시도하세요`,
+    tr: `Video özeti oluşturulamadı. Lütfen hizmet yapılandırmasını kontrol edin veya tekrar deneyin.`,
+    vi: `Không thể tạo tóm tắt video. Vui lòng kiểm tra cấu hình dịch vụ hoặc thử lại.`,
+  },
+  summary_timeout: {
+    zh: `总结生成请求超时（超过 60 秒），请检查后台服务响应或网络状态`,
+    en: `Summary generation timed out (over 60s). Please check service response or network.`,
+    zh_TW: `總結產生請求超時（超過 60 秒），請檢查後台服務回應或網路狀態`,
+    ja: `要約の生成がタイムアウトしました（60秒超過）。サービス応答またはネットワークを確認してください`,
+    ko: `요약 생성 요청 시간이 초과되었습니다 (60초 초과). 서비스 응답 또는 네트워크 상태를 확인하세요`,
+    tr: `Özet oluşturma isteği zaman aşımına uğradı (60 sn üzeri). Lütfen hizmet yanıtını veya ağ durumunu kontrol edin.`,
+    vi: `Yêu cầu tạo tóm tắt đã hết thời gian (quá 60 giây). Vui lòng kiểm tra phản hồi dịch vụ hoặc mạng.`,
+  },
+  regenerate_summary: {
+    zh: `重新生成`,
+    en: `Regenerate`,
+    zh_TW: `重新產生`,
+    ja: `再生成`,
+    ko: `다시 생성`,
+    tr: `Yeniden oluştur`,
+    vi: `Tạo lại`,
+  },
+  copy_summary: {
+    zh: `复制总结`,
+    en: `Copy Summary`,
+    zh_TW: `複製總結`,
+    ja: `要約をコピー`,
+    ko: `요약 복사`,
+    tr: `Özeti kopyala`,
+    vi: `Sao chép tóm tắt`,
+  },
+  copied: {
+    zh: `已复制`,
+    en: `Copied`,
+    zh_TW: `已複製`,
+    ja: `コピー完了`,
+    ko: `복사됨`,
+    tr: `Kopyalandı`,
+    vi: `Đã sao chép`,
+  },
+  summarizing: {
+    zh: `正在总结视频内容...`,
+    en: `Summarizing video content...`,
+    zh_TW: `正在總結影片內容...`,
+    ja: `動画内容を要約中...`,
+    ko: `동영상 내용을 요약하는 중...`,
+    tr: `Video içeriği özetleniyor...`,
+    vi: `Đang tóm tắt nội dung video...`,
+  },
+  model_downloading_title: {
+    zh: `Chrome 内置模型下载中...`,
+    en: `Chrome Built-in Model Downloading...`,
+    zh_TW: `Chrome 內建模型下載中...`,
+    ja: `Chrome 内蔵モデルをダウンロード中...`,
+    ko: `Chrome 내장 모델 다운로드 중...`,
+    tr: `Chrome Dahili Modeli İndiriliyor...`,
+    vi: `Đang tải mô hình tích hợp của Chrome...`,
+  },
+  model_downloading_desc: {
+    zh: `Chrome 正在后台下载 Gemini Nano 大模型（体积约 1.5GB ~ 2GB）。受网络环境影响，若下载较慢，建议切换为网络大模型：`,
+    en: `Chrome is downloading Gemini Nano model in the background (~1.5GB - 2GB). If it is slow, consider switching to Network AI:`,
+    zh_TW: `Chrome 正在後台下載 Gemini Nano 大模型（體積約 1.5GB ~ 2GB）。受網路環境影響，若下載較慢，建議切換為網路大模型：`,
+    ja: `Chrome がバックグラウンドで Gemini Nano モデル（約1.5GB〜2GB）をダウンロードしています。ネットワーク状況により遅い場合はオンラインAIへの切り替えをおすすめします：`,
+    ko: `Chrome이 백그라운드에서 Gemini Nano 모델(약 1.5GB ~ 2GB)을 다운로드하고 있습니다. 네트워크로 인해 느린 경우 온라인 AI로 전환하는 것을 권장합니다:`,
+    tr: `Chrome arka planda Gemini Nano modelini indiriyor (~1.5GB - 2GB). Yavaşsa Ağ Yapay Zekasına geçmeyi düşünebilirsiniz:`,
+    vi: `Chrome đang tải mô hình Gemini Nano ở chế độ nền (~1.5GB - 2GB). Nếu chậm, bạn nên chuyển sang AI mạng:`,
+  },
+  model_download_stalled: {
+    zh: `下载较为缓慢或停滞，可能因网络无法连接 Google 官方模型服务器，建议切换为网络 AI`,
+    en: `Download is slow or stalled, possibly due to network connection to Google servers. Consider switching to Network AI.`,
+    zh_TW: `下載較為緩慢或停滯，可能因網路無法連接 Google 官方模型伺服器，建議切換為網路 AI`,
+    ja: `ダウンロードが遅いか停止しています。Google サーバーへの接続が原因の可能性があります。オンラインAIへの切り替えをおすすめします。`,
+    ko: `다운로드가 느리거나 멈췄습니다. Google 서버 연결 문제일 수 있으니 온라인 AI로 전환을 권장합니다.`,
+    tr: `İndirme yavaş veya durdu, Google sunucularına bağlantıdan kaynaklanıyor olabilir. Ağ Yapay Zekasına geçmeyi düşünebilirsiniz.`,
+    vi: `Tải xuống chậm hoặc bị đình trệ, có thể do kết nối với máy chủ Google. Bạn nên chuyển sang AI mạng.`,
+  },
+  switch_to_network_ai: {
+    zh: `切换为网络AI`,
+    en: `Switch to Network AI`,
+    zh_TW: `切換為網路AI`,
+    ja: `オンラインAIに切り替え`,
+    ko: `온라인 AI로 전환`,
+    tr: `Ağ Yapay Zekasına Geç`,
+    vi: `Chuyển sang AI mạng`,
+  },
+  switch_summary_model: {
+    zh: `切换总结模型`,
+    en: `Switch Summary Model`,
+    zh_TW: `切換總結模型`,
+    ja: `要約モデルを切り替え`,
+    ko: `요약 모델 전환`,
+    tr: `Özet Modelini Değiştir`,
+    vi: `Đổi mô hình tóm tắt`,
+  },
+  select_summary_model: {
+    zh: `选择总结 AI 模型`,
+    en: `Select Summary AI Model`,
+    zh_TW: `選擇總結 AI 模型`,
+    ja: `要約 AI モデルを選択`,
+    ko: `요약 AI 모델 선택`,
+    tr: `Özet Yapay Zeka Modelini Seçin`,
+    vi: `Chọn mô hình AI tóm tắt`,
+  },
+  no_network_ai_available: {
+    zh: `暂无其他已启用的总结 AI 模型，请前往设置添加`,
+    en: `No other enabled summary AI models. Please configure in settings.`,
+    zh_TW: `暫無其他已啟用的總結 AI 模型，請前往設定新增`,
+    ja: `有効な他の要約 AI モデルがありません。設定で構成してください。`,
+    ko: `활성화된 다른 요약 AI 모델이 없습니다. 설정에서 구성하세요.`,
+    tr: `Etkin başka özet Yapay Zeka modeli yok. Lütfen ayarlardan yapılandırın.`,
+    vi: `Không có mô hình AI tóm tắt nào khác được bật. Vui lòng cấu hình trong cài đặt.`,
   },
   options_data_sync: {
     zh: `数据同步`,
@@ -5673,13 +3719,13 @@ export const I18N = {
     vi: `Quét trang, hiển thị và quy tắc trang web`,
   },
   options_services_description: {
-    zh: `管理翻译接口与 AI 模型`,
-    en: `Manage translation APIs and AI models`,
-    zh_TW: `管理翻譯介面與 AI 模型`,
-    ja: `翻訳 API と AI モデルを管理`,
-    ko: `번역 API 및 AI 모델 관리`,
-    tr: `Çeviri API'lerini ve AI modellerini yönetin`,
-    vi: `Quản lý API dịch thuật và mô hình AI`,
+    zh: `管理接口与 AI 模型配置`,
+    en: `Manage APIs and AI models`,
+    zh_TW: `管理介面與 AI 模型配置`,
+    ja: `API と AI モデルの設定を管理`,
+    ko: `API 및 AI 모델 설정 관리`,
+    tr: `API'leri ve AI modellerini yönetin`,
+    vi: `Quản lý API và mô hình AI`,
   },
   options_sync_description: {
     zh: `跨设备同步配置、规则与生词本`,
@@ -7260,13 +5306,13 @@ export const I18N = {
     vi: "To import vocabulary, please use a txt file with one word per line.",
   },
   btn_tip_click_away: {
-    zh: `失焦隐藏/显示`,
-    en: `Loss of focus hide/show`,
-    zh_TW: `失焦隱藏/顯示`,
-    ja: `フォーカスを失った時に非表示/表示`,
-    ko: `포커스 잃을 시 숨기기/표시`,
-    tr: `Odak Kaybında Gizle/Göster`,
-    vi: "Loss of focus hide/show",
+    zh: `固定弹窗（取消固定后失焦隐藏）`,
+    en: `Pin panel (unpin to hide on focus loss)`,
+    zh_TW: `固定彈出視窗（取消固定後失焦隱藏）`,
+    ja: `パネルを固定（固定解除後はフォーカスを失うと非表示）`,
+    ko: `패널 고정 (고정 해제 시 포커스를 잃으면 숨김)`,
+    tr: `Paneli sabitle (sabitlemeyi kaldırınca odak kaybında gizle)`,
+    vi: "Ghim bảng (bỏ ghim để ẩn khi mất tiêu điểm)",
   },
   btn_tip_follow_selection: {
     zh: `跟随/固定模式`,
@@ -8353,8 +6399,18 @@ export const I18N = {
 // Merge Russian translations after registering all labels, including M3 settings.
 // Fall back to English for labels without a Russian translation.
 Object.keys(I18N).forEach((key) => {
-  I18N[key].ru = RU_I18N[key] ?? I18N[key].en;
+  I18N[key].ru = RU_I18N[key] ?? I18N[key].ru ?? I18N[key].en;
 });
+
+export function registerI18n(dict) {
+  if (!dict) return;
+  for (const [key, val] of Object.entries(dict)) {
+    if (val && !val.ru) {
+      val.ru = RU_I18N[key] ?? val.en;
+    }
+  }
+  Object.assign(I18N, dict);
+}
 
 export const newI18n = (lang) => {
   return (key, defaultText = key) => I18N[key]?.[lang] ?? defaultText;

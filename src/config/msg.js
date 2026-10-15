@@ -42,6 +42,10 @@ export const MSG_INJECT_CSS = "inject_css"; // 在主文档或 Shadow Root 中�
 export const MSG_UPDATE_CSP = "update_csp"; // 请求后台脚本动态更新内容安全策略(CSP)及请求头 Origin
 export const MSG_BUILTINAI_DETECT = "builtinai_detect"; // 调用内置 AI 执行语言检测
 export const MSG_BUILTINAI_TRANSLATE = "builtinai_translte"; // 调用内置 AI 执行文本翻译
+export const MSG_BUILTINAI_SUMMARIZE = "builtinai_summarize"; // 调用内置 AI 执行文本总结
+export const MSG_BUILTINAI_PROGRESS = "builtinai_progress"; // Chrome 内置模型下载进度通知
+export const MSG_LOCAL_AI_RPC = "local_ai_rpc";
+export const MSG_LOCAL_AI_CANCEL = "local_ai_cancel";
 export const MSG_SET_LOGLEVEL = "set_loglevel"; // 设置当前会话的日志等级
 export const MSG_CLEAR_CACHES = "clear_caches"; // 请求后台脚本清理本地翻译 HTTP 缓存
 export const MSG_OPEN_SEPARATE_WINDOW = "open_separate_window"; // 请求后台脚本开启独立窗口
@@ -66,3 +70,5 @@ export const MSG_MENUS_UPDATEFORM = "updateFormData"; // 更新表单参数数�
 
 export const MSG_TOUCH_TRANSLATE_MODE_SET = "touch_translate_mode_set";
 export const MSG_TOUCH_TRANSLATE_STATE = "touch_translate_state";
+export const MSG_LOCAL_AI_SETTINGS = "local_ai_settings";
+export const MSG_LOCAL_AI_HOST = "local_ai_host";
