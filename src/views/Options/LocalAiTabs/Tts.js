@@ -399,8 +399,8 @@ export default function TtsTab() {
                     ? i18n("local_ai_model_loaded", "模型已就绪")
                     : i18n("local_ai_load_model", "加载模型")}
               </Button>
-            <UnloadModelButton
-              cacheable={false}
+              <UnloadModelButton
+                cacheable={false}
                 client={client}
                 runtime={runtime}
                 onError={setError}
@@ -677,10 +677,7 @@ export default function TtsTab() {
           )}
         </CardContent>
       </Card>
-      <LogViewer
-        logs={logs}
-        onClear={clearLogs}
-      />
+      <LogViewer logs={logs} onClear={clearLogs} />
     </Stack>
   );
 }

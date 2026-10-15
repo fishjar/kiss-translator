@@ -31,8 +31,11 @@ export async function executeFileTranslation(
     setting.subtitleSetting
   );
   const cacheMode = localContext.cacheMode;
-  if (cacheMode) apiSetting = { ...apiSetting,
-    ...(api.apiType === "LocalAI" && { cacheMode }) };
+  if (cacheMode)
+    apiSetting = {
+      ...apiSetting,
+      ...(api.apiType === "LocalAI" && { cacheMode }),
+    };
   const result = await apiTranslate({
     text,
     fromLang: scene.fromLang,
@@ -47,7 +50,8 @@ export async function executeFileTranslation(
   if (signal?.aborted) throw new DOMException("已取消", "AbortError");
   if (api.provider?.implementation?.kind !== "native" && api.provider)
     await validateFileService(api, "translate", signal);
-  if (!result?.trText) throw new Error(`${api.apiName || api.apiSlug} 返回空结果`);
+  if (!result?.trText)
+    throw new Error(`${api.apiName || api.apiSlug} 返回空结果`);
   return { text: result.trText, serviceId: api.apiSlug };
 }
 

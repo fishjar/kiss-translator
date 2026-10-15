@@ -49,10 +49,18 @@ test("background without offscreen executes translation locally with verified gr
     cancel,
   });
   const input = { items: [{ id: "0", text: "hello" }] };
-  await expect(invokeBackgroundPlugin(instance, "translate", input).result).resolves.toMatchObject({ items: [{ id: "0", text: "译文" }] });
-  expect(invokeInstance).toHaveBeenCalledWith(instance, "translate", input, expect.objectContaining({
-    approvedOrigins: new Set(["https://mock.invalid"]), signal: expect.anything(),
-  }));
+  await expect(
+    invokeBackgroundPlugin(instance, "translate", input).result
+  ).resolves.toMatchObject({ items: [{ id: "0", text: "译文" }] });
+  expect(invokeInstance).toHaveBeenCalledWith(
+    instance,
+    "translate",
+    input,
+    expect.objectContaining({
+      approvedOrigins: new Set(["https://mock.invalid"]),
+      signal: expect.anything(),
+    })
+  );
   expect(invokeProviderPort).not.toHaveBeenCalled();
   expect(localAiHost).not.toHaveBeenCalled();
   expect(cancel).toHaveBeenCalled();

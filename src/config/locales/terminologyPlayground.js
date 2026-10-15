@@ -1261,4 +1261,3 @@ export const TERMINOLOGY_PLAYGROUND_I18N = {
       'Biểu thức chính quy ở đoạn {segmentIndex} "{segment}" không tiêu thụ ký tự nào ({key}), sẽ chèn bản dịch vào vị trí tùy ý của văn bản khiến lỗi; vui lòng dùng biểu thức có tiêu thụ ký tự'
     ),
 };
-

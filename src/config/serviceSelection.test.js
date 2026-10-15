@@ -8,29 +8,43 @@ import {
 import { createBuiltinInstance } from "../builtin-plugins";
 
 test.each([
-  ["chrome", true], ["edge", true], ["firefox", true],
-  ["web", false], ["userscript", false], ["", false], [undefined, false],
-])("client %p controls external and local availability", (client, available) => {
-  const previous = process.env.REACT_APP_CLIENT;
-  try {
-    if (client === undefined) delete process.env.REACT_APP_CLIENT;
-    else process.env.REACT_APP_CLIENT = client;
-    jest.isolateModules(() => {
-      const { isApiAvailableFor } = require("./serviceSelection");
-      const external = {
-        provider: { apiVersion: "1", implementation: { kind: "script" }, capabilities: { translate: {} } },
-      };
-      const local = { apiType: "LocalAI", modelRef: "hy-mt2-1.8b" };
-      expect(isApiAvailableFor(external, "translate")).toBe(available);
-      expect(isApiAvailableFor(local, "translate", {
-        installedModels: new Set([local.modelRef]),
-      })).toBe(available);
-    });
-  } finally {
-    if (previous === undefined) delete process.env.REACT_APP_CLIENT;
-    else process.env.REACT_APP_CLIENT = previous;
+  ["chrome", true],
+  ["edge", true],
+  ["firefox", true],
+  ["web", false],
+  ["userscript", false],
+  ["", false],
+  [undefined, false],
+])(
+  "client %p controls external and local availability",
+  (client, available) => {
+    const previous = process.env.REACT_APP_CLIENT;
+    try {
+      if (client === undefined) delete process.env.REACT_APP_CLIENT;
+      else process.env.REACT_APP_CLIENT = client;
+      jest.isolateModules(() => {
+        const { isApiAvailableFor } = require("./serviceSelection");
+        const external = {
+          provider: {
+            apiVersion: "1",
+            implementation: { kind: "script" },
+            capabilities: { translate: {} },
+          },
+        };
+        const local = { apiType: "LocalAI", modelRef: "hy-mt2-1.8b" };
+        expect(isApiAvailableFor(external, "translate")).toBe(available);
+        expect(
+          isApiAvailableFor(local, "translate", {
+            installedModels: new Set([local.modelRef]),
+          })
+        ).toBe(available);
+      });
+    } finally {
+      if (previous === undefined) delete process.env.REACT_APP_CLIENT;
+      else process.env.REACT_APP_CLIENT = previous;
+    }
   }
-});
+);
 
 test("installed native models only appear in scenes matching their actual task", () => {
   const api = {
@@ -60,9 +74,9 @@ test("an installed layout model cannot advertise an unsupported compute backend"
   };
   const context = { installedModels: new Set([api.modelRef]) };
   expect(isApiAvailableFor(api, "analyzeLayout", context)).toBe(false);
-  expect(isApiAvailableFor({ ...api, device: "wasm" }, "analyzeLayout", context)).toBe(
-    true
-  );
+  expect(
+    isApiAvailableFor({ ...api, device: "wasm" }, "analyzeLayout", context)
+  ).toBe(true);
 });
 
 test("native snapshots restrict scene features while preserving legacy tags", () => {
@@ -99,9 +113,15 @@ test("single selection ignores leftover fallback lists and never chooses another
   const second = createBuiltinInstance("Microsoft", "second", "Second");
   const scene = { apiSlug: "first", apiSlugs: ["second"] };
   expect(availableApiForScene(scene, [first, second])).toBe(first);
-  expect(availableApiForScene(scene, [{ ...first, isDisabled: true }, second])).toBeUndefined();
-  expect(availableApiForScene({ apiSlug: "missing", apiSlugs: ["second"] }, [second])).toBeUndefined();
-  expect(availableApiForScene({ apiSlugs: ["second"] }, [second])).toBeUndefined();
+  expect(
+    availableApiForScene(scene, [{ ...first, isDisabled: true }, second])
+  ).toBeUndefined();
+  expect(
+    availableApiForScene({ apiSlug: "missing", apiSlugs: ["second"] }, [second])
+  ).toBeUndefined();
+  expect(
+    availableApiForScene({ apiSlugs: ["second"] }, [second])
+  ).toBeUndefined();
 });
 
 test("built-in AI is classified separately from network adapters", () => {
@@ -121,39 +141,69 @@ test("unimplemented capabilities and absent local models cannot be selected", ()
       modelRef: "m",
       enabledCapabilities: ["translate"],
     },
-    { apiSlug: "recognizeText", sourceType: "network", apiType: "OpenAI", enabledCapabilities: ["recognizeText"] },
+    {
+      apiSlug: "recognizeText",
+      sourceType: "network",
+      apiType: "OpenAI",
+      enabledCapabilities: ["recognizeText"],
+    },
     {
       apiSlug: "network",
-      sourceType: "network", apiType: "OpenAI",
+      sourceType: "network",
+      apiType: "OpenAI",
       enabledCapabilities: ["translate"],
     },
   ];
   expect(
-    availableApiForScene(
-      { apiSlug: "network" },
-      apis,
-      "translate"
-    )?.apiSlug
+    availableApiForScene({ apiSlug: "network" }, apis, "translate")?.apiSlug
   ).toEqual("network");
 });
 
 test("does not silently repair invalid enabled selections during a read", () => {
   const normalized = normalizeApiCapabilities({
     apiType: "OpenAI",
-    enabledCapabilities: ["translate", "recognizeText", "recognizeText", "invalid_cap"],
+    enabledCapabilities: [
+      "translate",
+      "recognizeText",
+      "recognizeText",
+      "invalid_cap",
+    ],
   });
-  expect(normalized.enabledCapabilities).toEqual(["translate", "recognizeText", "recognizeText", "invalid_cap"]);
+  expect(normalized.enabledCapabilities).toEqual([
+    "translate",
+    "recognizeText",
+    "recognizeText",
+    "invalid_cap",
+  ]);
 });
 
 test("OCR and VLM advertise distinct capabilities and task requirements", () => {
-  const ocr = { apiType: "LocalAI", sourceType: "local", modelRef: "ppocr-v5-mobile", enabledCapabilities: ["recognizeText"] };
-  const vlm = { apiType: "LocalAI", modelRef: "paddleocr-vl-1.6-onnx-q8", device: "webgpu", enabledCapabilities: ["parseImage"] };
+  const ocr = {
+    apiType: "LocalAI",
+    sourceType: "local",
+    modelRef: "ppocr-v5-mobile",
+    enabledCapabilities: ["recognizeText"],
+  };
+  const vlm = {
+    apiType: "LocalAI",
+    modelRef: "paddleocr-vl-1.6-onnx-q8",
+    device: "webgpu",
+    enabledCapabilities: ["parseImage"],
+  };
   expect(supportsApiCapability(ocr, "recognizeText")).toBe(true);
   expect(supportsApiCapability(ocr, "parseImage")).toBe(false);
   expect(supportsApiCapability(vlm, "parseImage")).toBe(true);
   expect(supportsApiCapability(vlm, "recognizeText")).toBe(false);
-  expect(isApiAvailableFor(vlm, "parseImage", { requirements: { taskMode: "table" } })).toBe(true);
-  expect(isApiAvailableFor(vlm, "parseImage", { requirements: { coordinates: true } })).toBe(false);
+  expect(
+    isApiAvailableFor(vlm, "parseImage", {
+      requirements: { taskMode: "table" },
+    })
+  ).toBe(true);
+  expect(
+    isApiAvailableFor(vlm, "parseImage", {
+      requirements: { coordinates: true },
+    })
+  ).toBe(false);
 });
 
 test("preserves enabled settings and verifies summary availability across builtin, local, and network", () => {
@@ -161,7 +211,11 @@ test("preserves enabled settings and verifies summary availability across builti
     apiType: "OpenAI",
     enabledCapabilities: ["translate", "summarize", "invalid_cap"],
   });
-  expect(normalized.enabledCapabilities).toEqual(["translate", "summarize", "invalid_cap"]);
+  expect(normalized.enabledCapabilities).toEqual([
+    "translate",
+    "summarize",
+    "invalid_cap",
+  ]);
 
   const apis = [
     {
@@ -179,7 +233,8 @@ test("preserves enabled settings and verifies summary availability across builti
     },
     {
       apiSlug: "gpt4",
-      sourceType: "network", apiType: "OpenAI",
+      sourceType: "network",
+      apiType: "OpenAI",
       enabledCapabilities: ["translate", "summarize"],
     },
   ];
@@ -222,7 +277,10 @@ test("preserves enabled settings and verifies availableApiForScene", () => {
     sourceType: "local",
     enabledCapabilities: ["analyzeLayout", "invalid_cap"],
   });
-  expect(normalized.enabledCapabilities).toEqual(["analyzeLayout", "invalid_cap"]);
+  expect(normalized.enabledCapabilities).toEqual([
+    "analyzeLayout",
+    "invalid_cap",
+  ]);
 
   const apis = [
     {
@@ -234,7 +292,8 @@ test("preserves enabled settings and verifies availableApiForScene", () => {
     },
     {
       apiSlug: "other-service",
-      sourceType: "network", apiType: "OpenAI",
+      sourceType: "network",
+      apiType: "OpenAI",
       enabledCapabilities: ["translate"],
     },
   ];
@@ -243,13 +302,25 @@ test("preserves enabled settings and verifies availableApiForScene", () => {
     layoutApiSlugs: ["local-layout"],
   };
 
-  const availableWhenInstalled = availableApiForScene(scene, apis, "analyzeLayout", {
-    installedModels: new Set(["pp-doclayout-v3-onnx"]),
-  }, "layoutApiSlug");
+  const availableWhenInstalled = availableApiForScene(
+    scene,
+    apis,
+    "analyzeLayout",
+    {
+      installedModels: new Set(["pp-doclayout-v3-onnx"]),
+    },
+    "layoutApiSlug"
+  );
   expect(availableWhenInstalled?.apiSlug).toBe("local-layout");
 
-  const availableWhenNotInstalled = availableApiForScene(scene, apis, "analyzeLayout", {
-    installedModels: new Set(["other-model"]),
-  }, "layoutApiSlug");
+  const availableWhenNotInstalled = availableApiForScene(
+    scene,
+    apis,
+    "analyzeLayout",
+    {
+      installedModels: new Set(["other-model"]),
+    },
+    "layoutApiSlug"
+  );
   expect(availableWhenNotInstalled).toBeUndefined();
 });

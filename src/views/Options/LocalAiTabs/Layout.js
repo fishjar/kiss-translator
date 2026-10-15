@@ -47,7 +47,11 @@ const DOC_MODELS = CATALOG.filter(
 
 // 版面区域标签的中文名称与主题颜色
 const REGION_TYPE_CONFIG = {
-  text: { labelZh: "段落正文", color: "#1976d2", bg: "rgba(25, 118, 210, 0.12)" },
+  text: {
+    labelZh: "段落正文",
+    color: "#1976d2",
+    bg: "rgba(25, 118, 210, 0.12)",
+  },
   paragraph: {
     labelZh: "段落",
     color: "#1976d2",
@@ -176,15 +180,14 @@ export default function LayoutTab() {
     setError(null);
     setClientState("loading");
     setProgressText(i18n("local_ai_model_loading", "启动推理引擎…"));
-    addLog(`开始加载 DOC 版面分析模型: ${selectedId} (${device.toUpperCase()})`);
+    addLog(
+      `开始加载 DOC 版面分析模型: ${selectedId} (${device.toUpperCase()})`
+    );
     try {
       await clientRef.current.load({ device }, modelTarget);
       setClientState("ready");
       setProgressText("");
-      addLog(
-        `DOC 版面分析模型加载就绪 (${device.toUpperCase()})`,
-        "success"
-      );
+      addLog(`DOC 版面分析模型加载就绪 (${device.toUpperCase()})`, "success");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setClientState("idle");
@@ -683,7 +686,8 @@ export default function LayoutTab() {
                 <Box
                   sx={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(220px, 1fr))",
                     gap: 1,
                     maxHeight: 220,
                     overflowY: "auto",
@@ -710,12 +714,16 @@ export default function LayoutTab() {
                           borderColor:
                             hoveredRegionId === r.id ? st.color : "divider",
                           bgcolor:
-                            hoveredRegionId === r.id ? st.bg : "background.paper",
+                            hoveredRegionId === r.id
+                              ? st.bg
+                              : "background.paper",
                           cursor: "pointer",
                           transition: "all 0.15s ease",
                         }}
                       >
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
                           <Typography
                             variant="caption"
                             fontWeight={700}
@@ -801,10 +809,7 @@ export default function LayoutTab() {
           )}
         </CardContent>
       </Card>
-      <LogViewer
-        logs={logs}
-        onClear={clearLogs}
-      />
+      <LogViewer logs={logs} onClear={clearLogs} />
     </Stack>
   );
 }

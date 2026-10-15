@@ -46,7 +46,10 @@ import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import { isShadowHostMoving } from "../../libs/shadowHost";
-import { isApiAvailableFor, supportsApiCapability } from "../../config/serviceSelection";
+import {
+  isApiAvailableFor,
+  supportsApiCapability,
+} from "../../config/serviceSelection";
 import TextareaResizeGrip from "../../components/TextareaResizeGrip";
 import useTextareaHeightLock, {
   useTextareaGripStyle,
@@ -432,7 +435,8 @@ export default function TranForm({
       (api) =>
         api.apiSlug === aiDictApiSlug &&
         !api.isDisabled &&
-        isApiConfigured(api) && supportsApiCapability(api, "dictionary")
+        isApiConfigured(api) &&
+        supportsApiCapability(api, "dictionary")
     );
     if (!apiSetting) {
       return null;
@@ -441,7 +445,11 @@ export default function TranForm({
     // Following the API requires a resolved, nonblank dictPrompt.
     // Empty prompts would create a billed request without useful instructions.
     if (aiDictPromptSlug === PROMPT_MODE_FOLLOW_API) {
-      if (apiSetting.provider?.implementation.kind !== "native" && apiSetting.provider) return apiSetting;
+      if (
+        apiSetting.provider?.implementation.kind !== "native" &&
+        apiSetting.provider
+      )
+        return apiSetting;
       return hasPrompt(apiSetting.dictPrompt) ? apiSetting : null;
     }
 

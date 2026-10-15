@@ -27,7 +27,11 @@ export function createTestInput(capability, text, file, assets) {
     return { items: [{ id: "0", text }], targetLanguage: "zh-CN" };
   if (capability === "chat")
     return { messages: [{ role: "user", content: text }] };
-  if (["transcribe", "recognizeText", "parseImage", "analyzeLayout"].includes(capability)) {
+  if (
+    ["transcribe", "recognizeText", "parseImage", "analyzeLayout"].includes(
+      capability
+    )
+  ) {
     if (!file) throw new Error("请选择待识别文件");
     return {
       [capability === "transcribe" ? "audio" : "image"]: assets.put(file),
@@ -40,7 +44,8 @@ export function applyTestPrompt(capability, input, api) {
   if (capability === "translate")
     return {
       ...input,
-      ...(api.provider?.implementation?.kind !== "native" && translationOptions(api)),
+      ...(api.provider?.implementation?.kind !== "native" &&
+        translationOptions(api)),
       systemPrompt:
         (api.useBatchFetch ? api.systemPrompt : api.nobatchPrompt) ?? undefined,
       userPrompt:

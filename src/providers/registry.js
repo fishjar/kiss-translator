@@ -49,9 +49,14 @@ export function createProviderRegistry({
           );
         }
         const descriptor = getCapabilityDescriptor(instance, capability);
-        if (["recognizeText", "parseImage"].includes(capability) &&
-            !(descriptor.taskModes || ["doc"]).includes(input.mode || "doc"))
-          throw providerError("TASK_UNSUPPORTED", "Selected service does not support this image task.");
+        if (
+          ["recognizeText", "parseImage"].includes(capability) &&
+          !(descriptor.taskModes || ["doc"]).includes(input.mode || "doc")
+        )
+          throw providerError(
+            "TASK_UNSUPPORTED",
+            "Selected service does not support this image task."
+          );
         if (
           capability === "translate" &&
           input.items?.length > 1 &&

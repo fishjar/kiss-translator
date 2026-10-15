@@ -599,10 +599,7 @@ export default function VlmTab() {
           </CardContent>
         </Card>
       )}
-      <LogViewer
-        logs={logs}
-        onClear={clearLogs}
-      />
+      <LogViewer logs={logs} onClear={clearLogs} />
     </Stack>
   );
 }

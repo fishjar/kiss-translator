@@ -8,7 +8,9 @@ import {
 } from "./fileTranslate";
 import { apiTranslate } from "../apis";
 
-jest.mock("../fileTranslation/client", () => jest.requireActual("./fileTranslationService"));
+jest.mock("../fileTranslation/client", () =>
+  jest.requireActual("./fileTranslationService")
+);
 jest.mock("../apis", () => ({ apiTranslate: jest.fn() }));
 jest.mock("webextension-polyfill", () => ({}));
 
@@ -23,33 +25,65 @@ test("image synthesis restores excluded polygons after drawing neighboring trans
     fillText: jest.fn(() => operations.push(["text"])),
     getImageData: () => ({ data: [255, 255, 255, 255] }),
     measureText: () => ({ width: 10 }),
-    save: jest.fn(), beginPath: jest.fn(), moveTo: jest.fn(), lineTo: jest.fn(),
-    closePath: jest.fn(), clip: jest.fn(() => operations.push(["clip"])), restore: jest.fn(),
+    save: jest.fn(),
+    beginPath: jest.fn(),
+    moveTo: jest.fn(),
+    lineTo: jest.fn(),
+    closePath: jest.fn(),
+    clip: jest.fn(() => operations.push(["clip"])),
+    restore: jest.fn(),
   };
   const originalContext = { drawImage: jest.fn() };
   const createElement = document.createElement.bind(document);
   const canvases = [];
-  const create = jest.spyOn(document, "createElement").mockImplementation((tag) => {
-    const element = createElement(tag);
-    if (tag === "canvas") {
-      const index = canvases.length;
-      canvases.push(element);
-      element.getContext = () => index === 0 ? context : originalContext;
-      element.toBlob = (callback) => callback(new Blob(["png"], { type: "image/png" }));
-    }
-    return element;
-  });
-  const poly = [[10, 10], [30, 10], [30, 30], [10, 30]];
-  const excluded = [[25, 10], [40, 10], [40, 30], [25, 30]];
-  try {
-    const result = await synthesizeTranslatedImage(new Blob(["image"]), [{ source: "selected", target: "translated", poly }], {
-      preservePolygons: [excluded],
+  const create = jest
+    .spyOn(document, "createElement")
+    .mockImplementation((tag) => {
+      const element = createElement(tag);
+      if (tag === "canvas") {
+        const index = canvases.length;
+        canvases.push(element);
+        element.getContext = () => (index === 0 ? context : originalContext);
+        element.toBlob = (callback) =>
+          callback(new Blob(["png"], { type: "image/png" }));
+      }
+      return element;
     });
+  const poly = [
+    [10, 10],
+    [30, 10],
+    [30, 30],
+    [10, 30],
+  ];
+  const excluded = [
+    [25, 10],
+    [40, 10],
+    [40, 30],
+    [25, 30],
+  ];
+  try {
+    const result = await synthesizeTranslatedImage(
+      new Blob(["image"]),
+      [{ source: "selected", target: "translated", poly }],
+      {
+        preservePolygons: [excluded],
+      }
+    );
     expect(result.type).toBe("image/png");
     expect(originalContext.drawImage).toHaveBeenCalledWith(canvases[0], 0, 0);
-    expect(operations.map(([operation]) => operation)).toEqual(["draw", "mask", "text", "clip", "draw"]);
+    expect(operations.map(([operation]) => operation)).toEqual([
+      "draw",
+      "mask",
+      "text",
+      "clip",
+      "draw",
+    ]);
     expect(context.moveTo).toHaveBeenCalledWith(25, 10);
-    expect(context.lineTo.mock.calls).toEqual([[40, 10], [40, 30], [25, 30]]);
+    expect(context.lineTo.mock.calls).toEqual([
+      [40, 10],
+      [40, 30],
+      [25, 30],
+    ]);
     expect(context.drawImage).toHaveBeenLastCalledWith(canvases[1], 0, 0);
     expect(context.restore).toHaveBeenCalledTimes(1);
     expect(image.close).toHaveBeenCalledTimes(1);
@@ -141,7 +175,11 @@ test("a failed selected local service never calls the leftover network fallback"
   expect(local.translate).not.toHaveBeenCalled();
   expect(apiTranslate).toHaveBeenCalledTimes(1);
   expect(apiTranslate.mock.calls[0][0]).toMatchObject({
-    apiSetting: { modelRef: "hy-mt2-1.8b", apiType: "LocalAI", nobatchUserPrompt: expect.any(String) },
+    apiSetting: {
+      modelRef: "hy-mt2-1.8b",
+      apiType: "LocalAI",
+      nobatchUserPrompt: expect.any(String),
+    },
   });
 });
 
@@ -369,15 +407,29 @@ describe("Markdown file translation", () => {
       opfPath: "OEBPS/content.opf",
       opfDir: "OEBPS/",
       spineItems: [
-        { id: "ch1", href: "ch1.xhtml", fullPath: "OEBPS/ch1.xhtml", title: "Chapter 1" },
-        { id: "ch2", href: "ch2.xhtml", fullPath: "OEBPS/ch2.xhtml", title: "Chapter 2" },
+        {
+          id: "ch1",
+          href: "ch1.xhtml",
+          fullPath: "OEBPS/ch1.xhtml",
+          title: "Chapter 1",
+        },
+        {
+          id: "ch2",
+          href: "ch2.xhtml",
+          fullPath: "OEBPS/ch2.xhtml",
+          title: "Chapter 2",
+        },
       ],
       filesMap: {
         "OEBPS/content.opf": fflate.strToU8(
           `<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>短篇小说选集</dc:title></metadata><manifest><item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/><item id="ch2" href="ch2.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="ch1"/><itemref idref="ch2"/></spine></package>`
         ),
-        "OEBPS/ch1.xhtml": fflate.strToU8(`<html><body><p>Source chapter 1</p></body></html>`),
-        "OEBPS/ch2.xhtml": fflate.strToU8(`<html><body><p>Source chapter 2</p></body></html>`),
+        "OEBPS/ch1.xhtml": fflate.strToU8(
+          `<html><body><p>Source chapter 1</p></body></html>`
+        ),
+        "OEBPS/ch2.xhtml": fflate.strToU8(
+          `<html><body><p>Source chapter 2</p></body></html>`
+        ),
       },
     };
 
@@ -390,13 +442,14 @@ describe("Markdown file translation", () => {
       },
     };
 
-    const { uint8Array, filename, hasAnyTranslated } = exportEpubFromChapterStates(
-      mockBook,
-      chapterStates,
-      { toLang: "zh-CN" },
-      {},
-      "bilingual"
-    );
+    const { uint8Array, filename, hasAnyTranslated } =
+      exportEpubFromChapterStates(
+        mockBook,
+        chapterStates,
+        { toLang: "zh-CN" },
+        {},
+        "bilingual"
+      );
 
     expect(hasAnyTranslated).toBe(true);
     expect(filename).toContain(".bilingual.epub");
@@ -424,7 +477,9 @@ describe("Markdown file translation", () => {
     const html = generateStandaloneHtml("<p>Hello World</p>", maliciousTitle);
     // 验证导出的完整 HTML 中绝不存在未经转义的真实 <script> 标签
     expect(html).not.toContain('<script>alert("xss")</script>');
-    expect(html).toContain("&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;");
+    expect(html).toContain(
+      "&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;"
+    );
   });
 
   test("generateStandaloneHtml 支持自定义 lang 参数并在 html 标签中正确声明（第五轮问题 3）", () => {
@@ -432,7 +487,12 @@ describe("Markdown file translation", () => {
     const enHtml = generateStandaloneHtml("<p>Hello</p>", "Title", "", "en");
     expect(enHtml).toContain('<html lang="en">');
 
-    const jaHtml = generateStandaloneHtml("<p>こんにちは</p>", "Title", "", "ja");
+    const jaHtml = generateStandaloneHtml(
+      "<p>こんにちは</p>",
+      "Title",
+      "",
+      "ja"
+    );
     expect(jaHtml).toContain('<html lang="ja">');
   });
 
@@ -489,7 +549,9 @@ describe("Markdown file translation", () => {
         "content.opf": fflate.strToU8(
           `<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:language>en</dc:language></metadata><manifest><item id="c1" href="c1.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="c1"/></spine></package>`
         ),
-        "c1.xhtml": fflate.strToU8("<html><body><p>Sentence 1</p></body></html>"),
+        "c1.xhtml": fflate.strToU8(
+          "<html><body><p>Sentence 1</p></body></html>"
+        ),
       },
     };
 
@@ -504,7 +566,9 @@ describe("Markdown file translation", () => {
 
     expect(result.chapterResults).toBeDefined();
     // 验证 getter 存在且惰性生效
-    expect(typeof Object.getOwnPropertyDescriptor(result, "bilingualBlob").get).toBe("function");
+    expect(
+      typeof Object.getOwnPropertyDescriptor(result, "bilingualBlob").get
+    ).toBe("function");
     expect(result.bilingualBlob).toBeInstanceOf(Blob);
     expect(result.targetBlob).toBeInstanceOf(Blob);
   });
@@ -575,19 +639,31 @@ describe("Markdown file translation", () => {
       opfPath: "content.opf",
       ncxItemHref: "toc.ncx",
       spineItems: [{ id: "c1", href: "c1.xhtml", fullPath: "c1.xhtml" }],
-      tocItems: [{ id: "c1", title: "Chapter 1 Original", href: "c1.xhtml", fullPath: "c1.xhtml", hash: "" }],
+      tocItems: [
+        {
+          id: "c1",
+          title: "Chapter 1 Original",
+          href: "c1.xhtml",
+          fullPath: "c1.xhtml",
+          hash: "",
+        },
+      ],
       filesMap: {
         "content.opf": fflate.strToU8(
           `<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:language>en</dc:language></metadata><manifest><item id="c1" href="c1.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="c1"/></spine></package>`
         ),
-        "c1.xhtml": fflate.strToU8("<html><body><h1>Chapter 1 Heading</h1><p>Sentence 1</p></body></html>"),
+        "c1.xhtml": fflate.strToU8(
+          "<html><body><h1>Chapter 1 Heading</h1><p>Sentence 1</p></body></html>"
+        ),
         "toc.ncx": new Uint8Array(originalNcxBytes),
       },
     };
 
     apiTranslate.mockImplementation(({ text }) => {
-      if (text.includes("Chapter 1 Heading")) return Promise.resolve({ trText: "第一章 标题" });
-      if (text.includes("Sentence 1")) return Promise.resolve({ trText: "第一句" });
+      if (text.includes("Chapter 1 Heading"))
+        return Promise.resolve({ trText: "第一章 标题" });
+      if (text.includes("Sentence 1"))
+        return Promise.resolve({ trText: "第一句" });
       return Promise.resolve({ trText: `译:${text}` });
     });
 

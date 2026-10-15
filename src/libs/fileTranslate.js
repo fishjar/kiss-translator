@@ -1746,7 +1746,8 @@ export function exportEpubFromChapterStates(
   // 1. 判断是否有任何章节被完整翻译（必须为 done 状态且目标语言匹配，防止未完成草稿或旧语言译文被误判）
   const hasAnyTranslated = spineItems.some((item) => {
     const state = chapterStates[item.fullPath];
-    const isLangMatch = !state?.targetLang || !scene?.toLang || state.targetLang === scene.toLang;
+    const isLangMatch =
+      !state?.targetLang || !scene?.toLang || state.targetLang === scene.toLang;
     const isDone = state?.status === "done" && isLangMatch;
     const content =
       mode === "target"
@@ -1758,7 +1759,8 @@ export function exportEpubFromChapterStates(
   // 2. 组装各章节内容（仅已完整翻译完成且目标语言匹配的章节应用翻译结果，未完成、失败或非当前目标语言章节保持原文件字节）
   for (const spineItem of spineItems) {
     const state = chapterStates[spineItem.fullPath];
-    const isLangMatch = !state?.targetLang || !scene?.toLang || state.targetLang === scene.toLang;
+    const isLangMatch =
+      !state?.targetLang || !scene?.toLang || state.targetLang === scene.toLang;
     const isDone = state?.status === "done" && isLangMatch;
     const targetContent = state?.targetXhtml || state?.targetHtml;
     const bilingualContent = state?.bilingualXhtml || state?.bilingualHtml;
@@ -1791,9 +1793,7 @@ export function exportEpubFromChapterStates(
   }
 
   const cssRelativePath = "styles/kiss-translator-epub.css";
-  const cssFullPath = opfDir
-    ? `${opfDir}${cssRelativePath}`
-    : cssRelativePath;
+  const cssFullPath = opfDir ? `${opfDir}${cssRelativePath}` : cssRelativePath;
   filesMap[cssFullPath] = fflate.strToU8(customCss);
 
   // 为每个章节的 head 注入样式表 link，并在 body 底部注入 KISS Translator 注明与链接
@@ -1820,7 +1820,8 @@ export function exportEpubFromChapterStates(
 
     if (hasAnyTranslated) {
       titleSuffix = mode === "target" ? " [译]" : " [双语对照]";
-      toLang = scene?.toLang || options?.toLang || options?.targetLang || "zh-CN";
+      toLang =
+        scene?.toLang || options?.toLang || options?.targetLang || "zh-CN";
     }
 
     const updatedOpf = updateOpfDocument(rawOpf, {
@@ -1832,7 +1833,11 @@ export function exportEpubFromChapterStates(
   }
 
   // 5. 同步改写目录文件 (EPUB 3 NAV XHTML 与 EPUB 2 NCX XML)
-  const titleMap = extractTitleMapFromChapterStates(epubBook, chapterStates, mode);
+  const titleMap = extractTitleMapFromChapterStates(
+    epubBook,
+    chapterStates,
+    mode
+  );
 
   // 5.1 更新 EPUB 3 导航文档 (navItemHref)
   if (epubBook.navItemHref && filesMap[epubBook.navItemHref]) {
@@ -1918,12 +1923,8 @@ export function exportEpubFromChapterStates(
     (options.fallbackBaseName ? options.fallbackBaseName : "book");
 
   const targetLang =
-    scene?.toLang ||
-    options?.targetLang ||
-    options?.toLang ||
-    "zh";
-  const targetLangSuffix =
-    targetLang.toLowerCase().split("-")[0] || "zh";
+    scene?.toLang || options?.targetLang || options?.toLang || "zh";
+  const targetLangSuffix = targetLang.toLowerCase().split("-")[0] || "zh";
 
   let filename;
   if (!hasAnyTranslated) {

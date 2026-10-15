@@ -42,25 +42,42 @@ describe("local response validation stays isolated from network services", () =>
     "%s parses incomplete responses like OpenAI",
     async (apiType) => {
       const response = {
-        choices: [{ message: { role: "assistant", content: '[{"id":0,"text":"一"}]' } }],
+        choices: [
+          { message: { role: "assistant", content: '[{"id":0,"text":"一"}]' } },
+        ],
       };
-      const expected = await parseTransRes(response, { ...options, apiType: OPT_TRANS_OPENAI });
+      const expected = await parseTransRes(response, {
+        ...options,
+        apiType: OPT_TRANS_OPENAI,
+      });
       expect(expected).toHaveLength(1);
-      await expect(parseTransRes(response, { ...options, apiType })).resolves.toEqual(expected);
-      await expect(parseTransRes(response, { ...options, apiType: OPT_TRANS_LOCALAI })).rejects.toThrow("Local translation returned incomplete segments");
+      await expect(
+        parseTransRes(response, { ...options, apiType })
+      ).resolves.toEqual(expected);
+      await expect(
+        parseTransRes(response, { ...options, apiType: OPT_TRANS_LOCALAI })
+      ).rejects.toThrow("Local translation returned incomplete segments");
     }
   );
-  test.each([OPT_TRANS_LOCALAI, OPT_TRANS_EPHONEAI, OPT_TRANS_APIMART, OPT_TRANS_OPENAI])(
-    "%s parses complete responses and records history",
-    async (apiType) => {
-      const message = { role: "assistant", content: '[{"id":0,"text":"一"},{"id":1,"text":"二"}]' };
-      const userMsg = { role: "user", content: "one, two" };
-      const history = { addPair: jest.fn() };
-      const result = await parseTransRes({ choices: [{ message }] }, { ...options, apiType, userMsg, history });
-      expect(result).toHaveLength(2);
-      expect(history.addPair).toHaveBeenCalledWith(userMsg, message);
-    }
-  );
+  test.each([
+    OPT_TRANS_LOCALAI,
+    OPT_TRANS_EPHONEAI,
+    OPT_TRANS_APIMART,
+    OPT_TRANS_OPENAI,
+  ])("%s parses complete responses and records history", async (apiType) => {
+    const message = {
+      role: "assistant",
+      content: '[{"id":0,"text":"一"},{"id":1,"text":"二"}]',
+    };
+    const userMsg = { role: "user", content: "one, two" };
+    const history = { addPair: jest.fn() };
+    const result = await parseTransRes(
+      { choices: [{ message }] },
+      { ...options, apiType, userMsg, history }
+    );
+    expect(result).toHaveLength(2);
+    expect(history.addPair).toHaveBeenCalledWith(userMsg, message);
+  });
 });
 
 describe("handleSummarize LocalAI", () => {
@@ -298,20 +315,55 @@ describe("local translation uses AI request and response pipeline", () => {
       yield JSON.stringify({ choices: [{ delta: { content: "好" } }] });
     });
     const chunks = [];
-    for await (const item of handleTranslate(["hello"], { from: "English", to: "Chinese", apiSetting: { ...api, useStream: true, streamRenderMode: "realtime" } })) chunks.push(item);
-    expect(chunks).toContainEqual({ id: 0, partialText: "你", isComplete: false });
+    for await (const item of handleTranslate(["hello"], {
+      from: "English",
+      to: "Chinese",
+      apiSetting: { ...api, useStream: true, streamRenderMode: "realtime" },
+    }))
+      chunks.push(item);
+    expect(chunks).toContainEqual({
+      id: 0,
+      partialText: "你",
+      isComplete: false,
+    });
     expect(chunks[chunks.length - 1]).toEqual({ id: 0, result: ["你好"] });
     expect(fetchData).not.toHaveBeenCalled();
   });
   test("local aggregation parses complete IDs and rejects incomplete results", async () => {
-    const options = { from: "English", to: "Chinese", apiSetting: { ...api, useBatchFetch: true, batchProtocol: "json", systemPrompt: "Translate", batchUserPrompt: "{{segments}}" } };
-    fetchData.mockResolvedValue({ choices: [{ message: { role: "assistant", content: '[{"id":1,"text":"二"},{"id":0,"text":"一"}]' } }] });
+    const options = {
+      from: "English",
+      to: "Chinese",
+      apiSetting: {
+        ...api,
+        useBatchFetch: true,
+        batchProtocol: "json",
+        systemPrompt: "Translate",
+        batchUserPrompt: "{{segments}}",
+      },
+    };
+    fetchData.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            role: "assistant",
+            content: '[{"id":1,"text":"二"},{"id":0,"text":"一"}]',
+          },
+        },
+      ],
+    });
     const chunks = [];
-    for await (const item of handleTranslate(["one", "two"], options)) chunks.push(item);
+    for await (const item of handleTranslate(["one", "two"], options))
+      chunks.push(item);
     expect(chunks.map((item) => item.id)).toEqual([0, 1]);
-    fetchData.mockResolvedValue({ choices: [{ message: { role: "assistant", content: '[{"id":0,"text":"一"}]' } }] });
-    const consume = async () => { for await (const item of handleTranslate(["one", "two"], options)) {} };
+    fetchData.mockResolvedValue({
+      choices: [
+        { message: { role: "assistant", content: '[{"id":0,"text":"一"}]' } },
+      ],
+    });
+    const consume = async () => {
+      for await (const item of handleTranslate(["one", "two"], options)) {
+      }
+    };
     await expect(consume()).rejects.toThrow("incomplete");
   });
-
 });

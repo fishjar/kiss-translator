@@ -34,7 +34,11 @@ test("reference replacement preserves order, deduplicates and never rewrites ins
     apiSlugs: ["a", "new"],
     aiDictApiSlug: "new",
   });
-  expect(result.rules[0]).toEqual({ apiSlug: "new", apiSlugs: ["stale"], code: "old" });
+  expect(result.rules[0]).toEqual({
+    apiSlug: "new",
+    apiSlugs: ["stale"],
+    code: "old",
+  });
   expect(result.setting.transApis[0]).toEqual(setting.transApis[0]);
   expect(setting.tranboxSetting.apiSlugs).toEqual(["a", "old", "new"]);
 });

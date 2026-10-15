@@ -198,6 +198,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   windowStyle: SUBTITLE_WINDOW_STYLE, // 字幕背景及定位样式
   originStyle: SUBTITLE_ORIGIN_STYLE, // 原文字体大小及字重样式
   translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文字体大小样式
+  hoverLookupCloseDelay: 2, // 离开字幕单词后关闭查词面板的延时（秒）
   hoverLookupMode: OPT_ENHANCE_MOBILE_OFF, // 鼠标悬停到字幕单词上时是否弹出查词面板
   autoFavWord: false, // 字幕悬停查词成功后是否自动收藏单词
   showList: OPT_ENHANCE_MOBILE_OFF, // 是否在侧边/右侧显示字幕全文滚动历史面板

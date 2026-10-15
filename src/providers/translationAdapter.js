@@ -22,7 +22,8 @@ export async function* translatePlugin(
     apiSetting,
     "translate",
     {
-      ...(apiSetting.provider?.implementation?.kind !== "native" && translationOptions(apiSetting)),
+      ...(apiSetting.provider?.implementation?.kind !== "native" &&
+        translationOptions(apiSetting)),
       items,
       sourceLanguage: fromLang,
       targetLanguage: toLang,

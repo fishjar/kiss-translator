@@ -60,9 +60,28 @@ test("configuration, capability, implementation and full document context indepe
 });
 
 test("streaming transport choice invalidates cache and test evidence", async () => {
-  const candidate = { ...api, enabledCapabilities: ["translate"], provider: { ...api.provider,
-    capabilities: { translate: { handler: "translate", outputModes: ["complete", "stream"] } } } };
+  const candidate = {
+    ...api,
+    enabledCapabilities: ["translate"],
+    provider: {
+      ...api.provider,
+      capabilities: {
+        translate: {
+          handler: "translate",
+          outputModes: ["complete", "stream"],
+        },
+      },
+    },
+  };
   const automatic = await providerCacheSignature(candidate, "translate", {});
-  expect(await providerCacheSignature({ ...candidate, useStream: false }, "translate", {})).not.toBe(automatic);
-  expect(instanceTestSignature({ ...candidate, useStream: false })).not.toBe(instanceTestSignature(candidate));
+  expect(
+    await providerCacheSignature(
+      { ...candidate, useStream: false },
+      "translate",
+      {}
+    )
+  ).not.toBe(automatic);
+  expect(instanceTestSignature({ ...candidate, useStream: false })).not.toBe(
+    instanceTestSignature(candidate)
+  );
 });

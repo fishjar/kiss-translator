@@ -22,13 +22,20 @@ beforeEach(() =>
 
 test("old network VLM selections and snapshots cannot invoke a removed native handler", async () => {
   const registry = createNativeRegistry(() => ({
-    apiType: OPT_TRANS_OPENAI, apiSlug: "old-vision", enabledCapabilities: ["parseImage"],
-    provider: { apiVersion: "1", implementation: { kind: "native", entry: OPT_TRANS_OPENAI },
-      capabilities: { parseImage: { handler: "parseImage", outputModes: ["complete"] } },
+    apiType: OPT_TRANS_OPENAI,
+    apiSlug: "old-vision",
+    enabledCapabilities: ["parseImage"],
+    provider: {
+      apiVersion: "1",
+      implementation: { kind: "native", entry: OPT_TRANS_OPENAI },
+      capabilities: {
+        parseImage: { handler: "parseImage", outputModes: ["complete"] },
+      },
     },
   }));
-  await expect(registry.invoke("old-vision", "parseImage", { image: "unused" }).result)
-    .rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
+  await expect(
+    registry.invoke("old-vision", "parseImage", { image: "unused" }).result
+  ).rejects.toMatchObject({ code: "SERVICE_UNAVAILABLE" });
 });
 
 test("production native registry routes old settings without persisting or changing IDs", async () => {

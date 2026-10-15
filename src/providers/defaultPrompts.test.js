@@ -52,8 +52,15 @@ test("default declarations validate task bindings and copied snapshots remain in
 });
 
 test("explicit batch mode chooses the batch default even for one item", () => {
-  const input = { items: [{ id: "0", text: "a" }], translationMode: "batch", targetLanguage: "zh" };
-  expect(withDefaultPromptInput({ provider: service }, "translate", input).systemPrompt).toBe("batch");
+  const input = {
+    items: [{ id: "0", text: "a" }],
+    translationMode: "batch",
+    targetLanguage: "zh",
+  };
+  expect(
+    withDefaultPromptInput({ provider: service }, "translate", input)
+      .systemPrompt
+  ).toBe("batch");
 });
 test("task and scene instructions override defaults; batch tasks and image calls use their declared slots", () => {
   const api = { provider: service };

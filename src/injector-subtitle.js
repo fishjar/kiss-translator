@@ -1,4 +1,4 @@
 import { XMLHttpRequestInjector } from "./injectors/xmlhttp";
 
-// 启动 XMLHttpRequest 拦截注入器，通过拦截网络请求返回直接实现无感双语视频字幕翻译
+// 页面字幕桥：捕获 Fetch/XHR，补读资源时序，并响应当前视频的字幕请求。
 XMLHttpRequestInjector();

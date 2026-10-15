@@ -1,4 +1,5 @@
 import { apiMicrosoftDict } from "../apis/index.js";
+import { normalizeHoverLookupCloseDelay } from "./modes";
 import { logger } from "../libs/log.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import {
@@ -27,6 +28,9 @@ export const addWordHoverStyles = () => {
     /* 查词气泡弹窗主体样式 */
     .kiss-word-tooltip {
       position: fixed;
+      user-select: text;
+      -webkit-user-select: text;
+      pointer-events: auto;
       background: rgba(0, 0, 0, 0.9);
       color: white;
       border-radius: 6px;
@@ -143,92 +147,151 @@ export class WordTooltipController {
     getTimestamp,
     autoFavWord = false,
     i18n = (key, defaultText = key) => defaultText,
+    closeDelay = 2,
+    onClose = () => {},
   }) {
     this.getVideoContainer = getVideoContainer;
     this.getTimestamp = getTimestamp;
     this.autoFavWord = autoFavWord;
     this.i18n = i18n;
+    this.closeDelayMs = normalizeHoverLookupCloseDelay(closeDelay) * 1000;
+    this.onClose = onClose;
     this.tooltipEl = null;
-    this.hoverTimeout = null;
+    this.openTimeout = null;
+    this.closeTimeout = null;
     this.activeWordEl = null;
+    this.currentWord = null;
+    this.inTooltip = false;
+    this.destroyed = false;
+    this.listeners = new AbortController();
+    this.attachedSpans = new WeakSet();
+    document.addEventListener(
+      "fullscreenchange",
+      () => {
+        if (this.isOpen)
+          (document.fullscreenElement || document.body).appendChild(
+            this.tooltipEl
+          );
+      },
+      { signal: this.listeners.signal }
+    );
+  }
+
+  get isOpen() {
+    return !!this.tooltipEl?.isConnected;
+  }
+
+  get isPanelInteractionActive() {
+    return this.isOpen && (this.inTooltip || this.closeTimeout !== null);
   }
 
   attachSpanListeners(root, getTimestamp = this.getTimestamp) {
-    if (!root) return;
-
-    const spans = root.querySelectorAll(".kiss-subtitle-word");
-    spans.forEach((span) => {
-      if (span.dataset.kissListenerAttached) return;
-      const enterHandler = (event) =>
-        this.#handleWordHover(event, getTimestamp);
-      const leaveHandler = (event) => this.#handleWordHoverOut(event);
-      span.addEventListener("pointerenter", enterHandler);
-      span.addEventListener("pointerleave", leaveHandler);
-      span.dataset.kissListenerAttached = "1";
+    if (!root || this.destroyed) return;
+    root.querySelectorAll(".kiss-subtitle-word").forEach((span) => {
+      if (this.attachedSpans.has(span)) return;
+      span.addEventListener(
+        "pointerenter",
+        (event) => this.#handleWordHover(event, getTimestamp),
+        { signal: this.listeners.signal }
+      );
+      span.addEventListener(
+        "pointerleave",
+        (event) => this.#handleWordHoverOut(event),
+        { signal: this.listeners.signal }
+      );
+      this.attachedSpans.add(span);
     });
   }
 
   destroy() {
+    this.destroyed = true;
+    this.listeners.abort();
     this.clearHoverState();
   }
 
+  #cancelTimers() {
+    clearTimeout(this.openTimeout);
+    clearTimeout(this.closeTimeout);
+    this.openTimeout = this.closeTimeout = null;
+  }
+
   clearHoverState() {
-    if (this.hoverTimeout) {
-      clearTimeout(this.hoverTimeout);
-      this.hoverTimeout = null;
-    }
     this.activeWordEl?.classList.remove("kiss-word-hover");
     this.activeWordEl = null;
     this.hideWordTooltip();
   }
 
   #handleWordHover(event, getTimestamp) {
-    const target = event.target;
-    if (!target.classList.contains("kiss-subtitle-word")) return;
-
-    if (this.hoverTimeout) {
-      clearTimeout(this.hoverTimeout);
-      this.hoverTimeout = null;
-    }
-
+    const target = event.currentTarget;
+    this.#cancelTimers();
+    this.activeWordEl?.classList.remove("kiss-word-hover");
     target.classList.add("kiss-word-hover");
     this.activeWordEl = target;
-
-    this.hoverTimeout = setTimeout(() => {
-      this.showWordTooltip(target.dataset.word, {
+    if (this.isOpen && this.currentWord === target.dataset.word) return;
+    this.openTimeout = setTimeout(() => {
+      this.openTimeout = null;
+      void this.showWordTooltip(target.dataset.word, {
         timestamp: getTimestamp?.() ?? 0,
       });
     }, 300);
   }
 
   #handleWordHoverOut(event) {
-    const target = event.target;
-    if (!target.classList.contains("kiss-subtitle-word")) return;
-
+    const target = event.currentTarget;
     target.classList.remove("kiss-word-hover");
-    if (this.activeWordEl === target) {
-      this.activeWordEl = null;
-    }
-
-    if (this.hoverTimeout) {
-      clearTimeout(this.hoverTimeout);
-      this.hoverTimeout = null;
-    }
-
-    this.hoverTimeout = setTimeout(() => {
-      this.hideWordTooltip();
-    }, 100);
+    if (this.activeWordEl === target) this.activeWordEl = null;
+    this.#cancelTimers();
+    if (
+      event.relatedTarget instanceof Node &&
+      this.tooltipEl?.contains(event.relatedTarget)
+    )
+      return;
+    if (!this.isOpen || this.inTooltip) return;
+    if (this.closeDelayMs === 0) this.hideWordTooltip(event.relatedTarget);
+    else
+      this.closeTimeout = setTimeout(
+        () => this.hideWordTooltip(),
+        this.closeDelayMs
+      );
   }
 
   async showWordTooltip(word, { timestamp = 0 } = {}) {
-    if (this.tooltipEl) {
-      this.tooltipEl.remove();
-    }
-
+    if (this.destroyed) return;
+    this.#cancelTimers();
+    this.tooltipEl?.remove();
+    this.inTooltip = false;
+    this.currentWord = word;
     this.tooltipEl = document.createElement("div");
+    const tooltip = this.tooltipEl;
+    const current = () =>
+      !this.destroyed && this.tooltipEl === tooltip && tooltip.isConnected;
+    tooltip.addEventListener(
+      "pointerenter",
+      () => {
+        this.inTooltip = true;
+        clearTimeout(this.closeTimeout);
+        this.closeTimeout = null;
+      },
+      { signal: this.listeners.signal }
+    );
+    tooltip.addEventListener(
+      "pointerleave",
+      (event) => this.hideWordTooltip(event.relatedTarget),
+      { signal: this.listeners.signal }
+    );
+    tooltip.addEventListener(
+      "click",
+      (event) => {
+        if (event.target.closest(".kiss-word-tooltip-close")) {
+          event.stopPropagation();
+          this.hideWordTooltip();
+        }
+      },
+      { signal: this.listeners.signal }
+    );
     this.tooltipEl.className = "kiss-word-tooltip";
     this.tooltipEl.innerHTML = trustedTypesHelper.createHTML(
-      '<div class="kiss-word-loading">Looking up...</div>'
+      `<div class="kiss-word-tooltip-header"><span>${word}</span><button class="kiss-word-tooltip-close" type="button">×</button></div><div class="kiss-word-loading">Looking up...</div>`
     );
 
     const videoContainer = this.getVideoContainer?.();
@@ -248,10 +311,11 @@ export class WordTooltipController {
       this.tooltipEl.style.overflow = "auto";
     }
 
-    document.body.appendChild(this.tooltipEl);
+    (document.fullscreenElement || document.body).appendChild(this.tooltipEl);
 
     try {
       const dictResult = await apiMicrosoftDict(word);
+      if (!current()) return;
       const { phonetic, definition, examples } =
         this.#extractDictionaryData(dictResult);
 
@@ -269,8 +333,10 @@ export class WordTooltipController {
       if (this.autoFavWord && hasDictionaryResult) {
         await saveFavoriteWordIfMissing(word, wordData);
       }
+      if (!current()) return;
       this.#renderDictionaryResult(word, dictResult, wordData);
     } catch (error) {
+      if (!current()) return;
       logger.info("Dictionary lookup failed for word:", word, error);
       this.#dispatchAddWord({
         word,
@@ -284,7 +350,7 @@ export class WordTooltipController {
         this.tooltipEl.innerHTML =
           trustedTypesHelper.createHTML(`<div class="kiss-word-tooltip-header">
         <span>${word}</span>
-        <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
+        <button class="kiss-word-tooltip-close" type="button">×</button>
       </div>
       <div class="kiss-word-definition">Failed to load definition</div>`);
         this.#addFavoriteButton(word, { timestamp });
@@ -292,11 +358,14 @@ export class WordTooltipController {
     }
   }
 
-  hideWordTooltip() {
-    if (this.tooltipEl) {
-      this.tooltipEl.remove();
-      this.tooltipEl = null;
-    }
+  hideWordTooltip(relatedTarget = null) {
+    this.#cancelTimers();
+    const wasOpen = !!this.tooltipEl;
+    this.tooltipEl?.remove();
+    this.tooltipEl = null;
+    this.currentWord = null;
+    this.inTooltip = false;
+    if (wasOpen && !this.destroyed) this.onClose({ relatedTarget });
   }
 
   #extractDictionaryData(dictResult) {
@@ -351,7 +420,7 @@ export class WordTooltipController {
     ) {
       let content = `<div class="kiss-word-tooltip-header">
           <span>${word}</span>
-          <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
+          <button class="kiss-word-tooltip-close" type="button">×</button>
         </div>`;
 
       if (dictResult.aus && dictResult.aus.length > 0) {
@@ -391,7 +460,7 @@ export class WordTooltipController {
       this.tooltipEl.innerHTML =
         trustedTypesHelper.createHTML(`<div class="kiss-word-tooltip-header">
           <span>${word}</span>
-          <button class="kiss-word-tooltip-close" onclick="this.closest('.kiss-word-tooltip').remove()">×</button>
+          <button class="kiss-word-tooltip-close" type="button">×</button>
         </div>
         <div class="kiss-word-definition">No definition found</div>`);
       this.#addFavoriteButton(word, wordData);

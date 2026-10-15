@@ -546,8 +546,31 @@ export default function Settings() {
                     {item}
                   </MenuItem>
                 ))}
-                {!OPT_LANGDETECTOR_ALL.includes(langDetector) && langDetector !== "-" && !(setting.transApis || []).some(api => api.apiSlug === langDetector && !api.isDisabled && isApiConfigured(api) && supportsApiCapability(api, "detectLanguage")) && <MenuItem value={langDetector}>{i18n("service_configured_unavailable")}</MenuItem>}
-                {(setting.transApis || []).filter(api => !api.isDisabled && isApiConfigured(api) && supportsApiCapability(api, "detectLanguage")).map(api => <MenuItem key={api.apiSlug} value={api.apiSlug}>{api.apiName}</MenuItem>)}
+                {!OPT_LANGDETECTOR_ALL.includes(langDetector) &&
+                  langDetector !== "-" &&
+                  !(setting.transApis || []).some(
+                    (api) =>
+                      api.apiSlug === langDetector &&
+                      !api.isDisabled &&
+                      isApiConfigured(api) &&
+                      supportsApiCapability(api, "detectLanguage")
+                  ) && (
+                    <MenuItem value={langDetector}>
+                      {i18n("service_configured_unavailable")}
+                    </MenuItem>
+                  )}
+                {(setting.transApis || [])
+                  .filter(
+                    (api) =>
+                      !api.isDisabled &&
+                      isApiConfigured(api) &&
+                      supportsApiCapability(api, "detectLanguage")
+                  )
+                  .map((api) => (
+                    <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                      {api.apiName}
+                    </MenuItem>
+                  ))}
               </TextField>
             </Grid>
             {/* Translate variants of the same language, such as Simplified and Traditional Chinese. */}

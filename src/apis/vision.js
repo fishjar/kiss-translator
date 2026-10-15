@@ -9,12 +9,29 @@ export async function recognizeNetworkImage(file, api, prompt, signal) {
     const { invokeScene } = await import("../providers/sceneInvocation");
     const { createAssetStore } = await import("../providers/transport");
     const assets = createAssetStore();
-    const call = invokeScene(api, "parseImage", { image: assets.put(file), prompt, mode: "doc" }, { signal, assets });
+    const call = invokeScene(
+      api,
+      "parseImage",
+      { image: assets.put(file), prompt, mode: "doc" },
+      { signal, assets }
+    );
     try {
       const result = await call.result;
-      if (typeof result?.text !== "string") throw new Error("Invalid OCR result.");
-      return { ...result, items: result.items || result.text.split(/\r?\n/).filter(Boolean).map((text) => ({ text, poly: null })) };
-    } finally { call.cancel(); assets.clear(); }
+      if (typeof result?.text !== "string")
+        throw new Error("Invalid OCR result.");
+      return {
+        ...result,
+        items:
+          result.items ||
+          result.text
+            .split(/\r?\n/)
+            .filter(Boolean)
+            .map((text) => ({ text, poly: null })),
+      };
+    } finally {
+      call.cancel();
+      assets.clear();
+    }
   }
   return recognizeNativeNetworkImage(file, api, prompt, signal);
 }

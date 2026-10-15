@@ -68,12 +68,19 @@ import {
 import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
 import { isCurrentPopupDocument } from "./libs/popupDocument";
-import { localAiRequest, cancelLocalAiRequest, localAiSettings, localAiHost } from "./libs/localAiBackground";
+import {
+  localAiRequest,
+  cancelLocalAiRequest,
+  localAiSettings,
+  localAiHost,
+} from "./libs/localAiBackground";
 import { installProviderRelay } from "./providers/background";
 import { installFileTranslationBackend } from "./fileTranslation/backend";
 import { restoreFileTranslationBridges } from "./fileTranslation/bridgeRecovery";
+import { ensureYoutubeBridgeRegistered } from "./libs/youtubeBridgeRegistration";
 
 globalThis.__KISS_CONTEXT__ = "background";
+void ensureYoutubeBridgeRegistered();
 installStorageCoordinator();
 installFileTranslationBackend();
 restoreFileTranslationBridges();
@@ -673,6 +680,7 @@ async function getUiLanguage() {
  * 此时触发数据库默认初始化、右键菜单生成、CSP 网络过滤器注册、以及拉取网络订阅规则。
  */
 browser.runtime.onInstalled.addListener(async (details) => {
+  void ensureYoutubeBridgeRegistered();
   const uiLang = await getUiLanguage();
   await tryInitDefaultData(uiLang);
   if (details?.reason === "update") {
@@ -697,6 +705,7 @@ browser.runtime.onInstalled.addListener(async (details) => {
  * 此时从本地恢复日志级别、清空不需要的翻译长缓存、重建右键菜单，并与云端同步设置、本地规则与订阅规则。
  */
 browser.runtime.onStartup.addListener(async () => {
+  void ensureYoutubeBridgeRegistered();
   const {
     clearCache,
     contextMenuType,

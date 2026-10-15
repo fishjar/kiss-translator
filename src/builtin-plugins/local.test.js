@@ -37,7 +37,17 @@ jest.mock("../localAi/fileOperations", () => ({
 }));
 beforeEach(() => {
   require("../localAi/fileOperations").recognizeFileImage.mockResolvedValue({
-    text: "OCR", items: [{ text: "OCR", poly: [[1, 2], [3, 4], [5, 6]] }],
+    text: "OCR",
+    items: [
+      {
+        text: "OCR",
+        poly: [
+          [1, 2],
+          [3, 4],
+          [5, 6],
+        ],
+      },
+    ],
   });
   runtimeHost.request.mockReset();
   resolveModelTarget.mockImplementation((service, target) => {
@@ -53,9 +63,18 @@ const context = () => ({
 test("local image recognition forwards refresh to the shared OCR/VLM adapter", async () => {
   const { recognizeFileImage } = require("../localAi/fileOperations");
   recognizeFileImage.mockResolvedValue({ text: "fresh", items: [] });
-  const ctx = context(), image = ctx.assets.put(new Blob(["image"]));
-  await localHandlers.recognizeText({ image, cacheMode: "refresh" }, { modelRef: "ocr" }, ctx);
-  expect(recognizeFileImage).toHaveBeenCalledWith(expect.any(Blob), expect.objectContaining({ cacheMode: "refresh" }), ctx.signal);
+  const ctx = context(),
+    image = ctx.assets.put(new Blob(["image"]));
+  await localHandlers.recognizeText(
+    { image, cacheMode: "refresh" },
+    { modelRef: "ocr" },
+    ctx
+  );
+  expect(recognizeFileImage).toHaveBeenCalledWith(
+    expect.any(Blob),
+    expect.objectContaining({ cacheMode: "refresh" }),
+    ctx.signal
+  );
 });
 
 test("local chat reuses the shared runtime request with task cancellation and explicit model", async () => {
@@ -179,26 +198,75 @@ test("local OCR retains actual polygons and cancelled inference is not successfu
 
 test("PaddleOCR items are adapted to the provider contract without losing coordinates", async () => {
   const { recognizeFileImage } = require("../localAi/fileOperations");
-  const poly = [[0, 0], [10, 0], [10, 10], [0, 10]];
-  const items = [{ text: "first", poly }, { text: "second", poly }];
+  const poly = [
+    [0, 0],
+    [10, 0],
+    [10, 10],
+    [0, 10],
+  ];
+  const items = [
+    { text: "first", poly },
+    { text: "second", poly },
+  ];
   recognizeFileImage.mockResolvedValueOnce({ items, totalMs: 42 });
   const ctx = context();
   const input = { image: ctx.assets.put(new Blob(["image"])) };
-  const result = await localHandlers.recognizeText(input, { modelRef: "ocr" }, ctx);
-  expect(result).toMatchObject({ text: "first\nsecond", format: "text", totalMs: 42 });
+  const result = await localHandlers.recognizeText(
+    input,
+    { modelRef: "ocr" },
+    ctx
+  );
+  expect(result).toMatchObject({
+    text: "first\nsecond",
+    format: "text",
+    totalMs: 42,
+  });
   expect(result.items).toBe(items);
-  expect(validateResult("recognizeText", result, input, { coordinates: true })).toBe(result);
-  expect(() => validateResult("recognizeText", {
-    ...result, items: [{ text: "first", poly: [[0, 0], [1, 1], [2, 2]] }],
-  }, input, { coordinates: true })).toThrow("OCR blocks");
+  expect(
+    validateResult("recognizeText", result, input, { coordinates: true })
+  ).toBe(result);
+  expect(() =>
+    validateResult(
+      "recognizeText",
+      {
+        ...result,
+        items: [
+          {
+            text: "first",
+            poly: [
+              [0, 0],
+              [1, 1],
+              [2, 2],
+            ],
+          },
+        ],
+      },
+      input,
+      { coordinates: true }
+    )
+  ).toThrow("OCR blocks");
 
   recognizeFileImage.mockResolvedValueOnce({ items: [] });
-  const empty = await localHandlers.recognizeText(input, { modelRef: "ocr" }, ctx);
+  const empty = await localHandlers.recognizeText(
+    input,
+    { modelRef: "ocr" },
+    ctx
+  );
   expect(empty.text).toBe("");
-  expect(() => validateResult("recognizeText", empty, input, { coordinates: true })).toThrow("coordinates");
+  expect(() =>
+    validateResult("recognizeText", empty, input, { coordinates: true })
+  ).toThrow("coordinates");
 
-  recognizeFileImage.mockResolvedValueOnce({ text: "# Original\n", items, isVlm: true });
-  const vlm = await localHandlers.parseImage(input, { modelRef: "glm-ocr-onnx-q4" }, ctx);
+  recognizeFileImage.mockResolvedValueOnce({
+    text: "# Original\n",
+    items,
+    isVlm: true,
+  });
+  const vlm = await localHandlers.parseImage(
+    input,
+    { modelRef: "glm-ocr-onnx-q4" },
+    ctx
+  );
   expect(vlm.text).toBe("# Original\n");
   expect(vlm.format).toBe("markdown");
 });
@@ -208,8 +276,18 @@ test("local VLM uses official task prompts unless explicitly overridden", async 
   recognizeFileImage.mockResolvedValue({ text: "parsed", isVlm: true });
   const ctx = context();
   const image = ctx.assets.put(new Blob(["image"]));
-  await localHandlers.parseImage({ image, mode: "formula" }, { modelRef: "glm-ocr-onnx-q4" }, ctx);
-  expect(recognizeFileImage.mock.calls.at(-1)[1].prompt).toBe("Formula Recognition:");
-  await localHandlers.parseImage({ image, mode: "table", prompt: "custom task" }, { modelRef: "glm-ocr-onnx-q4" }, ctx);
+  await localHandlers.parseImage(
+    { image, mode: "formula" },
+    { modelRef: "glm-ocr-onnx-q4" },
+    ctx
+  );
+  expect(recognizeFileImage.mock.calls.at(-1)[1].prompt).toBe(
+    "Formula Recognition:"
+  );
+  await localHandlers.parseImage(
+    { image, mode: "table", prompt: "custom task" },
+    { modelRef: "glm-ocr-onnx-q4" },
+    ctx
+  );
   expect(recognizeFileImage.mock.calls.at(-1)[1].prompt).toBe("custom task");
 });

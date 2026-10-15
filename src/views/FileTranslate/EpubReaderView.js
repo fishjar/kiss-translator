@@ -1,5 +1,11 @@
 import TocDrawer from "./TocDrawer";
-import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useMemo,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import Typography from "@mui/material/Typography";
@@ -157,7 +163,9 @@ export function sanitizeEpubReaderHtml(html) {
     if (
       (data.attrName === "src" ||
         data.attrName === "xlink:href" ||
-        (data.attrName === "href" && node.tagName && node.tagName.toLowerCase() === "image") ||
+        (data.attrName === "href" &&
+          node.tagName &&
+          node.tagName.toLowerCase() === "image") ||
         data.attrName === "poster") &&
       /^(?:https?:)?\/\//i.test(data.attrValue)
     ) {
@@ -308,7 +316,9 @@ export default function EpubReaderView({
   const tocToggleRef = useRef(null);
   const changeTocWidth = (width) => {
     setTocWidth(width);
-    try { localStorage.setItem("kiss_epub_toc_width", String(width)); } catch {}
+    try {
+      localStorage.setItem("kiss_epub_toc_width", String(width));
+    } catch {}
   };
   useEffect(() => setTocCollapsed(true), [epubBook]);
 
@@ -421,24 +431,21 @@ export default function EpubReaderView({
   );
 
   // 跳转指定索引的匹配项并平滑居中滚动
-  const jumpToMatch = useCallback(
-    (index) => {
-      const marks = highlightMarksRef.current;
-      if (!marks || marks.length === 0) return;
+  const jumpToMatch = useCallback((index) => {
+    const marks = highlightMarksRef.current;
+    if (!marks || marks.length === 0) return;
 
-      const newIndex = ((index % marks.length) + marks.length) % marks.length;
-      marks.forEach((m, idx) => {
-        if (idx === newIndex) {
-          m.classList.add("kt-search-current");
-        } else {
-          m.classList.remove("kt-search-current");
-        }
-      });
-      setCurrentMatchIndex(newIndex);
-      marks[newIndex].scrollIntoView?.({ behavior: "smooth", block: "center" });
-    },
-    []
-  );
+    const newIndex = ((index % marks.length) + marks.length) % marks.length;
+    marks.forEach((m, idx) => {
+      if (idx === newIndex) {
+        m.classList.add("kt-search-current");
+      } else {
+        m.classList.remove("kt-search-current");
+      }
+    });
+    setCurrentMatchIndex(newIndex);
+    marks[newIndex].scrollIntoView?.({ behavior: "smooth", block: "center" });
+  }, []);
 
   const handleNextMatch = () => jumpToMatch(currentMatchIndex + 1);
   const handlePrevMatch = () => jumpToMatch(currentMatchIndex - 1);
@@ -575,16 +582,10 @@ export default function EpubReaderView({
         if (chapterSection && node.hash) {
           try {
             targetEl =
-              chapterSection.querySelector(
-                `[id="${CSS.escape(node.hash)}"]`
-              ) ||
-              chapterSection.querySelector(
-                `[name="${CSS.escape(node.hash)}"]`
-              );
+              chapterSection.querySelector(`[id="${CSS.escape(node.hash)}"]`) ||
+              chapterSection.querySelector(`[name="${CSS.escape(node.hash)}"]`);
           } catch {
-            targetEl = chapterSection.querySelector(
-              `[id="${node.hash}"]`
-            );
+            targetEl = chapterSection.querySelector(`[id="${node.hash}"]`);
           }
         }
         if (!targetEl) {
@@ -638,7 +639,9 @@ export default function EpubReaderView({
         targetSpineIndex = Number(section.getAttribute("data-spine-index"));
       } else {
         const resolvedPath = normalizePath(currentDir + safeDecodeURI(rawPath));
-        targetSpineIndex = spineItems.findIndex((s) => s.fullPath === resolvedPath);
+        targetSpineIndex = spineItems.findIndex(
+          (s) => s.fullPath === resolvedPath
+        );
       }
 
       if (targetSpineIndex !== -1) {
@@ -726,7 +729,10 @@ export default function EpubReaderView({
 
   // 清除全部章节缓存并安全释放已分配的 Blob URLs
   const clearChapterCache = useCallback(() => {
-    if (typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+    if (
+      typeof URL !== "undefined" &&
+      typeof URL.revokeObjectURL === "function"
+    ) {
       chapterCacheRef.current.forEach((entry) => {
         entry.blobUrls?.forEach((u) => URL.revokeObjectURL(u));
       });
@@ -755,7 +761,10 @@ export default function EpubReaderView({
     // 清理已从 spineItems 移除的孤立缓存条目
     for (const [cachedPath, entry] of chapterCacheRef.current.entries()) {
       if (!currentSpinePaths.has(cachedPath)) {
-        if (typeof URL !== "undefined" && typeof URL.revokeObjectURL === "function") {
+        if (
+          typeof URL !== "undefined" &&
+          typeof URL.revokeObjectURL === "function"
+        ) {
           entry.blobUrls?.forEach((u) => URL.revokeObjectURL(u));
         }
         chapterCacheRef.current.delete(cachedPath);
@@ -858,7 +867,10 @@ export default function EpubReaderView({
   ]);
 
   const displayHtml = combinedHtml;
-  const sanitizedHtml = useMemo(() => sanitizeEpubReaderHtml(displayHtml), [displayHtml]);
+  const sanitizedHtml = useMemo(
+    () => sanitizeEpubReaderHtml(displayHtml),
+    [displayHtml]
+  );
 
   // 监听正文内容渲染或搜索关键词变化，自动更新高亮与计数
   useEffect(() => {
@@ -912,78 +924,85 @@ export default function EpubReaderView({
           bgcolor: "background.paper",
         }}
       >
-        <TocDrawer open={!tocCollapsed} onClose={() => setTocCollapsed(true)} toggleRef={tocToggleRef}
-          width={tocWidth} defaultWidth={DEFAULT_TOC_WIDTH} onWidthChange={changeTocWidth}>
-        {/* 目录栏顶部 */}
-        <Box
-          sx={{
-            p: 1.25,
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-          }}
+        <TocDrawer
+          open={!tocCollapsed}
+          onClose={() => setTocCollapsed(true)}
+          toggleRef={tocToggleRef}
+          width={tocWidth}
+          defaultWidth={DEFAULT_TOC_WIDTH}
+          onWidthChange={changeTocWidth}
         >
-          <MenuBookRoundedIcon
+          {/* 目录栏顶部 */}
+          <Box
             sx={{
-              fontSize: 18,
-              color: (theme) => theme.palette.mode === "dark"
-                ? theme.palette.common.white
-                : theme.palette.primary.main,
+              p: 1.25,
+              borderBottom: "1px solid",
+              borderColor: "divider",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
             }}
-          />
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, flex: 1 }}>
-            {i18n("epub_toc_title", "书籍目录")} (
-            {epubBook?.tocItems?.length || rawTocTree.length})
-          </Typography>
-        </Box>
-
-        {/* 章节搜索框 */}
-        <Box sx={{ p: 1, borderBottom: "1px solid", borderColor: "divider" }}>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder={i18n("search_chapter", "搜索章节...")}
-            value={tocSearch}
-            onChange={(e) => setTocSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <SearchRoundedIcon
-                  sx={{ fontSize: 16, mr: 0.5, color: "text.secondary" }}
-                />
-              ),
-            }}
-            sx={{
-              "& .MuiInputBase-input": {
-                py: 0.5,
-                fontSize: 12,
-              },
-            }}
-          />
-        </Box>
-
-        {/* 树形章节列表 */}
-        <List
-          sx={{
-            flex: 1,
-            overflowY: "auto",
-            p: 0.5,
-          }}
-        >
-          {filteredTocTree.map((node) => (
-            <TocTreeItem
-              key={node.id || node.href || node.title}
-              node={node}
-              depth={0}
-              selectedId={selectedTocId}
-              onSelectNode={handleSelectTocNode}
-              expandedKeys={expandedKeys}
-              onToggleExpand={handleToggleExpand}
-              chapterStates={chapterStates}
+          >
+            <MenuBookRoundedIcon
+              sx={{
+                fontSize: 18,
+                color: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? theme.palette.common.white
+                    : theme.palette.primary.main,
+              }}
             />
-          ))}
-        </List>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, flex: 1 }}>
+              {i18n("epub_toc_title", "书籍目录")} (
+              {epubBook?.tocItems?.length || rawTocTree.length})
+            </Typography>
+          </Box>
+
+          {/* 章节搜索框 */}
+          <Box sx={{ p: 1, borderBottom: "1px solid", borderColor: "divider" }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder={i18n("search_chapter", "搜索章节...")}
+              value={tocSearch}
+              onChange={(e) => setTocSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <SearchRoundedIcon
+                    sx={{ fontSize: 16, mr: 0.5, color: "text.secondary" }}
+                  />
+                ),
+              }}
+              sx={{
+                "& .MuiInputBase-input": {
+                  py: 0.5,
+                  fontSize: 12,
+                },
+              }}
+            />
+          </Box>
+
+          {/* 树形章节列表 */}
+          <List
+            sx={{
+              flex: 1,
+              overflowY: "auto",
+              p: 0.5,
+            }}
+          >
+            {filteredTocTree.map((node) => (
+              <TocTreeItem
+                key={node.id || node.href || node.title}
+                node={node}
+                depth={0}
+                selectedId={selectedTocId}
+                onSelectNode={handleSelectTocNode}
+                expandedKeys={expandedKeys}
+                onToggleExpand={handleToggleExpand}
+                chapterStates={chapterStates}
+              />
+            ))}
+          </List>
         </TocDrawer>
         {/* 阅读区顶部工具栏 */}
         <Box
@@ -1025,7 +1044,11 @@ export default function EpubReaderView({
               <IconButton
                 size="small"
                 ref={tocToggleRef}
-                aria-label={tocCollapsed ? i18n("expand_toc", "展开目录") : i18n("collapse_toc", "折叠目录")}
+                aria-label={
+                  tocCollapsed
+                    ? i18n("expand_toc", "展开目录")
+                    : i18n("collapse_toc", "折叠目录")
+                }
                 aria-expanded={!tocCollapsed}
                 onClick={() => setTocCollapsed(!tocCollapsed)}
                 color={!tocCollapsed ? "primary" : "default"}
@@ -1078,12 +1101,18 @@ export default function EpubReaderView({
                 transition: "width 0.2s, border-color 0.2s",
                 "&:focus-within": {
                   borderColor: "primary.main",
-                  boxShadow: (theme) => `0 0 0 1px ${theme.palette.primary.main}`,
+                  boxShadow: (theme) =>
+                    `0 0 0 1px ${theme.palette.primary.main}`,
                 },
               }}
             >
               <SearchRoundedIcon
-                sx={{ fontSize: 16, color: "text.secondary", mr: 0.5, flexShrink: 0 }}
+                sx={{
+                  fontSize: 16,
+                  color: "text.secondary",
+                  mr: 0.5,
+                  flexShrink: 0,
+                }}
               />
               <InputBase
                 value={searchQuery}
@@ -1111,7 +1140,14 @@ export default function EpubReaderView({
                 }}
               />
               {searchQuery && (
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.2, flexShrink: 0 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.2,
+                    flexShrink: 0,
+                  }}
+                >
                   <Typography
                     variant="caption"
                     sx={{
@@ -1122,7 +1158,9 @@ export default function EpubReaderView({
                       userSelect: "none",
                     }}
                   >
-                    {matchCount > 0 ? `${currentMatchIndex + 1}/${matchCount}` : "0/0"}
+                    {matchCount > 0
+                      ? `${currentMatchIndex + 1}/${matchCount}`
+                      : "0/0"}
                   </Typography>
                   <Tooltip title={i18n("search_prev", "上一个 (Shift+Enter)")}>
                     <span>
@@ -1174,7 +1212,9 @@ export default function EpubReaderView({
                 }}
               >
                 <FormatSizeRoundedIcon sx={{ fontSize: 17 }} />
-                <Typography sx={{ fontSize: 11, fontWeight: 700 }}>Aa</Typography>
+                <Typography sx={{ fontSize: 11, fontWeight: 700 }}>
+                  Aa
+                </Typography>
               </IconButton>
             </Tooltip>
 
@@ -1265,11 +1305,18 @@ export default function EpubReaderView({
           {/* 页面宽度设置 */}
           <Typography
             variant="caption"
-            sx={{ fontWeight: 700, color: "text.secondary", display: "block", mb: 1 }}
+            sx={{
+              fontWeight: 700,
+              color: "text.secondary",
+              display: "block",
+              mb: 1,
+            }}
           >
             {i18n("epub_page_width", "页面宽度")}
           </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+          <Box
+            sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}
+          >
             <Button
               size="small"
               variant="outlined"
@@ -1322,7 +1369,12 @@ export default function EpubReaderView({
 
           <Typography
             variant="caption"
-            sx={{ fontWeight: 700, color: "text.secondary", display: "block", mb: 1 }}
+            sx={{
+              fontWeight: 700,
+              color: "text.secondary",
+              display: "block",
+              mb: 1,
+            }}
           >
             {i18n("epub_font_size", "字号大小")}
           </Typography>
@@ -1350,11 +1402,18 @@ export default function EpubReaderView({
 
           <Typography
             variant="caption"
-            sx={{ fontWeight: 700, color: "text.secondary", display: "block", mb: 1 }}
+            sx={{
+              fontWeight: 700,
+              color: "text.secondary",
+              display: "block",
+              mb: 1,
+            }}
           >
             {i18n("epub_font_family", "正文字体")}
           </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mb: 2 }}>
+          <Box
+            sx={{ display: "flex", flexDirection: "column", gap: 0.5, mb: 2 }}
+          >
             {EPUB_FONT_PRESETS.map((font) => (
               <Button
                 key={font.id}
@@ -1381,7 +1440,12 @@ export default function EpubReaderView({
 
           <Typography
             variant="caption"
-            sx={{ fontWeight: 700, color: "text.secondary", display: "block", mb: 1 }}
+            sx={{
+              fontWeight: 700,
+              color: "text.secondary",
+              display: "block",
+              mb: 1,
+            }}
           >
             {i18n("epub_reader_theme", "阅读底色")}
           </Typography>
@@ -1400,11 +1464,12 @@ export default function EpubReaderView({
                       borderRadius: "50%",
                       bgcolor: theme.bg,
                       border: "2px solid",
-                      borderColor: (muiTheme) => isSelected
-                        ? muiTheme.palette.mode === "dark"
-                          ? muiTheme.palette.common.white
-                          : muiTheme.palette.primary.main
-                        : theme.border,
+                      borderColor: (muiTheme) =>
+                        isSelected
+                          ? muiTheme.palette.mode === "dark"
+                            ? muiTheme.palette.common.white
+                            : muiTheme.palette.primary.main
+                          : theme.border,
                       cursor: "pointer",
                       boxShadow: isSelected ? 2 : 0,
                       display: "flex",
@@ -1419,12 +1484,14 @@ export default function EpubReaderView({
                         sx={{
                           fontSize: 16,
                           borderRadius: "50%",
-                          color: (muiTheme) => muiTheme.palette.mode === "dark"
-                            ? muiTheme.palette.common.white
-                            : muiTheme.palette.primary.main,
-                          bgcolor: (muiTheme) => muiTheme.palette.mode === "dark"
-                            ? muiTheme.palette.background.paper
-                            : "transparent",
+                          color: (muiTheme) =>
+                            muiTheme.palette.mode === "dark"
+                              ? muiTheme.palette.common.white
+                              : muiTheme.palette.primary.main,
+                          bgcolor: (muiTheme) =>
+                            muiTheme.palette.mode === "dark"
+                              ? muiTheme.palette.background.paper
+                              : "transparent",
                         }}
                       />
                     )}

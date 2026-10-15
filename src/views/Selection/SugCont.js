@@ -14,17 +14,26 @@ function SugProvider({ text, serviceId }) {
     let active = true;
     let call;
     setState({ loading: true });
-    import("../../providers/savedService").then(async ({ invokeSavedService }) => {
-      if (!active) return;
-      call = invokeSavedService(serviceId, "suggest", { text });
-      const result = await call.result;
-      if (active) setState({ items: result.items });
-    }).catch(error => { if (active) setState({ error: error.message }); });
-    return () => { active = false; call?.cancel(); };
+    import("../../providers/savedService")
+      .then(async ({ invokeSavedService }) => {
+        if (!active) return;
+        call = invokeSavedService(serviceId, "suggest", { text });
+        const result = await call.result;
+        if (active) setState({ items: result.items });
+      })
+      .catch((error) => {
+        if (active) setState({ error: error.message });
+      });
+    return () => {
+      active = false;
+      call?.cancel();
+    };
   }, [text, serviceId]);
   if (state.loading) return <CircularProgress size={16} />;
   if (state.error) return <Alert severity="error">{state.error}</Alert>;
-  return (state.items || []).map((item, index) => <Typography key={index}>{item}</Typography>);
+  return (state.items || []).map((item, index) => (
+    <Typography key={index}>{item}</Typography>
+  ));
 }
 
 /**
@@ -110,7 +119,10 @@ export default function SugCont({ text, enSug }) {
   return (
     <Stack spacing={1}>
       <Divider />
-      {sugMap[enSug] || (enSug && enSug !== "-" ? <SugProvider text={text} serviceId={enSug} /> : null)}
+      {sugMap[enSug] ||
+        (enSug && enSug !== "-" ? (
+          <SugProvider text={text} serviceId={enSug} />
+        ) : null)}
     </Stack>
   );
 }

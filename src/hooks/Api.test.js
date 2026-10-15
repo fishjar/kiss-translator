@@ -260,7 +260,13 @@ describe("useApiList", () => {
           apiType: OPT_TRANS_OPENAI,
           isDisabled: false,
           sortOrder: 0,
-          enabledCapabilities: ["translate", "summarize", "dictionary", "segmentSubtitle", "chat"],
+          enabledCapabilities: [
+            "translate",
+            "summarize",
+            "dictionary",
+            "segmentSubtitle",
+            "chat",
+          ],
           provider: expect.objectContaining({
             apiVersion: "1",
             implementation: { kind: "native", entry: OPT_TRANS_OPENAI },
@@ -367,7 +373,9 @@ describe("useApiItem reset", () => {
     const pending = host.hookResult.update({ key: "", httpTimeout: 0 });
     expect(pending).toBe(failed);
     await expect(pending).rejects.toThrow("storage failure");
-    expect(mockUpdateSetting.mock.calls[0][0](mockSetting).transApis[0]).toMatchObject({ key: "", httpTimeout: 0 });
+    expect(
+      mockUpdateSetting.mock.calls[0][0](mockSetting).transApis[0]
+    ).toMatchObject({ key: "", httpTimeout: 0 });
     host.unmount();
   });
 

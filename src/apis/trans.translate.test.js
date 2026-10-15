@@ -359,62 +359,65 @@ describe("handleTranslate", () => {
     expect(result).toEqual([{ id: 0, result: ["你好", "en"] }]);
   });
 
-  test.each([false, true])("QwenMT stays non-streaming with useStream=%s and sends native terms and style", async (useStream) => {
-    fetchData.mockResolvedValueOnce({
-      choices: [{ message: { role: "assistant", content: "译文" } }],
-    });
+  test.each([false, true])(
+    "QwenMT stays non-streaming with useStream=%s and sends native terms and style",
+    async (useStream) => {
+      fetchData.mockResolvedValueOnce({
+        choices: [{ message: { role: "assistant", content: "译文" } }],
+      });
 
-    const result = await collectAsyncGenerator(
-      handleTranslate(["我看到这个视频后没有笑"], {
-        from: "auto",
-        to: "English",
-        fromLang: "auto",
-        toLang: "en",
-        langMap: () => "",
-        glossary: { component: "规则组件", Keep: "" },
-        apiSetting: {
-          ...getApiSetting(OPT_TRANS_QWENMT),
-          url: "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
-          key: "qwen-key",
-          model: "qwen-mt-flash",
-          useStream,
-          useBatchFetch: false,
-          tone: "technical",
-          aiTerms: "React,React\ncomponent,接口组件",
+      const result = await collectAsyncGenerator(
+        handleTranslate(["我看到这个视频后没有笑"], {
+          from: "auto",
+          to: "English",
+          fromLang: "auto",
+          toLang: "en",
+          langMap: () => "",
+          glossary: { component: "规则组件", Keep: "" },
+          apiSetting: {
+            ...getApiSetting(OPT_TRANS_QWENMT),
+            url: "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
+            key: "qwen-key",
+            model: "qwen-mt-flash",
+            useStream,
+            useBatchFetch: false,
+            tone: "technical",
+            aiTerms: "React,React\ncomponent,接口组件",
+          },
+          usePool: false,
+        })
+      );
+
+      expect(fetchData).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchData.mock.calls[0];
+      expect(url).toBe(
+        "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions"
+      );
+      expect(init.headers).toMatchObject({
+        "Content-type": "application/json",
+        Authorization: "Bearer qwen-key",
+      });
+      const body = JSON.parse(init.body);
+      expect(body).toEqual({
+        model: "qwen-mt-flash",
+        messages: [{ role: "user", content: "我看到这个视频后没有笑" }],
+        translation_options: {
+          source_lang: "auto",
+          target_lang: "English",
+          terms: expect.arrayContaining([
+            { source: "component", target: "接口组件" },
+            { source: "Keep", target: "Keep" },
+            { source: "React", target: "React" },
+          ]),
+          domains: "Translate in a technical style.",
         },
-        usePool: false,
-      })
-    );
-
-    expect(fetchData).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchData.mock.calls[0];
-    expect(url).toBe(
-      "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions"
-    );
-    expect(init.headers).toMatchObject({
-      "Content-type": "application/json",
-      Authorization: "Bearer qwen-key",
-    });
-    const body = JSON.parse(init.body);
-    expect(body).toEqual({
-      model: "qwen-mt-flash",
-      messages: [{ role: "user", content: "我看到这个视频后没有笑" }],
-      translation_options: {
-        source_lang: "auto",
-        target_lang: "English",
-        terms: expect.arrayContaining([
-          { source: "component", target: "接口组件" },
-          { source: "Keep", target: "Keep" },
-          { source: "React", target: "React" },
-        ]),
-        domains: "Translate in a technical style.",
-      },
-    });
-    expect(body.messages).toHaveLength(1);
-    expect(body.stream).not.toBe(true);
-    expect(fetchStream).not.toHaveBeenCalled();
-    expect(result).toEqual([{ id: 0, result: ["译文"] }]);
-  });
+      });
+      expect(body.messages).toHaveLength(1);
+      expect(body.stream).not.toBe(true);
+      expect(fetchStream).not.toHaveBeenCalled();
+      expect(result).toEqual([{ id: 0, result: ["译文"] }]);
+    }
+  );
 
   test("passes a custom QwenMT style through without prompt wrapping", async () => {
     fetchData.mockResolvedValueOnce({

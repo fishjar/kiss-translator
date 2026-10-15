@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { API_SPE_TYPES } from "../config";
 
 /**
@@ -35,12 +35,22 @@ function MenuItem({ children, onClick, disabled = false }) {
 
   return (
     <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
+      onKeyDown={(event) => {
+        if (!disabled && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          event.stopPropagation();
+          onClick?.();
+        }
+      }}
       style={{
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
         padding: "0px 8px",
-        opacity: hover ? 1 : 0.8,
+        opacity: disabled ? 0.45 : hover ? 1 : 0.8,
         background: `rgba(255, 255, 255, ${hover ? 0.1 : 0})`,
         cursor: disabled ? "default" : "pointer",
         transition: "background 0.2s, opacity 0.2s",
@@ -48,7 +58,7 @@ function MenuItem({ children, onClick, disabled = false }) {
       }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
     >
       {children}
     </div>
@@ -177,6 +187,20 @@ function Select({ label, name, value, options, onChange, disabled }) {
           {options.map((option) => (
             <div
               key={option.value}
+              role="option"
+              aria-selected={option.value === value}
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  handleSelect(option.value);
+                }
+                if (event.key === "Escape") {
+                  event.stopPropagation();
+                  setIsOpen(false);
+                }
+              }}
               onClick={() => handleSelect(option.value)}
               style={{
                 padding: "8px 12px",
@@ -248,7 +272,27 @@ export function Menus({
   updateSetting,
   downloadSubtitle,
   transApis,
+  acquisition,
+  translationError = false,
+  retryAcquisition,
+  retryTranslation,
+  canDownload = false,
+  onClose,
 }) {
+  const [now, setNow] = useState(Date.now());
+  const until = acquisition?.cooldownUntil || 0;
+  useEffect(() => {
+    if (!until || until <= Date.now()) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(timer);
+  }, [until]);
+  const remaining = Math.max(0, Math.ceil((until - now) / 1000));
+  const busy =
+    ["loading", "waiting", "waiting_playback", "cooldown"].includes(
+      acquisition?.phase
+    ) &&
+    (acquisition?.phase !== "cooldown" || remaining > 0);
   // 当快捷菜单的任何子选项发生更改时，统一向上层派发更新事件
   const handleChange = useCallback(
     ({ name, value }) => {
@@ -298,11 +342,9 @@ export function Menus({
   }, [aiEnabledApis, i18n]);
 
   // 根据当前字幕处理/翻译进度值，动态计算快捷菜单底部的下载按钮状态文案
-  const status = useMemo(() => {
-    if (progressed === 0) return i18n("waiting_subtitles");
-    if (progressed === 100) return i18n("download_subtitles");
-    return i18n("processing_subtitles");
-  }, [progressed, i18n]);
+  const statusKey = acquisition?.code
+    ? "youtube_caption_" + acquisition.code.toLowerCase()
+    : "youtube_caption_" + (acquisition?.phase || "idle");
 
   // 从表单配置对象中解构出字幕交互相关的控制值
   const {
@@ -317,16 +359,27 @@ export function Menus({
 
   return (
     <div
+      role="dialog"
+      aria-label={i18n("enable_subtitle_translate")}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          onClose?.();
+        }
+      }}
       style={{
         position: "absolute",
         left: 0,
-        bottom: 100,
+        bottom: 48,
         background: "rgba(0,0,0,.6)",
         width: 250,
         lineHeight: "40px",
         fontSize: 16,
         padding: 8,
         borderRadius: 5,
+        maxWidth: "calc(100vw - 32px)",
+        maxHeight: "min(70vh, 520px)",
+        overflowY: "auto",
       }}
     >
       {/* 当前视频的翻译开关 */}
@@ -336,6 +389,59 @@ export function Menus({
         value={autoTranslate}
         label={i18n("enable_subtitle_translate")}
       />
+      {acquisition && (
+        <div
+          style={{
+            fontSize: 12,
+            lineHeight: "22px",
+            padding: "4px 8px 8px",
+            borderBottom: "1px solid rgba(255,255,255,.2)",
+          }}
+        >
+          {acquisition.track && (
+            <div>
+              {acquisition.trackLabel ||
+                acquisition.track.name?.simpleText ||
+                acquisition.track.name?.runs?.map((r) => r.text).join("") ||
+                acquisition.track.languageCode}
+              {" · "}
+              {i18n(
+                acquisition.track.kind === "asr"
+                  ? "youtube_caption_generated"
+                  : "youtube_caption_manual"
+              )}
+            </div>
+          )}
+          <div role="status" aria-live="polite">
+            {remaining
+              ? `${i18n("youtube_caption_rate_limited")} (${remaining}s)`
+              : i18n(statusKey)}
+          </div>
+          {progressed > 0 && progressed < 100 && (
+            <div>
+              {i18n("processing_subtitles")} {progressed}%
+            </div>
+          )}
+          <Button
+            label={i18n(
+              acquisition.phase === "cc_off"
+                ? "youtube_caption_enable_cc"
+                : "youtube_caption_retry"
+            )}
+            onClick={retryAcquisition}
+            disabled={
+              busy || remaining > 0 || !autoTranslate || !retryAcquisition
+            }
+          />
+          {translationError && (
+            <Button
+              label={i18n("youtube_caption_retry_translation")}
+              onClick={retryTranslation}
+              disabled={!autoTranslate || !retryTranslation}
+            />
+          )}
+        </div>
+      )}
       {/* 当前页面的字幕翻译服务，不修改持久化默认设置 */}
       <Select
         onChange={handleChange}
@@ -386,9 +492,19 @@ export function Menus({
       />
       {/* 字幕下载动作按钮：按需 AI 断句下允许下载当前已处理的字幕 */}
       <Button
-        label={`${status} [${progressed}%] `}
+        label={i18n(
+          canDownload && progressed < 100
+            ? "youtube_caption_download_partial"
+            : "download_subtitles"
+        )}
         onClick={downloadSubtitle}
+        disabled={!canDownload}
       />
+      {!canDownload && (
+        <div style={{ fontSize: 12, lineHeight: "20px", padding: "0 8px" }}>
+          {i18n("youtube_caption_no_download")}
+        </div>
+      )}
     </div>
   );
 }

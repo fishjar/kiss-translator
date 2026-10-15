@@ -78,9 +78,7 @@ describe("epubPacker 测试套件", () => {
     expect(
       getRelativePath("OEBPS/text/ch01.xhtml", "OEBPS/styles/kt.css")
     ).toBe("../styles/kt.css");
-    expect(getRelativePath("OEBPS/ch01.xhtml", "OEBPS/kt.css")).toBe(
-      "kt.css"
-    );
+    expect(getRelativePath("OEBPS/ch01.xhtml", "OEBPS/kt.css")).toBe("kt.css");
   });
 
   test("injectCssIntoXhtml 样式链接注入", () => {
@@ -115,7 +113,10 @@ describe("epubPacker 测试套件", () => {
   });
 
   test("getEpubFooterHtml 与 injectFooterIntoXhtml 生成居中文本与优雅短线分隔符注明", () => {
-    const { getEpubFooterHtml, injectFooterIntoXhtml } = require("./epubPacker");
+    const {
+      getEpubFooterHtml,
+      injectFooterIntoXhtml,
+    } = require("./epubPacker");
     const footerZh = getEpubFooterHtml("zh");
 
     // 校验文本居中
@@ -337,6 +338,8 @@ describe("epubPacker 测试套件", () => {
     expect(updatedNcx).toContain("<text>1.2 缓存机制</text>");
     // 未匹配到的子锚点项绝不能回退为整章主标题
     expect(updatedNcx).toContain("<text>Section Unmatched</text>");
-    expect(updatedNcx).not.toContain("<text>第一章 核心技术</text><content src=\"text/ch1.xhtml#not_in_map\"");
+    expect(updatedNcx).not.toContain(
+      '<text>第一章 核心技术</text><content src="text/ch1.xhtml#not_in_map"'
+    );
   });
 });

@@ -269,7 +269,7 @@ export function updateNavDocument(navXml, titleMap, navDir = "") {
 
     const translatedTitle = rawHash
       ? titleMap.get(fullKeyWithHash)
-      : (titleMap.get(fullKeyWithHash) || titleMap.get(targetFullPath));
+      : titleMap.get(fullKeyWithHash) || titleMap.get(targetFullPath);
     if (translatedTitle && translatedTitle.trim()) {
       a.textContent = translatedTitle.trim();
       modified = true;
@@ -322,11 +322,10 @@ export function updateNcxDocument(ncxXml, titleMap, ncxDir = "") {
 
     const translatedTitle = rawHash
       ? titleMap.get(fullKeyWithHash)
-      : (titleMap.get(fullKeyWithHash) || titleMap.get(targetFullPath));
+      : titleMap.get(fullKeyWithHash) || titleMap.get(targetFullPath);
     if (translatedTitle && translatedTitle.trim()) {
       const labelEl = allChildren.find(
-        (el) =>
-          el.localName === "navLabel" || el.nodeName?.endsWith("navLabel")
+        (el) => el.localName === "navLabel" || el.nodeName?.endsWith("navLabel")
       );
       if (labelEl) {
         const textEl = Array.from(

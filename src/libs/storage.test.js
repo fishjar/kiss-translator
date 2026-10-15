@@ -51,7 +51,15 @@ describe("settings storage migration", () => {
   test("existing service instances and scene choices are not supplemented by new install defaults", async () => {
     const existing = {
       version: CURRENT_SETTINGS_VERSION,
-      transApis: [{ apiSlug: "mine", apiType: "LocalAI", apiName: "My service", modelRef: "hy-mt2-1.8b", device: "wasm" }],
+      transApis: [
+        {
+          apiSlug: "mine",
+          apiType: "LocalAI",
+          apiName: "My service",
+          modelRef: "hy-mt2-1.8b",
+          device: "wasm",
+        },
+      ],
       fileTranslateSetting: { pdf: { apiSlug: "mine" } },
     };
     window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(existing));
@@ -103,7 +111,10 @@ describe("settings storage migration", () => {
   });
 
   test("does not migrate single-service rules into fallback lists", async () => {
-    const rules = [{ pattern: "*", apiSlug: "primary" }, { pattern: "example.com", apiSlug: "*" }];
+    const rules = [
+      { pattern: "*", apiSlug: "primary" },
+      { pattern: "example.com", apiSlug: "*" },
+    ];
     window.localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
     await runDataMigration();
     expect(readStoredJson(STOKEY_RULES)).toEqual(rules);
@@ -224,26 +235,44 @@ describe("settings storage migration", () => {
         uiLang: "en",
         transApis: [
           { apiSlug: "missing", apiType: OPT_TRANS_OPENAI, tone: "formal" },
-          { apiSlug: "custom", apiType: OPT_TRANS_OPENAI, vlmPromptSlug: "mine" },
+          {
+            apiSlug: "custom",
+            apiType: OPT_TRANS_OPENAI,
+            vlmPromptSlug: "mine",
+          },
           { apiSlug: "empty", apiType: OPT_TRANS_OPENAI, vlmPromptSlug: "" },
         ],
-        fileTranslateSetting: { image: { ocrGroup: "old", promptSlug: "translation" } },
+        fileTranslateSetting: {
+          image: { ocrGroup: "old", promptSlug: "translation" },
+        },
       };
       const serialized = JSON.stringify(oldSetting);
       window.localStorage.setItem(STOKEY_SETTING, serialized);
       const setItem = jest.spyOn(window.Storage.prototype, "setItem");
       try {
         if (persist) await runDataMigration();
-        const setting = persist ? readStoredJson(STOKEY_SETTING) : await getSettingWithDefault();
+        const setting = persist
+          ? readStoredJson(STOKEY_SETTING)
+          : await getSettingWithDefault();
         expect(setting).toMatchObject({
           version: CURRENT_SETTINGS_VERSION,
           uiLang: "en",
           transApis: [
-            { apiSlug: "missing", vlmPromptSlug: DEFAULT_VLM_PROMPT_SLUG, tone: "formal" },
+            {
+              apiSlug: "missing",
+              vlmPromptSlug: DEFAULT_VLM_PROMPT_SLUG,
+              tone: "formal",
+            },
             { apiSlug: "custom", vlmPromptSlug: "mine" },
             { apiSlug: "empty", vlmPromptSlug: "" },
           ],
-          fileTranslateSetting: { image: { vlmPromptSlug: "", ocrGroup: "old", promptSlug: "translation" } },
+          fileTranslateSetting: {
+            image: {
+              vlmPromptSlug: "",
+              ocrGroup: "old",
+              promptSlug: "translation",
+            },
+          },
         });
         if (persist) {
           expect(setItem).toHaveBeenCalled();
@@ -262,11 +291,18 @@ describe("settings storage migration", () => {
   );
 
   test("preserves explicit V4 image visual references through both storage entry points", async () => {
-    const oldSetting = { version: SETTINGS_VERSION_V4, fileTranslateSetting: { image: { vlmPromptSlug: "mine" } } };
+    const oldSetting = {
+      version: SETTINGS_VERSION_V4,
+      fileTranslateSetting: { image: { vlmPromptSlug: "mine" } },
+    };
     window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(oldSetting));
-    expect((await getSettingWithDefault()).fileTranslateSetting.image.vlmPromptSlug).toBe("mine");
+    expect(
+      (await getSettingWithDefault()).fileTranslateSetting.image.vlmPromptSlug
+    ).toBe("mine");
     await runDataMigration();
-    expect(readStoredJson(STOKEY_SETTING).fileTranslateSetting.image.vlmPromptSlug).toBe("mine");
+    expect(
+      readStoredJson(STOKEY_SETTING).fileTranslateSetting.image.vlmPromptSlug
+    ).toBe("mine");
   });
 
   test("merges the language variant default without overriding an explicit choice", async () => {

@@ -13,7 +13,11 @@ test.each(PROVIDER_CAPABILITIES)(
       : "hello";
     const input = createTestInput(capability, text, {}, store);
     expect(() => validateInput(capability, input)).not.toThrow();
-    if (["transcribe", "recognizeText", "parseImage", "analyzeLayout"].includes(capability))
+    if (
+      ["transcribe", "recognizeText", "parseImage", "analyzeLayout"].includes(
+        capability
+      )
+    )
       expect(store.put).toHaveBeenCalledTimes(1);
   }
 );

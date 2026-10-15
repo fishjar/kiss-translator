@@ -1,4 +1,10 @@
-import { apiGoogleLangdetect, apiBaiduLangdetect, apiTencentLangdetect, apiBaiduSuggest, apiYoudaoSuggest } from "../builtin-plugins/discovery";
+import {
+  apiGoogleLangdetect,
+  apiBaiduLangdetect,
+  apiTencentLangdetect,
+  apiBaiduSuggest,
+  apiYoudaoSuggest,
+} from "../builtin-plugins/discovery";
 import queryString from "query-string";
 import { fetchData } from "../libs/fetch";
 import {
@@ -55,7 +61,13 @@ import { supportsApiCapability } from "../config/serviceSelection";
 import { trustedTypesHelper } from "../libs/trustedTypes";
 import { getDocInfo } from "../libs/docInfo";
 import { providerCacheSignature } from "../providers/cache";
-export { apiGoogleLangdetect, apiBaiduLangdetect, apiTencentLangdetect, apiBaiduSuggest, apiYoudaoSuggest };
+export {
+  apiGoogleLangdetect,
+  apiBaiduLangdetect,
+  apiTencentLangdetect,
+  apiBaiduSuggest,
+  apiYoudaoSuggest,
+};
 
 const PROMPT_CACHE_SALT = "prompt-cache";
 const PROMPT_CACHE_SCOPE_BATCH = "batch";
@@ -149,10 +161,16 @@ async function getPromptCacheSig(apiSetting = {}, promptScope, glossary) {
   const promptText = [
     promptScope,
     ...getPromptCacheFields(apiSetting, promptScope, glossary),
-    ...(apiSetting.apiType === OPT_TRANS_LOCALAI ? [
-      apiSetting.modelRef, apiSetting.device, apiSetting.temperature, apiSetting.maxTokens,
-      apiSetting.useContext, apiSetting.contextSize,
-    ] : []),
+    ...(apiSetting.apiType === OPT_TRANS_LOCALAI
+      ? [
+          apiSetting.modelRef,
+          apiSetting.device,
+          apiSetting.temperature,
+          apiSetting.maxTokens,
+          apiSetting.useContext,
+          apiSetting.contextSize,
+        ]
+      : []),
   ].join("\n");
 
   return (await getCacheDigest(promptText, PROMPT_CACHE_SALT)).slice(0, 16);
@@ -238,8 +256,6 @@ export const apiUpdateGistFile = async (gistId, token, key, content) =>
 export const apiFetch = (url) => fetchData(url);
 export const apiFetchText = (url) =>
   fetchData(url, undefined, { expect: "text" });
-
-
 
 /**
  * 微软 Edge 在线词典检索（Bing 词典 HTML 爬取解析）。
@@ -370,12 +386,6 @@ export const apiMicrosoftDict = async (text) => {
   return res;
 };
 
-
-
-
-
-
-
 /**
  * 有道词典 API。
  * @param {string} text 查询单词
@@ -424,8 +434,6 @@ export const apiBaiduTTS = (text, lan = "uk", spd = 3) => {
   const input = `https://fanyi.baidu.com/gettts?${queryString.stringify({ lan, text, spd })}`;
   return fetchData(input);
 };
-
-
 
 /**
  * 现代浏览器 (Chrome 127+) 内置 Gemini Nano AI 本地语言识别 API。
@@ -596,7 +604,10 @@ export const apiTranslate = async ({
   }
 
   if (!supportsApiCapability(apiSetting, "translate"))
-    throw Object.assign(new Error("Translation capability is disabled or unsupported."), { code: "CAPABILITY_DISABLED" });
+    throw Object.assign(
+      new Error("Translation capability is disabled or unsupported."),
+      { code: "CAPABILITY_DISABLED" }
+    );
   const { apiType, apiSlug } = apiSetting;
   const useBatchFetch = apiSetting.useBatchFetch && cacheMode === "default";
   const langMap = OPT_LANGS_TO_SPEC[apiType] || OPT_LANGS_SPEC_DEFAULT;
@@ -618,7 +629,14 @@ export const apiTranslate = async ({
     glossary
   );
   if (apiSetting.provider) {
-    promptSig = await providerCacheSignature(apiSetting, "translate", { promptSig, glossary, docInfo, fromLang, toLang, textFormat });
+    promptSig = await providerCacheSignature(apiSetting, "translate", {
+      promptSig,
+      glossary,
+      docInfo,
+      fromLang,
+      toLang,
+      textFormat,
+    });
   }
   const cacheOpts = {
     apiSlug,
@@ -676,7 +694,8 @@ export const apiTranslate = async ({
       useStream,
       useContext,
     } = apiSetting;
-    const enableStream = useStream !== false && supportsServiceFeature(apiSetting, "stream");
+    const enableStream =
+      useStream !== false && supportsServiceFeature(apiSetting, "stream");
     const configuredBatchConcurrency = Number(batchConcurrency);
     const effectiveBatchConcurrency =
       useContext && API_SPE_TYPES.context.has(apiType)
@@ -688,8 +707,12 @@ export const apiTranslate = async ({
     const key = `${apiSlug}_${fromLang}_${toLang}_${textFormat}_${enableStream ? "stream" : "batch"}_${promptSig}_${effectiveBatchConcurrency}`;
     const queue = getBatchQueue(key, handleTranslate, {
       batchInterval,
-      batchSize: getCapabilityDescriptor(apiSetting, "translate")?.batch?.maxItems
-        ? Math.min(batchSize || 10, getCapabilityDescriptor(apiSetting, "translate").batch.maxItems)
+      batchSize: getCapabilityDescriptor(apiSetting, "translate")?.batch
+        ?.maxItems
+        ? Math.min(
+            batchSize || 10,
+            getCapabilityDescriptor(apiSetting, "translate").batch.maxItems
+          )
         : batchSize,
       batchLength,
       batchConcurrency: effectiveBatchConcurrency,
@@ -763,7 +786,12 @@ export const apiTranslate = async ({
   if (Array.isArray(translation)) {
     [trText, srLang = ""] = translation;
     if (srLang) {
-      srCode = OPT_LANGS_TO_CODE[apiType]?.get(srLang) || (apiSetting.provider && apiSetting.provider.implementation.kind !== "native" ? normalizeLanguageCode(srLang) : "");
+      srCode =
+        OPT_LANGS_TO_CODE[apiType]?.get(srLang) ||
+        (apiSetting.provider &&
+        apiSetting.provider.implementation.kind !== "native"
+          ? normalizeLanguageCode(srLang)
+          : "");
     }
   } else if (typeof translation === "string") {
     trText = translation;
@@ -859,7 +887,16 @@ export const apiDict = async ({
     toLang,
     version: [v1, v2].join("."),
     promptSig: apiSetting.provider
-      ? await providerCacheSignature(apiSetting, "dictionary", { promptSig: await getPromptCacheSig(apiSetting, PROMPT_CACHE_SCOPE_DICT), context, docInfo: effectiveDocInfo, fromLang, toLang })
+      ? await providerCacheSignature(apiSetting, "dictionary", {
+          promptSig: await getPromptCacheSig(
+            apiSetting,
+            PROMPT_CACHE_SCOPE_DICT
+          ),
+          context,
+          docInfo: effectiveDocInfo,
+          fromLang,
+          toLang,
+        })
       : await getPromptCacheSig(apiSetting, PROMPT_CACHE_SCOPE_DICT),
     contextSig: contextSig.slice(0, 16),
   };
@@ -914,7 +951,11 @@ export const apiSubtitle = async ({
   onSubtitleChunk,
   signal,
 }) => {
-  if (!supportsApiCapability(apiSetting, "segmentSubtitle")) throw Object.assign(new Error("Subtitle capability is disabled or unsupported."), { code: "CAPABILITY_DISABLED" });
+  if (!supportsApiCapability(apiSetting, "segmentSubtitle"))
+    throw Object.assign(
+      new Error("Subtitle capability is disabled or unsupported."),
+      { code: "CAPABILITY_DISABLED" }
+    );
   if (!events?.length) return [];
   const formattedEvents = formatIndexSubtitleEvents(
     events,
@@ -956,15 +997,24 @@ export const apiSubtitle = async ({
     chunkHash,
     fromLang,
     toLang,
-    ...(apiSetting.apiType === OPT_TRANS_LOCALAI ? {
-      modelRef: apiSetting.modelRef, device: apiSetting.device,
-      temperature: apiSetting.temperature, maxTokens: apiSetting.maxTokens,
-    } : {}),
+    ...(apiSetting.apiType === OPT_TRANS_LOCALAI
+      ? {
+          modelRef: apiSetting.modelRef,
+          device: apiSetting.device,
+          temperature: apiSetting.temperature,
+          maxTokens: apiSetting.maxTokens,
+        }
+      : {}),
     segVer: 4,
-    promptSig: (apiSetting.provider ? await providerCacheSignature(apiSetting, "segmentSubtitle", { renderedPrompt, docInfo, fromLang, toLang }) : await getCacheDigest(renderedPrompt, PROMPT_CACHE_SALT)).slice(
-      0,
-      16
-    ),
+    promptSig: (apiSetting.provider
+      ? await providerCacheSignature(apiSetting, "segmentSubtitle", {
+          renderedPrompt,
+          docInfo,
+          fromLang,
+          toLang,
+        })
+      : await getCacheDigest(renderedPrompt, PROMPT_CACHE_SALT)
+    ).slice(0, 16),
   };
   const cacheInput = `${URL_CACHE_SUBTITLE}?${queryString.stringify(cacheOpts)}`;
 
@@ -1003,8 +1053,22 @@ export const apiSummarizeContext = async ({
   transcript,
   apiSetting,
 }) => {
-  if (!supportsApiCapability(apiSetting, "summarize")) throw Object.assign(new Error("Summary capability is disabled or unsupported."), { code: "CAPABILITY_DISABLED" });
-  const cacheOpts = { apiSlug: apiSetting.apiSlug, videoId, ...((apiSetting.provider || apiSetting.enabledCapabilities) && { providerSig: await providerCacheSignature(apiSetting, "summarize", { title, description, transcript }) }) };
+  if (!supportsApiCapability(apiSetting, "summarize"))
+    throw Object.assign(
+      new Error("Summary capability is disabled or unsupported."),
+      { code: "CAPABILITY_DISABLED" }
+    );
+  const cacheOpts = {
+    apiSlug: apiSetting.apiSlug,
+    videoId,
+    ...((apiSetting.provider || apiSetting.enabledCapabilities) && {
+      providerSig: await providerCacheSignature(apiSetting, "summarize", {
+        title,
+        description,
+        transcript,
+      }),
+    }),
+  };
   const cacheInput = `${URL_CACHE_CONTEXT}?${queryString.stringify(cacheOpts)}`;
 
   // 1. 读取总结摘要缓存，避免每次打开同一视频重复对长文本请求总结
@@ -1056,7 +1120,12 @@ export const getVideoSummarySignature = async ({
     transcript,
   ].join("\n---\n");
 
-  const digest = (apiSetting?.provider || apiSetting?.enabledCapabilities) ? await providerCacheSignature(apiSetting, "summarize", { contentToDigest }) : await getCacheDigest(contentToDigest, "video_summary_v1");
+  const digest =
+    apiSetting?.provider || apiSetting?.enabledCapabilities
+      ? await providerCacheSignature(apiSetting, "summarize", {
+          contentToDigest,
+        })
+      : await getCacheDigest(contentToDigest, "video_summary_v1");
   const sig = (digest || "").slice(0, 16);
   return `${videoId || "video"}_${apiSetting?.apiSlug || "api"}_${to}_${sig}`;
 };
@@ -1076,7 +1145,11 @@ export const apiSummarizeVideo = async ({
   force = false,
   signal,
 }) => {
-  if (!supportsApiCapability(apiSetting, "summarize")) throw Object.assign(new Error("Summary capability is disabled or unsupported."), { code: "CAPABILITY_DISABLED" });
+  if (!supportsApiCapability(apiSetting, "summarize"))
+    throw Object.assign(
+      new Error("Summary capability is disabled or unsupported."),
+      { code: "CAPABILITY_DISABLED" }
+    );
   const summarySig = await getVideoSummarySignature({
     videoId,
     title,

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { act } from "react";
+import { Simulate } from "react-dom/test-utils";
 import { createRoot } from "react-dom/client";
 import SubtitleSetting, { parseCssToObject, objectToCss } from "./Subtitle";
 import { useSubtitle } from "../../hooks/Subtitle";
@@ -23,8 +24,6 @@ jest.mock("../../hooks/Api", () => ({
 jest.mock("../../hooks/Prompt", () => ({
   usePromptList: () => ({ prompts: [] }),
 }));
-
-jest.mock("../../hooks/ValidationInput", () => () => null);
 
 function renderSubtitle(overrides = {}) {
   const updateSubtitle = jest.fn();
@@ -529,4 +528,53 @@ describe("Subtitle page copy", () => {
       }
     }
   });
+});
+
+describe("hover lookup dismissal settings", () => {
+  test("legacy settings show the two-second default with integer bounds", () => {
+    const view = renderSubtitle({ hoverLookupCloseDelay: undefined });
+    const input = view.container.querySelector(
+      'input[name="hoverLookupCloseDelay"]'
+    );
+    expect(input.value).toBe("2");
+    expect([input.min, input.max, input.step]).toEqual(["0", "30", "1"]);
+    expect(input.disabled).toBe(false);
+    expect(view.container.textContent).toContain(
+      "subtitle_hover_lookup_close_delay_description"
+    );
+    view.unmount();
+  });
+  test("disabled lookup retains the saved delay", () => {
+    const view = renderSubtitle({
+      hoverLookupMode: "off",
+      hoverLookupCloseDelay: 7,
+    });
+    const input = view.container.querySelector(
+      'input[name="hoverLookupCloseDelay"]'
+    );
+    expect(input.disabled).toBe(true);
+    expect(input.value).toBe("7");
+    view.unmount();
+  });
+  test.each([0, 5, 30])(
+    "saves a %s second delay and displays it on the next render",
+    (value) => {
+      const view = renderSubtitle({ hoverLookupMode: "on" });
+      const input = view.container.querySelector(
+        'input[name="hoverLookupCloseDelay"]'
+      );
+      act(() => Simulate.change(input, { target: { value: String(value) } }));
+      act(() => Simulate.blur(input));
+      expect(view.updateSubtitle).toHaveBeenCalledWith({
+        hoverLookupCloseDelay: value,
+      });
+      view.unmount();
+      const saved = renderSubtitle({ hoverLookupCloseDelay: value });
+      expect(
+        saved.container.querySelector('input[name="hoverLookupCloseDelay"]')
+          .value
+      ).toBe(String(value));
+      saved.unmount();
+    }
+  );
 });

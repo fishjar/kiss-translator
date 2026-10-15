@@ -9,13 +9,18 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const originalResizeObserver = globalThis.ResizeObserver;
 beforeAll(() => {
   globalThis.ResizeObserver = class {
-    constructor(callback) { this.callback = callback; }
-    observe() { this.callback([{ contentRect: { width: 1000 } }]); }
+    constructor(callback) {
+      this.callback = callback;
+    }
+    observe() {
+      this.callback([{ contentRect: { width: 1000 } }]);
+    }
     disconnect() {}
   };
 });
-afterAll(() => { globalThis.ResizeObserver = originalResizeObserver; });
-
+afterAll(() => {
+  globalThis.ResizeObserver = originalResizeObserver;
+});
 
 describe("EpubReaderView (EPUB 体验细节与样式)", () => {
   let container;
@@ -39,8 +44,18 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     title: "Test Novel",
     author: "Test Author",
     spineItems: [
-      { id: "ch1", href: "OEBPS/ch1.xhtml", fullPath: "OEBPS/ch1.xhtml", title: "Chapter 1" },
-      { id: "ch2", href: "OEBPS/ch2.xhtml", fullPath: "OEBPS/ch2.xhtml", title: "Chapter 2" },
+      {
+        id: "ch1",
+        href: "OEBPS/ch1.xhtml",
+        fullPath: "OEBPS/ch1.xhtml",
+        title: "Chapter 1",
+      },
+      {
+        id: "ch2",
+        href: "OEBPS/ch2.xhtml",
+        fullPath: "OEBPS/ch2.xhtml",
+        title: "Chapter 2",
+      },
     ],
     filesMap: {
       "OEBPS/ch1.xhtml": fflate.strToU8(mockChapter1Html),
@@ -62,28 +77,57 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
   });
 
   test("目录默认关闭，展开后点击章节跳转保持展开", () => {
-    act(() => root.render(<EpubReaderView epubBook={mockEpubBook} currentChapterIndex={0}
-      epubViewMode="source" chapterStates={{}} busy={false} i18n={mockI18n} onSelectChapter={jest.fn()} />));
+    act(() =>
+      root.render(
+        <EpubReaderView
+          epubBook={mockEpubBook}
+          currentChapterIndex={0}
+          epubViewMode="source"
+          chapterStates={{}}
+          busy={false}
+          i18n={mockI18n}
+          onSelectChapter={jest.fn()}
+        />
+      )
+    );
     const drawer = container.querySelector(".kt-toc-drawer");
     expect(drawer.getAttribute("aria-hidden")).toBe("true");
     const toggleBtn = container.querySelector('[aria-label="展开目录"]');
     expect(toggleBtn.style.border).toBe("");
-    expect(toggleBtn.classList.contains("MuiIconButton-colorPrimary")).toBe(false);
+    expect(toggleBtn.classList.contains("MuiIconButton-colorPrimary")).toBe(
+      false
+    );
     act(() => toggleBtn.click());
     expect(drawer.getAttribute("aria-hidden")).toBe("false");
     expect(toggleBtn.getAttribute("aria-label")).toBe("折叠目录");
-    expect(toggleBtn.classList.contains("MuiIconButton-colorPrimary")).toBe(true);
+    expect(toggleBtn.classList.contains("MuiIconButton-colorPrimary")).toBe(
+      true
+    );
     act(() => drawer.querySelector(".MuiListItemButton-root").click());
     expect(drawer.getAttribute("aria-hidden")).toBe("false");
   });
 
   test("目录标签优先使用翻译而非默认文案", () => {
-    const translatedI18n = (key, fallback) => ({
-      expand_toc: "Expand contents",
-      collapse_toc: "Collapse contents",
-    }[key] || fallback || key);
-    act(() => root.render(<EpubReaderView epubBook={mockEpubBook} currentChapterIndex={0}
-      epubViewMode="source" chapterStates={{}} busy={false} i18n={translatedI18n} onSelectChapter={jest.fn()} />));
+    const translatedI18n = (key, fallback) =>
+      ({
+        expand_toc: "Expand contents",
+        collapse_toc: "Collapse contents",
+      })[key] ||
+      fallback ||
+      key;
+    act(() =>
+      root.render(
+        <EpubReaderView
+          epubBook={mockEpubBook}
+          currentChapterIndex={0}
+          epubViewMode="source"
+          chapterStates={{}}
+          busy={false}
+          i18n={translatedI18n}
+          onSelectChapter={jest.fn()}
+        />
+      )
+    );
     const toggle = container.querySelector('[aria-label="Expand contents"]');
     expect(toggle).not.toBeNull();
     act(() => toggle.click());
@@ -95,7 +139,8 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     const chapterStates = {
       "OEBPS/ch1.xhtml": {
         status: "busy",
-        bilingualHtml: '<div class="test-body"><p>Source 1</p><span class="kt-bilingual-target">Partial translated 1</span></div>',
+        bilingualHtml:
+          '<div class="test-body"><p>Source 1</p><span class="kt-bilingual-target">Partial translated 1</span></div>',
       },
     };
 
@@ -210,7 +255,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       );
     });
 
-    const scrollBox = container.querySelector(".kt-epub-reader-body")?.parentElement;
+    const scrollBox = container.querySelector(
+      ".kt-epub-reader-body"
+    )?.parentElement;
     expect(scrollBox).toBeTruthy();
 
     // 模拟用户向下滚动了 500px
@@ -246,7 +293,11 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
           chapterStates={{}}
           busy={false}
           rawStyleCode={rawStyle}
-          readerPreferences={{ fontSize: 22, fontFamily: "serif", themeId: "sepia" }}
+          readerPreferences={{
+            fontSize: 22,
+            fontFamily: "serif",
+            themeId: "sepia",
+          }}
           i18n={mockI18n}
         />
       );
@@ -254,7 +305,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
 
     // 页面内应包含注入的 style 标签
     const styleTags = Array.from(container.querySelectorAll("style"));
-    const injectedStyle = styleTags.find((s) => s.textContent.includes(".kt-epub-reader-body .kt-bilingual-target"));
+    const injectedStyle = styleTags.find((s) =>
+      s.textContent.includes(".kt-epub-reader-body .kt-bilingual-target")
+    );
     expect(injectedStyle).toBeTruthy();
     expect(injectedStyle.textContent).toContain("border: 2px dashed #409eff");
 
@@ -278,7 +331,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       );
     });
 
-    const searchInput = container.querySelector('input[aria-label="search content"]');
+    const searchInput = container.querySelector(
+      'input[aria-label="search content"]'
+    );
     expect(searchInput).toBeTruthy();
 
     const setInputValue = (input, val) => {
@@ -308,7 +363,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       setInputValue(searchInput, "");
     });
 
-    const remainingHighlights = container.querySelectorAll("mark.kt-search-highlight");
+    const remainingHighlights = container.querySelectorAll(
+      "mark.kt-search-highlight"
+    );
     expect(remainingHighlights.length).toBe(0);
   });
 
@@ -364,9 +421,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
 
     expect(onTranslateChapterMock).toHaveBeenCalled();
     expect(searchInput.value).toBe("");
-    expect(
-      container.querySelectorAll("mark.kt-search-highlight").length
-    ).toBe(0);
+    expect(container.querySelectorAll("mark.kt-search-highlight").length).toBe(
+      0
+    );
 
     // 2. 再次输入搜索词后进入 busy 状态（如整本书翻译触发）
     act(() => {
@@ -391,9 +448,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     });
 
     expect(searchInput.value).toBe("");
-    expect(
-      container.querySelectorAll("mark.kt-search-highlight").length
-    ).toBe(0);
+    expect(container.querySelectorAll("mark.kt-search-highlight").length).toBe(
+      0
+    );
   });
 
   test("8. 目录栏宽度拖拽调整：支持通过鼠标拖动分割线调整宽度并持久化至 localStorage", async () => {
@@ -413,7 +470,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     });
 
     act(() => container.querySelector('[aria-label="展开目录"]').click());
-    const resizer = container.querySelector('[role="separator"][aria-label="目录宽度"]');
+    const resizer = container.querySelector(
+      '[role="separator"][aria-label="目录宽度"]'
+    );
     expect(resizer).toBeTruthy();
 
     const tocCard = resizer.parentElement;
@@ -504,22 +563,35 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     window.cancelAnimationFrame = jest.fn((id) => frames.delete(id));
     const sanitize = jest.spyOn(DOMPurify, "sanitize");
     const commits = jest.fn();
-    const pointer = (target, type, clientX) => act(() => {
-      target.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX, button: 0 }));
-    });
+    const pointer = (target, type, clientX) =>
+      act(() => {
+        target.dispatchEvent(
+          new MouseEvent(type, { bubbles: true, clientX, button: 0 })
+        );
+      });
     try {
       document.body.style.cursor = "crosshair";
       document.body.style.userSelect = "text";
-      act(() => root.render(
-        <StrictMode>
-          <React.Profiler id="reader" onRender={commits}>
-            <EpubReaderView epubBook={mockEpubBook} currentChapterIndex={0}
-              epubViewMode="source" chapterStates={{}} busy={false} i18n={mockI18n} />
-          </React.Profiler>
-        </StrictMode>
-      ));
+      act(() =>
+        root.render(
+          <StrictMode>
+            <React.Profiler id="reader" onRender={commits}>
+              <EpubReaderView
+                epubBook={mockEpubBook}
+                currentChapterIndex={0}
+                epubViewMode="source"
+                chapterStates={{}}
+                busy={false}
+                i18n={mockI18n}
+              />
+            </React.Profiler>
+          </StrictMode>
+        )
+      );
       act(() => container.querySelector('[aria-label="展开目录"]').click());
-    const resizer = container.querySelector('[role="separator"][aria-label="目录宽度"]');
+      const resizer = container.querySelector(
+        '[role="separator"][aria-label="目录宽度"]'
+      );
       const card = resizer.parentElement;
       pointer(resizer, "pointerdown", 270);
       sanitize.mockClear();
@@ -583,7 +655,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     });
 
     act(() => container.querySelector('[aria-label="展开目录"]').click());
-    const resizer = container.querySelector('[role="separator"][aria-label="目录宽度"]');
+    const resizer = container.querySelector(
+      '[role="separator"][aria-label="目录宽度"]'
+    );
     const tocCard = resizer.parentElement;
     expect(tocCard.style.width).toBe("420px");
 
@@ -662,7 +736,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
 
   test("11. 封面图与插图相对路径自动映射为 Blob URL 正常显示，避免破裂", () => {
     const originalCreate = global.URL.createObjectURL;
-    global.URL.createObjectURL = jest.fn(() => "blob:http://localhost/cover-blob-uuid");
+    global.URL.createObjectURL = jest.fn(
+      () => "blob:http://localhost/cover-blob-uuid"
+    );
 
     const htmlWithImg = `<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -674,7 +750,12 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     const bookWithImg = {
       title: "Cover Book",
       spineItems: [
-        { id: "cover", href: "OEBPS/wrap.xhtml", fullPath: "OEBPS/wrap.xhtml", title: "Cover" },
+        {
+          id: "cover",
+          href: "OEBPS/wrap.xhtml",
+          fullPath: "OEBPS/wrap.xhtml",
+          title: "Cover",
+        },
       ],
       filesMap: {
         "OEBPS/wrap.xhtml": fflate.strToU8(htmlWithImg),
@@ -697,7 +778,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
 
     const imgEl = container.querySelector('img[alt="Cover Image"]');
     expect(imgEl).toBeTruthy();
-    expect(imgEl.getAttribute("src")).toBe("blob:http://localhost/cover-blob-uuid");
+    expect(imgEl.getAttribute("src")).toBe(
+      "blob:http://localhost/cover-blob-uuid"
+    );
 
     if (originalCreate) {
       global.URL.createObjectURL = originalCreate;
@@ -715,7 +798,8 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       return url;
     });
     URL.revokeObjectURL = jest.fn((url) => liveUrls.delete(url));
-    const html = '<html xmlns="http://www.w3.org/1999/xhtml"><body><img src="cover.jpg" alt="Cover" /></body></html>';
+    const html =
+      '<html xmlns="http://www.w3.org/1999/xhtml"><body><img src="cover.jpg" alt="Cover" /></body></html>';
     const book = {
       ...mockEpubBook,
       filesMap: {
@@ -736,12 +820,20 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       act(() => {
         root.render(
           <StrictMode>
-            <EpubReaderView epubBook={epubBook} currentChapterIndex={index}
-              epubViewMode={mode} chapterStates={states} busy={false} i18n={mockI18n} />
+            <EpubReaderView
+              epubBook={epubBook}
+              currentChapterIndex={index}
+              epubViewMode={mode}
+              chapterStates={states}
+              busy={false}
+              i18n={mockI18n}
+            />
           </StrictMode>
         );
       });
-      const src = container.querySelector('img[alt="Cover"]').getAttribute("src");
+      const src = container
+        .querySelector('img[alt="Cover"]')
+        .getAttribute("src");
       expect(liveUrls.has(src)).toBe(true);
       return src;
     };
@@ -750,7 +842,10 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       getRenderedCoverUrl(book, "target");
       const view = getRenderedCoverUrl(book, "bilingual");
       expect(getRenderedCoverUrl(book, "bilingual", 1)).toBe(view);
-      const utils = getRenderedCoverUrl({ ...book, title: "Replacement" }, "bilingual");
+      const utils = getRenderedCoverUrl(
+        { ...book, title: "Replacement" },
+        "bilingual"
+      );
       expect(utils).not.toBe(view);
       expect(liveUrls.has(view)).toBe(false);
       act(() => root.render(null));
@@ -807,7 +902,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     });
 
     // 寻找 "第 I 节" 的按钮并点击
-    const buttons = Array.from(container.querySelectorAll(".MuiListItemButton-root"));
+    const buttons = Array.from(
+      container.querySelectorAll(".MuiListItemButton-root")
+    );
     const sec1Btn = buttons.find((btn) => btn.textContent.includes("第 I 节"));
     expect(sec1Btn).toBeTruthy();
 
@@ -866,7 +963,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     expect(onChangePrefsMock).toHaveBeenCalledWith({ pageWidth: 880 });
 
     // 点击预设档位 1020
-    const widePresetBtn = buttons.find((b) => b.textContent.includes("宽版 (1020)"));
+    const widePresetBtn = buttons.find((b) =>
+      b.textContent.includes("宽版 (1020)")
+    );
     expect(widePresetBtn).toBeTruthy();
     act(() => {
       widePresetBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -889,7 +988,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     });
 
     // 顶部工具栏左侧只显示书名 Test Novel
-    const titles = Array.from(container.querySelectorAll(".MuiTypography-subtitle2"));
+    const titles = Array.from(
+      container.querySelectorAll(".MuiTypography-subtitle2")
+    );
     const bookTitleEl = titles.find((el) => el.textContent === "Test Novel");
     expect(bookTitleEl).toBeTruthy();
 
@@ -903,7 +1004,8 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     const mockBookWithLinks = {
       ...mockEpubBook,
       filesMap: {
-        "OEBPS/ch1.xhtml": fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
+        "OEBPS/ch1.xhtml":
+          fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>
   <h1>Chapter 1</h1>
@@ -911,7 +1013,8 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
   <a href="https://example.com" class="link-external">External Link</a>
 </body>
 </html>`),
-        "OEBPS/ch2.xhtml": fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
+        "OEBPS/ch2.xhtml":
+          fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>
   <h1>Chapter 2</h1>
@@ -945,16 +1048,24 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     const externalLink = container.querySelector(".link-external");
     expect(externalLink).toBeTruthy();
     act(() => {
-      externalLink.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      externalLink.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true })
+      );
     });
-    expect(window.open).toHaveBeenCalledWith("https://example.com", "_blank", "noopener,noreferrer");
+    expect(window.open).toHaveBeenCalledWith(
+      "https://example.com",
+      "_blank",
+      "noopener,noreferrer"
+    );
     expect(onSelectChapterMock).not.toHaveBeenCalled();
 
     // 2. 点击跨章相对链接，验证自动解析并跳转至章节 1 (OEBPS/ch2.xhtml)
     const ch2Link = container.querySelector(".link-to-ch2");
     expect(ch2Link).toBeTruthy();
     act(() => {
-      ch2Link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      ch2Link.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true })
+      );
     });
     expect(onSelectChapterMock).toHaveBeenCalledWith(1);
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
@@ -979,14 +1090,16 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
         },
       ],
       filesMap: {
-        "OEBPS/ch1.xhtml": fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
+        "OEBPS/ch1.xhtml":
+          fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>
   <h1>Chapter 1</h1>
   <div id="dup-id" data-origin="ch1">Chapter 1 Duplicate ID</div>
 </body>
 </html>`),
-        "OEBPS/ch2.xhtml": fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
+        "OEBPS/ch2.xhtml":
+          fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>
   <h1>Chapter 2</h1>
@@ -1010,9 +1123,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       );
     });
 
-    const tocBtn = Array.from(container.querySelectorAll(".MuiListItemButton-root")).find((btn) =>
-      btn.textContent.includes("第二章同名节")
-    );
+    const tocBtn = Array.from(
+      container.querySelectorAll(".MuiListItemButton-root")
+    ).find((btn) => btn.textContent.includes("第二章同名节"));
     expect(tocBtn).toBeTruthy();
 
     act(() => {
@@ -1051,7 +1164,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       );
     });
 
-    const scrollContainer = container.querySelector(".kt-epub-reader-body")?.parentElement;
+    const scrollContainer = container.querySelector(
+      ".kt-epub-reader-body"
+    )?.parentElement;
     expect(scrollContainer).toBeTruthy();
 
     // 模拟 getBoundingClientRect
@@ -1095,7 +1210,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       );
     });
 
-    const scrollContainer = container.querySelector(".kt-epub-reader-body")?.parentElement;
+    const scrollContainer = container.querySelector(
+      ".kt-epub-reader-body"
+    )?.parentElement;
     expect(scrollContainer).toBeTruthy();
 
     // 模拟用户向下滚动到了 850px
@@ -1146,7 +1263,8 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     const mockBookWithEncodedHash = {
       ...mockEpubBook,
       filesMap: {
-        "OEBPS/ch1.xhtml": fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
+        "OEBPS/ch1.xhtml":
+          fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>
   <h1>Chapter 1</h1>
@@ -1155,7 +1273,8 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
   <a href="ch2.xhtml#%E7%AC%AC%E4%BA%8C%E8%8A%82" class="link-encoded-cjk">Go to CJK Section</a>
 </body>
 </html>`),
-        "OEBPS/ch2.xhtml": fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
+        "OEBPS/ch2.xhtml":
+          fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>
   <h1>Chapter 2</h1>
@@ -1185,7 +1304,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     expect(spaceLink).toBeTruthy();
 
     act(() => {
-      spaceLink.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      spaceLink.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true })
+      );
     });
 
     expect(onSelectChapterMock).toHaveBeenCalledWith(1);
@@ -1196,7 +1317,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     expect(cjkLink).toBeTruthy();
 
     act(() => {
-      cjkLink.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      cjkLink.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true })
+      );
     });
 
     expect(onSelectChapterMock).toHaveBeenCalledWith(1);
@@ -1207,8 +1330,10 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     const chapterStates = {
       "OEBPS/ch1.xhtml": {
         status: "idle", // 被取消或发生错误重置为 idle，但可能残存部分 HTML
-        bilingualHtml: '<div class="test-body"><p>Source 1</p><span class="kt-bilingual-target">Partial Unfinished Target</span></div>',
-        targetHtml: '<div class="test-body"><p>Partial Unfinished Target</p></div>',
+        bilingualHtml:
+          '<div class="test-body"><p>Source 1</p><span class="kt-bilingual-target">Partial Unfinished Target</span></div>',
+        targetHtml:
+          '<div class="test-body"><p>Partial Unfinished Target</p></div>',
       },
     };
 
@@ -1241,14 +1366,16 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     const mockBook = {
       ...mockEpubBook,
       filesMap: {
-        "OEBPS/ch1.xhtml": fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
+        "OEBPS/ch1.xhtml":
+          fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>
   <h1>Chapter 1</h1>
   <a href="ch2.xhtml#target-anchor" class="cross-link">Go to Target in Chapter 2</a>
 </body>
 </html>`),
-        "OEBPS/ch2.xhtml": fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
+        "OEBPS/ch2.xhtml":
+          fflate.strToU8(`<?xml version="1.0" encoding="utf-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>
   <h1>Chapter 2</h1>
@@ -1272,7 +1399,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       );
     });
 
-    const scrollContainer = container.querySelector(".kt-epub-reader-body")?.parentElement;
+    const scrollContainer = container.querySelector(
+      ".kt-epub-reader-body"
+    )?.parentElement;
     expect(scrollContainer).toBeTruthy();
 
     const crossLink = container.querySelector(".cross-link");
@@ -1280,7 +1409,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
 
     // 1. 点击跨章超链接
     act(() => {
-      crossLink.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      crossLink.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true })
+      );
     });
 
     // 验证触发了 scrollIntoView，且父组件的章节索引更新为 1
@@ -1331,7 +1462,9 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     // 2. 核心验证：全局 DOMPurify 未被污染，Markdown 图片正常保留远程 src
     const markdownHtml = `<p><img src="https://example.com/remote-markdown-image.png" alt="remote md pic"></p>`;
     const sanitizedMarkdown = DOMPurify.sanitize(markdownHtml);
-    expect(sanitizedMarkdown).toContain('src="https://example.com/remote-markdown-image.png"');
+    expect(sanitizedMarkdown).toContain(
+      'src="https://example.com/remote-markdown-image.png"'
+    );
   });
 
   test("16. 阅读器章节级缓存：流式更新单个章节时复用未变章节的 DOM 解析与 Blob URL（第五轮问题 4）", () => {

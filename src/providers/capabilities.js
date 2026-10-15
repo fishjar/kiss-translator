@@ -51,12 +51,14 @@ export function getSupportedCapabilityDescriptor(instance, capability) {
       ...(limits.length && { maxItems: Math.min(...limits) }),
     },
     coordinates: Boolean(base.coordinates && restriction.coordinates !== false),
-    ...((base.taskModes || restriction.taskModes) && { taskModes: (base.taskModes || ["doc"]).filter((mode) =>
-      !restriction.taskModes || restriction.taskModes.includes(mode)) }),
+    ...((base.taskModes || restriction.taskModes) && {
+      taskModes: (base.taskModes || ["doc"]).filter(
+        (mode) => !restriction.taskModes || restriction.taskModes.includes(mode)
+      ),
+    }),
     timestamps: Boolean(base.timestamps && restriction.timestamps !== false),
   };
 }
-
 
 export function usesStreaming(instance, capability) {
   return (
@@ -124,8 +126,11 @@ export function supportsProviderCapability(
   if (requirements.stream && !descriptor.outputModes?.includes("stream"))
     return false;
   if (requirements.coordinates && descriptor.coordinates !== true) return false;
-  if (requirements.taskMode &&
-      !(descriptor.taskModes || ["doc"]).includes(requirements.taskMode)) return false;
+  if (
+    requirements.taskMode &&
+    !(descriptor.taskModes || ["doc"]).includes(requirements.taskMode)
+  )
+    return false;
   if (requirements.timestamps && descriptor.timestamps !== true) return false;
   return true;
 }

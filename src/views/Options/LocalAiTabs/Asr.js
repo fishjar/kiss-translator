@@ -555,9 +555,16 @@ export default function AsrTab() {
                   const selection = ++selectionRef.current;
                   void validateInputFile(f, "audio")
                     .then(() => {
-                      if (selection === selectionRef.current) { setFile(f); setError(null); setResult(null); }
+                      if (selection === selectionRef.current) {
+                        setFile(f);
+                        setError(null);
+                        setResult(null);
+                      }
                     })
-                    .catch((e) => { if (selection === selectionRef.current) setError(e.message); });
+                    .catch((e) => {
+                      if (selection === selectionRef.current)
+                        setError(e.message);
+                    });
                 }
                 e.target.value = "";
               }}
@@ -846,10 +853,7 @@ export default function AsrTab() {
           </CardContent>
         </Card>
       )}
-      <LogViewer
-        logs={logs}
-        onClear={clearLogs}
-      />
+      <LogViewer logs={logs} onClear={clearLogs} />
     </Stack>
   );
 }

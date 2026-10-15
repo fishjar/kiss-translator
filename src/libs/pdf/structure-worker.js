@@ -17,7 +17,11 @@ self.onmessage = ({ data }) => {
       self.postMessage({
         id: data.id,
         result: {
-          blocks: paragraphBlocks(data.raw, buildLines(data.raw, data.regions), data.regions),
+          blocks: paragraphBlocks(
+            data.raw,
+            buildLines(data.raw, data.regions),
+            data.regions
+          ),
         },
       });
     else if (data.type === "order") {

@@ -1,5 +1,6 @@
+import { getWordsWithDefault } from "../libs/storage.js";
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager";
-import { apiTranslate } from "../apis/index.js";
+import { apiTranslate, apiMicrosoftDict } from "../apis/index.js";
 
 jest.mock("../apis/index.js", () => ({
   apiTranslate: jest.fn(),
@@ -256,16 +257,23 @@ describe("BilingualSubtitleManager", () => {
     manager.destroy();
   });
 
-
   test("selected subtitle failure never invokes the leftover fallback service", async () => {
     const primary = { apiSlug: "primary", apiType: "Microsoft" };
     apiTranslate.mockRejectedValue(new Error("selected failed"));
     const manager = new BilingualSubtitleManager({
       videoEl: createVideoElement(),
       formattedSubtitles: [{ ...subtitle }],
-      setting: { ...setting, apiSlug: "primary", apiSlugs: ["backup"], apiSetting: primary, transApis: [primary, { ...primary, apiSlug: "backup" }] },
+      setting: {
+        ...setting,
+        apiSlug: "primary",
+        apiSlugs: ["backup"],
+        apiSetting: primary,
+        transApis: [primary, { ...primary, apiSlug: "backup" }],
+      },
     });
-    manager.repairChunkTranslations([{ ...subtitle, translation: "[Translation failed]" }]);
+    manager.repairChunkTranslations([
+      { ...subtitle, translation: "[Translation failed]" },
+    ]);
     for (let i = 0; i < 10; i++) await Promise.resolve();
     expect(apiTranslate).toHaveBeenCalledTimes(1);
     expect(apiTranslate.mock.calls[0][0].apiSetting.apiSlug).toBe("primary");
@@ -675,5 +683,137 @@ describe("BilingualSubtitleManager", () => {
     expect(getCaptionBottom()).toBe(70);
 
     manager.destroy();
+  });
+});
+
+describe("lookup panel playback ownership", () => {
+  let manager, video, caption, word, paused;
+  const point = (node, type, relatedTarget = null) =>
+    node.dispatchEvent(new MouseEvent(type, { relatedTarget }));
+  const tick = async (ms) => {
+    jest.advanceTimersByTime(ms);
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+  };
+  const setup = (initiallyPaused = false, closeDelay = 2) => {
+    video = createVideoElement();
+    paused = initiallyPaused;
+    Object.defineProperty(video, "paused", {
+      get: () => paused,
+      configurable: true,
+    });
+    video.pause = jest.fn(() => {
+      paused = true;
+    });
+    video.play = jest.fn(() => {
+      paused = false;
+      video.dispatchEvent(new Event("play"));
+      return Promise.resolve();
+    });
+    manager = new BilingualSubtitleManager({
+      videoEl: video,
+      formattedSubtitles: [{ ...subtitle, translation: "你好" }],
+      setting: {
+        ...setting,
+        hoverLookupMode: "on",
+        hoverLookupCloseDelay: closeDelay,
+      },
+    });
+    manager.start();
+    caption = document.querySelector(".kiss-caption-window");
+    word = caption.querySelector(".kiss-subtitle-word");
+  };
+  const open = async () => {
+    point(caption, "pointerenter");
+    point(word, "pointerenter");
+    await tick(300);
+  };
+  const leaveCaption = () => {
+    point(word, "pointerleave");
+    point(caption, "pointerleave");
+  };
+  beforeEach(() => {
+    jest.useFakeTimers();
+    getWordsWithDefault.mockResolvedValue({});
+    apiMicrosoftDict.mockResolvedValue({ trs: [{ def: "definition" }] });
+    apiTranslate.mockResolvedValue([]);
+  });
+  afterEach(() => {
+    manager?.destroy();
+    manager = null;
+    jest.useRealTimers();
+    document.body.innerHTML = "";
+  });
+
+  test("keeps the hover pause through the delay and panel interaction, then resumes", async () => {
+    setup();
+    await open();
+    expect(video.pause).toHaveBeenCalledTimes(1);
+    leaveCaption();
+    await tick(1000);
+    expect(video.play).not.toHaveBeenCalled();
+    const panel = document.querySelector(".kiss-word-tooltip");
+    point(panel, "pointerenter");
+    await tick(5000);
+    expect(video.play).not.toHaveBeenCalled();
+    point(panel, "pointerleave");
+    expect(video.play).toHaveBeenCalledTimes(1);
+  });
+  test("restores playback when the word delay expires", async () => {
+    setup(false, 5);
+    await open();
+    leaveCaption();
+    await tick(4999);
+    expect(video.play).not.toHaveBeenCalled();
+    await tick(1);
+    expect(video.play).toHaveBeenCalledTimes(1);
+  });
+  test("does not auto-play a video that was already manually paused", async () => {
+    setup(true);
+    await open();
+    leaveCaption();
+    await tick(2000);
+    expect(video.play).not.toHaveBeenCalled();
+  });
+  test("returning from the panel to the caption does not briefly resume playback", async () => {
+    setup();
+    await open();
+    leaveCaption();
+    const panel = document.querySelector(".kiss-word-tooltip");
+    point(panel, "pointerenter");
+    point(panel, "pointerleave", word);
+    point(caption, "pointerenter");
+    point(word, "pointerenter");
+    await tick(300);
+    expect(video.play).not.toHaveBeenCalled();
+    leaveCaption();
+    await tick(2000);
+    expect(video.play).toHaveBeenCalledTimes(1);
+  });
+  test("destroy while hover-paused clears dismissal without playing the old video", async () => {
+    setup();
+    await open();
+    leaveCaption();
+    manager.destroy();
+    manager = null;
+    await tick(10000);
+    expect(video.play).not.toHaveBeenCalled();
+    expect(document.querySelector(".kiss-word-tooltip")).toBeNull();
+  });
+  test("a manual play then pause clears ownership, and destroy cannot resume an old video", async () => {
+    setup();
+    await open();
+    leaveCaption();
+    await video.play();
+    paused = true;
+    video.play.mockClear();
+    await tick(2000);
+    expect(video.play).not.toHaveBeenCalled();
+    point(caption, "pointerenter");
+    point(word, "pointerenter");
+    await tick(300);
+    manager.destroy();
+    manager = null;
+    await tick(10000);
+    expect(video.play).not.toHaveBeenCalled();
   });
 });

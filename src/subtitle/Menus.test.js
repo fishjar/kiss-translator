@@ -10,6 +10,7 @@ function renderMenus({
   autoTranslate = true,
   updateSetting = jest.fn(),
   transApis = [],
+  ...props
 } = {}) {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -31,6 +32,7 @@ function renderMenus({
         updateSetting={updateSetting}
         downloadSubtitle={jest.fn()}
         transApis={transApis}
+        {...props}
       />
     );
   });
@@ -139,5 +141,92 @@ describe("subtitle Menus", () => {
     expect(view.container.textContent).not.toContain("Disabled API");
     expect(view.updateSetting).not.toHaveBeenCalled();
     view.cleanup();
+  });
+});
+
+describe("subtitle acquisition menu", () => {
+  test("separates acquisition, processing and download states", () => {
+    const view = renderMenus({
+      acquisition: {
+        phase: "ready",
+        track: { languageCode: "en", kind: "asr" },
+      },
+      progressed: 45,
+      canDownload: true,
+    });
+    expect(view.container.textContent).toContain("youtube_caption_generated");
+    expect(view.container.textContent).toContain("processing_subtitles 45%");
+    expect(view.container.textContent).toContain(
+      "youtube_caption_download_partial"
+    );
+    expect(view.container.textContent).not.toContain("[45%]");
+    view.cleanup();
+  });
+
+  test("provides independent fetch and translation retry actions", () => {
+    const retryAcquisition = jest.fn(),
+      retryTranslation = jest.fn(),
+      onClose = jest.fn();
+    const view = renderMenus({
+      acquisition: { phase: "error", code: "NETWORK" },
+      translationError: true,
+      retryAcquisition,
+      retryTranslation,
+      onClose,
+    });
+    const buttons = [...view.container.querySelectorAll('[role="button"]')];
+    const retry = buttons.find(
+      (b) => b.textContent === "youtube_caption_retry"
+    );
+    act(() =>
+      retry.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+      )
+    );
+    act(() =>
+      buttons
+        .find((b) => b.textContent === "youtube_caption_retry_translation")
+        .click()
+    );
+    expect(retryAcquisition).toHaveBeenCalledTimes(1);
+    expect(retryTranslation).toHaveBeenCalledTimes(1);
+    act(() =>
+      retry.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+      )
+    );
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(
+      buttons
+        .find((b) => b.textContent === "download_subtitles")
+        .getAttribute("aria-disabled")
+    ).toBe("true");
+    view.cleanup();
+  });
+
+  test("shows a real cooldown and unlocks retry at its deadline", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(1000);
+    const retryAcquisition = jest.fn();
+    const view = renderMenus({
+      acquisition: {
+        phase: "error",
+        code: "RATE_LIMITED",
+        cooldownUntil: 3000,
+      },
+      retryAcquisition,
+    });
+    const retry = [...view.container.querySelectorAll('[role="button"]')].find(
+      (b) => b.textContent === "youtube_caption_retry"
+    );
+    expect(view.container.textContent).toContain("(2s)");
+    act(() => retry.click());
+    expect(retryAcquisition).not.toHaveBeenCalled();
+    act(() => jest.advanceTimersByTime(2000));
+    expect(retry.getAttribute("aria-disabled")).toBe("false");
+    act(() => retry.click());
+    expect(retryAcquisition).toHaveBeenCalledTimes(1);
+    view.cleanup();
+    jest.useRealTimers();
   });
 });

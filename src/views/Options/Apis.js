@@ -3,7 +3,9 @@ import { useProviderI18n } from "../../hooks/ProviderI18n";
 import SensitiveTextField from "./SensitiveTextField";
 import QuickTranslationTest from "./QuickTranslationTest";
 import ThinkingOptions from "./ThinkingOptions";
-import useServiceFeedback, { describeConfigurationError } from "./ServiceFeedback";
+import useServiceFeedback, {
+  describeConfigurationError,
+} from "./ServiceFeedback";
 import CapabilityOptions from "./CapabilityOptions";
 import {
   ServiceFormHeader,
@@ -178,7 +180,6 @@ const QWEN_MT_MODELS = [
   "qwen-mt-turbo",
 ];
 
-
 function ApiFields({
   apiSlug,
   deleteApi,
@@ -345,10 +346,20 @@ function LegacyApiFields({
 
     if (["model", "modelRef"].includes(name)) {
       const baseData = formData?.apiSlug === apiSlug ? formData : api || {};
-      const supported = supportedApiCapabilities({ ...baseData, [name]: value });
+      const supported = supportedApiCapabilities({
+        ...baseData,
+        [name]: value,
+      });
       const previous = enabledApiCapabilities(baseData);
-      if (supported.length && !previous.some((item) => supported.includes(item)))
-        alert.info(i18n("plugin_model_switched_capabilities_supported_by_the_new_model_are_enabled_che"));
+      if (
+        supported.length &&
+        !previous.some((item) => supported.includes(item))
+      )
+        alert.info(
+          i18n(
+            "plugin_model_switched_capabilities_supported_by_the_new_model_are_enabled_che"
+          )
+        );
     }
 
     setFormData((prevData) => {
@@ -474,14 +485,18 @@ function LegacyApiFields({
       () =>
         validateEnabledCapabilities(
           projectApiCapabilities(nextFormData),
-          nextFormData.enabledCapabilities ?? enabledApiCapabilities(nextFormData)
+          nextFormData.enabledCapabilities ??
+            enabledApiCapabilities(nextFormData)
         ),
-      () => validateBuiltinSettingChanges(lastSyncedApiRef.current, nextFormData),
+      () =>
+        validateBuiltinSettingChanges(lastSyncedApiRef.current, nextFormData),
     ]) {
       try {
         validate();
       } catch (error) {
-        warnings.push(describeConfigurationError(error, builtinSettingFields, i18n));
+        warnings.push(
+          describeConfigurationError(error, builtinSettingFields, i18n)
+        );
       }
     }
     if (thinkingParam) {
@@ -505,7 +520,9 @@ function LegacyApiFields({
       if (warnings.length) {
         showFeedback({
           title: i18n("plugin_configuration_saved"),
-          message: i18n("plugin_configuration_saved_check_the_following_issues_before_using_this_servi").replace("{0}", () => warnings.join("\n")),
+          message: i18n(
+            "plugin_configuration_saved_check_the_following_issues_before_using_this_servi"
+          ).replace("{0}", () => warnings.join("\n")),
         });
       } else if (nextFormData.isDisabled || nextFormData.sortOrder === -1) {
         onCollapse?.();
@@ -534,7 +551,11 @@ function LegacyApiFields({
     try {
       copyApi(activeFormData);
     } catch (error) {
-      showFeedback({ title: i18n("plugin_operation_failed"), severity: "error", message: error.message });
+      showFeedback({
+        title: i18n("plugin_operation_failed"),
+        severity: "error",
+        message: error.message,
+      });
     }
   };
 
@@ -608,8 +629,7 @@ function LegacyApiFields({
   const hasAiTranslation = hasTranslation && API_SPE_TYPES.ai.has(apiType);
   const hasSegmentation = hasCapability("segmentSubtitle");
   const hasDictionary = hasCapability("dictionary");
-  const hasVlm =
-    hasCapability("parseImage");
+  const hasVlm = hasCapability("parseImage");
   const hasLanguageModel =
     API_SPE_TYPES.ai.has(apiType) &&
     (["translate", "segmentSubtitle", "dictionary", "summarize", "chat"].some(
@@ -618,12 +638,12 @@ function LegacyApiFields({
       hasVlm);
   const hasTextRuntime = hasAiTranslation || hasDictionary || hasSegmentation;
   const vlmPromptOptions = getVlmPromptOptions(prompts);
-  const selectedVlmPromptSlug = sourceType === "local" && !activeFormData.vlmPromptSlug
-    ? "" : vlmPromptOptions.some(
-    (p) => p.slug === activeFormData.vlmPromptSlug
-  )
-    ? activeFormData.vlmPromptSlug
-    : DEFAULT_VLM_PROMPT_SLUG;
+  const selectedVlmPromptSlug =
+    sourceType === "local" && !activeFormData.vlmPromptSlug
+      ? ""
+      : vlmPromptOptions.some((p) => p.slug === activeFormData.vlmPromptSlug)
+        ? activeFormData.vlmPromptSlug
+        : DEFAULT_VLM_PROMPT_SLUG;
   const contextForcesSerialBatch =
     useContext && API_SPE_TYPES.context.has(apiType);
 
@@ -1294,11 +1314,17 @@ function LegacyApiFields({
                     name="vlmPromptSlug"
                     value={selectedVlmPromptSlug}
                     SelectProps={{ displayEmpty: sourceType === "local" }}
-                    InputLabelProps={{ shrink: sourceType === "local" || undefined }}
+                    InputLabelProps={{
+                      shrink: sourceType === "local" || undefined,
+                    }}
                     label={i18n("vlm_prompt", "视觉解析提示词")}
                     onChange={handleChange}
                   >
-                    {sourceType === "local" && <MenuItem value="">{i18n("service_model_default_prompt")}</MenuItem>}
+                    {sourceType === "local" && (
+                      <MenuItem value="">
+                        {i18n("service_model_default_prompt")}
+                      </MenuItem>
+                    )}
                     {vlmPromptOptions.map((prompt) => (
                       <MenuItem key={prompt.slug} value={prompt.slug}>
                         {getPromptDisplayName(prompt, i18n)}
@@ -1316,7 +1342,9 @@ function LegacyApiFields({
             mode={thinkingMode}
             effort={selectedThinkingEffort}
             efforts={thinkingEfforts}
-            onChange={(name, value) => handleChange({ target: { name, value } })}
+            onChange={(name, value) =>
+              handleChange({ target: { name, value } })
+            }
             error={showUnknownThinkingWarning}
             helperText={
               showUnknownThinkingWarning
@@ -1725,7 +1753,8 @@ function ApiListItem({
     onSelect();
   };
 
-  const displayName = localizeServiceName(api, providerText) || getApiDisplayName(api);
+  const displayName =
+    localizeServiceName(api, providerText) || getApiDisplayName(api);
   const cardSelected = bulkMode ? checked : selected;
   const cardRef = useRef(null);
 

@@ -29,7 +29,9 @@ const mockUsePromptList = jest.fn(() => ({ prompts: [] }));
 
 jest.mock("../../hooks/I18n", () => {
   const i18n = (key, fallback) =>
-    /^(plugin_|capability_|service_|provider_plugins|api_source_type_)/.test(key)
+    /^(plugin_|capability_|service_|provider_plugins|api_source_type_)/.test(
+      key
+    )
       ? require("../../config/locales/localAi").LOCAL_AI_I18N[key]?.zh ||
         require("../../config/i18n").newI18n("zh")(key, fallback)
       : fallback || key;
@@ -142,19 +144,40 @@ function createApi(overrides = {}) {
 describe("service save feedback", () => {
   test("saves an out-of-range native draft before warning and keeps a pinned detail expanded", async () => {
     let complete;
-    const update = jest.fn(() => new Promise((resolve) => { complete = resolve; }));
+    const update = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        })
+    );
     const view = await renderApis(createApi({ sortOrder: -1 }), update);
-    await act(async () => Simulate.change(getInput(view.container, "temperature"), { target: { value: "5" } }));
-    await act(async () => Simulate.blur(getInput(view.container, "temperature")));
+    await act(async () =>
+      Simulate.change(getInput(view.container, "temperature"), {
+        target: { value: "5" },
+      })
+    );
+    await act(async () =>
+      Simulate.blur(getInput(view.container, "temperature"))
+    );
     await act(async () => Simulate.click(getSaveButton(view.container)));
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({ temperature: 5 }));
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ temperature: 5 })
+    );
     expect(document.querySelector('[role="dialog"]')).toBeNull();
     expect(getSaveButton(view.container).disabled).toBe(true);
     await act(async () => complete());
-    expect(document.querySelector('[role="dialog"]').textContent).toContain("配置已保存");
-    expect(document.querySelector('[role="dialog"]').textContent).toContain("temperature 数值超出");
+    expect(document.querySelector('[role="dialog"]').textContent).toContain(
+      "配置已保存"
+    );
+    expect(document.querySelector('[role="dialog"]').textContent).toContain(
+      "temperature 数值超出"
+    );
     expect(getInput(view.container, "temperature").value).toBe("5");
-    await act(async () => Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "知道了").click());
+    await act(async () =>
+      Array.from(document.querySelectorAll("button"))
+        .find((button) => button.textContent === "知道了")
+        .click()
+    );
     expect(update).toHaveBeenCalledTimes(1);
     view.unmount();
   });
@@ -162,22 +185,37 @@ describe("service save feedback", () => {
   test("native storage failure restores the edited draft after optimistic rollback and permits retry", async () => {
     const original = createApi();
     let fail;
-    const update = jest.fn(() => new Promise((_, reject) => { fail = reject; }));
+    const update = jest.fn(
+      () =>
+        new Promise((_, reject) => {
+          fail = reject;
+        })
+    );
     const view = await renderApis(original, update);
-    await act(async () => Simulate.change(getInput(view.container, "apiName"), { target: { name: "apiName", value: "Keep draft" } }));
+    await act(async () =>
+      Simulate.change(getInput(view.container, "apiName"), {
+        target: { name: "apiName", value: "Keep draft" },
+      })
+    );
     await act(async () => Simulate.click(getSaveButton(view.container)));
     const saved = update.mock.calls[0][0];
     await view.rerender([saved]);
     await view.rerender([original]);
     await act(async () => fail(new Error("写入失败")));
-    expect(document.querySelector('[role="dialog"]').textContent).toContain("保存失败");
+    expect(document.querySelector('[role="dialog"]').textContent).toContain(
+      "保存失败"
+    );
     expect(getInput(view.container, "apiName").value).toBe("Keep draft");
     expect(getSaveButton(view.container).disabled).toBe(false);
-    await act(async () => Array.from(document.querySelectorAll("button")).find((button) => button.textContent === "知道了").click());
+    await act(async () =>
+      Array.from(document.querySelectorAll("button"))
+        .find((button) => button.textContent === "知道了")
+        .click()
+    );
     update.mockResolvedValueOnce(undefined);
     await act(async () => Simulate.click(getSaveButton(view.container)));
     expect(update).toHaveBeenCalledTimes(2);
-    expect(document.querySelector('#service-feedback-title')).toBeNull();
+    expect(document.querySelector("#service-feedback-title")).toBeNull();
     view.unmount();
   });
 });
@@ -2646,7 +2684,13 @@ describe("service capability field filtering", () => {
   test("VLM only shows its prompt and shared generation fields once", async () => {
     const { PRESET_PROMPTS } = require("../../config/prompt");
     const view = await renderApis(
-      createApi({ apiType: "LocalAI", modelRef: "paddleocr-vl-1.6-onnx-q8", device: "webgpu", vlmPromptSlug: "vlm-document", enabledCapabilities: ["parseImage"] }),
+      createApi({
+        apiType: "LocalAI",
+        modelRef: "paddleocr-vl-1.6-onnx-q8",
+        device: "webgpu",
+        vlmPromptSlug: "vlm-document",
+        enabledCapabilities: ["parseImage"],
+      }),
       jest.fn(),
       PRESET_PROMPTS
     );
@@ -2741,7 +2785,9 @@ describe("service capability field filtering", () => {
         view.container.querySelector('[name="enabledCapabilities.transcribe"]')
       ).toBeNull();
       expect(mockAlertInfo).toHaveBeenCalledTimes(1);
-      expect(mockAlertInfo).toHaveBeenCalledWith("模型已切换，已启用新模型支持的能力，请检查能力选择");
+      expect(mockAlertInfo).toHaveBeenCalledWith(
+        "模型已切换，已启用新模型支持的能力，请检查能力选择"
+      );
       expect(view.container.textContent).not.toContain("模型已切换");
       expect(
         view.container.querySelector(".MuiAlert-standardError")

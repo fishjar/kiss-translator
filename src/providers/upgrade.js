@@ -32,7 +32,10 @@ export function instanceTestSignature(api) {
     api.enabledCapabilities,
     api.useBatchFetch,
     api.outputProtocol,
-    Object.keys(api.provider?.capabilities || {}).map((name) => [name, usesStreaming(api, name)]),
+    Object.keys(api.provider?.capabilities || {}).map((name) => [
+      name,
+      usesStreaming(api, name),
+    ]),
     api.batchPromptSlug,
     api.nobatchPromptSlug,
     api.dictPromptSlug,
@@ -91,21 +94,22 @@ export function serviceReferences(setting, rules, oldSlug, targetApi) {
           scope,
           path: next,
           capability:
-            key === "apiSlug" && ["recognizeText", "parseImage"].includes(node.capability)
+            key === "apiSlug" &&
+            ["recognizeText", "parseImage"].includes(node.capability)
               ? node.capability
               : key === "ttsApiSlug" &&
-            supportsProviderCapability(
-              targetApi ||
-                setting.transApis?.find((api) => api.apiSlug === oldSlug),
-              "speak"
-            ) &&
-            !supportsProviderCapability(
-              targetApi ||
-                setting.transApis?.find((api) => api.apiSlug === oldSlug),
-              "synthesizeSpeech"
-            )
-              ? "speak"
-              : references[key],
+                  supportsProviderCapability(
+                    targetApi ||
+                      setting.transApis?.find((api) => api.apiSlug === oldSlug),
+                    "speak"
+                  ) &&
+                  !supportsProviderCapability(
+                    targetApi ||
+                      setting.transApis?.find((api) => api.apiSlug === oldSlug),
+                    "synthesizeSpeech"
+                  )
+                ? "speak"
+                : references[key],
           label: `${scope}.${next.join(".")}`,
           ...(scope === "rules" && { anchor: JSON.stringify(rules[next[0]]) }),
         });

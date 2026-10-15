@@ -1,3 +1,4 @@
+import { YOUTUBE_CAPTIONS_I18N } from "./locales/youtubeCaptions";
 import { PROVIDER_PLUGINS_I18N } from "./locales/providerPlugins";
 import { POPUP_I18N } from "./i18n.popup";
 import { TOUCH_I18N } from "./i18n.touch";
@@ -21,6 +22,7 @@ export const UI_LANGS = [
 ];
 
 export const I18N = {
+  ...YOUTUBE_CAPTIONS_I18N,
   ...POPUP_I18N,
   ...TOUCH_I18N,
   ...SETTINGS_I18N,

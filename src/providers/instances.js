@@ -26,8 +26,11 @@ export function validateCapabilities(capabilities) {
       !/^[A-Za-z_$][\w$]*$/.test(descriptor.handler) ||
       forbidden.has(descriptor.handler) ||
       (descriptor.taskModes !== undefined &&
-        (!Array.isArray(descriptor.taskModes) || !descriptor.taskModes.length ||
-          descriptor.taskModes.some((mode) => !["doc", "table", "formula"].includes(mode)))) ||
+        (!Array.isArray(descriptor.taskModes) ||
+          !descriptor.taskModes.length ||
+          descriptor.taskModes.some(
+            (mode) => !["doc", "table", "formula"].includes(mode)
+          ))) ||
       (descriptor.inputModalities !== undefined &&
         (!Array.isArray(descriptor.inputModalities) ||
           !descriptor.inputModalities.length ||

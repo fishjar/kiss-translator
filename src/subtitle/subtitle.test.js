@@ -105,33 +105,39 @@ describe("runSubtitle", () => {
     jest.clearAllMocks();
   });
 
-  test.each(["disabled-api", "missing-api"])("does not fall back when the selected service %s is unavailable", (selectedSlug) => {
-    const disabledApi = {
-      apiSlug: "disabled-api",
-      apiName: "Disabled API",
-      apiType: "Microsoft",
-      isDisabled: true,
-    };
-    const enabledApi = {
-      apiSlug: "enabled-api",
-      apiName: "Enabled API",
-      apiType: "Microsoft",
-    };
+  test.each(["disabled-api", "missing-api"])(
+    "does not fall back when the selected service %s is unavailable",
+    (selectedSlug) => {
+      const disabledApi = {
+        apiSlug: "disabled-api",
+        apiName: "Disabled API",
+        apiType: "Microsoft",
+        isDisabled: true,
+      };
+      const enabledApi = {
+        apiSlug: "enabled-api",
+        apiName: "Enabled API",
+        apiType: "Microsoft",
+      };
 
-    runSubtitle({
-      href: "https://www.youtube.com/watch?v=video-1",
-      setting: {
-        subtitleSetting: {
-          enabled: true,
-          apiSlug: selectedSlug,
+      runSubtitle({
+        href: "https://www.youtube.com/watch?v=video-1",
+        setting: {
+          subtitleSetting: {
+            enabled: true,
+            apiSlug: selectedSlug,
+          },
+          transApis: [disabledApi, enabledApi],
         },
-        transApis: [disabledApi, enabledApi],
-      },
-    });
+      });
 
-    expect(YouTubeInitializer).not.toHaveBeenCalled();
-    expect(logger.error).toHaveBeenCalledWith("start subtitle provider failed", expect.any(Error));
-  });
+      expect(YouTubeInitializer).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith(
+        "start subtitle provider failed",
+        expect.any(Error)
+      );
+    }
+  );
 
   test("starts only the selected available service with the aligned runtime slug", () => {
     const selected = { apiSlug: "selected", apiType: "Microsoft" };

@@ -149,6 +149,7 @@ export class YouTubeSubtitleList {
     {
       enableHoverLookup = false,
       autoFavWord = false,
+      hoverLookupCloseDelay = 2,
       getSummaryConfig = null,
       getVideoMetadata = null,
     } = {}
@@ -255,6 +256,7 @@ export class YouTubeSubtitleList {
         getVideoContainer: () => this._getPlayerElement(),
         getTimestamp: () => this.videoEl.currentTime * 1000,
         autoFavWord: this.autoFavWord,
+        closeDelay: hoverLookupCloseDelay,
         i18n: this.i18n,
       });
     }
@@ -275,7 +277,8 @@ export class YouTubeSubtitleList {
    * 实际 DOM 重建会被 _scheduleVirtualRender 合并，避免滚动过程中每个事件都同步改 DOM。
    */
   handleSubtitleScroll() {
-    this._wordTooltipController?.clearHoverState();
+    if (!this._wordTooltipController?.isPanelInteractionActive)
+      this._wordTooltipController?.clearHoverState();
     this._scheduleVirtualRender();
   }
 
@@ -2510,9 +2513,7 @@ export class YouTubeSubtitleList {
       ) {
         return false;
       }
-      return (
-        isApiConfigured(api) && supportsApiCapability(api, "summarize")
-      );
+      return isApiConfigured(api) && supportsApiCapability(api, "summarize");
     });
 
     const popup = document.createElement("div");

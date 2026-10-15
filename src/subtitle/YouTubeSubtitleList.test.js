@@ -704,3 +704,37 @@ describe("YouTubeSubtitleList", () => {
     });
   });
 });
+
+test("list auto-scroll preserves the handoff delay and panel interaction", async () => {
+  jest.useFakeTimers();
+  require("../libs/storage.js").getWordsWithDefault.mockResolvedValue({});
+  apiMicrosoftDict.mockResolvedValue({ trs: [{ def: "definition" }] });
+  const videoEl = createVideoElement();
+  const manager = new YouTubeSubtitleList(videoEl, () => "", {
+    enableHoverLookup: true,
+    hoverLookupCloseDelay: 5,
+  });
+  try {
+    manager.initialize([{ ...subtitle }], [], 100);
+    renderVisibleSubtitleItems(manager);
+    const word = document.querySelector(".kiss-subtitle-word");
+    word.dispatchEvent(new Event("pointerenter"));
+    jest.advanceTimersByTime(300);
+    await flushPromises();
+    const panel = document.querySelector(".kiss-word-tooltip");
+    expect(panel).not.toBeNull();
+    word.dispatchEvent(new Event("pointerleave"));
+    manager.handleSubtitleScroll();
+    jest.advanceTimersByTime(4000);
+    expect(panel.isConnected).toBe(true);
+    panel.dispatchEvent(new Event("pointerenter"));
+    manager.handleSubtitleScroll();
+    jest.advanceTimersByTime(10000);
+    expect(panel.isConnected).toBe(true);
+    panel.dispatchEvent(new Event("pointerleave"));
+    expect(panel.isConnected).toBe(false);
+  } finally {
+    manager.destroy();
+    jest.useRealTimers();
+  }
+});

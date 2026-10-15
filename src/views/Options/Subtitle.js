@@ -38,7 +38,10 @@ import { supportsApiCapability } from "../../config/serviceSelection";
 import { usePromptList } from "../../hooks/Prompt";
 import ValidationInput from "../../hooks/ValidationInput";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { normalizeSubtitleMode } from "../../subtitle/modes";
+import {
+  normalizeSubtitleMode,
+  normalizeHoverLookupCloseDelay,
+} from "../../subtitle/modes";
 import {
   SettingsAdvanced,
   SettingsCard,
@@ -498,6 +501,7 @@ export default function SubtitleSetting() {
     blurTranslation = false,
     enhanceMode,
     hoverLookupMode,
+    hoverLookupCloseDelay,
     autoFavWord = false,
     showList = OPT_ENHANCE_MOBILE_OFF,
     skipAd = false,
@@ -950,6 +954,26 @@ export default function SubtitleSetting() {
                     label: i18n("disable_on_mobile"),
                   },
                 ]}
+              />
+            </SettingsRow>
+            <SettingsRow
+              label={i18n("subtitle_hover_lookup_close_delay")}
+              description={i18n(
+                "subtitle_hover_lookup_close_delay_description"
+              )}
+            >
+              <ValidationInput
+                size="small"
+                name="hoverLookupCloseDelay"
+                value={normalizeHoverLookupCloseDelay(hoverLookupCloseDelay)}
+                onChange={handleChange}
+                min={0}
+                max={30}
+                disabled={hoverLookupModeValue === OPT_ENHANCE_OFF}
+                inputProps={{
+                  "aria-label": i18n("subtitle_hover_lookup_close_delay"),
+                }}
+                sx={{ width: 130 }}
               />
             </SettingsRow>
             <SettingsRow label={i18n("auto_fav_word")}>

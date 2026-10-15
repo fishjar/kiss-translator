@@ -57,6 +57,9 @@ const extWebpack = (config, env) => {
     background: paths.appSrc + "/background.js", // 扩展后台常驻脚本
     content: paths.appSrc + "/content.js", // 内容注入核心脚本
     "injector-subtitle": paths.appSrc + "/injector-subtitle.js", // 字幕注入脚本
+    ...(process.env.REACT_APP_CLIENT === "firefox"
+      ? { "subtitle-bootstrap": paths.appSrc + "/subtitleBootstrap.js" }
+      : {}),
     "injector-shadowroot": paths.appSrc + "/injector-shadowroot.js", // ShadowRoot 拦截注入脚本
     "file-bridge": paths.appSrc + "/fileBridge.js",
   };
@@ -397,20 +400,45 @@ const webWebpack = (config, env) => {
   });
   config.plugins.push({
     apply(compiler) {
-      compiler.hooks.thisCompilation.tap("PdfAssets", compilation => {
-        compilation.hooks.processAssets.tap({name:"PdfAssets",stage:compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL}, () => {
-          const pdfRoot = path.dirname(require.resolve("pdfjs-dist/package.json"));
-          const katexRoot = path.join(path.dirname(require.resolve("katex/package.json")), "dist");
-          const emit = (source, target) => {
-            if (fs.statSync(source).isDirectory()) {
-              for (const name of fs.readdirSync(source)) emit(path.join(source,name),`${target}/${name}`);
-            } else compilation.emitAsset(target,new compiler.webpack.sources.RawSource(fs.readFileSync(source)));
-          };
-          emit(path.join(pdfRoot,"build/pdf.worker.min.mjs"),"assets/pdf/pdf.worker.min.mjs");
-          for (const dir of ["cmaps","standard_fonts","wasm"]) emit(path.join(pdfRoot,dir),`assets/pdf/${dir}`);
-          emit(path.join(katexRoot,"katex.min.css"),"assets/pdf/katex.min.css");
-          emit(path.join(katexRoot,"fonts"),"assets/pdf/fonts");
-        });
+      compiler.hooks.thisCompilation.tap("PdfAssets", (compilation) => {
+        compilation.hooks.processAssets.tap(
+          {
+            name: "PdfAssets",
+            stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+          },
+          () => {
+            const pdfRoot = path.dirname(
+              require.resolve("pdfjs-dist/package.json")
+            );
+            const katexRoot = path.join(
+              path.dirname(require.resolve("katex/package.json")),
+              "dist"
+            );
+            const emit = (source, target) => {
+              if (fs.statSync(source).isDirectory()) {
+                for (const name of fs.readdirSync(source))
+                  emit(path.join(source, name), `${target}/${name}`);
+              } else
+                compilation.emitAsset(
+                  target,
+                  new compiler.webpack.sources.RawSource(
+                    fs.readFileSync(source)
+                  )
+                );
+            };
+            emit(
+              path.join(pdfRoot, "build/pdf.worker.min.mjs"),
+              "assets/pdf/pdf.worker.min.mjs"
+            );
+            for (const dir of ["cmaps", "standard_fonts", "wasm"])
+              emit(path.join(pdfRoot, dir), `assets/pdf/${dir}`);
+            emit(
+              path.join(katexRoot, "katex.min.css"),
+              "assets/pdf/katex.min.css"
+            );
+            emit(path.join(katexRoot, "fonts"), "assets/pdf/fonts");
+          }
+        );
       });
     },
   });
