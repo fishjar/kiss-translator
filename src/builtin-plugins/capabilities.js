@@ -56,7 +56,13 @@ export function resolveBuiltinCapabilities(api) {
               "evaluate",
             ].includes(name) && { outputModes: ["complete"] }),
             ...(name === "recognizeText" && { coordinates: true }),
-            ...(name === "parseImage" && { coordinates: false, taskModes: api.modelRef === "unlimited-ocr-iq2m" ? ["doc"] : ["doc", "table", "formula"] }),
+            ...(name === "parseImage" && {
+              coordinates: false,
+              taskModes:
+                api.modelRef === "unlimited-ocr-iq2m"
+                  ? ["doc"]
+                  : ["doc", "table", "formula"],
+            }),
             ...(name === "transcribe" && { timestamps: true }),
           },
         ])

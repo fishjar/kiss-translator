@@ -1,17 +1,35 @@
 import { documentAssetPath } from "../document/assets";
 import { incrementalPdfBlocks } from "./incremental";
-import { documentRecognitionSelection, documentOcrBlocks, documentRecognitionKey } from "./recognition";
+import {
+  documentRecognitionSelection,
+  documentOcrBlocks,
+  documentRecognitionKey,
+} from "./recognition";
 import { PDFJS, renderPdfRegion } from "./pdfDocument";
 import {
   parseDocumentMarkdown,
   bindDocumentSources,
   tableCellsFromHtml,
 } from "../document/markdown";
-import { blockToMarkdown, buildLines, paragraphBlocks, TEXT_GEOMETRY_VERSION } from "./structure";
-import { textRegion, regionContainsText, sourceAnchor } from "./formulaGeometry";
+import {
+  blockToMarkdown,
+  buildLines,
+  paragraphBlocks,
+  TEXT_GEOMETRY_VERSION,
+} from "./structure";
+import {
+  textRegion,
+  regionContainsText,
+  sourceAnchor,
+} from "./formulaGeometry";
 import { pairEquationNumbers } from "./equationNumbers";
 import { nativeTableRegions } from "./nativeTables";
-import { deduplicateFormulaRegions, formulaContainsSpan, normalizeFormula, validateFormula } from "./formula";
+import {
+  deduplicateFormulaRegions,
+  formulaContainsSpan,
+  normalizeFormula,
+  validateFormula,
+} from "./formula";
 
 const check = (signal) => {
   if (signal?.aborted) throw new DOMException("已取消", "AbortError");
@@ -224,29 +242,63 @@ function simpleTable(spans, box) {
 }
 function readingBlocks(blocks) {
   return blocks.flatMap((block) => {
-    const sourceRanges = [], markdown = blockToMarkdown(block, sourceRanges);
-    const sourceAnchors = [...new Map((block.sourceAnchors || []).map((anchor) => [anchor.id, anchor])).values()];
+    const sourceRanges = [],
+      markdown = blockToMarkdown(block, sourceRanges);
+    const sourceAnchors = [
+      ...new Map(
+        (block.sourceAnchors || []).map((anchor) => [anchor.id, anchor])
+      ).values(),
+    ];
     return parseDocumentMarkdown(markdown, block.id).map((md, i) => {
       bindDocumentSources(md.ast, sourceRanges, markdown);
       if (block.equationNumber) {
-        const formulaIds = sourceAnchors.filter((anchor) => anchor.type === "formula").map((anchor) => anchor.id);
+        const formulaIds = sourceAnchors
+          .filter((anchor) => anchor.type === "formula")
+          .map((anchor) => anchor.id);
         const annotate = (node) => {
-          node.data = { ...node.data, pdfSourceIds: node.type === "text" &&
-            node.value.trim() === block.equationNumber.text && block.equationNumber.anchor
-            ? [block.equationNumber.anchor.id] : formulaIds };
+          node.data = {
+            ...node.data,
+            pdfSourceIds:
+              node.type === "text" &&
+              node.value.trim() === block.equationNumber.text &&
+              block.equationNumber.anchor
+                ? [block.equationNumber.anchor.id]
+                : formulaIds,
+          };
           node.children?.forEach(annotate);
         };
         annotate(md.ast);
       }
-      return { ...md, id: i ? `${block.id}-${i}` : block.id, type: block.type,
-        level: block.level, text: block.text, fragments: block.fragments, translationReady: block.translationReady,
-        source: block.source, cells: block.cells, relatedBlockId: block.relatedBlockId,
-        warning: block.warning, recognitionLines: block.recognitionLines, regionId: block.regionId,
-        sourceAnchors, equationNumber: block.equationNumber,
-        pendingSourceIds: block.recognitionPending ? sourceAnchors.filter((anchor) => anchor.type !== "formula_number").map((anchor) => anchor.id)
-          : (block.inlineMath || []).filter((formula) => formula.pending).map((formula) => formula.sourceAnchor?.id).filter(Boolean),
-        formulaDiagnostics: block.formulaDiagnostics || (block.inlineMath || [])
-          .map((formula) => formula.diagnostic).filter(Boolean) };
+      return {
+        ...md,
+        id: i ? `${block.id}-${i}` : block.id,
+        type: block.type,
+        level: block.level,
+        text: block.text,
+        fragments: block.fragments,
+        translationReady: block.translationReady,
+        source: block.source,
+        cells: block.cells,
+        relatedBlockId: block.relatedBlockId,
+        warning: block.warning,
+        recognitionLines: block.recognitionLines,
+        regionId: block.regionId,
+        sourceAnchors,
+        equationNumber: block.equationNumber,
+        pendingSourceIds: block.recognitionPending
+          ? sourceAnchors
+              .filter((anchor) => anchor.type !== "formula_number")
+              .map((anchor) => anchor.id)
+          : (block.inlineMath || [])
+              .filter((formula) => formula.pending)
+              .map((formula) => formula.sourceAnchor?.id)
+              .filter(Boolean),
+        formulaDiagnostics:
+          block.formulaDiagnostics ||
+          (block.inlineMath || [])
+            .map((formula) => formula.diagnostic)
+            .filter(Boolean),
+      };
     });
   });
 }
@@ -292,17 +344,22 @@ export async function detectPdfLayout(
     check(signal);
     const sx = viewport.width / result.imageSize.width;
     const sy = viewport.height / result.imageSize.height;
-    pageRegions[pageNo] = deduplicateFormulaRegions((result.regions || []).map((r) => ({
-      ...r,
-      enabled: true,
-      bbox: r.bbox.map((v, i) => v * (i % 2 ? sy : sx)),
-      polygon: (r.polygon || []).map(([x, y]) => [x * sx, y * sy]),
-    })));
-    onProgress?.({
-      stage: "布局检测",
-      done: pageNo,
-      total: pdf.numPages,
-    }, { ...pageRegions });
+    pageRegions[pageNo] = deduplicateFormulaRegions(
+      (result.regions || []).map((r) => ({
+        ...r,
+        enabled: true,
+        bbox: r.bbox.map((v, i) => v * (i % 2 ? sy : sx)),
+        polygon: (r.polygon || []).map(([x, y]) => [x * sx, y * sy]),
+      }))
+    );
+    onProgress?.(
+      {
+        stage: "布局检测",
+        done: pageNo,
+        total: pdf.numPages,
+      },
+      { ...pageRegions }
+    );
   }
   return pageRegions;
 }
@@ -332,7 +389,12 @@ export async function parsePdfDocument(
 ) {
   const installed = (id) =>
     models.some((m) => m.id === id && m.state === "installed");
-  const recognitionKey = documentRecognitionKey({ recognitionService, visionServiceSlug, vlmPromptSlug, services });
+  const recognitionKey = documentRecognitionKey({
+    recognitionService,
+    visionServiceSlug,
+    vlmPromptSlug,
+    services,
+  });
   const pageRegionsMap = {
     ...(layoutRegions || previous?.layoutRegions || {}),
   };
@@ -347,14 +409,25 @@ export async function parsePdfDocument(
     throw new MissingDocumentModel(decisionModel);
   const worker = new StructureWorker(),
     pages = [...(previous?.pages || [])],
-    assets = (previous?.assets || []).filter((asset) => !asset.name.includes("native-glyph-")),
-    warnings = (previous?.recognitionKey === recognitionKey ? previous?.warnings || [] : []).filter(
-      (w) => !retryRegion || w.page !== retryRegion.page
+    assets = (previous?.assets || []).filter(
+      (asset) => !asset.name.includes("native-glyph-")
     ),
-    pageBlocks = previous?.recognitionKey === recognitionKey ? [...(previous?.pageBlocks || [])] : [],
+    warnings = (
+      previous?.recognitionKey === recognitionKey
+        ? previous?.warnings || []
+        : []
+    ).filter((w) => !retryRegion || w.page !== retryRegion.page),
+    pageBlocks =
+      previous?.recognitionKey === recognitionKey
+        ? [...(previous?.pageBlocks || [])]
+        : [],
     cache = previous?.cache || new Map();
-  const completedPages = new Set(previous?.recognitionKey === recognitionKey
-    ? previous.completedPages || (previous.complete ? pages.map((page) => page.page) : []) : []);
+  const completedPages = new Set(
+    previous?.recognitionKey === recognitionKey
+      ? previous.completedPages ||
+        (previous.complete ? pages.map((page) => page.page) : [])
+      : []
+  );
   const snapshot = () => ({
     pages,
     assets: [...assets],
@@ -364,7 +437,9 @@ export async function parsePdfDocument(
     recognitionKey,
     cache,
     layoutRegions: pageRegionsMap,
-    blocks: readingBlocks(incrementalPdfBlocks(pageBlocks, pages, completedPages, pdf.numPages)),
+    blocks: readingBlocks(
+      incrementalPdfBlocks(pageBlocks, pages, completedPages, pdf.numPages)
+    ),
     complete: false,
   });
   let complete = false;
@@ -373,12 +448,26 @@ export async function parsePdfDocument(
     for (let index = 0; index < pages.length; index++) {
       if (pages[index].textGeometryVersion === TEXT_GEOMETRY_VERSION) continue;
       check(signal);
-      const page = await pdf.getPage(pages[index].page), viewport = page.getViewport({ scale: 1 });
+      const page = await pdf.getPage(pages[index].page),
+        viewport = page.getViewport({ scale: 1 });
       const content = await page.getTextContent({ includeMarkedContent: true });
       check(signal);
-      const repaired = await worker.request({ type: "page", content, page: pages[index].page,
-        viewport: { width: viewport.width, height: viewport.height, rotation: viewport.rotation,
-          transform: viewport.transform, scale: 1 }, regions: [] }, signal);
+      const repaired = await worker.request(
+        {
+          type: "page",
+          content,
+          page: pages[index].page,
+          viewport: {
+            width: viewport.width,
+            height: viewport.height,
+            rotation: viewport.rotation,
+            transform: viewport.transform,
+            scale: 1,
+          },
+          regions: [],
+        },
+        signal
+      );
       check(signal);
       pages[index] = { ...pages[index], ...repaired.raw };
       pageBlocks[index] = [];
@@ -447,7 +536,10 @@ export async function parsePdfDocument(
       }
     for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
       check(signal);
-      if (completedPages.has(pages[pageIndex].page) && retryRegion?.page !== pages[pageIndex].page)
+      if (
+        completedPages.has(pages[pageIndex].page) &&
+        retryRegion?.page !== pages[pageIndex].page
+      )
         continue;
       const raw = pages[pageIndex],
         page = await pdf.getPage(raw.page);
@@ -485,19 +577,36 @@ export async function parsePdfDocument(
       }
       regions = deduplicateFormulaRegions(regions || []);
       pageRegionsMap[raw.page] = regions;
-      const activeRegions = regions.filter((r) => r.enabled !== false).map((r) => ({ ...r }));
+      const activeRegions = regions
+        .filter((r) => r.enabled !== false)
+        .map((r) => ({ ...r }));
       const excludedRegions = (regions || []).filter(
         (r) => r.enabled === false
       );
-      const imageRegions = mode === "fast"
-        ? [...raw.graphics.images, ...vectorRegions(raw)]
-          .filter((r) => r.bbox[2] - r.bbox[0] > 30 && r.bbox[3] - r.bbox[1] > 30)
-          .filter((r) => !excludedRegions.some((ex) => centerInside(r.bbox, ex.bbox)))
-          .map((r) => ({ ...r, type: "image" })) : [];
-      const imageMasks = [...(regions || []).filter((r) => r.type === "image"), ...imageRegions];
-      const insideImage = (region) => imageMasks.some((image) =>
-        region.bbox[0] >= image.bbox[0] && region.bbox[1] >= image.bbox[1] &&
-        region.bbox[2] <= image.bbox[2] && region.bbox[3] <= image.bbox[3]);
+      const imageRegions =
+        mode === "fast"
+          ? [...raw.graphics.images, ...vectorRegions(raw)]
+              .filter(
+                (r) => r.bbox[2] - r.bbox[0] > 30 && r.bbox[3] - r.bbox[1] > 30
+              )
+              .filter(
+                (r) =>
+                  !excludedRegions.some((ex) => centerInside(r.bbox, ex.bbox))
+              )
+              .map((r) => ({ ...r, type: "image" }))
+          : [];
+      const imageMasks = [
+        ...(regions || []).filter((r) => r.type === "image"),
+        ...imageRegions,
+      ];
+      const insideImage = (region) =>
+        imageMasks.some(
+          (image) =>
+            region.bbox[0] >= image.bbox[0] &&
+            region.bbox[1] >= image.bbox[1] &&
+            region.bbox[2] <= image.bbox[2] &&
+            region.bbox[3] <= image.bbox[3]
+        );
 
       const usable = {
         ...raw,
@@ -527,22 +636,37 @@ export async function parsePdfDocument(
         (nativeText.match(/[\u0000-\u0008]/g) || []).length >
           nativeText.length * 0.05;
       const visual = badText
-        ? activeRegions.some((r) => ["text", "paragraph", "title", "table", "formula"].includes(r.type))
-          ? activeRegions.filter((r) => !["header", "footer", "number", "image", "inline-formula"].includes(r.type) && !insideImage(r))
-          : imageMasks.length ? [] : [
-            {
-              id: `scan-${raw.page}`,
-              type: "paragraph",
-              bbox: [0, 0, raw.width, raw.height],
-              order: 0,
-            },
-          ]
-        : activeRegions.filter((r) =>
-            (["table", "formula", "image"].includes(r.type) ||
-            (mode === "smart" && r.type === "inline-formula")) &&
-            (r.type === "image" || !insideImage(r))
+        ? activeRegions.some((r) =>
+            ["text", "paragraph", "title", "table", "formula"].includes(r.type)
+          )
+          ? activeRegions.filter(
+              (r) =>
+                ![
+                  "header",
+                  "footer",
+                  "number",
+                  "image",
+                  "inline-formula",
+                ].includes(r.type) && !insideImage(r)
+            )
+          : imageMasks.length
+            ? []
+            : [
+                {
+                  id: `scan-${raw.page}`,
+                  type: "paragraph",
+                  bbox: [0, 0, raw.width, raw.height],
+                  order: 0,
+                },
+              ]
+        : activeRegions.filter(
+            (r) =>
+              (["table", "formula", "image"].includes(r.type) ||
+                (mode === "smart" && r.type === "inline-formula")) &&
+              (r.type === "image" || !insideImage(r))
           );
-      if (badText && mode === "smart") visual.push(...activeRegions.filter((r) => r.type === "image"));
+      if (badText && mode === "smart")
+        visual.push(...activeRegions.filter((r) => r.type === "image"));
       const nativeTables = badText
         ? []
         : nativeTableRegions(usable).filter(
@@ -551,73 +675,165 @@ export async function parsePdfDocument(
               !excludedRegions.some((r) => centerInside(table.bbox, r.bbox))
           );
       // Missing font mappings need a complete source region, never a glyph crop.
-      const nativeParagraphs = paragraphBlocks(usable, buildLines(usable, activeRegions), activeRegions);
+      const nativeParagraphs = paragraphBlocks(
+        usable,
+        buildLines(usable, activeRegions),
+        activeRegions
+      );
       const fallbackOwners = new Map();
       for (const span of usable.spans) {
-        // eslint-disable-next-line no-control-regex
-        if (!/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffd]/.test(span.text) ||
-          visual.some((r) => ["formula", "inline-formula", "table"].includes(r.type) &&
-            textRegion(span.bbox, activeRegions)?.id === r.id)) continue;
-        const formula = activeRegions.find((r) => ["formula", "inline-formula"].includes(r.type) &&
-          textRegion(span.bbox, activeRegions)?.id === r.id);
-        const paragraph = activeRegions.find((r) => ["paragraph", "text", "heading", "caption"].includes(r.type) &&
-          textRegion(span.bbox, activeRegions)?.id === r.id);
-        const native = nativeParagraphs.find((block) => block.spanIds.includes(span.id));
-        const owner = formula || paragraph || (native && {
-          id: `native-paragraph-${native.id}`, type: "paragraph", bbox: native.bbox,
-          paragraphFallback: true,
-        });
-        if (owner) fallbackOwners.set(owner.id, { ...owner, nativeFallback: true,
-          nativeText: native?.text, warning: "PDF 字体字符映射无效，已保留完整原文区域" });
+        if (
+          // eslint-disable-next-line no-control-regex
+          !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffd]/.test(span.text) ||
+          visual.some(
+            (r) =>
+              ["formula", "inline-formula", "table"].includes(r.type) &&
+              textRegion(span.bbox, activeRegions)?.id === r.id
+          )
+        )
+          continue;
+        const formula = activeRegions.find(
+          (r) =>
+            ["formula", "inline-formula"].includes(r.type) &&
+            textRegion(span.bbox, activeRegions)?.id === r.id
+        );
+        const paragraph = activeRegions.find(
+          (r) =>
+            ["paragraph", "text", "heading", "caption"].includes(r.type) &&
+            textRegion(span.bbox, activeRegions)?.id === r.id
+        );
+        const native = nativeParagraphs.find((block) =>
+          block.spanIds.includes(span.id)
+        );
+        const owner =
+          formula ||
+          paragraph ||
+          (native && {
+            id: `native-paragraph-${native.id}`,
+            type: "paragraph",
+            bbox: native.bbox,
+            paragraphFallback: true,
+          });
+        if (owner)
+          fallbackOwners.set(owner.id, {
+            ...owner,
+            nativeFallback: true,
+            nativeText: native?.text,
+            warning: "PDF 字体字符映射无效，已保留完整原文区域",
+          });
       }
       const nativeFallbacks = [...fallbackOwners.values()];
-      const covered = (region) => nativeFallbacks.some((fallback) => fallback.type !== "inline-formula" &&
-        region.id !== fallback.id && formulaContainsSpan(region.bbox, fallback.bbox));
+      const covered = (region) =>
+        nativeFallbacks.some(
+          (fallback) =>
+            fallback.type !== "inline-formula" &&
+            region.id !== fallback.id &&
+            formulaContainsSpan(region.bbox, fallback.bbox)
+        );
       for (let index = activeRegions.length - 1; index >= 0; index--)
         if (covered(activeRegions[index])) activeRegions.splice(index, 1);
       for (const fallback of nativeFallbacks) {
-        const existing = activeRegions.findIndex((region) => region.id === fallback.id);
+        const existing = activeRegions.findIndex(
+          (region) => region.id === fallback.id
+        );
         if (existing >= 0) activeRegions[existing] = fallback;
         else activeRegions.push(fallback);
       }
-      const jobs = [...visual, ...nativeTables, ...imageRegions].filter((region) =>
-        !fallbackOwners.has(region.id) && !covered(region)).concat(nativeFallbacks)
-        .sort((a, b) => Number(b.type === "image") - Number(a.type === "image"));
-      jobs.filter((region) => region.type === "inline-formula").forEach((region) => { region.pendingRecognition = true; });
+      const jobs = [...visual, ...nativeTables, ...imageRegions]
+        .filter((region) => !fallbackOwners.has(region.id) && !covered(region))
+        .concat(nativeFallbacks)
+        .sort(
+          (a, b) => Number(b.type === "image") - Number(a.type === "image")
+        );
+      jobs
+        .filter((region) => region.type === "inline-formula")
+        .forEach((region) => {
+          region.pendingRecognition = true;
+        });
       const nativeSpans = usable.spans;
-      const formulas = jobs.filter((region) => ["formula", "inline-formula"].includes(region.type));
+      const formulas = jobs.filter((region) =>
+        ["formula", "inline-formula"].includes(region.type)
+      );
       // Unassigned native glyphs may extend beyond a formula's detection bounds.
-      usable.spans = usable.spans.filter((span) => textRegion(span.bbox, activeRegions) ||
-        !formulas.some((region) => Math.min(span.bbox[2], region.bbox[2]) > Math.max(span.bbox[0], region.bbox[0]) &&
-          Math.min(span.bbox[3], region.bbox[3]) > Math.max(span.bbox[1], region.bbox[1])));
-      usable.spans = usable.spans.filter((span) => !jobs.some((region) =>
-        !["image", "inline-formula"].includes(region.type) &&
-        textRegion(span.bbox, jobs)?.id === region.id));
+      usable.spans = usable.spans.filter(
+        (span) =>
+          textRegion(span.bbox, activeRegions) ||
+          !formulas.some(
+            (region) =>
+              Math.min(span.bbox[2], region.bbox[2]) >
+                Math.max(span.bbox[0], region.bbox[0]) &&
+              Math.min(span.bbox[3], region.bbox[3]) >
+                Math.max(span.bbox[1], region.bbox[1])
+          )
+      );
+      usable.spans = usable.spans.filter(
+        (span) =>
+          !jobs.some(
+            (region) =>
+              !["image", "inline-formula"].includes(region.type) &&
+              textRegion(span.bbox, jobs)?.id === region.id
+          )
+      );
       for (const region of jobs) {
-        if (region.type !== "inline-formula") special.push({ id: `p${raw.page}-${region.id}`, type: region.type,
-          markdown: region.type === "image" ? "_待提取图片…_" : "_待识别…_",
-          recognitionPending: true,
-          regionId: region.id, bbox: region.bbox, order: region.order, spanIds: [],
-          sourceAnchors: [sourceAnchor(raw.page, region)].filter(Boolean),
-          fragments: [{ page: raw.page, bbox: region.bbox, lineIds: [] }] });
+        if (region.type !== "inline-formula")
+          special.push({
+            id: `p${raw.page}-${region.id}`,
+            type: region.type,
+            markdown: region.type === "image" ? "_待提取图片…_" : "_待识别…_",
+            recognitionPending: true,
+            regionId: region.id,
+            bbox: region.bbox,
+            order: region.order,
+            spanIds: [],
+            sourceAnchors: [sourceAnchor(raw.page, region)].filter(Boolean),
+            fragments: [{ page: raw.page, bbox: region.bbox, lineIds: [] }],
+          });
       }
       const pairNumbers = (blocks) => {
         for (let index = warnings.length - 1; index >= 0; index--)
-          if (warnings[index].page === raw.page && warnings[index].id.startsWith("warning-tag-")) warnings.splice(index, 1);
-        return pairEquationNumbers(blocks, activeRegions, raw.width, (formula, message) =>
-          warnings.push({ id: `warning-tag-${raw.page}-${formula.regionId}`, page: raw.page,
-            regionId: formula.regionId, message }));
+          if (
+            warnings[index].page === raw.page &&
+            warnings[index].id.startsWith("warning-tag-")
+          )
+            warnings.splice(index, 1);
+        return pairEquationNumbers(
+          blocks,
+          activeRegions,
+          raw.width,
+          (formula, message) =>
+            warnings.push({
+              id: `warning-tag-${raw.page}-${formula.regionId}`,
+              page: raw.page,
+              regionId: formula.regionId,
+              message,
+            })
+        );
       };
       const publishPage = async (progress) => {
         check(signal);
-        const native = await worker.request({ type: "raw", raw: usable, regions: activeRegions }, signal);
-        pageBlocks[pageIndex] = await worker.request({ type: "order",
-          blocks: [...native.blocks, ...special], width: raw.width, height: raw.height }, signal);
+        const native = await worker.request(
+          { type: "raw", raw: usable, regions: activeRegions },
+          signal
+        );
+        pageBlocks[pageIndex] = await worker.request(
+          {
+            type: "order",
+            blocks: [...native.blocks, ...special],
+            width: raw.width,
+            height: raw.height,
+          },
+          signal
+        );
         pageBlocks[pageIndex] = pairNumbers(pageBlocks[pageIndex]);
         check(signal);
         onProgress?.(progress, snapshot());
       };
-      await publishPage({ stage: "恢复正文", page: raw.page, done: 0, total: jobs.length });
+      await publishPage({
+        stage: "恢复正文",
+        page: raw.page,
+        done: 0,
+        total: jobs.length,
+      });
       let finishedRegions = 0;
       for (const region of jobs) {
         check(signal);
@@ -625,61 +841,120 @@ export async function parsePdfDocument(
           cells,
           source = "native",
           warning = region.warning,
-          recognizedBlocks, recognitionCacheKey, formulaOutput;
+          recognizedBlocks,
+          recognitionCacheKey,
+          formulaOutput;
         const table =
           region.type === "table" && simpleTable(nativeSpans, region.bbox);
         if (table) {
           markdown = table.markdown;
           cells = table.cells;
-        } else if (region.type !== "image" && mode === "smart" &&
-          (!region.nativeFallback || (retryRegion?.page === raw.page && retryRegion?.regionId === region.id))) {
-          const task = ["formula", "inline-formula"].includes(region.type) ? "formula" : region.type === "table" ? "table" : "doc";
+        } else if (
+          region.type !== "image" &&
+          mode === "smart" &&
+          (!region.nativeFallback ||
+            (retryRegion?.page === raw.page &&
+              retryRegion?.regionId === region.id))
+        ) {
+          const task = ["formula", "inline-formula"].includes(region.type)
+            ? "formula"
+            : region.type === "table"
+              ? "table"
+              : "doc";
           try {
-            const selection = documentRecognitionSelection(task, recognitionService, visionServiceSlug);
-            const service = services.find((item) => item.apiSlug === selection.apiSlug);
-            const key = recognitionCacheKey = `recognition:v2:${JSON.stringify([selection, task, service?.recognitionSignature, vlmPromptSlug, raw.page, region.id, region.bbox])}`;
-            const refresh = cacheMode === "refresh" || (retryRegion?.page === raw.page && retryRegion?.regionId === region.id);
+            const selection = documentRecognitionSelection(
+              task,
+              recognitionService,
+              visionServiceSlug
+            );
+            const service = services.find(
+              (item) => item.apiSlug === selection.apiSlug
+            );
+            const key =
+              (recognitionCacheKey = `recognition:v2:${JSON.stringify([selection, task, service?.recognitionSignature, vlmPromptSlug, raw.page, region.id, region.bbox])}`);
+            const refresh =
+              cacheMode === "refresh" ||
+              (retryRegion?.page === raw.page &&
+                retryRegion?.regionId === region.id);
             if (refresh || !cache.has(key)) {
-              const masks = imageMasks.filter((image) =>
-                image.bbox[0] < region.bbox[2] && image.bbox[2] > region.bbox[0] &&
-                image.bbox[1] < region.bbox[3] && image.bbox[3] > region.bbox[1]).map((image) => image.bbox);
-              const blob = masks.length ? await renderPdfRegion(page, region.bbox, signal, 2, masks)
+              const masks = imageMasks
+                .filter(
+                  (image) =>
+                    image.bbox[0] < region.bbox[2] &&
+                    image.bbox[2] > region.bbox[0] &&
+                    image.bbox[1] < region.bbox[3] &&
+                    image.bbox[3] > region.bbox[1]
+                )
+                .map((image) => image.bbox);
+              const blob = masks.length
+                ? await renderPdfRegion(page, region.bbox, signal, 2, masks)
                 : await renderPdfRegion(page, region.bbox, signal, 2);
               const progressDone = finishedRegions;
-              const result = await client.recognize(blob, selection, signal, { taskMode: task, promptSlug: task === "doc" ? vlmPromptSlug : "", cacheMode: refresh ? "refresh" : cacheMode, onProgress: (event) => {
-                if (signal?.aborted) return;
-                onProgress?.({ stage: event.type === "cache-hit" ? "缓存命中" : "识别区域", page: raw.page,
-                  regionId: event.type === "inference" ? region.id : undefined, regionType: region.type,
-                  ...(event.type === "inference" && { startedAt: Date.now() }), done: progressDone, total: jobs.length }, snapshot());
-              } });
+              const result = await client.recognize(blob, selection, signal, {
+                taskMode: task,
+                promptSlug: task === "doc" ? vlmPromptSlug : "",
+                cacheMode: refresh ? "refresh" : cacheMode,
+                onProgress: (event) => {
+                  if (signal?.aborted) return;
+                  onProgress?.(
+                    {
+                      stage:
+                        event.type === "cache-hit" ? "缓存命中" : "识别区域",
+                      page: raw.page,
+                      regionId:
+                        event.type === "inference" ? region.id : undefined,
+                      regionType: region.type,
+                      ...(event.type === "inference" && {
+                        startedAt: Date.now(),
+                      }),
+                      done: progressDone,
+                      total: jobs.length,
+                    },
+                    snapshot()
+                  );
+                },
+              });
               check(signal);
               cache.set(key, result);
             }
             const recognized = cache.get(key);
             if (task === "formula") formulaOutput = recognized.text;
             if (selection.capability === "recognizeText")
-              recognizedBlocks = documentOcrBlocks(recognized, region.bbox, raw.page, `p${raw.page}-${region.id}`);
+              recognizedBlocks = documentOcrBlocks(
+                recognized,
+                region.bbox,
+                raw.page,
+                `p${raw.page}-${region.id}`
+              );
             const text = recognized.text
               .trim()
               .replace(/^```(?:html|markdown|latex)?\s*\n?/i, "")
               .replace(/\n?```$/, "");
-            const latex = task === "formula" ? normalizeFormula(formulaOutput) : "";
-            if (task === "formula") validateFormula(latex, region.type === "formula");
+            const latex =
+              task === "formula" ? normalizeFormula(formulaOutput) : "";
+            if (task === "formula")
+              validateFormula(latex, region.type === "formula");
             else if (!text) throw new Error("识别结果为空");
             if (region.nativeFallback) warning = undefined;
             if (region.type === "inline-formula") {
               region.latex = latex;
-              region.formulaDiagnostic = { regionId: region.id, output: formulaOutput };
+              region.formulaDiagnostic = {
+                regionId: region.id,
+                output: formulaOutput,
+              };
               delete region.inlineRecognitionFailed;
-              await publishPage({ stage: "恢复结构", page: raw.page, done: ++finishedRegions, total: jobs.length });
+              await publishPage({
+                stage: "恢复结构",
+                page: raw.page,
+                done: ++finishedRegions,
+                total: jobs.length,
+              });
               continue;
             }
-            markdown =
-              task === "formula"
-                ? `$$\n${latex}\n$$`
-                : text;
+            markdown = task === "formula" ? `$$\n${latex}\n$$` : text;
             if (task === "table") cells = tableCellsFromHtml(markdown);
-            source = selection.capability === "recognizeText" ? "ocr" : "vision";
+            source =
+              selection.capability === "recognizeText" ? "ocr" : "vision";
           } catch (e) {
             if (signal?.aborted) throw e;
             cache.delete(recognitionCacheKey);
@@ -687,7 +962,9 @@ export async function parsePdfDocument(
           }
         }
         if (region.type === "inline-formula") {
-          const coordinates = region.nativeFallback ? `-${region.bbox.map((value) => Math.round(value * 10)).join("-")}` : "";
+          const coordinates = region.nativeFallback
+            ? `-${region.bbox.map((value) => Math.round(value * 10)).join("-")}`
+            : "";
           const name = `page-${raw.page}-${region.id.replace(/[^\w-]/g, "")}${coordinates}.png`;
           let asset = assets.find((a) => a.name === name);
           if (!asset) {
@@ -697,15 +974,31 @@ export async function parsePdfDocument(
             assets.push(asset);
           }
           region.formulaMarkdown = `![第 ${raw.page} 页原公式](${documentAssetPath(asset.name)})`;
-          region.formulaDiagnostic = { regionId: region.id, output: formulaOutput || "", nativeText: region.nativeText, error: warning };
+          region.formulaDiagnostic = {
+            regionId: region.id,
+            output: formulaOutput || "",
+            nativeText: region.nativeText,
+            error: warning,
+          };
           delete region.inlineRecognitionFailed;
-          warnings.push({ id: `warning-${raw.page}-${region.id}`, page: raw.page,
-            regionId: region.id, message: warning || "行内公式未识别，已保留原图" });
-          await publishPage({ stage: "恢复结构", page: raw.page, done: ++finishedRegions, total: jobs.length });
+          warnings.push({
+            id: `warning-${raw.page}-${region.id}`,
+            page: raw.page,
+            regionId: region.id,
+            message: warning || "行内公式未识别，已保留原图",
+          });
+          await publishPage({
+            stage: "恢复结构",
+            page: raw.page,
+            done: ++finishedRegions,
+            total: jobs.length,
+          });
           continue;
         }
         if (!markdown) {
-          const coordinates = region.nativeFallback ? `-${region.bbox.map((value) => Math.round(value * 10)).join("-")}` : "";
+          const coordinates = region.nativeFallback
+            ? `-${region.bbox.map((value) => Math.round(value * 10)).join("-")}`
+            : "";
           const name = `page-${raw.page}-${region.id.replace(/[^\w-]/g, "")}${coordinates}.png`;
           let asset = assets.find((a) => a.name === name);
           if (!asset) {
@@ -725,26 +1018,56 @@ export async function parsePdfDocument(
             regionId: region.id,
             message: warning,
           });
-        special.splice(special.findIndex((block) => block.id === `p${raw.page}-${region.id}`), 1);
-        if (recognizedBlocks?.length) special.push(...recognizedBlocks.map((block, index) => ({ ...block, sourceAnchors: [sourceAnchor(raw.page, region)].filter(Boolean), order: region.order === undefined ? undefined : region.order + index / (recognizedBlocks.length + 1) })));
-        else special.push({
-          id: `p${raw.page}-${region.id}`,
-          regionId: region.id,
-          sourceAnchors: [sourceAnchor(raw.page, region)].filter(Boolean),
-          type: region.type,
-          markdown,
-          cells,
-          source,
-          warning,
-          formulaDiagnostics: region.type === "formula" || region.nativeFallback
-            ? [{ regionId: region.id, output: formulaOutput || "", nativeText: region.nativeText, error: warning }] : undefined,
-          text: region.type === "image" ? "" : markdown,
-          bbox: region.bbox,
-          order: region.order,
-          fragments: [{ page: raw.page, bbox: region.bbox, lineIds: [] }],
-          spanIds: [],
+        special.splice(
+          special.findIndex(
+            (block) => block.id === `p${raw.page}-${region.id}`
+          ),
+          1
+        );
+        if (recognizedBlocks?.length)
+          special.push(
+            ...recognizedBlocks.map((block, index) => ({
+              ...block,
+              sourceAnchors: [sourceAnchor(raw.page, region)].filter(Boolean),
+              order:
+                region.order === undefined
+                  ? undefined
+                  : region.order + index / (recognizedBlocks.length + 1),
+            }))
+          );
+        else
+          special.push({
+            id: `p${raw.page}-${region.id}`,
+            regionId: region.id,
+            sourceAnchors: [sourceAnchor(raw.page, region)].filter(Boolean),
+            type: region.type,
+            markdown,
+            cells,
+            source,
+            warning,
+            formulaDiagnostics:
+              region.type === "formula" || region.nativeFallback
+                ? [
+                    {
+                      regionId: region.id,
+                      output: formulaOutput || "",
+                      nativeText: region.nativeText,
+                      error: warning,
+                    },
+                  ]
+                : undefined,
+            text: region.type === "image" ? "" : markdown,
+            bbox: region.bbox,
+            order: region.order,
+            fragments: [{ page: raw.page, bbox: region.bbox, lineIds: [] }],
+            spanIds: [],
+          });
+        await publishPage({
+          stage: "恢复结构",
+          page: raw.page,
+          done: ++finishedRegions,
+          total: jobs.length,
         });
-        await publishPage({ stage: "恢复结构", page: raw.page, done: ++finishedRegions, total: jobs.length });
       }
       if (badText && mode === "fast")
         warnings.push({
@@ -828,7 +1151,9 @@ export async function parsePdfDocument(
     return {
       ...snapshot(),
       ir: { pages, blocks: merged, readingOrder: merged.map((b) => b.id) },
-      blocks: readingBlocks(merged.map((block) => ({ ...block, translationReady: true }))),
+      blocks: readingBlocks(
+        merged.map((block) => ({ ...block, translationReady: true }))
+      ),
       complete,
     };
   } catch (e) {

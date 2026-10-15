@@ -85,7 +85,10 @@ export class FileTranslationClient {
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
     this.reconnectAt = null;
-    this.notify({ type: "connecting", reconnecting: reconnecting || !!this.reconnectAttempts });
+    this.notify({
+      type: "connecting",
+      reconnecting: reconnecting || !!this.reconnectAttempts,
+    });
     this.reconnectEnabled = true;
     if (!reconnecting && extensionId) this.reconnectExtensionId = extensionId;
     extensionId = extensionId || this.reconnectExtensionId;
@@ -110,7 +113,9 @@ export class FileTranslationClient {
           "EXTENSION_MISSING",
           "未连接兼容扩展，请安装或更新 Edge、Chrome 或 Firefox 扩展"
         );
-      const selected = bridges.find((bridge) => bridge.extensionId === extensionId);
+      const selected = bridges.find(
+        (bridge) => bridge.extensionId === extensionId
+      );
       if (!selected && bridges.length > 1) {
         const error = fileError(
           "MULTIPLE_EXTENSIONS",
@@ -146,28 +151,38 @@ export class FileTranslationClient {
       }, 20000);
       this.notify({ type: "connected", session: this.session, reconnecting });
       return this.session;
-    })().catch((error) => {
-      if (!this.disposed && version === (this.connectionVersion || 0)) {
-        // A silent port can still be present in the content script. Release it
-        // before discovery so the next attempt opens a fresh backend connection.
-        this.post({ type: "disconnect" });
-        this.bridge = null;
-        this.finishDiscovery = null;
-        clearTimeout(this.discoveryTimer);
-        if (["MULTIPLE_EXTENSIONS", "INCOMPATIBLE_PROTOCOL"].includes(error.code))
-          this.reconnectEnabled = false;
-        this.notify({ type: "reconnectFailed", error });
-        this.scheduleReconnect();
-      }
-      throw error;
-    }).finally(() => {
-      if (this.connecting === attempt) this.connecting = null;
-    });
+    })()
+      .catch((error) => {
+        if (!this.disposed && version === (this.connectionVersion || 0)) {
+          // A silent port can still be present in the content script. Release it
+          // before discovery so the next attempt opens a fresh backend connection.
+          this.post({ type: "disconnect" });
+          this.bridge = null;
+          this.finishDiscovery = null;
+          clearTimeout(this.discoveryTimer);
+          if (
+            ["MULTIPLE_EXTENSIONS", "INCOMPATIBLE_PROTOCOL"].includes(
+              error.code
+            )
+          )
+            this.reconnectEnabled = false;
+          this.notify({ type: "reconnectFailed", error });
+          this.scheduleReconnect();
+        }
+        throw error;
+      })
+      .finally(() => {
+        if (this.connecting === attempt) this.connecting = null;
+      });
     this.connecting = attempt;
     return attempt;
   }
 
-  request(method, params = {}, { signal, timeoutMs = 300000, onProgress } = {}) {
+  request(
+    method,
+    params = {},
+    { signal, timeoutMs = 300000, onProgress } = {}
+  ) {
     if (signal?.aborted)
       return Promise.reject(new DOMException("已取消", "AbortError"));
     if (this.disposed || (!this.session && method !== "handshake"))
@@ -276,21 +291,32 @@ export class FileTranslationClient {
   }
 
   recognize(file, selection, signal, options = {}) {
-    return this.uploadImage(file, "recognizeImage", {
-      serviceId: selection?.apiSlug,
-      capability: selection?.capability,
-      taskMode: options.taskMode || "doc",
-      promptSlug: options.promptSlug || "",
-      requireCoordinates: options.requireCoordinates === true,
-      cacheMode: options.cacheMode,
-    }, signal, options.onProgress);
+    return this.uploadImage(
+      file,
+      "recognizeImage",
+      {
+        serviceId: selection?.apiSlug,
+        capability: selection?.capability,
+        taskMode: options.taskMode || "doc",
+        promptSlug: options.promptSlug || "",
+        requireCoordinates: options.requireCoordinates === true,
+        cacheMode: options.cacheMode,
+      },
+      signal,
+      options.onProgress
+    );
   }
 
   analyzeLayout(file, modelId, device, signal, serviceId, cacheMode) {
     return this.uploadImage(
       file,
       "analyzeLayout",
-      { modelId, device, ...(serviceId && { serviceId }), ...(cacheMode && { cacheMode }) },
+      {
+        modelId,
+        device,
+        ...(serviceId && { serviceId }),
+        ...(cacheMode && { cacheMode }),
+      },
       signal
     );
   }
@@ -316,7 +342,11 @@ export class FileTranslationClient {
           { signal }
         );
       }
-      return await this.request(method, { uploadId, ...params }, { signal, onProgress });
+      return await this.request(
+        method,
+        { uploadId, ...params },
+        { signal, onProgress }
+      );
     } finally {
       if (this.session)
         this.request("cancel", { uploadId }, { timeoutMs: 10000 }).catch(
@@ -336,7 +366,12 @@ export function translateFileText(text, scene, _setting, signal, context = {}) {
   return getFileClient()
     .request(
       "translateText",
-      { text, kind: context.kind || "txt", scene, cacheMode: context.cacheMode },
+      {
+        text,
+        kind: context.kind || "txt",
+        scene,
+        cacheMode: context.cacheMode,
+      },
       { signal }
     )
     .then((result) => result.text);

@@ -12,7 +12,13 @@ async function request(api, ctx, service, method, payload) {
   resolveModelTarget(service, target);
   let eventError;
   const result = await runtimeHost.request(
-    { id: ctx.requestId, service, method, payload: { ...data, ...target }, options: { cacheMode } },
+    {
+      id: ctx.requestId,
+      service,
+      method,
+      payload: { ...data, ...target },
+      options: { cacheMode },
+    },
     {
       signal: ctx.signal,
       onProgress: (p) => {
@@ -115,11 +121,19 @@ export const localHandlers = {
     };
   },
   async parseImage(input, api, ctx) {
-    const { resolveOcrVlmPrompt } = await import("../localAi/core/ocrVlmPrompts");
-    return localHandlers.recognizeText({
-      ...input,
-      prompt: input.prompt ?? resolveOcrVlmPrompt(api.modelRef, input.mode || "doc"),
-    }, api, ctx);
+    const { resolveOcrVlmPrompt } = await import(
+      "../localAi/core/ocrVlmPrompts"
+    );
+    return localHandlers.recognizeText(
+      {
+        ...input,
+        prompt:
+          input.prompt ??
+          resolveOcrVlmPrompt(api.modelRef, input.mode || "doc"),
+      },
+      api,
+      ctx
+    );
   },
   async analyzeLayout(input, api, ctx) {
     const result = await request(api, ctx, "doc", "analyze", {

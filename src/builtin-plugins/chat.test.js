@@ -14,8 +14,12 @@ import {
 } from "../config/api";
 const ctx = () => ({ signal: new AbortController().signal });
 const originalCrypto = global.crypto;
-beforeAll(() => { global.crypto = webcrypto; });
-afterAll(() => { global.crypto = originalCrypto; });
+beforeAll(() => {
+  global.crypto = webcrypto;
+});
+afterAll(() => {
+  global.crypto = originalCrypto;
+});
 const input = {
   messages: [
     { role: "system", content: "literal {{text}}" },

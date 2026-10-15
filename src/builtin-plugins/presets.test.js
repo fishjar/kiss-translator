@@ -20,14 +20,25 @@ import { createBuiltinInstance } from "./index";
 test("compiled presets preserve unrelated approved defaults while enabling streaming by default", () => {
   expect(DEFAULT_API_LIST).toHaveLength(baseline.presetCount);
   expect(
-    createHash("sha256").update(JSON.stringify(DEFAULT_API_LIST.map((api) => ({
-      ...api,
-      ...(api.apiType === OPT_TRANS_LOCALAI && { vlmPromptSlug: "vlm-document" }),
-      // The historical baseline predates the explicitly requested streaming default.
-      useStream: NATIVE_PRESET_OVERRIDES[api.apiType].useStream ?? false,
-    })))).digest("hex")
+    createHash("sha256")
+      .update(
+        JSON.stringify(
+          DEFAULT_API_LIST.map((api) => ({
+            ...api,
+            ...(api.apiType === OPT_TRANS_LOCALAI && {
+              vlmPromptSlug: "vlm-document",
+            }),
+            // The historical baseline predates the explicitly requested streaming default.
+            useStream: NATIVE_PRESET_OVERRIDES[api.apiType].useStream ?? false,
+          }))
+        )
+      )
+      .digest("hex")
   ).toBe(baseline.sha256);
-  expect(DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_LOCALAI).vlmPromptSlug).toBe("");
+  expect(
+    DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_LOCALAI)
+      .vlmPromptSlug
+  ).toBe("");
   expect(DEFAULT_API_SETTING.apiType).toBe(OPT_TRANS_MICROSOFT);
   for (const api of DEFAULT_API_LIST)
     expect(api.useStream).toBe(api.apiType !== OPT_TRANS_QWENMT);
@@ -38,8 +49,12 @@ test("compiled presets preserve unrelated approved defaults while enabling strea
 });
 
 test("new native instances inherit streaming presets", () => {
-  expect(createBuiltinInstance(OPT_TRANS_QWENMT, "qwen", "QwenMT").useStream).toBe(false);
-  expect(createBuiltinInstance(OPT_TRANS_OPENAI, "openai", "OpenAI").useStream).toBe(true);
+  expect(
+    createBuiltinInstance(OPT_TRANS_QWENMT, "qwen", "QwenMT").useStream
+  ).toBe(false);
+  expect(
+    createBuiltinInstance(OPT_TRANS_OPENAI, "openai", "OpenAI").useStream
+  ).toBe(true);
 });
 
 test("public SDK dictionary and native language aliases preserve every previous mapping", () => {

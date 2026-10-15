@@ -116,46 +116,62 @@ export function ModelStatus({
   );
 }
 
-export function UnloadModelButton({ client, runtime, onError, cacheable = true }) {
+export function UnloadModelButton({
+  client,
+  runtime,
+  onError,
+  cacheable = true,
+}) {
   const i18n = useI18n();
   const [unloading, setUnloading] = useState(false);
   const [ignoreCache, setIgnoreCache] = useState(false);
   useEffect(() => {
-    if (client && cacheable) client.cacheMode = ignoreCache ? "refresh" : "default";
+    if (client && cacheable)
+      client.cacheMode = ignoreCache ? "refresh" : "default";
   }, [client, ignoreCache, cacheable]);
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      {cacheable && <FormControlLabel label={i18n("local_ai_ignore_cache", "忽略缓存")}
-        control={<Checkbox size="small" checked={ignoreCache} disabled={runtime.busy || unloading}
-          onChange={(event) => setIgnoreCache(event.target.checked)} />} />}
-    <Tooltip
-      title={i18n(
-        "local_ai_unload_current",
-        "卸载该服务当前驻留模型，保留已安装文件"
+      {cacheable && (
+        <FormControlLabel
+          label={i18n("local_ai_ignore_cache", "忽略缓存")}
+          control={
+            <Checkbox
+              size="small"
+              checked={ignoreCache}
+              disabled={runtime.busy || unloading}
+              onChange={(event) => setIgnoreCache(event.target.checked)}
+            />
+          }
+        />
       )}
-    >
-      <span>
-        <Button
-          size="small"
-          variant="outlined"
-          disabled={!runtime.state?.modelId || runtime.busy || unloading}
-          onClick={async () => {
-            setUnloading(true);
-            try {
-              await client.unload();
-            } catch (e) {
-              onError(e instanceof Error ? e.message : String(e));
-            } finally {
-              setUnloading(false);
-            }
-          }}
-        >
-          {unloading
-            ? i18n("local_ai_unloading", "卸载中…")
-            : i18n("local_ai_unload_model", "卸载模型")}
-        </Button>
-      </span>
-    </Tooltip>
+      <Tooltip
+        title={i18n(
+          "local_ai_unload_current",
+          "卸载该服务当前驻留模型，保留已安装文件"
+        )}
+      >
+        <span>
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={!runtime.state?.modelId || runtime.busy || unloading}
+            onClick={async () => {
+              setUnloading(true);
+              try {
+                await client.unload();
+              } catch (e) {
+                onError(e instanceof Error ? e.message : String(e));
+              } finally {
+                setUnloading(false);
+              }
+            }}
+          >
+            {unloading
+              ? i18n("local_ai_unloading", "卸载中…")
+              : i18n("local_ai_unload_model", "卸载模型")}
+          </Button>
+        </span>
+      </Tooltip>
     </Box>
   );
 }

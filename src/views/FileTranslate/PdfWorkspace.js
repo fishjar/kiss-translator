@@ -1,4 +1,8 @@
-import { documentRecognitionSelection, documentOcrBlocks, documentRecognitionKey } from "../../libs/pdf/recognition";
+import {
+  documentRecognitionSelection,
+  documentOcrBlocks,
+  documentRecognitionKey,
+} from "../../libs/pdf/recognition";
 import { runTranslationTasks } from "../../libs/translationTasks";
 import TocDrawer from "./TocDrawer";
 import {
@@ -63,7 +67,10 @@ import {
   translateDocumentBlocks,
 } from "../../libs/document/markdown";
 import { exportDocument } from "../../libs/document/export";
-import { DocumentAssetPreview, normalizeDocumentAssets } from "../../libs/document/assets";
+import {
+  DocumentAssetPreview,
+  normalizeDocumentAssets,
+} from "../../libs/document/assets";
 import PdfPage from "./PdfPage";
 import ReaderAlert from "./ReaderAlert";
 import "katex/dist/katex.min.css";
@@ -71,35 +78,100 @@ import "./PdfWorkspace.css";
 
 const sourceFragments = (block, ids) => {
   const anchors = block?.sourceAnchors || [];
-  const body = anchors.filter((anchor) => !["formula", "inline-formula", "formula_number"].includes(anchor.type));
-  const selected = ids?.length ? anchors.filter((anchor) => ids.includes(anchor.id)) :
-    body.length ? body : ["formula", "inline-formula"].includes(block?.type) ? anchors : [];
-  return (selected.length ? selected : block?.fragments || []).filter((fragment) =>
-    Number.isInteger(fragment.page) && fragment.page > 0 && fragment.bbox?.length === 4 &&
-    fragment.bbox.every(Number.isFinite) && fragment.bbox[2] > fragment.bbox[0] && fragment.bbox[3] > fragment.bbox[1]);
+  const body = anchors.filter(
+    (anchor) =>
+      !["formula", "inline-formula", "formula_number"].includes(anchor.type)
+  );
+  const selected = ids?.length
+    ? anchors.filter((anchor) => ids.includes(anchor.id))
+    : body.length
+      ? body
+      : ["formula", "inline-formula"].includes(block?.type)
+        ? anchors
+        : [];
+  return (selected.length ? selected : block?.fragments || []).filter(
+    (fragment) =>
+      Number.isInteger(fragment.page) &&
+      fragment.page > 0 &&
+      fragment.bbox?.length === 4 &&
+      fragment.bbox.every(Number.isFinite) &&
+      fragment.bbox[2] > fragment.bbox[0] &&
+      fragment.bbox[3] > fragment.bbox[1]
+  );
 };
 
-function SourceToolbar({ block, sourceIds, busy, connected, locate, recognizeImage, i18n }) {
+function SourceToolbar({
+  block,
+  sourceIds,
+  busy,
+  connected,
+  locate,
+  recognizeImage,
+  i18n,
+}) {
   const [anchor, setAnchor] = useState(null);
-  const fragments = sourceFragments(block, sourceIds), pages = [...new Set(fragments.map((fragment) => fragment.page))];
+  const fragments = sourceFragments(block, sourceIds),
+    pages = [...new Set(fragments.map((fragment) => fragment.page))];
   const label = (key, fallback) => i18n?.(key, fallback) || fallback;
   if (!fragments.length && block.type !== "image") return null;
-  return <Paper className="kt-pdf-block-actions" elevation={2} onClick={(event) => event.stopPropagation()}>
-    {block.type === "image" && <Button size="small" disabled={busy || !connected}
-      onClick={() => recognizeImage(block)}>{label("pdf_recognize_image_text", "识别图中文字")}</Button>}
-    {fragments.length > 0 && <Button size="small" sx={{ whiteSpace: "nowrap" }} onClick={() => locate(block, undefined, sourceIds)}>
-      {label("pdf_locate_source", "定位原文")} · {label("pdf_source_page", "第 $1 页").replace("$1", pages.join(", "))}
-    </Button>}
-    {pages.length > 1 && <>
-      <IconButton size="small" aria-label={label("pdf_locate_page", "选择原文页码")}
-        onClick={(event) => setAnchor(event.currentTarget)}><ExpandMoreRoundedIcon fontSize="small" /></IconButton>
-      <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
-        {pages.map((page) => <MenuItem key={page} onClick={() => { setAnchor(null); locate(block, page, sourceIds); }}>
-          {(i18n?.("pdf_source_page", "第 $1 页") || "第 $1 页").replace("$1", String(page))}
-        </MenuItem>)}
-      </Menu>
-    </>}
-  </Paper>;
+  return (
+    <Paper
+      className="kt-pdf-block-actions"
+      elevation={2}
+      onClick={(event) => event.stopPropagation()}
+    >
+      {block.type === "image" && (
+        <Button
+          size="small"
+          disabled={busy || !connected}
+          onClick={() => recognizeImage(block)}
+        >
+          {label("pdf_recognize_image_text", "识别图中文字")}
+        </Button>
+      )}
+      {fragments.length > 0 && (
+        <Button
+          size="small"
+          sx={{ whiteSpace: "nowrap" }}
+          onClick={() => locate(block, undefined, sourceIds)}
+        >
+          {label("pdf_locate_source", "定位原文")} ·{" "}
+          {label("pdf_source_page", "第 $1 页").replace("$1", pages.join(", "))}
+        </Button>
+      )}
+      {pages.length > 1 && (
+        <>
+          <IconButton
+            size="small"
+            aria-label={label("pdf_locate_page", "选择原文页码")}
+            onClick={(event) => setAnchor(event.currentTarget)}
+          >
+            <ExpandMoreRoundedIcon fontSize="small" />
+          </IconButton>
+          <Menu
+            anchorEl={anchor}
+            open={Boolean(anchor)}
+            onClose={() => setAnchor(null)}
+          >
+            {pages.map((page) => (
+              <MenuItem
+                key={page}
+                onClick={() => {
+                  setAnchor(null);
+                  locate(block, page, sourceIds);
+                }}
+              >
+                {(i18n?.("pdf_source_page", "第 $1 页") || "第 $1 页").replace(
+                  "$1",
+                  String(page)
+                )}
+              </MenuItem>
+            ))}
+          </Menu>
+        </>
+      )}
+    </Paper>
+  );
 }
 
 const PREF_KEY = "kiss_pdf_reader";
@@ -149,8 +221,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     if (Array.isArray(context?.services)) {
       return context.services.some(
         (api) =>
-          !api.isDisabled &&
-          api.enabledCapabilities?.includes("analyzeLayout")
+          !api.isDisabled && api.enabledCapabilities?.includes("analyzeLayout")
       );
     }
     return true;
@@ -175,11 +246,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         : null;
     }
     return null;
-  }, [
-    activeLayoutApi,
-    context?.services,
-    scene.layoutApiSlug,
-  ]);
+  }, [activeLayoutApi, context?.services, scene.layoutApiSlug]);
   const [localScene, setLocalScene] = useState(scene),
     [pref, setPref] = useState(preferences),
     [pdf, setPdf] = useState(null),
@@ -234,9 +301,10 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     raf = useRef(null),
     anchor = useRef(null);
   const hasLayoutResult = Boolean(Object.keys(layoutRegions).length);
-  const busy = ["opening", "parsing", "translating", "detecting"].includes(
-    phase
-  ) || translationBusy || automaticBusy;
+  const busy =
+    ["opening", "parsing", "translating", "detecting"].includes(phase) ||
+    translationBusy ||
+    automaticBusy;
   blocksRef.current = blocks;
   const config = { ...scene, ...localScene };
   useEffect(() => {
@@ -351,10 +419,20 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
   const activeToc = toc.filter((e) => e.page <= pageNumber).at(-1)?.id;
   const warnings = result?.warnings || [],
     failed = blocks.filter((b) => b.status === "error");
-  const progressStageKey = { "识别区域": "pdf_recognizing_region", "恢复正文": "pdf_restore_native", "恢复结构": "pdf_restore_structure", "缓存命中": "file_cache_hit" }[progress?.stage];
-  const progressStage = i18n?.(progressStageKey, progress?.stage) || progress?.stage;
-  const regionLabel = { "inline-formula": ["pdf_inline_formula", "行内公式"], formula: ["pdf_formula", "公式"],
-    table: ["pdf_table", "表格"], image: ["pdf_image", "图片"] }[progress?.regionType] || ["pdf_text_region", "文字区域"];
+  const progressStageKey = {
+    识别区域: "pdf_recognizing_region",
+    恢复正文: "pdf_restore_native",
+    恢复结构: "pdf_restore_structure",
+    缓存命中: "file_cache_hit",
+  }[progress?.stage];
+  const progressStage =
+    i18n?.(progressStageKey, progress?.stage) || progress?.stage;
+  const regionLabel = {
+    "inline-formula": ["pdf_inline_formula", "行内公式"],
+    formula: ["pdf_formula", "公式"],
+    table: ["pdf_table", "表格"],
+    image: ["pdf_image", "图片"],
+  }[progress?.regionType] || ["pdf_text_region", "文字区域"];
   const capabilities = client?.session?.capabilities || [];
   useLayoutEffect(() => {
     const registry = assetPreview.current;
@@ -375,23 +453,45 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     }
     updateAssetPreview((version) => version + 1);
     const restored = blocksRef.current.map(restoreDocumentBilingual);
-    if (restored.some((block, index) => block !== blocksRef.current[index])) publishBlocks(restored);
+    if (restored.some((block, index) => block !== blocksRef.current[index]))
+      publishBlocks(restored);
     const timer = setTimeout(release, 0);
-    return () => { clearTimeout(timer); release(); };
-  // Asset identity, rather than each progress snapshot, controls URL allocation.
+    return () => {
+      clearTimeout(timer);
+      release();
+    };
+    // Asset identity, rather than each progress snapshot, controls URL allocation.
   }, [result?.assets, file, isPdf, markdownContent]); // eslint-disable-line react-hooks/exhaustive-deps
   const publishBlocks = (next) => {
     next = next.map(restoreDocumentBilingual);
     blocksRef.current = next;
-    if (resultRef.current) resultRef.current = { ...resultRef.current, blocks: next };
+    if (resultRef.current)
+      resultRef.current = { ...resultRef.current, blocks: next };
     setBlocks(next);
   };
-  const retainTranslations = (next, previous = blocksRef.current) => next && ({ ...next,
-    blocks: next.blocks.map((block) => {
-      const old = previous.find((item) => item.id === block.id && item.raw === block.raw);
-      return old ? { ...block, status: old.status, targetRaw: old.targetRaw, bilingualRaw: old.bilingualRaw,
-        targetAst: old.targetAst, bilingualAst: old.bilingualAst, translationKey: old.translationKey, error: old.error, bilingualVersion: old.bilingualVersion, translationRepairRequired: old.translationRepairRequired } : block;
-    }) });
+  const retainTranslations = (next, previous = blocksRef.current) =>
+    next && {
+      ...next,
+      blocks: next.blocks.map((block) => {
+        const old = previous.find(
+          (item) => item.id === block.id && item.raw === block.raw
+        );
+        return old
+          ? {
+              ...block,
+              status: old.status,
+              targetRaw: old.targetRaw,
+              bilingualRaw: old.bilingualRaw,
+              targetAst: old.targetAst,
+              bilingualAst: old.bilingualAst,
+              translationKey: old.translationKey,
+              error: old.error,
+              bilingualVersion: old.bilingualVersion,
+              translationRepairRequired: old.translationRepairRequired,
+            }
+          : block;
+      }),
+    };
   const commit = (next) => {
     next = retainTranslations(normalizeDocumentAssets(next, next.assets));
     resultRef.current = next;
@@ -400,19 +500,39 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     enqueueTranslation.current?.(next);
     return next;
   };
-  const settingsKey = JSON.stringify({ fromLang: config.fromLang, toLang: config.toLang,
-    apiSlug: config.apiSlug, promptSlug: config.promptSlug });
-  const readyBlock = (block, current = resultRef.current) => !isPdf ||
-    (block.translationReady === true || (block.translationReady === undefined && current?.complete && !block.pendingSourceIds?.length));
-  const pendingTranslation = (block) => readyBlock(block) && isTranslatableBlock(block) &&
-    (ignoreCache || block.translationKey !== settingsKey || block.status !== "done");
+  const settingsKey = JSON.stringify({
+    fromLang: config.fromLang,
+    toLang: config.toLang,
+    apiSlug: config.apiSlug,
+    promptSlug: config.promptSlug,
+  });
+  const readyBlock = (block, current = resultRef.current) =>
+    !isPdf ||
+    block.translationReady === true ||
+    (block.translationReady === undefined &&
+      current?.complete &&
+      !block.pendingSourceIds?.length);
+  const pendingTranslation = (block) =>
+    readyBlock(block) &&
+    isTranslatableBlock(block) &&
+    (ignoreCache ||
+      block.translationKey !== settingsKey ||
+      block.status !== "done");
   const readyCount = blocks.filter(pendingTranslation).length;
-  const canTranslate = connected && !translationBusy && !automaticBusy && !["opening", "detecting"].includes(phase) && readyCount > 0;
+  const canTranslate =
+    connected &&
+    !translationBusy &&
+    !automaticBusy &&
+    !["opening", "detecting"].includes(phase) &&
+    readyCount > 0;
   const recognitionStartedAt = progress?.startedAt;
   useEffect(() => {
     setRecognitionElapsed(0);
     if (phase !== "parsing" || !recognitionStartedAt) return;
-    const timer = setInterval(() => setRecognitionElapsed(Date.now() - recognitionStartedAt), 1000);
+    const timer = setInterval(
+      () => setRecognitionElapsed(Date.now() - recognitionStartedAt),
+      1000
+    );
     return () => clearInterval(timer);
   }, [phase, recognitionStartedAt]);
   const cancelOperation = () => {
@@ -420,11 +540,19 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     abortRef.current?.abort();
     translationRun.current?.abort.abort();
     if (automaticRun.current) automaticRun.current.cancelled = true;
-    publishBlocks(blocksRef.current.map((block) => block.status === "busy" ? { ...block, status: "idle" } : block));
+    publishBlocks(
+      blocksRef.current.map((block) =>
+        block.status === "busy" ? { ...block, status: "idle" } : block
+      )
+    );
     setProgress(null);
     setTranslationProgress(null);
   };
-  const parse = async (reset = false, retryRegion, regions = layoutComplete ? layoutRegions : {}) => {
+  const parse = async (
+    reset = false,
+    retryRegion,
+    regions = layoutComplete ? layoutRegions : {}
+  ) => {
     if (!pdf || busy) return;
     if (config.parseMode === "smart") {
       if (!connected || !capabilities.includes("doc")) {
@@ -446,9 +574,17 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     const savedTranslations = blocksRef.current;
     if (reset) {
       const previous = resultRef.current;
-      resultRef.current = previous ? { ...previous, pageBlocks: [], completedPages: [],
-        warnings: [], blocks: [], complete: false,
-        cache: previous.cache } : null;
+      resultRef.current = previous
+        ? {
+            ...previous,
+            pageBlocks: [],
+            completedPages: [],
+            warnings: [],
+            blocks: [],
+            complete: false,
+            cache: previous.cache,
+          }
+        : null;
       publishBlocks([]);
       setResult(null);
     }
@@ -469,9 +605,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         ...config,
         mode: config.parseMode,
         layoutModel: targetLayoutModel,
-        layoutServiceId:
-          effectiveLayoutApi?.apiSlug ||
-          config.layoutApiSlug,
+        layoutServiceId: effectiveLayoutApi?.apiSlug || config.layoutApiSlug,
         layoutDevice: targetLayoutDevice,
         enableJev: config.enableJev === "true",
         client,
@@ -483,15 +617,31 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         cacheMode: ignoreCache ? "refresh" : undefined,
         layoutRegions: regions,
         onProgress: (p, partial) => {
-          if (mounted.current && operation.current === version && !abort.signal.aborted) {
+          if (
+            mounted.current &&
+            operation.current === version &&
+            !abort.signal.aborted
+          ) {
             setProgress(p);
-            if (partial) commit(retainTranslations(partial, [...blocksRef.current, ...savedTranslations]));
+            if (partial)
+              commit(
+                retainTranslations(partial, [
+                  ...blocksRef.current,
+                  ...savedTranslations,
+                ])
+              );
             if (partial?.layoutRegions) setLayoutRegions(partial.layoutRegions);
           }
         },
       });
-      if (mounted.current && operation.current === version && !abort.signal.aborted) {
-        const retained = commit(retainTranslations(next, [...blocksRef.current, ...savedTranslations]));
+      if (
+        mounted.current &&
+        operation.current === version &&
+        !abort.signal.aborted
+      ) {
+        const retained = commit(
+          retainTranslations(next, [...blocksRef.current, ...savedTranslations])
+        );
         if (next?.layoutRegions && Object.keys(next.layoutRegions).length) {
           setLayoutComplete(true);
           setLayoutRegions((prev) => {
@@ -508,7 +658,14 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           });
           setShowLayoutAreas(true);
         }
-        if (!automaticRun.current && !translationRun.current && !blocksRef.current.some((block) => block.status === "done" && block.targetRaw !== undefined)) setMode("source");
+        if (
+          !automaticRun.current &&
+          !translationRun.current &&
+          !blocksRef.current.some(
+            (block) => block.status === "done" && block.targetRaw !== undefined
+          )
+        )
+          setMode("source");
         return retained;
       }
     } catch (e) {
@@ -525,24 +682,59 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     }
   };
   const translate = async (onlyId, parsedResult, automatic = false) => {
-    if (!connected || translationRun.current || (!automatic && automaticRun.current) || ["opening", "detecting"].includes(phase)) return;
+    if (
+      !connected ||
+      translationRun.current ||
+      (!automatic && automaticRun.current) ||
+      ["opening", "detecting"].includes(phase)
+    )
+      return;
     const current = parsedResult || resultRef.current;
     const requested = typeof onlyId === "string" ? [onlyId] : onlyId;
-    const targetBlocks = (parsedResult?.blocks || blocksRef.current).filter((block) => readyBlock(block, current) &&
-      (!Array.isArray(requested) || requested.includes(block.id)) && isTranslatableBlock(block) &&
-      (ignoreCache || block.translationKey !== settingsKey || block.status !== "done")).map((block) => ({ ...block }));
+    const targetBlocks = (parsedResult?.blocks || blocksRef.current)
+      .filter(
+        (block) =>
+          readyBlock(block, current) &&
+          (!Array.isArray(requested) || requested.includes(block.id)) &&
+          isTranslatableBlock(block) &&
+          (ignoreCache ||
+            block.translationKey !== settingsKey ||
+            block.status !== "done")
+      )
+      .map((block) => ({ ...block }));
     if (!targetBlocks.length) return;
-    const version = operation.current, abort = new AbortController(), run = { abort };
+    const version = operation.current,
+      abort = new AbortController(),
+      run = { abort };
     translationRun.current = run;
-    const valid = () => mounted.current && operation.current === version && translationRun.current === run && !abort.signal.aborted;
+    const valid = () =>
+      mounted.current &&
+      operation.current === version &&
+      translationRun.current === run &&
+      !abort.signal.aborted;
     const publish = () => {
       if (!valid()) return;
-      publishBlocks(blocksRef.current.map((block) => {
-        const translated = targetBlocks.find((item) => item.id === block.id && item.raw === block.raw);
-        return translated ? { ...block, status: translated.status, targetRaw: translated.targetRaw,
-          bilingualRaw: translated.bilingualRaw, targetAst: translated.targetAst, bilingualAst: translated.bilingualAst,
-          translationKey: translated.translationKey, error: translated.error, bilingualVersion: translated.bilingualVersion, translationRepairRequired: translated.translationRepairRequired } : block;
-      }));
+      publishBlocks(
+        blocksRef.current.map((block) => {
+          const translated = targetBlocks.find(
+            (item) => item.id === block.id && item.raw === block.raw
+          );
+          return translated
+            ? {
+                ...block,
+                status: translated.status,
+                targetRaw: translated.targetRaw,
+                bilingualRaw: translated.bilingualRaw,
+                targetAst: translated.targetAst,
+                bilingualAst: translated.bilingualAst,
+                translationKey: translated.translationKey,
+                error: translated.error,
+                bilingualVersion: translated.bilingualVersion,
+                translationRepairRequired: translated.translationRepairRequired,
+              }
+            : block;
+        })
+      );
     };
     setTranslationBusy(true);
     if (!automatic) setError("");
@@ -558,8 +750,18 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         }
         block.translationKey = settingsKey;
       }
-      const failedIds = new Set(targetBlocks.filter((block) => block.status === "error" || block.translationRepairRequired).map((block) => block.id));
-      if (ignoreCache) targetBlocks.forEach((block) => { block.status = "idle"; });
+      const failedIds = new Set(
+        targetBlocks
+          .filter(
+            (block) =>
+              block.status === "error" || block.translationRepairRequired
+          )
+          .map((block) => block.id)
+      );
+      if (ignoreCache)
+        targetBlocks.forEach((block) => {
+          block.status = "idle";
+        });
       await translateDocumentBlocks(
         targetBlocks,
         async (text, signal, block) => {
@@ -580,7 +782,9 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                 {
                   text: piece,
                   kind,
-                  ...((ignoreCache || failedIds.has(block?.id)) && { cacheMode: "refresh" }),
+                  ...((ignoreCache || failedIds.has(block?.id)) && {
+                    cacheMode: "refresh",
+                  }),
                   scene: {
                     fromLang: config.fromLang,
                     toLang: config.toLang,
@@ -608,15 +812,39 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     } catch (e) {
       if (valid()) setError(e.message);
     } finally {
-      if (mounted.current && operation.current === version && translationRun.current === run) {
-        if (abort.signal.aborted) targetBlocks.forEach((block) => { if (block.status === "busy") block.status = "idle"; });
+      if (
+        mounted.current &&
+        operation.current === version &&
+        translationRun.current === run
+      ) {
+        if (abort.signal.aborted)
+          targetBlocks.forEach((block) => {
+            if (block.status === "busy") block.status = "idle";
+          });
         // Cancellation preserves successful blocks but suppresses delayed request results.
-        if (!abort.signal.aborted) publishBlocks(blocksRef.current.map((block) => {
-          const translated = targetBlocks.find((item) => item.id === block.id && item.raw === block.raw);
-          return translated ? { ...block, status: translated.status, targetRaw: translated.targetRaw,
-            bilingualRaw: translated.bilingualRaw, targetAst: translated.targetAst, bilingualAst: translated.bilingualAst,
-            translationKey: translated.translationKey, error: translated.error, bilingualVersion: translated.bilingualVersion, translationRepairRequired: translated.translationRepairRequired } : block;
-        }));
+        if (!abort.signal.aborted)
+          publishBlocks(
+            blocksRef.current.map((block) => {
+              const translated = targetBlocks.find(
+                (item) => item.id === block.id && item.raw === block.raw
+              );
+              return translated
+                ? {
+                    ...block,
+                    status: translated.status,
+                    targetRaw: translated.targetRaw,
+                    bilingualRaw: translated.bilingualRaw,
+                    targetAst: translated.targetAst,
+                    bilingualAst: translated.bilingualAst,
+                    translationKey: translated.translationKey,
+                    error: translated.error,
+                    bilingualVersion: translated.bilingualVersion,
+                    translationRepairRequired:
+                      translated.translationRepairRequired,
+                  }
+                : block;
+            })
+          );
         translationRun.current = null;
         setTranslationBusy(false);
         setTranslationProgress(null);
@@ -630,21 +858,42 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     abortRef.current = abort;
     setPhase("parsing");
     setError("");
-    setProgress({ stage: "识别图中文字", page: block.fragments[0].page,
-      regionId: undefined, regionType: "image", done: 0, total: 1 });
+    setProgress({
+      stage: "识别图中文字",
+      page: block.fragments[0].page,
+      regionId: undefined,
+      regionType: "image",
+      done: 0,
+      total: 1,
+    });
     try {
       const fragment = block.fragments[0],
         page = await pdf.getPage(fragment.page),
         blob = await renderPdfRegion(page, fragment.bbox, abort.signal, 2);
-      const selection = documentRecognitionSelection("doc", config.recognitionService, config.visionServiceSlug);
+      const selection = documentRecognitionSelection(
+        "doc",
+        config.recognitionService,
+        config.visionServiceSlug
+      );
       const response = await client.recognize(blob, selection, abort.signal, {
-        taskMode: "doc", promptSlug: config.vlmPromptSlug,
+        taskMode: "doc",
+        promptSlug: config.vlmPromptSlug,
         cacheMode: ignoreCache ? "refresh" : undefined,
         onProgress: (event) => {
-          if (mounted.current && operation.current === version && !abort.signal.aborted)
-            setProgress({ stage: event.type === "cache-hit" ? "缓存命中" : "识别图中文字", page: block.fragments[0].page,
-              regionId: event.type === "inference" ? block.regionId : undefined, regionType: "image",
-              ...(event.type === "inference" && { startedAt: Date.now() }), done: 0, total: 1 });
+          if (
+            mounted.current &&
+            operation.current === version &&
+            !abort.signal.aborted
+          )
+            setProgress({
+              stage: event.type === "cache-hit" ? "缓存命中" : "识别图中文字",
+              page: block.fragments[0].page,
+              regionId: event.type === "inference" ? block.regionId : undefined,
+              regionType: "image",
+              ...(event.type === "inference" && { startedAt: Date.now() }),
+              done: 0,
+              total: 1,
+            });
         },
       });
       if (
@@ -653,12 +902,19 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         operation.current === version
       ) {
         if (!response.text?.trim()) throw new Error("图中文字识别结果为空");
-        const located = selection.capability === "recognizeText"
-          ? documentOcrBlocks(response, fragment.bbox, fragment.page, `${block.id}-recognized`) : null;
-        const associated = (located || parseDocumentMarkdown(
-          response.text,
-          `${block.id}-recognized`
-        )).map((b) => ({
+        const located =
+          selection.capability === "recognizeText"
+            ? documentOcrBlocks(
+                response,
+                fragment.bbox,
+                fragment.page,
+                `${block.id}-recognized`
+              )
+            : null;
+        const associated = (
+          located ||
+          parseDocumentMarkdown(response.text, `${block.id}-recognized`)
+        ).map((b) => ({
           ...b,
           fragments: located ? b.fragments : block.fragments,
           associatedImageId: block.id,
@@ -670,7 +926,12 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         );
       }
     } catch (e) {
-      if (mounted.current && operation.current === version && !abort.signal.aborted) setError(e.message);
+      if (
+        mounted.current &&
+        operation.current === version &&
+        !abort.signal.aborted
+      )
+        setError(e.message);
     } finally {
       if (mounted.current && operation.current === version) {
         setPhase("idle");
@@ -693,9 +954,13 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       element = container?.querySelector(`[data-document-block="${id}"]`);
     if (element) container.scrollTo({ top: element.offsetTop - 12 });
   }, []);
-  const highlight = sourceFragments(blocks.find((block) => block.id === (locatedBlock?.id || hoverBlock)),
-    locatedBlock ? locatedBlock.sourceIds : hoverSources)
-    .filter((fragment) => locatedBlock?.page === undefined || fragment.page === locatedBlock.page);
+  const highlight = sourceFragments(
+    blocks.find((block) => block.id === (locatedBlock?.id || hoverBlock)),
+    locatedBlock ? locatedBlock.sourceIds : hoverSources
+  ).filter(
+    (fragment) =>
+      locatedBlock?.page === undefined || fragment.page === locatedBlock.page
+  );
   const clearSourceHighlight = () => {
     setHoverBlock(null);
     setHoverSources([]);
@@ -715,29 +980,44 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
   useEffect(() => {
     if (!touchBlock) return;
     const dismiss = (event) => {
-      if (event.target.closest?.("[data-document-block]")?.dataset.documentBlock !== touchBlock &&
-        !event.target.closest?.(".MuiMenu-root")) {
-        setTouchBlock((current) => current === touchBlock ? null : current);
-        setHoverBlock((current) => current === touchBlock ? null : current);
+      if (
+        event.target.closest?.("[data-document-block]")?.dataset
+          .documentBlock !== touchBlock &&
+        !event.target.closest?.(".MuiMenu-root")
+      ) {
+        setTouchBlock((current) => (current === touchBlock ? null : current));
+        setHoverBlock((current) => (current === touchBlock ? null : current));
       }
     };
     document.addEventListener("pointerdown", dismiss);
     return () => document.removeEventListener("pointerdown", dismiss);
   }, [touchBlock]);
   const hoveredSources = (block, target) => {
-    const ids = target?.closest?.("[data-pdf-source]")?.getAttribute("data-pdf-source")?.split(" ") || [];
-    return ids.filter((id) => block.sourceAnchors?.some((anchor) => anchor.id === id));
+    const ids =
+      target
+        ?.closest?.("[data-pdf-source]")
+        ?.getAttribute("data-pdf-source")
+        ?.split(" ") || [];
+    return ids.filter((id) =>
+      block.sourceAnchors?.some((anchor) => anchor.id === id)
+    );
   };
   const activateBlock = (block, target) => {
     if (target?.closest?.(".kt-pdf-block-actions,.MuiMenu-root")) return;
     const sourceIds = hoveredSources(block, target);
     setHoverBlock(block.id);
     setHoverSources(sourceIds);
-    setLocatedBlock((current) => current?.id === block.id &&
-      (current.sourceIds || []).join(" ") === sourceIds.join(" ") ? current : null);
+    setLocatedBlock((current) =>
+      current?.id === block.id &&
+      (current.sourceIds || []).join(" ") === sourceIds.join(" ")
+        ? current
+        : null
+    );
   };
   const locate = (block, page, sourceIds) => {
-    const fragment = sourceFragments(block, sourceIds).find((fragment) => page === undefined || fragment.page === page);
+    const fragment = sourceFragments(block, sourceIds).find(
+      (fragment) => page === undefined || fragment.page === page
+    );
     if (!fragment) return;
     suppressUntil.current = performance.now() + 500;
     scrollPdf(fragment);
@@ -853,9 +1133,27 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     const version = ++operation.current,
       abort = new AbortController();
     abortRef.current = abort;
-    const regionKey = (page, region) => JSON.stringify([page, region.type, region.bbox.map((v) => Math.round(v * 10) / 10)]);
-    const previousChoices = new Map(Object.entries(layoutRegions).flatMap(([page, regions]) => regions.map((region) => [regionKey(page, region), region.enabled])));
-    const restoreChoices = (pages) => Object.fromEntries(Object.entries(pages).map(([page, regions]) => [page, regions.map((region) => ({ ...region, enabled: previousChoices.get(regionKey(page, region)) ?? true }))]));
+    const regionKey = (page, region) =>
+      JSON.stringify([
+        page,
+        region.type,
+        region.bbox.map((v) => Math.round(v * 10) / 10),
+      ]);
+    const previousChoices = new Map(
+      Object.entries(layoutRegions).flatMap(([page, regions]) =>
+        regions.map((region) => [regionKey(page, region), region.enabled])
+      )
+    );
+    const restoreChoices = (pages) =>
+      Object.fromEntries(
+        Object.entries(pages).map(([page, regions]) => [
+          page,
+          regions.map((region) => ({
+            ...region,
+            enabled: previousChoices.get(regionKey(page, region)) ?? true,
+          })),
+        ])
+      );
     setPhase("detecting");
     setLayoutComplete(false);
     setLayoutRegions({});
@@ -871,9 +1169,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       const regions = await detectPdfLayout(pdf, {
         ...config,
         layoutModel: targetLayoutModel,
-        layoutServiceId:
-          effectiveLayoutApi?.apiSlug ||
-          config.layoutApiSlug,
+        layoutServiceId: effectiveLayoutApi?.apiSlug || config.layoutApiSlug,
         layoutDevice: targetLayoutDevice,
         client,
         models: context.models,
@@ -881,17 +1177,30 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         cacheMode: ignoreCache ? "refresh" : undefined,
         signal: abort.signal,
         onProgress: (p, partialRegions) => {
-          if (mounted.current && operation.current === version && !abort.signal.aborted) {
+          if (
+            mounted.current &&
+            operation.current === version &&
+            !abort.signal.aborted
+          ) {
             setProgress(p);
-            if (partialRegions) setLayoutRegions(restoreChoices(partialRegions));
+            if (partialRegions)
+              setLayoutRegions(restoreChoices(partialRegions));
           }
         },
       });
-      if (mounted.current && operation.current === version && !abort.signal.aborted) {
+      if (
+        mounted.current &&
+        operation.current === version &&
+        !abort.signal.aborted
+      ) {
         const selectedRegions = restoreChoices(regions);
         setLayoutRegions(selectedRegions);
         if (resultRef.current) {
-          resultRef.current = { ...resultRef.current, complete: false, completedPages: [] };
+          resultRef.current = {
+            ...resultRef.current,
+            complete: false,
+            completedPages: [],
+          };
           setResult(resultRef.current);
         }
         setLayoutComplete(true);
@@ -914,7 +1223,11 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
 
   const toggleRegion = useCallback((pageNo, regionId) => {
     if (resultRef.current) {
-      resultRef.current = { ...resultRef.current, complete: false, completedPages: [] };
+      resultRef.current = {
+        ...resultRef.current,
+        complete: false,
+        completedPages: [],
+      };
       setResult(resultRef.current);
     }
     setLayoutRegions((prev) => {
@@ -937,23 +1250,43 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
 
   const oneClickTranslate = async () => {
     if (busy || automaticRun.current) return;
-    const run = { cancelled: false, attempted: new Set(), promise: Promise.resolve(), pumping: false };
+    const run = {
+      cancelled: false,
+      attempted: new Set(),
+      promise: Promise.resolve(),
+      pumping: false,
+    };
     automaticRun.current = run;
     setAutomaticBusy(true);
     const pump = () => {
-      if (run.pumping || run.cancelled || automaticRun.current !== run) return run.promise;
+      if (run.pumping || run.cancelled || automaticRun.current !== run)
+        return run.promise;
       run.pumping = true;
       run.promise = (async () => {
         while (!run.cancelled && automaticRun.current === run) {
-          const candidates = blocksRef.current.filter((block) => !block.translationRepairRequired && pendingTranslation(block) &&
-            !run.attempted.has(`${block.id}\0${block.raw}`));
+          const candidates = blocksRef.current.filter(
+            (block) =>
+              !block.translationRepairRequired &&
+              pendingTranslation(block) &&
+              !run.attempted.has(`${block.id}\0${block.raw}`)
+          );
           if (!candidates.length) break;
           const page = candidates[0].fragments?.[0]?.page;
-          const batch = candidates.filter((block) => block.fragments?.[0]?.page === page);
-          batch.forEach((block) => run.attempted.add(`${block.id}\0${block.raw}`));
-          await translate(batch.map((block) => block.id), undefined, true);
+          const batch = candidates.filter(
+            (block) => block.fragments?.[0]?.page === page
+          );
+          batch.forEach((block) =>
+            run.attempted.add(`${block.id}\0${block.raw}`)
+          );
+          await translate(
+            batch.map((block) => block.id),
+            undefined,
+            true
+          );
         }
-      })().finally(() => { run.pumping = false; });
+      })().finally(() => {
+        run.pumping = false;
+      });
       return run.promise;
     };
     enqueueTranslation.current = pump;
@@ -961,14 +1294,25 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       let currentRegions = layoutRegions;
       if (config.parseMode === "smart" && (!layoutComplete || ignoreCache)) {
         if (!effectiveHasLayoutService) {
-          setError(i18n?.("layout_service_empty", "未配置界面分析服务（请在服务配置中添加）") || "未配置界面分析服务（请在服务配置中添加）");
+          setError(
+            i18n?.(
+              "layout_service_empty",
+              "未配置界面分析服务（请在服务配置中添加）"
+            ) || "未配置界面分析服务（请在服务配置中添加）"
+          );
           return;
         }
         currentRegions = await detectLayout();
         if (!currentRegions || run.cancelled) return;
       }
       const currentResult = resultRef.current;
-      if (ignoreCache || !currentResult?.complete || (isPdf && currentResult.recognitionKey !== documentRecognitionKey({ ...config, services: context.services })))
+      if (
+        ignoreCache ||
+        !currentResult?.complete ||
+        (isPdf &&
+          currentResult.recognitionKey !==
+            documentRecognitionKey({ ...config, services: context.services }))
+      )
         await parse(ignoreCache, undefined, currentRegions);
       if (!run.cancelled) await pump();
       await run.promise;
@@ -984,8 +1328,9 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
   const parseAndTranslate = oneClickTranslate;
 
   const translateCurrentPage = () => {
-    const pageBlocks = blocksRef.current.filter((b) => pendingTranslation(b) &&
-      b.fragments?.some((f) => f.page === pageNumber)
+    const pageBlocks = blocksRef.current.filter(
+      (b) =>
+        pendingTranslation(b) && b.fragments?.some((f) => f.page === pageNumber)
     );
     if (!pageBlocks.length) {
       setNotice(`第 ${pageNumber} 页暂无可翻译的文本段落`);
@@ -1431,7 +1776,13 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                     showLayout={showLayoutAreas}
                     onToggleRegion={busy ? undefined : toggleRegion}
                     disabled={busy}
-                    recognizingRegionId={phase === "parsing" && progress?.startedAt && progress?.page === i + 1 ? progress.regionId : null}
+                    recognizingRegionId={
+                      phase === "parsing" &&
+                      progress?.startedAt &&
+                      progress?.page === i + 1
+                        ? progress.regionId
+                        : null
+                    }
                     i18n={i18n}
                   />
                 ))
@@ -1582,17 +1933,38 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           </Stack>
           {phase === "parsing" && progress && (
             <Typography variant="caption" sx={{ px: 2, py: 0.5 }} role="status">
-              {progress.page ? (i18n?.("pdf_region_progress", "$1 · 第 $2 页 · $3/$4") || "$1 · 第 $2 页 · $3/$4")
-                .replace(/\$([1-4])/g, (_, index) => [progressStage, progress.page, progress.done, progress.total][Number(index) - 1])
+              {progress.page
+                ? (
+                    i18n?.("pdf_region_progress", "$1 · 第 $2 页 · $3/$4") ||
+                    "$1 · 第 $2 页 · $3/$4"
+                  ).replace(
+                    /\$([1-4])/g,
+                    (_, index) =>
+                      [
+                        progressStage,
+                        progress.page,
+                        progress.done,
+                        progress.total,
+                      ][Number(index) - 1]
+                  )
                 : `${progressStage} · ${progress.done}/${progress.total}`}
-              {progress.regionId ? ` · ${(i18n?.("pdf_region_elapsed", "$1 · $2s") || "$1 · $2s")
-                .replace("$1", i18n?.(...regionLabel) || regionLabel[1]).replace("$2", Math.floor(recognitionElapsed / 1000))}` : ""}
+              {progress.regionId
+                ? ` · ${(i18n?.("pdf_region_elapsed", "$1 · $2s") || "$1 · $2s")
+                    .replace("$1", i18n?.(...regionLabel) || regionLabel[1])
+                    .replace("$2", Math.floor(recognitionElapsed / 1000))}`
+                : ""}
             </Typography>
           )}
-          {translationProgress && <Typography variant="caption" sx={{ px: 2, py: 0.5 }} role="status">
-            {(i18n?.("pdf_translation_progress", "翻译内容 · $1/$2") || "翻译内容 · $1/$2")
-              .replace("$1", translationProgress.done).replace("$2", translationProgress.total)}
-          </Typography>}
+          {translationProgress && (
+            <Typography variant="caption" sx={{ px: 2, py: 0.5 }} role="status">
+              {(
+                i18n?.("pdf_translation_progress", "翻译内容 · $1/$2") ||
+                "翻译内容 · $1/$2"
+              )
+                .replace("$1", translationProgress.done)
+                .replace("$2", translationProgress.total)}
+            </Typography>
+          )}
           {notice && (
             <ReaderAlert
               severity="info"
@@ -1645,9 +2017,13 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                     style={{ display: "block" }}
                   >
                     {blockMarkdown(block, mode) + "\n\n"}
-                    {(block.formulaDiagnostics || []).filter((diagnostic) => diagnostic.error).map((diagnostic) =>
-                      `公式识别原始输出 (${diagnostic.regionId}):\n${diagnostic.output || "（空结果）"}\n${diagnostic.error}\n\n`
-                    ).join("")}
+                    {(block.formulaDiagnostics || [])
+                      .filter((diagnostic) => diagnostic.error)
+                      .map(
+                        (diagnostic) =>
+                          `公式识别原始输出 (${diagnostic.regionId}):\n${diagnostic.output || "（空结果）"}\n${diagnostic.error}\n\n`
+                      )
+                      .join("")}
                   </span>
                 ))}
                 {documentMarkdown([], mode, warnings)}
@@ -1658,13 +2034,25 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                   key={block.id}
                   data-document-block={block.id}
                   className={`kt-pdf-block${touchBlock === block.id ? " kt-pdf-block-active" : ""}`}
-                  tabIndex={isPdf && sourceFragments(block).length ? 0 : undefined}
-                  onMouseOver={(event) => isPdf && activateBlock(block, event.target)}
-                  onMouseLeave={() => setHoverBlock((current) => current === block.id ? null : current)}
-                  onFocus={(event) => isPdf && activateBlock(block, event.target)}
+                  tabIndex={
+                    isPdf && sourceFragments(block).length ? 0 : undefined
+                  }
+                  onMouseOver={(event) =>
+                    isPdf && activateBlock(block, event.target)
+                  }
+                  onMouseLeave={() =>
+                    setHoverBlock((current) =>
+                      current === block.id ? null : current
+                    )
+                  }
+                  onFocus={(event) =>
+                    isPdf && activateBlock(block, event.target)
+                  }
                   onBlur={(event) => {
                     if (!event.currentTarget.contains(event.relatedTarget))
-                      setHoverBlock((current) => current === block.id ? null : current);
+                      setHoverBlock((current) =>
+                        current === block.id ? null : current
+                      );
                   }}
                   onPointerDown={(event) => {
                     if (isPdf && event.pointerType === "touch") {
@@ -1673,10 +2061,18 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                     }
                   }}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter" && (event.target === event.currentTarget || hoveredSources(block, event.target).length)) {
+                    if (
+                      event.key === "Enter" &&
+                      (event.target === event.currentTarget ||
+                        hoveredSources(block, event.target).length)
+                    ) {
                       event.preventDefault();
                       event.stopPropagation();
-                      locate(block, undefined, hoveredSources(block, event.target));
+                      locate(
+                        block,
+                        undefined,
+                        hoveredSources(block, event.target)
+                      );
                     }
                   }}
                 >
@@ -1684,7 +2080,8 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                     onErrorCapture={(event) => {
                       const image = event.target;
                       if (!isPdf || image.tagName !== "IMG") return;
-                      const path = image.getAttribute("data-document-asset"), oldUrl = image.getAttribute("src");
+                      const path = image.getAttribute("data-document-asset"),
+                        oldUrl = image.getAttribute("src");
                       if (!path) return;
                       const url = assetPreview.current.retry(path, oldUrl);
                       if (url) {
@@ -1694,14 +2091,34 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                       updateAssetPreview((version) => version + 1);
                     }}
                     dangerouslySetInnerHTML={{
-                      __html: renderDocumentBlock(block, mode, blocks, [], isPdf ? assetPreview.current.urls() : undefined,
-                        i18n?.("pdf_asset_failed", "图片资源加载失败") || "图片资源加载失败"),
+                      __html: renderDocumentBlock(
+                        block,
+                        mode,
+                        blocks,
+                        [],
+                        isPdf ? assetPreview.current.urls() : undefined,
+                        i18n?.("pdf_asset_failed", "图片资源加载失败") ||
+                          "图片资源加载失败"
+                      ),
                     }}
                   />
-                  {isPdf && <SourceToolbar block={block}
-                    sourceIds={locatedBlock?.id === block.id ? locatedBlock.sourceIds : hoverBlock === block.id ? hoverSources : undefined}
-                    busy={busy} connected={connected}
-                    locate={locate} recognizeImage={recognizeImage} i18n={i18n} />}
+                  {isPdf && (
+                    <SourceToolbar
+                      block={block}
+                      sourceIds={
+                        locatedBlock?.id === block.id
+                          ? locatedBlock.sourceIds
+                          : hoverBlock === block.id
+                            ? hoverSources
+                            : undefined
+                      }
+                      busy={busy}
+                      connected={connected}
+                      locate={locate}
+                      recognizeImage={recognizeImage}
+                      i18n={i18n}
+                    />
+                  )}
                   {mode !== "source" &&
                     isTranslatableBlock(block) &&
                     block.status !== "done" && (

@@ -579,11 +579,11 @@ describe("Options startup with real storage hooks", () => {
     expect(storedValues.get(STOKEY_SETTING)).toEqual(remoteSetting);
     expect(trySyncSetting).toHaveBeenCalledTimes(1);
     expect(browser.storage.local.set).toHaveBeenCalledTimes(3);
-    expect(browser.storage.local.set.mock.calls.filter(
-      ([values]) => values[STOKEY_SETTING]
-    ).map(([values]) => JSON.parse(values[STOKEY_SETTING]).marker)).toEqual([
-      "legacy-setting", "remote-setting",
-    ]);
+    expect(
+      browser.storage.local.set.mock.calls
+        .filter(([values]) => values[STOKEY_SETTING])
+        .map(([values]) => JSON.parse(values[STOKEY_SETTING]).marker)
+    ).toEqual(["legacy-setting", "remote-setting"]);
     expect(syncData).not.toHaveBeenCalled();
     expectInteractionBlocked(host, false);
   });

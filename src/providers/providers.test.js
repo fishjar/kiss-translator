@@ -30,17 +30,46 @@ beforeAll(() => {
 
 test("stream defaults are task-specific, respect false and reject unsupported explicit requirements", async () => {
   const contexts = [];
-  const api = { apiSlug: "stream-default", provider: { apiVersion: "1", implementation: { kind: "native", entry: "probe" },
-    capabilities: { chat: { handler: "chat", outputModes: ["complete", "stream"] }, summarize: { handler: "summarize", outputModes: ["complete"] } } } };
-  const registry = createProviderRegistry({ resolveInstance: () => api, createContext: (_, ctx) => { contexts.push(ctx.options.streaming); return ctx; } });
-  registry.registerNative("probe", { chat: () => ({ text: "ok" }), summarize: () => ({ text: "ok" }) });
-  await registry.invoke(api.apiSlug, "chat", { messages: [{ role: "user", content: "hello" }] }).result;
+  const api = {
+    apiSlug: "stream-default",
+    provider: {
+      apiVersion: "1",
+      implementation: { kind: "native", entry: "probe" },
+      capabilities: {
+        chat: { handler: "chat", outputModes: ["complete", "stream"] },
+        summarize: { handler: "summarize", outputModes: ["complete"] },
+      },
+    },
+  };
+  const registry = createProviderRegistry({
+    resolveInstance: () => api,
+    createContext: (_, ctx) => {
+      contexts.push(ctx.options.streaming);
+      return ctx;
+    },
+  });
+  registry.registerNative("probe", {
+    chat: () => ({ text: "ok" }),
+    summarize: () => ({ text: "ok" }),
+  });
+  await registry.invoke(api.apiSlug, "chat", {
+    messages: [{ role: "user", content: "hello" }],
+  }).result;
   api.useStream = false;
-  await registry.invoke(api.apiSlug, "chat", { messages: [{ role: "user", content: "hello" }] }).result;
+  await registry.invoke(api.apiSlug, "chat", {
+    messages: [{ role: "user", content: "hello" }],
+  }).result;
   delete api.useStream;
   await registry.invoke(api.apiSlug, "summarize", { text: "hello" }).result;
   expect(contexts).toEqual([true, false, false]);
-  await expect(registry.invoke(api.apiSlug, "summarize", { text: "hello" }, { streaming: "required" }).result).rejects.toMatchObject({ code: "STREAM_UNSUPPORTED" });
+  await expect(
+    registry.invoke(
+      api.apiSlug,
+      "summarize",
+      { text: "hello" },
+      { streaming: "required" }
+    ).result
+  ).rejects.toMatchObject({ code: "STREAM_UNSUPPORTED" });
 });
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));

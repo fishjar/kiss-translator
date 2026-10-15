@@ -54,6 +54,36 @@ export class YouTubePlayerUi {
   #menuManager = null;
   #notificationEl = null;
   #notificationTimeout = null;
+  #menuFrame;
+  #resizeObserver;
+  #captionPositions = new Map();
+
+  closeMenu = () => {
+    this.#isMenuShow = false;
+    this.#menuManager?.hide();
+    this.#toggleButton?.setAttribute("aria-expanded", "false");
+    this.#toggleButton?.replaceChildren(createLogoSVG());
+    this.#toggleButton?.focus();
+    cancelAnimationFrame(this.#menuFrame);
+  };
+
+  #fitMenu = () => {
+    if (!this.#isMenuShow) return;
+    const menu = document.querySelector("#kiss-subtitle-menus [role=dialog]");
+    const player = this.#getVideoEl()?.closest(".html5-video-player");
+    if (menu && player) {
+      const bounds = player.getBoundingClientRect();
+      menu.style.maxHeight = `${Math.max(60, bounds.height - 80)}px`;
+      menu.style.maxWidth = `${Math.max(100, bounds.width - 24)}px`;
+      const rect = menu.getBoundingClientRect();
+      let offset = Number(menu.dataset.offset || 0);
+      if (rect.right > bounds.right - 8)
+        offset -= rect.right - bounds.right + 8;
+      if (rect.left < bounds.left + 8) offset += bounds.left + 8 - rect.left;
+      menu.dataset.offset = String(offset);
+      menu.style.transform = `translateX(${offset}px)`;
+    }
+  };
 
   /**
    * 创建播放器 UI 管理器。
@@ -76,7 +106,10 @@ export class YouTubePlayerUi {
    */
   updateMenuProps() {
     if (this.#menuManager && this.#isMenuShow) {
-      this.#menuManager.updateProps(this.#getMenuProps());
+      this.#menuManager.updateProps({
+        ...this.#getMenuProps(),
+        onClose: this.closeMenu,
+      });
     }
   }
 
@@ -101,10 +134,22 @@ export class YouTubePlayerUi {
       height: "100%",
       position: "relative",
     });
+    if (ytControls.matches(".html5-video-player")) {
+      Object.assign(kissControls.style, {
+        position: "absolute",
+        bottom: "48px",
+        right: "12px",
+        height: "36px",
+        zIndex: 60,
+      });
+    }
 
     const toggleButton = document.createElement("button");
     toggleButton.className = "ytp-button kiss-subtitle-button";
     toggleButton.title = APP_NAME;
+    toggleButton.setAttribute("aria-label", APP_NAME);
+    toggleButton.setAttribute("aria-haspopup", "dialog");
+    toggleButton.setAttribute("aria-expanded", "false");
 
     toggleButton.appendChild(createLogoSVG());
     kissControls.appendChild(toggleButton);
@@ -115,7 +160,7 @@ export class YouTubePlayerUi {
       className: "notranslate",
       reactComponent: Menus,
       rootElement: kissControls,
-      props: this.#getMenuProps(),
+      props: { ...this.#getMenuProps(), onClose: this.closeMenu },
     });
 
     toggleButton.onclick = () => {
@@ -126,13 +171,25 @@ export class YouTubePlayerUi {
         );
         this.#menuManager.show();
         this.updateMenuProps();
+        toggleButton.setAttribute("aria-expanded", "true");
+        this.#menuFrame = requestAnimationFrame(() => {
+          document
+            .querySelector("#kiss-subtitle-menus [role=button][tabindex='0']")
+            ?.focus();
+          this.#fitMenu();
+        });
       } else {
-        this.#isMenuShow = false;
-        this.#toggleButton?.replaceChildren(createLogoSVG());
-        this.#menuManager.hide();
+        this.closeMenu();
       }
     };
     this.#toggleButton = toggleButton;
+    window.addEventListener("resize", this.#fitMenu);
+    document.addEventListener("fullscreenchange", this.#fitMenu);
+    if (typeof ResizeObserver !== "undefined") {
+      this.#resizeObserver = new ResizeObserver(this.#fitMenu);
+      const player = this.#getVideoEl()?.closest(".html5-video-player");
+      if (player) this.#resizeObserver.observe(player);
+    }
 
     ytControls?.prepend(kissControls);
   }
@@ -143,6 +200,13 @@ export class YouTubePlayerUi {
    * @returns {void}
    */
   removeToggleButton() {
+    clearTimeout(this.#notificationTimeout);
+    this.#notificationEl?.remove();
+    this.#notificationEl = null;
+    cancelAnimationFrame(this.#menuFrame);
+    this.#resizeObserver?.disconnect();
+    window.removeEventListener("resize", this.#fitMenu);
+    document.removeEventListener("fullscreenchange", this.#fitMenu);
     this.#isMenuShow = false;
     this.#menuManager?.destroy();
     this.#menuManager = null;
@@ -159,8 +223,15 @@ export class YouTubePlayerUi {
    * @returns {void}
    */
   hideYtCaption() {
-    const ytCaption = document.querySelector(YT_CAPTION_SELECTOR);
-    ytCaption && (ytCaption.style.top = "-10000px");
+    const player = this.#getVideoEl()?.closest(".html5-video-player");
+    const ytCaption =
+      player?.querySelector(YT_CAPTION_SELECTOR) ||
+      document.querySelector(YT_CAPTION_SELECTOR);
+    if (ytCaption) {
+      if (!this.#captionPositions.has(ytCaption))
+        this.#captionPositions.set(ytCaption, ytCaption.style.top);
+      ytCaption.style.top = "-10000px";
+    }
   }
 
   /**
@@ -169,8 +240,9 @@ export class YouTubePlayerUi {
    * @returns {void}
    */
   showYtCaption() {
-    const ytCaption = document.querySelector(YT_CAPTION_SELECTOR);
-    ytCaption && (ytCaption.style.top = "0");
+    for (const [element, top] of this.#captionPositions)
+      element.style.top = top;
+    this.#captionPositions.clear();
   }
 
   /**

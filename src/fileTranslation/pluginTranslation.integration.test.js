@@ -69,7 +69,12 @@ beforeEach(() => {
     batchLength: 1000,
     provider: {
       apiVersion: "1",
-      source: { pluginId: "file-translation-test", serviceId: "text", version: "1.0.0", external: true },
+      source: {
+        pluginId: "file-translation-test",
+        serviceId: "text",
+        version: "1.0.0",
+        external: true,
+      },
       implementation: { kind: "script" },
       capabilities: {
         translate: {
@@ -212,7 +217,9 @@ test.each(["PERMISSION_REQUIRED", "PROVIDER_ERROR"])(
 );
 
 test("admission rejects missing authorization without invoking any service", async () => {
-  const error = Object.assign(new Error("Permission required"), { code: "PERMISSION_REQUIRED" });
+  const error = Object.assign(new Error("Permission required"), {
+    code: "PERMISSION_REQUIRED",
+  });
   approvedProviderOrigins.mockRejectedValueOnce(error);
   await expect(translate("hello")).rejects.toBe(error);
   expect(approvedProviderOrigins).toHaveBeenCalledWith(api);
@@ -244,7 +251,9 @@ test("file cancellation reaches the host invocation and does not replay", async 
   const pending = translate("hello", controller.signal);
   await Promise.race([
     ready,
-    pending.then(() => { throw new Error("Translation settled before the host started"); }),
+    pending.then(() => {
+      throw new Error("Translation settled before the host started");
+    }),
   ]);
   const outcome = expect(pending).rejects.toMatchObject({ name: "AbortError" });
   controller.abort();

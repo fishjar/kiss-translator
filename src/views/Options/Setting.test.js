@@ -115,19 +115,50 @@ describe("Settings overview layout", () => {
   test("legacy native detector instances are projected without enabling disabled entries", async () => {
     browser.commands.getAll.mockResolvedValue([]);
     useAlert.mockReturnValue(alert);
-    useSetting.mockReturnValue({ setting: { uiLang: "zh", logLevel: 3, clearCache: false,
-      langDetector: "legacy-google", transApis: [
-        { apiSlug: "legacy-google", apiType: "Google", apiName: "Legacy detector" },
-        { apiSlug: "disabled-google", apiType: "Google", apiName: "Disabled detector", isDisabled: true },
-      ] }, updateSetting: jest.fn() });
+    useSetting.mockReturnValue({
+      setting: {
+        uiLang: "zh",
+        logLevel: 3,
+        clearCache: false,
+        langDetector: "legacy-google",
+        transApis: [
+          {
+            apiSlug: "legacy-google",
+            apiType: "Google",
+            apiName: "Legacy detector",
+          },
+          {
+            apiSlug: "disabled-google",
+            apiType: "Google",
+            apiName: "Disabled detector",
+            isDisabled: true,
+          },
+        ],
+      },
+      updateSetting: jest.fn(),
+    });
     useFab.mockReturnValue({ fab: {}, updateFab: jest.fn() });
     const { container, root } = await renderSettings();
     try {
       expect(container.textContent).toContain("Legacy detector");
-      const field = [...container.querySelectorAll("input")].find((input) => input.value === "legacy-google").closest(".MuiFormControl-root");
-      act(() => field.querySelector('[role="combobox"]').dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 })));
-      expect([...document.querySelectorAll('[role="option"]')].map((option) => option.textContent)).not.toContain("Disabled detector");
-    } finally { act(() => root.unmount()); }
+      const field = [...container.querySelectorAll("input")]
+        .find((input) => input.value === "legacy-google")
+        .closest(".MuiFormControl-root");
+      act(() =>
+        field
+          .querySelector('[role="combobox"]')
+          .dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, button: 0 })
+          )
+      );
+      expect(
+        [...document.querySelectorAll('[role="option"]')].map(
+          (option) => option.textContent
+        )
+      ).not.toContain("Disabled detector");
+    } finally {
+      act(() => root.unmount());
+    }
   });
   test("keeps the list-style grid free of spacing gutters", async () => {
     browser.commands.getAll.mockResolvedValue([]);

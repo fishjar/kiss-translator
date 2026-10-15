@@ -13,10 +13,13 @@ const polygon = (value) =>
   value.length >= 3 &&
   value.every(
     (point) => Array.isArray(point) && point.length === 2 && point.every(finite)
-  ) && Math.abs(value.reduce((area, [x, y], index) => {
-    const [nx, ny] = value[(index + 1) % value.length];
-    return area + x * ny - nx * y;
-  }, 0)) > 0;
+  ) &&
+  Math.abs(
+    value.reduce((area, [x, y], index) => {
+      const [nx, ny] = value[(index + 1) % value.length];
+      return area + x * ny - nx * y;
+    }, 0)
+  ) > 0;
 const interval = (value) =>
   finite(value.start) &&
   finite(value.end) &&
@@ -129,7 +132,9 @@ export function validateInput(capability, input) {
     );
   } else if (capability === "transcribe")
     requireValue(asset(input.audio), code, "Audio asset is required.");
-  else if (["recognizeText", "parseImage", "analyzeLayout"].includes(capability))
+  else if (
+    ["recognizeText", "parseImage", "analyzeLayout"].includes(capability)
+  )
     requireValue(asset(input.image), code, "Image asset is required.");
   else if (capability === "evaluate") {
     requireValue(
@@ -188,8 +193,12 @@ export function validateInput(capability, input) {
       "Invalid image dimensions."
     );
   if (["recognizeText", "parseImage"].includes(capability))
-    requireValue(input.mode === undefined || ["doc", "table", "formula"].includes(input.mode),
-      code, "Invalid image task mode.");
+    requireValue(
+      input.mode === undefined ||
+        ["doc", "table", "formula"].includes(input.mode),
+      code,
+      "Invalid image task mode."
+    );
 }
 
 /** Never turn a malformed final response into a successful cache entry. */
@@ -369,7 +378,9 @@ export function validateResult(capability, result, input, descriptor = {}) {
         !descriptor.coordinates ||
           (Array.isArray(result.items) &&
             result.items.filter((item) => item.text.trim()).length > 0 &&
-            result.items.filter((item) => item.text.trim()).every((item) => polygon(item.poly))),
+            result.items
+              .filter((item) => item.text.trim())
+              .every((item) => polygon(item.poly))),
         code,
         "Declared coordinates are missing."
       );

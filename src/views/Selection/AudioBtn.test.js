@@ -14,7 +14,11 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 test("a saved legacy SystemTTS instance plays through speak without requiring a provider snapshot", async () => {
   getSettingWithDefault.mockResolvedValue({
     transApis: [
-      { apiSlug: "legacy-speech", apiType: "SystemTTS", enabledCapabilities: ["speak"] },
+      {
+        apiSlug: "legacy-speech",
+        apiType: "SystemTTS",
+        enabledCapabilities: ["speak"],
+      },
     ],
   });
   invokeSavedService.mockReturnValue({

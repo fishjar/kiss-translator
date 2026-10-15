@@ -1474,16 +1474,26 @@ describe("Translator rule styles", () => {
 
   describe("available translation services", () => {
     test("selected service failure never requests Google2 from a leftover list", async () => {
-      document.body.innerHTML = '<main id="root"><p>Selected plugin service</p></main>';
+      document.body.innerHTML =
+        '<main id="root"><p>Selected plugin service</p></main>';
       apiTranslate.mockRejectedValue(new Error("selected service failed"));
       createTranslator(
         { apiSlug: "deepseek-instance", apiSlugs: ["google2"] },
-        { transApis: [createApiSetting("deepseek-instance"), createApiSetting("google2")] }
+        {
+          transApis: [
+            createApiSetting("deepseek-instance"),
+            createApiSetting("google2"),
+          ],
+        }
       );
       await flushAsync();
       expect(apiTranslate).toHaveBeenCalledTimes(1);
-      expect(apiTranslate.mock.calls[0][0].apiSetting.apiSlug).toBe("deepseek-instance");
-      expect(document.querySelector(`.${Translator.KISS_CLASS.retry}`)).not.toBeNull();
+      expect(apiTranslate.mock.calls[0][0].apiSetting.apiSlug).toBe(
+        "deepseek-instance"
+      );
+      expect(
+        document.querySelector(`.${Translator.KISS_CLASS.retry}`)
+      ).not.toBeNull();
     });
 
     test("uses the selected service despite leftover lists and rescans when its configuration changes", async () => {

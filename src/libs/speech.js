@@ -49,10 +49,19 @@ function speakWithWebSpeech(text, lang, callbacks = {}) {
   try {
     const utterance = new globalThis.SpeechSynthesisUtterance(text);
     utterance.lang = lang;
-    if (callbacks.voice) utterance.voice = globalThis.speechSynthesis.getVoices().find(voice => voice.name === callbacks.voice) || null;
+    if (callbacks.voice)
+      utterance.voice =
+        globalThis.speechSynthesis
+          .getVoices()
+          .find((voice) => voice.name === callbacks.voice) || null;
     if (callbacks.speed !== undefined) utterance.rate = callbacks.speed;
     utterance.onend = () => callbacks.onEnd?.("end");
-    utterance.onerror = event => callbacks.onEnd?.(["interrupted", "canceled"].includes(event.error) ? "interrupted" : "error");
+    utterance.onerror = (event) =>
+      callbacks.onEnd?.(
+        ["interrupted", "canceled"].includes(event.error)
+          ? "interrupted"
+          : "error"
+      );
     globalThis.speechSynthesis.speak(utterance);
     return true;
   } catch (err) {
@@ -95,7 +104,12 @@ export function speak(text, lang = "en-US", callbacks = {}) {
         () => {
           // 读取 lastError，避免 Chrome 控制台出现 Unchecked runtime.lastError。
           if (globalThis.chrome?.runtime?.lastError) {
-            if (!speakWithWebSpeech(utteranceText, normalizedLang, { ...callbacks, onEnd })) {
+            if (
+              !speakWithWebSpeech(utteranceText, normalizedLang, {
+                ...callbacks,
+                onEnd,
+              })
+            ) {
               onEnd("error");
             }
           }
@@ -103,11 +117,17 @@ export function speak(text, lang = "en-US", callbacks = {}) {
       );
       return true;
     } catch (err) {
-      return speakWithWebSpeech(utteranceText, normalizedLang, { ...callbacks, onEnd });
+      return speakWithWebSpeech(utteranceText, normalizedLang, {
+        ...callbacks,
+        onEnd,
+      });
     }
   }
 
-  return speakWithWebSpeech(utteranceText, normalizedLang, { ...callbacks, onEnd });
+  return speakWithWebSpeech(utteranceText, normalizedLang, {
+    ...callbacks,
+    onEnd,
+  });
 }
 
 export function stopSpeech() {

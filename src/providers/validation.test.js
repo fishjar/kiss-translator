@@ -150,10 +150,40 @@ test("event IDs cannot refer to another item or capability", () => {
 });
 
 test("VLM image tasks validate modes and coordinates independently from the model type", () => {
-  const input = { image: { assetId: "asset-1", mimeType: "image/png" }, mode: "table" };
+  const input = {
+    image: { assetId: "asset-1", mimeType: "image/png" },
+    mode: "table",
+  };
   expect(() => validateInput("parseImage", input)).not.toThrow();
-  expect(() => validateInput("parseImage", { ...input, mode: "unknown" })).toThrow("mode");
-  expect(() => validateResult("parseImage", { text: "table", format: "markdown" }, input)).not.toThrow();
-  expect(() => validateResult("parseImage", { text: "table", format: "markdown" }, input, { coordinates: true })).toThrow("coordinates");
-  expect(() => validateResult("parseImage", { text: "table", format: "markdown", items: [{ text: "table", poly: [[0, 0], [1, 1], [2, 2]] }] }, input)).toThrow("blocks");
+  expect(() =>
+    validateInput("parseImage", { ...input, mode: "unknown" })
+  ).toThrow("mode");
+  expect(() =>
+    validateResult("parseImage", { text: "table", format: "markdown" }, input)
+  ).not.toThrow();
+  expect(() =>
+    validateResult("parseImage", { text: "table", format: "markdown" }, input, {
+      coordinates: true,
+    })
+  ).toThrow("coordinates");
+  expect(() =>
+    validateResult(
+      "parseImage",
+      {
+        text: "table",
+        format: "markdown",
+        items: [
+          {
+            text: "table",
+            poly: [
+              [0, 0],
+              [1, 1],
+              [2, 2],
+            ],
+          },
+        ],
+      },
+      input
+    )
+  ).toThrow("blocks");
 });

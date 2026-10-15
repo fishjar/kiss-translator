@@ -3,7 +3,9 @@
   "handlers": {
     "transcribe": {
       "request": {
-        "url": { "$url": { "base": "config.baseUrl", "path": "audio/transcriptions" } },
+        "url": {
+          "$url": { "base": "config.baseUrl", "path": "audio/transcriptions" }
+        },
         "method": "POST",
         "auth": { "type": "bearer", "secret": { "$secret": "apiKey" } },
         "bodyType": "multipart",
@@ -11,7 +13,12 @@
           "file": { "$asset": "input.audio" },
           "model": { "$ref": "config.model" },
           "response_format": "json",
-          "language": { "$ref": "input.language", "omitIfEmpty": true, "omitValues": ["auto"], "transform": "languages.toIso6391" }
+          "language": {
+            "$ref": "input.language",
+            "omitIfEmpty": true,
+            "omitValues": ["auto"],
+            "transform": "languages.toIso6391"
+          }
         },
         "responseType": "text"
       },

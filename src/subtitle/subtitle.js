@@ -59,8 +59,11 @@ export function runSubtitle({ href, setting }) {
 
       // 2. 获取当前字幕翻译所关联的翻译 API 配置 (apiSetting)
       const transApis = setting.transApis || [];
-      const apiSetting =
-        availableApiForScene(subtitleSetting, transApis, "translate");
+      const apiSetting = availableApiForScene(
+        subtitleSetting,
+        transApis,
+        "translate"
+      );
 
       if (!apiSetting) throw new Error("没有可用的字幕翻译接口");
 

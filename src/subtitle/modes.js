@@ -54,3 +54,8 @@ export function isSubtitleModeEnabled(value, fallback) {
     mode === OPT_ENHANCE_ON || (mode === OPT_ENHANCE_MOBILE_OFF && !isMobile)
   );
 }
+
+/** Delay is stored in seconds; invalid or legacy values use the default. */
+export function normalizeHoverLookupCloseDelay(value) {
+  return Number.isInteger(value) && value >= 0 && value <= 30 ? value : 2;
+}

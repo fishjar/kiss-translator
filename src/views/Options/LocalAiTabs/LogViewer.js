@@ -163,7 +163,15 @@ export default function LogViewer({ logs = [], onClear }) {
                         color: log.level === "error" ? "#ef4444" : "inherit",
                       }}
                     >
-                      {log.message.replace(/CACHE_HIT/g, i18n("local_ai_cache_hit", "缓存命中")).replace(/INFERENCE_START/g, i18n("local_ai_inference_start", "开始推理"))}
+                      {log.message
+                        .replace(
+                          /CACHE_HIT/g,
+                          i18n("local_ai_cache_hit", "缓存命中")
+                        )
+                        .replace(
+                          /INFERENCE_START/g,
+                          i18n("local_ai_inference_start", "开始推理")
+                        )}
                     </span>
                   </Box>
                 );

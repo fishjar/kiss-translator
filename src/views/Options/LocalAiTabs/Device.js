@@ -284,7 +284,11 @@ export default function DeviceTab() {
             <Stack spacing={2.5}>
               {backendGroups.map(({ id, tasks }) => (
                 <Box key={id}>
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5 }}>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={600}
+                    sx={{ mb: 1.5 }}
+                  >
                     {i18n(`local_ai_tab_${id}`, id.toUpperCase())}
                   </Typography>
                   <Grid container spacing={1.5}>
@@ -309,10 +313,17 @@ export default function DeviceTab() {
                             }}
                           >
                             <Box sx={{ minWidth: 0 }}>
-                              <Typography variant="body2" fontWeight={600} noWrap>
+                              <Typography
+                                variant="body2"
+                                fontWeight={600}
+                                noWrap
+                              >
                                 {m.name}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
                                 → {backend}
                               </Typography>
                             </Box>
@@ -321,15 +332,18 @@ export default function DeviceTab() {
                               label={
                                 runnable
                                   ? i18n("local_ai_device_runnable", "可运行")
-                                  : i18n("local_ai_device_not_runnable", "不可运行")
+                                  : i18n(
+                                      "local_ai_device_not_runnable",
+                                      "不可运行"
+                                    )
                               }
                               color={runnable ? "success" : "default"}
                               variant={runnable ? "filled" : "outlined"}
                             />
                           </Box>
-                  </Grid>
-                );
-              })}
+                        </Grid>
+                      );
+                    })}
                   </Grid>
                 </Box>
               ))}

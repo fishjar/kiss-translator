@@ -87,12 +87,18 @@ test("all static UI translation keys are registered, including calls with a fall
   const duplicateLocaleKeys = [];
   const visit = (node, file) => {
     if (!node || typeof node !== "object") return;
-    if (node.type === "ObjectExpression" && file.includes(`${path.sep}locales${path.sep}`)) {
+    if (
+      node.type === "ObjectExpression" &&
+      file.includes(`${path.sep}locales${path.sep}`)
+    ) {
       const keys = node.properties
-        .filter((property) => property.type === "ObjectProperty" && !property.computed)
+        .filter(
+          (property) => property.type === "ObjectProperty" && !property.computed
+        )
         .map((property) => property.key.name || property.key.value);
       keys.forEach((key, index) => {
-        if (keys.indexOf(key) !== index) duplicateLocaleKeys.push(`${file}:${key}`);
+        if (keys.indexOf(key) !== index)
+          duplicateLocaleKeys.push(`${file}:${key}`);
       });
     }
     if (

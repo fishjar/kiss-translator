@@ -610,7 +610,8 @@ export const putSetting = async (obj) => {
 // --- 用户翻译规则 (Rules) 数据存取 ---
 export const getRules = () => getObj(STOKEY_RULES);
 export const getRulesOld = () => getObj(STOKEY_RULES_OLD);
-export const getRulesWithDefault = async () => (await getRules()) || DEFAULT_RULES;
+export const getRulesWithDefault = async () =>
+  (await getRules()) || DEFAULT_RULES;
 export const setRules = (val) => setObj(STOKEY_RULES, val);
 
 // --- 个人生词本词汇 (Fav Words) 数据存取 ---

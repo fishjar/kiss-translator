@@ -65,13 +65,22 @@ describe("local AI settings bridge", () => {
   });
   test("a Provider arriving during a close vetoes teardown and still obtains the existing host", async () => {
     let answer;
-    const contexts = new Promise(resolve => { answer = resolve; });
+    const contexts = new Promise((resolve) => {
+      answer = resolve;
+    });
     global.chrome.runtime = {
-      getURL: path => `chrome-extension://test/${path}`,
+      getURL: (path) => `chrome-extension://test/${path}`,
       ContextType: { OFFSCREEN_DOCUMENT: "OFFSCREEN_DOCUMENT" },
-      getContexts: jest.fn().mockImplementationOnce(() => contexts).mockResolvedValue([{}]),
+      getContexts: jest
+        .fn()
+        .mockImplementationOnce(() => contexts)
+        .mockResolvedValue([{}]),
     };
-    global.chrome.offscreen = { createDocument: jest.fn(), closeDocument: jest.fn(), Reason: { WORKERS: "WORKERS" } };
+    global.chrome.offscreen = {
+      createDocument: jest.fn(),
+      closeDocument: jest.fn(),
+      Reason: { WORKERS: "WORKERS" },
+    };
     const closing = localAiHost({ action: "close" });
     await Promise.resolve();
     const release = acquireProviderHost();
@@ -82,7 +91,9 @@ describe("local AI settings bridge", () => {
       await expect(ensuring).resolves.toEqual({});
       expect(global.chrome.offscreen.closeDocument).not.toHaveBeenCalled();
       expect(global.chrome.offscreen.createDocument).not.toHaveBeenCalled();
-    } finally { release(); }
+    } finally {
+      release();
+    }
   });
 });
 
@@ -163,18 +174,40 @@ describe("localAiBackground", () => {
     );
   });
   test("routes only matching token events and releases the channel after cancellation", async () => {
-    const abort = new AbortController(), onStream = jest.fn();
-    const pending = localAiRequest({ id: "stream-cancel" }, { signal: abort.signal, onStream });
-    const rejected = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    const abort = new AbortController(),
+      onStream = jest.fn();
+    const pending = localAiRequest(
+      { id: "stream-cancel" },
+      { signal: abort.signal, onStream }
+    );
+    const rejected = expect(pending).rejects.toMatchObject({
+      name: "AbortError",
+    });
     for (let i = 0; i < 8; i++) await Promise.resolve();
     const channel = mockChannels.find((c) => c.lastMessage?.kind === "request");
     expect(channel).toBeDefined();
-    channel.onmessage({ data: { kind: "stream", stream: { id: "other", type: "token", text: "ignore" } } });
-    channel.onmessage({ data: { kind: "stream", stream: { id: "stream-cancel", type: "token", text: "hello" } } });
+    channel.onmessage({
+      data: {
+        kind: "stream",
+        stream: { id: "other", type: "token", text: "ignore" },
+      },
+    });
+    channel.onmessage({
+      data: {
+        kind: "stream",
+        stream: { id: "stream-cancel", type: "token", text: "hello" },
+      },
+    });
     expect(onStream).toHaveBeenCalledTimes(1);
-    abort.abort(); await rejected;
+    abort.abort();
+    await rejected;
     expect(channel.closed).toBe(true);
-    expect(mockChannels.some((c) => c.lastMessage?.kind === "cancel" && c.lastMessage.id === "stream-cancel")).toBe(true);
+    expect(
+      mockChannels.some(
+        (c) =>
+          c.lastMessage?.kind === "cancel" &&
+          c.lastMessage.id === "stream-cancel"
+      )
+    ).toBe(true);
   });
-
 });

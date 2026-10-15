@@ -6,12 +6,8 @@
   "apiVersion": "1",
   "description": "SDK v1 的多接口、多能力、JSON/JS 混合示例。",
   "permissions": {
-    "network": [
-      "https://api.openai.com"
-    ],
-    "endpointFields": [
-      "baseUrl"
-    ]
+    "network": ["https://api.openai.com"],
+    "endpointFields": ["baseUrl"]
   },
   "sharedSettings": [
     {
@@ -50,23 +46,15 @@
       "capabilities": {
         "chat": {
           "handler": "chat",
-          "inputModalities": [
-            "text"
-          ],
-          "outputModes": [
-            "complete",
-            "stream"
-          ]
+          "inputModalities": ["text"],
+          "outputModes": ["complete", "stream"]
         },
         "translate": {
           "handler": "translate",
           "batch": {
             "supported": true
           },
-          "outputModes": [
-            "complete",
-            "stream"
-          ]
+          "outputModes": ["complete", "stream"]
         }
       },
       "settings": [
@@ -94,9 +82,7 @@
           "defaultValue": 0,
           "min": 0,
           "max": 2,
-          "visibleForCapabilities": [
-            "translate"
-          ],
+          "visibleForCapabilities": ["translate"],
           "labelI18n": {
             "zh": "翻译采样温度（推理模式 none 时生效）",
             "en": "Translation temperature (when reasoning is none)",
@@ -158,9 +144,7 @@
         "transcribe": {
           "handler": "transcribe",
           "timestamps": false,
-          "outputModes": [
-            "complete"
-          ]
+          "outputModes": ["complete"]
         }
       },
       "settings": [
@@ -210,9 +194,7 @@
       "capabilities": {
         "synthesizeSpeech": {
           "handler": "synthesizeSpeech",
-          "outputModes": [
-            "complete"
-          ]
+          "outputModes": ["complete"]
         }
       },
       "settings": [
@@ -239,9 +221,7 @@
           "type": "select",
           "defaultValue": "marin",
           "required": true,
-          "visibleForCapabilities": [
-            "synthesizeSpeech"
-          ],
+          "visibleForCapabilities": ["synthesizeSpeech"],
           "options": [
             {
               "value": "alloy",
@@ -341,12 +321,8 @@
         "parseImage": {
           "handler": "parseImage",
           "coordinates": false,
-          "outputModes": [
-            "complete"
-          ],
-          "inputModalities": [
-            "image"
-          ]
+          "outputModes": ["complete"],
+          "inputModalities": ["image"]
         }
       },
       "settings": [
@@ -409,9 +385,7 @@
       "capabilities": {
         "dictionary": {
           "handler": "dictionary",
-          "outputModes": [
-            "complete"
-          ]
+          "outputModes": ["complete"]
         }
       },
       "nameI18n": {

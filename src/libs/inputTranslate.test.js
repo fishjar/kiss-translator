@@ -273,11 +273,20 @@ describe("InputTranslator input button", () => {
     translator.disable();
     const primary = { apiSlug: "primary", apiType: "Microsoft" };
     translator = new InputTranslator({
-      inputRule: { transOpen: true, showDot: "always", apiSlug: "primary", apiSlugs: ["backup"], fromLang: "en", toLang: "zh-CN" },
+      inputRule: {
+        transOpen: true,
+        showDot: "always",
+        apiSlug: "primary",
+        apiSlugs: ["backup"],
+        fromLang: "en",
+        toLang: "zh-CN",
+      },
       transApis: [primary, { ...primary, apiSlug: "backup" }],
     });
     resolveApiPromptSettings.mockReturnValue(primary);
-    createLoadingSVG.mockReturnValue(document.createElementNS("http://www.w3.org/2000/svg", "svg"));
+    createLoadingSVG.mockReturnValue(
+      document.createElementNS("http://www.w3.org/2000/svg", "svg")
+    );
     apiTranslate.mockReset().mockRejectedValue(new Error("selected failed"));
     const target = document.createElement("textarea");
     target.value = "original";
@@ -287,5 +296,4 @@ describe("InputTranslator input button", () => {
     expect(apiTranslate.mock.calls[0][0].apiSetting.apiSlug).toBe("primary");
     expect(target.value).toBe("original");
   });
-
 });
