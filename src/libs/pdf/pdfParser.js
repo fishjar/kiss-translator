@@ -682,8 +682,8 @@ export async function parsePdfDocument(
       );
       const fallbackOwners = new Map();
       for (const span of usable.spans) {
-        // eslint-disable-next-line no-control-regex
         if (
+          // eslint-disable-next-line no-control-regex
           !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffd]/.test(span.text) ||
           visual.some(
             (r) =>
