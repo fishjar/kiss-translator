@@ -166,15 +166,13 @@ export function bindDocumentSources(ast, ranges, markdown) {
             .filter((offset) => offset > start && offset < end),
         ]),
       ].sort((a, b) => a - b);
-      const parts = cuts
-        .slice(0, -1)
-        .map((offset, index) => ({
-          ...node,
-          value: markdown
-            .slice(offset, cuts[index + 1])
-            .replace(/\\([\\`*_[\]<>])/g, "$1"),
-          data: { ...node.data, pdfSourceIds: ids(offset, cuts[index + 1]) },
-        }));
+      const parts = cuts.slice(0, -1).map((offset, index) => ({
+        ...node,
+        value: markdown
+          .slice(offset, cuts[index + 1])
+          .replace(/\\([\\`*_[\]<>])/g, "$1"),
+        data: { ...node.data, pdfSourceIds: ids(offset, cuts[index + 1]) },
+      }));
       if (parts.map((part) => part.value).join("") === node.value) return parts;
     }
     node.data = { ...node.data, pdfSourceIds: sourceIds };
