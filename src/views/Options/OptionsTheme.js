@@ -28,8 +28,23 @@ const OPTIONS_THEME = {
     MuiSelect: {
       defaultProps: {
         MenuProps: {
-          anchorOrigin: { vertical: "bottom", horizontal: "left" },
-          transformOrigin: { vertical: "top", horizontal: "left" },
+          slots: { root: DropdownRoot },
+          autoFocus: false,
+          disableAutoFocusItem: true,
+          disableScrollLock: true,
+          TransitionComponent: Fade,
+          transitionDuration: { enter: 90, exit: 0 },
+          PaperProps: {
+            sx: (theme) => ({
+              ...dropdownPaper({ theme }),
+              // Popper positions the surface; neutralize Popover's paper offsets.
+              position: "relative",
+              top: "auto !important",
+              left: "auto !important",
+              maxWidth: "calc(100vw - 32px)",
+              maxHeight: "min(320px, calc(100vh - 32px))",
+            }),
+          },
         },
       },
       styleOverrides: {
@@ -43,20 +58,12 @@ const OPTIONS_THEME = {
     },
     MuiMenu: {
       defaultProps: {
-        slots: { root: DropdownRoot },
-        autoFocus: false,
-        disableAutoFocusItem: true,
-        disableScrollLock: true,
         TransitionComponent: Fade,
         transitionDuration: { enter: 90, exit: 0 },
       },
       styleOverrides: {
         paper: (props) => ({
           ...dropdownPaper(props),
-          // Popper positions the surface; neutralize Popover's paper offsets.
-          position: "relative",
-          top: "auto !important",
-          left: "auto !important",
           maxWidth: "calc(100vw - 32px)",
           maxHeight: "min(320px, calc(100vh - 32px))",
         }),
