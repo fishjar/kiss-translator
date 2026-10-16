@@ -2782,6 +2782,57 @@ describe("Translator rule styles", () => {
     expect(inner.textContent).toBe(sourceText);
   });
 
+  // 内置忽略列表里的 .notranslate / [translate='no'] 只表示“不翻译”，
+  // 对于 keepSelector（如 code）或富文本占位标签命中的行内元素，
+  // 必须仍生成占位符原位保留，否则请求文本出现空洞、译文也会丢失这段内容。
+  // 注：jsdom 16 不支持 :has()，因此这里用 DEFAULT_KEEP_SELECTOR 去掉 a:has(code) 的形式。
+  test("keeps ignored inline code as a placeholder instead of dropping it", async () => {
+    apiTranslate.mockImplementation(({ text }) =>
+      Promise.resolve({ trText: text, isSame: false })
+    );
+    document.body.innerHTML =
+      '<main id="root"><p id="target"> the <code class="docutils literal notranslate"> inside </code> outside.</p></main>';
+
+    createTranslator({
+      rootsSelector: "#target",
+      hasRichText: "true",
+      keepSelector: "code, cite, math, .math",
+    });
+    await flushAsync();
+
+    const requestedText = apiTranslate.mock.calls[0][0].text;
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+
+    expect(requestedText).toBe("the {1} outside.");
+    expect(inner.querySelector("code.notranslate")).not.toBeNull();
+    expect(inner.textContent.replace(/\s+/g, " ").trim()).toBe(
+      "the inside outside."
+    );
+  });
+
+  test("never placeholders KISS's own UI even when keepSelector matches it", async () => {
+    apiTranslate.mockImplementation(({ text }) =>
+      Promise.resolve({ trText: text, isSame: false })
+    );
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Alpha <code class="notranslate">beta</code> gamma<span class="kiss-caption-container notranslate">UI</span> delta.</p></main>';
+
+    createTranslator({
+      rootsSelector: "#target",
+      hasRichText: "true",
+      keepSelector: "code, .kiss-caption-container",
+    });
+    await flushAsync();
+
+    const requestedText = apiTranslate.mock.calls[0][0].text;
+    const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+
+    expect(requestedText).toBe("Alpha {1} gamma delta.");
+    expect(inner.querySelector("code.notranslate")).not.toBeNull();
+    expect(inner.querySelector(".kiss-caption-container")).toBeNull();
+    expect(inner.textContent).toBe("Alpha beta gamma delta.");
+  });
+
   test("keeps literal backslash-t text unchanged", async () => {
     const sourceText = "Show \\t literally";
     apiTranslate.mockImplementation(({ text }) =>
