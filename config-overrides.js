@@ -576,6 +576,32 @@ module.exports = {
       ...(config.testPathIgnorePatterns || []),
       "<rootDir>/src/localAi/",
     ];
+    // googlevideo ships ESM only; exercise the pinned parser/protos in Jest 27.
+    const googlevideoRoot = path.dirname(
+      fs.realpathSync(
+        path.join(__dirname, "node_modules/googlevideo/package.json")
+      )
+    );
+    const googlevideoRequire = require("module").createRequire(
+      path.join(googlevideoRoot, "package.json")
+    );
+    config.moduleNameMapper = {
+      ...config.moduleNameMapper,
+      "^mp4box$": require.resolve("mp4box").replace(/\.js$/, ".cjs"),
+      "^googlevideo/(ump|protos)$": path.join(
+        googlevideoRoot,
+        "dist/src/exports/$1.js"
+      ),
+      "^@bufbuild/protobuf/wire$": googlevideoRequire.resolve(
+        "@bufbuild/protobuf/wire"
+      ),
+    };
+    config.transformIgnorePatterns = [
+      "[/\\\\]node_modules[/\\\\](?!(?:\\.pnpm[/\\\\])?(?:googlevideo(?:@|[/\\\\])|@bufbuild(?:\\+|[/\\\\])protobuf(?:@|[/\\\\])))",
+      ...(config.transformIgnorePatterns || []).filter(
+        (pattern) => !pattern.includes("node_modules")
+      ),
+    ];
     return config;
   },
   devServer: (configFunction) => (proxy, allowedHost) => {

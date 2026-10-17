@@ -653,6 +653,7 @@ export class BilingualSubtitleManager {
    * @param {number} currentTimeMs - 当前视频播放毫秒
    */
   #triggerTranslations(currentTimeMs) {
+    if (this.#setting.managedTranslations) return;
     const { preTrans = 90 } = this.#setting;
     const endTimeMs = currentTimeMs + preTrans * 1000;
     const subs = this.#formattedSubtitles;

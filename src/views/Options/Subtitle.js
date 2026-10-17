@@ -1,5 +1,8 @@
 import { isApiConfigured } from "../../config/serviceSelection";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import { AsrCacheClient } from "../../subtitle/asr/cacheBridge";
+import { isApiAvailableFor } from "../../config/serviceSelection";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
@@ -417,6 +420,7 @@ function SubtitleStylePreview({
  * 视频双语字幕翻译设置页面组件 (SubtitleSetting)
  */
 export default function SubtitleSetting() {
+  const [cacheClearState, setCacheClearState] = useState("idle");
   const i18n = useI18n();
   // 字幕设置 Hook
   const { subtitleSetting, updateSubtitle } = useSubtitle();
@@ -427,6 +431,9 @@ export default function SubtitleSetting() {
       !api.isDisabled &&
       isApiConfigured(api) &&
       supportsApiCapability(api, "segmentSubtitle")
+  );
+  const asrApis = (transApis || []).filter((api) =>
+    isApiAvailableFor(api, "transcribe")
   );
   const { prompts } = usePromptList();
   const subtitlePromptOptions = useMemo(
@@ -486,6 +493,7 @@ export default function SubtitleSetting() {
   // 解构当前字幕翻译的具体设置
   const {
     enabled,
+    asrApiSlug = "-",
     apiSlug,
     segSlug,
     forceSubtitleRetranslate = false,
@@ -913,6 +921,67 @@ export default function SubtitleSetting() {
                   </MenuItem>
                 ))}
               </TextField>
+            </SettingsRow>
+            <SettingsRow
+              label={i18n("youtube_asr_service")}
+              description={i18n("youtube_asr_hint")}
+            >
+              <TextField
+                select
+                hiddenLabel
+                size="small"
+                variant="filled"
+                className="kt-settings-select"
+                value={asrApiSlug}
+                inputProps={{ "aria-label": i18n("youtube_asr_service") }}
+                disabled={
+                  !["chrome", "edge"].includes(process.env.REACT_APP_CLIENT)
+                }
+                onChange={(event) =>
+                  updateSubtitle({ asrApiSlug: event.target.value })
+                }
+              >
+                <MenuItem value="-">{i18n("disable")}</MenuItem>
+                {asrApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName}
+                  </MenuItem>
+                ))}
+                {asrApiSlug !== "-" &&
+                  !asrApis.some((api) => api.apiSlug === asrApiSlug) && (
+                    <MenuItem value={asrApiSlug} disabled>
+                      {asrApiSlug} ({i18n("youtube_asr_unavailable")})
+                    </MenuItem>
+                  )}
+              </TextField>
+            </SettingsRow>
+            <SettingsRow label={i18n("youtube_asr_clear")}>
+              <Button
+                disabled={
+                  cacheClearState === "busy" ||
+                  !["chrome", "edge"].includes(process.env.REACT_APP_CLIENT)
+                }
+                onClick={async () => {
+                  setCacheClearState("busy");
+                  const cache = new AsrCacheClient();
+                  try {
+                    await cache.clearSubtitles();
+                    setCacheClearState("cleared");
+                  } catch {
+                    setCacheClearState("unsaved");
+                  } finally {
+                    cache.close();
+                  }
+                }}
+              >
+                {i18n(
+                  cacheClearState === "cleared"
+                    ? "youtube_asr_cleared"
+                    : cacheClearState === "unsaved"
+                      ? "youtube_asr_unsaved"
+                      : "youtube_asr_clear"
+                )}
+              </Button>
             </SettingsRow>
             <SettingsRow
               label={i18n("is_skip_ad")}

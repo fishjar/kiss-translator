@@ -8,6 +8,7 @@ import { TOUCH_I18N } from "./i18n.touch";
  */
 
 import { SETTINGS_I18N } from "./locales/settings";
+import { ASR_I18N } from "./locales/asr";
 import { RU_I18N } from "./i18n.ru";
 
 export const UI_LANGS = [
@@ -26,6 +27,7 @@ export const I18N = {
   ...POPUP_I18N,
   ...TOUCH_I18N,
   ...SETTINGS_I18N,
+  ...ASR_I18N,
   ...PROVIDER_PLUGINS_I18N,
   app_name: {
     zh: `简约翻译`,

@@ -13,6 +13,7 @@ export function buildTranscriptionRequest({
   model,
   audio,
   language,
+  requireTimestamps = false,
   auth,
 }) {
   if (!model || !audio?.assetId)
@@ -26,7 +27,8 @@ export function buildTranscriptionRequest({
     body: {
       file: audio,
       model,
-      response_format: "json",
+      response_format: requireTimestamps ? "verbose_json" : "json",
+      ...(requireTimestamps && { "timestamp_granularities[]": "segment" }),
       ...(language && language !== "auto" && { language: toIso6391(language) }),
     },
   };

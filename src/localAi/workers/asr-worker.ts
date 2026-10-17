@@ -262,6 +262,7 @@ function buildSegments(
       return [
         {
           id: "seg-0",
+          timingSource: "audio-chunk",
           text: (out.text ?? "").trim(),
           start: 0,
           end: r3(durationSeconds),
@@ -278,6 +279,7 @@ function buildSegments(
       const end = r3(c.timestamp?.[1] ?? durationSeconds);
       return {
         id: `seg-${i}`,
+        timingSource: c.timestamp?.[0] != null && c.timestamp?.[1] != null ? "asr" as const : "audio-chunk" as const,
         text,
         start,
         end,
@@ -293,6 +295,7 @@ function buildSegments(
     const end = r3(durationSeconds);
     segments.push({
       id: "seg-0",
+      timingSource: "audio-chunk",
       text,
       start,
       end,

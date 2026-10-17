@@ -78,10 +78,12 @@ import { installProviderRelay } from "./providers/background";
 import { installFileTranslationBackend } from "./fileTranslation/backend";
 import { restoreFileTranslationBridges } from "./fileTranslation/bridgeRecovery";
 import { ensureYoutubeBridgeRegistered } from "./libs/youtubeBridgeRegistration";
+import { installAsrCacheBackend } from "./subtitle/asr/cacheBackground";
 
 globalThis.__KISS_CONTEXT__ = "background";
 void ensureYoutubeBridgeRegistered();
 installStorageCoordinator();
+installAsrCacheBackend(browser);
 installFileTranslationBackend();
 restoreFileTranslationBridges();
 

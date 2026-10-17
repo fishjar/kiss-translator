@@ -124,7 +124,7 @@ export function createInvocation(execute, options = {}) {
         options.timeoutMs
       );
   }
-  Promise.resolve()
+  const finished = Promise.resolve()
     .then(() => {
       if (settled) return;
       return execute({
@@ -137,5 +137,5 @@ export function createInvocation(execute, options = {}) {
       (value) => finish(undefined, value),
       (error) => finish(error)
     );
-  return { requestId, result, events: channel.events, cancel };
+  return { requestId, result, events: channel.events, cancel, finished };
 }

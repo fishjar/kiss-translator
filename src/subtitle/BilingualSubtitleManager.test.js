@@ -119,6 +119,24 @@ async function waitForMutationObserver() {
 }
 
 describe("BilingualSubtitleManager", () => {
+  test("ASR-managed captions render originals and updates without invoking page translation", async () => {
+    apiTranslate.mockClear();
+    const videoEl = createVideoElement();
+    const captions = [{ ...subtitle, translation: "" }];
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: captions,
+      setting: { ...setting, managedTranslations: true },
+    });
+    manager.start();
+    videoEl.dispatchEvent(new Event("timeupdate"));
+    await Promise.resolve();
+    expect(apiTranslate).not.toHaveBeenCalled();
+    captions[0].translation = "识别后的译文";
+    manager.appendSubtitles(captions);
+    expect(getCaptionLines()).toContain("识别后的译文");
+    manager.destroy();
+  });
   beforeEach(() => {
     apiTranslate.mockReset();
   });

@@ -130,9 +130,15 @@ export function validateInput(capability, input) {
       code,
       "Subtitle times must be ordered seconds."
     );
-  } else if (capability === "transcribe")
+  } else if (capability === "transcribe") {
     requireValue(asset(input.audio), code, "Audio asset is required.");
-  else if (
+    requireValue(
+      input.requireTimestamps === undefined ||
+        typeof input.requireTimestamps === "boolean",
+      code,
+      "requireTimestamps must be boolean."
+    );
+  } else if (
     ["recognizeText", "parseImage", "analyzeLayout"].includes(capability)
   )
     requireValue(asset(input.image), code, "Image asset is required.");
@@ -350,7 +356,12 @@ export function validateResult(capability, result, input, descriptor = {}) {
         "Invalid transcription segments."
       );
       requireValue(
-        !descriptor.timestamps || Array.isArray(result.segments),
+        !(input.requireTimestamps ?? descriptor.timestamps) ||
+          (Array.isArray(result.segments) &&
+            (!result.text.trim() ||
+              result.segments.some(
+                (segment) => segment.text.trim() && segment.end > segment.start
+              ))),
         code,
         "Declared timestamps are missing."
       );

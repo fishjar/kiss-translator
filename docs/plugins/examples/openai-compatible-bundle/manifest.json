@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "example-openai-compatible-bundle",
   "name": "OpenAI 兼容协议示例",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "apiVersion": "1",
   "description": "SDK v1 的多接口、多能力、JSON/JS 混合示例。",
   "permissions": {
@@ -182,6 +182,50 @@
         "tr": "Ses dökümü",
         "vi": "Chép lời âm thanh",
         "ru": "Транскрипция аудио"
+      }
+    },
+    {
+      "id": "timestamped-transcriptions",
+      "name": "带时间戳音频转写",
+      "implementation": {
+        "kind": "declarative",
+        "entry": "services/timestamped-transcription.json"
+      },
+      "capabilities": {
+        "transcribe": {
+          "handler": "transcribe",
+          "timestamps": true,
+          "outputModes": ["complete"]
+        }
+      },
+      "settings": [
+        {
+          "key": "model",
+          "label": "转写模型",
+          "type": "text",
+          "required": true,
+          "labelI18n": {
+            "zh": "转写模型",
+            "en": "Transcription model",
+            "zh_TW": "轉寫模型",
+            "ja": "文字起こしモデル",
+            "ko": "전사 모델",
+            "tr": "Döküm modeli",
+            "vi": "Mô hình chép lời",
+            "ru": "Модель транскрипции"
+          }
+        }
+      ],
+      "modelField": "model",
+      "nameI18n": {
+        "zh": "带时间戳音频转写",
+        "en": "Transcription with timestamps",
+        "zh_TW": "含時間戳音訊轉寫",
+        "ja": "タイムスタンプ付き文字起こし",
+        "ko": "타임스탬프 포함 전사",
+        "tr": "Zaman damgalı döküm",
+        "vi": "Chép lời có dấu thời gian",
+        "ru": "Транскрипция с временными метками"
       }
     },
     {

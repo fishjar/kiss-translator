@@ -2,12 +2,13 @@
 
 这是 [SDK v1](../../plugin-development-guide.md) 的示例，可安装到包含 Provider 运行时的当前开发分支。不包含 API Key；创建实例后需填写并授权对应服务。
 
-包中有五个服务接口：
+包中有六个服务接口：
 
 | 接口              | 实现                          | 创建后实例能力                     |
 | ----------------- | ----------------------------- | ---------------------------------- |
 | chat-completions  | services/chat.js              | chat、translate（完整/流式）       |
 | transcriptions    | services/transcription.json   | transcribe                         |
+| timestamped-transcriptions | services/timestamped-transcription.json | transcribe（真实分段时间戳） |
 | speech            | services/speech.json          | synthesizeSpeech                   |
 | vision            | services/vision.js            | parseImage（全文识别，无坐标）     |
 | signed-dictionary | services/signed-dictionary.js | dictionary（自定义/mock 签名端点） |
@@ -97,3 +98,9 @@ ZIP 为本地打包产物，不提交 Git。
 ```
 
 新模板版本为 1.6.1。已安装实例保留自己的快照，需先更新插件包，再创建升级实例、测试并替换场景引用。旧快照没有 protocol 声明时继续兼容 JSON；显式绑定宿主提示词时按该提示词的模式和协议执行。脚本若自行解析响应，需同步读取 translationMode/outputProtocol；使用 SDK helpers 的旧脚本可继承本次调用协议。
+
+## YouTube ASR 时间戳接口（1.6.2）
+
+新增 `timestamped-transcriptions`，要求兼容服务支持 `/audio/transcriptions`、`verbose_json` 和 `timestamp_granularities[]=segment`，返回 `text` 与秒单位的 `segments[{start,end,text}]`。没有默认模型：请填写已验证支持此协议和时间戳的模型 ID；仅输出全文的模型不能用于同步字幕。原 `transcriptions` 的 JSON 全文行为保持原样。创建新接口实例并开启 transcribe 后，可在“字幕翻译 → YouTube 音频识别服务”选择该实例，分块上限在服务设置中配置。
+
+此示例经过模拟响应和生产解析器测试，未代替真实服务验收。网络权限范围与原插件一致，没有新增站点。

@@ -1,3 +1,4 @@
+import { AsrTaskPanel } from "./asr/AsrTaskPanel";
 import { isApiConfigured } from "../config/serviceSelection";
 import { supportsApiCapability } from "../config/serviceSelection";
 import { logger } from "../libs/log.js";
@@ -139,6 +140,20 @@ export function renderMarkdownToElement(markdownText, container) {
   }
 }
 
+const ensureSubtitleHeaderStyles = () => {
+  if (document.getElementById("kiss-youtube-tab-header-styles")) return;
+  const style = document.createElement("style");
+  style.id = "kiss-youtube-tab-header-styles";
+  style.textContent = `
+    .kiss-youtube-tab-header::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+  `;
+  document.head.appendChild(style);
+};
+
 export class YouTubeSubtitleList {
   /**
    * @param {HTMLVideoElement} videoElement YouTube 的原生视频播放器 DOM 节点
@@ -152,6 +167,8 @@ export class YouTubeSubtitleList {
       hoverLookupCloseDelay = 2,
       getSummaryConfig = null,
       getVideoMetadata = null,
+      asrActions = null,
+      onClose = null,
     } = {}
   ) {
     this.videoEl = videoElement;
@@ -160,6 +177,8 @@ export class YouTubeSubtitleList {
     this.autoFavWord = autoFavWord;
     this.getSummaryConfig = getSummaryConfig;
     this.getVideoMetadata = getVideoMetadata;
+    this.asrActions = asrActions;
+    this.onClose = onClose;
 
     // --- 数据源缓存 ---
     // 双语字幕主列表数组。结构：{ start: number, end: number, text: string, translation: string }
@@ -318,6 +337,7 @@ export class YouTubeSubtitleList {
   }
 
   handleWindowResize() {
+    this._mountAsrContainer();
     this._syncContainerHeightToPlayer();
   }
 
@@ -333,7 +353,7 @@ export class YouTubeSubtitleList {
     this.bilingualSubtitles = subtitles || [];
     this.rawSubtitleEvents = rawSubtitleEvents || [];
     this.subtitleProgress = this._normalizeProgress(progressed);
-    if (this.bilingualSubtitles.length > 0) {
+    if (this.bilingualSubtitles.length > 0 || this.asrActions) {
       this.createSubtitleList();
       this.setupEventListeners();
     }
@@ -392,6 +412,8 @@ export class YouTubeSubtitleList {
    * 销毁器 - 全面解绑事件监听、注销定时器、强行中断进行中的异步分块渲染并清理 DOM 节点引用以防止内存泄漏
    */
   destroy() {
+    this.asrPanel?.destroy();
+    this.asrPanel = null;
     this.turnOffAutoSub();
     this._cancelChunkRender();
     this._cancelVirtualRender();
@@ -399,6 +421,10 @@ export class YouTubeSubtitleList {
     this._playerResizeObserver?.disconnect();
     this._playerResizeObserver = null;
     window.removeEventListener("resize", this.handleWindowResize);
+    document.removeEventListener(
+      "fullscreenchange",
+      this._asrFullscreenHandler
+    );
     this._playerSizeListenerAttached = false;
     this._wordTooltipController?.destroy();
     this._wordTooltipController = null;
@@ -935,6 +961,16 @@ export class YouTubeSubtitleList {
       // 挂载到右侧推荐流栏的头部
       const secondary = document.getElementById("secondary-inner");
       if (secondary) secondary.prepend(this.container);
+      if (this.asrActions) {
+        this._asrFullscreenHandler = () => {
+          this._mountAsrContainer();
+          this._syncContainerHeightToPlayer();
+        };
+        document.addEventListener(
+          "fullscreenchange",
+          this._asrFullscreenHandler
+        );
+      }
 
       // 自适应主题：异步加载用户暗黑模式偏好，并嗅探原生系统的 prefers-color-scheme，写入对应的全局 CSS 变量系统
       (async () => {
@@ -1005,6 +1041,7 @@ export class YouTubeSubtitleList {
       })();
     }
 
+    this._mountAsrContainer();
     this._syncContainerHeightToPlayer();
     this._observePlayerSize();
   }
@@ -1013,14 +1050,55 @@ export class YouTubeSubtitleList {
     return this.videoEl?.closest(".html5-video-player") || this.videoEl;
   }
 
+  _mountAsrContainer() {
+    if (!this.asrActions || !this.container) return;
+    const fullscreen = document.fullscreenElement;
+    if (fullscreen) {
+      this.container.style.display = "none";
+      return;
+    }
+    this.container.style.display = "flex";
+    const secondary = document.getElementById("secondary-inner");
+    const overlay =
+      window.location.pathname.startsWith("/shorts/") ||
+      !secondary;
+    const parent = overlay ? document.body : secondary;
+    if (this.container.parentElement !== parent) parent.prepend(this.container);
+    Object.assign(
+      this.container.style,
+      overlay
+        ? {
+            position: "fixed",
+            top: "72px",
+            right: "12px",
+            width: "min(360px, calc(100vw - 24px))",
+            minWidth: "0",
+            zIndex: "2147483640",
+          }
+        : {
+            position: "",
+            top: "60px",
+            right: "0",
+            width: "",
+            minWidth: "320px",
+            zIndex: "999",
+          }
+    );
+  }
+
   _syncContainerHeightToPlayer() {
     if (!this.container) return;
+    if (this.asrActions && document.fullscreenElement) return;
 
     const player = this._getPlayerElement();
     const playerHeight = player?.getBoundingClientRect?.().height;
     if (!Number.isFinite(playerHeight) || playerHeight <= 0) return;
 
-    const height = `${Math.round(playerHeight)}px`;
+    const overlay =
+      this.asrActions &&
+      (window.location.pathname.startsWith("/shorts/") ||
+        !document.getElementById("secondary-inner"));
+    const height = `${Math.round(overlay ? Math.min(playerHeight, Math.max(160, window.innerHeight - 96)) : playerHeight)}px`;
     this.container.style.height = height;
     this.container.style.maxHeight = height;
   }
@@ -1043,9 +1121,11 @@ export class YouTubeSubtitleList {
    * 绘制骨架、关闭按钮以及 Tab 切换卡
    */
   _renderTabsAndStructure() {
+    ensureSubtitleHeaderStyles();
     // 1. 创建头部 Tab 区域
     const tabHeader = document.createElement("div");
-    tabHeader.style.cssText = `display: flex; border-bottom: 1px solid var(--kt-divider); padding: 0 16px; flex-shrink: 0;`;
+    tabHeader.className = "kiss-youtube-tab-header";
+    tabHeader.style.cssText = `overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none; display: flex; align-items: center; border-bottom: 1px solid var(--kt-divider); padding: 0 16px; flex-shrink: 0;`;
 
     const subtitleTab = document.createElement("button");
     this.subtitleTabEl = subtitleTab;
@@ -1082,6 +1162,7 @@ export class YouTubeSubtitleList {
 
     closeBtn.addEventListener("click", () => {
       this.destroy(); // 卸载整个面板
+      this.onClose?.();
     });
 
     closeBtn.addEventListener(
@@ -1196,6 +1277,23 @@ export class YouTubeSubtitleList {
     );
 
     subActionBar.append(downloadBtn, downloadTranslationBtn, downloadRawBtn);
+    if (this.asrActions) {
+      this.asrAudioButton = document.createElement("button");
+      this.asrAudioButton.style.cssText = downloadBtn.style.cssText;
+      this.asrAudioButton.textContent = this.i18n("youtube_asr_download_full");
+      this.asrAudioButton.addEventListener(
+        "click",
+        () => void this.asrActions.exportFull()
+      );
+      this.asrCancelButton = document.createElement("button");
+      this.asrCancelButton.textContent = this.i18n("youtube_asr_cancel");
+      this.asrCancelButton.addEventListener("click", () =>
+        this.asrActions.cancelExport()
+      );
+      this.asrPanel = new AsrTaskPanel(this.i18n, this.asrActions);
+      this.asrPanel.toolbar.append(this.asrAudioButton, this.asrCancelButton);
+      this.updateAsrState(this.asrState || {});
+    }
     this.subtitleListEl.appendChild(subActionBar);
 
     // 字幕滚动视口容器
@@ -1256,8 +1354,36 @@ export class YouTubeSubtitleList {
     this.summaryScrollContainer.style.cssText = `overflow-y: auto; flex: 1; padding: 16px 20px; position: relative; box-sizing: border-box;`;
     this.summaryListEl.appendChild(this.summaryScrollContainer);
 
+    let asrTab;
+    if (this.asrPanel) {
+      asrTab = document.createElement("button");
+      this.asrTabEl = asrTab;
+      asrTab.textContent = this.i18n("youtube_asr_tab");
+      styleTab(asrTab, false);
+      asrTab.onclick = () => {
+        this.activeTab = "asr";
+        for (const tab of [subtitleTab, vocabularyTab, summaryTab])
+          styleTab(tab, false);
+        styleTab(asrTab, true);
+        for (const panel of [
+          this.subtitleListEl,
+          this.vocabularyListEl,
+          this.summaryListEl,
+        ])
+          panel.style.display = "none";
+        this.asrPanel.element.style.display = "flex";
+      };
+    }
+    this.selectAsrTab = () => asrTab?.click();
+    const hideAsr = () => {
+      if (!asrTab) return;
+      this.asrPanel.stopPreview();
+      styleTab(asrTab, false);
+      this.asrPanel.element.style.display = "none";
+    };
     // Tab 点击事件联动
     subtitleTab.addEventListener("click", () => {
+      hideAsr();
       this.activeTab = "subtitles";
       styleTab(subtitleTab, true);
       styleTab(vocabularyTab, false);
@@ -1271,6 +1397,7 @@ export class YouTubeSubtitleList {
       }
     });
     vocabularyTab.addEventListener("click", () => {
+      hideAsr();
       this.activeTab = "vocabulary";
       styleTab(subtitleTab, false);
       styleTab(vocabularyTab, true);
@@ -1285,6 +1412,7 @@ export class YouTubeSubtitleList {
       }
     });
     summaryTab.addEventListener("click", () => {
+      hideAsr();
       this.activeTab = "summary";
       styleTab(subtitleTab, false);
       styleTab(vocabularyTab, false);
@@ -1300,13 +1428,18 @@ export class YouTubeSubtitleList {
     styleTab(vocabularyTab, false);
     styleTab(summaryTab, false);
 
-    tabHeader.append(subtitleTab, vocabularyTab, summaryTab, closeBtn);
+    tabHeader.append(subtitleTab);
+    if (asrTab) tabHeader.append(asrTab);
+    tabHeader.append(vocabularyTab, summaryTab, closeBtn);
     tabContentContainer.append(
       this.subtitleListEl,
       this.vocabularyListEl,
       this.summaryListEl
     );
-    this.container.append(tabHeader, tabContentContainer);
+    if (this.asrPanel) {
+      tabContentContainer.append(this.asrPanel.element);
+      this.container.append(tabHeader, tabContentContainer);
+    } else this.container.append(tabHeader, tabContentContainer);
   }
 
   /**
@@ -1382,6 +1515,30 @@ export class YouTubeSubtitleList {
    * 虚拟列表不再直接追加 DOM；这里重置高度/偏移缓存并强制重绘当前窗口，
    * 让新增字幕和翻译后的高度变化统一通过虚拟渲染流程处理，避开低效的全量 DOM 清理重建。
    */
+  updateAsrTasks(update) {
+    this.asrPanel?.updateTasks(update);
+  }
+
+  updateAsrState(state) {
+    this.asrState = state;
+    this.asrPanel?.updateState(state);
+    if (!this.asrAudioButton) return;
+    const busy = ["fetching", "generating"].includes(state.fullExport);
+    this.asrAudioButton.disabled = busy;
+    const label =
+      this.i18n(
+        state.fullExport === "generating"
+          ? "youtube_asr_preparing"
+          : "youtube_asr_download_full"
+      ) +
+      (busy && state.audio?.percent !== undefined
+        ? ` ${Math.floor(state.audio.percent)}%`
+        : "");
+    if (this.asrAudioButton.textContent !== label)
+      this.asrAudioButton.textContent = label;
+    this.asrCancelButton.hidden = !busy;
+  }
+
   updateBilingualSubtitles() {
     if (!this.subtitleListEl) return;
 

@@ -173,6 +173,29 @@ test("local audio/decision/layout preserve real data rather than fabricate times
   ).rejects.toThrow("INVALID_MODEL");
 });
 
+test.each([true, false])(
+  "video ASR rejects runtime audio truncation with required timestamps=%s",
+  async (requireTimestamps) => {
+    require("../localAi/core/recorder").decodeAudioFile.mockResolvedValue({
+      audio: new Float32Array(16000),
+      sampleRate: 16000,
+    });
+    const ctx = context();
+    const audio = ctx.assets.put(new Blob(["input"], { type: "audio/wav" }));
+    runtimeHost.request.mockResolvedValueOnce({
+      segments: [{ text: "partial", start: 0, end: 1 }],
+      inputAdjustments: [{ kind: "audio", original: 31, processed: 30 }],
+    });
+    await expect(
+      localHandlers.transcribe(
+        { audio, requireTimestamps },
+        { modelRef: "asr" },
+        ctx
+      )
+    ).rejects.toMatchObject({ code: "INPUT_LIMIT_EXCEEDED" });
+  }
+);
+
 test("local OCR retains actual polygons and cancelled inference is not successful output", async () => {
   const ctx = context();
   const image = ctx.assets.put(new Blob(["image"]));
@@ -290,4 +313,25 @@ test("local VLM uses official task prompts unless explicitly overridden", async 
     ctx
   );
   expect(recognizeFileImage.mock.calls.at(-1)[1].prompt).toBe("custom task");
+});
+
+test("video ASR exposes a synthesized whole-block fallback as text without model timestamps", async () => {
+  require("../localAi/core/recorder").decodeAudioFile.mockResolvedValue({
+    audio: new Float32Array(16000),
+    sampleRate: 16000,
+  });
+  const ctx = context();
+  const audio = ctx.assets.put(new Blob(["input"], { type: "audio/wav" }));
+  runtimeHost.request.mockResolvedValueOnce({
+    segments: [
+      { text: "whole block", start: 0, end: 1, timingSource: "audio-chunk" },
+    ],
+  });
+  await expect(
+    localHandlers.transcribe(
+      { audio, requireTimestamps: false },
+      { modelRef: "asr" },
+      ctx
+    )
+  ).resolves.toEqual({ text: "whole block" });
 });

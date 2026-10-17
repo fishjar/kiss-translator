@@ -86,6 +86,35 @@ const samples = {
   speak: [{ text: "hello" }, { status: "ended" }],
 };
 
+test("video ASR requires real timestamps while existing text transcription remains valid", () => {
+  expect(() =>
+    validateInput("transcribe", { audio, requireTimestamps: "true" })
+  ).toThrow();
+  const input = { audio, requireTimestamps: true };
+  expect(() => validateResult("transcribe", { text: "hello" }, input)).toThrow(
+    "timestamps"
+  );
+  expect(() =>
+    validateResult("transcribe", { text: "hello", segments: [] }, input)
+  ).toThrow("timestamps");
+  expect(() =>
+    validateResult(
+      "transcribe",
+      {
+        text: "hello",
+        segments: [{ text: "hello", start: 0, end: 0 }],
+      },
+      input
+    )
+  ).toThrow("timestamps");
+  expect(
+    validateResult("transcribe", { text: "", segments: [] }, input)
+  ).toEqual({ text: "", segments: [] });
+  expect(validateResult("transcribe", { text: "hello" }, { audio })).toEqual({
+    text: "hello",
+  });
+});
+
 test.each(Object.entries(samples))(
   "%s validates a concrete input and result, rejecting missing inputs/results",
   (capability, [input, result]) => {
@@ -186,4 +215,19 @@ test("VLM image tasks validate modes and coordinates independently from the mode
       input
     )
   ).toThrow("blocks");
+});
+
+test("optional timestamps use actual response even when the provider declares them", () => {
+  const input = { audio, requireTimestamps: false };
+  expect(
+    validateResult("transcribe", { text: "hello" }, input, { timestamps: true })
+  ).toEqual({ text: "hello" });
+  expect(() =>
+    validateResult(
+      "transcribe",
+      { text: "hello", segments: [{ start: 2, end: 1, text: "hello" }] },
+      input,
+      { timestamps: true }
+    )
+  ).toThrow();
 });

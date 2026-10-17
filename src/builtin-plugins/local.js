@@ -3,7 +3,9 @@ import { providerError } from "../providers/capabilities";
 /** Reuse the existing runtime host and scheduler; never create/unload a private model session per task. */
 async function request(api, ctx, service, method, payload) {
   const { cacheMode, ...data } = payload;
-  const { runtimeHost } = await import("../localAi/runtime/runtimeHostAdapter");
+  const runtimeHost =
+    ctx.runtimeHost ||
+    (await import("../localAi/runtime/runtimeHostAdapter")).runtimeHost;
   const { resolveModelTarget } = await import("../localAi/core/modelTarget");
   const target = {
     modelRef: api.modelRef,
@@ -75,6 +77,23 @@ export const localHandlers = {
       audio: resampleTo16k(decoded.audio, decoded.sampleRate),
       language: input.language || "auto",
     });
+    if (
+      input.requireTimestamps !== undefined &&
+      result.inputAdjustments?.some(
+        (item) => item.kind === "audio" && !(item.processed >= item.original)
+      )
+    )
+      throw providerError(
+        "INPUT_LIMIT_EXCEEDED",
+        "The ASR runtime shortened the audio. Submit smaller audio chunks."
+      );
+    if (
+      input.requireTimestamps !== undefined &&
+      result.segments.some((segment) => segment.timingSource === "audio-chunk")
+    )
+      return {
+        text: result.segments.map((segment) => segment.text).join("\n"),
+      };
     return {
       text: result.segments.map((segment) => segment.text).join("\n"),
       segments: result.segments.map(({ start, end, text }) => ({

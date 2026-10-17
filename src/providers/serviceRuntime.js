@@ -73,6 +73,7 @@ export function invokeService(instance, capability, input, options = {}) {
         await events;
         return result;
       } finally {
+        await call.finished;
         invocation.signal.removeEventListener("abort", unsubscribe);
         unsubscribe();
       }

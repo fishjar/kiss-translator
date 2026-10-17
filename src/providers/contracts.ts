@@ -134,7 +134,7 @@ export interface CapabilityMap {
     };
   };
   transcribe: {
-    input: { audio: AssetRef; language?: string };
+    input: { audio: AssetRef; language?: string; requireTimestamps?: boolean };
     result: { text: string; segments?: AudioSegment[] };
   };
   recognizeText: {
@@ -192,6 +192,8 @@ export interface Invocation<TResult> {
   result: Promise<TResult>;
   events: AsyncIterable<ProviderEvent>;
   cancel(): void;
+  /** Resolves when execution has actually settled, including after cancellation. */
+  finished?: Promise<void>;
 }
 export interface ProviderSetting {
   key: string;
@@ -283,6 +285,8 @@ export interface ProviderInstance {
   provider: ProviderSnapshot;
   enabledCapabilities: Capability[];
   pluginConfig?: Record<string, unknown>;
+  asrMaxDurationSeconds?: number;
+  asrTimestampSupport?: "auto" | "supported" | "unsupported";
 }
 export type PackageSource =
   | { kind: "github"; repoUrl: string; commitSha: string }

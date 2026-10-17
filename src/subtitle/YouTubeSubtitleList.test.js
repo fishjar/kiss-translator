@@ -86,6 +86,68 @@ async function flushPromises() {
 }
 
 describe("YouTubeSubtitleList", () => {
+  test("ASR controls stay mounted in Shorts, hide in fullscreen and return to the normal sidebar", () => {
+    const video = createVideoElement(),
+      list = new YouTubeSubtitleList(video, (key) => key, { asrActions: {} });
+    window.history.replaceState({}, "", "/shorts/kSQknoHMFtk");
+    list.initialize([subtitle]);
+    expect(list.container.parentElement).toBe(document.body);
+    expect(list.container.style.position).toBe("fixed");
+    const tabHeader = list.container.querySelector(".kiss-youtube-tab-header");
+    expect(tabHeader.style.overflowY).toBe("hidden");
+    expect(
+      document.getElementById("kiss-youtube-tab-header-styles")
+    ).not.toBeNull();
+    const player = video.closest(".html5-video-player");
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      value: player,
+    });
+    document.dispatchEvent(new Event("fullscreenchange"));
+    expect(list.container.style.display).toBe("none");
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      value: null,
+    });
+    window.history.replaceState({}, "", "/watch?v=kSQknoHMFtk");
+    document.dispatchEvent(new Event("fullscreenchange"));
+    expect(list.container.style.display).toBe("flex");
+    expect(list.container.parentElement.id).toBe("secondary-inner");
+    expect(list.container.style.position).toBe("");
+    list.destroy();
+  });
+  test.each(["asr", "audio-chunk"])(
+    "ASR %s download does not jump playback; full export has independent progress and cancel",
+    async (timingSource) => {
+      const video = createVideoElement(),
+        exportSentence = jest.fn(async () => {}),
+        exportFull = jest.fn(),
+        cancelExport = jest.fn();
+      const list = new YouTubeSubtitleList(video, (key) => key, {
+        asrActions: { exportSentence, exportFull, cancelExport },
+      });
+      const cue = { ...subtitle, timingSource };
+      list.initialize([cue]);
+      renderVisibleSubtitleItems(list);
+      expect(
+        list.container.querySelector('[aria-label^="youtube_asr_"]')
+      ).toBeNull();
+      list.asrAudioButton.click();
+      expect(exportFull).toHaveBeenCalledTimes(1);
+      list.updateAsrState({
+        phase: "recognizing",
+        fullExport: "fetching",
+        audio: { phase: "fetching", percent: 35, bytes: 1024 },
+      });
+      expect(list.asrAudioButton.disabled).toBe(true);
+      expect(list.asrAudioButton.textContent).toContain("35%");
+      expect(list.asrStatus).toBeUndefined();
+      expect(list.asrAudioButton.parentElement).toBe(list.asrPanel.toolbar);
+      list.asrCancelButton.click();
+      expect(cancelExport).toHaveBeenCalledTimes(1);
+      list.destroy();
+    }
+  );
   beforeEach(() => {
     apiMicrosoftDict.mockReset();
     apiSummarizeVideo.mockReset();
@@ -735,6 +797,57 @@ test("list auto-scroll preserves the handoff delay and panel interaction", async
     expect(panel.isConnected).toBe(false);
   } finally {
     manager.destroy();
+    jest.useRealTimers();
+  }
+});
+
+test("empty ASR sidebar keeps its fixed status inside the ASR tab only", async () => {
+  jest.useFakeTimers();
+  const video = createVideoElement();
+  const onClose = jest.fn();
+  const list = new YouTubeSubtitleList(video, (key) => key, {
+    asrActions: {},
+    onClose,
+  });
+  try {
+    list.initialize([], [], 0);
+    expect(list.container).not.toBeNull();
+    const header = list.container.firstElementChild;
+    expect(
+      [...header.querySelectorAll("button")]
+        .slice(0, 4)
+        .map((button) => button.textContent)
+    ).toEqual([
+      "bilingual_subtitles [0%]",
+      "youtube_asr_tab",
+      "vocabulary_book",
+      "video_summary",
+    ]);
+    list.selectAsrTab();
+    expect(list.activeTab).toBe("asr");
+    list.updateAsrState({ phase: "error", error: "AUDIO_CAPTURE_MISSING" });
+    jest.advanceTimersByTime(100);
+    const summary = list.asrPanel.summary;
+    expect(summary.parentElement).toBe(list.asrPanel.element);
+    expect(summary.previousElementSibling).toBe(list.asrPanel.toolbar);
+    expect(summary.nextElementSibling).toBe(list.asrPanel.list);
+    expect(summary.style.height).toBe("");
+    expect(summary.style.overflow).not.toBe("auto");
+    list.subtitleTabEl.click();
+    expect(summary.isConnected).toBe(true);
+    expect(list.asrPanel.element.style.display).toBe("none");
+    header.querySelectorAll("button")[2].click();
+    expect(list.asrPanel.element.style.display).toBe("none");
+    header.querySelectorAll("button")[3].click();
+    expect(list.asrPanel.element.style.display).toBe("none");
+    list.subtitleTabEl.click();
+    expect(list.activeTab).toBe("subtitles");
+    list.updateAsrState({ phase: "waiting" });
+    expect(list.activeTab).toBe("subtitles");
+    header.querySelectorAll("button")[4].click();
+    expect(onClose).toHaveBeenCalledTimes(1);
+  } finally {
+    list.destroy();
     jest.useRealTimers();
   }
 });

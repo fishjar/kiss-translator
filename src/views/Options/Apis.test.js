@@ -142,6 +142,57 @@ function createApi(overrides = {}) {
 }
 
 describe("service save feedback", () => {
+  test("ASR chunk duration rejects invalid drafts and saves valid integers", async () => {
+    const update = jest.fn(async () => {});
+    const view = await renderApis(
+      createApi({
+        apiType: "LocalAI",
+        sourceType: "local",
+        modelRef: "whisper-base-timestamped",
+        device: "webgpu",
+        enabledCapabilities: ["transcribe"],
+      }),
+      update
+    );
+    try {
+      expect(getInput(view.container, "asrMaxDurationSeconds").value).toBe(
+        "30"
+      );
+      const timestampSupport = view.container.querySelector(
+        'select[name="asrTimestampSupport"]'
+      );
+      expect(timestampSupport.disabled).toBe(true);
+      expect(timestampSupport.value).toBe("supported");
+      for (const value of ["", "0", "1.5", "301"]) {
+        await act(async () =>
+          Simulate.change(getInput(view.container, "asrMaxDurationSeconds"), {
+            target: { value },
+          })
+        );
+        await act(async () => Simulate.click(getSaveButton(view.container)));
+        expect(update).not.toHaveBeenCalled();
+        const dialog = document.querySelector('[role="dialog"]');
+        expect(dialog).not.toBeNull();
+        await act(async () =>
+          Array.from(dialog.querySelectorAll("button"))
+            .find((button) => button.textContent === "知道了")
+            .click()
+        );
+      }
+      await act(async () =>
+        Simulate.change(getInput(view.container, "asrMaxDurationSeconds"), {
+          target: { value: "12" },
+        })
+      );
+      await act(async () => Simulate.click(getSaveButton(view.container)));
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({ asrMaxDurationSeconds: 12 })
+      );
+    } finally {
+      view.unmount();
+    }
+  });
+
   test("saves an out-of-range native draft before warning and keeps a pinned detail expanded", async () => {
     let complete;
     const update = jest.fn(

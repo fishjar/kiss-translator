@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import SubtitleSetting, { parseCssToObject, objectToCss } from "./Subtitle";
 import { useSubtitle } from "../../hooks/Subtitle";
 import { I18N, UI_LANGS, DEFAULT_SUBTITLE_SETTING } from "../../config";
+import { AsrCacheClient } from "../../subtitle/asr/cacheBridge";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -17,8 +18,26 @@ jest.mock("../../hooks/Subtitle", () => ({
   useSubtitle: jest.fn(),
 }));
 
+let mockServiceApis = [];
 jest.mock("../../hooks/Api", () => ({
-  useApiList: () => ({ enabledApis: [], aiEnabledApis: [] }),
+  useApiList: () => {
+    const { supportsApiCapability, isApiConfigured } = jest.requireActual(
+      "../../config/serviceSelection"
+    );
+    return {
+      transApis: mockServiceApis,
+      enabledApis: mockServiceApis.filter(
+        (api) =>
+          !api.isDisabled &&
+          isApiConfigured(api) &&
+          supportsApiCapability(api, "translate")
+      ),
+      aiEnabledApis: [],
+    };
+  },
+}));
+jest.mock("../../subtitle/asr/cacheBridge", () => ({
+  AsrCacheClient: jest.fn(),
 }));
 
 jest.mock("../../hooks/Prompt", () => ({
@@ -65,6 +84,197 @@ function setSliderValue(input, value) {
     input.dispatchEvent(new Event("change", { bubbles: true }));
   });
 }
+
+describe("YouTube ASR settings", () => {
+  const previousClient = process.env.REACT_APP_CLIENT;
+  afterEach(() => {
+    if (previousClient === undefined) delete process.env.REACT_APP_CLIENT;
+    else process.env.REACT_APP_CLIENT = previousClient;
+    mockServiceApis = [];
+  });
+  test("accepts text-only services, saves the selected service, and restores its saved value", () => {
+    process.env.REACT_APP_CLIENT = "chrome";
+    const service = (slug, timestamps) => ({
+      apiSlug: slug,
+      apiName: slug,
+      apiType: "CustomASR",
+      provider: {
+        apiVersion: "1",
+        implementation: { kind: "native" },
+        capabilities: { transcribe: { outputModes: ["complete"], timestamps } },
+      },
+    });
+    mockServiceApis = [service("timed-asr", true), service("text-only", false)];
+    const view = renderSubtitle();
+    const select = view.container.querySelector(
+      '[aria-label="youtube_asr_service"][role="combobox"]'
+    );
+    act(() => Simulate.mouseDown(select, { button: 0 }));
+    expect(
+      [...document.querySelectorAll('[role="option"]')].some(
+        (item) => item.textContent === "text-only"
+      )
+    ).toBe(true);
+    act(() =>
+      [...document.querySelectorAll('[role="option"]')]
+        .find((item) => item.textContent === "text-only")
+        .click()
+    );
+    expect(view.updateSubtitle).toHaveBeenCalledWith({
+      asrApiSlug: "text-only",
+    });
+    view.unmount();
+    const saved = renderSubtitle({ asrApiSlug: "text-only" });
+    expect(
+      saved.container.querySelector(
+        '[aria-label="youtube_asr_service"][role="combobox"]'
+      ).textContent
+    ).toBe("text-only");
+    saved.unmount();
+  });
+  test.each(["local", "external"])(
+    "pure %s ASR can be selected from the complete service list",
+    (kind) => {
+      process.env.REACT_APP_CLIENT = "edge";
+      const service =
+        kind === "local"
+          ? {
+              apiSlug: "local-asr",
+              apiName: "Local ASR",
+              apiType: "LocalAI",
+              modelRef: "sensevoice-small",
+              device: "webgpu",
+              enabledCapabilities: ["transcribe"],
+            }
+          : {
+              apiSlug: "external-asr",
+              apiName: "External ASR",
+              apiType: "Plugin",
+              enabledCapabilities: ["transcribe"],
+              provider: {
+                apiVersion: "1",
+                implementation: { kind: "script" },
+                capabilities: {
+                  transcribe: {
+                    handler: "transcribe",
+                    outputModes: ["complete"],
+                  },
+                },
+              },
+            };
+      mockServiceApis = [service];
+      const view = renderSubtitle();
+      act(() =>
+        Simulate.mouseDown(
+          view.container.querySelector(
+            '[aria-label="youtube_asr_service"][role="combobox"]'
+          ),
+          { button: 0 }
+        )
+      );
+      const option = [...document.querySelectorAll('[role="option"]')].find(
+        (item) => item.textContent === service.apiName
+      );
+      expect(option).toBeDefined();
+      act(() => option.click());
+      expect(view.updateSubtitle).toHaveBeenCalledWith({
+        asrApiSlug: service.apiSlug,
+      });
+      view.unmount();
+      const saved = renderSubtitle({ asrApiSlug: service.apiSlug });
+      expect(
+        saved.container.querySelector(
+          '[aria-label="youtube_asr_service"][role="combobox"]'
+        ).textContent
+      ).toBe(service.apiName);
+      saved.unmount();
+    }
+  );
+
+  test.each(["disabled", "capability-off", "invalid-config"])(
+    "unavailable ASR remains visible only as a disabled saved selection: %s",
+    (reason) => {
+      process.env.REACT_APP_CLIENT = "chrome";
+      mockServiceApis = [
+        {
+          apiSlug: "unavailable-asr",
+          apiName: "Unavailable ASR",
+          apiType: "Plugin",
+          isDisabled: reason === "disabled",
+          enabledCapabilities:
+            reason === "capability-off" ? [] : ["transcribe"],
+          provider: {
+            apiVersion: "1",
+            implementation: { kind: "script" },
+            capabilities: {
+              transcribe: { handler: "transcribe", outputModes: ["complete"] },
+            },
+            settings:
+              reason === "invalid-config"
+                ? [{ key: "key", type: "password", required: true }]
+                : [],
+          },
+        },
+      ];
+      const view = renderSubtitle({ asrApiSlug: "unavailable-asr" });
+      act(() =>
+        Simulate.mouseDown(
+          view.container.querySelector(
+            '[aria-label="youtube_asr_service"][role="combobox"]'
+          ),
+          { button: 0 }
+        )
+      );
+      const options = [...document.querySelectorAll('[role="option"]')];
+      expect(options).toHaveLength(2);
+      expect(options[1].getAttribute("aria-disabled")).toBe("true");
+      expect(options[1].textContent).toContain("youtube_asr_unavailable");
+      view.unmount();
+    }
+  );
+
+  test("quality settings put both ASR rows after segmentation and before ad skipping", () => {
+    const view = renderSubtitle();
+    const labels = [
+      ...view.container.querySelectorAll(".kt-settings-row__copy strong"),
+    ].map((element) => element.textContent);
+    const start = labels.indexOf("translate_service");
+    expect(labels.slice(start, start + 6)).toEqual([
+      "translate_service",
+      "translation_prompt",
+      "ai_segmentation",
+      "youtube_asr_service",
+      "youtube_asr_clear",
+      "is_skip_ad",
+    ]);
+    view.unmount();
+  });
+  test("clearing captions disables the action until the background acknowledges it", async () => {
+    process.env.REACT_APP_CLIENT = "chrome";
+    let complete;
+    const close = jest.fn();
+    AsrCacheClient.mockImplementation(() => ({
+      clearSubtitles: () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+      close,
+    }));
+    const view = renderSubtitle(),
+      button = [...view.container.querySelectorAll("button")].find(
+        (item) => item.textContent === "youtube_asr_clear"
+      );
+    act(() => button.click());
+    expect(button.disabled).toBe(true);
+    await act(async () => {
+      complete();
+      await Promise.resolve();
+    });
+    expect(button.textContent).toBe("youtube_asr_cleared");
+    expect(close).toHaveBeenCalledTimes(1);
+    view.unmount();
+  });
+});
 
 describe("Subtitle style editor layout", () => {
   test("preserves the spaced grid gutters inside its stack", () => {

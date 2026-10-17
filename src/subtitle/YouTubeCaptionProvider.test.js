@@ -1,3 +1,4 @@
+import { YouTubeSubtitleList } from "./YouTubeSubtitleList";
 import { act } from "react";
 import { apiSubtitle, apiSummarizeContext } from "../apis/index.js";
 import { YouTubeCaptionProvider } from "./YouTubeCaptionProvider.js";
@@ -11,6 +12,48 @@ const mockProviders = [];
 const mockCancel = jest.fn();
 let mockCapture;
 let mockIsAd = false;
+let mockSnapshotReady = true;
+const mockAsrControllers = [];
+let mockDelayAsr = false;
+let mockRealUi = false;
+jest.mock("./asr/controller", () => ({
+  youtubeAsrSupported: true,
+  YoutubeAsrController: class {
+    constructor(options) {
+      this.options = options;
+      this.active = false;
+      mockAsrControllers.push(this);
+    }
+    service = () => ({ apiSlug: "asr" });
+    start = jest.fn(() => {
+      this.active = true;
+      if (mockDelayAsr) {
+        this.options.onState({ phase: "waiting" });
+        this.options.onSubtitles([], {});
+        return;
+      }
+      this.options.onState({
+        phase: "cached",
+        sourceLanguage: "en",
+        recognition: { percent: 100 },
+      });
+      this.options.onSubtitles(
+        [{ start: 0, end: 1000, text: "audio", translation: "语音" }],
+        { recognition: { percent: 100 } }
+      );
+    });
+    stop = jest.fn(async () => {
+      this.active = false;
+    });
+    dispose = jest.fn(async () => {
+      this.active = false;
+    });
+    tick = jest.fn();
+    beginSeek = jest.fn();
+    seek = jest.fn();
+    restart = jest.fn();
+  },
+}));
 let mockTrack = { languageCode: "en", vssId: "a.en", kind: "asr" };
 const mockResult = (videoId) => ({
   videoId,
@@ -28,6 +71,7 @@ jest.mock("./youtubeAcquisition", () => ({
       selectedTrack: mockTrack,
       captionTracks: [mockTrack],
       isAd: mockIsAd,
+      ready: mockSnapshotReady,
     }));
     clear = jest.fn();
     dispose = jest.fn();
@@ -80,11 +124,23 @@ jest.mock("./youtubePlayerUi.js", () => ({
   YouTubePlayerUi: class {
     constructor(options) {
       mockUiOptions.push(options);
+      if (mockRealUi) {
+        const ui = new (jest.requireActual(
+          "./youtubePlayerUi.js"
+        ).YouTubePlayerUi)(options);
+        ui.injectToggleButton = jest.fn();
+        ui.updateMenuProps = jest.fn();
+        return ui;
+      }
     }
     injectToggleButton = jest.fn();
     removeToggleButton = jest.fn();
     updateMenuProps = jest.fn();
     showNotification = jest.fn();
+    resetTaskFeedback = jest.fn();
+    updateAsrFeedback = jest.fn();
+    updateCaptionFeedback = jest.fn();
+    notifyOnce = jest.fn();
     hideNotification = jest.fn();
     hideYtCaption = jest.fn();
     showYtCaption = jest.fn();
@@ -122,7 +178,17 @@ jest.mock("./BilingualSubtitleManager.js", () => ({
 }));
 
 jest.mock("./YouTubeSubtitleList.js", () => ({
-  YouTubeSubtitleList: jest.fn(),
+  YouTubeSubtitleList: jest.fn().mockImplementation((video, i18n, options) => ({
+    asrActions: options.asrActions,
+    initialize: jest.fn(),
+    updateAsrState: jest.fn(),
+    updateAsrTasks: jest.fn(),
+    selectAsrTab: jest.fn(),
+    setBilingualSubtitles: jest.fn(),
+    updateSingleSubtitle: jest.fn(),
+    turnOnAutoSub: jest.fn(),
+    destroy: jest.fn(),
+  })),
 }));
 
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -150,10 +216,25 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
   const props = () => mockUiOptions[mockUiOptions.length - 1].getMenuProps();
   beforeEach(() => {
     jest.clearAllMocks();
+    YouTubeSubtitleList.mockImplementation((video, i18n, options) => ({
+      asrActions: options.asrActions,
+      initialize: jest.fn(),
+      updateAsrState: jest.fn(),
+      updateAsrTasks: jest.fn(),
+      selectAsrTab: jest.fn(),
+      setBilingualSubtitles: jest.fn(),
+      updateSingleSubtitle: jest.fn(),
+      turnOnAutoSub: jest.fn(),
+      destroy: jest.fn(),
+    }));
     mockManagerSettings.length = 0;
     mockManagers.length = 0;
     mockUiOptions.length = 0;
     mockIsAd = false;
+    mockSnapshotReady = true;
+    mockAsrControllers.length = 0;
+    mockDelayAsr = false;
+    mockRealUi = false;
     mockTrack = { languageCode: "en", vssId: "a.en", kind: "asr" };
     window.history.replaceState({}, "", "/watch?v=video-1");
     document.body.innerHTML =
@@ -172,6 +253,199 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
   afterEach(() => {
     mockProviders.splice(0).forEach((p) => p.destroy());
     document.body.innerHTML = "";
+  });
+
+  test("manual ASR waiting keeps the event loop responsive with real UI and DOM observers", async () => {
+    const NativeObserver = global.MutationObserver;
+    let callbacks = 0,
+      stoppedByGuard = false;
+    const observers = [];
+    global.MutationObserver = class extends NativeObserver {
+      constructor(callback) {
+        super((records, observer) => {
+          if (++callbacks > 80) {
+            stoppedByGuard = true;
+            observer.disconnect();
+            return;
+          }
+          callback(records, observer);
+        });
+        observers.push(this);
+      }
+    };
+    mockRealUi = true;
+    mockDelayAsr = true;
+    mockTrack = { languageCode: "en", vssId: ".en" };
+    try {
+      create({ asrApiSlug: "asr" });
+      await flushPromises();
+      const managersBefore = mockManagers.length;
+      props().asrActions.start();
+      document
+        .querySelector("#movie_player")
+        .appendChild(document.createElement("span"));
+      let timerRan = false;
+      await new Promise((resolve) =>
+        setTimeout(() => {
+          timerRan = true;
+          resolve();
+        }, 0)
+      );
+      expect(timerRan).toBe(true);
+      expect(stoppedByGuard).toBe(false);
+      expect(
+        document.querySelector(".kiss-notification")?.textContent
+      ).not.toBe("waitting_for_subtitle");
+      expect(mockManagers).toHaveLength(managersBefore);
+      const controller = mockAsrControllers[0];
+      controller.options.onSubtitles(
+        [{ start: 0, end: 1000, text: "audio", translation: "语音" }],
+        { recognition: { percent: 1 } }
+      );
+      await flushPromises();
+      expect(mockManagers).toHaveLength(managersBefore + 1);
+      props().asrActions.stop();
+      await flushPromises();
+      const count = mockManagers.length;
+      controller.options.onSubtitles(
+        [{ start: 0, end: 1000, text: "late" }],
+        {}
+      );
+      expect(mockManagers).toHaveLength(count);
+    } finally {
+      provider?.destroy();
+      observers.forEach((observer) => observer.disconnect());
+      global.MutationObserver = NativeObserver;
+    }
+  });
+  test("ASR opens the empty sidebar immediately, preserves the chosen tab, and respects manual close", async () => {
+    mockDelayAsr = true;
+    create({ asrApiSlug: "asr", showList: "off" });
+    await act(async () => flushPromises());
+    expect(YouTubeSubtitleList).toHaveBeenCalledTimes(1);
+    const first = YouTubeSubtitleList.mock.results[0].value;
+    expect(first.initialize.mock.calls[0][0]).toEqual([]);
+    expect(first.selectAsrTab).toHaveBeenCalledTimes(1);
+    const asr = mockAsrControllers[0];
+    asr.options.onSubtitles([{ start: 0, end: 1000, text: "audio" }], {
+      recognition: { percent: 10 },
+    });
+    expect(first.destroy).not.toHaveBeenCalled();
+    expect(first.selectAsrTab).toHaveBeenCalledTimes(1);
+    YouTubeSubtitleList.mock.calls[0][2].onClose();
+    asr.options.onSubtitles([{ start: 0, end: 1000, text: "audio" }], {
+      recognition: { percent: 20 },
+    });
+    await act(async () => flushPromises());
+    expect(YouTubeSubtitleList).toHaveBeenCalledTimes(1);
+    props().asrActions.stop();
+    await act(async () => flushPromises());
+    props().asrActions.start();
+    expect(YouTubeSubtitleList).toHaveBeenCalledTimes(2);
+    expect(
+      YouTubeSubtitleList.mock.results[1].value.selectAsrTab
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  test("configured ASR automatically replaces auto captions and ignores native CC off", async () => {
+    document
+      .querySelector(".ytp-subtitles-button")
+      .setAttribute("aria-pressed", "false");
+    create({ asrApiSlug: "asr" });
+    await act(async () => flushPromises());
+    expect(mockAcquire).not.toHaveBeenCalled();
+    expect(mockAsrControllers[0].start).toHaveBeenCalledTimes(1);
+    expect(mockManagerSettings[0].managedTranslations).toBe(true);
+    expect(props().asr.active).toBe(true);
+    document.querySelector(".ytp-subtitles-button").click();
+    await act(async () => flushPromises());
+    expect(mockAsrControllers[0].active).toBe(true);
+  });
+
+  test("the ASR menu entry is exposed even when no ASR service is configured", async () => {
+    create();
+    await act(async () => flushPromises());
+    expect(props().asr).toMatchObject({ available: false, active: false });
+    expect(props().asrActions).toBeNull();
+    expect(mockAsrControllers).toHaveLength(0);
+  });
+
+  test("human captions retain priority and unknown metadata is not treated as no captions", async () => {
+    mockTrack = { languageCode: "en", vssId: ".en" };
+    create({ asrApiSlug: "asr" });
+    await act(async () => flushPromises());
+    expect(mockAcquire).toHaveBeenCalledTimes(1);
+    expect(mockAsrControllers[0].start).not.toHaveBeenCalled();
+    provider.destroy();
+    mockAcquire.mockClear();
+    mockTrack.kind = "asr";
+    mockSnapshotReady = false;
+    create({ asrApiSlug: "asr" });
+    await act(async () => flushPromises());
+    expect(mockAcquire).toHaveBeenCalledTimes(1);
+    expect(mockAsrControllers[1].start).not.toHaveBeenCalled();
+  });
+
+  test("manual ASR stop disables automatic ASR until the video changes", async () => {
+    create({ asrApiSlug: "asr" });
+    await act(async () => flushPromises());
+    props().asrActions.stop();
+    await act(async () => flushPromises());
+    expect(mockAsrControllers[0].active).toBe(false);
+    expect(mockAcquire).toHaveBeenCalledTimes(1);
+    window.dispatchEvent(new Event("yt-navigate-start"));
+    window.history.replaceState({}, "", "/watch?v=video-2");
+    window.dispatchEvent(new Event("yt-navigate-finish"));
+    await act(async () => flushPromises());
+    expect(mockAsrControllers[0].start).toHaveBeenCalledTimes(2);
+  });
+
+  test("translation reopening remembers ASR intent until ASR is explicitly disabled", async () => {
+    mockTrack = { languageCode: "en", vssId: ".en" };
+    create({ asrApiSlug: "asr" });
+    await act(async () => flushPromises());
+    props().asrActions.start();
+    const asr = mockAsrControllers[0];
+    expect(asr.start).toHaveBeenCalledTimes(1);
+    provider.updateSetting({ name: "autoTranslate", value: false });
+    provider.updateSetting({ name: "autoTranslate", value: true });
+    await act(async () => flushPromises());
+    expect(asr.start).toHaveBeenCalledTimes(2);
+    props().asrActions.stop();
+    await act(async () => flushPromises());
+    provider.updateSetting({ name: "autoTranslate", value: false });
+    provider.updateSetting({ name: "autoTranslate", value: true });
+    await act(async () => flushPromises());
+    expect(asr.start).toHaveBeenCalledTimes(2);
+    expect(asr.active).toBe(false);
+  });
+
+  test("native translation reopening fetches the current track and respects known cooldown", async () => {
+    create();
+    await act(async () => flushPromises());
+    provider.updateSetting({ name: "autoTranslate", value: false });
+    mockTrack = { languageCode: "ja", vssId: ".ja" };
+    provider.updateSetting({ name: "autoTranslate", value: true });
+    await act(async () => flushPromises());
+    expect(mockAcquire).toHaveBeenCalledTimes(2);
+    expect(props().acquisition.track.languageCode).toBe("ja");
+    mockAcquire.mockRejectedValueOnce(
+      Object.assign(new Error(), {
+        code: "RATE_LIMITED",
+        cooldownUntil: Date.now() + 60000,
+      })
+    );
+    await props().retryAcquisition();
+    provider.updateSetting({ name: "autoTranslate", value: false });
+    provider.updateSetting({ name: "autoTranslate", value: true });
+    const cc = document.querySelector(".ytp-subtitles-button");
+    cc.dispatchEvent(new Event("pointerdown"));
+    cc.setAttribute("aria-pressed", "false");
+    await act(async () => flushPromises());
+    cc.setAttribute("aria-pressed", "true");
+    await act(async () => flushPromises());
+    expect(mockAcquire).toHaveBeenCalledTimes(3);
+    expect(props().acquisition.phase).toBe("cooldown");
   });
 
   test("does not fetch when disabled and uses the selected page service when enabled", async () => {

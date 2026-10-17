@@ -11,7 +11,9 @@ import {
   ServiceFormHeader,
   BooleanServiceOption,
   serviceTransportFeatures,
+  AsrDurationSetting,
 } from "./ServiceForm";
+import { asrMaxDurationSeconds } from "../../providers/asrLimits";
 import {
   supportedApiCapabilities,
   enabledApiCapabilities,
@@ -478,6 +480,18 @@ function LegacyApiFields({
 
   const handleSave = async () => {
     if (pendingSave.current) return;
+    if (enabledApiCapabilities(activeFormData).includes("transcribe")) {
+      try {
+        asrMaxDurationSeconds(activeFormData.asrMaxDurationSeconds);
+      } catch {
+        showFeedback({
+          title: i18n("plugin_save_failed"),
+          severity: "error",
+          message: i18n("service_asr_max_duration_hint"),
+        });
+        return;
+      }
+    }
     const nextFormData = { ...activeFormData };
     delete nextFormData.capabilities;
     const warnings = [];
@@ -1647,6 +1661,15 @@ function LegacyApiFields({
           </>
         )}
 
+        <AsrDurationSetting
+          api={activeFormData}
+          onTimestampChange={(value) =>
+            handleChange({ target: { name: "asrTimestampSupport", value } })
+          }
+          onChange={(value) =>
+            handleChange({ target: { name: "asrMaxDurationSeconds", value } })
+          }
+        />
         <Stack
           className="kt-api-detail__footer"
           direction="row"

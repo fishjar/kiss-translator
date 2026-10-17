@@ -229,7 +229,7 @@ Manifest 使用标准 JSON，不支持注释或尾随逗号。路径相对于包
 | outputModes     | 非空数组 complete / stream，省略按完整结果                                            |
 | inputModalities | 非空数组 text / image / audio，聊天省略仅文本                                         |
 | coordinates     | 布尔值，true 必须返回有效文字坐标                                                     |
-| timestamps      | 布尔值，转写 true 必须返回 segments                                                   |
+| timestamps      | 布尔值，转写默认按声明要求 segments；调用明确传 requireTimestamps 时以调用为准                                                   |
 | taskModes       | 非空数组 doc / table / formula，图片省略仅 doc                                        |
 
 批量、流式、坐标、时间戳是特性，不是能力名。仅声明真实实现的特性，执行器额外限制见第 4、5 节。流式也必须返回完整结果。
@@ -665,14 +665,14 @@ groups 和各组 ids 必须非空，所有组的 ID 串联后与输入顺序完�
 ### 6.6 transcribe
 
 ```ts
-type Input = { audio: AssetRef; language?: string };
+type Input = { audio: AssetRef; language?: string; requireTimestamps?: boolean };
 type Result = {
   text: string;
   segments?: Array<{ start: number; end: number; text: string }>;
 };
 ```
 
-仅返回全文时声明 timestamps=false；声明 true 时必须返回合法 segments。厂商返回的毫秒需要转换为秒。language 缺失或为 auto 时通常省略厂家语言参数。
+视频 ASR 调用传入 `requireTimestamps=false`，按实际响应决定同步方式：有合法 segments 时使用模型时间戳；缺失或空 segments 时，将全文映射到当前音频块（上限由时间戳能力及服务设置决定）。声明不决定视频同步模式；明确传入 false 时不强制声明的时间戳，但已返回的时间戳始终需要合法。其他调用传 true 时仍必须返回时间戳，未传时沿用服务声明。厂商返回的毫秒需要转换为秒，不能用全文伪造词级时间戳。language 缺失或为 auto 时通常省略厂家语言参数。
 
 ### 6.7 recognizeText 与 parseImage
 
@@ -1090,7 +1090,7 @@ JSON `[{"id":"a","text":"你好"}]`；XML `<root><t id="a">你好</t></root>`；
 
 | 调用                                                                          | 约定                                                             |
 | ----------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| openai.audio.buildTranscriptionRequest({baseUrl,model,audio,language?,auth?}) | /audio/transcriptions multipart，response_format=json，auto 省略 |
+| openai.audio.buildTranscriptionRequest({baseUrl,model,audio,language?,requireTimestamps?,auth?}) | /audio/transcriptions multipart；默认 json，requireTimestamps=true 时使用 verbose_json + segment 时间戳；auto 省略 |
 | openai.audio.parseTranscription(response)                                     | `{text,segments?}`，校验时间/文本                                |
 | openai.audio.buildSpeechRequest({baseUrl,model,text,voice,speed?,auth?})      | /audio/speech JSON，mp3，responseType=asset                      |
 

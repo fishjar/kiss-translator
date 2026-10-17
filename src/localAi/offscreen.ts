@@ -12,9 +12,10 @@ import {
 import { RuntimeManager } from "./runtime/runtimeManager";
 import { installProviderHost } from "../providers/host";
 import { invokeInstance } from "../providers/runtime";
+import { createLocalAsrInvoker } from "../builtin-plugins/local-asr-runtime";
+import { isHostedLocalAsr } from "../providers/localAsrRouting";
 
 const channel = new BroadcastChannel(KISS_AI_RPC_CHANNEL);
-installProviderHost(undefined, invokeInstance);
 
 const runtimeManager = new RuntimeManager({
   onProgress: (progress) => {
@@ -49,6 +50,13 @@ const runtimeManager = new RuntimeManager({
     } satisfies RpcChannelEnvelope);
   },
 });
+
+const invokeLocalAsr = createLocalAsrInvoker(runtimeManager);
+installProviderHost(undefined, (instance: any, capability: string, input: any, options: any) =>
+  isHostedLocalAsr(instance, capability)
+    ? invokeLocalAsr(instance, capability, input, options)
+    : invokeInstance(instance, capability, input, options)
+);
 
 // 启动时自动初始化 ModelManager（恢复 OPFS + IDB 模型状态）
 void runtimeManager.modelManager.init().catch((err) => {

@@ -1,7 +1,10 @@
 /** Page-world bridge; self-contained so the userscript can serialize this installer. */
-export function installYoutubeBridge() {
+export function installYoutubeBridge(createAudioBridge) {
   const key = "__kissYoutubeCaptionBridge";
-  if (window[key]) return;
+  if (window[key]) {
+    window[key].attachAudio?.(createAudioBridge);
+    return;
+  }
   const origin = window.location.origin,
     protocol = "kiss-youtube-captions-v1";
   const originalFetch = window.fetch,
@@ -16,7 +19,8 @@ export function installYoutubeBridge() {
     enabled = true,
     disposed = false,
     observer,
-    currentId;
+    currentId,
+    audioBridge;
   const id = () =>
     window.location.pathname.startsWith("/shorts/")
       ? window.location.pathname.split("/")[2]
@@ -110,7 +114,11 @@ export function installYoutubeBridge() {
   const fetchWrapper = function (...args) {
     const url =
       typeof args[0] === "string" ? args[0] : args[0]?.url || args[0]?.href;
-    const promise = Reflect.apply(originalFetch, this, args);
+    const capture = audioBridge?.prepare(args);
+    let promise;
+    try { promise = Reflect.apply(originalFetch, this, args); }
+    catch (error) { audioBridge?.abortPrepared(capture); throw error; }
+    audioBridge?.observe(promise, capture);
     if (enabled && validUrl(url))
       promise
         .then((response) => {
@@ -384,11 +392,13 @@ export function installYoutubeBridge() {
   }
   const navigate = () => {
     sync();
+    audioBridge?.clear();
     requests.forEach((c) => c.abort());
   };
   const pagehide = (event) => {
     if (event.persisted) {
       clear();
+      audioBridge?.clear();
       requests.forEach((c) => c.abort());
     } else dispose();
   };
@@ -396,6 +406,7 @@ export function installYoutubeBridge() {
     disposed = true;
     requests.forEach((c) => c.abort());
     clear();
+    audioBridge?.dispose();
     observer?.disconnect();
     window.removeEventListener("message", onMessage);
     window.removeEventListener("yt-navigate-start", navigate);
@@ -410,6 +421,13 @@ export function installYoutubeBridge() {
   window.addEventListener("message", onMessage);
   window.addEventListener("yt-navigate-start", navigate);
   window.addEventListener("pagehide", pagehide);
-  window[key] = { dispose };
+  const attachAudio = (factory) => {
+    if (audioBridge || typeof factory !== "function") return;
+    try {
+      audioBridge = factory({ fetch: (...args) => Reflect.apply(originalFetch, window, args), getPlayer: player, getVideoId: id });
+    } catch { /* Captions remain available when audio is unsupported. */ }
+  };
+  attachAudio(createAudioBridge);
+  window[key] = { dispose, attachAudio };
   post({ type: "ready" });
 }

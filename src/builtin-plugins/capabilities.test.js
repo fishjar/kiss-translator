@@ -1,5 +1,6 @@
 jest.mock("../config/localModelTasks.json", () => ({
   ocrGroups: [{ id: "ocr-group" }],
+  asrTimestamps: { asr: true },
   models: { asr: "asr", llm: "llm", vlm: "ocr-vlm" },
 }));
 import { resolveBuiltinCapabilities } from "./capabilities";
