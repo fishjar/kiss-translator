@@ -6,8 +6,8 @@ test.each(["chrome", "edge", "firefox"])(
   "%s installs ready-to-configure local services without changing templates",
   (client) => {
     const services = defaultServices(client);
-    expect(services).toHaveLength(40);
-    expect(new Set(services.map((api) => api.apiSlug)).size).toBe(40);
+    expect(services).toHaveLength(41);
+    expect(new Set(services.map((api) => api.apiSlug)).size).toBe(41);
     expect(services.filter((api) => !api.isDisabled)).toHaveLength(11);
     const local = services.filter((api) => api.apiType === "LocalAI");
     expect(local.map((api) => [api.modelRef, api.device])).toEqual([
@@ -26,7 +26,7 @@ test.each(["chrome", "edge", "firefox"])(
       isDisabled: false,
       enabledCapabilities: ["speak"],
     });
-    expect(DEFAULT_API_LIST).toHaveLength(35);
+    expect(DEFAULT_API_LIST).toHaveLength(36);
     expect(
       DEFAULT_API_LIST.find((api) => api.apiType === "LocalAI").modelRef
     ).toBe("");

@@ -35,6 +35,7 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_ATLASCLOUD,
   OPT_TRANS_CUSTOMIZE,
 } from "../config/apiConstants";
 
@@ -222,6 +223,12 @@ export const NATIVE_PRESET_OVERRIDES = {
     url: "https://router.requesty.ai/v1/chat/completions",
     modelListUrl: "https://router.requesty.ai/v1/models",
     model: "openai/gpt-4o-mini",
+    ...defaultAiApiOpts,
+  },
+  [OPT_TRANS_ATLASCLOUD]: {
+    url: "https://api.atlascloud.ai/v1/chat/completions",
+    modelListUrl: "https://api.atlascloud.ai/v1/models",
+    model: "deepseek-ai/deepseek-v4-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CUSTOMIZE]: {

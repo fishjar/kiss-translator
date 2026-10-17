@@ -43,7 +43,7 @@
 
 ### サービス設定と API プラグイン
 
-- **多彩な組み込みサービス**：Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX をはじめ、OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI などの主要な AI 翻訳サービス、Chrome ブラウザ内蔵 AI、ローカル AI に対応。
+- **多彩な組み込みサービス**：Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX をはじめ、OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、AtlasCloud、AzureAI、CloudflareAI などの主要な AI 翻訳サービス、Chrome ブラウザ内蔵 AI、ローカル AI に対応。
 - **能力に応じた柔軟な選択**：テキスト翻訳、辞書検索、字幕区切り、OCR 文字認識、音声合成などの機能ごとにサービスとモデルパラメータを個別に設定可能。一括バッチ翻訳、ストリーミング出力、コンテキスト対話記憶、AI 用語集、思考プロセス（Reasoning）設定をサポート。
 - **API プラグインエコシステム**：ZIP 圧縮ファイル、ローカルフォルダ、GitHub リポジトリのルート URL、HTTPS リンクからプラグインを導入可能。詳細な権限管理、手動更新、保存済みサービスインスタンスのアップグレードを提供。
 - **オープンなカスタムプロトコル**：非標準の API もプラグイン経由で柔軟に統合可能。詳細は [プラグイン開発ガイド（中国語）](docs/plugins/plugin-development-guide.md)、[OpenAI 互換サンプル](docs/plugins/examples/openai-compatible-bundle/README.md)、[DeepSeek 宣言型サンプル](docs/plugins/examples/deepseek/README.md) を参照してください。

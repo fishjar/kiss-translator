@@ -16,6 +16,7 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_ATLASCLOUD,
 } from "../config/apiConstants";
 
 // Compiled vendor/model metadata shared by request adapters and settings.
@@ -340,6 +341,16 @@ export const THINKING_API_REGISTRY = {
   [OPT_TRANS_REQUESTY]: {
     adapter: "openai",
     resolveCapability: ({ model }) => getOpenAIThinkingCapability(model),
+  },
+  [OPT_TRANS_ATLASCLOUD]: {
+    adapter: "openai",
+    // Measured against Atlas Cloud (DeepSeek/GLM/Kimi/Qwen/MiniMax/OpenAI/
+    // Anthropic/Google/xAI models): only high and xhigh are accepted by every
+    // model (none is a 400 for glm-5.3, minimax-m2.7 and gpt-5.5; low/medium
+    // for qwen3.5-plus), so inferring OpenAI efforts from the model name is
+    // unsafe. Offer just these two and degrade "disabled" to the lowest one.
+    resolveCapability: () =>
+      createOpenAIThinkingCapability(["xhigh", "high"], { disable: null }),
   },
   [OPT_TRANS_OPENROUTER]: {
     adapter: "openrouter",

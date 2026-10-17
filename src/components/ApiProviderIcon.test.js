@@ -9,6 +9,7 @@ import {
   OPT_TRANS_OPENAI,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_ATLASCLOUD,
   OPT_TRANS_SILICONFLOW,
 } from "../config";
 import ApiProviderIcon, {
@@ -95,6 +96,15 @@ describe("getApiIconSrc", () => {
         publicUrl: "/kiss-translator",
       })
     ).toBe("/kiss-translator/api/Requesty.svg");
+  });
+
+  test("resolves the Atlas Cloud asset through the shared provider map", () => {
+    expect(
+      getApiIconSrc(OPT_TRANS_ATLASCLOUD, {
+        runtime: undefined,
+        publicUrl: "/kiss-translator",
+      })
+    ).toBe("/kiss-translator/api/AtlasCloud.svg");
   });
 
   test("resolves the APIMart asset through the shared provider map", () => {

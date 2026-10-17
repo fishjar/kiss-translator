@@ -226,6 +226,12 @@ const contracts = {
     stream: true,
     usesMessages: true,
   },
+  AtlasCloud: {
+    names: textCapabilities,
+    batch: true,
+    stream: true,
+    usesMessages: true,
+  },
   Custom: {
     names: ["translate", "summarize", "dictionary", "segmentSubtitle"],
     batch: true,
