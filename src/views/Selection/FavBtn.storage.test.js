@@ -104,3 +104,35 @@ test("automatic collection does not toggle an already saved word during hydratio
     jest.useRealTimers();
   }
 });
+
+test("automatic collection persists the selected webpage source", async () => {
+  jest.useFakeTimers();
+  const values = new Map();
+  const source = {
+    sentence: "The library is open.",
+    url: "https://example.com/article",
+  };
+  browser.storage.local.get.mockImplementation(async (keys) =>
+    Object.fromEntries(keys.map((key) => [key, values.get(key)]))
+  );
+  browser.storage.local.set.mockImplementation(async (next) => {
+    Object.entries(next).forEach(([key, value]) => values.set(key, value));
+  });
+  const root = createRoot(document.createElement("div"));
+  try {
+    act(() =>
+      root.render(<FavBtn word="library" title="Collect" source={source} />)
+    );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(JSON.parse(values.get(STOKEY_WORDS))).toEqual({
+      library: expect.objectContaining({ source }),
+    });
+  } finally {
+    act(() => root.unmount());
+    jest.useRealTimers();
+  }
+});

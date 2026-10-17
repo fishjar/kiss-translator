@@ -94,6 +94,7 @@ export default function TranBox(props) {
         aiDictApiSlug={props.tranboxSetting.aiDictApiSlug}
         aiDictPromptSlug={props.tranboxSetting.aiDictPromptSlug}
         selectionContext={props.selectionContext}
+        selectionSource={props.selectionSource}
       />
     </DraggableResizable>
   ) : null;

@@ -18,6 +18,7 @@ import Zdic from "../Selection/Zdic";
 import DownloadButton from "./DownloadButton";
 import UploadButton from "./UploadButton";
 import Button from "@mui/material/Button";
+import Link from "@mui/material/Link";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import Alert from "@mui/material/Alert";
@@ -67,6 +68,17 @@ function resolveAiDictApiSetting({
   };
 }
 
+function getSafeSourceUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.href
+      : "";
+  } catch {
+    return "";
+  }
+}
+
 /**
  * 单个生词的折叠手风琴面板组件
  *
@@ -80,6 +92,7 @@ function FavAccordion({
   createdAt,
   phonetic,
   definition,
+  source,
   tranboxSetting,
   transApis,
   prompts,
@@ -115,6 +128,10 @@ function FavAccordion({
   const partOfSpeech = definitionPreview.match(
     /^(?:adj|adv|art|aux|conj|det|interj|num|prep|pron|n|v)(?:\.|(?=\s|$))/i
   )?.[0];
+  const sourceSentence =
+    typeof source?.sentence === "string" ? source.sentence.trim() : "";
+  const sourceUrl = typeof source?.url === "string" ? source.url.trim() : "";
+  const safeSourceUrl = sourceUrl ? getSafeSourceUrl(sourceUrl) : "";
 
   // 展开折叠切换处理
   const handleChange = (e) => {
@@ -150,6 +167,41 @@ function FavAccordion({
         {/* 仅在展开时懒加载渲染词典解释与联想提示组件，以提升长列表性能 */}
         {expanded && (
           <Stack spacing={2}>
+            {(sourceSentence || sourceUrl) && (
+              <Box className="kt-word-card__source">
+                <Typography className="kt-word-card__source-title">
+                  {i18n("favorite_word_source", "来源")}
+                </Typography>
+                <Box className="kt-word-card__source-content">
+                  {sourceSentence && (
+                    <Typography className="kt-word-card__source-item">
+                      <strong>
+                        {i18n("favorite_word_source_sentence", "句子")}：
+                      </strong>
+                      {sourceSentence}
+                    </Typography>
+                  )}
+                  {sourceUrl && (
+                    <Typography className="kt-word-card__source-item">
+                      <strong>
+                        {i18n("favorite_word_source_url", "网页")}：
+                      </strong>
+                      {safeSourceUrl ? (
+                        <Link
+                          href={safeSourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {sourceUrl}
+                        </Link>
+                      ) : (
+                        sourceUrl
+                      )}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            )}
             {(defaultDictAvailable || aiDictAvailable) && (
               <Box>
                 {aiDictAvailable ? (
@@ -192,7 +244,11 @@ function FavAccordion({
                       {defaultDictAvailable && dictTab === "default" && (
                         <>
                           {isWord && OPT_DICT_MAP.has(enDict) && (
-                            <DictCont text={word} enDict={enDict} />
+                            <DictCont
+                              text={word}
+                              enDict={enDict}
+                              source={source}
+                            />
                           )}
                           {isChineseChar && <Zdic text={word} />}
                         </>
@@ -218,7 +274,11 @@ function FavAccordion({
                 ) : (
                   <>
                     {isWord && OPT_DICT_MAP.has(enDict) && (
-                      <DictCont text={word} enDict={enDict} />
+                      <DictCont
+                        text={word}
+                        enDict={enDict}
+                        source={source}
+                      />
                     )}
                     {isChineseChar && <Zdic text={word} />}
                   </>
@@ -579,6 +639,7 @@ export default function FavWords() {
                 createdAt={entry?.createdAt}
                 phonetic={entry?.phonetic}
                 definition={entry?.definition}
+                source={entry?.source}
                 tranboxSetting={tranboxSetting}
                 transApis={resolvedTransApis}
                 prompts={prompts}

@@ -77,6 +77,25 @@ describe("favorite word mutation inputs", () => {
     expect(reduce({})).toEqual(preview);
   });
 
+  test("stores source metadata for newly collected and imported words", () => {
+    const source = {
+      sentence: "The library is open.",
+      url: "https://example.com/article",
+    };
+
+    favorites.toggleFav("word", null, "", "", [], source);
+    const toggleReduce = mockSave.mock.calls[0][0];
+    expect(toggleReduce({})).toEqual({
+      word: { createdAt: 100, source },
+    });
+
+    favorites.mergeWords(["imported"], { source });
+    const mergeReduce = mockSave.mock.calls[1][0];
+    expect(mergeReduce({})).toEqual({
+      imported: { createdAt: 100, source },
+    });
+  });
+
   test("returns the persistence result for an explicit full clear", () => {
     const pending = Promise.resolve({ value: {}, changed: true });
     mockSave.mockReturnValueOnce(pending);
