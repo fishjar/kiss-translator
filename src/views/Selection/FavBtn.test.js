@@ -62,6 +62,60 @@ describe("FavBtn", () => {
     act(() => root.unmount());
   });
 
+  test("passes a source to automatic collection when one is available", async () => {
+    const mergeWords = jest.fn().mockResolvedValue({ value: { library: {} } });
+    const source = {
+      sentence: "The library is open.",
+      url: "https://example.com/article",
+    };
+    useFavWords.mockReturnValue({ favWords: {}, mergeWords });
+    useSetting.mockReturnValue({
+      context: "tranbox",
+      setting: { tranboxSetting: { autoFavWord: true } },
+    });
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<FavBtn word="library" title="collect" source={source} />);
+    });
+
+    expect(mergeWords).toHaveBeenCalledWith(["library"], { source });
+    act(() => root.unmount());
+  });
+
+  test("passes a source to manual collection when one is available", async () => {
+    const toggleFav = jest
+      .fn()
+      .mockResolvedValue({ value: { library: {} } });
+    const source = {
+      sentence: "The library is open.",
+      url: "https://example.com/article",
+    };
+    useFavWords.mockReturnValue({ favWords: {}, toggleFav });
+    useSetting.mockReturnValue({
+      context: "tranbox",
+      setting: { tranboxSetting: { autoFavWord: false } },
+    });
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(<FavBtn word="library" title="collect" source={source} />);
+    });
+    await act(async () => container.querySelector("button").click());
+
+    expect(toggleFav).toHaveBeenCalledWith(
+      "library",
+      null,
+      "",
+      "",
+      [],
+      source
+    );
+    act(() => root.unmount());
+  });
+
   test.each([
     [false, true],
     [true, false],

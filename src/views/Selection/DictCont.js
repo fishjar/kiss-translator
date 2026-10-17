@@ -67,8 +67,9 @@ function DictBody({ text, setCopyText, setRealWord, dict }) {
  * @param {Object} props
  * @param {string} props.text - Word or text to look up.
  * @param {string} props.enDict - Dictionary service identifier, such as "bing" or "youdao".
+ * @param {{sentence?: string, url?: string}|null} props.source - Optional webpage source captured from selection.
  */
-export default function DictCont({ text, enDict }) {
+export default function DictCont({ text, enDict, source = null }) {
   const i18n = useI18n();
   const [copyText, setCopyText] = useState(text);
   const [realWord, setRealWord] = useState(text);
@@ -96,7 +97,7 @@ export default function DictCont({ text, enDict }) {
               copiedLabel={i18n("copy_success", "Copied")}
             />
             {/* Favorite word action. */}
-            <FavBtn word={realWord} title={i18n("collect")} />
+            <FavBtn word={realWord} title={i18n("collect")} source={source} />
           </Stack>
         </Stack>
       )}
