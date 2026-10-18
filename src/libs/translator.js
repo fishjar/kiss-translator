@@ -5257,7 +5257,7 @@ overflow-wrap: anywhere !important;`;
       this.#docInfo.title = document.title; // 缓存原标题
       document.title = trText || docInfo.title;
     } catch (err) {
-      kissLog("tanslate title", err);
+      kissLog("translate title", err);
     }
   }
 
