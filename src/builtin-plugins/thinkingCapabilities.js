@@ -83,6 +83,16 @@ export const isGPT6Astra = (model = "") =>
   normalizeOpenAIModelName(model) === "gpt-6-astra";
 
 /**
+ * Claude 4.7 及之后的模型（含 Mythos）只接受默认的 temperature，传入其他值会返回 400。
+ * @param {string} model Claude 模型名称。
+ * @returns {boolean} 是否需要省略 temperature。
+ */
+export const rejectsClaudeTemperature = (model = "") =>
+  /^claude-(?:opus-4-[7-9]|(?:opus|sonnet|haiku|fable|mythos)-[5-9]|mythos-preview)(?:-|$)/.test(
+    String(model).trim().toLowerCase()
+  );
+
+/**
  * 根据 OpenAI 模型名称解析已确认的思考能力。
  * @param {string} model OpenAI 或带 openai/ 前缀的模型名称。
  * @returns {Object|null} 已知模型的思考能力；未知模型返回 null。
