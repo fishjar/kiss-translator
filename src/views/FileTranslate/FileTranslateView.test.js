@@ -316,6 +316,304 @@ describe("FileTranslatePage (M2 UI)", () => {
         container.querySelector(`[aria-label="${label}"]`).click()
       );
 
+    const paste = async ({ files = [], text = "", items = [] } = {}) => {
+      await act(async () => button("粘贴文件或文本").click());
+      const area = document.querySelector('[aria-label="粘贴区域"]');
+      expect(document.activeElement).toBe(area);
+      const event = new Event("paste", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "clipboardData", {
+        value: {
+          files,
+          items,
+          getData: (type) => (type === "text/plain" ? text : ""),
+        },
+      });
+      await act(async () => {
+        area.dispatchEvent(event);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+    };
+    const switchFormat = async (label) => {
+      const select = container.querySelector(
+        '[aria-label="文本格式"][role="combobox"]'
+      );
+      await act(async () =>
+        select.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, button: 0 })
+        )
+      );
+      await act(async () =>
+        [...document.querySelectorAll('[role="option"]')]
+          .find((item) => item.textContent === label)
+          .click()
+      );
+    };
+
+    test.each(["  hello\nworld  ", "  \n\t", "# Title\n\n**bold**"])(
+      "pasted text preserves content and defaults to TXT: %j",
+      async (text) => {
+        const lib = require("../../libs/fileTranslate");
+        lib.translateTxt
+          .mockReset()
+          .mockResolvedValue({ text: "translated", comparisons: [] });
+        await act(async () => root.render(<FileTranslatePage />));
+        await paste({ text });
+        expect(container.textContent).toContain("粘贴文本.txt");
+        expect(
+          container.querySelector('[aria-label="文本格式"][role="combobox"]')
+            .textContent
+        ).toBe("TXT");
+        expect(lib.translateTxt).not.toHaveBeenCalled();
+        await act(async () => button("一键翻译").click());
+        expect(lib.translateTxt.mock.calls[0][0]).toBe(text);
+      }
+    );
+
+    test("invalid and empty paste keep the current document and results", async () => {
+      const lib = require("../../libs/fileTranslate");
+      lib.translateTxt
+        .mockReset()
+        .mockResolvedValue({ text: "kept result", comparisons: [] });
+      await act(async () => root.render(<FileTranslatePage />));
+      await upload("keep.txt");
+      await act(async () => button("一键翻译").click());
+      await paste({
+        files: [new File(["bad"], "bad.exe")],
+        text: "not a fallback",
+      });
+      expect(document.querySelector('[role="alert"]').textContent).toContain(
+        "暂不支持"
+      );
+      expect(container.textContent).toContain("keep.txt");
+      expect(container.textContent).toContain("kept result");
+      await act(async () =>
+        [...document.querySelectorAll('[role="dialog"] button')]
+          .find((item) => item.textContent === "取消")
+          .click()
+      );
+      await paste();
+      expect(document.querySelector('[role="alert"]').textContent).toContain(
+        "未获取到"
+      );
+      expect(container.textContent).toContain("kept result");
+    });
+
+    test("files take priority and the first supported file is imported", async () => {
+      await act(async () => root.render(<FileTranslatePage />));
+      const file = new File(["# File"], "first.md");
+      file.text = async () => "# File";
+      await paste({
+        files: [
+          new File(["bad"], "bad.exe"),
+          file,
+          new File(["later"], "later.txt"),
+        ],
+        text: "ignore",
+      });
+      expect(container.textContent).toContain("first.md");
+      expect(
+        container.querySelector('[aria-label="文本格式"][role="combobox"]')
+          .textContent
+      ).toBe("Markdown");
+      expect(
+        require("../../libs/fileTranslate").splitMarkdownBlocks
+      ).toHaveBeenCalledWith("# File");
+    });
+
+    test("clipboard file items support unnamed screenshots", async () => {
+      const original = URL.createObjectURL;
+      const originalRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = jest.fn(() => "blob:paste-image");
+      URL.revokeObjectURL = jest.fn();
+      try {
+        await act(async () => root.render(<FileTranslatePage />));
+        await paste({
+          items: [
+            {
+              kind: "file",
+              getAsFile: () => new File(["image"], "", { type: "image/png" }),
+            },
+          ],
+        });
+        expect(
+          container.querySelector('img[src="blob:paste-image"]')
+        ).not.toBeNull();
+        expect(container.querySelector('[aria-label="文本格式"]')).toBeNull();
+      } finally {
+        await act(async () => root.unmount());
+        root = createRoot(container);
+        URL.createObjectURL = original;
+        URL.revokeObjectURL = originalRevoke;
+      }
+    });
+
+    test.each(["txt", "md"])(
+      "%s switches both ways and confirms clearing results",
+      async (extension) => {
+        const lib = require("../../libs/fileTranslate");
+        lib.splitMarkdownBlocks.mockReturnValue([]);
+        lib.translateTxt
+          .mockReset()
+          .mockResolvedValue({ text: "TXT result", comparisons: [] });
+        lib.translateMarkdown.mockReset().mockResolvedValue({
+          translatedMd: "MD result",
+          comparisons: [],
+          blocks: [],
+        });
+        await act(async () => root.render(<FileTranslatePage />));
+        await upload(`sample.${extension}`, "# Original");
+        const next = extension === "txt" ? "Markdown" : "TXT";
+        const initial = extension === "txt" ? "TXT" : "Markdown";
+        await act(async () => button("一键翻译").click());
+        await switchFormat(next);
+        expect(document.querySelector('[role="dialog"]').textContent).toContain(
+          "切换格式将清空翻译结果"
+        );
+        await act(async () =>
+          [...document.querySelectorAll('[role="dialog"] button')]
+            .find((item) => item.textContent === "取消")
+            .click()
+        );
+        expect(
+          container.querySelector('[aria-label="文本格式"][role="combobox"]')
+            .textContent
+        ).toBe(initial);
+        await switchFormat(next);
+        await act(async () =>
+          [...document.querySelectorAll('[role="dialog"] button')]
+            .find((item) => item.textContent === "切换格式")
+            .click()
+        );
+        expect(container.textContent).not.toContain("TXT result");
+        expect(container.textContent).not.toContain("MD result");
+        expect(container.textContent).toContain(`sample.${extension}`);
+        await act(async () => button("一键翻译").click());
+        const target =
+          next === "TXT" ? lib.translateTxt : lib.translateMarkdown;
+        expect(target.mock.calls.at(-1)[0]).toBe("# Original");
+      }
+    );
+
+    test("pasted text switches without results and downloads using the selected format", async () => {
+      const lib = require("../../libs/fileTranslate");
+      lib.splitMarkdownBlocks.mockReturnValue([]);
+      lib.translateTxt.mockResolvedValue({
+        text: "TXT export",
+        comparisons: [],
+      });
+      lib.translateMarkdown.mockResolvedValue({
+        translatedMd: "MD export",
+        comparisons: [],
+        blocks: [],
+      });
+      const originalCreate = URL.createObjectURL;
+      const originalRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = jest.fn(() => "blob:download");
+      URL.revokeObjectURL = jest.fn();
+      const downloads = [];
+      const click = jest
+        .spyOn(HTMLAnchorElement.prototype, "click")
+        .mockImplementation(function () {
+          downloads.push(this.download);
+        });
+      try {
+        await act(async () => root.render(<FileTranslatePage />));
+        await paste({ text: "# Keep original" });
+        await switchFormat("Markdown");
+        expect(document.body.textContent).not.toContain(
+          "切换格式将清空翻译结果"
+        );
+        expect(lib.splitMarkdownBlocks).toHaveBeenCalledWith("# Keep original");
+        await act(async () => button("一键翻译").click());
+        await act(async () => button("下载译文 MD").click());
+        expect(downloads.at(-1)).toBe("粘贴文本-translated.md");
+        await switchFormat("TXT");
+        await act(async () =>
+          [...document.querySelectorAll('[role="dialog"] button')]
+            .find((item) => item.textContent === "切换格式")
+            .click()
+        );
+        await act(async () => button("一键翻译").click());
+        await act(async () => button("下载译文 TXT").click());
+        expect(downloads.at(-1)).toBe("粘贴文本-translated.txt");
+        expect(lib.translateTxt.mock.calls.at(-1)[0]).toBe("# Keep original");
+        await act(
+          async () => new Promise((resolve) => setTimeout(resolve, 10))
+        );
+      } finally {
+        click.mockRestore();
+        URL.createObjectURL = originalCreate;
+        URL.revokeObjectURL = originalRevoke;
+      }
+    });
+
+    test("pasting a replacement aborts old translation and stale callbacks cannot overwrite a format switch", async () => {
+      const lib = require("../../libs/fileTranslate");
+      lib.splitMarkdownBlocks.mockReturnValue([]);
+      let finish;
+      let progress;
+      lib.translateTxt.mockImplementation(
+        (text, scene, setting, signal, onProgress) => {
+          progress = onProgress;
+          return new Promise((resolve) => {
+            finish = resolve;
+          });
+        }
+      );
+      await act(async () => root.render(<FileTranslatePage />));
+      await upload("old.txt");
+      await act(async () => button("一键翻译").click());
+      const signal = lib.translateTxt.mock.calls[0][3];
+      await paste({ text: "# New source" });
+      expect(signal.aborted).toBe(true);
+      await switchFormat("Markdown");
+      await act(async () => {
+        progress(1, 1, { index: 0, source: "old", target: "stale callback" });
+        finish({ text: "stale result", comparisons: [] });
+      });
+      expect(container.textContent).not.toContain("stale result");
+      expect(container.textContent).not.toContain("stale callback");
+      expect(
+        container.querySelector('[aria-label="文本格式"][role="combobox"]')
+          .textContent
+      ).toBe("Markdown");
+      expect(lib.splitMarkdownBlocks).toHaveBeenCalledWith("# New source");
+    });
+
+    test("Markdown source preview alone does not require clearing confirmation", async () => {
+      const lib = require("../../libs/fileTranslate");
+      lib.splitMarkdownBlocks.mockReturnValue([{ source: "# Original" }]);
+      lib.renderMarkdownBlocksToHtml.mockReturnValue("<p>Original</p>");
+      await act(async () => root.render(<FileTranslatePage />));
+      await upload("source.md", "# Original");
+      await switchFormat("TXT");
+      expect(document.body.textContent).not.toContain("切换格式将清空翻译结果");
+      expect(
+        container.querySelector('[aria-label="文本格式"][role="combobox"]')
+          .textContent
+      ).toBe("TXT");
+    });
+
+    test("format switching is disabled during translation", async () => {
+      const lib = require("../../libs/fileTranslate");
+      let finish;
+      lib.translateTxt.mockReset().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          })
+      );
+      await act(async () => root.render(<FileTranslatePage />));
+      await upload("busy.txt");
+      await act(async () => button("一键翻译").click());
+      expect(
+        container
+          .querySelector('[aria-label="文本格式"][role="combobox"]')
+          .getAttribute("aria-disabled")
+      ).toBe("true");
+      await act(async () => finish({ text: "done", comparisons: [] }));
+    });
+
     test.each(["txt", "md"])(
       "%s menu runs immediately and leaves the main action as paragraph translation",
       async (extension) => {
