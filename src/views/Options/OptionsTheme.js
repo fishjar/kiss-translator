@@ -5,7 +5,10 @@ import Fade from "@mui/material/Fade";
 
 const dropdownPaper = ({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,
-  borderRadius: 12,
+  // Use a length string: `dropdownPaper` is spread into `PaperProps.sx`,
+  // where a numeric `borderRadius` is treated as a multiple of
+  // `theme.shape.borderRadius` (12 → 144px) instead of a raw pixel value.
+  borderRadius: "12px",
   backgroundColor: theme.palette.background.paper,
   boxShadow: "0 4px 16px rgb(0 0 0 / 12%)",
   overscrollBehavior: "contain",
