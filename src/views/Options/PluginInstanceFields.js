@@ -7,7 +7,11 @@ import {
   ServiceFormHeader,
   BooleanServiceOption,
   serviceTransportFeatures,
+  AsrDurationSetting,
+  ServiceTimeoutSetting,
 } from "./ServiceForm";
+import { asrMaxDurationSeconds } from "../../providers/asrLimits";
+import { validateBuiltinSettingChanges } from "../../builtin-plugins/fields";
 import PluginPromptSettings from "./PluginPromptSettings";
 import CapabilityOptions from "./CapabilityOptions";
 import QuickTranslationTest from "./QuickTranslationTest";
@@ -129,8 +133,12 @@ export default function PluginInstanceFields({
     [audioUrl]
   );
   const save = async () => {
+    if (enabled.includes("transcribe"))
+      asrMaxDurationSeconds(draft.asrMaxDurationSeconds);
     const warnings = [];
     for (const validate of [
+      () =>
+        validateBuiltinSettingChanges(api, { httpTimeout: draft.httpTimeout }),
       () =>
         validateEnabledCapabilities(
           draft,
@@ -215,7 +223,6 @@ export default function PluginInstanceFields({
       const invocation = invokeInstance(current, capability, input, {
         approvedOrigins: origins,
         assets,
-        timeoutMs: 60000,
         streaming: "auto",
       });
       job.cancel = invocation.cancel;
@@ -347,7 +354,6 @@ export default function PluginInstanceFields({
             setOptions((previous) => ({ ...previous, [name]: value }))
           }
         />
-        {onUpgrade && <ServiceUpgradeAction api={api} onCreated={onUpgrade} />}
         <TextField
           fullWidth
           size="small"
@@ -361,6 +367,7 @@ export default function PluginInstanceFields({
             }))
           }
         />
+        {onUpgrade && <ServiceUpgradeAction api={api} onCreated={onUpgrade} />}
         <ProviderSettings
           service={api.provider}
           fields={orderedCommon}
@@ -376,6 +383,7 @@ export default function PluginInstanceFields({
             }))
           }
         />
+
         {modeField && (
           <ThinkingOptions
             mode={
@@ -464,6 +472,27 @@ export default function PluginInstanceFields({
             )}
           </Alert>
         )}
+        <ServiceTimeoutSetting
+          api={draft}
+          onChange={(value) =>
+            setOptions((current) => ({ ...current, httpTimeout: value }))
+          }
+        />
+        <AsrDurationSetting
+          api={draft}
+          onTimestampChange={(value) =>
+            setOptions((current) => ({
+              ...current,
+              asrTimestampSupport: value,
+            }))
+          }
+          onChange={(value) =>
+            setOptions((current) => ({
+              ...current,
+              asrMaxDurationSeconds: value,
+            }))
+          }
+        />
         <Stack
           className="kt-api-detail__footer"
           direction="row"

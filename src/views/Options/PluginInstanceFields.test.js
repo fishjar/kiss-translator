@@ -500,3 +500,15 @@ test("English forms localize plugin fields and capability labels without changin
   expect(JSON.stringify(localized)).toBe(before);
   expect(mockUpdateSetting).not.toHaveBeenCalled();
 });
+
+test("external service timeout is a saved service option, separate from pluginConfig", async () => {
+  await render();
+  const input = container.querySelector('input[name="httpTimeout"]');
+  expect(input.value).toBe("120");
+  expect([input.min, input.max]).toEqual(["1", "600"]);
+  await act(async () => Simulate.change(input, { target: { value: "600" } }));
+  await act(async () => button("保存").click());
+  const saved = mockUpdateSetting.mock.calls[0][0]({ transApis: [api] });
+  expect(saved.transApis[0].httpTimeout).toBe(600);
+  expect(saved.transApis[0].pluginConfig).toEqual(api.pluginConfig);
+});

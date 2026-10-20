@@ -14,6 +14,7 @@ import { isNonSpeechSegment } from "./subtitleTextClassification.js";
 const DEFAULT_PARAMS = {
   maxDurationMs: 7000, // 单个句子的最大时长上限（毫秒），超时强制截断
   maxWords: 30, // 单个句子的最大单词数上限，超长强制截断
+  maxChars: Infinity,
   sensitivity: 2.0, // 对停顿时间的评分灵敏度系数（Z-Score 的加权系数）
   punctuationBreakBonus: 2.5, // 句尾标点（.?!）断句的评分加分
   commaBreakBonus: 1.0, // 逗号（,）断句的评分加分
@@ -153,6 +154,12 @@ class SubtitleSentence {
       if (!parts.length) {
         // 第一项去除前导空格
         parts.push(txt.trimStart());
+      } else if (
+        /^[，。！？、；：,.!?;:）\]”’]/.test(txt) ||
+        (/[\u3000-\u9fff\uac00-\ud7af]$/.test(parts[parts.length - 1]) &&
+          /^[\u3000-\u9fff\uac00-\ud7af]/.test(txt))
+      ) {
+        parts.push(txt);
       } else if (txt.startsWith(" ")) {
         // 单词自带前导空格，直接追加
         parts.push(txt);
@@ -717,36 +724,43 @@ function mergeShortSentences(words, boundaryIndices, params) {
 }
 
 /**
- * 兜底均匀分割：如果某单句话由于缺乏停顿和标点导致持续时间依然极长，
- * 采用按单词量均匀平分的策略切分为数个子分句
+ * 在已有单词边界上执行时长、词数和字符数兜底，不按词数均分时长。
  *
  * @param {SubtitleSentence} sentence - 需要切分的超长句子实例
- * @param {number} maxDurationMs - 最大时长阈值
+ * @param {Object} params - 最大时长、词数和字符数阈值
  * @returns {Array<SubtitleSentence>} 切分后的子分句数组
  */
-function splitLongSentence(sentence, maxDurationMs) {
+function splitLongSentence(sentence, { maxDurationMs, maxWords, maxChars }) {
   const words = sentence.words;
   const n = words.length;
   if (n <= 1) return [sentence];
 
-  const totalDur = sentence.durationMs;
-  const numParts = Math.ceil(totalDur / maxDurationMs); // 计算出需要切成几份
-  const wordsPerPart = Math.ceil(n / numParts); // 每份分配的单词数
-
   const parts = [];
-  for (let i = 0; i < n; i += wordsPerPart) {
-    const chunk = words.slice(i, i + wordsPerPart);
-    if (chunk.length) {
-      parts.push(
-        new SubtitleSentence(
-          chunk,
-          chunk[0].startMs,
-          chunk[chunk.length - 1].endMs,
-          parts.length
-        )
-      );
+  let start = 0;
+  for (let end = 1; end <= n; end++) {
+    const candidate = new SubtitleSentence(
+      words.slice(start, end),
+      words[start].startMs,
+      words[end - 1].endMs,
+      parts.length
+    );
+    if (
+      end - start > 1 && (
+        candidate.durationMs > maxDurationMs ||
+        end - start > maxWords ||
+        candidate.text.length > maxChars
+      )
+    ) {
+      const chunk = words.slice(start, end - 1);
+      parts.push(new SubtitleSentence(
+        chunk, chunk[0].startMs, chunk[chunk.length - 1].endMs, parts.length
+      ));
+      start = end - 1;
     }
   }
+  parts.push(new SubtitleSentence(
+    words.slice(start), words[start].startMs, words[n - 1].endMs, parts.length
+  ));
   return parts;
 }
 
@@ -785,10 +799,11 @@ function buildSubtitleSentences(words, boundaryIndices, params) {
   // 2. 超长句再切分兜底
   const finalSentences = [];
   for (const sent of sentences) {
-    if (sent.durationMs <= maxDurationMs) {
+    if (sent.durationMs <= maxDurationMs && sent.words.length <= params.maxWords &&
+      sent.text.length <= params.maxChars) {
       finalSentences.push(sent);
     } else {
-      finalSentences.push(...splitLongSentence(sent, maxDurationMs));
+      finalSentences.push(...splitLongSentence(sent, params));
     }
   }
 

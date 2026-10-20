@@ -1,3 +1,4 @@
+import { serviceTimeoutMs } from "./timeout";
 import { invokeScene } from "./sceneInvocation";
 import { supportsServiceFeature } from "./features";
 
@@ -13,7 +14,7 @@ export async function invokeTextScene(
   const call = invokeScene(api, capability, input, {
     signal,
     nativeOptions,
-    timeoutMs: (api.httpTimeout || 30) * 1000,
+    timeoutMs: serviceTimeoutMs(api),
     streaming: streaming ? "auto" : "disabled",
   });
   let failure;
@@ -94,7 +95,7 @@ export async function segmentPlugin(
       signal,
       nativeOptions,
       streaming: "disabled",
-      timeoutMs: (apiSetting.httpTimeout || 30) * 1000,
+      timeoutMs: serviceTimeoutMs(apiSetting),
     }
   );
   try {

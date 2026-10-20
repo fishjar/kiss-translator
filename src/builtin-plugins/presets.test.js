@@ -30,6 +30,8 @@ test("compiled presets preserve unrelated approved defaults while enabling strea
             }),
             // The historical baseline predates the explicitly requested streaming default.
             useStream: NATIVE_PRESET_OVERRIDES[api.apiType].useStream ?? false,
+            // Normalize only the newly approved timeout default for the historical hash.
+            httpTimeout: 30,
           }))
         )
       )
@@ -40,6 +42,8 @@ test("compiled presets preserve unrelated approved defaults while enabling strea
       .vlmPromptSlug
   ).toBe("");
   expect(DEFAULT_API_SETTING.apiType).toBe(OPT_TRANS_MICROSOFT);
+  expect(DEFAULT_API_SETTING.httpTimeout).toBe(120);
+  expect(DEFAULT_API_LIST.every((api) => api.httpTimeout === 120)).toBe(true);
   for (const api of DEFAULT_API_LIST)
     expect(api.useStream).toBe(api.apiType !== OPT_TRANS_QWENMT);
   for (const api of DEFAULT_API_LIST)

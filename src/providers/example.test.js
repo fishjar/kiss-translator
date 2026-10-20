@@ -8,6 +8,7 @@ import { providerHelpers } from "./sdk";
 import { runDeclarative } from "./declarative";
 import { resolveApiPromptSettings } from "../config/prompt";
 import { DEFAULT_API_SETTING } from "../config/api";
+import { validateResult } from "./validation";
 const { TextDecoder, TextEncoder } = require("util");
 global.TextEncoder ||= TextEncoder;
 global.TextDecoder ||= TextDecoder;
@@ -29,6 +30,53 @@ function example() {
     );
   return readProviderPackage(zipSync(files));
 }
+
+test("timestamped ASR example uses verbose JSON and returns real segments through the production executor", async () => {
+  const pack = example(),
+    descriptor = pack.manifest.services.find(
+      (service) => service.id === "timestamped-transcriptions"
+    );
+  expect(descriptor.capabilities.transcribe.timestamps).toBe(true);
+  const request = jest.fn(async () => ({
+    status: 200,
+    body: JSON.stringify({
+      text: "hello",
+      segments: [{ start: 0.2, end: 1.4, text: "hello" }],
+    }),
+  }));
+  const input = {
+    audio: { assetId: "audio-1", mimeType: "audio/wav" },
+    requireTimestamps: true,
+    language: "en-US",
+  };
+  const result = await runDeclarative(
+    { rules: pack.implementations["timestamped-transcriptions"] },
+    "transcribe",
+    input,
+    {
+      config: {
+        baseUrl: "https://example.invalid/v1",
+        model: "configured-timestamp-model",
+      },
+      helpers: providerHelpers,
+      secrets: { ref: (key) => ({ key }) },
+      http: { request },
+    }
+  );
+  expect(request.mock.calls[0][0].body).toMatchObject({
+    response_format: "verbose_json",
+    "timestamp_granularities[]": "segment",
+    language: "en",
+  });
+  expect(
+    validateResult(
+      "transcribe",
+      result,
+      input,
+      descriptor.capabilities.transcribe
+    ).segments
+  ).toEqual([{ start: 0.2, end: 1.4, text: "hello" }]);
+});
 
 test("native default prompt references do not overwrite the plugin's ID-based translation contract", () => {
   const pack = example();

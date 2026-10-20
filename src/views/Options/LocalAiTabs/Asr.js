@@ -41,7 +41,7 @@ import { useI18n } from "../../../hooks/I18n";
 import LogViewer, { useLocalAiLog } from "./LogViewer";
 
 const ASR_MODELS = CATALOG.filter((m) => m.task === "asr");
-const DEFAULT_ASR_ID = "sensevoice-small";
+const DEFAULT_ASR_ID = "whisper-small-timestamped";
 const client = new AsrClient();
 
 function fmtTime(sec) {

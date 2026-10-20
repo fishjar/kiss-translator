@@ -653,6 +653,7 @@ export class BilingualSubtitleManager {
    * @param {number} currentTimeMs - 当前视频播放毫秒
    */
   #triggerTranslations(currentTimeMs) {
+    if (this.#setting.managedTranslations) return;
     const { preTrans = 90 } = this.#setting;
     const endTimeMs = currentTimeMs + preTrans * 1000;
     const subs = this.#formattedSubtitles;
@@ -710,6 +711,7 @@ export class BilingualSubtitleManager {
     const updateSubtitleTranslation = (translation) => {
       if (!translation || sessionId !== this.#translationSessionId) return;
       if (signal?.aborted) return;
+      if (!this.#formattedSubtitles.includes(subtitle)) return;
 
       // 字幕以纯文本渲染，开启后将模型输出的行内 LaTeX 转成可读的 Unicode。
       const decoded = decodeHTMLEntities(translation);
@@ -737,6 +739,9 @@ export class BilingualSubtitleManager {
 
     subtitle.isTranslating = true;
     try {
+      if (this.#setting.beforeTranslate) await this.#setting.beforeTranslate();
+      if (signal?.aborted || sessionId !== this.#translationSessionId) return;
+      if (!this.#formattedSubtitles.includes(subtitle)) return;
       const {
         fromLang,
         toLang,
@@ -773,10 +778,18 @@ export class BilingualSubtitleManager {
       });
       const trText = response?.trText;
       if (!trText) throw new Error("字幕翻译返回空结果");
+      if (!this.#formattedSubtitles.includes(subtitle)) return;
       // 竞态校验：如翻译异步返回时会话 ID 已过时，丢弃结果防止脏数据覆盖
       if (sessionId !== this.#translationSessionId) return;
       subtitle._translationFailed = false;
       updateSubtitleTranslation(trText);
+      subtitle._finalTranslation = subtitle.translation;
+      this.#setting.onTranslationComplete?.({
+        start: subtitle.start,
+        end: subtitle.end,
+        text: subtitle.text,
+        translation: subtitle.translation,
+      });
     } catch (error) {
       if (sessionId !== this.#translationSessionId) return;
       if (error?.name === "AbortError") return; // 属于 Abort 中止，静默退出

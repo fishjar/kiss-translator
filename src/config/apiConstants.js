@@ -1,6 +1,6 @@
 /** Pure legacy IDs and feature flags, shared by configuration and compiled providers. */
 // --- 基础请求控制参数 ---
-export const DEFAULT_HTTP_TIMEOUT = 30; // 调用超时时间 (单位：秒)
+export const DEFAULT_HTTP_TIMEOUT = 120; // 调用超时时间 (单位：秒)
 export const DEFAULT_FETCH_LIMIT = 10; // 默认最大并行请求/任务数量
 export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间 (单位：毫秒)
 export const DEFAULT_BATCH_INTERVAL = 400; // 批处理合并请求的等待延迟时间 (单位：毫秒)

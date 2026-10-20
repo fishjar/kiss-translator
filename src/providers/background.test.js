@@ -24,6 +24,7 @@ import { approvedProviderOrigins } from "./grants";
 import { serveProviderPort } from "./host";
 import { STOKEY_SETTING } from "../config/storage";
 import { providerHostBusy } from "./hostLease";
+import { localAiHost } from "../libs/localAiBackground";
 
 const flush = async () => {
   for (let i = 0; i < 15; i++) await Promise.resolve();
@@ -64,6 +65,154 @@ function setup() {
     change: browser.storage.onChanged.addListener.mock.calls[0][0],
   };
 }
+
+test("saved local ASR is hosted without external grants and disabling releases its lease", async () => {
+  const previousChrome = global.chrome;
+  const previousConnect = browser.runtime.connect;
+  const relay = setup(),
+    page = client();
+  const host = {
+    onMessage: event(),
+    onDisconnect: event(),
+    postMessage: jest.fn(),
+    disconnect: jest.fn(),
+  };
+  browser.runtime.connect = jest.fn(() => host);
+  global.chrome = { offscreen: { createDocument: jest.fn() } };
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [
+      {
+        apiSlug: "local",
+        apiType: "LocalAI",
+        enabledCapabilities: ["transcribe"],
+      },
+    ],
+  });
+  try {
+    relay.connect(page);
+    page.onMessage.emit({
+      type: "start",
+      serviceId: "local",
+      capability: "transcribe",
+      input: { audio: { assetId: "test" } },
+    });
+    await flush();
+    expect(localAiHost).toHaveBeenCalledWith({ action: "ensure" });
+    expect(approvedProviderOrigins).not.toHaveBeenCalled();
+    expect(providerHostBusy()).toBe(true);
+    host.onMessage.emit({ type: "ready" });
+    expect(host.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instance: expect.objectContaining({ apiSlug: "local" }),
+        approvedOrigins: [],
+      })
+    );
+    relay.change(
+      { [STOKEY_SETTING]: { newValue: { transApis: [] } } },
+      "local"
+    );
+    expect(page.disconnect).toHaveBeenCalled();
+    expect(providerHostBusy()).toBe(false);
+  } finally {
+    page.onDisconnect.emit();
+    global.chrome = previousChrome;
+    browser.runtime.connect = previousConnect;
+  }
+});
+
+test("local host startup failure returns a typed error and releases its lease", async () => {
+  const previousChrome = global.chrome;
+  const relay = setup(),
+    page = client();
+  global.chrome = { offscreen: { createDocument: jest.fn() } };
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [{ apiSlug: "local", apiType: "LocalAI" }],
+  });
+  localAiHost.mockRejectedValueOnce(new Error("Host startup failed"));
+  try {
+    relay.connect(page);
+    page.onMessage.emit({
+      type: "start",
+      serviceId: "local",
+      capability: "transcribe",
+    });
+    await flush();
+    expect(page.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "error",
+        error: expect.objectContaining({ code: "HOST_STARTUP_FAILED" }),
+      })
+    );
+    expect(providerHostBusy()).toBe(false);
+  } finally {
+    page.onDisconnect.emit();
+    global.chrome = previousChrome;
+  }
+});
+
+test("a local host without a ready handshake times out without retaining its port or lease", async () => {
+  jest.useFakeTimers();
+  const previousChrome = global.chrome, previousConnect = browser.runtime.connect;
+  const relay = setup(), page = client();
+  const host = { onMessage: event(), onDisconnect: event(), postMessage: jest.fn(), disconnect: jest.fn() };
+  global.chrome = { offscreen: { createDocument: jest.fn() } };
+  browser.runtime.connect = jest.fn(() => host);
+  getSettingWithDefault.mockResolvedValue({ transApis: [{ apiSlug: "local", apiType: "LocalAI" }] });
+  try {
+    relay.connect(page);
+    page.onMessage.emit({ type: "start", serviceId: "local", capability: "transcribe" });
+    await flush();
+    jest.advanceTimersByTime(10000);
+    expect(page.postMessage).toHaveBeenCalledWith(expect.objectContaining({ error: expect.objectContaining({ code: "HOST_STARTUP_FAILED" }) }));
+    expect(host.disconnect).toHaveBeenCalled();
+    expect(page.disconnect).toHaveBeenCalled();
+    expect(providerHostBusy()).toBe(false);
+  } finally {
+    page.onDisconnect.emit();
+    global.chrome = previousChrome;
+    browser.runtime.connect = previousConnect;
+    jest.useRealTimers();
+  }
+});
+
+test.each([
+  {
+    apiType: "LocalAI",
+    provider: {
+      apiVersion: "1",
+      source: { external: true },
+      implementation: { kind: "native", entry: "LocalAI" },
+    },
+  },
+  {
+    apiType: "LocalAI",
+    provider: {
+      apiVersion: "1",
+      implementation: { kind: "native", entry: "Other" },
+    },
+  },
+  { apiType: "Other", provider: { implementation: { kind: "native" } } },
+])(
+  "untrusted native snapshots cannot enter the local ASR host: %j",
+  async (instance) => {
+    const relay = setup(),
+      page = client();
+    getSettingWithDefault.mockResolvedValue({
+      transApis: [{ ...instance, apiSlug: "local" }],
+    });
+    relay.connect(page);
+    page.onMessage.emit({
+      type: "start",
+      serviceId: "local",
+      capability: "transcribe",
+    });
+    await flush();
+    expect(localAiHost).not.toHaveBeenCalled();
+    expect(page.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "error" })
+    );
+  }
+);
 
 test("revoke one instance across pages without cancelling a different instance", async () => {
   const relay = setup();

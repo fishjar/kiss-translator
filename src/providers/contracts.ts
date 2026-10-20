@@ -84,6 +84,7 @@ export interface AudioSegment {
   start: number;
   end: number;
   text: string;
+  words?: Array<{ start: number; end: number; text: string }>;
 }
 export interface SubtitleItem extends TextItem {
   start: number;
@@ -134,8 +135,8 @@ export interface CapabilityMap {
     };
   };
   transcribe: {
-    input: { audio: AssetRef; language?: string };
-    result: { text: string; segments?: AudioSegment[] };
+    input: { audio: AssetRef; language?: string; requireTimestamps?: boolean };
+    result: { text: string; segments?: AudioSegment[]; language?: string; languageConfidence?: number; languagePending?: boolean };
   };
   recognizeText: {
     input: {
@@ -185,6 +186,8 @@ export type ProviderEvent =
 export interface InvocationOptions {
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Internal absolute deadline shared by nested calls and IPC. */
+  deadlineAt?: number;
   streaming?: "auto" | "disabled" | "required";
 }
 export interface Invocation<TResult> {
@@ -192,6 +195,8 @@ export interface Invocation<TResult> {
   result: Promise<TResult>;
   events: AsyncIterable<ProviderEvent>;
   cancel(): void;
+  /** Resolves when execution has actually settled, including after cancellation. */
+  finished?: Promise<void>;
 }
 export interface ProviderSetting {
   key: string;
@@ -283,6 +288,8 @@ export interface ProviderInstance {
   provider: ProviderSnapshot;
   enabledCapabilities: Capability[];
   pluginConfig?: Record<string, unknown>;
+  asrMaxDurationSeconds?: number;
+  asrTimestampSupport?: "auto" | "supported" | "unsupported";
 }
 export type PackageSource =
   | { kind: "github"; repoUrl: string; commitSha: string }

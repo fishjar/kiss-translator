@@ -1,3 +1,4 @@
+import { serviceInvocationOptions } from "./timeout";
 import browser from "webextension-polyfill";
 import { getSettingWithDefault } from "../libs/storage";
 import { localAiHost } from "../libs/localAiBackground";
@@ -13,6 +14,7 @@ import { availableServiceIds } from "./lifecycle";
 import { OPT_TRANS_SYSTEM_TTS } from "../config/apiConstants";
 import { serveProviderPort } from "./host";
 import { invokeBackgroundSpeech } from "../builtin-plugins/speech-runtime";
+import { isHostedLocalAsr } from "./localAsrRouting";
 
 export function installProviderRelay() {
   const active = new Map();
@@ -51,9 +53,11 @@ export function installProviderRelay() {
     let started = false;
     let release;
     let cancelLocal;
+    let hostReadyTimer;
     const cleanup = () => {
       if (disconnected) return;
       disconnected = true;
+      clearTimeout(hostReadyTimer);
       active.delete(client);
       cancelLocal?.();
       host?.disconnect();
@@ -89,22 +93,24 @@ export function installProviderRelay() {
           instance?.apiType === OPT_TRANS_SYSTEM_TTS &&
           (!instance.provider ||
             instance.provider.implementation.kind === "native");
+        const localAsr = isHostedLocalAsr(instance, message.capability);
+        const trustedNative = systemSpeech || localAsr;
         if (
-          !systemSpeech &&
+          !trustedNative &&
           (!instance?.provider ||
             instance.provider.implementation.kind === "native")
         )
           throw new Error("Plugin service is unavailable.");
         // Register before asynchronous grant verification so revocation during
         // verification also closes the pending call, rather than starting it late.
-        const grantKey = systemSpeech
+        const grantKey = trustedNative
           ? null
           : providerGrantKey(providerPluginId(instance));
         if (disconnected) return;
         active.set(client, {
           grantKey,
           serviceId: instance.apiSlug,
-          external: !systemSpeech,
+          external: !trustedNative,
           cancel: () => {
             // Calling disconnect does not emit onDisconnect on this same end.
             // Explicitly release the lease and cancel a same-context native call.
@@ -112,11 +118,16 @@ export function installProviderRelay() {
             client.disconnect();
           },
         });
-        const origins = systemSpeech
+        const origins = trustedNative
           ? []
           : [...(await approvedProviderOrigins(instance))];
         if (disconnected) return;
-        const start = { ...message, instance, approvedOrigins: origins };
+        const start = {
+          ...message,
+          instance,
+          approvedOrigins: origins,
+          options: serviceInvocationOptions(instance, message.options),
+        };
         if (systemSpeech) {
           // MV3 has no document for Webpack's DOM chunk loader. Keep this small
           // compiled path static; user-script execution remains in its own host.
@@ -129,22 +140,48 @@ export function installProviderRelay() {
           return;
         }
         if (!globalThis.chrome?.offscreen?.createDocument) {
+          if (localAsr)
+            throw Object.assign(
+              new Error("Local ASR requires an Offscreen runtime host."),
+              { code: "HOST_UNAVAILABLE" }
+            );
           const { invokeInstance } = await import("./runtime");
           if (!disconnected)
             cancelLocal = serveProviderPort(client, start, invokeInstance);
           return;
         }
         release = acquireProviderHost();
-        await localAiHost({ action: "ensure" });
+        try {
+          await localAiHost({ action: "ensure" });
+        } catch (error) {
+          if (localAsr) error.code = "HOST_STARTUP_FAILED";
+          throw error;
+        }
         if (disconnected) {
           release();
           return;
         }
         host = browser.runtime.connect({ name: PROVIDER_HOST_PORT });
+        if (localAsr)
+          hostReadyTimer = setTimeout(() => {
+            if (disconnected) return;
+            client.postMessage({
+              type: "error",
+              error: {
+                code: "HOST_STARTUP_FAILED",
+                message:
+                  "Local ASR Offscreen host did not become ready within 10 seconds.",
+              },
+            });
+            cleanup();
+            client.disconnect();
+          }, 10000);
         host.onMessage.addListener((response) => {
           if (disconnected) return;
-          if (response.type === "ready") host.postMessage(start);
-          else {
+          if (response.type === "ready") {
+            clearTimeout(hostReadyTimer);
+            host.postMessage(start);
+          } else {
             client.postMessage(response);
             if (["result", "error"].includes(response.type)) {
               release?.();

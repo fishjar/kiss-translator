@@ -1,3 +1,4 @@
+import { serviceInvocationOptions } from "./timeout";
 import { createProviderRegistry } from "./registry";
 import { createTransportBroker, createAssetStore } from "./transport";
 import { projectInstanceConfig, validateServiceConfig } from "./instances";
@@ -15,6 +16,7 @@ export function invokeInstance(
   input,
   { approvedOrigins, assets = createAssetStore(), ...options }
 ) {
+  options = serviceInvocationOptions(instance, options);
   const registry = createProviderRegistry({
     resolveInstance: (id) => (id === instance.apiSlug ? instance : undefined),
     createContext: (api, invocation) => {

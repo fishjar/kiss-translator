@@ -242,11 +242,13 @@ export interface ASRWord {
 }
 
 export interface ASRSegment {
+  timingSource?: "asr" | "audio-chunk";
   id: string;
   text: string;
   start: number;
   end: number;
   words?: ASRWord[];
+  wordsTimingSource?: "estimated";
   language?: string;
   emotion?: string;
   event?: string;

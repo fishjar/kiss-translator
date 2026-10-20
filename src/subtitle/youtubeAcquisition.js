@@ -193,12 +193,12 @@ export class YouTubeCaptionAcquirer {
     this.controller = null;
     this.inFlight = null;
   }
-  acquire(videoId) {
+  acquire(videoId, cachedEntry) {
     if (this.inFlight?.videoId === videoId) return this.inFlight.promise;
     this.cancel();
     const controller = new AbortController();
     this.controller = controller;
-    const promise = this.run(videoId, controller.signal).finally(() => {
+    const promise = this.run(videoId, controller.signal, cachedEntry).finally(() => {
       if (this.controller === controller) {
         this.inFlight = null;
         this.controller = null;
@@ -207,7 +207,7 @@ export class YouTubeCaptionAcquirer {
     this.inFlight = { videoId, promise };
     return promise;
   }
-  async run(videoId, signal) {
+  async run(videoId, signal, cachedEntry) {
     const scope = new AbortController();
     const cancel = () => scope.abort();
     signal.addEventListener("abort", cancel, { once: true });
@@ -308,6 +308,9 @@ export class YouTubeCaptionAcquirer {
             continue;
           }
           throw fail("TRACK_UNAVAILABLE");
+        }
+        if (cachedEntry?.videoId === videoId && cachedEntry.trackKey === captionTrackId(track)) {
+          return { ...cachedEntry, videoId, track, source: "cache" };
         }
         state({ phase: "loading", track });
         const captures = (snapshot.captures || []).slice().reverse();

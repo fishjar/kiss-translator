@@ -11,7 +11,10 @@ import {
   ServiceFormHeader,
   BooleanServiceOption,
   serviceTransportFeatures,
+  AsrDurationSetting,
+  ServiceTimeoutSetting,
 } from "./ServiceForm";
+import { asrMaxDurationSeconds } from "../../providers/asrLimits";
 import {
   supportedApiCapabilities,
   enabledApiCapabilities,
@@ -478,6 +481,18 @@ function LegacyApiFields({
 
   const handleSave = async () => {
     if (pendingSave.current) return;
+    if (enabledApiCapabilities(activeFormData).includes("transcribe")) {
+      try {
+        asrMaxDurationSeconds(activeFormData.asrMaxDurationSeconds);
+      } catch {
+        showFeedback({
+          title: i18n("plugin_save_failed"),
+          severity: "error",
+          message: i18n("service_asr_max_duration_hint"),
+        });
+        return;
+      }
+    }
     const nextFormData = { ...activeFormData };
     delete nextFormData.capabilities;
     const warnings = [];
@@ -1454,19 +1469,6 @@ function LegacyApiFields({
                     {...builtinFieldBounds.fetchInterval}
                   />
                 </Box>
-                <Box>
-                  <ValidationInput
-                    validateOnBlur={false}
-                    size="small"
-                    fullWidth
-                    label={i18n("http_timeout")}
-                    type="number"
-                    name="httpTimeout"
-                    value={httpTimeout}
-                    onChange={handleChange}
-                    {...builtinFieldBounds.httpTimeout}
-                  />
-                </Box>
               </Box>
             </Box>
             {hasTranslation && (
@@ -1647,6 +1649,21 @@ function LegacyApiFields({
           </>
         )}
 
+        <ServiceTimeoutSetting
+          api={activeFormData}
+          onChange={(value) =>
+            handleChange({ target: { name: "httpTimeout", value } })
+          }
+        />
+        <AsrDurationSetting
+          api={activeFormData}
+          onTimestampChange={(value) =>
+            handleChange({ target: { name: "asrTimestampSupport", value } })
+          }
+          onChange={(value) =>
+            handleChange({ target: { name: "asrMaxDurationSeconds", value } })
+          }
+        />
         <Stack
           className="kt-api-detail__footer"
           direction="row"

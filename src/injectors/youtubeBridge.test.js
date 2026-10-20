@@ -69,6 +69,17 @@ afterEach(() => {
   global.PerformanceObserver = originalObserver;
 });
 
+test("audio attaches idempotently to the existing Fetch hook without a second wrapper", async () => {
+  const audio = { prepare: jest.fn(() => "capture"), observe: jest.fn(), clear: jest.fn(), dispose: jest.fn() };
+  const factory = jest.fn(() => audio);
+  installYoutubeBridge(factory);
+  const hooked = window.fetch;
+  installYoutubeBridge(factory);
+  expect(window.fetch).toBe(hooked); expect(factory).toHaveBeenCalledTimes(1);
+  await window.fetch("https://example.invalid/");
+  expect(audio.prepare).toHaveBeenCalledTimes(1); expect(audio.observe).toHaveBeenCalledTimes(1);
+});
+
 test("installs once, clones Fetch responses and replays captured data in snapshots", async () => {
   installYoutubeBridge();
   const wrapper = window.fetch;

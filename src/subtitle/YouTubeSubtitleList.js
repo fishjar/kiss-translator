@@ -1,3 +1,4 @@
+import { AsrTaskPanel } from "./asr/AsrTaskPanel";
 import { isApiConfigured } from "../config/serviceSelection";
 import { supportsApiCapability } from "../config/serviceSelection";
 import { logger } from "../libs/log.js";
@@ -139,6 +140,20 @@ export function renderMarkdownToElement(markdownText, container) {
   }
 }
 
+const ensureSubtitleHeaderStyles = () => {
+  if (document.getElementById("kiss-youtube-tab-header-styles")) return;
+  const style = document.createElement("style");
+  style.id = "kiss-youtube-tab-header-styles";
+  style.textContent = `
+    .kiss-youtube-tab-header::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+  `;
+  document.head.appendChild(style);
+};
+
 export class YouTubeSubtitleList {
   /**
    * @param {HTMLVideoElement} videoElement YouTube 的原生视频播放器 DOM 节点
@@ -152,6 +167,9 @@ export class YouTubeSubtitleList {
       hoverLookupCloseDelay = 2,
       getSummaryConfig = null,
       getVideoMetadata = null,
+      asrActions = null,
+      retryCaptions = null,
+      onClose = null,
     } = {}
   ) {
     this.videoEl = videoElement;
@@ -160,6 +178,9 @@ export class YouTubeSubtitleList {
     this.autoFavWord = autoFavWord;
     this.getSummaryConfig = getSummaryConfig;
     this.getVideoMetadata = getVideoMetadata;
+    this.asrActions = asrActions;
+    this.retryCaptions = retryCaptions;
+    this.onClose = onClose;
 
     // --- 数据源缓存 ---
     // 双语字幕主列表数组。结构：{ start: number, end: number, text: string, translation: string }
@@ -183,6 +204,9 @@ export class YouTubeSubtitleList {
     this.summaryActionBar = null; // 视频总结操作工具条
     this.summaryRegenBtn = null; // 重新生成按钮
     this.summaryCopyBtn = null; // 复制总结按钮
+    this.downloadBtn = null; // 下载字幕 (VTT) 按钮
+    this.downloadTranslationBtn = null; // 下载译文字幕 (VTT) 按钮
+    this.downloadRawBtn = null; // 下载源数据 (JSON) 按钮
     this.subtitleScrollContainer = null; // 字幕列表的专用独立纵向滚动容器
     this._cachedSubtitleItems = []; // 缓存每一个字幕行 li 节点引用的数组，避免在滚动同步高亮时高频执行 querySelector 带来的重排 (Reflow) 损耗，提升滚动性能
 
@@ -318,6 +342,7 @@ export class YouTubeSubtitleList {
   }
 
   handleWindowResize() {
+    this._mountAsrContainer();
     this._syncContainerHeightToPlayer();
   }
 
@@ -333,10 +358,11 @@ export class YouTubeSubtitleList {
     this.bilingualSubtitles = subtitles || [];
     this.rawSubtitleEvents = rawSubtitleEvents || [];
     this.subtitleProgress = this._normalizeProgress(progressed);
-    if (this.bilingualSubtitles.length > 0) {
+    if (this.bilingualSubtitles.length > 0 || this.asrActions) {
       this.createSubtitleList();
       this.setupEventListeners();
     }
+    this._updateDownloadButtonsState();
   }
 
   /**
@@ -348,6 +374,8 @@ export class YouTubeSubtitleList {
     this.bilingualSubtitles = subtitles || [];
     this.subtitleProgress = this._normalizeProgress(progressed);
     this._updateSubtitleTabLabel();
+    this.updateCaptionState(this.captionState);
+    this._updateDownloadButtonsState();
 
     if (this.subtitleListEl) {
       // 若列表面板已处于挂载状态，尝试执行增量 Diff 挂载
@@ -357,6 +385,15 @@ export class YouTubeSubtitleList {
       this.createSubtitleList();
       this.setupEventListeners();
     }
+  }
+
+  /**
+   * 异步更新原生字幕事件流数据，并刷新导出按钮状态
+   * @param {Array} events YouTube timedtext 原始事件流数组
+   */
+  updateRawSubtitleEvents(events) {
+    this.rawSubtitleEvents = events || [];
+    this._updateDownloadButtonsState();
   }
 
   /**
@@ -392,13 +429,24 @@ export class YouTubeSubtitleList {
    * 销毁器 - 全面解绑事件监听、注销定时器、强行中断进行中的异步分块渲染并清理 DOM 节点引用以防止内存泄漏
    */
   destroy() {
+    this._shortsResizeCleanup?.();
+    this._shortsResizeHandle?.remove();
+    this._shortsResizeHandle = null;
+    this.asrPanel?.destroy();
+    this.asrPanel = null;
     this.turnOffAutoSub();
     this._cancelChunkRender();
     this._cancelVirtualRender();
     this._removeEventListeners();
+    this._sidebarMountObserver?.disconnect();
+    this._sidebarMountObserver = null;
     this._playerResizeObserver?.disconnect();
     this._playerResizeObserver = null;
     window.removeEventListener("resize", this.handleWindowResize);
+    document.removeEventListener(
+      "fullscreenchange",
+      this._asrFullscreenHandler
+    );
     this._playerSizeListenerAttached = false;
     this._wordTooltipController?.destroy();
     this._wordTooltipController = null;
@@ -428,6 +476,9 @@ export class YouTubeSubtitleList {
     this.summaryActionBar = null;
     this.summaryRegenBtn = null;
     this.summaryCopyBtn = null;
+    this.downloadBtn = null;
+    this.downloadTranslationBtn = null;
+    this.downloadRawBtn = null;
     this.subtitleListUl = null;
     this._summaryCache?.clear();
     this.bilingualSubtitles = [];
@@ -804,6 +855,96 @@ export class YouTubeSubtitleList {
   }
 
   /**
+   * 获取可导出的字幕源数据（JSON格式）。
+   * 若处于 ASR 音频识别模式或缺失原生 timedtext 事件流时，
+   * 自动利用当前已识别/生成的双语字幕数据组装成标准 timedtext JSON 结构。
+   *
+   * @returns {Array<object>} 可导出的原始事件数组
+   */
+  _getExportableRawSubtitleEvents() {
+    if (this.asrState?.active) {
+      if (
+        Array.isArray(this.bilingualSubtitles) &&
+        this.bilingualSubtitles.length > 0
+      ) {
+        return this.bilingualSubtitles.map((cue) => ({
+          tStartMs: cue.start,
+          dDurationMs: Math.max(0, (cue.end || cue.start) - cue.start),
+          segs: [{ utf8: cue.text || "" }],
+          ...(cue.translation ? { translation: cue.translation } : {}),
+        }));
+      }
+    }
+
+    if (
+      Array.isArray(this.rawSubtitleEvents) &&
+      this.rawSubtitleEvents.length > 0
+    ) {
+      return this.rawSubtitleEvents;
+    }
+
+    if (
+      Array.isArray(this.bilingualSubtitles) &&
+      this.bilingualSubtitles.length > 0
+    ) {
+      return this.bilingualSubtitles.map((cue) => ({
+        tStartMs: cue.start,
+        dDurationMs: Math.max(0, (cue.end || cue.start) - cue.start),
+        segs: [{ utf8: cue.text || "" }],
+        ...(cue.translation ? { translation: cue.translation } : {}),
+      }));
+    }
+
+    return [];
+  }
+
+  /**
+   * 同步双语字幕导出操作栏中各个下载按钮的禁用/启用状态。
+   * 当字幕或原始数据尚未准备好时，禁用对应按钮以避免无效点击。
+   */
+  _updateDownloadButtonsState() {
+    if (
+      !this.downloadBtn &&
+      !this.downloadTranslationBtn &&
+      !this.downloadRawBtn
+    ) {
+      return;
+    }
+
+    const hasSubtitles =
+      Array.isArray(this.bilingualSubtitles) &&
+      this.bilingualSubtitles.length > 0;
+    const hasTranslation =
+      hasSubtitles &&
+      this.bilingualSubtitles.some(
+        (sub) =>
+          typeof sub?.translation === "string" &&
+          sub.translation.trim().length > 0
+      );
+    const hasRawEvents = this._getExportableRawSubtitleEvents().length > 0;
+
+    const setBtnState = (btn, enabled) => {
+      if (!btn) return;
+      btn.disabled = !enabled;
+      btn.style.opacity = enabled ? "1" : "0.45";
+      btn.style.cursor = enabled ? "pointer" : "not-allowed";
+      if (!enabled) {
+        btn.style.transform = "translateY(0)";
+        try {
+          const normal = getComputedStyle(this.container).getPropertyValue(
+            "--kt-btn-bg"
+          );
+          if (normal) btn.style.background = normal;
+        } catch (e) {}
+      }
+    };
+
+    setBtnState(this.downloadBtn, hasSubtitles);
+    setBtnState(this.downloadTranslationBtn, hasTranslation);
+    setBtnState(this.downloadRawBtn, hasRawEvents);
+  }
+
+  /**
    * 下载双语字幕为标准的双语对照格式 VTT 文件
    */
   downloadSubtitles() {
@@ -851,14 +992,15 @@ export class YouTubeSubtitleList {
   }
 
   downloadRawSubtitleEvents() {
-    if (!this.rawSubtitleEvents || this.rawSubtitleEvents.length === 0) {
+    const rawEvents = this._getExportableRawSubtitleEvents();
+    if (!rawEvents || rawEvents.length === 0) {
       logger.info("Youtube Provider: No raw subtitle events to download");
       return;
     }
 
     try {
       const videoId = this._getYouTubeVideoId() || "video";
-      const jsonContent = JSON.stringify(this.rawSubtitleEvents, null, 2);
+      const jsonContent = JSON.stringify(rawEvents, null, 2);
 
       downloadBlobFile(
         jsonContent,
@@ -883,8 +1025,9 @@ export class YouTubeSubtitleList {
     this._ensureContainer();
 
     // 2. 如果容器为新建节点，绘制骨架及 Tab 标题栏结构
-    if (this.container.children.length === 0) {
+    if (!this.container.querySelector(".kiss-youtube-tab-header")) {
       this._renderTabsAndStructure();
+      if (this._shortsResizeHandle) this.container.append(this._shortsResizeHandle);
     }
 
     // 3. 强行终止前序分块渲染
@@ -935,11 +1078,26 @@ export class YouTubeSubtitleList {
       // 挂载到右侧推荐流栏的头部
       const secondary = document.getElementById("secondary-inner");
       if (secondary) secondary.prepend(this.container);
+      if (this.asrActions) {
+        this._asrFullscreenHandler = () => {
+          this._mountAsrContainer();
+          this._syncContainerHeightToPlayer();
+        };
+        document.addEventListener(
+          "fullscreenchange",
+          this._asrFullscreenHandler
+        );
+      }
 
       // 自适应主题：异步加载用户暗黑模式偏好，并嗅探原生系统的 prefers-color-scheme，写入对应的全局 CSS 变量系统
       (async () => {
         try {
           const setting = await getSettingWithDefault();
+          if (!this._shortsWidthEdited) {
+            const width = setting?.subtitleSetting?.youtubeShortsSubtitlePanelWidth;
+            this._shortsPanelWidth = Number.isFinite(width) ? Math.max(320, Math.min(720, width)) : 520;
+            this._mountAsrContainer();
+          }
           const darkMode = setting?.darkMode;
           const prefersDark =
             typeof window.matchMedia === "function" &&
@@ -1005,7 +1163,28 @@ export class YouTubeSubtitleList {
       })();
     }
 
+    this._mountAsrContainer();
     this._syncContainerHeightToPlayer();
+    if (this.asrActions && !this._sidebarMountObserver) {
+      this._sidebarMountObserver = new MutationObserver(() => {
+        if (!this.container || document.fullscreenElement) return;
+        const parent = window.location.pathname.startsWith("/shorts/")
+          ? document.body
+          : document.getElementById("secondary-inner");
+        if (
+          parent
+            ? this.container.parentElement !== parent
+            : this.container.style.display !== "none"
+        ) {
+          this._mountAsrContainer();
+          this._syncContainerHeightToPlayer();
+        }
+      });
+      this._sidebarMountObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
     this._observePlayerSize();
   }
 
@@ -1013,14 +1192,110 @@ export class YouTubeSubtitleList {
     return this.videoEl?.closest(".html5-video-player") || this.videoEl;
   }
 
+  _mountAsrContainer() {
+    if (!this.asrActions || !this.container) return;
+    const fullscreen = document.fullscreenElement;
+    if (fullscreen) {
+      this.container.style.display = "none";
+      return;
+    }
+    const secondary = document.getElementById("secondary-inner");
+    const overlay = window.location.pathname.startsWith("/shorts/");
+    if (!overlay && !secondary) {
+      this.container.style.display = "none";
+      return;
+    }
+    this.container.style.display = "flex";
+    this._ensureShortsResizeHandle();
+    this._shortsResizeHandle.hidden = !overlay;
+    const parent = overlay ? document.body : secondary;
+    if (this.container.parentElement !== parent) parent.prepend(this.container);
+    Object.assign(
+      this.container.style,
+      overlay
+        ? {
+            position: "fixed",
+            top: "72px",
+            right: "12px",
+            width: `${Math.min(this._shortsPanelWidth || 520, Math.max(0, window.innerWidth - 24))}px`,
+            maxWidth: "720px",
+            minWidth: "0",
+            zIndex: "2147483640",
+          }
+        : {
+            position: "",
+            top: "60px",
+            right: "0",
+            width: "",
+            maxWidth: "600px",
+            minWidth: "320px",
+            zIndex: "999",
+          }
+    );
+  }
+
+  _ensureShortsResizeHandle() {
+    if (this._shortsResizeHandle) return;
+    const handle = document.createElement("div");
+    handle.tabIndex = 0;
+    handle.setAttribute("role", "separator");
+    handle.setAttribute("aria-orientation", "vertical");
+    handle.setAttribute("aria-label", this.i18n("youtube_subtitle_resize_width"));
+    handle.style.cssText = "position:absolute;left:-5px;top:0;bottom:0;width:10px;cursor:ew-resize;touch-action:none;z-index:1;";
+    this.container.append(handle);
+    this._shortsResizeHandle = handle;
+    const update = width => {
+      this._shortsWidthEdited = true;
+      this._shortsPanelWidth = Math.max(320, Math.min(720, width));
+      this._mountAsrContainer();
+      handle.setAttribute("aria-valuenow", String(this._shortsPanelWidth));
+    };
+    const save = () => {
+      void saveEdit(STOKEY_SETTING, current => ({ ...current, subtitleSetting: {
+        ...(current?.subtitleSetting || DEFAULT_SUBTITLE_SETTING),
+        youtubeShortsSubtitlePanelWidth: this._shortsPanelWidth,
+      } })).catch(err => logger.warn("save Shorts panel width failed", err));
+    };
+    handle.addEventListener("pointerdown", event => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      this._shortsResizeCleanup?.();
+      const x = event.clientX, width = this.container.getBoundingClientRect().width;
+      const move = next => update(width + x - next.clientX);
+      const finish = () => { cleanup(); save(); };
+      const cleanup = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", finish);
+        window.removeEventListener("pointercancel", finish);
+        this._shortsResizeCleanup = null;
+      };
+      this._shortsResizeCleanup = cleanup;
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", finish, { once: true });
+      window.addEventListener("pointercancel", finish, { once: true });
+    });
+    handle.onkeydown = event => {
+      if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      event.preventDefault();
+      update((this._shortsPanelWidth || 520) + (event.key === "ArrowLeft" ? 16 : -16));
+      save();
+    };
+    handle.setAttribute("aria-valuemin", "320");
+    handle.setAttribute("aria-valuemax", "720");
+    handle.setAttribute("aria-valuenow", String(this._shortsPanelWidth || 520));
+  }
+
   _syncContainerHeightToPlayer() {
     if (!this.container) return;
+    if (this.asrActions && document.fullscreenElement) return;
 
     const player = this._getPlayerElement();
     const playerHeight = player?.getBoundingClientRect?.().height;
     if (!Number.isFinite(playerHeight) || playerHeight <= 0) return;
 
-    const height = `${Math.round(playerHeight)}px`;
+    const overlay =
+      this.asrActions && window.location.pathname.startsWith("/shorts/");
+    const height = `${Math.round(overlay ? Math.min(playerHeight, Math.max(160, window.innerHeight - 96)) : playerHeight)}px`;
     this.container.style.height = height;
     this.container.style.maxHeight = height;
   }
@@ -1043,9 +1318,11 @@ export class YouTubeSubtitleList {
    * 绘制骨架、关闭按钮以及 Tab 切换卡
    */
   _renderTabsAndStructure() {
+    ensureSubtitleHeaderStyles();
     // 1. 创建头部 Tab 区域
     const tabHeader = document.createElement("div");
-    tabHeader.style.cssText = `display: flex; border-bottom: 1px solid var(--kt-divider); padding: 0 16px; flex-shrink: 0;`;
+    tabHeader.className = "kiss-youtube-tab-header";
+    tabHeader.style.cssText = `overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none; display: flex; align-items: center; border-bottom: 1px solid var(--kt-divider); padding: 0 16px; flex-shrink: 0;`;
 
     const subtitleTab = document.createElement("button");
     this.subtitleTabEl = subtitleTab;
@@ -1082,6 +1359,7 @@ export class YouTubeSubtitleList {
 
     closeBtn.addEventListener("click", () => {
       this.destroy(); // 卸载整个面板
+      this.onClose?.();
     });
 
     closeBtn.addEventListener(
@@ -1108,95 +1386,169 @@ export class YouTubeSubtitleList {
     const subActionBar = document.createElement("div");
     subActionBar.style.cssText = `padding: 10px 16px; border-bottom: 1px solid var(--kt-divider); display: flex; justify-content: center; gap: 8px; flex-shrink: 0;`;
 
-    const downloadBtn = document.createElement("button");
+    const setupButtonHover = (btn) => {
+      btn.addEventListener("mouseenter", () => {
+        if (btn.disabled) return;
+        try {
+          const hover = getComputedStyle(this.container).getPropertyValue(
+            "--kt-btn-hover-bg"
+          );
+          if (hover) btn.style.background = hover;
+          btn.style.transform = "translateY(-1px)";
+        } catch (e) {}
+      });
+      btn.addEventListener("mouseleave", () => {
+        try {
+          const normal = getComputedStyle(this.container).getPropertyValue(
+            "--kt-btn-bg"
+          );
+          if (normal) btn.style.background = normal;
+          btn.style.transform = "translateY(0)";
+        } catch (e) {}
+      });
+    };
+
+    const baseBtnStyle = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; opacity: 1; transition: background 220ms ease, color 200ms ease, transform 160ms ease, opacity 200ms ease;`;
+
+    const downloadBtn = (this.downloadBtn = document.createElement("button"));
     downloadBtn.textContent = this._t(
       "download_subtitles_vtt",
       "下载字幕 (VTT)"
     );
-    downloadBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
-
-    downloadBtn.addEventListener("mouseenter", () => {
-      try {
-        const hover = getComputedStyle(this.container).getPropertyValue(
-          "--kt-btn-hover-bg"
-        );
-        if (hover) downloadBtn.style.background = hover;
-        downloadBtn.style.transform = "translateY(-1px)";
-      } catch (e) {}
-    });
-    downloadBtn.addEventListener("mouseleave", () => {
-      try {
-        const normal = getComputedStyle(this.container).getPropertyValue(
-          "--kt-btn-bg"
-        );
-        if (normal) downloadBtn.style.background = normal;
-        downloadBtn.style.transform = "translateY(0)";
-      } catch (e) {}
-    });
+    downloadBtn.style.cssText = baseBtnStyle;
+    setupButtonHover(downloadBtn);
     downloadBtn.addEventListener("click", this.downloadSubtitles.bind(this));
 
-    const downloadRawBtn = document.createElement("button");
+    const downloadRawBtn = (this.downloadRawBtn =
+      document.createElement("button"));
     downloadRawBtn.textContent = this._t(
       "download_raw_subtitle_events_json",
       "下载源数据 (JSON)"
     );
-    downloadRawBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
-
-    downloadRawBtn.addEventListener("mouseenter", () => {
-      try {
-        const hover = getComputedStyle(this.container).getPropertyValue(
-          "--kt-btn-hover-bg"
-        );
-        if (hover) downloadRawBtn.style.background = hover;
-        downloadRawBtn.style.transform = "translateY(-1px)";
-      } catch (e) {}
-    });
-    downloadRawBtn.addEventListener("mouseleave", () => {
-      try {
-        const normal = getComputedStyle(this.container).getPropertyValue(
-          "--kt-btn-bg"
-        );
-        if (normal) downloadRawBtn.style.background = normal;
-        downloadRawBtn.style.transform = "translateY(0)";
-      } catch (e) {}
-    });
+    downloadRawBtn.style.cssText = baseBtnStyle;
+    setupButtonHover(downloadRawBtn);
     downloadRawBtn.addEventListener(
       "click",
       this.downloadRawSubtitleEvents.bind(this)
     );
 
-    const downloadTranslationBtn = document.createElement("button");
+    const downloadTranslationBtn = (this.downloadTranslationBtn =
+      document.createElement("button"));
     downloadTranslationBtn.textContent = this._t(
       "download_translation_subtitles_vtt",
       "下载译文字幕 (VTT)"
     );
-    downloadTranslationBtn.style.cssText = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 220ms ease, color 200ms ease, transform 160ms ease;`;
-
-    downloadTranslationBtn.addEventListener("mouseenter", () => {
-      try {
-        const hover = getComputedStyle(this.container).getPropertyValue(
-          "--kt-btn-hover-bg"
-        );
-        if (hover) downloadTranslationBtn.style.background = hover;
-        downloadTranslationBtn.style.transform = "translateY(-1px)";
-      } catch (e) {}
-    });
-    downloadTranslationBtn.addEventListener("mouseleave", () => {
-      try {
-        const normal = getComputedStyle(this.container).getPropertyValue(
-          "--kt-btn-bg"
-        );
-        if (normal) downloadTranslationBtn.style.background = normal;
-        downloadTranslationBtn.style.transform = "translateY(0)";
-      } catch (e) {}
-    });
+    downloadTranslationBtn.style.cssText = baseBtnStyle;
+    setupButtonHover(downloadTranslationBtn);
     downloadTranslationBtn.addEventListener(
       "click",
       this.downloadTranslationOnlySubtitles.bind(this)
     );
 
     subActionBar.append(downloadBtn, downloadTranslationBtn, downloadRawBtn);
+    if (this.asrActions) {
+
+      this.asrAudioButton = document.createElement("button");
+      this.asrAudioButton.style.cssText = baseBtnStyle;
+      this.asrAudioButton.textContent = this.i18n("youtube_asr_download_full");
+      this.asrAudioButton.addEventListener(
+        "click",
+        () => void this.asrActions.exportFull()
+      );
+      setupButtonHover(this.asrAudioButton);
+
+      this.asrClearAudioButton = document.createElement("button");
+      this.asrClearAudioButton.style.cssText = baseBtnStyle;
+      this.asrClearAudioButton.textContent = this.i18n(
+        "youtube_asr_clear_audio_btn"
+      );
+      this.asrClearAudioButton.addEventListener(
+        "click",
+        () => void this.asrActions.deleteAudio?.()
+      );
+      setupButtonHover(this.asrClearAudioButton);
+
+      this.asrClearSubtitlesButton = document.createElement("button");
+      this.asrClearSubtitlesButton.style.cssText = baseBtnStyle;
+      this.asrClearSubtitlesButton.textContent = this.i18n(
+        "youtube_asr_clear_subtitles_btn"
+      );
+      this.asrClearSubtitlesButton.addEventListener(
+        "click",
+        () => void this.asrActions.deleteCache?.()
+      );
+      setupButtonHover(this.asrClearSubtitlesButton);
+
+      this.asrStopButton = document.createElement("button");
+      this.asrStopButton.style.cssText = baseBtnStyle;
+      this.asrStopButton.textContent = this.i18n("youtube_asr_disable");
+      this.asrStopButton.addEventListener(
+        "click",
+        () => void this.asrActions.stop?.()
+      );
+      setupButtonHover(this.asrStopButton);
+
+      this.asrPauseButton = document.createElement("button");
+      this.asrPauseButton.style.cssText = baseBtnStyle;
+      this.asrPauseButton.addEventListener("click", () => {
+        if (this.asrState?.paused) this.asrActions.resume?.();
+        else this.asrActions.pause?.();
+      });
+      setupButtonHover(this.asrPauseButton);
+
+      this.asrCancelButton = document.createElement("button");
+      this.asrCancelButton.textContent = this.i18n("youtube_asr_cancel");
+      this.asrCancelButton.style.cssText = baseBtnStyle;
+      this.asrCancelButton.addEventListener("click", () =>
+        this.asrActions.cancelExport()
+      );
+      setupButtonHover(this.asrCancelButton);
+
+      this.asrPanel = new AsrTaskPanel(this.i18n, this.asrActions);
+      this.asrView = document.createElement("div");
+      this.asrView.style.cssText =
+        "display:none;flex-direction:column;height:100%;overflow:hidden;";
+      this.asrEnableView = document.createElement("div");
+      this.asrEnableView.style.cssText =
+        "display:none;justify-content:center;padding:24px 16px;";
+      this.asrStartButton = document.createElement("button");
+      this.asrStartButton.style.cssText = baseBtnStyle;
+      this.asrStartButton.textContent = this.i18n("youtube_asr_enable");
+      this.asrStartButton.addEventListener(
+        "click",
+        () => void this.asrActions.start?.()
+      );
+      setupButtonHover(this.asrStartButton);
+      this.asrEnableView.append(this.asrStartButton);
+      this.asrInactiveNotice = document.createElement("div");
+      this.asrInactiveNotice.setAttribute("role", "status");
+      this.asrEnableView.append(this.asrInactiveNotice);
+      this.asrView.append(this.asrEnableView, this.asrPanel.element);
+      this.asrPanel.toolbar.append(
+        this.asrAudioButton,
+        this.asrClearAudioButton,
+        this.asrClearSubtitlesButton,
+        this.asrPauseButton,
+        this.asrStopButton,
+        this.asrCancelButton,
+        this.asrPanel.languageControl,
+        this.asrPanel.translationControl
+      );
+      this.updateAsrState(this.asrState || {});
+    }
+    if (this.retryCaptions) {
+      this.captionRetryButton = document.createElement("button");
+      this.captionRetryButton.style.cssText = baseBtnStyle;
+      this.captionRetryButton.textContent = this.i18n("youtube_caption_retry");
+      this.captionRetryButton.addEventListener(
+        "click",
+        () => void this.retryCaptions()
+      );
+      subActionBar.append(this.captionRetryButton);
+      this.updateCaptionState(this.captionState);
+    }
     this.subtitleListEl.appendChild(subActionBar);
+    this._updateDownloadButtonsState();
 
     // 字幕滚动视口容器
     this.subtitleScrollContainer = document.createElement("div");
@@ -1256,8 +1608,37 @@ export class YouTubeSubtitleList {
     this.summaryScrollContainer.style.cssText = `overflow-y: auto; flex: 1; padding: 16px 20px; position: relative; box-sizing: border-box;`;
     this.summaryListEl.appendChild(this.summaryScrollContainer);
 
+    let asrTab;
+    if (this.asrPanel) {
+      asrTab = document.createElement("button");
+      this.asrTabEl = asrTab;
+      asrTab.textContent = this.i18n("youtube_asr_tab");
+      styleTab(asrTab, false);
+      asrTab.onclick = () => {
+        this.activeTab = "asr";
+        for (const tab of [subtitleTab, vocabularyTab, summaryTab])
+          styleTab(tab, false);
+        styleTab(asrTab, true);
+        for (const panel of [
+          this.subtitleListEl,
+          this.vocabularyListEl,
+          this.summaryListEl,
+        ])
+          panel.style.display = "none";
+        this._syncAsrView();
+      };
+    }
+    this.selectAsrTab = () => asrTab?.click();
+    const hideAsr = () => {
+      if (!asrTab) return;
+      this.asrPanel.stopPreview();
+      styleTab(asrTab, false);
+      this.asrPanel.element.style.display = "none";
+      this.asrView.style.display = "none";
+    };
     // Tab 点击事件联动
     subtitleTab.addEventListener("click", () => {
+      hideAsr();
       this.activeTab = "subtitles";
       styleTab(subtitleTab, true);
       styleTab(vocabularyTab, false);
@@ -1271,6 +1652,7 @@ export class YouTubeSubtitleList {
       }
     });
     vocabularyTab.addEventListener("click", () => {
+      hideAsr();
       this.activeTab = "vocabulary";
       styleTab(subtitleTab, false);
       styleTab(vocabularyTab, true);
@@ -1285,6 +1667,7 @@ export class YouTubeSubtitleList {
       }
     });
     summaryTab.addEventListener("click", () => {
+      hideAsr();
       this.activeTab = "summary";
       styleTab(subtitleTab, false);
       styleTab(vocabularyTab, false);
@@ -1300,13 +1683,18 @@ export class YouTubeSubtitleList {
     styleTab(vocabularyTab, false);
     styleTab(summaryTab, false);
 
-    tabHeader.append(subtitleTab, vocabularyTab, summaryTab, closeBtn);
+    tabHeader.append(subtitleTab);
+    if (asrTab) tabHeader.append(asrTab);
+    tabHeader.append(vocabularyTab, summaryTab, closeBtn);
     tabContentContainer.append(
       this.subtitleListEl,
       this.vocabularyListEl,
       this.summaryListEl
     );
-    this.container.append(tabHeader, tabContentContainer);
+    if (this.asrPanel) {
+      tabContentContainer.append(this.asrView);
+      this.container.append(tabHeader, tabContentContainer);
+    } else this.container.append(tabHeader, tabContentContainer);
   }
 
   /**
@@ -1382,6 +1770,82 @@ export class YouTubeSubtitleList {
    * 虚拟列表不再直接追加 DOM；这里重置高度/偏移缓存并强制重绘当前窗口，
    * 让新增字幕和翻译后的高度变化统一通过虚拟渲染流程处理，避开低效的全量 DOM 清理重建。
    */
+  updateAsrTasks(update) {
+    this.asrPanel?.updateTasks(update);
+  }
+
+  updateCaptionState(state) {
+    this.captionState = state;
+    if (!this.captionRetryButton) return;
+    const hidden =
+      !["error", "empty"].includes(state?.phase) ||
+      this.bilingualSubtitles.length > 0 || !!this.asrState?.active;
+    if (this.captionRetryButton.hidden !== hidden)
+      this.captionRetryButton.hidden = hidden;
+  }
+
+  updateAsrState(state) {
+    this.asrState = state;
+    this.updateCaptionState(this.captionState);
+    this.asrPanel?.updateState(state);
+    this._syncAsrView();
+    if (!this.asrAudioButton) return;
+    const pauseLabel = this.i18n(
+      state.paused ? "youtube_asr_resume_btn" : "youtube_asr_pause_btn"
+    );
+    if (this.asrPauseButton.textContent !== pauseLabel) this.asrPauseButton.textContent = pauseLabel;
+    const pauseDisabled = !state.active || !!state.clearing;
+    if (this.asrPauseButton.disabled !== pauseDisabled) this.asrPauseButton.disabled = pauseDisabled;
+    if (this.asrPauseButton.getAttribute("aria-pressed") !== String(!!state.paused))
+      this.asrPauseButton.setAttribute("aria-pressed", String(!!state.paused));
+    if (this.asrClearSubtitlesButton.disabled !== !!state.clearing)
+      this.asrClearSubtitlesButton.disabled = !!state.clearing;
+    const busy = ["fetching", "generating"].includes(state.fullExport);
+    this.asrAudioButton.disabled = busy;
+    this.asrAudioButton.style.opacity = busy ? "0.45" : "1";
+    this.asrAudioButton.style.cursor = busy ? "not-allowed" : "pointer";
+    const audioBusy =
+      !!state.clearing;
+    if (this.asrClearAudioButton) {
+      this.asrClearAudioButton.disabled = audioBusy;
+      this.asrClearAudioButton.style.opacity = audioBusy ? "0.45" : "1";
+      this.asrClearAudioButton.style.cursor = audioBusy ? "not-allowed" : "pointer";
+    }
+    const label =
+      this.i18n(
+        state.fullExport === "generating"
+          ? "youtube_asr_preparing"
+          : "youtube_asr_download_full"
+      ) +
+      (busy && state.audio?.percent !== undefined
+        ? ` ${Math.floor(state.audio.percent)}%`
+        : "");
+    if (this.asrAudioButton.textContent !== label)
+      this.asrAudioButton.textContent = label;
+    this.asrCancelButton.hidden = !busy;
+  }
+
+  _syncAsrView() {
+    if (!this.asrView) return;
+    const selected = this.activeTab === "asr";
+    const active = this.asrState?.active === true;
+    this.asrView.style.display = selected ? "flex" : "none";
+    this.asrEnableView.style.display = selected && !active ? "flex" : "none";
+    this.asrPanel.element.style.display = selected && active ? "flex" : "none";
+    const canStart = Boolean(this.asrState?.available) && !this.asrState?.clearing;
+    this.asrStartButton.disabled = !canStart;
+    this.asrStartButton.style.opacity = canStart ? "1" : "0.45";
+    this.asrStartButton.style.cursor = canStart ? "pointer" : "not-allowed";
+    this.asrStartButton.title = canStart
+      ? ""
+      : this.i18n("youtube_asr_service_unavailable");
+    const inactiveNotice = this.asrState?.clearing
+      ? this.i18n("youtube_asr_clearing")
+      : this.asrState?.cacheDeleteError
+        ? this.i18n("youtube_asr_cache_delete_failed") : "";
+    if (this.asrInactiveNotice.textContent !== inactiveNotice) this.asrInactiveNotice.textContent = inactiveNotice;
+  }
+
   updateBilingualSubtitles() {
     if (!this.subtitleListEl) return;
 
@@ -1407,6 +1871,7 @@ export class YouTubeSubtitleList {
 
     // 修改本地缓存数据
     this.bilingualSubtitles[targetIndex].translation = translation;
+    this._updateDownloadButtonsState();
 
     // 获取缓存的 li 节点引用进行局部修改，只更新当前可见行；不可见字幕稍后会根据数据源重新渲染。
     const item = this._cachedSubtitleItems[targetIndex];

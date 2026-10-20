@@ -104,3 +104,18 @@ test("cancel stays in the test card and completes through the existing task canc
   expect(node.textContent).toContain("Cancelled task");
   expect(button("执行测试").disabled).toBe(false);
 });
+
+test("service tests preserve a saved timeout and do not force 60 seconds", async () => {
+  invokeService.mockReturnValue({
+    result: Promise.resolve({ text: "ok" }),
+    cancel: jest.fn(),
+  });
+  await render({
+    apiSlug: "one",
+    httpTimeout: 600,
+    enabledCapabilities: ["chat"],
+  });
+  await act(async () => button("执行测试").click());
+  expect(invokeService.mock.calls.at(-1)[0].httpTimeout).toBe(600);
+  expect(invokeService.mock.calls.at(-1)[3].timeoutMs).toBeUndefined();
+});

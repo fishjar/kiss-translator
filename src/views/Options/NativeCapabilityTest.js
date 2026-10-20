@@ -93,7 +93,6 @@ export default function NativeCapabilityTest({ api, translationTest }) {
       );
       const call = invokeService(resolvedApi, capability, input, {
         assets,
-        timeoutMs: 60000,
         streaming: "auto",
       });
       job.cancel = call.cancel;

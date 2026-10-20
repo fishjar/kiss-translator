@@ -1,3 +1,4 @@
+import { serviceTimeoutMs, MAX_SERVICE_TIMEOUT_MS } from "./timeout";
 import { providerError } from "./capabilities";
 import { createAssetStore } from "./transport";
 import {
@@ -99,12 +100,27 @@ export function serveProviderPort(port, initialMessage, invoke) {
     }
     if (message.type !== "start" || invocation) return;
     if (!deadline) {
-      const budget = message.options?.timeoutMs ?? 60000;
+      const budget =
+        message.options?.timeoutMs ?? serviceTimeoutMs(message.instance);
       if (!Number.isFinite(budget) || budget <= 0) {
         fail(providerError("INVALID_TIMEOUT", "Invalid invocation timeout."));
         return;
       }
-      deadline = Date.now() + Math.min(budget, 300000);
+      if (
+        message.options?.deadlineAt !== undefined &&
+        !Number.isFinite(message.options.deadlineAt)
+      ) {
+        fail(providerError("INVALID_TIMEOUT", "Invalid invocation deadline."));
+        return;
+      }
+      deadline = Math.min(
+        Date.now() + Math.min(budget, MAX_SERVICE_TIMEOUT_MS),
+        message.options?.deadlineAt ?? Infinity
+      );
+      if (deadline <= Date.now()) {
+        fail(providerError("REQUEST_TIMEOUT", "Provider call timed out."));
+        return;
+      }
       // Uploads and acknowledgement waits own assets and a host lease too.
       // A client that stalls in either stage must not retain them indefinitely.
       timeout = setTimeout(
@@ -128,6 +144,7 @@ export function serveProviderPort(port, initialMessage, invoke) {
     invocation = invoke(message.instance, message.capability, message.input, {
       ...message.options,
       timeoutMs: Math.max(1, deadline - Date.now()),
+      deadlineAt: deadline,
       approvedOrigins: new Set(message.approvedOrigins),
       assets,
     });

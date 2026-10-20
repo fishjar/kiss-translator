@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { API_SPE_TYPES } from "../config";
 
 /**
@@ -272,27 +272,11 @@ export function Menus({
   updateSetting,
   downloadSubtitle,
   transApis,
-  acquisition,
-  translationError = false,
-  retryAcquisition,
-  retryTranslation,
   canDownload = false,
+  asr,
+  asrActions,
   onClose,
 }) {
-  const [now, setNow] = useState(Date.now());
-  const until = acquisition?.cooldownUntil || 0;
-  useEffect(() => {
-    if (!until || until <= Date.now()) return;
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(timer);
-  }, [until]);
-  const remaining = Math.max(0, Math.ceil((until - now) / 1000));
-  const busy =
-    ["loading", "waiting", "waiting_playback", "cooldown"].includes(
-      acquisition?.phase
-    ) &&
-    (acquisition?.phase !== "cooldown" || remaining > 0);
   // 当快捷菜单的任何子选项发生更改时，统一向上层派发更新事件
   const handleChange = useCallback(
     ({ name, value }) => {
@@ -341,11 +325,6 @@ export function Menus({
     return options;
   }, [aiEnabledApis, i18n]);
 
-  // 根据当前字幕处理/翻译进度值，动态计算快捷菜单底部的下载按钮状态文案
-  const statusKey = acquisition?.code
-    ? "youtube_caption_" + acquisition.code.toLowerCase()
-    : "youtube_caption_" + (acquisition?.phase || "idle");
-
   // 从表单配置对象中解构出字幕交互相关的控制值
   const {
     apiSlug, // 当前页面使用的字幕翻译服务 apiSlug
@@ -389,58 +368,18 @@ export function Menus({
         value={autoTranslate}
         label={i18n("enable_subtitle_translate")}
       />
-      {acquisition && (
-        <div
-          style={{
-            fontSize: 12,
-            lineHeight: "22px",
-            padding: "4px 8px 8px",
-            borderBottom: "1px solid rgba(255,255,255,.2)",
-          }}
-        >
-          {acquisition.track && (
-            <div>
-              {acquisition.trackLabel ||
-                acquisition.track.name?.simpleText ||
-                acquisition.track.name?.runs?.map((r) => r.text).join("") ||
-                acquisition.track.languageCode}
-              {" · "}
-              {i18n(
-                acquisition.track.kind === "asr"
-                  ? "youtube_caption_generated"
-                  : "youtube_caption_manual"
-              )}
-            </div>
-          )}
-          <div role="status" aria-live="polite">
-            {remaining
-              ? `${i18n("youtube_caption_rate_limited")} (${remaining}s)`
-              : i18n(statusKey)}
-          </div>
-          {progressed > 0 && progressed < 100 && (
-            <div>
-              {i18n("processing_subtitles")} {progressed}%
-            </div>
-          )}
-          <Button
-            label={i18n(
-              acquisition.phase === "cc_off"
-                ? "youtube_caption_enable_cc"
-                : "youtube_caption_retry"
-            )}
-            onClick={retryAcquisition}
-            disabled={
-              busy || remaining > 0 || !autoTranslate || !retryAcquisition
+      {asr && (
+        <>
+          <Switch
+            label={i18n("youtube_asr_start")}
+            name="asrEnabled"
+            value={asr.active}
+            onChange={({ value }) =>
+              value ? asrActions?.start?.() : asrActions?.stop?.()
             }
+            disabled={!autoTranslate || !asr.available}
           />
-          {translationError && (
-            <Button
-              label={i18n("youtube_caption_retry_translation")}
-              onClick={retryTranslation}
-              disabled={!autoTranslate || !retryTranslation}
-            />
-          )}
-        </div>
+        </>
       )}
       {/* 当前页面的字幕翻译服务，不修改持久化默认设置 */}
       <Select
@@ -458,7 +397,10 @@ export function Menus({
         value={segSlug || "-"}
         options={segOptions}
         label={i18n("ai_segmentation")}
-        disabled={segOptions.length <= 1}
+        disabled={
+          segOptions.length <= 1 ||
+          (asr?.active && asr.timingSource === "audio-chunk")
+        }
       />
       {/* 视频上下文增强下拉项：通过 AI 预分析视频内容，帮助更准确地进行专业词汇翻译 */}
       <Select

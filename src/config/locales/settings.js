@@ -1,4 +1,24 @@
 export const SETTINGS_I18N = {
+  service_asr_max_duration: {
+    zh: "ASR 最大分块时长（秒）",
+    en: "Maximum ASR chunk duration (seconds)",
+    zh_TW: "ASR 最大片段時長（秒）",
+    ja: "ASR の最大分割時間（秒）",
+    ko: "ASR 최대 분할 길이(초)",
+    tr: "Azami ASR parça süresi (saniye)",
+    vi: "Thời lượng đoạn ASR tối đa (giây)",
+    ru: "Максимальная длительность фрагмента ASR (секунды)",
+  },
+  service_asr_max_duration_hint: {
+    zh: "请输入 1–300 的整数，默认 30 秒。音频会拆分，不会截断。",
+    en: "Enter an integer from 1 to 300; default: 30 seconds. Audio is split, never truncated.",
+    zh_TW: "請輸入 1–300 的整數，預設 30 秒。音訊會分割，不會截斷。",
+    ja: "1〜300 の整数を入力してください。既定は30秒。音声は分割し、切り捨てません。",
+    ko: "1~300 사이의 정수를 입력하세요. 기본값은 30초입니다. 오디오는 분할되며 잘리지 않습니다.",
+    tr: "1–300 arasında bir tam sayı girin; varsayılan 30 saniyedir. Ses bölünür, kesilmez.",
+    vi: "Nhập số nguyên từ 1 đến 300; mặc định 30 giây. Âm thanh được chia, không bị cắt bỏ.",
+    ru: "Введите целое число от 1 до 300; по умолчанию 30 секунд. Аудио разделяется, а не обрезается.",
+  },
   global_pattern_fixed_helper: {
     zh: `全局规则固定为 *，适用于所有网站。`,
     en: `The global rule uses a fixed * pattern for all websites.`,

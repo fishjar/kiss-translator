@@ -119,6 +119,24 @@ async function waitForMutationObserver() {
 }
 
 describe("BilingualSubtitleManager", () => {
+  test("ASR-managed captions render originals and updates without invoking page translation", async () => {
+    apiTranslate.mockClear();
+    const videoEl = createVideoElement();
+    const captions = [{ ...subtitle, translation: "" }];
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: captions,
+      setting: { ...setting, managedTranslations: true },
+    });
+    manager.start();
+    videoEl.dispatchEvent(new Event("timeupdate"));
+    await Promise.resolve();
+    expect(apiTranslate).not.toHaveBeenCalled();
+    captions[0].translation = "识别后的译文";
+    manager.appendSubtitles(captions);
+    expect(getCaptionLines()).toContain("识别后的译文");
+    manager.destroy();
+  });
   beforeEach(() => {
     apiTranslate.mockReset();
   });
@@ -217,6 +235,88 @@ describe("BilingualSubtitleManager", () => {
     manager.destroy();
   });
 
+  test.each(["success", "failure", "cancel"])(
+    "only a successful final response publishes a persistable translation: %s",
+    async (outcome) => {
+      const deferred = createDeferred();
+      const onTranslationComplete = jest.fn();
+      apiTranslate.mockImplementation(({ onStreamChunk }) => {
+        onStreamChunk({ text: "unfinished" });
+        return deferred.promise;
+      });
+      const manager = new BilingualSubtitleManager({
+        videoEl: createVideoElement(),
+        formattedSubtitles: [{ ...subtitle }],
+        setting: { ...setting, onTranslationComplete },
+      });
+      manager.start();
+      await Promise.resolve();
+      expect(onTranslationComplete).not.toHaveBeenCalled();
+      if (outcome === "cancel") manager.destroy();
+      if (outcome === "failure") deferred.reject(new Error("failed"));
+      else deferred.resolve({ trText: "final result" });
+      await deferred.promise.catch(() => {});
+      await Promise.resolve();
+      if (outcome === "success")
+        expect(onTranslationComplete).toHaveBeenCalledWith({
+          ...subtitle,
+          translation: "final result",
+        });
+      else expect(onTranslationComplete).not.toHaveBeenCalled();
+      manager.destroy();
+    }
+  );
+
+  test("replaced source cues discard late stream and final responses", async () => {
+    const deferred = createDeferred();
+    let stream;
+    apiTranslate.mockImplementation(({ onStreamChunk }) => {
+      stream = onStreamChunk;
+      return deferred.promise;
+    });
+    const onTranslationComplete = jest.fn();
+    const cues = [{ ...subtitle }];
+    const manager = new BilingualSubtitleManager({
+      videoEl: createVideoElement(),
+      formattedSubtitles: cues,
+      setting: { ...setting, onTranslationComplete },
+    });
+    manager.onSubtitleUpdate = jest.fn();
+    manager.start();
+    cues.splice(0, 1, {
+      ...subtitle,
+      text: "different source",
+      translation: "new translation",
+    });
+    stream({ text: "stale stream" });
+    deferred.resolve({ trText: "stale final" });
+    await deferred.promise;
+    await Promise.resolve();
+    expect(manager.onSubtitleUpdate).not.toHaveBeenCalled();
+    expect(onTranslationComplete).not.toHaveBeenCalled();
+    expect(cues[0].translation).toBe("new translation");
+    manager.destroy();
+  });
+
+  test("missing translations wait for the runtime context before making a request", async () => {
+    const context = createDeferred();
+    const beforeTranslate = jest.fn(() => context.promise);
+    apiTranslate.mockResolvedValue({ trText: "final result" });
+    const manager = new BilingualSubtitleManager({
+      videoEl: createVideoElement(),
+      formattedSubtitles: [{ ...subtitle }],
+      setting: { ...setting, beforeTranslate },
+    });
+    manager.start();
+    expect(beforeTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate).not.toHaveBeenCalled();
+    context.resolve();
+    await context.promise;
+    await Promise.resolve();
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    manager.destroy();
+  });
+
   test("updates current subtitle and list callback with streaming translation chunk", async () => {
     const deferred = createDeferred();
     apiTranslate.mockImplementation(({ onStreamChunk }) => {
@@ -260,9 +360,10 @@ describe("BilingualSubtitleManager", () => {
   test("selected subtitle failure never invokes the leftover fallback service", async () => {
     const primary = { apiSlug: "primary", apiType: "Microsoft" };
     apiTranslate.mockRejectedValue(new Error("selected failed"));
+    const failedSubtitle = { ...subtitle, translation: "[Translation failed]" };
     const manager = new BilingualSubtitleManager({
       videoEl: createVideoElement(),
-      formattedSubtitles: [{ ...subtitle }],
+      formattedSubtitles: [failedSubtitle],
       setting: {
         ...setting,
         apiSlug: "primary",
@@ -271,9 +372,7 @@ describe("BilingualSubtitleManager", () => {
         transApis: [primary, { ...primary, apiSlug: "backup" }],
       },
     });
-    manager.repairChunkTranslations([
-      { ...subtitle, translation: "[Translation failed]" },
-    ]);
+    manager.repairChunkTranslations([failedSubtitle]);
     for (let i = 0; i < 10; i++) await Promise.resolve();
     expect(apiTranslate).toHaveBeenCalledTimes(1);
     expect(apiTranslate.mock.calls[0][0].apiSetting.apiSlug).toBe("primary");

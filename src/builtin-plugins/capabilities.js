@@ -63,7 +63,9 @@ export function resolveBuiltinCapabilities(api) {
                   ? ["doc"]
                   : ["doc", "table", "formula"],
             }),
-            ...(name === "transcribe" && { timestamps: true }),
+            ...(name === "transcribe" && {
+              timestamps: localModelTasks.asrTimestamps?.[api.modelRef],
+            }),
           },
         ])
     );

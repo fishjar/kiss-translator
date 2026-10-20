@@ -149,6 +149,9 @@ export class RuntimeManager {
   } | null = null;
   private asrTranscribeWaiter: {
     resolve: (r: {
+      language?: string;
+      languageConfidence?: number;
+      languagePending?: boolean;
       segments: ASRSegment[];
       elapsedMs: number;
       durationSeconds: number;
@@ -1375,6 +1378,9 @@ export class RuntimeManager {
           this.asrLoadWaiter = null;
         } else if (data.type === "result") {
           this.asrTranscribeWaiter?.resolve({
+            language: data.language,
+            languageConfidence: data.languageConfidence,
+            languagePending: data.languagePending,
             segments: data.segments ?? [],
             elapsedMs: data.elapsedMs ?? 0,
             durationSeconds: data.durationSeconds ?? 0,

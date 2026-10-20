@@ -10,6 +10,39 @@ import {
 } from "./youtubeSubtitleProcessing.js";
 import { isNonSpeechSegment } from "./subtitleTextClassification.js";
 
+test.each(["rule", "statistical"])("%s enforces duration using the candidate end, even with uneven word times", (mode) => {
+  const flatEvents = [
+    { start: 0, end: 500, text: "First" },
+    { start: 600, end: 900, text: "part" },
+    { start: 1000, end: 6500, text: "continues" },
+    { start: 6600, end: 12000, text: "longer" },
+    { start: 12100, end: 13000, text: "still." },
+  ];
+  const events = flatEvents.map(e => ({ tStartMs: e.start, dDurationMs: e.end - e.start, segs: [{ utf8: e.text }] }));
+  const result = runBuiltinSegmentation({ events, flatEvents, fromLang: "en", mode });
+  expect(result.map(c => c.text).join(" ")).toBe(flatEvents.map(e => e.text).join(" "));
+  expect(result.every(c => c.end - c.start <= (mode === "rule" ? 10000 : 7000))).toBe(true);
+});
+
+test.each(["rule", "statistical"])("%s respects character limits without punctuation or missing text", mode => {
+  const flatEvents = Array.from({ length: 35 }, (_, i) => ({ start: i * 100, end: i * 100 + 80, text: "unpunctuated" }));
+  const events = flatEvents.map(e => ({ tStartMs: e.start, dDurationMs: e.end - e.start, segs: [{ utf8: e.text }] }));
+  const result = runBuiltinSegmentation({ events, flatEvents, fromLang: "en", mode, longSentenceThreshold: 40 });
+  expect(result.every(c => c.text.length <= 40)).toBe(true);
+  expect(result.map(c => c.text).join(" ")).toBe(flatEvents.map(e => e.text).join(" "));
+});
+
+test("Chinese rules check duration and length before appending a coarse segment", () => {
+  expect(formatSubtitles([
+    { start: 0, end: 5000, text: "第一部分" },
+    { start: 5500, end: 12000, text: "第二部分" },
+  ], "zh-CN")).toHaveLength(2);
+  expect(formatSubtitles([
+    { start: 0, end: 1000, text: "甲".repeat(20) },
+    { start: 1100, end: 2000, text: "乙".repeat(20) },
+  ], "zh-CN").every(c => c.text.length <= 30)).toBe(true);
+});
+
 jest.mock("../config", () => ({
   OPT_LANGS_LIST: ["zh-CN", "zh-TW", "en", "pt", "nb"],
   OPT_LANGS_SPEC_DEFAULT: new Map(),

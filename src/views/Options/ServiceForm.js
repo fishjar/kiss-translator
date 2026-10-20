@@ -1,3 +1,10 @@
+import ValidationInput from "../../hooks/ValidationInput";
+import { DEFAULT_HTTP_TIMEOUT } from "../../config/apiConstants";
+import {
+  isLocalAsrService,
+  declaredAsrTimestampSupport,
+  asrChunkDurationSeconds,
+} from "../../subtitle/asr/timing";
 import { localizeServiceName } from "../../providers/localization";
 import { useProviderI18n } from "../../hooks/ProviderI18n";
 import {
@@ -11,6 +18,10 @@ import {
 } from "@mui/material";
 import { useI18n } from "../../hooks/I18n";
 import { useSetting } from "../../hooks/Setting";
+import {
+  asrMaxDurationSeconds,
+  DEFAULT_ASR_MAX_DURATION_SECONDS,
+} from "../../providers/asrLimits";
 import {
   enabledApiCapabilities,
   supportedApiFeature,
@@ -147,4 +158,110 @@ export function serviceTransportFeatures(api) {
       supportedApiFeature(api, name)?.outputModes?.includes("stream")
     ),
   };
+}
+
+export function AsrDurationSetting({ api, onChange, onTimestampChange }) {
+  const i18n = useI18n();
+  if (!enabledApiCapabilities(api).includes("transcribe")) return null;
+  const value =
+    api.asrMaxDurationSeconds === undefined
+      ? DEFAULT_ASR_MAX_DURATION_SECONDS
+      : api.asrMaxDurationSeconds;
+  let invalid = false;
+  try {
+    asrMaxDurationSeconds(value);
+  } catch {
+    invalid = true;
+  }
+  const local = isLocalAsrService(api);
+  const declared = declaredAsrTimestampSupport(api);
+  const support = local
+    ? declared === true
+      ? "supported"
+      : declared === false
+        ? "unsupported"
+        : "unknown"
+    : api.asrTimestampSupport || "auto";
+  return (
+    <Stack spacing={1}>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+        <TextField
+          size="small"
+          fullWidth
+          type="number"
+          name="asrMaxDurationSeconds"
+          label={i18n("service_asr_max_duration")}
+          value={value ?? ""}
+          error={invalid}
+          helperText={i18n("service_asr_max_duration_hint")}
+          inputProps={{ min: 1, max: 300, step: 1 }}
+          onChange={(event) =>
+            onChange(
+              event.target.value === "" ? "" : Number(event.target.value)
+            )
+          }
+        />
+        <TextField
+          select
+          fullWidth
+          size="small"
+          name="asrTimestampSupport"
+          label={i18n("service_asr_timestamp_support")}
+          value={support}
+          disabled={local}
+          SelectProps={{ native: true }}
+          inputProps={{ "aria-label": i18n("service_asr_timestamp_support") }}
+          helperText={
+            local
+              ? i18n("service_asr_timestamp_local")
+              : i18n("service_asr_timestamp_external")
+          }
+          onChange={(event) => {
+            if (!local) onTimestampChange?.(event.target.value);
+          }}
+        >
+          {!local && (
+            <option value="auto">{i18n("service_asr_timestamp_auto")}</option>
+          )}
+          <option value="supported">
+            {i18n("service_asr_timestamp_supported")}
+          </option>
+          <option value="unsupported">
+            {i18n("service_asr_timestamp_unsupported")}
+          </option>
+          {local && support === "unknown" && (
+            <option value="unknown">
+              {i18n("service_asr_timestamp_unknown")}
+            </option>
+          )}
+        </TextField>
+      </Stack>
+      {!invalid && (
+        <Typography variant="caption">
+          {i18n("service_asr_effective_limit").replace(
+            "{seconds}",
+            String(asrChunkDurationSeconds(api))
+          )}
+        </Typography>
+      )}
+    </Stack>
+  );
+}
+
+export function ServiceTimeoutSetting({ api, onChange }) {
+  const i18n = useI18n();
+  return (
+    <ValidationInput
+      validateOnBlur={false}
+      size="small"
+      fullWidth
+      label={i18n("http_timeout")}
+      type="number"
+      name="httpTimeout"
+      value={api.httpTimeout ?? DEFAULT_HTTP_TIMEOUT}
+      min={1}
+      max={600}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
 }

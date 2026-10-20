@@ -288,6 +288,7 @@ export async function eventsToSubtitles({
   builtinSegment,
   formatSubtitles,
   onAppendSubtitles,
+  onChunkComplete,
   getCurrentVideoId,
   signal,
 }) {
@@ -350,6 +351,12 @@ export async function eventsToSubtitles({
       return [builtinSegment(events, flatEvents, fromLang, setting), 100];
     }
 
+    onChunkComplete?.({
+      subtitles: firstBatchSubtitles,
+      progressed: firstChunkProgressed,
+      start: firstChunkEvents[0].start,
+      end: firstChunkEvents[firstChunkEvents.length - 1].end,
+    });
     logger.info("Youtube Provider: Sentence break mode: AI");
     if (eventChunks.length === 1) {
       return [firstBatchSubtitles, 100];
@@ -370,6 +377,7 @@ export async function eventsToSubtitles({
       formatSubtitles,
       clearSegmentTranslation: shouldClearSegmentTranslation,
       onAppendSubtitles,
+      onChunkComplete,
       getCurrentVideoId,
       signal,
     });
@@ -422,6 +430,7 @@ export function createAiChunkScheduler({
   formatSubtitles,
   clearSegmentTranslation,
   onAppendSubtitles,
+  onChunkComplete,
   getCurrentVideoId,
   signal,
 }) {
@@ -558,6 +567,12 @@ export function createAiChunkScheduler({
     if (states[index] !== "failed") {
       states[index] = "done";
     }
+    onChunkComplete?.({
+      subtitles: subtitlesForThisChunk,
+      progressed: getProgressed(),
+      start: chunkEvents[0].start,
+      end: chunkEvents[chunkEvents.length - 1].end,
+    });
 
     if (subtitlesForThisChunk.length > 0) {
       const progressed = getProgressed();
