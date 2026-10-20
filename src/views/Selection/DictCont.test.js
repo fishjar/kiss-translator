@@ -39,10 +39,15 @@ jest.mock("./CopyBtn", () => {
 
 jest.mock("./FavBtn", () => {
   const React = require("react");
-  return function MockFavoriteButton({ word }) {
+  return function MockFavoriteButton({ word, source }) {
     return React.createElement(
       "button",
-      { type: "button", "data-favorite-word": word },
+      {
+        type: "button",
+        "data-favorite-word": word,
+        "data-source-sentence": source?.sentence || "",
+        "data-source-url": source?.url || "",
+      },
       "favorite"
     );
   };
@@ -76,6 +81,33 @@ test("resets dictionary actions to the current query while loading", async () =>
     container.querySelector("[data-favorite-word]").dataset.favoriteWord
   ).toBe("current");
   expect(container.querySelector(".MuiCircularProgress-root")).not.toBeNull();
+
+  act(() => root.unmount());
+  container.remove();
+});
+
+test("forwards the selected webpage source to the favorite button", async () => {
+  useAsyncNow.mockReturnValue({
+    loading: false,
+    error: null,
+    data: { word: "library", lines: ["definition"] },
+  });
+  const source = {
+    sentence: "The library is open.",
+    url: "https://example.com/article",
+  };
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(<DictCont text="library" enDict="Bing" source={source} />);
+    await Promise.resolve();
+  });
+
+  const favorite = container.querySelector("[data-favorite-word]");
+  expect(favorite.dataset.sourceSentence).toBe(source.sentence);
+  expect(favorite.dataset.sourceUrl).toBe(source.url);
 
   act(() => root.unmount());
   container.remove();

@@ -26,6 +26,7 @@ import {
 
 const TRANBTN_SIZE = 40;
 const TRANBTN_MOUSE_GAP = isMobile ? 16 : 12;
+const MAX_SOURCE_SENTENCE_LENGTH = 1000;
 
 function getPointerPosition(e) {
   const touch = e?.changedTouches?.[0] || e?.touches?.[0];
@@ -214,6 +215,114 @@ function getTargetContext(target) {
     .slice(0, 1000);
 }
 
+function normalizeContextText(value) {
+  return String(value || "").replace(/\s+/g, " ");
+}
+
+function getSelectionContainer(selection, target) {
+  const node =
+    selection?.rangeCount > 0
+      ? selection.getRangeAt(0).commonAncestorContainer
+      : target;
+  const element =
+    node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+  return (
+    element?.closest?.(
+      "p, li, blockquote, article, section, main, div"
+    ) || element
+  );
+}
+
+function getSelectionBoundaryOffsets(selection, container) {
+  try {
+    if (!selection || selection.rangeCount === 0 || !container) return null;
+    const range = selection.getRangeAt(0);
+    const ownerDocument = container.ownerDocument || document;
+    const startRange = ownerDocument.createRange();
+    const endRange = ownerDocument.createRange();
+    startRange.selectNodeContents(container);
+    endRange.selectNodeContents(container);
+    startRange.setEnd(range.startContainer, range.startOffset);
+    endRange.setEnd(range.endContainer, range.endOffset);
+    return {
+      start: normalizeContextText(startRange.toString()).length,
+      end: normalizeContextText(endRange.toString()).length,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getSelectionSentence(selection, target) {
+  try {
+    if (!selection || selection.rangeCount === 0) return "";
+    const selectedText = selection.toString()?.trim() || "";
+    if (!selectedText) return "";
+
+    const container = getSelectionContainer(selection, target);
+    const fullText = normalizeContextText(container?.textContent || "");
+    if (!fullText) return selectedText.slice(0, MAX_SOURCE_SENTENCE_LENGTH);
+
+    const offsets = getSelectionBoundaryOffsets(selection, container);
+    const start = Math.min(
+      Math.max(offsets?.start ?? fullText.indexOf(selectedText), 0),
+      fullText.length
+    );
+    const end = Math.min(
+      Math.max(offsets?.end ?? start + selectedText.length, start),
+      fullText.length
+    );
+
+    let sentenceStart = 0;
+    for (let index = Math.max(start - 1, 0); index >= 0; index -= 1) {
+      if (/[.!?。！？…]/.test(fullText[index])) {
+        sentenceStart = index + 1;
+        break;
+      }
+    }
+
+    let sentenceEnd = fullText.length;
+    for (let index = end; index < fullText.length; index += 1) {
+      if (/[.!?。！？…]/.test(fullText[index])) {
+        sentenceEnd = index + 1;
+        break;
+      }
+    }
+
+    const sentence = fullText.slice(sentenceStart, sentenceEnd).trim();
+    if (sentence.length <= MAX_SOURCE_SENTENCE_LENGTH) return sentence;
+
+    const selectedStart = Math.max(start - sentenceStart, 0);
+    const windowStart = Math.max(
+      0,
+      Math.min(
+        selectedStart - Math.floor(MAX_SOURCE_SENTENCE_LENGTH / 2),
+        sentence.length - MAX_SOURCE_SENTENCE_LENGTH
+      )
+    );
+    return sentence.slice(
+      windowStart,
+      windowStart + MAX_SOURCE_SENTENCE_LENGTH
+    );
+  } catch {
+    return "";
+  }
+}
+
+function getSelectionSource(selection, target) {
+  const text = selection?.toString()?.trim() || "";
+  if (!text) return null;
+
+  const sentence = getSelectionSentence(selection, target);
+  const url =
+    typeof window !== "undefined" && typeof window.location?.href === "string"
+      ? window.location.href
+      : "";
+  if (!sentence && !url) return null;
+
+  return { text, sentence, url };
+}
+
 function getSelectionContext(selection) {
   try {
     if (!selection || selection.rangeCount === 0) return "";
@@ -256,6 +365,7 @@ export default function useSelectionController({
   const [selectedText, setSelText] = useState("");
   const [text, setText] = useState("");
   const [textContext, setTextContext] = useState("");
+  const [selectionSource, setSelectionSource] = useState(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const selectionRootRef = useRef(document);
   const pendingSelectionRef = useRef(null);
@@ -342,6 +452,7 @@ export default function useSelectionController({
       pendingSelectionRef.current = snapshot;
       setSelText(snapshot.text);
       setTextContext(snapshot.context);
+      setSelectionSource(snapshot.selectionSource || null);
       setShowBtn(false);
       setText(snapshot.text);
       setShowBox(true);
@@ -354,7 +465,12 @@ export default function useSelectionController({
       const pending = pendingSelectionRef.current;
       const snapshot =
         inputText && pending?.text !== inputText
-          ? { text: inputText, context: "", source: "manual" }
+          ? {
+              text: inputText,
+              context: "",
+              source: "manual",
+              selectionSource: null,
+            }
           : pending || { text: selectedText, context: "", source: "manual" };
 
       commitSelectionSnapshot(snapshot);
@@ -379,6 +495,8 @@ export default function useSelectionController({
         context: getSelectionContext(selection) || getTargetContext(target),
         pointerPosition,
         source,
+        selectionSource:
+          source === "page" ? getSelectionSource(selection, target) : null,
         rect,
         lastRect,
       };
@@ -664,6 +782,7 @@ export default function useSelectionController({
     text,
     setText,
     textContext,
+    selectionSource,
     position,
     setPosition,
     handleOpenTranbox,

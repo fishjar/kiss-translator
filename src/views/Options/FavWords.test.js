@@ -170,3 +170,56 @@ test("keeps every dictionary tab linked to a persistent panel", () => {
   act(() => root.unmount());
   container.remove();
 });
+
+test("shows saved source details, keeps unsafe URLs unlinked, and supports old entries", () => {
+  useFavWords.mockReturnValue({
+    favList: [
+      [
+        "library",
+        {
+          source: {
+            sentence: "The library is open.",
+            url: "https://example.com/article",
+          },
+        },
+      ],
+      [
+        "unsafe",
+        {
+          source: {
+            sentence: "Avoid this link.",
+            url: "javascript:alert(1)",
+          },
+        },
+      ],
+      ["legacy", { definition: "old entry" }],
+    ],
+    wordList: ["library", "unsafe", "legacy"],
+    mergeWords: jest.fn(),
+    clearWords: jest.fn(),
+  });
+  useSetting.mockReturnValue({
+    setting: {
+      transApis: [],
+      prompts: [],
+      subtitleSetting: {},
+      tranboxSetting: { enDict: "-", enSug: "-", aiDictApiSlug: "-" },
+    },
+  });
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  act(() => root.render(<FavWords />));
+
+  const summaries = container.querySelectorAll(".MuiAccordionSummary-root");
+  summaries.forEach((summary) => act(() => summary.click()));
+
+  expect(container.textContent).toContain("The library is open.");
+  expect(container.querySelector('a[href="https://example.com/article"]')).not.toBeNull();
+  expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
+  expect(container.textContent).toContain("javascript:alert(1)");
+  expect(container.textContent).toContain("legacy");
+
+  act(() => root.unmount());
+  container.remove();
+});

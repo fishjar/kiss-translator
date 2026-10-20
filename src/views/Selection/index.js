@@ -54,6 +54,7 @@ export default function Selection({
     text,
     setText,
     textContext,
+    selectionSource,
     position,
     handleOpenTranbox,
     handleToggleTranbox,
@@ -106,6 +107,7 @@ export default function Selection({
             translateVariants={translateVariants}
             parseLatex={parseLatex}
             selectionContext={textContext}
+            selectionSource={selectionSource}
           />
         }
 

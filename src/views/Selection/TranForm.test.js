@@ -70,7 +70,13 @@ jest.mock("./TranCont", () => {
 jest.mock("./DictCont", () => {
   const React = require("react");
 
-  return () => React.createElement("div", { "data-testid": "default-dict" });
+  return function MockDictionary({ source }) {
+    return React.createElement("div", {
+      "data-testid": "default-dict",
+      "data-source-sentence": source?.sentence || "",
+      "data-source-url": source?.url || "",
+    });
+  };
 });
 
 jest.mock("./Zdic", () => () => null);
@@ -939,6 +945,40 @@ describe("TranForm source input", () => {
 
     expect(readText).toHaveBeenCalledTimes(1);
     expect(setText).toHaveBeenCalledWith("clipboard text");
+
+    act(() => root.unmount());
+  });
+
+  test("invalidates a selection source after editing even when the word is restored", () => {
+    const source = {
+      text: "library",
+      sentence: "The library is open.",
+      url: "https://example.com/article",
+    };
+    const { container, root } = renderTranForm({
+      text: "library",
+      selectionSource: source,
+      setText: jest.fn(),
+      simpleStyle: false,
+      aiDictApiSlug: "-",
+    });
+    const textarea = container.querySelector("textarea");
+    const dictionary = () => container.querySelector('[data-testid="default-dict"]');
+
+    expect(dictionary().dataset.sourceSentence).toBe(source.sentence);
+    expect(dictionary().dataset.sourceUrl).toBe(source.url);
+
+    act(() => {
+      Simulate.change(textarea, { target: { value: "other" } });
+    });
+    expect(dictionary().dataset.sourceSentence).toBe("");
+    expect(dictionary().dataset.sourceUrl).toBe("");
+
+    act(() => {
+      Simulate.change(textarea, { target: { value: "library" } });
+    });
+    expect(dictionary().dataset.sourceSentence).toBe("");
+    expect(dictionary().dataset.sourceUrl).toBe("");
 
     act(() => root.unmount());
   });
