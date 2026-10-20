@@ -11,8 +11,8 @@ const poly = [
   [10, 60],
 ];
 const rows = [
-  { source: "selected", poly, enabled: true },
-  { source: "excluded", poly, enabled: false },
+  { source: "selected", poly, enabled: true, type: "text" },
+  { source: "excluded", poly, enabled: false, type: "paragraph_title" },
   { source: "unlocated", poly: null },
   {
     source: "degenerate",
@@ -88,6 +88,15 @@ describe("ImageSourcePreview regions", () => {
       expect(getComputedStyle(svg).left).toBe("20px");
       expect(getComputedStyle(svg).width).toBe("200px");
       expect(container.querySelectorAll("polygon")).toHaveLength(2);
+      const labels = container.querySelectorAll(
+        '[data-testid="image-layout-type"]'
+      );
+      expect(labels[0].textContent).toBe("正文");
+      expect(labels[1].textContent).toBe("标题 (排除)");
+      expect(getComputedStyle(labels[0]).fontSize).toBe("10px");
+      expect(getComputedStyle(labels[0]).backgroundColor).toBe(
+        "rgb(25, 118, 210)"
+      );
       expect(container.querySelector("polygon").getAttribute("points")).toBe(
         "10,20 100,20 100,60 10,60"
       );
@@ -116,6 +125,12 @@ describe("ImageSourcePreview regions", () => {
       )
     );
     expect(toggle.mock.calls).toEqual([[0], [1]]);
+    act(() =>
+      container
+        .querySelector('[data-testid="image-layout-type"]')
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    );
+    expect(toggle.mock.calls).toEqual([[0], [1], [0]]);
     expect(zoom).not.toHaveBeenCalled();
     act(() =>
       container
@@ -127,7 +142,7 @@ describe("ImageSourcePreview regions", () => {
     act(() =>
       polygons[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
     );
-    expect(toggle).toHaveBeenCalledTimes(2);
+    expect(toggle).toHaveBeenCalledTimes(3);
     expect(polygons[0].getAttribute("tabindex")).toBe("-1");
     render({ showRegions: false });
     expect(container.querySelector("svg")).toBeNull();
