@@ -29,7 +29,7 @@ export async function callLegacyRequestHook(source, args, request) {
 export async function callLegacyResponseHook(source, args) {
   if (source === NATIVE_PRESET_OVERRIDES[OPT_TRANS_CUSTOMIZE].resHook) {
     const { res, ...rest } = args;
-    console.log("reaponse hook args:", { res, args: rest });
+    console.log("response hook args:", { res, args: rest });
     return;
   }
   const interpreter = await getInterpreter();

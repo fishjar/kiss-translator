@@ -46,7 +46,7 @@ const defaultRequestHook = `async (args, { url, body, headers, userMsg, method }
 };`;
 
 const defaultResponseHook = `async ({ res, ...args }) => {
-  console.log("reaponse hook args:", { res, args });
+  console.log("response hook args:", { res, args });
   // const translations = [["你好", "zh"]];
   // const modelMsg = "";
   // return { translations, modelMsg };
