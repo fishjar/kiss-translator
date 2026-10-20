@@ -8,6 +8,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const originalResizeObserver = globalThis.ResizeObserver;
 let mockConnected = true;
 let mockPdfStateOverrides = {};
+const mockAnalyzeLayout = jest.fn().mockResolvedValue({ regions: [] });
 beforeAll(() => {
   globalThis.ResizeObserver = class {
     constructor(callback) {
@@ -50,6 +51,7 @@ jest.mock("./State", () => ({
           [kind]: { ...setting.fileTranslateSetting[kind], ...patch },
         }),
       client: {
+        analyzeLayout: (...args) => mockAnalyzeLayout(...args),
         recognize: (file, selection, signal, options = {}) =>
           ops.recognizeFileImage(
             file,
@@ -246,6 +248,7 @@ describe("FileTranslatePage (M2 UI)", () => {
   beforeEach(() => {
     mockConnected = true;
     mockPdfStateOverrides = {};
+    mockAnalyzeLayout.mockResolvedValue({ regions: [] });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -667,17 +670,139 @@ describe("FileTranslatePage (M2 UI)", () => {
       await act(async () => root.render(<FileTranslatePage />));
       await upload();
     };
+    test.each([true, false])(
+      "image recognition label and prerequisite match layout availability: %s",
+      async (available) => {
+        const savedApis = mockSetting.transApis;
+        try {
+          if (!available)
+            mockSetting.transApis = savedApis.filter(
+              (api) => !api.enabledCapabilities?.includes("analyzeLayout")
+            );
+          await setup();
+          await openMenu();
+          expect(menuItem(available ? "布局与识别" : "识别文本")).toBeDefined();
+          expect(menuItem("布局检测")).toBeUndefined();
+          expect(menuItem("翻译文本").getAttribute("title")).toBe(
+            available ? "请先执行布局与识别" : "请先识别文本"
+          );
+          await act(async () =>
+            menuItem(available ? "布局与识别" : "识别文本").click()
+          );
+          expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+          expect(mockAnalyzeLayout).toHaveBeenCalledTimes(available ? 1 : 0);
+        } finally {
+          mockSetting.transApis = savedApis;
+        }
+      }
+    );
+    test("layout paragraphs drive translation and preview selection", async () => {
+      const paragraph = [
+        [0, 0],
+        [200, 0],
+        [200, 80],
+        [0, 80],
+      ];
+      mockAnalyzeLayout.mockResolvedValue({
+        imageSize: { width: 200, height: 100 },
+        regions: [
+          {
+            id: "paragraph",
+            type: "text",
+            bbox: [0, 0, 200, 80],
+            polygon: paragraph,
+            order: 0,
+          },
+        ],
+      });
+      ops.recognizeFileImage.mockResolvedValue({
+        imageSize: { width: 200, height: 100 },
+        items: [
+          {
+            text: "The research",
+            poly: [
+              [10, 10],
+              [190, 10],
+              [190, 25],
+              [10, 25],
+            ],
+          },
+          {
+            text: "since 2024",
+            poly: [
+              [10, 35],
+              [190, 35],
+              [190, 50],
+              [10, 50],
+            ],
+          },
+        ],
+      });
+      await setup();
+      await step("布局与识别");
+      await measurePreview();
+      expect(mockAnalyzeLayout).toHaveBeenCalledTimes(1);
+      expect(regions()).toHaveLength(1);
+      expect(regions()[0].getAttribute("points")).toBe("0,0 200,0 200,80 0,80");
+      expect(container.textContent).toContain("布局线框");
+      expect(
+        container.querySelector('[data-testid="image-layout-type"]').textContent
+      ).toBe("正文");
+      await step("翻译文本");
+      expect(lib.translateFileText).toHaveBeenCalledTimes(1);
+      expect(lib.translateFileText.mock.calls[0][0]).toBe(
+        "The research since 2024"
+      );
+      await act(async () =>
+        regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      );
+      expect(regions()[0].getAttribute("aria-pressed")).toBe("false");
+    });
     afterEach(() => {
       act(() => root.render(null));
       mockSetting.transApis.pop();
       URL.createObjectURL = originalCreate;
       URL.revokeObjectURL = originalRevoke;
     });
+    test("switching image layout services saves only the service and invalidates recognition", async () => {
+      const savedScenes = mockSetting.fileTranslateSetting;
+      try {
+        await setup();
+        await step("布局与识别");
+        const field = [...container.querySelectorAll(".MuiInputLabel-root")]
+          .find((label) => label.textContent === "界面分析服务")
+          .closest(".MuiFormControl-root");
+        await act(async () =>
+          field
+            .querySelector('[role="combobox"]')
+            .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }))
+        );
+        await act(async () =>
+          document
+            .querySelector('[role="option"][data-value="gpu-layout"]')
+            .click()
+        );
+        const updated = mockUpdateChild.mock.calls.at(-1)[0];
+        expect(updated.image).toEqual({
+          ...savedScenes.image,
+          layoutApiSlug: "gpu-layout",
+        });
+        mockSetting.fileTranslateSetting = updated;
+        await act(async () => root.render(<FileTranslatePage />));
+        await openMenu();
+        expect(menuItem("翻译文本").getAttribute("aria-disabled")).toBe("true");
+        await act(async () => menuItem("布局与识别").click());
+        expect(ops.recognizeFileImage).toHaveBeenCalledTimes(2);
+        expect(mockAnalyzeLayout.mock.calls.at(-1)[4]).toBe("gpu-layout");
+      } finally {
+        mockSetting.fileTranslateSetting = savedScenes;
+      }
+    });
     test.each(["toLang", "apiSlug", "promptSlug", "service"])(
       "image translation invalidates %s changes without repeating OCR",
       async (field) => {
         await setup();
-        await step("识别文本");
+        await step("布局与识别");
         await step("翻译文本");
         expect(lib.translateFileText).toHaveBeenCalledTimes(1);
         const scene = mockSetting.fileTranslateSetting.image;
@@ -723,7 +848,7 @@ describe("FileTranslatePage (M2 UI)", () => {
           (input) => input.closest("label")?.textContent.includes("忽略缓存")
         );
       expect(cacheSwitch().checked).toBe(false);
-      await step("识别文本");
+      await step("布局与识别");
       expect(
         ops.recognizeFileImage.mock.calls.at(-1)[1].cacheMode
       ).toBeUndefined();
@@ -748,7 +873,7 @@ describe("FileTranslatePage (M2 UI)", () => {
       expect(lib.translateFileText.mock.calls.at(-1)[4].cacheMode).toBe(
         "refresh"
       );
-      await step("识别文本");
+      await step("布局与识别");
       expect(ops.recognizeFileImage.mock.calls.at(-1)[1].cacheMode).toBe(
         "refresh"
       );
@@ -761,7 +886,7 @@ describe("FileTranslatePage (M2 UI)", () => {
       await openMenu();
       expect(menuItem("翻译文本").getAttribute("aria-disabled")).toBe("true");
       expect(menuItem("合成图片").getAttribute("aria-disabled")).toBe("true");
-      await act(async () => menuItem("识别文本").click());
+      await act(async () => menuItem("布局与识别").click());
       expect(button("原文").getAttribute("aria-pressed")).toBe("true");
       expect(container.textContent).toContain("source block");
       expect(lib.translateFileText).not.toHaveBeenCalled();
@@ -817,7 +942,7 @@ describe("FileTranslatePage (M2 UI)", () => {
       await step("合成图片");
       expect(lib.translateFileText).toHaveBeenCalledTimes(1);
       expect(button("译图").getAttribute("aria-pressed")).toBe("true");
-      await step("识别文本");
+      await step("布局与识别");
       expect(container.querySelector('img[alt="译图结果"]')).toBeNull();
       expect(container.textContent).not.toContain("translated block");
     });
@@ -830,7 +955,7 @@ describe("FileTranslatePage (M2 UI)", () => {
           { text: "selected third", poly },
         ],
       });
-      await step("识别文本");
+      await step("布局与识别");
       await measurePreview();
       await act(async () =>
         regions()[1].dispatchEvent(new MouseEvent("click", { bubbles: true }))
@@ -915,7 +1040,7 @@ describe("FileTranslatePage (M2 UI)", () => {
 
     test("all deselected disables processing; hiding regions preserves selection; explicit recognition restores it", async () => {
       await setup();
-      await step("识别文本");
+      await step("布局与识别");
       await measurePreview();
       await act(async () =>
         regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
@@ -927,14 +1052,14 @@ describe("FileTranslatePage (M2 UI)", () => {
       await openMenu();
       expect(menuItem("翻译文本").getAttribute("aria-disabled")).toBe("true");
       expect(menuItem("合成图片").getAttribute("aria-disabled")).toBe("true");
-      await act(async () => menuItem("识别文本").click());
+      await act(async () => menuItem("布局与识别").click());
       expect(regions()[0].getAttribute("aria-pressed")).toBe("true");
       await act(async () =>
         regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
       );
       const regionSwitch = () =>
         [...container.querySelectorAll('input[type="checkbox"]')].find(
-          (input) => input.closest("label")?.textContent.includes("文字线框")
+          (input) => input.closest("label")?.textContent.includes("布局线框")
         );
       await act(async () => regionSwitch().click());
       expect(regions()).toHaveLength(0);
@@ -957,7 +1082,7 @@ describe("FileTranslatePage (M2 UI)", () => {
           { text: "second", poly },
         ],
       });
-      await step("识别文本");
+      await step("布局与识别");
       await measurePreview();
       await act(async () =>
         regions()[1].dispatchEvent(new MouseEvent("click", { bubbles: true }))
@@ -986,7 +1111,7 @@ describe("FileTranslatePage (M2 UI)", () => {
 
     test("recognition configuration changes discard old selection and cancel pending output", async () => {
       await setup();
-      await step("识别文本");
+      await step("布局与识别");
       await measurePreview();
       let finish;
       lib.translateFileText.mockImplementationOnce(
@@ -1020,7 +1145,7 @@ describe("FileTranslatePage (M2 UI)", () => {
           { text: "unlocated", poly: null },
         ],
       });
-      await step("识别文本");
+      await step("布局与识别");
       await measurePreview();
       expect(regions()).toHaveLength(1);
       await act(async () =>
@@ -1141,7 +1266,7 @@ describe("FileTranslatePage (M2 UI)", () => {
         expect(container.textContent).toContain("文本识别失败，请重试");
         expect(container.textContent).not.toContain("已就绪");
       }
-      await step("识别文本");
+      await step("布局与识别");
       expect(container.textContent).toContain("source block");
       expect(container.textContent).not.toContain("文本识别失败");
     });
@@ -1150,7 +1275,7 @@ describe("FileTranslatePage (M2 UI)", () => {
       ops.recognizeFileImage.mockRejectedValueOnce(
         new Error("recognition failed")
       );
-      await step("识别文本");
+      await step("布局与识别");
       await upload("replacement.png");
       expect(container.textContent).toContain("已就绪");
       expect(container.textContent).not.toContain("文本识别失败");

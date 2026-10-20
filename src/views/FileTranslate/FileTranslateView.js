@@ -89,6 +89,7 @@ import { SettingsSelect } from "../Options/SettingsCard";
 import ScenePromptSelect from "./ScenePromptSelect";
 import ImageViewerDialog from "./ImageViewerDialog";
 import ImageSourcePreview, { hasImagePolygon } from "./ImageSourcePreview";
+import { recognizeImageWithLayout } from "../../fileTranslation/imageLayout";
 import { availableApiForScene } from "../../config/serviceSelection";
 
 const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -409,8 +410,12 @@ export default function FileTranslateView() {
     const targetApi = layoutApis.find((api) => api.apiSlug === newSlug);
     patchScene({
       layoutApiSlug: newSlug,
-      ...(targetApi?.modelRef ? { layoutModel: targetApi.modelRef } : {}),
-      ...(targetApi?.device ? { layoutDevice: targetApi.device } : {}),
+      ...(mode === "pdf" && targetApi?.modelRef
+        ? { layoutModel: targetApi.modelRef }
+        : {}),
+      ...(mode === "pdf" && targetApi?.device
+        ? { layoutDevice: targetApi.device }
+        : {}),
     });
   };
 
@@ -511,6 +516,8 @@ export default function FileTranslateView() {
   const recognitionPromptSlug =
     scene.vlmPromptSlug || activeRecognitionApi?.vlmPromptSlug || "";
   const imageRecognitionSignature = JSON.stringify({
+    layoutService: activeLayoutApi,
+    layoutApiSlug: scene.layoutApiSlug,
     selection: recognitionSelection,
     service: activeRecognitionApi,
     promptSlug: recognitionPromptSlug,
@@ -1553,15 +1560,28 @@ export default function FileTranslateView() {
         setShowImageRegions(true);
         setRows([]);
         setResultViewMode("source");
-        const recognized = await client.recognize(
-          file,
-          recognitionSelection,
-          abort.signal,
-          {
-            promptSlug: scene.vlmPromptSlug || "",
-            ...(ignoreCache && { cacheMode: "refresh" }),
-          }
-        );
+        const recognitionOptions = {
+          promptSlug: scene.vlmPromptSlug || "",
+          ...(ignoreCache && { cacheMode: "refresh" }),
+        };
+        const recognized = activeLayoutApi
+          ? await recognizeImageWithLayout(file, {
+              client,
+              selection: recognitionSelection,
+              layoutApi: activeLayoutApi,
+              coordinates: recognitionFeature(
+                activeRecognitionApi,
+                recognitionSelection?.capability
+              )?.coordinates,
+              signal: abort.signal,
+              ...recognitionOptions,
+            })
+          : await client.recognize(
+              file,
+              recognitionSelection,
+              abort.signal,
+              recognitionOptions
+            );
         if (
           !recognized?.text?.trim() &&
           !recognized?.items?.some((item) => item.text?.trim())
@@ -1575,6 +1595,22 @@ export default function FileTranslateView() {
               .filter((text) => text.trim())
               .map((text) => ({ text }));
         setInputNotices([
+          ...(recognized.layoutApplied === false
+            ? [
+                i18n(
+                  "image_layout_empty",
+                  "布局分析未检测到可用区域，按识别结果分段"
+                ),
+              ]
+            : []),
+          ...(!activeLayoutApi
+            ? [
+                i18n(
+                  "image_layout_unavailable",
+                  "未配置可用的布局服务，按识别结果分段；请选择布局服务以合并段落"
+                ),
+              ]
+            : []),
           ...(recognized.inputAdjustments || []).map((item) => item.message),
           ...(!items.some((item) => hasImagePolygon(item.poly))
             ? [
@@ -1593,6 +1629,8 @@ export default function FileTranslateView() {
           translated: false,
           poly: item.poly,
           box: item.box,
+          ...(item.type && { type: item.type }),
+          ...(item.label && { label: item.label }),
         }));
         if (action === "all") {
           nextRows = nextRows.map((row) => {
@@ -2085,6 +2123,22 @@ export default function FileTranslateView() {
         </>
       )}
 
+      {mode === "image" && (
+        <Box sx={{ width: 220, flexShrink: 0 }}>
+          <SettingsSelect
+            fullWidth
+            size="small"
+            variant="outlined"
+            hiddenLabel={false}
+            disabled={busy}
+            label={i18n("layout_service", "界面分析服务")}
+            value={currentLayoutSlug}
+            options={layoutSelectOptions}
+            onChange={handleLayoutServiceChange}
+          />
+        </Box>
+      )}
+
       {/* 富文本选项（EPUB 电子书翻译时生效，控制是否保留内联标签） */}
       {mode === "epub" && (
         <Box sx={{ width: 140, flexShrink: 0 }}>
@@ -2452,14 +2506,21 @@ export default function FileTranslateView() {
                     disabled={!connected || !hasRecognitionService || busy}
                     onClick={() => runImageAction("recognize")}
                   >
-                    {i18n("image_recognize", "识别文本")}
+                    {activeLayoutApi
+                      ? i18n("image_layout_recognize", "布局与识别")
+                      : i18n("image_recognize", "识别文本")}
                   </MenuItem>
                   <MenuItem
                     disabled={!connected || !selectedImageRows.length || busy}
                     onClick={() => runImageAction("translate")}
                     title={
                       !rows.length
-                        ? i18n("image_recognize_first", "请先识别文本")
+                        ? activeLayoutApi
+                          ? i18n(
+                              "image_layout_recognize_first",
+                              "请先执行布局与识别"
+                            )
+                          : i18n("image_recognize_first", "请先识别文本")
                         : !selectedImageRows.length
                           ? i18n(
                               "image_select_region_first",
@@ -3093,7 +3154,7 @@ export default function FileTranslateView() {
                           sx={{ m: 0, whiteSpace: "nowrap" }}
                           label={
                             <Typography variant="caption">
-                              {i18n("image_text_regions", "文字线框")}
+                              {i18n("image_text_regions", "布局线框")}
                             </Typography>
                           }
                           control={
@@ -3306,6 +3367,7 @@ export default function FileTranslateView() {
                         src={preview}
                         alt={i18n("source_image_title", "原图预览")}
                         rows={rows}
+                        i18n={i18n}
                         showRegions={showImageRegions}
                         disabled={busy}
                         onToggleRegion={toggleImageRegion}
@@ -3739,7 +3801,7 @@ export default function FileTranslateView() {
                             {!selectedImageRows.length
                               ? i18n(
                                   "image_restore_region_hint",
-                                  "点击原图文字线框可恢复选择"
+                                  "点击原图布局线框可恢复选择"
                                 )
                               : i18n(
                                   "image_coordinates_hint",

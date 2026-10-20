@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import PdfPage from "./PdfPage";
 import { FILE_TRANSLATE_I18N } from "../../config/locales/fileTranslate";
 jest.mock("../../libs/pdf/pdfDocument", () => ({ PDFJS: {} }));
+jest.mock("pdfjs-dist/web/pdf_viewer.css", () => ({}));
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 test("places layout labels above their regions and marks only the active recognition target", async () => {
