@@ -521,7 +521,7 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
   );
 
   if (!result) {
-    throw new Error("apiBuiltinAITranslate got null reault");
+    throw new Error("apiBuiltinAITranslate got null result");
   }
 
   const [trText, srLang, error] = result;

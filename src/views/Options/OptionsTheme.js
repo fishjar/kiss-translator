@@ -5,7 +5,10 @@ import Fade from "@mui/material/Fade";
 
 const dropdownPaper = ({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,
-  borderRadius: 12,
+  // Use a length string: `dropdownPaper` is spread into `PaperProps.sx`,
+  // where a numeric `borderRadius` is treated as a multiple of
+  // `theme.shape.borderRadius` (12 → 144px) instead of a raw pixel value.
+  borderRadius: "12px",
   backgroundColor: theme.palette.background.paper,
   boxShadow: "0 4px 16px rgb(0 0 0 / 12%)",
   overscrollBehavior: "contain",
@@ -28,8 +31,23 @@ const OPTIONS_THEME = {
     MuiSelect: {
       defaultProps: {
         MenuProps: {
-          anchorOrigin: { vertical: "bottom", horizontal: "left" },
-          transformOrigin: { vertical: "top", horizontal: "left" },
+          slots: { root: DropdownRoot },
+          autoFocus: false,
+          disableAutoFocusItem: true,
+          disableScrollLock: true,
+          TransitionComponent: Fade,
+          transitionDuration: { enter: 90, exit: 0 },
+          PaperProps: {
+            sx: (theme) => ({
+              ...dropdownPaper({ theme }),
+              // Popper positions the surface; neutralize Popover's paper offsets.
+              position: "relative",
+              top: "auto !important",
+              left: "auto !important",
+              maxWidth: "calc(100vw - 32px)",
+              maxHeight: "min(320px, calc(100vh - 32px))",
+            }),
+          },
         },
       },
       styleOverrides: {
@@ -43,20 +61,12 @@ const OPTIONS_THEME = {
     },
     MuiMenu: {
       defaultProps: {
-        slots: { root: DropdownRoot },
-        autoFocus: false,
-        disableAutoFocusItem: true,
-        disableScrollLock: true,
         TransitionComponent: Fade,
         transitionDuration: { enter: 90, exit: 0 },
       },
       styleOverrides: {
         paper: (props) => ({
           ...dropdownPaper(props),
-          // Popper positions the surface; neutralize Popover's paper offsets.
-          position: "relative",
-          top: "auto !important",
-          left: "auto !important",
           maxWidth: "calc(100vw - 32px)",
           maxHeight: "min(320px, calc(100vh - 32px))",
         }),

@@ -5,10 +5,17 @@ jest.mock("../../providers/sceneInvocation", () => ({
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => require("../../config/i18n").newI18n("zh"),
 }));
+jest.mock("../../hooks/ColorMode", () => ({
+  useDarkMode: () => ({ darkMode: "light" }),
+}));
+jest.mock("../../hooks/SystemColorScheme", () => ({
+  useSystemDarkPreference: () => false,
+}));
 import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import AddServiceMenu from "./AddServiceMenu";
+import OptionsTheme from "./OptionsTheme";
 import { ProviderSettings } from "./PluginInstanceFields";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -141,6 +148,72 @@ test("plugin model field accepts a custom ID while ordinary enums retain their s
     });
     expect(onChange).toHaveBeenCalledWith("model", "custom-model");
     expect(node.querySelector('input[value="a"]')).not.toBeNull();
+  } finally {
+    await act(async () => root.unmount());
+    node.remove();
+  }
+});
+
+test("submenu opens and switches on click under OptionsTheme", async () => {
+  const onSelect = jest.fn();
+  const node = document.createElement("div");
+  document.body.append(node);
+  const root = createRoot(node);
+
+  function Harness() {
+    const [anchor, setAnchor] = useState(null);
+    return (
+      <OptionsTheme>
+        <button
+          id="add-btn"
+          onClick={(event) => setAnchor(event.currentTarget)}
+        >
+          Add
+        </button>
+        <AddServiceMenu
+          anchorEl={anchor}
+          onClose={() => setAnchor(null)}
+          onSelect={onSelect}
+        />
+      </OptionsTheme>
+    );
+  }
+
+  try {
+    await act(async () => root.render(<Harness />));
+    await act(async () => Simulate.click(node.querySelector("#add-btn")));
+
+    // 点击一级菜单项展开二级子菜单
+    const systemCategory = Array.from(
+      document.querySelectorAll('[role="menuitem"]')
+    ).find((item) => item.textContent.includes("系统服务"));
+    expect(systemCategory).not.toBeNull();
+    await act(async () => Simulate.click(systemCategory));
+
+    let submenu = document.querySelector('[aria-label="系统服务"]');
+    expect(submenu).not.toBeNull();
+    const systemServices = Array.from(
+      submenu.querySelectorAll('[role="menuitem"]')
+    );
+    expect(systemServices.length).toBeGreaterThan(0);
+
+    // 点击其他分类切换二级子菜单
+    const networkCategory = Array.from(
+      document.querySelectorAll('[role="menuitem"]')
+    ).find((item) => item.textContent.includes("网络接口"));
+    await act(async () => Simulate.click(networkCategory));
+
+    submenu = document.querySelector('[aria-label="网络接口"]');
+    expect(submenu).not.toBeNull();
+    const networkServices = Array.from(
+      submenu.querySelectorAll('[role="menuitem"]')
+    );
+    expect(networkServices.length).toBeGreaterThan(0);
+
+    // 点击二级菜单项完成选择
+    await act(async () => Simulate.click(networkServices[0]));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(document.querySelector("#add-api-menu")).toBeNull();
   } finally {
     await act(async () => root.unmount());
     node.remove();

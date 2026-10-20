@@ -325,6 +325,12 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
 .kt-word-card__word-row > em { padding: 2px 7px; border-radius: 999px; background: var(--kt-terc); color: var(--kt-onterc); font-size: 9.5px; font-style: normal; font-weight: 700; }
 .kt-word-card__copy > small { max-width: 540px; display: block; margin-top: 4px; overflow: hidden; color: var(--kt-onv); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .kt-word-card__summary > time { max-width: 100%; flex: none; color: var(--kt-onv); font-family: ui-monospace, monospace; font-size: 10px; overflow-wrap: anywhere; }
+.kt-word-card__source { color: var(--kt-onv); }
+.kt-word-card__source-title { margin-bottom: 6px !important; color: var(--kt-on); font-weight: 700 !important; }
+.kt-word-card__source-content { padding: 12px 14px; border-radius: 10px; background: var(--kt-sf1); }
+.kt-word-card__source-item { margin: 4px 0 0 !important; font-size: 12px !important; line-height: 1.5 !important; overflow-wrap: anywhere; }
+.kt-word-card__source-item strong { color: var(--kt-on); font-weight: 650; }
+.kt-word-card__source-item a { overflow-wrap: anywhere; }
 .kt-word-empty { min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 28px; border: 1px dashed var(--kt-linev); border-radius: 16px; background: var(--kt-sf1); color: var(--kt-onv); text-align: center; }
 .kt-word-empty svg { width: 34px; height: 34px; color: var(--kt-pri); }
 .kt-word-empty strong { color: var(--kt-on); font-size: 14px; }

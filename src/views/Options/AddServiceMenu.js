@@ -129,6 +129,12 @@ export default function AddServiceMenu({ anchorEl, onClose, onSelect }) {
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
         disableScrollLock
+        sx={{
+          pointerEvents: "none",
+          "& .MuiPaper-root": {
+            pointerEvents: "auto",
+          },
+        }}
         MenuListProps={{
           "aria-label": submenu?.label,
           onKeyDown: (event) => {

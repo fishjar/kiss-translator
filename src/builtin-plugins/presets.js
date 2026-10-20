@@ -46,7 +46,7 @@ const defaultRequestHook = `async (args, { url, body, headers, userMsg, method }
 };`;
 
 const defaultResponseHook = `async ({ res, ...args }) => {
-  console.log("reaponse hook args:", { res, args });
+  console.log("response hook args:", { res, args });
   // const translations = [["你好", "zh"]];
   // const modelMsg = "";
   // return { translations, modelMsg };
@@ -194,7 +194,7 @@ export const NATIVE_PRESET_OVERRIDES = {
   [OPT_TRANS_CLAUDE]: {
     url: "https://api.anthropic.com/v1/messages",
     modelListUrl: "https://api.anthropic.com/v1/models",
-    model: "claude-3-haiku-20240307",
+    model: "claude-haiku-4-5-20251001",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CLOUDFLAREAI]: {

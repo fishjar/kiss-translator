@@ -20,14 +20,31 @@ jest.mock("../libs/detectFast", () => {
 
 import { detectLangFast } from "../libs/detectFast";
 
-function makeSelection(text, container, rectOverride) {
+function makeSelection(text, container, rectOverride, occurrence = 0) {
   const rect = rectOverride || {
     left: 10,
     right: 30,
     bottom: 40,
   };
+  const textNode = container?.firstChild;
+  const fullText = container?.textContent || "";
+  let startOffset = -1;
+  let searchFrom = 0;
+  for (let index = 0; index <= occurrence; index += 1) {
+    startOffset = fullText.indexOf(text, searchFrom);
+    if (startOffset < 0) break;
+    searchFrom = startOffset + text.length;
+  }
   const range = {
-    commonAncestorContainer: container?.firstChild || container,
+    commonAncestorContainer: textNode || container,
+    ...(textNode && startOffset >= 0
+      ? {
+          startContainer: textNode,
+          startOffset,
+          endContainer: textNode,
+          endOffset: startOffset + text.length,
+        }
+      : {}),
     getBoundingClientRect: () => rect,
     getClientRects: () => [rect],
   };
@@ -242,6 +259,30 @@ describe("useSelectionController", () => {
     expect(controller.state.text).toBe("library");
     expect(controller.state.textContext).toBe("The library is open.");
     expect(controller.state.showBox).toBe(true);
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("captures the sentence and URL for the selected repeated word", async () => {
+    const controller = renderController();
+    const pageParagraph = createParagraph(
+      "The library is open. The library closes at dusk."
+    );
+
+    currentSelection = makeSelection("library", pageParagraph, undefined, 1);
+    await dispatchWindowMouseup();
+
+    act(() => {
+      controller.state.handleOpenTranbox();
+    });
+
+    expect(controller.state.selectionSource).toEqual({
+      text: "library",
+      sentence: "The library closes at dusk.",
+      url: window.location.href,
+    });
 
     act(() => {
       controller.root.unmount();
