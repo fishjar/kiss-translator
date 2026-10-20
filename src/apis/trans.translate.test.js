@@ -744,6 +744,41 @@ describe("handleTranslate", () => {
     }
   );
 
+  test.each([
+    ["claude-sonnet-5-5", undefined],
+    ["claude-opus-4-7", undefined],
+    ["claude-haiku-5-5", undefined],
+    ["claude-mythos-5-1", undefined],
+    ["claude-sonnet-4-6", 0.7],
+    ["claude-haiku-4-5-20251001", 0.7],
+  ])("sends Claude %s temperature %s", async (model, expected) => {
+    fetchData.mockResolvedValue({
+      role: "assistant",
+      content: [{ type: "text", text: "你好" }],
+    });
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        usePool: false,
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_CLAUDE),
+          useStream: false,
+          useBatchFetch: false,
+          model,
+          temperature: 0.7,
+          thinkingMode: "auto",
+        },
+      })
+    );
+    const body = JSON.parse(fetchData.mock.calls[0][1].body);
+    expect(body.temperature).toBe(expected);
+  });
+
   test("does not inject native Gemini parameters for unknown models", async () => {
     fetchData.mockResolvedValue({
       status: "completed",
