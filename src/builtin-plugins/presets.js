@@ -174,7 +174,7 @@ export const NATIVE_PRESET_OVERRIDES = {
   [OPT_TRANS_OPENAI]: {
     url: "https://api.openai.com/v1/chat/completions",
     modelListUrl: "https://api.openai.com/v1/models",
-    model: "gpt-4",
+    model: "gpt-5.6-sol",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_GEMINI]: {
