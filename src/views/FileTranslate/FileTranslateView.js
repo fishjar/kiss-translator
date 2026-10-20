@@ -34,6 +34,7 @@ import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import ContentPasteRoundedIcon from "@mui/icons-material/ContentPasteRounded";
 import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
 import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
@@ -93,6 +94,17 @@ import { recognizeImageWithLayout } from "../../fileTranslation/imageLayout";
 import { availableApiForScene } from "../../config/serviceSelection";
 
 const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+function getFileMode(file) {
+  if (/\.pdf$/i.test(file.name) || file.type === "application/pdf")
+    return "pdf";
+  if (/\.epub$/i.test(file.name) || file.type === "application/epub+zip")
+    return "epub";
+  if (/\.(md|markdown)$/i.test(file.name)) return "markdown";
+  if (/\.txt$/i.test(file.name)) return "txt";
+  if (IMAGE_TYPES.has(file.type) || /\.(png|jpe?g|webp)$/i.test(file.name))
+    return "image";
+  return null;
+}
 const PdfWorkspace = lazy(() => import("./PdfWorkspace"));
 
 function getTextStyleClass(styleSlug, allTextStyles) {
@@ -470,6 +482,9 @@ export default function FileTranslateView() {
 
   const [translateMenuAnchor, setTranslateMenuAnchor] = useState(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteError, setPasteError] = useState("");
+  const [pendingTextMode, setPendingTextMode] = useState(null);
   const [isEntireTranslated, setIsEntireTranslated] = useState(false);
   // 顶栏第二行核心配置项展开/收起状态（默认展开）
 
@@ -695,9 +710,105 @@ export default function FileTranslateView() {
     setTranslatedImageBlob(null);
   };
 
+  const initializeTextPreview = (nextMode, content) => {
+    setMode(nextMode);
+    setResultViewMode("target");
+    setMdSourceView("preview");
+    try {
+      const blocks =
+        nextMode === "markdown" && content ? splitMarkdownBlocks(content) : [];
+      setMdBlocks(blocks);
+      setSourceHtml(
+        blocks.length
+          ? renderMarkdownBlocksToHtml(blocks, { mode: "source" })
+          : ""
+      );
+    } catch {
+      setMdBlocks([]);
+      setSourceHtml("");
+    }
+  };
+
+  const switchTextMode = (nextMode) => {
+    if (busy || nextMode === mode) return;
+    taskIdRef.current += 1;
+    controller.current?.abort();
+    controller.current = null;
+    resetResults();
+    setProgress([0, 0]);
+    setError("");
+    setPreview("");
+    setInputNotices([]);
+    setConfirmDialogOpen(false);
+    setPendingTextMode(null);
+    initializeTextPreview(nextMode, sourceText);
+  };
+
+  const requestTextMode = (nextMode) => {
+    if (busy || nextMode === mode) return;
+    if (rows.length || resultText || bilingualMd) {
+      setPendingTextMode(nextMode);
+    } else {
+      switchTextMode(nextMode);
+    }
+  };
+
+  const handlePaste = (event) => {
+    event.preventDefault();
+    const data = event.clipboardData;
+    const files = Array.from(data?.files || []);
+    const fileItems = Array.from(data?.items || []).filter(
+      (item) => item.kind === "file"
+    );
+    if (!files.length) {
+      for (const item of fileItems) {
+        const pastedFile = item.getAsFile();
+        if (pastedFile) files.push(pastedFile);
+      }
+    }
+    if (!files.length && fileItems.length) {
+      setPasteError(
+        i18n(
+          "file_paste_empty",
+          "未获取到文件或文本，请重试，或选择、拖入文件。"
+        )
+      );
+      return;
+    }
+    const selected = files.find((candidate) => getFileMode(candidate));
+    if (files.length && !selected) {
+      setPasteError(
+        i18n(
+          "file_format_unsupported",
+          "暂不支持该文件格式，支持 PDF、TXT、Markdown、EPUB 及 PNG、JPEG、WebP 图片"
+        )
+      );
+      return;
+    }
+    const text = files.length ? "" : data?.getData("text/plain");
+    if (!selected && !text) {
+      setPasteError(
+        i18n(
+          "file_paste_empty",
+          "未获取到文件或文本，请重试，或选择、拖入文件。"
+        )
+      );
+      return;
+    }
+    setPasteOpen(false);
+    setPasteError("");
+    selectFile(
+      selected ||
+        new File([text], i18n("file_pasted_text_name", "粘贴文本.txt"), {
+          type: "text/plain",
+        })
+    );
+  };
+
   // 选入文件处理与全自动格式识别判定
   const selectFile = async (selected) => {
     setInputNotices([]);
+    setPendingTextMode(null);
     // 换书或重选文件时：在任何异步操作前立即记录本次唯一任务会话 ID，并中止旧任务
     const currentTaskId = ++taskIdRef.current;
     if (controller.current) {
@@ -729,16 +840,10 @@ export default function FileTranslateView() {
       return;
     }
 
-    const isTxt = /\.txt$/i.test(selected.name);
-    const isMd = /\.(md|markdown)$/i.test(selected.name);
-    const isImage =
-      IMAGE_TYPES.has(selected.type) ||
-      /\.(png|jpe?g|webp)$/i.test(selected.name);
-    const isEpub =
-      /\.epub$/i.test(selected.name) ||
-      selected.type === "application/epub+zip";
-    const isPdf =
-      /\.pdf$/i.test(selected.name) || selected.type === "application/pdf";
+    const nextMode = getFileMode(selected);
+    const isImage = nextMode === "image";
+    const isEpub = nextMode === "epub";
+    const isPdf = nextMode === "pdf";
     if (isPdf) {
       setMode("pdf");
       setFile(selected);
@@ -761,7 +866,7 @@ export default function FileTranslateView() {
       if (taskIdRef.current !== currentTaskId) return;
     }
 
-    if (!isTxt && !isMd && !isImage && !isEpub) {
+    if (!nextMode) {
       setFile(null);
       setSourceText("");
       setPreview("");
@@ -804,36 +909,14 @@ export default function FileTranslateView() {
       return;
     }
 
-    const nextMode = isMd ? "markdown" : isTxt ? "txt" : "image";
-
     if (nextMode === "txt" || nextMode === "markdown") {
       try {
         const content = await readTxtFile(selected);
         if (taskIdRef.current !== currentTaskId) return;
 
-        setMode(nextMode);
         setFile(selected);
         setSourceText(content);
-        setResultViewMode("target");
-        if (nextMode === "markdown") {
-          setMdSourceView("preview");
-        }
-        if (nextMode === "markdown" && content) {
-          try {
-            const blocks = splitMarkdownBlocks(content);
-            setMdBlocks(blocks);
-            setSourceHtml(
-              renderMarkdownBlocksToHtml(blocks, { mode: "source" })
-            );
-            setTranslatedHtml("");
-            setBilingualHtml("");
-          } catch {
-            setSourceHtml("");
-            setTranslatedHtml("");
-            setBilingualHtml("");
-            setMdBlocks([]);
-          }
-        }
+        initializeTextPreview(nextMode, content);
       } catch (err) {
         if (taskIdRef.current !== currentTaskId) return;
         setError(
@@ -859,6 +942,7 @@ export default function FileTranslateView() {
 
   // 清除已选文件，重置回未上传状态（彻底中止旧任务控制器并自增 taskId 阻断异步回调）
   const handleClearFile = () => {
+    setPendingTextMode(null);
     taskIdRef.current += 1;
     controller.current?.abort();
     controller.current = null;
@@ -2058,6 +2142,24 @@ export default function FileTranslateView() {
         </Box>
       )}
 
+      {file && (mode === "txt" || mode === "markdown") && (
+        <Box sx={{ width: 160, flexShrink: 0 }}>
+          <SettingsSelect
+            fullWidth
+            variant="outlined"
+            hiddenLabel={false}
+            label={i18n("file_text_format", "文本格式")}
+            value={mode}
+            disabled={busy}
+            options={[
+              { value: "txt", label: "TXT" },
+              { value: "markdown", label: "Markdown" },
+            ]}
+            onChange={requestTextMode}
+          />
+        </Box>
+      )}
+
       {/* 译文样式选项（在双语展示文本、电子书与 PDF 翻译时生效） */}
       {(mode === "txt" ||
         mode === "markdown" ||
@@ -2281,6 +2383,25 @@ export default function FileTranslateView() {
       <FileTranslateToolbar
         actions={
           <>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<ContentPasteRoundedIcon sx={{ fontSize: 18 }} />}
+              sx={{
+                height: 32,
+                borderRadius: "4px",
+                fontSize: 13,
+                px: 1.5,
+                whiteSpace: "nowrap",
+                textTransform: "none",
+              }}
+              onClick={() => {
+                setPasteError("");
+                setPasteOpen(true);
+              }}
+            >
+              {i18n("file_paste", "粘贴文件或文本")}
+            </Button>
             {file && (
               <Chip
                 icon={
@@ -3971,6 +4092,73 @@ export default function FileTranslateView() {
       </Box>
 
       {/* 图片原图/译图放大弹窗 */}
+      <Dialog
+        open={pasteOpen}
+        onClose={() => setPasteOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>{i18n("file_paste", "粘贴文件或文本")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {i18n(
+              "file_paste_hint",
+              "在下方区域按 Ctrl+V（Mac：⌘V）粘贴文件、截图或文本。文本默认按 TXT 导入，可在选项中切换为 Markdown。若无法粘贴文件，请选择或拖入文件。"
+            )}
+          </DialogContentText>
+          <Box
+            component="textarea"
+            autoFocus
+            aria-label={i18n("file_paste_area", "粘贴区域")}
+            onPaste={handlePaste}
+            sx={{
+              width: "100%",
+              minHeight: 120,
+              mt: 2,
+              boxSizing: "border-box",
+              bgcolor: "background.default",
+              color: "text.primary",
+            }}
+          />
+          {pasteError && (
+            <Typography color="error" role="alert">
+              {pasteError}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPasteOpen(false)}>
+            {i18n("cancel", "取消")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(pendingTextMode)}
+        onClose={() => setPendingTextMode(null)}
+      >
+        <DialogTitle>{i18n("file_text_format", "文本格式")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {i18n(
+              "file_text_format_confirm",
+              "切换格式将清空翻译结果，保留原文。是否继续？"
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPendingTextMode(null)}>
+            {i18n("cancel", "取消")}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => switchTextMode(pendingTextMode)}
+          >
+            {i18n("file_text_format_switch", "切换格式")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <ImageViewerDialog
         i18n={i18n}
         open={viewerState.open}
