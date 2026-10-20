@@ -218,8 +218,8 @@ describe("Shadow host fullscreen roots", () => {
     };
   }
 
-  test.each(["unavailable", "rejected"])(
-    "preserves nested editing state when a native fullscreen exit move is %s",
+  test.each(["unavailable", "available"])(
+    "preserves nested editing state with native fullscreen exit moves %s but unused",
     (nativeMove) => {
       const host = mount();
       const shadowRoot = host.attachShadow({ mode: "open" });
@@ -247,9 +247,9 @@ describe("Shadow host fullscreen roots", () => {
         "moveBefore"
       );
       const moveBefore =
-        nativeMove === "rejected"
+        nativeMove === "available"
           ? jest.fn(() => {
-              throw new DOMException("Unsupported root transition");
+              throw new Error("Native atomic moves must not be called");
             })
           : undefined;
       Object.defineProperty(target, "moveBefore", {
@@ -285,7 +285,7 @@ describe("Shadow host fullscreen roots", () => {
         expect(focus).toHaveBeenCalledWith({ preventScroll: true });
         expect(commit).not.toHaveBeenCalled();
         expect(isShadowHostMoving(input)).toBe(false);
-        if (moveBefore) expect(moveBefore).toHaveBeenCalledWith(host, null);
+        if (moveBefore) expect(moveBefore).not.toHaveBeenCalled();
 
         input.blur();
         expect(commit).toHaveBeenCalledWith("unsubmitted draft");
@@ -413,7 +413,7 @@ describe("Shadow host fullscreen roots", () => {
     expect(style.read()).toEqual([]);
   });
 
-  test("preserves CSSOM rules when the target supports a native move", () => {
+  test("uses appendChild and preserves CSSOM rules when a native move is available", () => {
     const host = mount();
     const shadowRoot = host.attachShadow({ mode: "open" });
     const style = addDynamicStyle(shadowRoot, [".panel { color: red; }"]);
@@ -423,24 +423,27 @@ describe("Shadow host fullscreen roots", () => {
     input.focus();
     const focus = jest.spyOn(input, "focus");
     const section = addPageElement();
-    section.moveBefore = jest.fn((node, reference) => {
-      expect(reference).toBeNull();
-      expect(isShadowHostMoving(input)).toBe(false);
-      Element.prototype.appendChild.call(section, node);
-      style.reset([]);
-    });
-    const appendChild = jest.spyOn(section, "appendChild");
+    section.moveBefore = jest.fn();
+    const nativeAppendChild = section.appendChild;
+    const appendChild = jest
+      .spyOn(section, "appendChild")
+      .mockImplementation((node) => {
+        expect(isShadowHostMoving(input)).toBe(true);
+        const result = nativeAppendChild.call(section, node);
+        style.reset([]);
+        return result;
+      });
 
     enterFullscreen(section);
 
-    expect(section.moveBefore).toHaveBeenCalledWith(host, null);
-    expect(appendChild).not.toHaveBeenCalled();
-    expect(focus).not.toHaveBeenCalled();
+    expect(section.moveBefore).not.toHaveBeenCalled();
+    expect(appendChild).toHaveBeenCalledWith(host);
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
     expect(host.parentNode).toBe(section);
     expect(style.read()).toEqual(originalRules);
   });
 
-  test("restores CSSOM rules when a native move rejects the root transition", () => {
+  test("never attempts a rejecting native move when restoring CSSOM rules", () => {
     const host = mount();
     const shadowRoot = host.attachShadow({ mode: "open" });
     const style = addDynamicStyle(shadowRoot, [".panel { color: red; }"]);
@@ -461,7 +464,7 @@ describe("Shadow host fullscreen roots", () => {
 
     enterFullscreen(section);
 
-    expect(section.moveBefore).toHaveBeenCalledWith(host, null);
+    expect(section.moveBefore).not.toHaveBeenCalled();
     expect(host.parentNode).toBe(section);
     expect(style.read()).toEqual(originalRules);
   });
