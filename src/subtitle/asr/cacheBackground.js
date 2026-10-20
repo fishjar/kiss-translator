@@ -1,3 +1,4 @@
+import { logger } from "../../libs/log";
 import { createAssetStore } from "../../providers/transport";
 import {
   createAssetSender,
@@ -20,11 +21,52 @@ const videoId = (url) =>
     : url?.pathname.match(/^\/shorts\/([\w-]{11})/)?.[1];
 const fail = (code) => Object.assign(new Error(code), { code });
 
-/** Internal extension messaging only; no external listener and no new permissions. */
-export function installAsrCacheBackend(browser, store = new AsrCacheStore()) {
+export function installAsrCacheBackend(
+  browser,
+  store = new AsrCacheStore(),
+  { getAudioCacheLimit } = {}
+) {
+  let lastAudioCacheLimit = 100;
+  const resolveAudioCacheLimit = async () => {
+    if (typeof getAudioCacheLimit === "function") {
+      try {
+        const val = await getAudioCacheLimit();
+        if (Number.isInteger(val) && val >= 0 && val <= 1000) {
+          lastAudioCacheLimit = val;
+          return val;
+        }
+      } catch {}
+    }
+    return null;
+  };
   const activeAudioSessions = new Set();
-  browser.runtime.onStartup?.addListener(() => {
-    void store.clearAudio().catch(() => {});
+  const activeSessionPorts = new Map();
+  const pendingAudioSessions = new Map();
+  // An in-flight cleanup must finish before a new owner acquires the same audio.
+  const audioSessionOperations = new Map();
+  const withAudioSession = (sessionId, operation) => {
+    const previous = audioSessionOperations.get(sessionId) || Promise.resolve();
+    const current = previous.catch(() => {}).then(operation);
+    audioSessionOperations.set(sessionId, current);
+    return current.finally(() => {
+      if (audioSessionOperations.get(sessionId) === current)
+        audioSessionOperations.delete(sessionId);
+    });
+  };
+  const removeInactiveAudio = (sessionId) => withAudioSession(sessionId, async () => {
+    if (!activeAudioSessions.has(sessionId) && !pendingAudioSessions.has(sessionId))
+      await store.removeAudio(sessionId);
+  });
+  const pruneInactiveAudio = async () => {
+    for (const row of await store.listAudioSessions()) {
+      await removeInactiveAudio(row.sessionId);
+    }
+  };
+  browser.runtime.onStartup?.addListener(async () => {
+    const limit = await resolveAudioCacheLimit();
+    if (limit === 0) {
+      void pruneInactiveAudio().catch(() => {});
+    }
   });
   const extensionRoot = browser.runtime.getURL("/");
   const listener = (port) => {
@@ -48,7 +90,13 @@ export function installAsrCacheBackend(browser, store = new AsrCacheStore()) {
     let task,
       closed = false;
     const post = (message) => {
-      if (!closed) port.postMessage(message);
+      if (closed) return;
+      try {
+        port.postMessage(message);
+      } catch {
+        closed = true;
+        task?.controller.abort();
+      }
     };
     const authorize = async (identity) => {
       if (isOptions) return;
@@ -64,8 +112,18 @@ export function installAsrCacheBackend(browser, store = new AsrCacheStore()) {
       const { action, sessionId } = message;
       check();
       if (message.identity) {
-        mediaIdentity(message.identity);
+        if (
+          ["lookupCache", "getVideo", "deleteVideo", "findAudioSession"].includes(action) &&
+          !message.identity.trackId
+        ) {
+          if (!/^[\w-]{11}$/.test(message.identity.videoId || ""))
+            throw fail("INVALID_MEDIA_IDENTITY");
+        } else {
+          mediaIdentity(message.identity);
+        }
+        const authStarted = performance.now();
         await authorize(message.identity);
+        logger.debug("[YouTube ASR cache] authorize", { traceId: message.traceId, requestId: current.id, ms: performance.now() - authStarted });
       }
       if (
         ["putAudio", "getAudio", "listAudio", "removeAudio"].includes(action)
@@ -76,9 +134,18 @@ export function installAsrCacheBackend(browser, store = new AsrCacheStore()) {
       }
       check();
       let result;
-      if (action === "getVideo") {
-        result = await store.getVideo(message.identity, message.signatures);
-        if (result) {
+      const storageStarted = performance.now();
+      if (action === "lookupCache") {
+        result = await store.lookupCache({ videoId: message.identity.videoId,
+          identity: message.identity.trackId ? message.identity : undefined });
+      } else if (action === "findAudioSession") {
+        if (!message.identity) throw fail("INVALID_MEDIA_IDENTITY");
+        result = await store.findAudioSession(message.identity);
+      } else if (action === "getVideo") {
+        result = message.metadataOnly
+          ? await store.getVideoMetadata(message.identity, message.signatures)
+          : await store.getVideo(message.identity, message.signatures);
+        if (result && !message.metadataOnly) {
           const { chunks, ...metadata } = result;
           for (const chunk of chunks) {
             check();
@@ -102,19 +169,91 @@ export function installAsrCacheBackend(browser, store = new AsrCacheStore()) {
       else if (action === "clearSubtitles") {
         if (!isOptions) throw fail("CACHE_ACCESS_DENIED");
         await store.clearSubtitles();
-      } else if (action === "beginAudio") {
-        await store.beginAudio(sessionId, message.identity, owner);
-        if (closed || current.controller.signal.aborted) {
-          await store.removeAudio(sessionId);
-          check();
+      } else if (action === "clearAudio") {
+        if (!isOptions) throw fail("CACHE_ACCESS_DENIED");
+        await store.clearAudio();
+        sessions.clear();
+        activeAudioSessions.clear();
+        for (const ports of activeSessionPorts.values()) {
+          for (const p of ports) {
+            try {
+              p.postMessage({ type: "audioCacheCleared" });
+            } catch {}
+          }
         }
-        sessions.set(sessionId, mediaIdentity(message.identity));
-        activeAudioSessions.add(sessionId);
+        activeSessionPorts.clear();
+      } else if (action === "getStats") {
+        result = await store.getStats();
+      } else if (action === "deleteAudio") {
+        const affected = (await store.listAudioSessions()).filter(row =>
+          row.sessionId === sessionId || row.identity?.videoId === message.identity?.videoId
+        );
+        await store.deleteAudio(sessionId, message.identity);
+        const notified = new Set();
+        for (const { sessionId: id } of affected) {
+          for (const p of activeSessionPorts.get(id) || []) {
+            if (p === port || notified.has(p)) continue;
+            notified.add(p);
+            try { p.postMessage({ type: "audioCacheCleared" }); } catch {}
+          }
+          sessions.delete(id);
+          activeSessionPorts.delete(id);
+          activeAudioSessions.delete(id);
+        }
+      } else if (action === "beginAudio") {
+        pendingAudioSessions.set(sessionId, (pendingAudioSessions.get(sessionId) || 0) + 1);
+        try {
+          result = await withAudioSession(sessionId, async () => {
+            check();
+            const begun = await store.beginAudio(sessionId, message.identity, owner);
+            if (closed || current.controller.signal.aborted) {
+              const limit = await resolveAudioCacheLimit();
+              if (begun?.created && !activeAudioSessions.has(sessionId) &&
+                  pendingAudioSessions.get(sessionId) === 1 && limit === 0) {
+                await store.removeAudio(sessionId);
+              }
+              check();
+            }
+            sessions.set(sessionId, mediaIdentity(message.identity));
+            if (!activeSessionPorts.has(sessionId)) {
+              activeSessionPorts.set(sessionId, new Set());
+            }
+            activeSessionPorts.get(sessionId).add(port);
+            activeAudioSessions.add(sessionId);
+            return begun;
+          });
+        } finally {
+          const remaining = pendingAudioSessions.get(sessionId) - 1;
+          if (remaining) pendingAudioSessions.set(sessionId, remaining);
+          else pendingAudioSessions.delete(sessionId);
+        }
+      } else if (action === "releaseAudio") {
+        sessions.delete(sessionId);
+        const ports = activeSessionPorts.get(sessionId);
+        if (ports) {
+          ports.delete(port);
+          if (ports.size === 0) {
+            activeSessionPorts.delete(sessionId);
+            activeAudioSessions.delete(sessionId);
+            const limit = await resolveAudioCacheLimit();
+            if (limit === 0) {
+              await removeInactiveAudio(sessionId).catch(() => {});
+            }
+          }
+        }
       } else if (action === "putAudio") {
         const blob = current.assets.get(message.segment?.audio);
         const data = await blob.arrayBuffer();
         check();
-        result = await store.putAudio(sessionId, { ...message.segment, data });
+        const limit = await resolveAudioCacheLimit();
+        result = await store.putAudio(
+          sessionId,
+          { ...message.segment, data },
+          {
+            audioVideoCountLimit: limit ?? lastAudioCacheLimit,
+            protectedSessionIds: [...activeAudioSessions, ...pendingAudioSessions.keys()],
+          }
+        );
       } else if (action === "listAudio")
         result = await store.listAudio(sessionId);
       else if (action === "getAudio") {
@@ -126,11 +265,22 @@ export function installAsrCacheBackend(browser, store = new AsrCacheStore()) {
           result = { ...metadata, audio };
         } else result = null;
       } else if (action === "removeAudio") {
-        await store.removeAudio(sessionId);
         sessions.delete(sessionId);
-        activeAudioSessions.delete(sessionId);
+        const ports = activeSessionPorts.get(sessionId);
+        if (ports) {
+          ports.delete(port);
+          if (ports.size === 0) {
+            activeSessionPorts.delete(sessionId);
+            activeAudioSessions.delete(sessionId);
+            await removeInactiveAudio(sessionId);
+          }
+        } else {
+          activeAudioSessions.delete(sessionId);
+          await removeInactiveAudio(sessionId);
+        }
       } else throw fail("INVALID_CACHE_REQUEST");
       check();
+      logger.debug("[YouTube ASR cache] operation", { traceId: message.traceId, requestId: current.id, action, ms: performance.now() - storageStarted });
       post({ type: "result", requestId: current.id, result });
     };
     const finish = (current) => {
@@ -227,30 +377,40 @@ export function installAsrCacheBackend(browser, store = new AsrCacheStore()) {
           .finally(() => finish(current));
       }
     });
-    port.onDisconnect.addListener(() => {
+    port.onDisconnect.addListener(async () => {
       closed = true;
       if (task) {
         task.controller.abort();
         finish(task);
       }
-      sessions.forEach((_, id) => {
-        activeAudioSessions.delete(id);
-        void store.removeAudio(id).catch(() => {});
-      });
+      const limit = await resolveAudioCacheLimit();
+      const ids = Array.from(sessions.keys());
       sessions.clear();
+      for (const id of ids) {
+        const ports = activeSessionPorts.get(id);
+        if (ports) {
+          ports.delete(port);
+          if (ports.size === 0) {
+            activeSessionPorts.delete(id);
+            activeAudioSessions.delete(id);
+            if (limit === 0) {
+              void removeInactiveAudio(id).catch(() => {});
+            }
+          }
+        }
+      }
     });
-    // A previous background/page crash must not retain compressed media forever.
-    void store
-      .listAudioSessions()
-      .then(async (rows) => {
-        for (const row of rows)
-          if (!activeAudioSessions.has(row.sessionId))
-            await store.removeAudio(row.sessionId);
-        post({ type: "ready" });
-      })
-      .catch(() => {
-        post({ type: "ready" });
-      });
+    // Settings and housekeeping must never delay the cache protocol handshake.
+    post({ type: "ready" });
+    // A previous background/page crash must not retain compressed media forever when audio caching is disabled (limit === 0).
+    void (async () => {
+      try {
+        const limit = await resolveAudioCacheLimit();
+        if (limit === 0) {
+          await pruneInactiveAudio();
+        }
+      } catch {}
+    })();
   };
   browser.runtime.onConnect.addListener(listener);
   return () => browser.runtime.onConnect.removeListener(listener);

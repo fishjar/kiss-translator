@@ -1,3 +1,7 @@
+import { AsrAudioChunker } from "./audioChunks";
+import { asrChunkDurationSeconds } from "./timing";
+import { ASR_LANGUAGE_POLICY_VERSION, isWhisperAsrService } from "./language";
+
 const ignored =
   /^(?:key|apiKey|token|accessToken|password|secret|httpTimeout|timeout|fetchLimit|fetchInterval|asrTimestampSupport|asrMaxDurationSeconds)$/i;
 const ordered = (value) =>
@@ -72,7 +76,7 @@ const digest = async (input) => {
     .join("");
 };
 
-/** Cache fingerprints contain hashes only and intentionally ignore credentials/chunk sizes. */
+/** Recognition cache is tied to the canonical cutting algorithm and effective limit. */
 export async function asrCacheSignatures({
   asrService,
   segmentationService,
@@ -80,11 +84,17 @@ export async function asrCacheSignatures({
   contextService,
   setting = {},
   language,
+  limits = {},
 }) {
   const [recognition, segmentation, translation] = await Promise.all([
     digest({
       service: serviceConfig(asrService),
       language,
+      ...(isWhisperAsrService(asrService) && { languagePolicyVersion: ASR_LANGUAGE_POLICY_VERSION }),
+      chunking: {
+        version: 1,
+        maxSamples: new AsrAudioChunker(asrChunkDurationSeconds(asrService || {}), 0, limits).limit,
+      },
     }),
     digest({
       service: serviceConfig(segmentationService),

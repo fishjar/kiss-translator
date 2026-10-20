@@ -1,3 +1,4 @@
+import { serviceInvocationOptions } from "./timeout";
 import browser from "webextension-polyfill";
 import { getSettingWithDefault } from "../libs/storage";
 import { localAiHost } from "../libs/localAiBackground";
@@ -121,7 +122,12 @@ export function installProviderRelay() {
           ? []
           : [...(await approvedProviderOrigins(instance))];
         if (disconnected) return;
-        const start = { ...message, instance, approvedOrigins: origins };
+        const start = {
+          ...message,
+          instance,
+          approvedOrigins: origins,
+          options: serviceInvocationOptions(instance, message.options),
+        };
         if (systemSpeech) {
           // MV3 has no document for Webpack's DOM chunk loader. Keep this small
           // compiled path static; user-script execution remains in its own host.

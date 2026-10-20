@@ -41,6 +41,78 @@ export function asrFailure(cause, service = {}) {
   return { errorCode, errorDetail };
 }
 
+export const ASR_ERROR_LABELS = {
+  LANGUAGE_UNCERTAIN: "youtube_asr_language_uncertain",
+  LANGUAGE_DETECTION_PENDING: "youtube_asr_language_pending",
+  LANGUAGE_DETECTION_UNAVAILABLE: "youtube_asr_language_uncertain",
+  UNSUPPORTED_LANGUAGE: "youtube_asr_language_unsupported",
+  NEED_PLAYBACK: "youtube_asr_need_playback",
+  WAITING_FOR_PLAYER: "youtube_asr_player_timeout",
+  AUDIO_CAPTURE_MISSING: "youtube_asr_capture_missing",
+  NATIVE_AUDIO_NOT_CONFIRMED: "youtube_asr_capture_invalid",
+  INVALID_SABR_BODY: "youtube_asr_capture_invalid",
+  INCOMPLETE_UMP: "youtube_asr_capture_invalid",
+  INVALID_AUDIO_RESPONSE: "youtube_asr_capture_invalid",
+  AUDIO_RESPONSE_TOO_LARGE: "youtube_asr_capture_invalid",
+  AUDIO_HTTP_ERROR: "youtube_asr_http_error",
+  AUDIO_AUTH_EXPIRED: "youtube_asr_auth_expired",
+  AUDIO_RATE_LIMITED: "youtube_caption_rate_limited",
+  ATTESTATION_PENDING: "youtube_asr_attestation_error",
+  ATTESTATION_REJECTED: "youtube_asr_attestation_error",
+  AUDIO_EMPTY: "youtube_asr_audio_empty",
+  AUDIO_NO_PROGRESS: "youtube_asr_audio_timeout",
+  AUDIO_GAP: "youtube_asr_capture_invalid",
+  AUDIO_SEGMENT_MISMATCH: "youtube_asr_capture_invalid",
+  INVALID_AUDIO_SEGMENT: "youtube_asr_capture_invalid",
+  AUDIO_DURATION_MISMATCH: "youtube_asr_capture_invalid",
+  AUDIO_IDENTITY_MISMATCH: "youtube_asr_capture_invalid",
+  AAC_TRACK_UNAVAILABLE: "youtube_asr_codec_unsupported",
+  AUDIO_IDENTITY_MISSING: "youtube_asr_capture_invalid",
+  AUDIO_DECODE_FAILED: "youtube_asr_decode_error",
+  AAC_UNSUPPORTED: "youtube_asr_codec_unsupported",
+  INVALID_RESPONSE: "youtube_asr_invalid_response",
+  SERVICE_UNAVAILABLE: "youtube_asr_service_unavailable",
+  CAPABILITY_UNSUPPORTED: "youtube_asr_service_unavailable",
+  AUDIO_NETWORK: "youtube_asr_network_error",
+  AUDIO_TIMEOUT: "youtube_asr_audio_timeout",
+  AUDIO_STALLED: "youtube_asr_audio_timeout",
+  CACHE_CONNECTION_TIMEOUT: "youtube_asr_cache_connection_timeout",
+  CACHE_TIMEOUT: "youtube_asr_cache_timeout",
+  AUDIO_CACHE_MISSING: "youtube_asr_cache_read_error",
+  AUDIO_SESSION_MISSING: "youtube_asr_cache_read_error",
+  CACHE_DISCONNECTED: "youtube_asr_cache_read_error",
+  CACHE_CLOSED: "youtube_asr_cache_read_error",
+  AUDIO_CACHE_FAILED: "youtube_asr_cache_write_error",
+  CACHE_WRITE_FAILED: "youtube_asr_cache_write_error",
+  CACHE_READ_FAILED: "youtube_asr_cache_read_error",
+  ASR_FAILED: "youtube_asr_error",
+  TRANSLATION_FAILED: "youtube_asr_translation_failed",
+};
+
+export function asrErrorDescription(code, i18n) {
+  const key = ASR_ERROR_LABELS[code];
+  if (!code || typeof i18n !== "function") return undefined;
+  return key ? i18n(key) : `${i18n("youtube_asr_task_failed")} [${/^[A-Z_]{1,64}$/.test(code) ? code : "UNKNOWN_ERROR"}]`;
+}
+
+export function asrStoppedDescription(state, i18n) {
+  const failures = state.failures?.length ? state.failures : [{
+    stage: "recognition", code: state.error || state.recognitionError || state.audio?.code || state.translationError,
+  }];
+  const labels = { audio: "youtube_asr_audio_label", cutting: "youtube_asr_cutting_label",
+    recognition: "youtube_asr_recognition_label", translation: "youtube_asr_translation_label" };
+  const groups = new Map();
+  for (const failure of failures) {
+    const key = `${failure.stage}:${failure.code}`;
+    const group = groups.get(key) || { ...failure, count: 0 };
+    group.count++;
+    groups.set(key, group);
+  }
+  return [...groups.values()].map(failure =>
+    `${i18n(labels[failure.stage] || labels.recognition)}: ${asrErrorDescription(failure.code, i18n) || i18n("youtube_asr_task_failed")}${failure.count > 1 ? ` ×${failure.count}` : ""}`
+  ).join("; ");
+}
+
 /** Semantic events only, independent of progress refreshes and menu visibility. */
 export function asrFeedbackEvents(state, i18n) {
   const events = [];
@@ -58,48 +130,20 @@ export function asrFeedbackEvents(state, i18n) {
   const waitReason = audio.code || state.waitReason;
   if (state.phase === "waiting" && waitReason)
     add(`waiting:${waitReason}`, audioWaitLabel(waitReason));
-  if (audio.code === "AUDIO_QUOTA") add("quota", "youtube_asr_quota", true);
-  else if (audio.phase === "error")
-    add(`audio:${audio.code}`, "youtube_asr_audio_error", true);
-  if (audio.cooldownUntil > Date.now())
+  if (state.stoppedByError && !state.retrying && !state.paused) {
+    events.push({ key: `stopped:${JSON.stringify(state.failures || state.error)}`,
+      message: asrStoppedDescription(state, i18n), error: true });
+  }
+  if (audio.cooldownUntil > Date.now() && !state.stoppedByError)
     add(
       `cooldown:${audio.cooldownUntil}`,
       "youtube_caption_rate_limited",
-      true
+      false
     );
-  if (state.recognitionError || state.error)
-    add(
-      `recognition:${state.recognitionError || state.error}`,
-      {
-        NEED_PLAYBACK: "youtube_asr_playback_timeout",
-        WAITING_FOR_PLAYER: "youtube_asr_player_timeout",
-        AUDIO_CAPTURE_MISSING: "youtube_asr_capture_missing",
-        NATIVE_AUDIO_NOT_CONFIRMED: "youtube_asr_capture_invalid",
-        INVALID_SABR_BODY: "youtube_asr_capture_invalid",
-        INCOMPLETE_UMP: "youtube_asr_capture_invalid",
-        INVALID_AUDIO_RESPONSE: "youtube_asr_capture_invalid",
-        AUDIO_RESPONSE_TOO_LARGE: "youtube_asr_capture_invalid",
-        AUDIO_HTTP_ERROR: "youtube_asr_audio_error",
-        AAC_TRACK_UNAVAILABLE: "youtube_asr_codec_unsupported",
-        AUDIO_IDENTITY_MISSING: "youtube_asr_capture_invalid",
-        AUDIO_DECODE_FAILED: "youtube_asr_decode_error",
-        AAC_UNSUPPORTED: "youtube_asr_codec_unsupported",
-        INVALID_RESPONSE: "youtube_asr_invalid_response",
-        SERVICE_UNAVAILABLE: "youtube_asr_service_unavailable",
-        CAPABILITY_UNSUPPORTED: "youtube_asr_service_unavailable",
-        AUDIO_NETWORK: "youtube_asr_audio_error",
-        AUDIO_TIMEOUT: "youtube_caption_timeout",
-        AUDIO_STALLED: "youtube_caption_timeout",
-      }[state.recognitionError || state.error] || "youtube_asr_error",
-      true
-    );
-  if (state.translationError)
-    add(
-      `translation:${state.translationError}`,
-      "youtube_asr_translation_failed",
-      true
-    );
-  if (state.cacheSaved === false) add("cache", "youtube_asr_unsaved", true);
+  if (state.cacheSaved === false && state.cacheMode !== "session")
+    events.push({ key: "cache", error: false, message: state.cacheWarning === "CACHE_WRITE_FAILED"
+      ? i18n("youtube_asr_cache_session_fallback")
+      : asrErrorDescription(state.cacheWarning, i18n) || i18n("youtube_asr_unsaved") });
   if (state.cacheDeleteError)
     add("cache-delete", "youtube_asr_cache_delete_failed", true);
   if (state.exportError)

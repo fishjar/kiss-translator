@@ -1,3 +1,5 @@
+import ValidationInput from "../../hooks/ValidationInput";
+import { DEFAULT_HTTP_TIMEOUT } from "../../config/apiConstants";
 import {
   isLocalAsrService,
   declaredAsrTimestampSupport,
@@ -243,5 +245,23 @@ export function AsrDurationSetting({ api, onChange, onTimestampChange }) {
         </Typography>
       )}
     </Stack>
+  );
+}
+
+export function ServiceTimeoutSetting({ api, onChange }) {
+  const i18n = useI18n();
+  return (
+    <ValidationInput
+      validateOnBlur={false}
+      size="small"
+      fullWidth
+      label={i18n("http_timeout")}
+      type="number"
+      name="httpTimeout"
+      value={api.httpTimeout ?? DEFAULT_HTTP_TIMEOUT}
+      min={1}
+      max={600}
+      onChange={(event) => onChange(event.target.value)}
+    />
   );
 }

@@ -36,6 +36,7 @@ jest.mock("../localAi/fileOperations", () => ({
   })),
 }));
 beforeEach(() => {
+  require("../localAi/core/recorder").decodeAudioFile.mockResolvedValue({ audio: new Float32Array([0.5]), sampleRate: 16000 });
   require("../localAi/fileOperations").recognizeFileImage.mockResolvedValue({
     text: "OCR",
     items: [
@@ -59,6 +60,17 @@ const context = () => ({
   signal: new AbortController().signal,
   emit: jest.fn(async () => {}),
   assets: createAssetStore(),
+});
+
+test("local transcription preserves detected language and an undecided detection result", async () => {
+  const ctx = context();
+  const audio = ctx.assets.put(new Blob(["wav"]));
+  runtimeHost.request.mockResolvedValueOnce({ segments: [], languagePending: true });
+  expect(await localHandlers.transcribe({ audio, language: "auto" }, { modelRef: "asr" }, ctx))
+    .toMatchObject({ text: "", segments: [], languagePending: true });
+  runtimeHost.request.mockResolvedValueOnce({ segments: [{ start: 0, end: 1, text: "你好" }], language: "zh", languageConfidence: 0.96 });
+  expect(await localHandlers.transcribe({ audio, language: "auto" }, { modelRef: "asr" }, ctx))
+    .toMatchObject({ text: "你好", language: "zh", languageConfidence: 0.96 });
 });
 test("local image recognition forwards refresh to the shared OCR/VLM adapter", async () => {
   const { recognizeFileImage } = require("../localAi/fileOperations");
@@ -171,6 +183,33 @@ test("local audio/decision/layout preserve real data rather than fabricate times
       ctx
     )
   ).rejects.toThrow("INVALID_MODEL");
+});
+
+test("local ASR exports aligned words but excludes interpolated word timing", async () => {
+  require("../localAi/core/recorder").decodeAudioFile.mockResolvedValue({
+    audio: new Float32Array([0.5]),
+    sampleRate: 16000,
+  });
+  const ctx = context();
+  const audio = ctx.assets.put(new Blob(["input"], { type: "audio/wav" }));
+  const segment = {
+    start: 0,
+    end: 2,
+    text: "hello",
+    words: [{ start: 0.2, end: 1.8, text: "hello" }],
+  };
+  runtimeHost.request.mockResolvedValueOnce({ segments: [segment] });
+  expect(
+    (await localHandlers.transcribe({ audio }, { modelRef: "asr" }, ctx))
+      .segments[0]
+  ).toEqual(segment);
+  runtimeHost.request.mockResolvedValueOnce({
+    segments: [{ ...segment, wordsTimingSource: "estimated" }],
+  });
+  expect(
+    (await localHandlers.transcribe({ audio }, { modelRef: "asr" }, ctx))
+      .segments[0]
+  ).toEqual({ start: 0, end: 2, text: "hello" });
 });
 
 test.each([true, false])(
@@ -334,4 +373,31 @@ test("video ASR exposes a synthesized whole-block fallback as text without model
       ctx
     )
   ).resolves.toEqual({ text: "whole block" });
+});
+
+test("local RPC receives the remaining provider deadline, including custom budgets over 120 seconds", async () => {
+  const ctx = { ...context(), deadlineAt: Date.now() + 500000 };
+  runtimeHost.request.mockResolvedValue({ text: "answer" });
+  await localHandlers.chat(
+    { messages: [{ role: "user", content: "hello" }] },
+    { modelRef: "llm", httpTimeout: 600 },
+    ctx
+  );
+  const request = runtimeHost.request.mock.calls.at(-1)[0];
+  expect(request.deadlineMs).toBeGreaterThan(499000);
+  expect(request.deadlineMs).toBeLessThanOrEqual(500000);
+  expect(request.deadlineMs).not.toBe(600000);
+  const image = ctx.assets.put(new Blob(["image"]));
+  await localHandlers.recognizeText(
+    { image },
+    { modelRef: "ocr", httpTimeout: 600 },
+    ctx
+  );
+  expect(
+    require("../localAi/fileOperations").recognizeFileImage
+  ).toHaveBeenLastCalledWith(
+    expect.any(Blob),
+    expect.objectContaining({ deadlineAt: ctx.deadlineAt }),
+    ctx.signal
+  );
 });

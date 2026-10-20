@@ -55,6 +55,7 @@ export function blockTask(block) {
   return {
     id: `block-${block.startSample}`,
     kind: "block",
+    retrying: false,
     startMs: block.startSample / 16,
     endMs: block.endSample / 16,
     text,
@@ -114,11 +115,5 @@ export function groupAsrTasks(tasks) {
     group.coveredElsewhere =
       !group.children.length && coveredUntil > group.startMs;
   }
-  if (unmatched.length)
-    groups.unshift({
-      id: "unmatched",
-      children: unmatched,
-      cached: unmatched.every((row) => row.cached),
-    });
   return groups;
 }

@@ -31,7 +31,10 @@ test("a non-extension context cannot enter the background plugin route", () => {
     "external",
     "translate",
     {},
-    {}
+    expect.objectContaining({
+      timeoutMs: 120000,
+      deadlineAt: expect.any(Number),
+    })
   );
 });
 
@@ -40,7 +43,15 @@ test("legacy records use compiled native dispatch without external permission or
   const before = JSON.stringify(old);
   const input = { text: "hello" };
   invokeScene(old, "dictionary", input);
-  expect(invokeService).toHaveBeenCalledWith(old, "dictionary", input, {});
+  expect(invokeService).toHaveBeenCalledWith(
+    old,
+    "dictionary",
+    input,
+    expect.objectContaining({
+      timeoutMs: 120000,
+      deadlineAt: expect.any(Number),
+    })
+  );
   expect(invokeBridgedService).not.toHaveBeenCalled();
   expect(JSON.stringify(old)).toBe(before);
 });
@@ -63,7 +74,7 @@ test.each(["script", "declarative"])(
       api,
       "translate",
       input,
-      options
+      expect.objectContaining({ ...options, deadlineAt: expect.any(Number) })
     );
     expect(invokeBridgedService).not.toHaveBeenCalled();
     expect(invokeService).not.toHaveBeenCalled();
@@ -95,6 +106,6 @@ test("an external snapshot routes by existing instance ID through the privileged
     "external",
     "dictionary",
     input,
-    { timeoutMs: 100 }
+    expect.objectContaining({ timeoutMs: 100, deadlineAt: expect.any(Number) })
   );
 });

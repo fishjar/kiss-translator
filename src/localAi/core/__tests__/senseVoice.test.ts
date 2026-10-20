@@ -50,6 +50,24 @@ describe("senseVoice", () => {
     expect(mapSenseVoiceLanguageId("")).toBe(0);
   });
 
+  it.each([
+    ["en-US", 4],
+    [" EN_us ", 4],
+    ["zh-CN", 3],
+    ["zh-Hant-TW", 3],
+    ["cmn-Hans-CN", 3],
+    ["zh-cmn-Hans", 3],
+    ["yue-HK", 7],
+    ["zh-yue-Hant-HK", 7],
+    ["ja-JP", 11],
+    ["ko-KR", 12],
+    ["auto", 0],
+    ["und", 0],
+    ["fr-FR", 0],
+  ])("音轨语言 %s 映射为 SenseVoice ID %s", (language, id) => {
+    expect(mapSenseVoiceLanguageId(language)).toBe(id);
+  });
+
   it("decodeSenseVoiceCtc 剥离控制 token、合并子词并保留情感/事件徽章与精确帧时间", () => {
     const tokens = [
       "<unk>", // 0 (blank)

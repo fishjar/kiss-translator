@@ -1,6 +1,33 @@
 import { ASR_SAMPLE_RATE, AsrAudioChunker } from "./audioChunks";
 import { AsrResampler } from "./resample";
 
+/** Extract an indexed interval without running voice activity detection again. */
+class FixedPcmRange {
+  constructor(start, end, silent) {
+    this.start = start;
+    this.audio = new Float32Array(end - start);
+    this.length = 0;
+    this.silent = silent;
+  }
+  push(audio) {
+    if (this.length + audio.length > this.audio.length)
+      throw new Error("PCM exceeds indexed interval.");
+    this.audio.set(audio, this.length);
+    this.length += audio.length;
+    return [];
+  }
+  *finish() {
+    if (this.length !== this.audio.length)
+      throw new Error("PCM does not cover indexed interval.");
+    yield {
+      startSample: this.start,
+      endSample: this.start + this.length,
+      audio: this.audio,
+      silent: this.silent,
+    };
+  }
+}
+
 /** Caller must await each push: at most one ASR chunk plus the retained tail. */
 export class AsrPcmPipeline {
   constructor(maxDurationSeconds, onChunk, signal, limits = {}) {
@@ -56,11 +83,9 @@ export class AsrPcmPipeline {
             ? Infinity
             : this.limits.endSample - startSample,
       });
-      this.chunker = new AsrAudioChunker(
-        this.maxDurationSeconds,
-        startSample,
-        this.limits
-      );
+      this.chunker = this.limits.fixedRange
+        ? new FixedPcmRange(startSample, this.limits.endSample, this.limits.silent)
+        : new AsrAudioChunker(this.maxDurationSeconds, startSample, this.limits);
       this.origin = timestamp;
       this.inputSamples = 0;
     }

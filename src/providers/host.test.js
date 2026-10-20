@@ -115,3 +115,50 @@ test("the port owner can cancel a same-context invocation without a disconnect e
   expect(connection.onDisconnect.listeners.size).toBe(0);
   expect(jest.getTimerCount()).toBe(0);
 });
+
+test.each([120, 300, 600])(
+  "host accepts the configured %s-second budget without a hidden 60/300-second cutoff",
+  (seconds) => {
+    const connection = port();
+    const invoke = jest.fn();
+    serveProviderPort(
+      connection,
+      {
+        ...start,
+        uploads: true,
+        instance: { httpTimeout: seconds },
+        options: {},
+      },
+      invoke
+    );
+    jest.advanceTimersByTime(seconds * 1000 - 1);
+    expect(connection.postMessage).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(1);
+    expect(connection.postMessage).toHaveBeenLastCalledWith({
+      type: "error",
+      error: { code: "REQUEST_TIMEOUT", message: expect.any(String) },
+    });
+    expect(invoke).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  }
+);
+
+test("a deadline consumed by relay startup is not reset in the host", () => {
+  const connection = port();
+  serveProviderPort(
+    connection,
+    {
+      ...start,
+      uploads: true,
+      options: { timeoutMs: 120000, deadlineAt: Date.now() + 20000 },
+    },
+    jest.fn()
+  );
+  jest.advanceTimersByTime(20000);
+  expect(connection.postMessage).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      error: expect.objectContaining({ code: "REQUEST_TIMEOUT" }),
+    })
+  );
+  expect(jest.getTimerCount()).toBe(0);
+});

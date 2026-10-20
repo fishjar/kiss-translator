@@ -127,7 +127,11 @@ export class LlmClient {
     _transfer?: Transferable[],
     target?: ModelTarget,
     signal?: AbortSignal,
-    generation?: { temperature?: number; onProgress?: (status: string) => void }
+    generation?: {
+      temperature?: number;
+      onProgress?: (status: string) => void;
+      deadlineAt?: number;
+    }
   ): Promise<LlmChatResult> {
     if (!target && this.currentVersion === null) {
       throw new Error("模型尚未加载");
@@ -142,6 +146,8 @@ export class LlmClient {
       >(
         {
           id: reqId,
+          deadlineMs: generation?.deadlineAt === undefined
+            ? undefined : Math.max(1, generation.deadlineAt - Date.now()),
           service: this.service,
           method: "chat",
           payload: { messages, maxTokens, ...target, temperature: generation?.temperature },

@@ -29,7 +29,7 @@ const service = {
   },
   pluginConfig: { apiKey: "secret", model: "whisper-1" },
 };
-test("credentials, timeouts and maximum block size do not invalidate completed subtitles", async () => {
+test("credentials and timeouts do not invalidate completed subtitles", async () => {
   const original = await asrCacheSignatures({
     asrService: service,
     language: "en",
@@ -39,8 +39,6 @@ test("credentials, timeouts and maximum block size do not invalidate completed s
       ...service,
       key: "changed",
       httpTimeout: 12,
-      asrMaxDurationSeconds: 5,
-      asrTimestampSupport: "unsupported",
       url: "https://example.invalid/asr?token=changed",
       pluginConfig: { ...service.pluginConfig, apiKey: "changed" },
     },
@@ -81,4 +79,20 @@ test("recognition, segmentation and translation settings invalidate only their o
       })
     ).segmentation
   ).not.toBe(original.segmentation);
+});
+
+
+test("effective cutting limits invalidate recognition but not translation settings", async () => {
+  const base = { asrService: { ...service, asrTimestampSupport: "supported" }, language: "en" };
+  const original = await asrCacheSignatures(base);
+  for (const change of [
+    { asrService: { ...base.asrService, asrMaxDurationSeconds: 5 } },
+    { limits: { maxModelDurationSeconds: 4 } },
+    { limits: { maxBytes: 64044 } },
+  ]) {
+    const changed = await asrCacheSignatures({ ...base, ...change });
+    expect(changed.recognition).not.toBe(original.recognition);
+    expect(changed.segmentation).toBe(original.segmentation);
+    expect(changed.translation).toBe(original.translation);
+  }
 });

@@ -184,13 +184,22 @@ export function nativeAudioFormat(body, response, videoId, knownFormats = []) {
   return [...confirmed.values()][0];
 }
 
+// Single-track videos can omit audioTrack on every format, including DRC variants.
+export function youtubeAudioFormats(playerResponse) {
+  const formats = playerResponse?.streamingData?.adaptiveFormats || [];
+  const audio = formats.filter((entry) => entry.mimeType?.startsWith("audio/"));
+  if (!audio.length || audio.some((entry) => entry.audioTrack?.id)) return formats;
+  return formats.map((entry) => entry.mimeType?.startsWith("audio/")
+    ? { ...entry, audioTrack: { id: "default" } } : entry);
+}
+
 export function selectedAacFormat(playerResponse, nativeFormat, videoId) {
   if (
     playerResponse?.videoDetails?.videoId !== videoId ||
     playerResponse.videoDetails.isLiveContent
   )
     throw fail("UNSUPPORTED_VIDEO");
-  const formats = playerResponse.streamingData?.adaptiveFormats || [];
+  const formats = youtubeAudioFormats(playerResponse);
   const native = formats.find(
     (entry) => formatKey(entry) === formatKey(nativeFormat)
   );

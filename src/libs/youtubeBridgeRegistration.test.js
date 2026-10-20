@@ -151,8 +151,10 @@ test("background module load starts registration before other service initializa
   );
   const calls = [];
   const context = vm.createContext({
+    browser,
     ensureYoutubeBridgeRegistered: () => calls.push("registration"),
     installStorageCoordinator: () => calls.push("storage"),
+    installAsrCacheBackend: () => calls.push("asr-cache"),
     installFileTranslationBackend: () => calls.push("files"),
     restoreFileTranslationBridges: () => calls.push("restore"),
   });
@@ -163,7 +165,7 @@ test("background module load starts registration before other service initializa
     ),
     context
   );
-  expect(calls).toEqual(["registration", "storage", "files", "restore"]);
+  expect(calls).toEqual(["registration", "storage", "asr-cache", "files", "restore"]);
 });
 
 test.each([

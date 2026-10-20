@@ -1,10 +1,12 @@
+import { logger } from "../../libs/log";
 import { coverageProgress } from "./coverage";
 import { ASR_SAMPLE_RATE } from "./audioChunks";
+import { alignedAsrWords } from "../../providers/asrWords";
 
 export const SUBTITLE_CACHE_LIMIT = 200 * 1024 * 1024;
 export const AUDIO_VIDEO_LIMIT = 512 * 1024 * 1024;
 export const AUDIO_CACHE_LIMIT = 1024 * 1024 * 1024;
-export const ASR_CACHE_VERSION = 1;
+export const ASR_CACHE_VERSION = 2;
 const fail = (code) => Object.assign(new Error(code), { code });
 const request = (req) =>
   new Promise((resolve, reject) => {
@@ -43,6 +45,7 @@ export function mediaIdentity(input) {
     mediaVersion,
     durationMs,
     sourceLanguage = "auto",
+    recognitionLanguage,
   } = input || {};
   if (
     !/^[\w-]{11}$/.test(videoId || "") ||
@@ -51,13 +54,40 @@ export function mediaIdentity(input) {
     !Number.isSafeInteger(durationMs) ||
     durationMs <= 0 ||
     typeof sourceLanguage !== "string" ||
-    !/^[\w-]{1,64}$/.test(sourceLanguage)
+    !/^[\w-]{1,64}$/.test(sourceLanguage) ||
+    (recognitionLanguage !== undefined && !/^[\w-]{1,64}$/.test(recognitionLanguage))
   )
     throw fail("INVALID_MEDIA_IDENTITY");
-  return { videoId, trackId, mediaVersion, durationMs, sourceLanguage };
+  return { videoId, trackId, mediaVersion, durationMs, sourceLanguage,
+    ...(recognitionLanguage !== undefined && { recognitionLanguage }) };
 }
 export const mediaCacheKey = (identity) =>
   JSON.stringify(Object.values(mediaIdentity(identity)));
+const extractIdentity = (video) => {
+  if (video?.identity?.videoId) {
+    try {
+      return mediaIdentity(video.identity);
+    } catch {}
+  }
+  if (typeof video?.key === "string") {
+    try {
+      const parsed = JSON.parse(video.key);
+      if (Array.isArray(parsed) && parsed.length >= 5) {
+        const [videoId, trackId, mediaVersion, durationMs, sourceLanguage, recognitionLanguage] =
+          parsed;
+        return mediaIdentity({
+          videoId,
+          trackId,
+          mediaVersion,
+          durationMs,
+          sourceLanguage,
+          ...(recognitionLanguage !== undefined && { recognitionLanguage }),
+        });
+      }
+    } catch {}
+  }
+  return null;
+};
 const normalizeSignatures = (input) => {
   const result = {};
   for (const name of ["recognition", "segmentation", "translation"]) {
@@ -83,11 +113,15 @@ const cues = (items, start, end, scale, timingSource) => {
       throw fail("INVALID_CACHE_CHUNK");
     const clampedStart = Math.max(minStart, Math.min(maxEnd, item.start));
     const clampedEnd = Math.max(clampedStart, Math.min(maxEnd, item.end));
+    const words = scale === 1 && alignedAsrWords({
+      ...item, start: clampedStart, end: clampedEnd,
+    });
     return {
       start: clampedStart,
       end: clampedEnd,
       text: item.text,
       timingSource,
+      ...(words && { words }),
       ...(item.translation !== undefined && { translation: item.translation }),
       ...(item._isDraftTranslation === true && { _isDraftTranslation: true }),
     };
@@ -102,6 +136,8 @@ export function normalizeCachedChunk(input) {
     timingSource = "asr",
     stage,
     errorCode,
+    language,
+    languageConfidence,
   } = input || {};
   if (
     !Number.isSafeInteger(startSample) ||
@@ -112,7 +148,9 @@ export function normalizeCachedChunk(input) {
     typeof endOfMedia !== "boolean" ||
     !["asr", "audio-chunk"].includes(timingSource) ||
     !["recognized", "segmented", "translated", "failed"].includes(stage) ||
-    (errorCode !== undefined && !/^[A-Z_]{1,64}$/.test(errorCode))
+    (errorCode !== undefined && !/^[A-Z_]{1,64}$/.test(errorCode)) ||
+    (language !== undefined && (typeof language !== "string" || !/^[a-zA-Z-]{2,64}$/.test(language))) ||
+    (languageConfidence !== undefined && (!Number.isFinite(languageConfidence) || languageConfidence < 0 || languageConfidence > 1))
   )
     throw fail("INVALID_CACHE_CHUNK");
   const start = startSample / ASR_SAMPLE_RATE,
@@ -124,6 +162,8 @@ export function normalizeCachedChunk(input) {
     endOfMedia,
     timingSource,
     stage,
+    ...(language && { language }),
+    ...(languageConfidence !== undefined && { languageConfidence }),
     segments: cues(input.segments || [], start, end, 1, timingSource),
     subtitles: cues(input.subtitles || [], start, end, 1000, timingSource),
     ...(errorCode && { errorCode }),
@@ -150,6 +190,7 @@ export class AsrCacheStore {
     subtitleLimit = SUBTITLE_CACHE_LIMIT,
     audioVideoLimit = AUDIO_VIDEO_LIMIT,
     audioLimit = AUDIO_CACHE_LIMIT,
+    audioVideoCountLimit = 100,
     now = Date.now,
   } = {}) {
     Object.assign(this, {
@@ -158,29 +199,49 @@ export class AsrCacheStore {
       subtitleLimit,
       audioVideoLimit,
       audioLimit,
+      audioVideoCountLimit,
       now,
     });
   }
   async open() {
     if (!this.database)
       this.database = new Promise((resolve, reject) => {
-        const req = this.indexedDB.open(this.name, 1);
-        req.onupgradeneeded = () => {
+        const req = this.indexedDB.open(this.name, 2);
+        req.onupgradeneeded = (event) => {
           const db = req.result;
-          db.createObjectStore("videos", { keyPath: "key" });
-          db.createObjectStore("chunks", { keyPath: "id" }).createIndex(
-            "video",
-            "key"
-          );
-          db.createObjectStore("audioSessions", { keyPath: "sessionId" });
-          db.createObjectStore("audio", { keyPath: "id" }).createIndex(
-            "session",
-            "sessionId"
-          );
-          db.createObjectStore("audioIndex", { keyPath: "id" }).createIndex(
-            "session",
-            "sessionId"
-          );
+          if (event.oldVersion === 0) {
+            db.createObjectStore("videos", { keyPath: "key" });
+            db.createObjectStore("chunks", { keyPath: "id" }).createIndex(
+              "video",
+              "key"
+            );
+            db.createObjectStore("audioSessions", { keyPath: "sessionId" });
+            db.createObjectStore("audio", { keyPath: "id" }).createIndex(
+              "session",
+              "sessionId"
+            );
+            db.createObjectStore("audioIndex", { keyPath: "id" }).createIndex(
+              "session",
+              "sessionId"
+            );
+          }
+          const videos = req.transaction.objectStore("videos");
+          videos.createIndex("videoId", "identity.videoId");
+          const sessions = req.transaction.objectStore("audioSessions");
+          sessions.createIndex("videoId", "identity.videoId");
+          sessions.createIndex("mediaKey", "key");
+          for (const name of ["videos", "audioSessions"]) {
+            const cursor = req.transaction.objectStore(name).openCursor();
+            cursor.onsuccess = () => {
+              const row = cursor.result;
+              if (!row) return;
+              if (!row.value.identity) {
+                const identity = extractIdentity(row.value);
+                if (identity) row.update({ ...row.value, identity });
+              }
+              row.continue();
+            };
+          }
         };
         req.onsuccess = () => {
           const db = req.result;
@@ -198,11 +259,17 @@ export class AsrCacheStore {
     return this.database;
   }
   async run(stores, mode, operation) {
+    const opened = performance.now();
     const db = await this.open();
+    const started = performance.now();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(stores, mode);
       let result, failure;
-      tx.oncomplete = () => resolve(result);
+      tx.oncomplete = () => {
+        logger.debug("[YouTube ASR cache] transaction", { stores, mode,
+          openMs: started - opened, transactionMs: performance.now() - started });
+        resolve(result);
+      };
       tx.onabort = tx.onerror = () =>
         reject(failure || tx.error || fail("CACHE_WRITE_FAILED"));
       // Operations await IDB requests only, never network/crypto/timers in a transaction.
@@ -315,8 +382,16 @@ export class AsrCacheStore {
     });
   }
   async getVideo(identityInput, signatureInput) {
-    const identity = mediaIdentity(identityInput),
-      key = mediaCacheKey(identity);
+    let identity;
+    try {
+      identity = mediaIdentity(identityInput);
+    } catch (err) {
+      if (/^[\w-]{11}$/.test(identityInput?.videoId || "")) {
+        return this.getVideoByVideoId(identityInput.videoId, signatureInput);
+      }
+      throw err;
+    }
+    const key = mediaCacheKey(identity);
     const signatures = normalizeSignatures(signatureInput);
     return this.run(["videos", "chunks"], "readwrite", async (store) => {
       const meta = await request(store("videos").get(key));
@@ -392,8 +467,70 @@ export class AsrCacheStore {
       };
     });
   }
-  async deleteVideo(identity) {
-    const key = mediaCacheKey(identity);
+  async getVideoMetadata(input, signatureInput) {
+    if (!/^[\w-]{11}$/.test(input?.videoId || ""))
+      throw fail("INVALID_MEDIA_IDENTITY");
+    const key = input.trackId ? mediaCacheKey(input) : null;
+    const signatures = signatureInput ? normalizeSignatures(signatureInput) : null;
+    return this.run(["videos"], "readonly", async (store) => {
+      const videos = key
+        ? [await request(store("videos").get(key))].filter(Boolean)
+        : await request(store("videos").index("videoId").getAll(input.videoId));
+      const candidate = videos
+        .filter(video => validMeta(video) && extractIdentity(video)?.videoId === input.videoId &&
+          (!signatures || video.signatures.recognition === signatures.recognition))
+        .sort((a, b) => b.lastUsed - a.lastUsed)[0];
+      return candidate ? { identity: extractIdentity(candidate) } : null;
+    });
+  }
+  async getVideoByVideoId(videoId, signatureInput) {
+    const candidate = await this.run(["videos"], "readonly", async (store) => {
+      const videos = await request(store("videos").index("videoId").getAll(videoId));
+      return (
+        (videos || [])
+          .map((video) => ({ video, identity: extractIdentity(video) }))
+          .filter(
+            ({ video, identity }) =>
+              identity?.videoId === videoId && validMeta(video)
+          )
+          .sort(
+            (a, b) => (b.video.lastUsed || 0) - (a.video.lastUsed || 0)
+          )[0] || null
+      );
+    });
+    if (!candidate?.identity) return null;
+    const signatures = signatureInput
+      ? normalizeSignatures(signatureInput)
+      : candidate.video.signatures;
+    if (
+      signatureInput &&
+      candidate.video.signatures?.recognition !== signatures.recognition
+    )
+      return null;
+    return this.getVideo(candidate.identity, signatures);
+  }
+  async deleteVideo(identityInput) {
+    let key;
+    try {
+      key = mediaCacheKey(identityInput);
+    } catch (err) {
+      if (/^[\w-]{11}$/.test(identityInput?.videoId || "")) {
+        return this.run(["videos", "chunks"], "readwrite", async (store) => {
+          const videos = await request(store("videos").getAll());
+          for (const video of videos || []) {
+            const identity = extractIdentity(video);
+            if (
+              identity?.videoId === identityInput.videoId ||
+              (typeof video.key === "string" &&
+                video.key.includes(identityInput.videoId))
+            ) {
+              await this.eraseVideo(store, video.key);
+            }
+          }
+        });
+      }
+      throw err;
+    }
     await this.run(["videos", "chunks"], "readwrite", (store) =>
       this.eraseVideo(store, key)
     );
@@ -422,34 +559,53 @@ export class AsrCacheStore {
       store("videos").put(meta);
     });
   }
+  async eraseAudioSession(store, sessionId) {
+    const keys = await request(
+      store("audioIndex").index("session").getAllKeys(sessionId)
+    );
+    keys.forEach((id) => {
+      store("audio").delete(id);
+      store("audioIndex").delete(id);
+    });
+    store("audioSessions").delete(sessionId);
+  }
   async beginAudio(sessionId, identityInput, owner) {
     if (!/^[\w-]{1,128}$/.test(sessionId || ""))
       throw fail("INVALID_AUDIO_SESSION");
     const identity = mediaIdentity(identityInput),
       key = mediaCacheKey(identity);
-    await this.run(["audioSessions"], "readwrite", async (store) => {
-      const existing = await request(store("audioSessions").get(sessionId));
-      if (existing && existing.key !== key)
-        throw fail("AUDIO_IDENTITY_MISMATCH");
-      if (
-        existing &&
-        (existing.owner?.tabId !== owner?.tabId ||
-          existing.owner?.documentId !== owner?.documentId)
-      )
-        throw fail("AUDIO_SESSION_OWNED");
-      if (!existing)
-        store("audioSessions").put({
-          sessionId,
-          key,
-          identity,
-          bytes: 0,
-          ...(owner && {
-            owner: { tabId: owner.tabId, documentId: owner.documentId },
-          }),
-        });
-    });
+    return this.run(
+      ["audioSessions"],
+      "readwrite",
+      async (store) => {
+        const existing = await request(store("audioSessions").get(sessionId));
+        if (existing && existing.key !== key)
+          throw fail("AUDIO_IDENTITY_MISMATCH");
+        if (!existing)
+          store("audioSessions").put({
+            sessionId,
+            key,
+            identity,
+            bytes: 0,
+            lastUsed: this.now(),
+            ...(owner && {
+              owner: { tabId: owner.tabId, documentId: owner.documentId },
+            }),
+          });
+        else {
+          store("audioSessions").put({
+            ...existing,
+            lastUsed: this.now(),
+            ...(owner && {
+              owner: { tabId: owner.tabId, documentId: owner.documentId },
+            }),
+          });
+        }
+        return { created: !existing };
+      }
+    );
   }
-  async putAudio(sessionId, input) {
+  async putAudio(sessionId, input, options = {}) {
     const { index, startMs, endMs, data } = input || {};
     if (
       !Number.isSafeInteger(index) ||
@@ -491,18 +647,85 @@ export class AsrCacheStore {
             throw fail("AUDIO_SEGMENT_MISMATCH");
           return false;
         }
-        const sessions = await request(store("audioSessions").getAll());
-        const total = sessions.reduce(
+        let sessions = await request(store("audioSessions").getAll());
+        const protectedIds = new Set(options?.protectedSessionIds || []);
+        const countLimit =
+          typeof options?.audioVideoCountLimit === "number"
+            ? options.audioVideoCountLimit
+            : this.audioVideoCountLimit;
+        if (typeof countLimit === "number" && countLimit > 0) {
+          const videoMap = new Map();
+          for (const s of sessions) {
+            const vid = s.identity?.videoId || s.sessionId;
+            if (!videoMap.has(vid)) videoMap.set(vid, []);
+            videoMap.get(vid).push(s);
+          }
+          const currentVid = session.identity?.videoId || sessionId;
+          if (!videoMap.has(currentVid)) {
+            videoMap.set(currentVid, [session]);
+          }
+          if (videoMap.size > countLimit) {
+            const videoEntries = [];
+            for (const [vid, sessList] of videoMap.entries()) {
+              if (vid === currentVid) continue;
+              if (sessList.some((s) => protectedIds.has(s.sessionId))) continue;
+              const maxLastUsed = Math.max(
+                ...sessList.map((s) => s.lastUsed || 0)
+              );
+              videoEntries.push({ vid, sessList, lastUsed: maxLastUsed });
+            }
+            videoEntries.sort((a, b) => a.lastUsed - b.lastUsed);
+            let currentCount = videoMap.size;
+            for (const entry of videoEntries) {
+              if (currentCount <= countLimit) break;
+              for (const s of entry.sessList) {
+                await this.eraseAudioSession(store, s.sessionId);
+              }
+              currentCount--;
+            }
+            sessions = await request(store("audioSessions").getAll());
+          }
+        }
+        const currentVid = session.identity?.videoId || sessionId;
+        const videoTotal = sessions
+          .filter(
+            (entry) =>
+              (entry.identity?.videoId || entry.sessionId) === currentVid
+          )
+          .reduce((sum, entry) => sum + entry.bytes, data.byteLength);
+        if (videoTotal > this.audioVideoLimit) throw fail("AUDIO_QUOTA");
+
+        let total = sessions.reduce(
           (sum, entry) => sum + entry.bytes,
           data.byteLength
         );
-        const videoTotal = sessions
-          .filter(
-            (entry) => entry.identity.videoId === session.identity.videoId
-          )
-          .reduce((sum, entry) => sum + entry.bytes, data.byteLength);
-        if (total > this.audioLimit || videoTotal > this.audioVideoLimit)
-          throw fail("AUDIO_QUOTA");
+        if (total > this.audioLimit) {
+          const videoMap = new Map();
+          for (const s of sessions) {
+            const vid = s.identity?.videoId || s.sessionId;
+            if (vid === currentVid) continue;
+            if (!videoMap.has(vid)) videoMap.set(vid, []);
+            videoMap.get(vid).push(s);
+          }
+          const otherVideos = [];
+          for (const [vid, sessList] of videoMap.entries()) {
+            if (sessList.some((s) => protectedIds.has(s.sessionId))) continue;
+            const maxLastUsed = Math.max(
+              ...sessList.map((s) => s.lastUsed || 0)
+            );
+            otherVideos.push({ vid, sessList, lastUsed: maxLastUsed });
+          }
+          otherVideos.sort((a, b) => a.lastUsed - b.lastUsed);
+          for (const entry of otherVideos) {
+            if (total <= this.audioLimit) break;
+            for (const s of entry.sessList) {
+              await this.eraseAudioSession(store, s.sessionId);
+              total -= s.bytes;
+            }
+          }
+          sessions = await request(store("audioSessions").getAll());
+        }
+        if (total > this.audioLimit) throw fail("AUDIO_QUOTA");
         const metadata = {
           id,
           sessionId,
@@ -515,6 +738,7 @@ export class AsrCacheStore {
         store("audioIndex").put(metadata);
         store("audioSessions").put({
           ...session,
+          lastUsed: this.now(),
           bytes: session.bytes + data.byteLength,
         });
         return true;
@@ -538,19 +762,53 @@ export class AsrCacheStore {
       request(store("audioSessions").getAll())
     );
   }
+  async findAudioSession(input) {
+    const result = await this.lookupCache({ videoId: input?.videoId, identity: input?.trackId ? input : undefined });
+    if (!result.audio) return null;
+    const { index, ...session } = result.audio;
+    return session;
+  }
+  async lookupCache({ videoId, identity }) {
+    if (!/^[\w-]{11}$/.test(videoId || "")) throw fail("INVALID_MEDIA_IDENTITY");
+    const key = identity ? mediaCacheKey(identity) : null;
+    return this.run(["videos", "audioSessions", "audioIndex"], "readonly", async store => {
+      const videos = key ? [await request(store("videos").get(key))].filter(Boolean) :
+        await request(store("videos").index("videoId").getAll(videoId));
+      const sessions = await request(store("audioSessions").index(key ? "mediaKey" : "videoId").getAll(key || videoId));
+      const subtitle = videos.filter(validMeta).sort((a, b) => b.lastUsed - a.lastUsed)[0];
+      const found = sessions.filter(row => row.bytes > 0).sort((a, b) => b.lastUsed - a.lastUsed)[0];
+      const audio = found ? { sessionId: found.sessionId, identity: mediaIdentity(found.identity),
+        index: (await request(store("audioIndex").index("session").getAll(found.sessionId))).sort((a, b) => a.index - b.index) } : null;
+      return { subtitle: subtitle ? { identity: extractIdentity(subtitle), signatures: subtitle.signatures } : null, audio };
+    });
+  }
+  async deleteAudio(sessionId, identity) {
+    await this.run(
+      ["audioSessions", "audio", "audioIndex"],
+      "readwrite",
+      async (store) => {
+        const toDelete = new Set();
+        if (sessionId) toDelete.add(sessionId);
+        if (identity?.videoId) {
+          const sessions = await request(store("audioSessions").getAll());
+          for (const s of sessions) {
+            if (s.identity?.videoId === identity.videoId) {
+              toDelete.add(s.sessionId);
+            }
+          }
+        }
+        for (const id of toDelete) {
+          await this.eraseAudioSession(store, id);
+        }
+      }
+    );
+  }
   async removeAudio(sessionId) {
     await this.run(
       ["audioSessions", "audio", "audioIndex"],
       "readwrite",
       async (store) => {
-        const keys = await request(
-          store("audioIndex").index("session").getAllKeys(sessionId)
-        );
-        keys.forEach((id) => {
-          store("audio").delete(id);
-          store("audioIndex").delete(id);
-        });
-        store("audioSessions").delete(sessionId);
+        await this.eraseAudioSession(store, sessionId);
       }
     );
   }
@@ -564,6 +822,21 @@ export class AsrCacheStore {
         store("audioIndex").clear();
       }
     );
+  }
+  async getStats() {
+    return this.run(["videos", "audioSessions"], "readonly", async (store) => {
+      const videos = await request(store("videos").getAll());
+      const audioSessions = await request(store("audioSessions").getAll());
+      const subtitleBytes = videos.reduce((sum, v) => sum + (v.bytes || 0), 0);
+      const audioBytes = audioSessions.reduce(
+        (sum, s) => sum + (s.bytes || 0),
+        0
+      );
+      return {
+        subtitles: { bytes: subtitleBytes, count: videos.length },
+        audio: { bytes: audioBytes, count: audioSessions.length },
+      };
+    });
   }
   async close() {
     if (this.database) (await this.database).close();

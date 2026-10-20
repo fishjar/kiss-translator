@@ -4,6 +4,7 @@
  */
 
 // --- 浏览器扩展快捷键 / 菜单命令类型 ---
+export const MSG_YOUTUBE_CAPTION_CACHE = "youtubeCaptionCache";
 export const CMD_TOGGLE_TRANSLATE = "toggleTranslate"; // 切换网页双语翻译
 export const CMD_TOGGLE_TRANSLATE_ONLY = "toggleTranslateOnly"; // 切换网页仅显示译文（单语翻译模式）
 export const CMD_TOGGLE_STYLE = "toggleStyle"; // 切换译文样式效果

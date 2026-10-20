@@ -17,6 +17,7 @@ import { decodeHTMLEntities } from "../../libs/html";
 import { parseMathInText } from "../../libs/mathParse";
 import { browser } from "../../libs/browser";
 import { ASR_MAX_WAV_BYTES } from "./audioChunks";
+import { alignedAsrWords } from "../../providers/asrWords";
 
 export function resolvedAsrServices(setting) {
   const transApis = setting.transApis || [];
@@ -75,10 +76,10 @@ export async function effectiveAsrLimits(service) {
 export function createAsrTextProcessor(setting, identity) {
   const { segmentationService, translationService } =
     resolvedAsrServices(setting);
-  const fromLang = getFromLang(identity.sourceLanguage);
+  let fromLang = getFromLang(identity.sourceLanguage);
   let docInfo = getDocInfo(),
     enriched = false;
-  const enrich = async (segments, signal) => {
+  const enrich = async (segments, signal, waitUntilRunning) => {
     if (enriched) return;
     enriched = true;
     const context = availableApiForScene(
@@ -90,6 +91,7 @@ export function createAsrTextProcessor(setting, identity) {
     );
     if (!context) return;
     try {
+      await waitUntilRunning(signal);
       const summary = await apiSummarizeContext({
         videoId: identity.videoId,
         title: docInfo.title || document.title,
@@ -105,11 +107,14 @@ export function createAsrTextProcessor(setting, identity) {
     }
   };
   return {
-    async segment(segments, signal) {
+    setLanguage(language) { fromLang = getFromLang(language); },
+    async segment(segments, signal, waitUntilRunning = async () => {}) {
+      await waitUntilRunning(signal);
       const flatEvents = segments
         .filter(
           (segment) => segment.text.trim() && !isNonSpeechSegment(segment.text)
         )
+        .flatMap((segment) => alignedAsrWords(segment) || [segment])
         .map((segment) => ({
           start: segment.start * 1000,
           end: segment.end * 1000,
@@ -121,7 +126,8 @@ export function createAsrTextProcessor(setting, identity) {
         segs: [{ utf8: segment.text }],
       }));
       if (!flatEvents.length) return [];
-      await enrich(segments, signal);
+      await enrich(segments, signal, waitUntilRunning);
+      await waitUntilRunning(signal);
       const fallback = () =>
         builtinSegment(events, flatEvents, fromLang, setting);
       if (!segmentationService) return fallback();
@@ -131,7 +137,10 @@ export function createAsrTextProcessor(setting, identity) {
         toLang: setting.toLang,
         chunkEvents: flatEvents,
         segApiSetting: segmentationService,
-        apiSubtitle,
+        apiSubtitle: async (options) => {
+          await waitUntilRunning(signal);
+          return apiSubtitle(options);
+        },
         docInfo,
         signal,
         setting,
@@ -143,7 +152,7 @@ export function createAsrTextProcessor(setting, identity) {
           setting.forceSubtitleRetranslate &&
           segmentationService.apiSlug !== setting.apiSlug,
       });
-      // ASR without word timestamps cannot provide sub-segment audio boundaries.
+      // Boundaries must come from actual segment or aligned-word timestamps.
       if (
         cues.some(
           (cue) =>
@@ -155,15 +164,16 @@ export function createAsrTextProcessor(setting, identity) {
         return fallback();
       return cues;
     },
-    async translate(cues, signal, onUpdate = () => {}) {
+    async translate(cues, signal, onUpdate = () => {}, waitUntilRunning = async () => {}) {
       if (signal.aborted)
         throw signal.reason || new DOMException("Cancelled", "AbortError");
       if (
         cues.some((cue) => !cue.translation?.trim() || cue._isDraftTranslation)
       )
-        await enrich(cues, signal);
+        await enrich(cues, signal, waitUntilRunning);
       const output = cues.map((cue) => ({ ...cue }));
       for (const cue of output) {
+        await waitUntilRunning(signal);
         if (signal.aborted)
           throw signal.reason || new DOMException("Cancelled", "AbortError");
         if (cue.translation?.trim() && !cue._isDraftTranslation) continue;
@@ -181,6 +191,7 @@ export function createAsrTextProcessor(setting, identity) {
             throw Object.assign(new Error("No subtitle translation service."), {
               code: "SERVICE_UNAVAILABLE",
             });
+          await waitUntilRunning(signal);
           const result = await apiTranslate({
             text: cue.text,
             fromLang,

@@ -129,6 +129,7 @@ export class YoutubeAudioBridgeClient {
           requestId: `${requestId}-cancel`,
           cancelRequestId: requestId,
         });
+        if (signal?.aborted) pending.finish(aborted(signal));
       };
       const timer = setTimeout(
         () => {

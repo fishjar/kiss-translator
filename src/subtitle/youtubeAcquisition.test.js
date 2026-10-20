@@ -24,6 +24,34 @@ const events = [
   { tStartMs: 100, dDurationMs: 900, segs: [{ utf8: "Hello", tOffsetMs: 0 }] },
 ];
 const body = JSON.stringify({ events });
+
+test("persisted captions bypass timedtext requests once delayed metadata identifies the track", async () => {
+  const bridge = {
+    request: jest.fn(async (action) =>
+      action === "snapshot" ? snapshot({ ready: false }) : snapshot()
+    ),
+  };
+  const cached = {
+    videoId: "one",
+    trackKey: captionTrackId(track),
+    events,
+    bilingual: {
+      segmentationSignature: "rules",
+      translationSignature: "translate",
+      complete: true,
+      cues: [{ start: 100, end: 1000, text: "Hello" }],
+    },
+  };
+  const acquirer = new YouTubeCaptionAcquirer(bridge);
+  const result = await acquirer.acquire("one", cached);
+  expect(result.source).toBe("cache");
+  expect(result.bilingual).toEqual(cached.bilingual);
+  expect(
+    bridge.request.mock.calls.some(([action]) =>
+      ["fetch", "refresh", "enable"].includes(action)
+    )
+  ).toBe(false);
+});
 const snapshot = (patch = {}) => ({
   videoId: "one",
   ready: true,

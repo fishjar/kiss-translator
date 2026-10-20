@@ -1,3 +1,4 @@
+import { serviceTimeoutMs } from "./timeout";
 import { invokeScene } from "./sceneInvocation";
 import { parseAITerms } from "../libs/utils";
 import { translationOptions } from "./defaultPrompts";
@@ -45,7 +46,7 @@ export async function* translatePlugin(
         ? apiSetting.batchUserPrompt
         : apiSetting.nobatchUserPrompt,
     },
-    { signal, nativeOptions, timeoutMs: (apiSetting.httpTimeout || 30) * 1000 }
+    { signal, nativeOptions, timeoutMs: serviceTimeoutMs(apiSetting) }
   );
   const completed = new Map();
   const partials = new Map();

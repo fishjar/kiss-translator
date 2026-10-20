@@ -142,6 +142,34 @@ function createApi(overrides = {}) {
 }
 
 describe("service save feedback", () => {
+  test("a local ASR-only service exposes the timeout without expanding advanced translation settings", async () => {
+    const update = jest.fn(async () => {});
+    const view = await renderApis(
+      createApi({
+        apiType: "LocalAI",
+        sourceType: "local",
+        modelRef: "whisper-small-timestamped",
+        enabledCapabilities: ["transcribe"],
+        httpTimeout: undefined,
+      }),
+      update
+    );
+    try {
+      const input = getInput(view.container, "httpTimeout");
+      expect(input.value).toBe("120");
+      expect([input.min, input.max]).toEqual(["1", "600"]);
+      await act(async () =>
+        Simulate.change(input, { target: { value: "300" } })
+      );
+      await act(async () => Simulate.click(getSaveButton(view.container)));
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({ httpTimeout: 300 })
+      );
+    } finally {
+      view.unmount();
+    }
+  });
+
   test("ASR chunk duration rejects invalid drafts and saves valid integers", async () => {
     const update = jest.fn(async () => {});
     const view = await renderApis(

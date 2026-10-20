@@ -1,4 +1,6 @@
+import { remainingInvocationMs, serviceTimeoutMs } from "../providers/timeout";
 import { providerError } from "../providers/capabilities";
+import { alignedAsrWords } from "../providers/asrWords";
 
 /** Reuse the existing runtime host and scheduler; never create/unload a private model session per task. */
 async function request(api, ctx, service, method, payload) {
@@ -16,6 +18,7 @@ async function request(api, ctx, service, method, payload) {
   const result = await runtimeHost.request(
     {
       id: ctx.requestId,
+      deadlineMs: remainingInvocationMs(ctx) ?? serviceTimeoutMs(api),
       service,
       method,
       payload: { ...data, ...target },
@@ -77,6 +80,11 @@ export const localHandlers = {
       audio: resampleTo16k(decoded.audio, decoded.sampleRate),
       language: input.language || "auto",
     });
+    const languageInfo = {
+      ...(result.language && { language: result.language }),
+      ...(result.languageConfidence !== undefined && { languageConfidence: result.languageConfidence }),
+      ...(result.languagePending && { languagePending: true }),
+    };
     if (
       input.requireTimestamps !== undefined &&
       result.inputAdjustments?.some(
@@ -92,15 +100,21 @@ export const localHandlers = {
       result.segments.some((segment) => segment.timingSource === "audio-chunk")
     )
       return {
+        ...languageInfo,
         text: result.segments.map((segment) => segment.text).join("\n"),
       };
     return {
+      ...languageInfo,
       text: result.segments.map((segment) => segment.text).join("\n"),
-      segments: result.segments.map(({ start, end, text }) => ({
-        start,
-        end,
-        text,
-      })),
+      segments: result.segments.map((segment) => {
+        const words = alignedAsrWords(segment);
+        return {
+          start: segment.start,
+          end: segment.end,
+          text: segment.text,
+          ...(words && { words }),
+        };
+      }),
     };
   },
   async synthesizeSpeech(input, api, ctx) {
@@ -121,6 +135,7 @@ export const localHandlers = {
       ctx.assets.get(input.image),
       {
         groupId: api.modelRef,
+        deadlineAt: ctx.deadlineAt ?? Date.now() + serviceTimeoutMs(api),
         device: api.device,
         prompt: input.prompt,
         maxTokens: api.maxTokens,

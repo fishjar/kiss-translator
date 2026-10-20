@@ -29,7 +29,7 @@ export function asrChunkDurationSeconds(service, downgraded = false) {
   const duration = asrMaxDurationSeconds(service.asrMaxDurationSeconds);
   return !downgraded && asrSupportsTimestamps(service)
     ? duration
-    : Math.min(5, duration);
+    : Math.min(10, duration);
 }
 
 export function asrSegmentCues(segments, timingSource = "asr") {

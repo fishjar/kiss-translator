@@ -23,6 +23,43 @@ const chunk = {
   silent: false,
 };
 
+test("uncertain language is deferred instead of becoming an empty recognized block", async () => {
+  invokeService.mockReturnValue({ cancel: jest.fn(), result: Promise.resolve({ text: "", languagePending: true }) });
+  expect(await transcribeAudioChunk(service, chunk, { language: "auto" })).toMatchObject({ languagePending: true, segments: [] });
+});
+
+test("detected language and confidence survive the service boundary", async () => {
+  invokeService.mockReturnValue({ cancel: jest.fn(), result: Promise.resolve({ text: "你好", language: "zh", languageConfidence: 0.95 }) });
+  expect(await transcribeAudioChunk(service, chunk, { language: "auto" })).toMatchObject({ language: "zh", languageConfidence: 0.95 });
+});
+
+test("word timestamps and real pauses are mapped to global video time", async () => {
+  invokeService.mockReturnValue({
+    cancel: jest.fn(),
+    result: Promise.resolve({
+      text: "one two",
+      segments: [
+        {
+          start: 0.1,
+          end: 2,
+          text: "one two",
+          words: [
+            { start: 0.1, end: 0.5, text: "one" },
+            { start: 1, end: 2, text: " two" },
+          ],
+        },
+      ],
+    }),
+  });
+  const result = await transcribeAudioChunk(service, chunk);
+  expect(result.segments[0].words).toEqual([
+    { start: 10.1, end: 10.5, text: "one" },
+    { start: 11, end: 12, text: " two" },
+  ]);
+  expect(result.events).toHaveLength(2);
+  expect(result.events[0].dDurationMs).toBeCloseTo(400);
+});
+
 test("compiled local ASR uses the privileged bridge rather than a page BroadcastChannel", async () => {
   invokeBridgedService.mockReturnValue({
     cancel: jest.fn(),
@@ -77,27 +114,79 @@ test("an independent WAV accepts optional timestamps and maps every sentence to 
   expect(cancel).toHaveBeenCalledTimes(1);
 });
 
-test.each([
-  { text: "outside", segments: [{ start: 0, end: 3, text: "outside" }] },
-  {
-    text: "reverse",
-    segments: [
-      { start: 1, end: 2, text: "a" },
-      { start: 0, end: 1, text: "b" },
-    ],
-  },
-])(
-  "invalid recognition never produces synchronized subtitles: %j",
-  async (result) => {
-    invokeService.mockReturnValue({
-      cancel: jest.fn(),
-      result: Promise.resolve(result),
-    });
-    await expect(transcribeAudioChunk(service, chunk)).rejects.toMatchObject({
-      code: "INVALID_RESPONSE",
-    });
-  }
-);
+test("timestamps exceeding chunk duration are clamped rather than discarded", async () => {
+  invokeService.mockReturnValue({
+    cancel: jest.fn(),
+    result: Promise.resolve({
+      text: "outside",
+      segments: [{ start: 0, end: 3, text: "outside" }],
+    }),
+  });
+  const res = await transcribeAudioChunk(service, chunk);
+  expect(res.timingSource).toBe("asr");
+  expect(res.segments).toEqual([{ start: 10, end: 12, text: "outside" }]);
+});
+
+test("unordered timestamps gracefully downgrade to audio-chunk timing without failing", async () => {
+  invokeService.mockReturnValue({
+    cancel: jest.fn(),
+    result: Promise.resolve({
+      text: "reverse",
+      segments: [
+        { start: 1, end: 2, text: "a" },
+        { start: 0, end: 1, text: "b" },
+      ],
+    }),
+  });
+  const res = await transcribeAudioChunk(service, chunk);
+  expect(res.timingSource).toBe("audio-chunk");
+  expect(res.segments).toEqual([{ start: 10, end: 12, text: "reverse" }]);
+});
+
+test("zero-duration trailing punctuation preserves sentence and word timestamps", async () => {
+  invokeService.mockReturnValue({
+    cancel: jest.fn(),
+    result: Promise.resolve({
+      text: "First. Next ...",
+      segments: [
+        { start: 0, end: 0.8, text: "First.", words: [
+          { start: 0, end: 0.8, text: "First." },
+        ] },
+        { start: 1, end: 2, text: "Next", words: [
+          { start: 1, end: 2, text: "Next" },
+        ] },
+        { start: 2, end: 2, text: "..." },
+      ],
+    }),
+  });
+  const res = await transcribeAudioChunk(service, chunk);
+  expect(res.timingSource).toBe("asr");
+  expect(res.segments).toEqual([
+    { start: 10, end: 10.8, text: "First.", words: [
+      { start: 10, end: 10.8, text: "First." },
+    ] },
+    { start: 11, end: 12, text: "Next...", words: [
+      { start: 11, end: 12, text: "Next..." },
+    ] },
+  ]);
+  expect(res.events).toHaveLength(2);
+});
+
+test("zero-duration speech is not silently removed as punctuation", async () => {
+  invokeService.mockReturnValue({
+    cancel: jest.fn(),
+    result: Promise.resolve({
+      text: "First. Missing",
+      segments: [
+        { start: 0, end: 1, text: "First." },
+        { start: 2, end: 2, text: "Missing" },
+      ],
+    }),
+  });
+  const res = await transcribeAudioChunk(service, chunk);
+  expect(res.timingSource).toBe("audio-chunk");
+  expect(res.segments[0].text).toBe("First. Missing");
+});
 
 test("silence is recorded without calling ASR, and oversized files must first be split", async () => {
   await expect(
@@ -217,14 +306,14 @@ test.each([{ text: "   " }, { text: "", segments: [] }])(
   }
 );
 
-test("text-only services must split requests exceeding five seconds", async () => {
+test("text-only services must split requests exceeding ten seconds", async () => {
   await expect(
     transcribeAudioChunk(
       { ...service, asrTimestampSupport: "unsupported" },
       {
         ...chunk,
-        endSample: chunk.startSample + 80001,
-        audio: new Float32Array(80001),
+        endSample: chunk.startSample + 160001,
+        audio: new Float32Array(160001),
       }
     )
   ).rejects.toMatchObject({ code: "INPUT_LIMIT_EXCEEDED" });
@@ -244,3 +333,26 @@ test("optional genuine progress events are forwarded without requiring a streami
   await transcribeAudioChunk(service, chunk, { onProgress });
   expect(onProgress).toHaveBeenCalledWith({ type: "progress", progress: 0.5 });
 });
+
+test.each([undefined, 30, 600])(
+  "local ASR forwards configured timeout %s instead of the bridge default",
+  async (httpTimeout) => {
+    invokeBridgedService.mockReturnValue({
+      cancel: jest.fn(),
+      result: Promise.resolve({ text: "speech" }),
+    });
+    await transcribeAudioChunk(
+      {
+        apiType: "LocalAI",
+        apiSlug: "local",
+        modelRef: "whisper-small-timestamped",
+        enabledCapabilities: ["transcribe"],
+        httpTimeout,
+      },
+      chunk
+    );
+    const options = invokeBridgedService.mock.calls.at(-1)[3];
+    expect(options.timeoutMs).toBe((httpTimeout ?? 120) * 1000);
+    expect(options.deadlineAt).toBeGreaterThan(Date.now());
+  }
+);

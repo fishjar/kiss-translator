@@ -1,3 +1,4 @@
+import { serviceInvocationOptions } from "./timeout";
 import { invokeInstance } from "./runtime";
 import { createInvocation } from "./invocation";
 import { createAssetStore } from "./transport";
@@ -6,6 +7,7 @@ import { OPT_TRANS_SYSTEM_TTS } from "../config/api";
 
 /** Frontend dispatch keeps legacy native page dependencies out of the user-script Offscreen host. */
 export function invokeService(instance, capability, input, options = {}) {
+  options = serviceInvocationOptions(instance, options);
   // Chrome TTS stop is browser-global. Background owns all utterances so a stale
   // page cancellation cannot stop a different page's newer speech task.
   if (

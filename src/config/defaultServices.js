@@ -13,7 +13,7 @@ export function defaultServices(client = process.env.REACT_APP_CLIENT) {
   );
   const instances = [
     ["LocalAI-JEV", "LocalAI JEV", "laya-multilingual-int8", "webgpu"],
-    ["LocalAI-ASR", "LocalAI ASR", "sensevoice-small", "webgpu"],
+    ["LocalAI-ASR", "LocalAI ASR", "whisper-small-timestamped", "webgpu"],
     ["LocalAI-OCR", "LocalAI OCR", "ppocr-v6-medium", "webgpu"],
     ["LocalAI-VLM", "LocalAI VLM", "paddleocr-vl-1.6-onnx-q8", "webgpu"],
     ["LocalAI-Translation", "LocalAI 翻译", "hy-mt2-1.8b", "webgpu"],

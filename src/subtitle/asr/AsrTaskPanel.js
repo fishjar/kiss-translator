@@ -1,5 +1,6 @@
-import { asrFeedbackEvents } from "./status";
 import { groupAsrTasks } from "./tasks";
+import { asrErrorDescription, asrStoppedDescription } from "./status";
+import { translationLanguageOptions } from "./language";
 
 const text = (node, value) => {
   if (node.textContent !== value) node.textContent = value;
@@ -25,9 +26,8 @@ export class AsrTaskPanel {
     this.summary.style.cssText =
       "box-sizing:border-box;padding:8px 16px;border-bottom:1px solid var(--kt-divider);font-size:12px;line-height:1.6;";
     this.coverage = new Map();
-    for (const key of ["audio", "recognition", "translation"]) {
+    for (const key of ["audio", "cutting", "recognition", "translation"]) {
       const row = document.createElement("div");
-      row.hidden = true;
       const label = document.createElement("div");
       const bar = document.createElement("progress");
       bar.max = 100;
@@ -37,12 +37,49 @@ export class AsrTaskPanel {
       this.summary.append(row);
       this.coverage.set(key, { row, label, bar });
     }
+    this.cacheNotice = document.createElement("div");
+    this.cacheNoticeLabel = document.createElement("span");
+    this.cacheNotice.append(this.cacheNoticeLabel);
+    this.summary.append(this.cacheNotice);
+    this.statusNotice = document.createElement("div");
+    this.statusLabel = document.createElement("span");
+    this.statusRetry = document.createElement("button");
+    this.statusRetry.textContent = this.t("youtube_asr_retry_btn");
+    this.statusRetry.onclick = () => void this.actions.retryIncomplete?.();
+    this.statusNotice.append(this.statusLabel);
+    this.summary.append(this.statusNotice);
     this.element = document.createElement("div");
     this.element.style.cssText =
       "display:none;flex-direction:column;height:100%;overflow:hidden;";
     this.toolbar = document.createElement("div");
     this.toolbar.style.cssText =
       "display:flex;flex-wrap:wrap;gap:8px;padding:10px 16px;";
+    this.languageControl = document.createElement("label");
+    this.languageControl.style.cssText = "display:inline-flex;align-items:center;gap:6px;font-size:12px;";
+    this.languageControl.append(this.t("youtube_asr_language"));
+    this.languageSelect = document.createElement("select");
+    this.languageSelect.setAttribute("aria-label", this.t("youtube_asr_language"));
+    this.languageSelect.style.cssText = "max-width:150px;padding:4px;border:var(--kt-btn-border);border-radius:4px;background:var(--kt-bg);color:var(--kt-text);";
+    this.languageSelect.onchange = () => void this.actions.setLanguage?.(this.languageSelect.value);
+    this.languageControl.append(this.languageSelect);
+    this.toolbar.append(this.languageControl);
+    this.translationControl = document.createElement("label");
+    this.translationControl.style.cssText = this.languageControl.style.cssText;
+    this.translationControl.append(this.t("youtube_asr_translation_language"));
+    this.translationSelect = document.createElement("select");
+    this.translationSelect.style.cssText = this.languageSelect.style.cssText;
+    this.translationSelect.setAttribute("aria-label", this.t("youtube_asr_translation_language"));
+    for (const item of translationLanguageOptions) {
+      const option = document.createElement("option");
+      option.value = item.value;
+      option.textContent = item.label;
+      this.translationSelect.append(option);
+    }
+    this.translationSelect.onchange = () => void this.actions.setTranslationLanguage?.(this.translationSelect.value);
+    this.translationControl.append(this.translationSelect);
+    this.toolbar.append(this.translationControl);
+    this.languageStatus = document.createElement("div");
+    this.summary.append(this.languageStatus);
     this.element.append(this.toolbar, this.summary);
     this.list = document.createElement("div");
     this.list.className = "kiss-asr-tasks";
@@ -153,61 +190,172 @@ export class AsrTaskPanel {
   }
   render() {
     const state = this.state || { phase: "waiting" };
+    const options = [{ value: "auto", label: this.t("youtube_asr_language_auto") }, ...(state.languageOptions || [])];
+    const optionsKey = JSON.stringify(options);
+    if (this.languageOptionsKey !== optionsKey) {
+      this.languageOptionsKey = optionsKey;
+      this.languageSelect.replaceChildren(...options.map(item => {
+        const option = document.createElement("option");
+        option.value = item.value;
+        option.textContent = item.label;
+        return option;
+      }));
+    }
+    if (this.languageSelect.value !== (state.selectedLanguage || "auto")) this.languageSelect.value = state.selectedLanguage || "auto";
+    const languageDisabled = !state.active || !!state.clearing;
+    if (this.languageSelect.disabled !== languageDisabled) this.languageSelect.disabled = languageDisabled;
+    if (this.translationSelect.value !== (state.translationLanguage || "")) this.translationSelect.value = state.translationLanguage || "";
+    const translationDisabled = languageDisabled || !state.translationReady;
+    if (this.translationSelect.disabled !== translationDisabled) this.translationSelect.disabled = translationDisabled;
+    const language = state.effectiveLanguage;
+    const baseLanguage = language?.toLowerCase().split("-")[0];
+    const label = options.find(item => item.value === language)?.label ||
+      options.find(item => item.value === baseLanguage)?.label ||
+      (baseLanguage === "zh" ? this.t("youtube_asr_language_chinese") : language);
+    text(this.languageStatus, language ? `${label} · ${this.t(`youtube_asr_language_${state.languageSource || "detected"}`)}` : "");
     const tasks = [...this.tasks.values()];
     const phase = state.phase === "off" ? "stopped" : state.phase || "waiting";
     const audio = state.audio || {};
-    for (const [key, progress, active, label] of [
-      [
-        "audio",
-        audio,
-        audio.phase === "fetching" || audio.bytes > 0,
-        this.t("youtube_asr_audio_label"),
-      ],
+    for (const [key, progress, label] of [
+      ["audio", audio, this.t("youtube_asr_audio_label")],
+      ["cutting", state.cutting && {
+        ...state.cutting,
+        percent: state.cutting.complete ? 100 : state.cutting.samples / state.cutting.totalSamples * 100,
+      }, this.t("youtube_asr_cutting_label")],
       [
         "recognition",
         state.recognition,
-        state.recognition?.samples > 0 || phase === "recognizing",
         this.t("youtube_asr_recognition_label"),
       ],
       [
         "translation",
         state.translation,
-        state.translation?.samples > 0 || phase === "translating",
         this.t("youtube_asr_translation_label"),
       ],
     ]) {
       const view = this.coverage.get(key);
-      if (view.row.hidden !== !active) view.row.hidden = !active;
-      if (!active) continue;
+      const hidden = key === "cutting" && !progress;
+      if (view.row.hidden !== hidden) view.row.hidden = hidden;
       const total =
         key === "audio" ? progress.expectedMs : progress?.totalSamples;
       const percent =
         total > 0 && Number.isFinite(progress?.percent)
           ? Math.max(0, Math.min(100, Math.floor(progress.percent)))
-          : undefined;
+          : 0;
       const caption =
         label +
-        (percent === undefined ? "" : ` ${percent}%`) +
+        ` ${percent}%` +
         (key === "audio"
           ? ` · ${((audio.bytes || 0) / 1048576).toFixed(1)} MiB`
           : "");
       text(view.label, caption);
       if (view.bar.getAttribute("aria-label") !== caption)
         view.bar.setAttribute("aria-label", caption);
-      if (percent === undefined) {
-        if (view.bar.hasAttribute("value")) view.bar.removeAttribute("value");
-      } else if (view.bar.getAttribute("value") !== String(percent))
+      if (view.bar.getAttribute("value") !== String(percent))
         view.bar.value = percent;
     }
     this.cooldownVisible = audio.cooldownUntil > Date.now();
+    const cacheLabel = state.cacheMode === "session" ? undefined : {
+      checking: "youtube_asr_checking_audio_cache",
+      hit: "youtube_asr_audio_cache_hit",
+      partial: "youtube_asr_audio_cache_partial",
+      miss: audio.phase === "fetching" ? "youtube_asr_acquiring_audio" : "youtube_asr_preparing_audio",
+      error: "youtube_asr_audio_cache_error",
+    }[audio.cacheStatus];
+    const hideCache = !cacheLabel || phase === "stopped" ||
+      (audio.phase === "complete" && audio.cacheStatus !== "hit") ||
+      (tasks.length > 0 && !!(state.recognitionError || state.error || state.paused ||
+        state.cuttingActive || phase === "recognizing" || phase === "translating" || audio.phase === "error"));
+    if (this.cacheNotice.hidden !== hideCache) this.cacheNotice.hidden = hideCache;
+    const cacheMessage = audio.cacheStatus === "error"
+      ? asrErrorDescription(audio.code, this.t) || this.t(cacheLabel)
+      : cacheLabel ? this.t(cacheLabel) : "";
+    text(this.cacheNoticeLabel, cacheMessage);
     const groups = groupAsrTasks(tasks);
+    const statusError = state.stoppedByError && !state.paused && !state.retrying;
+    const status = statusError
+      ? asrStoppedDescription(state, this.t)
+      : state.retrying ? this.t("youtube_asr_retrying")
+      : state.paused ? this.t("youtube_asr_paused")
+      : audio.reconnecting && audio.phase === "fetching" ? this.t("youtube_asr_reconnecting")
+      : audio.phase === "fetching" ? this.t("youtube_asr_audio_fetching")
+      : audio.phase === "restoring" ? this.t("youtube_asr_checking_audio_cache")
+      : phase === "recognizing" ? this.t("youtube_asr_recognizing")
+      : phase === "translating" ? this.t("youtube_asr_translating")
+      : state.cuttingActive ? this.t("youtube_asr_cutting") : "";
+    const hideStatus = !status;
+    if (this.statusNotice.hidden !== hideStatus) this.statusNotice.hidden = hideStatus;
+    text(this.statusLabel, status);
+    if (statusError && !["LANGUAGE_UNCERTAIN", "LANGUAGE_DETECTION_UNAVAILABLE", "UNSUPPORTED_LANGUAGE"].includes(state.recognitionError) && typeof this.actions?.retryIncomplete === "function") {
+      this.statusRetry.disabled = this.cooldownVisible;
+      if (!this.statusRetry.isConnected) this.statusNotice.append(this.statusRetry);
+    } else this.statusRetry.remove();
     if (!groups.length) {
       if (!this.empty) {
         this.empty = document.createElement("div");
-        this.empty.textContent = this.t("youtube_asr_no_tasks");
+        this.empty.style.cssText = "padding:12px 0;color:var(--kt-subtext);";
       }
+      let placeholder = this.t("youtube_asr_preparing_audio");
+      const isComplete =
+        (phase === "cached" || phase === "complete" || state.cacheRestored) &&
+        state.recognition?.percent === 100 &&
+        (!state.translation || state.translation?.percent === 100);
+      const isFailed = statusError;
+      if (audio.cacheStatus === "error") {
+        placeholder = cacheMessage;
+      } else if (isFailed) {
+        const errorCode =
+          audio.code || state.error || state.recognitionError || state.waitReason;
+        if (
+          errorCode === "NEED_PLAYBACK"
+        ) {
+          placeholder = this.t("youtube_asr_need_playback");
+        } else {
+          const detail = asrErrorDescription(errorCode, this.t);
+          placeholder = detail
+            ? `${this.t("youtube_asr_task_failed")} (${detail})`
+            : this.t("youtube_asr_task_failed");
+        }
+      } else if (state.paused) {
+        placeholder = this.t("youtube_asr_paused");
+      } else if (state.cuttingActive) {
+        placeholder = this.t("youtube_asr_cutting");
+      } else if (phase === "stopped") {
+        placeholder = this.t("youtube_asr_task_stopped");
+      } else if (state.cacheMode !== "session" && (phase === "restoring" || audio.cacheStatus === "checking")) {
+        placeholder = this.t("youtube_asr_checking_cache");
+      } else if (state.waitReason) {
+        placeholder = this.t(state.waitReason === "NEED_PLAYBACK" ? "youtube_asr_need_playback" : "youtube_asr_waiting_player");
+      } else if (audio.phase === "fetching" && state.cacheMode === "session") {
+        placeholder = this.t("youtube_asr_acquiring_audio");
+      } else if (cacheLabel && !hideCache) {
+        placeholder = this.t(cacheLabel);
+      } else if (
+        phase === "complete" ||
+        (isComplete && audio.phase !== "fetching")
+      ) {
+        placeholder = this.t("youtube_asr_complete");
+      } else if (phase === "cached" || state.cacheRestored) {
+        placeholder = this.t("youtube_asr_restored_fetching_audio");
+      } else if (phase === "waiting") {
+        placeholder =
+          state.waitReason === "NEED_PLAYBACK"
+            ? this.t("youtube_asr_need_playback")
+            : this.t("youtube_asr_waiting_player");
+      }
+      this.cacheNotice.hidden = !!statusError || !!state.retrying;
+      text(this.cacheNoticeLabel, placeholder);
+      text(this.empty, "");
       if (!this.empty.isConnected) this.list.append(this.empty);
-    } else this.empty?.remove();
+    } else {
+      this.empty?.remove();
+    }
+    if (state.cacheMode !== "session" && state.cacheWarning) {
+      this.cacheNotice.hidden = false;
+      text(this.cacheNoticeLabel, state.cacheWarning === "CACHE_WRITE_FAILED"
+        ? this.t("youtube_asr_cache_session_fallback")
+        : asrErrorDescription(state.cacheWarning, this.t));
+    }
     const visible = new Set();
     let cursor = this.list.firstElementChild;
     for (const group of groups.slice(0, this.limit)) {
@@ -243,9 +391,7 @@ export class AsrTaskPanel {
         element.addEventListener("toggle", () => {
           if (element.open) this.schedule();
         });
-        element.open =
-          this.rows.size === 1 ||
-          group.children.some((child) => child.recognition === "recognizing");
+        element.open = false;
       }
       let statusText = this.label(group.download);
       if (group.download === "complete") {
@@ -254,7 +400,8 @@ export class AsrTaskPanel {
           c.translation === "skipped" ||
           c.recognition === "skipped";
         let isComplete = false;
-        if (group.children.length > 0) {
+        let blocks = group.children || [];
+        if (group.children?.length > 0) {
           isComplete = group.children.every(isCompleteBlock);
         } else if (group.coveredElsewhere) {
           const coveringBlocks = tasks.filter(
@@ -263,31 +410,34 @@ export class AsrTaskPanel {
               t.startMs < group.endMs &&
               t.endMs > group.startMs
           );
+          blocks = coveringBlocks;
           isComplete =
             coveringBlocks.length > 0 &&
             coveringBlocks.every(isCompleteBlock);
         }
         statusText = isComplete
           ? this.label("complete")
-          : this.t("youtube_asr_media_downloaded_pending");
+          : this.t(state.cutting
+            ? !blocks.length && !group.coveredElsewhere
+              ? "youtube_asr_pending_cutting" : "youtube_asr_indexed_pending"
+            : "youtube_asr_media_downloaded_pending");
+        if (!isComplete) {
+          const active = ["recognizing", "segmenting", "translating"].find(
+            (stage) => blocks.some(
+              (block) =>
+                block.recognition === stage ||
+                block.processing === stage ||
+                block.translation === stage
+            )
+          );
+          if (active) statusText = this.label(active);
+        }
       }
-      if (group.id === "unmatched") {
-        text(
-          row.titleInfo,
-          this.t(
-            group.cached
-              ? "youtube_asr_cached_tasks"
-              : "youtube_asr_unmatched_tasks"
-          )
-        );
-        text(row.titleStatus, "");
-      } else {
-        text(
-          row.titleInfo,
-          `${this.t("youtube_asr_media_segment")} ${group.index} · ${range(group)} · ${(group.bytes / 1024).toFixed(1)} KiB`
-        );
-        text(row.titleStatus, statusText);
-      }
+      text(
+        row.titleInfo,
+        `${this.t("youtube_asr_media_segment")} ${group.index} · ${range(group)} · ${(group.bytes / 1024).toFixed(1)} KiB`
+      );
+      text(row.titleStatus, statusText);
       if (row.element !== cursor) this.list.insertBefore(row.element, cursor);
       cursor = row.element.nextElementSibling;
       if (group.kind === "media") {
@@ -383,7 +533,23 @@ export class AsrTaskPanel {
               "display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;padding:0;border:var(--kt-btn-border);border-radius:3px;background:var(--kt-btn-bg);color:var(--kt-btn-color);cursor:pointer;font-size:10px;line-height:1;";
             playBtn.title = this.t("youtube_asr_play_block");
             playBtn.setAttribute("aria-label", playBtn.title);
-            header.append(headerText, playBtn);
+            const downloadBtn = document.createElement("button");
+            downloadBtn.style.cssText = playBtn.style.cssText;
+            downloadBtn.title = this.t("youtube_asr_download_chunk");
+            downloadBtn.setAttribute("aria-label", downloadBtn.title);
+            const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            icon.setAttribute("width", "14");
+            icon.setAttribute("height", "14");
+            icon.setAttribute("viewBox", "0 0 24 24");
+            icon.setAttribute("aria-hidden", "true");
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("fill", "currentColor");
+            path.setAttribute("d", "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v3h14v-3H5z");
+            icon.append(path);
+            downloadBtn.append(icon);
+            const exportStatus = document.createElement("span");
+            exportStatus.setAttribute("role", "status");
+            header.append(headerText, playBtn, downloadBtn, exportStatus);
 
             const recRow = document.createElement("div");
             recRow.style.cssText =
@@ -399,7 +565,7 @@ export class AsrTaskPanel {
             recRetry.setAttribute("aria-label", recRetry.title);
             recRetry.onclick = (e) => {
               e.stopPropagation();
-              void this.actions.retryRecognition?.();
+              void this.actions.retryRecognition?.(node._taskId);
             };
             recRow.append(recText, recRetry);
 
@@ -414,13 +580,15 @@ export class AsrTaskPanel {
             trRetry.setAttribute("aria-label", trRetry.title);
             trRetry.onclick = (e) => {
               e.stopPropagation();
-              void this.actions.retryTranslation?.();
+              void this.actions.retryTranslation?.(node._taskId);
             };
             trRow.append(trText, trRetry);
 
             node.append(header, recRow, trRow);
             node._headerText = headerText;
             node._playBtn = playBtn;
+            node._downloadBtn = downloadBtn;
+            node._exportStatus = exportStatus;
             node._recText = recText;
             node._recRetry = recRetry;
             node._trText = trText;
@@ -433,6 +601,27 @@ export class AsrTaskPanel {
             e.stopPropagation();
             void this.playSegment(child);
           };
+          node._downloadBtn.onclick = (e) => {
+            e.stopPropagation();
+            void this.actions.exportSegment?.(child);
+          };
+          const downloadDisabled =
+            state.phase === "off" ||
+            state.audio?.phase === "missing" ||
+            child.exportState === "saving";
+          if (node._downloadBtn.disabled !== downloadDisabled)
+            node._downloadBtn.disabled = downloadDisabled;
+          const downloadOpacity = downloadDisabled ? "0.45" : "1";
+          if (node._downloadBtn.style.opacity !== downloadOpacity)
+            node._downloadBtn.style.opacity = downloadOpacity;
+          text(
+            node._exportStatus,
+            child.exportState === "saving"
+              ? this.t("youtube_asr_preparing")
+              : child.exportState === "failed"
+                ? this.t("youtube_asr_export_error")
+                : ""
+          );
           const isPlaying = this.preview?.id === child.id;
           text(
             node._playBtn,
@@ -443,6 +632,9 @@ export class AsrTaskPanel {
             `${range(child)}${child.crossSegment ? ` · ${this.t("youtube_asr_cross_segment")}` : ""}`
           );
 
+          node._taskId = child.id;
+          node._recRetry.disabled = node._trRetry.disabled = !!state.paused || !!state.retrying ||
+            phase === "off" || phase === "stopped";
           const elapsed =
             child.recognition === "recognizing" &&
             Number.isFinite(child.startedAt)
@@ -461,11 +653,13 @@ export class AsrTaskPanel {
           if (child.recognition === "failed" || child.errorCode) {
             text(
               node._recText,
-              `${this.t("youtube_asr_recognition_label")}: ${this.label("failed")} [${child.errorCode || "FAILED"}]${child.errorDetail ? `\n${child.errorDetail}` : ""}`
+              `${this.t("youtube_asr_recognition_label")}: ${asrErrorDescription(child.errorCode || "ASR_FAILED", this.t)}${child.errorDetail ? `\n${child.errorDetail}` : ""}`
             );
-            node._recRetry.style.display = "inline-flex";
+            if (node._recRetry.style.display !== "inline-flex")
+              node._recRetry.style.display = "inline-flex";
           } else {
-            node._recRetry.style.display = "none";
+            if (node._recRetry.style.display !== "none")
+              node._recRetry.style.display = "none";
             if (child.recognition === "recognizing") {
               text(
                 node._recText,
@@ -479,7 +673,7 @@ export class AsrTaskPanel {
             } else {
               text(
                 node._recText,
-                `${this.t("youtube_asr_recognition_label")}: ${this.label(child.recognition)}`
+                `${this.t("youtube_asr_recognition_label")}: ${(state.retrying || child.retrying) && child.recognition === "queued" ? this.t("youtube_asr_retrying") : this.label(child.recognition)}`
               );
             }
           }
@@ -487,11 +681,13 @@ export class AsrTaskPanel {
           if (child.translation === "failed" || child.translationError) {
             text(
               node._trText,
-              `${this.t("youtube_asr_translation_label")}: ${this.label("failed")} [${child.translationError || "FAILED"}]`
+              `${this.t("youtube_asr_translation_label")}: ${asrErrorDescription(child.translationError || "TRANSLATION_FAILED", this.t)}`
             );
-            node._trRetry.style.display = "inline-flex";
+            if (node._trRetry.style.display !== "inline-flex")
+              node._trRetry.style.display = "inline-flex";
           } else {
-            node._trRetry.style.display = "none";
+            if (node._trRetry.style.display !== "none")
+              node._trRetry.style.display = "none";
             if (
               child.translation === "translating" ||
               child.processing === "translating"
@@ -508,7 +704,7 @@ export class AsrTaskPanel {
             } else {
               text(
                 node._trText,
-                `${this.t("youtube_asr_translation_label")}: ${this.label(child.processing || child.translation)}${count}`
+                `${this.t("youtube_asr_translation_label")}: ${child.retrying ? this.t("youtube_asr_retrying") : this.label(child.processing || child.translation)}${count}`
               );
             }
           }

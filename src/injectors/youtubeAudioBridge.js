@@ -1,6 +1,7 @@
 import {
   nativeAudioFormat,
   selectedAacFormat,
+  youtubeAudioFormats,
   SabrAudioSession,
   sabrUrl,
   SABR_BODY_LIMIT,
@@ -9,6 +10,7 @@ import {
   formatKey,
 } from "../subtitle/asr/sabrProtocol";
 import { YOUTUBE_AUDIO_PROTOCOL } from "../subtitle/asr/audioBridgeProtocol";
+import { VideoPlaybackAbrRequest } from "googlevideo/protos";
 
 const fail = (code) => Object.assign(new Error(code), { code });
 
@@ -19,9 +21,10 @@ export function installYoutubeAudioBridge({
   getVideoId,
 }) {
   const origin = window.location.origin;
-  let enabled = true,
-    disposed = false,
+  let disposed = false,
     version = 0,
+    requestVersion = 0,
+    captureSequence = 0,
     candidates = [],
     active,
     lastNative,
@@ -37,21 +40,24 @@ export function installYoutubeAudioBridge({
       );
   };
   const prune = () => {
-    candidates = candidates
-      .filter(
-        (entry) =>
-          entry.videoId === getVideoId() && Date.now() - entry.at < 60000
-      )
-      .slice(-4);
+    candidates = candidates.filter(
+      (entry) =>
+        entry.videoId === getVideoId() &&
+        (!entry.expiresAt || entry.expiresAt > Date.now())
+    );
   };
-  const clear = (keepIdentity = false) => {
+  const stop = () => {
+    requestVersion++;
+    active = undefined;
+    requests.forEach((controller) => controller.abort());
+  };
+  const clear = () => {
     version++;
     candidates = [];
     captureFailure = undefined;
-    active = undefined;
-    if (!keepIdentity) lastNative = undefined;
+    lastNative = undefined;
+    stop();
     reads.forEach((controller) => controller.abort());
-    requests.forEach((controller) => controller.abort());
   };
   const playerResponse = () => {
     const player = getPlayer();
@@ -90,15 +96,50 @@ export function installYoutubeAudioBridge({
   };
   const snapshot = async () => {
     prune();
-    const candidate = candidates[candidates.length - 1];
     const videoId = getVideoId();
+    const response = playerResponse();
+    const runtimeTrack = getPlayer().getAudioTrack?.();
+    const formats = youtubeAudioFormats(response);
+    const selectedTrack =
+      (formats.some((entry) => entry.audioTrack?.id === runtimeTrack?.id)
+        ? runtimeTrack?.id
+        : undefined) ||
+      formats.find((entry) => entry.audioTrack?.audioIsDefault)?.audioTrack.id;
+    let candidate = [...candidates]
+      .reverse()
+      .find(
+        (entry) =>
+          !selectedTrack ||
+          (entry.trackId ||
+            formats.find(
+              (format) => formatKey(format) === formatKey(entry.format)
+            )?.audioTrack?.id) === selectedTrack
+      );
     const native =
       candidate?.format ||
-      (lastNative?.videoId === videoId ? lastNative.format : null);
-    if (!native) throw missingCapture();
-    const response = playerResponse();
-    const format = selectedAacFormat(response, native, videoId);
-    const runtimeTrack = getPlayer().getAudioTrack?.();
+      (lastNative?.videoId === videoId &&
+      (!selectedTrack || lastNative.trackId === selectedTrack)
+        ? lastNative.format
+        : null);
+    const available = formats.filter(
+      (entry) =>
+        entry.mimeType?.startsWith("audio/mp4") &&
+        entry.audioTrack?.id &&
+        (!selectedTrack || entry.audioTrack.id === selectedTrack)
+    );
+    const baseline = available.filter(
+      (entry) => entry.audioTrack.id === "default" && !entry.xtags
+    );
+    const format = native
+      ? selectedAacFormat(response, native, videoId)
+      : available.length === 1
+        ? selectedAacFormat(response, available[0], videoId)
+        : baseline.length === 1
+          ? selectedAacFormat(response, baseline[0], videoId)
+          : null;
+    if (!format) throw missingCapture();
+    if (!candidate) candidate = parameterCandidate(response, format);
+    if (!native && !candidate) throw missingCapture();
     if (
       typeof runtimeTrack?.id === "string" &&
       response.streamingData?.adaptiveFormats?.some(
@@ -131,7 +172,10 @@ export function installYoutubeAudioBridge({
         trackId: format.audioTrack.id,
         mediaVersion: `${format.itag}.${format.lastModified}.${fingerprint}`,
         durationMs,
-        sourceLanguage: format.audioTrack.id.replace(/\.\d+$/, ""),
+        sourceLanguage:
+          format.audioTrack.id === "default"
+            ? "auto"
+            : format.audioTrack.id.replace(/\.\d+$/, ""),
       },
       format: {
         itag: format.itag,
@@ -140,6 +184,63 @@ export function installYoutubeAudioBridge({
       },
       candidate,
     };
+  };
+  // Used only when download is requested; passive capture remains the primary source.
+  const parameterCandidate = (response, format) => {
+    const url = sabrUrl(response.streamingData?.serverAbrStreamingUrl);
+    const config =
+      response.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig
+        ?.videoPlaybackUstreamerConfig;
+    const clientName = Number(
+      window.ytcfg?.get?.("INNERTUBE_CONTEXT_CLIENT_NAME")
+    );
+    const clientVersion = window.ytcfg?.get?.(
+      "INNERTUBE_CONTEXT_CLIENT_VERSION"
+    );
+    if (
+      !url ||
+      typeof config !== "string" ||
+      !Number.isInteger(clientName) ||
+      clientName <= 0 ||
+      typeof clientVersion !== "string" ||
+      !clientVersion
+    )
+      return;
+    const decode = (value) =>
+      Uint8Array.from(
+        atob(value.replaceAll("-", "+").replaceAll("_", "/")),
+        (char) => char.charCodeAt(0)
+      );
+    try {
+      const poToken = response.serviceIntegrityDimensions?.poToken;
+      const body = VideoPlaybackAbrRequest.encode({
+        clientAbrState: {},
+        selectedFormatIds: [],
+        bufferedRanges: [],
+        preferredAudioFormatIds: [format],
+        preferredVideoFormatIds: [],
+        preferredSubtitleFormatIds: [],
+        field1000: [],
+        videoPlaybackUstreamerConfig: decode(config),
+        streamerContext: {
+          clientInfo: { clientName, clientVersion },
+          ...(typeof poToken === "string" && { poToken: decode(poToken) }),
+          sabrContexts: [],
+          unsentSabrContexts: [],
+        },
+      }).finish();
+      if (body.length > SABR_BODY_LIMIT) return;
+      return {
+        videoId: getVideoId(),
+        url: url.href,
+        body,
+        format,
+        trackId: format.audioTrack.id,
+        credentials: "include",
+      };
+    } catch {
+      return;
+    }
   };
   const readBytes = async (stream, signal, limit) => {
     if (!stream) throw fail("AUDIO_EMPTY");
@@ -182,7 +283,6 @@ export function installYoutubeAudioBridge({
           ? input
           : null;
       if (
-        !enabled ||
         disposed ||
         !videoId ||
         reads.size >= 2 ||
@@ -197,6 +297,7 @@ export function installYoutubeAudioBridge({
         videoId,
         url,
         version,
+        sequence: ++captureSequence,
         controller,
         credentials: init?.credentials || request?.credentials || "same-origin",
       };
@@ -262,17 +363,12 @@ export function installYoutubeAudioBridge({
           entry.controller.signal,
           SABR_RESPONSE_LIMIT
         );
-        if (
-          entry.version !== version ||
-          entry.videoId !== getVideoId() ||
-          !enabled
-        )
-          return;
+        if (entry.version !== version || entry.videoId !== getVideoId()) return;
         if (getPlayer()?.matches?.(".ad-showing,.ad-interrupting")) return;
         const responseData = getPlayer()?.getPlayerResponse?.();
         const knownFormats =
           responseData?.videoDetails?.videoId === entry.videoId
-            ? responseData.streamingData?.adaptiveFormats
+            ? youtubeAudioFormats(responseData)
             : undefined;
         const format = nativeAudioFormat(
           body,
@@ -280,15 +376,29 @@ export function installYoutubeAudioBridge({
           entry.videoId,
           knownFormats
         );
+        const trackId = knownFormats?.find(
+          (item) => formatKey(item) === formatKey(format)
+        )?.audioTrack?.id;
+        if (
+          candidates.some(
+            (item) => item.trackId === trackId && item.sequence > entry.sequence
+          )
+        )
+          return;
+        candidates = candidates.filter((item) => item.trackId !== trackId);
+        const expire = Number(sabrUrl(entry.url)?.searchParams.get("expire"));
         candidates.push({
           videoId: entry.videoId,
           url: entry.url,
           credentials: entry.credentials,
           body,
           format,
+          trackId,
+          sequence: entry.sequence,
+          expiresAt: expire > 0 ? expire * 1000 : undefined,
           at: Date.now(),
         });
-        lastNative = { videoId: entry.videoId, format };
+        lastNative = { videoId: entry.videoId, format, trackId };
         captureFailure = undefined;
         prune();
         post({ type: "capture", videoId: entry.videoId });
@@ -317,12 +427,11 @@ export function installYoutubeAudioBridge({
       return;
     }
     if (action === "configure") {
-      enabled = data.enabled === true;
-      if (!enabled) clear();
+      // Kept for older clients; ASR configuration does not own passive capture.
       return;
     }
     if (action === "clear") {
-      clear(true);
+      stop();
       return;
     }
     if (videoId !== getVideoId() || !/^[\w-]{11}$/.test(videoId || "")) {
@@ -332,7 +441,7 @@ export function installYoutubeAudioBridge({
     const controller = new AbortController();
     requests.set(requestId, controller);
     const timer = setTimeout(() => controller.abort(), 15000);
-    const generation = version;
+    const generation = requestVersion;
     try {
       let result;
       if (action === "snapshot") {
@@ -343,7 +452,7 @@ export function installYoutubeAudioBridge({
           throw fail("AUDIO_BUSY");
         const { candidate, ...metadata } = await snapshot();
         if (!candidate) throw missingCapture();
-        if (generation !== version) throw fail("STALE_VIDEO");
+        if (generation !== requestVersion) throw fail("STALE_VIDEO");
         const positionMs = data.positionMs ?? 0;
         if (
           !Number.isSafeInteger(positionMs) ||
@@ -370,6 +479,7 @@ export function installYoutubeAudioBridge({
           sequence: 0,
           positionMs,
           metadata,
+          candidate,
           credentials: candidate.credentials,
           session: new SabrAudioSession({
             body: candidate.body,
@@ -383,7 +493,7 @@ export function installYoutubeAudioBridge({
           throw fail("AUDIO_SESSION_MISSING");
         const current = active;
         const metadata = await snapshot();
-        if (generation !== version || active !== current)
+        if (generation !== requestVersion || active !== current)
           throw fail("STALE_VIDEO");
         if (
           formatKey(metadata.format) !== formatKey(current.metadata.format) ||
@@ -403,6 +513,11 @@ export function installYoutubeAudioBridge({
           signal: controller.signal,
         });
         if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            candidates = candidates.filter(
+              (entry) => entry !== current.candidate
+            );
+          }
           const cause = fail(
             response.status === 401 || response.status === 403
               ? "AUDIO_AUTH_EXPIRED"
@@ -430,7 +545,7 @@ export function installYoutubeAudioBridge({
         current.positionMs = Math.ceil(end);
       } else throw fail("INVALID_AUDIO_REQUEST");
       if (controller.signal.aborted) throw fail("TIMEOUT");
-      if (generation !== version || videoId !== getVideoId())
+      if (generation !== requestVersion || videoId !== getVideoId())
         throw fail("STALE_VIDEO");
       post({ type: "response", requestId, videoId, result });
     } catch (cause) {

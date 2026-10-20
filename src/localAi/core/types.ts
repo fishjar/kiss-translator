@@ -248,6 +248,7 @@ export interface ASRSegment {
   start: number;
   end: number;
   words?: ASRWord[];
+  wordsTimingSource?: "estimated";
   language?: string;
   emotion?: string;
   event?: string;

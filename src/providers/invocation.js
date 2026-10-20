@@ -1,4 +1,5 @@
 import { providerError } from "./capabilities";
+import { invocationDeadline, registerInvocationDeadline } from "./timeout";
 
 let sequence = 0;
 const abortError = () =>
@@ -86,6 +87,8 @@ export function createInvocation(execute, options = {}) {
   // Native tasks share a runtime across pages; a per-page counter alone can collide.
   const requestId = `provider-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${++sequence}-${Math.random().toString(36).slice(2)}`}`;
   const controller = new AbortController();
+  let deadlineAt = invocationDeadline(options);
+  registerInvocationDeadline(controller.signal, deadlineAt);
   const channel = eventChannel();
   let settled = false;
   let timeout;
@@ -108,21 +111,34 @@ export function createInvocation(execute, options = {}) {
     else resolveResult(value);
   };
   const cancel = () => finish(abortError());
+  const setDeadline = (value) => {
+    if (settled) return;
+    if (!Number.isFinite(value)) {
+      finish(providerError("INVALID_TIMEOUT", "Invalid invocation deadline."));
+      return;
+    }
+    deadlineAt = Math.min(deadlineAt ?? Infinity, value);
+    registerInvocationDeadline(controller.signal, deadlineAt);
+    clearTimeout(timeout);
+    const expire = () =>
+      finish(providerError("REQUEST_TIMEOUT", "Provider invocation timed out."));
+    if (deadlineAt <= Date.now()) expire();
+    else timeout = setTimeout(expire, deadlineAt - Date.now());
+  };
   options.signal?.addEventListener("abort", cancel, { once: true });
   if (options.signal?.aborted) cancel();
-  if (!settled && options.timeoutMs !== undefined) {
-    if (!Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0) {
+  if (
+    !settled &&
+    (options.timeoutMs !== undefined || deadlineAt !== undefined)
+  ) {
+    if (
+      options.timeoutMs !== undefined &&
+      (!Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0)
+    ) {
       finish(
         providerError("INVALID_TIMEOUT", "timeoutMs must be a positive number.")
       );
-    } else
-      timeout = setTimeout(
-        () =>
-          finish(
-            providerError("REQUEST_TIMEOUT", "Provider invocation timed out.")
-          ),
-        options.timeoutMs
-      );
+    } else setDeadline(deadlineAt);
   }
   const finished = Promise.resolve()
     .then(() => {
@@ -130,6 +146,8 @@ export function createInvocation(execute, options = {}) {
       return execute({
         requestId,
         signal: controller.signal,
+        get deadlineAt() { return deadlineAt; },
+        setDeadline,
         emit: channel.emit,
       });
     })

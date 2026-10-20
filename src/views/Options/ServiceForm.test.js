@@ -5,6 +5,7 @@ import {
   ServiceFormHeader,
   serviceTransportFeatures,
   AsrDurationSetting,
+  ServiceTimeoutSetting,
 } from "./ServiceForm";
 import PluginPromptSettings from "./PluginPromptSettings";
 import { PROMPT_CATEGORY_USER } from "../../config/prompt";
@@ -330,3 +331,32 @@ test("external ASR over localhost can override timestamp support and restores th
     node.remove();
   }
 });
+
+test.each([undefined, 30, 600])(
+  "service timeout shows a default of 120 and preserves the saved value %s",
+  async (httpTimeout) => {
+    const node = document.createElement("div");
+    document.body.append(node);
+    const root = createRoot(node);
+    const onChange = jest.fn();
+    try {
+      await act(async () =>
+        root.render(
+          <ServiceTimeoutSetting api={{ httpTimeout }} onChange={onChange} />
+        )
+      );
+      const input = node.querySelector('input[name="httpTimeout"]');
+      expect(input.value).toBe(String(httpTimeout ?? 120));
+      expect([input.min, input.max]).toEqual(["1", "600"]);
+      for (const value of [1, 600]) {
+        await act(async () =>
+          Simulate.change(input, { target: { value: String(value) } })
+        );
+        expect(onChange).toHaveBeenLastCalledWith(value);
+      }
+    } finally {
+      await act(async () => root.unmount());
+      node.remove();
+    }
+  }
+);

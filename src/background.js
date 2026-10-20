@@ -1,4 +1,6 @@
 import browser from "webextension-polyfill";
+import { captionCacheBackend } from "./subtitle/captionCacheBackground";
+import { MSG_YOUTUBE_CAPTION_CACHE } from "./config/msg";
 import { writeSiteRule } from "./libs/ruleEditorStorage";
 import {
   MSG_FETCH,
@@ -83,7 +85,12 @@ import { installAsrCacheBackend } from "./subtitle/asr/cacheBackground";
 globalThis.__KISS_CONTEXT__ = "background";
 void ensureYoutubeBridgeRegistered();
 installStorageCoordinator();
-installAsrCacheBackend(browser);
+installAsrCacheBackend(browser, undefined, {
+  getAudioCacheLimit: async () => {
+    const setting = await getSettingWithDefault();
+    return setting?.subtitleSetting?.audioCacheLimit ?? 100;
+  },
+});
 installFileTranslationBackend();
 restoreFileTranslationBridges();
 
@@ -751,7 +758,12 @@ const injectToCurrentTab = async (func, args) => {
 };
 
 // 后台消息指令与对应处理器映射表
+const handleCaptionCache = captionCacheBackend(browser, async () => {
+  const setting = await getSettingWithDefault();
+  return setting?.subtitleSetting?.captionCacheLimit ?? 100;
+});
 const messageHandlers = {
+  [MSG_YOUTUBE_CAPTION_CACHE]: handleCaptionCache,
   [MSG_GET_FRAME_ID]: (_args, sender) =>
     Number.isInteger(sender?.frameId) ? sender.frameId : undefined,
   [MSG_VALIDATE_DOCUMENT]: (args, sender) =>

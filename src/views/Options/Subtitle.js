@@ -2,6 +2,8 @@ import { isApiConfigured } from "../../config/serviceSelection";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import { AsrCacheClient } from "../../subtitle/asr/cacheBridge";
+import { captionCacheRequest } from "../../subtitle/captionCache";
+import { formatBytes } from "../../localAi/core/progress";
 import { isApiAvailableFor } from "../../config/serviceSelection";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -420,8 +422,49 @@ function SubtitleStylePreview({
  * 视频双语字幕翻译设置页面组件 (SubtitleSetting)
  */
 export default function SubtitleSetting() {
+  const captionCacheSupported = [
+    "chrome",
+    "edge",
+    "firefox",
+    "safari",
+    "thunderbird",
+  ].includes(process.env.REACT_APP_CLIENT);
   const [cacheClearState, setCacheClearState] = useState("idle");
+  const [audioClearState, setAudioClearState] = useState("idle");
+  const [cacheStats, setCacheStats] = useState(null);
+  const [captionStats, setCaptionStats] = useState(null);
+  const [captionClearState, setCaptionClearState] = useState("idle");
+  const captionStatsVersion = useRef(0);
   const i18n = useI18n();
+
+  useEffect(() => {
+    let active = true;
+    let cache;
+    const statsVersion = ++captionStatsVersion.current;
+    if (captionCacheSupported)
+      void captionCacheRequest("stats")
+        .then((stats) => {
+          if (active && statsVersion === captionStatsVersion.current)
+            setCaptionStats(stats);
+        })
+        .catch(() => {});
+    if (["chrome", "edge"].includes(process.env.REACT_APP_CLIENT)) {
+      cache = new AsrCacheClient();
+      if (typeof cache?.getStats === "function") {
+        cache
+          .getStats()
+          .then((stats) => {
+            if (active && stats) setCacheStats(stats);
+          })
+          .catch(() => {})
+          .finally(() => cache.close?.());
+      }
+    }
+    return () => {
+      active = false;
+      cache?.close?.();
+    };
+  }, [captionCacheSupported]);
   // 字幕设置 Hook
   const { subtitleSetting, updateSubtitle } = useSubtitle();
   // 启用的翻译引擎列表与 AI 模型引擎列表
@@ -494,6 +537,8 @@ export default function SubtitleSetting() {
   const {
     enabled,
     asrApiSlug = "-",
+    audioCacheLimit = 100,
+    captionCacheLimit = 100,
     apiSlug,
     segSlug,
     forceSubtitleRetranslate = false,
@@ -923,6 +968,45 @@ export default function SubtitleSetting() {
               </TextField>
             </SettingsRow>
             <SettingsRow
+              label={i18n("youtube_caption_cache_limit")}
+              description={i18n("youtube_caption_cache_limit_hint")}
+            >
+              <ValidationInput
+                size="small"
+                type="number"
+                name="captionCacheLimit"
+                value={captionCacheLimit}
+                onChange={handleChange}
+                min={0}
+                max={1000}
+                inputProps={{
+                  "aria-label": i18n("youtube_caption_cache_limit"),
+                }}
+                disabled={!captionCacheSupported}
+              />
+            </SettingsRow>
+            <SettingsRow label={i18n("youtube_caption_cache_clear")}>
+              <Button
+                disabled={
+                  !captionCacheSupported || captionClearState === "busy"
+                }
+                onClick={async () => {
+                  setCaptionClearState("busy");
+                  captionStatsVersion.current++;
+                  try {
+                    if ((await captionCacheRequest("clear")) !== true)
+                      throw new Error("CACHE_CLEAR_FAILED");
+                    setCaptionStats({ bytes: 0, count: 0 });
+                    setCaptionClearState("cleared");
+                  } catch {
+                    setCaptionClearState("error");
+                  }
+                }}
+              >
+                {`${i18n(captionClearState === "cleared" ? "youtube_asr_cleared" : captionClearState === "error" ? "youtube_caption_cache_clear_failed" : "youtube_caption_cache_clear")} (${captionStats?.count ?? 0} · ${formatBytes(captionStats?.bytes ?? 0)})`}
+              </Button>
+            </SettingsRow>
+            <SettingsRow
               label={i18n("youtube_asr_service")}
               description={i18n("youtube_asr_hint")}
             >
@@ -955,6 +1039,26 @@ export default function SubtitleSetting() {
                   )}
               </TextField>
             </SettingsRow>
+            <SettingsRow
+              label={i18n("youtube_asr_audio_cache_limit")}
+              description={i18n("youtube_asr_audio_cache_limit_hint")}
+            >
+              <ValidationInput
+                size="small"
+                type="number"
+                name="audioCacheLimit"
+                value={audioCacheLimit}
+                onChange={handleChange}
+                min={0}
+                max={1000}
+                inputProps={{
+                  "aria-label": i18n("youtube_asr_audio_cache_limit"),
+                }}
+                disabled={
+                  !["chrome", "edge"].includes(process.env.REACT_APP_CLIENT)
+                }
+              />
+            </SettingsRow>
             <SettingsRow label={i18n("youtube_asr_clear")}>
               <Button
                 disabled={
@@ -967,6 +1071,10 @@ export default function SubtitleSetting() {
                   try {
                     await cache.clearSubtitles();
                     setCacheClearState("cleared");
+                    setCacheStats((prev) => ({
+                      ...prev,
+                      subtitles: { bytes: 0, count: 0 },
+                    }));
                   } catch {
                     setCacheClearState("unsaved");
                   } finally {
@@ -974,13 +1082,45 @@ export default function SubtitleSetting() {
                   }
                 }}
               >
-                {i18n(
+                {`${i18n(
                   cacheClearState === "cleared"
                     ? "youtube_asr_cleared"
                     : cacheClearState === "unsaved"
                       ? "youtube_asr_unsaved"
                       : "youtube_asr_clear"
-                )}
+                )} (${formatBytes(cacheStats?.subtitles?.bytes ?? 0)})`}
+              </Button>
+            </SettingsRow>
+            <SettingsRow label={i18n("youtube_asr_clear_audio")}>
+              <Button
+                disabled={
+                  audioClearState === "busy" ||
+                  !["chrome", "edge"].includes(process.env.REACT_APP_CLIENT)
+                }
+                onClick={async () => {
+                  setAudioClearState("busy");
+                  const cache = new AsrCacheClient();
+                  try {
+                    await cache.clearAudio();
+                    setAudioClearState("cleared");
+                    setCacheStats((prev) => ({
+                      ...prev,
+                      audio: { bytes: 0, count: 0 },
+                    }));
+                  } catch {
+                    setAudioClearState("unsaved");
+                  } finally {
+                    cache.close();
+                  }
+                }}
+              >
+                {`${i18n(
+                  audioClearState === "cleared"
+                    ? "youtube_asr_audio_cleared"
+                    : audioClearState === "unsaved"
+                      ? "youtube_asr_unsaved"
+                      : "youtube_asr_clear_audio"
+                )} (${formatBytes(cacheStats?.audio?.bytes ?? 0)})`}
               </Button>
             </SettingsRow>
             <SettingsRow

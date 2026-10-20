@@ -1,3 +1,4 @@
+import { serviceInvocationOptions } from "../../providers/timeout";
 import { invokeService } from "../../providers/serviceRuntime";
 import { invokeBridgedService } from "../../providers/bridgeInvocation";
 import { createAssetStore } from "../../providers/transport";
@@ -7,6 +8,8 @@ import { enabledApiCapabilities } from "../../config/serviceSelection";
 import { ASR_SAMPLE_RATE, ASR_MAX_WAV_BYTES, asrWav } from "./audioChunks";
 import { asrChunkDurationSeconds } from "./timing";
 import { isHostedLocalAsr } from "../../providers/localAsrRouting";
+import { alignedAsrWords } from "../../providers/asrWords";
+import { logger } from "../../libs/log";
 
 /** One independent ASR file. The session scheduler owns serialization/retries. */
 export async function transcribeAudioChunk(
@@ -70,13 +73,13 @@ export async function transcribeAudioChunk(
       service.provider?.implementation &&
       service.provider.implementation.kind !== "native";
     const hosted = external || isHostedLocalAsr(service, "transcribe");
-    const options = {
+    const options = serviceInvocationOptions(service, {
       assets,
       // The host bridge disconnects immediately on abort. Keep its bounded in-flight
       // request until settlement so reopening the same video cannot bypass the slot.
       signal: hosted ? undefined : signal,
       streaming: "disabled",
-    };
+    });
     call = hosted
       ? invokeBridgedService(service.apiSlug, "transcribe", input, options)
       : invokeService(service, "transcribe", input, options);
@@ -90,43 +93,107 @@ export async function transcribeAudioChunk(
     const result = await call.result;
     checkCancelled();
     validateResult("transcribe", result, input);
-    const timingSource = result.segments?.length ? "asr" : "audio-chunk";
-    let lastStart = -1;
-    const segments =
-      timingSource === "audio-chunk"
-        ? result.text.trim()
-          ? [
-              {
-                start: startSample / ASR_SAMPLE_RATE,
-                end: endSample / ASR_SAMPLE_RATE,
-                text: result.text,
-              },
-            ]
-          : []
-        : result.segments.map(({ start, end, text }) => {
-            if (
-              start < lastStart ||
-              end > duration ||
-              (text.trim() && end <= start)
-            )
-              throw providerError(
-                "INVALID_RESPONSE",
-                "ASR timestamps exceed the audio chunk or are unordered."
-              );
-            lastStart = start;
-            return {
-              start: startSample / ASR_SAMPLE_RATE + start,
-              end: startSample / ASR_SAMPLE_RATE + end,
-              text,
-            };
-          });
+    if (result.languagePending) return { startSample, endSample, languagePending: true, segments: [], events: [] };
+    let timingSource = result.segments?.length ? "asr" : "audio-chunk";
+    let segments = [];
+    if (timingSource === "asr") {
+      let lastStart = -1;
+      let valid = true;
+      const parsed = [];
+      for (const seg of result.segments) {
+        const text = seg.text || "";
+        const rawStart = Number(seg.start);
+        const rawEnd = Number(seg.end);
+        // 方案 B：对时间戳进行容差钳位，避免短音频末尾或微小浮点溢出导致整块抛弃
+        const start = Math.max(0, Math.min(duration, rawStart));
+        const end = Math.max(start, Math.min(duration, rawEnd));
+        // Standalone trailing punctuation has no acoustic duration. Attach it to
+        // the preceding cue without discarding genuine sentence/word timings.
+        const previous = parsed[parsed.length - 1];
+        if (
+          Number.isFinite(start) && end === start && start >= lastStart &&
+          previous && /^[\p{P}\s]+$/u.test(text) && text.trim()
+        ) {
+          const punctuation = text.trim();
+          previous.text += punctuation;
+          if (previous.words) previous.words[previous.words.length - 1].text += punctuation;
+          continue;
+        }
+        if (
+          !Number.isFinite(start) ||
+          !Number.isFinite(end) ||
+          start < lastStart ||
+          (text.trim() && end <= start)
+        ) {
+          logger.warn("[YouTube ASR] timestamp fallback", JSON.stringify({
+            startSample, endSample, duration,
+            reason: !Number.isFinite(start) || !Number.isFinite(end)
+              ? "non-finite" : start < lastStart ? "unordered" : "zero-duration",
+            segment: parsed.length, start: rawStart, end: rawEnd,
+            textLength: text.length, wordCount: seg.words?.length || 0,
+          }));
+          valid = false;
+          break;
+        }
+        lastStart = start;
+        const words = alignedAsrWords({ ...seg, start, end });
+        const offset = startSample / ASR_SAMPLE_RATE;
+        parsed.push({
+          start: startSample / ASR_SAMPLE_RATE + start,
+          end: startSample / ASR_SAMPLE_RATE + end,
+          text,
+          ...(words && {
+            words: words.map((word) => ({
+              ...word,
+              start: word.start + offset,
+              end: word.end + offset,
+            })),
+          }),
+        });
+      }
+      if (valid && parsed.length > 0) {
+        segments = parsed;
+      } else {
+        // 时间戳异常无法修复时，平滑降级为整段音频起止时间
+        timingSource = "audio-chunk";
+      }
+    }
+    if (timingSource === "audio-chunk") {
+      const fullText = (
+        result.text ||
+        result.segments
+          ?.map((s) => s.text)
+          .filter(Boolean)
+          .join(" ") ||
+        ""
+      ).trim();
+      segments = fullText
+        ? [
+            {
+              start: startSample / ASR_SAMPLE_RATE,
+              end: endSample / ASR_SAMPLE_RATE,
+              text: fullText,
+            },
+          ]
+        : [];
+    }
+    logger.debug("[YouTube ASR] timing result", JSON.stringify({
+      startSample, endSample, timingSource,
+      inputSegments: result.segments?.length || 0,
+      inputWords: result.segments?.reduce((sum, seg) => sum + (seg.words?.length || 0), 0) || 0,
+      outputSegments: segments.length,
+      outputWords: segments.reduce((sum, seg) => sum + (seg.words?.length || 0), 0),
+    }));
     return {
       startSample,
       endSample,
       silent: false,
       timingSource,
+      ...(result.language && { language: result.language }),
+      ...(result.languageConfidence !== undefined && { languageConfidence: result.languageConfidence }),
       segments,
       events: segments
+        .flatMap((segment) => alignedAsrWords(segment) || [segment])
         .filter((segment) => segment.text.trim())
         .map((segment) => ({
           tStartMs: segment.start * 1000,

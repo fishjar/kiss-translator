@@ -474,11 +474,19 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
     if (hooks?.signal?.aborted) {
       throw new Error("REQUEST_CANCELLED: 请求已取消");
     }
+    const deadlineAt =
+      typeof request.deadlineMs === "number" && request.deadlineMs > 0
+        ? Date.now() + request.deadlineMs : undefined;
     await this.ensure();
+    if (hooks?.signal?.aborted) throw new Error("REQUEST_CANCELLED: 请求已取消");
+    if (deadlineAt !== undefined && deadlineAt <= Date.now())
+      throw new Error("REQUEST_TIMEOUT: Offscreen RPC 请求超时");
     const ch = this.getChannel();
-    const strictDeadline = typeof request.deadlineMs === "number" && request.deadlineMs > 0;
+    const strictDeadline = deadlineAt !== undefined;
     const timeoutMs =
-      request.deadlineMs ?? hooks?.timeoutMs ?? this.defaultTimeoutMs;
+      deadlineAt === undefined
+        ? request.deadlineMs ?? hooks?.timeoutMs ?? this.defaultTimeoutMs
+        : deadlineAt - Date.now();
 
     return new Promise<TRes>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -510,7 +518,7 @@ export class ChromiumOffscreenHost implements RuntimeHostAdapter {
       try {
         ch.postMessage({
           kind: "request",
-          request,
+          request: strictDeadline ? { ...request, deadlineMs: timeoutMs } : request,
         } satisfies RpcChannelEnvelope);
       } catch (err) {
         const sendErr =

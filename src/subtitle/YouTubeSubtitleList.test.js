@@ -7,6 +7,7 @@ import {
   apiSummarizeVideo,
   getVideoSummarySignature,
 } from "../apis/index.js";
+import { getSettingWithDefault, saveEdit } from "../libs/storage.js";
 import { openOptionsPage } from "../libs/navigation.js";
 import { EVENT_FAVORITE_WORD_CHANGE } from "../config";
 
@@ -116,35 +117,97 @@ describe("YouTubeSubtitleList", () => {
     expect(list.container.style.position).toBe("");
     list.destroy();
   });
+  test("Shorts panel width restores, drags, saves and clamps without replacing user preference", async () => {
+    saveEdit.mockResolvedValue();
+    getSettingWithDefault.mockResolvedValueOnce({ subtitleSetting: { youtubeShortsSubtitlePanelWidth: 600 } });
+    window.history.replaceState({}, "", "/shorts/kSQknoHMFtk");
+    const list = new YouTubeSubtitleList(createVideoElement(), key => key, { asrActions: {} });
+    list.initialize([]);
+    await flushPromises();
+    expect(list.container.style.width).toBe("600px");
+    const handle = list._shortsResizeHandle;
+    handle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    expect(list.container.style.width).toBe("616px");
+    expect(saveEdit.mock.calls.at(-1)[1]({}).subtitleSetting.youtubeShortsSubtitlePanelWidth).toBe(616);
+    list.container.getBoundingClientRect = () => ({ width: 616 });
+    handle.dispatchEvent(new MouseEvent("pointerdown", { button: 0, clientX: 500 }));
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 450 }));
+    window.dispatchEvent(new MouseEvent("pointerup"));
+    expect(list.container.style.width).toBe("666px");
+    const oldWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 400 });
+    window.dispatchEvent(new Event("resize"));
+    expect(list.container.style.width).toBe("376px");
+    expect(list._shortsPanelWidth).toBe(666);
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: oldWidth });
+    list.destroy();
+    window.history.replaceState({}, "", "/watch?v=kSQknoHMFtk");
+  });
+
   test.each(["asr", "audio-chunk"])(
     "ASR %s download does not jump playback; full export has independent progress and cancel",
     async (timingSource) => {
       const video = createVideoElement(),
         exportSentence = jest.fn(async () => {}),
         exportFull = jest.fn(),
-        cancelExport = jest.fn();
+        cancelExport = jest.fn(),
+        deleteAudio = jest.fn(),
+        deleteCache = jest.fn();
       const list = new YouTubeSubtitleList(video, (key) => key, {
-        asrActions: { exportSentence, exportFull, cancelExport },
+        asrActions: {
+          exportSentence,
+          exportFull,
+          cancelExport,
+          deleteAudio,
+          deleteCache,
+        },
       });
       const cue = { ...subtitle, timingSource };
       list.initialize([cue]);
       renderVisibleSubtitleItems(list);
       expect(
-        list.container.querySelector('[aria-label^="youtube_asr_"]')
+        list.subtitleScrollContainer.querySelector('[aria-label^="youtube_asr_"]')
       ).toBeNull();
       list.asrAudioButton.click();
       expect(exportFull).toHaveBeenCalledTimes(1);
+      expect(list.asrClearAudioButton).toBeDefined();
+      expect(list.asrClearSubtitlesButton).toBeDefined();
+      expect(list.asrClearAudioButton.parentElement).toBe(list.asrPanel.toolbar);
+      expect(list.asrClearSubtitlesButton.parentElement).toBe(
+        list.asrPanel.toolbar
+      );
+      list.asrClearAudioButton.click();
+      expect(deleteAudio).toHaveBeenCalledTimes(1);
+      list.asrClearSubtitlesButton.click();
+      expect(deleteCache).toHaveBeenCalledTimes(1);
       list.updateAsrState({
         phase: "recognizing",
         fullExport: "fetching",
         audio: { phase: "fetching", percent: 35, bytes: 1024 },
       });
       expect(list.asrAudioButton.disabled).toBe(true);
+      expect(list.asrClearAudioButton.disabled).toBe(false);
       expect(list.asrAudioButton.textContent).toContain("35%");
       expect(list.asrStatus).toBeUndefined();
       expect(list.asrAudioButton.parentElement).toBe(list.asrPanel.toolbar);
       list.asrCancelButton.click();
       expect(cancelExport).toHaveBeenCalledTimes(1);
+
+      // Clearing stays available during downloading so it can stop the session.
+      list.updateAsrState({
+        phase: "recognizing",
+        fullExport: undefined,
+        audio: { phase: "fetching", percent: 50, bytes: 2048 },
+      });
+      expect(list.asrClearAudioButton.disabled).toBe(false);
+
+      // Once complete, clear button becomes enabled
+      list.updateAsrState({
+        phase: "recognizing",
+        fullExport: undefined,
+        audio: { phase: "complete", percent: 100, bytes: 4096 },
+      });
+      expect(list.asrClearAudioButton.disabled).toBe(false);
       list.destroy();
     }
   );
@@ -825,7 +888,7 @@ test("empty ASR sidebar keeps its fixed status inside the ASR tab only", async (
     ]);
     list.selectAsrTab();
     expect(list.activeTab).toBe("asr");
-    list.updateAsrState({ phase: "error", error: "AUDIO_CAPTURE_MISSING" });
+    list.updateAsrState({ active: true, phase: "error", error: "AUDIO_CAPTURE_MISSING" });
     jest.advanceTimersByTime(100);
     const summary = list.asrPanel.summary;
     expect(summary.parentElement).toBe(list.asrPanel.element);
@@ -850,4 +913,337 @@ test("empty ASR sidebar keeps its fixed status inside the ASR tab only", async (
     list.destroy();
     jest.useRealTimers();
   }
+});
+
+test("updateAsrState does not throw when asrAudioButton is not present", () => {
+  const video = createVideoElement();
+  const list = new YouTubeSubtitleList(video, (key) => key, {});
+  try {
+    list.initialize([], [], 0);
+    expect(list.asrAudioButton).toBeUndefined();
+    expect(() => {
+      list.updateAsrState({ phase: "off", audio: { phase: "idle" } });
+    }).not.toThrow();
+  } finally {
+    list.destroy();
+  }
+});
+
+
+
+test("inactive ASR tab exposes only its enable button and switching tabs never starts recognition", () => {
+  const start = jest.fn();
+  const list = new YouTubeSubtitleList(createVideoElement(), (key) => key, {
+    asrActions: { start },
+  });
+  try {
+    list.updateAsrState({ phase: "off", active: false, available: true });
+    list.initialize([subtitle]);
+    expect(list.asrTabEl).toBeDefined();
+    list.selectAsrTab();
+    expect(list.asrEnableView.style.display).toBe("flex");
+    expect(list.asrEnableView.querySelectorAll("button")).toHaveLength(1);
+    expect(list.asrStartButton.textContent).toBe("youtube_asr_enable");
+    expect(list.asrStartButton.disabled).toBe(false);
+    expect(list.asrPanel.element.style.display).toBe("none");
+    expect(start).not.toHaveBeenCalled();
+    list.asrStartButton.click();
+    expect(start).toHaveBeenCalledTimes(1);
+    list.updateAsrState({ phase: "waiting", active: true, available: true });
+    expect(list.activeTab).toBe("asr");
+    expect(list.asrEnableView.style.display).toBe("none");
+    expect(list.asrPanel.element.style.display).toBe("flex");
+    list.asrPanel.render();
+    expect(list.asrPanel.summary.querySelectorAll("progress")).toHaveLength(4);
+    expect([...list.asrPanel.coverage.keys()]).toEqual([
+      "audio", "cutting", "recognition", "translation",
+    ]);
+    expect(list.asrPanel.coverage.get("cutting").row.hidden).toBe(true);
+    list.updateAsrState({
+      phase: "running", active: true, available: true,
+      cutting: { samples: 16000, totalSamples: 32000, complete: false },
+    });
+    list.asrPanel.render();
+    expect(list.asrPanel.coverage.get("cutting").row.hidden).toBe(false);
+    expect(list.asrPanel.coverage.get("cutting").bar.value).toBe(50);
+    list.updateAsrState({ phase: "off", active: false, available: true });
+    expect(list.activeTab).toBe("asr");
+    expect(list.asrEnableView.style.display).toBe("flex");
+    expect(list.asrPanel.element.style.display).toBe("none");
+    list.subtitleTabEl.click();
+    expect(list.asrView.style.display).toBe("none");
+    expect(start).toHaveBeenCalledTimes(1);
+  } finally {
+    list.destroy();
+  }
+});
+
+test("unconfigured recognition keeps its tab with a disabled enable button and configuration hint", () => {
+  const start = jest.fn();
+  const list = new YouTubeSubtitleList(createVideoElement(), (key) => key, {
+    asrActions: { start },
+  });
+  try {
+    list.updateAsrState({ phase: "off", active: false, available: false });
+    list.initialize([]);
+    list.selectAsrTab();
+    expect(list.asrStartButton.disabled).toBe(true);
+    expect(list.asrStartButton.style.opacity).toBe("0.45");
+    expect(list.asrStartButton.style.cursor).toBe("not-allowed");
+    expect(list.asrStartButton.title).toBe("youtube_asr_service_unavailable");
+    list.asrStartButton.click();
+    expect(start).not.toHaveBeenCalled();
+    list.updateAsrState({ phase: "off", active: false, available: true });
+    expect(list.asrStartButton.disabled).toBe(false);
+    expect(list.asrStartButton.style.opacity).toBe("1");
+    expect(list.asrStartButton.style.cursor).toBe("pointer");
+    expect(list.asrStartButton.title).toBe("");
+  } finally {
+    list.destroy();
+  }
+});
+
+
+test("bilingual tab renders new ASR text and subsequent translations received while hidden", () => {
+  const list = new YouTubeSubtitleList(createVideoElement(), (key) => key, {
+    asrActions: {},
+  });
+  list.initialize([]);
+  list.updateAsrState({ active: true, available: true });
+  list.selectAsrTab();
+  list.setBilingualSubtitles(
+    [{ start: 0, end: 1000, text: "Fresh speech", translation: "" }],
+    50
+  );
+  list.setBilingualSubtitles(
+    [{ start: 0, end: 1000, text: "Fresh speech", translation: "新识别译文" }],
+    100
+  );
+  list.subtitleTabEl.click();
+  renderVisibleSubtitleItems(list);
+  expect(list.subtitleListUl.textContent).toContain("Fresh speech");
+  expect(list.subtitleListUl.textContent).toContain("新识别译文");
+  list.destroy();
+});
+
+test("ASR toolbar stop reuses the menu action and returns to the enable view", () => {
+  const deleteAudio = jest.fn(),
+    deleteCache = jest.fn();
+  const list = new YouTubeSubtitleList(createVideoElement(), (key) => key, {
+    asrActions: {
+      stop: () => {
+        stop();
+        list.updateAsrState({ active: false, available: true });
+      },
+      deleteAudio,
+      deleteCache,
+    },
+  });
+  const stop = jest.fn();
+  list.initialize([]);
+  list.selectAsrTab();
+  list.updateAsrState({ active: true, available: true });
+  expect(list.asrStopButton.parentElement).toBe(list.asrPanel.toolbar);
+  expect(list.asrStopButton.textContent).toBe("youtube_asr_disable");
+  list.asrStopButton.click();
+  expect(stop).toHaveBeenCalledTimes(1);
+  expect(deleteAudio).not.toHaveBeenCalled();
+  expect(deleteCache).not.toHaveBeenCalled();
+  expect(list.activeTab).toBe("asr");
+  expect(list.asrPanel.element.style.display).toBe("none");
+  expect(list.asrEnableView.style.display).toBe("flex");
+  list.destroy();
+});
+
+test("ASR pause toggles to resume and clearing keeps recognition closed with a disabled start", () => {
+  const pause = jest.fn(), resume = jest.fn();
+  const list = new YouTubeSubtitleList(createVideoElement(), key => key, {
+    asrActions: { pause, resume },
+  });
+  list.initialize([]);
+  list.selectAsrTab();
+  list.updateAsrState({ active: true, available: true });
+  expect(list.asrPauseButton.textContent).toBe("youtube_asr_pause_btn");
+  list.asrPauseButton.click();
+  expect(pause).toHaveBeenCalledTimes(1);
+  list.updateAsrState({ active: true, available: true, paused: true });
+  expect(list.asrPauseButton.textContent).toBe("youtube_asr_resume_btn");
+  list.asrPauseButton.click();
+  expect(resume).toHaveBeenCalledTimes(1);
+  list.updateAsrState({ active: false, available: true, clearing: true });
+  expect(list.asrStartButton.disabled).toBe(true);
+  expect(list.asrPauseButton.disabled).toBe(true);
+  expect(list.asrClearAudioButton.disabled).toBe(true);
+  expect(list.asrClearSubtitlesButton.disabled).toBe(true);
+  list.updateAsrState({ active: false, available: true, cacheDeleteError: "CACHE_UNAVAILABLE" });
+  expect(list.asrInactiveNotice.textContent).toBe("youtube_asr_cache_delete_failed");
+  expect(list.asrStartButton.disabled).toBe(false);
+  list.destroy();
+});
+
+test("empty native subtitle failures expose a retry and hide it after recovery", () => {
+  const retryCaptions = jest.fn();
+  const list = new YouTubeSubtitleList(createVideoElement(), (key) => key, {
+    asrActions: {},
+    retryCaptions,
+  });
+  list.initialize([]);
+  list.updateCaptionState({ phase: "error", code: "TIMEOUT" });
+  expect(list.captionRetryButton.hidden).toBe(false);
+  list.captionRetryButton.click();
+  expect(retryCaptions).toHaveBeenCalledTimes(1);
+  list.updateCaptionState({ phase: "loading" });
+  expect(list.captionRetryButton.hidden).toBe(true);
+  list.updateCaptionState({ phase: "error" });
+  list.setBilingualSubtitles([subtitle], 100);
+  expect(list.captionRetryButton.hidden).toBe(true);
+  list.destroy();
+});
+
+
+test("watch sidebar waits for its host and remounts after the host is replaced", async () => {
+  const video = createVideoElement();
+  window.history.replaceState({}, "", "/watch?v=video-1");
+  document.getElementById("secondary-inner").remove();
+  const list = new YouTubeSubtitleList(video, (key) => key, { asrActions: {} });
+  list.initialize([]);
+  expect(list.container.style.display).toBe("none");
+  expect(list.container.parentElement).not.toBe(document.body);
+  const host = document.createElement("div");
+  host.id = "secondary-inner";
+  document.body.append(host);
+  await flushPromises();
+  expect(list.container.parentElement).toBe(host);
+  expect(list.container.style.position).toBe("");
+  expect(list.container.style.display).toBe("flex");
+  const replacement = document.createElement("div");
+  replacement.id = "secondary-inner";
+  host.replaceWith(replacement);
+  await flushPromises();
+  expect(list.container.parentElement).toBe(replacement);
+  const observer = list._sidebarMountObserver;
+  const disconnect = jest.spyOn(observer, "disconnect");
+  list.destroy();
+  expect(disconnect).toHaveBeenCalled();
+  await flushPromises();
+  expect(replacement.children).toHaveLength(0);
+});
+
+test("disables export buttons when subtitles or raw events are not ready and enables them on arrival", async () => {
+  const video = createVideoElement();
+  const list = new YouTubeSubtitleList(video, (key) => key, { asrActions: {} });
+  list.initialize([], [], 0);
+
+  // 初始化时字幕与源数据为空，全部禁用
+  expect(list.downloadBtn).toBeDefined();
+  expect(list.downloadBtn.disabled).toBe(true);
+  expect(list.downloadBtn.style.opacity).toBe("0.45");
+  expect(list.downloadBtn.style.cursor).toBe("not-allowed");
+
+  expect(list.downloadTranslationBtn).toBeDefined();
+  expect(list.downloadTranslationBtn.disabled).toBe(true);
+  expect(list.downloadTranslationBtn.style.opacity).toBe("0.45");
+
+  expect(list.downloadRawBtn).toBeDefined();
+  expect(list.downloadRawBtn.disabled).toBe(true);
+  expect(list.downloadRawBtn.style.opacity).toBe("0.45");
+
+  // 导出按钮被禁用不应影响 ASR 按钮的独立样式
+  expect(list.asrAudioButton.disabled).toBe(false);
+  expect(list.asrAudioButton.style.opacity).toBe("1");
+  expect(list.asrAudioButton.style.cursor).toBe("pointer");
+  expect(list.asrClearAudioButton.disabled).toBe(false);
+  expect(list.asrClearAudioButton.style.opacity).toBe("1");
+  expect(list.asrClearAudioButton.style.cursor).toBe("pointer");
+  expect(list.asrClearSubtitlesButton.style.opacity).toBe("1");
+  expect(list.asrClearSubtitlesButton.style.cursor).toBe("pointer");
+  expect(list.asrStopButton.style.opacity).toBe("1");
+  expect(list.asrStopButton.style.cursor).toBe("pointer");
+
+  // ASR 自身忙碌时独立同步禁用样式
+  list.updateAsrState({ fullExport: "generating", audio: { phase: "fetching" } });
+  expect(list.asrAudioButton.disabled).toBe(true);
+  expect(list.asrAudioButton.style.opacity).toBe("0.45");
+  expect(list.asrAudioButton.style.cursor).toBe("not-allowed");
+  expect(list.asrClearAudioButton.disabled).toBe(false);
+  expect(list.asrClearAudioButton.style.opacity).toBe("1");
+  expect(list.asrClearAudioButton.style.cursor).toBe("pointer");
+  list.updateAsrState({ fullExport: "idle", audio: { phase: "idle" } });
+  expect(list.asrAudioButton.disabled).toBe(false);
+  expect(list.asrAudioButton.style.opacity).toBe("1");
+  expect(list.asrAudioButton.style.cursor).toBe("pointer");
+  expect(list.asrClearAudioButton.disabled).toBe(false);
+  expect(list.asrClearAudioButton.style.opacity).toBe("1");
+  expect(list.asrClearAudioButton.style.cursor).toBe("pointer");
+
+  // 悬停不触发位移
+  list.downloadBtn.dispatchEvent(new Event("mouseenter"));
+  expect(list.downloadBtn.style.transform).toBe("translateY(0)");
+
+  // 仅有原文无译文时：启用下载字幕 (VTT) 与源数据 (JSON)
+  list.setBilingualSubtitles([
+    { start: 0, end: 1000, text: "Hello", translation: "" },
+  ]);
+  expect(list.downloadBtn.disabled).toBe(false);
+  expect(list.downloadBtn.style.opacity).toBe("1");
+  expect(list.downloadBtn.style.cursor).toBe("pointer");
+  expect(list.downloadTranslationBtn.disabled).toBe(true);
+  expect(list.downloadRawBtn.disabled).toBe(false);
+  expect(list.downloadRawBtn.style.opacity).toBe("1");
+  expect(list.downloadRawBtn.style.cursor).toBe("pointer");
+
+  // 悬停可用按钮触发位移
+  list.downloadBtn.dispatchEvent(new Event("mouseenter"));
+  expect(list.downloadBtn.style.transform).toBe("translateY(-1px)");
+
+  // 单条译文到达时：启用下载译文字幕 (VTT)
+  list.updateSingleSubtitle({ start: 0, translation: "你好" });
+  expect(list.downloadTranslationBtn.disabled).toBe(false);
+  expect(list.downloadTranslationBtn.style.opacity).toBe("1");
+  expect(list.downloadTranslationBtn.style.cursor).toBe("pointer");
+
+  // 初始化传入原始事件时：启用下载源数据 (JSON)
+  list.initialize(
+    [{ start: 0, end: 1000, text: "Hello", translation: "你好" }],
+    [{ tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: "Hello" }] }]
+  );
+  expect(list.downloadBtn.disabled).toBe(false);
+  expect(list.downloadTranslationBtn.disabled).toBe(false);
+  expect(list.downloadRawBtn.disabled).toBe(false);
+  expect(list.downloadRawBtn.style.opacity).toBe("1");
+  expect(list.downloadRawBtn.style.cursor).toBe("pointer");
+
+  // ASR 模式下自动通过双语字幕组装 JSON 源数据
+  list.updateAsrState({ active: true, available: true });
+  list.setBilingualSubtitles([
+    { start: 100, end: 500, text: "ASR Text", translation: "ASR 译文" },
+  ]);
+  expect(list.downloadRawBtn.disabled).toBe(false);
+  expect(list._getExportableRawSubtitleEvents()).toEqual([
+    {
+      tStartMs: 100,
+      dDurationMs: 400,
+      segs: [{ utf8: "ASR Text" }],
+      translation: "ASR 译文",
+    },
+  ]);
+
+  // 原生事件异步到达时，退出 ASR 模式可优先导出原生事件
+  list.updateRawSubtitleEvents([
+    { tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: "Native" }] },
+  ]);
+  list.updateAsrState({ active: false, available: true });
+  expect(list._getExportableRawSubtitleEvents()).toEqual([
+    { tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: "Native" }] },
+  ]);
+
+  // 清空字幕与原生数据时：再次全部禁用
+  list.initialize([], [], 0);
+  expect(list.downloadBtn.disabled).toBe(true);
+  expect(list.downloadTranslationBtn.disabled).toBe(true);
+  expect(list.downloadRawBtn.disabled).toBe(true);
+  expect(list.downloadRawBtn.style.opacity).toBe("0.45");
+  expect(list.downloadRawBtn.style.cursor).toBe("not-allowed");
+
+  list.destroy();
 });

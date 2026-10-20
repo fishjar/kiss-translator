@@ -345,6 +345,9 @@ export function validateResult(capability, result, input, descriptor = {}) {
         "Invalid reasoning text."
       );
     if (capability === "transcribe") {
+      requireValue(result.language === undefined || (text(result.language) && result.language.length <= 64), code, "Invalid transcription language.");
+      requireValue(result.languageConfidence === undefined || probability(result.languageConfidence), code, "Invalid language confidence.");
+      requireValue(result.languagePending === undefined || typeof result.languagePending === "boolean", code, "Invalid language detection state.");
       requireValue(
         result.segments === undefined ||
           (Array.isArray(result.segments) &&

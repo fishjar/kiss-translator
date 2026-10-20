@@ -28,9 +28,7 @@ test("ownership uses the starting timestamp, including boundaries and unordered 
 
 test("cached blocks do not fabricate media segments and regroup when an index arrives", () => {
   const cached = { ...block("cached", 0, 3000), cached: true };
-  expect(groupAsrTasks([cached])).toMatchObject([
-    { id: "unmatched", cached: true, children: [{ id: "cached" }] },
-  ]);
+  expect(groupAsrTasks([cached])).toEqual([]);
   expect(
     groupAsrTasks([cached, media(0, 0, 0), media(1, 0, 1000)])
   ).toMatchObject([{ id: "media-1", children: [{ id: "cached" }] }]);

@@ -7,6 +7,7 @@ import * as ort from "onnxruntime-web";
 import type { ASRSegment, ASRWord, AsrLoadSpec } from "../core/types";
 import { buildWordSegments, type RawWord } from "../core/asrSegments";
 import { mapAsrLanguage } from "../core/asrLanguages";
+import { resolveWhisperLanguage, type LanguageDetection } from "../core/whisperLanguage";
 import { readFile } from "../core/opfs";
 import {
   decodeSenseVoiceCtc,
@@ -52,12 +53,12 @@ type OutMsg =
       total?: number;
     }
   | { type: "ready" }
-  | {
+  | ({
       type: "result";
       segments: ASRSegment[];
       elapsedMs: number;
       durationSeconds: number;
-    }
+    } & LanguageDetection)
   | { type: "error"; message: string };
 
 function post(msg: OutMsg): void {
@@ -284,6 +285,7 @@ function buildSegments(
         start,
         end,
         words: interpolateWords(text, start, end),
+        wordsTimingSource: "estimated" as const,
         language,
       };
     })
@@ -300,6 +302,7 @@ function buildSegments(
       start,
       end,
       words: interpolateWords(text, start, end),
+      wordsTimingSource: "estimated",
       language,
     });
   }
@@ -313,6 +316,7 @@ async function transcribeSenseVoice(
   segments: ASRSegment[];
   elapsedMs: number;
   durationSeconds: number;
+  language?: string;
 }> {
   if (!svSession || !svCmvn || !svTokens) {
     throw new Error("SenseVoice 模型尚未加载");
@@ -396,7 +400,8 @@ async function transcribeSenseVoice(
 
   const elapsedMs = Math.round(performance.now() - t0);
   const durationSeconds = audio.length / SAMPLE_RATE;
-  return { segments: allSegments, elapsedMs, durationSeconds };
+  return { segments: allSegments, elapsedMs, durationSeconds,
+    language: allSegments.find(segment => segment.language)?.language };
 }
 
 let chain: Promise<void> = Promise.resolve();
@@ -422,7 +427,15 @@ self.onmessage = (e: MessageEvent<InMsg>) => {
         if (!t) throw new Error("模型尚未加载");
         const t0 = performance.now();
         // UI 语言值 → whisper 语言 + 简繁后处理（映射见 asrLanguages.ts）
-        const { whisper: whisperLanguage, convert } = mapAsrLanguage(msg.language);
+        if (currentMultilingual && !mapAsrLanguage(msg.language).whisper)
+          post({ type: "progress", status: "Detecting audio language…" });
+        const { whisper: whisperLanguage, convert, ...detected } =
+          await resolveWhisperLanguage(t, msg.audio, msg.language, currentMultilingual);
+        if (detected.languagePending) {
+          post({ type: "result", segments: [], elapsedMs: Math.round(performance.now() - t0),
+            durationSeconds: msg.audio.length / SAMPLE_RATE, ...detected });
+          return;
+        }
         const toScript: ((s: string) => string) | null =
           convert === "t2s" ? toSimplified : convert === "s2t" ? toTraditional : null;
         const opts: Record<string, unknown> = {
@@ -453,7 +466,8 @@ self.onmessage = (e: MessageEvent<InMsg>) => {
           msg.language || undefined,
           currentWordTimestamps
         );
-        post({ type: "result", segments, elapsedMs, durationSeconds });
+        post({ type: "result", segments, elapsedMs, durationSeconds,
+          language: currentMultilingual ? whisperLanguage || undefined : "en", ...detected });
       } else if (msg.type === "unload") {
         disposeTranscriber();
       }

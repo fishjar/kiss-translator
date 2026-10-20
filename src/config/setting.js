@@ -192,6 +192,9 @@ export const DEFAULT_SUBTITLE_SETTING = {
   toLang: "zh-CN", // 字幕译文的目标语言
   autoTranslate: true, // 是否在获取并解析视频字幕后立即启动翻译
   asrApiSlug: "-", // YouTube 音频识别服务，默认不启用
+  youtubeShortsSubtitlePanelWidth: 520,
+  audioCacheLimit: 100, // 音频缓存视频数量上限（0-1000，0 表示不缓存，默认 100）
+  captionCacheLimit: 100, // YouTube 原始字幕及双语字幕的持久化视频数量，0 表示禁用。
   isBilingual: true, // 字幕是否启用双语对照显示
   displayOrder: "original-first", // 字幕双语显示顺序：原文在前或译文在前
   blurTranslation: false, // 是否模糊显示译文 (用于听力/口语训练)

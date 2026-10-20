@@ -12,6 +12,7 @@ import {
   BooleanServiceOption,
   serviceTransportFeatures,
   AsrDurationSetting,
+  ServiceTimeoutSetting,
 } from "./ServiceForm";
 import { asrMaxDurationSeconds } from "../../providers/asrLimits";
 import {
@@ -1468,19 +1469,6 @@ function LegacyApiFields({
                     {...builtinFieldBounds.fetchInterval}
                   />
                 </Box>
-                <Box>
-                  <ValidationInput
-                    validateOnBlur={false}
-                    size="small"
-                    fullWidth
-                    label={i18n("http_timeout")}
-                    type="number"
-                    name="httpTimeout"
-                    value={httpTimeout}
-                    onChange={handleChange}
-                    {...builtinFieldBounds.httpTimeout}
-                  />
-                </Box>
               </Box>
             </Box>
             {hasTranslation && (
@@ -1661,6 +1649,12 @@ function LegacyApiFields({
           </>
         )}
 
+        <ServiceTimeoutSetting
+          api={activeFormData}
+          onChange={(value) =>
+            handleChange({ target: { name: "httpTimeout", value } })
+          }
+        />
         <AsrDurationSetting
           api={activeFormData}
           onTimestampChange={(value) =>

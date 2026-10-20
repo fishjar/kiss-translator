@@ -84,6 +84,7 @@ export interface AudioSegment {
   start: number;
   end: number;
   text: string;
+  words?: Array<{ start: number; end: number; text: string }>;
 }
 export interface SubtitleItem extends TextItem {
   start: number;
@@ -135,7 +136,7 @@ export interface CapabilityMap {
   };
   transcribe: {
     input: { audio: AssetRef; language?: string; requireTimestamps?: boolean };
-    result: { text: string; segments?: AudioSegment[] };
+    result: { text: string; segments?: AudioSegment[]; language?: string; languageConfidence?: number; languagePending?: boolean };
   };
   recognizeText: {
     input: {
@@ -185,6 +186,8 @@ export type ProviderEvent =
 export interface InvocationOptions {
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Internal absolute deadline shared by nested calls and IPC. */
+  deadlineAt?: number;
   streaming?: "auto" | "disabled" | "required";
 }
 export interface Invocation<TResult> {

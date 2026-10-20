@@ -8,14 +8,14 @@ test.each([true, false, undefined])(
       asrMaxDurationSeconds: 30,
       provider: { capabilities: { transcribe: { timestamps } } },
     };
-    expect(asrChunkDurationSeconds(service)).toBe(timestamps === true ? 30 : 5);
+    expect(asrChunkDurationSeconds(service)).toBe(timestamps === true ? 30 : 10);
     expect(
       asrChunkDurationSeconds({ ...service, asrMaxDurationSeconds: 2 })
     ).toBe(2);
   }
 );
 
-test.each([5, 2, 1])(
+test.each([10, 5, 2, 1])(
   "continuous speech retains every sample without overlap at %s seconds",
   (limit) => {
     const audio = Float32Array.from(
@@ -64,13 +64,13 @@ test.each([true, false, undefined])(
         ...service,
         asrTimestampSupport: "unsupported",
       })
-    ).toBe(5);
+    ).toBe(10);
     expect(
       asrChunkDurationSeconds(
         { ...service, asrTimestampSupport: "supported" },
         true
       )
-    ).toBe(5);
+    ).toBe(10);
   }
 );
 
