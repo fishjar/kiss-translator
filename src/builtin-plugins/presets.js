@@ -194,7 +194,7 @@ export const NATIVE_PRESET_OVERRIDES = {
   [OPT_TRANS_CLAUDE]: {
     url: "https://api.anthropic.com/v1/messages",
     modelListUrl: "https://api.anthropic.com/v1/models",
-    model: "claude-3-haiku-20240307",
+    model: "claude-haiku-4-5-20251001",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CLOUDFLAREAI]: {
