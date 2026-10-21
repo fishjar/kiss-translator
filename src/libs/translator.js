@@ -306,6 +306,17 @@ export class Translator {
       return Translator.displayCache.get(el);
     }
 
+    // 自定义组件标签 (如 <gg-article>) 默认 computed display 常为 inline，但如果内部包含块级元素，则属于结构容器
+    if (el.nodeName?.includes("-")) {
+      Translator.displayCache.set(el, false);
+      for (const child of el.children) {
+        if (Translator.isBlockNode(child)) {
+          Translator.displayCache.set(el, true);
+          return true;
+        }
+      }
+    }
+
     // 降级回滚：调用 getComputedStyle 进行高开销的布局样式计算
     const isBlock = !window.getComputedStyle(el).display.startsWith("inline");
     Translator.displayCache.set(el, isBlock);
@@ -4724,7 +4735,15 @@ overflow-wrap: anywhere !important;`;
         const sourceParents = originalUnits.map((node) => node.parentNode);
         this.#withIgnoredMutations([...sourceParents, parent], () => {
           const frag = document.createDocumentFragment();
-          originalUnits.forEach((node) => frag.appendChild(node));
+          originalUnits.forEach((node) => {
+            // 清理可能随 originalUnits 被移入 template 的残留未决 wrapper/loading 图标
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              node
+                .querySelectorAll?.(`.${Translator.KISS_CLASS.warpper}`)
+                .forEach((w) => w.remove());
+            }
+            frag.appendChild(node);
+          });
           if (this.#rule.transOrder === "translation-first") {
             el.after(frag);
           } else {
