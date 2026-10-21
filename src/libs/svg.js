@@ -3,15 +3,14 @@
  */
 export const loadingSvg = `<svg viewBox="-20 0 100 100" 
      style="display: inline-block; width: 1em; height: 1em; vertical-align: middle;">
-  <circle fill="#209CEE" stroke="none" cx="6" cy="50" r="6">
-    <animateTransform attributeName="transform" dur="1s" type="translate" values="0 15 ; 0 -15; 0 15" repeatCount="indefinite" begin="0.1"/>
-  </circle>
-  <circle fill="#209CEE" stroke="none" cx="30" cy="50" r="6">
-    <animateTransform attributeName="transform" dur="1s" type="translate" values="0 10 ; 0 -10; 0 10" repeatCount="indefinite" begin="0.2"/>
-  </circle>
-  <circle fill="#209CEE" stroke="none" cx="54" cy="50" r="6">
-    <animateTransform attributeName="transform" dur="1s" type="translate" values="0 5 ; 0 -5; 0 5" repeatCount="indefinite" begin="0.3"/>
-  </circle>
+  <style>
+    @keyframes kt-loading-bounce-1 { 0%, 100% { transform: translateY(15px); } 50% { transform: translateY(-15px); } }
+    @keyframes kt-loading-bounce-2 { 0%, 100% { transform: translateY(10px); } 50% { transform: translateY(-10px); } }
+    @keyframes kt-loading-bounce-3 { 0%, 100% { transform: translateY(5px); } 50% { transform: translateY(-5px); } }
+  </style>
+  <circle fill="#209CEE" stroke="none" cx="6" cy="50" r="6" style="animation: kt-loading-bounce-1 1s ease-in-out 0.1s infinite;"/>
+  <circle fill="#209CEE" stroke="none" cx="30" cy="50" r="6" style="animation: kt-loading-bounce-2 1s ease-in-out 0.2s infinite;"/>
+  <circle fill="#209CEE" stroke="none" cx="54" cy="50" r="6" style="animation: kt-loading-bounce-3 1s ease-in-out 0.3s infinite;"/>
 </svg>
 `;
 
@@ -27,6 +26,9 @@ function createSVGElement(tag, attributes) {
 
 /**
  * 动态创建 Loading 动画 SVG 元素节点
+ * 使用纯 CSS 关键帧动画替代 SVG SMIL (<animateTransform>)，
+ * 避免在复杂页面（如包含海量 DOM 节点及频繁清理恢复场景）中触发 Chromium Blink 引擎的
+ * SVGAnimateElement::UpdateKeyframeValues SMIL 断言崩溃异常 (STATUS_BREAKPOINT)。
  * @returns {SVGElement}
  */
 export function createLoadingSVG() {
@@ -36,10 +38,18 @@ export function createLoadingSVG() {
       "display: inline-block; width: 1em; height: 1em; vertical-align: middle;",
   });
 
+  const style = createSVGElement("style", {});
+  style.textContent = `
+    @keyframes kt-loading-bounce-1 { 0%, 100% { transform: translateY(15px); } 50% { transform: translateY(-15px); } }
+    @keyframes kt-loading-bounce-2 { 0%, 100% { transform: translateY(10px); } 50% { transform: translateY(-10px); } }
+    @keyframes kt-loading-bounce-3 { 0%, 100% { transform: translateY(5px); } 50% { transform: translateY(-5px); } }
+  `;
+  svg.appendChild(style);
+
   const circleData = [
-    { cx: "6", begin: "0.1", values: "0 15 ; 0 -15; 0 15" },
-    { cx: "30", begin: "0.2", values: "0 10 ; 0 -10; 0 10" },
-    { cx: "54", begin: "0.3", values: "0 5 ; 0 -5; 0 5" },
+    { cx: "6", delay: "0.1s", anim: "kt-loading-bounce-1" },
+    { cx: "30", delay: "0.2s", anim: "kt-loading-bounce-2" },
+    { cx: "54", delay: "0.3s", anim: "kt-loading-bounce-3" },
   ];
 
   circleData.forEach((data) => {
@@ -49,16 +59,8 @@ export function createLoadingSVG() {
       cx: data.cx,
       cy: "50",
       r: "6",
+      style: `animation: ${data.anim} 1s ease-in-out ${data.delay} infinite;`,
     });
-    const animation = createSVGElement("animateTransform", {
-      attributeName: "transform",
-      dur: "1s",
-      type: "translate",
-      values: data.values,
-      repeatCount: "indefinite",
-      begin: data.begin,
-    });
-    circle.appendChild(animation);
     svg.appendChild(circle);
   });
 
