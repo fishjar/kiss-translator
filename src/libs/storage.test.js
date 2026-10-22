@@ -305,6 +305,46 @@ describe("settings storage migration", () => {
     ).toBe("mine");
   });
 
+  test("fills in new mouse hover hold defaults without overriding stored choices", async () => {
+    // 旧版本升级上来的设置：mouseHoverSetting 里没有本轮新增的键
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V3,
+        mouseHoverSetting: {
+          mouseHoverKeyHold: true,
+          mouseHoverHoldDelay: 500,
+        },
+      })
+    );
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      mouseHoverSetting: {
+        mouseHoverKeyHold: true,
+        mouseHoverHoldDelay: 500,
+        mouseHoverHoldButton: "left",
+        mouseHoverSuppressContextMenu: true,
+      },
+    });
+
+    // 用户已经改过的值必须保留
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V3,
+        mouseHoverSetting: {
+          mouseHoverHoldButton: "right",
+          mouseHoverSuppressContextMenu: false,
+        },
+      })
+    );
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      mouseHoverSetting: {
+        mouseHoverHoldButton: "right",
+        mouseHoverSuppressContextMenu: false,
+      },
+    });
+  });
+
   test("merges the language variant default without overriding an explicit choice", async () => {
     window.localStorage.setItem(
       STOKEY_SETTING,

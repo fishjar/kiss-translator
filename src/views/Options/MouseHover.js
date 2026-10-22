@@ -13,9 +13,12 @@ import {
   DEFAULT_MOUSEHOVER_KEY,
   DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
   DEFAULT_MOUSE_HOVER_HOLD_DELAY,
+  DEFAULT_MOUSE_HOVER_SETTING,
   GLOBAL_KEY,
   OPT_MOUSE_HOVER_DISPLAY_BILINGUAL,
   OPT_MOUSE_HOVER_DISPLAY_BUBBLE,
+  OPT_MOUSE_HOVER_HOLD_BUTTON_LEFT,
+  OPT_MOUSE_HOVER_HOLD_BUTTON_RIGHT,
   OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK,
   OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE,
   OPT_MOUSE_HOVER_TRANS_AREA,
@@ -126,6 +129,34 @@ export default function MouseHoverSetting() {
     [updateMouseHoverSetting]
   );
 
+  // Switch the hold trigger between the left and the right mouse button.
+  // The context-menu suppression choice is remembered: it only applies in
+  // right-button mode, keeps its default (on) for untouched settings, and is
+  // restored as-is when switching back to the right button.
+  const handleHoldButtonChange = useCallback(
+    (value) => {
+      updateMouseHoverSetting({ mouseHoverHoldButton: value });
+    },
+    [updateMouseHoverSetting]
+  );
+
+  // Toggle native context-menu suppression for the right-button hold trigger.
+  const handleSuppressContextMenuChange = useCallback(
+    (checked) => {
+      updateMouseHoverSetting({ mouseHoverSuppressContextMenu: checked });
+    },
+    [updateMouseHoverSetting]
+  );
+
+  // Revert the translation when the browser (e.g. Edge mouse gestures) takes
+  // over the right-button hold, so a drawn gesture leaves no translation behind.
+  const handleRevertOnGestureChange = useCallback(
+    (checked) => {
+      updateMouseHoverSetting({ mouseHoverHoldRevertOnGesture: checked });
+    },
+    [updateMouseHoverSetting]
+  );
+
   // Normalize the current mouse hover settings.
   const {
     useMouseHover = true,
@@ -133,7 +164,10 @@ export default function MouseHoverSetting() {
     mouseHoverKey2 = [],
     mouseHoverKeyHold = false,
     mouseHoverKey2Hold = false,
+    mouseHoverHoldButton = OPT_MOUSE_HOVER_HOLD_BUTTON_LEFT,
     mouseHoverHoldDelay = DEFAULT_MOUSE_HOVER_HOLD_DELAY,
+    mouseHoverSuppressContextMenu = DEFAULT_MOUSE_HOVER_SETTING.mouseHoverSuppressContextMenu,
+    mouseHoverHoldRevertOnGesture = DEFAULT_MOUSE_HOVER_SETTING.mouseHoverHoldRevertOnGesture,
     mouseHoverTransMode = OPT_MOUSE_HOVER_TRANS_AREA,
     mouseHoverTransDisplay = OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK,
     mouseHoverPreventClick = false,
@@ -141,6 +175,9 @@ export default function MouseHoverSetting() {
     displayMode = OPT_MOUSE_HOVER_DISPLAY_BILINGUAL,
     bubbleStyle = DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
   } = mouseHoverSetting;
+
+  const isRightButtonHold =
+    mouseHoverHoldButton === OPT_MOUSE_HOVER_HOLD_BUTTON_RIGHT;
 
   return (
     <Box>
@@ -269,6 +306,26 @@ export default function MouseHoverSetting() {
         <SettingsSection>
           <SettingsCard>
             <SettingsRow
+              label={i18n("mousehover_hold_button")}
+              description={i18n("mousehover_hold_button_helper")}
+            >
+              <SettingsSegmented
+                value={mouseHoverHoldButton}
+                label={i18n("mousehover_hold_button")}
+                onChange={handleHoldButtonChange}
+                items={[
+                  {
+                    value: OPT_MOUSE_HOVER_HOLD_BUTTON_LEFT,
+                    label: i18n("mousehover_hold_button_left"),
+                  },
+                  {
+                    value: OPT_MOUSE_HOVER_HOLD_BUTTON_RIGHT,
+                    label: i18n("mousehover_hold_button_right"),
+                  },
+                ]}
+              />
+            </SettingsRow>
+            <SettingsRow
               label={i18n("mousehover_hold_delay")}
               description={i18n("mousehover_hold_delay_helper")}
             >
@@ -337,15 +394,40 @@ export default function MouseHoverSetting() {
               </TextField>
             </SettingsRow>
             <SettingsRow
+              label={i18n("mousehover_hold_suppress_menu")}
+              description={i18n("mousehover_hold_suppress_menu_helper")}
+            >
+              <SettingsSwitch
+                checked={isRightButtonHold && mouseHoverSuppressContextMenu}
+                disabled={!isRightButtonHold}
+                label={i18n("mousehover_hold_suppress_menu")}
+                onChange={handleSuppressContextMenuChange}
+              />
+            </SettingsRow>
+            <SettingsRow
+              label={i18n("mousehover_hold_revert_on_gesture")}
+              description={i18n("mousehover_hold_revert_on_gesture_helper")}
+            >
+              <SettingsSwitch
+                checked={isRightButtonHold && mouseHoverHoldRevertOnGesture}
+                disabled={!isRightButtonHold}
+                label={i18n("mousehover_hold_revert_on_gesture")}
+                onChange={handleRevertOnGestureChange}
+              />
+            </SettingsRow>
+            <SettingsRow
               label={i18n("mousehover_hold_prevent_click")}
               description={
-                mouseHoverPreventClick
-                  ? i18n("mousehover_hold_prevent_click_helper")
-                  : undefined
+                isRightButtonHold
+                  ? i18n("mousehover_hold_prevent_click_left_only")
+                  : mouseHoverPreventClick
+                    ? i18n("mousehover_hold_prevent_click_helper")
+                    : undefined
               }
             >
               <SettingsSwitch
-                checked={mouseHoverPreventClick}
+                checked={!isRightButtonHold && mouseHoverPreventClick}
+                disabled={isRightButtonHold}
                 label={i18n("mousehover_hold_prevent_click")}
                 onChange={handlePreventClickChange}
               />
