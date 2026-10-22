@@ -81,9 +81,11 @@ test("recognition, segmentation and translation settings invalidate only their o
   ).not.toBe(original.segmentation);
 });
 
-
 test("effective cutting limits invalidate recognition but not translation settings", async () => {
-  const base = { asrService: { ...service, asrTimestampSupport: "supported" }, language: "en" };
+  const base = {
+    asrService: { ...service, asrTimestampSupport: "supported" },
+    language: "en",
+  };
   const original = await asrCacheSignatures(base);
   for (const change of [
     { asrService: { ...base.asrService, asrMaxDurationSeconds: 5 } },

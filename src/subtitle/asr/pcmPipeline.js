@@ -84,8 +84,16 @@ export class AsrPcmPipeline {
             : this.limits.endSample - startSample,
       });
       this.chunker = this.limits.fixedRange
-        ? new FixedPcmRange(startSample, this.limits.endSample, this.limits.silent)
-        : new AsrAudioChunker(this.maxDurationSeconds, startSample, this.limits);
+        ? new FixedPcmRange(
+            startSample,
+            this.limits.endSample,
+            this.limits.silent
+          )
+        : new AsrAudioChunker(
+            this.maxDurationSeconds,
+            startSample,
+            this.limits
+          );
       this.origin = timestamp;
       this.inputSamples = 0;
     }

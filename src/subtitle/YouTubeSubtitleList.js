@@ -1027,7 +1027,8 @@ export class YouTubeSubtitleList {
     // 2. 如果容器为新建节点，绘制骨架及 Tab 标题栏结构
     if (!this.container.querySelector(".kiss-youtube-tab-header")) {
       this._renderTabsAndStructure();
-      if (this._shortsResizeHandle) this.container.append(this._shortsResizeHandle);
+      if (this._shortsResizeHandle)
+        this.container.append(this._shortsResizeHandle);
     }
 
     // 3. 强行终止前序分块渲染
@@ -1094,8 +1095,11 @@ export class YouTubeSubtitleList {
         try {
           const setting = await getSettingWithDefault();
           if (!this._shortsWidthEdited) {
-            const width = setting?.subtitleSetting?.youtubeShortsSubtitlePanelWidth;
-            this._shortsPanelWidth = Number.isFinite(width) ? Math.max(320, Math.min(720, width)) : 520;
+            const width =
+              setting?.subtitleSetting?.youtubeShortsSubtitlePanelWidth;
+            this._shortsPanelWidth = Number.isFinite(width)
+              ? Math.max(320, Math.min(720, width))
+              : 520;
             this._mountAsrContainer();
           }
           const darkMode = setting?.darkMode;
@@ -1240,29 +1244,40 @@ export class YouTubeSubtitleList {
     handle.tabIndex = 0;
     handle.setAttribute("role", "separator");
     handle.setAttribute("aria-orientation", "vertical");
-    handle.setAttribute("aria-label", this.i18n("youtube_subtitle_resize_width"));
-    handle.style.cssText = "position:absolute;left:-5px;top:0;bottom:0;width:10px;cursor:ew-resize;touch-action:none;z-index:1;";
+    handle.setAttribute(
+      "aria-label",
+      this.i18n("youtube_subtitle_resize_width")
+    );
+    handle.style.cssText =
+      "position:absolute;left:-5px;top:0;bottom:0;width:10px;cursor:ew-resize;touch-action:none;z-index:1;";
     this.container.append(handle);
     this._shortsResizeHandle = handle;
-    const update = width => {
+    const update = (width) => {
       this._shortsWidthEdited = true;
       this._shortsPanelWidth = Math.max(320, Math.min(720, width));
       this._mountAsrContainer();
       handle.setAttribute("aria-valuenow", String(this._shortsPanelWidth));
     };
     const save = () => {
-      void saveEdit(STOKEY_SETTING, current => ({ ...current, subtitleSetting: {
-        ...(current?.subtitleSetting || DEFAULT_SUBTITLE_SETTING),
-        youtubeShortsSubtitlePanelWidth: this._shortsPanelWidth,
-      } })).catch(err => logger.warn("save Shorts panel width failed", err));
+      void saveEdit(STOKEY_SETTING, (current) => ({
+        ...current,
+        subtitleSetting: {
+          ...(current?.subtitleSetting || DEFAULT_SUBTITLE_SETTING),
+          youtubeShortsSubtitlePanelWidth: this._shortsPanelWidth,
+        },
+      })).catch((err) => logger.warn("save Shorts panel width failed", err));
     };
-    handle.addEventListener("pointerdown", event => {
+    handle.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
       event.preventDefault();
       this._shortsResizeCleanup?.();
-      const x = event.clientX, width = this.container.getBoundingClientRect().width;
-      const move = next => update(width + x - next.clientX);
-      const finish = () => { cleanup(); save(); };
+      const x = event.clientX,
+        width = this.container.getBoundingClientRect().width;
+      const move = (next) => update(width + x - next.clientX);
+      const finish = () => {
+        cleanup();
+        save();
+      };
       const cleanup = () => {
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", finish);
@@ -1274,10 +1289,12 @@ export class YouTubeSubtitleList {
       window.addEventListener("pointerup", finish, { once: true });
       window.addEventListener("pointercancel", finish, { once: true });
     });
-    handle.onkeydown = event => {
+    handle.onkeydown = (event) => {
       if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
       event.preventDefault();
-      update((this._shortsPanelWidth || 520) + (event.key === "ArrowLeft" ? 16 : -16));
+      update(
+        (this._shortsPanelWidth || 520) + (event.key === "ArrowLeft" ? 16 : -16)
+      );
       save();
     };
     handle.setAttribute("aria-valuemin", "320");
@@ -1447,7 +1464,6 @@ export class YouTubeSubtitleList {
 
     subActionBar.append(downloadBtn, downloadTranslationBtn, downloadRawBtn);
     if (this.asrActions) {
-
       this.asrAudioButton = document.createElement("button");
       this.asrAudioButton.style.cssText = baseBtnStyle;
       this.asrAudioButton.textContent = this.i18n("youtube_asr_download_full");
@@ -1779,7 +1795,8 @@ export class YouTubeSubtitleList {
     if (!this.captionRetryButton) return;
     const hidden =
       !["error", "empty"].includes(state?.phase) ||
-      this.bilingualSubtitles.length > 0 || !!this.asrState?.active;
+      this.bilingualSubtitles.length > 0 ||
+      !!this.asrState?.active;
     if (this.captionRetryButton.hidden !== hidden)
       this.captionRetryButton.hidden = hidden;
   }
@@ -1793,10 +1810,15 @@ export class YouTubeSubtitleList {
     const pauseLabel = this.i18n(
       state.paused ? "youtube_asr_resume_btn" : "youtube_asr_pause_btn"
     );
-    if (this.asrPauseButton.textContent !== pauseLabel) this.asrPauseButton.textContent = pauseLabel;
+    if (this.asrPauseButton.textContent !== pauseLabel)
+      this.asrPauseButton.textContent = pauseLabel;
     const pauseDisabled = !state.active || !!state.clearing;
-    if (this.asrPauseButton.disabled !== pauseDisabled) this.asrPauseButton.disabled = pauseDisabled;
-    if (this.asrPauseButton.getAttribute("aria-pressed") !== String(!!state.paused))
+    if (this.asrPauseButton.disabled !== pauseDisabled)
+      this.asrPauseButton.disabled = pauseDisabled;
+    if (
+      this.asrPauseButton.getAttribute("aria-pressed") !==
+      String(!!state.paused)
+    )
       this.asrPauseButton.setAttribute("aria-pressed", String(!!state.paused));
     if (this.asrClearSubtitlesButton.disabled !== !!state.clearing)
       this.asrClearSubtitlesButton.disabled = !!state.clearing;
@@ -1804,12 +1826,13 @@ export class YouTubeSubtitleList {
     this.asrAudioButton.disabled = busy;
     this.asrAudioButton.style.opacity = busy ? "0.45" : "1";
     this.asrAudioButton.style.cursor = busy ? "not-allowed" : "pointer";
-    const audioBusy =
-      !!state.clearing;
+    const audioBusy = !!state.clearing;
     if (this.asrClearAudioButton) {
       this.asrClearAudioButton.disabled = audioBusy;
       this.asrClearAudioButton.style.opacity = audioBusy ? "0.45" : "1";
-      this.asrClearAudioButton.style.cursor = audioBusy ? "not-allowed" : "pointer";
+      this.asrClearAudioButton.style.cursor = audioBusy
+        ? "not-allowed"
+        : "pointer";
     }
     const label =
       this.i18n(
@@ -1832,7 +1855,8 @@ export class YouTubeSubtitleList {
     this.asrView.style.display = selected ? "flex" : "none";
     this.asrEnableView.style.display = selected && !active ? "flex" : "none";
     this.asrPanel.element.style.display = selected && active ? "flex" : "none";
-    const canStart = Boolean(this.asrState?.available) && !this.asrState?.clearing;
+    const canStart =
+      Boolean(this.asrState?.available) && !this.asrState?.clearing;
     this.asrStartButton.disabled = !canStart;
     this.asrStartButton.style.opacity = canStart ? "1" : "0.45";
     this.asrStartButton.style.cursor = canStart ? "pointer" : "not-allowed";
@@ -1842,8 +1866,10 @@ export class YouTubeSubtitleList {
     const inactiveNotice = this.asrState?.clearing
       ? this.i18n("youtube_asr_clearing")
       : this.asrState?.cacheDeleteError
-        ? this.i18n("youtube_asr_cache_delete_failed") : "";
-    if (this.asrInactiveNotice.textContent !== inactiveNotice) this.asrInactiveNotice.textContent = inactiveNotice;
+        ? this.i18n("youtube_asr_cache_delete_failed")
+        : "";
+    if (this.asrInactiveNotice.textContent !== inactiveNotice)
+      this.asrInactiveNotice.textContent = inactiveNotice;
   }
 
   updateBilingualSubtitles() {

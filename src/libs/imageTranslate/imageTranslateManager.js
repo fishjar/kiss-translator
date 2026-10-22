@@ -12,7 +12,6 @@ import { CacheProvider } from "@emotion/react";
 import { APP_CONSTS } from "../../config/app";
 import { isolateShadowHost, mountShadowHost } from "../shadowHost";
 import { isIframe } from "../iframe";
-import { browser } from "../browser";
 import { newI18n } from "../../config/i18n";
 import { ImageHoverDetector } from "./imageHoverDetector";
 import { ScreenshotOverlay } from "./screenshotOverlay";
@@ -59,7 +58,12 @@ export class ImageTranslateManager {
 
   #messageListener = null;
 
-  constructor({ setting, rule, isIframe: iframeFlag, onScreenshotSessionChange } = {}) {
+  constructor({
+    setting,
+    rule,
+    isIframe: iframeFlag,
+    onScreenshotSessionChange,
+  } = {}) {
     this.#setting = setting;
     this.#rule = rule;
     this.#isIframe = iframeFlag ?? isIframe;
@@ -80,14 +84,21 @@ export class ImageTranslateManager {
       isIframe: this.#isIframe,
       i18n: this.#i18n,
       onActivateImage: (imageElement) => {
-        if (this.#sourceType === "screenshot" ||
-            (this.#currentImageElement && imageElement !== this.#currentImageElement)) {
+        if (
+          this.#sourceType === "screenshot" ||
+          (this.#currentImageElement &&
+            imageElement !== this.#currentImageElement)
+        ) {
           this.closeBox();
           this.#hoverDetector?.resume(imageElement);
         }
       },
       onToggleBox: (imageElement) => {
-        if (this.#sourceType !== "image" || imageElement !== this.#currentImageElement) return false;
+        if (
+          this.#sourceType !== "image" ||
+          imageElement !== this.#currentImageElement
+        )
+          return false;
         return this.#toggleBox();
       },
       onToggleLayoutOverlay: (show, imageElement) => {
@@ -103,7 +114,12 @@ export class ImageTranslateManager {
         isCurrent,
       }) => {
         if (!isCurrent()) return;
-        this.openBox({ imageElement, selectedRegions, showLayoutOverlay, sourceBusy: true });
+        this.openBox({
+          imageElement,
+          selectedRegions,
+          showLayoutOverlay,
+          sourceBusy: true,
+        });
         return this.#prepareImage(imageElement, action);
       },
     });
@@ -111,7 +127,10 @@ export class ImageTranslateManager {
 
   #toggleBox() {
     if (!this.#boxProps.showBox) return false;
-    this.#boxProps = { ...this.#boxProps, boxVisible: this.#boxProps.boxVisible === false };
+    this.#boxProps = {
+      ...this.#boxProps,
+      boxVisible: this.#boxProps.boxVisible === false,
+    };
     this.#render();
     return true;
   }
@@ -119,11 +138,14 @@ export class ImageTranslateManager {
   async #prepareImage(imageElement, action) {
     this.#imageAction = action;
     const version = this.#boxProps.requestVersion;
-    const isCurrent = () => this.#boxProps.showBox && this.#boxProps.requestVersion === version;
+    const isCurrent = () =>
+      this.#boxProps.showBox && this.#boxProps.requestVersion === version;
     this.#boxProps = { ...this.#boxProps, sourceBusy: true, sourceError: "" };
     flushSync(() => this.#render());
     // 让弹框先完成绘制，再开始 Canvas 导出或跨域读取。
-    await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => setTimeout(resolve, 0))
+    );
     if (!isCurrent()) return;
     try {
       const { blob } = await readImageAsBlob(imageElement);
@@ -139,7 +161,9 @@ export class ImageTranslateManager {
       this.#boxProps = {
         ...this.#boxProps,
         sourceBusy: false,
-        sourceError: err.message || this.#i18n("image_read_error", "读取图片失败，请使用截图翻译"),
+        sourceError:
+          err.message ||
+          this.#i18n("image_read_error", "读取图片失败，请使用截图翻译"),
       };
     }
     this.#render();
@@ -169,13 +193,22 @@ export class ImageTranslateManager {
     const session = ++this.#screenshotSession;
     this.#sourceType = "screenshot";
     this.#setScreenshotActive(true);
-    const isCurrent = () => session === this.#screenshotSession && this.#sourceType === "screenshot";
+    const isCurrent = () =>
+      session === this.#screenshotSession && this.#sourceType === "screenshot";
     // 捕获的是已经绘制的页面，必须先让清理后的页面完成绘制。
-    await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => setTimeout(resolve, 0))
+    );
     if (!isCurrent()) return;
     this.#screenshotOverlay?.start({
       onToggleBox: () => isCurrent() && this.#toggleBox(),
-      onComplete: ({ blob, action, selection, selectedRegions, showLayoutOverlay }) => {
+      onComplete: ({
+        blob,
+        action,
+        selection,
+        selectedRegions,
+        showLayoutOverlay,
+      }) => {
         if (!isCurrent()) return;
         this.openBox({
           blob,
@@ -223,7 +256,9 @@ export class ImageTranslateManager {
         this.#boxProps = { ...this.#boxProps, sourceBusy: busy };
         this.#render();
       },
-      onCancel: () => { if (isCurrent()) this.closeBox(); },
+      onCancel: () => {
+        if (isCurrent()) this.closeBox();
+      },
     });
   }
 
@@ -269,12 +304,23 @@ export class ImageTranslateManager {
         <CacheProvider value={this.#cache}>
           <ImageTranslate
             {...this.#boxProps}
-            onCancelSource={this.#sourceType === "image" ? () => { if (isCurrent()) this.closeBox(); } : undefined}
+            onCancelSource={
+              this.#sourceType === "image"
+                ? () => {
+                    if (isCurrent()) this.closeBox();
+                  }
+                : undefined
+            }
             onRetrySource={() => {
-              if (isCurrent() && imageElement) this.#prepareImage(imageElement, this.#imageAction);
+              if (isCurrent() && imageElement)
+                this.#prepareImage(imageElement, this.#imageAction);
             }}
             onTaskStateChange={({ busy, requestVersion: version }) => {
-              if (version !== this.#boxProps.requestVersion || this.#sourceType !== "screenshot") return;
+              if (
+                version !== this.#boxProps.requestVersion ||
+                this.#sourceType !== "screenshot"
+              )
+                return;
               this.#screenshotOverlay?.setTaskState?.(busy);
             }}
             setShowBox={(show) => {
@@ -292,11 +338,19 @@ export class ImageTranslateManager {
                 this.#showLayoutOverlay = true;
                 this.#renderLayoutOverlay();
                 // 同步将图片上方的悬停按钮置为激活态
-                if (this.#sourceType === "image") this.#hoverDetector?.setLayoutState(
-                  "active", regions, true, this.#currentImageElement, true
-                );
+                if (this.#sourceType === "image")
+                  this.#hoverDetector?.setLayoutState(
+                    "active",
+                    regions,
+                    true,
+                    this.#currentImageElement,
+                    true
+                  );
                 if (replace) {
-                  this.#boxProps = { ...this.#boxProps, selectedRegions: regions };
+                  this.#boxProps = {
+                    ...this.#boxProps,
+                    selectedRegions: regions,
+                  };
                   this.#render();
                 }
               }
@@ -305,9 +359,13 @@ export class ImageTranslateManager {
               if (!isCurrent()) return;
               // 分析服务变化或手动重新分析时重置布局。
               this.#clearLayoutOverlay();
-              if (this.#sourceType === "image") this.#hoverDetector?.setLayoutState(
-                "idle", [], true, this.#currentImageElement
-              );
+              if (this.#sourceType === "image")
+                this.#hoverDetector?.setLayoutState(
+                  "idle",
+                  [],
+                  true,
+                  this.#currentImageElement
+                );
               this.#boxProps = { ...this.#boxProps, selectedRegions: null };
               this.#render();
             }}
@@ -320,7 +378,10 @@ export class ImageTranslateManager {
 
   #renderLayoutOverlay() {
     if (this.#sourceType === "screenshot") {
-      this.#screenshotOverlay?.setLayoutState?.(this.#layoutRegions, this.#showLayoutOverlay);
+      this.#screenshotOverlay?.setLayoutState?.(
+        this.#layoutRegions,
+        this.#showLayoutOverlay
+      );
       return;
     }
     if (
@@ -378,7 +439,8 @@ export class ImageTranslateManager {
   }
 
   #clearLayoutOverlay() {
-    if (this.#sourceType === "screenshot") this.#screenshotOverlay?.setLayoutState?.(null);
+    if (this.#sourceType === "screenshot")
+      this.#screenshotOverlay?.setLayoutState?.(null);
     try {
       this.#layoutOverlayReactRoot?.unmount();
     } catch {}
@@ -427,9 +489,14 @@ export class ImageTranslateManager {
       this.#layoutRegions = selectedRegions;
       // 先提交接管后的线框，再让悬停层移除自己的线框。
       flushSync(() => this.#renderLayoutOverlay());
-      if (sourceType === "image") this.#hoverDetector?.setLayoutState(
-        "active", selectedRegions, showLayoutOverlay, imageElement, true
-      );
+      if (sourceType === "image")
+        this.#hoverDetector?.setLayoutState(
+          "active",
+          selectedRegions,
+          showLayoutOverlay,
+          imageElement,
+          true
+        );
     } else {
       this.#clearLayoutOverlay();
     }
@@ -469,7 +536,11 @@ export class ImageTranslateManager {
     flushSync(() => {
       if (this.#currentImageElement && this.#layoutRegions.length) {
         this.#hoverDetector?.setLayoutState(
-          "active", this.#layoutRegions, this.#showLayoutOverlay, this.#currentImageElement, false
+          "active",
+          this.#layoutRegions,
+          this.#showLayoutOverlay,
+          this.#currentImageElement,
+          false
         );
       }
       this.#hoverDetector?.suspend();
@@ -498,10 +569,19 @@ export class ImageTranslateManager {
   updateSetting(setting) {
     this.#setting = setting;
     this.#i18n = newI18n(this.#setting?.uiLang || "zh");
-    const layoutChanged = this.#hoverDetector?.updateConfig(this.#setting, this.#rule);
+    const layoutChanged = this.#hoverDetector?.updateConfig(
+      this.#setting,
+      this.#rule
+    );
     if (layoutChanged) {
       this.#clearLayoutOverlay();
-      if (this.#sourceType === "image") this.#hoverDetector?.setLayoutState("idle", [], true, this.#currentImageElement);
+      if (this.#sourceType === "image")
+        this.#hoverDetector?.setLayoutState(
+          "idle",
+          [],
+          true,
+          this.#currentImageElement
+        );
       this.#boxProps = { ...this.#boxProps, selectedRegions: null };
     }
     this.#screenshotOverlay?.updateSetting?.(this.#setting);

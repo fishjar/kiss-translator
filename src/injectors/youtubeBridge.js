@@ -116,8 +116,12 @@ export function installYoutubeBridge(createAudioBridge) {
       typeof args[0] === "string" ? args[0] : args[0]?.url || args[0]?.href;
     const capture = audioBridge?.prepare(args);
     let promise;
-    try { promise = Reflect.apply(originalFetch, this, args); }
-    catch (error) { audioBridge?.abortPrepared(capture); throw error; }
+    try {
+      promise = Reflect.apply(originalFetch, this, args);
+    } catch (error) {
+      audioBridge?.abortPrepared(capture);
+      throw error;
+    }
     audioBridge?.observe(promise, capture);
     if (enabled && validUrl(url))
       promise
@@ -424,8 +428,14 @@ export function installYoutubeBridge(createAudioBridge) {
   const attachAudio = (factory) => {
     if (audioBridge || typeof factory !== "function") return;
     try {
-      audioBridge = factory({ fetch: (...args) => Reflect.apply(originalFetch, window, args), getPlayer: player, getVideoId: id });
-    } catch { /* Captions remain available when audio is unsupported. */ }
+      audioBridge = factory({
+        fetch: (...args) => Reflect.apply(originalFetch, window, args),
+        getPlayer: player,
+        getVideoId: id,
+      });
+    } catch {
+      /* Captions remain available when audio is unsupported. */
+    }
   };
   attachAudio(createAudioBridge);
   window[key] = { dispose, attachAudio };

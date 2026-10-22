@@ -121,7 +121,10 @@ export default function ImageTranslateBox({
   const setTaskBusy = useCallback((value) => {
     setBusy(value);
     const current = taskStateRef.current;
-    current.onTaskStateChange?.({ busy: value, requestVersion: current.requestVersion });
+    current.onTaskStateChange?.({
+      busy: value,
+      requestVersion: current.requestVersion,
+    });
   }, []);
 
   useEffect(() => {
@@ -192,7 +195,11 @@ export default function ImageTranslateBox({
       setTaskBusy(true);
       setHasExecuted(finalAction !== "layout");
       setStage(
-        finalAction === "layout" ? "layout" : isTranslateOnly ? "translate" : "recognize"
+        finalAction === "layout"
+          ? "layout"
+          : isTranslateOnly
+            ? "translate"
+            : "recognize"
       );
       if (finalAction === "layout") {
         setItems([]);
@@ -227,7 +234,9 @@ export default function ImageTranslateBox({
           dataUrl: isTranslateOnly ? undefined : dataUrl,
           items: isTranslateOnly ? items : undefined,
           selectedRegions:
-            finalAction === "layout" ? undefined : layoutRegionsRef.current ?? undefined,
+            finalAction === "layout"
+              ? undefined
+              : (layoutRegionsRef.current ?? undefined),
           scene: activeScene,
         });
 
@@ -389,19 +398,30 @@ export default function ImageTranslateBox({
         msg?.args?.taskId === currentTaskIdRef.current
       ) {
         const { sequence } = msg.args;
-        if (!Number.isInteger(sequence) || sequence <= progressSequenceRef.current) return;
+        if (
+          !Number.isInteger(sequence) ||
+          sequence <= progressSequenceRef.current
+        )
+          return;
         progressSequenceRef.current = sequence;
         if (msg.args.stage) {
           setStage(msg.args.stage);
         }
-        if (msg.args.stage === "recognize" && Number.isInteger(msg.args.current)) {
-          setRecognitionProgress({ current: msg.args.current, total: msg.args.total });
+        if (
+          msg.args.stage === "recognize" &&
+          Number.isInteger(msg.args.current)
+        ) {
+          setRecognitionProgress({
+            current: msg.args.current,
+            total: msg.args.total,
+          });
         }
         if (Array.isArray(msg.args.recognitionErrors)) {
           setRecognitionErrors(msg.args.recognitionErrors);
         }
         if (
-          (msg.args.stage === "recognize" || msg.args.stage === "recognize_done") &&
+          (msg.args.stage === "recognize" ||
+            msg.args.stage === "recognize_done") &&
           Array.isArray(msg.args.items)
         ) {
           setItems(msg.args.items);

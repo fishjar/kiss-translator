@@ -172,7 +172,9 @@ describe("ImageLayoutOverlay", () => {
     expect(polygon).not.toBeNull();
 
     act(() => {
-      polygon.closest("g").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      polygon
+        .closest("g")
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(onToggleRegion).toHaveBeenCalledWith(0);
   });
@@ -212,11 +214,17 @@ describe("ImageTranslateContent", () => {
   });
 
   test("shows failed recognition region numbers without discarding successful translations", () => {
-    act(() => root.render(
-      <ImageTranslateContent items={sampleItems} recognitionErrors={[
-        { order: 2, error: "RPC timed out" }, { order: 3, error: "empty output" },
-      ]} />
-    ));
+    act(() =>
+      root.render(
+        <ImageTranslateContent
+          items={sampleItems}
+          recognitionErrors={[
+            { order: 2, error: "RPC timed out" },
+            { order: 3, error: "empty output" },
+          ]}
+        />
+      )
+    );
     expect(container.textContent).toContain("部分分区识别失败");
     expect(container.textContent).toContain("#3: RPC timed out");
     expect(container.textContent).toContain("#4: empty output");
@@ -292,7 +300,11 @@ describe("ImageTranslateContent", () => {
     const onRetryItem = jest.fn();
     const itemsWithError = [
       { original: "Item success", translation: "项目成功" },
-      { original: "Item failed", translation: "", error: "Rate limit exceeded" },
+      {
+        original: "Item failed",
+        translation: "",
+        error: "Rate limit exceeded",
+      },
     ];
 
     act(() => {
@@ -308,7 +320,9 @@ describe("ImageTranslateContent", () => {
     expect(container.textContent).toContain("Item failed");
     expect(container.textContent).toContain("Rate limit exceeded");
     const buttons = Array.from(container.querySelectorAll("button"));
-    const retryItemBtn = buttons.find((btn) => btn.textContent.includes("重试"));
+    const retryItemBtn = buttons.find((btn) =>
+      btn.textContent.includes("重试")
+    );
     expect(retryItemBtn).not.toBeNull();
     act(() => {
       retryItemBtn.click();
@@ -415,22 +429,49 @@ describe("ImageTranslateHeader", () => {
 
   test("displays the disabled layout choice initially, after selecting it, and after reopening", () => {
     const onSettingChange = jest.fn();
-    const apis = [{
-      apiSlug: "layout", apiName: "Layout service",
-      provider: { apiVersion: "1", implementation: { kind: "native" }, capabilities: { analyzeLayout: { coordinates: true } } },
-    }];
-    const mountHeader = (layoutApiSlug) => act(() => root.render(
-      <ImageTranslateHeader scene={{ layoutApiSlug }} apis={apis} onSettingChange={onSettingChange} />
-    ));
-    const control = () => [...container.querySelectorAll(".MuiFormControl-root")].find((node) => node.querySelector("label")?.textContent === "布局分析");
+    const apis = [
+      {
+        apiSlug: "layout",
+        apiName: "Layout service",
+        provider: {
+          apiVersion: "1",
+          implementation: { kind: "native" },
+          capabilities: { analyzeLayout: { coordinates: true } },
+        },
+      },
+    ];
+    const mountHeader = (layoutApiSlug) =>
+      act(() =>
+        root.render(
+          <ImageTranslateHeader
+            scene={{ layoutApiSlug }}
+            apis={apis}
+            onSettingChange={onSettingChange}
+          />
+        )
+      );
+    const control = () =>
+      [...container.querySelectorAll(".MuiFormControl-root")].find(
+        (node) => node.querySelector("label")?.textContent === "布局分析"
+      );
     const select = () => control().querySelector(".MuiSelect-select");
     const choose = (value) => {
-      act(() => select().dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 })));
-      act(() => container.querySelector(`[role="option"][data-value="${value}"]`).click());
+      act(() =>
+        select().dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, button: 0 })
+        )
+      );
+      act(() =>
+        container
+          .querySelector(`[role="option"][data-value="${value}"]`)
+          .click()
+      );
     };
     mountHeader("");
     expect(select().textContent).toBe("不启用");
-    expect(control().querySelector("label").getAttribute("data-shrink")).toBe("true");
+    expect(control().querySelector("label").getAttribute("data-shrink")).toBe(
+      "true"
+    );
     mountHeader("layout");
     expect(select().textContent).toBe("Layout service");
     choose("");
@@ -441,30 +482,58 @@ describe("ImageTranslateHeader", () => {
     mountHeader("");
     expect(select().textContent).toBe("不启用");
     choose("layout");
-    expect(onSettingChange).toHaveBeenLastCalledWith({ layoutApiSlug: "layout" });
+    expect(onSettingChange).toHaveBeenLastCalledWith({
+      layoutApiSlug: "layout",
+    });
     mountHeader("layout");
     expect(select().textContent).toBe("Layout service");
   });
 
   test("offers separate layout, recognition, and translation actions", () => {
     const onRunAction = jest.fn();
-    const renderHeader = () => root.render(
-      <ImageTranslateHeader
-        scene={{ layoutApiSlug: "layout", recognitionService: { apiSlug: "ocr", capability: "recognizeText" } }}
-        apis={[{ apiSlug: "layout", provider: { apiVersion: "1", implementation: { kind: "native" }, capabilities: { analyzeLayout: { coordinates: true } } } }]}
-        onRunAction={onRunAction}
-        hasRecognizedText
-      />
-    );
+    const renderHeader = () =>
+      root.render(
+        <ImageTranslateHeader
+          scene={{
+            layoutApiSlug: "layout",
+            recognitionService: { apiSlug: "ocr", capability: "recognizeText" },
+          }}
+          apis={[
+            {
+              apiSlug: "layout",
+              provider: {
+                apiVersion: "1",
+                implementation: { kind: "native" },
+                capabilities: { analyzeLayout: { coordinates: true } },
+              },
+            },
+          ]}
+          onRunAction={onRunAction}
+          hasRecognizedText
+        />
+      );
     act(renderHeader);
     const openMenu = () => {
-      const button = container.querySelector('[aria-label="select merge action"]');
-      button.getBoundingClientRect = () => ({ top: 10, left: 10, bottom: 40, right: 40, width: 30, height: 30 });
+      const button = container.querySelector(
+        '[aria-label="select merge action"]'
+      );
+      button.getBoundingClientRect = () => ({
+        top: 10,
+        left: 10,
+        bottom: 40,
+        right: 40,
+        width: 30,
+        height: 30,
+      });
       act(() => button.click());
     };
     openMenu();
     let actions = container.querySelectorAll('[role="menu"] [role="menuitem"]');
-    expect(Array.from(actions, (item) => item.textContent)).toEqual(["布局分析", "文本识别", "文本翻译"]);
+    expect(Array.from(actions, (item) => item.textContent)).toEqual([
+      "布局分析",
+      "文本识别",
+      "文本翻译",
+    ]);
     act(() => actions[0].click());
     expect(onRunAction).toHaveBeenLastCalledWith("layout");
     openMenu();

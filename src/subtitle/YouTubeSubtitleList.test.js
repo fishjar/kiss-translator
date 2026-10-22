@@ -119,27 +119,44 @@ describe("YouTubeSubtitleList", () => {
   });
   test("Shorts panel width restores, drags, saves and clamps without replacing user preference", async () => {
     saveEdit.mockResolvedValue();
-    getSettingWithDefault.mockResolvedValueOnce({ subtitleSetting: { youtubeShortsSubtitlePanelWidth: 600 } });
+    getSettingWithDefault.mockResolvedValueOnce({
+      subtitleSetting: { youtubeShortsSubtitlePanelWidth: 600 },
+    });
     window.history.replaceState({}, "", "/shorts/kSQknoHMFtk");
-    const list = new YouTubeSubtitleList(createVideoElement(), key => key, { asrActions: {} });
+    const list = new YouTubeSubtitleList(createVideoElement(), (key) => key, {
+      asrActions: {},
+    });
     list.initialize([]);
     await flushPromises();
     expect(list.container.style.width).toBe("600px");
     const handle = list._shortsResizeHandle;
-    handle.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    handle.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true })
+    );
     expect(list.container.style.width).toBe("616px");
-    expect(saveEdit.mock.calls.at(-1)[1]({}).subtitleSetting.youtubeShortsSubtitlePanelWidth).toBe(616);
+    expect(
+      saveEdit.mock.calls.at(-1)[1]({}).subtitleSetting
+        .youtubeShortsSubtitlePanelWidth
+    ).toBe(616);
     list.container.getBoundingClientRect = () => ({ width: 616 });
-    handle.dispatchEvent(new MouseEvent("pointerdown", { button: 0, clientX: 500 }));
+    handle.dispatchEvent(
+      new MouseEvent("pointerdown", { button: 0, clientX: 500 })
+    );
     window.dispatchEvent(new MouseEvent("pointermove", { clientX: 450 }));
     window.dispatchEvent(new MouseEvent("pointerup"));
     expect(list.container.style.width).toBe("666px");
     const oldWidth = window.innerWidth;
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: 400 });
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 400,
+    });
     window.dispatchEvent(new Event("resize"));
     expect(list.container.style.width).toBe("376px");
     expect(list._shortsPanelWidth).toBe(666);
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: oldWidth });
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: oldWidth,
+    });
     list.destroy();
     window.history.replaceState({}, "", "/watch?v=kSQknoHMFtk");
   });
@@ -166,13 +183,17 @@ describe("YouTubeSubtitleList", () => {
       list.initialize([cue]);
       renderVisibleSubtitleItems(list);
       expect(
-        list.subtitleScrollContainer.querySelector('[aria-label^="youtube_asr_"]')
+        list.subtitleScrollContainer.querySelector(
+          '[aria-label^="youtube_asr_"]'
+        )
       ).toBeNull();
       list.asrAudioButton.click();
       expect(exportFull).toHaveBeenCalledTimes(1);
       expect(list.asrClearAudioButton).toBeDefined();
       expect(list.asrClearSubtitlesButton).toBeDefined();
-      expect(list.asrClearAudioButton.parentElement).toBe(list.asrPanel.toolbar);
+      expect(list.asrClearAudioButton.parentElement).toBe(
+        list.asrPanel.toolbar
+      );
       expect(list.asrClearSubtitlesButton.parentElement).toBe(
         list.asrPanel.toolbar
       );
@@ -888,7 +909,11 @@ test("empty ASR sidebar keeps its fixed status inside the ASR tab only", async (
     ]);
     list.selectAsrTab();
     expect(list.activeTab).toBe("asr");
-    list.updateAsrState({ active: true, phase: "error", error: "AUDIO_CAPTURE_MISSING" });
+    list.updateAsrState({
+      active: true,
+      phase: "error",
+      error: "AUDIO_CAPTURE_MISSING",
+    });
     jest.advanceTimersByTime(100);
     const summary = list.asrPanel.summary;
     expect(summary.parentElement).toBe(list.asrPanel.element);
@@ -929,8 +954,6 @@ test("updateAsrState does not throw when asrAudioButton is not present", () => {
   }
 });
 
-
-
 test("inactive ASR tab exposes only its enable button and switching tabs never starts recognition", () => {
   const start = jest.fn();
   const list = new YouTubeSubtitleList(createVideoElement(), (key) => key, {
@@ -956,11 +979,16 @@ test("inactive ASR tab exposes only its enable button and switching tabs never s
     list.asrPanel.render();
     expect(list.asrPanel.summary.querySelectorAll("progress")).toHaveLength(4);
     expect([...list.asrPanel.coverage.keys()]).toEqual([
-      "audio", "cutting", "recognition", "translation",
+      "audio",
+      "cutting",
+      "recognition",
+      "translation",
     ]);
     expect(list.asrPanel.coverage.get("cutting").row.hidden).toBe(true);
     list.updateAsrState({
-      phase: "running", active: true, available: true,
+      phase: "running",
+      active: true,
+      available: true,
       cutting: { samples: 16000, totalSamples: 32000, complete: false },
     });
     list.asrPanel.render();
@@ -1002,7 +1030,6 @@ test("unconfigured recognition keeps its tab with a disabled enable button and c
     list.destroy();
   }
 });
-
 
 test("bilingual tab renders new ASR text and subsequent translations received while hidden", () => {
   const list = new YouTubeSubtitleList(createVideoElement(), (key) => key, {
@@ -1056,8 +1083,9 @@ test("ASR toolbar stop reuses the menu action and returns to the enable view", (
 });
 
 test("ASR pause toggles to resume and clearing keeps recognition closed with a disabled start", () => {
-  const pause = jest.fn(), resume = jest.fn();
-  const list = new YouTubeSubtitleList(createVideoElement(), key => key, {
+  const pause = jest.fn(),
+    resume = jest.fn();
+  const list = new YouTubeSubtitleList(createVideoElement(), (key) => key, {
     asrActions: { pause, resume },
   });
   list.initialize([]);
@@ -1075,8 +1103,14 @@ test("ASR pause toggles to resume and clearing keeps recognition closed with a d
   expect(list.asrPauseButton.disabled).toBe(true);
   expect(list.asrClearAudioButton.disabled).toBe(true);
   expect(list.asrClearSubtitlesButton.disabled).toBe(true);
-  list.updateAsrState({ active: false, available: true, cacheDeleteError: "CACHE_UNAVAILABLE" });
-  expect(list.asrInactiveNotice.textContent).toBe("youtube_asr_cache_delete_failed");
+  list.updateAsrState({
+    active: false,
+    available: true,
+    cacheDeleteError: "CACHE_UNAVAILABLE",
+  });
+  expect(list.asrInactiveNotice.textContent).toBe(
+    "youtube_asr_cache_delete_failed"
+  );
   expect(list.asrStartButton.disabled).toBe(false);
   list.destroy();
 });
@@ -1099,7 +1133,6 @@ test("empty native subtitle failures expose a retry and hide it after recovery",
   expect(list.captionRetryButton.hidden).toBe(true);
   list.destroy();
 });
-
 
 test("watch sidebar waits for its host and remounts after the host is replaced", async () => {
   const video = createVideoElement();
@@ -1161,7 +1194,10 @@ test("disables export buttons when subtitles or raw events are not ready and ena
   expect(list.asrStopButton.style.cursor).toBe("pointer");
 
   // ASR 自身忙碌时独立同步禁用样式
-  list.updateAsrState({ fullExport: "generating", audio: { phase: "fetching" } });
+  list.updateAsrState({
+    fullExport: "generating",
+    audio: { phase: "fetching" },
+  });
   expect(list.asrAudioButton.disabled).toBe(true);
   expect(list.asrAudioButton.style.opacity).toBe("0.45");
   expect(list.asrAudioButton.style.cursor).toBe("not-allowed");

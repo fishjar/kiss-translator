@@ -93,7 +93,14 @@ export async function transcribeAudioChunk(
     const result = await call.result;
     checkCancelled();
     validateResult("transcribe", result, input);
-    if (result.languagePending) return { startSample, endSample, languagePending: true, segments: [], events: [] };
+    if (result.languagePending)
+      return {
+        startSample,
+        endSample,
+        languagePending: true,
+        segments: [],
+        events: [],
+      };
     let timingSource = result.segments?.length ? "asr" : "audio-chunk";
     let segments = [];
     if (timingSource === "asr") {
@@ -111,12 +118,17 @@ export async function transcribeAudioChunk(
         // the preceding cue without discarding genuine sentence/word timings.
         const previous = parsed[parsed.length - 1];
         if (
-          Number.isFinite(start) && end === start && start >= lastStart &&
-          previous && /^[\p{P}\s]+$/u.test(text) && text.trim()
+          Number.isFinite(start) &&
+          end === start &&
+          start >= lastStart &&
+          previous &&
+          /^[\p{P}\s]+$/u.test(text) &&
+          text.trim()
         ) {
           const punctuation = text.trim();
           previous.text += punctuation;
-          if (previous.words) previous.words[previous.words.length - 1].text += punctuation;
+          if (previous.words)
+            previous.words[previous.words.length - 1].text += punctuation;
           continue;
         }
         if (
@@ -125,13 +137,25 @@ export async function transcribeAudioChunk(
           start < lastStart ||
           (text.trim() && end <= start)
         ) {
-          logger.warn("[YouTube ASR] timestamp fallback", JSON.stringify({
-            startSample, endSample, duration,
-            reason: !Number.isFinite(start) || !Number.isFinite(end)
-              ? "non-finite" : start < lastStart ? "unordered" : "zero-duration",
-            segment: parsed.length, start: rawStart, end: rawEnd,
-            textLength: text.length, wordCount: seg.words?.length || 0,
-          }));
+          logger.warn(
+            "[YouTube ASR] timestamp fallback",
+            JSON.stringify({
+              startSample,
+              endSample,
+              duration,
+              reason:
+                !Number.isFinite(start) || !Number.isFinite(end)
+                  ? "non-finite"
+                  : start < lastStart
+                    ? "unordered"
+                    : "zero-duration",
+              segment: parsed.length,
+              start: rawStart,
+              end: rawEnd,
+              textLength: text.length,
+              wordCount: seg.words?.length || 0,
+            })
+          );
           valid = false;
           break;
         }
@@ -177,20 +201,34 @@ export async function transcribeAudioChunk(
           ]
         : [];
     }
-    logger.debug("[YouTube ASR] timing result", JSON.stringify({
-      startSample, endSample, timingSource,
-      inputSegments: result.segments?.length || 0,
-      inputWords: result.segments?.reduce((sum, seg) => sum + (seg.words?.length || 0), 0) || 0,
-      outputSegments: segments.length,
-      outputWords: segments.reduce((sum, seg) => sum + (seg.words?.length || 0), 0),
-    }));
+    logger.debug(
+      "[YouTube ASR] timing result",
+      JSON.stringify({
+        startSample,
+        endSample,
+        timingSource,
+        inputSegments: result.segments?.length || 0,
+        inputWords:
+          result.segments?.reduce(
+            (sum, seg) => sum + (seg.words?.length || 0),
+            0
+          ) || 0,
+        outputSegments: segments.length,
+        outputWords: segments.reduce(
+          (sum, seg) => sum + (seg.words?.length || 0),
+          0
+        ),
+      })
+    );
     return {
       startSample,
       endSample,
       silent: false,
       timingSource,
       ...(result.language && { language: result.language }),
-      ...(result.languageConfidence !== undefined && { languageConfidence: result.languageConfidence }),
+      ...(result.languageConfidence !== undefined && {
+        languageConfidence: result.languageConfidence,
+      }),
       segments,
       events: segments
         .flatMap((segment) => alignedAsrWords(segment) || [segment])

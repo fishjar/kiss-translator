@@ -213,7 +213,9 @@ const { TransboxManager } = require("./tranbox");
 const { InputTranslator } = require("./inputTranslate");
 const { PopupManager } = require("./popupManager");
 const { FabManager } = require("./fabManager");
-const { ImageTranslateManager } = require("./imageTranslate/imageTranslateManager");
+const {
+  ImageTranslateManager,
+} = require("./imageTranslate/imageTranslateManager");
 const { sendIframeMsg } = require("./iframe");
 const TranslatorManager = require("./translatorManager").default;
 
@@ -437,15 +439,16 @@ describe("TranslatorManager SPA lifecycle", () => {
   test("coordinates screenshot FAB suspension and closes the image session before destroying the FAB", () => {
     const manager = createManager();
     manager.start();
-    const { onScreenshotSessionChange } = ImageTranslateManager.mock.calls[0][0];
+    const { onScreenshotSessionChange } =
+      ImageTranslateManager.mock.calls[0][0];
     onScreenshotSessionChange(true);
     expect(mockFabInstances[0].suspend).toHaveBeenCalledTimes(1);
     onScreenshotSessionChange(false);
     expect(mockFabInstances[0].resume).toHaveBeenCalledTimes(1);
     manager.stop();
-    expect(mockImageTranslateInstances[0].destroy.mock.invocationCallOrder[0]).toBeLessThan(
-      mockFabInstances[0].destroy.mock.invocationCallOrder[0]
-    );
+    expect(
+      mockImageTranslateInstances[0].destroy.mock.invocationCallOrder[0]
+    ).toBeLessThan(mockFabInstances[0].destroy.mock.invocationCallOrder[0]);
   });
 
   test.each([false, true])(

@@ -72,7 +72,11 @@ const mockTransApis = [
   {
     apiSlug: "LocalAI-Layout",
     apiName: "LocalAI 版面分析",
-    provider: { apiVersion: "1", implementation: { kind: "native" }, capabilities: { analyzeLayout: { coordinates: true } } },
+    provider: {
+      apiVersion: "1",
+      implementation: { kind: "native" },
+      capabilities: { analyzeLayout: { coordinates: true } },
+    },
   },
 ];
 
@@ -128,23 +132,42 @@ describe("ImageTranslate Options Page", () => {
 
   test("shows and saves the disabled layout choice and restores it when reopened", () => {
     const mountOptions = (layoutApiSlug) => {
-      mockSetting = { imageTranslateSetting: { ...DEFAULT_IMAGE_TRANSLATE_SETTING, layoutApiSlug } };
+      mockSetting = {
+        imageTranslateSetting: {
+          ...DEFAULT_IMAGE_TRANSLATE_SETTING,
+          layoutApiSlug,
+        },
+      };
       act(() => root.render(<ImageTranslate />));
     };
-    const control = () => [...container.querySelectorAll(".MuiFormControl-root")].find((node) => node.querySelector("label")?.textContent === "界面分析服务");
+    const control = () =>
+      [...container.querySelectorAll(".MuiFormControl-root")].find(
+        (node) => node.querySelector("label")?.textContent === "界面分析服务"
+      );
     const select = () => control().querySelector(".MuiSelect-select");
     const choose = (value) => {
-      act(() => select().dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 })));
-      act(() => document.querySelector(`[role="option"][data-value="${value}"]`).click());
+      act(() =>
+        select().dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, button: 0 })
+        )
+      );
+      act(() =>
+        document.querySelector(`[role="option"][data-value="${value}"]`).click()
+      );
     };
     mountOptions("");
     expect(select().textContent).toBe("不使用布局服务 (整图识别)");
-    expect(control().querySelector("label").getAttribute("data-shrink")).toBe("true");
+    expect(control().querySelector("label").getAttribute("data-shrink")).toBe(
+      "true"
+    );
     mountOptions("LocalAI-Layout");
     expect(select().textContent).toBe("LocalAI 版面分析");
     choose("");
     expect(mockUpdateSetting.mock.calls.slice(-1)[0][0](mockSetting)).toEqual({
-      imageTranslateSetting: { ...DEFAULT_IMAGE_TRANSLATE_SETTING, layoutApiSlug: "" },
+      imageTranslateSetting: {
+        ...DEFAULT_IMAGE_TRANSLATE_SETTING,
+        layoutApiSlug: "",
+      },
     });
     mountOptions("");
     expect(select().textContent).toBe("不使用布局服务 (整图识别)");
@@ -152,7 +175,10 @@ describe("ImageTranslate Options Page", () => {
     mountOptions("");
     expect(select().textContent).toBe("不使用布局服务 (整图识别)");
     choose("LocalAI-Layout");
-    expect(mockUpdateSetting.mock.calls.slice(-1)[0][0](mockSetting).imageTranslateSetting.layoutApiSlug).toBe("LocalAI-Layout");
+    expect(
+      mockUpdateSetting.mock.calls.slice(-1)[0][0](mockSetting)
+        .imageTranslateSetting.layoutApiSlug
+    ).toBe("LocalAI-Layout");
     mountOptions("LocalAI-Layout");
     expect(select().textContent).toBe("LocalAI 版面分析");
   });

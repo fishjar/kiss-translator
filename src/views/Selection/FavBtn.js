@@ -42,8 +42,8 @@ export default function FavBtn({ word, title, source = null }) {
             ? mergeWords([word], { source })
             : mergeWords([word])
           : hasSource
-          ? toggleFav(word, null, "", "", [], source)
-          : toggleFav(word));
+            ? toggleFav(word, null, "", "", [], source)
+            : toggleFav(word));
         const isFavorite = Boolean(receipt.value[word]);
         document.dispatchEvent(
           new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {

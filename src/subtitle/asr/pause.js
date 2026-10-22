@@ -18,7 +18,10 @@ export class AsrPauseGate {
           this.waiters.delete(wake);
           signal.removeEventListener("abort", abort);
         };
-        const wake = () => { cleanup(); resolve(); };
+        const wake = () => {
+          cleanup();
+          resolve();
+        };
         const abort = () => {
           cleanup();
           reject(signal.reason || new DOMException("Cancelled", "AbortError"));

@@ -116,7 +116,15 @@ export class ScreenshotOverlay {
     );
   }
 
-  async start({ onComplete, onCancel, onLayoutChange, onSelectionChange, onLayoutStart, onLocalBusyChange, onToggleBox }) {
+  async start({
+    onComplete,
+    onCancel,
+    onLayoutChange,
+    onSelectionChange,
+    onLayoutStart,
+    onLocalBusyChange,
+    onToggleBox,
+  }) {
     if (document.hidden || document.visibilityState !== "visible") {
       onCancel?.();
       return;
@@ -229,7 +237,17 @@ export class ScreenshotOverlay {
         this.#onCancel?.();
       } else if (
         !this.#isPopupEvent(e) &&
-        [" ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown", "Home", "End"].includes(e.key)
+        [
+          " ",
+          "ArrowUp",
+          "ArrowDown",
+          "ArrowLeft",
+          "ArrowRight",
+          "PageUp",
+          "PageDown",
+          "Home",
+          "End",
+        ].includes(e.key)
       ) {
         e.preventDefault();
       }
@@ -246,14 +264,21 @@ export class ScreenshotOverlay {
   }
 
   #isPopupEvent(event) {
-    return event.composedPath().some((node) => node.id === APP_CONSTS.imageBoxID);
+    return event
+      .composedPath()
+      .some((node) => node.id === APP_CONSTS.imageBoxID);
   }
 
   #lockScroll() {
     const position = { x: window.scrollX, y: window.scrollY };
     const saved = [document.documentElement, document.body].map((element) => ({
       element,
-      properties: ["overflow", "overflow-x", "overflow-y", "scrollbar-gutter"].map((name) => ({
+      properties: [
+        "overflow",
+        "overflow-x",
+        "overflow-y",
+        "scrollbar-gutter",
+      ].map((name) => ({
         name,
         value: element.style.getPropertyValue(name),
         priority: element.style.getPropertyPriority(name),
@@ -263,12 +288,22 @@ export class ScreenshotOverlay {
       element.style.setProperty("overflow-x", "hidden", "important");
       element.style.setProperty("overflow-y", "hidden", "important");
     }
-    document.documentElement.style.setProperty("scrollbar-gutter", "stable", "important");
+    document.documentElement.style.setProperty(
+      "scrollbar-gutter",
+      "stable",
+      "important"
+    );
     const preventScroll = (event) => {
       if (!this.#isPopupEvent(event)) event.preventDefault();
     };
-    window.addEventListener("wheel", preventScroll, { capture: true, passive: false });
-    window.addEventListener("touchmove", preventScroll, { capture: true, passive: false });
+    window.addEventListener("wheel", preventScroll, {
+      capture: true,
+      passive: false,
+    });
+    window.addEventListener("touchmove", preventScroll, {
+      capture: true,
+      passive: false,
+    });
     this.#cleanupScroll = () => {
       window.removeEventListener("wheel", preventScroll, true);
       window.removeEventListener("touchmove", preventScroll, true);
@@ -292,7 +327,11 @@ export class ScreenshotOverlay {
 
   #finishSelection() {
     this.#render();
-    if (this.#isConfirmed && this.#selection?.w >= 10 && this.#selection?.h >= 10) {
+    if (
+      this.#isConfirmed &&
+      this.#selection?.w >= 10 &&
+      this.#selection?.h >= 10
+    ) {
       this.#confirmSelection("update");
     }
   }
@@ -343,7 +382,10 @@ export class ScreenshotOverlay {
 
     const onMouseMove = (moveEvent) => {
       if (this.#busy) return;
-      if (!changed && (moveEvent.clientX !== startX || moveEvent.clientY !== startY)) {
+      if (
+        !changed &&
+        (moveEvent.clientX !== startX || moveEvent.clientY !== startY)
+      ) {
         this.#invalidateSelection();
         changed = true;
       }
@@ -466,7 +508,8 @@ export class ScreenshotOverlay {
 
   async #handleLayoutClick(action) {
     if (action === "cancel") {
-      if (this.#layoutTaskId) sendBgMsg(MSG_IMAGE_TRANSLATE_CANCEL, { taskId: this.#layoutTaskId });
+      if (this.#layoutTaskId)
+        sendBgMsg(MSG_IMAGE_TRANSLATE_CANCEL, { taskId: this.#layoutTaskId });
       this.#layoutTaskId = null;
       this.#abortController?.abort();
       this.#abortController = null;
@@ -507,13 +550,16 @@ export class ScreenshotOverlay {
       this.#layoutTaskId = taskId;
       this.#abortController = new AbortController();
       try {
-        const { blob, width, height } = await cropAndCompressImage(this.#imgElement, {
-          x: this.#selection.x,
-          y: this.#selection.y,
-          width: this.#selection.w,
-          height: this.#selection.h,
-          dpr: this.#dpr,
-        });
+        const { blob, width, height } = await cropAndCompressImage(
+          this.#imgElement,
+          {
+            x: this.#selection.x,
+            y: this.#selection.y,
+            width: this.#selection.w,
+            height: this.#selection.h,
+            dpr: this.#dpr,
+          }
+        );
 
         const dataUrl = await blobToDataUrl(blob);
         if (this.#layoutTaskId !== taskId) return;
@@ -617,7 +663,10 @@ export class ScreenshotOverlay {
     let selectedRegions = null;
     if (this.#layoutState === "active") {
       selectedRegions = this.#layoutRegions;
-      if (action === "all" && !selectedRegions.some((r) => r.enabled !== false)) {
+      if (
+        action === "all" &&
+        !selectedRegions.some((r) => r.enabled !== false)
+      ) {
         alert(
           this.#i18n(
             "image_select_at_least_one_region",
@@ -664,8 +713,12 @@ export class ScreenshotOverlay {
       if (this.#currentSessionId !== sessionId) return;
       console.error("[ScreenshotOverlay] Crop failed:", err);
       this.#isConfirmed = wasConfirmed;
-      if (this.#container && !wasConfirmed) this.#container.style.zIndex = "2147483647";
-      alert(err.message || this.#i18n("image_process_failed", "截图处理失败，请重试"));
+      if (this.#container && !wasConfirmed)
+        this.#container.style.zIndex = "2147483647";
+      alert(
+        err.message ||
+          this.#i18n("image_process_failed", "截图处理失败，请重试")
+      );
     } finally {
       if (this.#currentSessionId === sessionId) {
         this.#cropBusy = false;
@@ -891,7 +944,7 @@ export class ScreenshotOverlay {
 
         {/* 选区右上角操作条在打开翻译弹框后继续保留 */}
         {hasSelection && (
-            <DualActionButton
+          <DualActionButton
             style={{
               top: `${sel.y > 38 ? sel.y - 34 : sel.y + 8}px`,
               left: `${Math.max(10, sel.x + sel.w - 118)}px`,

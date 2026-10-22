@@ -14,7 +14,10 @@ export function invokeSavedService(serviceId, capability, input, options = {}) {
   const assets = options.assets || createAssetStore();
   const invocation = createInvocation(async (ctx) => {
     const {
-      instance, getSettingWithDefault, subscribeStorageInvalidation, STOKEY_SETTING,
+      instance,
+      getSettingWithDefault,
+      subscribeStorageInvalidation,
+      STOKEY_SETTING,
     } = await resolveInvocationConfig(ctx, async () => {
       const { getSettingWithDefault } = await import("../libs/storage");
       const { subscribeStorageInvalidation } = await import(
@@ -29,9 +32,16 @@ export function invokeSavedService(serviceId, capability, input, options = {}) {
           "SERVICE_UNAVAILABLE",
           "Service is disabled, deleted or unavailable."
         );
-      return { instance, getSettingWithDefault, subscribeStorageInvalidation, STOKEY_SETTING };
+      return {
+        instance,
+        getSettingWithDefault,
+        subscribeStorageInvalidation,
+        STOKEY_SETTING,
+      };
     });
-    ctx.setDeadline(startedAt + (options.timeoutMs ?? serviceTimeoutMs(instance)));
+    ctx.setDeadline(
+      startedAt + (options.timeoutMs ?? serviceTimeoutMs(instance))
+    );
     if (ctx.signal.aborted) throw ctx.signal.reason;
     const call = invokeScene(instance, capability, input, {
       ...serviceInvocationOptions(instance, options),

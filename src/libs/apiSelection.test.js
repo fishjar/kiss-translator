@@ -47,7 +47,10 @@ describe("translation service selection", () => {
     ).toEqual(["pinned", "unweighted", "zero"]);
   });
 
-  test.each([[[]], [[{ apiType: "Google", apiSlug: "disabled", isDisabled: true }]]])(
+  test.each([
+    [[]],
+    [[{ apiType: "Google", apiSlug: "disabled", isDisabled: true }]],
+  ])(
     "has no implicit default when all services are unavailable",
     (transApis) => {
       expect(resolveApiSelection(transApis, "disabled")).toBeUndefined();
@@ -67,7 +70,11 @@ describe("translation service selection", () => {
   test("only offers services with enabled translation capability without changing their configuration", () => {
     const service = (apiSlug, capabilities, extra = {}) => ({
       apiSlug,
-      provider: { apiVersion: "1", implementation: { kind: "native" }, capabilities },
+      provider: {
+        apiVersion: "1",
+        implementation: { kind: "native" },
+        capabilities,
+      },
       ...extra,
     });
     const services = [
@@ -77,13 +84,20 @@ describe("translation service selection", () => {
       service("tts", { synthesizeSpeech: {}, speak: {} }),
       service("mixed", { translate: {}, recognizeText: {} }),
       service("disabled", { translate: {} }, { isDisabled: true }),
-      service("translate-off", { translate: {}, recognizeText: {} }, { enabledCapabilities: ["recognizeText"] }),
+      service(
+        "translate-off",
+        { translate: {}, recognizeText: {} },
+        { enabledCapabilities: ["recognizeText"] }
+      ),
       service("all-off", { translate: {} }, { enabledCapabilities: [] }),
       { apiSlug: "google", apiType: "Google" },
       { apiSlug: "undeclared" },
     ];
     const before = JSON.stringify(services);
-    expect(getEnabledApis(services).map((api) => api.apiSlug)).toEqual(["mixed", "google"]);
+    expect(getEnabledApis(services).map((api) => api.apiSlug)).toEqual([
+      "mixed",
+      "google",
+    ]);
     expect(resolveApiSelection(services, "ocr").apiSlug).toBe("mixed");
     expect(resolveApiSelection(services.slice(0, 4), "ocr")).toBeUndefined();
     expect(JSON.stringify(services)).toBe(before);

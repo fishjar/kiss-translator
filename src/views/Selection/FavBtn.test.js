@@ -85,9 +85,7 @@ describe("FavBtn", () => {
   });
 
   test("passes a source to manual collection when one is available", async () => {
-    const toggleFav = jest
-      .fn()
-      .mockResolvedValue({ value: { library: {} } });
+    const toggleFav = jest.fn().mockResolvedValue({ value: { library: {} } });
     const source = {
       sentence: "The library is open.",
       url: "https://example.com/article",
@@ -105,14 +103,7 @@ describe("FavBtn", () => {
     });
     await act(async () => container.querySelector("button").click());
 
-    expect(toggleFav).toHaveBeenCalledWith(
-      "library",
-      null,
-      "",
-      "",
-      [],
-      source
-    );
+    expect(toggleFav).toHaveBeenCalledWith("library", null, "", "", [], source);
     act(() => root.unmount());
   });
 

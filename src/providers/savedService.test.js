@@ -72,7 +72,9 @@ test("the ID-only frontend bridge resolves a custom 600-second timeout before it
 
 test("disabling a resolved saved service still cancels its in-flight call", async () => {
   jest.useFakeTimers();
-  getSettingWithDefault.mockResolvedValue({ transApis: [{ apiSlug: "saved" }] });
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [{ apiSlug: "saved" }],
+  });
   invokeScene.mockImplementation((api, capability, input, options) =>
     createInvocation(() => new Promise(() => {}), options)
   );
@@ -97,24 +99,36 @@ describe.each([
   });
 
   test.each([undefined, 30, 600, "30000"])(
-    "configuration lookup consumes the saved %s budget", async (httpTimeout) => {
+    "configuration lookup consumes the saved %s budget",
+    async (httpTimeout) => {
       let resolve;
-      getSettingWithDefault.mockImplementation(() => new Promise(done => { resolve = done; }));
+      getSettingWithDefault.mockImplementation(
+        () =>
+          new Promise((done) => {
+            resolve = done;
+          })
+      );
       const startedAt = Date.now();
       const call = invoke("saved", "chat", {});
       await flush();
       jest.advanceTimersByTime(10000);
       resolve({ transApis: [{ apiSlug: "saved", httpTimeout }] });
       await flush();
-      const budget = httpTimeout === "30000" ? 30000 : (httpTimeout ?? 120) * 1000;
+      const budget =
+        httpTimeout === "30000" ? 30000 : (httpTimeout ?? 120) * 1000;
       expect(backend.mock.calls[0][3].deadlineAt).toBe(startedAt + budget);
       jest.advanceTimersByTime(budget - 10000 - 1);
       let failed = false;
-      call.result.catch(() => { failed = true; });
+      call.result.catch(() => {
+        failed = true;
+      });
       await flush();
       expect(failed).toBe(false);
       jest.advanceTimersByTime(1);
-      await expect(call.result).rejects.toHaveProperty("code", "REQUEST_TIMEOUT");
+      await expect(call.result).rejects.toHaveProperty(
+        "code",
+        "REQUEST_TIMEOUT"
+      );
       await call.finished;
       expect(jest.getTimerCount()).toBe(0);
     }
@@ -122,7 +136,12 @@ describe.each([
 
   test("an already exhausted saved budget never starts a provider", async () => {
     let resolve;
-    getSettingWithDefault.mockImplementation(() => new Promise(done => { resolve = done; }));
+    getSettingWithDefault.mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        })
+    );
     const call = invoke("saved", "chat", {});
     await flush();
     jest.advanceTimersByTime(31000);
@@ -134,34 +153,63 @@ describe.each([
   });
 
   test.each(["timeout", "cancel", "parent", "explicit"])(
-    "%s bounds discovery and late settings never start the provider", async (kind) => {
+    "%s bounds discovery and late settings never start the provider",
+    async (kind) => {
       let resolve;
-      getSettingWithDefault.mockImplementation(() => new Promise(done => { resolve = done; }));
+      getSettingWithDefault.mockImplementation(
+        () =>
+          new Promise((done) => {
+            resolve = done;
+          })
+      );
       let call, parent;
       if (kind === "parent") {
-        parent = createInvocation(ctx => {
-          call = invoke("saved", "chat", {}, { signal: ctx.signal });
-          return call.result;
-        }, { timeoutMs: 1000 });
+        parent = createInvocation(
+          (ctx) => {
+            call = invoke("saved", "chat", {}, { signal: ctx.signal });
+            return call.result;
+          },
+          { timeoutMs: 1000 }
+        );
       } else {
-        call = invoke("saved", "chat", {}, kind === "explicit" ? { timeoutMs: 1000 } : {});
+        call = invoke(
+          "saved",
+          "chat",
+          {},
+          kind === "explicit" ? { timeoutMs: 1000 } : {}
+        );
       }
       await flush();
       if (kind === "explicit" && invoke === invokeBridgedService) {
         // Explicit bridge calls need no frontend settings lookup.
         expect(getSettingWithDefault).not.toHaveBeenCalled();
         jest.advanceTimersByTime(1000);
-        await expect(call.result).rejects.toHaveProperty("code", "REQUEST_TIMEOUT");
+        await expect(call.result).rejects.toHaveProperty(
+          "code",
+          "REQUEST_TIMEOUT"
+        );
         await call.finished;
         expect(jest.getTimerCount()).toBe(0);
         return;
       }
       if (kind === "cancel") call.cancel();
-      else jest.advanceTimersByTime(kind === "timeout" ? MAX_SERVICE_TIMEOUT_MS : 1000);
+      else
+        jest.advanceTimersByTime(
+          kind === "timeout" ? MAX_SERVICE_TIMEOUT_MS : 1000
+        );
       await expect(call.result).rejects.toHaveProperty(
-        "code", expect.stringMatching(kind === "cancel" ? /REQUEST_CANCELLED/ : /REQUEST_(TIMEOUT|CANCELLED)/)
+        "code",
+        expect.stringMatching(
+          kind === "cancel"
+            ? /REQUEST_CANCELLED/
+            : /REQUEST_(TIMEOUT|CANCELLED)/
+        )
       );
-      if (parent) await expect(parent.result).rejects.toHaveProperty("code", "REQUEST_TIMEOUT");
+      if (parent)
+        await expect(parent.result).rejects.toHaveProperty(
+          "code",
+          "REQUEST_TIMEOUT"
+        );
       await call.finished;
       resolve({ transApis: [{ apiSlug: "saved", httpTimeout: 600 }] });
       await flush();

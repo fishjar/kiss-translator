@@ -246,7 +246,8 @@ export default function DualActionButton({
               transition: "background-color 0.15s ease",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.16)";
+              e.currentTarget.style.backgroundColor =
+                "rgba(255, 255, 255, 0.16)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = "transparent";

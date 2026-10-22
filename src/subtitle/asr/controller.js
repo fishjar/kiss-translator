@@ -12,7 +12,15 @@ import {
 import { asrCacheSignatures } from "./signatures";
 import { AsrTaskStore } from "./tasks";
 import { downloadBlobFile } from "../../libs/utils";
-import { asrLanguagePreferences, asrTranslationPreferences, translationLanguageOptions, asrLanguageOptions, resolveAsrLanguage, recognitionIdentity, audioIdentity } from "./language";
+import {
+  asrLanguagePreferences,
+  asrTranslationPreferences,
+  translationLanguageOptions,
+  asrLanguageOptions,
+  resolveAsrLanguage,
+  recognitionIdentity,
+  audioIdentity,
+} from "./language";
 
 export const youtubeAsrSupported = ["chrome", "edge"].includes(
   process.env.REACT_APP_CLIENT
@@ -66,9 +74,18 @@ export class YoutubeAsrController {
   }
   async setLanguage(language) {
     const identity = this.session?.identity || this.languageIdentity;
-    if (!this.active || !identity || identity.videoId !== this.getVideo().videoId ||
-        this.state.clearing || (language !== "auto" && !asrLanguageOptions(this.service()).some(option => option.value === language)) ||
-        language === this.state.selectedLanguage) return;
+    if (
+      !this.active ||
+      !identity ||
+      identity.videoId !== this.getVideo().videoId ||
+      this.state.clearing ||
+      (language !== "auto" &&
+        !asrLanguageOptions(this.service()).some(
+          (option) => option.value === language
+        )) ||
+      language === this.state.selectedLanguage
+    )
+      return;
     this.languagePreferences.set(identity, language);
     const old = this.session;
     this.session = undefined;
@@ -86,13 +103,24 @@ export class YoutubeAsrController {
     clearTimeout(this.seekTimer);
     clearTimeout(this.startupTimer);
     this.snapshotController?.abort();
-    this.emit({ phase: "restoring", selectedLanguage: language, effectiveLanguage: undefined,
+    this.emit({
+      phase: "restoring",
+      selectedLanguage: language,
+      effectiveLanguage: undefined,
       translationReady: false,
-      languageSource: language === "auto" ? undefined : "manual", recognition: undefined,
-      translation: undefined, cutting: undefined, recognitionError: undefined,
-      error: undefined, retrying: false, cacheRestored: false });
+      languageSource: language === "auto" ? undefined : "manual",
+      recognition: undefined,
+      translation: undefined,
+      cutting: undefined,
+      recognitionError: undefined,
+      error: undefined,
+      retrying: false,
+      cacheRestored: false,
+    });
     this.onSubtitles([], this.state);
-    this.cleanup = Promise.allSettled([this.cleanup, old?.dispose?.()]).then(() => undefined);
+    this.cleanup = Promise.allSettled([this.cleanup, old?.dispose?.()]).then(
+      () => undefined
+    );
     await this.cleanup;
     if (epoch === this.epoch && this.active) {
       this.beginStartupWait();
@@ -101,20 +129,43 @@ export class YoutubeAsrController {
   }
   async setTranslationLanguage(language) {
     const session = this.session;
-    if (!this.active || !session || !this.state.translationReady || this.state.clearing ||
-        session.identity.videoId !== this.getVideo().videoId || language === this.state.translationLanguage ||
-        !translationLanguageOptions.some(option => option.value === language)) return;
+    if (
+      !this.active ||
+      !session ||
+      !this.state.translationReady ||
+      this.state.clearing ||
+      session.identity.videoId !== this.getVideo().videoId ||
+      language === this.state.translationLanguage ||
+      !translationLanguageOptions.some((option) => option.value === language)
+    )
+      return;
     this.translationPreferences.set(session.identity, language);
     this.emit({ translationLanguage: language });
     const setting = { ...this.getSetting(), toLang: language };
-    const processor = createAsrTextProcessor(setting, { ...session.identity, sourceLanguage: session.language || session.identity.sourceLanguage });
-    const signatures = session.cacheMode === "session" ? undefined : asrCacheSignatures({
-      ...resolvedAsrServices(setting), setting, limits: session.limits,
-    }).then(({ translation }) => ({ ...session.signatures, translation }));
+    const processor = createAsrTextProcessor(setting, {
+      ...session.identity,
+      sourceLanguage: session.language || session.identity.sourceLanguage,
+    });
+    const signatures =
+      session.cacheMode === "session"
+        ? undefined
+        : asrCacheSignatures({
+            ...resolvedAsrServices(setting),
+            setting,
+            limits: session.limits,
+          }).then(({ translation }) => ({
+            ...session.signatures,
+            translation,
+          }));
     try {
       await session.setTranslationTarget(setting, processor, signatures);
     } catch (cause) {
-      if (this.active && this.session === session && this.state.translationLanguage === language && cause.name !== "AbortError")
+      if (
+        this.active &&
+        this.session === session &&
+        this.state.translationLanguage === language &&
+        cause.name !== "AbortError"
+      )
         this.emit({ translationError: cause.code || "TRANSLATION_FAILED" });
     }
   }
@@ -128,26 +179,42 @@ export class YoutubeAsrController {
       clearing: this.clearing?.videoId === this.getVideo().videoId,
     };
     if (this.active && this.paused) this.state.phase = "paused";
-    if (!this.session) this.state.stoppedByError = this.active && !this.paused &&
-      this.state.phase === "error" && !!this.state.error;
+    if (!this.session)
+      this.state.stoppedByError =
+        this.active &&
+        !this.paused &&
+        this.state.phase === "error" &&
+        !!this.state.error;
     if (patch.phase === "error" && patch.error) {
       this.state.stoppedByError = !this.session?.state?.working;
-      const stage = /^(AUDIO_|ATTESTATION_|NEED_PLAYBACK$|WAITING_FOR_PLAYER$)/.test(patch.error)
-        ? "audio" : "recognition";
+      const stage =
+        /^(AUDIO_|ATTESTATION_|NEED_PLAYBACK$|WAITING_FOR_PLAYER$)/.test(
+          patch.error
+        )
+          ? "audio"
+          : "recognition";
       this.state.failures = [{ stage, code: patch.error }];
     }
-    if (!this.active || this.paused || this.state.retrying) this.state.stoppedByError = false;
+    if (!this.active || this.paused || this.state.retrying)
+      this.state.stoppedByError = false;
     this.onState(this.state);
   }
   start() {
-    if (this.active || this.clearing?.videoId === this.getVideo().videoId ||
-        !this.service() || !this.getVideo().videoId) return;
+    if (
+      this.active ||
+      this.clearing?.videoId === this.getVideo().videoId ||
+      !this.service() ||
+      !this.getVideo().videoId
+    )
+      return;
     this.paused = false;
     this.cacheMode = this.getVideo().cacheMode || "persistent";
     this.lookupDone = false;
     this.lookupResult = undefined;
     if (this.cacheMode === "session" && this.cache.port)
-      this.cache.disconnect?.(new DOMException("Session-only page", "AbortError"));
+      this.cache.disconnect?.(
+        new DOMException("Session-only page", "AbortError")
+      );
     this.active = true;
     this.feedbackSession++;
     this.cache.traceId = `${this.getVideo().videoId}-${this.epoch}-${Date.now()}`;
@@ -268,21 +335,50 @@ export class YoutubeAsrController {
   }) {
     let session;
     const savedTarget = this.translationPreferences.get(identity);
-    const targetLanguage = translationLanguageOptions.some(option => option.value === savedTarget)
-      ? savedTarget : setting.toLang || "en";
+    const targetLanguage = translationLanguageOptions.some(
+      (option) => option.value === savedTarget
+    )
+      ? savedTarget
+      : setting.toLang || "en";
     setting = { ...setting, toLang: targetLanguage };
     const selectedLanguage = this.languagePreferences.get(identity);
     const options = asrLanguageOptions(services.asrService);
-    const selected = selectedLanguage === "auto" || options.some(option => option.value === selectedLanguage) ? selectedLanguage : "auto";
-    const language = resolveAsrLanguage(identity, selected, services.asrService);
+    const selected =
+      selectedLanguage === "auto" ||
+      options.some((option) => option.value === selectedLanguage)
+        ? selectedLanguage
+        : "auto";
+    const language = resolveAsrLanguage(
+      identity,
+      selected,
+      services.asrService
+    );
     this.languageIdentity = identity;
-    this.emit({ selectedLanguage: selected, languageOptions: options, translationLanguage: targetLanguage, translationReady: false,
+    this.emit({
+      selectedLanguage: selected,
+      languageOptions: options,
+      translationLanguage: targetLanguage,
+      translationReady: false,
       effectiveLanguage: language === "auto" ? undefined : language,
-      languageSource: selected !== "auto" ? "manual" : language !== "auto"
-        ? identity.sourceLanguage === "auto" ? "model" : "track" : undefined });
+      languageSource:
+        selected !== "auto"
+          ? "manual"
+          : language !== "auto"
+            ? identity.sourceLanguage === "auto"
+              ? "model"
+              : "track"
+            : undefined,
+    });
     const retained = this.retainedAudio;
-    const retainedAudio = retained && mediaCacheKey(retained.download.identity) === mediaCacheKey(identity) ? retained : undefined;
-    if (retained && !retainedAudio) { retained.release(); void retained.download.dispose(); }
+    const retainedAudio =
+      retained &&
+      mediaCacheKey(retained.download.identity) === mediaCacheKey(identity)
+        ? retained
+        : undefined;
+    if (retained && !retainedAudio) {
+      retained.release();
+      void retained.download.dispose();
+    }
     this.retainedAudio = undefined;
     session = this.createSession({
       onTask: (task) => {
@@ -290,7 +386,11 @@ export class YoutubeAsrController {
           this.tasks.update(task);
       },
       identity,
-      textIdentity: recognitionIdentity(identity, selected, services.asrService),
+      textIdentity: recognitionIdentity(
+        identity,
+        selected,
+        services.asrService
+      ),
       language,
       selectedLanguage: selected,
       retainedAudio,
@@ -298,17 +398,25 @@ export class YoutubeAsrController {
       audioLookup,
       restoreText,
       audioSessionId,
-      audioCacheStatus: video.cacheMode === "session" ? undefined : audioCacheStatus || (audioSessionId ? "partial" : "miss"),
+      audioCacheStatus:
+        video.cacheMode === "session"
+          ? undefined
+          : audioCacheStatus || (audioSessionId ? "partial" : "miss"),
       deferAudio: true,
       setting,
       asrService: services.asrService,
       bridge: this.bridge,
       cache: this.cache,
       targetMs: (video.element?.currentTime || 0) * 1000,
-      signatures: typeof signatures === "function"
-        ? (limits) => signatures(limits, selected, targetLanguage) : () => signatures,
+      signatures:
+        typeof signatures === "function"
+          ? (limits) => signatures(limits, selected, targetLanguage)
+          : () => signatures,
       getLimits: effectiveAsrLimits,
-      textProcessor: createAsrTextProcessor(setting, { ...identity, sourceLanguage: language }),
+      textProcessor: createAsrTextProcessor(setting, {
+        ...identity,
+        sourceLanguage: language,
+      }),
       onState: (state) => {
         if (epoch === this.epoch && this.active && this.session === session)
           this.emit({
@@ -326,17 +434,20 @@ export class YoutubeAsrController {
     return session;
   }
   async #startSessionAudio(session, setting, epoch) {
-    if (
-      epoch !== this.epoch || !this.active || this.session !== session
-    ) return;
-    if ((setting?.audioCacheLimit ?? 100) <= 0 && !session.missing?.().length) return;
+    if (epoch !== this.epoch || !this.active || this.session !== session)
+      return;
+    if ((setting?.audioCacheLimit ?? 100) <= 0 && !session.missing?.().length)
+      return;
     if (typeof session.resumeAudio === "function") {
       await session.resumeAudio();
     } else if (typeof session.ensureDownload === "function") {
       const download = session.ensureDownload();
       if (!session.asrLease) {
         session.asrLease = download.acquire("asr");
-        session.asrLease.ready.then(() => session.wake?.(), () => session.wake?.());
+        session.asrLease.ready.then(
+          () => session.wake?.(),
+          () => session.wake?.()
+        );
       }
     }
   }
@@ -353,8 +464,7 @@ export class YoutubeAsrController {
     this.emit({ phase: this.session?.state?.phase || "waiting" });
   }
   async tick(refreshIdentity = false) {
-    if (!this.active || this.state.phase === "error")
-      return;
+    if (!this.active || this.state.phase === "error") return;
     if (this.pending) {
       this.refreshIdentity ||= refreshIdentity;
       return;
@@ -369,7 +479,8 @@ export class YoutubeAsrController {
     if (
       this.session &&
       !refreshIdentity &&
-      (this.session.cacheMode || "persistent") === (video.cacheMode || "persistent") &&
+      (this.session.cacheMode || "persistent") ===
+        (video.cacheMode || "persistent") &&
       (this.session.cacheHit ||
         this.state.phase === "cached" ||
         this.state.phase === "complete")
@@ -379,25 +490,56 @@ export class YoutubeAsrController {
     this.pending = true;
     try {
       const sessionMode = video.cacheMode === "session";
-      const setting = this.getSetting(), services = resolvedAsrServices(setting);
-      if (!services.asrService) throw Object.assign(new Error("SERVICE_UNAVAILABLE"), { code: "SERVICE_UNAVAILABLE" });
+      const setting = this.getSetting(),
+        services = resolvedAsrServices(setting);
+      if (!services.asrService)
+        throw Object.assign(new Error("SERVICE_UNAVAILABLE"), {
+          code: "SERVICE_UNAVAILABLE",
+        });
       const snapshotStarted = performance.now();
-      const player = Promise.resolve().then(() => this.bridge.snapshot(video.videoId, signal)).then(
-        value => {
-          logger.debug("[YouTube ASR] player parameters", { traceId: this.cache.traceId, videoId: video.videoId, ms: performance.now() - snapshotStarted });
-          return { value };
-        }, cause => {
-          logger.debug("[YouTube ASR] player parameters", { traceId: this.cache.traceId, videoId: video.videoId, ms: performance.now() - snapshotStarted, code: cause.code });
-          return { cause };
-        }
-      );
+      const player = Promise.resolve()
+        .then(() => this.bridge.snapshot(video.videoId, signal))
+        .then(
+          (value) => {
+            logger.debug("[YouTube ASR] player parameters", {
+              traceId: this.cache.traceId,
+              videoId: video.videoId,
+              ms: performance.now() - snapshotStarted,
+            });
+            return { value };
+          },
+          (cause) => {
+            logger.debug("[YouTube ASR] player parameters", {
+              traceId: this.cache.traceId,
+              videoId: video.videoId,
+              ms: performance.now() - snapshotStarted,
+              code: cause.code,
+            });
+            return { cause };
+          }
+        );
       let lookup = this.lookupResult;
       if (!this.session && !sessionMode) {
         if (!this.lookupDone) {
           lookup = await readAsrCache(async () => {
-            if (this.cache.lookupCache) return this.cache.lookupCache({ videoId: video.videoId }, { signal });
-            const subtitle = await this.cache.getVideo({ videoId: video.videoId }, undefined, { signal, metadataOnly: true });
-            return { subtitle, audio: await this.cache.findAudioSession?.({ videoId: video.videoId }, { signal }) || null };
+            if (this.cache.lookupCache)
+              return this.cache.lookupCache(
+                { videoId: video.videoId },
+                { signal }
+              );
+            const subtitle = await this.cache.getVideo(
+              { videoId: video.videoId },
+              undefined,
+              { signal, metadataOnly: true }
+            );
+            return {
+              subtitle,
+              audio:
+                (await this.cache.findAudioSession?.(
+                  { videoId: video.videoId },
+                  { signal }
+                )) || null,
+            };
           }, signal);
           if (epoch !== this.epoch || !this.active) return;
           this.lookupResult = lookup;
@@ -405,16 +547,40 @@ export class YoutubeAsrController {
         }
       }
       if (epoch !== this.epoch || !this.active) return;
-      if (this.state.phase === "restoring") this.emit({ phase: "waiting", audio: { phase: "idle", cacheStatus: sessionMode ? undefined : lookup?.audio ? "partial" : "miss" } });
+      if (this.state.phase === "restoring")
+        this.emit({
+          phase: "waiting",
+          audio: {
+            phase: "idle",
+            cacheStatus: sessionMode
+              ? undefined
+              : lookup?.audio
+                ? "partial"
+                : "miss",
+          },
+        });
       const snapshot = await player;
       if (epoch !== this.epoch || !this.active || signal?.aborted) return;
       const candidate = lookup?.subtitle || lookup?.audio;
-      const identity = snapshot.value?.identity || (candidate?.identity && audioIdentity(candidate.identity));
-      if (!identity) throw snapshot.cause || Object.assign(new Error("WAITING_FOR_PLAYER"), { code: "WAITING_FOR_PLAYER" });
+      const identity =
+        snapshot.value?.identity ||
+        (candidate?.identity && audioIdentity(candidate.identity));
+      if (!identity)
+        throw (
+          snapshot.cause ||
+          Object.assign(new Error("WAITING_FOR_PLAYER"), {
+            code: "WAITING_FOR_PLAYER",
+          })
+        );
       if (identity.videoId !== this.getVideo().videoId) return;
-      if (this.session && mediaCacheKey(this.session.identity) === mediaCacheKey(identity) &&
-          (this.session.cacheMode || "persistent") === (video.cacheMode || "persistent")) {
-        if (refreshIdentity && this.session.download?.error) this.session.download.retry();
+      if (
+        this.session &&
+        mediaCacheKey(this.session.identity) === mediaCacheKey(identity) &&
+        (this.session.cacheMode || "persistent") ===
+          (video.cacheMode || "persistent")
+      ) {
+        if (refreshIdentity && this.session.download?.error)
+          this.session.download.retry();
         return;
       }
       const replacing = !!this.session;
@@ -431,26 +597,62 @@ export class YoutubeAsrController {
       if (!sessionMode) await this.cleanup;
       if (epoch !== this.epoch || !this.active || signal?.aborted) return;
       // Only re-query when the player's actual media identity differs from the candidate.
-      if (!sessionMode && lookup !== null && (replacing || (candidate && mediaCacheKey(candidate.identity) !== mediaCacheKey(identity)))) {
-        lookup = await readAsrCache(() => this.cache.lookupCache ?
-          this.cache.lookupCache({ videoId: video.videoId, identity }, { signal }) :
-          this.cache.findAudioSession?.(identity, { signal }).then(audio => ({ audio })), signal);
+      if (
+        !sessionMode &&
+        lookup !== null &&
+        (replacing ||
+          (candidate &&
+            mediaCacheKey(candidate.identity) !== mediaCacheKey(identity)))
+      ) {
+        lookup = await readAsrCache(
+          () =>
+            this.cache.lookupCache
+              ? this.cache.lookupCache(
+                  { videoId: video.videoId, identity },
+                  { signal }
+                )
+              : this.cache
+                  .findAudioSession?.(identity, { signal })
+                  .then((audio) => ({ audio })),
+          signal
+        );
       }
-      const audio = lookup?.audio && mediaCacheKey(lookup.audio.identity) === mediaCacheKey(identity) ? lookup.audio : null;
+      const audio =
+        lookup?.audio &&
+        mediaCacheKey(lookup.audio.identity) === mediaCacheKey(identity)
+          ? lookup.audio
+          : null;
       const session = this.#createSessionInstance({
-        identity, services, setting, epoch, video,
+        identity,
+        services,
+        setting,
+        epoch,
+        video,
         audioSessionId: audio?.sessionId,
-        audioLookup: this.cache.lookupCache ? lookup === null ? false : audio : undefined,
+        audioLookup: this.cache.lookupCache
+          ? lookup === null
+            ? false
+            : audio
+          : undefined,
         restoreText: !this.cache.lookupCache || lookup !== null,
         audioCacheStatus: sessionMode ? undefined : audio ? "partial" : "miss",
-        signatures: sessionMode ? undefined : (limits, selected, toLang) => asrCacheSignatures({ ...services, setting: { ...setting, toLang },
-          language: selected === "auto" ? identity.sourceLanguage : selected, limits }),
+        signatures: sessionMode
+          ? undefined
+          : (limits, selected, toLang) =>
+              asrCacheSignatures({
+                ...services,
+                setting: { ...setting, toLang },
+                language:
+                  selected === "auto" ? identity.sourceLanguage : selected,
+                limits,
+              }),
       });
       this.session = session;
       if (this.paused) session.pause?.();
       clearTimeout(this.startupTimer);
       await session.start();
-      if (epoch === this.epoch && this.active && this.session === session) this.emit({ translationReady: true });
+      if (epoch === this.epoch && this.active && this.session === session)
+        this.emit({ translationReady: true });
       await this.#startSessionAudio(session, setting, epoch);
     } catch (cause) {
       if (epoch !== this.epoch || !this.active || cause.name === "AbortError")
@@ -518,7 +720,11 @@ export class YoutubeAsrController {
     const retained = this.retainedAudio;
     this.retainedAudio = undefined;
     retained?.release();
-    this.cleanup = Promise.allSettled([this.cleanup, disposing, retained?.download.dispose()]).then(() => undefined);
+    this.cleanup = Promise.allSettled([
+      this.cleanup,
+      disposing,
+      retained?.download.dispose(),
+    ]).then(() => undefined);
     this.pending = false;
     if (wasActive) this.bridge.clear();
     this.tasks.stop();
@@ -536,11 +742,19 @@ export class YoutubeAsrController {
   }
   async retryRecognition(taskId, recoverAll = false) {
     if (!this.active || this.paused || this.state.retrying) return;
-    if (taskId !== undefined && this.tasks.rows.get(taskId)?.recognition !== "failed") return;
+    if (
+      taskId !== undefined &&
+      this.tasks.rows.get(taskId)?.recognition !== "failed"
+    )
+      return;
     if (taskId !== undefined && !this.session) return;
     const failed = this.tasks
       .snapshot()
-      .filter((task) => task.recognition === "failed" && (taskId === undefined || task.id === taskId));
+      .filter(
+        (task) =>
+          task.recognition === "failed" &&
+          (taskId === undefined || task.id === taskId)
+      );
     for (const task of failed)
       this.tasks.update({
         id: task.id,
@@ -549,15 +763,20 @@ export class YoutubeAsrController {
         errorDetail: undefined,
         retrying: true,
       });
-    if (!this.session || (taskId === undefined && this.state.phase === "error" &&
-        (!recoverAll || this.state.error))) {
+    if (
+      !this.session ||
+      (taskId === undefined &&
+        this.state.phase === "error" &&
+        (!recoverAll || this.state.error))
+    ) {
       this.retryStartup();
       return;
     }
     const session = this.session,
       epoch = this.epoch;
     let retryError;
-    if (taskId === undefined) this.emit({ retrying: true, recognitionError: undefined });
+    if (taskId === undefined)
+      this.emit({ retrying: true, recognitionError: undefined });
     try {
       if (recoverAll) await session.retryIncomplete();
       else await session.retryRecognition(taskId);
@@ -575,12 +794,23 @@ export class YoutubeAsrController {
           });
       this.emit({ recognitionError: retryError });
     } finally {
-      if (taskId === undefined && epoch === this.epoch && this.session === session && this.active) {
+      if (
+        taskId === undefined &&
+        epoch === this.epoch &&
+        this.session === session &&
+        this.active
+      ) {
         if (retryError) {
-          this.emit({ retrying: false, stoppedByError: !session.state?.working,
-            failures: [{ stage: "recognition", code: retryError }] });
+          this.emit({
+            retrying: false,
+            stoppedByError: !session.state?.working,
+            failures: [{ stage: "recognition", code: retryError }],
+          });
         } else {
-          this.emit({ retrying: false, stoppedByError: !!session.state?.stoppedByError });
+          this.emit({
+            retrying: false,
+            stoppedByError: !!session.state?.stoppedByError,
+          });
         }
       }
     }
@@ -588,7 +818,11 @@ export class YoutubeAsrController {
 
   retryTranslation(taskId) {
     if (!this.active || this.paused || !this.session) return;
-    if (taskId !== undefined && this.tasks.rows.get(taskId)?.translation !== "failed") return;
+    if (
+      taskId !== undefined &&
+      this.tasks.rows.get(taskId)?.translation !== "failed"
+    )
+      return;
     this.session.retryTranslation(taskId);
   }
   async deleteCache(restart = false) {
@@ -601,13 +835,21 @@ export class YoutubeAsrController {
     const sessionId = session.download?.sessionId || session.audioSessionId;
     const clearing = { videoId: identity.videoId };
     this.clearing = clearing;
-    const stopping = this.stop(), epoch = this.epoch;
+    const stopping = this.stop(),
+      epoch = this.epoch;
     this.tasks.reset();
     this.rangeExports.clear();
     this.rangePreparations.clear();
-    this.emit({ clearing: true, cutting: undefined, recognition: undefined,
-      translation: undefined, recognitionError: undefined, translationError: undefined,
-      cacheDeleteError: undefined, exportError: undefined });
+    this.emit({
+      clearing: true,
+      cutting: undefined,
+      recognition: undefined,
+      translation: undefined,
+      recognitionError: undefined,
+      translationError: undefined,
+      cacheDeleteError: undefined,
+      exportError: undefined,
+    });
     try {
       await stopping;
       if (cacheMode !== "session") {
@@ -635,23 +877,37 @@ export class YoutubeAsrController {
     }
   }
   async resetAudio(remove) {
-    const session = this.session, epoch = this.epoch;
+    const session = this.session,
+      epoch = this.epoch;
     if (!session || !this.active) return;
     this.rangeExports.clear();
     this.rangePreparations.clear();
     const reset = session.resetAudio(remove);
     for (const row of this.tasks.snapshot()) {
-      if (row.kind === "media") this.tasks.update({
-        id: row.id, download: "idle", downloadProgress: 0,
-        downloadBytes: 0, playbackError: undefined,
-      });
+      if (row.kind === "media")
+        this.tasks.update({
+          id: row.id,
+          download: "idle",
+          downloadProgress: 0,
+          downloadBytes: 0,
+          playbackError: undefined,
+        });
     }
-    this.emit({ audioCoverageMs: 0, audioBytes: 0, audioSessionReady: false,
-      audio: { phase: "missing", bytes: 0 } });
+    this.emit({
+      audioCoverageMs: 0,
+      audioBytes: 0,
+      audioSessionReady: false,
+      audio: { phase: "missing", bytes: 0 },
+    });
     try {
       await reset;
     } catch (cause) {
-      if (epoch === this.epoch && this.session === session && this.active && cause.name !== "AbortError")
+      if (
+        epoch === this.epoch &&
+        this.session === session &&
+        this.active &&
+        cause.name !== "AbortError"
+      )
         this.emit({ exportError: cause.code || "AUDIO_DELETE_FAILED" });
       throw cause;
     }

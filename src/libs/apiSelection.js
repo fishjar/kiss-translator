@@ -5,7 +5,9 @@ export function getEnabledApis(transApis = []) {
     .map((api, index) => ({ api, index }))
     .filter(
       ({ api }) =>
-        api?.apiSlug && !api.isDisabled && supportsApiCapability(api, "translate")
+        api?.apiSlug &&
+        !api.isDisabled &&
+        supportsApiCapability(api, "translate")
     )
     .sort((a, b) => {
       const orderA = Number(a.api.sortOrder) || 0;

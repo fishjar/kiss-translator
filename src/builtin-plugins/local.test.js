@@ -36,7 +36,10 @@ jest.mock("../localAi/fileOperations", () => ({
   })),
 }));
 beforeEach(() => {
-  require("../localAi/core/recorder").decodeAudioFile.mockResolvedValue({ audio: new Float32Array([0.5]), sampleRate: 16000 });
+  require("../localAi/core/recorder").decodeAudioFile.mockResolvedValue({
+    audio: new Float32Array([0.5]),
+    sampleRate: 16000,
+  });
   require("../localAi/fileOperations").recognizeFileImage.mockResolvedValue({
     text: "OCR",
     items: [
@@ -65,12 +68,29 @@ const context = () => ({
 test("local transcription preserves detected language and an undecided detection result", async () => {
   const ctx = context();
   const audio = ctx.assets.put(new Blob(["wav"]));
-  runtimeHost.request.mockResolvedValueOnce({ segments: [], languagePending: true });
-  expect(await localHandlers.transcribe({ audio, language: "auto" }, { modelRef: "asr" }, ctx))
-    .toMatchObject({ text: "", segments: [], languagePending: true });
-  runtimeHost.request.mockResolvedValueOnce({ segments: [{ start: 0, end: 1, text: "你好" }], language: "zh", languageConfidence: 0.96 });
-  expect(await localHandlers.transcribe({ audio, language: "auto" }, { modelRef: "asr" }, ctx))
-    .toMatchObject({ text: "你好", language: "zh", languageConfidence: 0.96 });
+  runtimeHost.request.mockResolvedValueOnce({
+    segments: [],
+    languagePending: true,
+  });
+  expect(
+    await localHandlers.transcribe(
+      { audio, language: "auto" },
+      { modelRef: "asr" },
+      ctx
+    )
+  ).toMatchObject({ text: "", segments: [], languagePending: true });
+  runtimeHost.request.mockResolvedValueOnce({
+    segments: [{ start: 0, end: 1, text: "你好" }],
+    language: "zh",
+    languageConfidence: 0.96,
+  });
+  expect(
+    await localHandlers.transcribe(
+      { audio, language: "auto" },
+      { modelRef: "asr" },
+      ctx
+    )
+  ).toMatchObject({ text: "你好", language: "zh", languageConfidence: 0.96 });
 });
 test("local image recognition forwards refresh to the shared OCR/VLM adapter", async () => {
   const { recognizeFileImage } = require("../localAi/fileOperations");
@@ -354,14 +374,17 @@ test("local VLM uses official task prompts unless explicitly overridden", async 
   expect(recognizeFileImage.mock.calls.at(-1)[1].prompt).toBe("custom task");
 });
 
-test.each(["paddleocr-vl-1.6-onnx-q8", "paddleocr-vl-1.6-q4"])("%s defaults to its OCR task prompt", async (modelRef) => {
-  const { recognizeFileImage } = require("../localAi/fileOperations");
-  recognizeFileImage.mockResolvedValue({ text: "recognized", isVlm: true });
-  const ctx = context();
-  const image = ctx.assets.put(new Blob(["image"]));
-  await localHandlers.parseImage({ image }, { modelRef }, ctx);
-  expect(recognizeFileImage.mock.calls.at(-1)[1].prompt).toBe("OCR:");
-});
+test.each(["paddleocr-vl-1.6-onnx-q8", "paddleocr-vl-1.6-q4"])(
+  "%s defaults to its OCR task prompt",
+  async (modelRef) => {
+    const { recognizeFileImage } = require("../localAi/fileOperations");
+    recognizeFileImage.mockResolvedValue({ text: "recognized", isVlm: true });
+    const ctx = context();
+    const image = ctx.assets.put(new Blob(["image"]));
+    await localHandlers.parseImage({ image }, { modelRef }, ctx);
+    expect(recognizeFileImage.mock.calls.at(-1)[1].prompt).toBe("OCR:");
+  }
+);
 
 test("video ASR exposes a synthesized whole-block fallback as text without model timestamps", async () => {
   require("../localAi/core/recorder").decodeAudioFile.mockResolvedValue({

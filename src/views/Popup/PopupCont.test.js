@@ -267,7 +267,12 @@ describe("PopupCont capability parity", () => {
           sortOrder: -2,
         },
         { apiType: "Google", apiSlug: "later", apiName: "Later", sortOrder: 3 },
-        { apiType: "Google", apiSlug: "pinned", apiName: "Pinned", sortOrder: -1 },
+        {
+          apiType: "Google",
+          apiSlug: "pinned",
+          apiName: "Pinned",
+          sortOrder: -1,
+        },
       ];
       const processActions = jest.fn(({ args }) => ({ rule: args }));
       const view = renderPopupCont(
@@ -356,16 +361,31 @@ describe("PopupCont capability parity", () => {
     }
   });
 
-  test.each([[false, false], [true, false], [false, true], [true, true]])(
+  test.each([
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true],
+  ])(
     "waits for the receiver's API snapshot before settling fallback (needs retry: %s, capability-only change: %s)",
     async (needsRetry, capabilityOnly) => {
       jest.useFakeTimers();
       const oldApis = [
         { apiType: "Google", apiSlug: "old" },
-        { apiType: "Google", apiSlug: "next", isDisabled: !capabilityOnly, enabledCapabilities: capabilityOnly ? [] : undefined },
+        {
+          apiType: "Google",
+          apiSlug: "next",
+          isDisabled: !capabilityOnly,
+          enabledCapabilities: capabilityOnly ? [] : undefined,
+        },
       ];
       const newApis = [
-        { apiType: "Google", apiSlug: "old", isDisabled: !capabilityOnly, enabledCapabilities: capabilityOnly ? [] : undefined },
+        {
+          apiType: "Google",
+          apiSlug: "old",
+          isDisabled: !capabilityOnly,
+          enabledCapabilities: capabilityOnly ? [] : undefined,
+        },
         { apiType: "Google", apiSlug: "next", apiName: "Next" },
       ];
       let writes = 0;
@@ -500,8 +520,16 @@ describe("PopupCont capability parity", () => {
   });
 
   test.each([
-    ["disabled", "true", [{ apiType: "Google", apiSlug: "google", isDisabled: true }]],
-    ["disabled", "false", [{ apiType: "Google", apiSlug: "google", isDisabled: true }]],
+    [
+      "disabled",
+      "true",
+      [{ apiType: "Google", apiSlug: "google", isDisabled: true }],
+    ],
+    [
+      "disabled",
+      "false",
+      [{ apiType: "Google", apiSlug: "google", isDisabled: true }],
+    ],
     ["empty", "true", []],
     ["empty", "false", []],
   ])(
@@ -1686,39 +1714,71 @@ describe("PopupCont capability parity", () => {
 
   test("filters capability-only services from the row, overflow count and menu and reacts to capability changes", async () => {
     const translators = ["one", "two", "three", "four"].map((apiSlug) => ({
-      apiSlug, apiName: apiSlug, apiType: "Google",
+      apiSlug,
+      apiName: apiSlug,
+      apiType: "Google",
     }));
-    const otherServices = ["recognizeText", "analyzeLayout", "transcribe", "speak"].map((capability) => ({
+    const otherServices = [
+      "recognizeText",
+      "analyzeLayout",
+      "transcribe",
+      "speak",
+    ].map((capability) => ({
       apiSlug: capability,
       apiName: capability,
       sortOrder: -1,
-      provider: { apiVersion: "1", implementation: { kind: "native" }, capabilities: { [capability]: {} } },
+      provider: {
+        apiVersion: "1",
+        implementation: { kind: "native" },
+        capabilities: { [capability]: {} },
+      },
     }));
     const processActions = jest.fn(({ args }) => ({ rule: args }));
-    const view = renderPopupCont({
-      rule: { apiSlug: "one" },
-      setting: { transApis: [...otherServices, ...translators] },
-      processActions,
-    }, { statefulRule: true });
+    const view = renderPopupCont(
+      {
+        rule: { apiSlug: "one" },
+        setting: { transApis: [...otherServices, ...translators] },
+        processActions,
+      },
+      { statefulRule: true }
+    );
     try {
       await flushEffects();
-      const visible = () => [...view.container.querySelectorAll(".kt-popup-service")].map((item) => item.textContent);
+      const visible = () =>
+        [...view.container.querySelectorAll(".kt-popup-service")].map(
+          (item) => item.textContent
+        );
       expect(visible()).toEqual(["one", "two", "three"]);
       const more = view.container.querySelector(".kt-popup-more-service");
       expect(more.textContent).toContain("+1");
       act(() => more.click());
-      expect([...document.body.querySelectorAll('[role="menuitem"]')].map((item) => item.textContent)).toEqual(["one", "two", "three", "four"]);
-      view.updateRuntimeSetting({ transApis: [
-        ...otherServices, { ...translators[0], enabledCapabilities: [] }, ...translators.slice(1),
-      ] });
+      expect(
+        [...document.body.querySelectorAll('[role="menuitem"]')].map(
+          (item) => item.textContent
+        )
+      ).toEqual(["one", "two", "three", "four"]);
+      view.updateRuntimeSetting({
+        transApis: [
+          ...otherServices,
+          { ...translators[0], enabledCapabilities: [] },
+          ...translators.slice(1),
+        ],
+      });
       await flushEffects();
       expect(visible()).toEqual(["two", "three", "four"]);
-      expect(processActions).toHaveBeenCalledWith({ action: MSG_TRANS_PUTRULE, args: { apiSlug: "two" } });
+      expect(processActions).toHaveBeenCalledWith({
+        action: MSG_TRANS_PUTRULE,
+        args: { apiSlug: "two" },
+      });
       expect(saveRule).not.toHaveBeenCalled();
       view.updateRuntimeSetting({ transApis: otherServices });
       await flushEffects();
-      expect(view.container.querySelector(".kt-popup-services-empty")).not.toBeNull();
-      expect(view.container.querySelector(".kt-popup-translate-button").disabled).toBe(true);
+      expect(
+        view.container.querySelector(".kt-popup-services-empty")
+      ).not.toBeNull();
+      expect(
+        view.container.querySelector(".kt-popup-translate-button").disabled
+      ).toBe(true);
     } finally {
       view.cleanup();
     }

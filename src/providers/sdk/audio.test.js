@@ -1,8 +1,18 @@
 import { buildTranscriptionRequest, parseTranscription } from "./audio";
 
-test.each([["english", "en"], ["chinese", "zh"], ["Japanese", "ja"], ["zh-CN", "zh"], ["unknown", undefined]])(
-  "detected language %s becomes a valid request code", (language, expected) => {
-    expect(parseTranscription({ status: 200, body: { text: "speech", language } }).language).toBe(expected);
+test.each([
+  ["english", "en"],
+  ["chinese", "zh"],
+  ["Japanese", "ja"],
+  ["zh-CN", "zh"],
+  ["unknown", undefined],
+])(
+  "detected language %s becomes a valid request code",
+  (language, expected) => {
+    expect(
+      parseTranscription({ status: 200, body: { text: "speech", language } })
+        .language
+    ).toBe(expected);
   }
 );
 

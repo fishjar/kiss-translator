@@ -92,15 +92,30 @@ export const ASR_ERROR_LABELS = {
 export function asrErrorDescription(code, i18n) {
   const key = ASR_ERROR_LABELS[code];
   if (!code || typeof i18n !== "function") return undefined;
-  return key ? i18n(key) : `${i18n("youtube_asr_task_failed")} [${/^[A-Z_]{1,64}$/.test(code) ? code : "UNKNOWN_ERROR"}]`;
+  return key
+    ? i18n(key)
+    : `${i18n("youtube_asr_task_failed")} [${/^[A-Z_]{1,64}$/.test(code) ? code : "UNKNOWN_ERROR"}]`;
 }
 
 export function asrStoppedDescription(state, i18n) {
-  const failures = state.failures?.length ? state.failures : [{
-    stage: "recognition", code: state.error || state.recognitionError || state.audio?.code || state.translationError,
-  }];
-  const labels = { audio: "youtube_asr_audio_label", cutting: "youtube_asr_cutting_label",
-    recognition: "youtube_asr_recognition_label", translation: "youtube_asr_translation_label" };
+  const failures = state.failures?.length
+    ? state.failures
+    : [
+        {
+          stage: "recognition",
+          code:
+            state.error ||
+            state.recognitionError ||
+            state.audio?.code ||
+            state.translationError,
+        },
+      ];
+  const labels = {
+    audio: "youtube_asr_audio_label",
+    cutting: "youtube_asr_cutting_label",
+    recognition: "youtube_asr_recognition_label",
+    translation: "youtube_asr_translation_label",
+  };
   const groups = new Map();
   for (const failure of failures) {
     const key = `${failure.stage}:${failure.code}`;
@@ -108,9 +123,12 @@ export function asrStoppedDescription(state, i18n) {
     group.count++;
     groups.set(key, group);
   }
-  return [...groups.values()].map(failure =>
-    `${i18n(labels[failure.stage] || labels.recognition)}: ${asrErrorDescription(failure.code, i18n) || i18n("youtube_asr_task_failed")}${failure.count > 1 ? ` ×${failure.count}` : ""}`
-  ).join("; ");
+  return [...groups.values()]
+    .map(
+      (failure) =>
+        `${i18n(labels[failure.stage] || labels.recognition)}: ${asrErrorDescription(failure.code, i18n) || i18n("youtube_asr_task_failed")}${failure.count > 1 ? ` ×${failure.count}` : ""}`
+    )
+    .join("; ");
 }
 
 /** Semantic events only, independent of progress refreshes and menu visibility. */
@@ -131,8 +149,11 @@ export function asrFeedbackEvents(state, i18n) {
   if (state.phase === "waiting" && waitReason)
     add(`waiting:${waitReason}`, audioWaitLabel(waitReason));
   if (state.stoppedByError && !state.retrying && !state.paused) {
-    events.push({ key: `stopped:${JSON.stringify(state.failures || state.error)}`,
-      message: asrStoppedDescription(state, i18n), error: true });
+    events.push({
+      key: `stopped:${JSON.stringify(state.failures || state.error)}`,
+      message: asrStoppedDescription(state, i18n),
+      error: true,
+    });
   }
   if (audio.cooldownUntil > Date.now() && !state.stoppedByError)
     add(
@@ -141,9 +162,15 @@ export function asrFeedbackEvents(state, i18n) {
       false
     );
   if (state.cacheSaved === false && state.cacheMode !== "session")
-    events.push({ key: "cache", error: false, message: state.cacheWarning === "CACHE_WRITE_FAILED"
-      ? i18n("youtube_asr_cache_session_fallback")
-      : asrErrorDescription(state.cacheWarning, i18n) || i18n("youtube_asr_unsaved") });
+    events.push({
+      key: "cache",
+      error: false,
+      message:
+        state.cacheWarning === "CACHE_WRITE_FAILED"
+          ? i18n("youtube_asr_cache_session_fallback")
+          : asrErrorDescription(state.cacheWarning, i18n) ||
+            i18n("youtube_asr_unsaved"),
+    });
   if (state.cacheDeleteError)
     add("cache-delete", "youtube_asr_cache_delete_failed", true);
   if (state.exportError)

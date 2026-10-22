@@ -383,9 +383,15 @@ export class ImageHoverDetector {
     const imageElement = this.#activeImage;
     const selectedRegions =
       this.#layoutState === "active" ? this.#layoutRegions : null;
-    if (action === "all" && selectedRegions?.every((r) => r.enabled === false)) {
+    if (
+      action === "all" &&
+      selectedRegions?.every((r) => r.enabled === false)
+    ) {
       alert(
-        this.#i18n("image_select_at_least_one_region", "请至少选择一个区域进行翻译")
+        this.#i18n(
+          "image_select_at_least_one_region",
+          "请至少选择一个区域进行翻译"
+        )
       );
       return;
     }
@@ -559,7 +565,8 @@ export class ImageHoverDetector {
     this.#setting = setting;
     this.#rule = rule;
     const layoutChanged =
-      previousLayout !== JSON.stringify([
+      previousLayout !==
+      JSON.stringify([
         setting?.imageTranslateSetting?.layoutApiSlug,
         this.#getActiveLayoutApi(),
       ]);

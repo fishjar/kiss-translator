@@ -82,7 +82,10 @@ describe("FabManager temporary shortcut", () => {
     expect(host.style.getPropertyPriority("display")).toBe("important");
     expect(manager.isVisible).toBe(false);
     pressShortcut();
-    act(() => { manager.show(); manager.suspend(); });
+    act(() => {
+      manager.show();
+      manager.suspend();
+    });
     expect(host.style.display).toBe("none");
     act(() => manager.resume());
     expect(manager.isVisible).toBe(true);
@@ -91,17 +94,27 @@ describe("FabManager temporary shortcut", () => {
     menu.remove();
   });
 
-  test.each([true, false])("keeps an originally hidden FAB hidden (persisted hide: %s)", (isHide) => {
-    createManager({ isHide });
-    act(() => { manager.hide(); manager.suspend(); });
-    pressShortcut();
-    act(() => manager.resume());
-    expect(manager.isVisible).toBe(false);
-  });
+  test.each([true, false])(
+    "keeps an originally hidden FAB hidden (persisted hide: %s)",
+    (isHide) => {
+      createManager({ isHide });
+      act(() => {
+        manager.hide();
+        manager.suspend();
+      });
+      pressShortcut();
+      act(() => manager.resume());
+      expect(manager.isVisible).toBe(false);
+    }
+  );
 
   test("destroying a suspended FAB prevents late resume from remounting it", () => {
     createManager({ isHide: false });
-    act(() => { manager.suspend(); manager.destroy(); manager.resume(); });
+    act(() => {
+      manager.suspend();
+      manager.destroy();
+      manager.resume();
+    });
     expect(document.getElementById(APP_CONSTS.fabID)).toBeNull();
   });
 

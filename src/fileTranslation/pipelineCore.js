@@ -88,7 +88,10 @@ export async function invokeImageProvider(
       onProgress,
       validate: (result) => {
         if (capability === "analyzeLayout") return;
-        if (!result.text?.trim() && !result.items?.some((item) => item.text?.trim()))
+        if (
+          !result.text?.trim() &&
+          !result.items?.some((item) => item.text?.trim())
+        )
           throw fileError("INVALID_RESPONSE", "识别返回空结果");
         if (
           (requireCoordinates ??
@@ -176,11 +179,16 @@ export async function executeImageRecognition({
   let layoutResult = Array.isArray(selectedRegions)
     ? {
         imageSize: prepared.size,
-        regions: selectedRegions.filter((r) => r.enabled !== false).map((r) => ({
-          ...r,
-          polygon: (r.polygon || r.poly || []).map(([x, y]) => [x / sx, y / sy]),
-          bbox: r.bbox?.map((v, i) => v / (i % 2 === 0 ? sx : sy)),
-        })),
+        regions: selectedRegions
+          .filter((r) => r.enabled !== false)
+          .map((r) => ({
+            ...r,
+            polygon: (r.polygon || r.poly || []).map(([x, y]) => [
+              x / sx,
+              y / sy,
+            ]),
+            bbox: r.bbox?.map((v, i) => v / (i % 2 === 0 ? sx : sy)),
+          })),
       }
     : null;
   // 1. 若配置了布局服务，先分析版面
@@ -221,9 +229,7 @@ export async function executeImageRecognition({
         }
       } catch (err) {
         if (signal?.aborted) throw err;
-        throw new Error(
-          `版面布局分析失败: ${err?.message || err}`
-        );
+        throw new Error(`版面布局分析失败: ${err?.message || err}`);
       }
     }
   }
@@ -257,40 +263,55 @@ export async function executeImageRecognition({
       ];
       if (bbox[2] <= bbox[0] || bbox[3] <= bbox[1]) return [];
       const [left, top, right, bottom] = bbox;
-      return [{
-        ...region,
-        bbox,
-        polygon: region.polygon?.length >= 3
-          ? region.polygon
-          : [[left, top], [right, top], [right, bottom], [left, bottom]],
-      }];
+      return [
+        {
+          ...region,
+          bbox,
+          polygon:
+            region.polygon?.length >= 3
+              ? region.polygon
+              : [
+                  [left, top],
+                  [right, top],
+                  [right, bottom],
+                  [left, bottom],
+                ],
+        },
+      ];
     });
   }
 
   let recognized;
   let rawItems = [];
   const recognitionErrors = [];
-  const sourceLayout = layoutResult?.regions.length ? {
-    imageSize: prepared.original,
-    regions: layoutResult.regions.map((r) => ({
-      ...r,
-      polygon: r.polygon.map(([x, y]) => [x * sx, y * sy]),
-      bbox: r.bbox?.map((v, i) => v * (i % 2 === 0 ? sx : sy)),
-    })),
-  } : null;
+  const sourceLayout = layoutResult?.regions.length
+    ? {
+        imageSize: prepared.original,
+        regions: layoutResult.regions.map((r) => ({
+          ...r,
+          polygon: r.polygon.map(([x, y]) => [x * sx, y * sy]),
+          bbox: r.bbox?.map((v, i) => v * (i % 2 === 0 ? sx : sy)),
+        })),
+      }
+    : null;
   const progressLayout = Array.isArray(selectedRegions)
     ? { imageSize: prepared.original, regions: selectedRegions }
     : sourceLayout;
   const totalRegions = noSelection ? 0 : layoutResult?.regions.length || 1;
-  const reportRecognition = (current) => onProgress?.({
-    stage: "recognize",
-    message: "image_stage_recognize",
-    current,
-    total: totalRegions,
-    items: rawItems.map((item) => ({ ...item, original: item.text, translation: "" })),
-    recognitionErrors: [...recognitionErrors],
-    ...(current === 0 && progressLayout ? { layout: progressLayout } : {}),
-  });
+  const reportRecognition = (current) =>
+    onProgress?.({
+      stage: "recognize",
+      message: "image_stage_recognize",
+      current,
+      total: totalRegions,
+      items: rawItems.map((item) => ({
+        ...item,
+        original: item.text,
+        translation: "",
+      })),
+      recognitionErrors: [...recognitionErrors],
+      ...(current === 0 && progressLayout ? { layout: progressLayout } : {}),
+    });
   reportRecognition(0);
 
   // 所有识别服务均按选中的布局区域依次裁剪识别。
@@ -659,6 +680,8 @@ export async function executeImagePipeline({
     translatedText: translatedItems.map((i) => i.translation).join("\n\n"),
     layout: recognized.layout,
     recognitionErrors: recognized.recognitionErrors,
-    hasError: Boolean(recognized.recognitionErrors?.length) || translatedItems.some((i) => Boolean(i.error)),
+    hasError:
+      Boolean(recognized.recognitionErrors?.length) ||
+      translatedItems.some((i) => Boolean(i.error)),
   };
 }

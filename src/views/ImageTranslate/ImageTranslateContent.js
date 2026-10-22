@@ -162,7 +162,10 @@ export default function ImageTranslateContent({
       >
         {recognitionErrors.length > 0 && (
           <Alert severity="warning">
-            {i18n("image_partial_recognition_failed", "部分分区识别失败，可通过「文本识别」重新识别。")}
+            {i18n(
+              "image_partial_recognition_failed",
+              "部分分区识别失败，可通过「文本识别」重新识别。"
+            )}
             {recognitionErrors.map((failure, index) => (
               <Typography key={index} variant="body2">
                 #{failure.order + 1}: {failure.error}
@@ -188,10 +191,7 @@ export default function ImageTranslateContent({
                     "未配置识别服务，请在上方选择或前往设置"
                   )
                 : !hasExecuted
-                  ? i18n(
-                      "image_idle_prompt",
-                      "点击上方「翻译」开始识别与翻译"
-                    )
+                  ? i18n("image_idle_prompt", "点击上方「翻译」开始识别与翻译")
                   : i18n("image_no_text_found", "未在图片中识别到文本")}
             </Typography>
           </Box>

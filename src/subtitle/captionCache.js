@@ -34,15 +34,15 @@ const ordered = (value) =>
       ? Object.fromEntries(
           Object.keys(value)
             .sort()
-            .map((key) => [key, ordered(value[key])]),
+            .map((key) => [key, ordered(value[key])])
         )
       : value;
 const serviceSignature = (service, setting) =>
   service &&
   Object.fromEntries(
     Object.entries(
-      resolveApiPromptSettings(service, setting.prompts, setting),
-    ).filter(([key]) => !nonContentFields.has(key)),
+      resolveApiPromptSettings(service, setting.prompts, setting)
+    ).filter(([key]) => !nonContentFields.has(key))
   );
 const digest = (value) => getCacheDigest(JSON.stringify(ordered(value)));
 
@@ -55,10 +55,10 @@ export function captionCacheRequest(action, args = {}) {
 /** Persist only a digest, never service credentials or executable plugin settings. */
 export function captionSegmentationSignature(setting) {
   const service = setting.transApis?.find(
-    (api) => api.apiSlug === setting.segSlug,
+    (api) => api.apiSlug === setting.segSlug
   );
   const contextService = setting.transApis?.find(
-    (api) => api.apiSlug === setting.aiContextSlug,
+    (api) => api.apiSlug === setting.aiContextSlug
   );
   const ai = !!service && setting.segSlug !== "-";
   return digest({
@@ -93,7 +93,7 @@ export function captionTranslationSignature(setting) {
       selected && serviceSignature(withScenePrompt(selected, setting), setting),
     contextService: serviceSignature(
       setting.transApis?.find((api) => api.apiSlug === setting.aiContextSlug),
-      setting,
+      setting
     ),
     translateVariants: setting.translateVariants ?? true,
     parseLatex: !!setting.parseLatex,

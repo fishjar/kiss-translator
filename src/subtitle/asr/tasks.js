@@ -44,8 +44,14 @@ export function blockTask(block) {
   const skipped =
     block.silent || (!block.segments?.length && !block.subtitles?.length);
   const text =
-    block.subtitles?.map((cue) => cue.text).filter(Boolean).join(" ") ||
-    block.segments?.map((seg) => seg.text).filter(Boolean).join(" ") ||
+    block.subtitles
+      ?.map((cue) => cue.text)
+      .filter(Boolean)
+      .join(" ") ||
+    block.segments
+      ?.map((seg) => seg.text)
+      .filter(Boolean)
+      .join(" ") ||
     "";
   const translationText =
     block.subtitles

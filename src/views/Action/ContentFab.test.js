@@ -158,7 +158,9 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(menuItems().map((item) => item.textContent)).toContain(
       "Screenshot Translate"
     );
-    expect(menuItems().map((item) => item.textContent)).not.toContain("截图翻译");
+    expect(menuItems().map((item) => item.textContent)).not.toContain(
+      "截图翻译"
+    );
   });
 
   test("opens the action menu on click and lists every action", () => {

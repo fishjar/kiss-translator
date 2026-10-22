@@ -106,7 +106,8 @@ describe("imageReader", () => {
       // 对于 data:URL 的内部 fetch
       return Promise.resolve({
         ok: true,
-        blob: () => Promise.resolve(new Blob(["mock-bytes"], { type: "image/png" })),
+        blob: () =>
+          Promise.resolve(new Blob(["mock-bytes"], { type: "image/png" })),
       });
     });
 
@@ -134,7 +135,9 @@ describe("imageReader", () => {
       expect(result.blob).toBeInstanceOf(Blob);
       expect(sendBgMsg).toHaveBeenCalledWith(
         "kiss_fetch",
-        expect.objectContaining({ input: "https://cross-origin.com/tainted.png" })
+        expect.objectContaining({
+          input: "https://cross-origin.com/tainted.png",
+        })
       );
     } finally {
       global.fetch = originalFetch;
@@ -196,7 +199,8 @@ describe("imageReader", () => {
           notifyExportStarted();
         });
         // Prevent a failed direct export from creating a second bitmap via proxy.
-        if (!useProxy) sendBgMsg.mockRejectedValue(new Error("Proxy unavailable"));
+        if (!useProxy)
+          sendBgMsg.mockRejectedValue(new Error("Proxy unavailable"));
 
         const pending = readImageAsBlob(img);
         const assertion = success
@@ -213,7 +217,9 @@ describe("imageReader", () => {
     );
 
     test("preserves decode failure handling and direct-fetch fallback", async () => {
-      global.createImageBitmap.mockRejectedValueOnce(new Error("Decode failed"));
+      global.createImageBitmap.mockRejectedValueOnce(
+        new Error("Decode failed")
+      );
 
       if (!useProxy && src.startsWith("https:")) {
         await expect(readImageAsBlob(img)).resolves.toEqual({

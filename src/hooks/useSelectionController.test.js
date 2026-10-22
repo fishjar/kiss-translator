@@ -304,42 +304,67 @@ describe("useSelectionController", () => {
   });
 
   test.each([
-    ["fixed", false], ["mouse", false], ["fixed", true], ["mouse", true],
-  ])("hides the selection button when pressing the FAB (%s position, menu: %s) without moving or clearing the selection", async (btnPositionMode, menu) => {
-    const view = renderController({ btnPositionMode });
-    const paragraph = createParagraph("The library is open.");
-    currentSelection = makeSelection("library", paragraph);
-    await dispatchWindowMouseup();
-    expect(view.state.showBtn).toBe(true);
-    const position = view.state.position;
-    const target = createFabTarget(menu);
-    act(() => target.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, composed: true })));
-    expect(view.state.showBtn).toBe(false);
-    await act(async () => {
-      target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, composed: true, clientX: 300, clientY: 400 }));
-      jest.advanceTimersByTime(300);
-    });
-    expect(view.state.showBtn).toBe(false);
-    expect(view.state.position).toEqual(position);
-    expect(view.state.showBox).toBe(false);
-    expect(window.getSelection().toString()).toBe("library");
-    currentSelection = makeSelection("open", paragraph);
-    await dispatchWindowMouseup();
-    expect(view.state.showBtn).toBe(true);
-    expect(view.state.selectedText).toBe("open");
-    act(() => view.root.unmount());
-  });
+    ["fixed", false],
+    ["mouse", false],
+    ["fixed", true],
+    ["mouse", true],
+  ])(
+    "hides the selection button when pressing the FAB (%s position, menu: %s) without moving or clearing the selection",
+    async (btnPositionMode, menu) => {
+      const view = renderController({ btnPositionMode });
+      const paragraph = createParagraph("The library is open.");
+      currentSelection = makeSelection("library", paragraph);
+      await dispatchWindowMouseup();
+      expect(view.state.showBtn).toBe(true);
+      const position = view.state.position;
+      const target = createFabTarget(menu);
+      act(() =>
+        target.dispatchEvent(
+          new MouseEvent("pointerdown", { bubbles: true, composed: true })
+        )
+      );
+      expect(view.state.showBtn).toBe(false);
+      await act(async () => {
+        target.dispatchEvent(
+          new MouseEvent("mouseup", {
+            bubbles: true,
+            composed: true,
+            clientX: 300,
+            clientY: 400,
+          })
+        );
+        jest.advanceTimersByTime(300);
+      });
+      expect(view.state.showBtn).toBe(false);
+      expect(view.state.position).toEqual(position);
+      expect(view.state.showBox).toBe(false);
+      expect(window.getSelection().toString()).toBe("library");
+      currentSelection = makeSelection("open", paragraph);
+      await dispatchWindowMouseup();
+      expect(view.state.showBtn).toBe(true);
+      expect(view.state.selectedText).toBe("open");
+      act(() => view.root.unmount());
+    }
+  );
 
   test("FAB interaction invalidates a selection awaiting language detection", async () => {
     let finishDetection;
-    detectLangFast.mockReturnValue(new Promise((resolve) => { finishDetection = resolve; }));
+    detectLangFast.mockReturnValue(
+      new Promise((resolve) => {
+        finishDetection = resolve;
+      })
+    );
     const view = renderController();
     const paragraph = createParagraph("The library is open.");
     currentSelection = makeSelection("library", paragraph);
     await dispatchWindowMouseup();
     expect(detectLangFast).toHaveBeenCalledTimes(1);
     const target = createFabTarget();
-    act(() => target.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, composed: true })));
+    act(() =>
+      target.dispatchEvent(
+        new MouseEvent("pointerdown", { bubbles: true, composed: true })
+      )
+    );
     await act(async () => finishDetection("en"));
     expect(view.state.showBtn).toBe(false);
     expect(view.state.showBox).toBe(false);
@@ -353,7 +378,9 @@ describe("useSelectionController", () => {
     await dispatchWindowMouseup(0);
     const target = createFabTarget(true);
     await act(async () => {
-      target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, composed: true }));
+      target.dispatchEvent(
+        new MouseEvent("mouseup", { bubbles: true, composed: true })
+      );
       jest.advanceTimersByTime(300);
     });
     expect(view.state.showBox).toBe(false);

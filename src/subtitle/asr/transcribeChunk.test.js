@@ -24,13 +24,27 @@ const chunk = {
 };
 
 test("uncertain language is deferred instead of becoming an empty recognized block", async () => {
-  invokeService.mockReturnValue({ cancel: jest.fn(), result: Promise.resolve({ text: "", languagePending: true }) });
-  expect(await transcribeAudioChunk(service, chunk, { language: "auto" })).toMatchObject({ languagePending: true, segments: [] });
+  invokeService.mockReturnValue({
+    cancel: jest.fn(),
+    result: Promise.resolve({ text: "", languagePending: true }),
+  });
+  expect(
+    await transcribeAudioChunk(service, chunk, { language: "auto" })
+  ).toMatchObject({ languagePending: true, segments: [] });
 });
 
 test("detected language and confidence survive the service boundary", async () => {
-  invokeService.mockReturnValue({ cancel: jest.fn(), result: Promise.resolve({ text: "你好", language: "zh", languageConfidence: 0.95 }) });
-  expect(await transcribeAudioChunk(service, chunk, { language: "auto" })).toMatchObject({ language: "zh", languageConfidence: 0.95 });
+  invokeService.mockReturnValue({
+    cancel: jest.fn(),
+    result: Promise.resolve({
+      text: "你好",
+      language: "zh",
+      languageConfidence: 0.95,
+    }),
+  });
+  expect(
+    await transcribeAudioChunk(service, chunk, { language: "auto" })
+  ).toMatchObject({ language: "zh", languageConfidence: 0.95 });
 });
 
 test("word timestamps and real pauses are mapped to global video time", async () => {
@@ -149,12 +163,18 @@ test("zero-duration trailing punctuation preserves sentence and word timestamps"
     result: Promise.resolve({
       text: "First. Next ...",
       segments: [
-        { start: 0, end: 0.8, text: "First.", words: [
-          { start: 0, end: 0.8, text: "First." },
-        ] },
-        { start: 1, end: 2, text: "Next", words: [
-          { start: 1, end: 2, text: "Next" },
-        ] },
+        {
+          start: 0,
+          end: 0.8,
+          text: "First.",
+          words: [{ start: 0, end: 0.8, text: "First." }],
+        },
+        {
+          start: 1,
+          end: 2,
+          text: "Next",
+          words: [{ start: 1, end: 2, text: "Next" }],
+        },
         { start: 2, end: 2, text: "..." },
       ],
     }),
@@ -162,12 +182,18 @@ test("zero-duration trailing punctuation preserves sentence and word timestamps"
   const res = await transcribeAudioChunk(service, chunk);
   expect(res.timingSource).toBe("asr");
   expect(res.segments).toEqual([
-    { start: 10, end: 10.8, text: "First.", words: [
-      { start: 10, end: 10.8, text: "First." },
-    ] },
-    { start: 11, end: 12, text: "Next...", words: [
-      { start: 11, end: 12, text: "Next..." },
-    ] },
+    {
+      start: 10,
+      end: 10.8,
+      text: "First.",
+      words: [{ start: 10, end: 10.8, text: "First." }],
+    },
+    {
+      start: 11,
+      end: 12,
+      text: "Next...",
+      words: [{ start: 11, end: 12, text: "Next..." }],
+    },
   ]);
   expect(res.events).toHaveLength(2);
 });

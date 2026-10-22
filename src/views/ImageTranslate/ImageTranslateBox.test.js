@@ -12,10 +12,20 @@ globalThis.crypto = require("crypto").webcrypto;
 
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
 let mockProgressListener;
-jest.mock("../../libs/browser", () => ({ browser: { runtime: { onMessage: {
-  addListener: (listener) => { mockProgressListener = listener; },
-  removeListener: (listener) => { if (mockProgressListener === listener) mockProgressListener = null; },
-} } } }));
+jest.mock("../../libs/browser", () => ({
+  browser: {
+    runtime: {
+      onMessage: {
+        addListener: (listener) => {
+          mockProgressListener = listener;
+        },
+        removeListener: (listener) => {
+          if (mockProgressListener === listener) mockProgressListener = null;
+        },
+      },
+    },
+  },
+}));
 jest.mock("./ImageTranslateHeader", () => jest.fn(() => null));
 jest.mock("./ImageTranslateContent", () => jest.fn(() => null));
 jest.mock("../Selection/DraggableResizable", () => {
@@ -98,73 +108,165 @@ describe("ImageTranslateBox staged actions", () => {
   });
 
   const progress = (taskId, sequence, args) => {
-    act(() => mockProgressListener({ action: "image_translate_progress", args: { taskId, sequence, ...args } }));
+    act(() =>
+      mockProgressListener({
+        action: "image_translate_progress",
+        args: { taskId, sequence, ...args },
+      })
+    );
   };
 
   test("shows layout and partial originals during inference, rejects out-of-order and post-completion progress", async () => {
     let finish;
-    sendBgMsg.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
-    act(() => { void header().onRunAction("all"); });
+    sendBgMsg.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    act(() => {
+      void header().onRunAction("all");
+    });
     const taskId = sendBgMsg.mock.calls[0][1].taskId;
-    progress(taskId, 1, { stage: "recognize", current: 0, total: 2, layout: { regions }, items: [] });
+    progress(taskId, 1, {
+      stage: "recognize",
+      current: 0,
+      total: 2,
+      layout: { regions },
+      items: [],
+    });
     expect(props.onLayoutDetected).toHaveBeenCalledWith(regions);
     expect(header().busy).toBe(true);
-    progress(taskId, 3, { stage: "recognize", current: 1, total: 2, items: [{ original: "First", translation: "" }] });
+    progress(taskId, 3, {
+      stage: "recognize",
+      current: 1,
+      total: 2,
+      items: [{ original: "First", translation: "" }],
+    });
     expect(content().items[0].original).toBe("First");
     expect(header().recognitionProgress).toEqual({ current: 1, total: 2 });
-    progress(taskId, 2, { stage: "recognize", current: 0, total: 2, items: [] });
+    progress(taskId, 2, {
+      stage: "recognize",
+      current: 0,
+      total: 2,
+      items: [],
+    });
     expect(content().items).toHaveLength(1);
     expect(header().recognitionProgress.current).toBe(1);
     expect(sendBgMsg).toHaveBeenCalledTimes(1);
-    await act(async () => finish({ success: true, result: { items: [{ original: "First", translation: "译文" }] } }));
-    progress(taskId, 99, { stage: "recognize", items: [{ original: "late", translation: "" }] });
+    await act(async () =>
+      finish({
+        success: true,
+        result: { items: [{ original: "First", translation: "译文" }] },
+      })
+    );
+    progress(taskId, 99, {
+      stage: "recognize",
+      items: [{ original: "late", translation: "" }],
+    });
     expect(content().items[0].translation).toBe("译文");
     expect(header().busy).toBe(false);
   });
 
-  test.each(["cancel", "failure"])("retains already displayed originals after %s and ignores late progress", async (ending) => {
-    let finish;
-    sendBgMsg.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
-    act(() => { void header().onRunAction("recognize"); });
-    const taskId = sendBgMsg.mock.calls[0][1].taskId;
-    progress(taskId, 1, { stage: "recognize", current: 1, total: 2, items: [{ original: "First", translation: "" }] });
-    if (ending === "cancel") act(() => header().onCancel());
-    await act(async () => finish({ success: false, error: "inference failed" }));
-    progress(taskId, 99, { stage: "recognize", items: [] });
-    expect(content().items[0].original).toBe("First");
-    expect(header().busy).toBe(false);
-    expect(content().error).toBe(ending === "failure" ? "inference failed" : "");
-  });
+  test.each(["cancel", "failure"])(
+    "retains already displayed originals after %s and ignores late progress",
+    async (ending) => {
+      let finish;
+      sendBgMsg.mockReturnValueOnce(
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+      );
+      act(() => {
+        void header().onRunAction("recognize");
+      });
+      const taskId = sendBgMsg.mock.calls[0][1].taskId;
+      progress(taskId, 1, {
+        stage: "recognize",
+        current: 1,
+        total: 2,
+        items: [{ original: "First", translation: "" }],
+      });
+      if (ending === "cancel") act(() => header().onCancel());
+      await act(async () =>
+        finish({ success: false, error: "inference failed" })
+      );
+      progress(taskId, 99, { stage: "recognize", items: [] });
+      expect(content().items[0].original).toBe("First");
+      expect(header().busy).toBe(false);
+      expect(content().error).toBe(
+        ending === "failure" ? "inference failed" : ""
+      );
+    }
+  );
 
   test("changing the source clears partial originals and rejects the previous task progress", async () => {
     let finish;
-    sendBgMsg.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
-    act(() => { void header().onRunAction("recognize"); });
+    sendBgMsg.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    act(() => {
+      void header().onRunAction("recognize");
+    });
     const taskId = sendBgMsg.mock.calls[0][1].taskId;
     progress(taskId, 1, { stage: "recognize", items: [{ original: "old" }] });
-    act(() => root.render(<ImageTranslateBox {...props} requestVersion={2} imageDataUrl="data:image/png;base64,new" />));
+    act(() =>
+      root.render(
+        <ImageTranslateBox
+          {...props}
+          requestVersion={2}
+          imageDataUrl="data:image/png;base64,new"
+        />
+      )
+    );
     progress(taskId, 2, { stage: "recognize", items: [{ original: "late" }] });
-    await act(async () => finish({ success: true, result: { items: [{ original: "late" }] } }));
+    await act(async () =>
+      finish({ success: true, result: { items: [{ original: "late" }] } })
+    );
     expect(content().items).toEqual([]);
     expect(header().busy).toBe(false);
   });
 
   test("retains partial recognition errors through translation and clears them on a new recognition", async () => {
-    const recognitionErrors = [{ order: 2, error: "RPC timed out" }, { order: 3, error: "empty output" }];
+    const recognitionErrors = [
+      { order: 2, error: "RPC timed out" },
+      { order: 3, error: "empty output" },
+    ];
     let finish;
-    sendBgMsg.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
-    act(() => { void header().onRunAction("all"); });
+    sendBgMsg.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    act(() => {
+      void header().onRunAction("all");
+    });
     const taskId = sendBgMsg.mock.calls[0][1].taskId;
-    const items = [{ original: "First", translation: "译一" }, { original: "Second", translation: "译二" }];
-    progress(taskId, 1, { stage: "recognize", current: 4, total: 4, items, recognitionErrors });
+    const items = [
+      { original: "First", translation: "译一" },
+      { original: "Second", translation: "译二" },
+    ];
+    progress(taskId, 1, {
+      stage: "recognize",
+      current: 4,
+      total: 4,
+      items,
+      recognitionErrors,
+    });
     expect(content().recognitionErrors).toEqual(recognitionErrors);
-    await act(async () => finish({ success: true, result: { items, recognitionErrors } }));
+    await act(async () =>
+      finish({ success: true, result: { items, recognitionErrors } })
+    );
     expect(content().items).toHaveLength(2);
     expect(content().recognitionErrors).toEqual(recognitionErrors);
     sendBgMsg.mockResolvedValueOnce({ success: true, result: { items } });
     await act(async () => header().onRunAction("translate"));
     expect(content().recognitionErrors).toEqual(recognitionErrors);
-    sendBgMsg.mockResolvedValueOnce({ success: true, result: { items, recognitionErrors: [] } });
+    sendBgMsg.mockResolvedValueOnce({
+      success: true,
+      result: { items, recognitionErrors: [] },
+    });
     await act(async () => header().onRunAction("recognize"));
     expect(content().recognitionErrors).toEqual([]);
   });
@@ -368,9 +470,17 @@ describe("ImageTranslateBox staged actions", () => {
   });
 
   test("shows VLM processing errors and clears the old error when changing recognition service", async () => {
-    act(() => header().onSettingChange({ ...scene, recognitionService: { apiSlug: "vlm", capability: "parseImage" } }));
+    act(() =>
+      header().onSettingChange({
+        ...scene,
+        recognitionService: { apiSlug: "vlm", capability: "parseImage" },
+      })
+    );
     expect(content().hasExecuted).toBe(false);
-    sendBgMsg.mockResolvedValueOnce({ success: false, error: "VLM crop failed" });
+    sendBgMsg.mockResolvedValueOnce({
+      success: false,
+      error: "VLM crop failed",
+    });
     await act(async () => header().onRunAction("recognize"));
     expect(content().error).toBe("VLM crop failed");
     act(() => header().onSettingChange(scene));

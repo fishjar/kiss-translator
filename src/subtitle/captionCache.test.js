@@ -48,7 +48,9 @@ test("AI segmentation and context include the actual service and prompt inputs",
   expect(
     await captionSegmentationSignature({
       ...setting,
-      transApis: [{ apiSlug: "ai", model: "model-a", subtitlePrompt: "second" }],
+      transApis: [
+        { apiSlug: "ai", model: "model-a", subtitlePrompt: "second" },
+      ],
     })
   ).not.toBe(first);
   expect(
@@ -108,27 +110,69 @@ test("built-in segmentation is independent of the AI translation context", async
   ).toBe(original);
 });
 
-
-test.each(["apiName", "httpTimeout", "fetchLimit", "fetchInterval", "batchInterval", "batchConcurrency", "requestTimes", "updatedAt"])(
-  "%s does not invalidate content signatures", async key => {
-    const service = { apiSlug: "ai", apiType: "OpenAI", model: "model-a" };
-    const setting = { apiSlug: "ai", apiSetting: service, segSlug: "ai", transApis: [service], toLang: "zh-CN" };
-    const changed = { ...service, [key]: key === "apiName" ? "renamed" : 123 };
-    const next = { ...setting, apiSetting: changed, transApis: [changed] };
-    expect(await captionTranslationSignature(next)).toBe(await captionTranslationSignature(setting));
-    expect(await captionSegmentationSignature(next)).toBe(await captionSegmentationSignature(setting));
-  }
-);
+test.each([
+  "apiName",
+  "httpTimeout",
+  "fetchLimit",
+  "fetchInterval",
+  "batchInterval",
+  "batchConcurrency",
+  "requestTimes",
+  "updatedAt",
+])("%s does not invalidate content signatures", async (key) => {
+  const service = { apiSlug: "ai", apiType: "OpenAI", model: "model-a" };
+  const setting = {
+    apiSlug: "ai",
+    apiSetting: service,
+    segSlug: "ai",
+    transApis: [service],
+    toLang: "zh-CN",
+  };
+  const changed = { ...service, [key]: key === "apiName" ? "renamed" : 123 };
+  const next = { ...setting, apiSetting: changed, transApis: [changed] };
+  expect(await captionTranslationSignature(next)).toBe(
+    await captionTranslationSignature(setting)
+  );
+  expect(await captionSegmentationSignature(next)).toBe(
+    await captionSegmentationSignature(setting)
+  );
+});
 
 test("object order is stable but content configuration and credentials remain authoritative", async () => {
-  const service = { apiSlug: "ai", apiType: "OpenAI", model: "a", key: "account-a", customBody: { a: 1, b: 2 } };
-  const setting = apiSetting => ({ apiSlug: "ai", apiSetting, toLang: "zh-CN" });
+  const service = {
+    apiSlug: "ai",
+    apiType: "OpenAI",
+    model: "a",
+    key: "account-a",
+    customBody: { a: 1, b: 2 },
+  };
+  const setting = (apiSetting) => ({
+    apiSlug: "ai",
+    apiSetting,
+    toLang: "zh-CN",
+  });
   const original = await captionTranslationSignature(setting(service));
-  expect(await captionTranslationSignature(setting({ ...service, customBody: { b: 2, a: 1 } }))).toBe(original);
+  expect(
+    await captionTranslationSignature(
+      setting({ ...service, customBody: { b: 2, a: 1 } })
+    )
+  ).toBe(original);
   for (const patch of [
-    { key: "account-b" }, { model: "b" }, { url: "https://other.example" },
-    { customBody: { a: 2, b: 2 } }, { customHeader: '{"X-Model":"other"}' },
-    { reqHook: "changed" }, { resHook: "changed" },
-    { provider: { implementation: { kind: "script", code: "new" }, settings: [] } },
-  ]) expect(await captionTranslationSignature(setting({ ...service, ...patch }))).not.toBe(original);
+    { key: "account-b" },
+    { model: "b" },
+    { url: "https://other.example" },
+    { customBody: { a: 2, b: 2 } },
+    { customHeader: '{"X-Model":"other"}' },
+    { reqHook: "changed" },
+    { resHook: "changed" },
+    {
+      provider: {
+        implementation: { kind: "script", code: "new" },
+        settings: [],
+      },
+    },
+  ])
+    expect(
+      await captionTranslationSignature(setting({ ...service, ...patch }))
+    ).not.toBe(original);
 });

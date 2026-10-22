@@ -188,9 +188,13 @@ export function nativeAudioFormat(body, response, videoId, knownFormats = []) {
 export function youtubeAudioFormats(playerResponse) {
   const formats = playerResponse?.streamingData?.adaptiveFormats || [];
   const audio = formats.filter((entry) => entry.mimeType?.startsWith("audio/"));
-  if (!audio.length || audio.some((entry) => entry.audioTrack?.id)) return formats;
-  return formats.map((entry) => entry.mimeType?.startsWith("audio/")
-    ? { ...entry, audioTrack: { id: "default" } } : entry);
+  if (!audio.length || audio.some((entry) => entry.audioTrack?.id))
+    return formats;
+  return formats.map((entry) =>
+    entry.mimeType?.startsWith("audio/")
+      ? { ...entry, audioTrack: { id: "default" } }
+      : entry
+  );
 }
 
 export function selectedAacFormat(playerResponse, nativeFormat, videoId) {

@@ -273,7 +273,9 @@ export default function ImageTranslateHeader({
 
         {/* 文本识别服务 (OCR / VLM) */}
         <FormControl size="small" fullWidth>
-          <InputLabel>{i18n("image_recognition_service", "文本识别")}</InputLabel>
+          <InputLabel>
+            {i18n("image_recognition_service", "文本识别")}
+          </InputLabel>
           <Select
             label={i18n("image_recognition_service", "文本识别")}
             value={selectedRecValue}
@@ -315,10 +317,10 @@ export default function ImageTranslateHeader({
                 {stage === "reading"
                   ? i18n("image_stage_reading", "正在读取图片...")
                   : stage === "layout"
-                  ? i18n("image_stage_layout", "正在分析布局...")
-                  : stage === "recognize"
-                    ? i18n("image_stage_recognize", "正在识别文本...")
-                    : i18n("image_stage_translate", "正在翻译文本...")}
+                    ? i18n("image_stage_layout", "正在分析布局...")
+                    : stage === "recognize"
+                      ? i18n("image_stage_recognize", "正在识别文本...")
+                      : i18n("image_stage_translate", "正在翻译文本...")}
                 {stage === "recognize" && recognitionProgress?.total > 0
                   ? ` ${recognitionProgress.current}/${recognitionProgress.total}`
                   : ""}
@@ -384,7 +386,9 @@ export default function ImageTranslateHeader({
         >
           {isLlmTranslate && (
             <FormControl size="small" fullWidth>
-              <InputLabel>{i18n("translation_prompt", "翻译提示词")}</InputLabel>
+              <InputLabel>
+                {i18n("translation_prompt", "翻译提示词")}
+              </InputLabel>
               <Select
                 label={i18n("translation_prompt", "翻译提示词")}
                 value={scene.promptSlug || ""}
@@ -405,7 +409,6 @@ export default function ImageTranslateHeader({
               </Select>
             </FormControl>
           )}
-
         </Box>
       )}
 

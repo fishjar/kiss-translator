@@ -231,9 +231,8 @@ function getSelectionContainer(selection, target) {
   const element =
     node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
   return (
-    element?.closest?.(
-      "p, li, blockquote, article, section, main, div"
-    ) || element
+    element?.closest?.("p, li, blockquote, article, section, main, div") ||
+    element
   );
 }
 

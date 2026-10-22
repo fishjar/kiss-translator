@@ -5,7 +5,10 @@ import { webcrypto } from "crypto";
 import { TextEncoder } from "util";
 import { AsrPauseGate } from "./pause";
 
-Object.defineProperty(globalThis, "crypto", { configurable: true, value: webcrypto });
+Object.defineProperty(globalThis, "crypto", {
+  configurable: true,
+  value: webcrypto,
+});
 globalThis.TextEncoder = TextEncoder;
 
 const identity = {
@@ -69,21 +72,29 @@ function setup(responses = [result([0, 1]), result([2])]) {
 }
 
 test("pause holds the next network request and resume reuses downloaded segments", async () => {
-  const test = setup(), gate = new AsrPauseGate();
+  const test = setup(),
+    gate = new AsrPauseGate();
   let clock = 0;
   test.manager.now = () => clock;
-  test.manager.waitUntilRunning = signal => gate.wait(signal);
+  test.manager.waitUntilRunning = (signal) => gate.wait(signal);
   let finishFirst;
-  test.bridge.next.mockImplementationOnce(() => new Promise(resolve => { finishFirst = resolve; }));
+  test.bridge.next.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishFirst = resolve;
+      })
+  );
   test.bridge.next.mockResolvedValueOnce(result([2]));
   const lease = test.manager.acquire("asr");
-  while (!finishFirst) await new Promise(resolve => setTimeout(resolve, 0));
+  while (!finishFirst) await new Promise((resolve) => setTimeout(resolve, 0));
   gate.pause();
   finishFirst(result([0, 1]));
-  while (!test.manager.index.has(1)) await new Promise(resolve => setTimeout(resolve, 0));
+  while (!test.manager.index.has(1))
+    await new Promise((resolve) => setTimeout(resolve, 0));
   expect(test.bridge.next).toHaveBeenCalledTimes(1);
   expect(test.manager.coverageMs).toBe(1000);
-  while (!gate.waiters.size) await new Promise(resolve => setTimeout(resolve, 0));
+  while (!gate.waiters.size)
+    await new Promise((resolve) => setTimeout(resolve, 0));
   clock = 60000;
   gate.resume();
   await lease.ready;
@@ -94,11 +105,15 @@ test("pause holds the next network request and resume reuses downloaded segments
 });
 
 test("disposing a paused download releases its pending lease and wait", async () => {
-  const test = setup(), gate = new AsrPauseGate();
+  const test = setup(),
+    gate = new AsrPauseGate();
   gate.pause();
-  test.manager.waitUntilRunning = signal => gate.wait(signal);
+  test.manager.waitUntilRunning = (signal) => gate.wait(signal);
   const lease = test.manager.acquire("asr");
-  const cancelled = expect(lease.ready).rejects.toHaveProperty("name", "AbortError");
+  const cancelled = expect(lease.ready).rejects.toHaveProperty(
+    "name",
+    "AbortError"
+  );
   await test.manager.dispose();
   await cancelled;
   expect(test.bridge.open).not.toHaveBeenCalled();
@@ -157,7 +172,9 @@ test("temporary failures retry only twice, while 403 refreshes page parameters o
   const lease = a.manager.acquire("asr");
   await lease.ready;
   expect(a.wait.mock.calls.map((call) => call[0])).toEqual([1000, 3000]);
-  expect(a.states.some(state => state.phase === "fetching" && state.reconnecting)).toBe(true);
+  expect(
+    a.states.some((state) => state.phase === "fetching" && state.reconnecting)
+  ).toBe(true);
   expect(a.manager.state.reconnecting).toBe(false);
   await a.manager.dispose();
   const auth = () =>
@@ -177,8 +194,15 @@ test("temporary failures retry only twice, while 403 refreshes page parameters o
 });
 
 test("manual recovery resumes after existing audio and preserves successful segments", async () => {
-  const failure = () => Object.assign(new Error("network"), { code: "AUDIO_NETWORK" });
-  const test = setup([result([0, 1]), failure(), failure(), failure(), result([2])]);
+  const failure = () =>
+    Object.assign(new Error("network"), { code: "AUDIO_NETWORK" });
+  const test = setup([
+    result([0, 1]),
+    failure(),
+    failure(),
+    failure(),
+    result([2]),
+  ]);
   const lease = test.manager.acquire("asr");
   await expect(lease.ready).rejects.toHaveProperty("code", "AUDIO_NETWORK");
   expect(test.manager.coverageMs).toBe(1000);
@@ -187,7 +211,7 @@ test("manual recovery resumes after existing audio and preserves successful segm
   expect(test.manager.retry()).toBe(true);
   await test.manager.running;
   expect(test.manager.state.phase).toBe("complete");
-  expect(test.bridge.open.mock.calls.map(call => call[2])).toEqual([0, 1000]);
+  expect(test.bridge.open.mock.calls.map((call) => call[2])).toEqual([0, 1000]);
   expect(test.cache.putAudio).toHaveBeenCalledTimes(3);
   expect(test.manager.index.size).toBe(3);
   await test.manager.dispose();
@@ -286,7 +310,9 @@ test("download task events describe real segments and persistence failures witho
   expect(failed.manager.complete()).toBe(true);
   expect(failed.manager.memoryOnly).toBe(false);
   expect(failed.manager.cacheWriteFailed).toBe(true);
-  expect(failed.onTask.mock.calls.some(([task]) => task.download === "failed")).toBe(false);
+  expect(
+    failed.onTask.mock.calls.some(([task]) => task.download === "failed")
+  ).toBe(false);
   await failed.manager.dispose();
 });
 
@@ -294,7 +320,10 @@ test("session IDs are stable and distinguish tracks and media versions", async (
   const id = await audioSessionId(identity, mediaCacheKey(identity));
   expect(id).toMatch(/^audio-kSQknoHMFtk-[a-f0-9]{64}$/);
   expect(await audioSessionId(identity, mediaCacheKey(identity))).toBe(id);
-  for (const changed of [{ ...identity, trackId: "es-ES.2" }, { ...identity, mediaVersion: "140.124" }])
+  for (const changed of [
+    { ...identity, trackId: "es-ES.2" },
+    { ...identity, mediaVersion: "140.124" },
+  ])
     expect(await audioSessionId(changed, mediaCacheKey(changed))).not.toBe(id);
 });
 
@@ -327,32 +356,40 @@ test("segmentsFor invalidates and throws AUDIO_CACHE_MISSING when segment is mis
   cache.getAudio = jest.fn(async () => null);
 
   const generator = manager.segmentsFor(0, 1000);
-  await expect(generator.next()).rejects.toMatchObject({ code: "AUDIO_CACHE_MISSING" });
+  await expect(generator.next()).rejects.toMatchObject({
+    code: "AUDIO_CACHE_MISSING",
+  });
   expect(manager.index.size).toBe(0);
   expect(manager.complete()).toBe(false);
 
   await manager.dispose();
 });
 
-
-
-
 test("full persistent cache restores all media tasks without opening SABR", async () => {
   const test = setup();
-  test.cache.listAudio = jest.fn(async () => [0, 1, 2].map((index) => ({ ...segment(index), bytes: 3, data: undefined })));
+  test.cache.listAudio = jest.fn(async () =>
+    [0, 1, 2].map((index) => ({ ...segment(index), bytes: 3, data: undefined }))
+  );
   await test.manager.acquire("asr").ready;
   expect(test.bridge.open).not.toHaveBeenCalled();
   expect(test.bridge.next).not.toHaveBeenCalled();
   expect(test.manager.complete()).toBe(true);
-  expect(test.onTask.mock.calls.map(([task]) => task.id)).toEqual(["media-1", "media-2"]);
+  expect(test.onTask.mock.calls.map(([task]) => task.id)).toEqual([
+    "media-1",
+    "media-2",
+  ]);
   await test.manager.dispose();
 });
 
 test("partial persistent cache emits tasks before paused download resumes from coverage", async () => {
   const test = setup([result([0, 1, 2])]);
-  test.cache.listAudio = jest.fn(async () => [0, 1].map((index) => ({ ...segment(index), bytes: 3, data: undefined })));
+  test.cache.listAudio = jest.fn(async () =>
+    [0, 1].map((index) => ({ ...segment(index), bytes: 3, data: undefined }))
+  );
   test.bridge.open.mockImplementation(async () => {
-    expect(test.onTask).toHaveBeenCalledWith(expect.objectContaining({ id: "media-1", download: "complete" }));
+    expect(test.onTask).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "media-1", download: "complete" })
+    );
     return { identity };
   });
   await test.manager.acquire("asr").ready;
@@ -360,38 +397,54 @@ test("partial persistent cache emits tasks before paused download resumes from c
   await test.manager.dispose();
 });
 
-test.each([0, 1])("resumed audio keeps reading persistent segments through index %i after new writes fail", async (lastIndex) => {
-  const test = setup(lastIndex ? [result([2])] : [result([1]), result([2])]);
-  const restored = Array.from({ length: lastIndex + 1 }, (_, index) => index);
-  for (const index of restored) test.rows.set(index, segment(index));
-  test.cache.listAudio = jest.fn(async () => restored.map((index) => ({
-    ...segment(index), bytes: 3, data: undefined,
-  })));
-  test.cache.putAudio.mockRejectedValue(Object.assign(new Error(), { code: "AUDIO_QUOTA" }));
-  await test.manager.acquire("asr").ready;
-  expect(test.manager.complete()).toBe(true);
-  expect((await test.manager.readAudio(0)).data).toEqual(segment(0).data);
-  expect((await test.manager.readAudio(1)).data).toEqual(segment(1).data);
-  expect((await test.manager.readAudio(2)).data).toEqual(segment(2).data);
-  const parts = [];
-  for await (const part of test.manager.segmentsFor()) parts.push(part.index);
-  expect(parts).toEqual([0, 1, 2]);
-  expect(test.cache.getAudio.mock.calls.map(([, index]) => index)).toEqual([...restored, ...restored]);
-  expect(test.cache.putAudio).toHaveBeenCalledTimes(1);
-  expect(test.bridge.open).toHaveBeenCalledTimes(1);
-  expect(test.bridge.open.mock.calls[0][2]).toBe(lastIndex * 1000);
-  await test.manager.dispose();
-  expect(test.cache.releaseAudio).toHaveBeenCalledTimes(1);
-});
+test.each([0, 1])(
+  "resumed audio keeps reading persistent segments through index %i after new writes fail",
+  async (lastIndex) => {
+    const test = setup(lastIndex ? [result([2])] : [result([1]), result([2])]);
+    const restored = Array.from({ length: lastIndex + 1 }, (_, index) => index);
+    for (const index of restored) test.rows.set(index, segment(index));
+    test.cache.listAudio = jest.fn(async () =>
+      restored.map((index) => ({
+        ...segment(index),
+        bytes: 3,
+        data: undefined,
+      }))
+    );
+    test.cache.putAudio.mockRejectedValue(
+      Object.assign(new Error(), { code: "AUDIO_QUOTA" })
+    );
+    await test.manager.acquire("asr").ready;
+    expect(test.manager.complete()).toBe(true);
+    expect((await test.manager.readAudio(0)).data).toEqual(segment(0).data);
+    expect((await test.manager.readAudio(1)).data).toEqual(segment(1).data);
+    expect((await test.manager.readAudio(2)).data).toEqual(segment(2).data);
+    const parts = [];
+    for await (const part of test.manager.segmentsFor()) parts.push(part.index);
+    expect(parts).toEqual([0, 1, 2]);
+    expect(test.cache.getAudio.mock.calls.map(([, index]) => index)).toEqual([
+      ...restored,
+      ...restored,
+    ]);
+    expect(test.cache.putAudio).toHaveBeenCalledTimes(1);
+    expect(test.bridge.open).toHaveBeenCalledTimes(1);
+    expect(test.bridge.open.mock.calls[0][2]).toBe(lastIndex * 1000);
+    await test.manager.dispose();
+    expect(test.cache.releaseAudio).toHaveBeenCalledTimes(1);
+  }
+);
 
 test("failed index lookup is not retried and network bytes remain available in memory", async () => {
   const test = setup();
-  test.cache.listAudio = jest.fn().mockRejectedValue(Object.assign(new Error(), { code: "CACHE_TIMEOUT" }));
+  test.cache.listAudio = jest
+    .fn()
+    .mockRejectedValue(Object.assign(new Error(), { code: "CACHE_TIMEOUT" }));
   await test.manager.acquire("asr").ready;
   expect(test.cache.listAudio).toHaveBeenCalledTimes(1);
   expect(test.bridge.open).toHaveBeenCalledTimes(1);
   expect(test.cache.putAudio).not.toHaveBeenCalled();
-  expect(new Uint8Array((await test.manager.readAudio(1)).data)).toEqual(new Uint8Array([1, 2, 3]));
+  expect(new Uint8Array((await test.manager.readAudio(1)).data)).toEqual(
+    new Uint8Array([1, 2, 3])
+  );
   await test.manager.dispose();
   expect(test.manager.memory.bytes).toBe(0);
 });
@@ -399,49 +452,70 @@ test("failed index lookup is not retried and network bytes remain available in m
 test("a missing restored segment still redownloads after persistent writes fail", async () => {
   const test = setup([result([2]), result([0, 1, 2])]);
   for (const index of [0, 1]) test.rows.set(index, segment(index));
-  test.cache.listAudio = jest.fn(async () => [0, 1].map((index) => ({
-    ...segment(index), bytes: 3, data: undefined,
-  })));
-  test.cache.putAudio.mockRejectedValue(Object.assign(new Error(), { code: "AUDIO_QUOTA" }));
+  test.cache.listAudio = jest.fn(async () =>
+    [0, 1].map((index) => ({
+      ...segment(index),
+      bytes: 3,
+      data: undefined,
+    }))
+  );
+  test.cache.putAudio.mockRejectedValue(
+    Object.assign(new Error(), { code: "AUDIO_QUOTA" })
+  );
   await test.manager.acquire("asr").ready;
   await test.manager.running;
   test.rows.delete(0);
   await expect(test.manager.readAudio(0)).rejects.toMatchObject({
-    code: "AUDIO_CACHE_MISSING", cacheReadError: true,
+    code: "AUDIO_CACHE_MISSING",
+    cacheReadError: true,
   });
   await test.manager.running;
   expect(test.manager.complete()).toBe(true);
   expect(test.manager.memoryOnly).toBe(true);
-  expect(test.bridge.open.mock.calls.map(([, , position]) => position)).toEqual([1000, 0]);
+  expect(test.bridge.open.mock.calls.map(([, , position]) => position)).toEqual(
+    [1000, 0]
+  );
   const parts = [];
   for await (const part of test.manager.segmentsFor()) parts.push(part.index);
   expect(parts).toEqual([0, 1, 2]);
   await test.manager.dispose();
 });
 
- test("Shorts audio never calls persistent storage and shares downloaded segments with exports", async () => {
+test("Shorts audio never calls persistent storage and shares downloaded segments with exports", async () => {
   const test = setup();
   test.manager.cacheMode = "session";
   test.manager.memoryOnly = true;
-  for (const method of Object.values(test.cache)) method.mockImplementation(() => { throw Error("persistent cache touched"); });
+  for (const method of Object.values(test.cache))
+    method.mockImplementation(() => {
+      throw Error("persistent cache touched");
+    });
   await test.manager.acquire("asr").ready;
   await test.manager.acquire("export").ready;
   const parts = [];
-  for await (const part of test.manager.segmentsFor()) parts.push(new Uint8Array(part.data));
-  expect(parts).toEqual([0, 1, 2].map(index => new Uint8Array([index, 2, 3])));
+  for await (const part of test.manager.segmentsFor())
+    parts.push(new Uint8Array(part.data));
+  expect(parts).toEqual(
+    [0, 1, 2].map((index) => new Uint8Array([index, 2, 3]))
+  );
   expect(test.bridge.open).toHaveBeenCalledTimes(1);
   expect(test.manager.state.cacheStatus).toBeUndefined();
   await test.manager.dispose();
-  for (const method of Object.values(test.cache)) expect(method).not.toHaveBeenCalled();
+  for (const method of Object.values(test.cache))
+    expect(method).not.toHaveBeenCalled();
   expect(test.manager.memory.bytes).toBe(0);
 });
 
 test("cancelling cache restoration neither retries nor starts a download", async () => {
   const test = setup();
   let releaseRead;
-  test.cache.listAudio = jest.fn(() => new Promise(resolve => { releaseRead = resolve; }));
+  test.cache.listAudio = jest.fn(
+    () =>
+      new Promise((resolve) => {
+        releaseRead = resolve;
+      })
+  );
   const lease = test.manager.acquire("asr");
-  while (!releaseRead) await new Promise(resolve => setTimeout(resolve, 0));
+  while (!releaseRead) await new Promise((resolve) => setTimeout(resolve, 0));
   lease.release();
   releaseRead([]);
   await expect(lease.ready).rejects.toHaveProperty("name", "AbortError");
@@ -454,7 +528,9 @@ test("cancelling cache restoration neither retries nor starts a download", async
 test("downloaded bytes remain available when persistent reads subsequently fail", async () => {
   const test = setup();
   await test.manager.acquire("asr").ready;
-  test.cache.getAudio.mockRejectedValueOnce(Object.assign(new Error(), { code: "AUDIO_SESSION_MISSING" }));
+  test.cache.getAudio.mockRejectedValueOnce(
+    Object.assign(new Error(), { code: "AUDIO_SESSION_MISSING" })
+  );
   const parts = [];
   for await (const part of test.manager.segmentsFor()) parts.push(part.index);
   expect(parts).toEqual([0, 1, 2]);

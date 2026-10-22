@@ -144,16 +144,30 @@ test("opening the new cache format discards development records from version one
   expect(await store.stats(100)).toEqual({ count: 0, bytes: 0 });
 });
 
-
-test.each(["length", "time", "middle"])("changed raw caption %s never inherits old bilingual results", async change => {
-  const first = input();
-  first.events = [0, 1000, 2000].map(tStartMs => ({ tStartMs, dDurationMs: 1000, segs: [{ utf8: "original" }] }));
-  await store.put(first, 0, 100);
-  const next = { ...first, events: first.events.map(event => ({ ...event, segs: [...event.segs] })) };
-  delete next.bilingual;
-  if (change === "length") next.events.pop();
-  else if (change === "time") next.events[2].tStartMs = 2100;
-  else next.events[1].segs = [{ utf8: "edited middle" }];
-  await store.put(next, 0, 100);
-  expect((await store.lookup(first.videoId, 100)).entry.bilingual).toBeUndefined();
-});
+test.each(["length", "time", "middle"])(
+  "changed raw caption %s never inherits old bilingual results",
+  async (change) => {
+    const first = input();
+    first.events = [0, 1000, 2000].map((tStartMs) => ({
+      tStartMs,
+      dDurationMs: 1000,
+      segs: [{ utf8: "original" }],
+    }));
+    await store.put(first, 0, 100);
+    const next = {
+      ...first,
+      events: first.events.map((event) => ({
+        ...event,
+        segs: [...event.segs],
+      })),
+    };
+    delete next.bilingual;
+    if (change === "length") next.events.pop();
+    else if (change === "time") next.events[2].tStartMs = 2100;
+    else next.events[1].segs = [{ utf8: "edited middle" }];
+    await store.put(next, 0, 100);
+    expect(
+      (await store.lookup(first.videoId, 100)).entry.bilingual
+    ).toBeUndefined();
+  }
+);

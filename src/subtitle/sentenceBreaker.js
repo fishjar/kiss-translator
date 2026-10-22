@@ -745,22 +745,31 @@ function splitLongSentence(sentence, { maxDurationMs, maxWords, maxChars }) {
       parts.length
     );
     if (
-      end - start > 1 && (
-        candidate.durationMs > maxDurationMs ||
+      end - start > 1 &&
+      (candidate.durationMs > maxDurationMs ||
         end - start > maxWords ||
-        candidate.text.length > maxChars
-      )
+        candidate.text.length > maxChars)
     ) {
       const chunk = words.slice(start, end - 1);
-      parts.push(new SubtitleSentence(
-        chunk, chunk[0].startMs, chunk[chunk.length - 1].endMs, parts.length
-      ));
+      parts.push(
+        new SubtitleSentence(
+          chunk,
+          chunk[0].startMs,
+          chunk[chunk.length - 1].endMs,
+          parts.length
+        )
+      );
       start = end - 1;
     }
   }
-  parts.push(new SubtitleSentence(
-    words.slice(start), words[start].startMs, words[n - 1].endMs, parts.length
-  ));
+  parts.push(
+    new SubtitleSentence(
+      words.slice(start),
+      words[start].startMs,
+      words[n - 1].endMs,
+      parts.length
+    )
+  );
   return parts;
 }
 
@@ -799,8 +808,11 @@ function buildSubtitleSentences(words, boundaryIndices, params) {
   // 2. 超长句再切分兜底
   const finalSentences = [];
   for (const sent of sentences) {
-    if (sent.durationMs <= maxDurationMs && sent.words.length <= params.maxWords &&
-      sent.text.length <= params.maxChars) {
+    if (
+      sent.durationMs <= maxDurationMs &&
+      sent.words.length <= params.maxWords &&
+      sent.text.length <= params.maxChars
+    ) {
       finalSentences.push(sent);
     } else {
       finalSentences.push(...splitLongSentence(sent, params));

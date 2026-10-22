@@ -8,7 +8,9 @@ test.each([true, false, undefined])(
       asrMaxDurationSeconds: 30,
       provider: { capabilities: { transcribe: { timestamps } } },
     };
-    expect(asrChunkDurationSeconds(service)).toBe(timestamps === true ? 30 : 10);
+    expect(asrChunkDurationSeconds(service)).toBe(
+      timestamps === true ? 30 : 10
+    );
     expect(
       asrChunkDurationSeconds({ ...service, asrMaxDurationSeconds: 2 })
     ).toBe(2);

@@ -307,8 +307,12 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     window.history.replaceState({}, "", "/shorts/kSQknoHMFtk");
     document.getElementById("movie_player").setAttribute("id", "shorts-player");
     document.getElementById("shorts-player").className = "html5-video-player";
-    document.getElementById("shorts-player").getVideoData = () => ({ video_id: "kSQknoHMFtk" });
-    captionCacheRequest.mockImplementation(() => { throw Error("persistent cache touched"); });
+    document.getElementById("shorts-player").getVideoData = () => ({
+      video_id: "kSQknoHMFtk",
+    });
+    captionCacheRequest.mockImplementation(() => {
+      throw Error("persistent cache touched");
+    });
     create();
     await flushPromises();
     await flushPromises();
@@ -334,7 +338,9 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     await flushPromises();
     expect(captionCacheRequest).not.toHaveBeenCalled();
     props().asrActions.start();
-    expect(mockAsrControllers.at(-1).options.getVideo().cacheMode).toBe("session");
+    expect(mockAsrControllers.at(-1).options.getVideo().cacheMode).toBe(
+      "session"
+    );
     window.history.replaceState({}, "", `/watch?v=${id}`);
     window.dispatchEvent(new Event("popstate"));
     await flushPromises();
@@ -759,7 +765,10 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     const originalCall = eventsToSubtitles.mock.calls[0][0];
     props().asrActions.start();
     expect(originalCall.signal.aborted).toBe(true);
-    originalCall.onAppendSubtitles({ subtitles: [{ ...cue, text: "stale" }], progressed: 100 });
+    originalCall.onAppendSubtitles({
+      subtitles: [{ ...cue, text: "stale" }],
+      progressed: 100,
+    });
     expect(mockManagers.at(-1).formattedSubtitles[0].text).toBe("audio");
     document.querySelector("video").currentTime = 120;
     props().asrActions.stop();
@@ -770,7 +779,9 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     expect(resumed.signal).not.toBe(originalCall.signal);
     expect(resumed.signal.aborted).toBe(false);
     expect(nextScheduler.scheduleUntil).toHaveBeenCalledWith(120000, 90);
-    mockManagers.at(-1).setting.onSubtitleTimeWindow({ currentTimeMs: 240000, preTrans: 30 });
+    mockManagers
+      .at(-1)
+      .setting.onSubtitleTimeWindow({ currentTimeMs: 240000, preTrans: 30 });
     expect(nextScheduler.scheduleUntil).toHaveBeenLastCalledWith(240000, 30);
   });
 

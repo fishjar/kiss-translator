@@ -90,10 +90,16 @@ export async function asrCacheSignatures({
     digest({
       service: serviceConfig(asrService),
       language,
-      ...(isWhisperAsrService(asrService) && { languagePolicyVersion: ASR_LANGUAGE_POLICY_VERSION }),
+      ...(isWhisperAsrService(asrService) && {
+        languagePolicyVersion: ASR_LANGUAGE_POLICY_VERSION,
+      }),
       chunking: {
         version: 1,
-        maxSamples: new AsrAudioChunker(asrChunkDurationSeconds(asrService || {}), 0, limits).limit,
+        maxSamples: new AsrAudioChunker(
+          asrChunkDurationSeconds(asrService || {}),
+          0,
+          limits
+        ).limit,
       },
     }),
     digest({

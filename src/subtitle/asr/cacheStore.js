@@ -55,11 +55,18 @@ export function mediaIdentity(input) {
     durationMs <= 0 ||
     typeof sourceLanguage !== "string" ||
     !/^[\w-]{1,64}$/.test(sourceLanguage) ||
-    (recognitionLanguage !== undefined && !/^[\w-]{1,64}$/.test(recognitionLanguage))
+    (recognitionLanguage !== undefined &&
+      !/^[\w-]{1,64}$/.test(recognitionLanguage))
   )
     throw fail("INVALID_MEDIA_IDENTITY");
-  return { videoId, trackId, mediaVersion, durationMs, sourceLanguage,
-    ...(recognitionLanguage !== undefined && { recognitionLanguage }) };
+  return {
+    videoId,
+    trackId,
+    mediaVersion,
+    durationMs,
+    sourceLanguage,
+    ...(recognitionLanguage !== undefined && { recognitionLanguage }),
+  };
 }
 export const mediaCacheKey = (identity) =>
   JSON.stringify(Object.values(mediaIdentity(identity)));
@@ -73,8 +80,14 @@ const extractIdentity = (video) => {
     try {
       const parsed = JSON.parse(video.key);
       if (Array.isArray(parsed) && parsed.length >= 5) {
-        const [videoId, trackId, mediaVersion, durationMs, sourceLanguage, recognitionLanguage] =
-          parsed;
+        const [
+          videoId,
+          trackId,
+          mediaVersion,
+          durationMs,
+          sourceLanguage,
+          recognitionLanguage,
+        ] = parsed;
         return mediaIdentity({
           videoId,
           trackId,
@@ -113,9 +126,13 @@ const cues = (items, start, end, scale, timingSource) => {
       throw fail("INVALID_CACHE_CHUNK");
     const clampedStart = Math.max(minStart, Math.min(maxEnd, item.start));
     const clampedEnd = Math.max(clampedStart, Math.min(maxEnd, item.end));
-    const words = scale === 1 && alignedAsrWords({
-      ...item, start: clampedStart, end: clampedEnd,
-    });
+    const words =
+      scale === 1 &&
+      alignedAsrWords({
+        ...item,
+        start: clampedStart,
+        end: clampedEnd,
+      });
     return {
       start: clampedStart,
       end: clampedEnd,
@@ -149,8 +166,12 @@ export function normalizeCachedChunk(input) {
     !["asr", "audio-chunk"].includes(timingSource) ||
     !["recognized", "segmented", "translated", "failed"].includes(stage) ||
     (errorCode !== undefined && !/^[A-Z_]{1,64}$/.test(errorCode)) ||
-    (language !== undefined && (typeof language !== "string" || !/^[a-zA-Z-]{2,64}$/.test(language))) ||
-    (languageConfidence !== undefined && (!Number.isFinite(languageConfidence) || languageConfidence < 0 || languageConfidence > 1))
+    (language !== undefined &&
+      (typeof language !== "string" || !/^[a-zA-Z-]{2,64}$/.test(language))) ||
+    (languageConfidence !== undefined &&
+      (!Number.isFinite(languageConfidence) ||
+        languageConfidence < 0 ||
+        languageConfidence > 1))
   )
     throw fail("INVALID_CACHE_CHUNK");
   const start = startSample / ASR_SAMPLE_RATE,
@@ -266,8 +287,12 @@ export class AsrCacheStore {
       const tx = db.transaction(stores, mode);
       let result, failure;
       tx.oncomplete = () => {
-        logger.debug("[YouTube ASR cache] transaction", { stores, mode,
-          openMs: started - opened, transactionMs: performance.now() - started });
+        logger.debug("[YouTube ASR cache] transaction", {
+          stores,
+          mode,
+          openMs: started - opened,
+          transactionMs: performance.now() - started,
+        });
         resolve(result);
       };
       tx.onabort = tx.onerror = () =>
@@ -471,21 +496,30 @@ export class AsrCacheStore {
     if (!/^[\w-]{11}$/.test(input?.videoId || ""))
       throw fail("INVALID_MEDIA_IDENTITY");
     const key = input.trackId ? mediaCacheKey(input) : null;
-    const signatures = signatureInput ? normalizeSignatures(signatureInput) : null;
+    const signatures = signatureInput
+      ? normalizeSignatures(signatureInput)
+      : null;
     return this.run(["videos"], "readonly", async (store) => {
       const videos = key
         ? [await request(store("videos").get(key))].filter(Boolean)
         : await request(store("videos").index("videoId").getAll(input.videoId));
       const candidate = videos
-        .filter(video => validMeta(video) && extractIdentity(video)?.videoId === input.videoId &&
-          (!signatures || video.signatures.recognition === signatures.recognition))
+        .filter(
+          (video) =>
+            validMeta(video) &&
+            extractIdentity(video)?.videoId === input.videoId &&
+            (!signatures ||
+              video.signatures.recognition === signatures.recognition)
+        )
         .sort((a, b) => b.lastUsed - a.lastUsed)[0];
       return candidate ? { identity: extractIdentity(candidate) } : null;
     });
   }
   async getVideoByVideoId(videoId, signatureInput) {
     const candidate = await this.run(["videos"], "readonly", async (store) => {
-      const videos = await request(store("videos").index("videoId").getAll(videoId));
+      const videos = await request(
+        store("videos").index("videoId").getAll(videoId)
+      );
       return (
         (videos || [])
           .map((video) => ({ video, identity: extractIdentity(video) }))
@@ -574,36 +608,32 @@ export class AsrCacheStore {
       throw fail("INVALID_AUDIO_SESSION");
     const identity = mediaIdentity(identityInput),
       key = mediaCacheKey(identity);
-    return this.run(
-      ["audioSessions"],
-      "readwrite",
-      async (store) => {
-        const existing = await request(store("audioSessions").get(sessionId));
-        if (existing && existing.key !== key)
-          throw fail("AUDIO_IDENTITY_MISMATCH");
-        if (!existing)
-          store("audioSessions").put({
-            sessionId,
-            key,
-            identity,
-            bytes: 0,
-            lastUsed: this.now(),
-            ...(owner && {
-              owner: { tabId: owner.tabId, documentId: owner.documentId },
-            }),
-          });
-        else {
-          store("audioSessions").put({
-            ...existing,
-            lastUsed: this.now(),
-            ...(owner && {
-              owner: { tabId: owner.tabId, documentId: owner.documentId },
-            }),
-          });
-        }
-        return { created: !existing };
+    return this.run(["audioSessions"], "readwrite", async (store) => {
+      const existing = await request(store("audioSessions").get(sessionId));
+      if (existing && existing.key !== key)
+        throw fail("AUDIO_IDENTITY_MISMATCH");
+      if (!existing)
+        store("audioSessions").put({
+          sessionId,
+          key,
+          identity,
+          bytes: 0,
+          lastUsed: this.now(),
+          ...(owner && {
+            owner: { tabId: owner.tabId, documentId: owner.documentId },
+          }),
+        });
+      else {
+        store("audioSessions").put({
+          ...existing,
+          lastUsed: this.now(),
+          ...(owner && {
+            owner: { tabId: owner.tabId, documentId: owner.documentId },
+          }),
+        });
       }
-    );
+      return { created: !existing };
+    });
   }
   async putAudio(sessionId, input, options = {}) {
     const { index, startMs, endMs, data } = input || {};
@@ -763,24 +793,58 @@ export class AsrCacheStore {
     );
   }
   async findAudioSession(input) {
-    const result = await this.lookupCache({ videoId: input?.videoId, identity: input?.trackId ? input : undefined });
+    const result = await this.lookupCache({
+      videoId: input?.videoId,
+      identity: input?.trackId ? input : undefined,
+    });
     if (!result.audio) return null;
     const { index, ...session } = result.audio;
     return session;
   }
   async lookupCache({ videoId, identity }) {
-    if (!/^[\w-]{11}$/.test(videoId || "")) throw fail("INVALID_MEDIA_IDENTITY");
+    if (!/^[\w-]{11}$/.test(videoId || ""))
+      throw fail("INVALID_MEDIA_IDENTITY");
     const key = identity ? mediaCacheKey(identity) : null;
-    return this.run(["videos", "audioSessions", "audioIndex"], "readonly", async store => {
-      const videos = key ? [await request(store("videos").get(key))].filter(Boolean) :
-        await request(store("videos").index("videoId").getAll(videoId));
-      const sessions = await request(store("audioSessions").index(key ? "mediaKey" : "videoId").getAll(key || videoId));
-      const subtitle = videos.filter(validMeta).sort((a, b) => b.lastUsed - a.lastUsed)[0];
-      const found = sessions.filter(row => row.bytes > 0).sort((a, b) => b.lastUsed - a.lastUsed)[0];
-      const audio = found ? { sessionId: found.sessionId, identity: mediaIdentity(found.identity),
-        index: (await request(store("audioIndex").index("session").getAll(found.sessionId))).sort((a, b) => a.index - b.index) } : null;
-      return { subtitle: subtitle ? { identity: extractIdentity(subtitle), signatures: subtitle.signatures } : null, audio };
-    });
+    return this.run(
+      ["videos", "audioSessions", "audioIndex"],
+      "readonly",
+      async (store) => {
+        const videos = key
+          ? [await request(store("videos").get(key))].filter(Boolean)
+          : await request(store("videos").index("videoId").getAll(videoId));
+        const sessions = await request(
+          store("audioSessions")
+            .index(key ? "mediaKey" : "videoId")
+            .getAll(key || videoId)
+        );
+        const subtitle = videos
+          .filter(validMeta)
+          .sort((a, b) => b.lastUsed - a.lastUsed)[0];
+        const found = sessions
+          .filter((row) => row.bytes > 0)
+          .sort((a, b) => b.lastUsed - a.lastUsed)[0];
+        const audio = found
+          ? {
+              sessionId: found.sessionId,
+              identity: mediaIdentity(found.identity),
+              index: (
+                await request(
+                  store("audioIndex").index("session").getAll(found.sessionId)
+                )
+              ).sort((a, b) => a.index - b.index),
+            }
+          : null;
+        return {
+          subtitle: subtitle
+            ? {
+                identity: extractIdentity(subtitle),
+                signatures: subtitle.signatures,
+              }
+            : null,
+          audio,
+        };
+      }
+    );
   }
   async deleteAudio(sessionId, identity) {
     await this.run(

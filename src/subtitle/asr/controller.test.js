@@ -52,7 +52,9 @@ function setup(overrides = {}) {
     const session = {
       identity: input.identity,
       start: jest.fn(async () => {}),
-      resetAudio: jest.fn(async (remove) => { await remove?.(); }),
+      resetAudio: jest.fn(async (remove) => {
+        await remove?.();
+      }),
       setTranslationTarget: jest.fn(async () => {}),
       dispose: jest.fn(async () => {}),
       beginSeek: jest.fn(),
@@ -95,7 +97,14 @@ afterEach(() => {
 test("translation language overrides are scoped to ASR and do not restart recognition", async () => {
   require("./processing").createAsrTextProcessor.mockReturnValue({});
   let target;
-  const test = setup({ translationPreferences: { get: () => target, set: (_, value) => { target = value; } } });
+  const test = setup({
+    translationPreferences: {
+      get: () => target,
+      set: (_, value) => {
+        target = value;
+      },
+    },
+  });
   test.setting.toLang = "zh-CN";
   test.controller.start();
   await flush();
@@ -104,7 +113,10 @@ test("translation language overrides are scoped to ASR and do not restart recogn
   expect(test.setting.toLang).toBe("zh-CN");
   expect(test.controller.state.translationLanguage).toBe("ja");
   expect(test.sessions[0].setTranslationTarget).toHaveBeenCalledWith(
-    expect.objectContaining({ toLang: "ja" }), expect.any(Object), expect.any(Promise));
+    expect.objectContaining({ toLang: "ja" }),
+    expect.any(Object),
+    expect.any(Promise)
+  );
   expect(test.sessions[0].dispose).not.toHaveBeenCalled();
   expect(test.createSession).toHaveBeenCalledTimes(1);
   await test.controller.setTranslationLanguage("ja");
@@ -118,14 +130,22 @@ test("translation language overrides are scoped to ASR and do not restart recogn
 
 test("language changes immediately clear captions, ignore old callbacks and resume with a separate text cache", async () => {
   const choices = new Map();
-  const languagePreferences = { get: () => choices.get("language") || "auto", set: (_, value) => choices.set("language", value) };
+  const languagePreferences = {
+    get: () => choices.get("language") || "auto",
+    set: (_, value) => choices.set("language", value),
+  };
   const test = setup({ languagePreferences });
   test.controller.start();
   await flush();
   test.controller.pause();
   const old = test.options[0];
   let finish;
-  test.sessions[0].dispose.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  test.sessions[0].dispose.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
   const changing = test.controller.setLanguage("zh-hans");
   expect(test.onSubtitles.mock.calls.at(-1)[0]).toEqual([]);
   expect(test.controller.paused).toBe(false);
@@ -149,11 +169,23 @@ test("language changes immediately clear captions, ignore old callbacks and resu
 
 test("rapid language changes create only the final language session", async () => {
   let selected = "auto";
-  const test = setup({ languagePreferences: { get: () => selected, set: (_, value) => { selected = value; } } });
+  const test = setup({
+    languagePreferences: {
+      get: () => selected,
+      set: (_, value) => {
+        selected = value;
+      },
+    },
+  });
   test.controller.start();
   await flush();
   let finish;
-  test.sessions[0].dispose.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  test.sessions[0].dispose.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
   const first = test.controller.setLanguage("zh-hans");
   const second = test.controller.setLanguage("ja");
   finish();
@@ -167,11 +199,23 @@ test("rapid language changes create only the final language session", async () =
 test("waiting for an old ASR call does not consume the replacement startup timeout", async () => {
   jest.useFakeTimers();
   let selected = "auto";
-  const test = setup({ languagePreferences: { get: () => selected, set: (_, value) => { selected = value; } } });
+  const test = setup({
+    languagePreferences: {
+      get: () => selected,
+      set: (_, value) => {
+        selected = value;
+      },
+    },
+  });
   test.controller.start();
   await flush();
   let finish;
-  test.sessions[0].dispose.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  test.sessions[0].dispose.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
   const changing = test.controller.setLanguage("zh-hans");
   jest.advanceTimersByTime(31000);
   expect(test.controller.state.phase).toBe("restoring");
@@ -189,12 +233,18 @@ test("restarting clears completed cutting progress before player or audio restor
   test.controller.start();
   await flush();
   test.options[0].onState({
-    phase: "complete", cutting: { samples: 64000, totalSamples: 64000, complete: true },
+    phase: "complete",
+    cutting: { samples: 64000, totalSamples: 64000, complete: true },
   });
   expect(test.controller.state.cutting.complete).toBe(true);
   await test.controller.stop();
   let resume;
-  test.bridge.snapshot.mockImplementationOnce(() => new Promise(resolve => { resume = resolve; }));
+  test.bridge.snapshot.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        resume = resolve;
+      })
+  );
   test.controller.start();
   expect(test.controller.state.cutting).toBeUndefined();
   expect(test.controller.state.audio.phase).toBe("missing");
@@ -373,10 +423,19 @@ test("a metadata cache miss proceeds to audio immediately without waiting for a 
   jest.useFakeTimers();
   const test = setup();
   const resumeAudio = jest.fn(async () => {});
-  test.createSession.mockImplementation(input => ({ identity: input.identity, start: async () => {}, resumeAudio, dispose: async () => {} }));
+  test.createSession.mockImplementation((input) => ({
+    identity: input.identity,
+    start: async () => {},
+    resumeAudio,
+    dispose: async () => {},
+  }));
   test.controller.start();
   await flush();
-  expect(test.cache.getVideo).toHaveBeenCalledWith({ videoId: identity.videoId }, undefined, expect.objectContaining({ metadataOnly: true }));
+  expect(test.cache.getVideo).toHaveBeenCalledWith(
+    { videoId: identity.videoId },
+    undefined,
+    expect.objectContaining({ metadataOnly: true })
+  );
   expect(test.bridge.snapshot).toHaveBeenCalledTimes(1);
   expect(resumeAudio).toHaveBeenCalledTimes(1);
   await test.controller.dispose();
@@ -403,34 +462,37 @@ test("missing capture reasons survive to the independent timeout and stopping ca
   await test.controller.dispose();
 });
 
-test.each(["media", "block"])("%s export reuses range clipping, merges duplicate clicks, and never starts recognition", async (kind) => {
-  const test = setup();
-  test.controller.start();
-  await flush();
-  const session = test.sessions[0];
-  test.controller.tasks.update({
-    id: "media-1",
-    kind,
-    index: 1,
-    startMs: 500,
-    endMs: 1500,
-    download: "complete",
-  });
-  const segment = test.controller.tasks.snapshot()[0];
-  await Promise.all([
-    test.controller.exportSegment(segment),
-    test.controller.exportSegment(segment),
-  ]);
-  expect(session.exportSentence).toHaveBeenCalledTimes(1);
-  expect(session.exportSentence).toHaveBeenCalledWith({
-    start: 500,
-    end: 1500,
-  });
-  expect(downloadBlobFile).toHaveBeenCalledTimes(1);
-  expect(test.controller.tasks.snapshot()[0].exportState).toBe("complete");
-  expect(test.createSession).toHaveBeenCalledTimes(1);
-  await test.controller.dispose();
-});
+test.each(["media", "block"])(
+  "%s export reuses range clipping, merges duplicate clicks, and never starts recognition",
+  async (kind) => {
+    const test = setup();
+    test.controller.start();
+    await flush();
+    const session = test.sessions[0];
+    test.controller.tasks.update({
+      id: "media-1",
+      kind,
+      index: 1,
+      startMs: 500,
+      endMs: 1500,
+      download: "complete",
+    });
+    const segment = test.controller.tasks.snapshot()[0];
+    await Promise.all([
+      test.controller.exportSegment(segment),
+      test.controller.exportSegment(segment),
+    ]);
+    expect(session.exportSentence).toHaveBeenCalledTimes(1);
+    expect(session.exportSentence).toHaveBeenCalledWith({
+      start: 500,
+      end: 1500,
+    });
+    expect(downloadBlobFile).toHaveBeenCalledTimes(1);
+    expect(test.controller.tasks.snapshot()[0].exportState).toBe("complete");
+    expect(test.createSession).toHaveBeenCalledTimes(1);
+    await test.controller.dispose();
+  }
+);
 
 test("late task events are ignored after stop and a new run resets only runtime metadata", async () => {
   const test = setup();
@@ -527,7 +589,11 @@ test("deleteAudio stops recognition and clears tasks while preserving caption ca
   await flush();
   const session = test.sessions[0];
   session.download = { sessionId: "audio-session" };
-  test.controller.tasks.update({ id: "media-1", kind: "media", download: "complete" });
+  test.controller.tasks.update({
+    id: "media-1",
+    kind: "media",
+    download: "complete",
+  });
   test.controller.tasks.update({ id: "block-0", kind: "block", indexed: true });
   await test.controller.deleteAudio();
   expect(session.dispose).toHaveBeenCalledTimes(1);
@@ -535,7 +601,10 @@ test("deleteAudio stops recognition and clears tasks while preserving caption ca
   expect(test.controller.state.phase).toBe("off");
   expect(test.controller.tasks.snapshot()).toEqual([]);
   expect(test.cache.deleteVideo).not.toHaveBeenCalled();
-  expect(test.cache.deleteAudio).toHaveBeenCalledWith("audio-session", session.identity);
+  expect(test.cache.deleteAudio).toHaveBeenCalledWith(
+    "audio-session",
+    session.identity
+  );
   await test.controller.dispose();
 });
 
@@ -577,10 +646,13 @@ test("deleteAudio does not reset new video tasks if video changes during deletio
   const test = setup();
   let resolveDelete;
   const deletePromiseInvoked = new Promise((r) => {
-    test.cache.deleteAudio = jest.fn(() => new Promise((res) => {
-      resolveDelete = res;
-      r();
-    }));
+    test.cache.deleteAudio = jest.fn(
+      () =>
+        new Promise((res) => {
+          resolveDelete = res;
+          r();
+        })
+    );
   });
   test.controller.start();
   await flush();
@@ -628,66 +700,106 @@ test("deleteAudio does not reset new video tasks if video changes during deletio
   await test.controller.dispose();
 });
 
-test.each(["deleteAudio", "deleteCache"])("%s closes and prevents reopening until deletion settles", async action => {
-  const test = setup();
-  let finish;
-  const deleteMethod = action === "deleteAudio" ? "deleteAudio" : "deleteVideo";
-  test.cache[deleteMethod] = jest.fn(() => new Promise(resolve => { finish = resolve; }));
-  test.controller.start();
-  await flush();
-  const clearing = test.controller[action]();
-  await flush();
-  expect(test.controller.state).toMatchObject({ phase: "off", active: false, clearing: true });
-  test.controller.start();
-  await flush();
-  expect(test.createSession).toHaveBeenCalledTimes(1);
-  finish();
-  await clearing;
-  expect(test.controller.state).toMatchObject({ phase: "off", clearing: false });
-  test.controller.start();
-  await flush();
-  expect(test.createSession).toHaveBeenCalledTimes(2);
-  expect(test.controller.state.paused).toBe(false);
-  await test.controller.dispose();
-});
+test.each(["deleteAudio", "deleteCache"])(
+  "%s closes and prevents reopening until deletion settles",
+  async (action) => {
+    const test = setup();
+    let finish;
+    const deleteMethod =
+      action === "deleteAudio" ? "deleteAudio" : "deleteVideo";
+    test.cache[deleteMethod] = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    test.controller.start();
+    await flush();
+    const clearing = test.controller[action]();
+    await flush();
+    expect(test.controller.state).toMatchObject({
+      phase: "off",
+      active: false,
+      clearing: true,
+    });
+    test.controller.start();
+    await flush();
+    expect(test.createSession).toHaveBeenCalledTimes(1);
+    finish();
+    await clearing;
+    expect(test.controller.state).toMatchObject({
+      phase: "off",
+      clearing: false,
+    });
+    test.controller.start();
+    await flush();
+    expect(test.createSession).toHaveBeenCalledTimes(2);
+    expect(test.controller.state.paused).toBe(false);
+    await test.controller.dispose();
+  }
+);
 
 test("failed deletion remains closed and reports the error", async () => {
   const test = setup();
-  test.cache.deleteAudio = jest.fn(async () => { throw { code: "CACHE_UNAVAILABLE" }; });
+  test.cache.deleteAudio = jest.fn(async () => {
+    throw { code: "CACHE_UNAVAILABLE" };
+  });
   test.controller.start();
   await flush();
   await test.controller.deleteAudio();
-  expect(test.controller.state).toMatchObject({ phase: "off", active: false,
-    clearing: false, cacheDeleteError: "CACHE_UNAVAILABLE" });
+  expect(test.controller.state).toMatchObject({
+    phase: "off",
+    active: false,
+    clearing: false,
+    cacheDeleteError: "CACHE_UNAVAILABLE",
+  });
   await test.controller.dispose();
 });
 
 test("pending deletion is scoped to its video and cannot disable the next video's session", async () => {
   const test = setup();
   let finish;
-  test.cache.deleteAudio = jest.fn(() => new Promise(resolve => { finish = resolve; }));
+  test.cache.deleteAudio = jest.fn(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
   test.controller.start();
   await flush();
   const clearing = test.controller.deleteAudio();
   await flush();
   test.video.videoId = "bs7WQKv4_ZU";
-  test.bridge.snapshot.mockResolvedValue({ identity: { ...identity, videoId: test.video.videoId } });
+  test.bridge.snapshot.mockResolvedValue({
+    identity: { ...identity, videoId: test.video.videoId },
+  });
   await test.controller.stop();
   test.controller.start();
   await flush();
   expect(test.sessions).toHaveLength(2);
-  expect(test.controller.state).toMatchObject({ active: true, clearing: false });
+  expect(test.controller.state).toMatchObject({
+    active: true,
+    clearing: false,
+  });
   finish();
   await clearing;
   expect(test.controller.session).toBe(test.sessions[1]);
-  expect(test.controller.state).toMatchObject({ active: true, clearing: false });
+  expect(test.controller.state).toMatchObject({
+    active: true,
+    clearing: false,
+  });
   await test.controller.dispose();
 });
 
 test("closing again during deletion unlocks start on completion without restarting", async () => {
   const test = setup();
   let finish;
-  test.cache.deleteAudio = jest.fn(() => new Promise(resolve => { finish = resolve; }));
+  test.cache.deleteAudio = jest.fn(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
   test.controller.start();
   await flush();
   const clearing = test.controller.deleteAudio();
@@ -696,7 +808,10 @@ test("closing again during deletion unlocks start on completion without restarti
   expect(test.controller.state.clearing).toBe(true);
   finish();
   await clearing;
-  expect(test.controller.state).toMatchObject({ active: false, clearing: false });
+  expect(test.controller.state).toMatchObject({
+    active: false,
+    clearing: false,
+  });
   expect(test.createSession).toHaveBeenCalledTimes(1);
   await test.controller.dispose();
 });
@@ -704,13 +819,20 @@ test("closing again during deletion unlocks start on completion without restarti
 test("pause during startup reaches the new session; stop prevents resume", async () => {
   const test = setup();
   let resolvePlayer;
-  test.bridge.snapshot.mockImplementationOnce(() => new Promise(resolve => { resolvePlayer = resolve; }));
+  test.bridge.snapshot.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        resolvePlayer = resolve;
+      })
+  );
   test.controller.start();
   test.controller.pause();
   await flush();
-  const pause = jest.fn(), resume = jest.fn();
+  const pause = jest.fn(),
+    resume = jest.fn();
   const createSession = test.controller.createSession;
-  test.controller.createSession = input => Object.assign(createSession(input), { pause, resume });
+  test.controller.createSession = (input) =>
+    Object.assign(createSession(input), { pause, resume });
   resolvePlayer({ identity });
   await flush();
   expect(pause).toHaveBeenCalledTimes(1);
@@ -727,7 +849,11 @@ test("cache clear delegates rebuilding to the session and resets media tasks", a
   const test = setup();
   test.controller.start();
   await flush();
-  test.controller.tasks.update({ id: "media-1", kind: "media", download: "complete" });
+  test.controller.tasks.update({
+    id: "media-1",
+    kind: "media",
+    download: "complete",
+  });
   test.cache.onAudioCacheCleared();
   await flush();
   expect(test.sessions[0].resetAudio).toHaveBeenCalledTimes(1);
@@ -740,17 +866,27 @@ test("stop discards aggregate results and starts each disposal immediately", asy
   test.controller.start();
   await flush();
   let release;
-  test.sessions[0].dispose.mockImplementation(() => new Promise(resolve => { release = resolve; }));
+  test.sessions[0].dispose.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        release = resolve;
+      })
+  );
   const first = test.controller.stop();
   expect(test.sessions[0].dispose).toHaveBeenCalledTimes(1);
-  const next = { dispose: jest.fn(async () => { throw Error("cleanup failed"); }) };
+  const next = {
+    dispose: jest.fn(async () => {
+      throw Error("cleanup failed");
+    }),
+  };
   test.controller.session = next;
   const second = test.controller.stop();
   expect(next.dispose).toHaveBeenCalledTimes(1);
   release();
   expect(await first).toBeUndefined();
   expect(await second).toBeUndefined();
-  for (let i = 0; i < 20; i++) expect(await test.controller.stop()).toBeUndefined();
+  for (let i = 0; i < 20; i++)
+    expect(await test.controller.stop()).toBeUndefined();
   await test.controller.dispose();
 });
 
@@ -836,7 +972,10 @@ test("retryRecognition re-runs startup tick when in error phase", async () => {
 test("paused video with subtitle cache restores audio independently and preserves completed subtitles", async () => {
   const test = setup();
   test.video.element = { paused: true, currentTime: 0 };
-  const acquire = jest.fn(() => ({ ready: Promise.resolve(), release: jest.fn() }));
+  const acquire = jest.fn(() => ({
+    ready: Promise.resolve(),
+    release: jest.fn(),
+  }));
   const ensureDownloadSpy = jest.fn(() => ({ complete: () => false, acquire }));
   test.createSession.mockImplementationOnce((input) => {
     const session = {
@@ -879,15 +1018,16 @@ test("paused video with subtitle cache restores audio independently and preserve
   await test.controller.dispose();
 });
 
-
-
-
-
 test("paused audio-only cache starts a session with its original audio session ID", async () => {
   const test = setup();
   test.video.element.paused = true;
-  test.cache.findAudioSession = jest.fn(async () => ({ sessionId: "legacy-audio", identity }));
-  test.bridge.snapshot.mockRejectedValue(Object.assign(new Error(), { code: "NEED_PLAYBACK" }));
+  test.cache.findAudioSession = jest.fn(async () => ({
+    sessionId: "legacy-audio",
+    identity,
+  }));
+  test.bridge.snapshot.mockRejectedValue(
+    Object.assign(new Error(), { code: "NEED_PLAYBACK" })
+  );
   test.controller.start();
   await new Promise((resolve) => setTimeout(resolve, 50));
   await flush();
@@ -898,7 +1038,10 @@ test("paused audio-only cache starts a session with its original audio session I
 
 test("known current media identity rejects another audio track's cache", async () => {
   const test = setup();
-  test.cache.findAudioSession = jest.fn(async () => ({ sessionId: "wrong-track", identity: { ...identity, trackId: "ja.10" } }));
+  test.cache.findAudioSession = jest.fn(async () => ({
+    sessionId: "wrong-track",
+    identity: { ...identity, trackId: "ja.10" },
+  }));
   test.controller.start();
   await new Promise((resolve) => setTimeout(resolve, 50));
   await flush();
@@ -907,14 +1050,15 @@ test("known current media identity rejects another audio track's cache", async (
   await test.controller.dispose();
 });
 
-
 test("new playback capture revalidates a completed session when the audio track changes", async () => {
   const test = setup();
   test.controller.start();
   await flush();
   test.sessions[0].cacheHit = true;
   test.controller.emit({ phase: "cached" });
-  test.bridge.snapshot.mockResolvedValue({ identity: { ...identity, trackId: "ja.10" } });
+  test.bridge.snapshot.mockResolvedValue({
+    identity: { ...identity, trackId: "ja.10" },
+  });
   await test.controller.tick(true);
   expect(test.createSession).toHaveBeenCalledTimes(2);
   expect(test.options[1].identity.trackId).toBe("ja.10");
@@ -924,19 +1068,29 @@ test("new playback capture revalidates a completed session when the audio track 
 
 test("current track lookup finds older matching audio behind a newer other-track cache", async () => {
   const test = setup();
-  test.cache.findAudioSession = jest.fn(async input => input.trackId
-    ? { sessionId: "older-matching", identity }
-    : { sessionId: "newer-other", identity: { ...identity, trackId: "ja.10" } });
+  test.cache.findAudioSession = jest.fn(async (input) =>
+    input.trackId
+      ? { sessionId: "older-matching", identity }
+      : {
+          sessionId: "newer-other",
+          identity: { ...identity, trackId: "ja.10" },
+        }
+  );
   test.controller.start();
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await new Promise((resolve) => setTimeout(resolve, 50));
   expect(test.options[0].audioSessionId).toBe("older-matching");
-  expect(test.cache.findAudioSession).toHaveBeenCalledWith(identity, expect.objectContaining({ signal: expect.any(AbortSignal) }));
+  expect(test.cache.findAudioSession).toHaveBeenCalledWith(
+    identity,
+    expect.objectContaining({ signal: expect.any(AbortSignal) })
+  );
   await test.controller.dispose();
 });
 
 test("one failed audio lookup starts network acquisition without cache retry", async () => {
   const test = setup();
-  test.cache.lookupCache = jest.fn().mockRejectedValue(Object.assign(new Error(), { code: "CACHE_TIMEOUT" }));
+  test.cache.lookupCache = jest
+    .fn()
+    .mockRejectedValue(Object.assign(new Error(), { code: "CACHE_TIMEOUT" }));
   test.controller.start();
   await flush();
   expect(test.cache.lookupCache).toHaveBeenCalledTimes(1);
@@ -946,19 +1100,30 @@ test("one failed audio lookup starts network acquisition without cache retry", a
   await test.controller.dispose();
 });
 
- test("Shorts skips every cache call and starts while the previous session is still disposing", async () => {
+test("Shorts skips every cache call and starts while the previous session is still disposing", async () => {
   const test = setup();
   test.video.cacheMode = "session";
-  test.cache.lookupCache = jest.fn(() => { throw Error("persistent cache touched"); });
-  test.cache.disconnect = jest.fn(() => { throw Error("persistent cache touched"); });
-  test.cache.close.mockImplementation(() => { throw Error("persistent cache touched"); });
+  test.cache.lookupCache = jest.fn(() => {
+    throw Error("persistent cache touched");
+  });
+  test.cache.disconnect = jest.fn(() => {
+    throw Error("persistent cache touched");
+  });
+  test.cache.close.mockImplementation(() => {
+    throw Error("persistent cache touched");
+  });
   test.controller.start();
   await flush();
   expect(test.options[0].cacheMode).toBe("session");
   expect(test.cache.getVideo).not.toHaveBeenCalled();
   expect(test.cache.lookupCache).not.toHaveBeenCalled();
   let finish;
-  test.sessions[0].dispose.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  test.sessions[0].dispose.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
   await test.controller.restart();
   await flush();
   expect(test.sessions).toHaveLength(2);
@@ -971,7 +1136,12 @@ test("one failed audio lookup starts network acquisition without cache retry", a
 test("entering Shorts does not inherit a pending persistent cache lookup", async () => {
   const test = setup();
   let finish;
-  test.cache.lookupCache = jest.fn(() => new Promise(resolve => { finish = resolve; }));
+  test.cache.lookupCache = jest.fn(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
   test.controller.start();
   await flush();
   expect(test.controller.pending).toBe(true);
@@ -989,8 +1159,13 @@ test("entering Shorts does not inherit a pending persistent cache lookup", async
 
 test("waiting for player parameters does not repeat the same persistent lookup", async () => {
   const test = setup();
-  test.cache.lookupCache = jest.fn(async () => ({ subtitle: null, audio: null }));
-  test.bridge.snapshot.mockRejectedValue(Object.assign(new Error(), { code: "NEED_PLAYBACK" }));
+  test.cache.lookupCache = jest.fn(async () => ({
+    subtitle: null,
+    audio: null,
+  }));
+  test.bridge.snapshot.mockRejectedValue(
+    Object.assign(new Error(), { code: "NEED_PLAYBACK" })
+  );
   test.controller.start();
   await flush();
   await test.controller.tick();
@@ -1002,19 +1177,27 @@ test("waiting for player parameters does not repeat the same persistent lookup",
 test("current player identity selects its matching cache before audio acquisition", async () => {
   const test = setup();
   const current = { ...identity, mediaVersion: "140.456" };
-  test.cache.getVideo.mockResolvedValue({ identity, chunks: [], translation: { complete: true } });
-  test.cache.findAudioSession = jest.fn(async input => ({
+  test.cache.getVideo.mockResolvedValue({
+    identity,
+    chunks: [],
+    translation: { complete: true },
+  });
+  test.cache.findAudioSession = jest.fn(async (input) => ({
     identity: input.mediaVersion === current.mediaVersion ? current : identity,
-    sessionId: input.mediaVersion === current.mediaVersion ? "new-version" : "old-version",
+    sessionId:
+      input.mediaVersion === current.mediaVersion
+        ? "new-version"
+        : "old-version",
   }));
   const resumeAudio = [jest.fn(async () => {}), jest.fn(async () => {})];
-  test.createSession.mockImplementation(input => {
+  test.createSession.mockImplementation((input) => {
     const index = test.sessions.length;
     test.options.push(input);
     const session = {
       identity: input.identity,
       start: jest.fn(async () => input.onState({ phase: "cached" })),
-      resumeAudio: resumeAudio[index], dispose: jest.fn(async () => {}),
+      resumeAudio: resumeAudio[index],
+      dispose: jest.fn(async () => {}),
     };
     test.sessions.push(session);
     return session;
@@ -1023,13 +1206,12 @@ test("current player identity selects its matching cache before audio acquisitio
     return { identity: current };
   });
   test.controller.start();
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await new Promise((resolve) => setTimeout(resolve, 50));
   expect(test.sessions).toHaveLength(1);
   expect(resumeAudio[0]).toHaveBeenCalledTimes(1);
   expect(test.options[0].audioSessionId).toBe("new-version");
   await test.controller.dispose();
 });
-
 
 test("targeted recognition forwards the block ID without queueing other failures", async () => {
   const test = setup();
@@ -1040,7 +1222,9 @@ test("targeted recognition forwards the block ID without queueing other failures
   test.controller.tasks.update({ id: "block-16000", recognition: "failed" });
   await test.controller.retryRecognition("block-0");
   expect(test.sessions[0].retryRecognition).toHaveBeenCalledWith("block-0");
-  expect(test.controller.tasks.rows.get("block-16000").recognition).toBe("failed");
+  expect(test.controller.tasks.rows.get("block-16000").recognition).toBe(
+    "failed"
+  );
   await test.controller.dispose();
 });
 
@@ -1049,14 +1233,19 @@ test("different inline retries can queue together while duplicate clicks are ign
   test.controller.start();
   await flush();
   const finish = [];
-  test.sessions[0].retryRecognition = jest.fn(() => new Promise(resolve => finish.push(resolve)));
+  test.sessions[0].retryRecognition = jest.fn(
+    () => new Promise((resolve) => finish.push(resolve))
+  );
   test.controller.tasks.update({ id: "block-0", recognition: "failed" });
   test.controller.tasks.update({ id: "block-16000", recognition: "failed" });
   const first = test.controller.retryRecognition("block-0");
   const duplicate = test.controller.retryRecognition("block-0");
   const second = test.controller.retryRecognition("block-16000");
-  expect(test.sessions[0].retryRecognition.mock.calls).toEqual([["block-0"], ["block-16000"]]);
-  finish.forEach(resolve => resolve());
+  expect(test.sessions[0].retryRecognition.mock.calls).toEqual([
+    ["block-0"],
+    ["block-16000"],
+  ]);
+  finish.forEach((resolve) => resolve());
   await Promise.all([first, duplicate, second]);
   await test.controller.dispose();
 });
@@ -1066,7 +1255,9 @@ test("player refresh errors cannot expose global retry while the session is work
   test.controller.start();
   await flush();
   test.sessions[0].state = { working: true };
-  test.bridge.snapshot.mockRejectedValue(Object.assign(new Error("network"), { code: "AUDIO_NETWORK" }));
+  test.bridge.snapshot.mockRejectedValue(
+    Object.assign(new Error("network"), { code: "AUDIO_NETWORK" })
+  );
   await test.controller.tick(true);
   expect(test.controller.state.error).toBe("AUDIO_NETWORK");
   expect(test.controller.state.stoppedByError).toBe(false);
@@ -1079,7 +1270,11 @@ test("global recovery keeps an errored runtime session and its successful result
   await flush();
   const session = test.sessions[0];
   session.retryIncomplete = jest.fn(async () => {});
-  test.options[0].onState({ phase: "error", stoppedByError: true, recognitionError: "HOST_UNAVAILABLE" });
+  test.options[0].onState({
+    phase: "error",
+    stoppedByError: true,
+    recognitionError: "HOST_UNAVAILABLE",
+  });
   await test.controller.retryIncomplete();
   expect(session.retryIncomplete).toHaveBeenCalledTimes(1);
   expect(session.dispose).not.toHaveBeenCalled();
@@ -1092,7 +1287,12 @@ test("global recovery requires stopped work and ignores duplicate or late comple
   test.controller.start();
   await flush();
   let reject;
-  test.sessions[0].retryIncomplete = jest.fn(() => new Promise((_, fail) => { reject = fail; }));
+  test.sessions[0].retryIncomplete = jest.fn(
+    () =>
+      new Promise((_, fail) => {
+        reject = fail;
+      })
+  );
   await test.controller.retryIncomplete();
   expect(test.sessions[0].retryIncomplete).not.toHaveBeenCalled();
   test.options[0].onState({ phase: "partial", stoppedByError: true });
