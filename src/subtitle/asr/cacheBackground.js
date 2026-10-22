@@ -53,10 +53,14 @@ export function installAsrCacheBackend(
         audioSessionOperations.delete(sessionId);
     });
   };
-  const removeInactiveAudio = (sessionId) => withAudioSession(sessionId, async () => {
-    if (!activeAudioSessions.has(sessionId) && !pendingAudioSessions.has(sessionId))
-      await store.removeAudio(sessionId);
-  });
+  const removeInactiveAudio = (sessionId) =>
+    withAudioSession(sessionId, async () => {
+      if (
+        !activeAudioSessions.has(sessionId) &&
+        !pendingAudioSessions.has(sessionId)
+      )
+        await store.removeAudio(sessionId);
+    });
   const pruneInactiveAudio = async () => {
     for (const row of await store.listAudioSessions()) {
       await removeInactiveAudio(row.sessionId);
@@ -113,7 +117,12 @@ export function installAsrCacheBackend(
       check();
       if (message.identity) {
         if (
-          ["lookupCache", "getVideo", "deleteVideo", "findAudioSession"].includes(action) &&
+          [
+            "lookupCache",
+            "getVideo",
+            "deleteVideo",
+            "findAudioSession",
+          ].includes(action) &&
           !message.identity.trackId
         ) {
           if (!/^[\w-]{11}$/.test(message.identity.videoId || ""))
@@ -123,7 +132,11 @@ export function installAsrCacheBackend(
         }
         const authStarted = performance.now();
         await authorize(message.identity);
-        logger.debug("[YouTube ASR cache] authorize", { traceId: message.traceId, requestId: current.id, ms: performance.now() - authStarted });
+        logger.debug("[YouTube ASR cache] authorize", {
+          traceId: message.traceId,
+          requestId: current.id,
+          ms: performance.now() - authStarted,
+        });
       }
       if (
         ["putAudio", "getAudio", "listAudio", "removeAudio"].includes(action)
@@ -136,8 +149,10 @@ export function installAsrCacheBackend(
       let result;
       const storageStarted = performance.now();
       if (action === "lookupCache") {
-        result = await store.lookupCache({ videoId: message.identity.videoId,
-          identity: message.identity.trackId ? message.identity : undefined });
+        result = await store.lookupCache({
+          videoId: message.identity.videoId,
+          identity: message.identity.trackId ? message.identity : undefined,
+        });
       } else if (action === "findAudioSession") {
         if (!message.identity) throw fail("INVALID_MEDIA_IDENTITY");
         result = await store.findAudioSession(message.identity);
@@ -185,8 +200,10 @@ export function installAsrCacheBackend(
       } else if (action === "getStats") {
         result = await store.getStats();
       } else if (action === "deleteAudio") {
-        const affected = (await store.listAudioSessions()).filter(row =>
-          row.sessionId === sessionId || row.identity?.videoId === message.identity?.videoId
+        const affected = (await store.listAudioSessions()).filter(
+          (row) =>
+            row.sessionId === sessionId ||
+            row.identity?.videoId === message.identity?.videoId
         );
         await store.deleteAudio(sessionId, message.identity);
         const notified = new Set();
@@ -194,22 +211,35 @@ export function installAsrCacheBackend(
           for (const p of activeSessionPorts.get(id) || []) {
             if (p === port || notified.has(p)) continue;
             notified.add(p);
-            try { p.postMessage({ type: "audioCacheCleared" }); } catch {}
+            try {
+              p.postMessage({ type: "audioCacheCleared" });
+            } catch {}
           }
           sessions.delete(id);
           activeSessionPorts.delete(id);
           activeAudioSessions.delete(id);
         }
       } else if (action === "beginAudio") {
-        pendingAudioSessions.set(sessionId, (pendingAudioSessions.get(sessionId) || 0) + 1);
+        pendingAudioSessions.set(
+          sessionId,
+          (pendingAudioSessions.get(sessionId) || 0) + 1
+        );
         try {
           result = await withAudioSession(sessionId, async () => {
             check();
-            const begun = await store.beginAudio(sessionId, message.identity, owner);
+            const begun = await store.beginAudio(
+              sessionId,
+              message.identity,
+              owner
+            );
             if (closed || current.controller.signal.aborted) {
               const limit = await resolveAudioCacheLimit();
-              if (begun?.created && !activeAudioSessions.has(sessionId) &&
-                  pendingAudioSessions.get(sessionId) === 1 && limit === 0) {
+              if (
+                begun?.created &&
+                !activeAudioSessions.has(sessionId) &&
+                pendingAudioSessions.get(sessionId) === 1 &&
+                limit === 0
+              ) {
                 await store.removeAudio(sessionId);
               }
               check();
@@ -251,7 +281,10 @@ export function installAsrCacheBackend(
           { ...message.segment, data },
           {
             audioVideoCountLimit: limit ?? lastAudioCacheLimit,
-            protectedSessionIds: [...activeAudioSessions, ...pendingAudioSessions.keys()],
+            protectedSessionIds: [
+              ...activeAudioSessions,
+              ...pendingAudioSessions.keys(),
+            ],
           }
         );
       } else if (action === "listAudio")
@@ -280,7 +313,12 @@ export function installAsrCacheBackend(
         }
       } else throw fail("INVALID_CACHE_REQUEST");
       check();
-      logger.debug("[YouTube ASR cache] operation", { traceId: message.traceId, requestId: current.id, action, ms: performance.now() - storageStarted });
+      logger.debug("[YouTube ASR cache] operation", {
+        traceId: message.traceId,
+        requestId: current.id,
+        action,
+        ms: performance.now() - storageStarted,
+      });
       post({ type: "result", requestId: current.id, result });
     };
     const finish = (current) => {

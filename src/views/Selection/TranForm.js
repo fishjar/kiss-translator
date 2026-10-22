@@ -1128,11 +1128,7 @@ export default function TranForm({
           ) : (
             <>
               {isWord && OPT_DICT_MAP.has(enDict) && (
-                <DictCont
-                  text={text}
-                  enDict={enDict}
-                  source={favoriteSource}
-                />
+                <DictCont text={text} enDict={enDict} source={favoriteSource} />
               )}
               {isSingleChineseChar(text) && <Zdic text={text} />}
             </>

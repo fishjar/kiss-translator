@@ -68,7 +68,7 @@ export class AsrCacheClient {
                 requestId: pending.id,
               });
             })
-            .catch(cause => {
+            .catch((cause) => {
               if (this.port === port) this.disconnect(cause);
             });
         } else if (message.type === "chunk") {
@@ -145,10 +145,13 @@ export class AsrCacheClient {
     this.rejectConnection?.(cause);
     this.rejectConnection = undefined;
     this.pending?.reject(cause);
-    try { port?.disconnect(); } catch {}
+    try {
+      port?.disconnect();
+    } catch {}
   }
   call(action, payload = {}, { signal, onChunk } = {}) {
-    const queuedAt = performance.now(), traceId = this.traceId;
+    const queuedAt = performance.now(),
+      traceId = this.traceId;
     const execute = async () => {
       const connectingAt = performance.now();
       // Disconnect already released this port's references; cleanup must not reconnect it.
@@ -159,7 +162,8 @@ export class AsrCacheClient {
       try {
         await new Promise((resolve, reject) => {
           cancelConnect = () => {
-            const cause = signal.reason || new DOMException("Cancelled", "AbortError");
+            const cause =
+              signal.reason || new DOMException("Cancelled", "AbortError");
             this.disconnect(cause);
             reject(cause);
           };
@@ -171,7 +175,13 @@ export class AsrCacheClient {
         signal?.removeEventListener("abort", cancelConnect);
       }
       const id = `cache-${++this.sequence}`;
-      logger.debug("[YouTube ASR cache] connected", { traceId, requestId: id, action, queueMs: connectingAt - queuedAt, connectMs: performance.now() - connectingAt });
+      logger.debug("[YouTube ASR cache] connected", {
+        traceId,
+        requestId: id,
+        action,
+        queueMs: connectingAt - queuedAt,
+        connectMs: performance.now() - connectingAt,
+      });
       const assets = createAssetStore();
       if (payload.segment?.data)
         payload = {
@@ -186,15 +196,28 @@ export class AsrCacheClient {
       const sender = createAssetSender(this.port, controller.signal),
         receiver = createAssetReceiver(assets);
       let abort, timer;
-      const timeoutMs = action === "getVideo"
-        ? payload.metadataOnly ? ASR_CACHE_QUERY_TIMEOUT : 10000
-        : ["lookupCache", "findAudioSession", "listAudio", "getStats", "beginAudio"].includes(action)
-          ? ASR_CACHE_QUERY_TIMEOUT : 30000;
+      const timeoutMs =
+        action === "getVideo"
+          ? payload.metadataOnly
+            ? ASR_CACHE_QUERY_TIMEOUT
+            : 10000
+          : [
+                "lookupCache",
+                "findAudioSession",
+                "listAudio",
+                "getStats",
+                "beginAudio",
+              ].includes(action)
+            ? ASR_CACHE_QUERY_TIMEOUT
+            : 30000;
       try {
         return await new Promise((resolve, reject) => {
           const touch = () => {
             clearTimeout(timer);
-            timer = setTimeout(() => this.disconnect(error("CACHE_TIMEOUT")), timeoutMs);
+            timer = setTimeout(
+              () => this.disconnect(error("CACHE_TIMEOUT")),
+              timeoutMs
+            );
           };
           this.pending = {
             id,
@@ -209,7 +232,9 @@ export class AsrCacheClient {
             touch,
           };
           abort = () => {
-            this.disconnect(signal.reason || new DOMException("Cancelled", "AbortError"));
+            this.disconnect(
+              signal.reason || new DOMException("Cancelled", "AbortError")
+            );
           };
           signal?.addEventListener("abort", abort, { once: true });
           touch();
@@ -234,16 +259,28 @@ export class AsrCacheClient {
     };
     const started = performance.now();
     const result = this.queue.then(execute, execute).finally(() => {
-      logger.debug("[YouTube ASR cache] request", { traceId, action, ms: performance.now() - started });
+      logger.debug("[YouTube ASR cache] request", {
+        traceId,
+        action,
+        ms: performance.now() - started,
+      });
     });
     this.queue = result.catch(() => {});
     return result;
   }
   lookupCache({ videoId, identity }, options) {
-    return this.call("lookupCache", { identity: identity || { videoId } }, options);
+    return this.call(
+      "lookupCache",
+      { identity: identity || { videoId } },
+      options
+    );
   }
   getVideo(identity, signatures, { metadataOnly = false, ...options } = {}) {
-    return this.call("getVideo", { identity, signatures, metadataOnly }, options);
+    return this.call(
+      "getVideo",
+      { identity, signatures, metadataOnly },
+      options
+    );
   }
   putChunk(identity, signatures, chunk, options) {
     return this.call("putChunk", { identity, signatures, chunk }, options);

@@ -121,7 +121,9 @@ export function createInvocation(execute, options = {}) {
     registerInvocationDeadline(controller.signal, deadlineAt);
     clearTimeout(timeout);
     const expire = () =>
-      finish(providerError("REQUEST_TIMEOUT", "Provider invocation timed out."));
+      finish(
+        providerError("REQUEST_TIMEOUT", "Provider invocation timed out.")
+      );
     if (deadlineAt <= Date.now()) expire();
     else timeout = setTimeout(expire, deadlineAt - Date.now());
   };
@@ -146,7 +148,9 @@ export function createInvocation(execute, options = {}) {
       return execute({
         requestId,
         signal: controller.signal,
-        get deadlineAt() { return deadlineAt; },
+        get deadlineAt() {
+          return deadlineAt;
+        },
         setDeadline,
         emit: channel.emit,
       });

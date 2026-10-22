@@ -204,14 +204,24 @@ export class YouTubeCaptionProvider {
     )
       this.#asr = new YoutubeAsrController({
         getSetting: () => this.#setting,
-        getVideo: () => ({ videoId: this.#videoId, element: this.#videoEl,
-          cacheMode: window.location.pathname.startsWith("/shorts/") ? "session" : "persistent" }),
+        getVideo: () => ({
+          videoId: this.#videoId,
+          element: this.#videoEl,
+          cacheMode: window.location.pathname.startsWith("/shorts/")
+            ? "session"
+            : "persistent",
+        }),
         onTasks: (update) => this.#subtitleListManager?.updateAsrTasks(update),
         onState: (state) => {
           const previousTarget = this.#asrState.translationLanguage;
           this.#asrState = state;
-          if (state.translationLanguage && state.translationLanguage !== previousTarget)
-            this.#managerInstance?.updateSetting?.({ toLang: state.translationLanguage });
+          if (
+            state.translationLanguage &&
+            state.translationLanguage !== previousTarget
+          )
+            this.#managerInstance?.updateSetting?.({
+              toLang: state.translationLanguage,
+            });
           this.#playerUi.updateAsrFeedback(state, this.#i18n);
           this.#playerUi.updateMenuProps();
           this.#subtitleListManager?.updateAsrState({
@@ -233,7 +243,11 @@ export class YouTubeCaptionProvider {
             );
             return;
           }
-          this.#fromLang = getFromLang(this.#asrState.effectiveLanguage || this.#asrState.sourceLanguage || "auto");
+          this.#fromLang = getFromLang(
+            this.#asrState.effectiveLanguage ||
+              this.#asrState.sourceLanguage ||
+              "auto"
+          );
           this.#startManager();
           this.#managerInstance?.appendSubtitles(cues);
           this.#subtitleListManager?.setBilingualSubtitles(
@@ -379,8 +393,13 @@ export class YouTubeCaptionProvider {
     if (this.#disposed || this.#navigating) return;
     const videoId = this.#videoId;
     const player = activeYoutubePlayer();
-    const cacheMode = window.location.pathname.startsWith("/shorts/") ? "session" : "persistent";
-    if (videoId !== this.#observedVideoId || cacheMode !== this.#observedCacheMode) {
+    const cacheMode = window.location.pathname.startsWith("/shorts/")
+      ? "session"
+      : "persistent";
+    if (
+      videoId !== this.#observedVideoId ||
+      cacheMode !== this.#observedCacheMode
+    ) {
       this.#resetVideo({ clearBridge: this.#observedVideoId !== null });
       this.#observedVideoId = videoId;
       this.#observedCacheMode = cacheMode;
@@ -609,7 +628,8 @@ export class YouTubeCaptionProvider {
       retryIncomplete: () => this.#asr.retryIncomplete(),
       retryRecognition: (taskId) => this.#asr.retryRecognition(taskId),
       setLanguage: (language) => this.#asr.setLanguage(language),
-      setTranslationLanguage: (language) => this.#asr.setTranslationLanguage(language),
+      setTranslationLanguage: (language) =>
+        this.#asr.setTranslationLanguage(language),
       pause: () => this.#asr.pause(),
       resume: () => this.#asr.resume(),
       retryTranslation: (taskId) => this.#asr.retryTranslation(taskId),
@@ -665,7 +685,10 @@ export class YouTubeCaptionProvider {
     this.#acquisitionState = { phase: "loading" };
     try {
       let snapshot, cacheEntry;
-      if (!window.location.pathname.startsWith("/shorts/") && (this.#setting.captionCacheLimit ?? 100) > 0) {
+      if (
+        !window.location.pathname.startsWith("/shorts/") &&
+        (this.#setting.captionCacheLimit ?? 100) > 0
+      ) {
         const cached = await captionCacheRequest("lookup", { videoId }).catch(
           () => null
         );
@@ -1870,7 +1893,9 @@ export class YouTubeCaptionProvider {
       setting: {
         ...this.#setting,
         managedTranslations: !!this.#asr?.active,
-        ...(this.#asr?.active && { toLang: this.#asrState.translationLanguage || this.#setting.toLang }),
+        ...(this.#asr?.active && {
+          toLang: this.#asrState.translationLanguage || this.#setting.toLang,
+        }),
         fromLang: this.#fromLang,
         docInfo: this.#docInfo,
         beforeTranslate: () => this.#ensureCaptionContext(processingVersion),

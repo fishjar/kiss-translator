@@ -9,6 +9,8 @@ import { shortcutRegister } from "./shortcut";
  */
 export class FabManager extends ShadowDomManager {
   #clearShortcut;
+  #suspended = false;
+  #restoreVisible = false;
 
   /**
    * 构造函数
@@ -45,7 +47,27 @@ export class FabManager extends ShadowDomManager {
     );
   }
 
+  show(props) {
+    if (!this.#suspended) super.show(props);
+  }
+
+  suspend() {
+    if (this.#suspended) return;
+    this.#restoreVisible = this.isVisible;
+    this.#suspended = true;
+    super.hide();
+  }
+
+  resume() {
+    if (!this.#suspended) return;
+    this.#suspended = false;
+    const restoreVisible = this.#restoreVisible;
+    this.#restoreVisible = false;
+    if (restoreVisible) super.show();
+  }
+
   destroy() {
+    this.#restoreVisible = false;
     this.#clearShortcut();
     super.destroy();
   }

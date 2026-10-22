@@ -36,27 +36,48 @@ test("language variants coexist, preserve detected language and share the origin
   const chinese = { ...identity, recognitionLanguage: "zh-hans" };
   const english = { ...identity, recognitionLanguage: "en" };
   await store.beginAudio("shared-audio", identity);
-  await store.putAudio("shared-audio", { index: 0, startMs: 0, endMs: 0, data: new Uint8Array([0]).buffer });
-  await store.putChunk(chinese, signatures, block(0, 2, { language: "zh", languageConfidence: 0.95 }));
+  await store.putAudio("shared-audio", {
+    index: 0,
+    startMs: 0,
+    endMs: 0,
+    data: new Uint8Array([0]).buffer,
+  });
+  await store.putChunk(
+    chinese,
+    signatures,
+    block(0, 2, { language: "zh", languageConfidence: 0.95 })
+  );
   await store.putChunk(english, signatures, block(0, 2, { language: "en" }));
-  expect((await store.getVideo(chinese, signatures)).chunks[0]).toMatchObject({ language: "zh", languageConfidence: 0.95 });
-  expect((await store.getVideo(english, signatures)).chunks[0].language).toBe("en");
-  expect((await store.findAudioSession(identity)).sessionId).toBe("shared-audio");
+  expect((await store.getVideo(chinese, signatures)).chunks[0]).toMatchObject({
+    language: "zh",
+    languageConfidence: 0.95,
+  });
+  expect((await store.getVideo(english, signatures)).chunks[0].language).toBe(
+    "en"
+  );
+  expect((await store.findAudioSession(identity)).sessionId).toBe(
+    "shared-audio"
+  );
 });
 
 test("version 1 upgrade backfills identity indexes without changing text, session IDs or audio bytes", async () => {
   await store.putChunk(identity, signatures, block(0, 2));
   await store.beginAudio("legacy-session", identity);
-  for (const index of [0, 1, 2]) await store.putAudio("legacy-session", {
-    index, startMs: index ? (index - 1) * 1000 : 0, endMs: index * 1000,
-    data: new Uint8Array([index, 9, 7]).buffer,
-  });
-  const names = ["videos", "chunks", "audioSessions", "audioIndex", "audio"];
-  const rows = await store.run(names, "readonly", async table => {
-    const result = {};
-    for (const name of names) result[name] = await new Promise(resolve => {
-      const req = table(name).getAll(); req.onsuccess = () => resolve(req.result);
+  for (const index of [0, 1, 2])
+    await store.putAudio("legacy-session", {
+      index,
+      startMs: index ? (index - 1) * 1000 : 0,
+      endMs: index * 1000,
+      data: new Uint8Array([index, 9, 7]).buffer,
     });
+  const names = ["videos", "chunks", "audioSessions", "audioIndex", "audio"];
+  const rows = await store.run(names, "readonly", async (table) => {
+    const result = {};
+    for (const name of names)
+      result[name] = await new Promise((resolve) => {
+        const req = table(name).getAll();
+        req.onsuccess = () => resolve(req.result);
+      });
     return result;
   });
   delete rows.videos[0].identity;
@@ -69,14 +90,23 @@ test("version 1 upgrade backfills identity indexes without changing text, sessio
     req.onupgradeneeded = () => {
       for (const name of names) {
         const table = req.result.createObjectStore(name, {
-          keyPath: name === "videos" ? "key" : name === "audioSessions" ? "sessionId" : "id",
+          keyPath:
+            name === "videos"
+              ? "key"
+              : name === "audioSessions"
+                ? "sessionId"
+                : "id",
         });
         if (name === "chunks") table.createIndex("video", "key");
-        if (["audio", "audioIndex"].includes(name)) table.createIndex("session", "sessionId");
+        if (["audio", "audioIndex"].includes(name))
+          table.createIndex("session", "sessionId");
         for (const row of rows[name]) table.put(row);
       }
     };
-    req.onsuccess = () => { req.result.close(); resolve(); };
+    req.onsuccess = () => {
+      req.result.close();
+      resolve();
+    };
   });
   store = new AsrCacheStore({ indexedDB });
   const lookup = await store.lookupCache({ videoId: identity.videoId });
@@ -84,10 +114,15 @@ test("version 1 upgrade backfills identity indexes without changing text, sessio
   expect(lookup.subtitle.identity).toEqual(identity);
   expect(lookup.audio.sessionId).toBe("legacy-session");
   expect(lookup.audio.index).toHaveLength(3);
-  expect(lookup.audio.index.every(row => !row.data)).toBe(true);
-  expect((await store.getVideoByVideoId(identity.videoId)).chunks[0].subtitles[0].translation).toBe("你好");
+  expect(lookup.audio.index.every((row) => !row.data)).toBe(true);
+  expect(
+    (await store.getVideoByVideoId(identity.videoId)).chunks[0].subtitles[0]
+      .translation
+  ).toBe("你好");
   for (const index of [0, 1, 2])
-    expect(new Uint8Array((await store.getAudio("legacy-session", index)).data)).toEqual(new Uint8Array([index, 9, 7]));
+    expect(
+      new Uint8Array((await store.getAudio("legacy-session", index)).data)
+    ).toEqual(new Uint8Array([index, 9, 7]));
 });
 beforeEach(() => {
   globalThis.structuredClone = (value) => deserialize(serialize(value));
@@ -100,14 +135,23 @@ afterEach(async () => {
 
 test("aligned words survive persistence and a fresh cache connection", async () => {
   const words = [{ start: 0.1, end: 0.8, text: "hello" }];
-  await store.putChunk(identity, signatures, block(0, 2, {
-    segments: [{ start: 0, end: 2, text: "hello", words }],
-  }));
+  await store.putChunk(
+    identity,
+    signatures,
+    block(0, 2, {
+      segments: [{ start: 0, end: 2, text: "hello", words }],
+    })
+  );
   await store.close();
   const restored = new AsrCacheStore({ indexedDB: store.indexedDB });
   try {
-    expect((await restored.getVideo(identity, signatures)).chunks[0].segments[0].words).toEqual(words);
-  } finally { await restored.close(); }
+    expect(
+      (await restored.getVideo(identity, signatures)).chunks[0].segments[0]
+        .words
+    ).toEqual(words);
+  } finally {
+    await restored.close();
+  }
 });
 
 test("atomic per-block writes restore partial coverage, silence and fully translated subtitles", async () => {
@@ -426,10 +470,12 @@ test("beginAudio rejects an identity collision without deleting existing audio",
   await store.putAudio("sess-mismatch", segment(0));
   expect(await store.listAudio("sess-mismatch")).toHaveLength(1);
 
-  await expect(
-    store.beginAudio("sess-mismatch", vidB)
-  ).rejects.toMatchObject({ code: "AUDIO_IDENTITY_MISMATCH" });
-  await expect(store.putAudio("sess-mismatch", segment(0))).resolves.toBe(false);
+  await expect(store.beginAudio("sess-mismatch", vidB)).rejects.toMatchObject({
+    code: "AUDIO_IDENTITY_MISMATCH",
+  });
+  await expect(store.putAudio("sess-mismatch", segment(0))).resolves.toBe(
+    false
+  );
   expect(await store.listAudio("sess-mismatch")).toHaveLength(1);
   expect((await store.findAudioSession(vidA)).sessionId).toBe("sess-mismatch");
   expect(await store.findAudioSession(vidB)).toBeNull();
@@ -562,16 +608,24 @@ test("getVideoByVideoId extracts identity from key if video.identity property is
   expect(res.chunks).toHaveLength(1);
 });
 
-
-
-
-
 test("audio lookup by video ID works without subtitle cache and respects full media identity", async () => {
-  expect(await store.findAudioSession({ videoId: identity.videoId })).toBeNull();
+  expect(
+    await store.findAudioSession({ videoId: identity.videoId })
+  ).toBeNull();
   await store.beginAudio("legacy-audio", identity);
-  await store.putAudio("legacy-audio", { index: 0, startMs: 0, endMs: 0, data: new Uint8Array([1]).buffer });
+  await store.putAudio("legacy-audio", {
+    index: 0,
+    startMs: 0,
+    endMs: 0,
+    data: new Uint8Array([1]).buffer,
+  });
   expect(await store.getVideo(identity, signatures)).toBeNull();
-  expect(await store.findAudioSession({ videoId: identity.videoId })).toEqual({ sessionId: "legacy-audio", identity });
-  expect(await store.findAudioSession({ ...identity, trackId: "ja.10" })).toBeNull();
+  expect(await store.findAudioSession({ videoId: identity.videoId })).toEqual({
+    sessionId: "legacy-audio",
+    identity,
+  });
+  expect(
+    await store.findAudioSession({ ...identity, trackId: "ja.10" })
+  ).toBeNull();
   expect(await store.findAudioSession({ videoId: "bs7WQKv4_ZU" })).toBeNull();
 });

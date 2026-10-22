@@ -29,27 +29,51 @@ const flush = () => jest.advanceTimersByTime(100);
 
 test("translation selector follows recognition language and reflects the per-video target", () => {
   panel.actions.setTranslationLanguage = jest.fn();
-  panel.updateState({ phase: "complete", active: true, translationReady: true, translationLanguage: "zh-CN" });
+  panel.updateState({
+    phase: "complete",
+    active: true,
+    translationReady: true,
+    translationLanguage: "zh-CN",
+  });
   flush();
-  expect(panel.languageControl.nextElementSibling).toBe(panel.translationControl);
-  expect(panel.translationSelect.getAttribute("aria-label")).toBe("Translation language");
+  expect(panel.languageControl.nextElementSibling).toBe(
+    panel.translationControl
+  );
+  expect(panel.translationSelect.getAttribute("aria-label")).toBe(
+    "Translation language"
+  );
   expect(panel.translationSelect.value).toBe("zh-CN");
   expect(panel.translationSelect.disabled).toBe(false);
   panel.translationSelect.value = "ja";
   panel.translationSelect.dispatchEvent(new Event("change"));
   expect(panel.actions.setTranslationLanguage).toHaveBeenCalledWith("ja");
-  panel.updateState({ active: true, clearing: true, translationReady: true, translationLanguage: "ja" });
+  panel.updateState({
+    active: true,
+    clearing: true,
+    translationReady: true,
+    translationLanguage: "ja",
+  });
   flush();
   expect(panel.translationSelect.disabled).toBe(true);
 });
 
 test("language selector is accessible, reflects the current choice and invokes the controller", () => {
   panel.actions.setLanguage = jest.fn();
-  panel.updateState({ phase: "recognizing", active: true, selectedLanguage: "zh-hans",
-    effectiveLanguage: "zh-hans", languageSource: "manual",
-    languageOptions: [{ value: "zh-hans", label: "简体中文" }, { value: "en", label: "英文" }] });
+  panel.updateState({
+    phase: "recognizing",
+    active: true,
+    selectedLanguage: "zh-hans",
+    effectiveLanguage: "zh-hans",
+    languageSource: "manual",
+    languageOptions: [
+      { value: "zh-hans", label: "简体中文" },
+      { value: "en", label: "英文" },
+    ],
+  });
   flush();
-  expect(panel.languageSelect.getAttribute("aria-label")).toBe("Recognition language");
+  expect(panel.languageSelect.getAttribute("aria-label")).toBe(
+    "Recognition language"
+  );
   expect(panel.languageSelect.value).toBe("zh-hans");
   expect(panel.languageStatus.textContent).toBe("简体中文 · Manual");
   panel.languageSelect.value = "en";
@@ -62,13 +86,23 @@ test("downloading and reconnecting never expose stale global errors or retry but
   panel.actions.retryIncomplete = jest.fn();
   panel.updateTasks({ tasks: [media(1)] });
   for (const reconnecting of [false, true]) {
-    panel.updateState({ phase: "recognizing", stoppedByError: false,
-      recognitionError: "AUDIO_NETWORK", audio: { phase: "fetching", percent: 26, bytes: 3500000, reconnecting } });
+    panel.updateState({
+      phase: "recognizing",
+      stoppedByError: false,
+      recognitionError: "AUDIO_NETWORK",
+      audio: { phase: "fetching", percent: 26, bytes: 3500000, reconnecting },
+    });
     flush();
-    expect(panel.statusLabel.textContent).not.toContain(t("youtube_asr_network_error"));
+    expect(panel.statusLabel.textContent).not.toContain(
+      t("youtube_asr_network_error")
+    );
     expect(panel.statusRetry.isConnected).toBe(false);
     expect(panel.summary.querySelectorAll("button")).toHaveLength(0);
-    expect(panel.statusLabel.textContent).toBe(t(reconnecting ? "youtube_asr_reconnecting" : "youtube_asr_audio_fetching"));
+    expect(panel.statusLabel.textContent).toBe(
+      t(
+        reconnecting ? "youtube_asr_reconnecting" : "youtube_asr_audio_fetching"
+      )
+    );
   }
 });
 
@@ -76,11 +110,34 @@ test("inline retry buttons pass the current block ID and never invoke global rec
   panel.actions.retryRecognition = jest.fn();
   panel.actions.retryTranslation = jest.fn();
   panel.actions.retryIncomplete = jest.fn();
-  panel.updateState({ phase: "partial", stoppedByError: true, recognitionError: "ASR_FAILED" });
-  panel.updateTasks({ tasks: [media(1), { id: "block-0", kind: "block", startMs: 0, endMs: 500,
-    recognition: "failed", errorCode: "ASR_FAILED", translation: "waiting" },
-    { id: "block-8000", kind: "block", startMs: 500, endMs: 1000,
-      recognition: "recognized", translation: "failed", translationError: "TRANSLATION_FAILED" }] });
+  panel.updateState({
+    phase: "partial",
+    stoppedByError: true,
+    recognitionError: "ASR_FAILED",
+  });
+  panel.updateTasks({
+    tasks: [
+      media(1),
+      {
+        id: "block-0",
+        kind: "block",
+        startMs: 0,
+        endMs: 500,
+        recognition: "failed",
+        errorCode: "ASR_FAILED",
+        translation: "waiting",
+      },
+      {
+        id: "block-8000",
+        kind: "block",
+        startMs: 500,
+        endMs: 1000,
+        recognition: "recognized",
+        translation: "failed",
+        translationError: "TRANSLATION_FAILED",
+      },
+    ],
+  });
   flush();
   const row = panel.rows.get("media-1");
   row.element.open = true;
@@ -94,24 +151,40 @@ test("inline retry buttons pass the current block ID and never invoke global rec
 });
 
 test("cache save fallback is informational and never creates a retry button", () => {
-  panel.updateState({ phase: "recognizing", cacheMode: "persistent", cacheWarning: "CACHE_WRITE_FAILED",
-    audio: { phase: "fetching" } });
+  panel.updateState({
+    phase: "recognizing",
+    cacheMode: "persistent",
+    cacheWarning: "CACHE_WRITE_FAILED",
+    audio: { phase: "fetching" },
+  });
   flush();
   expect(panel.cacheNotice.hidden).toBe(false);
-  expect(panel.cacheNoticeLabel.textContent).toBe(t("youtube_asr_cache_session_fallback"));
+  expect(panel.cacheNoticeLabel.textContent).toBe(
+    t("youtube_asr_cache_session_fallback")
+  );
   expect(panel.statusRetry.isConnected).toBe(false);
 });
 
 test("only stopped work exposes one global retry; pause and active work hide errors", () => {
   panel.actions.retryIncomplete = jest.fn();
   panel.updateTasks({ tasks: [media(1)] });
-  panel.updateState({ phase: "partial", stoppedByError: true, recognitionError: "AUDIO_STALLED" });
+  panel.updateState({
+    phase: "partial",
+    stoppedByError: true,
+    recognitionError: "AUDIO_STALLED",
+  });
   flush();
-  expect(panel.statusLabel.textContent).toContain(t("youtube_asr_audio_timeout"));
+  expect(panel.statusLabel.textContent).toContain(
+    t("youtube_asr_audio_timeout")
+  );
   expect(panel.statusNotice.hidden).toBe(false);
   panel.statusRetry.click();
   expect(panel.actions.retryIncomplete).toHaveBeenCalledTimes(1);
-  panel.updateState({ phase: "paused", paused: true, recognitionError: "AUDIO_STALLED" });
+  panel.updateState({
+    phase: "paused",
+    paused: true,
+    recognitionError: "AUDIO_STALLED",
+  });
   flush();
   expect(panel.statusLabel.textContent).toBe(t("youtube_asr_paused"));
   expect(panel.statusRetry.isConnected).toBe(false);
@@ -124,37 +197,66 @@ test("only stopped work exposes one global retry; pause and active work hide err
 });
 
 test("cutting progress distinguishes unindexed audio from indexed blocks without inflating recognition", () => {
-  panel.updateTasks({ tasks: [media(1), media(2), {
-    id: "block-0", kind: "block", startMs: 0, endMs: 1000,
-    indexed: true, recognition: "waiting", translation: "waiting",
-  }] });
+  panel.updateTasks({
+    tasks: [
+      media(1),
+      media(2),
+      {
+        id: "block-0",
+        kind: "block",
+        startMs: 0,
+        endMs: 1000,
+        indexed: true,
+        recognition: "waiting",
+        translation: "waiting",
+      },
+    ],
+  });
   panel.updateState({
-    phase: "waiting", audio: { phase: "complete", expectedMs: 2000, percent: 100 },
+    phase: "waiting",
+    audio: { phase: "complete", expectedMs: 2000, percent: 100 },
     cutting: { samples: 16000, totalSamples: 32000, complete: false },
     recognition: { totalSamples: 32000, percent: 0 },
   });
   flush();
   expect(panel.coverage.get("cutting").bar.value).toBe(50);
   expect(panel.coverage.get("recognition").bar.value).toBe(0);
-  expect(panel.rows.get("media-1").titleStatus.textContent).toBe(t("youtube_asr_indexed_pending"));
-  expect(panel.rows.get("media-2").titleStatus.textContent).toBe(t("youtube_asr_pending_cutting"));
+  expect(panel.rows.get("media-1").titleStatus.textContent).toBe(
+    t("youtube_asr_indexed_pending")
+  );
+  expect(panel.rows.get("media-2").titleStatus.textContent).toBe(
+    t("youtube_asr_pending_cutting")
+  );
 });
 
 test("restored tasks never expose a cache retry control", () => {
   panel.updateTasks({ tasks: [media(1)] });
-  panel.updateState({ phase: "cached", cacheRestored: true, audio: { phase: "fetching", cacheStatus: "miss" } });
+  panel.updateState({
+    phase: "cached",
+    cacheRestored: true,
+    audio: { phase: "fetching", cacheStatus: "miss" },
+  });
   flush();
   expect(panel.cacheRetry).toBeUndefined();
   expect(panel.summary.querySelector("button")).toBeNull();
 });
 
-test.each(["checking", "hit", "partial", "miss"])("audio cache status %s is independent of restored text", (cacheStatus) => {
-  panel.updateState({ phase: "cached", cacheRestored: true, audio: { phase: "restoring", cacheStatus } });
-  flush();
-  expect(panel.cacheNotice.hidden).toBe(false);
-  expect(panel.cacheRetry).toBeUndefined();
-  expect(panel.element.textContent).not.toContain(t("youtube_asr_acquiring_audio"));
-});
+test.each(["checking", "hit", "partial", "miss"])(
+  "audio cache status %s is independent of restored text",
+  (cacheStatus) => {
+    panel.updateState({
+      phase: "cached",
+      cacheRestored: true,
+      audio: { phase: "restoring", cacheStatus },
+    });
+    flush();
+    expect(panel.cacheNotice.hidden).toBe(false);
+    expect(panel.cacheRetry).toBeUndefined();
+    expect(panel.element.textContent).not.toContain(
+      t("youtube_asr_acquiring_audio")
+    );
+  }
+);
 
 function previewSetup() {
   const audio = document.createElement("audio");
@@ -316,11 +418,18 @@ test("block download beside playback uses the cross-segment range and reflects e
   const node = row.children.get(block.id);
   const button = node._downloadBtn;
   expect(node._playBtn.nextElementSibling).toBe(button);
-  expect(button.getAttribute("aria-label")).toBe(t("youtube_asr_download_chunk"));
+  expect(button.getAttribute("aria-label")).toBe(
+    t("youtube_asr_download_chunk")
+  );
   expect(button.querySelector("svg")).not.toBeNull();
   button.click();
   expect(panel.actions.exportSegment).toHaveBeenCalledWith(
-    expect.objectContaining({ id: block.id, startMs: 500, endMs: 1500, crossSegment: true })
+    expect.objectContaining({
+      id: block.id,
+      startMs: 500,
+      endMs: 1500,
+      crossSegment: true,
+    })
   );
   expect(row.element.open).toBe(true);
   panel.updateTasks({ tasks: [{ id: block.id, exportState: "saving" }] });
@@ -483,25 +592,51 @@ test.each([
   ["recognizing", "waiting", undefined, "recognizing"],
   ["recognized", "waiting", "segmenting", "segmenting"],
   ["recognized", "translating", undefined, "translating"],
-])("titles reflect active blocks across download segments: %s / %s / %s", (recognition, translation, processing, expected) => {
-  panel.updateTasks({
-    tasks: [
-      media(1), media(2), media(3),
-      {
-        id: "active-block", kind: "block", startMs: 500, endMs: 1800,
-        recognition, translation, processing, startedAt: Date.now(),
-      },
-    ],
-  });
-  flush();
-  for (const id of ["media-1", "media-2"])
-    expect(panel.rows.get(id).titleStatus.textContent).toBe(t(`youtube_asr_task_${expected}`));
-  expect(panel.rows.get("media-3").titleStatus.textContent).toBe(t("youtube_asr_media_downloaded_pending"));
-  panel.updateTasks({ tasks: [{ id: "active-block", recognition: "recognized", translation: "complete", processing: undefined }] });
-  flush();
-  for (const id of ["media-1", "media-2"])
-    expect(panel.rows.get(id).titleStatus.textContent).toBe(t("youtube_asr_task_complete"));
-});
+])(
+  "titles reflect active blocks across download segments: %s / %s / %s",
+  (recognition, translation, processing, expected) => {
+    panel.updateTasks({
+      tasks: [
+        media(1),
+        media(2),
+        media(3),
+        {
+          id: "active-block",
+          kind: "block",
+          startMs: 500,
+          endMs: 1800,
+          recognition,
+          translation,
+          processing,
+          startedAt: Date.now(),
+        },
+      ],
+    });
+    flush();
+    for (const id of ["media-1", "media-2"])
+      expect(panel.rows.get(id).titleStatus.textContent).toBe(
+        t(`youtube_asr_task_${expected}`)
+      );
+    expect(panel.rows.get("media-3").titleStatus.textContent).toBe(
+      t("youtube_asr_media_downloaded_pending")
+    );
+    panel.updateTasks({
+      tasks: [
+        {
+          id: "active-block",
+          recognition: "recognized",
+          translation: "complete",
+          processing: undefined,
+        },
+      ],
+    });
+    flush();
+    for (const id of ["media-1", "media-2"])
+      expect(panel.rows.get(id).titleStatus.textContent).toBe(
+        t("youtube_asr_task_complete")
+      );
+  }
+);
 
 test("audio segment title reflects downloaded_pending vs complete based on children", () => {
   panel.updateTasks({
@@ -572,9 +707,7 @@ test("audio segment covered by cross-segment block completes when covering block
     ],
   });
   flush();
-  expect(row2.titleStatus.textContent).toBe(
-    t("youtube_asr_task_complete")
-  );
+  expect(row2.titleStatus.textContent).toBe(t("youtube_asr_task_complete"));
 });
 
 test("media segment row is collapsed by default and contains segment audio controls", () => {
@@ -591,21 +724,36 @@ test("media segment row is collapsed by default and contains segment audio contr
 test("empty placeholder dynamically reflects the active ASR stage", () => {
   panel.updateState({ phase: "waiting" });
   flush();
-  expect(panel.cacheNoticeLabel.textContent).toBe(t("youtube_asr_waiting_player"));
+  expect(panel.cacheNoticeLabel.textContent).toBe(
+    t("youtube_asr_waiting_player")
+  );
 
   panel.updateState({ phase: "restoring" });
   flush();
-  expect(panel.cacheNoticeLabel.textContent).toBe(t("youtube_asr_checking_cache"));
+  expect(panel.cacheNoticeLabel.textContent).toBe(
+    t("youtube_asr_checking_cache")
+  );
 
   panel.updateState({ phase: "cached" });
   flush();
-  expect(panel.cacheNoticeLabel.textContent).toBe(t("youtube_asr_restored_fetching_audio"));
+  expect(panel.cacheNoticeLabel.textContent).toBe(
+    t("youtube_asr_restored_fetching_audio")
+  );
 
-  panel.updateState({ phase: "recognizing", audio: { phase: "fetching", cacheStatus: "miss", bytes: 100 } });
+  panel.updateState({
+    phase: "recognizing",
+    audio: { phase: "fetching", cacheStatus: "miss", bytes: 100 },
+  });
   flush();
-  expect(panel.cacheNoticeLabel.textContent).toBe(t("youtube_asr_acquiring_audio"));
+  expect(panel.cacheNoticeLabel.textContent).toBe(
+    t("youtube_asr_acquiring_audio")
+  );
 
-  panel.updateState({ phase: "error", error: "ASR_FAILED", stoppedByError: true });
+  panel.updateState({
+    phase: "error",
+    error: "ASR_FAILED",
+    stoppedByError: true,
+  });
   flush();
   expect(panel.statusLabel.textContent).toContain(t("youtube_asr_error"));
 
@@ -617,16 +765,28 @@ test("empty placeholder dynamically reflects the active ASR stage", () => {
 test("checking, zero-byte preparation and a later cache hit never announce a global cache miss", () => {
   const states = [
     { phase: "restoring" },
-    { phase: "waiting", audio: { phase: "fetching", cacheStatus: "miss", bytes: 0 } },
-    { phase: "waiting", audio: { phase: "restoring", cacheStatus: "checking", bytes: 0 } },
-    { phase: "cached", cacheRestored: true, audio: { phase: "complete", cacheStatus: "hit", bytes: 1024 } },
+    {
+      phase: "waiting",
+      audio: { phase: "fetching", cacheStatus: "miss", bytes: 0 },
+    },
+    {
+      phase: "waiting",
+      audio: { phase: "restoring", cacheStatus: "checking", bytes: 0 },
+    },
+    {
+      phase: "cached",
+      cacheRestored: true,
+      audio: { phase: "complete", cacheStatus: "hit", bytes: 1024 },
+    },
   ];
   const messages = [];
   for (const state of states) {
     panel.updateState(state);
     flush();
     messages.push(panel.cacheNoticeLabel.textContent);
-    expect(panel.summary.textContent + panel.element.textContent).not.toMatch(/No local cache found|Audio not cached|downloading audio and recognizing/i);
+    expect(panel.summary.textContent + panel.element.textContent).not.toMatch(
+      /No local cache found|Audio not cached|downloading audio and recognizing/i
+    );
   }
   expect(messages).toEqual([
     t("youtube_asr_checking_cache"),
@@ -638,9 +798,15 @@ test("checking, zero-byte preparation and a later cache hit never announce a glo
 
 test("audio preparation remains neutral alongside restored subtitle tasks", () => {
   panel.updateTasks({ tasks: [media(1)] });
-  panel.updateState({ phase: "cached", cacheRestored: true, audio: { phase: "fetching", cacheStatus: "miss", bytes: 0 } });
+  panel.updateState({
+    phase: "cached",
+    cacheRestored: true,
+    audio: { phase: "fetching", cacheStatus: "miss", bytes: 0 },
+  });
   flush();
-  expect(panel.cacheNoticeLabel.textContent).toBe(t("youtube_asr_acquiring_audio"));
+  expect(panel.cacheNoticeLabel.textContent).toBe(
+    t("youtube_asr_acquiring_audio")
+  );
   expect(panel.empty?.isConnected).toBeFalsy();
 });
 
@@ -649,12 +815,20 @@ test("empty placeholder displays NEED_PLAYBACK prompt and renders retry button o
 
   panel.updateState({ phase: "waiting", waitReason: "NEED_PLAYBACK" });
   flush();
-  expect(panel.cacheNoticeLabel.textContent).toBe(t("youtube_asr_need_playback"));
+  expect(panel.cacheNoticeLabel.textContent).toBe(
+    t("youtube_asr_need_playback")
+  );
   expect(panel.statusRetry.isConnected).toBe(false);
 
-  panel.updateState({ phase: "error", error: "NEED_PLAYBACK", stoppedByError: true });
+  panel.updateState({
+    phase: "error",
+    error: "NEED_PLAYBACK",
+    stoppedByError: true,
+  });
   flush();
-  expect(panel.cacheNoticeLabel.textContent).toBe(t("youtube_asr_need_playback"));
+  expect(panel.cacheNoticeLabel.textContent).toBe(
+    t("youtube_asr_need_playback")
+  );
   expect(panel.statusRetry.isConnected).toBe(true);
   expect(panel.statusRetry.textContent).toBe(t("youtube_asr_retry_btn"));
 
@@ -667,10 +841,18 @@ test("empty placeholder displays NEED_PLAYBACK prompt and renders retry button o
 });
 
 test("empty placeholder displays detailed error message and suppresses failure when 100% complete", () => {
-  panel.updateState({ phase: "error", error: "AUDIO_TIMEOUT", stoppedByError: true });
+  panel.updateState({
+    phase: "error",
+    error: "AUDIO_TIMEOUT",
+    stoppedByError: true,
+  });
   flush();
-  expect(panel.cacheNoticeLabel.textContent).toContain(t("youtube_asr_task_failed"));
-  expect(panel.cacheNoticeLabel.textContent).toContain(t("youtube_asr_audio_timeout"));
+  expect(panel.cacheNoticeLabel.textContent).toContain(
+    t("youtube_asr_task_failed")
+  );
+  expect(panel.cacheNoticeLabel.textContent).toContain(
+    t("youtube_asr_audio_timeout")
+  );
 
   panel.updateState({
     phase: "cached",
@@ -680,7 +862,9 @@ test("empty placeholder displays detailed error message and suppresses failure w
     error: "AUDIO_TIMEOUT",
   });
   flush();
-  expect(panel.cacheNoticeLabel.textContent).not.toContain(t("youtube_asr_task_failed"));
+  expect(panel.cacheNoticeLabel.textContent).not.toContain(
+    t("youtube_asr_task_failed")
+  );
   expect(panel.retryButton?.isConnected).toBeFalsy();
 });
 
@@ -694,15 +878,22 @@ test("cached subtitles retain all three bars while audio errors remain visible a
     audio: { phase: "error", code: "AUDIO_AUTH_EXPIRED" },
   });
   flush();
-  expect(["audio", "recognition", "translation"].every((key) => !panel.coverage.get(key).row.hidden)).toBe(true);
-  expect(panel.cacheNoticeLabel.textContent).toContain(t("youtube_asr_task_failed"));
-  expect(panel.coverage.get("audio").label.textContent).not.toContain(t("youtube_asr_audio_error"));
+  expect(
+    ["audio", "recognition", "translation"].every(
+      (key) => !panel.coverage.get(key).row.hidden
+    )
+  ).toBe(true);
+  expect(panel.cacheNoticeLabel.textContent).toContain(
+    t("youtube_asr_task_failed")
+  );
+  expect(panel.coverage.get("audio").label.textContent).not.toContain(
+    t("youtube_asr_audio_error")
+  );
   expect(panel.coverage.get("recognition").bar.value).toBe(100);
   expect(panel.coverage.get("translation").bar.value).toBe(100);
   panel.statusRetry.click();
   expect(panel.actions.retryIncomplete).toHaveBeenCalledTimes(1);
 });
-
 
 test("new recognition and translation remain visible in expanded segments across task updates", () => {
   panel.updateState({ phase: "recognizing" });
@@ -775,7 +966,6 @@ test("cross-segment text is shown once and the following segment explains its co
   );
   expect(panel.rows.get("media-2").body.textContent).not.toContain("跨段译文");
 });
-
 
 test("retry preparation replaces the previous error with visible processing feedback", () => {
   panel.updateTasks({

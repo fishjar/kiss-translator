@@ -91,6 +91,7 @@ test.each([
   ["/prompts///", "prompt_management", true],
   ["/playground/", "Playground", true],
   ["/rules/", "options_web_translation", false],
+  ["/image-translate/", "image_translate", false],
 ])("uses the matching page metadata at %s", (pathname, title, wide) => {
   mockPathname = pathname;
   const container = document.createElement("div");

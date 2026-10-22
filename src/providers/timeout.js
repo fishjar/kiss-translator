@@ -43,7 +43,10 @@ export async function resolveInvocationConfig(ctx, resolve) {
     abort = () => reject(ctx.signal.reason);
     ctx.signal.addEventListener("abort", abort, { once: true });
   });
-  const timer = setTimeout(() => ctx.setDeadline(Date.now()), MAX_SERVICE_TIMEOUT_MS);
+  const timer = setTimeout(
+    () => ctx.setDeadline(Date.now()),
+    MAX_SERVICE_TIMEOUT_MS
+  );
   try {
     return await Promise.race([cancelled, Promise.resolve().then(resolve)]);
   } finally {

@@ -557,4 +557,28 @@ describe("rules terms integration（规则链路：原始规则 → 合并 → T
     const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
     expect(inner.textContent).toBe("接口 only");
   });
+
+  test("inherits and overrides image translation rule properties", async () => {
+    getRulesWithDefault.mockResolvedValue([
+      {
+        pattern: "example.com",
+        imageTransOpen: "false",
+        imageSelector: ".custom-img",
+        imageIgnoreSelector: ".skip-img",
+        imageMinWidth: 200,
+        imageMinHeight: 150,
+      },
+      GLOBLA_RULE,
+    ]);
+
+    const rule = await matchRule("https://example.com/gallery", {
+      injectRules: false,
+      subrulesList: [],
+    });
+    expect(rule.imageTransOpen).toBe("false");
+    expect(rule.imageSelector).toContain(".custom-img");
+    expect(rule.imageIgnoreSelector).toContain(".skip-img");
+    expect(rule.imageMinWidth).toBe(200);
+    expect(rule.imageMinHeight).toBe(150);
+  });
 });

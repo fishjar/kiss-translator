@@ -52,10 +52,18 @@ export function parseTranscription(response) {
   const result = { text: data.text };
   if (typeof data.language === "string" && data.language) {
     const name = data.language.trim().toLowerCase();
-    const namedCode = name === "chinese" ? "zh" : Object.entries(languages)
-      .find(([, label]) => label.split(" - ")[0].toLowerCase() === name)?.[0];
+    const namedCode =
+      name === "chinese"
+        ? "zh"
+        : Object.entries(languages).find(
+            ([, label]) => label.split(" - ")[0].toLowerCase() === name
+          )?.[0];
     // verbose_json can return names such as "english", not ISO request codes.
-    try { result.language = toIso6391(namedCode || name); } catch { /* Keep native auto for unknown languages. */ }
+    try {
+      result.language = toIso6391(namedCode || name);
+    } catch {
+      /* Keep native auto for unknown languages. */
+    }
   }
   if (data.segments !== undefined) {
     if (!Array.isArray(data.segments))

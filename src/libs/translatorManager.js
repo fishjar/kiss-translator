@@ -23,6 +23,7 @@ import { touchTapListener } from "./touch";
 import { PopupManager } from "./popupManager";
 import { FabManager } from "./fabManager";
 import { RuleEditorManager } from "./ruleEditorManager";
+import { ImageTranslateManager } from "./imageTranslate/imageTranslateManager";
 import {
   OPT_SHORTCUT_TRANSLATE,
   OPT_SHORTCUT_TRANSONLY,
@@ -45,7 +46,11 @@ import {
 import { logger } from "./log";
 import { getPopupDocumentIdentity } from "./popupDocument";
 import { isSameStorageValue } from "./storageEquality";
-import { MSG_GET_FRAME_ID, MSG_VALIDATE_DOCUMENT } from "../config/msg";
+import {
+  MSG_GET_FRAME_ID,
+  MSG_VALIDATE_DOCUMENT,
+  MSG_IMAGE_SCREENSHOT,
+} from "../config/msg";
 
 /**
  * 前台翻译业务的总生命周期管理器。
@@ -106,6 +111,7 @@ export default class TranslatorManager {
   _popupManager = null;
   _fabManager = null;
   _ruleEditorManager = null;
+  _imageTranslateManager = null;
 
   /**
    * 保存启动参数并绑定全局 handler。
@@ -313,6 +319,15 @@ export default class TranslatorManager {
           this.#fabConfig = { ...this.#fabConfig, isHide };
         },
       });
+      this._imageTranslateManager = new ImageTranslateManager({
+        setting: this.#cloneConfig(this.#setting),
+        rule: this.#cloneConfig(this.#rule),
+        isIframe: this.#isIframe,
+        onScreenshotSessionChange: (active) => {
+          if (active) this._fabManager?.suspend();
+          else this._fabManager?.resume();
+        },
+      });
     }
   }
 
@@ -328,6 +343,7 @@ export default class TranslatorManager {
     this._ruleEditorManager?.destroy();
     this._ruleEditorManager = null;
     this._popupManager?.destroy();
+    this._imageTranslateManager?.destroy();
     this._fabManager?.destroy();
     this._transboxManager?.disable();
     this._inputTranslator?.disable();
@@ -338,6 +354,7 @@ export default class TranslatorManager {
     this._inputTranslator = null;
     this._popupManager = null;
     this._fabManager = null;
+    this._imageTranslateManager = null;
   }
 
   /**
@@ -702,6 +719,7 @@ export default class TranslatorManager {
     ) {
       return;
     }
+    this._imageTranslateManager?.updateSetting(setting);
     if (isSameStorageValue(setting.transApis, this.#setting?.transApis)) {
       return;
     }
@@ -1049,6 +1067,7 @@ export default class TranslatorManager {
         break;
       case MSG_TRANS_PUTRULE:
         this._translator?.updateRule(args);
+        this._imageTranslateManager?.updateRule(args);
         break;
       case MSG_OPEN_TRANBOX:
         document.dispatchEvent(
@@ -1059,6 +1078,9 @@ export default class TranslatorManager {
         break;
       case MSG_POPUP_TOGGLE:
         this._popupManager?.toggle();
+        break;
+      case MSG_IMAGE_SCREENSHOT:
+        this._imageTranslateManager?.startScreenshot();
         break;
       case MSG_TRANSBOX_TOGGLE:
         if (typeof args?.enabled === "boolean") {

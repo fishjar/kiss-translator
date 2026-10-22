@@ -215,7 +215,9 @@ test("shows saved source details, keeps unsafe URLs unlinked, and supports old e
   summaries.forEach((summary) => act(() => summary.click()));
 
   expect(container.textContent).toContain("The library is open.");
-  expect(container.querySelector('a[href="https://example.com/article"]')).not.toBeNull();
+  expect(
+    container.querySelector('a[href="https://example.com/article"]')
+  ).not.toBeNull();
   expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
   expect(container.textContent).toContain("javascript:alert(1)");
   expect(container.textContent).toContain("legacy");

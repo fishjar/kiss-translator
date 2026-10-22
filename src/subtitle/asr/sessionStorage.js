@@ -9,7 +9,10 @@ export class SessionAudioStorage {
   }
   async putAudio(sessionId, segment) {
     const key = `${sessionId}:${segment.index}`;
-    const bytes = this.bytes - (this.rows.get(key)?.data.byteLength || 0) + segment.data.byteLength;
+    const bytes =
+      this.bytes -
+      (this.rows.get(key)?.data.byteLength || 0) +
+      segment.data.byteLength;
     if (bytes > this.limit)
       throw Object.assign(new Error("AUDIO_QUOTA"), { code: "AUDIO_QUOTA" });
     this.rows.set(key, segment);

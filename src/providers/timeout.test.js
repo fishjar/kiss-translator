@@ -11,9 +11,10 @@ test.each([30, "30", 600, "600", 30000, "30000"])(
   "saved timeout %p produces a numeric budget and expires on time",
   async (httpTimeout) => {
     jest.useFakeTimers();
-    const expected = Number(httpTimeout) > 600
-      ? Number(httpTimeout)
-      : Number(httpTimeout) * 1000;
+    const expected =
+      Number(httpTimeout) > 600
+        ? Number(httpTimeout)
+        : Number(httpTimeout) * 1000;
     const options = serviceInvocationOptions({ httpTimeout });
     expect(options.timeoutMs).toBe(expected);
     expect(options.deadlineAt).toBe(Date.now() + expected);
@@ -24,7 +25,9 @@ test.each([30, "30", 600, "600", 30000, "30000"])(
     jest.advanceTimersByTime(expected - 1);
     expect(execute.mock.calls[0][0].signal.aborted).toBe(false);
     jest.advanceTimersByTime(1);
-    await expect(call.result).rejects.toMatchObject({ code: "REQUEST_TIMEOUT" });
+    await expect(call.result).rejects.toMatchObject({
+      code: "REQUEST_TIMEOUT",
+    });
     expect(jest.getTimerCount()).toBe(0);
   }
 );
@@ -124,7 +127,8 @@ test.each(["30000", -1, NaN, Infinity])(
   async (timeoutMs) => {
     const execute = jest.fn();
     await expect(
-      createInvocation(execute, serviceInvocationOptions({}, { timeoutMs })).result
+      createInvocation(execute, serviceInvocationOptions({}, { timeoutMs }))
+        .result
     ).rejects.toMatchObject({ code: "INVALID_TIMEOUT" });
     expect(execute).not.toHaveBeenCalled();
   }

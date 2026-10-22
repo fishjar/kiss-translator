@@ -963,7 +963,8 @@ describe("TranForm source input", () => {
       aiDictApiSlug: "-",
     });
     const textarea = container.querySelector("textarea");
-    const dictionary = () => container.querySelector('[data-testid="default-dict"]');
+    const dictionary = () =>
+      container.querySelector('[data-testid="default-dict"]');
 
     expect(dictionary().dataset.sourceSentence).toBe(source.sentence);
     expect(dictionary().dataset.sourceUrl).toBe(source.url);

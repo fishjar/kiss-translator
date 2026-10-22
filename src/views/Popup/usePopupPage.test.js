@@ -142,9 +142,9 @@ describe("usePopupPage tab lifecycle", () => {
       rule: { apiSlug: "disabled", toLang: "fr" },
       setting: {
         transApis: [
-          { apiSlug: "disabled", isDisabled: true },
-          { apiSlug: "later", sortOrder: 5 },
-          { apiSlug: "first", sortOrder: -1 },
+          { apiSlug: "disabled", apiType: "Google", isDisabled: true },
+          { apiSlug: "later", apiType: "Google", sortOrder: 5 },
+          { apiSlug: "first", apiType: "Google", sortOrder: -1 },
         ],
       },
     };

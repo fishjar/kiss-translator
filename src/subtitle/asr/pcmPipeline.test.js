@@ -2,7 +2,9 @@ import { AsrResampler } from "./resample";
 import { AsrPcmPipeline } from "./pcmPipeline";
 
 test("indexed extraction preserves exact resampled samples without cutting at internal pauses", async () => {
-  const audio = Float32Array.from({ length: 32000 }, (_, i) => i < 13000 || i > 26000 ? Math.sin(i / 17) * 0.2 : 0);
+  const audio = Float32Array.from({ length: 32000 }, (_, i) =>
+    i < 13000 || i > 26000 ? Math.sin(i / 17) * 0.2 : 0
+  );
   const reference = new AsrResampler(16000, 1);
   const head = reference.push([audio]);
   const tail = reference.finish();
@@ -11,32 +13,62 @@ test("indexed extraction preserves exact resampled samples without cutting at in
   expected.set(tail, head.length);
   for (const size of [727, 14000]) {
     const output = [];
-    const pipeline = new AsrPcmPipeline(30, chunk => output.push(chunk), new AbortController().signal, {
-      startSample: 8000, endSample: 30000, fixedRange: true, silent: false,
-    });
+    const pipeline = new AsrPcmPipeline(
+      30,
+      (chunk) => output.push(chunk),
+      new AbortController().signal,
+      {
+        startSample: 8000,
+        endSample: 30000,
+        fixedRange: true,
+        silent: false,
+      }
+    );
     for (let i = 0; i < audio.length; i += size)
-      await pipeline.push({ channels: [audio.subarray(i, i + size)], sampleRate: 16000, timestamp: i / 16000 });
+      await pipeline.push({
+        channels: [audio.subarray(i, i + size)],
+        sampleRate: 16000,
+        timestamp: i / 16000,
+      });
     await pipeline.finish();
     expect(output).toHaveLength(1);
     expect(output[0].startSample).toBe(8000);
     expect(output[0].endSample).toBe(30000);
-    expect(output[0].audio.every((sample, i) => sample === expected[i + 8000])).toBe(true);
+    expect(
+      output[0].audio.every((sample, i) => sample === expected[i + 8000])
+    ).toBe(true);
     expect(pipeline.chunker).toBeUndefined();
   }
 });
 
 test("indexed extraction rejects missing audio and accepts a short final block", async () => {
-  const make = callback => new AsrPcmPipeline(30, callback, new AbortController().signal, {
-    startSample: 0, endSample: 640, fixedRange: true, silent: true,
-  });
+  const make = (callback) =>
+    new AsrPcmPipeline(30, callback, new AbortController().signal, {
+      startSample: 0,
+      endSample: 640,
+      fixedRange: true,
+      silent: true,
+    });
   const missing = make(() => {});
-  await missing.push({ channels: [new Float32Array(320)], sampleRate: 16000, timestamp: 0 });
+  await missing.push({
+    channels: [new Float32Array(320)],
+    sampleRate: 16000,
+    timestamp: 0,
+  });
   await expect(missing.finish()).rejects.toThrow("does not cover");
   const output = [];
-  const complete = make(chunk => output.push(chunk));
-  await complete.push({ channels: [new Float32Array(640)], sampleRate: 16000, timestamp: 0 });
+  const complete = make((chunk) => output.push(chunk));
+  await complete.push({
+    channels: [new Float32Array(640)],
+    sampleRate: 16000,
+    timestamp: 0,
+  });
   await complete.finish();
-  expect(output[0]).toMatchObject({ startSample: 0, endSample: 640, silent: true });
+  expect(output[0]).toMatchObject({
+    startSample: 0,
+    endSample: 640,
+    silent: true,
+  });
 });
 
 test("shortening a suspended chunk iterator preserves its retained tail and all future samples", async () => {

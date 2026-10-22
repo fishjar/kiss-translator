@@ -262,6 +262,13 @@ export default function Layout() {
         i18n("subtitle_translate"),
         i18n("options_subtitle_description"),
       ],
+      "/image-translate": [
+        i18n("image_translate", "图片翻译"),
+        i18n(
+          "options_image_translate_description",
+          "网页图片悬停识别、截图框选翻译与模型配置"
+        ),
+      ],
       "/apis": [
         i18n("options_service_config", "服务配置"),
         i18n("options_services_description"),

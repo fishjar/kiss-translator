@@ -359,7 +359,8 @@ export function processSubtitles({
       const isTimeout = segment.start - lastSegment.end > timeout;
       const isDurationExceeded =
         segment.end - currentBuffer[0].start > maxDurationMs;
-      const isLengthExceeded = bufferLength + 1 + segment.text.length > maxChars;
+      const isLengthExceeded =
+        bufferLength + 1 + segment.text.length > maxChars;
       const isWordLimitExceeded =
         (usePause || isPauseOfSentence) && bufferWordCount >= maxWords;
       const startsWithSign = /^[[(♪]/.test(segment.text);
@@ -463,7 +464,10 @@ export function formatSubtitles(
     return subtitles;
   }
 
-  let subtitles = processSubtitles({ flatEvents, maxChars: longSentenceThreshold });
+  let subtitles = processSubtitles({
+    flatEvents,
+    maxChars: longSentenceThreshold,
+  });
 
   const result = [];
   for (const sub of subtitles) {
@@ -482,7 +486,7 @@ export function formatSubtitles(
         const reProcessed = processSubtitles({
           flatEvents: subEvents,
           usePause: true,
-            maxChars: longSentenceThreshold,
+          maxChars: longSentenceThreshold,
         });
         result.push(...reProcessed);
       } else {
@@ -558,7 +562,9 @@ export function runBuiltinSegmentation({
 
   if (mode === "statistical") {
     logger.info("Youtube Provider: Sentence break mode: STATISTICAL");
-    const result = algorithmicSegment(events, { maxChars: longSentenceThreshold });
+    const result = algorithmicSegment(events, {
+      maxChars: longSentenceThreshold,
+    });
     if (result?.length) return toCues(result);
     logger.info(
       "Youtube Provider: Statistical segmentation returned empty, falling back to rule"

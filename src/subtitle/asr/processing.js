@@ -107,7 +107,9 @@ export function createAsrTextProcessor(setting, identity) {
     }
   };
   return {
-    setLanguage(language) { fromLang = getFromLang(language); },
+    setLanguage(language) {
+      fromLang = getFromLang(language);
+    },
     async segment(segments, signal, waitUntilRunning = async () => {}) {
       await waitUntilRunning(signal);
       const flatEvents = segments
@@ -164,7 +166,12 @@ export function createAsrTextProcessor(setting, identity) {
         return fallback();
       return cues;
     },
-    async translate(cues, signal, onUpdate = () => {}, waitUntilRunning = async () => {}) {
+    async translate(
+      cues,
+      signal,
+      onUpdate = () => {},
+      waitUntilRunning = async () => {}
+    ) {
       if (signal.aborted)
         throw signal.reason || new DOMException("Cancelled", "AbortError");
       if (

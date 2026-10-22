@@ -70,6 +70,54 @@ describe("FabManager temporary shortcut", () => {
     expect(document.getElementById(APP_CONSTS.fabID)).toBe(host);
   });
 
+  test("suspends the entire host and ignores display requests until resumed", () => {
+    const config = { isHide: false, x: 10, y: 250, size: 64 };
+    createManager(config);
+    const host = document.getElementById(APP_CONSTS.fabID);
+    const menu = document.createElement("div");
+    menu.className = "kt-content-fab-menu";
+    host.shadowRoot.appendChild(menu);
+    act(() => manager.suspend());
+    expect(host.style.getPropertyValue("display")).toBe("none");
+    expect(host.style.getPropertyPriority("display")).toBe("important");
+    expect(manager.isVisible).toBe(false);
+    pressShortcut();
+    act(() => {
+      manager.show();
+      manager.suspend();
+    });
+    expect(host.style.display).toBe("none");
+    act(() => manager.resume());
+    expect(manager.isVisible).toBe(true);
+    expect(document.getElementById(APP_CONSTS.fabID)).toBe(host);
+    expect(config).toEqual({ isHide: false, x: 10, y: 250, size: 64 });
+    menu.remove();
+  });
+
+  test.each([true, false])(
+    "keeps an originally hidden FAB hidden (persisted hide: %s)",
+    (isHide) => {
+      createManager({ isHide });
+      act(() => {
+        manager.hide();
+        manager.suspend();
+      });
+      pressShortcut();
+      act(() => manager.resume());
+      expect(manager.isVisible).toBe(false);
+    }
+  );
+
+  test("destroying a suspended FAB prevents late resume from remounting it", () => {
+    createManager({ isHide: false });
+    act(() => {
+      manager.suspend();
+      manager.destroy();
+      manager.resume();
+    });
+    expect(document.getElementById(APP_CONSTS.fabID)).toBeNull();
+  });
+
   test.each([["KeyB"], ["AltLeft", "KeyC"], ["AltLeft", "ShiftLeft", "KeyB"]])(
     "ignores a different key combination: %j",
     (...codes) => {

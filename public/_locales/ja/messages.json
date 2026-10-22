@@ -28,5 +28,11 @@
   },
   "toggle_tranbox": {
     "message": "翻訳ボックスを切り替え"
+  },
+  "image_screenshot_command": {
+    "message": "スクリーンショット翻訳"
+  },
+  "image_screenshot": {
+    "message": "スクリーンショット翻訳"
   }
 }

@@ -149,6 +149,10 @@ function isTranButtonEvent(e) {
   );
 }
 
+function isFabEvent(e) {
+  return getEventPath(e).some((node) => node?.id === APP_CONSTS.fabID);
+}
+
 function isUsableRect(rect) {
   if (!rect) return false;
   return Boolean(
@@ -227,9 +231,8 @@ function getSelectionContainer(selection, target) {
   const element =
     node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
   return (
-    element?.closest?.(
-      "p, li, blockquote, article, section, main, div"
-    ) || element
+    element?.closest?.("p, li, blockquote, article, section, main, div") ||
+    element
   );
 }
 
@@ -382,6 +385,10 @@ export default function useSelectionController({
     };
     const handlePointerDown = (event) => {
       invalidatePendingSelection();
+      if (isFabEvent(event)) {
+        setShowBtn(false);
+        return;
+      }
       // Keep the dismissed range across later presses while the panel is hidden.
       // Only a selection change should allow that range to trigger again.
       if (!showBox || isTranboxEvent(event) || isTranButtonEvent(event)) return;
@@ -621,6 +628,11 @@ export default function useSelectionController({
     async (e) => {
       if (e.button === 2) return;
       if (isTranButtonEvent(e)) return;
+      if (isFabEvent(e)) {
+        selectionRevisionRef.current += 1;
+        setShowBtn(false);
+        return;
+      }
 
       const isFromTranbox = isTranboxEvent(e);
       if (isFromTranbox && isPanelInteractiveEvent(e)) return;

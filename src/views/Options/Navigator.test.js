@@ -206,7 +206,10 @@ test("groups concrete Chinese settings below their navigation category and links
     I18N.options_no_results.zh
   );
   search("  ");
-  expect(container.querySelectorAll(".kt-options-nav__link")).toHaveLength(15);
+  expect(container.querySelectorAll(".kt-options-nav__link")).toHaveLength(16);
+  expect(
+    container.querySelectorAll('.kt-options-nav__link[href="/image-translate"]')
+  ).toHaveLength(1);
   expect(container.querySelectorAll(".kt-options-nav__setting")).toHaveLength(
     0
   );
@@ -259,7 +262,10 @@ test("shows clear while text is present, including after blur, and clears its ta
   expect(container.querySelector(".kt-options-search__clear")).toBe(clear);
   act(() => clear.click());
   expect(input.value).toBe("");
-  expect(container.querySelectorAll(".kt-options-nav__link")).toHaveLength(15);
+  expect(container.querySelectorAll(".kt-options-nav__link")).toHaveLength(16);
+  expect(
+    container.querySelectorAll('.kt-options-nav__link[href="/image-translate"]')
+  ).toHaveLength(1);
   expect(container.querySelectorAll(".kt-options-nav__setting")).toHaveLength(
     0
   );

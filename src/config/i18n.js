@@ -9,6 +9,7 @@ import { TOUCH_I18N } from "./i18n.touch";
 
 import { SETTINGS_I18N } from "./locales/settings";
 import { ASR_I18N } from "./locales/asr";
+import { IMAGE_TRANSLATE_I18N } from "./locales/imageTranslate";
 import { RU_I18N } from "./i18n.ru";
 
 export const UI_LANGS = [
@@ -29,6 +30,7 @@ export const I18N = {
   ...SETTINGS_I18N,
   ...ASR_I18N,
   ...PROVIDER_PLUGINS_I18N,
+  ...IMAGE_TRANSLATE_I18N,
   app_name: {
     zh: `简约翻译`,
     en: `KISS Translator`,

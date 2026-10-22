@@ -4,6 +4,7 @@ import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
+import CropRoundedIcon from "@mui/icons-material/CropRounded";
 import IconButton from "@mui/material/IconButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
@@ -13,6 +14,9 @@ import Logo from "../../components/Logo";
 import { useI18n } from "../../hooks/I18n";
 import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 import PopupMenu from "./PopupMenu";
+import { sendTabMsg } from "../../libs/msg";
+import { MSG_IMAGE_SCREENSHOT } from "../../config/msg";
+import { isExt } from "../../libs/client";
 
 export default function Header({
   onClose,
@@ -35,6 +39,16 @@ export default function Header({
   const openSupportLink = (url) => {
     setSupportAnchor(null);
     window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleScreenshot = async () => {
+    try {
+      await sendTabMsg(MSG_IMAGE_SCREENSHOT);
+    } finally {
+      if (isExt) {
+        window.close();
+      }
+    }
   };
 
   return (
@@ -84,6 +98,13 @@ export default function Header({
               onClick={(event) => setSupportAnchor(event.currentTarget)}
             >
               <VolunteerActivismRoundedIcon />
+            </IconButton>
+            <IconButton
+              onClick={handleScreenshot}
+              aria-label={i18n("image_screenshot_translate", "截图翻译")}
+              title={i18n("image_screenshot_translate", "截图翻译")}
+            >
+              <CropRoundedIcon />
             </IconButton>
             <IconButton
               onClick={openSeparateWindow}

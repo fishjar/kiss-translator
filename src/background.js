@@ -47,7 +47,14 @@ import {
   MSG_SHA256,
   MSG_GET_FRAME_ID,
   MSG_VALIDATE_DOCUMENT,
+  CMD_IMAGE_SCREENSHOT,
+  MSG_IMAGE_SCREENSHOT,
+  MSG_CAPTURE_VISIBLE_TAB,
+  MSG_IMAGE_TRANSLATE_EXECUTE,
+  MSG_IMAGE_TRANSLATE_CANCEL,
+  MSG_IMAGE_TRANSLATE_PROGRESS,
 } from "./config";
+import { executeImagePipeline } from "./fileTranslation/pipelineCore";
 import {
   getSettingWithDefault,
   tryInitDefaultData,
@@ -493,7 +500,7 @@ async function addContextMenus(contextMenuType = 1) {
 
   switch (contextMenuType) {
     case 1:
-      // 简易模式：仅提供“双语对照翻译”与“翻译所选文本”
+      // 简易模式：仅提供“双语对照翻译”与“翻译所选文本”，不添加截图翻译以避免 Chrome 自动折叠为二级菜单
       browser.contextMenus.create({
         id: CMD_TOGGLE_TRANSLATE,
         title: browser.i18n.getMessage("toggle_translate"),
@@ -526,6 +533,11 @@ async function addContextMenus(contextMenuType = 1) {
         id: CMD_OPEN_TRANBOX,
         title: browser.i18n.getMessage("open_tranbox"),
         contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: CMD_IMAGE_SCREENSHOT,
+        title: browser.i18n.getMessage("image_screenshot") || "截图翻译",
+        contexts: ["page", "selection", "image"],
       });
       browser.contextMenus.create({
         id: "options_separator",
@@ -762,6 +774,8 @@ const handleCaptionCache = captionCacheBackend(browser, async () => {
   const setting = await getSettingWithDefault();
   return setting?.subtitleSetting?.captionCacheLimit ?? 100;
 });
+const activeImageTasks = new Map();
+
 const messageHandlers = {
   [MSG_YOUTUBE_CAPTION_CACHE]: handleCaptionCache,
   [MSG_GET_FRAME_ID]: (_args, sender) =>
@@ -804,6 +818,78 @@ const messageHandlers = {
       ? updateCacheFromActual(args.windowId)
       : undefined,
   [MSG_UPDATE_ICON]: (args, sender) => updateIcon(args, sender?.tab?.id), // 变更页面的插件高亮图标
+  [MSG_CAPTURE_VISIBLE_TAB]: async (_args, sender) => {
+    const windowId = sender?.tab?.windowId;
+    const tabId = sender?.tab?.id;
+    if (tabId != null && windowId != null) {
+      const [activeTab] = await browser.tabs.query({ active: true, windowId });
+      if (!activeTab || activeTab.id !== tabId) {
+        throw new Error("截图失败：标签页已切换或不在活跃状态");
+      }
+    }
+    const dataUrl = await browser.tabs.captureVisibleTab(windowId ?? null, {
+      format: "png",
+    });
+    return { dataUrl };
+  },
+  [MSG_IMAGE_TRANSLATE_EXECUTE]: async (args, sender) => {
+    const tabId = sender?.tab?.id ?? "global";
+    const taskId = args?.taskId || crypto.randomUUID();
+    const taskKey = `${tabId}:${taskId}`;
+    const controller = new AbortController();
+    activeImageTasks.set(taskKey, controller);
+
+    try {
+      let imageBlob = args?.imageBlob;
+      if (
+        (!imageBlob || !(imageBlob instanceof Blob) || imageBlob.size === 0) &&
+        args?.dataUrl
+      ) {
+        const res = await fetch(args.dataUrl);
+        imageBlob = await res.blob();
+      }
+
+      let progressSequence = 0;
+      const onProgress = (progress) => {
+        if (
+          !controller.signal.aborted &&
+          activeImageTasks.get(taskKey) === controller &&
+          sender?.tab?.id != null
+        ) {
+          sendTabMsg(
+            MSG_IMAGE_TRANSLATE_PROGRESS,
+            { taskId, ...progress, sequence: ++progressSequence },
+            undefined,
+            sender.tab.id
+          );
+        }
+      };
+
+      const result = await executeImagePipeline({
+        imageBlob,
+        scene: args?.scene,
+        action: args?.action,
+        items: args?.items,
+        selectedRegions: args?.selectedRegions,
+        signal: controller.signal,
+        onProgress,
+      });
+
+      return { taskId, success: true, result };
+    } finally {
+      activeImageTasks.delete(taskKey);
+    }
+  },
+  [MSG_IMAGE_TRANSLATE_CANCEL]: ({ taskId }, sender) => {
+    const tabId = sender?.tab?.id ?? "global";
+    const taskKey = `${tabId}:${taskId}`;
+    const controller = activeImageTasks.get(taskKey);
+    if (controller) {
+      controller.abort();
+      activeImageTasks.delete(taskKey);
+    }
+    return { success: true };
+  },
 };
 
 /**
@@ -843,6 +929,9 @@ browser.commands?.onCommand?.addListener?.((command) => {
     case CMD_OPEN_OPTIONS:
       openOptionsPage();
       break;
+    case CMD_IMAGE_SCREENSHOT:
+      sendTabMsg(MSG_IMAGE_SCREENSHOT);
+      break;
     case CMD_OPEN_SEPARATE_WINDOW:
       if (messageHandlers[MSG_OPEN_SEPARATE_WINDOW]) {
         messageHandlers[MSG_OPEN_SEPARATE_WINDOW]();
@@ -876,6 +965,9 @@ browser?.contextMenus?.onClicked?.addListener?.(
         break;
       case CMD_OPEN_OPTIONS:
         openOptionsPage();
+        break;
+      case CMD_IMAGE_SCREENSHOT:
+        sendTabMsg(MSG_IMAGE_SCREENSHOT);
         break;
       default:
     }

@@ -12,6 +12,7 @@ export const CMD_OPEN_OPTIONS = "openOptions"; // 打开选项配置页面
 export const CMD_OPEN_TRANBOX = "openTranbox"; // 开启划词翻译面板
 export const CMD_TOGGLE_TRANBOX = "toggleTranbox"; // 显隐划词翻译面板
 export const CMD_OPEN_SEPARATE_WINDOW = "openSeparateWindow"; // 打开独立的翻译悬浮窗口
+export const CMD_IMAGE_SCREENSHOT = "imageScreenshot"; // 截图翻译命令
 
 // --- 扩展运行中的内部通信 Message Action 常量 ---
 export const MSG_FETCH = "kiss_fetch"; // 代理请求 (避免内容脚本跨域限制)
@@ -53,6 +54,11 @@ export const MSG_OPEN_SEPARATE_WINDOW = "open_separate_window"; // 请求后台�
 export const MSG_FIT_SEPARATE_WINDOW = "fit_separate_window"; // Fit the separate window after its content renders.
 export const MSG_UPDATE_SEPARATE_WINDOW_BOUNDS =
   "update_separate_window_bounds"; // Cache the actual separate window bounds.
+export const MSG_IMAGE_SCREENSHOT = "image_screenshot"; // 触发当前页面截图翻译
+export const MSG_CAPTURE_VISIBLE_TAB = "capture_visible_tab"; // 请求后台捕获视口画面
+export const MSG_IMAGE_TRANSLATE_EXECUTE = "image_translate_execute"; // 请求后台执行图片识别/翻译流水线
+export const MSG_IMAGE_TRANSLATE_CANCEL = "image_translate_cancel"; // 取消图片识别/翻译任务
+export const MSG_IMAGE_TRANSLATE_PROGRESS = "image_translate_progress"; // 图片识别/翻译进度
 export const PORT_STREAM_FETCH = "kiss_stream_fetch"; // 双向长连接端口名称：用于大模型翻译时的流式输出通道
 export const MSG_UPDATE_ICON = "update_icon"; // 通知后台脚本更新扩展的工具栏图标状态 (激活/灰色状态)
 export const MSG_SHA256 = "sha256"; // 请求后台脚本代算 SHA-256 签名

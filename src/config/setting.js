@@ -325,6 +325,20 @@ export const DEFAULT_FILE_TRANSLATE_SETTING = {
   },
 };
 
+// --- 图片翻译场景核心配置 ---
+export const DEFAULT_IMAGE_TRANSLATE_SETTING = {
+  fromLang: "auto",
+  toLang: "zh-CN",
+  apiSlug: OPT_TRANS_MICROSOFT, // 文本翻译服务 API 标识
+  promptSlug: "", // 翻译提示词
+  layoutApiSlug: "", // 布局分析服务 API 标识（为空表示关闭）
+  recognitionService: {
+    apiSlug: "LocalAI-OCR",
+    capability: "recognizeText",
+  }, // 文本识别服务（默认预设 LocalAI OCR）
+  vlmPromptSlug: "", // VLM 提示词
+};
+
 // --- 全局默认设置对象，存储于 local storage ---
 export const DEFAULT_SETTING = {
   version: CURRENT_SETTINGS_VERSION,
@@ -360,6 +374,7 @@ export const DEFAULT_SETTING = {
   inputRule: DEFAULT_INPUT_RULE, // 输入框即时翻译相关配置
   tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译及字典结果面板配置
   fileTranslateSetting: DEFAULT_FILE_TRANSLATE_SETTING,
+  imageTranslateSetting: DEFAULT_IMAGE_TRANSLATE_SETTING, // 图片翻译场景配置
   // touchTranslate: 2, // 触屏翻译 {5:单指双击，6:单指三击，7:双指双击} (作废)
   touchModes: [2], // 触屏移动端翻译触发行为配置 (数组，支持多选，如单指双击/三击)
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用整页双语翻译的网址/黑名单列表

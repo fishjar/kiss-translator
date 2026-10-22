@@ -8,7 +8,9 @@ import { useSubtitle } from "../../hooks/Subtitle";
 import { I18N, UI_LANGS, DEFAULT_SUBTITLE_SETTING } from "../../config";
 import { AsrCacheClient } from "../../subtitle/asr/cacheBridge";
 import { captionCacheRequest } from "../../subtitle/captionCache";
-jest.mock("../../subtitle/captionCache", () => ({ captionCacheRequest: jest.fn() }));
+jest.mock("../../subtitle/captionCache", () => ({
+  captionCacheRequest: jest.fn(),
+}));
 beforeEach(() => captionCacheRequest.mockResolvedValue({ count: 0, bytes: 0 }));
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -110,10 +112,11 @@ describe("YouTube ASR settings", () => {
       let resolveStats, rejectStats;
       const close = jest.fn();
       AsrCacheClient.mockImplementationOnce(() => ({
-        getStats: () => new Promise((resolve, reject) => {
-          resolveStats = resolve;
-          rejectStats = reject;
-        }),
+        getStats: () =>
+          new Promise((resolve, reject) => {
+            resolveStats = resolve;
+            rejectStats = reject;
+          }),
         close,
       }));
       const view = renderSubtitle();
@@ -122,7 +125,10 @@ describe("YouTube ASR settings", () => {
       expect(close).toHaveBeenCalledTimes(1);
       await act(async () => {
         if (outcome === "resolve")
-          resolveStats({ subtitles: { bytes: 1, count: 1 }, audio: { bytes: 1, count: 1 } });
+          resolveStats({
+            subtitles: { bytes: 1, count: 1 },
+            audio: { bytes: 1, count: 1 },
+          });
         else rejectStats(new Error("CACHE_CLOSED"));
       });
       expect(close).toHaveBeenCalledTimes(2);
@@ -309,7 +315,9 @@ describe("YouTube ASR settings", () => {
     }));
     const view = renderSubtitle(),
       button = [...view.container.querySelectorAll("button")].find(
-        (item) => item.textContent.includes("youtube_asr_clear") && !item.textContent.includes("youtube_asr_clear_audio")
+        (item) =>
+          item.textContent.includes("youtube_asr_clear") &&
+          !item.textContent.includes("youtube_asr_clear_audio")
       );
     act(() => button.click());
     expect(button.disabled).toBe(true);
@@ -338,8 +346,8 @@ describe("YouTube ASR settings", () => {
       close,
     }));
     const view = renderSubtitle(),
-      button = [...view.container.querySelectorAll("button")].find(
-        (item) => item.textContent.includes("youtube_asr_clear_audio")
+      button = [...view.container.querySelectorAll("button")].find((item) =>
+        item.textContent.includes("youtube_asr_clear_audio")
       );
     expect(button).toBeDefined();
     act(() => button.click());
@@ -361,32 +369,50 @@ describe("YouTube ASR settings", () => {
     expect(input.getAttribute("max")).toBe("1000");
     view.unmount();
   });
-  test.each([0, 1000])("caption cache count accepts and saves %s videos", value => {
-    process.env.REACT_APP_CLIENT = "chrome";
-    const view = renderSubtitle();
-    const input = view.container.querySelector('input[name="captionCacheLimit"]');
-    expect(input.value).toBe("100");
-    expect(input.min).toBe("0");
-    expect(input.max).toBe("1000");
-    act(() => Simulate.change(input, { target: { value: String(value) } }));
-    act(() => Simulate.blur(input));
-    expect(view.updateSubtitle).toHaveBeenCalledWith({ captionCacheLimit: value });
-    view.unmount();
-  });
+  test.each([0, 1000])(
+    "caption cache count accepts and saves %s videos",
+    (value) => {
+      process.env.REACT_APP_CLIENT = "chrome";
+      const view = renderSubtitle();
+      const input = view.container.querySelector(
+        'input[name="captionCacheLimit"]'
+      );
+      expect(input.value).toBe("100");
+      expect(input.min).toBe("0");
+      expect(input.max).toBe("1000");
+      act(() => Simulate.change(input, { target: { value: String(value) } }));
+      act(() => Simulate.blur(input));
+      expect(view.updateSubtitle).toHaveBeenCalledWith({
+        captionCacheLimit: value,
+      });
+      view.unmount();
+    }
+  );
   test("clear subtitle cache waits for confirmation and ignores stale size results", async () => {
     process.env.REACT_APP_CLIENT = "chrome";
     let finishStats, finishClear;
-    captionCacheRequest.mockImplementation(action => new Promise(resolve => {
-      if (action === "stats") finishStats = resolve;
-      if (action === "clear") finishClear = resolve;
-    }));
+    captionCacheRequest.mockImplementation(
+      (action) =>
+        new Promise((resolve) => {
+          if (action === "stats") finishStats = resolve;
+          if (action === "clear") finishClear = resolve;
+        })
+    );
     const view = renderSubtitle();
-    const button = [...view.container.querySelectorAll("button")].find(b => b.textContent.includes("youtube_caption_cache_clear"));
+    const button = [...view.container.querySelectorAll("button")].find((b) =>
+      b.textContent.includes("youtube_caption_cache_clear")
+    );
     act(() => button.click());
     expect(button.disabled).toBe(true);
-    await act(async () => { finishClear(true); await Promise.resolve(); });
+    await act(async () => {
+      finishClear(true);
+      await Promise.resolve();
+    });
     expect(button.textContent).toContain("youtube_asr_cleared");
-    await act(async () => { finishStats({ count: 10, bytes: 9999 }); await Promise.resolve(); });
+    await act(async () => {
+      finishStats({ count: 10, bytes: 9999 });
+      await Promise.resolve();
+    });
     expect(button.textContent).toContain("(0 ·");
     expect(captionCacheRequest).toHaveBeenCalledWith("clear");
     view.unmount();
@@ -398,11 +424,16 @@ describe("YouTube ASR settings", () => {
       throw new Error("CACHE_FAILED");
     });
     const view = renderSubtitle();
-    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      await Promise.resolve();
+    });
     const button = [...view.container.querySelectorAll("button")].find((b) =>
       b.textContent.includes("youtube_caption_cache_clear")
     );
-    await act(async () => { button.click(); await Promise.resolve(); });
+    await act(async () => {
+      button.click();
+      await Promise.resolve();
+    });
     expect(button.textContent).toContain("youtube_caption_cache_clear_failed");
     expect(button.textContent).toContain("(3 ·");
     expect(button.disabled).toBe(false);

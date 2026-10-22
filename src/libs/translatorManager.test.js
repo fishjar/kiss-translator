@@ -16,6 +16,7 @@ const mockTransboxArgs = [];
 const mockInputTranslatorInstances = [];
 const mockPopupInstances = [];
 const mockFabInstances = [];
+const mockImageTranslateInstances = [];
 const mockPopupDocumentIdentity = jest.fn();
 const activeManagers = [];
 
@@ -166,8 +167,23 @@ jest.mock("./fabManager", () => ({
   FabManager: jest.fn().mockImplementation(() => {
     const instance = {
       destroy: jest.fn(),
+      suspend: jest.fn(),
+      resume: jest.fn(),
     };
     mockFabInstances.push(instance);
+    return instance;
+  }),
+}));
+
+jest.mock("./imageTranslate/imageTranslateManager", () => ({
+  ImageTranslateManager: jest.fn().mockImplementation(() => {
+    const instance = {
+      destroy: jest.fn(),
+      updateSetting: jest.fn(),
+      updateRule: jest.fn(),
+      startScreenshot: jest.fn(),
+    };
+    mockImageTranslateInstances.push(instance);
     return instance;
   }),
 }));
@@ -197,6 +213,9 @@ const { TransboxManager } = require("./tranbox");
 const { InputTranslator } = require("./inputTranslate");
 const { PopupManager } = require("./popupManager");
 const { FabManager } = require("./fabManager");
+const {
+  ImageTranslateManager,
+} = require("./imageTranslate/imageTranslateManager");
 const { sendIframeMsg } = require("./iframe");
 const TranslatorManager = require("./translatorManager").default;
 
@@ -280,8 +299,21 @@ function setupMockConstructors() {
   FabManager.mockImplementation(() => {
     const instance = {
       destroy: jest.fn(),
+      suspend: jest.fn(),
+      resume: jest.fn(),
     };
     mockFabInstances.push(instance);
+    return instance;
+  });
+
+  ImageTranslateManager.mockImplementation(() => {
+    const instance = {
+      destroy: jest.fn(),
+      updateSetting: jest.fn(),
+      updateRule: jest.fn(),
+      startScreenshot: jest.fn(),
+    };
+    mockImageTranslateInstances.push(instance);
     return instance;
   });
 }
@@ -377,6 +409,7 @@ describe("TranslatorManager SPA lifecycle", () => {
     mockInputTranslatorInstances.length = 0;
     mockPopupInstances.length = 0;
     mockFabInstances.length = 0;
+    mockImageTranslateInstances.length = 0;
     activeManagers.length = 0;
     setupMockConstructors();
   });
@@ -401,6 +434,21 @@ describe("TranslatorManager SPA lifecycle", () => {
     expect(mockPopupInstances[0].destroy).toHaveBeenCalledTimes(1);
     expect(mockFabInstances[0].destroy).toHaveBeenCalledTimes(1);
     expect(browser.runtime.onMessage.addListener).toHaveBeenCalledTimes(1);
+  });
+
+  test("coordinates screenshot FAB suspension and closes the image session before destroying the FAB", () => {
+    const manager = createManager();
+    manager.start();
+    const { onScreenshotSessionChange } =
+      ImageTranslateManager.mock.calls[0][0];
+    onScreenshotSessionChange(true);
+    expect(mockFabInstances[0].suspend).toHaveBeenCalledTimes(1);
+    onScreenshotSessionChange(false);
+    expect(mockFabInstances[0].resume).toHaveBeenCalledTimes(1);
+    manager.stop();
+    expect(
+      mockImageTranslateInstances[0].destroy.mock.invocationCallOrder[0]
+    ).toBeLessThan(mockFabInstances[0].destroy.mock.invocationCallOrder[0]);
   });
 
   test.each([false, true])(
@@ -1824,5 +1872,27 @@ describe("TranslatorManager SPA lifecycle", () => {
       browser.runtime.onMessage.addListener.mock.calls[0][0]
     );
     expect(mockTransboxInstances[0].disable).toHaveBeenCalledTimes(1);
+  });
+
+  test("syncs settings and rules to imageTranslateManager on storage update and MSG_TRANS_PUTRULE", () => {
+    const manager = createManager({
+      setting: { transApis: [{ apiSlug: "initial" }] },
+    });
+    manager.start();
+    const imageManager = mockImageTranslateInstances[0];
+
+    const newSetting = {
+      transApis: [{ apiSlug: "updated" }],
+      imageTranslateSetting: { fromLang: "en" },
+    };
+    sendSettingChange(newSetting);
+    expect(imageManager.updateSetting).toHaveBeenCalledWith(
+      expect.objectContaining(newSetting)
+    );
+
+    const newRule = { minWidth: 150 };
+    const handler = browser.runtime.onMessage.addListener.mock.calls[0][0];
+    handler({ action: "trans-putrule", args: newRule }, {}, jest.fn());
+    expect(imageManager.updateRule).toHaveBeenCalledWith(newRule);
   });
 });

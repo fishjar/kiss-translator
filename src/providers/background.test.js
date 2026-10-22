@@ -152,18 +152,35 @@ test("local host startup failure returns a typed error and releases its lease", 
 
 test("a local host without a ready handshake times out without retaining its port or lease", async () => {
   jest.useFakeTimers();
-  const previousChrome = global.chrome, previousConnect = browser.runtime.connect;
-  const relay = setup(), page = client();
-  const host = { onMessage: event(), onDisconnect: event(), postMessage: jest.fn(), disconnect: jest.fn() };
+  const previousChrome = global.chrome,
+    previousConnect = browser.runtime.connect;
+  const relay = setup(),
+    page = client();
+  const host = {
+    onMessage: event(),
+    onDisconnect: event(),
+    postMessage: jest.fn(),
+    disconnect: jest.fn(),
+  };
   global.chrome = { offscreen: { createDocument: jest.fn() } };
   browser.runtime.connect = jest.fn(() => host);
-  getSettingWithDefault.mockResolvedValue({ transApis: [{ apiSlug: "local", apiType: "LocalAI" }] });
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [{ apiSlug: "local", apiType: "LocalAI" }],
+  });
   try {
     relay.connect(page);
-    page.onMessage.emit({ type: "start", serviceId: "local", capability: "transcribe" });
+    page.onMessage.emit({
+      type: "start",
+      serviceId: "local",
+      capability: "transcribe",
+    });
     await flush();
     jest.advanceTimersByTime(10000);
-    expect(page.postMessage).toHaveBeenCalledWith(expect.objectContaining({ error: expect.objectContaining({ code: "HOST_STARTUP_FAILED" }) }));
+    expect(page.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({ code: "HOST_STARTUP_FAILED" }),
+      })
+    );
     expect(host.disconnect).toHaveBeenCalled();
     expect(page.disconnect).toHaveBeenCalled();
     expect(providerHostBusy()).toBe(false);

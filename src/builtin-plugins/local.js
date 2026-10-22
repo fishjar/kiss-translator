@@ -82,7 +82,9 @@ export const localHandlers = {
     });
     const languageInfo = {
       ...(result.language && { language: result.language }),
-      ...(result.languageConfidence !== undefined && { languageConfidence: result.languageConfidence }),
+      ...(result.languageConfidence !== undefined && {
+        languageConfidence: result.languageConfidence,
+      }),
       ...(result.languagePending && { languagePending: true }),
     };
     if (

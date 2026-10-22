@@ -65,6 +65,8 @@
     "build:userscript-ios": "zx src/scripts/build-ios.mjs",
     "build:rules": "babel-node src/rules.js",
     "format": "prettier --write \"**/*.{js,json,html}\"",
+    "check:pr": "pnpm run format && cross-env CI=true pnpm run check:pr:build",
+    "check:pr:build": "pnpm run build:web && pnpm run build:userscript-ios && pnpm run build:rules && pnpm run build:chrome",
     "build": "pnpm sync-version && pnpm format && pnpm build:chrome && pnpm build:edge && pnpm build:thunderbird && pnpm build:firefox && pnpm build:web && pnpm build:userscript-ios && pnpm build:rules",
     "zip": "zx src/scripts/archive.mjs",
     "build+zip": "cross-env CI=true pnpm build && pnpm zip",

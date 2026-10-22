@@ -77,6 +77,20 @@ function createPanelTarget() {
   return { host, shadow, wrapper };
 }
 
+function createFabTarget(menu = false) {
+  const host = document.createElement("div");
+  host.id = APP_CONSTS.fabID;
+  document.body.appendChild(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const button = document.createElement("button");
+  if (menu) button.setAttribute("role", "menuitem");
+  const icon = document.createElement("span");
+  button.appendChild(icon);
+  shadow.appendChild(button);
+  button.addEventListener("pointerdown", (event) => event.stopPropagation());
+  return icon;
+}
+
 function TestController({
   onState,
   triggerMode = "click",
@@ -287,6 +301,91 @@ describe("useSelectionController", () => {
     act(() => {
       controller.root.unmount();
     });
+  });
+
+  test.each([
+    ["fixed", false],
+    ["mouse", false],
+    ["fixed", true],
+    ["mouse", true],
+  ])(
+    "hides the selection button when pressing the FAB (%s position, menu: %s) without moving or clearing the selection",
+    async (btnPositionMode, menu) => {
+      const view = renderController({ btnPositionMode });
+      const paragraph = createParagraph("The library is open.");
+      currentSelection = makeSelection("library", paragraph);
+      await dispatchWindowMouseup();
+      expect(view.state.showBtn).toBe(true);
+      const position = view.state.position;
+      const target = createFabTarget(menu);
+      act(() =>
+        target.dispatchEvent(
+          new MouseEvent("pointerdown", { bubbles: true, composed: true })
+        )
+      );
+      expect(view.state.showBtn).toBe(false);
+      await act(async () => {
+        target.dispatchEvent(
+          new MouseEvent("mouseup", {
+            bubbles: true,
+            composed: true,
+            clientX: 300,
+            clientY: 400,
+          })
+        );
+        jest.advanceTimersByTime(300);
+      });
+      expect(view.state.showBtn).toBe(false);
+      expect(view.state.position).toEqual(position);
+      expect(view.state.showBox).toBe(false);
+      expect(window.getSelection().toString()).toBe("library");
+      currentSelection = makeSelection("open", paragraph);
+      await dispatchWindowMouseup();
+      expect(view.state.showBtn).toBe(true);
+      expect(view.state.selectedText).toBe("open");
+      act(() => view.root.unmount());
+    }
+  );
+
+  test("FAB interaction invalidates a selection awaiting language detection", async () => {
+    let finishDetection;
+    detectLangFast.mockReturnValue(
+      new Promise((resolve) => {
+        finishDetection = resolve;
+      })
+    );
+    const view = renderController();
+    const paragraph = createParagraph("The library is open.");
+    currentSelection = makeSelection("library", paragraph);
+    await dispatchWindowMouseup();
+    expect(detectLangFast).toHaveBeenCalledTimes(1);
+    const target = createFabTarget();
+    act(() =>
+      target.dispatchEvent(
+        new MouseEvent("pointerdown", { bubbles: true, composed: true })
+      )
+    );
+    await act(async () => finishDetection("en"));
+    expect(view.state.showBtn).toBe(false);
+    expect(view.state.showBox).toBe(false);
+    act(() => view.root.unmount());
+  });
+
+  test("FAB mouseup alone cancels a delayed selection rather than opening an automatic translation", async () => {
+    const view = renderController({ triggerMode: "select" });
+    const paragraph = createParagraph("The library is open.");
+    currentSelection = makeSelection("library", paragraph);
+    await dispatchWindowMouseup(0);
+    const target = createFabTarget(true);
+    await act(async () => {
+      target.dispatchEvent(
+        new MouseEvent("mouseup", { bubbles: true, composed: true })
+      );
+      jest.advanceTimersByTime(300);
+    });
+    expect(view.state.showBox).toBe(false);
+    expect(view.state.showBtn).toBe(false);
+    act(() => view.root.unmount());
   });
 
   test("keeps existing context when a later page mouseup has an empty selection", async () => {

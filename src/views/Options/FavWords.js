@@ -274,11 +274,7 @@ function FavAccordion({
                 ) : (
                   <>
                     {isWord && OPT_DICT_MAP.has(enDict) && (
-                      <DictCont
-                        text={word}
-                        enDict={enDict}
-                        source={source}
-                      />
+                      <DictCont text={word} enDict={enDict} source={source} />
                     )}
                     {isChineseChar && <Zdic text={word} />}
                   </>

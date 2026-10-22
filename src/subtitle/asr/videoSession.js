@@ -9,10 +9,7 @@ import { asrCacheSignatures } from "./signatures";
 import { normalizeCachedChunk } from "./cacheStore";
 import { readAsrCache } from "./cacheRecovery";
 import { AsrPauseGate } from "./pause";
-import {
-  missingIntervals,
-  coverageProgress,
-} from "./coverage";
+import { missingIntervals, coverageProgress } from "./coverage";
 import { transcribeAudioChunk } from "./transcribeChunk";
 import { remuxAac, cropAacSentence } from "./audioExport";
 import {
@@ -112,11 +109,16 @@ export class AsrVideoSession {
     this.controller = new AbortController();
     this.signal = this.controller.signal;
     this.textController = new AbortController();
-    this.signal.addEventListener("abort", () => this.textController.abort(), { once: true });
+    this.signal.addEventListener("abort", () => this.textController.abort(), {
+      once: true,
+    });
     this.pauseGate = new AsrPauseGate();
-    this.waitUntilRunning = (signal = this.signal) => this.pauseGate.wait(signal);
+    this.waitUntilRunning = (signal = this.signal) =>
+      this.pauseGate.wait(signal);
     this.audioController = new AbortController();
-    this.signal.addEventListener("abort", () => this.audioController.abort(), { once: true });
+    this.signal.addEventListener("abort", () => this.audioController.abort(), {
+      once: true,
+    });
     this.total = Math.round(identity.durationMs * 16);
     this.target = Math.min(
       this.total - 1,
@@ -202,79 +204,128 @@ export class AsrVideoSession {
     let phase = this.pauseGate.paused
       ? "paused"
       : this.recognitionPaused
-      ? "error"
-      : !this.restored
-        ? "restoring"
-        : (recognition.complete && translation.complete) ||
-          (recognition.complete &&
-            isSameLang(
-              this.language,
-              this.setting.toLang,
-              this.setting.translateVariants ?? true
-            ))
-          ? this.cacheHit
-            ? "cached"
-            : "complete"
-          : this.recognizing
-            ? "recognizing"
-            : this.postWork
-              ? "translating"
-              : patch.recognitionError ||
-                  this.state.recognitionError ||
-                  this.download?.error ||
-                  this.postFailures.size ||
-                  chunks.some((chunk) => chunk.stage === "failed")
-                ? "partial"
-                : "waiting";
+        ? "error"
+        : !this.restored
+          ? "restoring"
+          : (recognition.complete && translation.complete) ||
+              (recognition.complete &&
+                isSameLang(
+                  this.language,
+                  this.setting.toLang,
+                  this.setting.translateVariants ?? true
+                ))
+            ? this.cacheHit
+              ? "cached"
+              : "complete"
+            : this.recognizing
+              ? "recognizing"
+              : this.postWork
+                ? "translating"
+                : patch.recognitionError ||
+                    this.state.recognitionError ||
+                    this.download?.error ||
+                    this.postFailures.size ||
+                    chunks.some((chunk) => chunk.stage === "failed")
+                  ? "partial"
+                  : "waiting";
     this.state = {
       ...this.state,
       ...patch,
       paused: this.pauseGate.paused,
       cuttingActive: !!this.indexWork && !this.indexError && !this.indexWaiting,
       timestampDowngraded: !!this.timestampDowngraded,
-      chunkDurationSeconds: this.chunkDurationSeconds || asrChunkDurationSeconds(this.asrService),
-      cutting: this.cacheHit && !this.indexedUntil ? undefined : {
-        samples: this.indexedUntil || 0,
-        totalSamples: this.total,
-        complete: !!this.indexComplete,
-      },
+      chunkDurationSeconds:
+        this.chunkDurationSeconds || asrChunkDurationSeconds(this.asrService),
+      cutting:
+        this.cacheHit && !this.indexedUntil
+          ? undefined
+          : {
+              samples: this.indexedUntil || 0,
+              totalSamples: this.total,
+              complete: !!this.indexComplete,
+            },
       timingSource: chunks.some((chunk) => chunk.timingSource === "audio-chunk")
         ? "audio-chunk"
         : "asr",
       phase,
       recognition,
       translation,
-      audio: this.download?.state || { phase: "missing", cacheStatus: this.audioCacheStatus },
+      audio: this.download?.state || {
+        phase: "missing",
+        cacheStatus: this.audioCacheStatus,
+      },
       targetMs: this.target / 16,
       cacheMode: this.cacheMode,
       cacheSaved: this.cacheMode !== "session" && !this.cacheFailed,
-      cacheWarning: this.download?.cacheWriteFailed ? "CACHE_WRITE_FAILED" :
-        this.download?.memoryOnly ? "CACHE_READ_FAILED" : undefined,
+      cacheWarning: this.download?.cacheWriteFailed
+        ? "CACHE_WRITE_FAILED"
+        : this.download?.memoryOnly
+          ? "CACHE_READ_FAILED"
+          : undefined,
     };
     const failures = [
-      ...(this.download?.error ? [{ stage: "audio", code: this.download.error.code }] : []),
-      ...(this.indexError ? [{ stage: "cutting", code: this.indexError.code }] : []),
-      ...(this.workError ? [{ stage: "recognition", code: this.workError.code || "AUDIO_DECODE_FAILED" }] : []),
-      ...chunks.filter(block => block.stage === "failed").map(block => ({ stage: "recognition", code: block.errorCode })),
-      ...[...this.postFailures].map(start => ({ stage: "translation", code: this.postErrors?.get(start) })),
+      ...(this.download?.error
+        ? [{ stage: "audio", code: this.download.error.code }]
+        : []),
+      ...(this.indexError
+        ? [{ stage: "cutting", code: this.indexError.code }]
+        : []),
+      ...(this.workError
+        ? [
+            {
+              stage: "recognition",
+              code: this.workError.code || "AUDIO_DECODE_FAILED",
+            },
+          ]
+        : []),
+      ...chunks
+        .filter((block) => block.stage === "failed")
+        .map((block) => ({ stage: "recognition", code: block.errorCode })),
+      ...[...this.postFailures].map((start) => ({
+        stage: "translation",
+        code: this.postErrors?.get(start),
+      })),
     ];
     if (!failures.length && this.state.recognitionError)
-      failures.push({ stage: "recognition", code: this.state.recognitionError });
-    const audioBusy = ["fetching", "restoring", "cooldown"].includes(this.download?.state?.phase);
-    const runnable = !this.recognitionPaused && !this.indexError && !this.workError &&
-      [...this.chunkIndex.values()].some(chunk => !this.blocks.has(chunk.startSample) &&
-        (this.recognitionRetries.has(chunk.startSample) || chunk.endSample > this.target || this.indexComplete));
+      failures.push({
+        stage: "recognition",
+        code: this.state.recognitionError,
+      });
+    const audioBusy = ["fetching", "restoring", "cooldown"].includes(
+      this.download?.state?.phase
+    );
+    const runnable =
+      !this.recognitionPaused &&
+      !this.indexError &&
+      !this.workError &&
+      [...this.chunkIndex.values()].some(
+        (chunk) =>
+          !this.blocks.has(chunk.startSample) &&
+          (this.recognitionRetries.has(chunk.startSample) ||
+            chunk.endSample > this.target ||
+            this.indexComplete)
+      );
     this.state.failures = failures;
-    this.state.working = !!(audioBusy || this.work || this.indexWork || this.postWork ||
-      this.audioReset || runnable || this.pendingPostBlock());
-    this.state.stoppedByError = !!failures.length && !this.signal.aborted &&
-      !this.pauseGate.paused && !this.state.working;
+    this.state.working = !!(
+      audioBusy ||
+      this.work ||
+      this.indexWork ||
+      this.postWork ||
+      this.audioReset ||
+      runnable ||
+      this.pendingPostBlock()
+    );
+    this.state.stoppedByError =
+      !!failures.length &&
+      !this.signal.aborted &&
+      !this.pauseGate.paused &&
+      !this.state.working;
     this.onState(this.state);
     this.onSubtitles(this.subtitles(), this.state);
   }
   async start() {
     this.emit();
-    this.limits = Object.freeze({ ...await this.getLimits(this.asrService) });
+    this.limits = Object.freeze({ ...(await this.getLimits(this.asrService)) });
     this.chunkDurationSeconds = asrChunkDurationSeconds(this.asrService);
     this.check();
     if (this.cacheMode === "session") {
@@ -303,18 +354,27 @@ export class AsrVideoSession {
     this.emit();
     let cached;
     try {
-      cached = this.restoreText ? await readAsrCache(() => this.cache.getVideo(this.textIdentity, this.signatures, {
-        signal: this.signal,
-        onChunk: (chunk) => {
-          if (!this.signal.aborted) {
-            this.blocks.set(chunk.startSample, chunk);
-            this.setDetectedLanguage(chunk.language, chunk.languageConfidence);
-            if (chunk.stage !== "failed")
-              this.onTask({ ...blockTask(chunk), cached: true });
-            this.emit();
-          }
-        },
-      }), this.signal) : null;
+      cached = this.restoreText
+        ? await readAsrCache(
+            () =>
+              this.cache.getVideo(this.textIdentity, this.signatures, {
+                signal: this.signal,
+                onChunk: (chunk) => {
+                  if (!this.signal.aborted) {
+                    this.blocks.set(chunk.startSample, chunk);
+                    this.setDetectedLanguage(
+                      chunk.language,
+                      chunk.languageConfidence
+                    );
+                    if (chunk.stage !== "failed")
+                      this.onTask({ ...blockTask(chunk), cached: true });
+                    this.emit();
+                  }
+                },
+              }),
+            this.signal
+          )
+        : null;
       this.check();
       for (const chunk of cached?.chunks || []) {
         this.blocks.set(chunk.startSample, chunk);
@@ -323,7 +383,8 @@ export class AsrVideoSession {
           this.onTask({ ...blockTask(chunk), cached: true });
       }
       if ([...this.blocks.values()].some((chunk) => chunk.stage === "failed")) {
-        if (this.cacheMode !== "session") await this.cache.removeFailed(this.textIdentity);
+        if (this.cacheMode !== "session")
+          await this.cache.removeFailed(this.textIdentity);
         this.check();
         for (const [key, chunk] of this.blocks)
           if (chunk.stage === "failed") this.blocks.delete(key);
@@ -331,7 +392,10 @@ export class AsrVideoSession {
     } catch (cause) {
       this.check();
       this.cacheFailed = true;
-      logger.debug("[YouTube ASR cache] text restore failed", cause.code || cause.name);
+      logger.debug(
+        "[YouTube ASR cache] text restore failed",
+        cause.code || cause.name
+      );
       this.state.cacheError = cause.code || "CACHE_UNAVAILABLE";
     }
     this.restored = true;
@@ -356,8 +420,7 @@ export class AsrVideoSession {
     this.emit();
     if (this.cacheHit) return this.state;
     this.queuePostProcessing();
-    if (this.missing().length && !this.deferAudio)
-      await this.resumeAudio();
+    if (this.missing().length && !this.deferAudio) await this.resumeAudio();
     return this.state;
   }
   missing(includeFailed = true) {
@@ -373,7 +436,8 @@ export class AsrVideoSession {
   }
   ensureDownload() {
     if (this.download) return this.download;
-    if (this.audioReset) throw new DOMException("Audio is resetting", "AbortError");
+    if (this.audioReset)
+      throw new DOMException("Audio is resetting", "AbortError");
     let download;
     const options = {
       bridge: this.bridge,
@@ -395,7 +459,8 @@ export class AsrVideoSession {
         if (this.download === download) this.wake();
       },
       onTask: (task) => {
-        if (!this.signal.aborted && this.download === download) this.onTask(task);
+        if (!this.signal.aborted && this.download === download)
+          this.onTask(task);
       },
     };
     if (this.retainedAudio) {
@@ -403,20 +468,31 @@ export class AsrVideoSession {
       this.retainedAudio = undefined;
       download = retained.download;
       Object.assign(download, {
-        waitUntilRunning: options.waitUntilRunning, onState: options.onState,
-        onTask: options.onTask, onSegment: options.onSegment,
+        waitUntilRunning: options.waitUntilRunning,
+        onState: options.onState,
+        onTask: options.onTask,
+        onSegment: options.onSegment,
       });
       this.asrLease = retained.lease;
-      this.asrLease?.ready.then(() => this.wake(), () => this.wake());
-      for (const segment of download.index.values()) if (segment.index > 0)
-        this.onTask({ ...segment, id: `media-${segment.index}`, kind: "media", download: "complete" });
+      this.asrLease?.ready.then(
+        () => this.wake(),
+        () => this.wake()
+      );
+      for (const segment of download.index.values())
+        if (segment.index > 0)
+          this.onTask({
+            ...segment,
+            id: `media-${segment.index}`,
+            kind: "media",
+            download: "complete",
+          });
     } else download = this.createDownload(options);
     this.download = download;
     return this.download;
   }
   resetAudio(remove = async () => {}) {
     this.check();
-    const version = this.audioVersion = (this.audioVersion || 0) + 1;
+    const version = (this.audioVersion = (this.audioVersion || 0) + 1);
     this.audioController.abort();
     this.cancelFullExport();
     this.asrLease?.release();
@@ -425,7 +501,12 @@ export class AsrVideoSession {
     this.download = undefined;
     const disposing = old?.dispose();
     const job = Promise.allSettled([
-      this.audioReset, disposing, this.work, this.indexWork, this.sentenceJob?.task, this.fullJob,
+      this.audioReset,
+      disposing,
+      this.work,
+      this.indexWork,
+      this.sentenceJob?.task,
+      this.fullJob,
     ]).then(async () => {
       this.check();
       await remove();
@@ -457,7 +538,10 @@ export class AsrVideoSession {
     const download = this.ensureDownload();
     if (!this.asrLease) {
       this.asrLease = download.acquire("asr");
-      this.asrLease.ready.then(() => this.wake(), () => this.wake());
+      this.asrLease.ready.then(
+        () => this.wake(),
+        () => this.wake()
+      );
     }
     if (this.missing().length && !this.limits) {
       this.limits = await this.getLimits(this.asrService);
@@ -477,8 +561,12 @@ export class AsrVideoSession {
       merged.stage = current.stage;
     const block = normalizeCachedChunk(merged);
     this.blocks.set(block.startSample, block);
-    if (block.stage !== "failed" && !this.indexError && !this.workError &&
-        ![...this.blocks.values()].some(block => block.stage === "failed"))
+    if (
+      block.stage !== "failed" &&
+      !this.indexError &&
+      !this.workError &&
+      ![...this.blocks.values()].some((block) => block.stage === "failed")
+    )
       this.state.recognitionError = undefined;
     const task = blockTask(block);
     if (
@@ -510,7 +598,8 @@ export class AsrVideoSession {
     return block;
   }
   async setTranslationTarget(setting, processor, signatures) {
-    const version = this.translationVersion = (this.translationVersion || 0) + 1;
+    const version = (this.translationVersion =
+      (this.translationVersion || 0) + 1);
     this.translationChanging = true;
     this.textController.abort();
     this.setting = setting;
@@ -522,11 +611,21 @@ export class AsrVideoSession {
     this.postRetries.clear();
     for (const [start, block] of this.blocks) {
       if (block.stage === "failed" || block.silent) continue;
-      const cleared = { ...block,
-        subtitles: block.subtitles.map(cue => ({ ...cue, translation: "", _isDraftTranslation: false })),
-        stage: block.stage === "translated" ? "segmented" : block.stage };
+      const cleared = {
+        ...block,
+        subtitles: block.subtitles.map((cue) => ({
+          ...cue,
+          translation: "",
+          _isDraftTranslation: false,
+        })),
+        stage: block.stage === "translated" ? "segmented" : block.stage,
+      };
       this.blocks.set(start, cleared);
-      this.onTask({ ...blockTask(cleared), processing: undefined, translationError: undefined });
+      this.onTask({
+        ...blockTask(cleared),
+        processing: undefined,
+        translationError: undefined,
+      });
     }
     this.emit({ translationError: undefined, cacheRestored: false });
     try {
@@ -549,28 +648,40 @@ export class AsrVideoSession {
   pendingPostBlock() {
     if (this.cacheHit && !this.postRetries.size) return;
     return [...this.blocks.values()]
-        .filter(
-          (block) =>
-            block.stage !== "failed" &&
-            block.stage !== "translated" &&
-            !this.postFailures.has(block.startSample) &&
-            (this.postRetries.has(block.startSample) || block.endSample > this.target ||
-              (this.indexComplete && ![...this.chunkIndex.values()].some(
-                (chunk) => chunk.endSample > this.target && !this.blocks.has(chunk.startSample)
-              )) || this.missing().length === 0)
-        )
-        .sort(
-          (a, b) =>
-            (a.endSample <= this.target) - (b.endSample <= this.target) ||
-            a.startSample - b.startSample
-        )[0];
+      .filter(
+        (block) =>
+          block.stage !== "failed" &&
+          block.stage !== "translated" &&
+          !this.postFailures.has(block.startSample) &&
+          (this.postRetries.has(block.startSample) ||
+            block.endSample > this.target ||
+            (this.indexComplete &&
+              ![...this.chunkIndex.values()].some(
+                (chunk) =>
+                  chunk.endSample > this.target &&
+                  !this.blocks.has(chunk.startSample)
+              )) ||
+            this.missing().length === 0)
+      )
+      .sort(
+        (a, b) =>
+          (a.endSample <= this.target) - (b.endSample <= this.target) ||
+          a.startSample - b.startSample
+      )[0];
   }
   queuePostProcessing() {
-    if (!this.restored || this.signal.aborted || this.postWork || this.translationChanging) return;
+    if (
+      !this.restored ||
+      this.signal.aborted ||
+      this.postWork ||
+      this.translationChanging
+    )
+      return;
     const signal = this.textController.signal;
     const check = () => {
       this.check();
-      if (signal.aborted) throw new DOMException("Translation replaced", "AbortError");
+      if (signal.aborted)
+        throw new DOMException("Translation replaced", "AbortError");
     };
     const pending = () => this.pendingPostBlock();
     if (!pending()) {
@@ -650,7 +761,10 @@ export class AsrVideoSession {
             if (signal.aborted) break;
             this.postFailures.add(block.startSample);
             this.postErrors ||= new Map();
-            this.postErrors.set(block.startSample, cause.code || "TRANSLATION_FAILED");
+            this.postErrors.set(
+              block.startSample,
+              cause.code || "TRANSLATION_FAILED"
+            );
             this.onTask({
               id: `block-${block.startSample}`,
               processing: undefined,
@@ -673,8 +787,13 @@ export class AsrVideoSession {
   }
   wake() {
     // Download retries and cache rebuilds keep the session; release their scanner error.
-    if (this.indexDownloadError && !this.indexWork && !this.download?.error &&
-        this.download?.index.has(0) && this.download.coverageMs > 0) {
+    if (
+      this.indexDownloadError &&
+      !this.indexWork &&
+      !this.download?.error &&
+      this.download?.index.has(0) &&
+      this.download.coverageMs > 0
+    ) {
       const error = this.indexError;
       this.indexError = undefined;
       this.indexDownloadError = false;
@@ -701,8 +820,15 @@ export class AsrVideoSession {
     this.work = Promise.resolve()
       .then(() => this.runRecognition())
       .catch((cause) => {
-        if (!this.signal.aborted && !this.audioReset && cause.name !== "AbortError" && cause.code !== "ASR_PAUSED" && !cause.cacheReadError) {
-          if (!this.indexError && cause !== this.download?.error) this.workError = cause;
+        if (
+          !this.signal.aborted &&
+          !this.audioReset &&
+          cause.name !== "AbortError" &&
+          cause.code !== "ASR_PAUSED" &&
+          !cause.cacheReadError
+        ) {
+          if (!this.indexError && cause !== this.download?.error)
+            this.workError = cause;
           this.emit({ recognitionError: cause.code || "AUDIO_DECODE_FAILED" });
         }
       })
@@ -719,8 +845,14 @@ export class AsrVideoSession {
         this.mediaWaiters.delete(wake);
         signal.removeEventListener("abort", abort);
       };
-      const wake = () => { cleanup(); resolve(); };
-      const abort = () => { cleanup(); reject(signal.reason || new DOMException("Cancelled", "AbortError")); };
+      const wake = () => {
+        cleanup();
+        resolve();
+      };
+      const abort = () => {
+        cleanup();
+        reject(signal.reason || new DOMException("Cancelled", "AbortError"));
+      };
       this.mediaWaiters.add(wake);
       signal.addEventListener("abort", abort, { once: true });
       if (signal.aborted) abort();
@@ -737,7 +869,8 @@ export class AsrVideoSession {
       .catch((cause) => {
         if (!this.signal.aborted && !this.audioController.signal.aborted) {
           this.indexError = cause;
-          this.indexDownloadError = cause === download.error || cause.cacheReadError === true;
+          this.indexDownloadError =
+            cause === download.error || cause.cacheReadError === true;
           this.emit({ recognitionError: cause.code || "AUDIO_DECODE_FAILED" });
         }
       })
@@ -754,21 +887,40 @@ export class AsrVideoSession {
     while (!this.signal.aborted && !this.seeking && !this.recognitionPaused) {
       await this.waitUntilRunning(this.audioController.signal);
       this.ensureIndex();
-      const pending = [...this.chunkIndex.values()].filter((chunk) => !this.blocks.has(chunk.startSample));
+      const pending = [...this.chunkIndex.values()].filter(
+        (chunk) => !this.blocks.has(chunk.startSample)
+      );
       const forward = pending.filter((chunk) => chunk.endSample > this.target);
       // Do not backfill while the canonical scanner is still discovering later blocks.
-      const chunk = pending.find(chunk => this.recognitionRetries.has(chunk.startSample)) ||
-        forward[0] || (this.indexComplete ? pending[0] : undefined);
+      const chunk =
+        pending.find((chunk) =>
+          this.recognitionRetries.has(chunk.startSample)
+        ) ||
+        forward[0] ||
+        (this.indexComplete ? pending[0] : undefined);
       if (!chunk) {
-        if (this.indexComplete && this.languageAttempts && this.language === "auto") {
+        if (
+          this.indexComplete &&
+          this.languageAttempts &&
+          this.language === "auto"
+        ) {
           this.recognitionPaused = true;
           this.emit({ recognitionError: "LANGUAGE_UNCERTAIN" });
         }
-        if (this.indexComplete || this.state.recognitionError || this.download.error) return;
+        if (
+          this.indexComplete ||
+          this.state.recognitionError ||
+          this.download.error
+        )
+          return;
         await this.waitForMedia(this.audioController.signal);
         continue;
       }
-      await this.decodeRange({ ...chunk, start: chunk.startSample, end: chunk.endSample });
+      await this.decodeRange({
+        ...chunk,
+        start: chunk.startSample,
+        end: chunk.endSample,
+      });
       this.check();
     }
   }
@@ -782,7 +934,8 @@ export class AsrVideoSession {
       pipeline;
     const checkAudio = () => {
       this.check();
-      if (signal.aborted) throw signal.reason || new DOMException("Cancelled", "AbortError");
+      if (signal.aborted)
+        throw signal.reason || new DOMException("Cancelled", "AbortError");
       if (download !== this.download) throw fail("AUDIO_SESSION_MISSING");
       if (!indexOnly && this.recognitionPaused) throw fail("ASR_PAUSED");
     };
@@ -791,8 +944,9 @@ export class AsrVideoSession {
         this.indexWaiting = true;
         this.emit();
       }
-      try { await this.waitForMedia(signal); }
-      finally {
+      try {
+        await this.waitForMedia(signal);
+      } finally {
         if (indexOnly) {
           this.indexWaiting = false;
           this.emit();
@@ -820,16 +974,22 @@ export class AsrVideoSession {
       checkAudio();
       if (indexOnly) {
         const indexed = {
-          startSample: chunk.startSample, endSample: chunk.endSample,
+          startSample: chunk.startSample,
+          endSample: chunk.endSample,
           silent: chunk.silent,
         };
         this.chunkIndex.set(chunk.startSample, indexed);
         this.indexedUntil = chunk.endSample;
-        if (!this.blocks.has(chunk.startSample)) this.onTask({
-          id: `block-${chunk.startSample}`, kind: "block",
-          startMs: chunk.startSample / 16, endMs: chunk.endSample / 16,
-          recognition: "waiting", translation: "waiting", indexed: true,
-        });
+        if (!this.blocks.has(chunk.startSample))
+          this.onTask({
+            id: `block-${chunk.startSample}`,
+            kind: "block",
+            startMs: chunk.startSample / 16,
+            endMs: chunk.endSample / 16,
+            recognition: "waiting",
+            translation: "waiting",
+            indexed: true,
+          });
         this.emit();
         this.wake();
         return;
@@ -877,11 +1037,19 @@ export class AsrVideoSession {
           }
         );
         this.check();
-        if (signal.aborted) throw signal.reason || new DOMException("Cancelled", "AbortError");
+        if (signal.aborted)
+          throw signal.reason || new DOMException("Cancelled", "AbortError");
         if (result.languagePending) {
           this.languageAttempts = (this.languageAttempts || 0) + 1;
-          await this.saveBlock({ startSample: chunk.startSample, endSample: chunk.endSample,
-            silent: false, segments: [], subtitles: [], stage: "failed", errorCode: "LANGUAGE_DETECTION_PENDING" });
+          await this.saveBlock({
+            startSample: chunk.startSample,
+            endSample: chunk.endSample,
+            silent: false,
+            segments: [],
+            subtitles: [],
+            stage: "failed",
+            errorCode: "LANGUAGE_DETECTION_PENDING",
+          });
           if (this.languageAttempts >= 3) {
             this.recognitionPaused = true;
             this.emit({ recognitionError: "LANGUAGE_UNCERTAIN" });
@@ -891,10 +1059,11 @@ export class AsrVideoSession {
         }
         this.setDetectedLanguage(result.language, result.languageConfidence);
         if (this.language !== "auto" && this.languageAttempts) {
-          for (const [start, block] of this.blocks) if (block.errorCode === "LANGUAGE_DETECTION_PENDING") {
-            this.blocks.delete(start);
-            this.recognitionRetries.add(start);
-          }
+          for (const [start, block] of this.blocks)
+            if (block.errorCode === "LANGUAGE_DETECTION_PENDING") {
+              this.blocks.delete(start);
+              this.recognitionRetries.add(start);
+            }
           this.languageAttempts = 0;
         }
         if (
@@ -943,9 +1112,13 @@ export class AsrVideoSession {
         });
         this.onTask({ id: task.id, ...failure });
         if (
-          ["HOST_STARTUP_FAILED", "HOST_UNAVAILABLE", "HOST_CLOSED", "LANGUAGE_DETECTION_UNAVAILABLE", "UNSUPPORTED_LANGUAGE"].includes(
-            failure.errorCode
-          )
+          [
+            "HOST_STARTUP_FAILED",
+            "HOST_UNAVAILABLE",
+            "HOST_CLOSED",
+            "LANGUAGE_DETECTION_UNAVAILABLE",
+            "UNSUPPORTED_LANGUAGE",
+          ].includes(failure.errorCode)
         )
           this.recognitionPaused = true;
         this.emit({ recognitionError: failure.errorCode });
@@ -977,8 +1150,13 @@ export class AsrVideoSession {
             this.chunkDurationSeconds,
             submit,
             signal,
-            { ...this.limits, startSample: range.start, endSample: range.end,
-              fixedRange: !indexOnly, silent: range.silent }
+            {
+              ...this.limits,
+              startSample: range.start,
+              endSample: range.end,
+              fixedRange: !indexOnly,
+              silent: range.silent,
+            }
           );
           decoder = this.createDecoder(onAudio, signal);
           const init = await download.readAudio(0, {
@@ -997,10 +1175,7 @@ export class AsrVideoSession {
           await waitForMore();
           continue;
         }
-        const row = await download.readAudio(
-          nextIndex++,
-          { signal }
-        );
+        const row = await download.readAudio(nextIndex++, { signal });
         checkAudio();
         if (!row) throw fail("AUDIO_CACHE_MISSING");
         await this.waitUntilRunning(signal);
@@ -1053,12 +1228,25 @@ export class AsrVideoSession {
   async retryRecognition(taskId) {
     this.check();
     if (taskId !== undefined) {
-      const block = [...this.blocks.values()].find(block => `block-${block.startSample}` === taskId);
-      if (!block || block.stage !== "failed" || this.recognitionRetries.has(block.startSample)) return;
+      const block = [...this.blocks.values()].find(
+        (block) => `block-${block.startSample}` === taskId
+      );
+      if (
+        !block ||
+        block.stage !== "failed" ||
+        this.recognitionRetries.has(block.startSample)
+      )
+        return;
       this.recognitionRetries.add(block.startSample);
       this.blocks.delete(block.startSample);
       this.recognitionPaused = false;
-      this.onTask({ id: taskId, recognition: "queued", errorCode: undefined, errorDetail: undefined, retrying: true });
+      this.onTask({
+        id: taskId,
+        recognition: "queued",
+        errorCode: undefined,
+        errorDetail: undefined,
+        retrying: true,
+      });
       this.emit({ recognitionError: undefined });
       this.wake();
       return;
@@ -1092,8 +1280,12 @@ export class AsrVideoSession {
         await this.cache.removeFailed(this.textIdentity);
       } catch (cause) {
         this.check();
-        if (cause.name === "AbortError" || cause.code === "STALE_VIDEO" ||
-            cause.code === "AUDIO_IDENTITY_MISMATCH") throw cause;
+        if (
+          cause.name === "AbortError" ||
+          cause.code === "STALE_VIDEO" ||
+          cause.code === "AUDIO_IDENTITY_MISMATCH"
+        )
+          throw cause;
         this.cacheFailed = true;
         this.emit({ cacheError: cause.code || "CACHE_UNAVAILABLE" });
       }
@@ -1127,14 +1319,27 @@ export class AsrVideoSession {
       this.postFailures.delete(start);
       this.postRetries.add(start);
       this.postErrors?.delete(start);
-      this.onTask({ id: `block-${start}`, translation: "waiting", translationError: undefined, retrying: true });
+      this.onTask({
+        id: `block-${start}`,
+        translation: "waiting",
+        translationError: undefined,
+        retrying: true,
+      });
     }
     this.emit({ translationError: undefined });
     this.queuePostProcessing();
   }
   async retryIncomplete() {
-    const recoverAudio = !!this.download?.error || !!this.indexError || this.missing().length > 0 ||
-      ["AUDIO_CACHE_MISSING", "AUDIO_SESSION_MISSING", "CACHE_DISCONNECTED", "CACHE_CLOSED"].includes(this.state.recognitionError);
+    const recoverAudio =
+      !!this.download?.error ||
+      !!this.indexError ||
+      this.missing().length > 0 ||
+      [
+        "AUDIO_CACHE_MISSING",
+        "AUDIO_SESSION_MISSING",
+        "CACHE_DISCONNECTED",
+        "CACHE_CLOSED",
+      ].includes(this.state.recognitionError);
     await this.retryRecognition();
     this.check();
     if (recoverAudio && !this.download?.complete()) await this.resumeAudio();
@@ -1179,7 +1384,8 @@ export class AsrVideoSession {
           cue.end,
           { signal }
         );
-        if (signal.aborted) throw signal.reason || new DOMException("Cancelled", "AbortError");
+        if (signal.aborted)
+          throw signal.reason || new DOMException("Cancelled", "AbortError");
         return result;
       } catch (cause) {
         if (cause?.code === "AUDIO_CACHE_MISSING") {
@@ -1220,7 +1426,11 @@ export class AsrVideoSession {
             onProgress: (progress) => this.emit({ fullExport: progress.phase }),
           }
         );
-        if (controller.signal.aborted) throw controller.signal.reason || new DOMException("Cancelled", "AbortError");
+        if (controller.signal.aborted)
+          throw (
+            controller.signal.reason ||
+            new DOMException("Cancelled", "AbortError")
+          );
         this.emit({ fullExport: "ready" });
         return result;
       } catch (cause) {

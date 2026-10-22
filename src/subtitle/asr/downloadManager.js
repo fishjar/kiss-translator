@@ -191,7 +191,8 @@ export class AudioDownloadManager {
     await this.waitUntilRunning(signal);
     if (signal.aborted) throw signal.reason || abortError();
     // User pause time is not a network stall.
-    if (this.lastProgress !== undefined) this.lastProgress += this.now() - started;
+    if (this.lastProgress !== undefined)
+      this.lastProgress += this.now() - started;
   }
   async begin(positionMs, signal) {
     await this.awaitRunning(signal);
@@ -271,24 +272,42 @@ export class AudioDownloadManager {
       await this.wait(until - this.now(), signal);
       if (signal.aborted) throw signal.reason || abortError();
     }
-    this.emit({ phase: this.memoryOnly ? "fetching" : "restoring",
-      cacheStatus: this.cacheMode === "session" ? undefined : "checking", code: undefined, cooldownUntil: 0 });
+    this.emit({
+      phase: this.memoryOnly ? "fetching" : "restoring",
+      cacheStatus: this.cacheMode === "session" ? undefined : "checking",
+      code: undefined,
+      cooldownUntil: 0,
+    });
     let existing = [];
     if (!this.memoryOnly && !this.bound) {
       const restored = await readAsrCache(async () => {
-        const found = this.audioLookup !== undefined ? this.audioLookup :
-          await this.cache.findAudioSession?.(this.identity, { signal });
-        this.sessionId = found?.sessionId || this.sessionId || await audioSessionId(this.identity, key);
+        const found =
+          this.audioLookup !== undefined
+            ? this.audioLookup
+            : await this.cache.findAudioSession?.(this.identity, { signal });
+        this.sessionId =
+          found?.sessionId ||
+          this.sessionId ||
+          (await audioSessionId(this.identity, key));
         if (signal.aborted) throw signal.reason || abortError();
         await this.cache.beginAudio(this.sessionId, this.identity, { signal });
         this.bound = true;
-        return { rows: this.audioLookup === null ? [] : found?.index || (await this.cache.listAudio?.(this.sessionId, { signal })) || [] };
+        return {
+          rows:
+            this.audioLookup === null
+              ? []
+              : found?.index ||
+                (await this.cache.listAudio?.(this.sessionId, { signal })) ||
+                [],
+        };
       }, signal);
       if (restored) existing = restored.rows;
       else this.memoryOnly = true;
     }
-    this.sessionId ||= this.cacheMode === "session" ?
-      `session-${this.identity.videoId}` : await audioSessionId(this.identity, key);
+    this.sessionId ||=
+      this.cacheMode === "session"
+        ? `session-${this.identity.videoId}`
+        : await audioSessionId(this.identity, key);
     this.lastProgress = this.now();
     if (this.index.size === 0) {
       if (existing.length) {
@@ -334,7 +353,15 @@ export class AudioDownloadManager {
         }
       }
     }
-    this.emit({ phase: "fetching", cacheStatus: this.cacheMode === "session" ? undefined : this.coverageMs > 0 ? "partial" : "miss" });
+    this.emit({
+      phase: "fetching",
+      cacheStatus:
+        this.cacheMode === "session"
+          ? undefined
+          : this.coverageMs > 0
+            ? "partial"
+            : "miss",
+    });
     let wireEnd = this.coverageMs,
       fallbackUsed = false,
       refreshed = false,
@@ -435,10 +462,14 @@ export class AudioDownloadManager {
         try {
           await this.memory.putAudio(this.sessionId, segment);
           if (!this.memoryOnly && !this.cacheWriteFailed) {
-            try { await this.cache.putAudio(this.sessionId, segment, { signal }); }
-            catch (cause) {
+            try {
+              await this.cache.putAudio(this.sessionId, segment, { signal });
+            } catch (cause) {
               if (signal.aborted || cause.code === "STALE_VIDEO") throw cause;
-              logger.debug("[YouTube ASR cache] write failed; using session audio", cause.code || cause.name);
+              logger.debug(
+                "[YouTube ASR cache] write failed; using session audio",
+                cause.code || cause.name
+              );
               // Restored segments may still be readable from persistent storage.
               this.cacheWriteFailed = true;
             }
@@ -544,7 +575,10 @@ export class AudioDownloadManager {
     if (options.signal?.aborted) throw options.signal.reason || abortError();
     const local = await this.memory.getAudio(this.sessionId, index);
     if (local || this.memoryOnly) return local;
-    const row = await readAsrCache(() => this.cache.getAudio(this.sessionId, index, options), options.signal);
+    const row = await readAsrCache(
+      () => this.cache.getAudio(this.sessionId, index, options),
+      options.signal
+    );
     if (row) return row;
     // Cached metadata is unusable: fetch fresh audio without deleting persistent data.
     this.memoryOnly = true;
@@ -565,10 +599,7 @@ export class AudioDownloadManager {
         continue;
       }
       if (part.index && previous) {
-        const row = await this.readAudio(
-          previous.index,
-          readOptions
-        );
+        const row = await this.readAudio(previous.index, readOptions);
         if (!row) {
           this.invalidate();
           throw fail("AUDIO_CACHE_MISSING");
@@ -576,10 +607,7 @@ export class AudioDownloadManager {
         yield row;
         previous = undefined;
       }
-      const row = await this.readAudio(
-        part.index,
-        readOptions
-      );
+      const row = await this.readAudio(part.index, readOptions);
       if (!row) {
         this.invalidate();
         throw fail("AUDIO_CACHE_MISSING");

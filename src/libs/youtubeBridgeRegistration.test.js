@@ -165,7 +165,13 @@ test("background module load starts registration before other service initializa
     ),
     context
   );
-  expect(calls).toEqual(["registration", "storage", "asr-cache", "files", "restore"]);
+  expect(calls).toEqual([
+    "registration",
+    "storage",
+    "asr-cache",
+    "files",
+    "restore",
+  ]);
 });
 
 test.each([
