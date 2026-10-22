@@ -24,6 +24,7 @@ import {
   SETTINGS_VERSION_V4,
   CURRENT_SETTINGS_VERSION,
   DEFAULT_TRANBOX_SETTING,
+  DEFAULT_IMAGE_TRANSLATE_SETTING,
   normalizeApiThinkingSettings,
   KV_SETTING_KEY,
   KV_RULES_KEY,
@@ -525,6 +526,10 @@ const mergeSettingWithDefault = (setting) => {
     tranboxSetting: {
       ...DEFAULT_TRANBOX_SETTING,
       ...(setting?.tranboxSetting || {}),
+    },
+    imageTranslateSetting: {
+      ...DEFAULT_IMAGE_TRANSLATE_SETTING,
+      ...(setting?.imageTranslateSetting || {}),
     },
     version: setting?.version ?? DEFAULT_SETTING.version,
   };

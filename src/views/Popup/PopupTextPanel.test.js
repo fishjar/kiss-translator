@@ -178,6 +178,35 @@ describe("Popup text translation card", () => {
     expect(originalRequest.signal.aborted).toBe(false);
   });
 
+  test("only offers translation-capable services and drops ineligible selected services after capability changes", async () => {
+    const otherServices = ["recognizeText", "analyzeLayout", "transcribe", "speak"].map((capability) => ({
+      apiSlug: capability,
+      apiName: capability,
+      provider: { apiVersion: "1", implementation: { kind: "native" }, capabilities: { [capability]: {} } },
+    }));
+    await render({ transApis: [...otherServices, ...transApis], apiSlugs: ["recognizeText", "google"] });
+    expect(getResultSlugs()).toEqual(["google"]);
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    const request = apiTranslate.mock.calls[0][0];
+    click(container.querySelector(".kt-popup-text-services"));
+    expect([...container.querySelectorAll('[role="menuitemcheckbox"]')].map((item) => item.textContent)).toEqual(["Google", "Microsoft", "OpenAI"]);
+    await render({ transApis: [...otherServices, ...transApis.map((api) => api.apiSlug === "google" ? { ...api, enabledCapabilities: [] } : api)] });
+    expect(getResultSlugs()).toEqual(["microsoft"]);
+    expect(request.signal.aborted).toBe(true);
+    expect(apiTranslate).toHaveBeenCalledTimes(2);
+    await render({ transApis: otherServices });
+    expect(getResultSlugs()).toEqual([]);
+    expect(container.querySelector(".kt-popup-text-services").disabled).toBe(true);
+    expect(apiTranslate).toHaveBeenCalledTimes(2);
+  });
+
+  test("falls back from an ineligible saved service without selecting anything for an explicitly empty choice", async () => {
+    await render({ apiSlugs: ["removed"] });
+    expect(getResultSlugs()).toEqual(["google"]);
+    await render({ apiSlugs: [] });
+    expect(getResultSlugs()).toEqual([]);
+  });
+
   test("keeps the single-provider actions in the target row and adds headers for multiple providers", async () => {
     await render({ text: "" });
     expect(

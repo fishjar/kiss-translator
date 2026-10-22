@@ -50,7 +50,10 @@ export function resolvePopupApiSlugs(apiSlugs, enabledApis) {
   const validSlugs = new Set(enabledApis.map((api) => api.apiSlug));
   if (!Array.isArray(apiSlugs))
     return enabledApis.slice(0, 1).map((api) => api.apiSlug);
-  return [...new Set(apiSlugs)].filter((slug) => validSlugs.has(slug));
+  const selectedSlugs = [...new Set(apiSlugs)].filter((slug) => validSlugs.has(slug));
+  return apiSlugs.length > 0 && selectedSlugs.length === 0
+    ? enabledApis.slice(0, 1).map((api) => api.apiSlug)
+    : selectedSlugs;
 }
 
 export function togglePopupApiSlug(slugs, slug) {

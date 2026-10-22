@@ -22,6 +22,24 @@ test("covers every supported locale for every registered label", () => {
   expect(missing).toEqual([]);
 });
 
+test("ships every extension message in every public locale", () => {
+  const directory = path.resolve(__dirname, "../../public/_locales");
+  const english = JSON.parse(
+    fs.readFileSync(path.join(directory, "en/messages.json"), "utf8")
+  );
+  const missing = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const messages = JSON.parse(
+      fs.readFileSync(path.join(directory, entry.name, "messages.json"), "utf8")
+    );
+    for (const key of Object.keys(english)) {
+      if (!messages[key]?.message?.trim()) missing.push(`${entry.name}:${key}`);
+    }
+  }
+  expect(missing).toEqual([]);
+});
+
 // i18n.js 以 `I18N[key].ru = RU_I18N[key] ?? I18N[key].en` 英文兜底填充
 // ru（i18n.js 合并段），上述全语言遍历断言对 ru 缺键恒绿——RU_I18N 的
 // 键完整性必须单独对账。本断言锁定 textarea 拉伸手柄功能域 18 键：任一
@@ -71,6 +89,24 @@ test("provides default text when key is not found", () => {
   expect(i18n("nonexistent_key", "Fallback")).toBe("Fallback");
   expect(i18n("nonexistent_key", "")).toBe("");
   expect(i18n("app_name")).not.toBe("app_name");
+});
+
+test("registers image recognition labels without loading file translation locales", () => {
+  const keys = [
+    "image_screenshot_translate",
+    "image_recognition_service",
+    "image_setting_recognition_service",
+    "recognition_service_select",
+    "recognition_with_coordinates",
+    "recognition_text_only",
+    "api_unavailable_here",
+  ];
+  for (const [locale] of UI_LANGS) {
+    const i18n = newI18n(locale);
+    for (const key of keys) {
+      expect(i18n(key, "MISSING")).not.toBe("MISSING");
+    }
+  }
 });
 
 test("all static UI translation keys are registered, including calls with a fallback", () => {

@@ -59,6 +59,9 @@
     "toggleStyle": {
       "description": "__MSG_toggle_style__"
     },
+    "imageScreenshot": {
+      "description": "__MSG_image_screenshot_command__"
+    },
     "openOptions": {
       "description": "__MSG_open_options__"
     }

@@ -139,6 +139,8 @@ export const mergeRules = (baseRule, overrideRule) => {
     "blockSelector",
     "rootsSelector",
     "ignoreSelector",
+    "imageSelector",
+    "imageIgnoreSelector",
   ].forEach((key) => {
     merged[key] = mergeSelectors(baseRule[key] || "", overrideRule[key] || "");
   });
@@ -185,6 +187,7 @@ export const mergeRules = (baseRule, overrideRule) => {
     "highlightWords",
     "textStyle",
     "originalTextStyle",
+    "imageTransOpen",
   ].forEach((key) => {
     if (overrideRule[key] && overrideRule[key] !== GLOBAL_KEY) {
       merged[key] = overrideRule[key];
@@ -192,7 +195,12 @@ export const mergeRules = (baseRule, overrideRule) => {
   });
 
   // 4. 合并数字数值类型属性
-  ["splitLength", "transOnlyRevertDelay"].forEach((key) => {
+  [
+    "splitLength",
+    "transOnlyRevertDelay",
+    "imageMinWidth",
+    "imageMinHeight",
+  ].forEach((key) => {
     if (overrideRule[key] && overrideRule[key] !== GLOBAL_KEY) {
       merged[key] = overrideRule[key];
     }

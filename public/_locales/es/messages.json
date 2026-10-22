@@ -28,5 +28,11 @@
   },
   "toggle_tranbox": {
     "message": "Alternar cuadro de traducción"
+  },
+  "image_screenshot_command": {
+    "message": "Traducción de capturas de pantalla"
+  },
+  "image_screenshot": {
+    "message": "Traducción de capturas de pantalla"
   }
 }

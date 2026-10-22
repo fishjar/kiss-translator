@@ -726,7 +726,7 @@ export default function PopupCont({
       documentInfo?.token,
       apiSlug,
       resolved.apiSlug,
-      configuredApis.map((api) => [api.apiSlug, api.isDisabled, api.sortOrder]),
+      enabledApiSignature(configuredApis),
     ]);
     if (serviceFallbackAttemptRef.current === attempt) return;
     serviceFallbackAttemptRef.current = attempt;

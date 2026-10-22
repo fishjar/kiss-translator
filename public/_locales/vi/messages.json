@@ -28,5 +28,11 @@
   },
   "toggle_tranbox": {
     "message": "Chuyển đổi Hộp Dịch"
+  },
+  "image_screenshot_command": {
+    "message": "Dịch ảnh chụp màn hình"
+  },
+  "image_screenshot": {
+    "message": "Dịch ảnh chụp màn hình"
   }
 }

@@ -37,6 +37,7 @@ import FavWords from "./FavWords";
 import Playgound from "./Playground";
 import MouseHoverSetting from "./MouseHover";
 import SubtitleSetting from "./Subtitle";
+import ImageTranslate from "./ImageTranslate";
 import StylesSetting from "./StylesSetting";
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -167,6 +168,7 @@ function OptionsRouter({ pendingKeys }) {
           <Route path="tranbox" element={<Tranbox />} />
           <Route path="mousehover" element={<MouseHoverSetting />} />
           <Route path="subtitle" element={<SubtitleSetting />} />
+          <Route path="image-translate" element={<ImageTranslate />} />
           <Route path="apis" element={<Apis />} />
           <Route
             path="plugins"

@@ -28,5 +28,11 @@
   },
   "toggle_tranbox": {
     "message": "Übersetzungsbox umschalten"
+  },
+  "image_screenshot_command": {
+    "message": "Screenshot-Übersetzung"
+  },
+  "image_screenshot": {
+    "message": "Screenshot-Übersetzung"
   }
 }

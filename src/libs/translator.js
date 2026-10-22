@@ -354,7 +354,8 @@ export class Translator {
   static KISS_IGNORE_SELECTOR = `.${Translator.KISS_CLASS.warpper}, .${Translator.KISS_CLASS.hoverBubble}, .kiss-caption-container, .kiss-subtitle-controls, #kiss-youtube-subtitle-list-container,
   #${APP_CONSTS.fabID}, .${APP_CONSTS.fabID}_warpper,
   #${APP_CONSTS.boxID}, .${APP_CONSTS.boxID}_warpper,
-  #${APP_CONSTS.popupID}, .${APP_CONSTS.popupID}_warpper, #kiss-rule-editor, #kiss-rule-highlights`;
+  #${APP_CONSTS.popupID}, .${APP_CONSTS.popupID}_warpper,
+  #${APP_CONSTS.imageBoxID}, .${APP_CONSTS.imageBoxID}_wrapper, #kiss-rule-editor, #kiss-rule-highlights`;
 
   static BUILTIN_IGNORE_SELECTOR = `address, area, audio, br, canvas,
   data, datalist, embed, head, iframe, input, noscript, map,
@@ -2578,7 +2579,9 @@ export class Translator {
   #startObserveShadowRoot(shadowRoot) {
     try {
       if (
-        shadowRoot.host.matches(`#${APP_CONSTS.fabID}, #${APP_CONSTS.boxID}`)
+        shadowRoot.host.matches(
+          `#${APP_CONSTS.fabID}, #${APP_CONSTS.boxID}, #${APP_CONSTS.imageBoxID}`
+        )
       ) {
         return;
       }

@@ -6,10 +6,10 @@ import {
 
 describe("translation service selection", () => {
   const apis = [
-    { apiSlug: "disabled", isDisabled: true, sortOrder: -1 },
-    { apiSlug: "later", sortOrder: 2 },
-    { apiSlug: "first", sortOrder: 0 },
-    { apiSlug: "tied", sortOrder: 0 },
+    { apiType: "Google", apiSlug: "disabled", isDisabled: true, sortOrder: -1 },
+    { apiType: "Google", apiSlug: "later", sortOrder: 2 },
+    { apiType: "Google", apiSlug: "first", sortOrder: 0 },
+    { apiType: "Google", apiSlug: "tied", sortOrder: 0 },
   ];
 
   test("uses the popup display order and keeps ties stable without mutation", () => {
@@ -40,14 +40,14 @@ describe("translation service selection", () => {
   test("uses zero for omitted sort order and honors a pinned service", () => {
     expect(
       getEnabledApis([
-        { apiSlug: "unweighted" },
-        { apiSlug: "pinned", sortOrder: -1 },
-        { apiSlug: "zero", sortOrder: 0 },
+        { apiType: "Google", apiSlug: "unweighted" },
+        { apiType: "Google", apiSlug: "pinned", sortOrder: -1 },
+        { apiType: "Google", apiSlug: "zero", sortOrder: 0 },
       ]).map((api) => api.apiSlug)
     ).toEqual(["pinned", "unweighted", "zero"]);
   });
 
-  test.each([[[]], [[{ apiSlug: "disabled", isDisabled: true }]]])(
+  test.each([[[]], [[{ apiType: "Google", apiSlug: "disabled", isDisabled: true }]]])(
     "has no implicit default when all services are unavailable",
     (transApis) => {
       expect(resolveApiSelection(transApis, "disabled")).toBeUndefined();
@@ -62,5 +62,49 @@ describe("translation service selection", () => {
     });
     expect(rule.apiSlug).toBe("disabled");
     expect(normalizeRuleApi(rule, [])).toBe(rule);
+  });
+
+  test("only offers services with enabled translation capability without changing their configuration", () => {
+    const service = (apiSlug, capabilities, extra = {}) => ({
+      apiSlug,
+      provider: { apiVersion: "1", implementation: { kind: "native" }, capabilities },
+      ...extra,
+    });
+    const services = [
+      service("ocr", { recognizeText: {} }),
+      service("layout", { analyzeLayout: {} }),
+      service("asr", { transcribe: {} }),
+      service("tts", { synthesizeSpeech: {}, speak: {} }),
+      service("mixed", { translate: {}, recognizeText: {} }),
+      service("disabled", { translate: {} }, { isDisabled: true }),
+      service("translate-off", { translate: {}, recognizeText: {} }, { enabledCapabilities: ["recognizeText"] }),
+      service("all-off", { translate: {} }, { enabledCapabilities: [] }),
+      { apiSlug: "google", apiType: "Google" },
+      { apiSlug: "undeclared" },
+    ];
+    const before = JSON.stringify(services);
+    expect(getEnabledApis(services).map((api) => api.apiSlug)).toEqual(["mixed", "google"]);
+    expect(resolveApiSelection(services, "ocr").apiSlug).toBe("mixed");
+    expect(resolveApiSelection(services.slice(0, 4), "ocr")).toBeUndefined();
+    expect(JSON.stringify(services)).toBe(before);
+  });
+
+  test("honors the selected model's capability restriction", () => {
+    const api = {
+      apiSlug: "model-service",
+      provider: {
+        apiVersion: "1",
+        implementation: { kind: "native" },
+        capabilities: { translate: {}, recognizeText: {} },
+        models: [
+          { id: "ocr", capabilities: { recognizeText: {} } },
+          { id: "translator", capabilities: { translate: {} } },
+        ],
+      },
+      pluginConfig: { model: "ocr" },
+    };
+    expect(getEnabledApis([api])).toEqual([]);
+    const translator = { ...api, pluginConfig: { model: "translator" } };
+    expect(getEnabledApis([translator])).toEqual([translator]);
   });
 });

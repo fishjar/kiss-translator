@@ -354,6 +354,15 @@ test("local VLM uses official task prompts unless explicitly overridden", async 
   expect(recognizeFileImage.mock.calls.at(-1)[1].prompt).toBe("custom task");
 });
 
+test.each(["paddleocr-vl-1.6-onnx-q8", "paddleocr-vl-1.6-q4"])("%s defaults to its OCR task prompt", async (modelRef) => {
+  const { recognizeFileImage } = require("../localAi/fileOperations");
+  recognizeFileImage.mockResolvedValue({ text: "recognized", isVlm: true });
+  const ctx = context();
+  const image = ctx.assets.put(new Blob(["image"]));
+  await localHandlers.parseImage({ image }, { modelRef }, ctx);
+  expect(recognizeFileImage.mock.calls.at(-1)[1].prompt).toBe("OCR:");
+});
+
 test("video ASR exposes a synthesized whole-block fallback as text without model timestamps", async () => {
   require("../localAi/core/recorder").decodeAudioFile.mockResolvedValue({
     audio: new Float32Array(16000),

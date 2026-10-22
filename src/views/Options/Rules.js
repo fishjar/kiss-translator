@@ -144,7 +144,12 @@ const getComparableFormValues = (values) => {
     comparable.transOnlyRevertDelay = GLOBAL_KEY;
   }
   // Number inputs and older saved rules can represent the same value differently.
-  for (const name of ["splitLength", "transOnlyRevertDelay"]) {
+  for (const name of [
+    "splitLength",
+    "transOnlyRevertDelay",
+    "imageMinWidth",
+    "imageMinHeight",
+  ]) {
     const value = comparable[name];
     // Personal numeric zero inherits; a string zero overrides the global value.
     if (comparable.pattern !== GLOBAL_KEY && value === 0) continue;
@@ -299,6 +304,11 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
     splitLength = 0, // 段落切分最大长度
     highlightWords = OPT_HIGHLIGHT_WORDS_DISABLE, // 单词高亮策略
     transOrder, // 文本顺序：由 DEFAULT_RULE / GLOBLA_RULE 提供初始值
+    imageTransOpen = "true", // 是否开启图片翻译悬停
+    imageSelector = "", // 图片翻译目标选择器
+    imageIgnoreSelector = "", // 图片翻译排除选择器
+    imageMinWidth = 120, // 图片最小宽度
+    imageMinHeight = 80, // 图片最小高度
   } = formValues;
 
   const globalRule = rules?.list?.find((item) => item.pattern === GLOBAL_KEY);
@@ -1091,6 +1101,82 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
               onChange={handleChange}
               maxRows={10}
             />
+
+            {/* 图片翻译悬停开关 */}
+            <TextField
+              select
+              size="small"
+              fullWidth
+              name="imageTransOpen"
+              value={imageTransOpen}
+              label={i18n("image_hover_enable", "网页图片悬停识别")}
+              disabled={disabled}
+              onChange={handleChange}
+            >
+              {GlobalItem}
+              <MenuItem value={"true"}>
+                {i18n("default_enabled", "开启")}
+              </MenuItem>
+              <MenuItem value={"false"}>
+                {i18n("default_disabled", "关闭")}
+              </MenuItem>
+            </TextField>
+
+            {/* 图片目标 CSS 选择器 */}
+            <CodeField
+              size="small"
+              label={i18n("image_selector", "图片选择器")}
+              helperText={i18n(
+                "image_selector_helper",
+                "自定义匹配需要识别的图片 CSS 选择器，留空则匹配默认图片"
+              )}
+              name="imageSelector"
+              value={imageSelector}
+              disabled={disabled}
+              onChange={handleChange}
+            />
+
+            {/* 图片排除 CSS 选择器 */}
+            <CodeField
+              size="small"
+              label={i18n("image_ignore_selector", "图片排除选择器")}
+              helperText={i18n(
+                "image_ignore_selector_helper",
+                "自定义排除不进行悬停翻译的图片 CSS 选择器"
+              )}
+              name="imageIgnoreSelector"
+              value={imageIgnoreSelector}
+              disabled={disabled}
+              onChange={handleChange}
+            />
+
+            {/* 图片最小宽高 */}
+            <Grid container spacing={2} columns={12}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  type="number"
+                  size="small"
+                  fullWidth
+                  name="imageMinWidth"
+                  value={imageMinWidth}
+                  label={i18n("image_min_width", "最小图片宽度 (px)")}
+                  disabled={disabled}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  type="number"
+                  size="small"
+                  fullWidth
+                  name="imageMinHeight"
+                  value={imageMinHeight}
+                  label={i18n("image_min_height", "最小图片高度 (px)")}
+                  disabled={disabled}
+                  onChange={handleChange}
+                />
+              </Grid>
+            </Grid>
           </>
         )}
 
