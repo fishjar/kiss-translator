@@ -11,6 +11,7 @@ import ImageTranslateContent from "./ImageTranslateContent";
 import ImageTranslateHeader from "./ImageTranslateHeader";
 import ImageLayoutOverlay from "./ImageLayoutOverlay";
 import { newI18n } from "../../config/i18n";
+import { KISS_UI_SELECTOR } from "../../libs/kissUi";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -199,6 +200,24 @@ describe("ImageTranslateContent", () => {
     { original: "Hello world", translation: "你好世界" },
     { original: "Image translation", translation: "图片翻译" },
   ];
+
+  test("marks the copy tooltip portal as plugin UI outside the panel", () => {
+    jest.useFakeTimers();
+    try {
+      act(() => root.render(<ImageTranslateContent items={sampleItems} />));
+      const button = container.querySelector(".MuiIconButton-root");
+      act(() => {
+        button.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+        jest.advanceTimersByTime(1000);
+      });
+      const tooltip = document.querySelector(".MuiTooltip-popper");
+      expect(tooltip).not.toBeNull();
+      expect(container.contains(tooltip)).toBe(false);
+      expect(tooltip.matches(KISS_UI_SELECTOR)).toBe(true);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 
   test("renders bilingual segments by default", () => {
     act(() => {

@@ -4,6 +4,7 @@ import { ScreenshotOverlay } from "./screenshotOverlay";
 import { APP_CONSTS, MSG_CAPTURE_VISIBLE_TAB } from "../../config";
 import { sendBgMsg } from "../msg";
 import { cropAndCompressImage } from "./imageReader";
+import { KISS_UI_SELECTOR } from "../kissUi";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 globalThis.crypto = require("crypto").webcrypto;
@@ -108,6 +109,7 @@ describe("ScreenshotOverlay", () => {
   });
 
   test("retains all four buttons and excluded regions after opening the dialog", async () => {
+    expect(root().matches(KISS_UI_SELECTOR)).toBe(true);
     await act(async () => button("layout").click());
     act(() =>
       root()

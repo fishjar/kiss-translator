@@ -211,6 +211,8 @@ function addLoading(node, loadingId) {
 
   const div = document.createElement("div");
   div.id = loadingId;
+  div.className = "notranslate";
+  div.setAttribute("data-kiss-ui", "");
   div.appendChild(createLoadingSVG());
 
   div.style.cssText = `
@@ -428,6 +430,8 @@ export class InputTranslator {
   // 将创建逻辑抽离，保持代码整洁
   createFloatButtonDOM() {
     this.#floatBtn = document.createElement("div");
+    this.#floatBtn.className = "notranslate";
+    this.#floatBtn.setAttribute("data-kiss-ui", "");
     // ... 样式代码保持不变 ...
     const isTouch = isMobile || navigator.maxTouchPoints > 0;
     const size = isTouch ? "36px" : "30px";

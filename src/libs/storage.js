@@ -4,6 +4,7 @@ import {
   STOKEY_SETTING_BACKUP_V3_BEFORE_V4,
   STOKEY_SETTING_OLD,
   STOKEY_RULES,
+  STOKEY_RULES_IGNORE_MIGRATED,
   STOKEY_RULES_OLD,
   STOKEY_WORDS,
   STOKEY_FAB,
@@ -14,6 +15,7 @@ import {
   STOKEY_DISABLED_SUB_RULES,
   DEFAULT_SETTING,
   DEFAULT_RULES,
+  GLOBLA_RULE,
   DEFAULT_SYNC,
   BUILTIN_RULES,
   getSettingVersion,
@@ -38,6 +40,7 @@ import { getGmMethod } from "./gmMethods";
 import { publishStorageWrite } from "./storageEvents";
 import { withStorageLock } from "./storageCoordination";
 import { cloneStorageValue, isSameStorageValue } from "./storageEquality";
+import { splitSelectorList } from "./selectorList";
 
 const SYNC_KEYS = {
   [STOKEY_SETTING]: KV_SETTING_KEY,
@@ -554,6 +557,55 @@ export const migrateStoredSettingToV2 = async (
 
 /** Return false if migration cannot persist settings; reads still reject. */
 export const runDataMigration = async () => {
+  try {
+    await withTransaction(async (transaction) => {
+      if (await transaction.getObj(STOKEY_RULES_IGNORE_MIGRATED)) return;
+      const rules = (await transaction.getObj(STOKEY_RULES)) || DEFAULT_RULES;
+      const globalRule = rules.find((rule) => rule.pattern === "*");
+      const nextGlobal = { ...(globalRule || GLOBLA_RULE) };
+      let selectors;
+      try {
+        selectors = splitSelectorList(
+          nextGlobal.ignoreSelector ?? GLOBLA_RULE.ignoreSelector
+        );
+      } catch (err) {
+        // Leave the value and completion marker untouched so settings can repair it.
+        kissLog("Skipping invalid legacy ignore selector migration:", err);
+        return;
+      }
+      nextGlobal.ignoreSelector = [
+        ...new Set([
+          ...selectors,
+          "address",
+          "select",
+          "option",
+          ".notranslate",
+          "[translate='no']",
+          "svg",
+        ]),
+      ]
+        // The migration adds svg, which already covers these legacy defaults.
+        .filter(
+          (selector) =>
+            ![
+              "[class*='logo'] svg",
+              '[class*="logo"] svg',
+              "[id*='logo'] svg",
+              '[id*="logo"] svg',
+            ].includes(selector)
+        )
+        .join(", ");
+      const nextRules = globalRule
+        ? rules.map((rule) => (rule === globalRule ? nextGlobal : rule))
+        : [nextGlobal, ...rules];
+      // A format migration is not a user edit and must not win sync conflicts.
+      await transaction.setObj(STOKEY_RULES, nextRules);
+      await transaction.setObj(STOKEY_RULES_IGNORE_MIGRATED, true);
+    });
+  } catch (err) {
+    kissLog("Ignore selector migration failed:", err);
+    return false;
+  }
   const rawSetting = await getSetting();
   if (!rawSetting) return true;
 

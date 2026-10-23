@@ -10,6 +10,9 @@ const {
   STOKEY_SETTING,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
   STOKEY_RULES,
+  STOKEY_RULES_IGNORE_MIGRATED,
+  STOKEY_SYNC,
+  KV_RULES_KEY,
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V3,
   SETTINGS_VERSION_V4,
@@ -25,7 +28,11 @@ const {
   OPT_TRANS_OPENAI,
   OPT_TRANS_TENCENT,
 } = require("../config");
-const { getSettingWithDefault, runDataMigration } = require("./storage");
+const {
+  getSettingWithDefault,
+  runDataMigration,
+  saveEdit,
+} = require("./storage");
 
 // 存储测试不涉及流式解析，隔离 ESM-only 依赖以免 Jest 27 在加载阶段失败。
 jest.mock("@streamparser/json", () => ({ JSONParser: jest.fn() }));
@@ -117,7 +124,169 @@ describe("settings storage migration", () => {
     ];
     window.localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
     await runDataMigration();
-    expect(readStoredJson(STOKEY_RULES)).toEqual(rules);
+    expect(readStoredJson(STOKEY_RULES)).toMatchObject(rules);
+    expect(readStoredJson(STOKEY_RULES)[0]).not.toHaveProperty(
+      "fallbackApiSlugs"
+    );
+  });
+
+  test("migrates only global ignores once and preserves later edits", async () => {
+    const site = { pattern: "example.com", ignoreSelector: "-.notranslate" };
+    const globalRule = {
+      pattern: "*",
+      ignoreSelector: ".mine, svg, .mine",
+      apiSlug: "mine",
+    };
+    localStorage.setItem(STOKEY_RULES, JSON.stringify([globalRule, site]));
+    expect(await runDataMigration()).toBe(true);
+    const migrated = readStoredJson(STOKEY_RULES);
+    expect(migrated[0]).toEqual({
+      ...globalRule,
+      ignoreSelector:
+        ".mine, svg, address, select, option, .notranslate, [translate='no']",
+    });
+    expect(migrated[1]).toEqual(site);
+    expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+    migrated[0].ignoreSelector = ".mine";
+    localStorage.setItem(STOKEY_RULES, JSON.stringify(migrated));
+    await runDataMigration();
+    expect(readStoredJson(STOKEY_RULES)).toEqual(migrated);
+  });
+
+  test.each([
+    null,
+    {
+      syncUrl: "https://sync.example.invalid",
+      destinationRevision: 3,
+      syncMeta: {
+        [KV_RULES_KEY]: {
+          updateAt: 100,
+          syncAt: 80,
+          pendingUpload: true,
+          firstAttemptAt: 60,
+        },
+        unrelated: { updateAt: 300, syncAt: 200 },
+      },
+    },
+  ])(
+    "migration preserves sync metadata and user edits still advance it: %j",
+    async (sync) => {
+      const rules = [{ pattern: "*", ignoreSelector: ".mine" }];
+      localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+      if (sync) localStorage.setItem(STOKEY_SYNC, JSON.stringify(sync));
+      const before = localStorage.getItem(STOKEY_SYNC);
+      expect(await runDataMigration()).toBe(true);
+      expect(localStorage.getItem(STOKEY_SYNC)).toBe(before);
+      expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+      await saveEdit(STOKEY_RULES, [
+        { ...rules[0], ignoreSelector: ".edited" },
+      ]);
+      expect(
+        readStoredJson(STOKEY_SYNC).syncMeta[KV_RULES_KEY].updateAt
+      ).toBeGreaterThan(sync?.syncMeta[KV_RULES_KEY].updateAt || 0);
+    }
+  );
+
+  test("invalid legacy selectors remain repairable without blocking other migrations", async () => {
+    const rules = [{ pattern: "*", ignoreSelector: "svg, [broken" }];
+    const bytes = JSON.stringify(rules);
+    localStorage.setItem(STOKEY_RULES, bytes);
+    localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({ version: SETTINGS_VERSION_V3, darkMode: true })
+    );
+    expect(await runDataMigration()).toBe(true);
+    expect(localStorage.getItem(STOKEY_RULES)).toBe(bytes);
+    expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBeNull();
+    expect(readStoredJson(STOKEY_SETTING)).toMatchObject({
+      version: CURRENT_SETTINGS_VERSION,
+      darkMode: "dark",
+    });
+    rules[0].ignoreSelector = ".repaired";
+    await saveEdit(STOKEY_RULES, rules);
+    expect(await runDataMigration()).toBe(true);
+    expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+    expect(readStoredJson(STOKEY_RULES)[0].ignoreSelector).toContain(
+      ".repaired"
+    );
+    expect(readStoredJson(STOKEY_RULES)[0].ignoreSelector).toContain(
+      "[translate='no']"
+    );
+  });
+
+  test.each([
+    "svg, [class*='logo'] svg, [id*='logo'] svg",
+    '[class*="logo"] svg, [id*="logo"] svg',
+  ])(
+    "removes redundant global logo SVG defaults during migration: %s",
+    async (legacy) => {
+      const site = {
+        pattern: "example.com",
+        ignoreSelector: "[class*='logo'] svg",
+      };
+      const rules = [
+        {
+          pattern: "*",
+          ignoreSelector: `${legacy}, img[src*='.svg'], .logo svg, .mine`,
+        },
+        site,
+      ];
+      localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+      expect(await runDataMigration()).toBe(true);
+      const migrated = readStoredJson(STOKEY_RULES);
+      const { splitSelectorList } = require("./selectorList");
+      expect(splitSelectorList(migrated[0].ignoreSelector)).toEqual(
+        expect.arrayContaining([
+          "svg",
+          "img[src*='.svg']",
+          ".logo svg",
+          ".mine",
+        ])
+      );
+      expect(migrated[0].ignoreSelector).not.toMatch(/\[(?:class|id)\*=/);
+      expect(migrated[1]).toEqual(site);
+      migrated[0].ignoreSelector += ", [class*='logo'] svg";
+      localStorage.setItem(STOKEY_RULES, JSON.stringify(migrated));
+      await runDataMigration();
+      expect(readStoredJson(STOKEY_RULES)).toEqual(migrated);
+    }
+  );
+
+  test.each([null, [{ pattern: "example.com", ignoreSelector: ".mine" }]])(
+    "supplies global defaults when no global rule exists: %j",
+    async (rules) => {
+      if (rules) localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+      expect(await runDataMigration()).toBe(true);
+      const { getRulesWithDefault } = require("./storage");
+      const migrated = await getRulesWithDefault();
+      expect(
+        migrated.find((rule) => rule.pattern === "*").ignoreSelector
+      ).toContain("[translate='no']");
+      if (rules) expect(migrated.slice(1)).toEqual(rules);
+      expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+    }
+  );
+
+  test("rolls back rule changes if the completion marker fails, then retries", async () => {
+    const rules = [{ pattern: "*", ignoreSelector: ".mine" }];
+    localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+    const originalSet = Storage.prototype.setItem;
+    const write = jest
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(function (key, value) {
+        if (key === STOKEY_RULES_IGNORE_MIGRATED)
+          throw new Error("marker unavailable");
+        return originalSet.call(this, key, value);
+      });
+    try {
+      expect(await runDataMigration()).toBe(false);
+      expect(readStoredJson(STOKEY_RULES)).toEqual(rules);
+      expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBeNull();
+    } finally {
+      write.mockRestore();
+    }
+    expect(await runDataMigration()).toBe(true);
+    expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
   });
 
   test.each([
@@ -155,9 +324,12 @@ describe("settings storage migration", () => {
         version: CURRENT_SETTINGS_VERSION,
         darkMode: "dark",
       });
-      expect(setItem).toHaveBeenCalledTimes(2);
+      expect(
+        setItem.mock.calls.filter(([key]) => key === STOKEY_SETTING)
+      ).toHaveLength(1);
+      const writes = setItem.mock.calls.length;
       await runDataMigration();
-      expect(setItem).toHaveBeenCalledTimes(2);
+      expect(setItem).toHaveBeenCalledTimes(writes);
     } finally {
       setItem.mockRestore();
     }

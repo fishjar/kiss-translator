@@ -700,13 +700,11 @@ async function getUiLanguage() {
  * 监听扩展安装/升级事件 (onInstalled)。
  * 此时触发数据库默认初始化、右键菜单生成、CSP 网络过滤器注册、以及拉取网络订阅规则。
  */
-browser.runtime.onInstalled.addListener(async (details) => {
+browser.runtime.onInstalled.addListener(async () => {
   void ensureYoutubeBridgeRegistered();
   const uiLang = await getUiLanguage();
   await tryInitDefaultData(uiLang);
-  if (details?.reason === "update") {
-    await runDataMigration();
-  }
+  if ((await runDataMigration()) === false) return;
 
   // 在 Thunderbird 场景下注册特定的邮件脚本
   if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
@@ -727,6 +725,7 @@ browser.runtime.onInstalled.addListener(async (details) => {
  */
 browser.runtime.onStartup.addListener(async () => {
   void ensureYoutubeBridgeRegistered();
+  if ((await runDataMigration()) === false) return;
   const {
     clearCache,
     contextMenuType,

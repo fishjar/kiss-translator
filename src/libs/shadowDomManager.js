@@ -121,6 +121,7 @@ export default class ShadowDomManager {
   #mount(props) {
     const host = document.createElement("div");
     host.id = this._id;
+    host.setAttribute("data-kiss-ui", "");
     if (this._className) {
       host.className = this._className;
     }
@@ -133,6 +134,7 @@ export default class ShadowDomManager {
     const shadowContainer = host.attachShadow({ mode: "open" });
     const appRoot = document.createElement("div");
     appRoot.className = `${this._id}_wrapper notranslate`;
+    appRoot.setAttribute("data-kiss-ui", "");
     shadowContainer.appendChild(appRoot);
 
     this.#renderProps = props;

@@ -145,6 +145,7 @@ export default class DomManager {
   #mount(props) {
     const host = document.createElement("div");
     host.id = this._id;
+    host.setAttribute("data-kiss-ui", "");
     if (this._className) {
       host.className = this._className;
     }

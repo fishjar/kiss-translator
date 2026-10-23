@@ -2,7 +2,6 @@ import { TouchParagraph, touchParent, isTouchExcluded } from "./touchParagraph";
 import { isInBlacklist } from "./blacklist";
 import {
   APP_LCNAME,
-  APP_CONSTS,
   OPT_STYLE_FUZZY,
   GLOBLA_RULE,
   GLOBAL_KEY,
@@ -60,9 +59,14 @@ import { injectInternalCss } from "./injector";
 import { isExt } from "./client";
 import { sendBgMsg } from "./msg";
 import { getDocInfo } from "./docInfo";
-import { isInNonContent, visitTranslationTargets } from "./translationTargets";
+import {
+  isInNonContent,
+  NON_CONTENT_SELECTOR,
+  visitTranslationTargets,
+} from "./translationTargets";
 import { normalizeRuleApi } from "./apiSelection";
 import { isSameStorageValue } from "./storageEquality";
+import { KISS_UI_SELECTOR } from "./kissUi";
 
 /**
  * @class Translator
@@ -351,17 +355,13 @@ export class Translator {
   }
 
   // 内置忽略元素
-  static KISS_IGNORE_SELECTOR = `.${Translator.KISS_CLASS.warpper}, .${Translator.KISS_CLASS.hoverBubble}, .kiss-caption-container, .kiss-subtitle-controls, #kiss-youtube-subtitle-list-container,
-  #${APP_CONSTS.fabID}, .${APP_CONSTS.fabID}_warpper,
-  #${APP_CONSTS.boxID}, .${APP_CONSTS.boxID}_warpper,
-  #${APP_CONSTS.popupID}, .${APP_CONSTS.popupID}_warpper,
-  #${APP_CONSTS.imageBoxID}, .${APP_CONSTS.imageBoxID}_wrapper, #kiss-rule-editor, #kiss-rule-highlights`;
+  static KISS_IGNORE_SELECTOR = KISS_UI_SELECTOR;
 
-  static BUILTIN_IGNORE_SELECTOR = `address, area, audio, br, canvas,
+  static BUILTIN_IGNORE_SELECTOR = `area, audio, br, canvas,
   data, datalist, embed, head, iframe, input, noscript, map,
-  object, option, param, picture, progress,
-  select, script, style, svg, track, textarea, template,
-  video, wbr, .notranslate, [contenteditable='true'], [translate='no']`;
+  object, param, picture, progress,
+  script, style, track, textarea, template,
+  video, wbr, [contenteditable='true']`;
 
   #setting; // 设置选项
   #rule; // 规则
@@ -2578,11 +2578,7 @@ export class Translator {
   // 监控shadowroot
   #startObserveShadowRoot(shadowRoot) {
     try {
-      if (
-        shadowRoot.host.matches(
-          `#${APP_CONSTS.fabID}, #${APP_CONSTS.boxID}, #${APP_CONSTS.imageBoxID}`
-        )
-      ) {
+      if (this.#isKissIgnoredNode(shadowRoot.host)) {
         return;
       }
       this.#startObserveRoot(shadowRoot);
@@ -3169,22 +3165,22 @@ export class Translator {
     );
   }
 
+  // Only inline keep elements may bypass configurable ignores inside a paragraph.
+  #isKeptInline(node) {
+    if (!Translator.isElement(node)) return false;
+    try {
+      return node.matches(this.#rule.keepSelector) && !this.#isBlockNode(node);
+    } catch (err) {
+      kissLog("keepSelector match error", this.#rule.keepSelector, err);
+      return false;
+    }
+  }
+
   // 判断是否需要换行
   #shouldBreak(node) {
     if (!Translator.isElementOrFragment(node)) return false;
-    if (isInNonContent(node)) return true;
-
-    let matchesKeepSelector = false;
-    try {
-      matchesKeepSelector = node.matches(this.#rule.keepSelector);
-    } catch (err) {
-      kissLog(
-        "keepSelector match error in shouldBreak",
-        this.#rule.keepSelector,
-        err
-      );
-    }
-    if (matchesKeepSelector) return false;
+    if (isInNonContent(node) || this.#isKissIgnoredNode(node)) return true;
+    if (this.#isKeptInline(node)) return false;
 
     if (
       Translator.TAGS.BREAK_LINE.has(node.nodeName?.toUpperCase()) ||
@@ -3327,6 +3323,7 @@ export class Translator {
 
     const panel = document.createElement("span");
     panel.className = "notranslate";
+    panel.setAttribute("data-kiss-ui", "");
     panel.setAttribute("translate", "no");
     panel.style.cssText = [
       "position: fixed",
@@ -4250,36 +4247,35 @@ overflow-wrap: anywhere !important;`;
 
       // 元素节点
       if (node.nodeType === Node.ELEMENT_NODE) {
-        if (isInNonContent(node)) return "";
+        if (isInNonContent(node) || this.#isKissIgnoredNode(node)) return "";
 
         // 收藏词高亮只影响原文显示，不应改变翻译请求的结构
         if (node.classList.contains(Translator.KISS_CLASS.highlight)) {
           return Array.from(node.childNodes, traverse).join("");
         }
 
-        if (this.#isIgnoredElement(node)) {
+        const keptInline = this.#isKeptInline(node);
+        if (this.#isIgnoredElement(node) && !keptInline) {
           return "";
-        }
-
-        let matchesKeepSelector = false;
-        try {
-          matchesKeepSelector = node.matches(this.#rule.keepSelector);
-        } catch (err) {
-          kissLog("keepSelector match error", this.#rule.keepSelector, err);
         }
 
         if (
           (this.#rule.hasRichText === "true" &&
             Translator.TAGS.REPLACE.has(node.tagName)) ||
-          matchesKeepSelector ||
+          keptInline ||
           // node.matches(this.#ignoreSelector) ||
           !node.textContent.trim()
         ) {
+          const serializedNode = node.cloneNode(true);
+          serializedNode
+            .querySelectorAll(
+              `${Translator.KISS_IGNORE_SELECTOR}, ${NON_CONTENT_SELECTOR}`
+            )
+            .forEach((child) => child.remove());
           if (
             node.tagName?.toUpperCase() === "IMG" ||
             node.tagName?.toUpperCase() === "SVG"
           ) {
-            const serializedNode = node.cloneNode(true);
             const width = node.offsetWidth;
             const height = node.offsetHeight;
             if (width > 0) {
@@ -4288,9 +4284,8 @@ overflow-wrap: anywhere !important;`;
             if (height > 0) {
               serializedNode.style.height = `${height}px`;
             }
-            return pushReplace(serializedNode.outerHTML);
           }
-          return pushReplace(node.outerHTML);
+          return pushReplace(serializedNode.outerHTML);
         }
 
         let innerContent = "";
