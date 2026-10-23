@@ -235,12 +235,14 @@ export const DEFAULT_SUBRULES_LIST = [
 export const DEFAULT_MOUSEHOVER_KEY = ["ControlLeft"]; // 默认触发悬停翻译的触发按键 (左 Ctrl 键)
 export const OPT_MOUSE_HOVER_DISPLAY_BILINGUAL = "bilingual"; // 鼠标悬停翻译：把译文插入页面形成双语对照
 export const OPT_MOUSE_HOVER_DISPLAY_BUBBLE = "bubble"; // 鼠标悬停翻译：用悬浮气泡展示译文，不改变页面布局
-export const OPT_MOUSE_HOVER_TRANS_PARAGRAPH = "paragraph"; // 按住左键触发时只翻译鼠标所在当前段
-export const OPT_MOUSE_HOVER_TRANS_REGION = "region"; // 按住左键触发时翻译最近的区域（最近的“多段落容器”）
-export const OPT_MOUSE_HOVER_TRANS_AREA = "area"; // 按住左键触发时翻译整篇文章/区域
-export const OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE = "inline"; // 按住左键译文跟随原文行内显示
-export const OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK = "block"; // 按住左键译文独立成块显示
-export const DEFAULT_MOUSE_HOVER_HOLD_DELAY = 800; // 按住鼠标左键多久后触发悬停翻译 (毫秒)
+export const OPT_MOUSE_HOVER_TRANS_PARAGRAPH = "paragraph"; // 按住按键触发时只翻译鼠标所在当前段
+export const OPT_MOUSE_HOVER_TRANS_REGION = "region"; // 按住按键触发时翻译最近的区域（最近的“多段落容器”）
+export const OPT_MOUSE_HOVER_TRANS_AREA = "area"; // 按住按键触发时翻译整篇文章/区域
+export const OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE = "inline"; // 按住按键译文跟随原文行内显示
+export const OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK = "block"; // 按住按键译文独立成块显示
+export const OPT_MOUSE_HOVER_HOLD_BUTTON_LEFT = "left"; // 按住触发使用鼠标左键
+export const OPT_MOUSE_HOVER_HOLD_BUTTON_RIGHT = "right"; // 按住触发使用鼠标右键
+export const DEFAULT_MOUSE_HOVER_HOLD_DELAY = 800; // 按住鼠标按键多久后触发悬停翻译 (毫秒)
 export const DEFAULT_MOUSE_HOVER_BUBBLE_STYLE = `max-width: min(420px, calc(100vw - 32px));
 padding: 10px 12px;
 border-radius: 8px;
@@ -257,12 +259,15 @@ export const DEFAULT_MOUSE_HOVER_SETTING = {
   blacklist: "", // 鼠标悬停翻译禁用的网页黑名单
   mouseHoverKey: DEFAULT_MOUSEHOVER_KEY, // 主按键
   mouseHoverKey2: [], // 备用快捷按键
-  mouseHoverKeyHold: false, // 主触发方式是否使用“按住鼠标左键不放”
-  mouseHoverKey2Hold: false, // 备用触发方式是否使用“按住鼠标左键不放”
-  mouseHoverHoldDelay: DEFAULT_MOUSE_HOVER_HOLD_DELAY, // 按住左键触发翻译的等待时长 (毫秒)
-  mouseHoverTransMode: OPT_MOUSE_HOVER_TRANS_AREA, // 按住左键触发的翻译范围
-  mouseHoverTransDisplay: OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK, // 按住左键译文显示方式
-  mouseHoverPreventClick: false, // 按住链接/按钮翻译后松开是否阻止点击跳转（默认关闭）
+  mouseHoverKeyHold: false, // 主触发方式是否使用“按住鼠标按键不放”
+  mouseHoverKey2Hold: false, // 备用触发方式是否使用“按住鼠标按键不放”
+  mouseHoverHoldButton: OPT_MOUSE_HOVER_HOLD_BUTTON_LEFT, // 按住触发使用的鼠标按键（左键/右键）
+  mouseHoverHoldDelay: DEFAULT_MOUSE_HOVER_HOLD_DELAY, // 按住按键触发翻译的等待时长 (毫秒)
+  mouseHoverSuppressContextMenu: true, // 右键模式下按住翻译成功后是否屏蔽原生右键菜单
+  mouseHoverHoldRevertOnGesture: false, // 右键模式下按住被浏览器手势接管（收不到松开事件）时是否撤回译文（默认关闭）
+  mouseHoverTransMode: OPT_MOUSE_HOVER_TRANS_AREA, // 按住按键触发的翻译范围
+  mouseHoverTransDisplay: OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK, // 按住按键译文显示方式
+  mouseHoverPreventClick: false, // 按住链接/按钮翻译后松开是否阻止点击跳转（仅左键模式，默认关闭）
   displayMode: OPT_MOUSE_HOVER_DISPLAY_BILINGUAL, // 鼠标悬停翻译展示模式
   apiSlug: GLOBAL_KEY, // 气泡模式翻译接口，默认跟随当前网页规则
   bubbleStyle: DEFAULT_MOUSE_HOVER_BUBBLE_STYLE, // 气泡模式的容器 CSS
