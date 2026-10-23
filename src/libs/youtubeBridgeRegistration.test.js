@@ -218,6 +218,7 @@ test("installation/update and browser startup check registration before slow ini
       ),
     },
     ensureYoutubeBridgeRegistered: ensure,
+    runDataMigration: async () => true,
     getUiLanguage: () => new Promise(() => {}),
     getSettingWithDefault: () => new Promise(() => {}),
   });

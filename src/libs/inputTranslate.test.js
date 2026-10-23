@@ -141,6 +141,7 @@ describe("InputTranslator input button", () => {
     focusTarget(translator, target);
 
     expect(getFloatButton(target)).toBeTruthy();
+    expect(getFloatButton(target).hasAttribute("data-kiss-ui")).toBe(true);
   });
 
   test.each([

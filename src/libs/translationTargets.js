@@ -3,7 +3,7 @@
 
 // Not page prose. Kept even when the built-in ignore list is omitted
 // (manual selectors, scan-all, and plain-text mode).
-const NON_CONTENT_SELECTOR =
+export const NON_CONTENT_SELECTOR =
   "script, style, noscript, template, textarea, iframe";
 
 export function isInNonContent(node) {

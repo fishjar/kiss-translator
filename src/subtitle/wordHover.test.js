@@ -1,6 +1,7 @@
 import { apiMicrosoftDict } from "../apis/index.js";
 import { WordTooltipController } from "./wordHover";
 import { normalizeHoverLookupCloseDelay } from "./modes";
+import { KISS_UI_SELECTOR } from "../libs/kissUi";
 
 jest.mock("../apis/index.js", () => ({ apiMicrosoftDict: jest.fn() }));
 jest.mock("./favoriteWords.js", () => ({
@@ -93,6 +94,7 @@ test("entering the panel cancels dismissal and panel operations keep it open; le
   const { controller, words } = setup();
   await open(words[0]);
   const panel = controller.tooltipEl;
+  expect(panel.matches(KISS_UI_SELECTOR)).toBe(true);
   pointer(words[0], "pointerleave");
   await advance(1500);
   pointer(panel, "pointerenter");

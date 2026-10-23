@@ -225,6 +225,7 @@ export default function ImageTranslateContent({
               {/* 单段一键复制按钮 */}
               <Box sx={{ position: "absolute", top: 6, right: 6 }}>
                 <Tooltip
+                  PopperProps={{ "data-kiss-ui": "", className: "notranslate" }}
                   title={
                     isSingleCopied
                       ? i18n("image_copied", "已复制")

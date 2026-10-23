@@ -258,7 +258,7 @@ export async function run(isUserscript = false) {
 
       // 0. 执行核心数据迁移 (针对油猴等无后台更新事件的场景)
       const { runDataMigration } = await import("./libs/storage");
-      await runDataMigration();
+      if ((await runDataMigration()) === false) return;
     }
 
     // 1. 加载本地设置

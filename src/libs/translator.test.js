@@ -19,6 +19,9 @@ jest.mock("./msg", () => ({
 jest.mock("./detect", () => ({
   tryDetectLang: jest.fn(),
 }));
+jest.mock("@streamparser/json", () => ({ JSONParser: jest.fn() }));
+jest.mock("./sync", () => ({ trySyncRules: jest.fn() }));
+jest.mock("./subRules", () => ({ loadOrFetchSubRules: jest.fn() }));
 
 const { apiMicrosoftDict, apiTranslate, apiYoudaoDict } = require("../apis");
 const { tryDetectLang } = require("./detect");
@@ -698,7 +701,7 @@ describe("Translator rule styles", () => {
       expect(old.isConnected).toBe(false);
     });
 
-    test("continues invalidating reorders when a keep selector groups the card with its parent", async () => {
+    test("keeps block cards independent even when keepSelector matches them", async () => {
       document.body.innerHTML =
         '<main id="root"><article><p>Moving paragraph.</p></article><article><p>Other paragraph.</p></article></main>';
       createTranslator({ keepSelector: "article" });
@@ -709,8 +712,8 @@ describe("Translator rule styles", () => {
       apiTranslate.mockClear();
       root.appendChild(card);
       await flushMutations();
-      expect(apiTranslate).toHaveBeenCalled();
-      expect(old.isConnected).toBe(false);
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(old.isConnected).toBe(true);
       expect(card.querySelector(wrapperSelector)).not.toBeNull();
     });
 
@@ -2736,6 +2739,122 @@ describe("Translator rule styles", () => {
     expect(wrappers.length).toBeGreaterThan(0);
     expect(directListItemWrappers).toHaveLength(0);
     expect(requestedTexts.every((text) => text.trim())).toBe(true);
+  });
+
+  describe("inline preservation and configurable ignores", () => {
+    test.each(["true", "false"])(
+      "preserves ignored inline keep elements in autoScan=%s",
+      async (autoScan) => {
+        apiTranslate.mockImplementation(({ text }) =>
+          Promise.resolve({ trText: text, isSame: false })
+        );
+        document.body.innerHTML =
+          '<main id="root"><p id="target">Open <code class="excluded notranslate">README.rst<span class="excluded"> nested</span></code> and <span class="math" display="inline" translate="no">x+y</span> first.</p></main>';
+        createTranslator({
+          autoScan,
+          selector: "#target",
+          keepSelector: "code, .math",
+          ignoreSelector: ".excluded, .notranslate, [translate='no']",
+        });
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        const requested = apiTranslate.mock.calls[0][0].text;
+        expect(requested).not.toMatch(/README|nested|x\+y/);
+        const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        expect(inner.textContent).toBe("Open README.rst nested and x+y first.");
+        expect(inner.querySelector("code .excluded")).not.toBeNull();
+      }
+    );
+
+    test("keeps a link containing code but strips fixed exclusions from its copy", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><p>Open <a class="kept excluded" display="inline"><code>README.rst</code><span data-kiss-ui>Plugin UI</span><script>script secret</script><textarea>input secret</textarea></a> first.</p></main>';
+      createTranslator({ keepSelector: "a.kept", ignoreSelector: ".excluded" });
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).not.toMatch(
+        /README|secret|Plugin/
+      );
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.querySelector("a code").textContent).toBe("README.rst");
+      expect(
+        inner.querySelector("[data-kiss-ui], script, textarea")
+      ).toBeNull();
+      expect(document.querySelector("a.kept [data-kiss-ui]")).not.toBeNull();
+    });
+
+    test("does not exempt ignored blocks or ordinary ignored inline content", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Alpha <code class="excluded">Block secret</code> beta <span class="excluded">Inline secret</span> gamma.</p></main>';
+      createTranslator({
+        keepSelector: "code",
+        blockSelector: "code",
+        ignoreSelector: ".excluded",
+      });
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalled();
+      expect(
+        apiTranslate.mock.calls.map(([args]) => args.text).join(" ")
+      ).not.toContain("secret");
+    });
+
+    test("leaves an ignored ancestor blocked until the site removes its rule", async () => {
+      const { mergeSelectors } = require("./rules");
+      document.body.innerHTML =
+        '<main id="root"><p>Visible content.</p><section translate="no"><p>Blocked content.</p></section></main>';
+      document.documentElement.setAttribute("translate", "no");
+      try {
+        const translator = createTranslator({
+          ignoreSelector: "[translate='no']",
+        });
+        await flushAsync();
+        expect(apiTranslate).not.toHaveBeenCalled();
+        translator.updateRule({
+          ignoreSelector: mergeSelectors(
+            "[translate='no']",
+            "-[translate='no'], +[translate='no']:not(html):not(body)"
+          ),
+        });
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe("Visible content.");
+      } finally {
+        document.documentElement.removeAttribute("translate");
+      }
+    });
+
+    test.each([
+      {},
+      { autoScan: "false", selector: "p" },
+      { scanAll: "true" },
+      { isPlainText: "true" },
+    ])(
+      "never preserves plugin UI even with broad keepSelector: %j",
+      async (mode) => {
+        document.body.innerHTML =
+          '<main id="root"><p>Alpha <code data-kiss-ui>Plugin secret</code> beta.</p><div class="kt-image-hover-root"><p>Hover secret</p></div><div class="kiss-player-feedback"><p>Subtitle secret</p></div></main>';
+        const translator = createTranslator({
+          ...mode,
+          keepSelector: "code, div",
+          ignoreSelector: ":not(*)",
+        });
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalled();
+        expect(
+          apiTranslate.mock.calls.map(([args]) => args.text).join(" ")
+        ).not.toContain("secret");
+        expect(
+          translator
+            .previewRule()
+            .targets.some((node) =>
+              node.closest(Translator.KISS_IGNORE_SELECTOR)
+            )
+        ).toBe(false);
+      }
+    );
   });
 
   test("trims source indentation before creating whitespace placeholders", async () => {
