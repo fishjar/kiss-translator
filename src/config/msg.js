@@ -60,6 +60,7 @@ export const MSG_IMAGE_TRANSLATE_EXECUTE = "image_translate_execute"; // 请求�
 export const MSG_IMAGE_TRANSLATE_CANCEL = "image_translate_cancel"; // 取消图片识别/翻译任务
 export const MSG_IMAGE_TRANSLATE_PROGRESS = "image_translate_progress"; // 图片识别/翻译进度
 export const PORT_STREAM_FETCH = "kiss_stream_fetch"; // 双向长连接端口名称：用于大模型翻译时的流式输出通道
+export const PORT_FETCH = "kiss_fetch_port";
 export const MSG_UPDATE_ICON = "update_icon"; // 通知后台脚本更新扩展的工具栏图标状态 (激活/灰色状态)
 export const MSG_SHA256 = "sha256"; // 请求后台脚本代算 SHA-256 签名
 

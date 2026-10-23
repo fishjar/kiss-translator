@@ -11,6 +11,7 @@ import { MSG_FETCH, DEFAULT_HTTP_TIMEOUT } from "../config";
 import { isBg } from "./browser";
 import { kissLog } from "./log";
 import { parseResponse } from "./response";
+import { fetchViaPort } from "./requestPort";
 
 /**
  * 将用户配置的请求超时时间统一归一化为毫秒。
@@ -294,6 +295,7 @@ export const fnPolyfill = ({ fn, msg = MSG_FETCH, ...args }) => {
         new DOMException("The operation was aborted.", "AbortError")
       );
     }
+    if (msg === MSG_FETCH && signal) return fetchViaPort(args, signal);
     const safeArgs = {
       ...args,
       opts: { ...args.opts, signal: undefined },

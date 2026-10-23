@@ -37,7 +37,6 @@ import {
 } from "../config/serviceSelection";
 import { getInterpreter } from "./interpreter";
 import { supportsServiceFeature } from "../providers/features";
-import { clearFetchPool } from "./pool";
 import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
 import {
   parseTerms,
@@ -49,7 +48,6 @@ import { escapeHTML } from "./html";
 import { parseMathInText } from "./mathParse";
 import { apiMicrosoftDict, apiTranslate, apiYoudaoDict } from "../apis";
 import { kissLog } from "./log";
-import { clearAllBatchQueue } from "./batchQueue";
 import { genTextClass } from "./style";
 import { createLoadingSVG, createRetrySVG } from "./svg";
 import { shortcutRegister } from "./shortcut";
@@ -379,6 +377,7 @@ export class Translator {
   #mouseHoverEnabled = false; // 鼠标悬停翻译
   #enabled = false; // 全局默认状态
   #runId = 0; // 用于中止过期的异步请求
+  #translationController = new AbortController();
 
   #transOnlyRevertTimer = null;
   #transOnlyRevertTarget = null;
@@ -3787,6 +3786,7 @@ export class Translator {
   async #translateNodeGroup(nodes, hostNode, deLang, options = {}) {
     if (options.valid && !options.valid()) return;
     const currentRunId = this.#runId;
+    const signal = this.#translationController.signal;
     const {
       transTag,
       textStyle,
@@ -3964,7 +3964,8 @@ export class Translator {
           processedString,
           deLang,
           onStreamChunk,
-          options.touch ? this.#hoverBubbleApiSetting : null
+          options.touch ? this.#hoverBubbleApiSetting : null,
+          signal
         );
         translatedText = result.trText;
         isSameLang = result.isSame;
@@ -4087,6 +4088,7 @@ export class Translator {
         nodes
       );
     } catch (err) {
+      if (signal.aborted || currentRunId !== this.#runId) return;
       // 容器已被还原移除时丢弃过期失败结果，避免 “Request terminated” 分支的
       // #cleanupDirectTranslations(hostNode) 误删宿主上随后产生的新译文，
       // 也避免在已脱离文档的容器里渲染重试按钮。
@@ -4388,6 +4390,7 @@ overflow-wrap: anywhere !important;`;
 
   // 气泡模式下翻译目标节点，处理请求竞态与错误边界
   async #translateHoverBubbleNode(node) {
+    const signal = this.#translationController.signal;
     this.#clearHoverOriginalTimer();
     if (!this.#hoverBubbleApiSetting) {
       this.#hideHoverBubble();
@@ -4439,9 +4442,11 @@ overflow-wrap: anywhere !important;`;
         text,
         deLang,
         null,
-        this.#hoverBubbleApiSetting
+        this.#hoverBubbleApiSetting,
+        signal
       );
       if (
+        signal.aborted ||
         this.#hoverBubbleRunId !== currentRunId ||
         this.#hoverBubbleTarget !== node
       ) {
@@ -4460,6 +4465,7 @@ overflow-wrap: anywhere !important;`;
       );
     } catch (err) {
       if (
+        signal.aborted ||
         this.#hoverBubbleRunId !== currentRunId ||
         this.#hoverBubbleTarget !== node
       ) {
@@ -4693,7 +4699,8 @@ overflow-wrap: anywhere !important;`;
     text,
     deLang = "",
     onStreamChunk = null,
-    apiSettingOverride = null
+    apiSettingOverride = null,
+    signal = this.#translationController.signal
   ) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
@@ -4751,7 +4758,15 @@ overflow-wrap: anywhere !important;`;
       }
     }
 
-    return apiTranslate(args);
+    // Hooks and request preparation may finish after this session was cancelled.
+    return apiTranslate({ ...args, signal });
+  }
+
+  #cancelTranslationRequests() {
+    this.#runId++;
+    this.#translationController.abort();
+    this.#translationController = new AbortController();
+    this.#hideHoverBubble();
   }
 
   // 查找指定节点下所有译文节点
@@ -5505,7 +5520,7 @@ overflow-wrap: anywhere !important;`;
     if (this.#enabled || this.#editorPaused) return;
     this.#enabled = true;
     this.#rule.transOpen = "true";
-    this.#runId++;
+    this.#cancelTranslationRequests();
     this.#restorePendingPlainTextPreSources();
 
     if (this.#isInitialized) {
@@ -5534,13 +5549,20 @@ overflow-wrap: anywhere !important;`;
   async #translateTitle() {
     if (!this.#apiSetting) return;
     const runId = this.#runId;
+    const signal = this.#translationController.signal;
     const docInfo = getDocInfo();
     if (!docInfo?.title) return;
 
     try {
       const deLang = await tryDetectLang(docInfo.title);
       if (runId !== this.#runId || this.#editorPaused) return;
-      const { trText } = await this.#translateFetch(docInfo.title, deLang);
+      const { trText } = await this.#translateFetch(
+        docInfo.title,
+        deLang,
+        null,
+        null,
+        signal
+      );
       if (runId !== this.#runId || this.#editorPaused) return;
       this.#docInfo.title = document.title; // 缓存原标题
       document.title = trText || docInfo.title;
@@ -5554,14 +5576,12 @@ overflow-wrap: anywhere !important;`;
     if (!this.#enabled) return;
     this.#enabled = false;
     this.#rule.transOpen = "false";
-    this.#runId++;
+    this.#cancelTranslationRequests();
     // 关闭翻译时立即废弃语言检测中的按住任务
     this.#holdGeneration += 1;
 
     this.#cleanupAllNodes();
     this.#restorePendingPlainTextPreSources();
-    clearFetchPool();
-    clearAllBatchQueue();
 
     // 恢复页面标题
     if (this.#rule.transTitle === "true" && this.#docInfo.title) {
@@ -5574,14 +5594,12 @@ overflow-wrap: anywhere !important;`;
   // 重新扫描页面
   rescan() {
     if (!this.#isInitialized || this.#editorPaused) return;
-    this.#runId++;
+    this.#cancelTranslationRequests();
     const touchMode = this.#touchController?.mode || "off";
     this.setTouchMode("off");
 
     this.#cleanupAllNodes();
     this.#resetOptions();
-    clearFetchPool();
-    clearAllBatchQueue();
 
     // 重新初始化
     this.#init();
@@ -5625,6 +5643,7 @@ overflow-wrap: anywhere !important;`;
 
   // 停止运行
   stop({ preserveInjector = false } = {}) {
+    this.#cancelTranslationRequests();
     this.setTouchMode("off");
     document.removeEventListener(
       EVENT_FAVORITE_WORD_CHANGE,
@@ -5658,6 +5677,15 @@ overflow-wrap: anywhere !important;`;
     }
     let hasChanged = false;
     let needsRescan = false;
+    if (
+      ["apiSlug", "fromLang", "toLang", "hasRichText"].some(
+        (key) =>
+          Object.prototype.hasOwnProperty.call(newRule, key) &&
+          newRule[key] !== this.#rule[key]
+      )
+    ) {
+      this.#cancelTranslationRequests();
+    }
     const oldTransAllnow = apiState.oldTransAllnow ?? this.#transAllnow;
     const oldRootMargin = apiState.oldRootMargin ?? this.#rootMargin;
     for (const key in newRule) {
