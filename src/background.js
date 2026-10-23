@@ -62,6 +62,8 @@ import {
 } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
 import { fetchHandle, fetchStreamNative } from "./libs/fetch";
+import { handleFetchPort } from "./libs/requestPort";
+import { PORT_FETCH } from "./config/msg";
 import { tryClearCaches, getHttpCache, putHttpCache } from "./libs/cache";
 import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
@@ -1021,6 +1023,7 @@ async function handleStreamFetch(port, args) {
  */
 installProviderRelay();
 browser.runtime.onConnect.addListener((port) => {
+  if (port.name === PORT_FETCH) handleFetchPort(port, fetchHandle);
   if (port.name === PORT_STREAM_FETCH) {
     port.onMessage.addListener((message) => {
       if (message.action === "start") {

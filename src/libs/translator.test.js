@@ -122,6 +122,104 @@ function createPlainTextTranslator(rule = {}, setting = {}) {
 }
 
 describe("Translator rule styles", () => {
+  test.each(["disable", "stop", "rescan", "source", "target", "service"])(
+    "cancels pending webpage requests on %s and isolates the next session",
+    async (action) => {
+      document.body.innerHTML =
+        '<main id="root"><p>Pending article translation</p></main>';
+      apiTranslate.mockImplementation(() => new Promise(() => {}));
+      const translator = createTranslator(
+        {},
+        {
+          transApis: [
+            createApiSetting(DEFAULT_API_SETTING.apiSlug),
+            createApiSetting("next-service"),
+          ],
+        }
+      );
+      await flushAsync();
+      const oldRequest = apiTranslate.mock.calls[0][0];
+      expect(oldRequest.signal).toBeDefined();
+      expect(oldRequest.signal.aborted).toBe(false);
+
+      if (action === "source") translator.updateRule({ fromLang: "auto" });
+      else if (action === "target") translator.updateRule({ toLang: "ja" });
+      else if (action === "service")
+        translator.updateRule({ apiSlug: "next-service" });
+      else translator[action]();
+      expect(oldRequest.signal.aborted).toBe(true);
+      if (action === "disable" || action === "stop") translator.enable();
+      await flushAsync();
+      const nextRequest = apiTranslate.mock.calls.at(-1)[0];
+      expect(nextRequest.signal).not.toBe(oldRequest.signal);
+      expect(nextRequest.signal.aborted).toBe(false);
+    }
+  );
+
+  test("stopping webpage translation leaves unrelated queued requests intact", async () => {
+    const { getFetchPool } = require("./pool");
+    document.body.innerHTML =
+      '<main id="root"><p>Article translation</p></main>';
+    const translator = createTranslator();
+    await flushAsync();
+    const otherTask = jest.fn();
+    const pending = getFetchPool(0, 1).push(otherTask);
+    translator.disable();
+    jest.runOnlyPendingTimers();
+    await pending;
+    expect(otherTask).toHaveBeenCalledTimes(1);
+  });
+
+  test("style changes preserve the active webpage request", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Pending article translation</p></main>';
+    apiTranslate.mockImplementation(() => new Promise(() => {}));
+    const translator = createTranslator();
+    await flushAsync();
+    const request = apiTranslate.mock.calls[0][0];
+    translator.updateRule({ textStyle: "fuzzy" });
+    expect(request.signal).toBeDefined();
+    expect(request.signal.aborted).toBe(false);
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+  });
+
+  test("late cancellation of an old language request does not replace the new translation", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Article translation</p></main>';
+    const pending = [];
+    apiTranslate.mockImplementation(
+      () => new Promise((resolve, reject) => pending.push({ resolve, reject }))
+    );
+    const translator = createTranslator();
+    await flushAsync();
+    translator.updateRule({ fromLang: "auto" });
+    await flushAsync();
+    expect(pending).toHaveLength(2);
+    pending[1].resolve({ trText: "Current translation", isSame: false });
+    await flushAsync();
+    pending[0].reject(new DOMException("Cancelled", "AbortError"));
+    await flushAsync();
+    expect(document.querySelector(".kiss-translator-inner").textContent).toBe(
+      "Current translation"
+    );
+  });
+
+  test("stopping cancels both title and body requests", async () => {
+    document.title = "Pending page title";
+    document.body.innerHTML =
+      '<main id="root"><p>Pending article translation</p></main>';
+    apiTranslate.mockImplementation(() => new Promise(() => {}));
+    const translator = createTranslator({ transTitle: "true" });
+    await flushAsync();
+    expect(apiTranslate.mock.calls.map(([args]) => args.text)).toContain(
+      "Pending page title"
+    );
+    translator.disable();
+    expect(apiTranslate.mock.calls.every(([args]) => args.signal.aborted)).toBe(
+      true
+    );
+  });
+
   test("editor preview shares targets without modifying DOM or sending requests", () => {
     document.body.innerHTML =
       '<main id="root"><article><p id="a">First article text</p><p id="b" class="excluded">Ignored paragraph text</p></article></main>';
