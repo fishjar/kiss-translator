@@ -116,6 +116,7 @@ export const OPT_LANGS_TO_SPEC = {
     ["ca", "cat"],
     ["hr", "hrv"],
     ["da", "dan"],
+    ["et", "est"],
     ["fi", "fin"],
     ["fr", "fra"],
     ["hi", "mai"],
