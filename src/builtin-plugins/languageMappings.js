@@ -122,6 +122,7 @@ export const OPT_LANGS_TO_SPEC = {
     ["hi", "mai"],
     ["ja", "jp"],
     ["ko", "kor"],
+    ["lv", "lav"],
     ["ms", "may"],
     ["mt", "mlt"],
     ["nb", "nor"],

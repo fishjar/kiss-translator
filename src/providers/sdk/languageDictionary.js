@@ -22,6 +22,7 @@ export const OPT_LANGS_TO = [
   ["it", "Italian - Italiano"],
   ["ja", "Japanese - 日本語"],
   ["ko", "Korean - 한국어"],
+  ["lv", "Latvian - Latviešu"],
   ["ms", "Malay - Melayu"],
   ["mt", "Maltese - Malti"],
   ["nb", "Norwegian - Norsk Bokmål"],
