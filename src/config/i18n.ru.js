@@ -645,5 +645,6 @@ export const RU_I18N = {
   grip_style_percent_style: `Стиль «процент»`,
   grip_style_orbit_satellite: `Спутник на орбите`,
   grip_style_hidden: `Скрыт (стандартное изменение размера)`,
+  image_hover_desc: `При наведении на подходящее изображение сразу показывать кнопки быстрого доступа «Меню» и «Перевести»`,
   close: `Закрыть`,
 };

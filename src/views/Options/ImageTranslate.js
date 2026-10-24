@@ -330,7 +330,7 @@ export default function ImageTranslate() {
               label={i18n("image_hover_enable", "启用网页图片悬停快捷按钮")}
               description={i18n(
                 "image_hover_desc",
-                "鼠标停留在合格图片上 500ms 后，右上角显示“菜单”“翻译”按钮"
+                "鼠标移入符合条件的图片时，立即显示“菜单”和“翻译”快捷按钮"
               )}
             >
               <SettingsSwitch
