@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import { isMobile } from "../../libs/mobile";
+import { panelCursor } from "../../styles/cursors";
 import TranslationPanelSurface from "../../components/TranslationPanel/Surface";
 import { limitNumber } from "../../libs/utils";
 import {
@@ -285,7 +286,7 @@ export default function DraggableResizable({
         direction="TopLeft"
         style={{
           transform: `translate(${lineWidth}px, ${lineWidth}px)`,
-          cursor: "nw-resize",
+          cursor: panelCursor("nw"),
         }}
         {...opts}
       />
@@ -294,7 +295,7 @@ export default function DraggableResizable({
         style={{
           margin: `0 ${lineWidth}px`,
           transform: `translate(0px, ${lineWidth}px)`,
-          cursor: "row-resize",
+          cursor: panelCursor("n"),
         }}
         {...opts}
       />
@@ -302,7 +303,7 @@ export default function DraggableResizable({
         direction="TopRight"
         style={{
           transform: `translate(-${lineWidth}px, ${lineWidth}px)`,
-          cursor: "ne-resize",
+          cursor: panelCursor("ne"),
         }}
         {...opts}
       />
@@ -311,7 +312,7 @@ export default function DraggableResizable({
         style={{
           margin: `${lineWidth}px 0`,
           transform: `translate(${lineWidth}px, 0px)`,
-          cursor: "col-resize",
+          cursor: panelCursor("w"),
         }}
         {...opts}
       />
@@ -328,7 +329,7 @@ export default function DraggableResizable({
           <Pointer
             className="KT-draggable-header"
             direction="Header"
-            style={{ cursor: "move" }}
+            style={{ cursor: panelCursor("move") }}
             {...opts}
           >
             {header}
@@ -343,7 +344,7 @@ export default function DraggableResizable({
         style={{
           margin: `${lineWidth}px 0`,
           transform: `translate(-${lineWidth}px, 0px)`,
-          cursor: "col-resize",
+          cursor: panelCursor("e"),
         }}
         {...opts}
       />
@@ -351,7 +352,7 @@ export default function DraggableResizable({
         direction="BottomLeft"
         style={{
           transform: `translate(${lineWidth}px, -${lineWidth}px)`,
-          cursor: "ne-resize",
+          cursor: panelCursor("sw"),
         }}
         {...opts}
       />
@@ -360,7 +361,7 @@ export default function DraggableResizable({
         style={{
           margin: `0 ${lineWidth}px`,
           transform: `translate(0px, -${lineWidth}px)`,
-          cursor: "row-resize",
+          cursor: panelCursor("s"),
         }}
         {...opts}
       />
@@ -368,7 +369,7 @@ export default function DraggableResizable({
         direction="BottomRight"
         style={{
           transform: `translate(-${lineWidth}px, -${lineWidth}px)`,
-          cursor: "nw-resize",
+          cursor: panelCursor("se"),
         }}
         {...opts}
       />

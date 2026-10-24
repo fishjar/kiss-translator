@@ -934,6 +934,81 @@ describe("TextareaResizeGrip", () => {
     cache.sheet.flush();
   });
 
+  // 真红主路径：Windows+Chromium 判定命中（UA-CH mock）下，手柄 sx 的
+  // cursor 经 Emotion 注入（非 inline style），注入产物必须携带共享位图
+  // 光标 data-URI，并逐字保留 ns-resize 关键字回退（同根因：Windows
+  // Chromium 单色光标反白缺陷）。渲染期函数调用使本用例无需模块重导入
+  // 技巧；当前实现为裸关键字，本用例首跑必红。
+  test("injects the shared bitmap cursor for the grip via emotion on Windows Chromium", async () => {
+    Object.defineProperty(window.navigator, "userAgentData", {
+      configurable: true,
+      value: { platform: "Windows" },
+    });
+    const cache = createCache({ key: "grip-cursor-win-test", speedy: false });
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      await act(async () => {
+        root.render(
+          <CacheProvider value={cache}>
+            <GripHost onResize={jest.fn()} value={120} />
+          </CacheProvider>
+        );
+      });
+
+      const gripCss = [
+        ...document.head.querySelectorAll(
+          'style[data-emotion^="grip-cursor-win-test"]'
+        ),
+      ]
+        .map((style) => style.textContent)
+        .join("\n");
+
+      expect(gripCss).toContain("cursor:url(data:image/png;base64,");
+      // Emotion 序列化会去掉逗号后空格（", ns-resize" → ",ns-resize"），
+      // 故此断言不含空格（计划原断言 ") 16 16, ns-resize" 与序列化产物
+      // 不符，属事实纠偏，见证据日志）。
+      expect(gripCss).toContain(") 16 16,ns-resize");
+    } finally {
+      await act(async () => root.unmount());
+      cache.sheet.flush();
+      delete window.navigator.userAgentData;
+    }
+  });
+
+  // 非 Windows 默认环境不变式：手柄 cursor 仍为裸 ns-resize 关键字，与改
+  // 动前逐字一致（改动前后都应通过）。
+  test("keeps the plain ns-resize keyword cursor outside Windows Chromium", async () => {
+    const cache = createCache({ key: "grip-cursor-kw-test", speedy: false });
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      await act(async () => {
+        root.render(
+          <CacheProvider value={cache}>
+            <GripHost onResize={jest.fn()} value={120} />
+          </CacheProvider>
+        );
+      });
+
+      const gripCss = [
+        ...document.head.querySelectorAll(
+          'style[data-emotion^="grip-cursor-kw-test"]'
+        ),
+      ]
+        .map((style) => style.textContent)
+        .join("\n");
+
+      expect(gripCss).toContain("cursor:ns-resize");
+
+      await act(async () => root.unmount());
+    } finally {
+      cache.sheet.flush();
+    }
+  });
+
   // variant 可配置化：默认（未传/未知值）回落同心双弧；填充族把 fill 放
   // svg 根、子元素不带 fill；hidden 渲染空 svg 保留热区。字符串契约锁定
   // path d 逐字值与 fill 归属，防资产漂移。
