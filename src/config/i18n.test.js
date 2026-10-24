@@ -170,3 +170,22 @@ test("all static UI translation keys are registered, including calls with a fall
   expect(missing).toEqual([]);
   expect(duplicateLocaleKeys).toEqual([]);
 });
+
+// 划词弹窗头部消歧后的文案锁：跟随菜单项与设置项 follow_selection
+// （zh「翻译框跟随选中文本」）同源命名；「固定弹窗」副注改为「失焦不隐藏」。
+// RU_I18N 是 i18n.js 之外的独立覆盖层（i18n.js 合并段按 RU_I18N[key] ?? en
+// 兜底），上述全语言遍历对 ru 覆盖层缺键恒绿，故两键在此单独锁定。
+test("disambiguates the panel pin and follow-selection labels", () => {
+  expect(I18N.btn_tip_follow_selection.zh).toBe("跟随选中文本");
+  expect(I18N.btn_tip_follow_selection.en).toBe("Follow selected text");
+  expect(I18N.btn_tip_click_away.zh).toBe("固定弹窗（失焦不隐藏）");
+  expect(I18N.btn_tip_click_away.en).toBe(
+    "Pin panel (stay visible on focus loss)"
+  );
+  expect(RU_I18N.btn_tip_follow_selection).toBe(
+    "Следовать за выделенным текстом"
+  );
+  expect(RU_I18N.btn_tip_click_away).toBe(
+    "Закрепить панель (не скрывается при потере фокуса)"
+  );
+});
