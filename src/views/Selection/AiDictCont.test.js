@@ -139,6 +139,29 @@ describe("AiDictCont", () => {
     });
   });
 
+  test("renders copy button before speech button in dict actions", async () => {
+    apiDict.mockResolvedValueOnce("## library\n\n- book room");
+
+    const { container, root } = renderAiDictCont();
+    await flushEffects();
+
+    const copyButton = container.querySelector("[data-copy-text]");
+    const speechButton = container.querySelector(
+      "[data-testid='browser-tts']"
+    );
+
+    expect(copyButton).not.toBeNull();
+    expect(speechButton).not.toBeNull();
+    expect(
+      copyButton.compareDocumentPosition(speechButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
   test("does not render speech button without dictionary markdown", async () => {
     const { container, root } = renderAiDictCont({ text: "" });
     await flushEffects();

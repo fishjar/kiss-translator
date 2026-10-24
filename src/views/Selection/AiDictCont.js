@@ -208,16 +208,16 @@ export default function AiDictCont({
         {loading && (
           <CircularProgress size={12} sx={{ mr: 0.5, flexShrink: 0 }} />
         )}
+        <CopyBtn
+          text={markdown}
+          title={i18n("copy")}
+          copiedLabel={i18n("copy_success", "Copied")}
+        />
         <BrowserTtsBtn
           serviceId={ttsApiSlug}
           text={text}
           lang={speechLang || fromLang || "en-US"}
           title={i18n("read_aloud")}
-        />
-        <CopyBtn
-          text={markdown}
-          title={i18n("copy")}
-          copiedLabel={i18n("copy_success", "Copied")}
         />
       </Box>
       <Typography
