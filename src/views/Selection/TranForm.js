@@ -865,7 +865,7 @@ export default function TranForm({
                         inputProps={{ "aria-busy": deLoading }}
                         InputProps={{
                           readOnly: true,
-                          startAdornment: (
+                          startAdornment: deLoading ? (
                             <Box
                               sx={{
                                 width: 16,
@@ -874,14 +874,12 @@ export default function TranForm({
                                 placeItems: "center",
                               }}
                             >
-                              {deLoading && (
-                                <CircularProgress
-                                  size={16}
-                                  aria-label={i18n("detected_lang")}
-                                />
-                              )}
+                              <CircularProgress
+                                size={16}
+                                aria-label={i18n("detected_lang")}
+                              />
                             </Box>
-                          ),
+                          ) : null,
                         }}
                       />
                     </Grid>
