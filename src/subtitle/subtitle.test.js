@@ -8,7 +8,7 @@ jest.mock("../libs/storage.js", () => ({
   saveEdit: jest.fn(),
 }));
 
-jest.mock("../libs/log.js", () => ({
+jest.mock("../libs/log.js", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   LogLevel: {
     INFO: { value: "info" },
   },
@@ -16,7 +16,7 @@ jest.mock("../libs/log.js", () => ({
     warn: jest.fn(),
     error: jest.fn(),
   },
-}));
+}))()));
 
 jest.mock("../injectors/index.js", () => ({
   injectJs: jest.fn(),

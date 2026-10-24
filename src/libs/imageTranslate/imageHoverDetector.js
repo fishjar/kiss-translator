@@ -1,3 +1,4 @@
+import { logger } from "../log";
 /**
  * @file imageHoverDetector.js
  * @description 网页图片悬停检测器：负责悬停识别合格 <img>并在图片外上方展示操作条，支持布局分析、线框点选与按需翻译。
@@ -339,7 +340,7 @@ export class ImageHoverDetector {
           this.#layoutTaskId === taskId &&
           !this.#abortController?.signal?.aborted
         ) {
-          console.warn("[ImageHoverDetector] Layout analysis error:", err);
+          logger.child("image-translate").warn("[ImageHoverDetector] Layout analysis error:", err);
           alert(
             err?.message ||
               this.#i18n("image_process_failed", "分析布局失败，请重试")

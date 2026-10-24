@@ -17,7 +17,7 @@ import {
 import { loadOrFetchSubRules } from "./subRules";
 import { getRulesWithDefault, saveEdit, getDisabledSubRules } from "./storage";
 import { trySyncRules } from "./sync";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { splitSelectorList } from "./selectorList";
 
 /**
@@ -41,7 +41,7 @@ export function mergeSelectors(defaultStr, userStr) {
     defaultList = splitSelectorList(defaultStr);
     userList = splitSelectorList(userStr);
   } catch (err) {
-    kissLog("invalid selector list", err);
+    logger.child("rules").warn("invalid selector list", err);
     return userStr;
   }
 
@@ -283,11 +283,11 @@ export const resolveRuleContext = async (
         try {
           disabledPatterns = (await getDisabledSubRules(selectedSub.url)) || [];
         } catch (err) {
-          kissLog("getDisabledSubRules", err);
+          logger.child("rules").info("getDisabledSubRules", err);
         }
       }
     } catch (err) {
-      kissLog("load injectRules", err);
+      logger.child("rules").warn("load injectRules", err);
     }
   }
 

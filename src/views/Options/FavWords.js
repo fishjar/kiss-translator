@@ -23,7 +23,7 @@ import ClearAllIcon from "@mui/icons-material/ClearAll";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import Alert from "@mui/material/Alert";
 import { isSingleChineseChar, isValidWord } from "../../libs/utils";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { useConfirm } from "../../hooks/Confirm";
 import { useSetting } from "../../hooks/Setting";
 import { dictHandlers } from "../Selection/DictHandler";
@@ -318,7 +318,7 @@ export default function FavWords() {
     try {
       await operation();
     } catch (error) {
-      kissLog("save favorite words", error);
+      logger.child("options").error("save favorite words", error);
       setSaveError(i18n("error_got_some_wrong"));
     } finally {
       pendingSave.current = false;
@@ -541,7 +541,7 @@ export default function FavWords() {
           .join("\n");
         tranList.push([title, tran].join("\n"));
       } catch (err) {
-        kissLog("export translation", err);
+        logger.child("options").error("export translation", err);
       }
     }
 

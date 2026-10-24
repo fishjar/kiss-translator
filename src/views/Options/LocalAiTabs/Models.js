@@ -1,3 +1,4 @@
+import { logger } from "../../../libs/log";
 import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -226,7 +227,7 @@ function ModelCard({ rec }) {
                 onClick={() =>
                   void manager
                     .download(manifest.id)
-                    .catch((e) => console.error(e))
+                    .catch((e) => logger.child("options").error("operation failed", e))
                 }
               >
                 {rec.state === "paused"

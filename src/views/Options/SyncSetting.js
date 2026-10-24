@@ -30,7 +30,7 @@ import { changeSyncEncryptKey, syncSettingAndRules } from "../../libs/sync";
 import { useAlert } from "../../hooks/Alert";
 import { useConfirm } from "../../hooks/Confirm";
 import { useSetting } from "../../hooks/Setting";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import SyncIcon from "@mui/icons-material/Sync";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
@@ -150,7 +150,7 @@ export default function SyncSetting() {
       reloadSetting();
       alert.success(i18n("sync_success"));
     } catch (err) {
-      kissLog("sync all", err);
+      logger.child("options").error("sync all", err);
       alert.error(getSyncErrorMessage(err));
     } finally {
       setLoading(false);
@@ -171,9 +171,9 @@ export default function SyncSetting() {
       );
       const shareString = `${OPT_SYNCTOKEN_PERFIX}${base64Config}`;
       await navigator.clipboard.writeText(shareString);
-      kissLog("Share string copied to clipboard", shareString);
+      logger.child("options").debug("Share string copied to clipboard", shareString);
     } catch (error) {
-      kissLog("Failed to copy share string to clipboard", error);
+      logger.child("options").warn("Failed to copy share string to clipboard", error);
     }
   };
 
@@ -181,7 +181,7 @@ export default function SyncSetting() {
   const handleImportFromClipboard = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      kissLog("read_clipboard", text);
+      logger.child("options").debug("read_clipboard", text);
       if (text.startsWith(OPT_SYNCTOKEN_PERFIX)) {
         const base64Config = text.slice(OPT_SYNCTOKEN_PERFIX.length);
         const jsonString = atob(base64Config);
@@ -189,7 +189,7 @@ export default function SyncSetting() {
 
         // 验证同步服务类型是否合法
         if (!OPT_SYNCTYPE_ALL.includes(updatedConfig.syncType)) {
-          kissLog("error syncType", updatedConfig.syncType);
+          logger.child("options").warn("error syncType", updatedConfig.syncType);
           return;
         }
 
@@ -205,13 +205,13 @@ export default function SyncSetting() {
             syncEncryptKey: updatedConfig.syncEncryptKey || "",
           });
         } else {
-          kissLog("Invalid config structure");
+          logger.child("options").warn("Invalid config structure");
         }
       } else {
-        kissLog("Invalid share string", text);
+        logger.child("options").warn("Invalid share string", text);
       }
     } catch (error) {
-      kissLog("Failed to read from clipboard or parse JSON", error);
+      logger.child("options").warn("Failed to read from clipboard or parse JSON", error);
     }
   };
 
@@ -258,7 +258,7 @@ export default function SyncSetting() {
       setEncryptKeyDialogMode(null);
       alert.success(i18n("sync_success"));
     } catch (err) {
-      kissLog("save sync encrypt key", err);
+      logger.child("options").error("save sync encrypt key", err);
       setEncryptKeyError(
         getSyncErrorMessage(
           err,

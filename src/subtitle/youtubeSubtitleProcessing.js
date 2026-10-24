@@ -247,7 +247,7 @@ export function isQualityPoor(
   const longLinesCount = lines.filter(
     (line) => line.text.length > lengthThreshold
   ).length;
-  logger.debug("Youtube Provider: quality check", {
+  logger.child("subtitle").debug("Youtube Provider: quality check", {
     longLinesCount,
     totalLines: lines.length,
     percentage: longLinesCount / lines.length,
@@ -476,13 +476,10 @@ export function formatSubtitles(
         (e) => e.start >= sub.start && e.start < sub.end
       );
       if (subEvents.length > 1) {
-        logger.debug(
-          "Youtube Provider: re-processing long sentence with pause",
-          {
+        logger.child("subtitle").debug("Youtube Provider: re-processing long sentence with pause", {
             length: sub.text.length,
             text: sub.text.slice(0, 50) + "...",
-          }
-        );
+          });
         const reProcessed = processSubtitles({
           flatEvents: subEvents,
           usePause: true,
@@ -517,7 +514,7 @@ export function algorithmicSegment(events, params) {
       translation: "",
     }));
   } catch (error) {
-    logger.info("Youtube Provider: Error in algorithmic segmentation", error);
+    logger.child("subtitle").warn("Youtube Provider: Error in algorithmic segmentation", error);
     return null;
   }
 }
@@ -561,17 +558,15 @@ export function runBuiltinSegmentation({
     }));
 
   if (mode === "statistical") {
-    logger.info("Youtube Provider: Sentence break mode: STATISTICAL");
+    logger.child("subtitle").debug("Youtube Provider: Sentence break mode: STATISTICAL");
     const result = algorithmicSegment(events, {
       maxChars: longSentenceThreshold,
     });
     if (result?.length) return toCues(result);
-    logger.info(
-      "Youtube Provider: Statistical segmentation returned empty, falling back to rule"
-    );
+    logger.child("subtitle").warn("Youtube Provider: Statistical segmentation returned empty, falling back to rule");
   }
 
-  logger.info("Youtube Provider: Sentence break mode: RULE");
+  logger.child("subtitle").debug("Youtube Provider: Sentence break mode: RULE");
   return toCues(
     formatSubtitles(flatEvents, fromLang, { longSentenceThreshold })
   );

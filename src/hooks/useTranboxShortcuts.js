@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from "react";
 import { isGm } from "../libs/client";
-import { kissLog } from "../libs/log";
+import { logger } from "../libs/log";
 import { useLangMap } from "./I18n";
 import { MSG_OPEN_TRANBOX, EVENT_KISS_INNER } from "../config";
 
@@ -74,7 +74,7 @@ export default function useTranboxShortcuts({
         });
       };
     } catch (err) {
-      kissLog("registerMenuCommand", err);
+      logger.child("use-tranbox-shortcuts").info("registerMenuCommand", err);
     }
   }, [handleToggleTranbox, contextMenuType, langMap]);
 }

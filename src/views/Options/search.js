@@ -3,6 +3,7 @@ import { I18N } from "../../config/i18n";
 // Index labels instead of mounted pages: advanced controls and other routes may
 // not exist in the DOM yet. Never include user-entered values or credentials.
 export const SETTINGS_SEARCH_KEYS = {
+  diagnostics: ["diagnostics_title", "diagnostics_query", "diagnostics_export"],
   overview: [
     "ui_lang",
     "popup_default_view",

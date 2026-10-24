@@ -3,6 +3,7 @@ import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { apiTranslate } from "../../apis";
 import { mountShadowHost } from "../../libs/shadowHost";
+import AiDictCont from "./AiDictCont";
 import TranForm from "./TranForm";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -22,7 +23,7 @@ jest.mock("../../hooks/Setting", () => ({
   useSetting: () => ({ setting: {} }),
 }));
 jest.mock("./DictCont", () => () => null);
-jest.mock("./AiDictCont", () => () => null);
+jest.mock("./AiDictCont", () => jest.fn(() => null));
 jest.mock("./SugCont", () => () => null);
 jest.mock("./Zdic", () => () => null);
 jest.mock("./CopyBtn", () => () => null);
@@ -455,5 +456,35 @@ describe("Explicit translation submissions", () => {
         delete document.fullscreenElement;
       }
     }
+  });
+
+  test("increments the AI dictionary revision on every explicit submission", async () => {
+    await renderPanel({
+      transApis: [
+        {
+          apiSlug: "openai",
+          apiName: "OpenAI",
+          apiType: "OpenAI",
+          useStream: true,
+          streamRenderMode: "realtime",
+          dictPrompt: "Dictionary prompt",
+        },
+      ],
+      aiDictApiSlug: "openai",
+    });
+
+    const revisionsBefore = AiDictCont.mock.calls.map(
+      ([props]) => props.requestRevision
+    );
+    expect(revisionsBefore).not.toHaveLength(0);
+    expect(new Set(revisionsBefore)).toEqual(new Set([0]));
+
+    act(() => submitButton().click());
+    await flushEffects();
+
+    const revisionsAfter = AiDictCont.mock.calls.map(
+      ([props]) => props.requestRevision
+    );
+    expect(revisionsAfter.at(-1)).toBe(1);
   });
 });

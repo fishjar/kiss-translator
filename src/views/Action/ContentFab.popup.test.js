@@ -45,10 +45,10 @@ jest.mock("../../libs/client", () => ({ isExt: true }));
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
 jest.mock("../../libs/mobile", () => ({ isMobile: false }));
 jest.mock("../../libs/storage", () => ({ putFab: jest.fn() }));
-jest.mock("../../libs/log", () => ({
+jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
   ...jest.requireActual("../../libs/log"),
   logger: { info: jest.fn(), warn: jest.fn() },
-}));
+}))()));
 jest.mock("../Popup/Header", () => {
   const React = require("react");
   return function Header({ onClose }) {

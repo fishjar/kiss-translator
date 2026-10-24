@@ -3,7 +3,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFavWords } from "../../hooks/FavWords";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { useSetting } from "../../hooks/Setting";
 import { EVENT_FAVORITE_WORD_CHANGE } from "../../config";
 
@@ -51,7 +51,7 @@ export default function FavBtn({ word, title, source = null }) {
           })
         );
       } catch (err) {
-        kissLog("set fav", err);
+        logger.child("fav-btn").info("set fav", err);
       } finally {
         pending.current = false;
         setLoading(false);

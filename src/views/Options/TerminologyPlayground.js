@@ -1022,15 +1022,9 @@ export default function TerminologyPlayground({
           const fatalDiagnostics = parsed.diagnostics.filter((d) =>
             FATAL_DIAGNOSTIC_TYPES.has(d.type)
           );
-          logger.error(
-            "[TermPlayground] fatal invalid term segments in input:",
-            fatalDiagnostics
-          );
+          logger.child("options").error("[TermPlayground] fatal invalid term segments in input:", fatalDiagnostics);
           if (parsed.metaWarnings.length > 0) {
-            logger.info(
-              "[TermPlayground] metacharacter warnings:",
-              parsed.metaWarnings
-            );
+            logger.child("options").debug("[TermPlayground] metacharacter warnings:", parsed.metaWarnings);
           }
           setComputed({
             parsed,
@@ -1088,7 +1082,7 @@ export default function TerminologyPlayground({
           selectDisplayedResults(results, { limit: DISPLAY_LIMIT });
 
         // 控制台输出完整所有 issue/detail，不受 UI 展示上限影响。
-        logger.info("[TermPlayground]", {
+        logger.child("options").debug("[TermPlayground]", {
           termCount,
           uniqueConflictPairs,
           independentTermCount,
@@ -1103,7 +1097,7 @@ export default function TerminologyPlayground({
         });
         const allIssues = results.flatMap((entry) => entry.assertion.issues);
         if (allIssues.length > 0) {
-          logger.error("[TermPlayground]", allIssues);
+          logger.child("options").error("[TermPlayground]", allIssues);
         }
 
         setComputed({

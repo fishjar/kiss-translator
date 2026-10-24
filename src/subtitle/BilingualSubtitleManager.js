@@ -94,11 +94,11 @@ export class BilingualSubtitleManager {
    */
   start() {
     if (this.#formattedSubtitles.length === 0) {
-      logger.warn("Bilingual Subtitles: No subtitles to display.");
+      logger.child("subtitle").debug("Bilingual Subtitles: No subtitles to display.");
       return;
     }
 
-    logger.info("Bilingual Subtitle Manager: Starting...");
+    logger.child("subtitle").debug("Bilingual Subtitle Manager: Starting...");
     this.#createCaptionWindow(); // 1. 创建悬浮字幕 DOM 树并挂载到网页
     this.#attachEventListeners(); // 2. 绑定视频播放事件
     this.onTimeUpdate(); // 3. 触发一次初始化同步渲染
@@ -108,7 +108,7 @@ export class BilingualSubtitleManager {
    * 销毁当前实例，全面清理 DOM 元素、未决请求、事件监听以及轮询定时器，防止内存泄漏
    */
   destroy() {
-    logger.info("Bilingual Subtitle Manager: Destroying...");
+    logger.child("subtitle").debug("Bilingual Subtitle Manager: Destroying...");
     this.#wasPlayingBeforeHover = false;
     this.#captionHovered = false;
     this.#translationSessionId += 1; // 递增会话 ID，使当前在途的异步请求回调全部失效
@@ -274,7 +274,7 @@ export class BilingualSubtitleManager {
     // 寻找到 YouTube 原生的视频包裹容器节点，以将其挂载进去
     const videoContainer = this.#videoEl.parentElement?.parentElement;
     if (!videoContainer) {
-      logger.warn("could not find videoContainer");
+      logger.child("subtitle").debug("could not find videoContainer");
       return;
     }
 
@@ -793,7 +793,7 @@ export class BilingualSubtitleManager {
     } catch (error) {
       if (sessionId !== this.#translationSessionId) return;
       if (error?.name === "AbortError") return; // 属于 Abort 中止，静默退出
-      logger.info("Subtitle translation failed");
+      logger.child("subtitle").error("Subtitle translation failed");
       this.#setting.onTranslationError?.();
       subtitle._translationFailed = true;
       if (
@@ -822,9 +822,12 @@ export class BilingualSubtitleManager {
       return;
     }
 
-    logger.info(
-      `Bilingual Subtitle Manager: Appending ${newSubtitlesChunk.length} new subtitles...`
-    );
+    logger
+      .child("subtitle")
+      .info(
+        "Bilingual Subtitle Manager: appending new subtitles; count:",
+        newSubtitlesChunk.length,
+      );
 
     // 由于上层 provider 在 processRemainingChunksAsync 时直接 push 了全局 subtitles 数组，
     // 这里指向的是同一个底层数组引用，无需重复 push 和 sort 排序，直接将当前索引置 -1 强制触发一次 timeupdate 重刷即可。

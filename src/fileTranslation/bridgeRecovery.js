@@ -1,6 +1,6 @@
 import browser from "webextension-polyfill";
 import { isFileBridgePage } from "./protocol";
-import { kissLog } from "../libs/log";
+import { logger } from "../libs/log";
 
 export async function restoreFileTranslationBridges() {
   // Only builds that ship the file bridge may inject it into existing tabs.
@@ -25,11 +25,11 @@ export async function restoreFileTranslationBridges() {
               });
             }
           } catch (error) {
-            kissLog("restore file translation bridge", error);
+            logger.child("file-translate").warn("restore file translation bridge", error);
           }
         })
     );
   } catch (error) {
-    kissLog("find file translation pages", error);
+    logger.child("file-translate").warn("find file translation pages", error);
   }
 }

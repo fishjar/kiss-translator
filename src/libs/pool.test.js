@@ -3,7 +3,7 @@ jest.mock("../config", () => ({
   DEFAULT_FETCH_LIMIT: 1,
 }));
 
-jest.mock("./log", () => ({ kissLog: jest.fn() }));
+jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({ kissLog: jest.fn() }))()));
 
 const flushPromises = async () => {
   await Promise.resolve();

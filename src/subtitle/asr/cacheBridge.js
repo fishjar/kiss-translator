@@ -175,7 +175,7 @@ export class AsrCacheClient {
         signal?.removeEventListener("abort", cancelConnect);
       }
       const id = `cache-${++this.sequence}`;
-      logger.debug("[YouTube ASR cache] connected", {
+      logger.child("subtitle").debug("[YouTube ASR cache] connected", {
         traceId,
         requestId: id,
         action,
@@ -259,7 +259,7 @@ export class AsrCacheClient {
     };
     const started = performance.now();
     const result = this.queue.then(execute, execute).finally(() => {
-      logger.debug("[YouTube ASR cache] request", {
+      logger.child("subtitle").debug("[YouTube ASR cache] request", {
         traceId,
         action,
         ms: performance.now() - started,

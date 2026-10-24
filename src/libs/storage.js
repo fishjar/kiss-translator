@@ -35,7 +35,7 @@ import {
 } from "../config";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { debounce } from "./utils";
 import { getGmMethod } from "./gmMethods";
 import { publishStorageWrite } from "./storageEvents";
@@ -195,7 +195,7 @@ function parseStoredValue(val, key) {
   try {
     return JSON.parse(val);
   } catch (err) {
-    kissLog("parse json in storage err: ", key);
+    logger.child("storage").warn("parse json in storage err: ", key);
   }
   return null;
 }
@@ -368,7 +368,7 @@ export function withTransaction(operation) {
         } catch (recoveryError) {
           error.storageRecoveryFailed = true;
           error.storageOutcome = "unknown";
-          kissLog("Unable to compensate a storage transaction", recoveryError);
+          logger.child("storage").error("Unable to compensate a storage transaction", recoveryError);
         }
       }
       error.storageOutcome ||= "not-committed";
@@ -578,7 +578,7 @@ export const runDataMigration = async () => {
         );
       } catch (err) {
         // Leave the value and completion marker untouched so settings can repair it.
-        kissLog("Skipping invalid legacy ignore selector migration:", err);
+        logger.child("storage").warn("Skipping invalid legacy ignore selector migration:", err);
         return;
       }
       nextGlobal.ignoreSelector = [
@@ -611,7 +611,7 @@ export const runDataMigration = async () => {
       await transaction.setObj(STOKEY_RULES_IGNORE_MIGRATED, true);
     });
   } catch (err) {
-    kissLog("Ignore selector migration failed:", err);
+    logger.child("storage").warn("Ignore selector migration failed:", err);
     return false;
   }
   const rawSetting = await getSetting();
@@ -639,10 +639,14 @@ export const runDataMigration = async () => {
     }
     if (needsSchemaMigration || needsThemeMigration)
       await setObj(STOKEY_SETTING, nextSetting);
-    kissLog(`Migration to V${CURRENT_SETTINGS_VERSION} completed.`);
+    logger
+      .child("storage")
+      .info("Data migration completed; version:", CURRENT_SETTINGS_VERSION);
     return true;
   } catch (err) {
-    kissLog(`Data migration to V${CURRENT_SETTINGS_VERSION} failed:`, err);
+    logger
+      .child("storage")
+      .warn("Data migration failed; version:", CURRENT_SETTINGS_VERSION, err);
     return false;
   }
 };
@@ -808,6 +812,6 @@ export const tryInitDefaultData = async (uiLang) => {
       BUILTIN_RULES
     );
   } catch (err) {
-    kissLog("init default", err);
+    logger.child("storage").error("init default", err);
   }
 };

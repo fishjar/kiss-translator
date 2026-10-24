@@ -70,7 +70,10 @@ import { trySyncAllSubRules } from "./libs/subRules";
 import { saveRule } from "./libs/rules";
 import { getCurTabId } from "./libs/msg";
 import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
-import { kissLog, logger } from "./libs/log";
+import { logger } from "./libs/log";
+import { createDiagnosticsBackend } from "./libs/diagnostics/background";
+import { LOG_ACTION } from "./libs/diagnostics/record";
+import { setDiagnosticSink } from "./libs/diagnostics/transport";
 import {
   chromeDetect,
   chromeTranslate,
@@ -92,6 +95,11 @@ import { ensureYoutubeBridgeRegistered } from "./libs/youtubeBridgeRegistration"
 import { installAsrCacheBackend } from "./subtitle/asr/cacheBackground";
 
 globalThis.__KISS_CONTEXT__ = "background";
+const diagnostics = createDiagnosticsBackend({
+  browser,
+  getLevel: async () => (await getSettingWithDefault()).logLevel ?? 1,
+});
+setDiagnosticSink(diagnostics.append);
 void ensureYoutubeBridgeRegistered();
 installStorageCoordinator();
 installAsrCacheBackend(browser, undefined, {
@@ -120,7 +128,7 @@ function openOptionsPage() {
           await browser.runtime.openOptionsPage();
           return true;
         } catch (err) {
-          kissLog("open options page with runtime API", err);
+          logger.child("background").info("open options page with runtime API", err);
         }
       }
 
@@ -130,7 +138,7 @@ function openOptionsPage() {
         });
         return true;
       } catch (err) {
-        kissLog("open options page in new tab", err);
+        logger.child("background").error("open options page in new tab", err);
         return false;
       }
     })
@@ -163,7 +171,7 @@ async function updateIcon(isActive, tabId) {
       await browser.browserAction.setIcon({ path, tabId });
     }
   } catch (err) {
-    kissLog("updateIcon error", err);
+    logger.child("background").warn("updateIcon error", err);
   }
 }
 
@@ -187,7 +195,7 @@ function getRegistrableDomain(input) {
     // 取最后两段作为可注册域名（足以覆盖有道等常见翻译源场景）
     return labels.length <= 2 ? hostname : labels.slice(-2).join(".");
   } catch (err) {
-    kissLog("getRegistrableDomain error", err);
+    logger.child("background").warn("getRegistrableDomain error", err);
     return "";
   }
 }
@@ -245,7 +253,7 @@ async function centerOnFocusedWindow({ width, height }) {
       top: Math.round(focused.top + (focused.height - height) / 2),
     };
   } catch (err) {
-    kissLog("center separate window", err);
+    logger.child("background").debug("center separate window", err);
     return null;
   }
 }
@@ -322,9 +330,9 @@ async function fitSeparateWindow(args) {
     } else if (windowId === separateWindowId) {
       await updateCacheFromActual(windowId);
     }
-    kissLog("Separate window fitted to content", { nextWidth, nextHeight });
+    logger.child("background").debug("Separate window fitted to content", { nextWidth, nextHeight });
   } catch (err) {
-    kissLog("fit separate window", err);
+    logger.child("background").info("fit separate window", err);
   }
 }
 
@@ -367,9 +375,9 @@ async function persistSeparateWindowBounds(bounds) {
   if (!bounds) return;
   try {
     await browser.storage.local.set({ [STOKEY_SEPARATE_WINDOW]: bounds });
-    kissLog("Final separate window bounds saved to storage", bounds);
+    logger.child("background").debug("Final separate window bounds saved to storage", bounds);
   } catch (err) {
-    kissLog("Save separate window bounds error", err);
+    logger.child("background").warn("Save separate window bounds error", err);
   }
 }
 
@@ -384,7 +392,7 @@ async function openSeparateWindowWithSavedBounds() {
       const existingWin = allWindows.find((w) => w.id === separateWindowId);
       if (existingWin) {
         await browser.windows.update(separateWindowId, { focused: true });
-        kissLog("Separate window is ready");
+        logger.child("background").debug("Separate window is ready");
         return existingWin;
       }
     }
@@ -429,7 +437,7 @@ async function openSeparateWindowWithSavedBounds() {
 
     return win;
   } catch (err) {
-    kissLog("open separate window error", err);
+    logger.child("background").warn("open separate window error", err);
   }
 }
 
@@ -497,7 +505,7 @@ async function addContextMenus(contextMenuType = 1) {
     // 添加右键菜单前，务必先全部清空，防止因为重复添加相同 ID 菜单导致插件崩溃
     await browser.contextMenus.removeAll();
   } catch (err) {
-    kissLog("remove contextMenus", err);
+    logger.child("background").info("remove contextMenus", err);
   }
 
   switch (contextMenuType) {
@@ -662,7 +670,7 @@ async function updateCspRules({ csplist, orilist }) {
       });
     }
   } catch (err) {
-    kissLog("update csp rules", err);
+    logger.child("background").info("update csp rules", err);
   }
 }
 
@@ -693,7 +701,7 @@ async function getUiLanguage() {
       return "en";
     }
   } catch (err) {
-    kissLog("get UI language error", err);
+    logger.child("background").warn("get UI language error", err);
     return "en";
   }
 }
@@ -867,6 +875,7 @@ const messageHandlers = {
       };
 
       const result = await executeImagePipeline({
+        taskId,
         imageBlob,
         scene: args?.scene,
         action: args?.action,
@@ -897,6 +906,7 @@ const messageHandlers = {
  * 注册全局统一的 runtime.onMessage 消息通道监听器。
  */
 browser.runtime.onMessage.addListener(async ({ action, args }, sender) => {
+  if (action === LOG_ACTION) return diagnostics.handle(args, sender);
   const handler = messageHandlers[action];
   if (!handler) {
     throw new Error(`Message action is unavailable: ${action}`);

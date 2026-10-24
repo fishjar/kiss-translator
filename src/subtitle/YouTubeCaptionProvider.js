@@ -942,7 +942,7 @@ export class YouTubeCaptionProvider {
           if (node.nodeType !== Node.ELEMENT_NODE) return;
 
           if (node.matches(adLayoutSelector)) {
-            logger.debug("Youtube Provider: AD start playing!", node);
+            logger.child("subtitle").debug("Youtube Provider: AD start playing!", node);
             if (videoEl && skipAd) {
               // REVIEW: 沿用原有直接 16 倍速并跳到广告末尾的行为，可能触发 YouTube 风控。
               // REVIEW: 广告结束时仍会重置到 1 倍速，可能覆盖用户自定义倍速；后续应单独修复。
@@ -951,14 +951,14 @@ export class YouTubeCaptionProvider {
             }
             this.#managerInstance?.setIsAdPlaying(true);
           } else if (node.matches(skipBtnSelector) && skipAd) {
-            logger.debug("Youtube Provider: AD skip button!", node);
+            logger.child("subtitle").debug("Youtube Provider: AD skip button!", node);
             node.click();
           }
 
           if (skipAd) {
             const skipBtn = node?.querySelector(skipBtnSelector);
             if (skipBtn) {
-              logger.debug("Youtube Provider: AD skip button!!", skipBtn);
+              logger.child("subtitle").debug("Youtube Provider: AD skip button!!", skipBtn);
               skipBtn.click();
             }
           }
@@ -968,7 +968,7 @@ export class YouTubeCaptionProvider {
           if (node.nodeType !== Node.ELEMENT_NODE) return;
 
           if (node.matches(adLayoutSelector)) {
-            logger.debug("Youtube Provider: Ad ends!");
+            logger.child("subtitle").debug("Youtube Provider: Ad ends!");
             if (this.#setting.autoTranslate) {
               this.#playerUi.hideYtCaption();
             }
@@ -1018,7 +1018,7 @@ export class YouTubeCaptionProvider {
       if (!apiSetting) return;
 
       const previousApiSlug = this.#setting.apiSlug;
-      logger.debug("Youtube Provider: update setting", name, value);
+      logger.child("subtitle").debug("Youtube Provider: update setting", name, value);
       this.#setting.apiSlug = value;
       this.#setting.apiSetting = apiSetting;
       this.#hasRuntimeApiOverride = true;
@@ -1033,7 +1033,7 @@ export class YouTubeCaptionProvider {
       return;
     }
 
-    logger.debug("Youtube Provider: update setting", name, value);
+    logger.child("subtitle").debug("Youtube Provider: update setting", name, value);
     this.#setting[name] = value;
 
     this.#playerUi.updateMenuProps();
@@ -1152,7 +1152,7 @@ export class YouTubeCaptionProvider {
    */
   downloadSubtitle() {
     if (!this.#subtitles.length) {
-      logger.debug("Youtube Provider: The subtitle is not yet ready.");
+      logger.child("subtitle").debug("Youtube Provider: The subtitle is not yet ready.");
       return;
     }
 
@@ -1163,7 +1163,7 @@ export class YouTubeCaptionProvider {
         `kiss-subtitles-${this.#videoId}_${Date.now()}.vtt`
       );
     } catch (error) {
-      logger.info("Youtube Provider: download subtitles:", error);
+      logger.child("subtitle").info("Youtube Provider: download subtitles:", error);
     }
   }
 
@@ -1256,12 +1256,12 @@ export class YouTubeCaptionProvider {
       trackKey === this.#activeTrackKey &&
       this.#managerInstance
     ) {
-      logger.debug("Youtube Provider: track was processed:", trackKey);
+      logger.child("subtitle").debug("Youtube Provider: track was processed:", trackKey);
       return;
     }
 
     if (this.#processingId === trackKey) {
-      logger.debug("Youtube Provider: track is processing:", trackKey);
+      logger.child("subtitle").debug("Youtube Provider: track is processing:", trackKey);
       return;
     }
 
@@ -1289,13 +1289,18 @@ export class YouTubeCaptionProvider {
       this.#rawSubtitleEvents = events;
       this.#subtitleListManager?.updateRawSubtitleEvents?.(events);
 
-      logger.debug(
-        `Youtube Provider: subtitle language ${fromLang}, target ${toLang}`
-      );
+      logger
+        .child("subtitle")
+        .debug(
+          "Youtube Provider: subtitle language:",
+          fromLang,
+          "target:",
+          toLang
+        );
       if (
         isSameLang(fromLang, toLang, this.#setting.translateVariants ?? true)
       ) {
-        logger.debug("Youtube Provider: skip same lang", fromLang, toLang);
+        logger.child("subtitle").debug("Youtube Provider: skip same lang", fromLang, toLang);
         this.#playerUi.showNotification(this.#i18n("subtitle_same_lang"));
         return;
       }
@@ -1305,7 +1310,7 @@ export class YouTubeCaptionProvider {
         fromLang
       );
       if (!flatEvents?.length) {
-        logger.debug("Youtube Provider: flatEvents not got:", videoId);
+        logger.child("subtitle").debug("Youtube Provider: flatEvents not got:", videoId);
         return;
       }
       if (this.#isStaleProcessing(processingVersion)) return;
@@ -1373,7 +1378,7 @@ export class YouTubeCaptionProvider {
     } catch (error) {
       this.#translationError = true;
       this.#playerUi.updateMenuProps();
-      logger.warn("Youtube Provider: subtitle processing failed");
+      logger.child("subtitle").warn("Youtube Provider: subtitle processing failed");
       this.#playerUi.notifyOnce(
         "translation-error",
         this.#i18n("subtitle_load_failed"),
@@ -1485,19 +1490,12 @@ export class YouTubeCaptionProvider {
       }
 
       if (!subtitles?.length && !this.#subtitles.length) {
-        logger.debug(
-          "Youtube Provider: events to subtitles got empty",
-          videoId
-        );
+        logger.child("subtitle").debug("Youtube Provider: events to subtitles got empty", videoId);
         return;
       }
 
       if (videoId !== this.#videoId) {
-        logger.debug(
-          "Youtube Provider: videoId changed!",
-          videoId,
-          this.#videoId
-        );
+        logger.child("subtitle").debug("Youtube Provider: videoId changed!", videoId, this.#videoId);
         return;
       }
 
@@ -1513,7 +1511,7 @@ export class YouTubeCaptionProvider {
       if (error?.name === "AbortError") return;
       this.#translationError = true;
       this.#playerUi.updateMenuProps();
-      logger.info("Youtube Provider: subtitle processing failed");
+      logger.child("subtitle").warn("Youtube Provider: subtitle processing failed");
       this.#playerUi.notifyOnce(
         "translation-error",
         this.#i18n("subtitle_load_failed"),
@@ -1803,7 +1801,7 @@ export class YouTubeCaptionProvider {
         docInfo.summary = summary;
       }
     } catch (err) {
-      logger.info("Youtube Provider: AI context enrichment failed", err);
+      logger.child("subtitle").warn("Youtube Provider: AI context enrichment failed", err);
     }
   }
 
@@ -1880,11 +1878,11 @@ export class YouTubeCaptionProvider {
 
     const videoEl = this.#videoEl;
     if (!videoEl) {
-      logger.warn("Youtube Provider: No video element found");
+      logger.child("subtitle").debug("Youtube Provider: No video element found");
       return;
     }
 
-    logger.info("Youtube Provider: Starting manager...");
+    logger.child("subtitle").debug("Youtube Provider: Starting manager...");
 
     const processingVersion = this.#processingVersion;
     this.#managerInstance = new BilingualSubtitleManager({
@@ -2043,7 +2041,7 @@ export const YouTubeInitializer = (() => {
     }
     initialized = true;
 
-    logger.info("Bilingual Subtitle Extension: Initializing...");
+    logger.child("subtitle").debug("Bilingual Subtitle Extension: Initializing...");
     const provider = new YouTubeCaptionProvider(setting);
     provider.initialize();
   };

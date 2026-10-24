@@ -18,7 +18,7 @@ import {
   apiTencentLangdetect,
   apiBuiltinAIDetect,
 } from "../apis";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { normalizeLanguageCode } from "./language";
 
 // 各个平台的语言检测函数映射表
@@ -56,7 +56,7 @@ export const tryDetectLang = async (text, langDetector = "-") => {
       }).result;
       deLang = normalizeLanguageCode(result.language);
     } catch (err) {
-      kissLog("detect lang provider", err);
+      logger.child("detect").warn("detect lang provider", err);
     }
   }
 
@@ -70,7 +70,7 @@ export const tryDetectLang = async (text, langDetector = "-") => {
         deLang = normalizeLanguageCode(mappedLang);
       }
     } catch (err) {
-      kissLog("detect lang remote", err);
+      logger.child("detect").warn("detect lang remote", err);
     }
   }
 
@@ -85,7 +85,7 @@ export const tryDetectLang = async (text, langDetector = "-") => {
         deLang = normalizedLang;
       }
     } catch (err) {
-      kissLog("detect lang local", err);
+      logger.child("detect").warn("detect lang local", err);
     }
   }
 

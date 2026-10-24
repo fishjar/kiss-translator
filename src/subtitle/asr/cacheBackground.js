@@ -132,7 +132,7 @@ export function installAsrCacheBackend(
         }
         const authStarted = performance.now();
         await authorize(message.identity);
-        logger.debug("[YouTube ASR cache] authorize", {
+        logger.child("subtitle").debug("[YouTube ASR cache] authorize", {
           traceId: message.traceId,
           requestId: current.id,
           ms: performance.now() - authStarted,
@@ -313,7 +313,7 @@ export function installAsrCacheBackend(
         }
       } else throw fail("INVALID_CACHE_REQUEST");
       check();
-      logger.debug("[YouTube ASR cache] operation", {
+      logger.child("subtitle").debug("[YouTube ASR cache] operation", {
         traceId: message.traceId,
         requestId: current.id,
         action,

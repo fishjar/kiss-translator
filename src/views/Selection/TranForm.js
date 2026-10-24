@@ -41,7 +41,7 @@ import SugCont from "./SugCont";
 import CopyBtn from "./CopyBtn";
 import Zdic from "./Zdic";
 import { isValidWord, isSingleChineseChar } from "../../libs/utils";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
@@ -369,7 +369,7 @@ export default function TranForm({
         }
       } catch (err) {
         if (active) {
-          kissLog("tranbox: detect lang", err);
+          logger.child("tran-form").warn("tranbox: detect lang", err);
           setDetection({ key: detectionKey, lang: "", loading: false });
         }
       }
@@ -1113,6 +1113,7 @@ export default function TranForm({
                     speechLang={fromLang === "auto" ? deLang : fromLang}
                     toLang={realToLang}
                     apiSetting={aiDictApiSetting}
+                    requestRevision={requestRevision}
                     context={
                       // Pass context only when it contains the current text, so manual input cannot reuse stale selection context.
                       selectionContext && selectionContext.includes(text)

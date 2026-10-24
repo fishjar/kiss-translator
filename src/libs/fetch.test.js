@@ -2,7 +2,7 @@ jest.mock("../config", () => ({
   DEFAULT_FETCH_INTERVAL: 0,
   DEFAULT_FETCH_LIMIT: 1,
 }));
-jest.mock("./log", () => ({ kissLog: jest.fn() }));
+jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({ kissLog: jest.fn() }))()));
 jest.mock("./cache", () => ({ getHttpCachePolyfill: jest.fn() }));
 jest.mock("./request", () => ({
   mergeAbortSignals: (signals) => signals.find(Boolean),

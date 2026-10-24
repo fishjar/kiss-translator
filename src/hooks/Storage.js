@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getStorageState } from "../libs/storageState";
 import { cloneStorageValue } from "../libs/storageEquality";
 import { syncStorageState } from "../libs/storageSyncController";
-import { kissLog } from "../libs/log";
+import { logger } from "../libs/log";
 import { isOptions } from "../libs/browser";
 
 /** Subscribe to a page controller; persistence and synchronization outlive views. */
@@ -28,7 +28,7 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
       if (scope.active) setSnapshot(next);
     });
     state.ensureLoaded().catch((error) => {
-      if (scope.active) kissLog("Storage load failed", key, error);
+      if (scope.active) logger.child("storage").error("Storage load failed", key, error);
     });
     return () => {
       scope.active = false;
@@ -42,7 +42,7 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
       if (!scope?.active || scope.key !== key) return Promise.resolve();
       const pending = scope.state.save(valueOrFn);
       // Observe fire-and-forget errors without converting rejection into success.
-      pending.catch((error) => kissLog("Storage save failed", key, error));
+      pending.catch((error) => logger.child("storage").error("Storage save failed", key, error));
       return pending;
     },
     [key]
@@ -68,7 +68,7 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
     const scope = scopeRef.current;
     if (!scope?.active || scope.key !== key) return Promise.resolve();
     const pending = scope.state.remove();
-    pending.catch((error) => kissLog("Storage removal failed", key, error));
+    pending.catch((error) => logger.child("storage").error("Storage removal failed", key, error));
     return pending;
   }, [key]);
 
@@ -77,7 +77,7 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
     if (!scope?.active || scope.key !== key) return Promise.resolve();
     const pending = scope.state.load();
     return pending.catch((error) =>
-      kissLog("Storage reload failed", key, error)
+      logger.child("storage").error("Storage reload failed", key, error)
     );
   }, [key]);
 

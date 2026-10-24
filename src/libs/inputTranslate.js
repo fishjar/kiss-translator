@@ -145,7 +145,7 @@ async function smartReplaceText(node, newText) {
   // ------------------------------------------------
   if (isRichEditor) {
     try {
-      logger.debug("Rich Editor detected: Priority Strategy (Clipboard Paste)");
+      logger.child("input-translate").debug("Rich Editor detected: Priority Strategy (Clipboard Paste)");
       const dt = new DataTransfer();
       dt.setData("text/plain", newText);
       const pasteEvt = new ClipboardEvent("paste", {
@@ -162,7 +162,7 @@ async function smartReplaceText(node, newText) {
 
       if (checkSuccess(node, newText)) return true;
     } catch (e) {
-      logger.debug("Strategy Paste failed", e);
+      logger.child("input-translate").debug("Strategy Paste failed", e);
     }
   }
 
@@ -176,7 +176,7 @@ async function smartReplaceText(node, newText) {
       if (checkSuccess(node, newText)) return true;
     }
   } catch (e) {
-    logger.debug("Strategy 1 (insertText) failed", e);
+    logger.child("input-translate").debug("Strategy 1 (insertText) failed", e);
   }
 
   // === 策略 2: 标准 Input 处理 (React/Vue 兼容) ===
@@ -185,7 +185,7 @@ async function smartReplaceText(node, newText) {
       setNativeValue(node, newText);
       return true;
     } catch (e) {
-      logger.debug("Strategy 2 (Input Value) failed", e);
+      logger.child("input-translate").debug("Strategy 2 (Input Value) failed", e);
     }
   }
 
@@ -321,7 +321,7 @@ export class InputTranslator {
       this.handleFocusIn();
     }
 
-    logger.info("Input Translator enabled.");
+    logger.child("input-translate").info("Input Translator enabled.");
   }
 
   disable() {
@@ -355,7 +355,7 @@ export class InputTranslator {
     this.#activeInput = null;
 
     this.#isEnabled = false;
-    logger.info("Input Translator disabled.");
+    logger.child("input-translate").info("Input Translator disabled.");
   }
 
   toggle() {
@@ -543,14 +543,14 @@ export class InputTranslator {
    * @param {boolean} options.isBtnTrigger 是否由悬浮按钮触发
    */
   async handleTranslate({ isBtnTrigger = false } = {}) {
-    logger.debug("handle input translate");
+    logger.child("input-translate").debug("handle input translate");
 
     // 1. 获取真正的焦点元素
     const node = getDeepActiveElement();
 
     // 2. 检查节点是否支持
     if (!node || !isEditableTarget(node)) {
-      logger.debug("Active node is not editable");
+      logger.child("input-translate").debug("Active node is not editable");
       return;
     }
 
@@ -639,10 +639,10 @@ export class InputTranslator {
       // 6. 执行替换 (使用新的智能替换函数)
       const success = await smartReplaceText(node, newText);
       if (!success) {
-        logger.warn("Text replacement failed after all strategies.");
+        logger.child("input-translate").error("Text replacement failed after all strategies.");
       }
     } catch (err) {
-      logger.error("Translate input error:", err);
+      logger.child("input-translate")[err?.name === "AbortError" || err?.code === "REQUEST_CANCELLED" ? "info" : "error"]("Translate input error:", err);
     } finally {
       removeLoading(loadingId);
       // 恢复显示按钮

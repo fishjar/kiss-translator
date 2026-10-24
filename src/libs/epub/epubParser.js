@@ -1,3 +1,4 @@
+import { logger } from "../log";
 import * as fflate from "fflate";
 
 /**
@@ -491,7 +492,7 @@ export async function parseEpubBook(buffer) {
         }
       }
     } catch (e) {
-      console.warn("解析 EPUB 3 导航文档失败，尝试回退 NCX:", e);
+      logger.child("file-translate").warn("解析 EPUB 3 导航文档失败，尝试回退 NCX:", e);
     }
   }
 
@@ -507,7 +508,7 @@ export async function parseEpubBook(buffer) {
         tocTree = parseNcxNavPoints(navMap, ncxDir);
       }
     } catch (e) {
-      console.warn("解析 EPUB 2 NCX 失败:", e);
+      logger.child("file-translate").warn("解析 EPUB 2 NCX 失败:", e);
     }
   }
 

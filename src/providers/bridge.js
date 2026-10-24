@@ -150,6 +150,7 @@ export function invokeProviderPort(
         input,
         uploads: true,
         options: {
+          diagnostic: options.diagnostic,
           streaming: options.streaming,
           timeoutMs: remainingInvocationMs(ctx),
           deadlineAt: ctx.deadlineAt,

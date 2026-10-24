@@ -21,7 +21,7 @@ import { useI18n } from "../../hooks/I18n";
 import { getEnabledApis } from "../../libs/apiSelection";
 import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import CopyBtn from "../Selection/CopyBtn";
 import TranCont from "../Selection/TranCont";
 import PopupMenu from "./PopupMenu";
@@ -327,7 +327,7 @@ export default function PopupTextPanel({
           setDetection({ key: detectionKey, lang: lang || "", loading: false });
       })
       .catch((error) => {
-        kissLog("popup text: detect language", error);
+        logger.child("popup").warn("popup text: detect language", error);
         if (active)
           setDetection({ key: detectionKey, lang: "", loading: false });
       });

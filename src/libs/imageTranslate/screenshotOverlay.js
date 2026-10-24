@@ -1,3 +1,4 @@
+import { logger } from "../log";
 /**
  * @file screenshotOverlay.js
  * @description 网页视口截图固化、全屏蒙版与可交互框选层（支持多重取消、选区保留、版面分析与线框点选）。
@@ -154,7 +155,7 @@ export class ScreenshotOverlay {
     try {
       captureRes = await sendBgMsg(MSG_CAPTURE_VISIBLE_TAB);
     } catch (err) {
-      console.error("[ScreenshotOverlay] Capture visible tab failed:", err);
+      logger.child("image-translate").error("[ScreenshotOverlay] Capture visible tab failed:", err);
       if (this.#currentSessionId === sessionId) {
         this.#onCancel?.();
       }
@@ -593,7 +594,7 @@ export class ScreenshotOverlay {
           this.#layoutTaskId === taskId &&
           !this.#abortController?.signal?.aborted
         ) {
-          console.warn("[ScreenshotOverlay] Layout error:", err);
+          logger.child("image-translate").warn("[ScreenshotOverlay] Layout error:", err);
           alert(
             err?.message ||
               this.#i18n("image_process_failed", "分析布局失败，请重试")
@@ -711,7 +712,7 @@ export class ScreenshotOverlay {
       });
     } catch (err) {
       if (this.#currentSessionId !== sessionId) return;
-      console.error("[ScreenshotOverlay] Crop failed:", err);
+      logger.child("image-translate").error("[ScreenshotOverlay] Crop failed:", err);
       this.#isConfirmed = wasConfirmed;
       if (this.#container && !wasConfirmed)
         this.#container.style.zIndex = "2147483647";

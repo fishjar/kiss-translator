@@ -10,7 +10,7 @@ import {
   MSG_GET_HTTPCACHE,
   MSG_PUT_HTTPCACHE,
 } from "../config";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { isExt } from "./client";
 import { isBg } from "./browser";
 import { sendBgMsg } from "./msg";
@@ -29,7 +29,7 @@ export const tryClearCaches = async () => {
     await caches.delete(CACHE_NAME);
     return true;
   } catch (err) {
-    kissLog("clean caches", err);
+    logger.child("cache").warn("clean caches", err);
     return false;
   }
 };
@@ -79,7 +79,7 @@ export const getHttpCache = async ({ input, init, expect }) => {
       return res;
     }
   } catch (err) {
-    kissLog("get cache", err);
+    logger.child("cache").warn("get cache", err);
   }
   return null;
 };
@@ -110,7 +110,7 @@ export const putHttpCache = async ({
     // res.headers.set("Cache-Control", `max-age=${maxAge}`);
     await cache.put(req, res);
   } catch (err) {
-    kissLog("put cache", err);
+    logger.child("cache").warn("put cache", err);
   }
 };
 
