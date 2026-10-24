@@ -229,6 +229,7 @@ export const SETTINGS_SEARCH_KEYS = {
   ],
   prompts: ["prompt_name", "system_prompt", "user_prompt"],
   sync: [
+    "auto_sync",
     "data_sync_type",
     "data_sync_url",
     "data_sync_user",

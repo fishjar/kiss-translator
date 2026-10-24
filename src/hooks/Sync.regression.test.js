@@ -12,7 +12,11 @@ import {
   getSyncWithDefault,
   updateSyncState,
 } from "../libs/storage";
-import { syncSettingAndRules, trySyncWords } from "../libs/sync";
+import {
+  syncSettingAndRules,
+  trySyncSettingAndRules,
+  trySyncWords,
+} from "../libs/sync";
 import { findStorageState } from "../libs/storageState";
 import {
   STOKEY_SETTING,
@@ -212,6 +216,106 @@ describe("synchronization regression scenarios", () => {
 
     expect(wordsHook.favWords).toEqual(expected);
     expect(packetValue(packets[KV_WORDS_KEY])).toEqual(expected);
+  });
+
+  test("skips startup and delayed syncs while retaining local edits when disabled", async () => {
+    const previous = await getSyncWithDefault();
+    await act(async () => syncHook.updateSync({ autoSync: false }));
+    expect(await getSyncWithDefault()).toEqual({
+      ...previous,
+      autoSync: false,
+    });
+
+    await act(async () => {
+      await trySyncSettingAndRules();
+      await colorHook.toggleDarkMode();
+      await wordsHook.toggleFav("offline");
+      await rulesHook.put("example.com", { enabled: false });
+    });
+    await advance(6000);
+
+    expect(createClient).not.toHaveBeenCalled();
+    expect((await storage.getObj(STOKEY_SETTING)).darkMode).toBe("light");
+    expect(await storage.getObj(STOKEY_WORDS)).toHaveProperty("offline");
+    expect((await storage.getObj(STOKEY_RULES))[0].enabled).toBe(false);
+    expect((await getSyncWithDefault()).autoSync).toBe(false);
+
+    // A remount reads the persisted client preference.
+    act(() => root.unmount());
+    root = createRoot(container);
+    await render();
+    expect(syncHook.sync.autoSync).toBe(false);
+    await act(async () => trySyncSettingAndRules());
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  test("checks the latest switch value after a delayed sync has been scheduled", async () => {
+    await act(async () => wordsHook.toggleFav("queued"));
+    await advance(300);
+    const metadata = (await getSyncWithDefault()).syncMeta;
+    await act(async () => syncHook.updateSync({ autoSync: false }));
+    await advance(6000);
+
+    expect(createClient).not.toHaveBeenCalled();
+    expect((await getSyncWithDefault()).syncMeta).toEqual(metadata);
+  });
+
+  test("manual sync uploads all data while disabled and retains the local preference", async () => {
+    await act(async () => {
+      await syncHook.updateSync({ autoSync: false });
+      await colorHook.toggleDarkMode();
+      await wordsHook.toggleFav("manual");
+      await rulesHook.put("example.com", { enabled: false });
+    });
+    await advance(300);
+    const expected = await Promise.all(
+      [STOKEY_SETTING, STOKEY_RULES, STOKEY_WORDS].map((key) =>
+        storage.getObj(key)
+      )
+    );
+    await act(async () => syncSettingAndRules());
+
+    [KV_SETTING_KEY, KV_RULES_KEY, KV_WORDS_KEY].forEach((key, index) => {
+      expect(packetValue(packets[key])).toEqual(expected[index]);
+      expect(packetValue(packets[key])).not.toHaveProperty("autoSync");
+    });
+    expect((await getSyncWithDefault()).autoSync).toBe(false);
+    const calls = remote.exists.mock.calls.length;
+    await advance(6000);
+    expect(remote.exists).toHaveBeenCalledTimes(calls);
+  });
+
+  test("stops subsequent WebDAV requests when disabled during a remote read", async () => {
+    const pendingRead = deferred();
+    remote.getFileContents.mockImplementationOnce(() => pendingRead.promise);
+    let pendingSync;
+    await act(async () => {
+      pendingSync = trySyncSettingAndRules();
+    });
+    await flush();
+    expect(remote.getFileContents).toHaveBeenCalledTimes(1);
+    await act(async () => syncHook.updateSync({ autoSync: false }));
+    await act(async () => {
+      pendingRead.resolve(JSON.stringify(packets[KV_SETTING_KEY]));
+      await pendingSync;
+    });
+    expect(remote.getFileContents).toHaveBeenCalledTimes(1);
+    expect(remote.putFileContents).not.toHaveBeenCalled();
+  });
+
+  test("re-enabling sync preserves metadata and resumes on the next edit", async () => {
+    await act(async () => syncHook.updateSync({ autoSync: false }));
+    await act(async () => wordsHook.toggleFav("disabled"));
+    await advance(6000);
+    const metadata = (await getSyncWithDefault()).syncMeta;
+    await act(async () => syncHook.updateSync({ autoSync: true }));
+    await advance(300);
+    expect(createClient).not.toHaveBeenCalled();
+    expect((await getSyncWithDefault()).syncMeta).toEqual(metadata);
+    await act(async () => wordsHook.toggleFav("enabled"));
+    await advance(6000);
+    expect(packetValue(packets[KV_WORDS_KEY])).toHaveProperty("disabled");
+    expect(packetValue(packets[KV_WORDS_KEY])).toHaveProperty("enabled");
   });
 
   test("uploads a theme edit when manual sync immediately follows it", async () => {

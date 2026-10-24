@@ -1870,6 +1870,27 @@ export const I18N = {
     tr: `Tarayıcıyı Yeniden Başlatırken Önbelleği Temizle`,
     vi: "Xóa bộ nhớ đệm khi khởi động lại trình duyệt",
   },
+  auto_sync: {
+    zh: "自动同步",
+    en: "Automatic sync",
+    zh_TW: "自動同步",
+    ja: "自動同期",
+    ko: "자동 동기화",
+    tr: "Otomatik senkronizasyon",
+    vi: "Tự động đồng bộ",
+    ru: "Автоматическая синхронизация",
+  },
+  auto_sync_description: {
+    zh: "此开关仅对当前客户端生效。关闭后，仅点击“立即同步”时同步数据。关闭自动同步主要适用于单客户端使用；多个客户端共用同步数据时，建议保持开启，避免各客户端修改未及时同步，导致配置相互覆盖或丢失。",
+    en: "This switch applies only to this client. When off, data syncs only when you click “Sync now”. Disabling automatic sync is mainly intended for single-client use. When multiple clients share sync data, keep it on to avoid unsynced changes overwriting configurations or causing data loss.",
+    zh_TW:
+      "此開關僅對目前客戶端生效。關閉後，僅點擊「立即同步」時同步資料。關閉自動同步主要適用於單客戶端使用；多個客戶端共用同步資料時，建議保持開啟，避免各客戶端修改未及時同步，導致設定互相覆蓋或遺失。",
+    ja: "この設定は現在のクライアントにのみ適用されます。オフの場合、「今すぐ同期」をクリックしたときのみ同期します。自動同期の無効化は主に単一クライアントでの利用向けです。複数のクライアントで同期データを共有する場合は、未同期の変更による設定の上書きや消失を防ぐため、オンのままにすることをお勧めします。",
+    ko: "이 스위치는 현재 클라이언트에만 적용됩니다. 끄면 ‘지금 동기화’를 클릭할 때만 데이터가 동기화됩니다. 자동 동기화 해제는 주로 단일 클라이언트 사용에 적합합니다. 여러 클라이언트가 동기화 데이터를 공유하는 경우, 동기화되지 않은 변경으로 설정이 덮어쓰이거나 손실되지 않도록 켜 두는 것이 좋습니다.",
+    tr: "Bu anahtar yalnızca bu istemci için geçerlidir. Kapalıyken veriler yalnızca ‘Şimdi senkronize et’ düğmesine tıkladığınızda senkronize edilir. Otomatik senkronizasyonu kapatmak esas olarak tek istemci kullanımı içindir. Birden fazla istemci aynı senkronizasyon verilerini paylaşıyorsa, senkronize edilmemiş değişikliklerin ayarları geçersiz kılmasını veya veri kaybına yol açmasını önlemek için açık tutmanız önerilir.",
+    vi: "Công tắc này chỉ áp dụng cho ứng dụng khách hiện tại. Khi tắt, dữ liệu chỉ được đồng bộ khi bạn nhấp vào ‘Đồng bộ ngay’. Việc tắt đồng bộ tự động chủ yếu phù hợp khi chỉ dùng một ứng dụng khách. Nếu nhiều ứng dụng khách dùng chung dữ liệu đồng bộ, nên bật để tránh các thay đổi chưa được đồng bộ ghi đè cấu hình hoặc gây mất dữ liệu.",
+    ru: "Этот переключатель действует только для текущего клиента. Если он выключен, данные синхронизируются только при нажатии «Синхронизировать сейчас». Отключение автоматической синхронизации предназначено прежде всего для работы с одним клиентом. Если несколько клиентов используют общие данные, рекомендуется оставить её включённой, чтобы несинхронизированные изменения не привели к перезаписи настроек или потере данных.",
+  },
   data_sync_type: {
     zh: `同步方式`,
     en: `Sync Type`,

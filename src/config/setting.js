@@ -65,6 +65,7 @@ export const OPT_SYNCTYPE_ALL = [
   OPT_SYNCTYPE_GIST,
 ];
 export const DEFAULT_SYNC = {
+  autoSync: true, // 当前客户端是否自动同步
   syncType: OPT_SYNCTYPE_WORKER, // 默认同步方式
   syncUrl: "", // 数据同步服务器端点
   syncUser: "", // 同步用户名

@@ -13,6 +13,8 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormHelperText from "@mui/material/FormHelperText";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
 import InputAdornment from "@mui/material/InputAdornment";
 import {
   URL_KISS_WORKER,
@@ -287,6 +289,7 @@ export default function SyncSetting() {
   }
 
   const {
+    autoSync = true,
     syncType = OPT_SYNCTYPE_WORKER,
     syncUrl = "",
     syncUser = "",
@@ -465,6 +468,23 @@ export default function SyncSetting() {
               {i18n("clear_sync_encrypt_key")}
             </Button>
           )}
+        </Box>
+
+        <Box>
+          <FormControlLabel
+            label={i18n("auto_sync")}
+            control={
+              <Switch
+                name="autoSync"
+                checked={autoSync !== false}
+                onChange={(_, checked) => updateSync({ autoSync: checked })}
+                inputProps={{ "aria-describedby": "auto-sync-description" }}
+              />
+            }
+          />
+          <FormHelperText id="auto-sync-description">
+            {i18n("auto_sync_description")}
+          </FormHelperText>
         </Box>
 
         {/* 控制按钮栏：包含立即触发同步、复制同步配置口令与从剪贴板贴入同步口令 */}
