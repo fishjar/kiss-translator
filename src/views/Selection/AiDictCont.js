@@ -32,7 +32,7 @@ function getRequestKey({ text, fromLang, toLang, apiSettingKey, context }) {
  *
  * Handles request deduplication, streaming Markdown, errors, copying, and speech.
  * Delegates dictionary generation to `apiDict` so the UI only manages display state.
- * @param {number} [props.requestRevision=0] Explicit submission revision; followed only while retrying a failed dictionary request.
+ * @param {number} [props.requestRevision=0] Explicit submission revision; followed only while retrying a failed dictionary request for the current input.
  */
 export default function AiDictCont({
   text,
@@ -47,7 +47,9 @@ export default function AiDictCont({
   const i18n = useI18n();
   const [markdown, setMarkdown] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  // Tagged with the request key that produced it, so the retry sync below can
+  // tell a stale failure of a replaced request from one of the current request.
+  const [error, setError] = useState(null);
   const [attemptRevision, setAttemptRevision] = useState(requestRevision);
   const apiSettingKey = JSON.stringify(apiSetting || {});
 
@@ -55,7 +57,7 @@ export default function AiDictCont({
     if (!text?.trim() || !apiSetting?.apiSlug) {
       setMarkdown("");
       setLoading(false);
-      setError("");
+      setError(null);
       return;
     }
 
@@ -78,7 +80,7 @@ export default function AiDictCont({
       try {
         setLoading(true);
         setMarkdown("");
-        setError("");
+        setError(null);
 
         // Identical component instances share an in-flight request to avoid duplicate API calls.
         let pending = pendingRequests.get(requestKey);
@@ -114,7 +116,7 @@ export default function AiDictCont({
         }
 
         if (active) {
-          setError(err.message);
+          setError({ key: requestKey, message: err.message });
         }
       } finally {
         if (active) {
@@ -129,19 +131,29 @@ export default function AiDictCont({
     };
   }, [text, fromLang, toLang, apiSettingKey, context, attemptRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Error-gated retry sync: follow requestRevision only while the last attempt
-  // failed. `error` is read from the closure, never listed as a dependency —
-  // otherwise the error flip right after a failed retry would trigger an
-  // unauthorized automatic retry. In-flight or successful attempts keep the
-  // panel completely untouched.
+  // Error-gated retry sync: follow requestRevision only while the failed
+  // attempt belongs to the request this panel currently shows. `error` carries
+  // the request key of its attempt; comparing it against the key rebuilt from
+  // the current props rejects stale failures of a replaced request — its
+  // submission already started a fresh request through the effect above, and
+  // re-bumping attemptRevision there would run that effect a second time and
+  // re-call apiDict when the new request settles between the two runs.
+  // `error` is read from the closure, never listed as a dependency — otherwise
+  // the error flip right after a failed retry would trigger an unauthorized
+  // automatic retry. In-flight or successful attempts keep the panel
+  // completely untouched.
   useEffect(() => {
-    if (error) {
+    if (
+      error &&
+      error.key ===
+        getRequestKey({ text, fromLang, toLang, apiSettingKey, context })
+    ) {
       setAttemptRevision(requestRevision);
     }
   }, [requestRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) {
-    return <Alert severity="error">{error}</Alert>;
+    return <Alert severity="error">{error.message}</Alert>;
   }
 
   if (loading && !markdown) {
