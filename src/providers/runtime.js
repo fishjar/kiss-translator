@@ -35,6 +35,7 @@ export function invokeInstance(
         signal: invocation.signal,
         approvedOrigins,
         assets,
+        diagnostic: { ...options.diagnostic, requestId: invocation.requestId, serviceId: api.apiSlug, method: capability },
       });
       return {
         ...invocation,

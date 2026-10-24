@@ -8,7 +8,7 @@ jest.mock("webextension-polyfill", () => ({
   tabs: { query: jest.fn(), executeScript: jest.fn() },
   scripting: { executeScript: jest.fn() },
 }));
-jest.mock("../libs/log", () => ({ kissLog: jest.fn() }));
+jest.mock("../libs/log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({ kissLog: jest.fn() }))()));
 
 const previousClient = process.env.REACT_APP_CLIENT;
 beforeEach(() => {

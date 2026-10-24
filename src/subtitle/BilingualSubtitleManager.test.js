@@ -15,7 +15,7 @@ jest.mock("../libs/storage.js", () => ({
   })),
 }));
 
-jest.mock("../libs/log.js", () => ({
+jest.mock("../libs/log.js", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   LogLevel: {
     INFO: { value: "info" },
   },
@@ -23,7 +23,7 @@ jest.mock("../libs/log.js", () => ({
     info: jest.fn(),
     warn: jest.fn(),
   },
-}));
+}))()));
 
 /**
  * 创建一个可由测试主动 resolve/reject 的 Promise。

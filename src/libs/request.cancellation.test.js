@@ -5,7 +5,7 @@ jest.mock("./browser", () => ({
 }));
 jest.mock("./msg", () => ({ sendBgMsg: jest.fn() }));
 jest.mock("./storage", () => ({ getSettingWithDefault: jest.fn() }));
-jest.mock("./log", () => ({ kissLog: jest.fn() }));
+jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({ kissLog: jest.fn() }))()));
 jest.mock("../config", () => ({
   DEFAULT_HTTP_TIMEOUT: 30,
   MSG_FETCH: "kiss_fetch",

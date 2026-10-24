@@ -7,7 +7,7 @@ import {
   storage,
   updateSyncState,
 } from "../libs/storage";
-import { kissLog } from "../libs/log";
+import { logger } from "../libs/log";
 
 /** Read and mutate the current sync configuration. */
 export function useSync() {
@@ -68,7 +68,7 @@ export function useSyncCaches() {
 
   useEffect(() => {
     mountedRef.current = true;
-    reloadSync().catch((error) => kissLog("load sync caches", error));
+    reloadSync().catch((error) => logger.child("sync").warn("load sync caches", error));
     return () => {
       mountedRef.current = false;
       readRevisionRef.current += 1;

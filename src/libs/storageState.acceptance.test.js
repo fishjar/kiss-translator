@@ -1,9 +1,9 @@
 import { STOKEY_WORDS, STOKEY_SYNC, KV_WORDS_KEY } from "../config";
 
-jest.mock("./log", () => ({
+jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   ...jest.requireActual("./log"),
   kissLog: jest.fn(),
-}));
+}))()));
 jest.mock("./gm", () => ({
   getGmMethod: () => {
     throw new Error("The extension test must not access GM storage");

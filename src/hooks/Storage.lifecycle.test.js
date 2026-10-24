@@ -24,10 +24,10 @@ jest.mock("../libs/gm", () => ({ getGmMethod: jest.fn() }));
 
 jest.mock("../libs/sync", () => ({ syncData: jest.fn() }));
 jest.mock("../libs/browser", () => ({ isOptions: () => false }));
-jest.mock("../libs/log", () => ({
+jest.mock("../libs/log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   ...jest.requireActual("../libs/log"),
   kissLog: jest.fn(),
-}));
+}))()));
 
 const DEFAULT_VALUE = { count: 0 };
 const hosts = new Set();

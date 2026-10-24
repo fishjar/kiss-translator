@@ -33,10 +33,10 @@ jest.mock("../../libs/sync", () => ({
 jest.mock("../../libs/storageRefresh", () => ({
   refreshStorageKeys: jest.fn(),
 }));
-jest.mock("../../libs/log", () => ({
+jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
   kissLog: jest.fn(),
   LogLevel: { INFO: { value: 1 } },
-}));
+}))()));
 jest.mock("../../libs/gm", () => ({ adaptScript: jest.fn() }));
 jest.mock("../../libs/storage", () => ({ runDataMigration: jest.fn() }));
 jest.mock("../../libs/utils", () => ({ sleep: jest.fn() }));
@@ -127,6 +127,8 @@ jest.mock("./Tranbox", () => mockComponent("tranbox-page"));
 jest.mock("./Playground", () => mockComponent("playground-page"));
 jest.mock("./MouseHover", () => mockComponent("mousehover-page"));
 jest.mock("./Subtitle", () => mockComponent("subtitle-page"));
+jest.mock("./Diagnostics", () => mockComponent("diagnostics-page"));
+jest.mock("./ImageTranslate", () => mockComponent("image-translate-page"));
 
 function createDeferred() {
   let resolve;
@@ -395,8 +397,9 @@ describe("Options startup sync", () => {
     await flushEffects();
 
     expect(kissLog).toHaveBeenCalledWith(
-      `sync options ${STOKEY_RULES}`,
-      "rules failed"
+      "sync options",
+      "rules failed",
+      STOKEY_RULES
     );
     expect(refreshStorageKeys).toHaveBeenCalledWith([
       STOKEY_RULES,

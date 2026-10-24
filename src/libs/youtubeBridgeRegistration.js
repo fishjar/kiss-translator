@@ -20,7 +20,7 @@ export function ensureYoutubeBridgeRegistered() {
         typeof scripting?.getRegisteredContentScripts !== "function" ||
         typeof scripting?.registerContentScripts !== "function"
       ) {
-        logger.warn("YouTube subtitle registration", {
+        logger.child("youtube-bridge-registration").warn("YouTube subtitle registration", {
           phase,
           code: "UNSUPPORTED",
         });
@@ -59,7 +59,7 @@ export function ensureYoutubeBridgeRegistered() {
         if (same) return true;
         phase = "update";
         if (typeof scripting.updateContentScripts !== "function") {
-          logger.warn("YouTube subtitle registration", {
+          logger.child("youtube-bridge-registration").warn("YouTube subtitle registration", {
             phase,
             code: "UNSUPPORTED",
           });
@@ -71,7 +71,7 @@ export function ensureYoutubeBridgeRegistered() {
     })
     .catch(() => {
       // Browser errors may contain URLs; log only the operation and a fixed category.
-      logger.warn("YouTube subtitle registration", {
+      logger.child("youtube-bridge-registration").warn("YouTube subtitle registration", {
         phase,
         code: "REGISTRATION_FAILED",
       });

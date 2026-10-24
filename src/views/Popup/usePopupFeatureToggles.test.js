@@ -15,10 +15,10 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 jest.mock("../../hooks/Setting", () => ({ useSetting: jest.fn() }));
 jest.mock("../../libs/msg", () => ({ sendTabMsg: jest.fn() }));
-jest.mock("../../libs/log", () => ({
+jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
   ...jest.requireActual("../../libs/log"),
   kissLog: jest.fn(),
-}));
+}))()));
 jest.mock("./loadData", () => ({ queryPopupData: jest.fn() }));
 
 const initialSetting = {

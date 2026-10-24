@@ -949,7 +949,7 @@ export class YouTubeSubtitleList {
    */
   downloadSubtitles() {
     if (!this.bilingualSubtitles || this.bilingualSubtitles.length === 0) {
-      logger.info("Youtube Provider: No subtitles to download");
+      logger.child("subtitle").debug("Youtube Provider: No subtitles to download");
       return;
     }
 
@@ -962,7 +962,7 @@ export class YouTubeSubtitleList {
         `kiss-subtitles-${videoId}_${Date.now()}.vtt`
       );
     } catch (error) {
-      logger.error("Youtube Provider: download subtitles error:", error);
+      logger.child("subtitle").error("Youtube Provider: download subtitles error:", error);
     }
   }
 
@@ -971,7 +971,7 @@ export class YouTubeSubtitleList {
    */
   downloadTranslationOnlySubtitles() {
     if (!this.bilingualSubtitles || this.bilingualSubtitles.length === 0) {
-      logger.info("Youtube Provider: No subtitles to download");
+      logger.child("subtitle").debug("Youtube Provider: No subtitles to download");
       return;
     }
 
@@ -984,17 +984,14 @@ export class YouTubeSubtitleList {
         `kiss-subtitles-translation-${videoId}_${Date.now()}.vtt`
       );
     } catch (error) {
-      logger.error(
-        "Youtube Provider: download translation subtitles error:",
-        error
-      );
+      logger.child("subtitle").error("Youtube Provider: download translation subtitles error:", error);
     }
   }
 
   downloadRawSubtitleEvents() {
     const rawEvents = this._getExportableRawSubtitleEvents();
     if (!rawEvents || rawEvents.length === 0) {
-      logger.info("Youtube Provider: No raw subtitle events to download");
+      logger.child("subtitle").debug("Youtube Provider: No raw subtitle events to download");
       return;
     }
 
@@ -1007,7 +1004,7 @@ export class YouTubeSubtitleList {
         `kiss-subtitles-raw-${videoId}_${Date.now()}.json`
       );
     } catch (error) {
-      logger.error("Youtube Provider: download raw subtitles error:", error);
+      logger.child("subtitle").error("Youtube Provider: download raw subtitles error:", error);
     }
   }
 
@@ -1162,7 +1159,7 @@ export class YouTubeSubtitleList {
             this.container.style.setProperty(k, vars[k])
           );
         } catch (err) {
-          logger.info("failed to apply subtitle list theme vars", err);
+          logger.child("subtitle").warn("failed to apply subtitle list theme vars", err);
         }
       })();
     }
@@ -1265,7 +1262,7 @@ export class YouTubeSubtitleList {
           ...(current?.subtitleSetting || DEFAULT_SUBTITLE_SETTING),
           youtubeShortsSubtitlePanelWidth: this._shortsPanelWidth,
         },
-      })).catch((err) => logger.warn("save Shorts panel width failed", err));
+      })).catch((err) => logger.child("subtitle").warn("save Shorts panel width failed", err));
     };
     handle.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
@@ -2647,7 +2644,7 @@ export class YouTubeSubtitleList {
           prompts = stored.prompts;
         }
       } catch (e) {
-        logger.warn("resolveSummaryConfig failed to get setting", e);
+        logger.child("subtitle").warn("resolveSummaryConfig failed to get setting", e);
       }
     }
 
@@ -3167,7 +3164,7 @@ export class YouTubeSubtitleList {
         summaryApiSlug: apiSlug,
       },
     })).catch((err) => {
-      logger.warn("save summary api slug failed", err);
+      logger.child("subtitle").warn("save summary api slug failed", err);
     });
 
     // 4. 重置正在总结标记，立即发起总结
@@ -3244,7 +3241,7 @@ export class YouTubeSubtitleList {
         }, 2000);
       }
     } catch (e) {
-      logger.warn("copy summary failed", e);
+      logger.child("subtitle").warn("copy summary failed", e);
     }
   }
 
@@ -3300,7 +3297,7 @@ export class YouTubeSubtitleList {
         );
       }
     } catch (err) {
-      logger.error("generateSummary error", err);
+      logger.child("subtitle").error("generateSummary error", err);
       this._renderSummaryError(
         err?.message ||
           this._t("summary_failed", "生成视频总结失败，请检查服务配置或重试")

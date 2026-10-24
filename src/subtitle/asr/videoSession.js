@@ -392,10 +392,7 @@ export class AsrVideoSession {
     } catch (cause) {
       this.check();
       this.cacheFailed = true;
-      logger.debug(
-        "[YouTube ASR cache] text restore failed",
-        cause.code || cause.name
-      );
+      logger.child("subtitle").debug("[YouTube ASR cache] text restore failed", cause.code || cause.name);
       this.state.cacheError = cause.code || "CACHE_UNAVAILABLE";
     }
     this.restored = true;

@@ -23,3 +23,20 @@ test("passes cache policy as RPC options without changing inference input", asyn
     expect.anything()
   );
 });
+
+test("forwards business correlation without placing it in inference input", async () => {
+  localAiRequest.mockResolvedValue({ text: "fresh" });
+  await requestLocalChat(
+    { body: JSON.stringify({ messages: [] }) },
+    {
+      diagnostic: { taskId: "translation-task", attempt: 2 },
+    }
+  );
+  expect(localAiRequest).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      diagnostic: { taskId: "translation-task", attempt: 2 },
+      payload: { messages: [] },
+    }),
+    expect.anything()
+  );
+});

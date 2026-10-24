@@ -1,6 +1,7 @@
 import { getInterpreter } from "../libs/interpreter";
 import { NATIVE_PRESET_OVERRIDES } from "../builtin-plugins/presets";
 import { OPT_TRANS_CUSTOMIZE } from "../config/apiConstants";
+import { logger } from "../libs/log";
 
 // Only explicitly saved legacy user Hooks reach this adapter. Compiled vendor
 // handlers and new script plugins do not create a second interpreter layer.
@@ -11,7 +12,7 @@ export async function callLegacyRequestHook(source, args, request) {
   // Preserve that behavior in compiled code; only edited user code needs Sval.
   if (source === NATIVE_PRESET_OVERRIDES[OPT_TRANS_CUSTOMIZE].reqHook) {
     const { url, body, headers, userMsg, method } = request;
-    console.log("request hook args:", {
+    logger.child("legacy-hooks").debug("request hook args", {
       args,
       url,
       body,
@@ -29,7 +30,9 @@ export async function callLegacyRequestHook(source, args, request) {
 export async function callLegacyResponseHook(source, args) {
   if (source === NATIVE_PRESET_OVERRIDES[OPT_TRANS_CUSTOMIZE].resHook) {
     const { res, ...rest } = args;
-    console.log("response hook args:", { res, args: rest });
+    logger
+      .child("legacy-hooks")
+      .debug("response hook args", { res, args: rest });
     return;
   }
   const interpreter = await getInterpreter();

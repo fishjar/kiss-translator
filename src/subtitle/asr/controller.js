@@ -501,7 +501,7 @@ export class YoutubeAsrController {
         .then(() => this.bridge.snapshot(video.videoId, signal))
         .then(
           (value) => {
-            logger.debug("[YouTube ASR] player parameters", {
+            logger.child("subtitle").debug("[YouTube ASR] player parameters", {
               traceId: this.cache.traceId,
               videoId: video.videoId,
               ms: performance.now() - snapshotStarted,
@@ -509,7 +509,7 @@ export class YoutubeAsrController {
             return { value };
           },
           (cause) => {
-            logger.debug("[YouTube ASR] player parameters", {
+            logger.child("subtitle").debug("[YouTube ASR] player parameters", {
               traceId: this.cache.traceId,
               videoId: video.videoId,
               ms: performance.now() - snapshotStarted,

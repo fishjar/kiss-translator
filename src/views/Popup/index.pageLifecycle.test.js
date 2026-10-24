@@ -102,10 +102,10 @@ jest.mock("../../libs/client", () => ({
   client: "chrome",
   isAutoTranslateClipboardSupported: false,
 }));
-jest.mock("../../libs/log", () => ({
+jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
   ...jest.requireActual("../../libs/log"),
   kissLog: jest.fn(),
-}));
+}))()));
 jest.mock("../../libs/rules", () => ({
   saveRule: (...args) => mockSaveRule(...args),
 }));

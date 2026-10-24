@@ -58,10 +58,10 @@ jest.mock("./ShortcutInput", () => () => null);
 jest.mock("../../hooks/Fab", () => ({ useFab: jest.fn() }));
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
 jest.mock("../../libs/cache", () => ({ tryClearCaches: jest.fn() }));
-jest.mock("../../libs/log", () => ({
+jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
   kissLog: jest.fn(),
   LogLevel: { INFO: { value: 3 } },
-}));
+}))()));
 jest.mock("./UploadButton", () => jest.fn(() => null));
 jest.mock("./DownloadButton", () => () => null);
 jest.mock("../../hooks/ValidationInput", () => () => null);

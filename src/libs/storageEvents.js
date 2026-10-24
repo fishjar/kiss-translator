@@ -1,4 +1,4 @@
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { browser } from "./browser";
 import { isExt, isGm } from "./client";
 import { getGmMethod } from "./gmMethods";
@@ -17,7 +17,7 @@ function invalidate(key) {
       try {
         listener();
       } catch (error) {
-        kissLog("Storage invalidation subscriber failed", key, error);
+        logger.child("storage-events").warn("Storage invalidation subscriber failed", key, error);
       }
     });
   });
@@ -58,7 +58,7 @@ function watchGmKey(key) {
         },
         () => {}
       )
-      .catch((error) => kissLog("Unable to remove GM storage listener", error));
+      .catch((error) => logger.child("storage-events").info("Unable to remove GM storage listener", error));
   };
 }
 
@@ -136,7 +136,7 @@ export function publishStorageWrite(key, value, hasSyncMetadata = false) {
       listener(value, hasSyncMetadata);
     } catch (error) {
       // A UI subscriber cannot turn a completed persistence into a failed write.
-      kissLog("Storage subscriber failed", key, error);
+      logger.child("storage-events").warn("Storage subscriber failed", key, error);
     }
   });
 }

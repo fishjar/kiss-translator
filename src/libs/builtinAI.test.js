@@ -1,7 +1,7 @@
-jest.mock("./log", () => ({
+jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   kissLog: jest.fn(),
   logger: { info: jest.fn() },
-}));
+}))()));
 
 const loadChromeDetect = (detectResults) => {
   const detect = jest

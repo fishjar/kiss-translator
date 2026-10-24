@@ -4,6 +4,8 @@
  */
 
 import { browser } from "../libs/browser";
+import { startLogTask } from "../libs/diagnostics/task";
+import { logger } from "../libs/log";
 import { createAssetStore } from "../providers/transport";
 import { cachedFileResult } from "./resultCache";
 import { normalizeSettings } from "../localAi/core/settings";
@@ -362,7 +364,9 @@ export async function executeImageRecognition({
           order: region.order ?? completedRegions,
           error: cropErr?.message || String(cropErr),
         });
-        console.warn("[PipelineCore] Region recognition failed:", cropErr);
+        logger
+          .child("image-translate")
+          .warn("region.recognition.failed", cropErr);
       }
       reportRecognition(++completedRegions);
     }
@@ -586,7 +590,27 @@ export async function executeImageLayout({
 /**
  * 完整图片翻译流水线调度入口
  */
-export async function executeImagePipeline({
+export async function executeImagePipeline(options) {
+  const task = startLogTask("image-translate", {
+    ...(options.taskId && { taskId: options.taskId }),
+  });
+  try {
+    const result = await executeImagePipelineInternal({
+      ...options,
+      onProgress: (progress) => {
+        if (progress.stage) task.stage(progress.stage);
+        options.onProgress?.(progress);
+      },
+    });
+    task.finish(undefined, { count: result.items?.length });
+    return result;
+  } catch (error) {
+    task.finish(error);
+    throw error;
+  }
+}
+
+async function executeImagePipelineInternal({
   imageBlob,
   scene,
   setting: customSetting,

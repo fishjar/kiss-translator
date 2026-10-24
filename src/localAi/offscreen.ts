@@ -10,6 +10,7 @@ import {
   type RpcChannelEnvelope,
 } from "./runtime/rpc";
 import { RuntimeManager } from "./runtime/runtimeManager";
+import { captureDiagnostic } from "../libs/diagnostics/transport";
 import { installProviderHost } from "../providers/host";
 import { invokeInstance } from "../providers/runtime";
 import { createLocalAsrInvoker } from "../builtin-plugins/local-asr-runtime";
@@ -60,7 +61,7 @@ installProviderHost(undefined, (instance: any, capability: string, input: any, o
 
 // 启动时自动初始化 ModelManager（恢复 OPFS + IDB 模型状态）
 void runtimeManager.modelManager.init().catch((err) => {
-  console.warn("[offscreen] ModelManager init error:", err);
+  captureDiagnostic({ level: "warn", module: "local-ai", event: "host.init.failed", error: err });
 });
 
 channel.onmessage = (e: MessageEvent<RpcChannelEnvelope>) => {
@@ -123,4 +124,4 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
 }
 
 (globalThis as any).__kissRuntimeManager = runtimeManager;
-console.log("[kiss-translator] Local AI runtime host started");
+captureDiagnostic({ level: "info", module: "local-ai", event: "host.started" });

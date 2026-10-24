@@ -9,7 +9,7 @@ import {
   prepareTimedTextEvents,
 } from "./youtubeSubtitleProcessing";
 
-jest.mock("../libs/log.js", () => ({
+jest.mock("../libs/log.js", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   LogLevel: {
     INFO: { value: "info" },
   },
@@ -17,7 +17,7 @@ jest.mock("../libs/log.js", () => ({
     debug: jest.fn(),
     info: jest.fn(),
   },
-}));
+}))()));
 
 /**
  * 创建一个可由测试主动 resolve/reject 的 Promise。

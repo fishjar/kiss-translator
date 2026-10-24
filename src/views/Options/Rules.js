@@ -66,7 +66,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CancelIcon from "@mui/icons-material/Cancel";
 import SaveIcon from "@mui/icons-material/Save";
 import ValidationInput from "../../hooks/ValidationInput";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { useApiList } from "../../hooks/Api";
 import ShowMoreButton from "./ShowMoreButton";
 import { useConfirm } from "../../hooks/Confirm";
@@ -417,7 +417,7 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
       }
       setErrors({});
     } catch (error) {
-      kissLog("save rule", error);
+      logger.child("options").error("save rule", error);
       alert.error(error?.message || String(error));
     } finally {
       savingRef.current = false;
@@ -1314,7 +1314,7 @@ function RuleAccordion({
       .catch((err) => {
         if (active && requestId === subRuleRequestRef.current) {
           setDisabledByUser(false);
-          kissLog("getDisabledSubRules", err);
+          logger.child("options").info("getDisabledSubRules", err);
         }
       })
       .finally(() => {
@@ -1358,7 +1358,7 @@ function RuleAccordion({
     } catch (err) {
       if (requestId !== subRuleRequestRef.current) return;
       setDisabledByUser(previousDisabled);
-      kissLog("toggle disabled sub rule", err);
+      logger.child("options").info("toggle disabled sub rule", err);
       alert.error(i18n("rule_toggle_failed"));
     } finally {
       if (requestId === subRuleRequestRef.current) {
@@ -1474,7 +1474,7 @@ function ShareButton({ rules, injectRules, selectedUrl }) {
       window.open(url, "_blank");
     } catch (err) {
       alert.warning(i18n("error_got_some_wrong"));
-      kissLog("share rules", err);
+      logger.child("options").error("share rules", err);
     } finally {
       sharingRef.current = false;
       setSharing(false);
@@ -1544,7 +1544,7 @@ function UserRules({ subRules, rules }) {
     try {
       await rules.merge(JSON.parse(data));
     } catch (err) {
-      kissLog("import rules", err);
+      logger.child("options").error("import rules", err);
     }
   };
 
@@ -1714,10 +1714,10 @@ function SubRulesItem({
       try {
         await queueDisabledSubRuleRemoval(url);
       } catch (err) {
-        kissLog("removeDisabledSubRules", err);
+        logger.child("options").info("removeDisabledSubRules", err);
       }
     } catch (err) {
-      kissLog("del subrules", err);
+      logger.child("options").info("del subrules", err);
     }
   };
 
@@ -1732,7 +1732,7 @@ function SubRulesItem({
       }
       await updateDataCache(url); // 更新最近同步时间戳
     } catch (err) {
-      kissLog("sync sub rules", err);
+      logger.child("options").warn("sync sub rules", err);
       alert.error(
         <>
           <p>Sync Error:</p>
@@ -1865,7 +1865,7 @@ function SubRulesEdit({ subList, beginSubAdd, addSub, updateDataCache }) {
       setInputText("");
     } catch (err) {
       if (!isCurrent()) return;
-      kissLog("fetch rules", err);
+      logger.child("options").error("fetch rules", err);
       if (mountedRef.current) setInputError(i18n("error_fetch_url"));
     } finally {
       operation.finish();
@@ -1977,7 +1977,7 @@ function SubRules({ subRules, syncCaches }) {
     if (loading) return;
     // Automatic downloads write timestamps outside this view's cache state.
     // Refresh when opening the tab or finishing a subscription load.
-    reloadSync().catch((error) => kissLog("load sync caches", error));
+    reloadSync().catch((error) => logger.child("options").warn("load sync caches", error));
   }, [loading, selectedUrl, reloadSync]);
 
   useLayoutEffect(() => {

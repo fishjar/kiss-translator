@@ -11,9 +11,9 @@ jest.mock("../config", () => ({
   MSG_FETCH: "kiss_fetch",
 }));
 
-jest.mock("./log", () => ({
+jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   kissLog: jest.fn(),
-}));
+}))()));
 
 import { fetchGM, fetchPatcher, normalizeHttpTimeout } from "./request";
 
@@ -33,9 +33,9 @@ const loadRequestWithClient = (clientMock) => {
     DEFAULT_HTTP_TIMEOUT: 30,
     MSG_FETCH: "kiss_fetch",
   }));
-  jest.doMock("./log", () => ({
+  jest.doMock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
     kissLog: jest.fn(),
-  }));
+  }))()));
   return require("./request");
 };
 

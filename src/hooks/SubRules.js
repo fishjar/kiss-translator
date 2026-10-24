@@ -2,7 +2,7 @@ import { DEFAULT_SUBRULES_LIST } from "../config";
 import { useSetting } from "./Setting";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadOrFetchSubRules } from "../libs/subRules";
-import { kissLog } from "../libs/log";
+import { logger } from "../libs/log";
 
 // Retain only pending additions so deletion also invalidates remounted editors.
 const pendingSubAdds = new Map();
@@ -133,7 +133,7 @@ export function useSubRules() {
       })
       .catch((err) => {
         if (active && requestId === requestIdRef.current) {
-          kissLog("loadOrFetchSubRules", err);
+          logger.child("sub-rules").warn("loadOrFetchSubRules", err);
           setSelectedRuleState({ url: selectedUrl, rules: [] });
         }
       })

@@ -1,4 +1,4 @@
-import { kissLog, logger } from "./log";
+import { logger } from "./log";
 
 /**
  * Chrome 浏览器内置翻译
@@ -23,7 +23,10 @@ class ChromeTranslator {
    * 默认的模型下载进度处理器，用于输出调试日志
    */
   #defaultProgressHandler(type, progress) {
-    kissLog(`Downloading ${type} model: ${progress}%`);
+    if (progress === 0 || progress === 100)
+      logger.child("builtin-ai").event("info", "model.download.stage", {
+        service: type, stage: progress === 0 ? "started" : "completed",
+      });
   }
 
   /**
@@ -139,7 +142,7 @@ class ChromeTranslator {
       this.#lastReliableDetectedLanguage = detectedLanguage;
       return [detectedLanguage, ""];
     } catch (error) {
-      kissLog("detectLanguage", error, `(${text})`);
+      logger.child("builtin-a-i").warn("detectLanguage", error, `(${text})`);
       return ["", error.message];
     }
   }
@@ -185,7 +188,7 @@ class ChromeTranslator {
 
       return [translatedText, finalSourceLanguage, ""];
     } catch (error) {
-      kissLog("translateText", error, `(${text})`);
+      logger.child("builtin-a-i").error("translateText", error, `(${text})`);
 
       // REVIEW: 极其优秀的大模型热重载与防死锁设计！
       // Chrome 127+ 本地 AI (Gemini Nano) 尚处于实验阶段，稳定性较差。
@@ -199,7 +202,7 @@ class ChromeTranslator {
         error.message &&
         error.message.includes("Other generic failures occurred")
       ) {
-        logger.info("Generic failure detected, resetting translator cache.");
+        logger.child("builtin-a-i").warn("Generic failure detected, resetting translator cache.");
         this.#translatorMap.clear();
       }
 
@@ -338,7 +341,7 @@ class ChromeSummarizer {
       });
       return [summary, ""];
     } catch (error) {
-      kissLog("ChromeSummarizer.summarize", error);
+      logger.child("builtin-a-i").error("ChromeSummarizer.summarize", error);
       this.#summarizer = null;
       return ["", error?.message || String(error)];
     }

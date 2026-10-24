@@ -11,7 +11,7 @@ import {
   MSG_TRANSINPUT_TOGGLE,
 } from "../../config";
 import { useSetting } from "../../hooks/Setting";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { sendTabMsg } from "../../libs/msg";
 import { queryPopupData } from "./loadData";
 
@@ -224,7 +224,7 @@ export function usePopupFeatureToggles({
         });
       } catch (error) {
         if (!isCurrent()) return;
-        kissLog("toggle popup global feature", name, error);
+        logger.child("popup").error("toggle popup global feature", name, error);
         let settled = previous;
         // Compensate a rejected persistence operation in the same document.
         if (runtimeConfirmed) {
@@ -243,7 +243,7 @@ export function usePopupFeatureToggles({
               throw new Error("The global feature could not be restored.");
             }
           } catch (rollbackError) {
-            kissLog("restore popup global feature", name, rollbackError);
+            logger.child("popup").error("restore popup global feature", name, rollbackError);
           }
         }
         if (!isCurrent()) return;

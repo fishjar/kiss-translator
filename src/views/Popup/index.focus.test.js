@@ -31,10 +31,10 @@ jest.mock("../../libs/browser", () => ({
   browser: { runtime: { openOptionsPage: jest.fn() } },
 }));
 
-jest.mock("../../libs/log", () => ({
+jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
   ...jest.requireActual("../../libs/log"),
   kissLog: jest.fn(),
-}));
+}))()));
 
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key) => key,

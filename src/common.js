@@ -165,7 +165,7 @@ async function getFavWords(rule) {
     try {
       return Object.keys(await getWordsWithDefault());
     } catch (err) {
-      logger.info("get fav words", err);
+      logger.child("common").warn("get fav words", err);
     }
   }
 
@@ -275,7 +275,7 @@ export async function run(isUserscript = false) {
       !contentType.includes("html") &&
       !isPdfDocument
     ) {
-      logger.info("Skip running in document content type: ", contentType);
+      logger.child("common").info("Skip running in document content type: ", contentType);
       return;
     }
 
@@ -352,7 +352,7 @@ export async function run(isUserscript = false) {
       trySyncAllSubRules(setting);
     }
   } catch (err) {
-    console.error("[KISS-Translator]", err);
+    logger.child("content").error("content initialization failed", err);
     showErr(err.message); // 向前台页面绘制报错 Banner，便于用户感知与排查问题
   }
 }

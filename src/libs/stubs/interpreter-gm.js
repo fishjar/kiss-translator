@@ -1,3 +1,4 @@
+import { logger } from "../log";
 /**
  * @file interpreter-gm.js
  * @description 油猴脚本环境下的轻量原生执行器。
@@ -25,7 +26,7 @@ class GmInterpreter {
       const fn = new Function("exports", ...keys, code);
       fn(this.exports, ...values);
     } catch (e) {
-      console.error("[GmInterpreter] Execution error:", e);
+      logger.child("interpreter-gm").error("[GmInterpreter] Execution error:", e);
     }
   }
 }

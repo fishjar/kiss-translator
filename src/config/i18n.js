@@ -1,3 +1,4 @@
+import { DIAGNOSTICS_I18N } from "./locales/diagnostics";
 import { YOUTUBE_CAPTIONS_I18N } from "./locales/youtubeCaptions";
 import { PROVIDER_PLUGINS_I18N } from "./locales/providerPlugins";
 import { POPUP_I18N } from "./i18n.popup";
@@ -24,6 +25,7 @@ export const UI_LANGS = [
 ];
 
 export const I18N = {
+  ...DIAGNOSTICS_I18N,
   ...YOUTUBE_CAPTIONS_I18N,
   ...POPUP_I18N,
   ...TOUCH_I18N,
@@ -5948,13 +5950,14 @@ export const I18N = {
     vi: "Phụ đề chưa sẵn sàng.",
   },
   log_level: {
-    zh: `日志级别`,
-    en: `Log Level`,
-    zh_TW: `日誌等級`,
-    ja: `ログレベル`,
-    ko: `로그 레벨`,
-    tr: `Günlük Düzeyi`,
-    vi: "Mức nhật ký",
+    zh: "控制台日志级别",
+    en: "Console log level",
+    zh_TW: "主控台日誌等級",
+    ja: "コンソールのログレベル",
+    ko: "콘솔 로그 수준",
+    tr: "Konsol günlük düzeyi",
+    vi: "Mức nhật ký bảng điều khiển",
+    ru: "Уровень журнала консоли",
   },
   goto_custom_api_example: {
     zh: `点击查看【自定义接口示例】`,

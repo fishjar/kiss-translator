@@ -9,9 +9,10 @@ import { sendBgMsg } from "./msg";
 import { getSettingWithDefault } from "./storage";
 import { MSG_FETCH, DEFAULT_HTTP_TIMEOUT } from "../config";
 import { isBg } from "./browser";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { parseResponse } from "./response";
 import { fetchViaPort } from "./requestPort";
+import { startHttpDiagnostic } from "./diagnostics/http";
 
 /**
  * 将用户配置的请求超时时间统一归一化为毫秒。
@@ -38,7 +39,7 @@ export const resolveHttpTimeout = async (opts = {}) => {
     try {
       timeout = (await getSettingWithDefault())?.httpTimeout;
     } catch (err) {
-      kissLog("getSettingWithDefault", err);
+      logger.child("request").info("getSettingWithDefault", err);
     }
   }
 
@@ -96,7 +97,7 @@ const parseResponseHeaders = (responseHeaders) => {
         }
       });
   } catch (e) {
-    kissLog("fetchGM parse headers error", e);
+    logger.child("request").warn("fetchGM parse headers error", e);
   }
 
   return headers;
@@ -275,8 +276,17 @@ export const fetchHandle = async ({ input, init, opts = {} }) => {
     const { requestLocalChat } = await import("./localAiTransport");
     return requestLocalChat(init, opts);
   }
-  const res = await fetchPatcher(input, init, opts);
-  return parseResponse(res, opts.expect);
+  const diagnostic = await startHttpDiagnostic(input, init, { context: opts.diagnostic, secrets: opts.diagnosticSecrets });
+  try {
+    const res = await fetchPatcher(input, init, opts);
+    diagnostic.response(res);
+    const value = await parseResponse(res, opts.expect, diagnostic);
+    await diagnostic.finish();
+    return value;
+  } catch (error) {
+    await diagnostic.finish(error);
+    throw error;
+  }
 };
 
 /**

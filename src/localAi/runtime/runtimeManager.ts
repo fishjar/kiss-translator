@@ -1,5 +1,7 @@
 import { PaddleOCR, type OcrResult } from "@paddleocr/paddleocr-js";
 import { LocalModelManager } from "../core/modelManager";
+import { captureDiagnostic, diagnosticDetail } from "../../libs/diagnostics/transport";
+import { summary, preview } from "../../libs/diagnostics/privacy";
 import { CATALOG, OCR_GROUPS, getCatalogModel } from "../core/catalog";
 import { readFile } from "../core/opfs";
 import {
@@ -102,6 +104,7 @@ function createLanguageModelState() {
  * 3. 活跃推理任务的真实执行层停止/终止（LLM 发送 stop 并在超时后回退 terminate；不可中断 Worker 直接 terminate 重建）
  */
 export class RuntimeManager {
+  private diagnosticPollFailures = new Map<string, { code: string; count: number }>();
   private inferenceCache = new InferenceCache();
   readonly modelManager: LocalModelManager;
   readonly pool: RuntimePool;
@@ -193,7 +196,12 @@ export class RuntimeManager {
     this.pool = new RuntimePool(callbacks.maxResidentModels ?? 4);
     this.llmStopGraceMs = callbacks.llmStopGraceMs ?? 250;
     this.modelManager = new LocalModelManager("hf-mirror");
+    const modelStates = new Map<string, string>();
     this.modelManager.subscribe((id, rec) => {
+      if (modelStates.get(id) !== rec.state) {
+        modelStates.set(id, rec.state);
+        if (rec.state !== "not-installed") captureDiagnostic({ level: rec.state === "error" ? "warn" : "info", module: "local-ai", event: "model.state", context: { modelId: id, stage: rec.state } });
+      }
       this.callbacks.onModelBroadcast?.(id, rec);
     });
     this.settingsReady = loadSettings().then((s) => {
@@ -747,8 +755,26 @@ export class RuntimeManager {
     }
   ): Promise<AiRpcResponse> {
     const t0 = performance.now();
+    const polling = ["status", "list", "get", "getSettings", "cacheStats", "storageStats"].includes(req.method);
+    let detailed = false;
+    const pollKey = `${req.service}.${req.method}`;
+    const diagnostic = (level: string, event: string, context = {}, error?: unknown, value?: unknown) => {
+      if (polling) return;
+      captureDiagnostic({ level, event, module: "local-ai", context: {
+        taskId: req.diagnostic?.taskId, attempt: req.diagnostic?.attempt,
+        requestId: req.id, service: req.service, method: req.method,
+        modelId: req.options?.modelId, ...context,
+      }, error, request: { kind: "rpc", method: `${req.service}.${req.method}`, ...(detailed && event !== "request.started" && { preview: preview(req.payload) }) },
+        ...(event === "request.completed" && { resultSummary: summary(value), ...(detailed && { response: { preview: preview(value) } }) }),
+      });
+    };
+    let lastStage: string | undefined;
     this.requestIds.add(req.id);
     const emitProgress = (p: Omit<AiRpcProgress, "id">) => {
+      if (p.type !== lastStage) {
+        lastStage = p.type;
+        diagnostic("info", "request.stage", { stage: p.type });
+      }
       const full: AiRpcProgress = { id: req.id, ...p };
       localHooks?.onProgress?.(full);
       this.callbacks.onProgress?.(full);
@@ -773,7 +799,11 @@ export class RuntimeManager {
       this.broadcastService(service);
     }
     try {
+      detailed = !polling && (await diagnosticDetail?.())?.enabled;
+      diagnostic("debug", "request.started");
       await this.settingsReady;
+      if (this.cancelledRequests.has(req.id))
+        throw new Error("REQUEST_CANCELLED: 请求已取消");
       const settings = { ...this.settings };
       if (
         managed &&
@@ -816,6 +846,12 @@ export class RuntimeManager {
             }
           : await this.executeRequest(req, emitProgress, emitStream, settings)
         : await this.dispatch(req, emitProgress, emitStream);
+      diagnostic("info", "request.completed", { cacheHit, elapsedMs: Math.round(performance.now() - t0) }, undefined, result);
+      const previousFailure = polling && this.diagnosticPollFailures.get(pollKey);
+      if (previousFailure) {
+        this.diagnosticPollFailures.delete(pollKey);
+        captureDiagnostic({ level: "info", module: "local-ai", event: "poll.recovered", context: { service: req.service, method: req.method, repeated: previousFailure.count } });
+      }
       return {
         id: req.id,
         ok: true,
@@ -830,6 +866,13 @@ export class RuntimeManager {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       const codeMatch = /^([A-Z_]+):\s*(.*)$/.exec(message);
+      const code = codeMatch?.[1] ?? "INFERENCE_FAILED";
+      if (polling) {
+        const previous = this.diagnosticPollFailures.get(pollKey);
+        this.diagnosticPollFailures.set(pollKey, { code, count: (previous?.count || 0) + 1 });
+        if (previous?.code !== code) captureDiagnostic({ level: "warn", module: "local-ai", event: "poll.failed", context: { service: req.service, method: req.method, code }, error: err });
+      }
+      diagnostic(code.includes("CANCEL") || (err as Error)?.name === "AbortError" ? "info" : req.diagnostic?.taskId ? "warn" : "error", "request.failed", { code, elapsedMs: Math.round(performance.now() - t0) }, err);
       return {
         id: req.id,
         ok: false,
@@ -1178,6 +1221,14 @@ export class RuntimeManager {
   }
 
   // -------------------- JEV / Decision 服务 (P0) --------------------
+  private recordWorkerCrash(service: AiRpcService, event: ErrorEvent): void {
+    captureDiagnostic({
+      level: "error", module: "local-ai", event: "worker.crashed",
+      context: { service, modelId: this.getSessionState(service).modelId, code: "WORKER_CRASHED" },
+      error: event.error,
+    });
+  }
+
   private ensureJevWorker(): Worker {
     if (!this.jevWorker) {
       const w = this.factories.createJevWorker
@@ -1225,6 +1276,7 @@ export class RuntimeManager {
       };
       w.onerror = (e) => {
         if (this.jevWorker !== w) return;
+        this.recordWorkerCrash("decision", e);
         const err = new Error(e.message || "JEV worker crashed");
         this.jevLoadWaiter?.reject(err);
         this.jevLoadWaiter = null;
@@ -1396,6 +1448,7 @@ export class RuntimeManager {
       };
       w.onerror = (e) => {
         if (this.asrWorker !== w) return;
+        this.recordWorkerCrash("asr", e);
         const err = new Error(e.message || "ASR worker crashed");
         this.asrLoadWaiter?.reject(err);
         this.asrLoadWaiter = null;
@@ -1797,6 +1850,7 @@ export class RuntimeManager {
       };
       w.onerror = (e) => {
         if (slot.llmWorker !== w) return;
+        this.recordWorkerCrash(service, e);
         slot.unloadWaiter?.reject(new Error(e.message || "Worker crashed"));
         const err = new Error(e.message || "LLM worker crashed");
         slot.llmLoadWaiter?.reject(err);
@@ -2080,6 +2134,7 @@ export class RuntimeManager {
       };
       worker.onerror = event => {
         if (this.docWorker !== worker) return;
+        this.recordWorkerCrash("doc", event);
         this.disposeDoc(event.message || "DOC Worker crashed");
         this.pool.forget("doc"); this.invalidateSession("doc", "DOC Worker 已终止");
       };
@@ -2136,6 +2191,7 @@ export class RuntimeManager {
       };
       w.onerror = (e) => {
         if (this.ttsWorker !== w) return;
+        this.recordWorkerCrash("tts", e);
         const err = new Error(e.message || "TTS worker crashed");
         this.ttsLoadWaiter?.reject(err);
         this.ttsLoadWaiter = null;

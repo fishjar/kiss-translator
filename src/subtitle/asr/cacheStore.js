@@ -1,4 +1,3 @@
-import { logger } from "../../libs/log";
 import { coverageProgress } from "./coverage";
 import { ASR_SAMPLE_RATE } from "./audioChunks";
 import { alignedAsrWords } from "../../providers/asrWords";
@@ -280,19 +279,11 @@ export class AsrCacheStore {
     return this.database;
   }
   async run(stores, mode, operation) {
-    const opened = performance.now();
     const db = await this.open();
-    const started = performance.now();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(stores, mode);
       let result, failure;
       tx.oncomplete = () => {
-        logger.debug("[YouTube ASR cache] transaction", {
-          stores,
-          mode,
-          openMs: started - opened,
-          transactionMs: performance.now() - started,
-        });
         resolve(result);
       };
       tx.onabort = tx.onerror = () =>

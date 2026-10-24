@@ -66,10 +66,10 @@ jest.mock("../../libs/sync", () => ({
   syncSettingAndRules: jest.fn(),
 }));
 
-jest.mock("../../libs/log", () => ({
+jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
   kissLog: jest.fn(),
   LogLevel: { INFO: { value: 1 } },
-}));
+}))()));
 
 function renderSyncSetting(initialSyncType, target = "", syncConfig = {}) {
   mockInitialSyncType = initialSyncType;

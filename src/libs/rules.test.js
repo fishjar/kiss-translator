@@ -19,12 +19,12 @@ jest.mock("./sync", () => ({
   trySyncRules: jest.fn(),
 }));
 
-jest.mock("./log", () => ({
+jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   kissLog: jest.fn(),
   LogLevel: {
     INFO: { value: 3 },
   },
-}));
+}))()));
 
 // Translator 链路集成测试所需的替身（与 translator.test.js 相同的模式）
 jest.mock("../apis", () => ({
