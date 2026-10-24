@@ -1,3 +1,5 @@
+import { panelCursor } from "../../styles/cursors";
+
 export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-translation-panel { overflow: visible; border: 1px solid var(--kt-linev); border-radius: 16px !important; background: var(--kt-sf0) !important; color: var(--kt-on); box-shadow: var(--kt-shadow-2); }
 .kt-translation-panel__body { min-width: 0; border-radius: 0 0 16px 16px; background: var(--kt-sf0); overflow-x: hidden; word-break: break-word; scrollbar-width: thin; scrollbar-color: var(--kt-onv) var(--kt-sf0); }
@@ -8,7 +10,7 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-translation-panel--embedded { border: 0; border-radius: 0 !important; box-shadow: none; }
 .kt-translation-panel--embedded .kt-translation-panel__body { border-radius: 0; }
 .kt-tranbox-header { min-height: 56px; display: flex; align-items: center; gap: 6px; position: relative; padding: 7px 8px 7px 10px; border-bottom: 1px solid var(--kt-linev); border-radius: 16px 16px 0 0; background: var(--kt-sf0); color: var(--kt-on); }
-.kt-tranbox-header__drag { display: flex; color: var(--kt-onv); cursor: move; }
+.kt-tranbox-header__drag { display: flex; color: var(--kt-onv); cursor: ${panelCursor("move")}; }
 .kt-tranbox-header__drag svg { width: 19px; height: 19px; }
 .kt-tranbox-header__brand { min-width: 0; flex: 1; display: flex; align-items: center; gap: 7px; overflow: hidden; }
 .kt-tranbox-header__logo { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 7px; background: var(--kt-sf1); }

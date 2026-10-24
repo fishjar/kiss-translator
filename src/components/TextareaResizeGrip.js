@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
+import { panelCursor } from "../styles/cursors";
 
 // 命中热区 24×24，大于 18×18 视觉弧线：按哪里能触发由代码定义，跨浏览器一致。
 const HOT_ZONE_PX = 24;
@@ -764,7 +765,7 @@ export default function TextareaResizeGrip({
         height: HOT_ZONE_PX,
         // 禁用字段（如 preset 提示词）内保持手柄可交互。
         pointerEvents: "auto",
-        cursor: "ns-resize",
+        cursor: panelCursor("s"),
         touchAction: "none",
         borderRadius: "4px",
         // 颜色经 currentColor 下传给 SVG 弧线：基础 onSurfaceVariant
