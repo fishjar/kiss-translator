@@ -348,6 +348,12 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
 .kt-about-loading { min-height: 120px; display: grid; place-items: center; }
 .kt-about-markdown { padding: 20px; }
 
+@media (min-width: 1180px) {
+  /* A sticky sidebar can shift at the bottom of a fractional-height page. */
+  .kt-options-sidebar { position: fixed; left: 0; }
+  .kt-options-main { grid-column: 2; }
+}
+
 @media (max-width: 1179px) {
   .kt-options-layout { display: block; }
   .kt-options-mobile-header { min-height: 62px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 30; padding: 8px 14px; border-bottom: 1px solid var(--kt-linev); background: var(--kt-bg); backdrop-filter: blur(14px); }
