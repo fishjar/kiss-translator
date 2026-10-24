@@ -56,7 +56,9 @@ export default class DomManager {
       try {
         this.#mount(props || this._props);
       } catch (error) {
-        logger.warn(`Failed to mount component with id "${this._id}":`, error);
+        logger
+          .child("dom-manager")
+          .warn("Failed to mount component; id:", this._id, error);
         this.#isProcessing = false;
         return;
       } finally {
@@ -98,7 +100,7 @@ export default class DomManager {
     this.#reactRoot = null;
     this.#isVisible = false;
     this.#isProcessing = false;
-    logger.info(`Component with id "${this._id}" has been destroyed.`);
+    logger.child("dom-manager").debug("Component destroyed; id:", this._id);
   }
 
   /**

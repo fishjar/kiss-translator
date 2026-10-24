@@ -24,7 +24,7 @@ export function persistSubtitlePosition(positionRatio) {
   }))
     .then(() => undefined)
     .catch((err) => {
-      logger.warn("save subtitle position failed", err);
+      logger.child("subtitle").warn("save subtitle position failed", err);
     });
 }
 
@@ -82,6 +82,6 @@ export function runSubtitle({ href, setting }) {
       });
     }
   } catch (err) {
-    logger.error("start subtitle provider failed", err);
+    logger.child("subtitle").error("start subtitle provider failed", err);
   }
 }

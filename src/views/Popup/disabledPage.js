@@ -1,5 +1,5 @@
 import { isInBlacklist } from "../../libs/blacklist";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { deriveRuleContext } from "../../libs/rules";
 import { normalizeRuleApi } from "../../libs/apiSelection";
 import {
@@ -55,7 +55,7 @@ export async function loadDisabledPopupData(tab) {
       },
     };
   } catch (error) {
-    kissLog("load disabled popup page", error);
+    logger.child("popup").warn("load disabled popup page", error);
     return undefined;
   }
 }

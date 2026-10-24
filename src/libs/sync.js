@@ -35,7 +35,7 @@ import {
 } from "../apis";
 import { sha256, removeEndchar } from "./utils";
 import { fetchPatcher } from "./fetch";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { encryptSyncValue, decryptSyncValue } from "./syncCrypto";
 import {
   enqueueStorageSync,
@@ -566,7 +566,7 @@ export const syncData = async (
       await migratePlainSyncData(syncType, res, args, syncEncryptKey);
     } catch (error) {
       // A failed follow-up cannot undo an already committed data adoption.
-      kissLog("Unable to encrypt legacy remote sync data", key, error);
+      logger.child("sync").warn("Unable to encrypt legacy remote sync data", key, error);
     }
   };
   const result = { value: newVal, isNew };
@@ -678,7 +678,7 @@ export const trySyncSetting = async () => {
   try {
     await syncSetting({ automatic: true });
   } catch (err) {
-    kissLog("sync setting", err.message);
+    logger.child("sync").error("sync setting", err.message);
   }
 };
 
@@ -696,7 +696,7 @@ export const trySyncRules = async () => {
   try {
     await syncRules({ automatic: true });
   } catch (err) {
-    kissLog("sync user rules", err.message);
+    logger.child("sync").error("sync user rules", err.message);
   }
 };
 
@@ -714,7 +714,7 @@ export const trySyncWords = async () => {
   try {
     await syncWords({ automatic: true });
   } catch (err) {
-    kissLog("sync fav words", err.message);
+    logger.child("sync").error("sync fav words", err.message);
   }
 };
 

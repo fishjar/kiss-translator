@@ -161,6 +161,16 @@ export default function Navigator({ open, isMobile = false, onClose }) {
           label: "",
           items: [
             ["playground", "Playground", "/playground", BugReportRoundedIcon],
+            ...(isExt
+              ? [
+                  [
+                    "diagnostics",
+                    i18n("diagnostics_title"),
+                    "/diagnostics",
+                    BugReportRoundedIcon,
+                  ],
+                ]
+              : []),
             ["about", i18n("about"), "/about", InfoRoundedIcon],
           ],
         },

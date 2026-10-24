@@ -15,6 +15,7 @@ export async function* translatePlugin(
     docInfo,
     textFormat = "text",
     nativeOptions,
+    diagnostic,
     invoke = invokeScene,
   }
 ) {
@@ -46,7 +47,7 @@ export async function* translatePlugin(
         ? apiSetting.batchUserPrompt
         : apiSetting.nobatchUserPrompt,
     },
-    { signal, nativeOptions, timeoutMs: serviceTimeoutMs(apiSetting) }
+    { signal, nativeOptions, diagnostic, timeoutMs: serviceTimeoutMs(apiSetting) }
   );
   const completed = new Map();
   const partials = new Map();

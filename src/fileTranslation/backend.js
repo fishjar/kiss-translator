@@ -1,4 +1,5 @@
 import { sha256 } from "../libs/utils";
+import { startLogTask } from "../libs/diagnostics/task";
 import {
   enabledApiCapabilities,
   supportedApiFeature,
@@ -806,6 +807,18 @@ export function attachFileSession(port, execute = executeFileMethod) {
       const controller = new AbortController();
       pending.set(id, controller);
       if (!isTranslation) pendingOtherRequests++;
+      const task = [
+        "translateText",
+        "recognizeImage",
+        "analyzeLayout",
+        "decideDocumentStructure",
+      ].includes(message.method)
+        ? startLogTask("file-translate", {
+            taskId: `${sessionId}:${id}`,
+            requestId: id,
+            method: message.method,
+          })
+        : null;
       try {
         const result = await execute(
           message.method,
@@ -813,13 +826,18 @@ export function attachFileSession(port, execute = executeFileMethod) {
           controller.signal,
           uploads,
           (progress) => {
+            if (progress.stage) task?.stage(progress.stage);
             if (!controller.signal.aborted)
               send({ type: "progress", requestId: id, sessionId, progress });
           }
         );
         if (controller.signal.aborted)
           throw new DOMException("已取消", "AbortError");
+        task?.finish();
         send({ type: "response", requestId: id, result });
+      } catch (error) {
+        task?.finish(error);
+        throw error;
       } finally {
         pending.delete(id);
         if (!isTranslation) pendingOtherRequests--;

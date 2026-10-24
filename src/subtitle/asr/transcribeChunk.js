@@ -10,6 +10,7 @@ import { asrChunkDurationSeconds } from "./timing";
 import { isHostedLocalAsr } from "../../providers/localAsrRouting";
 import { alignedAsrWords } from "../../providers/asrWords";
 import { logger } from "../../libs/log";
+import { startLogTask } from "../../libs/diagnostics/task";
 
 /** One independent ASR file. The session scheduler owns serialization/retries. */
 export async function transcribeAudioChunk(
@@ -56,6 +57,7 @@ export async function transcribeAudioChunk(
       "Video ASR requires an enabled transcription service."
     );
   const assets = createAssetStore();
+  const task = startLogTask("subtitle-asr", { serviceId: service.apiSlug });
   let call, events;
   try {
     const wav = asrWav(audio);
@@ -93,6 +95,7 @@ export async function transcribeAudioChunk(
     const result = await call.result;
     checkCancelled();
     validateResult("transcribe", result, input);
+    task.finish();
     if (result.languagePending)
       return {
         startSample,
@@ -137,9 +140,7 @@ export async function transcribeAudioChunk(
           start < lastStart ||
           (text.trim() && end <= start)
         ) {
-          logger.warn(
-            "[YouTube ASR] timestamp fallback",
-            JSON.stringify({
+          logger.child("subtitle").warn("[YouTube ASR] timestamp fallback", JSON.stringify({
               startSample,
               endSample,
               duration,
@@ -154,8 +155,7 @@ export async function transcribeAudioChunk(
               end: rawEnd,
               textLength: text.length,
               wordCount: seg.words?.length || 0,
-            })
-          );
+            }));
           valid = false;
           break;
         }
@@ -201,9 +201,7 @@ export async function transcribeAudioChunk(
           ]
         : [];
     }
-    logger.debug(
-      "[YouTube ASR] timing result",
-      JSON.stringify({
+    logger.child("subtitle").debug("[YouTube ASR] timing result", JSON.stringify({
         startSample,
         endSample,
         timingSource,
@@ -218,8 +216,7 @@ export async function transcribeAudioChunk(
           (sum, seg) => sum + (seg.words?.length || 0),
           0
         ),
-      })
-    );
+      }));
     return {
       startSample,
       endSample,
@@ -239,6 +236,9 @@ export async function transcribeAudioChunk(
           segs: [{ utf8: segment.text }],
         })),
     };
+  } catch (error) {
+    task.finish(error);
+    throw error;
   } finally {
     call?.cancel();
     await call?.finished;

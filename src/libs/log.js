@@ -3,6 +3,10 @@
  * @description 日志模块。提供带有色彩标识的调试和信息打印功能，支持动态设置日志等级（DEBUG/INFO/WARN/ERROR/SILENT）。
  */
 
+import { captureDiagnostic } from "./diagnostics/transport";
+import { safeError } from "./diagnostics/record";
+
+let runtimeLevel;
 // 定义日志级别
 export const LogLevel = {
   DEBUG: { value: 0, name: "DEBUG", color: "#6495ED" }, // 宝蓝色
@@ -38,6 +42,30 @@ class Logger {
       level: options.level || LogLevel.INFO,
       prefix: options.prefix || "KISS-Translator",
     };
+    this.module = options.module;
+  }
+
+  child(module) {
+    return new Logger({ module });
+  }
+
+  // Events and metadata are code-owned. Never pass source text as an event name.
+  event(level, event, context = {}, error) {
+    const severity = findLogLevelByName(level);
+    if (!severity || severity === LogLevel.SILENT) return;
+    captureDiagnostic({
+      level: severity.name.toLowerCase(),
+      module: this.module || "general",
+      event,
+      context,
+      error: safeError(error),
+    });
+    if (severity.value >= (runtimeLevel || this.config.level).value)
+      this._getConsoleMethod(severity)(
+        `[KISS-Translator] [${this.module || "general"}] [${severity.name}]`,
+        event,
+        context
+      );
   }
 
   /**
@@ -72,11 +100,13 @@ class Logger {
       return;
     }
 
+    runtimeLevel = newLevelObject;
     if (this.config.level.value !== newLevelObject.value) {
       this.config.level = newLevelObject;
-      console.log(
-        `[${this.config.prefix}] Log level dynamically set to ${this.config.level.name}`
-      );
+      if (newLevelObject.value === LogLevel.DEBUG.value)
+        console.log(
+          `[${this.config.prefix}] Log level dynamically set to ${this.config.level.name}`
+        );
     }
   }
 
@@ -87,10 +117,16 @@ class Logger {
    * @param {...any} args - 要记录的多个参数，可以是任何类型
    */
   _log(level, ...args) {
-    // 如果当前级别低于配置的最低级别，则不打印
-    if (level.value < this.config.level.value) {
-      return;
-    }
+    // Legacy arguments may contain document text or provider bodies. Persist only
+    // a scoped label and Error frames; leave the existing console output intact.
+    captureDiagnostic({
+      level: level.name.toLowerCase(),
+      module: this.module || "general",
+      event: this.module && typeof args[0] === "string" ? args[0] : "legacy",
+      error: safeError(args.find((arg) => arg instanceof Error)),
+    });
+    // The saved level controls console output only. Collection always runs.
+    if (level.value < (runtimeLevel || this.config.level).value) return;
 
     const timestamp = new Date().toISOString();
     const prefixStr = `[${this.config.prefix}]`;
@@ -172,8 +208,5 @@ class Logger {
 // 导出单例 Logger 供外部模块调用
 export const logger = new Logger();
 
-// REVIEW: kissLog 作为 logger.info 的快捷别名导出，但实际上 debug 或 warn 在日常拦截异常中用的也很多。
-// 可以考虑后续提供类似的快捷别名或直接鼓励大家使用 logger.warn/error 以保持日志语义清晰。
+// Compatibility alias for external/older callers. Owned call sites use scoped levels.
 export const kissLog = logger.info.bind(logger);
-
-// TODO：debug日志埋点

@@ -21,7 +21,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { isGm } from "../../libs/client";
+import { isGm, isExt } from "../../libs/client";
+import Diagnostics from "./Diagnostics";
 import { STOKEY_SETTING } from "../../config";
 import { AlertProvider } from "../../hooks/Alert";
 import { ConfirmProvider } from "../../hooks/Confirm";
@@ -196,6 +197,7 @@ function OptionsRouter({ pendingKeys }) {
           <Route path="words" element={<FavWords />} />
           <Route path="playground" element={<OptionsPlayground />} />
           <Route path="about" element={<About />} />
+          {isExt && <Route path="diagnostics" element={<Diagnostics />} />}
         </Route>
       )
     );

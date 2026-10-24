@@ -58,11 +58,11 @@ jest.mock("../../libs/gm", () => ({ adaptScript: jest.fn() }));
 
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
 
-jest.mock("../../libs/log", () => ({
+jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
   kissLog: jest.fn(),
   logger: { setLevel: jest.fn(), error: jest.fn() },
   LogLevel: { INFO: { value: 1 } },
-}));
+}))()));
 
 jest.mock("../../libs/storage", () => {
   const actual = jest.requireActual("../../libs/storage");

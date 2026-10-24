@@ -37,7 +37,10 @@ function createHarness() {
     },
   };
   const kissLog = jest.fn();
-  const context = vm.createContext({ browser, kissLog });
+  const context = vm.createContext({
+    browser,
+    logger: { child: () => ({ info: kissLog, error: kissLog }) },
+  });
   vm.runInContext(optionsCode, context);
   return { browser, kissLog, open: () => context.openOptionsPage() };
 }

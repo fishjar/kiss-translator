@@ -18,6 +18,6 @@ export const shadowRootInjector = () => {
       return root;
     };
   } catch (err) {
-    console.log("shadowRootInjector", err);
+    console.warn("[KISS-Translator] shadowRootInjector unavailable", err);
   }
 };

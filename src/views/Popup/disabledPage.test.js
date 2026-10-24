@@ -16,10 +16,10 @@ jest.mock("../../libs/storage", () => ({
 }));
 jest.mock("../../libs/subRules", () => ({ loadOrFetchSubRules: jest.fn() }));
 jest.mock("../../libs/sync", () => ({ trySyncRules: jest.fn() }));
-jest.mock("../../libs/log", () => ({
+jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
   ...jest.requireActual("../../libs/log"),
   kissLog: jest.fn(),
-}));
+}))()));
 
 const tab = { id: 7, url: "https://example.com/article", status: "complete" };
 const setting = {

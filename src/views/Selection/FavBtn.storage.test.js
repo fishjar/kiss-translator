@@ -31,10 +31,10 @@ jest.mock("../../libs/storageCoordination", () => {
 });
 jest.mock("../../libs/sync", () => ({ syncData: jest.fn() }));
 jest.mock("../../libs/gm", () => ({ getGmMethod: jest.fn() }));
-jest.mock("../../libs/log", () => ({
+jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
   kissLog: jest.fn(),
   LogLevel: { INFO: { value: 1 } },
-}));
+}))()));
 
 test.each([false, true])(
   "automatic collection preserves hydrated words (StrictMode=%s)",

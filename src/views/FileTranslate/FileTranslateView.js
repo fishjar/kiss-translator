@@ -1,3 +1,4 @@
+import { logger } from "../../libs/log";
 import {
   recognitionFeature,
   recognitionOptions,
@@ -1157,7 +1158,7 @@ export default function FileTranslateView() {
       });
       downloadBlob(result.filename, result.blob);
     } catch (e) {
-      console.error("export bilingual epub error:", e);
+      logger.child("file-translate").error("export bilingual epub error:", e);
       setSnackbar({
         open: true,
         message: i18n("export_failed", "导出 EPUB 失败"),
@@ -1239,7 +1240,7 @@ export default function FileTranslateView() {
       });
       downloadBlob(result.filename, result.blob);
     } catch (e) {
-      console.error("export target epub error:", e);
+      logger.child("file-translate").error("export target epub error:", e);
       setSnackbar({
         open: true,
         message: i18n("export_failed", "导出 EPUB 失败"),

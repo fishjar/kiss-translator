@@ -21,11 +21,11 @@ jest.mock("../libs/client", () => ({ isExt: false, isGm: false }));
 jest.mock("../libs/browser", () => ({ isOptions: () => true }));
 jest.mock("../libs/gm", () => ({ getGmMethod: jest.fn() }));
 jest.mock("../libs/msg", () => ({ sendBgMsg: jest.fn() }));
-jest.mock("../libs/log", () => ({
+jest.mock("../libs/log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   ...jest.requireActual("../libs/log"),
   kissLog: jest.fn(),
   logger: { setLevel: jest.fn(), error: jest.fn() },
-}));
+}))()));
 jest.mock("../libs/sync", () => ({ syncData: jest.fn() }));
 
 const EDIT_TIME = 100000;

@@ -30,6 +30,10 @@ export function createProviderRegistry({
       native.set(id, handlers);
     },
     invoke(serviceId, capability, input, options = {}) {
+      const diagnosticOptions = {
+        ...options,
+        diagnostic: { ...options.diagnostic, serviceId, method: capability },
+      };
       return createInvocation(async (invocation) => {
         const instance = await resolveInstance(serviceId);
         if (invocation.signal.aborted) throw invocation.signal.reason;
@@ -168,7 +172,7 @@ export function createProviderRegistry({
             );
         }
         return result;
-      }, options);
+      }, diagnosticOptions);
     },
   };
 }

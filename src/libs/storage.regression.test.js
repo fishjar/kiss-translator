@@ -1,10 +1,10 @@
 jest.mock("./gm", () => ({ getGmMethod: jest.fn() }));
 jest.mock("./client", () => ({ isExt: false, isGm: false }));
 jest.mock("./browser", () => ({}));
-jest.mock("./log", () => ({
+jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   ...jest.requireActual("./log"),
   kissLog: jest.fn(),
-}));
+}))()));
 
 function newPageStorage() {
   let page;

@@ -1,3 +1,4 @@
+import { logger } from "../../libs/log";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Header from "./Header";
@@ -18,6 +19,7 @@ const WIDE_PAGE_PATHS = new Set([
   "/apis",
   "/plugins",
   "/playground",
+  "/diagnostics",
   "/prompts",
 ]);
 const FULL_WIDTH_PAGE_PATHS = new Set(["/file-translate"]);
@@ -132,7 +134,7 @@ export default function Layout() {
       })
       .catch((error) => {
         if (error.name !== "AbortError") {
-          console.error("fetch version error:", error);
+          logger.child("options").error("fetch version error:", error);
         }
       });
     return () => {
@@ -299,6 +301,7 @@ export default function Layout() {
       ],
       "/playground": ["Playground", ""],
       "/about": [i18n("about"), ""],
+      "/diagnostics": [i18n("diagnostics_title"), ""],
     };
     return pages[pathname] || pages["/"];
   }, [i18n, pathname]);

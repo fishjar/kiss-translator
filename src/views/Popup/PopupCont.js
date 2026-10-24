@@ -48,7 +48,7 @@ import {
 import { saveRule } from "../../libs/rules";
 import { getRulesWithDefault } from "../../libs/storage";
 import { tryClearCaches } from "../../libs/cache";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { getDomainOptions } from "../../libs/url";
 import {
   getCompactStylePreviewCode,
@@ -242,7 +242,7 @@ export default function PopupCont({
             ]),
           ]);
       })
-      .catch((error) => kissLog("read saved popup rules", error));
+      .catch((error) => logger.child("popup").warn("read saved popup rules", error));
     return () => {
       active = false;
     };
@@ -301,7 +301,7 @@ export default function PopupCont({
   ]);
   const showActionError = useCallback(
     (error) => {
-      kissLog("update popup page state", error);
+      logger.child("popup").info("update popup page state", error);
       if (!activeRef.current) return;
       setActionError(i18n("popup_action_failed"));
       resetLater("action", () => setActionError(""));
@@ -581,7 +581,7 @@ export default function PopupCont({
         );
       } catch (error) {
         if (!activeRef.current) return;
-        kissLog("toggle translation", error);
+        logger.child("popup").error("toggle translation", error);
         setRule((previous) => ({ ...previous, transOpen: previousTransOpen }));
         setTranslationBusy(false);
         setTranslationError(true);
@@ -618,7 +618,7 @@ export default function PopupCont({
     } catch (error) {
       if (activeRef.current) {
         setEditorError(true);
-        kissLog("open popup rule editor", error);
+        logger.child("popup").error("open popup rule editor", error);
         resetLater("editor", () => setEditorError(false));
       }
     } finally {
@@ -634,7 +634,7 @@ export default function PopupCont({
     try {
       cleared = await tryClearCaches();
     } catch (error) {
-      kissLog("clear popup cache", error);
+      logger.child("popup").error("clear popup cache", error);
     }
     cachePendingRef.current = false;
     if (!activeRef.current) return;
@@ -665,7 +665,7 @@ export default function PopupCont({
       ]);
       setSaveStatus("saved");
     } catch (error) {
-      kissLog("save popup rule", error);
+      logger.child("popup").error("save popup rule", error);
       if (activeRef.current) setSaveStatus("error");
     } finally {
       savePendingRef.current = false;
@@ -688,7 +688,7 @@ export default function PopupCont({
         setSelectedDomain(options[0] || "");
         setFavicon(tab.favIconUrl || "");
       } catch (error) {
-        kissLog("get popup domain options", error);
+        logger.child("popup").info("get popup domain options", error);
       }
     })();
     return () => {

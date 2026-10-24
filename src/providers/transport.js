@@ -4,6 +4,7 @@ import { createSSEParser } from "./sdk/stream";
 import { signHmac } from "./sdk/encoding";
 import { createNDJSONParser } from "./sdk/segments";
 import { getFetchPool } from "../libs/pool";
+import { startHttpDiagnostic } from "../libs/diagnostics/http";
 
 const RESPONSE_LIMIT = 8 * 1024 * 1024;
 
@@ -47,7 +48,7 @@ export function createAssetStore() {
 
 export function createTransportBroker(
   instance,
-  { signal, approvedOrigins, assets, fetchImpl = globalThis.fetch }
+  { signal, approvedOrigins, assets, fetchImpl = globalThis.fetch, diagnostic: context }
 ) {
   const { secrets } = projectInstanceConfig(instance);
   const fields = new Set(
@@ -203,14 +204,22 @@ export function createTransportBroker(
       },
     ];
   };
+  const diagnostics = new WeakMap();
   const response = async (request) => {
-    const res = await fetchImpl(...prepare(request));
+    const [url, init] = prepare(request);
+    const diagnostic = await startHttpDiagnostic(url, init, { context, secrets: Object.values(secrets) });
+    try {
+    const res = await fetchImpl(url, init);
+    diagnostic.response(res);
+    diagnostics.set(res, diagnostic);
     check();
     if (!res.ok) {
+      await diagnostic.errorBody(res);
       // Do not include headers, URL query or response body that may echo secrets.
       throw providerError("HTTP_ERROR", `Provider returned HTTP ${res.status}`);
     }
     return res;
+    } catch (error) { await diagnostic.finish(error); throw error; }
   };
   const readBody = async (res) => {
     const reader = res.body?.getReader();
@@ -268,6 +277,8 @@ export function createTransportBroker(
       async request(request) {
         return schedule(async () => {
           const res = await response(request);
+          const diagnostic = diagnostics.get(res);
+          try {
           const headers = Object.fromEntries(res.headers.entries());
           const bytes = await readBody(res);
           if (
@@ -292,7 +303,10 @@ export function createTransportBroker(
                 )
               : new TextDecoder().decode(bytes);
           check();
+          diagnostic.body(request.responseType === "asset" ? new Blob([bytes]) : body);
+          await diagnostic.finish();
           return { status: res.status, headers, body };
+          } catch (error) { await diagnostic.finish(error); throw error; }
         });
       },
       async *stream(request) {
@@ -313,13 +327,15 @@ export function createTransportBroker(
         });
         scheduled.catch(rejectResponse);
         const res = await ready;
+        const diagnostic = diagnostics.get(res);
         const reader = res.body?.getReader();
         if (!reader) {
           release();
-          throw providerError(
+          const error = providerError(
             "STREAM_UNSUPPORTED",
             "Response is not readable."
           );
+          await diagnostic.finish(error); throw error;
         }
         if (
           request.streamFormat !== undefined &&
@@ -328,7 +344,8 @@ export function createTransportBroker(
           await reader.cancel();
           reader.releaseLock();
           release();
-          throw providerError("INVALID_REQUEST", "Unsupported stream format.");
+          const error = providerError("INVALID_REQUEST", "Unsupported stream format.");
+          await diagnostic.finish(error); throw error;
         }
         const ndjson = request.streamFormat === "ndjson";
         const parser = ndjson ? createNDJSONParser() : createSSEParser();
@@ -342,6 +359,7 @@ export function createTransportBroker(
             );
         const decoder = new TextDecoder();
         let size = 0;
+        let failure, completed = false;
         try {
           yield {
             type: "headers",
@@ -352,6 +370,7 @@ export function createTransportBroker(
             check();
             const { value, done } = await reader.read();
             if (done) break;
+            diagnostic.chunk(value);
             size += value.byteLength;
             if (size > RESPONSE_LIMIT)
               throw providerError(
@@ -364,10 +383,13 @@ export function createTransportBroker(
           for (const frame of frames(decoder.decode())) yield frame;
           const tail = parser.finish();
           if (ndjson) for (const value of tail) yield { type: "json", value };
+          completed = true;
+        } catch (error) { failure = error; throw error;
         } finally {
           // Release synchronously: iterator.return() must not strand the pool slot
           // while reader cancellation is pending (including transpiled async generators).
           release();
+          await diagnostic.finish(failure, completed);
           const cancelling = reader.cancel();
           reader.releaseLock();
           await cancelling.catch(() => {});

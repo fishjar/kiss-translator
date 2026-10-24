@@ -1,3 +1,4 @@
+import { logger } from "../log";
 import * as fflate from "fflate";
 import { parseXml, normalizePath, safeDecodeURI } from "./epubParser";
 import { FILE_TRANSLATE_I18N } from "../../config/locales/fileTranslate";
@@ -466,7 +467,7 @@ export function extractTitleMapFromChapterStates(
           }
         });
       } catch (e) {
-        console.warn("从已翻译 NAV 提取目录标题映射失败:", e);
+        logger.child("file-translate").warn("从已翻译 NAV 提取目录标题映射失败:", e);
       }
     }
   }

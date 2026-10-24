@@ -14,7 +14,8 @@ import { blobToBase64 } from "./utils";
  * @returns {Promise<*>} 解析后的响应数据；未指定 expect 时会优先尝试 JSON，失败则返回文本。
  * @throws {Error} 当响应不存在、HTTP 状态失败，或完整响应通道误收到 SSE 流时抛出明确错误。
  */
-export const parseResponse = async (res, expect = null) => {
+export const parseResponse = async (res, expect = null, diagnostic) => {
+  const observed = (value) => { diagnostic?.body(value); return value; };
   if (!res) {
     throw new Error("Response object does not exist");
   }
@@ -28,6 +29,7 @@ export const parseResponse = async (res, expect = null) => {
 
     try {
       const errorText = await res.clone().text();
+      observed(errorText);
       try {
         msg.response = JSON.parse(errorText);
       } catch {
@@ -41,9 +43,12 @@ export const parseResponse = async (res, expect = null) => {
   }
 
   const contentType = res.headers.get("Content-Type") || "";
-  if (expect === "blob") return res.blob();
-  if (expect === "text") return res.text();
-  if (expect === "json") return res.json();
+  if (expect === "blob") return observed(await res.blob());
+  if (expect === "text") return observed(await res.text());
+  if (expect === "json") {
+    const text = await res.text(); observed(text);
+    return JSON.parse(text);
+  }
 
   if (
     expect === "audio" ||
@@ -52,6 +57,7 @@ export const parseResponse = async (res, expect = null) => {
     contentType.includes("video")
   ) {
     const blob = await res.blob();
+    observed(blob);
     return blobToBase64(blob);
   }
 
@@ -63,6 +69,7 @@ export const parseResponse = async (res, expect = null) => {
   }
 
   const text = await res.text();
+  observed(text);
   if (!text) return null;
 
   try {

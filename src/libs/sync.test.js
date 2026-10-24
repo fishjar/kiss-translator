@@ -56,9 +56,9 @@ jest.mock("./fetch", () => ({
   fetchPatcher: jest.fn(),
 }));
 
-jest.mock("./log", () => ({
+jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   kissLog: jest.fn(),
-}));
+}))()));
 
 jest.mock("./syncCrypto", () => ({
   encryptSyncValue: jest.fn(),

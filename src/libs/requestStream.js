@@ -8,6 +8,7 @@ import browser from "webextension-polyfill";
 import { isExt, isGm } from "./client";
 import { isBg } from "./browser";
 import { PORT_STREAM_FETCH } from "../config";
+import { startHttpDiagnostic } from "./diagnostics/http";
 import { createSSEParser, createAsyncQueue } from "./stream";
 import {
   createTimeoutSignal,
@@ -240,13 +241,18 @@ export async function* fetchStreamNative(input, init = {}, opts = {}) {
     options.signal,
     createTimeoutSignal(timeout),
   ]);
+  const diagnostic = await startHttpDiagnostic(input, init, { context: options.diagnostic });
+  let reader, failure, completed = false;
+  try {
   const response = await fetch(input, { ...init, signal });
+  diagnostic.response(response);
 
   if (!response.ok) {
+    await diagnostic.errorBody(response);
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  const reader = response.body.getReader();
+  reader = response.body.getReader();
   const decoder = new TextDecoder();
   const parseSSE = createSSEParser();
 
@@ -254,15 +260,19 @@ export async function* fetchStreamNative(input, init = {}, opts = {}) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      diagnostic.chunk(value);
 
       for (const data of parseSSE(decoder.decode(value, { stream: true }))) {
         yield data;
       }
     }
+    completed = true;
   } finally {
     // 当调用方提前结束 async generator 时，主动释放 reader 锁并推动底层连接关闭。
     await reader.cancel?.();
   }
+  } catch (error) { failure = error; throw error; }
+  finally { await diagnostic.finish(failure, completed); }
 }
 
 /**

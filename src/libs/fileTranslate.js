@@ -1,3 +1,4 @@
+import { logger } from "./log";
 import { runTranslationTasks } from "./translationTasks";
 import * as fflate from "fflate";
 import { translateFileText } from "../fileTranslation/client";
@@ -1262,7 +1263,7 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
     }
     return null;
   } catch (e) {
-    console.error("synthesizeTranslatedImage error:", e);
+    logger.child("file-translate").error("synthesizeTranslatedImage error:", e);
     return null;
   }
 }
@@ -1624,7 +1625,7 @@ export async function translateEpubBook(
                 }
               } catch (e) {
                 if (signal?.aborted) throw e;
-                console.warn("翻译 NCX 目录条目失败:", origText, e);
+                logger.child("file-translate").warn("翻译 NCX 目录条目失败:", origText, e);
               }
             }
           }
@@ -1655,7 +1656,7 @@ export async function translateEpubBook(
       }
     } catch (e) {
       if (signal?.aborted) throw e;
-      console.warn("全书翻译 NCX 同步更新失败:", e);
+      logger.child("file-translate").warn("全书翻译 NCX 同步更新失败:", e);
     }
   }
 
@@ -1866,7 +1867,7 @@ export function exportEpubFromChapterStates(
         const updatedNav = updateNavDocument(rawNav, titleMap, navDir);
         filesMap[epubBook.navItemHref] = fflate.strToU8(updatedNav);
       } catch (err) {
-        console.warn("更新 NAV 目录失败:", err);
+        logger.child("file-translate").warn("更新 NAV 目录失败:", err);
       }
     }
 
@@ -1910,7 +1911,7 @@ export function exportEpubFromChapterStates(
         const updatedNcx = updateNcxDocument(rawNcx, titleMap, ncxDir);
         filesMap[epubBook.ncxItemHref] = fflate.strToU8(updatedNcx);
       } catch (err) {
-        console.warn("更新 NCX 目录失败:", err);
+        logger.child("file-translate").warn("更新 NCX 目录失败:", err);
       }
     }
   }

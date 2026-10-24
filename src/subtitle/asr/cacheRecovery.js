@@ -16,10 +16,7 @@ export async function readAsrCache(read, signal) {
       cause.code === "AUDIO_IDENTITY_MISMATCH"
     )
       throw cause;
-    logger.debug(
-      "[YouTube ASR cache] read failed; using network",
-      cause.code || cause.name
-    );
+    logger.child("subtitle").debug("[YouTube ASR cache] read failed; using network", cause.code || cause.name);
     return null;
   }
 }

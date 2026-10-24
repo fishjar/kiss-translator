@@ -5,10 +5,10 @@ import { STOKEY_SYNC, KV_WORDS_KEY, OPT_SYNCTYPE_GIST } from "../config";
 
 jest.mock("./client", () => ({ isExt: false, isGm: false }));
 jest.mock("./browser", () => ({ isOptions: () => true }));
-jest.mock("./log", () => ({
+jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   ...jest.requireActual("./log"),
   kissLog: jest.fn(),
-}));
+}))()));
 jest.mock("./fetch", () => ({ fetchPatcher: jest.fn(), fetchGM: jest.fn() }));
 jest.mock("webdav", () => ({
   createClient: jest.fn(),

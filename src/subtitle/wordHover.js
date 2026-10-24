@@ -337,7 +337,7 @@ export class WordTooltipController {
       this.#renderDictionaryResult(word, dictResult, wordData);
     } catch (error) {
       if (!current()) return;
-      logger.info("Dictionary lookup failed for word:", word, error);
+      logger.child("subtitle").warn("Dictionary lookup failed for word:", word, error);
       this.#dispatchAddWord({
         word,
         phonetic: "",

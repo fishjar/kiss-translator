@@ -5,7 +5,7 @@
  */
 
 import { browser } from "./browser";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { normalizeLanguageCode } from "./language";
 
 const DETECT_CACHE_LIMIT = 100; // 检测结果缓存条数上限，防止长会话内存膨胀
@@ -169,7 +169,7 @@ export const detectLangFast = async (text) => {
         lang = normalizedLang;
       }
     } catch (err) {
-      kissLog("detect lang fast", err);
+      logger.child("detect-fast").warn("detect lang fast", err);
     }
   }
 

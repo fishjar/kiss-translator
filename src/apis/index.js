@@ -33,7 +33,7 @@ import {
   defaultDictUserPrompt,
 } from "../config";
 import { getSetting } from "../libs/storage";
-import { kissLog } from "../libs/log";
+import { logger } from "../libs/log";
 import { sha256, withTimeout } from "../libs/utils";
 import {
   isSameTranslationLanguage,
@@ -490,7 +490,7 @@ const resolveBuiltinAISourceLang = async (text) => {
       }
     }
   } catch (err) {
-    kissLog("detect lang fallback", err);
+    logger.child("index").warn("detect lang fallback", err);
   }
   return "";
 };

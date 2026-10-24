@@ -1,5 +1,7 @@
 import { providerError } from "./capabilities";
 import { invocationDeadline, registerInvocationDeadline } from "./timeout";
+import { captureDiagnostic } from "../libs/diagnostics/transport";
+import { summary } from "../libs/diagnostics/privacy";
 
 let sequence = 0;
 const abortError = () =>
@@ -86,6 +88,24 @@ function eventChannel(limit = 64) {
 export function createInvocation(execute, options = {}) {
   // Native tasks share a runtime across pages; a per-page counter alone can collide.
   const requestId = `provider-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${++sequence}-${Math.random().toString(36).slice(2)}`}`;
+  const started = Date.now();
+  const diagnostic = (level, event, error, resultSummary) => {
+    if (!options.diagnostic) return;
+    captureDiagnostic({
+      level,
+      event,
+      module: "service",
+      context: {
+        requestId,
+        ...options.diagnostic,
+        elapsedMs: Date.now() - started,
+        ...(error?.code && { code: error.code }),
+      },
+      error,
+      resultSummary,
+    });
+  };
+  diagnostic("debug", "invocation.started");
   const controller = new AbortController();
   let deadlineAt = invocationDeadline(options);
   registerInvocationDeadline(controller.signal, deadlineAt);
@@ -103,6 +123,16 @@ export function createInvocation(execute, options = {}) {
   const finish = (error, value) => {
     if (settled) return;
     settled = true;
+    diagnostic(
+      error
+        ? error.name === "AbortError" || error.code === "REQUEST_CANCELLED"
+          ? "info"
+          : options.diagnostic?.taskId ? "warn" : "error"
+        : "info",
+      error ? "invocation.failed" : "invocation.completed",
+      error,
+      !error ? summary(value) : undefined
+    );
     clearTimeout(timeout);
     options.signal?.removeEventListener("abort", cancel);
     channel.finish(error);

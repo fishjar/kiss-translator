@@ -9,9 +9,9 @@ jest.mock("../libs/client", () => ({
   isGm: false,
 }));
 
-jest.mock("../libs/log", () => ({
+jest.mock("../libs/log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
   kissLog: jest.fn(),
-}));
+}))()));
 
 jest.mock("../config", () => ({
   EVENT_KISS_INNER: "kiss-inner",

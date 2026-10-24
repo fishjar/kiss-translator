@@ -6,7 +6,7 @@ import { ensureYoutubeBridgeRegistered } from "./youtubeBridgeRegistration";
 import { logger } from "./log";
 
 jest.mock("webextension-polyfill", () => ({ scripting: {} }));
-jest.mock("./log", () => ({ logger: { warn: jest.fn() } }));
+jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({ logger: { warn: jest.fn() } }))()));
 
 const id = "kiss-youtube-subtitle-bridge";
 const definition = {
@@ -152,6 +152,8 @@ test("background module load starts registration before other service initializa
   const calls = [];
   const context = vm.createContext({
     browser,
+    createDiagnosticsBackend: () => ({ append: jest.fn() }),
+    setDiagnosticSink: jest.fn(),
     ensureYoutubeBridgeRegistered: () => calls.push("registration"),
     installStorageCoordinator: () => calls.push("storage"),
     installAsrCacheBackend: () => calls.push("asr-cache"),

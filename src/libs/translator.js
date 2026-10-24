@@ -47,7 +47,7 @@ import {
 import { escapeHTML } from "./html";
 import { parseMathInText } from "./mathParse";
 import { apiMicrosoftDict, apiTranslate, apiYoudaoDict } from "../apis";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { genTextClass } from "./style";
 import { createLoadingSVG, createRetrySVG } from "./svg";
 import { shortcutRegister } from "./shortcut";
@@ -769,7 +769,7 @@ export class Translator {
       return node.matches(selector);
     } catch (err) {
       this.#blockSelectorInvalid = true;
-      kissLog("invalid blockSelector", err);
+      logger.child("translator").warn("invalid blockSelector", err);
       return false;
     }
   }
@@ -789,7 +789,7 @@ export class Translator {
 
       style.cssText = `${style.cssText || ""}${cssText}`;
     } catch (err) {
-      kissLog("append rule style error", label, err);
+      logger.child("translator").warn("append rule style error", label, err);
     }
   }
 
@@ -1261,7 +1261,7 @@ export class Translator {
         this.#startObserveShadowRoot(shadowRoot);
       });
     } catch (err) {
-      kissLog("findAllShadowRoots", err);
+      logger.child("translator").warn("findAllShadowRoots", err);
     }
   }
 
@@ -1276,7 +1276,7 @@ export class Translator {
       textSheet.replaceSync(textStyles);
       this.#textSheet = textSheet;
     } catch (err) {
-      kissLog("createTextStyles: CSSStyleSheet not available", err);
+      logger.child("translator").info("createTextStyles: CSSStyleSheet not available", err);
       // CSSStyleSheet 在当前环境不可用（Firefox 内容脚本等），改用内联 <style>
       this.#useSheetFallback = true;
     }
@@ -1331,14 +1331,14 @@ export class Translator {
 
     if (invalid.length > 0) {
       invalid.forEach(({ key, error }) =>
-        kissLog(`Invalid RegExp for term: "${key}"`, error)
+        logger.child("translator").warn("Invalid RegExp for term:", key, error)
       );
     }
 
     // 保留诊断与 hasErrors 日志（供 Playground / 控制台排查），但不再因任一非法段
     // 禁用整份术语：parseTerms 已逐条排除非法项，返回的 terms 是可安全应用的合法集合。
     if (hasErrors) {
-      kissLog("Term parse errors (legal terms still applied): ", diagnostics);
+      logger.child("translator").warn("Term parse errors (legal terms still applied): ", diagnostics);
     }
 
     this.#termEntries = terms;
@@ -1876,7 +1876,7 @@ export class Translator {
         );
       }
     } catch (err) {
-      kissLog("mouse hold revert", err);
+      logger.child("translator").warn("mouse hold revert", err);
     }
   }
 
@@ -2150,7 +2150,7 @@ export class Translator {
         }
       }
     } catch (err) {
-      kissLog("mouse hold resolve target", err);
+      logger.child("translator").warn("mouse hold resolve target", err);
     }
     // 坐标定位失败时退回 mousedown 按下时的目标元素
     if (!targetNode) {
@@ -2724,7 +2724,7 @@ export class Translator {
         }
       }
     } catch (err) {
-      kissLog("无法访问某个 shadowRoot", err);
+      logger.child("translator").warn("无法访问某个 shadowRoot", err);
     }
     // const end = performance.now();
     // const duration = end - start;
@@ -2854,7 +2854,7 @@ export class Translator {
       this.#startObserveRoot(shadowRoot);
       this.#injectSheet(shadowRoot);
     } catch (err) {
-      kissLog("startObserveShadowRoot", err);
+      logger.child("translator").info("startObserveShadowRoot", err);
     }
   }
 
@@ -3441,7 +3441,7 @@ export class Translator {
     try {
       return node.matches(this.#rule.keepSelector) && !this.#isBlockNode(node);
     } catch (err) {
-      kissLog("keepSelector match error", this.#rule.keepSelector, err);
+      logger.child("translator").warn("keepSelector match error", this.#rule.keepSelector, err);
       return false;
     }
   }
@@ -3665,7 +3665,7 @@ export class Translator {
           copyButton.textContent = copyText;
         }, 800);
       } catch (copyErr) {
-        kissLog("copy translate error: ", this.#formatTranslateError(copyErr));
+        logger.child("translator").error("copy translate error: ", this.#formatTranslateError(copyErr));
       }
     });
 
@@ -4081,7 +4081,7 @@ export class Translator {
                 );
               })
               .catch((err) => {
-                kissLog("transEndHook", err);
+                logger.child("translator").warn("transEndHook", err);
               });
           }
         },
@@ -4095,7 +4095,7 @@ export class Translator {
       if (wrapper && !wrapper.isConnected) return;
 
       const errorText = this.#formatTranslateError(err);
-      kissLog("translate group error: ", errorText);
+      logger.child("translator").error("translate group error: ", errorText);
       if (err?.message === "Request terminated") {
         this.#cleanupDirectTranslations(hostNode);
         return;
@@ -4124,7 +4124,7 @@ export class Translator {
           }
         }
       } catch (retryErr) {
-        kissLog("retry icon error: ", retryErr.message);
+        logger.child("translator").warn("retry icon error: ", retryErr.message);
         this.#cleanupDirectTranslations(hostNode);
       }
     }
@@ -4246,7 +4246,7 @@ export class Translator {
       ) {
         return;
       }
-      kissLog("favorite word lookup failed", err);
+      logger.child("translator").warn("favorite word lookup failed", err);
       this.#showFavoriteBubble(
         i18n("favorite_word_lookup_failed", "Failed to load definition."),
         "error"
@@ -4570,7 +4570,7 @@ overflow-wrap: anywhere !important;`;
           try {
             innerContent += traverse(child);
           } catch (err) {
-            kissLog("traverse child error", child.nodeName, err);
+            logger.child("translator").warn("traverse child error", child.nodeName, err);
           }
         });
 
@@ -4681,7 +4681,7 @@ overflow-wrap: anywhere !important;`;
       // 获取还原完毕后的富文本 HTML 字符串
       result = doc.body.innerHTML;
     } catch (e) {
-      kissLog("DOMParser restore failed, fallback to raw", e);
+      logger.child("translator").warn("DOMParser restore failed, fallback to raw", e);
       // 如果 DOMParser 解析出错（比如翻译源返回了破碎的 HTML 片段），则回退，继续尝试用正则直接替换普通占位符
     }
 
@@ -4754,7 +4754,7 @@ overflow-wrap: anywhere !important;`;
           Object.assign(args, hookResult);
         }
       } catch (err) {
-        kissLog("transStartHook", err);
+        logger.child("translator").warn("transStartHook", err);
       }
     }
 
@@ -5497,7 +5497,7 @@ overflow-wrap: anywhere !important;`;
         interpreter.run(injectJs);
       }
     } catch (err) {
-      kissLog("inject js", err);
+      logger.child("translator").warn("inject js", err);
     }
   }
 
@@ -5567,7 +5567,7 @@ overflow-wrap: anywhere !important;`;
       this.#docInfo.title = document.title; // 缓存原标题
       document.title = trText || docInfo.title;
     } catch (err) {
-      kissLog("translate title", err);
+      logger.child("translator").info("translate title", err);
     }
   }
 
