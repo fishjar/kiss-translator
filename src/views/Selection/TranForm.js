@@ -1115,6 +1115,7 @@ export default function TranForm({
                     speechLang={fromLang === "auto" ? deLang : fromLang}
                     toLang={realToLang}
                     apiSetting={aiDictApiSetting}
+                    requestRevision={requestRevision}
                     context={
                       // Pass context only when it contains the current text, so manual input cannot reuse stale selection context.
                       selectionContext && selectionContext.includes(text)
