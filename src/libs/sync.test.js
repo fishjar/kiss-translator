@@ -273,6 +273,66 @@ describe("GitHub Gist sync", () => {
     expect(encryptSyncValue).not.toHaveBeenCalled();
   });
 
+  test("uses the current automatic-sync preference instead of a queued snapshot", async () => {
+    const snapshot = {
+      syncType: "GitHub Gist",
+      syncUrl: "existing-gist",
+      syncKey: SYNC_KEY,
+      syncEncryptKey: SYNC_ENCRYPT_KEY,
+      autoSync: true,
+    };
+    getSyncWithDefault.mockResolvedValue({ ...snapshot, autoSync: false });
+
+    expect(
+      await syncData(
+        SETTING_KEY,
+        { local: true },
+        {
+          automatic: true,
+          syncConfig: snapshot,
+        }
+      )
+    ).toBeUndefined();
+    expect(apiGetGist).not.toHaveBeenCalled();
+    expect(encryptSyncValue).not.toHaveBeenCalled();
+  });
+
+  test.each([undefined, true])(
+    "automatic sync remains enabled when autoSync is %s",
+    async (autoSync) => {
+      getSyncWithDefault.mockResolvedValue({
+        syncType: "GitHub Gist",
+        syncUrl: "existing-gist",
+        syncKey: SYNC_KEY,
+        syncEncryptKey: SYNC_ENCRYPT_KEY,
+        autoSync,
+      });
+      apiGetGist.mockResolvedValue({ files: {} });
+      await syncData(SETTING_KEY, { local: true }, { automatic: true });
+      expect(apiUpdateGistFile).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  test("does not upload when automatic sync is disabled during Gist discovery", async () => {
+    const config = {
+      syncType: "GitHub Gist",
+      syncUrl: "",
+      syncKey: SYNC_KEY,
+      syncEncryptKey: SYNC_ENCRYPT_KEY,
+    };
+    getSyncWithDefault.mockResolvedValue(config);
+    apiListGists.mockImplementationOnce(async () => {
+      getSyncWithDefault.mockResolvedValue({ ...config, autoSync: false });
+      return [];
+    });
+
+    expect(
+      await syncData(SETTING_KEY, { local: true }, { automatic: true })
+    ).toBeUndefined();
+    expect(apiCreateGist).not.toHaveBeenCalled();
+    expect(apiUpdateGistFile).not.toHaveBeenCalled();
+  });
+
   test("reuses the newest existing fixed-description gist when syncUrl is empty", async () => {
     getSyncWithDefault.mockResolvedValue({
       syncType: "GitHub Gist",
@@ -583,6 +643,7 @@ describe("GitHub Gist sync", () => {
 
   test("changes encryption passphrase after re-encrypting personal sync data", async () => {
     getSyncWithDefault.mockResolvedValue({
+      autoSync: false,
       syncType: "GitHub Gist",
       syncUrl: "existing-gist",
       syncKey: SYNC_KEY,

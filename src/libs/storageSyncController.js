@@ -27,6 +27,7 @@ export function syncStorageState(key, syncKey, state, revision, value) {
         return;
       }
       const result = await syncData(syncKey, request.value, {
+        automatic: true,
         deferCommit: true,
         isRequestCurrent: isCurrent,
         syncConfig: request.config,
