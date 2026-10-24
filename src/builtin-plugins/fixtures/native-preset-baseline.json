@@ -3,5 +3,5 @@
   "presetCount": 35,
   "sha256": "0a00f7e992c8e6d3fbedd9b50d5de35ce0f171d51debeff4cc6bb7935b944edd",
   "purpose": "Compiled defaults after removing unreleased root capability tags; main-branch settings and language mappings remain protected.",
-  "languageMappingsSha256": "714b09bd349565a3dceb5960c791f1efc0cc0c2c0f019885b200418ffde67670"
+  "languageMappingsSha256": "836c77816a25bdf47bfc6593b74f99ccc89e3d42341847972a87a45b1e52b485"
 }
