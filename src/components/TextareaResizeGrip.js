@@ -765,7 +765,7 @@ export default function TextareaResizeGrip({
         height: HOT_ZONE_PX,
         // 禁用字段（如 preset 提示词）内保持手柄可交互。
         pointerEvents: "auto",
-        cursor: panelCursor("s"),
+        cursor: panelCursor("ns"),
         touchAction: "none",
         borderRadius: "4px",
         // 颜色经 currentColor 下传给 SVG 弧线：基础 onSurfaceVariant

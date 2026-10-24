@@ -63,7 +63,8 @@ describe("resolvePanelCursors platform gating", () => {
     });
     try {
       expect(resolvePanelCursors()).toBe(PANEL_KEYWORD_CURSORS);
-      expect(panelCursor("s")).toBe("ns-resize");
+      expect(panelCursor("ns")).toBe("ns-resize");
+      expect(panelCursor("s")).toBe("row-resize");
     } finally {
       restore();
     }
@@ -92,28 +93,106 @@ describe("resolvePanelCursors platform gating", () => {
     expect(panelCursor("move")).toBe("move");
   });
 
-  // PR 审查 E2（2026-10-24）：字面量锁定——九键位图值互异（防止 base64
+  // PR 审查 E2（2026-10-24）：字面量锁定——各键位图值互异（防止 base64
   // 在键间串位仍绿）且每键携带自己的回退关键字；关键字表与回退映射一致。
-  test("locks the 9-key bitmap table against cross-key payload swaps", () => {
-    const keys = [
-      "n",
-      "ne",
-      "e",
-      "se",
-      "s",
-      "sw",
-      "w",
-      "nw",
-      "move",
-    ];
-    const payloads = new Set();
+  // 注意：ns 为 s 的别名键（同字形、回退 ns-resize），互异性按「完整值
+  // （payload+回退）」判定而非裸 payload。
+  test("locks the direction bitmap table against cross-key payload swaps", () => {
+    const keys = ["n", "ne", "e", "se", "s", "ns", "sw", "w", "nw", "move"];
+    const values = new Set();
     for (const key of keys) {
       const value = PANEL_BITMAP_CURSORS[key];
-      expect(value).toMatch(/^url\(data:image\/png;base64,[A-Za-z0-9+/]+=*\) 16 16, /);
+      expect(value).toMatch(
+        /^url\(data:image\/png;base64,[A-Za-z0-9+/]+=*\) 16 16, /
+      );
       const fallback = value.slice(value.lastIndexOf(", ") + 2);
       expect(fallback).toBe(PANEL_KEYWORD_CURSORS[key]);
-      payloads.add(value.slice(0, value.lastIndexOf(",")));
+      values.add(value);
     }
-    expect(payloads.size).toBe(keys.length);
+    expect(values.size).toBe(keys.length);
+    // ns 与 s 共用同一字形 base64（别名键），仅回退关键字不同。
+    expect(
+      PANEL_BITMAP_CURSORS.ns.slice(0, PANEL_BITMAP_CURSORS.ns.lastIndexOf(","))
+    ).toBe(
+      PANEL_BITMAP_CURSORS.s.slice(0, PANEL_BITMAP_CURSORS.s.lastIndexOf(","))
+    );
+  });
+
+  // PR 审查 r3（2026-10-24）：互异性检查无法发现「两个方向的 payload 互
+  // 相交换」（互换后集合大小不变）。补方向↔内容对应校验：解码每键位图的
+  // 白色像素，断言其质心朝向与方向键一致。期望朝向由设计规范推导（字形 =
+  // 微尖折角 + 长线 + 短线朝该方向递进，白色笔画质心偏向尖端一侧；move 为
+  // 四角向心、居中对称），非实现输出。
+  test("anchors each direction bitmap to its pointing direction", () => {
+    const zlib = require("zlib");
+    const SIZE = 32;
+
+    function whiteCentroid(base64) {
+      const buf = Buffer.from(base64, "base64");
+      let off = 8;
+      const idat = [];
+      while (off < buf.length) {
+        const len = buf.readUInt32BE(off);
+        const type = buf.toString("ascii", off + 4, off + 8);
+        if (type === "IDAT") idat.push(buf.subarray(off + 8, off + 8 + len));
+        off += 12 + len;
+      }
+      const raw = zlib.inflateSync(Buffer.concat(idat));
+      const stride = SIZE * 4 + 1;
+      let sx = 0;
+      let sy = 0;
+      let count = 0;
+      for (let y = 0; y < SIZE; y += 1) {
+        // 生成器仅使用 filter 0（无滤波）行；其他 filter 出现即失败。
+        expect(raw[y * stride]).toBe(0);
+        for (let x = 0; x < SIZE; x += 1) {
+          const i = y * stride + 1 + x * 4;
+          if (
+            raw[i] === 255 &&
+            raw[i + 1] === 255 &&
+            raw[i + 2] === 255 &&
+            raw[i + 3] === 255
+          ) {
+            sx += x;
+            sy += y;
+            count += 1;
+          }
+        }
+      }
+      expect(count).toBeGreaterThan(0);
+      return { cx: sx / count, cy: sy / count, count };
+    }
+
+    function payloadOf(key) {
+      const value = PANEL_BITMAP_CURSORS[key];
+      return value.slice(
+        value.indexOf("base64,") + 7,
+        value.indexOf(") 16 16")
+      );
+    }
+
+    // 期望朝向（规范推导）：单向手柄质心偏向尖端一侧；move 居中。
+    const EXPECT = {
+      n: { cx: "=", cy: "<" },
+      s: { cx: "=", cy: ">" },
+      e: { cx: ">", cy: "=" },
+      w: { cx: "<", cy: "=" },
+      ne: { cx: ">", cy: "<" },
+      nw: { cx: "<", cy: "<" },
+      se: { cx: ">", cy: ">" },
+      sw: { cx: "<", cy: ">" },
+      move: { cx: "=", cy: "=" },
+    };
+
+    for (const [key, exp] of Object.entries(EXPECT)) {
+      const { cx, cy } = whiteCentroid(payloadOf(key));
+      // 画面中心为 (15.5, 15.5)；单向质心偏移约 2.5~3.6px，阈值留足余量。
+      if (exp.cx === "<") expect(cx).toBeLessThan(14.5);
+      if (exp.cx === ">") expect(cx).toBeGreaterThan(16.5);
+      if (exp.cy === "<") expect(cy).toBeLessThan(14.5);
+      if (exp.cy === ">") expect(cy).toBeGreaterThan(16.5);
+      if (exp.cx === "=") expect(Math.abs(cx - 15.5)).toBeLessThan(2);
+      if (exp.cy === "=") expect(Math.abs(cy - 15.5)).toBeLessThan(2);
+    }
   });
 });
