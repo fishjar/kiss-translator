@@ -213,4 +213,288 @@ describe("AiDictCont", () => {
       root.unmount();
     });
   });
+
+  test("retries a failed dictionary request when requestRevision increases", async () => {
+    apiDict
+      .mockRejectedValueOnce(new Error("Provider invocation timed out."))
+      .mockResolvedValueOnce("## library\n\n- book room");
+
+    const { container, root } = renderAiDictCont();
+    await flushEffects();
+
+    expect(container.textContent).toContain("Provider invocation timed out.");
+    expect(apiDict).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.render(
+        <AiDictCont
+          text="library"
+          fromLang="en"
+          toLang="zh-CN"
+          context="The library is open."
+          apiSetting={{
+            apiSlug: "openai",
+            apiType: "OpenAI",
+            dictPrompt: "prompt",
+          }}
+          requestRevision={1}
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(apiDict).toHaveBeenCalledTimes(2);
+    expect(container.textContent).not.toContain(
+      "Provider invocation timed out."
+    );
+    expect(container.querySelector("h2")?.textContent).toContain("library");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("does not disturb the pending dictionary request when requestRevision increases mid-flight", async () => {
+    apiDict.mockReturnValueOnce(new Promise(() => {}));
+
+    const { root } = renderAiDictCont({ text: "inflight-library" });
+
+    act(() => {
+      root.render(
+        <AiDictCont
+          text="inflight-library"
+          fromLang="en"
+          toLang="zh-CN"
+          context="The library is open."
+          apiSetting={{
+            apiSlug: "openai",
+            apiType: "OpenAI",
+            dictPrompt: "prompt",
+          }}
+          requestRevision={1}
+        />
+      );
+    });
+
+    expect(apiDict).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("does not resend the dictionary request when requestRevision is unchanged", async () => {
+    apiDict.mockResolvedValueOnce("## library\n\n- book room");
+
+    const { container, root } = renderAiDictCont({
+      text: "unchanged-library",
+    });
+    await flushEffects();
+    expect(apiDict).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("h2")?.textContent).toContain("library");
+
+    act(() => {
+      root.render(
+        <AiDictCont
+          text="unchanged-library"
+          fromLang="en"
+          toLang="zh-CN"
+          context="The library is open."
+          apiSetting={{
+            apiSlug: "openai",
+            apiType: "OpenAI",
+            dictPrompt: "prompt",
+          }}
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(apiDict).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("keeps partial streamed markdown and does not disturb the pending request when requestRevision increases mid-flight", async () => {
+    apiDict.mockReturnValueOnce(new Promise(() => {}));
+
+    const { container, root } = renderAiDictCont({
+      text: "streamed-library",
+    });
+
+    await act(async () => {
+      apiDict.mock.calls[0][0].onStreamChunk({
+        markdown: "## partial library",
+      });
+    });
+    expect(container.textContent).toContain("partial library");
+
+    act(() => {
+      root.render(
+        <AiDictCont
+          text="streamed-library"
+          fromLang="en"
+          toLang="zh-CN"
+          context="The library is open."
+          apiSetting={{
+            apiSlug: "openai",
+            apiType: "OpenAI",
+            dictPrompt: "prompt",
+          }}
+          requestRevision={1}
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(apiDict).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("partial library");
+    expect(container.querySelector("h2")?.textContent).toContain("library");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("stays silent after a successful dictionary request when requestRevision increases", async () => {
+    apiDict.mockResolvedValueOnce("## library\n\n- book room");
+
+    const { container, root } = renderAiDictCont({
+      text: "silent-library",
+    });
+    await flushEffects();
+
+    expect(apiDict).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("h2")?.textContent).toContain("library");
+
+    act(() => {
+      root.render(
+        <AiDictCont
+          text="silent-library"
+          fromLang="en"
+          toLang="zh-CN"
+          context="The library is open."
+          apiSetting={{
+            apiSlug: "openai",
+            apiType: "OpenAI",
+            dictPrompt: "prompt",
+          }}
+          requestRevision={1}
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(apiDict).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("h2")?.textContent).toContain("library");
+    expect(container.querySelector(".MuiCircularProgress-root")).toBeNull();
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("keeps the retry gate closed after a successful retry", async () => {
+    apiDict
+      .mockRejectedValueOnce(new Error("Provider invocation timed out."))
+      .mockResolvedValueOnce("## library\n\n- book room");
+
+    const { container, root } = renderAiDictCont({
+      text: "gated-library",
+    });
+    await flushEffects();
+
+    expect(container.textContent).toContain("Provider invocation timed out.");
+    expect(apiDict).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      root.render(
+        <AiDictCont
+          text="gated-library"
+          fromLang="en"
+          toLang="zh-CN"
+          context="The library is open."
+          apiSetting={{
+            apiSlug: "openai",
+            apiType: "OpenAI",
+            dictPrompt: "prompt",
+          }}
+          requestRevision={1}
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(apiDict).toHaveBeenCalledTimes(2);
+    expect(container.querySelector("h2")?.textContent).toContain("library");
+
+    act(() => {
+      root.render(
+        <AiDictCont
+          text="gated-library"
+          fromLang="en"
+          toLang="zh-CN"
+          context="The library is open."
+          apiSetting={{
+            apiSlug: "openai",
+            apiType: "OpenAI",
+            dictPrompt: "prompt",
+          }}
+          requestRevision={2}
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(apiDict).toHaveBeenCalledTimes(2);
+    expect(container.querySelector("h2")?.textContent).toContain("library");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("does not resend the dictionary request when a failed request is followed by a new text submission", async () => {
+    apiDict
+      .mockRejectedValueOnce(new Error("Provider invocation timed out."))
+      .mockResolvedValueOnce("## new library\n\n- book room");
+
+    const { container, root } = renderAiDictCont({ text: "old-library" });
+    await flushEffects();
+
+    expect(container.textContent).toContain("Provider invocation timed out.");
+    expect(apiDict).toHaveBeenCalledTimes(1);
+
+    // Production-timing reproduction: text and requestRevision land in one
+    // commit, the passive-effect flush and the re-render triggered by the
+    // retry-sync bump are separate macrotasks, so a fast response settles and
+    // deregisters itself from pendingRequests in between. act() would collapse
+    // that gap, so this render deliberately runs outside it.
+    globalThis.IS_REACT_ACT_ENVIRONMENT = false;
+    root.render(
+      <AiDictCont
+        text="new-library"
+        fromLang="en"
+        toLang="zh-CN"
+        context="The library is open."
+        apiSetting={{
+          apiSlug: "openai",
+          apiType: "OpenAI",
+          dictPrompt: "prompt",
+        }}
+        requestRevision={1}
+      />
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+    expect(apiDict).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain("new library");
+
+    act(() => {
+      root.unmount();
+    });
+  });
 });
