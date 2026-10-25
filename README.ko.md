@@ -43,7 +43,7 @@
 
 ### 서비스 설정과 인터페이스 플러그인
 
-- **풍부한 내장 서비스**: Google, Microsoft, Baidu, Tencent, Volcengine, DeepL/DeepLX 등 전통적인 번역 서비스는 물론 OpenAI, Gemini, Claude, Ollama, DeepSeek, OpenRouter, OrcaRouter, Requesty, AzureAI, CloudflareAI 등의 주요 AI 서비스, Chrome 브라우저 내장 AI, 로컬 AI를 지원합니다.
+- **풍부한 내장 서비스**: Google, Microsoft, Baidu, Tencent, Volcengine, DeepL/DeepLX 등 전통적인 번역 서비스는 물론 OpenAI, Gemini, Claude, Ollama, DeepSeek, OpenRouter, OrcaRouter, Requesty, Runcrate, AzureAI, CloudflareAI 등의 주요 AI 서비스, Chrome 브라우저 내장 AI, 로컬 AI를 지원합니다.
 - **기능별 자유로운 서비스 할당**: 텍스트 번역, 사전 검색, 자막 분할, OCR 문자 인식, 음성 합성 등 기능별로 독립된 서비스와 모델 파라미터를 설정할 수 있습니다. 모델 사양에 따라 일괄 배치 번역, 스트리밍 출력, 대화 문맥 기억, AI 전문 용어집, 추론(Reasoning) 설정을 지원합니다.
 - **인터페이스 플러그인 생태계**: ZIP 압축 파일, 로컬 폴더, GitHub 저장소 루트 URL, HTTPS 링크를 통해 플러그인을 가져올 수 있습니다. 세분화된 권한 승인/철회, 수동 업데이트, 저장된 서비스 인스턴스 업그레이드를 지원합니다.
 - **개방형 커스텀 프로토콜**: 비표준 API도 플러그인을 통해 연동할 수 있습니다. 자세한 내용은 [플러그인 개발 가이드(중국어)](docs/plugins/plugin-development-guide.md), [OpenAI 호환 예제](docs/plugins/examples/openai-compatible-bundle/README.md), [DeepSeek 선언형 예제](docs/plugins/examples/deepseek/README.md)를 참고하세요.

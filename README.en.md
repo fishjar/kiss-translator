@@ -43,7 +43,7 @@ A simple, open-source [bilingual translation extension & userscript](https://git
 
 ### Service Configuration & Provider Plugins
 
-- **Extensive built-in services**: Supports major traditional and AI translation services, including Google, Microsoft, Baidu, Tencent, Volcengine, DeepL/DeepLX, OpenAI, Gemini, Claude, Ollama, DeepSeek, OpenRouter, OrcaRouter, Requesty, AzureAI, and CloudflareAI, plus browser built-in AI and Local AI.
+- **Extensive built-in services**: Supports major traditional and AI translation services, including Google, Microsoft, Baidu, Tencent, Volcengine, DeepL/DeepLX, OpenAI, Gemini, Claude, Ollama, DeepSeek, OpenRouter, OrcaRouter, Requesty, Runcrate, AzureAI, and CloudflareAI, plus browser built-in AI and Local AI.
 - **Select by capability**: Independently configure services and model parameters for text translation, dictionary lookup, subtitle segmentation, OCR recognition, or speech synthesis; supports batch aggregation, streaming responses, multi-turn conversation memory, AI glossaries, and reasoning settings based on model capabilities.
 - **Provider plugin ecosystem**: Import third-party plugins via ZIP archives, local folders, GitHub repository root URLs, or HTTPS links; granular permission authorization/revocation, manual package updates, and saved service instance upgrades.
 - **Open custom protocols**: Connect any non-standard API via plugins. See the [plugin development guide (Chinese)](docs/plugins/plugin-development-guide.md), [OpenAI-compatible example](docs/plugins/examples/openai-compatible-bundle/README.md), and [declarative DeepSeek example](docs/plugins/examples/deepseek/README.md).

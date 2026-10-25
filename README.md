@@ -43,7 +43,7 @@
 
 ### 服务配置与接口插件
 
-- **海量内置服务**：涵盖主流传统与 AI 翻译服务，包括 Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX，以及 OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI，并支持 Chrome 浏览器内置 AI 与本地 AI。
+- **海量内置服务**：涵盖主流传统与 AI 翻译服务，包括 Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX，以及 OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、Runcrate、AzureAI、CloudflareAI，并支持 Chrome 浏览器内置 AI 与本地 AI。
 - **按能力自由选用**：按文本翻译、词典查词、字幕断句、OCR 识别、语音合成等能力独立配置服务与模型参数；根据模型能力无缝支持批量聚合翻译、流式输出、上下文记忆对话、AI 专业术语及思考链（Reasoning）配置。
 - **接口插件体系**：支持通过 ZIP 压缩包、本地文件夹、GitHub 项目根地址或 HTTPS 链接导入扩展插件；提供细粒度权限授权/撤销、手动更新及配置实例升级。
 - **开放自定义协议**：任意非标准 API 均可通过插件实现对接。详细开发指引请参阅 [插件开发指南](docs/plugins/plugin-development-guide.md)、[OpenAI 兼容示例](docs/plugins/examples/openai-compatible-bundle/README.md) 和 [DeepSeek 声明式示例](docs/plugins/examples/deepseek/README.md)。

@@ -289,6 +289,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       openrouter.ai
 // @connect       api.orcarouter.ai
 // @connect       router.requesty.ai
+// @connect       api.runcrate.ai
 // @connect       localhost
 // @connect       127.0.0.1
 // @run-at        document-end
