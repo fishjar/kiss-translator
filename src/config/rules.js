@@ -227,7 +227,7 @@ const RULES_MAP = {
   "github.com": {
     autoScan: `false`,
     selector: `h1, h2, h3, h4, h5, h6, .markdown-body li, p, dd, blockquote, figcaption, label, legend, .user-profile-bio>div, [data-testid="results-list"] .search-match, .Subhead-description, [class^="prc-SelectPanel-Subtitle-"], [class^="prc-ActionList-ItemLabel-"], [role="dialog"] .overflow-auto, .h4, .repos-list-description, .discussion-title, [class*="PinnedIssue-module__Link"] span, .js-wiki-sidebar-page-container :is(.Truncate-text, .Link--primary)`,
-    ignoreSelector: `button, p.pinned-item-desc+p`,
+    ignoreSelector: `button, p.pinned-item-desc+p, [id^="DndDescribedBy-"], [id^="DndLiveRegion-"]`,
   },
 };
 

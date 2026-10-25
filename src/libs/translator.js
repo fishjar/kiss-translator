@@ -63,6 +63,10 @@ import {
   isInNonContent,
   NON_CONTENT_SELECTOR,
   visitTranslationTargets,
+  isInlineHidden,
+  isInInlineHidden,
+  getInlineVisibleText,
+  cloneWithoutInlineHidden,
 } from "./translationTargets";
 import { normalizeRuleApi } from "./apiSelection";
 import { isSameStorageValue } from "./storageEquality";
@@ -755,6 +759,18 @@ export class Translator {
     );
   }
 
+  #getSourceText(node) {
+    if (isInNonContent(node) || this.#isKissIgnoredNode(node)) return "";
+    const ignoreSelector = this.#ignoreSelector;
+    return getInlineVisibleText(
+      node,
+      (element) =>
+        element.matches(NON_CONTENT_SELECTOR) ||
+        element.matches(Translator.KISS_IGNORE_SELECTOR) ||
+        (element.matches(ignoreSelector) && !this.#isKeptInline(element))
+    );
+  }
+
   #matchesBlockSelector(node) {
     const selector = this.#rule.blockSelector?.trim();
     if (
@@ -1012,6 +1028,10 @@ export class Translator {
   }
 
   #initPlainTextPre(pre) {
+    if (isInInlineHidden(pre)) return;
+    // Preserve structured sources so hidden descendants are not flattened into text.
+    if (Array.from(pre.querySelectorAll("[style]")).some(isInlineHidden))
+      return;
     if (pre.dataset.kissPreprocessed === "true") {
       return;
     }
@@ -1830,7 +1850,7 @@ export class Translator {
   #hasHoldTranslatableText(node) {
     if (!Translator.isElement(node)) return false;
     if (this.#processedNodes.has(node)) return true;
-    return !this.#isInvalidText(node.textContent);
+    return !this.#isInvalidText(this.#getSourceText(node));
   }
 
   // 记住本次按住的翻译目标，供被浏览器手势接管后反向撤回
@@ -2446,7 +2466,10 @@ export class Translator {
     }
     // 缓存与新鲜收集的单元统一执行完整规则校验（ignore/roots/selector）：
     // updateRule 收紧范围规则后，旧的已观察单元不会被继续翻译
-    units = units.filter((unit) => this.#isHoldTargetAllowed(unit));
+    units = units.filter(
+      (unit) =>
+        this.#isHoldTargetAllowed(unit) && this.#hasHoldTranslatableText(unit)
+    );
     if (units.length === 0) {
       // 没有可翻译单元时退回悬停节点；文本无效则如实返回“未接受”，
       // 否则会在没有译文的情况下误吞右键菜单
@@ -2464,17 +2487,6 @@ export class Translator {
     if (allProcessed) {
       this.#restoreHoverBlock(container);
       return true;
-    }
-
-    // 仍未处理的单元全部是无效文本时不会产生任何译文，同样不能算“已接受”
-    if (
-      !units.some(
-        (unit) =>
-          !this.#processedNodes.has(unit) &&
-          !this.#isInvalidText(unit.textContent)
-      )
-    ) {
-      return false;
     }
 
     units.forEach((unit) => {
@@ -2524,8 +2536,11 @@ export class Translator {
         : node.matches?.(this.#ignoreSelector);
       if (isIgnored) return;
       if (this.#observedNodes.has(node)) {
-        // 超大容器不适合作为单一翻译单元（会超过接口长度限制），继续下钻到子单元
-        const isOversized = (node.textContent || "").trim().length > maxLength;
+        // 已处理单元保留还原/取消能力；新单元只按实际可翻译原文判断长度。
+        // 超大容器继续下钻到子单元，不把隐藏内容或已渲染的译文计入上限。
+        const isOversized =
+          !this.#processedNodes.has(node) &&
+          this.#getSourceText(node).trim().length > maxLength;
         if (!isOversized) {
           units.push(node);
         }
@@ -2874,7 +2889,7 @@ export class Translator {
   // 开始/重新监控节点
   #startObserveNode(node) {
     // todo: DocumentFragment 无法被 this.#io.observe
-    if (!Translator.isElement(node)) return;
+    if (!Translator.isElement(node) || isInInlineHidden(node)) return;
     this.#touchCandidates.add(node);
     this.#touchController?.observe(node);
     if (this.#tryAdoptExistingTranslationHost(node)) {
@@ -3014,12 +3029,16 @@ export class Translator {
     if (
       !this.#apiSetting ||
       this.#processedNodes.has(node) ||
-      !Translator.isElementOrFragment(node)
+      !Translator.isElementOrFragment(node) ||
+      isInInlineHidden(node)
     ) {
       return;
     }
 
     if (options.valid && !options.valid()) return;
+    // Invalid sources must not become processed/restorable hold targets.
+    const sourceText = this.#getSourceText(node);
+    if (this.#isInvalidText(sourceText)) return;
     const appliedRule = { ...this.#rule };
     this.#processedNodes.set(node, appliedRule);
     // 按住操作代次与 runId：语言检测等异步环节完成后据此判断任务是否已过期
@@ -3029,11 +3048,6 @@ export class Translator {
       this.#holdProcessGenerations.set(node, generation);
     } else {
       this.#holdProcessGenerations.delete(node);
-    }
-
-    // 提前检测文本
-    if (this.#isInvalidText(node.textContent)) {
-      return;
     }
 
     // 提前进行语言检测
@@ -3051,7 +3065,7 @@ export class Translator {
     } = this.#setting;
     if (fromLang === "auto") {
       // revert 529
-      deLang = await tryDetectLang(node.textContent, langDetector);
+      deLang = await tryDetectLang(sourceText, langDetector);
       // 语言检测期间可能发生了还原、重新触发或停止/重扫：
       // 任务已失效，不再创建译文容器或发起翻译请求。
       // 只撤销本任务的标记，不能清除重扫后新任务的状态。
@@ -3449,7 +3463,12 @@ export class Translator {
   // 判断是否需要换行
   #shouldBreak(node) {
     if (!Translator.isElementOrFragment(node)) return false;
-    if (isInNonContent(node) || this.#isKissIgnoredNode(node)) return true;
+    if (
+      isInlineHidden(node) ||
+      isInNonContent(node) ||
+      this.#isKissIgnoredNode(node)
+    )
+      return true;
     if (this.#isKeptInline(node)) return false;
 
     if (
@@ -3785,6 +3804,7 @@ export class Translator {
   // 显示在原文下方，并留出上下间距（margin: 8px 0），便于对照阅读。
   async #translateNodeGroup(nodes, hostNode, deLang, options = {}) {
     if (options.valid && !options.valid()) return;
+    if (isInInlineHidden(hostNode)) return;
     const currentRunId = this.#runId;
     const signal = this.#translationController.signal;
     const {
@@ -4399,7 +4419,7 @@ overflow-wrap: anywhere !important;`;
     if (!Translator.isElementOrFragment(node)) return;
     if (this.#hoverBubbleTarget === node && this.#hoverBubbleNode) return;
 
-    const text = node.textContent || "";
+    const text = this.#getSourceText(node);
     if (this.#isInvalidText(text)) {
       this.#hideHoverBubble();
       return;
@@ -4490,6 +4510,7 @@ overflow-wrap: anywhere !important;`;
     };
 
     const traverse = (node) => {
+      if (isInlineHidden(node)) return "";
       if (
         node.nodeType !== Node.ELEMENT_NODE &&
         node.nodeType !== Node.TEXT_NODE
@@ -4543,7 +4564,7 @@ overflow-wrap: anywhere !important;`;
           // node.matches(this.#ignoreSelector) ||
           !node.textContent.trim()
         ) {
-          const serializedNode = node.cloneNode(true);
+          const serializedNode = cloneWithoutInlineHidden(node);
           serializedNode
             .querySelectorAll(
               `${Translator.KISS_IGNORE_SELECTOR}, ${NON_CONTENT_SELECTOR}`
