@@ -11,6 +11,55 @@ export function isInNonContent(node) {
   return Boolean(element?.closest?.(NON_CONTENT_SELECTOR));
 }
 
+export function isInlineHidden(node) {
+  return node?.style?.display === "none";
+}
+
+export function isInInlineHidden(node) {
+  let current = node?.nodeType === 3 ? node.parentNode : node;
+  while (current) {
+    if (isInlineHidden(current)) return true;
+    current = current.parentNode || current.host;
+  }
+  return false;
+}
+
+// Read the live source before translation-only mode moves it into a backup.
+export function getInlineVisibleText(node, shouldSkipElement) {
+  if (!node || isInInlineHidden(node)) return "";
+  const parts = [];
+  const stack = [node];
+  while (stack.length) {
+    const current = stack.pop();
+    if (isInlineHidden(current)) continue;
+    if (current.nodeType === 1 && shouldSkipElement?.(current)) continue;
+    if (current.nodeType === 3) parts.push(current.textContent);
+    else {
+      const children = current.childNodes;
+      for (let i = children.length - 1; i >= 0; i--) stack.push(children[i]);
+    }
+  }
+  return parts.join("");
+}
+
+export function cloneWithoutInlineHidden(node) {
+  if (!node) return node;
+  const clone = node.cloneNode(true);
+  const stack = [[node, clone]];
+  while (stack.length) {
+    const [source, target] = stack.pop();
+    if (source !== node && isInlineHidden(source)) {
+      target.remove();
+      continue;
+    }
+    Array.from(source.childNodes).forEach((child, index) => {
+      const copy = target.childNodes[index];
+      stack.push([child, copy]);
+    });
+  }
+  return clone;
+}
+
 export function visitTranslationTargets(root, options, visit) {
   const { autoScan, selector, ignoreSelector, isBlock, hasText, wrapperClass } =
     options;
@@ -18,6 +67,7 @@ export function visitTranslationTargets(root, options, visit) {
     !root ||
     ![1, 11].includes(root.nodeType) ||
     isInNonContent(root) ||
+    isInInlineHidden(root) ||
     root.closest?.(ignoreSelector)
   )
     return;
@@ -25,7 +75,12 @@ export function visitTranslationTargets(root, options, visit) {
     if (!selector?.trim()) return;
     if (root.matches?.(selector)) visit(root);
     root.querySelectorAll(selector).forEach((node) => {
-      if (!isInNonContent(node) && !node.closest(ignoreSelector)) visit(node);
+      if (
+        !isInNonContent(node) &&
+        !isInInlineHidden(node) &&
+        !node.closest(ignoreSelector)
+      )
+        visit(node);
     });
     return;
   }
@@ -33,9 +88,16 @@ export function visitTranslationTargets(root, options, visit) {
   const stack = [root];
   while (stack.length) {
     const node = stack.pop();
-    if (isInNonContent(node) || node.matches?.(ignoreSelector)) continue;
+    if (
+      isInNonContent(node) ||
+      isInlineHidden(node) ||
+      node.matches?.(ignoreSelector)
+    )
+      continue;
     const text = hasText(node);
-    const children = Array.from(node.children);
+    const children = Array.from(node.children).filter(
+      (child) => !isInlineHidden(child)
+    );
     if (
       !text &&
       children.length === 1 &&

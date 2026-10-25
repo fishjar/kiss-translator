@@ -1573,6 +1573,469 @@ describe("Translator rule styles", () => {
     jest.clearAllMocks();
   });
 
+  describe("inline hidden sources", () => {
+    test.each([
+      {},
+      { autoScan: "false", selector: "p" },
+      { scanAll: "true" },
+      { isPlainText: true },
+      { hasRichText: "true", keepSelector: "span, code" },
+      { transOnly: "true" },
+    ])(
+      "excludes hidden descendants from detection and requests: %j",
+      async (rule) => {
+        document.body.innerHTML = `<main id="root"><p id="visible">Visible source <span style="display:none">SECRET</span><code>code <b style="display: none !important">SECRET</b></code></p><section style="display:none"><p>SECRET</p></section></main>`;
+        const original = document.getElementById("visible");
+        const translator = createTranslator({ ...rule, fromLang: "auto" });
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalled();
+        expect(
+          apiTranslate.mock.calls.every(
+            ([args]) => !args.text.includes("SECRET")
+          )
+        ).toBe(true);
+        expect(
+          tryDetectLang.mock.calls.every(([text]) => !text.includes("SECRET"))
+        ).toBe(true);
+        expect(document.querySelector("section kiss-translator")).toBeNull();
+        expect(
+          document.querySelector("span[style] kiss-translator")
+        ).toBeNull();
+        translator.disable();
+        expect(original.textContent).toContain("SECRET");
+        expect(original.querySelector("span").style.display).toBe("none");
+      }
+    );
+
+    test("rechecks targets hidden after scanning but before processing", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Hidden after scan</p></main>';
+      global.IntersectionObserver = class {
+        constructor(callback) {
+          this.callback = callback;
+        }
+        observe(target) {
+          target.style.display = "none";
+          this.callback([{ target, isIntersecting: true }]);
+        }
+        unobserve() {}
+        disconnect() {}
+      };
+      createTranslator();
+      await flushAsync();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(document.querySelector("kiss-translator")).toBeNull();
+    });
+
+    test("GitHub task lists omit both drag accessibility regions", async () => {
+      const { BUILTIN_RULES } = require("../config/rules");
+      document.body.innerHTML = `<main id="root" class="markdown-body"><li>Visible task<div id="DndDescribedBy-0" style="display:none">SECRET instructions</div><div id="DndLiveRegion-0" style="clip-path:inset(100%)">SECRET announcement</div></li></main>`;
+      createTranslator(
+        BUILTIN_RULES.find((rule) => rule.pattern === "github.com")
+      );
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).toBe("Visible task");
+    });
+
+    test("display changes preserve existing wrappers and rescan discovers revealed content", async () => {
+      document.body.innerHTML = `<main id="root"><section id="panel"><p>Visible source</p></section><p id="later" style="display:none">Revealed source</p></main>`;
+      const translator = createTranslator();
+      await flushAsync();
+      const wrapper = document.querySelector("kiss-translator");
+      const count = apiTranslate.mock.calls.length;
+      document.getElementById("panel").style.display = "none";
+      document.getElementById("later").style.display = "block";
+      await flushMutations();
+      document.getElementById("panel").style.display = "block";
+      await flushMutations();
+      expect(document.querySelector("kiss-translator")).toBe(wrapper);
+      expect(apiTranslate).toHaveBeenCalledTimes(count);
+      translator.rescan();
+      await flushAsync();
+      expect(
+        apiTranslate.mock.calls.some(
+          ([args]) => args.text === "Revealed source"
+        )
+      ).toBe(true);
+    });
+
+    test("plain-text preprocessing preserves hidden descendants", async () => {
+      document.body.innerHTML = `<main id="root"><pre>Visible source<span style="display:none">SECRET</span></pre></main>`;
+      createPlainTextTranslator();
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalled();
+      expect(
+        apiTranslate.mock.calls.every(([args]) => !args.text.includes("SECRET"))
+      ).toBe(true);
+      expect(document.querySelector("pre span[style]").textContent).toBe(
+        "SECRET"
+      );
+    });
+
+    test("bubble requests exclude hidden descendants", async () => {
+      document.body.innerHTML = `<main id="root"><p id="target">Visible source<span style="display:none">SECRET</span></p></main>`;
+      createTranslator(
+        { transOpen: "false", fromLang: "auto" },
+        {
+          preInit: true,
+          mouseHoverSetting: {
+            useMouseHover: true,
+            mouseHoverKey: [],
+            mouseHoverKey2: [],
+            displayMode: "bubble",
+          },
+        }
+      );
+      await hoverNode(document.getElementById("target"));
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).toBe("Visible source");
+      expect(tryDetectLang.mock.calls[0][0]).toBe("Visible source");
+    });
+  });
+
+  describe("rule-aware source prechecks", () => {
+    test.each(["body", "bubble"])(
+      "ignores populated live regions in %s detection and requests",
+      async (mode) => {
+        const { BUILTIN_RULES } = require("../config/rules");
+        const github = BUILTIN_RULES.find(
+          (rule) => rule.pattern === "github.com"
+        );
+        document.body.innerHTML =
+          '<main id="root" class="markdown-body"><li id="target">Visible source<div id="DndLiveRegion-0" style="clip-path:inset(100%)">SECRET Press spacebar to reorder with a long announcement</div></li></main>';
+        createTranslator(
+          {
+            ...github,
+            fromLang: "auto",
+            transOpen: mode === "body" ? "true" : "false",
+          },
+          {
+            maxLength: 30,
+            preInit: true,
+            mouseHoverSetting: {
+              useMouseHover: true,
+              mouseHoverKey: [],
+              mouseHoverKey2: [],
+              displayMode: mode === "bubble" ? "bubble" : "inline",
+            },
+          }
+        );
+        await hoverNode(document.getElementById("target"));
+        await flushAsync();
+        expect(tryDetectLang.mock.calls[0][0]).toBe("Visible source");
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe("Visible source");
+      }
+    );
+
+    test.each([
+      [{ ignoreSelector: ".ignored" }, "Visible source"],
+      [
+        { ignoreSelector: ".ignored", keepSelector: "span" },
+        "Visible source kept",
+      ],
+      [{ ignoreSelector: ".ignored", scanAll: "true" }, "Visible source kept"],
+      [
+        { ignoreSelector: ".ignored", isPlainText: true },
+        "Visible source kept",
+      ],
+    ])(
+      "preserves ignore and inline keep semantics: %j",
+      async (rule, expected) => {
+        document.body.innerHTML =
+          '<main id="root"><p>Visible source<span class="ignored" style="display:inline"> kept<b style="display:none">SECRET</b></span><script>SECRET script</script><span data-kiss-ui>SECRET UI</span></p></main>';
+        createTranslator({ ...rule, fromLang: "auto" });
+        await flushAsync();
+        expect(tryDetectLang.mock.calls[0][0]).toBe(expected);
+        expect(apiTranslate).toHaveBeenCalled();
+        expect(
+          apiTranslate.mock.calls.every(
+            ([args]) => !args.text.includes("SECRET")
+          )
+        ).toBe(true);
+      }
+    );
+
+    test("retains short-source length filtering despite long ignored text", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Hi<span class="ignored">Long ignored auxiliary text</span></p></main>';
+      createTranslator(
+        { ignoreSelector: ".ignored", fromLang: "auto" },
+        { minLength: 10 }
+      );
+      await flushAsync();
+      expect(tryDetectLang).not.toHaveBeenCalled();
+      expect(apiTranslate).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ["a", "paragraph", 'style="display:none"'],
+      ["p", "paragraph", 'style="display:none"'],
+      ["p", "region", 'style="display:none"'],
+      ["a", "paragraph", 'class="ignored"'],
+      ["p", "paragraph", 'class="ignored"'],
+      ["p", "region", 'class="ignored"'],
+    ])(
+      "does not swallow repeated right holds with only excluded text: %s/%s/%s",
+      async (tag, transScope, attributes) => {
+        document.body.innerHTML = `<main id="root"><section><${tag} id="target" href="#"> <span ${attributes}>Excluded paragraph with sufficient length</span></${tag}><p> <span ${attributes}>Another excluded paragraph</span></p></section></main>`;
+        const target = document.getElementById("target");
+        document.elementFromPoint = () => target;
+        createTranslator(
+          { ignoreSelector: ".ignored" },
+          {
+            preInit: true,
+            mouseHoverSetting: {
+              useMouseHover: true,
+              mouseHoverKey: [],
+              mouseHoverKey2: [],
+              mouseHoverKeyHold: true,
+              mouseHoverHoldButton: "right",
+              mouseHoverHoldDelay: 300,
+              mouseHoverSuppressContextMenu: true,
+              mouseHoverTransMode: transScope,
+            },
+          }
+        );
+        await flushAsync();
+        await hoverNode(target, 20, 20);
+        for (let attempt = 0; attempt < 2; attempt++) {
+          target.dispatchEvent(
+            new MouseEvent("mousedown", {
+              bubbles: true,
+              button: 2,
+              clientX: 20,
+              clientY: 20,
+            })
+          );
+          jest.advanceTimersByTime(300);
+          await flushAsync();
+          document.dispatchEvent(
+            new MouseEvent("mouseup", { bubbles: true, button: 2 })
+          );
+          const menu = new MouseEvent("contextmenu", {
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+          });
+          target.dispatchEvent(menu);
+          expect(menu.defaultPrevented).toBe(false);
+        }
+        expect(apiTranslate).not.toHaveBeenCalled();
+        expect(document.querySelector("kiss-translator")).toBeNull();
+      }
+    );
+  });
+
+  test.each(["false", "true"])(
+    "restores a translated region containing excluded-only units (transOnly=%s)",
+    async (transOnly) => {
+      document.body.innerHTML =
+        '<main id="root"><section><p id="target">Visible source paragraph</p><p><span style="display:none">Hidden auxiliary paragraph</span></p></section></main>';
+      const target = document.getElementById("target");
+      document.elementFromPoint = () => target;
+      createTranslator(
+        { ignoreSelector: ".ignored", transOnly },
+        {
+          preInit: true,
+          mouseHoverSetting: {
+            useMouseHover: true,
+            mouseHoverKey: [],
+            mouseHoverKey2: [],
+            mouseHoverKeyHold: true,
+            mouseHoverHoldButton: "right",
+            mouseHoverHoldDelay: 300,
+            mouseHoverSuppressContextMenu: true,
+            mouseHoverTransMode: "region",
+          },
+        }
+      );
+      await flushAsync();
+      expect(document.querySelectorAll("kiss-translator")).toHaveLength(1);
+      await hoverNode(target, 20, 20);
+      target.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          button: 2,
+          clientX: 20,
+          clientY: 20,
+        })
+      );
+      jest.advanceTimersByTime(300);
+      await flushAsync();
+      document.dispatchEvent(
+        new MouseEvent("mouseup", { bubbles: true, button: 2 })
+      );
+      expect(document.querySelector("kiss-translator")).toBeNull();
+      expect(target.textContent).toBe("Visible source paragraph");
+    }
+  );
+
+  describe("filtered area candidate lengths", () => {
+    const holdAt = async (target) => {
+      document.elementFromPoint = () => target;
+      await hoverNode(target, 20, 20);
+      target.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          button: 2,
+          clientX: 20,
+          clientY: 20,
+        })
+      );
+      jest.advanceTimersByTime(300);
+      await flushAsync();
+      document.dispatchEvent(
+        new MouseEvent("mouseup", { bubbles: true, button: 2 })
+      );
+    };
+    const holdSettings = (mode = "region") => ({
+      minLength: 0,
+      maxLength: 80,
+      preInit: true,
+      mouseHoverSetting: {
+        useMouseHover: true,
+        mouseHoverKey: [],
+        mouseHoverKey2: [],
+        mouseHoverKeyHold: true,
+        mouseHoverHoldButton: "right",
+        mouseHoverHoldDelay: 300,
+        mouseHoverTransMode: mode,
+      },
+    });
+
+    test.each([
+      ["true", "region", "hidden"],
+      ["false", "region", "hidden"],
+      ["true", "area", "hidden"],
+      ["false", "area", "hidden"],
+      ["true", "region", "ignored"],
+      ["false", "region", "ignored"],
+      ["true", "area", "ignored"],
+      ["false", "area", "ignored"],
+    ])(
+      "collects both short sources: autoScan=%s mode=%s auxiliary=%s",
+      async (autoScan, mode, auxiliary) => {
+        const attributes =
+          auxiliary === "hidden" ? 'style="display:none"' : 'class="ignored"';
+        const extra = `<span ${attributes}>${"SECRET ".repeat(40)}</span>`;
+        document.body.innerHTML = `<main id="root"><section><p id="target">First visible paragraph${extra}</p><p>Second visible paragraph${extra}</p></section></main>`;
+        createTranslator(
+          {
+            transOpen: "false",
+            autoScan,
+            selector: "p",
+            ignoreSelector: ".ignored",
+          },
+          holdSettings(mode)
+        );
+        await holdAt(document.getElementById("target"));
+        expect(
+          apiTranslate.mock.calls.map(([args]) => args.text).sort()
+        ).toEqual(["First visible paragraph", "Second visible paragraph"]);
+      }
+    );
+
+    test("keeps the exact limit and excludes text above it", async () => {
+      const exact = "A".repeat(80);
+      document.body.innerHTML = `<main id="root"><section><p>${exact}<span style="display:none">${"SECRET ".repeat(40)}</span></p><p id="target">${"B".repeat(81)}</p></section></main>`;
+      createTranslator(
+        { transOpen: "false", autoScan: "false", selector: "p" },
+        holdSettings()
+      );
+      await holdAt(document.getElementById("target"));
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        exact,
+      ]);
+    });
+
+    test("descends into short paragraphs inside an oversized selected container", async () => {
+      document.body.innerHTML = `<main id="root"><section>${"X".repeat(81)}<p id="target">First visible paragraph</p><p>Second visible paragraph</p></section></main>`;
+      createTranslator(
+        { transOpen: "false", autoScan: "false", selector: "section, p" },
+        holdSettings()
+      );
+      await holdAt(document.getElementById("target"));
+      expect(apiTranslate.mock.calls.map(([args]) => args.text).sort()).toEqual(
+        ["First visible paragraph", "Second visible paragraph"]
+      );
+    });
+
+    test("counts visible kept inline text toward the limit", async () => {
+      document.body.innerHTML = `<main id="root"><section><p id="target">First source<code class="ignored">${"kept ".repeat(30)}</code></p><p>Second visible paragraph</p></section></main>`;
+      createTranslator(
+        {
+          transOpen: "false",
+          autoScan: "false",
+          selector: "p",
+          ignoreSelector: ".ignored",
+          keepSelector: "code",
+        },
+        holdSettings()
+      );
+      await holdAt(document.getElementById("target"));
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Second visible paragraph",
+      ]);
+    });
+
+    test.each(["false", "true"])(
+      "freshly collects processed units for restoration (transOnly=%s)",
+      async (transOnly) => {
+        apiTranslate.mockResolvedValue({
+          trText: "Long translated paragraph ".repeat(10),
+          isSame: false,
+        });
+        document.body.innerHTML =
+          '<main id="root"><section><p id="target">First visible paragraph</p><p>Second visible paragraph</p></section></main>';
+        createTranslator({ transOnly }, holdSettings());
+        await flushAsync();
+        expect(document.querySelectorAll("kiss-translator")).toHaveLength(2);
+        await holdAt(document.getElementById("target"));
+        expect(document.querySelector("kiss-translator")).toBeNull();
+        expect(document.querySelector("section").textContent).toBe(
+          "First visible paragraphSecond visible paragraph"
+        );
+        expect(apiTranslate).toHaveBeenCalledTimes(2);
+      }
+    );
+
+    test.each(["detection", "request"])(
+      "freshly collects pending %s units for cancellation",
+      async (stage) => {
+        const resolvePending = [];
+        const pending = () =>
+          new Promise((resolve) => resolvePending.push(resolve));
+        if (stage === "detection") tryDetectLang.mockImplementation(pending);
+        else apiTranslate.mockImplementation(pending);
+        const hidden = `<span style="display:none">${"SECRET ".repeat(40)}</span>`;
+        document.body.innerHTML = `<main id="root"><section><p id="target">First visible paragraph${hidden}</p><p>Second visible paragraph${hidden}</p></section></main>`;
+        createTranslator(
+          { fromLang: stage === "detection" ? "auto" : "en" },
+          holdSettings()
+        );
+        await flushAsync();
+        expect(resolvePending).toHaveLength(2);
+        await holdAt(document.getElementById("target"));
+        expect(document.querySelector("kiss-translator")).toBeNull();
+        resolvePending.forEach((resolve) =>
+          resolve(
+            stage === "detection"
+              ? "en"
+              : { trText: "Late translation", isSame: false }
+          )
+        );
+        await flushAsync();
+        expect(document.querySelector("kiss-translator")).toBeNull();
+        expect(apiTranslate).toHaveBeenCalledTimes(
+          stage === "detection" ? 0 : 2
+        );
+      }
+    );
+  });
+
   describe("available translation services", () => {
     test("selected service failure never requests Google2 from a leftover list", async () => {
       document.body.innerHTML =
