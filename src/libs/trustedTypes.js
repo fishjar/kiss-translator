@@ -24,7 +24,7 @@ export const trustedTypesHelper = (() => {
     try {
       policy = globalThis.trustedTypes.createPolicy(POLICY_NAME, {
         // 使用 DOMPurify 清洗注入的 HTML，保证译文容器中没有恶意代码
-        createHTML: (string) => DOMPurify.sanitize(string),
+        createHTML: (string, config) => DOMPurify.sanitize(string, config),
 
         // REVIEW: createScript 和 createScriptURL 目前只是原样返回，仅能绕过 CSP 检测，但无法拦截恶意的恶意脚本字符串注入。
         // 如果插件以后会接收外部不受信源的脚本，建议在这里进行正则或者白名单过滤。
@@ -45,17 +45,22 @@ export const trustedTypesHelper = (() => {
     return policy;
   };
 
+  const createHTML = (htmlString, config) => {
+    const trustedPolicy = createPolicy();
+    return trustedPolicy
+      ? trustedPolicy.createHTML(htmlString, config)
+      : DOMPurify.sanitize(htmlString, config);
+  };
+
   return {
     /**
      * 创建符合可信类型的 HTML，若不支持则返回清洗后的普通字符串
      * @param {string} htmlString
      */
-    createHTML: (htmlString) => {
-      const trustedPolicy = createPolicy();
-      return trustedPolicy
-        ? trustedPolicy.createHTML(htmlString)
-        : DOMPurify.sanitize(htmlString);
-    },
+    createHTML: (htmlString) => createHTML(htmlString),
+    // Only inert text extraction retains noscript fallback children.
+    createHTMLForText: (htmlString) =>
+      createHTML(htmlString, { ADD_TAGS: ["noscript"] }),
     /**
      * 创建符合可信类型的 Script 脚本，若不支持则原样返回
      * @param {string} scriptString

@@ -5,6 +5,7 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const path = require("path");
 const fs = require("fs");
+const configureHtmlDecoder = require("./src/scripts/html-decoder-webpack.cjs");
 let webpack;
 try {
   webpack = require("webpack");
@@ -63,6 +64,8 @@ const extWebpack = (config, env) => {
     "injector-shadowroot": paths.appSrc + "/injector-shadowroot.js", // ShadowRoot 拦截注入脚本
     "file-bridge": paths.appSrc + "/fileBridge.js",
   };
+
+  configureHtmlDecoder(config, webpack);
 
   // 2. 将输出的文件命名重写为固定格式，方便 manifest.json 静态引用，防止文件哈希化导致引用失效
   config.output.filename = "[name].js";

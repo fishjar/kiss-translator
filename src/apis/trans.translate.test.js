@@ -2,6 +2,15 @@ jest.mock("query-string", () => ({
   stringify: (obj) => new URLSearchParams(obj).toString(),
 }));
 
+// Model Webpack's backend selection when this suite switches host APIs.
+jest.mock("../libs/htmlTextDecoder", () => ({
+  decodeHTMLText: (text) =>
+    (typeof globalThis.DOMParser === "undefined"
+      ? jest.requireActual("../libs/htmlTextDecoder.worker")
+      : jest.requireActual("../libs/htmlTextDecoder")
+    ).decodeHTMLText(text),
+}));
+
 jest.mock("@streamparser/json", () =>
   jest.requireActual("../../node_modules/@streamparser/json/dist/cjs/index.js")
 );
@@ -73,7 +82,10 @@ async function collectAsyncGenerator(generator) {
 }
 
 describe("handleTranslate", () => {
+  const originalDOMParser = globalThis.DOMParser;
+
   afterEach(() => {
+    globalThis.DOMParser = originalDOMParser;
     clearMsgHistory(OPT_TRANS_GEMINI);
     // Claude 上下文用例共用同一个按 apiSlug 缓存的历史单例，必须逐例清空。
     clearMsgHistory(OPT_TRANS_CLAUDE);
@@ -85,45 +97,49 @@ describe("handleTranslate", () => {
     jest.restoreAllMocks();
   });
 
-  test("uses Google Cloud plain-text mode and decodes text entities", async () => {
-    fetchData.mockResolvedValueOnce({
-      data: {
-        translations: [
-          {
-            translatedText: "First isn&#39;t &amp; simple\nSecond",
-            detectedSourceLanguage: "en",
-          },
-        ],
-      },
-    });
-
-    const result = await collectAsyncGenerator(
-      handleTranslate(["First & simple\nSecond"], {
-        from: "auto",
-        to: "zh-CN",
-        fromLang: "auto",
-        toLang: "zh-CN",
-        langMap: () => "",
-        glossary: "",
-        apiSetting: {
-          ...getApiSetting(OPT_TRANS_GOOGLE_CLOUD),
-          useStream: false,
+  test.each([false, true])(
+    "uses Google Cloud plain-text mode and decodes text entities (worker: %s)",
+    async (worker) => {
+      if (worker) globalThis.DOMParser = undefined;
+      fetchData.mockResolvedValueOnce({
+        data: {
+          translations: [
+            {
+              translatedText: "First isn&#39;t &amp; simple\nSecond",
+              detectedSourceLanguage: "en",
+            },
+          ],
         },
-        textFormat: "text",
-        usePool: false,
-      })
-    );
+      });
 
-    const body = JSON.parse(fetchData.mock.calls[0][1].body);
-    expect(body).toEqual({
-      q: ["First & simple\nSecond"],
-      target: "zh-CN",
-      format: "text",
-    });
-    expect(result).toEqual([
-      { id: 0, result: ["First isn't & simple\nSecond", "en"] },
-    ]);
-  });
+      const result = await collectAsyncGenerator(
+        handleTranslate(["First & simple\nSecond"], {
+          from: "auto",
+          to: "zh-CN",
+          fromLang: "auto",
+          toLang: "zh-CN",
+          langMap: () => "",
+          glossary: "",
+          apiSetting: {
+            ...getApiSetting(OPT_TRANS_GOOGLE_CLOUD),
+            useStream: false,
+          },
+          textFormat: "text",
+          usePool: false,
+        })
+      );
+
+      const body = JSON.parse(fetchData.mock.calls[0][1].body);
+      expect(body).toEqual({
+        q: ["First & simple\nSecond"],
+        target: "zh-CN",
+        format: "text",
+      });
+      expect(result).toEqual([
+        { id: 0, result: ["First isn't & simple\nSecond", "en"] },
+      ]);
+    }
+  );
 
   test("preserves Google Cloud HTML requests and responses", async () => {
     fetchData.mockResolvedValueOnce({
@@ -272,11 +288,51 @@ describe("handleTranslate", () => {
     expect(result).toEqual([{ id: 0, result: ["你好！", "en"] }]);
   });
 
-  test("keeps Google2 HTML encoding inside the request boundary", async () => {
-    fetchData.mockResolvedValueOnce([["First isn&#39;t<br>Second"], ["en"]]);
+  test.each([false, true])(
+    "keeps Google2 HTML encoding inside the request boundary (worker: %s)",
+    async (worker) => {
+      if (worker) globalThis.DOMParser = undefined;
+      fetchData.mockResolvedValueOnce([
+        ["First isn&#39;t<br>Second", "React &amp; UI"],
+        ["en", "en"],
+      ]);
+
+      const result = await collectAsyncGenerator(
+        handleTranslate(["First isn't\nSecond", "React & UI"], {
+          from: "en",
+          to: "zh-CN",
+          fromLang: "en",
+          toLang: "zh-CN",
+          langMap: () => "",
+          glossary: "",
+          apiSetting: {
+            ...getApiSetting(OPT_TRANS_GOOGLE_2),
+            useStream: false,
+          },
+          textFormat: "text",
+          usePool: false,
+        })
+      );
+
+      const body = JSON.parse(fetchData.mock.calls[0][1].body);
+      expect(body).toEqual([
+        [["First isn't<br>Second", "React & UI"], "en", "zh-CN"],
+        "wt_lib",
+      ]);
+      expect(result).toEqual([
+        { id: 0, result: ["First isn't\nSecond", "en"] },
+        { id: 1, result: ["React & UI", "en"] },
+      ]);
+    }
+  );
+
+  test("preserves Google2 HTML placeholders without DOMParser", async () => {
+    globalThis.DOMParser = undefined;
+    const html = "<i1>React &amp; UI</i1><br>";
+    fetchData.mockResolvedValueOnce([[html], ["en"]]);
 
     const result = await collectAsyncGenerator(
-      handleTranslate(["First isn't\nSecond"], {
+      handleTranslate([html], {
         from: "en",
         to: "zh-CN",
         fromLang: "en",
@@ -287,17 +343,16 @@ describe("handleTranslate", () => {
           ...getApiSetting(OPT_TRANS_GOOGLE_2),
           useStream: false,
         },
-        textFormat: "text",
+        textFormat: "html",
         usePool: false,
       })
     );
 
-    const body = JSON.parse(fetchData.mock.calls[0][1].body);
-    expect(body).toEqual([
-      [["First isn't<br>Second"], "en", "zh-CN"],
+    expect(JSON.parse(fetchData.mock.calls[0][1].body)).toEqual([
+      [[html], "en", "zh-CN"],
       "wt_lib",
     ]);
-    expect(result).toEqual([{ id: 0, result: ["First isn't\nSecond", "en"] }]);
+    expect(result).toEqual([{ id: 0, result: [html, "en"] }]);
   });
 
   test("uses the stable Gemini Interactions request and parses model output steps", async () => {
