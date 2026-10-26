@@ -19,6 +19,35 @@ import { browser } from "../../libs/browser";
 import { ASR_MAX_WAV_BYTES } from "./audioChunks";
 import { alignedAsrWords } from "../../providers/asrWords";
 
+function mergeZeroDurationCues(cues, language) {
+  const firstValid = cues.findIndex((cue) => cue.end > cue.start);
+  if (firstValid < 0) return cues;
+  const separator = /^(zh|ja|ko|th|lo|km|my)(-|$)/.test(language) ? "" : " ";
+  const result = [{ ...cues[firstValid] }];
+  if (firstValid > 0) {
+    result[0].start = Math.min(cues[0].start, result[0].start);
+    result[0].text = cues
+      .slice(0, firstValid + 1)
+      .map((cue) => cue.text.trim())
+      .join(separator);
+    result[0].translation = "";
+  }
+  for (const cue of cues.slice(firstValid + 1)) {
+    const previous = result[result.length - 1];
+    if (cue.start === cue.end) {
+      result[result.length - 1] = {
+        ...previous,
+        start: Math.min(previous.start, cue.start),
+        end: Math.max(previous.end, cue.end),
+        text: previous.text.trimEnd() + separator + cue.text.trimStart(),
+        // Merged text must be translated together, including untimed words.
+        translation: "",
+      };
+    } else result.push({ ...cue });
+  }
+  return result;
+}
+
 export function resolvedAsrServices(setting) {
   const transApis = setting.transApis || [];
   const segmentationService = transApis.find(
@@ -116,7 +145,12 @@ export function createAsrTextProcessor(setting, identity) {
         .filter(
           (segment) => segment.text.trim() && !isNonSpeechSegment(segment.text)
         )
-        .flatMap((segment) => alignedAsrWords(segment) || [segment])
+        .flatMap((segment) => {
+          const words = alignedAsrWords(segment);
+          return words?.some((word) => word.end > word.start)
+            ? words
+            : [segment];
+        })
         .map((segment) => ({
           start: segment.start * 1000,
           end: segment.end * 1000,
@@ -131,7 +165,10 @@ export function createAsrTextProcessor(setting, identity) {
       await enrich(segments, signal, waitUntilRunning);
       await waitUntilRunning(signal);
       const fallback = () =>
-        builtinSegment(events, flatEvents, fromLang, setting);
+        mergeZeroDurationCues(
+          builtinSegment(events, flatEvents, fromLang, setting),
+          fromLang
+        );
       if (!segmentationService) return fallback();
       const cues = await aiSegment({
         videoId: identity.videoId,
@@ -156,6 +193,7 @@ export function createAsrTextProcessor(setting, identity) {
       });
       // Boundaries must come from actual segment or aligned-word timestamps.
       if (
+        !cues.some((cue) => cue.end > cue.start) ||
         cues.some(
           (cue) =>
             !flatEvents.some(
@@ -164,7 +202,7 @@ export function createAsrTextProcessor(setting, identity) {
         )
       )
         return fallback();
-      return cues;
+      return mergeZeroDurationCues(cues, fromLang);
     },
     async translate(
       cues,

@@ -3,6 +3,9 @@
  * @description 页面导航与独立窗口/标签页打开工具函数
  */
 import { FILE_WEB_URL } from "../fileTranslation/protocol";
+import { MSG_OPEN_OPTIONS } from "../config/msg";
+import { isExt } from "./client";
+import { sendBgMsg } from "./msg";
 
 /**
  * 在新标签页中打开独立的文件翻译页面
@@ -31,21 +34,12 @@ export async function openFileTranslatePage() {
 
 export async function openOptionsPage(path = "") {
   const hash = path ? (path.startsWith("#") ? path : `#${path}`) : "";
-  const browserApi = globalThis.browser || globalThis.chrome;
-  try {
-    if (!hash && browserApi?.runtime?.openOptionsPage) {
-      await browserApi.runtime.openOptionsPage();
-      return;
-    }
-    if (browserApi?.tabs?.create) {
-      const getURL = browserApi?.runtime?.getURL || ((p) => p);
-      await browserApi.tabs.create({ url: getURL(`options.html${hash}`) });
-      return;
-    }
-  } catch (err) {
-    // 忽略异常，降级 window.open
+  if (isExt) {
+    return sendBgMsg(MSG_OPEN_OPTIONS, { path: hash });
   }
-  const getURL = browserApi?.runtime?.getURL;
-  const url = getURL ? getURL(`options.html${hash}`) : `options.html${hash}`;
-  window.open(url, "_blank");
+  window.open(
+    `${process.env.REACT_APP_OPTIONSPAGE}${hash}`,
+    "_blank",
+    "noopener,noreferrer"
+  );
 }

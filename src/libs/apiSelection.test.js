@@ -103,21 +103,18 @@ describe("translation service selection", () => {
     expect(JSON.stringify(services)).toBe(before);
   });
 
-  test("honors the selected model's capability restriction", () => {
+  test("model changes preserve the service capability contract", () => {
     const api = {
       apiSlug: "model-service",
       provider: {
         apiVersion: "1",
         implementation: { kind: "native" },
         capabilities: { translate: {}, recognizeText: {} },
-        models: [
-          { id: "ocr", capabilities: { recognizeText: {} } },
-          { id: "translator", capabilities: { translate: {} } },
-        ],
+        models: [{ id: "ocr" }, { id: "translator" }],
       },
       pluginConfig: { model: "ocr" },
     };
-    expect(getEnabledApis([api])).toEqual([]);
+    expect(getEnabledApis([api])).toEqual([api]);
     const translator = { ...api, pluginConfig: { model: "translator" } };
     expect(getEnabledApis([translator])).toEqual([translator]);
   });

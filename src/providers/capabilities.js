@@ -20,44 +20,7 @@ export const providerError = (code, message) =>
 
 export function getSupportedCapabilityDescriptor(instance, capability) {
   if (!PROVIDER_CAPABILITIES.includes(capability)) return undefined;
-  const base = instance?.provider?.capabilities?.[capability];
-  if (!base || !instance.provider.models) return base;
-  const field = instance.provider.modelField || "model";
-  const selected = instance.pluginConfig?.[field] ?? instance[field];
-  const model = instance.provider.models.find((entry) => entry.id === selected);
-  // The catalogue suggests IDs; unknown IDs and unrestricted entries use the service contract.
-  if (!model?.capabilities) return base;
-  const restriction = model?.capabilities?.[capability];
-  if (!restriction) return undefined;
-  // Model metadata can restrict the service contract, never grant a new handler or feature.
-  const modes = (base.outputModes || ["complete"]).filter(
-    (mode) => !restriction.outputModes || restriction.outputModes.includes(mode)
-  );
-  const modalities = (base.inputModalities || ["text"]).filter(
-    (mode) =>
-      !restriction.inputModalities || restriction.inputModalities.includes(mode)
-  );
-  const limits = [base.batch?.maxItems, restriction.batch?.maxItems].filter(
-    (value) => value !== undefined
-  );
-  return {
-    ...base,
-    outputModes: modes,
-    inputModalities: modalities,
-    batch: {
-      supported: Boolean(
-        base.batch?.supported && restriction.batch?.supported !== false
-      ),
-      ...(limits.length && { maxItems: Math.min(...limits) }),
-    },
-    coordinates: Boolean(base.coordinates && restriction.coordinates !== false),
-    ...((base.taskModes || restriction.taskModes) && {
-      taskModes: (base.taskModes || ["doc"]).filter(
-        (mode) => !restriction.taskModes || restriction.taskModes.includes(mode)
-      ),
-    }),
-    timestamps: Boolean(base.timestamps && restriction.timestamps !== false),
-  };
+  return instance?.provider?.capabilities?.[capability];
 }
 
 export function usesStreaming(instance, capability) {
@@ -98,7 +61,7 @@ export function validateEnabledCapabilities(instance, enabled) {
   )
     throw providerError(
       "INVALID_CONFIG",
-      "Enabled capabilities must be supported by the selected service and model."
+      "Enabled capabilities must be supported by the selected service."
     );
   return [...enabled];
 }

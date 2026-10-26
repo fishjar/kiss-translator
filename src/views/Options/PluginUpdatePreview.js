@@ -22,23 +22,25 @@ export default function PluginUpdatePreview({ preview }) {
       : "—";
   const changes = (key, values) =>
     values && (
-      <Box key={key}>
-        <Typography variant="subtitle2">
+      <Box key={key} sx={{ overflowWrap: "anywhere" }}>
+        <Typography component="span" variant="subtitle2">
           {i18n(`plugin_diff_${key}`)}
         </Typography>
+        {"： "}
         {["added", "removed", "changed"].map((action) =>
           values[action]?.length ? (
             <Typography
               key={action}
+              component="span"
               variant="body2"
-              sx={{ overflowWrap: "anywhere" }}
+              sx={{ mr: 1 }}
             >
               {i18n(`plugin_diff_${action}`)}: {values[action].join(", ")}
             </Typography>
           ) : null
         )}
         {!Object.values(values).some((items) => items.length) && (
-          <Typography variant="body2">
+          <Typography component="span" variant="body2">
             {i18n("plugin_diff_unchanged")}
           </Typography>
         )}

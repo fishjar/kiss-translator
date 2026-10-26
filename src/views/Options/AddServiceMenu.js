@@ -84,6 +84,7 @@ export default function AddServiceMenu({ anchorEl, onClose, onSelect }) {
             `Plugin_${crypto.randomUUID()}`,
             entry.pack.resources
           ),
+          apiName: entry.label,
         }
       : entry.type;
     await onSelect(value);

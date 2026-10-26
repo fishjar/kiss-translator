@@ -23,10 +23,7 @@ import {
   enabledApiCapabilities,
   supportedApiCapabilities,
 } from "../../config/serviceSelection";
-import {
-  validateEnabledCapabilities,
-  reconcileEnabledCapabilities,
-} from "../../providers/capabilities";
+import { validateEnabledCapabilities } from "../../providers/capabilities";
 import Autocomplete from "@mui/material/Autocomplete";
 import { ServiceUpgradeAction } from "./ServiceUpgrade";
 import { capabilityLabelKeys } from "../../providers/capabilityLabels";
@@ -255,22 +252,6 @@ export default function PluginInstanceFields({
     ...common.filter((field) => field.key === modelKey),
   ];
   const changeField = (key, value) => {
-    if (key === modelKey) {
-      const supported = supportedApiCapabilities({
-        ...draft,
-        pluginConfig: { ...draft.pluginConfig, [key]: value },
-      });
-      setOptions((current) => ({
-        ...current,
-        enabledCapabilities: reconcileEnabledCapabilities(enabled, supported),
-      }));
-      if (supported.length && !enabled.some((name) => supported.includes(name)))
-        setResult(
-          i18n(
-            "plugin_model_switched_capabilities_supported_by_the_new_model_are_enabled_che"
-          )
-        );
-    }
     const resetEffort =
       effortField &&
       [modelKey, "thinkingMode"].includes(key) &&

@@ -212,12 +212,18 @@ export async function transcribeAudioChunk(
         lastStart = start;
         const rawWords = alignedAsrWords(seg);
         const words = rawWords
-          ?.map((word) => ({
+          ?.filter((word) =>
+            word.start === word.end
+              ? word.start - leadingSeconds >= start &&
+                word.end - leadingSeconds <= end
+              : word.end - leadingSeconds > start &&
+                word.start - leadingSeconds < end
+          )
+          .map((word) => ({
             ...word,
             start: Math.max(start, Math.min(end, word.start - leadingSeconds)),
             end: Math.max(start, Math.min(end, word.end - leadingSeconds)),
-          }))
-          .filter((word) => word.end > word.start);
+          }));
         const clippedText =
           rawWords && words.length !== rawWords.length
             ? words.map((word) => word.text).join("")

@@ -174,6 +174,123 @@ test("builtin segmentation retains real ASR boundaries without synthesizing word
   }
   expect(aiSegment).not.toHaveBeenCalled();
 });
+
+test("punctuated zero-duration words split sentences without losing source text", async () => {
+  const text = "A test. Next A.";
+  const cues = await createAsrTextProcessor(setting, identity).segment(
+    [
+      {
+        start: 0,
+        end: 2,
+        text,
+        words: [
+          { start: 0, end: 0.5, text: "A" },
+          { start: 1, end: 1, text: " test." },
+          { start: 1.5, end: 1.8, text: " Next" },
+          { start: 2, end: 2, text: " A." },
+        ],
+      },
+    ],
+    new AbortController().signal
+  );
+  expect(
+    cues
+      .map((cue) => cue.text)
+      .join(" ")
+      .replace(/\s+/g, " ")
+  ).toBe(text);
+  expect(cues.map(({ start, end }) => ({ start, end }))).toEqual([
+    { start: 0, end: 1000 },
+    { start: 1500, end: 2000 },
+  ]);
+});
+test.each(["rule", "statistical", "ai"])(
+  "%s merges a trailing zero-duration sentence into the preceding valid cue",
+  async (mode) => {
+    aiSegment.mockResolvedValue([
+      { start: 0, end: 1000, text: "Hello.", translation: "你好。" },
+      { start: 2000, end: 2000, text: "Goodbye." },
+    ]);
+    const processor = createAsrTextProcessor(
+      {
+        ...setting,
+        useAlgorithmBreaker: mode,
+        ...(mode === "ai" && {
+          segSlug: "ai",
+          transApis: [{ apiSlug: "ai", apiType: "OpenAI" }],
+        }),
+      },
+      identity
+    );
+    const cues = await processor.segment(
+      [
+        {
+          start: 0,
+          end: 2,
+          text: "Hello. Goodbye.",
+          words: [
+            { start: 0, end: 1, text: "Hello." },
+            { start: 2, end: 2, text: " Goodbye." },
+          ],
+        },
+      ],
+      new AbortController().signal
+    );
+    expect(cues).toEqual([
+      { start: 0, end: 2000, text: "Hello. Goodbye.", translation: "" },
+    ]);
+  }
+);
+
+test("leading zero-duration sentences merge forward and middle ones merge backward", async () => {
+  const input = [
+    { start: 0, end: 0, text: "一。" },
+    { start: 0.2, end: 0.2, text: "二。" },
+    { start: 1, end: 2, text: "三。" },
+    { start: 3, end: 3, text: "四。" },
+    { start: 4, end: 5, text: "五。" },
+  ];
+  aiSegment.mockResolvedValue(
+    input.map((cue) => ({
+      ...cue,
+      start: cue.start * 1000,
+      end: cue.end * 1000,
+    }))
+  );
+  const cues = await createAsrTextProcessor(
+    {
+      ...setting,
+      segSlug: "ai",
+      transApis: [{ apiSlug: "ai", apiType: "OpenAI" }],
+    },
+    { ...identity, sourceLanguage: "zh-CN" }
+  ).segment(input, new AbortController().signal);
+  expect(cues).toEqual([
+    { start: 0, end: 3000, text: "一。二。三。四。", translation: "" },
+    { start: 4000, end: 5000, text: "五。" },
+  ]);
+});
+
+test("all zero-duration words fall back to the real segment interval", async () => {
+  const cues = await createAsrTextProcessor(setting, identity).segment(
+    [
+      {
+        start: 0,
+        end: 2,
+        text: "Hello. Goodbye.",
+        words: [
+          { start: 1, end: 1, text: "Hello." },
+          { start: 2, end: 2, text: " Goodbye." },
+        ],
+      },
+    ],
+    new AbortController().signal
+  );
+  expect(cues).toEqual([
+    { start: 0, end: 2000, text: "Hello. Goodbye.", translation: "" },
+  ]);
+});
+
 test("AI segmentation cannot invent sub-segment boundaries; it falls back to timestamped originals", async () => {
   aiSegment.mockResolvedValue([{ start: 1100, end: 1800, text: "Hello" }]);
   const processor = createAsrTextProcessor(

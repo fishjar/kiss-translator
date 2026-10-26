@@ -345,6 +345,47 @@ test("model previews show each complete model ID once without repeating display 
   ]);
 });
 
+test("transcription capability cells show supported, unsupported and unknown timestamp states", async () => {
+  const plugin = pack();
+  plugin.manifest.services = [
+    {
+      id: "asr",
+      name: "ASR",
+      capabilities: { transcribe: { handler: "transcribe", timestamps: true } },
+      models: [
+        { id: "whisper", name: "Whisper" },
+        { id: "qwen", name: "Qwen" },
+      ],
+    },
+    {
+      id: "unknown",
+      name: "Unknown",
+      capabilities: { transcribe: { handler: "transcribe" } },
+    },
+    {
+      id: "none",
+      name: "None",
+      capabilities: {
+        transcribe: { handler: "transcribe", timestamps: false },
+      },
+    },
+  ];
+  mockPackages = [plugin];
+  await render();
+  const rows = container.querySelectorAll(
+    'table[aria-label="插件服务接口"] tbody tr'
+  );
+  expect(rows[0].cells[1].textContent).toContain("时间戳支持：支持");
+  expect(
+    rows[0].cells[1].querySelectorAll(".MuiTypography-caption")
+  ).toHaveLength(1);
+  expect(rows[0].cells[1].textContent).not.toMatch(/Whisper|Qwen/);
+  expect(rows[0].cells[3].textContent).toMatch(/whisper/);
+  expect(rows[0].cells[3].textContent).toMatch(/qwen/);
+  expect(rows[1].cells[1].textContent).toContain("时间戳支持：未知");
+  expect(rows[2].cells[1].textContent).toContain("时间戳支持：不支持");
+});
+
 test("interface previews expand independently and copy declared templates without changing settings", async () => {
   const plugin = pack();
   plugin.manifest.services = [

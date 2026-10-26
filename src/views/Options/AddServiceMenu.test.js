@@ -106,6 +106,7 @@ test("external submenu adds a default snapshot without authorization and disable
     );
     expect(onSelect).toHaveBeenCalledTimes(1);
     const api = onSelect.mock.calls[0][0];
+    expect(api.apiName).toBe("Installed · Text");
     expect(api.pluginConfig).toEqual({ model: "first" });
     expect(api.useStream).toBe(true);
     expect(api.provider.code).toContain("exports.chat");

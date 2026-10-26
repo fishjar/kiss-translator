@@ -130,11 +130,33 @@ function PluginServicesTable({ services = [], previewAvailable = true }) {
                     spacing={0.75}
                   >
                     {Object.keys(service.capabilities).map((name) => (
-                      <Chip
+                      <Stack
                         key={name}
-                        size="small"
-                        label={i18n(capabilityLabelKeys[name], name)}
-                      />
+                        direction="row"
+                        alignItems="center"
+                        spacing={0.75}
+                      >
+                        <Chip
+                          size="small"
+                          label={i18n(capabilityLabelKeys[name], name)}
+                        />
+                        {name === "transcribe" && (
+                          <Typography variant="caption" color="text.secondary">
+                            {i18n("service_asr_timestamp_support")}：
+                            {i18n(
+                              `service_asr_timestamp_${
+                                service.capabilities.transcribe.timestamps ===
+                                true
+                                  ? "supported"
+                                  : service.capabilities.transcribe
+                                        .timestamps === false
+                                    ? "unsupported"
+                                    : "unknown"
+                              }`
+                            )}
+                          </Typography>
+                        )}
+                      </Stack>
                     ))}
                   </Stack>
                 </TableCell>

@@ -83,6 +83,33 @@ test("word timestamps and real pauses are mapped to global video time", async ()
   expect(result.events[0].dDurationMs).toBeCloseTo(400);
 });
 
+test("genuine zero-duration words retain their text and original time points", async () => {
+  const text = "A test. Next A.";
+  const words = [
+    { start: 0, end: 0.5, text: "A" },
+    { start: 1, end: 1, text: " test." },
+    { start: 1.5, end: 1.8, text: " Next" },
+    { start: 2, end: 2, text: " A." },
+  ];
+  invokeService.mockReturnValue({
+    cancel: jest.fn(),
+    result: Promise.resolve({
+      text,
+      segments: [{ start: 0, end: 2, text, words }],
+    }),
+  });
+  const result = await transcribeAudioChunk(service, chunk);
+  expect(result.segments[0].text).toBe(text);
+  expect(result.segments[0].words).toEqual(
+    words.map((word) => ({
+      ...word,
+      start: word.start + 10,
+      end: word.end + 10,
+    }))
+  );
+  expect(result.events.map((event) => event.segs[0].utf8).join("")).toBe(text);
+});
+
 test("compiled local ASR uses the privileged bridge rather than a page BroadcastChannel", async () => {
   invokeBridgedService.mockReturnValue({
     cancel: jest.fn(),

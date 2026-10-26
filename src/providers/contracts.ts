@@ -227,9 +227,6 @@ export interface ServiceDefinition {
   models?: Array<{
     id: string;
     name?: string;
-    capabilities?: Partial<
-      Record<Capability, Omit<Partial<CapabilityDescriptor>, "handler">>
-    >;
   }>;
 }
 export interface PluginCompatibility {

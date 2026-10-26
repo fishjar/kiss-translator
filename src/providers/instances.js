@@ -344,36 +344,14 @@ export function validateModels(service, fields) {
     );
   const ids = new Set();
   for (const model of service.models) {
-    if (
-      typeof model?.id !== "string" ||
-      !model.id ||
-      ids.has(model.id) ||
-      (model.capabilities !== undefined &&
-        (!model.capabilities ||
-          typeof model.capabilities !== "object" ||
-          Array.isArray(model.capabilities)))
-    )
+    if (typeof model?.id !== "string" || !model.id || ids.has(model.id))
       throw providerError("INVALID_MANIFEST", "Invalid model definition.");
+    if (model.capabilities !== undefined)
+      throw providerError(
+        "INVALID_MANIFEST",
+        "Models only list IDs and names; declare capabilities on separate services."
+      );
     ids.add(model.id);
-    for (const [name, restriction] of Object.entries(
-      model.capabilities || {}
-    )) {
-      const base = service.capabilities[name];
-      if (
-        !base ||
-        !restriction ||
-        typeof restriction !== "object" ||
-        Array.isArray(restriction) ||
-        restriction.handler !== undefined
-      )
-        throw providerError(
-          "INVALID_MANIFEST",
-          "Model cannot declare an unknown capability or handler."
-        );
-      validateCapabilities({
-        [name]: { ...base, ...restriction, handler: base.handler },
-      });
-    }
   }
 }
 

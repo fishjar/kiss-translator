@@ -42,10 +42,25 @@ function createHarness() {
     logger: { child: () => ({ info: kissLog, error: kissLog }) },
   });
   vm.runInContext(optionsCode, context);
-  return { browser, kissLog, open: () => context.openOptionsPage() };
+  return { browser, kissLog, open: (path) => context.openOptionsPage(path) };
 }
 
 describe("opening the options page", () => {
+  test.each(["/subtitle", "#/apis"])(
+    "opens the requested settings route %s in a background-created tab",
+    async (path) => {
+      const harness = createHarness();
+      const hash = path.startsWith("#") ? path : `#${path}`;
+
+      await expect(harness.open(path)).resolves.toBe(true);
+
+      expect(harness.browser.runtime.openOptionsPage).not.toHaveBeenCalled();
+      expect(harness.browser.tabs.create).toHaveBeenCalledWith({
+        url: `moz-extension://test/options.html${hash}`,
+      });
+    }
+  );
+
   test("reports native success without opening a fallback tab", async () => {
     const harness = createHarness();
 

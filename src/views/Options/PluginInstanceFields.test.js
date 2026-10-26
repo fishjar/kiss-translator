@@ -99,6 +99,30 @@ test("services can be tested without local authorization", async () => {
   expect(button("执行测试").disabled).toBe(false);
 });
 
+test("changing the model preserves explicitly disabled capabilities", async () => {
+  const disabled = {
+    ...api,
+    enabledCapabilities: [],
+    pluginConfig: { model: "first" },
+    provider: {
+      ...api.provider,
+      settings: [{ key: "model", type: "text", label: "Model" }],
+      models: [{ id: "first" }, { id: "second" }],
+    },
+  };
+  await render(disabled);
+  await act(async () =>
+    Simulate.change(container.querySelector('input[role="combobox"]'), {
+      target: { value: "second" },
+    })
+  );
+  await act(async () => button("保存").click());
+  expect(mockUpdateSetting).toHaveBeenCalled();
+  const saved = mockUpdateSetting.mock.calls[0][0]({ transApis: [disabled] });
+  expect(saved.transApis[0].pluginConfig.model).toBe("second");
+  expect(saved.transApis[0].enabledCapabilities).toEqual([]);
+});
+
 test("service operations have no authorization action and deletion uses a cancellable MUI dialog", async () => {
   await render();
   await act(async () => button("接口操作").click());
@@ -452,7 +476,7 @@ test("English forms localize plugin fields and capability labels without changin
   await render(localized);
   expect(container.textContent).toContain("Text generation and translation");
   expect(container.textContent).toContain(
-    "External plugin · OpenAI-compatible example"
+    "Plugin interfaces · OpenAI-compatible example"
   );
   expect(container.textContent).toContain("API base URL (including /v1)");
   expect(container.textContent).toContain("Chat");
