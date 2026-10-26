@@ -82,7 +82,7 @@ jest.mock("./youtubeAcquisition", () => ({
     request = jest.fn(async () => ({
       videoId: new URL(global.location.href).searchParams.get("v"),
       selectedTrack: mockTrack,
-      captionTracks: [mockTrack],
+      captionTracks: mockTrack ? [mockTrack] : [],
       isAd: mockIsAd,
       ready: mockSnapshotReady,
     }));
@@ -291,9 +291,13 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     captionCacheRequest.mockImplementation(async (action) =>
       action === "lookup" ? { entry, generation: 0 } : true
     );
-    create();
+    create({ asrApiSlug: "asr" });
     await flushPromises();
     await flushPromises();
+    expect(mockAsrControllers[0].start).not.toHaveBeenCalled();
+    expect(
+      YouTubeSubtitleList.mock.results[0].value.selectAsrTab
+    ).toHaveBeenCalledTimes(1);
     expect(mockAcquire).not.toHaveBeenCalled();
     expect(eventsToSubtitles).not.toHaveBeenCalled();
     expect(mockManagers[0].appendSubtitles).toHaveBeenCalledWith(
@@ -693,14 +697,16 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     await act(async () => flushPromises());
     expect(YouTubeSubtitleList).toHaveBeenCalledTimes(1);
     const first = YouTubeSubtitleList.mock.results[0].value;
-    expect(first.initialize.mock.calls[0][0]).toEqual([]);
+    expect(mockAsrControllers[0].start).not.toHaveBeenCalled();
     expect(first.selectAsrTab).toHaveBeenCalledTimes(1);
+    props().asrActions.start();
+    expect(first.selectAsrTab).toHaveBeenCalledTimes(2);
     const asr = mockAsrControllers[0];
     asr.options.onSubtitles([{ start: 0, end: 1000, text: "audio" }], {
       recognition: { percent: 10 },
     });
     expect(first.destroy).not.toHaveBeenCalled();
-    expect(first.selectAsrTab).toHaveBeenCalledTimes(1);
+    expect(first.selectAsrTab).toHaveBeenCalledTimes(2);
     YouTubeSubtitleList.mock.calls[0][2].onClose();
     asr.options.onSubtitles([{ start: 0, end: 1000, text: "audio" }], {
       recognition: { percent: 20 },
@@ -864,6 +870,8 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     mockDelayAsr = true;
     create({ asrApiSlug: "asr", showList: "on" });
     await act(async () => flushPromises());
+    props().asrActions.start();
+    mockAcquire.mockClear();
     const controller = mockAsrControllers[0];
     const list = YouTubeSubtitleList.mock.results.at(-1).value;
     const original = [
@@ -889,15 +897,21 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     expect(mockAcquire).not.toHaveBeenCalled();
   });
 
-  test("configured ASR automatically replaces auto captions and ignores native CC off", async () => {
+  test("automatic captions keep translating while ASR waits for manual start", async () => {
     document
       .querySelector(".ytp-subtitles-button")
       .setAttribute("aria-pressed", "false");
     create({ asrApiSlug: "asr" });
     await act(async () => flushPromises());
-    expect(mockAcquire).not.toHaveBeenCalled();
+    expect(mockAcquire).toHaveBeenCalledTimes(1);
+    expect(mockAsrControllers[0].start).not.toHaveBeenCalled();
+    expect(mockManagers.at(-1).formattedSubtitles[0].text).toBe("hello");
+    expect(
+      YouTubeSubtitleList.mock.results[0].value.selectAsrTab
+    ).toHaveBeenCalledTimes(1);
+    props().asrActions.start();
     expect(mockAsrControllers[0].start).toHaveBeenCalledTimes(1);
-    expect(mockManagerSettings[0].managedTranslations).toBe(true);
+    expect(mockManagerSettings.at(-1).managedTranslations).toBe(true);
     expect(props().asr.active).toBe(true);
     document.querySelector(".ytp-subtitles-button").click();
     await act(async () => flushPromises());
@@ -958,6 +972,33 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     expect(mockAsrControllers).toHaveLength(0);
   });
 
+  test.each([undefined, "asr"])(
+    "no captions waits for manual start with service %s and respects tab choice and close",
+    async (asrApiSlug) => {
+      mockTrack = null;
+      mockAcquire.mockRejectedValue(
+        Object.assign(new Error("empty"), { code: "NO_SUBTITLES" })
+      );
+      create({ asrApiSlug });
+      await flushPromises();
+      const list = YouTubeSubtitleList.mock.results[0].value;
+      expect(list.selectAsrTab).toHaveBeenCalledTimes(1);
+      expect(list.updateAsrState).toHaveBeenCalledWith(
+        expect.objectContaining({ active: false, available: !!asrApiSlug })
+      );
+      if (asrApiSlug) expect(mockAsrControllers[0].start).not.toHaveBeenCalled();
+      else expect(mockAsrControllers).toHaveLength(0);
+      const options = YouTubeSubtitleList.mock.calls[0][2];
+      options.retryCaptions();
+      await flushPromises();
+      expect(list.selectAsrTab).toHaveBeenCalledTimes(1);
+      options.onClose();
+      options.retryCaptions();
+      await flushPromises();
+      expect(YouTubeSubtitleList).toHaveBeenCalledTimes(1);
+    }
+  );
+
   test("human captions retain priority and unknown metadata is not treated as no captions", async () => {
     mockTrack = { languageCode: "en", vssId: ".en" };
     create({ asrApiSlug: "asr" });
@@ -974,9 +1015,10 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     expect(mockAsrControllers[1].start).not.toHaveBeenCalled();
   });
 
-  test("manual ASR stop disables automatic ASR until the video changes", async () => {
+  test("video changes reset ASR to manual start and select its tab once", async () => {
     create({ asrApiSlug: "asr" });
     await act(async () => flushPromises());
+    props().asrActions.start();
     props().asrActions.stop();
     await act(async () => flushPromises());
     expect(mockAsrControllers[0].active).toBe(false);
@@ -985,7 +1027,11 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     window.history.replaceState({}, "", "/watch?v=video-2");
     window.dispatchEvent(new Event("yt-navigate-finish"));
     await act(async () => flushPromises());
-    expect(mockAsrControllers[0].start).toHaveBeenCalledTimes(2);
+    expect(mockAsrControllers[0].start).toHaveBeenCalledTimes(1);
+    expect(mockAsrControllers[0].active).toBe(false);
+    expect(
+      YouTubeSubtitleList.mock.results.at(-1).value.selectAsrTab
+    ).toHaveBeenCalledTimes(1);
   });
 
   test("translation reopening remembers ASR intent until ASR is explicitly disabled", async () => {

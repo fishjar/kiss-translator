@@ -63,7 +63,7 @@ test("silence is covered without becoming an ASR request; EOF preserves a partia
 });
 
 test("the default is 30 seconds; invalid limits and discontinuous identities are not repaired", () => {
-  expect(new AsrAudioChunker().limit).toBe(30 * ASR_SAMPLE_RATE);
+  expect(new AsrAudioChunker().limit).toBe(20 * ASR_SAMPLE_RATE);
   for (const limit of [0, 301, 1.1, NaN, "30", null])
     expect(() => new AsrAudioChunker(limit)).toThrow();
   expect(() => new AsrAudioChunker(30, -1)).toThrow();

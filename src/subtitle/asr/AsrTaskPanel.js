@@ -24,7 +24,7 @@ export class AsrTaskPanel {
     this.summary.className = "kiss-asr-summary";
     this.summary.setAttribute("role", "status");
     this.summary.style.cssText =
-      "box-sizing:border-box;padding:8px 16px;border-bottom:1px solid var(--kt-divider);font-size:12px;line-height:1.6;";
+      "flex-shrink:0;box-sizing:border-box;padding:8px 16px;border-bottom:1px solid var(--kt-divider);font-size:12px;line-height:1.6;";
     this.coverage = new Map();
     for (const key of ["audio", "cutting", "recognition", "translation"]) {
       const row = document.createElement("div");
@@ -44,16 +44,18 @@ export class AsrTaskPanel {
     this.statusNotice = document.createElement("div");
     this.statusLabel = document.createElement("span");
     this.statusRetry = document.createElement("button");
+    this.statusRetry.style.cssText =
+      "padding:6px 12px;line-height:16px;white-space:nowrap;flex-shrink:0;border:var(--kt-btn-border);border-radius:4px;background:var(--kt-btn-bg);color:var(--kt-btn-color);cursor:pointer;";
     this.statusRetry.textContent = this.t("youtube_asr_retry_btn");
     this.statusRetry.onclick = () => void this.actions.retryIncomplete?.();
     this.statusNotice.append(this.statusLabel);
     this.summary.append(this.statusNotice);
     this.element = document.createElement("div");
     this.element.style.cssText =
-      "display:none;flex-direction:column;height:100%;overflow:hidden;";
+      "display:none;flex-direction:column;flex:1;min-height:0;overflow-y:auto;color:var(--kt-text);";
     this.toolbar = document.createElement("div");
     this.toolbar.style.cssText =
-      "display:flex;flex-wrap:wrap;gap:8px;padding:10px 16px;";
+      "display:flex;flex-wrap:wrap;align-items:center;flex-shrink:0;gap:8px;padding:10px 16px;";
     this.languageControl = document.createElement("label");
     this.languageControl.style.cssText =
       "display:inline-flex;align-items:center;gap:6px;font-size:12px;";
@@ -94,9 +96,11 @@ export class AsrTaskPanel {
     this.list = document.createElement("div");
     this.list.className = "kiss-asr-tasks";
     this.list.style.cssText =
-      "overflow:auto;flex:1;min-height:0;padding:0 16px;font-size:12px;line-height:1.6;";
+      "flex-shrink:0;padding:0 16px;font-size:12px;line-height:1.6;";
     this.element.append(this.list);
     this.more = document.createElement("button");
+    this.more.style.cssText =
+      "padding:6px 12px;line-height:16px;white-space:nowrap;flex-shrink:0;border:var(--kt-btn-border);border-radius:4px;background:var(--kt-btn-bg);color:var(--kt-btn-color);cursor:pointer;";
     this.more.textContent = i18n("youtube_asr_more_tasks");
     this.more.onclick = () => {
       this.limit += 100;

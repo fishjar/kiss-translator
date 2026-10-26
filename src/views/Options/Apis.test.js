@@ -184,7 +184,7 @@ describe("service save feedback", () => {
     );
     try {
       expect(getInput(view.container, "asrMaxDurationSeconds").value).toBe(
-        "30"
+        "20"
       );
       const timestampSupport = view.container.querySelector(
         'select[name="asrTimestampSupport"]'

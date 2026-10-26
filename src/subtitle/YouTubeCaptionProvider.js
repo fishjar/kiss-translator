@@ -128,6 +128,7 @@ export class YouTubeCaptionProvider {
   // 挂载在视频右侧/下方的双语字幕列表面板管理器实例
   #subtitleListManager = null;
   #asrPanelClosed = false;
+  #asrTabSuggested = false;
 
   /**
    * 创建 YouTube 字幕处理器实例，并初始化用户配置、国际化和播放器 UI 管理器。
@@ -354,6 +355,7 @@ export class YouTubeCaptionProvider {
     this.#asrDisabled = false;
     this.#asrWanted = false;
     this.#asrPanelClosed = false;
+    this.#asrTabSuggested = false;
     this.#captionCooldownUntil = 0;
     this.#seekCleanup?.();
     this.#acquisitionVersion++;
@@ -514,6 +516,15 @@ export class YouTubeCaptionProvider {
       .finally(() => {
         this.#snapshotPending = false;
       });
+  }
+
+  #suggestAsrTab() {
+    if (!youtubeAsrSupported || this.#asrTabSuggested || this.#asrDisabled)
+      return;
+    this.#ensureSubtitleList(true);
+    if (!this.#subtitleListManager) return;
+    this.#asrTabSuggested = true;
+    this.#subtitleListManager.selectAsrTab();
   }
 
   #startAsr() {
@@ -715,16 +726,17 @@ export class YouTubeCaptionProvider {
           )
             return;
           const track = snapshot && selectCaptionTrack(snapshot);
-          const prefersAsr =
-            this.#asr?.service() &&
-            !this.#asrDisabled &&
-            snapshot?.captionTracks?.length &&
-            !snapshot.captionTracks.some((t) => t.kind !== "asr");
+          if (
+            snapshot?.ready &&
+            !snapshot.isAd &&
+            snapshot.captionTracks?.length &&
+            !snapshot.captionTracks.some((track) => track.kind !== "asr")
+          )
+            this.#suggestAsrTab();
           if (
             snapshot?.ready &&
             !snapshot.isAd &&
             track &&
-            !prefersAsr &&
             captionTrackId(track) === cached.entry.trackKey
           ) {
             this.#acquisitionState = { phase: "ready", track, source: "cache" };
@@ -743,7 +755,7 @@ export class YouTubeCaptionProvider {
           }
         }
       }
-      if (this.#asr?.service() && !this.#asrDisabled) {
+      if (youtubeAsrSupported && !this.#asrDisabled) {
         this.#acquisitionState = { phase: "loading" };
         snapshot =
           snapshot ||
@@ -763,8 +775,7 @@ export class YouTubeCaptionProvider {
           snapshot.captionTracks?.length &&
           !snapshot.captionTracks.some((track) => track.kind !== "asr")
         ) {
-          this.#startAsr();
-          return;
+          this.#suggestAsrTab();
         }
       }
       const result = await this.#acquirer.acquire(this.#videoId, cacheEntry);
@@ -793,11 +804,10 @@ export class YouTubeCaptionProvider {
         return;
       if (
         error.code === "NO_SUBTITLES" &&
-        this.#asr?.service() &&
+        youtubeAsrSupported &&
         !this.#asrDisabled
       ) {
-        this.#startAsr();
-        return;
+        this.#suggestAsrTab();
       }
       this.#acquisitionState = {
         ...this.#acquisitionState,
