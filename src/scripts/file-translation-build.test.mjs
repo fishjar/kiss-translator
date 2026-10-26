@@ -15,7 +15,8 @@ test("homepage compilation excludes extension services and executable AI assets"
   const modules = await readJson("tmp/build-analysis/homepage-modules.json");
   assert.ok(modules.includes("src/fileTranslation/client.js"));
   assert.ok(!modules.some((file) => /^src\/(apis|localAi)\//.test(file)));
-  assert.ok(!modules.includes("src/libs/storage.js"));
+  for (const name of ["storage", "browser", "msg"])
+    assert.ok(!modules.includes(`src/libs/${name}.js`));
   for (const name of [
     "manifest.json",
     "_locales",

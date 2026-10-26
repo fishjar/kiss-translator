@@ -5,7 +5,6 @@
 import { FILE_WEB_URL } from "../fileTranslation/protocol";
 import { MSG_OPEN_OPTIONS } from "../config/msg";
 import { isExt } from "./client";
-import { sendBgMsg } from "./msg";
 
 /**
  * 在新标签页中打开独立的文件翻译页面
@@ -34,7 +33,9 @@ export async function openFileTranslatePage() {
 
 export async function openOptionsPage(path = "") {
   const hash = path ? (path.startsWith("#") ? path : `#${path}`) : "";
-  if (isExt) {
+  if (process.env.REACT_APP_CLIENT !== "web" && isExt) {
+    // Keep extension messaging out of the standalone website's module graph.
+    const { sendBgMsg } = require("./msg");
     return sendBgMsg(MSG_OPEN_OPTIONS, { path: hash });
   }
   window.open(
