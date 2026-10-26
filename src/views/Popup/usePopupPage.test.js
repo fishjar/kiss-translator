@@ -40,7 +40,11 @@ jest.mock("../../libs/browser", () => {
   };
 });
 jest.mock("../../libs/msg", () => ({ getCurTab: jest.fn() }));
-jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({ kissLog: jest.fn() }))()));
+jest.mock("../../libs/log", () =>
+  jest
+    .requireActual("../../testUtils/scopedLogMock")
+    .withScopedLogMock((() => ({ kissLog: jest.fn() }))())
+);
 jest.mock("./loadData", () => ({ loadPopupData: jest.fn() }));
 jest.mock("./disabledPage", () => ({ loadDisabledPopupData: jest.fn() }));
 jest.mock("../../libs/popupDocument", () => ({

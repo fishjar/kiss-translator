@@ -54,12 +54,16 @@ export function syncStorageState(key, syncKey, state, revision, value) {
       if (accepted) await result.migrateLegacy?.();
       else if (state.dirty) state.scheduleSync();
     } catch (error) {
-      logger.child("storage-sync-controller").error("Sync failed", syncKey, error);
+      logger
+        .child("storage-sync-controller")
+        .error("Sync failed", syncKey, error);
       if (error.storageRecoveryFailed || error.storageOutcome === "unknown") {
         await state
           .load()
           .catch((readError) =>
-            logger.child("storage-sync-controller").warn("Reload after sync failure", readError)
+            logger
+              .child("storage-sync-controller")
+              .warn("Reload after sync failure", readError)
           );
       }
     }

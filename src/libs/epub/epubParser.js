@@ -492,7 +492,9 @@ export async function parseEpubBook(buffer) {
         }
       }
     } catch (e) {
-      logger.child("file-translate").warn("解析 EPUB 3 导航文档失败，尝试回退 NCX:", e);
+      logger
+        .child("file-translate")
+        .warn("解析 EPUB 3 导航文档失败，尝试回退 NCX:", e);
     }
   }
 

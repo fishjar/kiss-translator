@@ -566,7 +566,9 @@ export const syncData = async (
       await migratePlainSyncData(syncType, res, args, syncEncryptKey);
     } catch (error) {
       // A failed follow-up cannot undo an already committed data adoption.
-      logger.child("sync").warn("Unable to encrypt legacy remote sync data", key, error);
+      logger
+        .child("sync")
+        .warn("Unable to encrypt legacy remote sync data", key, error);
     }
   };
   const result = { value: newVal, isNew };

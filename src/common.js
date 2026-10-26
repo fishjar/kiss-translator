@@ -275,7 +275,9 @@ export async function run(isUserscript = false) {
       !contentType.includes("html") &&
       !isPdfDocument
     ) {
-      logger.child("common").info("Skip running in document content type: ", contentType);
+      logger
+        .child("common")
+        .info("Skip running in document content type: ", contentType);
       return;
     }
 

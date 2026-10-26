@@ -588,7 +588,9 @@ export default function TranCont({
         ) : trText ? (
           <Stack direction="row" spacing={1} alignItems="flex-start">
             {loading && (
-              <Box sx={{ width: 12, height: 12, flex: "0 0 auto", mt: "0.35em" }}>
+              <Box
+                sx={{ width: 12, height: 12, flex: "0 0 auto", mt: "0.35em" }}
+              >
                 <CircularProgress
                   size={12}
                   aria-label={i18n("popup_translating")}

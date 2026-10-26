@@ -38,10 +38,14 @@ jest.mock("../../hooks/CustomStyles", () => ({
     allTextStyles: [{ styleSlug: "style_none", styleName: "style_none" }],
   }),
 }));
-jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
-  kissLog: jest.fn(),
-  LogLevel: { INFO: { value: 1 } },
-}))()));
+jest.mock("../../libs/log", () =>
+  jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      kissLog: jest.fn(),
+      LogLevel: { INFO: { value: 1 } },
+    }))()
+  )
+);
 
 function changeField(container, name, value) {
   const input = container.querySelector(`[name="${name}"]`);

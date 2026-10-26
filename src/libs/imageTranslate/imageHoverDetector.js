@@ -340,7 +340,9 @@ export class ImageHoverDetector {
           this.#layoutTaskId === taskId &&
           !this.#abortController?.signal?.aborted
         ) {
-          logger.child("image-translate").warn("[ImageHoverDetector] Layout analysis error:", err);
+          logger
+            .child("image-translate")
+            .warn("[ImageHoverDetector] Layout analysis error:", err);
           alert(
             err?.message ||
               this.#i18n("image_process_failed", "分析布局失败，请重试")

@@ -276,7 +276,10 @@ export const fetchHandle = async ({ input, init, opts = {} }) => {
     const { requestLocalChat } = await import("./localAiTransport");
     return requestLocalChat(init, opts);
   }
-  const diagnostic = await startHttpDiagnostic(input, init, { context: opts.diagnostic, secrets: opts.diagnosticSecrets });
+  const diagnostic = await startHttpDiagnostic(input, init, {
+    context: opts.diagnostic,
+    secrets: opts.diagnosticSecrets,
+  });
   try {
     const res = await fetchPatcher(input, init, opts);
     diagnostic.response(res);

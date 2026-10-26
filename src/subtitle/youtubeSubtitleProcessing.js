@@ -476,7 +476,9 @@ export function formatSubtitles(
         (e) => e.start >= sub.start && e.start < sub.end
       );
       if (subEvents.length > 1) {
-        logger.child("subtitle").debug("Youtube Provider: re-processing long sentence with pause", {
+        logger
+          .child("subtitle")
+          .debug("Youtube Provider: re-processing long sentence with pause", {
             length: sub.text.length,
             text: sub.text.slice(0, 50) + "...",
           });
@@ -514,7 +516,9 @@ export function algorithmicSegment(events, params) {
       translation: "",
     }));
   } catch (error) {
-    logger.child("subtitle").warn("Youtube Provider: Error in algorithmic segmentation", error);
+    logger
+      .child("subtitle")
+      .warn("Youtube Provider: Error in algorithmic segmentation", error);
     return null;
   }
 }
@@ -558,12 +562,18 @@ export function runBuiltinSegmentation({
     }));
 
   if (mode === "statistical") {
-    logger.child("subtitle").debug("Youtube Provider: Sentence break mode: STATISTICAL");
+    logger
+      .child("subtitle")
+      .debug("Youtube Provider: Sentence break mode: STATISTICAL");
     const result = algorithmicSegment(events, {
       maxChars: longSentenceThreshold,
     });
     if (result?.length) return toCues(result);
-    logger.child("subtitle").warn("Youtube Provider: Statistical segmentation returned empty, falling back to rule");
+    logger
+      .child("subtitle")
+      .warn(
+        "Youtube Provider: Statistical segmentation returned empty, falling back to rule"
+      );
   }
 
   logger.child("subtitle").debug("Youtube Provider: Sentence break mode: RULE");

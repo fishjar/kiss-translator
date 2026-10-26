@@ -34,7 +34,12 @@ export function invokeInstance(
       const broker = createTransportBroker(api, {
         signal: invocation.signal,
         assets,
-        diagnostic: { ...options.diagnostic, requestId: invocation.requestId, serviceId: api.apiSlug, method: capability },
+        diagnostic: {
+          ...options.diagnostic,
+          requestId: invocation.requestId,
+          serviceId: api.apiSlug,
+          method: capability,
+        },
       });
       return {
         ...invocation,

@@ -25,7 +25,8 @@ class ChromeTranslator {
   #defaultProgressHandler(type, progress) {
     if (progress === 0 || progress === 100)
       logger.child("builtin-ai").event("info", "model.download.stage", {
-        service: type, stage: progress === 0 ? "started" : "completed",
+        service: type,
+        stage: progress === 0 ? "started" : "completed",
       });
   }
 
@@ -202,7 +203,9 @@ class ChromeTranslator {
         error.message &&
         error.message.includes("Other generic failures occurred")
       ) {
-        logger.child("builtin-a-i").warn("Generic failure detected, resetting translator cache.");
+        logger
+          .child("builtin-a-i")
+          .warn("Generic failure detected, resetting translator cache.");
         this.#translatorMap.clear();
       }
 

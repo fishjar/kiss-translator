@@ -146,9 +146,7 @@ describe("AiDictCont", () => {
     await flushEffects();
 
     const copyButton = container.querySelector("[data-copy-text]");
-    const speechButton = container.querySelector(
-      "[data-testid='browser-tts']"
-    );
+    const speechButton = container.querySelector("[data-testid='browser-tts']");
 
     expect(copyButton).not.toBeNull();
     expect(speechButton).not.toBeNull();

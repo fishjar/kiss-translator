@@ -108,11 +108,7 @@ export function ServiceReplacement({ upgrade, tested, onComplete }) {
   const [busy, setBusy] = useState(false);
   return (
     <Stack spacing={1}>
-      <Alert severity="info">
-        {i18n(
-          "plugin_upgraded_instance_created"
-        )}
-      </Alert>
+      <Alert severity="info">{i18n("plugin_upgraded_instance_created")}</Alert>
       {error && <Alert severity="error">{error}</Alert>}
       <Button
         disabled={busy}

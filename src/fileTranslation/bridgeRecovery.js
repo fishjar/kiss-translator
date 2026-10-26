@@ -25,7 +25,9 @@ export async function restoreFileTranslationBridges() {
               });
             }
           } catch (error) {
-            logger.child("file-translate").warn("restore file translation bridge", error);
+            logger
+              .child("file-translate")
+              .warn("restore file translation bridge", error);
           }
         })
     );

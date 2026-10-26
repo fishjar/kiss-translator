@@ -28,7 +28,8 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
       if (scope.active) setSnapshot(next);
     });
     state.ensureLoaded().catch((error) => {
-      if (scope.active) logger.child("storage").error("Storage load failed", key, error);
+      if (scope.active)
+        logger.child("storage").error("Storage load failed", key, error);
     });
     return () => {
       scope.active = false;
@@ -42,7 +43,9 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
       if (!scope?.active || scope.key !== key) return Promise.resolve();
       const pending = scope.state.save(valueOrFn);
       // Observe fire-and-forget errors without converting rejection into success.
-      pending.catch((error) => logger.child("storage").error("Storage save failed", key, error));
+      pending.catch((error) =>
+        logger.child("storage").error("Storage save failed", key, error)
+      );
       return pending;
     },
     [key]
@@ -68,7 +71,9 @@ export function useStorage(key, defaultVal = null, syncKey = "") {
     const scope = scopeRef.current;
     if (!scope?.active || scope.key !== key) return Promise.resolve();
     const pending = scope.state.remove();
-    pending.catch((error) => logger.child("storage").error("Storage removal failed", key, error));
+    pending.catch((error) =>
+      logger.child("storage").error("Storage removal failed", key, error)
+    );
     return pending;
   }, [key]);
 

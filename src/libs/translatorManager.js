@@ -153,7 +153,9 @@ export default class TranslatorManager {
    */
   start() {
     if (this.#isActive) {
-      logger.child("translator-manager").debug("TranslatorManager is already started.");
+      logger
+        .child("translator-manager")
+        .debug("TranslatorManager is already started.");
       return;
     }
 
@@ -186,7 +188,9 @@ export default class TranslatorManager {
    */
   restart(reason = "spa-navigation") {
     if (!this.#isActive) {
-      logger.child("translator-manager").debug("TranslatorManager is not running.");
+      logger
+        .child("translator-manager")
+        .debug("TranslatorManager is not running.");
       return;
     }
     this.#storageRevision += 1;
@@ -202,7 +206,9 @@ export default class TranslatorManager {
 
     this.#createRuntimeModules();
     this.#refreshDocumentElementObserver();
-    logger.child("translator-manager").debug("TranslatorManager restarted:", reason);
+    logger
+      .child("translator-manager")
+      .debug("TranslatorManager restarted:", reason);
   }
 
   /**
@@ -213,7 +219,9 @@ export default class TranslatorManager {
    */
   stop() {
     if (!this.#isActive) {
-      logger.child("translator-manager").debug("TranslatorManager is not running.");
+      logger
+        .child("translator-manager")
+        .debug("TranslatorManager is not running.");
       return;
     }
     this.#storageRevision += 1;
@@ -369,7 +377,9 @@ export default class TranslatorManager {
       try {
         return globalThis.structuredClone(value);
       } catch (err) {
-        logger.child("translator-manager").debug("structuredClone failed, using JSON clone.", err);
+        logger
+          .child("translator-manager")
+          .debug("structuredClone failed, using JSON clone.", err);
       }
     }
     return JSON.parse(JSON.stringify(value));
@@ -607,7 +617,9 @@ export default class TranslatorManager {
 
       this._translator?.rescan();
       this.#notifyTouchState();
-      logger.child("translator-manager").debug("TranslatorManager rescanned:", refreshReason);
+      logger
+        .child("translator-manager")
+        .debug("TranslatorManager rescanned:", refreshReason);
     }, 0);
   }
 
@@ -685,7 +697,11 @@ export default class TranslatorManager {
           "local"
         );
       })
-      .catch((error) => logger.child("translator-manager").debug("Read current API settings", error));
+      .catch((error) =>
+        logger
+          .child("translator-manager")
+          .debug("Read current API settings", error)
+      );
   }
 
   #handleStorageChange(changes, areaName) {
@@ -1137,7 +1153,9 @@ export default class TranslatorManager {
         this._inputTranslator?.handleTranslate();
         break;
       default:
-        logger.child("translator-manager").info("Message action is unavailable:", action);
+        logger
+          .child("translator-manager")
+          .info("Message action is unavailable:", action);
         return { error: `Message action is unavailable: ${action}` };
     }
     return this.#getRuntimeResponse();

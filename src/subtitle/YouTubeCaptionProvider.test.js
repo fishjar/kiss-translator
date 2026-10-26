@@ -986,7 +986,8 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
       expect(list.updateAsrState).toHaveBeenCalledWith(
         expect.objectContaining({ active: false, available: !!asrApiSlug })
       );
-      if (asrApiSlug) expect(mockAsrControllers[0].start).not.toHaveBeenCalled();
+      if (asrApiSlug)
+        expect(mockAsrControllers[0].start).not.toHaveBeenCalled();
       else expect(mockAsrControllers).toHaveLength(0);
       const options = YouTubeSubtitleList.mock.calls[0][2];
       options.retryCaptions();

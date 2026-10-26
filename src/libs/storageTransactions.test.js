@@ -8,10 +8,14 @@ import {
 } from "../config";
 
 jest.mock("./browser", () => ({}));
-jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
-  ...jest.requireActual("./log"),
-  kissLog: jest.fn(),
-}))()));
+jest.mock("./log", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      ...jest.requireActual("./log"),
+      kissLog: jest.fn(),
+    }))()
+  )
+);
 jest.mock("./gm", () => ({
   getGmMethod: (method) => globalThis.GM[method].bind(globalThis.GM),
 }));

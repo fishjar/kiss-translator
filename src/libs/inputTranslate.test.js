@@ -34,14 +34,18 @@ jest.mock("./shortcut", () => ({
 
 jest.mock("../apis", () => ({ apiTranslate: jest.fn() }));
 jest.mock("./svg", () => ({ createLoadingSVG: jest.fn() }));
-jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
-  logger: {
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-  },
-}))()));
+jest.mock("./log", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      logger: {
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      },
+    }))()
+  )
+);
 
 const { InputTranslator } = require("./inputTranslate");
 const { stepShortcutRegister } = require("./shortcut");

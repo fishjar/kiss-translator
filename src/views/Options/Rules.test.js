@@ -105,12 +105,16 @@ jest.mock("../../libs/storage", () => ({
   removeDisabledSubRules: jest.fn(() => Promise.resolve()),
 }));
 
-jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
-  kissLog: jest.fn(),
-  LogLevel: {
-    INFO: { value: 3 },
-  },
-}))()));
+jest.mock("../../libs/log", () =>
+  jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      kissLog: jest.fn(),
+      LogLevel: {
+        INFO: { value: 3 },
+      },
+    }))()
+  )
+);
 
 let mockSubRules;
 const mockPutRule = jest.fn();

@@ -86,9 +86,17 @@ export class TaskPool {
 
     try {
       // 执行传入的异步任务函数
-      const res = await fn(args && typeof args === "object" && args.opts ? {
-        ...args, opts: { ...args.opts, diagnostic: { ...args.opts.diagnostic, attempt: retry + 1 } },
-      } : args);
+      const res = await fn(
+        args && typeof args === "object" && args.opts
+          ? {
+              ...args,
+              opts: {
+                ...args.opts,
+                diagnostic: { ...args.opts.diagnostic, attempt: retry + 1 },
+              },
+            }
+          : args
+      );
       resolve(res);
     } catch (err) {
       if (err?.name === "AbortError") {
@@ -98,7 +106,14 @@ export class TaskPool {
         !task.settled &&
         retry < (task.options.maxRetries ?? this.#maxRetry)
       ) {
-        logger.child("request-pool").event("warn", "request.retry", { ...args?.opts?.diagnostic, attempt: retry + 1 }, err);
+        logger
+          .child("request-pool")
+          .event(
+            "warn",
+            "request.retry",
+            { ...args?.opts?.diagnostic, attempt: retry + 1 },
+            err
+          );
         this.#retrying.add(task);
         task.retryTimer = setTimeout(() => {
           this.#retrying.delete(task);
@@ -109,7 +124,14 @@ export class TaskPool {
           this.#scheduleNext();
         }, this.#retryInterval);
       } else {
-        logger.child("request-pool").event(args?.opts?.diagnostic?.taskId ? "warn" : "error", "request.exhausted", { ...args?.opts?.diagnostic, attempt: retry + 1 }, err);
+        logger
+          .child("request-pool")
+          .event(
+            args?.opts?.diagnostic?.taskId ? "warn" : "error",
+            "request.exhausted",
+            { ...args?.opts?.diagnostic, attempt: retry + 1 },
+            err
+          );
         // 达到最大重试次数后，抛出错误并拒绝 Promise
         reject(err);
       }

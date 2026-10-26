@@ -242,7 +242,9 @@ export default function PopupCont({
             ]),
           ]);
       })
-      .catch((error) => logger.child("popup").warn("read saved popup rules", error));
+      .catch((error) =>
+        logger.child("popup").warn("read saved popup rules", error)
+      );
     return () => {
       active = false;
     };

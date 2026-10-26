@@ -1977,7 +1977,9 @@ function SubRules({ subRules, syncCaches }) {
     if (loading) return;
     // Automatic downloads write timestamps outside this view's cache state.
     // Refresh when opening the tab or finishing a subscription load.
-    reloadSync().catch((error) => logger.child("options").warn("load sync caches", error));
+    reloadSync().catch((error) =>
+      logger.child("options").warn("load sync caches", error)
+    );
   }, [loading, selectedUrl, reloadSync]);
 
   useLayoutEffect(() => {

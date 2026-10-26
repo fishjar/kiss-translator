@@ -15,7 +15,10 @@ import { blobToBase64 } from "./utils";
  * @throws {Error} 当响应不存在、HTTP 状态失败，或完整响应通道误收到 SSE 流时抛出明确错误。
  */
 export const parseResponse = async (res, expect = null, diagnostic) => {
-  const observed = (value) => { diagnostic?.body(value); return value; };
+  const observed = (value) => {
+    diagnostic?.body(value);
+    return value;
+  };
   if (!res) {
     throw new Error("Response object does not exist");
   }
@@ -46,7 +49,8 @@ export const parseResponse = async (res, expect = null, diagnostic) => {
   if (expect === "blob") return observed(await res.blob());
   if (expect === "text") return observed(await res.text());
   if (expect === "json") {
-    const text = await res.text(); observed(text);
+    const text = await res.text();
+    observed(text);
     return JSON.parse(text);
   }
 

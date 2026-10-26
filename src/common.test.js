@@ -39,12 +39,16 @@ jest.mock("./subtitle/subtitle", () => ({
   runSubtitle: jest.fn(),
 }));
 
-jest.mock("./libs/log", () => jest.requireActual("./testUtils/scopedLogMock").withScopedLogMock((() => ({
-  logger: {
-    setLevel: jest.fn(),
-    info: jest.fn(),
-  },
-}))()));
+jest.mock("./libs/log", () =>
+  jest.requireActual("./testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      logger: {
+        setLevel: jest.fn(),
+        info: jest.fn(),
+      },
+    }))()
+  )
+);
 
 jest.mock("./libs/injector", () => ({
   injectInlineJs: jest.fn(),

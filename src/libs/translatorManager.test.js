@@ -200,12 +200,16 @@ jest.mock("./iframe", () => ({
   sendIframeMsg: jest.fn(),
 }));
 
-jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
-  logger: {
-    debug: jest.fn(),
-    info: jest.fn(),
-  },
-}))()));
+jest.mock("./log", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      logger: {
+        debug: jest.fn(),
+        info: jest.fn(),
+      },
+    }))()
+  )
+);
 
 const { browser } = require("./browser");
 const { Translator } = require("./translator");

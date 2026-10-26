@@ -63,15 +63,11 @@ describe("TranslationPanelHeader pin/follow icon exclusivity", () => {
     (hideClickAway, followSelection) => {
       renderHeader({ hideClickAway, followSelection });
 
-      const pin = container.querySelector(
-        'button[title="btn_tip_click_away"]'
-      );
+      const pin = container.querySelector('button[title="btn_tip_click_away"]');
       const follow = container.querySelector('[role="menuitemcheckbox"]');
       expect(pin).not.toBeNull();
       expect(follow).not.toBeNull();
-      expect(follow.getAttribute("aria-checked")).toBe(
-        String(followSelection)
-      );
+      expect(follow.getAttribute("aria-checked")).toBe(String(followSelection));
       expect(iconSignature(follow)).not.toBe("");
       expect(iconSignature(pin)).not.toBe("");
       expect(iconSignature(follow)).not.toBe(iconSignature(pin));

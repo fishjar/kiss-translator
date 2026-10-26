@@ -171,9 +171,13 @@ export default function SyncSetting() {
       );
       const shareString = `${OPT_SYNCTOKEN_PERFIX}${base64Config}`;
       await navigator.clipboard.writeText(shareString);
-      logger.child("options").debug("Share string copied to clipboard", shareString);
+      logger
+        .child("options")
+        .debug("Share string copied to clipboard", shareString);
     } catch (error) {
-      logger.child("options").warn("Failed to copy share string to clipboard", error);
+      logger
+        .child("options")
+        .warn("Failed to copy share string to clipboard", error);
     }
   };
 
@@ -189,7 +193,9 @@ export default function SyncSetting() {
 
         // 验证同步服务类型是否合法
         if (!OPT_SYNCTYPE_ALL.includes(updatedConfig.syncType)) {
-          logger.child("options").warn("error syncType", updatedConfig.syncType);
+          logger
+            .child("options")
+            .warn("error syncType", updatedConfig.syncType);
           return;
         }
 
@@ -211,7 +217,9 @@ export default function SyncSetting() {
         logger.child("options").warn("Invalid share string", text);
       }
     } catch (error) {
-      logger.child("options").warn("Failed to read from clipboard or parse JSON", error);
+      logger
+        .child("options")
+        .warn("Failed to read from clipboard or parse JSON", error);
     }
   };
 

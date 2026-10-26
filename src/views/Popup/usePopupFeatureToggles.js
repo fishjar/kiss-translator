@@ -243,7 +243,9 @@ export function usePopupFeatureToggles({
               throw new Error("The global feature could not be restored.");
             }
           } catch (rollbackError) {
-            logger.child("popup").error("restore popup global feature", name, rollbackError);
+            logger
+              .child("popup")
+              .error("restore popup global feature", name, rollbackError);
           }
         }
         if (!isCurrent()) return;

@@ -94,10 +94,14 @@ jest.mock("../../libs/client", () => ({
   },
 }));
 jest.mock("../../libs/cache", () => ({ tryClearCaches: jest.fn() }));
-jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({
-  ...jest.requireActual("../../libs/log"),
-  kissLog: jest.fn(),
-}))()));
+jest.mock("../../libs/log", () =>
+  jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      ...jest.requireActual("../../libs/log"),
+      kissLog: jest.fn(),
+    }))()
+  )
+);
 jest.mock("../../libs/rules", () => ({ saveRule: jest.fn() }));
 jest.mock("../../libs/storage", () => ({
   getRulesWithDefault: jest.fn(async () => []),

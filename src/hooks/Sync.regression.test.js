@@ -33,10 +33,14 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 jest.mock("../libs/client", () => ({ isExt: false, isGm: false }));
 jest.mock("../libs/browser", () => ({ isOptions: () => true }));
-jest.mock("../libs/log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
-  ...jest.requireActual("../libs/log"),
-  kissLog: jest.fn(),
-}))()));
+jest.mock("../libs/log", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      ...jest.requireActual("../libs/log"),
+      kissLog: jest.fn(),
+    }))()
+  )
+);
 jest.mock("../libs/fetch", () => ({
   fetchPatcher: jest.fn(),
   fetchGM: jest.fn(),

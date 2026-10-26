@@ -20,10 +20,12 @@ export function ensureYoutubeBridgeRegistered() {
         typeof scripting?.getRegisteredContentScripts !== "function" ||
         typeof scripting?.registerContentScripts !== "function"
       ) {
-        logger.child("youtube-bridge-registration").warn("YouTube subtitle registration", {
-          phase,
-          code: "UNSUPPORTED",
-        });
+        logger
+          .child("youtube-bridge-registration")
+          .warn("YouTube subtitle registration", {
+            phase,
+            code: "UNSUPPORTED",
+          });
         return false;
       }
       const definition = {
@@ -59,10 +61,12 @@ export function ensureYoutubeBridgeRegistered() {
         if (same) return true;
         phase = "update";
         if (typeof scripting.updateContentScripts !== "function") {
-          logger.child("youtube-bridge-registration").warn("YouTube subtitle registration", {
-            phase,
-            code: "UNSUPPORTED",
-          });
+          logger
+            .child("youtube-bridge-registration")
+            .warn("YouTube subtitle registration", {
+              phase,
+              code: "UNSUPPORTED",
+            });
           return false;
         }
         await scripting.updateContentScripts([definition]);
@@ -71,10 +75,12 @@ export function ensureYoutubeBridgeRegistered() {
     })
     .catch(() => {
       // Browser errors may contain URLs; log only the operation and a fixed category.
-      logger.child("youtube-bridge-registration").warn("YouTube subtitle registration", {
-        phase,
-        code: "REGISTRATION_FAILED",
-      });
+      logger
+        .child("youtube-bridge-registration")
+        .warn("YouTube subtitle registration", {
+          phase,
+          code: "REGISTRATION_FAILED",
+        });
       return false;
     })
     .finally(() => {

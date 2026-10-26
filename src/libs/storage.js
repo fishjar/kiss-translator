@@ -368,7 +368,9 @@ export function withTransaction(operation) {
         } catch (recoveryError) {
           error.storageRecoveryFailed = true;
           error.storageOutcome = "unknown";
-          logger.child("storage").error("Unable to compensate a storage transaction", recoveryError);
+          logger
+            .child("storage")
+            .error("Unable to compensate a storage transaction", recoveryError);
         }
       }
       error.storageOutcome ||= "not-committed";
@@ -578,7 +580,9 @@ export const runDataMigration = async () => {
         );
       } catch (err) {
         // Leave the value and completion marker untouched so settings can repair it.
-        logger.child("storage").warn("Skipping invalid legacy ignore selector migration:", err);
+        logger
+          .child("storage")
+          .warn("Skipping invalid legacy ignore selector migration:", err);
         return;
       }
       nextGlobal.ignoreSelector = [
