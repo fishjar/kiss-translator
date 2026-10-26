@@ -94,7 +94,9 @@ export class BilingualSubtitleManager {
    */
   start() {
     if (this.#formattedSubtitles.length === 0) {
-      logger.child("subtitle").debug("Bilingual Subtitles: No subtitles to display.");
+      logger
+        .child("subtitle")
+        .debug("Bilingual Subtitles: No subtitles to display.");
       return;
     }
 
@@ -826,7 +828,7 @@ export class BilingualSubtitleManager {
       .child("subtitle")
       .info(
         "Bilingual Subtitle Manager: appending new subtitles; count:",
-        newSubtitlesChunk.length,
+        newSubtitlesChunk.length
       );
 
     // 由于上层 provider 在 processRemainingChunksAsync 时直接 push 了全局 subtitles 数组，

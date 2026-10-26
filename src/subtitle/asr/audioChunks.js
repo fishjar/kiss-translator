@@ -9,12 +9,18 @@ export class AsrAudioChunker {
   constructor(
     maxDurationSeconds,
     startSample = 0,
-    { maxBytes = ASR_MAX_WAV_BYTES, maxModelDurationSeconds = Infinity } = {}
+    {
+      maxBytes = ASR_MAX_WAV_BYTES,
+      maxModelDurationSeconds = Infinity,
+      boundaryPaddingSeconds = 0,
+    } = {}
   ) {
     if (
       !Number.isSafeInteger(maxBytes) ||
       maxBytes <= 44 ||
-      !(maxModelDurationSeconds > 0)
+      !(maxModelDurationSeconds > 0) ||
+      !Number.isFinite(boundaryPaddingSeconds) ||
+      boundaryPaddingSeconds < 0
     )
       throw new Error("Invalid ASR input limits.");
     this.limit = Math.min(
@@ -27,6 +33,16 @@ export class AsrAudioChunker {
     );
     if (this.limit < ASR_SAMPLE_RATE)
       throw new Error("ASR input limit is smaller than one second.");
+    // Compressed exports include whole AAC frames at both boundaries.
+    if (boundaryPaddingSeconds) {
+      this.limit =
+        Math.floor(
+          (this.limit - boundaryPaddingSeconds * ASR_SAMPLE_RATE) /
+            FRAME_SAMPLES
+        ) * FRAME_SAMPLES;
+      if (this.limit < FRAME_SAMPLES)
+        throw new Error("ASR input limit cannot fit AAC boundaries.");
+    }
     if (!Number.isSafeInteger(startSample) || startSample < 0)
       throw new Error("Invalid audio start sample.");
     this.start = startSample;

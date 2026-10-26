@@ -60,7 +60,7 @@ test.each([true, false, undefined])(
     };
     expect(
       asrChunkDurationSeconds({ ...service, asrTimestampSupport: "supported" })
-    ).toBe(30);
+    ).toBe(20);
     expect(
       asrChunkDurationSeconds({
         ...service,
@@ -90,7 +90,7 @@ test("local capability ignores overrides and is resolved from the selected model
       modelRef: "whisper-base-timestamped",
       asrTimestampSupport: "unsupported",
     })
-  ).toBe(30);
+  ).toBe(20);
   expect(
     asrSupportsTimestamps({
       apiType: "LocalAI",

@@ -55,7 +55,7 @@ export function copyCompatibleConfig(api, fields) {
   const values = {};
   const skipped = [];
   for (const field of fields) {
-    const previous = api.provider.settings.find(
+    const previous = api.provider.settings?.find(
       (item) => item.key === field.key
     );
     const value = api.pluginConfig?.[field.key];

@@ -38,10 +38,14 @@ export function buildTranscriptionRequest({
 export function parseTranscription(response) {
   if (response.status < 200 || response.status >= 300)
     throw providerError("HTTP_ERROR", `HTTP ${response.status}`);
-  const data =
-    typeof response.body === "string"
-      ? JSON.parse(response.body)
-      : response.body;
+  let data = response.body;
+  if (typeof data === "string") {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      throw providerError("INVALID_RESPONSE", "Invalid transcription JSON.");
+    }
+  }
   if (data?.error)
     throw providerError(
       "PROVIDER_ERROR",

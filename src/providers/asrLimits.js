@@ -1,6 +1,6 @@
 import { providerError } from "./capabilities";
 
-export const DEFAULT_ASR_MAX_DURATION_SECONDS = 30;
+export const DEFAULT_ASR_MAX_DURATION_SECONDS = 20;
 
 export function asrMaxDurationSeconds(value) {
   if (value === undefined) return DEFAULT_ASR_MAX_DURATION_SECONDS;

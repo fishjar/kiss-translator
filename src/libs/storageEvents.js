@@ -17,7 +17,9 @@ function invalidate(key) {
       try {
         listener();
       } catch (error) {
-        logger.child("storage-events").warn("Storage invalidation subscriber failed", key, error);
+        logger
+          .child("storage-events")
+          .warn("Storage invalidation subscriber failed", key, error);
       }
     });
   });
@@ -58,7 +60,11 @@ function watchGmKey(key) {
         },
         () => {}
       )
-      .catch((error) => logger.child("storage-events").info("Unable to remove GM storage listener", error));
+      .catch((error) =>
+        logger
+          .child("storage-events")
+          .info("Unable to remove GM storage listener", error)
+      );
   };
 }
 
@@ -136,7 +142,9 @@ export function publishStorageWrite(key, value, hasSyncMetadata = false) {
       listener(value, hasSyncMetadata);
     } catch (error) {
       // A UI subscriber cannot turn a completed persistence into a failed write.
-      logger.child("storage-events").warn("Storage subscriber failed", key, error);
+      logger
+        .child("storage-events")
+        .warn("Storage subscriber failed", key, error);
     }
   });
 }

@@ -128,7 +128,9 @@ function openOptionsPage() {
           await browser.runtime.openOptionsPage();
           return true;
         } catch (err) {
-          logger.child("background").info("open options page with runtime API", err);
+          logger
+            .child("background")
+            .info("open options page with runtime API", err);
         }
       }
 
@@ -330,7 +332,9 @@ async function fitSeparateWindow(args) {
     } else if (windowId === separateWindowId) {
       await updateCacheFromActual(windowId);
     }
-    logger.child("background").debug("Separate window fitted to content", { nextWidth, nextHeight });
+    logger
+      .child("background")
+      .debug("Separate window fitted to content", { nextWidth, nextHeight });
   } catch (err) {
     logger.child("background").info("fit separate window", err);
   }
@@ -375,7 +379,9 @@ async function persistSeparateWindowBounds(bounds) {
   if (!bounds) return;
   try {
     await browser.storage.local.set({ [STOKEY_SEPARATE_WINDOW]: bounds });
-    logger.child("background").debug("Final separate window bounds saved to storage", bounds);
+    logger
+      .child("background")
+      .debug("Final separate window bounds saved to storage", bounds);
   } catch (err) {
     logger.child("background").warn("Save separate window bounds error", err);
   }

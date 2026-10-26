@@ -1,3 +1,6 @@
+import PluginUpdatePreview from "./PluginUpdatePreview";
+import { previewServiceUpdate } from "../../providers/updatePreview";
+import { pluginCompatibilityError } from "../../providers/compatibility";
 import { useI18n } from "../../hooks/I18n";
 import { useState } from "react";
 import {
@@ -42,9 +45,14 @@ export function ServiceUpgradeAction({ api, onCreated }) {
       .map((value, index) => Number(value) - previousVersion[index])
       .find((value) => value !== 0) || 0;
   if (!service || versionChange <= 0) return null;
+  const incompatible = pluginCompatibilityError(pack.manifest);
+  if (incompatible)
+    return <Alert severity="warning">{incompatible.message}</Alert>;
+  const preview = previewServiceUpdate(api, pack.manifest, service);
   return (
     <Stack spacing={1}>
       {error && <Alert severity="error">{error}</Alert>}
+      <PluginUpdatePreview preview={preview} />
       <Button
         onClick={async () => {
           try {
@@ -100,11 +108,7 @@ export function ServiceReplacement({ upgrade, tested, onComplete }) {
   const [busy, setBusy] = useState(false);
   return (
     <Stack spacing={1}>
-      <Alert severity="info">
-        {i18n(
-          "plugin_upgraded_instance_created_save_and_authorize_its_configuration_test_th"
-        )}
-      </Alert>
+      <Alert severity="info">{i18n("plugin_upgraded_instance_created")}</Alert>
       {error && <Alert severity="error">{error}</Alert>}
       <Button
         disabled={busy}

@@ -466,7 +466,12 @@ export class AudioDownloadManager {
               await this.cache.putAudio(this.sessionId, segment, { signal });
             } catch (cause) {
               if (signal.aborted || cause.code === "STALE_VIDEO") throw cause;
-              logger.child("subtitle").debug("[YouTube ASR cache] write failed; using session audio", cause.code || cause.name);
+              logger
+                .child("subtitle")
+                .debug(
+                  "[YouTube ASR cache] write failed; using session audio",
+                  cause.code || cause.name
+                );
               // Restored segments may still be readable from persistent storage.
               this.cacheWriteFailed = true;
             }

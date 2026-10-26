@@ -127,7 +127,9 @@ export function createInvocation(execute, options = {}) {
       error
         ? error.name === "AbortError" || error.code === "REQUEST_CANCELLED"
           ? "info"
-          : options.diagnostic?.taskId ? "warn" : "error"
+          : options.diagnostic?.taskId
+            ? "warn"
+            : "error"
         : "info",
       error ? "invocation.failed" : "invocation.completed",
       error,

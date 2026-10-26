@@ -45,8 +45,8 @@ A simple, open-source [bilingual translation extension & userscript](https://git
 
 - **Extensive built-in services**: Supports major traditional and AI translation services, including Google, Microsoft, Baidu, Tencent, Volcengine, DeepL/DeepLX, OpenAI, Gemini, Claude, Ollama, DeepSeek, OpenRouter, OrcaRouter, Requesty, AzureAI, and CloudflareAI, plus browser built-in AI and Local AI.
 - **Select by capability**: Independently configure services and model parameters for text translation, dictionary lookup, subtitle segmentation, OCR recognition, or speech synthesis; supports batch aggregation, streaming responses, multi-turn conversation memory, AI glossaries, and reasoning settings based on model capabilities.
-- **Provider plugin ecosystem**: Import third-party plugins via ZIP archives, local folders, GitHub repository root URLs, or HTTPS links; granular permission authorization/revocation, manual package updates, and saved service instance upgrades.
-- **Open custom protocols**: Connect any non-standard API via plugins. See the [plugin development guide (Chinese)](docs/plugins/plugin-development-guide.md), [OpenAI-compatible example](docs/plugins/examples/openai-compatible-bundle/README.md), and [declarative DeepSeek example](docs/plugins/examples/deepseek/README.md).
+- **Provider plugin ecosystem**: Browse separate official and external plugin lists and click to install online, or import ZIP archives, local folders, GitHub repository root URLs, or HTTPS links. Requests are restricted to declared network scopes; package updates and saved instance upgrades are manual.
+- **Open custom protocols**: Connect any non-standard API via plugins. See the [plugin development guide (Chinese)](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md), [OpenAI-compatible plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md), and [DeepSeek plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md).
 
 ### Local AI (Edge Computing)
 
@@ -185,7 +185,7 @@ pnpm install
 pnpm build
 ```
 
-For plugin development, please read the [Plugin Development Guide (Chinese)](docs/plugins/plugin-development-guide.md) and refer to the [OpenAI-compatible example](docs/plugins/examples/openai-compatible-bundle/README.md) or [DeepSeek declarative example](docs/plugins/examples/deepseek/README.md).
+For plugin development, please read the [Plugin Development Guide (Chinese)](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md) and refer to the [OpenAI-compatible plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) or [DeepSeek plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md).
 
 ### External Trigger Example
 

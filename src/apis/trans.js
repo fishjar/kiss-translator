@@ -1215,7 +1215,10 @@ export async function* handleTranslate(texts, options) {
     serviceId: options.apiSetting.apiSlug,
     count: texts?.length,
   });
-  options = { ...options, diagnostic: { ...options.diagnostic, ...task.context } };
+  options = {
+    ...options,
+    diagnostic: { ...options.diagnostic, ...task.context },
+  };
   let completed = false;
   try {
     if (!options.apiSetting.provider)

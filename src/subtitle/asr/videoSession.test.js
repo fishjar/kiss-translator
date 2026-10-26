@@ -177,7 +177,11 @@ function setup({
     onState = jest.fn();
   const session = new AsrVideoSession({
     identity: { ...identity, durationMs },
-    asrService: { apiSlug: "asr", asrMaxDurationSeconds: 1 },
+    asrService: {
+      apiSlug: "asr",
+      apiType: "LocalAI",
+      asrMaxDurationSeconds: 1,
+    },
     setting: {},
     bridge: {},
     cache,
@@ -560,7 +564,7 @@ test("streaming waits do not flush the canonical cutting state", async () => {
   const test = setup({
     autoComplete: false,
     targetMs: 2500,
-    asrService: { asrMaxDurationSeconds: 3 },
+    asrService: { apiType: "LocalAI", asrMaxDurationSeconds: 3 },
   });
   await test.session.start();
   await until(
@@ -572,7 +576,9 @@ test("streaming waits do not flush the canonical cutting state", async () => {
   test.session.seek(2300);
   test.download.add(2);
   await until(() => test.session.state.phase === "complete");
-  const baseline = setup({ asrService: { asrMaxDurationSeconds: 3 } });
+  const baseline = setup({
+    asrService: { apiType: "LocalAI", asrMaxDurationSeconds: 3 },
+  });
   await baseline.session.start();
   await until(() => baseline.session.state.phase === "complete");
   expect([...test.session.chunkIndex.values()]).toEqual([
@@ -1694,4 +1700,34 @@ test("closing a paused scanner and text worker releases waits without late work"
   expect(test.session.pauseGate.waiters.size).toBe(0);
   expect(test.recognize).not.toHaveBeenCalled();
   expect(test.textProcessor.translate).not.toHaveBeenCalled();
+});
+
+test("remote recognition prepares M4A from original cached segments with the same range exporter", async () => {
+  const test = setup({
+    asrService: {
+      apiSlug: "remote",
+      apiType: "Plugin",
+      asrMaxDurationSeconds: 10,
+    },
+  });
+  cropAacSentence.mockImplementation(async (segments, startMs, endMs) => {
+    const parts = [];
+    for await (const part of segments) parts.push(part.index);
+    expect(parts).toContain(0);
+    return { blob: new Blob(["aac"], { type: "audio/mp4" }), startMs, endMs };
+  });
+  const recognize = test.recognize.getMockImplementation();
+  test.recognize.mockImplementation(async (service, chunk, options) => {
+    const result = await options.prepareAudio();
+    expect(result.blob.type).toBe("audio/mp4");
+    return recognize(service, chunk, options);
+  });
+  await test.session.start();
+  await until(() => test.session.state.phase === "complete");
+  expect(cropAacSentence).toHaveBeenCalled();
+  expect(cropAacSentence.mock.calls.at(-1)[3]).toMatchObject({
+    signal: expect.anything(),
+    maxBytes: 8 * 1024 * 1024,
+  });
+  expect(test.download.acquire).toHaveBeenCalledTimes(1);
 });

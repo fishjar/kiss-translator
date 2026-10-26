@@ -467,7 +467,9 @@ export function extractTitleMapFromChapterStates(
           }
         });
       } catch (e) {
-        logger.child("file-translate").warn("从已翻译 NAV 提取目录标题映射失败:", e);
+        logger
+          .child("file-translate")
+          .warn("从已翻译 NAV 提取目录标题映射失败:", e);
       }
     }
   }

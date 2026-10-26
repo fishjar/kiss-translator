@@ -184,7 +184,7 @@ describe("service save feedback", () => {
     );
     try {
       expect(getInput(view.container, "asrMaxDurationSeconds").value).toBe(
-        "30"
+        "20"
       );
       const timestampSupport = view.container.querySelector(
         'select[name="asrTimestampSupport"]'
@@ -809,7 +809,7 @@ describe("Apis ordering and master-detail layout", () => {
         );
         expect(menu.textContent).toContain("系统服务");
         expect(menu.textContent).toContain("网络接口");
-        expect(menu.textContent).toContain("外部插件");
+        expect(menu.textContent).toContain("插件接口");
 
         await act(async () => {
           if (closeMethod === "Escape") {

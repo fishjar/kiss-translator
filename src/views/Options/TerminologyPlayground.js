@@ -1022,9 +1022,19 @@ export default function TerminologyPlayground({
           const fatalDiagnostics = parsed.diagnostics.filter((d) =>
             FATAL_DIAGNOSTIC_TYPES.has(d.type)
           );
-          logger.child("options").error("[TermPlayground] fatal invalid term segments in input:", fatalDiagnostics);
+          logger
+            .child("options")
+            .error(
+              "[TermPlayground] fatal invalid term segments in input:",
+              fatalDiagnostics
+            );
           if (parsed.metaWarnings.length > 0) {
-            logger.child("options").debug("[TermPlayground] metacharacter warnings:", parsed.metaWarnings);
+            logger
+              .child("options")
+              .debug(
+                "[TermPlayground] metacharacter warnings:",
+                parsed.metaWarnings
+              );
           }
           setComputed({
             parsed,

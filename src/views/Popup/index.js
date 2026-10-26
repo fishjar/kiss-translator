@@ -149,7 +149,9 @@ function useFitSeparateWindow(enabled, panelRef) {
               availLeft: window.screen?.availLeft * screenScale,
               availTop: window.screen?.availTop * screenScale,
             })
-          ).catch((error) => logger.child("popup").info("fit separate window", error));
+          ).catch((error) =>
+            logger.child("popup").info("fit separate window", error)
+          );
         });
       } catch (error) {
         // Keep the default size if the window closes or its APIs are unavailable.

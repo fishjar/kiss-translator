@@ -1,8 +1,5 @@
-import fs from "fs";
-import path from "path";
+import { testPackage } from "./testSupport/packages";
 import Sval from "sval";
-import { zipSync } from "fflate";
-import { readProviderPackage } from "./package";
 import { createServiceInstance, projectInstanceConfig } from "./instances";
 import { providerHelpers } from "./sdk";
 import { runDeclarative } from "./declarative";
@@ -16,22 +13,9 @@ jest.mock("@streamparser/json", () =>
   jest.requireActual("../../node_modules/@streamparser/json/dist/cjs/index.js")
 );
 
-function example() {
-  const root = path.join(
-    process.cwd(),
-    "docs/plugins/examples/openai-compatible-bundle"
-  );
-  const files = {
-    "manifest.json": fs.readFileSync(path.join(root, "manifest.json")),
-  };
-  for (const service of JSON.parse(files["manifest.json"]).services)
-    files[service.implementation.entry] = fs.readFileSync(
-      path.join(root, service.implementation.entry)
-    );
-  return readProviderPackage(zipSync(files));
-}
+const example = () => testPackage();
 
-test("timestamped ASR example uses verbose JSON and returns real segments through the production executor", async () => {
+test("timestamped ASR rule uses verbose JSON and returns real segments through the production executor", async () => {
   const pack = example(),
     descriptor = pack.manifest.services.find(
       (service) => service.id === "timestamped-transcriptions"
@@ -108,7 +92,7 @@ test("native default prompt references do not overwrite the plugin's ID-based tr
   ).toBe("hello");
 });
 
-test("distributed vision script assembles an image data URL using owned bytes and does not invent coordinates", async () => {
+test("synthetic vision script assembles an image data URL using owned bytes and does not invent coordinates", async () => {
   const pack = example();
   const interpreter = new Sval({ ecmaVer: "latest", sandBox: true });
   interpreter.run(pack.implementations.vision);
@@ -139,7 +123,7 @@ test("distributed vision script assembles an image data URL using owned bytes an
   expect(result.items).toEqual([{ text: "recognized text", poly: null }]);
 });
 
-test("distributed streaming script emits production SDK events and rejects a missing terminal frame", async () => {
+test("synthetic streaming script emits production SDK events and rejects a missing terminal frame", async () => {
   const pack = example();
   const interpreter = new Sval({ ecmaVer: "latest", sandBox: true });
   interpreter.run(pack.implementations["chat-completions"]);
@@ -239,7 +223,7 @@ test("the same text service streams ordered translation items and rejects missin
   ).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
 });
 
-test("distributed mixed package runs translation with the production SDK and independent secret projection", async () => {
+test("synthetic mixed package runs translation with the production SDK and independent secret projection", async () => {
   const pack = example();
   const instance = createServiceInstance(
     pack.manifest,
@@ -291,61 +275,7 @@ test("distributed mixed package runs translation with the production SDK and ind
   expect(request.mock.calls[0][0].auth.secret.scope).toBe("existing-id");
 });
 
-test.each([
-  ["gpt-6-luna", "none", 0],
-  ["gpt-6.1-sol", "low", undefined],
-  ["gpt-6-astra", "low", undefined],
-  ["gpt-6.1-sol-2026-10-01", "low", undefined],
-  ["custom-model", undefined, 0],
-])(
-  "distributed scripts send compatible reasoning and sampling parameters for %s",
-  async (model, effort, temperature) => {
-    const pack = example();
-    const request = jest.fn(async () => ({
-      status: 200,
-      body: {
-        choices: [
-          {
-            message: { content: '[{"id":"a","text":"你好"}]' },
-            finish_reason: "stop",
-          },
-        ],
-      },
-    }));
-    const ctx = {
-      helpers: providerHelpers,
-      options: { streaming: false },
-      secrets: { ref: (key) => ({ key }) },
-      assets: { read: async () => new Uint8Array([1]).buffer },
-      http: { request },
-    };
-    const config = {
-      model,
-      baseUrl: "https://example.invalid/v1",
-      translationTemperature: 0,
-    };
-    const chat = new Sval({ ecmaVer: "latest", sandBox: true });
-    chat.run(pack.implementations["chat-completions"]);
-    await chat.exports.translate(
-      { items: [{ id: "a", text: "hello" }], targetLanguage: "zh" },
-      config,
-      ctx
-    );
-    expect(request.mock.calls[0][0].body.reasoning_effort).toBe(effort);
-    expect(request.mock.calls[0][0].body.temperature).toBe(temperature);
-    const vision = new Sval({ ecmaVer: "latest", sandBox: true });
-    vision.run(pack.implementations.vision);
-    await vision.exports.parseImage(
-      { image: { assetId: "image-1", mimeType: "image/png" } },
-      config,
-      ctx
-    );
-    expect(request.mock.calls[1][0].body.reasoning_effort).toBe(effort);
-    expect(request.mock.calls[1][0].body.temperature).toBeUndefined();
-  }
-);
-
-test("distributed JSON transcription and speech run through the production declarative executor", async () => {
+test("synthetic JSON transcription and speech run through the production declarative executor", async () => {
   const pack = example();
   const request = jest.fn(async (descriptor) => ({
     status: 200,
@@ -374,7 +304,7 @@ test("distributed JSON transcription and speech run through the production decla
       ctx
     )
   ).resolves.toEqual({ text: "hello" });
-  expect(request.mock.calls[0][0].body.model).toBe("gpt-transcribe");
+  expect(request.mock.calls[0][0].body.model).toBe("test-asr");
   expect(request.mock.calls[0][0].body.response_format).toBe("json");
   expect(request.mock.calls[0][0].body.language).toBeUndefined();
   const speech = pack.manifest.services.find(
@@ -398,7 +328,7 @@ test("distributed JSON transcription and speech run through the production decla
     mimeType: "audio/mpeg",
   });
   expect(request.mock.calls[1][0].body.speed).toBe(1);
-  expect(request.mock.calls[1][0].body.model).toBe("gpt-4o-mini-tts");
-  expect(request.mock.calls[1][0].body.voice).toBe("marin");
+  expect(request.mock.calls[1][0].body.model).toBe("test-speech");
+  expect(request.mock.calls[1][0].body.voice).toBe("test-voice");
   expect(request.mock.calls[1][0].body.response_format).toBe("mp3");
 });

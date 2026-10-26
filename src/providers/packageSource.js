@@ -114,6 +114,7 @@ export async function downloadProviderSource(
           return downloadProviderPackage(source.url, fetchImpl, {
             signal: controller.signal,
             timeoutMs,
+            archiveSha256: source.archiveSha256,
           });
         const canonical = parsePackageSource(source.repoUrl);
         if (canonical.kind !== "github")

@@ -6,7 +6,11 @@ import { ensureYoutubeBridgeRegistered } from "./youtubeBridgeRegistration";
 import { logger } from "./log";
 
 jest.mock("webextension-polyfill", () => ({ scripting: {} }));
-jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({ logger: { warn: jest.fn() } }))()));
+jest.mock("./log", () =>
+  jest
+    .requireActual("../testUtils/scopedLogMock")
+    .withScopedLogMock((() => ({ logger: { warn: jest.fn() } }))())
+);
 
 const id = "kiss-youtube-subtitle-bridge";
 const definition = {

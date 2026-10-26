@@ -423,6 +423,7 @@ export class YouTubeSubtitleList {
       "bilingual_subtitles",
       "双语字幕"
     )} [${this.subtitleProgress}%]`;
+    this.subtitleTabEl.title = this.subtitleTabEl.textContent;
   }
 
   /**
@@ -949,7 +950,9 @@ export class YouTubeSubtitleList {
    */
   downloadSubtitles() {
     if (!this.bilingualSubtitles || this.bilingualSubtitles.length === 0) {
-      logger.child("subtitle").debug("Youtube Provider: No subtitles to download");
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: No subtitles to download");
       return;
     }
 
@@ -962,7 +965,9 @@ export class YouTubeSubtitleList {
         `kiss-subtitles-${videoId}_${Date.now()}.vtt`
       );
     } catch (error) {
-      logger.child("subtitle").error("Youtube Provider: download subtitles error:", error);
+      logger
+        .child("subtitle")
+        .error("Youtube Provider: download subtitles error:", error);
     }
   }
 
@@ -971,7 +976,9 @@ export class YouTubeSubtitleList {
    */
   downloadTranslationOnlySubtitles() {
     if (!this.bilingualSubtitles || this.bilingualSubtitles.length === 0) {
-      logger.child("subtitle").debug("Youtube Provider: No subtitles to download");
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: No subtitles to download");
       return;
     }
 
@@ -984,14 +991,21 @@ export class YouTubeSubtitleList {
         `kiss-subtitles-translation-${videoId}_${Date.now()}.vtt`
       );
     } catch (error) {
-      logger.child("subtitle").error("Youtube Provider: download translation subtitles error:", error);
+      logger
+        .child("subtitle")
+        .error(
+          "Youtube Provider: download translation subtitles error:",
+          error
+        );
     }
   }
 
   downloadRawSubtitleEvents() {
     const rawEvents = this._getExportableRawSubtitleEvents();
     if (!rawEvents || rawEvents.length === 0) {
-      logger.child("subtitle").debug("Youtube Provider: No raw subtitle events to download");
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: No raw subtitle events to download");
       return;
     }
 
@@ -1004,7 +1018,9 @@ export class YouTubeSubtitleList {
         `kiss-subtitles-raw-${videoId}_${Date.now()}.json`
       );
     } catch (error) {
-      logger.child("subtitle").error("Youtube Provider: download raw subtitles error:", error);
+      logger
+        .child("subtitle")
+        .error("Youtube Provider: download raw subtitles error:", error);
     }
   }
 
@@ -1159,7 +1175,9 @@ export class YouTubeSubtitleList {
             this.container.style.setProperty(k, vars[k])
           );
         } catch (err) {
-          logger.child("subtitle").warn("failed to apply subtitle list theme vars", err);
+          logger
+            .child("subtitle")
+            .warn("failed to apply subtitle list theme vars", err);
         }
       })();
     }
@@ -1262,7 +1280,9 @@ export class YouTubeSubtitleList {
           ...(current?.subtitleSetting || DEFAULT_SUBTITLE_SETTING),
           youtubeShortsSubtitlePanelWidth: this._shortsPanelWidth,
         },
-      })).catch((err) => logger.child("subtitle").warn("save Shorts panel width failed", err));
+      })).catch((err) =>
+        logger.child("subtitle").warn("save Shorts panel width failed", err)
+      );
     };
     handle.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
@@ -1336,7 +1356,7 @@ export class YouTubeSubtitleList {
     // 1. 创建头部 Tab 区域
     const tabHeader = document.createElement("div");
     tabHeader.className = "kiss-youtube-tab-header";
-    tabHeader.style.cssText = `overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none; display: flex; align-items: center; border-bottom: 1px solid var(--kt-divider); padding: 0 16px; flex-shrink: 0;`;
+    tabHeader.style.cssText = `overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none; display: flex; align-items: center; border-bottom: 1px solid var(--kt-divider); padding: 0 4px; flex-shrink: 0;`;
 
     const subtitleTab = document.createElement("button");
     this.subtitleTabEl = subtitleTab;
@@ -1350,7 +1370,8 @@ export class YouTubeSubtitleList {
 
     // 动态控制 Tab 激活态与未激活态 CSS 的映射函数
     const styleTab = (tab, isActive) => {
-      tab.style.cssText = `padding: 12px 14px; cursor: pointer; border: none; background: transparent; font-size: 14px; font-weight: ${isActive ? "600" : "500"}; color: ${isActive ? "var(--kt-primary)" : "var(--kt-text)"}; border-bottom: 2px solid ${isActive ? "var(--kt-primary)" : "transparent"}; margin-bottom: -1px; outline: none; white-space: nowrap; flex-shrink: 0;`;
+      tab.title = tab.textContent;
+      tab.style.cssText = `padding: 12px 2px; flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; cursor: pointer; border: none; background: transparent; font-size: 14px; font-weight: ${isActive ? "600" : "500"}; color: ${isActive ? "var(--kt-primary)" : "var(--kt-text)"}; border-bottom: 2px solid ${isActive ? "var(--kt-primary)" : "transparent"}; margin-bottom: -1px; outline: none; white-space: nowrap;`;
     };
 
     // 关闭侧边列表栏的“×”小按钮
@@ -1358,7 +1379,8 @@ export class YouTubeSubtitleList {
     closeBtn.textContent = "×"; // 直接使用纯文本的“×”号，不再需要 HTML 转义
     closeBtn.title = this._t("close", "Close");
     closeBtn.style.cssText = `
-      margin-left: auto; 
+      flex: 0 0 auto;
+      margin-left: 0;
       background: transparent; 
       border: none; 
       color: var(--kt-subtext); 
@@ -1387,7 +1409,7 @@ export class YouTubeSubtitleList {
 
     // Tab 内容主容器 (控制 overflow 局部滚动，规避页面全局滚动条抖动)
     const tabContentContainer = document.createElement("div");
-    tabContentContainer.style.cssText = `overflow: hidden; flex-grow: 1; display: flex; flex-direction: column; height: calc(100% - 40px);`;
+    tabContentContainer.style.cssText = `overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column;`;
 
     // ----------------------------------------------------
     // [Tab 1]: 字幕列表面板
@@ -1398,7 +1420,7 @@ export class YouTubeSubtitleList {
 
     // 字幕操作工具条
     const subActionBar = document.createElement("div");
-    subActionBar.style.cssText = `padding: 10px 16px; border-bottom: 1px solid var(--kt-divider); display: flex; justify-content: center; gap: 8px; flex-shrink: 0;`;
+    subActionBar.style.cssText = `padding: 10px 16px; border-bottom: 1px solid var(--kt-divider); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0;`;
 
     const setupButtonHover = (btn) => {
       btn.addEventListener("mouseenter", () => {
@@ -1422,7 +1444,7 @@ export class YouTubeSubtitleList {
       });
     };
 
-    const baseBtnStyle = `padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; opacity: 1; transition: background 220ms ease, color 200ms ease, transform 160ms ease, opacity 200ms ease;`;
+    const baseBtnStyle = `white-space: nowrap; flex-shrink: 0; line-height: 16px; padding: 6px 12px; background: var(--kt-btn-bg); color: var(--kt-btn-color); border: var(--kt-btn-border); border-radius: 4px; cursor: pointer; font-size: 12px; opacity: 1; transition: background 220ms ease, color 200ms ease, transform 160ms ease, opacity 200ms ease;`;
 
     const downloadBtn = (this.downloadBtn = document.createElement("button"));
     downloadBtn.textContent = this._t(
@@ -1520,10 +1542,10 @@ export class YouTubeSubtitleList {
       this.asrPanel = new AsrTaskPanel(this.i18n, this.asrActions);
       this.asrView = document.createElement("div");
       this.asrView.style.cssText =
-        "display:none;flex-direction:column;height:100%;overflow:hidden;";
+        "display:none;flex-direction:column;height:100%;min-height:0;overflow:hidden;color:var(--kt-text);";
       this.asrEnableView = document.createElement("div");
       this.asrEnableView.style.cssText =
-        "display:none;justify-content:center;padding:24px 16px;";
+        "display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;overflow-y:auto;padding:24px 16px;text-align:center;line-height:1.5;";
       this.asrStartButton = document.createElement("button");
       this.asrStartButton.style.cssText = baseBtnStyle;
       this.asrStartButton.textContent = this.i18n("youtube_asr_enable");
@@ -1536,6 +1558,17 @@ export class YouTubeSubtitleList {
       this.asrInactiveNotice = document.createElement("div");
       this.asrInactiveNotice.setAttribute("role", "status");
       this.asrEnableView.append(this.asrInactiveNotice);
+      this.asrSettingsButton = document.createElement("button");
+      this.asrSettingsButton.style.cssText = baseBtnStyle;
+      this.asrSettingsButton.textContent = this._t(
+        "go_to_settings",
+        "前往设置"
+      );
+      this.asrSettingsButton.addEventListener("click", () =>
+        openOptionsPage("/subtitle")
+      );
+      setupButtonHover(this.asrSettingsButton);
+      this.asrEnableView.append(this.asrSettingsButton);
       this.asrView.append(this.asrEnableView, this.asrPanel.element);
       this.asrPanel.toolbar.append(
         this.asrAudioButton,
@@ -1565,7 +1598,7 @@ export class YouTubeSubtitleList {
 
     // 字幕滚动视口容器
     this.subtitleScrollContainer = document.createElement("div");
-    this.subtitleScrollContainer.style.cssText = `overflow-y: auto; flex: 1; padding: 0 16px; position: relative;`;
+    this.subtitleScrollContainer.style.cssText = `overflow-y: auto; flex: 1; min-height: 0; padding: 0 16px; position: relative;`;
     this.subtitleScrollContainer.addEventListener(
       "scroll",
       this.handleSubtitleScroll,
@@ -1864,7 +1897,10 @@ export class YouTubeSubtitleList {
       ? this.i18n("youtube_asr_clearing")
       : this.asrState?.cacheDeleteError
         ? this.i18n("youtube_asr_cache_delete_failed")
-        : "";
+        : !this.asrState?.available
+          ? this.i18n("youtube_asr_setup_guide")
+          : "";
+    this.asrSettingsButton.hidden = !!this.asrState?.available;
     if (this.asrInactiveNotice.textContent !== inactiveNotice)
       this.asrInactiveNotice.textContent = inactiveNotice;
   }
@@ -2644,7 +2680,9 @@ export class YouTubeSubtitleList {
           prompts = stored.prompts;
         }
       } catch (e) {
-        logger.child("subtitle").warn("resolveSummaryConfig failed to get setting", e);
+        logger
+          .child("subtitle")
+          .warn("resolveSummaryConfig failed to get setting", e);
       }
     }
 

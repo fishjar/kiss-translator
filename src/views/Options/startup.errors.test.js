@@ -15,7 +15,11 @@ jest.mock("../../libs/sync", () => ({
   trySyncSetting: jest.fn(),
   trySyncWords: jest.fn(),
 }));
-jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => ({ kissLog: jest.fn() }))()));
+jest.mock("../../libs/log", () =>
+  jest
+    .requireActual("../../testUtils/scopedLogMock")
+    .withScopedLogMock((() => ({ kissLog: jest.fn() }))())
+);
 jest.mock("../../libs/utils", () => ({
   sleep: jest.fn(() => Promise.resolve()),
 }));

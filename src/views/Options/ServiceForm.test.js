@@ -15,7 +15,7 @@ import fs from "fs";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-test("ASR duration setting has the legacy default, integer bounds and an editable invalid draft", async () => {
+test("ASR duration setting has the 20-second default, integer bounds and an editable invalid draft", async () => {
   const node = document.createElement("div");
   document.body.append(node);
   const root = createRoot(node);
@@ -29,7 +29,7 @@ test("ASR duration setting has the legacy default, integer bounds and an editabl
       root.render(<AsrDurationSetting api={api} onChange={onChange} />)
     );
     let input = node.querySelector("input");
-    expect(input.value).toBe("30");
+    expect(input.value).toBe("20");
     expect([input.min, input.max, input.step]).toEqual(["1", "300", "1"]);
     await act(async () => Simulate.change(input, { target: { value: "12" } }));
     expect(onChange).toHaveBeenCalledWith(12);
@@ -215,7 +215,7 @@ test("shared header handles disabled/pinned and prompt selection has no preview"
   }
   try {
     await act(async () => root.render(<Harness />));
-    expect(node.textContent).toContain("外部插件 · Example Plugin");
+    expect(node.textContent).toContain("插件接口 · Example Plugin");
     expect(node.querySelector("textarea")).toBeNull();
     expect(node.textContent).toContain("插件内部默认");
     expect(node.textContent).not.toContain("复制提示词");

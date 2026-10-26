@@ -1,7 +1,7 @@
 import { logger } from "../../libs/log";
 import { blockTask } from "./tasks";
 import { asrFailure } from "./status";
-import { ASR_SAMPLE_RATE } from "./audioChunks";
+import { ASR_SAMPLE_RATE, ASR_MAX_WAV_BYTES } from "./audioChunks";
 import { AsrPcmPipeline } from "./pcmPipeline";
 import { IncrementalAacDecoder } from "./aacDecoder";
 import { AudioDownloadManager } from "./downloadManager";
@@ -13,6 +13,7 @@ import { missingIntervals, coverageProgress } from "./coverage";
 import { transcribeAudioChunk } from "./transcribeChunk";
 import { remuxAac, cropAacSentence } from "./audioExport";
 import {
+  isLocalAsrService,
   asrChunkDurationSeconds,
   asrSegmentCues,
   asrSupportsTimestamps,
@@ -392,7 +393,12 @@ export class AsrVideoSession {
     } catch (cause) {
       this.check();
       this.cacheFailed = true;
-      logger.child("subtitle").debug("[YouTube ASR cache] text restore failed", cause.code || cause.name);
+      logger
+        .child("subtitle")
+        .debug(
+          "[YouTube ASR cache] text restore failed",
+          cause.code || cause.name
+        );
       this.state.cacheError = cause.code || "CACHE_UNAVAILABLE";
     }
     this.restored = true;
@@ -1023,6 +1029,34 @@ export class AsrVideoSession {
             return this.recognize(this.asrService, chunk, {
               signal,
               language: this.language,
+              maxBytes: this.limits.maxBytes,
+              maxDurationSeconds: this.limits.maxModelDurationSeconds,
+              prepareAudio: async () => {
+                await this.waitUntilRunning(signal);
+                checkAudio();
+                const startMs = chunk.startSample / 16,
+                  endMs = chunk.endSample / 16;
+                try {
+                  const result = await cropAacSentence(
+                    download.segmentsFor(startMs, endMs, { signal }),
+                    startMs,
+                    endMs,
+                    {
+                      signal,
+                      maxBytes: Math.min(
+                        this.limits.maxBytes ?? ASR_MAX_WAV_BYTES,
+                        ASR_MAX_WAV_BYTES
+                      ),
+                    }
+                  );
+                  checkAudio();
+                  return result;
+                } catch (cause) {
+                  if (cause.code === "AUDIO_CACHE_MISSING")
+                    await this.discardMissingAudio(download);
+                  throw cause;
+                }
+              },
               onProgress: (event) => {
                 if (!signal.aborted)
                   this.onTask({
@@ -1153,6 +1187,7 @@ export class AsrVideoSession {
               endSample: range.end,
               fixedRange: !indexOnly,
               silent: range.silent,
+              boundaryPaddingFrames: isLocalAsrService(this.asrService) ? 0 : 2,
             }
           );
           decoder = this.createDecoder(onAudio, signal);

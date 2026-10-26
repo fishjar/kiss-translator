@@ -145,7 +145,9 @@ async function smartReplaceText(node, newText) {
   // ------------------------------------------------
   if (isRichEditor) {
     try {
-      logger.child("input-translate").debug("Rich Editor detected: Priority Strategy (Clipboard Paste)");
+      logger
+        .child("input-translate")
+        .debug("Rich Editor detected: Priority Strategy (Clipboard Paste)");
       const dt = new DataTransfer();
       dt.setData("text/plain", newText);
       const pasteEvt = new ClipboardEvent("paste", {
@@ -185,7 +187,9 @@ async function smartReplaceText(node, newText) {
       setNativeValue(node, newText);
       return true;
     } catch (e) {
-      logger.child("input-translate").debug("Strategy 2 (Input Value) failed", e);
+      logger
+        .child("input-translate")
+        .debug("Strategy 2 (Input Value) failed", e);
     }
   }
 
@@ -639,10 +643,18 @@ export class InputTranslator {
       // 6. 执行替换 (使用新的智能替换函数)
       const success = await smartReplaceText(node, newText);
       if (!success) {
-        logger.child("input-translate").error("Text replacement failed after all strategies.");
+        logger
+          .child("input-translate")
+          .error("Text replacement failed after all strategies.");
       }
     } catch (err) {
-      logger.child("input-translate")[err?.name === "AbortError" || err?.code === "REQUEST_CANCELLED" ? "info" : "error"]("Translate input error:", err);
+      logger
+        .child("input-translate")
+        [
+          err?.name === "AbortError" || err?.code === "REQUEST_CANCELLED"
+            ? "info"
+            : "error"
+        ]("Translate input error:", err);
     } finally {
       removeLoading(loadingId);
       // 恢复显示按钮

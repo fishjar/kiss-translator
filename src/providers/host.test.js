@@ -24,7 +24,6 @@ const start = {
   instance: {},
   capability: "chat",
   input: { messages: [] },
-  approvedOrigins: [],
   options: { timeoutMs: 100 },
 };
 beforeEach(() => jest.useFakeTimers());

@@ -405,7 +405,7 @@ test("v2 text tasks execute through the registry and capability switches still a
   ).rejects.toMatchObject({ code: "CAPABILITY_DISABLED" });
 });
 
-test("v2 protocol requests use the Broker for authorization, secret injection and cancellation", async () => {
+test("v2 protocol requests use the Broker for network scope validation, secret injection and cancellation", async () => {
   const { instance, ctx } = execution();
   const controller = new AbortController();
   const fetchImpl = jest.fn(async () => ({
@@ -420,7 +420,6 @@ test("v2 protocol requests use the Broker for authorization, secret injection an
   const broker = createTransportBroker(instance, {
     assets: ctx.assets,
     signal: controller.signal,
-    approvedOrigins: new Set(["https://example.invalid"]),
     fetchImpl,
   });
   const input = { messages: [{ role: "user", content: "hi" }] };
@@ -430,12 +429,10 @@ test("v2 protocol requests use the Broker for authorization, secret injection an
   expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe(
     "Bearer secret"
   );
-  const denied = createTransportBroker(instance, {
-    assets: ctx.assets,
-    signal: controller.signal,
-    approvedOrigins: new Set(),
-    fetchImpl,
-  });
+  const denied = createTransportBroker(
+    { ...instance, provider: { ...instance.provider, permissions: {} } },
+    { assets: ctx.assets, signal: controller.signal, fetchImpl }
+  );
   await expect(
     runDeclarative(instance.provider, "chat", input, { ...ctx, ...denied })
   ).rejects.toMatchObject({ code: "NETWORK_DENIED" });

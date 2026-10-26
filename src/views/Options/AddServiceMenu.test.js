@@ -86,12 +86,12 @@ test("external submenu adds a default snapshot without authorization and disable
     await act(async () => root.render(<Harness />));
     await act(async () => Simulate.click(node.querySelector("button")));
     const parent = Array.from(node.querySelectorAll('[role="menuitem"]')).find(
-      (item) => item.textContent === "外部插件"
+      (item) => item.textContent === "插件接口"
     );
     await act(async () => Simulate.keyDown(parent, { key: "ArrowRight" }));
     const children = Array.from(
       node
-        .querySelector('[aria-label="外部插件"]')
+        .querySelector('[aria-label="插件接口"]')
         .querySelectorAll('[role="menuitem"]')
     );
     expect(

@@ -6,7 +6,7 @@ import { validateResult } from "../../providers/validation";
 import { providerError } from "../../providers/capabilities";
 import { enabledApiCapabilities } from "../../config/serviceSelection";
 import { ASR_SAMPLE_RATE, ASR_MAX_WAV_BYTES, asrWav } from "./audioChunks";
-import { asrChunkDurationSeconds } from "./timing";
+import { asrChunkDurationSeconds, isLocalAsrService } from "./timing";
 import { isHostedLocalAsr } from "../../providers/localAsrRouting";
 import { alignedAsrWords } from "../../providers/asrWords";
 import { logger } from "../../libs/log";
@@ -16,7 +16,14 @@ import { startLogTask } from "../../libs/diagnostics/task";
 export async function transcribeAudioChunk(
   service,
   chunk,
-  { signal, language, onProgress } = {}
+  {
+    signal,
+    language,
+    onProgress,
+    prepareAudio,
+    maxBytes = ASR_MAX_WAV_BYTES,
+    maxDurationSeconds = Infinity,
+  } = {}
 ) {
   const checkCancelled = () => {
     if (signal?.aborted)
@@ -34,6 +41,8 @@ export async function transcribeAudioChunk(
   )
     throw providerError("INVALID_INPUT", "Invalid audio chunk interval.");
   const duration = audio.length / ASR_SAMPLE_RATE;
+  const local = isLocalAsrService(service);
+  let leadingSeconds = 0;
   if (duration > asrChunkDurationSeconds(service))
     throw providerError(
       "INPUT_LIMIT_EXCEEDED",
@@ -60,14 +69,46 @@ export async function transcribeAudioChunk(
   const task = startLogTask("subtitle-asr", { serviceId: service.apiSlug });
   let call, events;
   try {
-    const wav = asrWav(audio);
-    if (wav.size > ASR_MAX_WAV_BYTES)
+    let file;
+    if (local)
+      file = new File([asrWav(audio)], "input.wav", { type: "audio/wav" });
+    else {
+      if (!prepareAudio)
+        throw providerError(
+          "INVALID_INPUT",
+          "Compressed ASR audio is required."
+        );
+      const prepared = await prepareAudio();
+      checkCancelled();
+      const logicalStart = startSample / ASR_SAMPLE_RATE;
+      if (
+        !prepared?.blob ||
+        prepared.blob.type !== "audio/mp4" ||
+        !Number.isFinite(prepared.startMs) ||
+        !Number.isFinite(prepared.endMs) ||
+        prepared.startMs < 0 ||
+        prepared.startMs > logicalStart * 1000 + 0.001 ||
+        prepared.endMs < endSample / 16 - 0.001
+      )
+        throw providerError("INVALID_INPUT", "Invalid M4A audio interval.");
+      if (
+        (prepared.endMs - prepared.startMs) / 1000 >
+        Math.min(asrChunkDurationSeconds(service), maxDurationSeconds) + 1e-6
+      )
+        throw providerError(
+          "INPUT_LIMIT_EXCEEDED",
+          "Split audio before transcription."
+        );
+      leadingSeconds = logicalStart - prepared.startMs / 1000;
+      file = new File([prepared.blob], "input.m4a", { type: "audio/mp4" });
+    }
+    if (file.size > Math.min(maxBytes, ASR_MAX_WAV_BYTES))
       throw providerError(
         "RESOURCE_BUDGET_EXCEEDED",
         "Split audio to fit the service asset budget."
       );
     const input = {
-      audio: assets.put(wav),
+      audio: assets.put(file),
       requireTimestamps: false,
       ...(language && { language }),
     };
@@ -112,8 +153,14 @@ export async function transcribeAudioChunk(
       const parsed = [];
       for (const seg of result.segments) {
         const text = seg.text || "";
-        const rawStart = Number(seg.start);
-        const rawEnd = Number(seg.end);
+        const rawStart = Number(seg.start) - leadingSeconds;
+        const rawEnd = Number(seg.end) - leadingSeconds;
+        if (
+          !local &&
+          rawEnd > rawStart &&
+          (rawEnd <= 0 || rawStart >= duration)
+        )
+          continue;
         // 方案 B：对时间戳进行容差钳位，避免短音频末尾或微小浮点溢出导致整块抛弃
         const start = Math.max(0, Math.min(duration, rawStart));
         const end = Math.max(start, Math.min(duration, rawEnd));
@@ -140,7 +187,9 @@ export async function transcribeAudioChunk(
           start < lastStart ||
           (text.trim() && end <= start)
         ) {
-          logger.child("subtitle").warn("[YouTube ASR] timestamp fallback", JSON.stringify({
+          logger.child("subtitle").warn(
+            "[YouTube ASR] timestamp fallback",
+            JSON.stringify({
               startSample,
               endSample,
               duration,
@@ -155,18 +204,30 @@ export async function transcribeAudioChunk(
               end: rawEnd,
               textLength: text.length,
               wordCount: seg.words?.length || 0,
-            }));
+            })
+          );
           valid = false;
           break;
         }
         lastStart = start;
-        const words = alignedAsrWords({ ...seg, start, end });
+        const rawWords = alignedAsrWords(seg);
+        const words = rawWords
+          ?.map((word) => ({
+            ...word,
+            start: Math.max(start, Math.min(end, word.start - leadingSeconds)),
+            end: Math.max(start, Math.min(end, word.end - leadingSeconds)),
+          }))
+          .filter((word) => word.end > word.start);
+        const clippedText =
+          rawWords && words.length !== rawWords.length
+            ? words.map((word) => word.text).join("")
+            : text;
         const offset = startSample / ASR_SAMPLE_RATE;
         parsed.push({
           start: startSample / ASR_SAMPLE_RATE + start,
           end: startSample / ASR_SAMPLE_RATE + end,
-          text,
-          ...(words && {
+          text: clippedText,
+          ...(words?.length && {
             words: words.map((word) => ({
               ...word,
               start: word.start + offset,
@@ -175,7 +236,7 @@ export async function transcribeAudioChunk(
           }),
         });
       }
-      if (valid && parsed.length > 0) {
+      if (valid) {
         segments = parsed;
       } else {
         // 时间戳异常无法修复时，平滑降级为整段音频起止时间
@@ -201,7 +262,9 @@ export async function transcribeAudioChunk(
           ]
         : [];
     }
-    logger.child("subtitle").debug("[YouTube ASR] timing result", JSON.stringify({
+    logger.child("subtitle").debug(
+      "[YouTube ASR] timing result",
+      JSON.stringify({
         startSample,
         endSample,
         timingSource,
@@ -216,7 +279,8 @@ export async function transcribeAudioChunk(
           (sum, seg) => sum + (seg.words?.length || 0),
           0
         ),
-      }));
+      })
+    );
     return {
       startSample,
       endSample,

@@ -8,12 +8,6 @@ import { OPT_LANGS_LIST } from "../../config";
 import { apiTranslate } from "../../apis";
 import { enabledApiCapabilities } from "../../config/serviceSelection";
 import { validateServiceConfig } from "../../providers/instances";
-import {
-  approvedProviderOrigins,
-  providerGrantKey,
-  providerPluginId,
-} from "../../providers/grants";
-import { browser } from "../../libs/browser";
 import { translatePlugin } from "../../providers/translationAdapter";
 import { invokeService } from "../../providers/serviceRuntime";
 
@@ -34,22 +28,6 @@ export default function QuickTranslationTest({
     },
     []
   );
-  useEffect(() => {
-    if (!api.provider || api.provider.implementation.kind === "native") return;
-    let grantKey;
-    try {
-      grantKey = providerGrantKey(providerPluginId(api));
-    } catch {
-      // Invalid snapshots remain editable; invocation reports the configuration error.
-      return;
-    }
-    const changed = (changes, area) => {
-      if (area === "local" && changes[grantKey] && !changes[grantKey].newValue)
-        activeTest.current?.abort();
-    };
-    browser.storage.onChanged.addListener(changed);
-    return () => browser.storage.onChanged.removeListener(changed);
-  }, [api]);
   const handleApiTest = async () => {
     if (activeTest.current || disabled) return;
     const controller = new AbortController();
@@ -83,18 +61,13 @@ export default function QuickTranslationTest({
           apiSetting.pluginConfig,
           enabledApiCapabilities(apiSetting)
         );
-        const origins = await approvedProviderOrigins(apiSetting);
         if (controller.signal.aborted) return;
         for await (const row of translatePlugin([text], {
           apiSetting,
           fromLang,
           toLang,
           signal: controller.signal,
-          invoke: (instance, capability, input, options) =>
-            invokeService(instance, capability, input, {
-              ...options,
-              approvedOrigins: origins,
-            }),
+          invoke: invokeService,
         })) {
           if (row.result) trText = row.result[0];
         }

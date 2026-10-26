@@ -68,7 +68,9 @@ export function useSyncCaches() {
 
   useEffect(() => {
     mountedRef.current = true;
-    reloadSync().catch((error) => logger.child("sync").warn("load sync caches", error));
+    reloadSync().catch((error) =>
+      logger.child("sync").warn("load sync caches", error)
+    );
     return () => {
       mountedRef.current = false;
       readRevisionRef.current += 1;

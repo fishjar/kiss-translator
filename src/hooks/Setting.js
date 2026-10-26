@@ -54,7 +54,9 @@ export function SettingProvider({ children, context }) {
           await sendBgMsg(MSG_SET_LOGLEVEL, logLevel);
         }
       } catch (error) {
-        logger.child("setting").error("Failed to fetch log level, using default.", error);
+        logger
+          .child("setting")
+          .error("Failed to fetch log level, using default.", error);
       }
     })();
   }, [isOptionsPage, logLevel]);

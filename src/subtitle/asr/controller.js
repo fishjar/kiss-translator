@@ -935,7 +935,7 @@ export class YoutubeAsrController {
         if (session !== this.session || !this.active) return;
         downloadBlobFile(
           result.blob,
-          `youtube-${session.identity.videoId}-${Math.round(cue.start)}-${Math.round(cue.end)}.wav`
+          `youtube-${session.identity.videoId}-${Math.round(cue.start)}-${Math.round(cue.end)}.m4a`
         );
       } catch (cause) {
         if (cause.name === "AbortError" && session !== this.session) return;

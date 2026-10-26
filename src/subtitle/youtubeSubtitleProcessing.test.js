@@ -97,12 +97,16 @@ jest.mock("../config", () => ({
   OPT_TRANS_MICROSOFT: "microsoft",
 }));
 
-jest.mock("../libs/log.js", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
-  logger: {
-    debug: jest.fn(),
-    info: jest.fn(),
-  },
-}))()));
+jest.mock("../libs/log.js", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      logger: {
+        debug: jest.fn(),
+        info: jest.fn(),
+      },
+    }))()
+  )
+);
 
 describe("youtubeSubtitleProcessing", () => {
   test.each([

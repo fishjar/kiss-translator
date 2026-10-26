@@ -56,11 +56,7 @@ jest.mock("../localAi/core/settings", () => ({
 
 let counter = 0;
 beforeEach(() => {
-  browser.storage.local.get.mockImplementation(async (key) =>
-    typeof key === "string" && key.startsWith("kiss-provider-plugin-grant:")
-      ? { [key]: { enabled: true, origins: [] } }
-      : {}
-  );
+  browser.storage.local.get.mockResolvedValue({});
   Object.defineProperty(global, "crypto", {
     configurable: true,
     value: {

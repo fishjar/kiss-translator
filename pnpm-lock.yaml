@@ -65,6 +65,9 @@ importers:
       opencc-js:
         specifier: 1.4.2
         version: 1.4.2
+      parse5:
+        specifier: 7.3.0
+        version: 7.3.0
       pdfjs-dist:
         specifier: 5.4.624
         version: 5.4.624

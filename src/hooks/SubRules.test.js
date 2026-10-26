@@ -24,7 +24,11 @@ jest.mock("../libs/subRules", () => ({
   loadOrFetchSubRules: jest.fn(),
 }));
 
-jest.mock("../libs/log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({ kissLog: jest.fn() }))()));
+jest.mock("../libs/log", () =>
+  jest
+    .requireActual("../testUtils/scopedLogMock")
+    .withScopedLogMock((() => ({ kissLog: jest.fn() }))())
+);
 
 function deferred() {
   let resolve;

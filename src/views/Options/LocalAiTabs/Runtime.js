@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   CardContent,
+  IconButton,
   Stack,
   Table,
   TableBody,
@@ -11,9 +12,12 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import { runtimeHost } from "../../../localAi/runtime/runtimeHostAdapter";
+import { nextRpcId } from "../../../localAi/runtime/rpc";
 import { getRuntimeStatus } from "../../../localAi/core/runtimeClient";
 import { useI18n } from "../../../hooks/I18n";
 import Settings from "./Settings";
@@ -26,6 +30,8 @@ export default function RuntimeTab() {
   const [status, setStatus] = useState(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [unloading, setUnloading] = useState([]);
+  const unloadingServices = useRef(new Set());
   const [pending, setPending] = useState(runtimeHost.getPendingCount());
   useEffect(() => runtimeHost.onPendingChange(setPending), []);
   const mounted = useRef(false);
@@ -62,6 +68,27 @@ export default function RuntimeTab() {
       unsub();
     };
   }, [refresh]);
+  const endSession = async (service) => {
+    if (unloadingServices.current.has(service)) return;
+    unloadingServices.current.add(service);
+    setUnloading([...unloadingServices.current]);
+    setError("");
+    try {
+      await runtimeHost.request({
+        id: nextRpcId("session-unload"),
+        service,
+        method: "unload",
+        payload: {},
+      });
+      await refresh();
+    } catch (e) {
+      if (mounted.current) setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      unloadingServices.current.delete(service);
+      if (mounted.current) setUnloading([...unloadingServices.current]);
+    }
+  };
+  const endSessionLabel = i18n("local_ai_end_session", "结束会话并卸载模型");
   return (
     <Stack spacing={2}>
       <InferenceCache />
@@ -110,6 +137,9 @@ export default function RuntimeTab() {
                         {i18n(`local_ai_session_${key}`, fallback)}
                       </TableCell>
                     ))}
+                    <TableCell align="right">
+                      {i18n("local_ai_session_actions", "操作")}
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -127,6 +157,25 @@ export default function RuntimeTab() {
                         </TableCell>
                         <TableCell>{session?.backend ?? "—"}</TableCell>
                         <TableCell>{session?.sessionVersion ?? 0}</TableCell>
+                        <TableCell align="right">
+                          <Tooltip title={endSessionLabel}>
+                            <span>
+                              <IconButton
+                                size="small"
+                                aria-label={`${endSessionLabel} (${service})`}
+                                disabled={
+                                  !session?.modelId ||
+                                  session.busy ||
+                                  !["ready", "idle"].includes(session.state) ||
+                                  unloading.includes(service)
+                                }
+                                onClick={() => endSession(service)}
+                              >
+                                <PowerSettingsNewIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </TableCell>
                       </TableRow>
                     );
                   })}

@@ -1,0 +1,30 @@
+export const htmlTextCases = [
+  ["React", "React"],
+  ["A &amp; B&nbsp;&copy;&NotEqualTilde;", "A & B\u00a0©≂̸"],
+  ["isn&#39;t &#x1F600;", "isn't 😀"],
+  ["&lt;i1&gt;A&lt;/i1&gt; &amp;lt;", "<i1>A</i1> &lt;"],
+  ['<b title="ignored">A <i>B &amp; C</i></b><!--ignored-->', "A B & C"],
+  ["<b>A<i>B", "AB"],
+  ['<frameset><frame src="about:blank"></frameset>', ""],
+  ["<!--only a comment-->", ""],
+  [" \n ", ""],
+  ["<title>Page title</title>Body", "Body"],
+  ["Body<title>Page title</title>", "Body"],
+  ["<title>Page title</title>", ""],
+  ["<style>.x{color:red}</style>Body", "Body"],
+  ["Body<style>.x{color:red}</style>", "Body"],
+  ["<script>throw new Error('ignored')</script>React", "React"],
+  ["<template><b>ignored</b></template>React", "React"],
+  ["<iframe>ignored</iframe>React", "React"],
+  ["<noembed>ignored</noembed>React", "React"],
+  ["<noframes>ignored</noframes>React", "React"],
+  ["<noscript>Fallback &amp; text</noscript>Body", "Fallback & textBody"],
+  ["Body<noscript><b>Fallback</b></noscript>", "BodyFallback"],
+  ["", ""],
+  [null, null],
+  [undefined, undefined],
+  [42, 42],
+];
+
+export const google2Text = "First<br> Second<BR/>\tThird<br />&lt;br&gt;";
+export const google2Expected = "First\nSecond\nThird\n<br>";

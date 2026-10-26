@@ -1,4 +1,24 @@
 export const LOCAL_AI_I18N = {
+  local_ai_session_actions: {
+    zh: "操作",
+    en: "Actions",
+    zh_TW: "操作",
+    ja: "操作",
+    ko: "작업",
+    tr: "İşlemler",
+    vi: "Thao tác",
+    ru: "Действия",
+  },
+  local_ai_end_session: {
+    zh: "结束会话并卸载模型",
+    en: "End session and unload model",
+    zh_TW: "結束工作階段並卸載模型",
+    ja: "セッションを終了してモデルを解放",
+    ko: "세션 종료 및 모델 해제",
+    tr: "Oturumu sonlandır ve modeli boşalt",
+    vi: "Kết thúc phiên và dỡ mô hình",
+    ru: "Завершить сеанс и выгрузить модель",
+  },
   local_ai_inference_start: {
     zh: "开始推理",
     en: "Inference started",

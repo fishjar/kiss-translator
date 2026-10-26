@@ -112,18 +112,22 @@ jest.mock("../../libs/rules", () => ({
   matchRule: (...args) => mockMatchRule(...args),
 }));
 
-jest.mock("../../libs/log", () => jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock((() => {
-  // LogLevel 仍由真实模块提供：config/setting.js 在导入期读取 LogLevel.INFO。
-  // logger 用 getter 延迟读取：mock 工厂在 import 阶段执行，直接返回对象会命中 TDZ。
-  const actual = jest.requireActual("../../libs/log");
-  return {
-    LogLevel: actual.LogLevel,
-    get logger() {
-      return mockLogger;
-    },
-    kissLog: jest.fn(),
-  };
-})()));
+jest.mock("../../libs/log", () =>
+  jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock(
+    (() => {
+      // LogLevel 仍由真实模块提供：config/setting.js 在导入期读取 LogLevel.INFO。
+      // logger 用 getter 延迟读取：mock 工厂在 import 阶段执行，直接返回对象会命中 TDZ。
+      const actual = jest.requireActual("../../libs/log");
+      return {
+        LogLevel: actual.LogLevel,
+        get logger() {
+          return mockLogger;
+        },
+        kissLog: jest.fn(),
+      };
+    })()
+  )
+);
 
 // 真实 AI 翻译测试走 apiTranslate；单测中 mock，避免引入 ESM-only 依赖（query-string）。
 const mockApiTranslate = jest.fn();

@@ -24,7 +24,7 @@ export function invokeService(instance, capability, input, options = {}) {
     !instance.provider ||
     instance.provider.implementation.kind === "native"
   ) {
-    // Native execution has no interpreter or user network grants. Its compiled
+    // Native execution has no interpreter or plugin network broker. Its compiled
     // adapter remains responsible for the existing trusted transport/lifecycle.
     const assets = options.assets || createAssetStore();
     const invocation = createInvocation(async (invocation) => {

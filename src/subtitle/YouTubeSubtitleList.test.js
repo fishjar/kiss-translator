@@ -965,7 +965,9 @@ test("inactive ASR tab exposes only its enable button and switching tabs never s
     expect(list.asrTabEl).toBeDefined();
     list.selectAsrTab();
     expect(list.asrEnableView.style.display).toBe("flex");
-    expect(list.asrEnableView.querySelectorAll("button")).toHaveLength(1);
+    expect(
+      list.asrEnableView.querySelectorAll("button:not([hidden])")
+    ).toHaveLength(1);
     expect(list.asrStartButton.textContent).toBe("youtube_asr_enable");
     expect(list.asrStartButton.disabled).toBe(false);
     expect(list.asrPanel.element.style.display).toBe("none");
@@ -1019,6 +1021,10 @@ test("unconfigured recognition keeps its tab with a disabled enable button and c
     expect(list.asrStartButton.style.opacity).toBe("0.45");
     expect(list.asrStartButton.style.cursor).toBe("not-allowed");
     expect(list.asrStartButton.title).toBe("youtube_asr_service_unavailable");
+    expect(list.asrInactiveNotice.textContent).toBe("youtube_asr_setup_guide");
+    expect(list.asrSettingsButton.hidden).toBe(false);
+    list.asrSettingsButton.click();
+    expect(openOptionsPage).toHaveBeenCalledWith("/subtitle");
     list.asrStartButton.click();
     expect(start).not.toHaveBeenCalled();
     list.updateAsrState({ phase: "off", active: false, available: true });
@@ -1026,6 +1032,8 @@ test("unconfigured recognition keeps its tab with a disabled enable button and c
     expect(list.asrStartButton.style.opacity).toBe("1");
     expect(list.asrStartButton.style.cursor).toBe("pointer");
     expect(list.asrStartButton.title).toBe("");
+    expect(list.asrInactiveNotice.textContent).toBe("");
+    expect(list.asrSettingsButton.hidden).toBe(true);
   } finally {
     list.destroy();
   }

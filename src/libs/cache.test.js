@@ -20,7 +20,11 @@ jest.mock("./client", () => ({
 }));
 jest.mock("./browser", () => ({ isBg: () => mockIsBackground }));
 jest.mock("./msg", () => ({ sendBgMsg: jest.fn() }));
-jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({ kissLog: jest.fn() }))()));
+jest.mock("./log", () =>
+  jest
+    .requireActual("../testUtils/scopedLogMock")
+    .withScopedLogMock((() => ({ kissLog: jest.fn() }))())
+);
 jest.mock("./response", () => ({ parseResponse: jest.fn() }));
 
 describe("translation cache clearing", () => {

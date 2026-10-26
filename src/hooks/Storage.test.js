@@ -30,10 +30,14 @@ jest.mock("../libs/browser", () => ({
   isOptions: jest.fn(),
 }));
 
-jest.mock("../libs/log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({
-  ...jest.requireActual("../libs/log"),
-  kissLog: jest.fn(),
-}))()));
+jest.mock("../libs/log", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      ...jest.requireActual("../libs/log"),
+      kissLog: jest.fn(),
+    }))()
+  )
+);
 
 const DEFAULT_VALUE = { local: true };
 const LOCAL_KEY = "local-setting";

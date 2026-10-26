@@ -26,7 +26,9 @@ class GmInterpreter {
       const fn = new Function("exports", ...keys, code);
       fn(this.exports, ...values);
     } catch (e) {
-      logger.child("interpreter-gm").error("[GmInterpreter] Execution error:", e);
+      logger
+        .child("interpreter-gm")
+        .error("[GmInterpreter] Execution error:", e);
     }
   }
 }

@@ -1625,7 +1625,9 @@ export async function translateEpubBook(
                 }
               } catch (e) {
                 if (signal?.aborted) throw e;
-                logger.child("file-translate").warn("翻译 NCX 目录条目失败:", origText, e);
+                logger
+                  .child("file-translate")
+                  .warn("翻译 NCX 目录条目失败:", origText, e);
               }
             }
           }

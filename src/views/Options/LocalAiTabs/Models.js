@@ -227,7 +227,9 @@ function ModelCard({ rec }) {
                 onClick={() =>
                   void manager
                     .download(manifest.id)
-                    .catch((e) => logger.child("options").error("operation failed", e))
+                    .catch((e) =>
+                      logger.child("options").error("operation failed", e)
+                    )
                 }
               >
                 {rec.state === "paused"

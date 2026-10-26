@@ -48,7 +48,7 @@ export function createAssetStore() {
 
 export function createTransportBroker(
   instance,
-  { signal, approvedOrigins, assets, fetchImpl = globalThis.fetch, diagnostic: context }
+  { signal, assets, fetchImpl = globalThis.fetch, diagnostic: context }
 ) {
   const { secrets } = projectInstanceConfig(instance);
   const fields = new Set(
@@ -100,10 +100,10 @@ export function createTransportBroker(
         "Only HTTPS or HTTP loopback endpoints are supported."
       );
     }
-    if (!allowed.has(url.origin) || !approvedOrigins.has(url.origin))
+    if (!allowed.has(url.origin))
       throw providerError(
         "NETWORK_DENIED",
-        `Origin not authorized: ${url.origin}`
+        `Origin outside declared network scope: ${url.origin}`
       );
     if (
       !["GET", "POST", "PUT", "DELETE", "PATCH"].includes(
@@ -119,7 +119,7 @@ export function createTransportBroker(
           "Cookie headers are not allowed."
         );
     let requestBody = request.body;
-    // Bindings are resolved inside the authorized origin boundary, never in the interpreter.
+    // Bindings are resolved inside the declared origin boundary, never in the interpreter.
     for (const binding of request.secretBindings || []) {
       const value = (binding.prefix || "") + readSecret(binding.secret);
       const name = binding.name;
@@ -207,19 +207,28 @@ export function createTransportBroker(
   const diagnostics = new WeakMap();
   const response = async (request) => {
     const [url, init] = prepare(request);
-    const diagnostic = await startHttpDiagnostic(url, init, { context, secrets: Object.values(secrets) });
+    const diagnostic = await startHttpDiagnostic(url, init, {
+      context,
+      secrets: Object.values(secrets),
+    });
     try {
-    const res = await fetchImpl(url, init);
-    diagnostic.response(res);
-    diagnostics.set(res, diagnostic);
-    check();
-    if (!res.ok) {
-      await diagnostic.errorBody(res);
-      // Do not include headers, URL query or response body that may echo secrets.
-      throw providerError("HTTP_ERROR", `Provider returned HTTP ${res.status}`);
+      const res = await fetchImpl(url, init);
+      diagnostic.response(res);
+      diagnostics.set(res, diagnostic);
+      check();
+      if (!res.ok) {
+        await diagnostic.errorBody(res);
+        // Do not include headers, URL query or response body that may echo secrets.
+        throw providerError(
+          "HTTP_ERROR",
+          `Provider returned HTTP ${res.status}`
+        );
+      }
+      return res;
+    } catch (error) {
+      await diagnostic.finish(error);
+      throw error;
     }
-    return res;
-    } catch (error) { await diagnostic.finish(error); throw error; }
   };
   const readBody = async (res) => {
     const reader = res.body?.getReader();
@@ -279,34 +288,39 @@ export function createTransportBroker(
           const res = await response(request);
           const diagnostic = diagnostics.get(res);
           try {
-          const headers = Object.fromEntries(res.headers.entries());
-          const bytes = await readBody(res);
-          if (
-            request.responseType === "asset" &&
-            (assets.entries().length >= 8 ||
-              assets.entries().reduce((n, [, blob]) => n + blob.size, 0) +
-                bytes.byteLength >
-                RESPONSE_LIMIT)
-          )
-            throw providerError(
-              "RESOURCE_BUDGET_EXCEEDED",
-              "Task assets exceed 8 files or 8 MiB."
+            const headers = Object.fromEntries(res.headers.entries());
+            const bytes = await readBody(res);
+            if (
+              request.responseType === "asset" &&
+              (assets.entries().length >= 8 ||
+                assets.entries().reduce((n, [, blob]) => n + blob.size, 0) +
+                  bytes.byteLength >
+                  RESPONSE_LIMIT)
+            )
+              throw providerError(
+                "RESOURCE_BUDGET_EXCEEDED",
+                "Task assets exceed 8 files or 8 MiB."
+              );
+            const body =
+              request.responseType === "asset"
+                ? assets.put(
+                    new Blob([bytes], {
+                      type:
+                        res.headers.get("content-type") ||
+                        "application/octet-stream",
+                    })
+                  )
+                : new TextDecoder().decode(bytes);
+            check();
+            diagnostic.body(
+              request.responseType === "asset" ? new Blob([bytes]) : body
             );
-          const body =
-            request.responseType === "asset"
-              ? assets.put(
-                  new Blob([bytes], {
-                    type:
-                      res.headers.get("content-type") ||
-                      "application/octet-stream",
-                  })
-                )
-              : new TextDecoder().decode(bytes);
-          check();
-          diagnostic.body(request.responseType === "asset" ? new Blob([bytes]) : body);
-          await diagnostic.finish();
-          return { status: res.status, headers, body };
-          } catch (error) { await diagnostic.finish(error); throw error; }
+            await diagnostic.finish();
+            return { status: res.status, headers, body };
+          } catch (error) {
+            await diagnostic.finish(error);
+            throw error;
+          }
         });
       },
       async *stream(request) {
@@ -335,7 +349,8 @@ export function createTransportBroker(
             "STREAM_UNSUPPORTED",
             "Response is not readable."
           );
-          await diagnostic.finish(error); throw error;
+          await diagnostic.finish(error);
+          throw error;
         }
         if (
           request.streamFormat !== undefined &&
@@ -344,8 +359,12 @@ export function createTransportBroker(
           await reader.cancel();
           reader.releaseLock();
           release();
-          const error = providerError("INVALID_REQUEST", "Unsupported stream format.");
-          await diagnostic.finish(error); throw error;
+          const error = providerError(
+            "INVALID_REQUEST",
+            "Unsupported stream format."
+          );
+          await diagnostic.finish(error);
+          throw error;
         }
         const ndjson = request.streamFormat === "ndjson";
         const parser = ndjson ? createNDJSONParser() : createSSEParser();
@@ -359,7 +378,8 @@ export function createTransportBroker(
             );
         const decoder = new TextDecoder();
         let size = 0;
-        let failure, completed = false;
+        let failure,
+          completed = false;
         try {
           yield {
             type: "headers",
@@ -384,7 +404,9 @@ export function createTransportBroker(
           const tail = parser.finish();
           if (ndjson) for (const value of tail) yield { type: "json", value };
           completed = true;
-        } catch (error) { failure = error; throw error;
+        } catch (error) {
+          failure = error;
+          throw error;
         } finally {
           // Release synchronously: iterator.return() must not strand the pool slot
           // while reader cancellation is pending (including transpiled async generators).

@@ -1296,7 +1296,9 @@ export class Translator {
       textSheet.replaceSync(textStyles);
       this.#textSheet = textSheet;
     } catch (err) {
-      logger.child("translator").info("createTextStyles: CSSStyleSheet not available", err);
+      logger
+        .child("translator")
+        .info("createTextStyles: CSSStyleSheet not available", err);
       // CSSStyleSheet 在当前环境不可用（Firefox 内容脚本等），改用内联 <style>
       this.#useSheetFallback = true;
     }
@@ -1358,7 +1360,9 @@ export class Translator {
     // 保留诊断与 hasErrors 日志（供 Playground / 控制台排查），但不再因任一非法段
     // 禁用整份术语：parseTerms 已逐条排除非法项，返回的 terms 是可安全应用的合法集合。
     if (hasErrors) {
-      logger.child("translator").warn("Term parse errors (legal terms still applied): ", diagnostics);
+      logger
+        .child("translator")
+        .warn("Term parse errors (legal terms still applied): ", diagnostics);
     }
 
     this.#termEntries = terms;
@@ -3455,7 +3459,9 @@ export class Translator {
     try {
       return node.matches(this.#rule.keepSelector) && !this.#isBlockNode(node);
     } catch (err) {
-      logger.child("translator").warn("keepSelector match error", this.#rule.keepSelector, err);
+      logger
+        .child("translator")
+        .warn("keepSelector match error", this.#rule.keepSelector, err);
       return false;
     }
   }
@@ -3684,7 +3690,9 @@ export class Translator {
           copyButton.textContent = copyText;
         }, 800);
       } catch (copyErr) {
-        logger.child("translator").error("copy translate error: ", this.#formatTranslateError(copyErr));
+        logger
+          .child("translator")
+          .error("copy translate error: ", this.#formatTranslateError(copyErr));
       }
     });
 
@@ -4591,7 +4599,9 @@ overflow-wrap: anywhere !important;`;
           try {
             innerContent += traverse(child);
           } catch (err) {
-            logger.child("translator").warn("traverse child error", child.nodeName, err);
+            logger
+              .child("translator")
+              .warn("traverse child error", child.nodeName, err);
           }
         });
 
@@ -4702,7 +4712,9 @@ overflow-wrap: anywhere !important;`;
       // 获取还原完毕后的富文本 HTML 字符串
       result = doc.body.innerHTML;
     } catch (e) {
-      logger.child("translator").warn("DOMParser restore failed, fallback to raw", e);
+      logger
+        .child("translator")
+        .warn("DOMParser restore failed, fallback to raw", e);
       // 如果 DOMParser 解析出错（比如翻译源返回了破碎的 HTML 片段），则回退，继续尝试用正则直接替换普通占位符
     }
 

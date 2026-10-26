@@ -1,4 +1,8 @@
-jest.mock("./log", () => jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock((() => ({ kissLog: jest.fn() }))()));
+jest.mock("./log", () =>
+  jest
+    .requireActual("../testUtils/scopedLogMock")
+    .withScopedLogMock((() => ({ kissLog: jest.fn() }))())
+);
 
 const gmGlobals = [
   "GM",
