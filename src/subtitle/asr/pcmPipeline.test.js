@@ -105,3 +105,30 @@ test("shortening a suspended chunk iterator preserves its retained tail and all 
   expect(chunks[0].audio.length).toBeGreaterThan(5 * 16000);
   expect(end).toBe(audio.length);
 });
+
+test("remote indexing reserves two source AAC frames while local PCM limits remain unchanged", async () => {
+  for (const boundaryPaddingFrames of [0, 2]) {
+    const output = [];
+    const pipeline = new AsrPcmPipeline(
+      1,
+      (chunk) => output.push(chunk),
+      undefined,
+      { boundaryPaddingFrames }
+    );
+    for (let index = 0; index < 100; index++)
+      await pipeline.push({
+        channels: [new Float32Array(1024).fill(0.1)],
+        sampleRate: 48000,
+        timestamp: (index * 1024) / 48000,
+      });
+    await pipeline.finish();
+    expect(output.length).toBeGreaterThan(1);
+    expect(
+      output.every(
+        (chunk) => chunk.audio.length <= (boundaryPaddingFrames ? 15040 : 16000)
+      )
+    ).toBe(true);
+    expect(output[0].endSample).toBe(boundaryPaddingFrames ? 15040 : 16000);
+    expect(output.at(-1).endSample).toBe(Math.ceil(102400 / 3));
+  }
+});

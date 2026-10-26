@@ -1,4 +1,4 @@
-import { transcribeAudioChunk } from "./transcribeChunk";
+import { transcribeAudioChunk as transcribe } from "./transcribeChunk";
 import { invokeService } from "../../providers/serviceRuntime";
 import { invokeBridgedService } from "../../providers/bridgeInvocation";
 
@@ -9,6 +9,15 @@ jest.mock("../../providers/bridgeInvocation", () => ({
   invokeBridgedService: jest.fn(),
 }));
 
+const transcribeAudioChunk = (service, chunk, options = {}) =>
+  transcribe(service, chunk, {
+    prepareAudio: async () => ({
+      blob: new Blob(["aac"], { type: "audio/mp4" }),
+      startMs: chunk.startSample / 16,
+      endMs: chunk.endSample / 16,
+    }),
+    ...options,
+  });
 const service = {
   apiSlug: "test-asr",
   apiType: "Plugin",
@@ -99,13 +108,14 @@ test("compiled local ASR uses the privileged bridge rather than a page Broadcast
   );
 });
 
-test("an independent WAV accepts optional timestamps and maps every sentence to global video time", async () => {
+test("an independent M4A accepts optional timestamps and maps every sentence to global video time", async () => {
   const cancel = jest.fn();
   let assets;
   invokeService.mockImplementation((api, capability, input, options) => {
     assets = options.assets;
     expect(input.requireTimestamps).toBe(false);
-    expect(assets.get(input.audio).type).toBe("audio/wav");
+    expect(assets.get(input.audio).type).toBe("audio/mp4");
+    expect(input.audio.filename).toBe("input.m4a");
     return {
       cancel,
       result: Promise.resolve({
@@ -273,6 +283,7 @@ test("external ASR runs in the privileged host and holds the slot until its requ
   const task = transcribeAudioChunk(external, chunk, {
     signal: controller.signal,
   });
+  await Promise.resolve();
   controller.abort();
   let settled = false;
   task.catch(() => {
@@ -382,3 +393,113 @@ test.each([undefined, 30, 600])(
     expect(options.deadlineAt).toBeGreaterThan(Date.now());
   }
 );
+
+test("local ASR retains WAV and does not prepare compressed media", async () => {
+  const prepareAudio = jest.fn();
+  invokeBridgedService.mockImplementation(
+    (slug, capability, input, options) => {
+      expect(input.audio.mimeType).toBe("audio/wav");
+      expect(input.audio.filename).toBe("input.wav");
+      expect(options.assets.get(input.audio).size).toBe(
+        44 + chunk.audio.length * 2
+      );
+      return { result: Promise.resolve({ text: "local" }), cancel: jest.fn() };
+    }
+  );
+  await transcribeAudioChunk(
+    {
+      apiType: "LocalAI",
+      apiSlug: "local",
+      modelRef: "sensevoice-small",
+      enabledCapabilities: ["transcribe"],
+    },
+    chunk,
+    { prepareAudio }
+  );
+  expect(prepareAudio).not.toHaveBeenCalled();
+});
+
+test("M4A frame padding offsets and clamps segment and word timestamps to the logical block", async () => {
+  invokeService.mockReturnValue({
+    result: Promise.resolve({
+      text: "one two",
+      segments: [
+        { start: 0, end: 0.01, text: "preroll" },
+        {
+          start: 0.01,
+          end: 2.04,
+          text: "one two",
+          words: [
+            { start: 0.01, end: 0.5, text: "one" },
+            { start: 0.5, end: 2.04, text: " two" },
+          ],
+        },
+        { start: 2.021, end: 2.04, text: "tail" },
+      ],
+    }),
+    cancel: jest.fn(),
+  });
+  const result = await transcribeAudioChunk(service, chunk, {
+    prepareAudio: async () => ({
+      blob: new Blob(["aac"], { type: "audio/mp4" }),
+      startMs: 9980,
+      endMs: 12040,
+    }),
+  });
+  expect(result.segments).toHaveLength(1);
+  expect(result.segments[0]).toMatchObject({
+    start: 10,
+    end: 12,
+    text: "one two",
+  });
+  expect(result.segments[0].words[0]).toMatchObject({ start: 10, end: 10.48 });
+  expect(result.segments[0].words[1]).toMatchObject({ start: 10.48, end: 12 });
+});
+
+test("M4A preparation cancellation prevents invocation", async () => {
+  let finish;
+  const controller = new AbortController();
+  const task = transcribeAudioChunk(service, chunk, {
+    signal: controller.signal,
+    prepareAudio: () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  });
+  controller.abort();
+  finish({
+    blob: new Blob(["aac"], { type: "audio/mp4" }),
+    startMs: 10000,
+    endMs: 12000,
+  });
+  await expect(task).rejects.toHaveProperty("name", "AbortError");
+  expect(invokeService).not.toHaveBeenCalled();
+  expect(invokeBridgedService).not.toHaveBeenCalled();
+});
+
+test("remote ASR checks actual M4A limits and never retries as WAV on service failure", async () => {
+  const prepareAudio = async () => ({
+    blob: new Blob(["aac"], { type: "audio/mp4" }),
+    startMs: 10000,
+    endMs: 12000,
+  });
+  await expect(
+    transcribeAudioChunk(service, chunk, { prepareAudio, maxBytes: 2 })
+  ).rejects.toHaveProperty("code", "RESOURCE_BUDGET_EXCEEDED");
+  await expect(
+    transcribeAudioChunk(service, chunk, {
+      prepareAudio,
+      maxDurationSeconds: 1,
+    })
+  ).rejects.toHaveProperty("code", "INPUT_LIMIT_EXCEEDED");
+  expect(invokeService).not.toHaveBeenCalled();
+  const error = new Error("Unsupported M4A");
+  invokeService.mockReturnValue({
+    result: Promise.reject(error),
+    cancel: jest.fn(),
+  });
+  await expect(
+    transcribeAudioChunk(service, chunk, { prepareAudio })
+  ).rejects.toBe(error);
+  expect(invokeService).toHaveBeenCalledTimes(1);
+});

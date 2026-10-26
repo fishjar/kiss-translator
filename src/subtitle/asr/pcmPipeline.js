@@ -89,11 +89,12 @@ export class AsrPcmPipeline {
             this.limits.endSample,
             this.limits.silent
           )
-        : new AsrAudioChunker(
-            this.maxDurationSeconds,
-            startSample,
-            this.limits
-          );
+        : new AsrAudioChunker(this.maxDurationSeconds, startSample, {
+            ...this.limits,
+            boundaryPaddingSeconds:
+              ((this.limits.boundaryPaddingFrames || 0) * channels[0].length) /
+              sampleRate,
+          });
       this.origin = timestamp;
       this.inputSamples = 0;
     }

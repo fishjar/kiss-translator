@@ -1,5 +1,5 @@
 import { AsrAudioChunker } from "./audioChunks";
-import { asrChunkDurationSeconds } from "./timing";
+import { asrChunkDurationSeconds, isLocalAsrService } from "./timing";
 import { ASR_LANGUAGE_POLICY_VERSION, isWhisperAsrService } from "./language";
 
 const ignored =
@@ -92,6 +92,9 @@ export async function asrCacheSignatures({
       language,
       ...(isWhisperAsrService(asrService) && {
         languagePolicyVersion: ASR_LANGUAGE_POLICY_VERSION,
+      }),
+      ...(!isLocalAsrService(asrService || {}) && {
+        audioInput: { format: "m4a", version: 1, boundaryPaddingFrames: 2 },
       }),
       chunking: {
         version: 1,

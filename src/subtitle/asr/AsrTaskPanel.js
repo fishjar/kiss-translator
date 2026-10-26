@@ -283,7 +283,7 @@ export class AsrTaskPanel {
         label +
         ` ${percent}%` +
         (key === "audio"
-          ? ` · ${((audio.bytes || 0) / 1048576).toFixed(1)} MiB`
+          ? ` · ${this.t("youtube_asr_cached_size")} ${((audio.bytes || 0) / 1048576).toFixed(1)} MiB`
           : "");
       text(view.label, caption);
       if (view.bar.getAttribute("aria-label") !== caption)
@@ -526,8 +526,10 @@ export class AsrTaskPanel {
       }
       text(
         row.titleInfo,
-        `${this.t("youtube_asr_media_segment")} ${group.index} · ${range(group)} · ${(group.bytes / 1024).toFixed(1)} KiB`
+        `${this.t("youtube_asr_media_segment")} ${group.index} · ${range(group)} · ${this.t("youtube_asr_cached_size")} ${(group.bytes / 1024).toFixed(1)} KiB`
       );
+      const sizeHint = this.t("youtube_asr_m4a_size_hint");
+      if (row.titleInfo.title !== sizeHint) row.titleInfo.title = sizeHint;
       text(row.titleStatus, statusText);
       if (row.element !== cursor) this.list.insertBefore(row.element, cursor);
       cursor = row.element.nextElementSibling;
