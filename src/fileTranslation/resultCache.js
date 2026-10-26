@@ -4,7 +4,6 @@ import {
   INFERENCE_CACHE_VERSION,
 } from "../localAi/core/inferenceCache";
 import { providerCacheSignature } from "../providers/cache";
-import { approvedProviderOrigins } from "../providers/grants";
 import { validateServiceConfig } from "../providers/instances";
 import { isApiAvailableFor } from "../config/serviceSelection";
 import { getSettingWithDefault } from "../libs/storage";
@@ -24,8 +23,6 @@ export async function validateFileService(api, capability, signal) {
       current.pluginConfig,
       current.enabledCapabilities
     );
-    if (current.provider.implementation?.kind !== "native")
-      await approvedProviderOrigins(current);
   }
   if (
     (await providerCacheSignature(current, capability)) !==

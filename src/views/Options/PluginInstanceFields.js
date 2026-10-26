@@ -49,13 +49,6 @@ import {
   getSettingOptions,
   isSettingVisible,
 } from "../../providers/instances";
-import {
-  approvedProviderOrigins,
-  providerGrantKey,
-  providerPluginId,
-  PLUGIN_GRANT_PREFIX,
-} from "../../providers/grants";
-import { browser } from "../../libs/browser";
 import { invokeService as invokeInstance } from "../../providers/serviceRuntime";
 import { createAssetStore } from "../../providers/transport";
 import { getSettingWithDefault } from "../../libs/storage";
@@ -82,8 +75,6 @@ export default function PluginInstanceFields({
   const [patch, setPatch] = useState({});
   const [actionsAnchor, setActionsAnchor] = useState(null);
   const confirm = useConfirm();
-  const [authorizationBusy, setAuthorizationBusy] = useState(false);
-  const [authorized, setAuthorized] = useState(false);
   const [options, setOptions] = useState({});
   const [text, setText] = useState(() => {
     const sample =
@@ -188,7 +179,7 @@ export default function PluginInstanceFields({
   const test = async () => {
     setTestError("");
     setAudioUrl("");
-    // A test may be cancelled while loading saved configuration/authorization,
+    // A test may be cancelled while loading saved configuration,
     // before an actual invocation exists.
     const job = {
       cancelled: false,
@@ -213,7 +204,6 @@ export default function PluginInstanceFields({
         saved.prompts,
         saved.subtitleSetting
       );
-      const origins = await approvedProviderOrigins(current);
       const input = applyTestPrompt(
         capability,
         createTestInput(capability, text, file, assets),
@@ -221,7 +211,6 @@ export default function PluginInstanceFields({
       );
       if (active.current !== job || job.cancelled) return;
       const invocation = invokeInstance(current, capability, input, {
-        approvedOrigins: origins,
         assets,
         streaming: "auto",
       });
@@ -294,43 +283,6 @@ export default function PluginInstanceFields({
       ...(resetEffort && { thinkingEffort: "_default" }),
     }));
   };
-  useEffect(() => {
-    let alive = true;
-    let revision = 0;
-    let grantKey;
-    try {
-      grantKey = providerGrantKey(providerPluginId(draft));
-    } catch {
-      /* Invalid snapshots remain unauthorized. */
-    }
-    const refresh = () => {
-      const current = ++revision;
-      return approvedProviderOrigins({ ...draft, pluginConfig: {} })
-        .then(() => {
-          if (alive && current === revision) setAuthorized(true);
-        })
-        .catch(() => {
-          if (alive && current === revision) setAuthorized(false);
-        });
-    };
-    const changed = async (changes, area) => {
-      if (
-        area === "local" &&
-        Object.keys(changes).some((key) => key.startsWith(PLUGIN_GRANT_PREFIX))
-      ) {
-        const change = changes[grantKey];
-        if (!alive) return;
-        if (change && !change.newValue) active.current?.cancel();
-        refresh();
-      }
-    };
-    refresh();
-    browser.storage.onChanged?.addListener(changed);
-    return () => {
-      alive = false;
-      browser.storage.onChanged?.removeListener(changed);
-    };
-  }, [draft]);
   const [actionBusy, setActionBusy] = useState(false);
   const action =
     (callback, title = i18n("plugin_operation_failed")) =>
@@ -447,31 +399,6 @@ export default function PluginInstanceFields({
             setOptions((current) => ({ ...current, [key]: value }))
           }
         />
-        {!authorized && (
-          <Alert
-            severity="warning"
-            action={
-              <Button
-                disabled={authorizationBusy}
-                onClick={action(async () => {
-                  setAuthorizationBusy(true);
-                  try {
-                    const id = providerPluginId(draft);
-                    window.location.hash = `/plugins?plugin=${encodeURIComponent(id)}`;
-                  } finally {
-                    setAuthorizationBusy(false);
-                  }
-                })}
-              >
-                {i18n("plugin_go_to_authorization")}
-              </Button>
-            }
-          >
-            {i18n(
-              "plugin_this_plugin_or_its_declared_fixed_addresses_are_not_authorized_authori"
-            )}
-          </Alert>
-        )}
         <ServiceTimeoutSetting
           api={draft}
           onChange={(value) =>
@@ -562,8 +489,6 @@ export default function PluginInstanceFields({
           <>
             <Button
               disabled={
-                !authorized ||
-                authorizationBusy ||
                 Boolean(call) ||
                 quickBusy ||
                 !enabled.includes(capability) ||
@@ -579,7 +504,7 @@ export default function PluginInstanceFields({
             {enabled.includes("translate") && (
               <QuickTranslationTest
                 api={draft}
-                disabled={!authorized || authorizationBusy || Boolean(call)}
+                disabled={Boolean(call)}
                 onBusyChange={setQuickBusy}
               />
             )}

@@ -1,13 +1,11 @@
 import { useProviderI18n } from "../../hooks/ProviderI18n";
 import { useI18n } from "../../hooks/I18n";
 import { useConfirm } from "../../hooks/Confirm";
-import PluginAuthorization from "./PluginAuthorization";
 import {
   packageDefinitions,
-  summarizeAuthorization,
-} from "../../providers/authorizationDefinitions";
-import { approvePlugin, readPluginGrant } from "../../providers/grants";
-import PluginAuthorizationDetails from "./PluginAuthorizationDetails";
+  summarizePackageNetwork,
+} from "../../providers/packageNetwork";
+import PluginNetworkDetails from "./PluginNetworkDetails";
 import { capabilityLabelKeys } from "../../providers/capabilityLabels";
 import {
   downloadProviderSource,
@@ -305,18 +303,10 @@ export default function ProviderPlugins() {
       // Cancellation covers reading/verification, not the storage transaction.
       downloadController.current = null;
       setReadingPackage(false);
-      const summary = summarizeAuthorization(packageDefinitions(pack));
-      const grant = await readPluginGrant(pack.manifest.id);
-      const needsAuthorization =
-        !grant ||
-        summary.origins.some((origin) => !grant.origins.includes(origin));
+      const summary = summarizePackageNetwork(packageDefinitions(pack));
       const installAction = previous
-        ? needsAuthorization
-          ? i18n("plugin_update_and_authorize")
-          : i18n("plugin_update_plugin")
-        : needsAuthorization
-          ? i18n("plugin_install_and_authorize")
-          : i18n("plugin_install_plugin");
+        ? i18n("plugin_update_plugin")
+        : i18n("plugin_install_plugin");
       if (
         !(await confirm({
           title: `${installAction} ${providerText(pack.manifest.name, pack.manifest.nameI18n)}`,
@@ -326,11 +316,9 @@ export default function ProviderPlugins() {
                 {previous ? `${previous.manifest.version} → ` : ""}
                 {pack.manifest.version}
               </Typography>
-              <PluginAuthorizationDetails summary={summary} grant={grant} />
+              <PluginNetworkDetails summary={summary} />
               <Typography variant="caption" color="text.secondary">
-                {i18n(
-                  "plugin_existing_service_snapshots_are_retained_only_fixed_addresses_declared_"
-                )}
+                {i18n("plugin_existing_service_snapshots_retained")}
               </Typography>
             </Stack>
           ),
@@ -357,8 +345,6 @@ export default function ProviderPlugins() {
         ],
       }));
       setPackages(await listProviderPackages());
-      if (needsAuthorization)
-        await approvePlugin(pack.manifest.id, summary.origins);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -538,9 +524,7 @@ export default function ProviderPlugins() {
                         if (
                           !(await confirm({
                             title: i18n("plugin_remove_plugin_index"),
-                            message: i18n(
-                              "plugin_remove_the_synced_plugin_index_existing_instances_and_their_authorizat"
-                            ),
+                            message: i18n("plugin_remove_synced_plugin_index"),
                           }))
                         )
                           return;
@@ -645,15 +629,9 @@ export default function ProviderPlugins() {
                       {pack.source.commitSha}
                     </Typography>
                   )}
-                  <Typography>
-                    {i18n("plugin_network_permissions")}
-                    {(pack.manifest.permissions?.network || []).join("、") ||
-                      i18n("plugin_no_fixed_addresses")}
-                    {i18n("plugin_endpoint_fields")}
-                    {(pack.manifest.permissions?.endpointFields || []).join(
-                      "、"
-                    ) || i18n("style_none")}
-                  </Typography>
+                  <PluginNetworkDetails
+                    summary={summarizePackageNetwork(packageDefinitions(pack))}
+                  />
                   <Typography>
                     {i18n("plugin_linked_service_instances")}
                     {
@@ -746,10 +724,6 @@ export default function ProviderPlugins() {
           </Accordion>
         ))}
       </Stack>
-      <PluginAuthorization
-        packages={packages}
-        instances={setting.transApis || []}
-      />
       <Button href="#/apis" sx={{ alignSelf: "center" }}>
         {i18n("plugin_view_service_configuration")}
       </Button>

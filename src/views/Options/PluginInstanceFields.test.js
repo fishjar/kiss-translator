@@ -6,8 +6,6 @@ import { Simulate } from "react-dom/test-utils";
 import PluginInstanceFields, { ProviderSettings } from "./PluginInstanceFields";
 import SensitiveTextField from "./SensitiveTextField";
 import { ConfirmProvider } from "../../hooks/Confirm";
-import { browser } from "../../libs/browser";
-import { approvedProviderOrigins } from "../../providers/grants";
 
 jest.mock("../../providers/serviceRuntime", () => ({
   invokeService: jest.fn(),
@@ -43,12 +41,6 @@ jest.mock("../../libs/browser", () => ({
     },
   },
 }));
-jest.mock("../../providers/grants", () => ({
-  approvedProviderOrigins: jest.fn(),
-  providerGrantKey: (id) => `kiss-provider-plugin-grant:${id}`,
-  providerPluginId: () => "example",
-  PLUGIN_GRANT_PREFIX: "kiss-provider-plugin-grant:",
-}));
 jest.mock("./PluginPromptSettings", () => () => null);
 jest.mock("./CapabilityOptions", () => () => null);
 jest.mock("./ServiceUpgrade", () => ({ ServiceUpgradeAction: () => null }));
@@ -78,9 +70,6 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockUpdateSetting.mockReset();
   mockUpdateSetting.mockResolvedValue(undefined);
-  approvedProviderOrigins.mockRejectedValue(
-    Object.assign(new Error("未授权"), { code: "PERMISSION_REQUIRED" })
-  );
   deleteApi = jest.fn();
   container = document.createElement("div");
   document.body.append(container);
@@ -99,28 +88,17 @@ async function render(value = api) {
     )
   );
 }
-test("unauthorized services show the plugin link, disable tests and refresh after plugin approval", async () => {
+test("services can be tested without local authorization", async () => {
   await render();
-  expect(container.textContent).toContain("请前往接口插件授权");
-  expect(button("执行测试").disabled).toBe(true);
-  await act(async () => button("前往授权").click());
-  expect(window.location.hash).toBe("#/plugins?plugin=example");
-  approvedProviderOrigins.mockResolvedValue(new Set());
-  await act(async () =>
-    browser.storage.onChanged.addListener.mock.calls.at(-1)[0](
-      { "kiss-provider-plugin-grant:example": { newValue: {} } },
-      "local"
-    )
-  );
-  expect(container.textContent).not.toContain("请前往接口插件授权");
+  expect(container.textContent).not.toContain("前往授权");
   expect(button("执行测试").disabled).toBe(false);
   await render({
     ...api,
     pluginConfig: { baseUrl: "https://new.invalid:8443/v2" },
   });
   expect(button("执行测试").disabled).toBe(false);
-  expect(container.textContent).not.toContain("本机网络授权");
 });
+
 test("service operations have no authorization action and deletion uses a cancellable MUI dialog", async () => {
   await render();
   await act(async () => button("接口操作").click());
@@ -146,15 +124,14 @@ test("service operations have no authorization action and deletion uses a cancel
   expect(deleteApi).toHaveBeenCalledWith("one");
 });
 
-test("revoking the shared definition cancels an active service test", async () => {
-  approvedProviderOrigins.mockResolvedValue(new Set());
+test("the cancel button still cancels an active service test", async () => {
   getSettingWithDefault.mockResolvedValue({
     transApis: [api],
     prompts: [],
     subtitleSetting: {},
   });
   let reject;
-  const cancel = jest.fn(() => reject(new Error("已撤销授权")));
+  const cancel = jest.fn(() => reject(new Error("cancelled")));
   invokeService.mockReturnValue({
     result: new Promise((_, failure) => {
       reject = failure;
@@ -165,25 +142,12 @@ test("revoking the shared definition cancels an active service test", async () =
   await render();
   await act(async () => button("执行测试").click());
   expect(invokeService).toHaveBeenCalledTimes(1);
-  approvedProviderOrigins.mockRejectedValue(
-    Object.assign(new Error("未授权"), { code: "PERMISSION_REQUIRED" })
-  );
-  await act(async () =>
-    browser.storage.onChanged.addListener.mock.calls.at(-1)[0](
-      {
-        "kiss-provider-plugin-grant:example": {
-          newValue: undefined,
-        },
-      },
-      "local"
-    )
-  );
+  await act(async () => button("取消").click());
   expect(cancel).toHaveBeenCalledTimes(1);
-  expect(button("执行测试").disabled).toBe(true);
+  expect(button("执行测试").disabled).toBe(false);
 });
 
 test("translation quick test stays available while chat is selected and uses edited configuration", async () => {
-  approvedProviderOrigins.mockResolvedValue(new Set());
   const translatedApi = {
     ...api,
     enabledCapabilities: ["chat", "translate"],

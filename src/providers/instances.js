@@ -219,7 +219,7 @@ export function createServiceInstance(
     enabledCapabilities ?? supportedCapabilities(candidate)
   );
   // Adding selects an editable instance immediately. Required values are checked
-  // when saving/authorizing/executing, rather than blocking creation of its snapshot.
+  // when saving/executing, rather than blocking creation of its snapshot.
   const config = {
     ...candidate.pluginConfig,
     ...validateConfig(

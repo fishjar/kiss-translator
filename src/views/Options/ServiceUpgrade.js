@@ -102,7 +102,7 @@ export function ServiceReplacement({ upgrade, tested, onComplete }) {
     <Stack spacing={1}>
       <Alert severity="info">
         {i18n(
-          "plugin_upgraded_instance_created_save_and_authorize_its_configuration_test_th"
+          "plugin_upgraded_instance_created"
         )}
       </Alert>
       {error && <Alert severity="error">{error}</Alert>}

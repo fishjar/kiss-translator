@@ -2,7 +2,6 @@ jest.mock("../../hooks/I18n", () => ({
   useI18n: () =>
     require("../../config/i18n").newI18n(mockSetting.uiLang || "zh"),
 }));
-import { approvePlugin, readPluginGrant } from "../../providers/grants";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
@@ -24,20 +23,14 @@ const mockUpdateSetting = jest.fn();
 let mockPackages = [];
 const mockConfirm = jest.fn(async () => true);
 jest.mock("../../hooks/Confirm", () => ({ useConfirm: () => mockConfirm }));
-jest.mock("./PluginAuthorization", () => () => null);
-jest.mock("../../providers/authorizationDefinitions", () => ({
+jest.mock("../../providers/packageNetwork", () => ({
   packageDefinitions: (pack) =>
     pack.manifest.services.map((service) => ({ provider: service })),
-  summarizeAuthorization: () => ({
+  summarizePackageNetwork: () => ({
     origins: ["https://fixed.invalid"],
     endpointFields: ["API 基础地址"],
     services: [],
-    versions: [],
   }),
-}));
-jest.mock("../../providers/grants", () => ({
-  approvePlugin: jest.fn(),
-  readPluginGrant: jest.fn(async () => null),
 }));
 jest.mock("../../hooks/Setting", () => ({
   useSetting: () => ({
@@ -79,8 +72,6 @@ let container;
 let root;
 beforeEach(() => {
   jest.clearAllMocks();
-  approvePlugin.mockResolvedValue(undefined);
-  readPluginGrant.mockResolvedValue(null);
   saveProviderPackage.mockResolvedValue(undefined);
   mockPackages = [];
   listProviderPackages.mockImplementation(async () => mockPackages);
@@ -126,9 +117,8 @@ test("folder picker resets so the same directory can be selected again", async (
   expect(target.value).toBe("");
   expect(saveProviderPackage).toHaveBeenCalledTimes(1);
   expect(mockConfirm).toHaveBeenCalledWith(
-    expect.objectContaining({ confirmText: "安装并授权" })
+    expect.objectContaining({ confirmText: "安装插件" })
   );
-  expect(approvePlugin).toHaveBeenCalledTimes(1);
   await choose("导入文件夹");
   expect(readProviderDirectory).toHaveBeenCalledTimes(2);
   expect(mockUpdateSetting).toHaveBeenCalledTimes(2);
@@ -336,19 +326,23 @@ test("missing local templates do not expose previews even for prompt capabilitie
   expect(container.textContent).not.toContain("预览提示词");
 });
 
-test("failed authorization preserves an installed template and reports an actionable error", async () => {
+test("installation needs only the normal install confirmation", async () => {
   saveProviderPackage.mockImplementationOnce(async (value) => {
     mockPackages = [value];
   });
-  approvePlugin.mockRejectedValueOnce(new Error("授权写入失败"));
   await render();
   await choose("导入文件夹");
   expect(saveProviderPackage).toHaveBeenCalledTimes(1);
+  expect(mockConfirm).toHaveBeenCalledWith(
+    expect.objectContaining({ confirmText: "安装插件" })
+  );
   expect(container.textContent).toContain("已安装");
-  expect(container.textContent).toContain("授权写入失败");
+  expect(container.textContent).not.toContain("插件授权");
+  expect(container.textContent).toContain("https://fixed.invalid");
+  expect(container.textContent).toContain("API 基础地址");
 });
 
-test("uninstall is confirmed through MUI hook and does not revoke snapshot authorization", async () => {
+test("uninstall is confirmed through MUI hook and retains service snapshots", async () => {
   mockPackages = [pack()];
   await render();
   const uninstall = [...container.querySelectorAll("button")].find(
@@ -362,42 +356,21 @@ test("uninstall is confirmed through MUI hook and does not revoke snapshot autho
   expect(mockConfirm).toHaveBeenCalledWith(
     expect.objectContaining({
       title: "卸载插件",
-      message: expect.stringContaining("快照授权仍保留"),
+      message: expect.stringContaining("已有实例及其配置仍保留"),
     })
   );
   expect(removeProviderPackage).toHaveBeenCalledWith("example-plugin");
 });
 
-test("updating without new origins reuses authorization without rewriting it", async () => {
+test("updates use the normal confirmation", async () => {
   mockPackages = [pack()];
-  readPluginGrant.mockResolvedValue({
-    enabled: true,
-    origins: ["https://fixed.invalid"],
-  });
   readProviderDirectory.mockResolvedValue(pack("1.0.1"));
   await render();
   await choose("选择更新文件夹");
   expect(mockConfirm).toHaveBeenCalledWith(
     expect.objectContaining({ confirmText: "更新插件" })
   );
-  expect(approvePlugin).not.toHaveBeenCalled();
   expect(saveProviderPackage).toHaveBeenCalledTimes(1);
-});
-test("updating authorizes only the new package targets", async () => {
-  mockPackages = [pack()];
-  readPluginGrant.mockResolvedValue({
-    enabled: true,
-    origins: ["https://old.invalid"],
-  });
-  readProviderDirectory.mockResolvedValue(pack("1.0.1"));
-  await render();
-  await choose("选择更新文件夹");
-  expect(mockConfirm).toHaveBeenCalledWith(
-    expect.objectContaining({ confirmText: "更新并授权" })
-  );
-  expect(approvePlugin).toHaveBeenCalledWith("example-plugin", [
-    "https://fixed.invalid",
-  ]);
 });
 
 test("plugin metadata and controls follow UI language changes without rewriting saved names", async () => {

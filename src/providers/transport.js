@@ -48,7 +48,7 @@ export function createAssetStore() {
 
 export function createTransportBroker(
   instance,
-  { signal, approvedOrigins, assets, fetchImpl = globalThis.fetch, diagnostic: context }
+  { signal, assets, fetchImpl = globalThis.fetch, diagnostic: context }
 ) {
   const { secrets } = projectInstanceConfig(instance);
   const fields = new Set(
@@ -100,10 +100,10 @@ export function createTransportBroker(
         "Only HTTPS or HTTP loopback endpoints are supported."
       );
     }
-    if (!allowed.has(url.origin) || !approvedOrigins.has(url.origin))
+    if (!allowed.has(url.origin))
       throw providerError(
         "NETWORK_DENIED",
-        `Origin not authorized: ${url.origin}`
+        `Origin outside declared network scope: ${url.origin}`
       );
     if (
       !["GET", "POST", "PUT", "DELETE", "PATCH"].includes(
@@ -119,7 +119,7 @@ export function createTransportBroker(
           "Cookie headers are not allowed."
         );
     let requestBody = request.body;
-    // Bindings are resolved inside the authorized origin boundary, never in the interpreter.
+    // Bindings are resolved inside the declared origin boundary, never in the interpreter.
     for (const binding of request.secretBindings || []) {
       const value = (binding.prefix || "") + readSecret(binding.secret);
       const name = binding.name;

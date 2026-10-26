@@ -145,7 +145,6 @@ export function serveProviderPort(port, initialMessage, invoke) {
       ...message.options,
       timeoutMs: Math.max(1, deadline - Date.now()),
       deadlineAt: deadline,
-      approvedOrigins: new Set(message.approvedOrigins),
       assets,
     });
     const inputIds = new Set(assets.entries().map(([id]) => id));

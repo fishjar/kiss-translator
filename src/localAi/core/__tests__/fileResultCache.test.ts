@@ -2,21 +2,17 @@ import { beforeEach, afterEach, expect, it, vi } from "vitest";
 import { IDBFactory } from "fake-indexeddb";
 import { webcrypto } from "node:crypto";
 import { DEFAULT_SETTINGS } from "../types";
-const state = vi.hoisted(() => ({ api: null as any, authorized: true }));
+const state = vi.hoisted(() => ({ api: null as any }));
 vi.mock("../../../libs/storage", () => ({ getSettingWithDefault: async () => ({ transApis: [state.api] }) }));
 vi.mock("../../../config/serviceSelection", () => ({ isApiAvailableFor: (api: any) => !api.isDisabled }));
 vi.mock("../../../providers/cache", () => ({ providerCacheSignature: async (api: any) => JSON.stringify(api) }));
 vi.mock("../../../providers/instances", () => ({ validateServiceConfig: vi.fn() }));
-vi.mock("../../../providers/grants", () => ({ approvedProviderOrigins: async () => {
-  if (!state.authorized) throw new Error("revoked");
-} }));
 let cachedFileResult: any;
 beforeEach(async () => {
   vi.resetModules();
   vi.stubGlobal("indexedDB", new IDBFactory());
   vi.stubGlobal("crypto", webcrypto);
   state.api = { apiSlug: "remote", apiType: "Plugin", model: "one", provider: { implementation: { kind: "script" } } };
-  state.authorized = true;
   ({ cachedFileResult } = await import("../../../fileTranslation/resultCache"));
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -55,12 +51,10 @@ it("canonicalizes configuration order and ignores input filenames", async () => 
     image: Object.assign(new Blob(["pixels"]), { name: "other.png" }) } });
   expect(run).toHaveBeenCalledTimes(1);
 });
-it("rechecks disabled services and revoked authorization before serving hits", async () => {
+it("rechecks disabled services before serving hits", async () => {
   const run = vi.fn().mockResolvedValue({ text: "x" });
   await invoke(run);
-  state.authorized = false;
-  await expect(invoke(run)).rejects.toThrow("revoked");
-  state.authorized = true; state.api.isDisabled = true;
+  state.api.isDisabled = true;
   await expect(invoke(run)).rejects.toThrow("不可用");
   expect(run).toHaveBeenCalledTimes(1);
 });
@@ -95,7 +89,7 @@ it("degrades to inference when IndexedDB is unavailable", async () => {
   await invoke(run); await invoke(run);
   expect(run).toHaveBeenCalledTimes(2);
 });
-it.each(["clear", "cancel", "revoke"])("does not write an in-flight result after %s", async (action) => {
+it.each(["clear", "cancel", "disable"])("does not write an in-flight result after %s", async (action) => {
   let finish: any;
   const abort = new AbortController();
   const run = vi.fn(() => new Promise((resolve) => { finish = resolve; }));
@@ -106,10 +100,10 @@ it.each(["clear", "cancel", "revoke"])("does not write an in-flight result after
     const { InferenceCache } = await import("../inferenceCache");
     await new InferenceCache().clear();
   } else if (action === "cancel") abort.abort();
-  else state.authorized = false;
+  else state.api.isDisabled = true;
   finish({ text: "old" });
   await settled;
-  state.authorized = true;
+  state.api.isDisabled = false;
   const fresh = vi.fn().mockResolvedValue({ text: "fresh" });
   expect((await invoke(fresh)).text).toBe("fresh");
   expect(fresh).toHaveBeenCalledTimes(1);

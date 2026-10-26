@@ -5,7 +5,6 @@ import { invokeBridgedService } from "../providers/bridgeInvocation";
 import { getSettingWithDefault } from "../libs/storage";
 import { clearAllBatchQueue } from "../libs/batchQueue";
 import { createInvocation } from "../providers/invocation";
-import { approvedProviderOrigins } from "../providers/grants";
 
 jest.mock("query-string", () => ({
   stringify: (value) => new URLSearchParams(value).toString(),
@@ -38,9 +37,6 @@ jest.mock("../providers/backgroundInvocation", () => ({
 jest.mock("../providers/bridgeInvocation", () => ({
   invokeBridgedService: jest.fn(),
 }));
-jest.mock("../providers/grants", () => ({
-  approvedProviderOrigins: jest.fn(),
-}));
 jest.mock("../localAi/fileOperations", () => ({ ALL_OCR_MODELS: [] }));
 jest.mock("../localAi/runtime/runtimeHostAdapter", () => ({
   runtimeHost: { request: jest.fn(async () => ({ records: [] })) },
@@ -51,7 +47,6 @@ const kinds = ["pdf", "txt", "markdown", "image", "epub"];
 let api;
 beforeEach(() => {
   jest.clearAllMocks();
-  approvedProviderOrigins.mockResolvedValue(new Set());
   global.TextEncoder = TextEncoder;
   Object.defineProperty(global, "crypto", {
     configurable: true,
@@ -200,7 +195,7 @@ test("single streaming translation waits for the final host result", async () =>
   expect(invokeBridgedService).not.toHaveBeenCalled();
 });
 
-test.each(["PERMISSION_REQUIRED", "PROVIDER_ERROR"])(
+test.each(["NETWORK_DENIED", "PROVIDER_ERROR"])(
   "%s propagates without invoking another service",
   async (code) => {
     const error = Object.assign(new Error(code), { code });
@@ -216,15 +211,9 @@ test.each(["PERMISSION_REQUIRED", "PROVIDER_ERROR"])(
   }
 );
 
-test("admission rejects missing authorization without invoking any service", async () => {
-  const error = Object.assign(new Error("Permission required"), {
-    code: "PERMISSION_REQUIRED",
-  });
-  approvedProviderOrigins.mockRejectedValueOnce(error);
-  await expect(translate("hello")).rejects.toBe(error);
-  expect(approvedProviderOrigins).toHaveBeenCalledWith(api);
-  expect(invokeBackgroundPlugin).not.toHaveBeenCalled();
-  expect(invokeBridgedService).not.toHaveBeenCalled();
+test("file translation admits a configured plugin without a local grant", async () => {
+  await expect(translate("hello")).resolves.toMatchObject({ text: "译:hello" });
+  expect(invokeBackgroundPlugin).toHaveBeenCalledTimes(1);
 });
 
 test("file cancellation reaches the host invocation and does not replay", async () => {

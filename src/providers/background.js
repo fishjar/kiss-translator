@@ -2,11 +2,6 @@ import { serviceInvocationOptions } from "./timeout";
 import browser from "webextension-polyfill";
 import { getSettingWithDefault } from "../libs/storage";
 import { localAiHost } from "../libs/localAiBackground";
-import {
-  approvedProviderOrigins,
-  providerGrantKey,
-  providerPluginId,
-} from "./grants";
 import { PROVIDER_PORT, PROVIDER_HOST_PORT } from "./bridge";
 import { acquireProviderHost } from "./hostLease";
 import { STOKEY_SETTING } from "../config/storage";
@@ -25,18 +20,14 @@ export function installProviderRelay() {
     const available = changes[STOKEY_SETTING]
       ? availableServiceIds(changes[STOKEY_SETTING].newValue)
       : null;
-    for (const [client, { serviceId, grantKey, external, cancel }] of active) {
-      const grantChange = changes[grantKey];
-      const revoked = external && grantChange && !grantChange.newValue;
-      if (!revoked && (!available || available.has(serviceId))) continue;
+    for (const [client, { serviceId, cancel }] of active) {
+      if (!available || available.has(serviceId)) continue;
       try {
         client.postMessage({
           type: "error",
           error: {
-            code: revoked ? "PERMISSION_REQUIRED" : "SERVICE_UNAVAILABLE",
-            message: revoked
-              ? "Provider authorization was revoked."
-              : "Service was disabled or deleted.",
+            code: "SERVICE_UNAVAILABLE",
+            message: "Service was disabled or deleted.",
           },
         });
       } catch {
@@ -101,16 +92,9 @@ export function installProviderRelay() {
             instance.provider.implementation.kind === "native")
         )
           throw new Error("Plugin service is unavailable.");
-        // Register before asynchronous grant verification so revocation during
-        // verification also closes the pending call, rather than starting it late.
-        const grantKey = trustedNative
-          ? null
-          : providerGrantKey(providerPluginId(instance));
         if (disconnected) return;
         active.set(client, {
-          grantKey,
           serviceId: instance.apiSlug,
-          external: !trustedNative,
           cancel: () => {
             // Calling disconnect does not emit onDisconnect on this same end.
             // Explicitly release the lease and cancel a same-context native call.
@@ -118,14 +102,9 @@ export function installProviderRelay() {
             client.disconnect();
           },
         });
-        const origins = trustedNative
-          ? []
-          : [...(await approvedProviderOrigins(instance))];
-        if (disconnected) return;
         const start = {
           ...message,
           instance,
-          approvedOrigins: origins,
           options: serviceInvocationOptions(instance, message.options),
         };
         if (systemSpeech) {

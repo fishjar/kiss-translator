@@ -2,19 +2,13 @@ import { serviceInvocationOptions } from "./timeout";
 import { browser } from "../libs/browser";
 import { createInvocation } from "./invocation";
 import { invokeProviderPort, PROVIDER_HOST_PORT } from "./bridge";
-import {
-  approvedProviderOrigins,
-  providerGrantKey,
-  providerPluginId,
-} from "./grants";
 import { acquireProviderHost } from "./hostLease";
 import { localAiHost } from "../libs/localAiBackground";
 import { STOKEY_SETTING } from "../config/storage";
 import { availableServiceIds } from "./lifecycle";
 import { providerError } from "./capabilities";
 
-/** Background cannot connect to its own client relay. Resolve grants here and
- * connect directly to the shared host using the same bounded IPC implementation. */
+/** Connect directly to the shared host using bounded IPC. */
 export function invokeBackgroundPlugin(
   instance,
   capability,
@@ -31,9 +25,9 @@ export function invokeBackgroundPlugin(
         "NATIVE_ACCESS_DENIED",
         "Expected an external service."
       );
-    const grantKey = providerGrantKey(providerPluginId(instance));
     if (ctx.signal.aborted) throw ctx.signal.reason;
     let call;
+    let stopped = false;
     const release = acquireProviderHost();
     let invalidate;
     const invalidated = new Promise((_, reject) => {
@@ -46,12 +40,11 @@ export function invokeBackgroundPlugin(
       const available = changes[STOKEY_SETTING]
         ? availableServiceIds(changes[STOKEY_SETTING].newValue)
         : null;
-      const revoked = changes[grantKey] && !changes[grantKey].newValue;
-      if (revoked || (available && !available.has(instance.apiSlug)))
+      if (available && !available.has(instance.apiSlug))
         invalidate(
           providerError(
-            revoked ? "PERMISSION_REQUIRED" : "SERVICE_UNAVAILABLE",
-            "Service authorization or availability changed."
+            "SERVICE_UNAVAILABLE",
+            "Service was disabled or deleted."
           )
         );
     };
@@ -60,27 +53,25 @@ export function invokeBackgroundPlugin(
       return await Promise.race([
         invalidated,
         (async () => {
-          const approvedOrigins = [
-            ...(await approvedProviderOrigins(instance)),
-          ];
           if (ctx.signal.aborted) throw ctx.signal.reason;
           if (globalThis.chrome?.offscreen?.createDocument) {
             await localAiHost({ action: "ensure" });
+            if (stopped) return;
             if (ctx.signal.aborted) throw ctx.signal.reason;
             call = invokeProviderPort(
               PROVIDER_HOST_PORT,
-              { instance, approvedOrigins },
+              { instance },
               capability,
               input,
               { ...options, signal: ctx.signal }
             );
           } else {
             const { invokeInstance } = await import("./runtime");
+            if (stopped) return;
             if (ctx.signal.aborted) throw ctx.signal.reason;
             call = invokeInstance(instance, capability, input, {
               ...options,
               signal: ctx.signal,
-              approvedOrigins: new Set(approvedOrigins),
             });
           }
           const events = (async () => {
@@ -93,6 +84,7 @@ export function invokeBackgroundPlugin(
         })(),
       ]);
     } finally {
+      stopped = true;
       ctx.signal.removeEventListener("abort", aborted);
       browser.storage.onChanged.removeListener(changed);
       call?.cancel();
