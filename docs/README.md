@@ -1,10 +1,10 @@
 # 文档目录
 
-- [插件开发指南](plugins/plugin-development-guide.md)：当前插件契约与开发流程。
-- [OpenAI 兼容示例](plugins/examples/openai-compatible-bundle/README.md)：多服务插件示例。
-- [DeepSeek 声明式示例](plugins/examples/deepseek/README.md)：JSON 协议规则示例。
+- [插件开发指南](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)：当前插件契约与开发流程。
+- [OpenAI 兼容协议插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md)：聊天、翻译、转写、语音与图片识别。
+- [DeepSeek 插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)：聊天、翻译与声明式协议规则。
 
-两个示例的源码和说明纳入 Git；生成的 ZIP、浏览器截图和本地验收报告不纳入 Git。需要示例 ZIP 时，将对应示例目录的内容压缩，确保 `manifest.json` 位于 ZIP 根目录。
+插件源码、开发指引、供应商协议测试和发布流程统一维护在[官方插件项目](https://github.com/fishjar/kiss-translator-plugins)。该项目独立打包并发布版本化 ZIP 和目录索引；主项目仅使用通用测试样例验证 SDK，不保存官方发布包、目录或哈希快照。插件可从“接口插件 → 官方插件”联网安装，或下载独立 ZIP 后导入。
 
 ## 提交 PR 前的本地预检
 

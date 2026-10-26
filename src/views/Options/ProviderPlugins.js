@@ -1,3 +1,9 @@
+import PluginDirectory from "./PluginDirectory";
+import {
+  downloadOfficialPlugin,
+  newerPluginVersion,
+  OFFICIAL_BASE,
+} from "../../providers/pluginDirectory";
 import { useProviderI18n } from "../../hooks/ProviderI18n";
 import { useI18n } from "../../hooks/I18n";
 import { useConfirm } from "../../hooks/Confirm";
@@ -14,6 +20,12 @@ import {
 import { packageFingerprint } from "../../providers/packageFingerprint";
 import { packageServiceCatalog } from "../../providers/packageCatalog";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
+import PluginUpdatePreview from "./PluginUpdatePreview";
+import { previewPackageUpdate } from "../../providers/updatePreview";
+import {
+  pluginCompatibilityFields,
+  pluginCompatibilityError,
+} from "../../providers/compatibility";
 import PluginPromptPreview from "./PluginPromptPreview";
 import { defaultPromptCapabilities } from "../../providers/defaultPrompts";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -156,23 +168,15 @@ function PluginServicesTable({ services = [], previewAvailable = true }) {
                 <TableCell>
                   {service.models?.length ? (
                     <Stack spacing={0.75}>
-                      {service.models.map((model) => {
-                        const name = providerText(model.name, model.nameI18n);
-                        return (
-                          <Box key={model.id}>
-                            {name && name !== model.id && (
-                              <Typography variant="body2">{name}</Typography>
-                            )}
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{ fontFamily: "monospace" }}
-                            >
-                              {model.id}
-                            </Typography>
-                          </Box>
-                        );
-                      })}
+                      {service.models.map((model) => (
+                        <Typography
+                          key={model.id}
+                          variant="body2"
+                          sx={{ fontFamily: "monospace" }}
+                        >
+                          {model.id}
+                        </Typography>
+                      ))}
                     </Stack>
                   ) : (
                     <Typography variant="body2" color="text.secondary">
@@ -277,6 +281,7 @@ export default function ProviderPlugins() {
         (index && {
           manifest: { id: index.pluginId, version: index.version },
           integrity: index.integrity,
+          source: index.source,
         });
       if (!expected && previous && !checkPackageReplacement(previous, pack)) {
         if (local) {
@@ -316,6 +321,11 @@ export default function ProviderPlugins() {
                 {previous ? `${previous.manifest.version} → ` : ""}
                 {pack.manifest.version}
               </Typography>
+              {previous && (
+                <PluginUpdatePreview
+                  preview={previewPackageUpdate(local || previous, pack)}
+                />
+              )}
               <PluginNetworkDetails summary={summary} />
               <Typography variant="caption" color="text.secondary">
                 {i18n("plugin_existing_service_snapshots_retained")}
@@ -334,6 +344,7 @@ export default function ProviderPlugins() {
             (item) => item.pluginId !== pack.manifest.id
           ),
           {
+            ...pluginCompatibilityFields(pack.manifest),
             pluginId: pack.manifest.id,
             version: pack.manifest.version,
             source: pack.source,
@@ -353,59 +364,79 @@ export default function ProviderPlugins() {
       setBusy(false);
     }
   };
-  return (
-    <Stack
-      className="kt-provider-plugins"
-      useFlexGap
-      spacing={3}
-      sx={{ minWidth: 0 }}
-    >
-      {/* CSS gap survives the theme's expanded-accordion margin reset. */}
-      {error && <Alert severity="error">{error}</Alert>}
-      <Box
-        className="kt-provider-install"
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 1.5,
-        }}
-      >
-        <LocalPackageInput disabled={busy} onRead={install}>
-          {i18n("plugin_import_zip")}
-        </LocalPackageInput>
-        <LocalPackageInput directory disabled={busy} onRead={install}>
-          {i18n("plugin_import_folder")}
-        </LocalPackageInput>
-        <TextField
-          fullWidth
-          sx={{
-            minWidth: 0,
-            flex: { xs: "1 1 100%", sm: "1 1 0" },
-            order: { xs: -1, sm: 0 },
-          }}
-          size="small"
-          label={i18n("plugin_github_project_or_https_zip_url")}
-          value={url}
-          onChange={(event) => setUrl(event.target.value)}
-        />
-        {readingPackage && (
-          <Button onClick={() => downloadController.current?.abort()}>
-            {i18n("plugin_cancel_installation")}
-          </Button>
-        )}
+  const isOfficial = (id, source, entries) =>
+    entries.some((entry) => entry.id === id) ||
+    (source?.url?.startsWith(OFFICIAL_BASE) &&
+      /^[a-f0-9]{64}$/.test(source.archiveSha256 || "")) === true;
+  const officialAction = (id, version, entries, missingIndex) => {
+    const entry = entries.find((item) => item.id === id);
+    if (entry && missingIndex && entry.version === version)
+      return (
         <Button
-          sx={{ flexShrink: 0, ml: { xs: "auto", sm: 0 } }}
-          disabled={busy || !url}
+          disabled={busy || !!pluginCompatibilityError(entry)}
           onClick={() =>
-            install((signal) =>
-              downloadProviderSource(url, undefined, { signal })
+            install(
+              (signal) => downloadOfficialPlugin(entry, signal),
+              missingIndex
             )
           }
         >
-          {i18n("plugin_download_and_install")}
+          {i18n("plugin_restore_template")}
         </Button>
-      </Box>
+      );
+    if (!entry || !newerPluginVersion(entry.version, version)) return null;
+    return (
+      <Button
+        disabled={busy || !!pluginCompatibilityError(entry)}
+        onClick={() =>
+          install((signal) => downloadOfficialPlugin(entry, signal))
+        }
+      >
+        {i18n("plugin_update_plugin")} · {entry.version}
+      </Button>
+    );
+  };
+  const directoryStatus = (id, version, source, entries) => {
+    const entry = entries.find((item) => item.id === id);
+    if (!entry) return null;
+    if (pluginCompatibilityError(entry))
+      return (
+        <Alert severity="warning">
+          {pluginCompatibilityError(entry).message}
+        </Alert>
+      );
+    return (
+      <>
+        {newerPluginVersion(entry.version, version) && (
+          <Chip
+            size="small"
+            color="info"
+            label={`${i18n("plugin_directory_update_available")} · ${entry.version}`}
+          />
+        )}
+        {!(
+          source?.url === `${OFFICIAL_BASE}${id}/${version}.zip` &&
+          source?.archiveSha256
+        ) && (
+          <Chip
+            size="small"
+            variant="outlined"
+            label={i18n("plugin_directory_other_source")}
+          />
+        )}
+      </>
+    );
+  };
+  const renderInstalled = (entries, official) => {
+    const installedPackages = packages.filter(
+      (pack) => isOfficial(pack.id, pack.source, entries) === official
+    );
+    const missingPackages = (setting?.providerPlugins || []).filter(
+      (index) =>
+        !packages.some((pack) => pack.id === index.pluginId) &&
+        isOfficial(index.pluginId, index.source, entries) === official
+    );
+    return (
       <Stack
         className="kt-provider-package-list"
         useFlexGap
@@ -416,145 +447,152 @@ export default function ProviderPlugins() {
             { mb: 0 },
         }}
       >
-        {(setting?.providerPlugins || [])
-          .filter(
-            (index) => !packages.some((pack) => pack.id === index.pluginId)
-          )
-          .map((index) => (
-            <Accordion key={index.pluginId} disableGutters sx={{ minWidth: 0 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Stack
-                  direction="row"
-                  spacing={1.5}
-                  useFlexGap
-                  flexWrap="wrap"
-                  alignItems="center"
-                  sx={{ minWidth: 0, width: "100%" }}
-                >
-                  <ApiProviderIcon apiType="Plugin" />
-                  <Typography
-                    sx={{ flex: 1, minWidth: 160, overflowWrap: "anywhere" }}
-                  >
-                    {providerText(index.name || index.pluginId, index.nameI18n)}{" "}
-                    · {index.version}
-                  </Typography>
-                  <Chip
-                    size="small"
-                    label={i18n("api_local_model_not_installed")}
-                  />
-                </Stack>
-              </AccordionSummary>
-              <AccordionDetails
-                sx={{
-                  minWidth: 0,
-                  pt: 1,
-                  pb: 2,
-                  "& .MuiTypography-root": { overflowWrap: "anywhere" },
-                }}
+        {missingPackages.map((index) => (
+          <Accordion key={index.pluginId} disableGutters sx={{ minWidth: 0 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Stack
+                direction="row"
+                spacing={1.5}
+                useFlexGap
+                flexWrap="wrap"
+                alignItems="center"
+                sx={{ minWidth: 0, width: "100%" }}
               >
-                <Stack spacing={1}>
+                <ApiProviderIcon apiType="Plugin" size={36} imageSize={28} />
+                <Typography
+                  sx={{ flex: 1, minWidth: 160, overflowWrap: "anywhere" }}
+                >
+                  {providerText(index.name || index.pluginId, index.nameI18n)} ·{" "}
+                  {index.version}
+                </Typography>
+                {directoryStatus(
+                  index.pluginId,
+                  index.version,
+                  index.source,
+                  entries
+                )}
+                <Chip
+                  size="small"
+                  label={i18n("api_local_model_not_installed")}
+                />
+              </Stack>
+            </AccordionSummary>
+            <AccordionDetails
+              sx={{
+                minWidth: 0,
+                pt: 1,
+                pb: 2,
+                "& .MuiTypography-root": { overflowWrap: "anywhere" },
+              }}
+            >
+              <Stack spacing={1}>
+                {officialAction(index.pluginId, index.version, entries, index)}
+                <Typography>
+                  {i18n(
+                    "plugin_local_template_missing_existing_instances_can_still_run"
+                  )}
+                </Typography>
+                <Stack
+                  useFlexGap
+                  spacing={1}
+                  sx={{
+                    bgcolor: "action.hover",
+                    p: 2,
+                    borderRadius: 2,
+                    minWidth: 0,
+                  }}
+                >
                   <Typography>
-                    {i18n(
-                      "plugin_local_template_missing_existing_instances_can_still_run"
-                    )}
+                    {i18n("plugin_source")}
+                    {sourceLabel(index.source, i18n)}
                   </Typography>
-                  <Stack
-                    useFlexGap
-                    spacing={1}
-                    sx={{
-                      bgcolor: "action.hover",
-                      p: 2,
-                      borderRadius: 2,
-                      minWidth: 0,
-                    }}
-                  >
-                    <Typography>
-                      {i18n("plugin_source")}
-                      {sourceLabel(index.source, i18n)}
-                    </Typography>
-                    {index.source?.commitSha && (
-                      <Typography sx={{ overflowWrap: "anywhere" }}>
-                        {i18n("plugin_github_commit")}
-                        {index.source.commitSha}
-                      </Typography>
-                    )}
-                    <Typography>
-                      {i18n("plugin_linked_service_instances")}
-                      {
-                        (setting.transApis || []).filter(
-                          (api) =>
-                            api.provider?.source?.pluginId === index.pluginId
-                        ).length
-                      }
-                    </Typography>
-                  </Stack>
-                  <PluginServicesTable
-                    services={index.services}
-                    previewAvailable={false}
-                  />
-                  {["github", "zip"].includes(index.source?.kind) ? (
-                    <Button
-                      disabled={busy}
-                      onClick={() =>
-                        install(
-                          (signal) =>
-                            downloadProviderSource(index.source, undefined, {
-                              signal,
-                              restore: true,
-                            }),
-                          index
-                        )
-                      }
-                    >
-                      {i18n("plugin_restore_template")}
-                    </Button>
-                  ) : (
-                    <Typography>
-                      {i18n(
-                        "plugin_import_the_original_zip_package_or_plugin_folder_again"
-                      )}
+                  {index.source?.commitSha && (
+                    <Typography sx={{ overflowWrap: "anywhere" }}>
+                      {i18n("plugin_github_commit")}
+                      {index.source.commitSha}
                     </Typography>
                   )}
+                  <Typography>
+                    {i18n("plugin_linked_service_instances")}
+                    {
+                      (setting.transApis || []).filter(
+                        (api) =>
+                          api.provider?.source?.pluginId === index.pluginId
+                      ).length
+                    }
+                  </Typography>
+                </Stack>
+                <PluginServicesTable
+                  services={index.services}
+                  previewAvailable={false}
+                />
+                {entries.some(
+                  (entry) =>
+                    entry.id === index.pluginId &&
+                    entry.version === index.version
+                ) ? null : ["github", "zip"].includes(index.source?.kind) ? (
                   <Button
                     disabled={busy}
-                    color="error"
-                    onClick={async () => {
-                      setBusy(true);
-                      try {
-                        if (
-                          !(await confirm({
-                            title: i18n("plugin_remove_plugin_index"),
-                            message: i18n("plugin_remove_synced_plugin_index"),
-                          }))
-                        )
-                          return;
-                        await updateSetting((previous) => ({
-                          ...previous,
-                          providerPlugins: (
-                            previous.providerPlugins || []
-                          ).filter((item) => item.pluginId !== index.pluginId),
-                        }));
-                      } catch (err) {
-                        setError(err.message);
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
+                    onClick={() =>
+                      install(
+                        (signal) =>
+                          downloadProviderSource(index.source, undefined, {
+                            signal,
+                            restore: true,
+                          }),
+                        index
+                      )
+                    }
                   >
-                    {i18n("plugin_remove_plugin_index")}
+                    {i18n("plugin_restore_template")}
                   </Button>
-                </Stack>
-              </AccordionDetails>
-            </Accordion>
-          ))}
-        {!packages.length && !(setting?.providerPlugins || []).length && (
+                ) : (
+                  <Typography>
+                    {i18n(
+                      "plugin_import_the_original_zip_package_or_plugin_folder_again"
+                    )}
+                  </Typography>
+                )}
+                <Button
+                  disabled={busy}
+                  color="error"
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      if (
+                        !(await confirm({
+                          title: i18n("plugin_remove_plugin_index"),
+                          message: i18n("plugin_remove_synced_plugin_index"),
+                        }))
+                      )
+                        return;
+                      await updateSetting((previous) => ({
+                        ...previous,
+                        providerPlugins: (
+                          previous.providerPlugins || []
+                        ).filter((item) => item.pluginId !== index.pluginId),
+                      }));
+                    } catch (err) {
+                      setError(err.message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  {i18n("plugin_remove_plugin_index")}
+                </Button>
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
+        ))}
+        {!official && !installedPackages.length && !missingPackages.length && (
           <Alert severity="info">
             {i18n(
               "plugin_no_external_plugins_installed_import_a_zip_or_local_folder_or_enter_a_"
             )}
           </Alert>
         )}
-        {packages.map((pack) => (
+        {installedPackages.map((pack) => (
           <Accordion key={pack.id} disableGutters sx={{ minWidth: 0 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Stack
@@ -567,6 +605,8 @@ export default function ProviderPlugins() {
               >
                 <ApiProviderIcon
                   apiType="Plugin"
+                  size={36}
+                  imageSize={28}
                   provider={{
                     source: {
                       external: true,
@@ -581,6 +621,12 @@ export default function ProviderPlugins() {
                   {providerText(pack.manifest.name, pack.manifest.nameI18n)} ·{" "}
                   {pack.manifest.version}
                 </Typography>
+                {directoryStatus(
+                  pack.id,
+                  pack.manifest.version,
+                  pack.source,
+                  entries
+                )}
                 <Chip
                   size="small"
                   label={i18n("plugin_installed_apis").replace(
@@ -599,6 +645,12 @@ export default function ProviderPlugins() {
               }}
             >
               <Stack spacing={2}>
+                {officialAction(pack.id, pack.manifest.version, entries)}
+                {pluginCompatibilityError(pack.manifest) && (
+                  <Alert severity="warning">
+                    {pluginCompatibilityError(pack.manifest).message}
+                  </Alert>
+                )}
                 <Typography>
                   {providerText(
                     pack.manifest.description || "",
@@ -643,7 +695,10 @@ export default function ProviderPlugins() {
                 </Stack>
                 <PluginServicesTable services={pack.manifest.services} />
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  {["github", "zip"].includes(pack.source?.kind) ? (
+                  {entries.some((entry) => entry.id === pack.id) ? null : [
+                      "github",
+                      "zip",
+                    ].includes(pack.source?.kind) ? (
                     <Button
                       disabled={busy}
                       onClick={() =>
@@ -724,6 +779,83 @@ export default function ProviderPlugins() {
           </Accordion>
         ))}
       </Stack>
+    );
+  };
+  return (
+    <Stack
+      className="kt-provider-plugins"
+      useFlexGap
+      spacing={3}
+      sx={{ minWidth: 0 }}
+    >
+      {/* CSS gap survives the theme's expanded-accordion margin reset. */}
+      {error && <Alert severity="error">{error}</Alert>}
+      <PluginDirectory
+        busy={busy}
+        installed={[
+          ...packages,
+          ...(setting.providerPlugins || [])
+            .filter(
+              (index) => !packages.some((pack) => pack.id === index.pluginId)
+            )
+            .map((index) => ({ id: index.pluginId, source: index.source })),
+        ]}
+        onOfficialInstall={(entry) =>
+          install((signal) => downloadOfficialPlugin(entry, signal))
+        }
+        onCommunityInstall={(address) =>
+          install((signal) =>
+            downloadProviderSource(address, undefined, { signal })
+          )
+        }
+        renderInstalled={renderInstalled}
+        importControls={
+          <Box
+            className="kt-provider-install"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 1.5,
+            }}
+          >
+            <LocalPackageInput disabled={busy} onRead={install}>
+              {i18n("plugin_import_zip")}
+            </LocalPackageInput>
+            <LocalPackageInput directory disabled={busy} onRead={install}>
+              {i18n("plugin_import_folder")}
+            </LocalPackageInput>
+            <TextField
+              fullWidth
+              sx={{
+                minWidth: 0,
+                flex: { xs: "1 1 100%", sm: "1 1 0" },
+                order: { xs: -1, sm: 0 },
+              }}
+              size="small"
+              label={i18n("plugin_github_project_or_https_zip_url")}
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+            />
+            {readingPackage && (
+              <Button onClick={() => downloadController.current?.abort()}>
+                {i18n("plugin_cancel_installation")}
+              </Button>
+            )}
+            <Button
+              sx={{ flexShrink: 0, ml: { xs: "auto", sm: 0 } }}
+              disabled={busy || !url}
+              onClick={() =>
+                install((signal) =>
+                  downloadProviderSource(url, undefined, { signal })
+                )
+              }
+            >
+              {i18n("plugin_download_and_install")}
+            </Button>
+          </Box>
+        }
+      />
       <Button href="#/apis" sx={{ alignSelf: "center" }}>
         {i18n("plugin_view_service_configuration")}
       </Button>

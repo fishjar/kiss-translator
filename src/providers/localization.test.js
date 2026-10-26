@@ -8,7 +8,7 @@ import {
 } from "./localization";
 import { createServiceInstance } from "./instances";
 import { packageServiceCatalog } from "./packageCatalog";
-import manifest from "../../docs/plugins/examples/openai-compatible-bundle/manifest.json";
+import { testManifest as manifest } from "./testSupport/packages";
 
 test("plugin labels and capability labels cover every supported language and preserve placeholders", () => {
   const placeholders = (text) => (text.match(/\{\d+\}/g) || []).sort();
@@ -65,7 +65,7 @@ test("localized metadata survives service snapshots and synced catalogs", () => 
   expect(
     instance.provider.settings.find((field) => field.key === "baseUrl")
       .labelI18n.en
-  ).toBe("API base URL (including /v1)");
+  ).toBe("API URL");
   const catalog = packageServiceCatalog(manifest);
   expect(catalog[0].nameI18n).toEqual(manifest.services[0].nameI18n);
   expect(catalog[0].nameI18n).not.toBe(manifest.services[0].nameI18n);

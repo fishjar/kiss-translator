@@ -14,6 +14,20 @@ const newApi = {
     },
   },
 };
+test.each([undefined, []])(
+  "missing or empty settings never copy unmatched config: %j",
+  (settings) => {
+    const api = {
+      provider: settings ? { settings } : {},
+      pluginConfig: { added: "old" },
+    };
+    const original = JSON.stringify(api);
+    expect(copyCompatibleConfig(api, [{ key: "added", type: "text" }])).toEqual(
+      { values: {}, skipped: [] }
+    );
+    expect(JSON.stringify(api)).toBe(original);
+  }
+);
 test("reference replacement preserves order, deduplicates and never rewrites instance identity or opaque data", () => {
   const setting = {
     transApis: [{ apiSlug: "old", pluginConfig: { apiSlug: "old" } }, newApi],

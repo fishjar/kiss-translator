@@ -55,7 +55,7 @@ export function ServiceFormHeader({ api, onChange }) {
   const i18n = useI18n();
   const { setting } = useSetting();
   const source = api.provider?.source?.external
-    ? i18n("plugin_external_plugin")
+    ? i18n("plugin_service_interface")
     : {
         builtin: i18n("api_source_type_builtin"),
         local: i18n("api_source_type_local"),

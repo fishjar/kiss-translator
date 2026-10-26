@@ -1,5 +1,5 @@
 import { packageDefinitions, summarizePackageNetwork } from "./packageNetwork";
-import manifest from "../../docs/plugins/examples/openai-compatible-bundle/manifest.json";
+import { testManifest as manifest } from "./testSupport/packages";
 
 test("package network details use effective service snapshots without credentials", () => {
   const definitions = packageDefinitions({
@@ -12,10 +12,10 @@ test("package network details use effective service snapshots without credential
     ),
   });
   const summary = summarizePackageNetwork(definitions);
-  expect(summary.origins).toEqual(["https://api.openai.com"]);
-  expect(summary.endpointFields).toEqual(["API 基础地址（包含 /v1）"]);
+  expect(summary.origins).toEqual(["https://example.invalid"]);
+  expect(summary.endpointFields).toEqual(["接口地址"]);
   expect(summary.endpointFieldI18n[summary.endpointFields[0]].en).toBe(
-    "API base URL (including /v1)"
+    "API URL"
   );
   expect(summary.services).toHaveLength(manifest.services.length);
   expect(JSON.stringify(summary)).not.toContain("apiKey");
@@ -50,4 +50,15 @@ test("network summary includes every effective service scope and deduplicates sh
   ]);
   expect(summary.endpointFields).toEqual(["API URL"]);
   expect(summary.services.map((service) => service.id)).toEqual(["one", "two"]);
+});
+
+test("stored plugins requiring a newer host can still display network metadata", () => {
+  const summary = summarizePackageNetwork(
+    packageDefinitions({
+      manifest: { ...manifest, minHostVersion: "999999.0.0" },
+    })
+  );
+  expect(summary.origins).toEqual(["https://example.invalid"]);
+  expect(summary.endpointFields).toEqual(["接口地址"]);
+  expect(summary.services).toHaveLength(manifest.services.length);
 });

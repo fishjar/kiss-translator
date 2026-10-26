@@ -232,7 +232,12 @@ export interface ServiceDefinition {
     >;
   }>;
 }
-export interface PluginManifest {
+export interface PluginCompatibility {
+  kind?: "provider";
+  minHostVersion?: string;
+}
+
+export interface PluginManifest extends PluginCompatibility {
   manifestVersion: 1;
   id: string;
   name: string;
@@ -269,7 +274,9 @@ export type DeclarativeRules =
     }
   | { rulesVersion: 2; handlers: Record<string, ProtocolHandlerRule> };
 
-export interface ProviderSnapshot extends ServiceDefinition {
+export interface ProviderSnapshot
+  extends ServiceDefinition,
+    PluginCompatibility {
   apiVersion: "1";
   source?: {
     pluginId: string;
@@ -297,7 +304,7 @@ export type PackageSource =
   | { kind: "file" }
   | { kind: "directory" };
 
-export interface ProviderPackageIndex {
+export interface ProviderPackageIndex extends PluginCompatibility {
   pluginId: string;
   name: string;
   version: string;

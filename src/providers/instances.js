@@ -7,6 +7,11 @@ import {
 import { providerHelpers } from "./sdk";
 import { validateDefaultPrompts } from "./defaultPrompts";
 
+import {
+  assertPluginCompatibility,
+  pluginCompatibilityFields,
+} from "./compatibility";
+
 const copy = (value) => JSON.parse(JSON.stringify(value));
 const forbidden = new Set(["__proto__", "constructor", "prototype"]);
 
@@ -148,6 +153,7 @@ export function createServiceInstance(
       "Unsupported manifest/SDK or missing instance ID."
     );
   }
+  assertPluginCompatibility(manifest);
   const service = manifest.services.find((item) => item.id === serviceId);
   if (
     !service ||
@@ -166,6 +172,7 @@ export function createServiceInstance(
   validatePermissions(manifest.permissions, fields);
   validateFieldCapabilities(service, fields, manifest.permissions);
   const provider = {
+    ...pluginCompatibilityFields(manifest),
     apiVersion: "1",
     id: service.id,
     name: service.name,

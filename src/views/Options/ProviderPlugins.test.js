@@ -16,6 +16,15 @@ import {
   removeProviderPackage,
 } from "../../providers/packageStore";
 import { packageFingerprint } from "../../providers/packageFingerprint";
+import {
+  loadPluginDirectory,
+  downloadOfficialPlugin,
+} from "../../providers/pluginDirectory";
+jest.mock("../../providers/pluginDirectory", () => ({
+  ...jest.requireActual("../../providers/pluginDirectory"),
+  loadPluginDirectory: jest.fn(),
+  downloadOfficialPlugin: jest.fn(),
+}));
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const mockSetting = { providerPlugins: [], transApis: [] };
@@ -24,8 +33,8 @@ let mockPackages = [];
 const mockConfirm = jest.fn(async () => true);
 jest.mock("../../hooks/Confirm", () => ({ useConfirm: () => mockConfirm }));
 jest.mock("../../providers/packageNetwork", () => ({
-  packageDefinitions: (pack) =>
-    pack.manifest.services.map((service) => ({ provider: service })),
+  packageDefinitions: jest.requireActual("../../providers/packageNetwork")
+    .packageDefinitions,
   summarizePackageNetwork: () => ({
     origins: ["https://fixed.invalid"],
     endpointFields: ["API 基础地址"],
@@ -72,6 +81,9 @@ let container;
 let root;
 beforeEach(() => {
   jest.clearAllMocks();
+  loadPluginDirectory.mockImplementation(async (kind) =>
+    kind === "official" ? { plugins: [] } : { items: [], total_count: 0 }
+  );
   saveProviderPackage.mockResolvedValue(undefined);
   mockPackages = [];
   listProviderPackages.mockImplementation(async () => mockPackages);
@@ -92,6 +104,127 @@ afterEach(async () => {
 async function render() {
   await act(async () => root.render(<ProviderPlugins />));
 }
+
+test.each([
+  ["empty", [], [], true],
+  ["official package", ["deepseek"], [], true],
+  ["official index", [], ["deepseek"], true],
+  ["community package", ["community-plugin"], [], false],
+  ["community index", [], ["community-plugin"], false],
+  ["mixed", ["deepseek", "community-plugin"], [], false],
+])(
+  "community empty state follows the current category: %s",
+  async (_name, localIds, indexIds, empty) => {
+    mockPackages = localIds.map((id) => pack("1.0.0", id));
+    mockSetting.providerPlugins = indexIds.map((pluginId) => ({
+      pluginId,
+      version: "1.0.0",
+      source: { kind: "file" },
+    }));
+    loadPluginDirectory.mockImplementation(async (kind) =>
+      kind === "official"
+        ? {
+            plugins: [
+              {
+                id: "deepseek",
+                name: "DeepSeek",
+                version: "1.0.0",
+                capabilities: ["chat"],
+              },
+            ],
+          }
+        : { items: [], total_count: 0 }
+    );
+    await render();
+    const community = container.querySelectorAll("section")[1];
+    const message = require("../../config/i18n").newI18n("zh")(
+      "plugin_no_external_plugins_installed_import_a_zip_or_local_folder_or_enter_a_"
+    );
+    expect(community.textContent.includes(message)).toBe(empty);
+    expect(community.querySelector(".MuiAccordion-root") !== null).toBe(!empty);
+  }
+);
+
+test("old local examples merge into the official list and explicit updates retain service snapshots", async () => {
+  const old = pack("1.2.1", "deepseek");
+  mockPackages = [old];
+  const entry = {
+    id: old.id,
+    name: "DeepSeek",
+    version: "1.2.2",
+    capabilities: ["chat"],
+  };
+  loadPluginDirectory.mockImplementation(async (kind) =>
+    kind === "official" ? { plugins: [entry] } : { items: [], total_count: 0 }
+  );
+  const updated = {
+    ...pack("1.2.2", old.id),
+    source: {
+      kind: "zip",
+      url: "https://raw.githubusercontent.com/fishjar/kiss-translator-plugins/dist/deepseek/1.2.2.zip",
+      archiveSha256: "a".repeat(64),
+    },
+  };
+  downloadOfficialPlugin.mockResolvedValue(updated);
+  const previousSetting = {
+    ...mockSetting,
+    transApis: [
+      {
+        apiSlug: "existing",
+        provider: { source: { pluginId: old.id }, code: "saved snapshot" },
+        pluginConfig: { apiKey: "retained" },
+      },
+    ],
+  };
+  const before = JSON.stringify(previousSetting);
+  await render();
+  const sections = container.querySelectorAll("section");
+  expect(sections[0].textContent).toContain("Example plugin");
+  expect(sections[1].textContent).not.toContain("Example plugin");
+  await act(async () =>
+    [...sections[0].querySelectorAll("button")]
+      .find((button) => button.textContent.includes("1.2.2"))
+      .click()
+  );
+  expect(downloadOfficialPlugin).toHaveBeenCalledWith(
+    entry,
+    expect.any(AbortSignal)
+  );
+  expect(saveProviderPackage).toHaveBeenCalledWith(updated);
+  const next = mockUpdateSetting.mock.calls[0][0](previousSetting);
+  expect(next.transApis).toEqual(previousSetting.transApis);
+  expect(next.providerPlugins[0].source).toEqual(updated.source);
+  expect(JSON.stringify(previousSetting)).toBe(before);
+});
+
+test("a missing local template imported from a file can restore the matching official version with the synced fingerprint", async () => {
+  const plugin = pack("1.2.2", "deepseek");
+  mockSetting.providerPlugins = [
+    {
+      pluginId: plugin.id,
+      version: "1.2.2",
+      integrity: "fingerprint",
+      source: { kind: "file" },
+    },
+  ];
+  const entry = {
+    id: plugin.id,
+    name: "DeepSeek",
+    version: "1.2.2",
+    capabilities: ["chat"],
+  };
+  loadPluginDirectory.mockImplementation(async (kind) =>
+    kind === "official" ? { plugins: [entry] } : { items: [], total_count: 0 }
+  );
+  downloadOfficialPlugin.mockResolvedValue(plugin);
+  await render();
+  const button = [...container.querySelectorAll("button")].find(
+    (item) => item.textContent === "恢复模板"
+  );
+  expect(button).toBeDefined();
+  await act(async () => button.click());
+  expect(saveProviderPackage).toHaveBeenCalledWith(plugin);
+});
 function input(label) {
   return [...container.querySelectorAll("label")]
     .find((item) => item.textContent === label)
@@ -184,7 +317,7 @@ test("declining installation and cancelling the picker do not persist", async ()
   expect(mockUpdateSetting).not.toHaveBeenCalled();
 });
 
-test("model previews show identical names and IDs once and retain distinct localized names", async () => {
+test("model previews show each complete model ID once without repeating display names", async () => {
   const plugin = pack();
   plugin.manifest.services[0].models = [
     { id: "deepseek-flash", name: "deepseek-flash" },
@@ -205,9 +338,7 @@ test("model previews show identical names and IDs once and retain distinct local
     [...cell.querySelectorAll("p")].map((item) => item.textContent)
   ).toEqual([
     "deepseek-flash",
-    "Named model",
     "named-model",
-    "本地名称",
     "localized-model",
     "same-localized",
     "unnamed-model",
@@ -339,7 +470,9 @@ test("installation needs only the normal install confirmation", async () => {
   expect(container.textContent).toContain("已安装");
   expect(container.textContent).not.toContain("插件授权");
   expect(container.textContent).toContain("https://fixed.invalid");
-  expect(container.textContent).toContain("API 基础地址");
+  expect(container.textContent).not.toContain("API 地址字段");
+  expect(container.textContent).not.toContain("API 基础地址");
+  expect(container.textContent).not.toContain("实际请求地址由服务配置决定");
 });
 
 test("uninstall is confirmed through MUI hook and retains service snapshots", async () => {
@@ -371,6 +504,22 @@ test("updates use the normal confirmation", async () => {
     expect.objectContaining({ confirmText: "更新插件" })
   );
   expect(saveProviderPackage).toHaveBeenCalledTimes(1);
+});
+
+test("incompatible stored plugins show a warning and keep uninstall available", async () => {
+  const plugin = pack();
+  plugin.manifest.minHostVersion = "999999.0.0";
+  mockPackages = [plugin];
+  await render();
+  expect(container.textContent).toContain(
+    "Requires KISS Translator 999999.0.0"
+  );
+  const uninstall = [...container.querySelectorAll("button")].find(
+    (button) => button.textContent === "卸载插件"
+  );
+  expect(uninstall.disabled).toBe(false);
+  await act(async () => uninstall.click());
+  expect(removeProviderPackage).toHaveBeenCalledWith(plugin.id);
 });
 
 test("plugin metadata and controls follow UI language changes without rewriting saved names", async () => {

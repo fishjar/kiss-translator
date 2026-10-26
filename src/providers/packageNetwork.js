@@ -1,16 +1,20 @@
-import { createServiceInstance } from "./instances";
+import { mergeSettingFields } from "./instances";
 
+// Display stored declarations even when the current host cannot run the plugin.
 export function packageDefinitions(pack) {
-  return pack.manifest.services.map((service) =>
-    createServiceInstance(
-      pack.manifest,
-      service.id,
-      pack.implementations[service.id],
-      {},
-      "package-preview",
-      pack.resources
-    )
-  );
+  return pack.manifest.services.map((service) => ({
+    provider: {
+      id: service.id,
+      name: service.name,
+      nameI18n: service.nameI18n,
+      capabilities: service.capabilities,
+      settings: mergeSettingFields(
+        pack.manifest.sharedSettings,
+        service.settings
+      ),
+      permissions: pack.manifest.permissions,
+    },
+  }));
 }
 export function summarizePackageNetwork(definitions) {
   const origins = new Set();

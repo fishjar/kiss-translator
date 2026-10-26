@@ -13,6 +13,8 @@ import {
   checkPayloadBudget,
 } from "./validation";
 
+import { assertPluginCompatibility } from "./compatibility";
+
 /** Native handlers are statically registered; external snapshots never resolve native code. */
 export function createProviderRegistry({
   resolveInstance,
@@ -37,6 +39,7 @@ export function createProviderRegistry({
       return createInvocation(async (invocation) => {
         const instance = await resolveInstance(serviceId);
         if (invocation.signal.aborted) throw invocation.signal.reason;
+        if (instance?.provider) assertPluginCompatibility(instance.provider);
         if (
           instance?.enabledCapabilities !== undefined &&
           (!Array.isArray(instance.enabledCapabilities) ||

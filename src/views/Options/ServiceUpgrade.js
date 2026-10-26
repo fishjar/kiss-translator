@@ -1,3 +1,6 @@
+import PluginUpdatePreview from "./PluginUpdatePreview";
+import { previewServiceUpdate } from "../../providers/updatePreview";
+import { pluginCompatibilityError } from "../../providers/compatibility";
 import { useI18n } from "../../hooks/I18n";
 import { useState } from "react";
 import {
@@ -42,9 +45,14 @@ export function ServiceUpgradeAction({ api, onCreated }) {
       .map((value, index) => Number(value) - previousVersion[index])
       .find((value) => value !== 0) || 0;
   if (!service || versionChange <= 0) return null;
+  const incompatible = pluginCompatibilityError(pack.manifest);
+  if (incompatible)
+    return <Alert severity="warning">{incompatible.message}</Alert>;
+  const preview = previewServiceUpdate(api, pack.manifest, service);
   return (
     <Stack spacing={1}>
       {error && <Alert severity="error">{error}</Alert>}
+      <PluginUpdatePreview preview={preview} />
       <Button
         onClick={async () => {
           try {

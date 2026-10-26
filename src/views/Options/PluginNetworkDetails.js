@@ -73,35 +73,6 @@ export default function PluginNetworkDetails({ summary }) {
         )
       )}
       {section(
-        i18n("plugin_api_url_fields"),
-        <Stack spacing={1} useFlexGap sx={{ minWidth: 0 }}>
-          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            {summary.endpointFields.length ? (
-              summary.endpointFields.map((label) => (
-                <Chip
-                  key={label}
-                  size="small"
-                  label={providerText(
-                    label,
-                    summary.endpointFieldI18n?.[label]
-                  )}
-                  sx={{
-                    maxWidth: "100%",
-                    height: "auto",
-                    "& .MuiChip-label": { whiteSpace: "normal", py: 0.5 },
-                  }}
-                />
-              ))
-            ) : (
-              <Typography variant="body2">{i18n("style_none")}</Typography>
-            )}
-          </Stack>
-          <Typography variant="caption" color="text.secondary">
-            {i18n("plugin_request_url_from_service_configuration")}
-          </Typography>
-        </Stack>
-      )}
-      {section(
         i18n("plugin_linked_services"),
         <Stack spacing={1} useFlexGap sx={{ minWidth: 0 }}>
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">

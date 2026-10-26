@@ -215,7 +215,7 @@ test("shared header handles disabled/pinned and prompt selection has no preview"
   }
   try {
     await act(async () => root.render(<Harness />));
-    expect(node.textContent).toContain("外部插件 · Example Plugin");
+    expect(node.textContent).toContain("插件接口 · Example Plugin");
     expect(node.querySelector("textarea")).toBeNull();
     expect(node.textContent).toContain("插件内部默认");
     expect(node.textContent).not.toContain("复制提示词");

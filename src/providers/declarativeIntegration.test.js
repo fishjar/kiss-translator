@@ -1,8 +1,5 @@
-import fs from "fs";
-import path from "path";
+import { testPackage } from "./testSupport/packages";
 import { runDeclarative } from "./declarative";
-import { zipSync } from "fflate";
-import { readProviderPackage } from "./package";
 import { createServiceInstance, projectInstanceConfig } from "./instances";
 import { providerHelpers } from "./sdk";
 import defaults from "./sdk/defaultTranslationPrompts.json";
@@ -16,21 +13,13 @@ jest.mock("@streamparser/json", () =>
 );
 
 function example() {
-  const root = path.join(process.cwd(), "docs/plugins/examples/deepseek");
-  const pack = readProviderPackage(
-    zipSync({
-      "manifest.json": fs.readFileSync(path.join(root, "manifest.json")),
-      "services/chat.json": fs.readFileSync(
-        path.join(root, "services/chat.json")
-      ),
-    })
-  );
+  const pack = testPackage("declarative");
   const instance = createServiceInstance(
     pack.manifest,
     "chat-completions",
     pack.implementations["chat-completions"],
     { apiKey: "secret" },
-    "deepseek-test"
+    "declarative-test"
   );
   const handlers = Object.fromEntries(
     ["chat", "translate"].map((handler) => [
@@ -79,7 +68,7 @@ const translationInput = {
 };
 
 test.each(["chat", "translate"])(
-  "DeepSeek %s uses three thinking modes and omits default effort",
+  "Declarative SDK %s uses three thinking modes and omits default effort",
   async (handler) => {
     const { handlers, config, ctx, request } = example();
     if (handler === "translate")
@@ -123,12 +112,13 @@ test.each(["chat", "translate"])(
   }
 );
 
-test("DeepSeek package creates an instance with current models, SDK prompts and isolated secrets", async () => {
+test("Declarative SDK package creates an instance with model defaults, SDK prompts and isolated secrets", async () => {
   const { pack, handlers, config, ctx, request } = example();
-  expect(pack.manifest.services[0].models.map((model) => model.id)).toEqual([
-    "deepseek-flash",
-    "deepseek-v4-pro",
-  ]);
+  expect(
+    pack.manifest.services[0].settings
+      .filter((field) => field.key === "model")
+      .map((field) => field.defaultValue)
+  ).toEqual(["test-model"]);
   expect(pack.manifest.services[0].defaultPrompts).toEqual({
     batch: { ...defaults, protocol: "json" },
     nobatch: { ...TRANSLATION_PROTOCOL_PROMPTS.text, protocol: "text" },
@@ -139,11 +129,11 @@ test("DeepSeek package creates an instance with current models, SDK prompts and 
     reasoning: "thinking",
   });
   expect(request.mock.calls[0][0]).toMatchObject({
-    url: "https://api.deepseek.com/chat/completions",
+    url: "https://example.invalid/v1/chat/completions",
     method: "POST",
     auth: { type: "bearer", secret: { key: "apiKey" } },
     body: {
-      model: "deepseek-flash",
+      model: "test-model",
       messages: chatInput.messages,
       stream: false,
       thinking: { type: "disabled" },
@@ -153,7 +143,7 @@ test("DeepSeek package creates an instance with current models, SDK prompts and 
   expect(request.mock.calls[0][0].body.temperature).toBeUndefined();
 });
 
-test("DeepSeek translation aligns IDs, sends temperature only without thinking and preserves config", async () => {
+test("Declarative SDK translation aligns IDs, sends temperature only without thinking and preserves config", async () => {
   const { handlers, config, ctx, request } = example();
   request.mockResolvedValue({
     status: 200,
@@ -237,7 +227,7 @@ function streamContext(ctx, text, terminal = true) {
   };
 }
 
-test("DeepSeek chat streams reasoning and text and rejects truncated streams", async () => {
+test("Declarative SDK chat streams reasoning and text and rejects truncated streams", async () => {
   const { handlers, config, ctx } = example();
   await expect(
     handlers.chat(chatInput, config, streamContext(ctx, "hello"))
@@ -252,7 +242,7 @@ test("DeepSeek chat streams reasoning and text and rejects truncated streams", a
   ).rejects.toMatchObject({ code: "INCOMPLETE_RESPONSE" });
 });
 
-test("DeepSeek streaming translation excludes reasoning and rejects duplicate IDs", async () => {
+test("Declarative SDK streaming translation excludes reasoning and rejects duplicate IDs", async () => {
   const { handlers, config, ctx } = example();
   const text = '[{"id":"b","text":"乙"},{"id":"a","text":"甲"}]';
   await expect(
@@ -276,7 +266,7 @@ test("DeepSeek streaming translation excludes reasoning and rejects duplicate ID
   ).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
 });
 
-test("DeepSeek declarative plugin propagates cancellation and API errors", async () => {
+test("Declarative SDK declarative plugin propagates cancellation and API errors", async () => {
   const { handlers, config, ctx, request } = example();
   const cancellation = Object.assign(new Error("cancelled"), {
     name: "AbortError",
@@ -299,7 +289,7 @@ test.each([
   ['[{"id":"a","text":"甲"},{"id":"a","text":"甲"}]', "INVALID_RESPONSE"],
   ['[{"id":"a","text":"甲"},{"id":"unknown","text":"乙"}]', "INVALID_RESPONSE"],
 ])(
-  "DeepSeek validates all translation IDs for complete and streaming results: %s",
+  "Declarative SDK validates all translation IDs for complete and streaming results: %s",
   async (text, code) => {
     const { handlers, config, ctx, request } = example();
     request.mockResolvedValue({
