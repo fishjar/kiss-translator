@@ -729,13 +729,6 @@ export class YouTubeCaptionProvider {
           if (
             snapshot?.ready &&
             !snapshot.isAd &&
-            snapshot.captionTracks?.length &&
-            !snapshot.captionTracks.some((track) => track.kind !== "asr")
-          )
-            this.#suggestAsrTab();
-          if (
-            snapshot?.ready &&
-            !snapshot.isAd &&
             track &&
             captionTrackId(track) === cached.entry.trackKey
           ) {
@@ -753,29 +746,6 @@ export class YouTubeCaptionProvider {
             );
             return;
           }
-        }
-      }
-      if (youtubeAsrSupported && !this.#asrDisabled) {
-        this.#acquisitionState = { phase: "loading" };
-        snapshot =
-          snapshot ||
-          (await this.#bridge
-            .request("snapshot", this.#videoId, {
-              lightweight: true,
-            })
-            .catch(() => null));
-        if (
-          version !== this.#acquisitionVersion ||
-          !this.#setting.autoTranslate
-        )
-          return;
-        if (
-          snapshot?.ready &&
-          !snapshot.isAd &&
-          snapshot.captionTracks?.length &&
-          !snapshot.captionTracks.some((track) => track.kind !== "asr")
-        ) {
-          this.#suggestAsrTab();
         }
       }
       const result = await this.#acquirer.acquire(this.#videoId, cacheEntry);
