@@ -241,11 +241,12 @@ export async function executeImageRecognition({
   let prompt;
   if (capability === "parseImage") {
     const slug = vlmPromptSlug || recApi.vlmPromptSlug || "";
-    prompt = slug
-      ? resolveVlmPrompt(setting.prompts, slug)
-      : recApi.apiType === "LocalAI"
-        ? undefined
-        : resolveVlmPrompt(setting.prompts, "");
+    if (slug) prompt = resolveVlmPrompt(setting.prompts, slug);
+    else if (
+      recApi.apiType !== "LocalAI" &&
+      (!recApi.provider || recApi.provider.implementation?.kind === "native")
+    )
+      prompt = resolveVlmPrompt(setting.prompts, "");
   }
 
   // 空选区表示用户不识别任何区域，不应退回整图识别。
