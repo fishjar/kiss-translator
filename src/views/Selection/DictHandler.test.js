@@ -33,7 +33,7 @@ test("localizes every rendered Bing definition field", async () => {
   expect(dictHandlers.Bing.getLocalizationValues(data)).toEqual([
     "网络",
     "翻译员",
-    "复数: translators",
+    "复数",
     "翻译工作者",
     "翻译员工作。",
     "询问翻译员。",
@@ -58,6 +58,44 @@ test("localizes every rendered Bing definition field", async () => {
     },
   });
   expect(result.aus).toEqual([{ key: "UK", phonetic: "trænsˈleɪtə(r)" }]);
+  expect(translate).toHaveBeenCalledWith("复数");
+  expect(translate).not.toHaveBeenCalledWith("复数: translators");
+});
+
+test("keeps Bing English inflections when only the Chinese labels are translated", async () => {
+  const data = {
+    presents: ["复数: translators", "过去式: walked", "translators"],
+  };
+  const googleLike = jest.fn(async (value) => {
+    const translated = {
+      复数: "複数形",
+      过去式: "過去形",
+      "复数: translators": "複数形: 翻訳者",
+      "过去式: walked": "過去形: 歩いた",
+      translators: "翻訳者",
+    };
+    return translated[value] ?? value;
+  });
+
+  expect(dictHandlers.Bing.getLocalizationValues(data)).toEqual([
+    "复数",
+    "过去式",
+  ]);
+  const result = await dictHandlers.Bing.localize(data, googleLike, {
+    toLang: "ja",
+  });
+
+  expect(googleLike.mock.calls.map(([value]) => value)).toEqual([
+    "复数",
+    "过去式",
+    "详细释义",
+    "例句",
+  ]);
+  expect(result.presents).toEqual([
+    "複数形: translators",
+    "過去形: walked",
+    "translators",
+  ]);
 });
 
 test("localizes every rendered Youdao definition field", async () => {

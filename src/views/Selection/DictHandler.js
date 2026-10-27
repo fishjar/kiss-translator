@@ -6,6 +6,41 @@ import { apiMicrosoftDict, apiYoudaoDict } from "../../apis";
 const translateValue = (translate, value) =>
   typeof value === "string" && value.trim() ? translate(value) : value;
 
+// Bing inflections look like "复数: translators". Only the Chinese label is
+// translated; the English word form stays as returned by the dictionary.
+const bingInflection = (value) => {
+  if (typeof value !== "string") return null;
+  const match = value.match(/^(.*?)\s*[:：]\s*(\S.*?)$/);
+  if (!match) return null;
+  const label = match[1].trim();
+  const form = match[2].trim();
+  if (!label || !/[A-Za-z]/.test(form)) return null;
+  return { label, form };
+};
+
+const bingInflectionLabel = (value) => {
+  const inflection = bingInflection(value);
+  if (inflection) return inflection.label;
+  if (
+    typeof value === "string" &&
+    /[A-Za-z]/.test(value) &&
+    !/[\u4e00-\u9fff]/.test(value)
+  ) {
+    return "";
+  }
+  return typeof value === "string" ? value : "";
+};
+
+const localizeBingInflection = async (value, translate) => {
+  const inflection = bingInflection(value);
+  if (!inflection) {
+    const label = bingInflectionLabel(value);
+    return label ? translateValue(translate, label) : value;
+  }
+  const label = await translateValue(translate, inflection.label);
+  return `${label}: ${inflection.form}`;
+};
+
 /**
  * 各种英文词典的解析与渲染处理器策略映射表
  */
@@ -16,7 +51,7 @@ export const dictHandlers = {
     apiFn: apiMicrosoftDict,
     getLocalizationValues: (data) => [
       ...(data?.trs || []).flatMap(({ pos, def }) => [pos, def]),
-      ...(data?.presents || []),
+      ...(data?.presents || []).map(bingInflectionLabel).filter(Boolean),
       ...(data?.ecs || []).flatMap(({ lis }) => lis || []),
       ...(data?.sentences || []).slice(0, 2).map(({ chs }) => chs),
       ...((data?.ecs || []).length ? ["详细释义"] : []),
@@ -37,7 +72,7 @@ export const dictHandlers = {
           ),
           Promise.all(
             (data?.presents || []).map((value) =>
-              translateValue(translate, value)
+              localizeBingInflection(value, translate)
             )
           ),
           Promise.all(
