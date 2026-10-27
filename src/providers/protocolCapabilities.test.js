@@ -235,6 +235,27 @@ test.each(
   }
 );
 
+test.each([true, false])(
+  "suggest renders its user message with provider defaults configured: %p",
+  async (configured) => {
+    const f = fixture("suggest", "declarative");
+    if (configured)
+      f.snapshot.defaultPrompts = {
+        suggest: { userPrompt: "Complete formally: {{text}}" },
+      };
+    const input = { text: "hello", language: "en" };
+    await expect(
+      f.registry.invoke("one", "suggest", input).result
+    ).resolves.toEqual({ items: ["hello"] });
+    expect(f.http.request).toHaveBeenCalledTimes(1);
+    expect(f.http.request.mock.calls[0][0].body.messages[1]).toEqual({
+      role: "user",
+      content: configured ? "Complete formally: hello" : "hello",
+    });
+    expect(input).toEqual({ text: "hello", language: "en" });
+  }
+);
+
 test.each(Object.keys(protocolCapabilities))(
   "%s streaming declaration agrees with its executor",
   (task) => {

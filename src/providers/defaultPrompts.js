@@ -95,7 +95,7 @@ export function withDefaultPromptInput(instance, capability, input) {
   return {
     ...input,
     instructions: input.instructions ?? prompt.systemPrompt,
-    ...(["dictionary", "summarize"].includes(capability) && {
+    ...(["dictionary", "summarize", "suggest"].includes(capability) && {
       userPrompt: input.userPrompt ?? prompt.userPrompt,
     }),
   };

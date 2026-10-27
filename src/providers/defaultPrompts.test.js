@@ -51,6 +51,27 @@ test("default declarations validate task bindings and copied snapshots remain in
   expect(resolveApiPromptSettings(api).nobatchPrompt).toBe("single");
 });
 
+test.each([
+  [undefined, "Complete formally: {{text}}"],
+  ["Custom: {{text}}", "Custom: {{text}}"],
+  ["", ""],
+])(
+  "suggest preserves user prompt precedence for %p",
+  (userPrompt, expected) => {
+    const provider = {
+      capabilities: { suggest: { handler: "suggest" } },
+      defaultPrompts: {
+        suggest: { userPrompt: "Complete formally: {{text}}" },
+      },
+    };
+    validateDefaultPrompts(provider);
+    const input = Object.freeze({ text: "hello", userPrompt });
+    const result = withDefaultPromptInput({ provider }, "suggest", input);
+    expect(result.userPrompt).toBe(expected);
+    expect(input.userPrompt).toBe(userPrompt);
+  }
+);
+
 test("explicit batch mode chooses the batch default even for one item", () => {
   const input = {
     items: [{ id: "0", text: "a" }],
