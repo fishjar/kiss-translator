@@ -259,10 +259,18 @@ describe("BrowserTtsBtn", () => {
     const restored = container.querySelector("button");
     expect(restored.getAttribute("title")).toBe("Speak");
     expect(restored.getAttribute("aria-busy")).toBe("false");
+
+    // 恢复后的按钮必须能重新启动朗读，而不是残留停止态。
+    act(() => {
+      restored.click();
+    });
+    expect(speak).toHaveBeenCalledTimes(2);
+    expect(restored.getAttribute("aria-busy")).toBe("true");
+
     act(() => {
       root.unmount();
     });
-    expect(stopSpeech).toHaveBeenCalledTimes(1);
+    expect(stopSpeech).toHaveBeenCalledTimes(2);
   });
 
   test("does not stop speech when the text changes while idle", () => {
@@ -312,6 +320,36 @@ describe("BrowserTtsBtn", () => {
     expect(stopSpeech).toHaveBeenCalledTimes(1);
     act(() => {
       root.unmount();
+    });
+    expect(stopSpeech).toHaveBeenCalledTimes(1);
+  });
+
+  test("does not stop another field's speech when an idle field's text changes", () => {
+    speak.mockImplementation(() => true);
+    // 双实例形态：A（译文）朗读中，B（原文）空闲实例 text 变化——
+    // B 的清理回调必须走护栏早退，绝不误杀全局引擎里 A 的朗读。
+    const speakingField = renderBrowserTtsBtn();
+    const idleField = renderBrowserTtsBtn({ text: "idle text" });
+    const speakingButton = speakingField.container.querySelector("button");
+
+    act(() => {
+      speakingButton.click();
+    });
+    act(() => {
+      idleField.root.render(<BrowserTtsBtn text="changed" lang="en" />);
+    });
+    expect(stopSpeech).not.toHaveBeenCalled();
+    expect(
+      speakingField.container.querySelector("button").getAttribute("aria-busy")
+    ).toBe("true");
+
+    // B 卸载同样不触碰全局引擎；A 自己卸载才停止。
+    act(() => {
+      idleField.root.unmount();
+    });
+    expect(stopSpeech).not.toHaveBeenCalled();
+    act(() => {
+      speakingField.root.unmount();
     });
     expect(stopSpeech).toHaveBeenCalledTimes(1);
   });
