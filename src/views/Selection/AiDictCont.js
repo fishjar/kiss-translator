@@ -218,6 +218,7 @@ export default function AiDictCont({
           text={text}
           lang={speechLang || fromLang || "en-US"}
           title={i18n("read_aloud")}
+          stopTitle={i18n("stop_speaking")}
         />
       </Box>
       <Typography

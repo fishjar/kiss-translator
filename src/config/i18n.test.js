@@ -74,6 +74,21 @@ test("provides distinct popup loading and domain status labels", () => {
   expect(I18N.popup_more_services.en).toBe("More translation services");
 });
 
+test("registers the stop_speaking label for TTS playing states", () => {
+  // i18n.js 合并段会把 RU_I18N[key] 回填为 I18N[key].ru，故期望对象含 ru。
+  expect(I18N.stop_speaking).toEqual({
+    zh: "停止朗读",
+    en: "Stop",
+    zh_TW: "停止朗讀",
+    ja: "読み上げを停止",
+    ko: "읽기 중지",
+    tr: "Okumayı durdur",
+    vi: "Dừng đọc",
+    ru: "Остановить чтение",
+  });
+  expect(RU_I18N.stop_speaking).toBe("Остановить чтение");
+});
+
 test("integrates Russian translations with M3 labels and product identity", () => {
   expect(UI_LANGS.map(([locale]) => locale)).toContain("ru");
   expect(I18N.app_name.ru).toBe("KISS Translator");

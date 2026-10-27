@@ -1,8 +1,10 @@
 import IconButton from "@mui/material/IconButton";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import StopIcon from "@mui/icons-material/Stop";
+import PauseIcon from "@mui/icons-material/Pause";
 import { useEffect, useRef, useState } from "react";
 import { useAudio } from "../../hooks/Audio";
-import { canSpeak, speak } from "../../libs/speech";
+import { canSpeak, speak, stopSpeech } from "../../libs/speech";
 import queryString from "query-string";
 
 /**
@@ -41,7 +43,7 @@ export function AudioBtn({ src, title = "Speak", pauseTitle = "Pause" }) {
         aria-label={pauseTitle}
         aria-pressed="true"
       >
-        <VolumeUpIcon fontSize="inherit" />
+        <PauseIcon fontSize="inherit" />
       </IconButton>
     );
   }
@@ -80,6 +82,7 @@ export function BrowserTtsBtn({
   text,
   lang = "en-US",
   title = "Speak",
+  stopTitle = "Stop",
   serviceId = "",
 }) {
   if (serviceId)
@@ -88,13 +91,16 @@ export function BrowserTtsBtn({
         text={text}
         lang={lang}
         title={title}
+        stopTitle={stopTitle}
         serviceId={serviceId}
       />
     );
-  return <NativeTtsBtn text={text} lang={lang} title={title} />;
+  return (
+    <NativeTtsBtn text={text} lang={lang} title={title} stopTitle={stopTitle} />
+  );
 }
 
-function CloudTtsBtn({ text, lang, title, serviceId }) {
+function CloudTtsBtn({ text, lang, title, stopTitle = "Stop", serviceId }) {
   const active = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState("");
@@ -189,30 +195,51 @@ function CloudTtsBtn({ text, lang, title, serviceId }) {
   return (
     <IconButton
       size="small"
-      title={error || title}
-      aria-label={title}
+      title={playing ? stopTitle : error || title}
+      aria-label={playing ? stopTitle : title}
       aria-pressed={playing}
       color={playing ? "primary" : "default"}
       onClick={play}
     >
-      <VolumeUpIcon fontSize="inherit" />
+      {playing ? (
+        <StopIcon fontSize="inherit" />
+      ) : (
+        <VolumeUpIcon fontSize="inherit" />
+      )}
     </IconButton>
   );
 }
 
-function NativeTtsBtn({ text, lang = "en-US", title = "Speak" }) {
+function NativeTtsBtn({
+  text,
+  lang = "en-US",
+  title = "Speak",
+  stopTitle = "Stop",
+}) {
   const [speaking, setSpeaking] = useState(false);
   const speakingRef = useRef(false);
+  // 会话令牌：每次启动/停止都递增，旧会话迟到的 onEnd 不得复位新会话。
+  const sessionRef = useRef(0);
 
   if (!text?.trim() || !canSpeak()) return null;
 
   const handleSpeak = () => {
-    if (speakingRef.current) return;
+    if (speakingRef.current) {
+      // 停止语义：朗读期间再次点击立即停止，不依赖终态事件。
+      sessionRef.current += 1;
+      speakingRef.current = false;
+      setSpeaking(false);
+      stopSpeech();
+      return;
+    }
 
     // Browser TTS has no audio element, so the button tracks playback itself.
+    const session = sessionRef.current + 1;
+    sessionRef.current = session;
     speakingRef.current = true;
     setSpeaking(true);
     const onEnd = () => {
+      if (sessionRef.current !== session) return;
       speakingRef.current = false;
       setSpeaking(false);
     };
@@ -224,21 +251,25 @@ function NativeTtsBtn({ text, lang = "en-US", title = "Speak" }) {
   return (
     <IconButton
       color={speaking ? "primary" : "default"}
-      // A native disabled button loses keyboard focus while speech is starting.
-      aria-disabled={speaking}
+      // 停止语义下朗读期间恒可交互；禁用会让键盘焦点在启动瞬间丢失。
+      aria-disabled={false}
       onClick={handleSpeak}
       size="small"
-      title={title}
-      aria-label={title}
+      title={speaking ? stopTitle : title}
+      aria-label={speaking ? stopTitle : title}
       aria-busy={speaking}
       aria-pressed={speaking}
       sx={{
         ml: 0.5,
         verticalAlign: "middle",
-        cursor: speaking ? "default" : undefined,
+        cursor: speaking ? "pointer" : undefined,
       }}
     >
-      <VolumeUpIcon fontSize="inherit" />
+      {speaking ? (
+        <StopIcon fontSize="inherit" />
+      ) : (
+        <VolumeUpIcon fontSize="inherit" />
+      )}
     </IconButton>
   );
 }

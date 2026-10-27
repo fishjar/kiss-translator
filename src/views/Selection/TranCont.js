@@ -465,6 +465,7 @@ export default function TranCont({
               text={trText}
               lang={toLang}
               title={i18n("read_aloud")}
+              stopTitle={i18n("stop_speaking")}
             />
           </>
         ) : (
@@ -703,6 +704,7 @@ export default function TranCont({
                   text={trText}
                   lang={toLang}
                   title={i18n("read_aloud")}
+                  stopTitle={i18n("stop_speaking")}
                 />
               </Stack>
               {(trText.trim() || resultHeightLock.lockedHeight != null) && (

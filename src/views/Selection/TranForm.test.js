@@ -964,7 +964,12 @@ describe("TranForm source input", () => {
     });
 
     expect(readText).toHaveBeenCalledTimes(1);
-    expect(setText).toHaveBeenCalledWith("clipboard text");
+    // Paste fills the visible draft without translating until submission.
+    const sourceInput = container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    expect(sourceInput.value).toBe("clipboard text");
+    expect(setText).not.toHaveBeenCalled();
 
     act(() => root.unmount());
   });
@@ -1663,6 +1668,116 @@ describe("TranForm input focus and external text synchronization", () => {
       await Promise.resolve();
     });
     expect(setText).toHaveBeenLastCalledWith("bug");
+    act(() => root.unmount());
+  });
+
+  test("keeps a pasted draft when entering edit mode while text is unchanged", async () => {
+    const setText = jest.fn();
+    const readText = jest.fn().mockResolvedValue("Pasted draft text");
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { readText },
+    });
+    const { container, root } = renderTranForm({
+      text: "",
+      setText,
+      transApis: [],
+      simpleStyle: false,
+      autoFocusInput: false,
+      syncExternalTextWhileEditing: true,
+    });
+    await flushEffects();
+
+    const pasteButton = container.querySelector('button[title="paste"]');
+    expect(pasteButton).not.toBeNull();
+    await act(async () => {
+      pasteButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+    await flushEffects();
+
+    const sourceInput = container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    expect(sourceInput.value).toBe("Pasted draft text");
+    expect(setText).not.toHaveBeenCalled();
+    act(() => root.unmount());
+  });
+
+  test("still overwrites an editing draft when external text actually changes", async () => {
+    const setText = jest.fn();
+    const transApis = [];
+    const { container, rerender, root } = renderTranForm({
+      text: "first selection",
+      setText,
+      transApis,
+      simpleStyle: false,
+      autoFocusInput: false,
+      syncExternalTextWhileEditing: true,
+    });
+    await flushEffects();
+
+    const sourceInput = container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    act(() => sourceInput.focus());
+    await flushEffects();
+
+    // 键入未提交草稿并先断言该草稿在输入框显示
+    act(() => {
+      const setValue = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype,
+        "value"
+      ).set;
+      setValue.call(sourceInput, "Uncommitted draft");
+      sourceInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await flushEffects();
+    expect(sourceInput.value).toBe("Uncommitted draft");
+
+    // 随后重渲染并断言输入框内容被外部文本覆盖为 "next selection"
+    rerender({ text: "next selection" });
+    await flushEffects();
+
+    expect(sourceInput.value).toBe("next selection");
+    act(() => root.unmount());
+  });
+
+  test("overwrites an editing draft with host text when the sync flag flips on while text is unchanged", async () => {
+    const setText = jest.fn();
+    const transApis = [];
+    const { container, rerender, root } = renderTranForm({
+      text: "current selection",
+      setText,
+      transApis,
+      simpleStyle: false,
+      autoFocusInput: false,
+      syncExternalTextWhileEditing: false,
+    });
+    await flushEffects();
+
+    const sourceInput = container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    act(() => sourceInput.focus());
+    // 用户键入未提交草稿，随后宿主把 syncExternalTextWhileEditing 打开；
+    // text 未变，但选项 false→true 迁移应被视为一次同步触发，把宿主文本
+    // 覆盖到输入框（覆盖草稿）。
+    act(() => {
+      const setValue = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype,
+        "value"
+      ).set;
+      setValue.call(sourceInput, "Unsubmitted draft");
+      sourceInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await flushEffects();
+    expect(sourceInput.value).toBe("Unsubmitted draft");
+    rerender({ syncExternalTextWhileEditing: true });
+    await flushEffects();
+
+    expect(sourceInput.value).toBe("current selection");
+    expect(setText).not.toHaveBeenCalled();
     act(() => root.unmount());
   });
 });

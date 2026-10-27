@@ -36,6 +36,9 @@ export async function loadDictionary(
   { dict, text, toLang, apiSetting, translateVariants },
   { signal } = {}
 ) {
+  if (!dict || typeof dict.apiFn !== "function") {
+    return null;
+  }
   const data = await dict.apiFn(text);
   if (
     !data ||

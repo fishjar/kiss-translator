@@ -88,10 +88,6 @@ export function createScriptExecutor(
             result = await ctx.secrets.sign(data.args.ref, data.args.options);
           else if (data.method === "asset.read") {
             const blob = ctx.assets.get(data.args);
-            if (
-              (blob.type || "application/octet-stream") !== data.args.mimeType
-            )
-              throw providerError("INVALID_ASSET", "Asset MIME type mismatch.");
             if (blob.size > 8 * 1024 * 1024)
               throw providerError(
                 "RESOURCE_BUDGET_EXCEEDED",

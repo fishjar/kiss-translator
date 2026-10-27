@@ -17,8 +17,16 @@ jest.mock("../../hooks/Setting", () => ({
 }));
 jest.mock("../../libs/detect", () => ({ tryDetectLang: jest.fn() }));
 jest.mock("../../libs/browser", () => ({ browser: {} }));
-jest.mock("../Selection/CopyBtn", () => () => null);
+jest.mock("../Selection/CopyBtn", () => {
+  const React = require("react");
+  return ({ title }) =>
+    React.createElement("button", { type: "button", title }, "copy");
+});
 jest.mock("../Selection/AudioBtn", () => ({ BrowserTtsBtn: () => null }));
+jest.mock("../Selection/DictCont", () => () => null);
+jest.mock("../Selection/AiDictCont", () => () => null);
+jest.mock("../Selection/SugCont", () => () => null);
+jest.mock("../Selection/Zdic", () => () => null);
 
 const transApis = [
   {
@@ -109,12 +117,16 @@ describe("Popup text translation card", () => {
     act(() =>
       element.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     );
-  const key = (element, key, extra = {}) =>
-    act(() =>
-      element.dispatchEvent(
-        new KeyboardEvent("keydown", { key, bubbles: true, ...extra })
-      )
-    );
+  const key = (element, key, extra = {}) => {
+    const event = new KeyboardEvent("keydown", {
+      key,
+      bubbles: true,
+      cancelable: true,
+      ...extra,
+    });
+    act(() => element.dispatchEvent(event));
+    return event;
+  };
   const getResultSlugs = () =>
     [...container.querySelectorAll(".kt-popup-text-result")].map(
       (element) => element.dataset.apiSlug
@@ -136,6 +148,46 @@ describe("Popup text translation card", () => {
     });
     return input;
   }
+
+  const sourceActionTitles = () =>
+    [...container.querySelectorAll(".kt-popup-text-source-actions button")].map(
+      (button) => button.getAttribute("title")
+    );
+
+  test("switches the single left source action across committed, editing, and empty states", async () => {
+    await render();
+    expect(sourceActionTitles()).toEqual(["copy"]);
+    expect(container.querySelector('[title="popup_text_reload"]')).toBeNull();
+    expect(container.querySelector('[title="popup_text_clear"]')).toBeNull();
+
+    const input = container.querySelector(".kt-popup-text-input");
+    act(() => input.focus());
+    expect(sourceActionTitles()).toEqual(["submit"]);
+
+    edit("   ");
+    expect(sourceActionTitles()).toEqual(["paste"]);
+  });
+
+  test("paste fills a local draft and enters editing without translating", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { readText: jest.fn().mockResolvedValue("  Pasted source  ") },
+    });
+    await render({ text: "" });
+    setText.mockClear();
+    apiTranslate.mockClear();
+    const paste = container.querySelector('[title="paste"]');
+    await act(async () => {
+      paste.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+    expect(container.querySelector(".kt-popup-text-input").value).toBe(
+      "Pasted source"
+    );
+    expect(sourceActionTitles()).toEqual(["submit"]);
+    expect(setText).not.toHaveBeenCalled();
+    expect(apiTranslate).not.toHaveBeenCalled();
+  });
 
   test("appends selected providers while keeping every existing request alive", async () => {
     await render();
@@ -355,8 +407,8 @@ describe("Popup text translation card", () => {
       container.querySelector(".kt-popup-text-services__name").textContent
     ).toBe("popup_text_select_service");
     expect(
-      container.querySelector('[aria-label="popup_text_reload"]').disabled
-    ).toBe(true);
+      container.querySelector('[aria-label="popup_text_reload"]')
+    ).toBeNull();
   });
 
   test("shows the unavailable-services state when every provider is disabled without issuing requests", async () => {
@@ -376,8 +428,8 @@ describe("Popup text translation card", () => {
       container.querySelector(".kt-popup-text-no-services").textContent
     ).toBe("popup_no_services");
     expect(
-      container.querySelector('[aria-label="popup_text_reload"]').disabled
-    ).toBe(true);
+      container.querySelector('[aria-label="popup_text_reload"]')
+    ).toBeNull();
     click(container.querySelector(".kt-popup-text-services"));
     expect(container.querySelector(".kt-popup-text-service-menu")).toBeNull();
   });
@@ -450,12 +502,14 @@ describe("Popup text translation card", () => {
     expect(request.toLang).toBe("en");
   });
 
-  test("keeps draft typing local and submits only with a command or when focus leaves the card", async () => {
+  test("keeps Shift+Enter local, submits plain Enter, and still commits on external blur", async () => {
     await render();
     const input = edit("New draft");
     expect(setText).not.toHaveBeenCalled();
     expect(apiTranslate).toHaveBeenCalledTimes(1);
-    key(input, "Enter", { ctrlKey: true });
+    expect(key(input, "Enter", { shiftKey: true }).defaultPrevented).toBe(false);
+    expect(setText).not.toHaveBeenCalled();
+    expect(key(input, "Enter").defaultPrevented).toBe(true);
     expect(setText).toHaveBeenLastCalledWith("New draft");
     await render({ text: "New draft" });
     edit("Another draft");
