@@ -53,18 +53,20 @@ export const useAsyncNow = (fn, arg) => {
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
 
     if (!fn) {
       setState({ data: null, loading: false, error: null });
       return () => {
         active = false;
+        controller.abort();
       };
     }
 
     setState({ data: null, loading: true, error: null });
     void (async () => {
       try {
-        const data = await fn(arg);
+        const data = await fn(arg, { signal: controller.signal });
         if (active) setState({ data, loading: false, error: null });
       } catch (err) {
         if (active) {
@@ -79,6 +81,7 @@ export const useAsyncNow = (fn, arg) => {
 
     return () => {
       active = false;
+      controller.abort();
     };
   }, [fn, arg]);
 

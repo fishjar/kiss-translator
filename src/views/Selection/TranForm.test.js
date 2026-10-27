@@ -70,17 +70,37 @@ jest.mock("./TranCont", () => {
 jest.mock("./DictCont", () => {
   const React = require("react");
 
-  return function MockDictionary({ source }) {
+  return function MockDictionary({
+    source,
+    toLang,
+    apiSetting,
+    translateVariants,
+  }) {
     return React.createElement("div", {
       "data-testid": "default-dict",
       "data-source-sentence": source?.sentence || "",
       "data-source-url": source?.url || "",
+      "data-to-lang": toLang,
+      "data-api-slug": apiSetting?.apiSlug || "",
+      "data-translate-variants": String(translateVariants),
     });
   };
 });
 
 jest.mock("./Zdic", () => () => null);
-jest.mock("./SugCont", () => () => null);
+jest.mock("./SugCont", () => {
+  const React = require("react");
+
+  return ({ text, enSug, toLang, apiSetting, translateVariants }) =>
+    React.createElement("div", {
+      "data-testid": "suggestions",
+      "data-text": text,
+      "data-en-sug": enSug,
+      "data-to-lang": toLang,
+      "data-api-slug": apiSetting?.apiSlug || "",
+      "data-translate-variants": String(translateVariants),
+    });
+});
 
 jest.mock("./AudioBtn", () => {
   const React = require("react");
@@ -1072,6 +1092,115 @@ describe("TranForm translation service selection", () => {
     act(() => root.unmount());
   });
 
+  test.each([
+    ["normal", {}],
+    ["popup", { popupStyle: true }],
+    ["playground", { isPlaygound: true }],
+  ])(
+    "passes the effective target and active service to the dictionary and suggestions in the %s layout",
+    async (_layout, layoutProps) => {
+      const { container, root } = renderTranForm({
+        text: "library",
+        enSug: "Youdao",
+        apiSlugs: ["microsoft"],
+        toLang: "ar",
+        transApis: [
+          {
+            apiSlug: "microsoft",
+            apiName: "Microsoft",
+            apiType: "Microsoft",
+          },
+        ],
+        ...layoutProps,
+      });
+      await flushEffects();
+
+      const dictionary = container.querySelector(
+        '[data-testid="default-dict"]'
+      );
+      expect(dictionary.dataset.toLang).toBe("ar");
+      expect(dictionary.dataset.apiSlug).toBe("microsoft");
+      expect(dictionary.dataset.translateVariants).toBe("true");
+
+      const suggestions = container.querySelector(
+        '[data-testid="suggestions"]'
+      );
+      expect(suggestions.dataset.text).toBe("library");
+      expect(suggestions.dataset.enSug).toBe("Youdao");
+      expect(suggestions.dataset.toLang).toBe("ar");
+      expect(suggestions.dataset.apiSlug).toBe("microsoft");
+      expect(suggestions.dataset.translateVariants).toBe("true");
+
+      act(() => root.unmount());
+    }
+  );
+
+  test("updates the dictionary and suggestions when the target language changes", async () => {
+    const { container, root } = renderTranForm({
+      text: "library",
+      enSug: "Youdao",
+      apiSlugs: ["microsoft"],
+      transApis: [
+        {
+          apiSlug: "microsoft",
+          apiName: "Microsoft",
+          apiType: "Microsoft",
+        },
+      ],
+      simpleStyle: false,
+    });
+    await flushEffects();
+
+    act(() => {
+      Simulate.change(container.querySelector('input[name="toLang"]'), {
+        target: { value: "ar" },
+      });
+    });
+    await flushEffects();
+
+    expect(
+      container.querySelector('[data-testid="tran-cont"]').dataset.toLang
+    ).toBe("ar");
+    expect(
+      container.querySelector('[data-testid="default-dict"]').dataset.toLang
+    ).toBe("ar");
+    expect(
+      container.querySelector('[data-testid="suggestions"]').dataset.toLang
+    ).toBe("ar");
+
+    act(() => root.unmount());
+  });
+
+  test("uses the secondary target for the dictionary and suggestions", async () => {
+    tryDetectLang.mockResolvedValue("zh-CN");
+    const { container, root } = renderTranForm({
+      text: "library",
+      enSug: "Youdao",
+      apiSlugs: ["microsoft"],
+      fromLang: "auto",
+      toLang: "zh-CN",
+      toLang2: "ar",
+      translateVariants: false,
+      transApis: [
+        {
+          apiSlug: "microsoft",
+          apiName: "Microsoft",
+          apiType: "Microsoft",
+        },
+      ],
+    });
+    await flushEffects();
+
+    expect(
+      container.querySelector('[data-testid="default-dict"]').dataset.toLang
+    ).toBe("ar");
+    const suggestions = container.querySelector('[data-testid="suggestions"]');
+    expect(suggestions.dataset.toLang).toBe("ar");
+    expect(suggestions.dataset.translateVariants).toBe("false");
+
+    act(() => root.unmount());
+  });
+
   test.each([false, true])(
     "switches to the secondary target when Chinese variants are disabled and simpleStyle is %s",
     async (simpleStyle) => {
@@ -1197,6 +1326,7 @@ describe("TranForm translation service selection", () => {
   test("removes stale services and allows changing or clearing valid selections", async () => {
     const { container, root } = renderTranForm({
       apiSlugs: ["removed", "disabled", "google"],
+      enSug: "Youdao",
       transApis: [
         {
           apiSlug: "disabled",
@@ -1216,6 +1346,9 @@ describe("TranForm translation service selection", () => {
         el.getAttribute("data-api-slug")
       );
     expect(resultSlugs()).toEqual(["google"]);
+    expect(
+      container.querySelector('[data-testid="suggestions"]').dataset.apiSlug
+    ).toBe("google");
     const services = await openServices(container);
     expect(services.map((option) => option.getAttribute("data-value"))).toEqual(
       ["google", "openai"]
@@ -1232,6 +1365,9 @@ describe("TranForm translation service selection", () => {
 
     act(() => googleOption.click());
     expect(resultSlugs()).toEqual(["openai"]);
+    expect(
+      container.querySelector('[data-testid="suggestions"]').dataset.apiSlug
+    ).toBe("openai");
 
     act(() => openAiOption.click());
     expect(resultSlugs()).toEqual([]);
