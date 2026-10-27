@@ -221,6 +221,21 @@ function NativeTtsBtn({
   // 会话令牌：每次启动/停止都递增，旧会话迟到的 onEnd 不得复位新会话。
   const sessionRef = useRef(0);
 
+  // 清空即停：文本/语言变化或组件卸载时，若本实例仍持有活动朗读则立即停止。
+  // 护栏：不持有活动朗读（speakingRef 为假）时绝不调用全局 stopSpeech()，
+  // 防止空闲字段（如译文朗读中用户编辑原文）误杀其他字段的朗读；
+  // 停止入口随文本一起消失，无需全局朗读注册表。
+  useEffect(
+    () => () => {
+      if (!speakingRef.current) return;
+      sessionRef.current += 1;
+      speakingRef.current = false;
+      setSpeaking(false);
+      stopSpeech();
+    },
+    [text, lang]
+  );
+
   if (!text?.trim() || !canSpeak()) return null;
 
   const handleSpeak = () => {

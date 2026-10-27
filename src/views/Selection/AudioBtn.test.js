@@ -226,6 +226,95 @@ describe("BrowserTtsBtn", () => {
     expect(speak).toHaveBeenCalledTimes(2);
     act(() => root.unmount());
   });
+
+  test("stops native speech when the component unmounts mid-speech", () => {
+    speak.mockImplementation(() => true);
+    const { container, root } = renderBrowserTtsBtn();
+    const button = container.querySelector("button");
+    act(() => {
+      button.click();
+    });
+    expect(stopSpeech).not.toHaveBeenCalled();
+    act(() => {
+      root.unmount();
+    });
+    expect(stopSpeech).toHaveBeenCalledTimes(1);
+  });
+
+  test("stops native speech and returns to idle when the text is cleared while speaking", () => {
+    speak.mockImplementation(() => true);
+    const { container, root } = renderBrowserTtsBtn();
+    const button = container.querySelector("button");
+    act(() => {
+      button.click();
+    });
+    act(() => {
+      root.render(<BrowserTtsBtn text="   " lang="en" />);
+    });
+    expect(stopSpeech).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("button")).toBeNull();
+    act(() => {
+      root.render(<BrowserTtsBtn text="hello again" lang="en" />);
+    });
+    const restored = container.querySelector("button");
+    expect(restored.getAttribute("title")).toBe("Speak");
+    expect(restored.getAttribute("aria-busy")).toBe("false");
+    act(() => {
+      root.unmount();
+    });
+    expect(stopSpeech).toHaveBeenCalledTimes(1);
+  });
+
+  test("does not stop speech when the text changes while idle", () => {
+    speak.mockImplementation(() => true);
+    const { container, root } = renderBrowserTtsBtn({ text: "first" });
+    act(() => {
+      root.render(<BrowserTtsBtn text="second" lang="en" />);
+    });
+    expect(stopSpeech).not.toHaveBeenCalled();
+    expect(container.querySelector("button").getAttribute("aria-busy")).toBe(
+      "false"
+    );
+    act(() => {
+      root.unmount();
+    });
+    expect(stopSpeech).not.toHaveBeenCalled();
+  });
+
+  test("stops the old utterance when the text is replaced while speaking", () => {
+    speak.mockImplementation(() => true);
+    const { container, root } = renderBrowserTtsBtn();
+    const button = container.querySelector("button");
+    act(() => {
+      button.click();
+    });
+    act(() => {
+      root.render(<BrowserTtsBtn text="replaced" lang="en" />);
+    });
+    expect(stopSpeech).toHaveBeenCalledTimes(1);
+    expect(speak).toHaveBeenCalledTimes(1);
+    act(() => {
+      root.unmount();
+    });
+    expect(stopSpeech).toHaveBeenCalledTimes(1);
+  });
+
+  test("stops native speech when the lang changes while speaking", () => {
+    speak.mockImplementation(() => true);
+    const { container, root } = renderBrowserTtsBtn();
+    const button = container.querySelector("button");
+    act(() => {
+      button.click();
+    });
+    act(() => {
+      root.render(<BrowserTtsBtn text="hello" lang="zh-CN" />);
+    });
+    expect(stopSpeech).toHaveBeenCalledTimes(1);
+    act(() => {
+      root.unmount();
+    });
+    expect(stopSpeech).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("AudioBtn", () => {
