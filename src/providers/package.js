@@ -1,3 +1,4 @@
+import { supportsSdkVersion } from "./sdk/version";
 import { unzipSync, strFromU8 } from "fflate";
 import { providerError } from "./capabilities";
 import { validateDefaultPrompts } from "./defaultPrompts";
@@ -140,7 +141,7 @@ function parseProviderFiles(files) {
   const manifest = JSON.parse(strFromU8(files["manifest.json"]));
   if (
     manifest.manifestVersion !== 1 ||
-    manifest.apiVersion !== "1" ||
+    !supportsSdkVersion(manifest.apiVersion) ||
     !/^[a-z][a-z0-9-]{1,100}$/.test(manifest.id) ||
     !/^\d+\.\d+\.\d+$/.test(manifest.version) ||
     !Array.isArray(manifest.services) ||
@@ -229,7 +230,7 @@ function parseProviderFiles(files) {
           "Missing or invalid service entry."
         );
       ids.add(service.id);
-      validateCapabilities(service.capabilities);
+      validateCapabilities(service.capabilities, { external: true });
       validateDefaultPrompts(service);
       validateFieldCapabilities(
         service,

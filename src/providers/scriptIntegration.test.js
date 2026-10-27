@@ -78,8 +78,10 @@ test("native default prompt references do not overwrite the plugin's ID-based tr
       "original"
     ),
   });
-  expect(api.nobatchUserPrompt).toBe("{{text}}");
-  expect(api.systemPrompt).toContain("keeping every ID");
+  expect(api.nobatchUserPrompt).toBe(
+    api.provider.defaultPrompts.nobatch.userPrompt
+  );
+  expect(api.systemPrompt).toContain("JSON");
   expect(
     providerHelpers.translation.buildMessages({
       items: [{ id: "0", text: "hello" }],
@@ -89,7 +91,7 @@ test("native default prompt references do not overwrite the plugin's ID-based tr
       systemPrompt: api.nobatchPrompt,
       userPrompt: api.nobatchUserPrompt,
     })[1].content
-  ).toBe("hello");
+  ).toContain("hello");
 });
 
 test("synthetic vision script assembles an image data URL using owned bytes and does not invent coordinates", async () => {

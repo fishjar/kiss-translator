@@ -1,4 +1,4 @@
-/** SDK v1 task contracts. Provider definitions and user instances are separate. */
+/** SDK 1 and 2 task contracts. Provider definitions and user instances are separate. */
 import type {
   DecisionState,
   DecisionQuestions,
@@ -87,6 +87,7 @@ export interface AudioSegment {
   words?: Array<{ start: number; end: number; text: string }>;
 }
 export interface SubtitleItem extends TextItem {
+  pauseMs?: number;
   start: number;
   end: number;
 }
@@ -100,6 +101,7 @@ export interface CapabilityMap {
       instructions?: string;
       userPrompt?: string;
       context?: string;
+      document?: TranslationInput["document"];
     };
     result: { text: string };
   };
@@ -113,6 +115,7 @@ export interface CapabilityMap {
       sourceLanguage?: string;
       language?: string;
       context?: string;
+      document?: TranslationInput["document"];
       instructions?: string;
       userPrompt?: string;
     };
@@ -125,10 +128,13 @@ export interface CapabilityMap {
   segmentSubtitle: {
     input: {
       items: SubtitleItem[];
+      tone?: string;
+      glossary?: Record<string, string>;
       sourceLanguage?: string;
       targetLanguage?: string;
       instructions?: string;
       context?: string;
+      document?: TranslationInput["document"];
     };
     result: {
       groups: Array<{ ids: string[]; text: string; translation?: string }>;
@@ -136,7 +142,13 @@ export interface CapabilityMap {
   };
   transcribe: {
     input: { audio: AssetRef; language?: string; requireTimestamps?: boolean };
-    result: { text: string; segments?: AudioSegment[]; language?: string; languageConfidence?: number; languagePending?: boolean };
+    result: {
+      text: string;
+      segments?: AudioSegment[];
+      language?: string;
+      languageConfidence?: number;
+      languagePending?: boolean;
+    };
   };
   recognizeText: {
     input: {
@@ -220,8 +232,22 @@ export interface ServiceDefinition {
   modelField?: string;
   defaultPrompts?: Partial<
     Record<
-      "batch" | "nobatch" | "dictionary" | "subtitle" | "vlm",
-      { systemPrompt?: string; userPrompt?: string; protocol?: "text" | "json" | "line" | "xml" }
+      | "batch"
+      | "nobatch"
+      | "dictionary"
+      | "subtitle"
+      | "vlm"
+      | "summary"
+      | "detectLanguage"
+      | "suggest"
+      | "evaluate"
+      | "recognizeText"
+      | "analyzeLayout",
+      {
+        systemPrompt?: string;
+        userPrompt?: string;
+        protocol?: "text" | "json" | "line" | "xml";
+      }
     >
   >;
   models?: Array<{
@@ -230,6 +256,7 @@ export interface ServiceDefinition {
   }>;
 }
 export interface PluginCompatibility {
+  apiVersion?: "1" | "2";
   kind?: "provider";
   minHostVersion?: string;
 }
@@ -239,7 +266,7 @@ export interface PluginManifest extends PluginCompatibility {
   id: string;
   name: string;
   version: string;
-  apiVersion: "1";
+  apiVersion: "1" | "2";
   services: ServiceDefinition[];
   sharedSettings?: ProviderSetting[];
   icon?: string;
@@ -252,8 +279,11 @@ export interface DeclarativeCondition {
   else?: unknown;
 }
 export interface ProtocolHandlerRule {
-  protocol: "openai-chat-completions";
-  task: "chat" | "translate" | "parseImage";
+  protocol:
+    | "openai-chat-completions"
+    | "openai-audio-transcriptions"
+    | "openai-audio-speech";
+  task: Exclude<Capability, "speak">;
   request: {
     baseUrl: unknown;
     model: unknown;
@@ -274,7 +304,7 @@ export type DeclarativeRules =
 export interface ProviderSnapshot
   extends ServiceDefinition,
     PluginCompatibility {
-  apiVersion: "1";
+  apiVersion: "1" | "2";
   source?: {
     pluginId: string;
     pluginName?: string;

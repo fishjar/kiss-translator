@@ -1778,9 +1778,9 @@ export const FILE_TRANSLATE_I18N = {
     ru: "Модели LLM / перевода / суммаризации",
   },
   group_title_asr: {
-    zh: "语音识别 (ASR)",
+    zh: "语音识别（ASR）",
     en: "Speech Recognition (ASR)",
-    zh_TW: "語音辨識 (ASR)",
+    zh_TW: "語音辨識（ASR）",
     ja: "音声認識 (ASR)",
     ko: "음성 인식 (ASR)",
     tr: "Konuşma Tanıma (ASR)",
@@ -1788,9 +1788,9 @@ export const FILE_TRANSLATE_I18N = {
     ru: "Распознавание речи (ASR)",
   },
   group_title_tts: {
-    zh: "语音合成 (TTS)",
+    zh: "语音合成（TTS）",
     en: "Speech Synthesis (TTS)",
-    zh_TW: "語音合成 (TTS)",
+    zh_TW: "語音合成（TTS）",
     ja: "音声合成 (TTS)",
     ko: "음성 합성 (TTS)",
     tr: "Konuşma Sentezi (TTS)",

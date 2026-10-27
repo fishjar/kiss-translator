@@ -6,6 +6,12 @@ export const defaultPromptCapabilities = Object.freeze({
   dictionary: "dictionary",
   subtitle: "segmentSubtitle",
   vlm: "parseImage",
+  summary: "summarize",
+  detectLanguage: "detectLanguage",
+  suggest: "suggest",
+  evaluate: "evaluate",
+  recognizeText: "recognizeText",
+  analyzeLayout: "analyzeLayout",
 });
 
 /** Display metadata is declarative: opening a form never evaluates user code. */
@@ -61,6 +67,12 @@ export function withDefaultPromptInput(instance, capability, input) {
           dictionary: "dictionary",
           segmentSubtitle: "subtitle",
           parseImage: "vlm",
+          summarize: "summary",
+          detectLanguage: "detectLanguage",
+          suggest: "suggest",
+          evaluate: "evaluate",
+          recognizeText: "recognizeText",
+          analyzeLayout: "analyzeLayout",
         }[capability];
   const prompt = instance.provider?.defaultPrompts?.[slot];
   if (!prompt || !input || typeof input !== "object") return input;
@@ -73,15 +85,17 @@ export function withDefaultPromptInput(instance, capability, input) {
       systemPrompt: input.systemPrompt ?? prompt.systemPrompt,
       userPrompt: input.userPrompt ?? prompt.userPrompt,
     };
-  if (capability === "parseImage")
+  if (["parseImage", "recognizeText", "analyzeLayout"].includes(capability))
     return {
       ...input,
-      prompt: input.prompt ?? prompt.systemPrompt ?? prompt.userPrompt,
+      prompt:
+        input.prompt ??
+        [prompt.systemPrompt, prompt.userPrompt].filter(Boolean).join("\n\n"),
     };
   return {
     ...input,
     instructions: input.instructions ?? prompt.systemPrompt,
-    ...(capability === "dictionary" && {
+    ...(["dictionary", "summarize"].includes(capability) && {
       userPrompt: input.userPrompt ?? prompt.userPrompt,
     }),
   };

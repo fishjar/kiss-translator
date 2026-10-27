@@ -1,3 +1,4 @@
+import { supportsSdkVersion } from "./sdk/version";
 import { downloadProviderPackage } from "./package";
 import { providerError } from "./capabilities";
 
@@ -113,7 +114,7 @@ export function validateOfficialDirectory(data) {
       !/^[a-z][a-z0-9-]{1,100}$/.test(entry.id) ||
       ids.has(entry.id) ||
       !/^\d+\.\d+\.\d+$/.test(entry.version) ||
-      entry.apiVersion !== "1" ||
+      !supportsSdkVersion(entry.apiVersion) ||
       typeof entry.name !== "string" ||
       !/^[a-f0-9]{64}$/.test(entry.sha256) ||
       entry.downloadUrl !==

@@ -1,5 +1,6 @@
 import { providerError } from "./capabilities";
 import { getSettingOptions } from "./instances";
+import { protocolCapabilities } from "./protocolCapabilities";
 
 const object = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -130,8 +131,8 @@ export function validateDeclarativeRules(
       Object.keys(rule).every((key) =>
         ["protocol", "task", "request"].includes(key)
       ) &&
-        rule.protocol === "openai-chat-completions" &&
-        ["chat", "translate", "parseImage"].includes(rule.task),
+        Object.hasOwn(protocolCapabilities, rule.task) &&
+        rule.protocol === protocolCapabilities[rule.task].protocol,
       code,
       "Unsupported protocol or task."
     );
@@ -171,7 +172,20 @@ export function validateDeclarativeRules(
     );
     for (const [key, value] of Object.entries(request.parameters || {})) {
       check(
-        !reserved.has(key) && !unsafe.has(key) && !key.startsWith("$"),
+        !reserved.has(key) &&
+          (rule.protocol === "openai-chat-completions" ||
+            ![
+              "file",
+              "input",
+              "audio",
+              "language",
+              "voice",
+              "speed",
+              "response_format",
+              "timestamp_granularities[]",
+            ].includes(key)) &&
+          !unsafe.has(key) &&
+          !key.startsWith("$"),
         code,
         "Reserved protocol parameter."
       );
@@ -185,23 +199,30 @@ export function validateDeclarativeRules(
       code,
       "Missing declarative handler."
     );
-    if (rules.rulesVersion === 1) continue;
+    check(capability !== "speak", code, "System speech is native-only.");
+    if (rules.rulesVersion === 1) {
+      check(
+        !(descriptor.outputModes || []).includes("stream"),
+        code,
+        "Rules v1 do not support streaming."
+      );
+      continue;
+    }
     check(
       rule.task === capability,
       code,
       "Protocol task does not match capability."
     );
+    const support = protocolCapabilities[capability];
     check(
-      !descriptor.coordinates &&
-        !descriptor.timestamps &&
-        (!descriptor.batch?.supported || capability === "translate") &&
+      (!descriptor.coordinates || support.coordinates) &&
+        (!descriptor.timestamps || support.timestamps) &&
+        (!descriptor.batch?.supported || support.batch) &&
         (descriptor.outputModes || ["complete"]).every(
-          (mode) =>
-            mode === "complete" ||
-            (mode === "stream" && capability !== "parseImage")
+          (mode) => mode === "complete" || (mode === "stream" && support.stream)
         ) &&
-        (descriptor.inputModalities || ["text"]).every(
-          (mode) => mode === (capability === "parseImage" ? "image" : "text")
+        (descriptor.inputModalities || ["text"]).every((mode) =>
+          support.modalities.includes(mode)
         ),
       code,
       "Unsupported protocol capability features."

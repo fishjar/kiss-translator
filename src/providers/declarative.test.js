@@ -22,14 +22,16 @@ function fixture() {
   const rules = {
     rulesVersion: 2,
     handlers: Object.fromEntries(
-      ["chat", "translate", "parseImage"].map((task) => [
-        task,
-        {
+      ["chat", "translate", "parseImage", "dictionary", "segmentSubtitle"].map(
+        (task) => [
           task,
-          protocol: "openai-chat-completions",
-          request: JSON.parse(JSON.stringify(request)),
-        },
-      ])
+          {
+            task,
+            protocol: "openai-chat-completions",
+            request: JSON.parse(JSON.stringify(request)),
+          },
+        ]
+      )
     ),
   };
   const manifest = {
@@ -55,6 +57,14 @@ function fixture() {
           { key: "thinking", type: "boolean", defaultValue: false },
         ],
         capabilities: {
+          dictionary: {
+            handler: "dictionary",
+            outputModes: ["complete", "stream"],
+          },
+          segmentSubtitle: {
+            handler: "segmentSubtitle",
+            outputModes: ["complete"],
+          },
           chat: { handler: "chat", outputModes: ["complete", "stream"] },
           translate: {
             handler: "translate",
@@ -241,7 +251,7 @@ test.each([
   [
     "coordinates",
     (f) => {
-      f.manifest.services[0].capabilities.parseImage.coordinates = true;
+      f.manifest.services[0].capabilities.chat.coordinates = true;
     },
   ],
   [
@@ -251,9 +261,11 @@ test.each([
     },
   ],
   [
-    "chat image input",
+    "unsupported image input modality",
     (f) => {
-      f.manifest.services[0].capabilities.chat.inputModalities = ["image"];
+      f.manifest.services[0].capabilities.parseImage.inputModalities = [
+        "audio",
+      ];
     },
   ],
 ])("rejects %s at installation and snapshot execution", async (_, mutate) => {
@@ -441,4 +453,101 @@ test("v2 protocol requests use the Broker for network scope validation, secret i
     runDeclarative(instance.provider, "chat", input, { ...ctx, ...broker })
   ).rejects.toBeDefined();
   expect(fetchImpl).toHaveBeenCalledTimes(1);
+});
+
+test("dictionary templates and Markdown results work through the declarative executor", async () => {
+  const { instance, ctx } = execution();
+  const input = {
+    text: "bank",
+    language: "zh",
+    sourceLanguage: "en",
+    context: "river",
+    instructions: "Explain {{text}} in {{to}}: {{context}}",
+    userPrompt: "Word: {{text}}",
+  };
+  await expect(
+    runDeclarative(instance.provider, "dictionary", input, ctx)
+  ).resolves.toEqual({ text: "line 1\nline 2", format: "markdown" });
+  const body = ctx.http.request.mock.calls[0][0].body;
+  const parsed = typeof body === "string" ? JSON.parse(body) : body;
+  expect(parsed.messages).toEqual([
+    { role: "system", content: "Explain bank in zh: river" },
+    { role: "user", content: "Word: bank" },
+  ]);
+});
+
+test("dictionary streams text deltas and returns the complete Markdown", async () => {
+  const { instance, ctx } = execution();
+  ctx.options.streaming = true;
+  ctx.http.stream = async function* () {
+    yield {
+      type: "sse",
+      data: JSON.stringify({
+        choices: [{ delta: { content: "# Bank" }, finish_reason: null }],
+      }),
+    };
+    yield {
+      type: "sse",
+      data: JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] }),
+    };
+    yield { type: "sse", data: "[DONE]" };
+  };
+  await expect(
+    runDeclarative(instance.provider, "dictionary", { text: "bank" }, ctx)
+  ).resolves.toEqual({ text: "# Bank", format: "markdown" });
+  expect(ctx.emit).toHaveBeenCalledWith(
+    expect.objectContaining({ type: "text.delta", text: "# Bank" })
+  );
+});
+
+test("subtitle protocol accepts ordered groups and rejects invalid coverage and streaming", async () => {
+  const { instance, ctx } = execution();
+  const input = {
+    items: [
+      { id: "a", text: "Hello", start: 0, end: 1 },
+      { id: "b", text: "world", start: 1, end: 2 },
+    ],
+    targetLanguage: "zh",
+  };
+  const groups = [
+    { ids: ["a", "b"], text: "Hello world", translation: "你好" },
+  ];
+  const respond = (content) =>
+    ctx.http.request.mockResolvedValue({
+      status: 200,
+      body: JSON.stringify({
+        choices: [{ message: { content }, finish_reason: "stop" }],
+      }),
+    });
+  respond(JSON.stringify({ groups }));
+  await expect(
+    runDeclarative(instance.provider, "segmentSubtitle", input, ctx)
+  ).resolves.toEqual({ groups });
+  for (const ids of [["a"], ["b", "a"], ["a", "a"], ["a", "unknown"]]) {
+    respond(JSON.stringify({ groups: [{ ...groups[0], ids }] }));
+    await expect(
+      runDeclarative(instance.provider, "segmentSubtitle", input, ctx)
+    ).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+  }
+  respond("bad JSON");
+  await expect(
+    runDeclarative(instance.provider, "segmentSubtitle", input, ctx)
+  ).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+  ctx.options.streaming = true;
+  await expect(
+    runDeclarative(instance.provider, "segmentSubtitle", input, ctx)
+  ).rejects.toMatchObject({ code: "STREAM_UNSUPPORTED" });
+});
+
+test("dictionary rejects an empty completion", async () => {
+  const { instance, ctx } = execution();
+  ctx.http.request.mockResolvedValue({
+    status: 200,
+    body: JSON.stringify({
+      choices: [{ message: { content: "" }, finish_reason: "stop" }],
+    }),
+  });
+  await expect(
+    runDeclarative(instance.provider, "dictionary", { text: "bank" }, ctx)
+  ).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
 });

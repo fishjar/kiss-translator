@@ -1,6 +1,70 @@
-import { invokeTextScene, mapSubtitleGroups } from "./sceneAdapter";
+import {
+  invokeTextScene,
+  mapSubtitleGroups,
+  segmentPlugin,
+} from "./sceneAdapter";
 import { invokePlugin } from "./bridge";
 jest.mock("./bridge", () => ({ invokePlugin: jest.fn() }));
+
+test("SDK 2 subtitle scene sends seconds, real millisecond pauses and full context, retaining player cue times", async () => {
+  invokePlugin.mockClear();
+  invokePlugin.mockReturnValue({
+    cancel: jest.fn(),
+    events: { async *[Symbol.asyncIterator]() {} },
+    result: Promise.resolve({
+      groups: [
+        { ids: ["0", "1"], text: "Hello world", translation: "你好世界" },
+      ],
+    }),
+  });
+  const apiSetting = {
+    apiSlug: "subtitle",
+    tone: "formal",
+    aiTerms: "world,世界",
+    provider: { apiVersion: "2", implementation: { kind: "script" } },
+  };
+  const events = [
+    { text: "Hello", start: 1000, end: 1400 },
+    { text: "world", start: 1750, end: 2200 },
+  ];
+  await expect(
+    segmentPlugin(events, {
+      apiSetting,
+      from: "en",
+      to: "zh",
+      context: "context",
+      docInfo: {
+        title: "Title",
+        description: "Description",
+        summary: "Summary",
+        url: "https://example.invalid",
+      },
+    })
+  ).resolves.toEqual([
+    {
+      start: 1000,
+      end: 2200,
+      text: "Hello world",
+      translation: "你好世界",
+      _si: 0,
+      _ei: 1,
+    },
+  ]);
+  expect(invokePlugin.mock.calls[0][2]).toMatchObject({
+    items: [
+      { id: "0", text: "Hello", start: 1, end: 1.4, pauseMs: 350 },
+      { id: "1", text: "world", start: 1.75, end: 2.2, pauseMs: 0 },
+    ],
+    context: "context",
+    document: {
+      title: "Title",
+      description: "Description",
+      summary: "Summary",
+    },
+    tone: "formal",
+    glossary: { world: "世界" },
+  });
+});
 
 test("dictionary streams text while returning the authoritative final result", async () => {
   const onText = jest.fn();
