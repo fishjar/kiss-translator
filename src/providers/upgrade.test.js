@@ -1,19 +1,10 @@
 import {
   copyCompatibleConfig,
-  serviceReferences,
-  replaceServiceReferences,
+  upgradeServiceInstance,
+  isServiceUpgradeAvailable,
 } from "./upgrade";
+import { createServiceInstance, validateServiceConfig } from "./instances";
 
-const newApi = {
-  apiSlug: "new",
-  provider: {
-    apiVersion: "1",
-    capabilities: {
-      translate: { handler: "translate" },
-      dictionary: { handler: "dictionary" },
-    },
-  },
-};
 test.each([undefined, []])(
   "missing or empty settings never copy unmatched config: %j",
   (settings) => {
@@ -28,50 +19,6 @@ test.each([undefined, []])(
     expect(JSON.stringify(api)).toBe(original);
   }
 );
-test("reference replacement preserves order, deduplicates and never rewrites instance identity or opaque data", () => {
-  const setting = {
-    transApis: [{ apiSlug: "old", pluginConfig: { apiSlug: "old" } }, newApi],
-    tranboxSetting: { apiSlugs: ["a", "old", "new"], aiDictApiSlug: "old" },
-    providerPlugins: [{ apiSlug: "old" }],
-  };
-  const rules = [{ apiSlug: "old", apiSlugs: ["stale"], code: "old" }];
-  const selected = serviceReferences(setting, rules, "old");
-  expect(selected).toHaveLength(3);
-  const result = replaceServiceReferences(
-    setting,
-    rules,
-    "old",
-    newApi,
-    selected
-  );
-  expect(result.setting.tranboxSetting).toEqual({
-    apiSlugs: ["a", "new"],
-    aiDictApiSlug: "new",
-  });
-  expect(result.rules[0]).toEqual({
-    apiSlug: "new",
-    apiSlugs: ["stale"],
-    code: "old",
-  });
-  expect(result.setting.transApis[0]).toEqual(setting.transApis[0]);
-  expect(setting.tranboxSetting.apiSlugs).toEqual(["a", "old", "new"]);
-});
-test("changed references and missing target capabilities abort instead of partially replacing", () => {
-  const setting = { subtitleSetting: { summaryApiSlug: "old" } };
-  const selected = serviceReferences(setting, [], "old");
-  expect(() =>
-    replaceServiceReferences(setting, [], "old", newApi, selected)
-  ).toThrow("summarize");
-  expect(() =>
-    replaceServiceReferences(
-      { subtitleSetting: {} },
-      [],
-      "old",
-      newApi,
-      selected
-    )
-  ).toThrow("变化");
-});
 test("copy rejects changed secret types and invalid new constraints and keeps independent data", () => {
   const api = {
     provider: {
@@ -91,4 +38,130 @@ test("copy rejects changed secret types and invalid new constraints and keeps in
   expect(copied).toEqual({ values: { model: "m" }, skipped: ["key", "speed"] });
   copied.values.model = "changed";
   expect(api.pluginConfig.model).toBe("m");
+});
+
+const manifest = {
+  manifestVersion: 1,
+  apiVersion: "1",
+  id: "upgrade-test",
+  name: "Upgrade test",
+  version: "1.0.0",
+  services: [
+    {
+      id: "text",
+      name: "Text",
+      implementation: { kind: "script", entry: "text.js" },
+      settings: [
+        { key: "apiKey", type: "password" },
+        { key: "temperature", type: "number", defaultValue: 0 },
+      ],
+      capabilities: {
+        translate: { handler: "translate" },
+        dictionary: { handler: "dictionary" },
+      },
+    },
+  ],
+};
+const code = "exports.translate=()=>{}";
+const oldApi = () => ({
+  ...createServiceInstance(
+    manifest,
+    "text",
+    code,
+    { apiKey: "saved-key", temperature: 1 },
+    "stable-id"
+  ),
+  apiName: "Custom name",
+  sortOrder: -1,
+  isDisabled: true,
+  useBatchFetch: true,
+  useStream: false,
+  batchPromptSlug: "custom-prompt",
+  httpTimeout: 42,
+  asrMaxDurationSeconds: 25,
+  asrTimestampSupport: "supported",
+  enabledCapabilities: ["translate"],
+});
+const newPack = () => ({
+  manifest: { ...manifest, version: "2.0.0" },
+  implementations: { text: "exports.translate=()=>42" },
+  resources: { "logo.png": { data: "new" } },
+});
+
+test("upgrades the snapshot and resources while preserving identity and every host setting", () => {
+  const api = oldApi();
+  const original = JSON.stringify(api);
+  const pack = newPack();
+  const result = upgradeServiceInstance(api, pack);
+  expect(result).toEqual({
+    ...api,
+    provider: expect.objectContaining({
+      code: pack.implementations.text,
+      resources: pack.resources,
+      source: expect.objectContaining({ version: "2.0.0" }),
+    }),
+  });
+  expect(JSON.stringify(api)).toBe(original);
+  expect(result.enabledCapabilities).toEqual(["translate"]);
+  expect(isServiceUpgradeAvailable(result, pack)).toBe(false);
+});
+
+test("changed fields fall back to new defaults, removed values disappear and missing required fields do not block upgrade", () => {
+  const api = oldApi();
+  const pack = newPack();
+  pack.manifest.services = [
+    {
+      ...manifest.services[0],
+      settings: [
+        { key: "temperature", type: "number", min: 2, defaultValue: 3 },
+        { key: "newRequired", type: "text", required: true },
+      ],
+    },
+  ];
+  const result = upgradeServiceInstance(api, pack);
+  expect(result.pluginConfig).toEqual({ temperature: 3 });
+  expect(() =>
+    validateServiceConfig(
+      result.provider,
+      result.pluginConfig,
+      result.enabledCapabilities
+    )
+  ).toThrow("Required field");
+});
+
+test("removed enabled capabilities are filtered without enabling new ones or rejecting the upgrade", () => {
+  const pack = newPack();
+  pack.manifest.services = [
+    {
+      ...manifest.services[0],
+      capabilities: {
+        dictionary: { handler: "dictionary" },
+        chat: { handler: "chat" },
+      },
+    },
+  ];
+  const result = upgradeServiceInstance(oldApi(), pack);
+  expect(result.enabledCapabilities).toEqual([]);
+  expect(result.apiSlug).toBe("stable-id");
+});
+
+test("incompatible host and stale or mismatched upgrade targets cannot change an instance", () => {
+  const api = oldApi();
+  const pack = newPack();
+  expect(() =>
+    upgradeServiceInstance(api, {
+      ...pack,
+      manifest: { ...pack.manifest, minHostVersion: "999.0.0" },
+    })
+  ).toThrow();
+  for (const changes of [
+    { version: "1.0.0" },
+    { version: "0.9.0" },
+    { id: "other" },
+    { services: [] },
+  ]) {
+    const candidate = { ...pack, manifest: { ...pack.manifest, ...changes } };
+    expect(isServiceUpgradeAvailable(api, candidate)).toBe(false);
+    expect(() => upgradeServiceInstance(api, candidate)).toThrow();
+  }
 });

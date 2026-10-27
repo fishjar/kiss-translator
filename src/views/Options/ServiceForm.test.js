@@ -360,3 +360,27 @@ test.each([undefined, 30, 600])(
     }
   }
 );
+
+test("ASR-only services render no empty prompt group", async () => {
+  const node = document.createElement("div");
+  const root = createRoot(node);
+  try {
+    await act(async () =>
+      root.render(
+        <PluginPromptSettings
+          api={{
+            apiType: "Plugin",
+            provider: {
+              capabilities: { transcribe: { handler: "transcribe" } },
+            },
+          }}
+          prompts={[]}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    expect(node.childElementCount).toBe(0);
+  } finally {
+    await act(async () => root.unmount());
+  }
+});

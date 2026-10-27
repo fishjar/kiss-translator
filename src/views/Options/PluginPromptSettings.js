@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { useI18n } from "../../hooks/I18n";
 import { MenuItem, Stack, TextField } from "@mui/material";
 import {
@@ -9,7 +10,13 @@ import {
 } from "../../config/prompt";
 import { enabledApiCapabilities } from "../../config/serviceSelection";
 
-export default function PluginPromptSettings({ api, prompts, onChange }) {
+export default function PluginPromptSettings({
+  api,
+  prompts,
+  onChange,
+  inline = false,
+}) {
+  const Container = inline ? Fragment : Stack;
   const i18n = useI18n();
   const enabled = enabledApiCapabilities(api);
   const slots = [
@@ -44,52 +51,52 @@ export default function PluginPromptSettings({ api, prompts, onChange }) {
       getVlmPromptOptions,
     ],
   ];
+  const visibleSlots = slots.filter(([cap]) => enabled.includes(cap));
+  if (!visibleSlots.length) return null;
   return (
-    <Stack spacing={2}>
-      {slots
-        .filter(([cap]) => enabled.includes(cap))
-        .map(([, slot, key, label, options]) => {
-          const slug = api[key] || "";
-          return (
-            <Stack key={key} spacing={1}>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name={key}
-                label={label}
-                value={slug}
-                InputLabelProps={{ shrink: true }}
-                SelectProps={{
-                  displayEmpty: true,
-                  renderValue: (value) =>
-                    value
-                      ? options(prompts).find((item) => item.slug === value)
-                          ?.name ||
-                        i18n(
-                          options(prompts).find((item) => item.slug === value)
-                            ?.nameKey,
-                          value
-                        )
-                      : i18n("plugin_plugin_default"),
-                }}
-                onChange={(event) => onChange(key, event.target.value)}
+    <Container {...(!inline && { spacing: 2 })}>
+      {visibleSlots.map(([, slot, key, label, options]) => {
+        const slug = api[key] || "";
+        return (
+          <Stack key={key} spacing={1}>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              name={key}
+              label={label}
+              value={slug}
+              InputLabelProps={{ shrink: true }}
+              SelectProps={{
+                displayEmpty: true,
+                renderValue: (value) =>
+                  value
+                    ? options(prompts).find((item) => item.slug === value)
+                        ?.name ||
+                      i18n(
+                        options(prompts).find((item) => item.slug === value)
+                          ?.nameKey,
+                        value
+                      )
+                    : i18n("plugin_plugin_default"),
+              }}
+              onChange={(event) => onChange(key, event.target.value)}
+            >
+              <MenuItem
+                value=""
+                disabled={!api.provider.defaultPrompts?.[slot]}
               >
-                <MenuItem
-                  value=""
-                  disabled={!api.provider.defaultPrompts?.[slot]}
-                >
-                  {i18n("plugin_plugin_default")}
+                {i18n("plugin_plugin_default")}
+              </MenuItem>
+              {options(prompts).map((item) => (
+                <MenuItem key={item.slug} value={item.slug}>
+                  {item.name || i18n(item.nameKey, item.slug)}
                 </MenuItem>
-                {options(prompts).map((item) => (
-                  <MenuItem key={item.slug} value={item.slug}>
-                    {item.name || i18n(item.nameKey, item.slug)}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-          );
-        })}
-    </Stack>
+              ))}
+            </TextField>
+          </Stack>
+        );
+      })}
+    </Container>
   );
 }
