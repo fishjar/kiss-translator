@@ -9,6 +9,7 @@ import {
   serviceTransportFeatures,
   AsrDurationSetting,
   ServiceTimeoutSetting,
+  serviceFieldsGridSx,
 } from "./ServiceForm";
 import { asrMaxDurationSeconds } from "../../providers/asrLimits";
 import { validateBuiltinSettingChanges } from "../../builtin-plugins/fields";
@@ -60,8 +61,6 @@ export default function PluginInstanceFields({
   api,
   onDirtyChange,
   onCollapse,
-  onTestSuccess,
-  onUpgrade,
   deleteApi,
   copyApi,
 }) {
@@ -70,6 +69,7 @@ export default function PluginInstanceFields({
   const { updateSetting } = useSetting();
   const { prompts } = usePromptList();
   const [patch, setPatch] = useState({});
+  const [upgradeSuccess, setUpgradeSuccess] = useState(false);
   const [actionsAnchor, setActionsAnchor] = useState(null);
   const confirm = useConfirm();
   const [options, setOptions] = useState({});
@@ -218,7 +218,6 @@ export default function PluginInstanceFields({
       if (output.audio)
         setAudioUrl(URL.createObjectURL(assets.get(output.audio)));
       setResult(JSON.stringify(output, null, 2));
-      onTestSuccess?.(current, capability);
     } catch (err) {
       if (active.current === job) setTestError(err.message);
     } finally {
@@ -300,107 +299,125 @@ export default function PluginInstanceFields({
             }))
           }
         />
-        {onUpgrade && <ServiceUpgradeAction api={api} onCreated={onUpgrade} />}
-        <ProviderSettings
-          service={api.provider}
-          fields={orderedCommon}
-          values={draft.pluginConfig}
-          onChange={changeField}
-        />
-        <CapabilityOptions
-          api={draft}
-          onChange={(value) =>
-            setOptions((current) => ({
-              ...current,
-              enabledCapabilities: value,
-            }))
-          }
-        />
-
-        {modeField && (
-          <ThinkingOptions
-            mode={
-              draft.pluginConfig.thinkingMode ??
-              modeField.defaultValue ??
-              "disabled"
-            }
-            effort={
-              draft.pluginConfig.thinkingEffort ??
-              effortField?.defaultValue ??
-              "_default"
-            }
-            efforts={effortField ? getSettingOptions(effortField) : undefined}
-            onChange={changeField}
-            allowDefaultEffort={Boolean(
-              effortField &&
-                getSettingOptions(effortField).some(
-                  (option) => option.value === "_default"
-                )
-            )}
-          />
+        {upgradeSuccess && (
+          <Alert severity="success">{i18n("plugin_service_upgraded")}</Alert>
         )}
-        <ProviderSettings
-          service={api.provider}
-          fields={specific}
-          values={draft.pluginConfig}
-          onChange={changeField}
-        />
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
-            gap: 2,
+        <ServiceUpgradeAction
+          api={api}
+          dirty={dirty}
+          disabled={Boolean(call) || quickBusy}
+          onUpgraded={() => {
+            setPatch({});
+            setOptions({});
+            setResult("");
+            setTestError("");
+            setUpgradeSuccess(true);
           }}
-        >
-          {features.batch && (
-            <BooleanServiceOption
-              name="useBatchFetch"
-              label={i18n("plugin_batch_translation")}
-              value={draft.useBatchFetch ?? false}
-              onChange={(value) =>
-                setOptions((current) => ({ ...current, useBatchFetch: value }))
+        />
+        <Box sx={serviceFieldsGridSx}>
+          <ProviderSettings
+            compact
+            service={api.provider}
+            fields={orderedCommon}
+            values={draft.pluginConfig}
+            onChange={changeField}
+          />
+          <CapabilityOptions
+            api={draft}
+            onChange={(value) =>
+              setOptions((current) => ({
+                ...current,
+                enabledCapabilities: value,
+              }))
+            }
+          />
+
+          {modeField && (
+            <ThinkingOptions
+              inline
+              mode={
+                draft.pluginConfig.thinkingMode ??
+                modeField.defaultValue ??
+                "disabled"
               }
+              effort={
+                draft.pluginConfig.thinkingEffort ??
+                effortField?.defaultValue ??
+                "_default"
+              }
+              efforts={effortField ? getSettingOptions(effortField) : undefined}
+              onChange={changeField}
+              allowDefaultEffort={Boolean(
+                effortField &&
+                  getSettingOptions(effortField).some(
+                    (option) => option.value === "_default"
+                  )
+              )}
             />
           )}
-          {features.stream && (
-            <BooleanServiceOption
-              name="useStream"
-              label={i18n("plugin_streaming_output")}
-              value={draft.useStream ?? true}
-              onChange={(value) =>
-                setOptions((current) => ({ ...current, useStream: value }))
-              }
-            />
-          )}
+          <ProviderSettings
+            compact
+            service={api.provider}
+            fields={specific}
+            values={draft.pluginConfig}
+            onChange={changeField}
+          />
+          <>
+            {features.batch && (
+              <BooleanServiceOption
+                name="useBatchFetch"
+                label={i18n("plugin_batch_translation")}
+                value={draft.useBatchFetch ?? false}
+                onChange={(value) =>
+                  setOptions((current) => ({
+                    ...current,
+                    useBatchFetch: value,
+                  }))
+                }
+              />
+            )}
+            {features.stream && (
+              <BooleanServiceOption
+                name="useStream"
+                label={i18n("plugin_streaming_output")}
+                value={draft.useStream ?? true}
+                onChange={(value) =>
+                  setOptions((current) => ({ ...current, useStream: value }))
+                }
+              />
+            )}
+          </>
+          <PluginPromptSettings
+            inline
+            api={draft}
+            prompts={prompts}
+            onChange={(key, value) =>
+              setOptions((current) => ({ ...current, [key]: value }))
+            }
+          />
+          <ServiceTimeoutSetting
+            api={draft}
+            onChange={(value) =>
+              setOptions((current) => ({ ...current, httpTimeout: value }))
+            }
+          />
+          <AsrDurationSetting
+            inline
+            api={draft}
+            onTimestampChange={(value) =>
+              setOptions((current) => ({
+                ...current,
+                asrTimestampSupport: value,
+              }))
+            }
+            onChange={(value) =>
+              setOptions((current) => ({
+                ...current,
+                asrMaxDurationSeconds: value,
+              }))
+            }
+          />
         </Box>
-        <PluginPromptSettings
-          api={draft}
-          prompts={prompts}
-          onChange={(key, value) =>
-            setOptions((current) => ({ ...current, [key]: value }))
-          }
-        />
-        <ServiceTimeoutSetting
-          api={draft}
-          onChange={(value) =>
-            setOptions((current) => ({ ...current, httpTimeout: value }))
-          }
-        />
-        <AsrDurationSetting
-          api={draft}
-          onTimestampChange={(value) =>
-            setOptions((current) => ({
-              ...current,
-              asrTimestampSupport: value,
-            }))
-          }
-          onChange={(value) =>
-            setOptions((current) => ({
-              ...current,
-              asrMaxDurationSeconds: value,
-            }))
-          }
-        />
         <Stack
           className="kt-api-detail__footer"
           direction="row"
@@ -567,9 +584,22 @@ export default function PluginInstanceFields({
   );
 }
 
-export function ProviderSettings({ fields, values, onChange, service }) {
+export function ProviderSettings({
+  fields,
+  values,
+  onChange,
+  service,
+  compact = false,
+}) {
   const providerText = useProviderI18n();
   return fields.map((field) => {
+    const sx =
+      compact &&
+      (field.type === "password" ||
+        field.isSecret ||
+        /(?:url|endpoint|address|apiKey|^key$)$/i.test(field.key))
+        ? { gridColumn: "1 / -1" }
+        : undefined;
     if (field.key === (service?.modelField || "model") && field.type === "text")
       return (
         <Autocomplete
@@ -621,6 +651,8 @@ export function ProviderSettings({ fields, values, onChange, service }) {
         : TextField;
     return (
       <Field
+        sx={sx}
+        fullWidth={compact || undefined}
         key={field.key}
         size="small"
         label={providerText(field.label, field.labelI18n)}

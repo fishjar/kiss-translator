@@ -1,7 +1,6 @@
 import { webcrypto } from "crypto";
 import { TextEncoder } from "util";
 import { providerCacheSignature } from "./cache";
-import { instanceTestSignature } from "./upgrade";
 
 const originalCrypto = global.crypto;
 const originalEncoder = global.TextEncoder;
@@ -59,7 +58,7 @@ test("configuration, capability, implementation and full document context indepe
   expect(signature).not.toContain("private-key");
 });
 
-test("streaming transport choice invalidates cache and test evidence", async () => {
+test("streaming transport choice invalidates cache", async () => {
   const candidate = {
     ...api,
     enabledCapabilities: ["translate"],
@@ -81,7 +80,4 @@ test("streaming transport choice invalidates cache and test evidence", async () 
       {}
     )
   ).not.toBe(automatic);
-  expect(instanceTestSignature({ ...candidate, useStream: false })).not.toBe(
-    instanceTestSignature(candidate)
-  );
 });
