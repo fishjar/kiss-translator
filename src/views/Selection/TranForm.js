@@ -429,6 +429,10 @@ export default function TranForm({
     () => resolveActiveApiSlugs(apiSlugs, optApis),
     [apiSlugs, optApis]
   );
+  const dictionaryTranslationApi = useMemo(
+    () => transApis.find((api) => api.apiSlug === activeApiSlugs[0]) || null,
+    [transApis, activeApiSlugs]
+  );
 
   // 本地持久化接口选择恢复（apiSlugsStorageKey 可选）。
   // 在 initApiSlugs 同步 effect 之后声明，保证恢复值胜出且标记为用户选择（不再被外部 prop 覆盖）。
@@ -1095,6 +1099,9 @@ export default function TranForm({
                       text={text}
                       enDict={enDict}
                       source={favoriteSource}
+                      toLang={realToLang}
+                      apiSetting={dictionaryTranslationApi}
+                      translateVariants={translateVariants}
                     />
                   )}
                   {isSingleChineseChar(text) && <Zdic text={text} />}
@@ -1127,7 +1134,14 @@ export default function TranForm({
           ) : (
             <>
               {isWord && OPT_DICT_MAP.has(enDict) && (
-                <DictCont text={text} enDict={enDict} source={favoriteSource} />
+                <DictCont
+                  text={text}
+                  enDict={enDict}
+                  source={favoriteSource}
+                  toLang={realToLang}
+                  apiSetting={dictionaryTranslationApi}
+                  translateVariants={translateVariants}
+                />
               )}
               {isSingleChineseChar(text) && <Zdic text={text} />}
             </>
@@ -1140,10 +1154,22 @@ export default function TranForm({
         OPT_SUG_MAP.has(enSug) &&
         (isPlaygound ? (
           <Box className="kt-playground-translator__auxiliary">
-            <SugCont text={text} enSug={enSug} />
+            <SugCont
+              text={text}
+              enSug={enSug}
+              toLang={realToLang}
+              apiSetting={dictionaryTranslationApi}
+              translateVariants={translateVariants}
+            />
           </Box>
         ) : (
-          <SugCont text={text} enSug={enSug} />
+          <SugCont
+            text={text}
+            enSug={enSug}
+            toLang={realToLang}
+            apiSetting={dictionaryTranslationApi}
+            translateVariants={translateVariants}
+          />
         ))}
     </Stack>
   );

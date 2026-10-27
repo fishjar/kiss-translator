@@ -9,6 +9,7 @@ import CopyBtn from "./CopyBtn";
 import { useAsyncNow } from "../../hooks/Fetch";
 import { dictHandlers } from "./DictHandler";
 import { useI18n } from "../../hooks/I18n";
+import { loadDictionary } from "./loadDictionary";
 
 /**
  * Dictionary definition view.
@@ -19,9 +20,21 @@ import { useI18n } from "../../hooks/I18n";
  * @param {Function} props.setRealWord - Callback to record the resolved headword.
  * @param {Object} props.dict - Selected dictionary handler settings.
  */
-function DictBody({ text, setCopyText, setRealWord, dict }) {
+function DictBody({
+  text,
+  toLang,
+  apiSetting,
+  translateVariants,
+  setCopyText,
+  setRealWord,
+  dict,
+}) {
   // Start an immediate asynchronous dictionary lookup with useAsyncNow.
-  const { loading, error, data } = useAsyncNow(dict.apiFn, text);
+  const query = useMemo(
+    () => ({ dict, text, toLang, apiSetting, translateVariants }),
+    [dict, text, toLang, apiSetting, translateVariants]
+  );
+  const { loading, error, data } = useAsyncNow(loadDictionary, query);
 
   // Update the headword and copy text when dictionary data arrives.
   useEffect(() => {
@@ -68,8 +81,18 @@ function DictBody({ text, setCopyText, setRealWord, dict }) {
  * @param {string} props.text - Word or text to look up.
  * @param {string} props.enDict - Dictionary service identifier, such as "bing" or "youdao".
  * @param {{sentence?: string, url?: string}|null} props.source - Optional webpage source captured from selection.
+ * @param {string} props.toLang - Effective translation target language.
+ * @param {Object} props.apiSetting - Translation service used to localize definitions.
+ * @param {boolean} props.translateVariants - Whether Chinese variants count as the same language.
  */
-export default function DictCont({ text, enDict, source = null }) {
+export default function DictCont({
+  text,
+  enDict,
+  source = null,
+  toLang,
+  apiSetting,
+  translateVariants = true,
+}) {
   const i18n = useI18n();
   const [copyText, setCopyText] = useState(text);
   const [realWord, setRealWord] = useState(text);
@@ -79,7 +102,7 @@ export default function DictCont({ text, enDict, source = null }) {
   useLayoutEffect(() => {
     setCopyText(text);
     setRealWord(text);
-  }, [enDict, text]);
+  }, [enDict, text, toLang, apiSetting?.apiSlug, translateVariants]);
 
   return (
     <Stack spacing={1}>
@@ -107,7 +130,11 @@ export default function DictCont({ text, enDict, source = null }) {
       {/* Dictionary content. */}
       {dict && (
         <DictBody
+          key={`${enDict}\u0000${toLang || ""}\u0000${apiSetting?.apiSlug || ""}\u0000${translateVariants}`}
           text={text}
+          toLang={toLang}
+          apiSetting={apiSetting}
+          translateVariants={translateVariants}
           setCopyText={setCopyText}
           setRealWord={setRealWord}
           dict={dict}
