@@ -1,4 +1,5 @@
-import { css, keyframes } from "@emotion/css";
+import { keyframes } from "@emotion/css";
+import createEmotion from "@emotion/css/create-instance";
 import {
   OPT_STYLE_NONE,
   OPT_STYLE_LINE,
@@ -21,13 +22,14 @@ import {
   OPT_STYLE_WAVYLINE_BOLD,
 } from "../config";
 
-const gradientFlow = keyframes`
+const registerBuiltinKeyframes = (createKeyframes) => {
+  const gradientFlow = createKeyframes`
   to {
     background-position: 200% center;
   }
 `;
 
-const blink = keyframes`
+  const blink = createKeyframes`
   0%, 100% {
     opacity: 1;
   }
@@ -36,7 +38,7 @@ const blink = keyframes`
   }
 `;
 
-const glow = keyframes`
+  const glow = createKeyframes`
   from {
     text-shadow: 0 0 10px #fff, 
     0 0 20px #fff, 
@@ -50,6 +52,29 @@ const glow = keyframes`
     0 0 50px #ff4da6;
   }
 `;
+
+  return { gradientFlow, blink, glow };
+};
+
+// 设置预览和文件翻译仍使用默认 Emotion 实例中的关键帧。
+const previewKeyframes = registerBuiltinKeyframes(keyframes);
+
+let textEmotion;
+let textKeyframes;
+
+const getTextEmotion = () => {
+  if (
+    !textEmotion ||
+    textEmotion.sheet.container !== document.head ||
+    textEmotion.sheet.tags.some((tag) => tag.parentNode !== document.head)
+  ) {
+    // SPA 可能删除样式标签或替换整个 head；只清理译文专用缓存。
+    textEmotion?.flush();
+    textEmotion = createEmotion({ key: "kiss-text", container: document.head });
+    textKeyframes = registerBuiltinKeyframes(textEmotion.keyframes);
+  }
+  return textEmotion;
+};
 
 const genLineStyle = (style, color, thickness = 1) => `
   text-decoration-line: underline;
@@ -71,7 +96,10 @@ const genLineStyle = (style, color, thickness = 1) => `
   }
 `;
 
-const genBuiltinStyles = (color = DEFAULT_COLOR) => ({
+const genBuiltinStyles = (
+  { gradientFlow, blink, glow },
+  color = DEFAULT_COLOR
+) => ({
   // 无样式
   [OPT_STYLE_NONE]: ``,
   // 下划线
@@ -179,18 +207,14 @@ const genBuiltinStyles = (color = DEFAULT_COLOR) => ({
 });
 
 /**
- * 根据内置样式和用户自定义样式，生成唯一的 CSS Class 类名映射与全局样式表字符串
- * // REVIEW: 样式生成冗余与潜在冲突风险。
- * // 在 `genTextClass` 中，直接调用了 `@emotion/css` 的 `css` 方法。
- * // 这一步会将生成的样式规则自动同步插入到当前宿主文档的全局 `<style>` 标签中。
- * // 随后，代码又遍历了一遍样式拼装为 `textStyles` 字符串，并在 `translator.js` 中放入 `adoptedStyleSheets` 中挂载。
- * // 这样会在同一页面产生双重样式渲染（一次在顶层文档，一次在 Shadow DOM 内部），产生了内存和渲染性能冗余，
- * // 且如果 `@emotion/css` 被运行在限制了 CSP 或者隔离的 Shadow 环境下，可能会由于无法直接操作全局 document 的头部导致运行期报错。
+ * 在译文专用 Emotion 实例中生成类名并挂载文档样式，恢复 SPA 移除的样式。
+ * 同时返回供 Shadow DOM 注入的样式文本，沿用其现有挂载方式。
  * @param {Array} customStyles - 用户自定义样式表
  * @returns {Array} [textClass, textStyles] 返回 Class 映射字典及完整样式表字符串
  */
 export const genTextClass = (customStyles = []) => {
-  const styles = genBuiltinStyles();
+  const { css } = getTextEmotion();
+  const styles = genBuiltinStyles(textKeyframes);
   customStyles.forEach((style) => {
     styles[style.styleSlug] = style.styleCode;
   });
@@ -212,4 +236,4 @@ export const genTextClass = (customStyles = []) => {
   return [textClass, textStyles];
 };
 
-export const builtinStylesMap = genBuiltinStyles();
+export const builtinStylesMap = genBuiltinStyles(previewKeyframes);
