@@ -1,5 +1,6 @@
 import packageInfo from "../../package.json";
 import { providerError } from "./capabilities";
+import { supportsSdkVersion } from "./sdk/version";
 
 const versionParts = (value) => {
   if (typeof value !== "string" || !/^\d+\.\d+\.\d+$/.test(value))
@@ -18,6 +19,19 @@ const versionParts = (value) => {
 
 // Read defaults without normalizing the manifest: fingerprints of old packages stay stable.
 export function validatePluginCompatibilityFields(definition) {
+  if (
+    definition.apiVersion !== undefined &&
+    !supportsSdkVersion(definition.apiVersion)
+  )
+    throw providerError(
+      "SDK_VERSION_UNSUPPORTED",
+      `Unsupported plugin SDK ${definition.apiVersion}. Update the host to a version supporting this SDK.`
+    );
+  if (
+    definition.capabilities?.speak &&
+    definition.implementation?.kind !== "native"
+  )
+    throw providerError("INVALID_MANIFEST", "System speech is native-only.");
   if (definition.kind !== undefined && definition.kind !== "provider")
     throw providerError(
       "UNSUPPORTED_PLUGIN_KIND",
@@ -57,6 +71,9 @@ export function pluginCompatibilityError(definition) {
 
 export function pluginCompatibilityFields(definition) {
   return {
+    ...(definition.apiVersion !== undefined && {
+      apiVersion: definition.apiVersion,
+    }),
     ...(definition.kind !== undefined && { kind: definition.kind }),
     ...(definition.minHostVersion !== undefined && {
       minHostVersion: definition.minHostVersion,

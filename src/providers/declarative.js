@@ -1,5 +1,7 @@
+import { buildTextTaskMessages, parseTextTaskResult } from "./sdk/textTasks";
 import { providerError } from "./capabilities";
 import { validateDeclarativeRules } from "./declarativeRules";
+import { protocolCapabilities } from "./protocolCapabilities";
 
 const OMIT = Symbol("omit");
 const unsafe = new Set(["__proto__", "prototype", "constructor"]);
@@ -105,7 +107,16 @@ export async function runDeclarative(snapshot, handler, input, ctx) {
   const rule = rules.handlers?.[handler];
   if (!rule)
     throw providerError("HANDLER_MISSING", "Declarative handler not found.");
-  if (rules.rulesVersion === 2) return runProtocol(rule, input, ctx);
+  if (rules.rulesVersion === 2)
+    return runProtocol(rule, input, ctx, {
+      ...snapshot.capabilities?.[rule.task],
+      format: snapshot.apiVersion === "1" ? "text" : "markdown",
+    });
+  if (ctx.options?.streaming)
+    throw providerError(
+      "STREAM_UNSUPPORTED",
+      "Rules v1 do not support streaming."
+    );
   const request = resolve(
     rule.request,
     { config: ctx.config, input, resources: ctx.resources },
@@ -127,61 +138,63 @@ export async function runDeclarative(snapshot, handler, input, ctx) {
   return resolve(rule.response.map, { response: data }, ctx);
 }
 
-async function runProtocol(rule, input, ctx) {
+async function runProtocol(rule, input, ctx, descriptor = {}) {
   const sdk = ctx.helpers.openai.chatCompletions;
   const streaming = Boolean(ctx.options?.streaming);
-  if (streaming && rule.task === "parseImage")
+  if (streaming && !protocolCapabilities[rule.task].stream)
     throw providerError(
       "STREAM_UNSUPPORTED",
-      "Image parsing requires a complete response."
+      "This task requires a complete response."
     );
-  let messages;
-  if (rule.task === "translate")
-    messages = ctx.helpers.translation.buildMessages(input);
-  else if (rule.task === "chat") messages = input.messages;
-  else {
-    const blob = ctx.assets.get(input.image);
-    if (
-      !["image/png", "image/jpeg", "image/webp", "image/gif"].includes(
-        blob.type
-      ) ||
-      blob.type !== input.image.mimeType
-    )
-      throw providerError(
-        "INVALID_ASSET",
-        "Unsupported or mismatched image MIME type."
-      );
-    if (blob.size > 8 * 1024 * 1024)
-      throw providerError(
-        "RESOURCE_BUDGET_EXCEEDED",
-        "Image exceeds the asset budget."
-      );
-    const bytes = await blob.arrayBuffer();
-    messages = [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text:
-              input.prompt ??
-              "Extract the visible text faithfully. Output only the recognized text.",
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:${blob.type};base64,${ctx.helpers.encoding.bytesToBase64(bytes)}`,
-            },
-          },
-        ],
-      },
-    ];
-  }
   const resolved = resolve(
     rule.request,
     { config: ctx.config, input, rulesVersion: 2 },
     ctx
   );
+  if (rule.protocol !== "openai-chat-completions") {
+    const audio = ctx.helpers.openai.audio;
+    const request =
+      rule.task === "transcribe"
+        ? audio.buildTranscriptionRequest({
+            ...resolved.parameters,
+            ...input,
+            baseUrl: resolved.baseUrl,
+            model: resolved.model,
+            auth: resolved.auth,
+            requireTimestamps:
+              input.requireTimestamps ?? descriptor.timestamps ?? false,
+          })
+        : audio.buildSpeechRequest({
+            ...resolved.parameters,
+            ...input,
+            baseUrl: resolved.baseUrl,
+            model: resolved.model,
+            auth: resolved.auth,
+            voice: input.voice ?? ctx.config.voice,
+            speed: input.speed ?? ctx.config.speed,
+          });
+    // Vendor parameters can add options, but cannot replace the task-owned payload.
+    request.body = { ...resolved.parameters, ...request.body };
+    const response = await ctx.http.request(request);
+    if (rule.task === "transcribe") return audio.parseTranscription(response);
+    if (!response.body?.assetId)
+      throw providerError("INVALID_RESPONSE", "Missing audio asset.");
+    return { audio: response.body, mimeType: response.body.mimeType };
+  }
+  const standardMessages =
+    rule.task === "translate"
+      ? ctx.helpers.translation.buildMessages(input)
+      : rule.task === "chat"
+        ? input.messages
+        : buildTextTaskMessages(rule.task, input, descriptor);
+  const messages = await sdk.prepareMessages(standardMessages, async (ref) => {
+    const blob = ctx.assets.get(ref);
+    if (blob.size > 8 * 1024 * 1024)
+      throw providerError("RESOURCE_BUDGET_EXCEEDED", "Asset exceeds 8 MiB.");
+    if (blob.type !== ref.mimeType)
+      throw providerError("INVALID_ASSET", "Asset MIME type mismatch.");
+    return blob.arrayBuffer();
+  });
   const request = sdk.buildRequest({
     ...resolved.parameters,
     baseUrl: resolved.baseUrl,
@@ -211,14 +224,11 @@ async function runProtocol(rule, input, ctx) {
   }
   if (rule.task === "translate")
     return ctx.helpers.translation.parseResult(result.text, input);
-  if (rule.task === "parseImage")
-    return {
-      text: result.text,
-      format: "text",
-      items: result.text
-        .split(/\r?\n/)
-        .filter(Boolean)
-        .map((text) => ({ text, poly: null })),
-    };
+  if (rule.task !== "chat")
+    return parseTextTaskResult(rule.task, result.text, input, {
+      ...descriptor,
+      model: resolved.model,
+      usage: result.usage,
+    });
   return result;
 }

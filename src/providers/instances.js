@@ -1,3 +1,4 @@
+import { supportsSdkVersion } from "./sdk/version";
 import {
   PROVIDER_CAPABILITIES,
   providerError,
@@ -15,7 +16,7 @@ import {
 const copy = (value) => JSON.parse(JSON.stringify(value));
 const forbidden = new Set(["__proto__", "constructor", "prototype"]);
 
-export function validateCapabilities(capabilities) {
+export function validateCapabilities(capabilities, { external = false } = {}) {
   if (
     !capabilities ||
     Array.isArray(capabilities) ||
@@ -26,6 +27,7 @@ export function validateCapabilities(capabilities) {
   for (const [name, descriptor] of Object.entries(capabilities)) {
     if (
       !PROVIDER_CAPABILITIES.includes(name) ||
+      (external && name === "speak") ||
       !descriptor ||
       typeof descriptor.handler !== "string" ||
       !/^[A-Za-z_$][\w$]*$/.test(descriptor.handler) ||
@@ -145,7 +147,7 @@ export function createServiceInstance(
 ) {
   if (
     manifest.manifestVersion !== 1 ||
-    manifest.apiVersion !== "1" ||
+    !supportsSdkVersion(manifest.apiVersion) ||
     !apiSlug
   ) {
     throw providerError(
@@ -166,14 +168,14 @@ export function createServiceInstance(
   }
   const capabilities = copy(service.capabilities);
   validateDefaultPrompts(service);
-  validateCapabilities(capabilities);
+  validateCapabilities(capabilities, { external: true });
   const fields = mergeSettingFields(manifest.sharedSettings, service.settings);
   validateModels(service, fields);
   validatePermissions(manifest.permissions, fields);
   validateFieldCapabilities(service, fields, manifest.permissions);
   const provider = {
     ...pluginCompatibilityFields(manifest),
-    apiVersion: "1",
+    apiVersion: manifest.apiVersion,
     id: service.id,
     name: service.name,
     ...(service.nameI18n && { nameI18n: copy(service.nameI18n) }),

@@ -70,3 +70,48 @@ test("localized metadata survives service snapshots and synced catalogs", () => 
   expect(catalog[0].nameI18n).toEqual(manifest.services[0].nameI18n);
   expect(catalog[0].nameI18n).not.toBe(manifest.services[0].nameI18n);
 });
+
+test("Chinese capability names and legacy ASR metadata use the unified terminology", () => {
+  for (const [locale, labels] of [
+    [
+      "zh",
+      [
+        "对话（LLM）",
+        "语音识别（ASR）",
+        "AI 词典",
+        "智能决策（JEV）",
+        "语音合成（TTS）",
+        "系统朗读",
+      ],
+    ],
+    [
+      "zh_TW",
+      [
+        "對話（LLM）",
+        "語音辨識（ASR）",
+        "AI 詞典",
+        "智慧決策（JEV）",
+        "語音合成（TTS）",
+        "系統朗讀",
+      ],
+    ],
+  ]) {
+    const i18n = newI18n(locale);
+    [
+      "chat",
+      "transcribe",
+      "dictionary",
+      "evaluate",
+      "synthesizeSpeech",
+      "speak",
+    ].forEach((capability, index) =>
+      expect(i18n(capabilityLabelKeys[capability])).toBe(labels[index])
+    );
+    expect(localizeProviderText(i18n, "音频转写", undefined, locale)).toBe(
+      labels[1]
+    );
+    expect(
+      localizeProviderText(i18n, "语音识别（ASR）", undefined, locale)
+    ).toBe(labels[1]);
+  }
+});

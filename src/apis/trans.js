@@ -1008,6 +1008,12 @@ export const handleDict = async (options) => {
       sourceLanguage: options.fromLang,
       language: options.toLang,
       context: options.context || "",
+      document: Object.fromEntries(
+        ["title", "description", "summary", "url"].map((key) => [
+          key,
+          options.docInfo?.[key] || "",
+        ])
+      ),
       instructions: options.apiSetting.dictPrompt,
       userPrompt: options.apiSetting.dictUserPrompt,
     },
@@ -1050,6 +1056,12 @@ export const handleNativeDict = async ({
         sourceLanguage: fromLang,
         language: toLang,
         context,
+        document: Object.fromEntries(
+          ["title", "description", "summary", "url"].map((key) => [
+            key,
+            docInfo?.[key] || "",
+          ])
+        ),
         instructions: apiSetting.dictPrompt,
         userPrompt: apiSetting.dictUserPrompt,
       },
@@ -1683,6 +1695,7 @@ export const handleNativeSubtitle = async ({
       signal,
       instructions: apiSetting.subtitlePrompt,
       context: docInfo?.summary,
+      docInfo,
     });
   }
   const { apiType, fetchInterval, fetchLimit, httpTimeout, useStream } =
@@ -1872,6 +1885,10 @@ export const handleSummarize = async (options) => {
       instructions: options.prompt?.systemPrompt,
       userPrompt: options.prompt?.userPrompt,
       context: [options.title, options.description].filter(Boolean).join("\n"),
+      document: {
+        title: options.title || "",
+        description: options.description || "",
+      },
     },
     { signal: options.signal, nativeOptions: options }
   );
@@ -1901,6 +1918,7 @@ export const handleNativeSummarize = async ({
         instructions: prompt?.systemPrompt,
         userPrompt: prompt?.userPrompt,
         context: [title, description].filter(Boolean).join("\n"),
+        document: { title: title || "", description: description || "" },
       },
       { signal }
     );

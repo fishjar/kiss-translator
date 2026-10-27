@@ -1,3 +1,5 @@
+import { supportsSdkVersion } from "./sdk/version";
+
 export const PROVIDER_CAPABILITIES = Object.freeze([
   "translate",
   "chat",
@@ -83,7 +85,10 @@ export function supportsProviderCapability(
     !descriptor ||
     descriptor.outputModes?.length === 0 ||
     instance.isDisabled ||
-    instance.provider.apiVersion !== "1"
+    !supportsSdkVersion(instance.provider.apiVersion) ||
+    (capability === "speak" &&
+      (instance.provider.implementation?.kind !== "native" ||
+        instance.provider.source?.external))
   )
     return false;
   if (requirements.stream && !descriptor.outputModes?.includes("stream"))

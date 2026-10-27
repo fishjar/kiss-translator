@@ -68,6 +68,31 @@ export function validateInput(capability, input) {
   checkPayloadBudget(input);
   const code = "INVALID_INPUT";
   requireValue(object(input), code, "Capability input must be an object.");
+  requireValue(
+    input.document === undefined ||
+      (object(input.document) && Object.values(input.document).every(text)),
+    code,
+    "Invalid document context."
+  );
+  requireValue(
+    input.glossary === undefined ||
+      (object(input.glossary) && Object.values(input.glossary).every(text)),
+    code,
+    "Invalid glossary."
+  );
+  requireValue(
+    input.tone === undefined || text(input.tone),
+    code,
+    "Invalid tone."
+  );
+  requireValue(
+    input.candidates === undefined ||
+      (Array.isArray(input.candidates) &&
+        input.candidates.length > 0 &&
+        input.candidates.every((value) => text(value) && value.trim())),
+    code,
+    "Invalid language candidates."
+  );
   if (capability === "translate") {
     items(input.items, code);
     translationProtocol(input);
@@ -126,7 +151,12 @@ export function validateInput(capability, input) {
   } else if (capability === "segmentSubtitle") {
     items(input.items, code);
     requireValue(
-      input.items.every(interval),
+      input.items.every(
+        (item) =>
+          interval(item) &&
+          (item.pauseMs === undefined ||
+            (finite(item.pauseMs) && item.pauseMs >= 0))
+      ),
       code,
       "Subtitle times must be ordered seconds."
     );
@@ -255,7 +285,7 @@ export function validateResult(capability, result, input, descriptor = {}) {
       code,
       "Missing subtitle items."
     );
-  } else if (capability === "detectLanguage")
+  } else if (capability === "detectLanguage") {
     requireValue(
       text(result.language) &&
         result.language.length > 0 &&
@@ -263,7 +293,12 @@ export function validateResult(capability, result, input, descriptor = {}) {
       code,
       "Invalid detected language."
     );
-  else if (capability === "suggest")
+    requireValue(
+      !input.candidates || input.candidates.includes(result.language),
+      code,
+      "Detected language is outside candidates."
+    );
+  } else if (capability === "suggest")
     requireValue(
       Array.isArray(result.items) && result.items.every(text),
       code,
