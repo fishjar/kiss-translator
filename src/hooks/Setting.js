@@ -4,6 +4,7 @@ import {
   useContext,
   useMemo,
   useEffect,
+  useLayoutEffect,
 } from "react";
 import Alert from "@mui/material/Alert";
 import {
@@ -18,6 +19,7 @@ import { logger } from "../libs/log";
 import { sendBgMsg } from "../libs/msg";
 import { isExt } from "../libs/client";
 import { normalizeStoredSetting } from "../libs/storage";
+import { setIconColorSnapshot, setIconStyleSnapshot } from "../styles/m3";
 import { cloneStorageValue, isSameStorageValue } from "../libs/storageEquality";
 
 // Share settings and their persistence operations with descendant components.
@@ -89,6 +91,22 @@ export function SettingProvider({ children, context }) {
     },
     [updateSetting]
   );
+
+  // 把图标外观键同步给 m3.js 快照 store（M3Theme/图标分发器经
+  // useSyncExternalStore 消费，避免它们直接 import 本模块拖入重依赖图）。
+  // useLayoutEffect：浏览器提交前生效，切换档位零闪烁；同样受 isLoading 门控。
+  // isLoading 门控：useStorage 在读盘完成前把 DEFAULT_SETTING 当 data 返回，
+  // 故 setting 非空但尚是默认档。同一 JS 上下文里已挂载并填充的其它根
+  // （content bundle 内 popup/touchStatus/fab/ruleEditor/imageTranslate 等
+  // 并存）此刻快照已被写为真实档；本根若在加载期抢先把默认档写进共享 store，
+  // 会把它们临时打回默认。故加载期一律跳过。不在渲染期同步：渲染期调用
+  // 外部 store setter 会同步通知 useSyncExternalStore 订阅者（含其它根），
+  // 属 React 反模式；useLayoutEffect 内的同步在浏览器绘制前完成，无闪烁。
+  useLayoutEffect(() => {
+    if (isLoading) return;
+    setIconStyleSnapshot(setting?.iconStyle);
+    setIconColorSnapshot(setting?.iconColor);
+  }, [isLoading, setting?.iconStyle, setting?.iconColor]);
 
   const value = useMemo(
     () => ({

@@ -1,14 +1,27 @@
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline, GlobalStyles } from "@mui/material";
+import {
+  ArrowDropDownIcon,
+  CancelIcon,
+  CheckCircleIcon,
+  CloseIcon,
+  ErrorIcon,
+  InfoIcon,
+  WarningIcon,
+} from "../components/icons/lucide";
 import { useDarkMode } from "./ColorMode";
 import { THEME_DARK, THEME_LIGHT } from "../config";
 import {
   createM3CssVariables,
+  getIconColorSnapshot,
+  getIconStyleSnapshot,
   M3_FONT_FAMILY,
   M3_GLOBAL_CSS,
   resolveM3Colors,
   resolveM3ThemeMode,
+  subscribeIconColor,
+  subscribeIconStyle,
 } from "../styles/m3";
 import { getMuiSwitchStyleOverrides } from "./themeStyles";
 import { useSystemDarkPreference } from "./SystemColorScheme";
@@ -26,6 +39,14 @@ export default function M3Theme({
 }) {
   const { darkMode } = useDarkMode();
   const systemPrefersDark = useSystemDarkPreference();
+  const iconStyle = useSyncExternalStore(
+    subscribeIconStyle,
+    getIconStyleSnapshot
+  );
+  const iconColor = useSyncExternalStore(
+    subscribeIconColor,
+    getIconColorSnapshot
+  );
 
   const previewMode =
     process.env.NODE_ENV === "development"
@@ -36,8 +57,8 @@ export default function M3Theme({
       ? previewMode
       : resolveM3ThemeMode(darkMode, systemPrefersDark);
   const colors = useMemo(
-    () => resolveM3Colors(resolvedMode, M3_BRAND_COLOR),
-    [resolvedMode]
+    () => resolveM3Colors(resolvedMode, M3_BRAND_COLOR, iconColor),
+    [resolvedMode, iconColor]
   );
 
   const theme = useMemo(() => {
@@ -65,6 +86,7 @@ export default function M3Theme({
           contrastText: color.onSecondaryContainer,
         },
         error: { main: color.error },
+        success: { main: color.success },
         background: { default: color.background, paper: color.surface },
         text: {
           primary: color.onSurface,
@@ -127,7 +149,7 @@ export default function M3Theme({
           styleOverrides: {
             root: ({ ownerState }) => ({
               ...(ownerState.color === "default" && {
-                color: color.onSurfaceVariant,
+                color: color.icon,
                 "&:hover": {
                   backgroundColor: color.surfaceContainer,
                   "@media (hover: none)": { backgroundColor: "transparent" },
@@ -172,6 +194,9 @@ export default function M3Theme({
           },
         },
         MuiSelect: {
+          ...(iconStyle === "lucide" && {
+            defaultProps: { IconComponent: ArrowDropDownIcon },
+          }),
           styleOverrides: {
             select: {
               "&:focus": {
@@ -400,9 +425,45 @@ export default function M3Theme({
         },
         MuiAlert: {
           styleOverrides: { root: { borderRadius: 12 } },
+          ...(iconStyle === "lucide" && {
+            defaultProps: {
+              // Alert 四态统一走 Lucide 描边字形。
+              iconMapping: {
+                error: <ErrorIcon />,
+                success: <CheckCircleIcon />,
+                warning: <WarningIcon />,
+                info: <InfoIcon />,
+              },
+              components: { CloseIcon },
+            },
+          }),
         },
+        ...(iconStyle === "lucide" && {
+          MuiAutocomplete: {
+            defaultProps: {
+              popupIcon: <ArrowDropDownIcon />,
+              clearIcon: <CloseIcon />,
+            },
+          },
+          MuiChip: {
+            defaultProps: { deleteIcon: <CancelIcon /> },
+          },
+        }),
         MuiSnackbarContent: {
           styleOverrides: { root: { borderRadius: 8 } },
+        },
+        MuiListItemIcon: {
+          styleOverrides: {
+            // 主题实值而非 var(--kt-icon)：经 Portal 挂到 body 的菜单项
+            // （MuiMenu 等）脱离 .kt-m3-root 变量作用域，变量引用会回落继承色。
+            root: { color: color.icon },
+          },
+        },
+        MuiCircularProgress: {
+          styleOverrides: {
+            // M3 圆头线帽；不动 dasharray 防破坏进度动画。
+            circle: { strokeLinecap: "round" },
+          },
         },
       },
       ...Object.fromEntries(
@@ -412,7 +473,7 @@ export default function M3Theme({
       ),
     };
     return createTheme(themeOptions, { components: options.components || {} });
-  }, [colors, options, resolvedMode]);
+  }, [colors, iconStyle, options, resolvedMode]);
 
   return (
     <ThemeProvider theme={theme}>

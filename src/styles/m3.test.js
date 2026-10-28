@@ -1,10 +1,19 @@
 import {
+  calculateAdaptiveAccentFamilies,
+  calculateAdaptiveIconColor,
+  calculateAdaptivePrimaryFamily,
   createM3CssVariableDeclarations,
   createM3CssVariables,
+  hexToHsl,
+  hslToHex,
+  ICON_COLOR_PRESETS,
   M3_BRAND_COLORS,
   M3_GLOBAL_CSS,
+  resolveIconColor,
+  resolveIconColorHex,
   resolveM3Colors,
   resolveM3ThemeMode,
+  resolveIconStyle,
 } from "./m3";
 import { getCssAtRuleBodies } from "./testUtils";
 import {
@@ -29,17 +38,25 @@ describe("M3 brand colors", () => {
   });
 
   test("generates CSS variables from the same resolved token object", () => {
+    // primary 与 accent 两族 12 键由用户色相家族覆盖（缺省 iconColor 回落
+    // 默认 hue 191.4）；brand 通道的 primary/secondaryContainer 均被派生
+    // 家族遮蔽，仅剩语义色等键直通 CSS 变量。
     const colors = resolveM3Colors("dark", "cyan");
     expect(createM3CssVariables(colors)).toEqual(
       expect.objectContaining({
-        "--kt-pri": "#4FD8EB",
-        "--kt-pric": "#004F58",
+        "--kt-secc": "#384143",
+        "--kt-onsecc": "#abbbbe",
+        "--kt-terc": "#3b3a41",
+        "--kt-onterc": "#afacba",
         "--kt-bg": "#131314",
         "--kt-on": "#E3E3E3",
       })
     );
-    expect(createM3CssVariableDeclarations(colors)).toContain(
-      "--kt-pri: #4FD8EB;"
+    expect(colors.primary).toBe(
+      calculateAdaptivePrimaryFamily(191.4, "dark").primary
+    );
+    expect(colors.primaryContainer).toBe(
+      calculateAdaptivePrimaryFamily(191.4, "dark").primaryContainer
     );
     expect(resolveM3ThemeMode("auto", true)).toBe("dark");
   });
@@ -181,5 +198,310 @@ describe("锁定态最小高度不变量", () => {
 
   test("未锁定口径下限保持 40 不回归", () => {
     expect(MIN_TARGET_HEIGHT_PX).toBe(40);
+  });
+});
+
+describe("icon style keys and icon color palette", () => {
+  test("icon style falls back to lucide on every non-mui input", () => {
+    expect(resolveIconStyle("mui")).toBe("mui");
+    expect(resolveIconStyle("lucide")).toBe("lucide");
+    expect(resolveIconStyle("md3")).toBe("lucide");
+    expect(resolveIconStyle(undefined)).toBe("lucide");
+    expect(resolveIconStyle("MUI")).toBe("lucide");
+    expect(resolveIconStyle("")).toBe("lucide");
+  });
+
+  test("icon color hex lookup normalizes case and whitespace, passes any valid 6-digit hex, falls back on invalid input", () => {
+    expect(resolveIconColorHex("#90b2ba")).toBe("#90b2ba");
+    expect(resolveIconColorHex(" #90B2BA ")).toBe("#90b2ba");
+    expect(resolveIconColorHex("#123abc")).toBe("#123abc");
+    expect(resolveIconColorHex("nope")).toBe("#90b2ba");
+    expect(resolveIconColorHex("#fff")).toBe("#90b2ba");
+    expect(resolveIconColorHex(undefined)).toBe("#90b2ba");
+  });
+});
+
+describe("morandi icon hue ring color math", () => {
+  test("ICON_COLOR_PRESETS canonical ring hexes reproduce the morandi ring", () => {
+    for (const preset of ICON_COLOR_PRESETS) {
+      expect(hslToHex(preset.hue, 23.3, 64.7)).toBe(preset.darkHex);
+    }
+  });
+
+  test("hslToHex is hue-continuous across the 0/360 wrap", () => {
+    expect(hslToHex(360, 23.3, 64.7)).toBe(hslToHex(0, 23.3, 64.7));
+  });
+
+  test("hexToHsl recovers preset hues within quantization tolerance", () => {
+    for (const preset of ICON_COLOR_PRESETS) {
+      const { h, s, l } = hexToHsl(preset.darkHex);
+      expect(Math.abs(h - preset.hue)).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(s - 23.3)).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(l - 64.7)).toBeLessThanOrEqual(0.5);
+    }
+  });
+
+  test("calculateAdaptiveIconColor maps preset hues per theme (contract literals)", () => {
+    // 深色对冲公式：L = 69 - 2.5·sin(h°) + 1.5·cos(2h°)，S = 21.5。
+    expect(calculateAdaptiveIconColor(0, "dark")).toBe("#c4a4a4");
+    expect(calculateAdaptiveIconColor(44.3, "dark")).toBe("#beb49a");
+    expect(calculateAdaptiveIconColor(92.9, "dark")).toBe("#a4b993");
+    expect(calculateAdaptiveIconColor(191.4, "dark")).toBe("#a5bfc5");
+    expect(calculateAdaptiveIconColor(270, "dark")).toBe("#b3a2c3");
+    expect(calculateAdaptiveIconColor(337.1, "dark")).toBe("#c5a5b1");
+    // 浅色下压：S = 32、L = 34（对比度修正后的常量）。
+    expect(calculateAdaptiveIconColor(0, "light")).toBe("#723b3b");
+    expect(calculateAdaptiveIconColor(44.3, "light")).toBe("#72643b");
+    expect(calculateAdaptiveIconColor(92.9, "light")).toBe("#54723b");
+    expect(calculateAdaptiveIconColor(191.4, "light")).toBe("#3b6872");
+    expect(calculateAdaptiveIconColor(270, "light")).toBe("#573b72");
+    expect(calculateAdaptiveIconColor(337.1, "light")).toBe("#723b50");
+    // 缺省主题为 dark；越界 hue 按 mod 360 归一。
+    expect(calculateAdaptiveIconColor(0)).toBe("#c4a4a4");
+    expect(calculateAdaptiveIconColor(360, "light")).toBe(
+      calculateAdaptiveIconColor(0, "light")
+    );
+  });
+
+  test("resolveIconColor maps stored canonical hex to theme-adaptive color", () => {
+    expect(resolveIconColor("#ba9090", "dark")).toBe("#c4a4a4");
+    expect(resolveIconColor("#ba9090", "light")).toBe("#723b3b");
+    expect(resolveIconColor("#90b2ba", "dark")).toBe("#a5bfc5");
+    expect(resolveIconColor("  #90B2BA  ", "light")).toBe("#3b6872");
+    // 非法/缺省回落默认（默认 hue 191.4 的模式自适应色）。
+    expect(resolveIconColor(undefined, "dark")).toBe("#a5bfc5");
+    expect(resolveIconColor("nope", "light")).toBe("#3b6872");
+  });
+});
+
+describe("adaptive primary family theming", () => {
+  test("calculateAdaptivePrimaryFamily maps preset hues per theme (contract literals)", () => {
+    // 浅色：primary 与图标自适应同公式（S=32/L=34），onPrimary 白，容器高 Tone90。
+    expect(calculateAdaptivePrimaryFamily(0, "light")).toEqual({
+      primary: "#723b3b",
+      onPrimary: "#FFFFFF",
+      primaryContainer: "#eddede",
+      onPrimaryContainer: "#432323",
+    });
+    expect(calculateAdaptivePrimaryFamily(44.3, "light")).toEqual({
+      primary: "#72643b",
+      onPrimary: "#FFFFFF",
+      primaryContainer: "#ede9de",
+      onPrimaryContainer: "#433b23",
+    });
+    expect(calculateAdaptivePrimaryFamily(92.9, "light")).toEqual({
+      primary: "#54723b",
+      onPrimary: "#FFFFFF",
+      primaryContainer: "#e5edde",
+      onPrimaryContainer: "#314323",
+    });
+    expect(calculateAdaptivePrimaryFamily(191.4, "light")).toEqual({
+      primary: "#3b6872",
+      onPrimary: "#FFFFFF",
+      primaryContainer: "#deeaed",
+      onPrimaryContainer: "#233d43",
+    });
+    expect(calculateAdaptivePrimaryFamily(270, "light")).toEqual({
+      primary: "#573b72",
+      onPrimary: "#FFFFFF",
+      primaryContainer: "#e6deed",
+      onPrimaryContainer: "#332343",
+    });
+    expect(calculateAdaptivePrimaryFamily(337.1, "light")).toEqual({
+      primary: "#723b50",
+      onPrimary: "#FFFFFF",
+      primaryContainer: "#eddee4",
+      onPrimaryContainer: "#43232f",
+    });
+    // 深色：primary 与 onPrimaryContainer 同为对冲公式自适应色（基准 69），
+    // onPrimary 深压（S=30/L=16），容器低 Tone（S=14/L=24）。
+    expect(calculateAdaptivePrimaryFamily(0, "dark")).toEqual({
+      primary: "#c4a4a4",
+      onPrimary: "#351d1d",
+      primaryContainer: "#463535",
+      onPrimaryContainer: "#c4a4a4",
+    });
+    expect(calculateAdaptivePrimaryFamily(44.3, "dark")).toEqual({
+      primary: "#beb49a",
+      onPrimary: "#352f1d",
+      primaryContainer: "#464135",
+      onPrimaryContainer: "#beb49a",
+    });
+    expect(calculateAdaptivePrimaryFamily(92.9, "dark")).toEqual({
+      primary: "#a4b993",
+      onPrimary: "#28351d",
+      primaryContainer: "#3c4635",
+      onPrimaryContainer: "#a4b993",
+    });
+    expect(calculateAdaptivePrimaryFamily(191.4, "dark")).toEqual({
+      primary: "#a5bfc5",
+      onPrimary: "#1d3035",
+      primaryContainer: "#354346",
+      onPrimaryContainer: "#a5bfc5",
+    });
+    expect(calculateAdaptivePrimaryFamily(270, "dark")).toEqual({
+      primary: "#b3a2c3",
+      onPrimary: "#291d35",
+      primaryContainer: "#3d3546",
+      onPrimaryContainer: "#b3a2c3",
+    });
+    expect(calculateAdaptivePrimaryFamily(337.1, "dark")).toEqual({
+      primary: "#c5a5b1",
+      onPrimary: "#351d26",
+      primaryContainer: "#46353b",
+      onPrimaryContainer: "#c5a5b1",
+    });
+  });
+
+  test("resolveM3Colors overrides the primary family after the brand spread and keeps semantic colors", () => {
+    // 色相优先：cyan brand 的 primary 四键被用户色相家族遮蔽。
+    const darkColors = resolveM3Colors("dark", "cyan", "#ba9090");
+    const darkFamily = calculateAdaptivePrimaryFamily(0, "dark");
+    expect(darkColors.primary).toBe(darkFamily.primary);
+    expect(darkColors.onPrimary).toBe(darkFamily.onPrimary);
+    expect(darkColors.primaryContainer).toBe(darkFamily.primaryContainer);
+    expect(darkColors.onPrimaryContainer).toBe(darkFamily.onPrimaryContainer);
+    // accent 家族紧随 primary 展开：brand 的 secondaryContainer 同被派生遮蔽；
+    // 语义色恒等 M3_COLORS 原值。
+    expect(darkColors.secondaryContainer).toBe(
+      calculateAdaptiveAccentFamilies(0, "dark").secondaryContainer
+    );
+    expect(darkColors.tertiaryContainer).toBe(
+      calculateAdaptiveAccentFamilies(0, "dark").tertiaryContainer
+    );
+    expect(darkColors.error).toBe("#F2B8B5");
+    expect(darkColors.success).toBe("#6DD58C");
+    const lightColors = resolveM3Colors("light", "violet", "#90b2ba");
+    expect(lightColors.primary).toBe(
+      calculateAdaptivePrimaryFamily(191.4, "light").primary
+    );
+    expect(lightColors.error).toBe("#B3261E");
+    expect(lightColors.success).toBe("#146C2E");
+  });
+
+  test("primary family feeds the kt CSS variables", () => {
+    const colors = resolveM3Colors("dark", "blue", "#ba9090");
+    const vars = createM3CssVariables(colors);
+    expect(vars["--kt-pri"]).toBe(colors.primary);
+    expect(vars["--kt-onpri"]).toBe(colors.onPrimary);
+    expect(vars["--kt-pric"]).toBe(colors.primaryContainer);
+    expect(vars["--kt-onpric"]).toBe(colors.onPrimaryContainer);
+  });
+});
+
+describe("adaptive accent families theming", () => {
+  test("calculateAdaptiveAccentFamilies maps preset hues per theme (contract literals)", () => {
+    // light：secondary 同色相 S=18/L=34、容器 S=16/L=90、on 容器 S=18/L=20；
+    // tertiary 色相 +60°、S=12。dark：S 阶梯 13/9、容器 S=9/L=24、on 主调走对冲公式。
+    expect(calculateAdaptiveAccentFamilies(0, "light")).toEqual({
+      secondary: "#664747",
+      onSecondary: "#FFFFFF",
+      secondaryContainer: "#eae1e1",
+      onSecondaryContainer: "#3c2a2a",
+      tertiary: "#61614c",
+      onTertiary: "#FFFFFF",
+      tertiaryContainer: "#e8e8e3",
+      onTertiaryContainer: "#39392d",
+    });
+    expect(calculateAdaptiveAccentFamilies(0, "dark")).toEqual({
+      secondary: "#beaaaa",
+      onSecondary: "#312121",
+      secondaryContainer: "#433838",
+      onSecondaryContainer: "#beaaaa",
+      tertiary: "#b0b0a1",
+      onTertiary: "#2f2f22",
+      tertiaryContainer: "#41413a",
+      onTertiaryContainer: "#b0b0a1",
+    });
+    expect(calculateAdaptiveAccentFamilies(191.4, "dark")).toEqual({
+      secondary: "#abbbbe",
+      onSecondary: "#212e31",
+      secondaryContainer: "#384143",
+      onSecondaryContainer: "#abbbbe",
+      tertiary: "#afacba",
+      onTertiary: "#25222f",
+      tertiaryContainer: "#3b3a41",
+      onTertiaryContainer: "#afacba",
+    });
+    // 越界 hue 归一与缺省主题（dark）；非 "light" 一律走 dark 分支。
+    expect(calculateAdaptiveAccentFamilies(360)).toEqual(
+      calculateAdaptiveAccentFamilies(0)
+    );
+    expect(calculateAdaptiveAccentFamilies(-60, "light")).toEqual(
+      calculateAdaptiveAccentFamilies(300, "light")
+    );
+  });
+
+  test("unwritten snapshot falls back to the default icon color hue", () => {
+    // 缺省/非法输入单点收敛默认 hue 191.4（快照未写入窗口的守门断言）。
+    expect(resolveM3Colors("dark").secondaryContainer).toBe(
+      calculateAdaptiveAccentFamilies(
+        hexToHsl(resolveIconColorHex(undefined)).h,
+        "dark"
+      ).secondaryContainer
+    );
+  });
+});
+
+describe("icon hue WCAG contrast envelope", () => {
+  function relativeLuminance(hex) {
+    const [r, g, b] = [1, 3, 5]
+      .map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255)
+      .map((c) =>
+        c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+      );
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  function contrastRatio(hexA, hexB) {
+    const la = relativeLuminance(hexA);
+    const lb = relativeLuminance(hexB);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  }
+
+  test("adaptive icon color keeps WCAG AA contrast on dark panels and white", () => {
+    // 采样全域 15° 步长 + 实测最差点（深 240°、浅 59–60°）与全部预设 hue。
+    // 采样点显式覆盖已知全域极小点（深 240°、浅 59–60°）；若调整映射公式，
+    // 须同步复核极小点后补采，防止粗采样漏检新出现的极小谷。
+    const hues = [];
+    for (let h = 0; h <= 360; h += 15) hues.push(h);
+    hues.push(59, 59.5, 60, 240, 0, 44.3, 92.9, 191.4, 270, 337.1);
+    for (const h of hues) {
+      const dark = calculateAdaptiveIconColor(h, "dark");
+      expect(contrastRatio(dark, "#2d2d2d")).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(dark, "#33363b")).toBeGreaterThanOrEqual(4.5);
+      const light = calculateAdaptiveIconColor(h, "light");
+      expect(contrastRatio(light, "#ffffff")).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  test("primary and accent families keep WCAG AA contrast across the full hue ring", () => {
+    // 三级强调色 12 组配对（primary 4 + accent 8）全域包络；5° 步长 73 点 +
+    // 连续域 0.5° 实测极小点密采（59/60/35/91/93.5/100.5/102.5 等），
+    // 连续域真值下限 4.5279（dark tertiaryContainer，h=35）由设计探针定稿（AA），下限 4.5 守门。
+    const familyHues = [];
+    for (let h = 0; h <= 360; h += 5) familyHues.push(h);
+    familyHues.push(
+      59, 59.5, 60, 240, 35, 91, 93.5, 100.5, 102.5, 44.3, 92.9, 191.4, 270,
+      337.1
+    );
+    for (const h of familyHues) {
+      for (const theme of ["light", "dark"]) {
+        const p = calculateAdaptivePrimaryFamily(h, theme);
+        expect(contrastRatio(p.primary, p.onPrimary)).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrastRatio(p.primaryContainer, p.onPrimaryContainer)
+        ).toBeGreaterThanOrEqual(4.5);
+        const f = calculateAdaptiveAccentFamilies(h, theme);
+        expect(contrastRatio(f.secondary, f.onSecondary)).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrastRatio(f.secondaryContainer, f.onSecondaryContainer)
+        ).toBeGreaterThanOrEqual(4.5);
+        expect(contrastRatio(f.tertiary, f.onTertiary)).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrastRatio(f.tertiaryContainer, f.onTertiaryContainer)
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 });

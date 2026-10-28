@@ -342,6 +342,22 @@ test("file context exposes plugin preset identities without prompt bodies or cre
   expect(JSON.stringify(context)).not.toContain("PRIVATE_PROMPT_BODY");
 });
 
+test("context projects the normalized icon color for page-side theme sync", async () => {
+  // PR #17 评审闭环 · 扩展→页面 iconColor 预接线：权威 setting.iconColor
+  // 经既有 getContext 通道随 uiLang 同形搭载；后端侧归一为规范 Hex，
+  // 旧值/非法值回落默认档，页面侧无需二次清洗。
+  const saved = await getSettingWithDefault();
+  getSettingWithDefault.mockResolvedValueOnce({
+    ...saved,
+    iconColor: "#A590BA",
+  });
+  const result = await getFileContext();
+  expect(result.iconColor).toBe("#a590ba");
+  getSettingWithDefault.mockResolvedValueOnce({ ...saved, iconColor: "md3" });
+  const legacy = await getFileContext();
+  expect(legacy.iconColor).toBe("#90b2ba");
+});
+
 test.each(["key", "prompt"])(
   "translation signatures invalidate %s edits without exposing credentials",
   async (field) => {

@@ -15,6 +15,7 @@ import {
   normalizeFabAppearance,
 } from "../../config/fab";
 import { useI18n } from "../../hooks/I18n";
+import { useSetting } from "../../hooks/Setting";
 import { createM3CssVariables, resolveM3Colors } from "../../styles/m3";
 
 const FAB_APPEARANCE_STYLES = String.raw`
@@ -125,6 +126,7 @@ const FAB_APPEARANCE_STYLES = String.raw`
 
 export default function FabAppearanceSetting({ fab, onChange }) {
   const i18n = useI18n();
+  const { setting } = useSetting();
   const { opacity, size } = normalizeFabAppearance(fab);
   const [opacityPercent, setOpacityPercent] = useState(
     Math.round(opacity * 100)
@@ -133,7 +135,10 @@ export default function FabAppearanceSetting({ fab, onChange }) {
   const [previewTheme, setPreviewTheme] = useState("light");
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
-  const colors = resolveM3Colors(previewTheme);
+  // 预览配色与真实页面同源：第三参 iconColor 与 M3Theme 的主题色来源对齐，
+  // 主色/强调色家族随用户主题色派生；缺省或非法值由 resolveIconColorHex
+  // 回落默认档，预览不崩。previewTheme 仍由预览台交互切换，不随全局模式。
+  const colors = resolveM3Colors(previewTheme, "blue", setting?.iconColor);
 
   useEffect(() => {
     setOpacityPercent(Math.round(opacity * 100));

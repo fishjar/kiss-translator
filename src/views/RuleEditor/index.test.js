@@ -12,6 +12,11 @@ import {
   STOKEY_RULE_EDITOR_POSITION,
   STOKEY_RULE_INSPECTOR_POSITION,
 } from "../../config";
+import {
+  DEFAULT_ICON_COLOR,
+  calculateAdaptivePrimaryFamily,
+  resolveIconHue,
+} from "../../styles/m3";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 jest.mock("../../hooks/ColorMode", () => ({
@@ -466,7 +471,15 @@ test("the editor keeps its M3 font, filled fields and pill buttons on small-root
     await render();
     const themeRoot = container.querySelector(".kt-m3-root");
     expect(themeRoot.dataset.theme).toBe("light");
-    expect(themeRoot.style.getPropertyValue("--kt-pri")).toBe("#0B57D0");
+    // --kt-pri 随主题色自适应派生（resolveM3Colors → calculateAdaptivePrimaryFamily），
+    // 不再是硬编码 #0B57D0；以默认主题色快照的色相推导浅色家族主色，与
+    // M3Theme.test.js 派生式断言同规（禁硬编码环上某一点）。
+    expect(themeRoot.style.getPropertyValue("--kt-pri")).toBe(
+      calculateAdaptivePrimaryFamily(
+        resolveIconHue(DEFAULT_ICON_COLOR),
+        "light"
+      ).primary
+    );
     const save = container.querySelector('[aria-label="rule_editor_save"]');
     expect(getComputedStyle(save).fontFamily).toContain("Google Sans");
     expect(getComputedStyle(save).fontSize).toBe("13px");

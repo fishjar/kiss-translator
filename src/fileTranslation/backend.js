@@ -13,6 +13,7 @@ import {
 import browser from "webextension-polyfill";
 import { DEFAULT_FILE_TRANSLATE_SETTING } from "../config/setting";
 import { STOKEY_SETTING } from "../config/storage";
+import { resolveIconColorHex } from "../styles/m3";
 import {
   getAllPrompts,
   resolveVlmPrompt,
@@ -272,6 +273,10 @@ export async function getFileContext(signal) {
   );
   return {
     uiLang: setting.uiLang,
+    // 扩展→页面 iconColor 预接线（PR #17 评审闭环）：权威设置值经归一
+    // 后随既有 getContext 通道搭载，与 uiLang 同形；旧值/非法值已由
+    // resolveIconColorHex 回落默认档，页面侧无需二次清洗。
+    iconColor: resolveIconColorHex(setting.iconColor),
     terminologyDirectory: await readTableDirectory(),
     terminologySignatures: Object.fromEntries(
       await Promise.all(
