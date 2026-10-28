@@ -600,6 +600,8 @@ export const RU_I18N = {
   copy: `Копировать`,
   paste: `Вставить`,
   submit: `Отправить`,
+  stop_speaking: `Остановить чтение`,
+  read_source_aloud: `Читать оригинал вслух`,
   collect: `Сохранить`,
   favorite_word_lookup_loading: `Ищем значение…`,
   favorite_word_lookup_unavailable: `Выбранный словарь не может найти это слово.`,

@@ -350,6 +350,12 @@ export function Trantab({ isSeparate = false, isVisible = true }) {
           parseLatex={parseLatex}
           autoFocusInput={autoFocusInput}
           isVisible={isVisible}
+          enDict={enDict}
+          enSug={enSug}
+          aiDictApiSlug={aiDictApiSlug}
+          aiDictPromptSlug={aiDictPromptSlug}
+          ttsApiSlug={ttsApiSlug}
+          prompts={prompts}
           syncExternalTextWhileEditing
         />
       </div>

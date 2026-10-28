@@ -1,5 +1,9 @@
 export const POPUP_TEXT_STYLES = String.raw`
 .kt-popup-text-editor { position: relative; width: 100%; min-width: 0; padding: 0; }
+/* The dictionary sits outside the card so it never enters the ratio maths. */
+.kt-popup-text-auxiliary { min-width: 0; padding: 10px 14px 0; }
+/* The dictionary and the suggestion block share the wrapper; stack them without doubling the top pad. */
+.kt-popup-text-auxiliary + .kt-popup-text-auxiliary { padding-top: 0; }
 /* This probe measures the page-derived baseline independently of appended results. */
 .kt-popup-text-base-size { position: absolute; width: 0; height: var(--kt-popup-text-base-height); visibility: hidden; pointer-events: none; }
 .kt-popup-text-card { display: flex; flex-direction: column; min-width: 0; min-height: var(--kt-popup-text-base-height); overflow: hidden; border: 1px solid var(--kt-linev); border-radius: 16px; background: var(--kt-sf0); }

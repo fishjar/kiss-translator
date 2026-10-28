@@ -100,9 +100,14 @@ describe("Explicit translation submissions", () => {
       '.kt-translation-source textarea:not([aria-hidden="true"])'
     );
   const submitButton = () =>
-    container.querySelector(
-      'button[title="submit"], button[title="translate"]'
-    );
+    container.querySelector('button[title="submit"]');
+  const clickSubmit = () => {
+    act(() => input().focus());
+    const button = submitButton();
+    expect(button).not.toBeNull();
+    act(() => button.click());
+    return button;
+  };
   const resultValues = () =>
     [
       ...container.querySelectorAll(
@@ -124,7 +129,6 @@ describe("Explicit translation submissions", () => {
   const pressEnter = (options = {}) => {
     const event = new KeyboardEvent("keydown", {
       key: "Enter",
-      ctrlKey: true,
       bubbles: true,
       cancelable: true,
       ...options,
@@ -166,7 +170,7 @@ describe("Explicit translation submissions", () => {
     }
   );
 
-  test.each(["button", "Ctrl+Enter", "Cmd+Enter"])(
+  test.each(["button", "Enter", "Ctrl+Enter", "Cmd+Enter"])(
     "retries a failed request for unchanged text with %s",
     async (action) => {
       apiTranslate.mockRejectedValueOnce(new Error("Temporary network error"));
@@ -176,10 +180,11 @@ describe("Explicit translation submissions", () => {
       const firstRequest = apiTranslate.mock.calls[0][0];
 
       if (action === "button") {
-        expect(submitButton().disabled).toBe(false);
-        expect(submitButton().getAttribute("aria-label")).toBe("translate");
-        act(() => submitButton().click());
+        const button = clickSubmit();
+        expect(button.disabled).toBe(false);
+        expect(button.getAttribute("aria-label")).toBe("submit");
       } else {
+        act(() => input().focus());
         pressEnter({
           ctrlKey: action === "Ctrl+Enter",
           metaKey: action === "Cmd+Enter",
@@ -208,7 +213,7 @@ describe("Explicit translation submissions", () => {
     expect(input().value).toBe(`  ${longText}  `);
     expect(apiTranslate).toHaveBeenCalledTimes(1);
 
-    act(() => submitButton().click());
+    clickSubmit();
     await flushEffects();
 
     expect(apiTranslate).toHaveBeenCalledTimes(2);
@@ -236,7 +241,7 @@ describe("Explicit translation submissions", () => {
     expect(apiTranslate).toHaveBeenCalledTimes(2);
     apiTranslate.mockResolvedValue({ trText: "Recovered translation" });
 
-    act(() => submitButton().click());
+    clickSubmit();
     await flushEffects();
 
     expect(
@@ -262,7 +267,7 @@ describe("Explicit translation submissions", () => {
     });
     const pendingRequest = apiTranslate.mock.calls[1][0];
 
-    act(() => submitButton().click());
+    clickSubmit();
     await flushEffects();
 
     expect(
@@ -288,13 +293,13 @@ describe("Explicit translation submissions", () => {
     const firstRequest = apiTranslate.mock.calls[0][0];
     act(() => firstRequest.onStreamChunk({ text: "First partial result" }));
 
-    act(() => submitButton().click());
+    clickSubmit();
     await flushEffects();
     expect(apiTranslate).toHaveBeenCalledTimes(1);
     expect(firstRequest.signal.aborted).toBe(false);
 
     updateDraft("Changed source text");
-    act(() => submitButton().click());
+    clickSubmit();
     await flushEffects();
     expect(apiTranslate).toHaveBeenCalledTimes(2);
     const retryRequest = apiTranslate.mock.calls[1][0];
@@ -330,7 +335,7 @@ describe("Explicit translation submissions", () => {
     expect(request.signal.aborted).toBe(false);
   });
 
-  test("keeps focus and the next draft after a keyboard submission", async () => {
+  test("plain Enter submits, exits editing, and a later focus starts the next draft", async () => {
     apiTranslate.mockImplementation(() => new Promise(() => {}));
     await renderPanel();
     updateDraft("Submitted by keyboard");
@@ -343,18 +348,11 @@ describe("Explicit translation submissions", () => {
     const request = apiTranslate.mock.calls[1][0];
     expect(request.text).toBe("Submitted by keyboard");
     expect(input()).toBe(sourceInput);
-    expect(document.activeElement).toBe(sourceInput);
+    expect(document.activeElement).not.toBe(sourceInput);
+    expect(container.querySelector('button[title="submit"]')).toBeNull();
 
     const nextDraft = "  Unsubmitted continuation  ";
-    act(() => {
-      // Continue typing without another focus event after the shortcut.
-      const setValue = Object.getOwnPropertyDescriptor(
-        HTMLTextAreaElement.prototype,
-        "value"
-      ).set;
-      setValue.call(sourceInput, nextDraft);
-      sourceInput.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    updateDraft(nextDraft);
     await renderPanel({ marker: "presentation update after submission" });
 
     expect(document.activeElement).toBe(sourceInput);
@@ -479,7 +477,7 @@ describe("Explicit translation submissions", () => {
     expect(revisionsBefore).not.toHaveLength(0);
     expect(new Set(revisionsBefore)).toEqual(new Set([0]));
 
-    act(() => submitButton().click());
+    clickSubmit();
     await flushEffects();
 
     const revisionsAfter = AiDictCont.mock.calls.map(

@@ -2,8 +2,7 @@ import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CheckBoxOutlineBlankRoundedIcon from "@mui/icons-material/CheckBoxOutlineBlankRounded";
 import CheckBoxRoundedIcon from "@mui/icons-material/CheckBoxRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
+import ContentPasteRoundedIcon from "@mui/icons-material/ContentPasteRounded";
 import SwapVertRoundedIcon from "@mui/icons-material/SwapVertRounded";
 import MenuItem from "@mui/material/MenuItem";
 import {
@@ -16,14 +15,20 @@ import {
   useState,
 } from "react";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
-import { OPT_LANGS_FROM_REVERSED, OPT_LANGS_TO_REVERSED } from "../../config";
+import {
+  OPT_LANGS_FROM_REVERSED,
+  OPT_LANGS_TO_REVERSED,
+  PROMPT_MODE_FOLLOW_API,
+} from "../../config";
 import { useI18n } from "../../hooks/I18n";
 import { getEnabledApis } from "../../libs/apiSelection";
 import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
 import { logger } from "../../libs/log";
 import CopyBtn from "../Selection/CopyBtn";
+import { BrowserTtsBtn } from "../Selection/AudioBtn";
 import TranCont from "../Selection/TranCont";
+import DictionaryPanels from "../../components/TranslationPanel/DictionaryPanels";
 import PopupMenu from "./PopupMenu";
 import { POPUP_TEXT_STYLES } from "./PopupTextPanel.styles";
 
@@ -219,15 +224,23 @@ export default function PopupTextPanel({
   parseLatex = false,
   autoFocusInput = true,
   isVisible = true,
+  enDict = "-",
+  enSug = "-",
+  aiDictApiSlug = "-",
+  aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
+  ttsApiSlug = "",
+  prompts = [],
 }) {
   const i18n = useI18n();
   const menuId = useId();
   const baseSizeRef = useRef(null);
   const inputRef = useRef(null);
   const draftRef = useRef(text);
+  const committedTextRef = useRef(text);
   const dragRef = useRef(null);
   const changedApisRef = useRef(false);
   const [draft, setDraft] = useState(text);
+  const [isSourceEditing, setIsSourceEditing] = useState(false);
   const [fromLang, setFromLang] = useState(initialFromLang);
   const [toLang, setToLang] = useState(initialToLang);
   const [apiSlugs, setApiSlugs] = useState(initialApiSlugs);
@@ -291,10 +304,12 @@ export default function PopupTextPanel({
     };
   }, []);
 
-  // Clipboard replacement wins over a draft even while the editor has focus.
+  // External source text is already committed, even if autofocus remains here.
   useLayoutEffect(() => {
     draftRef.current = text;
+    committedTextRef.current = text;
     setDraft(text);
+    setIsSourceEditing(false);
   }, [text]);
 
   useEffect(() => {
@@ -306,6 +321,9 @@ export default function PopupTextPanel({
     const input = inputRef.current;
     input?.focus({ preventScroll: true });
     input?.setSelectionRange(input.value.length, input.value.length);
+    if (draftRef.current.trim() === committedTextRef.current.trim()) {
+      setIsSourceEditing(false);
+    }
   }, [autoFocusInput, isVisible]);
 
   useEffect(() => {
@@ -351,6 +369,7 @@ export default function PopupTextPanel({
 
   const commitDraft = useCallback(() => {
     const committed = draftRef.current.trim();
+    setIsSourceEditing(false);
     if (committed !== text) setText(committed);
   }, [setText, text]);
 
@@ -358,6 +377,18 @@ export default function PopupTextPanel({
     commitDraft();
     setRequestRevision((revision) => revision + 1);
   };
+  const handlePaste = useCallback(async () => {
+    try {
+      const pastedText = (await navigator.clipboard.readText()).trim();
+      if (!pastedText) return;
+      draftRef.current = pastedText;
+      setDraft(pastedText);
+      setIsSourceEditing(true);
+      inputRef.current?.focus({ preventScroll: true });
+    } catch {
+      // Clipboard access is optional; leave the current draft unchanged.
+    }
+  }, []);
   const preserveSourceFocus = useCallback((event) => {
     const input = inputRef.current;
     if (event.button === 0 && input?.getRootNode().activeElement === input) {
@@ -422,39 +453,51 @@ export default function PopupTextPanel({
               onChange={setFromLang}
               isVisible={isVisible}
             />
-            <div className="kt-popup-text-source-actions">
-              <button
-                type="button"
-                className="kt-popup-text-icon-button"
-                title={i18n("popup_text_clear")}
-                aria-label={i18n("popup_text_clear")}
-                disabled={!draft}
-                onPointerDown={preserveSourceFocus}
-                onClick={() => {
-                  draftRef.current = "";
-                  setDraft("");
-                  setText("");
-                  inputRef.current?.focus({ preventScroll: true });
-                }}
-              >
-                <CloseRoundedIcon aria-hidden="true" />
-              </button>
-              <CopyBtn
-                text={draft}
-                title={i18n("copy")}
-                copiedLabel={i18n("copy_success")}
-              />
-              <button
-                type="button"
-                className="kt-popup-text-icon-button"
-                title={i18n("popup_text_reload")}
-                aria-label={i18n("popup_text_reload")}
-                disabled={!draft.trim() || activeSlugs.length === 0}
-                onPointerDown={preserveSourceFocus}
-                onClick={submitTranslation}
-              >
-                <ReplayRoundedIcon aria-hidden="true" />
-              </button>
+            <div
+              className="kt-popup-text-source-actions"
+              onPointerDown={preserveSourceFocus}
+            >
+              {!draft.trim() ? (
+                <button
+                  type="button"
+                  className="kt-popup-text-icon-button"
+                  title={i18n("paste")}
+                  aria-label={i18n("paste")}
+                  onClick={handlePaste}
+                >
+                  <ContentPasteRoundedIcon aria-hidden="true" />
+                </button>
+              ) : isSourceEditing ? (
+                <button
+                  type="button"
+                  className="kt-popup-text-icon-button"
+                  title={i18n("submit")}
+                  aria-label={i18n("submit")}
+                  disabled={activeSlugs.length === 0}
+                  onClick={submitTranslation}
+                >
+                  <CheckRoundedIcon aria-hidden="true" />
+                </button>
+              ) : (
+                <CopyBtn
+                  text={draft}
+                  title={i18n("copy")}
+                  copiedLabel={i18n("copy_success")}
+                />
+              )}
+              {Boolean(draft.trim()) && (
+                <BrowserTtsBtn
+                  serviceId={ttsApiSlug}
+                  text={draft}
+                  lang={
+                    fromLang === "auto"
+                      ? detectedLang || "en-US"
+                      : fromLang
+                  }
+                  title={i18n("read_source_aloud")}
+                  stopTitle={i18n("stop_speaking")}
+                />
+              )}
             </div>
           </div>
           <textarea
@@ -464,14 +507,18 @@ export default function PopupTextPanel({
             placeholder={i18n("popup_text_source_placeholder")}
             spellCheck={false}
             value={draft}
+            onPointerDown={() => setIsSourceEditing(Boolean(draftRef.current.trim()))}
+            onFocus={() => setIsSourceEditing(Boolean(draftRef.current.trim()))}
             onChange={(event) => {
               draftRef.current = event.target.value;
               setDraft(event.target.value);
+              setIsSourceEditing(Boolean(event.target.value.trim()));
             }}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+              if (event.nativeEvent.isComposing) return;
+              if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                submitTranslation();
+                if (!event.repeat && draft.trim()) submitTranslation();
               }
             }}
           />
@@ -595,6 +642,7 @@ export default function PopupTextPanel({
           <div className="kt-popup-text-results">
             {activeSlugs.map((slug) => (
               <TranCont
+                ttsApiSlug={ttsApiSlug}
                 key={slug}
                 text={text}
                 fromLang={fromLang}
@@ -629,6 +677,23 @@ export default function PopupTextPanel({
           </div>
         </section>
       </div>
+      <DictionaryPanels
+        text={text}
+        enDict={enDict}
+        enSug={enSug}
+        fromLang={fromLang}
+        toLang={realToLang}
+        detectedLang={detectedLang}
+        transApis={transApis}
+        prompts={prompts}
+        aiDictApiSlug={aiDictApiSlug}
+        aiDictPromptSlug={aiDictPromptSlug}
+        requestRevision={requestRevision}
+        ttsApiSlug={ttsApiSlug}
+        translateVariants={translateVariants}
+        dictionaryTranslationApi={selectedApis[0] || null}
+        auxiliaryClassName="kt-popup-text-auxiliary"
+      />
       <PopupMenu
         anchorEl={serviceAnchor}
         open={isVisible && Boolean(serviceAnchor)}
