@@ -18,8 +18,7 @@ jest.mock("../../hooks/I18n", () => ({
 }));
 const mockReload = jest.fn();
 const manifest = {
-  manifestVersion: 1,
-  apiVersion: "1",
+  apiVersion: 1,
   id: "upgrade-test",
   name: "Test",
   version: "1.0.0",

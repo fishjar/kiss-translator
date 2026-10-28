@@ -12,8 +12,7 @@ const model = (value) => ({
 });
 
 export const testManifest = {
-  manifestVersion: 1,
-  apiVersion: "1",
+  apiVersion: 1,
   id: "test-sdk",
   name: "测试插件",
   nameI18n: { en: "Test plugin" },
@@ -143,7 +142,7 @@ exports.parseImage = async function(input, config, ctx) {
 
 function transcriptionRules(timestamps) {
   return {
-    rulesVersion: 1,
+    format: "http",
     handlers: {
       transcribe: {
         request: {
@@ -181,7 +180,7 @@ function transcriptionRules(timestamps) {
 }
 
 const speechRules = {
-  rulesVersion: 1,
+  format: "http",
   handlers: {
     synthesizeSpeech: {
       request: {
@@ -242,7 +241,7 @@ export function testPackage(kind = "script") {
   const files = {
     "manifest.json": JSON.stringify(manifest),
     ...(kind === "declarative"
-      ? { "chat.json": JSON.stringify({ rulesVersion: 2, handlers }) }
+      ? { "chat.json": JSON.stringify({ format: "protocol", handlers }) }
       : {
           "chat.js": chatScript,
           "vision.js": visionScript,

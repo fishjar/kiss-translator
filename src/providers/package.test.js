@@ -11,8 +11,7 @@ import { builtinPlugins, createBuiltinInstance } from "../builtin-plugins";
 
 function pack(changes = {}) {
   const manifest = {
-    manifestVersion: 1,
-    apiVersion: "1",
+    apiVersion: 1,
     id: "example-pack",
     name: "example",
     version: "1.0.0",

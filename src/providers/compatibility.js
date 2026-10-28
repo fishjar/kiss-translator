@@ -17,15 +17,20 @@ const versionParts = (value) => {
   return parts;
 };
 
-// Read defaults without normalizing the manifest: fingerprints of old packages stay stable.
+// Validate the contract without rewriting package contents.
 export function validatePluginCompatibilityFields(definition) {
   if (
-    definition.apiVersion !== undefined &&
-    !supportsSdkVersion(definition.apiVersion)
+    Object.hasOwn(definition, "manifestVersion") ||
+    Object.hasOwn(definition, "rulesVersion")
   )
     throw providerError(
+      "INVALID_MANIFEST",
+      "Legacy version fields are not supported."
+    );
+  if (!supportsSdkVersion(definition.apiVersion))
+    throw providerError(
       "SDK_VERSION_UNSUPPORTED",
-      `Unsupported plugin SDK ${definition.apiVersion}. Update the host to a version supporting this SDK.`
+      `Unsupported plugin API ${definition.apiVersion}. Update the host to a version supporting this API.`
     );
   if (
     definition.capabilities?.speak &&

@@ -9,8 +9,7 @@ Object.defineProperty(globalThis, "crypto", {
 });
 
 const manifest = {
-  manifestVersion: 1,
-  apiVersion: "1",
+  apiVersion: 1,
   id: "directory-example",
   name: "Directory example",
   version: "1.0.0",
@@ -36,7 +35,7 @@ function content() {
     "scripts/chat.js": strToU8("exports.chat = () => ({text:'ok'})"),
     "rules/chat.json": strToU8(
       JSON.stringify({
-        rulesVersion: 1,
+        format: "http",
         handlers: { chat: { request: {}, response: { kind: "json" } } },
       })
     ),

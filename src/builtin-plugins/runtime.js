@@ -231,7 +231,7 @@ export function createNativeRegistry(
     resolveInstance: async (id) => {
       const api = await resolveInstance(id);
       const definition = definitions.get(api?.apiType);
-      if (api?.provider && api.provider.apiVersion !== "1")
+      if (api?.provider && api.provider.apiVersion !== 1)
         throw providerError(
           "SDK_VERSION_UNSUPPORTED",
           "Unsupported native snapshot version."
@@ -254,7 +254,7 @@ export function createNativeRegistry(
         provider: {
           ...JSON.parse(JSON.stringify(definition)),
           capabilities,
-          apiVersion: "1",
+          apiVersion: 1,
           source: { external: false },
         },
       };

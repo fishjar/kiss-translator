@@ -12,8 +12,7 @@ beforeAll(() => {
 });
 const sha = "a".repeat(40);
 const manifest = {
-  manifestVersion: 1,
-  apiVersion: "1",
+  apiVersion: 1,
   id: "source-example",
   version: "1.0.0",
   services: [

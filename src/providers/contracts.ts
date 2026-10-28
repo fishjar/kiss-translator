@@ -1,9 +1,41 @@
-/** SDK 1 and 2 task contracts. Provider definitions and user instances are separate. */
+/** Plugin API 1 task contracts. Provider definitions and user instances are separate. */
 import type {
   DecisionState,
-  DecisionQuestions,
-  DecisionResult,
+  ChoiceQuestion,
+  ScoreQuestion,
+  NoulQuestion,
+  Criterion,
+  DecisionAnswer,
 } from "../localAi/core/jev/types";
+
+export type ProviderDecisionQuestion =
+  | (Omit<ChoiceQuestion, "criteria"> & { criteria: Record<string, Criterion> })
+  | ScoreQuestion
+  | NoulQuestion;
+export type ProviderDecisionQuestions = Record<
+  string,
+  ProviderDecisionQuestion
+>;
+
+/** Remote services need not expose the local engine's calibration metadata. */
+export type ProviderDecisionAnswer = DecisionAnswer extends infer Answer
+  ? Answer extends DecisionAnswer
+    ? Omit<Answer, "confidence" | "action"> &
+        Partial<Pick<Answer, "confidence" | "action">>
+    : never
+  : never;
+export interface ProviderDecisionResult {
+  model: string;
+  answers: Record<string, ProviderDecisionAnswer>;
+  usage: { input_tokens?: number; output_tokens?: number; cost?: number };
+}
+
+/** Plugin API 1: explicit conversion of an asset response to browser-playable WAV. */
+export interface ResponseAudio {
+  encoding: "pcm_s16le";
+  sampleRate: number;
+  channels: number;
+}
 export type Capability =
   | "translate"
   | "chat"
@@ -170,8 +202,8 @@ export interface CapabilityMap {
     result: OcrResult;
   };
   evaluate: {
-    input: { state: DecisionState; questions: DecisionQuestions };
-    result: DecisionResult;
+    input: { state: DecisionState; questions: ProviderDecisionQuestions };
+    result: ProviderDecisionResult;
   };
   synthesizeSpeech: {
     input: { text: string; language?: string; speed?: number; voice?: string };
@@ -256,17 +288,16 @@ export interface ServiceDefinition {
   }>;
 }
 export interface PluginCompatibility {
-  apiVersion?: "1" | "2";
+  apiVersion: 1;
   kind?: "provider";
   minHostVersion?: string;
 }
 
 export interface PluginManifest extends PluginCompatibility {
-  manifestVersion: 1;
   id: string;
   name: string;
   version: string;
-  apiVersion: "1" | "2";
+  apiVersion: 1;
   services: ServiceDefinition[];
   sharedSettings?: ProviderSetting[];
   icon?: string;
@@ -277,6 +308,13 @@ export interface DeclarativeCondition {
   $if: { $ref: string };
   then?: unknown;
   else?: unknown;
+}
+export interface DeclarativeReference {
+  $ref: string;
+  fallbackRef?: string;
+  omitIfEmpty?: boolean;
+  omitValues?: unknown[];
+  transform?: "languages.toIso6391";
 }
 export interface ProtocolHandlerRule {
   protocol:
@@ -293,18 +331,18 @@ export interface ProtocolHandlerRule {
 }
 export type DeclarativeRules =
   | {
-      rulesVersion: 1;
+      format: "http";
       handlers: Record<
         string,
         { request: Record<string, unknown>; response: Record<string, unknown> }
       >;
     }
-  | { rulesVersion: 2; handlers: Record<string, ProtocolHandlerRule> };
+  | { format: "protocol"; handlers: Record<string, ProtocolHandlerRule> };
 
 export interface ProviderSnapshot
   extends ServiceDefinition,
     PluginCompatibility {
-  apiVersion: "1" | "2";
+  apiVersion: 1;
   source?: {
     pluginId: string;
     pluginName?: string;

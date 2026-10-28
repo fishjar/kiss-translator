@@ -41,7 +41,7 @@ export function createLocalAsrInvoker(manager) {
         return {
           ...instance,
           provider: {
-            apiVersion: "1",
+            apiVersion: 1,
             implementation: { kind: "native", entry: OPT_TRANS_LOCALAI },
             capabilities: resolveBuiltinCapabilities(instance),
           },

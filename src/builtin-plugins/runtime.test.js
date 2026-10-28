@@ -26,7 +26,7 @@ test("old network VLM selections and snapshots cannot invoke a removed native ha
     apiSlug: "old-vision",
     enabledCapabilities: ["parseImage"],
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       implementation: { kind: "native", entry: OPT_TRANS_OPENAI },
       capabilities: {
         parseImage: { handler: "parseImage", outputModes: ["complete"] },
@@ -67,7 +67,7 @@ test("external snapshots cannot select a compiled native entry", async () => {
   const registry = createNativeRegistry(() => ({
     apiType: OPT_TRANS_OPENAI,
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       source: { external: true },
       implementation: { kind: "native", entry: OPT_TRANS_OPENAI },
     },

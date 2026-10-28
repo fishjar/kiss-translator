@@ -14,7 +14,10 @@ export const structuredTestSamples = Object.freeze({
       language: {
         type: "choice",
         instructions: "Which language is used?",
-        criteria: ["English", "Chinese"],
+        criteria: {
+          English: "Text primarily in English",
+          Chinese: "Text primarily in Chinese",
+        },
       },
     },
   },

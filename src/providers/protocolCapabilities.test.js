@@ -24,7 +24,7 @@ const polygon = [
 const question = {
   type: "choice",
   instructions: "Choose",
-  criteria: ["yes", "no"],
+  criteria: { yes: "The condition holds", no: "The condition does not hold" },
 };
 const request = {
   baseUrl: "https://example.invalid/v1",
@@ -129,12 +129,12 @@ function fixture(task, kind) {
   };
   const rule = { protocol: support.protocol, task, request };
   const snapshot = {
-    apiVersion: "2",
+    apiVersion: 1,
     implementation: { kind },
     source: { external: true },
     settings: fields,
     capabilities: { [task]: descriptor },
-    rules: { rulesVersion: 2, handlers: { [task]: rule } },
+    rules: { format: "protocol", handlers: { [task]: rule } },
   };
   const config = { model: "model", baseUrl: "https://example.invalid/v1" };
   const ctx = {
@@ -338,16 +338,16 @@ test.each(
   }
 );
 
-test("v1 rejects streaming, and external system speech never reaches a runner", async () => {
+test("HTTP format rejects streaming, and external system speech never reaches a runner", async () => {
   expect(() =>
     validateDeclarativeRules(
       {
-        rulesVersion: 1,
+        format: "http",
         handlers: { run: { request: {}, response: { kind: "json" } } },
       },
       { chat: { handler: "run", outputModes: ["stream"] } }
     )
-  ).toThrow("v1");
+  ).toThrow("HTTP");
   const f = fixture("chat", "script");
   f.snapshot.capabilities.speak = { handler: "speak" };
   await expect(

@@ -393,7 +393,7 @@ describe("ImageTranslateHeader", () => {
             {
               apiSlug: "mock_ocr",
               apiName: "Mock OCR",
-              provider: { apiVersion: "1" },
+              provider: { apiVersion: 1 },
               capabilities: ["recognizeText"],
             },
           ]}
@@ -424,7 +424,7 @@ describe("ImageTranslateHeader", () => {
             {
               apiSlug: "mock_ocr",
               apiName: "Mock OCR",
-              provider: { apiVersion: "1" },
+              provider: { apiVersion: 1 },
               capabilities: ["recognizeText"],
             },
           ]}
@@ -453,7 +453,7 @@ describe("ImageTranslateHeader", () => {
         apiSlug: "layout",
         apiName: "Layout service",
         provider: {
-          apiVersion: "1",
+          apiVersion: 1,
           implementation: { kind: "native" },
           capabilities: { analyzeLayout: { coordinates: true } },
         },
@@ -521,7 +521,7 @@ describe("ImageTranslateHeader", () => {
             {
               apiSlug: "layout",
               provider: {
-                apiVersion: "1",
+                apiVersion: 1,
                 implementation: { kind: "native" },
                 capabilities: { analyzeLayout: { coordinates: true } },
               },
@@ -577,7 +577,7 @@ describe("ImageTranslateHeader", () => {
             {
               apiSlug: "mock_vlm",
               apiName: "Mock VLM",
-              provider: { apiVersion: "1" },
+              provider: { apiVersion: 1 },
               capabilities: ["parseImage"],
             },
           ]}

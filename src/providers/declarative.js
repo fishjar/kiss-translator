@@ -1,6 +1,6 @@
 import { buildTextTaskMessages, parseTextTaskResult } from "./sdk/textTasks";
 import { providerError } from "./capabilities";
-import { validateDeclarativeRules } from "./declarativeRules";
+import { validateDeclarativeRules, validRuleUrlPath } from "./declarativeRules";
 import { protocolCapabilities } from "./protocolCapabilities";
 
 const OMIT = Symbol("omit");
@@ -29,15 +29,15 @@ function resolve(node, roots, ctx, depth = 0) {
   if (!node || typeof node !== "object") return node;
   if (Array.isArray(node)) {
     const values = node.map((item) => resolve(item, roots, ctx, depth + 1));
-    return roots.rulesVersion === 2
+    return roots.format === "protocol"
       ? values.filter((value) => value !== OMIT)
       : values;
   }
   if (Object.hasOwn(node, "$if")) {
-    if (roots.rulesVersion !== 2)
+    if (roots.format !== "protocol")
       throw providerError(
         "INVALID_RULE",
-        "Conditional rules require rulesVersion 2."
+        "Conditional rules require protocol format."
       );
     const value = read(node.$if.$ref, roots);
     const condition = Object.hasOwn(node.$if, "equals")
@@ -52,6 +52,8 @@ function resolve(node, roots, ctx, depth = 0) {
   }
   if (node.$ref !== undefined) {
     let value = read(node.$ref, roots);
+    if (value == null && Object.hasOwn(node, "fallbackRef"))
+      value = read(node.fallbackRef, roots);
     if (
       (node.omitIfEmpty &&
         (value === undefined || value === null || value === "")) ||
@@ -76,15 +78,24 @@ function resolve(node, roots, ctx, depth = 0) {
   }
   if (node.$url) {
     const base = read(node.$url.base, roots);
-    if (
-      typeof base !== "string" ||
-      typeof node.$url.path !== "string" ||
-      node.$url.path.startsWith("/") ||
-      node.$url.path.includes(":") ||
-      node.$url.path.split("/").includes("..")
-    )
+    if (typeof base !== "string" || !validRuleUrlPath(node.$url.path))
       throw providerError("INVALID_RULE", "Invalid URL rule.");
-    return new URL(node.$url.path, `${base.replace(/\/+$/, "")}/`).href;
+    let directory, target;
+    try {
+      directory = new URL(base);
+      directory.search = "";
+      directory.hash = "";
+      directory.pathname = directory.pathname.replace(/\/+$/, "") + "/";
+      target = new URL(node.$url.path, directory);
+    } catch {
+      throw providerError("INVALID_RULE", "Invalid URL rule.");
+    }
+    if (
+      target.origin !== directory.origin ||
+      !target.pathname.startsWith(directory.pathname)
+    )
+      throw providerError("INVALID_RULE", "URL leaves its base directory.");
+    return target.href;
   }
   const result = {};
   for (const [key, value] of Object.entries(node)) {
@@ -97,25 +108,31 @@ function resolve(node, roots, ctx, depth = 0) {
 }
 
 export async function runDeclarative(snapshot, handler, input, ctx) {
+  if (
+    snapshot.apiVersion !== 1 ||
+    Object.hasOwn(snapshot, "manifestVersion") ||
+    Object.hasOwn(snapshot, "rulesVersion")
+  )
+    throw providerError(
+      "SDK_VERSION_UNSUPPORTED",
+      "Unsupported plugin API contract."
+    );
   const rules = snapshot.rules;
   validateDeclarativeRules(rules, snapshot.capabilities, snapshot.settings);
   if (unsafe.has(handler))
-    throw providerError(
-      "INVALID_RULE",
-      "Unsupported rules version or handler."
-    );
+    throw providerError("INVALID_RULE", "Unsupported rule format or handler.");
   const rule = rules.handlers?.[handler];
   if (!rule)
     throw providerError("HANDLER_MISSING", "Declarative handler not found.");
-  if (rules.rulesVersion === 2)
+  if (rules.format === "protocol")
     return runProtocol(rule, input, ctx, {
       ...snapshot.capabilities?.[rule.task],
-      format: snapshot.apiVersion === "1" ? "text" : "markdown",
+      format: "markdown",
     });
   if (ctx.options?.streaming)
     throw providerError(
       "STREAM_UNSUPPORTED",
-      "Rules v1 do not support streaming."
+      "HTTP rules do not support streaming."
     );
   const request = resolve(
     rule.request,
@@ -148,7 +165,7 @@ async function runProtocol(rule, input, ctx, descriptor = {}) {
     );
   const resolved = resolve(
     rule.request,
-    { config: ctx.config, input, rulesVersion: 2 },
+    { config: ctx.config, input, format: "protocol" },
     ctx
   );
   if (rule.protocol !== "openai-chat-completions") {

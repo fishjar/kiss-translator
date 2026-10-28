@@ -21,7 +21,7 @@ test.each(
     enabledCapabilities: ["parseImage"],
     provider: {
       ...builtinServiceDefinitions[apiType],
-      apiVersion: "1",
+      apiVersion: 1,
       capabilities: {
         parseImage: {
           handler: "parseImage",

@@ -10,8 +10,7 @@ import { createProviderRegistry } from "./registry";
 import { SDK_VERSION } from "./sdk/version";
 
 const manifest = {
-  manifestVersion: 1,
-  apiVersion: "1",
+  apiVersion: 1,
   id: "compat-test",
   version: "1.0.0",
   services: [
@@ -27,7 +26,7 @@ const files = (changes) => ({
   "chat.js": strToU8("throw new Error('Must not execute at import')"),
 });
 
-test("legacy manifests remain byte-for-byte objects without added defaults", () => {
+test("API manifests remain byte-for-byte objects without added defaults", () => {
   const pack = readProviderPackage(zipSync(files({})));
   expect(pack.manifest).toEqual(manifest);
   const api = createServiceInstance(
@@ -50,18 +49,29 @@ test.each([
   null,
   "99999999999999999999.0.0",
 ])("invalid minimum host version %s is rejected", (value) => {
-  expect(() => assertPluginCompatibility({ minHostVersion: value })).toThrow();
+  expect(() =>
+    assertPluginCompatibility({ apiVersion: 1, minHostVersion: value })
+  ).toThrow();
 });
 
 test("version comparison handles below, equal and above without changing definitions", () => {
   expect(() =>
-    assertPluginCompatibility({ minHostVersion: "2.10.0" }, "2.9.9")
+    assertPluginCompatibility(
+      { apiVersion: 1, minHostVersion: "2.10.0" },
+      "2.9.9"
+    )
   ).toThrow("2.10.0");
   expect(() =>
-    assertPluginCompatibility({ minHostVersion: "2.10.0" }, "2.10.0")
+    assertPluginCompatibility(
+      { apiVersion: 1, minHostVersion: "2.10.0" },
+      "2.10.0"
+    )
   ).not.toThrow();
   expect(() =>
-    assertPluginCompatibility({ minHostVersion: "2.10.0" }, "3.0.0")
+    assertPluginCompatibility(
+      { apiVersion: 1, minHostVersion: "2.10.0" },
+      "3.0.0"
+    )
   ).not.toThrow();
 });
 
@@ -102,29 +112,68 @@ test.each([
   }
 );
 
-test("SDK 2 is independent of host release versions and preserves SDK 1 snapshots", () => {
-  expect(SDK_VERSION).toBe("2");
-  expect(pluginCompatibilityFields({ apiVersion: "2" })).toEqual({
-    apiVersion: "2",
+test("plugin API 1 is numeric and independent of release versions", () => {
+  expect(SDK_VERSION).toBe(1);
+  expect(pluginCompatibilityFields({ apiVersion: 1 })).toEqual({
+    apiVersion: 1,
   });
-  expect(pluginCompatibilityFields({})).toEqual({});
-  for (const apiVersion of ["1", "2"]) {
-    expect(() =>
-      assertPluginCompatibility({ apiVersion }, "0.0.1")
-    ).not.toThrow();
-    const pack = readProviderPackage(zipSync(files({ apiVersion })));
-    const api = createServiceInstance(
-      pack.manifest,
-      "chat",
-      pack.implementations.chat,
-      {},
-      "sdk"
-    );
-    expect(api.provider.apiVersion).toBe(apiVersion);
-    expect(pack.manifest).not.toHaveProperty("minHostVersion");
-  }
-  expect(() => assertPluginCompatibility({ apiVersion: "3" })).toThrow("SDK");
+  expect(() =>
+    assertPluginCompatibility({ apiVersion: 1 }, "0.0.1")
+  ).not.toThrow();
+  const pack = readProviderPackage(zipSync(files({})));
+  const api = createServiceInstance(
+    pack.manifest,
+    "chat",
+    pack.implementations.chat,
+    {},
+    "api"
+  );
+  expect(api.provider.apiVersion).toBe(1);
 });
+
+test.each([
+  undefined,
+  null,
+  "1",
+  "2",
+  "3",
+  0,
+  -1,
+  1.5,
+  2,
+  3,
+  Number.MAX_SAFE_INTEGER + 1,
+])(
+  "invalid or unsupported API version %s rejects at import and execution",
+  async (apiVersion) => {
+    expect(() => assertPluginCompatibility({ apiVersion })).toThrow("API");
+    expect(() => readProviderPackage(zipSync(files({ apiVersion })))).toThrow();
+    const runner = jest.fn();
+    const context = jest.fn();
+    const registry = createProviderRegistry({
+      resolveInstance: () => ({ provider: { apiVersion } }),
+      createContext: context,
+      runners: { script: runner },
+    });
+    await expect(
+      registry.invoke("api", "chat", {
+        messages: [{ role: "user", content: "hello" }],
+      }).result
+    ).rejects.toMatchObject({ code: "SDK_VERSION_UNSUPPORTED" });
+    expect(context).not.toHaveBeenCalled();
+    expect(runner).not.toHaveBeenCalled();
+  }
+);
+
+test.each([{ manifestVersion: 1 }, { rulesVersion: 1 }])(
+  "legacy version fields reject %j",
+  (change) => {
+    expect(() => readProviderPackage(zipSync(files(change)))).toThrow();
+    expect(() =>
+      assertPluginCompatibility({ apiVersion: 1, ...change })
+    ).toThrow("Legacy");
+  }
+);
 
 test("external speech declarations are rejected before script execution", () => {
   const changes = {

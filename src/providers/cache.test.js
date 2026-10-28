@@ -17,7 +17,7 @@ const api = {
   apiName: "Name",
   key: "private-key",
   url: "https://example.invalid",
-  provider: { code: "implementation", apiVersion: "1" },
+  provider: { code: "implementation", apiVersion: 1 },
   pluginConfig: { model: "model-a" },
   temperature: 0.2,
 };

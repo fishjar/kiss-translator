@@ -9,7 +9,7 @@ export function isHostedLocalAsr(instance, capability) {
     capability === "transcribe" &&
     instance?.apiType === OPT_TRANS_LOCALAI &&
     (!provider ||
-      (provider.apiVersion === "1" &&
+      (provider.apiVersion === 1 &&
         !provider.source?.external &&
         provider.implementation?.kind === "native" &&
         provider.implementation.entry === OPT_TRANS_LOCALAI))

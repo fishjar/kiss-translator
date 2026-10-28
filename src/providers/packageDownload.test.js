@@ -75,8 +75,7 @@ test("successful download still validates the package and preserves its source i
   const bytes = zipSync({
     "manifest.json": strToU8(
       JSON.stringify({
-        manifestVersion: 1,
-        apiVersion: "1",
+        apiVersion: 1,
         id: "download-test",
         name: "test",
         version: "1.0.0",

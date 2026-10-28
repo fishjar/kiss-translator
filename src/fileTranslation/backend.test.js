@@ -182,7 +182,7 @@ test("layout instance routing preserves real polygons and never trusts webpage m
         apiType: "Plugin",
         enabledCapabilities: ["analyzeLayout"],
         provider: {
-          apiVersion: "1",
+          apiVersion: 1,
           source: { pluginId: "test-plugin" },
           settings: [],
           implementation: { kind: "script" },
@@ -295,7 +295,7 @@ test("context projects service metadata without credentials or arbitrary setting
     translationAvailable: true,
     layoutAvailable: false,
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       implementation: { kind: "native" },
       capabilities: { translate: expect.any(Object) },
     },
@@ -679,7 +679,7 @@ function imageService(id, capabilities) {
     sourceType: "network",
     enabledCapabilities: Object.keys(capabilities),
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       source: { pluginId: "test-plugin" },
       implementation: { kind: "script" },
       settings: [],

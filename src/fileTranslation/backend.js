@@ -264,7 +264,7 @@ export async function getFileContext(signal) {
       ...pick(api, API_FIELDS),
       translationSignature: translationSignatures.get(api.apiSlug),
       provider: {
-        apiVersion: "1",
+        apiVersion: 1,
         implementation: {
           kind: projectApiCapabilities(api).provider?.implementation?.kind,
         },

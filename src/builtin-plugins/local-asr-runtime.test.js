@@ -108,7 +108,7 @@ test.each([
   {
     ...instance,
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       source: { external: true },
       implementation: { kind: "native", entry: "LocalAI" },
     },

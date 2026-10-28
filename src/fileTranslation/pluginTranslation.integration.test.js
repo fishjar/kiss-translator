@@ -63,7 +63,7 @@ beforeEach(() => {
     batchSize: 10,
     batchLength: 1000,
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       source: {
         pluginId: "file-translation-test",
         serviceId: "text",

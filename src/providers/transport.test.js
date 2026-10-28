@@ -91,8 +91,9 @@ test("declarative resolution retains numeric values, omits auto language, and re
     http: { request },
   };
   const snapshot = {
+    apiVersion: 1,
     rules: {
-      rulesVersion: 1,
+      format: "http",
       handlers: {
         transcribe: {
           request: {

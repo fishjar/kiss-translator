@@ -53,8 +53,7 @@ test("external submenu adds a default snapshot without authorization and disable
   mockPackages.push({
     id: "installed",
     manifest: {
-      manifestVersion: 1,
-      apiVersion: "1",
+      apiVersion: 1,
       id: "installed",
       name: "Installed",
       version: "1.0.0",

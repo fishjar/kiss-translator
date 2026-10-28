@@ -33,7 +33,7 @@ test("stream defaults are task-specific, respect false and reject unsupported ex
   const api = {
     apiSlug: "stream-default",
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       implementation: { kind: "native", entry: "probe" },
       capabilities: {
         chat: { handler: "chat", outputModes: ["complete", "stream"] },
@@ -76,7 +76,7 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 const instance = {
   apiSlug: "existing-id",
   provider: {
-    apiVersion: "1",
+    apiVersion: 1,
     implementation: { kind: "native", entry: "builtin" },
     capabilities: { chat: { handler: "chat", outputModes: ["complete"] } },
   },
@@ -163,8 +163,7 @@ test("timeouts include pending execution and pre-aborted calls never execute", a
 
 test("shared settings and code are independent snapshots, secrets are removed from script config", () => {
   const manifest = {
-    manifestVersion: 1,
-    apiVersion: "1",
+    apiVersion: 1,
     id: "p",
     version: "1.0.0",
     sharedSettings: [{ key: "apiKey", type: "password", label: "key" }],

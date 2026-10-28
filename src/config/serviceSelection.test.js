@@ -26,7 +26,7 @@ test.each([
         const { isApiAvailableFor } = require("./serviceSelection");
         const external = {
           provider: {
-            apiVersion: "1",
+            apiVersion: 1,
             implementation: { kind: "script" },
             capabilities: { translate: {} },
           },

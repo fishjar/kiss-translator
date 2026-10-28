@@ -240,7 +240,7 @@ describe("Popup text translation card", () => {
       apiSlug: capability,
       apiName: capability,
       provider: {
-        apiVersion: "1",
+        apiVersion: 1,
         implementation: { kind: "native" },
         capabilities: { [capability]: {} },
       },

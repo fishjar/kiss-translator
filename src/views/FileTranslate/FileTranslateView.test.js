@@ -103,7 +103,7 @@ const mockSetting = {
       apiSlug: "gpu-layout",
       apiType: "Plugin",
       provider: {
-        apiVersion: "1",
+        apiVersion: 1,
         implementation: { kind: "script", entry: "layout.js" },
         capabilities: {
           analyzeLayout: { handler: "layout", coordinates: true },

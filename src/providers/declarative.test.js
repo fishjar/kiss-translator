@@ -20,7 +20,7 @@ function fixture() {
     parameters: { temperature: { $if: { $ref: "config.thinking" }, else: 0 } },
   };
   const rules = {
-    rulesVersion: 2,
+    format: "protocol",
     handlers: Object.fromEntries(
       ["chat", "translate", "parseImage", "dictionary", "segmentSubtitle"].map(
         (task) => [
@@ -35,8 +35,7 @@ function fixture() {
     ),
   };
   const manifest = {
-    manifestVersion: 1,
-    apiVersion: "1",
+    apiVersion: 1,
     id: "test-declarative",
     name: "Test",
     version: "1.0.0",
@@ -277,7 +276,7 @@ test.each([
   const { ctx } = execution();
   await expect(
     runDeclarative(
-      { rules: f.rules, ...f.manifest.services[0] },
+      { apiVersion: 1, rules: f.rules, ...f.manifest.services[0] },
       "chat",
       { messages: [{ role: "user", content: "hi" }] },
       ctx
@@ -321,7 +320,7 @@ test("select conditions compare declared values strictly and omit missing branch
   expect(ctx.http.request.mock.calls[1][0].body.temperature).toBeUndefined();
 });
 
-test("v2 runs through capability routing, applies image prompts and uses only owned bytes", async () => {
+test("protocol format runs through capability routing, applies image prompts and uses only owned bytes", async () => {
   const { instance, ctx } = execution();
   const image = ctx.assets.put({
     type: "image/png",
@@ -338,7 +337,7 @@ test("v2 runs through capability routing, applies image prompts and uses only ow
       .result;
   await expect(invoke({ image })).resolves.toEqual({
     text: "line 1\nline 2",
-    format: "text",
+    format: "markdown",
     items: [
       { text: "line 1", poly: null },
       { text: "line 2", poly: null },

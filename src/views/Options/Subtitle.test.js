@@ -143,7 +143,7 @@ describe("YouTube ASR settings", () => {
       apiName: slug,
       apiType: "CustomASR",
       provider: {
-        apiVersion: "1",
+        apiVersion: 1,
         implementation: { kind: "native" },
         capabilities: { transcribe: { outputModes: ["complete"], timestamps } },
       },
@@ -196,7 +196,7 @@ describe("YouTube ASR settings", () => {
               apiType: "Plugin",
               enabledCapabilities: ["transcribe"],
               provider: {
-                apiVersion: "1",
+                apiVersion: 1,
                 implementation: { kind: "script" },
                 capabilities: {
                   transcribe: {
@@ -248,7 +248,7 @@ describe("YouTube ASR settings", () => {
           enabledCapabilities:
             reason === "capability-off" ? [] : ["transcribe"],
           provider: {
-            apiVersion: "1",
+            apiVersion: 1,
             implementation: { kind: "script" },
             capabilities: {
               transcribe: { handler: "transcribe", outputModes: ["complete"] },

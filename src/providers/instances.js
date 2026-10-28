@@ -146,7 +146,8 @@ export function createServiceInstance(
   enabledCapabilities
 ) {
   if (
-    manifest.manifestVersion !== 1 ||
+    Object.hasOwn(manifest, "manifestVersion") ||
+    Object.hasOwn(manifest, "rulesVersion") ||
     !supportsSdkVersion(manifest.apiVersion) ||
     !apiSlug
   ) {

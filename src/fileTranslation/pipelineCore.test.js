@@ -148,7 +148,7 @@ describe("pipelineCore", () => {
         apiSlug: "mock-ocr",
         apiName: "Mock OCR",
         provider: {
-          apiVersion: "1",
+          apiVersion: 1,
           capabilities: {
             recognizeText: {
               handler: "ocr",
@@ -164,7 +164,7 @@ describe("pipelineCore", () => {
         apiSlug: "mock-layout",
         apiName: "Mock Layout",
         provider: {
-          apiVersion: "1",
+          apiVersion: 1,
           capabilities: {
             analyzeLayout: {
               handler: "layout",
@@ -180,7 +180,7 @@ describe("pipelineCore", () => {
         apiSlug: "mock-trans",
         apiName: "Mock Trans",
         provider: {
-          apiVersion: "1",
+          apiVersion: 1,
           capabilities: {
             translate: { handler: "translate", outputModes: ["complete"] },
           },
@@ -192,7 +192,7 @@ describe("pipelineCore", () => {
         apiSlug: "mock-vlm",
         apiName: "Mock VLM",
         provider: {
-          apiVersion: "1",
+          apiVersion: 1,
           capabilities: {
             parseImage: {
               handler: "vlm",
@@ -208,7 +208,7 @@ describe("pipelineCore", () => {
         apiSlug: "failing-layout",
         apiName: "Failing Layout",
         provider: {
-          apiVersion: "1",
+          apiVersion: 1,
           capabilities: {
             analyzeLayout: {
               handler: "layout",
@@ -679,7 +679,7 @@ describe("pipelineCore", () => {
       const api = {
         apiSlug: "region-service",
         provider: {
-          apiVersion: "1",
+          apiVersion: 1,
           implementation: { kind: "native" },
           capabilities: { [capability]: { coordinates } },
         },

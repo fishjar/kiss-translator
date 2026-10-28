@@ -51,7 +51,7 @@ const api = {
   enabledCapabilities: ["chat"],
   pluginConfig: { baseUrl: "https://api.invalid/v1" },
   provider: {
-    apiVersion: "1",
+    apiVersion: 1,
     name: "Chat",
     implementation: { kind: "script" },
     code: "exports.chat = () => ({text:'ok'})",

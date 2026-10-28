@@ -19,7 +19,7 @@ test("background accepts a legacy system instance without migration and rejects 
   const forged = {
     ...old,
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       source: { external: true },
       implementation: { kind: "native", entry: OPT_TRANS_SYSTEM_TTS },
     },

@@ -1,6 +1,6 @@
-import { supportsSdkVersion } from "./sdk/version";
 import { downloadProviderPackage } from "./package";
 import { providerError } from "./capabilities";
+import { SDK_VERSION } from "./sdk/version";
 
 import {
   assertPluginCompatibility,
@@ -114,7 +114,8 @@ export function validateOfficialDirectory(data) {
       !/^[a-z][a-z0-9-]{1,100}$/.test(entry.id) ||
       ids.has(entry.id) ||
       !/^\d+\.\d+\.\d+$/.test(entry.version) ||
-      !supportsSdkVersion(entry.apiVersion) ||
+      !Number.isSafeInteger(entry.apiVersion) ||
+      entry.apiVersion < 1 ||
       typeof entry.name !== "string" ||
       !/^[a-f0-9]{64}$/.test(entry.sha256) ||
       entry.downloadUrl !==
@@ -128,7 +129,10 @@ export function validateOfficialDirectory(data) {
       );
     if (entry.kind !== undefined && typeof entry.kind !== "string")
       throw providerError("INVALID_PACKAGE", "Invalid plugin kind.");
-    validatePluginCompatibilityFields({ minHostVersion: entry.minHostVersion });
+    validatePluginCompatibilityFields({
+      apiVersion: SDK_VERSION,
+      minHostVersion: entry.minHostVersion,
+    });
     ids.add(entry.id);
   }
   return data;

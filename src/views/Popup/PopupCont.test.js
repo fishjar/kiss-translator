@@ -1732,7 +1732,7 @@ describe("PopupCont capability parity", () => {
       apiName: capability,
       sortOrder: -1,
       provider: {
-        apiVersion: "1",
+        apiVersion: 1,
         implementation: { kind: "native" },
         capabilities: { [capability]: {} },
       },

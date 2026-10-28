@@ -158,7 +158,7 @@ describe("ImageTranslateManager", () => {
         {
           apiSlug: "layout",
           provider: {
-            apiVersion: "1",
+            apiVersion: 1,
             implementation: { kind: "native" },
             capabilities: { analyzeLayout: { coordinates: true } },
           },

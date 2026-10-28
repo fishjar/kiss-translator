@@ -41,8 +41,7 @@ test("copy rejects changed secret types and invalid new constraints and keeps in
 });
 
 const manifest = {
-  manifestVersion: 1,
-  apiVersion: "1",
+  apiVersion: 1,
   id: "upgrade-test",
   name: "Upgrade test",
   version: "1.0.0",
