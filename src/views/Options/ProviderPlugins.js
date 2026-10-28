@@ -162,8 +162,10 @@ function PluginServicesTable({ services = [], previewAvailable = true }) {
                 </TableCell>
                 <TableCell>
                   {previewAvailable &&
-                  Object.values(defaultPromptCapabilities).some(
-                    (capability) => service.capabilities[capability]
+                  Object.entries(defaultPromptCapabilities).some(
+                    ([slot, capability]) =>
+                      service.capabilities[capability] &&
+                      service.defaultPrompts?.[slot]
                   ) ? (
                     <Button
                       size="small"

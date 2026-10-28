@@ -1,7 +1,3 @@
-jest.mock("../../hooks/I18n", () => ({
-  useI18n: () =>
-    require("../../config/i18n").newI18n(mockSetting.uiLang || "zh"),
-}));
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
@@ -20,6 +16,10 @@ import {
   loadPluginDirectory,
   downloadOfficialPlugin,
 } from "../../providers/pluginDirectory";
+jest.mock("../../hooks/I18n", () => ({
+  useI18n: () =>
+    require("../../config/i18n").newI18n(mockSetting.uiLang || "zh"),
+}));
 jest.mock("../../providers/pluginDirectory", () => ({
   ...jest.requireActual("../../providers/pluginDirectory"),
   loadPluginDirectory: jest.fn(),
@@ -102,6 +102,7 @@ afterEach(async () => {
   container.remove();
 });
 async function render() {
+  // eslint-disable-next-line testing-library/no-unnecessary-act -- React createRoot does not wrap render in act.
   await act(async () => root.render(<ProviderPlugins />));
 }
 
@@ -412,6 +413,11 @@ test("interface previews expand independently and copy declared templates withou
       capabilities: { dictionary: { handler: "dictionary" } },
     },
     { id: "tts", name: "TTS", capabilities: { speak: { handler: "speak" } } },
+    {
+      id: "decisions",
+      name: "JEV",
+      capabilities: { evaluate: { handler: "evaluate" } },
+    },
   ];
   mockPackages = [plugin];
   const original = JSON.stringify(plugin);
@@ -425,7 +431,10 @@ test("interface previews expand independently and copy declared templates withou
     await render();
     const table = container.querySelector('table[aria-label="插件服务接口"]');
     const buttons = [...table.querySelectorAll("button")];
-    expect(buttons).toHaveLength(2);
+    expect(buttons).toHaveLength(1);
+    const rows = table.querySelectorAll("tbody tr");
+    expect(rows[1].cells[2].textContent).toBe("—");
+    expect(rows[3].cells[2].textContent).toBe("—");
     expect(table.querySelector("textarea")).toBeNull();
     expect(buttons[0].getAttribute("aria-expanded")).toBe("false");
     await act(async () => buttons[0].click());
@@ -463,12 +472,10 @@ test("interface previews expand independently and copy declared templates withou
     writeText.mockRejectedValueOnce(new Error("denied"));
     await act(async () => copies[0].click());
     expect(preview.textContent).toContain("复制失败，请从只读内容框中手动复制");
-    await act(async () => buttons[1].click());
-    expect(table.textContent).toContain("插件未公开默认提示词");
     expect(table.textContent).toContain("Single");
     await act(async () => buttons[0].click());
     expect(table.querySelector("textarea")).toBeNull();
-    expect(table.textContent).toContain("插件未公开默认提示词");
+    expect(table.textContent).not.toContain("插件未公开默认提示词");
     expect(JSON.stringify(plugin)).toBe(original);
     expect(saveProviderPackage).not.toHaveBeenCalled();
     expect(mockUpdateSetting).not.toHaveBeenCalled();
