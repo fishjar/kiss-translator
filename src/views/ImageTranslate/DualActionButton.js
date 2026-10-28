@@ -1,13 +1,17 @@
 /**
  * @file DualActionButton.js
- * @description 网页图片悬停及截图框选操作按钮组（菜单、布局分析、翻译、可选取消）。
+ * @description 网页图片悬停及截图框选操作按钮组（菜单、布局分析、翻译、下载、可选取消）。
  */
 
-import React from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import ViewQuiltRoundedIcon from "@mui/icons-material/ViewQuiltRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import Alert from "@mui/material/Alert";
+import Snackbar from "@mui/material/Snackbar";
+import Portal from "@mui/material/Portal";
 import CircularProgress from "@mui/material/CircularProgress";
 
 export default function DualActionButton({
@@ -15,6 +19,8 @@ export default function DualActionButton({
   onLayoutClick,
   onTranslateClick,
   onCancelClick,
+  onDownloadClick,
+  downloadDisabled = false,
   layoutState = "idle", // "idle" | "loading" | "active"
   showLayoutOverlay = true,
   hasLayoutService = true,
@@ -24,6 +30,46 @@ export default function DualActionButton({
   visible = true,
   i18n = (k, d) => d || k,
 }) {
+  const containerRef = useRef(null);
+  const downloadPending = useRef(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    element.style.setProperty(
+      "--kt-image-toolbar-width",
+      `${element.offsetWidth}px`
+    );
+    const rect = element.getBoundingClientRect();
+    const shift =
+      rect.left < 8
+        ? 8 - rect.left
+        : Math.min(0, window.innerWidth - 8 - rect.right);
+    const baseLeft = parseFloat(style.left);
+    if (shift && Number.isFinite(baseLeft)) {
+      element.style.left = `${baseLeft + shift}px`;
+    }
+  }, [style.left, style.top, visible, onDownloadClick, onCancelClick]);
+
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (downloadPending.current || downloadDisabled) return;
+    downloadPending.current = true;
+    setDownloading(true);
+    setDownloadError(false);
+    try {
+      await onDownloadClick();
+    } catch {
+      setDownloadError(true);
+    } finally {
+      downloadPending.current = false;
+      setDownloading(false);
+    }
+  };
+
   if (!visible) return null;
 
   const handleMenu = (e) => {
@@ -69,6 +115,7 @@ export default function DualActionButton({
 
   return (
     <div
+      ref={containerRef}
       className="kt-image-dual-btn-container notranslate"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -214,7 +261,78 @@ export default function DualActionButton({
         <TranslateRoundedIcon style={{ fontSize: "16px" }} />
       </button>
 
-      {/* 4. 取消按钮 (可选，截图选框模式下渲染) */}
+      {onDownloadClick && (
+        <>
+          <span
+            style={{
+              width: "1px",
+              height: "12px",
+              backgroundColor: "rgba(255, 255, 255, 0.25)",
+            }}
+          />
+          <button
+            type="button"
+            className="kt-image-dual-btn kt-image-dual-btn--download"
+            title={i18n("image_download", "下载图片")}
+            aria-label={i18n("image_download", "下载图片")}
+            disabled={downloading || downloadDisabled}
+            onClick={handleDownload}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "26px",
+              height: "26px",
+              background: "transparent",
+              border: "none",
+              color: "#ffffff",
+              borderRadius: "4px",
+              cursor: downloading || downloadDisabled ? "default" : "pointer",
+              opacity: downloadDisabled ? 0.4 : 1,
+              padding: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor =
+                "rgba(255, 255, 255, 0.16)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
+          >
+            {downloading ? (
+              <CircularProgress size={14} sx={{ color: "#ffffff" }} />
+            ) : (
+              <DownloadRoundedIcon style={{ fontSize: "16px" }} />
+            )}
+          </button>
+        </>
+      )}
+
+      <Portal>
+        <Snackbar
+          data-kiss-ui=""
+          className="notranslate"
+          sx={{ zIndex: 2147483647 }}
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+          open={downloadError}
+          autoHideDuration={5000}
+          onClose={(_, reason) => {
+            if (reason !== "clickaway") setDownloadError(false);
+          }}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            severity="error"
+            variant="filled"
+            onClose={() => setDownloadError(false)}
+          >
+            {i18n("image_download_failed", "图片下载失败，请重试")}
+          </Alert>
+        </Snackbar>
+      </Portal>
+
+      {/* 取消按钮 (可选，截图选框模式下渲染) */}
       {Boolean(onCancelClick) && (
         <>
           <span

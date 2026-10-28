@@ -72,8 +72,6 @@ export default function ImageTranslateContent({
       sx={{
         display: "flex",
         flexDirection: "column",
-        flexGrow: 1,
-        overflow: "hidden",
         backgroundColor: "background.default",
         borderRadius: "0 0 16px 16px",
       }}
@@ -159,11 +157,9 @@ export default function ImageTranslateContent({
         </Alert>
       )}
 
-      {/* 结果分段滚动容器 */}
+      {/* 结果分段列表，与配置和操作栏共用面板滚动区域 */}
       <Box
         sx={{
-          flexGrow: 1,
-          overflowY: "auto",
           p: 1.5,
           display: "flex",
           flexDirection: "column",

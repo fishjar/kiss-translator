@@ -4,6 +4,26 @@
  */
 
 export const IMAGE_TRANSLATE_I18N = {
+  image_download: {
+    zh: "下载图片",
+    en: "Download image",
+    zh_TW: "下載圖片",
+    ja: "画像をダウンロード",
+    ko: "이미지 다운로드",
+    tr: "Resmi indir",
+    vi: "Tải ảnh xuống",
+    ru: "Скачать изображение",
+  },
+  image_download_failed: {
+    zh: "图片下载失败，请重试",
+    en: "Image download failed. Please try again.",
+    zh_TW: "圖片下載失敗，請重試",
+    ja: "画像のダウンロードに失敗しました。もう一度お試しください。",
+    ko: "이미지 다운로드에 실패했습니다. 다시 시도해 주세요.",
+    tr: "Resim indirilemedi. Lütfen tekrar deneyin.",
+    vi: "Tải ảnh thất bại. Vui lòng thử lại.",
+    ru: "Не удалось скачать изображение. Попробуйте ещё раз.",
+  },
   recognition_service_select: {
     zh: "请选择识别服务",
     en: "Select a recognition service",

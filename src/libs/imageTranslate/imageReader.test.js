@@ -71,6 +71,18 @@ describe("imageReader", () => {
     await expect(readImageAsBlob(null)).rejects.toThrow("无效的图片元素");
   });
 
+  test("download reads preserve natural size while recognition still scales down", async () => {
+    const img = { naturalWidth: 4096, naturalHeight: 3072 };
+    expect(await readImageAsBlob(img)).toMatchObject({
+      width: 2048,
+      height: 1536,
+    });
+    expect(await readImageAsBlob(img, { maxEdge: Infinity })).toMatchObject({
+      width: 4096,
+      height: 3072,
+    });
+  });
+
   test("readImageAsBlob successfully extracts blob from valid img", async () => {
     const mockImg = {
       naturalWidth: 500,
@@ -184,6 +196,16 @@ describe("imageReader", () => {
       global.fetch = originalFetch;
       global.createImageBitmap = originalCreateImageBitmap;
       sendBgMsg.mockReset();
+    });
+
+    test("preserves download dimensions through the bitmap fallback", async () => {
+      bitmap.width = 4096;
+      bitmap.height = 3072;
+      expect(await readImageAsBlob(img, { maxEdge: Infinity })).toMatchObject({
+        width: 4096,
+        height: 3072,
+      });
+      expect(bitmap.close).toHaveBeenCalledTimes(1);
     });
 
     test.each([true, false])(

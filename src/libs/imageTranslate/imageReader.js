@@ -77,9 +77,10 @@ export function cropAndCompressImage(
 /**
  * 安全读取网页 <img> 标签的图像数据为 Blob，若遇跨域污染则通过后台代理拉取
  * @param {HTMLImageElement} img 网页 img 元素
+ * @param {{ maxEdge?: number }} options 最大边长，默认 2048；下载传入 Infinity 保留原尺寸
  * @returns {Promise<{ blob: Blob, width: number, height: number }>}
  */
-export async function readImageAsBlob(img) {
+export async function readImageAsBlob(img, { maxEdge = MAX_IMAGE_EDGE } = {}) {
   if (!img) {
     throw new Error("无效的图片元素");
   }
@@ -90,6 +91,7 @@ export async function readImageAsBlob(img) {
       width: img.naturalWidth || img.width,
       height: img.naturalHeight || img.height,
       dpr: 1,
+      maxEdge,
     });
   } catch (err) {
     // Canvas 被污染或失败时继续尝试网络读取
@@ -108,7 +110,7 @@ export async function readImageAsBlob(img) {
       const blob = await res.blob();
       const bitmap = await createImageBitmap(blob);
       try {
-        return await cropAndCompressImage(bitmap);
+        return await cropAndCompressImage(bitmap, { maxEdge });
       } finally {
         bitmap.close?.();
       }
@@ -124,7 +126,7 @@ export async function readImageAsBlob(img) {
       const blob = await res.blob();
       const bitmap = await createImageBitmap(blob);
       try {
-        return await cropAndCompressImage(bitmap);
+        return await cropAndCompressImage(bitmap, { maxEdge });
       } finally {
         bitmap.close?.();
       }
@@ -160,7 +162,7 @@ export async function readImageAsBlob(img) {
     if (blob) {
       const bitmap = await createImageBitmap(blob);
       try {
-        return await cropAndCompressImage(bitmap);
+        return await cropAndCompressImage(bitmap, { maxEdge });
       } finally {
         bitmap.close?.();
       }
