@@ -88,12 +88,13 @@ test("hosted cancellation reaches the same manager; late results cannot become s
   const call = test.invoke(instance, "transcribe", test.input, {
     assets: test.assets,
   });
-  const rejected = expect(call.result).rejects.toMatchObject({
-    code: "REQUEST_CANCELLED",
-  });
-  await flush();
-  call.cancel();
-  await rejected;
+  await Promise.all([
+    expect(call.result).rejects.toMatchObject({ code: "REQUEST_CANCELLED" }),
+    (async () => {
+      await flush();
+      call.cancel();
+    })(),
+  ]);
   expect(test.manager.cancelRequest).toHaveBeenCalled();
   resolve({
     ok: true,

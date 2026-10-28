@@ -127,9 +127,7 @@ describe("BrowserTtsBtn", () => {
     expect(button.getAttribute("aria-disabled")).toBe("false");
     expect(document.activeElement).toBe(button);
     expect(container.querySelector('[data-testid="StopIcon"]')).not.toBeNull();
-    expect(
-      container.querySelector('[data-testid="VolumeUpIcon"]')
-    ).toBeNull();
+    expect(container.querySelector('[data-testid="VolumeUpIcon"]')).toBeNull();
 
     // 停止：第二次激活立即回到可朗读态，不依赖终态事件。
     act(() => {
@@ -193,9 +191,7 @@ describe("BrowserTtsBtn", () => {
     expect(button.getAttribute("title")).toBe("Stop speech");
     expect(button.getAttribute("aria-label")).toBe("Stop speech");
     expect(container.querySelector('[data-testid="StopIcon"]')).not.toBeNull();
-    expect(
-      container.querySelector('[data-testid="VolumeUpIcon"]')
-    ).toBeNull();
+    expect(container.querySelector('[data-testid="VolumeUpIcon"]')).toBeNull();
 
     await act(async () => {
       button.click();

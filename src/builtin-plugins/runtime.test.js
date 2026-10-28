@@ -1,3 +1,7 @@
+import { createNativeRegistry } from "./runtime";
+import { handleNativeTranslate as handleTranslate } from "../apis/trans";
+import { OPT_TRANS_OPENAI } from "../config/api";
+import { apiTranslate } from "../apis";
 jest.mock("query-string", () => ({
   stringify: (value) => new URLSearchParams(value).toString(),
 }));
@@ -9,10 +13,6 @@ jest.mock("../apis/trans", () => ({
   handleNativeSummarize: jest.fn(async () => "summary"),
   handleNativeSubtitle: jest.fn(async () => []),
 }));
-import { createNativeRegistry } from "./runtime";
-import { handleNativeTranslate as handleTranslate } from "../apis/trans";
-import { OPT_TRANS_OPENAI } from "../config/api";
-import { apiTranslate } from "../apis";
 beforeEach(() =>
   handleTranslate.mockImplementation(async function* () {
     yield { id: 1, result: ["乙", "en"] };

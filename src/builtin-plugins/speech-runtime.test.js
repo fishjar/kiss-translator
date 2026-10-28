@@ -1,10 +1,10 @@
+import { speak } from "../libs/speech";
+import { invokeBackgroundSpeech } from "./speech-runtime";
+import { OPT_TRANS_SYSTEM_TTS } from "../config/api";
 jest.mock("../libs/speech", () => ({
   speak: jest.fn(),
   stopSpeech: jest.fn(),
 }));
-import { speak } from "../libs/speech";
-import { invokeBackgroundSpeech } from "./speech-runtime";
-import { OPT_TRANS_SYSTEM_TTS } from "../config/api";
 
 test("background accepts a legacy system instance without migration and rejects external/native forgery", async () => {
   speak.mockImplementation((_text, _lang, callback) => {

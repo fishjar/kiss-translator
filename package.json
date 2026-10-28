@@ -83,6 +83,9 @@
     "test:file-translation-build": "node --test src/scripts/file-translation-build.test.mjs"
   },
   "eslintConfig": {
+    "settings": {
+      "testing-library/utils-module": "off"
+    },
     "extends": [
       "react-app",
       "react-app/jest"

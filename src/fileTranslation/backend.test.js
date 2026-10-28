@@ -1,5 +1,4 @@
 import { TextEncoder } from "util";
-global.TextEncoder = TextEncoder;
 import browser from "webextension-polyfill";
 import {
   attachFileSession,
@@ -12,6 +11,7 @@ import { getSettingWithDefault, saveEdit } from "../libs/storage";
 import { runtimeHost } from "../localAi/runtime/runtimeHostAdapter";
 import { invokeBackgroundPlugin } from "../providers/backgroundInvocation";
 import { prepareImage } from "../localAi/core/inputLimits";
+global.TextEncoder = TextEncoder;
 jest.mock("../builtin-plugins/runtime", () => ({
   createNativeRegistry: jest.fn(),
 }));
@@ -609,19 +609,20 @@ test.each(["image/jpg", "", "image/bmp", "image/gif"])(
       const response = port.postMessage.mock.calls.find(
         ([message]) => message.requestId === "begin"
       )[0];
+      expect(response).toMatchObject(
+        type === "image/jpg"
+          ? { result: { uploadId: expect.any(String) } }
+          : { error: { code: "INPUT_LIMIT_EXCEEDED" } }
+      );
       if (type === "image/jpg") {
-        expect(response.result.uploadId).toEqual(expect.any(String));
         await port.receive({
           requestId: "recognize",
           sessionId,
           method: "recognizeImage",
           params: { uploadId: response.result.uploadId },
         });
-        expect(execute).toHaveBeenCalledTimes(1);
-      } else {
-        expect(response.error.code).toBe("INPUT_LIMIT_EXCEEDED");
-        expect(execute).not.toHaveBeenCalled();
       }
+      expect(execute).toHaveBeenCalledTimes(type === "image/jpg" ? 1 : 0);
     } finally {
       close();
     }

@@ -166,9 +166,10 @@ jest.mock("./PdfWorkspace", () => {
   const React = require("react");
   return React.forwardRef((props, ref) => {
     React.useImperativeHandle(ref, () => mockPdfWorkspaceActions);
+    const onStateChange = React.useRef(props.onStateChange);
     React.useEffect(() => {
-      if (props.onStateChange) {
-        props.onStateChange({
+      if (onStateChange.current) {
+        onStateChange.current({
           phase: "ready",
           progress: { done: 0, total: 10 },
           pdf: { numPages: 10 },

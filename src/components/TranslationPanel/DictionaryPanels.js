@@ -223,11 +223,13 @@ export default function DictionaryPanels({
         translateVariants={translateVariants}
       />
     ) : null;
-  const suggestionsBlock = suggestionsNode
-    ? suggestionsWrapperClass
-      ? <Box className={suggestionsWrapperClass}>{suggestionsNode}</Box>
-      : suggestionsNode
-    : null;
+  const suggestionsBlock = suggestionsNode ? (
+    suggestionsWrapperClass ? (
+      <Box className={suggestionsWrapperClass}>{suggestionsNode}</Box>
+    ) : (
+      suggestionsNode
+    )
+  ) : null;
 
   return (
     <>

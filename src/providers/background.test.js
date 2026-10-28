@@ -1,3 +1,10 @@
+import browser from "webextension-polyfill";
+import { installProviderRelay } from "./background";
+import { getSettingWithDefault } from "../libs/storage";
+import { serveProviderPort } from "./host";
+import { STOKEY_SETTING } from "../config/storage";
+import { providerHostBusy } from "./hostLease";
+import { localAiHost } from "../libs/localAiBackground";
 jest.mock("webextension-polyfill", () => ({
   runtime: { onConnect: { addListener: jest.fn() } },
   storage: { onChanged: { addListener: jest.fn() } },
@@ -9,13 +16,6 @@ jest.mock("./bridge", () => ({
   PROVIDER_HOST_PORT: "host",
 }));
 jest.mock("./host", () => ({ serveProviderPort: jest.fn() }));
-import browser from "webextension-polyfill";
-import { installProviderRelay } from "./background";
-import { getSettingWithDefault } from "../libs/storage";
-import { serveProviderPort } from "./host";
-import { STOKEY_SETTING } from "../config/storage";
-import { providerHostBusy } from "./hostLease";
-import { localAiHost } from "../libs/localAiBackground";
 
 const flush = async () => {
   for (let i = 0; i < 15; i++) await Promise.resolve();

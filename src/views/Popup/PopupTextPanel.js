@@ -490,9 +490,7 @@ export default function PopupTextPanel({
                   serviceId={ttsApiSlug}
                   text={draft}
                   lang={
-                    fromLang === "auto"
-                      ? detectedLang || "en-US"
-                      : fromLang
+                    fromLang === "auto" ? detectedLang || "en-US" : fromLang
                   }
                   title={i18n("read_source_aloud")}
                   stopTitle={i18n("stop_speaking")}
@@ -507,7 +505,9 @@ export default function PopupTextPanel({
             placeholder={i18n("popup_text_source_placeholder")}
             spellCheck={false}
             value={draft}
-            onPointerDown={() => setIsSourceEditing(Boolean(draftRef.current.trim()))}
+            onPointerDown={() =>
+              setIsSourceEditing(Boolean(draftRef.current.trim()))
+            }
             onFocus={() => setIsSourceEditing(Boolean(draftRef.current.trim()))}
             onChange={(event) => {
               draftRef.current = event.target.value;

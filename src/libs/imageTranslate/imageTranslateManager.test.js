@@ -5,7 +5,6 @@
 
 import { act } from "react";
 import { APP_CONSTS } from "../../config/app";
-import { MSG_IMAGE_SCREENSHOT } from "../../config/msg";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 globalThis.crypto = require("crypto").webcrypto;

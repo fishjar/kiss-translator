@@ -186,11 +186,10 @@ test("metadata errors and hanging lookup share one abortable deadline", async ()
       () => new Promise(() => {}),
       { timeoutMs: 50, signal: controller.signal }
     );
-    const rejected = expect(result).rejects.toMatchObject({
-      code: "REQUEST_TIMEOUT",
-    });
-    jest.advanceTimersByTime(50);
-    await rejected;
+    await Promise.all([
+      expect(result).rejects.toMatchObject({ code: "REQUEST_TIMEOUT" }),
+      Promise.resolve().then(() => jest.advanceTimersByTime(50)),
+    ]);
     expect(jest.getTimerCount()).toBe(0);
   } finally {
     jest.useRealTimers();

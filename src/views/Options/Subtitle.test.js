@@ -764,7 +764,7 @@ font-size: 2rem;`;
     ["a dimension token", '1url(/* ) ; " */ none)'],
     ["a hash token", '#url(/* ) ; " */ none)'],
     ["an at-keyword token", '@url(/* ) ; " */ none)'],
-    ["a quoted URL function", 'url("image.svg" /* ) ; \" */)'],
+    ["a quoted URL function", 'url("image.svg" /* ) ; " */)'],
   ])("preserves ordinary comments in %s", (_case, value) => {
     const css = `--image: ${value};\ncolor: red;\nfont-size: 32px;`;
 
