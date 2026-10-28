@@ -13,6 +13,7 @@ import { encodeSegments } from "./sdk/segments";
 import { resolveApiPromptSettings } from "../config/prompt";
 import { withScenePrompt } from "../config/serviceSelection";
 import { applyTestPrompt } from "./testInput";
+import { getPluginPromptOptions } from "./defaultPrompts";
 
 const { TextEncoder, TextDecoder } = require("util");
 global.TextEncoder ||= TextEncoder;
@@ -103,10 +104,62 @@ describe.each(["declarative", "script"])("SDK %s translation", (folder) => {
   test("declared templates match SDK mode defaults", () => {
     const api = example(folder);
     expect(api.provider.defaultPrompts).toEqual({
-      batch: { protocol: "json", ...TRANSLATION_PROTOCOL_PROMPTS.json },
-      nobatch: { protocol: "text", ...TRANSLATION_PROTOCOL_PROMPTS.text },
+      batch: [
+        {
+          id: "default",
+          name: "Default",
+          protocol: "json",
+          ...TRANSLATION_PROTOCOL_PROMPTS.json,
+        },
+      ],
+      nobatch: [
+        {
+          id: "default",
+          name: "Default",
+          protocol: "text",
+          ...TRANSLATION_PROTOCOL_PROMPTS.text,
+        },
+      ],
     });
   });
+  test.each(
+    ["json", "line", "xml"].flatMap((protocol) =>
+      [false, true].map((streaming) => [protocol, streaming])
+    )
+  )(
+    "plugin preset %s selects its encoder and parser (streaming=%s)",
+    async (protocol, streaming) => {
+      const base = example(folder);
+      base.provider.defaultPrompts.batch = ["json", "line", "xml"].map((p) => ({
+        id: p,
+        name: p,
+        protocol: p,
+        ...TRANSLATION_PROTOCOL_PROMPTS[p],
+      }));
+      const slug = getPluginPromptOptions(base, "batch").find(
+        (p) => p.id === protocol
+      ).slug;
+      const api = resolveApiPromptSettings(
+        withScenePrompt(base, { promptSlug: slug })
+      );
+      const input = applyTestPrompt(
+        "translate",
+        { items: rows, targetLanguage: "zh-CN" },
+        api
+      );
+      expect(input.outputProtocol).toBe(protocol);
+      const result = invoke(
+        api,
+        input,
+        encodeSegments(rows, protocol),
+        streaming
+      );
+      await expect(result.call.result).resolves.toEqual({ items: rows });
+      expect(
+        result.request.mock.calls[0][0].body.messages[1].content
+      ).toContain(encodeSegments(rows, protocol));
+    }
+  );
   test.each(
     ["text", "json", "line", "xml"].flatMap((protocol) =>
       [false, true].map((streaming) => [protocol, streaming])
@@ -189,16 +242,6 @@ describe.each(["declarative", "script"])("SDK %s translation", (folder) => {
     await expect(
       invoke(api, input, JSON.stringify(rows.slice(0, 1)), false).call.result
     ).rejects.toMatchObject({ code: "INCOMPLETE_RESPONSE" });
-  });
-  test("old snapshots with no mode or template protocol retain JSON", async () => {
-    const api = example(folder);
-    api.provider.defaultPrompts.nobatch = {
-      ...TRANSLATION_PROTOCOL_PROMPTS.json,
-    };
-    const input = { items: rows.slice(0, 1), targetLanguage: "zh-CN" };
-    await expect(
-      invoke(api, input, JSON.stringify(input.items), false).call.result
-    ).resolves.toEqual({ items: input.items });
   });
   if (folder === "script") {
     test.each(["text", "json", "line", "xml"])(

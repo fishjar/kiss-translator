@@ -38,7 +38,10 @@ describe("ImageTranslateBox staged actions", () => {
   let root;
   let container;
   let props;
-  const header = () => ImageTranslateHeader.mock.calls.slice(-1)[0][0];
+  const header = () => ({
+    ...ImageTranslateHeader.mock.calls.slice(-1)[0][0],
+    ...ImageTranslateContent.mock.calls.slice(-1)[0][0].actions.props,
+  });
   const content = () => ImageTranslateContent.mock.calls.slice(-1)[0][0];
   const regions = [{ order: 0, enabled: true, bbox: [0, 0, 100, 50] }];
   const scene = {
@@ -100,6 +103,35 @@ describe("ImageTranslateBox staged actions", () => {
     const count = sendBgMsg.mock.calls.length;
     await act(async () => header().onRunAction("all"));
     expect(sendBgMsg).toHaveBeenCalledTimes(count);
+  });
+
+  test("passes built-in and user VLM prompts to the image panel", () => {
+    const custom = {
+      slug: "my-vlm",
+      name: "My VLM",
+      category: "vlm prompt",
+      userPrompt: "Read text",
+    };
+    act(() =>
+      root.render(
+        <ImageTranslateBox
+          {...props}
+          setting={{ ...props.setting, prompts: [custom] }}
+        />
+      )
+    );
+    const prompts = header().prompts;
+    expect(prompts).toEqual(
+      expect.arrayContaining([expect.objectContaining({ slug: "my-vlm" })])
+    );
+    expect(
+      prompts.some(
+        (prompt) => prompt.category === "vlm prompt" && prompt.slug !== "my-vlm"
+      )
+    ).toBe(true);
+    expect(ImageTranslateHeader.mock.calls.slice(-1)[0][0]).not.toHaveProperty(
+      "onRunAction"
+    );
   });
 
   afterEach(() => {

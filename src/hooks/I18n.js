@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useMemo } from "react";
 import { useSetting } from "./Setting";
 import { I18N, URL_RAW_PREFIX } from "../config";
 import { useGet } from "./Fetch";
@@ -18,8 +18,12 @@ export const getI18n = (uiLang, key, defaultText = key) => {
 // Consumers use it in memo and callback dependencies, so a new identity on every
 // render would invalidate their caches.
 export const useLangMap = (uiLang) => {
-  return useCallback(
-    (key, defaultText = key) => getI18n(uiLang, key, defaultText),
+  return useMemo(
+    () =>
+      Object.assign(
+        (key, defaultText = key) => getI18n(uiLang, key, defaultText),
+        { language: uiLang }
+      ),
     [uiLang]
   );
 };

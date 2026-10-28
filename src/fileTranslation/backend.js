@@ -260,60 +260,89 @@ export async function getFileContext(signal) {
         return [kind, scene];
       })
     ),
-    services: setting.transApis.map((api) => ({
-      ...pick(api, API_FIELDS),
-      translationSignature: translationSignatures.get(api.apiSlug),
-      provider: {
-        apiVersion: 1,
-        implementation: {
-          kind: projectApiCapabilities(api).provider?.implementation?.kind,
+    services: await Promise.all(
+      setting.transApis.map(async (api) => ({
+        ...pick(api, API_FIELDS),
+        translationSignature: translationSignatures.get(api.apiSlug),
+        provider: {
+          apiVersion: 1,
+          ...(api.provider?.defaultPrompts && {
+            id: api.provider.id,
+            source:
+              api.provider.source &&
+              pick(api.provider.source, ["pluginId", "serviceId"]),
+            defaultPrompts: Object.fromEntries(
+              Object.entries(api.provider.defaultPrompts).map(
+                ([slot, prompts]) => [
+                  slot,
+                  prompts.map((prompt) =>
+                    pick(prompt, [
+                      "id",
+                      "name",
+                      "nameI18n",
+                      "description",
+                      "descriptionI18n",
+                      "protocol",
+                    ])
+                  ),
+                ]
+              )
+            ),
+          }),
+          implementation: {
+            kind: projectApiCapabilities(api).provider?.implementation?.kind,
+          },
+          capabilities: Object.fromEntries(
+            enabledApiCapabilities(api).map((cap) => [
+              cap,
+              supportedApiFeature(api, cap),
+            ])
+          ),
         },
-        capabilities: Object.fromEntries(
-          enabledApiCapabilities(api).map((cap) => [
-            cap,
-            supportedApiFeature(api, cap),
+        translationAvailable: isApiAvailableFor(api, "translate", {
+          installedModels: installed,
+        }),
+        layoutAvailable: isApiAvailableFor(api, "analyzeLayout", {
+          installedModels: installed,
+        }),
+        enabledCapabilities: enabledApiCapabilities(api),
+        recognitionFeatures: Object.fromEntries(
+          ["recognizeText", "parseImage"]
+            .filter((cap) => enabledApiCapabilities(api).includes(cap))
+            .map((cap) => [
+              cap,
+              {
+                coordinates:
+                  supportedApiFeature(api, cap)?.coordinates === true,
+                taskModes: supportedApiFeature(api, cap)?.taskModes || ["doc"],
+                available: isApiAvailableFor(api, cap, {
+                  installedModels: installed,
+                }),
+              },
+            ])
+        ),
+        recognitionSignature: await sha256(
+          JSON.stringify([
+            api.apiType,
+            api.modelRef,
+            api.device,
+            api.model,
+            api.provider?.source?.version,
+            api.provider?.capabilities,
+            api.provider?.defaultPrompts,
+            api.vlmPromptSlug,
+            api.maxTokens,
+            api.temperature,
+            promptSignature,
+            Object.fromEntries(
+              (api.provider?.settings || [])
+                .filter((field) => field.type !== "password" && !field.isSecret)
+                .map((field) => [field.key, api.pluginConfig?.[field.key]])
+            ),
           ])
         ),
-      },
-      translationAvailable: isApiAvailableFor(api, "translate", {
-        installedModels: installed,
-      }),
-      layoutAvailable: isApiAvailableFor(api, "analyzeLayout", {
-        installedModels: installed,
-      }),
-      enabledCapabilities: enabledApiCapabilities(api),
-      recognitionFeatures: Object.fromEntries(
-        ["recognizeText", "parseImage"]
-          .filter((cap) => enabledApiCapabilities(api).includes(cap))
-          .map((cap) => [
-            cap,
-            {
-              coordinates: supportedApiFeature(api, cap)?.coordinates === true,
-              taskModes: supportedApiFeature(api, cap)?.taskModes || ["doc"],
-              available: isApiAvailableFor(api, cap, {
-                installedModels: installed,
-              }),
-            },
-          ])
-      ),
-      recognitionSignature: JSON.stringify([
-        api.apiType,
-        api.modelRef,
-        api.device,
-        api.model,
-        api.provider?.source?.version,
-        api.provider?.capabilities,
-        api.vlmPromptSlug,
-        api.maxTokens,
-        api.temperature,
-        promptSignature,
-        Object.fromEntries(
-          (api.provider?.settings || [])
-            .filter((field) => field.type !== "password" && !field.isSecret)
-            .map((field) => [field.key, api.pluginConfig?.[field.key]])
-        ),
-      ]),
-    })),
+      }))
+    ),
     prompts: getAllPrompts(setting.prompts).map((prompt) =>
       pick(prompt, ["slug", "name", "nameKey", "category"])
     ),
@@ -585,7 +614,8 @@ export async function executeFileMethod(
       params.promptSlug || (mode === "doc" ? api.vlmPromptSlug : "");
     let prompt;
     if (capability === "parseImage") {
-      if (promptSlug) prompt = resolveVlmPrompt(setting.prompts, promptSlug);
+      if (promptSlug)
+        prompt = resolveVlmPrompt(setting.prompts, promptSlug, api);
       else if (
         api.apiType !== "LocalAI" &&
         (!api.provider || api.provider.implementation?.kind === "native")

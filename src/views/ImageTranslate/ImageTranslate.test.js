@@ -9,6 +9,7 @@ import { createRoot } from "react-dom/client";
 import DualActionButton from "./DualActionButton";
 import ImageTranslateContent from "./ImageTranslateContent";
 import ImageTranslateHeader from "./ImageTranslateHeader";
+import ImageTranslateActions from "./ImageTranslateActions";
 import ImageLayoutOverlay from "./ImageLayoutOverlay";
 import { newI18n } from "../../config/i18n";
 import { KISS_UI_SELECTOR } from "../../libs/kissUi";
@@ -512,7 +513,7 @@ describe("ImageTranslateHeader", () => {
     const onRunAction = jest.fn();
     const renderHeader = () =>
       root.render(
-        <ImageTranslateHeader
+        <ImageTranslateActions
           scene={{
             layoutApiSlug: "layout",
             recognitionService: { apiSlug: "ocr", capability: "recognizeText" },
@@ -561,7 +562,7 @@ describe("ImageTranslateHeader", () => {
     expect(onRunAction).toHaveBeenLastCalledWith("recognize");
   });
 
-  test("does not render a VLM prompt select when VLM recognition service is active", () => {
+  test("renders a VLM prompt select when VLM recognition service is active", () => {
     act(() => {
       root.render(
         <ImageTranslateHeader
@@ -592,6 +593,6 @@ describe("ImageTranslateHeader", () => {
       );
     });
 
-    expect(container.textContent).not.toContain("VLM 提示词");
+    expect(container.textContent).toContain("识别提示词");
   });
 });

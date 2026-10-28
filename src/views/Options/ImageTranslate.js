@@ -39,6 +39,7 @@ import {
 import ServiceSelect from "./ServiceSelect";
 import ScenePromptSelect from "./ScenePromptSelect";
 import { PROMPT_CATEGORY_VLM } from "../../config/prompt";
+import { isPluginPromptSlug } from "../../providers/defaultPrompts";
 
 export default function ImageTranslate() {
   const i18n = useI18n();
@@ -61,6 +62,10 @@ export default function ImageTranslate() {
       imageTranslateSetting: {
         ...(prev?.imageTranslateSetting || DEFAULT_IMAGE_TRANSLATE_SETTING),
         ...patch,
+        ...(Object.hasOwn(patch, "recognitionService") &&
+          isPluginPromptSlug(prev?.imageTranslateSetting?.vlmPromptSlug) && {
+            vlmPromptSlug: "",
+          }),
       },
     }));
   };
@@ -277,6 +282,10 @@ export default function ImageTranslate() {
               >
                 <ScenePromptSelect
                   category={PROMPT_CATEGORY_VLM}
+                  recognitionApi={setting.transApis?.find(
+                    (api) =>
+                      api.apiSlug === imageSetting.recognitionService?.apiSlug
+                  )}
                   value={imageSetting.vlmPromptSlug || ""}
                   scene={{
                     ...imageSetting,

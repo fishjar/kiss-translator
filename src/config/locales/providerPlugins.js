@@ -1,4 +1,24 @@
 export const PROVIDER_PLUGINS_I18N = {
+  plugin_prompt_unavailable: {
+    zh: "原提示词不可用，已跟随默认",
+    en: "Previous prompt unavailable; using the default",
+    zh_TW: "原提示詞不可用，已跟隨預設",
+    ja: "以前のプロンプトは利用できないため、既定を使用します",
+    ko: "이전 프롬프트를 사용할 수 없어 기본값을 사용합니다",
+    tr: "Önceki istem kullanılamıyor; varsayılan kullanılıyor",
+    vi: "Lời nhắc trước không khả dụng; dùng mặc định",
+    ru: "Предыдущая подсказка недоступна; используется стандартная",
+  },
+  plugin_prompt_protocol: {
+    zh: "解析协议",
+    en: "Response protocol",
+    zh_TW: "解析協定",
+    ja: "応答プロトコル",
+    ko: "응답 프로토콜",
+    tr: "Yanıt protokolü",
+    vi: "Giao thức phản hồi",
+    ru: "Протокол ответа",
+  },
   plugin_diff_type: {
     zh: "类型",
     en: "Type",

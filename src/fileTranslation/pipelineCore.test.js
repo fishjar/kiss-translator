@@ -1063,7 +1063,9 @@ describe("pipelineCore", () => {
       api.provider = {
         ...api.provider,
         implementation: { kind },
-        defaultPrompts: { vlm: { userPrompt: "Free OCR." } },
+        defaultPrompts: {
+          vlm: [{ id: "default", name: "Default", userPrompt: "Free OCR." }],
+        },
       };
       invokeBackgroundPlugin.mockClear();
       await executeImageRecognition({

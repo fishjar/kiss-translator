@@ -6572,5 +6572,8 @@ export function registerI18n(dict) {
 }
 
 export const newI18n = (lang) => {
-  return (key, defaultText = key) => I18N[key]?.[lang] ?? defaultText;
+  return Object.assign(
+    (key, defaultText = key) => I18N[key]?.[lang] ?? defaultText,
+    { language: lang }
+  );
 };

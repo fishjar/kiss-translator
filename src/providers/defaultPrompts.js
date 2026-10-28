@@ -14,6 +14,55 @@ export const defaultPromptCapabilities = Object.freeze({
   analyzeLayout: "analyzeLayout",
 });
 
+export const promptSlugFields = Object.freeze({
+  batch: "batchPromptSlug",
+  nobatch: "nobatchPromptSlug",
+  dictionary: "dictPromptSlug",
+  subtitle: "subtitlePromptSlug",
+  vlm: "vlmPromptSlug",
+  summary: "summaryPromptSlug",
+  detectLanguage: "detectLanguagePromptSlug",
+  suggest: "suggestPromptSlug",
+  evaluate: "evaluatePromptSlug",
+  recognizeText: "recognizeTextPromptSlug",
+  analyzeLayout: "analyzeLayoutPromptSlug",
+});
+
+export const isPluginPromptSlug = (slug) => slug?.startsWith("plugin:");
+
+export function pluginPromptSlug(provider, slot, id) {
+  return [
+    "plugin",
+    provider.source?.pluginId,
+    provider.source?.serviceId || provider.id,
+    slot,
+    id,
+  ]
+    .map((part) => encodeURIComponent(part || ""))
+    .join(":");
+}
+
+export function getPluginPromptOptions(api, slot) {
+  const provider = api?.provider;
+  return (provider?.defaultPrompts?.[slot] || []).map((prompt) => ({
+    ...prompt,
+    slug: pluginPromptSlug(provider, slot, prompt.id),
+  }));
+}
+
+export function selectedPluginPrompt(
+  api,
+  slot,
+  slug = api?.[promptSlugFields[slot]]
+) {
+  const options = getPluginPromptOptions(api, slot);
+  return options.find((prompt) => prompt.slug === slug) || options[0];
+}
+
+export const imagePromptText = (prompt) =>
+  prompt &&
+  [prompt.systemPrompt, prompt.userPrompt].filter(Boolean).join("\n\n");
+
 /** Display metadata is declarative: opening a form never evaluates user code. */
 export function validateDefaultPrompts(service) {
   if (service.defaultPrompts === undefined) return;
@@ -26,29 +75,61 @@ export function validateDefaultPrompts(service) {
       "INVALID_MANIFEST",
       "Invalid default prompt declaration."
     );
-  for (const [slot, prompt] of Object.entries(service.defaultPrompts)) {
+  for (const [slot, prompts] of Object.entries(service.defaultPrompts)) {
     if (
       !defaultPromptCapabilities[slot] ||
       !service.capabilities[defaultPromptCapabilities[slot]] ||
-      !prompt ||
-      typeof prompt !== "object" ||
-      Array.isArray(prompt) ||
-      Object.keys(prompt).some(
-        (key) => !["systemPrompt", "userPrompt", "protocol"].includes(key)
-      ) ||
-      !["systemPrompt", "userPrompt"].some(
-        (key) => typeof prompt[key] === "string"
-      ) ||
-      Object.values(prompt).some((value) => typeof value !== "string") ||
-      (prompt.protocol !== undefined &&
-        (slot === "batch"
-          ? !["json", "line", "xml"].includes(prompt.protocol)
-          : slot !== "nobatch" || prompt.protocol !== "text"))
+      !Array.isArray(prompts) ||
+      !prompts.length ||
+      new Set(prompts.map((prompt) => prompt?.id)).size !== prompts.length
     )
       throw providerError(
         "INVALID_MANIFEST",
         "Invalid default prompt slot: " + slot
       );
+    for (const prompt of prompts) {
+      if (
+        !prompt ||
+        typeof prompt !== "object" ||
+        Array.isArray(prompt) ||
+        Object.keys(prompt).some(
+          (key) =>
+            ![
+              "id",
+              "name",
+              "nameI18n",
+              "description",
+              "descriptionI18n",
+              "systemPrompt",
+              "userPrompt",
+              "protocol",
+            ].includes(key)
+        ) ||
+        typeof prompt.id !== "string" ||
+        !/^[A-Za-z][\w-]*$/.test(prompt.id) ||
+        typeof prompt.name !== "string" ||
+        !prompt.name.trim() ||
+        !["systemPrompt", "userPrompt"].some(
+          (key) => typeof prompt[key] === "string"
+        ) ||
+        Object.entries(prompt).some(([key, value]) =>
+          key.endsWith("I18n")
+            ? !value ||
+              Array.isArray(value) ||
+              typeof value !== "object" ||
+              Object.values(value).some((text) => typeof text !== "string")
+            : typeof value !== "string"
+        ) ||
+        (prompt.protocol !== undefined &&
+          (slot === "batch"
+            ? !["json", "line", "xml"].includes(prompt.protocol)
+            : slot !== "nobatch" || prompt.protocol !== "text"))
+      )
+        throw providerError(
+          "INVALID_MANIFEST",
+          "Invalid default prompt slot: " + slot
+        );
+    }
   }
 }
 
@@ -74,13 +155,13 @@ export function withDefaultPromptInput(instance, capability, input) {
           recognizeText: "recognizeText",
           analyzeLayout: "analyzeLayout",
         }[capability];
-  const prompt = instance.provider?.defaultPrompts?.[slot];
+  const prompt = selectedPluginPrompt(instance, slot);
   if (!prompt || !input || typeof input !== "object") return input;
   if (capability === "translate")
     return {
       ...input,
       ...(input.outputProtocol === undefined && {
-        outputProtocol: prompt.protocol || "json",
+        outputProtocol: prompt.protocol || (slot === "batch" ? "json" : "text"),
       }),
       systemPrompt: input.systemPrompt ?? prompt.systemPrompt,
       userPrompt: input.userPrompt ?? prompt.userPrompt,
@@ -101,16 +182,18 @@ export function withDefaultPromptInput(instance, capability, input) {
   };
 }
 
-/** Legacy template snapshots without protocol declarations retain their JSON contract. */
+/** The selected template owns both the request encoding and response parser. */
 export function translationOptions(api) {
   const batch = Boolean(api.useBatchFetch);
-  const prompt = api.provider?.defaultPrompts?.[batch ? "batch" : "nobatch"];
+  const slot = batch ? "batch" : "nobatch";
+  const prompt = selectedPluginPrompt(api, slot);
   return {
     translationMode: batch ? "batch" : "single",
     outputProtocol:
+      (isPluginPromptSlug(api[promptSlugFields[slot]]) && prompt?.protocol) ||
       api.outputProtocol ||
       (batch ? api.batchProtocol : undefined) ||
       prompt?.protocol ||
-      (prompt ? "json" : batch ? "json" : "text"),
+      (batch ? "json" : "text"),
   };
 }

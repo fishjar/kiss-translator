@@ -7,8 +7,10 @@ import {
   getDictionaryPromptOptions,
   getSubtitlePromptOptions,
   getVlmPromptOptions,
+  getPromptDisplayName,
 } from "../../config/prompt";
 import { enabledApiCapabilities } from "../../config/serviceSelection";
+import { getPluginPromptOptions } from "../../providers/defaultPrompts";
 
 export default function PluginPromptSettings({
   api,
@@ -57,6 +59,13 @@ export default function PluginPromptSettings({
     <Container {...(!inline && { spacing: 2 })}>
       {visibleSlots.map(([, slot, key, label, options]) => {
         const slug = api[key] || "";
+        const choices = [
+          ...getPluginPromptOptions(api, slot),
+          ...options(prompts),
+        ];
+        const unavailable = Boolean(
+          slug && !choices.some((item) => item.slug === slug)
+        );
         return (
           <Stack key={key} spacing={1}>
             <TextField
@@ -65,18 +74,20 @@ export default function PluginPromptSettings({
               size="small"
               name={key}
               label={label}
-              value={slug}
+              value={unavailable ? "" : slug}
+              helperText={
+                unavailable ? i18n("plugin_prompt_unavailable") : undefined
+              }
               InputLabelProps={{ shrink: true }}
               SelectProps={{
                 displayEmpty: true,
                 renderValue: (value) =>
                   value
-                    ? options(prompts).find((item) => item.slug === value)
-                        ?.name ||
-                      i18n(
-                        options(prompts).find((item) => item.slug === value)
-                          ?.nameKey,
-                        value
+                    ? getPromptDisplayName(
+                        choices.find((item) => item.slug === value) || {
+                          slug: value,
+                        },
+                        i18n
                       )
                     : i18n("plugin_plugin_default"),
               }}
@@ -84,13 +95,13 @@ export default function PluginPromptSettings({
             >
               <MenuItem
                 value=""
-                disabled={!api.provider.defaultPrompts?.[slot]}
+                disabled={!api.provider.defaultPrompts?.[slot]?.length}
               >
                 {i18n("plugin_plugin_default")}
               </MenuItem>
-              {options(prompts).map((item) => (
+              {choices.map((item) => (
                 <MenuItem key={item.slug} value={item.slug}>
-                  {item.name || i18n(item.nameKey, item.slug)}
+                  {getPromptDisplayName(item, i18n)}
                 </MenuItem>
               ))}
             </TextField>

@@ -60,8 +60,22 @@ export const testManifest = {
         { key: "translationTemperature", type: "number", defaultValue: 0 },
       ],
       defaultPrompts: {
-        batch: { ...TRANSLATION_PROTOCOL_PROMPTS.json, protocol: "json" },
-        nobatch: { ...TRANSLATION_PROTOCOL_PROMPTS.text, protocol: "text" },
+        batch: [
+          {
+            id: "default",
+            name: "Default",
+            ...TRANSLATION_PROTOCOL_PROMPTS.json,
+            protocol: "json",
+          },
+        ],
+        nobatch: [
+          {
+            id: "default",
+            name: "Default",
+            ...TRANSLATION_PROTOCOL_PROMPTS.text,
+            protocol: "text",
+          },
+        ],
       },
     },
     ...[false, true].map((timestamps) => ({

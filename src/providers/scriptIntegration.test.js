@@ -83,7 +83,7 @@ test("native default prompt references do not overwrite the plugin's ID-based tr
     ),
   });
   expect(api.nobatchUserPrompt).toBe(
-    api.provider.defaultPrompts.nobatch.userPrompt
+    api.provider.defaultPrompts.nobatch[0].userPrompt
   );
   expect(api.systemPrompt).toContain("JSON");
   expect(

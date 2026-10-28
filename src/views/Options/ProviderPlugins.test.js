@@ -403,11 +403,24 @@ test("interface previews expand independently and copy declared templates withou
         parseImage: { handler: "vision" },
       },
       defaultPrompts: {
-        batch: { systemPrompt: "Batch", userPrompt: "{{items}}" },
-        nobatch: { systemPrompt: "Single {{text}}" },
-        dictionary: { userPrompt: "Dictionary" },
-        subtitle: { systemPrompt: "Subtitle" },
-        vlm: { userPrompt: "Vision" },
+        batch: [
+          {
+            id: "default",
+            name: "Default",
+            systemPrompt: "Batch",
+            userPrompt: "{{items}}",
+          },
+        ],
+        nobatch: [
+          { id: "default", name: "Default", systemPrompt: "Single {{text}}" },
+        ],
+        dictionary: [
+          { id: "default", name: "Default", userPrompt: "Dictionary" },
+        ],
+        subtitle: [
+          { id: "default", name: "Default", systemPrompt: "Subtitle" },
+        ],
+        vlm: [{ id: "default", name: "Default", userPrompt: "Vision" }],
       },
     },
     {
@@ -447,7 +460,9 @@ test("interface previews expand independently and copy declared templates withou
     expect(preview.querySelector("td").colSpan).toBe(4);
     expect(preview.textContent).toContain("当前插件包的默认模板");
     expect(
-      [...preview.querySelectorAll("h6")].map((item) => item.textContent)
+      [...preview.querySelectorAll("h6")].map(
+        (item) => item.textContent.split(" · ")[0]
+      )
     ).toEqual([
       "单句翻译提示词",
       "聚合翻译提示词",

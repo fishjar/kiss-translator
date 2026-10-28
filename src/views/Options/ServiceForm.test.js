@@ -61,13 +61,49 @@ test("ASR duration setting has the 20-second default, integer bounds and an edit
 
 test.each([
   ["translate", false, {}, true],
-  ["translate", false, { nobatch: { systemPrompt: "" } }, false],
-  ["translate", true, { nobatch: { systemPrompt: "Single" } }, true],
-  ["translate", true, { batch: { userPrompt: "Batch" } }, false],
+  [
+    "translate",
+    false,
+    { nobatch: [{ id: "default", name: "Default", systemPrompt: "" }] },
+    false,
+  ],
+  [
+    "translate",
+    true,
+    { nobatch: [{ id: "default", name: "Default", systemPrompt: "Single" }] },
+    true,
+  ],
+  [
+    "translate",
+    true,
+    { batch: [{ id: "default", name: "Default", userPrompt: "Batch" }] },
+    false,
+  ],
   ["dictionary", false, {}, true],
-  ["dictionary", false, { dictionary: { userPrompt: "Dictionary" } }, false],
-  ["segmentSubtitle", false, { subtitle: { systemPrompt: "Subtitle" } }, false],
-  ["parseImage", false, { vlm: { systemPrompt: "Vision" } }, false],
+  [
+    "dictionary",
+    false,
+    {
+      dictionary: [
+        { id: "default", name: "Default", userPrompt: "Dictionary" },
+      ],
+    },
+    false,
+  ],
+  [
+    "segmentSubtitle",
+    false,
+    {
+      subtitle: [{ id: "default", name: "Default", systemPrompt: "Subtitle" }],
+    },
+    false,
+  ],
+  [
+    "parseImage",
+    false,
+    { vlm: [{ id: "default", name: "Default", systemPrompt: "Vision" }] },
+    false,
+  ],
 ])(
   "plugin default option availability follows the current slot: %s %s",
   async (capability, useBatchFetch, defaultPrompts, disabled) => {
@@ -181,10 +217,14 @@ test("shared header handles disabled/pinned and prompt selection has no preview"
       },
       capabilities: { translate: { handler: "translate" } },
       defaultPrompts: {
-        nobatch: {
-          systemPrompt: "Read-only {{text}}",
-          userPrompt: "{{items}}",
-        },
+        nobatch: [
+          {
+            id: "default",
+            name: "Default",
+            systemPrompt: "Read-only {{text}}",
+            userPrompt: "{{items}}",
+          },
+        ],
       },
     },
   };
@@ -221,7 +261,7 @@ test("shared header handles disabled/pinned and prompt selection has no preview"
     expect(node.textContent).not.toContain("复制提示词");
     expect(node.textContent).not.toContain("插件未公开默认提示词");
     expect(writeText).not.toHaveBeenCalled();
-    expect(api.provider.defaultPrompts.nobatch.systemPrompt).toBe(
+    expect(api.provider.defaultPrompts.nobatch[0].systemPrompt).toBe(
       "Read-only {{text}}"
     );
     await act(async () => node.querySelector('input[name="isPinned"]').click());
