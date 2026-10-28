@@ -240,7 +240,7 @@ describe("Popup text translation card", () => {
       apiSlug: capability,
       apiName: capability,
       provider: {
-        apiVersion: "1",
+        apiVersion: 1,
         implementation: { kind: "native" },
         capabilities: { [capability]: {} },
       },
@@ -507,7 +507,9 @@ describe("Popup text translation card", () => {
     const input = edit("New draft");
     expect(setText).not.toHaveBeenCalled();
     expect(apiTranslate).toHaveBeenCalledTimes(1);
-    expect(key(input, "Enter", { shiftKey: true }).defaultPrevented).toBe(false);
+    expect(key(input, "Enter", { shiftKey: true }).defaultPrevented).toBe(
+      false
+    );
     expect(setText).not.toHaveBeenCalled();
     expect(key(input, "Enter").defaultPrevented).toBe(true);
     expect(setText).toHaveBeenLastCalledWith("New draft");

@@ -99,8 +99,7 @@ describe("Explicit translation submissions", () => {
     container.querySelector(
       '.kt-translation-source textarea:not([aria-hidden="true"])'
     );
-  const submitButton = () =>
-    container.querySelector('button[title="submit"]');
+  const submitButton = () => container.querySelector('button[title="submit"]');
   const clickSubmit = () => {
     act(() => input().focus());
     const button = submitButton();
@@ -178,13 +177,15 @@ describe("Explicit translation submissions", () => {
       expect(container.textContent).toContain("Temporary network error");
       expect(apiTranslate).toHaveBeenCalledTimes(1);
       const firstRequest = apiTranslate.mock.calls[0][0];
+      act(() => input().focus());
+      const button = submitButton();
+      expect(button).not.toBeNull();
+      expect(button.disabled).toBe(false);
+      expect(button.getAttribute("aria-label")).toBe("submit");
 
       if (action === "button") {
-        const button = clickSubmit();
-        expect(button.disabled).toBe(false);
-        expect(button.getAttribute("aria-label")).toBe("submit");
+        act(() => button.click());
       } else {
-        act(() => input().focus());
         pressEnter({
           ctrlKey: action === "Ctrl+Enter",
           metaKey: action === "Cmd+Enter",

@@ -30,7 +30,7 @@ export function projectApiCapabilities(api) {
     ...api,
     provider: {
       ...definition,
-      apiVersion: "1",
+      apiVersion: 1,
       ...api.provider,
       capabilities: Object.fromEntries(
         Object.entries(resolveBuiltinCapabilities(api)).filter(

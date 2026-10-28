@@ -7,8 +7,7 @@ import { createAssetStore } from "./transport";
 import { availableServiceIds } from "./lifecycle";
 
 const manifest = {
-  manifestVersion: 1,
-  apiVersion: "1",
+  apiVersion: 1,
   id: "resources-test",
   version: "1.0.0",
   name: "Test",

@@ -1,3 +1,7 @@
+import { createNativeRegistry } from "./runtime";
+import { handleNativeTranslate as handleTranslate } from "../apis/trans";
+import { OPT_TRANS_OPENAI } from "../config/api";
+import { apiTranslate } from "../apis";
 jest.mock("query-string", () => ({
   stringify: (value) => new URLSearchParams(value).toString(),
 }));
@@ -9,10 +13,6 @@ jest.mock("../apis/trans", () => ({
   handleNativeSummarize: jest.fn(async () => "summary"),
   handleNativeSubtitle: jest.fn(async () => []),
 }));
-import { createNativeRegistry } from "./runtime";
-import { handleNativeTranslate as handleTranslate } from "../apis/trans";
-import { OPT_TRANS_OPENAI } from "../config/api";
-import { apiTranslate } from "../apis";
 beforeEach(() =>
   handleTranslate.mockImplementation(async function* () {
     yield { id: 1, result: ["乙", "en"] };
@@ -26,7 +26,7 @@ test("old network VLM selections and snapshots cannot invoke a removed native ha
     apiSlug: "old-vision",
     enabledCapabilities: ["parseImage"],
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       implementation: { kind: "native", entry: OPT_TRANS_OPENAI },
       capabilities: {
         parseImage: { handler: "parseImage", outputModes: ["complete"] },
@@ -67,7 +67,7 @@ test("external snapshots cannot select a compiled native entry", async () => {
   const registry = createNativeRegistry(() => ({
     apiType: OPT_TRANS_OPENAI,
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       source: { external: true },
       implementation: { kind: "native", entry: OPT_TRANS_OPENAI },
     },

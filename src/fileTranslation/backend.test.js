@@ -1,5 +1,4 @@
 import { TextEncoder } from "util";
-global.TextEncoder = TextEncoder;
 import browser from "webextension-polyfill";
 import {
   attachFileSession,
@@ -12,6 +11,7 @@ import { getSettingWithDefault, saveEdit } from "../libs/storage";
 import { runtimeHost } from "../localAi/runtime/runtimeHostAdapter";
 import { invokeBackgroundPlugin } from "../providers/backgroundInvocation";
 import { prepareImage } from "../localAi/core/inputLimits";
+global.TextEncoder = TextEncoder;
 jest.mock("../builtin-plugins/runtime", () => ({
   createNativeRegistry: jest.fn(),
 }));
@@ -182,7 +182,7 @@ test("layout instance routing preserves real polygons and never trusts webpage m
         apiType: "Plugin",
         enabledCapabilities: ["analyzeLayout"],
         provider: {
-          apiVersion: "1",
+          apiVersion: 1,
           source: { pluginId: "test-plugin" },
           settings: [],
           implementation: { kind: "script" },
@@ -295,7 +295,7 @@ test("context projects service metadata without credentials or arbitrary setting
     translationAvailable: true,
     layoutAvailable: false,
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       implementation: { kind: "native" },
       capabilities: { translate: expect.any(Object) },
     },
@@ -609,19 +609,20 @@ test.each(["image/jpg", "", "image/bmp", "image/gif"])(
       const response = port.postMessage.mock.calls.find(
         ([message]) => message.requestId === "begin"
       )[0];
+      expect(response).toMatchObject(
+        type === "image/jpg"
+          ? { result: { uploadId: expect.any(String) } }
+          : { error: { code: "INPUT_LIMIT_EXCEEDED" } }
+      );
       if (type === "image/jpg") {
-        expect(response.result.uploadId).toEqual(expect.any(String));
         await port.receive({
           requestId: "recognize",
           sessionId,
           method: "recognizeImage",
           params: { uploadId: response.result.uploadId },
         });
-        expect(execute).toHaveBeenCalledTimes(1);
-      } else {
-        expect(response.error.code).toBe("INPUT_LIMIT_EXCEEDED");
-        expect(execute).not.toHaveBeenCalled();
       }
+      expect(execute).toHaveBeenCalledTimes(type === "image/jpg" ? 1 : 0);
     } finally {
       close();
     }
@@ -679,7 +680,7 @@ function imageService(id, capabilities) {
     sourceType: "network",
     enabledCapabilities: Object.keys(capabilities),
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       source: { pluginId: "test-plugin" },
       implementation: { kind: "script" },
       settings: [],

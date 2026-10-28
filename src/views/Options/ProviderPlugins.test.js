@@ -68,7 +68,7 @@ const pack = (version = "1.0.0", id = "example-plugin") => ({
     id,
     name: "Example plugin",
     version,
-    apiVersion: "1",
+    apiVersion: 1,
     services: [
       { id: "chat", name: "Chat", capabilities: { chat: { handler: "chat" } } },
     ],
@@ -130,6 +130,7 @@ test.each([
                 id: "deepseek",
                 name: "DeepSeek",
                 version: "1.0.0",
+                apiVersion: 1,
                 capabilities: ["chat"],
               },
             ],
@@ -153,6 +154,7 @@ test("old local examples merge into the official list and explicit updates retai
     id: old.id,
     name: "DeepSeek",
     version: "1.2.2",
+    apiVersion: 1,
     capabilities: ["chat"],
   };
   loadPluginDirectory.mockImplementation(async (kind) =>
@@ -212,6 +214,7 @@ test("a missing local template imported from a file can restore the matching off
     id: plugin.id,
     name: "DeepSeek",
     version: "1.2.2",
+    apiVersion: 1,
     capabilities: ["chat"],
   };
   loadPluginDirectory.mockImplementation(async (kind) =>

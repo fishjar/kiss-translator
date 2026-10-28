@@ -172,7 +172,7 @@ test("shared header handles disabled/pinned and prompt selection has no preview"
     apiType: "Plugin",
     apiName: "Service",
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       name: "Endpoint",
       source: {
         external: true,

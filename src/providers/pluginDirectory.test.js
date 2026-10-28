@@ -18,8 +18,7 @@ Object.defineProperty(global, "crypto", {
   value: webcrypto,
 });
 const manifest = {
-  manifestVersion: 1,
-  apiVersion: "1",
+  apiVersion: 1,
   id: "test-plugin",
   name: "Test plugin",
   version: "1.0.0",
@@ -63,6 +62,27 @@ test("catalog preserves unsupported declarations for explanation, while installa
   await expect(
     downloadOfficialPlugin(entry, undefined, fetchImpl)
   ).rejects.toMatchObject({ code: "UNSUPPORTED_PLUGIN_KIND" });
+  expect(fetchImpl).not.toHaveBeenCalled();
+});
+
+test("unsupported integer API versions remain visible but cannot be downloaded", async () => {
+  const entry = { ...catalog.plugins[0], apiVersion: 2 };
+  const directory = {
+    schemaVersion: 1,
+    plugins: [
+      catalog.plugins[0],
+      {
+        ...entry,
+        id: "future-plugin",
+        downloadUrl: `${OFFICIAL_BASE}future-plugin/${entry.version}.zip`,
+      },
+    ],
+  };
+  expect(validateOfficialDirectory(directory)).toEqual(directory);
+  const fetchImpl = jest.fn();
+  await expect(
+    downloadOfficialPlugin(entry, undefined, fetchImpl)
+  ).rejects.toMatchObject({ code: "SDK_VERSION_UNSUPPORTED" });
   expect(fetchImpl).not.toHaveBeenCalled();
 });
 const stream = (bytes) => ({

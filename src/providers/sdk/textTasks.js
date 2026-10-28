@@ -9,7 +9,7 @@ const contracts = {
     'Return only JSON {"language":"ISO language code","confidence":0.9}. If candidates are supplied, choose one of those codes.',
   suggest: 'Return only JSON {"items":["suggestion"]}.',
   evaluate:
-    'Return only JSON {"answers":{"question ID":{"type":"choice|score|noul","choice":"selected criterion","score":0,"noul":0,"confidence":0.9,"action":{"act_probability":0.5}}}}. Cover every question exactly once. Each answer must match its question type: choice uses choice, score uses score, noul uses noul. Probabilities must be between 0 and 1.',
+    'Return only JSON {"answers":{"question ID":{"type":"choice|score|noul","choice":"selected criterion","score":0,"noul":0,"confidence":0.9,"action":{"act_probability":0.5}}}}. Cover every question exactly once. Each answer must match its question type: choice uses choice, score uses score, noul uses noul. For choice, return a criteria object key, never its description. Probabilities must be between 0 and 1.',
   analyzeLayout:
     'Return only JSON {"regions":[{"type":"text","poly":[[0,0],[100,0],[100,50],[0,50]],"order":0}]}. Coordinates must describe actual regions in image pixels. Do not fabricate regions. Use the supplied image dimensions when present.',
 };

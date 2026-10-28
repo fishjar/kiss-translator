@@ -268,7 +268,7 @@ describe("useApiList", () => {
             "chat",
           ],
           provider: expect.objectContaining({
-            apiVersion: "1",
+            apiVersion: 1,
             implementation: { kind: "native", entry: OPT_TRANS_OPENAI },
           }),
         },

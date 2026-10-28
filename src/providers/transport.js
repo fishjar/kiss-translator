@@ -5,6 +5,11 @@ import { signHmac } from "./sdk/encoding";
 import { createNDJSONParser } from "./sdk/segments";
 import { getFetchPool } from "../libs/pool";
 import { startHttpDiagnostic } from "../libs/diagnostics/http";
+import {
+  audioAsset,
+  audioAssetSize,
+  validateResponseAudio,
+} from "./audioAsset";
 
 const RESPONSE_LIMIT = 8 * 1024 * 1024;
 
@@ -88,6 +93,17 @@ export function createTransportBroker(
   };
   const prepare = (request) => {
     check();
+    if (request.responseAudio !== undefined) {
+      if (
+        instance.provider.apiVersion !== 1 ||
+        request.responseType !== "asset"
+      )
+        throw providerError(
+          "INVALID_REQUEST",
+          "Audio conversion requires plugin API 1 and an asset response."
+        );
+      validateResponseAudio(request.responseAudio);
+    }
     const url = new URL(request.url);
     const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     if (
@@ -290,11 +306,20 @@ export function createTransportBroker(
           try {
             const headers = Object.fromEntries(res.headers.entries());
             const bytes = await readBody(res);
+            const assetSize =
+              request.responseType === "asset"
+                ? audioAssetSize(
+                    bytes,
+                    res.headers.get("content-type") ||
+                      "application/octet-stream",
+                    request.responseAudio
+                  )
+                : 0;
             if (
               request.responseType === "asset" &&
               (assets.entries().length >= 8 ||
                 assets.entries().reduce((n, [, blob]) => n + blob.size, 0) +
-                  bytes.byteLength >
+                  assetSize >
                   RESPONSE_LIMIT)
             )
               throw providerError(
@@ -304,11 +329,12 @@ export function createTransportBroker(
             const body =
               request.responseType === "asset"
                 ? assets.put(
-                    new Blob([bytes], {
-                      type:
-                        res.headers.get("content-type") ||
+                    audioAsset(
+                      bytes,
+                      res.headers.get("content-type") ||
                         "application/octet-stream",
-                    })
+                      request.responseAudio
+                    )
                   )
                 : new TextDecoder().decode(bytes);
             check();

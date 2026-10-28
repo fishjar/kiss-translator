@@ -23,6 +23,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let root, container;
 const official = {
   id: "example-official",
+  apiVersion: 1,
   name: "Official",
   version: "1.0.0",
   capabilities: ["translate"],

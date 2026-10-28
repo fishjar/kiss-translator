@@ -693,7 +693,7 @@ export default function ProviderPlugins() {
                 >
                   <Typography>
                     {i18n("plugin_plugin_id")}
-                    {pack.id} · SDK：{pack.manifest.apiVersion}
+                    {pack.id} · API：{pack.manifest.apiVersion}
                   </Typography>
                   <Typography>
                     {i18n("plugin_source")}

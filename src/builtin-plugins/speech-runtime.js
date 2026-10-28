@@ -11,7 +11,7 @@ export function invokeBackgroundSpeech(instance, capability, input, options) {
         instance.apiType !== OPT_TRANS_SYSTEM_TTS ||
         instance.provider?.source?.external ||
         (instance.provider &&
-          (instance.provider.apiVersion !== "1" ||
+          (instance.provider.apiVersion !== 1 ||
             instance.provider.implementation.kind !== "native" ||
             instance.provider.implementation.entry !== OPT_TRANS_SYSTEM_TTS))
       )
@@ -22,7 +22,7 @@ export function invokeBackgroundSpeech(instance, capability, input, options) {
       return {
         ...instance,
         provider: {
-          apiVersion: "1",
+          apiVersion: 1,
           implementation: { kind: "native", entry: OPT_TRANS_SYSTEM_TTS },
           capabilities: {
             speak: { handler: "speak", outputModes: ["complete"] },

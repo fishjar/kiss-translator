@@ -5,7 +5,7 @@ import {
 import { validateModels, validateServiceConfig } from "./instances";
 
 const provider = {
-  apiVersion: "1",
+  apiVersion: 1,
   capabilities: {
     translate: {
       handler: "translate",

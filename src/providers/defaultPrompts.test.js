@@ -35,8 +35,7 @@ test("default declarations validate task bindings and copied snapshots remain in
     ).toThrow("prompt");
   const api = createServiceInstance(
     {
-      manifestVersion: 1,
-      apiVersion: "1",
+      apiVersion: 1,
       id: "example",
       version: "1.0.0",
       services: [service],

@@ -91,8 +91,9 @@ test("declarative resolution retains numeric values, omits auto language, and re
     http: { request },
   };
   const snapshot = {
+    apiVersion: 1,
     rules: {
-      rulesVersion: 1,
+      format: "http",
       handlers: {
         transcribe: {
           request: {
@@ -278,14 +279,15 @@ test.each([
       fetchImpl,
       assets: createAssetStore(),
     });
-    if (accepted)
-      await expect(broker.http.request({ url })).resolves.toMatchObject({
-        status: 200,
-      });
-    else
-      await expect(broker.http.request({ url })).rejects.toMatchObject({
-        code: "NETWORK_DENIED",
-      });
+    const outcome = await broker.http.request({ url }).then(
+      (value) => ({ value }),
+      (error) => ({ error })
+    );
+    expect(outcome).toMatchObject(
+      accepted
+        ? { value: { status: 200 } }
+        : { error: { code: "NETWORK_DENIED" } }
+    );
     expect(fetchImpl).toHaveBeenCalledTimes(accepted ? 1 : 0);
   }
 );

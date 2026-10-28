@@ -1,3 +1,9 @@
+import { act, useState } from "react";
+import { createRoot } from "react-dom/client";
+import { Simulate } from "react-dom/test-utils";
+import AddServiceMenu from "./AddServiceMenu";
+import OptionsTheme from "./OptionsTheme";
+import { ProviderSettings } from "./PluginInstanceFields";
 jest.mock("../../apis", () => ({ apiTranslate: jest.fn() }));
 jest.mock("../../providers/sceneInvocation", () => ({
   invokeScene: jest.fn(),
@@ -11,12 +17,6 @@ jest.mock("../../hooks/ColorMode", () => ({
 jest.mock("../../hooks/SystemColorScheme", () => ({
   useSystemDarkPreference: () => false,
 }));
-import { act, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { Simulate } from "react-dom/test-utils";
-import AddServiceMenu from "./AddServiceMenu";
-import OptionsTheme from "./OptionsTheme";
-import { ProviderSettings } from "./PluginInstanceFields";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 globalThis.crypto ||= require("crypto").webcrypto;
@@ -53,8 +53,7 @@ test("external submenu adds a default snapshot without authorization and disable
   mockPackages.push({
     id: "installed",
     manifest: {
-      manifestVersion: 1,
-      apiVersion: "1",
+      apiVersion: 1,
       id: "installed",
       name: "Installed",
       version: "1.0.0",

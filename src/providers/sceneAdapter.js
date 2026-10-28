@@ -86,10 +86,8 @@ export async function segmentPlugin(
     nativeOptions,
   }
 ) {
-  // Player cues use milliseconds; SDK 2 external task inputs use seconds.
-  const seconds =
-    apiSetting.provider?.apiVersion === "2" &&
-    apiSetting.provider?.implementation?.kind !== "native";
+  // Player cues use milliseconds; Plugin API external task inputs use seconds.
+  const seconds = apiSetting.provider?.implementation?.kind !== "native";
   const call = invokeScene(
     apiSetting,
     "segmentSubtitle",

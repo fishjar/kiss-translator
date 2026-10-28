@@ -35,8 +35,7 @@ const service = {
   ],
 };
 const manifest = {
-  manifestVersion: 1,
-  apiVersion: "1",
+  apiVersion: 1,
   id: "text-example",
   version: "1.0.0",
   services: [service],

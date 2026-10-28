@@ -1,19 +1,3 @@
-let mockRealTouchControl = false;
-jest.mock(
-  "../../components/TouchTranslateControl",
-  () => (props) =>
-    mockRealTouchControl
-      ? require("react").createElement(
-          jest.requireActual("../../components/TouchTranslateControl").default,
-          props
-        )
-      : null
-);
-jest.mock("../../hooks/MouseHover", () => ({
-  useMouseHoverSetting: () => ({
-    updateMouseHoverSetting: mockUpdateMouseHoverSetting,
-  }),
-}));
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import { act, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -34,6 +18,22 @@ import {
   MSG_TOUCH_TRANSLATE_STATE,
   OPT_LANGS_FROM_REVERSED,
 } from "../../config";
+let mockRealTouchControl = false;
+jest.mock(
+  "../../components/TouchTranslateControl",
+  () => (props) =>
+    mockRealTouchControl
+      ? require("react").createElement(
+          jest.requireActual("../../components/TouchTranslateControl").default,
+          props
+        )
+      : null
+);
+jest.mock("../../hooks/MouseHover", () => ({
+  useMouseHoverSetting: () => ({
+    updateMouseHoverSetting: mockUpdateMouseHoverSetting,
+  }),
+}));
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -922,8 +922,9 @@ describe("PopupCont capability parity", () => {
           })
         );
         expect(mockUpdateMouseHoverSetting).not.toHaveBeenCalled();
-        if (transition === "navigation")
-          expect(onPageUnavailable).toHaveBeenCalledTimes(1);
+        expect(onPageUnavailable).toHaveBeenCalledTimes(
+          transition === "navigation" ? 1 : 0
+        );
       } finally {
         if (!unmounted) view.cleanup();
       }
@@ -1732,7 +1733,7 @@ describe("PopupCont capability parity", () => {
       apiName: capability,
       sortOrder: -1,
       provider: {
-        apiVersion: "1",
+        apiVersion: 1,
         implementation: { kind: "native" },
         capabilities: { [capability]: {} },
       },
@@ -1837,11 +1838,9 @@ describe("PopupCont capability parity", () => {
             ? { blacklist: "example.com\nother.example", retained: true }
             : { blacklist: "other.example", retained: true }
         );
-        if (operation === "add") {
-          expect(reduce({ blacklist: "other.example" }).blacklist).toBe(
-            "other.example\nexample.com"
-          );
-        }
+        expect(reduce({ blacklist: "other.example" }).blacklist).toBe(
+          operation === "add" ? "other.example\nexample.com" : "other.example"
+        );
         expect(view.container.querySelector(".MuiSnackbar-root")).toBeNull();
         await act(async () => completeSave({ value, changed: true }));
         expect(view.container.querySelector('[role="alert"]')).toBeNull();
@@ -2373,14 +2372,12 @@ describe("PopupCont capability parity", () => {
                 candidate.textContent.includes("popup_disable_site")
               );
         await act(async () => button.click());
-        if (action === "save") {
-          expect(saveRule).toHaveBeenCalledWith(
-            expect.objectContaining({ pattern: "*.example.com" })
-          );
-        } else {
-          const update = mockUpdateSetting.mock.calls[0][0];
-          expect(update({ blacklist: "" }).blacklist).toBe("*.example.com");
-        }
+        expect(saveRule).toHaveBeenCalledTimes(action === "save" ? 1 : 0);
+        const pattern =
+          action === "save"
+            ? saveRule.mock.calls[0][0].pattern
+            : mockUpdateSetting.mock.calls[0][0]({ blacklist: "" }).blacklist;
+        expect(pattern).toBe("*.example.com");
       } finally {
         view.cleanup();
       }

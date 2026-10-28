@@ -34,7 +34,11 @@ test("timestamped ASR rule uses verbose JSON and returns real segments through t
     language: "en-US",
   };
   const result = await runDeclarative(
-    { rules: pack.implementations["timestamped-transcriptions"] },
+    {
+      apiVersion: 1,
+      settings: [{ key: "apiKey", type: "password" }],
+      rules: pack.implementations["timestamped-transcriptions"],
+    },
     "transcribe",
     input,
     {
@@ -300,7 +304,11 @@ test("synthetic JSON transcription and speech run through the production declara
   };
   await expect(
     runDeclarative(
-      { rules: pack.implementations.transcriptions },
+      {
+        apiVersion: 1,
+        settings: [{ key: "apiKey", type: "password" }],
+        rules: pack.implementations.transcriptions,
+      },
       "transcribe",
       { audio: { assetId: "asset-1" }, language: "auto" },
       ctx
@@ -320,7 +328,11 @@ test("synthetic JSON transcription and speech run through the production declara
   ).defaultValue;
   await expect(
     runDeclarative(
-      { rules: pack.implementations.speech },
+      {
+        apiVersion: 1,
+        settings: [{ key: "apiKey", type: "password" }],
+        rules: pack.implementations.speech,
+      },
       "synthesizeSpeech",
       { text: "hello", speed: 1 },
       ctx

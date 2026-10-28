@@ -12,8 +12,7 @@ beforeAll(() => {
 });
 const sha = "a".repeat(40);
 const manifest = {
-  manifestVersion: 1,
-  apiVersion: "1",
+  apiVersion: 1,
   id: "source-example",
   version: "1.0.0",
   services: [
@@ -187,11 +186,10 @@ test("metadata errors and hanging lookup share one abortable deadline", async ()
       () => new Promise(() => {}),
       { timeoutMs: 50, signal: controller.signal }
     );
-    const rejected = expect(result).rejects.toMatchObject({
-      code: "REQUEST_TIMEOUT",
-    });
-    jest.advanceTimersByTime(50);
-    await rejected;
+    await Promise.all([
+      expect(result).rejects.toMatchObject({ code: "REQUEST_TIMEOUT" }),
+      Promise.resolve().then(() => jest.advanceTimersByTime(50)),
+    ]);
     expect(jest.getTimerCount()).toBe(0);
   } finally {
     jest.useRealTimers();

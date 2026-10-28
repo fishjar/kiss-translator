@@ -187,7 +187,11 @@ export function validateInput(capability, input) {
           question.instructions !== undefined &&
           (question.type === "noul" ||
             (question.type === "choice"
-              ? object(question.criteria) || Array.isArray(question.criteria)
+              ? object(question.criteria) &&
+                Object.keys(question.criteria).length > 0 &&
+                Object.keys(question.criteria).every(
+                  (key) => key.trim().length > 0
+                )
               : Array.isArray(question.criteria))),
         code,
         "Invalid decision question."
@@ -349,15 +353,17 @@ export function validateResult(capability, result, input, descriptor = {}) {
       requireValue(
         object(answer) &&
           answer.type === question.type &&
-          probability(answer.confidence) &&
-          object(answer.action) &&
-          probability(answer.action.act_probability),
+          (answer.confidence === undefined || probability(answer.confidence)) &&
+          (answer.action === undefined ||
+            (object(answer.action) &&
+              probability(answer.action.act_probability))),
         code,
         "Invalid decision answer."
       );
       requireValue(
         question.type === "choice"
-          ? text(answer.choice)
+          ? text(answer.choice) &&
+              Object.hasOwn(question.criteria, answer.choice)
           : question.type === "score"
             ? finite(answer.score)
             : probability(answer.noul),

@@ -1,8 +1,3 @@
-jest.mock("../config/localModelTasks.json", () => ({
-  ocrGroups: [{ id: "ocr-group" }],
-  asrTimestamps: { asr: true },
-  models: { asr: "asr", llm: "llm", vlm: "ocr-vlm" },
-}));
 import { resolveBuiltinCapabilities } from "./capabilities";
 import { OPT_TRANS_LOCALAI, OPT_TRANS_OPENAI } from "../config/apiConstants";
 import { builtinServiceDefinitions } from "./definitions";
@@ -10,6 +5,11 @@ import {
   projectApiCapabilities,
   supportsVlmApi,
 } from "../config/serviceSelection";
+jest.mock("../config/localModelTasks.json", () => ({
+  ocrGroups: [{ id: "ocr-group" }],
+  asrTimestamps: { asr: true },
+  models: { asr: "asr", llm: "llm", vlm: "ocr-vlm" },
+}));
 
 test.each(
   Object.keys(builtinServiceDefinitions).filter(
@@ -21,7 +21,7 @@ test.each(
     enabledCapabilities: ["parseImage"],
     provider: {
       ...builtinServiceDefinitions[apiType],
-      apiVersion: "1",
+      apiVersion: 1,
       capabilities: {
         parseImage: {
           handler: "parseImage",

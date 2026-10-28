@@ -140,7 +140,8 @@ function parseProviderFiles(files) {
     );
   const manifest = JSON.parse(strFromU8(files["manifest.json"]));
   if (
-    manifest.manifestVersion !== 1 ||
+    Object.hasOwn(manifest, "manifestVersion") ||
+    Object.hasOwn(manifest, "rulesVersion") ||
     !supportsSdkVersion(manifest.apiVersion) ||
     !/^[a-z][a-z0-9-]{1,100}$/.test(manifest.id) ||
     !/^\d+\.\d+\.\d+$/.test(manifest.version) ||

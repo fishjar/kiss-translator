@@ -48,13 +48,13 @@ const mockTransApis = [
   {
     apiSlug: "microsoft",
     apiName: "微软翻译",
-    provider: { apiVersion: "1" },
+    provider: { apiVersion: 1 },
     capabilities: ["translate"],
   },
   {
     apiSlug: "LocalAI-OCR",
     apiName: "LocalAI OCR",
-    provider: { apiVersion: "1" },
+    provider: { apiVersion: 1 },
     capabilities: ["recognizeText"],
     recognitionFeatures: {
       recognizeText: { coordinates: true },
@@ -63,7 +63,7 @@ const mockTransApis = [
   {
     apiSlug: "custom_vlm",
     apiName: "自定义 VLM",
-    provider: { apiVersion: "1" },
+    provider: { apiVersion: 1 },
     capabilities: ["parseImage"],
     recognitionFeatures: {
       parseImage: { coordinates: false },
@@ -73,7 +73,7 @@ const mockTransApis = [
     apiSlug: "LocalAI-Layout",
     apiName: "LocalAI 版面分析",
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       implementation: { kind: "native" },
       capabilities: { analyzeLayout: { coordinates: true } },
     },

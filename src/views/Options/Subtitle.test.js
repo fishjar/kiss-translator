@@ -143,7 +143,7 @@ describe("YouTube ASR settings", () => {
       apiName: slug,
       apiType: "CustomASR",
       provider: {
-        apiVersion: "1",
+        apiVersion: 1,
         implementation: { kind: "native" },
         capabilities: { transcribe: { outputModes: ["complete"], timestamps } },
       },
@@ -196,7 +196,7 @@ describe("YouTube ASR settings", () => {
               apiType: "Plugin",
               enabledCapabilities: ["transcribe"],
               provider: {
-                apiVersion: "1",
+                apiVersion: 1,
                 implementation: { kind: "script" },
                 capabilities: {
                   transcribe: {
@@ -248,7 +248,7 @@ describe("YouTube ASR settings", () => {
           enabledCapabilities:
             reason === "capability-off" ? [] : ["transcribe"],
           provider: {
-            apiVersion: "1",
+            apiVersion: 1,
             implementation: { kind: "script" },
             capabilities: {
               transcribe: { handler: "transcribe", outputModes: ["complete"] },
@@ -764,7 +764,7 @@ font-size: 2rem;`;
     ["a dimension token", '1url(/* ) ; " */ none)'],
     ["a hash token", '#url(/* ) ; " */ none)'],
     ["an at-keyword token", '@url(/* ) ; " */ none)'],
-    ["a quoted URL function", 'url("image.svg" /* ) ; \" */)'],
+    ["a quoted URL function", 'url("image.svg" /* ) ; " */)'],
   ])("preserves ordinary comments in %s", (_case, value) => {
     const css = `--image: ${value};\ncolor: red;\nfont-size: 32px;`;
 

@@ -103,7 +103,7 @@ const mockSetting = {
       apiSlug: "gpu-layout",
       apiType: "Plugin",
       provider: {
-        apiVersion: "1",
+        apiVersion: 1,
         implementation: { kind: "script", entry: "layout.js" },
         capabilities: {
           analyzeLayout: { handler: "layout", coordinates: true },
@@ -166,9 +166,10 @@ jest.mock("./PdfWorkspace", () => {
   const React = require("react");
   return React.forwardRef((props, ref) => {
     React.useImperativeHandle(ref, () => mockPdfWorkspaceActions);
+    const onStateChange = React.useRef(props.onStateChange);
     React.useEffect(() => {
-      if (props.onStateChange) {
-        props.onStateChange({
+      if (onStateChange.current) {
+        onStateChange.current({
           phase: "ready",
           progress: { done: 0, total: 10 },
           pdf: { numPages: 10 },

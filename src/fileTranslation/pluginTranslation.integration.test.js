@@ -63,7 +63,7 @@ beforeEach(() => {
     batchSize: 10,
     batchLength: 1000,
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       source: {
         pluginId: "file-translation-test",
         serviceId: "text",
@@ -244,9 +244,10 @@ test("file cancellation reaches the host invocation and does not replay", async 
       throw new Error("Translation settled before the host started");
     }),
   ]);
-  const outcome = expect(pending).rejects.toMatchObject({ name: "AbortError" });
-  controller.abort();
-  await outcome;
+  await Promise.all([
+    expect(pending).rejects.toMatchObject({ name: "AbortError" }),
+    Promise.resolve().then(() => controller.abort()),
+  ]);
   expect(hostSignal.aborted).toBe(true);
   expect(invokeBackgroundPlugin).toHaveBeenCalledTimes(1);
   expect(invokeBridgedService).not.toHaveBeenCalled();
