@@ -257,6 +257,19 @@ export default function FileTranslateView() {
   const [file, setFile] = useState(null);
   const [ignoreCache, setIgnoreCache] = useState(false);
   useEffect(() => setIgnoreCache(false), [file]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const baseTitle = i18n(
+      "file_translation_page_title",
+      "文件翻译 - 免费在线 PDF、EPUB、Markdown、图片双语对照翻译 | KISS Translator"
+    );
+    if (file?.name) {
+      document.title = `${file.name} - ${baseTitle}`;
+    } else {
+      document.title = baseTitle;
+    }
+  }, [file?.name, i18n]);
   const [sourceText, setSourceText] = useState("");
   const [preview, setPreview] = useState("");
   const [rows, setRows] = useState([]);

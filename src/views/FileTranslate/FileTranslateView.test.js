@@ -1652,10 +1652,10 @@ describe("FileTranslatePage (M2 UI)", () => {
     const buttons = container.querySelectorAll(".MuiButton-root");
     expect(buttons.length).toBeGreaterThan(0);
 
-    // 验证 Logo 链接指向 GitHub 仓库
-    const logoLink = container.querySelector(
-      'a[href="https://github.com/fishjar/kiss-translator"]'
-    );
+    // 验证 Logo 链接指向主页
+    const expectedHomepage =
+      process.env.REACT_APP_SITEURL || "https://kiss-translator.rayjar.com";
+    const logoLink = container.querySelector(`a[href="${expectedHomepage}"]`);
     expect(logoLink).not.toBeNull();
     expect(logoLink.getAttribute("target")).toBe("_blank");
 

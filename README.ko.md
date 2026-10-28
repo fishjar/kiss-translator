@@ -113,6 +113,7 @@
 
 ## 관련 프로젝트
 
+- **[kiss-translator-plugins](https://github.com/fishjar/kiss-translator-plugins)**: 공식 API 플러그인 생태계 저장소로, 주요 AI 및 번역 서비스 플러그인, 템플릿, 개발 가이드를 제공합니다.
 - **[KISS-Worker](https://github.com/fishjar/kiss-worker)**: 자체 호스팅 데이터 동기화 서비스로, Cloudflare Workers 서버리스 배포 또는 Docker 배포를 지원하여 데이터 프라이버시 보호와 개인 규칙 공유가 가능합니다.
 - **[kiss-rules](https://github.com/fishjar/kiss-rules)**: 커뮤니티에서 유지 관리하는 구독 규칙 저장소로, 최신 웹사이트 적응 규칙을 제공하며 규칙 작성에 대한 도움을 주고받을 수 있습니다.
 
@@ -175,15 +176,33 @@
 
 ## 개발 가이드
 
-### 로컬 빌드
+### 로컬 빌드 및 디버깅
+
+**환경 요구 사항**: Node.js >= 20(권장: Node 22/24), pnpm >= 9
 
 ```sh
+# 1. 저장소 복제 및 dev 브랜치로 전환
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
 git checkout dev # PR 제출 시 dev 브랜치 권장
+
+# 2. 의존성 설치
 pnpm install
-pnpm build
+
+# 3. 자주 사용하는 개발 및 빌드 명령어
+pnpm build:chrome      # Chrome/Edge 확장 프로그램 빌드 (출력 경로: build/chrome)
+pnpm build:firefox     # Firefox 확장 프로그램 빌드 (출력 경로: build/firefox)
+pnpm start             # 웹 버전 로컬 개발 서버 실행 (http://localhost:3000)
+pnpm check:pr          # PR 제출 전 코드 포맷 및 빌드 자체 검증
+pnpm build             # 모든 플랫폼 대상 전체 빌드
 ```
+
+### 브라우저에 확장 프로그램 로드하기 (Chrome / Edge 기준)
+
+1. 브라우저를 열고 `chrome://extensions` (Edge는 `edge://extensions`)로 이동합니다.
+2. 우측 상단의 **'개발자 모드'**를 활성화합니다.
+3. **'압축해제된 확장 프로그램을 로드합니다'** 버튼을 클릭하고 프로젝트 루트의 `build/chrome` 폴더를 선택합니다.
+4. 코드 수정 후 `pnpm build:chrome` 명령을 다시 실행한 다음, 확장 프로그램 관리 페이지에서 새로고침 아이콘을 클릭하면 변경사항이 반영됩니다.
 
 플러그인 개발은 [플러그인 개발 가이드(중국어)](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)를 읽어보시고 [OpenAI 호환 플러그인](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) 또는 [DeepSeek 플러그인](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)를 참고하세요.
 

@@ -220,6 +220,9 @@ try {
     for (const name of [
       "index.html",
       "file-translate.html",
+      "404.html",
+      "robots.txt",
+      "sitemap.xml",
       "assets",
       "images",
     ]) {

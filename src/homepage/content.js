@@ -71,7 +71,7 @@ const baseContent = {
     themeLight: "Switch to light mode",
     themeDark: "Switch to dark mode",
     version: "Version",
-    eyebrow: "Open-source translation toolkit",
+    eyebrow: "Open-source translation toolkit, built for control",
     title:
       "Minimalist. Open-source. An all-scenario geek-style translation tool.",
     subtitle:
@@ -92,7 +92,7 @@ const baseContent = {
     featureTitle: "Translation workspace",
     featureSubtitle:
       "A compact dashboard for reading, selecting, writing, watching, and building with your preferred translation providers.",
-    ecosystemTitle: "Built for control",
+    ecosystemTitle: "Open and extensible ecosystem",
     ecosystemSubtitle:
       "Use hosted services, local models, custom API hooks, shared rules, and private sync without turning the project into a heavy platform.",
     features: [
@@ -132,6 +132,18 @@ const baseContent = {
         title: "Private sync",
         body: "Synchronize settings through WebDAV or self-hosted KISS-Worker while keeping data under your control.",
       },
+      {
+        title: "File & ebook translation",
+        body: "Translate PDF with formula parsing, read and export bilingual EPUB ebooks, and process Markdown or TXT documents.",
+      },
+      {
+        title: "On-device local AI",
+        body: "Pure offline edge inference via WebGPU and Wasm with lightweight LLM, OCR, and speech synthesis without data leakage.",
+      },
+      {
+        title: "Open provider plugins",
+        body: "Declarative plugin architecture to install official and community packages or connect arbitrary APIs via ZIP or Git.",
+      },
     ],
     providers: [
       "OpenAI",
@@ -153,6 +165,12 @@ const baseContent = {
 const ecosystemProjects = {
   en: [
     {
+      name: "kiss-translator-plugins",
+      description:
+        "Official provider plugin ecosystem with translation providers, templates, and specs.",
+      href: "https://github.com/fishjar/kiss-translator-plugins",
+    },
+    {
       name: "kiss-worker",
       description:
         "Private data sync for KISS Translator, deployable to Cloudflare Workers or self-hosted with Docker.",
@@ -167,6 +185,12 @@ const ecosystemProjects = {
   ],
   zh_CN: [
     {
+      name: "kiss-translator-plugins",
+      description:
+        "KISS Translator 官方接口插件生态库，提供常用 AI/翻译模型插件与开发模板。",
+      href: "https://github.com/fishjar/kiss-translator-plugins",
+    },
+    {
       name: "kiss-worker",
       description:
         "KISS Translator 的私有数据同步服务，可部署到 Cloudflare Workers 或通过 Docker 自托管。",
@@ -180,6 +204,12 @@ const ecosystemProjects = {
   ],
   zh_TW: [
     {
+      name: "kiss-translator-plugins",
+      description:
+        "KISS Translator 官方介面外掛生態庫，提供常用 AI/翻譯模型外掛與開發範本。",
+      href: "https://github.com/fishjar/kiss-translator-plugins",
+    },
+    {
       name: "kiss-worker",
       description:
         "KISS Translator 的私有資料同步服務，可部署至 Cloudflare Workers 或透過 Docker 自行架設。",
@@ -192,6 +222,12 @@ const ecosystemProjects = {
     },
   ],
   ja: [
+    {
+      name: "kiss-translator-plugins",
+      description:
+        "KISS Translator 公式 API プラグインエコシステム。各種 AI・翻訳プラグインとテンプレートを提供。",
+      href: "https://github.com/fishjar/kiss-translator-plugins",
+    },
     {
       name: "kiss-worker",
       description:
@@ -207,6 +243,12 @@ const ecosystemProjects = {
   ],
   ko: [
     {
+      name: "kiss-translator-plugins",
+      description:
+        "KISS Translator 공식 API 플러그인 생태계 저장소로 주요 AI 및 번역 서비스 플러그인과 템플릿을 제공합니다.",
+      href: "https://github.com/fishjar/kiss-translator-plugins",
+    },
+    {
       name: "kiss-worker",
       description:
         "KISS Translator용 비공개 데이터 동기화 서비스로, Cloudflare Workers 또는 Docker에 직접 배포할 수 있습니다.",
@@ -220,6 +262,12 @@ const ecosystemProjects = {
     },
   ],
   fr: [
+    {
+      name: "kiss-translator-plugins",
+      description:
+        "Écosystème officiel de plugins de fournisseurs pour KISS Translator, avec modèles et spécifications.",
+      href: "https://github.com/fishjar/kiss-translator-plugins",
+    },
     {
       name: "kiss-worker",
       description:
@@ -235,6 +283,12 @@ const ecosystemProjects = {
   ],
   de: [
     {
+      name: "kiss-translator-plugins",
+      description:
+        "Offizielles Anbieter-Plugin-Ökosystem für KISS Translator mit Vorlagen und Spezifikationen.",
+      href: "https://github.com/fishjar/kiss-translator-plugins",
+    },
+    {
       name: "kiss-worker",
       description:
         "Privater Datensynchronisierungsdienst für KISS Translator, bereitstellbar auf Cloudflare Workers oder selbst gehostet mit Docker.",
@@ -248,6 +302,12 @@ const ecosystemProjects = {
     },
   ],
   es: [
+    {
+      name: "kiss-translator-plugins",
+      description:
+        "Ecosistema oficial de plugins de proveedores para KISS Translator, con plantillas y especificaciones.",
+      href: "https://github.com/fishjar/kiss-translator-plugins",
+    },
     {
       name: "kiss-worker",
       description:
@@ -263,6 +323,12 @@ const ecosystemProjects = {
   ],
   vi: [
     {
+      name: "kiss-translator-plugins",
+      description:
+        "Hệ sinh thái plugin chính thức cho KISS Translator với các nhà cung cấp dịch vụ và mẫu phát triển.",
+      href: "https://github.com/fishjar/kiss-translator-plugins",
+    },
+    {
       name: "kiss-worker",
       description:
         "Dịch vụ đồng bộ dữ liệu riêng tư cho KISS Translator, có thể triển khai trên Cloudflare Workers hoặc tự lưu trữ bằng Docker.",
@@ -276,6 +342,12 @@ const ecosystemProjects = {
     },
   ],
   ru: [
+    {
+      name: "kiss-translator-plugins",
+      description:
+        "Официальная экосистема плагинов провайдеров для KISS Translator с шаблонами и спецификациями.",
+      href: "https://github.com/fishjar/kiss-translator-plugins",
+    },
     {
       name: "kiss-worker",
       description:
@@ -298,7 +370,7 @@ const translations = {
     themeLight: "切换到亮色模式",
     themeDark: "切换到暗色模式",
     version: "版本",
-    eyebrow: "开源翻译工具箱",
+    eyebrow: "开源翻译工具箱，为可控而设计",
     title: "简约。开源。全场景极客式翻译工具。",
     subtitle:
       "KISS Translator 将网页翻译、划词查询、输入框翻译和 YouTube 字幕整合到一个轻量的浏览器扩展与油猴脚本中。",
@@ -318,7 +390,7 @@ const translations = {
     featureTitle: "翻译工作台",
     featureSubtitle:
       "覆盖阅读、划词、写作、视频字幕和自定义接口的紧凑能力面板。",
-    ecosystemTitle: "为可控而设计",
+    ecosystemTitle: "开放自主的扩展生态",
     ecosystemSubtitle:
       "你可以使用在线服务、本地模型、自定义 API Hook、共享规则和私有同步，而不必接受臃肿平台。",
     features: [
@@ -358,6 +430,18 @@ const translations = {
         title: "私有同步",
         body: "通过 WebDAV 或自部署 KISS-Worker 同步配置，数据自己掌控。",
       },
+      {
+        title: "文件与电子书翻译",
+        body: "支持 PDF 原文解析与表格公式识别、EPUB 电子书双语对照阅读导出，以及 Markdown/TXT 格式。",
+      },
+      {
+        title: "端侧本地 AI",
+        body: "基于 WebGPU 与 Wasm 的纯离线端侧推理，支持轻量 LLM、OCR 文字识别与语音合成，零数据泄漏。",
+      },
+      {
+        title: "开放接口插件",
+        body: "开放声明式插件体系，支持一键安装官方与社区插件，或导入 ZIP/Git 仓库对接任意非标 API。",
+      },
     ],
   },
   zh_TW: {
@@ -366,7 +450,7 @@ const translations = {
     themeLight: "切換到亮色模式",
     themeDark: "切換到暗色模式",
     version: "版本",
-    eyebrow: "開源翻譯工具箱",
+    eyebrow: "開源翻譯工具箱，為可控而設計",
     title: "簡約。開源。全場景極客式翻譯工具。",
     subtitle:
       "KISS Translator 將網頁翻譯、劃詞查詢、輸入框翻譯和 YouTube 字幕整合到輕量的瀏覽器擴充套件與使用者腳本中。",
@@ -385,7 +469,7 @@ const translations = {
     watchOnYouTube: "在 YouTube 觀看",
     featureTitle: "翻譯工作台",
     featureSubtitle: "覆蓋閱讀、劃詞、寫作、影片字幕和自訂介面的緊湊能力面板。",
-    ecosystemTitle: "為可控而設計",
+    ecosystemTitle: "開放自主的擴充生態",
     ecosystemSubtitle:
       "使用雲端服務、本地模型、自訂 API Hook、共享規則和私有同步，不必變成沉重平台。",
     features: [
@@ -425,6 +509,18 @@ const translations = {
         title: "私有同步",
         body: "透過 WebDAV 或自部署 KISS-Worker 同步設定，資料自己掌控。",
       },
+      {
+        title: "檔案與電子書翻譯",
+        body: "支援 PDF 原文解析與表格公式識別、EPUB 電子書雙語對照閱讀匯出，以及 Markdown/TXT 格式。",
+      },
+      {
+        title: "端側本機 AI",
+        body: "基於 WebGPU 與 Wasm 的純離線邊緣端推論，支援輕量 LLM、OCR 文字識別與語音合成，零資料洩漏。",
+      },
+      {
+        title: "開放介面外掛",
+        body: "開放宣告式外掛體系，支援一鍵安裝官方與社群外掛，或匯入 ZIP/Git 儲存庫對接任意非標 API。",
+      },
     ],
   },
   ja: {
@@ -433,7 +529,7 @@ const translations = {
     themeLight: "ライトモードに切り替え",
     themeDark: "ダークモードに切り替え",
     version: "Version",
-    eyebrow: "オープンソース翻訳ツールキット",
+    eyebrow: "オープンソース翻訳ツールキット、制御性を重視した設計",
     title: "ミニマル。オープンソース。全シーン対応のギークスタイル翻訳ツール。",
     subtitle:
       "KISS Translator はページ翻訳、選択テキスト翻訳、入力欄翻訳、YouTube 字幕翻訳を軽量な拡張機能とユーザースクリプトにまとめます。",
@@ -453,7 +549,7 @@ const translations = {
     featureTitle: "翻訳ワークスペース",
     featureSubtitle:
       "読む、選ぶ、書く、見る、作るための翻訳機能をコンパクトにまとめました。",
-    ecosystemTitle: "自分で制御できる設計",
+    ecosystemTitle: "オープンで自律的な拡張エコシステム",
     ecosystemSubtitle:
       "クラウドサービス、ローカルモデル、カスタム API Hook、共有ルール、プライベート同期を必要な分だけ使えます。",
     features: [
@@ -493,6 +589,18 @@ const translations = {
         title: "プライベート同期",
         body: "WebDAV または自前の KISS-Worker で設定を同期し、データを管理できます。",
       },
+      {
+        title: "文書・電子書籍の翻訳",
+        body: "PDF の数式・レイアウト解析、EPUB 電子書籍の対訳閲覧・書き出し、Markdown/TXT 翻訳に対応。",
+      },
+      {
+        title: "オンデバイス・ローカル AI",
+        body: "WebGPU と Wasm による完全オフライン推論。軽量 LLM、OCR 文字認識、音声合成をプライバシー保護で実現。",
+      },
+      {
+        title: "オープン API プラグイン",
+        body: "宣言的プラグイン構造により、公式・コミュニティプラグインの導入や ZIP/Git 経由で自由な API を接続可能。",
+      },
     ],
   },
   ko: {
@@ -501,7 +609,7 @@ const translations = {
     themeLight: "라이트 모드로 전환",
     themeDark: "다크 모드로 전환",
     version: "Version",
-    eyebrow: "오픈 소스 번역 도구",
+    eyebrow: "오픈 소스 번역 도구 키트, 제어성을 위한 설계",
     title: "미니멀. 오픈 소스. 모든 상황을 위한 긱(Geek) 스타일 번역 도구.",
     subtitle:
       "KISS Translator는 웹페이지 번역, 선택 번역, 입력창 번역, YouTube 자막 번역을 가벼운 브라우저 확장과 유저스크립트로 제공합니다.",
@@ -521,7 +629,7 @@ const translations = {
     featureTitle: "번역 작업 공간",
     featureSubtitle:
       "읽기, 선택, 작성, 시청, 커스텀 API 구성을 위한 번역 기능을 한곳에 모았습니다.",
-    ecosystemTitle: "제어 가능한 설계",
+    ecosystemTitle: "개방적이고 자율적인 확장 생태계",
     ecosystemSubtitle:
       "클라우드 서비스, 로컬 모델, 커스텀 API Hook, 공유 규칙, 개인 동기화를 필요한 만큼 사용할 수 있습니다.",
     features: [
@@ -561,6 +669,18 @@ const translations = {
         title: "개인 동기화",
         body: "WebDAV 또는 자체 KISS-Worker로 설정을 동기화하고 데이터를 직접 관리합니다.",
       },
+      {
+        title: "파일 및 전자책 번역",
+        body: "PDF 수식 및 레이아웃 분석, EPUB 전자책 대조 읽기 및 내보내기, Markdown/TXT 번역을 지원합니다.",
+      },
+      {
+        title: "온디바이스 로컬 AI",
+        body: "WebGPU 및 Wasm 기반의 완전한 오프라인 추론으로 가벼운 LLM, OCR 문자 인식 및 음성 합성을 지원합니다.",
+      },
+      {
+        title: "개방형 API 플러그인",
+        body: "선언적 플러그인 아키텍처로 공식 및 커뮤니티 플러그인을 설치하거나 ZIP/Git으로 임의의 API를 연결합니다.",
+      },
     ],
   },
   fr: {
@@ -569,7 +689,8 @@ const translations = {
     themeLight: "Passer au mode clair",
     themeDark: "Passer au mode sombre",
     version: "Version",
-    eyebrow: "Boite a outils de traduction open source",
+    eyebrow:
+      "Boîte à outils de traduction open source, conçue pour le contrôle",
     title:
       "Minimaliste. Open source. Un outil de traduction style geek tout-terrain.",
     subtitle:
@@ -591,7 +712,7 @@ const translations = {
     featureTitle: "Espace de traduction",
     featureSubtitle:
       "Un tableau de bord compact pour lire, selectionner, ecrire, regarder et brancher vos services de traduction.",
-    ecosystemTitle: "Concu pour garder le controle",
+    ecosystemTitle: "Écosystème d'extension ouvert et autonome",
     ecosystemSubtitle:
       "Services cloud, modeles locaux, hooks d'API, regles partagees et synchronisation privee sans plateforme lourde.",
     features: [
@@ -631,6 +752,18 @@ const translations = {
         title: "Synchronisation privee",
         body: "Synchronisez via WebDAV ou KISS-Worker auto-heberge en gardant vos donnees sous controle.",
       },
+      {
+        title: "Traduction de fichiers et livres",
+        body: "Prend en charge l'analyse de formules PDF, la lecture bilingue et l'export d'EPUB, ainsi que le Markdown/TXT.",
+      },
+      {
+        title: "IA locale sur l'appareil",
+        body: "Inférence locale hors ligne via WebGPU et Wasm avec LLM légers, OCR et synthèse vocale sans fuite de données.",
+      },
+      {
+        title: "Plugins d'API ouverts",
+        body: "Architecture déclarative pour installer des plugins officiels ou de la communauté et connecter n'importe quelle API.",
+      },
     ],
   },
   de: {
@@ -639,7 +772,7 @@ const translations = {
     themeLight: "Zum hellen Modus wechseln",
     themeDark: "Zum dunklen Modus wechseln",
     version: "Version",
-    eyebrow: "Open-Source-Ubersetzungswerkzeug",
+    eyebrow: "Open-Source-Übersetzungswerkzeug, für volle Kontrolle entwickelt",
     title:
       "Minimalistisch. Open-Source. Ein Allround-Geek-Style-Ubersetzungstool.",
     subtitle:
@@ -661,7 +794,7 @@ const translations = {
     featureTitle: "Ubersetzungsarbeitsplatz",
     featureSubtitle:
       "Ein kompaktes Dashboard zum Lesen, Auswahlen, Schreiben, Anschauen und Anbinden Ihrer Ubersetzungsdienste.",
-    ecosystemTitle: "Fur Kontrolle gebaut",
+    ecosystemTitle: "Offenes und erweiterbares Ökosystem",
     ecosystemSubtitle:
       "Cloud-Dienste, lokale Modelle, eigene API-Hooks, geteilte Regeln und private Synchronisierung ohne schwere Plattform.",
     features: [
@@ -701,6 +834,18 @@ const translations = {
         title: "Private Synchronisierung",
         body: "Synchronisieren Sie uber WebDAV oder selbst gehosteten KISS-Worker und behalten Sie die Datenkontrolle.",
       },
+      {
+        title: "Datei- & E-Book-Übersetzung",
+        body: "Unterstützt PDF-Formelanalyse, zweisprachiges Lesen und Exportieren von EPUB sowie Markdown/TXT.",
+      },
+      {
+        title: "Lokale On-Device-KI",
+        body: "Reine Offline-Inferenz über WebGPU und Wasm mit leichtgewichtigen LLMs, OCR und Sprachsynthese ohne Datenverlust.",
+      },
+      {
+        title: "Offene Anbieter-Plugins",
+        body: "Deklarative Plugin-Architektur zur Installation offizieller Plugins oder Einbindung beliebiger APIs über ZIP/Git.",
+      },
     ],
   },
   es: {
@@ -709,7 +854,7 @@ const translations = {
     themeLight: "Cambiar a modo claro",
     themeDark: "Cambiar a modo oscuro",
     version: "Version",
-    eyebrow: "Kit de traduccion de codigo abierto",
+    eyebrow: "Kit de traducción de código abierto, diseñado para el control",
     title:
       "Minimalista. Codigo abierto. Una herramienta de traduccion estilo geek para cualquier situacion.",
     subtitle:
@@ -731,7 +876,7 @@ const translations = {
     featureTitle: "Espacio de traduccion",
     featureSubtitle:
       "Un panel compacto para leer, seleccionar, escribir, ver videos y conectar tus proveedores de traduccion.",
-    ecosystemTitle: "Hecho para mantener el control",
+    ecosystemTitle: "Ecosistema de extensión abierto y autónomo",
     ecosystemSubtitle:
       "Servicios en la nube, modelos locales, hooks de API, reglas compartidas y sincronizacion privada sin una plataforma pesada.",
     features: [
@@ -771,6 +916,18 @@ const translations = {
         title: "Sincronizacion privada",
         body: "Sincroniza con WebDAV o KISS-Worker autoalojado manteniendo tus datos bajo control.",
       },
+      {
+        title: "Traducción de archivos y libros",
+        body: "Admite análisis de fórmulas PDF, lectura y exportación bilingüe de EPUB, y Markdown o TXT.",
+      },
+      {
+        title: "IA local en el dispositivo",
+        body: "Inferencia sin conexión mediante WebGPU y Wasm con LLM ligeros, OCR y síntesis de voz sin filtración de datos.",
+      },
+      {
+        title: "Plugins de API abiertos",
+        body: "Arquitectura declarativa para instalar complementos oficiales de la comunidad o conectar cualquier API mediante ZIP/Git.",
+      },
     ],
   },
   vi: {
@@ -779,7 +936,7 @@ const translations = {
     themeLight: "Chuyển sang chế độ sáng",
     themeDark: "Chuyển sang chế độ tối",
     version: "Phiên bản",
-    eyebrow: "Bộ công cụ dịch thuật mã nguồn mở",
+    eyebrow: "Bộ công cụ dịch thuật mã nguồn mở, được thiết kế để bạn làm chủ",
     title:
       "Tối giản. Mã nguồn mở. Công cụ dịch thuật phong cách geek cho mọi tình huống.",
     subtitle:
@@ -805,7 +962,7 @@ const translations = {
     featureTitle: "Không gian dịch thuật",
     featureSubtitle:
       "Bảng điều khiển gọn nhẹ để đọc, chọn, viết, xem video và kết nối các dịch vụ dịch thuật bạn ưa dùng.",
-    ecosystemTitle: "Được thiết kế để bạn làm chủ",
+    ecosystemTitle: "Hệ sinh thái mở rộng tự chủ",
     ecosystemSubtitle:
       "Sử dụng dịch vụ đám mây, mô hình cục bộ, hook API tùy chỉnh, quy tắc chia sẻ và đồng bộ riêng tư mà không cần một nền tảng cồng kềnh.",
     features: [
@@ -845,6 +1002,18 @@ const translations = {
         title: "Đồng bộ riêng tư",
         body: "Đồng bộ cài đặt qua WebDAV hoặc KISS-Worker tự lưu trữ trong khi vẫn làm chủ dữ liệu.",
       },
+      {
+        title: "Dịch tệp tin & sách điện tử",
+        body: "Hỗ trợ phân tích công thức PDF, đọc và xuất sách EPUB song ngữ, cùng tài liệu Markdown/TXT.",
+      },
+      {
+        title: "AI cục bộ trên thiết bị",
+        body: "Suy luận ngoại tuyến qua WebGPU và Wasm với LLM gọn nhẹ, OCR và tổng hợp giọng nói mà không lo rò rỉ dữ liệu.",
+      },
+      {
+        title: "Plugin API mở",
+        body: "Kiến trúc plugin khai báo để cài đặt gói chính thức hoặc kết nối bất kỳ API tùy chỉnh nào qua ZIP hoặc Git.",
+      },
     ],
   },
   ru: {
@@ -853,7 +1022,8 @@ const translations = {
     themeLight: "Переключить на светлую тему",
     themeDark: "Переключить на тёмную тему",
     version: "Версия",
-    eyebrow: "Инструменты перевода с открытым исходным кодом",
+    eyebrow:
+      "Инструменты перевода с открытым исходным кодом, созданные для полного контроля",
     title: "Минимализм. Открытый код. Переводчик в стиле гик для любых задач.",
     subtitle:
       "KISS Translator объединяет перевод веб-страниц, выделенного текста, полей ввода и субтитров YouTube в лёгком браузерном расширении и userscript.",
@@ -878,7 +1048,7 @@ const translations = {
     featureTitle: "Рабочее пространство перевода",
     featureSubtitle:
       "Компактная панель для чтения, выделения, письма, просмотра видео и подключения предпочитаемых сервисов перевода.",
-    ecosystemTitle: "Полный контроль",
+    ecosystemTitle: "Открытая и независимая экосистема расширений",
     ecosystemSubtitle:
       "Используйте облачные сервисы, локальные модели, собственные API-хуки, общие правила и приватную синхронизацию без громоздкой платформы.",
     features: [
@@ -917,6 +1087,18 @@ const translations = {
       {
         title: "Приватная синхронизация",
         body: "Синхронизируйте настройки через WebDAV или собственный KISS-Worker, сохраняя контроль над данными.",
+      },
+      {
+        title: "Перевод файлов и электронных книг",
+        body: "Поддерживает анализ формул в PDF, чтение и экспорт двуязычных EPUB, а также Markdown/TXT.",
+      },
+      {
+        title: "Локальный ИИ на устройстве",
+        body: "Полностью автономная работа через WebGPU и Wasm с лёгкими LLM, OCR и синтезом речи без утечки данных.",
+      },
+      {
+        title: "Открытые плагины API",
+        body: "Декларативная архитектура плагинов для установки официальных модулей или подключения любых API через ZIP или Git.",
       },
     ],
   },

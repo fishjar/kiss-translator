@@ -503,7 +503,7 @@ const webWebpack = (config, env) => {
     new HtmlWebpackPlugin({
       inject: true,
       chunks: ["fileTranslate"],
-      template: paths.appHtml,
+      template: paths.appPublic + "/file-translate.html",
       filename: "file-translate.html",
     })
   );
