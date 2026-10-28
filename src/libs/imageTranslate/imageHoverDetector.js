@@ -14,6 +14,7 @@ import {
   MSG_IMAGE_TRANSLATE_CANCEL,
 } from "../../config";
 import { readImageAsBlob, blobToDataUrl } from "./imageReader";
+import { downloadImageBlob } from "./downloadImage";
 import {
   isApiConfigured,
   supportsApiCapability,
@@ -39,6 +40,7 @@ export class ImageHoverDetector {
   #layoutCache = new WeakMap();
   #managedLayout = false;
   #openRequest = null;
+  #downloadVersion = 0;
 
   // 布局分析状态
   #layoutState = "idle"; // "idle" | "loading" | "active"
@@ -272,6 +274,22 @@ export class ImageHoverDetector {
     this.#renderButtons();
   }
 
+  async #downloadImage() {
+    const image = this.#activeImage;
+    const source = image?.currentSrc || image?.src;
+    const version = this.#downloadVersion;
+    const isCurrent = () =>
+      image === this.#activeImage &&
+      version === this.#downloadVersion &&
+      source === (image?.currentSrc || image?.src);
+    try {
+      const { blob } = await readImageAsBlob(image, { maxEdge: Infinity });
+      if (isCurrent()) downloadImageBlob(blob);
+    } catch (err) {
+      if (isCurrent()) throw err;
+    }
+  }
+
   async #handleLayoutClick(action) {
     if (this.#suspended) return;
     this.#onActivateImage?.(this.#activeImage);
@@ -427,9 +445,8 @@ export class ImageHoverDetector {
 
     // 按钮组移到图片外上方（留 6px 间隙）
     const btnHeight = 30;
-    const btnWidth = 92; // 3 个 26px 按钮 + 分割线 + 内边距约 92px
     let top = rect.top + window.scrollY - btnHeight - 6;
-    let left = rect.right + window.scrollX - btnWidth;
+    const left = rect.right + window.scrollX;
 
     // 如果图片贴近顶端，上方不足 36px，则降级放置在图片下方外部
     if (rect.top < btnHeight + 8) {
@@ -457,6 +474,7 @@ export class ImageHoverDetector {
           style={{
             top: `${Math.max(0, top)}px`,
             left: `${Math.max(0, left)}px`,
+            transform: "translateX(-100%)",
           }}
           visible={true}
           i18n={this.#i18n}
@@ -480,6 +498,7 @@ export class ImageHoverDetector {
           onMenuClick={() => this.#openBox("menu")}
           onLayoutClick={(action) => this.#handleLayoutClick(action)}
           onTranslateClick={() => this.#openBox("all")}
+          onDownloadClick={() => this.#downloadImage()}
         />
       </>
     );
@@ -501,6 +520,7 @@ export class ImageHoverDetector {
 
   #hideButtons(force = false) {
     if (this.#isPinned && !force) return;
+    this.#downloadVersion++;
     clearTimeout(this.#hoverTimer);
     clearTimeout(this.#hideTimer);
     if (this.#layoutTaskId) {

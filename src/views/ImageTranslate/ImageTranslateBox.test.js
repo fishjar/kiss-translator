@@ -2,8 +2,11 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import ImageTranslateBox from "./ImageTranslateBox";
-import ImageTranslateHeader from "./ImageTranslateHeader";
+import ImageTranslateHeader, {
+  ImageTranslateSettings,
+} from "./ImageTranslateHeader";
 import ImageTranslateContent from "./ImageTranslateContent";
+import DraggableResizable from "../Selection/DraggableResizable";
 import { sendBgMsg } from "../../libs/msg";
 import { MSG_IMAGE_TRANSLATE_EXECUTE } from "../../config/msg";
 
@@ -26,12 +29,17 @@ jest.mock("../../libs/browser", () => ({
     },
   },
 }));
-jest.mock("./ImageTranslateHeader", () => jest.fn(() => null));
+jest.mock("./ImageTranslateHeader", () => ({
+  __esModule: true,
+  default: jest.fn(() => null),
+  ImageTranslateSettings: jest.fn(() => null),
+}));
 jest.mock("./ImageTranslateContent", () => jest.fn(() => null));
 jest.mock("../Selection/DraggableResizable", () => {
   const React = require("react");
-  return ({ header, children }) =>
-    React.createElement("div", null, header, children);
+  return jest.fn(({ header, children }) =>
+    React.createElement("div", null, header, children)
+  );
 });
 
 describe("ImageTranslateBox staged actions", () => {
@@ -39,7 +47,7 @@ describe("ImageTranslateBox staged actions", () => {
   let container;
   let props;
   const header = () => ({
-    ...ImageTranslateHeader.mock.calls.slice(-1)[0][0],
+    ...ImageTranslateSettings.mock.calls.slice(-1)[0][0],
     ...ImageTranslateContent.mock.calls.slice(-1)[0][0].actions.props,
   });
   const content = () => ImageTranslateContent.mock.calls.slice(-1)[0][0];
@@ -50,12 +58,16 @@ describe("ImageTranslateBox staged actions", () => {
   };
 
   beforeEach(() => {
+    DraggableResizable.mockImplementation(({ header, children }) =>
+      React.createElement("div", null, header, children)
+    );
     sendBgMsg.mockReset();
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
     props = {
       showBox: true,
+      setShowBox: jest.fn(),
       imageDataUrl: "data:image/png;base64,test",
       requestVersion: 1,
       selectedRegions: regions,
@@ -67,6 +79,16 @@ describe("ImageTranslateBox staged actions", () => {
     };
     act(() => root.render(<ImageTranslateBox {...props} />));
     sendBgMsg.mockClear();
+  });
+
+  test("keeps only the title in the fixed header and puts settings and results in the scrollable body", () => {
+    const panel = DraggableResizable.mock.calls.slice(-1)[0][0];
+    expect(panel.header.type).toBe(ImageTranslateHeader);
+    expect(
+      React.Children.toArray(panel.children).map((child) => child.type)
+    ).toEqual([ImageTranslateSettings, ImageTranslateContent]);
+    act(() => panel.header.props.onClose());
+    expect(props.setShowBox).toHaveBeenCalledWith(false);
   });
 
   test("reports task locking through completion and cancellation and blocks actions while the source is being cropped", async () => {

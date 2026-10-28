@@ -8,7 +8,9 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import DualActionButton from "./DualActionButton";
 import ImageTranslateContent from "./ImageTranslateContent";
-import ImageTranslateHeader from "./ImageTranslateHeader";
+import ImageTranslateTitleBar, {
+  ImageTranslateSettings as ImageTranslateHeader,
+} from "./ImageTranslateHeader";
 import ImageTranslateActions from "./ImageTranslateActions";
 import ImageLayoutOverlay from "./ImageLayoutOverlay";
 import { newI18n } from "../../config/i18n";
@@ -29,6 +31,30 @@ describe("DualActionButton", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+  });
+
+  test.each([
+    ["100px", "108px"],
+    [100, "108px"],
+    ["clamp(8px, 50vw, 800px)", "clamp(8px, 50vw, 800px)"],
+    ["calc(100% - 40px)", "calc(100% - 40px)"],
+  ])("keeps boundary correction valid for left=%s", (left, expected) => {
+    const bounds = jest
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockReturnValue({ left: 0, right: 100, width: 100 });
+    const leftSetter = jest.spyOn(CSSStyleDeclaration.prototype, "left", "set");
+    try {
+      act(() => root.render(<DualActionButton style={{ left }} />));
+      expect(bounds).toHaveBeenCalled();
+      // Inspect assignments even when jsdom does not parse CSS expressions.
+      expect(leftSetter).toHaveBeenLastCalledWith(expected);
+      expect(
+        leftSetter.mock.calls.some(([value]) => String(value).includes("NaN"))
+      ).toBe(false);
+    } finally {
+      bounds.mockRestore();
+      leftSetter.mockRestore();
+    }
   });
 
   test("renders menu, layout, and translate buttons and dispatches clicks", () => {
@@ -125,6 +151,40 @@ describe("DualActionButton", () => {
       root.render(<DualActionButton visible={false} />);
     });
     expect(container.firstChild).toBeNull();
+  });
+
+  test("downloads separately from translation and prevents repeated clicks until completion", async () => {
+    let finish;
+    const onDownloadClick = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    const onTranslateClick = jest.fn();
+    const onCancelClick = jest.fn();
+    act(() =>
+      root.render(
+        <DualActionButton
+          onDownloadClick={onDownloadClick}
+          onTranslateClick={onTranslateClick}
+          onCancelClick={onCancelClick}
+        />
+      )
+    );
+    const buttons = container.querySelectorAll("button");
+    expect(buttons).toHaveLength(5);
+    expect(buttons[3].getAttribute("aria-label")).toBe("下载图片");
+    act(() => {
+      buttons[3].click();
+      buttons[3].click();
+    });
+    expect(onDownloadClick).toHaveBeenCalledTimes(1);
+    expect(buttons[3].disabled).toBe(true);
+    expect(onTranslateClick).not.toHaveBeenCalled();
+    expect(onCancelClick).not.toHaveBeenCalled();
+    await act(async () => finish());
+    expect(buttons[3].disabled).toBe(false);
   });
 });
 
@@ -375,38 +435,43 @@ describe("ImageTranslateHeader", () => {
     expect(labels).not.toContain("文本识别");
   });
 
-  test("renders header with action buttons and two-row controls", () => {
+  test("keeps the title and close button separate from scrollable settings", () => {
     const onRunAction = jest.fn();
     const onClose = jest.fn();
 
     act(() => {
       root.render(
-        <ImageTranslateHeader
-          scene={{
-            fromLang: "auto",
-            toLang: "zh-CN",
-            recognitionService: {
-              apiSlug: "mock_ocr",
-              capability: "recognizeText",
-            },
-          }}
-          apis={[
-            {
-              apiSlug: "mock_ocr",
-              apiName: "Mock OCR",
-              provider: { apiVersion: 1 },
-              capabilities: ["recognizeText"],
-            },
-          ]}
-          onRunAction={onRunAction}
-          onClose={onClose}
-        />
+        <>
+          <ImageTranslateTitleBar onClose={onClose} />
+          <ImageTranslateHeader
+            scene={{
+              fromLang: "auto",
+              toLang: "zh-CN",
+              recognitionService: {
+                apiSlug: "mock_ocr",
+                capability: "recognizeText",
+              },
+            }}
+            apis={[
+              {
+                apiSlug: "mock_ocr",
+                apiName: "Mock OCR",
+                provider: { apiVersion: 1 },
+                capabilities: ["recognizeText"],
+              },
+            ]}
+            onRunAction={onRunAction}
+            onClose={onClose}
+          />
+        </>
       );
     });
 
     expect(container.textContent).toContain("图片翻译");
     const translateBtn = container.querySelector("button");
     expect(translateBtn).not.toBeNull();
+    act(() => translateBtn.click());
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   test("disables select controls when busy is true", () => {

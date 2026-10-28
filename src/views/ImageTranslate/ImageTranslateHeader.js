@@ -32,13 +32,12 @@ import {
   getVlmPromptOptions,
 } from "../../config/prompt";
 
-export default function ImageTranslateHeader({
+export function ImageTranslateSettings({
   scene = {},
   apis = [],
   prompts = [],
   busy = false,
   onSettingChange,
-  onClose,
   i18n = (k, d) => d || k,
 }) {
   const rootRef = useRef(null);
@@ -128,37 +127,8 @@ export default function ImageTranslateHeader({
         backgroundColor: "background.paper",
         p: 1.5,
         userSelect: "none",
-        // 彻底解决直角外突问题
-        borderRadius: "16px 16px 0 0",
       }}
     >
-      {/* 顶栏：标题、拖拽手柄、关闭按钮 */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          pb: 1,
-          mb: 1.2,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <DragIndicatorRoundedIcon
-            fontSize="small"
-            sx={{ color: "text.secondary", cursor: "grab" }}
-          />
-          <Logo size={20} style={{ flexShrink: 0 }} />
-          <Typography variant="subtitle2" fontWeight={600}>
-            {i18n("image_translate_title", "图片翻译")}
-          </Typography>
-        </Box>
-        <IconButton size="small" onClick={onClose} aria-label="close">
-          <CloseRoundedIcon fontSize="small" />
-        </IconButton>
-      </Box>
-
       {/* 第一行：原文语言、目标语言、翻译服务 */}
       <Box
         sx={{
@@ -366,6 +336,38 @@ export default function ImageTranslateHeader({
           )}
         </Box>
       )}
+    </Box>
+  );
+}
+
+export default function ImageTranslateHeader({
+  onClose,
+  i18n = (k, d) => d || k,
+}) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        p: 1.5,
+        borderBottom: "1px solid",
+        borderColor: "divider",
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+        <DragIndicatorRoundedIcon
+          fontSize="small"
+          sx={{ color: "text.secondary", cursor: "grab" }}
+        />
+        <Logo size={20} style={{ flexShrink: 0 }} />
+        <Typography variant="subtitle2" fontWeight={600}>
+          {i18n("image_translate_title", "图片翻译")}
+        </Typography>
+      </Box>
+      <IconButton size="small" onClick={onClose} aria-label="close">
+        <CloseRoundedIcon fontSize="small" />
+      </IconButton>
     </Box>
   );
 }

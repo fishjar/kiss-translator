@@ -6,6 +6,7 @@ import { logger } from "../log";
 
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { flushSync } from "react-dom";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { sendBgMsg } from "../msg";
 import {
@@ -15,6 +16,7 @@ import {
   APP_CONSTS,
 } from "../../config";
 import { cropAndCompressImage, blobToDataUrl } from "./imageReader";
+import { downloadImageBlob } from "./downloadImage";
 import DualActionButton from "../../views/ImageTranslate/DualActionButton";
 import ImageLayoutOverlay from "../../views/ImageTranslate/ImageLayoutOverlay";
 import {
@@ -25,6 +27,9 @@ import {
 export class ScreenshotOverlay {
   #container = null;
   #reactRoot = null;
+  #overlayElement = null;
+  #selectionElement = null;
+  #selectionFrame = null;
   #imgElement = null;
   #dpr = 1;
 
@@ -49,6 +54,7 @@ export class ScreenshotOverlay {
   #currentSessionId = 0;
   #isConfirmed = false; // 是否已点击确认/翻译并弹出翻译窗
   #cropBusy = false;
+  #downloadBusy = false;
   #taskBusy = false;
   #cropSize = null;
   #onLayoutChange = null;
@@ -60,7 +66,12 @@ export class ScreenshotOverlay {
   #onToggleBox = null;
 
   get #busy() {
-    return this.#cropBusy || this.#taskBusy || this.#layoutState === "loading";
+    return (
+      this.#cropBusy ||
+      this.#downloadBusy ||
+      this.#taskBusy ||
+      this.#layoutState === "loading"
+    );
   }
 
   setTaskState(busy) {
@@ -290,12 +301,8 @@ export class ScreenshotOverlay {
     for (const { element } of saved) {
       element.style.setProperty("overflow-x", "hidden", "important");
       element.style.setProperty("overflow-y", "hidden", "important");
+      element.style.setProperty("scrollbar-gutter", "auto", "important");
     }
-    document.documentElement.style.setProperty(
-      "scrollbar-gutter",
-      "stable",
-      "important"
-    );
     const preventScroll = (event) => {
       if (!this.#isPopupEvent(event)) event.preventDefault();
     };
@@ -329,6 +336,7 @@ export class ScreenshotOverlay {
   }
 
   #finishSelection() {
+    this.#cancelSelectionFrame();
     this.#render();
     if (
       this.#isConfirmed &&
@@ -337,6 +345,40 @@ export class ScreenshotOverlay {
     ) {
       this.#confirmSelection("update");
     }
+  }
+
+  #cancelSelectionFrame() {
+    if (this.#selectionFrame === null) return;
+    cancelAnimationFrame(this.#selectionFrame);
+    this.#selectionFrame = null;
+  }
+
+  #scheduleSelectionPaint() {
+    if (this.#selectionFrame !== null) return;
+    this.#selectionFrame = requestAnimationFrame(() => {
+      this.#selectionFrame = null;
+      const sel = this.#selection;
+      const visible = Boolean(sel && sel.w >= 10 && sel.h >= 10);
+      // Mount or remove controls only when crossing the selection threshold.
+      if (visible !== Boolean(this.#selectionElement)) {
+        flushSync(() => this.#render());
+      }
+      this.#paintSelectionGeometry();
+    });
+  }
+
+  #paintSelectionGeometry() {
+    const sel = this.#selection;
+    if (!sel || !this.#overlayElement) return;
+    const style = this.#overlayElement.style;
+    style.setProperty("--kt-selection-x", `${sel.x}px`);
+    style.setProperty("--kt-selection-y", `${sel.y}px`);
+    style.setProperty("--kt-selection-width", `${sel.w}px`);
+    style.setProperty("--kt-selection-height", `${sel.h}px`);
+    style.setProperty(
+      "--kt-selection-toolbar-top",
+      `${sel.y > 38 ? sel.y - 34 : sel.y + 8}px`
+    );
   }
 
   #onContextMenu = (e) => {
@@ -373,7 +415,7 @@ export class ScreenshotOverlay {
         selY: this.#selection.y,
       };
     } else {
-      this.#invalidateSelection();
+      flushSync(() => this.#invalidateSelection());
       changed = true;
       // 重新开始框选
       this.#isSelecting = true;
@@ -389,7 +431,7 @@ export class ScreenshotOverlay {
         !changed &&
         (moveEvent.clientX !== startX || moveEvent.clientY !== startY)
       ) {
-        this.#invalidateSelection();
+        flushSync(() => this.#invalidateSelection());
         changed = true;
       }
       if (this.#isSelecting) {
@@ -400,7 +442,7 @@ export class ScreenshotOverlay {
         const w = Math.abs(curX - this.#dragStart.startX);
         const h = Math.abs(curY - this.#dragStart.startY);
         this.#selection = { x, y, w, h };
-        this.#render();
+        this.#scheduleSelectionPaint();
       } else if (this.#isDragging) {
         const dx = moveEvent.clientX - this.#dragStart.mouseX;
         const dy = moveEvent.clientY - this.#dragStart.mouseY;
@@ -414,7 +456,7 @@ export class ScreenshotOverlay {
           0,
           Math.min(maxY, this.#dragStart.selY + dy)
         );
-        this.#render();
+        this.#scheduleSelectionPaint();
       }
     };
 
@@ -434,7 +476,10 @@ export class ScreenshotOverlay {
         this.#layoutRegions = [];
       }
       if (changed) this.#finishSelection();
-      else this.#render();
+      else {
+        this.#cancelSelectionFrame();
+        this.#render();
+      }
     };
 
     document.addEventListener("mousemove", onMouseMove, true);
@@ -477,11 +522,11 @@ export class ScreenshotOverlay {
 
       if (w > 10 && h > 10) {
         if (!changed && (dx || dy)) {
-          this.#invalidateSelection();
+          flushSync(() => this.#invalidateSelection());
           changed = true;
         }
         this.#selection = { x, y, w, h };
-        this.#render();
+        this.#scheduleSelectionPaint();
       }
     };
 
@@ -492,7 +537,10 @@ export class ScreenshotOverlay {
       document.removeEventListener("mouseup", onMouseUp, true);
       this.#cleanupGesture = null;
       if (changed) this.#finishSelection();
-      else this.#render();
+      else {
+        this.#cancelSelectionFrame();
+        this.#render();
+      }
     };
 
     document.addEventListener("mousemove", onMouseMove, true);
@@ -656,6 +704,34 @@ export class ScreenshotOverlay {
       .forEach((e) => e.remove());
   }
 
+  async #downloadSelection() {
+    if (this.#busy || !this.#selection || !this.#imgElement) return;
+    const selection = { ...this.#selection };
+    const image = this.#imgElement;
+    const session = this.#currentSessionId;
+    this.#downloadBusy = true;
+    this.#render();
+    try {
+      const { blob } = await cropAndCompressImage(image, {
+        x: selection.x,
+        y: selection.y,
+        width: selection.w,
+        height: selection.h,
+        dpr: this.#dpr,
+        maxEdge: Infinity,
+      });
+      if (session === this.#currentSessionId)
+        downloadImageBlob(blob, "screenshot");
+    } catch (err) {
+      if (session === this.#currentSessionId) throw err;
+    } finally {
+      if (session === this.#currentSessionId) {
+        this.#downloadBusy = false;
+        this.#render();
+      }
+    }
+  }
+
   async #confirmSelection(action) {
     if (action === "menu" && this.#onToggleBox?.()) return;
     if (this.#busy) return;
@@ -744,86 +820,69 @@ export class ScreenshotOverlay {
 
     const handles = hasSelection
       ? [
-          { dir: "nw", x: sel.x - 4, y: sel.y - 4, cursor: "nwse-resize" },
-          {
-            dir: "n",
-            x: sel.x + sel.w / 2 - 4,
-            y: sel.y - 4,
-            cursor: "ns-resize",
-          },
-          {
-            dir: "ne",
-            x: sel.x + sel.w - 4,
-            y: sel.y - 4,
-            cursor: "nesw-resize",
-          },
-          {
-            dir: "e",
-            x: sel.x + sel.w - 4,
-            y: sel.y + sel.h / 2 - 4,
-            cursor: "ew-resize",
-          },
-          {
-            dir: "se",
-            x: sel.x + sel.w - 4,
-            y: sel.y + sel.h - 4,
-            cursor: "nwse-resize",
-          },
-          {
-            dir: "s",
-            x: sel.x + sel.w / 2 - 4,
-            y: sel.y + sel.h - 4,
-            cursor: "ns-resize",
-          },
-          {
-            dir: "sw",
-            x: sel.x - 4,
-            y: sel.y + sel.h - 4,
-            cursor: "nesw-resize",
-          },
-          {
-            dir: "w",
-            x: sel.x - 4,
-            y: sel.y + sel.h / 2 - 4,
-            cursor: "ew-resize",
-          },
+          { dir: "nw", cursor: "nwse-resize" },
+          { dir: "n", cursor: "ns-resize" },
+          { dir: "ne", cursor: "nesw-resize" },
+          { dir: "e", cursor: "ew-resize" },
+          { dir: "se", cursor: "nwse-resize" },
+          { dir: "s", cursor: "ns-resize" },
+          { dir: "sw", cursor: "nesw-resize" },
+          { dir: "w", cursor: "ew-resize" },
         ]
       : [];
 
     this.#reactRoot.render(
       <div
+        ref={(element) => {
+          this.#overlayElement = element;
+          this.#paintSelectionGeometry();
+        }}
         onMouseDown={this.#onMouseDown}
         onContextMenu={this.#onContextMenu}
         style={{
+          "--kt-selection-x": `${sel?.x || 0}px`,
+          "--kt-selection-y": `${sel?.y || 0}px`,
+          "--kt-selection-width": `${sel?.w || 0}px`,
+          "--kt-selection-height": `${sel?.h || 0}px`,
+          "--kt-selection-toolbar-top": `${sel && sel.y > 38 ? sel.y - 34 : (sel?.y || 0) + 8}px`,
           position: "relative",
           width: "100%",
           height: "100%",
         }}
       >
         {/* 静态截屏底图 */}
-        <img
-          src={this.#imgElement.src}
-          alt=""
+        <div
+          className="kt-screenshot-background"
           style={{
+            all: "initial",
             position: "absolute",
             top: 0,
             left: 0,
             width: "100vw",
             height: "100vh",
-            objectFit: "fill",
+            backgroundImage: `url(${this.#imgElement.src})`,
+            backgroundSize: "100% 100%",
+            backgroundRepeat: "no-repeat",
             pointerEvents: "none",
           }}
         />
 
         {/* 静态半透明全屏蒙版 */}
         <div
+          className="kt-screenshot-mask"
           style={{
+            all: "initial",
             position: "absolute",
             top: 0,
             left: 0,
             width: "100vw",
             height: "100vh",
-            backgroundColor: "rgba(0, 0, 0, 0.4)",
+            backgroundColor: hasSelection
+              ? "rgba(0, 0, 0, 0.64)"
+              : "rgba(0, 0, 0, 0.4)",
+            clipPath: hasSelection
+              ? "polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, var(--kt-selection-x) var(--kt-selection-y), var(--kt-selection-x) calc(var(--kt-selection-y) + var(--kt-selection-height)), calc(var(--kt-selection-x) + var(--kt-selection-width)) calc(var(--kt-selection-y) + var(--kt-selection-height)), calc(var(--kt-selection-x) + var(--kt-selection-width)) var(--kt-selection-y), var(--kt-selection-x) var(--kt-selection-y))"
+              : "none",
             pointerEvents: "none",
           }}
         />
@@ -885,33 +944,20 @@ export class ScreenshotOverlay {
         {hasSelection && (
           <div
             className="kt-screenshot-selection"
+            ref={(element) => {
+              this.#selectionElement = element;
+            }}
             style={{
               position: "absolute",
-              left: `${sel.x}px`,
-              top: `${sel.y}px`,
-              width: `${sel.w}px`,
-              height: `${sel.h}px`,
+              left: "var(--kt-selection-x)",
+              top: "var(--kt-selection-y)",
+              width: "var(--kt-selection-width)",
+              height: "var(--kt-selection-height)",
               border: "2px solid #00c853",
-              boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.4)",
               cursor: this.#busy ? "default" : "move",
               boxSizing: "border-box",
             }}
-          >
-            {/* 选区内明亮原图透显 */}
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                backgroundImage: `url(${this.#imgElement.src})`,
-                backgroundPosition: `-${sel.x}px -${sel.y}px`,
-                backgroundSize: `${window.innerWidth}px ${window.innerHeight}px`,
-                backgroundRepeat: "no-repeat",
-              }}
-            />
-          </div>
+          />
         )}
 
         {/* 选区内交互式版面线框层 */}
@@ -936,8 +982,8 @@ export class ScreenshotOverlay {
               onMouseDown={(e) => this.#startResize(h.dir, e)}
               style={{
                 position: "absolute",
-                left: `${h.x}px`,
-                top: `${h.y}px`,
+                left: `calc(var(--kt-selection-x) + ${h.dir.includes("w") ? "0px" : h.dir.includes("e") ? "var(--kt-selection-width)" : "var(--kt-selection-width) / 2"} - 4px)`,
+                top: `calc(var(--kt-selection-y) + ${h.dir.includes("n") ? "0px" : h.dir.includes("s") ? "var(--kt-selection-height)" : "var(--kt-selection-height) / 2"} - 4px)`,
                 width: "8px",
                 height: "8px",
                 backgroundColor: "#ffffff",
@@ -953,8 +999,9 @@ export class ScreenshotOverlay {
         {hasSelection && (
           <DualActionButton
             style={{
-              top: `${sel.y > 38 ? sel.y - 34 : sel.y + 8}px`,
-              left: `${Math.max(10, sel.x + sel.w - 118)}px`,
+              top: "var(--kt-selection-toolbar-top)",
+              left: "clamp(calc(var(--kt-image-toolbar-width, 154px) + 8px), calc(var(--kt-selection-x) + var(--kt-selection-width)), calc(100vw - 8px))",
+              transform: "translateX(-100%)",
             }}
             visible={true}
             i18n={this.#i18n}
@@ -964,6 +1011,8 @@ export class ScreenshotOverlay {
             onMenuClick={() => this.#confirmSelection("menu")}
             onLayoutClick={(action) => this.#handleLayoutClick(action)}
             onTranslateClick={() => this.#confirmSelection("all")}
+            onDownloadClick={() => this.#downloadSelection()}
+            downloadDisabled={this.#busy}
             onCancelClick={() => {
               this.destroy(true);
               this.#onCancel?.();
@@ -976,6 +1025,7 @@ export class ScreenshotOverlay {
 
   destroy(clearHighlight = true) {
     this.#currentSessionId++;
+    this.#cancelSelectionFrame();
     this.#cleanupGesture?.();
     this.#cleanupGesture = null;
     this.#cleanupScroll?.();
@@ -984,6 +1034,7 @@ export class ScreenshotOverlay {
     this.#isDragging = false;
     this.#isResizing = false;
     this.#cropBusy = false;
+    this.#downloadBusy = false;
     this.#taskBusy = false;
     this.#cropSize = null;
     if (this.#handleKeyDown) {

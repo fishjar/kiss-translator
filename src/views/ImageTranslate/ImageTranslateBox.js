@@ -5,7 +5,9 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import DraggableResizable from "../Selection/DraggableResizable";
-import ImageTranslateHeader from "./ImageTranslateHeader";
+import ImageTranslateHeader, {
+  ImageTranslateSettings,
+} from "./ImageTranslateHeader";
 import ImageTranslateContent from "./ImageTranslateContent";
 import ImageTranslateActions from "./ImageTranslateActions";
 import { DEFAULT_IMAGE_TRANSLATE_SETTING } from "../../config/setting";
@@ -514,18 +516,18 @@ export default function ImageTranslateBox({
         maxSize={{ w: 1000, h: 800 }}
         autoHeight={false}
         header={
-          <ImageTranslateHeader
-            scene={scene}
-            apis={setting?.transApis || []}
-            prompts={getAllPrompts(setting?.prompts || [])}
-            busy={busy || sourceBusy}
-            onSettingChange={handleSettingChange}
-            onClose={() => setShowBox(false)}
-            i18n={i18n}
-          />
+          <ImageTranslateHeader onClose={() => setShowBox(false)} i18n={i18n} />
         }
         onClick={(e) => e.stopPropagation()}
       >
+        <ImageTranslateSettings
+          scene={scene}
+          apis={setting?.transApis || []}
+          prompts={getAllPrompts(setting?.prompts || [])}
+          busy={busy || sourceBusy}
+          onSettingChange={handleSettingChange}
+          i18n={i18n}
+        />
         <ImageTranslateContent
           actions={
             <ImageTranslateActions
