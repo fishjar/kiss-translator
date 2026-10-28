@@ -1,11 +1,21 @@
 import { useI18n } from "../../hooks/I18n";
-import { useState } from "react";
-import { Alert, Button, Stack, TextField, Typography } from "@mui/material";
+import { useAlert } from "../../hooks/Alert";
+import {
+  Alert,
+  Box,
+  IconButton,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { getPromptDisplayName } from "../../config/prompt";
 import { defaultPromptCapabilities } from "../../providers/defaultPrompts";
 
 export default function PluginPromptPreview({ service }) {
   const i18n = useI18n();
+  const alert = useAlert();
   const slots = [
     ["nobatch", i18n("plugin_single_sentence_translation_prompt")],
     ["batch", i18n("batch_prompt")],
@@ -22,7 +32,6 @@ export default function PluginPromptPreview({ service }) {
         i18n(`capability_${capability}`, slot),
       ]),
   ];
-  const [copyMessage, setCopyMessage] = useState("");
   const prompts = slots.filter(([slot]) => service.defaultPrompts?.[slot]);
   return (
     <Stack spacing={2}>
@@ -31,7 +40,6 @@ export default function PluginPromptPreview({ service }) {
           "plugin_default_templates_in_the_current_package_existing_instances_may_use_di"
         )}
       </Typography>
-      {copyMessage && <Alert severity="info">{copyMessage}</Alert>}
       {!prompts.length && (
         <Alert severity="info">
           {i18n("plugin_this_plugin_does_not_expose_default_prompts")}
@@ -61,45 +69,48 @@ export default function PluginPromptPreview({ service }) {
                 </Typography>
               )}
               {[
-                ["systemPrompt", i18n("plugin_system_prompt_read_only")],
-                ["userPrompt", i18n("plugin_user_prompt_read_only")],
+                ["systemPrompt", i18n("plugin_system_prompt")],
+                ["userPrompt", i18n("plugin_user_prompt")],
               ].map(([key, fieldLabel]) =>
                 prompt[key] !== undefined ? (
-                  <TextField
-                    key={key}
-                    fullWidth
-                    multiline
-                    minRows={2}
-                    maxRows={8}
-                    label={fieldLabel}
-                    value={prompt[key]}
-                    InputProps={{ readOnly: true }}
-                  />
+                  <Box key={key} sx={{ position: "relative" }}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      maxRows={8}
+                      label={fieldLabel}
+                      value={prompt[key]}
+                      InputProps={{ readOnly: true }}
+                    />
+                    <Tooltip title={i18n("plugin_copy_prompt")}>
+                      <IconButton
+                        size="small"
+                        aria-label={i18n("plugin_copy_prompt")}
+                        sx={{ position: "absolute", top: 8, right: 8 }}
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(prompt[key]);
+                            alert.success(
+                              i18n(
+                                "plugin_copied_create_a_prompt_in_prompt_management"
+                              )
+                            );
+                          } catch {
+                            alert.error(
+                              i18n(
+                                "plugin_copy_failed_copy_manually_from_the_read_only_field"
+                              )
+                            );
+                          }
+                        }}
+                      >
+                        <ContentCopyIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                 ) : null
               )}
-              <Button
-                sx={{ alignSelf: "flex-start" }}
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(
-                      [prompt.systemPrompt, prompt.userPrompt]
-                        .filter((text) => text !== undefined)
-                        .join("\n\n")
-                    );
-                    setCopyMessage(
-                      i18n("plugin_copied_create_a_prompt_in_prompt_management")
-                    );
-                  } catch {
-                    setCopyMessage(
-                      i18n(
-                        "plugin_copy_failed_copy_manually_from_the_read_only_field"
-                      )
-                    );
-                  }
-                }}
-              >
-                {i18n("plugin_copy_prompt")}
-              </Button>
             </Stack>
           );
         })

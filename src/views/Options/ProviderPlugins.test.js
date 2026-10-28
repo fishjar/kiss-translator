@@ -2,6 +2,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
 import ProviderPlugins from "./ProviderPlugins";
+import { AlertProvider } from "../../hooks/Alert";
 import {
   readProviderDirectory,
   readProviderFile,
@@ -103,7 +104,13 @@ afterEach(async () => {
 });
 async function render() {
   // eslint-disable-next-line testing-library/no-unnecessary-act -- React createRoot does not wrap render in act.
-  await act(async () => root.render(<ProviderPlugins />));
+  await act(async () =>
+    root.render(
+      <AlertProvider>
+        <ProviderPlugins />
+      </AlertProvider>
+    )
+  );
 }
 
 test.each([
@@ -143,6 +150,9 @@ test.each([
       "plugin_no_external_plugins_installed_import_a_zip_or_local_folder_or_enter_a_"
     );
     expect(community.textContent.includes(message)).toBe(empty);
+    expect(community.textContent).not.toContain(
+      "暂无可发现的插件，可稍后刷新。"
+    );
     expect(community.querySelector(".MuiAccordion-root") !== null).toBe(!empty);
   }
 );
@@ -482,14 +492,35 @@ test("interface previews expand independently and copy declared templates withou
       "Vision",
     ]);
     expect(fields.every((item) => item.readOnly)).toBe(true);
+    expect(
+      [...preview.querySelectorAll("label")].map((label) => label.textContent)
+    ).toEqual(expect.arrayContaining(["系统提示词", "用户提示词"]));
+    expect(preview.textContent).not.toContain("（只读）");
     const copies = preview.querySelectorAll("button");
+    expect(copies).toHaveLength(fields.length);
+    expect(
+      [...copies].every(
+        (button) => button.getAttribute("aria-label") === "复制提示词"
+      )
+    ).toBe(true);
+    expect([...copies].every((button) => button.textContent === "")).toBe(true);
     await act(async () => copies[1].click());
-    expect(writeText).toHaveBeenLastCalledWith("Batch\n\n{{items}}");
+    expect(writeText).toHaveBeenLastCalledWith("Batch");
+    expect(preview.querySelector('[role="alert"]')).toBeNull();
+    expect(container.querySelector(".MuiSnackbar-root").textContent).toContain(
+      "已复制，可到提示词管理中创建提示词"
+    );
+    expect(container.querySelector(".MuiAlert-filledSuccess")).not.toBeNull();
     await act(async () => copies[2].click());
+    expect(writeText).toHaveBeenLastCalledWith("{{items}}");
+    await act(async () => copies[3].click());
     expect(writeText).toHaveBeenLastCalledWith("Dictionary");
     writeText.mockRejectedValueOnce(new Error("denied"));
     await act(async () => copies[0].click());
-    expect(preview.textContent).toContain("复制失败，请从只读内容框中手动复制");
+    expect(container.querySelector(".MuiSnackbar-root").textContent).toContain(
+      "复制失败，请从只读内容框中手动复制"
+    );
+    expect(container.querySelector(".MuiAlert-filledError")).not.toBeNull();
     expect(table.textContent).toContain("Single");
     await act(async () => buttons[0].click());
     expect(table.querySelector("textarea")).toBeNull();

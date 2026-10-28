@@ -224,11 +224,6 @@ export default function PluginDirectory({
               </Typography>
             </Box>
           ))}
-        {community && !community.items.length && (
-          <Typography color="text.secondary">
-            {i18n("plugin_directory_empty")}
-          </Typography>
-        )}
         {community?.incomplete_results && (
           <Alert severity="info">{i18n("plugin_directory_incomplete")}</Alert>
         )}
