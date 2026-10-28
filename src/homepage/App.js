@@ -1,13 +1,16 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import BoltIcon from "@mui/icons-material/Bolt";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import CodeIcon from "@mui/icons-material/Code";
+import ExtensionIcon from "@mui/icons-material/Extension";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import InputIcon from "@mui/icons-material/Input";
 import IntegrationInstructionsIcon from "@mui/icons-material/IntegrationInstructions";
 import LanguageIcon from "@mui/icons-material/Language";
+import MemoryIcon from "@mui/icons-material/Memory";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import RuleIcon from "@mui/icons-material/Rule";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -44,6 +47,9 @@ const featureIcons = [
   BoltIcon,
   RuleIcon,
   SyncIcon,
+  MenuBookIcon,
+  MemoryIcon,
+  ExtensionIcon,
 ];
 
 const externalLinkProps = {
@@ -236,8 +242,13 @@ function Hero({ content, tokens }) {
         >
           <Button
             component={Link}
-            href={process.env.REACT_APP_HOMEPAGE}
-            {...externalLinkProps}
+            href="#install-matrix"
+            onClick={(e) => {
+              e.preventDefault();
+              document
+                .getElementById("install-matrix")
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
             variant="contained"
             size="large"
             startIcon={<AutoAwesomeIcon />}
@@ -387,7 +398,7 @@ function Hero({ content, tokens }) {
 
 function InstallMatrix({ content, tokens }) {
   return (
-    <Box component="section" sx={{ py: { xs: 3, sm: 5 } }}>
+    <Box id="install-matrix" component="section" sx={{ py: { xs: 3, sm: 5 } }}>
       <SectionHeader
         title={content.installTitle}
         subtitle={content.installSubtitle}
@@ -615,7 +626,11 @@ function Ecosystem({ content, tokens }) {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, minmax(0, 1fr))",
+            md: "repeat(3, minmax(0, 1fr))",
+          },
           gap: 1.5,
           mb: 2,
         }}
@@ -669,6 +684,8 @@ function Ecosystem({ content, tokens }) {
       <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
         {[
           "WebDAV",
+          "Plugins",
+          "Local AI",
           "Hooks",
           "Streaming",
           "Context memory",
@@ -695,6 +712,15 @@ function Homepage() {
   const content = homepageContent[language] || homepageContent.en;
   const theme = useMemo(() => getHomepageTheme(themeMode), [themeMode]);
   const tokens = useMemo(() => getHomepageTokens(themeMode), [themeMode]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.title = `${content.title} | KISS Translator`;
+    const descMeta = document.querySelector('meta[name="description"]');
+    if (descMeta && content.subtitle) {
+      descMeta.setAttribute("content", content.subtitle);
+    }
+  }, [content.title, content.subtitle]);
 
   return (
     <ThemeProvider theme={theme}>

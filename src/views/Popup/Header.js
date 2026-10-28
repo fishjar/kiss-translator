@@ -29,11 +29,7 @@ export default function Header({
   const [supportAnchor, setSupportAnchor] = useState(null);
 
   const handleHomepage = () => {
-    window.open(
-      process.env.REACT_APP_HOMEPAGE,
-      "_blank",
-      "noopener,noreferrer"
-    );
+    window.open(process.env.REACT_APP_SITEURL, "_blank", "noopener,noreferrer");
   };
 
   const openSupportLink = (url) => {

@@ -108,6 +108,22 @@ describe("Popup Header support menu", () => {
     );
   });
 
+  test("opens homepage when brand logo is clicked", () => {
+    act(() => {
+      root.render(<Header />);
+    });
+
+    const brandBtn = container.querySelector(".kt-popup-brand-button");
+    expect(brandBtn).not.toBeNull();
+    act(() => brandBtn.click());
+
+    expect(window.open).toHaveBeenCalledWith(
+      process.env.REACT_APP_SITEURL,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  });
+
   test("collapses to a close button when hosted in the page", () => {
     const onClose = jest.fn();
     act(() => root.render(<Header onClose={onClose} />));

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>404 - 页面未找到 | KISS Translator</title>
+  <link rel="icon" href="favicon.ico" />
+  <style>
+    :root {
+      --bg: #080b0f;
+      --card-bg: rgba(16, 22, 29, 0.85);
+      --card-soft: rgba(15, 23, 42, 0.58);
+      --border: rgba(148, 163, 184, 0.2);
+      --border-strong: rgba(94, 234, 212, 0.35);
+      --primary: #5eead4;
+      --text: #eef6f4;
+      --muted: #9fb0ad;
+      --btn-text: #080b0f;
+      --grid-line: rgba(94, 234, 212, 0.045);
+    }
+
+    [data-theme="light"] {
+      --bg: #f7faf9;
+      --card-bg: rgba(255, 255, 255, 0.88);
+      --card-soft: rgba(236, 253, 245, 0.7);
+      --border: rgba(15, 23, 42, 0.12);
+      --border-strong: rgba(15, 118, 110, 0.3);
+      --primary: #0f766e;
+      --text: #12201f;
+      --muted: #52605d;
+      --btn-text: #ffffff;
+      --grid-line: rgba(15, 118, 110, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 36px 36px;
+      padding: 24px;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 40px 32px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      text-align: center;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border-strong);
+      background: var(--card-soft);
+      color: var(--primary);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    .error-code {
+      font-size: 84px;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--primary);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      margin-bottom: 16px;
+      letter-spacing: -2px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 760;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.68;
+      margin-bottom: 32px;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    @media (min-width: 440px) {
+      .actions-primary {
+        display: flex;
+        gap: 12px;
+      }
+      .actions-primary a {
+        flex: 1;
+      }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--btn-text);
+      border: 1px solid var(--primary);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--border-strong);
+      background: var(--card-soft);
+    }
+
+    .links-secondary {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .links-secondary a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: color 0.16s ease;
+    }
+
+    .links-secondary a:hover {
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">
+      <span class="status-dot"></span>
+      <span>HTTP 404 NOT FOUND</span>
+    </div>
+
+    <div class="error-code">404</div>
+
+    <h1>页面未找到 / Page Not Found</h1>
+    <p>
+      抱歉，您访问的页面不存在或已被移除。<br />
+      The requested page could not be found or may have moved.
+    </p>
+
+    <div class="actions">
+      <div class="actions-primary">
+        <a id="home-link" href="/" class="btn btn-primary">返回主页 / Home</a>
+        <a id="options-link" href="/options.html" class="btn btn-outline">脚本设置 / Settings</a>
+      </div>
+      <div class="links-secondary">
+        <a id="file-link" href="/file-translate.html">文件翻译 / File Translate</a>
+        <a href="https://github.com/fishjar/kiss-translator" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      // 1. 同步深色/浅色主题
+      try {
+        var storedTheme = localStorage.getItem("kiss-homepage-theme");
+        var prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+        var theme = storedTheme || (prefersLight ? "light" : "dark");
+        if (theme === "light") {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      } catch (e) {}
+
+      // 2. 动态校正相对路径（确保深层子路径下返回部署根路径）
+      try {
+        var path = window.location.pathname || "/";
+        var match = path.match(/^(.*\/kiss-translator\/)/);
+        var base = match ? match[1] : (path.startsWith("/kiss-translator") ? "/kiss-translator/" : "/");
+        var homeLink = document.getElementById("home-link");
+        var optionsLink = document.getElementById("options-link");
+        var fileLink = document.getElementById("file-link");
+        if (homeLink) homeLink.href = base;
+        if (optionsLink) optionsLink.href = base + "options.html";
+        if (fileLink) fileLink.href = base + "file-translate.html";
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

@@ -113,6 +113,7 @@
 
 ## 関連プロジェクト
 
+- **[kiss-translator-plugins](https://github.com/fishjar/kiss-translator-plugins)**：公式 API プラグインエコシステムリポジトリ。各種 AI・翻訳サービスのプラグイン、テンプレート、開発仕様を提供します。
 - **[KISS-Worker](https://github.com/fishjar/kiss-worker)**：データ同期サービス。Cloudflare Workers や Docker でセルフホスト可能で、データのプライバシー保持とプライベートなルール共有を実現します。
 - **[kiss-rules](https://github.com/fishjar/kiss-rules)**：コミュニティでメンテナンスされている購読ルールリポジトリ。最新のウェブサイト適応ルールを提供し、ルール作成の質問や支援も行われています。
 
@@ -175,15 +176,33 @@
 
 ## 開発ガイド
 
-### ローカルでのビルド
+### ローカルでのビルドとデバッグ
+
+**環境要件**：Node.js >= 20（推奨: Node 22/24）、pnpm >= 9
 
 ```sh
+# 1. リポジトリをクローンして dev ブランチに切り替え
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
-git checkout dev # PR の作成は dev ブランチを推奨します
+git checkout dev # PR の作成は dev ブランチをベースにすることを推奨します
+
+# 2. 依存関係のインストール
 pnpm install
-pnpm build
+
+# 3. よく使う開発・ビルドコマンド
+pnpm build:chrome      # Chrome/Edge 向け拡張機能のビルド（build/chrome に出力）
+pnpm build:firefox     # Firefox 向け拡張機能のビルド（build/firefox に出力）
+pnpm start             # Web 版ローカル開発サーバー起動（http://localhost:3000）
+pnpm check:pr          # PR 提出前のフォーマット＆ビルド検証
+pnpm build             # 全プラットフォーム向けの一括フルビルド
 ```
+
+### ブラウザへの拡張機能の読み込み（Chrome / Edge の例）
+
+1. ブラウザで `chrome://extensions`（Edge の場合は `edge://extensions`）を開きます。
+2. 画面右上の **「デベロッパー モード」** を有効にします。
+3. **「パッケージ化されていない拡張機能を読み込む」** をクリックし、プロジェクト内の `build/chrome` ディレクトリを選択します。
+4. コード変更後は `pnpm build:chrome` を再実行し、拡張機能の管理画面で該当カードの更新アイコンをクリックすると反映されます。
 
 プラグイン開発については、[プラグイン開発ガイド（中国語）](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md) を参照し、[OpenAI 互換プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) または [DeepSeek プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md) をご確認ください。
 

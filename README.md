@@ -113,6 +113,7 @@
 
 ## 关联项目
 
+- **[kiss-translator-plugins](https://github.com/fishjar/kiss-translator-plugins)**：官方接口插件生态库，提供常用 AI/翻译服务插件、示例模板以及开发规范指引。
 - **[KISS-Worker](https://github.com/fishjar/kiss-worker)**：自建跨设备数据同步服务，支持 Cloudflare Workers 无服务器部署或 Docker 私有化部署，兼顾数据私密性与私有规则分享。
 - **[kiss-rules](https://github.com/fishjar/kiss-rules)**：社区维护的规则库，提供最新、最全的网站适配订阅规则，亦可交流和求助特定网站规则编写。
 
@@ -175,15 +176,33 @@
 
 ## 开发指引
 
-### 本地编译
+### 本地编译与调试
+
+**环境要求**：Node.js >= 20（推荐 Node 22/24），pnpm >= 9
 
 ```sh
+# 1. 克隆代码并切换至 dev 分支
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
 git checkout dev # 提交 PR 建议基于 dev 分支
+
+# 2. 安装依赖
 pnpm install
-pnpm build
+
+# 3. 常用开发与构建命令
+pnpm build:chrome      # 构建 Chrome/Edge 扩展（输出至 build/chrome）
+pnpm build:firefox     # 构建 Firefox 扩展（输出至 build/firefox）
+pnpm start             # 启动 Web 端本地开发调试（http://localhost:3000）
+pnpm check:pr          # 提交 PR 前代码格式化与构建自检
+pnpm build             # 全量打包构建所有平台
 ```
+
+### 在浏览器中加载扩展（以 Chrome / Edge 为例）
+
+1. 打开浏览器并访问 `chrome://extensions`（Edge 访问 `edge://extensions`）。
+2. 开启页面右上角或侧栏的 **「开发者模式」**。
+3. 点击 **「加载已解压的扩展程序」**，选择项目根目录下的 `build/chrome` 目录。
+4. 修改代码后重新执行 `pnpm build:chrome`，并在扩展管理页点击对应卡片的刷新按钮即可生效。
 
 插件开发请阅读 [插件开发指南](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)，并参考 [OpenAI 兼容协议插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) 或 [DeepSeek 插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)。
 

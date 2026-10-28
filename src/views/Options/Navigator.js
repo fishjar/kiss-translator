@@ -200,7 +200,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
     >
       <a
         className="kt-options-brand"
-        href={process.env.REACT_APP_HOMEPAGE}
+        href={process.env.REACT_APP_SITEURL}
         target="_blank"
         rel="noreferrer"
       >

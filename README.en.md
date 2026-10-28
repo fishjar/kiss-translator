@@ -113,6 +113,7 @@ A simple, open-source [bilingual translation extension & userscript](https://git
 
 ## Associated Projects
 
+- **[kiss-translator-plugins](https://github.com/fishjar/kiss-translator-plugins)**: Official provider plugin repository, offering plugins for popular AI/translation services, templates, and plugin development guidelines.
 - **[KISS-Worker](https://github.com/fishjar/kiss-worker)**: Self-hosted data synchronization service supporting Cloudflare Workers serverless deployment or Docker self-hosting, ensuring data privacy and custom rule sharing.
 - **[kiss-rules](https://github.com/fishjar/kiss-rules)**: Community-maintained rule repository providing up-to-date website adaptation rules and a place to ask rule-related questions.
 
@@ -175,15 +176,33 @@ If you are interested in any of these directions, feel free to discuss in [Issue
 
 ## Development Guidelines
 
-### Local Build
+### Local Build & Debugging
+
+**Prerequisites**: Node.js >= 20 (Node 22/24 recommended), pnpm >= 9
 
 ```sh
+# 1. Clone the repository and switch to the dev branch
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
 git checkout dev # Submitting PRs to the dev branch is recommended
+
+# 2. Install dependencies
 pnpm install
-pnpm build
+
+# 3. Common development and build commands
+pnpm build:chrome      # Build Chrome/Edge extension (output: build/chrome)
+pnpm build:firefox     # Build Firefox extension (output: build/firefox)
+pnpm start             # Start local Web dev server (http://localhost:3000)
+pnpm check:pr          # Code formatting and build check before submitting a PR
+pnpm build             # Full build for all target platforms
 ```
+
+### Loading the Extension in Your Browser (Chrome / Edge)
+
+1. Open your browser and navigate to `chrome://extensions` (or `edge://extensions` for Edge).
+2. Enable **Developer mode** in the top-right corner.
+3. Click **Load unpacked** and select the `build/chrome` directory from the project root.
+4. After making code changes, re-run `pnpm build:chrome` and click the reload icon on the extension card.
 
 For plugin development, please read the [Plugin Development Guide (Chinese)](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md) and refer to the [OpenAI-compatible plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) or [DeepSeek plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md).
 

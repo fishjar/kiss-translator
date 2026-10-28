@@ -4,6 +4,17 @@
  */
 
 export const FILE_TRANSLATE_I18N = {
+  file_translation_page_title: {
+    zh: "文件翻译 - 免费在线 PDF、EPUB、Markdown、图片双语对照翻译 | KISS Translator",
+    en: "File Translation - Free Online Bilingual Translation for PDF, EPUB, Markdown & Images | KISS Translator",
+    zh_TW:
+      "檔案翻譯 - 免費線上 PDF、EPUB、Markdown、圖片雙語對照翻譯 | KISS Translator",
+    ja: "ファイル翻訳 - PDF、EPUB、Markdown、画像の無料オンライン二言語対訳翻訳 | KISS Translator",
+    ko: "파일 번역 - PDF, EPUB, Markdown, 이미지 무료 온라인 대조 번역 | KISS Translator",
+    tr: "Dosya Çevirisi - PDF, EPUB, Markdown ve Görseller İçin Ücretsiz Çevrimiçi İki Dilli Çeviri | KISS Translator",
+    vi: "Dịch tệp - Dịch song ngữ trực tuyến miễn phí cho PDF, EPUB, Markdown và hình ảnh | KISS Translator",
+    ru: "Перевод файлов — бесплатный онлайн-перевод PDF, EPUB, Markdown и изображений | KISS Translator",
+  },
   file_paste: {
     zh: "粘贴文件或文本",
     en: "Paste file or text",
