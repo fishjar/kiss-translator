@@ -275,11 +275,16 @@ export interface ServiceDefinition {
       | "evaluate"
       | "recognizeText"
       | "analyzeLayout",
-      {
+      Array<{
+        id: string;
+        name: string;
+        nameI18n?: Record<string, string>;
+        description?: string;
+        descriptionI18n?: Record<string, string>;
         systemPrompt?: string;
         userPrompt?: string;
         protocol?: "text" | "json" | "line" | "xml";
-      }
+      }>
     >
   >;
   models?: Array<{

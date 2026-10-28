@@ -120,8 +120,15 @@ test("Declarative SDK package creates an instance with model defaults, SDK promp
       .map((field) => field.defaultValue)
   ).toEqual(["test-model"]);
   expect(pack.manifest.services[0].defaultPrompts).toEqual({
-    batch: { ...defaults, protocol: "json" },
-    nobatch: { ...TRANSLATION_PROTOCOL_PROMPTS.text, protocol: "text" },
+    batch: [{ id: "default", name: "Default", ...defaults, protocol: "json" }],
+    nobatch: [
+      {
+        id: "default",
+        name: "Default",
+        ...TRANSLATION_PROTOCOL_PROMPTS.text,
+        protocol: "text",
+      },
+    ],
   });
   expect(config.apiKey).toBeUndefined();
   await expect(handlers.chat(chatInput, config, ctx)).resolves.toMatchObject({

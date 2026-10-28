@@ -7,7 +7,9 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import DraggableResizable from "../Selection/DraggableResizable";
 import ImageTranslateHeader from "./ImageTranslateHeader";
 import ImageTranslateContent from "./ImageTranslateContent";
+import ImageTranslateActions from "./ImageTranslateActions";
 import { DEFAULT_IMAGE_TRANSLATE_SETTING } from "../../config/setting";
+import { getAllPrompts } from "../../config/prompt";
 import {
   MSG_IMAGE_TRANSLATE_EXECUTE,
   MSG_IMAGE_TRANSLATE_CANCEL,
@@ -514,17 +516,10 @@ export default function ImageTranslateBox({
         header={
           <ImageTranslateHeader
             scene={scene}
-            recognitionProgress={recognitionProgress}
             apis={setting?.transApis || []}
-            prompts={setting?.prompts || []}
+            prompts={getAllPrompts(setting?.prompts || [])}
             busy={busy || sourceBusy}
-            stage={sourceBusy ? "reading" : stage}
-            hasRecognizedText={items.some((i) => Boolean(i.original || i.text))}
             onSettingChange={handleSettingChange}
-            onRunAction={runAction}
-            onCancel={
-              sourceBusy && onCancelSource ? onCancelSource : handleCancel
-            }
             onClose={() => setShowBox(false)}
             i18n={i18n}
           />
@@ -532,6 +527,23 @@ export default function ImageTranslateBox({
         onClick={(e) => e.stopPropagation()}
       >
         <ImageTranslateContent
+          actions={
+            <ImageTranslateActions
+              scene={scene}
+              apis={setting?.transApis || []}
+              busy={busy || sourceBusy}
+              stage={sourceBusy ? "reading" : stage}
+              recognitionProgress={recognitionProgress}
+              hasRecognizedText={items.some((i) =>
+                Boolean(i.original || i.text)
+              )}
+              onRunAction={runAction}
+              onCancel={
+                sourceBusy && onCancelSource ? onCancelSource : handleCancel
+              }
+              i18n={i18n}
+            />
+          }
           items={items}
           recognitionErrors={recognitionErrors}
           busy={busy || sourceBusy}

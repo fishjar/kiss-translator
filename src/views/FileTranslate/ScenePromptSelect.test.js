@@ -61,6 +61,40 @@ const render = (props) =>
 const options = () =>
   [...container.querySelectorAll("option")].map((option) => option.value);
 
+test("VLM choices include only the current service presets and host VLM prompts", () => {
+  const recognitionApi = {
+    provider: {
+      id: "vision",
+      source: { pluginId: "test", serviceId: "vision" },
+      defaultPrompts: {
+        vlm: [
+          { id: "ocr", name: "OCR", userPrompt: "OCR:" },
+          { id: "table", name: "Table", userPrompt: "Table Recognition:" },
+        ],
+      },
+    },
+  };
+  render({ category: "vlm prompt", recognitionApi });
+  expect(options()).toEqual([
+    "",
+    "plugin:test:vision:vlm:ocr",
+    "plugin:test:vision:vlm:table",
+    "vlm prompt",
+  ]);
+  render({
+    category: "vlm prompt",
+    recognitionApi: {
+      provider: {
+        ...recognitionApi.provider,
+        id: "other",
+        source: { pluginId: "another", serviceId: "other" },
+      },
+    },
+  });
+  expect(options()).not.toContain("plugin:test:vision:vlm:ocr");
+  expect(options()).toContain("plugin:another:other:vlm:ocr");
+});
+
 test.each([false, true])(
   "batch capability allows both translation categories regardless of switch %s",
   (enabled) => {

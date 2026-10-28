@@ -24,7 +24,9 @@ test("upgrade renders constraints, skipped fields and expandable redacted prompt
   const api = {
     provider: {
       settings: [{ key: "key", type: "password" }],
-      defaultPrompts: { batch: { systemPrompt: "SECRET_123" } },
+      defaultPrompts: {
+        batch: [{ id: "default", name: "Default", systemPrompt: "SECRET_123" }],
+      },
     },
     pluginConfig: { key: "SECRET_123" },
   };
@@ -39,7 +41,11 @@ test("upgrade renders constraints, skipped fields and expandable redacted prompt
         defaultValue: 2,
       },
     ],
-    defaultPrompts: { batch: { systemPrompt: "New SECRET_123" } },
+    defaultPrompts: {
+      batch: [
+        { id: "default", name: "Default", systemPrompt: "New SECRET_123" },
+      ],
+    },
   };
   const view = renderToStaticMarkup(
     <PluginUpdatePreview preview={previewServiceUpdate(api, {}, service)} />

@@ -241,7 +241,13 @@ test.each([true, false])(
     const f = fixture("suggest", "declarative");
     if (configured)
       f.snapshot.defaultPrompts = {
-        suggest: { userPrompt: "Complete formally: {{text}}" },
+        suggest: [
+          {
+            id: "default",
+            name: "Default",
+            userPrompt: "Complete formally: {{text}}",
+          },
+        ],
       };
     const input = { text: "hello", language: "en" };
     await expect(

@@ -89,6 +89,7 @@ import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import PictureAsPdfRoundedIcon from "@mui/icons-material/PictureAsPdfRounded";
 import { SettingsSelect } from "../Options/SettingsCard";
 import ScenePromptSelect from "./ScenePromptSelect";
+import { isPluginPromptSlug } from "../../providers/defaultPrompts";
 import ImageViewerDialog from "./ImageViewerDialog";
 import ImageSourcePreview, { hasImagePolygon } from "./ImageSourcePreview";
 import { recognizeImageWithLayout } from "../../fileTranslation/imageLayout";
@@ -236,7 +237,12 @@ export default function FileTranslateView() {
     () => ({ ...DEFAULT_FILE_TRANSLATE_SETTING[mode], ...saved[mode] }),
     [mode, saved]
   );
-  const patchScene = (patch) => saveScene(mode, patch);
+  const patchScene = (patch) =>
+    saveScene(mode, {
+      ...patch,
+      ...(Object.hasOwn(patch, "recognitionService") &&
+        isPluginPromptSlug(scene.vlmPromptSlug) && { vlmPromptSlug: "" }),
+    });
 
   const textStyleClass = useMemo(
     () => getTextStyleClass(scene?.textStyle, allTextStyles),
@@ -2132,6 +2138,7 @@ export default function FileTranslateView() {
             i18n={i18n}
             prompts={context.prompts}
             category={PROMPT_CATEGORY_VLM}
+            recognitionApi={activeRecognitionApi}
             fullWidth
             size="small"
             variant="outlined"

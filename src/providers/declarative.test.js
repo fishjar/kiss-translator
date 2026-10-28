@@ -77,7 +77,11 @@ function fixture() {
             outputModes: ["complete"],
           },
         },
-        defaultPrompts: { vlm: { systemPrompt: "Read the table." } },
+        defaultPrompts: {
+          vlm: [
+            { id: "default", name: "Default", systemPrompt: "Read the table." },
+          ],
+        },
       },
     ],
   };

@@ -307,6 +307,36 @@ test("context projects service metadata without credentials or arbitrary setting
   expect(result).not.toHaveProperty("syncKey");
 });
 
+test("file context exposes plugin preset identities without prompt bodies or credentials", async () => {
+  const setting = await getSettingWithDefault();
+  const api = setting.transApis[0];
+  api.provider = {
+    apiVersion: 1,
+    id: "vision",
+    source: { pluginId: "test-plugin", serviceId: "vision" },
+    implementation: { kind: "script" },
+    capabilities: { parseImage: { handler: "parseImage" } },
+    settings: [],
+    defaultPrompts: {
+      vlm: [{ id: "ocr", name: "OCR", userPrompt: "PRIVATE_PROMPT_BODY" }],
+    },
+  };
+  api.enabledCapabilities = ["parseImage"];
+  getSettingWithDefault.mockResolvedValue(setting);
+  const context = await getFileContext();
+  expect(context.services[0].provider.defaultPrompts.vlm).toEqual([
+    { id: "ocr", name: "OCR" },
+  ]);
+  expect(context.services[0].provider.source).toEqual({
+    pluginId: "test-plugin",
+    serviceId: "vision",
+  });
+  expect(context.services[0].provider.defaultPrompts.vlm[0]).not.toHaveProperty(
+    "userPrompt"
+  );
+  expect(JSON.stringify(context)).not.toContain("PRIVATE_PROMPT_BODY");
+});
+
 test.each(["key", "prompt"])(
   "translation signatures invalidate %s edits without exposing credentials",
   async (field) => {

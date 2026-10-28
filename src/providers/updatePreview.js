@@ -101,18 +101,14 @@ export function previewServiceUpdate(api, manifest, service) {
     .filter((value) => typeof value === "string" && value);
   const redact = (value) =>
     JSON.stringify(
-      value
-        ? Object.fromEntries(
-            Object.entries(value).map(([key, text]) => [
-              key,
-              secrets.reduce(
-                (text, secret) => text.split(secret).join("[REDACTED]"),
-                text
-              ),
-            ])
-          )
-        : null,
-      null,
+      value ?? null,
+      (_key, item) =>
+        typeof item === "string"
+          ? secrets.reduce(
+              (text, secret) => text.split(secret).join("[REDACTED]"),
+              item
+            )
+          : item,
       2
     );
   const prompts = [

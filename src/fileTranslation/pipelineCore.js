@@ -241,7 +241,7 @@ export async function executeImageRecognition({
   let prompt;
   if (capability === "parseImage") {
     const slug = vlmPromptSlug || recApi.vlmPromptSlug || "";
-    if (slug) prompt = resolveVlmPrompt(setting.prompts, slug);
+    if (slug) prompt = resolveVlmPrompt(setting.prompts, slug, recApi);
     else if (
       recApi.apiType !== "LocalAI" &&
       (!recApi.provider || recApi.provider.implementation?.kind === "native")

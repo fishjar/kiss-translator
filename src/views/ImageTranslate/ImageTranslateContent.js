@@ -28,6 +28,7 @@ export default function ImageTranslateContent({
   onViewModeChange,
   onRetry,
   onRetryItem,
+  actions,
   i18n = (k, d) => d || k,
 }) {
   const [copiedAll, setCopiedAll] = useState(false);
@@ -83,53 +84,62 @@ export default function ImageTranslateContent({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: 0.5,
+          flexWrap: "wrap",
           px: 1.5,
           backgroundColor: "background.paper",
         }}
       >
-        <Tabs
-          value={viewMode}
-          onChange={(_e, v) => onViewModeChange?.(v)}
-          size="small"
-          textColor="primary"
-          indicatorColor="primary"
-          sx={{ minHeight: 38 }}
-        >
-          <Tab
-            value="bilingual"
-            label={i18n("image_tab_bilingual", "双语")}
-            sx={{ minHeight: 38, py: 0.5, fontSize: "13px" }}
-          />
-          <Tab
-            value="source"
-            label={i18n("image_tab_source", "原文")}
-            sx={{ minHeight: 38, py: 0.5, fontSize: "13px" }}
-          />
-          <Tab
-            value="target"
-            label={i18n("image_tab_target", "译文")}
-            sx={{ minHeight: 38, py: 0.5, fontSize: "13px" }}
-          />
-        </Tabs>
-
-        {items.length > 0 && (
-          <Button
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Tabs
+            value={viewMode}
+            onChange={(_e, v) => onViewModeChange?.(v)}
             size="small"
-            startIcon={
-              copiedAll ? (
-                <CheckRoundedIcon fontSize="small" color="success" />
-              ) : (
-                <ContentCopyRoundedIcon fontSize="small" />
-              )
-            }
-            onClick={() => handleCopyText(getFullCopyText(), true)}
-            sx={{ textTransform: "none", fontSize: "12px", py: 0.2 }}
+            textColor="primary"
+            indicatorColor="primary"
+            sx={{ minHeight: 38, "& .MuiTab-root": { minWidth: 48, px: 1 } }}
           >
-            {copiedAll
-              ? i18n("image_copied", "已复制")
-              : i18n("image_copy_all", "复制全文")}
-          </Button>
-        )}
+            <Tab
+              value="bilingual"
+              label={i18n("image_tab_bilingual", "双语")}
+              sx={{ minHeight: 38, py: 0.5, fontSize: "13px" }}
+            />
+            <Tab
+              value="source"
+              label={i18n("image_tab_source", "原文")}
+              sx={{ minHeight: 38, py: 0.5, fontSize: "13px" }}
+            />
+            <Tab
+              value="target"
+              label={i18n("image_tab_target", "译文")}
+              sx={{ minHeight: 38, py: 0.5, fontSize: "13px" }}
+            />
+          </Tabs>
+
+          {items.length > 0 && (
+            <Tooltip
+              PopperProps={{ "data-kiss-ui": "", className: "notranslate" }}
+              title={
+                copiedAll
+                  ? i18n("image_copied", "已复制")
+                  : i18n("image_copy_all", "复制全文")
+              }
+            >
+              <IconButton
+                size="small"
+                aria-label={i18n("image_copy_all", "复制全文")}
+                onClick={() => handleCopyText(getFullCopyText(), true)}
+              >
+                {copiedAll ? (
+                  <CheckRoundedIcon fontSize="small" color="success" />
+                ) : (
+                  <ContentCopyRoundedIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+        {actions}
       </Box>
 
       {/* 错误提示 */}

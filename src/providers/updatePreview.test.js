@@ -111,8 +111,8 @@ test("instance preview reports changed constraints, removed settings, model chan
       ],
       models: [{ id: "old" }, { id: "same", name: "before" }],
       defaultPrompts: {
-        batch: { systemPrompt: "OLD_SECRET" },
-        nobatch: { userPrompt: "keep" },
+        batch: [{ id: "default", name: "Default", systemPrompt: "OLD_SECRET" }],
+        nobatch: [{ id: "default", name: "Default", userPrompt: "keep" }],
       },
     },
     pluginConfig: { key: "OLD_SECRET", count: 5, removed: "PRIVATE_CONFIG" },
@@ -125,8 +125,10 @@ test("instance preview reports changed constraints, removed settings, model chan
     ],
     models: [{ id: "new" }, { id: "same", name: "after" }],
     defaultPrompts: {
-      batch: { systemPrompt: "new OLD_SECRET" },
-      nobatch: { userPrompt: "keep" },
+      batch: [
+        { id: "default", name: "Default", systemPrompt: "new OLD_SECRET" },
+      ],
+      nobatch: [{ id: "default", name: "Default", userPrompt: "keep" }],
     },
   };
   const original = JSON.stringify(api);
@@ -163,10 +165,18 @@ test("prompt redaction happens before JSON escaping of credentials", () => {
     {},
     {
       settings: [],
-      defaultPrompts: { batch: { systemPrompt: `prefix ${secret} suffix` } },
+      defaultPrompts: {
+        batch: [
+          {
+            id: "default",
+            name: "Default",
+            systemPrompt: `prefix ${secret} suffix`,
+          },
+        ],
+      },
     }
   );
-  expect(JSON.parse(preview.prompts[0].after).systemPrompt).toBe(
+  expect(JSON.parse(preview.prompts[0].after)[0].systemPrompt).toBe(
     "prefix [REDACTED] suffix"
   );
 });
