@@ -16,6 +16,7 @@ import RuleIcon from "@mui/icons-material/Rule";
 import SettingsIcon from "@mui/icons-material/Settings";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
 import SyncIcon from "@mui/icons-material/Sync";
+import TelegramIcon from "@mui/icons-material/Telegram";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import TranslateIcon from "@mui/icons-material/Translate";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -128,6 +129,18 @@ function Header({
         justifyContent={{ xs: "space-between", md: "flex-end" }}
         sx={{ flexWrap: "wrap", rowGap: 1 }}
       >
+        <Button
+          component={Link}
+          href="https://t.me/+RRCu_4oNwrM2NmFl"
+          {...externalLinkProps}
+          startIcon={<TelegramIcon />}
+          endIcon={compact ? null : <OpenInNewIcon />}
+          variant="text"
+          color="inherit"
+          sx={{ minWidth: 0 }}
+        >
+          {content.navTelegram}
+        </Button>
         <Button
           component={Link}
           href={process.env.REACT_APP_HOMEPAGE}
@@ -706,6 +719,38 @@ function Ecosystem({ content, tokens }) {
   );
 }
 
+function Donation({ content, tokens }) {
+  return (
+    <Box
+      component="section"
+      sx={{
+        py: { xs: 4, sm: 6 },
+        borderTop: `1px solid ${tokens.border}`,
+      }}
+    >
+      <SectionHeader
+        title={content.donationTitle}
+        subtitle={content.donationSubtitle}
+      />
+      <Box
+        component="img"
+        src="https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399"
+        alt={content.donationImageAlt}
+        loading="lazy"
+        sx={{
+          display: "block",
+          width: 200,
+          maxWidth: "100%",
+          height: "auto",
+          mx: "auto",
+          bgcolor: "#fff",
+          borderRadius: 2,
+        }}
+      />
+    </Box>
+  );
+}
+
 function Homepage() {
   const { language, setLanguage, themeMode, toggleThemeMode } =
     useHomepageSettings();
@@ -759,6 +804,7 @@ function Homepage() {
           <InstallMatrix content={content} tokens={tokens} />
           <FeatureDashboard content={content} tokens={tokens} />
           <Ecosystem content={content} tokens={tokens} />
+          <Donation content={content} tokens={tokens} />
         </Box>
       </Box>
     </ThemeProvider>
