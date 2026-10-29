@@ -1589,6 +1589,17 @@ describe("handleTranslate", () => {
     expect(messages[2].role).toBe("user");
   });
 
+  test("Claude thinking 模式：thinking 块在前时仍取到译文且写入历史", async () => {
+    const { messages, errors } = await runClaudeContextRounds([
+      { type: "thinking", thinking: "先想一想", signature: "sig" },
+      { type: "text", text: "你好" },
+    ]);
+
+    // 首块没有 .text 时旧写法得到空译文并抛 "unexpected result"。
+    expect(errors).toEqual([]);
+    expect(messages[1]).toEqual({ role: "assistant", content: "你好" });
+  });
+
   test("Claude 历史：多个文本块按顺序拼接，不丢后续块", async () => {
     const { messages, errors } = await runClaudeContextRounds([
       { type: "text", text: "A" },

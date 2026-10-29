@@ -218,12 +218,12 @@ function parseClaudeResponse(
   if (history && userMsg) {
     history.addPair(userMsg, modelMsg);
   }
-  return parseAIRes(
-    res?.content?.[0]?.text ?? "",
-    useBatchFetch,
-    batchProtocol,
-    textFormat
-  );
+  // 译文取首个文本块：开启 thinking 时首块是 {type:"thinking"}，没有 .text，
+  // 取 content[0] 会得到空译文。
+  const firstText = Array.isArray(res?.content)
+    ? res.content.find((b) => typeof b?.text === "string")?.text
+    : res?.content?.[0]?.text;
+  return parseAIRes(firstText ?? "", useBatchFetch, batchProtocol, textFormat);
 }
 
 function parseCloudflareaiResponse(res) {
