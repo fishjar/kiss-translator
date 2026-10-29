@@ -67,6 +67,11 @@ const createInstalls = (language, meta = {}) => {
 const baseContent = {
   en: {
     navGithub: "GitHub",
+    navTelegram: "Telegram",
+    donationTitle: "Support the project",
+    donationSubtitle:
+      "If KISS Translator helps you, your support helps keep it maintained.",
+    donationImageAlt: "Donation QR codes",
     languageLabel: "Language",
     themeLight: "Switch to light mode",
     themeDark: "Switch to dark mode",
@@ -366,6 +371,11 @@ const ecosystemProjects = {
 const translations = {
   zh_CN: {
     navGithub: "GitHub",
+    navTelegram: "Telegram",
+    donationTitle: "赞赏支持",
+    donationSubtitle:
+      "如果 KISS Translator 对你有所帮助，欢迎赞赏支持作者继续维护！",
+    donationImageAlt: "赞赏收款二维码",
     languageLabel: "语言",
     themeLight: "切换到亮色模式",
     themeDark: "切换到暗色模式",
@@ -446,6 +456,11 @@ const translations = {
   },
   zh_TW: {
     navGithub: "GitHub",
+    navTelegram: "Telegram",
+    donationTitle: "贊賞支持",
+    donationSubtitle:
+      "如果 KISS Translator 對你有所幫助，歡迎贊賞支持作者繼續維護！",
+    donationImageAlt: "贊賞收款 QR Code",
     languageLabel: "語言",
     themeLight: "切換到亮色模式",
     themeDark: "切換到暗色模式",
@@ -525,6 +540,11 @@ const translations = {
   },
   ja: {
     navGithub: "GitHub",
+    navTelegram: "Telegram",
+    donationTitle: "開発を支援",
+    donationSubtitle:
+      "KISS Translator が役立ちましたら、継続的なメンテナンスへのご支援をお願いします。",
+    donationImageAlt: "寄付用 QR コード",
     languageLabel: "言語",
     themeLight: "ライトモードに切り替え",
     themeDark: "ダークモードに切り替え",
@@ -605,6 +625,11 @@ const translations = {
   },
   ko: {
     navGithub: "GitHub",
+    navTelegram: "Telegram",
+    donationTitle: "프로젝트 후원",
+    donationSubtitle:
+      "KISS Translator가 도움이 되었다면 지속적인 유지 관리를 위해 후원해 주세요.",
+    donationImageAlt: "후원 결제 QR 코드",
     languageLabel: "언어",
     themeLight: "라이트 모드로 전환",
     themeDark: "다크 모드로 전환",
@@ -685,6 +710,11 @@ const translations = {
   },
   fr: {
     navGithub: "GitHub",
+    navTelegram: "Telegram",
+    donationTitle: "Soutenir le projet",
+    donationSubtitle:
+      "Si KISS Translator vous est utile, votre soutien aide à poursuivre sa maintenance.",
+    donationImageAlt: "Codes QR pour les dons",
     languageLabel: "Langue",
     themeLight: "Passer au mode clair",
     themeDark: "Passer au mode sombre",
@@ -768,6 +798,11 @@ const translations = {
   },
   de: {
     navGithub: "GitHub",
+    navTelegram: "Telegram",
+    donationTitle: "Projekt unterstützen",
+    donationSubtitle:
+      "Wenn KISS Translator Ihnen hilft, unterstützen Sie gerne die weitere Pflege des Projekts.",
+    donationImageAlt: "QR-Codes für Spenden",
     languageLabel: "Sprache",
     themeLight: "Zum hellen Modus wechseln",
     themeDark: "Zum dunklen Modus wechseln",
@@ -850,6 +885,11 @@ const translations = {
   },
   es: {
     navGithub: "GitHub",
+    navTelegram: "Telegram",
+    donationTitle: "Apoya el proyecto",
+    donationSubtitle:
+      "Si KISS Translator te resulta útil, tu apoyo ayuda a mantener el proyecto.",
+    donationImageAlt: "Códigos QR para donaciones",
     languageLabel: "Idioma",
     themeLight: "Cambiar a modo claro",
     themeDark: "Cambiar a modo oscuro",
@@ -932,6 +972,11 @@ const translations = {
   },
   vi: {
     navGithub: "GitHub",
+    navTelegram: "Telegram",
+    donationTitle: "Ủng hộ dự án",
+    donationSubtitle:
+      "Nếu KISS Translator hữu ích với bạn, hãy ủng hộ để tác giả tiếp tục duy trì dự án!",
+    donationImageAlt: "Mã QR ủng hộ",
     languageLabel: "Ngôn ngữ",
     themeLight: "Chuyển sang chế độ sáng",
     themeDark: "Chuyển sang chế độ tối",
@@ -1018,6 +1063,11 @@ const translations = {
   },
   ru: {
     navGithub: "GitHub",
+    navTelegram: "Telegram",
+    donationTitle: "Поддержать проект",
+    donationSubtitle:
+      "Если KISS Translator вам полезен, поддержите дальнейшее развитие и сопровождение проекта.",
+    donationImageAlt: "QR-коды для пожертвований",
     languageLabel: "Язык",
     themeLight: "Переключить на светлую тему",
     themeDark: "Переключить на тёмную тему",
