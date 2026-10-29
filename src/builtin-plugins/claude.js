@@ -60,4 +60,11 @@ const genClaude = ({
   return { url, body, headers, userMsg };
 };
 
-export { genClaude };
+// With thinking enabled the first content block is a thinking block with no text, so the
+// answer is the first block that carries one. Non-array shapes keep reading content[0].
+const claudeResponseText = (res) =>
+  Array.isArray(res?.content)
+    ? res.content.find((b) => typeof b?.text === "string")?.text
+    : res?.content?.[0]?.text;
+
+export { genClaude, claudeResponseText };
