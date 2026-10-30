@@ -16,6 +16,7 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_RUNCRATE,
 } from "../config/apiConstants";
 
 // Compiled vendor/model metadata shared by request adapters and settings.
@@ -350,6 +351,14 @@ export const THINKING_API_REGISTRY = {
   [OPT_TRANS_REQUESTY]: {
     adapter: "openai",
     resolveCapability: ({ model }) => getOpenAIThinkingCapability(model),
+  },
+  [OPT_TRANS_RUNCRATE]: {
+    adapter: "openai",
+    // DeepSeek V4.1 Flash 接受 reasoning_effort（none 关闭思考）；其他模型按 OpenAI 模型名解析。
+    resolveCapability: ({ model = "" }) =>
+      /^deepseek-ai\/deepseek-v4\.1-flash(?:-|$)/i.test(model)
+        ? createOpenAIThinkingCapability(["max", "high", "low"])
+        : getOpenAIThinkingCapability(model),
   },
   [OPT_TRANS_OPENROUTER]: {
     adapter: "openrouter",
