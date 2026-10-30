@@ -77,4 +77,20 @@ describe("Claude responses with a thinking block first", () => {
       )
     ).toBe("single");
   });
+
+  test("subtitle result is the first text block, not an empty string", async () => {
+    const parseSTRes = jest.fn((text) => text);
+    await expect(
+      parseNativeSubtitleResponse(
+        thinkingFirst,
+        {
+          apiSetting: { apiType: OPT_TRANS_CLAUDE },
+          events: [{ text: "hello", start: 0, end: 1 }],
+          from: "en",
+          to: "zh-CN",
+        },
+        { parseSTRes, genTransReq: jest.fn(), fetchData: jest.fn() }
+      )
+    ).resolves.toBe(" answer ");
+  });
 });

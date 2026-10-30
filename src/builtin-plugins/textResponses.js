@@ -169,7 +169,7 @@ export async function parseNativeSubtitleResponse(
       return parseSTRes(geminiResponseText(res), events, from);
     }
     case OPT_TRANS_CLAUDE:
-      return parseSTRes(res?.content?.[0]?.text ?? "", events, from);
+      return parseSTRes(claudeResponseText(res) ?? "", events, from);
     case OPT_TRANS_CUSTOMIZE:
       return res;
     default:
