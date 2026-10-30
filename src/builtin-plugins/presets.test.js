@@ -17,6 +17,28 @@ import baseline from "./fixtures/native-preset-baseline.json";
 import { NATIVE_PRESET_OVERRIDES } from "./presets";
 import { createBuiltinInstance } from "./index";
 
+// Preserve the historical hash's protection of unrelated defaults.
+const previousModelDefaults = {
+  DeepSeek: { model: "deepseek-v4-flash" },
+  OpenCodeGo: {
+    model: "deepseek-v4-flash",
+    url: "https://opencode.ai/zen/go/v1/chat/completions",
+  },
+  SiliconFlow: { model: "Pro/zai-org/GLM-4.7" },
+  XiaomiMimo: { model: "mimo-v2.5-pro" },
+  AliyunBailian: { model: "qwen-plus" },
+  Zai: { model: "glm-5.1", thinkingEffort: null },
+  OpenAI: { model: "gpt-5.6-sol" },
+  Gemini: { model: "gemini-3.6-flash", thinkingEffort: "low" },
+  Gemini2: { model: "gemini-3.6-flash", thinkingEffort: "minimal" },
+  Claude: { model: "claude-haiku-4-5-20251001", thinkingEffort: "_default" },
+  Ollama: { model: "llama3.1", thinkingEffort: "_default" },
+  OpenRouter: { model: "openai/gpt-4o" },
+  OrcaRouter: { model: "openai/gpt-5.4-mini" },
+  Requesty: { model: "openai/gpt-4o-mini", thinkingEffort: "_default" },
+  Cerebras: { thinkingEffort: "none" },
+};
+
 test("compiled presets preserve unrelated approved defaults while enabling streaming by default", () => {
   expect(DEFAULT_API_LIST).toHaveLength(baseline.presetCount);
   expect(
@@ -26,6 +48,7 @@ test("compiled presets preserve unrelated approved defaults while enabling strea
           // New terminology defaults are asserted separately from the historical hash.
           DEFAULT_API_LIST.map(({ terms, termsList, ...api }) => ({
             ...api,
+            ...previousModelDefaults[api.apiType],
             ...(api.apiType === OPT_TRANS_LOCALAI && {
               vlmPromptSlug: "vlm-document",
             }),

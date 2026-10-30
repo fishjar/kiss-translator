@@ -101,7 +101,7 @@ describe("OrcaRouter interface", () => {
       apiName: OPT_TRANS_ORCAROUTER,
       url: "https://api.orcarouter.ai/v1/chat/completions",
       modelListUrl: "https://api.orcarouter.ai/v1/models",
-      model: "openai/gpt-5.4-mini",
+      model: "openai/gpt-6-luna",
     });
   });
 
@@ -131,7 +131,7 @@ describe("OrcaRouter interface", () => {
     });
 
     const body = JSON.parse(init.body);
-    expect(body.model).toBe("openai/gpt-5.4-mini");
+    expect(body.model).toBe("openai/gpt-6-luna");
     expect(body.stream).toBe(false);
     expect(body.messages[0].role).toBe("system");
     expect(body.messages.at(-1).role).toBe("user");
@@ -227,7 +227,7 @@ describe("OrcaRouter interface", () => {
   test.each([
     ["openai/gpt-6-astra", undefined],
     [" OPENAI/GPT-6-ASTRA ", undefined],
-    ["openai/gpt-5.4-mini", 0.7],
+    ["openai/gpt-5.4-mini", undefined],
     ["gpt-6-astra-pro", 0.7],
     ["gpt-6-astra-2026-03-01", 0.7],
     ["unknown-model", 0.7],

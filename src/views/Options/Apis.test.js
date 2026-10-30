@@ -2372,6 +2372,50 @@ describe("Apis static thinking normalization", () => {
   });
 
   test.each([
+    ["OpenAI", "gpt-6.1-sol", "gemini_thinking_minimum_helper", "low"],
+    ["Claude", "claude-opus-5-5", "gemini_thinking_minimum_helper", "low"],
+    ["Claude", "claude-sonnet-5-5", "thinking_between_tools_helper", null],
+    ["AliyunBailian", "qwen3.8-2.4t-a95b", "thinking_required_helper", null],
+  ])(
+    "shows the actual disable limitation after switching to %s/%s",
+    async (apiType, model, helper, effort) => {
+      apiTranslate.mockResolvedValue({ trText: "你好" });
+      const view = await renderApis(
+        createApi({
+          apiType,
+          model: "unknown-model",
+          thinkingMode: "disabled",
+          thinkingEffort: "_default",
+        })
+      );
+      await act(async () => {
+        Simulate.change(getInput(view.container, "model"), {
+          target: { name: "model", value: model },
+        });
+      });
+      expect(view.container.textContent).toContain(helper);
+      await act(async () => {
+        Simulate.click(
+          Array.from(view.container.querySelectorAll("button")).find(
+            (button) => button.textContent === "快捷翻译测试"
+          )
+        );
+        await Promise.resolve();
+      });
+      expect(apiTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiSetting: expect.objectContaining({
+            model,
+            thinkingMode: "disabled",
+            thinkingEffort: effort,
+          }),
+        })
+      );
+      view.unmount();
+    }
+  );
+
+  test.each([
     ["disabled", "low"],
     ["enabled", null],
     ["auto", "_default"],

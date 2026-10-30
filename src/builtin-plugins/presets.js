@@ -116,30 +116,30 @@ export const NATIVE_PRESET_OVERRIDES = {
   [OPT_TRANS_DEEPSEEK]: {
     url: "https://api.deepseek.com/chat/completions",
     modelListUrl: "https://api.deepseek.com/models",
-    model: "deepseek-v4-flash",
+    model: "deepseek-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_OPENCODEGO]: {
-    url: "https://opencode.ai/zen/go/v1/chat/completions",
-    model: "deepseek-v4-flash",
+    url: "https://opencode.ai/inference/go/openai/v1/chat/completions",
+    model: "deepseek-v4.1-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_SILICONFLOW]: {
     url: "https://api.siliconflow.cn/v1/chat/completions",
     modelListUrl: "https://api.siliconflow.cn/v1/models",
-    model: "Pro/zai-org/GLM-4.7",
+    model: "Qwen/Qwen3.6-35B-A3B",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_XIAOMIMIMO]: {
     url: "https://api.xiaomimimo.com/v1/chat/completions",
     modelListUrl: "https://api.xiaomimimo.com/v1/models",
-    model: "mimo-v2.5-pro",
+    model: "mimo-v2.6-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_ALIYUNBAILIAN]: {
     url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
     modelListUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1/models",
-    model: "qwen-plus",
+    model: "qwen3.8-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_QWENMT]: {
@@ -156,7 +156,7 @@ export const NATIVE_PRESET_OVERRIDES = {
   [OPT_TRANS_ZAI]: {
     url: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
     modelListUrl: "https://open.bigmodel.cn/api/paas/v4/models",
-    model: "glm-5.1",
+    model: "glm-5.3-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_DEEPLX]: {
@@ -174,27 +174,27 @@ export const NATIVE_PRESET_OVERRIDES = {
   [OPT_TRANS_OPENAI]: {
     url: "https://api.openai.com/v1/chat/completions",
     modelListUrl: "https://api.openai.com/v1/models",
-    model: "gpt-5.6-sol",
+    model: "gpt-6-luna",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_GEMINI]: {
     // 官方 Gemini 默认使用 GA 的 Interactions；用户自定义 URL 仍由运行时按协议自动分流。
     url: GEMINI_INTERACTIONS_URL,
     modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
-    model: "gemini-3.6-flash",
+    model: "gemini-3.8-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_GEMINI_2]: {
     url: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
     modelListUrl:
       "https://generativelanguage.googleapis.com/v1beta/openai/models",
-    model: "gemini-3.6-flash",
+    model: "gemini-3.8-flash",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CLAUDE]: {
     url: "https://api.anthropic.com/v1/messages",
     modelListUrl: "https://api.anthropic.com/v1/models",
-    model: "claude-haiku-4-5-20251001",
+    model: "claude-haiku-5-5",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CLOUDFLAREAI]: {
@@ -203,25 +203,25 @@ export const NATIVE_PRESET_OVERRIDES = {
   [OPT_TRANS_OLLAMA]: {
     url: "http://localhost:11434/v1/chat/completions",
     modelListUrl: "http://localhost:11434/v1/models",
-    model: "llama3.1",
+    model: "qwen3.5:4b",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_OPENROUTER]: {
     url: "https://openrouter.ai/api/v1/chat/completions",
     modelListUrl: "https://openrouter.ai/api/v1/models",
-    model: "openai/gpt-4o",
+    model: "openai/gpt-6-luna",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_ORCAROUTER]: {
     url: "https://api.orcarouter.ai/v1/chat/completions",
     modelListUrl: "https://api.orcarouter.ai/v1/models",
-    model: "openai/gpt-5.4-mini",
+    model: "openai/gpt-6-luna",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_REQUESTY]: {
     url: "https://router.requesty.ai/v1/chat/completions",
     modelListUrl: "https://router.requesty.ai/v1/models",
-    model: "openai/gpt-4o-mini",
+    model: "openai/gpt-6-luna",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_CUSTOMIZE]: {

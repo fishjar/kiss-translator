@@ -101,7 +101,7 @@ describe("Requesty interface", () => {
       apiName: OPT_TRANS_REQUESTY,
       url: "https://router.requesty.ai/v1/chat/completions",
       modelListUrl: "https://router.requesty.ai/v1/models",
-      model: "openai/gpt-4o-mini",
+      model: "openai/gpt-6-luna",
     });
   });
 
@@ -131,7 +131,7 @@ describe("Requesty interface", () => {
     });
 
     const body = JSON.parse(init.body);
-    expect(body.model).toBe("openai/gpt-4o-mini");
+    expect(body.model).toBe("openai/gpt-6-luna");
     expect(body.stream).toBe(false);
     expect(body.messages[0].role).toBe("system");
     expect(body.messages.at(-1).role).toBe("user");
@@ -183,7 +183,7 @@ describe("Requesty interface", () => {
     );
   });
 
-  test("does not send reasoning parameters for the default model", async () => {
+  test("sends the selected reasoning effort for the new default model", async () => {
     mockOnce();
 
     await translate(
@@ -194,10 +194,10 @@ describe("Requesty interface", () => {
 
     const body = JSON.parse(fetchData.mock.calls[0][1].body);
     expect(body).not.toHaveProperty("reasoning");
-    expect(body).not.toHaveProperty("reasoning_effort");
+    expect(body.reasoning_effort).toBe("medium");
   });
 
-  test("omits the generated temperature for Astra only", async () => {
+  test("omits generated temperature for reasoning defaults", async () => {
     mockOnce();
     await translate(
       getApiSetting({
@@ -213,6 +213,8 @@ describe("Requesty interface", () => {
     fetchData.mockClear();
     mockOnce();
     await translate(getApiSetting({ temperature: 0.7, thinkingMode: "auto" }));
-    expect(JSON.parse(fetchData.mock.calls[0][1].body).temperature).toBe(0.7);
+    expect(JSON.parse(fetchData.mock.calls[0][1].body)).not.toHaveProperty(
+      "temperature"
+    );
   });
 });

@@ -403,7 +403,7 @@ describe("handleTranslate", () => {
       store: false,
       generation_config: {
         max_output_tokens: expect.any(Number),
-        thinking_level: "low",
+        thinking_level: "minimal",
         temperature: 0.7,
       },
     });
@@ -766,7 +766,7 @@ describe("handleTranslate", () => {
   test.each([
     [" OPENAI/GPT-6-ASTRA ", "", undefined],
     ["gpt-6-astra", '{"temperature":0.3,"reasoning_effort":"high"}', 0.3],
-    ["gpt-5.6-sol", "", 0.7],
+    ["gpt-5.6-sol", "", undefined],
     ["gpt-6-other", "", 0.7],
   ])(
     "preserves temperature overrides and other models for %s/%s",
@@ -884,6 +884,7 @@ describe("handleTranslate", () => {
         glossary: "",
         apiSetting: {
           ...getApiSetting(OPT_TRANS_DEEPSEEK),
+          model: "deepseek-flash",
           useStream: false,
           thinkingMode: "enabled",
           thinkingEffort: "max",
@@ -2148,7 +2149,7 @@ describe("handleTranslate", () => {
 });
 
 describe("gemini thinking effort clamp (#1048)", () => {
-  test("clamps minimal to low for non-lite gemini-3 flash on interactions", async () => {
+  test("clamps minimal to low for Gemini 3.8 Flash on interactions", async () => {
     fetchData.mockResolvedValueOnce({
       status: "completed",
       steps: [
@@ -2170,7 +2171,7 @@ describe("gemini thinking effort clamp (#1048)", () => {
         apiSetting: {
           ...getApiSetting(OPT_TRANS_GEMINI),
           url: GEMINI_INTERACTIONS_URL,
-          model: "gemini-3.7-flash",
+          model: "gemini-3.8-flash",
           useStream: false,
           thinkingMode: "enabled",
           thinkingEffort: "minimal",
