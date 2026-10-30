@@ -1,3 +1,4 @@
+import { terminologyWarningHandler } from "../../libs/terminologyWarning";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -244,6 +245,7 @@ const translateBuiltinText = async (
  * @returns {JSX.Element|null} Result view for one translation provider.
  */
 export default function TranCont({
+  scene,
   text,
   fromLang,
   toLang,
@@ -329,6 +331,7 @@ export default function TranCont({
     let active = true;
     requestPendingRef.current = true;
     const controller = new AbortController();
+    const warnTerminology = terminologyWarningHandler(i18n.language);
     const enableStreamRender = canRenderStream(apiSetting);
 
     /**
@@ -365,6 +368,8 @@ export default function TranCont({
         const translate = (requestText, requestFromLang = fromLang) =>
           apiTranslate({
             text: requestText,
+            scene,
+            onTerminologyWarning: warnTerminology,
             fromLang: requestFromLang,
             toLang,
             apiSetting,
@@ -419,6 +424,8 @@ export default function TranCont({
       controller.abort();
     };
   }, [
+    i18n.language,
+    scene,
     text,
     fromLang,
     toLang,

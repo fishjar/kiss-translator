@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSettingsSearchNavigation } from "./SettingsSearchTarget";
 import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { TerminologyFields } from "./TerminologySelect";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import Tab from "@mui/material/Tab";
@@ -58,6 +64,12 @@ export default function Playgound({ initialSettingsReady = true }) {
       );
   }, [searchTarget, navigationKey]);
   const [mergeSingleLineBreaks, setMergeSingleLineBreaks] = useState(false);
+  const [configExpanded, setConfigExpanded] = useState(true);
+  const [translationScene, setTranslationScene] = useState(() => ({
+    termsList: [],
+    terms: "",
+    aiTerms: "",
+  }));
   // 专业术语页签草稿：术语输入、AI 术语输入、例句 seed 都提升到父级状态，
   // 不会随页签子组件卸载而销毁（页签往返不丢失用户草稿，且不写入正式规则）。
   // 同时持久化到 localStorage，跨路由切换（组件卸载）后回来仍可回填。
@@ -343,6 +355,18 @@ export default function Playgound({ initialSettingsReady = true }) {
             parseLatex={parseLatex}
             isPlaygound={true}
             apiSlugsStorageKey={LS_API_SLUGS_KEY}
+            scene={translationScene}
+            playgroundConfigExpanded={configExpanded}
+            playgroundConfigExtra={
+              <Box sx={{ mt: 2 }}>
+                <TerminologyFields
+                  value={translationScene}
+                  onChange={(patch) =>
+                    setTranslationScene((current) => ({ ...current, ...patch }))
+                  }
+                />
+              </Box>
+            }
             playgroundConfigHeader={
               <Box className="kt-playground-config__header">
                 <Box className="kt-playground-config__copy">
@@ -356,22 +380,50 @@ export default function Playgound({ initialSettingsReady = true }) {
                     )}
                   </Typography>
                 </Box>
-                <FormControlLabel
-                  className="kt-playground-config__normalize"
-                  control={
-                    <Switch
+                <Stack
+                  className="kt-playground-config__actions"
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                >
+                  <FormControlLabel
+                    className="kt-playground-config__normalize"
+                    control={
+                      <Switch
+                        size="small"
+                        checked={mergeSingleLineBreaks}
+                        onChange={(event) =>
+                          setMergeSingleLineBreaks(event.target.checked)
+                        }
+                      />
+                    }
+                    label={i18n(
+                      "playground_merge_single_line_breaks",
+                      "合并单个换行（保留段落）"
+                    )}
+                  />
+                  <Tooltip
+                    title={i18n(
+                      configExpanded
+                        ? "playground_config_collapse"
+                        : "playground_config_expand"
+                    )}
+                  >
+                    <IconButton
                       size="small"
-                      checked={mergeSingleLineBreaks}
-                      onChange={(event) =>
-                        setMergeSingleLineBreaks(event.target.checked)
-                      }
-                    />
-                  }
-                  label={i18n(
-                    "playground_merge_single_line_breaks",
-                    "合并单个换行（保留段落）"
-                  )}
-                />
+                      aria-label={i18n(
+                        configExpanded
+                          ? "playground_config_collapse"
+                          : "playground_config_expand"
+                      )}
+                      aria-expanded={configExpanded}
+                      aria-controls="kt-playground-config-content"
+                      onClick={() => setConfigExpanded((expanded) => !expanded)}
+                    >
+                      {configExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
               </Box>
             }
           />

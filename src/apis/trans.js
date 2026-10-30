@@ -187,7 +187,7 @@ const genUserPrompt = ({
   // 合并规则与接口中的AI专业术语
   if (aiTerms) {
     const aiGlossary = parseAITerms(aiTerms);
-    glossary = { ...glossary, ...aiGlossary };
+    glossary = { ...aiGlossary, ...glossary };
   }
 
   const glossaryStr = Object.entries(glossary)

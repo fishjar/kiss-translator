@@ -206,7 +206,7 @@ test("groups concrete Chinese settings below their navigation category and links
     I18N.options_no_results.zh
   );
   search("  ");
-  expect(container.querySelectorAll(".kt-options-nav__link")).toHaveLength(16);
+  expect(container.querySelectorAll(".kt-options-nav__link")).toHaveLength(17);
   expect(
     container.querySelectorAll('.kt-options-nav__link[href="/image-translate"]')
   ).toHaveLength(1);
@@ -262,7 +262,7 @@ test("shows clear while text is present, including after blur, and clears its ta
   expect(container.querySelector(".kt-options-search__clear")).toBe(clear);
   act(() => clear.click());
   expect(input.value).toBe("");
-  expect(container.querySelectorAll(".kt-options-nav__link")).toHaveLength(16);
+  expect(container.querySelectorAll(".kt-options-nav__link")).toHaveLength(17);
   expect(
     container.querySelectorAll('.kt-options-nav__link[href="/image-translate"]')
   ).toHaveLength(1);
@@ -275,4 +275,23 @@ test("shows clear while text is present, including after blur, and clears its ta
   expect(container.querySelector(".kt-options-search__clear")).toBeNull();
   act(() => root.unmount());
   container.remove();
+});
+
+test("terminology tables belong to the data group between sync and favorite words", () => {
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  act(() =>
+    root.render(
+      <MemoryRouter>
+        <Navigator open />
+      </MemoryRouter>
+    )
+  );
+  const section = container
+    .querySelector('a[href="/terms"]')
+    .closest("section");
+  expect(
+    [...section.querySelectorAll("a")].map((link) => link.getAttribute("href"))
+  ).toEqual(["/sync", "/terms", "/words"]);
+  act(() => root.unmount());
 });

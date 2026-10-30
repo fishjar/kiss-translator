@@ -404,6 +404,7 @@ describe("BilingualSubtitleManager", () => {
     expect(apiTranslate).toHaveBeenCalledWith(
       expect.objectContaining({
         text: "hello world",
+        scene: expect.objectContaining({ fromLang: "en", toLang: "zh-CN" }),
         fromLang: "en",
         toLang: "zh-CN",
         apiSetting: expect.objectContaining(setting.apiSetting),

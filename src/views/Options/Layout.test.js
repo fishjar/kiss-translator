@@ -89,6 +89,7 @@ jest.mock("./Navigator", () => {
 test.each([
   ["/apis/", "options_service_config", true],
   ["/prompts///", "prompt_management", true],
+  ["/terms/", "terminology_tables", true],
   ["/playground/", "Playground", true],
   ["/rules/", "options_web_translation", false],
   ["/image-translate/", "image_translate", false],

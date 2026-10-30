@@ -12,7 +12,7 @@ const getQwenMtDomains = (tone = "") => {
 };
 
 const getQwenMtTerms = (glossary = {}, aiTerms = "") => {
-  const mergedTerms = { ...glossary, ...parseAITerms(aiTerms) };
+  const mergedTerms = { ...parseAITerms(aiTerms), ...glossary };
   return Object.entries(mergedTerms)
     .filter(([source]) => String(source).trim())
     .map(([source, target]) => {

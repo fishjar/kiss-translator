@@ -1,3 +1,4 @@
+import TerminologySelect from "./TerminologySelect";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -970,6 +971,16 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
         {/* 高级选项面板 */}
         {showMore && (
           <>
+            <TerminologySelect
+              value={formValues.termsList || []}
+              disabled={disabled}
+              onChange={(termsList) =>
+                handleChange({
+                  preventDefault() {},
+                  target: { name: "termsList", value: termsList },
+                })
+              }
+            />
             {/* 专有名词对照翻译设置 */}
             <TextField
               size="small"

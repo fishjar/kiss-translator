@@ -44,3 +44,17 @@ test("remote refresh bypasses the existing text cache", async () => {
     "cacheMode"
   );
 });
+
+test("terminology snapshot follows the actual fallback service", async () => {
+  const selected = { apiType: "Microsoft", apiSlug: "fallback" };
+  availableApiForScene.mockReturnValue(selected);
+  const scene = { apiSlug: "unavailable", toLang: "zh", termsList: ["topic"] };
+  const getTerminologyTables = jest.fn(async () => []);
+  await executeFileTranslation("text", scene, {}, undefined, {
+    getTerminologyTables,
+  });
+  expect(getTerminologyTables).toHaveBeenCalledWith(scene, selected);
+  expect(apiTranslate).toHaveBeenLastCalledWith(
+    expect.objectContaining({ scene, terminologyTables: [] })
+  );
+});

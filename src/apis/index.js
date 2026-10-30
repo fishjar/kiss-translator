@@ -1,4 +1,14 @@
 import {
+  compileTerminology,
+  EMPTY_TERMINOLOGY_TABLES,
+  terminologySourceList,
+  protectTerminologyText,
+} from "../libs/terminology";
+import {
+  loadTerminologySnapshot,
+  resolveTerminology,
+} from "../libs/terminologyStorage";
+import {
   apiGoogleLangdetect,
   apiBaiduLangdetect,
   apiTencentLangdetect,
@@ -150,6 +160,8 @@ function getPromptCacheFields(apiSetting = {}, promptScope, glossary = {}) {
   }
 
   fields.push(apiSetting.tone || "", apiSetting.aiTerms || "");
+  if (apiSetting.terminologySignature)
+    fields.push(apiSetting.terminologySignature);
   const glossaryEntries = Object.entries(glossary || {}).sort();
   if (glossaryEntries.length) {
     fields.push(JSON.stringify(glossaryEntries));
@@ -580,7 +592,46 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
  * @param {AbortSignal} params.signal AbortController 传导的取消控制信号
  * @returns {Promise<Object>} 最终解析出的翻译响应数据 (trText, srLang, srCode, isSame)
  */
-export const apiTranslate = async ({
+export const apiTranslate = async (args) => {
+  const { scene = {}, terminologyTables, normalTermsApplied = false } = args;
+  const api = args.apiSetting || DEFAULT_API_SETTING;
+  if (!args.scene && !api.terms && !api.termsList?.length)
+    return executeApiTranslate(args);
+  const sources = [...terminologySourceList(scene), api];
+  const hasTables = sources.some((source) => source.termsList?.length);
+  const tables =
+    terminologyTables ||
+    (hasTables
+      ? await loadTerminologySnapshot(sources)
+      : EMPTY_TERMINOLOGY_TABLES);
+  const resolved = compileTerminology(sources, tables);
+  const glossary = { ...resolved.glossary, ...args.glossary };
+  if (resolved.missingTableIds.length)
+    args.onTerminologyWarning?.(resolved.missingTableIds);
+  const protection =
+    !normalTermsApplied && resolved.normalEntries.length
+      ? protectTerminologyText(args.text, resolved.normalEntries)
+      : null;
+  const protectedText = protection?.protected;
+  // Partial placeholder tokens must never reach the renderer. Final streaming
+  // output is emitted only after restoration when ordinary terms are protected.
+  const result = await executeApiTranslate({
+    ...args,
+    glossary,
+    apiSetting: {
+      ...api,
+      aiTerms: "",
+      terminologySignature: resolved.signature,
+    },
+    ...(protectedText && { text: protection.text, onStreamChunk: undefined }),
+  });
+  if (!protectedText) return result;
+  const restored = { ...result, trText: protection.restore(result.trText) };
+  args.onStreamChunk?.({ id: 0, text: restored.trText, isComplete: true });
+  return restored;
+};
+
+const executeApiTranslate = async ({
   text,
   fromLang = "auto",
   toLang,
@@ -940,7 +991,45 @@ export const apiDict = async ({
  * @param {AbortSignal} [params.signal] 当前字幕处理生命周期的取消信号，会下传到请求层。
  * @returns {Promise<Array<Object>>} 完整字幕断句与翻译结果。
  */
-export const apiSubtitle = async ({
+export const apiSubtitle = async (args) => {
+  const api = args.apiSetting;
+  const scene = args.scene;
+  if (!scene && !api?.termsList?.length && !api?.terms)
+    return executeApiSubtitle(args);
+  const resolved = await resolveTerminology(
+    scene || {},
+    api,
+    args.terminologyTables
+  );
+  const aiTerms = Object.entries(resolved.glossary)
+    .map(([key, value]) => `${key},${value}`)
+    .join("\n");
+  // Segmentation must retain the original transcript and timing. When ordinary
+  // terms are active, translate the completed source cues in the normal text
+  // pipeline instead of trusting translations produced during segmentation.
+  const normalize = (cues) =>
+    resolved.normalEntries.length
+      ? cues.map((cue) => ({
+          ...cue,
+          translation: "",
+          _isDraftTranslation: true,
+        }))
+      : cues;
+  const result = await executeApiSubtitle({
+    ...args,
+    apiSetting: { ...api, aiTerms, terminologySignature: resolved.signature },
+    ...(args.onSubtitleChunk && {
+      onSubtitleChunk: (chunk) =>
+        args.onSubtitleChunk({
+          ...chunk,
+          subtitles: normalize(chunk.subtitles || []),
+        }),
+    }),
+  });
+  return normalize(result);
+};
+
+const executeApiSubtitle = async ({
   videoId,
   chunkSign,
   fromLang = "auto",
@@ -1006,6 +1095,7 @@ export const apiSubtitle = async ({
         }
       : {}),
     segVer: 4,
+    terminologySignature: apiSetting.terminologySignature || "",
     promptSig: (apiSetting.provider
       ? await providerCacheSignature(apiSetting, "segmentSubtitle", {
           renderedPrompt,

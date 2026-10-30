@@ -1,4 +1,10 @@
 import { logger } from "../libs/log.js";
+import { subscribeStorageInvalidation } from "../libs/storageEvents";
+import {
+  readTableDirectory,
+  loadTerminologySnapshot,
+  TERMINOLOGY_INDEX,
+} from "../libs/terminologyStorage";
 import { apiSubtitle, apiSummarizeContext } from "../apis/index.js";
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager.js";
 import { YouTubeSubtitleList } from "./YouTubeSubtitleList.js";
@@ -88,6 +94,13 @@ export class YouTubeCaptionProvider {
   #defaultAutoTranslate = true;
   // 当前页面是否由字幕快捷菜单显式覆盖了翻译服务
   #hasRuntimeApiOverride = false;
+  // 可用术语表目录列表
+  #terminologyDirectory = [];
+  // 临时术语表多选防抖定时器
+  #termsUpdateTimer = null;
+  #terminologyLoading = null;
+  // 当前视频默认术语表 ID 列表快照，切换新视频时用于恢复
+  #defaultTermsList = [];
 
   // 最终处理合并、翻译好的双语字幕数组（包含开始/结束时间、原文、翻译）
   #subtitles = [];
@@ -137,6 +150,7 @@ export class YouTubeCaptionProvider {
    */
   constructor(setting = {}) {
     this.#defaultAutoTranslate = setting.autoTranslate ?? true;
+    this.#defaultTermsList = [...(setting.termsList || [])];
     this.#setting = {
       ...setting,
       autoTranslate: this.#defaultAutoTranslate,
@@ -151,6 +165,15 @@ export class YouTubeCaptionProvider {
       getMenuProps: () => this.#getMenuProps(),
       getVideoEl: () => this.#videoEl,
     });
+    Promise.resolve(readTableDirectory?.())
+      .then((tables) => {
+        if (this.#disposed) return;
+        this.#terminologyDirectory = tables || [];
+        this.#playerUi.updateMenuProps();
+      })
+      .catch((err) => {
+        logger.child("subtitle").debug("Read terminology directory error", err);
+      });
   }
 
   /**
@@ -324,6 +347,28 @@ export class YouTubeCaptionProvider {
       window.addEventListener(name, handler);
       this.#cleanups.push(() => window.removeEventListener(name, handler));
     }
+    const handleTerminologyChange = () => {
+      Promise.resolve(readTableDirectory?.())
+        .then((tables) => {
+          if (this.#disposed) return;
+          this.#terminologyDirectory = tables || [];
+          this.#playerUi.updateMenuProps();
+        })
+        .catch(() => {});
+    };
+    this.#cleanups.push(
+      subscribeStorageInvalidation(TERMINOLOGY_INDEX, handleTerminologyChange)
+    );
+    window.addEventListener(
+      "kiss-terminology-changed",
+      handleTerminologyChange
+    );
+    this.#cleanups.push(() =>
+      window.removeEventListener(
+        "kiss-terminology-changed",
+        handleTerminologyChange
+      )
+    );
     this.#domObserver = new MutationObserver(() => {
       if (this.#checkScheduled) return;
       this.#checkScheduled = true;
@@ -343,6 +388,10 @@ export class YouTubeCaptionProvider {
   }
 
   #resetVideo({ clearBridge = true } = {}) {
+    clearTimeout(this.#termsUpdateTimer);
+    this.#termsUpdateTimer = null;
+    this.#setting.termsList = [...this.#defaultTermsList];
+    this.#invalidateTerminology();
     this.#persistCaptionCache(true);
     clearTimeout(this.#captionCacheTimer);
     this.#captionCacheTimer = null;
@@ -530,6 +579,22 @@ export class YouTubeCaptionProvider {
   #startAsr() {
     if (!this.#asr || !this.#setting.autoTranslate) return;
     if (this.#asr.active) return;
+    this.#asrWanted = true;
+    if (
+      !this.#setting.terminologyTables &&
+      this.#terminologySources().some((source) => source.termsList?.length)
+    ) {
+      const version = this.#processingVersion;
+      void this.#prepareTerminology()
+        .then((ready) => {
+          if (ready && !this.#isStaleProcessing(version) && !this.#asrDisabled)
+            this.#startAsr();
+        })
+        .catch((error) =>
+          logger.child("subtitle").warn("Unable to load terminology", error)
+        );
+      return;
+    }
     if (this.#subtitles.length && this.#flatEvents.length) {
       this.#nativeCaptionSnapshot = {
         videoId: this.#videoId,
@@ -546,7 +611,6 @@ export class YouTubeCaptionProvider {
         translationError: this.#translationError,
       };
     }
-    this.#asrWanted = true;
     this.#playerUi.resetTaskFeedback();
     this.#acquisitionVersion++;
     this.#acquirer?.cancel();
@@ -975,6 +1039,63 @@ export class YouTubeCaptionProvider {
     });
   }
 
+  #terminologySources() {
+    return [
+      this.#setting,
+      this.#setting.apiSetting,
+      this.#setting.transApis?.find(
+        (api) => api.apiSlug === this.#setting.segSlug
+      ),
+    ].filter(Boolean);
+  }
+
+  #invalidateTerminology() {
+    this.#terminologyLoading = null;
+    this.#setting.terminologyTables = undefined;
+  }
+
+  async #prepareTerminology() {
+    if (this.#setting.terminologyTables) return true;
+    if (!this.#terminologyLoading) {
+      const sources = this.#terminologySources();
+      this.#terminologyLoading = sources.some(
+        (source) => source.termsList?.length
+      )
+        ? loadTerminologySnapshot(sources)
+        : Promise.resolve([]);
+    }
+    const pending = this.#terminologyLoading;
+    let tables;
+    try {
+      tables = await pending;
+    } catch (error) {
+      if (this.#disposed || pending !== this.#terminologyLoading) return false;
+      this.#terminologyLoading = null;
+      throw error;
+    }
+    if (this.#disposed || pending !== this.#terminologyLoading) return false;
+    this.#setting.terminologyTables = tables;
+    return true;
+  }
+
+  async #restartWithTerminology(previousApiSlug = null) {
+    const version = ++this.#processingVersion;
+    this.#subtitleAbortController?.abort();
+    const restartAsr =
+      !!this.#asr &&
+      (this.#asr.active || (this.#asrWanted && !this.#asrDisabled));
+    const stopping = restartAsr ? this.#asr.stop() : undefined;
+    try {
+      const [ready] = await Promise.all([this.#prepareTerminology(), stopping]);
+      if (!ready || this.#isStaleProcessing(version)) return;
+      if (restartAsr) {
+        if (this.#setting.autoTranslate && !this.#asrDisabled) this.#startAsr();
+      } else this.#reProcessEvents({ previousApiSlug });
+    } catch (error) {
+      logger.child("subtitle").warn("Unable to load terminology", error);
+    }
+  }
+
   /**
    * 外部 UI 设置变更响应总入口。
    *
@@ -1009,15 +1130,30 @@ export class YouTubeCaptionProvider {
         .debug("Youtube Provider: update setting", name, value);
       this.#setting.apiSlug = value;
       this.#setting.apiSetting = apiSetting;
+      clearTimeout(this.#termsUpdateTimer);
+      this.#termsUpdateTimer = null;
+      this.#invalidateTerminology();
       this.#hasRuntimeApiOverride = true;
       this.#playerUi.updateMenuProps();
 
-      if (this.#asr?.active) {
-        void this.#asr.restart();
-        return;
-      }
+      void this.#restartWithTerminology(previousApiSlug);
+      return;
+    }
 
-      this.#reProcessEvents({ previousApiSlug });
+    if (name === "termsList") {
+      this.#setting.termsList = value;
+      this.#invalidateTerminology();
+      this.#hasRuntimeApiOverride = true;
+      this.#playerUi.updateMenuProps();
+      clearTimeout(this.#termsUpdateTimer);
+      this.#termsUpdateTimer = setTimeout(() => {
+        this.#termsUpdateTimer = null;
+        logger
+          .child("subtitle")
+          .debug("Youtube Provider: update temporary termsList", value);
+        this.#nativeCaptionSnapshot = null;
+        void this.#restartWithTerminology();
+      }, 600);
       return;
     }
 
@@ -1028,9 +1164,17 @@ export class YouTubeCaptionProvider {
 
     this.#playerUi.updateMenuProps();
 
+    if (name === "segSlug") {
+      clearTimeout(this.#termsUpdateTimer);
+      this.#termsUpdateTimer = null;
+      this.#invalidateTerminology();
+      void this.#restartWithTerminology();
+      return;
+    }
+
     if (
       this.#asr?.active &&
-      ["segSlug", "forceSubtitleRetranslate", "aiContextSlug"].includes(name)
+      ["forceSubtitleRetranslate", "aiContextSlug"].includes(name)
     ) {
       void this.#asr.restart();
       return;
@@ -1042,7 +1186,7 @@ export class YouTubeCaptionProvider {
       name === "displayOrder"
     ) {
       this.#managerInstance?.updateSetting({ [name]: value });
-    } else if (name === "segSlug" || name === "forceSubtitleRetranslate") {
+    } else if (name === "forceSubtitleRetranslate") {
       this.#reProcessEvents();
     } else if (name === "autoTranslate") {
       this.#toggleTranslation();
@@ -1177,6 +1321,7 @@ export class YouTubeCaptionProvider {
       blurTranslation,
       autoTranslate,
       aiContextSlug,
+      termsList = [],
     } = this.#setting;
     return {
       i18n: this.#i18n,
@@ -1206,6 +1351,7 @@ export class YouTubeCaptionProvider {
       canDownload: this.#subtitles.length > 0,
       transApis,
       progressed: this.#progressedNum,
+      terminologyDirectory: this.#terminologyDirectory,
       formData: {
         apiSlug,
         segSlug,
@@ -1214,6 +1360,7 @@ export class YouTubeCaptionProvider {
         blurTranslation,
         autoTranslate,
         aiContextSlug,
+        termsList,
       },
     };
   }
@@ -1326,6 +1473,11 @@ export class YouTubeCaptionProvider {
         this.#playerUi.updateMenuProps();
         return;
       }
+      if (
+        !(await this.#prepareTerminology()) ||
+        this.#isStaleProcessing(processingVersion)
+      )
+        return;
       const [segmentationSignature, translationSignature] = await Promise.all([
         captionSegmentationSignature(this.#setting),
         captionTranslationSignature(this.#setting),
@@ -1419,6 +1571,11 @@ export class YouTubeCaptionProvider {
     signal,
   }) {
     try {
+      if (
+        !(await this.#prepareTerminology()) ||
+        this.#isStaleProcessing(processingVersion)
+      )
+        return;
       if (this.#captionCacheContext) {
         const [segmentationSignature, translationSignature] = await Promise.all(
           [
@@ -1434,6 +1591,7 @@ export class YouTubeCaptionProvider {
         } else if (context.translationSignature !== translationSignature) {
           for (const cue of this.#captionFinalCues.values())
             cue.translation = "";
+          context.complete = false;
         }
         this.#captionCacheContext = {
           ...context,

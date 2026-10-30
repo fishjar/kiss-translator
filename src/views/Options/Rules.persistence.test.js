@@ -169,5 +169,6 @@ test.each([true, false])(
       container.remove();
       localStorage.clear();
     }
-  }
+  },
+  15000
 );

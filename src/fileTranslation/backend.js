@@ -1,3 +1,8 @@
+import {
+  readTableDirectory,
+  resolveTerminology,
+  loadTerminologySnapshot,
+} from "../libs/terminologyStorage";
 import { sha256 } from "../libs/utils";
 import { startLogTask } from "../libs/diagnostics/task";
 import {
@@ -41,7 +46,13 @@ import {
 } from "./protocol";
 
 const SCENES = Object.keys(DEFAULT_FILE_TRANSLATE_SETTING);
-const EXTRA_FIELDS = ["apiSlug", "layoutApiSlug"];
+const EXTRA_FIELDS = [
+  "apiSlug",
+  "layoutApiSlug",
+  "terms",
+  "aiTerms",
+  "termsList",
+];
 const API_FIELDS = [
   "apiSlug",
   "apiName",
@@ -70,9 +81,26 @@ export function validateScenePatch(kind, patch) {
     throw fileError("INVALID_INPUT", "文件类型或设置补丁无效");
   const defaults = DEFAULT_FILE_TRANSLATE_SETTING[kind];
   for (const [key, value] of Object.entries(patch)) {
-    if (![...Object.keys(defaults), ...EXTRA_FIELDS].includes(key))
+    if (
+      ![
+        ...Object.keys(defaults),
+        ...EXTRA_FIELDS,
+        "terms",
+        "aiTerms",
+        "termsList",
+      ].includes(key)
+    )
       throw fileError("INVALID_INPUT", `不能修改设置字段 ${key}`);
-    if (key === "recognitionService") {
+    if (key === "termsList") {
+      if (
+        !Array.isArray(value) ||
+        value.some((id) => typeof id !== "string" || !id)
+      )
+        throw fileError("INVALID_INPUT", "Invalid terminology references");
+    } else if (key === "terms" || key === "aiTerms") {
+      if (typeof value !== "string")
+        throw fileError("INVALID_INPUT", "Invalid inline terminology");
+    } else if (key === "recognitionService") {
       if (
         value !== null &&
         (!value ||
@@ -244,6 +272,21 @@ export async function getFileContext(signal) {
   );
   return {
     uiLang: setting.uiLang,
+    terminologyDirectory: await readTableDirectory(),
+    terminologySignatures: Object.fromEntries(
+      await Promise.all(
+        SCENES.map(async (kind) => {
+          const scene = setting.fileTranslateSetting[kind] || {};
+          const api =
+            setting.transApis.find((api) => api.apiSlug === scene.apiSlug) ||
+            {};
+          return [
+            kind,
+            await sha256((await resolveTerminology(scene, api)).signature),
+          ];
+        })
+      )
+    ),
     scenes: Object.fromEntries(
       SCENES.map((kind) => {
         const scene = pick(setting.fileTranslateSetting[kind] || {}, [
@@ -369,7 +412,7 @@ export async function executeFileMethod(
   method,
   params,
   signal,
-  uploads,
+  uploads = new Map(),
   onProgress
 ) {
   if (method === "analyzeLayout") {
@@ -555,7 +598,25 @@ export async function executeFileMethod(
       if (signal?.aborted || error?.name === "AbortError") throw error;
       return [];
     });
+    const terminologyTaskId = params.terminologyTaskId || crypto.randomUUID();
+    if (!uploads.terminologySnapshots) uploads.terminologySnapshots = new Map();
     return executeFileTranslation(params.text, scene, setting, signal, {
+      getTerminologyTables: async (selectedScene, selectedApi) => {
+        const key = `${terminologyTaskId}:${params.kind}:${selectedApi.apiSlug}`;
+        if (!uploads.terminologySnapshots.has(key)) {
+          if (uploads.terminologySnapshots.size >= 32)
+            uploads.terminologySnapshots.delete(
+              uploads.terminologySnapshots.keys().next().value
+            );
+          uploads.terminologySnapshots.set(
+            key,
+            loadTerminologySnapshot([selectedScene, selectedApi])
+          );
+        }
+        return uploads.terminologySnapshots.get(key);
+      },
+      onTerminologyWarning: (missingTableIds) =>
+        onProgress?.({ type: "terminology-warning", missingTableIds }),
       cacheMode: params.cacheMode,
       installedModels: new Set(
         records
@@ -707,6 +768,7 @@ export function attachFileSession(port, execute = executeFileMethod) {
     pending.forEach((controller) => controller.abort());
     pending.clear();
     [...uploads.keys()].forEach(dropUpload);
+    uploads.terminologySnapshots?.clear();
     browser.storage.onChanged.removeListener(changed);
     modelChannel?.close();
     port.onMessage.removeListener(receive);

@@ -173,7 +173,9 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
 .kt-playground-config__copy { min-width: 0; }
 .kt-playground-config__copy h2 { margin: 0; color: var(--kt-on); font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
 .kt-playground-config__copy p { margin: 4px 0 0; color: var(--kt-onv); font-size: var(--kt-settings-helper-font-size); line-height: 1.45; }
-.kt-playground-config__normalize { width: fit-content; flex: none; }
+.kt-playground-config__actions { max-width: 100%; flex: 0 0 auto; }
+.kt-playground-config__actions .kt-playground-config__normalize { width: fit-content; min-width: 0; flex: 0 1 auto; margin-right: 0; }
+.kt-playground-config__actions .MuiIconButton-root { flex: none; }
 .kt-playground-config__grid.MuiGrid-container { width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 0; }
 .kt-playground-config__grid.MuiGrid-container > .MuiGrid-item { width: auto; max-width: none; flex-basis: auto; padding: 0 !important; }
 .kt-playground-config__grid .MuiSelect-select { text-overflow: ellipsis; }

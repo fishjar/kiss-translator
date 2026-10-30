@@ -2120,3 +2120,46 @@ describe("TranForm textarea grip style", () => {
     act(() => root.unmount());
   });
 });
+
+test("collapsing Playground configuration preserves source, settings, and result instances", () => {
+  jest.useFakeTimers();
+  const view = renderTranForm({
+    isPlaygound: true,
+    simpleStyle: false,
+    apiSlugs: ["openai"],
+    enDict: "-",
+    aiDictApiSlug: "-",
+    playgroundConfigHeader: <div data-testid="persistent-header">Header</div>,
+    playgroundConfigExtra: (
+      <input data-testid="extra-setting" defaultValue="temporary terms" />
+    ),
+  });
+  const extra = view.container.querySelector('[data-testid="extra-setting"]');
+  const result = view.container.querySelector('[data-testid="tran-cont"]');
+  const source = view.container.querySelector("textarea");
+  const service = view.container.querySelector('input[name="apiSlugs"]');
+  view.rerender({ playgroundConfigExpanded: false });
+  act(() => jest.advanceTimersByTime(1000));
+  expect(
+    getComputedStyle(
+      view.container.querySelector("#kt-playground-config-content")
+    ).visibility
+  ).toBe("hidden");
+  expect(
+    view.container.querySelector('[data-testid="persistent-header"]')
+  ).not.toBeNull();
+  expect(view.container.querySelector('[data-testid="extra-setting"]')).toBe(
+    extra
+  );
+  expect(view.container.querySelector('[data-testid="tran-cont"]')).toBe(
+    result
+  );
+  expect(view.container.querySelector("textarea")).toBe(source);
+  expect(view.container.querySelector('input[name="apiSlugs"]')).toBe(service);
+  view.rerender({ playgroundConfigExpanded: true });
+  act(() => jest.advanceTimersByTime(1000));
+  expect(extra.value).toBe("temporary terms");
+  act(() => view.root.unmount());
+  view.host.remove();
+  jest.useRealTimers();
+});

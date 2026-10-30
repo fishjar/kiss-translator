@@ -23,7 +23,8 @@ test("compiled presets preserve unrelated approved defaults while enabling strea
     createHash("sha256")
       .update(
         JSON.stringify(
-          DEFAULT_API_LIST.map((api) => ({
+          // New terminology defaults are asserted separately from the historical hash.
+          DEFAULT_API_LIST.map(({ terms, termsList, ...api }) => ({
             ...api,
             ...(api.apiType === OPT_TRANS_LOCALAI && {
               vlmPromptSlug: "vlm-document",
@@ -59,6 +60,18 @@ test("new native instances inherit streaming presets", () => {
   expect(
     createBuiltinInstance(OPT_TRANS_OPENAI, "openai", "OpenAI").useStream
   ).toBe(true);
+});
+
+test("native defaults and new instances start without terminology overrides", () => {
+  for (const api of [DEFAULT_API_SETTING, ...DEFAULT_API_LIST]) {
+    expect(api.terms).toBe("");
+    expect(api.termsList).toEqual([]);
+  }
+  for (const api of DEFAULT_API_LIST) {
+    const instance = createBuiltinInstance(api.apiType, "test", "Test");
+    expect(instance.terms).toBe("");
+    expect(instance.termsList).toEqual([]);
+  }
 });
 
 test("public SDK dictionary and native language aliases preserve every previous mapping", () => {

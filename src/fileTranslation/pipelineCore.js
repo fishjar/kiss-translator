@@ -486,7 +486,15 @@ export async function executeItemsTranslation({
         sourceText,
         scene,
         setting,
-        signal
+        signal,
+        {
+          onTerminologyWarning: (missingTableIds) =>
+            onProgress?.({
+              stage: "translate",
+              message: "terminology_missing_help",
+              missingTableIds,
+            }),
+        }
       );
       completed++;
       onProgress?.({

@@ -3,6 +3,7 @@ import { act, createRef } from "react";
 import { createRoot } from "react-dom/client";
 import PdfWorkspace from "./PdfWorkspace";
 import { openPdf } from "../../libs/pdf/pdfDocument";
+jest.mock("katex/dist/katex.min.css", () => ({}));
 jest.mock("./State", () => {
   const context = { scenes: { pdf: {} }, models: [] };
   return {

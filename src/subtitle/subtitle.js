@@ -1,3 +1,5 @@
+import { terminologyWarningHandler } from "../libs/terminologyWarning";
+import { loadTerminologySnapshot } from "../libs/terminologyStorage";
 import { YouTubeInitializer } from "./YouTubeCaptionProvider.js";
 import { isMatch } from "../libs/utils.js";
 import { availableApiForScene } from "../config/serviceSelection.js";
@@ -38,7 +40,7 @@ export function persistSubtitlePosition(positionRatio) {
  * @param {string} params.href - 当前浏览器网页的完整链接 (document.location.href)
  * @param {object} params.setting - 全局用户配置选项，包括 subtitleSetting 和 transApis
  */
-export function runSubtitle({ href, setting }) {
+export async function runSubtitle({ href, setting }) {
   try {
     // 获取字幕配置，若无则使用默认字幕配置
     const subtitleSetting = setting.subtitleSetting || DEFAULT_SUBTITLE_SETTING;
@@ -69,7 +71,20 @@ export function runSubtitle({ href, setting }) {
 
       // 3. 启动特定平台的字幕翻译与渲染引擎 (如 YouTubeCaptionProvider)
       // 将整理好的字幕配置、翻译 API 配置、所有已启用的 API 列表以及 UI 界面语言传递给对应的 provider
+      const segmentationApi = transApis.find(
+        (api) => api.apiSlug === subtitleSetting.segSlug
+      );
+      const sources = [subtitleSetting, apiSetting, segmentationApi].filter(
+        Boolean
+      );
+      const terminologyTables = sources.some(
+        (source) => source.termsList?.length
+      )
+        ? await loadTerminologySnapshot(sources)
+        : [];
       provider.start({
+        terminologyTables,
+        onTerminologyWarning: terminologyWarningHandler(setting.uiLang),
         ...subtitleSetting,
         apiSlug: apiSetting.apiSlug,
         apiSetting,

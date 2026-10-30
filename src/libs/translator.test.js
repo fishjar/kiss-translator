@@ -20,6 +20,9 @@ jest.mock("./detect", () => ({
   tryDetectLang: jest.fn(),
 }));
 jest.mock("@streamparser/json", () => ({ JSONParser: jest.fn() }));
+jest.mock("./terminologyStorage", () => ({
+  loadTerminologySnapshot: jest.fn(async () => []),
+}));
 jest.mock("./sync", () => ({ trySyncRules: jest.fn() }));
 jest.mock("./subRules", () => ({ loadOrFetchSubRules: jest.fn() }));
 
@@ -122,6 +125,147 @@ function createPlainTextTranslator(rule = {}, setting = {}) {
 }
 
 describe("Translator rule styles", () => {
+  describe("manual terminology snapshots", () => {
+    const table = {
+      id: "hover-topic",
+      name: "Topic",
+      description: "",
+      terms: "act,行动",
+      aiTerms: "component,表组件",
+      normalMatchMode: "auto",
+    };
+    const setup = (apiSlug = "bubble") => {
+      document.body.innerHTML =
+        '<main id="root"><p id="target">act component</p></main>';
+      const pageApi = createApiSetting("page");
+      const bubbleApi = {
+        ...createApiSetting("bubble"),
+        termsList: [table.id],
+        aiTerms: "component,接口组件",
+      };
+      return createTranslator(
+        {
+          transOpen: "false",
+          apiSlug: "page",
+          aiTerms: "component,规则组件",
+          ...(apiSlug === "*" && { termsList: [table.id] }),
+        },
+        {
+          preInit: true,
+          transApis: [pageApi, bubbleApi],
+          mouseHoverSetting: {
+            useMouseHover: true,
+            displayMode: "bubble",
+            apiSlug,
+            mouseHoverKey: [],
+            mouseHoverKey2: [],
+          },
+        }
+      );
+    };
+    test.each(["bubble", "*"])(
+      "loads tables with page translation disabled (%s)",
+      async (apiSlug) => {
+        const { loadTerminologySnapshot } = require("./terminologyStorage");
+        const {
+          compileTerminology,
+          terminologySourceList,
+          protectTerminologyText,
+        } = require("./terminology");
+        loadTerminologySnapshot.mockResolvedValue([table]);
+        apiTranslate.mockImplementation(async (args) => {
+          const resolved = compileTerminology(
+            [...terminologySourceList(args.scene), args.apiSetting],
+            args.terminologyTables
+          );
+          expect(resolved.glossary.component).toBe("规则组件");
+          const protection = protectTerminologyText(
+            args.text,
+            resolved.normalEntries
+          );
+          expect(protection.text).not.toContain("act");
+          expect(args.normalTermsApplied).toBe(false);
+          return { trText: protection.restore(protection.text) };
+        });
+        setup(apiSlug);
+        await hoverNode(document.getElementById("target"));
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(
+          document.querySelector(".kiss-translator-hover-bubble").textContent
+        ).toBe("行动 component");
+      }
+    );
+    test.each(["stop", "service"])(
+      "discards a pending hover snapshot after %s",
+      async (action) => {
+        const { loadTerminologySnapshot } = require("./terminologyStorage");
+        let resolve;
+        loadTerminologySnapshot.mockImplementationOnce(
+          () =>
+            new Promise((done) => {
+              resolve = done;
+            })
+        );
+        const translator = setup();
+        await hoverNode(document.getElementById("target"));
+        await flushAsync();
+        expect(resolve).toEqual(expect.any(Function));
+        if (action === "stop") translator.stop();
+        else translator.updateApiSettings([createApiSetting("page")]);
+        resolve([table]);
+        await flushAsync();
+        expect(apiTranslate).not.toHaveBeenCalled();
+      }
+    );
+  });
+  test.each(["toggle", "change-table"])(
+    "%s during table loading ignores the canceled snapshot",
+    async (action) => {
+      const { loadTerminologySnapshot } = require("./terminologyStorage");
+      let first, second;
+      loadTerminologySnapshot
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              first = resolve;
+            })
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              second = resolve;
+            })
+        );
+      document.body.innerHTML = '<main id="root"><p>act react</p></main>';
+      apiTranslate.mockImplementation(async ({ text }) => ({ trText: text }));
+      const translator = createTranslator({ termsList: ["topic"] });
+      await flushAsync();
+      if (action === "toggle") {
+        translator.disable();
+        translator.enable();
+      } else translator.updateRule({ termsList: ["other"] });
+      expect(loadTerminologySnapshot).toHaveBeenCalledTimes(2);
+      first([]);
+      await flushAsync();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      second([
+        {
+          id: action === "toggle" ? "topic" : "other",
+          name: "Topic",
+          description: "",
+          terms: "act,行动",
+          aiTerms: "",
+          normalMatchMode: "auto",
+        },
+      ]);
+      await flushAsync();
+      expect(
+        document.querySelector(`.${Translator.KISS_CLASS.inner}`).textContent
+      ).toBe("行动 react");
+    }
+  );
+
   test.each(["disable", "stop", "rescan", "source", "target", "service"])(
     "cancels pending webpage requests on %s and isolates the next session",
     async (action) => {
@@ -2763,6 +2907,89 @@ describe("Translator rule styles", () => {
     });
     afterEach(() => {
       window.PointerEvent = savedPointer;
+    });
+
+    test.each([true, false])(
+      "touch uses its service snapshot and protects terms once (independent=%s)",
+      async (independent) => {
+        const { loadTerminologySnapshot } = require("./terminologyStorage");
+        const pageApi = { ...createApiSetting("page"), terms: "act,整页" };
+        const touchApi = {
+          ...createApiSetting("touch"),
+          termsList: ["touch-table"],
+        };
+        const table = {
+          id: "touch-table",
+          name: "Touch",
+          terms: "act,触摸",
+          aiTerms: "component,表组件",
+          normalMatchMode: "auto",
+        };
+        loadTerminologySnapshot.mockResolvedValue([table]);
+        const translator = createTranslator(
+          {
+            transOpen: "false",
+            apiSlug: "page",
+            aiTerms: "component,规则组件",
+            ...(!independent && { termsList: [table.id] }),
+          },
+          {
+            preInit: false,
+            transApis: [pageApi, touchApi],
+            mouseHoverSetting: { apiSlug: independent ? "touch" : "*" },
+          }
+        );
+        const node = document.getElementById("target");
+        node.textContent = "act component";
+        apiTranslate.mockImplementation(async (args) => {
+          expect(args.text).not.toContain("act");
+          expect(args.text).toContain("{1}");
+          expect(args.normalTermsApplied).toBe(true);
+          expect(args.glossary.component).toBe("规则组件");
+          return { trText: args.text, isSame: false };
+        });
+        translator.setTouchMode("tap");
+        tap(node);
+        await flushAsync();
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(
+          node.querySelector(`.${Translator.KISS_CLASS.inner}`).textContent
+        ).toBe("触摸 component");
+      }
+    );
+
+    test("concurrent touch tasks share a pending snapshot and can retry a failed load", async () => {
+      const { loadTerminologySnapshot } = require("./terminologyStorage");
+      let reject;
+      loadTerminologySnapshot.mockImplementationOnce(
+        () =>
+          new Promise((_resolve, fail) => {
+            reject = fail;
+          })
+      );
+      const translator = createTranslator(
+        { transOpen: "false", termsList: ["topic"] },
+        { preInit: false }
+      );
+      const first = document.getElementById("target");
+      const second = document.createElement("p");
+      second.textContent = "Second touch paragraph";
+      document.getElementById("root").append(second);
+      translator.setTouchMode("tap");
+      tap(first);
+      tap(second);
+      await flushAsync();
+      expect(loadTerminologySnapshot).toHaveBeenCalledTimes(1);
+      reject(new Error("storage unavailable"));
+      await flushAsync();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      loadTerminologySnapshot.mockResolvedValue([]);
+      tap(first);
+      await flushAsync();
+      await flushAsync();
+      expect(loadTerminologySnapshot).toHaveBeenCalledTimes(2);
+      expect(first.textContent).toContain("Translated");
     });
 
     test("keeps originals and inserts bilingual text below, then restores", async () => {

@@ -1,3 +1,4 @@
+import TerminologySelect from "./TerminologySelect";
 import { isApiConfigured } from "../../config/serviceSelection";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -1133,6 +1134,17 @@ export default function SubtitleSetting() {
                 onChange={(checked) => updateSubtitle({ skipAd: checked })}
               />
             </SettingsRow>
+          </SettingsCard>
+        </SettingsSection>
+
+        <SettingsSection title={i18n("terminology_tables", "术语表")}>
+          <SettingsCard>
+            <Box sx={{ p: 2 }}>
+              <TerminologySelect
+                value={subtitleSetting.termsList || []}
+                onChange={(termsList) => updateSubtitle({ termsList })}
+              />
+            </Box>
           </SettingsCard>
         </SettingsSection>
 

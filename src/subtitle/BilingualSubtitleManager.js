@@ -768,6 +768,9 @@ export class BilingualSubtitleManager {
       );
       const response = await apiTranslate({
         text: subtitle.text,
+        scene: this.#setting,
+        onTerminologyWarning: this.#setting.onTerminologyWarning,
+        terminologyTables: this.#setting.terminologyTables,
         fromLang,
         toLang,
         apiSetting,

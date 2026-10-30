@@ -24,6 +24,8 @@ import SettingsSearchTarget, {
 } from "./SettingsSearchTarget";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+// Full MUI editors mount repeatedly; parallel workers can exceed Jest's 5 s default.
+jest.setTimeout(15000);
 
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key) => key,
@@ -121,6 +123,11 @@ const mockPutRule = jest.fn();
 const mockUpdateDataCache = jest.fn();
 const mockDeleteDataCache = jest.fn();
 const mockReloadSync = jest.fn();
+const renderedViews = new Set();
+
+afterEach(() => {
+  for (const view of renderedViews) view.unmount();
+});
 
 beforeEach(() => {
   mockReloadSync.mockResolvedValue(undefined);
@@ -162,7 +169,7 @@ function renderRules(searchNavigation = {}) {
     root.render(render());
   });
 
-  return {
+  const view = {
     container,
     root,
     rerender: (navigation = searchNavigation) => {
@@ -172,12 +179,15 @@ function renderRules(searchNavigation = {}) {
       });
     },
     unmount: () => {
+      renderedViews.delete(view);
       act(() => {
         root.unmount();
       });
       container.remove();
     },
   };
+  renderedViews.add(view);
+  return view;
 }
 
 async function flushEffects() {

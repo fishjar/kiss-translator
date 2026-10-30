@@ -232,7 +232,8 @@ describe("subtitle Menus", () => {
 
     expect(menuItems[0].textContent).toContain("enable_subtitle_translate");
     expect(menuItems[1].textContent).toContain("translate_service");
-    expect(menuItems[2].textContent).toContain("ai_segmentation");
+    expect(menuItems[2].textContent).toContain("terminology_tables");
+    expect(menuItems[3].textContent).toContain("ai_segmentation");
 
     act(() => {
       menuItems[1].firstElementChild.click();
@@ -324,6 +325,125 @@ describe("subtitle acquisition menu", () => {
       )
     );
     expect(onClose).toHaveBeenCalledTimes(1);
+    view.cleanup();
+  });
+});
+
+describe("subtitle terminology MultiSelect", () => {
+  const terminologyDirectory = [
+    { id: "tbl_1", name: "计算机网络" },
+    { id: "tbl_2", name: "医学术语" },
+    { id: "tbl_3", name: "AI大模型" },
+  ];
+
+  test("renders terminology option directly below translate service with empty state", () => {
+    const view = renderMenus({
+      terminologyDirectory,
+      formData: {
+        apiSlug: "api-a",
+        termsList: [],
+        autoTranslate: true,
+      },
+    });
+
+    const buttons = [...view.container.querySelectorAll('[role="button"]')];
+    const serviceIndex = buttons.findIndex((item) =>
+      item.textContent.includes("translate_service")
+    );
+    const terminologyIndex = buttons.findIndex((item) =>
+      item.textContent.includes("terminology_tables")
+    );
+
+    expect(serviceIndex).toBeGreaterThanOrEqual(0);
+    expect(terminologyIndex).toBe(serviceIndex + 1);
+
+    const termButton = buttons[terminologyIndex];
+    expect(termButton.textContent).toContain("none");
+    view.cleanup();
+  });
+
+  test("displays single or multiple terminology labels in summary", () => {
+    const viewSingle = renderMenus({
+      terminologyDirectory,
+      formData: {
+        apiSlug: "api-a",
+        termsList: ["tbl_1"],
+        autoTranslate: true,
+      },
+    });
+    expect(viewSingle.container.textContent).toContain("计算机网络");
+    viewSingle.cleanup();
+
+    const viewMultiple = renderMenus({
+      terminologyDirectory,
+      formData: {
+        apiSlug: "api-a",
+        termsList: ["tbl_1", "tbl_2"],
+        autoTranslate: true,
+      },
+    });
+    expect(viewMultiple.container.textContent).toContain(
+      "计算机网络, 医学术语"
+    );
+    viewMultiple.cleanup();
+
+    const viewMany = renderMenus({
+      terminologyDirectory,
+      formData: {
+        apiSlug: "api-a",
+        termsList: ["tbl_1", "tbl_2", "tbl_3"],
+        autoTranslate: true,
+      },
+    });
+    expect(viewMany.container.textContent).toContain("selected 3");
+    viewMany.cleanup();
+  });
+
+  test("toggles terminology choices in MultiSelect panel without closing", () => {
+    const updateSetting = jest.fn();
+    const view = renderMenus({
+      terminologyDirectory,
+      updateSetting,
+      formData: {
+        apiSlug: "api-a",
+        termsList: ["tbl_1"],
+        autoTranslate: true,
+      },
+    });
+
+    const buttons = [...view.container.querySelectorAll('[role="button"]')];
+    const termButton = buttons.find((item) =>
+      item.textContent.includes("terminology_tables")
+    );
+
+    // 展开下拉浮层
+    act(() => termButton.click());
+
+    const options = [...view.container.querySelectorAll('[role="option"]')];
+    expect(options.length).toBe(3);
+
+    // 验证 tbl_1 处于选中态（带有 ✓）
+    expect(options[0].textContent).toContain("✓");
+    expect(options[0].getAttribute("aria-selected")).toBe("true");
+    expect(options[1].getAttribute("aria-selected")).toBe("false");
+
+    // 点击第二个选项（tbl_2）追加选择
+    act(() => options[1].click());
+    expect(updateSetting).toHaveBeenCalledWith({
+      name: "termsList",
+      value: ["tbl_1", "tbl_2"],
+    });
+
+    // 浮层仍处于展开状态
+    expect(view.container.querySelectorAll('[role="option"]').length).toBe(3);
+
+    // 点击第一个选项（tbl_1）取消选择
+    act(() => options[0].click());
+    expect(updateSetting).toHaveBeenCalledWith({
+      name: "termsList",
+      value: [],
+    });
+
     view.cleanup();
   });
 });

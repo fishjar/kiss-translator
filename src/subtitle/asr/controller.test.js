@@ -13,7 +13,10 @@ if (!globalThis.TextEncoder) {
   globalThis.TextEncoder = TextEncoder;
 }
 
-jest.mock("../../libs/utils", () => ({ downloadBlobFile: jest.fn() }));
+jest.mock("../../libs/utils", () => ({
+  ...jest.requireActual("../../libs/utils"),
+  downloadBlobFile: jest.fn(),
+}));
 jest.mock("./processing", () => ({
   resolvedAsrServices: (setting) => ({
     asrService: setting.asrApiSlug === "asr" ? { apiSlug: "asr" } : null,

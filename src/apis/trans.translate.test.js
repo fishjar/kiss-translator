@@ -460,7 +460,7 @@ describe("handleTranslate", () => {
           source_lang: "auto",
           target_lang: "English",
           terms: expect.arrayContaining([
-            { source: "component", target: "接口组件" },
+            { source: "component", target: "规则组件" },
             { source: "Keep", target: "Keep" },
             { source: "React", target: "React" },
           ]),
@@ -694,12 +694,12 @@ describe("handleTranslate", () => {
           toLang: "Chinese",
           langMap: () => "",
           glossary: "",
-          apiSetting: {
+          apiSetting: normalizeApiThinkingSetting({
             ...getApiSetting(OPT_TRANS_OPENAI),
             useStream: false,
             model: "unknown-model",
             thinkingMode,
-          },
+          }),
           usePool: false,
         })
       );

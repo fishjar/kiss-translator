@@ -154,6 +154,12 @@ export default function Navigator({ open, isMobile = false, onClose }) {
           label: i18n("options_group_data"),
           items: [
             ["sync", i18n("options_data_sync"), "/sync", CloudSyncRoundedIcon],
+            [
+              "terms",
+              i18n("terminology_tables", "Terminology tables"),
+              "/terms",
+              DescriptionRoundedIcon,
+            ],
             ["words", i18n("favorite_words"), "/words", BookmarksRoundedIcon],
           ],
         },
