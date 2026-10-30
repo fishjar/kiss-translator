@@ -1,5 +1,8 @@
 export const LANG_STORAGE_KEY = "kiss-homepage-lang";
 export const THEME_STORAGE_KEY = "kiss-homepage-theme";
+// homepage 本地主题色键：与扩展 Setting.iconColor 是两条独立数据源
+// （homepage 无 browser.storage 访问权；PR #17 评审闭环引入）。
+export const ICON_COLOR_STORAGE_KEY = "kiss-homepage-icon-color";
 
 export const languageOptions = [
   { value: "en", label: "English" },
