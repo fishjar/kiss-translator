@@ -150,18 +150,13 @@ const apiListControlSx = {
 };
 
 const EPHONEAI_MODELS = [
+  "gpt-6-luna",
   "gpt-5.4-mini",
   "gpt-5.4-nano",
-  "gemini-3.1-flash-lite-preview",
   "grok-4.20-beta-0309-non-reasoning",
 ];
 
-const APIMART_MODELS = [
-  "gpt-5.6-luna",
-  "gpt-5.4-mini",
-  "deepseek-v4-flash",
-  "claude-3-5-haiku",
-];
+const APIMART_MODELS = ["gpt-5.6-luna", "gpt-5.4-mini"];
 
 const QWEN_MT_MODELS = [
   "qwen-mt-flash",
@@ -1349,7 +1344,13 @@ function LegacyApiFields({
                   ? i18n("thinking_unknown_model_helper")
                   : showMinimumThinkingHelper
                     ? i18n("gemini_thinking_minimum_helper")
-                    : i18n("thinking_mode_helper")
+                    : thinkingMode === "disabled" &&
+                        thinkingCapability?.disable === null
+                      ? i18n("thinking_required_helper")
+                      : thinkingMode === "disabled" &&
+                          thinkingCapability?.disable === "between_tools"
+                        ? i18n("thinking_between_tools_helper")
+                        : i18n("thinking_mode_helper")
               }
               showEffort={searchTarget === "thinking_effort"}
               allowDefaultEffort={
