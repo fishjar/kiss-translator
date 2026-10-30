@@ -172,6 +172,8 @@ export async function aiSegment({
       toLang,
       events: segmentEvents,
       apiSetting: resolvedSegApiSetting,
+      scene: setting,
+      terminologyTables: setting?.terminologyTables,
       docInfo,
       signal,
       onSubtitleChunk: ({ subtitles }) => {
@@ -219,6 +221,8 @@ export async function aiSegment({
           toLang,
           events: tailEvents,
           apiSetting: resolvedSegApiSetting,
+          scene: setting,
+          terminologyTables: setting?.terminologyTables,
           docInfo,
           signal,
         });

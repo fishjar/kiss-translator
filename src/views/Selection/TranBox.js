@@ -51,6 +51,21 @@ export default function TranBox(props) {
     props.subtitleSetting,
   ]);
 
+  const scene = useMemo(() => {
+    if (!props.rule) {
+      return props.tranboxSetting;
+    }
+    return {
+      ...props.tranboxSetting,
+      terms: props.rule.terms || "",
+      aiTerms: props.rule.aiTerms || "",
+      termsList: props.rule.termsList || [],
+      ...(props.rule.terminologySources && {
+        terminologySources: props.rule.terminologySources,
+      }),
+    };
+  }, [props.rule, props.tranboxSetting]);
+
   return props.showBox ? (
     <DraggableResizable
       panelRef={panelRef}
@@ -75,6 +90,7 @@ export default function TranBox(props) {
       onClick={(e) => e.stopPropagation()}
     >
       <TranslationPanelContent
+        scene={scene}
         ttsApiSlug={props.tranboxSetting.ttsApiSlug || ""}
         simpleStyle={simpleStyle}
         text={props.text}

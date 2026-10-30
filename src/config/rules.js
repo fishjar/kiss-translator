@@ -74,7 +74,8 @@ export const DEFAULT_RULE = {
   keepSelector: "", // 保留原文的行内元素 CSS 选择器
   blockSelector: "", // 自定义块级元素 CSS 选择器
   terms: "", // 本地化专有名词/术语表字典 (格式：原文=译文)
-  aiTerms: "", // 发送给大模型的专有名词/术语表
+  aiTerms: "",
+  termsList: [], // 发送给大模型的专有名词/术语表
   apiSlug: GLOBAL_KEY, // 本网页指定的翻译 API 标识名 (继承/覆盖全局)
   fromLang: GLOBAL_KEY, // 网页源语言代码 (继承/覆盖全局)
   toLang: GLOBAL_KEY, // 目标语言代码 (继承/覆盖全局)
@@ -133,6 +134,7 @@ export const GLOBLA_RULE = {
   blockSelector: "",
   terms: "",
   aiTerms: "",
+  termsList: [],
   apiSlug: OPT_TRANS_MICROSOFT, // 默认采用微软翻译
   fromLang: "auto", // 默认自动识别原文语言
   toLang: "zh-CN", // 默认翻译为简体中文

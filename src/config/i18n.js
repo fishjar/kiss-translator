@@ -1,3 +1,4 @@
+import { TERMINOLOGY_I18N } from "./locales/terminology";
 import { DIAGNOSTICS_I18N } from "./locales/diagnostics";
 import { YOUTUBE_CAPTIONS_I18N } from "./locales/youtubeCaptions";
 import { PROVIDER_PLUGINS_I18N } from "./locales/providerPlugins";
@@ -25,6 +26,7 @@ export const UI_LANGS = [
 ];
 
 export const I18N = {
+  ...TERMINOLOGY_I18N,
   ...DIAGNOSTICS_I18N,
   ...YOUTUBE_CAPTIONS_I18N,
   ...POPUP_I18N,

@@ -14,6 +14,9 @@ const sites = await readJson("src/config/fileTranslationSites.json");
 test("homepage compilation excludes extension services and executable AI assets", async () => {
   const modules = await readJson("tmp/build-analysis/homepage-modules.json");
   assert.ok(modules.includes("src/fileTranslation/client.js"));
+  assert.ok(modules.includes("src/components/TerminologySelect.js"));
+  for (const name of ["I18n", "Terminology", "Setting"])
+    assert.ok(!modules.includes(`src/hooks/${name}.js`));
   assert.ok(!modules.some((file) => /^src\/(apis|localAi)\//.test(file)));
   for (const name of ["storage", "browser", "msg"])
     assert.ok(!modules.includes(`src/libs/${name}.js`));
@@ -48,6 +51,54 @@ test("composed website retains userscript settings and resolves both web entrypo
     }
   }
 });
+
+test("composed website removes the replaced entry and updates its asset manifest", async () => {
+  for (const name of ["main.js", "content.html"])
+    assert.equal(await exists(path.join("build/web", name)), false, name);
+  const manifest = await readJson("build/web/asset-manifest.json");
+  const homepage = await readJson("build/homepage/asset-manifest.json");
+  assert.equal(manifest.files["main.js"], homepage.files["main.js"]);
+  assert.equal(
+    manifest.files["fileTranslate.js"],
+    homepage.files["fileTranslate.js"]
+  );
+  assert.ok(manifest.files["options.js"]);
+  assert.deepEqual(manifest.entrypoints, homepage.entrypoints);
+  for (const file of Object.values(manifest.files))
+    assert.ok(
+      await exists(path.join("build/web", file.replace(/^\//, ""))),
+      file
+    );
+});
+
+for (const target of ["homepage", "web"])
+  test(`${target} PDF styles resolve all assets and share export fonts`, async () => {
+    const root = `build/${target}`;
+    const directory = "assets/homepage";
+    const files = await fs.readdir(`${root}/${directory}`);
+    assert.ok(!files.some((file) => /^KaTeX_/.test(file)));
+    const fontPaths = new Set();
+    for (const file of files.filter((file) => file.endsWith(".css"))) {
+      const css = await fs.readFile(`${root}/${directory}/${file}`, "utf8");
+      for (const match of css.matchAll(/url\(\s*["']?([^\s"')]+)["']?\s*\)/g)) {
+        const url = match[1];
+        if (/^(data:|https?:|#)/.test(url)) continue;
+        const asset = path.posix.normalize(path.posix.join(directory, url));
+        assert.ok(await exists(path.join(root, asset)), `${file}: ${url}`);
+        if (asset.includes("KaTeX_")) fontPaths.add(asset);
+      }
+    }
+    const css = await fs.readFile(`${root}/assets/pdf/katex.min.css`, "utf8");
+    const exportFonts = new Set(
+      [...css.matchAll(/url\(([^)]+)\)/g)].map((match) =>
+        path.posix.join("assets/pdf", match[1].replace(/["']/g, ""))
+      )
+    );
+    assert.ok(fontPaths.size > 0);
+    assert.deepEqual(fontPaths, exportFonts);
+    for (const font of exportFonts)
+      assert.ok(await exists(path.join(root, font)), font);
+  });
 
 for (const target of ["edge-dev", "chrome", "firefox"])
   test(`${target} bridge uses a single self-contained script and narrow page matches`, async () => {

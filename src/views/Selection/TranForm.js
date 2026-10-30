@@ -1,3 +1,4 @@
+import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
@@ -18,6 +19,7 @@ import {
   PROMPT_MODE_FOLLOW_API,
 } from "../../config";
 import {
+  Fragment,
   useState,
   useMemo,
   useEffect,
@@ -100,6 +102,7 @@ function writeStoredApiChoice(storageKey, slugs) {
 
 export default function TranForm({
   text,
+  scene,
   setText,
   translationText = text,
   apiSlugs: initApiSlugs,
@@ -124,6 +127,8 @@ export default function TranForm({
   syncExternalTextWhileEditing = false,
   apiSlugsStorageKey = undefined,
   playgroundConfigHeader = null,
+  playgroundConfigExtra = null,
+  playgroundConfigExpanded = true,
   configActions = null,
   initialSettingsReady = true,
 }) {
@@ -514,8 +519,10 @@ export default function TranForm({
     }
   }, []);
 
+  const ConfigContainer = isPlaygound ? Collapse : Fragment;
   const translationResults = activeApiSlugs.map((slug) => (
     <TranCont
+      scene={scene}
       ttsApiSlug={ttsApiSlug}
       key={slug}
       text={translationText}
@@ -580,242 +587,256 @@ export default function TranForm({
           {!simpleStyle && (
             <>
               {isPlaygound && playgroundConfigHeader}
-              {/* Service and language settings grid. */}
-              <Grid
-                className={
-                  isPlaygound
-                    ? "kt-playground-config__grid"
-                    : "kt-translation-config"
-                }
-                container
-                spacing={2}
-                columns={12}
+              <ConfigContainer
+                {...(isPlaygound
+                  ? {
+                      in: playgroundConfigExpanded,
+                      id: "kt-playground-config-content",
+                    }
+                  : {})}
               >
-                {/* Select multiple translation engines to compare their results. */}
+                {/* Service and language settings grid. */}
                 <Grid
                   className={
                     isPlaygound
-                      ? "kt-playground-config__service"
-                      : "kt-translation-config__service"
+                      ? "kt-playground-config__grid"
+                      : "kt-translation-config"
                   }
-                  item
-                  xs={xs}
-                  md={md}
+                  container
+                  spacing={2}
+                  columns={12}
                 >
-                  <TextField
-                    select
-                    SelectProps={{
-                      multiple: true,
-                      MenuProps: selectMenuProps,
-                    }}
-                    fullWidth
-                    size="small"
-                    value={activeApiSlugs}
-                    name="apiSlugs"
-                    label={i18n("translate_service_multiple")}
-                    onChange={(e) => {
-                      setHasUserChangedApiSlugs(true);
-                      setApiSlugs(e.target.value);
-                      // 仅在宿主显式提供 storageKey 时写回（空数组 = 用户显式清空）。
-                      if (apiSlugsStorageKey) {
-                        writeStoredApiChoice(
-                          apiSlugsStorageKey,
-                          e.target.value
-                        );
-                      }
-                    }}
+                  {/* Select multiple translation engines to compare their results. */}
+                  <Grid
+                    className={
+                      isPlaygound
+                        ? "kt-playground-config__service"
+                        : "kt-translation-config__service"
+                    }
+                    item
+                    xs={xs}
+                    md={md}
                   >
-                    {optApis.map(({ key, name }) => (
-                      <MenuItem key={key} value={key}>
-                        {name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                {/* Source language. */}
-                <Grid
-                  className={
-                    isPlaygound ? undefined : "kt-translation-config__language"
-                  }
-                  item
-                  xs={xs}
-                  md={md}
-                >
-                  <TextField
-                    select
-                    SelectProps={{ MenuProps: selectMenuProps }}
-                    fullWidth
-                    size="small"
-                    name="fromLang"
-                    value={fromLang}
-                    label={i18n("from_lang")}
-                    onChange={(e) => {
-                      setFromLang(e.target.value);
-                    }}
-                  >
-                    {OPT_LANGS_FROM.map(([lang, name]) => (
-                      <MenuItem key={lang} value={lang}>
-                        {formatLanguageOptionName(name)}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                {/* Target language. */}
-                <Grid
-                  className={
-                    isPlaygound ? undefined : "kt-translation-config__language"
-                  }
-                  item
-                  xs={xs}
-                  md={md}
-                >
-                  <TextField
-                    select
-                    SelectProps={{ MenuProps: selectMenuProps }}
-                    fullWidth
-                    size="small"
-                    name="toLang"
-                    value={toLang}
-                    label={i18n("to_lang")}
-                    onChange={(e) => {
-                      setToLang(e.target.value);
-                    }}
-                  >
-                    {OPT_LANGS_TO.map(([lang, name]) => (
-                      <MenuItem key={lang} value={lang}>
-                        {formatLanguageOptionName(name)}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-
-                {/* Show additional configuration controls in the Playground. */}
-                {isPlaygound && (
-                  <>
-                    {/* Secondary target language. */}
-                    <Grid item xs={xs} md={md}>
-                      <TextField
-                        select
-                        SelectProps={{ MenuProps: selectMenuProps }}
-                        fullWidth
-                        size="small"
-                        name="toLang2"
-                        value={toLang2}
-                        label={i18n("to_lang2")}
-                        onChange={(e) => {
-                          setToLang2(e.target.value);
-                        }}
-                      >
-                        {OPT_LANGS_TO.map(([lang, name]) => (
-                          <MenuItem key={lang} value={lang}>
-                            {formatLanguageOptionName(name)}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    {/* English dictionary service. */}
-                    <Grid item xs={xs} md={md}>
-                      <TextField
-                        select
-                        SelectProps={{ MenuProps: selectMenuProps }}
-                        fullWidth
-                        size="small"
-                        name="enDict"
-                        value={enDict}
-                        label={i18n("english_dict")}
-                        onChange={(e) => {
-                          setEnDict(e.target.value);
-                        }}
-                      >
-                        <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                        {OPT_DICT_ALL.map((item) => (
-                          <MenuItem value={item} key={item}>
-                            {item}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    {/* Input suggestion service. */}
-                    <Grid item xs={xs} md={md}>
-                      <TextField
-                        select
-                        SelectProps={{ MenuProps: selectMenuProps }}
-                        fullWidth
-                        size="small"
-                        name="enSug"
-                        value={enSug}
-                        label={i18n("english_suggest")}
-                        onChange={(e) => {
-                          setEnSug(e.target.value);
-                        }}
-                      >
-                        <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                        {OPT_SUG_ALL.map((item) => (
-                          <MenuItem value={item} key={item}>
-                            {item}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    {/* Language detection engine. */}
-                    <Grid item xs={xs} md={md}>
-                      <TextField
-                        select
-                        SelectProps={{ MenuProps: selectMenuProps }}
-                        fullWidth
-                        size="small"
-                        name="langDetector"
-                        value={langDetector}
-                        label={i18n("detected_lang")}
-                        onChange={(e) => {
-                          setLangDetector(e.target.value);
-                        }}
-                      >
-                        <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                        {OPT_LANGDETECTOR_ALL.map((item) => (
-                          <MenuItem value={item} key={item}>
-                            {item}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    {/* Read-only language detection result. */}
-                    <Grid item xs={xs} md={md}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        name="deLang"
-                        value={
-                          deLang &&
-                          formatLanguageOptionName(OPT_LANGS_MAP.get(deLang))
+                    <TextField
+                      select
+                      SelectProps={{
+                        multiple: true,
+                        MenuProps: selectMenuProps,
+                      }}
+                      fullWidth
+                      size="small"
+                      value={activeApiSlugs}
+                      name="apiSlugs"
+                      label={i18n("translate_service_multiple")}
+                      onChange={(e) => {
+                        setHasUserChangedApiSlugs(true);
+                        setApiSlugs(e.target.value);
+                        // 仅在宿主显式提供 storageKey 时写回（空数组 = 用户显式清空）。
+                        if (apiSlugsStorageKey) {
+                          writeStoredApiChoice(
+                            apiSlugsStorageKey,
+                            e.target.value
+                          );
                         }
-                        label={i18n("detected_result")}
-                        placeholder="—"
-                        InputLabelProps={{ shrink: true }}
-                        inputProps={{ "aria-busy": deLoading }}
-                        InputProps={{
-                          readOnly: true,
-                          startAdornment: deLoading ? (
-                            <Box
-                              sx={{
-                                width: 16,
-                                height: 16,
-                                display: "grid",
-                                placeItems: "center",
-                              }}
-                            >
-                              <CircularProgress
-                                size={16}
-                                aria-label={i18n("detected_lang")}
-                              />
-                            </Box>
-                          ) : null,
-                        }}
-                      />
-                    </Grid>
-                  </>
-                )}
-              </Grid>
+                      }}
+                    >
+                      {optApis.map(({ key, name }) => (
+                        <MenuItem key={key} value={key}>
+                          {name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  {/* Source language. */}
+                  <Grid
+                    className={
+                      isPlaygound
+                        ? undefined
+                        : "kt-translation-config__language"
+                    }
+                    item
+                    xs={xs}
+                    md={md}
+                  >
+                    <TextField
+                      select
+                      SelectProps={{ MenuProps: selectMenuProps }}
+                      fullWidth
+                      size="small"
+                      name="fromLang"
+                      value={fromLang}
+                      label={i18n("from_lang")}
+                      onChange={(e) => {
+                        setFromLang(e.target.value);
+                      }}
+                    >
+                      {OPT_LANGS_FROM.map(([lang, name]) => (
+                        <MenuItem key={lang} value={lang}>
+                          {formatLanguageOptionName(name)}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  {/* Target language. */}
+                  <Grid
+                    className={
+                      isPlaygound
+                        ? undefined
+                        : "kt-translation-config__language"
+                    }
+                    item
+                    xs={xs}
+                    md={md}
+                  >
+                    <TextField
+                      select
+                      SelectProps={{ MenuProps: selectMenuProps }}
+                      fullWidth
+                      size="small"
+                      name="toLang"
+                      value={toLang}
+                      label={i18n("to_lang")}
+                      onChange={(e) => {
+                        setToLang(e.target.value);
+                      }}
+                    >
+                      {OPT_LANGS_TO.map(([lang, name]) => (
+                        <MenuItem key={lang} value={lang}>
+                          {formatLanguageOptionName(name)}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+
+                  {/* Show additional configuration controls in the Playground. */}
+                  {isPlaygound && (
+                    <>
+                      {/* Secondary target language. */}
+                      <Grid item xs={xs} md={md}>
+                        <TextField
+                          select
+                          SelectProps={{ MenuProps: selectMenuProps }}
+                          fullWidth
+                          size="small"
+                          name="toLang2"
+                          value={toLang2}
+                          label={i18n("to_lang2")}
+                          onChange={(e) => {
+                            setToLang2(e.target.value);
+                          }}
+                        >
+                          {OPT_LANGS_TO.map(([lang, name]) => (
+                            <MenuItem key={lang} value={lang}>
+                              {formatLanguageOptionName(name)}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                      {/* English dictionary service. */}
+                      <Grid item xs={xs} md={md}>
+                        <TextField
+                          select
+                          SelectProps={{ MenuProps: selectMenuProps }}
+                          fullWidth
+                          size="small"
+                          name="enDict"
+                          value={enDict}
+                          label={i18n("english_dict")}
+                          onChange={(e) => {
+                            setEnDict(e.target.value);
+                          }}
+                        >
+                          <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                          {OPT_DICT_ALL.map((item) => (
+                            <MenuItem value={item} key={item}>
+                              {item}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                      {/* Input suggestion service. */}
+                      <Grid item xs={xs} md={md}>
+                        <TextField
+                          select
+                          SelectProps={{ MenuProps: selectMenuProps }}
+                          fullWidth
+                          size="small"
+                          name="enSug"
+                          value={enSug}
+                          label={i18n("english_suggest")}
+                          onChange={(e) => {
+                            setEnSug(e.target.value);
+                          }}
+                        >
+                          <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                          {OPT_SUG_ALL.map((item) => (
+                            <MenuItem value={item} key={item}>
+                              {item}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                      {/* Language detection engine. */}
+                      <Grid item xs={xs} md={md}>
+                        <TextField
+                          select
+                          SelectProps={{ MenuProps: selectMenuProps }}
+                          fullWidth
+                          size="small"
+                          name="langDetector"
+                          value={langDetector}
+                          label={i18n("detected_lang")}
+                          onChange={(e) => {
+                            setLangDetector(e.target.value);
+                          }}
+                        >
+                          <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                          {OPT_LANGDETECTOR_ALL.map((item) => (
+                            <MenuItem value={item} key={item}>
+                              {item}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                      {/* Read-only language detection result. */}
+                      <Grid item xs={xs} md={md}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          name="deLang"
+                          value={
+                            deLang &&
+                            formatLanguageOptionName(OPT_LANGS_MAP.get(deLang))
+                          }
+                          label={i18n("detected_result")}
+                          placeholder="—"
+                          InputLabelProps={{ shrink: true }}
+                          inputProps={{ "aria-busy": deLoading }}
+                          InputProps={{
+                            readOnly: true,
+                            startAdornment: deLoading ? (
+                              <Box
+                                sx={{
+                                  width: 16,
+                                  height: 16,
+                                  display: "grid",
+                                  placeItems: "center",
+                                }}
+                              >
+                                <CircularProgress
+                                  size={16}
+                                  aria-label={i18n("detected_lang")}
+                                />
+                              </Box>
+                            ) : null,
+                          }}
+                        />
+                      </Grid>
+                    </>
+                  )}
+                </Grid>
+                {isPlaygound && playgroundConfigExtra}
+              </ConfigContainer>
             </>
           )}
           {configActions}

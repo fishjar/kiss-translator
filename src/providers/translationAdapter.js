@@ -29,7 +29,7 @@ export async function* translatePlugin(
       items,
       sourceLanguage: fromLang,
       targetLanguage: toLang,
-      glossary: { ...glossary, ...parseAITerms(apiSetting.aiTerms) },
+      glossary: { ...parseAITerms(apiSetting.aiTerms), ...glossary },
       context: docInfo?.context || docInfo?.summary || "",
       document: {
         title: docInfo?.title || "",

@@ -1,3 +1,4 @@
+import { terminologyWarningHandler } from "../libs/terminologyWarning";
 import {
   FILE_CHANNEL,
   FILE_PROTOCOL,
@@ -362,7 +363,13 @@ export function getFileClient() {
   return client;
 }
 
+const terminologyTasks = new WeakMap();
 export function translateFileText(text, scene, _setting, signal, context = {}) {
+  if (signal && !terminologyTasks.has(signal))
+    terminologyTasks.set(signal, {
+      id: crypto.randomUUID(),
+      warning: terminologyWarningHandler(_setting?.uiLang),
+    });
   return getFileClient()
     .request(
       "translateText",
@@ -371,8 +378,15 @@ export function translateFileText(text, scene, _setting, signal, context = {}) {
         kind: context.kind || "txt",
         scene,
         cacheMode: context.cacheMode,
+        terminologyTaskId: signal ? terminologyTasks.get(signal).id : undefined,
       },
-      { signal }
+      {
+        signal,
+        onProgress: (progress) => {
+          if (progress.type === "terminology-warning")
+            terminologyTasks.get(signal)?.warning(progress.missingTableIds);
+        },
+      }
     )
     .then((result) => result.text);
 }

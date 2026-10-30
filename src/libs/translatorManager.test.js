@@ -95,7 +95,9 @@ jest.mock("./translator", () => ({
       disable: jest.fn(),
       toggleTransOnly: jest.fn(),
       toggleStyle: jest.fn(),
-      updateRule: jest.fn(),
+      updateRule: jest.fn(function updateRule(patch) {
+        this.rule = { ...this.rule, ...patch };
+      }),
       updateApiSettings: jest.fn(function updateApiSettings(transApis) {
         this.setting = { ...this.setting, transApis };
       }),
@@ -132,6 +134,7 @@ jest.mock("./tranbox", () => ({
       toggle: jest.fn(() => {
         enabled = !enabled;
       }),
+      update: jest.fn(),
     };
     mockTransboxInstances.push(instance);
     return instance;
@@ -239,7 +242,9 @@ function setupMockConstructors() {
       disable: jest.fn(),
       toggleTransOnly: jest.fn(),
       toggleStyle: jest.fn(),
-      updateRule: jest.fn(),
+      updateRule: jest.fn(function updateRule(patch) {
+        this.rule = { ...this.rule, ...patch };
+      }),
       updateApiSettings: jest.fn(function updateApiSettings(transApis) {
         this.setting = { ...this.setting, transApis };
       }),
@@ -274,6 +279,7 @@ function setupMockConstructors() {
       toggle: jest.fn(() => {
         enabled = !enabled;
       }),
+      update: jest.fn(),
     };
     mockTransboxInstances.push(instance);
     return instance;
@@ -1898,5 +1904,41 @@ describe("TranslatorManager SPA lifecycle", () => {
     const handler = browser.runtime.onMessage.addListener.mock.calls[0][0];
     handler({ action: "trans-putrule", args: newRule }, {}, jest.fn());
     expect(imageManager.updateRule).toHaveBeenCalledWith(newRule);
+    expect(mockTransboxInstances[0].update).toHaveBeenCalledWith({
+      rule: expect.objectContaining(newRule),
+    });
+  });
+
+  test("preserves complete selection rules across successive patches", () => {
+    const rule = {
+      toLang: "zh-CN",
+      terms: "React,框架",
+      aiTerms: "component,组件",
+      termsList: ["frontend"],
+      terminologySources: [{ terms: "React,框架", termsList: ["frontend"] }],
+    };
+    const manager = createManager({ rule });
+    manager.start();
+    const handler = browser.runtime.onMessage.addListener.mock.calls.at(-1)[0];
+    handler({ action: "trans-putrule", args: { toLang: "en" } }, {}, jest.fn());
+    handler(
+      { action: "trans-putrule", args: { fromLang: "ja" } },
+      {},
+      jest.fn()
+    );
+    expect(mockTransboxInstances.at(-1).update).toHaveBeenLastCalledWith({
+      rule: expect.objectContaining({ ...rule, toLang: "en", fromLang: "ja" }),
+    });
+  });
+
+  test("passes initial rule to TransboxManager on creation", () => {
+    const rule = { terms: "apple,苹果", termsList: ["tbl_1"] };
+    const manager = createManager({ rule });
+    manager.start();
+    expect(mockTransboxArgs[mockTransboxArgs.length - 1]).toEqual(
+      expect.objectContaining({
+        rule: expect.objectContaining(rule),
+      })
+    );
   });
 });

@@ -396,6 +396,18 @@ const userscriptWebpack = (config, env) => {
 
 // 方案 C：本地开发网页模式的 Webpack 覆盖配置
 const webWebpack = (config, env) => {
+  const styleRules = config.module.rules.find((rule) => rule.oneOf).oneOf;
+  styleRules.unshift({
+    test: /[\\/]katex[\\/]dist[\\/]fonts[\\/].+\.(woff2?|ttf)$/,
+    type: "asset/resource",
+    generator: { filename: "assets/pdf/fonts/[name][ext]" },
+  });
+  // Production CSS lives two directories below the site root.
+  if (env === "production")
+    for (const rule of styleRules)
+      for (const use of rule.use || [])
+        if (use.loader?.includes("mini-css-extract-plugin"))
+          use.options = { ...use.options, publicPath: "../../" };
   config.module.rules.push({
     test: /[\\/]pdfjs-dist[\\/]web[\\/]pdf_viewer\.css$/,
     enforce: "pre",
@@ -575,6 +587,10 @@ module.exports = {
   webpack: webpackConfig,
   jest: (config) => {
     if (!process.env.REACT_APP_CLIENT) process.env.REACT_APP_CLIENT = "chrome";
+    // PCM resampling is Math-heavy; avoid Jest's cross-VM global lookup per sample.
+    config.extraGlobals = [
+      ...new Set([...(config.extraGlobals || []), "Math"]),
+    ];
     config.testPathIgnorePatterns = [
       ...(config.testPathIgnorePatterns || []),
       "<rootDir>/src/localAi/",

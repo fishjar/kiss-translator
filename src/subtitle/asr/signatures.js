@@ -1,3 +1,4 @@
+import { resolveTerminology } from "../../libs/terminologyStorage";
 import { AsrAudioChunker } from "./audioChunks";
 import { asrChunkDurationSeconds, isLocalAsrService } from "./timing";
 import { ASR_LANGUAGE_POLICY_VERSION, isWhisperAsrService } from "./language";
@@ -107,6 +108,13 @@ export async function asrCacheSignatures({
     }),
     digest({
       service: serviceConfig(segmentationService),
+      terminology: (
+        await resolveTerminology(
+          setting,
+          segmentationService || {},
+          setting.terminologyTables
+        )
+      ).signature,
       mode: setting.useAlgorithmBreaker,
       threshold: setting.longSentenceThreshold,
       forceSubtitleRetranslate: setting.forceSubtitleRetranslate,
@@ -116,6 +124,13 @@ export async function asrCacheSignatures({
     }),
     digest({
       service: serviceConfig(translationService),
+      terminology: (
+        await resolveTerminology(
+          setting,
+          translationService || {},
+          setting.terminologyTables
+        )
+      ).signature,
       toLang: setting.toLang,
       translateVariants: setting.translateVariants,
       aiContextSlug: setting.aiContextSlug,

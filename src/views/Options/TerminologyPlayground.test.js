@@ -1154,6 +1154,48 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
+  test("only offers services with available text translation capability", async () => {
+    const previousClient = process.env.REACT_APP_CLIENT;
+    process.env.REACT_APP_CLIENT = "edge";
+    mockResolvedTransApis.push(
+      mockResolvedApi({ apiSlug: "openai" }),
+      mockResolvedApi({ apiSlug: "disabled", isDisabled: true }),
+      mockResolvedApi({ apiSlug: "translate-off", enabledCapabilities: [] }),
+      ...[
+        ["tts", "SystemTTS", ""],
+        ["asr", "LocalAI", "whisper-base-timestamped"],
+        ["jev", "LocalAI", "laya-multilingual-int8"],
+        ["ocr", "LocalAI", "pp-ocr-v5-mobile"],
+        ["vlm", "LocalAI", "glm-ocr-onnx-q4"],
+        ["layout", "LocalAI", "pp-doclayout-v3-onnx"],
+        ["local-translate", "LocalAI", "hy-mt2-1.8b"],
+      ].map(([apiSlug, apiType, modelRef]) =>
+        mockResolvedApi({ apiSlug, apiType, modelRef })
+      )
+    );
+    const { container, root } = renderPlayground({
+      rule: { pattern: "*", terms: "" },
+    });
+    try {
+      await flushEffects();
+      const combobox = container.querySelector(
+        '[data-testid="terminology-api-select"] [role="combobox"]'
+      );
+      await act(async () =>
+        combobox.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }))
+      );
+      expect(
+        [...document.querySelectorAll('[role="option"]')].map((e) =>
+          e.getAttribute("data-value")
+        )
+      ).toEqual(["openai", "local-translate"]);
+    } finally {
+      act(() => root.unmount());
+      if (previousClient === undefined) delete process.env.REACT_APP_CLIENT;
+      else process.env.REACT_APP_CLIENT = previousClient;
+    }
+  });
+
   test("fills API runtime defaults (placeholder) so selector does not crash", async () => {
     // 缺 placeholder 的条目：fillApiDefaults 必须补上，否则 placeholder.split 崩溃。
     mockResolvedTransApis.push(

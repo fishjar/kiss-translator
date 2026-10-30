@@ -117,6 +117,122 @@ function Switch({ label, name, value, onChange, disabled }) {
 }
 
 /**
+ * DropdownPanel 组件 - 下拉浮动面板容器
+ *
+ * @param {object} props
+ * @param {React.ReactNode} props.children
+ */
+function DropdownPanel({ children }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: "100%",
+        background: "rgba(0,0,0,.8)",
+        borderRadius: 5,
+        maxHeight: 200,
+        overflow: "auto",
+        zIndex: 1000,
+        marginTop: 4,
+        padding: "4px 0",
+        boxSizing: "border-box",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * DropdownOption 组件 - 单个下拉选项行
+ *
+ * @param {object} props
+ * @param {*} props.value - 选项对应的值
+ * @param {boolean} props.selected - 是否为选中状态
+ * @param {string} [props.label] - 选项标签文本（未传入 children 时直接作为文本节点渲染）
+ * @param {Function} props.onClick - 点击选项的回调
+ * @param {Function} [props.onClose] - 按 Esc 关闭浮层的回调
+ * @param {React.ReactNode} [props.children] - 自定义子节点
+ */
+function DropdownOption({
+  value,
+  selected,
+  label,
+  onClick,
+  onClose,
+  children,
+}) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      role="option"
+      aria-selected={selected}
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          onClick(value);
+        }
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          onClose?.();
+        }
+      }}
+      onClick={() => onClick(value)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        boxSizing: "border-box",
+        padding: "4px 14px",
+        minHeight: 26,
+        fontSize: 12,
+        lineHeight: "18px",
+        cursor: "pointer",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        background: selected
+          ? hover
+            ? "rgba(32,156,238,.4)"
+            : "rgba(32,156,238,.3)"
+          : hover
+            ? "rgba(255,255,255,.1)"
+            : "transparent",
+        opacity: selected ? 1 : 0.8,
+        transition: "all 0.2s",
+      }}
+    >
+      {children || label}
+    </div>
+  );
+}
+
+/**
+ * DropdownEmpty 组件 - 下拉选项为空时的占位显示
+ */
+function DropdownEmpty({ i18n }) {
+  return (
+    <div
+      style={{
+        padding: "4px 14px",
+        fontSize: 12,
+        opacity: 0.6,
+        textAlign: "center",
+        boxSizing: "border-box",
+      }}
+    >
+      {i18n ? i18n("none", "无") : "无"}
+    </div>
+  );
+}
+
+/**
  * Select 组件 - 下拉选择菜单组件 (Select Component)
  *
  * @param {object} props
@@ -170,62 +286,138 @@ function Select({ label, name, value, options, onChange, disabled }) {
       </MenuItem>
       {/* 下拉浮出面板 */}
       {isOpen && (
+        <DropdownPanel>
+          {options.map((option) => (
+            <DropdownOption
+              key={option.value}
+              value={option.value}
+              selected={option.value === value}
+              label={option.label}
+              onClick={handleSelect}
+              onClose={() => setIsOpen(false)}
+            />
+          ))}
+        </DropdownPanel>
+      )}
+    </div>
+  );
+}
+
+/**
+ * MultiSelect 组件 - 多选下拉菜单组件
+ *
+ * @param {object} props
+ * @param {string} props.label - 下拉标题文本
+ * @param {string} props.name - 表单字段 Key 名
+ * @param {Array<string>} [props.value=[]] - 当前选中的 ID 数组
+ * @param {Array<object>} props.options - 下拉选项数组，每一项为 { value, label }
+ * @param {Function} props.onChange - 选项改变时的回调
+ * @param {boolean} [props.disabled=false] - 是否禁用下拉框
+ * @param {Function} props.i18n - 国际化函数
+ */
+function MultiSelect({
+  label,
+  name,
+  value = [],
+  options = [],
+  onChange,
+  disabled = false,
+  i18n,
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedValues = useMemo(
+    () => (Array.isArray(value) ? value : []),
+    [value]
+  );
+
+  const summary = useMemo(() => {
+    if (!selectedValues.length) return i18n ? i18n("none", "无") : "无";
+    const labels = selectedValues
+      .map((id) => options.find((opt) => opt.value === id)?.label || id)
+      .filter(Boolean);
+    if (!labels.length) return i18n ? i18n("none", "无") : "无";
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return `${labels[0]}, ${labels[1]}`;
+    return i18n
+      ? `${i18n("selected", "已选")} ${labels.length}`
+      : `已选 ${labels.length}`;
+  }, [selectedValues, options, i18n]);
+
+  const handleToggle = useCallback(() => {
+    if (disabled) return;
+    setIsOpen((prev) => !prev);
+  }, [disabled]);
+
+  const handleItemClick = useCallback(
+    (optionValue) => {
+      const exists = selectedValues.includes(optionValue);
+      const next = exists
+        ? selectedValues.filter((v) => v !== optionValue)
+        : [...selectedValues, optionValue];
+      onChange({ name, value: next });
+    },
+    [onChange, name, selectedValues]
+  );
+
+  return (
+    <div style={{ position: "relative" }}>
+      <MenuItem onClick={handleToggle} disabled={disabled}>
+        <Label>{label}</Label>
         <div
           style={{
-            position: "absolute",
-            right: 0,
-            top: "100%",
-            background: "rgba(0,0,0,.8)",
-            borderRadius: 5,
-            minWidth: 250,
-            maxHeight: 200,
-            overflow: "auto",
-            zIndex: 1000,
-            marginTop: 4,
+            fontSize: 12,
+            opacity: 0.8,
+            maxWidth: 130,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
           }}
         >
-          {options.map((option) => (
-            <div
-              key={option.value}
-              role="option"
-              aria-selected={option.value === value}
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  handleSelect(option.value);
-                }
-                if (event.key === "Escape") {
-                  event.stopPropagation();
-                  setIsOpen(false);
-                }
-              }}
-              onClick={() => handleSelect(option.value)}
-              style={{
-                padding: "8px 12px",
-                cursor: "pointer",
-                background:
-                  option.value === value
-                    ? "rgba(32,156,238,.3)"
-                    : "transparent",
-                opacity: option.value === value ? 1 : 0.8,
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background =
-                  option.value === value
-                    ? "rgba(32,156,238,.3)"
-                    : "transparent";
-              }}
-            >
-              {option.label}
-            </div>
-          ))}
+          {summary}
         </div>
+      </MenuItem>
+      {isOpen && (
+        <DropdownPanel>
+          {options.length === 0 ? (
+            <DropdownEmpty i18n={i18n} />
+          ) : (
+            options.map((option) => {
+              const isSelected = selectedValues.includes(option.value);
+              return (
+                <DropdownOption
+                  key={option.value}
+                  value={option.value}
+                  selected={isSelected}
+                  onClick={handleItemClick}
+                  onClose={() => setIsOpen(false)}
+                >
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      flex: 1,
+                      marginRight: 8,
+                    }}
+                  >
+                    {option.label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "bold",
+                      lineHeight: 1,
+                      color: isSelected ? "#209cee" : "transparent",
+                      userSelect: "none",
+                    }}
+                  >
+                    ✓
+                  </span>
+                </DropdownOption>
+              );
+            })
+          )}
+        </DropdownPanel>
       )}
     </div>
   );
@@ -276,6 +468,7 @@ export function Menus({
   asr,
   asrActions,
   onClose,
+  terminologyDirectory = [],
 }) {
   // 当快捷菜单的任何子选项发生更改时，统一向上层派发更新事件
   const handleChange = useCallback(
@@ -325,6 +518,16 @@ export function Menus({
     return options;
   }, [aiEnabledApis, i18n]);
 
+  // 构造专业术语（术语表）多选列表选项
+  const terminologyOptions = useMemo(
+    () =>
+      (terminologyDirectory || []).map((table) => ({
+        value: table.id,
+        label: table.name || table.id,
+      })),
+    [terminologyDirectory]
+  );
+
   // 从表单配置对象中解构出字幕交互相关的控制值
   const {
     apiSlug, // 当前页面使用的字幕翻译服务 apiSlug
@@ -334,7 +537,8 @@ export function Menus({
     blurTranslation, // 是否启用模糊隐藏译文，悬浮时显示的背词模式
     autoTranslate, // 当前视频是否开启字幕翻译
     aiContextSlug, // 选中的上下文增强服务 apiSlug
-  } = formData;
+    termsList = [], // 当前视频临时选中的术语表 ID 列表
+  } = formData || {};
 
   return (
     <div
@@ -389,6 +593,19 @@ export function Menus({
         options={transApiOptions}
         label={i18n("translate_service")}
         disabled={transApiOptions.length === 0}
+      />
+      {/* 当前页面的专业术语临时选项，不修改持久化默认设置 */}
+      <MultiSelect
+        onChange={handleChange}
+        name="termsList"
+        value={termsList || []}
+        options={terminologyOptions}
+        label={i18n("terminology_tables", "术语表")}
+        i18n={i18n}
+        disabled={
+          terminologyOptions.length === 0 &&
+          (!termsList || termsList.length === 0)
+        }
       />
       {/* 智能断句下拉项：若可用 AI 大模型数量为 0 时禁用下拉 */}
       <Select

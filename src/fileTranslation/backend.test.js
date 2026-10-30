@@ -33,6 +33,11 @@ jest.mock("webextension-polyfill", () => ({
   tabs: { create: jest.fn() },
 }));
 jest.mock("../apis/vision", () => ({ recognizeNetworkImage: jest.fn() }));
+jest.mock("../libs/terminologyStorage", () => ({
+  readTableDirectory: async () => [],
+  loadTerminologySnapshot: async () => [],
+  resolveTerminology: async () => ({ signature: "empty" }),
+}));
 jest.mock("../libs/storage", () => ({
   getSettingWithDefault: jest.fn(),
   saveEdit: jest.fn(),

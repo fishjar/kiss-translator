@@ -21,6 +21,7 @@ const WIDE_PAGE_PATHS = new Set([
   "/playground",
   "/diagnostics",
   "/prompts",
+  "/terms",
 ]);
 const FULL_WIDTH_PAGE_PATHS = new Set(["/file-translate"]);
 
@@ -274,6 +275,10 @@ export default function Layout() {
       "/apis": [
         i18n("options_service_config", "服务配置"),
         i18n("options_services_description"),
+      ],
+      "/terms": [
+        i18n("terminology_tables"),
+        i18n("terminology_description_help"),
       ],
       "/prompts": [
         i18n("prompt_management"),

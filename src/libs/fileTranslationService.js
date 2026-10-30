@@ -1,3 +1,5 @@
+import { terminologyWarningHandler } from "./terminologyWarning";
+import { loadTerminologySnapshot } from "./terminologyStorage";
 import { apiTranslate } from "../apis";
 import {
   availableApiForScene,
@@ -8,6 +10,8 @@ import { validateFileService } from "../fileTranslation/resultCache";
 
 // Service selection and credentials stay in the extension. File parsers only
 // consume the translate callback and do not import this module in the web build.
+const taskSnapshots = new WeakMap();
+
 export async function executeFileTranslation(
   text,
   scene,
@@ -36,11 +40,31 @@ export async function executeFileTranslation(
       ...apiSetting,
       ...(api.apiType === "LocalAI" && { cacheMode }),
     };
+  let onTerminologyWarning = localContext.onTerminologyWarning;
+  let terminologyTables = localContext.terminologyTables;
+  if (!terminologyTables && localContext.getTerminologyTables)
+    terminologyTables = await localContext.getTerminologyTables(scene, api);
+  if (!terminologyTables) {
+    let snapshots = signal && taskSnapshots.get(signal);
+    if (!snapshots) {
+      snapshots = new Map();
+      snapshots.warning = terminologyWarningHandler(setting.uiLang);
+      if (signal) taskSnapshots.set(signal, snapshots);
+    }
+    const key = JSON.stringify([api.apiSlug, scene.termsList || []]);
+    if (!snapshots.has(key))
+      snapshots.set(key, loadTerminologySnapshot([scene, api]));
+    terminologyTables = await snapshots.get(key);
+    onTerminologyWarning ||= snapshots.warning;
+  }
   const result = await apiTranslate({
     text,
     fromLang: scene.fromLang,
     toLang: scene.toLang,
     apiSetting,
+    scene,
+    terminologyTables,
+    onTerminologyWarning,
     textFormat: "text",
     signal,
     translateVariants: setting.translateVariants,

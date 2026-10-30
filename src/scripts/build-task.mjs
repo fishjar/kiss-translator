@@ -79,6 +79,7 @@ try {
   if (["chrome", "edge", "edge-dev", "safari"].includes(target)) {
     // 1. 清理 HTML
     await fs.remove(inDest("content.html"));
+    await fs.remove(inDest("file-translate.html"));
 
     // 2. 清理多余的 Firefox/Thunderbird manifest
     await fs.remove(inDest("manifest.firefox.json"));
@@ -102,6 +103,7 @@ try {
   // -----------------------------------------------------------------------
   if (["firefox", "thunderbird"].includes(target)) {
     await fs.remove(inDest("content.html"));
+    await fs.remove(inDest("file-translate.html"));
 
     const specificManifest = inDest(`manifest.${target}.json`);
     const finalManifest = inDest("manifest.json");
@@ -229,6 +231,21 @@ try {
       if (await fs.pathExists(path.join(homepageDir, name)))
         await fs.copy(path.join(homepageDir, name), inDest(name));
     }
+    for (const name of ["main.js", "content.html"])
+      await fs.remove(inDest(name));
+    const manifest = await fs.readJson(inDest("asset-manifest.json"));
+    const homepageManifest = await fs.readJson(
+      path.join(homepageDir, "asset-manifest.json")
+    );
+    await fs.writeJson(
+      inDest("asset-manifest.json"),
+      {
+        ...manifest,
+        files: { ...manifest.files, ...homepageManifest.files },
+        entrypoints: homepageManifest.entrypoints,
+      },
+      { spaces: 2 }
+    );
   }
 
   console.log(

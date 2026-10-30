@@ -32,6 +32,7 @@ import Stack from "@mui/material/Stack";
 import Alert from "@mui/material/Alert";
 import Apis from "./Apis";
 import Prompts from "./Prompts";
+import TerminologyTables from "./TerminologyTables";
 import InputSetting from "./InputSetting";
 import Tranbox from "./Tranbox";
 import FavWords from "./FavWords";
@@ -193,6 +194,7 @@ function OptionsRouter({ pendingKeys }) {
             <Route path="file-translate" element={<FileTranslateRedirect />} />
           )}
           <Route path="prompts" element={<Prompts />} />
+          <Route path="terms" element={<TerminologyTables />} />
           <Route path="sync" element={<SyncSetting />} />
           <Route path="words" element={<FavWords />} />
           <Route path="playground" element={<OptionsPlayground />} />

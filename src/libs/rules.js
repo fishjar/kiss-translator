@@ -211,6 +211,14 @@ export const mergeRules = (baseRule, overrideRule) => {
     merged.pattern = overrideRule.pattern;
   }
 
+  if (overrideRule.termsList || baseRule.termsList) {
+    merged.termsList = [
+      ...new Set([
+        ...(overrideRule.termsList || []),
+        ...(baseRule.termsList || []),
+      ]),
+    ];
+  }
   return merged;
 };
 
@@ -251,6 +259,13 @@ export const deriveRuleContext = (
   // Apply global, subscribed and personal rules in increasing priority.
   const inherited = mergeRules(globalRule, matchedSubRule);
   const finalRule = mergeRules(inherited, matchedPersonalRule);
+  finalRule.terminologySources = [
+    matchedPersonalRule,
+    matchedSubRule,
+    globalRule,
+  ]
+    .filter(Boolean)
+    .map(({ terms, aiTerms, termsList }) => ({ terms, aiTerms, termsList }));
 
   return {
     effective: finalRule,
@@ -344,6 +359,7 @@ export const checkRules = (rules) => {
         ignoreSelector,
         terms,
         aiTerms,
+        termsList,
         termsStyle,
         highlightStyle,
         textExtStyle,
@@ -387,6 +403,9 @@ export const checkRules = (rules) => {
         ignoreSelector: type(ignoreSelector) === "string" ? ignoreSelector : "",
         terms: type(terms) === "string" ? terms : "",
         aiTerms: type(aiTerms) === "string" ? aiTerms : "",
+        termsList: Array.isArray(termsList)
+          ? [...new Set(termsList.filter((id) => typeof id === "string"))]
+          : [],
         termsStyle: type(termsStyle) === "string" ? termsStyle : "",
         highlightStyle: type(highlightStyle) === "string" ? highlightStyle : "",
         textExtStyle: type(textExtStyle) === "string" ? textExtStyle : "",

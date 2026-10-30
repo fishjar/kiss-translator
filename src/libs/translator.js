@@ -1,3 +1,10 @@
+import { terminologyWarningHandler } from "./terminologyWarning";
+import {
+  compileTerminology,
+  terminologySourceList,
+  EMPTY_TERMINOLOGY_TABLES,
+} from "./terminology";
+import { loadTerminologySnapshot } from "./terminologyStorage";
 import { TouchParagraph, touchParent, isTouchExcluded } from "./touchParagraph";
 import { isInBlacklist } from "./blacklist";
 import {
@@ -397,6 +404,11 @@ export class Translator {
   #translationTagName = APP_LCNAME; // 翻译容器的标签名
   #eventName = ""; // 通信事件名称
   #docInfo = {}; // 网页信息
+  #terminologyWarning = null;
+  #terminologyTables = [];
+  #terminologyReady = false;
+  #terminologyLoading = null;
+  #requestTerminologySnapshots = new Map();
   #glossary = {}; // AI词典
   #blockSelectorInvalid = false; // 自定义块级选择器是否已确认无效
   #textClass = {}; // 译文样式class
@@ -1342,6 +1354,23 @@ export class Translator {
     this.#combinedTermsRegex = null;
     this.#termMatcher = null;
 
+    const sources = [
+      ...terminologySourceList(this.#rule),
+      this.#apiSetting || {},
+    ];
+    if (
+      this.#rule.terminologySources ||
+      sources.some(
+        (source) =>
+          source.termsList?.length || (source !== this.#rule && source.terms)
+      )
+    ) {
+      const resolved = compileTerminology(sources, this.#terminologyTables);
+      this.#termEntries = resolved.normalEntries;
+      this.#combinedTermsRegex = buildTermsRegex(resolved.normalEntries);
+      this.#termMatcher = buildTermsMatcher(resolved.normalEntries);
+      return;
+    }
     if (!termsString || typeof termsString !== "string") return;
 
     // 纯函数解析：按 key.length 降序、同 key 去重、非法正则收集。
@@ -3845,9 +3874,21 @@ export class Translator {
     let wrapper = null;
 
     try {
+      const selectedApi = options.touch
+        ? this.#hoverBubbleApiSetting
+        : this.#apiSetting;
+      let terminology = this.#prepareRequestTerminology(selectedApi);
+      if (terminology.then) terminology = await terminology;
+      if (
+        signal.aborted ||
+        currentRunId !== this.#runId ||
+        (options.valid && !options.valid())
+      )
+        return;
       const [processedString, placeholderMap] = this.#serializeForTranslation(
         nodes,
-        termsStyle
+        termsStyle,
+        terminology
       );
       if (this.#isInvalidText(processedString)) return;
 
@@ -3992,8 +4033,10 @@ export class Translator {
           processedString,
           deLang,
           onStreamChunk,
-          options.touch ? this.#hoverBubbleApiSetting : null,
-          signal
+          options.touch ? selectedApi : null,
+          signal,
+          true,
+          terminology
         );
         translatedText = result.trText;
         isSameLang = result.isSame;
@@ -4116,7 +4159,12 @@ export class Translator {
         nodes
       );
     } catch (err) {
-      if (signal.aborted || currentRunId !== this.#runId) return;
+      if (
+        signal.aborted ||
+        currentRunId !== this.#runId ||
+        (options.valid && !options.valid())
+      )
+        return;
       // 容器已被还原移除时丢弃过期失败结果，避免 “Request terminated” 分支的
       // #cleanupDirectTranslations(hostNode) 误删宿主上随后产生的新译文，
       // 也避免在已脱离文档的容器里渲染重试按钮。
@@ -4124,6 +4172,10 @@ export class Translator {
 
       const errorText = this.#formatTranslateError(err);
       logger.child("translator").error("translate group error: ", errorText);
+      if (!wrapper) {
+        this.#processedNodes.delete(hostNode);
+        return;
+      }
       if (err?.message === "Request terminated") {
         this.#cleanupDirectTranslations(hostNode);
         return;
@@ -4466,12 +4518,23 @@ overflow-wrap: anywhere !important;`;
         return;
       }
 
+      const selectedApi = this.#hoverBubbleApiSetting;
+      let terminology = this.#prepareRequestTerminology(selectedApi);
+      if (terminology.then) terminology = await terminology;
+      if (
+        signal.aborted ||
+        this.#hoverBubbleRunId !== currentRunId ||
+        this.#hoverBubbleTarget !== node
+      )
+        return;
       const { trText, isSame } = await this.#translateFetch(
         text,
         deLang,
         null,
-        this.#hoverBubbleApiSetting,
-        signal
+        selectedApi,
+        signal,
+        false,
+        terminology
       );
       if (
         signal.aborted ||
@@ -4504,7 +4567,12 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 处理节点转为翻译字符串
-  #serializeForTranslation(nodes, termsStyle) {
+  #serializeForTranslation(nodes, termsStyle, terminology) {
+    const termEntries =
+      terminology?.resolved.normalEntries || this.#termEntries;
+    const termMatcher = terminology
+      ? terminology.matcher
+      : this.#termMatcher || this.#combinedTermsRegex;
     let replaceCounter = 0; // {{n}}
     let wrapCounter = 0; // <tagn>
     const placeholderMap = new Map();
@@ -4533,17 +4601,17 @@ overflow-wrap: anywhere !important;`;
         if (!text.trim()) return "";
 
         // 专业术语替换：matcher 一次物化（热路径零编译），applyTermReplace 内部重置 lastIndex
-        if (this.#combinedTermsRegex) {
+        if (termMatcher) {
           const { output } = applyTermReplace(
             text,
-            this.#termEntries,
+            termEntries,
             (termEntry, fullMatch) => {
               const termValue = termEntry.value;
               return pushReplace(
                 `<i class="${Translator.KISS_CLASS.term}" style="${termsStyle}">${termValue || fullMatch}</i>`
               );
             },
-            this.#termMatcher || this.#combinedTermsRegex
+            termMatcher
           );
           text = output;
         }
@@ -4727,21 +4795,66 @@ overflow-wrap: anywhere !important;`;
     return result;
   }
 
+  // Keep each request's matcher, glossary and API signature on the same snapshot.
+  #prepareRequestTerminology(api = {}) {
+    const sources = [...terminologySourceList(this.#rule), api];
+    const key = JSON.stringify(
+      sources.map(({ terms, aiTerms, termsList }) => [
+        terms || "",
+        aiTerms || "",
+        termsList || [],
+      ])
+    );
+    if (this.#requestTerminologySnapshots.has(key))
+      return this.#requestTerminologySnapshots.get(key);
+    const compile = (tables) => {
+      const resolved = compileTerminology(sources, tables);
+      return {
+        tables,
+        resolved,
+        matcher: buildTermsMatcher(resolved.normalEntries),
+      };
+    };
+    const ids = sources.flatMap((source) => source.termsList || []);
+    if (
+      !ids.length ||
+      (this.#terminologyReady &&
+        ids.every((id) =>
+          [...terminologySourceList(this.#rule), this.#apiSetting || {}].some(
+            (source) => source.termsList?.includes(id)
+          )
+        ))
+    ) {
+      const snapshot = compile(
+        ids.length ? this.#terminologyTables : EMPTY_TERMINOLOGY_TABLES
+      );
+      this.#requestTerminologySnapshots.set(key, snapshot);
+      return snapshot;
+    }
+    const pending = loadTerminologySnapshot(sources)
+      .then(compile)
+      .finally(() => {
+        if (this.#requestTerminologySnapshots.get(key) === pending)
+          this.#requestTerminologySnapshots.delete(key);
+      });
+    this.#requestTerminologySnapshots.set(key, pending);
+    return pending;
+  }
+
   // 发起翻译请求
   async #translateFetch(
     text,
     deLang = "",
     onStreamChunk = null,
     apiSettingOverride = null,
-    signal = this.#translationController.signal
+    signal = this.#translationController.signal,
+    normalTermsApplied = true,
+    terminology = null
   ) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
     const hoverScene = apiSettingOverride && this.#setting.mouseHoverSetting;
-    const scene =
-      hoverScene?.apiSlug && hoverScene.apiSlug !== GLOBAL_KEY
-        ? hoverScene
-        : this.#rule;
+    const scene = hoverScene || this.#rule;
     const selectedApi = apiSettingOverride || this.#apiSetting;
     if (!selectedApi || selectedApi.isDisabled) {
       return Promise.reject(
@@ -4749,6 +4862,11 @@ overflow-wrap: anywhere !important;`;
       );
     }
     const rawApiSetting = { ...selectedApi };
+    if (!terminology) {
+      terminology = this.#prepareRequestTerminology(rawApiSetting);
+      if (terminology.then) terminology = await terminology;
+    }
+    if (signal.aborted) throw new DOMException("Cancelled", "AbortError");
 
     const apiSetting = resolveApiPromptSettings(
       withScenePrompt(rawApiSetting, scene),
@@ -4756,7 +4874,7 @@ overflow-wrap: anywhere !important;`;
       this.#setting.subtitleSetting
     );
 
-    const glossary = { ...this.#glossary };
+    const glossary = { ...terminology.resolved.glossary };
     const apisMap = this.#apisMap;
 
     const args = {
@@ -4767,6 +4885,11 @@ overflow-wrap: anywhere !important;`;
       glossary,
       onStreamChunk,
       textFormat: "html",
+      scene: this.#rule,
+      terminologyTables: terminology.tables,
+      normalTermsApplied,
+      onTerminologyWarning: (this.#terminologyWarning ||=
+        terminologyWarningHandler(this.#setting.uiLang)),
       translateVariants: this.#setting.translateVariants,
     };
 
@@ -4792,10 +4915,12 @@ overflow-wrap: anywhere !important;`;
     }
 
     // Hooks and request preparation may finish after this session was cancelled.
+    if (signal.aborted) throw new DOMException("Cancelled", "AbortError");
     return apiTranslate({ ...args, signal });
   }
 
   #cancelTranslationRequests() {
+    this.#requestTerminologySnapshots.clear();
     this.#runId++;
     this.#translationController.abort();
     this.#translationController = new AbortController();
@@ -5550,7 +5675,48 @@ overflow-wrap: anywhere !important;`;
 
   // 开启翻译
   enable() {
+    const sources = [
+      ...terminologySourceList(this.#rule),
+      this.#apiSetting || {},
+    ];
+    if (
+      !this.#terminologyReady &&
+      sources.some((source) => source.termsList?.length)
+    ) {
+      if (!this.#terminologyLoading) {
+        const runId = this.#runId;
+        const pending = loadTerminologySnapshot(sources)
+          .then((tables) => {
+            if (runId !== this.#runId) return;
+            this.#terminologyTables = tables;
+            this.#terminologyReady = true;
+            this.#parseTerms(this.#rule.terms);
+            const missing = compileTerminology(sources, tables).missingTableIds;
+            if (missing.length)
+              logger
+                .child("translator")
+                .warn("Terminology tables unavailable", missing);
+            if (this.#enabled) {
+              this.#terminologyWarning = terminologyWarningHandler(
+                this.#setting.uiLang
+              );
+              this.rescan();
+            } else this.enable();
+          })
+          .catch((error) =>
+            logger.child("translator").warn("Unable to load terminology", error)
+          )
+          .finally(() => {
+            if (this.#terminologyLoading === pending)
+              this.#terminologyLoading = null;
+          });
+        this.#terminologyLoading = pending;
+      }
+      return this.#terminologyLoading;
+    }
+
     if (this.#enabled || this.#editorPaused) return;
+    this.#terminologyWarning = terminologyWarningHandler(this.#setting.uiLang);
     this.#enabled = true;
     this.#rule.transOpen = "true";
     this.#cancelTranslationRequests();
@@ -5594,7 +5760,8 @@ overflow-wrap: anywhere !important;`;
         deLang,
         null,
         null,
-        signal
+        signal,
+        false
       );
       if (runId !== this.#runId || this.#editorPaused) return;
       this.#docInfo.title = document.title; // 缓存原标题
@@ -5606,8 +5773,13 @@ overflow-wrap: anywhere !important;`;
 
   // 关闭翻译
   disable() {
+    if (this.#terminologyLoading) {
+      this.#cancelTranslationRequests();
+      this.#terminologyLoading = null;
+    }
     if (!this.#enabled) return;
     this.#enabled = false;
+    this.#terminologyReady = false;
     this.#rule.transOpen = "false";
     this.#cancelTranslationRequests();
     // 关闭翻译时立即废弃语言检测中的按住任务
@@ -5641,7 +5813,7 @@ overflow-wrap: anywhere !important;`;
 
   // 切换是否翻译
   toggle() {
-    this.#enabled ? this.disable() : this.enable();
+    this.#enabled || this.#terminologyLoading ? this.disable() : this.enable();
   }
 
   toggleTransOnly() {
@@ -5749,12 +5921,33 @@ overflow-wrap: anywhere !important;`;
     this.#placeholderCache = null;
     this.#blockSelectorInvalid = false;
 
+    if (
+      !newRule.terminologySources &&
+      this.#rule.terminologySources &&
+      ["terms", "aiTerms", "termsList"].some((key) =>
+        Object.prototype.hasOwnProperty.call(newRule, key)
+      )
+    ) {
+      const patch = Object.fromEntries(
+        ["terms", "aiTerms", "termsList"]
+          .filter((key) => Object.prototype.hasOwnProperty.call(newRule, key))
+          .map((key) => [key, newRule[key]])
+      );
+      const [first = {}, ...rest] = this.#rule.terminologySources;
+      this.#rule.terminologySources = [{ ...first, ...patch }, ...rest];
+    }
+
     // terms 变更时重新解析术语：updateRule 可能由扩展/Popup 在运行期推送新规则，
     // 必须同步刷新 #termEntries 与 #combinedTermsRegex，否则术语停留在构造时的旧值
     // （历史缺陷：只有 #rule.terms 被覆盖，解析状态不更新导致新术语静默不生效）。
     // 用 hasOwnProperty 判定（与上方 3991 行一致）：显式传 terms: undefined 不触发重解析，
     // 避免把解析状态置位到 undefined 派生值。
-    if (Object.prototype.hasOwnProperty.call(newRule, "terms")) {
+    if (
+      ["terms", "termsList", "terminologySources", "apiSlug"].some((key) =>
+        Object.prototype.hasOwnProperty.call(newRule, key)
+      )
+    ) {
+      this.#terminologyReady = false;
       this.#parseTerms(this.#rule.terms);
     }
 
@@ -5763,6 +5956,22 @@ overflow-wrap: anywhere !important;`;
     // 导致 AI 翻译静默不生效。这里与 terms 分支并列，保持两者解析状态一致。
     if (Object.prototype.hasOwnProperty.call(newRule, "aiTerms")) {
       this.#glossary = parseAITerms(this.#rule.aiTerms);
+    }
+
+    const hasSelectedTables = [
+      ...terminologySourceList(this.#rule),
+      this.#apiSetting || {},
+    ].some((source) => source.termsList?.length);
+    if (
+      (this.#enabled || this.#terminologyLoading) &&
+      !this.#terminologyReady &&
+      (hasSelectedTables || this.#terminologyLoading)
+    ) {
+      this.#cancelTranslationRequests();
+      this.#terminologyLoading = null;
+      if (this.#enabled && !hasSelectedTables) this.rescan();
+      else this.enable();
+      return;
     }
 
     const needsTriggerRescan =

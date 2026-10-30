@@ -28,7 +28,11 @@ jest.mock("./storage", () => ({
   setSetting: jest.fn(),
   setRules: jest.fn(),
   setWords: jest.fn(),
-  storage: { withTransaction: jest.fn(), readSyncSnapshot: jest.fn() },
+  storage: {
+    withTransaction: jest.fn(),
+    readSyncSnapshot: jest.fn(),
+    getObj: async () => [],
+  },
 }));
 
 jest.mock("../apis", () => ({
@@ -102,7 +106,10 @@ const WORDS_KEY = "kiss-words.json";
 
 beforeEach(() => {
   const transaction = {
-    getObj: () => getSyncWithDefault(),
+    getObj: (key) =>
+      key === "kiss_terminology_index_v1"
+        ? Promise.resolve([])
+        : getSyncWithDefault(),
     setObj: (key, value) =>
       ({
         setting: setSetting,
@@ -695,23 +702,33 @@ describe("GitHub Gist sync", () => {
       SYNC_ENCRYPT_KEY
     );
     expect(encryptSyncValue).toHaveBeenNthCalledWith(
-      4,
+      5,
       JSON.stringify({ setting: true }),
       NEW_SYNC_ENCRYPT_KEY
     );
     expect(encryptSyncValue).toHaveBeenNthCalledWith(
-      5,
+      6,
       JSON.stringify([{ pattern: "*" }]),
       NEW_SYNC_ENCRYPT_KEY
     );
     expect(encryptSyncValue).toHaveBeenNthCalledWith(
-      6,
+      7,
       JSON.stringify({ hello: true }),
       NEW_SYNC_ENCRYPT_KEY
     );
-    const uploadedSetting = JSON.parse(apiUpdateGistFile.mock.calls[3][3]);
-    const uploadedRules = JSON.parse(apiUpdateGistFile.mock.calls[4][3]);
-    const uploadedWords = JSON.parse(apiUpdateGistFile.mock.calls[5][3]);
+    expect(encryptSyncValue).toHaveBeenNthCalledWith(
+      4,
+      JSON.stringify({ formatVersion: 1, tables: [] }),
+      SYNC_ENCRYPT_KEY
+    );
+    expect(encryptSyncValue).toHaveBeenNthCalledWith(
+      8,
+      JSON.stringify({ formatVersion: 1, tables: [] }),
+      NEW_SYNC_ENCRYPT_KEY
+    );
+    const uploadedSetting = JSON.parse(apiUpdateGistFile.mock.calls[4][3]);
+    const uploadedRules = JSON.parse(apiUpdateGistFile.mock.calls[5][3]);
+    const uploadedWords = JSON.parse(apiUpdateGistFile.mock.calls[6][3]);
     expect(uploadedSetting.updateAt).toBe(9999);
     expect(uploadedRules.updateAt).toBe(9999);
     expect(uploadedWords.updateAt).toBe(9999);

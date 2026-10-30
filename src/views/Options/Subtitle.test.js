@@ -952,4 +952,22 @@ describe("hover lookup dismissal settings", () => {
       saved.unmount();
     }
   );
+
+  test("renders terminology section within a SettingsCard between quality and learning groups", () => {
+    const view = renderSubtitle();
+    const sections = Array.from(
+      view.container.querySelectorAll(".kt-settings-section")
+    );
+    const headings = sections.map((s) => s.querySelector("h2")?.textContent);
+    const terminologyIndex = headings.indexOf("terminology_tables");
+    const qualityIndex = headings.indexOf("settings_quality_group");
+    const learningIndex = headings.indexOf("settings_learning_group");
+
+    expect(terminologyIndex).toBeGreaterThan(qualityIndex);
+    expect(terminologyIndex).toBeLessThan(learningIndex);
+
+    const termSection = sections[terminologyIndex];
+    expect(termSection.querySelector(".kt-settings-card")).not.toBeNull();
+    view.unmount();
+  });
 });

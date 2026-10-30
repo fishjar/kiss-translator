@@ -1,3 +1,9 @@
+import { syncTerminology } from "./terminologySync";
+import {
+  TERMINOLOGY_SYNC_KEY,
+  exportTerminologyDataset,
+  applyTerminologyDataset,
+} from "./terminologyStorage";
 import {
   APP_LCNAME,
   KV_SETTING_KEY,
@@ -782,6 +788,17 @@ export const changeSyncEncryptKey = async ({
     applyRemote: false,
   });
 
+  const terminology = await syncTerminology({
+    syncEncryptKey: oldEncryptKey,
+    forceRemoteRead: true,
+    persistMeta: false,
+    applyRemote: false,
+  });
+  // Validate every dataset before adopting remote data or changing the key.
+  if (terminology?.isNew)
+    await storage.withTransaction((transaction) =>
+      applyTerminologyDataset(terminology.value, transaction)
+    );
   // 三类远端数据都通过旧口令校验后，才把较新的版本写入本地并开始重加密。
   if (synced.setting?.isNew) await setSetting(synced.setting.value);
   if (synced.rules?.isNew) await setRules(synced.rules.value);
@@ -800,6 +817,12 @@ export const changeSyncEncryptKey = async ({
   await forceSyncDataWithEncryptKey(
     KV_WORDS_KEY,
     await getWordsWithDefault(),
+    newEncryptKey
+  );
+
+  await forceSyncDataWithEncryptKey(
+    TERMINOLOGY_SYNC_KEY,
+    await exportTerminologyDataset(),
     newEncryptKey
   );
 

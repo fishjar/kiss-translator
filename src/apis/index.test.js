@@ -47,6 +47,8 @@ const mockSha256 = jest.fn();
 const mockGetCacheDigest = jest.fn();
 
 jest.mock("../libs/utils", () => ({
+  parseAITerms: (...args) =>
+    jest.requireActual("../libs/utils").parseAITerms(...args),
   sha256: (...args) => mockSha256(...args),
   withTimeout: jest.fn((promise) => promise),
 }));
@@ -1218,5 +1220,127 @@ describe("apiSummarizeVideo and getVideoSummarySignature cache identity", () => 
     });
     expect(res6).toBe("Summary for [Initial subtitles] in zh-CN");
     expect(handleSummarize).toHaveBeenCalledTimes(5);
+  });
+});
+
+describe("terminology at translation boundaries", () => {
+  const table = {
+    id: "topic",
+    name: "Topic",
+    description: "",
+    terms: "act,行动",
+    aiTerms: "component,部件",
+    normalMatchMode: "auto",
+  };
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetCacheDigest.mockResolvedValue("a".repeat(64));
+    getHttpCachePolyfill.mockResolvedValue(null);
+  });
+  test.each(["original", "lowercase", "whitespace"])(
+    "protects normal words and restores %s provider tokens in final stream output",
+    async (variation) => {
+      const chunks = jest.fn();
+      handleTranslate.mockImplementation(async function* (texts, options) {
+        expect(texts[0]).toContain("__KISS_TERM_0__");
+        expect(texts[0]).toContain("react");
+        expect(options.glossary).toEqual({ component: "场景", API: "接口" });
+        expect(options.apiSetting.aiTerms).toBe("");
+        const result =
+          variation === "lowercase"
+            ? texts[0].replace(/KISS_TERM/g, "kiss_term")
+            : variation === "whitespace"
+              ? texts[0].replace(/(__KISS_TERM_)(\d+)__/g, "$1 $2 __")
+              : texts[0];
+        yield { id: 0, result };
+      });
+      const response = await apiTranslate({
+        text: "act react",
+        toLang: "zh-CN",
+        fromLang: "en",
+        useCache: false,
+        scene: { termsList: ["topic"], aiTerms: "component,场景" },
+        terminologyTables: [table],
+        apiSetting: {
+          ...getOpenAiApiSetting(""),
+          useBatchFetch: false,
+          aiTerms: "component,接口\nAPI,接口",
+        },
+        onStreamChunk: chunks,
+      });
+      expect(response.trText).toBe("行动 react");
+      expect(chunks).toHaveBeenLastCalledWith({
+        id: 0,
+        text: "行动 react",
+        isComplete: true,
+      });
+    }
+  );
+  test.each([
+    ["service-a", "接口A"],
+    ["service-b", "接口B"],
+  ])(
+    "composes the temporary scene with %s independently",
+    async (apiSlug, target) => {
+      handleTranslate.mockImplementation(async function* (texts, options) {
+        expect(options.glossary).toEqual({
+          component: "本次组件",
+          API: target,
+          TableOnly: "表术语",
+        });
+        yield { id: 0, result: texts[0] };
+      });
+      const response = await apiTranslate({
+        text: "act react API",
+        fromLang: "en",
+        toLang: "zh-CN",
+        useCache: false,
+        scene: { termsList: ["topic"], aiTerms: "component,本次组件" },
+        terminologyTables: [
+          table,
+          {
+            ...table,
+            id: "api-table",
+            terms: "",
+            aiTerms: "API,较低优先级\nTableOnly,表术语",
+          },
+        ],
+        apiSetting: {
+          ...getOpenAiApiSetting(""),
+          apiSlug,
+          useBatchFetch: false,
+          termsList: ["api-table"],
+          terms: "act,较低优先级",
+          aiTerms: `component,接口组件\nAPI,${target}`,
+        },
+      });
+      expect(response.trText).toBe("行动 react API");
+    }
+  );
+  test("normal terms do not alter segmentation source or timestamps", async () => {
+    const events = [{ start: 1, end: 2, text: "act" }];
+    handleSubtitle.mockResolvedValue([
+      { start: 1, end: 2, text: "act", translation: "wrong" },
+    ]);
+    const result = await apiSubtitle({
+      videoId: "v",
+      chunkSign: "c",
+      events,
+      toLang: "zh-CN",
+      scene: { termsList: ["topic"] },
+      terminologyTables: [table],
+      apiSetting: getOpenAiApiSetting(""),
+    });
+    expect(handleSubtitle.mock.calls.at(-1)[0].events).toEqual(events);
+    expect(result).toEqual([
+      {
+        start: 1,
+        end: 2,
+        text: "act",
+        translation: "",
+        _isDraftTranslation: true,
+      },
+    ]);
+    expect(events).toEqual([{ start: 1, end: 2, text: "act" }]);
   });
 });

@@ -118,6 +118,7 @@ function mockComponent(testId) {
   };
 }
 
+jest.mock("./TerminologyTables", () => mockComponent("terms-page"));
 jest.mock("./Rules", () => mockComponent("rules-page"));
 jest.mock("./FavWords", () => mockComponent("words-page"));
 jest.mock("./Apis", () => mockComponent("apis-page"));

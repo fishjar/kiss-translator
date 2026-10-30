@@ -268,9 +268,10 @@ export default class TranslatorManager {
    */
   #createRuntimeModules() {
     if (this.#transboxOnly) {
-      this._transboxManager = new TransboxManager(
-        this.#cloneConfig(this.#setting)
-      );
+      this._transboxManager = new TransboxManager({
+        ...this.#cloneConfig(this.#setting),
+        rule: this.#cloneConfig(this.#rule),
+      });
       return;
     }
 
@@ -284,9 +285,10 @@ export default class TranslatorManager {
 
     this.#touchMode = this._translator.setTouchMode?.(this.#touchMode) || "off";
 
-    this._transboxManager = new TransboxManager(
-      this.#cloneConfig(this.#setting)
-    );
+    this._transboxManager = new TransboxManager({
+      ...this.#cloneConfig(this.#setting),
+      rule: this.#cloneConfig(this.#rule),
+    });
 
     // Frames keep page, selection, and hover translation, but no top-level UI.
     if (!this.#isIframe) {
@@ -1083,7 +1085,9 @@ export default class TranslatorManager {
         break;
       case MSG_TRANS_PUTRULE:
         this._translator?.updateRule(args);
+        this.#rule = this.#cloneConfig(this._translator.rule);
         this._imageTranslateManager?.updateRule(args);
+        this._transboxManager?.update({ rule: this.#cloneConfig(this.#rule) });
         break;
       case MSG_OPEN_TRANBOX:
         document.dispatchEvent(

@@ -1,5 +1,9 @@
 import { YouTubeSubtitleList } from "./YouTubeSubtitleList";
 import { act } from "react";
+import { subscribeStorageInvalidation } from "../libs/storageEvents";
+jest.mock("../libs/storageEvents", () => ({
+  subscribeStorageInvalidation: jest.fn(),
+}));
 import { apiSubtitle, apiSummarizeContext } from "../apis/index.js";
 import { YouTubeCaptionProvider } from "./YouTubeCaptionProvider.js";
 import { eventsToSubtitles } from "./youtubeAiSegmentation.js";
@@ -11,6 +15,20 @@ import {
   captionTranslationSignature,
 } from "./captionCache";
 import { captionTrackId } from "./youtubeCaptionSource";
+import {
+  readTableDirectory,
+  loadTerminologySnapshot,
+} from "../libs/terminologyStorage";
+jest.mock("../libs/terminologyStorage", () => ({
+  readTableDirectory: jest.fn(async () => [
+    { id: "tbl_1", name: "计算机网络" },
+    { id: "tbl_2", name: "医学术语" },
+  ]),
+  TERMINOLOGY_INDEX: "kiss_terminology_index_v1",
+  loadTerminologySnapshot: jest.fn(async () => [
+    { id: "tbl_1", name: "计算机网络", terms: "network,网络", aiTerms: "" },
+  ]),
+}));
 jest.mock("./captionCache", () => ({
   captionCueKey: ({ start, end, text }) => JSON.stringify([start, end, text]),
   captionTranslationSignature: jest.fn(),
@@ -228,13 +246,66 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     return provider;
   };
   const props = () => mockUiOptions[mockUiOptions.length - 1].getMenuProps();
+  test("refreshes directory after cross-window invalidation without restarting captions", async () => {
+    const unsubscribe = jest.fn();
+    subscribeStorageInvalidation.mockReturnValue(unsubscribe);
+    create({ termsList: ["tbl_1"] });
+    await flushPromises();
+    await flushPromises();
+    expect(subscribeStorageInvalidation).toHaveBeenCalledWith(
+      "kiss_terminology_index_v1",
+      expect.any(Function)
+    );
+    const refresh = subscribeStorageInvalidation.mock.calls.at(-1)[1];
+    const processCount = eventsToSubtitles.mock.calls.length;
+    for (const directory of [
+      [
+        { id: "tbl_1", name: "重命名" },
+        { id: "new", name: "新表" },
+      ],
+      [{ id: "new", name: "新表" }],
+    ]) {
+      readTableDirectory.mockResolvedValue(directory);
+      refresh();
+      await flushPromises();
+      expect(props().terminologyDirectory).toEqual(directory);
+      expect(props().formData.termsList).toEqual(["tbl_1"]);
+      expect(eventsToSubtitles).toHaveBeenCalledTimes(processCount);
+    }
+    let finishRead;
+    readTableDirectory.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishRead = resolve;
+        })
+    );
+    refresh();
+    provider.destroy();
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    const directory = props().terminologyDirectory;
+    finishRead([{ id: "late", name: "Late" }]);
+    await flushPromises();
+    expect(props().terminologyDirectory).toBe(directory);
+  });
   beforeEach(() => {
     jest.clearAllMocks();
+    subscribeStorageInvalidation.mockImplementation(() => () => {});
+    readTableDirectory.mockResolvedValue([
+      { id: "tbl_1", name: "计算机网络" },
+      { id: "tbl_2", name: "医学术语" },
+    ]);
+    loadTerminologySnapshot.mockResolvedValue([
+      { id: "tbl_1", name: "计算机网络", terms: "network,网络", aiTerms: "" },
+    ]);
     captionCacheRequest.mockImplementation(async (action) =>
       action === "lookup" ? { entry: null, generation: 0 } : true
     );
     captionSegmentationSignature.mockResolvedValue("signature");
-    captionTranslationSignature.mockResolvedValue("translation-signature");
+    captionTranslationSignature.mockImplementation(async (setting) =>
+      setting?.termsList?.length
+        ? `translation-signature:${setting.termsList.join(",")}`
+        : "translation-signature"
+    );
     YouTubeSubtitleList.mockImplementation((video, i18n, options) => ({
       asrActions: options.asrActions,
       initialize: jest.fn(),
@@ -1276,5 +1347,235 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     document.body.appendChild(document.createElement("span"));
     await act(async () => flushPromises());
     expect(mockAcquire).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(["apiSlug", "segSlug"])(
+    "reloads table bodies when %s selects a different service",
+    async (name) => {
+      const table = { id: "medical", terms: "cell,细胞", aiTerms: "" };
+      loadTerminologySnapshot.mockImplementation(async (sources) =>
+        sources.some((source) => source.termsList?.includes(table.id))
+          ? [table]
+          : []
+      );
+      create({
+        transApis: [apiA, { ...apiB, termsList: [table.id] }],
+        terminologyTables: [],
+      });
+      await flushPromises();
+      await flushPromises();
+      provider.updateSetting({ name, value: apiB.apiSlug });
+      await flushPromises();
+      await flushPromises();
+      expect(mockUiOptions.at(-1).getSetting().terminologyTables).toEqual([
+        table,
+      ]);
+      expect(mockManagerSettings.at(-1).terminologyTables).toEqual([table]);
+    }
+  );
+
+  test("restores default table bodies after navigating away from temporary tables", async () => {
+    loadTerminologySnapshot.mockImplementation(async (sources) =>
+      [...new Set(sources.flatMap((source) => source.termsList || []))].map(
+        (id) => ({ id, terms: `${id},translated`, aiTerms: "" })
+      )
+    );
+    create({ termsList: ["default"] });
+    await flushPromises();
+    await flushPromises();
+    provider.updateSetting({ name: "termsList", value: ["temporary"] });
+    await new Promise((resolve) => setTimeout(resolve, 650));
+    await flushPromises();
+    expect(
+      mockUiOptions
+        .at(-1)
+        .getSetting()
+        .terminologyTables.map((table) => table.id)
+    ).toEqual(["temporary"]);
+    window.history.replaceState({}, "", "/watch?v=video-2");
+    window.dispatchEvent(new Event("yt-navigate-finish"));
+    await flushPromises();
+    await flushPromises();
+    expect(props().formData.termsList).toEqual(["default"]);
+    expect(
+      mockManagerSettings.at(-1).terminologyTables.map((table) => table.id)
+    ).toEqual(["default"]);
+  });
+
+  test("an old service snapshot cannot overwrite a newer selection", async () => {
+    let resolveOld;
+    loadTerminologySnapshot.mockImplementation((sources) =>
+      sources.some((source) => source.termsList?.includes("old"))
+        ? new Promise((resolve) => {
+            resolveOld = resolve;
+          })
+        : Promise.resolve([])
+    );
+    create({
+      transApis: [apiA, { ...apiB, termsList: ["old"] }],
+      terminologyTables: [],
+    });
+    await flushPromises();
+    await flushPromises();
+    provider.updateSetting({ name: "apiSlug", value: apiB.apiSlug });
+    await flushPromises();
+    provider.updateSetting({ name: "apiSlug", value: apiA.apiSlug });
+    await flushPromises();
+    expect(resolveOld).toEqual(expect.any(Function));
+    resolveOld([{ id: "old", terms: "old,旧", aiTerms: "" }]);
+    await flushPromises();
+    expect(mockUiOptions.at(-1).getSetting().terminologyTables).toEqual([]);
+    expect(mockManagerSettings.at(-1).apiSlug).toBe(apiA.apiSlug);
+  });
+
+  test("navigation discards an in-flight temporary table snapshot", async () => {
+    let resolveTemporary;
+    loadTerminologySnapshot.mockImplementation((sources) =>
+      sources.some((source) => source.termsList?.includes("temporary"))
+        ? new Promise((resolve) => {
+            resolveTemporary = resolve;
+          })
+        : Promise.resolve([
+            { id: "default", terms: "default,默认", aiTerms: "" },
+          ])
+    );
+    create({ termsList: ["default"] });
+    await flushPromises();
+    await flushPromises();
+    provider.updateSetting({ name: "termsList", value: ["temporary"] });
+    await new Promise((resolve) => setTimeout(resolve, 650));
+    expect(resolveTemporary).toEqual(expect.any(Function));
+    window.history.replaceState({}, "", "/watch?v=video-2");
+    window.dispatchEvent(new Event("yt-navigate-finish"));
+    await flushPromises();
+    await flushPromises();
+    resolveTemporary([{ id: "temporary", terms: "temp,临时", aiTerms: "" }]);
+    await flushPromises();
+    expect(props().formData.termsList).toEqual(["default"]);
+    expect(
+      mockUiOptions
+        .at(-1)
+        .getSetting()
+        .terminologyTables.map((table) => table.id)
+    ).toEqual(["default"]);
+    expect(eventsToSubtitles.mock.calls.at(-1)[0].videoId).toBe("video-2");
+  });
+
+  test("ASR service switches wait for the latest terminology snapshot", async () => {
+    let resolveOld;
+    loadTerminologySnapshot.mockImplementation((sources) =>
+      sources.some((source) => source.termsList?.includes("old"))
+        ? new Promise((resolve) => {
+            resolveOld = resolve;
+          })
+        : Promise.resolve([])
+    );
+    create({
+      asrApiSlug: "asr",
+      transApis: [apiA, { ...apiB, termsList: ["old"] }],
+    });
+    await flushPromises();
+    await flushPromises();
+    props().asrActions.start();
+    const asr = mockAsrControllers.at(-1);
+    expect(asr.start).toHaveBeenCalledTimes(1);
+    provider.updateSetting({ name: "apiSlug", value: apiB.apiSlug });
+    await flushPromises();
+    expect(asr.active).toBe(false);
+    expect(asr.start).toHaveBeenCalledTimes(1);
+    provider.updateSetting({ name: "apiSlug", value: apiA.apiSlug });
+    await flushPromises();
+    expect(asr.start).toHaveBeenCalledTimes(2);
+    resolveOld([{ id: "old", terms: "old,旧", aiTerms: "" }]);
+    await flushPromises();
+    expect(asr.start).toHaveBeenCalledTimes(2);
+    expect(asr.options.getSetting().terminologyTables).toEqual([]);
+    expect(asr.options.getSetting().apiSlug).toBe(apiA.apiSlug);
+  });
+
+  test("ASR start intent survives a service switch while its first table load is pending", async () => {
+    let rejectOld;
+    loadTerminologySnapshot.mockImplementation((sources) =>
+      sources.some((source) => source.termsList?.includes("old"))
+        ? new Promise((_resolve, reject) => {
+            rejectOld = reject;
+          })
+        : Promise.resolve([])
+    );
+    const initialApi = { ...apiA, termsList: ["old"] };
+    create({
+      asrApiSlug: "asr",
+      apiSetting: initialApi,
+      transApis: [initialApi, apiB],
+    });
+    await flushPromises();
+    await flushPromises();
+    props().asrActions.start();
+    const asr = mockAsrControllers.at(-1);
+    expect(asr.start).not.toHaveBeenCalled();
+    provider.updateSetting({ name: "apiSlug", value: apiB.apiSlug });
+    await flushPromises();
+    expect(asr.start).toHaveBeenCalledTimes(1);
+    rejectOld(new Error("old storage request failed"));
+    await flushPromises();
+    expect(asr.start).toHaveBeenCalledTimes(1);
+    expect(asr.options.getSetting().terminologyTables).toEqual([]);
+    expect(props().translationError).toBe(false);
+  });
+
+  test("a failed table load can be retried by the next translation task", async () => {
+    loadTerminologySnapshot.mockRejectedValueOnce(
+      new Error("storage unavailable")
+    );
+    create({ termsList: ["tbl_1"] });
+    await flushPromises();
+    await flushPromises();
+    expect(eventsToSubtitles).not.toHaveBeenCalled();
+    provider.updateSetting({ name: "apiSlug", value: apiB.apiSlug });
+    await flushPromises();
+    await flushPromises();
+    expect(mockManagerSettings.at(-1).terminologyTables).toEqual([
+      { id: "tbl_1", name: "计算机网络", terms: "network,网络", aiTerms: "" },
+    ]);
+  });
+
+  test("debounces temporary termsList changes and triggers retranslation after 600ms", async () => {
+    const entry = {
+      ...mockResult("video-1"),
+      trackKey: captionTrackId(mockTrack),
+    };
+    captionCacheRequest.mockImplementation(async (action) =>
+      action === "lookup" ? { entry, generation: 0 } : true
+    );
+    create({ termsList: ["default_tbl"] });
+    await flushPromises();
+    await flushPromises();
+    expect(eventsToSubtitles).toHaveBeenCalledTimes(1);
+
+    expect(props().terminologyDirectory).toEqual([
+      { id: "tbl_1", name: "计算机网络" },
+      { id: "tbl_2", name: "医学术语" },
+    ]);
+    expect(props().formData.termsList).toEqual(["default_tbl"]);
+
+    // 第一次临时修改
+    provider.updateSetting({ name: "termsList", value: ["tbl_1"] });
+    // UI 即时响应
+    expect(props().formData.termsList).toEqual(["tbl_1"]);
+    // 尚未经过防抖，不触发新一轮重译
+    expect(eventsToSubtitles).toHaveBeenCalledTimes(1);
+
+    // 100ms 后连续第二次修改
+    await new Promise((r) => setTimeout(r, 100));
+    provider.updateSetting({ name: "termsList", value: ["tbl_1", "tbl_2"] });
+    expect(props().formData.termsList).toEqual(["tbl_1", "tbl_2"]);
+    expect(eventsToSubtitles).toHaveBeenCalledTimes(1);
+
+    // 等待 750ms 完成防抖
+    await new Promise((r) => setTimeout(r, 750));
+    await flushPromises();
+
+    // 防抖后只执行一次重译
+    expect(eventsToSubtitles).toHaveBeenCalledTimes(2);
   });
 });

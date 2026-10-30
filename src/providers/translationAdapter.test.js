@@ -68,12 +68,13 @@ test("partial results do not hide a failed final invocation", async () => {
       apiSetting: { apiSlug: "id", provider },
       toLang: "zh",
     })) {
+      void _;
     }
   };
   await expect(consume()).rejects.toBe(error);
 });
 
-test("plugin deltas accumulate for renderers and interface glossary overrides scene terms", async () => {
+test("plugin deltas accumulate for renderers and scene glossary overrides interface terms", async () => {
   invokePlugin.mockReturnValue({
     cancel: jest.fn(),
     result: Promise.resolve({ items: [{ id: "0", text: "你好" }] }),
@@ -97,7 +98,7 @@ test("plugin deltas accumulate for renderers and interface glossary overrides sc
     "你好",
   ]);
   const input = invokePlugin.mock.calls.at(-1)[2];
-  expect(input.glossary).toEqual({ term: "API" });
+  expect(input.glossary).toEqual({ term: "scene" });
   expect(input.document.title).toBe("page");
   expect(input.context).toBe("paragraph");
 });

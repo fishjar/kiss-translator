@@ -228,6 +228,13 @@ export const SETTINGS_SEARCH_KEYS = {
     "api_request_hook",
     "api_response_hook",
   ],
+  terms: [
+    "terminology_tables",
+    "terminology_match_mode",
+    "terminology_import_file",
+    "terminology_import_url",
+    "terminology_sync",
+  ],
   prompts: ["prompt_name", "system_prompt", "user_prompt"],
   sync: [
     "auto_sync",
@@ -335,6 +342,7 @@ export const SETTINGS_SEARCH_PAGES = {
   "/input": "input",
   "/subtitle": "subtitle",
   "/apis": "apis",
+  "/terms": "terms",
   "/prompts": "prompts",
   "/sync": "sync",
   "/words": "words",

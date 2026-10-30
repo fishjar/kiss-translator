@@ -1,3 +1,4 @@
+import { loadTerminologySnapshot } from "../../libs/terminologyStorage";
 import { apiTranslate, apiSubtitle, apiSummarizeContext } from "../../apis";
 import { resolveApiPromptSettings } from "../../config/prompt";
 import {
@@ -103,8 +104,17 @@ export async function effectiveAsrLimits(service) {
 
 /** Existing subtitle services, with all timings anchored to actual ASR segments. */
 export function createAsrTextProcessor(setting, identity) {
+  setting = { ...setting };
   const { segmentationService, translationService } =
     resolvedAsrServices(setting);
+  const tables = setting.terminologyTables
+    ? Promise.resolve(setting.terminologyTables)
+    : loadTerminologySnapshot(
+        [setting, segmentationService, translationService].filter(Boolean)
+      );
+  const prepareTerms = async () => {
+    setting.terminologyTables = await tables;
+  };
   let fromLang = getFromLang(identity.sourceLanguage);
   let docInfo = getDocInfo(),
     enriched = false;
@@ -140,6 +150,7 @@ export function createAsrTextProcessor(setting, identity) {
       fromLang = getFromLang(language);
     },
     async segment(segments, signal, waitUntilRunning = async () => {}) {
+      await prepareTerms();
       await waitUntilRunning(signal);
       const flatEvents = segments
         .filter(
@@ -210,6 +221,7 @@ export function createAsrTextProcessor(setting, identity) {
       onUpdate = () => {},
       waitUntilRunning = async () => {}
     ) {
+      await prepareTerms();
       if (signal.aborted)
         throw signal.reason || new DOMException("Cancelled", "AbortError");
       if (
@@ -239,6 +251,9 @@ export function createAsrTextProcessor(setting, identity) {
           await waitUntilRunning(signal);
           const result = await apiTranslate({
             text: cue.text,
+            scene: setting,
+            onTerminologyWarning: setting.onTerminologyWarning,
+            terminologyTables: setting.terminologyTables,
             fromLang,
             toLang: setting.toLang,
             apiSetting: translationService,

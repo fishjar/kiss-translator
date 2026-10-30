@@ -521,6 +521,10 @@ export default function FileTranslateView() {
     toLang: scene.toLang,
     apiSlug: scene.apiSlug,
     promptSlug: scene.promptSlug,
+    terms: scene.terms,
+    aiTerms: scene.aiTerms,
+    termsList: scene.termsList,
+    terminologySignature: context.terminologySignatures?.[mode],
     serviceSignature: context.services.find(
       (api) => api.apiSlug === scene.apiSlug
     )?.translationSignature,
@@ -2114,6 +2118,7 @@ export default function FileTranslateView() {
       }}
     >
       <FileTranslateSettings
+        terminologyDirectory={context.terminologyDirectory}
         i18n={i18n}
         scene={scene}
         services={(setting?.transApis || []).filter((api) => !api.isDisabled)}

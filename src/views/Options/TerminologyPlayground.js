@@ -1,3 +1,4 @@
+import { isApiAvailableFor } from "../../config/serviceSelection";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -1613,7 +1614,7 @@ export default function TerminologyPlayground({
   const availableApis = useMemo(() => {
     const list = Array.isArray(transApis) ? transApis : [];
     return list
-      .filter((api) => api && api.apiSlug && api.isDisabled !== true)
+      .filter((api) => api?.apiSlug && isApiAvailableFor(api, "translate"))
       .map(fillApiDefaults);
   }, [transApis]);
   // AI 测试接口选择：首帧渲染即进行有效性归一化，确保永远向 MUI Select 传递合法 value。

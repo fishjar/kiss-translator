@@ -1,3 +1,4 @@
+import TerminologySelect from "./TerminologySelect";
 import { localizeServiceName } from "../../providers/localization";
 import { useProviderI18n } from "../../hooks/ProviderI18n";
 import SensitiveTextField from "./SensitiveTextField";
@@ -1116,6 +1117,7 @@ function LegacyApiFields({
             <>
               <CodeField
                 size="small"
+                sx={{ gridColumn: "1 / -1" }}
                 label={"Request Hook"}
                 name="reqHook"
                 value={reqHook}
@@ -1132,6 +1134,7 @@ function LegacyApiFields({
               />
               <CodeField
                 size="small"
+                sx={{ gridColumn: "1 / -1" }}
                 label={"Response Hook"}
                 name="resHook"
                 value={resHook}
@@ -1355,6 +1358,23 @@ function LegacyApiFields({
             />
           )}
 
+          <ServiceTimeoutSetting
+            api={activeFormData}
+            onChange={(value) =>
+              handleChange({ target: { name: "httpTimeout", value } })
+            }
+          />
+          <AsrDurationSetting
+            inline
+            api={activeFormData}
+            onTimestampChange={(value) =>
+              handleChange({ target: { name: "asrTimestampSupport", value } })
+            }
+            onChange={(value) =>
+              handleChange({ target: { name: "asrMaxDurationSeconds", value } })
+            }
+          />
+
           {showMore && hasMoreFields && (
             <>
               {hasBatch && (
@@ -1536,11 +1556,24 @@ function LegacyApiFields({
                   </>
                 </>
               )}
+              {hasTranslation && (
+                <TerminologySelect
+                  sx={{ gridColumn: "1 / -1" }}
+                  value={activeFormData.termsList || []}
+                  onChange={(termsList) =>
+                    handleChange({
+                      preventDefault() {},
+                      target: { name: "termsList", value: termsList },
+                    })
+                  }
+                />
+              )}
               {hasTranslation &&
                 (API_SPE_TYPES.ai.has(apiType) ||
                   apiType === OPT_TRANS_QWENMT) && (
                   <TextField
                     size="small"
+                    sx={{ gridColumn: "1 / -1" }}
                     label={i18n("ai_terms")}
                     helperText={i18n("ai_terms_helper")}
                     name="aiTerms"
@@ -1556,6 +1589,7 @@ function LegacyApiFields({
                   {" "}
                   <CodeField
                     size="small"
+                    sx={{ gridColumn: "1 / -1" }}
                     label={i18n("custom_header")}
                     name="customHeader"
                     value={customHeader}
@@ -1565,6 +1599,7 @@ function LegacyApiFields({
                   />
                   <CodeField
                     size="small"
+                    sx={{ gridColumn: "1 / -1" }}
                     label={i18n("custom_body")}
                     name="customBody"
                     value={customBody}
@@ -1586,6 +1621,7 @@ function LegacyApiFields({
                   <>
                     <CodeField
                       size="small"
+                      sx={{ gridColumn: "1 / -1" }}
                       label={"Request Hook"}
                       name="reqHook"
                       value={reqHook}
@@ -1602,6 +1638,7 @@ function LegacyApiFields({
                     />
                     <CodeField
                       size="small"
+                      sx={{ gridColumn: "1 / -1" }}
                       label={"Response Hook"}
                       name="resHook"
                       value={resHook}
@@ -1620,23 +1657,6 @@ function LegacyApiFields({
                 )}
             </>
           )}
-
-          <ServiceTimeoutSetting
-            api={activeFormData}
-            onChange={(value) =>
-              handleChange({ target: { name: "httpTimeout", value } })
-            }
-          />
-          <AsrDurationSetting
-            inline
-            api={activeFormData}
-            onTimestampChange={(value) =>
-              handleChange({ target: { name: "asrTimestampSupport", value } })
-            }
-            onChange={(value) =>
-              handleChange({ target: { name: "asrMaxDurationSeconds", value } })
-            }
-          />
         </Box>
         <Stack
           className="kt-api-detail__footer"

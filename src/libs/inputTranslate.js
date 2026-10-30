@@ -1,3 +1,4 @@
+import { terminologyWarningHandler } from "./terminologyWarning";
 import {
   DEFAULT_INPUT_RULE,
   DEFAULT_INPUT_SHORTCUT,
@@ -628,6 +629,8 @@ export class InputTranslator {
         fromLang,
         toLang,
         apiSetting,
+        scene: this.#config.inputRule,
+        onTerminologyWarning: terminologyWarningHandler(this.#config.uiLang),
         textFormat: "text",
         translateVariants: this.#config.translateVariants,
       });

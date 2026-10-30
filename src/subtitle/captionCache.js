@@ -1,3 +1,4 @@
+import { resolveTerminology } from "../libs/terminologyStorage";
 import { sendBgMsg } from "../libs/msg";
 import { isExt } from "../libs/client";
 import { getCacheDigest } from "../libs/cacheDigest";
@@ -53,7 +54,7 @@ export function captionCacheRequest(action, args = {}) {
 }
 
 /** Persist only a digest, never service credentials or executable plugin settings. */
-export function captionSegmentationSignature(setting) {
+export async function captionSegmentationSignature(setting) {
   const service = setting.transApis?.find(
     (api) => api.apiSlug === setting.segSlug
   );
@@ -63,6 +64,13 @@ export function captionSegmentationSignature(setting) {
   const ai = !!service && setting.segSlug !== "-";
   return digest({
     version: 3,
+    terminology: (
+      await resolveTerminology(
+        setting,
+        service || {},
+        setting.terminologyTables
+      )
+    ).signature,
     mode: setting.useAlgorithmBreaker || "rule",
     threshold: setting.longSentenceThreshold ?? 120,
     ...(ai &&
@@ -81,12 +89,19 @@ export function captionSegmentationSignature(setting) {
   });
 }
 
-export function captionTranslationSignature(setting) {
+export async function captionTranslationSignature(setting) {
   const selected =
     availableApiForScene(setting, setting.transApis || [], "translate") ||
     (!setting.transApis && setting.apiSetting);
   return digest({
     version: 2,
+    terminology: (
+      await resolveTerminology(
+        setting,
+        selected || {},
+        setting.terminologyTables
+      )
+    ).signature,
     toLang: setting.toLang,
     apiSlug: setting.apiSlug,
     service:
