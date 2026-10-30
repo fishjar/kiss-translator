@@ -19,6 +19,7 @@ import {
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_LOCALAI,
 } from "../config/apiConstants";
+import { claudeResponseText } from "./claude";
 import { geminiResponseText, geminiText } from "./gemini";
 import { normalizeThinkingSettings } from "./thinkingCapabilities";
 
@@ -45,7 +46,7 @@ export function parseNativeDictionaryResponse(res, apiType) {
     case OPT_TRANS_GEMINI:
       return geminiResponseText(res);
     case OPT_TRANS_CLAUDE:
-      return res?.content?.[0]?.text || "";
+      return claudeResponseText(res) || "";
     case OPT_TRANS_CUSTOMIZE:
       if (typeof res === "string") return res;
       return res?.text || res?.result || "";
@@ -76,13 +77,13 @@ export function parseNativeSummaryResponse(res, apiType) {
     case OPT_TRANS_GEMINI:
       return geminiResponseText(res).trim() || "";
     case OPT_TRANS_CLAUDE:
-      return res?.content?.[0]?.text?.trim() || "";
+      return claudeResponseText(res)?.trim() || "";
     case OPT_TRANS_CUSTOMIZE:
       if (typeof res === "string") return res.trim();
       return (
         res?.choices?.[0]?.message?.content?.trim() ||
         geminiText(res?.candidates?.[0]?.content?.parts).trim() ||
-        res?.content?.[0]?.text?.trim() ||
+        claudeResponseText(res)?.trim() ||
         ""
       );
     default:
@@ -168,7 +169,7 @@ export async function parseNativeSubtitleResponse(
       return parseSTRes(geminiResponseText(res), events, from);
     }
     case OPT_TRANS_CLAUDE:
-      return parseSTRes(res?.content?.[0]?.text ?? "", events, from);
+      return parseSTRes(claudeResponseText(res) ?? "", events, from);
     case OPT_TRANS_CUSTOMIZE:
       return res;
     default:
