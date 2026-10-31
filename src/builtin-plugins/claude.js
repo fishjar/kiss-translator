@@ -1,5 +1,9 @@
 import { applyThinkingParameters } from "./thinking";
-import { OPT_TRANS_CLAUDE, rejectsClaudeTemperature } from "../config";
+import {
+  ANTHROPIC_API_VERSION,
+  OPT_TRANS_CLAUDE,
+  rejectsClaudeTemperature,
+} from "../config";
 
 // 原生协议适配：保持旧参数、字段和厂家差异，不加载用户脚本解释器。
 const genClaude = ({
@@ -52,7 +56,7 @@ const genClaude = ({
 
   const headers = {
     "Content-type": "application/json",
-    "anthropic-version": "2023-06-01",
+    "anthropic-version": ANTHROPIC_API_VERSION,
     "anthropic-dangerous-direct-browser-access": "true",
     "x-api-key": key,
   };

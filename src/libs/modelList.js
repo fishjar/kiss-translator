@@ -1,4 +1,8 @@
-import { OPT_TRANS_GEMINI } from "../config/api";
+import {
+  ANTHROPIC_API_VERSION,
+  OPT_TRANS_CLAUDE,
+  OPT_TRANS_GEMINI,
+} from "../config/api";
 
 // 模型列表 URL 中可显式放置该占位符；存在占位符时不会额外注入 Authorization 头。
 const MODEL_KEY_PLACEHOLDER = "{{key}}";
@@ -16,6 +20,15 @@ const isGeminiNativeModelListUrl = (url = "") =>
   /^https:\/\/generativelanguage\.googleapis\.com\/v1(?:beta\d*)?\/models(?:[/?]|$)/i.test(
     url
   ) && !/\/openai\//i.test(url);
+
+/**
+ * 判断 URL 是否为 Anthropic 官方模型列表端点。
+ *
+ * @param {string} url 待检验的 URL。
+ * @returns {boolean} 是否为 Anthropic 模型列表 URL。
+ */
+const isAnthropicModelListUrl = (url = "") =>
+  /^https:\/\/api\.anthropic\.com\/v1\/models(?:[/?]|$)/i.test(url);
 
 /**
  * 去掉 Gemini 原生模型列表返回的资源名前缀。
@@ -160,6 +173,7 @@ const appendQueryParam = (url, name, value) => {
  * 鉴权规则：
  * - URL 包含 `{{key}}` 时，将 key 写入 URL，不再添加请求头，兼容特殊服务。
  * - Gemini 原生模型列表使用 `?key=...` 鉴权。
+ * - Claude 使用 `x-api-key`，并携带必需的 `anthropic-version` 头。
  * - 其他接口默认使用 OpenAI 兼容的 `Authorization: Bearer ...`。
  *
  * @param {Object} params 参数对象。
@@ -196,6 +210,22 @@ export function createModelListRequest({ apiType, modelListUrl, key }) {
       input: appendQueryParam(trimmedUrl, "key", trimmedKey),
       init: {
         method: "GET",
+      },
+    };
+  }
+
+  // Anthropic 的 /v1/models 必须携带 anthropic-version，否则返回 400。
+  // 鉴权头与翻译请求 (builtin-plugins/claude.js) 保持一致，兼容 Claude 协议的代理服务。
+  if (apiType === OPT_TRANS_CLAUDE || isAnthropicModelListUrl(trimmedUrl)) {
+    return {
+      input: trimmedUrl,
+      init: {
+        method: "GET",
+        headers: {
+          "x-api-key": trimmedKey,
+          "anthropic-version": ANTHROPIC_API_VERSION,
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
       },
     };
   }
