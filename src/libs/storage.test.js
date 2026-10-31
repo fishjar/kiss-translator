@@ -477,6 +477,24 @@ describe("settings storage migration", () => {
     ).toBe("mine");
   });
 
+  test.each([undefined, "off", "tap", "swipe"])(
+    "defaults missing touch mode to off and preserves stored %s without rewriting storage",
+    async (touchMode) => {
+      const stored = JSON.stringify({
+        version: CURRENT_SETTINGS_VERSION,
+        mouseHoverSetting: { touchMode, touchDirection: "left" },
+      });
+      window.localStorage.setItem(STOKEY_SETTING, stored);
+      await expect(getSettingWithDefault()).resolves.toMatchObject({
+        mouseHoverSetting: {
+          touchMode: touchMode || "off",
+          touchDirection: "left",
+        },
+      });
+      expect(window.localStorage.getItem(STOKEY_SETTING)).toBe(stored);
+    }
+  );
+
   test("fills in new mouse hover hold defaults without overriding stored choices", async () => {
     // 旧版本升级上来的设置：mouseHoverSetting 里没有本轮新增的键
     window.localStorage.setItem(

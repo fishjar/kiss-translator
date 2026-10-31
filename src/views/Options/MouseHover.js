@@ -188,10 +188,11 @@ export default function MouseHoverSetting() {
             description={i18n("touch_help")}
           >
             <SettingsSegmented
-              value={mouseHoverSetting.touchMode || "tap"}
+              value={mouseHoverSetting.touchMode || "off"}
               label={i18n("touch_mode")}
               onChange={(touchMode) => updateMouseHoverSetting({ touchMode })}
               items={[
+                { value: "off", label: i18n("touch_off") },
                 { value: "tap", label: i18n("touch_tap") },
                 { value: "swipe", label: i18n("touch_swipe") },
               ]}
@@ -205,8 +206,16 @@ export default function MouseHoverSetting() {
                 updateMouseHoverSetting({ touchDirection })
               }
               items={[
-                { value: "right", label: i18n("touch_right") },
-                { value: "left", label: i18n("touch_left") },
+                {
+                  value: "right",
+                  label: i18n("touch_right"),
+                  disabled: mouseHoverSetting.touchMode !== "swipe",
+                },
+                {
+                  value: "left",
+                  label: i18n("touch_left"),
+                  disabled: mouseHoverSetting.touchMode !== "swipe",
+                },
               ]}
             />
           </SettingsRow>

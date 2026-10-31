@@ -130,6 +130,11 @@ export default class TranslatorManager {
     transboxOnly = false,
   }) {
     this.#setting = this.#cloneConfig(setting);
+    const touchMode = setting?.mouseHoverSetting?.touchMode;
+    this.#touchMode =
+      supportsTouch() && ["tap", "swipe"].includes(touchMode)
+        ? touchMode
+        : "off";
     this.#rule = this.#cloneConfig(rule);
     this.#fabConfig = this.#cloneConfig(fabConfig);
     this.#favWords = this.#cloneConfig(favWords);
@@ -1001,6 +1006,9 @@ export default class TranslatorManager {
         ["off", "tap", "swipe"].includes(args?.mode)
       ) {
         this.#touchMode = this._translator?.setTouchMode(args.mode) || "off";
+        // Saved modes also start in child frames, which have no status bar.
+        // Relay off even for extension commands so their controls can stop them.
+        if (args.mode === "off") sendIframeMsg(action, args);
       }
       const touchTranslate = this.#getTouchState();
       this.#notifyTouchState();
