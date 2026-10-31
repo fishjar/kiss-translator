@@ -121,6 +121,7 @@ describe("touch paragraph gestures", () => {
     "removed",
     "mode",
     "mouse",
+    "pen",
   ])("rejects %s", (reason) => {
     controller.setMode("tap");
     pointer(
@@ -129,7 +130,7 @@ describe("touch paragraph gestures", () => {
       100,
       100,
       1,
-      reason === "mouse" ? "mouse" : "touch"
+      ["mouse", "pen"].includes(reason) ? reason : "touch"
     );
     if (reason === "timeout") jest.advanceTimersByTime(301);
     if (reason === "movement") pointer(node, "pointermove", 130);

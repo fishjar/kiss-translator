@@ -56,6 +56,28 @@ function renderMouseHover(mouseHoverSetting) {
 }
 
 describe("MouseHover settings", () => {
+  test.each([undefined, "off", "tap", "swipe"])(
+    "touch mode %s controls direction editing without changing mouse settings",
+    (touchMode) => {
+      const view = renderMouseHover({ touchMode, touchDirection: "left" });
+      const modes = view.container.querySelector('[aria-label="touch_mode"]');
+      const direction = view.container.querySelector(
+        '[aria-label="touch_direction"]'
+      );
+      expect(modes.querySelector('[aria-checked="true"]').value).toBe(
+        touchMode || "off"
+      );
+      expect(
+        Array.from(direction.querySelectorAll("button")).map((b) => b.disabled)
+      ).toEqual([touchMode !== "swipe", touchMode !== "swipe"]);
+      const nextMode = touchMode === "swipe" ? "tap" : "swipe";
+      act(() => modes.querySelector(`[value="${nextMode}"]`).click());
+      expect(view.updateMouseHoverSetting).toHaveBeenCalledWith({
+        touchMode: nextMode,
+      });
+      view.cleanup();
+    }
+  );
   afterEach(() => {
     document.body.innerHTML = "";
     jest.clearAllMocks();

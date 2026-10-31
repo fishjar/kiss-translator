@@ -168,10 +168,15 @@ export function ContentFabContent({
     // their composed paths to identify the menu and FAB across shadow roots.
     const handleClickAway = (event) => {
       const path = event.composedPath();
+      const themeRoot = menuRef.current?.closest(".kt-m3-root");
       if (
         path.includes(menuRef.current) ||
         path.includes(anchorRef.current) ||
-        path.some((node) => node.hasAttribute?.("data-kiss-touch-ui"))
+        path.some((node) => node.hasAttribute?.("data-kiss-touch-ui")) ||
+        // Select opens on mousedown; release over its portaled backdrop can
+        // retarget the click to the common theme root.
+        (path[0] === themeRoot &&
+          themeRoot?.querySelector(".MuiMenu-root[data-kiss-touch-ui]"))
       ) {
         return;
       }

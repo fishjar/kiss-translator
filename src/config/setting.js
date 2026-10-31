@@ -254,7 +254,7 @@ line-height: 1.5;
 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 backdrop-filter: blur(8px);`;
 export const DEFAULT_MOUSE_HOVER_SETTING = {
-  touchMode: "tap", // Preferred gesture; activation is document-local.
+  touchMode: "off", // Saved touch mode, applied when a document starts.
   touchDirection: "right",
   useMouseHover: false, // 是否开启鼠标悬停翻译
   blacklist: "", // 鼠标悬停翻译禁用的网页黑名单

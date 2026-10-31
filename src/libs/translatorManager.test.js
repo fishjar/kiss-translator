@@ -483,7 +483,155 @@ describe("TranslatorManager SPA lifecycle", () => {
     }
   );
 
-  test("touch mode is document-local and survives runtime recreation", () => {
+  describe("saved touch settings", () => {
+    let originalPointer, originalTouchPoints;
+    beforeEach(() => {
+      originalPointer = window.PointerEvent;
+      originalTouchPoints = Object.getOwnPropertyDescriptor(
+        navigator,
+        "maxTouchPoints"
+      );
+      window.PointerEvent = MouseEvent;
+      Object.defineProperty(navigator, "maxTouchPoints", {
+        configurable: true,
+        value: 2,
+      });
+    });
+    afterEach(() => {
+      window.PointerEvent = originalPointer;
+      if (originalTouchPoints) {
+        Object.defineProperty(navigator, "maxTouchPoints", originalTouchPoints);
+      } else {
+        delete navigator.maxTouchPoints;
+      }
+    });
+
+    test.each([
+      ["off", "left", false],
+      ["tap", "right", false],
+      ["swipe", "left", false],
+      ["swipe", "right", true],
+      [undefined, undefined, false],
+      ["invalid", "right", false],
+    ])("initializes %s / %s in iframe=%s", (mode, direction, isIframe) => {
+      const manager = createManager({
+        isIframe,
+        setting: {
+          mouseHoverSetting: { touchMode: mode, touchDirection: direction },
+        },
+      });
+      manager.start();
+      expect(mockTranslatorInstances[0].setTouchMode).toHaveBeenCalledWith(
+        ["tap", "swipe"].includes(mode) ? mode : "off"
+      );
+      expect(
+        sendRuntimeMessage({ action: "touch-state" }).touchTranslate.direction
+      ).toBe(direction || "right");
+    });
+
+    test.each(["page", "extension"])(
+      "closing from %s stops saved touch mode in child frames",
+      (source) => {
+        const manager = createManager({
+          setting: { mouseHoverSetting: { touchMode: "tap" } },
+        });
+        manager.start();
+        const child = createManager({
+          isIframe: true,
+          setting: { mouseHoverSetting: { touchMode: "swipe" } },
+        });
+        child.start();
+        expect(mockTranslatorInstances[1].setTouchMode).toHaveBeenCalledWith(
+          "swipe"
+        );
+        const command = { action: "touch-mode-set", args: { mode: "off" } };
+        if (source === "page") {
+          PopupManager.mock.calls[0][0].processActions(command);
+        } else {
+          sendRuntimeMessage(command);
+        }
+        expect(
+          mockTranslatorInstances[0].setTouchMode
+        ).toHaveBeenLastCalledWith("off");
+        expect(sendIframeMsg).toHaveBeenCalledWith(
+          command.action,
+          command.args
+        );
+
+        // Deliver the parent message to the child, as sendIframeMsg does.
+        sendIframeMsg.mockClear();
+        window.dispatchEvent(new MessageEvent("message", { data: command }));
+        expect(
+          mockTranslatorInstances[1].setTouchMode
+        ).toHaveBeenLastCalledWith("off");
+        // Nested frames must receive off as well.
+        expect(sendIframeMsg).toHaveBeenCalledWith(
+          command.action,
+          command.args
+        );
+      }
+    );
+
+    test("leaves saved touch settings intact on a mouse-only PC", () => {
+      Object.defineProperty(navigator, "maxTouchPoints", { value: 0 });
+      const manager = createManager({
+        setting: {
+          mouseHoverSetting: { touchMode: "swipe", touchDirection: "left" },
+        },
+      });
+      manager.start();
+      expect(mockTranslatorInstances[0].setTouchMode).toHaveBeenCalledWith(
+        "off"
+      );
+      expect(mockTranslatorArgs[0].setting.mouseHoverSetting).toEqual({
+        touchMode: "swipe",
+        touchDirection: "left",
+      });
+    });
+
+    test("uses new saved settings on a fresh page, retaining current state on SPA rebuild", () => {
+      const transApis = [{ apiSlug: "selected" }];
+      const manager = createManager({
+        setting: {
+          transApis,
+          mouseHoverSetting: { touchMode: "tap", touchDirection: "right" },
+        },
+      });
+      manager.start();
+      sendSettingChange({
+        transApis,
+        mouseHoverSetting: { touchMode: "swipe", touchDirection: "left" },
+      });
+      expect(
+        sendRuntimeMessage({ action: "touch-state" }).touchTranslate
+      ).toMatchObject({ mode: "tap", direction: "right" });
+      sendRuntimeMessage({ action: "touch-mode-set", args: { mode: "off" } });
+      manager.restart();
+      expect(
+        sendRuntimeMessage({ action: "touch-state" }).touchTranslate
+      ).toMatchObject({ mode: "off", direction: "right" });
+      manager.stop();
+      const next = createManager({
+        setting: {
+          transApis,
+          mouseHoverSetting: { touchMode: "swipe", touchDirection: "left" },
+        },
+      });
+      next.start();
+      const response = jest.fn();
+      browser.runtime.onMessage.addListener.mock.calls.at(-1)[0](
+        { action: "touch-state" },
+        {},
+        response
+      );
+      expect(response.mock.calls[0][0].touchTranslate).toMatchObject({
+        mode: "swipe",
+        direction: "left",
+      });
+    });
+  });
+
+  test("explicit touch mode changes survive runtime recreation", () => {
     const manager = createManager();
     manager.start();
     expect(
@@ -559,7 +707,9 @@ describe("TranslatorManager SPA lifecycle", () => {
         .touchTranslate.mode
     ).toBe("off");
     expect(mockTranslatorInstances[0].setTouchMode).toHaveBeenCalledWith("off");
-    expect(sendIframeMsg).not.toHaveBeenCalled();
+    expect(sendIframeMsg).toHaveBeenCalledWith("touch-mode-set", {
+      mode: "off",
+    });
   });
 
   test("does not restart after stop", async () => {
