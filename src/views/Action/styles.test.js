@@ -58,6 +58,13 @@ describe("content FAB Material 3 shape", () => {
     expect(menuItemRule).not.toContain("border-radius");
     expect(menuItemRule).toContain("transition:");
     expect(menuItemRule).not.toContain("animation:");
+    const primaryTextRule = ACTION_STYLES.match(
+      /\.kt-content-fab-menu__item \.MuiListItemText-primary\s*\{([^}]*)\}/
+    )?.[1];
+    expect(primaryTextRule).toBeDefined();
+    expect(primaryTextRule).toContain("overflow: hidden");
+    expect(primaryTextRule).toContain("text-overflow: ellipsis");
+    expect(primaryTextRule).toContain("white-space: nowrap");
     const hoverBodies = getCssAtRuleBodies(
       ACTION_STYLES,
       "@media (hover: hover)"

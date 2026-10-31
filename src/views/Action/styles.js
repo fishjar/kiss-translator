@@ -15,5 +15,6 @@ export const ACTION_STYLES = String.raw`${FLOATING_BUTTON_STYLES}
 .kt-content-fab-menu__item .MuiListItemIcon-root { min-width: 24px; color: var(--kt-pri); }
 .kt-content-fab-menu__item svg { width: 19px; height: 19px; }
 .kt-content-fab-menu .MuiMenuItem-root::before { content: none; }
-.kt-content-fab-menu__item .MuiListItemText-root { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kt-content-fab-menu__item .MuiListItemText-root { min-width: 0; }
+.kt-content-fab-menu__item .MuiListItemText-primary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 `;

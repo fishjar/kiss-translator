@@ -31,7 +31,6 @@ const ALLOWED_IMPORTERS = new Set([
   path.join(SRC, "views", "FileTranslate", "FileTranslateView.js"), // PR3 deferred
   path.join(SRC, "views", "FileTranslate", "ImageViewerDialog.js"), // PR3 deferred
   path.join(SRC, "views", "FileTranslate", "PdfWorkspace.js"), // PR3 deferred
-  path.join(SRC, "views", "RuleEditor", "FloatingPanel.js"), // PR3 deferred
   path.join(SRC, "views", "RuleEditor", "index.js"), // PR3 deferred
   // 以下 2 个为变基新基（#1248 terminology 家族）带入的直连文件，随 PR3 收口。
   path.join(SRC, "views", "Options", "Playground.js"), // PR3 deferred

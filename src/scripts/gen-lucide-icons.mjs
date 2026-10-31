@@ -333,6 +333,8 @@ export function kebabGroups() {
 }
 
 if (import.meta.url && path.resolve(process.argv[1] || "") === fileURLToPath(import.meta.url)) {
+  // 有意绊线：增删 MAPPING 条目时必须连动更新此常数与 gen-lucide-icons.test.mjs 的计数断言，
+  // 防止合并误删条目后静默重生成。
   if (Object.keys(MAPPING).length !== 191) {
     console.error(`gen-lucide-icons: MAPPING must stay at 191 keys, got ${Object.keys(MAPPING).length}`);
     process.exit(1);

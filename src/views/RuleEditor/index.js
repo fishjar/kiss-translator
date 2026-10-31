@@ -226,7 +226,15 @@ function CandidateList({ session, state, t }) {
               {candidate.selector}
             </Typography>
             {candidate.fragile && (
-              <Typography variant="caption" color="warning.main">
+              <Typography
+                variant="caption"
+                sx={{
+                  color:
+                    state.input === candidate.selector
+                      ? "var(--kt-onpri)"
+                      : "warning.main",
+                }}
+              >
                 {t("fragile")}
               </Typography>
             )}

@@ -916,7 +916,7 @@ export default function TranForm({
                             }
                       }
                     >
-                      {editMode && editText !== text ? (
+                      {editMode && editText.trim() && editText !== text ? (
                         <IconButton
                           size="small"
                           onClick={submitAndBlur}
@@ -924,6 +924,15 @@ export default function TranForm({
                           aria-label={i18n("submit")}
                         >
                           <DoneIcon fontSize="inherit" />
+                        </IconButton>
+                      ) : !editText.trim() ? (
+                        <IconButton
+                          size="small"
+                          onClick={handlePaste}
+                          title={i18n("paste")}
+                          aria-label={i18n("paste")}
+                        >
+                          <ContentPasteIcon fontSize="inherit" />
                         </IconButton>
                       ) : text ? (
                         <CopyBtn

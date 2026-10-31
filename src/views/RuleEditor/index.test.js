@@ -574,6 +574,48 @@ test("manual addition shows only the selector input and save action", async () =
   expect(inspector.textContent).toContain("rule_editor_add");
 });
 
+test("fragile warning on a selected candidate takes the card on-primary contrast color", async () => {
+  const element = document.createElement("p");
+  Object.assign(session.getSnapshot(), {
+    inspectorOpen: true,
+    selected: element,
+    ancestors: [element],
+    input: ".story",
+    candidates: [
+      { selector: ".story", count: 1, kind: "class", fragile: true },
+      { selector: ".other", count: 1, kind: "tag", fragile: true },
+    ],
+  });
+  await render();
+  const aside = container.querySelector(
+    'aside[aria-label="rule_editor_candidates"]'
+  );
+  const captionOfText = (card, text) =>
+    [...card.querySelectorAll(".MuiTypography-root")].find(
+      (node) => node.textContent === text
+    );
+  const emotionClassOf = (caption) =>
+    [...caption.classList].find((name) =>
+      name.startsWith("rule-editor-test-")
+    );
+  const selectedCard = aside.querySelector('[aria-pressed="true"]');
+  const idleCard = aside.querySelector('[aria-pressed="false"]');
+  expect(selectedCard).toBeTruthy();
+  expect(idleCard).toBeTruthy();
+  const selectedFragile = captionOfText(selectedCard, "rule_editor_fragile");
+  const selectedKind = captionOfText(selectedCard, "rule_editor_class");
+  const idleFragile = captionOfText(idleCard, "rule_editor_fragile");
+  const idleKind = captionOfText(idleCard, "rule_editor_tag");
+  expect(selectedFragile).toBeTruthy();
+  expect(selectedKind).toBeTruthy();
+  expect(idleFragile).toBeTruthy();
+  expect(idleKind).toBeTruthy();
+  // 选中卡：fragile 与 kind 同色（均 var(--kt-onpri)）→ 主色底对比度由卡片色对承托。
+  expect(emotionClassOf(selectedFragile)).toBe(emotionClassOf(selectedKind));
+  // 未选中卡：fragile 仍 warning.main，与 kind 的 text.secondary 不同类（保留现样式）。
+  expect(emotionClassOf(idleFragile)).not.toBe(emotionClassOf(idleKind));
+});
+
 test("selected candidate shows its current match inline without a bottom navigation bar", async () => {
   const element = document.createElement("p");
   Object.assign(session.getSnapshot(), {

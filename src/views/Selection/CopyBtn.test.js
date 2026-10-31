@@ -131,6 +131,10 @@ test("does not schedule copy feedback after unmount", async () => {
 
 test("renders the copied-state check icon after a successful copy", async () => {
   jest.useFakeTimers();
+  const originalClipboard = Object.getOwnPropertyDescriptor(
+    navigator,
+    "clipboard"
+  );
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
     value: { writeText: jest.fn().mockResolvedValue(undefined) },
@@ -153,6 +157,17 @@ test("renders the copied-state check icon after a successful copy", async () => 
   } finally {
     act(() => root.unmount());
     container.remove();
+    if (originalClipboard) {
+      Object.defineProperty(navigator, "clipboard", originalClipboard);
+    } else {
+      delete navigator.clipboard;
+    }
     jest.useRealTimers();
   }
+});
+
+test("restores the navigator clipboard for subsequent tests", () => {
+  // 前序用例不得泄漏 navigator.clipboard 的 mock 描述符。
+  const descriptor = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+  expect(descriptor?.value?.writeText).toBeUndefined();
 });

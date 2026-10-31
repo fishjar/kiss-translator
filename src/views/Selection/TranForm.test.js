@@ -974,6 +974,60 @@ describe("TranForm source input", () => {
     act(() => root.unmount());
   });
 
+  test("keeps the paste action reachable when the draft is cleared while text exists", async () => {
+    const setText = jest.fn();
+    const { container, root } = renderTranForm({
+      text: "library",
+      setText,
+      simpleStyle: false,
+    });
+    await flushEffects();
+
+    const sourceInput = container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    act(() => sourceInput.focus());
+    await flushEffects();
+    act(() =>
+      Simulate.change(sourceInput, { target: { value: "" } })
+    );
+
+    // 草稿清空后必须回到 Paste，且绝不能出现可提交空文本的 Submit 按钮。
+    expect(
+      container.querySelector('button[title="paste"]')
+    ).not.toBeNull();
+    expect(container.querySelector('button[title="submit"]')).toBeNull();
+
+    act(() => root.unmount());
+  });
+
+  test("shows copy while editing an unchanged draft", async () => {
+    const setText = jest.fn();
+    const { container, root } = renderTranForm({
+      text: "library",
+      setText,
+      simpleStyle: false,
+    });
+    await flushEffects();
+
+    const sourceInput = container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    act(() => sourceInput.focus());
+    await flushEffects();
+
+    // 未改动的草稿：不出现 Submit，保留 Copy 入口。
+    // 本套件将 ./CopyBtn mock 为无 title、文本为 "copy" 的按钮（:114-118），
+    // 故以按钮文本定位 Copy 入口，而非 title 属性。
+    expect(container.querySelector('button[title="submit"]')).toBeNull();
+    const copyButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "copy"
+    );
+    expect(copyButton).not.toBeUndefined();
+
+    act(() => root.unmount());
+  });
+
   test("invalidates a selection source after editing even when the word is restored", () => {
     const source = {
       text: "library",
