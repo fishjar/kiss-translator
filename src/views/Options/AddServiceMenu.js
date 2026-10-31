@@ -3,7 +3,7 @@ import { useI18n } from "../../hooks/I18n";
 import { useState } from "react";
 import { Menu, MenuItem, Box } from "@mui/material";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { ChevronRightIcon } from "../../components/icons";
 import { useProviderPackages } from "../../hooks/ProviderPackages";
 import { useSetting } from "../../hooks/Setting";
 import {

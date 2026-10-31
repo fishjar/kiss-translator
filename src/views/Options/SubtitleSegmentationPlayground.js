@@ -12,10 +12,12 @@ import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
-import DownloadIcon from "@mui/icons-material/Download";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import StopIcon from "@mui/icons-material/Stop";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
+import {
+  DownloadIcon,
+  PlayArrowIcon,
+  StopIcon,
+  UploadFileIcon,
+} from "../../components/icons";
 import {
   DEFAULT_SUBTITLE_PROMPT_SLUG,
   findPromptBySlug,

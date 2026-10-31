@@ -9,7 +9,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { ContentCopyIcon } from "../../components/icons";
 import { getPromptDisplayName } from "../../config/prompt";
 import { defaultPromptCapabilities } from "../../providers/defaultPrompts";
 

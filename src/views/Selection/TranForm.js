@@ -5,9 +5,9 @@ import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
-import DoneIcon from "@mui/icons-material/Done";
+import { CheckIcon as DoneIcon } from "../../components/icons";
 import CircularProgress from "@mui/material/CircularProgress";
-import ContentPasteIcon from "@mui/icons-material/ContentPaste";
+import { ContentPasteIcon } from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import {
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
@@ -916,16 +916,7 @@ export default function TranForm({
                             }
                       }
                     >
-                      {!editText.trim() ? (
-                        <IconButton
-                          size="small"
-                          onClick={handlePaste}
-                          title={i18n("paste")}
-                          aria-label={i18n("paste")}
-                        >
-                          <ContentPasteIcon fontSize="inherit" />
-                        </IconButton>
-                      ) : editMode ? (
+                      {editMode && editText !== text ? (
                         <IconButton
                           size="small"
                           onClick={submitAndBlur}
@@ -934,12 +925,21 @@ export default function TranForm({
                         >
                           <DoneIcon fontSize="inherit" />
                         </IconButton>
-                      ) : (
+                      ) : text ? (
                         <CopyBtn
                           text={text}
                           title={i18n("copy")}
                           copiedLabel={i18n("copy_success", "Copied")}
                         />
+                      ) : (
+                        <IconButton
+                          size="small"
+                          onClick={handlePaste}
+                          title={i18n("paste")}
+                          aria-label={i18n("paste")}
+                        >
+                          <ContentPasteIcon fontSize="inherit" />
+                        </IconButton>
                       )}
                       {Boolean(editText.trim()) && (
                         <BrowserTtsBtn

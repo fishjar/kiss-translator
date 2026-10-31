@@ -60,13 +60,19 @@ describe("selection Material 3 shapes", () => {
       /\.kt-tranbox-header__menu\s*\{[^}]*border-radius:\s*4px;/
     );
     expect(TRANSLATION_PANEL_STYLES).toMatch(
-      /\.kt-tranbox-header__menu button\s*\{[^}]*border-radius:\s*8px;/
+      /\.kt-tranbox-header__menu\s*\{[^}]*padding:\s*8px 0;/
+    );
+    const menuButtonRule = TRANSLATION_PANEL_STYLES.match(
+      /\.kt-tranbox-header__menu button\s*\{([^}]*)\}/
+    )?.[1];
+    expect(menuButtonRule).toContain("min-height: 48px");
+    expect(menuButtonRule).toContain("padding: 0 16px");
+    expect(menuButtonRule).not.toContain("border-radius");
+    expect(TRANSLATION_PANEL_STYLES).toMatch(
+      /\.kt-tranbox-header \.MuiIconButton-root\[aria-pressed="true"\]:hover\s*\{[^}]*var\(--kt-onpri\) 8%/
     );
     expect(TRANSLATION_PANEL_STYLES).toMatch(
-      /\.kt-tranbox-header \.MuiIconButton-root\[aria-pressed="true"\]:hover\s*\{[^}]*var\(--kt-onpric\) 8%/
-    );
-    expect(TRANSLATION_PANEL_STYLES).toMatch(
-      /\.kt-tranbox-header \.MuiIconButton-root\[aria-pressed="true"\]\.Mui-focusVisible,[\s\S]*?\[aria-pressed="true"\]:active\s*\{[^}]*var\(--kt-onpric\) 10%/
+      /\.kt-tranbox-header \.MuiIconButton-root\[aria-pressed="true"\]\.Mui-focusVisible,[\s\S]*?\[aria-pressed="true"\]:active\s*\{[^}]*var\(--kt-onpri\) 10%/
     );
     expect(TRANSLATION_PANEL_STYLES).not.toContain(
       ".KT-draggable-container .MuiStack-root { gap: 12px; }"

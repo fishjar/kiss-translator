@@ -12,9 +12,6 @@ registerI18n(LOCAL_AI_I18N);
 globalThis.__KISS_CONTEXT__ = "fileTranslate";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
-// 本入口只承载页面本体：页面视图树不含分发器图标（图标直连 MUI 静态导入），
-// 仅依赖用户主题色；主题色写入点在 FileTranslationProvider（State.js），
-// 不挂全页 SettingProvider。
 root.render(
   <React.StrictMode>
     <FileTranslatePage />

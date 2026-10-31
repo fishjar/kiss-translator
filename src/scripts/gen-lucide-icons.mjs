@@ -87,6 +87,7 @@ export const MAPPING = {
   ExpandLess: "chevron-up",
   ExpandMore: "chevron-down",
   ExpandMoreRounded: "chevron-down",
+  ExtensionRounded: "puzzle",                 // 新增：接口插件语义
   Favorite: "heart",
   FavoriteBorder: "heart",
   FileDownload: "file-down",
@@ -96,7 +97,7 @@ export const MAPPING = {
   FolderShared: "folder-tree",
   FolderSharedRounded: "folder-tree",
   Help: "circle-help",
-  HelpOutline: "circle-help",
+  HelpOutline: "message-circle-question",
   HighlightAlt: "mouse-pointer-2",            // 新增：高亮/选中语义
   HighlightAltRounded: "mouse-pointer-2",     // 新增
   Image: "image",
@@ -158,7 +159,7 @@ export const MAPPING = {
   ReplayRounded: "rotate-ccw",
   RestartAltRounded: "refresh-ccw",
   Save: "save",
-  SaveOutlined: "save",                       // 新增（Save 已存在 L133）
+  SaveOutlined: "save",
   Search: "search",
   SearchRounded: "search",
   Segment: "text-select",
@@ -178,9 +179,11 @@ export const MAPPING = {
   SwapVert: "arrow-up-down",
   SwapVertRounded: "arrow-up-down",
   Sync: "refresh-cw",
+  TableChartRounded: "file-spreadsheet",      // 新增：表格/CSV 导出语义
   TextSnippet: "scroll-text",
   Translate: "languages",
   TranslateRounded: "languages",
+  TroubleshootRounded: "activity",            // 新增：诊断语义
   Tune: "sliders-horizontal",
   TuneRounded: "sliders-horizontal",
   Undo: "undo",                               // 新增（UndoRounded 已存在 L158）
@@ -206,7 +209,31 @@ export const MAPPING = {
   ZoomOutRounded: "zoom-out",                 // 新增
 };
 
-export const FILLED = new Set(["Favorite", "PushPin"]);
+export const FILLED = new Set([
+  "Favorite",
+  "PushPin",
+  "BrightnessAuto",
+  "BrightnessAutoRounded",
+  "Stop",
+  "StopRounded",
+]);
+
+// 子元素级填充挂点：FILLED 管 g 级 fill，CHILD_FILL 管单个子元素级 fill
+// （键＝图标基名，值＝{ tag, r } 匹配器；命中即对该子元素 attrs 注入
+// fill: "currentColor"，其余子元素与 g 级 fill 不受影响）。后续同类
+// 「局部实心」需求按本 map 扩展，不新增第二套机制。
+export const CHILD_FILL = {
+  RadioButtonChecked: { tag: "circle", r: "1" },
+};
+
+// MUI 半边改派表：键＝MAPPING 基名，值＝替代的 @mui/icons-material 模块基名。
+// 缺省回落＝MUI 模块基名等于 MAPPING 基名（1:1 派生）。当前仅 MyLocation 对：
+// MUI 的 MyLocation/MyLocationOutlined path d 逐字相同（视觉零差异），改派为
+// CenterFocus 对（实心/空心环）以提供可辨识的选中/未选中视觉。
+export const MUI_OVERRIDES = {
+  MyLocation: "CenterFocusStrong",
+  MyLocationOutlined: "CenterFocusWeak",
+};
 
 const camel = (key) => key.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 
@@ -251,10 +278,19 @@ export function parseLucideSvg(raw) {
 }
 
 export function renderBundleEntry(name, children) {
+  const childFill = CHILD_FILL[name];
   const kids = children
     .map(
-      ({ tag, attrs }) =>
-        `/*#__PURE__*/ React.createElement(${JSON.stringify(tag)}, ${JSON.stringify(attrs)})`
+      ({ tag, attrs }) => {
+        if (
+          childFill &&
+          tag === childFill.tag &&
+          attrs.r === childFill.r
+        ) {
+          attrs = { ...attrs, fill: "currentColor" };
+        }
+        return `/*#__PURE__*/ React.createElement(${JSON.stringify(tag)}, ${JSON.stringify(attrs)})`;
+      }
     )
     .join(", ");
   const fill = FILLED.has(name) ? '"currentColor"' : '"none"';
@@ -297,8 +333,8 @@ export function kebabGroups() {
 }
 
 if (import.meta.url && path.resolve(process.argv[1] || "") === fileURLToPath(import.meta.url)) {
-  if (Object.keys(MAPPING).length !== 188) {
-    console.error(`gen-lucide-icons: MAPPING must stay at 188 keys, got ${Object.keys(MAPPING).length}`);
+  if (Object.keys(MAPPING).length !== 191) {
+    console.error(`gen-lucide-icons: MAPPING must stay at 191 keys, got ${Object.keys(MAPPING).length}`);
     process.exit(1);
   }
 
@@ -347,6 +383,7 @@ if (import.meta.url && path.resolve(process.argv[1] || "") === fileURLToPath(imp
         name: `${name}Icon`,
         kebab: MAPPING[name],
         fill: FILLED.has(name) ? "currentColor" : "none",
+        mui: MUI_OVERRIDES[name] ?? name,
       }))
     )};`
   );
@@ -363,7 +400,8 @@ if (import.meta.url && path.resolve(process.argv[1] || "") === fileURLToPath(imp
   dispatcherLines.push("");
   for (const [name] of icons) {
     dispatcherLines.push(`import { ${name}Icon as Lucide${name}Icon } from "./lucide";`);
-    dispatcherLines.push(`import Mui${name} from "@mui/icons-material/${name}";`);
+    const muiName = MUI_OVERRIDES[name] ?? name;
+    dispatcherLines.push(`import Mui${name} from "@mui/icons-material/${muiName}";`);
   }
   dispatcherLines.push("");
   dispatcherLines.push(renderDispatcherHook());

@@ -49,6 +49,8 @@ const ADDED = [
   ["ZoomInRounded", "zoom-in"],
   ["ZoomOut", "zoom-out"],
   ["ZoomOutRounded", "zoom-out"],
+  ["MyLocation", "locate-fixed"],
+  ["MyLocationOutlined", "locate"],
 ];
 
 const renderSvg = (Icon) => {
@@ -71,9 +73,9 @@ describe("icon dispatcher covers Phase A additions", () => {
     setIconStyleSnapshot("lucide");
   });
 
-  test("declares exactly the 35 planned additions", () => {
-    expect(ADDED).toHaveLength(35);
-    expect(new Set(ADDED.map(([name]) => name)).size).toBe(35);
+  test("declares exactly the 37 planned additions", () => {
+    expect(ADDED).toHaveLength(37);
+    expect(new Set(ADDED.map(([name]) => name)).size).toBe(37);
   });
 
   for (const [name, kebab] of ADDED) {
@@ -89,7 +91,8 @@ describe("icon dispatcher covers Phase A additions", () => {
 
       // ② mui 分支与上游 glyph 等价
       setIconStyleSnapshot("mui");
-      const muiModule = require(`@mui/icons-material/${name}`);
+      const muiName = GLYPH_META.find((m) => m.name === `${name}Icon`)?.mui ?? name;
+      const muiModule = require(`@mui/icons-material/${muiName}`);
       const MuiIcon = muiModule.default || muiModule;
       expect(renderInner(dispatched)).toBe(renderInner(MuiIcon));
 

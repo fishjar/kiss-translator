@@ -2,6 +2,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import TranBtn from "./TranBtn";
+import { TranslateIcon as LucideTranslateIcon } from "../../components/icons/lucide";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -47,9 +48,20 @@ test("keeps the selection FAB inside its themed render root", () => {
   expect(button.style.position).toBe("fixed");
   expect(button.style.left).toBe("20px");
   expect(button.style.top).toBe("30px");
-  expect(button.querySelector('[data-testid="TranslateRoundedIcon"]')).not.toBe(
-    null
-  );
+  // lucide 迁移定位符（先改后迁：本断言在 TranBtn.js 换 lucide import 前为红）。
+  const lucideHolder = document.createElement("div");
+  document.body.appendChild(lucideHolder);
+  const lucideRoot = createRoot(lucideHolder);
+  act(() => {
+    lucideRoot.render(<LucideTranslateIcon />);
+  });
+  const expectedMarkup = lucideHolder.querySelector("svg").innerHTML;
+  act(() => lucideRoot.unmount());
+  lucideHolder.remove();
+  expect(
+    button.querySelector('[data-testid="TranslateRoundedIcon"]')
+  ).not.toBe(null);
+  expect(button.querySelector("svg").innerHTML).toBe(expectedMarkup);
   expect(button.innerHTML).not.toContain("#209CEE");
 
   const mouseDown = new MouseEvent("mousedown", {

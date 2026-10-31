@@ -1,8 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import {
   MAPPING,
   FILLED,
+  MUI_OVERRIDES,
   parseLucideSvg,
   renderBundleEntry,
   renderDispatcherHead,
@@ -11,8 +15,8 @@ import {
   kebabGroups,
 } from "./gen-lucide-icons.mjs";
 
-test("MAPPING has 188 keys with kebab-case values", () => {
-  assert.equal(Object.keys(MAPPING).length, 188);
+test("MAPPING has 191 keys with kebab-case values", () => {
+  assert.equal(Object.keys(MAPPING).length, 191);
   for (const [name, kebab] of Object.entries(MAPPING)) {
     assert.match(kebab, /^[a-z0-9]+(-[a-z0-9]+)*$/, `${name}: ${kebab}`);
   }
@@ -90,4 +94,18 @@ test("kebabGroups mirrors the mapping's shared-glyph structure", () => {
     const kebabs = new Set(group.map((n) => MAPPING[n]));
     assert.equal(kebabs.size, 1, `group drifted: ${group.join(",")}`);
   }
+});
+
+test("MUI_OVERRIDES redirects MyLocation pair to CenterFocus", () => {
+  assert.ok(MUI_OVERRIDES, "MUI_OVERRIDES should be exported");
+  assert.equal(MUI_OVERRIDES.MyLocation, "CenterFocusStrong");
+  assert.equal(MUI_OVERRIDES.MyLocationOutlined, "CenterFocusWeak");
+  // Only the MyLocation pair is overridden; all other icons fall through to 1:1.
+  assert.equal(Object.keys(MUI_OVERRIDES).length, 2);
+});
+
+test("generator source uses MUI_OVERRIDES with default fallback", () => {
+  const scriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "gen-lucide-icons.mjs");
+  const source = readFileSync(scriptPath, "utf8");
+  assert.match(source, /MUI_OVERRIDES\[name\]\s*\?\?\s*name/, "emit must use MUI_OVERRIDES[name] ?? name fallback");
 });

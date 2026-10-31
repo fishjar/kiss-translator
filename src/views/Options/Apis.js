@@ -51,12 +51,18 @@ import { registerI18n } from "../../config/i18n";
 import { CUSTOM_API_HELP_I18N } from "../../config/locales/customApiHelp";
 import Typography from "@mui/material/Typography";
 import AddServiceMenu from "./AddServiceMenu";
-import AddIcon from "@mui/icons-material/Add";
-import SwapVertIcon from "@mui/icons-material/SwapVert";
-import PushPinIcon from "@mui/icons-material/PushPin";
-import DeleteIcon from "@mui/icons-material/Delete";
-import BlockIcon from "@mui/icons-material/Block";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import {
+  AddIcon,
+  BlockIcon,
+  CheckBoxRoundedIcon,
+  CheckBoxOutlineBlankRoundedIcon,
+  CheckCircleOutlineIcon,
+  DeleteIcon,
+  DragIndicatorIcon,
+  KeyboardArrowDownIcon,
+  PushPinIcon,
+  SwapVertIcon,
+} from "../../components/icons";
 import Alert from "@mui/material/Alert";
 import { useAlert } from "../../hooks/Alert";
 import Menu from "@mui/material/Menu";
@@ -64,10 +70,6 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import Tooltip from "@mui/material/Tooltip";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import CheckBoxRoundedIcon from "@mui/icons-material/CheckBoxRounded";
-import CheckBoxOutlineBlankRoundedIcon from "@mui/icons-material/CheckBoxOutlineBlankRounded";
 import Link from "@mui/material/Link";
 import {
   API_SORT_MODES,
@@ -1835,15 +1837,14 @@ function ApiListItem({
           ]),
           "&.Mui-selected": {
             borderColor: theme.palette.primary.main,
-            backgroundColor: theme.palette.secondary.main,
-            color: theme.palette.secondary.contrastText,
+            backgroundColor: theme.palette.primary.main,
+            color: theme.palette.primary.contrastText,
           },
           "&.Mui-selected:hover": {
-            backgroundColor: theme.palette.secondary.main,
+            backgroundColor: theme.palette.primary.main,
           },
           "&.Mui-selected .kt-api-list__secondary": {
             color: "inherit",
-            opacity: 0.78,
           },
         })}
       >
@@ -1855,7 +1856,7 @@ function ApiListItem({
               ...apiListControlSx,
               display: "inline-flex",
               alignSelf: "center",
-              color: checked ? "primary.main" : "text.secondary",
+              color: checked ? "primary.contrastText" : "text.secondary",
             }}
           >
             {checked ? (

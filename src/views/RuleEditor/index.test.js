@@ -143,6 +143,51 @@ test("the entire rule card selects the entry while delete acts independently", a
   expect(session.edit).toHaveBeenCalledTimes(3);
 });
 
+test("entry source caption follows the selected card contrast color", async () => {
+  Object.assign(session.getSnapshot(), {
+    editing: ".story",
+    entries: [
+      { selector: ".story", count: 2, source: "global" },
+      { selector: ".other", count: 1, source: "user" },
+    ],
+  });
+  await render();
+  // jsdom 不解析 var() 且 emotion 样式表不进 document，颜色契约以 emotion
+  // 类哈希差分断言：sx 中唯一随选中态变化的维度是 color（mt 恒定），选中/
+  // 未选中的 caption 类必不相同，且翻转选中态后两类互换。
+  // Editor 的 t() 会给键加 rule_editor_ 前缀，恒等 i18n 下来源文本即前缀键。
+  const captionOf = (card) =>
+    [...card.querySelectorAll(".MuiTypography-root")].find((node) =>
+      ["rule_editor_global", "rule_editor_user"].includes(node.textContent)
+    );
+  const emotionClassOf = (caption) =>
+    [...caption.classList].find((name) =>
+      name.startsWith("rule-editor-test-")
+    );
+  const selectedCaption = captionOf(
+    container.querySelector('button[aria-label=".story"]')
+  );
+  const idleCaption = captionOf(
+    container.querySelector('button[aria-label=".other"]')
+  );
+  expect(selectedCaption).toBeTruthy();
+  expect(idleCaption).toBeTruthy();
+  const selectedClass = emotionClassOf(selectedCaption);
+  const idleClass = emotionClassOf(idleCaption);
+  expect(selectedClass).toBeTruthy();
+  expect(idleClass).toBeTruthy();
+  expect(selectedClass).not.toBe(idleClass);
+  // 翻转选中态：同一 caption 的类跟随选中状态互换，证明差异由选中态驱动。
+  session.getSnapshot().editing = ".other";
+  await render();
+  expect(
+    emotionClassOf(captionOf(container.querySelector('button[aria-label=".story"]')))
+  ).toBe(idleClass);
+  expect(
+    emotionClassOf(captionOf(container.querySelector('button[aria-label=".other"]')))
+  ).toBe(selectedClass);
+});
+
 test("selector input and save live only in the closable inspector", async () => {
   session.getSnapshot().inspectorOpen = true;
   session.getSnapshot().editing = ".story";
@@ -504,6 +549,17 @@ test.each([false, true])(
     expect(session.showWhole).toHaveBeenCalledTimes(1);
   }
 );
+
+test("the pick action is a primary-emphasis button, not secondary", async () => {
+  Object.assign(session.getSnapshot(), { inspectorOpen: true });
+  await render();
+  const pick = [...container.querySelectorAll("button")].find(
+    (element) => element.textContent === "rule_editor_pick"
+  );
+  expect(pick).toBeDefined();
+  expect(pick.className).toContain("MuiButton-containedPrimary");
+  expect(pick.className).not.toContain("MuiButton-containedSecondary");
+});
 
 test("manual addition shows only the selector input and save action", async () => {
   Object.assign(session.getSnapshot(), { inspectorOpen: true, input: "" });

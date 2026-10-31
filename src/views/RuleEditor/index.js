@@ -25,14 +25,16 @@ import {
   Typography,
 } from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
-import CloseIcon from "@mui/icons-material/Close";
-import UndoIcon from "@mui/icons-material/Undo";
-import RedoIcon from "@mui/icons-material/Redo";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import AdsClickRoundedIcon from "@mui/icons-material/AdsClickRounded";
-import CodeRoundedIcon from "@mui/icons-material/CodeRounded";
-import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import {
+  CloseIcon,
+  UndoIcon,
+  RedoIcon,
+  AddIcon,
+  DeleteOutlineRoundedIcon,
+  AdsClickRoundedIcon,
+  CodeRoundedIcon,
+  SaveOutlinedIcon,
+} from "../../components/icons";
 import M3Theme from "../../hooks/M3Theme";
 import { SettingProvider } from "../../hooks/Setting";
 import { useI18n } from "../../hooks/I18n";
@@ -92,20 +94,20 @@ const themeOptions = {
 const cardStyle = (selected) => ({
   border: "1px solid",
   borderColor: selected ? "primary.main" : "divider",
-  bgcolor: selected ? "var(--kt-secc)" : "var(--kt-sf0)",
-  color: selected ? "var(--kt-onsecc)" : "text.primary",
+  bgcolor: selected ? "var(--kt-pri)" : "var(--kt-sf0)",
+  color: selected ? "var(--kt-onpri)" : "text.primary",
   borderRadius: "12px",
   overflow: "hidden",
 });
-const cardActionStyle = {
+const cardActionStyle = (selected) => ({
   minWidth: 0,
   p: 1.5,
   textAlign: "left",
   "&&.Mui-focusVisible": {
     outline: "none",
-    boxShadow: "inset 0 0 0 3px var(--kt-pri)",
+    boxShadow: `inset 0 0 0 3px var(--kt-${selected ? "onpri" : "pri"})`,
   },
-};
+});
 
 function CandidateList({ session, state, t }) {
   const busy = state.saving || state.loading;
@@ -186,7 +188,7 @@ function CandidateList({ session, state, t }) {
               session.setInput(candidate.selector);
               session.refresh();
             }}
-            sx={cardActionStyle}
+            sx={cardActionStyle(state.input === candidate.selector)}
           >
             <Stack
               direction="row"
@@ -194,7 +196,15 @@ function CandidateList({ session, state, t }) {
               alignItems="center"
               gap={1}
             >
-              <Typography variant="caption" color="text.secondary">
+              <Typography
+                variant="caption"
+                sx={{
+                  color:
+                    state.input === candidate.selector
+                      ? "var(--kt-onpri)"
+                      : "text.secondary",
+                }}
+              >
                 {t(candidate.kind)}
               </Typography>
               <Chip
@@ -500,8 +510,8 @@ export function Editor({ session }) {
                     borderRadius: "8px",
                     "&.Mui-focused": { bgcolor: "var(--kt-sf3)" },
                     '&[aria-selected="true"]': {
-                      bgcolor: "var(--kt-secc)",
-                      color: "var(--kt-onsecc)",
+                      bgcolor: "var(--kt-pri)",
+                      color: "var(--kt-onpri)",
                     },
                   },
                 },
@@ -638,7 +648,7 @@ export function Editor({ session }) {
                 <Stack direction="row" gap={1}>
                   <Button
                     variant="contained"
-                    color="secondary"
+                    color="primary"
                     startIcon={<AdsClickRoundedIcon />}
                     disabled={busy}
                     onClick={() => session.pick()}
@@ -708,7 +718,7 @@ export function Editor({ session }) {
                         aria-pressed={state.editing === entry.selector}
                         onClick={() => session.edit(entry.selector)}
                         sx={{
-                          ...cardActionStyle,
+                          ...cardActionStyle(state.editing === entry.selector),
                           flex: 1,
                         }}
                       >
@@ -731,10 +741,13 @@ export function Editor({ session }) {
                         </Stack>
                         <Typography
                           variant="caption"
-                          color="text.secondary"
                           component="div"
                           sx={{
                             mt: 0.75,
+                            color:
+                              state.editing === entry.selector
+                                ? "var(--kt-onpri)"
+                                : "text.secondary",
                           }}
                         >
                           {t(entry.source)}

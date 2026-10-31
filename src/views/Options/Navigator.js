@@ -1,23 +1,27 @@
 import { useMemo, useState } from "react";
-import ApiRoundedIcon from "@mui/icons-material/ApiRounded";
-import BookmarksRoundedIcon from "@mui/icons-material/BookmarksRounded";
-import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
-import CloudSyncRoundedIcon from "@mui/icons-material/CloudSyncRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
-import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
-import KeyboardRoundedIcon from "@mui/icons-material/KeyboardRounded";
-import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
-import SegmentRoundedIcon from "@mui/icons-material/SegmentRounded";
-import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
-import SubtitlesRoundedIcon from "@mui/icons-material/SubtitlesRounded";
-import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
-import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import FileUploadRoundedIcon from "@mui/icons-material/FileUploadRounded";
-import MemoryRoundedIcon from "@mui/icons-material/MemoryRounded";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import {
+  ApiRoundedIcon,
+  BookmarksRoundedIcon,
+  BugReportRoundedIcon,
+  CloseRoundedIcon,
+  CloudSyncRoundedIcon,
+  DescriptionRoundedIcon,
+  ExtensionRoundedIcon,
+  FileUploadRoundedIcon,
+  ImageRoundedIcon,
+  InfoRoundedIcon,
+  KeyboardRoundedIcon,
+  LanguageRoundedIcon,
+  MemoryRoundedIcon,
+  OpenInNewRoundedIcon,
+  PaletteRoundedIcon,
+  SearchRoundedIcon,
+  SegmentRoundedIcon,
+  SelectAllRoundedIcon,
+  SubtitlesRoundedIcon,
+  TroubleshootRoundedIcon,
+  TuneRoundedIcon,
+} from "../../components/icons";
 import { openFileTranslatePage } from "../../libs/navigation";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../../components/Logo";
@@ -134,7 +138,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
                     "plugins",
                     i18n("provider_plugins", "接口插件"),
                     "/plugins",
-                    ApiRoundedIcon,
+                    ExtensionRoundedIcon,
                   ],
                 ]
               : []),
@@ -173,7 +177,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
                     "diagnostics",
                     i18n("diagnostics_title"),
                     "/diagnostics",
-                    BugReportRoundedIcon,
+                    TroubleshootRoundedIcon,
                   ],
                 ]
               : []),

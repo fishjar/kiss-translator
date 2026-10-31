@@ -46,6 +46,10 @@ describe("toolbar popup sizing", () => {
     expect(getRuleBodies(".kt-popup-chrome")[0]).toContain("position: sticky");
   });
 
+  test("lets the theme own the on-primary token", () => {
+    expect(POPUP_STYLES).not.toMatch(/--kt-onpri\s*:/);
+  });
+
   test("does not clip service focus rings or change layout for open menus", () => {
     const servicesRule = getRuleBodies(".kt-popup-services")[0];
     expect(servicesRule).toContain("overflow: visible");
@@ -86,7 +90,9 @@ describe("popup menus", () => {
     expect(menuRule).toContain("overscroll-behavior: contain");
     expect(menuRule).toContain("background: var(--kt-sf0)");
     expect(menuRule).toContain("color: var(--kt-on)");
-    expect(menuRule).toContain("border-radius: 12px");
+    expect(menuRule).toContain("border-radius: 4px");
+    expect(menuRule).toContain("padding: 8px 0");
+    expect(menuRule).toContain("border: 1px solid var(--kt-linev)");
     const languageRule = getRuleBodies(".kt-popup-language-menu.MuiPaper-root");
     expect(
       languageRule.some((body) => body.includes("scrollbar-gutter: stable"))
@@ -98,11 +104,93 @@ describe("popup menus", () => {
     ).toBe(true);
   });
 
+  test("menu rows carry no bespoke checkmark; the theme slot paints checks", () => {
+    expect(POPUP_STYLES).not.toContain("--kt-popup-selected");
+    expect(POPUP_STYLES).not.toMatch(
+      /\.MuiMenuItem-root\.Mui-selected[^{]*\{[^}]*background/
+    );
+    expect(POPUP_STYLES).not.toContain("color: var(--kt-onsec)");
+    expect(POPUP_STYLES).not.toContain("kt-popup-menu-check");
+    // 主题基槽必须在 Popup 菜单内保持存活，否则选中行无任何勾指示。
+    expect(getRuleBodies(".kt-popup-menu .MuiMenuItem-root::before")).toEqual(
+      []
+    );
+    // 多选行以自带 checkbox 为唯一指示，主题勾绘制须剥离（槽几何保留）。
+    expect(
+      getRuleBodies(".kt-popup-text-service-option.Mui-selected::before")[0]
+    ).toContain("mask-image: none");
+    // 匹配范围菜单为单指示：radio 对 20px 恒挂载承担指示位，主题基槽整体剥除。
+    expect(
+      getRuleBodies(".kt-popup-pattern-option.MuiMenuItem-root::before")[0]
+    ).toContain("content: none");
+  });
+
   test("keeps animated indicators independent of pointer targets", () => {
     const indicatorRule = getRuleBodies(".kt-popup-segment-indicator")[0];
     expect(indicatorRule).toContain("position: absolute");
     expect(indicatorRule).toContain("pointer-events: none");
     expect(indicatorRule).toContain("transition: transform");
+  });
+
+  test("segmented rows carry no ::before checkmark slot (toggle switches must not render a check)", () => {
+    expect(getRuleBodies(".kt-popup-display-mode button::before")).toHaveLength(0);
+    expect(
+      getRuleBodies('.kt-popup-display-mode button[aria-checked="true"]::before')
+    ).toHaveLength(0);
+    expect(getRuleBodies(".kt-popup-global-feature::before")).toHaveLength(0);
+    expect(
+      getRuleBodies('.kt-popup-global-feature[aria-pressed="true"]::before')
+    ).toHaveLength(0);
+  });
+
+  test("menu geometry follows the spec: gap 12, chip 32, switch 52x32 with press states", () => {
+    expect(getRuleBodies(".kt-popup-pattern-option.MuiMenuItem-root")[0]).toContain(
+      "gap: 12px"
+    );
+    expect(getRuleBodies(".kt-popup-service-option.MuiMenuItem-root")[0]).toContain(
+      "gap: 12px"
+    );
+    expect(
+      getRuleBodies(".kt-popup-language-option.MuiMenuItem-root")[0]
+    ).toContain("gap: 12px");
+    expect(
+      getRuleBodies(".kt-popup-language-menu .MuiMenuItem-root")[0]
+    ).toContain("gap: 12px");
+    expect(getRuleBodies(".kt-popup-style-grid")[0]).toContain(
+      "grid-auto-rows: 32px"
+    );
+    expect(getRuleBodies(".kt-popup-style-chip")[0]).toContain("height: 32px");
+    const switchRule = getRuleBodies(".kt-popup-switch")[0];
+    expect(switchRule).toContain("width: 52px");
+    expect(switchRule).toContain("height: 32px");
+    expect(switchRule).toContain("border: 1.5px solid var(--kt-line)");
+    const thumbRule = getRuleBodies(".kt-popup-switch > span")[0];
+    expect(thumbRule).toContain("width: 16px");
+    expect(thumbRule).toContain("height: 16px");
+    const checkedThumbRule = getRuleBodies(
+      '.kt-popup-switch[data-checked="true"] > span'
+    )[0];
+    expect(checkedThumbRule).toContain("width: 24px");
+    expect(checkedThumbRule).toContain("height: 24px");
+    const pressRule = getRuleBodies("button:active > .kt-popup-switch > span")[0];
+    expect(pressRule).toContain("width: 28px");
+    const pressCheckedRule = getRuleBodies(
+      'button:active > .kt-popup-switch[data-checked="true"] > span'
+    )[0];
+    expect(pressCheckedRule).toContain("left: 21px");
+  });
+
+  test("popup light-mode defaults consume tokens instead of hardcoded literals", () => {
+    expect(POPUP_STYLES).not.toContain("#A8C7FA");
+    expect(POPUP_STYLES).not.toContain("#0842A0");
+    expect(POPUP_STYLES).not.toContain("#FCEEEE");
+    expect(POPUP_STYLES).not.toContain("rgba(31,31,31");
+    expect(POPUP_STYLES).toContain("var(--kt-popup-focus, var(--kt-pri))");
+    expect(POPUP_STYLES).toContain("--kt-popup-translated-text: var(--kt-onpric)");
+    expect(POPUP_STYLES).toContain("--kt-popup-danger-hover: var(--kt-errc)");
+    expect(POPUP_STYLES).toContain(
+      "color-mix(in srgb, var(--kt-on) 5%, transparent)"
+    );
   });
 });
 
@@ -138,8 +226,8 @@ describe("persistent global feature segments", () => {
     const enabledRule = getRuleBodies(
       '.kt-popup-global-feature[aria-pressed="true"]'
     )[0];
-    expect(enabledRule).toContain("background: var(--kt-pric)");
-    expect(enabledRule).toContain("color: var(--kt-onpric)");
+    expect(enabledRule).toContain("background: var(--kt-pri)");
+    expect(enabledRule).toContain("color: var(--kt-onpri)");
     expect(getRuleBodies(".kt-popup-global-feature")[0]).toContain(
       "color: var(--kt-onv)"
     );
@@ -155,6 +243,11 @@ describe("persistent global feature segments", () => {
     expect(
       getRuleBodies(".kt-popup-global-feature:focus-visible")[0]
     ).toContain("box-shadow: inset");
+    expect(
+      getRuleBodies(
+        '.kt-popup-global-feature[aria-pressed="true"]:focus-visible'
+      )[0]
+    ).toContain("box-shadow: inset 0 0 0 2px var(--kt-onpri)");
   });
 });
 

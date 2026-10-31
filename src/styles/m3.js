@@ -249,9 +249,16 @@ export function calculateAdaptivePrimaryFamily(hue, theme = "dark") {
 
 // 三级强调色体系：secondary 与 primary 同色相、饱和度降一档；tertiary 取
 // 邻近色相 h+60°、饱和度再降一档——强调强度沿 primary → secondary →
-// tertiary 递减，选中态统一走 secondaryContainer 通道，需与主色区分的
-// 强调面走 tertiary。primary 4 组 + accent 8 组共 12 组配对经连续 hue 域
-// 0.5° 步长扫描全部 ≥4.5:1（WCAG AA，连续域真值下限 4.5279）。
+// tertiary 递减。Tab 的选中态走 secondary 实心档（JS token
+// color.secondary/color.onSecondary，并经 --kt-sec/--kt-onsec 暴露，
+// 保留暴露但 MenuItem 不消费）；MenuItem 选中态实况为无底色＋primary
+// 基槽勾（见 M3Theme MuiMenuItem 覆写），ToggleButton 与自定义选中控件
+// （aria-pressed 图标按钮、aria-checked segmented 选项）仍走 primary；
+// 淡背景强调面（容器档）走 secondaryContainer；需与主色区分的属性标签
+// （词条 chip 等）走 tertiaryContainer（实色 tertiary 全仓无消费，已移除，
+// 仅保留容器档 --kt-terc/--kt-onterc）。primary 4 组 + accent（secondary
+// 实色与容器 4 + tertiary 容器 2）共 10 组配对经连续 hue 域 0.5° 步长扫描
+// 全部 ≥4.5:1（WCAG AA，连续域真值下限 4.5279，属 dark tertiaryContainer）。
 export function calculateAdaptiveAccentFamilies(hue, theme = "dark") {
   const normalized = ((hue % 360) + 360) % 360;
   const tertiaryHue = (normalized + 60) % 360;
@@ -261,8 +268,6 @@ export function calculateAdaptiveAccentFamilies(hue, theme = "dark") {
       onSecondary: "#FFFFFF",
       secondaryContainer: hslToHex(normalized, 16.0, 90.0),
       onSecondaryContainer: hslToHex(normalized, 18.0, 20.0),
-      tertiary: hslToHex(tertiaryHue, 12.0, 34.0),
-      onTertiary: "#FFFFFF",
       tertiaryContainer: hslToHex(tertiaryHue, 10.0, 90.0),
       onTertiaryContainer: hslToHex(tertiaryHue, 12.0, 20.0),
     };
@@ -274,8 +279,6 @@ export function calculateAdaptiveAccentFamilies(hue, theme = "dark") {
     onSecondary: hslToHex(normalized, 20.0, 16.0),
     secondaryContainer: hslToHex(normalized, 9.0, 24.0),
     onSecondaryContainer: hslToHex(normalized, 13.0, lDark),
-    tertiary: hslToHex(tertiaryHue, 9.0, lTertiary),
-    onTertiary: hslToHex(tertiaryHue, 16.0, 16.0),
     tertiaryContainer: hslToHex(tertiaryHue, 6.0, 24.0),
     onTertiaryContainer: hslToHex(tertiaryHue, 9.0, lTertiary),
   };
@@ -303,6 +306,8 @@ export function createM3CssVariables(colors) {
     "--kt-onpri": colors.onPrimary,
     "--kt-pric": colors.primaryContainer,
     "--kt-onpric": colors.onPrimaryContainer,
+    "--kt-sec": colors.secondary,
+    "--kt-onsec": colors.onSecondary,
     "--kt-secc": colors.secondaryContainer,
     "--kt-onsecc": colors.onSecondaryContainer,
     "--kt-terc": colors.tertiaryContainer,
@@ -390,6 +395,25 @@ export const M3_GLOBAL_CSS = String.raw`
     outline: 3px solid var(--kt-pri);
     outline-offset: 2px;
   }
+}
+
+/* MUI 脚本化焦点管理（开菜单聚焦选中项、关菜单回焦触发器）令 :focus-visible
+   在鼠标路径命中；唯一命中全局环的 ButtonBase 场景＝MenuItem（其余家族成员
+   由 M3Theme 自带 fv/boxShadow 或 MUI 自带 .Mui-focusVisible 承担键盘指示），
+   与 MuiSelect-select 一并对本全局环豁免。特异性 0,3,0 > 全局 0,2,0，与书写
+   顺序无关。 */
+.kt-m3-root .MuiMenuItem-root:focus {
+  outline: none;
+}
+.kt-m3-root .MuiSelect-select:focus {
+  outline: none;
+}
+
+@supports selector(:focus-visible) {
+  .kt-m3-root .MuiMenuItem-root:focus { outline: none; }
+  .kt-m3-root .MuiMenuItem-root:focus-visible { outline: none; }
+  .kt-m3-root .MuiSelect-select:focus { outline: none; }
+  .kt-m3-root .MuiSelect-select:focus-visible { outline: none; }
 }
 
 .kt-m3-root .MuiInputBase-input:focus {

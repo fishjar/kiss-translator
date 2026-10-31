@@ -1,6 +1,6 @@
 import ListSubheader from "@mui/material/ListSubheader";
 import { useEffect, useId, useRef, useState } from "react";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import { ExpandMoreRoundedIcon } from "../../components/icons";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -82,6 +82,7 @@ export function SettingsSegmented({
   items,
   label,
   className = "",
+  size = "medium",
 }) {
   const itemRefs = useRef([]);
   const normalizedItems = items.map((item) =>
@@ -132,11 +133,12 @@ export function SettingsSegmented({
   return (
     <ToggleButtonGroup
       exclusive
+      size={size === "small" ? "small" : "medium"}
       value={value}
       onChange={(_event, nextValue) => {
         if (nextValue !== null) onChange(nextValue);
       }}
-      className={`kt-settings-segmented ${className}`.trim()}
+      className={`kt-settings-segmented ${size === "small" ? "kt-settings-segmented--small " : ""}${className}`.trim()}
       aria-label={label}
       role="radiogroup"
     >

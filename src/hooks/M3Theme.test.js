@@ -23,6 +23,7 @@ import {
   WarningIcon as LucideWarningIcon,
 } from "../components/icons/lucide";
 import {
+  calculateAdaptiveAccentFamilies,
   calculateAdaptivePrimaryFamily,
   M3_FONT_FAMILY,
   resolveIconColor,
@@ -116,22 +117,70 @@ test("scopes the resolved Material 3 palette to its root", () => {
     outline: "none",
     boxShadow: "inset 0 0 0 3px #a5bfc5",
   });
+  // 选中且聚焦的内嵌焦点环落在 secondary 选中背景上，必须改用 onSecondary 才可见。
+  expect(
+    capturedTheme.components.MuiTab.styleOverrides.root[
+      "&&.Mui-selected.Mui-focusVisible"
+    ]
+  ).toMatchObject({
+    boxShadow: `inset 0 0 0 3px ${
+      calculateAdaptiveAccentFamilies(191.4, "dark").onSecondary
+    }`,
+  });
+  // 弹窗选中 Tab 背景为表面色（styles.js 的 --kt-sf0），选中+聚焦环必须改用 primary 才可见。
+  expect(
+    capturedTheme.components.MuiTab.styleOverrides.root[
+      ".kt-popup-tabs &&.Mui-selected.Mui-focusVisible"
+    ]
+  ).toMatchObject({
+    boxShadow: `inset 0 0 0 3px ${
+      calculateAdaptivePrimaryFamily(191.4, "dark").primary
+    }`,
+  });
   const menuItemRoot = capturedTheme.components.MuiMenuItem.styleOverrides.root;
   expect(menuItemRoot).toMatchObject({
-    borderRadius: 8,
     color: "#E3E3E3",
     transition:
       "background-color .2s ease, color .2s ease, box-shadow .2s ease",
   });
-  expect(menuItemRoot["&.Mui-selected"]).toMatchObject({
-    // 默认 hue 191.4 深色 accent 家族（calculateAdaptiveAccentFamilies(191.4, "dark") 契约推导）。
-    backgroundColor: "#384143",
-    color: "#abbbbe",
+  expect(menuItemRoot.borderRadius).toBeUndefined();
+  // 契约 B：选中态显式清零底色（MUI 5.18 默认 primary-alpha 会与相邻行粘连），选中仅由勾号表示。
+  expect(menuItemRoot["&.Mui-selected"]).toEqual({
+    backgroundColor: "transparent",
   });
+  expect(menuItemRoot["&.Mui-selected:hover"]).toMatchObject({
+    backgroundColor: "#282A2C",
+  });
+  // 契约 A：Portal 外挂载时勾标色须为主色实值（对齐 MuiListItemIcon 的 Portal 铁律）。
+  const menuCheckSelected = menuItemRoot["&.Mui-selected::before"];
+  expect(menuCheckSelected).toMatchObject({ backgroundColor: "#a5bfc5" });
+  // 契约 C：勾选切换零布局影响——选中态覆写禁止携带任何几何键，
+  // 基槽（&::before）独占尺寸定义，选中只是同一槽内的绘制开关。
+  for (const geometryKey of [
+    "content",
+    "width",
+    "height",
+    "marginRight",
+    "flex",
+    "display",
+  ]) {
+    expect(menuCheckSelected[geometryKey]).toBeUndefined();
+  }
+  // 契约 D：缺省（lucide）档勾形为描边 polyline。
+  expect(menuCheckSelected.maskImage).toContain("M20 6 9 17l-5-5");
+  expect(menuCheckSelected.WebkitMaskImage).toBe(menuCheckSelected.maskImage);
   expect(menuItemRoot["&&.Mui-focusVisible"]).toMatchObject({
     outline: "none",
     backgroundColor: "#2D2F31",
-    boxShadow: "inset 0 0 0 3px #a5bfc5",
+  });
+  // 回归守卫：鼠标路径命中 :focus-visible 时不得再绘制 3px 主色方框环（backgroundColor 指示保留）。
+  expect(menuItemRoot["&&.Mui-focusVisible"].boxShadow).toBeUndefined();
+  expect(menuItemRoot["&&.Mui-selected.Mui-focusVisible"]).toBeUndefined();
+  expect(
+    capturedTheme.components.MuiMenu.styleOverrides.paper
+  ).toMatchObject({ borderRadius: 4 });
+  expect(capturedTheme.components.MuiMenu.styleOverrides.list).toMatchObject({
+    padding: "8px 0",
   });
   const iconButtonRoot =
     capturedTheme.components.MuiIconButton.styleOverrides.root;
@@ -166,15 +215,32 @@ test("scopes the resolved Material 3 palette to its root", () => {
       "&.Mui-selected"
     ]
   ).toMatchObject({
-    // 默认 hue 191.4 深色 accent 家族（calculateAdaptiveAccentFamilies(191.4, "dark") 契约推导）。
-    backgroundColor: "#384143",
-    color: "#abbbbe",
+    // 默认 hue 191.4 深色主色家族（calculateAdaptivePrimaryFamily(191.4, "dark") 契约推导）：
+    // 选中态契约改走 primary 强形态。
+    backgroundColor: calculateAdaptivePrimaryFamily(191.4, "dark").primary,
+    color: calculateAdaptivePrimaryFamily(191.4, "dark").onPrimary,
+  });
+  expect(
+    capturedTheme.components.MuiToggleButton.styleOverrides.root[
+      "&&.Mui-selected.Mui-focusVisible"
+    ]
+  ).toMatchObject({
+    boxShadow: `inset 0 0 0 3px ${
+      calculateAdaptivePrimaryFamily(191.4, "dark").onPrimary
+    }`,
   });
   expect(
     capturedTheme.components.MuiListItemButton.styleOverrides.root[
       "&&.Mui-focusVisible"
     ].boxShadow
   ).toBe("inset 0 0 0 3px #a5bfc5");
+  expect(
+    capturedTheme.components.MuiListItemButton.styleOverrides.root[
+      "&&.Mui-selected.Mui-focusVisible"
+    ].boxShadow
+  ).toBe(
+    `inset 0 0 0 3px ${calculateAdaptivePrimaryFamily(191.4, "dark").onPrimary}`
+  );
   expect(
     capturedTheme.components.MuiAccordionSummary.styleOverrides.root[
       "&&.Mui-focusVisible"
@@ -492,6 +558,19 @@ describe("lucide builtin icon contracts (B7-2)", () => {
     unmount();
   });
 
+  test("menu-item check mask follows the mui filled glyph when iconStyle is mui", () => {
+    // 契约 D 的另一半：勾形必须随图标风格切换——mui 档出实心 path。
+    setIconStyleSnapshot("mui");
+    const { unmount } = renderThemed(<div>mui check mask probe</div>);
+    const selected =
+      capturedTheme.components.MuiMenuItem.styleOverrides.root[
+        "&.Mui-selected::before"
+      ];
+    expect(selected.maskImage).toContain("M9 16.17");
+    expect(selected.maskImage).not.toContain("polyline");
+    unmount();
+  });
+
   test("still injects lucide glyphs when the stored snapshot is the legacy md3 value", () => {
     // 自愈契约：旧存档值 "md3" 经 resolveIconStyle 归一到默认档 lucide，
     // 三处门控仍注入 Lucide 字形（而非退回 MUI 内置）。
@@ -569,5 +648,39 @@ describe("lucide builtin icon contracts (B7-2)", () => {
       container.querySelector(".kt-m3-root").style.getPropertyValue("--kt-icon")
     ).not.toBe("#a5bfc5");
     unmount();
+  });
+});
+
+describe("menu check mask token and toggle button checkmark slot", () => {
+  function renderRoot() {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => {
+      root.render(
+        <M3Theme>
+          <ThemeProbe />
+        </M3Theme>
+      );
+    });
+    return { container, unmount: () => act(() => root.unmount()) };
+  }
+
+  test("does not inject --kt-menu-check-mask on the theme root", () => {
+    setIconStyleSnapshot("mui");
+    const { container, unmount } = renderRoot();
+    const mask = container
+      .querySelector(".kt-m3-root")
+      .style.getPropertyValue("--kt-menu-check-mask");
+    expect(mask).toBe("");
+    unmount();
+  });
+
+  test("MuiToggleButton root carries no ::before checkmark slot (toggle switches must not render a check)", () => {
+    setIconStyleSnapshot("mui");
+    renderRoot().unmount();
+    const toggleRoot = capturedTheme.components.MuiToggleButton.styleOverrides.root;
+    expect(toggleRoot["&::before"]).toBeUndefined();
+    expect(toggleRoot["&.Mui-selected::before"]).toBeUndefined();
   });
 });

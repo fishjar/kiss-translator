@@ -4,11 +4,15 @@
  */
 
 import React, { useLayoutEffect, useRef, useState } from "react";
-import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
-import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import ViewQuiltRoundedIcon from "@mui/icons-material/ViewQuiltRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import { hslToHex } from "../../styles/m3";
+import { useIconAccent } from "../../hooks/useIconAccent";
+import {
+  TranslateRoundedIcon,
+  TuneRoundedIcon,
+  ViewQuiltRoundedIcon,
+  CloseRoundedIcon,
+  DownloadRoundedIcon,
+} from "../../components/icons";
 import Alert from "@mui/material/Alert";
 import Snackbar from "@mui/material/Snackbar";
 import Portal from "@mui/material/Portal";
@@ -30,6 +34,12 @@ export default function DualActionButton({
   visible = true,
   i18n = (k, d) => d || k,
 }) {
+  // 悬浮操作栏游离于 M3Theme 之外（挂在宿主页面 body），无 CSS 变量可消费：
+  // 恒浅口径主色族取自 useIconAccent；hover 为同色相 L=28 深化
+  // （hslToHex(hue, 32, 28) 相对 light 主色 hslToHex(hue, 32, 34) 的加深档）。
+  const { hue: accentHue, accent } = useIconAccent();
+  const accentHover = hslToHex(accentHue, 32.0, 28.0);
+
   const containerRef = useRef(null);
   const downloadPending = useRef(false);
   const [downloading, setDownloading] = useState(false);
@@ -69,7 +79,6 @@ export default function DualActionButton({
       setDownloading(false);
     }
   };
-
   if (!visible) return null;
 
   const handleMenu = (e) => {
@@ -190,10 +199,10 @@ export default function DualActionButton({
           justifyContent: "center",
           width: "26px",
           height: "26px",
-          background: isLayoutActive ? "#1976d2" : "transparent",
+          background: isLayoutActive ? accent.primary : "transparent",
           border: "none",
           color: isLayoutActive
-            ? "#ffffff"
+            ? accent.onPrimary
             : hasLayoutService
               ? "#ffffff"
               : "rgba(255, 255, 255, 0.4)",
@@ -242,9 +251,9 @@ export default function DualActionButton({
           justifyContent: "center",
           width: "26px",
           height: "26px",
-          background: "#1976d2",
+          background: accent.primary,
           border: "none",
-          color: "#ffffff",
+          color: accent.onPrimary,
           borderRadius: "4px",
           cursor: "pointer",
           outline: "none",
@@ -252,10 +261,10 @@ export default function DualActionButton({
           transition: "background-color 0.15s ease",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "#1565c0";
+          e.currentTarget.style.backgroundColor = accentHover;
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "#1976d2";
+          e.currentTarget.style.backgroundColor = accent.primary;
         }}
       >
         <TranslateRoundedIcon style={{ fontSize: "16px" }} />

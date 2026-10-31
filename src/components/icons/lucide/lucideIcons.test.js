@@ -86,7 +86,14 @@ const deriveDistinctPairs = () => {
 // 渲染为实心（fill=currentColor）的"开"态语义字形；其余必须描边。
 // 显式名单（导出名口径）是 FILLED 生成器集合的契约锁：扩充实心档必须在此显式
 // 登记，防止生成器单点静默放宽后无任何守卫变红。
-const SOLID_GLYPHS = new Set(["FavoriteIcon", "PushPinIcon"]);
+const SOLID_GLYPHS = new Set([
+  "FavoriteIcon",
+  "PushPinIcon",
+  "BrightnessAutoIcon",
+  "BrightnessAutoRoundedIcon",
+  "StopIcon",
+  "StopRoundedIcon",
+]);
 
 const groupFill = (svg) => svg.querySelector("g")?.getAttribute("fill");
 
@@ -104,7 +111,7 @@ describe("lucide icons module (generated)", () => {
   );
 
   test("exports exactly the mapped icon components", () => {
-    expect(entries).toHaveLength(188);
+    expect(entries).toHaveLength(191);
     for (const [name, Icon] of entries) {
       expect(typeof Icon === "function" || Boolean(Icon && Icon.$$typeof)).toBe(
         true
@@ -115,7 +122,7 @@ describe("lucide icons module (generated)", () => {
 
   test("glyph metadata covers every export with a unique name", () => {
     // 派生元数据与导出集合同一集合：GLYPH_META 增删后若与导出漂移即红。
-    expect(GLYPH_META).toHaveLength(188);
+    expect(GLYPH_META).toHaveLength(191);
     const metaNames = new Set(GLYPH_META.map(({ name }) => name));
     expect(metaNames).toEqual(new Set(entries.map(([name]) => name)));
     for (const { name, kebab, fill } of GLYPH_META) {
@@ -164,7 +171,7 @@ describe("lucide icons module (generated)", () => {
     // 全对判异（glyphKey 不同且非上游同形异名即须不同 DOM）：误映射令两键
     // 趋同即变红。
     const pairs = deriveDistinctPairs();
-    // 反自证：188 名须产出上万对，空数组意味着派生键整体失配、判异覆盖消失。
+    // 反自证：191 名须产出上万对，空数组意味着派生键整体失配、判异覆盖消失。
     expect(pairs.length).toBeGreaterThan(15000);
     for (const [a, b] of pairs) {
       expect(markup[a]).not.toBe(markup[b]);
@@ -196,7 +203,7 @@ describe("lucide icons module (generated)", () => {
   });
 
   test("every export is covered by the derived contract tables", () => {
-    // 反自证：派生表须恰好覆盖全部 188 名（防 MAPPING 增删后表悄悄失覆盖）。
+    // 反自证：派生表须恰好覆盖全部 191 名（防 MAPPING 增删后表悄悄失覆盖）。
     const inEqual = new Set(deriveEqualGroups().flat());
     const inDistinct = new Set(deriveDistinctPairs().flat());
     for (const { name } of GLYPH_META) {
@@ -220,6 +227,15 @@ describe("lucide icons module (generated)", () => {
     // 契约对账：显式名单与 emit 的 fill=currentColor 集合必须同集合，
     // 任一方向漂移即红（防生成器单点静默放宽实心档）。
     expect(FILLED).toEqual(SOLID_GLYPHS);
+  });
+
+  test("RadioButtonChecked renders ring + filled inner dot (no solid disc regression)", () => {
+    // Fact Supremacy 对齐：本文件无 Icons 符号，既有用法为 `import * as Lucide`
+    // 与 renderIconSvg(Lucide.XxxIcon)；toMatch 需字符串，按文件既有 outerHTML
+    // 取值惯例断言内点实心填充，防「外圈＋点」退化为实心圆盘回潮。
+    const svg = renderIconSvg(Lucide.RadioButtonCheckedIcon);
+    expect(groupFill(svg)).toBe("none");
+    expect(svg.outerHTML).toMatch(/<circle[^>]*r="1"[^>]*fill="currentColor"/);
   });
 
   test("spot-checked icon names map to expected kebab glyphs", () => {

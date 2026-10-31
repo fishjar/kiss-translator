@@ -777,6 +777,11 @@ describe("Apis ordering and master-detail layout", () => {
       Simulate.keyUp(bulkCards[1], { key: " " });
     });
     expect(bulkCards[1].getAttribute("aria-checked")).toBe("true");
+    // 批量勾选卡片底色为 primary.main，勾选图标必须用 contrastText 才可见；
+    // 本测试环境未包 ThemeProvider，按 MUI 默认主题断言 contrastText=#fff。
+    expect(
+      getComputedStyle(bulkCards[1].querySelector(".kt-api-list__check")).color
+    ).toBe("rgb(255, 255, 255)");
     expect(getInput(view.container, "apiName").value).toBe("Alpha");
     expect(mockConfirm).not.toHaveBeenCalled();
 

@@ -1,17 +1,19 @@
 import IconButton from "@mui/material/IconButton";
-import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
-import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import PushPinIcon from "@mui/icons-material/PushPin";
-import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
-import MyLocationIcon from "@mui/icons-material/MyLocation";
-import MyLocationOutlinedIcon from "@mui/icons-material/MyLocationOutlined";
-import CloseIcon from "@mui/icons-material/Close";
-import LightModeIcon from "@mui/icons-material/LightMode";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
-import BrightnessAutoIcon from "@mui/icons-material/BrightnessAuto";
-import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+import {
+  BrightnessAutoIcon,
+  CloseIcon,
+  DarkModeIcon,
+  DragIndicatorRoundedIcon,
+  LightModeIcon,
+  MoreVertIcon,
+  MyLocationIcon,
+  MyLocationOutlinedIcon,
+  OpenInNewIcon,
+  PushPinIcon,
+  PushPinOutlinedIcon,
+  UnfoldLessIcon,
+  UnfoldMoreIcon,
+} from "../icons";
 import {
   useCallback,
   useEffect,
@@ -260,7 +262,9 @@ export default function TranslationPanelHeader({
               }}
             >
               {simpleStyle ? <UnfoldMoreIcon /> : <UnfoldLessIcon />}
-              {i18n("btn_tip_simple_style")}
+              <span className="kt-tranbox-header__menu-label">
+                {i18n("btn_tip_simple_style")}
+              </span>
             </button>
           )}
 
@@ -278,7 +282,9 @@ export default function TranslationPanelHeader({
               ) : (
                 <MyLocationOutlinedIcon />
               )}
-              {i18n("btn_tip_follow_selection")}
+              <span className="kt-tranbox-header__menu-label">
+                {i18n("btn_tip_follow_selection")}
+              </span>
             </button>
           )}
 

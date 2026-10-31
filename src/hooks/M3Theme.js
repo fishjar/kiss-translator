@@ -47,6 +47,13 @@ export default function M3Theme({
     subscribeIconColor,
     getIconColorSnapshot
   );
+  // 勾形随图标风格：lucide 描边 polyline、mui 实心 path。mask 以白色形状
+  // 作 alpha 掩膜，着色由 backgroundColor 决定（Portal 主色实值铁律不变）。
+  const menuCheckGlyph =
+    iconStyle === "mui"
+      ? "%3Cpath fill='%23fff' d='M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E"
+      : "%3Cpath fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' d='M20 6 9 17l-5-5'/%3E";
+  const menuCheckMask = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E${menuCheckGlyph}%3C/svg%3E")`;
 
   const previewMode =
     process.env.NODE_ENV === "development"
@@ -258,12 +265,18 @@ export default function M3Theme({
               transition: "background-color .2s ease, color .2s ease",
               whiteSpace: "nowrap",
               "&.Mui-selected": {
-                backgroundColor: color.secondaryContainer,
-                color: color.onSecondaryContainer,
+                backgroundColor: color.secondary,
+                color: color.onSecondary,
                 fontWeight: 650,
               },
               "&&.Mui-focusVisible": {
                 outline: "none",
+                boxShadow: `inset 0 0 0 3px ${color.primary}`,
+              },
+              "&&.Mui-selected.Mui-focusVisible": {
+                boxShadow: `inset 0 0 0 3px ${color.onSecondary}`,
+              },
+              ".kt-popup-tabs &&.Mui-selected.Mui-focusVisible": {
                 boxShadow: `inset 0 0 0 3px ${color.primary}`,
               },
             },
@@ -272,7 +285,29 @@ export default function M3Theme({
         MuiMenuItem: {
           styleOverrides: {
             root: {
-              borderRadius: 8,
+              "&::before": {
+                content: '""',
+                width: 18,
+                height: 18,
+                flex: "none",
+                marginRight: 12,
+              },
+              "&.Mui-selected::before": {
+                backgroundColor: color.primary,
+                maskImage: menuCheckMask,
+                WebkitMaskImage: menuCheckMask,
+                maskSize: "contain",
+                WebkitMaskSize: "contain",
+              },
+              "&.Mui-selected": {
+                backgroundColor: "transparent",
+              },
+              "&.Mui-selected:hover": {
+                backgroundColor: color.surfaceContainer,
+                "@media (hover: none)": {
+                  backgroundColor: "transparent",
+                },
+              },
               color: color.onSurface,
               transition:
                 "background-color .2s ease, color .2s ease, box-shadow .2s ease",
@@ -282,21 +317,9 @@ export default function M3Theme({
                   backgroundColor: "transparent",
                 },
               },
-              "&.Mui-selected": {
-                backgroundColor: color.secondaryContainer,
-                color: color.onSecondaryContainer,
-              },
-              "&.Mui-selected:hover": {
-                backgroundColor: color.secondaryContainer,
-              },
               "&&.Mui-focusVisible": {
                 outline: "none",
                 backgroundColor: color.surfaceHigh,
-                boxShadow: `inset 0 0 0 3px ${color.primary}`,
-              },
-              "&&.Mui-selected.Mui-focusVisible": {
-                backgroundColor: color.secondaryContainer,
-                color: color.onSecondaryContainer,
               },
             },
           },
@@ -313,16 +336,19 @@ export default function M3Theme({
                 "@media (hover: none)": { backgroundColor: "transparent" },
               },
               "&.Mui-selected": {
-                backgroundColor: color.secondaryContainer,
-                color: color.onSecondaryContainer,
+                backgroundColor: color.primary,
+                color: color.onPrimary,
                 fontWeight: 650,
               },
               "&.Mui-selected:hover": {
-                backgroundColor: color.secondaryContainer,
+                backgroundColor: color.primary,
               },
               "&&.Mui-focusVisible": {
                 outline: "none",
                 boxShadow: `inset 0 0 0 3px ${color.primary}`,
+              },
+              "&&.Mui-selected.Mui-focusVisible": {
+                boxShadow: `inset 0 0 0 3px ${color.onPrimary}`,
               },
             },
           },
@@ -336,8 +362,9 @@ export default function M3Theme({
                 boxShadow: `inset 0 0 0 3px ${color.primary}`,
               },
               "&&.Mui-selected.Mui-focusVisible": {
-                backgroundColor: color.secondaryContainer,
-                color: color.onSecondaryContainer,
+                backgroundColor: color.primary,
+                color: color.onPrimary,
+                boxShadow: `inset 0 0 0 3px ${color.onPrimary}`,
               },
             },
           },
@@ -404,6 +431,7 @@ export default function M3Theme({
         MuiMenu: {
           styleOverrides: {
             paper: { borderRadius: 4 },
+            list: { padding: "8px 0" },
           },
         },
         MuiTooltip: {

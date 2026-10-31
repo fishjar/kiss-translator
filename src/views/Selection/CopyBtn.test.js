@@ -3,6 +3,22 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import CopyBtn from "./CopyBtn";
 
+// 三态 stub 工厂：以 data-testid 区分复制前后渲染的图标组件，不依赖
+// MUI createSvgIcon 的 data-testid 实现细节。mock 为文件级提升，
+// 既有用例不查询 data-testid，不受影响。
+jest.mock("../../components/icons", () => {
+  const React = require("react");
+  const stub = (testid) =>
+    function IconStub(props) {
+      return React.createElement("svg", { "data-testid": testid, ...props });
+    };
+  return {
+    ContentCopyIcon: stub("content-copy"),
+    LibraryAddCheckIcon: stub("library-add-check"),
+    CheckRoundedIcon: stub("check-rounded"),
+  };
+});
+
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 test("preserves shared button transitions while fading the copy action", () => {
@@ -109,6 +125,34 @@ test("does not schedule copy feedback after unmount", async () => {
     } else {
       delete navigator.clipboard;
     }
+    jest.useRealTimers();
+  }
+});
+
+test("renders the copied-state check icon after a successful copy", async () => {
+  jest.useFakeTimers();
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: jest.fn().mockResolvedValue(undefined) },
+  });
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  try {
+    act(() => root.render(<CopyBtn text="hello" title="Copy" />));
+    const button = container.querySelector("button");
+
+    expect(button.querySelector('[data-testid="content-copy"]')).toBeTruthy();
+    expect(button.querySelector('[data-testid="check-rounded"]')).toBeNull();
+
+    await act(async () => button.click());
+
+    expect(button.querySelector('[data-testid="check-rounded"]')).toBeTruthy();
+    expect(button.querySelector('[data-testid="content-copy"]')).toBeNull();
+  } finally {
+    act(() => root.unmount());
+    container.remove();
     jest.useRealTimers();
   }
 });

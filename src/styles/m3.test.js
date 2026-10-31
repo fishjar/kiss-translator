@@ -190,6 +190,33 @@ describe("M3 keyboard focus", () => {
   });
 });
 
+describe("MUI-managed focus exemptions", () => {
+  const BASELINE_SELECTORS = [
+    ".kt-m3-root .MuiMenuItem-root:focus",
+    ".kt-m3-root .MuiSelect-select:focus",
+  ];
+  const ALL_SELECTORS = [
+    ".kt-m3-root .MuiMenuItem-root:focus",
+    ".kt-m3-root .MuiMenuItem-root:focus-visible",
+    ".kt-m3-root .MuiSelect-select:focus",
+    ".kt-m3-root .MuiSelect-select:focus-visible",
+  ];
+  test("baseline branch exempts MUI-managed focus controls", () => {
+    for (const sel of BASELINE_SELECTORS) {
+      expect(M3_GLOBAL_CSS).toMatch(
+        new RegExp(sel.replace(/[.:]/g, "\\$&") + "\\s*\\{[^}]*outline:\\s*none;")
+      );
+    }
+  });
+  test("@supports block exempts MUI-managed focus controls", () => {
+    const bodies = getCssAtRuleBodies(M3_GLOBAL_CSS, "@supports selector(:focus-visible)");
+    for (const sel of ALL_SELECTORS) {
+      const re = new RegExp(sel.replace(/[.:]/g, "\\$&") + "\\s*\\{[^}]*outline:\\s*none;");
+      expect(bodies.some((body) => re.test(body))).toBe(true);
+    }
+  });
+});
+
 describe("锁定态最小高度不变量", () => {
   test("锁定下限扣除 root 纵向 padding(17) 与热区内边距(24) 后仍容纳单行(23)", () => {
     // INV-1：LOCKED_MIN − 17 − 24 ≥ 23（等价：锁定下限内容盒 ≥ 单行）
@@ -385,6 +412,8 @@ describe("adaptive primary family theming", () => {
     expect(vars["--kt-pri"]).toBe(colors.primary);
     expect(vars["--kt-onpri"]).toBe(colors.onPrimary);
     expect(vars["--kt-pric"]).toBe(colors.primaryContainer);
+    expect(vars["--kt-sec"]).toBe(colors.secondary);
+    expect(vars["--kt-onsec"]).toBe(colors.onSecondary);
     expect(vars["--kt-onpric"]).toBe(colors.onPrimaryContainer);
   });
 });
@@ -398,8 +427,6 @@ describe("adaptive accent families theming", () => {
       onSecondary: "#FFFFFF",
       secondaryContainer: "#eae1e1",
       onSecondaryContainer: "#3c2a2a",
-      tertiary: "#61614c",
-      onTertiary: "#FFFFFF",
       tertiaryContainer: "#e8e8e3",
       onTertiaryContainer: "#39392d",
     });
@@ -408,8 +435,6 @@ describe("adaptive accent families theming", () => {
       onSecondary: "#312121",
       secondaryContainer: "#433838",
       onSecondaryContainer: "#beaaaa",
-      tertiary: "#b0b0a1",
-      onTertiary: "#2f2f22",
       tertiaryContainer: "#41413a",
       onTertiaryContainer: "#b0b0a1",
     });
@@ -418,8 +443,6 @@ describe("adaptive accent families theming", () => {
       onSecondary: "#212e31",
       secondaryContainer: "#384143",
       onSecondaryContainer: "#abbbbe",
-      tertiary: "#afacba",
-      onTertiary: "#25222f",
       tertiaryContainer: "#3b3a41",
       onTertiaryContainer: "#afacba",
     });
@@ -430,6 +453,16 @@ describe("adaptive accent families theming", () => {
     expect(calculateAdaptiveAccentFamilies(-60, "light")).toEqual(
       calculateAdaptiveAccentFamilies(300, "light")
     );
+  });
+
+  test("solid tertiary/onTertiary are not emitted (dead-token removal, contract B)", () => {
+    for (const theme of ["light", "dark"]) {
+      const f = calculateAdaptiveAccentFamilies(191.4, theme);
+      expect(f.tertiary).toBeUndefined();
+      expect(f.onTertiary).toBeUndefined();
+      expect(typeof f.tertiaryContainer).toBe("string");
+      expect(typeof f.onTertiaryContainer).toBe("string");
+    }
   });
 
   test("unwritten snapshot falls back to the default icon color hue", () => {
@@ -497,7 +530,6 @@ describe("icon hue WCAG contrast envelope", () => {
         expect(
           contrastRatio(f.secondaryContainer, f.onSecondaryContainer)
         ).toBeGreaterThanOrEqual(4.5);
-        expect(contrastRatio(f.tertiary, f.onTertiary)).toBeGreaterThanOrEqual(4.5);
         expect(
           contrastRatio(f.tertiaryContainer, f.onTertiaryContainer)
         ).toBeGreaterThanOrEqual(4.5);

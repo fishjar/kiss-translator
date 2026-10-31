@@ -144,6 +144,8 @@ import { ExpandMoreIcon as LucideExpandMoreIcon } from "./lucide";
 import MuiExpandMore from "@mui/icons-material/ExpandMore";
 import { ExpandMoreRoundedIcon as LucideExpandMoreRoundedIcon } from "./lucide";
 import MuiExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
+import { ExtensionRoundedIcon as LucideExtensionRoundedIcon } from "./lucide";
+import MuiExtensionRounded from "@mui/icons-material/ExtensionRounded";
 import { FavoriteIcon as LucideFavoriteIcon } from "./lucide";
 import MuiFavorite from "@mui/icons-material/Favorite";
 import { FavoriteBorderIcon as LucideFavoriteBorderIcon } from "./lucide";
@@ -227,9 +229,9 @@ import MuiMoreVert from "@mui/icons-material/MoreVert";
 import { MouseRoundedIcon as LucideMouseRoundedIcon } from "./lucide";
 import MuiMouseRounded from "@mui/icons-material/MouseRounded";
 import { MyLocationIcon as LucideMyLocationIcon } from "./lucide";
-import MuiMyLocation from "@mui/icons-material/MyLocation";
+import MuiMyLocation from "@mui/icons-material/CenterFocusStrong";
 import { MyLocationOutlinedIcon as LucideMyLocationOutlinedIcon } from "./lucide";
-import MuiMyLocationOutlined from "@mui/icons-material/MyLocationOutlined";
+import MuiMyLocationOutlined from "@mui/icons-material/CenterFocusWeak";
 import { OpenInNewIcon as LucideOpenInNewIcon } from "./lucide";
 import MuiOpenInNew from "@mui/icons-material/OpenInNew";
 import { OpenInNewRoundedIcon as LucideOpenInNewRoundedIcon } from "./lucide";
@@ -326,12 +328,16 @@ import { SwapVertRoundedIcon as LucideSwapVertRoundedIcon } from "./lucide";
 import MuiSwapVertRounded from "@mui/icons-material/SwapVertRounded";
 import { SyncIcon as LucideSyncIcon } from "./lucide";
 import MuiSync from "@mui/icons-material/Sync";
+import { TableChartRoundedIcon as LucideTableChartRoundedIcon } from "./lucide";
+import MuiTableChartRounded from "@mui/icons-material/TableChartRounded";
 import { TextSnippetIcon as LucideTextSnippetIcon } from "./lucide";
 import MuiTextSnippet from "@mui/icons-material/TextSnippet";
 import { TranslateIcon as LucideTranslateIcon } from "./lucide";
 import MuiTranslate from "@mui/icons-material/Translate";
 import { TranslateRoundedIcon as LucideTranslateRoundedIcon } from "./lucide";
 import MuiTranslateRounded from "@mui/icons-material/TranslateRounded";
+import { TroubleshootRoundedIcon as LucideTroubleshootRoundedIcon } from "./lucide";
+import MuiTroubleshootRounded from "@mui/icons-material/TroubleshootRounded";
 import { TuneIcon as LucideTuneIcon } from "./lucide";
 import MuiTune from "@mui/icons-material/Tune";
 import { TuneRoundedIcon as LucideTuneRoundedIcon } from "./lucide";
@@ -736,6 +742,11 @@ export const ExpandMoreIcon = /*#__PURE__*/ React.forwardRef(function ExpandMore
 
 export const ExpandMoreRoundedIcon = /*#__PURE__*/ React.forwardRef(function ExpandMoreRoundedIcon(props, ref) {
   const Icon = useIconComponent(MuiExpandMoreRounded, LucideExpandMoreRoundedIcon);
+  return <Icon {...props} ref={ref} />;
+});
+
+export const ExtensionRoundedIcon = /*#__PURE__*/ React.forwardRef(function ExtensionRoundedIcon(props, ref) {
+  const Icon = useIconComponent(MuiExtensionRounded, LucideExtensionRoundedIcon);
   return <Icon {...props} ref={ref} />;
 });
 
@@ -1194,6 +1205,11 @@ export const SyncIcon = /*#__PURE__*/ React.forwardRef(function SyncIcon(props, 
   return <Icon {...props} ref={ref} />;
 });
 
+export const TableChartRoundedIcon = /*#__PURE__*/ React.forwardRef(function TableChartRoundedIcon(props, ref) {
+  const Icon = useIconComponent(MuiTableChartRounded, LucideTableChartRoundedIcon);
+  return <Icon {...props} ref={ref} />;
+});
+
 export const TextSnippetIcon = /*#__PURE__*/ React.forwardRef(function TextSnippetIcon(props, ref) {
   const Icon = useIconComponent(MuiTextSnippet, LucideTextSnippetIcon);
   return <Icon {...props} ref={ref} />;
@@ -1206,6 +1222,11 @@ export const TranslateIcon = /*#__PURE__*/ React.forwardRef(function TranslateIc
 
 export const TranslateRoundedIcon = /*#__PURE__*/ React.forwardRef(function TranslateRoundedIcon(props, ref) {
   const Icon = useIconComponent(MuiTranslateRounded, LucideTranslateRoundedIcon);
+  return <Icon {...props} ref={ref} />;
+});
+
+export const TroubleshootRoundedIcon = /*#__PURE__*/ React.forwardRef(function TroubleshootRoundedIcon(props, ref) {
+  const Icon = useIconComponent(MuiTroubleshootRounded, LucideTroubleshootRoundedIcon);
   return <Icon {...props} ref={ref} />;
 });
 

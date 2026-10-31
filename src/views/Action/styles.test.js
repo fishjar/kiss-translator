@@ -42,14 +42,20 @@ describe("content FAB Material 3 shape", () => {
       /\.kt-content-fab-menu\s*\{[^}]*border-radius:\s*4px;/
     );
     expect(ACTION_STYLES).toMatch(
-      /\.kt-content-fab-menu\s*\{[^}]*overflow-x:\s*hidden;/
+      /\.kt-content-fab-menu\s*\{[^}]*padding:\s*8px 0;/
     );
     expect(ACTION_STYLES).toMatch(
-      /\.kt-content-fab-menu__item\s*\{[^}]*border-radius:\s*8px;/
+      /\.kt-content-fab-menu\s*\{[^}]*border:\s*1px solid var\(--kt-linev\);/
+    );
+    expect(ACTION_STYLES).toMatch(
+      /\.kt-content-fab-menu\s*\{[^}]*overflow-x:\s*hidden;/
     );
     const menuItemRule = ACTION_STYLES.match(
       /\.kt-content-fab-menu__item\s*\{([^}]*)\}/
     )?.[1];
+    expect(menuItemRule).toContain("min-height: 48px");
+    expect(menuItemRule).toContain("padding: 0 16px");
+    expect(menuItemRule).not.toContain("border-radius");
     expect(menuItemRule).toContain("transition:");
     expect(menuItemRule).not.toContain("animation:");
     const hoverBodies = getCssAtRuleBodies(
