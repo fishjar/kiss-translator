@@ -4,7 +4,9 @@ import DropdownRoot from "./DropdownRoot";
 import Fade from "@mui/material/Fade";
 
 const dropdownPaper = ({ theme }) => ({
-  border: "1px solid var(--kt-linev)",
+  // Portal-mounted menus/dialogs land outside .kt-m3-root, so a CSS variable
+  // such as `--kt-linev` is unresolvable there; use the theme's resolved value.
+  border: `1px solid ${theme.palette.divider}`,
   // Use a length string: `dropdownPaper` is spread into `PaperProps.sx`,
   // where a numeric `borderRadius` is treated as a multiple of
   // `theme.shape.borderRadius` (12 → 144px) instead of a raw pixel value.

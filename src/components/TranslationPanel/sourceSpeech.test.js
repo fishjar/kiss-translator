@@ -186,7 +186,7 @@ describe("Original text read aloud in the shared translation panel", () => {
     }
   });
 
-  test("clearing a committed draft to whitespace keeps submit so the empty commit can be sent", async () => {
+  test("clearing a committed draft to whitespace shows paste so the empty draft can be replaced", async () => {
     await render({ text: "", enDict: "-" });
     const field = container.querySelector(
       '.kt-translation-source textarea:not([aria-hidden="true"])'
@@ -203,11 +203,11 @@ describe("Original text read aloud in the shared translation panel", () => {
     const titles = [
       ...container.querySelectorAll(".kt-translation-source button"),
     ].map((button) => button.getAttribute("title"));
-    expect(titles).toEqual(["submit"]);
+    expect(titles).toEqual(["paste"]);
     expect(speakButton()).toBeNull();
   });
 
-  test("clearing a committed draft to an empty string keeps submit so the empty commit can be sent", async () => {
+  test("clearing a committed draft to an empty string shows paste so the empty draft can be replaced", async () => {
     await render({ text: "hello there friend", enDict: "-" });
     const field = container.querySelector(
       '.kt-translation-source textarea:not([aria-hidden="true"])'
@@ -224,7 +224,7 @@ describe("Original text read aloud in the shared translation panel", () => {
     const titles = [
       ...container.querySelectorAll(".kt-translation-source button"),
     ].map((button) => button.getAttribute("title"));
-    expect(titles).toEqual(["submit"]);
+    expect(titles).toEqual(["paste"]);
     expect(speakButton()).toBeNull();
   });
 
