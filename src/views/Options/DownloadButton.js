@@ -1,4 +1,4 @@
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import { FileDownloadIcon } from "../../components/icons";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { useState } from "react";
 import { logger } from "../../libs/log";
@@ -11,9 +11,11 @@ import { downloadBlobFile } from "../../libs/utils";
  * @param {Function} props.handleData - 异步获取/生成待下载的 Blob 数据的回调函数
  * @param {string} props.text - 按钮文字展示内容
  * @param {string} props.fileName - 保存的文件名称
+ * @param {Function} [props.icon] - 自定义起始图标组件，缺省 FileDownloadIcon
  */
-export default function DownloadButton({ handleData, text, fileName }) {
+export default function DownloadButton({ handleData, text, fileName, icon = FileDownloadIcon }) {
   const [loading, setLoading] = useState(false);
+  const Icon = icon;
 
   // 处理下载动作
   const handleClick = async (e) => {
@@ -38,7 +40,7 @@ export default function DownloadButton({ handleData, text, fileName }) {
       variant="outlined"
       onClick={handleClick}
       loading={loading}
-      startIcon={<FileDownloadIcon />}
+      startIcon={<Icon />}
     >
       {text}
     </LoadingButton>

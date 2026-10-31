@@ -1,4 +1,4 @@
-import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
+import { TranslateRoundedIcon } from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import { useSetting } from "../../hooks/Setting";
 import { useRules } from "../../hooks/Rules";

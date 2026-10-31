@@ -3,7 +3,7 @@
  * @description 在原图或截图选区上方渲染交互式 SVG 矢量线框层，支持点击切换选中/取消选中。
  */
 
-import React from "react";
+import { useIconAccent } from "../../hooks/useIconAccent";
 
 export default function ImageLayoutOverlay({
   regions = [],
@@ -14,6 +14,9 @@ export default function ImageLayoutOverlay({
   isFixed = false,
   onToggleRegion,
 }) {
+  // 悬浮线框层游离于 M3Theme 之外（挂在宿主页面 body），无 CSS 变量可消费：
+  // 恒浅口径主色族取自 useIconAccent（深调主色，白字/徽章达标）。
+  const { accent } = useIconAccent();
   if (!visible || !regions?.length || !imageRect) return null;
 
   const left =
@@ -80,10 +83,10 @@ export default function ImageLayoutOverlay({
               points={points}
               fill={
                 enabled
-                  ? "rgba(25, 118, 210, 0.14)"
+                  ? `${accent.primary}24`
                   : "rgba(158, 158, 158, 0.15)"
               }
-              stroke={enabled ? "#1976d2" : "#9e9e9e"}
+              stroke={enabled ? accent.primary : "#9e9e9e"}
               strokeDasharray={enabled ? undefined : "4 3"}
               strokeWidth="2"
               vectorEffect="non-scaling-stroke"
@@ -100,7 +103,7 @@ export default function ImageLayoutOverlay({
                   y={minY}
                   width="22"
                   height="16"
-                  fill={enabled ? "#1976d2" : "#757575"}
+                  fill={enabled ? accent.primary : "#757575"}
                   rx="3"
                 />
                 <text

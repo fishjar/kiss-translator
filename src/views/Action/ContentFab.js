@@ -1,13 +1,15 @@
 import { supportsTouch } from "../../libs/touchCapability";
 import TouchTranslateControl from "../../components/TouchTranslateControl";
-import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
-import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
-import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
-import CropRoundedIcon from "@mui/icons-material/CropRounded";
+import {
+  PaletteRoundedIcon,
+  SelectAllRoundedIcon,
+  SettingsRoundedIcon,
+  TranslateRoundedIcon,
+  TuneRoundedIcon,
+  VisibilityRoundedIcon,
+  VisibilityOffRoundedIcon,
+  CropRoundedIcon,
+} from "../../components/icons";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";

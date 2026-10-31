@@ -272,6 +272,31 @@ describe("settings layout boundaries", () => {
       /\.kt-sync-method__description\s*\{[^}]*transition:[^;}]*color[^;}]*opacity/
     );
     expect(selectedRule).toContain("box-shadow: inset 0 0 0 1px var(--kt-pri)");
+    expect(selectedRule).toContain("background: var(--kt-pri)");
+    expect(selectedRule).toContain("color: var(--kt-onpri)");
     expect(selectedRule).not.toContain("border: 2px");
+  });
+
+  test("selected segmented buttons use the primary strong selected form", () => {
+    expect(OPTIONS_STYLES).toMatch(
+      /\.kt-settings-segmented > button\.Mui-selected\s*\{[^}]*background:\s*var\(--kt-pri\);[^}]*color:\s*var\(--kt-onpri\);/
+    );
+  });
+});
+
+describe("options nav button typography parity", () => {
+  test("nav button rule does not reset the shared nav link font", () => {
+    const buttonRule = OPTIONS_STYLES.match(
+      /(?:^|\n)button\.kt-options-nav__link\s*\{([^}]*)\}/
+    )?.[1];
+    const linkRule = OPTIONS_STYLES.match(
+      /(?:^|\n)\.kt-options-nav__link\s*\{([^}]*)\}/
+    )?.[1];
+
+    expect(buttonRule).toContain("width: 100%");
+    expect(buttonRule).toContain("text-align: left");
+    expect(buttonRule).not.toMatch(/(?:^|;)\s*font(-[a-z]+)?:/);
+    expect(linkRule).toContain("font-size: 13px");
+    expect(linkRule).toContain("font-weight: 550");
   });
 });

@@ -20,8 +20,24 @@ import {
 import { fetchModelCatalog } from "../../libs/modelList";
 import { apiTranslate } from "../../apis";
 import { SettingProvider } from "../../hooks/Setting";
+import { createTheme } from "@mui/material/styles";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+const defaultTheme = createTheme();
+
+function hexToRgbString(hex) {
+  const value = hex.replace("#", "");
+  const full =
+    value.length === 3
+      ? value
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : value;
+  const num = parseInt(full, 16);
+  return `rgb(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255})`;
+}
 HTMLElement.prototype.scrollTo = jest.fn();
 const mockConfirm = jest.fn();
 const mockAlertInfo = jest.fn();
@@ -777,6 +793,11 @@ describe("Apis ordering and master-detail layout", () => {
       Simulate.keyUp(bulkCards[1], { key: " " });
     });
     expect(bulkCards[1].getAttribute("aria-checked")).toBe("true");
+    // 批量勾选卡片底色为 primary.main，勾选图标必须用 contrastText 才可见；
+    // 期望值从 MUI 默认主题令牌派生，不硬编码色值。
+    expect(
+      getComputedStyle(bulkCards[1].querySelector(".kt-api-list__check")).color
+    ).toBe(hexToRgbString(defaultTheme.palette.primary.contrastText));
     expect(getInput(view.container, "apiName").value).toBe("Alpha");
     expect(mockConfirm).not.toHaveBeenCalled();
 

@@ -5,7 +5,17 @@ import TextField from "@mui/material/TextField";
 import ServiceSelect from "./ServiceSelect";
 import ScenePromptSelect from "./ScenePromptSelect";
 import InputAdornment from "@mui/material/InputAdornment";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import {
+  AddIcon,
+  CancelIcon,
+  ClearAllIcon,
+  DeleteIcon,
+  ExpandMoreIcon,
+  LockOutlinedIcon,
+  SaveIcon,
+  ShareIcon,
+  SyncIcon,
+} from "../../components/icons";
 import CodeField from "./CodeField";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -30,7 +40,6 @@ import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useRules } from "../../hooks/Rules";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
@@ -41,11 +50,8 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
-import DeleteIcon from "@mui/icons-material/Delete";
 import IconButton from "@mui/material/IconButton";
 import LoadingButton from "@mui/lab/LoadingButton";
-import ShareIcon from "@mui/icons-material/Share";
-import SyncIcon from "@mui/icons-material/Sync";
 import { useSubRules } from "../../hooks/SubRules";
 import { loadOrFetchSubRules, syncSubRules } from "../../libs/subRules";
 import { useAlert } from "../../hooks/Alert";
@@ -58,14 +64,10 @@ import {
   setDisabledSubRules,
   removeDisabledSubRules,
 } from "../../libs/storage";
-import ClearAllIcon from "@mui/icons-material/ClearAll";
 import HelpButton from "./HelpButton";
 import { useSyncCaches } from "../../hooks/Sync";
 import DownloadButton from "./DownloadButton";
 import UploadButton from "./UploadButton";
-import AddIcon from "@mui/icons-material/Add";
-import CancelIcon from "@mui/icons-material/Cancel";
-import SaveIcon from "@mui/icons-material/Save";
 import ValidationInput from "../../hooks/ValidationInput";
 import { logger } from "../../libs/log";
 import { useApiList } from "../../hooks/Api";

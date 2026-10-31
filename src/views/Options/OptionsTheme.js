@@ -4,13 +4,17 @@ import DropdownRoot from "./DropdownRoot";
 import Fade from "@mui/material/Fade";
 
 const dropdownPaper = ({ theme }) => ({
+  // Portal-mounted menus/dialogs land outside .kt-m3-root, so a CSS variable
+  // such as `--kt-linev` is unresolvable there; use the theme's resolved value.
   border: `1px solid ${theme.palette.divider}`,
   // Use a length string: `dropdownPaper` is spread into `PaperProps.sx`,
   // where a numeric `borderRadius` is treated as a multiple of
   // `theme.shape.borderRadius` (12 → 144px) instead of a raw pixel value.
-  borderRadius: "12px",
+  borderRadius: "4px",
   backgroundColor: theme.palette.background.paper,
   boxShadow: "0 4px 16px rgb(0 0 0 / 12%)",
+  overflowX: "hidden",
+  overflowY: "auto",
   overscrollBehavior: "contain",
   "@media (prefers-reduced-motion: reduce)": {
     transitionDuration: "0.01ms !important",
@@ -70,13 +74,13 @@ const OPTIONS_THEME = {
           maxWidth: "calc(100vw - 32px)",
           maxHeight: "min(320px, calc(100vh - 32px))",
         }),
-        list: { padding: 4 },
+        list: { padding: "8px 0" },
       },
     },
     MuiAutocomplete: {
       styleOverrides: {
         paper: (props) => ({ ...dropdownPaper(props), marginBlock: 4 }),
-        listbox: { padding: 4, maxHeight: 320 },
+        listbox: { padding: "8px 0", maxHeight: 320 },
         option: { minHeight: 40, borderRadius: 8 },
       },
     },

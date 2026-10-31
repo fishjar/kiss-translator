@@ -131,7 +131,7 @@ describe("Original text read aloud in the shared translation panel", () => {
     );
   });
 
-  test("focus enters edit mode without adding a replay action", async () => {
+  test("focus without editing keeps copy", async () => {
     await render({ text: "hello there friend", enDict: "-" });
     const field = container.querySelector(
       '.kt-translation-source textarea:not([aria-hidden="true"])'
@@ -140,7 +140,7 @@ describe("Original text read aloud in the shared translation panel", () => {
     const titles = [
       ...container.querySelectorAll(".kt-translation-source button"),
     ].map((button) => button.getAttribute("title"));
-    expect(titles).toEqual(["submit", "read_source_aloud"]);
+    expect(titles).toEqual(["copy", "read_source_aloud"]);
   });
 
   test("a draft read-aloud pointer sequence preserves focus, speaks the draft, and commits nothing", async () => {
@@ -186,8 +186,8 @@ describe("Original text read aloud in the shared translation panel", () => {
     }
   });
 
-  test("deleting the visible draft to whitespace immediately leaves only paste", async () => {
-    await render({ text: "hello there friend", enDict: "-" });
+  test("clearing a committed draft to whitespace shows paste so the empty draft can be replaced", async () => {
+    await render({ text: "", enDict: "-" });
     const field = container.querySelector(
       '.kt-translation-source textarea:not([aria-hidden="true"])'
     );
@@ -198,6 +198,27 @@ describe("Original text read aloud in the shared translation panel", () => {
     act(() => field.focus());
     act(() => {
       setValue.call(field, "   ");
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const titles = [
+      ...container.querySelectorAll(".kt-translation-source button"),
+    ].map((button) => button.getAttribute("title"));
+    expect(titles).toEqual(["paste"]);
+    expect(speakButton()).toBeNull();
+  });
+
+  test("clearing a committed draft to an empty string shows paste so the empty draft can be replaced", async () => {
+    await render({ text: "hello there friend", enDict: "-" });
+    const field = container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    const setValue = Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      "value"
+    ).set;
+    act(() => field.focus());
+    act(() => {
+      setValue.call(field, "");
       field.dispatchEvent(new Event("input", { bubbles: true }));
     });
     const titles = [

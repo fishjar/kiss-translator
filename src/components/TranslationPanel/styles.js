@@ -20,20 +20,21 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-tranbox-header .MuiIconButton-root svg { width: 18px; height: 18px; }
 .kt-tranbox-header--compact { flex: none; min-height: 0; padding: 8px 0; border: 0; border-radius: 0; }
 .kt-tranbox-header--compact .MuiIconButton-root { width: 40px; height: 40px; }
-.kt-tranbox-header .MuiIconButton-root[aria-pressed="true"] { background: var(--kt-pric); color: var(--kt-onpric); }
+.kt-tranbox-header .MuiIconButton-root[aria-pressed="true"] { background: var(--kt-pri); color: var(--kt-onpri); }
 @media (hover: hover) {
-  .kt-tranbox-header .MuiIconButton-root[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--kt-onpric) 8%, var(--kt-pric)); }
+  .kt-tranbox-header .MuiIconButton-root[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--kt-onpri) 8%, var(--kt-pri)); }
 }
 .kt-tranbox-header .MuiIconButton-root[aria-pressed="true"].Mui-focusVisible,
-.kt-tranbox-header .MuiIconButton-root[aria-pressed="true"]:active { background: color-mix(in srgb, var(--kt-onpric) 10%, var(--kt-pric)); }
-.kt-tranbox-header__menu { box-sizing: border-box; min-width: min(206px, calc(100vw - 16px)); max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); display: flex; flex-direction: column; position: absolute; top: 48px; right: 42px; z-index: 4; overflow-x: hidden; overflow-y: auto; padding: 6px; border: 1px solid var(--kt-linev); border-radius: 4px; background: var(--kt-sf0); box-shadow: var(--kt-shadow-2); }
-.kt-tranbox-header__menu button { min-height: 39px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: var(--kt-on); cursor: pointer; font: inherit; font-size: 11.5px; text-align: left; }
-.kt-tranbox-header__menu button[aria-checked="true"] { background: var(--kt-pric); color: var(--kt-onpric); }
+.kt-tranbox-header .MuiIconButton-root[aria-pressed="true"]:active { background: color-mix(in srgb, var(--kt-onpri) 10%, var(--kt-pri)); }
+.kt-tranbox-header__menu { box-sizing: border-box; min-width: min(206px, calc(100vw - 16px)); max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); display: flex; flex-direction: column; position: absolute; top: 48px; right: 42px; z-index: 4; overflow-x: hidden; overflow-y: auto; padding: 8px 0; border: 1px solid var(--kt-linev); border-radius: 4px; background: var(--kt-sf0); box-shadow: var(--kt-shadow-2); }
+.kt-tranbox-header__menu button { min-height: 48px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 16px; border: 0; background: transparent; color: var(--kt-on); cursor: pointer; font: inherit; font-size: 11.5px; text-align: left; }
+.kt-tranbox-header__menu button[aria-checked="true"] { background: var(--kt-pri); color: var(--kt-onpri); }
 .kt-tranbox-header__menu button:disabled { opacity: .5; cursor: default; }
 @media (hover: hover) {
-  .kt-tranbox-header__menu button:hover { background: var(--kt-pric); color: var(--kt-onpric); }
+  .kt-tranbox-header__menu button:hover { background: var(--kt-pri); color: var(--kt-onpri); }
 }
 .kt-tranbox-header__menu svg { width: 18px; height: 18px; flex: none; }
+.kt-tranbox-header__menu-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .kt-tranbox-content { container-type: inline-size; container-name: kt-translation-content; padding: 14px !important; background: var(--kt-sf0) !important; color: var(--kt-on) !important; }
 .kt-translation-config-row { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }

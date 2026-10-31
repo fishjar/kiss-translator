@@ -1,9 +1,11 @@
-import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import CheckBoxOutlineBlankRoundedIcon from "@mui/icons-material/CheckBoxOutlineBlankRounded";
-import CheckBoxRoundedIcon from "@mui/icons-material/CheckBoxRounded";
-import ContentPasteRoundedIcon from "@mui/icons-material/ContentPasteRounded";
-import SwapVertRoundedIcon from "@mui/icons-material/SwapVertRounded";
+import {
+  ArrowDropDownRoundedIcon,
+  CheckBoxOutlineBlankRoundedIcon,
+  CheckBoxRoundedIcon,
+  CheckRoundedIcon,
+  ContentPasteRoundedIcon,
+  SwapVertRoundedIcon,
+} from "../../components/icons";
 import MenuItem from "@mui/material/MenuItem";
 import {
   useCallback,
@@ -196,12 +198,6 @@ function LanguageMenu({
                   </small>
                 )}
               </span>
-              {selected && (
-                <CheckRoundedIcon
-                  className="kt-popup-menu-check"
-                  aria-hidden="true"
-                />
-              )}
             </MenuItem>
           );
         })}
