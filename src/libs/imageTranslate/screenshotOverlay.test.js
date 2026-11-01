@@ -41,11 +41,112 @@ describe("ScreenshotOverlay", () => {
     );
   const drag = (x, y, endX, endY, target = root().firstElementChild) => {
     act(() => {
-      mouse(target, "mousedown", x, y);
-      mouse(document, "mousemove", endX, endY);
-      mouse(document, "mouseup", endX, endY);
+      mouse(target, "pointerdown", x, y);
+      mouse(document, "pointermove", endX, endY);
+      mouse(document, "pointerup", endX, endY);
     });
   };
+
+  const pointer = (target, type, x, y, id = 1, primary = true) => {
+    const event = new MouseEvent(type, {
+      bubbles: true,
+      clientX: x,
+      clientY: y,
+      button: 0,
+    });
+    Object.defineProperties(event, {
+      pointerId: { value: id },
+      pointerType: { value: "touch" },
+      isPrimary: { value: primary },
+    });
+    target.dispatchEvent(event);
+  };
+  test("touch selects, ignores other fingers, moves and resizes", () => {
+    act(() => {
+      pointer(root().firstElementChild, "pointerdown", 20, 30);
+      pointer(root().firstElementChild, "pointerdown", 500, 500, 2, false);
+      pointer(document, "pointermove", 600, 600, 2, false);
+      pointer(document, "pointermove", 220, 230);
+      pointer(document, "pointerup", 220, 230);
+    });
+    expect(geometry()).toEqual({
+      left: "20px",
+      top: "30px",
+      width: "200px",
+      height: "200px",
+    });
+    act(() => {
+      pointer(root().firstElementChild, "pointerdown", 40, 50);
+      pointer(document, "pointermove", 60, 70);
+      pointer(document, "pointerup", 60, 70);
+    });
+    expect(geometry().left).toBe("40px");
+    act(() => {
+      pointer(
+        root().querySelectorAll(".kt-screenshot-handle")[4],
+        "pointerdown",
+        240,
+        250
+      );
+      pointer(document, "pointermove", 270, 280);
+      pointer(document, "pointerup", 270, 280);
+    });
+    expect(geometry().width).toBe("230px");
+  });
+  test("pointer cancellation keeps geometry without translating and releases gesture", async () => {
+    await act(async () => button("menu").click());
+    const count = callbacks.onComplete.mock.calls.length;
+    act(() => {
+      pointer(root().firstElementChild, "pointerdown", 150, 150);
+      pointer(document, "pointermove", 170, 180);
+      pointer(document, "pointercancel", 170, 180);
+    });
+    expect(geometry().left).toBe("120px");
+    await act(async () => {});
+    expect(callbacks.onComplete).toHaveBeenCalledTimes(count + 1);
+    expect(callbacks.onComplete).toHaveBeenLastCalledWith(
+      expect.objectContaining({ action: "update" })
+    );
+    drag(10, 10, 70, 80);
+    expect(geometry().left).toBe("10px");
+  });
+  test("capture rejection is visible and cancels the session", async () => {
+    const alert = jest.spyOn(window, "alert").mockImplementation(() => {});
+    sendBgMsg.mockRejectedValueOnce(new Error("permission denied"));
+    await act(async () => overlay.start(callbacks));
+    expect(alert).toHaveBeenCalledWith("截图失败，请检查页面访问权限后重试");
+    expect(callbacks.onCancel).toHaveBeenCalled();
+    expect(root()).toBeNull();
+    alert.mockRestore();
+  });
+
+  test("coarse pointer gets touch hints and 44px handles", async () => {
+    const previous = window.matchMedia;
+    window.matchMedia = jest.fn(() => ({ matches: true }));
+    try {
+      act(() => overlay.destroy());
+      overlay = new ScreenshotOverlay({});
+      await act(async () => overlay.start(callbacks));
+      expect(root().textContent).toContain("拖动框选文字区域，点击 × 取消");
+      expect(root().querySelector("button").style.minWidth).toBe("44px");
+      drag(100, 120, 400, 280);
+      expect(root().querySelector(".kt-screenshot-handle").style.width).toBe(
+        "44px"
+      );
+    } finally {
+      window.matchMedia = previous;
+    }
+  });
+  test("closing during a touch removes active document listeners", () => {
+    act(() => {
+      pointer(root().firstElementChild, "pointerdown", 20, 30);
+      overlay.destroy();
+      pointer(document, "pointermove", 220, 230);
+      pointer(document, "pointerup", 220, 230);
+    });
+    expect(root()).toBeNull();
+    expect(callbacks.onComplete).not.toHaveBeenCalled();
+  });
 
   beforeEach(async () => {
     document.body.innerHTML = "";
@@ -140,20 +241,20 @@ describe("ScreenshotOverlay", () => {
       .spyOn(window, "cancelAnimationFrame")
       .mockImplementation(() => {});
     try {
-      act(() => mouse(root().firstElementChild, "mousedown", 150, 150));
+      act(() => mouse(root().firstElementChild, "pointerdown", 150, 150));
       act(() => {
-        mouse(document, "mousemove", 160, 160);
-        mouse(document, "mousemove", 180, 190);
-        mouse(document, "mousemove", 200, 210);
+        mouse(document, "pointermove", 160, 160);
+        mouse(document, "pointermove", 180, 190);
+        mouse(document, "pointermove", 200, 210);
       });
       expect(request).toHaveBeenCalledTimes(1);
       act(() => paint());
       expect(geometry()).toMatchObject({ left: "150px", top: "180px" });
-      act(() => mouse(document, "mousemove", 220, 230));
+      act(() => mouse(document, "pointermove", 220, 230));
       expect(request).toHaveBeenCalledTimes(2);
       act(() => {
-        mouse(document, "mousemove", 150, 150);
-        mouse(document, "mouseup", 150, 150);
+        mouse(document, "pointermove", 150, 150);
+        mouse(document, "pointerup", 150, 150);
       });
       expect(cancel).toHaveBeenCalledWith(123);
       expect(geometry()).toMatchObject({ left: "100px", top: "120px" });
@@ -173,8 +274,8 @@ describe("ScreenshotOverlay", () => {
       .mockImplementation(() => {});
     try {
       act(() => {
-        mouse(root().firstElementChild, "mousedown", 500, 400);
-        mouse(document, "mousemove", 700, 600);
+        mouse(root().firstElementChild, "pointerdown", 500, 400);
+        mouse(document, "pointermove", 700, 600);
       });
       expect(request).toHaveBeenCalledTimes(1);
       act(() => overlay.destroy());
@@ -264,8 +365,8 @@ describe("ScreenshotOverlay", () => {
     const selection = geometry();
     const closeNotice = document.querySelector(".MuiSnackbar-root button");
     act(() => {
-      mouse(closeNotice, "mousedown", 500, 30);
-      mouse(document, "mouseup", 500, 30);
+      mouse(closeNotice, "pointerdown", 500, 30);
+      mouse(document, "pointerup", 500, 30);
       closeNotice.click();
     });
     expect(geometry()).toEqual(selection);
@@ -359,8 +460,8 @@ describe("ScreenshotOverlay", () => {
     );
     const calls = callbacks.onComplete.mock.calls.length;
     act(() => {
-      mouse(root().firstElementChild, "mousedown", 150, 170);
-      mouse(document, "mouseup", 150, 170);
+      mouse(root().firstElementChild, "pointerdown", 150, 170);
+      mouse(document, "pointerup", 150, 170);
     });
     expect(callbacks.onComplete).toHaveBeenCalledTimes(calls);
   });
@@ -540,7 +641,7 @@ describe("ScreenshotOverlay", () => {
   test.each(["contextmenu", "resize"])(
     "%s exits during a gesture and restores scrolling without retaining mouse handlers",
     async (event) => {
-      act(() => mouse(root().firstElementChild, "mousedown", 150, 150));
+      act(() => mouse(root().firstElementChild, "pointerdown", 150, 150));
       act(() => {
         if (event === "resize") window.dispatchEvent(new Event("resize"));
         else
@@ -550,7 +651,7 @@ describe("ScreenshotOverlay", () => {
       });
       expect(root()).toBeNull();
       expect(document.documentElement.style.overflowY).toBe("");
-      act(() => mouse(document, "mousemove", 200, 200));
+      act(() => mouse(document, "pointermove", 200, 200));
       await act(async () => overlay.start(callbacks));
       drag(100, 120, 400, 280);
       expect(geometry()).toEqual({

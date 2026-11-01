@@ -9,14 +9,20 @@ import { APP_CONSTS } from "../../config/app";
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 globalThis.crypto = require("crypto").webcrypto;
 
+jest.mock("./screenshotSupport", () => ({
+  checkScreenshotSupport: jest.fn(async () => true),
+}));
+
 const mockAddListener = jest.fn();
 const mockRemoveListener = jest.fn();
 const mockReadImage = jest.fn();
+const mockCropImage = jest.fn();
 const mockSendBgMsg = jest.fn();
 let mockRealScreenshot = false;
 
 jest.mock("./imageReader", () => ({
   readImageAsBlob: (...args) => mockReadImage(...args),
+  cropAndCompressImage: (...args) => mockCropImage(...args),
   blobToDataUrl: async () => "data:image/png;base64,test",
 }));
 
@@ -71,7 +77,22 @@ jest.mock("./screenshotOverlay", () => {
 const { ImageTranslateManager } = require("./imageTranslateManager");
 
 describe("ImageTranslateManager", () => {
+  test("unsupported screenshots preserve the open image box", async () => {
+    const manager = new ImageTranslateManager({ setting: {} });
+    act(() => manager.openBox({ blob: new Blob(["image"]) }));
+    const box = document.getElementById(APP_CONSTS.imageBoxID);
+    require("./screenshotSupport").checkScreenshotSupport.mockResolvedValueOnce(
+      false
+    );
+    await act(async () => manager.startScreenshot());
+    expect(mockStart).not.toHaveBeenCalled();
+    expect(document.getElementById(APP_CONSTS.imageBoxID)).toBe(box);
+    act(() => manager.destroy());
+  });
   beforeEach(() => {
+    require("./screenshotSupport").checkScreenshotSupport.mockResolvedValue(
+      true
+    );
     document.body.innerHTML = "";
     mockAddListener.mockClear();
     mockRemoveListener.mockClear();
@@ -396,7 +417,10 @@ describe("ImageTranslateManager", () => {
         act(() => {
           pending = manager.startScreenshot();
         });
-        expect(mockStart).not.toHaveBeenCalled(); // capture must wait for a paint
+        expect(mockStart).not.toHaveBeenCalled(); // capture must wait for support and a paint
+        await act(async () => {
+          await Promise.resolve();
+        });
         act(() => hover());
         expect(button("menu")).toBeNull();
         await act(async () => pending);
@@ -602,6 +626,134 @@ describe("ImageTranslateManager", () => {
     );
     expect(document.querySelector(".kt-screenshot-overlay-root")).toBeNull();
     act(() => manager.destroy());
+  });
+
+  describe("actual screenshot pointer cancellation", () => {
+    let manager;
+    let originalImage;
+    let alertSpy;
+    const root = () => document.querySelector(".kt-screenshot-overlay-root");
+    const props = () =>
+      require("../../views/ImageTranslate").mock.calls.slice(-1)[0][0];
+    const pointer = (target, type, x, y) => {
+      const event = new MouseEvent(type, {
+        bubbles: true,
+        button: 0,
+        clientX: x,
+        clientY: y,
+      });
+      Object.defineProperties(event, {
+        pointerId: { value: 1 },
+        isPrimary: { value: true },
+        pointerType: { value: "touch" },
+      });
+      target.dispatchEvent(event);
+    };
+    beforeEach(async () => {
+      mockRealScreenshot = true;
+      originalImage = global.Image;
+      global.Image = function () {
+        const image = document.createElement("img");
+        Object.defineProperty(image, "naturalWidth", {
+          value: window.innerWidth,
+        });
+        Object.defineProperty(image, "src", {
+          get: () => "data:image/png;base64,capture",
+          set: () => Promise.resolve().then(() => image.onload?.()),
+        });
+        return image;
+      };
+      alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
+      mockSendBgMsg.mockResolvedValue({
+        dataUrl: "data:image/png;base64,capture",
+      });
+      mockCropImage.mockReset().mockImplementation(async (_image, options) => ({
+        blob: new Blob(["crop"]),
+        width: options.width,
+        height: options.height,
+      }));
+      manager = new ImageTranslateManager({ setting: {}, isIframe: false });
+      await act(async () => manager.startScreenshot());
+      act(() => {
+        pointer(root().firstElementChild, "pointerdown", 100, 100);
+        pointer(document, "pointermove", 400, 300);
+        pointer(document, "pointerup", 400, 300);
+      });
+    });
+    afterEach(() => {
+      act(() => manager.destroy());
+      global.Image = originalImage;
+      alertSpy.mockRestore();
+    });
+    test.each(["move", "resize", "unchanged", "unopened", "small", "failure"])(
+      "%s cancellation settles the source and permits another gesture",
+      async (scenario) => {
+        if (scenario !== "unopened") {
+          await act(async () =>
+            root().querySelector(".kt-image-dual-btn--menu").click()
+          );
+        }
+        const previousBlob = scenario !== "unopened" ? props().imageBlob : null;
+        if (scenario === "failure")
+          mockCropImage.mockRejectedValueOnce(new Error("crop failed"));
+        act(() => {
+          const resize = scenario === "resize";
+          pointer(
+            resize
+              ? root().querySelectorAll(".kt-screenshot-handle")[4]
+              : root().firstElementChild,
+            "pointerdown",
+            scenario === "small" ? 500 : 150,
+            150
+          );
+          if (scenario !== "unchanged")
+            pointer(
+              document,
+              "pointermove",
+              scenario === "small" ? 505 : 170,
+              scenario === "small" ? 155 : 180
+            );
+        });
+        if (!["unchanged", "unopened"].includes(scenario)) {
+          expect(props().imageBlob).toBeNull();
+          expect(props().sourceBusy).toBe(true);
+        }
+        await act(async () => pointer(document, "pointercancel", 170, 180));
+        if (scenario === "small") {
+          expect(root()).toBeNull();
+          expect(props().showBox).toBe(false);
+          expect(props().sourceBusy).toBe(false);
+          return;
+        }
+        if (scenario === "unopened") {
+          expect(document.getElementById(APP_CONSTS.imageBoxID)).toBeNull();
+          expect(mockCropImage).not.toHaveBeenCalled();
+        } else {
+          expect(props().sourceBusy).toBe(false);
+          expect(props().initialAutoTranslate).toBe(false);
+          if (scenario === "unchanged")
+            expect(props().imageBlob).toBe(previousBlob);
+          else if (scenario === "failure")
+            expect(alertSpy).toHaveBeenCalledWith("crop failed");
+          else {
+            expect(props().imageBlob).toBeInstanceOf(Blob);
+            expect(props().imageBlob).not.toBe(previousBlob);
+          }
+        }
+        await act(async () => {
+          pointer(root().firstElementChild, "pointerdown", 20, 20);
+          pointer(document, "pointermove", 80, 80);
+          pointer(document, "pointerup", 80, 80);
+        });
+        expect(
+          root().firstElementChild.style.getPropertyValue("--kt-selection-x")
+        ).toBe("20px");
+        if (scenario !== "unopened") {
+          expect(props().imageBlob).toBeInstanceOf(Blob);
+          expect(props().sourceBusy).toBe(false);
+        }
+      }
+    );
   });
 
   test("initializes without mounting container until openBox is called", () => {

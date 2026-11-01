@@ -61,6 +61,7 @@ export class ScreenshotOverlay {
   #onSelectionChange = null;
   #cleanupScroll = null;
   #cleanupGesture = null;
+  #coarsePointer = window.matchMedia?.("(pointer: coarse)").matches || false;
   #onLayoutStart = null;
   #onLocalBusyChange = null;
   #onToggleBox = null;
@@ -165,11 +166,30 @@ export class ScreenshotOverlay {
     let captureRes;
     try {
       captureRes = await sendBgMsg(MSG_CAPTURE_VISIBLE_TAB);
+      if (captureRes?.unsupported) {
+        if (this.#currentSessionId === sessionId) {
+          alert(
+            this.#i18n(
+              "image_screenshot_unsupported",
+              "当前浏览器不支持截图翻译"
+            )
+          );
+          this.#onCancel?.();
+        }
+        return;
+      }
+      if (!captureRes?.dataUrl) throw new Error("Empty screenshot response");
     } catch (err) {
       logger
         .child("image-translate")
         .error("[ScreenshotOverlay] Capture visible tab failed:", err);
       if (this.#currentSessionId === sessionId) {
+        alert(
+          this.#i18n(
+            "image_screenshot_failed",
+            "截图失败，请检查页面访问权限后重试"
+          )
+        );
         this.#onCancel?.();
       }
       return;
@@ -232,6 +252,7 @@ export class ScreenshotOverlay {
       height: 100vh;
       z-index: 2147483647;
       user-select: none;
+      touch-action: none;
       cursor: crosshair;
       overflow: hidden;
       outline: none;
@@ -388,19 +409,26 @@ export class ScreenshotOverlay {
     this.#onCancel?.();
   };
 
-  #onMouseDown = (e) => {
-    if (e.button !== 0 || this.#busy) return;
+  #onPointerDown = (e) => {
+    if (
+      e.button !== 0 ||
+      e.isPrimary === false ||
+      this.#cleanupGesture ||
+      this.#busy
+    )
+      return;
     const target = e.target;
 
     // 点击在控制按钮、线框或缩放手柄上时由其自身处理
     if (
       target.closest?.(
-        ".kt-image-dual-btn-container, .kt-screenshot-handle, .kt-image-layout-overlay"
+        "button, .kt-image-dual-btn-container, .kt-screenshot-handle, .kt-image-layout-overlay"
       )
     ) {
       return;
     }
 
+    const pointerId = e.pointerId;
     const startX = e.clientX;
     const startY = e.clientY;
     let changed = false;
@@ -425,7 +453,8 @@ export class ScreenshotOverlay {
       this.#layoutRegions = [];
     }
 
-    const onMouseMove = (moveEvent) => {
+    const onPointerMove = (moveEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
       if (this.#busy) return;
       if (
         !changed &&
@@ -460,11 +489,13 @@ export class ScreenshotOverlay {
       }
     };
 
-    const onMouseUp = () => {
+    const onPointerUp = (event) => {
+      if (event.pointerId !== pointerId) return;
       this.#isSelecting = false;
       this.#isDragging = false;
-      document.removeEventListener("mousemove", onMouseMove, true);
-      document.removeEventListener("mouseup", onMouseUp, true);
+      document.removeEventListener("pointermove", onPointerMove, true);
+      document.removeEventListener("pointerup", onPointerUp, true);
+      document.removeEventListener("pointercancel", onPointerUp, true);
       this.#cleanupGesture = null;
 
       if (
@@ -475,6 +506,15 @@ export class ScreenshotOverlay {
         this.#layoutState = "idle";
         this.#layoutRegions = [];
       }
+      if (
+        event.type === "pointercancel" &&
+        this.#isConfirmed &&
+        !this.#selection
+      ) {
+        this.destroy(true);
+        this.#onCancel?.();
+        return;
+      }
       if (changed) this.#finishSelection();
       else {
         this.#cancelSelectionFrame();
@@ -482,27 +522,38 @@ export class ScreenshotOverlay {
       }
     };
 
-    document.addEventListener("mousemove", onMouseMove, true);
-    document.addEventListener("mouseup", onMouseUp, true);
+    document.addEventListener("pointermove", onPointerMove, true);
+    document.addEventListener("pointerup", onPointerUp, true);
+    document.addEventListener("pointercancel", onPointerUp, true);
     this.#cleanupGesture = () => {
-      document.removeEventListener("mousemove", onMouseMove, true);
-      document.removeEventListener("mouseup", onMouseUp, true);
+      document.removeEventListener("pointermove", onPointerMove, true);
+      document.removeEventListener("pointerup", onPointerUp, true);
+      document.removeEventListener("pointercancel", onPointerUp, true);
     };
   };
 
   #startResize = (dir, e) => {
     e.stopPropagation();
     e.preventDefault();
-    if (this.#busy || !this.#selection) return;
+    if (
+      e.button !== 0 ||
+      e.isPrimary === false ||
+      this.#cleanupGesture ||
+      this.#busy ||
+      !this.#selection
+    )
+      return;
     this.#isResizing = true;
     this.#resizeDir = dir;
     let changed = false;
 
+    const pointerId = e.pointerId;
     const startX = e.clientX;
     const startY = e.clientY;
     const initSel = { ...this.#selection };
 
-    const onMouseMove = (moveEvent) => {
+    const onPointerMove = (moveEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
       if (!this.#isResizing || !this.#selection || this.#busy) return;
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
@@ -530,11 +581,13 @@ export class ScreenshotOverlay {
       }
     };
 
-    const onMouseUp = () => {
+    const onPointerUp = (event) => {
+      if (event.pointerId !== pointerId) return;
       this.#isResizing = false;
       this.#resizeDir = null;
-      document.removeEventListener("mousemove", onMouseMove, true);
-      document.removeEventListener("mouseup", onMouseUp, true);
+      document.removeEventListener("pointermove", onPointerMove, true);
+      document.removeEventListener("pointerup", onPointerUp, true);
+      document.removeEventListener("pointercancel", onPointerUp, true);
       this.#cleanupGesture = null;
       if (changed) this.#finishSelection();
       else {
@@ -543,11 +596,13 @@ export class ScreenshotOverlay {
       }
     };
 
-    document.addEventListener("mousemove", onMouseMove, true);
-    document.addEventListener("mouseup", onMouseUp, true);
+    document.addEventListener("pointermove", onPointerMove, true);
+    document.addEventListener("pointerup", onPointerUp, true);
+    document.addEventListener("pointercancel", onPointerUp, true);
     this.#cleanupGesture = () => {
-      document.removeEventListener("mousemove", onMouseMove, true);
-      document.removeEventListener("mouseup", onMouseUp, true);
+      document.removeEventListener("pointermove", onPointerMove, true);
+      document.removeEventListener("pointerup", onPointerUp, true);
+      document.removeEventListener("pointercancel", onPointerUp, true);
     };
   };
 
@@ -837,7 +892,7 @@ export class ScreenshotOverlay {
           this.#overlayElement = element;
           this.#paintSelectionGeometry();
         }}
-        onMouseDown={this.#onMouseDown}
+        onPointerDown={this.#onPointerDown}
         onContextMenu={this.#onContextMenu}
         style={{
           "--kt-selection-x": `${sel?.x || 0}px`,
@@ -911,8 +966,12 @@ export class ScreenshotOverlay {
           >
             <span>
               {this.#i18n(
-                "image_screenshot_esc_tip",
-                "拖拽框选文字区域，按 Esc 取消"
+                this.#coarsePointer
+                  ? "image_screenshot_touch_tip"
+                  : "image_screenshot_esc_tip",
+                this.#coarsePointer
+                  ? "拖动框选文字区域，点击 × 取消"
+                  : "拖拽框选文字区域，按 Esc 取消"
               )}
             </span>
             <button
@@ -931,6 +990,8 @@ export class ScreenshotOverlay {
                 justifyContent: "center",
                 cursor: "pointer",
                 padding: 0,
+                minWidth: this.#coarsePointer ? 44 : undefined,
+                minHeight: this.#coarsePointer ? 44 : undefined,
                 borderRadius: "50%",
                 opacity: 0.8,
               }}
@@ -979,20 +1040,34 @@ export class ScreenshotOverlay {
             <div
               key={h.dir}
               className="kt-screenshot-handle"
-              onMouseDown={(e) => this.#startResize(h.dir, e)}
+              onPointerDown={(e) => this.#startResize(h.dir, e)}
+              onClick={(e) => e.stopPropagation()}
               style={{
                 position: "absolute",
                 left: `calc(var(--kt-selection-x) + ${h.dir.includes("w") ? "0px" : h.dir.includes("e") ? "var(--kt-selection-width)" : "var(--kt-selection-width) / 2"} - 4px)`,
                 top: `calc(var(--kt-selection-y) + ${h.dir.includes("n") ? "0px" : h.dir.includes("s") ? "var(--kt-selection-height)" : "var(--kt-selection-height) / 2"} - 4px)`,
-                width: "8px",
-                height: "8px",
-                backgroundColor: "#ffffff",
-                border: "2px solid #00c853",
+                width: this.#coarsePointer ? "44px" : "8px",
+                height: this.#coarsePointer ? "44px" : "8px",
+                margin: this.#coarsePointer ? "-18px" : 0,
                 borderRadius: "2px",
                 cursor: h.cursor,
                 zIndex: 20,
               }}
-            />
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  left: this.#coarsePointer ? 18 : 0,
+                  top: this.#coarsePointer ? 18 : 0,
+                  width: 8,
+                  height: 8,
+                  backgroundColor: "#ffffff",
+                  border: "2px solid #00c853",
+                  borderRadius: 2,
+                  pointerEvents: "none",
+                }}
+              />
+            </div>
           ))}
 
         {/* 选区右上角操作条在打开翻译弹框后继续保留 */}

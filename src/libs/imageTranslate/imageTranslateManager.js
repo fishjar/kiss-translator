@@ -13,6 +13,7 @@ import { APP_CONSTS } from "../../config/app";
 import { isolateShadowHost, mountShadowHost } from "../shadowHost";
 import { isIframe } from "../iframe";
 import { newI18n } from "../../config/i18n";
+import { checkScreenshotSupport } from "./screenshotSupport";
 import { ImageHoverDetector } from "./imageHoverDetector";
 import { ScreenshotOverlay } from "./screenshotOverlay";
 import { ImageSourceHighlight } from "./imageSourceHighlight";
@@ -187,6 +188,9 @@ export class ImageTranslateManager {
    */
   async startScreenshot() {
     if (this.#isIframe) return;
+    const requestVersion = this.#requestVersion;
+    if (!(await checkScreenshotSupport(this.#i18n))) return;
+    if (requestVersion !== this.#requestVersion) return;
 
     this.closeBox({ keepScreenshotActive: true });
     flushSync(() => this.#hoverDetector?.suspend());
