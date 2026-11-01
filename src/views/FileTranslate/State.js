@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import ReaderAlert from "./ReaderAlert";
 import Box from "@mui/material/Box";
@@ -15,10 +16,19 @@ import Select from "@mui/material/Select";
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import { getFileClient } from "../../fileTranslation/client";
 import { DEFAULT_FILE_TRANSLATE_SETTING } from "../../config/setting";
+import { useHomepageIconColor } from "../../homepage/useHomepageIconColor";
 import { I18N, UI_LANGS } from "../../config/i18n";
 import { OPT_STYLE_ALL } from "../../config/styles";
 import { builtinStylesMap } from "../../libs/style";
 import { useHomepageSettings } from "../../homepage/useHomepageSettings";
+import {
+  calculateAdaptiveAccentFamilies,
+  calculateAdaptivePrimaryFamily,
+  getIconColorSnapshot,
+  resolveIconHue,
+  setIconColorSnapshot,
+  subscribeIconColor,
+} from "../../styles/m3";
 
 const Context = createContext(null);
 const LANGUAGE_STORAGE_KEY = "kiss-file-translate-lang";
@@ -47,6 +57,26 @@ export function useFileTranslation() {
 
 export function FileTranslationProvider({ children }) {
   const preferences = useHomepageSettings();
+  // 图标主题色快照：与 M3Theme 同源（m3.js 快照 store，零重依赖）。
+  // 本页视图树不含分发器图标（页面图标直连 MUI 静态导入），故不挂
+  // SettingProvider、不同步 iconStyle；下方 effect 读取 homepage 本地
+  // iconColor 后写入共享快照（本地回退写入点；扩展连接后由 refresh()
+  // 的权威值覆盖，见下）。homepage 无
+  // browser.storage 访问权，与扩展 Setting 解耦——数据源为 localStorage
+  // （useHomepageIconColor），主色随色相管线派生，不再硬编码。
+  // 预接线（PR #17 评审闭环）：扩展连接后 getContext 携带权威 iconColor，
+  // refresh() 送达即覆盖快照；未连接/旧版无字段时维持本地回退值。
+  const iconColor = useSyncExternalStore(
+    subscribeIconColor,
+    getIconColorSnapshot
+  );
+  const { iconColor: homepageIconColor } = useHomepageIconColor();
+  useEffect(() => {
+    setIconColorSnapshot(homepageIconColor);
+  }, [homepageIconColor]);
+  // refresh/disconnect 处于 [] 依赖回调内，经 ref 取 homepage 回退最新值。
+  const homepageIconColorRef = useRef(homepageIconColor);
+  homepageIconColorRef.current = homepageIconColor;
   const [context, setContext] = useState(EMPTY);
   const [session, setSession] = useState(null);
   const [cachedLanguage, setCachedLanguage] = useState(readLanguage);
@@ -108,6 +138,15 @@ export function FileTranslationProvider({ children }) {
       sessionId === client.session?.sessionId
     ) {
       setContext(next);
+      // 预接线消费点：新版 backend 随 context 投影 iconColor（已归一），
+      // 送达即写共享快照。无该字段（旧版扩展/用户脚本）时恢复 homepage
+      // localStorage 本地回退值，不被 undefined 打回默认档，也不沿用
+      // 前一个扩展投递的颜色。
+      if (typeof next.iconColor === "string") {
+        setIconColorSnapshot(next.iconColor);
+      } else {
+        setIconColorSnapshot(homepageIconColorRef.current);
+      }
       if (validLanguage(next.uiLang)) {
         setCachedLanguage(next.uiLang);
         try {
@@ -176,6 +215,8 @@ export function FileTranslationProvider({ children }) {
         setConnecting(false);
         setReconnectAt(null);
         setError(event.error.message);
+        // 断开后共享快照不再沿用已断开扩展投递的颜色，恢复 homepage 回退值。
+        setIconColorSnapshot(homepageIconColorRef.current);
       }
       if (event.type === "connecting" || event.type === "reconnecting") {
         setConnecting(true);
@@ -291,10 +332,37 @@ export function FileTranslationProvider({ children }) {
     ],
     [context.styles, i18n]
   );
+  const accentFamily = useMemo(
+    () =>
+      calculateAdaptivePrimaryFamily(
+        resolveIconHue(iconColor),
+        preferences.themeMode
+      ),
+    [iconColor, preferences.themeMode]
+  );
+  const secondaryFamily = useMemo(
+    () =>
+      calculateAdaptiveAccentFamilies(
+        resolveIconHue(iconColor),
+        preferences.themeMode
+      ),
+    [iconColor, preferences.themeMode]
+  );
   const theme = useMemo(
     () =>
       createTheme({
-        palette: { mode: preferences.themeMode, primary: { main: "#0B57D0" } },
+        palette: {
+          mode: preferences.themeMode,
+          primary: { main: accentFamily.primary },
+          secondary: {
+            // main 用可读的次强调色（前景语义），容器色以扩展键暴露，
+            // 背景用途（ImageViewerDialog 选中态药丸）走 secondaryContainer。
+            main: secondaryFamily.secondary,
+            contrastText: secondaryFamily.onSecondary,
+            secondaryContainer: secondaryFamily.secondaryContainer,
+            onSecondaryContainer: secondaryFamily.onSecondaryContainer,
+          },
+        },
         shape: { borderRadius: 4 },
         typography: { button: { textTransform: "none" } },
         components: {
@@ -337,7 +405,7 @@ export function FileTranslationProvider({ children }) {
           },
         },
       }),
-    [preferences.themeMode]
+    [preferences.themeMode, accentFamily, secondaryFamily]
   );
   const openSettings = useCallback((path = "") => {
     const page = path.includes("local-ai")

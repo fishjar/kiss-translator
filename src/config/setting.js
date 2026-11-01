@@ -19,6 +19,7 @@ import {
 import { GLOBAL_KEY } from "./rules";
 import { defaultServices } from "./defaultServices";
 import { DEFAULT_CUSTOM_STYLES } from "./styles";
+import { DEFAULT_ICON_STYLE, DEFAULT_ICON_COLOR } from "../styles/m3";
 
 // --- 默认系统快捷键映射 ---
 export const OPT_SHORTCUT_TRANSLATE = "toggleTranslate"; // 切换整页双语翻译
@@ -351,6 +352,8 @@ export const DEFAULT_SETTING = {
   // 输入框拉伸手柄样式（14 选 1，见 StylesSetting 页说明）
   textareaGripStyle: "concentric-smooth",
   darkMode: "auto", // 主题外观模式 ("light" 浅色, "dark" 深色, "auto" 跟随浏览器系统)
+  iconStyle: DEFAULT_ICON_STYLE, // 图标风格（"lucide" Lucide 描边，"mui" MUI 经典）
+  iconColor: DEFAULT_ICON_COLOR, // 主题色（莫兰迪环规范 Hex，见 src/styles/m3.js ICON_COLOR_PRESETS）
   uiLang: "en", // 插件设置面板界面的显示语言
   // fetchLimit: DEFAULT_FETCH_LIMIT, // 最大任务数量(移至rule，作废)
   // fetchInterval: DEFAULT_FETCH_INTERVAL, // 任务间隔时间(移至rule，作废)
