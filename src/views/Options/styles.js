@@ -131,6 +131,13 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
   .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root:hover { background: var(--kt-secc); background: color-mix(in srgb, var(--kt-onsecc) 8%, var(--kt-secc)); }
 }
 .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-focusVisible { background: var(--kt-secc); background: color-mix(in srgb, var(--kt-onsecc) 10%, var(--kt-secc)); outline: none; box-shadow: inset 0 0 0 3px var(--kt-pri); }
+/* forced-colors 域 UA 忽略上方 inset box-shadow，而 outline:none 仍生效
+   → 该域键盘焦点零指示。换系统色描边（不写颜色，outline-color 由强制
+   引擎接管）；offset -3px 内收，不出 34px 按钮圆外。必须排在其后：同特
+   异性靠源码顺序压过 outline:none。上方环若改回描边，本块须一并删除。 */
+@media (forced-colors: active) {
+  .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-focusVisible { outline: 3px solid; outline-offset: -3px; }
+}
 .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-disabled { background: var(--kt-sf2); color: var(--kt-line); }
 .kt-options-page .kt-translation-text-field--source textarea { caret-color: var(--kt-pri); }
 .kt-options-page .kt-translation-text-field--result textarea { cursor: default; }

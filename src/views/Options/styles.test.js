@@ -216,9 +216,30 @@ describe("settings layout boundaries", () => {
     expect(OPTIONS_STYLES).toMatch(
       /\.kt-options-page \.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*outline:\s*none;[^}]*box-shadow:\s*inset 0 0 0 3px var\(--kt-pri\);/
     );
-    expect(OPTIONS_STYLES).not.toMatch(
+    const forcedColorBodies = getCssAtRuleBodies(
+      OPTIONS_STYLES,
+      "@media (forced-colors: active)"
+    );
+    const cssOutsideForcedColors = forcedColorBodies.reduce(
+      (acc, body) => acc.replace(body, () => ""),
+      OPTIONS_STYLES
+    );
+    expect(cssOutsideForcedColors).not.toMatch(
       /\.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*outline:\s*3px/
     );
+    expect(forcedColorBodies.length).toBeGreaterThanOrEqual(1);
+    expect(
+      forcedColorBodies.some((body) =>
+        /\.kt-options-page \.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*outline:\s*3px solid;[^}]*outline-offset:\s*-3px;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+    expect(
+      OPTIONS_STYLES.indexOf(
+        ".kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-focusVisible"
+      )
+    ).toBeLessThan(OPTIONS_STYLES.indexOf("@media (forced-colors: active)"));
     const hoverBodies = getCssAtRuleBodies(
       OPTIONS_STYLES,
       "@media (hover: hover)"
