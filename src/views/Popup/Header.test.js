@@ -6,6 +6,11 @@ import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 import { useI18n } from "../../hooks/I18n";
 import { newI18n } from "../../config/i18n";
 
+jest.mock("../../libs/imageTranslate/screenshotSupport", () => ({
+  checkScreenshotSupport: jest.fn(async () => true),
+}));
+jest.mock("../../libs/msg", () => ({ sendTabMsg: jest.fn(async () => {}) }));
+
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 jest.mock("../../hooks/I18n", () => ({
@@ -32,6 +37,25 @@ describe("Popup Header support menu", () => {
     act(() => root.unmount());
     document.body.innerHTML = "";
     window.open = originalWindowOpen;
+  });
+
+  test("unsupported screenshot leaves popup open", async () => {
+    const {
+      checkScreenshotSupport,
+    } = require("../../libs/imageTranslate/screenshotSupport");
+    const { sendTabMsg } = require("../../libs/msg");
+    checkScreenshotSupport.mockResolvedValueOnce(false);
+    const close = jest.spyOn(window, "close").mockImplementation(() => {});
+    sendTabMsg.mockClear();
+    act(() => root.render(<Header />));
+    await act(async () =>
+      container
+        .querySelector('[aria-label="image_screenshot_translate"]')
+        .click()
+    );
+    expect(sendTabMsg).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
+    close.mockRestore();
   });
 
   test("localizes the screenshot button tooltip and accessible name in English", () => {

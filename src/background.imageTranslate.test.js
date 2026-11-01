@@ -62,3 +62,26 @@ test("image progress has increasing sequence numbers and stops after cancellatio
   report({ stage: "recognize", current: 1 });
   expect(sendTabMsg).toHaveBeenCalledTimes(3);
 });
+
+test.each([true, false])("screenshot API support %s", async (available) => {
+  const captureVisibleTab = available
+    ? jest.fn(async () => "data:image/png;base64,test")
+    : undefined;
+  const context = vm.createContext({
+    browser: { tabs: { captureVisibleTab } },
+    MSG_SCREENSHOT_SUPPORT: "support",
+    MSG_CAPTURE_VISIBLE_TAB: "capture",
+  });
+  const source = background.slice(
+    background.indexOf("[MSG_SCREENSHOT_SUPPORT]:"),
+    background.indexOf("[MSG_IMAGE_TRANSLATE_EXECUTE]:")
+  );
+  const handlers = vm.runInContext(`({${source}})`, context);
+  expect(handlers.support()).toEqual({ supported: available });
+  if (available) expect(captureVisibleTab).not.toHaveBeenCalled();
+  expect(await handlers.capture({}, {})).toEqual(
+    available
+      ? { dataUrl: "data:image/png;base64,test" }
+      : { unsupported: true }
+  );
+});

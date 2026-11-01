@@ -4,6 +4,43 @@
  */
 
 export const IMAGE_TRANSLATE_I18N = {
+  image_screenshot_unsupported: {
+    zh: "当前浏览器不支持截图翻译",
+    en: "This browser does not support screenshot translation",
+    zh_TW: "目前瀏覽器不支援截圖翻譯",
+    ja: "このブラウザーはスクリーンショット翻訳に対応していません",
+    ko: "현재 브라우저는 스크린샷 번역을 지원하지 않습니다",
+    tr: "Bu tarayıcı ekran görüntüsü çevirisini desteklemiyor",
+    vi: "Trình duyệt này không hỗ trợ dịch ảnh chụp màn hình",
+  },
+  image_screenshot_check_failed: {
+    zh: "无法检测截图能力，请重试",
+    en: "Unable to check screenshot support. Please try again.",
+    zh_TW: "無法偵測截圖能力，請重試",
+    ja: "スクリーンショットの対応状況を確認できません。再試行してください",
+    ko: "스크린샷 지원 여부를 확인할 수 없습니다. 다시 시도하세요",
+    tr: "Ekran görüntüsü desteği denetlenemedi. Lütfen tekrar deneyin.",
+    vi: "Không thể kiểm tra khả năng chụp màn hình. Vui lòng thử lại.",
+  },
+  image_screenshot_failed: {
+    zh: "截图失败，请检查页面访问权限后重试",
+    en: "Screenshot failed. Check page access permissions and try again.",
+    zh_TW: "截圖失敗，請檢查頁面存取權限後重試",
+    ja: "撮影に失敗しました。ページへのアクセス権限を確認して再試行してください",
+    ko: "스크린샷에 실패했습니다. 페이지 접근 권한을 확인하고 다시 시도하세요",
+    tr: "Ekran görüntüsü alınamadı. Sayfa erişim izinlerini kontrol edip tekrar deneyin.",
+    vi: "Chụp màn hình thất bại. Kiểm tra quyền truy cập trang rồi thử lại.",
+  },
+  image_screenshot_touch_tip: {
+    zh: "拖动框选文字区域，点击 × 取消",
+    en: "Drag to select text, tap × to cancel",
+    zh_TW: "拖動框選文字區域，點擊 × 取消",
+    ja: "ドラッグして文字範囲を選択、× をタップしてキャンセル",
+    ko: "드래그하여 텍스트 영역 선택, ×를 눌러 취소",
+    tr: "Metni seçmek için sürükleyin, iptal için × simgesine dokunun",
+    vi: "Kéo để chọn vùng văn bản, chạm × để hủy",
+  },
+
   image_download: {
     zh: "下载图片",
     en: "Download image",

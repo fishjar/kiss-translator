@@ -9,6 +9,10 @@ import { APP_CONSTS } from "../../config/app";
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 globalThis.crypto = require("crypto").webcrypto;
 
+jest.mock("./screenshotSupport", () => ({
+  checkScreenshotSupport: jest.fn(async () => true),
+}));
+
 const mockAddListener = jest.fn();
 const mockRemoveListener = jest.fn();
 const mockReadImage = jest.fn();
@@ -71,7 +75,22 @@ jest.mock("./screenshotOverlay", () => {
 const { ImageTranslateManager } = require("./imageTranslateManager");
 
 describe("ImageTranslateManager", () => {
+  test("unsupported screenshots preserve the open image box", async () => {
+    const manager = new ImageTranslateManager({ setting: {} });
+    act(() => manager.openBox({ blob: new Blob(["image"]) }));
+    const box = document.getElementById(APP_CONSTS.imageBoxID);
+    require("./screenshotSupport").checkScreenshotSupport.mockResolvedValueOnce(
+      false
+    );
+    await act(async () => manager.startScreenshot());
+    expect(mockStart).not.toHaveBeenCalled();
+    expect(document.getElementById(APP_CONSTS.imageBoxID)).toBe(box);
+    act(() => manager.destroy());
+  });
   beforeEach(() => {
+    require("./screenshotSupport").checkScreenshotSupport.mockResolvedValue(
+      true
+    );
     document.body.innerHTML = "";
     mockAddListener.mockClear();
     mockRemoveListener.mockClear();
@@ -396,7 +415,10 @@ describe("ImageTranslateManager", () => {
         act(() => {
           pending = manager.startScreenshot();
         });
-        expect(mockStart).not.toHaveBeenCalled(); // capture must wait for a paint
+        expect(mockStart).not.toHaveBeenCalled(); // capture must wait for support and a paint
+        await act(async () => {
+          await Promise.resolve();
+        });
         act(() => hover());
         expect(button("menu")).toBeNull();
         await act(async () => pending);

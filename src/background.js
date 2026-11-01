@@ -50,6 +50,7 @@ import {
   CMD_IMAGE_SCREENSHOT,
   MSG_IMAGE_SCREENSHOT,
   MSG_CAPTURE_VISIBLE_TAB,
+  MSG_SCREENSHOT_SUPPORT,
   MSG_IMAGE_TRANSLATE_EXECUTE,
   MSG_IMAGE_TRANSLATE_CANCEL,
   MSG_IMAGE_TRANSLATE_PROGRESS,
@@ -845,7 +846,13 @@ const messageHandlers = {
       ? updateCacheFromActual(args.windowId)
       : undefined,
   [MSG_UPDATE_ICON]: (args, sender) => updateIcon(args, sender?.tab?.id), // 变更页面的插件高亮图标
+  [MSG_SCREENSHOT_SUPPORT]: () => ({
+    supported: typeof browser.tabs?.captureVisibleTab === "function",
+  }),
   [MSG_CAPTURE_VISIBLE_TAB]: async (_args, sender) => {
+    if (typeof browser.tabs?.captureVisibleTab !== "function") {
+      return { unsupported: true };
+    }
     const windowId = sender?.tab?.windowId;
     const tabId = sender?.tab?.id;
     if (tabId != null && windowId != null) {

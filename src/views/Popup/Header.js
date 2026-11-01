@@ -16,6 +16,7 @@ import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 import PopupMenu from "./PopupMenu";
 import { sendTabMsg } from "../../libs/msg";
 import { MSG_IMAGE_SCREENSHOT } from "../../config/msg";
+import { checkScreenshotSupport } from "../../libs/imageTranslate/screenshotSupport";
 import { isExt } from "../../libs/client";
 
 export default function Header({
@@ -38,6 +39,7 @@ export default function Header({
   };
 
   const handleScreenshot = async () => {
+    if (!(await checkScreenshotSupport(i18n))) return;
     try {
       await sendTabMsg(MSG_IMAGE_SCREENSHOT);
     } finally {
