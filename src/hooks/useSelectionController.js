@@ -17,6 +17,7 @@ import {
   OPT_TRANBOX_TRIGGER_DBLCLICK,
   OPT_TRANBOX_INTERACT_CLICK,
   OPT_TRANBOX_INTERACT_DBLCLICK,
+  DEFAULT_TRANBOX_HOVER_DELAY,
 } from "../config";
 import {
   getMaxTranBoxX,
@@ -356,6 +357,7 @@ export default function useSelectionController({
   const {
     hideTranBtn = false,
     triggerMode,
+    triggerHoverDelay = DEFAULT_TRANBOX_HOVER_DELAY,
     btnPositionMode = OPT_TRANBOX_BTN_POSITION_FIXED,
     btnOffsetX = 0,
     btnOffsetY = 0,
@@ -800,5 +802,6 @@ export default function useSelectionController({
     handleOpenTranbox,
     handleToggleTranbox,
     btnEvent,
+    triggerHoverDelay,
   };
 }

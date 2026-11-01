@@ -7,6 +7,7 @@ import ThemeProvider from "../../hooks/M3Theme";
 import { SettingProvider } from "../../hooks/Setting";
 import { SELECTION_STYLES } from "./styles";
 import { newI18n } from "../../config";
+import { OPT_TRANBOX_TRIGGER_HOVER } from "../../config/setting";
 
 /**
  * Entry point for selection translation interactions.
@@ -60,6 +61,7 @@ export default function Selection({
     handleOpenTranbox,
     handleToggleTranbox,
     btnEvent,
+    triggerHoverDelay,
   } = useSelectionController({
     tranboxSetting,
     followSelection,
@@ -118,6 +120,9 @@ export default function Selection({
           <TranBtn
             position={position}
             btnEvent={btnEvent}
+            hoverDelay={
+              triggerMode === OPT_TRANBOX_TRIGGER_HOVER ? triggerHoverDelay : 0
+            }
             label={i18n("translate", "Translate selection")}
             onTrigger={(e) => {
               e.stopPropagation();
