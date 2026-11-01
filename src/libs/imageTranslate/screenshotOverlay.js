@@ -506,7 +506,16 @@ export class ScreenshotOverlay {
         this.#layoutState = "idle";
         this.#layoutRegions = [];
       }
-      if (changed && event.type !== "pointercancel") this.#finishSelection();
+      if (
+        event.type === "pointercancel" &&
+        this.#isConfirmed &&
+        !this.#selection
+      ) {
+        this.destroy(true);
+        this.#onCancel?.();
+        return;
+      }
+      if (changed) this.#finishSelection();
       else {
         this.#cancelSelectionFrame();
         this.#render();
@@ -580,7 +589,7 @@ export class ScreenshotOverlay {
       document.removeEventListener("pointerup", onPointerUp, true);
       document.removeEventListener("pointercancel", onPointerUp, true);
       this.#cleanupGesture = null;
-      if (changed && event.type !== "pointercancel") this.#finishSelection();
+      if (changed) this.#finishSelection();
       else {
         this.#cancelSelectionFrame();
         this.#render();

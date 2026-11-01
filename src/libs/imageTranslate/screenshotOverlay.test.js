@@ -102,7 +102,11 @@ describe("ScreenshotOverlay", () => {
       pointer(document, "pointercancel", 170, 180);
     });
     expect(geometry().left).toBe("120px");
-    expect(callbacks.onComplete).toHaveBeenCalledTimes(count);
+    await act(async () => {});
+    expect(callbacks.onComplete).toHaveBeenCalledTimes(count + 1);
+    expect(callbacks.onComplete).toHaveBeenLastCalledWith(
+      expect.objectContaining({ action: "update" })
+    );
     drag(10, 10, 70, 80);
     expect(geometry().left).toBe("10px");
   });
