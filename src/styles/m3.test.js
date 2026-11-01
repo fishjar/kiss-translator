@@ -6,7 +6,7 @@ import {
   resolveM3Colors,
   resolveM3ThemeMode,
 } from "./m3";
-import { getCssAtRuleBodies } from "./testUtils";
+import { getCssAtRuleBodies, stripTopLevelAtRuleBlocks } from "./testUtils";
 import {
   LOCKED_MIN_TARGET_HEIGHT_PX,
   MIN_TARGET_HEIGHT_PX,
@@ -85,9 +85,9 @@ describe("M3 resizable textareas", () => {
     // 严禁出现无前缀的全局 textarea 规则（泄漏会污染宿主页面与扩展
     // popup 之外的任意原生 textarea）。@supports 头先行剥除，块内选择器
     // 逐条核验；合法选择器全集以 m3.js 实际内容为唯一事实来源，当前为：
-    //   .kt-m3-root textarea（×2，:172/:178）
-    //   .kt-m3-root textarea.kt-resizable-textarea:not([aria-hidden="true"])::-webkit-scrollbar（:232）
-    //   .kt-m3-root .kt-height-locked textarea:not([aria-hidden="true"])（:241）
+    //   .kt-m3-root textarea（×2）
+    //   .kt-m3-root textarea.kt-resizable-textarea:not([aria-hidden="true"])::-webkit-scrollbar
+    //   .kt-m3-root .kt-height-locked textarea:not([aria-hidden="true"])
     const selectorText = M3_GLOBAL_CSS.replace(/@supports[^{]*\{/g, "");
     const textareaSelectors =
       selectorText.match(/[^\n{}]*textarea[^\n{}]*\{/g) ?? [];
@@ -103,11 +103,13 @@ describe("M3 resizable textareas", () => {
 
 describe("M3 keyboard focus", () => {
   test("ships an explicit grip focus ring instead of relying on the global cascade", () => {
-    // B7 决策反转：手柄焦点指示升格为 m3.js 显式规则，不再静默依赖全局
-    // 级联——Shadow DOM 场景或后续全局 :focus/:focus-visible 规则调整
-    // （如新增 input 类豁免）不会静默丢失焦点环。口径与全局级联一致：
-    // 鼠标 :focus 零指示，键盘 :focus-visible 3px 主色环 + 2px 偏移；
-    // 旧内核经 :focus 直接走零指示分支（与全局 :focus 豁免同口径）。
+    // 手柄焦点指示为 m3.js 显式规则，不静默依赖全局级联——Shadow DOM
+    // 场景或后续全局 :focus/:focus-visible 规则调整（如新增 input 类豁免）
+    // 不会静默丢失焦点环。口径：鼠标 :focus 零指示，键盘 :focus-visible
+    // 画 3px 主色内嵌环（inset box-shadow，不外扩）；内嵌而非外扩的理由：
+    // 手柄盒紧贴字段右下角并与操作按钮簇共边，外扩环会伸入按钮实心圆的
+    // 绘制区被叠成缺角。无 :focus-visible 支持的旧内核（本仓 gecko 构建
+    // 下限为 78.0，早于 Firefox 85）经 :focus 兜底画同一内嵌环，宁滥勿缺。
     expect(M3_GLOBAL_CSS).toMatch(
       /\.kt-m3-root \.kt-resize-grip:focus\s*\{[^}]*outline:\s*none;/
     );
@@ -124,11 +126,60 @@ describe("M3 keyboard focus", () => {
     ).toBe(true);
     expect(
       focusVisibleBodies.some((body) =>
-        /\.kt-m3-root \.kt-resize-grip:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--kt-pri\);[^}]*outline-offset:\s*2px;/.test(
+        /\.kt-m3-root \.kt-resize-grip:focus-visible\s*\{[^}]*outline:\s*none;[^}]*box-shadow:\s*inset 0 0 0 3px var\(--kt-pri\);/.test(
           body
         )
       )
     ).toBe(true);
+    expect(
+      focusVisibleBodies.some((body) =>
+        /\.kt-m3-root \.kt-resize-grip:focus-visible\s*\{[^}]*outline-offset:/.test(
+          body
+        )
+      )
+    ).toBe(false);
+    const gripBaseCss = stripTopLevelAtRuleBlocks(M3_GLOBAL_CSS);
+    expect(gripBaseCss).toMatch(
+      /\.kt-m3-root \.kt-resize-grip:focus\s*\{[^}]*outline:\s*none;[^}]*box-shadow:\s*inset 0 0 0 3px var\(--kt-pri\);/
+    );
+    expect(
+      focusVisibleBodies.some((body) =>
+        /\.kt-m3-root \.kt-resize-grip:focus\s*\{[^}]*outline:\s*none;[^}]*box-shadow:\s*none;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+    // forced-colors 域 UA 忽略 box-shadow，内嵌环失效 → 该域必须换系统色描边。
+    // 描边只允许出现在该域：非强制色彩域的唯一环源仍是内嵌 box-shadow，外扩
+    // 环会被右下角操作簇 z-index 叠成缺角。数量取下界：他处 HC 兜底块合法可增。
+    const forcedColorBodies = getCssAtRuleBodies(
+      M3_GLOBAL_CSS,
+      "@media (forced-colors: active)"
+    );
+    expect(forcedColorBodies.length).toBeGreaterThanOrEqual(1);
+    expect(
+      forcedColorBodies.some((body) =>
+        /\.kt-m3-root \.kt-resize-grip:focus\s*\{[^}]*outline:\s*3px solid;[^}]*outline-offset:\s*-3px;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+    // 顺序硬闸：兜底块须排在手柄 :focus-visible 规则之后，否则同特异性下被其
+    // outline:none 压制，修复静默失效。
+    expect(
+      M3_GLOBAL_CSS.indexOf(
+        "@media (forced-colors: active) {\n  .kt-m3-root .kt-resize-grip:focus"
+      )
+    ).toBeGreaterThan(
+      M3_GLOBAL_CSS.indexOf(".kt-m3-root .kt-resize-grip:focus-visible")
+    );
+    const cssOutsideForcedColors = forcedColorBodies.reduce(
+      (css, body) => css.replace(body, () => ""),
+      M3_GLOBAL_CSS
+    );
+    expect(cssOutsideForcedColors).not.toMatch(
+      /\.kt-m3-root \.kt-resize-grip:focus(?:-visible)?\s*\{[^}]*outline:\s*3px/
+    );
   });
 
   test("keeps the primary focus ring solid after progressive enhancement", () => {

@@ -489,6 +489,42 @@ describe("TranForm Playground presentation", () => {
     act(() => root.unmount());
   });
 
+  test("gaps the Playground action cluster by 8px", async () => {
+    const { container, root } = renderTranForm({
+      simpleStyle: false,
+      isPlaygound: true,
+    });
+    await flushEffects();
+
+    const actions = container.querySelector(
+      ".kt-translation-source .MuiStack-root"
+    );
+    expect(actions).not.toBeNull();
+    expect(actions.classList).toContain("kt-translation-text-field__actions");
+    expect(window.getComputedStyle(actions).gap).toBe("8px");
+
+    act(() => root.unmount());
+  });
+
+  test("gaps the selection-panel action cluster by the same 8px", async () => {
+    const { container, root } = renderTranForm({
+      simpleStyle: false,
+      isPlaygound: false,
+    });
+    await flushEffects();
+
+    const actions = container.querySelector(
+      ".kt-translation-source .MuiStack-root"
+    );
+    expect(actions).not.toBeNull();
+    expect(actions.classList).not.toContain(
+      "kt-translation-text-field__actions"
+    );
+    expect(window.getComputedStyle(actions).gap).toBe("8px");
+
+    act(() => root.unmount());
+  });
+
   test("ignores stale language detection and keeps the newest request busy", async () => {
     const first = createDeferred();
     const second = createDeferred();

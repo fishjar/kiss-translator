@@ -727,9 +727,11 @@ export default function TextareaResizeGrip({
   return (
     <Box
       role="slider"
-      // kt-resize-grip：焦点指示为 m3.js 显式规则（B7）——鼠标 :focus
-      // 零指示，键盘 Tab 命中 :focus-visible 3px 主色环，不再静默依赖
-      // 全局级联（Shadow DOM 或全局规则调整不会丢失焦点环）。
+      // kt-resize-grip：焦点指示为 m3.js 显式规则——现代内核鼠标 :focus
+      // 零指示，键盘 Tab 命中 :focus-visible 画 3px 主色内嵌环（inset，
+      // 不外扩，以免被右下角操作簇叠成缺角）；无 :focus-visible 支持的
+      // 旧内核经 :focus 基格兜底画同一内嵌环。不再静默依赖全局级联
+      // （Shadow DOM 或全局规则调整不会丢失焦点环）。
       className="kt-resize-grip"
       // 手柄仅响应 clientY 与 ArrowUp/ArrowDown 调整高度，slider 方向
       // 语义为 vertical（光标形态 cursor: "ns-resize" 同口径）。

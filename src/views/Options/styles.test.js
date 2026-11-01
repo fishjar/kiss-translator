@@ -208,7 +208,16 @@ describe("settings layout boundaries", () => {
     expect(textFieldRule).toContain("overflow: visible");
     expect(textFieldRule).toContain("border-radius: 16px");
     expect(OPTIONS_STYLES).toMatch(
-      /\.kt-options-page \.kt-translation-text-field__actions\s*\{[^}]*right:\s*16px;[^}]*bottom:\s*16px;/
+      /\.kt-options-page \.kt-translation-text-field__actions\s*\{[^}]*right:\s*24px;[^}]*bottom:\s*24px;[^}]*z-index:\s*1;/
+    );
+    expect(OPTIONS_STYLES).toMatch(
+      /\.kt-options-page \.kt-translation-text-field \.MuiInputBase-inputMultiline\s*\{[^}]*padding:\s*30px 66px 62px 16px;/
+    );
+    expect(OPTIONS_STYLES).toMatch(
+      /\.kt-options-page \.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*outline:\s*none;[^}]*box-shadow:\s*inset 0 0 0 3px var\(--kt-pri\);/
+    );
+    expect(OPTIONS_STYLES).not.toMatch(
+      /\.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*outline:\s*3px/
     );
     const hoverBodies = getCssAtRuleBodies(
       OPTIONS_STYLES,

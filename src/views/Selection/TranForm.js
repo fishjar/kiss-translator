@@ -905,6 +905,8 @@ export default function TranForm({
                           : undefined
                       }
                       direction="row"
+                      spacing={1}
+                      useFlexGap
                       onPointerDown={preserveSourceFocus}
                       sx={
                         isPlaygound
