@@ -74,6 +74,8 @@ export const OPT_TRANS_OPENAI = "OpenAI"; // OpenAI 官方大模型 API 翻译
 export const OPT_TRANS_GEMINI = "Gemini"; // 谷歌 Gemini API 翻译 (原版接口形式)
 export const OPT_TRANS_GEMINI_2 = "Gemini2"; // 谷歌 Gemini API 翻译 (OpenAI 兼容接口形式)
 export const OPT_TRANS_CLAUDE = "Claude"; // Anthropic Claude 翻译
+// Anthropic API 版本。2026-10-21 会拒绝 temperature 等采样参数，升级前需先调整 Claude 请求体。
+export const ANTHROPIC_API_VERSION = "2023-06-01";
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI"; // Cloudflare Workers AI 翻译
 export const OPT_TRANS_OLLAMA = "Ollama"; // 本地部署 Ollama 模型翻译
 export const OPT_TRANS_OPENROUTER = "OpenRouter"; // OpenRouter 多模型聚合 API 翻译
