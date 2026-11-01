@@ -63,6 +63,7 @@ export default function Selection({
   } = useSelectionController({
     tranboxSetting,
     followSelection,
+    hideClickAway,
     boxOffsetX,
     boxOffsetY,
     boxSize,
