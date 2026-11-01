@@ -113,3 +113,91 @@ test("activates once for a keyboard-generated click", () => {
   expect(view.onTrigger).toHaveBeenCalledTimes(1);
   view.cleanup();
 });
+
+describe("hover trigger delay", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test("fires a hover trigger only after the pointer rests for the delay", () => {
+    const view = renderTranBtn({ btnEvent: "onMouseOver", hoverDelay: 300 });
+
+    act(() => {
+      view.button.dispatchEvent(
+        new MouseEvent("mouseover", { bubbles: true, detail: 1 })
+      );
+    });
+    expect(view.onTrigger).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(view.onTrigger).toHaveBeenCalledTimes(1);
+    view.cleanup();
+  });
+
+  test("cancels a pending hover trigger when the pointer leaves early", () => {
+    const view = renderTranBtn({ btnEvent: "onMouseOver", hoverDelay: 300 });
+
+    act(() => {
+      view.button.dispatchEvent(
+        new MouseEvent("mouseover", { bubbles: true, detail: 1 })
+      );
+      view.button.dispatchEvent(
+        new MouseEvent("mouseout", { bubbles: true, detail: 1 })
+      );
+    });
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(view.onTrigger).not.toHaveBeenCalled();
+    view.cleanup();
+  });
+
+  test("does not fire a pending hover trigger after unmount", () => {
+    const view = renderTranBtn({ btnEvent: "onMouseOver", hoverDelay: 300 });
+
+    act(() => {
+      view.button.dispatchEvent(
+        new MouseEvent("mouseover", { bubbles: true, detail: 1 })
+      );
+    });
+    view.cleanup();
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(view.onTrigger).not.toHaveBeenCalled();
+  });
+
+  test("keeps the click trigger untouched by a positive delay", () => {
+    const view = renderTranBtn({ btnEvent: "onClick", hoverDelay: 300 });
+
+    act(() => {
+      view.button.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, detail: 1 })
+      );
+    });
+    expect(view.onTrigger).toHaveBeenCalledTimes(1);
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(view.onTrigger).toHaveBeenCalledTimes(1);
+    view.cleanup();
+  });
+});
+
+test("fires immediately on hover when the delay is 0", () => {
+  const view = renderTranBtn({ btnEvent: "onMouseOver", hoverDelay: 0 });
+
+  act(() => {
+    view.button.dispatchEvent(
+      new MouseEvent("mouseover", { bubbles: true, detail: 1 })
+    );
+  });
+  expect(view.onTrigger).toHaveBeenCalledTimes(1);
+  view.cleanup();
+});
