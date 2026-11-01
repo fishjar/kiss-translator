@@ -7,13 +7,15 @@ import {
   useRef,
   useState,
 } from "react";
-import AddIcon from "@mui/icons-material/Add";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DeleteIcon from "@mui/icons-material/Delete";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import LockIcon from "@mui/icons-material/Lock";
-import SaveIcon from "@mui/icons-material/Save";
-import TextSnippetIcon from "@mui/icons-material/TextSnippet";
+import {
+  AddIcon,
+  ContentCopyIcon,
+  DeleteIcon,
+  EditIcon,
+  KeyboardArrowDownIcon,
+  SaveIcon,
+  TextSnippetIcon,
+} from "../../components/icons";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import List from "@mui/material/List";
@@ -189,9 +191,9 @@ function PromptListItem({ prompt, selected, isPreset, onSelect }) {
         }}
       >
         {isPreset ? (
-          <LockIcon fontSize="small" color="action" />
-        ) : (
           <TextSnippetIcon fontSize="small" color="action" />
+        ) : (
+          <EditIcon fontSize="small" color="action" />
         )}
         <Typography
           sx={{
@@ -748,7 +750,7 @@ export default function Prompts() {
                 onClick={() => void handleAddPromptFromTemplate(template)}
                 sx={{ gap: 1 }}
               >
-                <LockIcon fontSize="small" color="action" />
+                <TextSnippetIcon fontSize="small" color="action" />
                 <Box component="span" sx={{ flex: 1 }}>
                   {getPromptDisplayName(template, i18n)}
                 </Box>

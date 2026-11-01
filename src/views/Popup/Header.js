@@ -1,10 +1,10 @@
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
-import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
-import CropRoundedIcon from "@mui/icons-material/CropRounded";
+import { CloseRoundedIcon } from "../../components/icons";
+import { DragIndicatorRoundedIcon } from "../../components/icons";
+import { OpenInNewRoundedIcon } from "../../components/icons";
+import { RateReviewRoundedIcon } from "../../components/icons";
+import { SettingsRoundedIcon } from "../../components/icons";
+import { VolunteerActivismRoundedIcon } from "../../components/icons";
+import { CropRoundedIcon } from "../../components/icons";
 import IconButton from "@mui/material/IconButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";

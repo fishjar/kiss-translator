@@ -1,8 +1,7 @@
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import IconButton from "@mui/material/IconButton";
-import EditIcon from "@mui/icons-material/Edit";
-import CheckIcon from "@mui/icons-material/Check";
+import { CheckIcon, EditIcon } from "../../components/icons";
 import { useEffect, useState, useRef } from "react";
 import { shortcutListener } from "../../libs/shortcut";
 import { useI18n } from "../../hooks/I18n";

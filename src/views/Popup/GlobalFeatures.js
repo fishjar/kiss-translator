@@ -1,7 +1,7 @@
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import KeyboardRoundedIcon from "@mui/icons-material/KeyboardRounded";
-import MouseRoundedIcon from "@mui/icons-material/MouseRounded";
-import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
+import { CheckRoundedIcon } from "../../components/icons";
+import { KeyboardRoundedIcon } from "../../components/icons";
+import { MouseRoundedIcon } from "../../components/icons";
+import { SelectAllRoundedIcon } from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import { usePopupFeatureToggles } from "./usePopupFeatureToggles";
 

@@ -47,7 +47,7 @@ import InteractionLock from "./InteractionLock";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import { OpenInNewRoundedIcon } from "../../components/icons";
 import { openFileTranslatePage } from "../../libs/navigation";
 import { isAutoTranslateClipboardSupported } from "../../libs/client";
 import {

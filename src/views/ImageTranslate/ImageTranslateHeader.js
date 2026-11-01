@@ -12,8 +12,10 @@ import FormHelperText from "@mui/material/FormHelperText";
 import InputLabel from "@mui/material/InputLabel";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
+import {
+  CloseRoundedIcon,
+  DragIndicatorRoundedIcon,
+} from "../../components/icons";
 import Logo from "../../components/Logo";
 
 import {

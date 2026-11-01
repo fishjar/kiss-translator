@@ -72,9 +72,10 @@ export const POPUP_TEXT_STYLES = String.raw`
 .kt-popup-text-result__retry { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 9px; border: 0; border-radius: 8px; background: var(--kt-sf0); color: var(--kt-pri); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .kt-popup-text-result__retry > svg { width: 16px; height: 16px; }
 .kt-popup-text-result__retry:hover { background: var(--kt-sf3); }
-.kt-popup-text-service-menu.MuiPaper-root { width: 236px; padding: 6px; }
+.kt-popup-text-service-menu.MuiPaper-root { width: 236px; padding: 8px 0; border: 1px solid var(--kt-linev); }
 .kt-popup-text-service-menu .kt-popup-menu-title { padding: 7px 9px; font-size: 11px; line-height: 1.5; }
-.kt-popup-text-service-option.MuiMenuItem-root { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 10px; color: var(--kt-on); font-size: 13px; font-weight: 600; }
+.kt-popup-text-service-option.MuiMenuItem-root { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; color: var(--kt-on); font-size: 13px; font-weight: 600; }
+.kt-popup-text-service-menu .MuiMenuItem-root::before { content: none; }
 .kt-popup-text-service-option > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kt-popup-text-service-check { flex: none; width: 18px; height: 18px; color: var(--kt-line); }
 .kt-popup-text-service-option[aria-checked="true"] .kt-popup-text-service-check { color: var(--kt-pri); }

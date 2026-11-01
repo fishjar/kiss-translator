@@ -12,6 +12,11 @@ import {
   STOKEY_RULE_EDITOR_POSITION,
   STOKEY_RULE_INSPECTOR_POSITION,
 } from "../../config";
+import {
+  DEFAULT_ICON_COLOR,
+  calculateAdaptivePrimaryFamily,
+  resolveIconHue,
+} from "../../styles/m3";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 jest.mock("../../hooks/ColorMode", () => ({
@@ -136,6 +141,51 @@ test("the entire rule card selects the entry while delete acts independently", a
   click(container.querySelector('[aria-label="rule_editor_delete: .story"]'));
   expect(session.remove).toHaveBeenCalledWith(".story");
   expect(session.edit).toHaveBeenCalledTimes(3);
+});
+
+test("entry source caption follows the selected card contrast color", async () => {
+  Object.assign(session.getSnapshot(), {
+    editing: ".story",
+    entries: [
+      { selector: ".story", count: 2, source: "global" },
+      { selector: ".other", count: 1, source: "user" },
+    ],
+  });
+  await render();
+  // jsdom 不解析 var() 且 emotion 样式表不进 document，颜色契约以 emotion
+  // 类哈希差分断言：sx 中唯一随选中态变化的维度是 color（mt 恒定），选中/
+  // 未选中的 caption 类必不相同，且翻转选中态后两类互换。
+  // Editor 的 t() 会给键加 rule_editor_ 前缀，恒等 i18n 下来源文本即前缀键。
+  const captionOf = (card) =>
+    [...card.querySelectorAll(".MuiTypography-root")].find((node) =>
+      ["rule_editor_global", "rule_editor_user"].includes(node.textContent)
+    );
+  const emotionClassOf = (caption) =>
+    [...caption.classList].find((name) =>
+      name.startsWith("rule-editor-test-")
+    );
+  const selectedCaption = captionOf(
+    container.querySelector('button[aria-label=".story"]')
+  );
+  const idleCaption = captionOf(
+    container.querySelector('button[aria-label=".other"]')
+  );
+  expect(selectedCaption).toBeTruthy();
+  expect(idleCaption).toBeTruthy();
+  const selectedClass = emotionClassOf(selectedCaption);
+  const idleClass = emotionClassOf(idleCaption);
+  expect(selectedClass).toBeTruthy();
+  expect(idleClass).toBeTruthy();
+  expect(selectedClass).not.toBe(idleClass);
+  // 翻转选中态：同一 caption 的类跟随选中状态互换，证明差异由选中态驱动。
+  session.getSnapshot().editing = ".other";
+  await render();
+  expect(
+    emotionClassOf(captionOf(container.querySelector('button[aria-label=".story"]')))
+  ).toBe(idleClass);
+  expect(
+    emotionClassOf(captionOf(container.querySelector('button[aria-label=".other"]')))
+  ).toBe(selectedClass);
 });
 
 test("selector input and save live only in the closable inspector", async () => {
@@ -466,7 +516,15 @@ test("the editor keeps its M3 font, filled fields and pill buttons on small-root
     await render();
     const themeRoot = container.querySelector(".kt-m3-root");
     expect(themeRoot.dataset.theme).toBe("light");
-    expect(themeRoot.style.getPropertyValue("--kt-pri")).toBe("#0B57D0");
+    // --kt-pri 随主题色自适应派生（resolveM3Colors → calculateAdaptivePrimaryFamily），
+    // 不再是硬编码 #0B57D0；以默认主题色快照的色相推导浅色家族主色，与
+    // M3Theme.test.js 派生式断言同规（禁硬编码环上某一点）。
+    expect(themeRoot.style.getPropertyValue("--kt-pri")).toBe(
+      calculateAdaptivePrimaryFamily(
+        resolveIconHue(DEFAULT_ICON_COLOR),
+        "light"
+      ).primary
+    );
     const save = container.querySelector('[aria-label="rule_editor_save"]');
     expect(getComputedStyle(save).fontFamily).toContain("Google Sans");
     expect(getComputedStyle(save).fontSize).toBe("13px");
@@ -492,6 +550,17 @@ test.each([false, true])(
   }
 );
 
+test("the pick action is a primary-emphasis button, not secondary", async () => {
+  Object.assign(session.getSnapshot(), { inspectorOpen: true });
+  await render();
+  const pick = [...container.querySelectorAll("button")].find(
+    (element) => element.textContent === "rule_editor_pick"
+  );
+  expect(pick).toBeDefined();
+  expect(pick.className).toContain("MuiButton-containedPrimary");
+  expect(pick.className).not.toContain("MuiButton-containedSecondary");
+});
+
 test("manual addition shows only the selector input and save action", async () => {
   Object.assign(session.getSnapshot(), { inspectorOpen: true, input: "" });
   await render();
@@ -503,6 +572,48 @@ test("manual addition shows only the selector input and save action", async () =
   expect(inspector.textContent).not.toContain("target_selector");
   expect(inspector.textContent).not.toContain("rule_editor_pick");
   expect(inspector.textContent).toContain("rule_editor_add");
+});
+
+test("fragile warning on a selected candidate takes the card on-primary contrast color", async () => {
+  const element = document.createElement("p");
+  Object.assign(session.getSnapshot(), {
+    inspectorOpen: true,
+    selected: element,
+    ancestors: [element],
+    input: ".story",
+    candidates: [
+      { selector: ".story", count: 1, kind: "class", fragile: true },
+      { selector: ".other", count: 1, kind: "tag", fragile: true },
+    ],
+  });
+  await render();
+  const aside = container.querySelector(
+    'aside[aria-label="rule_editor_candidates"]'
+  );
+  const captionOfText = (card, text) =>
+    [...card.querySelectorAll(".MuiTypography-root")].find(
+      (node) => node.textContent === text
+    );
+  const emotionClassOf = (caption) =>
+    [...caption.classList].find((name) =>
+      name.startsWith("rule-editor-test-")
+    );
+  const selectedCard = aside.querySelector('[aria-pressed="true"]');
+  const idleCard = aside.querySelector('[aria-pressed="false"]');
+  expect(selectedCard).toBeTruthy();
+  expect(idleCard).toBeTruthy();
+  const selectedFragile = captionOfText(selectedCard, "rule_editor_fragile");
+  const selectedKind = captionOfText(selectedCard, "rule_editor_class");
+  const idleFragile = captionOfText(idleCard, "rule_editor_fragile");
+  const idleKind = captionOfText(idleCard, "rule_editor_tag");
+  expect(selectedFragile).toBeTruthy();
+  expect(selectedKind).toBeTruthy();
+  expect(idleFragile).toBeTruthy();
+  expect(idleKind).toBeTruthy();
+  // 选中卡：fragile 与 kind 同色（均 var(--kt-onpri)）→ 主色底对比度由卡片色对承托。
+  expect(emotionClassOf(selectedFragile)).toBe(emotionClassOf(selectedKind));
+  // 未选中卡：fragile 仍 warning.main，与 kind 的 text.secondary 不同类（保留现样式）。
+  expect(emotionClassOf(idleFragile)).not.toBe(emotionClassOf(idleKind));
 });
 
 test("selected candidate shows its current match inline without a bottom navigation bar", async () => {

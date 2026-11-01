@@ -5,7 +5,14 @@ import Typography from "@mui/material/Typography";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import {
+  ClearAllIcon,
+  CodeRoundedIcon,
+  DescriptionRoundedIcon,
+  EventNoteIcon,
+  ExpandMoreIcon,
+  TableChartRoundedIcon,
+} from "../../components/icons";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import { useI18n } from "../../hooks/I18n";
@@ -19,8 +26,6 @@ import DownloadButton from "./DownloadButton";
 import UploadButton from "./UploadButton";
 import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
-import ClearAllIcon from "@mui/icons-material/ClearAll";
-import EventNoteIcon from "@mui/icons-material/EventNote";
 import Alert from "@mui/material/Alert";
 import { isSingleChineseChar, isValidWord } from "../../libs/utils";
 import { logger } from "../../libs/log";
@@ -577,6 +582,7 @@ export default function FavWords() {
             handleData={handleExportCsv}
             text={i18n("export") + " (CSV)"}
             fileName={`kiss-words_${Date.now()}.csv`}
+            icon={TableChartRoundedIcon}
           />
           <Button
             size="small"
@@ -605,21 +611,25 @@ export default function FavWords() {
               handleData={() => wordList.join("\n")}
               text={i18n("export")}
               fileName={`kiss-words_${Date.now()}.txt`}
+              icon={DescriptionRoundedIcon}
             />
             <DownloadButton
               handleData={handleExportTxt}
               text={i18n("export") + " (TXT)"}
               fileName={`kiss-words_${Date.now()}.txt`}
+              icon={DescriptionRoundedIcon}
             />
             <DownloadButton
               handleData={handleExportMd}
               text={i18n("export") + " (MD)"}
               fileName={`kiss-words_${Date.now()}.md`}
+              icon={CodeRoundedIcon}
             />
             <DownloadButton
               handleData={handleTranslation}
               text={i18n("export_translation")}
               fileName={`kiss-words_${Date.now()}.md`}
+              icon={CodeRoundedIcon}
             />
           </Box>
         )}

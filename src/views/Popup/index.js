@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
+import { AutorenewRoundedIcon } from "../../components/icons";
 import Button from "@mui/material/Button";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";

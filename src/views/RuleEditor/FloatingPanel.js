@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Box, ButtonBase, Paper, Portal, Typography } from "@mui/material";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import { DragIndicatorIcon } from "../../components/icons";
 import { limitNumber } from "../../libs/utils";
 import { getEditorPortalContainer } from "./portal";
 

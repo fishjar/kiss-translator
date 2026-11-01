@@ -7,7 +7,7 @@ import { logger } from "../log";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { flushSync } from "react-dom";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { CloseRoundedIcon } from "../../components/icons";
 import { sendBgMsg } from "../msg";
 import {
   MSG_CAPTURE_VISIBLE_TAB,
