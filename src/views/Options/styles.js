@@ -121,16 +121,23 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
 .kt-options-page .MuiTextField-root { min-width: 0; }
 .kt-options-page .MuiInputLabel-root.MuiInputLabel-shrink { max-width: calc(125% - 24px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kt-options-page .kt-translation-text-field .MuiInputBase-root { min-height: 128px; align-items: flex-start; overflow: visible; padding: 0; border-radius: 16px; }
-.kt-options-page .kt-translation-text-field .MuiInputBase-inputMultiline { box-sizing: border-box; padding: 30px 58px 54px 16px; border: 0; outline: 0; background: transparent; line-height: 1.55; }
+.kt-options-page .kt-translation-text-field .MuiInputBase-inputMultiline { box-sizing: border-box; padding: 30px 66px 62px 16px; border: 0; outline: 0; background: transparent; line-height: 1.55; }
 .kt-options-page .kt-translation-text-field .MuiInputBase-inputMultiline:not([aria-hidden="true"]) { min-height: 128px; }
 .kt-options-page .kt-translation-text-field .MuiInputLabel-root { transform: translate(16px, 16px) scale(1); }
 .kt-options-page .kt-translation-text-field .MuiInputLabel-root.MuiInputLabel-shrink { transform: translate(16px, 7px) scale(.75); }
-.kt-options-page .kt-translation-text-field__actions { position: absolute; right: 16px; bottom: 16px; z-index: 1; }
+.kt-options-page .kt-translation-text-field__actions { position: absolute; right: 24px; bottom: 24px; z-index: 1; }
 .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root { width: 34px; height: 34px; background: var(--kt-secc); color: var(--kt-onsecc); }
 @media (hover: hover) {
   .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root:hover { background: var(--kt-secc); background: color-mix(in srgb, var(--kt-onsecc) 8%, var(--kt-secc)); }
 }
-.kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-focusVisible { background: var(--kt-secc); background: color-mix(in srgb, var(--kt-onsecc) 10%, var(--kt-secc)); }
+.kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-focusVisible { background: var(--kt-secc); background: color-mix(in srgb, var(--kt-onsecc) 10%, var(--kt-secc)); outline: none; box-shadow: inset 0 0 0 3px var(--kt-pri); }
+/* forced-colors 域 UA 忽略上方 inset box-shadow，而 outline:none 仍生效
+   → 该域键盘焦点零指示。换系统色描边（不写颜色，outline-color 由强制
+   引擎接管）；offset -3px 内收，不出 34px 按钮圆外。必须排在其后：同特
+   异性靠源码顺序压过 outline:none。上方环若改回描边，本块须一并删除。 */
+@media (forced-colors: active) {
+  .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-focusVisible { outline: 3px solid; outline-offset: -3px; }
+}
 .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-disabled { background: var(--kt-sf2); color: var(--kt-line); }
 .kt-options-page .kt-translation-text-field--source textarea { caret-color: var(--kt-pri); }
 .kt-options-page .kt-translation-text-field--result textarea { cursor: default; }

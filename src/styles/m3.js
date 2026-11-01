@@ -241,21 +241,38 @@ export const M3_GLOBAL_CSS = String.raw`
   min-height: 0 !important;
 }
 
-/* B7 手柄焦点环显式规则：不再静默依赖 m3 全局级联——Shadow DOM 场景
+/* 手柄焦点环显式规则：不静默依赖 m3 全局级联——Shadow DOM 场景
    或后续全局 :focus/:focus-visible 规则调整（如新增 input 类豁免）不会
-   静默丢失焦点指示。口径与全局级联一致：鼠标 :focus 零指示，键盘
-   :focus-visible 3px 主色环 + 2px 偏移。 */
+   静默丢失焦点指示。口径：现代内核鼠标 :focus 零指示，键盘 :focus-visible
+   画 3px 主色内嵌环（inset box-shadow，不外扩）。内嵌而非外扩：手柄盒紧贴
+   字段右下角并与右下角操作簇共边，外扩环会越盒伸入按钮实心圆的绘制区，
+   被其 z-index: 1 叠成缺角；内嵌环不越盒，叠序无从生效。旧内核无
+   :focus-visible 与 selector() 支持，走基格兜底：:focus 直接画同一内嵌环，
+   与全局级联基格同口径。 */
 .kt-m3-root .kt-resize-grip:focus {
   outline: none;
+  box-shadow: inset 0 0 0 3px var(--kt-pri);
 }
 
 @supports selector(:focus-visible) {
   .kt-m3-root .kt-resize-grip:focus {
     outline: none;
+    box-shadow: none;
   }
   .kt-m3-root .kt-resize-grip:focus-visible {
-    outline: 3px solid var(--kt-pri);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: inset 0 0 0 3px var(--kt-pri);
+  }
+}
+
+/* forced-colors 域 UA 忽略 box-shadow，上方内嵌环失效而 outline:none 仍生效
+   → 该域换系统色描边（不写颜色，outline-color 由强制引擎接管）。必须排在
+   @supports 块之后：同特异性靠源码顺序压过其 outline:none。用 :focus 兜底
+   无 :focus-visible 的旧内核。上方环若改回描边，本块须一并删除。 */
+@media (forced-colors: active) {
+  .kt-m3-root .kt-resize-grip:focus {
+    outline: 3px solid;
+    outline-offset: -3px;
   }
 }
 

@@ -688,6 +688,8 @@ export default function TranCont({
                     : undefined
                 }
                 direction="row"
+                spacing={1}
+                useFlexGap
                 sx={
                   isPlayground
                     ? undefined
