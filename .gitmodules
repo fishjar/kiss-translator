@@ -1,0 +1,3 @@
+[submodule "aifw"]
+	path = aifw
+	url = https://github.com/funstory-ai/aifw

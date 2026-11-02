@@ -11,6 +11,17 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          # aifw 子模块用于构建 public/aifw-js 运行期产物
+          submodules: recursive
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+      - name: Setup Rust (wasm target)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
       - uses: pnpm/action-setup@v4
         with:
           version: 9.14.4
@@ -19,7 +30,15 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Build aifw runtime from submodule
+        run: pnpm build:aifw --strict
       - run: pnpm build:web
+      - name: Verify built aifw assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/web/aifw-js/aifw-js.js
+          test -s build/web/aifw-js/wasm/liboneaifw_core.wasm
       - uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: build/web

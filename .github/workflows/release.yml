@@ -10,6 +10,17 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          # aifw 子模块用于构建 public/aifw-js 运行期产物
+          submodules: recursive
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+      - name: Setup Rust (wasm target)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
       - uses: pnpm/action-setup@v4
         with:
           version: 9.14.4
@@ -18,82 +29,85 @@ jobs:
           node-version: 24
           cache: "pnpm"
       - run: pnpm install
+      - name: Build aifw runtime from submodule
+        run: pnpm build:aifw --strict
       - run: pnpm build+zip
       - uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: build
+
   deploy-web:
     needs: build
+    permissions:
+      contents: write
     concurrency:
       group: deploy-website
       cancel-in-progress: false
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: build-artifacts
           path: build
+      - name: Verify built aifw assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/web/aifw-js/aifw-js.js
+          test -s build/web/aifw-js/wasm/liboneaifw_core.wasm
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: build/web
+
   create-release:
     needs: build
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
-    outputs:
-      upload_url: ${{ steps.create-release.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Extract Release Notes
-        id: extract_notes
+      - name: Extract release notes
         shell: bash
         run: |
-          LOG_FILE="CHANGELOG.md"
-          
-          if [ -f "$LOG_FILE" ]; then
-            # 使用 awk 提取：从第一个 "## " 后面开始，直到遇到下一个 "## " 停止
-            # 这里的逻辑假设最新日志在文件最上方
-            NOTES=$(awk '/^## / {if (p) exit; p=1; next} p' "$LOG_FILE")
-          else
-            NOTES="Release ${{ github.ref }}"
+          set -euo pipefail
+          NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+          : > "$NOTES_FILE"
+          if [ -f CHANGELOG.md ]; then
+            # 最新日志在文件最上方：从第一个 "## " 之后开始，遇到下一个 "## " 停止
+            awk '/^## / {if (p) exit; p=1; next} p' CHANGELOG.md > "$NOTES_FILE"
           fi
-          
-          # 处理多行文本并写入 GITHUB_OUTPUT
-          {
-            echo "body<<EOF"
-            echo "$NOTES"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - uses: actions/create-release@v1
-        id: create-release
+          if [ ! -s "$NOTES_FILE" ]; then
+            echo "Release ${{ github.ref_name }}" > "$NOTES_FILE"
+          fi
+      - name: Create GitHub release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: ${{ steps.extract_notes.outputs.body }}
-          draft: false
-          prerelease: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "Release ${{ github.ref_name }}" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            --verify-tag
+
   upload-release:
     needs: [build, create-release]
+    permissions:
+      contents: write
     strategy:
       matrix:
         client: ["chrome", "edge", "firefox", "userscript", "thunderbird"]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: build-artifacts
           path: build
-      - uses: actions/upload-release-asset@v1
+      - name: Upload ${{ matrix.client }} asset
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./build/${{ matrix.client }}.zip
-          asset_name: kiss-translator_${{ github.ref_name }}_${{ matrix.client }}.zip
-          asset_content_type: application/zip
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ASSET="kiss-translator_${{ github.ref_name }}_${{ matrix.client }}.zip"
+          cp "build/${{ matrix.client }}.zip" "$ASSET"
+          gh release upload "${{ github.ref_name }}" "$ASSET" --clobber

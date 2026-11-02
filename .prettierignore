@@ -3,3 +3,8 @@ build
 public
 package.json
 testdata/subtitle-samples
+aifw
+src/vendor
+.aifw-build
+.toolchain
+tmp

@@ -6,6 +6,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Link from "@mui/material/Link";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
 import { useSetting } from "../../hooks/Setting";
 import { useI18n } from "../../hooks/I18n";
 import { supportsApiCapability } from "../../config/serviceSelection";
@@ -59,6 +61,461 @@ import DownloadButton from "./DownloadButton";
 import ValidationInput from "../../hooks/ValidationInput";
 import OverviewHero from "./OverviewHero";
 import FabAppearanceSetting from "./FabAppearanceSetting";
+import {
+  SettingsCard,
+  SettingsRow,
+  SettingsSection,
+  SettingsSwitch,
+} from "./SettingsCard";
+import {
+  getRedactionStatus,
+  readModelStatus,
+  requestModelReset,
+  requestModelRetry,
+  subscribeModelStatus,
+} from "../../libs/aifw";
+
+/**
+ * 读取隐私脱敏引擎状态。
+ *
+ * 状态是当前上下文进程内的：选项页尚未触发脱敏初始化时恒为 idle，因此页面
+ * 只在挂载时读取一次，仅用于判断当前环境是否支持本地脱敏（如油猴脚本）。
+ */
+function readRedactionStatus() {
+  try {
+    const status = getRedactionStatus?.();
+    return status && typeof status === "object"
+      ? status
+      : { enabled: false, state: "unavailable" };
+  } catch (error) {
+    return {
+      enabled: false,
+      state: "error",
+      error: String(error?.message || error),
+    };
+  }
+}
+
+/** 模型缓存大小展示：小于 1MB 用 KB，否则保留 1 位小数的 MB。 */
+function formatModelBytes(bytes) {
+  const value = Number(bytes);
+  if (!Number.isFinite(value) || value < 0) return null;
+  const KB = 1024;
+  const MB = 1024 * 1024;
+  return value < MB
+    ? `${Math.round(value / KB)} KB`
+    : `${(value / MB).toFixed(1)} MB`;
+}
+
+/** 下载速度展示：B/s、KB/s、MB/s；缺失或非正数显示 —。 */
+function formatModelSpeed(bytesPerSecond) {
+  const value = Number(bytesPerSecond);
+  if (!Number.isFinite(value) || value <= 0) return "—";
+  const KB = 1024;
+  const MB = 1024 * 1024;
+  if (value < KB) return `${Math.round(value)} B/s`;
+  if (value < MB) return `${(value / KB).toFixed(1)} KB/s`;
+  return `${(value / MB).toFixed(1)} MB/s`;
+}
+
+/** 单个模型文件的进度文本；已完成时优先显示实际下载大小。 */
+function formatModelFileProgress(file) {
+  const downloaded = formatModelBytes(file?.downloadedBytes);
+  const total = formatModelBytes(file?.totalBytes);
+  if (file?.done) return downloaded || total;
+  if (downloaded && total) return `${downloaded} / ${total}`;
+  return downloaded || total;
+}
+
+/** 文件名/链接单行省略样式（完整地址通过 title 展示）。 */
+const MODEL_FILE_LINK_SX = {
+  display: "inline-block",
+  maxWidth: "100%",
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  verticalAlign: "bottom",
+};
+
+const MODEL_STATE_LABEL_KEYS = {
+  loading: "privacy_mask_state_loading",
+  ready: "privacy_mask_state_ready",
+  error: "privacy_mask_state_error",
+};
+
+/**
+ * 本地隐私脱敏设置项：开关 + 不可用环境提示 + 模型下载/缓存状态。
+ * 不可用（如油猴脚本）时禁止开启，但已开启的配置仍允许用户关闭。
+ */
+export function PrivacyMaskSetting({ value, onChange }) {
+  const i18n = useI18n();
+  // 挂载时读取一次：脱敏能力状态不会在选项页内变化，无需轮询。
+  const [status] = useState(readRedactionStatus);
+  // 模型状态：先订阅变更，再读取当前快照（readModelStatus 可能返回 Promise）。
+  const [modelStatus, setModelStatus] = useState(null);
+  const [resetPending, setResetPending] = useState(false);
+  const [resetNotice, setResetNotice] = useState(null);
+  const [retryPending, setRetryPending] = useState(false);
+  const [retryNotice, setRetryNotice] = useState(null);
+  const unavailable = status.state === "unavailable";
+
+  useEffect(() => {
+    let active = true;
+    let unsubscribe;
+    const applyStatus = (next) => {
+      if (!active) return;
+      setModelStatus(
+        next && typeof next === "object" && typeof next.then !== "function"
+          ? next
+          : null
+      );
+    };
+
+    try {
+      unsubscribe = subscribeModelStatus?.(applyStatus);
+    } catch (error) {
+      // 订阅失败时仍保留一次快照读取的结果。
+      unsubscribe = undefined;
+    }
+
+    try {
+      const initial = readModelStatus?.();
+      if (initial && typeof initial.then === "function") {
+        initial.then(applyStatus, () => applyStatus(null));
+      } else {
+        applyStatus(initial);
+      }
+    } catch (error) {
+      applyStatus(null);
+    }
+
+    return () => {
+      active = false;
+      try {
+        unsubscribe?.();
+      } catch (error) {
+        // 取消订阅失败不影响设置页。
+      }
+    };
+  }, []);
+
+  const modelState = modelStatus?.state;
+  const downloading = modelState === "loading";
+  // 重试只在下载中/失败时有意义；idle/ready 无需重试。
+  const retryable = downloading || modelState === "error";
+  const polling =
+    resetPending ||
+    retryPending ||
+    downloading ||
+    resetNotice === "pending" ||
+    retryNotice === "pending";
+
+  // Edge 等环境下 storage.onChanged 可能不触发；重载/下载期间轮询状态兜底，
+  // 保证点击「重新下载/重试」后界面最终能显示下载进度。
+  useEffect(() => {
+    if (!polling) return undefined;
+    let active = true;
+    const tick = async () => {
+      try {
+        const next = await readModelStatus?.();
+        if (active && next) setModelStatus(next);
+      } catch (error) {
+        // 轮询失败忽略，下一次再试。
+      }
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [polling]);
+
+  useEffect(() => {
+    if (modelState && modelState !== "idle") {
+      setResetNotice((prev) => (prev === "pending" ? null : prev));
+      setRetryNotice((prev) => (prev === "pending" ? null : prev));
+    }
+  }, [modelState]);
+  const modelStateLabelKey =
+    MODEL_STATE_LABEL_KEYS[modelState] || "privacy_mask_state_idle";
+
+  const downloadedBytes = Number(modelStatus?.downloadedBytes) || 0;
+  const totalBytes = Number(modelStatus?.totalBytes) || 0;
+  const hasTotal = totalBytes > 0;
+  const percent = hasTotal
+    ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100))
+    : 0;
+  const downloadedText = formatModelBytes(downloadedBytes);
+  const totalText = formatModelBytes(totalBytes);
+  const cachedText = formatModelBytes(modelStatus?.sizeBytes);
+
+  let sizeText = null;
+  if (modelState === "ready" && cachedText) {
+    sizeText = `${i18n("privacy_mask_size")}: ${cachedText}`;
+  } else if (downloading) {
+    const sizeParts = [downloadedText, totalText].filter(Boolean);
+    const segments = [];
+    if (sizeParts.length > 0) {
+      segments.push(`${i18n("privacy_mask_size")}: ${sizeParts.join(" / ")}`);
+    }
+    // 下载中展示实时速度；缺失或为 0 时显示 —。
+    segments.push(
+      `${i18n("privacy_mask_speed")}: ${formatModelSpeed(modelStatus?.speedBps)}`
+    );
+    sizeText = segments.join(" · ");
+  }
+
+  const files = Array.isArray(modelStatus?.files)
+    ? modelStatus.files.filter((file) => file && typeof file === "object")
+    : [];
+  const currentFile = downloading
+    ? files.find((file) => !file.done) || null
+    : null;
+
+  const origin = modelStatus?.origin;
+  const errorText = modelState === "error" ? modelStatus?.error : null;
+  let noticeKey = null;
+  if (retryNotice === "pending") noticeKey = "privacy_mask_retry_pending";
+  else if (retryNotice === "hint") {
+    // 重试失败时复用“后台服务不可用”的提示文案。
+    noticeKey = "privacy_mask_redownload_hint";
+  } else if (resetNotice === "hint") {
+    noticeKey = "privacy_mask_redownload_hint";
+  } else if (resetNotice === "pending") {
+    noticeKey = "privacy_mask_redownload_pending";
+  }
+  const showDetail = Boolean(
+    sizeText || origin || errorText || noticeKey || files.length > 0
+  );
+
+  const handleRedownload = async () => {
+    if (resetPending || retryPending || unavailable || downloading) return;
+    setResetPending(true);
+    setResetNotice("pending");
+    try {
+      const result = await requestModelReset?.();
+      // 后台宿主已受理时返回 { tabs: 1, delivered: 1 }，模型状态会通过
+      // storage.onChanged 自动更新，无需提示；delivered===0 表示后台宿主不可用
+      // 或调用失败，此时提示用户稍后重试。
+      // delivered=1 后保持“正在请求后台重新下载…”提示，直到宿主写入新状态
+      // （轮询/订阅会把界面切到加载中或就绪）。
+      setResetNotice(result?.delivered === 0 ? "hint" : "pending");
+    } catch (error) {
+      setResetNotice(null);
+    } finally {
+      setResetPending(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    if (retryPending || resetPending || unavailable || !retryable) return;
+    setRetryPending(true);
+    setRetryNotice("pending");
+    try {
+      const result = await requestModelRetry?.();
+      // 宿主受理时由 storage.onChanged 推送下载进度，无需提示；
+      // delivered===0 表示后台宿主不可用或调用失败。
+      setRetryNotice(result?.delivered === 0 ? "hint" : "pending");
+    } catch (error) {
+      setRetryNotice(null);
+    } finally {
+      setRetryPending(false);
+    }
+  };
+
+  return (
+    <SettingsSection>
+      <SettingsCard>
+        <SettingsRow
+          label={i18n("privacy_mask")}
+          description={i18n("privacy_mask_helper")}
+        >
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            {unavailable && (
+              <Typography
+                component="span"
+                variant="caption"
+                className="kt-privacy-mask-unavailable"
+                aria-label={i18n("privacy_mask_status")}
+                sx={{ color: "text.secondary" }}
+              >
+                {i18n("privacy_mask_status_unavailable")}
+              </Typography>
+            )}
+            <SettingsSwitch
+              checked={Boolean(value)}
+              disabled={unavailable && !value}
+              label={i18n("privacy_mask")}
+              onChange={onChange}
+            />
+          </Stack>
+        </SettingsRow>
+        <SettingsRow
+          label={i18n(modelStateLabelKey)}
+          className="kt-privacy-mask-model"
+          description={
+            showDetail ? (
+              <Box component="span" className="kt-privacy-mask-model-detail">
+                {sizeText && (
+                  <Box component="span" className="kt-privacy-mask-model-size">
+                    {sizeText}
+                  </Box>
+                )}
+                {origin && (
+                  <Box
+                    component="span"
+                    className="kt-privacy-mask-model-origin"
+                  >
+                    {`${i18n("privacy_mask_origin")}: ${origin}`}
+                  </Box>
+                )}
+                {errorText && (
+                  <Box component="span" className="kt-privacy-mask-model-error">
+                    {String(errorText)}
+                  </Box>
+                )}
+                {noticeKey && (
+                  <Box
+                    component="span"
+                    className="kt-privacy-mask-model-notice"
+                  >
+                    {i18n(noticeKey)}
+                  </Box>
+                )}
+                {currentFile && (
+                  <Box
+                    component="span"
+                    className="kt-privacy-mask-current-file"
+                    sx={{ display: "block", mt: 0.5 }}
+                  >
+                    {`${i18n("privacy_mask_current_file")}: `}
+                    <Link
+                      href={currentFile.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={currentFile.url}
+                      sx={MODEL_FILE_LINK_SX}
+                    >
+                      {currentFile.name}
+                    </Link>
+                  </Box>
+                )}
+                {files.length > 0 && (
+                  <Box
+                    component="span"
+                    className="kt-privacy-mask-files"
+                    sx={{ display: "block", mt: 0.5 }}
+                  >
+                    <Box
+                      component="span"
+                      className="kt-privacy-mask-files-title"
+                      sx={{ display: "block", fontWeight: 600, mb: 0.25 }}
+                    >
+                      {i18n("privacy_mask_files")}
+                    </Box>
+                    <Box
+                      component="span"
+                      className="kt-privacy-mask-file-list"
+                      sx={{
+                        display: "block",
+                        maxHeight: 160,
+                        overflowY: "auto",
+                      }}
+                    >
+                      {files.map((file, index) => {
+                        const fileProgress = formatModelFileProgress(file);
+                        const progressText = file.done
+                          ? fileProgress || i18n("privacy_mask_done")
+                          : fileProgress || "—";
+                        return (
+                          <Box
+                            component="span"
+                            className="kt-privacy-mask-file"
+                            key={`${file.url || file.name || index}-${index}`}
+                            data-done={file.done ? "true" : "false"}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              py: 0.25,
+                              color: file.done
+                                ? "text.secondary"
+                                : "text.primary",
+                            }}
+                          >
+                            <Link
+                              href={file.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={file.url}
+                              sx={{ ...MODEL_FILE_LINK_SX, flex: 1 }}
+                            >
+                              {file.name}
+                            </Link>
+                            <Box
+                              component="span"
+                              className="kt-privacy-mask-file-size"
+                              sx={{ flexShrink: 0 }}
+                            >
+                              {progressText}
+                            </Box>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            ) : null
+          }
+        >
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            {downloading && (
+              <Box className="kt-privacy-mask-progress" sx={{ width: 120 }}>
+                <LinearProgress
+                  variant={hasTotal ? "determinate" : "indeterminate"}
+                  value={hasTotal ? percent : undefined}
+                  aria-label={i18n("privacy_mask_state_loading")}
+                />
+              </Box>
+            )}
+            {downloading && hasTotal && (
+              <Typography
+                component="span"
+                variant="caption"
+                className="kt-privacy-mask-percent"
+              >
+                {`${percent}%`}
+              </Typography>
+            )}
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={
+                resetPending || retryPending || unavailable || !retryable
+              }
+              onClick={handleRetry}
+            >
+              {i18n("privacy_mask_retry")}
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              disabled={
+                resetPending || retryPending || unavailable || downloading
+              }
+              onClick={handleRedownload}
+            >
+              {i18n("privacy_mask_redownload")}
+            </Button>
+          </Stack>
+        </SettingsRow>
+      </SettingsCard>
+    </SettingsSection>
+  );
+}
 
 /**
  * 包装单个快捷键录入表单项组件
@@ -297,6 +754,7 @@ export default function Settings() {
     parseLatex = false,
     autoTranslateClipboard = false,
     checkUpdate = true,
+    privacyMask = false,
     popupDefaultView = OPT_POPUP_DEFAULT_VIEW_PAGE,
   } = setting;
   const normalizedPopupDefaultView = OPT_POPUP_DEFAULT_VIEW_ALL.includes(
@@ -642,6 +1100,12 @@ export default function Settings() {
             </Grid>
           </Grid>
         </Box>
+
+        {/* 本地隐私脱敏：请求前对 PII 做本机脱敏，返回译文后再还原 */}
+        <PrivacyMaskSetting
+          value={privacyMask}
+          onChange={(checked) => updateSetting({ privacyMask: checked })}
+        />
 
         {/* 翻译跳过语言：遇到选中的目标语言时跳过自动网页翻译 */}
         <TextField

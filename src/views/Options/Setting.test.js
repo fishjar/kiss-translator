@@ -7,7 +7,11 @@ import Settings, {
   ExtCommands,
 } from "./Setting";
 import UploadButton from "./UploadButton";
-import { OPT_TRANS_GEMINI, SETTINGS_VERSION_V1 } from "../../config";
+import {
+  DEFAULT_SETTING,
+  OPT_TRANS_GEMINI,
+  SETTINGS_VERSION_V1,
+} from "../../config";
 import { browser } from "../../libs/browser";
 import { useAlert } from "../../hooks/Alert";
 import { useSetting } from "../../hooks/Setting";
@@ -18,6 +22,13 @@ import {
   hasClipboardReadPermission,
   requestClipboardReadPermission,
 } from "../../libs/clipboard";
+import {
+  getRedactionStatus,
+  readModelStatus,
+  requestModelReset,
+  requestModelRetry,
+  subscribeModelStatus,
+} from "../../libs/aifw";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -58,6 +69,13 @@ jest.mock("./ShortcutInput", () => () => null);
 jest.mock("../../hooks/Fab", () => ({ useFab: jest.fn() }));
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
 jest.mock("../../libs/cache", () => ({ tryClearCaches: jest.fn() }));
+jest.mock("../../libs/aifw", () => ({
+  getRedactionStatus: jest.fn(),
+  readModelStatus: jest.fn(),
+  subscribeModelStatus: jest.fn(),
+  requestModelReset: jest.fn(),
+  requestModelRetry: jest.fn(),
+}));
 jest.mock("../../libs/log", () =>
   jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock(
     (() => ({
@@ -975,5 +993,640 @@ describe("Settings check update", () => {
 
     expect(input.value).toBe("false");
     act(() => root.unmount());
+  });
+});
+
+describe("Settings privacy mask", () => {
+  const updateSetting = jest.fn();
+  const updateFab = jest.fn();
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    mockIsExt = true;
+    updateSetting.mockReset();
+    updateFab.mockReset();
+    getRedactionStatus.mockReset();
+    getRedactionStatus.mockReturnValue({ enabled: false, state: "idle" });
+    readModelStatus.mockReset();
+    readModelStatus.mockReturnValue(null);
+    subscribeModelStatus.mockReset();
+    subscribeModelStatus.mockReturnValue(jest.fn());
+    requestModelReset.mockReset();
+    requestModelRetry.mockReset();
+    useSetting.mockReturnValue({
+      setting: { uiLang: "en", logLevel: 3, clearCache: false },
+      updateSetting,
+    });
+    useFab.mockReturnValue({ fab: {}, updateFab });
+    useShortcut.mockReturnValue({ shortcut: [], setShortcut: jest.fn() });
+    browser.commands.getAll.mockResolvedValue([]);
+    hasClipboardReadPermission.mockResolvedValue(false);
+    useAlert.mockReturnValue(alert);
+  });
+
+  function privacySwitch(container) {
+    return container.querySelector('input[aria-label="privacy_mask"]');
+  }
+
+  function unavailableHint(container) {
+    return container.querySelector(".kt-privacy-mask-unavailable")?.textContent;
+  }
+
+  function modelRow(container) {
+    return container.querySelector(".kt-privacy-mask-model");
+  }
+
+  function modelState(container) {
+    return modelRow(container)?.querySelector("strong")?.textContent;
+  }
+
+  function modelDetail(container) {
+    return modelRow(container)?.querySelector(".kt-privacy-mask-model-detail")
+      ?.textContent;
+  }
+
+  function modelProgress(container) {
+    return modelRow(container)?.querySelector('[role="progressbar"]');
+  }
+
+  function redownloadButton(container) {
+    const buttons = modelRow(container)?.querySelectorAll("button") || [];
+    return [...buttons].find(
+      (button) => button.textContent === "privacy_mask_redownload"
+    );
+  }
+
+  function retryButton(container) {
+    const buttons = modelRow(container)?.querySelectorAll("button") || [];
+    return [...buttons].find(
+      (button) => button.textContent === "privacy_mask_retry"
+    );
+  }
+
+  async function renderSettingsPage() {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Settings />);
+      await Promise.resolve();
+    });
+    return { container, root };
+  }
+
+  test("defaults the privacy mask switch to off and saves an explicit opt-in", async () => {
+    expect(DEFAULT_SETTING.privacyMask).toBe(false);
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const input = privacySwitch(container);
+      expect(input).not.toBeNull();
+      expect(input.checked).toBe(false);
+      expect(input.disabled).toBe(false);
+      // The engine status is read once on mount; the page never polls it.
+      expect(getRedactionStatus).toHaveBeenCalledTimes(1);
+      expect(unavailableHint(container)).toBeUndefined();
+      expect(updateSetting).not.toHaveBeenCalled();
+
+      act(() => input.click());
+
+      expect(updateSetting).toHaveBeenCalledTimes(1);
+      expect(updateSetting).toHaveBeenCalledWith({ privacyMask: true });
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("saves an explicit opt-out when the privacy mask is on", async () => {
+    useSetting.mockReturnValue({
+      setting: { privacyMask: true },
+      updateSetting,
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const input = privacySwitch(container);
+      expect(input.checked).toBe(true);
+      act(() => input.click());
+      expect(updateSetting).toHaveBeenCalledWith({ privacyMask: false });
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("shows no engine hint when the environment is supported", async () => {
+    getRedactionStatus.mockReturnValue({ enabled: false, state: "ready" });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      expect(privacySwitch(container).disabled).toBe(false);
+      expect(unavailableHint(container)).toBeUndefined();
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("disables the switch and explains an unavailable environment", async () => {
+    getRedactionStatus.mockReturnValue({
+      enabled: false,
+      state: "unavailable",
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const input = privacySwitch(container);
+      expect(input.disabled).toBe(true);
+      expect(unavailableHint(container)).toBe(
+        "privacy_mask_status_unavailable"
+      );
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("still allows turning off an enabled privacy mask when unavailable", async () => {
+    getRedactionStatus.mockReturnValue({
+      enabled: true,
+      state: "unavailable",
+    });
+    useSetting.mockReturnValue({
+      setting: { privacyMask: true },
+      updateSetting,
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const input = privacySwitch(container);
+      expect(input.checked).toBe(true);
+      expect(input.disabled).toBe(false);
+      expect(unavailableHint(container)).toBe(
+        "privacy_mask_status_unavailable"
+      );
+      act(() => input.click());
+      expect(updateSetting).toHaveBeenCalledWith({ privacyMask: false });
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("renders the not-downloaded model state by default", async () => {
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      expect(readModelStatus).toHaveBeenCalledTimes(1);
+      expect(modelState(container)).toBe("privacy_mask_state_idle");
+      expect(modelDetail(container)).toBeUndefined();
+      expect(modelProgress(container)).toBeNull();
+      expect(redownloadButton(container).disabled).toBe(false);
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("loads the async model status snapshot on mount", async () => {
+    // The real readModelStatus() reads extension storage and resolves a Promise.
+    readModelStatus.mockResolvedValue({
+      state: "ready",
+      sizeBytes: 1048576,
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      expect(modelState(container)).toBe("privacy_mask_state_ready");
+      expect(modelDetail(container)).toContain("1.0 MB");
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("renders download progress, percentage and byte sizes", async () => {
+    readModelStatus.mockReturnValue({
+      state: "loading",
+      downloadedBytes: 512 * 1024,
+      totalBytes: 1024 * 1024,
+      sizeBytes: 0,
+      origin: "https://example.com",
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      expect(modelState(container)).toBe("privacy_mask_state_loading");
+      const progress = modelProgress(container);
+      expect(progress).not.toBeNull();
+      expect(progress.getAttribute("aria-valuenow")).toBe("50");
+      expect(modelDetail(container)).toContain("512 KB / 1.0 MB");
+      expect(
+        container.querySelector(".kt-privacy-mask-percent").textContent
+      ).toBe("50%");
+      expect(modelDetail(container)).toContain(
+        "privacy_mask_origin: https://example.com"
+      );
+      expect(redownloadButton(container).disabled).toBe(true);
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("renders indeterminate progress while the total size is unknown", async () => {
+    readModelStatus.mockReturnValue({
+      state: "loading",
+      downloadedBytes: 2048,
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const progress = modelProgress(container);
+      expect(progress).not.toBeNull();
+      expect(progress.getAttribute("aria-valuenow")).toBeNull();
+      expect(progress.className).toContain("MuiLinearProgress-indeterminate");
+      expect(container.querySelector(".kt-privacy-mask-percent")).toBeNull();
+      expect(modelDetail(container)).toContain("2 KB");
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("renders the cached model size and origin when ready", async () => {
+    readModelStatus.mockReturnValue({
+      state: "ready",
+      sizeBytes: 2 * 1024 * 1024,
+      totalBytes: 0,
+      origin: "https://example.com",
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      expect(modelState(container)).toBe("privacy_mask_state_ready");
+      expect(modelDetail(container)).toContain("2.0 MB");
+      expect(modelDetail(container)).toContain(
+        "privacy_mask_origin: https://example.com"
+      );
+      expect(modelProgress(container)).toBeNull();
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("renders the model load error text", async () => {
+    readModelStatus.mockReturnValue({
+      state: "error",
+      error: "network down",
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      expect(modelState(container)).toBe("privacy_mask_state_error");
+      expect(modelDetail(container)).toContain("network down");
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("requests a model redownload and reports when no page is active", async () => {
+    readModelStatus.mockReturnValue({ state: "ready", sizeBytes: 1048576 });
+    let resolveReset;
+    requestModelReset.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveReset = resolve;
+        })
+    );
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const button = redownloadButton(container);
+      expect(button).not.toBeNull();
+      expect(button.disabled).toBe(false);
+
+      await act(async () => {
+        button.click();
+      });
+      expect(requestModelReset).toHaveBeenCalledTimes(1);
+      expect(container.textContent).toContain(
+        "privacy_mask_redownload_pending"
+      );
+
+      await act(async () => {
+        // Host RPC failed / host unavailable -> { tabs: 0, delivered: 0 }.
+        resolveReset({ tabs: 0, delivered: 0 });
+      });
+      expect(container.textContent).toContain("privacy_mask_redownload_hint");
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("disables redownload when the environment is unavailable", async () => {
+    getRedactionStatus.mockReturnValue({
+      enabled: false,
+      state: "unavailable",
+    });
+    readModelStatus.mockReturnValue({ state: "ready", sizeBytes: 1048576 });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      expect(redownloadButton(container).disabled).toBe(true);
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("updates with model status pushed by the subscription", async () => {
+    let listener;
+    const unsubscribe = jest.fn();
+    subscribeModelStatus.mockImplementation((cb) => {
+      listener = cb;
+      return unsubscribe;
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      expect(subscribeModelStatus).toHaveBeenCalledTimes(1);
+      expect(modelState(container)).toBe("privacy_mask_state_idle");
+
+      act(() => {
+        listener({ state: "ready", sizeBytes: 1048576 });
+      });
+      expect(modelState(container)).toBe("privacy_mask_state_ready");
+      expect(modelDetail(container)).toContain("1.0 MB");
+    } finally {
+      act(() => root.unmount());
+    }
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    ["loading", true],
+    ["error", true],
+    ["ready", false],
+    ["idle", false],
+  ])("enables retry only for retryable states (%s)", async (state, enabled) => {
+    readModelStatus.mockReturnValue(
+      state === "idle" ? null : { state, sizeBytes: 1048576 }
+    );
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const button = retryButton(container);
+      expect(button).not.toBeNull();
+      expect(button.disabled).toBe(!enabled);
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("retries a failed model download and reports an unavailable host", async () => {
+    readModelStatus.mockReturnValue({ state: "error", error: "network down" });
+    let resolveRetry;
+    requestModelRetry.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRetry = resolve;
+        })
+    );
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const button = retryButton(container);
+      expect(button.disabled).toBe(false);
+
+      await act(async () => {
+        button.click();
+      });
+      expect(requestModelRetry).toHaveBeenCalledTimes(1);
+      expect(container.textContent).toContain("privacy_mask_retry_pending");
+      expect(retryButton(container).disabled).toBe(true);
+
+      await act(async () => {
+        resolveRetry({ tabs: 0, delivered: 0 });
+      });
+      expect(container.textContent).toContain("privacy_mask_redownload_hint");
+      expect(retryButton(container).disabled).toBe(false);
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("keeps pending until the host reports the new state", async () => {
+    let listener;
+    subscribeModelStatus.mockImplementation((cb) => {
+      listener = cb;
+      return jest.fn();
+    });
+    readModelStatus.mockReturnValue({ state: "error", error: "network down" });
+    requestModelRetry.mockResolvedValue({ tabs: 1, delivered: 1 });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      await act(async () => {
+        retryButton(container).click();
+      });
+      expect(requestModelRetry).toHaveBeenCalledTimes(1);
+      expect(container.textContent).not.toContain(
+        "privacy_mask_redownload_hint"
+      );
+      expect(container.textContent).toContain("privacy_mask_retry_pending");
+
+      act(() => {
+        listener({ state: "loading", downloadedBytes: 1, totalBytes: 10 });
+      });
+      expect(container.textContent).not.toContain("privacy_mask_retry_pending");
+      expect(modelState(container)).toBe("privacy_mask_state_loading");
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("disables retry when the environment is unavailable", async () => {
+    getRedactionStatus.mockReturnValue({
+      enabled: false,
+      state: "unavailable",
+    });
+    readModelStatus.mockReturnValue({ state: "error", error: "network down" });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      expect(retryButton(container).disabled).toBe(true);
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("disables retry while another model request is pending", async () => {
+    readModelStatus.mockReturnValue({ state: "error", error: "network down" });
+    let resolveReset;
+    requestModelReset.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveReset = resolve;
+        })
+    );
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      await act(async () => {
+        redownloadButton(container).click();
+      });
+      expect(retryButton(container).disabled).toBe(true);
+
+      await act(async () => {
+        resolveReset({ tabs: 1, delivered: 1 });
+      });
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("renders download speed, current file and per-file progress", async () => {
+    const modelUrl = "https://example.com/models/onnx/model.onnx";
+    readModelStatus.mockReturnValue({
+      state: "loading",
+      downloadedBytes: 512 * 1024,
+      totalBytes: 1024 * 1024,
+      speedBps: 512 * 1024,
+      files: [
+        {
+          name: "onnx/model.onnx",
+          url: modelUrl,
+          downloadedBytes: 256 * 1024,
+          totalBytes: 512 * 1024,
+          done: false,
+        },
+        {
+          name: "wasm/simd.wasm",
+          url: "https://example.com/models/wasm/simd.wasm",
+          downloadedBytes: 512 * 1024,
+          totalBytes: 512 * 1024,
+          done: true,
+        },
+      ],
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const detail = modelDetail(container);
+      expect(detail).toContain("privacy_mask_speed: 512.0 KB/s");
+      expect(detail).toContain("privacy_mask_current_file: onnx/model.onnx");
+      expect(detail).toContain("privacy_mask_files");
+      expect(detail).toContain("256 KB / 512 KB");
+
+      const currentLink = container.querySelector(
+        ".kt-privacy-mask-current-file a"
+      );
+      expect(currentLink).not.toBeNull();
+      expect(currentLink.getAttribute("href")).toBe(modelUrl);
+      expect(currentLink.getAttribute("target")).toBe("_blank");
+      expect(currentLink.getAttribute("rel")).toBe("noreferrer");
+      expect(currentLink.getAttribute("title")).toBe(modelUrl);
+
+      const rows = container.querySelectorAll(".kt-privacy-mask-file");
+      expect(rows).toHaveLength(2);
+      expect(rows[0].getAttribute("data-done")).toBe("false");
+      expect(rows[0].querySelector("a").getAttribute("href")).toBe(modelUrl);
+      expect(rows[0].textContent).toContain("256 KB / 512 KB");
+      expect(rows[1].getAttribute("data-done")).toBe("true");
+      expect(rows[1].textContent).toContain("512 KB");
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("keeps the loading state compact when files and speed are missing", async () => {
+    readModelStatus.mockReturnValue({
+      state: "loading",
+      downloadedBytes: 2048,
+      totalBytes: 4096,
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      expect(modelDetail(container)).toContain("privacy_mask_speed: —");
+      expect(container.querySelector(".kt-privacy-mask-files")).toBeNull();
+      expect(
+        container.querySelector(".kt-privacy-mask-current-file")
+      ).toBeNull();
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("lists model files when ready without a speed line", async () => {
+    readModelStatus.mockReturnValue({
+      state: "ready",
+      sizeBytes: 2 * 1024 * 1024,
+      files: [
+        {
+          name: "onnx/model.onnx",
+          url: "https://example.com/models/onnx/model.onnx",
+          downloadedBytes: 2 * 1024 * 1024,
+          totalBytes: 2 * 1024 * 1024,
+          done: true,
+        },
+      ],
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const detail = modelDetail(container);
+      expect(detail).toContain("privacy_mask_files");
+      expect(detail).toContain("onnx/model.onnx");
+      expect(detail).not.toContain("privacy_mask_speed");
+      expect(
+        container.querySelector(".kt-privacy-mask-current-file")
+      ).toBeNull();
+      expect(container.querySelectorAll(".kt-privacy-mask-file")).toHaveLength(
+        1
+      );
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("lists model files when the download failed", async () => {
+    readModelStatus.mockReturnValue({
+      state: "error",
+      error: "network down",
+      files: [
+        {
+          name: "onnx/model.onnx",
+          url: "https://example.com/models/onnx/model.onnx",
+          downloadedBytes: 1024,
+          totalBytes: 2048,
+          done: false,
+        },
+      ],
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const detail = modelDetail(container);
+      expect(detail).toContain("network down");
+      expect(detail).not.toContain("privacy_mask_speed");
+      const rows = container.querySelectorAll(".kt-privacy-mask-file");
+      expect(rows).toHaveLength(1);
+      expect(rows[0].textContent).toContain("1 KB / 2 KB");
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("falls back to done and dash labels when per-file sizes are missing", async () => {
+    readModelStatus.mockReturnValue({
+      state: "ready",
+      files: [
+        { name: "a.onnx", url: "https://example.com/a.onnx", done: true },
+        { name: "b.onnx", url: "https://example.com/b.onnx", done: false },
+      ],
+    });
+    const { container, root } = await renderSettingsPage();
+
+    try {
+      const rows = container.querySelectorAll(".kt-privacy-mask-file");
+      expect(rows).toHaveLength(2);
+      expect(rows[0].textContent).toContain("privacy_mask_done");
+      expect(rows[1].textContent).toContain("—");
+    } finally {
+      act(() => root.unmount());
+    }
   });
 });

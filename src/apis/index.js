@@ -71,6 +71,7 @@ import { supportsApiCapability } from "../config/serviceSelection";
 import { trustedTypesHelper } from "../libs/trustedTypes";
 import { getDocInfo } from "../libs/docInfo";
 import { providerCacheSignature } from "../providers/cache";
+import { createRedaction } from "../libs/aifw";
 export {
   apiGoogleLangdetect,
   apiBaiduLangdetect,
@@ -723,10 +724,22 @@ const executeApiTranslate = async ({
     throw new DOMException("The operation was aborted.", "AbortError");
   }
 
-  // 2. 缓存未命中，分发执行翻译请求
+  // 2. 隐私脱敏（AIFW）：仅在缓存未命中、即将发起真实请求时构造遮罩。
+  // 缓存 key（cacheInput）始终使用原始 text，避免脱敏影响既有缓存命中与复用。
+  // 返回 null 表示当前接口/设置不需要脱敏；此时 requestText 就是原文，走原逻辑。
+  const redaction = await createRedaction({
+    text,
+    fromLang,
+    toLang,
+    apiSetting,
+    signal,
+  });
+  const requestText = redaction?.maskedText ?? text;
+
+  // 3. 分发执行翻译请求
   let translation = [];
   if (apiType === OPT_TRANS_BUILTINAI) {
-    // 2.1 浏览器本地 AI 翻译路径
+    // 3.1 浏览器本地 AI 翻译路径
     translation = await apiBuiltinAITranslate({
       text,
       from,
@@ -734,7 +747,7 @@ const executeApiTranslate = async ({
       apiSetting,
     });
   } else if (useBatchFetch && supportsServiceFeature(apiSetting, "batch")) {
-    // 2.2 支持批量翻译的传统接口 (如 Google/Microsoft/DeepL 等)
+    // 3.2 支持批量翻译的传统接口 (如 Google/Microsoft/DeepL 等)
     // 使用 BatchQueue 进行零散文本大合并，节省网络交互次数，大幅提升网页整页翻译的载入速度
     const {
       apiSlug,
@@ -769,7 +782,7 @@ const executeApiTranslate = async ({
       batchConcurrency: effectiveBatchConcurrency,
     });
 
-    translation = await queue.addTask(text, {
+    translation = await queue.addTask(requestText, {
       from,
       to,
       fromLang,
@@ -779,14 +792,16 @@ const executeApiTranslate = async ({
       textFormat,
       apiSetting,
       usePool,
-      onStreamChunk,
+      // 脱敏时不允许流式增量直接透出：增量里可能还是遮罩占位符，
+      // 这里交由下面 restore 完成后补发一次最终译文（与术语保护的既有做法一致）。
+      onStreamChunk: redaction ? undefined : onStreamChunk,
       docInfo,
       signal,
       capture,
     });
   } else {
-    // 2.3 不支持批量翻译、需要单个请求执行的 API (如某些流式大模型 API)
-    const generator = handleTranslate([text], {
+    // 3.3 不支持批量翻译、需要单个请求执行的 API (如某些流式大模型 API)
+    const generator = handleTranslate([requestText], {
       from,
       to,
       fromLang,
@@ -797,7 +812,8 @@ const executeApiTranslate = async ({
       apiSetting,
       usePool,
       docInfo,
-      onStreamChunk,
+      // 同批量分支：脱敏期间关闭增量透传，restore 后统一补发最终结果。
+      onStreamChunk: redaction ? undefined : onStreamChunk,
       signal,
       capture,
     });
@@ -808,8 +824,10 @@ const executeApiTranslate = async ({
       }
 
       const isComplete = item.isComplete !== false;
+      // 脱敏期间增量文本可能仍带遮罩占位符，不能交给渲染层；
+      // 最终译文会在 restore 之后统一补发一次。
       if (!isComplete) {
-        if (onStreamChunk) {
+        if (!redaction && onStreamChunk) {
           onStreamChunk({
             id: item.id,
             text: item.partialText,
@@ -819,7 +837,7 @@ const executeApiTranslate = async ({
         continue;
       }
 
-      if (onStreamChunk) {
+      if (!redaction && onStreamChunk) {
         onStreamChunk({
           id: item.id,
           text: item.result,
@@ -830,7 +848,7 @@ const executeApiTranslate = async ({
     }
   }
 
-  // 3. 对翻译引擎返回的数据格式进行规范化处理
+  // 4. 对翻译引擎返回的数据格式进行规范化处理
   let trText = "";
   let srLang = "";
   let srCode = "";
@@ -852,6 +870,21 @@ const executeApiTranslate = async ({
     throw new Error("translate api got empty trtext");
   }
 
+  // 5. 隐私脱敏还原（AIFW）：把模型返回中的遮罩占位符替换回原文。
+  // 必须在 isSame 判定与缓存写入之前完成，保证对外返回和缓存里都是还原后的文本。
+  // restore 由 aifw 内部保证不抛错，这里仍兜底一层：失败时保留模型原始译文，不让翻译失败。
+  if (redaction) {
+    try {
+      trText = await redaction.restore(trText);
+    } catch (error) {
+      logger.child("index").warn("aifw restore failed", error);
+    }
+    // 脱敏期间关闭了增量透传，这里补发一次最终完整译文。
+    if (onStreamChunk) {
+      onStreamChunk({ id: 0, text: trText, isComplete: true });
+    }
+  }
+
   // 判断是否发生了“源语言与目标语言相同”的无效翻译情况 (如英文网页翻译为英文)
   const isSame = getTranslationLanguageMatch({
     fromLang,
@@ -862,7 +895,7 @@ const executeApiTranslate = async ({
     translateVariants,
   });
 
-  // 4. 将成功的结果写入本地网络缓存中
+  // 6. 将成功的结果写入本地网络缓存中
   if (useCache && cacheMode !== "off" && !signal?.aborted) {
     putHttpCachePolyfill(cacheInput, null, { trText, isSame, srLang, srCode });
   }

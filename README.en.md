@@ -195,7 +195,13 @@ pnpm build:firefox     # Build Firefox extension (output: build/firefox)
 pnpm start             # Start local Web dev server (http://localhost:3000)
 pnpm check:pr          # Code formatting and build check before submitting a PR
 pnpm build             # Full build for all target platforms
+pnpm toolchain:download # Download the local toolchain (zig 0.15.2 + pnpm 9.14.4 into .toolchain, gitignored)
+pnpm clean              # Clean build caches (build/tmp/.local-ai-build/node_modules/.cache)
+pnpm clean:aifw         # Clean aifw compile artifacts (rebuilt on next build)
+pnpm clean --dry-run    # List what would be removed and its size
 ```
+
+> The first build runs `pnpm build:aifw` to build `src/vendor/aifw-js/` from the `aifw` submodule (`git submodule update --init --recursive`). The directory is generated and not committed; it needs zig 0.15.x plus the rust `wasm32-unknown-unknown` target. The build uses a project-local toolchain in `.toolchain/` (gitignored): run `pnpm toolchain:download` to fetch zig 0.15.2 + pnpm 9.14.4, and it takes precedence over system PATH binaries so other installed versions cannot interfere; `AIFW_ZIG_PATH` can override it. Without the toolchain the build fails explicitly instead of producing an extension without the privacy-masking runtime.
 
 ### Loading the Extension in Your Browser (Chrome / Edge)
 
@@ -203,6 +209,18 @@ pnpm build             # Full build for all target platforms
 2. Enable **Developer mode** in the top-right corner.
 3. Click **Load unpacked** and select the `build/chrome` directory from the project root.
 4. After making code changes, re-run `pnpm build:chrome` and click the reload icon on the extension card.
+
+### Loading the Extension in Firefox / Thunderbird
+
+```sh
+pnpm build:firefox      # output: build/firefox
+pnpm build:thunderbird  # output: build/thunderbird
+```
+
+1. In Firefox, open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on**, and select `build/firefox/manifest.json` (for Thunderbird use `about:debugging` and `build/thunderbird`).
+2. The Firefox build uses the **MV2** manifest (`public/manifest.firefox.json`) with `local-ai-background.html`, unlike the MV3 Chrome/Edge build.
+3. **Do not load `build/chrome` in Firefox**: it is an MV3 manifest using `background.service_worker`, so Firefox reports `background.service_worker is currently disabled. Add background.scripts.`. Use the `pnpm build:firefox` output instead.
+4. The first `build:firefox` run also builds the local AI runtime (cached in `.local-ai-build`), which takes a while; later runs reuse the cache.
 
 For plugin development, please read the [Plugin Development Guide (Chinese)](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md) and refer to the [OpenAI-compatible plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) or [DeepSeek plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md).
 
