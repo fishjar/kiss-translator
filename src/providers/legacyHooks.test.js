@@ -1,11 +1,17 @@
 jest.mock("../libs/interpreter", () => ({ getInterpreter: jest.fn() }));
+jest.mock("../libs/log", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock({
+    logger: { debug: jest.fn() },
+  })
+);
+import { logger } from "../libs/log";
 import { getInterpreter } from "../libs/interpreter";
 import { callLegacyRequestHook, callLegacyResponseHook } from "./legacyHooks";
 import { NATIVE_PRESET_OVERRIDES } from "../builtin-plugins/presets";
 
 test("shipped Custom templates preserve their no-op result without starting Sval", async () => {
   const preset = NATIVE_PRESET_OVERRIDES.Custom;
-  const log = jest.spyOn(console, "log").mockImplementation(() => {});
+  const log = logger.debug;
   try {
     await expect(
       callLegacyRequestHook(
@@ -20,7 +26,7 @@ test("shipped Custom templates preserve their no-op result without starting Sval
     expect(getInterpreter).not.toHaveBeenCalled();
     expect(log).toHaveBeenCalledTimes(2);
   } finally {
-    log.mockRestore();
+    log.mockClear();
   }
 });
 test("edited legacy scripts still use their existing shared interpreter", async () => {

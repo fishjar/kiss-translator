@@ -38,11 +38,14 @@ export function rawPageFromText(textContent, viewport, pageNumber) {
     const size = Math.hypot(transform[2], transform[3]) || item.height || 10,
       baseline = transform[5];
     const style = textContent.styles[item.fontName] || {},
-      ascent = Number.isFinite(style.ascent) && style.ascent > 0
-        ? style.ascent
-        : Number.isFinite(style.descent) && style.descent < 0 && 1 + style.descent > 0
-          ? 1 + style.descent
-          : 0.8;
+      ascent =
+        Number.isFinite(style.ascent) && style.ascent > 0
+          ? style.ascent
+          : Number.isFinite(style.descent) &&
+              style.descent < 0 &&
+              1 + style.descent > 0
+            ? 1 + style.descent
+            : 0.8;
     const angle = Math.atan2(transform[1], transform[0]);
     const x = transform[4],
       y = baseline - ascent * size;
@@ -146,12 +149,21 @@ function joinSpans(spans) {
   return text;
 }
 export function buildLines(raw, regions = []) {
-  const owner = (span) => textRegion(span.bbox, regions.filter((region) =>
-    ["paragraph", "text", "heading", "caption"].includes(region.type)))?.id;
+  const owner = (span) =>
+    textRegion(
+      span.bbox,
+      regions.filter((region) =>
+        ["paragraph", "text", "heading", "caption"].includes(region.type)
+      )
+    )?.id;
   const groups = [];
   for (const span of [...raw.spans]
     .filter((s) => !s.vertical)
-    .sort((a, b) => Math.round(a.baseline * 1000) - Math.round(b.baseline * 1000) || a.bbox[0] - b.bbox[0])) {
+    .sort(
+      (a, b) =>
+        Math.round(a.baseline * 1000) - Math.round(b.baseline * 1000) ||
+        a.bbox[0] - b.bbox[0]
+    )) {
     const matches = groups.filter(
       (g) =>
         g.owner === owner(span) &&
@@ -165,12 +177,14 @@ export function buildLines(raw, regions = []) {
     const line = matches[0];
     if (line) {
       line.spans.push(span, ...matches.slice(1).flatMap((g) => g.spans));
-      for (const merged of matches.slice(1)) groups.splice(groups.indexOf(merged), 1);
-      const main = [...line.spans].sort((a, b) => b.text.length - a.text.length)[0];
+      for (const merged of matches.slice(1))
+        groups.splice(groups.indexOf(merged), 1);
+      const main = [...line.spans].sort(
+        (a, b) => b.text.length - a.text.length
+      )[0];
       line.baseline = main.baseline;
       line.fontSize = main.fontSize;
-    }
-    else
+    } else
       groups.push({
         owner: owner(span),
         baseline: span.baseline,
@@ -221,8 +235,16 @@ export function readingOrder(lines, width, height) {
       left.length >= 2 &&
       right.length >= 2 &&
       // Equation numbers aligned in the margin do not form a reading column.
-      !left.every((line) => line.type === "formula_number" || /^\(\d+[a-z]?\)$/.test(line.text || "")) &&
-      !right.every((line) => line.type === "formula_number" || /^\(\d+[a-z]?\)$/.test(line.text || "")) &&
+      !left.every(
+        (line) =>
+          line.type === "formula_number" ||
+          /^\(\d+[a-z]?\)$/.test(line.text || "")
+      ) &&
+      !right.every(
+        (line) =>
+          line.type === "formula_number" ||
+          /^\(\d+[a-z]?\)$/.test(line.text || "")
+      ) &&
       cross.length <= Math.max(2, lines.length * 0.35)
     ) {
       const gap =
@@ -253,35 +275,75 @@ export function readingOrder(lines, width, height) {
 }
 export function paragraphBlocks(raw, lines, regions = []) {
   // Compute ownership before inserting formulas; native bounds anchor reading order.
-  lines = (raw.spans?.length ? buildLines(raw, regions) : lines).map((line) => ({ ...line, spans: [...line.spans] }));
+  lines = (raw.spans?.length ? buildLines(raw, regions) : lines).map(
+    (line) => ({ ...line, spans: [...line.spans] })
+  );
   const claimed = new Set();
-  const assignments = regions.filter((region) => region.type === "inline-formula" &&
-    (region.latex || region.formulaMarkdown || region.pendingRecognition)).map((region, index) => {
-    const owned = lines.flatMap((line) => line.spans.filter((span) =>
-      !claimed.has(span.id) && textRegion(span.bbox, regions)?.id === region.id));
-    owned.forEach((span) => claimed.add(span.id));
-    const hosts = lines.filter((line) => line.spans.some((span) => owned.includes(span)));
-    const bodyLength = (line) => line.spans.filter((span) => !owned.includes(span))
-      .reduce((length, span) => length + span.text.length, 0);
-    const host = [...hosts].sort((a, b) => bodyLength(b) - bodyLength(a) || a.baseline - b.baseline)[0];
-    return { region, owned, host, token: `KTPDFINLINE${index}END` };
-  });
+  const assignments = regions
+    .filter(
+      (region) =>
+        region.type === "inline-formula" &&
+        (region.latex || region.formulaMarkdown || region.pendingRecognition)
+    )
+    .map((region, index) => {
+      const owned = lines.flatMap((line) =>
+        line.spans.filter(
+          (span) =>
+            !claimed.has(span.id) &&
+            textRegion(span.bbox, regions)?.id === region.id
+        )
+      );
+      owned.forEach((span) => claimed.add(span.id));
+      const hosts = lines.filter((line) =>
+        line.spans.some((span) => owned.includes(span))
+      );
+      const bodyLength = (line) =>
+        line.spans
+          .filter((span) => !owned.includes(span))
+          .reduce((length, span) => length + span.text.length, 0);
+      const host = [...hosts].sort(
+        (a, b) => bodyLength(b) - bodyLength(a) || a.baseline - b.baseline
+      )[0];
+      return { region, owned, host, token: `KTPDFINLINE${index}END` };
+    });
   for (const { region, owned, host, token } of assignments) {
     if (!host || !owned.length) continue;
-    for (const line of lines) line.spans = line.spans.filter((span) => !owned.includes(span));
-    host.spans.push({ ...owned[0], id: `inline-${region.id}`, text: token,
-      baseline: host.baseline, fontSize: host.fontSize,
+    for (const line of lines)
+      line.spans = line.spans.filter((span) => !owned.includes(span));
+    host.spans.push({
+      ...owned[0],
+      id: `inline-${region.id}`,
+      text: token,
+      baseline: host.baseline,
+      fontSize: host.fontSize,
       bbox: [region.bbox[0], host.bbox[1], region.bbox[2], host.bbox[3]],
-      inlineFormula: { text: token, token: true, regionId: region.id, latex: region.latex,
-        markdown: region.formulaMarkdown || (!region.latex && region.pendingRecognition ? "_待识别…_" : undefined),
-        pending: !region.latex && !region.formulaMarkdown && region.pendingRecognition,
-        diagnostic: region.formulaDiagnostic, sourceBBox: region.bbox, sourceAnchor: sourceAnchor(raw.page, region), spanIds: owned.map((span) => span.id) } });
+      inlineFormula: {
+        text: token,
+        token: true,
+        regionId: region.id,
+        latex: region.latex,
+        markdown:
+          region.formulaMarkdown ||
+          (!region.latex && region.pendingRecognition
+            ? "_待识别…_"
+            : undefined),
+        pending:
+          !region.latex && !region.formulaMarkdown && region.pendingRecognition,
+        diagnostic: region.formulaDiagnostic,
+        sourceBBox: region.bbox,
+        sourceAnchor: sourceAnchor(raw.page, region),
+        spanIds: owned.map((span) => span.id),
+      },
+    });
   }
-  lines = lines.filter((line) => line.spans.length).map((line) => {
-    if (!line.spans.every((span) => span.bbox && span.text !== undefined)) return line;
-    line.spans.sort((a, b) => a.bbox[0] - b.bbox[0]);
-    return { ...line, text: joinSpans(line.spans) };
-  });
+  lines = lines
+    .filter((line) => line.spans.length)
+    .map((line) => {
+      if (!line.spans.every((span) => span.bbox && span.text !== undefined))
+        return line;
+      line.spans.sort((a, b) => a.bbox[0] - b.bbox[0]);
+      return { ...line, text: joinSpans(line.spans) };
+    });
   const roles = new Map();
   const visit = (node, role) => {
     const next = node.role || role;
@@ -317,12 +379,33 @@ export function paragraphBlocks(raw, lines, regions = []) {
   const ordered = readingOrder(lines, raw.width, raw.height),
     blocks = [];
   for (const line of ordered) {
-    const inlineMath = line.spans.filter((span) => span.inlineFormula).map((span) => span.inlineFormula);
-    for (const region of regions.filter((r) => r.type === "inline-formula" && !r.pendingRecognition && !r.latex && !r.formulaMarkdown)) {
-      const spans = line.spans.filter((span) => !span.inlineFormula && textRegion(span.bbox, regions)?.id === region.id);
-      if (spans.length) inlineMath.push({ text: joinSpans(spans), latex: joinSpans(spans), sourceBBox: region.bbox, sourceAnchor: sourceAnchor(raw.page, region) });
+    const inlineMath = line.spans
+      .filter((span) => span.inlineFormula)
+      .map((span) => span.inlineFormula);
+    for (const region of regions.filter(
+      (r) =>
+        r.type === "inline-formula" &&
+        !r.pendingRecognition &&
+        !r.latex &&
+        !r.formulaMarkdown
+    )) {
+      const spans = line.spans.filter(
+        (span) =>
+          !span.inlineFormula &&
+          textRegion(span.bbox, regions)?.id === region.id
+      );
+      if (spans.length)
+        inlineMath.push({
+          text: joinSpans(spans),
+          latex: joinSpans(spans),
+          sourceBBox: region.bbox,
+          sourceAnchor: sourceAnchor(raw.page, region),
+        });
     }
-    const sourceBBox = union([line.bbox, ...inlineMath.map((formula) => formula.sourceBBox)]);
+    const sourceBBox = union([
+      line.bbox,
+      ...inlineMath.map((formula) => formula.sourceBBox),
+    ]);
     const links = (raw.links || []).flatMap((link) => {
       const spans = line.spans.filter((s) => {
         const x = (s.bbox[0] + s.bbox[2]) / 2,
@@ -336,7 +419,10 @@ export function paragraphBlocks(raw, lines, regions = []) {
       });
       return spans.length ? [{ text: joinSpans(spans), url: link.url }] : [];
     });
-    const region = textRegion(line.bbox, regions.filter((r) => r.type !== "inline-formula"));
+    const region = textRegion(
+      line.bbox,
+      regions.filter((r) => r.type !== "inline-formula")
+    );
     const anchor = sourceAnchor(raw.page, region);
     const taggedRole = line.spans
       .map((s) => roles.get(s.markedContentId))
@@ -412,12 +498,21 @@ export function paragraphBlocks(raw, lines, regions = []) {
           : bodySize) *
           1.8 &&
       Math.abs(prior.fontSize - line.fontSize) < bodySize * 0.2 &&
-      (region?.id === prior.regionId) &&
+      region?.id === prior.regionId &&
       !(type === "heading" && /^\d+(?:\.\d+)*\s/.test(line.text))
     ) {
-      const textOffset = prior.text.replace(/([a-z])-$/, "$1").length + (/[a-z]-$/.test(prior.lastText) ? 0 : 1);
-      prior.textSources.push(...(anchor ? [{ start: textOffset, end: textOffset + line.text.length, anchor }] : []));
-      prior.sourceAnchors.push(...(anchor ? [anchor] : []), ...inlineMath.map((formula) => formula.sourceAnchor).filter(Boolean));
+      const textOffset =
+        prior.text.replace(/([a-z])-$/, "$1").length +
+        (/[a-z]-$/.test(prior.lastText) ? 0 : 1);
+      prior.textSources.push(
+        ...(anchor
+          ? [{ start: textOffset, end: textOffset + line.text.length, anchor }]
+          : [])
+      );
+      prior.sourceAnchors.push(
+        ...(anchor ? [anchor] : []),
+        ...inlineMath.map((formula) => formula.sourceAnchor).filter(Boolean)
+      );
       prior.text =
         prior.text.replace(/([a-z])-$/, "$1") +
         (/[a-z]-$/.test(prior.lastText) ? "" : " ") +
@@ -427,7 +522,9 @@ export function paragraphBlocks(raw, lines, regions = []) {
       prior.bbox = union([prior.bbox, line.bbox]);
       prior.fragments[0].bbox = union([prior.fragments[0].bbox, sourceBBox]);
       prior.fragments[0].lineIds.push(line.id);
-      prior.spanIds.push(...line.spans.flatMap((s) => s.inlineFormula?.spanIds || [s.id]));
+      prior.spanIds.push(
+        ...line.spans.flatMap((s) => s.inlineFormula?.spanIds || [s.id])
+      );
       prior.links.push(...links);
       prior.inlineMath.push(...inlineMath);
     } else
@@ -448,8 +545,13 @@ export function paragraphBlocks(raw, lines, regions = []) {
                   : 2
             : undefined,
         text: line.text,
-        textSources: anchor ? [{ start: 0, end: line.text.length, anchor }] : [],
-        sourceAnchors: [...(anchor ? [anchor] : []), ...inlineMath.map((formula) => formula.sourceAnchor).filter(Boolean)],
+        textSources: anchor
+          ? [{ start: 0, end: line.text.length, anchor }]
+          : [],
+        sourceAnchors: [
+          ...(anchor ? [anchor] : []),
+          ...inlineMath.map((formula) => formula.sourceAnchor).filter(Boolean),
+        ],
         links,
         inlineMath,
         lastText: line.text,
@@ -479,18 +581,36 @@ export function blockToMarkdown(block, sourceRanges) {
   }
   const original = block.text || "";
   const formulas = (block.inlineMath || []).map((value) =>
-    typeof value === "string" ? { text: value, latex: value } : value);
-  const candidates = [...formulas.filter((value) => value.text?.trim()).map((value) => ({
-    ...value, kind: "math",
-  })), ...(block.links || []).filter((link) => link.text && /^(?:https?:|mailto:)/i.test(link.url))
-    .map((link) => ({ ...link, kind: "link" }))].sort((a, b) => b.text.length - a.text.length);
-  let text = "", position = 0, previousMath = false;
+    typeof value === "string" ? { text: value, latex: value } : value
+  );
+  const candidates = [
+    ...formulas
+      .filter((value) => value.text?.trim())
+      .map((value) => ({
+        ...value,
+        kind: "math",
+      })),
+    ...(block.links || [])
+      .filter((link) => link.text && /^(?:https?:|mailto:)/i.test(link.url))
+      .map((link) => ({ ...link, kind: "link" })),
+  ].sort((a, b) => b.text.length - a.text.length);
+  let text = "",
+    position = 0,
+    previousMath = false;
   while (position < original.length) {
     const start = position;
-    const value = candidates.find((candidate) => original.startsWith(candidate.text, start) &&
-      (candidate.token || (!/[\p{L}\p{N}]/u.test(original[start - 1] || "") &&
-        !/[\p{L}\p{N}]/u.test(original[start + candidate.text.length] || ""))));
-    const bodyAnchor = block.textSources?.find((range) => start >= range.start && start < range.end)?.anchor;
+    const value = candidates.find(
+      (candidate) =>
+        original.startsWith(candidate.text, start) &&
+        (candidate.token ||
+          (!/[\p{L}\p{N}]/u.test(original[start - 1] || "") &&
+            !/[\p{L}\p{N}]/u.test(
+              original[start + candidate.text.length] || ""
+            )))
+    );
+    const bodyAnchor = block.textSources?.find(
+      (range) => start >= range.start && start < range.end
+    )?.anchor;
     if (!value) {
       const offset = text.length;
       text += escape(original[position++]);
@@ -501,7 +621,9 @@ export function blockToMarkdown(block, sourceRanges) {
     if (value.kind === "math") {
       if (previousMath) text += " ";
       const offset = text.length;
-      text += value.markdown || `$${value.latex.replace(/\$/g, "\\$").replace(/[\r\n]/g, " ")}$`;
+      text +=
+        value.markdown ||
+        `$${value.latex.replace(/\$/g, "\\$").replace(/[\r\n]/g, " ")}$`;
       record(offset, text.length, value.sourceAnchor || bodyAnchor);
       previousMath = true;
     } else {
@@ -512,10 +634,17 @@ export function blockToMarkdown(block, sourceRanges) {
     }
     position += value.text.length;
   }
-  const markdown = block.type === "heading" ? `${"#".repeat(block.level || 2)} ${text}` :
-    block.type === "list" ? `- ${text.replace(/^(?:[•●▪]|\d+[.)]|[-–])\s+/, "")}` : text;
+  const markdown =
+    block.type === "heading"
+      ? `${"#".repeat(block.level || 2)} ${text}`
+      : block.type === "list"
+        ? `- ${text.replace(/^(?:[•●▪]|\d+[.)]|[-–])\s+/, "")}`
+        : text;
   const shift = markdown.length - text.length;
-  sourceRanges?.forEach((range) => { range.start = Math.max(0, range.start + shift); range.end += shift; });
+  sourceRanges?.forEach((range) => {
+    range.start = Math.max(0, range.start + shift);
+    range.end += shift;
+  });
   return markdown;
 }
 export function mergeAcrossPages(blocks, pages) {
@@ -602,8 +731,18 @@ export function mergeAcrossPages(blocks, pages) {
       const hyphen = /[a-z]-$/.test(prior.text);
       const trimmedLength = prior.text.replace(/([a-z])-$/, "$1").length;
       const offset = trimmedLength + (hyphen ? 0 : 1);
-      if (hyphen) prior.textSources = prior.textSources.map((range) => ({ ...range, end: Math.min(range.end, trimmedLength) }));
-      prior.textSources.push(...block.textSources.map((range) => ({ ...range, start: range.start + offset, end: range.end + offset })));
+      if (hyphen)
+        prior.textSources = prior.textSources.map((range) => ({
+          ...range,
+          end: Math.min(range.end, trimmedLength),
+        }));
+      prior.textSources.push(
+        ...block.textSources.map((range) => ({
+          ...range,
+          start: range.start + offset,
+          end: range.end + offset,
+        }))
+      );
       prior.sourceAnchors.push(...block.sourceAnchors);
       prior.text =
         prior.text.replace(/([a-z])-$/, "$1") +

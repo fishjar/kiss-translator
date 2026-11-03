@@ -1,4 +1,5 @@
 import { supportsTouch } from "./touchCapability";
+import { KISS_UI_SELECTOR } from "./kissUi";
 // Gesture recognition is independent from translation and never emulates a mouse.
 export const touchParent = (node) =>
   node?.parentElement || node?.getRootNode?.()?.host;
@@ -21,7 +22,7 @@ export function isTouchExcluded(
   if (!scrollCache.has(node)) scrollCache.set(node, isHorizontalScroller(node));
   const excluded =
     node.matches(interactiveSelector) ||
-    (node.matches(".notranslate") && !isOwned(node)) ||
+    (node.matches(KISS_UI_SELECTOR) && !isOwned(node)) ||
     scrollCache.get(node) ||
     isTouchExcluded(touchParent(node), isOwned, cache, scrollCache);
   cache.set(node, excluded);

@@ -1,18 +1,22 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import BoltIcon from "@mui/icons-material/Bolt";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import CodeIcon from "@mui/icons-material/Code";
+import ExtensionIcon from "@mui/icons-material/Extension";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import InputIcon from "@mui/icons-material/Input";
 import IntegrationInstructionsIcon from "@mui/icons-material/IntegrationInstructions";
 import LanguageIcon from "@mui/icons-material/Language";
+import MemoryIcon from "@mui/icons-material/Memory";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import RuleIcon from "@mui/icons-material/Rule";
 import SettingsIcon from "@mui/icons-material/Settings";
 import SubtitlesIcon from "@mui/icons-material/Subtitles";
 import SyncIcon from "@mui/icons-material/Sync";
+import TelegramIcon from "@mui/icons-material/Telegram";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import TranslateIcon from "@mui/icons-material/Translate";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -44,6 +48,9 @@ const featureIcons = [
   BoltIcon,
   RuleIcon,
   SyncIcon,
+  MenuBookIcon,
+  MemoryIcon,
+  ExtensionIcon,
 ];
 
 const externalLinkProps = {
@@ -122,6 +129,18 @@ function Header({
         justifyContent={{ xs: "space-between", md: "flex-end" }}
         sx={{ flexWrap: "wrap", rowGap: 1 }}
       >
+        <Button
+          component={Link}
+          href="https://t.me/+RRCu_4oNwrM2NmFl"
+          {...externalLinkProps}
+          startIcon={<TelegramIcon />}
+          endIcon={compact ? null : <OpenInNewIcon />}
+          variant="text"
+          color="inherit"
+          sx={{ minWidth: 0 }}
+        >
+          {content.navTelegram}
+        </Button>
         <Button
           component={Link}
           href={process.env.REACT_APP_HOMEPAGE}
@@ -236,8 +255,13 @@ function Hero({ content, tokens }) {
         >
           <Button
             component={Link}
-            href={process.env.REACT_APP_HOMEPAGE}
-            {...externalLinkProps}
+            href="#install-matrix"
+            onClick={(e) => {
+              e.preventDefault();
+              document
+                .getElementById("install-matrix")
+                ?.scrollIntoView({ behavior: "smooth" });
+            }}
             variant="contained"
             size="large"
             startIcon={<AutoAwesomeIcon />}
@@ -387,7 +411,7 @@ function Hero({ content, tokens }) {
 
 function InstallMatrix({ content, tokens }) {
   return (
-    <Box component="section" sx={{ py: { xs: 3, sm: 5 } }}>
+    <Box id="install-matrix" component="section" sx={{ py: { xs: 3, sm: 5 } }}>
       <SectionHeader
         title={content.installTitle}
         subtitle={content.installSubtitle}
@@ -615,7 +639,11 @@ function Ecosystem({ content, tokens }) {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, minmax(0, 1fr))",
+            md: "repeat(3, minmax(0, 1fr))",
+          },
           gap: 1.5,
           mb: 2,
         }}
@@ -669,6 +697,8 @@ function Ecosystem({ content, tokens }) {
       <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
         {[
           "WebDAV",
+          "Plugins",
+          "Local AI",
           "Hooks",
           "Streaming",
           "Context memory",
@@ -689,12 +719,53 @@ function Ecosystem({ content, tokens }) {
   );
 }
 
+function Donation({ content, tokens }) {
+  return (
+    <Box
+      component="section"
+      sx={{
+        py: { xs: 4, sm: 6 },
+        borderTop: `1px solid ${tokens.border}`,
+      }}
+    >
+      <SectionHeader
+        title={content.donationTitle}
+        subtitle={content.donationSubtitle}
+      />
+      <Box
+        component="img"
+        src="https://github.com/fishjar/kiss-translator/assets/1157624/ebaecabe-2934-4172-8085-af236f5ee399"
+        alt={content.donationImageAlt}
+        loading="lazy"
+        sx={{
+          display: "block",
+          width: 200,
+          maxWidth: "100%",
+          height: "auto",
+          mx: "auto",
+          bgcolor: "#fff",
+          borderRadius: 2,
+        }}
+      />
+    </Box>
+  );
+}
+
 function Homepage() {
   const { language, setLanguage, themeMode, toggleThemeMode } =
     useHomepageSettings();
   const content = homepageContent[language] || homepageContent.en;
   const theme = useMemo(() => getHomepageTheme(themeMode), [themeMode]);
   const tokens = useMemo(() => getHomepageTokens(themeMode), [themeMode]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.title = `${content.title} | KISS Translator`;
+    const descMeta = document.querySelector('meta[name="description"]');
+    if (descMeta && content.subtitle) {
+      descMeta.setAttribute("content", content.subtitle);
+    }
+  }, [content.title, content.subtitle]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -733,6 +804,7 @@ function Homepage() {
           <InstallMatrix content={content} tokens={tokens} />
           <FeatureDashboard content={content} tokens={tokens} />
           <Ecosystem content={content} tokens={tokens} />
+          <Donation content={content} tokens={tokens} />
         </Box>
       </Box>
     </ThemeProvider>

@@ -20,14 +20,31 @@ jest.mock("../libs/detectFast", () => {
 
 import { detectLangFast } from "../libs/detectFast";
 
-function makeSelection(text, container, rectOverride) {
+function makeSelection(text, container, rectOverride, occurrence = 0) {
   const rect = rectOverride || {
     left: 10,
     right: 30,
     bottom: 40,
   };
+  const textNode = container?.firstChild;
+  const fullText = container?.textContent || "";
+  let startOffset = -1;
+  let searchFrom = 0;
+  for (let index = 0; index <= occurrence; index += 1) {
+    startOffset = fullText.indexOf(text, searchFrom);
+    if (startOffset < 0) break;
+    searchFrom = startOffset + text.length;
+  }
   const range = {
-    commonAncestorContainer: container?.firstChild || container,
+    commonAncestorContainer: textNode || container,
+    ...(textNode && startOffset >= 0
+      ? {
+          startContainer: textNode,
+          startOffset,
+          endContainer: textNode,
+          endOffset: startOffset + text.length,
+        }
+      : {}),
     getBoundingClientRect: () => rect,
     getClientRects: () => [rect],
   };
@@ -60,6 +77,20 @@ function createPanelTarget() {
   return { host, shadow, wrapper };
 }
 
+function createFabTarget(menu = false) {
+  const host = document.createElement("div");
+  host.id = APP_CONSTS.fabID;
+  document.body.appendChild(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const button = document.createElement("button");
+  if (menu) button.setAttribute("role", "menuitem");
+  const icon = document.createElement("span");
+  button.appendChild(icon);
+  shadow.appendChild(button);
+  button.addEventListener("pointerdown", (event) => event.stopPropagation());
+  return icon;
+}
+
 function TestController({
   onState,
   triggerMode = "click",
@@ -73,7 +104,7 @@ function TestController({
   setBoxPosition = jest.fn(),
   toLang = "zh-CN",
   skipLangs,
-  hideClickAway = false,
+  hideClickAway,
 }) {
   const tranboxSetting = {
     triggerMode,
@@ -246,6 +277,115 @@ describe("useSelectionController", () => {
     act(() => {
       controller.root.unmount();
     });
+  });
+
+  test("captures the sentence and URL for the selected repeated word", async () => {
+    const controller = renderController();
+    const pageParagraph = createParagraph(
+      "The library is open. The library closes at dusk."
+    );
+
+    currentSelection = makeSelection("library", pageParagraph, undefined, 1);
+    await dispatchWindowMouseup();
+
+    act(() => {
+      controller.state.handleOpenTranbox();
+    });
+
+    expect(controller.state.selectionSource).toEqual({
+      text: "library",
+      sentence: "The library closes at dusk.",
+      url: window.location.href,
+    });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test.each([
+    ["fixed", false],
+    ["mouse", false],
+    ["fixed", true],
+    ["mouse", true],
+  ])(
+    "hides the selection button when pressing the FAB (%s position, menu: %s) without moving or clearing the selection",
+    async (btnPositionMode, menu) => {
+      const view = renderController({ btnPositionMode });
+      const paragraph = createParagraph("The library is open.");
+      currentSelection = makeSelection("library", paragraph);
+      await dispatchWindowMouseup();
+      expect(view.state.showBtn).toBe(true);
+      const position = view.state.position;
+      const target = createFabTarget(menu);
+      act(() =>
+        target.dispatchEvent(
+          new MouseEvent("pointerdown", { bubbles: true, composed: true })
+        )
+      );
+      expect(view.state.showBtn).toBe(false);
+      await act(async () => {
+        target.dispatchEvent(
+          new MouseEvent("mouseup", {
+            bubbles: true,
+            composed: true,
+            clientX: 300,
+            clientY: 400,
+          })
+        );
+        jest.advanceTimersByTime(300);
+      });
+      expect(view.state.showBtn).toBe(false);
+      expect(view.state.position).toEqual(position);
+      expect(view.state.showBox).toBe(false);
+      expect(window.getSelection().toString()).toBe("library");
+      currentSelection = makeSelection("open", paragraph);
+      await dispatchWindowMouseup();
+      expect(view.state.showBtn).toBe(true);
+      expect(view.state.selectedText).toBe("open");
+      act(() => view.root.unmount());
+    }
+  );
+
+  test("FAB interaction invalidates a selection awaiting language detection", async () => {
+    let finishDetection;
+    detectLangFast.mockReturnValue(
+      new Promise((resolve) => {
+        finishDetection = resolve;
+      })
+    );
+    const view = renderController();
+    const paragraph = createParagraph("The library is open.");
+    currentSelection = makeSelection("library", paragraph);
+    await dispatchWindowMouseup();
+    expect(detectLangFast).toHaveBeenCalledTimes(1);
+    const target = createFabTarget();
+    act(() =>
+      target.dispatchEvent(
+        new MouseEvent("pointerdown", { bubbles: true, composed: true })
+      )
+    );
+    await act(async () => finishDetection("en"));
+    expect(view.state.showBtn).toBe(false);
+    expect(view.state.showBox).toBe(false);
+    act(() => view.root.unmount());
+  });
+
+  test("FAB mouseup alone cancels a delayed selection rather than opening an automatic translation", async () => {
+    const view = renderController({ triggerMode: "select" });
+    const paragraph = createParagraph("The library is open.");
+    currentSelection = makeSelection("library", paragraph);
+    await dispatchWindowMouseup(0);
+    const target = createFabTarget(true);
+    await act(async () => {
+      target.dispatchEvent(
+        new MouseEvent("mouseup", { bubbles: true, composed: true })
+      );
+      jest.advanceTimersByTime(300);
+    });
+    expect(view.state.showBox).toBe(false);
+    expect(view.state.showBtn).toBe(false);
+    act(() => view.root.unmount());
   });
 
   test("keeps existing context when a later page mouseup has an empty selection", async () => {
@@ -696,6 +836,7 @@ describe("useSelectionController", () => {
     });
     await dispatchWindowMouseup();
 
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
     expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
       x: 20,
       // Selection top 420 - outer height (200 + TRANBOX_CHROME_HEIGHT 74) - boxOffsetY 10.
@@ -731,6 +872,7 @@ describe("useSelectionController", () => {
     });
     await dispatchWindowMouseup();
 
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
     expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
       x: 20,
       y: 0,
@@ -764,9 +906,396 @@ describe("useSelectionController", () => {
     });
     await dispatchWindowMouseup();
 
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
     expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
       x: 20,
       y: 0,
+    });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("keeps a pinned panel in place while refreshing it for a new selection", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 800,
+    });
+    const controller = renderController({
+      triggerMode: "select",
+      followSelection: true,
+      hideClickAway: false,
+      boxOffsetY: 0,
+      boxSize: { w: 320, h: 200 },
+    });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 50,
+      bottom: 70,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 150,
+      y: 70,
+    });
+
+    currentSelection = makeSelection("open", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 400,
+      bottom: 420,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.state.text).toBe("open");
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 150,
+      y: 70,
+    });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("follows a new selection while the opened panel is not pinned", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 800,
+    });
+    const controller = renderController({
+      triggerMode: "select",
+      followSelection: true,
+      hideClickAway: true,
+      boxOffsetY: 0,
+      boxSize: { w: 320, h: 200 },
+    });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 50,
+      bottom: 70,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
+
+    currentSelection = makeSelection("open", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 400,
+      bottom: 420,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.text).toBe("open");
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(2);
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 150,
+      y: 420,
+    });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("follows a new selection when the click-away setting was never declared", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 800,
+    });
+    const controller = renderController({
+      triggerMode: "select",
+      followSelection: true,
+      boxOffsetY: 0,
+      boxSize: { w: 320, h: 200 },
+    });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 50,
+      bottom: 70,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
+
+    currentSelection = makeSelection("open", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 400,
+      bottom: 420,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    // Only a declared falsy value pins the panel; an undeclared one must keep
+    // the panel following so the pre-follow behaviour stays intact.
+    expect(controller.state.text).toBe("open");
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(2);
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 150,
+      y: 420,
+    });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("follows again after a pinned panel is dismissed by a suppressed selection", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 800,
+    });
+    const controller = renderController({
+      triggerMode: "select",
+      followSelection: true,
+      hideClickAway: false,
+      boxOffsetY: 0,
+      boxSize: { w: 320, h: 200 },
+    });
+    const pageParagraph = createParagraph("The library is open. 12345");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 50,
+      bottom: 70,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
+
+    currentSelection = makeSelection("12345", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 400,
+      bottom: 420,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBox).toBe(false);
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
+
+    currentSelection = makeSelection("open", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 400,
+      bottom: 420,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(2);
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 150,
+      y: 420,
+    });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("does not relocate the panel opened during the selection settle delay", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 800,
+    });
+    const controller = renderController({
+      triggerMode: "select",
+      followSelection: true,
+      hideClickAway: false,
+      boxOffsetY: 0,
+      boxSize: { w: 320, h: 200 },
+    });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 50,
+      bottom: 70,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup(0);
+
+    expect(controller.state.showBox).toBe(false);
+    expect(controller.setBoxPosition).not.toHaveBeenCalled();
+
+    act(() => {
+      controller.state.handleOpenTranbox("library");
+    });
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.setBoxPosition).not.toHaveBeenCalled();
+
+    await act(async () => {
+      jest.advanceTimersByTime(200);
+      await Promise.resolve();
+    });
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.state.text).toBe("library");
+    expect(controller.setBoxPosition).not.toHaveBeenCalled();
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("an explicit reveal still relocates a pinned panel", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 800,
+    });
+    const controller = renderController({
+      triggerMode: "select",
+      followSelection: true,
+      hideClickAway: false,
+      boxOffsetY: 0,
+      boxSize: { w: 320, h: 200 },
+    });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 50,
+      bottom: 70,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 150,
+      y: 70,
+    });
+
+    currentSelection = makeSelection("open", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 400,
+      bottom: 420,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    // The pinned panel stays put while it is visible, so this selection alone
+    // cannot account for the relocation asserted after the explicit reveal.
+    expect(controller.state.text).toBe("open");
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      controller.state.handleToggleTranbox();
+    });
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(2);
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 150,
+      y: 420,
+    });
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("keeps a panel pinned by a degraded falsy setting in place", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 800,
+    });
+    const controller = renderController({
+      triggerMode: "select",
+      followSelection: true,
+      hideClickAway: 0,
+      boxOffsetY: 0,
+      boxSize: { w: 320, h: 200 },
+    });
+    const pageParagraph = createParagraph("The library is open.");
+
+    currentSelection = makeSelection("library", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 50,
+      bottom: 70,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 150,
+      y: 70,
+    });
+
+    currentSelection = makeSelection("open", pageParagraph, {
+      left: 100,
+      right: 200,
+      top: 400,
+      bottom: 420,
+      width: 100,
+      height: 20,
+    });
+    await dispatchWindowMouseup();
+
+    expect(controller.state.showBox).toBe(true);
+    expect(controller.state.text).toBe("open");
+    expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
+    expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
+      x: 150,
+      y: 70,
     });
 
     act(() => {

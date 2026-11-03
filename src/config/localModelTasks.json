@@ -1,4 +1,11 @@
 {
+  "asrTimestamps": {
+    "whisper-base-timestamped": true,
+    "whisper-small-timestamped": true,
+    "whisper-medium-timestamped": true,
+    "whisper-large-v3-turbo-timestamped": true,
+    "sensevoice-small": true
+  },
   "backends": {
     "pp-doclayout-v3-onnx": ["wasm"],
     "whisper-base-timestamped": ["webgpu"],

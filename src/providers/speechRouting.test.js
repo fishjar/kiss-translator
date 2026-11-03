@@ -20,7 +20,10 @@ test("a Chromium content script routes system playback to background even withou
       "speech",
       "speak",
       { text: "hello" },
-      {}
+      expect.objectContaining({
+        timeoutMs: 120000,
+        deadlineAt: expect.any(Number),
+      })
     );
   } finally {
     global.chrome = previousChrome;

@@ -12,8 +12,7 @@ const builtinPresets = DEFAULT_API_LIST.some(
 
 /** Compiled manifests; capability/field declarations are owned by native modules. */
 export const builtinPlugins = builtinPresets.map((preset) => ({
-  manifestVersion: 1,
-  apiVersion: "1",
+  apiVersion: 1,
   id: "builtin:" + preset.apiType,
   name: preset.apiType,
   services: [getBuiltinServiceDefinition(preset.apiType)],
@@ -34,7 +33,7 @@ export function createBuiltinInstance(apiType, apiSlug, apiName) {
     enabledCapabilities: Object.keys(resolveBuiltinCapabilities(defaults)),
     provider: {
       ...JSON.parse(JSON.stringify(plugin.services[0])),
-      apiVersion: "1",
+      apiVersion: 1,
       source: {
         pluginId: plugin.id,
         serviceId: apiType,

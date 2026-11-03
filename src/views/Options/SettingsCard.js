@@ -214,7 +214,12 @@ export function SettingsSelect({
         const normalized = Array.isArray(option)
           ? { value: option[0], label: option[1] }
           : option;
-        if (normalized.groupLabel) return <ListSubheader key={normalized.groupLabel}>{normalized.groupLabel}</ListSubheader>;
+        if (normalized.groupLabel)
+          return (
+            <ListSubheader key={normalized.groupLabel}>
+              {normalized.groupLabel}
+            </ListSubheader>
+          );
         return (
           <MenuItem key={normalized.value} value={normalized.value}>
             {normalized.label}

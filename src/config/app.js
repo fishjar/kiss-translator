@@ -15,6 +15,7 @@ export const APP_CONSTS = {
   fabID: `${APP_LCNAME}-fab`, // 悬浮翻译球元素的 ID
   boxID: `${APP_LCNAME}-box`, // 划词/查词翻译面板元素的 ID
   popupID: `${APP_LCNAME}-popup`, // 弹出页/提示框的 ID
+  imageBoxID: `${APP_LCNAME}-image-box`, // 图片翻译浮层元素的 ID
 };
 
 // 当前应用的版本，按点号拆分成数组 (例如: "1.0.2" -> ["1", "0", "2"])

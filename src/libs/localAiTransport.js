@@ -12,6 +12,7 @@ export async function requestLocalChat(init, opts = {}, onToken) {
       service: "llm",
       method: "chat",
       payload,
+      ...(opts.diagnostic && { diagnostic: opts.diagnostic }),
       options: { cacheMode },
     },
     {

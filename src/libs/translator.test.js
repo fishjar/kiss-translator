@@ -19,6 +19,12 @@ jest.mock("./msg", () => ({
 jest.mock("./detect", () => ({
   tryDetectLang: jest.fn(),
 }));
+jest.mock("@streamparser/json", () => ({ JSONParser: jest.fn() }));
+jest.mock("./terminologyStorage", () => ({
+  loadTerminologySnapshot: jest.fn(async () => []),
+}));
+jest.mock("./sync", () => ({ trySyncRules: jest.fn() }));
+jest.mock("./subRules", () => ({ loadOrFetchSubRules: jest.fn() }));
 
 const { apiMicrosoftDict, apiTranslate, apiYoudaoDict } = require("../apis");
 const { tryDetectLang } = require("./detect");
@@ -119,6 +125,245 @@ function createPlainTextTranslator(rule = {}, setting = {}) {
 }
 
 describe("Translator rule styles", () => {
+  describe("manual terminology snapshots", () => {
+    const table = {
+      id: "hover-topic",
+      name: "Topic",
+      description: "",
+      terms: "act,行动",
+      aiTerms: "component,表组件",
+      normalMatchMode: "auto",
+    };
+    const setup = (apiSlug = "bubble") => {
+      document.body.innerHTML =
+        '<main id="root"><p id="target">act component</p></main>';
+      const pageApi = createApiSetting("page");
+      const bubbleApi = {
+        ...createApiSetting("bubble"),
+        termsList: [table.id],
+        aiTerms: "component,接口组件",
+      };
+      return createTranslator(
+        {
+          transOpen: "false",
+          apiSlug: "page",
+          aiTerms: "component,规则组件",
+          ...(apiSlug === "*" && { termsList: [table.id] }),
+        },
+        {
+          preInit: true,
+          transApis: [pageApi, bubbleApi],
+          mouseHoverSetting: {
+            useMouseHover: true,
+            displayMode: "bubble",
+            apiSlug,
+            mouseHoverKey: [],
+            mouseHoverKey2: [],
+          },
+        }
+      );
+    };
+    test.each(["bubble", "*"])(
+      "loads tables with page translation disabled (%s)",
+      async (apiSlug) => {
+        const { loadTerminologySnapshot } = require("./terminologyStorage");
+        const {
+          compileTerminology,
+          terminologySourceList,
+          protectTerminologyText,
+        } = require("./terminology");
+        loadTerminologySnapshot.mockResolvedValue([table]);
+        apiTranslate.mockImplementation(async (args) => {
+          const resolved = compileTerminology(
+            [...terminologySourceList(args.scene), args.apiSetting],
+            args.terminologyTables
+          );
+          expect(resolved.glossary.component).toBe("规则组件");
+          const protection = protectTerminologyText(
+            args.text,
+            resolved.normalEntries
+          );
+          expect(protection.text).not.toContain("act");
+          expect(args.normalTermsApplied).toBe(false);
+          return { trText: protection.restore(protection.text) };
+        });
+        setup(apiSlug);
+        await hoverNode(document.getElementById("target"));
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(
+          document.querySelector(".kiss-translator-hover-bubble").textContent
+        ).toBe("行动 component");
+      }
+    );
+    test.each(["stop", "service"])(
+      "discards a pending hover snapshot after %s",
+      async (action) => {
+        const { loadTerminologySnapshot } = require("./terminologyStorage");
+        let resolve;
+        loadTerminologySnapshot.mockImplementationOnce(
+          () =>
+            new Promise((done) => {
+              resolve = done;
+            })
+        );
+        const translator = setup();
+        await hoverNode(document.getElementById("target"));
+        await flushAsync();
+        expect(resolve).toEqual(expect.any(Function));
+        if (action === "stop") translator.stop();
+        else translator.updateApiSettings([createApiSetting("page")]);
+        resolve([table]);
+        await flushAsync();
+        expect(apiTranslate).not.toHaveBeenCalled();
+      }
+    );
+  });
+  test.each(["toggle", "change-table"])(
+    "%s during table loading ignores the canceled snapshot",
+    async (action) => {
+      const { loadTerminologySnapshot } = require("./terminologyStorage");
+      let first, second;
+      loadTerminologySnapshot
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              first = resolve;
+            })
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              second = resolve;
+            })
+        );
+      document.body.innerHTML = '<main id="root"><p>act react</p></main>';
+      apiTranslate.mockImplementation(async ({ text }) => ({ trText: text }));
+      const translator = createTranslator({ termsList: ["topic"] });
+      await flushAsync();
+      if (action === "toggle") {
+        translator.disable();
+        translator.enable();
+      } else translator.updateRule({ termsList: ["other"] });
+      expect(loadTerminologySnapshot).toHaveBeenCalledTimes(2);
+      first([]);
+      await flushAsync();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      second([
+        {
+          id: action === "toggle" ? "topic" : "other",
+          name: "Topic",
+          description: "",
+          terms: "act,行动",
+          aiTerms: "",
+          normalMatchMode: "auto",
+        },
+      ]);
+      await flushAsync();
+      expect(
+        document.querySelector(`.${Translator.KISS_CLASS.inner}`).textContent
+      ).toBe("行动 react");
+    }
+  );
+
+  test.each(["disable", "stop", "rescan", "source", "target", "service"])(
+    "cancels pending webpage requests on %s and isolates the next session",
+    async (action) => {
+      document.body.innerHTML =
+        '<main id="root"><p>Pending article translation</p></main>';
+      apiTranslate.mockImplementation(() => new Promise(() => {}));
+      const translator = createTranslator(
+        {},
+        {
+          transApis: [
+            createApiSetting(DEFAULT_API_SETTING.apiSlug),
+            createApiSetting("next-service"),
+          ],
+        }
+      );
+      await flushAsync();
+      const oldRequest = apiTranslate.mock.calls[0][0];
+      expect(oldRequest.signal).toBeDefined();
+      expect(oldRequest.signal.aborted).toBe(false);
+
+      if (action === "source") translator.updateRule({ fromLang: "auto" });
+      else if (action === "target") translator.updateRule({ toLang: "ja" });
+      else if (action === "service")
+        translator.updateRule({ apiSlug: "next-service" });
+      else translator[action]();
+      expect(oldRequest.signal.aborted).toBe(true);
+      if (action === "disable" || action === "stop") translator.enable();
+      await flushAsync();
+      const nextRequest = apiTranslate.mock.calls.at(-1)[0];
+      expect(nextRequest.signal).not.toBe(oldRequest.signal);
+      expect(nextRequest.signal.aborted).toBe(false);
+    }
+  );
+
+  test("stopping webpage translation leaves unrelated queued requests intact", async () => {
+    const { getFetchPool } = require("./pool");
+    document.body.innerHTML =
+      '<main id="root"><p>Article translation</p></main>';
+    const translator = createTranslator();
+    await flushAsync();
+    const otherTask = jest.fn();
+    const pending = getFetchPool(0, 1).push(otherTask);
+    translator.disable();
+    jest.runOnlyPendingTimers();
+    await pending;
+    expect(otherTask).toHaveBeenCalledTimes(1);
+  });
+
+  test("style changes preserve the active webpage request", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Pending article translation</p></main>';
+    apiTranslate.mockImplementation(() => new Promise(() => {}));
+    const translator = createTranslator();
+    await flushAsync();
+    const request = apiTranslate.mock.calls[0][0];
+    translator.updateRule({ textStyle: "fuzzy" });
+    expect(request.signal).toBeDefined();
+    expect(request.signal.aborted).toBe(false);
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+  });
+
+  test("late cancellation of an old language request does not replace the new translation", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p>Article translation</p></main>';
+    const pending = [];
+    apiTranslate.mockImplementation(
+      () => new Promise((resolve, reject) => pending.push({ resolve, reject }))
+    );
+    const translator = createTranslator();
+    await flushAsync();
+    translator.updateRule({ fromLang: "auto" });
+    await flushAsync();
+    expect(pending).toHaveLength(2);
+    pending[1].resolve({ trText: "Current translation", isSame: false });
+    await flushAsync();
+    pending[0].reject(new DOMException("Cancelled", "AbortError"));
+    await flushAsync();
+    expect(document.querySelector(".kiss-translator-inner").textContent).toBe(
+      "Current translation"
+    );
+  });
+
+  test("stopping cancels both title and body requests", async () => {
+    document.title = "Pending page title";
+    document.body.innerHTML =
+      '<main id="root"><p>Pending article translation</p></main>';
+    apiTranslate.mockImplementation(() => new Promise(() => {}));
+    const translator = createTranslator({ transTitle: "true" });
+    await flushAsync();
+    expect(apiTranslate.mock.calls.map(([args]) => args.text)).toContain(
+      "Pending page title"
+    );
+    translator.disable();
+    expect(apiTranslate.mock.calls.every(([args]) => args.signal.aborted)).toBe(
+      true
+    );
+  });
+
   test("editor preview shares targets without modifying DOM or sending requests", () => {
     document.body.innerHTML =
       '<main id="root"><article><p id="a">First article text</p><p id="b" class="excluded">Ignored paragraph text</p></article></main>';
@@ -698,7 +943,7 @@ describe("Translator rule styles", () => {
       expect(old.isConnected).toBe(false);
     });
 
-    test("continues invalidating reorders when a keep selector groups the card with its parent", async () => {
+    test("keeps block cards independent even when keepSelector matches them", async () => {
       document.body.innerHTML =
         '<main id="root"><article><p>Moving paragraph.</p></article><article><p>Other paragraph.</p></article></main>';
       createTranslator({ keepSelector: "article" });
@@ -709,8 +954,8 @@ describe("Translator rule styles", () => {
       apiTranslate.mockClear();
       root.appendChild(card);
       await flushMutations();
-      expect(apiTranslate).toHaveBeenCalled();
-      expect(old.isConnected).toBe(false);
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(old.isConnected).toBe(true);
       expect(card.querySelector(wrapperSelector)).not.toBeNull();
     });
 
@@ -1472,18 +1717,491 @@ describe("Translator rule styles", () => {
     jest.clearAllMocks();
   });
 
-  describe("available translation services", () => {
-    test("selected service failure never requests Google2 from a leftover list", async () => {
-      document.body.innerHTML = '<main id="root"><p>Selected plugin service</p></main>';
-      apiTranslate.mockRejectedValue(new Error("selected service failed"));
+  describe("inline hidden sources", () => {
+    test.each([
+      {},
+      { autoScan: "false", selector: "p" },
+      { scanAll: "true" },
+      { isPlainText: true },
+      { hasRichText: "true", keepSelector: "span, code" },
+      { transOnly: "true" },
+    ])(
+      "excludes hidden descendants from detection and requests: %j",
+      async (rule) => {
+        document.body.innerHTML = `<main id="root"><p id="visible">Visible source <span style="display:none">SECRET</span><code>code <b style="display: none !important">SECRET</b></code></p><section style="display:none"><p>SECRET</p></section></main>`;
+        const original = document.getElementById("visible");
+        const translator = createTranslator({ ...rule, fromLang: "auto" });
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalled();
+        expect(
+          apiTranslate.mock.calls.every(
+            ([args]) => !args.text.includes("SECRET")
+          )
+        ).toBe(true);
+        expect(
+          tryDetectLang.mock.calls.every(([text]) => !text.includes("SECRET"))
+        ).toBe(true);
+        expect(document.querySelector("section kiss-translator")).toBeNull();
+        expect(
+          document.querySelector("span[style] kiss-translator")
+        ).toBeNull();
+        translator.disable();
+        expect(original.textContent).toContain("SECRET");
+        expect(original.querySelector("span").style.display).toBe("none");
+      }
+    );
+
+    test("rechecks targets hidden after scanning but before processing", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Hidden after scan</p></main>';
+      global.IntersectionObserver = class {
+        constructor(callback) {
+          this.callback = callback;
+        }
+        observe(target) {
+          target.style.display = "none";
+          this.callback([{ target, isIntersecting: true }]);
+        }
+        unobserve() {}
+        disconnect() {}
+      };
+      createTranslator();
+      await flushAsync();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(document.querySelector("kiss-translator")).toBeNull();
+    });
+
+    test("GitHub task lists omit both drag accessibility regions", async () => {
+      const { BUILTIN_RULES } = require("../config/rules");
+      document.body.innerHTML = `<main id="root" class="markdown-body"><li>Visible task<div id="DndDescribedBy-0" style="display:none">SECRET instructions</div><div id="DndLiveRegion-0" style="clip-path:inset(100%)">SECRET announcement</div></li></main>`;
       createTranslator(
-        { apiSlug: "deepseek-instance", apiSlugs: ["google2"] },
-        { transApis: [createApiSetting("deepseek-instance"), createApiSetting("google2")] }
+        BUILTIN_RULES.find((rule) => rule.pattern === "github.com")
       );
       await flushAsync();
       expect(apiTranslate).toHaveBeenCalledTimes(1);
-      expect(apiTranslate.mock.calls[0][0].apiSetting.apiSlug).toBe("deepseek-instance");
-      expect(document.querySelector(`.${Translator.KISS_CLASS.retry}`)).not.toBeNull();
+      expect(apiTranslate.mock.calls[0][0].text).toBe("Visible task");
+    });
+
+    test("display changes preserve existing wrappers and rescan discovers revealed content", async () => {
+      document.body.innerHTML = `<main id="root"><section id="panel"><p>Visible source</p></section><p id="later" style="display:none">Revealed source</p></main>`;
+      const translator = createTranslator();
+      await flushAsync();
+      const wrapper = document.querySelector("kiss-translator");
+      const count = apiTranslate.mock.calls.length;
+      document.getElementById("panel").style.display = "none";
+      document.getElementById("later").style.display = "block";
+      await flushMutations();
+      document.getElementById("panel").style.display = "block";
+      await flushMutations();
+      expect(document.querySelector("kiss-translator")).toBe(wrapper);
+      expect(apiTranslate).toHaveBeenCalledTimes(count);
+      translator.rescan();
+      await flushAsync();
+      expect(
+        apiTranslate.mock.calls.some(
+          ([args]) => args.text === "Revealed source"
+        )
+      ).toBe(true);
+    });
+
+    test("plain-text preprocessing preserves hidden descendants", async () => {
+      document.body.innerHTML = `<main id="root"><pre>Visible source<span style="display:none">SECRET</span></pre></main>`;
+      createPlainTextTranslator();
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalled();
+      expect(
+        apiTranslate.mock.calls.every(([args]) => !args.text.includes("SECRET"))
+      ).toBe(true);
+      expect(document.querySelector("pre span[style]").textContent).toBe(
+        "SECRET"
+      );
+    });
+
+    test("bubble requests exclude hidden descendants", async () => {
+      document.body.innerHTML = `<main id="root"><p id="target">Visible source<span style="display:none">SECRET</span></p></main>`;
+      createTranslator(
+        { transOpen: "false", fromLang: "auto" },
+        {
+          preInit: true,
+          mouseHoverSetting: {
+            useMouseHover: true,
+            mouseHoverKey: [],
+            mouseHoverKey2: [],
+            displayMode: "bubble",
+          },
+        }
+      );
+      await hoverNode(document.getElementById("target"));
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).toBe("Visible source");
+      expect(tryDetectLang.mock.calls[0][0]).toBe("Visible source");
+    });
+  });
+
+  describe("rule-aware source prechecks", () => {
+    test.each(["body", "bubble"])(
+      "ignores populated live regions in %s detection and requests",
+      async (mode) => {
+        const { BUILTIN_RULES } = require("../config/rules");
+        const github = BUILTIN_RULES.find(
+          (rule) => rule.pattern === "github.com"
+        );
+        document.body.innerHTML =
+          '<main id="root" class="markdown-body"><li id="target">Visible source<div id="DndLiveRegion-0" style="clip-path:inset(100%)">SECRET Press spacebar to reorder with a long announcement</div></li></main>';
+        createTranslator(
+          {
+            ...github,
+            fromLang: "auto",
+            transOpen: mode === "body" ? "true" : "false",
+          },
+          {
+            maxLength: 30,
+            preInit: true,
+            mouseHoverSetting: {
+              useMouseHover: true,
+              mouseHoverKey: [],
+              mouseHoverKey2: [],
+              displayMode: mode === "bubble" ? "bubble" : "inline",
+            },
+          }
+        );
+        await hoverNode(document.getElementById("target"));
+        await flushAsync();
+        expect(tryDetectLang.mock.calls[0][0]).toBe("Visible source");
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe("Visible source");
+      }
+    );
+
+    test.each([
+      [{ ignoreSelector: ".ignored" }, "Visible source"],
+      [
+        { ignoreSelector: ".ignored", keepSelector: "span" },
+        "Visible source kept",
+      ],
+      [{ ignoreSelector: ".ignored", scanAll: "true" }, "Visible source kept"],
+      [
+        { ignoreSelector: ".ignored", isPlainText: true },
+        "Visible source kept",
+      ],
+    ])(
+      "preserves ignore and inline keep semantics: %j",
+      async (rule, expected) => {
+        document.body.innerHTML =
+          '<main id="root"><p>Visible source<span class="ignored" style="display:inline"> kept<b style="display:none">SECRET</b></span><script>SECRET script</script><span data-kiss-ui>SECRET UI</span></p></main>';
+        createTranslator({ ...rule, fromLang: "auto" });
+        await flushAsync();
+        expect(tryDetectLang.mock.calls[0][0]).toBe(expected);
+        expect(apiTranslate).toHaveBeenCalled();
+        expect(
+          apiTranslate.mock.calls.every(
+            ([args]) => !args.text.includes("SECRET")
+          )
+        ).toBe(true);
+      }
+    );
+
+    test("retains short-source length filtering despite long ignored text", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Hi<span class="ignored">Long ignored auxiliary text</span></p></main>';
+      createTranslator(
+        { ignoreSelector: ".ignored", fromLang: "auto" },
+        { minLength: 10 }
+      );
+      await flushAsync();
+      expect(tryDetectLang).not.toHaveBeenCalled();
+      expect(apiTranslate).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ["a", "paragraph", 'style="display:none"'],
+      ["p", "paragraph", 'style="display:none"'],
+      ["p", "region", 'style="display:none"'],
+      ["a", "paragraph", 'class="ignored"'],
+      ["p", "paragraph", 'class="ignored"'],
+      ["p", "region", 'class="ignored"'],
+    ])(
+      "does not swallow repeated right holds with only excluded text: %s/%s/%s",
+      async (tag, transScope, attributes) => {
+        document.body.innerHTML = `<main id="root"><section><${tag} id="target" href="#"> <span ${attributes}>Excluded paragraph with sufficient length</span></${tag}><p> <span ${attributes}>Another excluded paragraph</span></p></section></main>`;
+        const target = document.getElementById("target");
+        document.elementFromPoint = () => target;
+        createTranslator(
+          { ignoreSelector: ".ignored" },
+          {
+            preInit: true,
+            mouseHoverSetting: {
+              useMouseHover: true,
+              mouseHoverKey: [],
+              mouseHoverKey2: [],
+              mouseHoverKeyHold: true,
+              mouseHoverHoldButton: "right",
+              mouseHoverHoldDelay: 300,
+              mouseHoverSuppressContextMenu: true,
+              mouseHoverTransMode: transScope,
+            },
+          }
+        );
+        await flushAsync();
+        await hoverNode(target, 20, 20);
+        for (let attempt = 0; attempt < 2; attempt++) {
+          target.dispatchEvent(
+            new MouseEvent("mousedown", {
+              bubbles: true,
+              button: 2,
+              clientX: 20,
+              clientY: 20,
+            })
+          );
+          jest.advanceTimersByTime(300);
+          await flushAsync();
+          document.dispatchEvent(
+            new MouseEvent("mouseup", { bubbles: true, button: 2 })
+          );
+          const menu = new MouseEvent("contextmenu", {
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+          });
+          target.dispatchEvent(menu);
+          expect(menu.defaultPrevented).toBe(false);
+        }
+        expect(apiTranslate).not.toHaveBeenCalled();
+        expect(document.querySelector("kiss-translator")).toBeNull();
+      }
+    );
+  });
+
+  test.each(["false", "true"])(
+    "restores a translated region containing excluded-only units (transOnly=%s)",
+    async (transOnly) => {
+      document.body.innerHTML =
+        '<main id="root"><section><p id="target">Visible source paragraph</p><p><span style="display:none">Hidden auxiliary paragraph</span></p></section></main>';
+      const target = document.getElementById("target");
+      document.elementFromPoint = () => target;
+      createTranslator(
+        { ignoreSelector: ".ignored", transOnly },
+        {
+          preInit: true,
+          mouseHoverSetting: {
+            useMouseHover: true,
+            mouseHoverKey: [],
+            mouseHoverKey2: [],
+            mouseHoverKeyHold: true,
+            mouseHoverHoldButton: "right",
+            mouseHoverHoldDelay: 300,
+            mouseHoverSuppressContextMenu: true,
+            mouseHoverTransMode: "region",
+          },
+        }
+      );
+      await flushAsync();
+      expect(document.querySelectorAll("kiss-translator")).toHaveLength(1);
+      await hoverNode(target, 20, 20);
+      target.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          button: 2,
+          clientX: 20,
+          clientY: 20,
+        })
+      );
+      jest.advanceTimersByTime(300);
+      await flushAsync();
+      document.dispatchEvent(
+        new MouseEvent("mouseup", { bubbles: true, button: 2 })
+      );
+      expect(document.querySelector("kiss-translator")).toBeNull();
+      expect(target.textContent).toBe("Visible source paragraph");
+    }
+  );
+
+  describe("filtered area candidate lengths", () => {
+    const holdAt = async (target) => {
+      document.elementFromPoint = () => target;
+      await hoverNode(target, 20, 20);
+      target.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          button: 2,
+          clientX: 20,
+          clientY: 20,
+        })
+      );
+      jest.advanceTimersByTime(300);
+      await flushAsync();
+      document.dispatchEvent(
+        new MouseEvent("mouseup", { bubbles: true, button: 2 })
+      );
+    };
+    const holdSettings = (mode = "region") => ({
+      minLength: 0,
+      maxLength: 80,
+      preInit: true,
+      mouseHoverSetting: {
+        useMouseHover: true,
+        mouseHoverKey: [],
+        mouseHoverKey2: [],
+        mouseHoverKeyHold: true,
+        mouseHoverHoldButton: "right",
+        mouseHoverHoldDelay: 300,
+        mouseHoverTransMode: mode,
+      },
+    });
+
+    test.each([
+      ["true", "region", "hidden"],
+      ["false", "region", "hidden"],
+      ["true", "area", "hidden"],
+      ["false", "area", "hidden"],
+      ["true", "region", "ignored"],
+      ["false", "region", "ignored"],
+      ["true", "area", "ignored"],
+      ["false", "area", "ignored"],
+    ])(
+      "collects both short sources: autoScan=%s mode=%s auxiliary=%s",
+      async (autoScan, mode, auxiliary) => {
+        const attributes =
+          auxiliary === "hidden" ? 'style="display:none"' : 'class="ignored"';
+        const extra = `<span ${attributes}>${"SECRET ".repeat(40)}</span>`;
+        document.body.innerHTML = `<main id="root"><section><p id="target">First visible paragraph${extra}</p><p>Second visible paragraph${extra}</p></section></main>`;
+        createTranslator(
+          {
+            transOpen: "false",
+            autoScan,
+            selector: "p",
+            ignoreSelector: ".ignored",
+          },
+          holdSettings(mode)
+        );
+        await holdAt(document.getElementById("target"));
+        expect(
+          apiTranslate.mock.calls.map(([args]) => args.text).sort()
+        ).toEqual(["First visible paragraph", "Second visible paragraph"]);
+      }
+    );
+
+    test("keeps the exact limit and excludes text above it", async () => {
+      const exact = "A".repeat(80);
+      document.body.innerHTML = `<main id="root"><section><p>${exact}<span style="display:none">${"SECRET ".repeat(40)}</span></p><p id="target">${"B".repeat(81)}</p></section></main>`;
+      createTranslator(
+        { transOpen: "false", autoScan: "false", selector: "p" },
+        holdSettings()
+      );
+      await holdAt(document.getElementById("target"));
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        exact,
+      ]);
+    });
+
+    test("descends into short paragraphs inside an oversized selected container", async () => {
+      document.body.innerHTML = `<main id="root"><section>${"X".repeat(81)}<p id="target">First visible paragraph</p><p>Second visible paragraph</p></section></main>`;
+      createTranslator(
+        { transOpen: "false", autoScan: "false", selector: "section, p" },
+        holdSettings()
+      );
+      await holdAt(document.getElementById("target"));
+      expect(apiTranslate.mock.calls.map(([args]) => args.text).sort()).toEqual(
+        ["First visible paragraph", "Second visible paragraph"]
+      );
+    });
+
+    test("counts visible kept inline text toward the limit", async () => {
+      document.body.innerHTML = `<main id="root"><section><p id="target">First source<code class="ignored">${"kept ".repeat(30)}</code></p><p>Second visible paragraph</p></section></main>`;
+      createTranslator(
+        {
+          transOpen: "false",
+          autoScan: "false",
+          selector: "p",
+          ignoreSelector: ".ignored",
+          keepSelector: "code",
+        },
+        holdSettings()
+      );
+      await holdAt(document.getElementById("target"));
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Second visible paragraph",
+      ]);
+    });
+
+    test.each(["false", "true"])(
+      "freshly collects processed units for restoration (transOnly=%s)",
+      async (transOnly) => {
+        apiTranslate.mockResolvedValue({
+          trText: "Long translated paragraph ".repeat(10),
+          isSame: false,
+        });
+        document.body.innerHTML =
+          '<main id="root"><section><p id="target">First visible paragraph</p><p>Second visible paragraph</p></section></main>';
+        createTranslator({ transOnly }, holdSettings());
+        await flushAsync();
+        expect(document.querySelectorAll("kiss-translator")).toHaveLength(2);
+        await holdAt(document.getElementById("target"));
+        expect(document.querySelector("kiss-translator")).toBeNull();
+        expect(document.querySelector("section").textContent).toBe(
+          "First visible paragraphSecond visible paragraph"
+        );
+        expect(apiTranslate).toHaveBeenCalledTimes(2);
+      }
+    );
+
+    test.each(["detection", "request"])(
+      "freshly collects pending %s units for cancellation",
+      async (stage) => {
+        const resolvePending = [];
+        const pending = () =>
+          new Promise((resolve) => resolvePending.push(resolve));
+        if (stage === "detection") tryDetectLang.mockImplementation(pending);
+        else apiTranslate.mockImplementation(pending);
+        const hidden = `<span style="display:none">${"SECRET ".repeat(40)}</span>`;
+        document.body.innerHTML = `<main id="root"><section><p id="target">First visible paragraph${hidden}</p><p>Second visible paragraph${hidden}</p></section></main>`;
+        createTranslator(
+          { fromLang: stage === "detection" ? "auto" : "en" },
+          holdSettings()
+        );
+        await flushAsync();
+        expect(resolvePending).toHaveLength(2);
+        await holdAt(document.getElementById("target"));
+        expect(document.querySelector("kiss-translator")).toBeNull();
+        resolvePending.forEach((resolve) =>
+          resolve(
+            stage === "detection"
+              ? "en"
+              : { trText: "Late translation", isSame: false }
+          )
+        );
+        await flushAsync();
+        expect(document.querySelector("kiss-translator")).toBeNull();
+        expect(apiTranslate).toHaveBeenCalledTimes(
+          stage === "detection" ? 0 : 2
+        );
+      }
+    );
+  });
+
+  describe("available translation services", () => {
+    test("selected service failure never requests Google2 from a leftover list", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Selected plugin service</p></main>';
+      apiTranslate.mockRejectedValue(new Error("selected service failed"));
+      createTranslator(
+        { apiSlug: "deepseek-instance", apiSlugs: ["google2"] },
+        {
+          transApis: [
+            createApiSetting("deepseek-instance"),
+            createApiSetting("google2"),
+          ],
+        }
+      );
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].apiSetting.apiSlug).toBe(
+        "deepseek-instance"
+      );
+      expect(
+        document.querySelector(`.${Translator.KISS_CLASS.retry}`)
+      ).not.toBeNull();
     });
 
     test("uses the selected service despite leftover lists and rescans when its configuration changes", async () => {
@@ -2191,6 +2909,89 @@ describe("Translator rule styles", () => {
       window.PointerEvent = savedPointer;
     });
 
+    test.each([true, false])(
+      "touch uses its service snapshot and protects terms once (independent=%s)",
+      async (independent) => {
+        const { loadTerminologySnapshot } = require("./terminologyStorage");
+        const pageApi = { ...createApiSetting("page"), terms: "act,整页" };
+        const touchApi = {
+          ...createApiSetting("touch"),
+          termsList: ["touch-table"],
+        };
+        const table = {
+          id: "touch-table",
+          name: "Touch",
+          terms: "act,触摸",
+          aiTerms: "component,表组件",
+          normalMatchMode: "auto",
+        };
+        loadTerminologySnapshot.mockResolvedValue([table]);
+        const translator = createTranslator(
+          {
+            transOpen: "false",
+            apiSlug: "page",
+            aiTerms: "component,规则组件",
+            ...(!independent && { termsList: [table.id] }),
+          },
+          {
+            preInit: false,
+            transApis: [pageApi, touchApi],
+            mouseHoverSetting: { apiSlug: independent ? "touch" : "*" },
+          }
+        );
+        const node = document.getElementById("target");
+        node.textContent = "act component";
+        apiTranslate.mockImplementation(async (args) => {
+          expect(args.text).not.toContain("act");
+          expect(args.text).toContain("{1}");
+          expect(args.normalTermsApplied).toBe(true);
+          expect(args.glossary.component).toBe("规则组件");
+          return { trText: args.text, isSame: false };
+        });
+        translator.setTouchMode("tap");
+        tap(node);
+        await flushAsync();
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(
+          node.querySelector(`.${Translator.KISS_CLASS.inner}`).textContent
+        ).toBe("触摸 component");
+      }
+    );
+
+    test("concurrent touch tasks share a pending snapshot and can retry a failed load", async () => {
+      const { loadTerminologySnapshot } = require("./terminologyStorage");
+      let reject;
+      loadTerminologySnapshot.mockImplementationOnce(
+        () =>
+          new Promise((_resolve, fail) => {
+            reject = fail;
+          })
+      );
+      const translator = createTranslator(
+        { transOpen: "false", termsList: ["topic"] },
+        { preInit: false }
+      );
+      const first = document.getElementById("target");
+      const second = document.createElement("p");
+      second.textContent = "Second touch paragraph";
+      document.getElementById("root").append(second);
+      translator.setTouchMode("tap");
+      tap(first);
+      tap(second);
+      await flushAsync();
+      expect(loadTerminologySnapshot).toHaveBeenCalledTimes(1);
+      reject(new Error("storage unavailable"));
+      await flushAsync();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      loadTerminologySnapshot.mockResolvedValue([]);
+      tap(first);
+      await flushAsync();
+      await flushAsync();
+      expect(loadTerminologySnapshot).toHaveBeenCalledTimes(2);
+      expect(first.textContent).toContain("Translated");
+    });
+
     test("keeps originals and inserts bilingual text below, then restores", async () => {
       const translator = createTranslator(
         {
@@ -2726,6 +3527,122 @@ describe("Translator rule styles", () => {
     expect(wrappers.length).toBeGreaterThan(0);
     expect(directListItemWrappers).toHaveLength(0);
     expect(requestedTexts.every((text) => text.trim())).toBe(true);
+  });
+
+  describe("inline preservation and configurable ignores", () => {
+    test.each(["true", "false"])(
+      "preserves ignored inline keep elements in autoScan=%s",
+      async (autoScan) => {
+        apiTranslate.mockImplementation(({ text }) =>
+          Promise.resolve({ trText: text, isSame: false })
+        );
+        document.body.innerHTML =
+          '<main id="root"><p id="target">Open <code class="excluded notranslate">README.rst<span class="excluded"> nested</span></code> and <span class="math" display="inline" translate="no">x+y</span> first.</p></main>';
+        createTranslator({
+          autoScan,
+          selector: "#target",
+          keepSelector: "code, .math",
+          ignoreSelector: ".excluded, .notranslate, [translate='no']",
+        });
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        const requested = apiTranslate.mock.calls[0][0].text;
+        expect(requested).not.toMatch(/README|nested|x\+y/);
+        const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        expect(inner.textContent).toBe("Open README.rst nested and x+y first.");
+        expect(inner.querySelector("code .excluded")).not.toBeNull();
+      }
+    );
+
+    test("keeps a link containing code but strips fixed exclusions from its copy", async () => {
+      apiTranslate.mockImplementation(({ text }) =>
+        Promise.resolve({ trText: text, isSame: false })
+      );
+      document.body.innerHTML =
+        '<main id="root"><p>Open <a class="kept excluded" display="inline"><code>README.rst</code><span data-kiss-ui>Plugin UI</span><script>script secret</script><textarea>input secret</textarea></a> first.</p></main>';
+      createTranslator({ keepSelector: "a.kept", ignoreSelector: ".excluded" });
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).not.toMatch(
+        /README|secret|Plugin/
+      );
+      const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.querySelector("a code").textContent).toBe("README.rst");
+      expect(
+        inner.querySelector("[data-kiss-ui], script, textarea")
+      ).toBeNull();
+      expect(document.querySelector("a.kept [data-kiss-ui]")).not.toBeNull();
+    });
+
+    test("does not exempt ignored blocks or ordinary ignored inline content", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Alpha <code class="excluded">Block secret</code> beta <span class="excluded">Inline secret</span> gamma.</p></main>';
+      createTranslator({
+        keepSelector: "code",
+        blockSelector: "code",
+        ignoreSelector: ".excluded",
+      });
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalled();
+      expect(
+        apiTranslate.mock.calls.map(([args]) => args.text).join(" ")
+      ).not.toContain("secret");
+    });
+
+    test("leaves an ignored ancestor blocked until the site removes its rule", async () => {
+      const { mergeSelectors } = require("./rules");
+      document.body.innerHTML =
+        '<main id="root"><p>Visible content.</p><section translate="no"><p>Blocked content.</p></section></main>';
+      document.documentElement.setAttribute("translate", "no");
+      try {
+        const translator = createTranslator({
+          ignoreSelector: "[translate='no']",
+        });
+        await flushAsync();
+        expect(apiTranslate).not.toHaveBeenCalled();
+        translator.updateRule({
+          ignoreSelector: mergeSelectors(
+            "[translate='no']",
+            "-[translate='no'], +[translate='no']:not(html):not(body)"
+          ),
+        });
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe("Visible content.");
+      } finally {
+        document.documentElement.removeAttribute("translate");
+      }
+    });
+
+    test.each([
+      {},
+      { autoScan: "false", selector: "p" },
+      { scanAll: "true" },
+      { isPlainText: "true" },
+    ])(
+      "never preserves plugin UI even with broad keepSelector: %j",
+      async (mode) => {
+        document.body.innerHTML =
+          '<main id="root"><p>Alpha <code data-kiss-ui>Plugin secret</code> beta.</p><div class="kt-image-hover-root"><p>Hover secret</p></div><div class="kiss-player-feedback"><p>Subtitle secret</p></div></main>';
+        const translator = createTranslator({
+          ...mode,
+          keepSelector: "code, div",
+          ignoreSelector: ":not(*)",
+        });
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalled();
+        expect(
+          apiTranslate.mock.calls.map(([args]) => args.text).join(" ")
+        ).not.toContain("secret");
+        expect(
+          translator
+            .previewRule()
+            .targets.some((node) =>
+              node.closest(Translator.KISS_IGNORE_SELECTOR)
+            )
+        ).toBe(false);
+      }
+    );
   });
 
   test("trims source indentation before creating whitespace placeholders", async () => {
@@ -5142,6 +6059,1424 @@ describe("Translator rule styles", () => {
     expect(
       document.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
     ).toHaveLength(0);
+  });
+
+  test("translates on a long right-button press in right-button mode", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+  });
+
+  test("ignores left-button presses in right-button mode", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 0,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(500);
+    await flushAsync();
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 0 })
+    );
+
+    expect(
+      document.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
+    ).toHaveLength(0);
+  });
+
+  test("keeps the native menu for a short right click", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverSuppressContextMenu: true,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    // 未到按住延迟就松开：属于普通单击右键
+    jest.advanceTimersByTime(100);
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+    const menu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    target.dispatchEvent(menu);
+
+    expect(menu.defaultPrevented).toBe(false);
+    expect(
+      document.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
+    ).toHaveLength(0);
+  });
+
+  test("suppresses the native menu after a successful right-button hold", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverSuppressContextMenu: true,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+    const menu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    target.dispatchEvent(menu);
+
+    expect(menu.defaultPrevented).toBe(true);
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+  });
+
+  test("keeps the native menu when context-menu suppression is disabled", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverSuppressContextMenu: false,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+    const menu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    target.dispatchEvent(menu);
+
+    expect(menu.defaultPrevented).toBe(false);
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+  });
+
+  test("keeps tracking the right-button hold when the menu fires while pressing", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverSuppressContextMenu: true,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    // 模拟在按下瞬间就触发 contextmenu 的平台：菜单被屏蔽且按住继续跟踪
+    const menu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    target.dispatchEvent(menu);
+    expect(menu.defaultPrevented).toBe(true);
+
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+  });
+
+  test("does not suppress a later left click in right-button mode", async () => {
+    document.body.innerHTML =
+      '<main id="root"><a id="link" href="#">Link text</a></main>';
+    const link = document.getElementById("link");
+    document.elementFromPoint = () => link;
+
+    createTranslator(
+      { transOpen: "false", rootsSelector: "body" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverPreventClick: true,
+        },
+      }
+    );
+
+    await hoverNode(link, 20, 20);
+    link.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+    document.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        bubbles: true,
+        cancelable: true,
+        button: 2,
+      })
+    );
+
+    // 右键模式不使用“阻止点击跳转”，随后的左键点击不应被拦截
+    const click = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    });
+    link.dispatchEvent(click);
+
+    expect(
+      document.querySelector(`#link .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+    expect(click.defaultPrevented).toBe(false);
+  });
+
+  test("suppresses the native menu by default when the setting key is missing", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          // 旧版本升级上来的设置没有 mouseHoverSuppressContextMenu 键：
+          // 默认值应为开启，与设置界面的开关显示保持一致
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+    const menu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    target.dispatchEvent(menu);
+
+    expect(menu.defaultPrevented).toBe(true);
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+  });
+
+  test("keeps the native menu for a right press inside a shadow DOM input", async () => {
+    document.body.innerHTML = '<main id="root"><div id="host"></div></main>';
+    const host = document.getElementById("host");
+    const shadow = host.attachShadow({ mode: "open" });
+    shadow.innerHTML = '<input id="field" value="shadow field" />';
+    const field = shadow.getElementById("field");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverSuppressContextMenu: true,
+        },
+      }
+    );
+
+    // 事件从 Shadow DOM 内派发时，document 上看到的目标是宿主元素，
+    // 因此必须用 composedPath 识别出真正的输入框
+    field.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        composed: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(400);
+    await flushAsync();
+    const menu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      composed: true,
+      cancelable: true,
+      button: 2,
+    });
+    field.dispatchEvent(menu);
+
+    expect(menu.defaultPrevented).toBe(false);
+    expect(
+      document.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
+    ).toHaveLength(0);
+  });
+
+  test("drops the pending right-button hold when the native menu is allowed", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverSuppressContextMenu: false,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    // 模拟在按下瞬间弹出原生菜单的平台（macOS/Linux）：菜单接管这次右键，
+    // 且此后不会再派发 mouseup，因此不能继续按住触发翻译
+    const menu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    target.dispatchEvent(menu);
+    expect(menu.defaultPrevented).toBe(false);
+
+    jest.advanceTimersByTime(400);
+    await flushAsync();
+
+    expect(
+      document.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
+    ).toHaveLength(0);
+  });
+
+  test("ends the hold when the trigger button changes during the press", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    const translator = createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    // 按住期间设置被改成左键模式（设置界面/同步写入后内容脚本实时生效）：
+    // 松开右键仍应结束本次按住，不能再触发翻译
+    translator.setting.mouseHoverSetting.mouseHoverHoldButton = "left";
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+
+    jest.advanceTimersByTime(400);
+    await flushAsync();
+
+    expect(
+      document.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
+    ).toHaveLength(0);
+  });
+
+  test("keeps a later right-button menu suppressed when an earlier fallback cleanup is pending", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="a">First target</p><p id="b">Second target</p></main>';
+    const first = document.getElementById("a");
+    const second = document.getElementById("b");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 200,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverSuppressContextMenu: true,
+        },
+      }
+    );
+
+    // 第一次按住：翻译成功后松开，但先不派发 contextmenu
+    await hoverNode(first, 20, 20);
+    first.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(200);
+    await flushAsync();
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+
+    // 500ms 兜底清理尚未触发时开始第二次按住并翻译成功
+    jest.advanceTimersByTime(50);
+    await hoverNode(second, 20, 20);
+    second.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(200);
+    await flushAsync();
+    jest.advanceTimersByTime(400);
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+
+    const menu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    second.dispatchEvent(menu);
+
+    // 过期的兜底清理不得清掉第二次按住设置的屏蔽标记
+    expect(menu.defaultPrevented).toBe(true);
+    expect(
+      document.querySelector(`#b .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+  });
+
+  test("keeps the translation on a press-time-menu platform without a mouseup", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverSuppressContextMenu: true,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    // 模拟 macOS/Linux“按下瞬间就弹菜单”：此时屏蔽菜单，按住继续跟踪
+    const menu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    target.dispatchEvent(menu);
+    expect(menu.defaultPrevented).toBe(true);
+
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+
+    // 该平台之后可能不派发 mouseup：随后的 buttons=0 移动属于已知平台行为，
+    // 不能被当成“浏览器手势接管”而把刚生成的译文撤回
+    document.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 0,
+        clientX: 80,
+        clientY: 80,
+      })
+    );
+    await flushAsync();
+
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+  });
+
+  test("reverts the right-button hold translation when the browser takes over the press", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverHoldRevertOnGesture: true,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    // 触发前指针已经在移动（4px，仍在取消阈值内）= 本意是拖拽/手势
+    target.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 2,
+        button: 2,
+        clientX: 24,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+
+    // 浏览器（如 Edge 内置鼠标手势）接管了这次按住：没有 mouseup，
+    // 页面只能在随后的 mousemove 里通过 buttons 得知按键其实已经松开
+    document.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 0,
+        clientX: 80,
+        clientY: 80,
+      })
+    );
+    await flushAsync();
+
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).toBeNull();
+  });
+
+  test("keeps the translation when the pointer only moves after the hold triggered", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverHoldRevertOnGesture: true,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    // 按住不动直到触发：这才是“按住翻译”的本意
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+
+    // 看到译文之后才小幅移动，Edge 手势顺手接管了这次松开事件：
+    // 不属于“本意是拖拽/手势”，必须保留译文
+    target.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 2,
+        button: 2,
+        clientX: 24,
+        clientY: 20,
+      })
+    );
+    document.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 0,
+        clientX: 27,
+        clientY: 20,
+      })
+    );
+    await flushAsync();
+
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+  });
+
+  test.each([false, undefined])(
+    "keeps the translation when the gesture revert is not enabled (%s)",
+    async (revertOnGesture) => {
+      document.body.innerHTML =
+        '<main id="root"><p id="target">Right button target</p></main>';
+      const target = document.getElementById("target");
+
+      createTranslator(
+        { transOpen: "false" },
+        {
+          preInit: true,
+          mouseHoverSetting: {
+            useMouseHover: true,
+            mouseHoverKey: [],
+            mouseHoverKey2: [],
+            mouseHoverKeyHold: true,
+            mouseHoverKey2Hold: false,
+            mouseHoverHoldButton: "right",
+            mouseHoverHoldDelay: 300,
+            mouseHoverTransMode: "paragraph",
+            // undefined = 未配置（默认关闭），false = 显式关闭
+            mouseHoverHoldRevertOnGesture: revertOnGesture,
+          },
+        }
+      );
+
+      await hoverNode(target, 20, 20);
+      target.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          button: 2,
+          clientX: 20,
+          clientY: 20,
+        })
+      );
+      jest.advanceTimersByTime(300);
+      await flushAsync();
+      document.dispatchEvent(
+        new MouseEvent("mousemove", {
+          bubbles: true,
+          buttons: 0,
+          clientX: 80,
+          clientY: 80,
+        })
+      );
+      await flushAsync();
+
+      expect(
+        document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+      ).not.toBeNull();
+    }
+  );
+
+  test("does not revert while the right button is still reported as held", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          // 显式开启，否则默认关闭时这个防护性测试会空转
+          mouseHoverHoldRevertOnGesture: true,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    // 右键仍按下时的移动不应撤回译文（也不能误判成手势接管）
+    document.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 2,
+        clientX: 80,
+        clientY: 80,
+      })
+    );
+    await flushAsync();
+
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+  });
+
+  test("does not revert a left-button hold when a move reports no buttons", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Left button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          // 显式开启，确保测的是“左键模式不参与接管撤回”而不是默认值
+          mouseHoverHoldRevertOnGesture: true,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 0,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    document.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 0,
+        clientX: 80,
+        clientY: 80,
+      })
+    );
+    await flushAsync();
+
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+  });
+
+  test("puts the translation back when the taken-over hold had restored it", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverHoldRevertOnGesture: true,
+        },
+      }
+    );
+
+    const pressRight = () =>
+      target.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          button: 2,
+          clientX: 20,
+          clientY: 20,
+        })
+      );
+    const wrapper = () =>
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`);
+
+    // 第一次按住：翻译
+    await hoverNode(target, 20, 20);
+    pressRight();
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(wrapper()).not.toBeNull();
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+
+    // 第二次按住：还原（本次按住的改动是把译文移除）
+    pressRight();
+    // 触发前的移动 = 本意是拖拽/手势，被接管时才需要撤回
+    target.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 2,
+        button: 2,
+        clientX: 24,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(wrapper()).toBeNull();
+
+    // 被浏览器手势接管：撤回 = 把译文放回去
+    document.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 0,
+        clientX: 80,
+        clientY: 80,
+      })
+    );
+    await flushAsync();
+
+    expect(wrapper()).not.toBeNull();
+  });
+
+  test("reverts the hold translation of the default area mode when taken over", async () => {
+    document.body.innerHTML =
+      '<main id="root"><article><p id="target">Right button target</p></article></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverSuppressContextMenu: true,
+          mouseHoverHoldRevertOnGesture: true,
+          // 不设置 mouseHoverTransMode：使用默认的“整篇文章/区域”模式
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    // 触发前已移动 = 本意是拖拽/手势
+    target.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 2,
+        button: 2,
+        clientX: 24,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(
+      document.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`).length
+    ).toBeGreaterThan(0);
+
+    document.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 0,
+        clientX: 80,
+        clientY: 80,
+      })
+    );
+    await flushAsync();
+
+    expect(
+      document.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
+    ).toHaveLength(0);
+  });
+
+  test("restores the translation after a takeover when the source language is auto", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      {
+        transOpen: "false",
+        // 默认规则即 auto：语言检测会让异步任务在 await 之后检查代次
+        fromLang: "auto",
+      },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverHoldRevertOnGesture: true,
+        },
+      }
+    );
+
+    const pressRight = () =>
+      target.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          button: 2,
+          clientX: 20,
+          clientY: 20,
+        })
+      );
+    const wrapper = () =>
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`);
+
+    // 第一次按住：翻译
+    await hoverNode(target, 20, 20);
+    pressRight();
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(wrapper()).not.toBeNull();
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+
+    // 第二次按住：还原，随后被浏览器接管 → 撤回应把译文放回来
+    pressRight();
+    target.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 2,
+        button: 2,
+        clientX: 24,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(wrapper()).toBeNull();
+
+    document.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 0,
+        clientX: 80,
+        clientY: 80,
+      })
+    );
+    await flushAsync();
+
+    expect(wrapper()).not.toBeNull();
+  });
+
+  test("does not suppress the menu when the hold cannot translate the target", async () => {
+    // 单字符非字母数字文本命中 #isInvalidText，不会产生译文。
+    // 用链接而不是按钮：button 在默认忽略选择器里，会绕过 atomic 分支。
+    document.body.innerHTML =
+      '<main id="root"><a id="target" href="#">&times;</a></main>';
+    const target = document.getElementById("target");
+    // 让目标解析确定命中链接（atomic 分支），否则会落到容器路径而测不到守卫
+    document.elementFromPoint = () => target;
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverSuppressContextMenu: true,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(
+      document.querySelectorAll(`.${Translator.KISS_CLASS.warpper}`)
+    ).toHaveLength(0);
+
+    document.dispatchEvent(
+      new MouseEvent("mouseup", { bubbles: true, button: 2 })
+    );
+    const menu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    target.dispatchEvent(menu);
+
+    // 没有译文就不该吞掉原生菜单
+    expect(menu.defaultPrevented).toBe(false);
+  });
+
+  test("does not suppress the input context menu after a lost mouseup", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Right button target</p><input id="field" /></main>';
+    const target = document.getElementById("target");
+    const field = document.getElementById("field");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverSuppressContextMenu: true,
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    // 翻译成功但不派发 mouseup（模拟松开事件丢失）
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+
+    // 下一次按下落在输入框内：必须清掉上一轮残留的屏蔽标记
+    field.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 2,
+        clientX: 30,
+        clientY: 30,
+      })
+    );
+    const menu = new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+    });
+    field.dispatchEvent(menu);
+
+    expect(menu.defaultPrevented).toBe(false);
+  });
+
+  test("keeps tracking a left-button hold when a synthetic move reports no buttons", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Left button target</p></main>';
+    const target = document.getElementById("target");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+        },
+      }
+    );
+
+    await hoverNode(target, 20, 20);
+    target.dispatchEvent(
+      new MouseEvent("mousedown", {
+        bubbles: true,
+        button: 0,
+        clientX: 20,
+        clientY: 20,
+      })
+    );
+    // 页面自绘的合成 mousemove：buttons 缺省为 0，但位移仅 3px
+    target.dispatchEvent(
+      new MouseEvent("mousemove", { bubbles: true, clientX: 23, clientY: 20 })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+
+    expect(
+      document.querySelector(`#target .${Translator.KISS_CLASS.warpper}`)
+    ).not.toBeNull();
+  });
+
+  test("restores the paragraph when a translated child keeps a wrapper", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">Paragraph text <a id="link" href="#">link text</a> tail</p></main>';
+    const target = document.getElementById("target");
+    const link = document.getElementById("link");
+
+    createTranslator(
+      { transOpen: "false" },
+      {
+        preInit: true,
+        mouseHoverSetting: {
+          useMouseHover: true,
+          mouseHoverKey: [],
+          mouseHoverKey2: [],
+          mouseHoverKeyHold: true,
+          mouseHoverKey2Hold: false,
+          mouseHoverHoldButton: "right",
+          mouseHoverHoldDelay: 300,
+          mouseHoverTransMode: "paragraph",
+          mouseHoverHoldRevertOnGesture: true,
+        },
+      }
+    );
+
+    const pressRightOn = (node) =>
+      node.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          button: 2,
+          clientX: 20,
+          clientY: 20,
+        })
+      );
+    const releaseRight = () =>
+      document.dispatchEvent(
+        new MouseEvent("mouseup", { bubbles: true, button: 2 })
+      );
+    const directWrapper = (node) =>
+      node.querySelector(`:scope > .${Translator.KISS_CLASS.warpper}`);
+
+    // 先单独翻译链接：它会在段落内部留下一个译文容器
+    await hoverNode(link, 20, 20);
+    pressRightOn(link);
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(directWrapper(link)).not.toBeNull();
+    releaseRight();
+
+    // 再翻译段落
+    await hoverNode(target, 20, 20);
+    pressRightOn(target);
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(directWrapper(target)).not.toBeNull();
+    releaseRight();
+
+    // 第三次按住：还原段落（链接的译文仍在，会被误当成“段落已翻译”）
+    pressRightOn(target);
+    target.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 2,
+        button: 2,
+        clientX: 24,
+        clientY: 20,
+      })
+    );
+    jest.advanceTimersByTime(300);
+    await flushAsync();
+    expect(directWrapper(target)).toBeNull();
+
+    // 被浏览器接管 → 撤回应把段落译文放回来（而不是空操作）
+    document.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        buttons: 0,
+        clientX: 80,
+        clientY: 80,
+      })
+    );
+    await flushAsync();
+
+    expect(directWrapper(target)).not.toBeNull();
   });
 
   test("does not register hold handlers on touch-only devices", async () => {

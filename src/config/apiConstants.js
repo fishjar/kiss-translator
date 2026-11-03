@@ -1,6 +1,6 @@
 /** Pure legacy IDs and feature flags, shared by configuration and compiled providers. */
 // --- 基础请求控制参数 ---
-export const DEFAULT_HTTP_TIMEOUT = 30; // 调用超时时间 (单位：秒)
+export const DEFAULT_HTTP_TIMEOUT = 120; // 调用超时时间 (单位：秒)
 export const DEFAULT_FETCH_LIMIT = 10; // 默认最大并行请求/任务数量
 export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间 (单位：毫秒)
 export const DEFAULT_BATCH_INTERVAL = 400; // 批处理合并请求的等待延迟时间 (单位：毫秒)
@@ -74,6 +74,8 @@ export const OPT_TRANS_OPENAI = "OpenAI"; // OpenAI 官方大模型 API 翻译
 export const OPT_TRANS_GEMINI = "Gemini"; // 谷歌 Gemini API 翻译 (原版接口形式)
 export const OPT_TRANS_GEMINI_2 = "Gemini2"; // 谷歌 Gemini API 翻译 (OpenAI 兼容接口形式)
 export const OPT_TRANS_CLAUDE = "Claude"; // Anthropic Claude 翻译
+// Anthropic API 版本。2026-10-21 会拒绝 temperature 等采样参数，升级前需先调整 Claude 请求体。
+export const ANTHROPIC_API_VERSION = "2023-06-01";
 export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI"; // Cloudflare Workers AI 翻译
 export const OPT_TRANS_OLLAMA = "Ollama"; // 本地部署 Ollama 模型翻译
 export const OPT_TRANS_OPENROUTER = "OpenRouter"; // OpenRouter 多模型聚合 API 翻译

@@ -1,6 +1,9 @@
 import {
   validateDefaultPrompts,
   withDefaultPromptInput,
+  getPluginPromptOptions,
+  selectedPluginPrompt,
+  pluginPromptSlug,
 } from "./defaultPrompts";
 import { createServiceInstance } from "./instances";
 import { resolveApiPromptSettings } from "../config/prompt";
@@ -14,9 +17,16 @@ const service = {
     parseImage: { handler: "ocr" },
   },
   defaultPrompts: {
-    batch: { systemPrompt: "batch", userPrompt: "{{items}}" },
-    nobatch: { systemPrompt: "single" },
-    vlm: { systemPrompt: "read image" },
+    batch: [
+      {
+        id: "default",
+        name: "Default",
+        systemPrompt: "batch",
+        userPrompt: "{{items}}",
+      },
+    ],
+    nobatch: [{ id: "default", name: "Default", systemPrompt: "single" }],
+    vlm: [{ id: "default", name: "Default", systemPrompt: "read image" }],
   },
 };
 test("default declarations validate task bindings and copied snapshots remain independent", () => {
@@ -24,19 +34,30 @@ test("default declarations validate task bindings and copied snapshots remain in
   for (const defaultPrompts of [
     [],
     { unknown: { systemPrompt: "x" } },
-    { dictionary: { systemPrompt: "x" } },
-    { nobatch: { systemPrompt: 5 } },
-    { nobatch: { systemPrompt: "x", protocol: "xml" } },
-    { batch: { systemPrompt: "x", protocol: "text" } },
-    { vlm: { systemPrompt: "x", protocol: "text" } },
+    { dictionary: [{ id: "default", name: "Default", systemPrompt: "x" }] },
+    { nobatch: [{ id: "default", name: "Default", systemPrompt: 5 }] },
+    {
+      nobatch: [
+        { id: "default", name: "Default", systemPrompt: "x", protocol: "xml" },
+      ],
+    },
+    {
+      batch: [
+        { id: "default", name: "Default", systemPrompt: "x", protocol: "text" },
+      ],
+    },
+    {
+      vlm: [
+        { id: "default", name: "Default", systemPrompt: "x", protocol: "text" },
+      ],
+    },
   ])
     expect(() =>
       validateDefaultPrompts({ ...service, defaultPrompts })
     ).toThrow("prompt");
   const api = createServiceInstance(
     {
-      manifestVersion: 1,
-      apiVersion: "1",
+      apiVersion: 1,
       id: "example",
       version: "1.0.0",
       services: [service],
@@ -51,9 +72,102 @@ test("default declarations validate task bindings and copied snapshots remain in
   expect(resolveApiPromptSettings(api).nobatchPrompt).toBe("single");
 });
 
+test("preset selection uses stable IDs, isolates services, and defaults to the first entry", () => {
+  const api = {
+    provider: {
+      ...service,
+      source: { pluginId: "test", serviceId: "vision" },
+      defaultPrompts: {
+        vlm: [
+          { id: "plain", name: "Plain", userPrompt: "OCR this image." },
+          {
+            id: "document",
+            name: "Document",
+            userPrompt: "Read the document.",
+          },
+        ],
+      },
+    },
+  };
+  const selected = getPluginPromptOptions(api, "vlm")[1].slug;
+  expect(withDefaultPromptInput(api, "parseImage", {}).prompt).toBe(
+    "OCR this image."
+  );
+  api.vlmPromptSlug = selected;
+  expect(withDefaultPromptInput(api, "parseImage", {}).prompt).toBe(
+    "Read the document."
+  );
+  api.provider.defaultPrompts.vlm.reverse();
+  expect(selectedPluginPrompt(api, "vlm").id).toBe("document");
+  expect(
+    selectedPluginPrompt(
+      api,
+      "vlm",
+      pluginPromptSlug({ id: "other" }, "vlm", "document")
+    ).id
+  ).toBe("document");
+  api.provider.defaultPrompts.vlm.reverse();
+  expect(
+    selectedPluginPrompt(
+      api,
+      "vlm",
+      pluginPromptSlug({ id: "other" }, "vlm", "document")
+    ).id
+  ).toBe("plain");
+});
+
+test("prompt arrays reject old objects, empty arrays, duplicate IDs and invalid protocols", () => {
+  const prompt = { id: "plain", name: "Plain", userPrompt: "Read" };
+  for (const vlm of [
+    prompt,
+    [],
+    [prompt, prompt],
+    [{ ...prompt, id: "" }],
+    [{ ...prompt, protocol: "json" }],
+  ]) {
+    expect(() =>
+      validateDefaultPrompts({ ...service, defaultPrompts: { vlm } })
+    ).toThrow();
+  }
+});
+
+test.each([
+  [undefined, "Complete formally: {{text}}"],
+  ["Custom: {{text}}", "Custom: {{text}}"],
+  ["", ""],
+])(
+  "suggest preserves user prompt precedence for %p",
+  (userPrompt, expected) => {
+    const provider = {
+      capabilities: { suggest: { handler: "suggest" } },
+      defaultPrompts: {
+        suggest: [
+          {
+            id: "default",
+            name: "Default",
+            userPrompt: "Complete formally: {{text}}",
+          },
+        ],
+      },
+    };
+    validateDefaultPrompts(provider);
+    const input = Object.freeze({ text: "hello", userPrompt });
+    const result = withDefaultPromptInput({ provider }, "suggest", input);
+    expect(result.userPrompt).toBe(expected);
+    expect(input.userPrompt).toBe(userPrompt);
+  }
+);
+
 test("explicit batch mode chooses the batch default even for one item", () => {
-  const input = { items: [{ id: "0", text: "a" }], translationMode: "batch", targetLanguage: "zh" };
-  expect(withDefaultPromptInput({ provider: service }, "translate", input).systemPrompt).toBe("batch");
+  const input = {
+    items: [{ id: "0", text: "a" }],
+    translationMode: "batch",
+    targetLanguage: "zh",
+  };
+  expect(
+    withDefaultPromptInput({ provider: service }, "translate", input)
+      .systemPrompt
+  ).toBe("batch");
 });
 test("task and scene instructions override defaults; batch tasks and image calls use their declared slots", () => {
   const api = { provider: service };

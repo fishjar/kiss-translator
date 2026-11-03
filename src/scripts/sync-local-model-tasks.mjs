@@ -16,6 +16,11 @@ const compiled = ts.transpileModule(source, {
 const exported = {};
 new Function("exports", compiled)(exported);
 const metadata = {
+  asrTimestamps: Object.fromEntries(
+    exported.CATALOG.filter(
+      (model) => model.task === "asr" && model.wordTimestamps === true
+    ).map((model) => [model.id, true])
+  ),
   backends: Object.fromEntries(
     exported.CATALOG.map((model) => [model.id, model.backend])
   ),

@@ -19,12 +19,16 @@ jest.mock("./sync", () => ({
   trySyncRules: jest.fn(),
 }));
 
-jest.mock("./log", () => ({
-  kissLog: jest.fn(),
-  LogLevel: {
-    INFO: { value: 3 },
-  },
-}));
+jest.mock("./log", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      kissLog: jest.fn(),
+      LogLevel: {
+        INFO: { value: 3 },
+      },
+    }))()
+  )
+);
 
 // Translator 链路集成测试所需的替身（与 translator.test.js 相同的模式）
 jest.mock("../apis", () => ({
@@ -556,5 +560,29 @@ describe("rules terms integration（规则链路：原始规则 → 合并 → T
     expect(requestedText).toBe("[[1]] only");
     const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
     expect(inner.textContent).toBe("接口 only");
+  });
+
+  test("inherits and overrides image translation rule properties", async () => {
+    getRulesWithDefault.mockResolvedValue([
+      {
+        pattern: "example.com",
+        imageTransOpen: "false",
+        imageSelector: ".custom-img",
+        imageIgnoreSelector: ".skip-img",
+        imageMinWidth: 200,
+        imageMinHeight: 150,
+      },
+      GLOBLA_RULE,
+    ]);
+
+    const rule = await matchRule("https://example.com/gallery", {
+      injectRules: false,
+      subrulesList: [],
+    });
+    expect(rule.imageTransOpen).toBe("false");
+    expect(rule.imageSelector).toContain(".custom-img");
+    expect(rule.imageIgnoreSelector).toContain(".skip-img");
+    expect(rule.imageMinWidth).toBe(200);
+    expect(rule.imageMinHeight).toBe(150);
   });
 });

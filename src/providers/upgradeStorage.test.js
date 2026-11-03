@@ -1,67 +1,74 @@
 jest.mock("../libs/storage", () => ({
   storage: { withTransaction: jest.fn() },
+  normalizeStoredSetting: (setting) => setting,
 }));
+jest.mock("./upgrade", () => ({ upgradeServiceInstance: jest.fn() }));
 import { storage } from "../libs/storage";
-import { STOKEY_SETTING, STOKEY_RULES } from "../config/storage";
-import { commitServiceReplacement } from "./upgradeStorage";
-import { instanceTestSignature, serviceReferences } from "./upgrade";
+import { STOKEY_SETTING } from "../config/storage";
+import { commitServiceUpgrade } from "./upgradeStorage";
+import { upgradeServiceInstance } from "./upgrade";
 
-const api = {
-  apiSlug: "new",
-  provider: {
-    apiVersion: "1",
-    capabilities: { translate: { handler: "translate" } },
-  },
-  pluginConfig: { model: "m" },
-};
-let setting;
-let rules;
-let save;
+let setting, save;
 beforeEach(() => {
-  setting = { transApis: [api], tranboxSetting: { apiSlugs: ["old"] } };
-  rules = null;
-  save = jest.fn();
+  jest.clearAllMocks();
+  setting = {
+    transApis: [
+      { apiSlug: "stable", apiName: "latest", httpTimeout: 77 },
+      { apiSlug: "other" },
+    ],
+    tranboxSetting: { apiSlugs: ["stable"] },
+    subtitleSetting: { asrApiSlug: "stable" },
+  };
+  upgradeServiceInstance.mockImplementation((api) => ({
+    ...api,
+    provider: { version: "new" },
+  }));
+  save = jest.fn(async (key, update) => {
+    const next = update(setting);
+    setting = next;
+    return next;
+  });
   storage.withTransaction.mockImplementation((operation) =>
-    operation({
-      getObj: async (key) => (key === STOKEY_SETTING ? setting : rules),
-      saveEdit: save,
-    })
+    operation({ saveEdit: save })
   );
 });
-test("settings-only replacement never writes an empty rules array over implicit defaults", async () => {
-  const selected = serviceReferences(setting, [], "old");
-  await commitServiceReplacement("old", "new", selected, {
-    translate: instanceTestSignature(api),
-  });
+
+test("rebases on the latest instance and writes settings only, retaining references and other instances", async () => {
+  const original = setting;
+  const pack = {};
+  await commitServiceUpgrade("stable", pack);
+  expect(upgradeServiceInstance).toHaveBeenCalledWith(
+    original.transApis[0],
+    pack
+  );
   expect(save).toHaveBeenCalledTimes(1);
   expect(save.mock.calls[0][0]).toBe(STOKEY_SETTING);
-  expect(save.mock.calls[0][1]().tranboxSetting.apiSlugs).toEqual(["new"]);
+  expect(setting.transApis).toHaveLength(2);
+  expect(setting.transApis[0]).toMatchObject({
+    apiSlug: "stable",
+    apiName: "latest",
+    httpTimeout: 77,
+  });
+  expect(setting.transApis[1]).toBe(original.transApis[1]);
+  expect(setting.tranboxSetting).toBe(original.tranboxSetting);
+  expect(setting.subtitleSetting).toBe(original.subtitleSetting);
 });
-test("configuration changes invalidate test evidence before any write is staged", async () => {
-  const selected = serviceReferences(setting, [], "old");
-  const verified = instanceTestSignature(api);
-  setting = {
-    ...setting,
-    transApis: [{ ...api, pluginConfig: { model: "changed" } }],
-  };
-  await expect(
-    commitServiceReplacement("old", "new", selected, { translate: verified })
-  ).rejects.toThrow("重新测试");
-  expect(save).not.toHaveBeenCalled();
+
+test("deleted instances are never recreated", async () => {
+  const original = setting;
+  await expect(commitServiceUpgrade("deleted", {})).rejects.toThrow("deleted");
+  expect(setting).toBe(original);
+  expect(upgradeServiceInstance).not.toHaveBeenCalled();
 });
-test("a reordered rule cannot be mistaken for the rule reviewed at that array position", async () => {
-  rules = [
-    { apiSlug: "old", pattern: "first" },
-    { apiSlug: "old", pattern: "second" },
-  ];
-  const selected = serviceReferences(setting, rules, "old").filter(
-    (item) => item.scope === "rules"
+
+test("write failure preserves the original saved snapshot", async () => {
+  const original = setting;
+  save.mockImplementation(async (key, update) => {
+    update(setting);
+    throw new Error("write failed");
+  });
+  await expect(commitServiceUpgrade("stable", {})).rejects.toThrow(
+    "write failed"
   );
-  rules.reverse();
-  await expect(
-    commitServiceReplacement("old", "new", selected, {
-      translate: instanceTestSignature(api),
-    })
-  ).rejects.toThrow("变化");
-  expect(save).not.toHaveBeenCalled();
+  expect(setting).toBe(original);
 });

@@ -56,11 +56,15 @@ export const OPT_HIGHLIGHT_WORDS_ALL = [
 // 默认的待翻译元素选择器：包含主要的标题、列表、段落及引用块
 export const DEFAULT_SELECTOR =
   "h1, h2, h3, h4, h5, h6, li, p, dd, blockquote, figcaption, label, legend";
-// 默认被忽略、不参与翻译的选择器：包含按钮、页脚、导航栏、代码块、矢量图以及带“logo”属性的元素
+// 可由站点规则增删的默认忽略项；插件自身界面与非正文内容另行固定排除。
 export const DEFAULT_IGNORE_SELECTOR =
-  "button, footer, pre, mark, nav, svg, img[src*='.svg'], [class*='logo'] svg, [id*='logo'] svg";
+  "button, footer, pre, mark, nav, svg, img[src*='.svg'], address, select, option, .notranslate, [translate='no']";
 // 默认保留原样、不破坏内部结构的特殊行内元素选择器（如行内代码、公式等）
 export const DEFAULT_KEEP_SELECTOR = `code, cite, math, .math, a:has(code)`;
+// 默认网页图片识别选择器与排除选择器
+export const DEFAULT_IMAGE_SELECTOR = "img";
+export const DEFAULT_IMAGE_IGNORE_SELECTOR =
+  "[class*='logo'], [id*='logo'], [class*='icon'], [id*='icon'], [class*='avatar']";
 
 // 网页匹配翻译规则的空对象结构模板（属性全览）
 export const DEFAULT_RULE = {
@@ -70,7 +74,8 @@ export const DEFAULT_RULE = {
   keepSelector: "", // 保留原文的行内元素 CSS 选择器
   blockSelector: "", // 自定义块级元素 CSS 选择器
   terms: "", // 本地化专有名词/术语表字典 (格式：原文=译文)
-  aiTerms: "", // 发送给大模型的专有名词/术语表
+  aiTerms: "",
+  termsList: [], // 发送给大模型的专有名词/术语表
   apiSlug: GLOBAL_KEY, // 本网页指定的翻译 API 标识名 (继承/覆盖全局)
   fromLang: GLOBAL_KEY, // 网页源语言代码 (继承/覆盖全局)
   toLang: GLOBAL_KEY, // 目标语言代码 (继承/覆盖全局)
@@ -113,6 +118,11 @@ export const DEFAULT_RULE = {
   splitParagraph: GLOBAL_KEY, // 拆分长段落的策略
   splitLength: 0, // 段落切分触发字符长度阈值
   highlightWords: GLOBAL_KEY, // 生词高亮的触发时机
+  imageTransOpen: GLOBAL_KEY, // 是否启用网页图片悬停翻译 (继承/覆盖全局)
+  imageSelector: "", // 自定义网页图片 CSS 选择器
+  imageIgnoreSelector: "", // 排除的图片 CSS 选择器
+  imageMinWidth: GLOBAL_KEY, // 最小图片宽度 (CSS 像素，继承/覆盖全局)
+  imageMinHeight: GLOBAL_KEY, // 最小图片高度 (CSS 像素，继承/覆盖全局)
 };
 
 // 全局兜底规则：当网页没有匹配的特定规则时，采用此默认规则
@@ -124,6 +134,7 @@ export const GLOBLA_RULE = {
   blockSelector: "",
   terms: "",
   aiTerms: "",
+  termsList: [],
   apiSlug: OPT_TRANS_MICROSOFT, // 默认采用微软翻译
   fromLang: "auto", // 默认自动识别原文语言
   toLang: "zh-CN", // 默认翻译为简体中文
@@ -166,6 +177,11 @@ export const GLOBLA_RULE = {
   splitLength: 100,
   highlightWords: OPT_HIGHLIGHT_WORDS_DISABLE,
   transOrder: "original-first", // 文本顺序：原文在上 ("original-first") 或 译文在上 ("translation-first")
+  imageTransOpen: "true", // 默认开启网页图片悬停识别
+  imageSelector: DEFAULT_IMAGE_SELECTOR,
+  imageIgnoreSelector: DEFAULT_IMAGE_IGNORE_SELECTOR,
+  imageMinWidth: 120, // 默认最小宽度 120 CSS 像素
+  imageMinHeight: 80, // 默认最小高度 80 CSS 像素
 };
 
 // 预设规则列表，初始化时直接注册
@@ -213,7 +229,7 @@ const RULES_MAP = {
   "github.com": {
     autoScan: `false`,
     selector: `h1, h2, h3, h4, h5, h6, .markdown-body li, p, dd, blockquote, figcaption, label, legend, .user-profile-bio>div, [data-testid="results-list"] .search-match, .Subhead-description, [class^="prc-SelectPanel-Subtitle-"], [class^="prc-ActionList-ItemLabel-"], [role="dialog"] .overflow-auto, .h4, .repos-list-description, .discussion-title, [class*="PinnedIssue-module__Link"] span, .js-wiki-sidebar-page-container :is(.Truncate-text, .Link--primary)`,
-    ignoreSelector: `button, p.pinned-item-desc+p`,
+    ignoreSelector: `button, p.pinned-item-desc+p, [id^="DndDescribedBy-"], [id^="DndLiveRegion-"]`,
   },
 };
 

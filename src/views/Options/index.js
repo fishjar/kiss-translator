@@ -21,7 +21,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { isGm } from "../../libs/client";
+import { isGm, isExt } from "../../libs/client";
+import Diagnostics from "./Diagnostics";
 import { STOKEY_SETTING } from "../../config";
 import { AlertProvider } from "../../hooks/Alert";
 import { ConfirmProvider } from "../../hooks/Confirm";
@@ -31,12 +32,14 @@ import Stack from "@mui/material/Stack";
 import Alert from "@mui/material/Alert";
 import Apis from "./Apis";
 import Prompts from "./Prompts";
+import TerminologyTables from "./TerminologyTables";
 import InputSetting from "./InputSetting";
 import Tranbox from "./Tranbox";
 import FavWords from "./FavWords";
 import Playgound from "./Playground";
 import MouseHoverSetting from "./MouseHover";
 import SubtitleSetting from "./Subtitle";
+import ImageTranslate from "./ImageTranslate";
 import StylesSetting from "./StylesSetting";
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -167,6 +170,7 @@ function OptionsRouter({ pendingKeys }) {
           <Route path="tranbox" element={<Tranbox />} />
           <Route path="mousehover" element={<MouseHoverSetting />} />
           <Route path="subtitle" element={<SubtitleSetting />} />
+          <Route path="image-translate" element={<ImageTranslate />} />
           <Route path="apis" element={<Apis />} />
           <Route
             path="plugins"
@@ -190,10 +194,12 @@ function OptionsRouter({ pendingKeys }) {
             <Route path="file-translate" element={<FileTranslateRedirect />} />
           )}
           <Route path="prompts" element={<Prompts />} />
+          <Route path="terms" element={<TerminologyTables />} />
           <Route path="sync" element={<SyncSetting />} />
           <Route path="words" element={<FavWords />} />
           <Route path="playground" element={<OptionsPlayground />} />
           <Route path="about" element={<About />} />
+          {isExt && <Route path="diagnostics" element={<Diagnostics />} />}
         </Route>
       )
     );
@@ -243,7 +249,7 @@ export default function Options() {
       <center>
         <Divider>
           <Link
-            href={process.env.REACT_APP_HOMEPAGE}
+            href={process.env.REACT_APP_SITEURL}
           >{`KISS Translator v${process.env.REACT_APP_VERSION}`}</Link>
         </Divider>
         <Alert severity="error">{error}</Alert>

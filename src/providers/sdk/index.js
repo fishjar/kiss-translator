@@ -1,3 +1,5 @@
+import { buildTextTaskMessages, parseTextTaskResult } from "./textTasks";
+import { prepareMessages } from "./messages";
 import {
   buildChatRequest,
   buildChatBody,
@@ -29,7 +31,7 @@ const ttsVoices = Object.freeze(
     Object.freeze({ label: value, value })
   )
 );
-export const SDK_VERSION = "1";
+export { SDK_VERSION, SUPPORTED_SDK_VERSIONS } from "./version";
 export const providerHelpers = Object.freeze({
   encoding: Object.freeze({
     utf8ToBase64,
@@ -46,11 +48,16 @@ export const providerHelpers = Object.freeze({
       buildSpeechRequest,
     }),
     chatCompletions: Object.freeze({
+      prepareMessages,
       buildRequest: buildChatRequest,
       buildBody: buildChatBody,
       parseResponse: parseChatResponse,
       createStreamParser: createChatStreamParser,
     }),
+  }),
+  textTasks: Object.freeze({
+    buildMessages: buildTextTaskMessages,
+    parseResult: parseTextTaskResult,
   }),
   translation: Object.freeze({
     buildMessages,

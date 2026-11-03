@@ -112,18 +112,22 @@ jest.mock("../../libs/rules", () => ({
   matchRule: (...args) => mockMatchRule(...args),
 }));
 
-jest.mock("../../libs/log", () => {
-  // LogLevel 仍由真实模块提供：config/setting.js 在导入期读取 LogLevel.INFO。
-  // logger 用 getter 延迟读取：mock 工厂在 import 阶段执行，直接返回对象会命中 TDZ。
-  const actual = jest.requireActual("../../libs/log");
-  return {
-    LogLevel: actual.LogLevel,
-    get logger() {
-      return mockLogger;
-    },
-    kissLog: jest.fn(),
-  };
-});
+jest.mock("../../libs/log", () =>
+  jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock(
+    (() => {
+      // LogLevel 仍由真实模块提供：config/setting.js 在导入期读取 LogLevel.INFO。
+      // logger 用 getter 延迟读取：mock 工厂在 import 阶段执行，直接返回对象会命中 TDZ。
+      const actual = jest.requireActual("../../libs/log");
+      return {
+        LogLevel: actual.LogLevel,
+        get logger() {
+          return mockLogger;
+        },
+        kissLog: jest.fn(),
+      };
+    })()
+  )
+);
 
 // 真实 AI 翻译测试走 apiTranslate；单测中 mock，避免引入 ESM-only 依赖（query-string）。
 const mockApiTranslate = jest.fn();
@@ -326,7 +330,7 @@ describe("TerminologyPlayground", () => {
     mockResolvedTransApis.length = 0;
     mockClient.isWeb = false;
     mockMatchRule.mockReset();
-    mockLogger.info.mockReset();
+    mockLogger.debug.mockReset();
     mockLogger.error.mockReset();
     mockAlert.success.mockReset();
     mockAlert.error.mockReset();
@@ -442,7 +446,7 @@ describe("TerminologyPlayground", () => {
 
     // 通过时不应输出 error 日志，只输出 info 摘要。
     expect(mockLogger.error).not.toHaveBeenCalled();
-    expect(mockLogger.info).toHaveBeenCalledWith(
+    expect(mockLogger.debug).toHaveBeenCalledWith(
       "[TermPlayground]",
       expect.objectContaining({
         failCount: 0,
@@ -499,14 +503,14 @@ describe("TerminologyPlayground", () => {
 
   test("skips the mount-time compute when a touched draft is empty (no wasted compute)", async () => {
     // touched=true 但术语为空：挂载时不执行空算（空算产不出例句，纯浪费），
-    // 以 mockLogger.info 未被调用为证（成功路径 runCompute 必然写 info 日志）。
-    mockLogger.info.mockClear();
+    // 以 mockLogger.debug 未被调用为证（成功路径 runCompute 必然写 info 日志）。
+    mockLogger.debug.mockClear();
     const { container, root } = renderPlayground(
       { rule: null },
       { initialTermsDraft: "", initialTermDraftTouched: true }
     );
     await flushEffects();
-    expect(mockLogger.info).not.toHaveBeenCalled();
+    expect(mockLogger.debug).not.toHaveBeenCalled();
     expect(
       container.querySelector('[data-testid="terminology-example-text"]')
     ).toBeNull();
@@ -543,7 +547,7 @@ describe("TerminologyPlayground", () => {
       rule: { pattern: "*", terms: "SQL,结构化查询" },
     });
     await flushEffects();
-    mockLogger.info.mockClear();
+    mockLogger.debug.mockClear();
 
     // 输入新值后立即卸载（300ms 防抖任务尚未执行）。
     const textarea = container.querySelector(
@@ -561,7 +565,7 @@ describe("TerminologyPlayground", () => {
 
     // 卸载时取消防抖：窗口过后不得再触发重算（无新增日志调用）。
     await new Promise((resolve) => setTimeout(resolve, 500));
-    expect(mockLogger.info).not.toHaveBeenCalled();
+    expect(mockLogger.debug).not.toHaveBeenCalled();
     expect(mockLogger.error).not.toHaveBeenCalled();
   });
 
@@ -874,7 +878,7 @@ describe("TerminologyPlayground", () => {
       container.querySelector('[data-testid="terminology-example-status"]')
     ).not.toBeNull();
     // 摘要统计正确。
-    expect(mockLogger.info).toHaveBeenCalledWith(
+    expect(mockLogger.debug).toHaveBeenCalledWith(
       "[TermPlayground]",
       expect.objectContaining({
         uniqueConflictPairs: 4,
@@ -1148,6 +1152,48 @@ describe("TerminologyPlayground", () => {
     expect(select.textContent).not.toContain("（未配置）");
 
     act(() => root.unmount());
+  });
+
+  test("only offers services with available text translation capability", async () => {
+    const previousClient = process.env.REACT_APP_CLIENT;
+    process.env.REACT_APP_CLIENT = "edge";
+    mockResolvedTransApis.push(
+      mockResolvedApi({ apiSlug: "openai" }),
+      mockResolvedApi({ apiSlug: "disabled", isDisabled: true }),
+      mockResolvedApi({ apiSlug: "translate-off", enabledCapabilities: [] }),
+      ...[
+        ["tts", "SystemTTS", ""],
+        ["asr", "LocalAI", "whisper-base-timestamped"],
+        ["jev", "LocalAI", "laya-multilingual-int8"],
+        ["ocr", "LocalAI", "pp-ocr-v5-mobile"],
+        ["vlm", "LocalAI", "glm-ocr-onnx-q4"],
+        ["layout", "LocalAI", "pp-doclayout-v3-onnx"],
+        ["local-translate", "LocalAI", "hy-mt2-1.8b"],
+      ].map(([apiSlug, apiType, modelRef]) =>
+        mockResolvedApi({ apiSlug, apiType, modelRef })
+      )
+    );
+    const { container, root } = renderPlayground({
+      rule: { pattern: "*", terms: "" },
+    });
+    try {
+      await flushEffects();
+      const combobox = container.querySelector(
+        '[data-testid="terminology-api-select"] [role="combobox"]'
+      );
+      await act(async () =>
+        combobox.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }))
+      );
+      expect(
+        [...document.querySelectorAll('[role="option"]')].map((e) =>
+          e.getAttribute("data-value")
+        )
+      ).toEqual(["openai", "local-translate"]);
+    } finally {
+      act(() => root.unmount());
+      if (previousClient === undefined) delete process.env.REACT_APP_CLIENT;
+      else process.env.REACT_APP_CLIENT = previousClient;
+    }
   });
 
   test("fills API runtime defaults (placeholder) so selector does not crash", async () => {

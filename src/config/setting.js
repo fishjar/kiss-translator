@@ -65,6 +65,7 @@ export const OPT_SYNCTYPE_ALL = [
   OPT_SYNCTYPE_GIST,
 ];
 export const DEFAULT_SYNC = {
+  autoSync: true, // 当前客户端是否自动同步
   syncType: OPT_SYNCTYPE_WORKER, // 默认同步方式
   syncUrl: "", // 数据同步服务器端点
   syncUser: "", // 同步用户名
@@ -191,6 +192,10 @@ export const DEFAULT_SUBTITLE_SETTING = {
   // fromLang: "en",
   toLang: "zh-CN", // 字幕译文的目标语言
   autoTranslate: true, // 是否在获取并解析视频字幕后立即启动翻译
+  asrApiSlug: "-", // YouTube 音频识别服务，默认不启用
+  youtubeShortsSubtitlePanelWidth: 520,
+  audioCacheLimit: 100, // 音频缓存视频数量上限（0-1000，0 表示不缓存，默认 100）
+  captionCacheLimit: 100, // YouTube 原始字幕及双语字幕的持久化视频数量，0 表示禁用。
   isBilingual: true, // 字幕是否启用双语对照显示
   displayOrder: "original-first", // 字幕双语显示顺序：原文在前或译文在前
   blurTranslation: false, // 是否模糊显示译文 (用于听力/口语训练)
@@ -198,6 +203,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   windowStyle: SUBTITLE_WINDOW_STYLE, // 字幕背景及定位样式
   originStyle: SUBTITLE_ORIGIN_STYLE, // 原文字体大小及字重样式
   translationStyle: SUBTITLE_TRANSLATION_STYLE, // 译文字体大小样式
+  hoverLookupCloseDelay: 2, // 离开字幕单词后关闭查词面板的延时（秒）
   hoverLookupMode: OPT_ENHANCE_MOBILE_OFF, // 鼠标悬停到字幕单词上时是否弹出查词面板
   autoFavWord: false, // 字幕悬停查词成功后是否自动收藏单词
   showList: OPT_ENHANCE_MOBILE_OFF, // 是否在侧边/右侧显示字幕全文滚动历史面板
@@ -230,12 +236,14 @@ export const DEFAULT_SUBRULES_LIST = [
 export const DEFAULT_MOUSEHOVER_KEY = ["ControlLeft"]; // 默认触发悬停翻译的触发按键 (左 Ctrl 键)
 export const OPT_MOUSE_HOVER_DISPLAY_BILINGUAL = "bilingual"; // 鼠标悬停翻译：把译文插入页面形成双语对照
 export const OPT_MOUSE_HOVER_DISPLAY_BUBBLE = "bubble"; // 鼠标悬停翻译：用悬浮气泡展示译文，不改变页面布局
-export const OPT_MOUSE_HOVER_TRANS_PARAGRAPH = "paragraph"; // 按住左键触发时只翻译鼠标所在当前段
-export const OPT_MOUSE_HOVER_TRANS_REGION = "region"; // 按住左键触发时翻译最近的区域（最近的“多段落容器”）
-export const OPT_MOUSE_HOVER_TRANS_AREA = "area"; // 按住左键触发时翻译整篇文章/区域
-export const OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE = "inline"; // 按住左键译文跟随原文行内显示
-export const OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK = "block"; // 按住左键译文独立成块显示
-export const DEFAULT_MOUSE_HOVER_HOLD_DELAY = 800; // 按住鼠标左键多久后触发悬停翻译 (毫秒)
+export const OPT_MOUSE_HOVER_TRANS_PARAGRAPH = "paragraph"; // 按住按键触发时只翻译鼠标所在当前段
+export const OPT_MOUSE_HOVER_TRANS_REGION = "region"; // 按住按键触发时翻译最近的区域（最近的“多段落容器”）
+export const OPT_MOUSE_HOVER_TRANS_AREA = "area"; // 按住按键触发时翻译整篇文章/区域
+export const OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE = "inline"; // 按住按键译文跟随原文行内显示
+export const OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK = "block"; // 按住按键译文独立成块显示
+export const OPT_MOUSE_HOVER_HOLD_BUTTON_LEFT = "left"; // 按住触发使用鼠标左键
+export const OPT_MOUSE_HOVER_HOLD_BUTTON_RIGHT = "right"; // 按住触发使用鼠标右键
+export const DEFAULT_MOUSE_HOVER_HOLD_DELAY = 800; // 按住鼠标按键多久后触发悬停翻译 (毫秒)
 export const DEFAULT_MOUSE_HOVER_BUBBLE_STYLE = `max-width: min(420px, calc(100vw - 32px));
 padding: 10px 12px;
 border-radius: 8px;
@@ -246,18 +254,21 @@ line-height: 1.5;
 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 backdrop-filter: blur(8px);`;
 export const DEFAULT_MOUSE_HOVER_SETTING = {
-  touchMode: "tap", // Preferred gesture; activation is document-local.
+  touchMode: "off", // Saved touch mode, applied when a document starts.
   touchDirection: "right",
   useMouseHover: false, // 是否开启鼠标悬停翻译
   blacklist: "", // 鼠标悬停翻译禁用的网页黑名单
   mouseHoverKey: DEFAULT_MOUSEHOVER_KEY, // 主按键
   mouseHoverKey2: [], // 备用快捷按键
-  mouseHoverKeyHold: false, // 主触发方式是否使用“按住鼠标左键不放”
-  mouseHoverKey2Hold: false, // 备用触发方式是否使用“按住鼠标左键不放”
-  mouseHoverHoldDelay: DEFAULT_MOUSE_HOVER_HOLD_DELAY, // 按住左键触发翻译的等待时长 (毫秒)
-  mouseHoverTransMode: OPT_MOUSE_HOVER_TRANS_AREA, // 按住左键触发的翻译范围
-  mouseHoverTransDisplay: OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK, // 按住左键译文显示方式
-  mouseHoverPreventClick: false, // 按住链接/按钮翻译后松开是否阻止点击跳转（默认关闭）
+  mouseHoverKeyHold: false, // 主触发方式是否使用“按住鼠标按键不放”
+  mouseHoverKey2Hold: false, // 备用触发方式是否使用“按住鼠标按键不放”
+  mouseHoverHoldButton: OPT_MOUSE_HOVER_HOLD_BUTTON_LEFT, // 按住触发使用的鼠标按键（左键/右键）
+  mouseHoverHoldDelay: DEFAULT_MOUSE_HOVER_HOLD_DELAY, // 按住按键触发翻译的等待时长 (毫秒)
+  mouseHoverSuppressContextMenu: true, // 右键模式下按住翻译成功后是否屏蔽原生右键菜单
+  mouseHoverHoldRevertOnGesture: false, // 右键模式下按住被浏览器手势接管（收不到松开事件）时是否撤回译文（默认关闭）
+  mouseHoverTransMode: OPT_MOUSE_HOVER_TRANS_AREA, // 按住按键触发的翻译范围
+  mouseHoverTransDisplay: OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK, // 按住按键译文显示方式
+  mouseHoverPreventClick: false, // 按住链接/按钮翻译后松开是否阻止点击跳转（仅左键模式，默认关闭）
   displayMode: OPT_MOUSE_HOVER_DISPLAY_BILINGUAL, // 鼠标悬停翻译展示模式
   apiSlug: GLOBAL_KEY, // 气泡模式翻译接口，默认跟随当前网页规则
   bubbleStyle: DEFAULT_MOUSE_HOVER_BUBBLE_STYLE, // 气泡模式的容器 CSS
@@ -320,6 +331,20 @@ export const DEFAULT_FILE_TRANSLATE_SETTING = {
   },
 };
 
+// --- 图片翻译场景核心配置 ---
+export const DEFAULT_IMAGE_TRANSLATE_SETTING = {
+  fromLang: "auto",
+  toLang: "zh-CN",
+  apiSlug: OPT_TRANS_MICROSOFT, // 文本翻译服务 API 标识
+  promptSlug: "", // 翻译提示词
+  layoutApiSlug: "", // 布局分析服务 API 标识（为空表示关闭）
+  recognitionService: {
+    apiSlug: "LocalAI-OCR",
+    capability: "recognizeText",
+  }, // 文本识别服务（默认预设 LocalAI OCR）
+  vlmPromptSlug: "", // VLM 提示词
+};
+
 // --- 全局默认设置对象，存储于 local storage ---
 export const DEFAULT_SETTING = {
   version: CURRENT_SETTINGS_VERSION,
@@ -355,6 +380,7 @@ export const DEFAULT_SETTING = {
   inputRule: DEFAULT_INPUT_RULE, // 输入框即时翻译相关配置
   tranboxSetting: DEFAULT_TRANBOX_SETTING, // 划词翻译及字典结果面板配置
   fileTranslateSetting: DEFAULT_FILE_TRANSLATE_SETTING,
+  imageTranslateSetting: DEFAULT_IMAGE_TRANSLATE_SETTING, // 图片翻译场景配置
   // touchTranslate: 2, // 触屏翻译 {5:单指双击，6:单指三击，7:双指双击} (作废)
   touchModes: [2], // 触屏移动端翻译触发行为配置 (数组，支持多选，如单指双击/三击)
   blacklist: DEFAULT_BLACKLIST.join(",\n"), // 禁用整页双语翻译的网址/黑名单列表

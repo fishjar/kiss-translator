@@ -1,5 +1,4 @@
 import { TextEncoder } from "util";
-global.TextEncoder = TextEncoder;
 import browser from "webextension-polyfill";
 import {
   attachFileSession,
@@ -12,6 +11,7 @@ import { getSettingWithDefault, saveEdit } from "../libs/storage";
 import { runtimeHost } from "../localAi/runtime/runtimeHostAdapter";
 import { invokeBackgroundPlugin } from "../providers/backgroundInvocation";
 import { prepareImage } from "../localAi/core/inputLimits";
+global.TextEncoder = TextEncoder;
 jest.mock("../builtin-plugins/runtime", () => ({
   createNativeRegistry: jest.fn(),
 }));
@@ -33,6 +33,11 @@ jest.mock("webextension-polyfill", () => ({
   tabs: { create: jest.fn() },
 }));
 jest.mock("../apis/vision", () => ({ recognizeNetworkImage: jest.fn() }));
+jest.mock("../libs/terminologyStorage", () => ({
+  readTableDirectory: async () => [],
+  loadTerminologySnapshot: async () => [],
+  resolveTerminology: async () => ({ signature: "empty" }),
+}));
 jest.mock("../libs/storage", () => ({
   getSettingWithDefault: jest.fn(),
   saveEdit: jest.fn(),
@@ -56,11 +61,7 @@ jest.mock("../localAi/core/settings", () => ({
 
 let counter = 0;
 beforeEach(() => {
-  browser.storage.local.get.mockImplementation(async (key) =>
-    typeof key === "string" && key.startsWith("kiss-provider-plugin-grant:")
-      ? { [key]: { enabled: true, origins: [] } }
-      : {}
-  );
+  browser.storage.local.get.mockResolvedValue({});
   Object.defineProperty(global, "crypto", {
     configurable: true,
     value: {
@@ -186,7 +187,7 @@ test("layout instance routing preserves real polygons and never trusts webpage m
         apiType: "Plugin",
         enabledCapabilities: ["analyzeLayout"],
         provider: {
-          apiVersion: "1",
+          apiVersion: 1,
           source: { pluginId: "test-plugin" },
           settings: [],
           implementation: { kind: "script" },
@@ -299,7 +300,7 @@ test("context projects service metadata without credentials or arbitrary setting
     translationAvailable: true,
     layoutAvailable: false,
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       implementation: { kind: "native" },
       capabilities: { translate: expect.any(Object) },
     },
@@ -309,6 +310,36 @@ test("context projects service metadata without credentials or arbitrary setting
   });
   expect(JSON.stringify(result)).not.toContain("secret");
   expect(result).not.toHaveProperty("syncKey");
+});
+
+test("file context exposes plugin preset identities without prompt bodies or credentials", async () => {
+  const setting = await getSettingWithDefault();
+  const api = setting.transApis[0];
+  api.provider = {
+    apiVersion: 1,
+    id: "vision",
+    source: { pluginId: "test-plugin", serviceId: "vision" },
+    implementation: { kind: "script" },
+    capabilities: { parseImage: { handler: "parseImage" } },
+    settings: [],
+    defaultPrompts: {
+      vlm: [{ id: "ocr", name: "OCR", userPrompt: "PRIVATE_PROMPT_BODY" }],
+    },
+  };
+  api.enabledCapabilities = ["parseImage"];
+  getSettingWithDefault.mockResolvedValue(setting);
+  const context = await getFileContext();
+  expect(context.services[0].provider.defaultPrompts.vlm).toEqual([
+    { id: "ocr", name: "OCR" },
+  ]);
+  expect(context.services[0].provider.source).toEqual({
+    pluginId: "test-plugin",
+    serviceId: "vision",
+  });
+  expect(context.services[0].provider.defaultPrompts.vlm[0]).not.toHaveProperty(
+    "userPrompt"
+  );
+  expect(JSON.stringify(context)).not.toContain("PRIVATE_PROMPT_BODY");
 });
 
 test.each(["key", "prompt"])(
@@ -613,19 +644,20 @@ test.each(["image/jpg", "", "image/bmp", "image/gif"])(
       const response = port.postMessage.mock.calls.find(
         ([message]) => message.requestId === "begin"
       )[0];
+      expect(response).toMatchObject(
+        type === "image/jpg"
+          ? { result: { uploadId: expect.any(String) } }
+          : { error: { code: "INPUT_LIMIT_EXCEEDED" } }
+      );
       if (type === "image/jpg") {
-        expect(response.result.uploadId).toEqual(expect.any(String));
         await port.receive({
           requestId: "recognize",
           sessionId,
           method: "recognizeImage",
           params: { uploadId: response.result.uploadId },
         });
-        expect(execute).toHaveBeenCalledTimes(1);
-      } else {
-        expect(response.error.code).toBe("INPUT_LIMIT_EXCEEDED");
-        expect(execute).not.toHaveBeenCalled();
       }
+      expect(execute).toHaveBeenCalledTimes(type === "image/jpg" ? 1 : 0);
     } finally {
       close();
     }
@@ -683,7 +715,7 @@ function imageService(id, capabilities) {
     sourceType: "network",
     enabledCapabilities: Object.keys(capabilities),
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       source: { pluginId: "test-plugin" },
       implementation: { kind: "script" },
       settings: [],

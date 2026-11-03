@@ -37,6 +37,7 @@ import {
 } from "../config";
 import { decodeHTMLTranslationText, decodeHTMLEntities } from "../libs/html";
 import { geminiResponseText } from "../builtin-plugins/gemini";
+import { claudeResponseText } from "../builtin-plugins/claude";
 
 // 厂家结果和历史写入在原生适配器内处理；场景只接收统一译文。
 function parseGoogleResponse(res) {
@@ -219,12 +220,9 @@ function parseClaudeResponse(
   if (history && userMsg) {
     history.addPair(userMsg, modelMsg);
   }
-  return parseAIRes(
-    res?.content?.[0]?.text ?? "",
-    useBatchFetch,
-    batchProtocol,
-    textFormat
-  );
+  // 译文取首个文本块：开启 thinking 时首块是 {type:"thinking"}，没有 .text。
+  const firstText = claudeResponseText(res);
+  return parseAIRes(firstText ?? "", useBatchFetch, batchProtocol, textFormat);
 }
 
 function parseCloudflareaiResponse(res) {

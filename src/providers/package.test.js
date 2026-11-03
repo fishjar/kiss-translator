@@ -1,14 +1,17 @@
 import { zipSync, strToU8 } from "fflate";
 import { readProviderPackage } from "./package";
 import { createServiceInstance } from "./instances";
-import { validateConfig, validateServiceConfig, mergeSettingFields } from "./instances";
+import {
+  validateConfig,
+  validateServiceConfig,
+  mergeSettingFields,
+} from "./instances";
 import { packageServiceCatalog } from "./packageCatalog";
 import { builtinPlugins, createBuiltinInstance } from "../builtin-plugins";
 
 function pack(changes = {}) {
   const manifest = {
-    manifestVersion: 1,
-    apiVersion: "1",
+    apiVersion: 1,
     id: "example-pack",
     name: "example",
     version: "1.0.0",
@@ -104,17 +107,38 @@ test("instance config validates types before persisting a template snapshot", ()
 test("adding an incomplete instance preserves defaults and a model snapshot without bypassing execution validation", () => {
   const parsed = readProviderPackage(pack());
   const service = parsed.manifest.services[0];
-  service.settings = [{ key: "token", type: "password", isSecret: true, required: true },
-    { key: "model", type: "text", required: true }];
+  service.settings = [
+    { key: "token", type: "password", isSecret: true, required: true },
+    { key: "model", type: "text", required: true },
+  ];
   service.models = [{ id: "first-model" }];
-  const api = createServiceInstance(parsed.manifest, "chat", parsed.implementations.chat, {}, "new-id");
+  const api = createServiceInstance(
+    parsed.manifest,
+    "chat",
+    parsed.implementations.chat,
+    {},
+    "new-id"
+  );
   expect(api.pluginConfig.model).toBe("first-model");
   expect(api.provider.models).toEqual(service.models);
-  expect(() => validateServiceConfig(api.provider, api.pluginConfig, api.enabledCapabilities)).toThrow("Required");
+  expect(() =>
+    validateServiceConfig(
+      api.provider,
+      api.pluginConfig,
+      api.enabledCapabilities
+    )
+  ).toThrow("Required");
   const catalog = packageServiceCatalog(parsed.manifest);
-  expect(catalog[0]).toMatchObject({ id: "chat", models: [{ id: "first-model" }] });
+  expect(catalog[0]).toMatchObject({
+    id: "chat",
+    models: [{ id: "first-model" }],
+  });
   expect(catalog[0].implementation).toBeUndefined();
-  expect(packageServiceCatalog({ services: [{ ...service, models: undefined, modelField: "customModel" }] })[0].modelField).toBe("customModel");
+  expect(
+    packageServiceCatalog({
+      services: [{ ...service, models: undefined, modelField: "customModel" }],
+    })[0].modelField
+  ).toBe("customModel");
   service.models[0].id = "changed";
   expect(api.provider.models[0].id).toBe("first-model");
   expect(catalog[0].models[0].id).toBe("first-model");

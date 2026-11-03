@@ -4,6 +4,8 @@ import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
+import MyLocationIcon from "@mui/icons-material/MyLocation";
+import MyLocationOutlinedIcon from "@mui/icons-material/MyLocationOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -271,7 +273,11 @@ export default function TranslationPanelHeader({
               aria-checked={followSelection}
               onClick={() => setFollowSelection((pre) => !pre)}
             >
-              {followSelection ? <PushPinOutlinedIcon /> : <PushPinIcon />}
+              {followSelection ? (
+                <MyLocationIcon />
+              ) : (
+                <MyLocationOutlinedIcon />
+              )}
               {i18n("btn_tip_follow_selection")}
             </button>
           )}

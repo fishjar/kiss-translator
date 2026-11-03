@@ -28,5 +28,11 @@
   },
   "toggle_tranbox": {
     "message": "Toggle Translation Box"
+  },
+  "image_screenshot_command": {
+    "message": "Screenshot Translation"
+  },
+  "image_screenshot": {
+    "message": "Screenshot Translation"
   }
 }

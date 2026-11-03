@@ -1,23 +1,42 @@
-jest.mock("../config/localModelTasks.json", () => ({
-  ocrGroups: [{ id: "ocr-group" }],
-  models: { asr: "asr", llm: "llm", vlm: "ocr-vlm" },
-}));
 import { resolveBuiltinCapabilities } from "./capabilities";
 import { OPT_TRANS_LOCALAI, OPT_TRANS_OPENAI } from "../config/apiConstants";
 import { builtinServiceDefinitions } from "./definitions";
-import { projectApiCapabilities, supportsVlmApi } from "../config/serviceSelection";
+import {
+  projectApiCapabilities,
+  supportsVlmApi,
+} from "../config/serviceSelection";
+jest.mock("../config/localModelTasks.json", () => ({
+  ocrGroups: [{ id: "ocr-group" }],
+  asrTimestamps: { asr: true },
+  models: { asr: "asr", llm: "llm", vlm: "ocr-vlm" },
+}));
 
-test.each(Object.keys(builtinServiceDefinitions).filter((type) => type !== OPT_TRANS_LOCALAI))(
-  "%s cannot regain VLM capability from an old saved descriptor", (apiType) => {
-    const api = { apiType, enabledCapabilities: ["parseImage"], provider: {
-      ...builtinServiceDefinitions[apiType], apiVersion: "1",
-      capabilities: { parseImage: { handler: "parseImage", inputModalities: ["image"], outputModes: ["complete"] } },
-    } };
-    expect(resolveBuiltinCapabilities(api)).not.toHaveProperty("parseImage");
-    expect(projectApiCapabilities(api).provider.capabilities).not.toHaveProperty("parseImage");
-    expect(supportsVlmApi(api)).toBe(false);
-  }
-);
+test.each(
+  Object.keys(builtinServiceDefinitions).filter(
+    (type) => type !== OPT_TRANS_LOCALAI
+  )
+)("%s cannot regain VLM capability from an old saved descriptor", (apiType) => {
+  const api = {
+    apiType,
+    enabledCapabilities: ["parseImage"],
+    provider: {
+      ...builtinServiceDefinitions[apiType],
+      apiVersion: 1,
+      capabilities: {
+        parseImage: {
+          handler: "parseImage",
+          inputModalities: ["image"],
+          outputModes: ["complete"],
+        },
+      },
+    },
+  };
+  expect(resolveBuiltinCapabilities(api)).not.toHaveProperty("parseImage");
+  expect(projectApiCapabilities(api).provider.capabilities).not.toHaveProperty(
+    "parseImage"
+  );
+  expect(supportsVlmApi(api)).toBe(false);
+});
 
 test("supported native capabilities depend on model, independently of enabled selections", async () => {
   const api = {
@@ -37,7 +56,10 @@ test("supported native capabilities depend on model, independently of enabled se
 });
 
 test("OCR groups have real coordinates while text VLM recognition does not", async () => {
-  const api = { apiType: OPT_TRANS_LOCALAI, enabledCapabilities: ["recognizeText"] };
+  const api = {
+    apiType: OPT_TRANS_LOCALAI,
+    enabledCapabilities: ["recognizeText"],
+  };
   const group = await resolveBuiltinCapabilities({
     ...api,
     modelRef: "ocr-group",

@@ -1,8 +1,10 @@
+import { Fragment } from "react";
 import { useProviderI18n } from "../../hooks/ProviderI18n";
 import { Box, MenuItem, TextField } from "@mui/material";
 import { useI18n } from "../../hooks/I18n";
 
 export default function ThinkingOptions({
+  inline = false,
   mode,
   effort,
   efforts,
@@ -12,19 +14,22 @@ export default function ThinkingOptions({
   showEffort = false,
   allowDefaultEffort = true,
 }) {
+  const Container = inline ? Fragment : Box;
   const i18n = useI18n();
   const providerText = useProviderI18n();
   return (
-    <Box
-      sx={{
-        display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr)",
-        gap: 2,
-        "@container api-detail (min-width: 480px)": {
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    <Container
+      {...(!inline && {
+        sx: {
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr)",
+          gap: 2,
+          "@container api-detail (min-width: 480px)": {
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          },
+          "& > *": { minWidth: 0 },
         },
-        "& > *": { minWidth: 0 },
-      }}
+      })}
     >
       <TextField
         select
@@ -71,6 +76,6 @@ export default function ThinkingOptions({
           )}
         </TextField>
       )}
-    </Box>
+    </Container>
   );
 }

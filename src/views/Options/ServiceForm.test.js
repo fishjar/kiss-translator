@@ -1,7 +1,12 @@
 import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
-import { ServiceFormHeader, serviceTransportFeatures } from "./ServiceForm";
+import {
+  ServiceFormHeader,
+  serviceTransportFeatures,
+  AsrDurationSetting,
+  ServiceTimeoutSetting,
+} from "./ServiceForm";
 import PluginPromptSettings from "./PluginPromptSettings";
 import { PROMPT_CATEGORY_USER } from "../../config/prompt";
 import { builtinPlugins, createBuiltinInstance } from "../../builtin-plugins";
@@ -10,15 +15,95 @@ import fs from "fs";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+test("ASR duration setting has the 20-second default, integer bounds and an editable invalid draft", async () => {
+  const node = document.createElement("div");
+  document.body.append(node);
+  const root = createRoot(node);
+  const onChange = jest.fn();
+  const api = {
+    apiType: "Plugin",
+    provider: { capabilities: { transcribe: { handler: "transcribe" } } },
+  };
+  try {
+    await act(async () =>
+      root.render(<AsrDurationSetting api={api} onChange={onChange} />)
+    );
+    let input = node.querySelector("input");
+    expect(input.value).toBe("20");
+    expect([input.min, input.max, input.step]).toEqual(["1", "300", "1"]);
+    await act(async () => Simulate.change(input, { target: { value: "12" } }));
+    expect(onChange).toHaveBeenCalledWith(12);
+    await act(async () =>
+      root.render(
+        <AsrDurationSetting
+          api={{ ...api, asrMaxDurationSeconds: 1.5 }}
+          onChange={onChange}
+        />
+      )
+    );
+    input = node.querySelector("input");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(input.value).toBe("1.5");
+    await act(async () =>
+      root.render(
+        <AsrDurationSetting
+          api={{ ...api, enabledCapabilities: [] }}
+          onChange={onChange}
+        />
+      )
+    );
+    expect(node.querySelector("input")).toBeNull();
+  } finally {
+    await act(async () => root.unmount());
+    node.remove();
+  }
+});
+
 test.each([
   ["translate", false, {}, true],
-  ["translate", false, { nobatch: { systemPrompt: "" } }, false],
-  ["translate", true, { nobatch: { systemPrompt: "Single" } }, true],
-  ["translate", true, { batch: { userPrompt: "Batch" } }, false],
+  [
+    "translate",
+    false,
+    { nobatch: [{ id: "default", name: "Default", systemPrompt: "" }] },
+    false,
+  ],
+  [
+    "translate",
+    true,
+    { nobatch: [{ id: "default", name: "Default", systemPrompt: "Single" }] },
+    true,
+  ],
+  [
+    "translate",
+    true,
+    { batch: [{ id: "default", name: "Default", userPrompt: "Batch" }] },
+    false,
+  ],
   ["dictionary", false, {}, true],
-  ["dictionary", false, { dictionary: { userPrompt: "Dictionary" } }, false],
-  ["segmentSubtitle", false, { subtitle: { systemPrompt: "Subtitle" } }, false],
-  ["parseImage", false, { vlm: { systemPrompt: "Vision" } }, false],
+  [
+    "dictionary",
+    false,
+    {
+      dictionary: [
+        { id: "default", name: "Default", userPrompt: "Dictionary" },
+      ],
+    },
+    false,
+  ],
+  [
+    "segmentSubtitle",
+    false,
+    {
+      subtitle: [{ id: "default", name: "Default", systemPrompt: "Subtitle" }],
+    },
+    false,
+  ],
+  [
+    "parseImage",
+    false,
+    { vlm: [{ id: "default", name: "Default", systemPrompt: "Vision" }] },
+    false,
+  ],
 ])(
   "plugin default option availability follows the current slot: %s %s",
   async (capability, useBatchFetch, defaultPrompts, disabled) => {
@@ -123,7 +208,7 @@ test("shared header handles disabled/pinned and prompt selection has no preview"
     apiType: "Plugin",
     apiName: "Service",
     provider: {
-      apiVersion: "1",
+      apiVersion: 1,
       name: "Endpoint",
       source: {
         external: true,
@@ -132,10 +217,14 @@ test("shared header handles disabled/pinned and prompt selection has no preview"
       },
       capabilities: { translate: { handler: "translate" } },
       defaultPrompts: {
-        nobatch: {
-          systemPrompt: "Read-only {{text}}",
-          userPrompt: "{{items}}",
-        },
+        nobatch: [
+          {
+            id: "default",
+            name: "Default",
+            systemPrompt: "Read-only {{text}}",
+            userPrompt: "{{items}}",
+          },
+        ],
       },
     },
   };
@@ -166,13 +255,13 @@ test("shared header handles disabled/pinned and prompt selection has no preview"
   }
   try {
     await act(async () => root.render(<Harness />));
-    expect(node.textContent).toContain("外部插件 · Example Plugin");
+    expect(node.textContent).toContain("插件接口 · Example Plugin");
     expect(node.querySelector("textarea")).toBeNull();
     expect(node.textContent).toContain("插件内部默认");
     expect(node.textContent).not.toContain("复制提示词");
     expect(node.textContent).not.toContain("插件未公开默认提示词");
     expect(writeText).not.toHaveBeenCalled();
-    expect(api.provider.defaultPrompts.nobatch.systemPrompt).toBe(
+    expect(api.provider.defaultPrompts.nobatch[0].systemPrompt).toBe(
       "Read-only {{text}}"
     );
     await act(async () => node.querySelector('input[name="isPinned"]').click());
@@ -189,5 +278,149 @@ test("shared header handles disabled/pinned and prompt selection has no preview"
     node.remove();
     if (clipboard) Object.defineProperty(navigator, "clipboard", clipboard);
     else delete navigator.clipboard;
+  }
+});
+
+test("local timestamp support is read-only and ignores stored overrides when the model changes", async () => {
+  const node = document.createElement("div");
+  document.body.append(node);
+  const root = createRoot(node),
+    onTimestampChange = jest.fn();
+  const modelTasks = require("../../config/localModelTasks.json");
+  const api = {
+    apiType: "LocalAI",
+    modelRef: "sensevoice-small",
+    asrTimestampSupport: "unsupported",
+  };
+  const render = (service) =>
+    act(() =>
+      root.render(
+        <AsrDurationSetting
+          api={service}
+          onChange={jest.fn()}
+          onTimestampChange={onTimestampChange}
+        />
+      )
+    );
+  const original = modelTasks.asrTimestamps["sensevoice-small"];
+  try {
+    render(api);
+    const select = () =>
+      node.querySelector('select[name="asrTimestampSupport"]');
+    expect(select().disabled).toBe(true);
+    expect(select().value).toBe("supported");
+    act(() => Simulate.change(select(), { target: { value: "unsupported" } }));
+    expect(onTimestampChange).not.toHaveBeenCalled();
+    delete modelTasks.asrTimestamps["sensevoice-small"];
+    render(api);
+    expect(select().value).toBe("unknown");
+    modelTasks.asrTimestamps["sensevoice-small"] = false;
+    render(api);
+    expect(select().value).toBe("unsupported");
+    render({ ...api, modelRef: "whisper-base-timestamped" });
+    expect(select().value).toBe("supported");
+  } finally {
+    modelTasks.asrTimestamps["sensevoice-small"] = original;
+    act(() => root.unmount());
+    node.remove();
+  }
+});
+
+test("external ASR over localhost can override timestamp support and restores the saved choice", () => {
+  const node = document.createElement("div");
+  document.body.append(node);
+  const root = createRoot(node),
+    changed = jest.fn();
+  const api = {
+    apiType: "Plugin",
+    sourceType: "local",
+    url: "http://localhost:9000",
+    provider: {
+      implementation: { kind: "script" },
+      capabilities: { transcribe: {} },
+    },
+  };
+  try {
+    act(() =>
+      root.render(
+        <AsrDurationSetting
+          api={api}
+          onChange={jest.fn()}
+          onTimestampChange={changed}
+        />
+      )
+    );
+    let select = node.querySelector('select[name="asrTimestampSupport"]');
+    expect(select.disabled).toBe(false);
+    expect(select.value).toBe("auto");
+    act(() => Simulate.change(select, { target: { value: "supported" } }));
+    expect(changed).toHaveBeenCalledWith("supported");
+    act(() =>
+      root.render(
+        <AsrDurationSetting
+          api={{ ...api, asrTimestampSupport: "supported" }}
+          onChange={jest.fn()}
+          onTimestampChange={changed}
+        />
+      )
+    );
+    select = node.querySelector('select[name="asrTimestampSupport"]');
+    expect(select.value).toBe("supported");
+  } finally {
+    act(() => root.unmount());
+    node.remove();
+  }
+});
+
+test.each([undefined, 30, 600])(
+  "service timeout shows a default of 120 and preserves the saved value %s",
+  async (httpTimeout) => {
+    const node = document.createElement("div");
+    document.body.append(node);
+    const root = createRoot(node);
+    const onChange = jest.fn();
+    try {
+      await act(async () =>
+        root.render(
+          <ServiceTimeoutSetting api={{ httpTimeout }} onChange={onChange} />
+        )
+      );
+      const input = node.querySelector('input[name="httpTimeout"]');
+      expect(input.value).toBe(String(httpTimeout ?? 120));
+      expect([input.min, input.max]).toEqual(["1", "600"]);
+      for (const value of [1, 600]) {
+        await act(async () =>
+          Simulate.change(input, { target: { value: String(value) } })
+        );
+        expect(onChange).toHaveBeenLastCalledWith(value);
+      }
+    } finally {
+      await act(async () => root.unmount());
+      node.remove();
+    }
+  }
+);
+
+test("ASR-only services render no empty prompt group", async () => {
+  const node = document.createElement("div");
+  const root = createRoot(node);
+  try {
+    await act(async () =>
+      root.render(
+        <PluginPromptSettings
+          api={{
+            apiType: "Plugin",
+            provider: {
+              capabilities: { transcribe: { handler: "transcribe" } },
+            },
+          }}
+          prompts={[]}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    expect(node.childElementCount).toBe(0);
+  } finally {
+    await act(async () => root.unmount());
   }
 });

@@ -4,6 +4,22 @@ import { useStorage } from "./Storage";
 
 const DEFAULT_FAVWORDS = {};
 
+function normalizeSource(source) {
+  if (!source || typeof source !== "object") return undefined;
+
+  const sentence =
+    typeof source.sentence === "string"
+      ? source.sentence.trim().slice(0, 1000)
+      : "";
+  const url = typeof source.url === "string" ? source.url.trim() : "";
+  if (!sentence && !url) return undefined;
+
+  return {
+    ...(sentence ? { sentence } : {}),
+    ...(url ? { url } : {}),
+  };
+}
+
 /** Manage favorite words with replayable storage mutations. */
 export function useFavWords() {
   const {
@@ -16,13 +32,22 @@ export function useFavWords() {
    * Toggle a favorite using metadata captured once for this user action.
    */
   const toggleFav = useCallback(
-    (word, timestamp = null, phonetic = "", definition = "", examples = []) => {
+    (
+      word,
+      timestamp = null,
+      phonetic = "",
+      definition = "",
+      examples = [],
+      source = null
+    ) => {
+      const normalizedSource = normalizeSource(source);
       const wordData = {
         createdAt: Date.now(),
         timestamp,
         phonetic,
         definition,
         examples: Array.isArray(examples) ? [...examples] : examples,
+        ...(normalizedSource ? { source: normalizedSource } : {}),
       };
       Object.keys(wordData).forEach((key) => {
         if (
@@ -49,10 +74,17 @@ export function useFavWords() {
 
   /** Merge new words while preserving metadata for existing favorites. */
   const mergeWords = useCallback(
-    (words) => {
+    (words, metadata = {}) => {
       const createdAt = Date.now();
+      const normalizedSource = normalizeSource(metadata?.source);
       const additions = Object.fromEntries(
-        words.map((word) => [word, { createdAt }])
+        words.map((word) => [
+          word,
+          {
+            createdAt,
+            ...(normalizedSource ? { source: normalizedSource } : {}),
+          },
+        ])
       );
       return save((prev) => ({ ...additions, ...prev }));
     },

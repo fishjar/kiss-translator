@@ -20,11 +20,10 @@ afterEach(() => jest.useRealTimers());
 test("download deadline covers headers even if a transport ignores abort", async () => {
   const fetchImpl = jest.fn(never);
   const result = downloadProviderPackage(target, fetchImpl, { timeoutMs: 50 });
-  const rejected = expect(result).rejects.toMatchObject({
-    code: "REQUEST_TIMEOUT",
-  });
-  jest.advanceTimersByTime(50);
-  await rejected;
+  await Promise.all([
+    expect(result).rejects.toMatchObject({ code: "REQUEST_TIMEOUT" }),
+    Promise.resolve().then(() => jest.advanceTimersByTime(50)),
+  ]);
   expect(fetchImpl.mock.calls[0][1]).toMatchObject({
     credentials: "omit",
     redirect: "error",
@@ -41,13 +40,14 @@ test("cancel a stalled body and release the reader without waiting for its trans
     async () => transport.response,
     { signal: controller.signal }
   );
-  const rejected = expect(result).rejects.toMatchObject({
-    code: "REQUEST_CANCELLED",
-  });
-  await flush();
-  expect(transport.reader.read).toHaveBeenCalledTimes(1);
-  controller.abort();
-  await rejected;
+  await Promise.all([
+    expect(result).rejects.toMatchObject({ code: "REQUEST_CANCELLED" }),
+    (async () => {
+      await flush();
+      expect(transport.reader.read).toHaveBeenCalledTimes(1);
+      controller.abort();
+    })(),
+  ]);
   expect(transport.reader.cancel).toHaveBeenCalledTimes(1);
   expect(transport.reader.releaseLock).toHaveBeenCalledTimes(1);
   expect(jest.getTimerCount()).toBe(0);
@@ -75,8 +75,7 @@ test("successful download still validates the package and preserves its source i
   const bytes = zipSync({
     "manifest.json": strToU8(
       JSON.stringify({
-        manifestVersion: 1,
-        apiVersion: "1",
+        apiVersion: 1,
         id: "download-test",
         name: "test",
         version: "1.0.0",

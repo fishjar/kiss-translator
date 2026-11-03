@@ -13,10 +13,13 @@ const polygon = (value) =>
   value.length >= 3 &&
   value.every(
     (point) => Array.isArray(point) && point.length === 2 && point.every(finite)
-  ) && Math.abs(value.reduce((area, [x, y], index) => {
-    const [nx, ny] = value[(index + 1) % value.length];
-    return area + x * ny - nx * y;
-  }, 0)) > 0;
+  ) &&
+  Math.abs(
+    value.reduce((area, [x, y], index) => {
+      const [nx, ny] = value[(index + 1) % value.length];
+      return area + x * ny - nx * y;
+    }, 0)
+  ) > 0;
 const interval = (value) =>
   finite(value.start) &&
   finite(value.end) &&
@@ -65,6 +68,31 @@ export function validateInput(capability, input) {
   checkPayloadBudget(input);
   const code = "INVALID_INPUT";
   requireValue(object(input), code, "Capability input must be an object.");
+  requireValue(
+    input.document === undefined ||
+      (object(input.document) && Object.values(input.document).every(text)),
+    code,
+    "Invalid document context."
+  );
+  requireValue(
+    input.glossary === undefined ||
+      (object(input.glossary) && Object.values(input.glossary).every(text)),
+    code,
+    "Invalid glossary."
+  );
+  requireValue(
+    input.tone === undefined || text(input.tone),
+    code,
+    "Invalid tone."
+  );
+  requireValue(
+    input.candidates === undefined ||
+      (Array.isArray(input.candidates) &&
+        input.candidates.length > 0 &&
+        input.candidates.every((value) => text(value) && value.trim())),
+    code,
+    "Invalid language candidates."
+  );
   if (capability === "translate") {
     items(input.items, code);
     translationProtocol(input);
@@ -123,13 +151,26 @@ export function validateInput(capability, input) {
   } else if (capability === "segmentSubtitle") {
     items(input.items, code);
     requireValue(
-      input.items.every(interval),
+      input.items.every(
+        (item) =>
+          interval(item) &&
+          (item.pauseMs === undefined ||
+            (finite(item.pauseMs) && item.pauseMs >= 0))
+      ),
       code,
       "Subtitle times must be ordered seconds."
     );
-  } else if (capability === "transcribe")
+  } else if (capability === "transcribe") {
     requireValue(asset(input.audio), code, "Audio asset is required.");
-  else if (["recognizeText", "parseImage", "analyzeLayout"].includes(capability))
+    requireValue(
+      input.requireTimestamps === undefined ||
+        typeof input.requireTimestamps === "boolean",
+      code,
+      "requireTimestamps must be boolean."
+    );
+  } else if (
+    ["recognizeText", "parseImage", "analyzeLayout"].includes(capability)
+  )
     requireValue(asset(input.image), code, "Image asset is required.");
   else if (capability === "evaluate") {
     requireValue(
@@ -146,7 +187,11 @@ export function validateInput(capability, input) {
           question.instructions !== undefined &&
           (question.type === "noul" ||
             (question.type === "choice"
-              ? object(question.criteria) || Array.isArray(question.criteria)
+              ? object(question.criteria) &&
+                Object.keys(question.criteria).length > 0 &&
+                Object.keys(question.criteria).every(
+                  (key) => key.trim().length > 0
+                )
               : Array.isArray(question.criteria))),
         code,
         "Invalid decision question."
@@ -188,8 +233,12 @@ export function validateInput(capability, input) {
       "Invalid image dimensions."
     );
   if (["recognizeText", "parseImage"].includes(capability))
-    requireValue(input.mode === undefined || ["doc", "table", "formula"].includes(input.mode),
-      code, "Invalid image task mode.");
+    requireValue(
+      input.mode === undefined ||
+        ["doc", "table", "formula"].includes(input.mode),
+      code,
+      "Invalid image task mode."
+    );
 }
 
 /** Never turn a malformed final response into a successful cache entry. */
@@ -240,7 +289,7 @@ export function validateResult(capability, result, input, descriptor = {}) {
       code,
       "Missing subtitle items."
     );
-  } else if (capability === "detectLanguage")
+  } else if (capability === "detectLanguage") {
     requireValue(
       text(result.language) &&
         result.language.length > 0 &&
@@ -248,7 +297,12 @@ export function validateResult(capability, result, input, descriptor = {}) {
       code,
       "Invalid detected language."
     );
-  else if (capability === "suggest")
+    requireValue(
+      !input.candidates || input.candidates.includes(result.language),
+      code,
+      "Detected language is outside candidates."
+    );
+  } else if (capability === "suggest")
     requireValue(
       Array.isArray(result.items) && result.items.every(text),
       code,
@@ -299,15 +353,17 @@ export function validateResult(capability, result, input, descriptor = {}) {
       requireValue(
         object(answer) &&
           answer.type === question.type &&
-          probability(answer.confidence) &&
-          object(answer.action) &&
-          probability(answer.action.act_probability),
+          (answer.confidence === undefined || probability(answer.confidence)) &&
+          (answer.action === undefined ||
+            (object(answer.action) &&
+              probability(answer.action.act_probability))),
         code,
         "Invalid decision answer."
       );
       requireValue(
         question.type === "choice"
-          ? text(answer.choice)
+          ? text(answer.choice) &&
+              Object.hasOwn(question.criteria, answer.choice)
           : question.type === "score"
             ? finite(answer.score)
             : probability(answer.noul),
@@ -331,6 +387,24 @@ export function validateResult(capability, result, input, descriptor = {}) {
       );
     if (capability === "transcribe") {
       requireValue(
+        result.language === undefined ||
+          (text(result.language) && result.language.length <= 64),
+        code,
+        "Invalid transcription language."
+      );
+      requireValue(
+        result.languageConfidence === undefined ||
+          probability(result.languageConfidence),
+        code,
+        "Invalid language confidence."
+      );
+      requireValue(
+        result.languagePending === undefined ||
+          typeof result.languagePending === "boolean",
+        code,
+        "Invalid language detection state."
+      );
+      requireValue(
         result.segments === undefined ||
           (Array.isArray(result.segments) &&
             result.segments.every(
@@ -341,7 +415,12 @@ export function validateResult(capability, result, input, descriptor = {}) {
         "Invalid transcription segments."
       );
       requireValue(
-        !descriptor.timestamps || Array.isArray(result.segments),
+        !(input.requireTimestamps ?? descriptor.timestamps) ||
+          (Array.isArray(result.segments) &&
+            (!result.text.trim() ||
+              result.segments.some(
+                (segment) => segment.text.trim() && segment.end > segment.start
+              ))),
         code,
         "Declared timestamps are missing."
       );
@@ -369,7 +448,9 @@ export function validateResult(capability, result, input, descriptor = {}) {
         !descriptor.coordinates ||
           (Array.isArray(result.items) &&
             result.items.filter((item) => item.text.trim()).length > 0 &&
-            result.items.filter((item) => item.text.trim()).every((item) => polygon(item.poly))),
+            result.items
+              .filter((item) => item.text.trim())
+              .every((item) => polygon(item.poly))),
         code,
         "Declared coordinates are missing."
       );

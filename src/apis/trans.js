@@ -65,7 +65,8 @@ import {
   detectStreamFormat,
 } from "../libs/stream";
 import { createSubtitleIndexAligner } from "../libs/subtitleIndexAlign";
-import { kissLog } from "../libs/log";
+import { logger } from "../libs/log";
+import { startLogTask } from "../libs/diagnostics/task";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { getMsgHistory } from "./history";
 import { getOpenCodeSessionId } from "./opencode";
@@ -186,7 +187,7 @@ const genUserPrompt = ({
   // 合并规则与接口中的AI专业术语
   if (aiTerms) {
     const aiGlossary = parseAITerms(aiTerms);
-    glossary = { ...glossary, ...aiGlossary };
+    glossary = { ...aiGlossary, ...glossary };
   }
 
   const glossaryStr = Object.entries(glossary)
@@ -678,7 +679,7 @@ const parseSTRes = (raw, events = null, fromLang = "auto") => {
       return data;
     }
   } catch (err) {
-    kissLog("parse AI Res: subtitle", err);
+    logger.child("translation").warn("parse AI Res: subtitle", err);
   }
 
   return [];
@@ -876,7 +877,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         return genInit(hookResult);
       }
     } catch (err) {
-      kissLog("run req hook", err);
+      logger.child("translation").info("run req hook", err);
       throw new Error(`Request hook error: ${err.message}`);
     }
   }
@@ -934,7 +935,7 @@ export const parseTransRes = async (
         return hookResult;
       }
     } catch (err) {
-      kissLog("run res hook", err);
+      logger.child("translation").info("run res hook", err);
       throw new Error(`Response hook error: ${err.message}`);
     }
   }
@@ -1007,6 +1008,12 @@ export const handleDict = async (options) => {
       sourceLanguage: options.fromLang,
       language: options.toLang,
       context: options.context || "",
+      document: Object.fromEntries(
+        ["title", "description", "summary", "url"].map((key) => [
+          key,
+          options.docInfo?.[key] || "",
+        ])
+      ),
       instructions: options.apiSetting.dictPrompt,
       userPrompt: options.apiSetting.dictUserPrompt,
     },
@@ -1049,6 +1056,12 @@ export const handleNativeDict = async ({
         sourceLanguage: fromLang,
         language: toLang,
         context,
+        document: Object.fromEntries(
+          ["title", "description", "summary", "url"].map((key) => [
+            key,
+            docInfo?.[key] || "",
+          ])
+        ),
         instructions: apiSetting.dictPrompt,
         userPrompt: apiSetting.dictUserPrompt,
       },
@@ -1141,7 +1154,9 @@ export const handleNativeDict = async ({
         throw err;
       }
 
-      kissLog("dictionary stream failed, fallback to non-stream", err);
+      logger
+        .child("translation")
+        .warn("dictionary stream failed, fallback to non-stream", err);
     }
 
     // 流式协议异常时自动降级为普通请求，保留 AI 词典功能可用性。
@@ -1208,12 +1223,32 @@ export const handleNativeDict = async ({
  * @returns {Promise<Array>} 非流式模式下返回完整结果数组
  */
 export async function* handleTranslate(texts, options) {
-  if (!options.apiSetting.provider) {
-    yield* handleNativeTranslate(texts, options);
-    return;
+  const task = startLogTask("translation", {
+    serviceId: options.apiSetting.apiSlug,
+    count: texts?.length,
+  });
+  options = {
+    ...options,
+    diagnostic: { ...options.diagnostic, ...task.context },
+  };
+  let completed = false;
+  try {
+    if (!options.apiSetting.provider)
+      yield* handleNativeTranslate(texts, options);
+    else {
+      const { translatePlugin } = await import(
+        "../providers/translationAdapter"
+      );
+      yield* translatePlugin(texts, { ...options, nativeOptions: options });
+    }
+    completed = true;
+    task.finish();
+  } catch (error) {
+    task.finish(error);
+    throw error;
+  } finally {
+    if (!completed) task.finish({ name: "AbortError" });
   }
-  const { translatePlugin } = await import("../providers/translationAdapter");
-  yield* translatePlugin(texts, { ...options, nativeOptions: options });
 }
 
 export async function* handleNativeTranslate(
@@ -1231,6 +1266,7 @@ export async function* handleNativeTranslate(
     textFormat = "text",
     signal,
     capture,
+    diagnostic,
   }
 ) {
   if (signal?.aborted) return;
@@ -1320,6 +1356,8 @@ export async function* handleNativeTranslate(
 
   const runNonStream = async function* (input, init, userMsg) {
     const response = await fetchData(input, init, {
+      diagnostic: { ...diagnostic, serviceId: apiSlug },
+      diagnosticSecrets: [apiSetting.key],
       useCache: false,
       usePool,
       fetchInterval,
@@ -1377,6 +1415,7 @@ export async function* handleNativeTranslate(
           httpTimeout,
           signal,
           streamRenderMode: apiSetting.streamRenderMode || "disabled",
+          diagnostic: { ...diagnostic, serviceId: apiSlug },
           textFormat,
         }
       )) {
@@ -1390,7 +1429,9 @@ export async function* handleNativeTranslate(
       if (err?.name === "AbortError") {
         throw err;
       }
-      kissLog("translate stream failed, fallback to non-stream", err);
+      logger
+        .child("translation")
+        .warn("translate stream failed, fallback to non-stream", err);
     }
 
     const [fallbackInput, fallbackInit, fallbackUserMsg] =
@@ -1430,6 +1471,7 @@ async function* handleTranslateStreamInternal(
     httpTimeout,
     signal,
     streamRenderMode,
+    diagnostic,
     textFormat = "text",
   }
 ) {
@@ -1445,6 +1487,7 @@ async function* handleTranslateStreamInternal(
 
   try {
     for await (const rawData of fetchStream(input, init, {
+      diagnostic,
       useCache: false,
       usePool,
       fetchInterval,
@@ -1518,7 +1561,7 @@ async function* handleTranslateStreamInternal(
       jsonParser.end();
     }
   } catch (error) {
-    kissLog("handleTranslateStream error", error);
+    logger.child("translation").warn("handleTranslateStream error", error);
     throw error;
   }
 
@@ -1606,14 +1649,29 @@ async function* handleTranslateStreamInternal(
  * @returns {Promise<Array<Object>>} 完整字幕句子数组。
  */
 export const handleSubtitle = async (options) => {
-  if (!options.apiSetting.provider) return handleNativeSubtitle(options);
-  const { segmentPlugin } = await import("../providers/sceneAdapter");
-  return segmentPlugin(options.events, {
-    ...options,
-    nativeOptions: options,
-    instructions: options.apiSetting.subtitlePrompt,
-    context: options.docInfo?.summary,
+  const task = startLogTask("subtitle", {
+    serviceId: options.apiSetting.apiSlug,
+    count: options.events?.length,
   });
+  try {
+    if (!options.apiSetting.provider) {
+      const result = await handleNativeSubtitle(options);
+      task.finish();
+      return result;
+    }
+    const { segmentPlugin } = await import("../providers/sceneAdapter");
+    const result = await segmentPlugin(options.events, {
+      ...options,
+      nativeOptions: options,
+      instructions: options.apiSetting.subtitlePrompt,
+      context: options.docInfo?.summary,
+    });
+    task.finish();
+    return result;
+  } catch (error) {
+    task.finish(error);
+    throw error;
+  }
 };
 
 export const handleNativeSubtitle = async ({
@@ -1637,6 +1695,7 @@ export const handleNativeSubtitle = async ({
       signal,
       instructions: apiSetting.subtitlePrompt,
       context: docInfo?.summary,
+      docInfo,
     });
   }
   const { apiType, fetchInterval, fetchLimit, httpTimeout, useStream } =
@@ -1677,7 +1736,9 @@ export const handleNativeSubtitle = async ({
       if (err?.name === "AbortError") {
         throw err;
       }
-      kissLog("subtitle stream failed, fallback to non-stream", err);
+      logger
+        .child("translation")
+        .warn("subtitle stream failed, fallback to non-stream", err);
     }
 
     return handleNativeSubtitle({
@@ -1699,7 +1760,7 @@ export const handleNativeSubtitle = async ({
     signal,
   });
   if (!res) {
-    kissLog("subtitle got empty response");
+    logger.child("translation").info("subtitle got empty response");
     return [];
   }
 
@@ -1824,6 +1885,10 @@ export const handleSummarize = async (options) => {
       instructions: options.prompt?.systemPrompt,
       userPrompt: options.prompt?.userPrompt,
       context: [options.title, options.description].filter(Boolean).join("\n"),
+      document: {
+        title: options.title || "",
+        description: options.description || "",
+      },
     },
     { signal: options.signal, nativeOptions: options }
   );
@@ -1853,6 +1918,7 @@ export const handleNativeSummarize = async ({
         instructions: prompt?.systemPrompt,
         userPrompt: prompt?.userPrompt,
         context: [title, description].filter(Boolean).join("\n"),
+        document: { title: title || "", description: description || "" },
       },
       { signal }
     );
@@ -1882,7 +1948,7 @@ export const handleNativeSummarize = async ({
     }
 
     if (err) {
-      kissLog("handleSummarize:builtinAI error", err);
+      logger.child("translation").warn("handleSummarize:builtinAI error", err);
       throw new Error(err);
     }
     return (summary || "").trim();

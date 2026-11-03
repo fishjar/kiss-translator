@@ -97,7 +97,9 @@ function finalizeAiCues(cues, segmentEvents, fromLang, formatSubtitles) {
     normalizeText(sorted) !== normalizeText(segmentEvents);
 
   if (hasInvalidTimeline || hasInvalidCoverage) {
-    logger.info("Youtube Provider: AI result validation failed, falling back");
+    logger
+      .child("subtitle")
+      .warn("Youtube Provider: AI result validation failed, falling back");
     return formatSubtitles(segmentEvents, fromLang).sort(
       (a, b) => a.start - b.start
     );
@@ -149,7 +151,7 @@ export async function aiSegment({
     const chunkSign = `${segmentEvents[0].start} --> ${
       segmentEvents[segmentEvents.length - 1].end
     }`;
-    logger.debug("Youtube Provider: aiSegment events", {
+    logger.child("subtitle").debug("Youtube Provider: aiSegment events", {
       videoId,
       chunkSign,
       fromLang,
@@ -170,6 +172,8 @@ export async function aiSegment({
       toLang,
       events: segmentEvents,
       apiSetting: resolvedSegApiSetting,
+      scene: setting,
+      terminologyTables: setting?.terminologyTables,
       docInfo,
       signal,
       onSubtitleChunk: ({ subtitles }) => {
@@ -182,7 +186,9 @@ export async function aiSegment({
         onSubtitleChunk({ subtitles: streamedSubtitles });
       },
     });
-    logger.debug("Youtube Provider: aiSegment subtitles", subtitles);
+    logger
+      .child("subtitle")
+      .debug("Youtube Provider: aiSegment subtitles", subtitles);
     if (Array.isArray(subtitles)) {
       const initial = takeContinuousCuePrefix(
         markDraftTranslations(subtitles, clearSegmentTranslation),
@@ -215,6 +221,8 @@ export async function aiSegment({
           toLang,
           events: tailEvents,
           apiSetting: resolvedSegApiSetting,
+          scene: setting,
+          terminologyTables: setting?.terminologyTables,
           docInfo,
           signal,
         });
@@ -223,7 +231,9 @@ export async function aiSegment({
           tailEvents.length
         );
       } catch (tailError) {
-        logger.info("Youtube Provider: ai tail retry", tailError);
+        logger
+          .child("subtitle")
+          .info("Youtube Provider: ai tail retry", tailError);
       }
 
       const acceptedTail = offsetCueIndices(tailPrefix.cues, tailOffset);
@@ -242,7 +252,7 @@ export async function aiSegment({
       );
     }
   } catch (err) {
-    logger.info("Youtube Provider: ai segmentation", err);
+    logger.child("subtitle").info("Youtube Provider: ai segmentation", err);
   }
 
   return formatSubtitles(segmentEvents, fromLang).sort(
@@ -288,6 +298,7 @@ export async function eventsToSubtitles({
   builtinSegment,
   formatSubtitles,
   onAppendSubtitles,
+  onChunkComplete,
   getCurrentVideoId,
   signal,
 }) {
@@ -302,13 +313,17 @@ export async function eventsToSubtitles({
   // 断句策略仅由用户配置的 segSlug 决定；kind 只负责定位用户实际选择的字幕轨道。
   if (useAiSegmentation) {
     if (isStaleProcessing(processingVersion)) return [[], 0];
-    logger.info("Youtube Provider: Starting AI segmentation...");
+    logger
+      .child("subtitle")
+      .debug("Youtube Provider: Starting AI segmentation...");
     showNotification(i18n("ai_processing_pls_wait"));
 
     const eventChunks = splitEventsIntoChunks(flatEvents, chunkLength);
 
     if (eventChunks.length === 0) {
-      logger.info("Youtube Provider: AI no chunks, falling back to built-in");
+      logger
+        .child("subtitle")
+        .warn("Youtube Provider: AI no chunks, falling back to built-in");
       return [builtinSegment(events, flatEvents, fromLang, setting), 100];
     }
 
@@ -346,11 +361,19 @@ export async function eventsToSubtitles({
     if (isStaleProcessing(processingVersion)) return [[], 0];
 
     if (!firstBatchSubtitles?.length) {
-      logger.info("Youtube Provider: AI failed, falling back to built-in");
+      logger
+        .child("subtitle")
+        .warn("Youtube Provider: AI failed, falling back to built-in");
       return [builtinSegment(events, flatEvents, fromLang, setting), 100];
     }
 
-    logger.info("Youtube Provider: Sentence break mode: AI");
+    onChunkComplete?.({
+      subtitles: firstBatchSubtitles,
+      progressed: firstChunkProgressed,
+      start: firstChunkEvents[0].start,
+      end: firstChunkEvents[firstChunkEvents.length - 1].end,
+    });
+    logger.child("subtitle").debug("Youtube Provider: Sentence break mode: AI");
     if (eventChunks.length === 1) {
       return [firstBatchSubtitles, 100];
     }
@@ -370,6 +393,7 @@ export async function eventsToSubtitles({
       formatSubtitles,
       clearSegmentTranslation: shouldClearSegmentTranslation,
       onAppendSubtitles,
+      onChunkComplete,
       getCurrentVideoId,
       signal,
     });
@@ -422,6 +446,7 @@ export function createAiChunkScheduler({
   formatSubtitles,
   clearSegmentTranslation,
   onAppendSubtitles,
+  onChunkComplete,
   getCurrentVideoId,
   signal,
 }) {
@@ -484,18 +509,27 @@ export function createAiChunkScheduler({
    */
   const processChunk = async (index) => {
     if (isStaleProcessing(processingVersion)) {
-      logger.info("Youtube Provider: Skip stale chunk processing.");
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: Skip stale chunk processing.");
       return;
     }
 
     const chunkEvents = chunks[index];
     const chunkNum = index + 1;
     states[index] = "processing";
-    logger.debug(
-      `Youtube Provider: Processing subtitle chunk ${chunkNum}/${chunks.length}: ${chunkEvents[0]?.start} --> ${
+    logger
+      .child("subtitle")
+      .debug(
+        "Youtube Provider: processing subtitle chunk:",
+        chunkNum,
+        "total:",
+        chunks.length,
+        "start:",
+        chunkEvents[0]?.start,
+        "last start:",
         chunkEvents[chunkEvents.length - 1]?.start
-      }`
-    );
+      );
 
     let subtitlesForThisChunk = [];
 
@@ -533,9 +567,12 @@ export function createAiChunkScheduler({
       if (aiSubtitles?.length > 0) {
         subtitlesForThisChunk = aiSubtitles;
       } else {
-        logger.debug(
-          `Youtube Provider: AI segmentation for chunk ${chunkNum} returned no data.`
-        );
+        logger
+          .child("subtitle")
+          .debug(
+            "Youtube Provider: AI segmentation returned no data; chunk:",
+            chunkNum
+          );
         subtitlesForThisChunk = formatSubtitles(chunkEvents, fromLang);
       }
     } catch (chunkError) {
@@ -547,30 +584,47 @@ export function createAiChunkScheduler({
       videoId !== getCurrentVideoId() ||
       isStaleProcessing(processingVersion)
     ) {
-      logger.info(
-        "Youtube Provider: videoId changed or track replaced!",
-        videoId,
-        getCurrentVideoId()
-      );
+      logger
+        .child("subtitle")
+        .info(
+          "Youtube Provider: videoId changed or track replaced!",
+          videoId,
+          getCurrentVideoId()
+        );
       return;
     }
 
     if (states[index] !== "failed") {
       states[index] = "done";
     }
+    onChunkComplete?.({
+      subtitles: subtitlesForThisChunk,
+      progressed: getProgressed(),
+      start: chunkEvents[0].start,
+      end: chunkEvents[chunkEvents.length - 1].end,
+    });
 
     if (subtitlesForThisChunk.length > 0) {
       const progressed = getProgressed();
-      logger.debug(
-        `Youtube Provider: Appending ${subtitlesForThisChunk.length} subtitles from chunk ${chunkNum} (${progressed}%).`
-      );
+      logger
+        .child("subtitle")
+        .debug(
+          "Youtube Provider: appending subtitles; count:",
+          subtitlesForThisChunk.length,
+          "chunk:",
+          chunkNum,
+          "progress (%):",
+          progressed
+        );
       onAppendSubtitles({
         subtitles: subtitlesForThisChunk,
         progressed,
         chunkNum,
       });
     } else {
-      logger.debug(`Youtube Provider: Chunk ${chunkNum} no subtitles.`);
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: no subtitles; chunk:", chunkNum);
     }
   };
 
@@ -661,23 +715,37 @@ export async function processRemainingChunksAsync({
   getCurrentVideoId,
   signal,
 }) {
-  logger.info(
-    `Youtube Provider: Starting async from chunk ${startIndex + 1}/${chunks.length}.`
-  );
+  logger
+    .child("subtitle")
+    .debug(
+      "Youtube Provider: starting async from chunk:",
+      startIndex + 1,
+      "total:",
+      chunks.length
+    );
 
   for (let i = startIndex; i < chunks.length; i++) {
     if (isStaleProcessing(processingVersion)) {
-      logger.info("Youtube Provider: Skip stale chunk processing.");
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: Skip stale chunk processing.");
       break;
     }
 
     const chunkEvents = chunks[i];
     const chunkNum = i + 1;
-    logger.debug(
-      `Youtube Provider: Processing subtitle chunk ${chunkNum}/${chunks.length}: ${chunkEvents[0]?.start} --> ${
+    logger
+      .child("subtitle")
+      .debug(
+        "Youtube Provider: processing subtitle chunk:",
+        chunkNum,
+        "total:",
+        chunks.length,
+        "start:",
+        chunkEvents[0]?.start,
+        "last start:",
         chunkEvents[chunkEvents.length - 1]?.start
-      }`
-    );
+      );
 
     let subtitlesForThisChunk = [];
 
@@ -717,9 +785,12 @@ export async function processRemainingChunksAsync({
       if (aiSubtitles?.length > 0) {
         subtitlesForThisChunk = aiSubtitles;
       } else {
-        logger.debug(
-          `Youtube Provider: AI segmentation for chunk ${chunkNum} returned no data.`
-        );
+        logger
+          .child("subtitle")
+          .debug(
+            "Youtube Provider: AI segmentation returned no data; chunk:",
+            chunkNum
+          );
         subtitlesForThisChunk = formatSubtitles(chunkEvents, fromLang);
       }
     } catch (chunkError) {
@@ -730,30 +801,43 @@ export async function processRemainingChunksAsync({
       videoId !== getCurrentVideoId() ||
       isStaleProcessing(processingVersion)
     ) {
-      logger.info(
-        "Youtube Provider: videoId changed or track replaced!",
-        videoId,
-        getCurrentVideoId()
-      );
+      logger
+        .child("subtitle")
+        .info(
+          "Youtube Provider: videoId changed or track replaced!",
+          videoId,
+          getCurrentVideoId()
+        );
       break;
     }
 
     if (subtitlesForThisChunk.length > 0) {
       const progressed = Math.floor((chunkNum * 100) / chunks.length);
-      logger.debug(
-        `Youtube Provider: Appending ${subtitlesForThisChunk.length} subtitles from chunk ${chunkNum} (${progressed}%).`
-      );
+      logger
+        .child("subtitle")
+        .debug(
+          "Youtube Provider: appending subtitles; count:",
+          subtitlesForThisChunk.length,
+          "chunk:",
+          chunkNum,
+          "progress (%):",
+          progressed
+        );
       onAppendSubtitles({
         subtitles: subtitlesForThisChunk,
         progressed,
         chunkNum,
       });
     } else {
-      logger.debug(`Youtube Provider: Chunk ${chunkNum} no subtitles.`);
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: no subtitles; chunk:", chunkNum);
     }
 
     await sleep(randomBetween(500, 1000));
   }
 
-  logger.info("Youtube Provider: All subtitle chunks processed.");
+  logger
+    .child("subtitle")
+    .info("Youtube Provider: All subtitle chunks processed.");
 }

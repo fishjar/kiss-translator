@@ -56,6 +56,28 @@ function renderMouseHover(mouseHoverSetting) {
 }
 
 describe("MouseHover settings", () => {
+  test.each([undefined, "off", "tap", "swipe"])(
+    "touch mode %s controls direction editing without changing mouse settings",
+    (touchMode) => {
+      const view = renderMouseHover({ touchMode, touchDirection: "left" });
+      const modes = view.container.querySelector('[aria-label="touch_mode"]');
+      const direction = view.container.querySelector(
+        '[aria-label="touch_direction"]'
+      );
+      expect(modes.querySelector('[aria-checked="true"]').value).toBe(
+        touchMode || "off"
+      );
+      expect(
+        Array.from(direction.querySelectorAll("button")).map((b) => b.disabled)
+      ).toEqual([touchMode !== "swipe", touchMode !== "swipe"]);
+      const nextMode = touchMode === "swipe" ? "tap" : "swipe";
+      act(() => modes.querySelector(`[value="${nextMode}"]`).click());
+      expect(view.updateMouseHoverSetting).toHaveBeenCalledWith({
+        touchMode: nextMode,
+      });
+      view.cleanup();
+    }
+  );
   afterEach(() => {
     document.body.innerHTML = "";
     jest.clearAllMocks();
@@ -237,6 +259,152 @@ describe("MouseHover settings", () => {
     expect(view.updateMouseHoverSetting).toHaveBeenLastCalledWith({
       mouseHoverPreventClick: true,
     });
+    view.cleanup();
+  });
+
+  test("offers left and right button choices for the hold trigger", () => {
+    const view = renderMouseHover({
+      mouseHoverKeyHold: true,
+      mouseHoverHoldButton: "left",
+    });
+
+    const rightButton = view.container.querySelector(
+      "button[aria-label='mousehover_hold_button_right']"
+    );
+    expect(
+      view.container
+        .querySelector("button[aria-label='mousehover_hold_button_left']")
+        .getAttribute("aria-checked")
+    ).toBe("true");
+
+    act(() => rightButton.click());
+
+    expect(view.updateMouseHoverSetting).toHaveBeenLastCalledWith({
+      mouseHoverHoldButton: "right",
+    });
+    view.cleanup();
+  });
+
+  test("remembers the context-menu suppression choice when switching buttons", () => {
+    const view = renderMouseHover({
+      mouseHoverKeyHold: true,
+      mouseHoverHoldButton: "right",
+      mouseHoverSuppressContextMenu: false,
+    });
+
+    // 切到左键：不得覆盖用户已保存的右键屏蔽菜单设置
+    act(() =>
+      view.container
+        .querySelector("button[aria-label='mousehover_hold_button_left']")
+        .click()
+    );
+
+    expect(view.updateMouseHoverSetting).toHaveBeenLastCalledWith({
+      mouseHoverHoldButton: "left",
+    });
+    view.cleanup();
+  });
+
+  test("disables context-menu suppression outside right-button mode", () => {
+    const view = renderMouseHover({
+      mouseHoverKeyHold: true,
+      mouseHoverHoldButton: "left",
+      mouseHoverSuppressContextMenu: true,
+    });
+    const input = view.container.querySelector(
+      "input[aria-label='mousehover_hold_suppress_menu']"
+    );
+
+    expect(input.disabled).toBe(true);
+    expect(input.checked).toBe(false);
+    view.cleanup();
+  });
+
+  test.each([
+    [true, true],
+    [false, false],
+  ])(
+    "reflects the stored suppression value %s in right-button mode",
+    (stored, expected) => {
+      const view = renderMouseHover({
+        mouseHoverKeyHold: true,
+        mouseHoverHoldButton: "right",
+        mouseHoverSuppressContextMenu: stored,
+      });
+      const input = view.container.querySelector(
+        "input[aria-label='mousehover_hold_suppress_menu']"
+      );
+
+      expect(input.disabled).toBe(false);
+      expect(input.checked).toBe(expected);
+      view.cleanup();
+    }
+  );
+
+  test("disables click suppression in right-button mode without changing its value", () => {
+    const view = renderMouseHover({
+      mouseHoverKeyHold: true,
+      mouseHoverHoldButton: "right",
+      mouseHoverPreventClick: true,
+    });
+    const input = view.container.querySelector(
+      "input[aria-label='mousehover_hold_prevent_click']"
+    );
+
+    expect(input.disabled).toBe(true);
+    expect(input.checked).toBe(false);
+    view.cleanup();
+  });
+
+  test("disables gesture revert outside right-button mode", () => {
+    const view = renderMouseHover({
+      mouseHoverKeyHold: true,
+      mouseHoverHoldButton: "left",
+      mouseHoverHoldRevertOnGesture: true,
+    });
+    const input = view.container.querySelector(
+      "input[aria-label='mousehover_hold_revert_on_gesture']"
+    );
+
+    expect(input.disabled).toBe(true);
+    expect(input.checked).toBe(false);
+    view.cleanup();
+  });
+
+  test("reflects and updates the stored gesture revert value in right-button mode", () => {
+    const view = renderMouseHover({
+      mouseHoverKeyHold: true,
+      mouseHoverHoldButton: "right",
+      mouseHoverHoldRevertOnGesture: true,
+    });
+    const input = view.container.querySelector(
+      "input[aria-label='mousehover_hold_revert_on_gesture']"
+    );
+
+    expect(input.disabled).toBe(false);
+    expect(input.checked).toBe(true);
+
+    act(() => input.click());
+
+    expect(view.updateMouseHoverSetting).toHaveBeenLastCalledWith({
+      mouseHoverHoldRevertOnGesture: false,
+    });
+    view.cleanup();
+  });
+
+  test("keeps gesture revert off when the setting key is not stored", () => {
+    // 默认值必须与 DEFAULT_MOUSE_HOVER_SETTING 一致：未配置时显示为关，
+    // 否则界面显示“开”而运行时按“关”执行
+    const view = renderMouseHover({
+      mouseHoverKeyHold: true,
+      mouseHoverHoldButton: "right",
+    });
+    const input = view.container.querySelector(
+      "input[aria-label='mousehover_hold_revert_on_gesture']"
+    );
+
+    expect(input.disabled).toBe(false);
+    expect(input.checked).toBe(false);
     view.cleanup();
   });
 });

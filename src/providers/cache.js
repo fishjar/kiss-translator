@@ -26,6 +26,6 @@ export function providerCacheSignature(api, capability, context) {
       usesStreaming(projectApiCapabilities(api), capability),
       context,
     ]),
-    "provider-cache-v1"
+    "provider-cache-v2"
   );
 }

@@ -3,8 +3,6 @@ import { createRoot } from "react-dom/client";
 import QuickTranslationTest from "./QuickTranslationTest";
 import { apiTranslate } from "../../apis";
 import { invokeService } from "../../providers/serviceRuntime";
-import { approvedProviderOrigins } from "../../providers/grants";
-import { browser } from "../../libs/browser";
 import { useAlert } from "../../hooks/Alert";
 import { useSetting } from "../../hooks/Setting";
 
@@ -22,11 +20,6 @@ jest.mock("../../hooks/I18n", () => ({
 }));
 jest.mock("../../config/prompt", () => ({
   resolveApiPromptSettings: (api) => api,
-}));
-jest.mock("../../providers/grants", () => ({
-  approvedProviderOrigins: jest.fn(),
-  providerGrantKey: () => "grant",
-  providerPluginId: () => "example",
 }));
 jest.mock("../../libs/browser", () => ({
   browser: {
@@ -74,9 +67,6 @@ beforeEach(() => {
     setting: { uiLang: "en", prompts: [] },
     updateSetting,
   });
-  approvedProviderOrigins.mockResolvedValue(
-    new Set(["https://example.invalid"])
-  );
   invokeService.mockReturnValue(invocation());
   node = document.createElement("div");
   document.body.append(node);
@@ -108,16 +98,13 @@ test.each([undefined, { implementation: { kind: "native" } }])(
 );
 
 test.each(["script", "declarative"])(
-  "%s plugins validate and translate the unsaved draft with current authorization",
+  "%s plugins validate and translate the unsaved draft without local authorization",
   async (kind) => {
     await render({
       ...api,
       provider: { ...api.provider, implementation: { kind } },
     });
     await act(async () => button().click());
-    expect(approvedProviderOrigins).toHaveBeenCalledWith(
-      expect.objectContaining({ pluginConfig: { model: "draft-model" } })
-    );
     expect(invokeService).toHaveBeenCalledWith(
       expect.objectContaining({ pluginConfig: { model: "draft-model" } }),
       "translate",
@@ -128,7 +115,7 @@ test.each(["script", "declarative"])(
         targetLanguage: "zh-CN",
       }),
       expect.objectContaining({
-        approvedOrigins: new Set(["https://example.invalid"]),
+        signal: expect.anything(),
       })
     );
     expect(success).toHaveBeenCalledTimes(1);
@@ -137,15 +124,10 @@ test.each(["script", "declarative"])(
   }
 );
 
-test("invalid drafts fail before authorization and revoked authorization prevents execution", async () => {
+test("invalid drafts fail before execution", async () => {
   await render({ ...api, pluginConfig: { model: "" } });
   await act(async () => button().click());
   expect(error).toHaveBeenCalledTimes(1);
-  expect(approvedProviderOrigins).not.toHaveBeenCalled();
-  await render(api);
-  approvedProviderOrigins.mockRejectedValue(new Error("未授权"));
-  await act(async () => button().click());
-  expect(error).toHaveBeenCalledTimes(2);
   expect(invokeService).not.toHaveBeenCalled();
 });
 
@@ -178,7 +160,7 @@ test("duplicate clicks are ignored and switching services aborts and suppresses 
   expect(error).not.toHaveBeenCalled();
 });
 
-test("grant revocation aborts an active plugin test", async () => {
+test("unmounting aborts an active plugin test", async () => {
   let finish;
   const call = invocation();
   call.result = new Promise((resolve) => {
@@ -188,12 +170,7 @@ test("grant revocation aborts an active plugin test", async () => {
   await render();
   await act(async () => button().click());
   const signal = invokeService.mock.calls[0][3].signal;
-  await act(async () =>
-    browser.storage.onChanged.addListener.mock.calls.at(-1)[0](
-      { grant: { newValue: undefined } },
-      "local"
-    )
-  );
+  await act(async () => root.render(null));
   expect(signal.aborted).toBe(true);
   await act(async () => finish({ items: [{ id: "0", text: "late" }] }));
   expect(success).not.toHaveBeenCalled();

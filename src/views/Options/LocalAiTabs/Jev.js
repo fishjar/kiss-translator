@@ -923,10 +923,7 @@ export default function JevTab() {
           </CardContent>
         </Card>
       )}
-      <LogViewer
-        logs={logs}
-        onClear={clearLogs}
-      />
+      <LogViewer logs={logs} onClear={clearLogs} />
     </Stack>
   );
 }

@@ -66,6 +66,11 @@ jest.mock("../Selection/TranForm", () => {
     syncExternalTextWhileEditing,
     simpleStyle,
     configActions,
+    enDict,
+    enSug,
+    aiDictApiSlug,
+    aiDictPromptSlug,
+    ttsApiSlug,
   }) =>
     React.createElement(
       "div",
@@ -74,6 +79,11 @@ jest.mock("../Selection/TranForm", () => {
         "data-auto-focus": String(autoFocusInput),
         "data-sync-external": String(syncExternalTextWhileEditing),
         "data-simple-style": String(Boolean(simpleStyle)),
+        "data-en-dict": String(enDict),
+        "data-en-sug": String(enSug),
+        "data-ai-dict-api": String(aiDictApiSlug),
+        "data-ai-dict-prompt": String(aiDictPromptSlug),
+        "data-tts-api": String(ttsApiSlug),
       },
       configActions,
       React.createElement("span", { "data-testid": "source-text" }, text)
@@ -93,6 +103,7 @@ const setting = {
     toLang2: "en",
     aiDictApiSlug: "-",
     aiDictPromptSlug: "-",
+    ttsApiSlug: "cloud-tts",
   },
   transApis: [],
   langDetector: "-",
@@ -384,6 +395,40 @@ describe("shared translation panel hosts", () => {
       view.container.querySelector('[data-testid="tran-form"]').dataset
         .simpleStyle
     ).toBe("false");
+  });
+
+  test("hands the same dictionary and speech configuration to both panel hosts", async () => {
+    const configOf = (node) => {
+      const data = node.querySelector('[data-testid="tran-form"]').dataset;
+      return {
+        enDict: data.enDict,
+        enSug: data.enSug,
+        aiDictApi: data.aiDictApi,
+        aiDictPrompt: data.aiDictPrompt,
+        ttsApi: data.ttsApi,
+      };
+    };
+
+    view = renderTrantab();
+    await flushEffects();
+    const popup = configOf(view.container);
+    act(() => view.root.unmount());
+    view.container.remove();
+    view = null;
+
+    view = renderTrantab({ isSeparate: true });
+    await flushEffects();
+    const separate = configOf(view.container);
+
+    // Both panel hosts must receive the identical dictionary and speech settings.
+    expect(popup).toEqual(separate);
+    expect(popup).toEqual({
+      enDict: "-",
+      enSug: "-",
+      aiDictApi: "-",
+      aiDictPrompt: "-",
+      ttsApi: "cloud-tts",
+    });
   });
 
   test("keeps clipboard text and available actions through minimal mode and back", async () => {

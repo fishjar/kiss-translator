@@ -28,5 +28,11 @@
   },
   "toggle_tranbox": {
     "message": "번역 상자 전환"
+  },
+  "image_screenshot_command": {
+    "message": "스크린샷 번역"
+  },
+  "image_screenshot": {
+    "message": "스크린샷 번역"
   }
 }

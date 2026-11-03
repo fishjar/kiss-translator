@@ -72,6 +72,12 @@ describe("ShadowDomManager fullscreen lifecycle", () => {
   test("preserves rendered state and hidden state while changing fullscreen roots", () => {
     const manager = createManager();
     const host = document.getElementById("fullscreen-panel");
+    expect(host.hasAttribute("data-kiss-ui")).toBe(true);
+    expect(
+      host.shadowRoot
+        .querySelector(".fullscreen-panel_wrapper")
+        .hasAttribute("data-kiss-ui")
+    ).toBe(true);
     const button = host.shadowRoot.querySelector("button");
     act(() => button.click());
     expect(button.textContent).toBe("1");

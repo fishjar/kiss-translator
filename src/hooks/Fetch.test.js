@@ -18,9 +18,11 @@ function deferred() {
 test("keeps immediate async state bound to the newest request", async () => {
   const first = deferred();
   const second = deferred();
-  const request = jest.fn((value) =>
-    value === "first" ? first.promise : second.promise
-  );
+  const signals = [];
+  const request = jest.fn((value, { signal }) => {
+    signals.push(signal);
+    return value === "first" ? first.promise : second.promise;
+  });
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -38,6 +40,8 @@ test("keeps immediate async state bound to the newest request", async () => {
   expect(container.querySelector("output").dataset.loading).toBe("true");
 
   act(() => root.render(<Probe value="second" />));
+  expect(signals[0].aborted).toBe(true);
+  expect(signals[1].aborted).toBe(false);
   expect(container.querySelector("output").textContent).toBe("");
 
   await act(async () => {
@@ -55,5 +59,6 @@ test("keeps immediate async state bound to the newest request", async () => {
   expect(container.querySelector("output").textContent).toBe("current result");
 
   act(() => root.unmount());
+  expect(signals[1].aborted).toBe(true);
   container.remove();
 });

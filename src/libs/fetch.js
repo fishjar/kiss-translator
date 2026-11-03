@@ -54,11 +54,19 @@ export const fetchData = async (
         content += JSON.parse(chunk).choices?.[0]?.delta?.content || "";
       return { choices: [{ message: { role: "assistant", content } }] };
     };
-    return usePool ? getFetchPool(fetchInterval, fetchLimit).push(run) : run();
+    return usePool
+      ? getFetchPool(fetchInterval, fetchLimit).push(run, undefined, {
+          signal: opts.signal,
+        })
+      : run();
   }
   if (usePool) {
     const fetchPool = getFetchPool(fetchInterval, fetchLimit);
-    return fetchPool.push(fnPolyfill, { fn: fetchHandle, input, init, opts });
+    return fetchPool.push(
+      fnPolyfill,
+      { fn: fetchHandle, input, init, opts },
+      { signal: opts.signal }
+    );
   }
 
   return fnPolyfill({ fn: fetchHandle, input, init, opts });
@@ -104,17 +112,21 @@ export async function* fetchStream(
     };
 
     const streamPromise = fetchPool
-      .push(async () => {
-        try {
-          for await (const chunk of requestStream(input, init, streamOpts)) {
-            asyncQueue.push(chunk);
+      .push(
+        async () => {
+          try {
+            for await (const chunk of requestStream(input, init, streamOpts)) {
+              asyncQueue.push(chunk);
+            }
+            asyncQueue.finish();
+          } catch (e) {
+            asyncQueue.error(e);
           }
-          asyncQueue.finish();
-        } catch (e) {
-          asyncQueue.error(e);
-        }
-        return null;
-      })
+          return null;
+        },
+        undefined,
+        { signal: opts.signal }
+      )
       .catch((error) => {
         // Clearing the pool can reject this task before its producer starts.
         asyncQueue.error(error);

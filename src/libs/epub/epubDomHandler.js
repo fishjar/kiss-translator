@@ -199,10 +199,15 @@ export function parseXhtmlToDoc(xhtmlContent) {
  * @returns {boolean} 是否可翻译
  */
 export function isTranslatableBlock(el) {
-  if (!el || el.nodeType !== (typeof Node !== "undefined" ? Node.ELEMENT_NODE : 1)) return false;
+  if (
+    !el ||
+    el.nodeType !== (typeof Node !== "undefined" ? Node.ELEMENT_NODE : 1)
+  )
+    return false;
   if (isIgnoredNode(el)) return false;
   const tag = el.tagName.toLowerCase();
-  if (!BLOCK_TAGS.has(tag) && !el.classList?.contains("kt-text-leaf")) return false;
+  if (!BLOCK_TAGS.has(tag) && !el.classList?.contains("kt-text-leaf"))
+    return false;
 
   // 检查是否位于禁止翻译的祖先标签或不可翻译标记内
   let parent = el.parentElement;
@@ -303,7 +308,10 @@ export function maskEpubInlineElements(html, hasRichText = true) {
   );
 
   const parser = new DOMParser();
-  const tempDoc = parser.parseFromString(`<body>${preprocessedHtml}</body>`, "text/html");
+  const tempDoc = parser.parseFromString(
+    `<body>${preprocessedHtml}</body>`,
+    "text/html"
+  );
 
   // 2. 纯文本模式：忽略常规格式标签提取文本，但严格保护免翻元素 (translate="no" / notranslate) 与公式图形 (math, svg)
   if (!keepRich) {
@@ -534,8 +542,13 @@ export function unmaskEpubInlineElements(text, masks = []) {
       textToParse = textToParse.replace(/<\/t(?:\d+)?>/gi, "</span>");
 
       const parser = new DOMParser();
-      const doc = parser.parseFromString(`<body>${textToParse}</body>`, "text/html");
-      const placeholders = Array.from(doc.querySelectorAll(`span[${restoreAttr}]`));
+      const doc = parser.parseFromString(
+        `<body>${textToParse}</body>`,
+        "text/html"
+      );
+      const placeholders = Array.from(
+        doc.querySelectorAll(`span[${restoreAttr}]`)
+      );
 
       // 自底向上（倒序）替换节点，保证嵌套结构的正确性
       placeholders.reverse().forEach((node) => {
@@ -667,7 +680,10 @@ export function extractTranslatableUnits(doc, options = {}) {
             span.appendChild(node);
           }
           const rawHtml = span.innerHTML;
-          const { masked, masks } = maskEpubInlineElements(rawHtml, hasRichText);
+          const { masked, masks } = maskEpubInlineElements(
+            rawHtml,
+            hasRichText
+          );
           units.push({
             id: unitId++,
             element: span,
@@ -745,7 +761,10 @@ export function cleanCssRemoteUrls(styleValue) {
     (match, rawFn, rawInner) => {
       const fn = cssUnescape(rawFn).toLowerCase();
       if (fn !== "url") return match;
-      const unquoted = rawInner.trim().replace(/^['"]|['"]$/g, "").trim();
+      const unquoted = rawInner
+        .trim()
+        .replace(/^['"]|['"]$/g, "")
+        .trim();
       const unescaped = cssUnescape(unquoted);
       if (/^(?:https?:)?\/\//i.test(unescaped.trim())) {
         return "none";
@@ -867,7 +886,9 @@ export function importHtmlNodeToXmlDoc(xmlDoc, node, inheritedNs = null) {
       ns = xmlDoc.documentElement?.namespaceURI || XHTML_NS;
     }
 
-    const elem = ns ? xmlDoc.createElementNS(ns, tagName) : xmlDoc.createElement(tagName);
+    const elem = ns
+      ? xmlDoc.createElementNS(ns, tagName)
+      : xmlDoc.createElement(tagName);
     if (node.attributes) {
       for (let i = 0; i < node.attributes.length; i++) {
         const attr = node.attributes[i];
@@ -878,7 +899,9 @@ export function importHtmlNodeToXmlDoc(xmlDoc, node, inheritedNs = null) {
         }
         // 严格拦截 javascript: 伪协议
         if (
-          (attrName === "href" || attrName === "src" || attrName === "xlink:href") &&
+          (attrName === "href" ||
+            attrName === "src" ||
+            attrName === "xlink:href") &&
           /^\s*javascript:/i.test(attr.value)
         ) {
           continue;
@@ -957,7 +980,10 @@ export function setSafeXmlInnerHtml(el, markup) {
   try {
     const parser = new DOMParser();
     const cleanMarkup = sanitizeEpubMarkup(markup);
-    const tempDoc = parser.parseFromString(`<body>${cleanMarkup}</body>`, "text/html");
+    const tempDoc = parser.parseFromString(
+      `<body>${cleanMarkup}</body>`,
+      "text/html"
+    );
     const doc = el.ownerDocument;
 
     while (el.firstChild) {
@@ -1089,7 +1115,8 @@ export function resolveEpubImages(doc, chapterFullPath = "", filesMap = {}) {
     }
     const cleanSrc = rawSrc.split("#")[0].split("?")[0];
     const imageFullPath = normalizePath(chapterDir + safeDecodeURI(cleanSrc));
-    const bytes = filesMap[imageFullPath] || filesMap[normalizePath(chapterDir + cleanSrc)];
+    const bytes =
+      filesMap[imageFullPath] || filesMap[normalizePath(chapterDir + cleanSrc)];
     if (bytes && typeof URL !== "undefined" && URL.createObjectURL) {
       const mime = getMimeTypeByExt(imageFullPath);
       const blob = new Blob([bytes], { type: mime });
@@ -1118,7 +1145,9 @@ export function resolveEpubImages(doc, chapterFullPath = "", filesMap = {}) {
     }
     const cleanHref = rawHref.split("#")[0].split("?")[0];
     const imageFullPath = normalizePath(chapterDir + safeDecodeURI(cleanHref));
-    const bytes = filesMap[imageFullPath] || filesMap[normalizePath(chapterDir + cleanHref)];
+    const bytes =
+      filesMap[imageFullPath] ||
+      filesMap[normalizePath(chapterDir + cleanHref)];
     if (bytes && typeof URL !== "undefined" && URL.createObjectURL) {
       const mime = getMimeTypeByExt(imageFullPath);
       const blob = new Blob([bytes], { type: mime });
@@ -1130,7 +1159,9 @@ export function resolveEpubImages(doc, chapterFullPath = "", filesMap = {}) {
   });
 
   // 3. 处理 <video> 与 <audio> 媒体标签中的远程资源
-  const mediaEls = doc.querySelectorAll ? doc.querySelectorAll("video, audio") : [];
+  const mediaEls = doc.querySelectorAll
+    ? doc.querySelectorAll("video, audio")
+    : [];
   mediaEls.forEach((media) => {
     const poster = media.getAttribute("poster");
     if (poster && /^(?:https?:)?\/\//i.test(poster.trim())) {
@@ -1173,7 +1204,11 @@ export function resolveEpubImages(doc, chapterFullPath = "", filesMap = {}) {
  * @param {string} chapterFullPath 当前章节的规范化完整路径
  * @param {Object} filesMap 解压出来的 filesMap 文件字典
  */
-export function embedEpubImagesAsDataUrls(doc, chapterFullPath = "", filesMap = {}) {
+export function embedEpubImagesAsDataUrls(
+  doc,
+  chapterFullPath = "",
+  filesMap = {}
+) {
   if (!doc || !filesMap) return;
 
   const chapterDir = chapterFullPath.includes("/")
@@ -1209,7 +1244,8 @@ export function embedEpubImagesAsDataUrls(doc, chapterFullPath = "", filesMap = 
     }
     const cleanSrc = rawSrc.split("#")[0].split("?")[0];
     const imageFullPath = normalizePath(chapterDir + safeDecodeURI(cleanSrc));
-    const bytes = filesMap[imageFullPath] || filesMap[normalizePath(chapterDir + cleanSrc)];
+    const bytes =
+      filesMap[imageFullPath] || filesMap[normalizePath(chapterDir + cleanSrc)];
     if (bytes) {
       const mime = getMimeTypeByExt(imageFullPath);
       img.setAttribute("src", toDataUrl(bytes, mime));
@@ -1234,7 +1270,9 @@ export function embedEpubImagesAsDataUrls(doc, chapterFullPath = "", filesMap = 
     }
     const cleanHref = rawHref.split("#")[0].split("?")[0];
     const imageFullPath = normalizePath(chapterDir + safeDecodeURI(cleanHref));
-    const bytes = filesMap[imageFullPath] || filesMap[normalizePath(chapterDir + cleanHref)];
+    const bytes =
+      filesMap[imageFullPath] ||
+      filesMap[normalizePath(chapterDir + cleanHref)];
     if (bytes) {
       const mime = getMimeTypeByExt(imageFullPath);
       const dataUrl = toDataUrl(bytes, mime);
@@ -1244,7 +1282,9 @@ export function embedEpubImagesAsDataUrls(doc, chapterFullPath = "", filesMap = 
   });
 
   // 3. 处理 <video> 与 <audio> 媒体标签中的远程资源
-  const mediaEls = doc.querySelectorAll ? doc.querySelectorAll("video, audio") : [];
+  const mediaEls = doc.querySelectorAll
+    ? doc.querySelectorAll("video, audio")
+    : [];
   mediaEls.forEach((media) => {
     const poster = media.getAttribute("poster");
     if (poster && /^(?:https?:)?\/\//i.test(poster.trim())) {

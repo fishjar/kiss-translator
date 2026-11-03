@@ -2,6 +2,15 @@ jest.mock("query-string", () => ({
   stringify: (obj) => new URLSearchParams(obj).toString(),
 }));
 
+// Model Webpack's backend selection when this suite switches host APIs.
+jest.mock("../libs/htmlTextDecoder", () => ({
+  decodeHTMLText: (text) =>
+    (typeof globalThis.DOMParser === "undefined"
+      ? jest.requireActual("../libs/htmlTextDecoder.worker")
+      : jest.requireActual("../libs/htmlTextDecoder")
+    ).decodeHTMLText(text),
+}));
+
 jest.mock("@streamparser/json", () =>
   jest.requireActual("../../node_modules/@streamparser/json/dist/cjs/index.js")
 );
@@ -73,7 +82,10 @@ async function collectAsyncGenerator(generator) {
 }
 
 describe("handleTranslate", () => {
+  const originalDOMParser = globalThis.DOMParser;
+
   afterEach(() => {
+    globalThis.DOMParser = originalDOMParser;
     clearMsgHistory(OPT_TRANS_GEMINI);
     // Claude 上下文用例共用同一个按 apiSlug 缓存的历史单例，必须逐例清空。
     clearMsgHistory(OPT_TRANS_CLAUDE);
@@ -85,45 +97,49 @@ describe("handleTranslate", () => {
     jest.restoreAllMocks();
   });
 
-  test("uses Google Cloud plain-text mode and decodes text entities", async () => {
-    fetchData.mockResolvedValueOnce({
-      data: {
-        translations: [
-          {
-            translatedText: "First isn&#39;t &amp; simple\nSecond",
-            detectedSourceLanguage: "en",
-          },
-        ],
-      },
-    });
-
-    const result = await collectAsyncGenerator(
-      handleTranslate(["First & simple\nSecond"], {
-        from: "auto",
-        to: "zh-CN",
-        fromLang: "auto",
-        toLang: "zh-CN",
-        langMap: () => "",
-        glossary: "",
-        apiSetting: {
-          ...getApiSetting(OPT_TRANS_GOOGLE_CLOUD),
-          useStream: false,
+  test.each([false, true])(
+    "uses Google Cloud plain-text mode and decodes text entities (worker: %s)",
+    async (worker) => {
+      if (worker) globalThis.DOMParser = undefined;
+      fetchData.mockResolvedValueOnce({
+        data: {
+          translations: [
+            {
+              translatedText: "First isn&#39;t &amp; simple\nSecond",
+              detectedSourceLanguage: "en",
+            },
+          ],
         },
-        textFormat: "text",
-        usePool: false,
-      })
-    );
+      });
 
-    const body = JSON.parse(fetchData.mock.calls[0][1].body);
-    expect(body).toEqual({
-      q: ["First & simple\nSecond"],
-      target: "zh-CN",
-      format: "text",
-    });
-    expect(result).toEqual([
-      { id: 0, result: ["First isn't & simple\nSecond", "en"] },
-    ]);
-  });
+      const result = await collectAsyncGenerator(
+        handleTranslate(["First & simple\nSecond"], {
+          from: "auto",
+          to: "zh-CN",
+          fromLang: "auto",
+          toLang: "zh-CN",
+          langMap: () => "",
+          glossary: "",
+          apiSetting: {
+            ...getApiSetting(OPT_TRANS_GOOGLE_CLOUD),
+            useStream: false,
+          },
+          textFormat: "text",
+          usePool: false,
+        })
+      );
+
+      const body = JSON.parse(fetchData.mock.calls[0][1].body);
+      expect(body).toEqual({
+        q: ["First & simple\nSecond"],
+        target: "zh-CN",
+        format: "text",
+      });
+      expect(result).toEqual([
+        { id: 0, result: ["First isn't & simple\nSecond", "en"] },
+      ]);
+    }
+  );
 
   test("preserves Google Cloud HTML requests and responses", async () => {
     fetchData.mockResolvedValueOnce({
@@ -272,11 +288,51 @@ describe("handleTranslate", () => {
     expect(result).toEqual([{ id: 0, result: ["你好！", "en"] }]);
   });
 
-  test("keeps Google2 HTML encoding inside the request boundary", async () => {
-    fetchData.mockResolvedValueOnce([["First isn&#39;t<br>Second"], ["en"]]);
+  test.each([false, true])(
+    "keeps Google2 HTML encoding inside the request boundary (worker: %s)",
+    async (worker) => {
+      if (worker) globalThis.DOMParser = undefined;
+      fetchData.mockResolvedValueOnce([
+        ["First isn&#39;t<br>Second", "React &amp; UI"],
+        ["en", "en"],
+      ]);
+
+      const result = await collectAsyncGenerator(
+        handleTranslate(["First isn't\nSecond", "React & UI"], {
+          from: "en",
+          to: "zh-CN",
+          fromLang: "en",
+          toLang: "zh-CN",
+          langMap: () => "",
+          glossary: "",
+          apiSetting: {
+            ...getApiSetting(OPT_TRANS_GOOGLE_2),
+            useStream: false,
+          },
+          textFormat: "text",
+          usePool: false,
+        })
+      );
+
+      const body = JSON.parse(fetchData.mock.calls[0][1].body);
+      expect(body).toEqual([
+        [["First isn't<br>Second", "React & UI"], "en", "zh-CN"],
+        "wt_lib",
+      ]);
+      expect(result).toEqual([
+        { id: 0, result: ["First isn't\nSecond", "en"] },
+        { id: 1, result: ["React & UI", "en"] },
+      ]);
+    }
+  );
+
+  test("preserves Google2 HTML placeholders without DOMParser", async () => {
+    globalThis.DOMParser = undefined;
+    const html = "<i1>React &amp; UI</i1><br>";
+    fetchData.mockResolvedValueOnce([[html], ["en"]]);
 
     const result = await collectAsyncGenerator(
-      handleTranslate(["First isn't\nSecond"], {
+      handleTranslate([html], {
         from: "en",
         to: "zh-CN",
         fromLang: "en",
@@ -287,17 +343,16 @@ describe("handleTranslate", () => {
           ...getApiSetting(OPT_TRANS_GOOGLE_2),
           useStream: false,
         },
-        textFormat: "text",
+        textFormat: "html",
         usePool: false,
       })
     );
 
-    const body = JSON.parse(fetchData.mock.calls[0][1].body);
-    expect(body).toEqual([
-      [["First isn't<br>Second"], "en", "zh-CN"],
+    expect(JSON.parse(fetchData.mock.calls[0][1].body)).toEqual([
+      [[html], "en", "zh-CN"],
       "wt_lib",
     ]);
-    expect(result).toEqual([{ id: 0, result: ["First isn't\nSecond", "en"] }]);
+    expect(result).toEqual([{ id: 0, result: [html, "en"] }]);
   });
 
   test("uses the stable Gemini Interactions request and parses model output steps", async () => {
@@ -348,7 +403,7 @@ describe("handleTranslate", () => {
       store: false,
       generation_config: {
         max_output_tokens: expect.any(Number),
-        thinking_level: "low",
+        thinking_level: "minimal",
         temperature: 0.7,
       },
     });
@@ -359,62 +414,65 @@ describe("handleTranslate", () => {
     expect(result).toEqual([{ id: 0, result: ["你好", "en"] }]);
   });
 
-  test.each([false, true])("QwenMT stays non-streaming with useStream=%s and sends native terms and style", async (useStream) => {
-    fetchData.mockResolvedValueOnce({
-      choices: [{ message: { role: "assistant", content: "译文" } }],
-    });
+  test.each([false, true])(
+    "QwenMT stays non-streaming with useStream=%s and sends native terms and style",
+    async (useStream) => {
+      fetchData.mockResolvedValueOnce({
+        choices: [{ message: { role: "assistant", content: "译文" } }],
+      });
 
-    const result = await collectAsyncGenerator(
-      handleTranslate(["我看到这个视频后没有笑"], {
-        from: "auto",
-        to: "English",
-        fromLang: "auto",
-        toLang: "en",
-        langMap: () => "",
-        glossary: { component: "规则组件", Keep: "" },
-        apiSetting: {
-          ...getApiSetting(OPT_TRANS_QWENMT),
-          url: "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
-          key: "qwen-key",
-          model: "qwen-mt-flash",
-          useStream,
-          useBatchFetch: false,
-          tone: "technical",
-          aiTerms: "React,React\ncomponent,接口组件",
+      const result = await collectAsyncGenerator(
+        handleTranslate(["我看到这个视频后没有笑"], {
+          from: "auto",
+          to: "English",
+          fromLang: "auto",
+          toLang: "en",
+          langMap: () => "",
+          glossary: { component: "规则组件", Keep: "" },
+          apiSetting: {
+            ...getApiSetting(OPT_TRANS_QWENMT),
+            url: "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions",
+            key: "qwen-key",
+            model: "qwen-mt-flash",
+            useStream,
+            useBatchFetch: false,
+            tone: "technical",
+            aiTerms: "React,React\ncomponent,接口组件",
+          },
+          usePool: false,
+        })
+      );
+
+      expect(fetchData).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchData.mock.calls[0];
+      expect(url).toBe(
+        "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions"
+      );
+      expect(init.headers).toMatchObject({
+        "Content-type": "application/json",
+        Authorization: "Bearer qwen-key",
+      });
+      const body = JSON.parse(init.body);
+      expect(body).toEqual({
+        model: "qwen-mt-flash",
+        messages: [{ role: "user", content: "我看到这个视频后没有笑" }],
+        translation_options: {
+          source_lang: "auto",
+          target_lang: "English",
+          terms: expect.arrayContaining([
+            { source: "component", target: "规则组件" },
+            { source: "Keep", target: "Keep" },
+            { source: "React", target: "React" },
+          ]),
+          domains: "Translate in a technical style.",
         },
-        usePool: false,
-      })
-    );
-
-    expect(fetchData).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchData.mock.calls[0];
-    expect(url).toBe(
-      "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions"
-    );
-    expect(init.headers).toMatchObject({
-      "Content-type": "application/json",
-      Authorization: "Bearer qwen-key",
-    });
-    const body = JSON.parse(init.body);
-    expect(body).toEqual({
-      model: "qwen-mt-flash",
-      messages: [{ role: "user", content: "我看到这个视频后没有笑" }],
-      translation_options: {
-        source_lang: "auto",
-        target_lang: "English",
-        terms: expect.arrayContaining([
-          { source: "component", target: "接口组件" },
-          { source: "Keep", target: "Keep" },
-          { source: "React", target: "React" },
-        ]),
-        domains: "Translate in a technical style.",
-      },
-    });
-    expect(body.messages).toHaveLength(1);
-    expect(body.stream).not.toBe(true);
-    expect(fetchStream).not.toHaveBeenCalled();
-    expect(result).toEqual([{ id: 0, result: ["译文"] }]);
-  });
+      });
+      expect(body.messages).toHaveLength(1);
+      expect(body.stream).not.toBe(true);
+      expect(fetchStream).not.toHaveBeenCalled();
+      expect(result).toEqual([{ id: 0, result: ["译文"] }]);
+    }
+  );
 
   test("passes a custom QwenMT style through without prompt wrapping", async () => {
     fetchData.mockResolvedValueOnce({
@@ -636,12 +694,12 @@ describe("handleTranslate", () => {
           toLang: "Chinese",
           langMap: () => "",
           glossary: "",
-          apiSetting: {
+          apiSetting: normalizeApiThinkingSetting({
             ...getApiSetting(OPT_TRANS_OPENAI),
             useStream: false,
             model: "unknown-model",
             thinkingMode,
-          },
+          }),
           usePool: false,
         })
       );
@@ -708,7 +766,7 @@ describe("handleTranslate", () => {
   test.each([
     [" OPENAI/GPT-6-ASTRA ", "", undefined],
     ["gpt-6-astra", '{"temperature":0.3,"reasoning_effort":"high"}', 0.3],
-    ["gpt-5.6-sol", "", 0.7],
+    ["gpt-5.6-sol", "", undefined],
     ["gpt-6-other", "", 0.7],
   ])(
     "preserves temperature overrides and other models for %s/%s",
@@ -740,6 +798,41 @@ describe("handleTranslate", () => {
       if (customBody) expect(body.reasoning_effort).toBe("high");
     }
   );
+
+  test.each([
+    ["claude-sonnet-5-5", undefined],
+    ["claude-opus-4-7", undefined],
+    ["claude-haiku-5-5", undefined],
+    ["claude-mythos-5-1", undefined],
+    ["claude-sonnet-4-6", 0.7],
+    ["claude-haiku-4-5-20251001", 0.7],
+  ])("sends Claude %s temperature %s", async (model, expected) => {
+    fetchData.mockResolvedValue({
+      role: "assistant",
+      content: [{ type: "text", text: "你好" }],
+    });
+    await collectAsyncGenerator(
+      handleTranslate(["hello"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "English",
+        toLang: "Chinese",
+        langMap: () => "",
+        glossary: "",
+        usePool: false,
+        apiSetting: {
+          ...getApiSetting(OPT_TRANS_CLAUDE),
+          useStream: false,
+          useBatchFetch: false,
+          model,
+          temperature: 0.7,
+          thinkingMode: "auto",
+        },
+      })
+    );
+    const body = JSON.parse(fetchData.mock.calls[0][1].body);
+    expect(body.temperature).toBe(expected);
+  });
 
   test("does not inject native Gemini parameters for unknown models", async () => {
     fetchData.mockResolvedValue({
@@ -791,6 +884,7 @@ describe("handleTranslate", () => {
         glossary: "",
         apiSetting: {
           ...getApiSetting(OPT_TRANS_DEEPSEEK),
+          model: "deepseek-flash",
           useStream: false,
           thinkingMode: "enabled",
           thinkingEffort: "max",
@@ -1496,6 +1590,17 @@ describe("handleTranslate", () => {
     expect(messages[2].role).toBe("user");
   });
 
+  test("Claude thinking 模式：thinking 块在前时仍取到译文且写入历史", async () => {
+    const { messages, errors } = await runClaudeContextRounds([
+      { type: "thinking", thinking: "先想一想", signature: "sig" },
+      { type: "text", text: "你好" },
+    ]);
+
+    // 首块没有 .text 时旧写法得到空译文并抛 "unexpected result"。
+    expect(errors).toEqual([]);
+    expect(messages[1]).toEqual({ role: "assistant", content: "你好" });
+  });
+
   test("Claude 历史：多个文本块按顺序拼接，不丢后续块", async () => {
     const { messages, errors } = await runClaudeContextRounds([
       { type: "text", text: "A" },
@@ -2044,7 +2149,7 @@ describe("handleTranslate", () => {
 });
 
 describe("gemini thinking effort clamp (#1048)", () => {
-  test("clamps minimal to low for non-lite gemini-3 flash on interactions", async () => {
+  test("clamps minimal to low for Gemini 3.8 Flash on interactions", async () => {
     fetchData.mockResolvedValueOnce({
       status: "completed",
       steps: [
@@ -2066,7 +2171,7 @@ describe("gemini thinking effort clamp (#1048)", () => {
         apiSetting: {
           ...getApiSetting(OPT_TRANS_GEMINI),
           url: GEMINI_INTERACTIONS_URL,
-          model: "gemini-3.7-flash",
+          model: "gemini-3.8-flash",
           useStream: false,
           thinkingMode: "enabled",
           thinkingEffort: "minimal",

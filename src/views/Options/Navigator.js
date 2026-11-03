@@ -13,6 +13,7 @@ import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import SubtitlesRoundedIcon from "@mui/icons-material/SubtitlesRounded";
+import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import FileUploadRoundedIcon from "@mui/icons-material/FileUploadRounded";
 import MemoryRoundedIcon from "@mui/icons-material/MemoryRounded";
@@ -93,6 +94,12 @@ export default function Navigator({ open, isMobile = false, onClose }) {
               "/subtitle",
               SubtitlesRoundedIcon,
             ],
+            [
+              "image-translate",
+              i18n("image_translate", "图片翻译"),
+              "/image-translate",
+              ImageRoundedIcon,
+            ],
             ...(isAutoTranslateClipboardSupported
               ? [
                   [
@@ -147,6 +154,12 @@ export default function Navigator({ open, isMobile = false, onClose }) {
           label: i18n("options_group_data"),
           items: [
             ["sync", i18n("options_data_sync"), "/sync", CloudSyncRoundedIcon],
+            [
+              "terms",
+              i18n("terminology_tables", "Terminology tables"),
+              "/terms",
+              DescriptionRoundedIcon,
+            ],
             ["words", i18n("favorite_words"), "/words", BookmarksRoundedIcon],
           ],
         },
@@ -154,6 +167,16 @@ export default function Navigator({ open, isMobile = false, onClose }) {
           label: "",
           items: [
             ["playground", "Playground", "/playground", BugReportRoundedIcon],
+            ...(isExt
+              ? [
+                  [
+                    "diagnostics",
+                    i18n("diagnostics_title"),
+                    "/diagnostics",
+                    BugReportRoundedIcon,
+                  ],
+                ]
+              : []),
             ["about", i18n("about"), "/about", InfoRoundedIcon],
           ],
         },
@@ -183,7 +206,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
     >
       <a
         className="kt-options-brand"
-        href={process.env.REACT_APP_HOMEPAGE}
+        href={process.env.REACT_APP_SITEURL}
         target="_blank"
         rel="noreferrer"
       >

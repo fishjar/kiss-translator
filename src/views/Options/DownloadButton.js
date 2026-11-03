@@ -1,7 +1,7 @@
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { useState } from "react";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { downloadBlobFile } from "../../libs/utils";
 
 /**
@@ -25,7 +25,7 @@ export default function DownloadButton({ handleData, text, fileName }) {
       // 调用工具函数触发浏览器保存 Blob 文件动作
       downloadBlobFile(data, fileName);
     } catch (err) {
-      kissLog("download", err);
+      logger.child("options").error("download", err);
     } finally {
       // REVIEW: 异步请求结束后的 setLoading 状态更新在组件卸载 (Unmount) 时未被阻断。如果备份数据文件很大，在处理 handleData 耗时期间用户关闭/切换了选项卡导致此组件被卸载，在 finally 块中继续执行 setLoading(false) 可能会抛出对卸载组件调用 state 修改的 warning。建议维护 active 标志在销毁时阻断状态更新。
       setLoading(false);

@@ -388,11 +388,18 @@ export default function OcrTab() {
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   const selection = ++selectionRef.current;
-                  if (f) void validateInputFile(f, "image")
-                    .then(() => {
-                      if (selection === selectionRef.current) { setFile(f); setError(null); }
-                    })
-                    .catch((e) => { if (selection === selectionRef.current) setError(e.message); });
+                  if (f)
+                    void validateInputFile(f, "image")
+                      .then(() => {
+                        if (selection === selectionRef.current) {
+                          setFile(f);
+                          setError(null);
+                        }
+                      })
+                      .catch((e) => {
+                        if (selection === selectionRef.current)
+                          setError(e.message);
+                      });
                 }}
               />
               <Button
@@ -564,10 +571,7 @@ export default function OcrTab() {
           </CardContent>
         </Card>
       )}
-      <LogViewer
-        logs={logs}
-        onClear={clearLogs}
-      />
+      <LogViewer logs={logs} onClear={clearLogs} />
     </Stack>
   );
 }

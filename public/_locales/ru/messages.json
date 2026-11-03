@@ -28,5 +28,11 @@
   },
   "toggle_tranbox": {
     "message": "Открыть или закрыть окно перевода"
+  },
+  "image_screenshot_command": {
+    "message": "Перевод снимка экрана"
+  },
+  "image_screenshot": {
+    "message": "Перевод снимка экрана"
   }
 }

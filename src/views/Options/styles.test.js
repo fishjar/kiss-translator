@@ -208,8 +208,38 @@ describe("settings layout boundaries", () => {
     expect(textFieldRule).toContain("overflow: visible");
     expect(textFieldRule).toContain("border-radius: 16px");
     expect(OPTIONS_STYLES).toMatch(
-      /\.kt-options-page \.kt-translation-text-field__actions\s*\{[^}]*right:\s*16px;[^}]*bottom:\s*16px;/
+      /\.kt-options-page \.kt-translation-text-field__actions\s*\{[^}]*right:\s*24px;[^}]*bottom:\s*24px;[^}]*z-index:\s*1;/
     );
+    expect(OPTIONS_STYLES).toMatch(
+      /\.kt-options-page \.kt-translation-text-field \.MuiInputBase-inputMultiline\s*\{[^}]*padding:\s*30px 66px 62px 16px;/
+    );
+    expect(OPTIONS_STYLES).toMatch(
+      /\.kt-options-page \.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*outline:\s*none;[^}]*box-shadow:\s*inset 0 0 0 3px var\(--kt-pri\);/
+    );
+    const forcedColorBodies = getCssAtRuleBodies(
+      OPTIONS_STYLES,
+      "@media (forced-colors: active)"
+    );
+    const cssOutsideForcedColors = forcedColorBodies.reduce(
+      (acc, body) => acc.replace(body, () => ""),
+      OPTIONS_STYLES
+    );
+    expect(cssOutsideForcedColors).not.toMatch(
+      /\.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*outline:\s*3px/
+    );
+    expect(forcedColorBodies.length).toBeGreaterThanOrEqual(1);
+    expect(
+      forcedColorBodies.some((body) =>
+        /\.kt-options-page \.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*outline:\s*3px solid;[^}]*outline-offset:\s*-3px;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+    expect(
+      OPTIONS_STYLES.indexOf(
+        ".kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-focusVisible"
+      )
+    ).toBeLessThan(OPTIONS_STYLES.indexOf("@media (forced-colors: active)"));
     const hoverBodies = getCssAtRuleBodies(
       OPTIONS_STYLES,
       "@media (hover: hover)"

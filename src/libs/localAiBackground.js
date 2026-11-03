@@ -24,7 +24,11 @@ export async function localAiHost({ action }) {
     closing = Promise.resolve()
       .then(async () => {
         if (creating) await creating;
-        if (providerHostBusy()) throw Object.assign(new Error("Provider tasks are using the shared host."), { code: "HOST_BUSY" });
+        if (providerHostBusy())
+          throw Object.assign(
+            new Error("Provider tasks are using the shared host."),
+            { code: "HOST_BUSY" }
+          );
         const exists = chrome.runtime.getContexts
           ? (
               await chrome.runtime.getContexts({
@@ -33,7 +37,11 @@ export async function localAiHost({ action }) {
               })
             ).length > 0
           : await chrome.offscreen.hasDocument();
-        if (providerHostBusy()) throw Object.assign(new Error("Provider tasks are using the shared host."), { code: "HOST_BUSY" });
+        if (providerHostBusy())
+          throw Object.assign(
+            new Error("Provider tasks are using the shared host."),
+            { code: "HOST_BUSY" }
+          );
         if (exists) await chrome.offscreen.closeDocument();
         return {};
       })
@@ -46,11 +54,12 @@ export async function localAiHost({ action }) {
 }
 
 async function ensureHost() {
-  if (closing) await closing.catch(error => {
-    // A newly acquired Provider lease can veto a close already in progress.
-    // The document still exists; only that veto is safe to continue through.
-    if (error?.code !== "HOST_BUSY") throw error;
-  });
+  if (closing)
+    await closing.catch((error) => {
+      // A newly acquired Provider lease can veto a close already in progress.
+      // The document still exists; only that veto is safe to continue through.
+      if (error?.code !== "HOST_BUSY") throw error;
+    });
   if (typeof chrome === "undefined" || !chrome.offscreen?.createDocument)
     return;
   if (creating) return creating;

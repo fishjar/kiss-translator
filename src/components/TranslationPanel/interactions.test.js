@@ -2,7 +2,7 @@
 import { act, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { apiTranslate } from "../../apis";
-import { speak } from "../../libs/speech";
+import { speak, stopSpeech } from "../../libs/speech";
 import TranslationPanelContent from "./Content";
 import TranslationPanelHeader from "./Header";
 import TranslationPanelSurface from "./Surface";
@@ -21,6 +21,7 @@ jest.mock("../../libs/detect", () => ({
 jest.mock("../../libs/speech", () => ({
   canSpeak: () => true,
   speak: jest.fn(() => true),
+  stopSpeech: jest.fn(),
 }));
 jest.mock("../../hooks/Audio", () => ({ useAudio: jest.fn() }));
 jest.mock("query-string", () => ({ stringify: jest.fn() }));
@@ -282,15 +283,15 @@ describe.each(["document", "shadow"])(
 
         expect(navigator.clipboard.readText).toHaveBeenCalledTimes(1);
         expect(input().value).toBe("Clipboard source");
-        expect(apiTranslate).toHaveBeenCalledTimes(1);
-        expect(apiTranslate.mock.calls[0][0].text).toBe("Clipboard source");
-        expect(result().value).toBe("First result");
+        // Paste fills the draft without translating until the draft commits.
+        expect(apiTranslate).not.toHaveBeenCalled();
 
         act(() => outside.focus());
         await flushEffects();
         expect(input().value).toBe("Clipboard source");
         expect(result().value).toBe("First result");
         expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toBe("Clipboard source");
 
         await renderPanel({ externalText: "Next selected text" });
         expect(input().value).toBe("Next selected text");
@@ -387,14 +388,19 @@ describe.each(["document", "shadow"])(
       act(() => {
         speech.focus();
         speech.click();
-        speech.click();
       });
       expect(activeElement()).toBe(speech);
       expect(speech.disabled).toBe(false);
-      expect(speech.getAttribute("aria-disabled")).toBe("true");
+      // 停止语义：朗读期间按钮保持可交互，第二次激活即停止。
+      expect(speech.getAttribute("aria-disabled")).toBe("false");
       expect(speak).toHaveBeenCalledTimes(1);
       expect(speak.mock.calls[0][0]).toBe("First result");
       expect(apiTranslate).toHaveBeenCalledTimes(1);
+      act(() => {
+        speech.click();
+      });
+      expect(stopSpeech).toHaveBeenCalledTimes(1);
+      expect(speak).toHaveBeenCalledTimes(1);
       act(() => speak.mock.calls[0][2].onEnd());
       expect(activeElement()).toBe(speech);
       expect(speech.getAttribute("aria-disabled")).toBe("false");

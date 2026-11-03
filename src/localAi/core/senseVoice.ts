@@ -1,4 +1,5 @@
 import type { ASRSegment, ASRWord } from "./types";
+import { normalizeAsrLanguage } from "./asrLanguages";
 
 const SAMPLE_RATE = 16000;
 const FRAME_LEN = 400; // 25ms @ 16kHz
@@ -283,9 +284,7 @@ export function extractSenseVoiceFeatures(
  * auto: 0, zh: 3, en: 4, yue: 7, ja: 11, ko: 12, nospeech: 13
  */
 export function mapSenseVoiceLanguageId(uiLang: string): number {
-  switch (uiLang) {
-    case "zh-hans":
-    case "zh-hant":
+  switch (normalizeAsrLanguage(uiLang).split("-")[0]) {
     case "chinese":
     case "zh":
       return 3;

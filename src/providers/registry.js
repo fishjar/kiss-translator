@@ -13,6 +13,8 @@ import {
   checkPayloadBudget,
 } from "./validation";
 
+import { assertPluginCompatibility } from "./compatibility";
+
 /** Native handlers are statically registered; external snapshots never resolve native code. */
 export function createProviderRegistry({
   resolveInstance,
@@ -30,9 +32,14 @@ export function createProviderRegistry({
       native.set(id, handlers);
     },
     invoke(serviceId, capability, input, options = {}) {
+      const diagnosticOptions = {
+        ...options,
+        diagnostic: { ...options.diagnostic, serviceId, method: capability },
+      };
       return createInvocation(async (invocation) => {
         const instance = await resolveInstance(serviceId);
         if (invocation.signal.aborted) throw invocation.signal.reason;
+        if (instance?.provider) assertPluginCompatibility(instance.provider);
         if (
           instance?.enabledCapabilities !== undefined &&
           (!Array.isArray(instance.enabledCapabilities) ||
@@ -49,9 +56,14 @@ export function createProviderRegistry({
           );
         }
         const descriptor = getCapabilityDescriptor(instance, capability);
-        if (["recognizeText", "parseImage"].includes(capability) &&
-            !(descriptor.taskModes || ["doc"]).includes(input.mode || "doc"))
-          throw providerError("TASK_UNSUPPORTED", "Selected service does not support this image task.");
+        if (
+          ["recognizeText", "parseImage"].includes(capability) &&
+          !(descriptor.taskModes || ["doc"]).includes(input.mode || "doc")
+        )
+          throw providerError(
+            "TASK_UNSUPPORTED",
+            "Selected service does not support this image task."
+          );
         if (
           capability === "translate" &&
           input.items?.length > 1 &&
@@ -163,7 +175,7 @@ export function createProviderRegistry({
             );
         }
         return result;
-      }, options);
+      }, diagnosticOptions);
     },
   };
 }

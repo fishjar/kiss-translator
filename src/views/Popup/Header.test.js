@@ -3,11 +3,18 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import Header from "./Header";
 import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
+import { useI18n } from "../../hooks/I18n";
+import { newI18n } from "../../config/i18n";
+
+jest.mock("../../libs/imageTranslate/screenshotSupport", () => ({
+  checkScreenshotSupport: jest.fn(async () => true),
+}));
+jest.mock("../../libs/msg", () => ({ sendTabMsg: jest.fn(async () => {}) }));
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 jest.mock("../../hooks/I18n", () => ({
-  useI18n: () => (key) => key,
+  useI18n: jest.fn(() => (key) => key),
 }));
 
 jest.mock("../../components/Logo", () => () => null);
@@ -18,6 +25,7 @@ describe("Popup Header support menu", () => {
   let originalWindowOpen;
 
   beforeEach(() => {
+    useI18n.mockImplementation(() => (key) => key);
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -29,6 +37,35 @@ describe("Popup Header support menu", () => {
     act(() => root.unmount());
     document.body.innerHTML = "";
     window.open = originalWindowOpen;
+  });
+
+  test("unsupported screenshot leaves popup open", async () => {
+    const {
+      checkScreenshotSupport,
+    } = require("../../libs/imageTranslate/screenshotSupport");
+    const { sendTabMsg } = require("../../libs/msg");
+    checkScreenshotSupport.mockResolvedValueOnce(false);
+    const close = jest.spyOn(window, "close").mockImplementation(() => {});
+    sendTabMsg.mockClear();
+    act(() => root.render(<Header />));
+    await act(async () =>
+      container
+        .querySelector('[aria-label="image_screenshot_translate"]')
+        .click()
+    );
+    expect(sendTabMsg).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
+    close.mockRestore();
+  });
+
+  test("localizes the screenshot button tooltip and accessible name in English", () => {
+    useI18n.mockReturnValue(newI18n("en"));
+    act(() => root.render(<Header />));
+    const button = container.querySelector(
+      '[aria-label="Screenshot Translate"]'
+    );
+    expect(button).not.toBeNull();
+    expect(button.title).toBe("Screenshot Translate");
   });
 
   test("places Sponsor before the window and settings actions", () => {
@@ -95,6 +132,22 @@ describe("Popup Header support menu", () => {
     );
   });
 
+  test("opens homepage when brand logo is clicked", () => {
+    act(() => {
+      root.render(<Header />);
+    });
+
+    const brandBtn = container.querySelector(".kt-popup-brand-button");
+    expect(brandBtn).not.toBeNull();
+    act(() => brandBtn.click());
+
+    expect(window.open).toHaveBeenCalledWith(
+      process.env.REACT_APP_SITEURL,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  });
+
   test("collapses to a close button when hosted in the page", () => {
     const onClose = jest.fn();
     act(() => root.render(<Header onClose={onClose} />));
@@ -147,7 +200,10 @@ describe("Popup Header support menu", () => {
 
     expect(
       container.querySelectorAll(".kt-popup-header__actions button")
-    ).toHaveLength(3);
+    ).toHaveLength(4);
+    expect(
+      container.querySelector('[aria-label="image_screenshot_translate"]')
+    ).not.toBeNull();
     expect(container.querySelector(".kt-popup-header__global")).toBeNull();
     expect(container.querySelector(".kt-popup-header__badge")).toBeNull();
     expect(document.querySelector("#kt-popup-global-menu")).toBeNull();

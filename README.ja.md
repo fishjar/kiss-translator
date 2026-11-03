@@ -45,8 +45,8 @@
 
 - **多彩な組み込みサービス**：Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX をはじめ、OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、AtlasCloud、AzureAI、CloudflareAI などの主要な AI 翻訳サービス、Chrome ブラウザ内蔵 AI、ローカル AI に対応。
 - **能力に応じた柔軟な選択**：テキスト翻訳、辞書検索、字幕区切り、OCR 文字認識、音声合成などの機能ごとにサービスとモデルパラメータを個別に設定可能。一括バッチ翻訳、ストリーミング出力、コンテキスト対話記憶、AI 用語集、思考プロセス（Reasoning）設定をサポート。
-- **API プラグインエコシステム**：ZIP 圧縮ファイル、ローカルフォルダ、GitHub リポジトリのルート URL、HTTPS リンクからプラグインを導入可能。詳細な権限管理、手動更新、保存済みサービスインスタンスのアップグレードを提供。
-- **オープンなカスタムプロトコル**：非標準の API もプラグイン経由で柔軟に統合可能。詳細は [プラグイン開発ガイド（中国語）](docs/plugins/plugin-development-guide.md)、[OpenAI 互換サンプル](docs/plugins/examples/openai-compatible-bundle/README.md)、[DeepSeek 宣言型サンプル](docs/plugins/examples/deepseek/README.md) を参照してください。
+- **API プラグインエコシステム**：公式・外部プラグインを別々のリストから選び、クリックしてオンラインでインストールできます。ZIP、ローカルフォルダ、GitHub リポジトリのルート URL、HTTPS リンクからの導入にも対応。通信先は宣言された範囲に制限され、手動更新と保存済みサービスインスタンスのアップグレードを提供します。
+- **オープンなカスタムプロトコル**：非標準の API もプラグイン経由で柔軟に統合可能。詳細は [プラグイン開発ガイド（中国語）](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)、[OpenAI 互換プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md)、[DeepSeek プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md) を参照してください。
 
 ### ローカル AI（エッジコンピューティング）
 
@@ -113,6 +113,7 @@
 
 ## 関連プロジェクト
 
+- **[kiss-translator-plugins](https://github.com/fishjar/kiss-translator-plugins)**：公式 API プラグインエコシステムリポジトリ。各種 AI・翻訳サービスのプラグイン、テンプレート、開発仕様を提供します。
 - **[KISS-Worker](https://github.com/fishjar/kiss-worker)**：データ同期サービス。Cloudflare Workers や Docker でセルフホスト可能で、データのプライバシー保持とプライベートなルール共有を実現します。
 - **[kiss-rules](https://github.com/fishjar/kiss-rules)**：コミュニティでメンテナンスされている購読ルールリポジトリ。最新のウェブサイト適応ルールを提供し、ルール作成の質問や支援も行われています。
 
@@ -175,17 +176,35 @@
 
 ## 開発ガイド
 
-### ローカルでのビルド
+### ローカルでのビルドとデバッグ
+
+**環境要件**：Node.js >= 20（推奨: Node 22/24）、pnpm >= 9
 
 ```sh
+# 1. リポジトリをクローンして dev ブランチに切り替え
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
-git checkout dev # PR の作成は dev ブランチを推奨します
+git checkout dev # PR の作成は dev ブランチをベースにすることを推奨します
+
+# 2. 依存関係のインストール
 pnpm install
-pnpm build
+
+# 3. よく使う開発・ビルドコマンド
+pnpm build:chrome      # Chrome/Edge 向け拡張機能のビルド（build/chrome に出力）
+pnpm build:firefox     # Firefox 向け拡張機能のビルド（build/firefox に出力）
+pnpm start             # Web 版ローカル開発サーバー起動（http://localhost:3000）
+pnpm check:pr          # PR 提出前のフォーマット＆ビルド検証
+pnpm build             # 全プラットフォーム向けの一括フルビルド
 ```
 
-プラグイン開発については、[プラグイン開発ガイド（中国語）](docs/plugins/plugin-development-guide.md) を参照し、[OpenAI 互換サンプル](docs/plugins/examples/openai-compatible-bundle/README.md) または [DeepSeek 宣言型サンプル](docs/plugins/examples/deepseek/README.md) をご確認ください。
+### ブラウザへの拡張機能の読み込み（Chrome / Edge の例）
+
+1. ブラウザで `chrome://extensions`（Edge の場合は `edge://extensions`）を開きます。
+2. 画面右上の **「デベロッパー モード」** を有効にします。
+3. **「パッケージ化されていない拡張機能を読み込む」** をクリックし、プロジェクト内の `build/chrome` ディレクトリを選択します。
+4. コード変更後は `pnpm build:chrome` を再実行し、拡張機能の管理画面で該当カードの更新アイコンをクリックすると反映されます。
+
+プラグイン開発については、[プラグイン開発ガイド（中国語）](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md) を参照し、[OpenAI 互換プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) または [DeepSeek プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md) をご確認ください。
 
 ### 外部イベント呼び出しの例
 

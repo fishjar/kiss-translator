@@ -25,8 +25,7 @@ export function isFileBridgePage(url) {
     return (
       ["http://localhost:3000", "http://127.0.0.1:3000"].includes(
         page.origin
-      ) &&
-      page.pathname === "/file-translate.html"
+      ) && page.pathname === "/file-translate.html"
     );
   } catch {
     return false;

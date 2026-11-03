@@ -1,3 +1,4 @@
+import TerminologySelect from "../../components/TerminologySelect";
 import { Box } from "@mui/material";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { OPT_LANGS_FROM_REVERSED, OPT_LANGS_TO_REVERSED } from "../../config";
@@ -9,6 +10,7 @@ export default function FileTranslateSettings({
   i18n,
   scene,
   services,
+  terminologyDirectory,
   prompts,
   onChange,
   disabled = false,
@@ -83,6 +85,19 @@ export default function FileTranslateSettings({
           label={i18n("translation_prompt", "翻译提示词")}
           value={scene.promptSlug || ""}
           onChange={(promptSlug) => onChange({ promptSlug })}
+        />
+      </Box>
+      <Box sx={{ width: 160, flexShrink: 0 }}>
+        <TerminologySelect
+          i18n={i18n}
+          tables={terminologyDirectory || []}
+          value={scene.termsList || []}
+          onChange={(termsList) => onChange({ termsList })}
+          disabled={disabled}
+          showChips={false}
+          showHelperText={false}
+          showAlert={false}
+          sx={{ minWidth: 0, width: "100%" }}
         />
       </Box>
     </>

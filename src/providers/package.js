@@ -1,3 +1,4 @@
+import { supportsSdkVersion } from "./sdk/version";
 import { unzipSync, strFromU8 } from "fflate";
 import { providerError } from "./capabilities";
 import { validateDefaultPrompts } from "./defaultPrompts";
@@ -9,6 +10,8 @@ import {
   validatePermissions,
   validateFieldCapabilities,
 } from "./instances";
+
+import { assertPluginCompatibility } from "./compatibility";
 
 const MAX_PACKAGE = 5 * 1024 * 1024;
 const MAX_UNPACKED = 10 * 1024 * 1024;
@@ -137,8 +140,9 @@ function parseProviderFiles(files) {
     );
   const manifest = JSON.parse(strFromU8(files["manifest.json"]));
   if (
-    manifest.manifestVersion !== 1 ||
-    manifest.apiVersion !== "1" ||
+    Object.hasOwn(manifest, "manifestVersion") ||
+    Object.hasOwn(manifest, "rulesVersion") ||
+    !supportsSdkVersion(manifest.apiVersion) ||
     !/^[a-z][a-z0-9-]{1,100}$/.test(manifest.id) ||
     !/^\d+\.\d+\.\d+$/.test(manifest.version) ||
     !Array.isArray(manifest.services) ||
@@ -147,6 +151,7 @@ function parseProviderFiles(files) {
       (!Array.isArray(manifest.resources) || manifest.resources.length > 8))
   )
     throw providerError("INVALID_MANIFEST", "Unsupported or invalid manifest.");
+  assertPluginCompatibility(manifest);
   const ids = new Set();
   const implementations = {};
   const resources = {};
@@ -212,45 +217,50 @@ function parseProviderFiles(files) {
     icon = { data: btoa(binary), mimeType };
   }
   for (const service of manifest.services) {
-    if (
-      !/^[A-Za-z][\w-]{0,100}$/.test(service?.id) ||
-      ["__proto__", "constructor", "prototype"].includes(service.id) ||
-      ids.has(service.id) ||
-      !["script", "declarative"].includes(service.implementation?.kind) ||
-      !validPath(service.implementation.entry) ||
-      !files[service.implementation.entry]
-    )
-      throw providerError(
-        "INVALID_MANIFEST",
-        "Missing or invalid service entry."
-      );
-    ids.add(service.id);
-    validateCapabilities(service.capabilities);
-    validateDefaultPrompts(service);
-    validateFieldCapabilities(
-      service,
-      mergeSettingFields(manifest.sharedSettings, service.settings),
-      manifest.permissions
-    );
-    validateModels(
-      service,
-      mergeSettingFields(manifest.sharedSettings, service.settings)
-    );
-    validatePermissions(
-      manifest.permissions,
-      mergeSettingFields(manifest.sharedSettings, service.settings)
-    );
-    const text = strFromU8(files[service.implementation.entry]);
-    implementations[service.id] =
-      service.implementation.kind === "script" ? text : JSON.parse(text);
-    if (service.implementation.kind === "declarative") {
-      const rules = implementations[service.id];
-      validateDeclarativeRules(
-        rules,
-        service.capabilities,
+    try {
+      if (
+        !/^[A-Za-z][\w-]{0,100}$/.test(service?.id) ||
+        ["__proto__", "constructor", "prototype"].includes(service.id) ||
+        ids.has(service.id) ||
+        !["script", "declarative"].includes(service.implementation?.kind) ||
+        !validPath(service.implementation.entry) ||
+        !files[service.implementation.entry]
+      )
+        throw providerError(
+          "INVALID_MANIFEST",
+          "Missing or invalid service entry."
+        );
+      ids.add(service.id);
+      validateCapabilities(service.capabilities, { external: true });
+      validateDefaultPrompts(service);
+      validateFieldCapabilities(
+        service,
         mergeSettingFields(manifest.sharedSettings, service.settings),
-        "INVALID_MANIFEST"
+        manifest.permissions
       );
+      validateModels(
+        service,
+        mergeSettingFields(manifest.sharedSettings, service.settings)
+      );
+      validatePermissions(
+        manifest.permissions,
+        mergeSettingFields(manifest.sharedSettings, service.settings)
+      );
+      const text = strFromU8(files[service.implementation.entry]);
+      implementations[service.id] =
+        service.implementation.kind === "script" ? text : JSON.parse(text);
+      if (service.implementation.kind === "declarative") {
+        const rules = implementations[service.id];
+        validateDeclarativeRules(
+          rules,
+          service.capabilities,
+          mergeSettingFields(manifest.sharedSettings, service.settings),
+          "INVALID_MANIFEST"
+        );
+      }
+    } catch (error) {
+      error.message = `Service ${service?.id || "?"} (${service?.implementation?.entry || "?"}): ${error.message}`;
+      throw error;
     }
   }
   return {
@@ -264,7 +274,7 @@ function parseProviderFiles(files) {
 export async function downloadProviderPackage(
   url,
   fetchImpl = globalThis.fetch,
-  { signal, timeoutMs = 60000, githubArchive = false } = {}
+  { signal, timeoutMs = 60000, githubArchive = false, archiveSha256 } = {}
 ) {
   const target = new URL(url);
   if (target.protocol !== "https:" || target.username || target.password)
@@ -340,9 +350,24 @@ export async function downloadProviderPackage(
       bytes.set(chunk, offset);
       offset += chunk.byteLength;
     }
+    if (archiveSha256) {
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      const hash = Array.from(new Uint8Array(digest), (value) =>
+        value.toString(16).padStart(2, "0")
+      ).join("");
+      if (hash !== archiveSha256)
+        throw providerError(
+          "INVALID_PACKAGE",
+          "Plugin archive SHA-256 mismatch."
+        );
+    }
     return {
       ...readProviderPackage(bytes, { githubArchive }),
-      source: { kind: "zip", url: target.href },
+      source: {
+        kind: "zip",
+        url: target.href,
+        ...(archiveSha256 && { archiveSha256 }),
+      },
     };
   } finally {
     clearTimeout(timer);

@@ -56,7 +56,9 @@ test("every indexed field has a localized label and appears once per page", () =
     expect(new Set(keys).size).toBe(keys.length);
     for (const key of keys) {
       for (const lang of ["zh", "en"])
-        if (typeof (SETTINGS_SEARCH_LABELS[key] || I18N[key]?.[lang]) !== "string")
+        if (
+          typeof (SETTINGS_SEARCH_LABELS[key] || I18N[key]?.[lang]) !== "string"
+        )
           missing.push(`${key}:${lang}`);
     }
   }

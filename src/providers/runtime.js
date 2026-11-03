@@ -1,3 +1,4 @@
+import { serviceInvocationOptions } from "./timeout";
 import { createProviderRegistry } from "./registry";
 import { createTransportBroker, createAssetStore } from "./transport";
 import { projectInstanceConfig, validateServiceConfig } from "./instances";
@@ -13,8 +14,9 @@ export function invokeInstance(
   instance,
   capability,
   input,
-  { approvedOrigins, assets = createAssetStore(), ...options }
+  { assets = createAssetStore(), ...options }
 ) {
+  options = serviceInvocationOptions(instance, options);
   const registry = createProviderRegistry({
     resolveInstance: (id) => (id === instance.apiSlug ? instance : undefined),
     createContext: (api, invocation) => {
@@ -31,8 +33,13 @@ export function invokeInstance(
       );
       const broker = createTransportBroker(api, {
         signal: invocation.signal,
-        approvedOrigins,
         assets,
+        diagnostic: {
+          ...options.diagnostic,
+          requestId: invocation.requestId,
+          serviceId: api.apiSlug,
+          method: capability,
+        },
       });
       return {
         ...invocation,

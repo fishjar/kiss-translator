@@ -1,4 +1,7 @@
 import { providerError } from "./capabilities";
+import { invocationDeadline, registerInvocationDeadline } from "./timeout";
+import { captureDiagnostic } from "../libs/diagnostics/transport";
+import { summary } from "../libs/diagnostics/privacy";
 
 let sequence = 0;
 const abortError = () =>
@@ -85,7 +88,27 @@ function eventChannel(limit = 64) {
 export function createInvocation(execute, options = {}) {
   // Native tasks share a runtime across pages; a per-page counter alone can collide.
   const requestId = `provider-${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${++sequence}-${Math.random().toString(36).slice(2)}`}`;
+  const started = Date.now();
+  const diagnostic = (level, event, error, resultSummary) => {
+    if (!options.diagnostic) return;
+    captureDiagnostic({
+      level,
+      event,
+      module: "service",
+      context: {
+        requestId,
+        ...options.diagnostic,
+        elapsedMs: Date.now() - started,
+        ...(error?.code && { code: error.code }),
+      },
+      error,
+      resultSummary,
+    });
+  };
+  diagnostic("debug", "invocation.started");
   const controller = new AbortController();
+  let deadlineAt = invocationDeadline(options);
+  registerInvocationDeadline(controller.signal, deadlineAt);
   const channel = eventChannel();
   let settled = false;
   let timeout;
@@ -100,6 +123,18 @@ export function createInvocation(execute, options = {}) {
   const finish = (error, value) => {
     if (settled) return;
     settled = true;
+    diagnostic(
+      error
+        ? error.name === "AbortError" || error.code === "REQUEST_CANCELLED"
+          ? "info"
+          : options.diagnostic?.taskId
+            ? "warn"
+            : "error"
+        : "info",
+      error ? "invocation.failed" : "invocation.completed",
+      error,
+      !error ? summary(value) : undefined
+    );
     clearTimeout(timeout);
     options.signal?.removeEventListener("abort", cancel);
     channel.finish(error);
@@ -108,28 +143,47 @@ export function createInvocation(execute, options = {}) {
     else resolveResult(value);
   };
   const cancel = () => finish(abortError());
+  const setDeadline = (value) => {
+    if (settled) return;
+    if (!Number.isFinite(value)) {
+      finish(providerError("INVALID_TIMEOUT", "Invalid invocation deadline."));
+      return;
+    }
+    deadlineAt = Math.min(deadlineAt ?? Infinity, value);
+    registerInvocationDeadline(controller.signal, deadlineAt);
+    clearTimeout(timeout);
+    const expire = () =>
+      finish(
+        providerError("REQUEST_TIMEOUT", "Provider invocation timed out.")
+      );
+    if (deadlineAt <= Date.now()) expire();
+    else timeout = setTimeout(expire, deadlineAt - Date.now());
+  };
   options.signal?.addEventListener("abort", cancel, { once: true });
   if (options.signal?.aborted) cancel();
-  if (!settled && options.timeoutMs !== undefined) {
-    if (!Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0) {
+  if (
+    !settled &&
+    (options.timeoutMs !== undefined || deadlineAt !== undefined)
+  ) {
+    if (
+      options.timeoutMs !== undefined &&
+      (!Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0)
+    ) {
       finish(
         providerError("INVALID_TIMEOUT", "timeoutMs must be a positive number.")
       );
-    } else
-      timeout = setTimeout(
-        () =>
-          finish(
-            providerError("REQUEST_TIMEOUT", "Provider invocation timed out.")
-          ),
-        options.timeoutMs
-      );
+    } else setDeadline(deadlineAt);
   }
-  Promise.resolve()
+  const finished = Promise.resolve()
     .then(() => {
       if (settled) return;
       return execute({
         requestId,
         signal: controller.signal,
+        get deadlineAt() {
+          return deadlineAt;
+        },
+        setDeadline,
         emit: channel.emit,
       });
     })
@@ -137,5 +191,5 @@ export function createInvocation(execute, options = {}) {
       (value) => finish(undefined, value),
       (error) => finish(error)
     );
-  return { requestId, result, events: channel.events, cancel };
+  return { requestId, result, events: channel.events, cancel, finished };
 }

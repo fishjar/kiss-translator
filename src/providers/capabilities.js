@@ -1,3 +1,5 @@
+import { supportsSdkVersion } from "./sdk/version";
+
 export const PROVIDER_CAPABILITIES = Object.freeze([
   "translate",
   "chat",
@@ -20,43 +22,8 @@ export const providerError = (code, message) =>
 
 export function getSupportedCapabilityDescriptor(instance, capability) {
   if (!PROVIDER_CAPABILITIES.includes(capability)) return undefined;
-  const base = instance?.provider?.capabilities?.[capability];
-  if (!base || !instance.provider.models) return base;
-  const field = instance.provider.modelField || "model";
-  const selected = instance.pluginConfig?.[field] ?? instance[field];
-  const model = instance.provider.models.find((entry) => entry.id === selected);
-  // The catalogue suggests IDs; unknown IDs and unrestricted entries use the service contract.
-  if (!model?.capabilities) return base;
-  const restriction = model?.capabilities?.[capability];
-  if (!restriction) return undefined;
-  // Model metadata can restrict the service contract, never grant a new handler or feature.
-  const modes = (base.outputModes || ["complete"]).filter(
-    (mode) => !restriction.outputModes || restriction.outputModes.includes(mode)
-  );
-  const modalities = (base.inputModalities || ["text"]).filter(
-    (mode) =>
-      !restriction.inputModalities || restriction.inputModalities.includes(mode)
-  );
-  const limits = [base.batch?.maxItems, restriction.batch?.maxItems].filter(
-    (value) => value !== undefined
-  );
-  return {
-    ...base,
-    outputModes: modes,
-    inputModalities: modalities,
-    batch: {
-      supported: Boolean(
-        base.batch?.supported && restriction.batch?.supported !== false
-      ),
-      ...(limits.length && { maxItems: Math.min(...limits) }),
-    },
-    coordinates: Boolean(base.coordinates && restriction.coordinates !== false),
-    ...((base.taskModes || restriction.taskModes) && { taskModes: (base.taskModes || ["doc"]).filter((mode) =>
-      !restriction.taskModes || restriction.taskModes.includes(mode)) }),
-    timestamps: Boolean(base.timestamps && restriction.timestamps !== false),
-  };
+  return instance?.provider?.capabilities?.[capability];
 }
-
 
 export function usesStreaming(instance, capability) {
   return (
@@ -96,7 +63,7 @@ export function validateEnabledCapabilities(instance, enabled) {
   )
     throw providerError(
       "INVALID_CONFIG",
-      "Enabled capabilities must be supported by the selected service and model."
+      "Enabled capabilities must be supported by the selected service."
     );
   return [...enabled];
 }
@@ -118,14 +85,20 @@ export function supportsProviderCapability(
     !descriptor ||
     descriptor.outputModes?.length === 0 ||
     instance.isDisabled ||
-    instance.provider.apiVersion !== "1"
+    !supportsSdkVersion(instance.provider.apiVersion) ||
+    (capability === "speak" &&
+      (instance.provider.implementation?.kind !== "native" ||
+        instance.provider.source?.external))
   )
     return false;
   if (requirements.stream && !descriptor.outputModes?.includes("stream"))
     return false;
   if (requirements.coordinates && descriptor.coordinates !== true) return false;
-  if (requirements.taskMode &&
-      !(descriptor.taskModes || ["doc"]).includes(requirements.taskMode)) return false;
+  if (
+    requirements.taskMode &&
+    !(descriptor.taskModes || ["doc"]).includes(requirements.taskMode)
+  )
+    return false;
   if (requirements.timestamps && descriptor.timestamps !== true) return false;
   return true;
 }

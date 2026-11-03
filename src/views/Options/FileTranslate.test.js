@@ -9,8 +9,15 @@ jest.mock("../FileTranslate/PdfWorkspace", () => {
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const originalResizeObserver = globalThis.ResizeObserver;
-beforeAll(() => { globalThis.ResizeObserver = class { observe() {} disconnect() {} }; });
-afterAll(() => { globalThis.ResizeObserver = originalResizeObserver; });
+beforeAll(() => {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    disconnect() {}
+  };
+});
+afterAll(() => {
+  globalThis.ResizeObserver = originalResizeObserver;
+});
 
 jest.mock("../FileTranslate/State", () => ({
   FileTranslationProvider: ({ children }) => children,
@@ -45,8 +52,9 @@ jest.mock("../FileTranslate/State", () => ({
             file,
             {
               groupId:
-                setting.transApis.find((api) => api.apiSlug === selection?.apiSlug)
-                  ?.modelRef ||
+                setting.transApis.find(
+                  (api) => api.apiSlug === selection?.apiSlug
+                )?.modelRef ||
                 setting.fileTranslateSetting.image.ocrGroup ||
                 "ppocr-v5-mobile",
               device: setting.fileTranslateSetting.image.ocrDevice || "webgpu",
@@ -59,7 +67,6 @@ jest.mock("../FileTranslate/State", () => ({
     };
   },
 }));
-
 
 jest.mock("../../localAi/core/inputFiles", () => ({
   validateInputFile: jest.fn().mockResolvedValue(undefined),
@@ -220,7 +227,10 @@ describe("FileTranslate view", () => {
     root = createRoot(container);
     jest.clearAllMocks();
     mockSetting.transApis = [...defaultMockTransApis];
-    mockSetting.fileTranslateSetting.image.recognitionService = { apiSlug: "local-ocr", capability: "recognizeText" };
+    mockSetting.fileTranslateSetting.image.recognitionService = {
+      apiSlug: "local-ocr",
+      capability: "recognizeText",
+    };
 
     const mockCreate = () => "blob:http://localhost/fake-blob";
     const mockRevoke = () => {};
@@ -267,9 +277,7 @@ describe("FileTranslate view", () => {
     const buttonTexts = Array.from(container.querySelectorAll("button")).map(
       (b) => b.textContent
     );
-    expect(
-      buttonTexts.some((t) => t.includes("一键翻译"))
-    ).toBe(true);
+    expect(buttonTexts.some((t) => t.includes("一键翻译"))).toBe(true);
     expect(buttonTexts.some((t) => t.includes("下载译文 TXT"))).toBe(true);
 
     // 2. 未上传文件时：下方展示大面积纯净拖拽上传框，不展示左右两栏
@@ -475,9 +483,7 @@ describe("FileTranslate view", () => {
     });
 
     // 1. 顶栏不展示底层模型列表，而是展示未配置 OCR 服务提示
-    expect(container.textContent).toContain(
-      "请选择识别服务"
-    );
+    expect(container.textContent).toContain("请选择识别服务");
 
     // 2. 开始翻译按钮处于禁用状态
     const startBtn = Array.from(container.querySelectorAll("button")).find(
@@ -487,9 +493,7 @@ describe("FileTranslate view", () => {
     expect(startBtn.disabled).toBe(true);
 
     // 3. 右侧展示引导文本及快捷跳转按钮
-    expect(container.textContent).toContain(
-      "请选择文本识别服务（OCR / VLM）"
-    );
+    expect(container.textContent).toContain("请选择文本识别服务（OCR / VLM）");
     const gotoConfigBtn = Array.from(container.querySelectorAll("button")).find(
       (b) => b.textContent.includes("前往服务配置")
     );
@@ -509,7 +513,9 @@ describe("FileTranslate view", () => {
     const dropzone = container.querySelector('[role="button"][tabindex="0"]');
     await act(async () => {
       const event = new Event("drop", { bubbles: true });
-      Object.defineProperty(event, "dataTransfer", { value: { files: [file] } });
+      Object.defineProperty(event, "dataTransfer", {
+        value: { files: [file] },
+      });
       dropzone.dispatchEvent(event);
     });
     expect(container.textContent).toContain("图片文件超过 10 MB 上限");
@@ -519,7 +525,9 @@ describe("FileTranslate view", () => {
 
   test("handles image translation, view switching, synthesis, and image viewer dialog", async () => {
     recognizeFileImage.mockResolvedValueOnce({
-      inputAdjustments: [{ kind: "image", message: "图片已等比例缩小：3000×2000 → 1536×1024" }],
+      inputAdjustments: [
+        { kind: "image", message: "图片已等比例缩小：3000×2000 → 1536×1024" },
+      ],
       items: [
         {
           text: "Sample OCR text",
@@ -576,7 +584,9 @@ describe("FileTranslate view", () => {
       }),
       expect.anything()
     );
-    expect(container.textContent).toContain("图片已等比例缩小：3000×2000 → 1536×1024");
+    expect(container.textContent).toContain(
+      "图片已等比例缩小：3000×2000 → 1536×1024"
+    );
     expect(translateFileText).toHaveBeenCalled();
     expect(synthesizeTranslatedImage).toHaveBeenCalled();
 
@@ -673,14 +683,19 @@ describe("FileTranslate view", () => {
         imageViewBtn.click();
       });
 
-      expect(container.textContent).toContain("识别结果没有区域坐标，无法合成译图");
+      expect(container.textContent).toContain(
+        "识别结果没有区域坐标，无法合成译图"
+      );
       expect(container.textContent).toContain("仅输出文本");
     } finally {
       delete mockSetting.fileTranslateSetting.image.ocrGroup;
       mockSetting.fileTranslateSetting.image.recognitionService = null;
       delete mockSetting.fileTranslateSetting.image.ocrApiSlugs;
       mockSetting.transApis = [...defaultMockTransApis];
-    mockSetting.fileTranslateSetting.image.recognitionService = { apiSlug: "local-ocr", capability: "recognizeText" };
+      mockSetting.fileTranslateSetting.image.recognitionService = {
+        apiSlug: "local-ocr",
+        capability: "recognizeText",
+      };
     }
   });
 

@@ -12,7 +12,7 @@ test.each(["chrome", "edge", "firefox"])(
     const local = services.filter((api) => api.apiType === "LocalAI");
     expect(local.map((api) => [api.modelRef, api.device])).toEqual([
       ["laya-multilingual-int8", "webgpu"],
-      ["sensevoice-small", "webgpu"],
+      ["whisper-small-timestamped", "webgpu"],
       ["ppocr-v6-medium", "webgpu"],
       ["paddleocr-vl-1.6-onnx-q8", "webgpu"],
       ["hy-mt2-1.8b", "webgpu"],

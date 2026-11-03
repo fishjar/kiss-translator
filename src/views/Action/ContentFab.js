@@ -7,6 +7,7 @@ import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
+import CropRoundedIcon from "@mui/icons-material/CropRounded";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -38,6 +39,7 @@ import {
   MSG_TRANS_TOGGLE,
   MSG_TRANS_TOGGLE_STYLE,
   MSG_TRANSBOX_TOGGLE,
+  MSG_IMAGE_SCREENSHOT,
 } from "../../config";
 import { useI18n } from "../../hooks/I18n";
 import { useFab } from "../../hooks/Fab";
@@ -166,10 +168,15 @@ export function ContentFabContent({
     // their composed paths to identify the menu and FAB across shadow roots.
     const handleClickAway = (event) => {
       const path = event.composedPath();
+      const themeRoot = menuRef.current?.closest(".kt-m3-root");
       if (
         path.includes(menuRef.current) ||
         path.includes(anchorRef.current) ||
-        path.some((node) => node.hasAttribute?.("data-kiss-touch-ui"))
+        path.some((node) => node.hasAttribute?.("data-kiss-touch-ui")) ||
+        // Select opens on mousedown; release over its portaled backdrop can
+        // retarget the click to the common theme root.
+        (path[0] === themeRoot &&
+          themeRoot?.querySelector(".MuiMenu-root[data-kiss-touch-ui]"))
       ) {
         return;
       }
@@ -322,6 +329,11 @@ export function ContentFabContent({
       icon: SelectAllRoundedIcon,
       action: () => runAction(MSG_OPEN_TRANBOX),
       disabled: !selectionEnabled,
+    },
+    {
+      label: i18n("image_screenshot_translate", "截图翻译"),
+      icon: CropRoundedIcon,
+      action: () => runAction(MSG_IMAGE_SCREENSHOT),
     },
     {
       label: i18n("open_menu"),

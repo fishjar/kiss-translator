@@ -1,5 +1,9 @@
 import { applyThinkingParameters } from "./thinking";
-import { OPT_TRANS_CLAUDE } from "../config";
+import {
+  ANTHROPIC_API_VERSION,
+  OPT_TRANS_CLAUDE,
+  rejectsClaudeTemperature,
+} from "../config";
 
 // 原生协议适配：保持旧参数、字段和厂家差异，不加载用户脚本解释器。
 const genClaude = ({
@@ -40,6 +44,7 @@ const genClaude = ({
     max_tokens: maxTokens,
     stream: useStream,
   };
+  if (rejectsClaudeTemperature(model)) delete body.temperature;
 
   applyThinkingParameters(body, {
     apiType: OPT_TRANS_CLAUDE,
@@ -51,7 +56,7 @@ const genClaude = ({
 
   const headers = {
     "Content-type": "application/json",
-    "anthropic-version": "2023-06-01",
+    "anthropic-version": ANTHROPIC_API_VERSION,
     "anthropic-dangerous-direct-browser-access": "true",
     "x-api-key": key,
   };
@@ -59,4 +64,11 @@ const genClaude = ({
   return { url, body, headers, userMsg };
 };
 
-export { genClaude };
+// With thinking enabled the first content block is a thinking block with no text, so the
+// answer is the first block that carries one. Non-array shapes keep reading content[0].
+const claudeResponseText = (res) =>
+  Array.isArray(res?.content)
+    ? res.content.find((b) => typeof b?.text === "string")?.text
+    : res?.content?.[0]?.text;
+
+export { genClaude, claudeResponseText };

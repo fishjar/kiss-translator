@@ -1,8 +1,14 @@
 import { logger } from "../libs/log.js";
+import { subscribeStorageInvalidation } from "../libs/storageEvents";
+import {
+  readTableDirectory,
+  loadTerminologySnapshot,
+  TERMINOLOGY_INDEX,
+} from "../libs/terminologyStorage";
 import { apiSubtitle, apiSummarizeContext } from "../apis/index.js";
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager.js";
 import { YouTubeSubtitleList } from "./YouTubeSubtitleList.js";
-import { MSG_XHR_DATA_YOUTUBE, API_SPE_TYPES } from "../config";
+import { API_SPE_TYPES } from "../config";
 import { downloadBlobFile } from "../libs/utils.js";
 import { newI18n } from "../config";
 import { buildBilingualVtt } from "./vtt.js";
@@ -10,12 +16,25 @@ import { getDocInfo } from "../libs/docInfo.js";
 import { isSubtitleModeEnabled } from "./modes.js";
 import { clearMsgHistory } from "../apis/history.js";
 import {
-  buildTrackKey,
-  findCaptionTrack,
-  getCaptionTracks,
-  getSubtitleEvents,
-  isSameLang,
-} from "./youtubeCaptionTracks.js";
+  captionCacheRequest,
+  captionSegmentationSignature,
+  captionTranslationSignature,
+  captionCueKey,
+} from "./captionCache";
+import { isSameLang } from "./youtubeCaptionTracks.js";
+import { YoutubeAsrController, youtubeAsrSupported } from "./asr/controller";
+import {
+  activeYoutubePlayer,
+  youtubeVideoId,
+  captionTrackId,
+  selectCaptionTrack,
+  captionUrl,
+  parseTimedText,
+} from "./youtubeCaptionSource";
+import {
+  YouTubeCaptionBridgeClient,
+  YouTubeCaptionAcquirer,
+} from "./youtubeAcquisition";
 import { eventsToSubtitles } from "./youtubeAiSegmentation.js";
 import {
   builtinSegment,
@@ -25,11 +44,9 @@ import {
 } from "./youtubeSubtitleProcessing.js";
 import {
   CONTROLS_SELECTOR,
-  VIDEO_SELECTOR,
   YT_AD_SELECTOR,
   YT_SUBTITLE_BUTTON_SELECTOR,
   YouTubePlayerUi,
-  waitForElement,
 } from "./youtubePlayerUi.js";
 
 /**
@@ -39,10 +56,51 @@ import {
 export class YouTubeCaptionProvider {
   // 扩展配置选项对象
   #setting = {};
+  #captionCacheContext = null;
+  #captionCacheGeneration = null;
+  #captionFinalCues = new Map();
+  #captionCacheTimer = null;
+  #captionContextPromise = null;
+  #bridge;
+  #acquirer;
+  #asr;
+  #asrState = { phase: "off" };
+  #asrDisabled = false;
+  #asrWanted = false;
+  #nativeCaptionSnapshot = null;
+  #captionCooldownUntil = 0;
+  #seekCleanup;
+  #acquisitionState = { phase: "idle" };
+  #translationError = false;
+  #ccBlocked = false;
+  #boundPlayer = null;
+  #boundCc = null;
+  #lastCc = null;
+  #observedVideoId = null;
+  #observedCacheMode = null;
+  #watchTimer;
+  #snapshotPending = false;
+  #disposed = false;
+  #domObserver;
+  #checkScheduled = false;
+  #cleanups = [];
+  #adObserver;
+  #acquisitionVersion = 0;
+  #ccIntentAt = 0;
+  #ccIntentCleanup;
+  #navigating = false;
+  #waitingForContent = false;
   // 每次进入新视频时恢复的持久化自动翻译偏好
   #defaultAutoTranslate = true;
   // 当前页面是否由字幕快捷菜单显式覆盖了翻译服务
   #hasRuntimeApiOverride = false;
+  // 可用术语表目录列表
+  #terminologyDirectory = [];
+  // 临时术语表多选防抖定时器
+  #termsUpdateTimer = null;
+  #terminologyLoading = null;
+  // 当前视频默认术语表 ID 列表快照，切换新视频时用于恢复
+  #defaultTermsList = [];
 
   // 最终处理合并、翻译好的双语字幕数组（包含开始/结束时间、原文、翻译）
   #subtitles = [];
@@ -82,6 +140,8 @@ export class YouTubeCaptionProvider {
 
   // 挂载在视频右侧/下方的双语字幕列表面板管理器实例
   #subtitleListManager = null;
+  #asrPanelClosed = false;
+  #asrTabSuggested = false;
 
   /**
    * 创建 YouTube 字幕处理器实例，并初始化用户配置、国际化和播放器 UI 管理器。
@@ -90,6 +150,7 @@ export class YouTubeCaptionProvider {
    */
   constructor(setting = {}) {
     this.#defaultAutoTranslate = setting.autoTranslate ?? true;
+    this.#defaultTermsList = [...(setting.termsList || [])];
     this.#setting = {
       ...setting,
       autoTranslate: this.#defaultAutoTranslate,
@@ -104,6 +165,15 @@ export class YouTubeCaptionProvider {
       getMenuProps: () => this.#getMenuProps(),
       getVideoEl: () => this.#videoEl,
     });
+    Promise.resolve(readTableDirectory?.())
+      .then((tables) => {
+        if (this.#disposed) return;
+        this.#terminologyDirectory = tables || [];
+        this.#playerUi.updateMenuProps();
+      })
+      .catch((err) => {
+        logger.child("subtitle").debug("Read terminology directory error", err);
+      });
   }
 
   /**
@@ -112,8 +182,7 @@ export class YouTubeCaptionProvider {
    * @returns {string|null} URL 查询参数 v 的值；非视频页返回 null。
    */
   get #videoId() {
-    const docUrl = new URL(document.location.href);
-    return docUrl.searchParams.get("v");
+    return youtubeVideoId();
   }
 
   /**
@@ -122,7 +191,7 @@ export class YouTubeCaptionProvider {
    * @returns {HTMLVideoElement|null} 匹配到的播放器 DOM 节点。
    */
   get #videoEl() {
-    return document.querySelector(VIDEO_SELECTOR);
+    return activeYoutubePlayer()?.querySelector("video") || null;
   }
 
   /**
@@ -152,53 +221,655 @@ export class YouTubeCaptionProvider {
    * @returns {void}
    */
   initialize() {
-    window.addEventListener("message", (event) => {
-      if (event.data?.type === MSG_XHR_DATA_YOUTUBE) {
-        const { url, response } = event.data;
-        if (url && response) {
-          this.#handleInterceptedRequest(url, response);
-        }
+    if (
+      youtubeAsrSupported &&
+      this.#setting.asrApiSlug &&
+      this.#setting.asrApiSlug !== "-"
+    )
+      this.#asr = new YoutubeAsrController({
+        getSetting: () => this.#setting,
+        getVideo: () => ({
+          videoId: this.#videoId,
+          element: this.#videoEl,
+          cacheMode: window.location.pathname.startsWith("/shorts/")
+            ? "session"
+            : "persistent",
+        }),
+        onTasks: (update) => this.#subtitleListManager?.updateAsrTasks(update),
+        onState: (state) => {
+          const previousTarget = this.#asrState.translationLanguage;
+          this.#asrState = state;
+          if (
+            state.translationLanguage &&
+            state.translationLanguage !== previousTarget
+          )
+            this.#managerInstance?.updateSetting?.({
+              toLang: state.translationLanguage,
+            });
+          this.#playerUi.updateAsrFeedback(state, this.#i18n);
+          this.#playerUi.updateMenuProps();
+          this.#subtitleListManager?.updateAsrState({
+            ...state,
+            active: !!this.#asr?.active,
+            available: !!this.#asr?.service(),
+          });
+        },
+        onSubtitles: (cues, state) => {
+          if (!this.#asr?.active || this.#disposed) return;
+          this.#subtitles.splice(0, this.#subtitles.length, ...cues);
+          this.#progressed = Math.floor(state.recognition?.percent || 0);
+          if (!cues.length) {
+            this.#destroyManager();
+            this.#playerUi.hideYtCaption();
+            this.#subtitleListManager?.setBilingualSubtitles(
+              [],
+              this.#progressed
+            );
+            return;
+          }
+          this.#fromLang = getFromLang(
+            this.#asrState.effectiveLanguage ||
+              this.#asrState.sourceLanguage ||
+              "auto"
+          );
+          this.#startManager();
+          this.#managerInstance?.appendSubtitles(cues);
+          this.#subtitleListManager?.setBilingualSubtitles(
+            this.#subtitles,
+            this.#progressed
+          );
+        },
+      });
+    this.#bridge = new YouTubeCaptionBridgeClient((capture) => {
+      if (
+        this.#disposed ||
+        this.#navigating ||
+        !this.#setting.autoTranslate ||
+        this.#ccBlocked ||
+        capture.videoId !== this.#videoId ||
+        this.#acquisitionState.phase !== "error" ||
+        this.#acquirer.inFlight ||
+        this.#acquisitionState.cooldownUntil > Date.now()
+      )
+        return;
+      const url = captionUrl(capture.url, this.#videoId);
+      if (!url || url.searchParams.has("tlang")) return;
+      try {
+        // Only a new usable source body can recover a finished attempt.
+        // URL-only Resource Timing notifications must not start request loops.
+        parseTimedText(capture.response);
+      } catch {
+        return;
       }
+      void this.#acquire();
     });
-
-    window.addEventListener("yt-navigate-finish", () => {
-      logger.debug("Youtube Provider: yt-navigate-finish", this.#videoId);
-
-      this.#destroyManager();
-      clearMsgHistory(this.#setting.apiSlug);
-
-      this.#subtitles = [];
-      this.#events = [];
-      this.#rawSubtitleEvents = [];
-      this.#flatEvents = [];
-      this.#progressed = 0;
-      this.#fromLang = "auto";
-      this.#docInfo = {};
-      this.#fullDescription = "";
-      this.#processingId = null;
-      this.#processingVersion += 1;
-      this.#activeTrackKey = null;
-      this.#aiChunkScheduler = null;
-      this.#subtitleAbortController?.abort();
-      this.#subtitleAbortController = null;
-      this.#setting.autoTranslate = this.#defaultAutoTranslate;
+    this.#acquirer = new YouTubeCaptionAcquirer(this.#bridge, (patch) => {
+      this.#acquisitionState = { ...this.#acquisitionState, ...patch };
+      this.#captionCooldownUntil = Math.max(
+        this.#captionCooldownUntil,
+        patch.cooldownUntil || 0
+      );
+      this.#playerUi.updateCaptionFeedback(this.#acquisitionState, this.#i18n);
+      this.#subtitleListManager?.updateCaptionState?.(this.#acquisitionState);
       this.#playerUi.updateMenuProps();
     });
+    const check = () => this.#checkPlayer();
+    const resume = () => {
+      this.#navigating = false;
+      check();
+    };
+    const leave = () => {
+      this.#navigating = true;
+      this.#resetVideo();
+    };
+    const captionShortcut = (event) => {
+      if (
+        event.key?.toLowerCase() === "c" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.target?.closest?.("input, textarea, [contenteditable=true]")
+      )
+        this.#ccIntentAt = Date.now();
+    };
+    const pagehide = (event) => {
+      if (!event.persisted) this.destroy();
+      else leave();
+    };
+    for (const [name, handler] of [
+      ["yt-navigate-start", leave],
+      ["yt-navigate-finish", resume],
+      ["popstate", resume],
+      ["pagehide", pagehide],
+      ["pageshow", resume],
+      ["keydown", captionShortcut],
+    ]) {
+      window.addEventListener(name, handler);
+      this.#cleanups.push(() => window.removeEventListener(name, handler));
+    }
+    const handleTerminologyChange = () => {
+      Promise.resolve(readTableDirectory?.())
+        .then((tables) => {
+          if (this.#disposed) return;
+          this.#terminologyDirectory = tables || [];
+          this.#playerUi.updateMenuProps();
+        })
+        .catch(() => {});
+    };
+    this.#cleanups.push(
+      subscribeStorageInvalidation(TERMINOLOGY_INDEX, handleTerminologyChange)
+    );
+    window.addEventListener(
+      "kiss-terminology-changed",
+      handleTerminologyChange
+    );
+    this.#cleanups.push(() =>
+      window.removeEventListener(
+        "kiss-terminology-changed",
+        handleTerminologyChange
+      )
+    );
+    this.#domObserver = new MutationObserver(() => {
+      if (this.#checkScheduled) return;
+      this.#checkScheduled = true;
+      queueMicrotask(() => {
+        this.#checkScheduled = false;
+        if (!this.#disposed) check();
+      });
+    });
+    this.#domObserver.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["is-active", "active"],
+    });
+    this.#watchTimer = setInterval(check, 1000);
+    check();
+  }
 
-    waitForElement(CONTROLS_SELECTOR, (ytControls) => {
-      const ytSubtitleBtn = ytControls.querySelector(
-        YT_SUBTITLE_BUTTON_SELECTOR
-      );
-      if (ytSubtitleBtn) {
-        this.#observeYtSubtitleState(ytSubtitleBtn);
+  #resetVideo({ clearBridge = true } = {}) {
+    clearTimeout(this.#termsUpdateTimer);
+    this.#termsUpdateTimer = null;
+    this.#setting.termsList = [...this.#defaultTermsList];
+    this.#invalidateTerminology();
+    this.#persistCaptionCache(true);
+    clearTimeout(this.#captionCacheTimer);
+    this.#captionCacheTimer = null;
+    this.#captionFinalCues.clear();
+    this.#captionContextPromise = null;
+    this.#captionCacheContext = null;
+    this.#captionCacheGeneration = null;
+    this.#nativeCaptionSnapshot = null;
+    void this.#asr?.stop();
+    this.#asrDisabled = false;
+    this.#asrWanted = false;
+    this.#asrPanelClosed = false;
+    this.#asrTabSuggested = false;
+    this.#captionCooldownUntil = 0;
+    this.#seekCleanup?.();
+    this.#acquisitionVersion++;
+    this.#acquirer?.cancel();
+    this.#subtitleAbortController?.abort();
+    this.#processingVersion++;
+    this.#destroyManager({ destroyList: true });
+    this.#playerUi.removeToggleButton();
+    this.#ytSubtitleStateObserver?.disconnect();
+    this.#ccIntentCleanup?.();
+    this.#adObserver?.disconnect();
+    clearMsgHistory(this.#setting.apiSlug);
+    this.#subtitles = [];
+    this.#events = [];
+    this.#rawSubtitleEvents = [];
+    this.#flatEvents = [];
+    this.#progressed = 0;
+    this.#fromLang = "auto";
+    this.#docInfo = {};
+    this.#fullDescription = "";
+    this.#processingId = null;
+    this.#activeTrackKey = null;
+    this.#aiChunkScheduler = null;
+    this.#boundPlayer = null;
+    this.#boundCc = null;
+    this.#lastCc = null;
+    this.#observedVideoId = null;
+    this.#ccBlocked = false;
+    this.#waitingForContent = false;
+    this.#translationError = false;
+    this.#acquisitionState = { phase: "idle" };
+    this.#setting.autoTranslate = this.#defaultAutoTranslate;
+    if (clearBridge) this.#bridge?.clear();
+  }
+
+  #checkPlayer() {
+    if (this.#disposed || this.#navigating) return;
+    const videoId = this.#videoId;
+    const player = activeYoutubePlayer();
+    const cacheMode = window.location.pathname.startsWith("/shorts/")
+      ? "session"
+      : "persistent";
+    if (
+      videoId !== this.#observedVideoId ||
+      cacheMode !== this.#observedCacheMode
+    ) {
+      this.#resetVideo({ clearBridge: this.#observedVideoId !== null });
+      this.#observedVideoId = videoId;
+      this.#observedCacheMode = cacheMode;
+    }
+    if (!videoId || !player) return;
+    if (player !== this.#boundPlayer) {
+      this.#seekCleanup?.();
+      this.#acquirer.cancel();
+      this.#acquisitionVersion++;
+      this.#subtitleAbortController?.abort();
+      this.#processingVersion++;
+      this.#destroyManager();
+      this.#subtitleListManager?.destroy();
+      this.#subtitleListManager = null;
+      this.#asrPanelClosed = false;
+      this.#playerUi.removeToggleButton();
+      this.#adObserver?.disconnect();
+      this.#boundPlayer = player;
+      const video = this.#videoEl;
+      const seeking = () => this.#asr?.beginSeek();
+      const seeked = () => this.#asr?.seek();
+      video?.addEventListener("seeking", seeking);
+      video?.addEventListener("seeked", seeked);
+      this.#seekCleanup = () => {
+        video?.removeEventListener("seeking", seeking);
+        video?.removeEventListener("seeked", seeked);
+      };
+      this.#boundCc = null;
+      this.#lastCc = null;
+      this.#acquisitionState = { phase: "idle" };
+      const ads = player.querySelector(YT_AD_SELECTOR);
+      if (ads) this.#moAds(ads);
+    }
+    const controls =
+      player.querySelector(CONTROLS_SELECTOR) ||
+      (window.location.pathname.startsWith("/shorts/") ? player : null);
+    this.#playerUi.injectToggleButton(controls);
+    const cc = player.querySelector(YT_SUBTITLE_BUTTON_SELECTOR);
+    if (cc !== this.#boundCc) {
+      this.#boundCc = cc;
+      this.#lastCc = cc?.getAttribute("aria-pressed") === "true";
+      if (cc) this.#observeYtSubtitleState(cc);
+    }
+    if (youtubeAsrSupported && this.#setting.autoTranslate && !this.#ccBlocked)
+      this.#ensureSubtitleList();
+    if (this.#asr?.active) {
+      void this.#asr.tick();
+      this.#startManager();
+      return;
+    }
+    if (
+      this.#setting.autoTranslate &&
+      !this.#ccBlocked &&
+      this.#acquisitionState.phase === "idle"
+    )
+      void this.#acquire();
+    if (
+      !this.#setting.autoTranslate ||
+      this.#ccBlocked ||
+      this.#snapshotPending
+    )
+      return;
+    this.#snapshotPending = true;
+    const epoch = this.#acquisitionVersion;
+    this.#bridge
+      .request("snapshot", videoId, { lightweight: true })
+      .then((snapshot) => {
+        if (
+          this.#disposed ||
+          epoch !== this.#acquisitionVersion ||
+          snapshot.videoId !== this.#videoId
+        )
+          return;
+        if (snapshot.isAd) {
+          this.#waitingForContent = true;
+          return;
+        }
+        if (this.#waitingForContent) {
+          this.#waitingForContent = false;
+          if (
+            ["error", "loading", "waiting", "waiting_playback"].includes(
+              this.#acquisitionState.phase
+            )
+          ) {
+            // Give content its own budget even when the ad ends near the deadline.
+            this.#acquirer.cancel();
+            void this.#acquire();
+          }
+        }
+        const track = selectCaptionTrack(snapshot);
+        const expected =
+          this.#activeTrackKey ||
+          (this.#acquisitionState.track &&
+            captionTrackId(this.#acquisitionState.track));
+        if (track && expected && captionTrackId(track) !== expected) {
+          this.#acquirer.cancel();
+          this.#acquisitionVersion++;
+          this.#subtitleAbortController?.abort();
+          this.#processingVersion++;
+          this.#destroyManager();
+          this.#subtitles = [];
+          this.#flatEvents = [];
+          this.#events = [];
+          this.#activeTrackKey = null;
+          this.#rawSubtitleEvents = [];
+          this.#translationError = false;
+          this.#progressed = 0;
+          void this.#acquire();
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        this.#snapshotPending = false;
+      });
+  }
+
+  #suggestAsrTab() {
+    if (!youtubeAsrSupported || this.#asrTabSuggested || this.#asrDisabled)
+      return;
+    this.#ensureSubtitleList(true);
+    if (!this.#subtitleListManager) return;
+    this.#asrTabSuggested = true;
+    this.#subtitleListManager.selectAsrTab();
+  }
+
+  #startAsr() {
+    if (!this.#asr || !this.#setting.autoTranslate) return;
+    if (this.#asr.active) return;
+    this.#asrWanted = true;
+    if (
+      !this.#setting.terminologyTables &&
+      this.#terminologySources().some((source) => source.termsList?.length)
+    ) {
+      const version = this.#processingVersion;
+      void this.#prepareTerminology()
+        .then((ready) => {
+          if (ready && !this.#isStaleProcessing(version) && !this.#asrDisabled)
+            this.#startAsr();
+        })
+        .catch((error) =>
+          logger.child("subtitle").warn("Unable to load terminology", error)
+        );
+      return;
+    }
+    if (this.#subtitles.length && this.#flatEvents.length) {
+      this.#nativeCaptionSnapshot = {
+        videoId: this.#videoId,
+        subtitles: this.#subtitles.map((cue) =>
+          cue.isTranslating ? { ...cue, isTranslating: false } : { ...cue }
+        ),
+        events: this.#events,
+        rawEvents: this.#rawSubtitleEvents,
+        flatEvents: this.#flatEvents,
+        fromLang: this.#fromLang,
+        progressed: this.#progressed,
+        trackKey: this.#activeTrackKey,
+        acquisition: this.#acquisitionState,
+        translationError: this.#translationError,
+      };
+    }
+    this.#playerUi.resetTaskFeedback();
+    this.#acquisitionVersion++;
+    this.#acquirer?.cancel();
+    this.#processingVersion++;
+    this.#subtitleAbortController?.abort();
+    this.#aiChunkScheduler = null;
+    this.#processingId = null;
+    this.#activeTrackKey = null;
+    this.#ccBlocked = false;
+    this.#destroyManager();
+    this.#subtitles = [];
+    this.#events = [];
+    this.#flatEvents = [];
+    this.#rawSubtitleEvents = [];
+    this.#acquisitionState = { phase: "off" };
+    this.#asrPanelClosed = false;
+    if (this.#subtitleListManager && !this.#subtitleListManager.asrActions) {
+      this.#subtitleListManager.destroy();
+      this.#subtitleListManager = null;
+    }
+    this.#progressed = 0;
+    this.#ensureSubtitleList(true);
+    this.#subtitleListManager?.setBilingualSubtitles([], 0);
+    this.#playerUi.hideYtCaption();
+    this.#subtitleListManager?.selectAsrTab();
+    this.#asr.start();
+  }
+
+  #restoreNativeCaptions() {
+    const snapshot = this.#nativeCaptionSnapshot;
+    if (!snapshot || snapshot.videoId !== this.#videoId) return false;
+    this.#subtitles = snapshot.subtitles.map((cue) => ({ ...cue }));
+    this.#events = snapshot.events;
+    this.#rawSubtitleEvents = snapshot.rawEvents;
+    this.#flatEvents = snapshot.flatEvents;
+    this.#fromLang = snapshot.fromLang;
+    this.#progressed = snapshot.progressed;
+    this.#activeTrackKey = snapshot.trackKey;
+    this.#acquisitionState = snapshot.acquisition;
+    this.#translationError = snapshot.translationError;
+    this.#processingId = null;
+    const processingVersion = (this.#processingVersion += 1);
+    this.#subtitleAbortController?.abort();
+    this.#subtitleAbortController = new AbortController();
+    this.#captionContextPromise = null;
+    this.#startManager();
+    this.#subtitleListManager?.setBilingualSubtitles(
+      this.#subtitles,
+      this.#progressed
+    );
+    this.#subtitleListManager?.updateRawSubtitleEvents?.(
+      this.#rawSubtitleEvents
+    );
+    this.#playerUi.updateCaptionFeedback(this.#acquisitionState, this.#i18n);
+    this.#subtitleListManager?.updateCaptionState?.(this.#acquisitionState);
+    this.#playerUi.updateMenuProps();
+    if (snapshot.progressed < 100) {
+      void this.#processEvents({
+        videoId: snapshot.videoId,
+        flatEvents: this.#flatEvents,
+        fromLang: this.#fromLang,
+        processingVersion,
+        signal: this.#subtitleAbortController.signal,
+      });
+    }
+    return true;
+  }
+
+  #asrActions() {
+    return {
+      start: () => {
+        this.#asrDisabled = false;
+        this.#startAsr();
+      },
+      stop: () => {
+        this.#asrDisabled = true;
+        this.#asrWanted = false;
+        void this.#asr.stop();
+        this.#destroyManager();
+        this.#subtitles = [];
+        this.#progressed = 0;
+        if (!this.#restoreNativeCaptions()) {
+          this.#processingId = null;
+          this.#activeTrackKey = null;
+          this.#subtitleListManager?.setBilingualSubtitles([], 0);
+          this.#acquisitionState = { phase: "idle" };
+          void this.#acquire();
+        }
+      },
+      retryIncomplete: () => this.#asr.retryIncomplete(),
+      retryRecognition: (taskId) => this.#asr.retryRecognition(taskId),
+      setLanguage: (language) => this.#asr.setLanguage(language),
+      setTranslationLanguage: (language) =>
+        this.#asr.setTranslationLanguage(language),
+      pause: () => this.#asr.pause(),
+      resume: () => this.#asr.resume(),
+      retryTranslation: (taskId) => this.#asr.retryTranslation(taskId),
+      retrySave: () => {
+        void this.#asr.session?.retrySave().catch(() => {});
+      },
+      reRecognize: () => this.#asr.deleteCache(true),
+      deleteCache: () => {
+        this.#asrDisabled = true;
+        this.#asrWanted = false;
+        this.#destroyManager();
+        this.#subtitles = [];
+        this.#progressed = 0;
+        this.#subtitleListManager?.setBilingualSubtitles([], 0);
+        return this.#asr.deleteCache();
+      },
+      deleteAudio: () => {
+        this.#asrDisabled = true;
+        this.#asrWanted = false;
+        return this.#asr.deleteAudio();
+      },
+      exportSegment: (segment) => this.#asr.exportSegment(segment),
+      prepareSegmentAudio: (segment) => this.#asr.prepareSegmentAudio(segment),
+      setPlaybackError: (segment, code) =>
+        this.#asr.setPlaybackError(segment, code),
+      getVideo: () => this.#videoEl,
+      exportSentence: (cue) => this.#asr.exportSentence(cue),
+      exportFull: () => this.#asr.exportFull(),
+      cancelExport: () => this.#asr.session?.cancelFullExport(),
+    };
+  }
+
+  async #acquire({ enableCc = false, refresh = false } = {}) {
+    if (!this.#videoId || !this.#setting.autoTranslate || this.#disposed)
+      return;
+    if (this.#acquirer.inFlight) return;
+    if (this.#captionCooldownUntil > Date.now()) {
+      this.#acquisitionState = {
+        phase: "cooldown",
+        cooldownUntil: this.#captionCooldownUntil,
+      };
+      this.#playerUi.updateCaptionFeedback(this.#acquisitionState, this.#i18n);
+      this.#subtitleListManager?.updateCaptionState?.(this.#acquisitionState);
+      return;
+    }
+    this.#playerUi.resetTaskFeedback();
+    this.#ccBlocked = false;
+    if (enableCc) {
+      this.#boundPlayer?.querySelector(YT_SUBTITLE_BUTTON_SELECTOR)?.click();
+    }
+    const version = ++this.#acquisitionVersion;
+    const videoId = this.#videoId;
+    this.#acquisitionState = { phase: "loading" };
+    try {
+      let snapshot, cacheEntry;
+      if (
+        !window.location.pathname.startsWith("/shorts/") &&
+        (this.#setting.captionCacheLimit ?? 100) > 0
+      ) {
+        const cached = await captionCacheRequest("lookup", { videoId }).catch(
+          () => null
+        );
+        if (
+          this.#disposed ||
+          version !== this.#acquisitionVersion ||
+          videoId !== this.#videoId ||
+          !this.#setting.autoTranslate ||
+          this.#ccBlocked
+        )
+          return;
+        this.#captionCacheGeneration = cached?.generation ?? null;
+        if (!refresh) cacheEntry = cached?.entry;
+        if (!refresh && cached?.entry) {
+          snapshot = await this.#bridge
+            .request("snapshot", videoId, { lightweight: true })
+            .catch(() => null);
+          if (
+            this.#disposed ||
+            version !== this.#acquisitionVersion ||
+            videoId !== this.#videoId ||
+            !this.#setting.autoTranslate ||
+            this.#ccBlocked
+          )
+            return;
+          const track = snapshot && selectCaptionTrack(snapshot);
+          if (
+            snapshot?.ready &&
+            !snapshot.isAd &&
+            track &&
+            captionTrackId(track) === cached.entry.trackKey
+          ) {
+            this.#acquisitionState = { phase: "ready", track, source: "cache" };
+            this.#playerUi.updateCaptionFeedback(
+              this.#acquisitionState,
+              this.#i18n
+            );
+            this.#subtitleListManager?.updateCaptionState?.(
+              this.#acquisitionState
+            );
+            await this.#handleAcquiredCaption(
+              { ...cached.entry, track, videoId },
+              cached.entry.bilingual
+            );
+            return;
+          }
+        }
       }
+      const result = await this.#acquirer.acquire(this.#videoId, cacheEntry);
+      if (
+        this.#disposed ||
+        version !== this.#acquisitionVersion ||
+        result.videoId !== this.#videoId ||
+        !this.#setting.autoTranslate ||
+        this.#ccBlocked
+      )
+        return;
+      this.#acquisitionState = {
+        phase: "ready",
+        track: result.track,
+        source: result.source,
+      };
+      this.#playerUi.updateCaptionFeedback(this.#acquisitionState, this.#i18n);
+      this.#subtitleListManager?.updateCaptionState?.(this.#acquisitionState);
+      this.#playerUi.updateMenuProps();
+      await this.#handleAcquiredCaption(
+        result,
+        result.source === "cache" ? result.bilingual : undefined
+      );
+    } catch (error) {
+      if (version !== this.#acquisitionVersion || error.name === "AbortError")
+        return;
+      if (
+        error.code === "NO_SUBTITLES" &&
+        youtubeAsrSupported &&
+        !this.#asrDisabled
+      ) {
+        this.#suggestAsrTab();
+      }
+      this.#acquisitionState = {
+        ...this.#acquisitionState,
+        phase: error.code === "NO_SUBTITLES" ? "empty" : "error",
+        code: error.code || "NETWORK",
+        cooldownUntil:
+          error.cooldownUntil || this.#acquisitionState.cooldownUntil || 0,
+      };
+      this.#playerUi.updateMenuProps();
+      this.#captionCooldownUntil = Math.max(
+        this.#captionCooldownUntil,
+        this.#acquisitionState.cooldownUntil || 0
+      );
+      this.#playerUi.updateCaptionFeedback(this.#acquisitionState, this.#i18n);
+      this.#subtitleListManager?.updateCaptionState?.(this.#acquisitionState);
+    }
+  }
 
-      this.#playerUi.injectToggleButton(ytControls);
-    });
-
-    waitForElement(YT_AD_SELECTOR, (adContainer) => {
-      this.#moAds(adContainer);
-    });
+  destroy() {
+    if (this.#disposed) return;
+    this.#persistCaptionCache(true);
+    this.#disposed = true;
+    this.#resetVideo();
+    clearInterval(this.#watchTimer);
+    this.#domObserver?.disconnect();
+    this.#cleanups.splice(0).forEach((cleanup) => cleanup());
+    this.#bridge?.dispose();
+    void this.#asr?.dispose();
   }
 
   /**
@@ -210,6 +881,16 @@ export class YouTubeCaptionProvider {
    */
   #observeYtSubtitleState(ytSubtitleBtn) {
     this.#ytSubtitleStateObserver?.disconnect();
+    this.#ccIntentCleanup?.();
+    const intent = () => {
+      this.#ccIntentAt = Date.now();
+    };
+    ytSubtitleBtn.addEventListener("pointerdown", intent);
+    ytSubtitleBtn.addEventListener("keydown", intent);
+    this.#ccIntentCleanup = () => {
+      ytSubtitleBtn.removeEventListener("pointerdown", intent);
+      ytSubtitleBtn.removeEventListener("keydown", intent);
+    };
     this.#ytSubtitleStateObserver = new MutationObserver(() => {
       this.#syncYtSubtitleState(ytSubtitleBtn);
     });
@@ -228,11 +909,42 @@ export class YouTubeCaptionProvider {
    * @returns {void}
    */
   #syncYtSubtitleState(ytSubtitleBtn) {
-    if (ytSubtitleBtn.getAttribute("aria-pressed") === "true") {
-      this.#startManager();
-    } else {
-      this.#destroyManager();
+    if (this.#asr?.active) {
+      this.#lastCc = ytSubtitleBtn.getAttribute("aria-pressed") === "true";
+      return;
     }
+    const on = ytSubtitleBtn.getAttribute("aria-pressed") === "true";
+    const wasOn = this.#lastCc;
+    this.#lastCc = on;
+    if (on) {
+      if (this.#ccBlocked || wasOn === false) {
+        this.#ccBlocked = false;
+        this.#acquisitionState = { phase: "idle" };
+        void this.#acquire();
+      } else this.#startManager();
+    } else if (
+      wasOn === true &&
+      this.#ccIntentAt &&
+      Date.now() - this.#ccIntentAt < 1500
+    ) {
+      this.#ccBlocked = true;
+      this.#playerUi.resetTaskFeedback();
+      this.#acquisitionVersion++;
+      this.#acquirer?.cancel();
+      this.#bridge?.clear();
+      this.#processingVersion++;
+      this.#subtitleAbortController?.abort();
+      this.#aiChunkScheduler = null;
+      this.#destroyManager();
+      this.#acquisitionState = {
+        ...this.#acquisitionState,
+        phase: "cc_off",
+        code: null,
+        cooldownUntil: this.#captionCooldownUntil,
+      };
+    }
+    this.#ccIntentAt = 0;
+    this.#playerUi.updateMenuProps();
   }
 
   /**
@@ -242,9 +954,14 @@ export class YouTubeCaptionProvider {
    * @returns {boolean} 开启返回 true，未开启或找不到按钮返回 false。
    */
   #isYtSubtitleEnabled() {
-    const ytSubtitleBtn = document.querySelector(YT_SUBTITLE_BUTTON_SELECTOR);
+    const ytSubtitleBtn = this.#boundPlayer?.querySelector(
+      YT_SUBTITLE_BUTTON_SELECTOR
+    );
     return (
-      !ytSubtitleBtn || ytSubtitleBtn.getAttribute("aria-pressed") === "true"
+      !this.#ccBlocked &&
+      (!ytSubtitleBtn ||
+        ytSubtitleBtn.getAttribute("aria-pressed") === "true" ||
+        this.#acquisitionState.phase === "ready")
     );
   }
 
@@ -269,7 +986,9 @@ export class YouTubeCaptionProvider {
           if (node.nodeType !== Node.ELEMENT_NODE) return;
 
           if (node.matches(adLayoutSelector)) {
-            logger.debug("Youtube Provider: AD start playing!", node);
+            logger
+              .child("subtitle")
+              .debug("Youtube Provider: AD start playing!", node);
             if (videoEl && skipAd) {
               // REVIEW: 沿用原有直接 16 倍速并跳到广告末尾的行为，可能触发 YouTube 风控。
               // REVIEW: 广告结束时仍会重置到 1 倍速，可能覆盖用户自定义倍速；后续应单独修复。
@@ -278,14 +997,18 @@ export class YouTubeCaptionProvider {
             }
             this.#managerInstance?.setIsAdPlaying(true);
           } else if (node.matches(skipBtnSelector) && skipAd) {
-            logger.debug("Youtube Provider: AD skip button!", node);
+            logger
+              .child("subtitle")
+              .debug("Youtube Provider: AD skip button!", node);
             node.click();
           }
 
           if (skipAd) {
             const skipBtn = node?.querySelector(skipBtnSelector);
             if (skipBtn) {
-              logger.debug("Youtube Provider: AD skip button!!", skipBtn);
+              logger
+                .child("subtitle")
+                .debug("Youtube Provider: AD skip button!!", skipBtn);
               skipBtn.click();
             }
           }
@@ -295,7 +1018,7 @@ export class YouTubeCaptionProvider {
           if (node.nodeType !== Node.ELEMENT_NODE) return;
 
           if (node.matches(adLayoutSelector)) {
-            logger.debug("Youtube Provider: Ad ends!");
+            logger.child("subtitle").debug("Youtube Provider: Ad ends!");
             if (this.#setting.autoTranslate) {
               this.#playerUi.hideYtCaption();
             }
@@ -308,10 +1031,69 @@ export class YouTubeCaptionProvider {
       }
     });
 
+    this.#adObserver?.disconnect();
+    this.#adObserver = observer;
     observer.observe(adContainer, {
       childList: true,
       subtree: true,
     });
+  }
+
+  #terminologySources() {
+    return [
+      this.#setting,
+      this.#setting.apiSetting,
+      this.#setting.transApis?.find(
+        (api) => api.apiSlug === this.#setting.segSlug
+      ),
+    ].filter(Boolean);
+  }
+
+  #invalidateTerminology() {
+    this.#terminologyLoading = null;
+    this.#setting.terminologyTables = undefined;
+  }
+
+  async #prepareTerminology() {
+    if (this.#setting.terminologyTables) return true;
+    if (!this.#terminologyLoading) {
+      const sources = this.#terminologySources();
+      this.#terminologyLoading = sources.some(
+        (source) => source.termsList?.length
+      )
+        ? loadTerminologySnapshot(sources)
+        : Promise.resolve([]);
+    }
+    const pending = this.#terminologyLoading;
+    let tables;
+    try {
+      tables = await pending;
+    } catch (error) {
+      if (this.#disposed || pending !== this.#terminologyLoading) return false;
+      this.#terminologyLoading = null;
+      throw error;
+    }
+    if (this.#disposed || pending !== this.#terminologyLoading) return false;
+    this.#setting.terminologyTables = tables;
+    return true;
+  }
+
+  async #restartWithTerminology(previousApiSlug = null) {
+    const version = ++this.#processingVersion;
+    this.#subtitleAbortController?.abort();
+    const restartAsr =
+      !!this.#asr &&
+      (this.#asr.active || (this.#asrWanted && !this.#asrDisabled));
+    const stopping = restartAsr ? this.#asr.stop() : undefined;
+    try {
+      const [ready] = await Promise.all([this.#prepareTerminology(), stopping]);
+      if (!ready || this.#isStaleProcessing(version)) return;
+      if (restartAsr) {
+        if (this.#setting.autoTranslate && !this.#asrDisabled) this.#startAsr();
+      } else this.#reProcessEvents({ previousApiSlug });
+    } catch (error) {
+      logger.child("subtitle").warn("Unable to load terminology", error);
+    }
   }
 
   /**
@@ -325,6 +1107,16 @@ export class YouTubeCaptionProvider {
    */
   updateSetting({ name, value }) {
     if (this.#setting[name] === value) return;
+    if (
+      [
+        "apiSlug",
+        "toLang",
+        "segSlug",
+        "forceSubtitleRetranslate",
+        "aiContextSlug",
+      ].includes(name)
+    )
+      this.#nativeCaptionSnapshot = null;
 
     if (name === "apiSlug") {
       const apiSetting = this.#setting.transApis?.find(
@@ -333,20 +1125,60 @@ export class YouTubeCaptionProvider {
       if (!apiSetting) return;
 
       const previousApiSlug = this.#setting.apiSlug;
-      logger.debug("Youtube Provider: update setting", name, value);
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: update setting", name, value);
       this.#setting.apiSlug = value;
       this.#setting.apiSetting = apiSetting;
+      clearTimeout(this.#termsUpdateTimer);
+      this.#termsUpdateTimer = null;
+      this.#invalidateTerminology();
       this.#hasRuntimeApiOverride = true;
       this.#playerUi.updateMenuProps();
 
-      this.#reProcessEvents({ previousApiSlug });
+      void this.#restartWithTerminology(previousApiSlug);
       return;
     }
 
-    logger.debug("Youtube Provider: update setting", name, value);
+    if (name === "termsList") {
+      this.#setting.termsList = value;
+      this.#invalidateTerminology();
+      this.#hasRuntimeApiOverride = true;
+      this.#playerUi.updateMenuProps();
+      clearTimeout(this.#termsUpdateTimer);
+      this.#termsUpdateTimer = setTimeout(() => {
+        this.#termsUpdateTimer = null;
+        logger
+          .child("subtitle")
+          .debug("Youtube Provider: update temporary termsList", value);
+        this.#nativeCaptionSnapshot = null;
+        void this.#restartWithTerminology();
+      }, 600);
+      return;
+    }
+
+    logger
+      .child("subtitle")
+      .debug("Youtube Provider: update setting", name, value);
     this.#setting[name] = value;
 
     this.#playerUi.updateMenuProps();
+
+    if (name === "segSlug") {
+      clearTimeout(this.#termsUpdateTimer);
+      this.#termsUpdateTimer = null;
+      this.#invalidateTerminology();
+      void this.#restartWithTerminology();
+      return;
+    }
+
+    if (
+      this.#asr?.active &&
+      ["forceSubtitleRetranslate", "aiContextSlug"].includes(name)
+    ) {
+      void this.#asr.restart();
+      return;
+    }
 
     if (
       name === "isBilingual" ||
@@ -354,7 +1186,7 @@ export class YouTubeCaptionProvider {
       name === "displayOrder"
     ) {
       this.#managerInstance?.updateSetting({ [name]: value });
-    } else if (name === "segSlug" || name === "forceSubtitleRetranslate") {
+    } else if (name === "forceSubtitleRetranslate") {
       this.#reProcessEvents();
     } else if (name === "autoTranslate") {
       this.#toggleTranslation();
@@ -381,6 +1213,13 @@ export class YouTubeCaptionProvider {
    */
   #toggleTranslation() {
     if (!this.#setting.autoTranslate) {
+      this.#asrWanted = this.#asrWanted || !!this.#asr?.active;
+      void this.#asr?.stop();
+      this.#playerUi.resetTaskFeedback();
+      this.#acquisitionVersion++;
+      this.#acquirer?.cancel();
+      this.#bridge?.clear();
+      this.#acquisitionState = { ...this.#acquisitionState, phase: "off" };
       if (this.#flatEvents.length) {
         this.#processingVersion += 1;
         this.#subtitleAbortController?.abort();
@@ -393,8 +1232,16 @@ export class YouTubeCaptionProvider {
       }
       this.#destroyManager();
     } else {
-      this.#translateCachedEvents();
+      this.#ccBlocked = false;
+      this.#acquisitionState = {
+        phase: "idle",
+        cooldownUntil: this.#captionCooldownUntil,
+      };
+      this.#processingId = null;
+      if (this.#asrWanted && !this.#asrDisabled) this.#startAsr();
+      else void this.#acquire();
     }
+    this.#playerUi.updateMenuProps();
   }
 
   /**
@@ -439,7 +1286,9 @@ export class YouTubeCaptionProvider {
    */
   downloadSubtitle() {
     if (!this.#subtitles.length) {
-      logger.debug("Youtube Provider: The subtitle is not yet ready.");
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: The subtitle is not yet ready.");
       return;
     }
 
@@ -450,7 +1299,9 @@ export class YouTubeCaptionProvider {
         `kiss-subtitles-${this.#videoId}_${Date.now()}.vtt`
       );
     } catch (error) {
-      logger.info("Youtube Provider: download subtitles:", error);
+      logger
+        .child("subtitle")
+        .info("Youtube Provider: download subtitles:", error);
     }
   }
 
@@ -470,13 +1321,37 @@ export class YouTubeCaptionProvider {
       blurTranslation,
       autoTranslate,
       aiContextSlug,
+      termsList = [],
     } = this.#setting;
     return {
       i18n: this.#i18n,
+      asr: youtubeAsrSupported
+        ? {
+            ...this.#asrState,
+            available: !!this.#asr?.service(),
+            active: !!this.#asr?.active,
+          }
+        : null,
+      asrActions: youtubeAsrSupported && this.#asr ? this.#asrActions() : null,
       updateSetting: this.updateSetting.bind(this),
       downloadSubtitle: this.downloadSubtitle.bind(this),
+      acquisition: this.#setting.autoTranslate
+        ? { ...this.#acquisitionState }
+        : { phase: "off" },
+      translationError: this.#translationError,
+      retryAcquisition: () =>
+        this.#acquire({ enableCc: this.#ccBlocked, refresh: true }),
+      retryTranslation: () => {
+        this.#translationError = false;
+        if (this.#managerInstance && this.#subtitles.length)
+          this.#managerInstance.retryFailedTranslations?.();
+        else this.#reProcessEvents();
+        this.#playerUi.updateMenuProps();
+      },
+      canDownload: this.#subtitles.length > 0,
       transApis,
       progressed: this.#progressedNum,
+      terminologyDirectory: this.#terminologyDirectory,
       formData: {
         apiSlug,
         segSlug,
@@ -485,6 +1360,7 @@ export class YouTubeCaptionProvider {
         blurTranslation,
         autoTranslate,
         aiContextSlug,
+        termsList,
       },
     };
   }
@@ -509,36 +1385,28 @@ export class YouTubeCaptionProvider {
    * @param {string} responseText 被拦截请求的响应文本。
    * @returns {Promise<void>}
    */
-  async #handleInterceptedRequest(url, responseText) {
-    const videoId = this.#videoId;
-    if (!videoId) {
-      logger.debug("Youtube Provider: videoId not found.");
-      return;
-    }
-
-    const potUrl = new URL(url);
-    if (videoId !== potUrl.searchParams.get("v")) {
-      logger.debug("Youtube Provider: skip other timedtext:", videoId);
-      return;
-    }
-
-    const lang = potUrl.searchParams.get("lang");
-    if (!lang) {
-      logger.debug("Youtube Provider: timedtext lang not found:", url);
-      return;
-    }
-
-    const interceptedKind = potUrl.searchParams.get("kind") || null;
-    const trackKey = buildTrackKey(potUrl);
-    const fromLang = getFromLang(lang);
-
-    if (this.#flatEvents.length && trackKey === this.#activeTrackKey) {
-      logger.debug("Youtube Provider: track was processed:", trackKey);
+  async #handleAcquiredCaption(
+    { videoId, track, events, fullDescription },
+    cachedBilingual
+  ) {
+    if (videoId !== this.#videoId) return;
+    const trackKey = captionTrackId(track);
+    const fromLang = getFromLang(track.languageCode);
+    if (
+      this.#flatEvents.length &&
+      trackKey === this.#activeTrackKey &&
+      this.#managerInstance
+    ) {
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: track was processed:", trackKey);
       return;
     }
 
     if (this.#processingId === trackKey) {
-      logger.debug("Youtube Provider: track is processing:", trackKey);
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: track is processing:", trackKey);
       return;
     }
 
@@ -561,45 +1429,25 @@ export class YouTubeCaptionProvider {
     }
 
     try {
-      this.#playerUi.showNotification(
-        this.#i18n("starting_to_process_subtitle")
-      );
-
       const { toLang } = this.#setting;
-      const { captionTracks, fullDescription } =
-        await getCaptionTracks(videoId);
-      if (this.#isStaleProcessing(processingVersion)) return;
-
       this.#fullDescription = fullDescription || "";
-      const captionTrack = findCaptionTrack(
-        captionTracks,
-        lang,
-        interceptedKind
-      );
-      if (!captionTrack) {
-        logger.debug("Youtube Provider: CaptionTrack not found:", videoId);
-        return;
-      }
-      if (!captionTrack.baseUrl.startsWith("https")) {
-        captionTrack.baseUrl = window.location.origin + captionTrack.baseUrl;
-      }
-      const capUrl = new URL(captionTrack.baseUrl);
-      const events = await getSubtitleEvents(capUrl, potUrl, responseText);
-      if (this.#isStaleProcessing(processingVersion)) return;
-
-      if (!events?.length) {
-        logger.debug("Youtube Provider: events not got:", videoId);
-        return;
-      }
       this.#rawSubtitleEvents = events;
+      this.#subtitleListManager?.updateRawSubtitleEvents?.(events);
 
-      logger.debug(
-        `Youtube Provider: lang: ${lang}, fromLang: ${fromLang}, toLang: ${toLang}`
-      );
+      logger
+        .child("subtitle")
+        .debug(
+          "Youtube Provider: subtitle language:",
+          fromLang,
+          "target:",
+          toLang
+        );
       if (
         isSameLang(fromLang, toLang, this.#setting.translateVariants ?? true)
       ) {
-        logger.debug("Youtube Provider: skip same lang", fromLang, toLang);
+        logger
+          .child("subtitle")
+          .debug("Youtube Provider: skip same lang", fromLang, toLang);
         this.#playerUi.showNotification(this.#i18n("subtitle_same_lang"));
         return;
       }
@@ -609,7 +1457,9 @@ export class YouTubeCaptionProvider {
         fromLang
       );
       if (!flatEvents?.length) {
-        logger.debug("Youtube Provider: flatEvents not got:", videoId);
+        logger
+          .child("subtitle")
+          .debug("Youtube Provider: flatEvents not got:", videoId);
         return;
       }
       if (this.#isStaleProcessing(processingVersion)) return;
@@ -623,10 +1473,56 @@ export class YouTubeCaptionProvider {
         this.#playerUi.updateMenuProps();
         return;
       }
-      await this.#enrichDocInfoWithAI(flatEvents, processingVersion);
+      if (
+        !(await this.#prepareTerminology()) ||
+        this.#isStaleProcessing(processingVersion)
+      )
+        return;
+      const [segmentationSignature, translationSignature] = await Promise.all([
+        captionSegmentationSignature(this.#setting),
+        captionTranslationSignature(this.#setting),
+      ]).catch(() => [null, null]);
+      if (this.#isStaleProcessing(processingVersion)) return;
+      this.#captionFinalCues.clear();
+      this.#captionContextPromise = null;
+      this.#captionCacheContext = {
+        videoId,
+        track,
+        events,
+        fullDescription,
+        segmentationSignature,
+        translationSignature,
+        complete: false,
+        generation: this.#captionCacheGeneration,
+      };
+      if (
+        segmentationSignature &&
+        cachedBilingual?.segmentationSignature === segmentationSignature
+      ) {
+        const sameTranslation =
+          cachedBilingual.translationSignature === translationSignature;
+        for (const cue of cachedBilingual.cues || []) {
+          const restored = {
+            ...cue,
+            translation: sameTranslation ? cue.translation : "",
+          };
+          this.#captionFinalCues.set(captionCueKey(cue), restored);
+        }
+        this.#captionCacheContext.complete = cachedBilingual.complete === true;
+        this.#appendProcessedSubtitles(
+          [...this.#captionFinalCues.values()],
+          cachedBilingual.complete ? 100 : 0
+        );
+        if (cachedBilingual.complete) {
+          this.#persistCaptionCache();
+          return;
+        }
+      }
+      this.#persistCaptionCache(true);
+      await this.#ensureCaptionContext(processingVersion);
       if (this.#isStaleProcessing(processingVersion)) return;
 
-      this.#processEvents({
+      await this.#processEvents({
         videoId,
         flatEvents,
         fromLang,
@@ -634,8 +1530,16 @@ export class YouTubeCaptionProvider {
         signal: this.#subtitleAbortController.signal,
       });
     } catch (error) {
-      logger.warn("Youtube Provider: handle subtitle", error);
-      this.#playerUi.showNotification(this.#i18n("subtitle_load_failed"));
+      this.#translationError = true;
+      this.#playerUi.updateMenuProps();
+      logger
+        .child("subtitle")
+        .warn("Youtube Provider: subtitle processing failed");
+      this.#playerUi.notifyOnce(
+        "translation-error",
+        this.#i18n("subtitle_load_failed"),
+        true
+      );
     } finally {
       if (
         !this.#isStaleProcessing(processingVersion) &&
@@ -667,6 +1571,42 @@ export class YouTubeCaptionProvider {
     signal,
   }) {
     try {
+      if (
+        !(await this.#prepareTerminology()) ||
+        this.#isStaleProcessing(processingVersion)
+      )
+        return;
+      if (this.#captionCacheContext) {
+        const [segmentationSignature, translationSignature] = await Promise.all(
+          [
+            captionSegmentationSignature(this.#setting),
+            captionTranslationSignature(this.#setting),
+          ]
+        ).catch(() => [null, null]);
+        if (this.#isStaleProcessing(processingVersion)) return;
+        const context = this.#captionCacheContext;
+        if (context.segmentationSignature !== segmentationSignature) {
+          this.#captionFinalCues.clear();
+          context.complete = false;
+        } else if (context.translationSignature !== translationSignature) {
+          for (const cue of this.#captionFinalCues.values())
+            cue.translation = "";
+          context.complete = false;
+        }
+        this.#captionCacheContext = {
+          ...context,
+          segmentationSignature,
+          translationSignature,
+        };
+        if (context.complete) {
+          this.#appendProcessedSubtitles(
+            [...this.#captionFinalCues.values()],
+            100
+          );
+          this.#persistCaptionCache();
+          return;
+        }
+      }
       const processingSetting = this.#hasRuntimeApiOverride
         ? { ...this.#setting, forceSubtitleRetranslate: true }
         : this.#setting;
@@ -690,7 +1630,12 @@ export class YouTubeCaptionProvider {
               longSentenceThreshold: this.#setting.longSentenceThreshold,
             }),
           onAppendSubtitles: ({ subtitles, progressed }) => {
-            this.#appendProcessedSubtitles(subtitles, progressed);
+            if (!this.#isStaleProcessing(processingVersion))
+              this.#appendProcessedSubtitles(subtitles, progressed);
+          },
+          onChunkComplete: (chunk) => {
+            if (!this.#isStaleProcessing(processingVersion))
+              this.#recordCaptionChunk(chunk);
           },
           getCurrentVideoId: () => this.#videoId,
           signal,
@@ -707,33 +1652,151 @@ export class YouTubeCaptionProvider {
       }
 
       if (!subtitles?.length && !this.#subtitles.length) {
-        logger.debug(
-          "Youtube Provider: events to subtitles got empty",
-          videoId
-        );
+        logger
+          .child("subtitle")
+          .debug("Youtube Provider: events to subtitles got empty", videoId);
         return;
       }
 
       if (videoId !== this.#videoId) {
-        logger.debug(
-          "Youtube Provider: videoId changed!",
-          videoId,
-          this.#videoId
-        );
+        logger
+          .child("subtitle")
+          .debug("Youtube Provider: videoId changed!", videoId, this.#videoId);
         return;
       }
 
-      const managedSubtitles = this.#upsertProcessedSubtitles(
-        subtitles,
-        progressed
-      );
-      this.#startManager();
-      this.#managerInstance?.repairChunkTranslations(managedSubtitles);
+      this.#appendProcessedSubtitles(subtitles, progressed);
+      if (!aiChunkScheduler)
+        this.#recordCaptionChunk({
+          subtitles,
+          progressed,
+          start: 0,
+          end: Infinity,
+        });
     } catch (error) {
       if (error?.name === "AbortError") return;
-      logger.info("Youtube Provider: process events", error);
-      this.#playerUi.showNotification(this.#i18n("subtitle_load_failed"));
+      this.#translationError = true;
+      this.#playerUi.updateMenuProps();
+      logger
+        .child("subtitle")
+        .warn("Youtube Provider: subtitle processing failed");
+      this.#playerUi.notifyOnce(
+        "translation-error",
+        this.#i18n("subtitle_load_failed"),
+        true
+      );
     }
+  }
+
+  #ensureCaptionContext(processingVersion) {
+    if (this.#docInfo.summary) return Promise.resolve();
+    if (!this.#captionContextPromise) {
+      this.#captionContextPromise = this.#enrichDocInfoWithAI(
+        this.#flatEvents,
+        processingVersion
+      );
+    }
+    return this.#captionContextPromise;
+  }
+
+  // Only finalized source chunks and successful translations enter this map.
+  #recordCaptionChunk({ subtitles, progressed, start, end }) {
+    if (!this.#captionCacheContext) return;
+    const previous = new Map(this.#captionFinalCues);
+    const rendered = new Map(
+      this.#subtitles.map((cue) => [captionCueKey(cue), cue])
+    );
+    for (const [key, cue] of this.#captionFinalCues) {
+      if (cue.start < end && cue.end > start)
+        this.#captionFinalCues.delete(key);
+    }
+    for (const cue of subtitles || []) {
+      const key = captionCueKey(cue);
+      const current = rendered.get(key);
+      const translation =
+        previous.get(key)?.translation ||
+        current?._finalTranslation ||
+        (!cue._isDraftTranslation ? cue.translation : "") ||
+        "";
+      this.#captionFinalCues.set(key, {
+        start: cue.start,
+        end: cue.end,
+        text: cue.text,
+        translation,
+      });
+    }
+    // Remove superseded structure, retaining identical cues with in-flight translations.
+    const finalKeys = new Set((subtitles || []).map(captionCueKey));
+    for (let i = this.#subtitles.length - 1; i >= 0; i--) {
+      if (
+        this.#subtitles[i].start < end &&
+        this.#subtitles[i].end > start &&
+        !finalKeys.has(captionCueKey(this.#subtitles[i]))
+      )
+        this.#subtitles.splice(i, 1);
+    }
+    this.#captionCacheContext.complete = progressed === 100;
+    this.#appendProcessedSubtitles(
+      (subtitles || []).map((cue) => ({
+        ...cue,
+        translation:
+          this.#captionFinalCues.get(captionCueKey(cue))?.translation ||
+          cue.translation ||
+          "",
+      })),
+      progressed
+    );
+    this.#persistCaptionCache();
+  }
+
+  #persistCaptionCache(immediate = false) {
+    if (window.location.pathname.startsWith("/shorts/")) return;
+    const context = this.#captionCacheContext;
+    if (
+      !context ||
+      context.videoId !== this.#videoId ||
+      context.generation === null ||
+      !context.segmentationSignature ||
+      !context.translationSignature ||
+      this.#disposed ||
+      (this.#setting.captionCacheLimit ?? 100) === 0
+    )
+      return;
+    const write = () => {
+      this.#captionCacheTimer = null;
+      if (window.location.pathname.startsWith("/shorts/")) return;
+      const latest = this.#captionCacheContext;
+      if (
+        !latest ||
+        latest.videoId !== this.#videoId ||
+        this.#disposed ||
+        (this.#setting.captionCacheLimit ?? 100) === 0
+      )
+        return;
+      const {
+        generation,
+        segmentationSignature,
+        translationSignature,
+        complete,
+        ...entry
+      } = latest;
+      if (this.#captionFinalCues.size)
+        entry.bilingual = {
+          segmentationSignature,
+          translationSignature,
+          complete,
+          toLang: this.#setting.toLang,
+          cues: [...this.#captionFinalCues.values()].sort(
+            (a, b) => a.start - b.start
+          ),
+        };
+      void captionCacheRequest("put", { entry, generation }).catch(() => {});
+    };
+    if (immediate) {
+      clearTimeout(this.#captionCacheTimer);
+      write();
+    } else if (!this.#captionCacheTimer)
+      this.#captionCacheTimer = setTimeout(write, 1000);
   }
 
   /**
@@ -759,8 +1822,10 @@ export class YouTubeCaptionProvider {
       const key = `${subtitle.start}:${subtitle.end}`;
       const index = existed.get(key);
       if (index !== undefined) {
-        // 完整 chunk 回来时用最终结果覆盖同一时间轴句子，保留数组引用给 manager/list 使用。
-        this.#subtitles[index] = { ...this.#subtitles[index], ...subtitle };
+        // Keep the same cue object while its translation request is in flight.
+        if (this.#subtitles[index].text === subtitle.text)
+          Object.assign(this.#subtitles[index], subtitle);
+        else this.#subtitles[index] = subtitle;
         changed.push(this.#subtitles[index]);
       } else {
         existed.set(key, this.#subtitles.length);
@@ -783,6 +1848,15 @@ export class YouTubeCaptionProvider {
    * @returns {void}
    */
   #appendProcessedSubtitles(subtitles, progressed) {
+    if (!this.#asr?.active)
+      subtitles = subtitles?.map((cue) => {
+        const translation = this.#captionFinalCues.get(
+          captionCueKey(cue)
+        )?.translation;
+        return translation
+          ? { ...cue, translation, _isDraftTranslation: false }
+          : cue;
+      });
     const managedSubtitles = this.#upsertProcessedSubtitles(
       subtitles,
       progressed
@@ -834,6 +1908,7 @@ export class YouTubeCaptionProvider {
     }
     clearMsgHistory(this.#setting.apiSlug);
 
+    this.#captionContextPromise = null;
     this.#processEvents({
       videoId,
       flatEvents,
@@ -894,7 +1969,9 @@ export class YouTubeCaptionProvider {
         docInfo.summary = summary;
       }
     } catch (err) {
-      logger.info("Youtube Provider: AI context enrichment failed", err);
+      logger
+        .child("subtitle")
+        .warn("Youtube Provider: AI context enrichment failed", err);
     }
   }
 
@@ -921,7 +1998,8 @@ export class YouTubeCaptionProvider {
     this.#destroyManager();
     clearMsgHistory(this.#setting.apiSlug);
     this.#docInfo = getDocInfo();
-    await this.#enrichDocInfoWithAI(flatEvents, processingVersion);
+    this.#captionContextPromise = null;
+    await this.#ensureCaptionContext(processingVersion);
     if (this.#isStaleProcessing(processingVersion)) return;
     this.#processEvents({
       videoId,
@@ -951,7 +2029,10 @@ export class YouTubeCaptionProvider {
    * @returns {void}
    */
   #startManager() {
-    if (!this.#isYtSubtitleEnabled()) {
+    if (
+      !this.#asr?.active &&
+      (this.#ccBlocked || !this.#isYtSubtitleEnabled())
+    ) {
       return;
     }
 
@@ -963,83 +2044,129 @@ export class YouTubeCaptionProvider {
       return;
     }
 
-    if (!this.#subtitles.length) {
-      this.#playerUi.showNotification(this.#i18n("waitting_for_subtitle"));
-      return;
-    }
+    if (!this.#subtitles.length) return;
 
     const videoEl = this.#videoEl;
     if (!videoEl) {
-      logger.warn("Youtube Provider: No video element found");
+      logger
+        .child("subtitle")
+        .debug("Youtube Provider: No video element found");
       return;
     }
 
-    logger.info("Youtube Provider: Starting manager...");
+    logger.child("subtitle").debug("Youtube Provider: Starting manager...");
 
+    const processingVersion = this.#processingVersion;
     this.#managerInstance = new BilingualSubtitleManager({
       videoEl,
       formattedSubtitles: this.#subtitles,
       setting: {
         ...this.#setting,
+        managedTranslations: !!this.#asr?.active,
+        ...(this.#asr?.active && {
+          toLang: this.#asrState.translationLanguage || this.#setting.toLang,
+        }),
         fromLang: this.#fromLang,
         docInfo: this.#docInfo,
+        beforeTranslate: () => this.#ensureCaptionContext(processingVersion),
+        onTranslationComplete: (cue) => {
+          if (this.#asr?.active || this.#isStaleProcessing(processingVersion))
+            return;
+          const key = captionCueKey(cue);
+          if (!this.#captionFinalCues.has(key)) return;
+          this.#captionFinalCues.set(key, cue);
+          this.#persistCaptionCache();
+        },
         // 由渲染管理器按 timeupdate/seeked 上报播放窗口，provider 再决定是否触发后续 AI chunk。
+        onTranslationError: () => {
+          this.#translationError = true;
+          this.#playerUi.updateMenuProps();
+        },
         onSubtitleTimeWindow: ({ currentTimeMs, preTrans }) =>
           this.#scheduleAiChunks(currentTimeMs, preTrans),
       },
     });
 
-    const showList = isSubtitleModeEnabled(
-      this.#setting.showList,
-      this.#setting.enhanceMode
-    );
-
-    if (showList && !this.#subtitleListManager) {
-      this.#subtitleListManager = new YouTubeSubtitleList(videoEl, this.#i18n, {
-        enableHoverLookup: isSubtitleModeEnabled(
-          this.#setting.hoverLookupMode,
-          this.#setting.enhanceMode
-        ),
-        autoFavWord: this.#setting.autoFavWord === true,
-        getSummaryConfig: () => ({
-          summaryApiSlug: this.#setting.summaryApiSlug,
-          summaryPromptSlug: this.#setting.summaryPromptSlug,
-          to: this.#setting.toLang || this.#setting.to || "zh-CN",
-          transApis: this.#setting.transApis || [],
-          prompts: this.#setting.prompts || [],
-        }),
-        getVideoMetadata: () => ({
-          videoId: this.#videoId,
-          title: this.#docInfo?.title || document.title,
-          description:
-            this.#fullDescription || this.#docInfo?.description || "",
-          transcript:
-            this.#flatEvents
-              ?.map((e) => e.text)
-              .filter(Boolean)
-              .join(" ") ||
-            this.#subtitles
-              ?.map((s) => s.text)
-              .filter(Boolean)
-              .join(" "),
-        }),
-      });
-      this.#subtitleListManager.initialize(
-        this.#subtitles,
-        this.#rawSubtitleEvents,
-        this.#progressed
-      );
-
-      this.#managerInstance.onSubtitleUpdate = (subtitleUpdate) => {
-        this.#subtitleListManager.updateSingleSubtitle(subtitleUpdate);
-      };
-
-      this.#subtitleListManager.turnOnAutoSub();
-    }
+    this.#ensureSubtitleList();
+    if (this.#subtitleListManager)
+      this.#managerInstance.onSubtitleUpdate = (update) =>
+        this.#subtitleListManager?.updateSingleSubtitle(update);
 
     this.#managerInstance.start();
-    this.#playerUi.showNotification(this.#i18n("subtitle_load_succeed"));
+
     this.#playerUi.hideYtCaption();
+  }
+
+  #ensureSubtitleList(forceAsr = false) {
+    const videoEl = this.#videoEl;
+    if (
+      !videoEl ||
+      this.#subtitleListManager ||
+      this.#asrPanelClosed ||
+      !this.#setting.autoTranslate
+    )
+      return;
+    if (
+      !forceAsr &&
+      !this.#asr?.active &&
+      !isSubtitleModeEnabled(this.#setting.showList, this.#setting.enhanceMode)
+    )
+      return;
+    this.#subtitleListManager = new YouTubeSubtitleList(videoEl, this.#i18n, {
+      asrActions: youtubeAsrSupported ? this.#asrActions() : null,
+      retryCaptions: () =>
+        this.#acquire({ enableCc: this.#ccBlocked, refresh: true }),
+      onClose: () => {
+        this.#asrPanelClosed = true;
+        this.#subtitleListManager = null;
+      },
+      enableHoverLookup: isSubtitleModeEnabled(
+        this.#setting.hoverLookupMode,
+        this.#setting.enhanceMode
+      ),
+      autoFavWord: this.#setting.autoFavWord === true,
+      hoverLookupCloseDelay: this.#setting.hoverLookupCloseDelay,
+      getSummaryConfig: () => ({
+        summaryApiSlug: this.#setting.summaryApiSlug,
+        summaryPromptSlug: this.#setting.summaryPromptSlug,
+        to: this.#setting.toLang || this.#setting.to || "zh-CN",
+        transApis: this.#setting.transApis || [],
+        prompts: this.#setting.prompts || [],
+      }),
+      getVideoMetadata: () => ({
+        videoId: this.#videoId,
+        title: this.#docInfo?.title || document.title,
+        description: this.#fullDescription || this.#docInfo?.description || "",
+        transcript:
+          this.#flatEvents
+            ?.map((e) => e.text)
+            .filter(Boolean)
+            .join(" ") ||
+          this.#subtitles
+            ?.map((s) => s.text)
+            .filter(Boolean)
+            .join(" "),
+      }),
+    });
+    this.#subtitleListManager.updateAsrState({
+      ...this.#asrState,
+      active: !!this.#asr?.active,
+      available: !!this.#asr?.service(),
+    });
+    this.#subtitleListManager.initialize(
+      this.#subtitles,
+      this.#rawSubtitleEvents,
+      this.#progressed
+    );
+    if (forceAsr || this.#asr?.active) {
+      this.#subtitleListManager.updateAsrTasks({
+        reset: true,
+        tasks: this.#asr?.tasks?.snapshot() || [],
+      });
+    }
+
+    this.#subtitleListManager.updateCaptionState?.(this.#acquisitionState);
+    this.#subtitleListManager.turnOnAutoSub();
   }
 
   /**
@@ -1048,20 +2175,22 @@ export class YouTubeCaptionProvider {
    * @private
    * @returns {void}
    */
-  #destroyManager() {
+  #destroyManager({ destroyList = false } = {}) {
     this.#playerUi.showYtCaption();
 
-    if (!this.#managerInstance) {
-      return;
+    if (this.#managerInstance) {
+      this.#managerInstance.onSubtitleUpdate = null;
+      this.#managerInstance.destroy();
+      this.#managerInstance = null;
     }
 
-    logger.info("Youtube Provider: Destroying manager...");
-
-    this.#managerInstance.onSubtitleUpdate = null;
-    this.#managerInstance.destroy();
-    this.#managerInstance = null;
-
-    if (this.#subtitleListManager) {
+    if (
+      this.#subtitleListManager &&
+      (destroyList ||
+        !this.#setting.autoTranslate ||
+        this.#ccBlocked ||
+        !this.#subtitleListManager.asrActions)
+    ) {
       this.#subtitleListManager.destroy();
       this.#subtitleListManager = null;
     }
@@ -1084,7 +2213,9 @@ export const YouTubeInitializer = (() => {
     }
     initialized = true;
 
-    logger.info("Bilingual Subtitle Extension: Initializing...");
+    logger
+      .child("subtitle")
+      .debug("Bilingual Subtitle Extension: Initializing...");
     const provider = new YouTubeCaptionProvider(setting);
     provider.initialize();
   };

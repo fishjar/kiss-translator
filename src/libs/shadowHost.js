@@ -221,22 +221,7 @@ function restoreFocusState(host, snapshot) {
 
 function moveShadowHost(host, root) {
   const snapshots = snapshotStyleRules(host);
-  let moved = false;
-  if (host.isConnected && typeof root.moveBefore === "function") {
-    try {
-      root.moveBefore(host, null);
-      moved = true;
-    } catch {
-      // Older implementations can reject a move between different roots.
-    }
-  }
-
-  if (moved) {
-    // Either move can replace CSSStyleSheet objects and erase insertRule data.
-    restoreStyleRules(host, snapshots);
-    return;
-  }
-
+  // Avoid Chromium renderer crashes caused by atomic moves and style updates.
   const focusState = snapshotFocusState(host);
   movingShadowHosts.add(host);
   try {

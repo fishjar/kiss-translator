@@ -1,5 +1,5 @@
 import { supportsTouch } from "../libs/touchCapability";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
@@ -16,10 +16,15 @@ import { useMouseHoverSetting } from "../hooks/MouseHover";
 import { useI18n } from "../hooks/I18n";
 import { SettingProvider } from "../hooks/Setting";
 import ThemeProvider from "../hooks/M3Theme";
+import { createMenuKeyDownHandler } from "../libs/menuFocus";
 
 function useTouchState(processActions) {
   const [state, setState] = useState(null);
   const [failed, setFailed] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [pending, setPending] = useState(false);
+  const pendingRef = useRef(false);
+  const { updateMouseHoverSetting } = useMouseHoverSetting();
   const dispatch = useCallback(
     async (action, args) => {
       try {
@@ -56,30 +61,56 @@ function useTouchState(processActions) {
     document.addEventListener(EVENT_KISS_INNER, update);
     return () => document.removeEventListener(EVENT_KISS_INNER, update);
   }, [dispatch]);
-  return { state, failed, dispatch };
-}
-
-function ConnectedTouchControl({ processActions, inlineFeedback = false }) {
-  const i18n = useI18n();
-  const { state, failed, dispatch } = useTouchState(processActions);
-  const { updateMouseHoverSetting } = useMouseHoverSetting();
-  const [pending, setPending] = useState(false);
   const change = async (mode) => {
+    if (pendingRef.current) return;
+    pendingRef.current = true;
     setPending(true);
+    setSaveFailed(false);
     try {
       const result = await dispatch(MSG_TOUCH_TRANSLATE_MODE_SET, { mode });
-      if (mode !== "off" && result?.mode === mode)
-        await updateMouseHoverSetting({ touchMode: mode });
+      if (result?.mode === mode) {
+        try {
+          await updateMouseHoverSetting({ touchMode: mode });
+        } catch {
+          setSaveFailed(true);
+        }
+      }
     } finally {
+      pendingRef.current = false;
       setPending(false);
     }
   };
+  return { state, failed, saveFailed, pending, change };
+}
+
+function ConnectedTouchControl({ processActions, inlineFeedback = false }) {
+  const fieldRef = useRef(null);
+  const navigateMenu = useMemo(
+    () => createMenuKeyDownHandler({ shadowOnly: true, disableListWrap: true }),
+    []
+  );
+  const i18n = useI18n();
+  const { state, failed, saveFailed, pending, change } =
+    useTouchState(processActions);
   if (!state || (!state.supported && state.mode === "off")) return null;
   return (
     <Stack spacing={1} sx={{ p: 1 }} data-kiss-touch-ui>
       <TextField
+        ref={fieldRef}
         SelectProps={{
-          MenuProps: { PaperProps: { "data-kiss-touch-ui": true } },
+          MenuProps: {
+            "data-kiss-touch-ui": true,
+            // Keep styles in the shadow tree, outside the draggable transform.
+            container: () =>
+              fieldRef.current?.closest(".kt-m3-root") ||
+              fieldRef.current?.ownerDocument.body,
+            disableScrollLock: true,
+            disableAutoFocus: true,
+            disableEnforceFocus: true,
+            MenuListProps: { onKeyDownCapture: navigateMenu },
+            sx: { zIndex: 2147483647 },
+            PaperProps: { "data-kiss-touch-ui": true },
+          },
         }}
         select
         size="small"
@@ -100,25 +131,29 @@ function ConnectedTouchControl({ processActions, inlineFeedback = false }) {
           {i18n(state.direction === "left" ? "touch_left" : "touch_right")}
         </MenuItem>
       </TextField>
-      {(failed || !state.supported || state.blocked) &&
+      {(failed || saveFailed || !state.supported || state.blocked) &&
         (inlineFeedback ? (
           <span role="status" className="kt-popup-action-error">
             {i18n(
-              failed
-                ? "touch_failed"
-                : state.blocked
-                  ? "touch_blocked"
-                  : "touch_unsupported"
+              saveFailed
+                ? "touch_save_failed"
+                : failed
+                  ? "touch_failed"
+                  : state.blocked
+                    ? "touch_blocked"
+                    : "touch_unsupported"
             )}
           </span>
         ) : (
           <Alert severity="info">
             {i18n(
-              failed
-                ? "touch_failed"
-                : state.blocked
-                  ? "touch_blocked"
-                  : "touch_unsupported"
+              saveFailed
+                ? "touch_save_failed"
+                : failed
+                  ? "touch_failed"
+                  : state.blocked
+                    ? "touch_blocked"
+                    : "touch_unsupported"
             )}
           </Alert>
         ))}
@@ -132,8 +167,9 @@ export default function TouchTranslateControl(props) {
 
 function Status({ processActions }) {
   const i18n = useI18n();
-  const { state, dispatch, failed } = useTouchState(processActions);
-  if (!state || state.mode === "off") return null;
+  const { state, change, failed, saveFailed, pending } =
+    useTouchState(processActions);
+  if (!state || (state.mode === "off" && !pending && !saveFailed)) return null;
   return (
     <Paper
       role="status"
@@ -154,22 +190,23 @@ function Status({ processActions }) {
       <Stack direction="row" alignItems="center" spacing={1}>
         <span>
           {i18n(
-            state.mode === "tap"
-              ? "touch_tap"
-              : state.direction === "left"
-                ? "touch_left"
-                : "touch_right"
+            state.mode === "off"
+              ? "touch_off"
+              : state.mode === "tap"
+                ? "touch_tap"
+                : state.direction === "left"
+                  ? "touch_left"
+                  : "touch_right"
           )}
         </span>
-        <Button
-          onClick={() =>
-            dispatch(MSG_TOUCH_TRANSLATE_MODE_SET, { mode: "off" })
-          }
-        >
+        <Button disabled={pending} onClick={() => change("off")}>
           {i18n("touch_exit")}
         </Button>
       </Stack>
       {failed && <Alert severity="error">{i18n("touch_failed")}</Alert>}
+      {saveFailed && (
+        <Alert severity="error">{i18n("touch_save_failed")}</Alert>
+      )}
     </Paper>
   );
 }

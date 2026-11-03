@@ -53,7 +53,7 @@ import {
 } from "../../config/fab";
 import { sendBgMsg } from "../../libs/msg";
 import { tryClearCaches } from "../../libs/cache";
-import { kissLog, LogLevel } from "../../libs/log";
+import { LogLevel, logger } from "../../libs/log";
 import UploadButton from "./UploadButton";
 import DownloadButton from "./DownloadButton";
 import ValidationInput from "../../hooks/ValidationInput";
@@ -88,7 +88,7 @@ export function ExtCommands() {
           }
         })
         .catch((err) => {
-          console.error("fetch commands error:", err);
+          logger.child("options").error("fetch commands error:", err);
         });
     }
   }, []);
@@ -271,7 +271,7 @@ export default function Settings() {
       const imported = JSON.parse(data);
       updateSetting({ ...imported, version: getSettingVersion(imported) });
     } catch (err) {
-      kissLog("import setting", err);
+      logger.child("options").error("import setting", err);
     }
   };
 
@@ -546,8 +546,31 @@ export default function Settings() {
                     {item}
                   </MenuItem>
                 ))}
-                {!OPT_LANGDETECTOR_ALL.includes(langDetector) && langDetector !== "-" && !(setting.transApis || []).some(api => api.apiSlug === langDetector && !api.isDisabled && isApiConfigured(api) && supportsApiCapability(api, "detectLanguage")) && <MenuItem value={langDetector}>{i18n("service_configured_unavailable")}</MenuItem>}
-                {(setting.transApis || []).filter(api => !api.isDisabled && isApiConfigured(api) && supportsApiCapability(api, "detectLanguage")).map(api => <MenuItem key={api.apiSlug} value={api.apiSlug}>{api.apiName}</MenuItem>)}
+                {!OPT_LANGDETECTOR_ALL.includes(langDetector) &&
+                  langDetector !== "-" &&
+                  !(setting.transApis || []).some(
+                    (api) =>
+                      api.apiSlug === langDetector &&
+                      !api.isDisabled &&
+                      isApiConfigured(api) &&
+                      supportsApiCapability(api, "detectLanguage")
+                  ) && (
+                    <MenuItem value={langDetector}>
+                      {i18n("service_configured_unavailable")}
+                    </MenuItem>
+                  )}
+                {(setting.transApis || [])
+                  .filter(
+                    (api) =>
+                      !api.isDisabled &&
+                      isApiConfigured(api) &&
+                      supportsApiCapability(api, "detectLanguage")
+                  )
+                  .map((api) => (
+                    <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                      {api.apiName}
+                    </MenuItem>
+                  ))}
               </TextField>
             </Grid>
             {/* Translate variants of the same language, such as Simplified and Traditional Chinese. */}
@@ -591,6 +614,7 @@ export default function Settings() {
                 name="logLevel"
                 value={logLevel}
                 label={i18n("log_level")}
+                helperText={i18n("diagnostics_console_hint")}
                 onChange={handleChange}
               >
                 {Object.values(LogLevel).map(({ value, name }) => (

@@ -3,8 +3,21 @@ import {
   isGeminiInteractionsUrl,
   normalizeGeminiModelName,
   GEMINI25_BUDGETS,
+  getThinkingCapability,
+  getGeminiThinkingEfforts,
+  rejectsOpenAISampling,
 } from "./thinkingCapabilities";
-import { OPT_TRANS_GEMINI_2 } from "../config/apiConstants";
+import {
+  OPT_TRANS_GEMINI_2,
+  OPT_TRANS_OPENAI,
+  OPT_TRANS_EPHONEAI,
+  OPT_TRANS_APIMART,
+  OPT_TRANS_ORCAROUTER,
+  OPT_TRANS_REQUESTY,
+  OPT_TRANS_OPENROUTER,
+  OPT_TRANS_XIAOMIMIMO,
+  OPT_TRANS_OPENCODEGO,
+} from "../config/apiConstants";
 
 // 原生协议适配：保持旧参数、字段和厂家差异，不加载用户脚本解释器。
 const siliconflowEffortMap = {
@@ -15,9 +28,17 @@ const siliconflowEffortMap = {
   minimal: 2048,
 };
 
-const applyDeepSeekThinking = (body, { thinkingMode, thinkingEffort }) => {
-  body.thinking = { type: thinkingMode };
-  if (thinkingMode === "enabled" && thinkingEffort) {
+const applyDeepSeekThinking = (
+  body,
+  { thinkingMode, thinkingEffort, capability }
+) => {
+  body.thinking = {
+    type: capability?.disable === null ? "enabled" : thinkingMode,
+  };
+  if (
+    (thinkingMode === "enabled" || capability?.disable === null) &&
+    thinkingEffort
+  ) {
     body.reasoning_effort = thinkingEffort;
   }
 };
@@ -37,6 +58,12 @@ const applyOpenAIThinking = (body, { thinkingEffort }) => {
   if (thinkingEffort !== null) body.reasoning_effort = thinkingEffort;
 };
 
+const applySiliconFlowEffort = (body, { thinkingMode, thinkingEffort }) => {
+  body.enable_thinking = thinkingMode === "enabled";
+  if (thinkingMode === "enabled" && thinkingEffort)
+    body.reasoning_effort = thinkingEffort;
+};
+
 const applyOpenRouterThinking = (body, { thinkingMode, thinkingEffort }) => {
   if (thinkingMode === "enabled" && thinkingEffort === null) {
     body.reasoning = { enabled: true };
@@ -45,12 +72,19 @@ const applyOpenRouterThinking = (body, { thinkingMode, thinkingEffort }) => {
   if (thinkingEffort !== null) body.reasoning = { effort: thinkingEffort };
 };
 
-const applyClaudeThinking = (body, { thinkingMode, thinkingEffort }) => {
+const applyClaudeThinking = (
+  body,
+  { thinkingMode, thinkingEffort, capability }
+) => {
   const usesMinimumEffort =
     thinkingMode === "disabled" && thinkingEffort !== null;
   body.thinking = {
     type:
-      thinkingMode === "enabled" || usesMinimumEffort ? "adaptive" : "disabled",
+      thinkingMode === "enabled" || usesMinimumEffort
+        ? "adaptive"
+        : capability?.disable === "between_tools"
+          ? "between_tools"
+          : "disabled",
   };
   if (thinkingEffort) body.output_config = { effort: thinkingEffort };
 };
@@ -60,13 +94,9 @@ const clampGeminiEffort = (model, effort) => {
     return effort;
   }
   const normalizedModel = normalizeGeminiModelName(model);
-  if (
-    normalizedModel.startsWith("gemini-3") &&
-    normalizedModel.includes("flash") &&
-    !normalizedModel.includes("flash-lite")
-  ) {
-    return "low";
-  }
+  const efforts = getGeminiThinkingEfforts({ model: normalizedModel });
+  if (efforts && !efforts.some((item) => item.value === effort))
+    return efforts[efforts.length - 1].value;
   return effort;
 };
 
@@ -113,6 +143,7 @@ const THINKING_ADAPTERS = {
   deepseek: applyDeepSeekThinking,
   boolean: applyBooleanThinking,
   siliconflow: applySiliconFlowThinking,
+  siliconflowEffort: applySiliconFlowEffort,
   openai: applyOpenAIThinking,
   openrouter: applyOpenRouterThinking,
   claude: applyClaudeThinking,
@@ -121,6 +152,30 @@ const THINKING_ADAPTERS = {
 
 const applyThinkingParameters = (body, options) => {
   const registration = THINKING_API_REGISTRY[options.apiType];
+  const effort =
+    options.thinkingMode === "auto" ? undefined : options.thinkingEffort;
+  if (
+    [
+      OPT_TRANS_OPENAI,
+      OPT_TRANS_EPHONEAI,
+      OPT_TRANS_APIMART,
+      OPT_TRANS_ORCAROUTER,
+      OPT_TRANS_REQUESTY,
+      OPT_TRANS_OPENROUTER,
+    ].includes(options.apiType) &&
+    rejectsOpenAISampling(options.model, effort)
+  ) {
+    for (const key of ["temperature", "top_p", "top_logprobs", "logprobs"])
+      delete body[key];
+  }
+  if (
+    [OPT_TRANS_XIAOMIMIMO, OPT_TRANS_OPENCODEGO].includes(options.apiType) &&
+    /^mimo-/.test(options.model) &&
+    options.thinkingMode !== "disabled"
+  ) {
+    delete body.temperature;
+    delete body.top_p;
+  }
   if (
     !registration ||
     options.thinkingMode === "auto" ||
@@ -130,7 +185,14 @@ const applyThinkingParameters = (body, options) => {
     return;
   }
 
-  THINKING_ADAPTERS[registration.adapter]?.(body, options);
+  const capability = getThinkingCapability(options);
+  if (!capability && options.apiType !== OPT_TRANS_OPENROUTER) return;
+  // Thinking-only Qwen models have no documented effort control. Do not invent one.
+  if (capability?.enable === "omit") return;
+  THINKING_ADAPTERS[capability?.adapter || registration.adapter]?.(body, {
+    ...options,
+    capability,
+  });
 };
 
 export {

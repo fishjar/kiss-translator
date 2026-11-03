@@ -1,3 +1,4 @@
+import { logger } from "../log";
 import * as fflate from "fflate";
 import { parseXml, normalizePath, safeDecodeURI } from "./epubParser";
 import { FILE_TRANSLATE_I18N } from "../../config/locales/fileTranslate";
@@ -269,7 +270,7 @@ export function updateNavDocument(navXml, titleMap, navDir = "") {
 
     const translatedTitle = rawHash
       ? titleMap.get(fullKeyWithHash)
-      : (titleMap.get(fullKeyWithHash) || titleMap.get(targetFullPath));
+      : titleMap.get(fullKeyWithHash) || titleMap.get(targetFullPath);
     if (translatedTitle && translatedTitle.trim()) {
       a.textContent = translatedTitle.trim();
       modified = true;
@@ -322,11 +323,10 @@ export function updateNcxDocument(ncxXml, titleMap, ncxDir = "") {
 
     const translatedTitle = rawHash
       ? titleMap.get(fullKeyWithHash)
-      : (titleMap.get(fullKeyWithHash) || titleMap.get(targetFullPath));
+      : titleMap.get(fullKeyWithHash) || titleMap.get(targetFullPath);
     if (translatedTitle && translatedTitle.trim()) {
       const labelEl = allChildren.find(
-        (el) =>
-          el.localName === "navLabel" || el.nodeName?.endsWith("navLabel")
+        (el) => el.localName === "navLabel" || el.nodeName?.endsWith("navLabel")
       );
       if (labelEl) {
         const textEl = Array.from(
@@ -467,7 +467,9 @@ export function extractTitleMapFromChapterStates(
           }
         });
       } catch (e) {
-        console.warn("从已翻译 NAV 提取目录标题映射失败:", e);
+        logger
+          .child("file-translate")
+          .warn("从已翻译 NAV 提取目录标题映射失败:", e);
       }
     }
   }

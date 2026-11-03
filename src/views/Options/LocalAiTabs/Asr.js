@@ -41,7 +41,7 @@ import { useI18n } from "../../../hooks/I18n";
 import LogViewer, { useLocalAiLog } from "./LogViewer";
 
 const ASR_MODELS = CATALOG.filter((m) => m.task === "asr");
-const DEFAULT_ASR_ID = "sensevoice-small";
+const DEFAULT_ASR_ID = "whisper-small-timestamped";
 const client = new AsrClient();
 
 function fmtTime(sec) {
@@ -555,9 +555,16 @@ export default function AsrTab() {
                   const selection = ++selectionRef.current;
                   void validateInputFile(f, "audio")
                     .then(() => {
-                      if (selection === selectionRef.current) { setFile(f); setError(null); setResult(null); }
+                      if (selection === selectionRef.current) {
+                        setFile(f);
+                        setError(null);
+                        setResult(null);
+                      }
                     })
-                    .catch((e) => { if (selection === selectionRef.current) setError(e.message); });
+                    .catch((e) => {
+                      if (selection === selectionRef.current)
+                        setError(e.message);
+                    });
                 }
                 e.target.value = "";
               }}
@@ -846,10 +853,7 @@ export default function AsrTab() {
           </CardContent>
         </Card>
       )}
-      <LogViewer
-        logs={logs}
-        onClear={clearLogs}
-      />
+      <LogViewer logs={logs} onClear={clearLogs} />
     </Stack>
   );
 }

@@ -45,12 +45,12 @@
 
 - **海量内置服务**：涵盖主流传统与 AI 翻译服务，包括 Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX，以及 OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、AtlasCloud、AzureAI、CloudflareAI，并支持 Chrome 浏览器内置 AI 与本地 AI。
 - **按能力自由选用**：按文本翻译、词典查词、字幕断句、OCR 识别、语音合成等能力独立配置服务与模型参数；根据模型能力无缝支持批量聚合翻译、流式输出、上下文记忆对话、AI 专业术语及思考链（Reasoning）配置。
-- **接口插件体系**：支持通过 ZIP 压缩包、本地文件夹、GitHub 项目根地址或 HTTPS 链接导入扩展插件；提供细粒度权限授权/撤销、手动更新及配置实例升级。
-- **开放自定义协议**：任意非标准 API 均可通过插件实现对接。详细开发指引请参阅 [插件开发指南](docs/plugins/plugin-development-guide.md)、[OpenAI 兼容示例](docs/plugins/examples/openai-compatible-bundle/README.md) 和 [DeepSeek 声明式示例](docs/plugins/examples/deepseek/README.md)。
+- **接口插件体系**：官方与外部插件分列表展示，点击联网安装；也可通过 ZIP、本地文件夹、GitHub 项目根地址或 HTTPS 链接导入。请求受声明的网络范围限制，支持手动更新及配置实例升级。
+- **开放自定义协议**：任意非标准 API 均可通过插件实现对接。详细开发指引请参阅 [插件开发指南](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)、[OpenAI 兼容协议插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) 和 [DeepSeek 插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)。
 
 ### 本地 AI（边缘端计算）
 
-- **全流程端侧多模态**：内置模型中心，支持模型的下载、删除与设备环境选择（GPU/CPU）；提供涵盖 LLM 文本生成、VLM 图像理解、OCR 文字识别、ASR 语音转写、TTS 语音合成、JEV 判定和版面分析的独立功能测试页。
+- **全流程端侧多模态**：内置模型中心，支持模型的下载、删除与设备环境选择（GPU/CPU）；提供涵盖 LLM 文本生成、VLM 图像理解、OCR 文字识别、ASR 语音识别、TTS 语音合成、JEV 判定和版面分析的独立功能测试页。
 - **运行控制与缓存**：支持实时查看运行状态与调试日志、手动停止推理任务、卸载内存/显存中的已加载模型；支持文本与结构化推理结果缓存（二进制音频/图片暂不缓存）。
 - **隐私与轻量纯离线**：模型下载完成后所有计算均在本机设备运行，保护数据隐私；云端服务保持原有网络请求逻辑。（可用性、推理速度与内存占用取决于具体硬件环境与模型大小）。
 
@@ -113,6 +113,7 @@
 
 ## 关联项目
 
+- **[kiss-translator-plugins](https://github.com/fishjar/kiss-translator-plugins)**：官方接口插件生态库，提供常用 AI/翻译服务插件、示例模板以及开发规范指引。
 - **[KISS-Worker](https://github.com/fishjar/kiss-worker)**：自建跨设备数据同步服务，支持 Cloudflare Workers 无服务器部署或 Docker 私有化部署，兼顾数据私密性与私有规则分享。
 - **[kiss-rules](https://github.com/fishjar/kiss-rules)**：社区维护的规则库，提供最新、最全的网站适配订阅规则，亦可交流和求助特定网站规则编写。
 
@@ -175,17 +176,35 @@
 
 ## 开发指引
 
-### 本地编译
+### 本地编译与调试
+
+**环境要求**：Node.js >= 20（推荐 Node 22/24），pnpm >= 9
 
 ```sh
+# 1. 克隆代码并切换至 dev 分支
 git clone https://github.com/fishjar/kiss-translator.git
 cd kiss-translator
 git checkout dev # 提交 PR 建议基于 dev 分支
+
+# 2. 安装依赖
 pnpm install
-pnpm build
+
+# 3. 常用开发与构建命令
+pnpm build:chrome      # 构建 Chrome/Edge 扩展（输出至 build/chrome）
+pnpm build:firefox     # 构建 Firefox 扩展（输出至 build/firefox）
+pnpm start             # 启动 Web 端本地开发调试（http://localhost:3000）
+pnpm check:pr          # 提交 PR 前代码格式化与构建自检
+pnpm build             # 全量打包构建所有平台
 ```
 
-插件开发请阅读 [插件开发指南](docs/plugins/plugin-development-guide.md)，并参考 [OpenAI 兼容示例](docs/plugins/examples/openai-compatible-bundle/README.md) 或 [DeepSeek 声明式示例](docs/plugins/examples/deepseek/README.md)。
+### 在浏览器中加载扩展（以 Chrome / Edge 为例）
+
+1. 打开浏览器并访问 `chrome://extensions`（Edge 访问 `edge://extensions`）。
+2. 开启页面右上角或侧栏的 **「开发者模式」**。
+3. 点击 **「加载已解压的扩展程序」**，选择项目根目录下的 `build/chrome` 目录。
+4. 修改代码后重新执行 `pnpm build:chrome`，并在扩展管理页点击对应卡片的刷新按钮即可生效。
+
+插件开发请阅读 [插件开发指南](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)，并参考 [OpenAI 兼容协议插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) 或 [DeepSeek 插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)。
 
 ### 外部触发示例
 

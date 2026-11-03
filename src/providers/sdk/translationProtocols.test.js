@@ -43,10 +43,14 @@ test.each(Object.keys(outputs))(
   "%s default prompts, complete and split streaming results agree",
   async (protocol) => {
     const input = inputFor(protocol);
-    expect(buildMessages(input)[1].content).toBe(
+    expect(buildMessages(input)[1].content).toContain(
       protocol === "text" ? items[0].text : encodeSegments(items, protocol)
     );
-    expect(TRANSLATION_PROTOCOL_PROMPTS[protocol].systemPrompt).toContain(
+    expect(
+      buildMessages(input)
+        .map((message) => message.content)
+        .join("\n")
+    ).toContain(
       protocol === "text"
         ? "translated text"
         : protocol === "json"
@@ -159,7 +163,7 @@ test.each([
 
 test("single-item batches retain their chosen protocol", () => {
   const input = { ...inputFor("xml"), items: items.slice(0, 1) };
-  expect(buildMessages(input)[1].content).toBe(
+  expect(buildMessages(input)[1].content).toContain(
     encodeSegments(input.items, "xml")
   );
   expect(parseResult(encodeSegments(input.items, "xml"), input)).toEqual({

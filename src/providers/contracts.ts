@@ -1,9 +1,41 @@
-/** SDK v1 task contracts. Provider definitions and user instances are separate. */
+/** Plugin API 1 task contracts. Provider definitions and user instances are separate. */
 import type {
   DecisionState,
-  DecisionQuestions,
-  DecisionResult,
+  ChoiceQuestion,
+  ScoreQuestion,
+  NoulQuestion,
+  Criterion,
+  DecisionAnswer,
 } from "../localAi/core/jev/types";
+
+export type ProviderDecisionQuestion =
+  | (Omit<ChoiceQuestion, "criteria"> & { criteria: Record<string, Criterion> })
+  | ScoreQuestion
+  | NoulQuestion;
+export type ProviderDecisionQuestions = Record<
+  string,
+  ProviderDecisionQuestion
+>;
+
+/** Remote services need not expose the local engine's calibration metadata. */
+export type ProviderDecisionAnswer = DecisionAnswer extends infer Answer
+  ? Answer extends DecisionAnswer
+    ? Omit<Answer, "confidence" | "action"> &
+        Partial<Pick<Answer, "confidence" | "action">>
+    : never
+  : never;
+export interface ProviderDecisionResult {
+  model: string;
+  answers: Record<string, ProviderDecisionAnswer>;
+  usage: { input_tokens?: number; output_tokens?: number; cost?: number };
+}
+
+/** Plugin API 1: explicit conversion of an asset response to browser-playable WAV. */
+export interface ResponseAudio {
+  encoding: "pcm_s16le";
+  sampleRate: number;
+  channels: number;
+}
 export type Capability =
   | "translate"
   | "chat"
@@ -84,8 +116,10 @@ export interface AudioSegment {
   start: number;
   end: number;
   text: string;
+  words?: Array<{ start: number; end: number; text: string }>;
 }
 export interface SubtitleItem extends TextItem {
+  pauseMs?: number;
   start: number;
   end: number;
 }
@@ -99,6 +133,7 @@ export interface CapabilityMap {
       instructions?: string;
       userPrompt?: string;
       context?: string;
+      document?: TranslationInput["document"];
     };
     result: { text: string };
   };
@@ -112,6 +147,7 @@ export interface CapabilityMap {
       sourceLanguage?: string;
       language?: string;
       context?: string;
+      document?: TranslationInput["document"];
       instructions?: string;
       userPrompt?: string;
     };
@@ -124,18 +160,27 @@ export interface CapabilityMap {
   segmentSubtitle: {
     input: {
       items: SubtitleItem[];
+      tone?: string;
+      glossary?: Record<string, string>;
       sourceLanguage?: string;
       targetLanguage?: string;
       instructions?: string;
       context?: string;
+      document?: TranslationInput["document"];
     };
     result: {
       groups: Array<{ ids: string[]; text: string; translation?: string }>;
     };
   };
   transcribe: {
-    input: { audio: AssetRef; language?: string };
-    result: { text: string; segments?: AudioSegment[] };
+    input: { audio: AssetRef; language?: string; requireTimestamps?: boolean };
+    result: {
+      text: string;
+      segments?: AudioSegment[];
+      language?: string;
+      languageConfidence?: number;
+      languagePending?: boolean;
+    };
   };
   recognizeText: {
     input: {
@@ -157,8 +202,8 @@ export interface CapabilityMap {
     result: OcrResult;
   };
   evaluate: {
-    input: { state: DecisionState; questions: DecisionQuestions };
-    result: DecisionResult;
+    input: { state: DecisionState; questions: ProviderDecisionQuestions };
+    result: ProviderDecisionResult;
   };
   synthesizeSpeech: {
     input: { text: string; language?: string; speed?: number; voice?: string };
@@ -185,6 +230,8 @@ export type ProviderEvent =
 export interface InvocationOptions {
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Internal absolute deadline shared by nested calls and IPC. */
+  deadlineAt?: number;
   streaming?: "auto" | "disabled" | "required";
 }
 export interface Invocation<TResult> {
@@ -192,6 +239,8 @@ export interface Invocation<TResult> {
   result: Promise<TResult>;
   events: AsyncIterable<ProviderEvent>;
   cancel(): void;
+  /** Resolves when execution has actually settled, including after cancellation. */
+  finished?: Promise<void>;
 }
 export interface ProviderSetting {
   key: string;
@@ -215,24 +264,45 @@ export interface ServiceDefinition {
   modelField?: string;
   defaultPrompts?: Partial<
     Record<
-      "batch" | "nobatch" | "dictionary" | "subtitle" | "vlm",
-      { systemPrompt?: string; userPrompt?: string; protocol?: "text" | "json" | "line" | "xml" }
+      | "batch"
+      | "nobatch"
+      | "dictionary"
+      | "subtitle"
+      | "vlm"
+      | "summary"
+      | "detectLanguage"
+      | "suggest"
+      | "evaluate"
+      | "recognizeText"
+      | "analyzeLayout",
+      Array<{
+        id: string;
+        name: string;
+        nameI18n?: Record<string, string>;
+        description?: string;
+        descriptionI18n?: Record<string, string>;
+        systemPrompt?: string;
+        userPrompt?: string;
+        protocol?: "text" | "json" | "line" | "xml";
+      }>
     >
   >;
   models?: Array<{
     id: string;
     name?: string;
-    capabilities?: Partial<
-      Record<Capability, Omit<Partial<CapabilityDescriptor>, "handler">>
-    >;
   }>;
 }
-export interface PluginManifest {
-  manifestVersion: 1;
+export interface PluginCompatibility {
+  apiVersion: 1;
+  kind?: "provider";
+  minHostVersion?: string;
+}
+
+export interface PluginManifest extends PluginCompatibility {
   id: string;
   name: string;
   version: string;
-  apiVersion: "1";
+  apiVersion: 1;
   services: ServiceDefinition[];
   sharedSettings?: ProviderSetting[];
   icon?: string;
@@ -244,9 +314,19 @@ export interface DeclarativeCondition {
   then?: unknown;
   else?: unknown;
 }
+export interface DeclarativeReference {
+  $ref: string;
+  fallbackRef?: string;
+  omitIfEmpty?: boolean;
+  omitValues?: unknown[];
+  transform?: "languages.toIso6391";
+}
 export interface ProtocolHandlerRule {
-  protocol: "openai-chat-completions";
-  task: "chat" | "translate" | "parseImage";
+  protocol:
+    | "openai-chat-completions"
+    | "openai-audio-transcriptions"
+    | "openai-audio-speech";
+  task: Exclude<Capability, "speak">;
   request: {
     baseUrl: unknown;
     model: unknown;
@@ -256,16 +336,18 @@ export interface ProtocolHandlerRule {
 }
 export type DeclarativeRules =
   | {
-      rulesVersion: 1;
+      format: "http";
       handlers: Record<
         string,
         { request: Record<string, unknown>; response: Record<string, unknown> }
       >;
     }
-  | { rulesVersion: 2; handlers: Record<string, ProtocolHandlerRule> };
+  | { format: "protocol"; handlers: Record<string, ProtocolHandlerRule> };
 
-export interface ProviderSnapshot extends ServiceDefinition {
-  apiVersion: "1";
+export interface ProviderSnapshot
+  extends ServiceDefinition,
+    PluginCompatibility {
+  apiVersion: 1;
   source?: {
     pluginId: string;
     pluginName?: string;
@@ -283,6 +365,8 @@ export interface ProviderInstance {
   provider: ProviderSnapshot;
   enabledCapabilities: Capability[];
   pluginConfig?: Record<string, unknown>;
+  asrMaxDurationSeconds?: number;
+  asrTimestampSupport?: "auto" | "supported" | "unsupported";
 }
 export type PackageSource =
   | { kind: "github"; repoUrl: string; commitSha: string }
@@ -290,7 +374,7 @@ export type PackageSource =
   | { kind: "file" }
   | { kind: "directory" };
 
-export interface ProviderPackageIndex {
+export interface ProviderPackageIndex extends PluginCompatibility {
   pluginId: string;
   name: string;
   version: string;

@@ -27,6 +27,12 @@ import {
 import { normalizeApiCapabilities } from "./serviceSelection";
 import { supportsServiceFeature } from "../providers/features";
 import { withBuiltinProvider } from "../builtin-plugins";
+import {
+  getPluginPromptOptions,
+  selectedPluginPrompt,
+  isPluginPromptSlug,
+  imagePromptText,
+} from "../providers/defaultPrompts";
 
 // 聚合翻译协议定义
 export const PROMPT_PROTOCOL_LINE = "line";
@@ -300,7 +306,12 @@ export function getAllPrompts(userPrompts = []) {
 export function normalizeCustomPrompts(userPrompts = []) {
   return (Array.isArray(userPrompts) ? userPrompts : [])
     .map(normalizePrompt)
-    .filter((prompt) => prompt.slug && !isPresetPromptSlug(prompt.slug))
+    .filter(
+      (prompt) =>
+        prompt.slug &&
+        !isPresetPromptSlug(prompt.slug) &&
+        !isPluginPromptSlug(prompt.slug)
+    )
     .map(({ slug, category, name, protocol, systemPrompt, userPrompt }) => ({
       slug,
       category,
@@ -461,6 +472,8 @@ function getAvailableMigratedPromptSlug(promptBySlug, sourcePrompt, baseSlug) {
  * @returns {string} 对应的展示名称
  */
 export function getPromptDisplayName(prompt = {}, i18n) {
+  if (prompt.nameI18n)
+    return prompt.nameI18n[i18n?.language] ?? prompt.nameI18n.en ?? prompt.name;
   const normalizedPrompt = normalizePrompt(prompt);
   if (normalizedPrompt.nameKey && typeof i18n === "function") {
     return i18n(normalizedPrompt.nameKey, normalizedPrompt.name);
@@ -505,8 +518,14 @@ function getPromptOptions(prompts = [], category) {
  * @param {Array} prompts 全部可用提示词列表
  * @returns {Array}
  */
-export function getNobatchPromptOptions(prompts = []) {
-  return getPromptOptions(prompts, PROMPT_CATEGORY_USER);
+export function getNobatchPromptOptions(prompts = [], api) {
+  return [
+    ...getPluginPromptOptions(api, "nobatch").map((p) => ({
+      ...p,
+      category: PROMPT_CATEGORY_USER,
+    })),
+    ...getPromptOptions(prompts, PROMPT_CATEGORY_USER),
+  ];
 }
 
 /**
@@ -515,8 +534,14 @@ export function getNobatchPromptOptions(prompts = []) {
  * @param {Array} prompts 全部可用提示词列表
  * @returns {Array}
  */
-export function getBatchPromptOptions(prompts = []) {
-  return getPromptOptions(prompts, PROMPT_CATEGORY_BATCH_SYSTEM);
+export function getBatchPromptOptions(prompts = [], api) {
+  return [
+    ...getPluginPromptOptions(api, "batch").map((p) => ({
+      ...p,
+      category: PROMPT_CATEGORY_BATCH_SYSTEM,
+    })),
+    ...getPromptOptions(prompts, PROMPT_CATEGORY_BATCH_SYSTEM),
+  ];
 }
 
 /**
@@ -525,12 +550,12 @@ export function getBatchPromptOptions(prompts = []) {
  * @param {Array} prompts 全部可用提示词列表
  * @returns {Array} 聚合与单句提示词集合，每项带有 isBatch 标记
  */
-export function getAllTranslationPromptOptions(prompts = []) {
-  const batchOptions = getBatchPromptOptions(prompts).map((item) => ({
+export function getAllTranslationPromptOptions(prompts = [], api) {
+  const batchOptions = getBatchPromptOptions(prompts, api).map((item) => ({
     ...item,
     isBatch: true,
   }));
-  const nobatchOptions = getNobatchPromptOptions(prompts).map((item) => ({
+  const nobatchOptions = getNobatchPromptOptions(prompts, api).map((item) => ({
     ...item,
     isBatch: false,
   }));
@@ -582,11 +607,16 @@ export function getDictionaryPromptOptions(prompts = []) {
  * @param {Array} prompts 全部可用提示词列表
  * @returns {Array}
  */
-export function getVlmPromptOptions(prompts = []) {
-  return getPromptOptions(prompts, PROMPT_CATEGORY_VLM);
+export function getVlmPromptOptions(prompts = [], api) {
+  return [
+    ...getPluginPromptOptions(api, "vlm"),
+    ...getPromptOptions(prompts, PROMPT_CATEGORY_VLM),
+  ];
 }
 
-export function resolveVlmPrompt(userPrompts = [], slug) {
+export function resolveVlmPrompt(userPrompts = [], slug, api) {
+  if (isPluginPromptSlug(slug))
+    return imagePromptText(selectedPluginPrompt(api, "vlm", slug));
   const prompt = findPromptBySlug(userPrompts, slug);
   return (
     prompt?.category === PROMPT_CATEGORY_VLM
@@ -1151,9 +1181,19 @@ export function resolveApiPromptSettings(
   }
 
   if (apiSetting.scenePromptSlug) {
-    const prompt = findPromptBySlug(userPrompts, apiSetting.scenePromptSlug);
-    const isBatch = prompt?.category === PROMPT_CATEGORY_BATCH_SYSTEM;
-    const isSingle = prompt?.category === PROMPT_CATEGORY_USER;
+    const sceneSlug = apiSetting.scenePromptSlug;
+    const pluginBatch = getPluginPromptOptions(apiSetting, "batch").find(
+      (p) => p.slug === sceneSlug
+    );
+    const pluginSingle = getPluginPromptOptions(apiSetting, "nobatch").find(
+      (p) => p.slug === sceneSlug
+    );
+    const prompt =
+      pluginBatch || pluginSingle || findPromptBySlug(userPrompts, sceneSlug);
+    const isBatch =
+      Boolean(pluginBatch) || prompt?.category === PROMPT_CATEGORY_BATCH_SYSTEM;
+    const isSingle =
+      Boolean(pluginSingle) || prompt?.category === PROMPT_CATEGORY_USER;
     apiSetting = { ...apiSetting };
     if (isSingle || (isBatch && supportsServiceFeature(apiSetting, "batch"))) {
       apiSetting.useBatchFetch = isBatch;
@@ -1177,9 +1217,11 @@ export function resolveApiPromptSettings(
       ["subtitlePromptSlug", "subtitlePrompt", undefined, "subtitle"],
       ["vlmPromptSlug", "vlmPrompt", undefined, "vlm"],
     ]) {
-      const prompt = next[slugKey]
-        ? findPromptBySlug(userPrompts, next[slugKey])
-        : next.provider.defaultPrompts?.[slot];
+      const pluginSelection =
+        !next[slugKey] || isPluginPromptSlug(next[slugKey]);
+      const prompt = pluginSelection
+        ? selectedPluginPrompt(next, slot)
+        : findPromptBySlug(userPrompts, next[slugKey]);
       if (!prompt) {
         // Empty legacy host defaults are not explicit plugin prompt templates.
         if (!next[slugKey] && ["batch", "nobatch"].includes(slot)) {
@@ -1188,17 +1230,18 @@ export function resolveApiPromptSettings(
         }
         continue;
       }
-      next[systemKey] = prompt.systemPrompt;
+      next[systemKey] =
+        slot === "vlm" ? imagePromptText(prompt) : prompt.systemPrompt;
       if (userKey) next[userKey] = prompt.userPrompt;
       if (
         (slot === "batch" && next.useBatchFetch) ||
         (slot === "nobatch" && !next.useBatchFetch)
       ) {
-        next.outputProtocol = next[slugKey]
+        next.outputProtocol = !pluginSelection
           ? slot === "batch"
             ? prompt.protocol || "json"
             : "text"
-          : prompt.protocol || "json";
+          : prompt.protocol || (slot === "batch" ? "json" : "text");
       }
     }
     if (

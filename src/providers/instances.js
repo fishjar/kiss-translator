@@ -1,3 +1,4 @@
+import { supportsSdkVersion } from "./sdk/version";
 import {
   PROVIDER_CAPABILITIES,
   providerError,
@@ -7,10 +8,15 @@ import {
 import { providerHelpers } from "./sdk";
 import { validateDefaultPrompts } from "./defaultPrompts";
 
+import {
+  assertPluginCompatibility,
+  pluginCompatibilityFields,
+} from "./compatibility";
+
 const copy = (value) => JSON.parse(JSON.stringify(value));
 const forbidden = new Set(["__proto__", "constructor", "prototype"]);
 
-export function validateCapabilities(capabilities) {
+export function validateCapabilities(capabilities, { external = false } = {}) {
   if (
     !capabilities ||
     Array.isArray(capabilities) ||
@@ -21,13 +27,17 @@ export function validateCapabilities(capabilities) {
   for (const [name, descriptor] of Object.entries(capabilities)) {
     if (
       !PROVIDER_CAPABILITIES.includes(name) ||
+      (external && name === "speak") ||
       !descriptor ||
       typeof descriptor.handler !== "string" ||
       !/^[A-Za-z_$][\w$]*$/.test(descriptor.handler) ||
       forbidden.has(descriptor.handler) ||
       (descriptor.taskModes !== undefined &&
-        (!Array.isArray(descriptor.taskModes) || !descriptor.taskModes.length ||
-          descriptor.taskModes.some((mode) => !["doc", "table", "formula"].includes(mode)))) ||
+        (!Array.isArray(descriptor.taskModes) ||
+          !descriptor.taskModes.length ||
+          descriptor.taskModes.some(
+            (mode) => !["doc", "table", "formula"].includes(mode)
+          ))) ||
       (descriptor.inputModalities !== undefined &&
         (!Array.isArray(descriptor.inputModalities) ||
           !descriptor.inputModalities.length ||
@@ -136,8 +146,9 @@ export function createServiceInstance(
   enabledCapabilities
 ) {
   if (
-    manifest.manifestVersion !== 1 ||
-    manifest.apiVersion !== "1" ||
+    Object.hasOwn(manifest, "manifestVersion") ||
+    Object.hasOwn(manifest, "rulesVersion") ||
+    !supportsSdkVersion(manifest.apiVersion) ||
     !apiSlug
   ) {
     throw providerError(
@@ -145,6 +156,7 @@ export function createServiceInstance(
       "Unsupported manifest/SDK or missing instance ID."
     );
   }
+  assertPluginCompatibility(manifest);
   const service = manifest.services.find((item) => item.id === serviceId);
   if (
     !service ||
@@ -157,13 +169,14 @@ export function createServiceInstance(
   }
   const capabilities = copy(service.capabilities);
   validateDefaultPrompts(service);
-  validateCapabilities(capabilities);
+  validateCapabilities(capabilities, { external: true });
   const fields = mergeSettingFields(manifest.sharedSettings, service.settings);
   validateModels(service, fields);
   validatePermissions(manifest.permissions, fields);
   validateFieldCapabilities(service, fields, manifest.permissions);
   const provider = {
-    apiVersion: "1",
+    ...pluginCompatibilityFields(manifest),
+    apiVersion: manifest.apiVersion,
     id: service.id,
     name: service.name,
     ...(service.nameI18n && { nameI18n: copy(service.nameI18n) }),
@@ -216,7 +229,7 @@ export function createServiceInstance(
     enabledCapabilities ?? supportedCapabilities(candidate)
   );
   // Adding selects an editable instance immediately. Required values are checked
-  // when saving/authorizing/executing, rather than blocking creation of its snapshot.
+  // when saving/executing, rather than blocking creation of its snapshot.
   const config = {
     ...candidate.pluginConfig,
     ...validateConfig(
@@ -334,36 +347,14 @@ export function validateModels(service, fields) {
     );
   const ids = new Set();
   for (const model of service.models) {
-    if (
-      typeof model?.id !== "string" ||
-      !model.id ||
-      ids.has(model.id) ||
-      (model.capabilities !== undefined &&
-        (!model.capabilities ||
-          typeof model.capabilities !== "object" ||
-          Array.isArray(model.capabilities)))
-    )
+    if (typeof model?.id !== "string" || !model.id || ids.has(model.id))
       throw providerError("INVALID_MANIFEST", "Invalid model definition.");
+    if (model.capabilities !== undefined)
+      throw providerError(
+        "INVALID_MANIFEST",
+        "Models only list IDs and names; declare capabilities on separate services."
+      );
     ids.add(model.id);
-    for (const [name, restriction] of Object.entries(
-      model.capabilities || {}
-    )) {
-      const base = service.capabilities[name];
-      if (
-        !base ||
-        !restriction ||
-        typeof restriction !== "object" ||
-        Array.isArray(restriction) ||
-        restriction.handler !== undefined
-      )
-        throw providerError(
-          "INVALID_MANIFEST",
-          "Model cannot declare an unknown capability or handler."
-        );
-      validateCapabilities({
-        [name]: { ...base, ...restriction, handler: base.handler },
-      });
-    }
   }
 }
 

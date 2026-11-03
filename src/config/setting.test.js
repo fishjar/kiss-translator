@@ -12,6 +12,7 @@ const {
   DEFAULT_SETTING,
   DEFAULT_SUBTITLE_SETTING,
   DEFAULT_TRANBOX_SETTING,
+  DEFAULT_IMAGE_TRANSLATE_SETTING,
 } = require("./setting");
 const { DEFAULT_API_LIST, OPT_TRANS_MICROSOFT } = require("./api");
 const { GLOBAL_KEY } = require("./rules");
@@ -51,5 +52,17 @@ describe("translation box defaults", () => {
   test("includes every current API without legacy deletion markers", () => {
     expect(DEFAULT_SETTING.transApis).toBe(DEFAULT_API_LIST);
     expect(DEFAULT_SETTING).not.toHaveProperty("deletedTransApiSlugs");
+  });
+
+  test("configures default image translation setting properly", () => {
+    expect(DEFAULT_SETTING.imageTranslateSetting).toBe(
+      DEFAULT_IMAGE_TRANSLATE_SETTING
+    );
+    expect(DEFAULT_IMAGE_TRANSLATE_SETTING.apiSlug).toBe(OPT_TRANS_MICROSOFT);
+    expect(DEFAULT_IMAGE_TRANSLATE_SETTING.layoutApiSlug).toBe("");
+    expect(DEFAULT_IMAGE_TRANSLATE_SETTING.recognitionService).toEqual({
+      apiSlug: "LocalAI-OCR",
+      capability: "recognizeText",
+    });
   });
 });

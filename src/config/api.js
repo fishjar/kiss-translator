@@ -403,7 +403,9 @@ const defaultApi = {
   tone: BUILTIN_STONES[0], // 翻译风格
   placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符
   placetag: BUILTIN_PLACETAGS[0], // 占位标签
-  aiTerms: "", // AI智能专业术语（apiSetting.aiTerms，全路径生效：整页/划词/输入框/字幕；与规则级 #glossary 逐 key 合并时接口级覆盖同名）
+  terms: "",
+  termsList: [],
+  aiTerms: "", // AI智能专业术语（apiSetting.aiTerms，全路径生效：整页/划词/输入框/字幕；与场景术语逐 key 合并，场景优先）
   customHeader: "",
   customBody: "",
   reqHook: "", // request 钩子函数

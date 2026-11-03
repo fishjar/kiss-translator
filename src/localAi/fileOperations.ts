@@ -192,6 +192,7 @@ export async function recognizeFileImage(
   optionsOrSignal?:
     | {
         groupId?: string;
+        deadlineAt?: number;
         device?: "webgpu" | "wasm";
         prompt?: string;
         maxTokens?: number;
@@ -252,7 +253,7 @@ export async function recognizeFileImage(
       [imgBuf],
       { modelRef: vlmModel.id, loadSpec: spec, cacheMode: options?.cacheMode },
       signal,
-      { temperature: options?.temperature, onProgress: options?.onProgress }
+      { temperature: options?.temperature, onProgress: options?.onProgress, deadlineAt: options?.deadlineAt }
     );
 
     const fullText = chatRes.text || "";
@@ -287,7 +288,7 @@ export async function recognizeFileImage(
     device: options?.device || "webgpu",
   };
   if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-  return ocr.recognize(file, signal, { modelRef: group.id, loadSpec: spec, cacheMode: options?.cacheMode }, options?.onProgress);
+  return ocr.recognize(file, signal, { modelRef: group.id, loadSpec: spec, cacheMode: options?.cacheMode }, options?.onProgress, options?.deadlineAt);
 }
 
 export { getModelDisplayName } from "./core/catalog";

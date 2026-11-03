@@ -1,4 +1,10 @@
+import {
+  readTableDirectory,
+  resolveTerminology,
+  loadTerminologySnapshot,
+} from "../libs/terminologyStorage";
 import { sha256 } from "../libs/utils";
+import { startLogTask } from "../libs/diagnostics/task";
 import {
   enabledApiCapabilities,
   supportedApiFeature,
@@ -40,7 +46,13 @@ import {
 } from "./protocol";
 
 const SCENES = Object.keys(DEFAULT_FILE_TRANSLATE_SETTING);
-const EXTRA_FIELDS = ["apiSlug", "layoutApiSlug"];
+const EXTRA_FIELDS = [
+  "apiSlug",
+  "layoutApiSlug",
+  "terms",
+  "aiTerms",
+  "termsList",
+];
 const API_FIELDS = [
   "apiSlug",
   "apiName",
@@ -69,9 +81,26 @@ export function validateScenePatch(kind, patch) {
     throw fileError("INVALID_INPUT", "文件类型或设置补丁无效");
   const defaults = DEFAULT_FILE_TRANSLATE_SETTING[kind];
   for (const [key, value] of Object.entries(patch)) {
-    if (![...Object.keys(defaults), ...EXTRA_FIELDS].includes(key))
+    if (
+      ![
+        ...Object.keys(defaults),
+        ...EXTRA_FIELDS,
+        "terms",
+        "aiTerms",
+        "termsList",
+      ].includes(key)
+    )
       throw fileError("INVALID_INPUT", `不能修改设置字段 ${key}`);
-    if (key === "recognitionService") {
+    if (key === "termsList") {
+      if (
+        !Array.isArray(value) ||
+        value.some((id) => typeof id !== "string" || !id)
+      )
+        throw fileError("INVALID_INPUT", "Invalid terminology references");
+    } else if (key === "terms" || key === "aiTerms") {
+      if (typeof value !== "string")
+        throw fileError("INVALID_INPUT", "Invalid inline terminology");
+    } else if (key === "recognitionService") {
       if (
         value !== null &&
         (!value ||
@@ -243,6 +272,21 @@ export async function getFileContext(signal) {
   );
   return {
     uiLang: setting.uiLang,
+    terminologyDirectory: await readTableDirectory(),
+    terminologySignatures: Object.fromEntries(
+      await Promise.all(
+        SCENES.map(async (kind) => {
+          const scene = setting.fileTranslateSetting[kind] || {};
+          const api =
+            setting.transApis.find((api) => api.apiSlug === scene.apiSlug) ||
+            {};
+          return [
+            kind,
+            await sha256((await resolveTerminology(scene, api)).signature),
+          ];
+        })
+      )
+    ),
     scenes: Object.fromEntries(
       SCENES.map((kind) => {
         const scene = pick(setting.fileTranslateSetting[kind] || {}, [
@@ -259,60 +303,89 @@ export async function getFileContext(signal) {
         return [kind, scene];
       })
     ),
-    services: setting.transApis.map((api) => ({
-      ...pick(api, API_FIELDS),
-      translationSignature: translationSignatures.get(api.apiSlug),
-      provider: {
-        apiVersion: "1",
-        implementation: {
-          kind: projectApiCapabilities(api).provider?.implementation?.kind,
+    services: await Promise.all(
+      setting.transApis.map(async (api) => ({
+        ...pick(api, API_FIELDS),
+        translationSignature: translationSignatures.get(api.apiSlug),
+        provider: {
+          apiVersion: 1,
+          ...(api.provider?.defaultPrompts && {
+            id: api.provider.id,
+            source:
+              api.provider.source &&
+              pick(api.provider.source, ["pluginId", "serviceId"]),
+            defaultPrompts: Object.fromEntries(
+              Object.entries(api.provider.defaultPrompts).map(
+                ([slot, prompts]) => [
+                  slot,
+                  prompts.map((prompt) =>
+                    pick(prompt, [
+                      "id",
+                      "name",
+                      "nameI18n",
+                      "description",
+                      "descriptionI18n",
+                      "protocol",
+                    ])
+                  ),
+                ]
+              )
+            ),
+          }),
+          implementation: {
+            kind: projectApiCapabilities(api).provider?.implementation?.kind,
+          },
+          capabilities: Object.fromEntries(
+            enabledApiCapabilities(api).map((cap) => [
+              cap,
+              supportedApiFeature(api, cap),
+            ])
+          ),
         },
-        capabilities: Object.fromEntries(
-          enabledApiCapabilities(api).map((cap) => [
-            cap,
-            supportedApiFeature(api, cap),
+        translationAvailable: isApiAvailableFor(api, "translate", {
+          installedModels: installed,
+        }),
+        layoutAvailable: isApiAvailableFor(api, "analyzeLayout", {
+          installedModels: installed,
+        }),
+        enabledCapabilities: enabledApiCapabilities(api),
+        recognitionFeatures: Object.fromEntries(
+          ["recognizeText", "parseImage"]
+            .filter((cap) => enabledApiCapabilities(api).includes(cap))
+            .map((cap) => [
+              cap,
+              {
+                coordinates:
+                  supportedApiFeature(api, cap)?.coordinates === true,
+                taskModes: supportedApiFeature(api, cap)?.taskModes || ["doc"],
+                available: isApiAvailableFor(api, cap, {
+                  installedModels: installed,
+                }),
+              },
+            ])
+        ),
+        recognitionSignature: await sha256(
+          JSON.stringify([
+            api.apiType,
+            api.modelRef,
+            api.device,
+            api.model,
+            api.provider?.source?.version,
+            api.provider?.capabilities,
+            api.provider?.defaultPrompts,
+            api.vlmPromptSlug,
+            api.maxTokens,
+            api.temperature,
+            promptSignature,
+            Object.fromEntries(
+              (api.provider?.settings || [])
+                .filter((field) => field.type !== "password" && !field.isSecret)
+                .map((field) => [field.key, api.pluginConfig?.[field.key]])
+            ),
           ])
         ),
-      },
-      translationAvailable: isApiAvailableFor(api, "translate", {
-        installedModels: installed,
-      }),
-      layoutAvailable: isApiAvailableFor(api, "analyzeLayout", {
-        installedModels: installed,
-      }),
-      enabledCapabilities: enabledApiCapabilities(api),
-      recognitionFeatures: Object.fromEntries(
-        ["recognizeText", "parseImage"]
-          .filter((cap) => enabledApiCapabilities(api).includes(cap))
-          .map((cap) => [
-            cap,
-            {
-              coordinates: supportedApiFeature(api, cap)?.coordinates === true,
-              taskModes: supportedApiFeature(api, cap)?.taskModes || ["doc"],
-              available: isApiAvailableFor(api, cap, {
-                installedModels: installed,
-              }),
-            },
-          ])
-      ),
-      recognitionSignature: JSON.stringify([
-        api.apiType,
-        api.modelRef,
-        api.device,
-        api.model,
-        api.provider?.source?.version,
-        api.provider?.capabilities,
-        api.vlmPromptSlug,
-        api.maxTokens,
-        api.temperature,
-        promptSignature,
-        Object.fromEntries(
-          (api.provider?.settings || [])
-            .filter((field) => field.type !== "password" && !field.isSecret)
-            .map((field) => [field.key, api.pluginConfig?.[field.key]])
-        ),
-      ]),
-    })),
+      }))
+    ),
     prompts: getAllPrompts(setting.prompts).map((prompt) =>
       pick(prompt, ["slug", "name", "nameKey", "category"])
     ),
@@ -339,7 +412,7 @@ export async function executeFileMethod(
   method,
   params,
   signal,
-  uploads,
+  uploads = new Map(),
   onProgress
 ) {
   if (method === "analyzeLayout") {
@@ -525,7 +598,25 @@ export async function executeFileMethod(
       if (signal?.aborted || error?.name === "AbortError") throw error;
       return [];
     });
+    const terminologyTaskId = params.terminologyTaskId || crypto.randomUUID();
+    if (!uploads.terminologySnapshots) uploads.terminologySnapshots = new Map();
     return executeFileTranslation(params.text, scene, setting, signal, {
+      getTerminologyTables: async (selectedScene, selectedApi) => {
+        const key = `${terminologyTaskId}:${params.kind}:${selectedApi.apiSlug}`;
+        if (!uploads.terminologySnapshots.has(key)) {
+          if (uploads.terminologySnapshots.size >= 32)
+            uploads.terminologySnapshots.delete(
+              uploads.terminologySnapshots.keys().next().value
+            );
+          uploads.terminologySnapshots.set(
+            key,
+            loadTerminologySnapshot([selectedScene, selectedApi])
+          );
+        }
+        return uploads.terminologySnapshots.get(key);
+      },
+      onTerminologyWarning: (missingTableIds) =>
+        onProgress?.({ type: "terminology-warning", missingTableIds }),
       cacheMode: params.cacheMode,
       installedModels: new Set(
         records
@@ -584,7 +675,8 @@ export async function executeFileMethod(
       params.promptSlug || (mode === "doc" ? api.vlmPromptSlug : "");
     let prompt;
     if (capability === "parseImage") {
-      if (promptSlug) prompt = resolveVlmPrompt(setting.prompts, promptSlug);
+      if (promptSlug)
+        prompt = resolveVlmPrompt(setting.prompts, promptSlug, api);
       else if (
         api.apiType !== "LocalAI" &&
         (!api.provider || api.provider.implementation?.kind === "native")
@@ -676,6 +768,7 @@ export function attachFileSession(port, execute = executeFileMethod) {
     pending.forEach((controller) => controller.abort());
     pending.clear();
     [...uploads.keys()].forEach(dropUpload);
+    uploads.terminologySnapshots?.clear();
     browser.storage.onChanged.removeListener(changed);
     modelChannel?.close();
     port.onMessage.removeListener(receive);
@@ -806,6 +899,18 @@ export function attachFileSession(port, execute = executeFileMethod) {
       const controller = new AbortController();
       pending.set(id, controller);
       if (!isTranslation) pendingOtherRequests++;
+      const task = [
+        "translateText",
+        "recognizeImage",
+        "analyzeLayout",
+        "decideDocumentStructure",
+      ].includes(message.method)
+        ? startLogTask("file-translate", {
+            taskId: `${sessionId}:${id}`,
+            requestId: id,
+            method: message.method,
+          })
+        : null;
       try {
         const result = await execute(
           message.method,
@@ -813,13 +918,18 @@ export function attachFileSession(port, execute = executeFileMethod) {
           controller.signal,
           uploads,
           (progress) => {
+            if (progress.stage) task?.stage(progress.stage);
             if (!controller.signal.aborted)
               send({ type: "progress", requestId: id, sessionId, progress });
           }
         );
         if (controller.signal.aborted)
           throw new DOMException("已取消", "AbortError");
+        task?.finish();
         send({ type: "response", requestId: id, result });
+      } catch (error) {
+        task?.finish(error);
+        throw error;
       } finally {
         pending.delete(id);
         if (!isTranslation) pendingOtherRequests--;

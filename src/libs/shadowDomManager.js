@@ -62,7 +62,9 @@ export default class ShadowDomManager {
         this.#mount(props || this._props);
       } catch (error) {
         this.#unmount();
-        logger.warn(`Failed to mount component with id "${this._id}":`, error);
+        logger
+          .child("shadow-dom-manager")
+          .warn("Failed to mount component; id:", this._id, error);
         this.#isProcessing = false;
         return;
       } finally {
@@ -107,7 +109,9 @@ export default class ShadowDomManager {
     this.#renderProps = null;
     this.#isVisible = false;
     this.#isProcessing = false;
-    logger.info(`Component with id "${this._id}" has been destroyed.`);
+    logger
+      .child("shadow-dom-manager")
+      .debug("Component destroyed; id:", this._id);
   }
 
   toggle(props) {
@@ -121,6 +125,7 @@ export default class ShadowDomManager {
   #mount(props) {
     const host = document.createElement("div");
     host.id = this._id;
+    host.setAttribute("data-kiss-ui", "");
     if (this._className) {
       host.className = this._className;
     }
@@ -133,6 +138,7 @@ export default class ShadowDomManager {
     const shadowContainer = host.attachShadow({ mode: "open" });
     const appRoot = document.createElement("div");
     appRoot.className = `${this._id}_wrapper notranslate`;
+    appRoot.setAttribute("data-kiss-ui", "");
     shadowContainer.appendChild(appRoot);
 
     this.#renderProps = props;

@@ -1,5 +1,9 @@
-import { parseNativeSubtitleResponse } from "./textResponses";
-import { OPT_TRANS_GEMINI } from "../config/apiConstants";
+import {
+  parseNativeDictionaryResponse,
+  parseNativeSubtitleResponse,
+  parseNativeSummaryResponse,
+} from "./textResponses";
+import { OPT_TRANS_CLAUDE, OPT_TRANS_GEMINI } from "../config/apiConstants";
 
 jest.mock("query-string", () => ({
   stringify: (value) => new URLSearchParams(value).toString(),
@@ -43,4 +47,50 @@ test("Gemini truncation retry preserves cancellation instead of accepting partia
   ).rejects.toMatchObject({ name: "AbortError" });
   expect(fetchData).toHaveBeenCalledTimes(1);
   expect(parseSTRes).not.toHaveBeenCalled();
+});
+
+describe("Claude responses with a thinking block first", () => {
+  const thinkingFirst = {
+    content: [
+      { type: "thinking", thinking: "let me think", signature: "sig" },
+      { type: "text", text: " answer " },
+    ],
+  };
+
+  test("dictionary result is the first text block", () => {
+    expect(parseNativeDictionaryResponse(thinkingFirst, OPT_TRANS_CLAUDE)).toBe(
+      " answer "
+    );
+  });
+
+  test("summary result is the first text block, trimmed", () => {
+    expect(parseNativeSummaryResponse(thinkingFirst, OPT_TRANS_CLAUDE)).toBe(
+      "answer"
+    );
+  });
+
+  test("a response without a block array still reads content[0].text", () => {
+    expect(
+      parseNativeSummaryResponse(
+        { content: { 0: { text: "single" } } },
+        OPT_TRANS_CLAUDE
+      )
+    ).toBe("single");
+  });
+
+  test("subtitle result is the first text block, not an empty string", async () => {
+    const parseSTRes = jest.fn((text) => text);
+    await expect(
+      parseNativeSubtitleResponse(
+        thinkingFirst,
+        {
+          apiSetting: { apiType: OPT_TRANS_CLAUDE },
+          events: [{ text: "hello", start: 0, end: 1 }],
+          from: "en",
+          to: "zh-CN",
+        },
+        { parseSTRes, genTransReq: jest.fn(), fetchData: jest.fn() }
+      )
+    ).resolves.toBe(" answer ");
+  });
 });

@@ -1,3 +1,4 @@
+import { terminologyWarningHandler } from "../../libs/terminologyWarning";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -244,6 +245,7 @@ const translateBuiltinText = async (
  * @returns {JSX.Element|null} Result view for one translation provider.
  */
 export default function TranCont({
+  scene,
   text,
   fromLang,
   toLang,
@@ -329,6 +331,7 @@ export default function TranCont({
     let active = true;
     requestPendingRef.current = true;
     const controller = new AbortController();
+    const warnTerminology = terminologyWarningHandler(i18n.language);
     const enableStreamRender = canRenderStream(apiSetting);
 
     /**
@@ -365,6 +368,8 @@ export default function TranCont({
         const translate = (requestText, requestFromLang = fromLang) =>
           apiTranslate({
             text: requestText,
+            scene,
+            onTerminologyWarning: warnTerminology,
             fromLang: requestFromLang,
             toLang,
             apiSetting,
@@ -419,6 +424,8 @@ export default function TranCont({
       controller.abort();
     };
   }, [
+    i18n.language,
+    scene,
     text,
     fromLang,
     toLang,
@@ -465,6 +472,7 @@ export default function TranCont({
               text={trText}
               lang={toLang}
               title={i18n("read_aloud")}
+              stopTitle={i18n("stop_speaking")}
             />
           </>
         ) : (
@@ -587,14 +595,16 @@ export default function TranCont({
           <Alert severity="error">{error}</Alert>
         ) : trText ? (
           <Stack direction="row" spacing={1} alignItems="flex-start">
-            <Box sx={{ width: 12, height: 12, flex: "0 0 auto", mt: "0.35em" }}>
-              {loading && (
+            {loading && (
+              <Box
+                sx={{ width: 12, height: 12, flex: "0 0 auto", mt: "0.35em" }}
+              >
                 <CircularProgress
                   size={12}
                   aria-label={i18n("popup_translating")}
                 />
-              )}
-            </Box>
+              </Box>
+            )}
             <Typography style={{ whiteSpace: "pre-line" }}>{trText}</Typography>
           </Stack>
         ) : loading ? (
@@ -653,7 +663,7 @@ export default function TranCont({
         InputProps={{
           ...resultHeightLock.rootProps,
           readOnly: true,
-          startAdornment: (
+          startAdornment: loading ? (
             <Box
               sx={{
                 width: 16,
@@ -662,14 +672,12 @@ export default function TranCont({
                 placeItems: "center",
               }}
             >
-              {loading && (
-                <CircularProgress
-                  size={16}
-                  aria-label={i18n("popup_translating")}
-                />
-              )}
+              <CircularProgress
+                size={16}
+                aria-label={i18n("popup_translating")}
+              />
             </Box>
-          ),
+          ) : null,
           endAdornment: (
             <>
               <Stack
@@ -680,6 +688,8 @@ export default function TranCont({
                     : undefined
                 }
                 direction="row"
+                spacing={1}
+                useFlexGap
                 sx={
                   isPlayground
                     ? undefined
@@ -703,6 +713,7 @@ export default function TranCont({
                   text={trText}
                   lang={toLang}
                   title={i18n("read_aloud")}
+                  stopTitle={i18n("stop_speaking")}
                 />
               </Stack>
               {(trText.trim() || resultHeightLock.lockedHeight != null) && (

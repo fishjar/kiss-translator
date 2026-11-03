@@ -17,6 +17,9 @@ export interface AsrProgress {
 }
 
 export interface TranscribeResult {
+  language?: string;
+  languageConfidence?: number;
+  languagePending?: boolean;
   inputAdjustments?: InputAdjustment[];
   segments: ASRSegment[];
   elapsedMs: number;

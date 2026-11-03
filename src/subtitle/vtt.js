@@ -75,8 +75,10 @@ function parseTimestampToMilliseconds(timestamp) {
  * @returns {string} - 格式化后的 VTT 时间戳字符串 (HH:MM:SS.mmm)
  */
 function formatMillisecondsToTimestamp(ms) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const milliseconds = String(ms % 1000).padStart(3, "0");
+  // Times converted from seconds (e.g. ASR) can be fractional, like 32299.999999999996
+  const totalMs = Math.round(ms);
+  const totalSeconds = Math.floor(totalMs / 1000);
+  const milliseconds = String(totalMs % 1000).padStart(3, "0");
 
   const totalMinutes = Math.floor(totalSeconds / 60);
   const seconds = String(totalSeconds % 60).padStart(2, "0");

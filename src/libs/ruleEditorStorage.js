@@ -21,7 +21,7 @@ import {
   withTransaction,
 } from "./storage";
 import { loadOrFetchSubRules } from "./subRules";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { trySyncRules } from "./sync";
 import { isExt } from "./client";
 import { sendBgMsg } from "./msg";
@@ -71,7 +71,7 @@ export function writeSiteRule({
         try {
           await loadOrFetchSubRules(preparedSource);
         } catch (error) {
-          kissLog("load injectRules", error);
+          logger.child("rule-editor-storage").warn("load injectRules", error);
         }
       }
       const context = await withTransaction(async (transaction) => {

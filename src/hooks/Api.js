@@ -189,7 +189,8 @@ export function useApiList() {
       transApis.filter(
         (api) =>
           !api.isDisabled &&
-          isApiConfigured(api) && supportsApiCapability(api, "translate")
+          isApiConfigured(api) &&
+          supportsApiCapability(api, "translate")
       ),
     [transApis]
   );

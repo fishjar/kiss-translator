@@ -187,7 +187,7 @@ describe("separate translation window layout", () => {
     ).toBe(true);
   });
 
-  test("stretches an unlocked result through an unbroken flex chain", () => {
+  test("keeps source and results compact without forced stretch or oversized min-height", () => {
     const panelBodies = getRuleBodies(
       ".kt-popup-shell--window .kt-popup-text-panel"
     );
@@ -200,40 +200,29 @@ describe("separate translation window layout", () => {
     expect(
       panelBodies.some((body) => body.includes("min-height: 100dvh"))
     ).toBe(true);
+    const sourceRule = getRuleBodies(
+      '.kt-popup-shell--window .kt-translation-source textarea:not([aria-hidden="true"])'
+    )[0];
+    expect(sourceRule).toContain("min-height: 28px");
+    expect(sourceRule).not.toContain("min-height: 72px");
     const resultRule = getRuleBodies(
       ".kt-popup-shell--window .kt-translation-result"
     )[0];
-    expect(resultRule).toContain("flex: 1");
-    expect(resultRule).toContain("display: flex");
-    expect(resultRule).toContain("flex-direction: column");
-    expect(resultRule).toContain("min-height: 180px");
-    const formControlBodies = getRuleBodies(
-      ".kt-popup-shell--window .kt-translation-result > .MuiFormControl-root"
-    );
-    expect(formControlBodies.some((body) => body.includes("flex: 1"))).toBe(
-      true
-    );
-    const inputBaseBodies = getRuleBodies(
-      ".kt-popup-shell--window .kt-translation-result .MuiInputBase-root"
-    );
-    expect(inputBaseBodies.some((body) => body.includes("flex: 1"))).toBe(true);
-    expect(
-      inputBaseBodies.some((body) => body.includes("align-items: stretch"))
-    ).toBe(true);
+    expect(resultRule).toContain("flex: 0 0 auto");
+    expect(resultRule).toContain("min-height: 0");
+    expect(resultRule).not.toContain("min-height: 180px");
     const textareaRule = getRuleBodies(textareaSelector)[0];
-    expect(textareaRule).toContain("flex: 1");
-    expect(textareaRule).toContain("min-height: 140px");
-    expect(textareaRule).toContain("height: auto !important");
-    expect(textareaRule).toContain("overflow-y: auto !important");
+    expect(textareaRule).toContain("min-height: 28px");
+    expect(textareaRule).not.toContain("min-height: 140px");
+    expect(textareaRule).not.toContain("height: auto !important");
+    expect(textareaRule).not.toContain("flex: 1");
   });
 
   test("leaves textarea resize ownership to TranCont and preserves locked height", () => {
     const textareaRule = getRuleBodies(textareaSelector)[0];
     expect(textareaRule).toBeDefined();
     expect(textareaRule).not.toMatch(/resize\s*:/);
-    expect(textareaRule.replace("height: auto !important", "")).not.toMatch(
-      /(?:^|[^-])height\s*:/
-    );
+    expect(textareaRule).not.toMatch(/(?:^|[^-])height\s*:/);
     // Higher specificity keeps the locked height independent of injection order.
     const lockedRule = getRuleBodies(
       '.kt-popup-shell--window .kt-translation-result .kt-height-locked textarea:not([aria-hidden="true"])'
@@ -252,7 +241,7 @@ describe("popup stylesheet top-level rule parsing", () => {
       )
     );
     expect(textareaRule).toBeDefined();
-    expect(textareaRule.body).toContain("flex: 1");
+    expect(textareaRule.body).toContain("min-height: 28px");
     for (const rule of cssRules) {
       for (const member of rule.members) {
         expect(member.startsWith("@")).toBe(false);

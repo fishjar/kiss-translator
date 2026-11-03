@@ -11,6 +11,7 @@ jest.mock("../../../localAi/runtime/runtimeHostAdapter", () => ({
     onServiceState: jest.fn(),
     getPendingCount: () => 2,
     onPendingChange: jest.fn(() => () => {}),
+    request: jest.fn(),
   },
 }));
 jest.mock("../../../localAi/core/runtimeClient", () => ({
@@ -80,6 +81,103 @@ describe("runtime sessions", () => {
     );
     await act(async () => jest.advanceTimersByTime(60000));
     expect(getRuntimeStatus).toHaveBeenCalledTimes(2);
+  });
+  const sessionButton = (service) =>
+    container.querySelector(
+      `button[aria-label="结束会话并卸载模型 (${service})"]`
+    );
+
+  it("shows an icon action for every service and only enables idle loaded sessions", async () => {
+    for (const service of [
+      "decision",
+      "asr",
+      "ocr",
+      "llm",
+      "vlm",
+      "tts",
+      "doc",
+    ]) {
+      expect(sessionButton(service).querySelector("svg")).not.toBeNull();
+      expect(sessionButton(service).disabled).toBe(service !== "llm");
+    }
+    const next = status();
+    next.sessions = {
+      decision: { modelId: "jev", state: "ready", busy: true },
+      asr: { modelId: "asr", state: "loading" },
+      ocr: { modelId: "ocr", state: "unloading" },
+      llm: { modelId: "qwen", state: "idle" },
+      vlm: { modelId: "glm", state: "idle", busy: true },
+      tts: { modelId: "tts", state: "unloaded" },
+      doc: { modelId: null, state: "ready" },
+    };
+    getRuntimeStatus.mockResolvedValue(next);
+    await act(async () => Simulate.click(container.querySelector("button")));
+    for (const service of Object.keys(next.sessions)) {
+      expect(sessionButton(service).disabled).toBe(service !== "llm");
+    }
+  });
+
+  it.each(["decision", "asr", "ocr", "llm", "vlm", "tts", "doc"])(
+    "unloads only %s and refreshes the session and residency",
+    async (service) => {
+      const loaded = status();
+      loaded.sessions[service] = {
+        modelId: "model",
+        state: "ready",
+        sessionVersion: 7,
+      };
+      getRuntimeStatus.mockResolvedValueOnce(loaded);
+      await act(async () => Simulate.click(container.querySelector("button")));
+      const released = status();
+      released.sessions[service] = {
+        modelId: null,
+        state: "unloaded",
+        sessionVersion: 9,
+      };
+      released.pool = [];
+      getRuntimeStatus.mockResolvedValueOnce(released);
+      runtimeHost.request.mockResolvedValueOnce({ ok: true });
+      await act(async () => Simulate.click(sessionButton(service)));
+      expect(runtimeHost.request).toHaveBeenCalledTimes(1);
+      expect(runtimeHost.request).toHaveBeenCalledWith({
+        id: expect.any(String),
+        service,
+        method: "unload",
+        payload: {},
+      });
+      const cells = sessionButton(service).closest("tr").querySelectorAll("td");
+      expect(cells[1].textContent).toBe("—");
+      expect(cells[2].textContent).toBe("unloaded");
+      expect(cells[4].textContent).toBe("9");
+      expect(sessionButton(service).disabled).toBe(true);
+      expect(container.textContent).toContain("估算驻留: 0 MB");
+    }
+  );
+
+  it("blocks repeated clicks while unloading and recovers after a busy rejection", async () => {
+    let rejectUnload;
+    runtimeHost.request.mockImplementationOnce(
+      () =>
+        new Promise((_, reject) => {
+          rejectUnload = reject;
+        })
+    );
+    await act(async () => {
+      Simulate.click(sessionButton("llm"));
+      Simulate.click(sessionButton("llm"));
+    });
+    expect(runtimeHost.request).toHaveBeenCalledTimes(1);
+    expect(sessionButton("llm").disabled).toBe(true);
+    expect(sessionButton("vlm").disabled).toBe(true);
+    await act(async () => rejectUnload(Error("SERVICE_BUSY: 服务正在使用")));
+    expect(container.querySelector('[role="alert"]').textContent).toContain(
+      "SERVICE_BUSY"
+    );
+    expect(sessionButton("llm").disabled).toBe(false);
+    runtimeHost.request.mockResolvedValueOnce({ ok: true });
+    await act(async () => Simulate.click(sessionButton("llm")));
+    expect(runtimeHost.request).toHaveBeenCalledTimes(2);
+    expect(container.querySelector('[role="alert"]')).toBeNull();
   });
   it("allows manual refresh and reports failure", async () => {
     getRuntimeStatus.mockRejectedValueOnce(Error("host failed"));

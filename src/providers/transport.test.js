@@ -20,7 +20,7 @@ const api = {
   },
 };
 
-test("Broker requires both instance permission and local approval, and scopes credentials", async () => {
+test("Broker enforces the instance network scope without local approval and scopes credentials", async () => {
   const fetchImpl = jest.fn(async () => ({
     ok: true,
     status: 200,
@@ -32,7 +32,6 @@ test("Broker requires both instance permission and local approval, and scopes cr
     fetchImpl,
     assets: createAssetStore(),
     signal: controller.signal,
-    approvedOrigins: new Set(["https://example.invalid"]),
   });
   const request = {
     url: "https://example.invalid/v1/chat",
@@ -67,7 +66,6 @@ test("secret bindings cannot bypass the Cookie prohibition", async () => {
     fetchImpl,
     assets: createAssetStore(),
     signal: new AbortController().signal,
-    approvedOrigins: new Set(["https://example.invalid"]),
   });
   await expect(
     broker.http.request({
@@ -93,8 +91,9 @@ test("declarative resolution retains numeric values, omits auto language, and re
     http: { request },
   };
   const snapshot = {
+    apiVersion: 1,
     rules: {
-      rulesVersion: 1,
+      format: "http",
       handlers: {
         transcribe: {
           request: {
@@ -134,7 +133,6 @@ test("secret bindings inject only within the approved request and cannot cross i
     fetchImpl,
     assets: createAssetStore(),
     signal: new AbortController().signal,
-    approvedOrigins: new Set(["https://example.invalid"]),
   });
   await broker.http.request({
     url: "https://example.invalid/test",
@@ -192,7 +190,6 @@ test("stream consumption retains the scheduler slot and NDJSON handles Unicode s
       fetchImpl,
       assets: createAssetStore(),
       signal: new AbortController().signal,
-      approvedOrigins: new Set(["https://example.invalid"]),
     }
   );
   const stream = broker.http.stream({
@@ -211,3 +208,86 @@ test("stream consumption retains the scheduler slot and NDJSON handles Unicode s
   await second;
   expect(fetchImpl).toHaveBeenCalledTimes(2);
 });
+
+test("fixed addresses work without approval and configured endpoints define the scope of new calls", async () => {
+  const fetchImpl = jest.fn(async () => ({
+    ok: true,
+    status: 200,
+    headers: new Map(),
+    text: async () => "{}",
+  }));
+  const snapshot = {
+    ...api,
+    pluginConfig: { ...api.pluginConfig },
+    provider: {
+      ...api.provider,
+      permissions: {
+        network: ["https://fixed.invalid"],
+        endpointFields: ["baseUrl"],
+      },
+    },
+  };
+  const original = createTransportBroker(snapshot, {
+    fetchImpl,
+    assets: createAssetStore(),
+  });
+  await original.http.request({ url: "https://fixed.invalid/test" });
+  snapshot.pluginConfig.baseUrl = "https://new.invalid/v1";
+  const updated = createTransportBroker(snapshot, {
+    fetchImpl,
+    assets: createAssetStore(),
+  });
+  await updated.http.request({ url: "https://new.invalid/test" });
+  await original.http.request({ url: "https://example.invalid/test" });
+  await expect(
+    original.http.request({ url: "https://new.invalid/test" })
+  ).rejects.toMatchObject({ code: "NETWORK_DENIED" });
+  await expect(
+    updated.http.request({ url: "https://example.invalid/test" })
+  ).rejects.toMatchObject({ code: "NETWORK_DENIED" });
+  await expect(
+    original.http.stream({ url: "https://undeclared.invalid/test" }).next()
+  ).rejects.toMatchObject({ code: "NETWORK_DENIED" });
+  expect(fetchImpl).toHaveBeenCalledTimes(3);
+});
+
+test.each([
+  ["https://fixed.invalid/test", true],
+  ["http://localhost:8765/test", true],
+  ["http://127.0.0.1:8765/test", true],
+  ["http://[::1]:8765/test", true],
+  ["http://remote.invalid/test", false],
+  ["ftp://remote.invalid/test", false],
+  ["https://name:password@fixed.invalid/test", false],
+])(
+  "protocol and embedded credential policy still applies to declared address %s",
+  async (url, accepted) => {
+    const fetchImpl = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: new Map(),
+      text: async () => "{}",
+    }));
+    const instance = {
+      ...api,
+      provider: {
+        ...api.provider,
+        permissions: { network: [new URL(url).origin] },
+      },
+    };
+    const broker = createTransportBroker(instance, {
+      fetchImpl,
+      assets: createAssetStore(),
+    });
+    const outcome = await broker.http.request({ url }).then(
+      (value) => ({ value }),
+      (error) => ({ error })
+    );
+    expect(outcome).toMatchObject(
+      accepted
+        ? { value: { status: 200 } }
+        : { error: { code: "NETWORK_DENIED" } }
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(accepted ? 1 : 0);
+  }
+);

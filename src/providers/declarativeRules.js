@@ -1,5 +1,6 @@
 import { providerError } from "./capabilities";
 import { getSettingOptions } from "./instances";
+import { protocolCapabilities } from "./protocolCapabilities";
 
 const object = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -10,10 +11,34 @@ function check(valid, code, message) {
   if (!valid) throw providerError(code, message);
 }
 
-function pathValid(path) {
+export function validRuleUrlPath(path) {
+  if (typeof path !== "string") return false;
+  try {
+    const decoded = decodeURIComponent(path);
+    return (
+      !path.startsWith("/") &&
+      path === path.trim() &&
+      !path.includes(":") &&
+      ![path, decoded].some((value) =>
+        Array.from(value).some(
+          (char) =>
+            char === "\\" ||
+            char.charCodeAt(0) < 32 ||
+            char.charCodeAt(0) === 127
+        )
+      ) &&
+      !decoded.split(/[/?#]/).includes("..")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function pathValid(path, roots = ["config", "input"]) {
   return (
     typeof path === "string" &&
-    /^(config|input)(?:\.[A-Za-z_$][\w$]*|\[\d+\])+$/.test(path) &&
+    /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\[\d+\])+$/.test(path) &&
+    roots.includes(path.split(/[.[]/)[0]) &&
     !path
       .replace(/\[(\d+)\]/g, ".$1")
       .split(".")
@@ -21,15 +46,16 @@ function pathValid(path) {
   );
 }
 
-// v2 exposes data references and typed setting branches, not a language.
-function validateNode(node, fields, code, depth = 0) {
+// Fixed references and typed operators, never expressions or executable code.
+function validateNode(node, fields, code, depth = 0, mode = "protocol") {
   check(depth <= 32, code, "Rule nesting limit exceeded.");
   if (node === null || typeof node !== "object") return;
   if (Array.isArray(node)) {
-    node.forEach((value) => validateNode(value, fields, code, depth + 1));
+    node.forEach((value) => validateNode(value, fields, code, depth + 1, mode));
     return;
   }
   if (Object.hasOwn(node, "$if")) {
+    check(mode === "protocol", code, "Conditions require protocol format.");
     check(
       Object.keys(node).every((key) => ["$if", "then", "else"].includes(key)),
       code,
@@ -62,17 +88,52 @@ function validateNode(node, fields, code, depth = 0) {
     );
     for (const branch of ["then", "else"])
       if (Object.hasOwn(node, branch))
-        validateNode(node[branch], fields, code, depth + 1);
+        validateNode(node[branch], fields, code, depth + 1, mode);
     return;
   }
   if (Object.hasOwn(node, "$ref")) {
     check(
-      pathValid(node.$ref) &&
+      pathValid(
+        node.$ref,
+        mode === "response"
+          ? ["response"]
+          : mode === "http"
+            ? ["config", "input", "resources"]
+            : ["config", "input"]
+      ) &&
         Object.keys(node).every((key) =>
-          ["$ref", "omitIfEmpty", "omitValues"].includes(key)
+          [
+            "$ref",
+            "fallbackRef",
+            "omitIfEmpty",
+            "omitValues",
+            "transform",
+          ].includes(key)
         ),
       code,
       "Invalid field reference."
+    );
+    const nonsecret = (path) =>
+      !path.startsWith("config.") ||
+      !fields.some(
+        (field) =>
+          field.key === path.slice(7).split(/[.[]/)[0] &&
+          (field.isSecret || field.type === "password")
+      );
+    check(nonsecret(node.$ref), code, "Secrets require $secret references.");
+    if (Object.hasOwn(node, "fallbackRef"))
+      check(
+        mode !== "response" &&
+          pathValid(node.$ref) &&
+          pathValid(node.fallbackRef) &&
+          nonsecret(node.fallbackRef),
+        code,
+        "Invalid fallback reference."
+      );
+    check(
+      node.transform === undefined || node.transform === "languages.toIso6391",
+      code,
+      "Unsupported transform."
     );
     check(
       node.omitIfEmpty === undefined || typeof node.omitIfEmpty === "boolean",
@@ -86,13 +147,56 @@ function validateNode(node, fields, code, depth = 0) {
     );
     return;
   }
+  if (mode === "http" && Object.hasOwn(node, "$secret")) {
+    check(
+      Object.keys(node).length === 1 &&
+        fields.some(
+          (field) =>
+            field.key === node.$secret &&
+            (field.isSecret || field.type === "password")
+        ),
+      code,
+      "Secret reference requires a declared secret."
+    );
+    return;
+  }
+  if (mode === "http" && Object.hasOwn(node, "$asset")) {
+    check(
+      Object.keys(node).length === 1 && pathValid(node.$asset, ["input"]),
+      code,
+      "Invalid asset reference."
+    );
+    return;
+  }
+  if (mode === "http" && Object.hasOwn(node, "$url")) {
+    const url = node.$url;
+    check(
+      Object.keys(node).length === 1 &&
+        object(url) &&
+        Object.keys(url).every((key) => ["base", "path"].includes(key)) &&
+        pathValid(url.base, ["config"]) &&
+        validRuleUrlPath(url.path),
+      code,
+      "Invalid URL rule."
+    );
+    check(
+      !fields.some(
+        (field) =>
+          field.key === url.base.slice(7).split(/[.[]/)[0] &&
+          (field.isSecret || field.type === "password")
+      ),
+      code,
+      "Secrets require $secret references."
+    );
+    return;
+  }
   for (const [key, value] of Object.entries(node)) {
     check(
-      !unsafe.has(key) && !key.startsWith("$"),
+      !unsafe.has(key) && !key.startsWith("$") && key !== "fallbackRef",
       code,
       "Unknown or unsafe rule operator."
     );
-    validateNode(value, fields, code, depth + 1);
+    validateNode(value, fields, code, depth + 1, mode);
   }
 }
 
@@ -105,7 +209,9 @@ export function validateDeclarativeRules(
 ) {
   check(
     object(rules) &&
-      [1, 2].includes(rules.rulesVersion) &&
+      ["http", "protocol"].includes(rules.format) &&
+      !Object.hasOwn(rules, "rulesVersion") &&
+      !Object.hasOwn(rules, "manifestVersion") &&
       object(rules.handlers),
     code,
     "Unsupported declarative rules."
@@ -118,20 +224,22 @@ export function validateDeclarativeRules(
       code,
       "Invalid declarative handler."
     );
-    if (rules.rulesVersion === 1) {
+    if (rules.format === "http") {
       check(
         rule.request && ["json", "asset"].includes(rule.response?.kind),
         code,
         "Missing declarative request or response kind."
       );
+      validateNode(rule.request, fields, code, 0, "http");
+      validateNode(rule.response.map, fields, code, 0, "response");
       continue;
     }
     check(
       Object.keys(rule).every((key) =>
         ["protocol", "task", "request"].includes(key)
       ) &&
-        rule.protocol === "openai-chat-completions" &&
-        ["chat", "translate", "parseImage"].includes(rule.task),
+        Object.hasOwn(protocolCapabilities, rule.task) &&
+        rule.protocol === protocolCapabilities[rule.task].protocol,
       code,
       "Unsupported protocol or task."
     );
@@ -171,7 +279,20 @@ export function validateDeclarativeRules(
     );
     for (const [key, value] of Object.entries(request.parameters || {})) {
       check(
-        !reserved.has(key) && !unsafe.has(key) && !key.startsWith("$"),
+        !reserved.has(key) &&
+          (rule.protocol === "openai-chat-completions" ||
+            ![
+              "file",
+              "input",
+              "audio",
+              "language",
+              "voice",
+              "speed",
+              "response_format",
+              "timestamp_granularities[]",
+            ].includes(key)) &&
+          !unsafe.has(key) &&
+          !key.startsWith("$"),
         code,
         "Reserved protocol parameter."
       );
@@ -185,23 +306,30 @@ export function validateDeclarativeRules(
       code,
       "Missing declarative handler."
     );
-    if (rules.rulesVersion === 1) continue;
+    check(capability !== "speak", code, "System speech is native-only.");
+    if (rules.format === "http") {
+      check(
+        !(descriptor.outputModes || []).includes("stream"),
+        code,
+        "HTTP rules do not support streaming."
+      );
+      continue;
+    }
     check(
       rule.task === capability,
       code,
       "Protocol task does not match capability."
     );
+    const support = protocolCapabilities[capability];
     check(
-      !descriptor.coordinates &&
-        !descriptor.timestamps &&
-        (!descriptor.batch?.supported || capability === "translate") &&
+      (!descriptor.coordinates || support.coordinates) &&
+        (!descriptor.timestamps || support.timestamps) &&
+        (!descriptor.batch?.supported || support.batch) &&
         (descriptor.outputModes || ["complete"]).every(
-          (mode) =>
-            mode === "complete" ||
-            (mode === "stream" && capability !== "parseImage")
+          (mode) => mode === "complete" || (mode === "stream" && support.stream)
         ) &&
-        (descriptor.inputModalities || ["text"]).every(
-          (mode) => mode === (capability === "parseImage" ? "image" : "text")
+        (descriptor.inputModalities || ["text"]).every((mode) =>
+          support.modalities.includes(mode)
         ),
       code,
       "Unsupported protocol capability features."

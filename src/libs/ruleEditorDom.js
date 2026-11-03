@@ -1,21 +1,10 @@
-import { APP_CONSTS, APP_LCNAME } from "../config";
+import { APP_LCNAME } from "../config";
+import { KISS_UI_SELECTOR } from "./kissUi";
 
 export const RULE_EDITOR_ID = "kiss-rule-editor";
 const OVERLAY_ID = "kiss-rule-highlights";
-const ownSelector =
-  [
-    RULE_EDITOR_ID,
-    OVERLAY_ID,
-    ...Object.values(APP_CONSTS).filter(
-      (v) => typeof v === "string" && v.startsWith(APP_LCNAME)
-    ),
-  ]
-    .map((id) => `[id="${id}"]`)
-    .join(", ") +
-  ", .kiss-caption-container, .kiss-subtitle-controls, #kiss-youtube-subtitle-list-container";
-
 export const isEditorElement = (element) =>
-  Boolean(element?.closest?.(ownSelector));
+  Boolean(element?.closest?.(KISS_UI_SELECTOR));
 export const isPageElement = (element) =>
   element?.nodeType === 1 &&
   element.getRootNode() === document &&

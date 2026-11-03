@@ -1,4 +1,6 @@
 import browser from "webextension-polyfill";
+import { captionCacheBackend } from "./subtitle/captionCacheBackground";
+import { MSG_YOUTUBE_CAPTION_CACHE } from "./config/msg";
 import { writeSiteRule } from "./libs/ruleEditorStorage";
 import {
   MSG_FETCH,
@@ -45,7 +47,15 @@ import {
   MSG_SHA256,
   MSG_GET_FRAME_ID,
   MSG_VALIDATE_DOCUMENT,
+  CMD_IMAGE_SCREENSHOT,
+  MSG_IMAGE_SCREENSHOT,
+  MSG_CAPTURE_VISIBLE_TAB,
+  MSG_SCREENSHOT_SUPPORT,
+  MSG_IMAGE_TRANSLATE_EXECUTE,
+  MSG_IMAGE_TRANSLATE_CANCEL,
+  MSG_IMAGE_TRANSLATE_PROGRESS,
 } from "./config";
+import { executeImagePipeline } from "./fileTranslation/pipelineCore";
 import {
   getSettingWithDefault,
   tryInitDefaultData,
@@ -53,13 +63,18 @@ import {
 } from "./libs/storage";
 import { trySyncSettingAndRules } from "./libs/sync";
 import { fetchHandle, fetchStreamNative } from "./libs/fetch";
+import { handleFetchPort } from "./libs/requestPort";
+import { PORT_FETCH } from "./config/msg";
 import { tryClearCaches, getHttpCache, putHttpCache } from "./libs/cache";
 import { sendTabMsg } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { saveRule } from "./libs/rules";
 import { getCurTabId } from "./libs/msg";
 import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
-import { kissLog, logger } from "./libs/log";
+import { logger } from "./libs/log";
+import { createDiagnosticsBackend } from "./libs/diagnostics/background";
+import { LOG_ACTION } from "./libs/diagnostics/record";
+import { setDiagnosticSink } from "./libs/diagnostics/transport";
 import {
   chromeDetect,
   chromeTranslate,
@@ -68,13 +83,32 @@ import {
 import { sha256 } from "./libs/utils";
 import { installStorageCoordinator } from "./libs/storageCoordination";
 import { isCurrentPopupDocument } from "./libs/popupDocument";
-import { localAiRequest, cancelLocalAiRequest, localAiSettings, localAiHost } from "./libs/localAiBackground";
+import {
+  localAiRequest,
+  cancelLocalAiRequest,
+  localAiSettings,
+  localAiHost,
+} from "./libs/localAiBackground";
 import { installProviderRelay } from "./providers/background";
 import { installFileTranslationBackend } from "./fileTranslation/backend";
 import { restoreFileTranslationBridges } from "./fileTranslation/bridgeRecovery";
+import { ensureYoutubeBridgeRegistered } from "./libs/youtubeBridgeRegistration";
+import { installAsrCacheBackend } from "./subtitle/asr/cacheBackground";
 
 globalThis.__KISS_CONTEXT__ = "background";
+const diagnostics = createDiagnosticsBackend({
+  browser,
+  getLevel: async () => (await getSettingWithDefault()).logLevel ?? 1,
+});
+setDiagnosticSink(diagnostics.append);
+void ensureYoutubeBridgeRegistered();
 installStorageCoordinator();
+installAsrCacheBackend(browser, undefined, {
+  getAudioCacheLimit: async () => {
+    const setting = await getSettingWithDefault();
+    return setting?.subtitleSetting?.audioCacheLimit ?? 100;
+  },
+});
 installFileTranslationBackend();
 restoreFileTranslationBridges();
 
@@ -85,7 +119,19 @@ let openingOptionsPage = null;
  * Fall back to a new tab when the native API is unavailable or fails.
  * Concurrent callers share the operation and receive its success status.
  */
-function openOptionsPage() {
+async function openOptionsPage(path = "") {
+  if (path) {
+    const hash = path.startsWith("#") ? path : `#${path}`;
+    try {
+      await browser.tabs.create({
+        url: browser.runtime.getURL(`options.html${hash}`),
+      });
+      return true;
+    } catch (err) {
+      logger.child("background").error("open options page in new tab", err);
+      return false;
+    }
+  }
   if (openingOptionsPage) return openingOptionsPage;
 
   openingOptionsPage = Promise.resolve()
@@ -95,7 +141,9 @@ function openOptionsPage() {
           await browser.runtime.openOptionsPage();
           return true;
         } catch (err) {
-          kissLog("open options page with runtime API", err);
+          logger
+            .child("background")
+            .info("open options page with runtime API", err);
         }
       }
 
@@ -105,7 +153,7 @@ function openOptionsPage() {
         });
         return true;
       } catch (err) {
-        kissLog("open options page in new tab", err);
+        logger.child("background").error("open options page in new tab", err);
         return false;
       }
     })
@@ -138,7 +186,7 @@ async function updateIcon(isActive, tabId) {
       await browser.browserAction.setIcon({ path, tabId });
     }
   } catch (err) {
-    kissLog("updateIcon error", err);
+    logger.child("background").warn("updateIcon error", err);
   }
 }
 
@@ -162,7 +210,7 @@ function getRegistrableDomain(input) {
     // 取最后两段作为可注册域名（足以覆盖有道等常见翻译源场景）
     return labels.length <= 2 ? hostname : labels.slice(-2).join(".");
   } catch (err) {
-    kissLog("getRegistrableDomain error", err);
+    logger.child("background").warn("getRegistrableDomain error", err);
     return "";
   }
 }
@@ -220,7 +268,7 @@ async function centerOnFocusedWindow({ width, height }) {
       top: Math.round(focused.top + (focused.height - height) / 2),
     };
   } catch (err) {
-    kissLog("center separate window", err);
+    logger.child("background").debug("center separate window", err);
     return null;
   }
 }
@@ -297,9 +345,11 @@ async function fitSeparateWindow(args) {
     } else if (windowId === separateWindowId) {
       await updateCacheFromActual(windowId);
     }
-    kissLog("Separate window fitted to content", { nextWidth, nextHeight });
+    logger
+      .child("background")
+      .debug("Separate window fitted to content", { nextWidth, nextHeight });
   } catch (err) {
-    kissLog("fit separate window", err);
+    logger.child("background").info("fit separate window", err);
   }
 }
 
@@ -342,9 +392,11 @@ async function persistSeparateWindowBounds(bounds) {
   if (!bounds) return;
   try {
     await browser.storage.local.set({ [STOKEY_SEPARATE_WINDOW]: bounds });
-    kissLog("Final separate window bounds saved to storage", bounds);
+    logger
+      .child("background")
+      .debug("Final separate window bounds saved to storage", bounds);
   } catch (err) {
-    kissLog("Save separate window bounds error", err);
+    logger.child("background").warn("Save separate window bounds error", err);
   }
 }
 
@@ -359,7 +411,7 @@ async function openSeparateWindowWithSavedBounds() {
       const existingWin = allWindows.find((w) => w.id === separateWindowId);
       if (existingWin) {
         await browser.windows.update(separateWindowId, { focused: true });
-        kissLog("Separate window is ready");
+        logger.child("background").debug("Separate window is ready");
         return existingWin;
       }
     }
@@ -404,7 +456,7 @@ async function openSeparateWindowWithSavedBounds() {
 
     return win;
   } catch (err) {
-    kissLog("open separate window error", err);
+    logger.child("background").warn("open separate window error", err);
   }
 }
 
@@ -472,12 +524,12 @@ async function addContextMenus(contextMenuType = 1) {
     // 添加右键菜单前，务必先全部清空，防止因为重复添加相同 ID 菜单导致插件崩溃
     await browser.contextMenus.removeAll();
   } catch (err) {
-    kissLog("remove contextMenus", err);
+    logger.child("background").info("remove contextMenus", err);
   }
 
   switch (contextMenuType) {
     case 1:
-      // 简易模式：仅提供“双语对照翻译”与“翻译所选文本”
+      // 简易模式：仅提供“双语对照翻译”与“翻译所选文本”，不添加截图翻译以避免 Chrome 自动折叠为二级菜单
       browser.contextMenus.create({
         id: CMD_TOGGLE_TRANSLATE,
         title: browser.i18n.getMessage("toggle_translate"),
@@ -510,6 +562,11 @@ async function addContextMenus(contextMenuType = 1) {
         id: CMD_OPEN_TRANBOX,
         title: browser.i18n.getMessage("open_tranbox"),
         contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: CMD_IMAGE_SCREENSHOT,
+        title: browser.i18n.getMessage("image_screenshot") || "截图翻译",
+        contexts: ["page", "selection", "image"],
       });
       browser.contextMenus.create({
         id: "options_separator",
@@ -632,7 +689,7 @@ async function updateCspRules({ csplist, orilist }) {
       });
     }
   } catch (err) {
-    kissLog("update csp rules", err);
+    logger.child("background").info("update csp rules", err);
   }
 }
 
@@ -663,7 +720,7 @@ async function getUiLanguage() {
       return "en";
     }
   } catch (err) {
-    kissLog("get UI language error", err);
+    logger.child("background").warn("get UI language error", err);
     return "en";
   }
 }
@@ -672,12 +729,11 @@ async function getUiLanguage() {
  * 监听扩展安装/升级事件 (onInstalled)。
  * 此时触发数据库默认初始化、右键菜单生成、CSP 网络过滤器注册、以及拉取网络订阅规则。
  */
-browser.runtime.onInstalled.addListener(async (details) => {
+browser.runtime.onInstalled.addListener(async () => {
+  void ensureYoutubeBridgeRegistered();
   const uiLang = await getUiLanguage();
   await tryInitDefaultData(uiLang);
-  if (details?.reason === "update") {
-    await runDataMigration();
-  }
+  if ((await runDataMigration()) === false) return;
 
   // 在 Thunderbird 场景下注册特定的邮件脚本
   if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
@@ -697,6 +753,8 @@ browser.runtime.onInstalled.addListener(async (details) => {
  * 此时从本地恢复日志级别、清空不需要的翻译长缓存、重建右键菜单，并与云端同步设置、本地规则与订阅规则。
  */
 browser.runtime.onStartup.addListener(async () => {
+  void ensureYoutubeBridgeRegistered();
+  if ((await runDataMigration()) === false) return;
   const {
     clearCache,
     contextMenuType,
@@ -740,7 +798,14 @@ const injectToCurrentTab = async (func, args) => {
 };
 
 // 后台消息指令与对应处理器映射表
+const handleCaptionCache = captionCacheBackend(browser, async () => {
+  const setting = await getSettingWithDefault();
+  return setting?.subtitleSetting?.captionCacheLimit ?? 100;
+});
+const activeImageTasks = new Map();
+
 const messageHandlers = {
+  [MSG_YOUTUBE_CAPTION_CACHE]: handleCaptionCache,
   [MSG_GET_FRAME_ID]: (_args, sender) =>
     Number.isInteger(sender?.frameId) ? sender.frameId : undefined,
   [MSG_VALIDATE_DOCUMENT]: (args, sender) =>
@@ -749,7 +814,7 @@ const messageHandlers = {
   [MSG_GET_HTTPCACHE]: (args) => getHttpCache(args), // 读取翻译 HTTP 缓存
   [MSG_PUT_HTTPCACHE]: (args) => putHttpCache(args), // 存入翻译 HTTP 缓存
   [MSG_SHA256]: ({ text = "", salt = "" } = {}) => sha256(text, salt), // 代算缓存签名
-  [MSG_OPEN_OPTIONS]: () => openOptionsPage(), // 打开设置选项页
+  [MSG_OPEN_OPTIONS]: ({ path = "" } = {}) => openOptionsPage(path), // 打开设置选项页
   [MSG_SAVE_RULE]: (args) => saveRule(args), // 写入/保存规则
   [MSG_EDIT_RULE]: (args) => writeSiteRule(args),
   [MSG_INJECT_JS]: (args) => injectToCurrentTab(injectInlineJsBg, args), // 注入 JS 代码到前台
@@ -781,12 +846,92 @@ const messageHandlers = {
       ? updateCacheFromActual(args.windowId)
       : undefined,
   [MSG_UPDATE_ICON]: (args, sender) => updateIcon(args, sender?.tab?.id), // 变更页面的插件高亮图标
+  [MSG_SCREENSHOT_SUPPORT]: () => ({
+    supported: typeof browser.tabs?.captureVisibleTab === "function",
+  }),
+  [MSG_CAPTURE_VISIBLE_TAB]: async (_args, sender) => {
+    if (typeof browser.tabs?.captureVisibleTab !== "function") {
+      return { unsupported: true };
+    }
+    const windowId = sender?.tab?.windowId;
+    const tabId = sender?.tab?.id;
+    if (tabId != null && windowId != null) {
+      const [activeTab] = await browser.tabs.query({ active: true, windowId });
+      if (!activeTab || activeTab.id !== tabId) {
+        throw new Error("截图失败：标签页已切换或不在活跃状态");
+      }
+    }
+    const dataUrl = await browser.tabs.captureVisibleTab(windowId ?? null, {
+      format: "png",
+    });
+    return { dataUrl };
+  },
+  [MSG_IMAGE_TRANSLATE_EXECUTE]: async (args, sender) => {
+    const tabId = sender?.tab?.id ?? "global";
+    const taskId = args?.taskId || crypto.randomUUID();
+    const taskKey = `${tabId}:${taskId}`;
+    const controller = new AbortController();
+    activeImageTasks.set(taskKey, controller);
+
+    try {
+      let imageBlob = args?.imageBlob;
+      if (
+        (!imageBlob || !(imageBlob instanceof Blob) || imageBlob.size === 0) &&
+        args?.dataUrl
+      ) {
+        const res = await fetch(args.dataUrl);
+        imageBlob = await res.blob();
+      }
+
+      let progressSequence = 0;
+      const onProgress = (progress) => {
+        if (
+          !controller.signal.aborted &&
+          activeImageTasks.get(taskKey) === controller &&
+          sender?.tab?.id != null
+        ) {
+          sendTabMsg(
+            MSG_IMAGE_TRANSLATE_PROGRESS,
+            { taskId, ...progress, sequence: ++progressSequence },
+            undefined,
+            sender.tab.id
+          );
+        }
+      };
+
+      const result = await executeImagePipeline({
+        taskId,
+        imageBlob,
+        scene: args?.scene,
+        action: args?.action,
+        items: args?.items,
+        selectedRegions: args?.selectedRegions,
+        signal: controller.signal,
+        onProgress,
+      });
+
+      return { taskId, success: true, result };
+    } finally {
+      activeImageTasks.delete(taskKey);
+    }
+  },
+  [MSG_IMAGE_TRANSLATE_CANCEL]: ({ taskId }, sender) => {
+    const tabId = sender?.tab?.id ?? "global";
+    const taskKey = `${tabId}:${taskId}`;
+    const controller = activeImageTasks.get(taskKey);
+    if (controller) {
+      controller.abort();
+      activeImageTasks.delete(taskKey);
+    }
+    return { success: true };
+  },
 };
 
 /**
  * 注册全局统一的 runtime.onMessage 消息通道监听器。
  */
 browser.runtime.onMessage.addListener(async ({ action, args }, sender) => {
+  if (action === LOG_ACTION) return diagnostics.handle(args, sender);
   const handler = messageHandlers[action];
   if (!handler) {
     throw new Error(`Message action is unavailable: ${action}`);
@@ -819,6 +964,9 @@ browser.commands?.onCommand?.addListener?.((command) => {
       break;
     case CMD_OPEN_OPTIONS:
       openOptionsPage();
+      break;
+    case CMD_IMAGE_SCREENSHOT:
+      sendTabMsg(MSG_IMAGE_SCREENSHOT);
       break;
     case CMD_OPEN_SEPARATE_WINDOW:
       if (messageHandlers[MSG_OPEN_SEPARATE_WINDOW]) {
@@ -853,6 +1001,9 @@ browser?.contextMenus?.onClicked?.addListener?.(
         break;
       case CMD_OPEN_OPTIONS:
         openOptionsPage();
+        break;
+      case CMD_IMAGE_SCREENSHOT:
+        sendTabMsg(MSG_IMAGE_SCREENSHOT);
         break;
       default:
     }
@@ -907,6 +1058,7 @@ async function handleStreamFetch(port, args) {
  */
 installProviderRelay();
 browser.runtime.onConnect.addListener((port) => {
+  if (port.name === PORT_FETCH) handleFetchPort(port, fetchHandle);
   if (port.name === PORT_STREAM_FETCH) {
     port.onMessage.addListener((message) => {
       if (message.action === "start") {

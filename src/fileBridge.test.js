@@ -132,51 +132,67 @@ test("pagehide closes the port and discovery can restore it on pageshow", () => 
   expect(browser.runtime.connect).toHaveBeenCalledTimes(2);
 });
 
-test.each([true, false])("a silent backend port is replaced on %s automatic recovery without reloading", async (automatic) => {
-  jest.useFakeTimers();
-  let sequence = 0;
-  crypto.randomUUID = () => `id-${++sequence}`;
-  const target = {
-    location: window.location,
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    postMessage: (data) => send(data),
-  };
-  const client = new FileTranslationClient(target);
-  window.postMessage.mockImplementation((data) => client.receive({
-    source: target, origin: target.location.origin, data,
-  }));
-  const createPort = browser.runtime.connect.getMockImplementation();
-  browser.runtime.connect.mockImplementation(() => {
-    const port = createPort();
-    if (ports.length > 1) port.postMessage.mockImplementation((request) => {
-      if (request.method === "handshake") port.onMessage.addListener.mock.calls[0][0]({
-        type: "response", requestId: request.requestId,
-        result: { protocolVersion: 1, extensionId: "ext", sessionId: "recovered" },
-      });
+test.each([true, false])(
+  "a silent backend port is replaced on %s automatic recovery without reloading",
+  async (automatic) => {
+    jest.useFakeTimers();
+    let sequence = 0;
+    crypto.randomUUID = () => `id-${++sequence}`;
+    const target = {
+      location: window.location,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      postMessage: (data) => send(data),
+    };
+    const client = new FileTranslationClient(target);
+    window.postMessage.mockImplementation((data) =>
+      client.receive({
+        source: target,
+        origin: target.location.origin,
+        data,
+      })
+    );
+    const createPort = browser.runtime.connect.getMockImplementation();
+    browser.runtime.connect.mockImplementation(() => {
+      const port = createPort();
+      if (ports.length > 1)
+        port.postMessage.mockImplementation((request) => {
+          if (request.method === "handshake")
+            port.onMessage.addListener.mock.calls[0][0]({
+              type: "response",
+              requestId: request.requestId,
+              result: {
+                protocolVersion: 1,
+                extensionId: "ext",
+                sessionId: "recovered",
+              },
+            });
+        });
+      return port;
     });
-    return port;
-  });
-  const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
-  try {
-    inject();
-    const first = client.connect("ext").catch((error) => error);
-    jest.advanceTimersByTime(500);
-    await flush();
-    jest.advanceTimersByTime(10000);
-    await flush();
-    expect(await first).toMatchObject({ code: "REQUEST_TIMEOUT" });
-    expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
-    if (automatic) jest.advanceTimersByTime(1000);
-    else client.connect("ext");
-    jest.advanceTimersByTime(500);
-    await flush();
-    expect(ports).toHaveLength(2);
-    expect(client.session.sessionId).toBe("recovered");
-    ports[0].onDisconnect.addListener.mock.calls[0][0]();
-    expect(client.session.sessionId).toBe("recovered");
-  } finally {
-    client.dispose();
-    jest.useRealTimers();
+    const flush = async () => {
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+    };
+    try {
+      inject();
+      const first = client.connect("ext").catch((error) => error);
+      jest.advanceTimersByTime(500);
+      await flush();
+      jest.advanceTimersByTime(10000);
+      await flush();
+      expect(await first).toMatchObject({ code: "REQUEST_TIMEOUT" });
+      expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+      if (automatic) jest.advanceTimersByTime(1000);
+      else client.connect("ext");
+      jest.advanceTimersByTime(500);
+      await flush();
+      expect(ports).toHaveLength(2);
+      expect(client.session.sessionId).toBe("recovered");
+      ports[0].onDisconnect.addListener.mock.calls[0][0]();
+      expect(client.session.sessionId).toBe("recovered");
+    } finally {
+      client.dispose();
+      jest.useRealTimers();
+    }
   }
-});
+);

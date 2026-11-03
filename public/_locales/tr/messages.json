@@ -28,5 +28,11 @@
   },
   "toggle_tranbox": {
     "message": "Çeviri kutusunu aç/kapat"
+  },
+  "image_screenshot_command": {
+    "message": "Ekran Görüntüsü Çevirisi"
+  },
+  "image_screenshot": {
+    "message": "Ekran Görüntüsü Çevirisi"
   }
 }

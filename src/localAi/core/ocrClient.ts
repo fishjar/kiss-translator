@@ -118,7 +118,8 @@ export class OcrClient {
     blob: Blob,
     signal?: AbortSignal,
     target?: ModelTarget,
-    onProgress?: (status: string) => void
+    onProgress?: (status: string) => void,
+    deadlineAt?: number
   ): Promise<OcrImageResult> {
     if (!target && this.currentVersion === null)
       throw new Error("模型尚未加载");
@@ -128,6 +129,8 @@ export class OcrClient {
       const result = await this.host.request<{ blob: Blob }, OcrImageResult>(
         {
           id: reqId,
+          deadlineMs: deadlineAt === undefined
+            ? undefined : Math.max(1, deadlineAt - Date.now()),
           service: "ocr",
           method: "recognize",
           payload: { blob, ...target },

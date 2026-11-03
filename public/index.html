@@ -3,79 +3,106 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      KISS Translator - 简约开源的双语对照翻译扩展与油猴脚本 | Open-source Bilingual Translation
+    </title>
     <meta
       name="description"
-      content="KISS Translator is an open-source, minimalist bilingual translation extension and userscript for webpages, selected text, input boxes, and YouTube subtitles."
+      content="KISS Translator（简约翻译）是一个简约开源的双语对照翻译浏览器扩展与油猴脚本。支持网页对照翻译、划词查词、输入框翻译、YouTube 双语字幕、端侧本地 AI 及自定义 API 接口。A minimalist, open-source bilingual translation extension and userscript for webpages, YouTube subtitles, and custom AI APIs."
     />
     <meta
       name="keywords"
-      content="KISS Translator, bilingual translation, browser extension, userscript, webpage translation, YouTube subtitles, OpenAI, DeepL, Google Translate"
+      content="KISS Translator, 简约翻译, 双语翻译, 网页翻译, 油猴脚本, YouTube 双语字幕, 划词翻译, 本地AI, 翻译插件, bilingual translation, browser extension, userscript, webpage translation, YouTube subtitles, DeepSeek, OpenAI, DeepL, Google Translate"
     />
     <meta name="author" content="Gabe" />
-    <meta name="robots" content="index,follow" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
     <meta name="theme-color" content="#080b0f" />
+
     <link rel="icon" href="%REACT_APP_SITEURL%/favicon.ico" />
     <link rel="canonical" href="%REACT_APP_SITEURL%/" />
+
+    <link rel="alternate" hreflang="x-default" href="%REACT_APP_SITEURL%/" />
+    <link rel="alternate" hreflang="zh-CN" href="%REACT_APP_SITEURL%/" />
+    <link rel="alternate" hreflang="en" href="%REACT_APP_SITEURL%/" />
+
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="KISS Translator" />
     <meta
       property="og:title"
-      content="KISS Translator - Open-source, minimalist bilingual translation"
+      content="KISS Translator - 简约开源的双语对照翻译扩展与油猴脚本"
     />
     <meta
       property="og:description"
-      content="A lightweight bilingual translation browser extension and userscript for webpages, selections, input boxes, subtitles, and custom AI APIs."
+      content="全场景极客式翻译工具：网页双语对照、划词查词、输入框即时翻译、YouTube 双语字幕、文件翻译与端侧本地 AI。"
     />
-    <meta
-      property="og:url"
-      content="%REACT_APP_SITEURL%/"
-    />
-    <meta
-      property="og:image"
-      content="%REACT_APP_LOGOURL%"
-    />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:url" content="%REACT_APP_SITEURL%/" />
+    <meta property="og:image" content="%REACT_APP_LOGOURL%" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="KISS Translator - Open-source, minimalist bilingual translation"
+      content="KISS Translator - 简约开源的双语对照翻译扩展与油猴脚本"
     />
     <meta
       name="twitter:description"
-      content="A lightweight bilingual translation extension and userscript for webpages, selected text, input boxes, subtitles, and custom AI APIs."
+      content="全场景极客式翻译工具：网页双语对照、划词查词、输入框即时翻译、YouTube 双语字幕、文件翻译与端侧本地 AI。"
     />
-    <meta
-      name="twitter:image"
-      content="%REACT_APP_LOGOURL%"
-    />
+    <meta name="twitter:image" content="%REACT_APP_LOGOURL%" />
+
+    <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "KISS Translator",
+        "alternateName": "简约翻译",
         "applicationCategory": "BrowserApplication",
-        "operatingSystem": "Chrome, Edge, Firefox, Safari, Thunderbird",
-        "description": "Open-source, minimalist bilingual translation extension and userscript for webpages, selected text, input boxes, YouTube subtitles, and custom AI APIs.",
+        "operatingSystem": "Chrome, Edge, Firefox, Safari, Thunderbird, Userscript",
+        "description": "KISS Translator 是一个简约开源的双语对照翻译浏览器扩展与油猴脚本，支持网页对照翻译、划词查词、输入框翻译、YouTube 双语字幕、端侧本地 AI 及自定义 API 接口插件。",
         "url": "%REACT_APP_SITEURL%/",
         "codeRepository": "%REACT_APP_HOMEPAGE%",
-        "license": "https://www.gnu.org/licenses/gpl-3.0.en.html"
+        "license": "https://www.gnu.org/licenses/gpl-3.0.en.html",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "featureList": [
+          "网页双语对照翻译",
+          "划词查词与横向多服务对比",
+          "输入框即时翻译",
+          "YouTube 双语智能合并与 AI 断句字幕",
+          "端侧本地离线 AI (WebGPU/Wasm)",
+          "自定义 API 插件生态",
+          "跨设备 WebDAV / KISS-Worker 同步"
+        ]
       }
     </script>
-    <title>
-      KISS Translator - Open-source, minimalist bilingual translation
-    </title>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>
+      <header>
+        <h1>KISS Translator 简约翻译 - 简约开源的双语对照翻译工具</h1>
+        <p>KISS Translator 是一个为极客和深度阅读者打造的双语对照翻译浏览器扩展与油猴脚本。</p>
+      </header>
+      <main>
+        <h2>核心功能特性</h2>
+        <ul>
+          <li><strong>网页双语翻译</strong>：保持原始排版，在原文旁显示译文，支持仅显示译文模式。</li>
+          <li><strong>划词查词与悬停翻译</strong>：支持多服务对比、柯林斯生词本收藏。</li>
+          <li><strong>YouTube 双语字幕</strong>：基础合并算法与 AI 语义断句，提供字幕悬停查词与 AI 视频总结。</li>
+          <li><strong>文件翻译</strong>：支持 PDF 原文解析与表格公式识别、EPUB 电子书双语对照阅读导出、TXT/Markdown 与图片 OCR 翻译。</li>
+          <li><strong>本地 AI 与插件生态</strong>：端侧离线轻量模型支持，通过开源插件接入任意自定义 API。</li>
+        </ul>
+        <h2>支持的客户端</h2>
+        <p>支持 Chrome、Edge、Firefox、Thunderbird 扩展及 Tampermonkey / Violentmonkey 油猴脚本与 iOS Safari。</p>
+      </main>
+      <footer>
+        <p>GitHub 开源仓库: <a href="%REACT_APP_HOMEPAGE%">%REACT_APP_HOMEPAGE%</a></p>
+      </footer>
+    </noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
   </body>
 </html>

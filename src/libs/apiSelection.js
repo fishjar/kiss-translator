@@ -1,7 +1,14 @@
+import { supportsApiCapability } from "../config/serviceSelection";
+
 export function getEnabledApis(transApis = []) {
   return transApis
     .map((api, index) => ({ api, index }))
-    .filter(({ api }) => api?.apiSlug && !api.isDisabled)
+    .filter(
+      ({ api }) =>
+        api?.apiSlug &&
+        !api.isDisabled &&
+        supportsApiCapability(api, "translate")
+    )
     .sort((a, b) => {
       const orderA = Number(a.api.sortOrder) || 0;
       const orderB = Number(b.api.sortOrder) || 0;

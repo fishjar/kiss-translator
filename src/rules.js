@@ -19,5 +19,6 @@ import { BUILTIN_RULES } from "./config/rules";
     console.info(`Built-in rules generated: ${file}`);
   } catch (err) {
     console.error("Failed to generate built-in rules file:", err);
+    process.exitCode = 1;
   }
 })();

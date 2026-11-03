@@ -5,6 +5,7 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
 const path = require("path");
 const fs = require("fs");
+const configureHtmlDecoder = require("./src/scripts/html-decoder-webpack.cjs");
 let webpack;
 try {
   webpack = require("webpack");
@@ -57,9 +58,14 @@ const extWebpack = (config, env) => {
     background: paths.appSrc + "/background.js", // 扩展后台常驻脚本
     content: paths.appSrc + "/content.js", // 内容注入核心脚本
     "injector-subtitle": paths.appSrc + "/injector-subtitle.js", // 字幕注入脚本
+    ...(process.env.REACT_APP_CLIENT === "firefox"
+      ? { "subtitle-bootstrap": paths.appSrc + "/subtitleBootstrap.js" }
+      : {}),
     "injector-shadowroot": paths.appSrc + "/injector-shadowroot.js", // ShadowRoot 拦截注入脚本
     "file-bridge": paths.appSrc + "/fileBridge.js",
   };
+
+  configureHtmlDecoder(config, webpack);
 
   // 2. 将输出的文件命名重写为固定格式，方便 manifest.json 静态引用，防止文件哈希化导致引用失效
   config.output.filename = "[name].js";
@@ -391,6 +397,18 @@ const userscriptWebpack = (config, env) => {
 
 // 方案 C：本地开发网页模式的 Webpack 覆盖配置
 const webWebpack = (config, env) => {
+  const styleRules = config.module.rules.find((rule) => rule.oneOf).oneOf;
+  styleRules.unshift({
+    test: /[\\/]katex[\\/]dist[\\/]fonts[\\/].+\.(woff2?|ttf)$/,
+    type: "asset/resource",
+    generator: { filename: "assets/pdf/fonts/[name][ext]" },
+  });
+  // Production CSS lives two directories below the site root.
+  if (env === "production")
+    for (const rule of styleRules)
+      for (const use of rule.use || [])
+        if (use.loader?.includes("mini-css-extract-plugin"))
+          use.options = { ...use.options, publicPath: "../../" };
   config.module.rules.push({
     test: /[\\/]pdfjs-dist[\\/]web[\\/]pdf_viewer\.css$/,
     enforce: "pre",
@@ -398,20 +416,45 @@ const webWebpack = (config, env) => {
   });
   config.plugins.push({
     apply(compiler) {
-      compiler.hooks.thisCompilation.tap("PdfAssets", compilation => {
-        compilation.hooks.processAssets.tap({name:"PdfAssets",stage:compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL}, () => {
-          const pdfRoot = path.dirname(require.resolve("pdfjs-dist/package.json"));
-          const katexRoot = path.join(path.dirname(require.resolve("katex/package.json")), "dist");
-          const emit = (source, target) => {
-            if (fs.statSync(source).isDirectory()) {
-              for (const name of fs.readdirSync(source)) emit(path.join(source,name),`${target}/${name}`);
-            } else compilation.emitAsset(target,new compiler.webpack.sources.RawSource(fs.readFileSync(source)));
-          };
-          emit(path.join(pdfRoot,"build/pdf.worker.min.mjs"),"assets/pdf/pdf.worker.min.mjs");
-          for (const dir of ["cmaps","standard_fonts","wasm"]) emit(path.join(pdfRoot,dir),`assets/pdf/${dir}`);
-          emit(path.join(katexRoot,"katex.min.css"),"assets/pdf/katex.min.css");
-          emit(path.join(katexRoot,"fonts"),"assets/pdf/fonts");
-        });
+      compiler.hooks.thisCompilation.tap("PdfAssets", (compilation) => {
+        compilation.hooks.processAssets.tap(
+          {
+            name: "PdfAssets",
+            stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+          },
+          () => {
+            const pdfRoot = path.dirname(
+              require.resolve("pdfjs-dist/package.json")
+            );
+            const katexRoot = path.join(
+              path.dirname(require.resolve("katex/package.json")),
+              "dist"
+            );
+            const emit = (source, target) => {
+              if (fs.statSync(source).isDirectory()) {
+                for (const name of fs.readdirSync(source))
+                  emit(path.join(source, name), `${target}/${name}`);
+              } else
+                compilation.emitAsset(
+                  target,
+                  new compiler.webpack.sources.RawSource(
+                    fs.readFileSync(source)
+                  )
+                );
+            };
+            emit(
+              path.join(pdfRoot, "build/pdf.worker.min.mjs"),
+              "assets/pdf/pdf.worker.min.mjs"
+            );
+            for (const dir of ["cmaps", "standard_fonts", "wasm"])
+              emit(path.join(pdfRoot, dir), `assets/pdf/${dir}`);
+            emit(
+              path.join(katexRoot, "katex.min.css"),
+              "assets/pdf/katex.min.css"
+            );
+            emit(path.join(katexRoot, "fonts"), "assets/pdf/fonts");
+          }
+        );
       });
     },
   });
@@ -473,7 +516,7 @@ const webWebpack = (config, env) => {
     new HtmlWebpackPlugin({
       inject: true,
       chunks: ["fileTranslate"],
-      template: paths.appHtml,
+      template: paths.appPublic + "/file-translate.html",
       filename: "file-translate.html",
     })
   );
@@ -545,9 +588,39 @@ module.exports = {
   webpack: webpackConfig,
   jest: (config) => {
     if (!process.env.REACT_APP_CLIENT) process.env.REACT_APP_CLIENT = "chrome";
+    // PCM resampling is Math-heavy; avoid Jest's cross-VM global lookup per sample.
+    config.extraGlobals = [
+      ...new Set([...(config.extraGlobals || []), "Math"]),
+    ];
     config.testPathIgnorePatterns = [
       ...(config.testPathIgnorePatterns || []),
       "<rootDir>/src/localAi/",
+    ];
+    // googlevideo ships ESM only; exercise the pinned parser/protos in Jest 27.
+    const googlevideoRoot = path.dirname(
+      fs.realpathSync(
+        path.join(__dirname, "node_modules/googlevideo/package.json")
+      )
+    );
+    const googlevideoRequire = require("module").createRequire(
+      path.join(googlevideoRoot, "package.json")
+    );
+    config.moduleNameMapper = {
+      ...config.moduleNameMapper,
+      "^mp4box$": require.resolve("mp4box").replace(/\.js$/, ".cjs"),
+      "^googlevideo/(ump|protos)$": path.join(
+        googlevideoRoot,
+        "dist/src/exports/$1.js"
+      ),
+      "^@bufbuild/protobuf/wire$": googlevideoRequire.resolve(
+        "@bufbuild/protobuf/wire"
+      ),
+    };
+    config.transformIgnorePatterns = [
+      "[/\\\\]node_modules[/\\\\](?!(?:\\.pnpm[/\\\\])?(?:googlevideo(?:@|[/\\\\])|@bufbuild(?:\\+|[/\\\\])protobuf(?:@|[/\\\\])))",
+      ...(config.transformIgnorePatterns || []).filter(
+        (pattern) => !pattern.includes("node_modules")
+      ),
     ];
     return config;
   },

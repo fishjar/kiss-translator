@@ -1,3 +1,4 @@
+import { serviceTimeoutMs } from "./timeout";
 import { invokeScene } from "./sceneInvocation";
 import { parseAITerms } from "../libs/utils";
 import { translationOptions } from "./defaultPrompts";
@@ -14,6 +15,7 @@ export async function* translatePlugin(
     docInfo,
     textFormat = "text",
     nativeOptions,
+    diagnostic,
     invoke = invokeScene,
   }
 ) {
@@ -22,11 +24,12 @@ export async function* translatePlugin(
     apiSetting,
     "translate",
     {
-      ...(apiSetting.provider?.implementation?.kind !== "native" && translationOptions(apiSetting)),
+      ...(apiSetting.provider?.implementation?.kind !== "native" &&
+        translationOptions(apiSetting)),
       items,
       sourceLanguage: fromLang,
       targetLanguage: toLang,
-      glossary: { ...glossary, ...parseAITerms(apiSetting.aiTerms) },
+      glossary: { ...parseAITerms(apiSetting.aiTerms), ...glossary },
       context: docInfo?.context || docInfo?.summary || "",
       document: {
         title: docInfo?.title || "",
@@ -44,7 +47,12 @@ export async function* translatePlugin(
         ? apiSetting.batchUserPrompt
         : apiSetting.nobatchUserPrompt,
     },
-    { signal, nativeOptions, timeoutMs: (apiSetting.httpTimeout || 30) * 1000 }
+    {
+      signal,
+      nativeOptions,
+      diagnostic,
+      timeoutMs: serviceTimeoutMs(apiSetting),
+    }
   );
   const completed = new Map();
   const partials = new Map();

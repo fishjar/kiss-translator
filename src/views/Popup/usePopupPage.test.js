@@ -40,7 +40,11 @@ jest.mock("../../libs/browser", () => {
   };
 });
 jest.mock("../../libs/msg", () => ({ getCurTab: jest.fn() }));
-jest.mock("../../libs/log", () => ({ kissLog: jest.fn() }));
+jest.mock("../../libs/log", () =>
+  jest
+    .requireActual("../../testUtils/scopedLogMock")
+    .withScopedLogMock((() => ({ kissLog: jest.fn() }))())
+);
 jest.mock("./loadData", () => ({ loadPopupData: jest.fn() }));
 jest.mock("./disabledPage", () => ({ loadDisabledPopupData: jest.fn() }));
 jest.mock("../../libs/popupDocument", () => ({
@@ -142,9 +146,9 @@ describe("usePopupPage tab lifecycle", () => {
       rule: { apiSlug: "disabled", toLang: "fr" },
       setting: {
         transApis: [
-          { apiSlug: "disabled", isDisabled: true },
-          { apiSlug: "later", sortOrder: 5 },
-          { apiSlug: "first", sortOrder: -1 },
+          { apiSlug: "disabled", apiType: "Google", isDisabled: true },
+          { apiSlug: "later", apiType: "Google", sortOrder: 5 },
+          { apiSlug: "first", apiType: "Google", sortOrder: -1 },
         ],
       },
     };

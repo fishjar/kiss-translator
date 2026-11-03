@@ -60,7 +60,7 @@ export default function AddServiceMenu({ anchorEl, onClose, onSelect }) {
         (type) => !systemServices.some((entry) => entry.type === type)
       ).map((type) => ({ type, label: type })),
     },
-    { label: i18n("plugin_external_plugin"), entries: external },
+    { label: i18n("plugin_service_interface"), entries: external },
   ];
   const close = () => {
     setSubmenu(null);
@@ -84,6 +84,7 @@ export default function AddServiceMenu({ anchorEl, onClose, onSelect }) {
             `Plugin_${crypto.randomUUID()}`,
             entry.pack.resources
           ),
+          apiName: entry.label,
         }
       : entry.type;
     await onSelect(value);
@@ -129,6 +130,12 @@ export default function AddServiceMenu({ anchorEl, onClose, onSelect }) {
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
         disableScrollLock
+        sx={{
+          pointerEvents: "none",
+          "& .MuiPaper-root": {
+            pointerEvents: "auto",
+          },
+        }}
         MenuListProps={{
           "aria-label": submenu?.label,
           onKeyDown: (event) => {

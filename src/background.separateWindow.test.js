@@ -72,7 +72,9 @@ function createHarness({
   }
   const context = vm.createContext({
     browser,
-    kissLog: jest.fn(),
+    logger: {
+      child: () => ({ debug: jest.fn(), info: jest.fn(), warn: jest.fn() }),
+    },
     SEPARATE_WINDOW_CONTENT_WIDTH: 720,
     STOKEY_SEPARATE_WINDOW: "bounds",
   });

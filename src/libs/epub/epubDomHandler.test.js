@@ -99,7 +99,8 @@ describe("epubDomHandler 测试套件", () => {
 
     expect(units.length).toBe(1);
     // 模拟翻译接口返回了未经 XML 转义的裸 &、裸 < 以及未闭合的 <em> 标签
-    units[0].targetHtml = "哈珀 & 兄弟公司出版了本书。<em>未闭合斜体 带有 <角括号> 与 &nbsp; 实体";
+    units[0].targetHtml =
+      "哈珀 & 兄弟公司出版了本书。<em>未闭合斜体 带有 <角括号> 与 &nbsp; 实体";
 
     expect(() => {
       applyTranslationToDoc(units, "bilingual", "style_test");
@@ -158,10 +159,14 @@ describe("epubDomHandler 测试套件", () => {
     const target1 = units[0].element.querySelector(".kt-bilingual-target");
     const target2 = units[1].element.querySelector(".kt-bilingual-target");
     expect(target1).not.toBeNull();
-    expect(target1.textContent).toBe("1.E.2. 如果个人古登堡项目电子作品源于...");
+    expect(target1.textContent).toBe(
+      "1.E.2. 如果个人古登堡项目电子作品源于..."
+    );
     expect(target1.className).toContain("style_test");
     expect(target2).not.toBeNull();
-    expect(target2.textContent).toBe("1.E.3. 如果个人古登堡项目电子作品发布于...");
+    expect(target2.textContent).toBe(
+      "1.E.3. 如果个人古登堡项目电子作品发布于..."
+    );
   });
 
   test("<br> 换行逐行切分与逐行双语对照", () => {
@@ -196,11 +201,17 @@ describe("epubDomHandler 测试套件", () => {
     const lineUnits = p.querySelectorAll(".kt-line-unit");
     expect(lineUnits.length).toBe(3);
     expect(lineUnits[0].textContent).toContain("Line 1 of poem");
-    expect(lineUnits[0].querySelector(".kt-bilingual-target").textContent).toBe("诗歌第一行");
+    expect(lineUnits[0].querySelector(".kt-bilingual-target").textContent).toBe(
+      "诗歌第一行"
+    );
     expect(lineUnits[1].textContent).toContain("Line 2 of poem");
-    expect(lineUnits[1].querySelector(".kt-bilingual-target").textContent).toBe("诗歌第二行");
+    expect(lineUnits[1].querySelector(".kt-bilingual-target").textContent).toBe(
+      "诗歌第二行"
+    );
     expect(lineUnits[2].textContent).toContain("Line 3 of poem");
-    expect(lineUnits[2].querySelector(".kt-bilingual-target").textContent).toBe("诗歌第三行");
+    expect(lineUnits[2].querySelector(".kt-bilingual-target").textContent).toBe(
+      "诗歌第三行"
+    );
   });
 
   test("连续 <br/><br/> 诗歌空行与空白段落保持", () => {
@@ -238,7 +249,9 @@ describe("epubDomHandler 测试套件", () => {
     // 外层的直接文本被动态包裹为独立的 .kt-text-leaf，与内部的 p 分别提取，互不冲突
     expect(units.length).toBe(2);
     expect(units[0].element.classList.contains("kt-text-leaf")).toBe(true);
-    expect(units[0].rawHtml).toContain("Notice: This is important notice text.");
+    expect(units[0].rawHtml).toContain(
+      "Notice: This is important notice text."
+    );
     expect(units[1].element.tagName.toUpperCase()).toBe("P");
     expect(units[1].rawHtml).toBe("Inner clause text.");
 
@@ -295,14 +308,19 @@ describe("epubDomHandler 测试套件", () => {
 
     // 1. 默认保留富文本：成对使用 <t0>...</t0>
     const richResult = maskEpubInlineElements(rawHtml, "true");
-    expect(richResult.masked).toContain("<t0>The Boston Evening Transcript</t0>");
-    expect(richResult.masked).toContain('<t1>details</t1>');
+    expect(richResult.masked).toContain(
+      "<t0>The Boston Evening Transcript</t0>"
+    );
+    expect(richResult.masked).toContain("<t1>details</t1>");
     expect(richResult.masked).not.toContain("__KTTAG_");
 
     // 模拟翻译引擎将整体短语翻译为中文书名号
     const translatedRich = richResult.masked
       .replace("Read", "阅读")
-      .replace("<t0>The Boston Evening Transcript</t0>", "<t0>《波士顿晚报》</t0>")
+      .replace(
+        "<t0>The Boston Evening Transcript</t0>",
+        "<t0>《波士顿晚报》</t0>"
+      )
       .replace("today for", "以了解")
       .replace("<t1>details</t1>", "<t1>详情</t1>");
 
@@ -312,7 +330,9 @@ describe("epubDomHandler 测试套件", () => {
 
     // 2. 禁用富文本（纯净文本模式）：忽略内联标签，直接提取纯文本
     const plainResult = maskEpubInlineElements(rawHtml, "false");
-    expect(plainResult.masked).toBe("Read The Boston Evening Transcript today for details.");
+    expect(plainResult.masked).toBe(
+      "Read The Boston Evening Transcript today for details."
+    );
     expect(plainResult.masks.tagMap.size).toBe(0);
   });
 
@@ -339,7 +359,9 @@ describe("epubDomHandler 测试套件", () => {
     // 模拟 URL.createObjectURL
     const originalCreate = global.URL.createObjectURL;
     let urlCounter = 0;
-    global.URL.createObjectURL = jest.fn(() => `blob:http://localhost/mock-uuid-${++urlCounter}`);
+    global.URL.createObjectURL = jest.fn(
+      () => `blob:http://localhost/mock-uuid-${++urlCounter}`
+    );
 
     const xhtml = `<?xml version="1.0" encoding="utf-8"?>
     <html xmlns="http://www.w3.org/1999/xhtml">
@@ -358,12 +380,22 @@ describe("epubDomHandler 测试套件", () => {
       "shared/diagram.svg": new Uint8Array([4, 5, 6]),
     };
 
-    const createdUrls = resolveEpubImages(doc, "OEBPS/chapter1.xhtml", filesMap);
+    const createdUrls = resolveEpubImages(
+      doc,
+      "OEBPS/chapter1.xhtml",
+      filesMap
+    );
 
     expect(createdUrls.length).toBe(2);
-    expect(doc.querySelector('img[alt="Cover"]').getAttribute("src")).toBe("blob:http://localhost/mock-uuid-1");
-    expect(doc.querySelector('img[alt="External"]').hasAttribute("src")).toBe(false);
-    expect(doc.querySelector("image").getAttribute("href")).toBe("blob:http://localhost/mock-uuid-2");
+    expect(doc.querySelector('img[alt="Cover"]').getAttribute("src")).toBe(
+      "blob:http://localhost/mock-uuid-1"
+    );
+    expect(doc.querySelector('img[alt="External"]').hasAttribute("src")).toBe(
+      false
+    );
+    expect(doc.querySelector("image").getAttribute("href")).toBe(
+      "blob:http://localhost/mock-uuid-2"
+    );
 
     if (originalCreate) {
       global.URL.createObjectURL = originalCreate;
@@ -383,7 +415,8 @@ describe("epubDomHandler 测试套件", () => {
     expect(units.length).toBe(1);
 
     // 模拟翻译接口返回携带 onerror 与 script 的恶意 HTML
-    units[0].targetHtml = 'Translated <img src="x" onerror="alert(1)" /><script>alert(2)</script>';
+    units[0].targetHtml =
+      'Translated <img src="x" onerror="alert(1)" /><script>alert(2)</script>';
     applyTranslationToDoc(units, "target");
 
     const exportedXhtml = serializeDocToXhtml(doc);
@@ -394,7 +427,8 @@ describe("epubDomHandler 测试套件", () => {
   });
 
   test("MathML 与 SVG 行内公式/矢量图保护与还原（修复问题 3）", () => {
-    const rawHtml = 'A <math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi></math> B and <svg><circle cx="5" cy="5" r="5"/></svg> C';
+    const rawHtml =
+      'A <math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi></math> B and <svg><circle cx="5" cy="5" r="5"/></svg> C';
     const { masked, masks } = maskEpubInlineElements(rawHtml, "true");
 
     expect(masked).toMatch(/A \{\{KTOBJ_\d+\}\} B and \{\{KTOBJ_\d+\}\} C/);
@@ -404,20 +438,27 @@ describe("epubDomHandler 测试套件", () => {
     const translated = masked.replace("and", "与");
     const unmasked = unmaskEpubInlineElements(translated, masks);
 
-    expect(unmasked).toContain('<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi></math>');
-    expect(unmasked).toMatch(/<svg><circle cx="5" cy="5" r="5"(><\/circle>|\/>)<\/svg>/);
+    expect(unmasked).toContain(
+      '<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>x</mi></math>'
+    );
+    expect(unmasked).toMatch(
+      /<svg><circle cx="5" cy="5" r="5"(><\/circle>|\/>)<\/svg>/
+    );
     expect(unmasked).toContain("与");
   });
 
   test("纯净文本模式图片占位符还原映射测试（修复问题 4）", () => {
-    const rawHtml = '<p>Illustration <img src="fig1.png" alt="figure 1" /> in text.</p>';
+    const rawHtml =
+      '<p>Illustration <img src="fig1.png" alt="figure 1" /> in text.</p>';
     const { masked, masks } = maskEpubInlineElements(rawHtml, "false");
 
     expect(masked).toContain("{{KTIMG_0}}");
     expect(masks.placeholderMap.size).toBe(1);
 
     // 模拟翻译
-    const translated = masked.replace("Illustration", "插图").replace("in text.", "在正文中。");
+    const translated = masked
+      .replace("Illustration", "插图")
+      .replace("in text.", "在正文中。");
     const unmasked = unmaskEpubInlineElements(translated, masks);
 
     expect(unmasked).not.toContain("{{KTIMG_0}}");
@@ -426,14 +467,20 @@ describe("epubDomHandler 测试套件", () => {
   });
 
   test("行内 translate=no 与 notranslate 专有标记保护测试（修复问题 5）", () => {
-    const rawHtml = 'Welcome to <span translate="no">Apple Inc.</span> and <span class="notranslate">OpenAI</span> products.';
+    const rawHtml =
+      'Welcome to <span translate="no">Apple Inc.</span> and <span class="notranslate">OpenAI</span> products.';
     const { masked, masks } = maskEpubInlineElements(rawHtml, "true");
 
     expect(masked).not.toContain("Apple Inc.");
     expect(masked).not.toContain("OpenAI");
-    expect(masked).toMatch(/Welcome to \{\{KTRAW_\d+\}\} and \{\{KTRAW_\d+\}\} products\./);
+    expect(masked).toMatch(
+      /Welcome to \{\{KTRAW_\d+\}\} and \{\{KTRAW_\d+\}\} products\./
+    );
 
-    const translated = masked.replace("Welcome to", "欢迎使用").replace("and", "和").replace("products.", "产品。");
+    const translated = masked
+      .replace("Welcome to", "欢迎使用")
+      .replace("and", "和")
+      .replace("products.", "产品。");
     const unmasked = unmaskEpubInlineElements(translated, masks);
 
     expect(unmasked).toContain('<span translate="no">Apple Inc.</span>');
@@ -466,7 +513,8 @@ describe("epubDomHandler 测试套件", () => {
   });
 
   test("纯文本模式下 translate=no、notranslate 与 MathML/SVG 依然受保护并不被送入翻译（第二轮修复问题 4）", () => {
-    const rawHtml = '<p>Visit <span translate="no">Google DeepMind</span> and <b class="notranslate">Gemini</b> to see <math><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></math> formula.</p>';
+    const rawHtml =
+      '<p>Visit <span translate="no">Google DeepMind</span> and <b class="notranslate">Gemini</b> to see <math><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></math> formula.</p>';
     // 纯文本模式：keepRich = false
     const { masked, masks } = maskEpubInlineElements(rawHtml, false);
 
@@ -487,12 +535,15 @@ describe("epubDomHandler 测试套件", () => {
     const unmasked = unmaskEpubInlineElements(translated, masks);
     expect(unmasked).toContain('<span translate="no">Google DeepMind</span>');
     expect(unmasked).toContain('<b class="notranslate">Gemini</b>');
-    expect(unmasked).toContain('<math><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></math>');
+    expect(unmasked).toContain(
+      "<math><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></math>"
+    );
     expect(unmasked).toContain("访问");
   });
 
   test("图片标签属性包含 > 字符时不被提前截断，完整捕获并无损还原（第三轮修复问题 4）", () => {
-    const rawHtml = '<p>Figure: <img alt="Condition 1 > 0" src="fig.png" title="a > b & c < d" /> - end.</p>';
+    const rawHtml =
+      '<p>Figure: <img alt="Condition 1 > 0" src="fig.png" title="a > b & c < d" /> - end.</p>';
     const { masked, masks } = maskEpubInlineElements(rawHtml, "true");
 
     // 验证占位符没有在引号内的 > 提前截断，没有裸露残留的属性片段
@@ -502,9 +553,13 @@ describe("epubDomHandler 测试套件", () => {
     expect(masked).toBe("Figure: {{KTIMG_0}} - end.");
 
     // 验证翻译后反掩码能 100% 完整复原原始图片标签
-    const translated = masked.replace("Figure:", "配图:").replace("- end.", "- 结束。");
+    const translated = masked
+      .replace("Figure:", "配图:")
+      .replace("- end.", "- 结束。");
     const unmasked = unmaskEpubInlineElements(translated, masks);
-    expect(unmasked).toContain('<img alt="Condition 1 > 0" src="fig.png" title="a > b & c < d" />');
+    expect(unmasked).toContain(
+      '<img alt="Condition 1 > 0" src="fig.png" title="a > b & c < d" />'
+    );
     expect(unmasked).toContain("配图:");
     expect(unmasked).toContain("- 结束。");
   });
@@ -516,12 +571,19 @@ describe("epubDomHandler 测试套件", () => {
     const richRes = maskEpubInlineElements(rawHtml, true);
     expect(richRes.masked).not.toContain("npm install");
     expect(richRes.masked).toContain("{{KTRAW_0}}");
-    const richTranslated = richRes.masked.replace("Hello", "你好").replace("world", "世界");
-    const richUnmasked = unmaskEpubInlineElements(richTranslated, richRes.masks);
+    const richTranslated = richRes.masked
+      .replace("Hello", "你好")
+      .replace("world", "世界");
+    const richUnmasked = unmaskEpubInlineElements(
+      richTranslated,
+      richRes.masks
+    );
     expect(richUnmasked).toBe("你好 <code>npm install</code> 世界");
 
     // 验证导出纯译文时，段落包含 npm install
-    const doc = parseXhtmlToDoc("<html xmlns=\"http://www.w3.org/1999/xhtml\"><body><p>Hello <code>npm install</code> world</p></body></html>");
+    const doc = parseXhtmlToDoc(
+      '<html xmlns="http://www.w3.org/1999/xhtml"><body><p>Hello <code>npm install</code> world</p></body></html>'
+    );
     const units = extractTranslatableUnits(doc, { hasRichText: "true" });
     units[0].targetHtml = richUnmasked;
     applyTranslationToDoc(units, "target");
@@ -532,12 +594,18 @@ describe("epubDomHandler 测试套件", () => {
     const plainRes = maskEpubInlineElements(rawHtml, false);
     expect(plainRes.masked).not.toContain("npm install");
     expect(plainRes.masked).toContain("{{KTRAW_0}}");
-    const plainTranslated = plainRes.masked.replace("Hello", "你好").replace("world", "世界");
-    const plainUnmasked = unmaskEpubInlineElements(plainTranslated, plainRes.masks);
+    const plainTranslated = plainRes.masked
+      .replace("Hello", "你好")
+      .replace("world", "世界");
+    const plainUnmasked = unmaskEpubInlineElements(
+      plainTranslated,
+      plainRes.masks
+    );
     expect(plainUnmasked).toBe("你好 <code>npm install</code> 世界");
 
     // 3. 验证行内 script 标签在两种模式下均不提取其文本内容
-    const scriptHtml = '<p>Normal text <script>alert("evil")</script> and tail.</p>';
+    const scriptHtml =
+      '<p>Normal text <script>alert("evil")</script> and tail.</p>';
     const richScript = maskEpubInlineElements(scriptHtml, true);
     expect(richScript.masked).not.toContain("alert");
     expect(richScript.masked).not.toContain("evil");
@@ -558,7 +626,8 @@ describe("epubDomHandler 测试套件", () => {
     const p = doc.getElementById("target-p");
 
     // 含有未转义的 &（强制触发 HTML 容错回退解析），同时包含 SVG 和 MathML
-    const faultyMarkup = 'Tom & Jerry formula: <math><mi>x</mi><mo>+</mo><mn>1</mn></math> and vector: <svg width="10" height="10"><circle cx="5" cy="5" r="4"/></svg>';
+    const faultyMarkup =
+      'Tom & Jerry formula: <math><mi>x</mi><mo>+</mo><mn>1</mn></math> and vector: <svg width="10" height="10"><circle cx="5" cy="5" r="4"/></svg>';
     setSafeXmlInnerHtml(p, faultyMarkup);
 
     // 验证未转义 & 容错解析成功，文本节点存在
@@ -609,8 +678,12 @@ describe("epubDomHandler 测试套件", () => {
     const doc2 = parseXhtmlToDoc(xhtml);
     embedEpubImagesAsDataUrls(doc2, "OEBPS/ch1.xhtml", {});
     expect(doc2.getElementById("remote-img").hasAttribute("src")).toBe(false);
-    expect(doc2.getElementById("remote-svg").hasAttribute("xlink:href")).toBe(false);
-    expect(doc2.getElementById("remote-bg").getAttribute("style")).not.toContain("https://");
+    expect(doc2.getElementById("remote-svg").hasAttribute("xlink:href")).toBe(
+      false
+    );
+    expect(
+      doc2.getElementById("remote-bg").getAttribute("style")
+    ).not.toContain("https://");
   });
 
   test("图片解析与单章内嵌导出严格阻断远程 srcset 与 source 标签（第五轮问题 1）", () => {
@@ -636,9 +709,15 @@ describe("epubDomHandler 测试套件", () => {
     // 单章内嵌导出同样阻断
     const doc2 = parseXhtmlToDoc(xhtml);
     embedEpubImagesAsDataUrls(doc2, "OEBPS/ch1.xhtml", {});
-    expect(doc2.getElementById("remote-source").hasAttribute("srcset")).toBe(false);
-    expect(doc2.getElementById("remote-img-srcset").hasAttribute("srcset")).toBe(false);
-    expect(doc2.getElementById("remote-img-srcset").hasAttribute("src")).toBe(false);
+    expect(doc2.getElementById("remote-source").hasAttribute("srcset")).toBe(
+      false
+    );
+    expect(
+      doc2.getElementById("remote-img-srcset").hasAttribute("srcset")
+    ).toBe(false);
+    expect(doc2.getElementById("remote-img-srcset").hasAttribute("src")).toBe(
+      false
+    );
   });
 
   test("大小写不敏感阻断远程图片与 video poster，并在 sanitizeEpubMarkup 中彻底剥离（第六轮问题 2）", () => {
@@ -657,8 +736,12 @@ describe("epubDomHandler 测试套件", () => {
     const doc1 = parseXhtmlToDoc(xhtml);
     embedEpubImagesAsDataUrls(doc1, "OEBPS/ch1.xhtml", {});
     expect(doc1.getElementById("upper-img").hasAttribute("src")).toBe(false);
-    expect(doc1.getElementById("upper-svg").hasAttribute("xlink:href")).toBe(false);
-    expect(doc1.getElementById("upper-video").hasAttribute("poster")).toBe(false);
+    expect(doc1.getElementById("upper-svg").hasAttribute("xlink:href")).toBe(
+      false
+    );
+    expect(doc1.getElementById("upper-video").hasAttribute("poster")).toBe(
+      false
+    );
     expect(doc1.getElementById("upper-video").hasAttribute("src")).toBe(false);
     expect(doc1.getElementById("upper-audio").hasAttribute("src")).toBe(false);
 
@@ -666,8 +749,12 @@ describe("epubDomHandler 测试套件", () => {
     const doc2 = parseXhtmlToDoc(xhtml);
     resolveEpubImages(doc2, "OEBPS/ch1.xhtml", {});
     expect(doc2.getElementById("upper-img").hasAttribute("src")).toBe(false);
-    expect(doc2.getElementById("upper-svg").hasAttribute("xlink:href")).toBe(false);
-    expect(doc2.getElementById("upper-video").hasAttribute("poster")).toBe(false);
+    expect(doc2.getElementById("upper-svg").hasAttribute("xlink:href")).toBe(
+      false
+    );
+    expect(doc2.getElementById("upper-video").hasAttribute("poster")).toBe(
+      false
+    );
     expect(doc2.getElementById("upper-video").hasAttribute("src")).toBe(false);
     expect(doc2.getElementById("upper-audio").hasAttribute("src")).toBe(false);
 
@@ -691,34 +778,46 @@ describe("epubDomHandler 测试套件", () => {
     // 1. 验证 cssUnescape 标准还原能力
     expect(cssUnescape("\\68ttps://example.com")).toBe("https://example.com");
     expect(cssUnescape("\\68 ttps://example.com")).toBe("https://example.com");
-    expect(cssUnescape("\\000068ttps://example.com")).toBe("https://example.com");
+    expect(cssUnescape("\\000068ttps://example.com")).toBe(
+      "https://example.com"
+    );
     expect(cssUnescape("\\2f\\2f example.com")).toBe("//example.com");
-    expect(cssUnescape("\\h\\t\\t\\p\\s\\:\\/\\/example.com")).toBe("https://example.com");
+    expect(cssUnescape("\\h\\t\\t\\p\\s\\:\\/\\/example.com")).toBe(
+      "https://example.com"
+    );
 
     // 2. 验证 cleanCssRemoteUrls 清洗转义 URL token
     expect(
-      cleanCssRemoteUrls('background-image:url(\\68ttps://example.com/track.png)')
+      cleanCssRemoteUrls(
+        "background-image:url(\\68ttps://example.com/track.png)"
+      )
     ).toBe("background-image:none");
     expect(
-      cleanCssRemoteUrls('background-image:url(\\68 ttps://example.com/track.png)')
+      cleanCssRemoteUrls(
+        "background-image:url(\\68 ttps://example.com/track.png)"
+      )
     ).toBe("background-image:none");
     expect(
-      cleanCssRemoteUrls('background-image:url(\\000068ttps://example.com/track.png)')
+      cleanCssRemoteUrls(
+        "background-image:url(\\000068ttps://example.com/track.png)"
+      )
     ).toBe("background-image:none");
     expect(
-      cleanCssRemoteUrls('background-image:url(\'\\h\\t\\t\\p\\s\\:\\/\\/example.com/track.png\')')
+      cleanCssRemoteUrls(
+        "background-image:url('\\h\\t\\t\\p\\s\\:\\/\\/example.com/track.png')"
+      )
     ).toBe("background-image:none");
     expect(
-      cleanCssRemoteUrls('background: \\75rl(https://example.com/track.png)')
+      cleanCssRemoteUrls("background: \\75rl(https://example.com/track.png)")
     ).toBe("background: none");
 
     // 本地与 Base64 资源绝不误杀
     expect(
       cleanCssRemoteUrls("background: url(data:image/png;base64,iVBORw0KGgo=)")
     ).toBe("background: url(data:image/png;base64,iVBORw0KGgo=)");
-    expect(
-      cleanCssRemoteUrls("background: url('images/bg.png')")
-    ).toBe("background: url('images/bg.png')");
+    expect(cleanCssRemoteUrls("background: url('images/bg.png')")).toBe(
+      "background: url('images/bg.png')"
+    );
 
     // 3. 验证 sanitizeEpubMarkup 对转义样式的深度清洗
     const escapedHtml = `<div style="background-image:url(\\68ttps://example.com/track.png); color: red;">

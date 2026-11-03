@@ -55,6 +55,7 @@ export interface AiRpcRequest<T = unknown> {
   payload: T;
   priority?: number;
   deadlineMs?: number;
+  diagnostic?: { taskId?: string; attempt?: number };
   options?: {
     signalId?: string;
     modelId?: string;

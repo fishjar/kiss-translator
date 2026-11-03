@@ -64,7 +64,10 @@ export default function FileTranslateToolbar({
         >
           <Box
             component="a"
-            href="https://github.com/fishjar/kiss-translator"
+            href={
+              process.env.REACT_APP_SITEURL ||
+              "https://kiss-translator.rayjar.com"
+            }
             target="_blank"
             rel="noreferrer noopener"
             sx={{
@@ -80,7 +83,7 @@ export default function FileTranslateToolbar({
                 opacity: 0.85,
               },
             }}
-            title="KISS Translator (GitHub)"
+            title="KISS Translator"
           >
             <Logo size={24} />
             <Typography

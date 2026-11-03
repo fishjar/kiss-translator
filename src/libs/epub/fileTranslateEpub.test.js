@@ -9,7 +9,9 @@ import {
 import { parseEpubBook } from "./epubParser";
 import { apiTranslate } from "../../apis";
 
-jest.mock("../../fileTranslation/client", () => jest.requireActual("../fileTranslationService"));
+jest.mock("../../fileTranslation/client", () =>
+  jest.requireActual("../fileTranslationService")
+);
 jest.mock("../../apis", () => ({ apiTranslate: jest.fn() }));
 jest.mock("webextension-polyfill", () => ({}));
 
@@ -77,7 +79,8 @@ describe("EPUB 翻译流水线单元测试", () => {
     apiTranslate.mockReset();
     apiTranslate.mockImplementation(async ({ text }) => {
       if (text.includes("Morning")) return { trText: "早晨" };
-      if (text.includes("The sun is rising.")) return { trText: "太阳正在升起。" };
+      if (text.includes("The sun is rising."))
+        return { trText: "太阳正在升起。" };
       return { trText: `译:${text}` };
     });
   });
@@ -178,13 +181,14 @@ describe("EPUB 翻译流水线单元测试", () => {
     const epubBook = await parseEpubBook(epubZip);
 
     // 未翻译任何章节 (chapterStates 为空)
-    const { blob, uint8Array, filename, hasAnyTranslated } = exportEpubFromChapterStates(
-      epubBook,
-      {},
-      scene,
-      { fontFamily: "kaiti" },
-      "bilingual"
-    );
+    const { blob, uint8Array, filename, hasAnyTranslated } =
+      exportEpubFromChapterStates(
+        epubBook,
+        {},
+        scene,
+        { fontFamily: "kaiti" },
+        "bilingual"
+      );
 
     expect(hasAnyTranslated).toBe(false);
     expect(filename).toBe("Test Book.custom.epub");
@@ -211,7 +215,9 @@ describe("EPUB 翻译流水线单元测试", () => {
     const ch1 = fflate.strFromU8(unpacked["OEBPS/ch1.xhtml"]);
     expect(ch1).toContain("kt-epub-footer");
     expect(ch1).toContain("https://github.com/fishjar/kiss-translator");
-    expect(ch1).toContain("由 <a href=\"https://github.com/fishjar/kiss-translator\">KISS Translator</a> 制作");
+    expect(ch1).toContain(
+      '由 <a href="https://github.com/fishjar/kiss-translator">KISS Translator</a> 制作'
+    );
   });
 
   test("exportEpubFromChapterStates: 部分章节翻译时导出 .bilingual.epub", async () => {
@@ -242,13 +248,14 @@ describe("EPUB 翻译流水线单元测试", () => {
       },
     };
 
-    const { uint8Array, filename, hasAnyTranslated } = exportEpubFromChapterStates(
-      epubBook,
-      chapterStates,
-      scene,
-      { textStyleCode: "color: #2563eb;" },
-      "bilingual"
-    );
+    const { uint8Array, filename, hasAnyTranslated } =
+      exportEpubFromChapterStates(
+        epubBook,
+        chapterStates,
+        scene,
+        { textStyleCode: "color: #2563eb;" },
+        "bilingual"
+      );
 
     expect(hasAnyTranslated).toBe(true);
     expect(filename).toBe("Test Book.bilingual.epub");
@@ -260,7 +267,9 @@ describe("EPUB 翻译流水线单元测试", () => {
     expect(ch1).toContain("太阳正在升起。");
     expect(ch1).toContain("kt-epub-footer");
     expect(ch1).toContain("https://github.com/fishjar/kiss-translator");
-    expect(ch1).toContain("由 <a href=\"https://github.com/fishjar/kiss-translator\">KISS Translator</a> 制作");
+    expect(ch1).toContain(
+      '由 <a href="https://github.com/fishjar/kiss-translator">KISS Translator</a> 制作'
+    );
 
     // 第 2 章保持原文章节且同样包含底部注明
     const ch2 = fflate.strFromU8(unpacked["OEBPS/ch2.xhtml"]);
@@ -301,13 +310,14 @@ describe("EPUB 翻译流水线单元测试", () => {
       },
     };
 
-    const { uint8Array, filename, hasAnyTranslated } = exportEpubFromChapterStates(
-      epubBook,
-      unfinishedStates,
-      scene,
-      {},
-      "bilingual"
-    );
+    const { uint8Array, filename, hasAnyTranslated } =
+      exportEpubFromChapterStates(
+        epubBook,
+        unfinishedStates,
+        scene,
+        {},
+        "bilingual"
+      );
 
     // 绝不能判定为有翻译结果，文件名保持 custom.epub
     expect(hasAnyTranslated).toBe(false);
@@ -326,22 +336,38 @@ describe("EPUB 翻译流水线单元测试", () => {
 
   test("多语言 footer 生成与导出测试", async () => {
     // 1. 默认与中文简体
-    expect(EPUB_FOOTER_HTML).toContain("由 <a href=\"https://github.com/fishjar/kiss-translator\">KISS Translator</a> 制作");
-    expect(getEpubFooterHtml("zh")).toContain("由 <a href=\"https://github.com/fishjar/kiss-translator\">KISS Translator</a> 制作");
-    expect(getEpubFooterHtml("zh-CN")).toContain("由 <a href=\"https://github.com/fishjar/kiss-translator\">KISS Translator</a> 制作");
+    expect(EPUB_FOOTER_HTML).toContain(
+      '由 <a href="https://github.com/fishjar/kiss-translator">KISS Translator</a> 制作'
+    );
+    expect(getEpubFooterHtml("zh")).toContain(
+      '由 <a href="https://github.com/fishjar/kiss-translator">KISS Translator</a> 制作'
+    );
+    expect(getEpubFooterHtml("zh-CN")).toContain(
+      '由 <a href="https://github.com/fishjar/kiss-translator">KISS Translator</a> 制作'
+    );
 
     // 2. 繁体中文
-    expect(getEpubFooterHtml("zh-TW")).toContain("由 <a href=\"https://github.com/fishjar/kiss-translator\">KISS Translator</a> 製作");
+    expect(getEpubFooterHtml("zh-TW")).toContain(
+      '由 <a href="https://github.com/fishjar/kiss-translator">KISS Translator</a> 製作'
+    );
 
     // 3. 英文
-    expect(getEpubFooterHtml("en")).toContain("Made by <a href=\"https://github.com/fishjar/kiss-translator\">KISS Translator</a>");
-    expect(getEpubFooterHtml("en-US")).toContain("Made by <a href=\"https://github.com/fishjar/kiss-translator\">KISS Translator</a>");
+    expect(getEpubFooterHtml("en")).toContain(
+      'Made by <a href="https://github.com/fishjar/kiss-translator">KISS Translator</a>'
+    );
+    expect(getEpubFooterHtml("en-US")).toContain(
+      'Made by <a href="https://github.com/fishjar/kiss-translator">KISS Translator</a>'
+    );
 
     // 4. 日文
-    expect(getEpubFooterHtml("ja")).toContain("<a href=\"https://github.com/fishjar/kiss-translator\">KISS Translator</a> で制作");
+    expect(getEpubFooterHtml("ja")).toContain(
+      '<a href="https://github.com/fishjar/kiss-translator">KISS Translator</a> で制作'
+    );
 
     // 5. 韩文
-    expect(getEpubFooterHtml("ko")).toContain("<a href=\"https://github.com/fishjar/kiss-translator\">KISS Translator</a> 제작");
+    expect(getEpubFooterHtml("ko")).toContain(
+      '<a href="https://github.com/fishjar/kiss-translator">KISS Translator</a> 제작'
+    );
 
     // 6. 导出到英文时，章节末尾应注入英文注明
     const epubZip = fflate.zipSync(filesMap);
@@ -355,7 +381,9 @@ describe("EPUB 翻译流水线单元测试", () => {
     );
     const unpacked = fflate.unzipSync(uint8Array);
     const ch1 = fflate.strFromU8(unpacked["OEBPS/ch1.xhtml"]);
-    expect(ch1).toContain("Made by <a href=\"https://github.com/fishjar/kiss-translator\">KISS Translator</a>");
+    expect(ch1).toContain(
+      'Made by <a href="https://github.com/fishjar/kiss-translator">KISS Translator</a>'
+    );
   });
 
   test("translateEpubChapter 并发中遇到请求失败立即中止其余请求且不发生延迟进度污染（修复问题 6）", async () => {
@@ -382,7 +410,10 @@ describe("EPUB 翻译流水线单元测试", () => {
       }
       if (text.includes("Second")) {
         return new Promise((resolve, reject) => {
-          const timer = setTimeout(() => resolve({ trText: "第二段翻译" }), 100);
+          const timer = setTimeout(
+            () => resolve({ trText: "第二段翻译" }),
+            100
+          );
           signal?.addEventListener("abort", () => {
             secondUnitSignalAborted = true;
             clearTimeout(timer);

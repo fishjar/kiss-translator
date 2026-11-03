@@ -1,5 +1,7 @@
+import { serviceTimeoutMs } from "./timeout";
 import { invokeScene } from "./sceneInvocation";
 import { supportsServiceFeature } from "./features";
+import { parseAITerms } from "../libs/utils";
 
 export async function invokeTextScene(
   api,
@@ -13,7 +15,7 @@ export async function invokeTextScene(
   const call = invokeScene(api, capability, input, {
     signal,
     nativeOptions,
-    timeoutMs: (api.httpTimeout || 30) * 1000,
+    timeoutMs: serviceTimeoutMs(api),
     streaming: streaming ? "auto" : "disabled",
   });
   let failure;
@@ -73,8 +75,19 @@ export function mapSubtitleGroups(result, events) {
 
 export async function segmentPlugin(
   events,
-  { apiSetting, from, to, signal, instructions, context, nativeOptions }
+  {
+    apiSetting,
+    from,
+    to,
+    signal,
+    instructions,
+    context,
+    docInfo,
+    nativeOptions,
+  }
 ) {
+  // Player cues use milliseconds; Plugin API external task inputs use seconds.
+  const seconds = apiSetting.provider?.implementation?.kind !== "native";
   const call = invokeScene(
     apiSetting,
     "segmentSubtitle",
@@ -82,19 +95,31 @@ export async function segmentPlugin(
       items: events.map((event, index) => ({
         id: String(index),
         text: event.text,
-        start: event.start,
-        end: event.end,
+        start: seconds ? event.start / 1000 : event.start,
+        end: seconds ? event.end / 1000 : event.end,
+        pauseMs: Math.max(
+          0,
+          Math.round((events[index + 1]?.start ?? event.end) - event.end)
+        ),
       })),
       sourceLanguage: from,
       targetLanguage: to,
       instructions,
       context,
+      document: Object.fromEntries(
+        ["title", "description", "summary", "url"].map((key) => [
+          key,
+          docInfo?.[key] || "",
+        ])
+      ),
+      tone: apiSetting.tone || "",
+      glossary: parseAITerms(apiSetting.aiTerms),
     },
     {
       signal,
       nativeOptions,
       streaming: "disabled",
-      timeoutMs: (apiSetting.httpTimeout || 30) * 1000,
+      timeoutMs: serviceTimeoutMs(apiSetting),
     }
   );
   try {

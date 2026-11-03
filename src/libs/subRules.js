@@ -8,7 +8,7 @@ import {
 import { apiFetch } from "../apis";
 import { checkRules } from "./rules";
 import { isAllchar } from "./utils";
-import { kissLog } from "./log";
+import { logger } from "./log";
 
 /**
  * 更新指定订阅源的本地缓存同步时间戳。
@@ -50,7 +50,9 @@ export const syncAllSubRules = async (subrulesList) => {
       await updateSyncDataCache(subrules.url);
     } catch (err) {
       // 记录单个订阅源同步失败的日志，不影响后续其他订阅源同步
-      kissLog(`sync subrule error: ${subrules.url}`, err);
+      logger
+        .child("sub-rules")
+        .warn("sync subrule error; url:", subrules.url, err);
     }
   }
 };
@@ -77,7 +79,7 @@ export const trySyncAllSubRules = async ({ subrulesList }) => {
       await putSync({ subRulesSyncAt: now });
     }
   } catch (err) {
-    kissLog("try sync all subrules", err);
+    logger.child("sub-rules").warn("try sync all subrules", err);
   }
 };
 

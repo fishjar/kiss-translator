@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { browser } from "../../libs/browser";
 import { getCurTab } from "../../libs/msg";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { loadPopupData } from "./loadData";
 import { loadDisabledPopupData } from "./disabledPage";
 import { isCurrentPopupDocument } from "../../libs/popupDocument";
@@ -107,7 +107,7 @@ export function usePopupPage({ enabled = true, initialData = null } = {}) {
           );
         }
       } catch (error) {
-        kissLog("load popup page", error);
+        logger.child("popup").warn("load popup page", error);
         if (active && generation === generationRef.current) {
           setPage({ generation, tab, data: null, isLoading: false });
         }
@@ -136,7 +136,7 @@ export function usePopupPage({ enabled = true, initialData = null } = {}) {
         setPage({ generation, tab, data: null, isLoading: true });
         void load(tab, generation);
       } catch (error) {
-        kissLog("get popup target tab", error);
+        logger.child("popup").info("get popup target tab", error);
         if (active && generation === generationRef.current) {
           pendingTabRead = false;
           invalidate(null, false);

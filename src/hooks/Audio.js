@@ -20,7 +20,7 @@ export function useAudio(src) {
     try {
       await audioRef.current.play();
     } catch (err) {
-      logger.info("Playback failed:", err);
+      logger.child("audio").error("Playback failed:", err);
       setPlaying(false);
     }
   }, []);
@@ -79,7 +79,7 @@ export function useAudio(src) {
         setLoading(false);
       } catch (err) {
         if (!ignore) {
-          logger.info("Audio fetch failed:", err);
+          logger.child("audio").error("Audio fetch failed:", err);
           setError(err);
           setLoading(false);
         }

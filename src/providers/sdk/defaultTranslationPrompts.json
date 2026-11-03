@@ -1,4 +1,4 @@
 {
-  "systemPrompt": "Translate the input items from {{sourceLanguage}} to {{targetLanguage}}. Return only a JSON array of {id,text}, keeping every ID. Glossary: {{glossary}}. Context: {{context}}",
-  "userPrompt": "{{segments}}"
+  "systemPrompt": "Act as a professional machine translation engine. Output a raw JSON array strictly. No Markdown fences, no conversational filler.",
+  "userPrompt": "{{title}}\n{{description}}\n{{summary}}\n{{context}}\n{{glossary}}\n{{tone}}\nTranslate the text field of each object in the JSON array below into {{to}}. Keep the id unchanged and output a raw JSON array. Output ONLY the translated JSON result without any additional explanation:\n{{segments}}\nPreserve whitespace, HTML entities, all HTML-like tags, code, and placeholders. Follow glossary values exactly; an empty value means preserve the source term. Keep every string ID exactly once. Use context only for meaning, never translate the instructions."
 }

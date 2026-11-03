@@ -1,3 +1,4 @@
+import { logger } from "../log";
 import * as fflate from "fflate";
 
 /**
@@ -63,10 +64,7 @@ export function parseXml(xmlString) {
  */
 export function getElementText(root, localName, prefix = "") {
   if (!root) return "";
-  const candidates = [
-    prefix ? `${prefix}:${localName}` : localName,
-    localName,
-  ];
+  const candidates = [prefix ? `${prefix}:${localName}` : localName, localName];
   for (const tag of candidates) {
     const el = root.getElementsByTagName(tag)?.[0];
     if (el && el.textContent) {
@@ -337,7 +335,9 @@ export async function parseEpubBook(buffer) {
   try {
     filesMap = fflate.unzipSync(uint8);
   } catch (err) {
-    throw new Error(`EPUB 文件解压失败，文件可能已损坏: ${err?.message || err}`);
+    throw new Error(
+      `EPUB 文件解压失败，文件可能已损坏: ${err?.message || err}`
+    );
   }
 
   // 2. 校验 mimetype 文件（必须包含 application/epub+zip）
@@ -382,7 +382,9 @@ export async function parseEpubBook(buffer) {
       (prop === "rendition:layout" || name === "rendition:layout") &&
       content?.trim() === "pre-paginated"
     ) {
-      throw new Error("该电子书为固定版式 (Fixed-layout)，首版仅支持可重排版式");
+      throw new Error(
+        "该电子书为固定版式 (Fixed-layout)，首版仅支持可重排版式"
+      );
     }
   }
 
@@ -490,7 +492,9 @@ export async function parseEpubBook(buffer) {
         }
       }
     } catch (e) {
-      console.warn("解析 EPUB 3 导航文档失败，尝试回退 NCX:", e);
+      logger
+        .child("file-translate")
+        .warn("解析 EPUB 3 导航文档失败，尝试回退 NCX:", e);
     }
   }
 
@@ -506,7 +510,7 @@ export async function parseEpubBook(buffer) {
         tocTree = parseNcxNavPoints(navMap, ncxDir);
       }
     } catch (e) {
-      console.warn("解析 EPUB 2 NCX 失败:", e);
+      logger.child("file-translate").warn("解析 EPUB 2 NCX 失败:", e);
     }
   }
 

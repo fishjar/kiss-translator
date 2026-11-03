@@ -1,3 +1,4 @@
+import { serviceInvocationOptions } from "./timeout";
 import { invokeInstance } from "./runtime";
 import { createInvocation } from "./invocation";
 import { createAssetStore } from "./transport";
@@ -6,6 +7,7 @@ import { OPT_TRANS_SYSTEM_TTS } from "../config/api";
 
 /** Frontend dispatch keeps legacy native page dependencies out of the user-script Offscreen host. */
 export function invokeService(instance, capability, input, options = {}) {
+  options = serviceInvocationOptions(instance, options);
   // Chrome TTS stop is browser-global. Background owns all utterances so a stale
   // page cancellation cannot stop a different page's newer speech task.
   if (
@@ -22,7 +24,7 @@ export function invokeService(instance, capability, input, options = {}) {
     !instance.provider ||
     instance.provider.implementation.kind === "native"
   ) {
-    // Native execution has no interpreter or user network grants. Its compiled
+    // Native execution has no interpreter or plugin network broker. Its compiled
     // adapter remains responsible for the existing trusted transport/lifecycle.
     const assets = options.assets || createAssetStore();
     const invocation = createInvocation(async (invocation) => {
@@ -73,6 +75,7 @@ export function invokeService(instance, capability, input, options = {}) {
         await events;
         return result;
       } finally {
+        await call.finished;
         invocation.signal.removeEventListener("abort", unsubscribe);
         unsubscribe();
       }
