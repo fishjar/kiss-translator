@@ -1,4 +1,10 @@
 import { browser } from "./browser";
+import { SESSION_ACTIONS, SESSION_MESSAGE } from "./pageSession";
+import { MSG_OPEN_TRANBOX, MSG_INPUT_TRANSLATE } from "../config";
+let dispatchSession;
+export const setPageSessionDispatcher = (dispatch) => {
+  dispatchSession = dispatch;
+};
 
 const sendMessage = (tabId, message, options) => {
   const sendPromise = options
@@ -68,13 +74,69 @@ export const sendTabMsg = async (
   const tabId = targetTabId ?? (await getCurTabId());
   if (tabId == null) return;
 
+  if (
+    SESSION_ACTIONS.has(action) ||
+    action === MSG_INPUT_TRANSLATE ||
+    action === MSG_OPEN_TRANBOX
+  ) {
+    const current = await sendMessage(
+      tabId,
+      { action: "trans_getrule" },
+      { frameId: 0 }
+    );
+    if (current?.sessionId) {
+      if (
+        (expectedDocumentToken || responseDocumentToken) &&
+        current.document?.token !==
+          (expectedDocumentToken || responseDocumentToken)
+      )
+        return { error: "Document changed.", code: "STALE_DOCUMENT" };
+      const payload = {
+        kind: "command",
+        tabId,
+        sessionId: current.sessionId,
+        action,
+        args,
+      };
+      const result = dispatchSession
+        ? await dispatchSession(payload)
+        : await browser.runtime.sendMessage({
+            action: SESSION_MESSAGE,
+            args: payload,
+          });
+      if (result?.error) return result;
+      return await sendMessage(
+        tabId,
+        { action: "trans_getrule" },
+        { frameId: 0 }
+      );
+    }
+  }
+
   const message = { action, args };
   if (expectedDocumentToken)
     message.expectedDocumentToken = expectedDocumentToken;
   if (responseDocumentToken)
     message.responseDocumentToken = responseDocumentToken;
   if (!responseDocumentToken || options || expectedDocumentToken) {
-    return sendMessage(tabId, message, options);
+    const response = await sendMessage(tabId, message, options);
+    if (
+      action === "trans_getrule" &&
+      options?.frameId === 0 &&
+      response?.sessionId
+    ) {
+      const query = { kind: "query", tabId, sessionId: response.sessionId };
+      const state = dispatchSession
+        ? await dispatchSession(query)
+        : await browser.runtime.sendMessage({
+            action: SESSION_MESSAGE,
+            args: query,
+          });
+      if (state?.error) return state;
+      if (state?.sessionId === response.sessionId)
+        return { ...response, rule: state.rule };
+    }
+    return response;
   }
 
   // Only the selected document can authorize the operation. Other frames must

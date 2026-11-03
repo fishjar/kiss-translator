@@ -74,6 +74,7 @@
     }
   },
   "permissions": [
+    "webNavigation",
     "<all_urls>",
     "storage",
     "menus",

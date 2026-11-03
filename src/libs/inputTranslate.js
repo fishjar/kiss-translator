@@ -41,7 +41,7 @@ const TEXT_INPUT_TYPES = new Set(["text", "search", "email", "url", "tel"]);
  * 判断是否为可编辑区域
  * 兼容 input, textarea, 以及 contenteditable="true" 的 div/span
  */
-function isEditableTarget(node) {
+export function isEditableTarget(node) {
   if (!node) return false;
 
   if (node.disabled || node.readOnly) return false;
@@ -400,7 +400,7 @@ export class InputTranslator {
         !this.#floatBtn?.contains(newFocus)
       ) {
         this.hideFloatButton();
-        this.#activeInput = null;
+        if (document.hasFocus()) this.#activeInput = null;
         if (this.#resizeObserver) {
           this.#resizeObserver.disconnect();
           this.#resizeObserver = null;
@@ -551,10 +551,15 @@ export class InputTranslator {
     logger.child("input-translate").debug("handle input translate");
 
     // 1. 获取真正的焦点元素
-    const node = getDeepActiveElement();
+    const active = getDeepActiveElement();
+    const node = isEditableTarget(active)
+      ? active
+      : !document.hasFocus()
+        ? this.#activeInput
+        : null;
 
     // 2. 检查节点是否支持
-    if (!node || !isEditableTarget(node)) {
+    if (!node?.isConnected || !isEditableTarget(node)) {
       logger.child("input-translate").debug("Active node is not editable");
       return;
     }

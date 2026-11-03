@@ -142,6 +142,14 @@ jest.mock("./tranbox", () => ({
 }));
 
 jest.mock("./inputTranslate", () => ({
+  isEditableTarget: (node) =>
+    Boolean(
+      node?.matches?.(
+        "input:not([type=hidden]):not([type=password]),textarea,[contenteditable=true]"
+      ) &&
+        !node.disabled &&
+        !node.readOnly
+    ),
   InputTranslator: jest.fn().mockImplementation(() => {
     const instance = {
       enable: jest.fn(),
@@ -199,10 +207,6 @@ jest.mock("./touch", () => ({
   touchTapListener: jest.fn(() => jest.fn()),
 }));
 
-jest.mock("./iframe", () => ({
-  sendIframeMsg: jest.fn(),
-}));
-
 jest.mock("./log", () =>
   jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
     (() => ({
@@ -223,7 +227,6 @@ const { FabManager } = require("./fabManager");
 const {
   ImageTranslateManager,
 } = require("./imageTranslate/imageTranslateManager");
-const { sendIframeMsg } = require("./iframe");
 const TranslatorManager = require("./translatorManager").default;
 
 function setupMockConstructors() {
@@ -335,6 +338,8 @@ function createManager({
   isUserscript = false,
   isIframe = false,
   transboxOnly = false,
+  sessionClient,
+  sessionState,
 } = {}) {
   const manager = new TranslatorManager({
     setting: {
@@ -352,6 +357,8 @@ function createManager({
     isIframe,
     isUserscript,
     transboxOnly,
+    sessionClient,
+    sessionState,
   });
   activeManagers.push(manager);
   return manager;
@@ -429,6 +436,80 @@ describe("TranslatorManager SPA lifecycle", () => {
     activeManagers.length = 0;
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
+  });
+
+  test("session snapshots are idempotent and page blocking releases business modules", () => {
+    const client = {
+      send: jest.fn().mockResolvedValue(undefined),
+      register: jest.fn(),
+    };
+    const state = {
+      sessionId: "page",
+      revision: 1,
+      url: "https://main.test",
+      rule: { transOpen: "false" },
+      features: { selection: true, input: true, hover: false, touch: "off" },
+    };
+    const manager = createManager({
+      sessionClient: client,
+      sessionState: state,
+    });
+    manager.start();
+    mockTranslatorInstances[0].updateRule.mockClear();
+    manager.applySession(state);
+    expect(mockTranslatorInstances[0].updateRule).not.toHaveBeenCalled();
+    const stale = sendRuntimeMessage({
+      action: "trans-toggle",
+      expectedDocumentToken: "retired-document",
+    });
+    expect(stale.code).toBe("STALE_DOCUMENT");
+    expect(client.send).not.toHaveBeenCalled();
+    manager.applySession({ ...state, revision: 2, blocked: true });
+    expect(mockTranslatorInstances[0].stop).toHaveBeenCalled();
+    manager.applySession({ ...state, revision: 3, blocked: false });
+    expect(mockTranslatorInstances).toHaveLength(2);
+  });
+
+  test("session child documents do not mount a React selection panel or start an empty translator", async () => {
+    const client = {
+      send: jest.fn().mockResolvedValue(undefined),
+      register: jest.fn(),
+    };
+    const state = {
+      sessionId: "page",
+      revision: 1,
+      url: "https://main.test",
+      rule: { transOpen: "false" },
+      features: { selection: true, input: true, hover: false, touch: "off" },
+    };
+    const manager = createManager({
+      isIframe: true,
+      sessionClient: client,
+      sessionState: state,
+    });
+    manager.start();
+    expect(mockTransboxInstances).toHaveLength(0);
+    expect(mockTranslatorInstances).toHaveLength(0);
+    expect(mockInputTranslatorInstances).toHaveLength(0);
+    const scan = jest.spyOn(document, "createTreeWalker");
+    const whitespace = document.createTextNode("   ");
+    document.body.appendChild(whitespace);
+    await flushMutationObserver();
+    expect(scan).toHaveBeenCalledWith(whitespace, NodeFilter.SHOW_TEXT);
+    expect(scan).not.toHaveBeenCalledWith(document.body, NodeFilter.SHOW_TEXT);
+    scan.mockRestore();
+    expect(mockTranslatorInstances).toHaveLength(0);
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    await flushMutationObserver();
+    expect(mockInputTranslatorInstances).toHaveLength(1);
+    expect(mockTranslatorInstances).toHaveLength(0);
+    const paragraph = document.createElement("p");
+    paragraph.textContent = "Asynchronously loaded article";
+    document.body.appendChild(paragraph);
+    await flushMutationObserver();
+    expect(mockTranslatorInstances).toHaveLength(1);
+    expect(mockTransboxInstances).toHaveLength(0);
   });
 
   test("restarts runtime modules when body is replaced", async () => {
@@ -530,7 +611,7 @@ describe("TranslatorManager SPA lifecycle", () => {
     });
 
     test.each(["page", "extension"])(
-      "closing from %s stops saved touch mode in child frames",
+      "closing from %s does not relay raw page messages to child frames",
       (source) => {
         const manager = createManager({
           setting: { mouseHoverSetting: { touchMode: "tap" } },
@@ -553,22 +634,11 @@ describe("TranslatorManager SPA lifecycle", () => {
         expect(
           mockTranslatorInstances[0].setTouchMode
         ).toHaveBeenLastCalledWith("off");
-        expect(sendIframeMsg).toHaveBeenCalledWith(
-          command.action,
-          command.args
-        );
-
-        // Deliver the parent message to the child, as sendIframeMsg does.
-        sendIframeMsg.mockClear();
+        // Page messages no longer drive child runtimes.
         window.dispatchEvent(new MessageEvent("message", { data: command }));
         expect(
           mockTranslatorInstances[1].setTouchMode
-        ).toHaveBeenLastCalledWith("off");
-        // Nested frames must receive off as well.
-        expect(sendIframeMsg).toHaveBeenCalledWith(
-          command.action,
-          command.args
-        );
+        ).toHaveBeenLastCalledWith("swipe");
       }
     );
 
@@ -707,9 +777,6 @@ describe("TranslatorManager SPA lifecycle", () => {
         .touchTranslate.mode
     ).toBe("off");
     expect(mockTranslatorInstances[0].setTouchMode).toHaveBeenCalledWith("off");
-    expect(sendIframeMsg).toHaveBeenCalledWith("touch-mode-set", {
-      mode: "off",
-    });
   });
 
   test("does not restart after stop", async () => {
@@ -1540,7 +1607,6 @@ describe("TranslatorManager SPA lifecycle", () => {
     expect(mockTranslatorInstances[0].toggleMouseHover).toHaveBeenCalledTimes(
       1
     );
-    expect(sendIframeMsg).not.toHaveBeenCalled();
   });
 
   test("rejects page operations when only PDF selection translation exists", () => {
@@ -1572,12 +1638,8 @@ describe("TranslatorManager SPA lifecycle", () => {
     });
     processActions({ action: "input-translate" });
     expect(response.setting.inputRule.transOpen).toBe(false);
-    expect(sendIframeMsg).not.toHaveBeenCalled();
 
     processActions({ action: "transbox-toggle", args: { enabled: false } });
-    expect(sendIframeMsg).toHaveBeenCalledWith("transbox-toggle", {
-      enabled: false,
-    });
   });
 
   test("confirms a rule editor only after its session is visible", () => {
@@ -1608,7 +1670,6 @@ describe("TranslatorManager SPA lifecycle", () => {
       })
     );
     expect(mockPopupInstances[0].hide).toHaveBeenCalledTimes(1);
-    expect(sendIframeMsg).not.toHaveBeenCalled();
     expect(sendRuntimeMessage({ action: "transbox-toggle" })).toEqual({
       error: expect.any(String),
     });
@@ -1709,7 +1770,6 @@ describe("TranslatorManager SPA lifecycle", () => {
           selected ? 1 : 0
         );
       }
-      expect(sendIframeMsg).not.toHaveBeenCalled();
     }
   );
 
@@ -1782,7 +1842,6 @@ describe("TranslatorManager SPA lifecycle", () => {
         document: { token: "current-document" },
       });
       expect(mockTranslatorInstances[0].toggle).toHaveBeenCalledTimes(1);
-      expect(sendIframeMsg).not.toHaveBeenCalled();
     }
   );
 

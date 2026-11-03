@@ -298,6 +298,7 @@ export class RuleEditorSession {
         this.context?.site?.pattern
       );
       if (this.disposed || href !== this.href) return;
+      await this.onSaved?.(context.effective);
       this.resetDraft(context);
       this.translator.updateRule({ ...context.effective, transOpen: "false" });
       this.emit({
@@ -714,6 +715,7 @@ export class RuleEditorSession {
       });
       if (!context?.effective) throw new Error("save-failed");
       if (this.disposed || href !== this.href) return false;
+      await this.onSaved?.(context.effective);
       this.resetDraft(context);
       this.translator.updateRule({ ...context.effective, transOpen: "false" });
       this.emit({

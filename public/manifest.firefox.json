@@ -67,6 +67,7 @@
     }
   },
   "permissions": [
+    "webNavigation",
     "<all_urls>",
     "storage",
     "contextMenus",

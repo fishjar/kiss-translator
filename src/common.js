@@ -1,3 +1,4 @@
+import { connectPageSession } from "./libs/pageSessionClient";
 import { OPT_HIGHLIGHT_WORDS_DISABLE } from "./config";
 import {
   getFabWithDefault,
@@ -281,77 +282,131 @@ export async function run(isUserscript = false) {
       return;
     }
 
-    // 5. 网页黑名单校验，命中时彻底不启动翻译
-    if (isInBlacklist(href, setting.blacklist)) {
-      if (!isUserscript) {
-        blacklistStartupRecovery.watch();
+    let sessionClient;
+    let translatorManager;
+    let starting = false;
+    let queuedState;
+    const startWithState = async (snapshot) => {
+      queuedState = snapshot;
+      if (translatorManager) {
+        await translatorManager.applySession(snapshot);
+        return;
       }
-      return;
-    }
-
-    if (!isUserscript) {
-      blacklistStartupRecovery.cancel();
-    }
-
-    // 5.1. iframe 空内容拦截：默认允许 iframe 翻译，但空 iframe 不继续挂载后续脚本
-    if (isIframe && !(await waitForIframeTranslatableText())) {
-      return;
-    }
-
-    // 6. 细粒度划词/输入框/鼠标悬停组件的专属黑名单拦截，若命中则单独禁用该交互组件
-    if (isInBlacklist(href, setting.tranboxSetting?.blacklist)) {
-      setting.tranboxSetting.transOpen = false;
-    }
-
-    if (isInBlacklist(href, setting.inputRule?.blacklist)) {
-      setting.inputRule.transOpen = false;
-    }
-
-    if (isInBlacklist(href, setting.mouseHoverSetting?.blacklist)) {
-      setting.mouseHoverSetting.useMouseHover = false;
-    }
-
-    // 7. 匹配当前网页专用的规则 (三级规则合并：个人 > 订阅 > 内置全局)
-    const rule = await matchRule(href, setting);
-    const favWords = await getFavWords(rule);
-    const fabConfig = { ...(await getFabWithDefault()) };
-    // Resolve the same page preference used by the FAB visibility action.
-    if (!isIframe && !isPdfDocument) {
-      fabConfig.isHide = isFabHiddenOnPage(fabConfig, href);
-    }
-
-    // Rule/subscription loading may outlive an API edit. Refresh this list
-    // before constructing a runtime that can immediately start translating.
-    const latestApiSetting = isUserscript
-      ? setting
-      : await getSettingWithDefault();
-    const runtimeSetting = Array.isArray(latestApiSetting?.transApis)
-      ? { ...setting, transApis: latestApiSetting.transApis }
-      : setting;
-
-    // 8. 创建翻译调度器管理器并启动
-    const translatorManager = new TranslatorManager({
-      setting: runtimeSetting,
-      rule,
-      fabConfig,
-      favWords,
-      isIframe,
+      if (starting || snapshot?.blocked) return;
+      starting = true;
+      try {
+        await startRuntime(snapshot);
+      } finally {
+        starting = false;
+      }
+      if (queuedState && translatorManager)
+        await translatorManager.applySession(queuedState);
+    };
+    const localCommand = (action, args) =>
+      translatorManager?.sessionLocal(action, args);
+    sessionClient = await connectPageSession(
       isUserscript,
-      transboxOnly: isPdfDocument,
-    });
-    translatorManager.start();
-
-    // 9. 若当前页面是嵌套的 iframe，不进行视频字幕翻译，避免多个 iframe 里重复跑字幕服务造成冲突
-    if (isIframe || isPdfDocument) {
+      (snapshot) => {
+        queuedState = snapshot;
+        if (sessionClient)
+          startWithState(snapshot).catch((error) =>
+            logger.child("content").error(error)
+          );
+      },
+      localCommand
+    );
+    if (sessionClient) {
+      if (queuedState) await startWithState(queuedState);
       return;
     }
+    await startRuntime();
 
-    // 10. 启动视频字幕翻译子模块 (仅在顶级 frame 下运行)
-    runSubtitle({ href, setting: runtimeSetting, rule, isUserscript });
+    async function startRuntime(snapshot) {
+      const pageHref = snapshot?.url || href;
+      // 5. 网页黑名单校验，命中时彻底不启动翻译
+      if (!snapshot && isInBlacklist(pageHref, setting.blacklist)) {
+        if (!isUserscript) {
+          blacklistStartupRecovery.watch();
+        }
+        return;
+      }
 
-    // 11. 在油猴环境下，每次进入顶级页面时尝试触发一次订阅规则的自动同步检查 (每日一次)
-    if (isUserscript) {
-      trySyncAllSubRules(setting);
+      if (!isUserscript) {
+        blacklistStartupRecovery.cancel();
+      }
+
+      // 5.1. iframe 空内容拦截：默认允许 iframe 翻译，但空 iframe 不继续挂载后续脚本
+      if (
+        !sessionClient &&
+        isIframe &&
+        !(await waitForIframeTranslatableText())
+      ) {
+        return;
+      }
+
+      // 6. 细粒度划词/输入框/鼠标悬停组件的专属黑名单拦截，若命中则单独禁用该交互组件
+      if (
+        !snapshot &&
+        isInBlacklist(pageHref, setting.tranboxSetting?.blacklist)
+      ) {
+        setting.tranboxSetting.transOpen = false;
+      }
+
+      if (!snapshot && isInBlacklist(pageHref, setting.inputRule?.blacklist)) {
+        setting.inputRule.transOpen = false;
+      }
+
+      if (
+        !snapshot &&
+        isInBlacklist(pageHref, setting.mouseHoverSetting?.blacklist)
+      ) {
+        setting.mouseHoverSetting.useMouseHover = false;
+      }
+
+      // 7. 匹配当前网页专用的规则 (三级规则合并：个人 > 订阅 > 内置全局)
+      const rule = snapshot?.rule || (await matchRule(pageHref, setting));
+      const favWords = await getFavWords(rule);
+      const fabConfig = { ...(await getFabWithDefault()) };
+      // Resolve the same page preference used by the FAB visibility action.
+      if (!isIframe && !isPdfDocument) {
+        fabConfig.isHide = isFabHiddenOnPage(fabConfig, href);
+      }
+
+      // Rule/subscription loading may outlive an API edit. Refresh this list
+      // before constructing a runtime that can immediately start translating.
+      const latestApiSetting = isUserscript
+        ? setting
+        : await getSettingWithDefault();
+      const runtimeSetting = Array.isArray(latestApiSetting?.transApis)
+        ? { ...setting, transApis: latestApiSetting.transApis }
+        : setting;
+
+      // 8. 创建翻译调度器管理器并启动
+      translatorManager = new TranslatorManager({
+        sessionClient,
+        sessionState: snapshot,
+        setting: runtimeSetting,
+        rule,
+        fabConfig,
+        favWords,
+        isIframe,
+        isUserscript,
+        transboxOnly: isPdfDocument,
+      });
+      translatorManager.start();
+
+      // 9. 若当前页面是嵌套的 iframe，不进行视频字幕翻译，避免多个 iframe 里重复跑字幕服务造成冲突
+      if (isIframe || isPdfDocument) {
+        return;
+      }
+
+      // 10. 启动视频字幕翻译子模块 (仅在顶级 frame 下运行)
+      runSubtitle({ href, setting: runtimeSetting, rule, isUserscript });
+
+      // 11. 在油猴环境下，每次进入顶级页面时尝试触发一次订阅规则的自动同步检查 (每日一次)
+      if (isUserscript) {
+        trySyncAllSubRules(setting);
+      }
     }
   } catch (err) {
     logger.child("content").error("content initialization failed", err);
