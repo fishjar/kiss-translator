@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>iframe session acceptance</title>
+    <style>
+      body {
+        font: 16px sans-serif;
+        margin: 24px;
+      }
+      iframe {
+        width: 360px;
+        height: 180px;
+        border: 1px solid #aaa;
+        margin: 8px;
+      }
+      button {
+        margin: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="article">
+      <h1>One page, one translation session</h1>
+      <p id="text">
+        Select this sentence to compare the main page and child documents.
+      </p>
+      <input id="editor" value="Translate this editable sentence." />
+    </main>
+    <section id="controls" class="notranslate"></section>
+    <section id="frames"></section>
+    <script>
+      const mode = new URLSearchParams(location.search).get("mode");
+      const frames = document.querySelector("#frames");
+      const controls = document.querySelector("#controls");
+      const url = (kind, cross = false) => {
+        const target = new URL(location.href);
+        target.search = "?mode=" + kind;
+        if (cross)
+          target.hostname =
+            location.hostname === "localhost" ? "127.0.0.1" : "localhost";
+        return target.href;
+      };
+      const add = (src, attributes = {}) => {
+        const frame = document.createElement("iframe");
+        Object.entries(attributes).forEach(([key, value]) =>
+          frame.setAttribute(key, value)
+        );
+        if (src) frame.src = src;
+        frames.appendChild(frame);
+        return frame;
+      };
+      const action = (label, run) => {
+        const button = document.createElement("button");
+        button.textContent = label;
+        button.onclick = run;
+        controls.appendChild(button);
+      };
+      if (mode === "empty") document.querySelector("#article").remove();
+      else if (mode === "input") {
+        document.querySelector("#text").remove();
+        document.querySelector("h1").remove();
+      } else if (mode === "nested") add(url("child", true));
+      else if (!mode) {
+        action("Same origin", () => add(url("child")));
+        action("Cross origin + nested", () => add(url("nested", true)));
+        action("Input frame", () => add(url("input")));
+        action("20 empty frames", () => {
+          for (let n = 0; n < 20; n++) add(url("empty"));
+        });
+        action("srcdoc", () =>
+          add(null, { srcdoc: "<p>Select text inside srcdoc.</p>" })
+        );
+        action("Sandbox", () =>
+          add(url("child"), { sandbox: "allow-scripts" })
+        );
+        action("Delayed text", () => {
+          const frame = add("about:blank");
+          frame.onload = () =>
+            setTimeout(() => {
+              frame.contentDocument.body.innerHTML =
+                "<p>Asynchronously inserted article.</p><input value='Late input'>";
+            }, 1000);
+        });
+        action("SPA route", () => history.pushState({}, "", "?route=next"));
+        action("Remove frames", () => frames.replaceChildren());
+      }
+    </script>
+  </body>
+</html>
