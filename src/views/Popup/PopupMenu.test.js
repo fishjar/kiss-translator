@@ -171,7 +171,7 @@ describe("Popup menu placement", () => {
     restore(HTMLElement.prototype, "offsetWidth", originalOffsetWidth);
   });
 
-  function render(props = {}) {
+  function render(props = {}, children) {
     act(() =>
       root.render(
         <PopupMenu
@@ -182,9 +182,13 @@ describe("Popup menu placement", () => {
           estimatedHeight={250}
           {...props}
         >
-          <MenuItem selected>Style one</MenuItem>
-          <MenuItem>Style two</MenuItem>
-          <MenuItem>Style three</MenuItem>
+          {children ?? [
+            <MenuItem key="style-one" selected>
+              Style one
+            </MenuItem>,
+            <MenuItem key="style-two">Style two</MenuItem>,
+            <MenuItem key="style-three">Style three</MenuItem>,
+          ]}
         </PopupMenu>
       )
     );
@@ -270,5 +274,77 @@ describe("Popup menu placement", () => {
     expect(paper.offsetHeight).toBeGreaterThanOrEqual(50);
     expect(scrollBy).toHaveBeenCalled();
     expect(document.documentElement.scrollTop).toBeGreaterThan(0);
+  });
+
+  test("does not declare aria-multiselectable by default (single-select menus unchanged)", () => {
+    const paper = render({ direction: "down" });
+    const list = paper.querySelector('[role="menu"]');
+    expect(list).not.toBeNull();
+    expect(list.hasAttribute("aria-multiselectable")).toBe(false);
+  });
+
+  test("never declares aria-multiselectable (menu role forbids it; multi-select semantics live on menuitemcheckbox rows)", () => {
+    // 多选语义承载于行级 role="menuitemcheckbox"+aria-checked（生产先例
+    // PopupTextPanel.js:710-714）；PopupMenu 无 multiSelect prop（固定解构
+    // 无 rest 透传），多选形态由 children 直接给出 checkbox 行来实证。
+    const paper = render(
+      { direction: "down" },
+      [
+        <MenuItem key="multi-one" role="menuitemcheckbox" aria-checked selected>
+          Style one
+        </MenuItem>,
+        <MenuItem
+          key="multi-two"
+          role="menuitemcheckbox"
+          aria-checked={false}
+        >
+          Style two
+        </MenuItem>,
+        <MenuItem
+          key="multi-three"
+          role="menuitemcheckbox"
+          aria-checked={false}
+        >
+          Style three
+        </MenuItem>,
+      ]
+    );
+    const list = paper.querySelector('[role="menu"]');
+    expect(list).not.toBeNull();
+    // aria-multiselectable 非法于 role="menu"。
+    expect(list.hasAttribute("aria-multiselectable")).toBe(false);
+    // 多选形态契约钉：checkbox 行数 > 0（伪闸防线——若 children 被
+    // 静默丢弃或 role 透传失效，此断言即红）。
+    expect(
+      list.querySelectorAll('[role="menuitemcheckbox"]').length
+    ).toBeGreaterThan(0);
+  });
+
+  test("never hands Menu a Fragment child (MUI rejects that shape outright)", () => {
+    // 事实依据：MenuList.js:196-200 在非 production 对 Fragment 子节点直接
+    // console.error("MUI: The Menu component doesn't accept a Fragment as a
+    // child.")；MenuList.js:185-215 的 selected 前瞻与 :216-228 的 tabIndex 注入
+    // 都按 React.Children 逐项计数，Fragment 让它只看到一个"项"。
+    // Jest 默认不因 console.error 失败，故此处显式取证。
+    const errorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    try {
+      render({ direction: "down" });
+      const fragmentComplaint = errorSpy.mock.calls
+        .map((args) => args.join(" "))
+        .filter((text) => /Fragment as a child/.test(text));
+      expect(fragmentComplaint).toEqual([]);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  test("MenuList sees every item as its own child", () => {
+    // 形状同构的可观测面：MenuList 逐子项计数后，列表里应有 3 个菜单项节点，
+    // 且已选项在 selectedMenu 变体下被识别为活动项（不因包装节点而塌成一个）。
+    const paper = render({ direction: "down" });
+    const items = paper.querySelectorAll(".MuiMenuItem-root");
+    expect(items).toHaveLength(3);
   });
 });

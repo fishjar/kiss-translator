@@ -1,5 +1,4 @@
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import { ExpandLessIcon, ExpandMoreIcon } from "../../components/icons";
 import Button from "@mui/material/Button";
 import { useI18n } from "../../hooks/I18n";
 

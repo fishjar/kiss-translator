@@ -6,6 +6,11 @@ import TranForm, { formatLanguageOptionName } from "./TranForm";
 import { apiDict } from "../../apis";
 import { tryDetectLang } from "../../libs/detect";
 import { mountShadowHost } from "../../libs/shadowHost";
+import {
+  FOCUS_SILENT_ATTR,
+  isKeyboardModality,
+  notePointerInteraction,
+} from "../../hooks/focusModality";
 import { __resetSessionHeightMapForTests } from "../../hooks/useTextareaHeightLock";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -352,6 +357,26 @@ describe.each([false, true, "fullscreen"])(
       });
       await flushEffects();
     };
+
+    // 指针形态的打开也必须把静默标记交给焦点落点自身：现状焦点由 MUI 裸
+    // .focus() 写入（MenuList.js:216-225），不经 scriptFocus()；面板内 focusin
+    // 还被重定向到宿主 → 项上无标记 → m3.js:499/500-507 全数失配。
+    // 前置复位为指针模态：模态是模块级状态且不随 uninstall 重置（
+    // focusModality.js:43-47,96-106），同套件内先跑的 ArrowDown 用例会把它
+    // 粘滞成键盘态，不复位就测不到本契约。
+    test("pointer-open handoff marks the focused option itself, not the host", async () => {
+      notePointerInteraction();
+      expect(isKeyboardModality()).toBe(false);
+      await open("fromLang");
+      const items = options();
+      const focused = focusRoot.activeElement;
+      expect(items).toContain(focused);
+      expect(focused.getAttribute(FOCUS_SILENT_ATTR)).toBe("true");
+      if (shadow) {
+        expect(document.activeElement).toBe(view.host);
+        expect(view.host.hasAttribute(FOCUS_SILENT_ATTR)).toBe(false);
+      }
+    });
 
     test.each(["fromLang", "toLang", "apiSlugs"])(
       "enters, navigates and dismisses %s",
@@ -1006,6 +1031,60 @@ describe("TranForm source input", () => {
     );
     expect(sourceInput.value).toBe("clipboard text");
     expect(setText).not.toHaveBeenCalled();
+
+    act(() => root.unmount());
+  });
+
+  test("keeps the paste action reachable when the draft is cleared while text exists", async () => {
+    const setText = jest.fn();
+    const { container, root } = renderTranForm({
+      text: "library",
+      setText,
+      simpleStyle: false,
+    });
+    await flushEffects();
+
+    const sourceInput = container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    act(() => sourceInput.focus());
+    await flushEffects();
+    act(() =>
+      Simulate.change(sourceInput, { target: { value: "" } })
+    );
+
+    // 草稿清空后必须回到 Paste，且绝不能出现可提交空文本的 Submit 按钮。
+    expect(
+      container.querySelector('button[title="paste"]')
+    ).not.toBeNull();
+    expect(container.querySelector('button[title="submit"]')).toBeNull();
+
+    act(() => root.unmount());
+  });
+
+  test("shows copy while editing an unchanged draft", async () => {
+    const setText = jest.fn();
+    const { container, root } = renderTranForm({
+      text: "library",
+      setText,
+      simpleStyle: false,
+    });
+    await flushEffects();
+
+    const sourceInput = container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    act(() => sourceInput.focus());
+    await flushEffects();
+
+    // 未改动的草稿：不出现 Submit，保留 Copy 入口。
+    // 本套件将 ./CopyBtn mock 为无 title、文本为 "copy" 的按钮（:114-118），
+    // 故以按钮文本定位 Copy 入口，而非 title 属性。
+    expect(container.querySelector('button[title="submit"]')).toBeNull();
+    const copyButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "copy"
+    );
+    expect(copyButton).not.toBeUndefined();
 
     act(() => root.unmount());
   });

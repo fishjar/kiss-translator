@@ -1,6 +1,7 @@
+import MenuCheckGlyph from "../../components/MenuCheckGlyph";
 import ListSubheader from "@mui/material/ListSubheader";
 import { useEffect, useId, useRef, useState } from "react";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import { ExpandMoreRoundedIcon } from "../../components/icons";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -82,6 +83,7 @@ export function SettingsSegmented({
   items,
   label,
   className = "",
+  size = "medium",
 }) {
   const itemRefs = useRef([]);
   const normalizedItems = items.map((item) =>
@@ -132,11 +134,12 @@ export function SettingsSegmented({
   return (
     <ToggleButtonGroup
       exclusive
+      size={size === "small" ? "small" : "medium"}
       value={value}
       onChange={(_event, nextValue) => {
         if (nextValue !== null) onChange(nextValue);
       }}
-      className={`kt-settings-segmented ${className}`.trim()}
+      className={`kt-settings-segmented ${size === "small" ? "kt-settings-segmented--small " : ""}${className}`.trim()}
       aria-label={label}
       role="radiogroup"
     >
@@ -201,7 +204,24 @@ export function SettingsSelect({
       className={`kt-settings-select ${fullWidth ? "kt-settings-select--full" : ""} ${!isHiddenLabel ? "kt-settings-select--with-label" : ""} ${className}`.trim()}
       value={value}
       disabled={disabled}
-      SelectProps={{ multiple, displayEmpty: true }}
+      SelectProps={{
+        multiple,
+        displayEmpty: true,
+        // 仅多选注入：关闭态 trigger 逐项渲染（单选显示不受影响）。
+        // 不得 join：label 可为 JSX 节点，字符串化会把 React 元素变成 [object Object]；
+        // 分隔符作独立文本节点插入，纯文本 label 的输出与旧实现逐字一致。
+        renderValue: multiple
+          ? (selected) =>
+              (Array.isArray(selected) ? selected : [])
+                .map((v) => {
+                  const hit = options.find(
+                    (o) => (Array.isArray(o) ? o[0] : o.value) === v
+                  );
+                  return hit ? (Array.isArray(hit) ? hit[1] : hit.label) : v;
+                })
+                .flatMap((node, index) => (index === 0 ? [node] : [", ", node]))
+          : undefined,
+      }}
       inputProps={{ "aria-label": label }}
       onChange={(event) => onChange(event.target.value)}
       sx={{
@@ -220,8 +240,13 @@ export function SettingsSelect({
               {normalized.groupLabel}
             </ListSubheader>
           );
+        const checked =
+          multiple && Array.isArray(value) && value.includes(normalized.value);
         return (
           <MenuItem key={normalized.value} value={normalized.value}>
+            {multiple && (
+              <MenuCheckGlyph checked={checked} style={{ marginRight: 10 }} />
+            )}
             {normalized.label}
           </MenuItem>
         );

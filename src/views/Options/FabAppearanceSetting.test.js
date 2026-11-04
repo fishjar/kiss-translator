@@ -3,10 +3,16 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import FabAppearanceSetting from "./FabAppearanceSetting";
+import { resolveM3Colors } from "../../styles/m3";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 jest.mock("../../hooks/I18n", () => ({ useI18n: () => (key) => key }));
+
+const mockFabSetting = {};
+jest.mock("../../hooks/Setting", () => ({
+  useSetting: () => ({ setting: mockFabSetting }),
+}));
 jest.mock("@mui/material/Slider", () => {
   return function MockSlider({
     name,
@@ -137,6 +143,41 @@ describe("floating button appearance preview", () => {
         view.container.querySelector(".kt-fab-preview-stage").dataset.theme
       ).toBe("dark");
       expect(view.onChange).not.toHaveBeenCalled();
+    } finally {
+      view.unmount();
+    }
+  });
+});
+
+describe("fab appearance preview follows the theme color", () => {
+  afterEach(() => {
+    delete mockFabSetting.iconColor;
+    document.body.innerHTML = "";
+  });
+
+  test("preview primary family follows setting.iconColor", () => {
+    // 预览台 CSS 变量来源 = createM3CssVariables(resolveM3Colors(...))，
+    // 主色家族须随 setting.iconColor 派生（与 M3Theme 同源同参）。
+    mockFabSetting.iconColor = "#a590ba";
+    const view = renderAppearance({ opacity: 0.5, size: 56 });
+    try {
+      const stage = view.container.querySelector(".kt-fab-preview-stage");
+      expect(stage.style.getPropertyValue("--kt-pri")).toBe(
+        resolveM3Colors("light", "blue", "#a590ba").primary
+      );
+    } finally {
+      view.unmount();
+    }
+  });
+
+  test("preview falls back to the default family when iconColor is unset", () => {
+    // 缺省/非法值由 resolveIconColorHex 回落默认档，预览不崩、不 NaN。
+    const view = renderAppearance({ opacity: 0.5, size: 56 });
+    try {
+      const stage = view.container.querySelector(".kt-fab-preview-stage");
+      expect(stage.style.getPropertyValue("--kt-pri")).toBe(
+        resolveM3Colors("light", "blue", undefined).primary
+      );
     } finally {
       view.unmount();
     }

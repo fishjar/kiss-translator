@@ -1,9 +1,9 @@
-import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import CheckBoxOutlineBlankRoundedIcon from "@mui/icons-material/CheckBoxOutlineBlankRounded";
-import CheckBoxRoundedIcon from "@mui/icons-material/CheckBoxRounded";
-import ContentPasteRoundedIcon from "@mui/icons-material/ContentPasteRounded";
-import SwapVertRoundedIcon from "@mui/icons-material/SwapVertRounded";
+import {
+  ArrowDropDownRoundedIcon,
+  CheckRoundedIcon,
+  ContentPasteRoundedIcon,
+  SwapVertRoundedIcon,
+} from "../../components/icons";
 import MenuItem from "@mui/material/MenuItem";
 import {
   useCallback,
@@ -15,6 +15,7 @@ import {
   useState,
 } from "react";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
+import MenuCheckGlyph from "../../components/MenuCheckGlyph";
 import {
   OPT_LANGS_FROM_REVERSED,
   OPT_LANGS_TO_REVERSED,
@@ -196,12 +197,6 @@ function LanguageMenu({
                   </small>
                 )}
               </span>
-              {selected && (
-                <CheckRoundedIcon
-                  className="kt-popup-menu-check"
-                  aria-hidden="true"
-                />
-              )}
             </MenuItem>
           );
         })}
@@ -711,9 +706,6 @@ export default function PopupTextPanel({
         </div>
         {enabledApis.map((api) => {
           const selected = activeSlugs.includes(api.apiSlug);
-          const CheckboxIcon = selected
-            ? CheckBoxRoundedIcon
-            : CheckBoxOutlineBlankRoundedIcon;
           return (
             <MenuItem
               key={api.apiSlug}
@@ -731,10 +723,7 @@ export default function PopupTextPanel({
                 );
               }}
             >
-              <CheckboxIcon
-                className="kt-popup-text-service-check"
-                aria-hidden="true"
-              />
+              <MenuCheckGlyph checked={selected} style={{ marginRight: 10 }} />
               <ApiProviderIcon
                 apiType={api.apiType}
                 size={22}

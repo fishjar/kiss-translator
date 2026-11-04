@@ -42,7 +42,7 @@ describe("persistent global feature segments", () => {
   const render = (props = {}) =>
     act(() => root.render(<GlobalFeatures {...props} />));
 
-  test("uses an accessible independent toggle group with active check and inactive feature icons", () => {
+  test("renders each segment with its own feature icon and never a check icon", () => {
     render();
     const group = container.querySelector('[role="group"]');
     expect(group.getAttribute("aria-label")).toBe("popup_global_features");
@@ -54,7 +54,7 @@ describe("persistent global feature segments", () => {
     ).toBe("true");
     expect(
       group.querySelector(
-        '[data-feature="selection"] [data-testid="CheckRoundedIcon"]'
+        '[data-feature="selection"] [data-testid="SelectAllRoundedIcon"]'
       )
     ).not.toBeNull();
     expect(
@@ -67,6 +67,9 @@ describe("persistent global feature segments", () => {
         '[data-feature="input"] [data-testid="KeyboardRoundedIcon"]'
       )
     ).not.toBeNull();
+    expect(
+      group.querySelector('[data-testid="CheckRoundedIcon"]')
+    ).toBeNull();
     expect(group.querySelector('[role="radio"]')).toBeNull();
     expect(group.querySelector("h1, h2, h3, p")).toBeNull();
     expect(group.querySelector('[data-feature="hover"]').title).toBe(

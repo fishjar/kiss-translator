@@ -51,12 +51,18 @@ import { registerI18n } from "../../config/i18n";
 import { CUSTOM_API_HELP_I18N } from "../../config/locales/customApiHelp";
 import Typography from "@mui/material/Typography";
 import AddServiceMenu from "./AddServiceMenu";
-import AddIcon from "@mui/icons-material/Add";
-import SwapVertIcon from "@mui/icons-material/SwapVert";
-import PushPinIcon from "@mui/icons-material/PushPin";
-import DeleteIcon from "@mui/icons-material/Delete";
-import BlockIcon from "@mui/icons-material/Block";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import {
+  AddIcon,
+  BlockIcon,
+  CheckBoxRoundedIcon,
+  CheckBoxOutlineBlankRoundedIcon,
+  CheckCircleOutlineIcon,
+  DeleteIcon,
+  DragIndicatorIcon,
+  KeyboardArrowDownIcon,
+  PushPinIcon,
+  SwapVertIcon,
+} from "../../components/icons";
 import Alert from "@mui/material/Alert";
 import { useAlert } from "../../hooks/Alert";
 import Menu from "@mui/material/Menu";
@@ -64,10 +70,6 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import Tooltip from "@mui/material/Tooltip";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import CheckBoxRoundedIcon from "@mui/icons-material/CheckBoxRounded";
-import CheckBoxOutlineBlankRoundedIcon from "@mui/icons-material/CheckBoxOutlineBlankRounded";
 import Link from "@mui/material/Link";
 import {
   API_SORT_MODES,
@@ -1834,16 +1836,15 @@ function ApiListItem({
             "color",
           ]),
           "&.Mui-selected": {
-            borderColor: theme.palette.primary.main,
+            borderColor: theme.palette.secondary.main,
             backgroundColor: theme.palette.secondary.main,
             color: theme.palette.secondary.contrastText,
           },
           "&.Mui-selected:hover": {
-            backgroundColor: theme.palette.secondary.main,
+            backgroundColor: `color-mix(in srgb, ${theme.palette.secondary.contrastText} 12%, ${theme.palette.secondary.main})`,
           },
           "&.Mui-selected .kt-api-list__secondary": {
             color: "inherit",
-            opacity: 0.78,
           },
         })}
       >
@@ -1855,7 +1856,10 @@ function ApiListItem({
               ...apiListControlSx,
               display: "inline-flex",
               alignSelf: "center",
-              color: checked ? "primary.main" : "text.secondary",
+              // 与同行拖动指示（cardSelected ? "inherit"）同源：勾选图标继承
+              // 已选卡片墨色（&.Mui-selected 的 secondary.contrastText），
+              // 不再各钉一个令牌，避免卡片换色时指示图标脱钩。
+              color: checked ? "inherit" : "text.secondary",
             }}
           >
             {checked ? (
