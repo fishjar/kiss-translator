@@ -117,8 +117,8 @@ async function flushEffects() {
   });
 }
 
-function styleChoices() {
-  return [...document.body.querySelectorAll(".kt-popup-style-chip")];
+function styleChoices(root = document.body) {
+  return [...root.querySelectorAll(".kt-popup-style-chip")];
 }
 
 function openStyleMenu(container) {
@@ -147,9 +147,22 @@ async function selectScope(container, pattern) {
   await act(async () => choice.click());
 }
 
-function renderPopupCont(props = {}, { statefulRule = false } = {}) {
-  const container = document.createElement("div");
-  document.body.appendChild(container);
+function renderPopupCont(props = {}, { statefulRule = false, shadow = false } = {}) {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  let container;
+  if (shadow) {
+    // 生产拓扑（tranbox.js/shadowDomManager.js 同款）：light 宿主 div 自身无
+    // class、无 .kt-m3-root；扩展 UI 与 .kt-m3-root 全部挂在 host.shadowRoot 内。
+    const shadowRoot = host.attachShadow({ mode: "open" });
+    const shadowBox = document.createElement("div");
+    shadowBox.className = "kt-m3-root";
+    shadowRoot.appendChild(shadowBox);
+    container = document.createElement("div");
+    shadowBox.appendChild(container);
+  } else {
+    container = host;
+  }
   const root = createRoot(container);
   const setting = {
     transApis: [
@@ -215,6 +228,8 @@ function renderPopupCont(props = {}, { statefulRule = false } = {}) {
 
   return {
     container,
+    host,
+    focusRoot: container.getRootNode(),
     updateRuntimeSetting(nextSetting) {
       act(() => updateLiveSetting(nextSetting));
     },
@@ -223,7 +238,7 @@ function renderPopupCont(props = {}, { statefulRule = false } = {}) {
     },
     cleanup() {
       act(() => root.unmount());
-      container.remove();
+      host.remove();
     },
   };
 }
@@ -2097,6 +2112,74 @@ describe("PopupCont capability parity", () => {
         action: MSG_TRANS_PUTRULE,
         args: { textStyle: "style_3" },
       });
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("style menu hands initial focus to the selected chip and keeps arrow-key navigation", async () => {
+    const view = renderPopupCont({}, { statefulRule: true });
+    try {
+      await flushEffects();
+      openStyleMenu(view.container);
+      // openStyleMenu() 后用 rAF 冲刷两轮，锁定修复后的最终焦点归属：
+      // 聚焦 effect（placement 布尔依赖）与 focusFirstItem 兜底都挂 rAF。
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      const selected = document.activeElement;
+      expect(selected.getAttribute("aria-pressed")).toBe("true");
+      // 方向键仍可在样式网格内移动（activeElement 守卫不得把焦点抢回 MenuList）。
+      act(() => {
+        selected.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })
+        );
+      });
+      // 相邻 chip 按下标确定性断言：chip 清单即 styleChoices() 返回的
+      // .kt-popup-style-chip DOM 序（源自 mockStyles 七项固定清单 style_0..
+      // style_6）；选中项经 aria-pressed 结构选取，不做字面量固化。
+      const choices = styleChoices();
+      const selectedIndex = choices.indexOf(selected);
+      expect(document.activeElement).toBe(
+        choices[(selectedIndex + 1) % choices.length]
+      );
+      expect(document.activeElement.closest("button")).not.toBeNull();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("style menu keeps focus on the selected chip inside a shadow tree (production topology)", async () => {
+    // E2 回归：tranbox/shadowDomManager 生产拓扑下 .kt-m3-root 位于 host.shadowRoot
+    // 内，document.activeElement 被重定向为 host，light 夹具（renderPopupCont 默认
+    // 直接挂 body）永远测不出该重定向。本用例复刻生产挂载形态，锁定 9b 守卫在
+    // shadow 域同样不得把焦点从选中 chip 抢回 MenuList。
+    const view = renderPopupCont({}, { statefulRule: true, shadow: true });
+    try {
+      await flushEffects();
+      openStyleMenu(view.container);
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      const focused = view.focusRoot.activeElement;
+      expect(focused.getAttribute("aria-pressed")).toBe("true");
+      expect(document.activeElement).toBe(view.host);
+      act(() => {
+        focused.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })
+        );
+      });
+      const choices = styleChoices(view.host.shadowRoot);
+      const selectedIndex = choices.indexOf(focused);
+      expect(view.focusRoot.activeElement).toBe(
+        choices[(selectedIndex + 1) % choices.length]
+      );
     } finally {
       view.cleanup();
     }

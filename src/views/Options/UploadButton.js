@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import FileUploadIcon from "@mui/icons-material/FileUpload";
+import { FileUploadIcon } from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import Button from "@mui/material/Button";
 

@@ -6,6 +6,10 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import OptionsTheme from "./OptionsTheme";
 import ReusableAutocomplete from "./ReusableAutocomplete";
+import {
+  noteKeyboardInteraction,
+  notePointerInteraction,
+} from "../../hooks/focusModality";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -119,6 +123,29 @@ test("allows another control to act on the same pointer press that closes the me
   });
   expect(outsideClick).toHaveBeenCalledTimes(1);
   expect(document.activeElement).toBe(button);
+});
+
+test("pointer-opened menus mark the focused option as silent", () => {
+  notePointerInteraction();
+  mountSelect();
+  const focused = document.activeElement;
+  expect(focused).not.toBe(document.body);
+  expect(focused.getAttribute("data-kt-focus-silent")).toBe("true");
+  act(() => {
+    focused.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+  });
+  expect(focused.hasAttribute("data-kt-focus-silent")).toBe(false);
+});
+
+test("keyboard-opened menus keep the focus ring marker-free", () => {
+  noteKeyboardInteraction(
+    new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+  );
+  mountSelect();
+  expect(document.activeElement.hasAttribute("data-kt-focus-silent")).toBe(
+    false
+  );
+  notePointerInteraction();
 });
 
 test.each(["Escape", "Tab"])("closes on %s and restores the trigger", (key) => {

@@ -1,4 +1,5 @@
 import { POPUP_STYLES } from "./styles";
+import { POPUP_TEXT_STYLES } from "./PopupTextPanel.styles";
 import {
   getCssAtRuleBodies,
   stripTopLevelAtRuleBlocks,
@@ -15,6 +16,12 @@ function parseTopLevelRules(css) {
 
 function getRuleBodies(selector) {
   return parseTopLevelRules(POPUP_STYLES)
+    .filter((rule) => rule.members.includes(selector))
+    .map((rule) => rule.body);
+}
+
+function getTextRuleBodies(selector) {
+  return parseTopLevelRules(POPUP_TEXT_STYLES)
     .filter((rule) => rule.members.includes(selector))
     .map((rule) => rule.body);
 }
@@ -46,12 +53,26 @@ describe("toolbar popup sizing", () => {
     expect(getRuleBodies(".kt-popup-chrome")[0]).toContain("position: sticky");
   });
 
+  test("lets the theme own the on-primary token", () => {
+    expect(POPUP_STYLES).not.toMatch(/--kt-onpri\s*:/);
+  });
+
   test("does not clip service focus rings or change layout for open menus", () => {
     const servicesRule = getRuleBodies(".kt-popup-services")[0];
     expect(servicesRule).toContain("overflow: visible");
     expect(servicesRule).not.toContain("overflow: hidden");
     expect(POPUP_STYLES).not.toContain("kt-popup-services--open");
     expect(POPUP_STYLES).not.toContain("kt-popup-style-chips--open");
+    // 展开态不得画主色环（那会被读成鼠标也带焦点框），只允许底色加深。
+    for (const selector of [
+      '.kt-popup-language-select[aria-expanded="true"]',
+      '.kt-popup-style-select[aria-expanded="true"]',
+    ]) {
+      const body = getRuleBodies(selector)[0];
+      expect(body).toBeDefined();
+      expect(body).not.toContain("box-shadow");
+      expect(body).toContain("background: var(--kt-sf");
+    }
   });
 
   test("does not constrain native autosizing to its initial short viewport", () => {
@@ -86,7 +107,9 @@ describe("popup menus", () => {
     expect(menuRule).toContain("overscroll-behavior: contain");
     expect(menuRule).toContain("background: var(--kt-sf0)");
     expect(menuRule).toContain("color: var(--kt-on)");
-    expect(menuRule).toContain("border-radius: 12px");
+    expect(menuRule).toContain("border-radius: 4px");
+    expect(menuRule).toContain("padding: 8px 0");
+    expect(menuRule).toContain("border: 1px solid var(--kt-linev)");
     const languageRule = getRuleBodies(".kt-popup-language-menu.MuiPaper-root");
     expect(
       languageRule.some((body) => body.includes("scrollbar-gutter: stable"))
@@ -98,11 +121,187 @@ describe("popup menus", () => {
     ).toBe(true);
   });
 
+  test("covers the language menu paper and rows in dark mode with tokens", () => {
+    const darkLangMenu = getRuleBodies(
+      '.kt-m3-root[data-theme="dark"] .kt-popup-language-menu'
+    )[0];
+    expect(darkLangMenu).toContain("--kt-popup-muted: var(--kt-onv)");
+    expect(darkLangMenu).toContain("--kt-popup-focus: var(--kt-pri)");
+    const darkLangItem = getRuleBodies(
+      '.kt-m3-root[data-theme="dark"] .kt-popup-language-menu .MuiMenuItem-root'
+    )[0];
+    expect(darkLangItem).toContain("--kt-popup-muted: var(--kt-onv)");
+    expect(darkLangItem).not.toContain("#5F6368");
+  });
+
+  test("menu rows carry no bespoke checkmark; the theme slot paints checks", () => {
+    expect(POPUP_STYLES).not.toContain("--kt-popup-selected");
+    // v5 T2 例外：pattern-option（匹配范围单选，RadioButton 指示）恢复选中实底；
+    // 其余 .MuiMenuItem-root.Mui-selected 行仍禁自带底色（选中仅由主题勾号表达）。
+    const bespokeSelectedBackgrounds = parseTopLevelRules(POPUP_STYLES).filter(
+      (rule) =>
+        rule.members.some((selector) =>
+          selector.includes(".MuiMenuItem-root.Mui-selected")
+        ) &&
+        rule.members.every(
+          (selector) => !selector.includes("kt-popup-pattern-option")
+        ) &&
+        rule.body.includes("background")
+    );
+    expect(bespokeSelectedBackgrounds).toEqual([]);
+    expect(POPUP_STYLES).not.toContain("color: var(--kt-onsec)");
+    expect(POPUP_STYLES).not.toContain("kt-popup-menu-check");
+    // 主题基槽必须在 Popup 菜单内保持存活，否则选中行无任何勾指示。
+    expect(getRuleBodies(".kt-popup-menu .MuiMenuItem-root::before")).toEqual(
+      []
+    );
+    // 多选行以自带 checkbox 为唯一指示，主题勾绘制须剥离（槽几何保留）。
+    expect(
+      getRuleBodies(".kt-popup-text-service-option.Mui-selected::before")[0]
+    ).toContain("mask-image: none");
+    // 匹配范围菜单为单指示：radio 对 20px 恒挂载承担指示位，主题基槽整体剥除。
+    expect(
+      getRuleBodies(".kt-popup-pattern-option.MuiMenuItem-root::before")[0]
+    ).toContain("content: none");
+  });
+
+  test("popup menu rows use the theme's currentColor 8% hover state layer", () => {
+    expect(
+      getRuleBodies(".kt-popup-menu .MuiMenuItem-root:hover")[0]
+    ).toContain("background: color-mix(in srgb, currentColor 8%, transparent)");
+  });
+
   test("keeps animated indicators independent of pointer targets", () => {
     const indicatorRule = getRuleBodies(".kt-popup-segment-indicator")[0];
     expect(indicatorRule).toContain("position: absolute");
     expect(indicatorRule).toContain("pointer-events: none");
     expect(indicatorRule).toContain("transition: transform");
+  });
+
+  test("text-service options keep zero persistent row background and drop the hand-drawn box (M3 v3.1 §3.1.C)", () => {
+    // 整行零底色铁律：数据多选严禁整行持久选中染色（§3.1.C）。
+    const selectedRules = getTextRuleBodies(
+      '.kt-popup-text-service-menu .kt-popup-text-service-option.MuiMenuItem-root[aria-checked="true"]'
+    );
+    expect(selectedRules).toHaveLength(0);
+    // 自绘勾选盒退役：两态一律取图标分发器同族字形（components/MenuCheckGlyph），
+    // 不再手绘方框与 mask 勾笔画。
+    expect(getTextRuleBodies(".kt-popup-text-service-checkbox")).toHaveLength(
+      0
+    );
+    expect(
+      getTextRuleBodies(".kt-popup-text-service-checkbox--checked")
+    ).toHaveLength(0);
+  });
+
+  test("pattern options paint the secondary-container when selected (v5 T2 → M3 v3.1 §3.1.C)", () => {
+    // 特异性 (0,4,0)：同上，基槽状态规则编译形态最高 (0,3,0)，此处恒胜。
+    const selectedRule = getRuleBodies(
+      ".kt-popup-pattern-menu .kt-popup-pattern-option.MuiMenuItem-root.Mui-selected"
+    )[0];
+    expect(selectedRule).toContain("background: var(--kt-secc)");
+    expect(selectedRule).toContain("color: var(--kt-onsecc)");
+    const svgRule = getRuleBodies(
+      ".kt-popup-pattern-option.MuiMenuItem-root.Mui-selected > svg"
+    )[0];
+    expect(svgRule).toContain("color: var(--kt-onsecc)");
+    // 选中实底上的副标题：small 的显式 --kt-onv 须被 onsecc 单独覆盖，
+    // 否则 secc 底上呈现 sf0 底的次要文字色（对比不足）。
+    const smallRule = getRuleBodies(
+      ".kt-popup-pattern-menu .kt-popup-pattern-option.MuiMenuItem-root.Mui-selected .kt-popup-pattern-copy small"
+    )[0];
+    expect(smallRule).toContain("color: var(--kt-onsecc)");
+    const hoverBodies = getCssAtRuleBodies(POPUP_STYLES, "@media (hover: hover)");
+    expect(
+      hoverBodies.some(
+        (body) =>
+          body.includes(
+            ".kt-popup-pattern-menu .kt-popup-pattern-option.MuiMenuItem-root.Mui-selected:hover"
+          ) && body.includes("color-mix(in srgb, var(--kt-onsecc) 8%, var(--kt-secc))")
+      )
+    ).toBe(true);
+  });
+
+  test("segmented rows carry no ::before checkmark slot (toggle switches must not render a check)", () => {
+    expect(getRuleBodies(".kt-popup-display-mode button::before")).toHaveLength(0);
+    expect(
+      getRuleBodies('.kt-popup-display-mode button[aria-checked="true"]::before')
+    ).toHaveLength(0);
+    expect(getRuleBodies(".kt-popup-global-feature::before")).toHaveLength(0);
+    expect(
+      getRuleBodies('.kt-popup-global-feature[aria-pressed="true"]::before')
+    ).toHaveLength(0);
+  });
+
+  test("menu geometry follows the spec: gap 12, chip 32, switch 52x32 with press states", () => {
+    expect(getRuleBodies(".kt-popup-pattern-option.MuiMenuItem-root")[0]).toContain(
+      "gap: 12px"
+    );
+    expect(getRuleBodies(".kt-popup-service-option.MuiMenuItem-root")[0]).toContain(
+      "gap: 12px"
+    );
+    expect(
+      getRuleBodies(".kt-popup-language-option.MuiMenuItem-root")[0]
+    ).toContain("gap: 12px");
+    expect(
+      getRuleBodies(".kt-popup-language-menu .MuiMenuItem-root")[0]
+    ).toContain("gap: 12px");
+    expect(getRuleBodies(".kt-popup-style-grid")[0]).toContain(
+      "grid-auto-rows: 32px"
+    );
+    expect(getRuleBodies(".kt-popup-style-chip")[0]).toContain("height: 32px");
+    const switchRule = getRuleBodies(".kt-popup-switch")[0];
+    expect(switchRule).toContain("width: 52px");
+    expect(switchRule).toContain("height: 32px");
+    expect(switchRule).toContain("border: 1.5px solid var(--kt-line)");
+    const thumbRule = getRuleBodies(".kt-popup-switch > span")[0];
+    expect(thumbRule).toContain("width: 16px");
+    expect(thumbRule).toContain("height: 16px");
+    const checkedThumbRule = getRuleBodies(
+      '.kt-popup-switch[data-checked="true"] > span'
+    )[0];
+    expect(checkedThumbRule).toContain("width: 24px");
+    expect(checkedThumbRule).toContain("height: 24px");
+    const pressRule = getRuleBodies("button:active > .kt-popup-switch > span")[0];
+    expect(pressRule).toContain("width: 28px");
+    const pressCheckedRule = getRuleBodies(
+      'button:active > .kt-popup-switch[data-checked="true"] > span'
+    )[0];
+    expect(pressCheckedRule).toContain("left: 21px");
+  });
+
+  test("popup light-mode defaults consume tokens instead of hardcoded literals", () => {
+    expect(POPUP_STYLES).not.toContain("#A8C7FA");
+    expect(POPUP_STYLES).not.toContain("#0842A0");
+    expect(POPUP_STYLES).not.toContain("#FCEEEE");
+    expect(POPUP_STYLES).not.toContain("rgba(31,31,31");
+    expect(POPUP_STYLES).toContain("var(--kt-popup-focus, var(--kt-pri))");
+    expect(POPUP_STYLES).toContain("--kt-popup-translated-text: var(--kt-onpric)");
+    expect(POPUP_STYLES).toContain("--kt-popup-danger-hover: var(--kt-errc)");
+    expect(POPUP_STYLES).toContain(
+      "color-mix(in srgb, var(--kt-on) 5%, transparent)"
+    );
+  });
+});
+
+describe("segmented track tokens (M3 v3.1 方案 C)", () => {
+  test("tracks drop to sf0 and the selected segment carries secc/onsecc", () => {
+    expect(getRuleBodies(".kt-popup-services-block")[0]).toContain(
+      "background: var(--kt-sf0)"
+    );
+    expect(getRuleBodies(".kt-popup-display-mode")[0]).toContain(
+      "background: var(--kt-sf0)"
+    );
+    expect(getRuleBodies(".kt-popup-segment-indicator")[0]).toContain(
+      "background: var(--kt-secc)"
+    );
+    // 指示器即 services 分段的选中段承载，服务行选中文字色同批切换 onsecc。
+    expect(getRuleBodies('.kt-popup-service[aria-checked="true"]')[0]).toContain(
+      "color: var(--kt-onsecc)"
+    );
+    expect(
+      getRuleBodies('.kt-popup-display-mode button[aria-checked="true"]')[0]
+    ).toContain("color: var(--kt-onsecc)");
   });
 });
 
@@ -138,8 +337,8 @@ describe("persistent global feature segments", () => {
     const enabledRule = getRuleBodies(
       '.kt-popup-global-feature[aria-pressed="true"]'
     )[0];
-    expect(enabledRule).toContain("background: var(--kt-pric)");
-    expect(enabledRule).toContain("color: var(--kt-onpric)");
+    expect(enabledRule).toContain("background: var(--kt-secc)");
+    expect(enabledRule).toContain("color: var(--kt-onsecc)");
     expect(getRuleBodies(".kt-popup-global-feature")[0]).toContain(
       "color: var(--kt-onv)"
     );
@@ -155,6 +354,11 @@ describe("persistent global feature segments", () => {
     expect(
       getRuleBodies(".kt-popup-global-feature:focus-visible")[0]
     ).toContain("box-shadow: inset");
+    expect(
+      getRuleBodies(
+        '.kt-popup-global-feature[aria-pressed="true"]:focus-visible'
+      )[0]
+    ).toContain("box-shadow: inset 0 0 0 2px var(--kt-onsecc)");
   });
 });
 

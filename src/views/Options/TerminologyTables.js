@@ -1,11 +1,4 @@
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import DownloadIcon from "@mui/icons-material/Download";
-import FileUploadIcon from "@mui/icons-material/FileUpload";
-import LinkIcon from "@mui/icons-material/Link";
-import SaveIcon from "@mui/icons-material/Save";
-import SyncIcon from "@mui/icons-material/Sync";
-import TextSnippetIcon from "@mui/icons-material/TextSnippet";
+import { AddIcon, DeleteIcon, DownloadIcon, FileUploadIcon, LinkIcon, SaveIcon, SyncIcon, TextSnippetIcon } from "../../components/icons";
 import CopyBtn from "../Selection/CopyBtn";
 import CodeField from "./CodeField";
 import { useBlocker } from "react-router-dom";
