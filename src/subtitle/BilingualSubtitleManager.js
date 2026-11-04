@@ -179,7 +179,11 @@ export class BilingualSubtitleManager {
     let lastControlBarHiddenState = null;
 
     const syncPaperElBottom = ({ force = false } = {}) => {
-      const isHidden = player.classList.contains("ytp-autohide");
+      // Freeze only the control-bar offset; explicit resizing and dragging still work.
+      const isHidden =
+        this.#captionHovered && lastControlBarHiddenState !== null
+          ? lastControlBarHiddenState
+          : player.classList.contains("ytp-autohide");
       if (!force && isHidden === lastControlBarHiddenState) return;
       lastControlBarHiddenState = isHidden;
 
@@ -304,6 +308,7 @@ export class BilingualSubtitleManager {
       });
       this.#captionWindowEl.addEventListener("pointerleave", () => {
         this.#captionHovered = false;
+        this.#syncPaperPosition?.();
         this.#hoverTarget = null;
         this.#restoreHoverPlayback();
       });
@@ -426,9 +431,8 @@ export class BilingualSubtitleManager {
         typeof dragEndCallback === "function"
       )
         dragEndCallback(parseFloat(dragElement.style.bottom) || 0);
-      const finalBottomPx = dragElement.style.bottom;
       setTimeout(() => {
-        dragElement.style.bottom = finalBottomPx;
+        this.#syncPaperPosition?.();
       }, 50);
     };
 

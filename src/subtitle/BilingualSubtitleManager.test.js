@@ -798,7 +798,7 @@ describe("lookup panel playback ownership", () => {
     jest.advanceTimersByTime(ms);
     for (let i = 0; i < 8; i++) await Promise.resolve();
   };
-  const setup = (initiallyPaused = false, closeDelay = 2) => {
+  const setup = (initiallyPaused = false, closeDelay = 2, overrides = {}) => {
     video = createVideoElement();
     paused = initiallyPaused;
     Object.defineProperty(video, "paused", {
@@ -820,6 +820,7 @@ describe("lookup panel playback ownership", () => {
         ...setting,
         hoverLookupMode: "on",
         hoverLookupCloseDelay: closeDelay,
+        ...overrides,
       },
     });
     manager.start();
@@ -846,6 +847,99 @@ describe("lookup panel playback ownership", () => {
     manager = null;
     jest.useRealTimers();
     document.body.innerHTML = "";
+  });
+
+  test.each([true, false])(
+    "keeps captions fixed during hover when controls initially visible: %p",
+    async (initiallyVisible) => {
+      setup(true);
+      setControlBarVisible(video, initiallyVisible);
+      await waitForMutationObserver();
+      const initialBottom = getCaptionBottom();
+      point(caption, "pointerenter");
+
+      setControlBarVisible(video, !initiallyVisible);
+      await waitForMutationObserver();
+      expect(getCaptionBottom()).toBe(initialBottom);
+
+      // Streaming translations also force a position sync when redrawn.
+      manager.updateSetting({});
+      expect(getCaptionBottom()).toBe(initialBottom);
+
+      point(caption, "pointerleave");
+      expect(getCaptionBottom()).toBe(initiallyVisible ? 20 : 60);
+      expect(video.play).not.toHaveBeenCalled();
+    }
+  );
+
+  test("still resizes remembered captions while hovering", async () => {
+    const originalResizeObserver = global.ResizeObserver;
+    let resize;
+    global.ResizeObserver = class {
+      constructor(callback) {
+        resize = callback;
+      }
+      observe() {}
+      disconnect() {}
+    };
+    try {
+      setup(true, 2, { rememberPosition: true, positionRatio: 0.05 });
+      setControlBarVisible(video, true);
+      await waitForMutationObserver();
+      point(caption, "pointerenter");
+      setControlBarVisible(video, false);
+      await waitForMutationObserver();
+      Object.defineProperty(
+        video.closest(".html5-video-player"),
+        "clientHeight",
+        {
+          value: 800,
+          configurable: true,
+        }
+      );
+      resize();
+      expect(getCaptionBottom()).toBe(80);
+      point(caption, "pointerleave");
+      expect(getCaptionBottom()).toBe(40);
+    } finally {
+      manager?.destroy();
+      manager = null;
+      global.ResizeObserver = originalResizeObserver;
+    }
+  });
+
+  test("preserves dragging and never restores a stale offset after leaving hover", async () => {
+    const onSubtitlePositionChange = jest.fn();
+    setup(true, 2, {
+      rememberPosition: true,
+      positionRatio: 0.05,
+      onSubtitlePositionChange,
+    });
+    setControlBarVisible(video, true);
+    await waitForMutationObserver();
+    const paper = document.querySelector(".kiss-caption-paper");
+    const container = document.querySelector(".kiss-caption-container");
+    Object.defineProperty(container, "clientHeight", { value: 400 });
+    Object.defineProperty(paper, "offsetHeight", { value: 40 });
+    container.getBoundingClientRect = () => ({ bottom: 400 });
+    paper.getBoundingClientRect = () => ({ bottom: 400 - getCaptionBottom() });
+    point(caption, "pointerenter");
+    caption.dispatchEvent(
+      new MouseEvent("mousedown", { button: 0, clientY: 100 })
+    );
+    document.dispatchEvent(new MouseEvent("mousemove", { clientY: 130 }));
+    expect(getCaptionBottom()).toBe(30);
+    document.dispatchEvent(new MouseEvent("mouseup", { clientY: 130 }));
+    expect(getCaptionBottom()).toBe(70);
+    expect(onSubtitlePositionChange).toHaveBeenCalledTimes(1);
+    expect(onSubtitlePositionChange).toHaveBeenCalledWith(0.075);
+    setControlBarVisible(video, false);
+    await waitForMutationObserver();
+    expect(getCaptionBottom()).toBe(70);
+    point(caption, "pointerleave");
+    expect(getCaptionBottom()).toBe(30);
+    await tick(50);
+    expect(getCaptionBottom()).toBe(30);
   });
 
   test("keeps the hover pause through the delay and panel interaction, then resumes", async () => {
