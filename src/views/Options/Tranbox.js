@@ -22,6 +22,8 @@ import {
   getDictionaryPromptOptions,
   getPromptDisplayName,
   OPT_SKIPLANGS_SELECTION,
+  DEFAULT_TRANBOX_HOVER_DELAY,
+  OPT_TRANBOX_TRIGGER_HOVER,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
 import ServiceSelect from "./ServiceSelect";
@@ -104,6 +106,20 @@ export default function Tranbox() {
   };
 
   // 快捷键组合变更处理回调
+  // 悬停触发延迟；非法值回退默认（与运行时回退一致）
+  const handleHoverDelayChange = useCallback(
+    (e) => {
+      const value = Number(e.target.value);
+      updateTranbox({
+        triggerHoverDelay:
+          Number.isFinite(value) && value >= 0
+            ? value
+            : DEFAULT_TRANBOX_HOVER_DELAY,
+      });
+    },
+    [updateTranbox]
+  );
+
   const handleShortcutInput = useCallback(
     (val) => {
       updateTranbox({ tranboxShortcut: val });
@@ -130,6 +146,7 @@ export default function Tranbox() {
     followSelection = false,
     autoHeight = false,
     triggerMode = OPT_TRANBOX_TRIGGER_CLICK,
+    triggerHoverDelay = DEFAULT_TRANBOX_HOVER_DELAY,
     tranboxInteractMode = "-",
     btnPositionMode = OPT_TRANBOX_BTN_POSITION_FIXED,
     enDict = OPT_DICT_BING,
@@ -180,6 +197,29 @@ export default function Tranbox() {
                 }))}
               />
             </SettingsRow>
+            {triggerMode === OPT_TRANBOX_TRIGGER_HOVER && (
+              <SettingsRow
+                stacked
+                className="kt-settings-row--hover-delay"
+                label={i18n("trigger_hover_delay")}
+                description={i18n("trigger_hover_delay_helper")}
+              >
+                <TextField
+                  hiddenLabel
+                  size="small"
+                  variant="filled"
+                  type="number"
+                  inputProps={{
+                    min: 0,
+                    step: 100,
+                    "aria-label": i18n("trigger_hover_delay"),
+                  }}
+                  name="triggerHoverDelay"
+                  value={triggerHoverDelay}
+                  onChange={handleHoverDelayChange}
+                />
+              </SettingsRow>
+            )}
             <SettingsRow
               label={i18n("follow_selection")}
               description={i18n("settings_follow_selection_description")}

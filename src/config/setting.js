@@ -123,6 +123,7 @@ export const OPT_TRANBOX_BTN_POSITION_ALL = [
 export const OPT_TRANBOX_INTERACT_CLICK = "click"; // 单击翻译框内选中文本触发新翻译
 export const OPT_TRANBOX_INTERACT_DBLCLICK = "dblclick"; // 双击翻译框内选中文本触发新翻译
 export const DEFAULT_TRANBOX_SHORTCUT = ["AltLeft", "KeyS"]; // 呼出划词翻译面板的键盘快捷键
+export const DEFAULT_TRANBOX_HOVER_DELAY = 300; // 悬停触发模式下，指针停留多久才触发翻译（毫秒）
 
 // 划词翻译"忽略的语言"下拉选项：将 zh-CN/zh-TW 合并为单个 "zh" 条目
 export const OPT_SKIPLANGS_SELECTION = [
@@ -152,6 +153,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   followSelection: false, // 翻译结果框位置是否贴紧选中文本中心
   autoHeight: false, // 翻译结果框高度是否自适应其文本内容长度
   triggerMode: OPT_TRANBOX_TRIGGER_CLICK, // 划词触发翻译的行为模式
+  triggerHoverDelay: DEFAULT_TRANBOX_HOVER_DELAY, // 悬停触发模式下的触发延迟（毫秒，0 为立即触发）
   btnPositionMode: OPT_TRANBOX_BTN_POSITION_FIXED, // 划词后弹出按钮的定位模式
   tranboxInteractMode: "-", // 翻译框内交互模式（"-"表示禁用）
   skipLangs: [], // 忽略的语言：默认为空，检测到列表内语言时不弹窗
