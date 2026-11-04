@@ -12,6 +12,7 @@ import {
 } from "../config";
 
 export const SESSION_MESSAGE = "kiss_page_session";
+export const SESSION_PROBE = "kiss_page_probe";
 export const SESSION_SNAPSHOT = "kiss_page_snapshot";
 export const SESSION_SELECTION = "kiss_page_selection";
 export const SESSION_EDITING = "kiss_page_editing";

@@ -3,6 +3,7 @@ import { getPopupDocumentIdentity } from "./popupDocument";
 import { loadPageSession } from "./pageSessionBackground";
 import {
   SESSION_MESSAGE,
+  SESSION_PROBE,
   SESSION_SNAPSHOT,
   SESSION_SELECTION,
   SESSION_FOCUS,
@@ -162,6 +163,10 @@ export async function connectPageSession(isUserscript, onState, onLocal) {
   let register;
   if (!isUserscript) {
     browser.runtime.onMessage.addListener((message, _sender, respond) => {
+      if (message.action === SESSION_PROBE) {
+        respond({ token: identity.token, url: window.location.href });
+        return false;
+      }
       if (![SESSION_SNAPSHOT, SESSION_SELECTION].includes(message.action))
         return false;
       if (message.expectedDocumentToken !== identity.token) {

@@ -4,6 +4,7 @@ import { matchRule } from "./rules";
 import { isInBlacklist } from "./blacklist";
 import {
   SESSION_ACTIONS,
+  SESSION_PROBE,
   SESSION_SNAPSHOT,
   SESSION_SELECTION,
   SESSION_EDITING,
@@ -43,10 +44,13 @@ export function createPageSessionBackend(browser) {
   const key = (id) => `page-session:${id}`;
   const save = (id, record) =>
     browser.storage?.session?.set({ [key(id)]: record });
-  async function recordFor(id) {
+  async function recordFor(id, create) {
     if (!records.has(id)) {
       const stored = await browser.storage?.session?.get(key(id));
-      records.set(id, stored?.[key(id)] || { documents: {}, state: null });
+      const record =
+        stored?.[key(id)] ||
+        (create ? { documents: {}, state: null } : undefined);
+      if (record) records.set(id, record);
     }
     return records.get(id);
   }
@@ -72,14 +76,98 @@ export function createPageSessionBackend(browser) {
       return undefined;
     }
   }
-  async function publish(id, record) {
+  async function publish(
+    id,
+    record,
+    documents = Object.values(record.documents)
+  ) {
     await save(id, record);
     await Promise.allSettled(
-      Object.values(record.documents).map((doc) =>
+      documents.map((doc) =>
         deliver(id, record, doc, SESSION_SNAPSHOT, record.state)
       )
     );
     await save(id, record);
+  }
+  async function probe(id, frameId) {
+    try {
+      const doc = await browser.tabs.sendMessage(
+        id,
+        { action: SESSION_PROBE },
+        { frameId }
+      );
+      if (typeof doc?.token === "string" && typeof doc.url === "string")
+        return { frameId, token: doc.token, url: doc.url };
+    } catch (_error) {
+      // Navigation may have no injectable document yet.
+    }
+  }
+  async function currentTop(id) {
+    const doc = await probe(id, 0);
+    const tab = await browser.tabs.get(id).catch(() => undefined);
+    const top =
+      doc && tab && !tab.pendingUrl && (!tab.url || tab.url === doc.url)
+        ? doc
+        : undefined;
+    return { top, complete: !doc && tab?.status === "complete" };
+  }
+  function clearSession(record) {
+    record.topToken = null;
+    record.state = null;
+    record.documents = {};
+    record.focus = null;
+    record.selectionFocus = null;
+  }
+  async function reconcile(id, record, { force, completed } = {}) {
+    const { top, complete } = await currentTop(id);
+    if (!top) {
+      if (completed && complete) {
+        clearSession(record);
+        await save(id, record);
+      }
+      return false;
+    }
+    const sameDocument =
+      (record.topToken || record.documents[0]?.token) === top.token;
+    const previous = sameDocument ? record.state : null;
+    const reload = !previous || force || previous.url !== top.url;
+    const state = reload
+      ? await loadPageSession(
+          top.url,
+          previous?.sessionId ||
+            `${id}:${top.token}:${crypto.getRandomValues(new Uint32Array(4)).join("-")}`,
+          previous
+        )
+      : previous;
+    const pending = Object.values(record.pending || {});
+    const verified = (
+      await Promise.all(
+        pending.map(async (doc) => {
+          const active = doc.frameId === 0 ? top : await probe(id, doc.frameId);
+          return active?.token === doc.token ? doc : null;
+        })
+      )
+    ).filter(Boolean);
+    if (reload || pending.length) {
+      const { top: current } = await currentTop(id);
+      if (current?.token !== top.token || current.url !== top.url) return false;
+    }
+    if (!sameDocument) clearSession(record);
+    record.topToken = top.token;
+    record.documents[0] = { frameId: 0, token: top.token };
+    record.state = state;
+    record.pending = {};
+    for (const doc of verified) {
+      const old = record.documents[doc.frameId];
+      if (old && old.token !== doc.token) {
+        for (const field of ["focus", "selectionFocus"])
+          if (record[field]?.token === old.token) record[field] = null;
+      }
+      record.documents[doc.frameId] = doc;
+    }
+    if (reload || pending.length)
+      await publish(id, record, reload ? undefined : verified);
+    return true;
   }
   async function handle(args = {}, sender = {}) {
     const id = sender.tab?.id ?? args.tabId;
@@ -88,7 +176,8 @@ export function createPageSessionBackend(browser) {
     const next = previous
       .catch(() => {})
       .then(async () => {
-        const record = await recordFor(id);
+        const record = await recordFor(id, args.kind === "register");
+        if (!record) return { pending: true };
         if (args.kind === "register") {
           if (
             !sender.tab ||
@@ -97,54 +186,13 @@ export function createPageSessionBackend(browser) {
           )
             return;
           const doc = { frameId: sender.frameId, token: args.token };
-          const oldTop = record.documents[0];
-          if (doc.frameId === 0 && oldTop && oldTop.token !== doc.token) {
-            record.state = null;
-            record.documents = {};
-            record.focus = null;
-            record.selectionFocus = null;
-          }
-          record.documents[doc.frameId] = doc;
-          const url =
-            sender.frameId === 0
-              ? sender.url
-              : (await browser.tabs.get(id)).url;
+          record.pending ||= {};
+          record.pending[doc.frameId] = doc;
           await save(id, record);
-          if (url && (!record.state || record.state.url !== url)) {
-            handle({
-              kind: "initialize",
-              tabId: id,
-              url,
-              topToken: record.documents[0]?.token,
-            }).catch(() => {});
-          }
-          return record.state || { pending: true };
+          handle({ kind: "refresh", tabId: id }).catch(() => {});
+          return { pending: true };
         }
-        if (args.kind === "initialize") {
-          if (record.state?.url === args.url) return record.state;
-          if (record.documents[0]?.token !== args.topToken)
-            return { pending: true };
-          const initialized = await loadPageSession(
-            args.url,
-            record.state?.sessionId ||
-              `${id}:${record.documents[0]?.token || Date.now()}`,
-            record.state
-          );
-          if ((await browser.tabs.get(id)).url !== args.url)
-            return { pending: true };
-          record.state = initialized;
-          await publish(id, record);
-          return record.state;
-        }
-        if (args.kind === "reset") {
-          record.state = null;
-          record.documents = {};
-          record.focus = null;
-          record.selectionFocus = null;
-          await save(id, record);
-          return;
-        }
-        if (!record.state) return { pending: true };
+        if (!(await reconcile(id, record, args))) return { pending: true };
         if (args.sessionId && args.sessionId !== record.state.sessionId)
           return { error: "Page session changed.", code: "STALE_DOCUMENT" };
         if (
@@ -152,19 +200,8 @@ export function createPageSessionBackend(browser) {
           record.documents[sender.frameId]?.token !== args.token
         )
           return { error: "Document changed.", code: "STALE_DOCUMENT" };
-        if (args.kind === "refresh") {
-          const tab = await browser.tabs.get(id);
-          if (tab.url && (args.force || tab.url !== record.state.url)) {
-            record.state = await loadPageSession(
-              tab.url,
-              record.state.sessionId,
-              record.state
-            );
-            await publish(id, record);
-          }
+        if (args.kind === "refresh" || args.kind === "query")
           return record.state;
-        }
-        if (args.kind === "query") return record.state;
         const action = args.action;
         if (action === SESSION_FOCUS) {
           const field = args.args?.selection ? "selectionFocus" : "focus";
@@ -248,13 +285,10 @@ export function createPageSessionBackend(browser) {
     records.delete(id);
     browser.storage?.session?.remove(key(id));
   });
-  browser.webNavigation?.onCommitted?.addListener(({ tabId, frameId }) => {
-    if (frameId === 0) handle({ kind: "reset", tabId }).catch(() => {});
+  browser.tabs?.onUpdated?.addListener((tabId, change) => {
+    const completed = change.status === "complete";
+    if (change.url !== undefined || completed)
+      handle({ kind: "refresh", tabId, completed }).catch(() => {});
   });
-  const refreshRoute = ({ tabId, frameId }) => {
-    if (frameId === 0) handle({ kind: "refresh", tabId }).catch(() => {});
-  };
-  browser.webNavigation?.onHistoryStateUpdated?.addListener(refreshRoute);
-  browser.webNavigation?.onReferenceFragmentUpdated?.addListener(refreshRoute);
   return handle;
 }

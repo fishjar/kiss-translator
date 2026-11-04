@@ -1,6 +1,8 @@
 import { FrameSelection } from "./frameSelection";
 import {
   SESSION_ACTIONS,
+  SESSION_PROBE,
+  SESSION_SNAPSHOT,
   SESSION_SELECTION,
   SESSION_EDITING,
   SESSION_FOCUS,
@@ -1003,6 +1005,13 @@ export default class TranslatorManager {
    * 处理扩展 background 发送的 runtime 消息。
    */
   #handleBrowserMessage(message, sender, sendResponse) {
+    if (
+      this.#sessionClient &&
+      [SESSION_PROBE, SESSION_SNAPSHOT, SESSION_SELECTION].includes(
+        message.action
+      )
+    )
+      return false;
     const shouldRespond =
       !message.responseDocumentToken ||
       message.responseDocumentToken === this.#documentToken;

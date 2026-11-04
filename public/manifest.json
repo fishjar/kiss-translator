@@ -87,7 +87,6 @@
     }
   },
   "permissions": [
-    "webNavigation",
     "storage",
     "offscreen",
     "tts",
