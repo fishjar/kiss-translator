@@ -65,14 +65,13 @@ export class FrameSelection {
         revision !== this.revision
       )
         return;
-      this.pending = snapshot;
       this.send(SESSION_FOCUS, { selection: true, enabled: true });
       if (
         [OPT_TRANBOX_TRIGGER_SELECT, OPT_TRANBOX_TRIGGER_DBLCLICK].includes(
           config.triggerMode
         )
       ) {
-        this.open();
+        this.openSnapshot(snapshot);
         return;
       }
       if (config.hideTranBtn || !selection.rangeCount) return;
@@ -101,7 +100,7 @@ export class FrameSelection {
         config.triggerMode === OPT_TRANBOX_TRIGGER_HOVER
           ? "mouseenter"
           : "click",
-        () => this.open()
+        () => this.openSnapshot(snapshot)
       );
       document.documentElement.appendChild(button);
       this.button = button;
@@ -131,15 +130,40 @@ export class FrameSelection {
         this.open()
       );
   }
-  open(args) {
+  async open(args) {
+    if (args?.text) {
+      this.openSnapshot(args);
+      return;
+    }
     const selection = window.getSelection();
-    const snapshot = args?.text
-      ? args
-      : this.pending || {
-          text: selection?.toString()?.trim(),
-          context: getSelectionContext(selection),
-          selectionSource: getSelectionSource(selection),
-        };
+    const text = selection?.toString()?.trim();
+    const snapshot = {
+      text,
+      context: getSelectionContext(selection),
+      selectionSource: getSelectionSource(selection),
+    };
+    if (text) {
+      const revision = ++this.revision;
+      const keys = ["anchorNode", "anchorOffset", "focusNode", "focusOffset"];
+      const endpoints = keys.map((key) => selection[key]);
+      if (
+        (await shouldSkipSelection(
+          text,
+          this.setting.tranboxSetting?.skipLangs
+        )) ||
+        revision !== this.revision
+      )
+        return;
+      const current = window.getSelection();
+      if (
+        current?.toString()?.trim() !== text ||
+        keys.some((key, index) => current[key] !== endpoints[index])
+      )
+        return;
+    }
+    this.openSnapshot(snapshot);
+  }
+  openSnapshot(snapshot) {
     this.requestId = `${Date.now()}:${++this.revision}`;
     this.send(SESSION_SELECTION, { ...snapshot, requestId: this.requestId });
     this.button?.remove();

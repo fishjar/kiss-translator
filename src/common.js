@@ -249,6 +249,7 @@ export async function run(isUserscript = false) {
     const href = document?.location?.href || "";
 
     if (isUserscript) {
+      if (window !== window.top) return;
       ensureUserscriptGM();
 
       // 如果当前是设置面板 URL，先建立设置页专用代理，避免 storage 读写抢跑 GM 桥接。

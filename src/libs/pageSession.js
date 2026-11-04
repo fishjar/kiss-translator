@@ -128,8 +128,6 @@ export function navigatePageSession(state, url, rule) {
   };
 }
 
-// Only rule/configuration data travels over the userscript page channel.
-// API credentials and the complete settings object remain in privileged storage.
 export function selectionPayload(args = {}) {
   return {
     text: String(args.text || "").slice(0, 100000),
