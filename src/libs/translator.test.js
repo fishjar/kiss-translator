@@ -38,7 +38,17 @@ const {
   OPT_HIGHLIGHT_WORDS_AFTERTRANS,
   OPT_HIGHLIGHT_WORDS_BEFORETRANS,
 } = require("../config/rules");
+// Keep the session bridge test on the real Translator without mounting page UI.
+jest.mock("./tranbox", () => ({ TransboxManager: jest.fn() }));
+jest.mock("./popupManager", () => ({ PopupManager: jest.fn() }));
+jest.mock("./fabManager", () => ({ FabManager: jest.fn() }));
+jest.mock("./ruleEditorManager", () => ({ RuleEditorManager: jest.fn() }));
+jest.mock("./imageTranslate/imageTranslateManager", () => ({
+  ImageTranslateManager: jest.fn(),
+}));
+
 const { Translator } = require("./translator");
+const TranslatorManager = require("./translatorManager").default;
 
 const flushAsync = async () => {
   jest.runOnlyPendingTimers();
@@ -1715,6 +1725,117 @@ describe("Translator rule styles", () => {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
     jest.clearAllMocks();
+  });
+
+  describe("session snapshot integration", () => {
+    const session = (translator, overrides = {}) => ({
+      sessionId: "real-translator-session",
+      revision: 1,
+      url: "https://main.test",
+      rule: translator.rule,
+      features: { selection: false, input: false, hover: false, touch: "off" },
+      ...overrides,
+    });
+    const attachManager = (translator) => {
+      const manager = new TranslatorManager({
+        setting: translator.setting,
+        rule: translator.rule,
+        favWords: [],
+        isUserscript: true,
+        isIframe: false,
+      });
+      manager._translator = translator;
+      return manager;
+    };
+
+    test("enabling a session starts the real translator and renders translated text", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Session source text.</p></main>';
+      const translator = createTranslator({ transOpen: "false" });
+      const manager = attachManager(translator);
+      manager.applySession(
+        session(translator, { rule: { ...translator.rule, transOpen: "true" } })
+      );
+      await flushAsync();
+      expect(
+        document.querySelector(".kiss-translator-wrapper")?.textContent
+      ).toContain("Translated");
+      const runtime = translator.beginRuleEditing();
+      expect(runtime.enabled).toBe(true);
+      translator.endRuleEditing(runtime, false);
+    });
+
+    test("disabling a session stops the real translator and restores the document", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Session source text.</p></main>';
+      const translator = createTranslator();
+      await flushAsync();
+      expect(document.querySelector(".kiss-translator-wrapper")).not.toBeNull();
+      const manager = attachManager(translator);
+      manager.applySession(
+        session(translator, {
+          rule: { ...translator.rule, transOpen: "false" },
+        })
+      );
+      expect(document.querySelector(".kiss-translator-wrapper")).toBeNull();
+      apiTranslate.mockClear();
+      document
+        .querySelector("#root")
+        .insertAdjacentHTML("beforeend", "<p>Text added after closing.</p>");
+      await flushMutations();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      const runtime = translator.beginRuleEditing();
+      expect(runtime.enabled).toBe(false);
+      translator.endRuleEditing(runtime, false);
+    });
+
+    test.each(["tap", "swipe"])(
+      "hover blacklist gates real %s mode and can be lifted",
+      (mode) => {
+        const pointer = Object.getOwnPropertyDescriptor(window, "PointerEvent");
+        const touchPoints = Object.getOwnPropertyDescriptor(
+          navigator,
+          "maxTouchPoints"
+        );
+        Object.defineProperty(window, "PointerEvent", {
+          configurable: true,
+          value: MouseEvent,
+        });
+        Object.defineProperty(navigator, "maxTouchPoints", {
+          configurable: true,
+          value: 2,
+        });
+        try {
+          const translator = createTranslator({ transOpen: "false" });
+          const manager = attachManager(translator);
+          const blocked = session(translator, {
+            features: {
+              selection: false,
+              input: false,
+              hover: true,
+              touch: mode,
+            },
+            blockedFeatures: { hover: true },
+          });
+          manager.applySession(blocked);
+          expect(translator.touchMode).toBe("off");
+          manager.applySession({
+            ...blocked,
+            revision: 2,
+            blockedFeatures: { hover: false },
+          });
+          expect(translator.touchMode).toBe(mode);
+          manager.applySession({ ...blocked, revision: 3 });
+          expect(translator.touchMode).toBe("off");
+        } finally {
+          if (pointer) Object.defineProperty(window, "PointerEvent", pointer);
+          else delete window.PointerEvent;
+          if (touchPoints)
+            Object.defineProperty(navigator, "maxTouchPoints", touchPoints);
+          else delete navigator.maxTouchPoints;
+        }
+      }
+    );
   });
 
   describe("inline hidden sources", () => {

@@ -593,6 +593,8 @@ export default class TranslatorManager {
     const active = !state.blocked && !state.editing;
     const features = state.features;
     const blocked = state.blockedFeatures || {};
+    const touchMode = active && !blocked.hover ? features.touch : "off";
+    this.#touchMode = touchMode;
     this.#rule = this.#cloneConfig(state.rule);
     if (state.blocked || state.editing) this.#rule.transOpen = "false";
     this.#setting.tranboxSetting = {
@@ -606,7 +608,7 @@ export default class TranslatorManager {
     this.#setting.mouseHoverSetting = {
       ...this.#setting.mouseHoverSetting,
       useMouseHover: active && features.hover && !blocked.hover,
-      touchMode: active ? features.touch : "off",
+      touchMode,
       blacklist: "", // The coordinator evaluates this against the main URL.
     };
     if (this.#isActive && state.blocked) {
@@ -618,17 +620,21 @@ export default class TranslatorManager {
       this.#createRuntimeModules();
     this.#applyingSession = true;
     try {
+      const enabled = active && state.rule.transOpen === "true";
+      // Stop before updating other fields so a closing snapshot cannot rescan.
+      if (!enabled) this._translator?.disable();
       this._translator?.updateRule({
         ...state.rule,
         transOpen: active ? state.rule.transOpen : "false",
       });
       if (this._translator) {
+        if (enabled) this._translator.enable();
         if (
           Boolean(this._translator.setting.mouseHoverSetting?.useMouseHover) !==
           this.#setting.mouseHoverSetting.useMouseHover
         )
           this._translator.toggleMouseHover();
-        this._translator.setTouchMode?.(active ? features.touch : "off");
+        this._translator.setTouchMode?.(touchMode);
       }
       this._transboxManager?.update({
         ...this.#cloneConfig(this.#setting),
@@ -1161,10 +1167,12 @@ export default class TranslatorManager {
       supported: supportsTouch(),
       direction:
         this._translator?.setting?.mouseHoverSetting?.touchDirection || "right",
-      blocked: isInBlacklist(
-        this.#sessionState?.url || window.location.href,
-        this._translator?.setting?.mouseHoverSetting?.blacklist
-      ),
+      blocked: this.#sessionState
+        ? Boolean(this.#sessionState.blockedFeatures?.hover)
+        : isInBlacklist(
+            window.location.href,
+            this._translator?.setting?.mouseHoverSetting?.blacklist
+          ),
     };
   }
 

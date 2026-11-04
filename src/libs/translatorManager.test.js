@@ -438,6 +438,43 @@ describe("TranslatorManager SPA lifecycle", () => {
     jest.useRealTimers();
   });
 
+  test.each(["tap", "swipe"])(
+    "a hover-blocked session never starts %s during module initialization",
+    (mode) => {
+      const client = {
+        send: jest.fn().mockResolvedValue(undefined),
+        register: jest.fn(),
+      };
+      const state = {
+        sessionId: "blocked-touch",
+        revision: 1,
+        url: "https://main.test",
+        rule: { transOpen: "false" },
+        features: { selection: true, input: true, hover: true, touch: mode },
+        blockedFeatures: { hover: true },
+      };
+      const manager = createManager({
+        sessionClient: client,
+        sessionState: state,
+        setting: {
+          mouseHoverSetting: {
+            touchMode: mode,
+            blacklist: "https://main.test",
+          },
+        },
+      });
+      manager.start();
+      expect(
+        mockTranslatorInstances[0].setTouchMode.mock.calls.every(
+          ([value]) => value === "off"
+        )
+      ).toBe(true);
+      expect(
+        sendRuntimeMessage({ action: "touch-state" }).touchTranslate
+      ).toMatchObject({ mode: "off", blocked: true });
+    }
+  );
+
   test("session snapshots are idempotent and page blocking releases business modules", () => {
     const client = {
       send: jest.fn().mockResolvedValue(undefined),
