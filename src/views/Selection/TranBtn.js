@@ -57,10 +57,25 @@ export default function TranBtn({
     }
   };
 
+  const handleHoverLeave = (event) => {
+    // mouseout also fires when the pointer moves from the button onto one of
+    // its children (the icon), and that child's mouseover bubbles back here;
+    // cancelling on every internal move would restart the wait. Only a real
+    // leave of the button cancels the pending trigger.
+    const nextTarget = event.relatedTarget;
+    if (
+      nextTarget instanceof Node &&
+      event.currentTarget.contains(nextTarget)
+    ) {
+      return;
+    }
+    clearHoverTimer();
+  };
+
   const dynamicTriggerProps = delayedHover
     ? {
         onMouseOver: handleHoverEnter,
-        onMouseOut: clearHoverTimer,
+        onMouseOut: handleHoverLeave,
       }
     : btnEvent === "onClick"
       ? {}

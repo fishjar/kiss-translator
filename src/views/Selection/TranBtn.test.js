@@ -158,6 +158,32 @@ describe("hover trigger delay", () => {
     view.cleanup();
   });
 
+  test("keeps the wait when the pointer moves onto the button's own icon", () => {
+    const view = renderTranBtn({ btnEvent: "onMouseOver", hoverDelay: 300 });
+    const icon = view.button.querySelector("svg");
+
+    act(() => {
+      view.button.dispatchEvent(
+        new MouseEvent("mouseover", { bubbles: true, detail: 1 })
+      );
+      // mouseout fires when moving onto a child; the child's mouseover then
+      // bubbles back to the button. That is not a leave, so the pending
+      // trigger must survive and still fire after the delay.
+      view.button.dispatchEvent(
+        new MouseEvent("mouseout", {
+          bubbles: true,
+          detail: 1,
+          relatedTarget: icon,
+        })
+      );
+    });
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(view.onTrigger).toHaveBeenCalledTimes(1);
+    view.cleanup();
+  });
+
   test("does not fire a pending hover trigger after unmount", () => {
     const view = renderTranBtn({ btnEvent: "onMouseOver", hoverDelay: 300 });
 
