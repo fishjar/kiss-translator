@@ -1,17 +1,31 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useLayoutEffect, useSyncExternalStore } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline, GlobalStyles } from "@mui/material";
+import {
+  ArrowDropDownIcon,
+  CancelIcon,
+  CheckCircleIcon,
+  CloseIcon,
+  ErrorIcon,
+  InfoIcon,
+  WarningIcon,
+} from "../components/icons/lucide";
 import { useDarkMode } from "./ColorMode";
 import { THEME_DARK, THEME_LIGHT } from "../config";
 import {
   createM3CssVariables,
+  getIconColorSnapshot,
+  getIconStyleSnapshot,
   M3_FONT_FAMILY,
   M3_GLOBAL_CSS,
   resolveM3Colors,
   resolveM3ThemeMode,
+  subscribeIconColor,
+  subscribeIconStyle,
 } from "../styles/m3";
 import { getMuiSwitchStyleOverrides } from "./themeStyles";
 import { useSystemDarkPreference } from "./SystemColorScheme";
+import { installFocusModality } from "./focusModality";
 
 export { getMuiSwitchStyleOverrides } from "./themeStyles";
 
@@ -26,6 +40,22 @@ export default function M3Theme({
 }) {
   const { darkMode } = useDarkMode();
   const systemPrefersDark = useSystemDarkPreference();
+  const iconStyle = useSyncExternalStore(
+    subscribeIconStyle,
+    getIconStyleSnapshot
+  );
+  const iconColor = useSyncExternalStore(
+    subscribeIconColor,
+    getIconColorSnapshot
+  );
+
+  // 焦点模态反转：所有 surface 的唯一包裹层在这里对 ownerDocument 显式安装
+  // 模态监听（幂等，per-document；Shadow DOM / 独立窗口各自安装）。此后
+  // MUI 自持 autofocus 等任何聚焦路径都在 focusin 统一处置覆盖之下。
+  const rootRef = useRef(null);
+  useLayoutEffect(() => {
+    installFocusModality(rootRef.current?.ownerDocument);
+  }, []);
 
   const previewMode =
     process.env.NODE_ENV === "development"
@@ -36,8 +66,8 @@ export default function M3Theme({
       ? previewMode
       : resolveM3ThemeMode(darkMode, systemPrefersDark);
   const colors = useMemo(
-    () => resolveM3Colors(resolvedMode, M3_BRAND_COLOR),
-    [resolvedMode]
+    () => resolveM3Colors(resolvedMode, M3_BRAND_COLOR, iconColor),
+    [resolvedMode, iconColor]
   );
 
   const theme = useMemo(() => {
@@ -45,6 +75,13 @@ export default function M3Theme({
     const focusRing = {
       outline: `3px solid ${color.primary}`,
       outlineOffset: 2,
+    };
+    // forced-colors（高对比度）域兜底：inset box-shadow 焦点环被强制引擎
+    // 整体忽略、outline:none 压制 UA 默认环，须以系统色描边兜底。不写
+    // outline-color（引擎接管系统色）；负 offset 内收，不占外部位空间。
+    const forcedColorsFocusRing = {
+      outline: "3px solid",
+      outlineOffset: -3,
     };
     let htmlFontSize = 16;
     try {
@@ -65,6 +102,7 @@ export default function M3Theme({
           contrastText: color.onSecondaryContainer,
         },
         error: { main: color.error },
+        success: { main: color.success },
         background: { default: color.background, paper: color.surface },
         text: {
           primary: color.onSurface,
@@ -127,7 +165,7 @@ export default function M3Theme({
           styleOverrides: {
             root: ({ ownerState }) => ({
               ...(ownerState.color === "default" && {
-                color: color.onSurfaceVariant,
+                color: color.icon,
                 "&:hover": {
                   backgroundColor: color.surfaceContainer,
                   "@media (hover: none)": { backgroundColor: "transparent" },
@@ -162,6 +200,32 @@ export default function M3Theme({
                 borderColor: color.primary,
                 backgroundColor: color.surface,
               },
+              // 下拉字段的指针聚焦静默压制：指针模态 focusin 已给落点挂
+              // data-kt-focus-silent，命中后边框透明；键盘模态无静默标记，
+              // 边框照画。普通文本输入框无 .MuiSelect-select 后代，永不命中，
+              // 边框保持基线现状。
+              // 两条 :has(...) 规则整体包进 @supports selector(:has(*))：jsdom
+              // 16.7.0（cssom 0.3.8 + nwsapi 2.2.23）从不下钻 CSSSupportsRule，
+              // nwsapi 不再编译 :has 选择器；浏览器 Chrome 105+/FF 121+ 判 true
+              // 照常生效。语义等价，规则本体不变。
+              '@supports selector(:has(*))': {
+                '&.Mui-focused:has(.MuiSelect-select[data-kt-focus-silent="true"])': {
+                  borderColor: "transparent",
+                  // 指针聚焦＝与未聚焦同观感：边框与填充底色一并压制，
+                  // 字段不再因聚焦换底色而隐没。键盘路径无静默标记，不命中本键。
+                  backgroundColor: color.surfaceContainer,
+                },
+                // 菜单展开期间焦点移到菜单项上，字段级边框让位给菜单项的焦点指示。
+                // 全模态（指针/键盘）透明；关闭期 aria-expanded 回 "false" 不命中。
+                // aria-expanded 由 MUI 在 display 元素上恒定管理，无 JS 生命周期竞态。
+                // 打开期容器填充保留（surfaceContainer），字段底色不随聚焦漂移；
+                // 焦点指示由菜单项承担，字段本身隐为容器。键盘路径命中本键时
+                // 边框虽透明但填充仍在，字段轮廓不隐没。
+                '&.Mui-focused:has(.MuiSelect-select[aria-expanded="true"])': {
+                  borderColor: "transparent",
+                  backgroundColor: color.surfaceContainer,
+                },
+              },
               "&.Mui-error": {
                 borderColor: color.error,
               },
@@ -172,6 +236,9 @@ export default function M3Theme({
           },
         },
         MuiSelect: {
+          ...(iconStyle === "lucide" && {
+            defaultProps: { IconComponent: ArrowDropDownIcon },
+          }),
           styleOverrides: {
             select: {
               "&:focus": {
@@ -233,13 +300,24 @@ export default function M3Theme({
               transition: "background-color .2s ease, color .2s ease",
               whiteSpace: "nowrap",
               "&.Mui-selected": {
-                backgroundColor: color.secondaryContainer,
-                color: color.onSecondaryContainer,
+                backgroundColor: color.secondary,
+                color: color.onSecondary,
                 fontWeight: 650,
               },
               "&&.Mui-focusVisible": {
                 outline: "none",
                 boxShadow: `inset 0 0 0 3px ${color.primary}`,
+              },
+              "&&.Mui-selected.Mui-focusVisible": {
+                boxShadow: `inset 0 0 0 3px ${color.onSecondary}`,
+              },
+              ".kt-popup-tabs &&.Mui-selected.Mui-focusVisible": {
+                boxShadow: `inset 0 0 0 3px ${color.primary}`,
+              },
+              // HC 域兜底：box-shadow 被强制引擎忽略，补系统色描边（统一一套，
+              // 不按 selected/popup 变体分色）。
+              "@media (forced-colors: active)": {
+                "&&.Mui-focusVisible:focus": forcedColorsFocusRing,
               },
             },
           },
@@ -247,31 +325,53 @@ export default function M3Theme({
         MuiMenuItem: {
           styleOverrides: {
             root: {
-              borderRadius: 8,
-              color: color.onSurface,
-              transition:
-                "background-color .2s ease, color .2s ease, box-shadow .2s ease",
-              "&:hover": {
-                backgroundColor: color.surfaceContainer,
-                "@media (hover: none)": {
-                  backgroundColor: "transparent",
-                },
-              },
               "&.Mui-selected": {
                 backgroundColor: color.secondaryContainer,
                 color: color.onSecondaryContainer,
               },
               "&.Mui-selected:hover": {
-                backgroundColor: color.secondaryContainer,
+                backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
               },
-              "&&.Mui-focusVisible": {
+              // 多选菜单行：勾选视觉唯一载体＝行首 MenuCheckGlyph 图标交换
+              // （mui/lucide 双态四图标，组件级切换）。整行染色属 aria-selected
+              // 布尔驱动的第二视觉通道，按规范移除，仅视觉去染色。
+              // 两条闸并存覆盖两种多选行载体：
+              // ① PopupMenu/MultiSelect/PopupTextPanel/ContentFab 的
+              //    role="menuitemcheckbox" 行（ARIA 合规形态，语义由行级
+              //    aria-checked 承载）；
+              // ② MUI multiple Select 的 listbox 行——SelectInput 强制行
+              //    role="option"，容器挂 aria-multiselectable（listbox 上的
+              //    该属性为 ARIA 合规形态），故按容器属性命中。
+              // 单选行无行首图标，染色保留不动。
+              '&.Mui-selected[role="menuitemcheckbox"]': {
+                backgroundColor: "transparent",
+                color: color.onSurface,
+              },
+              '&.Mui-selected[role="menuitemcheckbox"]:hover': {
+                backgroundColor: "color-mix(in srgb, currentColor 8%, transparent)",
+              },
+              '[aria-multiselectable="true"] &.Mui-selected': {
+                backgroundColor: "transparent",
+                color: color.onSurface,
+              },
+              color: color.onSurface,
+              transition:
+                "background-color .2s ease, color .2s ease, box-shadow .2s ease",
+              "&:hover": {
+                backgroundColor: "color-mix(in srgb, currentColor 8%, transparent)",
+              },
+              "&&:focus-visible": {
                 outline: "none",
-                backgroundColor: color.surfaceHigh,
                 boxShadow: `inset 0 0 0 3px ${color.primary}`,
+                backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
               },
-              "&&.Mui-selected.Mui-focusVisible": {
-                backgroundColor: color.secondaryContainer,
-                color: color.onSecondaryContainer,
+              // forced-colors 兜底（对齐仓内先例 forcedColorsFocusRing 配对模式）：
+              // 强制色彩模式剥离 boxShadow，须以 outline 内描恢复键盘环。
+              "@media (forced-colors: active)": {
+                "&&:focus-visible": {
+                  outline: "3px solid",
+                  outlineOffset: -3,
+                },
               },
             },
           },
@@ -293,11 +393,19 @@ export default function M3Theme({
                 fontWeight: 650,
               },
               "&.Mui-selected:hover": {
-                backgroundColor: color.secondaryContainer,
+                backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
               },
               "&&.Mui-focusVisible": {
                 outline: "none",
                 boxShadow: `inset 0 0 0 3px ${color.primary}`,
+              },
+              "&&.Mui-selected.Mui-focusVisible": {
+                boxShadow: `inset 0 0 0 3px ${color.onSecondaryContainer}`,
+              },
+              // HC 域兜底：selected 变体 inset onPrimary 在 HC 域无所谓（box-shadow
+              // 整体被忽略），兜底描边统一一套，不按变体分色。
+              "@media (forced-colors: active)": {
+                "&&.Mui-focusVisible:focus": forcedColorsFocusRing,
               },
             },
           },
@@ -313,6 +421,12 @@ export default function M3Theme({
               "&&.Mui-selected.Mui-focusVisible": {
                 backgroundColor: color.secondaryContainer,
                 color: color.onSecondaryContainer,
+                boxShadow: `inset 0 0 0 3px ${color.onSecondaryContainer}`,
+              },
+              // HC 域兜底：surfaceHigh tint 保留（HC 域背景本就会被强制），
+              // 补系统色描边恢复焦点可见性。
+              "@media (forced-colors: active)": {
+                "&&.Mui-focusVisible:focus": forcedColorsFocusRing,
               },
             },
           },
@@ -379,6 +493,7 @@ export default function M3Theme({
         MuiMenu: {
           styleOverrides: {
             paper: { borderRadius: 4 },
+            list: { padding: "8px 0" },
           },
         },
         MuiTooltip: {
@@ -400,9 +515,45 @@ export default function M3Theme({
         },
         MuiAlert: {
           styleOverrides: { root: { borderRadius: 12 } },
+          ...(iconStyle === "lucide" && {
+            defaultProps: {
+              // Alert 四态统一走 Lucide 描边字形。
+              iconMapping: {
+                error: <ErrorIcon />,
+                success: <CheckCircleIcon />,
+                warning: <WarningIcon />,
+                info: <InfoIcon />,
+              },
+              components: { CloseIcon },
+            },
+          }),
         },
+        ...(iconStyle === "lucide" && {
+          MuiAutocomplete: {
+            defaultProps: {
+              popupIcon: <ArrowDropDownIcon />,
+              clearIcon: <CloseIcon />,
+            },
+          },
+          MuiChip: {
+            defaultProps: { deleteIcon: <CancelIcon /> },
+          },
+        }),
         MuiSnackbarContent: {
           styleOverrides: { root: { borderRadius: 8 } },
+        },
+        MuiListItemIcon: {
+          styleOverrides: {
+            // 主题实值而非 var(--kt-icon)：经 Portal 挂到 body 的菜单项
+            // （MuiMenu 等）脱离 .kt-m3-root 变量作用域，变量引用会回落继承色。
+            root: { color: color.icon },
+          },
+        },
+        MuiCircularProgress: {
+          styleOverrides: {
+            // M3 圆头线帽；不动 dasharray 防破坏进度动画。
+            circle: { strokeLinecap: "round" },
+          },
         },
       },
       ...Object.fromEntries(
@@ -412,13 +563,14 @@ export default function M3Theme({
       ),
     };
     return createTheme(themeOptions, { components: options.components || {} });
-  }, [colors, options, resolvedMode]);
+  }, [colors, iconStyle, options, resolvedMode]);
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <GlobalStyles styles={styles} />
       <div
+        ref={rootRef}
         className="kt-m3-root"
         data-theme={resolvedMode}
         data-brand={M3_BRAND_COLOR}

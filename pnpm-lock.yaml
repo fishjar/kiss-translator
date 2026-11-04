@@ -174,6 +174,9 @@ importers:
       find-up:
         specifier: ^7.0.0
         version: 7.0.0
+      lucide-static:
+        specifier: ^1.61.0
+        version: 1.61.0
       onnxruntime-web:
         specifier: 1.26.0-dev.20260416-b7804b056c
         version: 1.26.0-dev.20260416-b7804b056c
@@ -4865,6 +4868,9 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
+
+  lucide-static@1.61.0:
+    resolution: {integrity: sha512-yLAiQB3MWUJEstsEDAwenSA3m7vr1tdLvgnC16Q/XMxRRma0DWwMs8M2bWlvgShrIs1m2mWMJ+0AiahqQO4GrA==}
 
   magic-string@0.25.9:
     resolution: {integrity: sha512-RmF0AsMzgt25qzqqLc1+MbHmhdx0ojF2Fvs4XnOqz2ZOBXzzkEwc/dJQZCYHAn7v1jbVOjAZfK8msRn4BxO4VQ==}
@@ -12836,6 +12842,8 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  lucide-static@1.61.0: {}
 
   magic-string@0.25.9:
     dependencies:
