@@ -942,6 +942,63 @@ describe("lookup panel playback ownership", () => {
     expect(getCaptionBottom()).toBe(30);
   });
 
+  test.each([
+    [true, true],
+    [true, false],
+    [false, true],
+    [false, false],
+  ])(
+    "preserves a drag when the pointer leaves before mouseup (remember: %p, controls visible: %p)",
+    async (rememberPosition, controlsVisible) => {
+      const onSubtitlePositionChange = jest.fn();
+      setup(true, 2, {
+        rememberPosition,
+        positionRatio: 0.05,
+        onSubtitlePositionChange,
+      });
+      setControlBarVisible(video, true);
+      await waitForMutationObserver();
+      const paper = document.querySelector(".kiss-caption-paper");
+      const container = document.querySelector(".kiss-caption-container");
+      Object.defineProperty(container, "clientHeight", { value: 400 });
+      Object.defineProperty(paper, "offsetHeight", { value: 40 });
+      container.getBoundingClientRect = () => ({ bottom: 400 });
+      paper.getBoundingClientRect = () => ({
+        bottom: 400 - getCaptionBottom(),
+      });
+      point(caption, "pointerenter");
+      caption.dispatchEvent(
+        new MouseEvent("mousedown", { button: 0, clientY: 100 })
+      );
+      document.dispatchEvent(new MouseEvent("mousemove", { clientY: 130 }));
+      expect(getCaptionBottom()).toBe(30);
+
+      point(caption, "pointerleave");
+      expect(getCaptionBottom()).toBe(30);
+      setControlBarVisible(video, controlsVisible);
+      await waitForMutationObserver();
+      expect(getCaptionBottom()).toBe(30);
+      // A subtitle redraw must also leave the in-progress drag untouched.
+      manager.updateSetting({});
+      expect(getCaptionBottom()).toBe(30);
+      expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+
+      document.dispatchEvent(new MouseEvent("mouseup", { clientY: 130 }));
+      if (rememberPosition) {
+        expect(onSubtitlePositionChange).toHaveBeenCalledTimes(1);
+        expect(onSubtitlePositionChange).toHaveBeenCalledWith(0.075);
+      } else {
+        expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+      }
+      expect(getCaptionBottom()).toBe(controlsVisible ? 70 : 30);
+      await tick(50);
+      expect(getCaptionBottom()).toBe(controlsVisible ? 70 : 30);
+      setControlBarVisible(video, false);
+      await waitForMutationObserver();
+      expect(getCaptionBottom()).toBe(30);
+    }
+  );
+
   test("keeps the hover pause through the delay and panel interaction, then resumes", async () => {
     setup();
     await open();

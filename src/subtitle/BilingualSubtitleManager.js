@@ -35,6 +35,7 @@ export class BilingualSubtitleManager {
   #translationSessionId = 0; // 当前翻译会话版本 ID，用于防竞态过滤过期异步请求
   #abortController = null; // 用于在实例销毁时中止所有尚未返回的网络请求
   #captionHovered = false;
+  #isDragging = false;
   #clearHoverPlaybackOwnership = () => {
     this.#wasPlayingBeforeHover = false;
   };
@@ -179,6 +180,8 @@ export class BilingualSubtitleManager {
     let lastControlBarHiddenState = null;
 
     const syncPaperElBottom = ({ force = false } = {}) => {
+      // Preserve the dragged bottom until onDragEnd reads and saves it.
+      if (this.#isDragging) return;
       // Freeze only the control-bar offset; explicit resizing and dragging still work.
       const isHidden =
         this.#captionHovered && lastControlBarHiddenState !== null
@@ -354,7 +357,6 @@ export class BilingualSubtitleManager {
     handleElement,
     dragEndCallback
   ) {
-    let isDragging = false;
     let hasDragged = false;
     let startY;
     let initialBottom;
@@ -366,7 +368,7 @@ export class BilingualSubtitleManager {
 
       e.preventDefault();
 
-      isDragging = true;
+      this.#isDragging = true;
       hasDragged = false;
       handleElement.style.cursor = "grabbing";
       // 兼容触屏端拖拽
@@ -390,7 +392,7 @@ export class BilingualSubtitleManager {
     };
 
     const onDragMove = (e) => {
-      if (!isDragging) return;
+      if (!this.#isDragging) return;
 
       e.preventDefault();
 
@@ -412,11 +414,11 @@ export class BilingualSubtitleManager {
     };
 
     const onDragEnd = (e) => {
-      if (!isDragging) return;
+      if (!this.#isDragging) return;
 
       e.preventDefault();
 
-      isDragging = false;
+      this.#isDragging = false;
       handleElement.style.cursor = "grab";
 
       // 卸载全局移动监听，避免内存泄漏与事件漂移
