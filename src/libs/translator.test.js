@@ -3403,6 +3403,99 @@ describe("Translator rule styles", () => {
     expect(target.style.cssText).toContain("color: red");
   });
 
+  describe("paragraph auxiliary nodes", () => {
+    test.each([
+      {},
+      { autoScan: "false", selector: "p" },
+      { scanAll: "true" },
+      { isPlainText: true },
+    ])("continues the paragraph across auxiliary nodes: %j", async (rule) => {
+      document.body.innerHTML =
+        '<main id="root"><p>Before the auxiliary nodes <script>secret script!</script><style>/* secret style. */</style><template>secret template</template><span style="display:none">secret preview?</span>and after them.</p></main>';
+      createTranslator({ ...rule, splitParagraph: "split_punctuation" });
+      await flushAsync();
+
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Before the auxiliary nodes and after them.",
+      ]);
+    });
+
+    test.each([
+      ["<br>", {}],
+      ["<div></div>", {}],
+      ['<div style="display:none">hidden block</div>', {}],
+      ["<span data-kiss-ui>plugin content</span>", {}],
+      [
+        '<span class="excluded">excluded text</span>',
+        { ignoreSelector: ".excluded" },
+      ],
+      [
+        '<span class="block" style="display:none">hidden block</span>',
+        { blockSelector: ".block" },
+      ],
+      ['<span display="block" style="display:none">hidden block</span>', {}],
+    ])("keeps the boundary at %s", async (boundary, rule) => {
+      document.body.innerHTML =
+        '<main id="root"><div id="target">Before the boundary ' +
+        boundary +
+        "after the boundary.</div></main>";
+      createTranslator({
+        autoScan: "false",
+        selector: "#target, #target > div",
+        ...rule,
+      });
+      await flushAsync();
+
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Before the boundary",
+        "after the boundary.",
+      ]);
+    });
+
+    test("preserves metadata inside a plain-text pre without flattening it", async () => {
+      document.body.innerHTML =
+        '<main id="root"><pre>Before the metadata <script>secret source</script>and after it.</pre></main>';
+      const script = document.querySelector("pre script");
+      createPlainTextTranslator();
+      await flushAsync();
+
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Before the metadata and after it.",
+      ]);
+      expect(document.querySelector("pre script")).toBe(script);
+    });
+
+    test.each([false, true])(
+      "restores original node order across translation-only mode (adopted: %s)",
+      async (adopted) => {
+        document.body.innerHTML =
+          '<main id="root"><p id="target">Before the auxiliary nodes <span style="display:none">secret preview</span><script>secret source</script>and after them.</p></main>';
+        const target = document.getElementById("target");
+        const originals = [...target.childNodes];
+        if (adopted) {
+          target.insertAdjacentHTML(
+            "beforeend",
+            '<kiss-translator class="kiss-translator-wrapper notranslate"><font class="kiss-translator-inner">Existing translation</font></kiss-translator>'
+          );
+        }
+        const translator = createTranslator();
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalledTimes(adopted ? 0 : 1);
+
+        translator.updateRule({ transOnly: "true" });
+        await flushAsync();
+        expect(originals.every((node) => !target.contains(node))).toBe(true);
+        translator.updateRule({ transOnly: "false" });
+        await flushAsync();
+        translator.disable();
+        expect(target.childNodes).toHaveLength(originals.length);
+        originals.forEach((node, index) => {
+          expect(target.childNodes[index]).toBe(node);
+        });
+      }
+    );
+  });
+
   test("skips whitespace-only groups around block children in selected list items", async () => {
     apiTranslate.mockImplementation(({ text }) =>
       Promise.resolve({
