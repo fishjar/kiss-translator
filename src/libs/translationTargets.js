@@ -66,7 +66,6 @@ export function visitTranslationTargets(root, options, visit) {
   if (
     !root ||
     ![1, 11].includes(root.nodeType) ||
-    isInNonContent(root) ||
     isInInlineHidden(root) ||
     root.closest?.(ignoreSelector)
   )
@@ -75,12 +74,7 @@ export function visitTranslationTargets(root, options, visit) {
     if (!selector?.trim()) return;
     if (root.matches?.(selector)) visit(root);
     root.querySelectorAll(selector).forEach((node) => {
-      if (
-        !isInNonContent(node) &&
-        !isInInlineHidden(node) &&
-        !node.closest(ignoreSelector)
-      )
-        visit(node);
+      if (!isInInlineHidden(node) && !node.closest(ignoreSelector)) visit(node);
     });
     return;
   }
@@ -88,12 +82,7 @@ export function visitTranslationTargets(root, options, visit) {
   const stack = [root];
   while (stack.length) {
     const node = stack.pop();
-    if (
-      isInNonContent(node) ||
-      isInlineHidden(node) ||
-      node.matches?.(ignoreSelector)
-    )
-      continue;
+    if (isInlineHidden(node) || node.matches?.(ignoreSelector)) continue;
     const text = hasText(node);
     const children = Array.from(node.children).filter(
       (child) => !isInlineHidden(child)
@@ -101,27 +90,16 @@ export function visitTranslationTargets(root, options, visit) {
     if (
       !text &&
       children.length === 1 &&
-      !isInNonContent(children[0]) &&
       !children[0].classList.contains(wrapperClass)
     ) {
       stack.push(children[0]);
       continue;
     }
-    const contentChildren = children.filter((child) => !isInNonContent(child));
-    const block = contentChildren.some(isBlock);
-    // A parent of only embedded code is not a host, so selectStyle cannot
-    // unhide it. Empty elements and real inline text stay hosts.
-    if (
-      (text || !block) &&
-      (text || contentChildren.length > 0 || children.length === 0)
-    ) {
-      visit(node);
-    }
+    const block = children.some(isBlock);
+    if (text || !block) visit(node);
     if (block) {
-      for (let i = contentChildren.length - 1; i >= 0; i--) {
-        if (!text || isBlock(contentChildren[i])) {
-          stack.push(contentChildren[i]);
-        }
+      for (let i = children.length - 1; i >= 0; i--) {
+        if (!text || isBlock(children[i])) stack.push(children[i]);
       }
     }
   }

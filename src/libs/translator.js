@@ -2329,7 +2329,6 @@ export class Translator {
     let current;
     while ((current = walker.nextNode())) {
       if (!current.nodeValue?.trim()) continue;
-      if (isInNonContent(current)) continue;
       if (leaf) return null; // 存在多个非空文本节点时不下钻
       leaf = current.parentElement;
     }
@@ -2351,7 +2350,6 @@ export class Translator {
     while ((current = walker.nextNode())) {
       const text = current.nodeValue?.trim() || "";
       if (!text) continue;
-      if (isInNonContent(current)) continue;
       if (
         current.parentElement?.closest?.(`.${Translator.KISS_CLASS.warpper}`)
       ) {
@@ -3498,12 +3496,7 @@ export class Translator {
   // 判断是否需要换行
   #shouldBreak(node) {
     if (!Translator.isElementOrFragment(node)) return false;
-    if (
-      isInlineHidden(node) ||
-      isInNonContent(node) ||
-      this.#isKissIgnoredNode(node)
-    )
-      return true;
+    if (isInlineHidden(node) || this.#isKissIgnoredNode(node)) return true;
     if (this.#isKeptInline(node)) return false;
 
     if (
@@ -4596,7 +4589,6 @@ overflow-wrap: anywhere !important;`;
 
       // 文本节点
       if (node.nodeType === Node.TEXT_NODE) {
-        if (isInNonContent(node)) return "";
         let text = node.textContent;
         if (!text.trim()) return "";
 
@@ -4672,8 +4664,6 @@ overflow-wrap: anywhere !important;`;
               .warn("traverse child error", child.nodeName, err);
           }
         });
-
-        if (!innerContent) return "";
 
         if (
           this.#rule.hasRichText === "true" &&
