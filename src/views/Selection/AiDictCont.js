@@ -2,7 +2,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { apiDict } from "../../apis";
 import { useI18n } from "../../hooks/I18n";
@@ -47,11 +47,49 @@ export default function AiDictCont({
   const i18n = useI18n();
   const [markdown, setMarkdown] = useState("");
   const [loading, setLoading] = useState(false);
+  // 操作区实测宽高：undefined＝尚未测得，Typography 不预留 end padding、
+  // 操作区走流内布局；测得后 Typography 预留实测宽度+8px、操作区绝对定位，
+  // 容器以实测高度兜底 minHeight（绝对定位脱离高度计算）。
+  const actionsRef = useRef(null);
+  const [actionsWidth, setActionsWidth] = useState(undefined);
+  const [actionsHeight, setActionsHeight] = useState(undefined);
   // Tagged with the request key that produced it, so the retry sync below can
   // tell a stale failure of a replaced request from one of the current request.
   const [error, setError] = useState(null);
   const [attemptRevision, setAttemptRevision] = useState(requestRevision);
   const apiSettingKey = JSON.stringify(apiSetting || {});
+
+  // 测量操作区实际宽度并跟随变化（loading 圈出现/消失、按钮态切换均触发）；
+  // 宽度 + 8px 余量作为文本 end padding。操作区仅在 markdown 就绪且无 error
+  // 时入树（error→Alert、loading&&!markdown→Spinner、!markdown→null 时均不在
+  // 树），故以挂载状态为观察器连接条件，避免流式每片段重建观察器。
+  const actionsMounted = Boolean(markdown) && !error;
+  useEffect(() => {
+    const actionsEl = actionsRef.current;
+    if (!actionsEl || typeof ResizeObserver !== "function") {
+      return undefined;
+    }
+    const observer = new ResizeObserver((entries) => {
+      // 取 borderBoxSize 的布局尺寸（不受祖先 transform 缩放影响）：
+      // getBoundingClientRect 在祖先 scale 后测得视觉尺寸，预留
+      // padding/minHeight 会跟着缩放走，按钮与文本重叠或留大缝。
+      // 无 borderBoxSize 的旧实现回退 getBoundingClientRect。
+      const entry = entries[entries.length - 1];
+      const box =
+        entry.borderBoxSize &&
+        (Array.isArray(entry.borderBoxSize)
+          ? entry.borderBoxSize[0]
+          : entry.borderBoxSize);
+      setActionsWidth(
+        box ? box.inlineSize : actionsEl.getBoundingClientRect().width
+      );
+      setActionsHeight(
+        box ? box.blockSize : actionsEl.getBoundingClientRect().height
+      );
+    });
+    observer.observe(actionsEl);
+    return () => observer.disconnect();
+  }, [actionsMounted]);
 
   useEffect(() => {
     if (!text?.trim() || !apiSetting?.apiSlug) {
@@ -168,9 +206,12 @@ export default function AiDictCont({
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr) auto",
-        columnGap: 1,
-        alignItems: "start",
+        gridTemplateColumns: "minmax(0, 1fr)",
+        position: "relative",
+        // 操作区绝对定位脱离容器高度计算：以实测操作区高度兜底 minHeight，
+        // 单行内容矮于操作区时不溢出容器、不遮挡容器后的兄弟内容。
+        minHeight:
+          typeof actionsHeight === "number" ? `${actionsHeight}px` : undefined,
         "& > :first-of-type": { mt: 0 },
         "& > :last-child": { mb: 0 },
         "& h1, & h2, & h3, & h4, & h5, & h6": {
@@ -198,12 +239,26 @@ export default function AiDictCont({
       }}
     >
       <Box
-        sx={{
-          gridColumn: 2,
-          gridRow: 1,
-          display: "flex",
-          alignItems: "center",
-        }}
+        data-testid="ai-dict-actions"
+        ref={actionsRef}
+        sx={
+          typeof actionsWidth === "number"
+            ? {
+                position: "absolute",
+                insetInlineEnd: 0,
+                top: 0,
+                display: "flex",
+                gap: 1,
+                alignItems: "center",
+              }
+            : {
+                position: "relative",
+                justifySelf: "end",
+                display: "flex",
+                gap: 1,
+                alignItems: "center",
+              }
+        }
       >
         {loading && (
           <CircularProgress size={12} sx={{ mr: 0.5, flexShrink: 0 }} />
@@ -223,7 +278,14 @@ export default function AiDictCont({
       </Box>
       <Typography
         component="div"
-        sx={{ gridColumn: 1, gridRow: 1, minWidth: 0 }}
+        sx={{
+          gridColumn: 1,
+          gridRow: typeof actionsWidth === "number" ? 1 : 2,
+          minWidth: 0,
+          ...(typeof actionsWidth === "number"
+            ? { paddingInlineEnd: `${actionsWidth + 8}px` }
+            : {}),
+        }}
       >
         <ReactMarkdown>{markdown}</ReactMarkdown>
       </Typography>

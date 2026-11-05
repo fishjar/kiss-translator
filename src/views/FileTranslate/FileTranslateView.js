@@ -29,21 +29,11 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
-import InsertDriveFileRoundedIcon from "@mui/icons-material/InsertDriveFileRounded";
-import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import StopRoundedIcon from "@mui/icons-material/StopRounded";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import ContentPasteRoundedIcon from "@mui/icons-material/ContentPasteRounded";
-import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
-import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
-import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import { CloudUploadRoundedIcon, InsertDriveFileRoundedIcon, ImageRoundedIcon, PlayArrowRoundedIcon, StopRoundedIcon, ContentCopyRoundedIcon, ContentPasteRoundedIcon, FileDownloadRoundedIcon, ZoomInRoundedIcon, WarningAmberRoundedIcon, ArrowDropDownRoundedIcon, MenuBookRoundedIcon, PictureAsPdfRoundedIcon } from "../../components/icons";
 
 import ButtonGroup from "@mui/material/ButtonGroup";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -85,8 +75,6 @@ import EpubReaderView from "./EpubReaderView";
 import FileTranslateToolbar from "./FileTranslateToolbar";
 import FileTranslateSettings from "./FileTranslateSettings";
 import LocalServiceNotice from "../../components/LocalServiceNotice";
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import PictureAsPdfRoundedIcon from "@mui/icons-material/PictureAsPdfRounded";
 import { SettingsSelect } from "../Options/SettingsCard";
 import ScenePromptSelect from "./ScenePromptSelect";
 import { isPluginPromptSlug } from "../../providers/defaultPrompts";
@@ -3152,7 +3140,7 @@ export default function FileTranslateView() {
             <CloudUploadRoundedIcon
               sx={{
                 fontSize: 64,
-                color: isDragging ? "primary.main" : "text.secondary",
+                color: "primary.main",
                 transition: "color 0.2s, transform 0.2s",
                 transform: isDragging ? "scale(1.1)" : "none",
               }}

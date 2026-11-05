@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
+import { alpha, useTheme } from "@mui/material/styles";
 import { hasCompleteCoordinates } from "../../fileTranslation/recognition";
 import { getRegionLabel } from "./layoutRegionLabels";
 
@@ -21,6 +22,14 @@ export default function ImageSourcePreview({
   const container = useRef(null);
   const image = useRef(null);
   const [bounds, setBounds] = useState(null);
+  const theme = useTheme();
+  // 白底图像上浅色主色的 8% 叠加近乎不可见：填充与描边同取 augmentColor
+  // 派生暗档（与 PdfPage.js 白底描边同口径，不取 contrastText——那是主色底
+  // 上文字的前景色）；标签配色（primary.main 底 + contrastText 前景）不动。
+  const enabledFill = alpha(theme.palette.primary.dark, 0.08);
+  const disabledFill = alpha(theme.palette.grey[500], 0.15);
+  const enabledStroke = theme.palette.primary.dark;
+  const disabledStroke = theme.palette.grey[500];
   const measure = () => {
     const element = image.current;
     if (!element?.naturalWidth || !container.current) return;
@@ -105,12 +114,8 @@ export default function ImageSourcePreview({
                     aria-pressed={enabled}
                     aria-disabled={disabled}
                     points={row.poly.map((point) => point.join(",")).join(" ")}
-                    fill={
-                      enabled
-                        ? "rgba(25, 118, 210, 0.08)"
-                        : "rgba(158, 158, 158, 0.15)"
-                    }
-                    stroke={enabled ? "#1976d2" : "#9e9e9e"}
+                    fill={enabled ? enabledFill : disabledFill}
+                    stroke={enabled ? enabledStroke : disabledStroke}
                     strokeDasharray={enabled ? undefined : "4 3"}
                     strokeWidth="1.5"
                     vectorEffect="non-scaling-stroke"
@@ -122,6 +127,8 @@ export default function ImageSourcePreview({
                       }
                     }}
                     sx={{
+                      // 禁用态保留指针命中：点击仍由处理器拦截（阻止切换＋
+                      // stopPropagation），不穿透到下层图像。
                       pointerEvents: "all",
                       outline: "none",
                       cursor: disabled ? "default" : "pointer",
@@ -167,12 +174,20 @@ export default function ImageSourcePreview({
                     fontSize: "10px",
                     lineHeight: "12px",
                     padding: "1px 4px",
-                    backgroundColor: enabled ? "#1976d2" : "#757575",
-                    color: "#fff",
+                    backgroundColor: enabled
+                      ? theme.palette.primary.main
+                      : theme.palette.grey[600],
+                    // 前景随主题：启用态对 primary.main 取主题对比文字色，禁用态对该
+                    // 灰底取最优前景；二者均不硬编码白色，避免浅色主题下白字不可辨。
+                    color: enabled
+                      ? theme.palette.primary.contrastText
+                      : theme.palette.getContrastText(theme.palette.grey[600]),
                     borderRadius: "3px 3px 0 0",
                     userSelect: "none",
                     whiteSpace: "nowrap",
                     opacity: 0.9,
+                    // 同多边形：禁用态标签仍拦截点击，不穿透。
+                    pointerEvents: "auto",
                     cursor: disabled ? "default" : "pointer",
                   }}
                 >

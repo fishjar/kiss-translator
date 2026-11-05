@@ -1,5 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_SPE_TYPES } from "../config";
+import MenuCheckGlyph from "../components/MenuCheckGlyph";
+// 脚本化聚焦唯一入口（focusModality 单源）：指针态静默、键盘态照常出环，
+// 仓内焦点棘轮闸（focusSilence）要求生产侧聚焦只经本模块。
+import { scriptFocus } from "../hooks/focusModality";
 
 /**
  * Label 组件 - 单行文本溢出省略包装标签
@@ -29,13 +33,26 @@ function Label({ children }) {
  * @param {React.ReactNode} props.children - 子元素内容
  * @param {Function} props.onClick - 点击事件回调
  * @param {boolean} [props.disabled=false] - 是否禁用点击
+ * @param {React.Ref} [props.rootRef] - 根 div 的 ref（下拉触发源焦点回退用，不传即零变化）
  */
-function MenuItem({ children, onClick, disabled = false }) {
-  const [hover, setHover] = useState(false);
-
+function MenuItem({
+  children,
+  onClick,
+  disabled = false,
+  role = "button",
+  "aria-checked": ariaChecked,
+  "aria-haspopup": ariaHasPopup,
+  "aria-expanded": ariaExpanded,
+  rootRef,
+  onKeyDown,
+}) {
   return (
     <div
-      role="button"
+      ref={rootRef}
+      role={role}
+      aria-checked={ariaChecked}
+      aria-haspopup={ariaHasPopup}
+      aria-expanded={ariaExpanded}
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
       onKeyDown={(event) => {
@@ -44,20 +61,21 @@ function MenuItem({ children, onClick, disabled = false }) {
           event.stopPropagation();
           onClick?.();
         }
+        onKeyDown?.(event);
       }}
       style={{
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "0px 8px",
-        opacity: disabled ? 0.45 : hover ? 1 : 0.8,
-        background: `rgba(255, 255, 255, ${hover ? 0.1 : 0})`,
+        padding: "0 16px",
+        opacity: disabled ? 0.45 : 0.8,
+        // 挂载点在 kt 令牌作用域之外，--kt-submenu-disabled 全仓无定义点，
+        // var() 恒走 fallback＝死令牌，故直接落等价字面量。
+        background: disabled ? "rgba(255,255,255,0.12)" : undefined,
         cursor: disabled ? "default" : "pointer",
         transition: "background 0.2s, opacity 0.2s",
-        borderRadius: 5,
+        borderRadius: 4,
       }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
       onClick={disabled ? undefined : onClick}
     >
       {children}
@@ -86,29 +104,47 @@ function Switch({ label, name, value, onChange, disabled }) {
   }, [disabled, onChange, name, value]);
 
   return (
-    <MenuItem onClick={handleClick} disabled={disabled}>
+    <MenuItem
+      onClick={handleClick}
+      disabled={disabled}
+      // 本行渲染 52x32 轨道＋Thumb 的真开关形态，且宿主容器是 role="dialog"
+      // （见本文件根节点），不是 role="menu"，故用 ARIA switch 而非 menuitemcheckbox。
+      // 反向义务：若未来把开关行搬进 role="menu" 容器，必须回退为 menuitemcheckbox，
+      // 否则违反 menu 的 Required Owned Elements（aria-required-children）。
+      // 改本行角色须同步三处：根节点注入样式四组选择器、src/styles/m3.js
+      // FOCUS_SILENT_CSS 角色表、Menus.test.js 的顶层查询与断言。
+      // （moveOptionFocus 的 roving 选择器不在同步面内：其唯一调用点在菜单面板，
+      // 对话框开关行不进入该函数，详见行为契约 #17 排除域。）
+      role="switch"
+      aria-checked={Boolean(value)}
+    >
       <Label>{label}</Label>
-      {/* 开关轨道 (Track) */}
+      {/* 开关轨道 (Track)：几何对齐现行 Switch 形态（52x32 轨）。 */}
       <div
         style={{
-          width: 40,
-          height: 24,
-          borderRadius: 12,
+          width: 52,
+          height: 32,
+          flexShrink: 0,
+          borderRadius: 999,
+          border: "2px solid rgba(255,255,255,.3)",
+          boxSizing: "border-box",
+          // accent-exempt: 挂载点为 YouTube 播放器 DOM（youtubePlayerUi DomManager），
+          // 本仓 kt 令牌作用域不可达，var() 恒走 fallback＝死令牌，故保留字面量。
           background: value ? "rgba(32,156,238,.8)" : "rgba(255,255,255,.3)",
           position: "relative",
         }}
       >
-        {/* 开关滑块 (Thumb) */}
+        {/* 开关滑块 (Thumb)：未选 16 / 选中 24，位移对齐现行 translateX(20px)。 */}
         <div
           style={{
-            width: 20,
-            height: 20,
-            borderRadius: 10,
+            width: value ? 24 : 16,
+            height: value ? 24 : 16,
+            borderRadius: 999,
             position: "absolute",
-            left: 2,
-            top: 2,
+            left: value ? 2 : 6,
+            top: value ? 2 : 6,
             background: "rgba(255,255,255,.9)",
-            transform: `translateX(${value ? 16 : 0}px)`,
+            transform: `translateX(${value ? 20 : 0}px)`,
           }}
         ></div>
       </div>
@@ -122,16 +158,19 @@ function Switch({ label, name, value, onChange, disabled }) {
  * @param {object} props
  * @param {React.ReactNode} props.children
  */
-function DropdownPanel({ children }) {
+function DropdownPanel({ children, role, panelRef, ariaLabel }) {
   return (
     <div
+      ref={panelRef}
+      role={role}
+      aria-label={ariaLabel}
       style={{
         position: "absolute",
         left: 0,
         right: 0,
         top: "100%",
         background: "rgba(0,0,0,.8)",
-        borderRadius: 5,
+        borderRadius: 4,
         maxHeight: 200,
         overflow: "auto",
         zIndex: 1000,
@@ -146,6 +185,34 @@ function DropdownPanel({ children }) {
 }
 
 /**
+ * moveOptionFocus - Roving Tabindex 方向键导航助手（M3 v3.1 §6.2）
+ * 在同一面板内按 ArrowDown/ArrowUp/Home/End 移动焦点；ArrowUp 自首项
+ * 回绕至末项（负模修正）。导航键一律 preventDefault + stopPropagation 成对收容。
+ *
+ * @param {React.KeyboardEvent} event - 选项行上的 keydown 事件
+ * @returns {boolean} 事件是否已被导航消费（消费后调用方应立即 return）
+ */
+function moveOptionFocus(event) {
+  const items = Array.from(
+    event.currentTarget.parentElement.querySelectorAll(
+      '[role="option"], [role="menuitemcheckbox"]'
+    )
+  );
+  const index = items.indexOf(event.currentTarget);
+  let next = -1;
+  if (event.key === "ArrowDown")
+    next = index === -1 ? 0 : (index + 1) % items.length;
+  else if (event.key === "ArrowUp") next = index <= 0 ? items.length - 1 : index - 1;
+  else if (event.key === "Home") next = 0;
+  else if (event.key === "End") next = items.length - 1;
+  else return false;
+  event.preventDefault();
+  event.stopPropagation();
+  if (items[next]) scriptFocus(items[next], { preventScroll: false });
+  return true;
+}
+
+/**
  * DropdownOption 组件 - 单个下拉选项行
  *
  * @param {object} props
@@ -155,6 +222,7 @@ function DropdownPanel({ children }) {
  * @param {Function} props.onClick - 点击选项的回调
  * @param {Function} [props.onClose] - 按 Esc 关闭浮层的回调
  * @param {React.ReactNode} [props.children] - 自定义子节点
+ * @param {boolean} [props.active=false] - Roving Tabindex 激活位（tabIndex=0 的唯一项）
  */
 function DropdownOption({
   value,
@@ -163,51 +231,68 @@ function DropdownOption({
   onClick,
   onClose,
   children,
+  showCheckbox = false,
+  active = false,
+  onFocus,
 }) {
-  const [hover, setHover] = useState(false);
   return (
     <div
-      role="option"
-      aria-selected={selected}
-      tabIndex={0}
+      role={showCheckbox ? "menuitemcheckbox" : "option"}
+      aria-checked={showCheckbox ? Boolean(selected) : undefined}
+      aria-selected={showCheckbox ? undefined : selected}
+      tabIndex={active ? 0 : -1}
+      onFocus={onFocus}
       onKeyDown={(event) => {
+        if (moveOptionFocus(event)) return;
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           event.stopPropagation();
           onClick(value);
         }
         if (event.key === "Escape") {
+          event.preventDefault();
           event.stopPropagation();
           onClose?.();
         }
       }}
       onClick={() => onClick(value)}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
       style={{
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
         boxSizing: "border-box",
-        padding: "4px 14px",
-        minHeight: 26,
+        padding: "0 16px",
+        minHeight: 48,
         fontSize: 12,
         lineHeight: "18px",
         cursor: "pointer",
         overflow: "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
-        background: selected
-          ? hover
-            ? "rgba(32,156,238,.4)"
-            : "rgba(32,156,238,.3)"
-          : hover
-            ? "rgba(255,255,255,.1)"
-            : "transparent",
+        // accent-exempt: 挂载点为 YouTube 播放器 DOM（youtubePlayerUi DomManager），
+        // 本仓 kt 令牌作用域不可达，var() 恒走 fallback＝死令牌，故保留字面量。
+        // 选中态底色走主色字面量（主题主色 80% alpha，与开关行同源），
+        // 承担选中底色角色；非 --kt-secc 令牌（挂载点令牌不可达）；
+        // 多选行（showCheckbox）整行零持久染色（§3.1.C），状态由 checkbox 本体承载。
+        background: selected && !showCheckbox ? "rgba(32,156,238,.8)" : undefined,
         opacity: selected ? 1 : 0.8,
         transition: "all 0.2s",
       }}
     >
+      {showCheckbox && (
+        // accent-exempt: 挂载点为 YouTube 播放器 DOM，kt 令牌不可达；
+        // 选中字形色沿用原手绘盒的强调字面量（与行选中底色同源），未选走中性白。
+        <MenuCheckGlyph
+          checked={selected}
+          size={18}
+          style={{
+            color: selected
+              ? "rgba(32,156,238,.8)"
+              : "rgba(255,255,255,.6)",
+            marginRight: 8,
+          }}
+        />
+      )}
       {children || label}
     </div>
   );
@@ -245,6 +330,9 @@ function DropdownEmpty({ i18n }) {
  */
 function Select({ label, name, value, options, onChange, disabled }) {
   const [isOpen, setIsOpen] = useState(false); // 控制下拉菜单面板的展开/收起状态
+  const [activeIdx, setActiveIdx] = useState(0); // Roving Tabindex 激活位（随焦点收敛）
+  const triggerRef = useRef(null); // 触发源 MenuItem（Escape 焦点回退目标）
+  const panelRef = useRef(null); // 下拉面板容器（开面板聚焦激活项）
 
   // 查找当前被选中的选项，若没匹配到则回退至第一个可选项以做安全兜底
   const selectedOption = useMemo(
@@ -258,18 +346,54 @@ function Select({ label, name, value, options, onChange, disabled }) {
     setIsOpen((prev) => !prev);
   }, [disabled]);
 
+  // 空态面板无可聚焦项：焦点停在触发源，Escape 只关面板、焦点原地保留，
+  // 不冒泡出根 dialog 连带关闭整个菜单（§6.3 禁 blur；与 MultiSelect 对称）。
+  const handleTriggerKeyDown = useCallback(
+    (event) => {
+      if (isOpen && event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsOpen(false);
+      }
+    },
+    [isOpen]
+  );
+
   // 选中下拉具体选项时，派发 onChange 事件，随后关闭下拉选择面板
   const handleSelect = useCallback(
     (optionValue) => {
+      // §6.3：键盘/点击选择收尾同一焦点语义——先回退触发源再关面板。
+      scriptFocus(triggerRef.current);
       onChange({ name, value: optionValue });
       setIsOpen(false);
     },
     [onChange, name]
   );
 
+  // 开面板聚焦激活项（§6.1 Roving Tabindex 入口；§6.3 禁 blur）。
+  // 激活位与 aria-selected 同源回退（value 不在 options 时落首项）。
+  useEffect(() => {
+    if (!isOpen) return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const items = Array.from(panel.querySelectorAll('[role="option"]'));
+    const idx = items.findIndex(
+      (item) => item.getAttribute("aria-selected") === "true"
+    );
+    setActiveIdx(idx >= 0 ? idx : 0);
+    scriptFocus(items[idx >= 0 ? idx : 0], { preventScroll: false });
+  }, [isOpen]);
+
   return (
     <div style={{ position: "relative" }}>
-      <MenuItem onClick={handleToggle} disabled={disabled}>
+      <MenuItem
+        onClick={handleToggle}
+        disabled={disabled}
+        rootRef={triggerRef}
+        onKeyDown={handleTriggerKeyDown}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
         <Label>{label}</Label>
         <div
           style={{
@@ -286,15 +410,20 @@ function Select({ label, name, value, options, onChange, disabled }) {
       </MenuItem>
       {/* 下拉浮出面板 */}
       {isOpen && (
-        <DropdownPanel>
-          {options.map((option) => (
+        <DropdownPanel role="listbox" panelRef={panelRef} ariaLabel={label}>
+          {options.map((option, index) => (
             <DropdownOption
               key={option.value}
               value={option.value}
-              selected={option.value === value}
+              selected={option.value === selectedOption?.value}
+              active={index === activeIdx}
+              onFocus={() => setActiveIdx(index)}
               label={option.label}
               onClick={handleSelect}
-              onClose={() => setIsOpen(false)}
+              onClose={() => {
+                scriptFocus(triggerRef.current);
+                setIsOpen(false);
+              }}
             />
           ))}
         </DropdownPanel>
@@ -325,6 +454,9 @@ function MultiSelect({
   i18n,
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0); // Roving Tabindex 激活位（随焦点收敛）
+  const triggerRef = useRef(null); // 触发源 MenuItem（Escape 焦点回退目标）
+  const panelRef = useRef(null); // 下拉面板容器（开面板聚焦首项）
   const selectedValues = useMemo(
     () => (Array.isArray(value) ? value : []),
     [value]
@@ -359,9 +491,40 @@ function MultiSelect({
     [onChange, name, selectedValues]
   );
 
+  // 开面板聚焦首项（§6.1：无固有焦点选中态的 Menu 取第一项；空态原地保留焦点）
+  useEffect(() => {
+    if (!isOpen) return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    setActiveIdx(0);
+    scriptFocus(panel.querySelector('[role="menuitemcheckbox"]'), {
+      preventScroll: false,
+    });
+  }, [isOpen]);
+
+  // 空态面板无可聚焦项：焦点停在触发源，Escape 只关面板、焦点原地保留，
+  // 不冒泡出根 dialog 连带关闭整个菜单（§6.3 禁 blur）。
+  const handleTriggerKeyDown = useCallback(
+    (event) => {
+      if (isOpen && event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsOpen(false);
+      }
+    },
+    [isOpen]
+  );
+
   return (
     <div style={{ position: "relative" }}>
-      <MenuItem onClick={handleToggle} disabled={disabled}>
+      <MenuItem
+        onClick={handleToggle}
+        disabled={disabled}
+        rootRef={triggerRef}
+        onKeyDown={handleTriggerKeyDown}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+      >
         <Label>{label}</Label>
         <div
           style={{
@@ -377,19 +540,25 @@ function MultiSelect({
         </div>
       </MenuItem>
       {isOpen && (
-        <DropdownPanel>
+        <DropdownPanel role="menu" panelRef={panelRef} ariaLabel={label}>
           {options.length === 0 ? (
             <DropdownEmpty i18n={i18n} />
           ) : (
-            options.map((option) => {
+            options.map((option, index) => {
               const isSelected = selectedValues.includes(option.value);
               return (
                 <DropdownOption
                   key={option.value}
                   value={option.value}
                   selected={isSelected}
+                  active={index === activeIdx}
+                  onFocus={() => setActiveIdx(index)}
+                  showCheckbox
                   onClick={handleItemClick}
-                  onClose={() => setIsOpen(false)}
+                  onClose={() => {
+                    scriptFocus(triggerRef.current);
+                    setIsOpen(false);
+                  }}
                 >
                   <span
                     style={{
@@ -401,17 +570,6 @@ function MultiSelect({
                     }}
                   >
                     {option.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "bold",
-                      lineHeight: 1,
-                      color: isSelected ? "#209cee" : "transparent",
-                      userSelect: "none",
-                    }}
-                  >
-                    ✓
                   </span>
                 </DropdownOption>
               );
@@ -544,6 +702,7 @@ export function Menus({
     <div
       role="dialog"
       aria-label={i18n("enable_subtitle_translate")}
+      className="kt-subtitle-menus"
       onKeyDown={(event) => {
         if (event.key === "Escape") {
           event.stopPropagation();
@@ -559,7 +718,7 @@ export function Menus({
         lineHeight: "40px",
         fontSize: 16,
         padding: 8,
-        borderRadius: 5,
+        borderRadius: 4,
         maxWidth: "calc(100vw - 32px)",
         maxHeight: "min(70vh, 520px)",
         overflowY: "auto",
@@ -664,6 +823,11 @@ export function Menus({
           {i18n("youtube_caption_no_download")}
         </div>
       )}
+      {/* 内联样式无法表达伪类：focus-visible 以类选择器规则注入，
+          形态沿用现行 focusRing（3px solid + offset 2）。
+          置于根末尾，避免挤占既有首行/次行子元素位次。 */}
+      {/* accent-exempt: 挂载点为 YouTube 播放器 DOM，本仓 kt 令牌作用域不可达，保留字面量。 */}
+      <style>{`.kt-subtitle-menus [role="button"]:focus-visible,.kt-subtitle-menus [role="option"]:focus-visible,.kt-subtitle-menus [role="menuitemcheckbox"]:focus-visible,.kt-subtitle-menus [role="switch"]:focus-visible{outline: none; box-shadow: inset 0 0 0 3px #209cee;}[data-kt-focus-silent="true"][role="button"]:focus-visible,[data-kt-focus-silent="true"][role="option"]:focus-visible,[data-kt-focus-silent="true"][role="menuitem"]:focus-visible,[data-kt-focus-silent="true"][role="menuitemcheckbox"]:focus-visible,[data-kt-focus-silent="true"][role="switch"]:focus-visible{outline: none !important; box-shadow: none !important;}@media (forced-colors: active){.kt-subtitle-menus [role="button"]:focus-visible,.kt-subtitle-menus [role="option"]:focus-visible,.kt-subtitle-menus [role="menuitemcheckbox"]:focus-visible,.kt-subtitle-menus [role="switch"]:focus-visible{outline: 3px solid; outline-offset: -3px; box-shadow: none;}}@media (hover: hover){.kt-subtitle-menus [role="button"]:not([aria-disabled="true"]):hover,.kt-subtitle-menus [role="option"]:hover,.kt-subtitle-menus [role="menuitemcheckbox"]:hover,.kt-subtitle-menus [role="switch"]:hover{background: rgba(255,255,255,.08);}}`}</style>
     </div>
   );
 }

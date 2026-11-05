@@ -434,6 +434,16 @@ export const M3_GLOBAL_CSS = String.raw`
   .kt-m3-root .MuiSelect-select:focus-visible { outline: none; }
 }
 
+/* MUI focusVisible 的键盘指示走 boxShadow，强制颜色域会丢弃之；上述豁免又把
+   outline 双双清零——键盘聚焦的 MenuItem 将无任何可见指示。本块只覆盖
+   :focus-visible（键盘语境），描边色交强制引擎（不写颜色），指针模态零变化。 */
+@media (forced-colors: active) {
+  .kt-m3-root .MuiMenuItem-root:focus-visible {
+    outline: 3px solid;
+    outline-offset: -3px;
+  }
+}
+
 .kt-m3-root .MuiInputBase-input:focus {
   outline: none;
 }

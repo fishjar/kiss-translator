@@ -799,9 +799,9 @@ describe("Apis ordering and master-detail layout", () => {
       Simulate.keyUp(bulkCards[1], { key: " " });
     });
     expect(bulkCards[1].getAttribute("aria-checked")).toBe("true");
-    // 契约：勾选指示与同行拖动指示同源——都继承已选卡片的文字色（color:
-    // "inherit"），不各取一个主题令牌。jsdom 不解析 inherit 为具体 rgb，
-    // 两者均返回空串即为"同源"的盘面证据。具体色相等值性由下方区分性用例证伪。
+    // 契约：勾选指示与同行拖动指示同源——批量卡已无整卡持续染色，两者一律钉稳定
+    // token text.secondary（不再 inherit 已移除的选中墨色）。jsdom 对同一具名 token
+    // 返回同一 rgb，等值即"同源"盘面证据；"不得回退成 primary/secondary 墨色"由下方区分性用例证伪。
     expect(
       getComputedStyle(bulkCards[1].querySelector(".kt-api-list__check")).color
     ).toBe(
@@ -813,10 +813,11 @@ describe("Apis ordering and master-detail layout", () => {
     view.unmount();
   });
 
-  test("bulk check glyph inherits the selected card ink, not the primary token", async () => {
-    // 默认主题 primary.contrastText === secondary.contrastText === #fff，等值断言
-    // 不可能变红；故本用例注入两个 contrastText 互不相同的主题，令"另一种写法"
-    // 无所遁形。期望值全部由主题令牌派生，不硬编码色值。
+  test("bulk checked card drops the persistent secondary fill but keeps a visible same-source glyph", async () => {
+    // 契约（M3 v3.1 §3.1.C）：批量勾选是 role=checkbox 多选载体，整卡 secondary
+    // 持续填充＝aria 布尔驱动的第二视觉通道，禁止；选择态只由 aria-checked＋字形
+    // 图标交换单通道承载。注入 primary/secondary 互异主题，令"回退成染色/钉墨色"
+    // 与"正确去染色"可判别。期望值全部由契约与主题令牌派生，不抄录旧断言。
     const theme = createTheme({
       palette: {
         primary: { main: "#10b981", contrastText: "#001a0d" },
@@ -846,20 +847,60 @@ describe("Apis ordering and master-detail layout", () => {
     });
     expect(bulkCards[1].getAttribute("aria-checked")).toBe("true");
 
-    // 主题注入生效自检：已选卡片墨色必须是 secondary.contrastText。
-    expect(getComputedStyle(bulkCards[1]).color).toBe(
+    // 闸一：勾选卡不得再是 .Mui-selected 载体（结构性，独立于任何色值计算）。
+    expect(bulkCards[1].classList.contains("Mui-selected")).toBe(false);
+    // 闸二：勾选卡底色不得等于 secondary 容器填充，且与未勾选同行卡同底（无差异染色）。
+    expect(getComputedStyle(bulkCards[1]).backgroundColor).not.toBe(
+      hexToRgbString(theme.palette.secondary.main)
+    );
+    expect(getComputedStyle(bulkCards[1]).backgroundColor).toBe(
+      getComputedStyle(bulkCards[0]).backgroundColor
+    );
+    // 闸三：卡文字不得是已移除的选中墨色（secondary.contrastText）。
+    expect(getComputedStyle(bulkCards[1]).color).not.toBe(
       hexToRgbString(theme.palette.secondary.contrastText)
     );
-    const checkColor = getComputedStyle(
-      bulkCards[1].querySelector(".kt-api-list__check")
-    ).color;
+    // 字形可见性：勾选 svg 在场，颜色为具名 token（非 inherit 空串）、与拖动同源、且非选中墨色。
+    const check = bulkCards[1].querySelector(".kt-api-list__check");
+    expect(check.querySelector("svg")).not.toBeNull();
+    const checkColor = getComputedStyle(check).color;
     const dragColor = getComputedStyle(
       bulkCards[1].querySelector('[draggable="true"]')
     ).color;
-    // 硬闸一：勾选指示不得再钉 primary.contrastText。
-    expect(checkColor).not.toBe(hexToRgbString(theme.palette.primary.contrastText));
-    // 硬闸二：同一行两个指示图标同源。
+    expect(checkColor).not.toBe("");
     expect(checkColor).toBe(dragColor);
+    expect(checkColor).not.toBe(
+      hexToRgbString(theme.palette.secondary.contrastText)
+    );
+
+    view.unmount();
+  });
+
+  test("normal single-select card still retains its secondary-container fill", async () => {
+    // 契约：本修正只去"批量多选载体"的整卡染色，正常单选/aria-current 卡的
+    // secondary 容器持久填充是合法单选态，必须原样保留。回归护栏（改前改后皆绿）。
+    const theme = createTheme({
+      palette: {
+        primary: { main: "#10b981", contrastText: "#001a0d" },
+        secondary: { main: "#b91c1c", contrastText: "#fff5f0" },
+      },
+    });
+    const view = await renderApis(
+      [
+        createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+        createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 1 }),
+      ],
+      jest.fn(),
+      [],
+      {},
+      theme
+    );
+    const normalCard = getApiListItem(view.container, "Alpha");
+    expect(normalCard.getAttribute("aria-current")).toBe("true");
+    expect(normalCard.classList.contains("Mui-selected")).toBe(true);
+    expect(getComputedStyle(normalCard).backgroundColor).toBe(
+      hexToRgbString(theme.palette.secondary.main)
+    );
 
     view.unmount();
   });

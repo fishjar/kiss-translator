@@ -266,6 +266,20 @@ describe("MUI-managed focus exemptions", () => {
       expect(bodies.some((body) => re.test(body))).toBe(true);
     }
   });
+  test("forced-colors keeps a keyboard focus ring on MuiMenuItem", () => {
+    // §6.4：有语义必有环。上述豁免把 MenuItem 的 :focus/:focus-visible 全部
+    // outline:none，而 MUI 的 focusVisible 指示走 boxShadow——强制颜色域会丢弃
+    // box-shadow，键盘聚焦的 MenuItem 将无任何可见指示。本块只覆盖 :focus-visible
+    //（键盘语境），描边色交强制引擎，指针模态行为零变化。
+    const bodies = getCssAtRuleBodies(M3_GLOBAL_CSS, "@media (forced-colors: active)");
+    expect(
+      bodies.some((body) =>
+        /\.kt-m3-root \.MuiMenuItem-root:focus-visible\s*\{[^}]*outline:\s*3px solid;[^}]*outline-offset:\s*-3px;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+  });
 });
 
 describe("锁定态最小高度不变量", () => {

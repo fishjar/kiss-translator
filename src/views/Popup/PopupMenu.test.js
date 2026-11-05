@@ -195,6 +195,25 @@ describe("Popup menu placement", () => {
     return container.querySelector(".kt-popup-style-menu");
   }
 
+  test("menu list container never seizes focus (autoFocus leg off)", () => {
+    // 三键同给（对齐 TranForm selectMenuProps 的在册契约）：disableAutoFocusItem
+    // 只关 MUI Menu 的项腿，autoFocus 腿（Menu.js:192 → MenuList 容器聚焦）仍在，
+    // 会与本组件 scriptFocus 的焦点交接竞争。本用例钉"容器不抢焦"：ul 不得被
+    // MUI 自动聚焦路径调用 focus()（正常交接只应聚焦菜单项）。
+    const focusCalls = [];
+    const ulFocusSpy = jest
+      .spyOn(HTMLUListElement.prototype, "focus")
+      .mockImplementation(function () {
+        focusCalls.push(this);
+      });
+    try {
+      render();
+      expect(focusCalls).toHaveLength(0);
+    } finally {
+      ulFocusSpy.mockRestore();
+    }
+  });
+
   function expectDownwardPlacement(paper) {
     const triggerBounds = anchor.getBoundingClientRect();
     const menuBounds = paper.getBoundingClientRect();

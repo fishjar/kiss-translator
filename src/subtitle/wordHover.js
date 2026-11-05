@@ -21,6 +21,7 @@ export const addWordHoverStyles = () => {
     .kiss-word-hover {
       cursor: pointer;
       text-decoration: underline;
+      /* accent-exempt: 样式注入宿主任意页面 document，kt 令牌作用域不可达，保留字面量 */
       text-decoration-color: #4fc3f7;
       text-decoration-thickness: 2px;
     }
@@ -53,6 +54,7 @@ export const addWordHoverStyles = () => {
       margin-bottom: 8px;
       font-weight: bold;
       font-size: 16px;
+      /* accent-exempt: 样式注入宿主任意页面 document，kt 令牌作用域不可达，保留字面量 */
       color: #4fc3f7;
     }
 
@@ -91,6 +93,7 @@ export const addWordHoverStyles = () => {
 
     /* 词性前缀标记（如 n. / v. 等） */
     .kiss-word-pos {
+      /* accent-exempt: 样式注入宿主任意页面 document，kt 令牌作用域不可达，保留字面量 */
       color: #4fc3f7;
       font-weight: bold;
     }
