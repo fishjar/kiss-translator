@@ -5,9 +5,31 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import { ContentCopyRoundedIcon, DeleteOutlineRoundedIcon } from "../../../components/icons";
 import { useI18n } from "../../../hooks/I18n";
+import { useTheme } from "@mui/material/styles";
+
+// 级色映射既有 kt 语义令牌；warn 无语义令牌（m3.js :305-331 令牌清单无 --kt-warn），
+// 按裁决钉死琥珀字面量并注明豁免。
+export const LOG_LEVEL_COLORS = {
+  error: "var(--kt-err)",
+  warn: "#f59e0b" /* accent-exempt: 暗色档琥珀（#111827 底 8.26 ✓）；浅色档由
+     logLevelColor 按主题切 --kt-onv（F9 裁决 A）：#f8fafc 底上 amber 仅 2.05，
+     而 err/grn/pri 浅底虽达标但分别撞 error/success/info 分级 */,
+  success: "var(--kt-grn)",
+  info: "var(--kt-pri)",
+};
+
+// 级色取值入口（WCAG AA 文本 4.5 线，离线探针实测见证据日志）：
+// warn 主题感知——暗色档琥珀达标，浅色档回落既有分级中性令牌 --kt-onv；
+// 其余级别不随主题切换；未知级别退回 info 主色。查找仅认自有属性：
+// "constructor"/"toString" 等原型链键不是级别，直取会把函数当颜色。
+export const logLevelColor = (level, darkMode) =>
+  level === "warn" && !darkMode
+    ? "var(--kt-onv)"
+    : Object.prototype.hasOwnProperty.call(LOG_LEVEL_COLORS, level)
+      ? LOG_LEVEL_COLORS[level]
+      : "var(--kt-pri)";
 
 /**
  * 独立的本地 AI 日志 Hook：管理当前 Tab 的运行日志与添加/清空方法。
@@ -42,6 +64,7 @@ export function useLocalAiLog() {
  */
 export default function LogViewer({ logs = [], onClear }) {
   const i18n = useI18n();
+  const darkMode = useTheme().palette.mode === "dark";
   const [copied, setCopied] = useState(false);
   const logRef = useRef(null);
 
@@ -141,26 +164,19 @@ export default function LogViewer({ logs = [], onClear }) {
           ) : (
             <>
               {logs.map((log, index) => {
-                const color =
-                  log.level === "error"
-                    ? "#ef4444"
-                    : log.level === "warn"
-                      ? "#f59e0b"
-                      : log.level === "success"
-                        ? "#10b981"
-                        : "#3b82f6";
+                const color = logLevelColor(log.level, darkMode);
                 return (
                   <Box
                     key={index}
                     sx={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
                   >
-                    <span style={{ color: "#9ca3af" }}>[{log.time}]</span>{" "}
+                    <span style={{ color: "var(--kt-onv)" }}>[{log.time}]</span>{" "}
                     <span style={{ color, fontWeight: 600 }}>
                       [{log.level.toUpperCase()}]
                     </span>{" "}
                     <span
                       style={{
-                        color: log.level === "error" ? "#ef4444" : "inherit",
+                        color: log.level === "error" ? "var(--kt-err)" : "inherit",
                       }}
                     >
                       {log.message

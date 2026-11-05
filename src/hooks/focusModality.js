@@ -51,13 +51,17 @@ const isExtensionOwnedDocument = (doc) =>
 // 生产拓扑把 .kt-m3-root 放在 shadowRoot 内，document 捕获到的 event.target
 // 却重定向为外层 host；只查 host.closest 会漏掉整个扩展 UI。composedPath
 // 同时包含 shadow 内真实节点与 light 侧宿主链，两种挂载形态都可命中各自的根。
+// 字幕菜单挂在宿主 YouTube 文档 #kiss-subtitle-menus（根 div 类
+// kt-subtitle-menus），M3Theme/State 的安装路径均不覆盖该文档，故该挂载点
+// 单独入列。
 const isExtensionUiEvent = (event) => {
   if (isExtensionOwnedDocument(event?.target?.ownerDocument)) return true;
   const path = event?.composedPath?.();
   return (path?.length ? path : [event?.target]).some(
     (node) =>
       typeof node?.closest === "function" &&
-      node.closest(".kt-m3-root, .kt-focus-silent-scope") != null
+      node.closest(".kt-m3-root, .kt-focus-silent-scope, .kt-subtitle-menus") !=
+        null
   );
 };
 

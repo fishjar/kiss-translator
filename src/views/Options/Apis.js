@@ -1769,7 +1769,7 @@ function ApiListItem({
 
   const displayName =
     localizeServiceName(api, providerText) || getApiDisplayName(api);
-  const cardSelected = bulkMode ? checked : selected;
+  const singleSelected = !bulkMode && selected;
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -1806,7 +1806,7 @@ function ApiListItem({
       <ListItemButton
         ref={cardRef}
         className="kt-api-list__card"
-        selected={cardSelected}
+        selected={singleSelected}
         onClick={handleContentClick}
         aria-current={!bulkMode && selected ? "true" : undefined}
         role={bulkMode ? "checkbox" : undefined}
@@ -1856,10 +1856,10 @@ function ApiListItem({
               ...apiListControlSx,
               display: "inline-flex",
               alignSelf: "center",
-              // 与同行拖动指示（cardSelected ? "inherit"）同源：勾选图标继承
-              // 已选卡片墨色（&.Mui-selected 的 secondary.contrastText），
-              // 不再各钉一个令牌，避免卡片换色时指示图标脱钩。
-              color: checked ? "inherit" : "text.secondary",
+              // 批量卡已无整卡持续染色，勾选字形不得继承"已选墨色"（该墨色已移除）；
+              // 钉稳定 token text.secondary，选中态由图标交换（filled vs outline）＋
+              // aria-checked 单通道承载，与同行拖动指示同源。
+              color: "text.secondary",
             }}
           >
             {checked ? (
@@ -1880,7 +1880,7 @@ function ApiListItem({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              color: cardSelected ? "inherit" : "text.secondary",
+              color: singleSelected ? "inherit" : "text.secondary",
               cursor: "grab",
               "&:active": {
                 cursor: "grabbing",

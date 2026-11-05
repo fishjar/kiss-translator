@@ -518,4 +518,153 @@ describe("AiDictCont", () => {
       root.unmount();
     });
   });
+
+  test("keeps dict actions in flow without reserved padding when width is unmeasured", async () => {
+    apiDict.mockResolvedValueOnce("## library\n\n- book room");
+
+    const { container, root } = renderAiDictCont();
+    await flushEffects();
+
+    const panel = container.firstElementChild;
+    const actions = panel.querySelector("[data-testid='ai-dict-actions']");
+    const typography = panel.lastElementChild;
+    expect(actions).not.toBeNull();
+    expect(typography).not.toBeNull();
+
+    // Emotion injects via CSSOM (speedy) in this environment: the style tag's
+    // textContent is empty and the rules live in style.sheet.cssRules. Read
+    // both sources and strip whitespace, since cssText re-serializes with
+    // spaces after colons while the sx contract is spacing-insensitive.
+    const ruleText = Array.from(document.querySelectorAll("style[data-emotion]"))
+      .flatMap((style) => [
+        style.textContent,
+        ...Array.from(style.sheet?.cssRules || []).map((rule) => rule.cssText),
+      ])
+      .join("\n")
+      .replace(/\s+/g, "");
+    const classRules = (element) =>
+      Array.from(element.classList)
+        .flatMap((cls) =>
+          Array.from(
+            ruleText.matchAll(new RegExp("\\." + cls + "[^{}]*\\{[^}]*\\}", "g"))
+          ).map((match) => match[0])
+        )
+        .join("\n");
+
+    const actionsRules = classRules(actions);
+    const panelRules = classRules(panel);
+    const typographyRules = classRules(typography);
+
+    // 未测得态契约：操作区流内布局（relative，不绝对定位），Typography 不
+    // 输出 end padding；jsdom 无 ResizeObserver，本用例恒走未测得分支。
+    expect(actionsRules).toContain("position:relative");
+    expect(actionsRules).not.toContain("position:absolute");
+    expect(actionsRules).toContain("justify-self:end");
+    expect(actionsRules).toContain("gap:8px");
+    expect(panelRules).toContain("position:relative");
+    expect(typographyRules).not.toContain("padding-inline-end");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  test("reserves text end padding by measured actions width via ResizeObserver", async () => {
+    apiDict.mockResolvedValueOnce("## library\n\n- book room");
+
+    let resizeCallback = null;
+    const originalResizeObserver = window.ResizeObserver;
+    window.ResizeObserver = class {
+      constructor(callback) {
+        resizeCallback = callback;
+      }
+      observe() {}
+      disconnect() {}
+    };
+
+    // 作用域纠偏（执行期事实回执）：container/root 须在 try 外声明——
+    // const 解构在 try 块内声明时 finally 块不可见（计划 Replacement 原稿
+    // 为块内解构，实测 ReferenceError，见证据日志）。
+    let container, root;
+    try {
+      ({ container, root } = renderAiDictCont());
+      await flushEffects();
+
+      // 与既有夹具同构的元素获取（AiDictCont.test.js:528-530 口径）：
+      // panel = container.firstElementChild、actions = panel.querySelector(...)、
+      // typography = panel.lastElementChild。
+      const panel = container.firstElementChild;
+      const actions = panel.querySelector("[data-testid='ai-dict-actions']");
+      const typography = panel.lastElementChild;
+      expect(actions).not.toBeNull();
+      expect(typography).not.toBeNull();
+      expect(resizeCallback).not.toBeNull();
+
+      // Emotion speedy 模式：规则注入走 CSSOM，style 标签 textContent 为空，
+      // 照既有 ruleText/classRules 管道读取并 strip 空白后匹配（同 :538-552）。
+      // 规则文本在每次断言时现采：setActionsWidth 会注入新类规则，
+      // 触发回调前快照的 ruleText 不含新规则（首跑实测踩坑）。
+      const collectRuleText = () =>
+        Array.from(document.querySelectorAll("style[data-emotion]"))
+          .flatMap((style) => [
+            style.textContent,
+            ...Array.from(style.sheet?.cssRules || []).map((rule) => rule.cssText),
+          ])
+          .join("\n")
+          .replace(/\s+/g, "");
+      const classRules = (element) =>
+        Array.from(element.classList)
+          .flatMap((cls) =>
+            Array.from(
+              collectRuleText().matchAll(
+                new RegExp("\\." + cls + "[^{}]*\\{[^}]*\\}", "g")
+              )
+            ).map((match) => match[0])
+          )
+          .join("\n");
+
+      // 模拟测量：操作区实测 64px 宽、40px 高（CopyBtn+BrowserTtsBtn 量级）。
+      jest.spyOn(actions, "getBoundingClientRect").mockReturnValue({
+        width: 64,
+        height: 40,
+      });
+      await act(async () => {
+        resizeCallback([{ target: actions }]);
+      });
+
+      // 文本与按钮不重叠的机器化口径：paddingInlineEnd = 实测宽度 + 8px 余量。
+      expect(classRules(typography)).toContain("padding-inline-end:72px");
+      // 垂直预留契约：操作区绝对定位脱离容器高度计算，容器以实测操作区
+      // 高度兜底 minHeight——单行内容矮于操作区时操作区不溢出容器、
+      // 不遮挡后续内容。
+      expect(classRules(panel)).toContain("min-height:40px");
+      // 已测得态契约：操作区切绝对定位贴逻辑行末，让出独立网格行。
+      const measuredActionsRules = classRules(actions);
+      expect(measuredActionsRules).toContain("position:absolute");
+      // emotion 实测序列化为无单位 `inset-inline-end:0`（未验证假设通道，
+      // 实测输出见证据日志）。
+      expect(measuredActionsRules).toContain("inset-inline-end:0");
+      expect(measuredActionsRules).toContain("top:0");
+
+      // 宽度变化（如 loading 圈出现/消失）跟随更新：缩回 40px 后收窄为 48px。
+      jest.spyOn(actions, "getBoundingClientRect").mockReturnValue({
+        width: 40,
+        height: 40,
+      });
+      await act(async () => {
+        resizeCallback([{ target: actions }]);
+      });
+      expect(classRules(typography)).toContain("padding-inline-end:48px");
+    } finally {
+      window.ResizeObserver = originalResizeObserver;
+      if (root) {
+        act(() => {
+          root.unmount();
+        });
+      }
+      if (container) {
+        container.remove();
+      }
+    }
+  });
 });

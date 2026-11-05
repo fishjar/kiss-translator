@@ -24,17 +24,19 @@ import Tooltip from "@mui/material/Tooltip";
 import Popover from "@mui/material/Popover";
 import CircularProgress from "@mui/material/CircularProgress";
 import ReaderAlert from "./ReaderAlert";
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import FormatSizeRoundedIcon from "@mui/icons-material/FormatSizeRounded";
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import StopRoundedIcon from "@mui/icons-material/StopRounded";
-import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
-import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import {
+  MenuBookRoundedIcon,
+  MenuRoundedIcon,
+  FormatSizeRoundedIcon,
+  ChevronRightRoundedIcon,
+  ExpandMoreRoundedIcon,
+  SearchRoundedIcon,
+  CheckCircleRoundedIcon,
+  StopRoundedIcon,
+  KeyboardArrowUpRoundedIcon,
+  KeyboardArrowDownRoundedIcon,
+  CloseRoundedIcon,
+} from "../../components/icons";
 import DOMPurify from "dompurify";
 import * as fflate from "fflate";
 import {
@@ -1636,10 +1638,12 @@ export default function EpubReaderView({
                 padding: "0 2px",
               },
               "& mark.kt-search-current": {
+                // warning-exempt: 阅读器搜索当前命中高亮（search-current），主题表无警示槽（EPUB_READER_THEMES 仅四槽），接入须发明色值，保留字面量。
                 backgroundColor: "#f59e0b",
                 color: "#ffffff !important",
                 borderRadius: "2px",
                 padding: "0 2px",
+                // warning-exempt: 搜索当前命中伴生光环，与上方 #f59e0b 同一豁免域，保留字面量。
                 boxShadow: "0 0 0 2px rgba(245, 158, 11, 0.4)",
               },
               "& .kt-epub-footer": {

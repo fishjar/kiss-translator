@@ -109,7 +109,7 @@
   border: 2px solid currentColor;
   border-top-color: transparent;
   border-radius: 50%;
-  color: #1976d2;
+  color: var(--kt-pri);
   vertical-align: middle;
   animation: kt-pdf-recognition-spin 0.8s linear infinite;
 }
@@ -128,6 +128,7 @@
   margin-top: 0.4em;
 }
 .kt-pdf-markdown .kt-document-warning {
+  /* warning-exempt: 文档警示域语义色，kt 令牌无对应槽，保留字面量 */
   border-left: 3px solid #b78a26;
   padding-left: 12px;
 }

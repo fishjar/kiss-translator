@@ -526,4 +526,21 @@ describe("document-level focusin handling", () => {
     expect(item.hasAttribute(FOCUS_SILENT_ATTR)).toBe(false);
     scope.remove();
   });
+
+  test("marks silent focus inside the subtitle menus mount on the host document", () => {
+    // 契约：字幕菜单挂在宿主 YouTube 文档 #kiss-subtitle-menus（根 div 类
+    // kt-subtitle-menus），M3Theme/State 的安装路径均不覆盖该文档；判据
+    // 不含该挂载点时菜单内 focusin 全部跳过、静默标记缺失。
+    installFocusModality(document);
+    const menus = document.createElement("div");
+    menus.className = "kt-subtitle-menus";
+    document.body.appendChild(menus);
+    const item = document.createElement("button");
+    menus.appendChild(item);
+    item.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    expect(item.getAttribute(FOCUS_SILENT_ATTR)).toBe("true");
+    item.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    expect(item.hasAttribute(FOCUS_SILENT_ATTR)).toBe(false);
+    menus.remove();
+  });
 });

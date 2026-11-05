@@ -147,6 +147,10 @@ const messages = {
     "当前开启强制扫描或纯文本模式，排除规则可能不生效；请先在设置中关闭这些模式。",
     "Scan-all or plain-text mode is enabled. Exclusions may not apply; disable these modes in settings first.",
   ],
+  // MUI Autocomplete 内建控件文案（清除按钮／弹出指示器），默认恒为英文。
+  clearText: ["清空", "Clear"],
+  openText: ["打开", "Open"],
+  closeText: ["关闭", "Close"],
 };
 
 // Newly introduced messages fall back to English until localized.

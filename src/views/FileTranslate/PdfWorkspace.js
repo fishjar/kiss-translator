@@ -40,15 +40,7 @@ import {
 } from "@mui/material";
 import { useFileTranslation } from "./State";
 import { DEFAULT_FILE_TRANSLATE_SETTING } from "../../config";
-import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import ZoomInRoundedIcon from "@mui/icons-material/ZoomInRounded";
-import ZoomOutRoundedIcon from "@mui/icons-material/ZoomOutRounded";
-import StopRoundedIcon from "@mui/icons-material/StopRounded";
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import { ChevronLeftRoundedIcon, ChevronRightRoundedIcon, ExpandMoreRoundedIcon, ZoomInRoundedIcon, ZoomOutRoundedIcon, StopRoundedIcon, MenuBookRoundedIcon, MenuRoundedIcon, SearchRoundedIcon } from "../../components/icons";
 import { openPdf } from "../../libs/pdf/pdfDocument";
 import {
   MissingDocumentModel,
@@ -1507,7 +1499,12 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     </Card>
   );
   return (
-    <Box className="kt-pdf-workspace">
+    // 独立入口不挂 .kt-m3-root：工作区根须自带 --kt-pri 绑定（随主题主色），
+    // 否则 PdfWorkspace.css 的 var(--kt-pri)（识别指示器等）走继承回退脱钩。
+    <Box
+      className="kt-pdf-workspace"
+      sx={{ "--kt-pri": (theme) => theme.palette.primary.main }}
+    >
       {error && (
         <ReaderAlert
           severity="error"

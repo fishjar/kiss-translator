@@ -67,6 +67,39 @@ const resolveActiveApiSlugs = (apiSlugs, optApis) => {
   return apiSlugs.filter((slug) => validSlugs.has(slug));
 };
 
+// MUI 自持焦点（MenuList.js:216-225 给选中项克隆 autoFocus:true）不经
+// scriptFocus()：脚本化聚焦会被浏览器判给 :focus-visible，纯鼠标打开也长出
+// 焦点框。关掉 MUI 三键后由本组件在 Paper 挂载时经 scriptFocus() 交接焦点
+// （模态裁决留在 hooks/focusModality.js 单源），先例同形：
+// PopupMenu.js:106-117 与 Options/DropdownRoot.js:31-56。
+// 目标取"最后一个选中项"以对齐 MUI 自身的 lookahead 语义（Menu.js:131-149：
+// selectedMenu 变体取最后一个 selected，无则取首个非 disabled），多选 ≥2 项
+// 时焦点位置与现状逐位一致。
+// 已聚焦在 Paper 内则不再二次交接：ref 回调身份随 memo 重建而变（isShadowMenu
+// 挂载时翻转一次），无此判据会把键盘态下光标走到的位置强行拉回选中项。
+// 纯函数（无组件态依赖）故置于模块域并具名导出，供守卫单元测试直测。
+export function focusSelectedOption(paper) {
+  if (!paper) return;
+  // 焦点在 Paper 内的判据取 Paper 所属根节点（ShadowRoot.activeElement，
+  // DocumentOrShadowRoot API）：影子树内 ownerDocument.activeElement 是宿主
+  // 元素，paper.contains(宿主) 恒假导致守卫失灵，把键盘光标位置强行拉回
+  // 选中项。light 模式 getRootNode() 即 document，回退路径与原判断等价。
+  const rootNode = paper.getRootNode();
+  const doc = paper.ownerDocument;
+  const active = (rootNode && rootNode.activeElement) || (doc && doc.activeElement);
+  if (active && paper.contains(active)) return;
+  const selected = paper.querySelectorAll(
+    '[role="option"][aria-selected="true"]:not(.Mui-disabled), .MuiMenuItem-root.Mui-selected:not(.Mui-disabled)'
+  );
+  const firstAvailable = paper.querySelector(
+    '[role="option"]:not(.Mui-disabled), .MuiMenuItem-root:not(.Mui-disabled)'
+  );
+  const container = paper.querySelector('[role="listbox"], [role="menu"]');
+  scriptFocus(
+    selected[selected.length - 1] ?? firstAvailable ?? container ?? null
+  );
+}
+
 /**
  * Translation form with language and service choices, dictionaries, detection, and text input.
  */
@@ -234,35 +267,21 @@ export default function TranForm({
     [textareaRef]
   );
   const selectPaperRef = useRef(null);
-  // MUI 自持焦点（MenuList.js:216-225 给选中项克隆 autoFocus:true）不经
-  // scriptFocus()：脚本化聚焦会被浏览器判给 :focus-visible，纯鼠标打开也长出
-  // 焦点框。关掉 MUI 三键后由本组件在 Paper 挂载时经 scriptFocus() 交接焦点
-  // （模态裁决留在 hooks/focusModality.js 单源），先例同形：
-  // PopupMenu.js:106-117 与 Options/DropdownRoot.js:31-56。
-  // 目标取"最后一个选中项"以对齐 MUI 自身的 lookahead 语义（Menu.js:131-149：
-  // selectedMenu 变体取最后一个 selected，无则取首个非 disabled），多选 ≥2 项
-  // 时焦点位置与现状逐位一致。
-  // 已聚焦在 Paper 内则不再二次交接：ref 回调身份随 memo 重建而变（isShadowMenu
-  // 挂载时翻转一次），无此判据会把键盘态下光标走到的位置强行拉回选中项。
-  const focusSelectedOption = useCallback((paper) => {
-    if (!paper) return;
-    const doc = paper.ownerDocument;
-    if (doc && paper.contains(doc.activeElement)) return;
-    const selected = paper.querySelectorAll(
-      '[role="option"][aria-selected="true"]:not(.Mui-disabled), .MuiMenuItem-root.Mui-selected:not(.Mui-disabled)'
-    );
-    const firstAvailable = paper.querySelector(
-      '[role="option"]:not(.Mui-disabled), .MuiMenuItem-root:not(.Mui-disabled)'
-    );
-    const container = paper.querySelector('[role="listbox"], [role="menu"]');
-    scriptFocus(
-      selected[selected.length - 1] ?? firstAvailable ?? container ?? null
-    );
-  }, []);
   const selectMenuProps = useMemo(
     () => ({
       container: () => inputRef.current?.closest(".kt-m3-root"),
       disableScrollLock: true,
+      // Paper 节点复用（关闭动画未结束即重开）时 ref 不再触发，焦点交接丢失；
+      // 补一条每次打开都走的交接路径。Paper ref 路径保留；已含 activeElement
+      // 时让位，避免与首次 ref 触发形成双焦点竞争。
+      TransitionProps: {
+        // 守卫已内聚于 focusSelectedOption，此处仅委托。挂 onEnter（进入过渡
+        // 启动即同步触发），替代 onEntered——后者在 jsdom 下依赖真实计时
+        // timeout 兜底（~225ms）才完成，测试与真实时序都要干等；
+        // onEnter 时 Paper/ref 尚未就绪的失败模式由既有 PaperProps.ref
+        // 首挂路径兜底（守卫让位语义不变）。
+        onEnter: () => focusSelectedOption(selectPaperRef.current),
+      },
       // 三键同给，缺一不可：autoFocus=false 杀 Menu.js:104,193 的项腿；
       // disableAutoFocusItem=true 与它联用才不会反而打开 Menu.js:192 的容器腿
       // （单给这一键会去聚焦 ul）；disableAutoFocus=true 让 Popover/Modal 不再
@@ -291,7 +310,7 @@ export default function TranForm({
       },
       sx: { zIndex: 2147483647 },
     }),
-    [isShadowMenu, focusSelectedOption]
+    [isShadowMenu]
   );
 
   const detectionKey = useMemo(
