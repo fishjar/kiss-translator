@@ -35,6 +35,8 @@ export class BilingualSubtitleManager {
   #translationSessionId = 0; // 当前翻译会话版本 ID，用于防竞态过滤过期异步请求
   #abortController = null; // 用于在实例销毁时中止所有尚未返回的网络请求
   #captionHovered = false;
+  #isDragging = false;
+  #cleanupDragging = null;
   #clearHoverPlaybackOwnership = () => {
     this.#wasPlayingBeforeHover = false;
   };
@@ -113,6 +115,8 @@ export class BilingualSubtitleManager {
     logger.child("subtitle").debug("Bilingual Subtitle Manager: Destroying...");
     this.#wasPlayingBeforeHover = false;
     this.#captionHovered = false;
+    this.#cleanupDragging?.();
+    this.#cleanupDragging = null;
     this.#translationSessionId += 1; // 递增会话 ID，使当前在途的异步请求回调全部失效
     this.#abortController?.abort(); // 中止未返回的底层请求
     this.#abortController = null;
@@ -179,7 +183,13 @@ export class BilingualSubtitleManager {
     let lastControlBarHiddenState = null;
 
     const syncPaperElBottom = ({ force = false } = {}) => {
-      const isHidden = player.classList.contains("ytp-autohide");
+      // Preserve the dragged bottom until onDragEnd reads and saves it.
+      if (this.#isDragging) return;
+      // Freeze only the control-bar offset; explicit resizing and dragging still work.
+      const isHidden =
+        this.#captionHovered && lastControlBarHiddenState !== null
+          ? lastControlBarHiddenState
+          : player.classList.contains("ytp-autohide");
       if (!force && isHidden === lastControlBarHiddenState) return;
       lastControlBarHiddenState = isHidden;
 
@@ -304,6 +314,7 @@ export class BilingualSubtitleManager {
       });
       this.#captionWindowEl.addEventListener("pointerleave", () => {
         this.#captionHovered = false;
+        this.#syncPaperPosition?.();
         this.#hoverTarget = null;
         this.#restoreHoverPlayback();
       });
@@ -349,11 +360,24 @@ export class BilingualSubtitleManager {
     handleElement,
     dragEndCallback
   ) {
-    let isDragging = false;
     let hasDragged = false;
     let startY;
     let initialBottom;
     let dragElementHeight;
+    let syncTimeout = null;
+
+    const stopDragging = () => {
+      this.#isDragging = false;
+      handleElement.style.cursor = "grab";
+      document.removeEventListener("mousemove", onDragMove, { capture: true });
+      document.removeEventListener("touchmove", onDragMove, { capture: true });
+      document.removeEventListener("mouseup", onDragEnd, { capture: true });
+      document.removeEventListener("touchend", onDragEnd, { capture: true });
+      document.removeEventListener("touchcancel", onDragEnd, { capture: true });
+      window.removeEventListener("blur", onDragEnd);
+      clearTimeout(syncTimeout);
+      syncTimeout = null;
+    };
 
     const onDragStart = (e) => {
       // 限制仅允许鼠标左键拖拽
@@ -361,7 +385,7 @@ export class BilingualSubtitleManager {
 
       e.preventDefault();
 
-      isDragging = true;
+      this.#isDragging = true;
       hasDragged = false;
       handleElement.style.cursor = "grabbing";
       // 兼容触屏端拖拽
@@ -382,10 +406,12 @@ export class BilingualSubtitleManager {
       });
       document.addEventListener("mouseup", onDragEnd, { capture: true });
       document.addEventListener("touchend", onDragEnd, { capture: true });
+      document.addEventListener("touchcancel", onDragEnd, { capture: true });
+      window.addEventListener("blur", onDragEnd);
     };
 
     const onDragMove = (e) => {
-      if (!isDragging) return;
+      if (!this.#isDragging) return;
 
       e.preventDefault();
 
@@ -407,18 +433,19 @@ export class BilingualSubtitleManager {
     };
 
     const onDragEnd = (e) => {
-      if (!isDragging) return;
+      if (!this.#isDragging) return;
 
       e.preventDefault();
 
-      isDragging = false;
-      handleElement.style.cursor = "grab";
-
       // 卸载全局移动监听，避免内存泄漏与事件漂移
-      document.removeEventListener("mousemove", onDragMove, { capture: true });
-      document.removeEventListener("touchmove", onDragMove, { capture: true });
-      document.removeEventListener("mouseup", onDragEnd, { capture: true });
-      document.removeEventListener("touchend", onDragEnd, { capture: true });
+      stopDragging();
+
+      // A cancelled gesture restores the saved position without persisting the drag.
+      if (e.type === "touchcancel" || e.type === "blur") {
+        if (e.type === "blur") this.#captionHovered = false;
+        this.#syncPaperPosition?.();
+        return;
+      }
 
       if (
         hasDragged &&
@@ -426,9 +453,9 @@ export class BilingualSubtitleManager {
         typeof dragEndCallback === "function"
       )
         dragEndCallback(parseFloat(dragElement.style.bottom) || 0);
-      const finalBottomPx = dragElement.style.bottom;
-      setTimeout(() => {
-        dragElement.style.bottom = finalBottomPx;
+      syncTimeout = setTimeout(() => {
+        syncTimeout = null;
+        this.#syncPaperPosition?.();
       }, 50);
     };
 
@@ -436,6 +463,11 @@ export class BilingualSubtitleManager {
     handleElement.addEventListener("touchstart", onDragStart, {
       passive: false,
     });
+    this.#cleanupDragging = () => {
+      stopDragging();
+      handleElement.removeEventListener("mousedown", onDragStart);
+      handleElement.removeEventListener("touchstart", onDragStart);
+    };
   }
 
   /**
