@@ -984,12 +984,9 @@ describe("lookup panel playback ownership", () => {
       expect(onSubtitlePositionChange).not.toHaveBeenCalled();
 
       document.dispatchEvent(new MouseEvent("mouseup", { clientY: 130 }));
-      if (rememberPosition) {
-        expect(onSubtitlePositionChange).toHaveBeenCalledTimes(1);
-        expect(onSubtitlePositionChange).toHaveBeenCalledWith(0.075);
-      } else {
-        expect(onSubtitlePositionChange).not.toHaveBeenCalled();
-      }
+      expect(onSubtitlePositionChange.mock.calls).toEqual(
+        rememberPosition ? [[0.075]] : []
+      );
       expect(getCaptionBottom()).toBe(controlsVisible ? 70 : 30);
       await tick(50);
       expect(getCaptionBottom()).toBe(controlsVisible ? 70 : 30);
@@ -998,6 +995,213 @@ describe("lookup panel playback ownership", () => {
       expect(getCaptionBottom()).toBe(30);
     }
   );
+
+  const touch = (node, type, clientY = 100) => {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "touches", {
+      value: type === "touchend" || type === "touchcancel" ? [] : [{ clientY }],
+    });
+    node.dispatchEvent(event);
+  };
+  const prepareTouchDrag = async (overrides = {}) => {
+    const onSubtitlePositionChange = jest.fn();
+    setup(true, 2, {
+      rememberPosition: true,
+      positionRatio: 0.05,
+      onSubtitlePositionChange,
+      ...overrides,
+    });
+    setControlBarVisible(video, true);
+    await waitForMutationObserver();
+    const paper = document.querySelector(".kiss-caption-paper");
+    const container = document.querySelector(".kiss-caption-container");
+    Object.defineProperty(container, "clientHeight", { value: 400 });
+    Object.defineProperty(paper, "offsetHeight", { value: 40 });
+    container.getBoundingClientRect = () => ({ bottom: 400 });
+    paper.getBoundingClientRect = () => ({ bottom: 400 - getCaptionBottom() });
+    return { paper, onSubtitlePositionChange };
+  };
+
+  test.each([
+    [true, false],
+    [true, true],
+    [false, false],
+    [false, true],
+  ])(
+    "touch cancellation restores positioning without saving (remember: %p, moved: %p)",
+    async (rememberPosition, moved) => {
+      const { onSubtitlePositionChange } = await prepareTouchDrag({
+        rememberPosition,
+      });
+      touch(caption, "touchstart");
+      if (moved) touch(document, "touchmove", 130);
+      touch(document, "touchcancel");
+      expect(caption.style.cursor).toBe("grab");
+      expect(getCaptionBottom()).toBe(60);
+      expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+
+      // Cancellation detaches movement and end handlers, including duplicate cancels.
+      touch(document, "touchmove", 180);
+      touch(document, "touchend");
+      touch(document, "touchcancel");
+      expect(getCaptionBottom()).toBe(60);
+      expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+      setControlBarVisible(video, false);
+      await waitForMutationObserver();
+      expect(getCaptionBottom()).toBe(20);
+      manager.updateSetting({});
+      await tick(50);
+      expect(getCaptionBottom()).toBe(20);
+
+      // A subsequent gesture must save only its own position.
+      setControlBarVisible(video, true);
+      await waitForMutationObserver();
+      touch(caption, "touchstart");
+      touch(document, "touchmove", 130);
+      touch(document, "touchend");
+      expect(getCaptionBottom()).toBe(70);
+      expect(onSubtitlePositionChange.mock.calls).toEqual(
+        rememberPosition ? [[0.075]] : []
+      );
+    }
+  );
+
+  test.each([false, true])(
+    "window blur cancels a mouse drag without saving (moved: %p)",
+    async (moved) => {
+      const { onSubtitlePositionChange } = await prepareTouchDrag();
+      point(caption, "pointerenter");
+      caption.dispatchEvent(
+        new MouseEvent("mousedown", { button: 0, clientY: 100 })
+      );
+      if (moved)
+        document.dispatchEvent(new MouseEvent("mousemove", { clientY: 130 }));
+      window.dispatchEvent(new Event("blur"));
+      expect(getCaptionBottom()).toBe(60);
+      expect(caption.style.cursor).toBe("grab");
+      document.dispatchEvent(new MouseEvent("mousemove", { clientY: 180 }));
+      document.dispatchEvent(new MouseEvent("mouseup", { clientY: 180 }));
+      expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+      setControlBarVisible(video, false);
+      await waitForMutationObserver();
+      expect(getCaptionBottom()).toBe(20);
+      manager.updateSetting({});
+      expect(getCaptionBottom()).toBe(20);
+      caption.dispatchEvent(
+        new MouseEvent("mousedown", { button: 0, clientY: 100 })
+      );
+      document.dispatchEvent(new MouseEvent("mousemove", { clientY: 90 }));
+      document.dispatchEvent(new MouseEvent("mouseup", { clientY: 90 }));
+      expect(getCaptionBottom()).toBe(30);
+      expect(onSubtitlePositionChange).toHaveBeenCalledTimes(1);
+      expect(onSubtitlePositionChange).toHaveBeenCalledWith(0.075);
+    }
+  );
+
+  test.each([false, true])(
+    "destroy cleans up a drag and its delayed sync (ended: %p)",
+    async (ended) => {
+      const { paper, onSubtitlePositionChange } = await prepareTouchDrag();
+      const oldCaption = caption;
+      touch(caption, "touchstart");
+      touch(document, "touchmove", 130);
+      if (ended) touch(document, "touchend");
+      const removeDocument = jest.spyOn(document, "removeEventListener");
+      const removeWindow = jest.spyOn(window, "removeEventListener");
+      try {
+        manager.destroy();
+        manager = null;
+        for (const type of [
+          "mousemove",
+          "touchmove",
+          "mouseup",
+          "touchend",
+          "touchcancel",
+        ]) {
+          expect(removeDocument).toHaveBeenCalledWith(
+            type,
+            expect.any(Function),
+            { capture: true }
+          );
+        }
+        expect(removeWindow).toHaveBeenCalledWith("blur", expect.any(Function));
+        const bottom = paper.style.bottom;
+        touch(oldCaption, "touchstart");
+        touch(document, "touchmove", 170);
+        touch(document, "touchcancel");
+        window.dispatchEvent(new Event("blur"));
+        await tick(50);
+        expect(paper.style.bottom).toBe(bottom);
+        expect(onSubtitlePositionChange).toHaveBeenCalledTimes(ended ? 1 : 0);
+        const next = await prepareTouchDrag();
+        touch(caption, "touchstart");
+        touch(document, "touchmove", 130);
+        touch(document, "touchend");
+        expect(getCaptionBottom()).toBe(70);
+        expect(next.onSubtitlePositionChange).toHaveBeenCalledTimes(1);
+        expect(next.onSubtitlePositionChange).toHaveBeenCalledWith(0.075);
+      } finally {
+        removeDocument.mockRestore();
+        removeWindow.mockRestore();
+      }
+    }
+  );
+
+  test("touch cancellation catches up with controls and resizing during the drag", async () => {
+    const originalResizeObserver = global.ResizeObserver;
+    let resize;
+    global.ResizeObserver = class {
+      constructor(callback) {
+        resize = callback;
+      }
+      observe() {}
+      disconnect() {}
+    };
+    try {
+      const { onSubtitlePositionChange } = await prepareTouchDrag();
+      touch(caption, "touchstart");
+      touch(document, "touchmove", 130);
+      setControlBarVisible(video, false);
+      await waitForMutationObserver();
+      Object.defineProperty(
+        video.closest(".html5-video-player"),
+        "clientHeight",
+        { value: 800, configurable: true }
+      );
+      resize();
+      manager.updateSetting({});
+      expect(getCaptionBottom()).toBe(30);
+      touch(document, "touchcancel");
+      expect(getCaptionBottom()).toBe(40);
+      expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+      Object.defineProperty(
+        video.closest(".html5-video-player"),
+        "clientHeight",
+        { value: 600, configurable: true }
+      );
+      resize();
+      expect(getCaptionBottom()).toBe(30);
+    } finally {
+      global.ResizeObserver = originalResizeObserver;
+    }
+  });
+
+  test("an earlier drag timeout cannot overwrite a later touch drag or save its cancellation", async () => {
+    const { onSubtitlePositionChange } = await prepareTouchDrag();
+    touch(caption, "touchstart");
+    touch(document, "touchmove", 130);
+    touch(document, "touchend");
+    expect(getCaptionBottom()).toBe(70);
+    touch(caption, "touchstart");
+    touch(document, "touchmove", 150);
+    expect(getCaptionBottom()).toBe(20);
+    await tick(50);
+    expect(getCaptionBottom()).toBe(20);
+    touch(document, "touchcancel");
+    expect(getCaptionBottom()).toBe(70);
+    expect(onSubtitlePositionChange).toHaveBeenCalledTimes(1);
+    expect(onSubtitlePositionChange).toHaveBeenCalledWith(0.075);
+  });
 
   test("keeps the hover pause through the delay and panel interaction, then resumes", async () => {
     setup();
