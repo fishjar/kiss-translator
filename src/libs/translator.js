@@ -79,6 +79,8 @@ import { normalizeRuleApi } from "./apiSelection";
 import { isSameStorageValue } from "./storageEquality";
 import { KISS_UI_SELECTOR } from "./kissUi";
 
+const PARAGRAPH_METADATA_SELECTOR = "script, style, template";
+
 // 判定“这次按住在翻译触发前就已经在移动”的最小位移 (CSS 像素)。
 // 用于区分两种按住：一按下就开始移动（本意是拖拽/手势）与按住不动、
 // 看到译文之后才移动（本意就是翻译）。取 3px 以排除像素级抖动噪声。
@@ -1041,8 +1043,11 @@ export class Translator {
 
   #initPlainTextPre(pre) {
     if (isInInlineHidden(pre)) return;
-    // Preserve structured sources so hidden descendants are not flattened into text.
-    if (Array.from(pre.querySelectorAll("[style]")).some(isInlineHidden))
+    // 保留原有结构，避免将隐藏子节点和元数据展平成正文。
+    if (
+      pre.querySelector(PARAGRAPH_METADATA_SELECTOR) ||
+      Array.from(pre.querySelectorAll("[style]")).some(isInlineHidden)
+    )
       return;
     if (pre.dataset.kissPreprocessed === "true") {
       return;
@@ -2329,7 +2334,6 @@ export class Translator {
     let current;
     while ((current = walker.nextNode())) {
       if (!current.nodeValue?.trim()) continue;
-      if (isInNonContent(current)) continue;
       if (leaf) return null; // 存在多个非空文本节点时不下钻
       leaf = current.parentElement;
     }
@@ -2351,7 +2355,6 @@ export class Translator {
     while ((current = walker.nextNode())) {
       const text = current.nodeValue?.trim() || "";
       if (!text) continue;
-      if (isInNonContent(current)) continue;
       if (
         current.parentElement?.closest?.(`.${Translator.KISS_CLASS.warpper}`)
       ) {
@@ -3408,9 +3411,15 @@ export class Translator {
     let textLength = 0;
 
     [...parentNode.childNodes].forEach((node) => {
-      textLength += node.textContent.length;
+      if (this.#getParagraphAuxiliaryRole(node)) return;
+      const text = node.childElementCount
+        ? getInlineVisibleText(node, (element) =>
+            Boolean(this.#getParagraphAuxiliaryRole(element))
+          )
+        : node.textContent;
+      textLength += text.length;
 
-      const isSentenceEnd = sentenceEndRegexForTest.test(node.textContent);
+      const isSentenceEnd = sentenceEndRegexForTest.test(text);
       if (
         !isSentenceEnd ||
         node.nextSibling?.nodeName?.toUpperCase() === "BR"
@@ -3448,7 +3457,7 @@ export class Translator {
             child.replaceWith(document.createTextNode(child.textContent));
           } else if (child.classList.contains(Translator.KISS_CLASS.br)) {
             child.remove();
-          } else if (!this.#shouldBreak(child)) {
+          } else if (!this.#shouldBreak(child, true)) {
             stack.push(child);
           }
         }
@@ -3495,15 +3504,39 @@ export class Translator {
     }
   }
 
-  // 判断是否需要换行
-  #shouldBreak(node) {
-    if (!Translator.isElementOrFragment(node)) return false;
+  /**
+   * 判断非正文元数据或隐藏的行内节点在段落分组中的作用。
+   * @param {Node} node 待判断的节点。
+   * @returns {"boundary" | "auxiliary" | undefined}
+   *   `"boundary"` 表示在此结束当前翻译组。
+   *   `"auxiliary"` 表示保留在原文节点组中，继续分组，且节点内容不送翻。
+   *   `undefined` 表示交由常规段落边界规则处理。
+   */
+  #getParagraphAuxiliaryRole(node) {
+    if (!Translator.isElement(node)) return undefined;
+    const tag = node.tagName.toUpperCase();
+    const isHiddenInline =
+      isInlineHidden(node) &&
+      (tag === "SPAN" || tag === "A" || Translator.TAGS.INLINE.has(tag));
+    if (!isHiddenInline && !node.matches(PARAGRAPH_METADATA_SELECTOR))
+      return undefined;
     if (
-      isInlineHidden(node) ||
-      isInNonContent(node) ||
+      Translator.TAGS.BREAK_LINE.has(tag) ||
+      node.getAttribute("display")?.startsWith("block") ||
+      node.style?.display?.startsWith("block") ||
+      this.#matchesBlockSelector(node) ||
       this.#isKissIgnoredNode(node)
     )
-      return true;
+      return "boundary";
+    return "auxiliary";
+  }
+
+  // 判断是否需要换行
+  #shouldBreak(node, breakAtAuxiliary = false) {
+    if (!Translator.isElementOrFragment(node)) return false;
+    const auxiliaryRole = this.#getParagraphAuxiliaryRole(node);
+    if (auxiliaryRole) return breakAtAuxiliary || auxiliaryRole === "boundary";
+    if (isInlineHidden(node) || this.#isKissIgnoredNode(node)) return true;
     if (this.#isKeptInline(node)) return false;
 
     if (
@@ -4596,7 +4629,6 @@ overflow-wrap: anywhere !important;`;
 
       // 文本节点
       if (node.nodeType === Node.TEXT_NODE) {
-        if (isInNonContent(node)) return "";
         let text = node.textContent;
         if (!text.trim()) return "";
 
@@ -4672,8 +4704,6 @@ overflow-wrap: anywhere !important;`;
               .warn("traverse child error", child.nodeName, err);
           }
         });
-
-        if (!innerContent) return "";
 
         if (
           this.#rule.hasRichText === "true" &&
@@ -4980,7 +5010,7 @@ overflow-wrap: anywhere !important;`;
       for (const child of node.children) {
         if (child.classList.contains(Translator.KISS_CLASS.warpper)) {
           wrappers.push(child);
-        } else if (!this.#shouldBreak(child)) {
+        } else if (!this.#shouldBreak(child, true)) {
           stack.push(child);
         }
       }
@@ -5012,12 +5042,7 @@ overflow-wrap: anywhere !important;`;
     }
 
     while (current) {
-      if (
-        this.#shouldBreak(current) &&
-        !Translator.TAGS.WARP.has(current.nodeName?.toUpperCase())
-      ) {
-        break;
-      }
+      if (this.#shouldBreak(current)) break;
 
       if (
         current.nodeType === Node.ELEMENT_NODE ||
