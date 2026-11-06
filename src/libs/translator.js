@@ -773,15 +773,21 @@ export class Translator {
     );
   }
 
+  // 行内可见文本的统一跳过口径（#getSourceText 与句拆 textLength/句末
+  // 判断共用）：非内容节点、KISS UI 节点、ignoreSelector 命中（keepSelector
+  // 行内保留除外）中的文本一律不计。
+  #isInlineContentSkipped(element) {
+    return (
+      element.matches(NON_CONTENT_SELECTOR) ||
+      element.matches(Translator.KISS_IGNORE_SELECTOR) ||
+      (element.matches(this.#ignoreSelector) && !this.#isKeptInline(element))
+    );
+  }
+
   #getSourceText(node) {
     if (isInNonContent(node) || this.#isKissIgnoredNode(node)) return "";
-    const ignoreSelector = this.#ignoreSelector;
-    return getInlineVisibleText(
-      node,
-      (element) =>
-        element.matches(NON_CONTENT_SELECTOR) ||
-        element.matches(Translator.KISS_IGNORE_SELECTOR) ||
-        (element.matches(ignoreSelector) && !this.#isKeptInline(element))
+    return getInlineVisibleText(node, (element) =>
+      this.#isInlineContentSkipped(element)
     );
   }
 
@@ -3412,11 +3418,19 @@ export class Translator {
 
     [...parentNode.childNodes].forEach((node) => {
       if (this.#getParagraphAuxiliaryRole(node)) return;
-      const text = node.childElementCount
-        ? getInlineVisibleText(node, (element) =>
-            Boolean(this.#getParagraphAuxiliaryRole(element))
-          )
-        : node.textContent;
+      // 文本长度与句末判断同 #getSourceText 过滤口径：元素子节点统一走
+      // getInlineVisibleText（auxiliary + 共享跳过谓词），KISS UI / 忽略
+      // 元素（含无元素子级的叶子元素）文本不计数、不参与句末判断；文本
+      // 节点维持 textContent 原状。
+      const text =
+        node.nodeType === Node.ELEMENT_NODE
+          ? getInlineVisibleText(
+              node,
+              (element) =>
+                Boolean(this.#getParagraphAuxiliaryRole(element)) ||
+                this.#isInlineContentSkipped(element)
+            )
+          : node.textContent;
       textLength += text.length;
 
       const isSentenceEnd = sentenceEndRegexForTest.test(text);
