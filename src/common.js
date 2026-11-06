@@ -15,6 +15,7 @@ import { createBlacklistStartupRecovery } from "./libs/blacklistStartup";
 import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
 import { injectInlineJs } from "./libs/injector";
+import { setRedactionNotifier } from "./libs/aifw";
 import TranslatorManager from "./libs/translatorManager";
 
 /**
@@ -151,6 +152,9 @@ function showErr(message) {
   closeButton.onclick = removeBanner;
   setTimeout(removeBanner, 10000); // 10秒后自动消失
 }
+
+// 隐私脱敏后台宿主不可用时，用页面顶部 Banner 提示用户（脱敏会跳过本次请求）。
+setRedactionNotifier(showErr);
 
 /**
  * 依据匹配规则，获取用户生词本中的所有单词用于高亮显示。

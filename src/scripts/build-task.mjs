@@ -28,6 +28,12 @@ const inDest = (file) => path.join(targetDir, file);
 console.log(chalk.blue(`\n🚀 Starting build task for: ${chalk.bold(target)}`));
 
 try {
+  // 0. 【aifw】 从 aifw 子模块构建/同步运行期产物到 src/vendor/aifw-js；
+  //    无工具链（zig/rust wasm）时脚本会 warn 并沿用已有产物，
+  //    CI 通过 AIFW_BUILD_STRICT=1 或 --strict 强制失败。
+  console.log(chalk.gray("Ensuring aifw runtime assets..."));
+  await $({ stdio: "inherit" })`node src/scripts/build-aifw.mjs`;
+
   // 1. 【清理】 清空当前目标的构建目录
   await fs.remove(targetDir);
 
@@ -68,6 +74,15 @@ try {
 
     console.log(chalk.gray(`Running react-app-rewired build...`));
     await $({ stdio: "inherit" })`react-app-rewired build`;
+  }
+
+  // 2.5 【aifw】 把运行期产物放到构建根目录：由 build:aifw 生成到 src/vendor，
+  //     打包时复制过去；不进入 webpack bundle，也不占 public/。Edge 复制 Chrome 时已包含。
+  if (
+    ["chrome", "edge-dev", "firefox", "thunderbird", "safari"].includes(target)
+  ) {
+    await fs.copy(path.join("src", "vendor", "aifw-js"), inDest("aifw-js"));
+    console.log(chalk.green("✅ Copied aifw runtime assets."));
   }
 
   // 3. 【后处理】 文件清理与移动
@@ -168,15 +183,16 @@ try {
       });
     }
     const runtimeHtml =
-      '<!doctype html><html><head><meta charset="utf-8"></head><body><script type="module" src="/offscreen.js"></script></body></html>';
+      '<!doctype html><html><head><meta charset="utf-8"></head><body><script type="module" src="/offscreen.js"></script><script type="module" src="/aifw-host.js"></script></body></html>';
     await fs.writeFile(inDest("offscreen.html"), runtimeHtml);
     if (target === "firefox") {
+      // Firefox MV2 背景页由 background.js 直接承载 aifw 宿主逻辑。
+      // 不能加载 aifw-host.js（Chromium offscreen 专用），否则同一页面会出现
+      // 第二个 aifw 宿主实例：两个引擎先后 init 同一个 aifw-js 模块，其中一方
+      // deinit/shutdown 后，另一方的 session handle 失效（invalid session handle）。
       await fs.writeFile(
         inDest("local-ai-background.html"),
-        runtimeHtml.replace(
-          "</body>",
-          '<script src="/background.js"></script></body>'
-        )
+        '<!doctype html><html><head><meta charset="utf-8"></head><body><script type="module" src="/offscreen.js"></script><script src="/background.js"></script></body></html>'
       );
     }
   }

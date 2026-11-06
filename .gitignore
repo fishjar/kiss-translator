@@ -15,6 +15,10 @@
 # production
 /build
 /.local-ai-build/
+/.aifw-build/
+/.toolchain/
+# aifw runtime assets are built from the aifw submodule
+/src/vendor/aifw-js/
 
 # misc
 .DS_Store

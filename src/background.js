@@ -89,6 +89,12 @@ import {
   localAiSettings,
   localAiHost,
 } from "./libs/localAiBackground";
+import { AIFW_RPC, AIFW_HOST_RPC } from "./libs/aifw/protocol";
+import { handleHostRequest } from "./libs/aifw/host";
+import {
+  AIFW_MODEL_STATUS_KEY,
+  AIFW_MODEL_STATUS_UPDATE,
+} from "./libs/aifw/status";
 import { installProviderRelay } from "./providers/background";
 import { installFileTranslationBackend } from "./fileTranslation/backend";
 import { restoreFileTranslationBridges } from "./fileTranslation/bridgeRecovery";
@@ -930,11 +936,18 @@ const messageHandlers = {
 /**
  * 注册全局统一的 runtime.onMessage 消息通道监听器。
  */
-browser.runtime.onMessage.addListener(async ({ action, args }, sender) => {
+browser.runtime.onMessage.addListener((message, sender) => {
+  const { action, args } = message || {};
+  // 非 action 型消息是其它模块的内部 RPC（如 aifw 的 AIFW_RPC）。
+  // 这里必须同步返回 undefined（不能返回 Promise），否则 Firefox 会把它当作
+  // 本次 sendMessage 的响应（Promise 兑现为 undefined），抢先于真正处理者。
+  if (!action) return undefined;
   if (action === LOG_ACTION) return diagnostics.handle(args, sender);
   const handler = messageHandlers[action];
   if (!handler) {
-    throw new Error(`Message action is unavailable: ${action}`);
+    return Promise.reject(
+      new Error(`Message action is unavailable: ${action}`)
+    );
   }
 
   // 执行对应的处理器并回传结果给发送方 (Content Script / Popup)
@@ -1066,4 +1079,83 @@ browser.runtime.onConnect.addListener((port) => {
       }
     });
   }
+});
+
+// ---------------------------------------------------------------------------
+// 隐私脱敏（aifw）后台路由
+// - Chromium MV3：offscreen 文档加载 aifw-host.js，后台负责创建/转发 RPC
+// - Firefox / Thunderbird MV2：后台页有 document，直接在本上下文执行宿主逻辑
+// - Safari 等无宿主环境：返回错误，页面侧回退到页面内执行
+// ---------------------------------------------------------------------------
+const AIFW_OFFSCREEN_RETRY_TIMES = 12;
+const AIFW_OFFSCREEN_RETRY_INTERVAL = 250;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function sendAifwToOffscreen(message) {
+  let lastError;
+  for (let i = 0; i < AIFW_OFFSCREEN_RETRY_TIMES; i += 1) {
+    try {
+      return await browser.runtime.sendMessage({
+        ...message,
+        type: AIFW_HOST_RPC,
+      });
+    } catch (error) {
+      lastError = error;
+      const text = String(error?.message || error);
+      // offscreen 页面刚创建时脚本可能尚未注册监听，短暂重试等待。
+      if (
+        !/Receiving end does not exist|Could not establish connection|message port closed/i.test(
+          text
+        )
+      )
+        throw error;
+      await sleep(AIFW_OFFSCREEN_RETRY_INTERVAL);
+    }
+  }
+  throw lastError;
+}
+
+async function routeAifwRpc(message) {
+  try {
+    if (globalThis.chrome?.offscreen?.createDocument) {
+      await localAiHost({ action: "ensure" });
+      return await sendAifwToOffscreen(message);
+    }
+    // 无 offscreen API 时（Firefox/Thunderbird MV2 背景页）直接本地处理；
+    // MV3 service worker 中没有 document，无法承载引擎，返回错误让页面回退。
+    if (typeof document === "undefined")
+      return { ok: false, error: "AIFW host unavailable" };
+    return await handleHostRequest(message);
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
+browser.runtime.onMessage.addListener((message) => {
+  if (!message || message.type !== AIFW_RPC) return;
+  return routeAifwRpc(message);
+});
+
+/**
+ * 接收宿主（Edge offscreen 等无 storage.local 的上下文）转交的模型状态，
+ * 由后台写入 storage.local，供设置页订阅/轮询。
+ */
+function writeAifwModelStatus(message) {
+  try {
+    const area = browser?.storage?.local || globalThis.chrome?.storage?.local;
+    if (!area?.set) return Promise.resolve({ ok: false });
+    return Promise.resolve(
+      area.set({ [AIFW_MODEL_STATUS_KEY]: message.status })
+    )
+      .then(() => ({ ok: true }))
+      .catch(() => ({ ok: false }));
+  } catch {
+    return Promise.resolve({ ok: false });
+  }
+}
+
+browser.runtime.onMessage.addListener((message) => {
+  if (!message || message.type !== AIFW_MODEL_STATUS_UPDATE) return undefined;
+  return writeAifwModelStatus(message);
 });

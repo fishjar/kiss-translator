@@ -27,7 +27,9 @@
   "web_accessible_resources": [
     "injector-subtitle.js",
     "injector-shadowroot.js",
-    "api/*"
+    "api/*",
+    "aifw-js/*",
+    "aifw-js/wasm/*"
   ],
   "commands": {
     "_execute_browser_action": {

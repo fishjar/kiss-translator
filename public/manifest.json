@@ -39,7 +39,9 @@
     {
       "resources": [
         "injector-shadowroot.js",
-        "api/*"
+        "api/*",
+        "aifw-js/*",
+        "aifw-js/wasm/*"
       ],
       "matches": [
         "<all_urls>"

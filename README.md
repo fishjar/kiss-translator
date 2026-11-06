@@ -195,7 +195,13 @@ pnpm build:firefox     # 构建 Firefox 扩展（输出至 build/firefox）
 pnpm start             # 启动 Web 端本地开发调试（http://localhost:3000）
 pnpm check:pr          # 提交 PR 前代码格式化与构建自检
 pnpm build             # 全量打包构建所有平台
+pnpm toolchain:download # 下载本地编译链（zig 0.15.2 + pnpm 9.14.4 到 .toolchain，gitignored）
+pnpm clean              # 清理构建缓存（build/tmp/.local-ai-build/node_modules/.cache）
+pnpm clean:aifw         # 清理 aifw 编译产物（下次自动重建）
+pnpm clean --dry-run    # 只列出可清理的内容和大小
 ```
+
+> **首次构建**会先执行 `pnpm build:aifw`，从 `aifw` 子模块（`git submodule update --init --recursive`）构建 `src/vendor/aifw-js/`（不随仓库提交，需要 zig 0.15.x + rust `wasm32-unknown-unknown`）。工具链是**项目本地编译链**：放在 `.toolchain/`（已 gitignore），可用 `pnpm toolchain:download` 一键下载 zig 0.15.2 + pnpm 9.14.4，构建时优先使用它，避免系统 PATH 上的其他版本干扰；也可用 `AIFW_ZIG_PATH` 显式指定。缺少工具链时构建会明确失败，而不是产出缺少隐私脱敏资源的扩展包。
 
 ### 在浏览器中加载扩展（以 Chrome / Edge 为例）
 
@@ -203,6 +209,18 @@ pnpm build             # 全量打包构建所有平台
 2. 开启页面右上角或侧栏的 **「开发者模式」**。
 3. 点击 **「加载已解压的扩展程序」**，选择项目根目录下的 `build/chrome` 目录。
 4. 修改代码后重新执行 `pnpm build:chrome`，并在扩展管理页点击对应卡片的刷新按钮即可生效。
+
+### 在 Firefox / Thunderbird 中加载扩展
+
+```sh
+pnpm build:firefox      # 输出至 build/firefox
+pnpm build:thunderbird  # 输出至 build/thunderbird
+```
+
+1. Firefox 打开 `about:debugging#/runtime/this-firefox`，点击 **「临时载入附加组件」**，选择 `build/firefox/manifest.json`（Thunderbird 对应 `about:debugging` 与 `build/thunderbird`）。
+2. Firefox 版使用 **MV2** 清单（`public/manifest.firefox.json`），后台是 `local-ai-background.html`，与 Chrome/Edge 的 MV3 构建不同。
+3. **不要在 Firefox 中加载 `build/chrome`**：它是 MV3 清单、使用 `background.service_worker`，Firefox 会提示 `background.service_worker is currently disabled. Add background.scripts.`，应改用 `pnpm build:firefox` 的产物。
+4. 首次执行 `build:firefox` 会顺带构建本地 AI 运行时（缓存到 `.local-ai-build`），耗时较长；之后命中缓存会跳过。
 
 插件开发请阅读 [插件开发指南](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)，并参考 [OpenAI 兼容协议插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) 或 [DeepSeek 插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)。
 

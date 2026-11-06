@@ -63,6 +63,8 @@ const extWebpack = (config, env) => {
       : {}),
     "injector-shadowroot": paths.appSrc + "/injector-shadowroot.js", // ShadowRoot 拦截注入脚本
     "file-bridge": paths.appSrc + "/fileBridge.js",
+    // 隐私脱敏引擎的后台宿主：仅 Chromium offscreen.html 加载（Firefox 由 background.js 直接承载）
+    "aifw-host": paths.appSrc + "/aifwHost.js",
   };
 
   configureHtmlDecoder(config, webpack);

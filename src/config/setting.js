@@ -362,6 +362,7 @@ export const DEFAULT_SETTING = {
   httpTimeout: DEFAULT_HTTP_TIMEOUT, // 接口请求超时时间
   clearCache: false, // 每次浏览器重启时，是否自动清空翻译结果的本地网络缓存
   autoTranslateClipboard: false, // 打开文本翻译面板或重新聚焦独立窗口时，是否自动翻译剪贴板文本
+  privacyMask: false, // 翻译请求前是否在本机对文本做 PII（人名/邮箱/电话/银行卡等）脱敏，返回后再还原
   checkUpdate: true, // 打开设置页面时是否自动检查是否有新版本
   popupDefaultView: OPT_POPUP_DEFAULT_VIEW_PAGE, // 工具栏弹窗打开时默认显示的界面
   injectRules: true, // 页面加载时是否自动匹配并注入云端订阅的翻译规则
