@@ -9932,6 +9932,47 @@ describe("Translator rule styles", () => {
       expect(inner.textContent).toBe("智能体集合 and GPT");
     });
 
+    test("a failed group keeps its retry node in its own wrapper and does not clear a sibling group's translation", async () => {
+      let rejectFirst;
+      apiTranslate.mockImplementation(({ text }) => {
+        if (text.includes("First")) {
+          return new Promise((_, reject) => {
+            rejectFirst = reject;
+          });
+        }
+        return Promise.resolve({ trText: `translated ${text}`, isSame: false });
+      });
+      document.body.innerHTML =
+        '<main id="root"><div id="target">First paragraph text<br><br>Second paragraph text</div></main>';
+
+      createTranslator(
+        { autoScan: "false", selector: "#target" },
+        { minLength: 0 }
+      );
+      await flushAsync();
+
+      const wrappers = document.querySelectorAll(
+        `#target > .${Translator.KISS_CLASS.warpper}`
+      );
+      expect(wrappers).toHaveLength(2);
+      expect(wrappers[1].textContent).toContain("translated Second");
+
+      // the earlier group fails only after the later group has succeeded
+      rejectFirst(new Error("429 Too Many Requests"));
+      await flushAsync();
+
+      const after = document.querySelectorAll(
+        `#target > .${Translator.KISS_CLASS.warpper}`
+      );
+      expect(after[1].textContent).toContain("translated Second");
+      expect(
+        after[1].querySelector(`.${Translator.KISS_CLASS.retry}`)
+      ).toBeNull();
+      expect(
+        after[0].querySelector(`.${Translator.KISS_CLASS.retry}`)
+      ).not.toBeNull();
+    });
+
     test("占位符序号跨运行隔离：每次请求都从 1 开始编号", async () => {
       apiTranslate.mockImplementation(({ text }) =>
         Promise.resolve({ trText: text, isSame: false })

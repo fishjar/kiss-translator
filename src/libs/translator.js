@@ -4216,25 +4216,19 @@ export class Translator {
 
       // 失败重试按钮
       try {
-        const lastWrapper = hostNode.querySelector(
-          `:scope > .${Translator.KISS_CLASS.warpper}:last-of-type`
-        );
-        if (lastWrapper) {
-          const inner = lastWrapper.querySelector(
-            `.${Translator.KISS_CLASS.inner}`
-          );
-          if (inner) {
-            inner.textContent = "";
-            const retryNode = this.#createRetryErrorNode(errorText, () => {
-              this.#withViewportAnchor(() => {
-                touchTranslationOwners.delete(lastWrapper);
-                lastWrapper.remove();
-              });
-              this.#processedNodes.delete(hostNode);
-              this.#translateNodeGroup(nodes, hostNode, deLang, options);
+        // 只处理本次请求自己的 wrapper：宿主上可能还有其他分组已成功的译文
+        const inner = wrapper.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        if (inner) {
+          inner.textContent = "";
+          const retryNode = this.#createRetryErrorNode(errorText, () => {
+            this.#withViewportAnchor(() => {
+              touchTranslationOwners.delete(wrapper);
+              wrapper.remove();
             });
-            inner.appendChild(retryNode);
-          }
+            this.#processedNodes.delete(hostNode);
+            this.#translateNodeGroup(nodes, hostNode, deLang, options);
+          });
+          inner.appendChild(retryNode);
         }
       } catch (retryErr) {
         logger.child("translator").warn("retry icon error: ", retryErr.message);
