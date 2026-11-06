@@ -391,7 +391,6 @@ export const RU_I18N = {
   blacklist: `Чёрный список`,
   add_to_blacklist: `Добавить в чёрный список`,
   remove_from_blacklist: `Убрать из чёрного списка`,
-  disabled_orilist: `Список сайтов с подменой Origin`,
   disabled_csplist: `Список сайтов с отключённым CSP`,
   disabled_csplist_helper: `3. Изменение политики CSP позволяет внедрять JS/CSS/медиа на некоторых страницах. Пользуйтесь осторожно и только понимая связанные риски.`,
   skip_langs: `Не переводить языки`,
