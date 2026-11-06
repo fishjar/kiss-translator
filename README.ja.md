@@ -43,7 +43,7 @@
 
 ### サービス設定と API プラグイン
 
-- **多彩な組み込みサービス**：Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX をはじめ、OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI などの主要な AI 翻訳サービス、Chrome ブラウザ内蔵 AI、ローカル AI に対応。
+- **多彩な組み込みサービス**：Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX をはじめ、OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、Runcrate、AzureAI、CloudflareAI などの主要な AI 翻訳サービス、Chrome ブラウザ内蔵 AI、ローカル AI に対応。
 - **能力に応じた柔軟な選択**：テキスト翻訳、辞書検索、字幕区切り、OCR 文字認識、音声合成などの機能ごとにサービスとモデルパラメータを個別に設定可能。一括バッチ翻訳、ストリーミング出力、コンテキスト対話記憶、AI 用語集、思考プロセス（Reasoning）設定をサポート。
 - **API プラグインエコシステム**：公式・外部プラグインを別々のリストから選び、クリックしてオンラインでインストールできます。ZIP、ローカルフォルダ、GitHub リポジトリのルート URL、HTTPS リンクからの導入にも対応。通信先は宣言された範囲に制限され、手動更新と保存済みサービスインスタンスのアップグレードを提供します。
 - **オープンなカスタムプロトコル**：非標準の API もプラグイン経由で柔軟に統合可能。詳細は [プラグイン開発ガイド（中国語）](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)、[OpenAI 互換プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md)、[DeepSeek プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md) を参照してください。

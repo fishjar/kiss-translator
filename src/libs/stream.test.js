@@ -22,6 +22,7 @@ import {
   OPT_TRANS_GEMINI,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_RUNCRATE,
 } from "../config";
 
 describe("createRealtimeStreamParser", () => {
@@ -142,6 +143,16 @@ describe("getStreamDelta", () => {
 
     expect(getStreamDelta(chunk, OPT_TRANS_REQUESTY)).toBe("敏");
     expect(getStreamDelta({ choices: [] }, OPT_TRANS_REQUESTY)).toBe("");
+  });
+
+  test("extracts Runcrate as an OpenAI-compatible stream", () => {
+    const chunk = {
+      choices: [{ delta: { content: "敏" }, finish_reason: null, index: 0 }],
+      object: "chat.completion.chunk",
+    };
+
+    expect(getStreamDelta(chunk, OPT_TRANS_RUNCRATE)).toBe("敏");
+    expect(getStreamDelta({ choices: [] }, OPT_TRANS_RUNCRATE)).toBe("");
   });
 
   test("extracts only text step deltas from Gemini interactions", () => {

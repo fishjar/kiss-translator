@@ -16,6 +16,7 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_RUNCRATE,
   OPT_TRANS_CUSTOMIZE,
   OPT_TRANS_LOCALAI,
 } from "../config/apiConstants";
@@ -41,6 +42,7 @@ export function parseNativeDictionaryResponse(res, apiType) {
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_REQUESTY:
+    case OPT_TRANS_RUNCRATE:
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content || "";
     case OPT_TRANS_GEMINI:
@@ -72,6 +74,7 @@ export function parseNativeSummaryResponse(res, apiType) {
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_REQUESTY:
+    case OPT_TRANS_RUNCRATE:
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content?.trim() || "";
     case OPT_TRANS_GEMINI:
@@ -115,6 +118,7 @@ export async function parseNativeSubtitleResponse(
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_REQUESTY:
+    case OPT_TRANS_RUNCRATE:
     case OPT_TRANS_OLLAMA:
       return parseSTRes(
         res?.choices?.[0]?.message?.content ?? "",

@@ -32,6 +32,7 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_RUNCRATE,
   OPT_TRANS_CUSTOMIZE,
 } from "../config";
 import { genGoogle, genGoogle2, genGoogleCloud } from "./google";
@@ -123,6 +124,7 @@ const genReqFuncs = {
   [OPT_TRANS_OPENROUTER]: genOpenRouter,
   [OPT_TRANS_ORCAROUTER]: genOrcaRouter,
   [OPT_TRANS_REQUESTY]: genRequesty,
+  [OPT_TRANS_RUNCRATE]: genOpenAI,
   [OPT_TRANS_CUSTOMIZE]: genCustom,
 };
 

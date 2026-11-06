@@ -81,6 +81,7 @@ export const OPT_TRANS_OLLAMA = "Ollama"; // 本地部署 Ollama 模型翻译
 export const OPT_TRANS_OPENROUTER = "OpenRouter"; // OpenRouter 多模型聚合 API 翻译
 export const OPT_TRANS_ORCAROUTER = "OrcaRouter"; // OrcaRouter 多模型聚合 API 翻译
 export const OPT_TRANS_REQUESTY = "Requesty"; // Requesty 多模型聚合 API 翻译
+export const OPT_TRANS_RUNCRATE = "Runcrate"; // Runcrate 开放模型 OpenAI 兼容 API 翻译
 export const OPT_TRANS_CUSTOMIZE = "Custom"; // 自定义翻译 API
 
 // 内置支持的翻译引擎
@@ -120,6 +121,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_RUNCRATE,
   OPT_TRANS_CUSTOMIZE,
 ];
 
@@ -166,6 +168,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_REQUESTY,
+    OPT_TRANS_RUNCRATE,
     OPT_TRANS_CUSTOMIZE,
   ]),
   // 支持多 API Key 轮询/备用的引擎
@@ -191,6 +194,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_REQUESTY,
+    OPT_TRANS_RUNCRATE,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
@@ -220,6 +224,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_REQUESTY,
+    OPT_TRANS_RUNCRATE,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
@@ -242,6 +247,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_REQUESTY,
+    OPT_TRANS_RUNCRATE,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
     OPT_TRANS_CUSTOMIZE,
@@ -264,6 +270,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_OPENROUTER,
     OPT_TRANS_ORCAROUTER,
     OPT_TRANS_REQUESTY,
+    OPT_TRANS_RUNCRATE,
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
   ]),
