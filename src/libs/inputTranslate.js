@@ -634,6 +634,8 @@ export class InputTranslator {
         textFormat: "text",
         translateVariants: this.#config.translateVariants,
       });
+      if (getDeepActiveElement() !== node) return;
+
       const { trText, isSame } = result || {};
 
       // 输入框写回纯文本，开启后将模型输出的行内 LaTeX 转成可读的 Unicode

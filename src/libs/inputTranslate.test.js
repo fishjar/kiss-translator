@@ -274,6 +274,49 @@ describe("InputTranslator input button", () => {
     );
     expect(target.value).toBe("First isn't & simple\n\nSecond");
   });
+  test.each(["textarea", "shadow textarea"])(
+    "a delayed translation does not refocus a %s after focus moves",
+    async (kind) => {
+      translator.disable();
+      const primary = { apiSlug: "primary", apiType: "Microsoft" };
+      translator = new InputTranslator({
+        inputRule: { transOpen: false, apiSlug: "primary" },
+        transApis: [primary],
+      });
+      resolveApiPromptSettings.mockReturnValue(primary);
+      createLoadingSVG.mockReturnValue(
+        document.createElementNS("http://www.w3.org/2000/svg", "svg")
+      );
+      let finish;
+      apiTranslate.mockReset().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          })
+      );
+      const target = document.createElement("textarea");
+      target.value = "original";
+      if (kind === "shadow textarea") {
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        host.attachShadow({ mode: "open" }).appendChild(target);
+      } else {
+        document.body.appendChild(target);
+      }
+      target.focus();
+      const pending = translator.handleTranslate({ isBtnTrigger: true });
+      const other = document.createElement("input");
+      other.value = "typing elsewhere";
+      document.body.appendChild(other);
+      other.focus();
+      finish({ trText: "translated", isSame: false });
+      await pending;
+
+      expect(document.activeElement).toBe(other);
+      expect(target.value).toBe("original");
+      expect(other.value).toBe("typing elsewhere");
+    }
+  );
   test("selected failure does not use a leftover fallback list", async () => {
     translator.disable();
     const primary = { apiSlug: "primary", apiType: "Microsoft" };
