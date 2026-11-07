@@ -3494,6 +3494,34 @@ describe("Translator rule styles", () => {
         });
       }
     );
+
+    test("does not translate when the manual selector hits a script directly", async () => {
+      // 手动选择器直接命中 script：script 属非内容节点，不得发起请求，
+      // 也不得插入译文包装器。
+      document.body.innerHTML =
+        '<main id="root"><p>Outside content.</p><script>secret source();</script></main>';
+      createTranslator({ autoScan: "false", selector: "script" });
+      await flushAsync();
+
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(
+        document.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+      ).toBeNull();
+    });
+
+    test("tolerates blank scripts matched by the manual selector", async () => {
+      // 空白 script 命中选择器：不得抛错（用例跑通即证）、不得发请求、
+      // 不得插入包装器。
+      document.body.innerHTML =
+        '<main id="root"><p>Outside content.</p><script></script><script>   </script></main>';
+      createTranslator({ autoScan: "false", selector: "script" });
+      await flushAsync();
+
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(
+        document.querySelector(`.${Translator.KISS_CLASS.warpper}`)
+      ).toBeNull();
+    });
   });
 
   test("skips whitespace-only groups around block children in selected list items", async () => {
