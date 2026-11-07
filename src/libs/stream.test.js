@@ -225,6 +225,23 @@ describe("getStreamDelta", () => {
     );
     expect(getStreamDelta({ type: "message_stop" }, OPT_TRANS_CLAUDE)).toBe("");
   });
+
+  test("turns Claude stream error events into fallback errors", () => {
+    let error;
+    try {
+      getStreamDelta(
+        {
+          type: "error",
+          error: { type: "overloaded_error", message: "Overloaded" },
+        },
+        OPT_TRANS_CLAUDE
+      );
+    } catch (e) {
+      error = e;
+    }
+    expect(error?.message).toBe("Overloaded");
+    expect(error?.isAIStreamTerminal).toBe(true);
+  });
 });
 
 describe("parseStreamingSegments", () => {

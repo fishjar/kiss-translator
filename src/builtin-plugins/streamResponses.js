@@ -77,6 +77,12 @@ export function getStreamDelta(json, apiType) {
     }
     case OPT_TRANS_CLAUDE:
       // Anthropic Claude 格式 delta 提取逻辑
+      if (json.type === "error") {
+        // 流中途的 error 事件（如 overloaded_error）必须终止，交由上层回退到非流式
+        const error = new Error(json.error?.message || "Claude stream failed");
+        error.isAIStreamTerminal = true;
+        throw error;
+      }
       if (json.type === "content_block_delta") {
         return json.delta?.text || "";
       }
