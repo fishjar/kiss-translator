@@ -11,6 +11,8 @@ const {
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
   STOKEY_RULES,
   STOKEY_RULES_IGNORE_MIGRATED,
+  DEFAULT_IGNORE_SELECTOR,
+  DEFAULT_KEEP_SELECTOR,
   STOKEY_SYNC,
   KV_RULES_KEY,
   SETTINGS_VERSION_V2,
@@ -38,6 +40,8 @@ const {
 jest.mock("@streamparser/json", () => ({ JSONParser: jest.fn() }));
 // jsdom 并非扩展页面，使用空实现避免 webextension-polyfill 在模块初始化时主动抛错。
 jest.mock("webextension-polyfill", () => ({}));
+jest.mock("./subRules", () => ({ loadOrFetchSubRules: jest.fn() }));
+jest.mock("./sync", () => ({ trySyncRules: jest.fn() }));
 
 const readStoredJson = (key) => JSON.parse(window.localStorage.getItem(key));
 
@@ -130,7 +134,7 @@ describe("settings storage migration", () => {
     );
   });
 
-  test("migrates only global ignores once and preserves later edits", async () => {
+  test("migrates only global selectors once and preserves later edits", async () => {
     const site = { pattern: "example.com", ignoreSelector: "-.notranslate" };
     const globalRule = {
       pattern: "*",
@@ -142,8 +146,9 @@ describe("settings storage migration", () => {
     const migrated = readStoredJson(STOKEY_RULES);
     expect(migrated[0]).toEqual({
       ...globalRule,
+      keepSelector: DEFAULT_KEEP_SELECTOR,
       ignoreSelector:
-        ".mine, svg, address, select, option, .notranslate, [translate='no']",
+        ".mine, svg, address, select, option, .notranslate, [translate='no'], .MathJax_Display",
     });
     expect(migrated[1]).toEqual(site);
     expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
@@ -151,6 +156,108 @@ describe("settings storage migration", () => {
     localStorage.setItem(STOKEY_RULES, JSON.stringify(migrated));
     await runDataMigration();
     expect(readStoredJson(STOKEY_RULES)).toEqual(migrated);
+  });
+
+  describe("global selector migration from master", () => {
+    test("new installs include MathJax defaults", async () => {
+      expect(await runDataMigration()).toBe(true);
+      const globalRule = readStoredJson(STOKEY_RULES).find(
+        (rule) => rule.pattern === "*"
+      );
+      expect(globalRule.ignoreSelector).toBe(DEFAULT_IGNORE_SELECTOR);
+      expect(globalRule.keepSelector).toBe(DEFAULT_KEEP_SELECTOR);
+      expect(globalRule.ignoreSelector).toContain(".MathJax_Display");
+      expect(globalRule.keepSelector).toContain(".MathJax");
+      expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+    });
+
+    test.each([
+      [".mine", "code"],
+      [".mine, .MathJax_Display", "code, +.MathJax"],
+      ["-.blocked, .another", "+code, -.removed"],
+      ["-svg, [class*='logo'] svg", "code"],
+      ["-.MathJax_Display", "-.other, .MathJax"],
+      [':is(.one, .two), [data-label="a,b"]', "a:has(code, cite)"],
+    ])(
+      "preserves selector semantics and later edits: %s / %s",
+      async (ignoreSelector, keepSelector) => {
+        const site = {
+          pattern: "example.com",
+          ignoreSelector: "-.MathJax_Display",
+          keepSelector: "-.MathJax",
+        };
+        const globalRule = {
+          pattern: "*",
+          apiSlug: "custom",
+          ignoreSelector,
+          keepSelector,
+        };
+        localStorage.setItem(STOKEY_RULES, JSON.stringify([globalRule, site]));
+        expect(await runDataMigration()).toBe(true);
+        const migrated = readStoredJson(STOKEY_RULES);
+        expect(migrated[1]).toEqual(site);
+        expect(migrated[0].apiSlug).toBe("custom");
+        const { splitSelectorList } = require("./selectorList");
+        const { mergeSelectors } = require("./rules");
+        for (const [field, selector] of [
+          ["ignoreSelector", ".MathJax_Display"],
+          ["keepSelector", ".MathJax"],
+        ]) {
+          const original = splitSelectorList(globalRule[field]);
+          const next = splitSelectorList(migrated[0][field]);
+          expect(next).toEqual(expect.arrayContaining(original));
+          expect(
+            next.filter((item) => item.replace(/^[+-]\s*/, "") === selector)
+          ).toHaveLength(1);
+          const explicitlyRemoved =
+            globalRule[field].includes(`-${selector}`) ||
+            (field === "keepSelector" && keepSelector === "-.other, .MathJax");
+          expect(
+            splitSelectorList(mergeSelectors("", migrated[0][field])).includes(
+              selector
+            )
+          ).toBe(!explicitlyRemoved);
+        }
+        const edited = [
+          { ...globalRule, ignoreSelector: ".edited", keepSelector: "code" },
+          site,
+        ];
+        localStorage.setItem(STOKEY_RULES, JSON.stringify(edited));
+        await runDataMigration();
+        expect(readStoredJson(STOKEY_RULES)).toEqual(edited);
+      }
+    );
+
+    test.each(["ignoreSelector", "keepSelector"])(
+      "leaves invalid %s untouched and retries after repair",
+      async (field) => {
+        const rules = [
+          {
+            pattern: "*",
+            ignoreSelector: ".mine",
+            keepSelector: "code",
+            [field]: "[broken",
+          },
+        ];
+        const bytes = JSON.stringify(rules);
+        localStorage.setItem(STOKEY_RULES, bytes);
+        localStorage.setItem(
+          STOKEY_SETTING,
+          JSON.stringify({ version: SETTINGS_VERSION_V3, darkMode: true })
+        );
+        expect(await runDataMigration()).toBe(true);
+        expect(localStorage.getItem(STOKEY_RULES)).toBe(bytes);
+        expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBeNull();
+        expect(readStoredJson(STOKEY_SETTING).version).toBe(
+          CURRENT_SETTINGS_VERSION
+        );
+        rules[0][field] = ".repaired";
+        localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+        expect(await runDataMigration()).toBe(true);
+        expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+        expect(readStoredJson(STOKEY_RULES)[0][field]).toContain(".repaired");
+      }
+    );
   });
 
   test.each([
