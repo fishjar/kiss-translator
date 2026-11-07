@@ -105,6 +105,8 @@ function TestController({
   toLang = "zh-CN",
   skipLangs,
   hideClickAway,
+  onRemoteSelection,
+  setRemotePosition,
 }) {
   const tranboxSetting = {
     triggerMode,
@@ -124,6 +126,8 @@ function TestController({
     boxSize,
     setBoxPosition,
     hideClickAway,
+    onRemoteSelection,
+    setRemotePosition,
   });
 
   useEffect(() => {
@@ -251,6 +255,40 @@ describe("useSelectionController", () => {
     windowGetSelectionSpy.mockRestore();
     documentGetSelectionSpy.mockRestore();
     jest.useRealTimers();
+  });
+
+  test("iframe selections use remote positioning and stale close messages cannot hide a newer selection", () => {
+    const onRemoteSelection = jest.fn();
+    const setRemotePosition = jest.fn(() => ({ x: 30, y: 40 }));
+    const controller = renderController({
+      followSelection: true,
+      hideClickAway: true,
+      onRemoteSelection,
+      setRemotePosition,
+    });
+    const remote = (detail) =>
+      act(() =>
+        document.dispatchEvent(
+          new CustomEvent("kiss-session-selection", { detail })
+        )
+      );
+    remote({
+      text: "first iframe",
+      context: "first context",
+      fromFrame: true,
+      requestId: "first",
+    });
+    expect(controller.state.text).toBe("first iframe");
+    expect(controller.state.textContext).toBe("first context");
+    expect(onRemoteSelection).toHaveBeenLastCalledWith(true);
+    expect(controller.setBoxPosition).not.toHaveBeenCalled();
+    expect(setRemotePosition).toHaveBeenCalledWith({ x: 30, y: 40 });
+    remote({ text: "second iframe", fromFrame: true, requestId: "second" });
+    remote({ close: true, requestId: "first" });
+    expect(controller.state.showBox).toBe(true);
+    remote({ close: true, requestId: "second" });
+    expect(controller.state.showBox).toBe(false);
+    act(() => controller.root.unmount());
   });
 
   test("keeps page selections pending until the trigger button in click mode", async () => {

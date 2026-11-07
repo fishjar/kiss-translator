@@ -1,3 +1,5 @@
+import { createPageSessionBackend } from "./libs/pageSessionBackground";
+import { SESSION_MESSAGE } from "./libs/pageSession";
 import browser from "webextension-polyfill";
 import { captionCacheBackend } from "./subtitle/captionCacheBackground";
 import { MSG_YOUTUBE_CAPTION_CACHE } from "./config/msg";
@@ -66,7 +68,7 @@ import { fetchHandle, fetchStreamNative } from "./libs/fetch";
 import { handleFetchPort } from "./libs/requestPort";
 import { PORT_FETCH } from "./config/msg";
 import { tryClearCaches, getHttpCache, putHttpCache } from "./libs/cache";
-import { sendTabMsg } from "./libs/msg";
+import { sendTabMsg, setPageSessionDispatcher } from "./libs/msg";
 import { trySyncAllSubRules } from "./libs/subRules";
 import { saveRule } from "./libs/rules";
 import { getCurTabId } from "./libs/msg";
@@ -804,7 +806,11 @@ const handleCaptionCache = captionCacheBackend(browser, async () => {
 });
 const activeImageTasks = new Map();
 
+const handlePageSession = createPageSessionBackend(browser);
+setPageSessionDispatcher(handlePageSession);
+
 const messageHandlers = {
+  [SESSION_MESSAGE]: handlePageSession,
   [MSG_YOUTUBE_CAPTION_CACHE]: handleCaptionCache,
   [MSG_GET_FRAME_ID]: (_args, sender) =>
     Number.isInteger(sender?.frameId) ? sender.frameId : undefined,
@@ -982,7 +988,7 @@ browser.commands?.onCommand?.addListener?.((command) => {
  * 触发时，通过 Chrome 消息管道将对应指令转发给用户所点击页面的前台 Content Script。
  */
 browser?.contextMenus?.onClicked?.addListener?.(
-  ({ menuItemId, selectionText }) => {
+  ({ menuItemId, selectionText, frameId }, tab) => {
     switch (menuItemId) {
       case CMD_TOGGLE_TRANSLATE:
         sendTabMsg(MSG_TRANS_TOGGLE);
@@ -994,7 +1000,12 @@ browser?.contextMenus?.onClicked?.addListener?.(
         sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
         break;
       case CMD_OPEN_TRANBOX:
-        sendTabMsg(MSG_OPEN_TRANBOX, { text: selectionText });
+        handlePageSession({
+          kind: "command",
+          tabId: tab?.id,
+          action: MSG_OPEN_TRANBOX,
+          args: { text: selectionText, fromFrame: frameId !== 0 },
+        });
         break;
       case CMD_TOGGLE_TRANBOX:
         sendTabMsg(MSG_TRANSBOX_TOGGLE);

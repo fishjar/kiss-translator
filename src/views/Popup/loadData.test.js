@@ -65,28 +65,15 @@ describe("loadPopupData", () => {
     expect(mockSendTabMsg).not.toHaveBeenCalled();
   });
 
-  test("loads an enabled child frame only after both top-frame attempts fail", async () => {
-    const childData = { ...popupData, isTopFrame: false };
+  test("does not replace the page session with an arbitrary child response", async () => {
     mockSendTopFrameMsg.mockResolvedValue(undefined);
-    mockSendTabMsg.mockResolvedValue(childData);
-    const wait = jest.fn().mockResolvedValue(undefined);
-
-    await expect(loadPopupData({ wait })).resolves.toBe(childData);
-
+    mockSendTabMsg.mockResolvedValue({ ...popupData, isTopFrame: false });
+    await expect(loadPopupData({ wait: jest.fn() })).resolves.toBeUndefined();
     expect(mockSendTopFrameMsg).toHaveBeenCalledTimes(2);
-    expect(mockSendTabMsg).toHaveBeenCalledTimes(1);
-    expect(mockSendTabMsg).toHaveBeenCalledWith(
-      MSG_TRANS_GETRULE,
-      undefined,
-      undefined,
-      undefined
-    );
-    expect(mockSendTabMsg.mock.invocationCallOrder[0]).toBeGreaterThan(
-      mockSendTopFrameMsg.mock.invocationCallOrder[1]
-    );
+    expect(mockSendTabMsg).not.toHaveBeenCalled();
   });
 
-  test("stops after the fallback when no frame has a receiver", async () => {
+  test("stops after the top-frame retry when no receiver exists", async () => {
     const sendMessage = jest.fn().mockRejectedValue(new Error("No receiver"));
     const sendFallbackMessage = jest
       .fn()
@@ -98,7 +85,7 @@ describe("loadPopupData", () => {
     ).resolves.toBeUndefined();
 
     expect(sendMessage).toHaveBeenCalledTimes(2);
-    expect(sendFallbackMessage).toHaveBeenCalledTimes(1);
+    expect(sendFallbackMessage).not.toHaveBeenCalled();
     expect(wait).toHaveBeenCalledTimes(1);
   });
 
@@ -123,29 +110,17 @@ describe("loadPopupData", () => {
     await expect(loadPopupData({ wait: jest.fn() })).resolves.toBeUndefined();
   });
 
-  test("uses the captured tab for top-frame queries and child-frame fallback", async () => {
+  test("keeps queries attached to the captured tab without child fallback", async () => {
     mockSendTopFrameMsg.mockResolvedValue(undefined);
-    mockSendTabMsg.mockResolvedValue({ rule: {}, setting: {} });
-
     await expect(
       loadPopupData({ tabId: 42, wait: jest.fn() })
-    ).resolves.toEqual({
-      rule: {},
-      setting: {},
-      isTopFrame: false,
-    });
-
+    ).resolves.toBeUndefined();
     expect(mockSendTopFrameMsg).toHaveBeenCalledWith(
       MSG_TRANS_GETRULE,
       undefined,
       42
     );
-    expect(mockSendTabMsg).toHaveBeenCalledWith(
-      MSG_TRANS_GETRULE,
-      undefined,
-      undefined,
-      42
-    );
+    expect(mockSendTabMsg).not.toHaveBeenCalled();
   });
 
   test("rejects complete snapshots from replaced or unverifiable documents", async () => {
@@ -157,15 +132,16 @@ describe("loadPopupData", () => {
     expect(mockSendTopFrameMsg).toHaveBeenCalledTimes(2);
   });
 
-  test("verifies the child that provided a fallback response", async () => {
-    const document = { token: "child-document", frameId: 7 };
-    const childData = { ...popupData, document, isTopFrame: false };
+  test("does not validate or select unrelated child snapshots", async () => {
     mockSendTopFrameMsg.mockResolvedValue(undefined);
-    mockSendTabMsg.mockResolvedValue(childData);
-    await expect(loadPopupData({ tabId: 17, wait: jest.fn() })).resolves.toBe(
-      childData
-    );
-    expect(mockIsCurrentPopupDocument).toHaveBeenCalledWith(17, document);
+    mockSendTabMsg.mockResolvedValue({
+      ...popupData,
+      document: { token: "child", frameId: 7 },
+    });
+    await expect(
+      loadPopupData({ tabId: 17, wait: jest.fn() })
+    ).resolves.toBeUndefined();
+    expect(mockIsCurrentPopupDocument).not.toHaveBeenCalled();
   });
 
   test("confirms an action only against its captured document and frame", async () => {

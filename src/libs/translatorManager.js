@@ -1,3 +1,12 @@
+import { FrameSelection } from "./frameSelection";
+import {
+  SESSION_ACTIONS,
+  SESSION_PROBE,
+  SESSION_SNAPSHOT,
+  SESSION_SELECTION,
+  SESSION_EDITING,
+  SESSION_FOCUS,
+} from "./pageSession";
 import { supportsTouch } from "./touchCapability";
 import ShadowDomManager from "./shadowDomManager";
 import { TouchTranslateStatus } from "../components/TouchTranslateControl";
@@ -8,10 +17,9 @@ import {
 } from "../config";
 import { browser } from "./browser";
 import { Translator } from "./translator";
-import { InputTranslator } from "./inputTranslate";
+import { InputTranslator, isEditableTarget } from "./inputTranslate";
 import { TransboxManager } from "./tranbox";
 import { shortcutRegister } from "./shortcut";
-import { sendIframeMsg } from "./iframe";
 import {
   EVENT_KISS_INNER,
   EVENT_KISS_TRANSLATOR,
@@ -62,6 +70,14 @@ import {
  */
 export default class TranslatorManager {
   // 全局注册项的清理句柄；这些只随 start/stop 注册，restart 时不重复注册。
+  #sessionClient;
+  #sessionState;
+  #appliedSessionKey;
+  #applyingSession = false;
+  #frameObserver;
+  #focusListener;
+  #windowFocusListener;
+  #lastSessionUrl;
   #touchMode = "off";
   #touchStatus = null;
   #clearShortcuts = [];
@@ -95,7 +111,6 @@ export default class TranslatorManager {
   #pendingSpaRefreshReason = "";
 
   // 绑定后的 handler 必须稳定保存，才能在 stop/restart 时准确 remove。
-  #innerMessageHandler = null;
   #browserMessageHandler = null;
   #windowMessageHandler = null;
   #pageRestoreHandler = null;
@@ -128,7 +143,11 @@ export default class TranslatorManager {
     isIframe,
     isUserscript,
     transboxOnly = false,
+    sessionClient,
+    sessionState,
   }) {
+    this.#sessionClient = sessionClient;
+    this.#sessionState = sessionState;
     this.#setting = this.#cloneConfig(setting);
     const touchMode = setting?.mouseHoverSetting?.touchMode;
     this.#touchMode =
@@ -141,8 +160,8 @@ export default class TranslatorManager {
     this.#isIframe = isIframe;
     this.#isUserscript = isUserscript;
     this.#transboxOnly = transboxOnly;
+    if (sessionState) this.applySession(sessionState);
 
-    this.#innerMessageHandler = this.#handleInnerMessage.bind(this);
     this.#browserMessageHandler = this.#handleBrowserMessage.bind(this);
     this.#windowMessageHandler = this.#handleWindowMessage.bind(this);
     this.#pageRestoreHandler = this.#handlePageRestore.bind(this);
@@ -181,6 +200,37 @@ export default class TranslatorManager {
       this.#setupSpaListeners();
     }
     this.#isActive = true;
+    if (this.#sessionState) this.applySession(this.#sessionState);
+    if (this.#sessionClient) {
+      this.#focusListener = (event) => {
+        const node = event.composedPath?.()[0] || event.target;
+        const editable = isEditableTarget(node);
+        if (
+          event
+            .composedPath?.()
+            .some((element) => element?.classList?.contains("notranslate"))
+        )
+          return;
+        if (editable && !this._inputTranslator && this.#isIframe) {
+          this._inputTranslator = new InputTranslator(
+            this.#cloneConfig(this.#setting)
+          );
+          this._inputTranslator.handleFocusIn();
+        }
+        this.#sessionClient.send(SESSION_FOCUS, { enabled: Boolean(editable) });
+      };
+      document.addEventListener("focusin", this.#focusListener);
+      if (!this.#isIframe) {
+        this.#windowFocusListener = () => {
+          if (document.activeElement?.localName !== "iframe")
+            this.#sessionClient.send(SESSION_FOCUS, {
+              selection: true,
+              enabled: false,
+            });
+        };
+        window.addEventListener("focus", this.#windowFocusListener);
+      }
+    }
     logger.child("translator-manager").info("TranslatorManager started.");
   }
 
@@ -210,6 +260,7 @@ export default class TranslatorManager {
     this.#favWords = state.favWords;
 
     this.#createRuntimeModules();
+    if (this.#sessionState) this.applySession(this.#sessionState);
     this.#refreshDocumentElementObserver();
     logger
       .child("translator-manager")
@@ -233,6 +284,8 @@ export default class TranslatorManager {
 
     this.#clearSpaRefreshTimer();
     this.#teardownSpaListeners();
+    document.removeEventListener("focusin", this.#focusListener);
+    window.removeEventListener("focus", this.#windowFocusListener);
     this.#storageChanges?.removeListener(this.#storageChangeHandler);
     this.#storageChanges = null;
 
@@ -240,14 +293,8 @@ export default class TranslatorManager {
       EVENT_KISS_TRANSLATOR,
       this.#windowMessageHandler
     );
-    if (this.#isUserscript) {
-      window.removeEventListener("message", this.#innerMessageHandler);
-    } else {
+    if (!this.#isUserscript)
       browser.runtime.onMessage.removeListener(this.#browserMessageHandler);
-      if (this.#isIframe) {
-        window.removeEventListener("message", this.#innerMessageHandler);
-      }
-    }
 
     this.#clearShortcuts.forEach((clear) => clear());
     this.#clearShortcuts = [];
@@ -272,6 +319,66 @@ export default class TranslatorManager {
    * manager 保存的基线快照；restart 时会用当前运行期 getter 重新同步。
    */
   #createRuntimeModules() {
+    if (this.#sessionClient && this.#isIframe) {
+      this._transboxManager = new FrameSelection(
+        this.#setting,
+        (action, args) => this.#sessionClient.send(action, args)
+      );
+      const inspect = (root) => {
+        if (!root || this.#sessionState?.blocked) return;
+        if (
+          !this._inputTranslator &&
+          (isEditableTarget(root) ||
+            Array.from(
+              root.querySelectorAll?.(
+                "input,textarea,[contenteditable='true']"
+              ) || []
+            ).some(isEditableTarget))
+        ) {
+          this._inputTranslator = new InputTranslator(
+            this.#cloneConfig(this.#setting)
+          );
+        }
+        if (!this._translator) {
+          const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+          let text =
+            root.nodeType === Node.TEXT_NODE ? root : walker.nextNode();
+          while (text) {
+            if (
+              text.nodeValue.trim() &&
+              !text.parentElement?.closest(
+                "script,style,template,noscript,svg,canvas,iframe,input,textarea,.notranslate,[translate='no']"
+              )
+            ) {
+              this._translator = new Translator({
+                rule: this.#cloneConfig(this.#rule),
+                setting: this.#cloneConfig(this.#setting),
+                favWords: this.#cloneConfig(this.#favWords),
+                isUserscript: this.#isUserscript,
+                isIframe: true,
+              });
+              break;
+            }
+            text = walker.nextNode();
+          }
+        }
+      };
+      inspect(document.body);
+      if (!this._translator)
+        this.#frameObserver = new MutationObserver((records) => {
+          for (const record of records) {
+            if (record.type === "characterData") inspect(record.target);
+            else for (const node of record.addedNodes) inspect(node);
+          }
+          if (this._translator) this.#frameObserver.disconnect();
+        });
+      this.#frameObserver?.observe(document, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+      return;
+    }
     if (this.#transboxOnly) {
       this._transboxManager = new TransboxManager({
         ...this.#cloneConfig(this.#setting),
@@ -312,6 +419,10 @@ export default class TranslatorManager {
         processActions: this.#processActions.bind(this),
       });
       this._ruleEditorManager = new RuleEditorManager({
+        onSaved: (rule) =>
+          this.#sessionClient?.send("kiss_page_saved_rule", rule),
+        onEditingChange: (enabled) =>
+          this.#sessionClient?.send(SESSION_EDITING, { enabled }),
         translator: this._translator,
         pauseInteractions: () => {
           const selectionEnabled = this._transboxManager.isEnabled();
@@ -353,6 +464,9 @@ export default class TranslatorManager {
    * restart 只调用本方法，避免重复注册全局入口。
    */
   #destroyRuntimeModules() {
+    this.#appliedSessionKey = null;
+    this.#frameObserver?.disconnect();
+    this.#frameObserver = null;
     this.#touchStatus?.destroy();
     this.#touchStatus = null;
     this._ruleEditorManager?.destroy();
@@ -415,7 +529,9 @@ export default class TranslatorManager {
   }
 
   #getRuntimeSetting() {
-    const setting = this._translator?.setting || this.#setting;
+    const setting = this.#sessionClient
+      ? this.#setting
+      : this._translator?.setting || this.#setting;
     if (!this.#transboxOnly || !this._transboxManager) return setting;
 
     // PDF pages have no Translator to keep the selection setting in sync.
@@ -452,9 +568,95 @@ export default class TranslatorManager {
       });
   }
 
+  sessionLocal(action, args) {
+    if (action === SESSION_SELECTION && !this.#isIframe) {
+      if (!args?.text && !args?.close)
+        return this.#processActions({ action: MSG_OPEN_TRANBOX }, true);
+      document.dispatchEvent(
+        new CustomEvent("kiss-session-selection", { detail: args })
+      );
+      return { ok: true };
+    }
+    return this.#processActions({ action, args }, true);
+  }
+
+  applySession(state) {
+    if (!state?.sessionId) return;
+    const appliedKey = `${state.sessionId}:${state.revision}`;
+    if (this.#isActive && this.#appliedSessionKey === appliedKey) return;
+    if (
+      this.#sessionState?.sessionId === state.sessionId &&
+      this.#sessionState.revision > state.revision
+    )
+      return;
+    const wasBlocked = this.#sessionState?.blocked;
+    this.#sessionState = state;
+    this.#lastSessionUrl = state.url;
+    const active = !state.blocked && !state.editing;
+    const features = state.features;
+    const blocked = state.blockedFeatures || {};
+    const touchMode = active && !blocked.hover ? features.touch : "off";
+    this.#touchMode = touchMode;
+    this.#rule = this.#cloneConfig(state.rule);
+    if (state.blocked || state.editing) this.#rule.transOpen = "false";
+    this.#setting.tranboxSetting = {
+      ...this.#setting.tranboxSetting,
+      transOpen: active && features.selection && !blocked.selection,
+    };
+    this.#setting.inputRule = {
+      ...this.#setting.inputRule,
+      transOpen: active && features.input && !blocked.input,
+    };
+    this.#setting.mouseHoverSetting = {
+      ...this.#setting.mouseHoverSetting,
+      useMouseHover: active && features.hover && !blocked.hover,
+      touchMode,
+      blacklist: "", // The coordinator evaluates this against the main URL.
+    };
+    if (this.#isActive && state.blocked) {
+      this.#destroyRuntimeModules();
+      this.#appliedSessionKey = appliedKey;
+      return;
+    }
+    if (this.#isActive && wasBlocked && !state.blocked)
+      this.#createRuntimeModules();
+    this.#applyingSession = true;
+    try {
+      const enabled = active && state.rule.transOpen === "true";
+      // Stop before updating other fields so a closing snapshot cannot rescan.
+      if (!enabled) this._translator?.disable();
+      this._translator?.updateRule({
+        ...state.rule,
+        transOpen: active ? state.rule.transOpen : "false",
+      });
+      if (this._translator) {
+        if (enabled) this._translator.enable();
+        if (
+          Boolean(this._translator.setting.mouseHoverSetting?.useMouseHover) !==
+          this.#setting.mouseHoverSetting.useMouseHover
+        )
+          this._translator.toggleMouseHover();
+        this._translator.setTouchMode?.(touchMode);
+      }
+      this._transboxManager?.update({
+        ...this.#cloneConfig(this.#setting),
+        rule: this.#cloneConfig(this.#rule),
+      });
+      if (this.#setting.inputRule.transOpen) this._inputTranslator?.enable();
+      else this._inputTranslator?.disable();
+      this._imageTranslateManager?.updateRule(state.rule);
+      if (this.#isActive) {
+        this.#appliedSessionKey = appliedKey;
+        this.#notifyTouchState();
+      }
+    } finally {
+      this.#applyingSession = false;
+    }
+  }
+
   #getRuntimeResponse() {
     return {
-      rule: this._translator?.rule || this.#rule,
+      rule: this.#sessionState?.rule || this._translator?.rule || this.#rule,
       setting: this.#getRuntimeSetting(),
       capabilities: {
         pageTranslation: Boolean(this._translator),
@@ -463,6 +665,7 @@ export default class TranslatorManager {
         inputTranslation: Boolean(this._inputTranslator),
         ruleEditor: Boolean(this._ruleEditorManager),
       },
+      sessionId: this.#sessionState?.sessionId,
       isTopFrame: !this.#isIframe,
       document: this.#documentInfo,
     };
@@ -616,6 +819,13 @@ export default class TranslatorManager {
       this.#pendingSpaRefreshReason = "";
 
       if (!this.#isActive) return;
+      if (
+        this.#sessionClient &&
+        this.#lastSessionUrl !== window.location.href
+      ) {
+        this.#lastSessionUrl = window.location.href;
+        this.#sessionClient.register();
+      }
 
       if (refreshType === "restart" || this.#hasDocumentContainerChanged()) {
         this.restart(refreshReason);
@@ -652,22 +862,10 @@ export default class TranslatorManager {
     );
   }
 
-  /**
-   * 根据运行环境注册消息通道。
-   *
-   * Userscript 环境通过 window message 通信；扩展环境通过 runtime.onMessage
-   * 接收 background 指令，iframe 中还要监听父页面转发的 window message。
-   */
+  /** Extension commands use runtime messages; page controls use their local event. */
   #setupMessageListeners() {
-    if (this.#isUserscript) {
-      window.addEventListener("message", this.#innerMessageHandler);
-    } else {
+    if (!this.#isUserscript)
       browser.runtime.onMessage.addListener(this.#browserMessageHandler);
-      if (this.#isIframe) {
-        window.addEventListener("message", this.#innerMessageHandler);
-      }
-    }
-
     window.addEventListener(EVENT_KISS_TRANSLATOR, this.#windowMessageHandler);
   }
 
@@ -804,16 +1002,16 @@ export default class TranslatorManager {
   }
 
   /**
-   * 处理 iframe 或页面内 postMessage 通信。
-   */
-  #handleInnerMessage(event) {
-    this.#processActions(event.data);
-  }
-
-  /**
    * 处理扩展 background 发送的 runtime 消息。
    */
   #handleBrowserMessage(message, sender, sendResponse) {
+    if (
+      this.#sessionClient &&
+      [SESSION_PROBE, SESSION_SNAPSHOT, SESSION_SELECTION].includes(
+        message.action
+      )
+    )
+      return false;
     const shouldRespond =
       !message.responseDocumentToken ||
       message.responseDocumentToken === this.#documentToken;
@@ -838,7 +1036,9 @@ export default class TranslatorManager {
           return;
         }
         const result = this.#processActions(message, true);
-        respond(result || this.#getRuntimeResponse());
+        if (result?.then)
+          result.then(respond, (error) => respond({ error: error.message }));
+        else respond(result || this.#getRuntimeResponse());
       } catch (error) {
         respond({ error: error?.message || String(error) });
       }
@@ -885,7 +1085,7 @@ export default class TranslatorManager {
     }
     processMessage();
     // Unselected documents neither execute the command nor claim its response.
-    return shouldRespond;
+    return true;
   }
 
   /**
@@ -957,8 +1157,7 @@ export default class TranslatorManager {
   /**
    * 翻译动作分发入口。
    *
-   * 顶层页面发起的动作会同步广播给 iframe；来自扩展 background 的动作
-   * 已经是统一入口，不再二次广播，避免 iframe 收到重复指令。
+   * Shared commands are resolved by the page coordinator; DOM operations stay local.
    */
   #notifyTouchState() {
     document.dispatchEvent(
@@ -977,17 +1176,16 @@ export default class TranslatorManager {
       supported: supportsTouch(),
       direction:
         this._translator?.setting?.mouseHoverSetting?.touchDirection || "right",
-      blocked: isInBlacklist(
-        window.location.href,
-        this._translator?.setting?.mouseHoverSetting?.blacklist
-      ),
+      blocked: this.#sessionState
+        ? Boolean(this.#sessionState.blockedFeatures?.hover)
+        : isInBlacklist(
+            window.location.href,
+            this._translator?.setting?.mouseHoverSetting?.blacklist
+          ),
     };
   }
 
-  #processActions(
-    { action, args, expectedDocumentToken } = {},
-    fromExt = false
-  ) {
+  #processActions({ action, args, expectedDocumentToken } = {}) {
     if (!action) return;
     if (
       expectedDocumentToken &&
@@ -998,6 +1196,22 @@ export default class TranslatorManager {
         code: "STALE_DOCUMENT",
       };
     }
+    if (this.#sessionClient && !this.#applyingSession) {
+      if (SESSION_ACTIONS.has(action)) {
+        return this.#sessionClient.send(action, args).then((state) => {
+          if (state?.error) return state;
+          if (state) this.applySession(state);
+          return {
+            ...this.#getRuntimeResponse(),
+            touchTranslate: this.#getTouchState(),
+          };
+        });
+      }
+      if (action === MSG_OPEN_TRANBOX && this.#isIframe)
+        return this._transboxManager?.open(args);
+      if (action === MSG_INPUT_TRANSLATE && !args?.sessionLocal)
+        return this.#sessionClient.send(action, args);
+    }
     if (action === MSG_TOUCH_TRANSLATE_STATE)
       return { touchTranslate: this.#getTouchState() };
     if (action === MSG_TOUCH_TRANSLATE_MODE_SET) {
@@ -1006,9 +1220,6 @@ export default class TranslatorManager {
         ["off", "tap", "swipe"].includes(args?.mode)
       ) {
         this.#touchMode = this._translator?.setTouchMode(args.mode) || "off";
-        // Saved modes also start in child frames, which have no status bar.
-        // Relay off even for extension commands so their controls can stop them.
-        if (args.mode === "off") sendIframeMsg(action, args);
       }
       const touchTranslate = this.#getTouchState();
       this.#notifyTouchState();
@@ -1059,16 +1270,6 @@ export default class TranslatorManager {
       return {
         error: `Message action is unavailable in this frame: ${action}`,
       };
-    }
-
-    // Keep shared translation commands in sync without forwarding top-only UI.
-    if (
-      !fromExt &&
-      !requiresInput &&
-      action !== MSG_POPUP_TOGGLE &&
-      action !== MSG_TRANS_GETRULE
-    ) {
-      sendIframeMsg(action, args);
     }
 
     logger.child("translator-manager").debug("process action:", action, args);

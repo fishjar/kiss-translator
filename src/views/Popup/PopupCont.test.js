@@ -1603,7 +1603,7 @@ describe("PopupCont capability parity", () => {
     view.cleanup();
   });
 
-  test("confirms an enabled child frame when the top frame has no receiver", async () => {
+  test("rejects child-frame confirmation when the top session has no receiver", async () => {
     let liveRule = { transOpen: "true", apiSlug: "google" };
     const setRule = jest.fn((update) => {
       liveRule = typeof update === "function" ? update(liveRule) : update;
@@ -1626,14 +1626,16 @@ describe("PopupCont capability parity", () => {
       undefined,
       undefined
     );
-    expect(mockSendTabMsg).toHaveBeenCalledWith(
+    expect(mockSendTabMsg).not.toHaveBeenCalledWith(
       MSG_TRANS_GETRULE,
       undefined,
       undefined,
       undefined
     );
-    expect(liveRule.transOpen).toBe("false");
-    expect(view.container.querySelector('[role="alert"]')).toBeNull();
+    expect(liveRule.transOpen).toBe("true");
+    expect(
+      view.container.querySelector(".kt-popup-translate-label--error")
+    ).not.toBeNull();
     view.cleanup();
   });
 

@@ -86,7 +86,7 @@ function clampButtonPosition(left, top) {
   };
 }
 
-function getPointerButtonPosition(
+export function getPointerButtonPosition(
   pointerPosition,
   btnOffsetX = 0,
   btnOffsetY = 0
@@ -181,7 +181,11 @@ function getSelectionRects(selection) {
   }
 }
 
-function getSelectionButtonPosition(rect, btnOffsetX = 0, btnOffsetY = 0) {
+export function getSelectionButtonPosition(
+  rect,
+  btnOffsetX = 0,
+  btnOffsetY = 0
+) {
   if (!rect) return null;
 
   const offsetX = toFiniteNumber(btnOffsetX);
@@ -313,7 +317,7 @@ function getSelectionSentence(selection, target) {
   }
 }
 
-function getSelectionSource(selection, target) {
+export function getSelectionSource(selection, target) {
   const text = selection?.toString()?.trim() || "";
   if (!text) return null;
 
@@ -327,7 +331,7 @@ function getSelectionSource(selection, target) {
   return { text, sentence, url };
 }
 
-function getSelectionContext(selection) {
+export function getSelectionContext(selection) {
   try {
     if (!selection || selection.rangeCount === 0) return "";
     const node = selection.getRangeAt(0).commonAncestorContainer;
@@ -346,6 +350,15 @@ function getSelectionContext(selection) {
   }
 }
 
+export async function shouldSkipSelection(text, skipLangs = []) {
+  if (isPureNumberText(text)) return true;
+  if (typeof text !== "string" || !text.trim()) return false;
+  const quickLang = quickDetectLang(text);
+  if (text.length < 4 && !quickLang) return false;
+  const lang = quickLang || (await detectLangFast(text));
+  return Boolean(lang && skipLangs.includes(normalizeZhLang(lang)));
+}
+
 export default function useSelectionController({
   tranboxSetting,
   followSelection,
@@ -354,6 +367,8 @@ export default function useSelectionController({
   boxSize,
   setBoxPosition,
   hideClickAway,
+  onRemoteSelection,
+  setRemotePosition,
 }) {
   const {
     hideTranBtn = false,
@@ -377,6 +392,9 @@ export default function useSelectionController({
   const [textContext, setTextContext] = useState("");
   const [selectionSource, setSelectionSource] = useState(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const remoteRequestRef = useRef(null);
+  const remoteCallbacksRef = useRef({ onRemoteSelection, setRemotePosition });
+  remoteCallbacksRef.current = { onRemoteSelection, setRemotePosition };
   const selectionRootRef = useRef(document);
   const pendingSelectionRef = useRef(null);
   const selectionRevisionRef = useRef(0);
@@ -472,6 +490,10 @@ export default function useSelectionController({
     (snapshot) => {
       if (!snapshot?.text) return;
 
+      if (!snapshot.fromFrame) {
+        remoteRequestRef.current = null;
+        remoteCallbacksRef.current.onRemoteSelection?.(false);
+      }
       pendingSelectionRef.current = snapshot;
       setSelText(snapshot.text);
       setTextContext(snapshot.context);
@@ -482,6 +504,41 @@ export default function useSelectionController({
     },
     [setShowBox]
   );
+
+  useEffect(() => {
+    const receive = (event) => {
+      const args = event.detail || {};
+      if (args.close) {
+        if (hideClickAway && args.requestId === remoteRequestRef.current)
+          setShowBox(false);
+        return;
+      }
+      remoteRequestRef.current = args.requestId;
+      if (args.fromFrame && followSelection) {
+        const saved = remoteCallbacksRef.current.setRemotePosition?.();
+        remoteCallbacksRef.current.setRemotePosition?.(
+          saved || {
+            x: Math.max(0, (window.innerWidth - boxSize.w) / 2),
+            y: Math.max(
+              0,
+              (window.innerHeight - getTranBoxOuterHeight(boxSize.h)) / 2
+            ),
+          }
+        );
+      }
+      remoteCallbacksRef.current.onRemoteSelection?.(Boolean(args.fromFrame));
+      commitSelectionSnapshot({ ...args, source: "page" });
+    };
+    document.addEventListener("kiss-session-selection", receive);
+    return () =>
+      document.removeEventListener("kiss-session-selection", receive);
+  }, [
+    followSelection,
+    hideClickAway,
+    boxSize,
+    commitSelectionSnapshot,
+    setShowBox,
+  ]);
 
   const handleOpenTranbox = useCallback(
     (inputText) => {
@@ -531,23 +588,7 @@ export default function useSelectionController({
   // 命中条件：纯数字、或与目标语言匹配 (简体/繁体统一视为 zh)。
   const shouldSuppressSelection = useCallback(
     async (text) => {
-      if (isPureNumberText(text)) return true;
-      if (typeof text !== "string" || !text.trim()) return false;
-
-      // 先进行同步字符集快判（零开销），能明确识别的语言直接走判定
-      const quickLang = quickDetectLang(text);
-      // 短文本：只有字符集能明确识别时才继续判定（避免拉丁短词误判）
-      if (text.length < 4 && !quickLang) return false;
-
-      // 快判有结果则直接用，否则对较长文本走完整异步检测
-      const lang = quickLang || (await detectLangFast(text));
-      if (!lang) return false;
-
-      const normLang = normalizeZhLang(lang);
-      if (skipLangs.includes(normLang)) {
-        return true;
-      }
-      return false;
+      return shouldSkipSelection(text, skipLangs);
     },
     [skipLangs]
   );

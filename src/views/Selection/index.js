@@ -1,3 +1,5 @@
+import { useState, useRef, useEffect } from "react";
+import { getMaxTranBoxX, getMaxTranBoxY } from "../../libs/tranboxPosition";
 import TranBtn from "./TranBtn";
 import TranBox from "./TranBox";
 import useTranBoxState from "../../hooks/useTranBoxState";
@@ -30,6 +32,9 @@ export default function Selection({
   extStyles,
   rule,
 }) {
+  const [remotePosition, setRemotePosition] = useState(null);
+  const [remoteMode, setRemoteMode] = useState(false);
+  const remotePositionRef = useRef(null);
   const i18n = newI18n(uiLang || "zh");
   // 1. Manage the panel's size, position, simple mode, and hide-on-blur setting.
   const {
@@ -69,7 +74,32 @@ export default function Selection({
     boxOffsetY,
     boxSize,
     setBoxPosition,
+    onRemoteSelection: (fromFrame) => setRemoteMode(fromFrame),
+    setRemotePosition: (position) => {
+      if (position) {
+        remotePositionRef.current = position;
+        setRemotePosition(position);
+      }
+      return remotePositionRef.current;
+    },
   });
+
+  useEffect(() => {
+    if (!remoteMode || !followSelection) return;
+    const clamp = () =>
+      setRemotePosition((previous) => {
+        if (!previous) return previous;
+        const next = {
+          x: Math.max(0, Math.min(previous.x, getMaxTranBoxX(boxSize.w))),
+          y: Math.max(0, Math.min(previous.y, getMaxTranBoxY(boxSize.h))),
+        };
+        remotePositionRef.current = next;
+        return next;
+      });
+    clamp();
+    window.addEventListener("resize", clamp);
+    return () => window.removeEventListener("resize", clamp);
+  }, [remoteMode, followSelection, boxSize]);
 
   // 3. Register global panel shortcuts, including Escape to close.
   useTranboxShortcuts({
@@ -93,8 +123,25 @@ export default function Selection({
             setText={setText}
             boxSize={boxSize}
             setBoxSize={setBoxSize}
-            boxPosition={boxPosition}
-            setBoxPosition={setBoxPosition}
+            boxPosition={
+              remoteMode && followSelection
+                ? remotePosition || boxPosition
+                : boxPosition
+            }
+            setBoxPosition={
+              remoteMode && followSelection
+                ? (position) => {
+                    setRemotePosition((previous) => {
+                      const next =
+                        typeof position === "function"
+                          ? position(previous)
+                          : position;
+                      remotePositionRef.current = next;
+                      return next;
+                    });
+                  }
+                : setBoxPosition
+            }
             tranboxSetting={tranboxSetting}
             transApis={transApis}
             prompts={prompts}
