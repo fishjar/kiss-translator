@@ -8,7 +8,7 @@ import {
   Typography,
   CircularProgress,
 } from "@mui/material";
-import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
+import { ArrowDropDownRoundedIcon } from "../../components/icons";
 import {
   supportsApiCapability,
   isApiConfigured,

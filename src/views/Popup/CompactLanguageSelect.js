@@ -1,5 +1,4 @@
-import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import { ArrowDropDownRoundedIcon } from "../../components/icons";
 import Divider from "@mui/material/Divider";
 import MenuItem from "@mui/material/MenuItem";
 import { useEffect, useId, useRef, useState } from "react";
@@ -109,12 +108,6 @@ export default function CompactLanguageSelect({
                   </small>
                 )}
               </span>
-              {selected && (
-                <CheckRoundedIcon
-                  className="kt-popup-menu-check"
-                  aria-hidden="true"
-                />
-              )}
             </MenuItem>
           );
           return index === 0 && key === "auto"

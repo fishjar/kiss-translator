@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
-import EditIcon from "@mui/icons-material/Edit";
+import { EditIcon } from "../../components/icons";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
+import MenuCheckGlyph from "../../components/MenuCheckGlyph";
 import Link from "@mui/material/Link";
 import { useSetting } from "../../hooks/Setting";
 import { useI18n } from "../../hooks/I18n";
@@ -504,10 +505,19 @@ export default function Settings() {
                 onChange={handleChange}
                 SelectProps={{
                   multiple: true,
+                  // 多选关闭态 trigger 显示纯文本 join；勾选字形只留在菜单行内。
+                  renderValue: (selected) =>
+                    selected.map((item) => i18n(`touch_tap_${item}`)).join(", "),
                 }}
               >
                 {[0, 2, 3, 4, 5, 6, 7].map((item) => (
                   <MenuItem key={item} value={item}>
+                    <MenuCheckGlyph
+                      checked={
+                        Array.isArray(touchModes) && touchModes.includes(item)
+                      }
+                      style={{ marginRight: 10 }}
+                    />
                     {i18n(`touch_tap_${item}`)}
                   </MenuItem>
                 ))}
@@ -654,10 +664,24 @@ export default function Settings() {
           onChange={handleChange}
           SelectProps={{
             multiple: true,
+            // 多选关闭态 trigger 显示纯文本 join；勾选字形只留在菜单行内。
+            renderValue: (selected) =>
+              selected
+                .map(
+                  (langKey) =>
+                    OPT_LANGS_TO.find(([k]) => k === langKey)?.[1] ?? langKey
+                )
+                .join(", "),
           }}
         >
           {OPT_LANGS_TO.map(([langKey, langName]) => (
             <MenuItem key={langKey} value={langKey}>
+              <MenuCheckGlyph
+                checked={
+                  Array.isArray(skipLangs) && skipLangs.includes(langKey)
+                }
+                style={{ marginRight: 10 }}
+              />
               {langName}
             </MenuItem>
           ))}

@@ -202,6 +202,15 @@ describe("Popup text translation card", () => {
         (item) => item.textContent
       )
     ).toEqual(["Google", "Microsoft", "OpenAI"]);
+    // 每个多选行必须带一个分发器字形勾选盒（两态由 data-checked 表达）。
+    for (const item of container.querySelectorAll(
+      '[role="menuitemcheckbox"]'
+    )) {
+      const box = item.querySelector("[data-checked]");
+      expect(box).not.toBeNull();
+      expect(box.getAttribute("aria-hidden")).toBe("true");
+      expect(box.querySelector("svg")).not.toBeNull();
+    }
 
     click(serviceOption("OpenAI"));
     await flushEffects();
@@ -574,5 +583,20 @@ describe("Popup text translation card", () => {
     expect(container.querySelector(".kt-popup-language-menu")).toBeNull();
     expect(setText).not.toHaveBeenCalled();
     tabs.remove();
+  });
+
+  test("service menu keeps menuitemcheckbox rows without aria-multiselectable on the menu container", async () => {
+    await render();
+    click(container.querySelector(".kt-popup-text-services"));
+    const menu = container.querySelector(".kt-popup-text-service-menu");
+    expect(menu).not.toBeNull();
+    const list = menu.querySelector('[role="menu"]');
+    expect(list).not.toBeNull();
+    // aria-multiselectable 非法于 role="menu"；多选语义由行级
+    // role="menuitemcheckbox"+aria-checked 承载，去染色闸同样走行级选择器。
+    expect(list.hasAttribute("aria-multiselectable")).toBe(false);
+    expect(
+      menu.querySelectorAll('[role="menuitemcheckbox"]').length
+    ).toBeGreaterThan(0);
   });
 });

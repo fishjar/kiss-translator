@@ -1,13 +1,15 @@
 import { supportsTouch } from "../../libs/touchCapability";
 import TouchTranslateControl from "../../components/TouchTranslateControl";
-import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
-import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
-import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
-import CropRoundedIcon from "@mui/icons-material/CropRounded";
+import {
+  PaletteRoundedIcon,
+  SelectAllRoundedIcon,
+  SettingsRoundedIcon,
+  TranslateRoundedIcon,
+  TuneRoundedIcon,
+  VisibilityRoundedIcon,
+  VisibilityOffRoundedIcon,
+  CropRoundedIcon,
+} from "../../components/icons";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -46,6 +48,7 @@ import { useFab } from "../../hooks/Fab";
 import { isExt } from "../../libs/client";
 import { sendBgMsg } from "../../libs/msg";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
+import { scriptFocus } from "../../hooks/focusModality";
 import { isFabHiddenOnPage } from "../../libs/fabVisibility";
 import useWindowSize from "../../hooks/WindowSize";
 import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
@@ -152,12 +155,25 @@ export function ContentFabContent({
 
   const closeMenu = useCallback((restoreFocus = false) => {
     setOpen(false);
-    if (restoreFocus) anchorRef.current?.focus();
+    if (restoreFocus) scriptFocus(anchorRef.current);
   }, []);
 
   useEffect(() => {
     if (!opensMenu) closeMenu();
   }, [closeMenu, opensMenu]);
+
+  // 焦点照旧进入首项（方向键可用），但环只在键盘模态出现：MenuList 的
+  // autoFocusItem 会在鼠标打开时也画环，故关掉它并在此按模态聚焦。
+  // 执行口径为同步 effect（与 MenuList autoFocusItem 的 useEnhancedEffect
+  // 同时机层级），不用 requestAnimationFrame：焦点归属不得晚于本次提交。
+  useEffect(() => {
+    if (!open) return undefined;
+    const items = menuRef.current?.querySelectorAll(
+      '.MuiMenuItem-root:not(.Mui-disabled), [role="menuitem"]:not([aria-disabled="true"]), [role="menuitemcheckbox"]:not([aria-disabled="true"])'
+    );
+    scriptFocus(items?.[0] ?? null);
+    return undefined;
+  }, [open]);
 
   useEffect(() => {
     if (!opensMenu || !open) return;
@@ -375,6 +391,8 @@ export function ContentFabContent({
           opensMenu={opensMenu}
           open={open}
           aria-expanded={opensMenu ? open : undefined}
+          type="button"
+          className={open ? "kt-content-fab--x" : ""}
           aria-haspopup={opensMenu ? "menu" : opensPopup ? "dialog" : undefined}
           aria-controls={opensMenu && open ? "kt-content-fab-menu" : undefined}
           aria-label={i18n(opensPopup ? "fab_click_popup" : "translate")}
@@ -397,7 +415,6 @@ export function ContentFabContent({
           <MenuList
             id="kt-content-fab-menu"
             aria-labelledby="kt-content-fab-button"
-            autoFocusItem
             onKeyDownCapture={handleMenuNavigation}
             onKeyDown={handleMenuKeyDown}
           >

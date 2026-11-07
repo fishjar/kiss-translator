@@ -1,4 +1,5 @@
 import { forwardRef, useLayoutEffect, useRef } from "react";
+import { scriptFocus } from "../../hooks/focusModality";
 import Portal from "@mui/material/Portal";
 import Popper from "@mui/material/Popper";
 import { useTheme } from "@mui/material/styles";
@@ -39,7 +40,9 @@ const DropdownSurface = forwardRef(function DropdownSurface(
         '.MuiMenuItem-root:not(.Mui-disabled), [role="listbox"], [role="menu"]'
       );
     // MUI's default autofocus can scroll the page before Popover positions it.
-    focusTarget?.focus({ preventScroll: true });
+    // 指针打开同样要把焦点交给选中项（保持方向键可用），但环只在键盘模态出现：
+    // 脚本化聚焦会被浏览器判给 :focus-visible，故必须走 scriptFocus()。
+    scriptFocus(focusTarget);
     const paper = popup?.querySelector(".MuiPaper-root");
     if (item && paper) {
       paper.scrollTop =
@@ -47,7 +50,7 @@ const DropdownSurface = forwardRef(function DropdownSurface(
     }
     return () => {
       if (popup?.contains(popup.ownerDocument.activeElement)) {
-        trigger?.focus({ preventScroll: true });
+        scriptFocus(trigger);
       }
     };
   }, [open, trigger]);
@@ -84,7 +87,7 @@ const DropdownSurface = forwardRef(function DropdownSurface(
         // keystroke advances to the next setting instead of trapping focus.
         event.stopPropagation();
         if (event.key === "Escape") event.preventDefault();
-        trigger?.focus({ preventScroll: true });
+        scriptFocus(trigger);
         onClose?.(
           event,
           event.key === "Escape" ? "escapeKeyDown" : "tabKeyDown"

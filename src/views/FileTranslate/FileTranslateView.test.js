@@ -2,7 +2,11 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import * as fflate from "fflate";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 import FileTranslatePage from "./index";
+
+// Full-page mounts run long act() sequences; parallel workers exceed the 5 s default.
+jest.setTimeout(15000);
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const originalResizeObserver = globalThis.ResizeObserver;
@@ -1626,6 +1630,46 @@ describe("FileTranslatePage (M2 UI)", () => {
       });
       expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
     });
+  });
+
+  test("dropzone upload icon uses theme primary color at rest", async () => {
+    await act(async () => {
+      root.render(
+        <ThemeProvider
+          theme={createTheme({ palette: { primary: { main: "#0B57D0" } } })}
+        >
+          <FileTranslatePage />
+        </ThemeProvider>
+      );
+    });
+    const icon = container.querySelector(
+      '[data-testid="CloudUploadRoundedIcon"]'
+    );
+    expect(icon).not.toBeNull();
+    const iconClasses = icon
+      .getAttribute("class")
+      .split(/\s+/)
+      .filter((cls) => cls.startsWith("css-"));
+    expect(iconClasses.length).toBeGreaterThan(0);
+    // 结构化 CSSOM 查找：按 selectorText 匹配图标 emotion 类并读取
+    // CSSStyleDeclaration.color，替代样式文本字符串检索。
+    const colorRules = Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules);
+        } catch (err) {
+          return [];
+        }
+      })
+      .filter(
+        (cssRule) =>
+          cssRule.selectorText &&
+          iconClasses.some((cls) => cssRule.selectorText.includes(cls)) &&
+          cssRule.style &&
+          cssRule.style.getPropertyValue("color")
+      );
+    expect(colorRules).toHaveLength(1);
+    expect(colorRules[0].style.color).toBe("#0B57D0");
   });
 
   test("renders with M2 root container and outlined inputs", async () => {

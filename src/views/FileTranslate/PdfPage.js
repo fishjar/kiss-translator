@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import CircularProgress from "@mui/material/CircularProgress";
+import { alpha, useTheme } from "@mui/material/styles";
 import { PDFJS } from "../../libs/pdf/pdfDocument";
 import { getRegionLabel } from "./layoutRegionLabels";
 import "pdfjs-dist/web/pdf_viewer.css";
@@ -25,6 +26,14 @@ export default function PdfPage({
     [visible, setVisible] = useState(false),
     [size, setSize] = useState({ width: 612, height: 792 }),
     [error, setError] = useState("");
+  const theme = useTheme();
+  const enabledFill = alpha(theme.palette.primary.main, 0.08);
+  const disabledFill = alpha(theme.palette.grey[500], 0.15);
+  // PDF 容器底为白色（background:"white"），浅色主色下 primary.main 对比不足；
+  // 取 augmentColor 自动派生的更暗档作描边色（不取 contrastText——那是主色底
+  // 上的文字对比色，不是描边色）。
+  const enabledStroke = theme.palette.primary.dark;
+  const disabledStroke = theme.palette.grey[500];
   useEffect(() => {
     let active = true;
     pdf
@@ -188,11 +197,9 @@ export default function PdfPage({
                   pointerEvents: "auto",
                   cursor: disabled ? "default" : "pointer",
                   border: isEnabled
-                    ? "1.5px solid #1976d2"
-                    : "1.5px dashed #9e9e9e",
-                  backgroundColor: isEnabled
-                    ? "rgba(25, 118, 210, 0.08)"
-                    : "rgba(158, 158, 158, 0.15)",
+                    ? `1.5px solid ${enabledStroke}`
+                    : `1.5px dashed ${disabledStroke}`,
+                  backgroundColor: isEnabled ? enabledFill : disabledFill,
                   boxSizing: "border-box",
                   transition: "all 0.15s ease",
                 }}
@@ -209,8 +216,14 @@ export default function PdfPage({
                     fontSize: "10px",
                     lineHeight: "12px",
                     padding: "1px 4px",
-                    backgroundColor: isEnabled ? "#1976d2" : "#757575",
-                    color: "#fff",
+                    backgroundColor: isEnabled
+                      ? theme.palette.primary.main
+                      : theme.palette.grey[600],
+                    // 前景随主题：启用态对 primary.main 取主题对比文字色，禁用态对该
+                    // 灰底取最优前景；二者均不硬编码白色，避免浅色主题下白字不可辨。
+                    color: isEnabled
+                      ? theme.palette.primary.contrastText
+                      : theme.palette.getContrastText(theme.palette.grey[600]),
                     borderRadius: "3px 3px 0 0",
                     userSelect: "none",
                     whiteSpace: "nowrap",
@@ -261,6 +274,8 @@ export default function PdfPage({
               top: fragment.bbox[1] * scale,
               width: (fragment.bbox[2] - fragment.bbox[0]) * scale,
               height: (fragment.bbox[3] - fragment.bbox[1]) * scale,
+              // accent-exempt: source-highlight 为「源文记号黄」域语义（荧光笔标记，
+              // 跨主题恒定），与布局覆盖层 primary 强调色域不同，不随主题令牌流动。
               background: "#ffcc0038",
               outline: "2px solid #f5b400",
               zIndex: 4,

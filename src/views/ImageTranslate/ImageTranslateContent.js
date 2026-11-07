@@ -12,8 +12,7 @@ import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
 import Tooltip from "@mui/material/Tooltip";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import { ContentCopyRoundedIcon, CheckRoundedIcon } from "../../components/icons";
 
 export default function ImageTranslateContent({
   items = [],
@@ -295,7 +294,7 @@ export default function ImageTranslateContent({
                         mt: 0.5,
                         p: 0.8,
                         borderRadius: "6px",
-                        backgroundColor: "rgba(211, 47, 47, 0.08)",
+                        backgroundColor: "var(--kt-errc)",
                         border: "1px solid",
                         borderColor: "error.light",
                       }}

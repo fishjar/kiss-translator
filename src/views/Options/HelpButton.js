@@ -1,6 +1,6 @@
 import Button from "@mui/material/Button";
 import { useI18n } from "../../hooks/I18n";
-import HelpIcon from "@mui/icons-material/Help";
+import { HelpIcon } from "../../components/icons";
 
 /**
  * 统一的帮助文档跳转按钮组件

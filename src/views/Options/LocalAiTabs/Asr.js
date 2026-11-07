@@ -20,12 +20,7 @@ import InputLabel from "@mui/material/InputLabel";
 import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Divider from "@mui/material/Divider";
-import MicRoundedIcon from "@mui/icons-material/MicRounded";
-import StopRoundedIcon from "@mui/icons-material/StopRounded";
-import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import { MicRoundedIcon, StopRoundedIcon, UploadFileRoundedIcon, PlayArrowRoundedIcon, PauseRoundedIcon, ContentCopyRoundedIcon } from "../../../components/icons";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { AsrClient } from "../../../localAi/core/asrClient";
 import {

@@ -1,4 +1,4 @@
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
+import { MenuRoundedIcon } from "../../components/icons";
 import Logo from "../../components/Logo";
 import IconButton from "@mui/material/IconButton";
 import { useI18n } from "../../hooks/I18n";

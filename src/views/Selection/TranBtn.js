@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
+import { TranslateRoundedIcon } from "../../components/icons";
 
 /**
  * Floating trigger shown next to a page selection.

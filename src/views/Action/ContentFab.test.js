@@ -167,6 +167,11 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     render();
     expect(menuItems()).toHaveLength(0);
     expect(fab().getAttribute("aria-expanded")).toBe("false");
+    // The menu trigger keeps native button semantics; aria-expanded carries state.
+    expect(fab().getAttribute("role")).toBeNull();
+    expect(fab().getAttribute("aria-checked")).toBeNull();
+    expect(fab().getAttribute("type")).toBe("button");
+    expect(fab().classList.contains("kt-content-fab--x")).toBe(false);
     const speedDialIcon = fab().querySelector(".MuiSpeedDialIcon-root");
     expect(fab().querySelectorAll(".MuiSpeedDialIcon-root svg")).toHaveLength(
       2
@@ -181,6 +186,8 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     clickFab();
 
     expect(fab().getAttribute("aria-expanded")).toBe("true");
+    expect(fab().getAttribute("aria-checked")).toBeNull();
+    expect(fab().classList.contains("kt-content-fab--x")).toBe(true);
     expect(fab().id).toBe("kt-content-fab-button");
     expect(fab().getAttribute("aria-controls")).toBe("kt-content-fab-menu");
     const menu = container.querySelector("#kt-content-fab-menu");
