@@ -32,6 +32,7 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
+  OPT_TRANS_ATLASCLOUD,
   OPT_TRANS_CUSTOMIZE,
 } from "../config";
 import { genGoogle, genGoogle2, genGoogleCloud } from "./google";
@@ -48,7 +49,12 @@ import { genGemini, genGemini2 } from "./gemini";
 import { genClaude } from "./claude";
 import { genCloudflareAI } from "./cloudflare";
 import { genOllama } from "./ollama";
-import { genOpenRouter, genOrcaRouter, genRequesty } from "./routers";
+import {
+  genOpenRouter,
+  genOrcaRouter,
+  genRequesty,
+  genAtlasCloud,
+} from "./routers";
 import { buildSystemRoleMessages } from "./messages";
 
 // 原生协议适配：保持旧参数、字段和厂家差异，不加载用户脚本解释器。
@@ -123,6 +129,7 @@ const genReqFuncs = {
   [OPT_TRANS_OPENROUTER]: genOpenRouter,
   [OPT_TRANS_ORCAROUTER]: genOrcaRouter,
   [OPT_TRANS_REQUESTY]: genRequesty,
+  [OPT_TRANS_ATLASCLOUD]: genAtlasCloud,
   [OPT_TRANS_CUSTOMIZE]: genCustom,
 };
 
