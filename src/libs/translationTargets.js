@@ -60,21 +60,44 @@ export function cloneWithoutInlineHidden(node) {
   return clone;
 }
 
+export function getPreservedInlineAncestor(node, isPreservedInline) {
+  if (!isPreservedInline) return null;
+  let preserved = null;
+  for (let current = node; current; current = current.parentElement) {
+    if (current.nodeType === 1 && isPreservedInline(current))
+      preserved = current;
+  }
+  return preserved;
+}
+
 export function visitTranslationTargets(root, options, visit) {
-  const { autoScan, selector, ignoreSelector, isBlock, hasText, wrapperClass } =
-    options;
+  const {
+    autoScan,
+    selector,
+    ignoreSelector,
+    isBlock,
+    hasText,
+    wrapperClass,
+    isPreservedInline,
+  } = options;
   if (
     !root ||
     ![1, 11].includes(root.nodeType) ||
     isInInlineHidden(root) ||
-    root.closest?.(ignoreSelector)
+    root.closest?.(ignoreSelector) ||
+    getPreservedInlineAncestor(root, isPreservedInline)
   )
     return;
   if (autoScan === "false") {
     if (!selector?.trim()) return;
     if (root.matches?.(selector)) visit(root);
     root.querySelectorAll(selector).forEach((node) => {
-      if (!isInInlineHidden(node) && !node.closest(ignoreSelector)) visit(node);
+      if (
+        !isInInlineHidden(node) &&
+        !node.closest(ignoreSelector) &&
+        !getPreservedInlineAncestor(node, isPreservedInline)
+      )
+        visit(node);
     });
     return;
   }
@@ -82,7 +105,12 @@ export function visitTranslationTargets(root, options, visit) {
   const stack = [root];
   while (stack.length) {
     const node = stack.pop();
-    if (isInlineHidden(node) || node.matches?.(ignoreSelector)) continue;
+    if (
+      isInlineHidden(node) ||
+      node.matches?.(ignoreSelector) ||
+      isPreservedInline?.(node)
+    )
+      continue;
     const text = hasText(node);
     const children = Array.from(node.children).filter(
       (child) => !isInlineHidden(child)
@@ -90,6 +118,7 @@ export function visitTranslationTargets(root, options, visit) {
     if (
       !text &&
       children.length === 1 &&
+      !isPreservedInline?.(children[0]) &&
       !children[0].classList.contains(wrapperClass)
     ) {
       stack.push(children[0]);

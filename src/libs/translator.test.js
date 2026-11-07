@@ -3404,6 +3404,129 @@ describe("Translator rule styles", () => {
   });
 
   describe("paragraph auxiliary nodes", () => {
+    test("rechecks formula display after a temporary rendering state", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Before the formula <span class="MathJax" style="display:none">x+y</span> and after it.</p></main>';
+      const formula = document.querySelector(".MathJax");
+      expect(Translator.isBlockNode(formula)).toBe(true);
+      formula.style.display = "inline";
+      expect(Translator.isBlockNode(formula)).toBe(false);
+      createTranslator({ keepSelector: ".MathJax" });
+      await flushMutations();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).toMatch(
+        /^Before the formula .+ and after it\.$/
+      );
+    });
+
+    test.each(["true", "false"])(
+      "scan and preview keep formula internals atomic: autoScan=%s",
+      async (autoScan) => {
+        document.body.innerHTML =
+          '<main id="root"><p id="target">Before the formula <span class="MathJax" style="display:inline"><span id="internal" style="display:block">x+y</span></span> and after it.</p></main>';
+        const translator = createTranslator({
+          autoScan,
+          selector: "p, #internal",
+          keepSelector: ".MathJax",
+        });
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(translator.previewRule().targets).toEqual([
+          document.getElementById("target"),
+        ]);
+        expect(
+          translator.previewRule({
+            ...Translator.DEFAULT_RULE,
+            rootsSelector: "#internal",
+            autoScan,
+            selector: "#internal",
+            keepSelector: ".MathJax",
+          }).targets
+        ).toEqual([]);
+        expect(document.querySelector(".MathJax kiss-translator")).toBeNull();
+      }
+    );
+
+    test.each(
+      ["true", "false"].flatMap((autoScan) =>
+        ["insert", "remove", "text", "replace", "stale-translation"].map(
+          (change) => [autoScan, change]
+        )
+      )
+    )(
+      "updates the owning paragraph after formula changes: autoScan=%s change=%s",
+      async (autoScan, change) => {
+        apiTranslate.mockImplementation(async ({ text }) => ({
+          trText: text,
+          isSame: false,
+        }));
+        document.body.innerHTML =
+          '<main id="root"><p id="target">Before the formula <span class="MathJax" style="display:inline"><span class="math" style="display:inline-block"><span id="internal" style="display:block"><span id="value">x+y</span></span></span></span> and after it.</p><p id="sibling">An independent neighboring paragraph.</p></main>';
+        const translator = createTranslator({
+          autoScan,
+          selector: "p, #internal",
+          keepSelector: ".MathJax, .math",
+        });
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(2);
+        const target = document.getElementById("target");
+        const siblingWrapper = document.querySelector(
+          "#sibling kiss-translator"
+        );
+        const originalFormula = target.querySelector(".MathJax");
+        const internal = originalFormula.querySelector("#internal");
+        const value = internal.querySelector("#value");
+        apiTranslate.mockClear();
+        if (change === "insert") {
+          value.appendChild(document.createTextNode("+z"));
+        } else if (change === "remove") {
+          value.remove();
+        } else if (change === "text") {
+          value.firstChild.nodeValue = "a+b";
+        } else if (change === "replace") {
+          const replacement = originalFormula.cloneNode(true);
+          replacement.querySelector("#value").textContent = "a+b";
+          originalFormula.replaceWith(replacement);
+        } else {
+          internal.insertAdjacentHTML(
+            "beforeend",
+            '<kiss-translator class="kiss-translator-wrapper notranslate">Stale formula translation</kiss-translator>'
+          );
+          value.firstChild.nodeValue = "a+b";
+        }
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toMatch(
+          /^Before the formula .+ and after it\.$/
+        );
+        expect(
+          target.querySelectorAll(":scope > kiss-translator")
+        ).toHaveLength(1);
+        expect(target.querySelector(".MathJax kiss-translator")).toBeNull();
+        expect(document.querySelector("#sibling kiss-translator")).toBe(
+          siblingWrapper
+        );
+        const translatedFormula = target.querySelector(
+          "kiss-translator .MathJax"
+        );
+        expect(translatedFormula.textContent).toBe(
+          target.querySelector(".MathJax").textContent
+        );
+        await flushMutations();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        const formula = target.querySelector(".MathJax");
+        translator.updateRule({ transOnly: "true" });
+        await flushMutations();
+        expect(target.contains(formula)).toBe(false);
+        translator.updateRule({ transOnly: "false" });
+        await flushMutations();
+        expect(target.querySelector(".MathJax")).toBe(formula);
+        translator.disable();
+        expect(target.querySelector(".MathJax")).toBe(formula);
+        expect(target.querySelector("kiss-translator")).toBeNull();
+      }
+    );
+
     test.each([
       {},
       { autoScan: "false", selector: "p" },

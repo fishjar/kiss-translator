@@ -58,9 +58,9 @@ export const DEFAULT_SELECTOR =
   "h1, h2, h3, h4, h5, h6, li, p, dd, blockquote, figcaption, label, legend";
 // 可由站点规则增删的默认忽略项；插件自身界面与非正文内容另行固定排除。
 export const DEFAULT_IGNORE_SELECTOR =
-  "button, footer, pre, mark, nav, svg, img[src*='.svg'], address, select, option, .notranslate, [translate='no']";
+  "button, footer, pre, mark, nav, svg, img[src*='.svg'], address, select, option, .notranslate, [translate='no'], .MathJax_Display";
 // 默认保留原样、不破坏内部结构的特殊行内元素选择器（如行内代码、公式等）
-export const DEFAULT_KEEP_SELECTOR = `code, cite, math, .math, a:has(code)`;
+export const DEFAULT_KEEP_SELECTOR = `code, cite, math, .math, a:has(code), .MathJax`;
 // 默认网页图片识别选择器与排除选择器
 export const DEFAULT_IMAGE_SELECTOR = "img";
 export const DEFAULT_IMAGE_IGNORE_SELECTOR =

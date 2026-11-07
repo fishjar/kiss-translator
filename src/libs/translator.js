@@ -74,6 +74,7 @@ import {
   isInInlineHidden,
   getInlineVisibleText,
   cloneWithoutInlineHidden,
+  getPreservedInlineAncestor,
 } from "./translationTargets";
 import { normalizeRuleApi } from "./apiSelection";
 import { isSameStorageValue } from "./storageEquality";
@@ -102,9 +103,6 @@ function getRuntimeApiSettings(api) {
 }
 
 export class Translator {
-  // 块级判定缓存，避免对同一节点高频调用 window.getComputedStyle(el) 造成浏览器回流（Reflow）
-  static displayCache = new WeakMap();
-
   // HTML 元素标签分类
   static TAGS = {
     // 强制换行标签
@@ -304,9 +302,6 @@ export class Translator {
 
   /**
    * 判断目标元素是否为块级（Block）节点
-   * // REVIEW: 缓存失效风险。使用 WeakMap 缓存了元素的 block 判定结果，如果在页面运行期间，
-   * // 某个元素的 display 样式被动态修改（如从 none 变更为 block，或者从 inline 变更为 block），
-   * // displayCache 中缓存的旧状态不会被失效或刷新，这可能导致后续的扫描和翻译无法准确处理该节点。
    * @param {Node} el - 待检测的 DOM 节点
    * @returns {boolean}
    */
@@ -323,26 +318,17 @@ export class Translator {
     // 若标签在块级标签集合中，直接判定为块级
     if (Translator.TAGS.BLOCK.has(el.nodeName?.toUpperCase())) return true;
 
-    // 优先读取 WeakMap 缓存
-    if (Translator.displayCache.has(el)) {
-      return Translator.displayCache.get(el);
-    }
-
     // 自定义组件标签 (如 <gg-article>) 默认 computed display 常为 inline，但如果内部包含块级元素，则属于结构容器
     if (el.nodeName?.includes("-")) {
-      Translator.displayCache.set(el, false);
       for (const child of el.children) {
         if (Translator.isBlockNode(child)) {
-          Translator.displayCache.set(el, true);
           return true;
         }
       }
     }
 
-    // 降级回滚：调用 getComputedStyle 进行高开销的布局样式计算
-    const isBlock = !window.getComputedStyle(el).display.startsWith("inline");
-    Translator.displayCache.set(el, isBlock);
-    return isBlock;
+    // 页面渲染期间定位和显示样式会变化，不能永久缓存临时状态。
+    return !window.getComputedStyle(el).display.startsWith("inline");
   }
 
   // 判断是否包含块级子元素
@@ -1508,6 +1494,14 @@ export class Translator {
             this.#queueForRescan(mutation.target.parentElement, false, true);
           }
         } else if (mutation.type === "childList") {
+          if (
+            getPreservedInlineAncestor(mutation.target, (node) =>
+              this.#isKeptInline(node)
+            )
+          ) {
+            this.#queueForRescan(mutation.target, false, true);
+            continue;
+          }
           let nodes = new Set();
           let hasText = false;
           if (
@@ -2785,14 +2779,18 @@ export class Translator {
 
   // 向上查找发生变化的块级元素
   #findChangeContainer(startNode) {
+    const preserved = getPreservedInlineAncestor(startNode, (node) =>
+      this.#isKeptInline(node)
+    );
+    const scanStart = preserved ? preserved.parentElement : startNode;
     if (
-      !Translator.isElementOrFragment(startNode) ||
-      startNode.closest?.(this.#ignoreSelector)
+      !Translator.isElementOrFragment(scanStart) ||
+      scanStart.closest?.(this.#ignoreSelector)
     ) {
       return null;
     }
 
-    let current = startNode;
+    let current = scanStart;
     while (current && current !== document.body) {
       if (current.classList?.contains(Translator.KISS_CLASS.original)) {
         current = current.parentElement;
@@ -2868,6 +2866,10 @@ export class Translator {
     if (!container) return;
 
     if (!preserveTranslations) {
+      const preserved = getPreservedInlineAncestor(changedNode, (node) =>
+        this.#isKeptInline(node)
+      );
+      if (preserved) this.#cleanupAllTranslations(preserved);
       this.#processedNodes.delete(container); // 删除处理状态，允许重新翻译
       if (preserveDescendants) {
         this.#cleanupUnitTranslations(container);
@@ -2967,18 +2969,20 @@ export class Translator {
   }
 
   #targetOptions(rule = this.#rule) {
+    const isBlock = (node) => {
+      try {
+        if (rule.blockSelector && node.matches?.(rule.blockSelector))
+          return true;
+      } catch {
+        /* Invalid legacy block selectors fall back to tag/display. */
+      }
+      return Translator.isBlockNode(node);
+    };
     return {
       ...rule,
       ignoreSelector: this.#getIgnoreSelector(rule),
-      isBlock: (node) => {
-        try {
-          if (rule.blockSelector && node.matches?.(rule.blockSelector))
-            return true;
-        } catch {
-          /* Invalid legacy block selectors fall back to tag/display. */
-        }
-        return Translator.isBlockNode(node);
-      },
+      isBlock,
+      isPreservedInline: (node) => this.#isKeptInline(node, rule, isBlock),
       hasText: Translator.hasTextNode,
       wrapperClass: Translator.KISS_CLASS.warpper,
     };
@@ -3492,14 +3496,17 @@ export class Translator {
   }
 
   // Only inline keep elements may bypass configurable ignores inside a paragraph.
-  #isKeptInline(node) {
+  #isKeptInline(node, rule = this.#rule, isBlock) {
     if (!Translator.isElement(node)) return false;
     try {
-      return node.matches(this.#rule.keepSelector) && !this.#isBlockNode(node);
+      return (
+        node.matches(rule.keepSelector) &&
+        !(isBlock ? isBlock(node) : this.#isBlockNode(node))
+      );
     } catch (err) {
       logger
         .child("translator")
-        .warn("keepSelector match error", this.#rule.keepSelector, err);
+        .warn("keepSelector match error", rule.keepSelector, err);
       return false;
     }
   }

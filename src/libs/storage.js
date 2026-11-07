@@ -573,40 +573,59 @@ export const runDataMigration = async () => {
       const rules = (await transaction.getObj(STOKEY_RULES)) || DEFAULT_RULES;
       const globalRule = rules.find((rule) => rule.pattern === "*");
       const nextGlobal = { ...(globalRule || GLOBLA_RULE) };
-      let selectors;
       try {
-        selectors = splitSelectorList(
-          nextGlobal.ignoreSelector ?? GLOBLA_RULE.ignoreSelector
-        );
+        for (const [field, additions] of [
+          [
+            "ignoreSelector",
+            [
+              "address",
+              "select",
+              "option",
+              ".notranslate",
+              "[translate='no']",
+              "svg",
+              ".MathJax_Display",
+            ],
+          ],
+          ["keepSelector", [".MathJax"]],
+        ]) {
+          const selectors = [
+            ...new Set(
+              splitSelectorList(nextGlobal[field] ?? GLOBLA_RULE[field])
+            ),
+          ];
+          const patchMode = selectors.some((item) => /^[+-]/.test(item));
+          for (const selector of additions) {
+            // Preserve existing additions and explicit removals.
+            if (
+              !selectors.some(
+                (item) => item.replace(/^[+-]\s*/, "") === selector
+              )
+            ) {
+              selectors.push(patchMode ? `+${selector}` : selector);
+            }
+          }
+          nextGlobal[field] = selectors
+            .filter(
+              (selector) =>
+                field !== "ignoreSelector" ||
+                patchMode ||
+                ![
+                  "[class*='logo'] svg",
+                  '[class*="logo"] svg',
+                  "[id*='logo'] svg",
+                  '[id*="logo"] svg',
+                ].includes(selector)
+            )
+            .join(", ");
+        }
       } catch (err) {
-        // Leave the value and completion marker untouched so settings can repair it.
+        // Keep both fields and the marker unchanged so invalid input can be repaired.
         logger
           .child("storage")
-          .warn("Skipping invalid legacy ignore selector migration:", err);
+          .warn("Skipping invalid legacy selector migration:", err);
         return;
       }
-      nextGlobal.ignoreSelector = [
-        ...new Set([
-          ...selectors,
-          "address",
-          "select",
-          "option",
-          ".notranslate",
-          "[translate='no']",
-          "svg",
-        ]),
-      ]
-        // The migration adds svg, which already covers these legacy defaults.
-        .filter(
-          (selector) =>
-            ![
-              "[class*='logo'] svg",
-              '[class*="logo"] svg',
-              "[id*='logo'] svg",
-              '[id*="logo"] svg',
-            ].includes(selector)
-        )
-        .join(", ");
       const nextRules = globalRule
         ? rules.map((rule) => (rule === globalRule ? nextGlobal : rule))
         : [nextGlobal, ...rules];
@@ -615,7 +634,7 @@ export const runDataMigration = async () => {
       await transaction.setObj(STOKEY_RULES_IGNORE_MIGRATED, true);
     });
   } catch (err) {
-    logger.child("storage").warn("Ignore selector migration failed:", err);
+    logger.child("storage").warn("Selector migration failed:", err);
     return false;
   }
   const rawSetting = await getSetting();
