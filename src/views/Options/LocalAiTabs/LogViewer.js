@@ -20,7 +20,7 @@ export const LOG_LEVEL_COLORS = {
   info: "var(--kt-pri)",
 };
 
-// 级色取值入口（WCAG AA 文本 4.5 线，离线探针实测见证据日志）：
+// 级色取值入口（WCAG AA 文本 4.5 对比线）：
 // warn 主题感知——暗色档琥珀达标，浅色档回落既有分级中性令牌 --kt-onv；
 // 其余级别不随主题切换；未知级别退回 info 主色。查找仅认自有属性：
 // "constructor"/"toString" 等原型链键不是级别，直取会把函数当颜色。

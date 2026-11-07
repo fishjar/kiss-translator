@@ -254,10 +254,10 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
 .kt-settings-preset-chip:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--kt-pri); }
 .kt-settings-preset-chip[aria-pressed="true"] { border-color: var(--kt-onsecc); background: var(--kt-secc); color: var(--kt-onsecc); }
 /* forced-colors 域 UA 丢弃上方 box-shadow 环并接管自定义底色/描边：焦点与选中
-   双双归零。按 §6.4 补 outline 兜底；焦点走 outline（不写颜色，描边色交强制
+   双双归零，故补 outline 兜底；焦点走 outline（不写颜色，描边色交强制
    引擎），选中正交地走 border＋系统 Highlight，focused+pressed 同时可见。
    必须排在默认 :focus-visible 之后：同特异度靠源码顺序压过 outline:none。
-   与 :140-142 的 translation-field actions 同范式；本轮不引入任何具体色值。 */
+   与 translation-field actions 的 forced-colors 块同范式。 */
 @media (forced-colors: active) {
   .kt-settings-preset-chip[aria-pressed="true"] { border: 2px solid Highlight; }
   .kt-settings-preset-chip:focus-visible { outline: 3px solid; outline-offset: -3px; box-shadow: none; }

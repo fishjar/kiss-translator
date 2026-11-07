@@ -479,12 +479,10 @@ describe.each([false, true, "fullscreen"])(
       // 在重开 commit 内同步触发（进入即完成）；本用例专测「晚到交接不抢
       // 光标」——断言必须放在超过过渡 timeout（jsdom 兜底 ~225ms）之后，
       // 否则绊线对延迟触发的焦点交接失明（聚焦后立即断言恒绿＝假绊线）。
-      // 执行期事实回执：计划改写版曾试图在退出窗口内先聚焦非选中项再重开
-      // 以触发守卫让位，实测重开树为重建节点、旧节点在 onEnter 时刻已不在
-      // Paper 内（3 变体全红，见证据日志），且 §6.3 opener 接线下 Escape
-      // 必回焦触发器，onEnter 时刻"焦点已在 Paper 内"在生产不可构造——
-      // 守卫让位语义由首次打开的 ref→onEnter 双交接路径承载，并由本文件
-      // describe("focusSelectedOption guard (unit)") 单元直测。
+      // onEnter 时刻"焦点已在 Paper 内"在生产不可构造：重开树为重建节点、
+      // 旧节点在 onEnter 时刻已不在 Paper 内，且 opener 接线下 Escape 必回焦
+      // 触发器——守卫让位语义由首次打开的 ref→onEnter 双交接路径承载，并由
+      // 本文件 describe("focusSelectedOption guard (unit)") 单元直测。
       await open("fromLang");
       const items2 = options();
       const cursor = items2[Math.min(selectedIndex + 1, items2.length - 1)];

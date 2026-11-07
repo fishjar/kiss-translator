@@ -499,7 +499,7 @@ describe("subtitle dropdown ARIA roles and roving tabindex", () => {
   test("dialog rows are not menuitemcheckbox once they are switches", () => {
     // 同改动的可证伪面：关面板状态下，对话框内不得再有 menuitemcheckbox 行
     // （Switch 行是唯一持有该角色的对话框元素；DropdownOption 行只在展开的
-    // role="menu" 面板内，另有用例在册）。
+    // role="menu" 面板内，另有用例覆盖）。
     const view = renderMenus({
       transApis: [{ apiSlug: "ai", apiName: "AI", apiType: "OpenAI" }],
       formData: {
@@ -541,7 +541,7 @@ describe("subtitle dropdown ARIA roles and roving tabindex", () => {
 
     const items = [...menu.querySelectorAll('[role="menuitemcheckbox"]')];
     expect(items.length).toBe(3);
-    // §6.1：无固有焦点选中态的 Menu 取第一项为激活位。
+    // 无固有焦点选中态的 Menu 取第一项为激活位。
     expect(items[0].getAttribute("tabindex")).toBe("0");
     expect(items[1].getAttribute("tabindex")).toBe("-1");
     expect(items[2].getAttribute("tabindex")).toBe("-1");
@@ -580,7 +580,7 @@ describe("subtitle dropdown ARIA roles and roving tabindex", () => {
   });
 
   test("Select trigger swallows panel-level Escape without closing the root menu", () => {
-    // 对称补齐 MultiSelect handleTriggerKeyDown（§6.3）：Select 面板开启、
+    // 对称补齐 MultiSelect handleTriggerKeyDown：Select 面板开启、
     // 焦点仍在触发源的瞬态窗口按 Escape，只关面板、不冒泡至根 dialog。
     const onClose = jest.fn();
     const view = renderMenus({ transApis, onClose });
@@ -647,7 +647,7 @@ describe("subtitle dropdown ARIA roles and roving tabindex", () => {
     expect(document.activeElement).toBe(options[0]);
     expect(options[1].getAttribute("tabindex")).toBe("-1");
     expect(options[0].getAttribute("tabindex")).toBe("0");
-    // 首项 ArrowUp 回绕至末项（§6.2 负模修正）。
+    // 首项 ArrowUp 回绕至末项（负模修正）。
     fireKey(options[0], "ArrowUp");
     expect(document.activeElement).toBe(options[1]);
     fireKey(options[1], "Home");
@@ -699,7 +699,7 @@ describe("subtitle dropdown ARIA roles and roving tabindex", () => {
     document.body.removeEventListener("keydown", spy);
     expect(leaked).toBe(0);
     expect(view.container.querySelector('[role="listbox"]')).toBeNull();
-    // §6.3：焦点显式回退触发源（MenuItem 根 div），不落 body。
+    // 焦点显式回退触发源（MenuItem 根 div），不落 body。
     expect(document.activeElement).toBe(trigger);
     view.cleanup();
   });
@@ -753,7 +753,7 @@ describe("subtitle dropdown ARIA roles and roving tabindex", () => {
       value: "api-b",
     });
     expect(view.container.querySelector('[role="listbox"]')).toBeNull();
-    // §6.3：键盘路径选择后焦点同样回退触发源，不落 body。
+    // 键盘路径选择后焦点同样回退触发源，不落 body。
     expect(document.activeElement).toBe(trigger);
     view.cleanup();
   });
@@ -777,8 +777,7 @@ describe("subtitle dropdown ARIA roles and roving tabindex", () => {
       );
       // 按 this 上下文过滤出 target 属于面板选项行的 focus 调用：
       // jest>=27.3 提供 focusSpy.mock.contexts，旧版 jest 无该属性时
-      // 用等价的 focusSpy.mock.instances——执行期以实际 jest 版本实测
-      // 就地取舍。
+      // 用等价的 focusSpy.mock.instances 作回退（无测试触发该回退分支，注释只陈述机制不声明覆盖）。
       const contexts = focusSpy.mock.contexts ?? focusSpy.mock.instances;
       const optionFocusArgs = contexts
         .map((el, i) => (optionRows.has(el) ? focusSpy.mock.calls[i] : null))
@@ -813,7 +812,7 @@ describe("subtitle dropdown ARIA roles and roving tabindex", () => {
       });
       // 修前 scriptFocus 传 {preventScroll:true}，修后无参：恰一次调用
       // ＋逐调用无参断言。不用空参 toHaveBeenCalledWith()——污染态下
-      // 混入的零参调用会令其伪通过（本文件执行期实测）。
+      // 混入的零参调用会令其伪通过。
       expect(focusSpy).toHaveBeenCalledTimes(1);
       for (const args of focusSpy.mock.calls) {
         expect(args).toEqual([]);
@@ -864,7 +863,7 @@ describe("subtitle dropdown ARIA roles and roving tabindex", () => {
     ];
     // 菜单内恰有 4 个弹层触发项：translate_service/ai_segmentation/
     // ai_enhanced_context 三个 Select + terminology_tables MultiSelect
-    // （术语目录为空仍渲染，禁用态同样登记弹层语义，规范 §入口语义配对）。
+    // （术语目录为空仍渲染，禁用态同为弹层触发项）。
     const triggerLabels = [
       "translate_service",
       "terminology_tables",
@@ -990,14 +989,14 @@ describe("subtitle terminology MultiSelect", () => {
 
     // 选中指示由行首 MenuCheckGlyph 图标实体交换承载（mui/lucide 双档勾/空对，
     // 随 iconStyle 切换）；语义由 menuitemcheckbox 的 aria-checked 承担，
-    // aria 布尔属性不作视觉驱动载体（M3 v3.1 §3.1.C/§5.4）。
+    // aria 布尔属性不作视觉驱动载体。
     expect(options[0].textContent).not.toContain("✓");
     expect(options[0].getAttribute("aria-checked")).toBe("true");
     expect(options[1].getAttribute("aria-checked")).toBe("false");
     options.forEach((row) => {
       expect(row.getAttribute("aria-selected")).toBeNull();
     });
-    // 多选行整行零持久染色（§3.1.C）：inline 底色全面退役（React 对
+    // 多选行整行零持久染色：inline 底色全面退役（React 对
     // undefined 不落盘 → style.background 为空串），状态由 checkbox 本体承载。
     expect(options[0].querySelector('span[aria-hidden="true"]')).not.toBeNull();
     expect(options[1].querySelector('span[aria-hidden="true"]')).not.toBeNull();

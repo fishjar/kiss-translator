@@ -267,7 +267,7 @@ describe("MUI-managed focus exemptions", () => {
     }
   });
   test("forced-colors keeps a keyboard focus ring on MuiMenuItem", () => {
-    // §6.4：有语义必有环。上述豁免把 MenuItem 的 :focus/:focus-visible 全部
+    // 有语义必有环。上述豁免把 MenuItem 的 :focus/:focus-visible 全部
     // outline:none，而 MUI 的 focusVisible 指示走 boxShadow——强制颜色域会丢弃
     // box-shadow，键盘聚焦的 MenuItem 将无任何可见指示。本块只覆盖 :focus-visible
     //（键盘语境），描边色交强制引擎，指针模态行为零变化。

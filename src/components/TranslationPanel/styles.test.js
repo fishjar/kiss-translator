@@ -1,6 +1,6 @@
 import { TRANSLATION_PANEL_STYLES } from "./styles";
 
-// 选中/按下/hover 态统一走 secondary-container 族令牌（M3 v3.1 §2.1 铁律）。
+// 选中/按下/hover 态统一走 secondary-container 族令牌。
 describe("TranslationPanel pressed/checked states use the secondary-container tokens", () => {
   const stateRules = (TRANSLATION_PANEL_STYLES.match(/[^{}]+\{[^}]*\}/g) ?? []).filter((rule) => /aria-pressed="true"|aria-checked="true"|button:hover/.test(rule));
     // 伪下拉对勾已移除：__menu-check 规则不再存在，stateRules 无需额外过滤。
@@ -14,7 +14,7 @@ describe("TranslationPanel pressed/checked states use the secondary-container to
 
   test("state rules consume the secondary-container tokens (M3 v3.1 §2.1)", () => {
     // aria-pressed="true"（按压图标钮）走 secc 族；aria-checked="true" 菜单行
-    // 持久零底色（§3.1.C，状态由成对图标承载）；hover 走 State Layer 叠色。
+    // 持久零底色（状态由成对图标承载）；hover 走 State Layer 叠色。
     const seccRules = stateRules.filter((rule) =>
       /aria-pressed="true"/.test(rule)
     );

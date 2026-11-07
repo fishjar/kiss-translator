@@ -1,5 +1,4 @@
-// 多选下拉勾选框在册闸：判定看值形状，不看组件类型。
-// 漏一个多选面＝用户所述"只认标准组件、不标准的找不出来"的第 6 次复发。
+// 多选下拉勾选框覆盖闸：判定看值形状，不看组件类型。
 import { readFileSync, readdirSync, statSync } from "fs";
 import path from "path";
 
@@ -16,7 +15,7 @@ const SKIP_DIRS = new Set([
 ]);
 const REL = (...parts) => path.join(...parts);
 
-// 在册多选面（本轮 git grep 实测枚举，非估算）：
+// 扫描覆盖的多选面清单：
 const PRIMITIVES = [
   REL("components", "TerminologySelect.js"),
   REL("subtitle", "Menus.js"),
@@ -34,7 +33,7 @@ const DELEGATES = [
   REL("views", "Options", "Tranbox.js"),
 ];
 // MUI Select 形态载体注册表：无 renderValue 时 MUI 会把选中 MenuItem 的
-// children 子树（含 MenuCheckGlyph）渲染进关闭态 trigger。凡在册且含内联
+// children 子树（含 MenuCheckGlyph）渲染进关闭态 trigger。凡清单内且含内联
 // 字形的多选面必须声明 renderValue（trigger 纯度闸）。
 const MUI_SELECT_SITES = [
   REL("components", "TerminologySelect.js"),
@@ -88,7 +87,7 @@ describe("multi-select checkbox coverage", () => {
 
   test("bare multiple JSX attributes on non-Select components are detected", () => {
     // 裸 multiple 属性形态（Autocomplete 等非 Select 载体）必须被
-    // MULTI_MARKERS 命中，否则未在册的非标准多选面会静默漏检。
+    // MULTI_MARKERS 命中，否则清单外的非标准多选面会静默漏检。
     expect(
       MULTI_MARKERS.some((marker) =>
         marker.test('<Autocomplete\n  multiple\n/>')
@@ -110,7 +109,7 @@ describe("multi-select checkbox coverage", () => {
   test("delegating wrappers stay delegated and do not paint their own box", () => {
     for (const file of DELEGATES) {
       const text = readFileSync(path.join(SRC, file), "utf8");
-      // 事实口径：三在册透传面的 `multiple` 形态各异（`multiple={multiple}`、
+      // 事实口径：三个透传面的 `multiple` 形态各异（`multiple={multiple}`、
       // 解构缺省 `multiple = false`、裸布尔属性 `multiple`），共同事实是都携带
       // multiple 标识符并转发给原语；`MULTI_MARKERS[2]`（仅 `multiple={`）
       // 会误杀后两种形态。i18n key "translate_service_multiple" 因下划线属
@@ -121,13 +120,13 @@ describe("multi-select checkbox coverage", () => {
   });
 
   test("every scanned file follows the registered multi-select contract", () => {
-    // 未登记文件：命中任一 MULTI_MARKERS 即 offender（整体豁免取消，
-    // 在册面也参与扫描——它们按各自约定核对，而非无条件放行）。
+    // 清单外文件：命中任一 MULTI_MARKERS 即 offender（整体豁免取消，
+    // 清单内文件也参与扫描——它们按各自约定核对，而非无条件放行）。
     // DELEGATES 透传面：必须携带 multiple 标识且零 MenuCheckGlyph。
-    // 其余在册面（PRIMITIVES/DIRECT_SITES）：必须渲染 MenuCheckGlyph。
+    // 其余清单面（PRIMITIVES/DIRECT_SITES）：必须渲染 MenuCheckGlyph。
     // 说明性事实：文本扫描无法可靠做"入口数=字形数"的逐条目配对——
     // 自绘面（如 Menus.js）以单个 MenuCheckGlyph 定义服务多行渲染，
-    // 计数相等断言会误红；条目级保障由"未登记零命中 + 在册面逐文件
+    // 计数相等断言会误红；条目级保障由"清单外零命中 + 清单内逐文件
     // 字形/透传约定"两层承载。
     const registered = [...PRIMITIVES, ...DIRECT_SITES, ...DELEGATES];
     const offenders = walk(SRC)

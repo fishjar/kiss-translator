@@ -582,9 +582,8 @@ describe("AiDictCont", () => {
       disconnect() {}
     };
 
-    // 作用域纠偏（执行期事实回执）：container/root 须在 try 外声明——
-    // const 解构在 try 块内声明时 finally 块不可见（计划 Replacement 原稿
-    // 为块内解构，实测 ReferenceError，见证据日志）。
+    // container/root 须在 try 外声明：const 解构在 try 块内声明时
+    // finally 块不可见（实测 ReferenceError）。
     let container, root;
     try {
       ({ container, root } = renderAiDictCont());
@@ -641,8 +640,7 @@ describe("AiDictCont", () => {
       // 已测得态契约：操作区切绝对定位贴逻辑行末，让出独立网格行。
       const measuredActionsRules = classRules(actions);
       expect(measuredActionsRules).toContain("position:absolute");
-      // emotion 实测序列化为无单位 `inset-inline-end:0`（未验证假设通道，
-      // 实测输出见证据日志）。
+      // emotion 实测序列化为无单位 `inset-inline-end:0`。
       expect(measuredActionsRules).toContain("inset-inline-end:0");
       expect(measuredActionsRules).toContain("top:0");
 

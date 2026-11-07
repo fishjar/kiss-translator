@@ -123,7 +123,7 @@ describe("focus modality wiring gate", () => {
   test("multi-select rows opt out of the selected fill (hit semantics)", () => {
     // 多选去染色闸结构校验（命中语义版）：闸选择器必须真实命中行载体，
     // 而非仅字面量在场。双轨断言——①源码定点 includes（两条闸键＋hover 变体）；
-    // ②按计划 Replacement 生成形态手工换算出的两条具体选择器，对 jsdom
+    // ②由两条闸选择器手工换算出的两条具体选择器，对 jsdom
     // 三类行载体做 matches()。任一轨失败即红，不做任何正则盲提。
     document.body.innerHTML = `
       <div role="menu">
@@ -238,10 +238,9 @@ describe("menu surfaces must not call focus directly", () => {
           /\.focus\(/.test(readFileSync(file, "utf8"))
       )
       .map((file) => path.relative(SRC, file));
-    // 在册豁免：纯键盘处理器内的聚焦（此刻模态必为键盘，环本应出现）与
-    // 文本框聚焦（输入框恒有环）。名单只允许缩短，不允许增长。
-    // 上限闸：豁免名单是"只进不退"的正向棘轮（toEqual 已强制逐名一致），
-    // 这条上限再钉一次天花板，防止有人靠"名单本来就长"蒙混新增豁免文件。
+    // 豁免范围：纯键盘处理器内的聚焦（此刻模态必为键盘，环本应出现）与
+    // 文本框聚焦（输入框恒有环）。名单只允许缩短，不允许增长；
+    // toEqual 已逐名一致锁定，条数上限再钉一次天花板，防止靠"名单本来就长"蒙混新增豁免文件。
     expect(offenders.length).toBeLessThanOrEqual(19);
     expect(offenders.sort()).toEqual(
       [

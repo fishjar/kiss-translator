@@ -390,7 +390,7 @@ export function FileTranslationProvider({ children }) {
                   backgroundColor: `color-mix(in srgb, ${theme.palette.secondary.contrastText} 12%, ${theme.palette.secondary.main})`,
                 },
                 // FileTranslate 域主题不继承 M3Theme 基槽：hover/focusVisible 恢复
-                // M3 §4.2 State Layer（currentColor 半透明叠加，不依赖基槽注入），
+                // State Layer（currentColor 半透明叠加，不依赖基槽注入），
                 // 键盘焦点环挂 :focus-visible 键盘语境伪类＋inset 内嵌（同 M3Theme
                 // MenuItem 双缺陷修复），HC 域 outline 内描兜底。
                 "&:hover": {
@@ -408,9 +408,9 @@ export function FileTranslationProvider({ children }) {
                   backgroundColor: `color-mix(in srgb, ${theme.palette.secondary.contrastText} 12%, ${theme.palette.secondary.main})`,
                 },
                 // 数据多选菜单（aria-multiselectable，本域经 TerminologySelect 的
-                // multiple 形态 Select 进入）：持久选中染色禁令（§3.1.C:156）下选中行
-                // 去底色（选中语义由勾号承载），但瞬时反馈必须保留（§3.1.C:160 /
-                // §4.2:221）——hover 8%、focus-visible 12% 叠加，后置规则在同特异度
+                // multiple 形态 Select 进入）：持久选中染色禁令下选中行
+                // 去底色（选中语义由勾号承载），但瞬时反馈必须保留
+                // ——hover 8%、focus-visible 12% 叠加，后置规则在同特异度
                 // 平手中胜出，focus-visible 配套规则 (0,5,0) 防去染色连带删除键盘反馈。
                 '[aria-multiselectable="true"] &&.Mui-selected': {
                   backgroundColor: "transparent",

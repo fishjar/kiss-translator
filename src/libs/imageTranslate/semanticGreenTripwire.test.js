@@ -4,7 +4,7 @@ import path from "path";
 const read = (rel) => readFileSync(path.resolve(__dirname, rel), "utf8");
 const count = (source, pattern) => (source.match(pattern) || []).length;
 
-// v5 T8 语义绿豁免钉死：独立 pattern 清单（#00c853 hex 与 rgba(0, 200, 83
+// 语义绿豁免钉死：独立 pattern 清单（#00c853 hex 与 rgba(0, 200, 83
 // 伴生形态合并为一个 tripwire 的两种 pattern，各 pattern 独立计数；
 // 严禁与其他 hex 断言清单（如 #209cee）混用）。
 const expectations = [

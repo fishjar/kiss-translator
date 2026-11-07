@@ -61,7 +61,7 @@ describe("consumer icon-dispatch purity", () => {
     expect(
       hasDirectMuiIconImport('const m = await import("@mui/icons-material");')
     ).toBe(true);
-    // 合法形态负向锁：走分发器、走非图标包，一律不得命中。
+    // 合法形态：走分发器、走非图标包，一律不得命中。
     expect(hasDirectMuiIconImport('import { Favorite } from "../icons";')).toBe(
       false
     );

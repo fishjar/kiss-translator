@@ -49,7 +49,7 @@ export default function PopupMenu({
   // ShadowRoot 中才禁用 enforceFocus——影子拓扑下 MUI 焦点陷阱在 document 级
   // focusin 里把影子内目标重定向为宿主，误判"焦点离开弹层"而把焦点拽到
   // Paper 根上，吞掉 scriptFocus 交给网格 chip/菜单项的焦点（同款问题与解法
-  // 见 TranForm selectMenuProps 的 disableEnforceFocus 在册注释）。跨 realm
+  // 见 TranForm selectMenuProps 的 disableEnforceFocus 注释）。跨 realm
   // 锚点（另一 window 的 ShadowRoot）以 host 存在性判定（instanceof 会漏判）。
   const resolveMenuContainer = () =>
     anchorEl?.closest(".kt-m3-root") || anchorEl?.ownerDocument.body;
@@ -167,7 +167,7 @@ export default function PopupMenu({
       marginThreshold={8}
       transitionDuration={0}
       sx={{ zIndex: 2147483647 }}
-      // 三键同给缺一不可（对齐 TranForm selectMenuProps 在册契约）：
+      // 三键同给缺一不可（对齐 TranForm selectMenuProps 的同一契约）：
       // autoFocus=false 关 Menu.js:192 的 MenuList 容器聚焦腿；disableAutoFocusItem
       // 关项腿；disableAutoFocus 让 Popover/Modal 不再自己拓焦——焦点交接只归
       // 本组件的 scriptFocus（focusFirstItem）。

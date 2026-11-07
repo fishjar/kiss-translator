@@ -83,7 +83,7 @@ describe("content FAB Material 3 shape", () => {
     expect(ACTION_STYLES).not.toContain(
       '.kt-content-fab-menu__item[aria-checked="true"] .MuiListItemIcon-root'
     );
-    // 普通行 hover 走 State Layer 叠色（§4.2）；全菜单无选中底色。
+    // 普通行 hover 走 State Layer 叠色；全菜单无选中底色。
     const menuItemRule = ACTION_STYLES.match(
       /\.kt-content-fab-menu__item\s*\{([^}]*)\}/
     )?.[1];

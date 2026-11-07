@@ -125,7 +125,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
   ).toMatchObject({
     "&&.Mui-focusVisible:focus": { outline: "3px solid", outlineOffset: -3 },
   });
-  // 负向锁：非 forced-colors 域不得出现 3px 描边兜底（防泄漏到常规域）。
+  // 非 forced-colors 域不得出现 3px 描边兜底（防泄漏到常规域）。
   expect(
     Object.entries(capturedTheme.components.MuiTab.styleOverrides.root)
       .filter(([key]) => key !== "@media (forced-colors: active)")
@@ -159,22 +159,22 @@ test("scopes the resolved Material 3 palette to its root", () => {
       "background-color .2s ease, color .2s ease, box-shadow .2s ease",
   });
   expect(menuItemRoot.borderRadius).toBeUndefined();
-  // 契约 B（M3 v3.1 §3.1.C 铁律）：选中态走 secondary-container 族底色，文字色 onSecondaryContainer。
+  // 选中态走 secondary-container 族底色，文字色 onSecondaryContainer。
   const accent = calculateAdaptiveAccentFamilies(191.4, "dark");
   expect(menuItemRoot["&.Mui-selected"]).toEqual({
     backgroundColor: accent.secondaryContainer,
     color: accent.onSecondaryContainer,
   });
-  // 契约 B'（mask 单源化批次⑤）：勾槽 ::before 整体退役，基槽不再绘制勾号。
+  // 勾槽 ::before 整体退役，基槽不再绘制勾号。
   expect(menuItemRoot["&.Mui-selected::before"]).toBeUndefined();
-  // 契约 B''（§4.2 State Layer）：hover/selected:hover 恢复半透明叠色（currentColor 8%/12%）。
+  // hover/selected:hover 恢复半透明叠色（currentColor 8%/12%）。
   expect(menuItemRoot["&.Mui-selected:hover"]).toEqual({
     backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
   });
   expect(menuItemRoot["&:hover"]).toEqual({
     backgroundColor: "color-mix(in srgb, currentColor 8%, transparent)",
   });
-  // 契约 C（§4.2 State Layer）：菜单焦点环挂 :focus-visible 键盘语境伪类
+  // 菜单焦点环挂 :focus-visible 键盘语境伪类
   // （MenuList selectedMenu 变体打开即给选中项注入 .Mui-focusVisible 类，
   // 与输入方式无关 → 挂点换伪类封死鼠标链路误显环）；环改 inset 内嵌
   // （MenuList "8px 0" 零水平 padding，外描环必被裁），底色保留 State Layer 12% 叠色。
@@ -183,7 +183,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
     boxShadow: "inset 0 0 0 3px #a5bfc5",
     backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
   });
-  // 负向锁：.Mui-focusVisible 挂点不得残留任何样式（鼠标打开路径不命中环）。
+  // .Mui-focusVisible 挂点不得残留任何样式（鼠标打开路径不命中环）。
   expect(menuItemRoot["&&.Mui-focusVisible"]).toBeUndefined();
   // forced-colors 兜底（对齐仓内先例 forcedColorsFocusRing 配对模式）：
   // 强制色彩模式剥离 boxShadow，须以 outline 内描恢复键盘环。
@@ -231,7 +231,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
       "&.Mui-selected"
     ]
   ).toMatchObject({
-    // 选中态契约统一 secondary-container 弱形态（与 MenuItem/Tab 同口径，§3.1.C）。
+    // 选中态统一 secondary-container 弱形态（与 MenuItem/Tab 同口径）。
     backgroundColor: accent.secondaryContainer,
     color: accent.onSecondaryContainer,
   });
@@ -250,7 +250,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
   ).toMatchObject({
     "&&.Mui-focusVisible:focus": { outline: "3px solid", outlineOffset: -3 },
   });
-  // 负向锁：非 forced-colors 域不得出现 3px 描边兜底。
+  // 非 forced-colors 域不得出现 3px 描边兜底。
   expect(
     Object.entries(capturedTheme.components.MuiToggleButton.styleOverrides.root)
       .filter(([key]) => key !== "@media (forced-colors: active)")
@@ -270,7 +270,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
   ).toMatchObject({
     "&&.Mui-focusVisible:focus": { outline: "3px solid", outlineOffset: -3 },
   });
-  // 负向锁：非 forced-colors 域不得出现 3px 描边兜底。
+  // 非 forced-colors 域不得出现 3px 描边兜底。
   expect(
     Object.entries(
       capturedTheme.components.MuiListItemButton.styleOverrides.root

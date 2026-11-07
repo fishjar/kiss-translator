@@ -341,7 +341,7 @@ export function renderDispatcherEntry(name) {
 
 /**
  * Render the maskGlyphs module with check icon mask data-URIs.
- * Single-source for menu check masks (M3 v3.1 §3.1.C).
+ * Single-source for menu check masks.
  */
 export function renderMaskModule() {
   return [

@@ -35,7 +35,7 @@ const resolvePopperContainer = (anchor) => {
 // WeakMap 防每次 render 重建缓存导致样式重灌（依赖先例：libs/domManager.js、
 // components/TextareaResizeGrip.test.js）。speedy 关闭＝textContent 注入形态：
 // jsdom 不为影子根内 style 标签挂载 sheet（cssRules 不可用），speedy 的
-// insertRule 会让规则在测试与 DevTools 检视中双双不可读（执行期事实回执）。
+// insertRule 会让规则在测试与 DevTools 检视中双双不可读。
 const shadowCaches = new WeakMap();
 const getShadowCache = (shadowRoot) => {
   if (!shadowCaches.has(shadowRoot)) {
@@ -227,7 +227,7 @@ export default function ReusableAutocomplete({
               return callerContainer ?? resolvePopperContainer(rootRef.current);
             },
             // 挂回根内后叠加上下文改变，弹层须显式声明顶层 zIndex
-            // （在册范式：PopupMenu.js / TranForm.js）。数组形态追加后
+            // （同 PopupMenu.js / TranForm.js 的既有范式）。数组形态追加后
             // flat 摊平一层：调用方数组 sx 升为顶层项（实测嵌套数组不被
             // styleFunctionSx 解析），对象/函数形态原样保留；顶层 zIndex
             // 按序后置胜出，falsy 项（未传 sx）被 emotion 忽略。

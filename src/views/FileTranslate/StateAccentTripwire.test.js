@@ -60,8 +60,7 @@ describe("State.js switch accent pinning (literal ≡ domain theme primary)", ()
         .reduce((sum, c, i) => sum + [0.2126, 0.7152, 0.0722][i] * c, 0);
     const ratio = (lum(DARK_LITERAL) + 0.05) / (lum("#1E1F20") + 0.05);
     const measured = Number(ratio.toFixed(3));
-    // 缺口已由暗色 #A8C7FA 焦点环闭环（实测 ≈9.6:1 ≥ 3:1）；原 2.585 在册
-    // 缺口口径与 toBeLessThan(3) 恒红绊线一并退役。
+    // 缺口已由暗色 #A8C7FA 焦点环闭环（实测 ≈9.6:1 ≥ 3:1）。
     expect(measured).toBeGreaterThanOrEqual(3);
   });
 });

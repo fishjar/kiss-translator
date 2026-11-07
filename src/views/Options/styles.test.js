@@ -272,9 +272,9 @@ describe("settings layout boundaries", () => {
   });
 
   test("preset chip keeps focus and pressed indications under forced colors", () => {
-    // 规范 §6.4：有语义必有环，forced-colors 必须有 outline 兜底形态。
+    // 有语义必有环：forced-colors 必须有 outline 兜底形态。
     // chip 焦点走 box-shadow、选中走自定义底色，二者在强制颜色域双双作废，
-    // 故本轮补：焦点走 outline 描边、正交地给选中留 Highlight 描边。
+    // 故补：焦点走 outline 描边、正交地给选中留 Highlight 描边。
     const forcedColorBodies = getCssAtRuleBodies(
       OPTIONS_STYLES,
       "@media (forced-colors: active)"
@@ -293,7 +293,7 @@ describe("settings layout boundaries", () => {
         )
       )
     ).toBe(true);
-    // 负向锁：本轮不引入任何具体色值（颜色体系已定型），新块内不得出现十六进制色。
+    // 新块内不得出现十六进制色（颜色体系已定型）。
     const chipBodies = forcedColorBodies.filter((body) =>
       /\.kt-settings-preset-chip/.test(body)
     );

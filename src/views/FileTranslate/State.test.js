@@ -541,15 +541,15 @@ test("overrides MuiMenuItem so menu rows share one height and padding token", as
     capturedTheme.components.MuiMenuItem.styleOverrides.root({
       theme: capturedTheme,
     });
-  // 契约一（M3 v3.1 §3.1.C 铁律）：选中态走 secondary-container 族底色。
+  // 选中态走 secondary-container 族底色。
   expect(menuItemRoot["&.Mui-selected"]).toEqual({
     backgroundColor: capturedTheme.palette.secondary.main,
     color: capturedTheme.palette.secondary.contrastText,
   });
-  // 契约一'（mask 单源化批次⑤）：勾槽 ::before 整体退役。
+  // 勾槽 ::before 整体退役。
   expect(menuItemRoot["&::before"]).toBeUndefined();
   expect(menuItemRoot["&.Mui-selected::before"]).toBeUndefined();
-  // 契约二（§4.2 State Layer）：hover/selected:hover 恢复半透明叠色；
+  // hover/selected:hover 恢复半透明叠色；
   // 选中行 hover 保留 secondary 实底（contrastText 12% 叠 secondary.main）。
   expect(menuItemRoot["&.Mui-selected:hover"]).toEqual({
     backgroundColor: `color-mix(in srgb, ${capturedTheme.palette.secondary.contrastText} 12%, ${capturedTheme.palette.secondary.main})`,
@@ -557,7 +557,7 @@ test("overrides MuiMenuItem so menu rows share one height and padding token", as
   expect(menuItemRoot["&:hover"]).toEqual({
     backgroundColor: "color-mix(in srgb, currentColor 8%, transparent)",
   });
-  // 契约三（§4.2 State Layer）：焦点环挂 :focus-visible 键盘语境伪类（同 M3Theme
+  // 焦点环挂 :focus-visible 键盘语境伪类（同 M3Theme
   // MenuItem 双缺陷修复：.Mui-focusVisible 类与输入方式无关，鼠标链路误显环）；
   // 环改 inset 内嵌（MenuList 零水平 padding 场景外描环被裁），底色保留 State Layer 12%。
   expect(menuItemRoot["&&:focus-visible"]).toEqual({
@@ -586,11 +586,11 @@ test("overrides MuiMenuItem so menu rows share one height and padding token", as
   expect(menuItemRoot["&&.Mui-selected:focus-visible"]).toEqual({
     backgroundColor: `color-mix(in srgb, ${capturedTheme.palette.secondary.contrastText} 12%, ${capturedTheme.palette.secondary.main})`,
   });
-  // 负向锁：.Mui-focusVisible 挂点不得残留任何样式（鼠标打开路径不命中环）。
+  // .Mui-focusVisible 挂点不得残留任何样式（鼠标打开路径不命中环）。
   expect(menuItemRoot["&&.Mui-focusVisible"]).toBeUndefined();
   // 数据多选菜单（aria-multiselectable，经 TerminologySelect 的 <Select multiple>
-  // 进入本域主题）：持久选中染色禁令（§3.1.C:156）与瞬时反馈保留（§3.1.C:160 /
-  // §4.2:221）同时成立——选中行去底色、hover 8% 叠加、focus-visible 12% 叠加。
+  // 进入本域主题）：持久选中染色禁令与瞬时反馈保留同时成立——选中行去底色、
+  // hover 8% 叠加、focus-visible 12% 叠加。
   expect(menuItemRoot['[aria-multiselectable="true"] &&.Mui-selected']).toEqual({
     backgroundColor: "transparent",
     color: "inherit",

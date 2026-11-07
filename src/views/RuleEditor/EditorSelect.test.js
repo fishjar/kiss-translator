@@ -52,8 +52,8 @@ test("shadow menus retain the theme scope while navigating, searching and select
       );
 
     expect(list.closest(".kt-m3-root")).toBe(themeRoot);
-    // 发行版纵向单列行为被 c1222ef5 误改为两列网格。jsdom 无几何
-    // （offsetTop 恒 0），"纵向"以负向锁 grid 布局缺位 + DOM 顺序/单步键盘导航正向锁
+    // 发行版纵向单列行为曾回归为两列网格。jsdom 无几何
+    // （offsetTop 恒 0），"纵向"以 grid 布局缺位 + DOM 顺序/单步键盘导航
     // （本用例下方 press 段）共同证明，禁几何断言。
     expect(getComputedStyle(list).display).not.toBe("grid");
     expect(getComputedStyle(list).gridTemplateColumns).not.toContain("repeat(2");
@@ -117,7 +117,7 @@ test("purpose dropdown renders every option in DOM order as a vertical single-se
     );
     const list = shadow.querySelector('[role="listbox"]');
     const options = Array.from(list.querySelectorAll('[role="option"]'));
-    // 纵向：负向锁两列网格缺位。
+    // 纵向：两列网格缺位。
     expect(getComputedStyle(list).display).not.toBe("grid");
     expect(getComputedStyle(list).gridTemplateColumns).not.toContain("repeat(2");
     // 五项齐全且 DOM 顺序 = 声明顺序（纵向单列可达真源）。

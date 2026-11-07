@@ -83,7 +83,7 @@ test("applies the current pseudo-dropdown selected-state shape to all options", 
   const selected = document.querySelector(
     '.MuiAutocomplete-listbox [aria-selected="true"]'
   );
-  // 契约（M3 v3.1 §3.1.C 统一 secc 形态）：选中 secc 底＋onsecc 文字，行圆角 8px；
+  // 选中 secc 底＋onsecc 文字，行圆角 8px；
   // 状态规则一律绑在 MUI 自有 listbox/option 类上，自定义 renderOption 才能
   // 与默认渲染共享同一真源，特异度也才压得住 MUI v5 的同键规则。
   expect(selected).not.toBeNull();
@@ -95,14 +95,14 @@ test("applies the current pseudo-dropdown selected-state shape to all options", 
   );
   expect(styleTag.textContent).toContain("background-color: var(--kt-secc)");
   expect(styleTag.textContent).toContain("color: var(--kt-onsecc)");
-  // 负向锁一：pri 竖条形态不得回流。
+  // pri 竖条形态不得回流。
   expect(styleTag.textContent).not.toContain("inset 3px 0 0");
-  // 负向锁二：样式钩子不得只挂自研类——那会让 baseSlot/rest 自定义渲染整体失配。
+  // 样式钩子不得只挂自研类——那会让 baseSlot/rest 自定义渲染整体失配。
   expect(styleTag.textContent).not.toContain(
     '.kt-autocomplete-option[aria-selected="true"]'
   );
-  // 三档状态齐全（#7 的"检查各状态的实际样式"义务）：hover、focus、选中、焦点且选中。
-  // 瞬时状态层契约（M3 v3.1 §4.2）：hover/focus 一律 currentColor 8% 叠加层，
+  // 三档状态齐全：hover、focus、选中、焦点且选中。
+  // 瞬时状态层：hover/focus 一律 currentColor 8% 叠加层，
   // 严禁实心 surface 令牌 --kt-sf3；持久 [aria-selected] secondary-container 另计（单通道选择态）。
   expect(styleTag.textContent).toContain(
     ".MuiAutocomplete-listbox .MuiAutocomplete-option:hover { background-color: color-mix(in srgb, currentColor 8%, transparent); }"
@@ -165,7 +165,7 @@ test("mounts the popper inside the M3 root so selected-state tokens stay reachab
   // 结构契约：MUI Popper 默认 portal 到 document.body，脱离 .kt-m3-root 的
   // CSS 自定义属性作用域，选中态 var(--kt-secc)/var(--kt-onsecc) 在弹层内不可达，
   // 选中底色/文字色整体失效。挂载容器须回根内（closest 失败退 body），
-  // 并显式声明顶层 zIndex（在册范式：PopupMenu.js / TranForm.js）。
+  // 并显式声明顶层 zIndex（同 PopupMenu.js / TranForm.js 的既有范式）。
   // jsdom getComputedStyle 不做 var() 替换（探针实测 backgroundColor=""），
   // 故计算样式断言不可行，本用例钉结构面。
   const rootWrapper = document.createElement("div");
@@ -193,7 +193,7 @@ test("mounts the popper inside the M3 root so selected-state tokens stay reachab
     // 弹层必须挂在 .kt-m3-root 子树内（本用例容器），不得漂回 body 直下。
     expect(popper.closest(".kt-m3-root")).toBe(rootWrapper);
     expect(popper.parentElement).not.toBe(document.body);
-    // 挂回根内后叠加上下文改变，弹层须携带显式顶层 zIndex（在册范式同值）。
+    // 挂回根内后叠加上下文改变，弹层须携带显式顶层 zIndex（与组件内同值）。
     expect(getComputedStyle(popper).zIndex).toBe("2147483647");
   } finally {
     await act(async () => popperRoot.unmount());
@@ -278,10 +278,10 @@ test("mounts the popper into the shadow root when the theme root sits on the sha
     // emotion 影子缓存契约：head 默认缓存的规则（含 sx 的 zIndex 顶层声明
     // 与 MUI 组件样式）不级联进影子树，回退路径必须把弹层树包进以影子根
     // 为 container 的专属缓存。
-    // 鉴别力注记（执行期事实回执，见证据日志）：jsdom 的 getComputedStyle
+    // 鉴别力注记：jsdom 的 getComputedStyle
     // 不实现影子边界级联隔离——旧实现下 head 注入的 zIndex 被照常解析（假绿），
     // 影子缓存实现后影子内注入的规则反而取不到（返回空串）。故 zIndex 断言
-    // 按计划降级口径改由 CSSOM 管道承载（下行两条），计算值断言移除。
+    // 改由 CSSOM 管道承载（下行两条），计算值断言移除。
     const shadowEmotionStyles = Array.from(
       shadowRoot.querySelectorAll('style[data-emotion="kt-aut-popper"]')
     );
@@ -294,8 +294,8 @@ test("mounts the popper into the shadow root when the theme root sits on the sha
       .join("\n")
       .replace(/\s+/g, "");
     expect(shadowRuleText).toContain("z-index:2147483647");
-    // 令牌继承尽力断言已按预设降级通道移除：jsdom getComputedStyle 对跨影子
-    // 边界的自定义属性继承返回空串（实测输出见证据日志），令牌可达性由
+    // 令牌继承尽力断言已移除：jsdom getComputedStyle 对跨影子
+    // 边界的自定义属性继承返回空串，令牌可达性由
     // 结构断言（弹层挂影子根 ⇒ 宿主令牌经继承作用域可达）承载。
   } finally {
     await act(async () => popperRoot.unmount());
@@ -467,7 +467,7 @@ test("preserves caller function-form popper sx alongside the top-layer zIndex", 
 });
 
 test("does not crash when caller omits popper sx and still pins the top-layer zIndex", async () => {
-  // 负向锁（数组形态回灌 E4）：调用方不传 slotProps.popper.sx 时数组首项
+  // 调用方不传 slotProps.popper.sx 时数组首项
   // 为 undefined，被 emotion 忽略——组件不崩、弹层照常渲染，且顶层
   // zIndex 恒 2147483647，零行为变化。
   await act(async () => {

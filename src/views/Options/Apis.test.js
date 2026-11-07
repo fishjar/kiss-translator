@@ -814,10 +814,10 @@ describe("Apis ordering and master-detail layout", () => {
   });
 
   test("bulk checked card drops the persistent secondary fill but keeps a visible same-source glyph", async () => {
-    // 契约（M3 v3.1 §3.1.C）：批量勾选是 role=checkbox 多选载体，整卡 secondary
+    // 批量勾选是 role=checkbox 多选载体，整卡 secondary
     // 持续填充＝aria 布尔驱动的第二视觉通道，禁止；选择态只由 aria-checked＋字形
     // 图标交换单通道承载。注入 primary/secondary 互异主题，令"回退成染色/钉墨色"
-    // 与"正确去染色"可判别。期望值全部由契约与主题令牌派生，不抄录旧断言。
+    // 与"正确去染色"可判别。
     const theme = createTheme({
       palette: {
         primary: { main: "#10b981", contrastText: "#001a0d" },

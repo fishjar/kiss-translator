@@ -136,7 +136,7 @@ describe("popup menus", () => {
 
   test("menu rows carry no bespoke checkmark; the theme slot paints checks", () => {
     expect(POPUP_STYLES).not.toContain("--kt-popup-selected");
-    // v5 T2 例外：pattern-option（匹配范围单选，RadioButton 指示）恢复选中实底；
+    // 例外：pattern-option（匹配范围单选，RadioButton 指示）恢复选中实底；
     // 其余 .MuiMenuItem-root.Mui-selected 行仍禁自带底色（选中仅由主题勾号表达）。
     const bespokeSelectedBackgrounds = parseTopLevelRules(POPUP_STYLES).filter(
       (rule) =>
@@ -179,7 +179,7 @@ describe("popup menus", () => {
   });
 
   test("text-service options keep zero persistent row background and drop the hand-drawn box (M3 v3.1 §3.1.C)", () => {
-    // 整行零底色铁律：数据多选严禁整行持久选中染色（§3.1.C）。
+    // 整行零底色：数据多选严禁整行持久选中染色。
     const selectedRules = getTextRuleBodies(
       '.kt-popup-text-service-menu .kt-popup-text-service-option.MuiMenuItem-root[aria-checked="true"]'
     );

@@ -185,7 +185,7 @@ function DropdownPanel({ children, role, panelRef, ariaLabel }) {
 }
 
 /**
- * moveOptionFocus - Roving Tabindex 方向键导航助手（M3 v3.1 §6.2）
+ * moveOptionFocus - Roving Tabindex 方向键导航助手
  * 在同一面板内按 ArrowDown/ArrowUp/Home/End 移动焦点；ArrowUp 自首项
  * 回绕至末项（负模修正）。导航键一律 preventDefault + stopPropagation 成对收容。
  *
@@ -273,7 +273,7 @@ function DropdownOption({
         // 本仓 kt 令牌作用域不可达，var() 恒走 fallback＝死令牌，故保留字面量。
         // 选中态底色走主色字面量（主题主色 80% alpha，与开关行同源），
         // 承担选中底色角色；非 --kt-secc 令牌（挂载点令牌不可达）；
-        // 多选行（showCheckbox）整行零持久染色（§3.1.C），状态由 checkbox 本体承载。
+        // 多选行（showCheckbox）整行零持久染色，状态由 checkbox 本体承载。
         background: selected && !showCheckbox ? "rgba(32,156,238,.8)" : undefined,
         opacity: selected ? 1 : 0.8,
         transition: "all 0.2s",
@@ -347,7 +347,7 @@ function Select({ label, name, value, options, onChange, disabled }) {
   }, [disabled]);
 
   // 空态面板无可聚焦项：焦点停在触发源，Escape 只关面板、焦点原地保留，
-  // 不冒泡出根 dialog 连带关闭整个菜单（§6.3 禁 blur；与 MultiSelect 对称）。
+  // 不冒泡出根 dialog 连带关闭整个菜单（与 MultiSelect 对称）。
   const handleTriggerKeyDown = useCallback(
     (event) => {
       if (isOpen && event.key === "Escape") {
@@ -362,7 +362,7 @@ function Select({ label, name, value, options, onChange, disabled }) {
   // 选中下拉具体选项时，派发 onChange 事件，随后关闭下拉选择面板
   const handleSelect = useCallback(
     (optionValue) => {
-      // §6.3：键盘/点击选择收尾同一焦点语义——先回退触发源再关面板。
+      // 键盘/点击选择收尾同一焦点语义——先回退触发源再关面板。
       scriptFocus(triggerRef.current);
       onChange({ name, value: optionValue });
       setIsOpen(false);
@@ -370,7 +370,7 @@ function Select({ label, name, value, options, onChange, disabled }) {
     [onChange, name]
   );
 
-  // 开面板聚焦激活项（§6.1 Roving Tabindex 入口；§6.3 禁 blur）。
+  // 开面板聚焦激活项（Roving Tabindex 入口）。
   // 激活位与 aria-selected 同源回退（value 不在 options 时落首项）。
   useEffect(() => {
     if (!isOpen) return;
@@ -491,7 +491,7 @@ function MultiSelect({
     [onChange, name, selectedValues]
   );
 
-  // 开面板聚焦首项（§6.1：无固有焦点选中态的 Menu 取第一项；空态原地保留焦点）
+  // 开面板聚焦首项（无固有焦点选中态的 Menu 取第一项；空态原地保留焦点）
   useEffect(() => {
     if (!isOpen) return;
     const panel = panelRef.current;
@@ -503,7 +503,7 @@ function MultiSelect({
   }, [isOpen]);
 
   // 空态面板无可聚焦项：焦点停在触发源，Escape 只关面板、焦点原地保留，
-  // 不冒泡出根 dialog 连带关闭整个菜单（§6.3 禁 blur）。
+  // 不冒泡出根 dialog 连带关闭整个菜单。
   const handleTriggerKeyDown = useCallback(
     (event) => {
       if (isOpen && event.key === "Escape") {
