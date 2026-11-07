@@ -217,7 +217,7 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
 .kt-settings-select--full { width: 100%; min-width: 0; max-width: none; }
 .kt-settings-select .MuiFilledInput-root { border-radius: 12px; }
 .kt-settings-select:not(.kt-settings-select--with-label) .MuiFilledInput-root { min-height: 44px; }
-.kt-settings-select .MuiSelect-select { color: var(--kt-on); font-size: var(--kt-settings-font-size); font-weight: 600; text-overflow: ellipsis; }
+.kt-settings-select .MuiSelect-select { color: var(--kt-on); font-size: var(--kt-settings-font-size); text-overflow: ellipsis; }
 .kt-settings-select:not(.kt-settings-select--with-label) .MuiSelect-select { padding: 11px 34px 11px 14px; }
 .kt-settings-segmented { width: 100%; min-width: 0; max-width: 100%; min-height: 44px; gap: 2px; overflow: hidden; padding: 3px; border: 1px solid color-mix(in srgb, var(--kt-linev) 72%, transparent); border-radius: 999px; background: var(--kt-sf2); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .04); }
 .kt-settings-segmented > button { min-width: 0; min-height: 36px; flex: 1 1 auto; overflow: hidden; padding: 6px 10px; border: 0 !important; border-radius: 999px !important; color: var(--kt-onv); font-size: var(--kt-settings-font-size); line-height: 20px; text-transform: none; transition: background-color .2s ease, color .2s ease, box-shadow .2s ease; white-space: normal; }
