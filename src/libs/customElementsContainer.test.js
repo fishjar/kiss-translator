@@ -117,12 +117,18 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-describe("通用组件化自定义标签容器与还原防泄漏测试（全局默认 autoScan: true，无专属规则）", () => {
-  const fullHtmlPath = path.resolve(__dirname, "../../tmp/bgg_full.html");
-  let sampleHtml = "";
-  if (fs.existsSync(fullHtmlPath)) {
-    sampleHtml = fs.readFileSync(fullHtmlPath, "utf8");
-  }
+const fullHtmlPath = path.resolve(__dirname, "../../tmp/bgg_full.html");
+let sampleHtml = "";
+if (fs.existsSync(fullHtmlPath)) {
+  sampleHtml = fs.readFileSync(fullHtmlPath, "utf8");
+}
+if (!sampleHtml) {
+  console.warn(
+    "[customElementsContainer] fixture missing or empty, skipping suite: " + fullHtmlPath
+  );
+}
+const describeIfFixture = sampleHtml ? describe : describe.skip;
+describeIfFixture("通用组件化自定义标签容器与还原防泄漏测试（全局默认 autoScan: true，无专属规则）", () => {
 
   test("1. 目标选取验证: 即使自定义组件默认 display 为 inline，包含块级子节点时不吞噬外层结构容器", () => {
     document.documentElement.innerHTML = sampleHtml;

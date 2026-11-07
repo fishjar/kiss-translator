@@ -33,6 +33,7 @@ import {
   KV_RULES_KEY,
   KV_WORDS_KEY,
 } from "../config";
+import { resolveIconColorHex, resolveIconStyle } from "../styles/m3";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
 import { logger } from "./log";
@@ -669,6 +670,13 @@ export const normalizeStoredSetting = (rawSetting) => {
   if (typeof setting.darkMode === "boolean") {
     setting = { ...setting, darkMode: setting.darkMode ? "dark" : "light" };
   }
+
+  // 图标外观键归一：非法/缺省值回落默认（与 darkMode 布尔兼容同落点）。
+  setting = {
+    ...setting,
+    iconStyle: resolveIconStyle(setting.iconStyle),
+    iconColor: resolveIconColorHex(setting.iconColor),
+  };
 
   return mergeSettingWithDefault(setting);
 };

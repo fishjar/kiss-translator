@@ -66,6 +66,34 @@ test("ships every textarea grip label as a native Russian translation", () => {
   expect(missing).toEqual([]);
 });
 
+// RU 对账专测 · 图标主题色预设名 12 键：locales/settings.js 的内联 ru 目前
+// 兜底生效（i18n.js 合并段 RU_I18N[key] ?? I18N[key].ru ?? en），但一旦内联
+// ru 被删且 RU_I18N 无键，俄语用户将静默回退英文——此处按 grip 键同款守护
+// 锁定 RU_I18N 覆盖。与内联值一致，新增预设须同步两处。
+test("ships every icon color preset label as a native Russian translation", () => {
+  const presetIds = [
+    "red",
+    "apricot",
+    "sage",
+    "lake",
+    "lavender",
+    "rose",
+  ];
+  const presetKeys = presetIds.flatMap((id) => [
+    `settings_icon_preset_${id}_dark`,
+    `settings_icon_preset_${id}_light`,
+  ]);
+  const missing = presetKeys.filter(
+    (key) =>
+      !Object.prototype.hasOwnProperty.call(RU_I18N, key) || !RU_I18N[key]
+  );
+  expect(missing).toEqual([]);
+  // 覆盖层与 locales/settings.js 内联 ru 双写一致：漂移即红。
+  for (const key of presetKeys) {
+    expect(RU_I18N[key]).toBe(I18N[key].ru);
+  }
+});
+
 test("provides distinct popup loading and domain status labels", () => {
   expect(I18N.popup_loading.en).toBe("Loading…");
   expect(I18N.popup_loading.en).not.toBe(I18N.popup_translating.en);
@@ -203,4 +231,29 @@ test("disambiguates the panel pin and follow-selection labels", () => {
   expect(RU_I18N.btn_tip_click_away).toBe(
     "Закрепить панель (не скрывается при потере фокуса)"
   );
+});
+
+test("settings_icon_style placeholder labels are registered across all UI languages and legacy key is removed", () => {
+  // 选型未定稿：显示文案中性化（样式 A/B），键名后缀仅作内部枚举标识，
+  // 后续换图标集只改文案与分发器，不牵动键名与业务文件。
+  expect(I18N.settings_icon_style_lucide).toBeDefined();
+  expect(I18N.settings_icon_style_lucide.zh).toBe("样式 A");
+  expect(I18N.settings_icon_style_lucide.en).toBe("Style A");
+  expect(I18N.settings_icon_style_mui.zh).toBe("样式 B");
+  expect(I18N.settings_icon_style_mui.en).toBe("Style B");
+  expect(I18N.settings_icon_style_desc).toBeDefined();
+  for (const key of [
+    "settings_icon_style_lucide",
+    "settings_icon_style_mui",
+    "settings_icon_style_desc",
+  ]) {
+    for (const lang of ["zh", "en", "zh_TW", "ja", "ko", "tr", "vi"]) {
+      expect(I18N[key][lang]).toBeDefined();
+    }
+  }
+  expect(RU_I18N.settings_icon_style_lucide).toBe("Стиль A");
+  expect(RU_I18N.settings_icon_style_mui).toBe("Стиль B");
+  expect(RU_I18N.settings_icon_style_desc).toBeDefined();
+  expect(I18N.settings_icon_style_md3).toBeUndefined();
+  expect(RU_I18N.settings_icon_style_md3).toBeUndefined();
 });

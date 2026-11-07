@@ -17,7 +17,9 @@ export class ImageSourceHighlight {
     el.className = "kt-image-source-highlight notranslate";
     el.style.cssText = `
       position: absolute;
+      /* semantic-green-exempt: 高亮元素挂宿主页面 document.body，kt 令牌作用域不可达；语义绿为图像翻译源区成功域固定语义色。 */
       border: 2px solid #00c853;
+      /* semantic-green-exempt: 同上豁免域的伴生光环，保留字面量。 */
       box-shadow: 0 0 0 2px rgba(0, 200, 83, 0.2);
       border-radius: 4px;
       z-index: 2147483636;
