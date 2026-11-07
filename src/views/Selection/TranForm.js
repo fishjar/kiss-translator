@@ -2,12 +2,13 @@ import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
+import MenuCheckGlyph from "../../components/MenuCheckGlyph";
 import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
-import DoneIcon from "@mui/icons-material/Done";
+import { CheckIcon as DoneIcon } from "../../components/icons";
 import CircularProgress from "@mui/material/CircularProgress";
-import ContentPasteIcon from "@mui/icons-material/ContentPaste";
+import { ContentPasteIcon } from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import {
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
@@ -36,6 +37,7 @@ import { logger } from "../../libs/log";
 import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
+import { scriptFocus } from "../../hooks/focusModality";
 import { isShadowHostMoving } from "../../libs/shadowHost";
 import { isApiAvailableFor } from "../../config/serviceSelection";
 import TextareaResizeGrip from "../../components/TextareaResizeGrip";
@@ -231,13 +233,55 @@ export default function TranForm({
     },
     [textareaRef]
   );
+  const selectPaperRef = useRef(null);
+  // MUI 自持焦点（MenuList.js:216-225 给选中项克隆 autoFocus:true）不经
+  // scriptFocus()：脚本化聚焦会被浏览器判给 :focus-visible，纯鼠标打开也长出
+  // 焦点框。关掉 MUI 三键后由本组件在 Paper 挂载时经 scriptFocus() 交接焦点
+  // （模态裁决留在 hooks/focusModality.js 单源），先例同形：
+  // PopupMenu.js:106-117 与 Options/DropdownRoot.js:31-56。
+  // 目标取"最后一个选中项"以对齐 MUI 自身的 lookahead 语义（Menu.js:131-149：
+  // selectedMenu 变体取最后一个 selected，无则取首个非 disabled），多选 ≥2 项
+  // 时焦点位置与现状逐位一致。
+  // 已聚焦在 Paper 内则不再二次交接：ref 回调身份随 memo 重建而变（isShadowMenu
+  // 挂载时翻转一次），无此判据会把键盘态下光标走到的位置强行拉回选中项。
+  const focusSelectedOption = useCallback((paper) => {
+    if (!paper) return;
+    const doc = paper.ownerDocument;
+    if (doc && paper.contains(doc.activeElement)) return;
+    const selected = paper.querySelectorAll(
+      '[role="option"][aria-selected="true"]:not(.Mui-disabled), .MuiMenuItem-root.Mui-selected:not(.Mui-disabled)'
+    );
+    const firstAvailable = paper.querySelector(
+      '[role="option"]:not(.Mui-disabled), .MuiMenuItem-root:not(.Mui-disabled)'
+    );
+    const container = paper.querySelector('[role="listbox"], [role="menu"]');
+    scriptFocus(
+      selected[selected.length - 1] ?? firstAvailable ?? container ?? null
+    );
+  }, []);
   const selectMenuProps = useMemo(
     () => ({
       container: () => inputRef.current?.closest(".kt-m3-root"),
       disableScrollLock: true,
+      // 三键同给，缺一不可：autoFocus=false 杀 Menu.js:104,193 的项腿；
+      // disableAutoFocusItem=true 与它联用才不会反而打开 Menu.js:192 的容器腿
+      // （单给这一键会去聚焦 ul）；disableAutoFocus=true 让 Popover/Modal 不再
+      // 自己拓焦（原值 isShadowMenu 在非 shadow 面为假，独立窗口就走在这腿上）。
+      autoFocus: false,
+      disableAutoFocusItem: true,
+      disableAutoFocus: true,
+      PaperProps: {
+        ref: (node) => {
+          if (node && node !== selectPaperRef.current) {
+            selectPaperRef.current = node;
+            focusSelectedOption(node);
+          } else if (!node) {
+            selectPaperRef.current = null;
+          }
+        },
+      },
       // MUI's trap sees the shadow host as active and otherwise steals focus
       // from the selected option. Its normal focus restoration still applies.
-      disableAutoFocus: isShadowMenu,
       disableEnforceFocus: isShadowMenu,
       MenuListProps: {
         onKeyDownCapture: createMenuKeyDownHandler({
@@ -247,7 +291,7 @@ export default function TranForm({
       },
       sx: { zIndex: 2147483647 },
     }),
-    [isShadowMenu]
+    [isShadowMenu, focusSelectedOption]
   );
 
   const detectionKey = useMemo(
@@ -622,6 +666,11 @@ export default function TranForm({
                       SelectProps={{
                         multiple: true,
                         MenuProps: selectMenuProps,
+                        // 多选关闭态 trigger 显示服务名 join；勾选字形只留在菜单行内。
+                        renderValue: (selected) =>
+                          (Array.isArray(selected) ? selected : [])
+                            .map((key) => optApis.find((o) => o.key === key)?.name ?? key)
+                            .join(", "),
                       }}
                       fullWidth
                       size="small"
@@ -642,6 +691,13 @@ export default function TranForm({
                     >
                       {optApis.map(({ key, name }) => (
                         <MenuItem key={key} value={key}>
+                          <MenuCheckGlyph
+                            checked={
+                              Array.isArray(activeApiSlugs) &&
+                              activeApiSlugs.includes(key)
+                            }
+                            style={{ marginRight: 10 }}
+                          />
                           {name}
                         </MenuItem>
                       ))}
@@ -918,16 +974,9 @@ export default function TranForm({
                             }
                       }
                     >
-                      {!editText.trim() ? (
-                        <IconButton
-                          size="small"
-                          onClick={handlePaste}
-                          title={i18n("paste")}
-                          aria-label={i18n("paste")}
-                        >
-                          <ContentPasteIcon fontSize="inherit" />
-                        </IconButton>
-                      ) : editMode ? (
+                      {editMode &&
+                      editText.trim() &&
+                      editText.trim() !== String(text ?? "").trim() ? (
                         <IconButton
                           size="small"
                           onClick={submitAndBlur}
@@ -936,12 +985,30 @@ export default function TranForm({
                         >
                           <DoneIcon fontSize="inherit" />
                         </IconButton>
-                      ) : (
+                      ) : !editText.trim() ? (
+                        <IconButton
+                          size="small"
+                          onClick={handlePaste}
+                          title={i18n("paste")}
+                          aria-label={i18n("paste")}
+                        >
+                          <ContentPasteIcon fontSize="inherit" />
+                        </IconButton>
+                      ) : text ? (
                         <CopyBtn
                           text={text}
                           title={i18n("copy")}
                           copiedLabel={i18n("copy_success", "Copied")}
                         />
+                      ) : (
+                        <IconButton
+                          size="small"
+                          onClick={handlePaste}
+                          title={i18n("paste")}
+                          aria-label={i18n("paste")}
+                        >
+                          <ContentPasteIcon fontSize="inherit" />
+                        </IconButton>
                       )}
                       {Boolean(editText.trim()) && (
                         <BrowserTtsBtn

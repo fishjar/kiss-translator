@@ -46,7 +46,8 @@ export const POPUP_TEXT_STYLES = String.raw`
 .kt-popup-text-services:hover { background: var(--kt-sf3); }
 .kt-popup-text-services:disabled { cursor: default; opacity: .5; }
 .kt-popup-text-services:disabled:hover { background: var(--kt-sf0); }
-.kt-popup-text-services[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--kt-popup-focus, var(--kt-pri)); }
+/* 展开态用底色加深表意（同 Popup/styles.js 口径），不画主色环。 */
+.kt-popup-text-services[aria-expanded="true"] { background: var(--kt-sf3); }
 .kt-popup-text-services > svg { width: 17px; height: 17px; flex: none; }
 .kt-popup-text-services__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kt-popup-text-services__icons { display: flex; flex: none; align-items: center; }
@@ -72,12 +73,12 @@ export const POPUP_TEXT_STYLES = String.raw`
 .kt-popup-text-result__retry { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 9px; border: 0; border-radius: 8px; background: var(--kt-sf0); color: var(--kt-pri); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .kt-popup-text-result__retry > svg { width: 16px; height: 16px; }
 .kt-popup-text-result__retry:hover { background: var(--kt-sf3); }
-.kt-popup-text-service-menu.MuiPaper-root { width: 236px; padding: 6px; }
+.kt-popup-text-service-menu.MuiPaper-root { width: 236px; padding: 8px 0; border: 1px solid var(--kt-linev); }
 .kt-popup-text-service-menu .kt-popup-menu-title { padding: 7px 9px; font-size: 11px; line-height: 1.5; }
-.kt-popup-text-service-option.MuiMenuItem-root { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 0 10px; color: var(--kt-on); font-size: 13px; font-weight: 600; }
+.kt-popup-text-service-option.MuiMenuItem-root { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; color: var(--kt-on); font-size: 13px; font-weight: 600; }
+.kt-popup-text-service-menu .MuiMenuItem-root::before { content: none; }
 .kt-popup-text-service-option > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kt-popup-text-service-check { flex: none; width: 18px; height: 18px; color: var(--kt-line); }
-.kt-popup-text-service-option[aria-checked="true"] .kt-popup-text-service-check { color: var(--kt-pri); }
+/* 自绘勾选盒退役：两态勾选形状改由图标分发器字形（components/MenuCheckGlyph）提供。 */
 .kt-popup-text-language:focus-visible,
 .kt-popup-text-icon-button:focus-visible,
 .kt-popup-text-swap:focus-visible,

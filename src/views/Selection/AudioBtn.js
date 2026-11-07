@@ -1,7 +1,5 @@
 import IconButton from "@mui/material/IconButton";
-import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import StopIcon from "@mui/icons-material/Stop";
-import PauseIcon from "@mui/icons-material/Pause";
+import { VolumeUpIcon, StopIcon, PauseIcon } from "../../components/icons";
 import { useEffect, useRef, useState } from "react";
 import { useAudio } from "../../hooks/Audio";
 import { canSpeak, speak, stopSpeech } from "../../libs/speech";

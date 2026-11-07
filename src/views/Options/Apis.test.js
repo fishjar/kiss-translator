@@ -20,8 +20,24 @@ import {
 import { fetchModelCatalog } from "../../libs/modelList";
 import { apiTranslate } from "../../apis";
 import { SettingProvider } from "../../hooks/Setting";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+const defaultTheme = createTheme();
+
+function hexToRgbString(hex) {
+  const value = hex.replace("#", "");
+  const full =
+    value.length === 3
+      ? value
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : value;
+  const num = parseInt(full, 16);
+  return `rgb(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255})`;
+}
 HTMLElement.prototype.scrollTo = jest.fn();
 const mockConfirm = jest.fn();
 const mockAlertInfo = jest.fn();
@@ -310,7 +326,8 @@ async function renderApis(
   api = createApi(),
   update = jest.fn(),
   prompts = [],
-  searchNavigation = {}
+  searchNavigation = {},
+  theme = null
 ) {
   mockUsePromptList.mockReturnValue({ prompts });
   let apis = Array.isArray(api) ? api : [api];
@@ -341,13 +358,18 @@ async function renderApis(
 
   configureApiMocks();
 
-  const render = () => (
-    <div className="kt-m3-root">
-      <SettingsSearchContext.Provider value={searchNavigation}>
-        <Apis />
-      </SettingsSearchContext.Provider>
-    </div>
-  );
+  const render = () => {
+    const tree = (
+      <div className="kt-m3-root">
+        <SettingsSearchContext.Provider value={searchNavigation}>
+          <Apis />
+        </SettingsSearchContext.Provider>
+      </div>
+    );
+    // theme 为空时挂载路径与既有用例逐字同构（无 Provider，走 MUI 默认主题）；
+    // 仅在需要把 primary/secondary 的 contrastText 拉开区分的用例里注入显式主题。
+    return theme ? <ThemeProvider theme={theme}>{tree}</ThemeProvider> : tree;
+  };
 
   await act(async () => {
     root.render(render());
@@ -777,8 +799,67 @@ describe("Apis ordering and master-detail layout", () => {
       Simulate.keyUp(bulkCards[1], { key: " " });
     });
     expect(bulkCards[1].getAttribute("aria-checked")).toBe("true");
+    // 契约：勾选指示与同行拖动指示同源——都继承已选卡片的文字色（color:
+    // "inherit"），不各取一个主题令牌。jsdom 不解析 inherit 为具体 rgb，
+    // 两者均返回空串即为"同源"的盘面证据。具体色相等值性由下方区分性用例证伪。
+    expect(
+      getComputedStyle(bulkCards[1].querySelector(".kt-api-list__check")).color
+    ).toBe(
+      getComputedStyle(bulkCards[1].querySelector('[draggable="true"]')).color
+    );
     expect(getInput(view.container, "apiName").value).toBe("Alpha");
     expect(mockConfirm).not.toHaveBeenCalled();
+
+    view.unmount();
+  });
+
+  test("bulk check glyph inherits the selected card ink, not the primary token", async () => {
+    // 默认主题 primary.contrastText === secondary.contrastText === #fff，等值断言
+    // 不可能变红；故本用例注入两个 contrastText 互不相同的主题，令"另一种写法"
+    // 无所遁形。期望值全部由主题令牌派生，不硬编码色值。
+    const theme = createTheme({
+      palette: {
+        primary: { main: "#10b981", contrastText: "#001a0d" },
+        secondary: { main: "#b91c1c", contrastText: "#fff5f0" },
+      },
+    });
+    const view = await renderApis(
+      [
+        createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+        createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 1 }),
+      ],
+      jest.fn(),
+      [],
+      {},
+      theme
+    );
+    const bulkButton = Array.from(
+      view.container.querySelectorAll("button")
+    ).find((button) => button.textContent === "bulk_actions");
+    await act(async () => Simulate.click(bulkButton));
+    const bulkCards = Array.from(
+      view.container.querySelectorAll('.kt-api-list__card[role="checkbox"]')
+    );
+    await act(async () => {
+      Simulate.keyDown(bulkCards[1], { key: " " });
+      Simulate.keyUp(bulkCards[1], { key: " " });
+    });
+    expect(bulkCards[1].getAttribute("aria-checked")).toBe("true");
+
+    // 主题注入生效自检：已选卡片墨色必须是 secondary.contrastText。
+    expect(getComputedStyle(bulkCards[1]).color).toBe(
+      hexToRgbString(theme.palette.secondary.contrastText)
+    );
+    const checkColor = getComputedStyle(
+      bulkCards[1].querySelector(".kt-api-list__check")
+    ).color;
+    const dragColor = getComputedStyle(
+      bulkCards[1].querySelector('[draggable="true"]')
+    ).color;
+    // 硬闸一：勾选指示不得再钉 primary.contrastText。
+    expect(checkColor).not.toBe(hexToRgbString(theme.palette.primary.contrastText));
+    // 硬闸二：同一行两个指示图标同源。
+    expect(checkColor).toBe(dragColor);
 
     view.unmount();
   });
