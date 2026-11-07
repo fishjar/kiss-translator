@@ -2852,6 +2852,15 @@ export const I18N = {
     tr: `Kara Listeden Kaldır`,
     vi: "Xóa khỏi danh sách đen",
   },
+  disabled_orilist: {
+    zh: `禁用Origin名单`,
+    en: `Disabled Origin List`,
+    zh_TW: `停用 Origin 名單`,
+    ja: `無効化Originリスト`,
+    ko: `비활성화된 Origin 목록`,
+    tr: `Devre Dışı Bırakılan Kaynak Listesi`,
+    vi: "Danh sách Origin bị tắt",
+  },
   disabled_csplist: {
     zh: `禁用CSP名单`,
     en: `Disabled CSP List`,

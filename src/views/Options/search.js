@@ -32,6 +32,7 @@ export const SETTINGS_SEARCH_KEYS = {
     "translate_blacklist",
     "if_clear_cache",
     "clear_all_cache_now",
+    "disabled_orilist",
     "disabled_csplist",
     "options_shortcuts",
     "toggle_translate_shortcut",
@@ -411,6 +412,7 @@ export function getSettingsSearchEntries(
           "popup_default_view",
           "if_clear_cache",
           "clear_all_cache_now",
+          "disabled_orilist",
           "disabled_csplist",
         ].includes(key)
       )

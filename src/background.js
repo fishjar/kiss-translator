@@ -42,7 +42,6 @@ import {
   MSG_UPDATE_SEPARATE_WINDOW_BOUNDS,
   SEPARATE_WINDOW_CONTENT_WIDTH,
   STOKEY_SEPARATE_WINDOW,
-  STOKEY_SETTING,
   PORT_STREAM_FETCH,
   MSG_UPDATE_ICON,
   MSG_SHA256,
@@ -575,9 +574,9 @@ async function addContextMenus(contextMenuType = 1) {
  * 实现“剥离第三方 CSP 限制”和“伪装 Origin 请求头以绕过跨域防护”的能力。
  * @param {Object} params
  * @param {Array<string>|string} params.csplist 需移除 CSP 响应头的域名规则列表
- * @param {Array<Object>} params.transApis 翻译服务 API 配置列表
+ * @param {Array<string>|string} params.orilist 需伪装 Origin 请求头的请求过滤列表
  */
-async function updateCspRules({ csplist, transApis }) {
+async function updateCspRules({ csplist, orilist }) {
   try {
     // 1. 获取当前所有已注册的动态 DNR 规则
     const oldRules = await browser.declarativeNetRequest.getDynamicRules();
@@ -621,49 +620,33 @@ async function updateCspRules({ csplist, transApis }) {
       rulesToAdd.push(...newCspRules);
     }
 
-    // 3. 构造并处理 Origin 请求头重写规则
-    if (transApis !== undefined) {
-      // 清理之前注册的 Origin 修改规则
+    // 3. 构造并处理 Origin 请求头重写伪装规则
+    if (orilist !== undefined) {
+      let processedOriList = orilist;
+      if (typeof processedOriList === "string") {
+        processedOriList = processedOriList
+          .split(/\n|,/)
+          .map((url) => url.trim())
+          .filter(Boolean);
+      }
+
+      // 获取所有属于 Origin 修改段的旧规则 ID，准备清理
       const oldOriRuleIds = oldRules
         .filter((rule) => rule.id >= ORI_RULE_START_ID)
         .map((rule) => rule.id);
       idsToRemove.push(...oldOriRuleIds);
 
-      // 根据已配置的网络翻译服务生成 Origin 修改规则
-      const apiRules = new Map();
-
-      for (const api of Array.isArray(transApis) ? transApis : []) {
-        if (
-          api?.sourceType !== "network" || api.isDisabled ||
-          typeof api.url !== "string" || !api.url.trim()
-        ) {
-          continue;
-        }
-
-        try {
-          const apiUrl = new URL(api.url.trim());
-
-          // 精确匹配 API 的协议、域名和路径前缀
-          const urlFilter = `|${apiUrl.origin}${apiUrl.pathname}`;
-
-          apiRules.set(urlFilter, apiUrl.origin);
-        } catch (err) {
-          logger
-            .child("background")
-            .warn("Invalid translation API URL:", api.url);
-        }
-      }
-
-      const newOriRules = Array.from(apiRules, ([urlFilter, origin], index) => ({
+      // 将发往特定翻译源的 xmlhttprequest 请求的 Origin 修改为目标源域名，伪装成同源请求
+      const newOriRules = processedOriList.map((url, index) => ({
         id: ORI_RULE_START_ID + index,
         action: {
           type: "modifyHeaders",
           requestHeaders: [
-            { header: "Origin", operation: "set", value: origin },
+            { header: "Origin", operation: "set", value: url },
           ],
         },
         condition: {
-          urlFilter,
+          urlFilter: url,
           resourceTypes: ["xmlhttprequest"],
           // 仅匹配由 Kiss Translator 扩展自身发起的请求。
           initiatorDomains: [EXTENSION_INITIATOR_DOMAIN],
@@ -732,11 +715,11 @@ browser.runtime.onInstalled.addListener(async () => {
     registerMsgDisplayScript();
   }
 
-  const { contextMenuType, csplist, transApis, subrulesList } =
+  const { contextMenuType, csplist, orilist, subrulesList } =
     await getSettingWithDefault();
 
   addContextMenus(contextMenuType);
-  updateCspRules({ csplist, transApis });
+  updateCspRules({ csplist, orilist });
   trySyncAllSubRules({ subrulesList });
 });
 
@@ -752,7 +735,7 @@ browser.runtime.onStartup.addListener(async () => {
     contextMenuType,
     subrulesList,
     csplist,
-    transApis,
+    orilist,
     logLevel,
   } = await getSettingWithDefault();
 
@@ -769,7 +752,7 @@ browser.runtime.onStartup.addListener(async () => {
   // REVIEW: 针对“Firefox 重启后菜单消失”的系统 Bug，此处在启动时必须重新添加一次 addContextMenus
   addContextMenus(contextMenuType);
 
-  updateCspRules({ csplist, transApis });
+  updateCspRules({ csplist, orilist });
   trySyncSettingAndRules();
   trySyncAllSubRules({ subrulesList });
 });
@@ -918,24 +901,6 @@ const messageHandlers = {
     return { success: true };
   },
 };
-
-// 翻译 API 配置发生变化时，重新生成 Origin 修改规则
-browser.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== "local" || !changes[STOKEY_SETTING]) {
-    return;
-  }
-
-  try {
-    const setting = JSON.parse(changes[STOKEY_SETTING].newValue || "{}");
-    updateCspRules({
-      transApis: setting.transApis || [],
-    });
-  } catch (err) {
-    logger
-      .child("background")
-      .warn("Update Origin rules after setting change:", err);
-  }
-});
 
 /**
  * 注册全局统一的 runtime.onMessage 消息通道监听器。

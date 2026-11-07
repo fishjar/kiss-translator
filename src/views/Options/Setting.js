@@ -32,6 +32,7 @@ import {
   OPT_SHORTCUT_SETTING,
   DEFAULT_BLACKLIST,
   DEFAULT_CSPLIST,
+  DEFAULT_ORILIST,
   OPT_POPUP_DEFAULT_VIEW_PAGE,
   OPT_POPUP_DEFAULT_VIEW_TEXT,
   OPT_POPUP_DEFAULT_VIEW_ALL,
@@ -245,6 +246,9 @@ export default function Settings() {
       case "csplist":
         isExt && sendBgMsg(MSG_UPDATE_CSP, { csplist: value });
         break;
+      case "orilist":
+        isExt && sendBgMsg(MSG_UPDATE_CSP, { orilist: value });
+        break;
       default:
     }
     updateSetting({
@@ -283,6 +287,7 @@ export default function Settings() {
     touchModes = [2],
     blacklist = DEFAULT_BLACKLIST.join(",\n"),
     csplist = DEFAULT_CSPLIST.join(",\n"),
+    orilist = DEFAULT_ORILIST.join(",\n"),
     transInterval = 100,
     langDetector = "-",
     logLevel = 1,
@@ -736,7 +741,16 @@ export default function Settings() {
               <MenuItem value={true}>{i18n("clear_cache_restart")}</MenuItem>
             </TextField>
 
-            {/* 跨域安全 CSP 旁路加载白名单 */}
+            {/* 跨域安全 CSP 旁路加载白名单与 Ori 白名单 */}
+            <TextField
+              size="small"
+              label={i18n("disabled_orilist")}
+              helperText={i18n("pattern_helper")}
+              name="orilist"
+              value={orilist}
+              onChange={handleChange}
+              multiline
+            />
             <TextField
               size="small"
               label={i18n("disabled_csplist")}
