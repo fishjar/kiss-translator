@@ -6,13 +6,98 @@
 export const NON_CONTENT_SELECTOR =
   "script, style, noscript, template, textarea, iframe";
 
+// Only used when the DOM implementation supplies no computed display value.
+export const BLOCK_LAYOUT_TAGS = new Set([
+  "ADDRESS",
+  "ARTICLE",
+  "ASIDE",
+  "BLOCKQUOTE",
+  "CANVAS",
+  "DD",
+  "DIV",
+  "DL",
+  "DT",
+  "FIELDSET",
+  "FIGCAPTION",
+  "FIGURE",
+  "FOOTER",
+  "FORM",
+  "H1",
+  "H2",
+  "H3",
+  "H4",
+  "H5",
+  "H6",
+  "HEADER",
+  "HR",
+  "LI",
+  "MAIN",
+  "NAV",
+  "NOSCRIPT",
+  "OL",
+  "P",
+  "PRE",
+  "SECTION",
+  "TABLE",
+  "TFOOT",
+  "UL",
+  "VIDEO",
+]);
+
+// Layout and content policy are independent: an ignored inline node is not a
+// paragraph boundary, and an atomic inline box does not expose internal blocks.
+export function getNodeLayout(node) {
+  if (node?.nodeType === 11) return "contents";
+  if (node?.nodeType !== 1) return "inline";
+  const win = node.ownerDocument?.defaultView || window;
+  const display = win.getComputedStyle(node).display;
+  if (display === "none") return "hidden";
+  if (display === "contents") return "contents";
+  if (!display)
+    return BLOCK_LAYOUT_TAGS.has(node.tagName.toUpperCase())
+      ? "block"
+      : "inline";
+  if (display === "inline" || display === "inline flow") return "inline";
+  if (
+    display.startsWith("inline") ||
+    display.startsWith("ruby") ||
+    display === "math"
+  )
+    return "atomic";
+  return "block";
+}
+
+// Inline flow and display:contents can contain real block boundaries. Walk
+// either kind of wrapper, stopping at kept/ignored content and atomic boxes.
+export function hasBlockLayout(
+  node,
+  isForcedBlock,
+  isPreservedInline,
+  readLayout = getNodeLayout
+) {
+  const stack = [node];
+  while (stack.length) {
+    const current = stack.pop();
+    if (isForcedBlock?.(current)) return true;
+    const layout = readLayout(current);
+    if (layout === "hidden" || layout === "atomic") continue;
+    if (layout === "block") return true;
+    const children = current.children;
+    if (!children?.length || isPreservedInline?.(current)) continue;
+    for (const child of children) stack.push(child);
+  }
+  return false;
+}
+
 export function isInNonContent(node) {
   const element = node?.nodeType === 3 ? node.parentElement : node;
   return Boolean(element?.closest?.(NON_CONTENT_SELECTOR));
 }
 
 export function isInlineHidden(node) {
-  return node?.style?.display === "none";
+  if (node?.nodeType !== 1) return false;
+  const win = node.ownerDocument?.defaultView || window;
+  return win.getComputedStyle(node).display === "none";
 }
 
 export function isInInlineHidden(node) {
@@ -79,7 +164,9 @@ export function visitTranslationTargets(root, options, visit) {
     hasText,
     wrapperClass,
     isPreservedInline,
+    getLayout = getNodeLayout,
   } = options;
+  const isHidden = (node) => getLayout(node) === "hidden";
   if (
     !root ||
     ![1, 11].includes(root.nodeType) ||
@@ -106,14 +193,14 @@ export function visitTranslationTargets(root, options, visit) {
   while (stack.length) {
     const node = stack.pop();
     if (
-      isInlineHidden(node) ||
+      isHidden(node) ||
       node.matches?.(ignoreSelector) ||
       isPreservedInline?.(node)
     )
       continue;
     const text = hasText(node);
     const children = Array.from(node.children).filter(
-      (child) => !isInlineHidden(child)
+      (child) => !isHidden(child)
     );
     if (
       !text &&
