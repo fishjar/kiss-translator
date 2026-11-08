@@ -1,4 +1,4 @@
-// RuntimePool（文档 §11 & §44）：
+// RuntimePool：
 // 跟踪常驻/活跃的模型实例，支持 pin 保护（如 Laya/JEV 默认常驻、正在识别的 ASR / 播放中的 TTS），
 // 以及在模型数量超限或 OOM 时按 LRU 淘汰权重（优先卸载空闲 LLM / OCR，保留 JEV）。
 

@@ -23,7 +23,7 @@ export function useTextareaGripStyle() {
   return resolveGripStyle(setting?.textareaGripStyle);
 }
 
-// 意见 A：grip 样式切到 hidden 的渲染轮自动释放对应高度锁。hidden 变体
+// grip 样式切到 hidden 的渲染轮自动释放对应高度锁。hidden 变体
 // 下手柄组件早退不渲染、textarea 回退原生 resize，若会话记忆残留，锁定
 // 类与内联高度仍会把字段钉死且无解锁入口。gripStyle 先经 resolveGripStyle
 // 归一再判定（与 useTextareaGripStyle / 手柄组件同口径，未知 key 回落

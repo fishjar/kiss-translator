@@ -93,7 +93,7 @@ describe("resolvePanelCursors platform gating", () => {
     expect(panelCursor("move")).toBe("move");
   });
 
-  // PR 审查 E2（2026-10-24）：字面量锁定——各键位图值互异（防止 base64
+  // 字面量锁定——各键位图值互异（防止 base64
   // 在键间串位仍绿）且每键携带自己的回退关键字；关键字表与回退映射一致。
   // 注意：ns 为 s 的别名键（同字形、回退 ns-resize），互异性按「完整值
   // （payload+回退）」判定而非裸 payload。

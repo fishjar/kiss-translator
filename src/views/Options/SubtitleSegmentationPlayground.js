@@ -55,7 +55,7 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MAX_UPLOAD_EVENTS = 100000;
 // 原始数据和结果框默认显示五行，并允许用户从右下角按需拉高查看区域。
 // 非 hidden 手柄样式下 textarea 的自绘手柄独占右下角，原生 resize 用
-// !important 压死；hidden 变体完全不渲染手柄（B1），textarea 回退原生
+// !important 压死；hidden 变体完全不渲染手柄，textarea 回退原生
 // resize——两态各为模块级常量，调用点按 gripStyle 三元选择，保持零渲染
 // 期分配与共享引用。
 const RESIZABLE_TEXT_FIELD_SX = {
