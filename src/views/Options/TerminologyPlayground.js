@@ -231,7 +231,7 @@ function maskForDisplay(obj, skipKeys = ["glossary", "terms"]) {
     const proto = Object.getPrototypeOf(obj);
     // 仅拦"零 own 可枚举键且原型非 Object.prototype"的真 {} 场景
     // （原生 Response / Date / Map / 空类实例）：展开必得 {}，诚实呈现类型标签。
-    // 带 own 可枚举键的类实例保持既有展开 + 掩码显示（E1 窄门闸，零旁支行为变化）。
+    // 带 own 可枚举键的类实例保持既有展开 + 掩码显示（窄门闸，零旁支行为变化）。
     // Object.create(null)（proto===null）仍按纯对象。
     if (
       proto !== Object.prototype &&
@@ -596,7 +596,7 @@ function buildInjectionChannel(
   return "";
 }
 
-/** 根据快照计算提示词标签（Task 4）。 */
+/** 根据快照计算提示词标签。 */
 function buildPromptLabel(
   { apiType, category, isBatch, batchProtocol, nobatchUserPrompt },
   i18n
@@ -1047,7 +1047,7 @@ export default function TerminologyPlayground({
           return;
         }
 
-        // 冲突分析只算一次（统一计划 20260829 Task 4）：generateTermTestText
+        // 冲突分析只算一次：generateTermTestText
         // 复用同一份结果（不传则其内部自算），uniqueConflictPairs / conflictKeys
         // 也复用，避免 runCompute 内触发 3 次 O(n²) 分析。
         const conflicts = detectTermConflicts(parsed);
@@ -1372,7 +1372,7 @@ export default function TerminologyPlayground({
     //    仅强制 useStream:false 走非流式 runNonStream，一次性测试更可预测稳定；
     //    streamRenderMode 在非流式路径不被读取，无需覆盖。
     //    aiTerms 置空：接口级术语已在上面折进 mergedGlossary，若再透传会在
-    //    genUserPrompt 里二次合并并反向覆盖用户输入（R2）。
+    //    genUserPrompt 里二次合并并反向覆盖用户输入。
     //    useContext 置 false：handleTranslate 按 apiSlug 取全局 getMsgHistory 单例，
     //    上一轮的问答会被注入下一轮 messages（用户抓包实证：第 2 轮出现上一轮 user +
     //    空 assistant，第 3 轮首条被环形队列挤成 assistant 而违反协议报错）。
@@ -1428,7 +1428,7 @@ export default function TerminologyPlayground({
         i18n
       ),
     };
-    // 会话初始化（D2/D3）：以初始态为基座整体替换，本轮字段一次写入、上一轮
+    // 会话初始化：以初始态为基座整体替换，字段一次写入、上一轮
     // 残留字段（rawRequest/rawResponse/trText/srLang 等）显式归零，
     // 保证 done 之后请求摘要、请求 JSON、响应摘要、响应 JSON 必然同源于同一轮。
     setAiTestState({
@@ -1704,7 +1704,7 @@ export default function TerminologyPlayground({
     return extractFinalUserPrompt(aiTestState.rawRequest.body);
   }, [aiTestState.rawRequest]);
 
-  // 「已发出」通道判定（D2/D3）：只读请求时快照，不做 JSON 子串搜索
+  // 「已发出」通道判定：只读请求时快照，不做 JSON 子串搜索
   // （例句必然包含术语 key，子串判定恒真、未发出不可达）。
   const deliveryMap = useMemo(() => {
     if (aiTestState.status !== "done" || !aiTestState.apiSnapshot) return null;
@@ -1739,7 +1739,7 @@ export default function TerminologyPlayground({
   // 转成 [{key, value}] 数组，再调用 generateTermTestText 生成自然例句。
   // 与本地术语区的区别：AI 术语不支持正则，用 parseAITerms 而非 parseTerms。
   // 用 joinIntoParagraph 拼接全部用例（而非只取 cases[0]），保证每条术语都进入待翻译文本，
-  // 否则未被首条例句覆盖的术语物理上不可能被替换（R1 根因）。
+  // 否则未被首条例句覆盖的术语物理上不可能被替换。
   const aiExampleText = useMemo(() => {
     const trimmed = aiTermsDraft.trim();
     if (!trimmed) return null;
@@ -1747,7 +1747,7 @@ export default function TerminologyPlayground({
     const entries = Object.entries(parsed);
     if (entries.length === 0) return null;
     const termsArray = entries.map(([key, value]) => ({ key, value }));
-    // 统一计划 §2.3 字面兑现：冲突分析显式传入 { conflicts }（与本地术语区
+    // 冲突分析显式传入 { conflicts }（与本地术语区 runCompute
     // runCompute 同一调用形态）。detectTermConflicts 自带 WeakMap 引用缓存，
     // 改前改后本路径均恰 1 次分析，非性能优化。
     const cases = generateTermTestText(termsArray, aiTermSeed, {
@@ -2503,7 +2503,7 @@ export default function TerminologyPlayground({
           ))}
         </TextField>
 
-        {/* 结果区在 done 与 error 两态都渲染（E5）：capture.onRequest 在 fetchData 之前
+        {/* 结果区在 done 与 error 两态都渲染：capture.onRequest 在 fetchData 之前
             执行，失败轮的请求必然已被捕获，是排查 4xx/协议错误最关键的现场。
             仅 done 态计算 deliveryMap 与生效检测表 —— 请求发失败时不该对术语给出
             「已发出」结论。 */}
@@ -3065,7 +3065,7 @@ export default function TerminologyPlayground({
 
             {/* 启发式说明：与三个接口 note 共用 caption 族排版（随主题字号缩放），
                 文案已去掉 **粗体** 标记，纯文本即可，不再走 renderRichI18n。
-                说明与检测表都只在 done 态出现（E5）：失败轮没有译文可对照，
+                说明与检测表都只在 done 态出现：失败轮没有译文可对照，
                 更不该对术语给出「已发出/已应用」结论。 */}
             {aiTestState.status === "done" && (
               <Alert severity="info" sx={{ mb: 1, ...NOTE_ALERT_SX }}>
@@ -3154,7 +3154,7 @@ export default function TerminologyPlayground({
                                     );
                             const delivery = deliveryMap?.get(key);
                             // 译文命中为启发式：空值术语语义 = 不翻译（保留原文）；
-                            // 例句未覆盖该术语原词时无法判断（Task 1 修复后的护栏态）。
+                            // 例句未覆盖该术语原词时无法判断（护栏态）。
                             // 「未应用」保持灰：启发式判定，模型可能改写措辞，涂红会误读成 bug。
                             let hitChip;
                             if (!value) {

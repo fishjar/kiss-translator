@@ -45,7 +45,7 @@ export function clampGripMemoryHeight(
 // root fill 随资产族而变：描边族 fill="none"，填充族（点阵/波点）
 // root fill="currentColor" 供 circle/path 继承；混合族（星芒/除号/百分号/伴
 // 星）root fill="none" 且各填充圆自带 fill="currentColor"。图形数据一律按
-// 计划「SVG 资产索引表」从 .kilo/输入框拉伸手柄样式全集.md 逐条照抄，严禁重绘。
+// SVG 资产索引表逐条照抄，严禁重绘。
 const GRIP_SVGS = {
   "concentric-smooth": {
     fill: "none",
@@ -292,7 +292,7 @@ const GRIP_SVGS = {
   // hidden 条目保留仅为两个用途：TEXTAREA_GRIP_STYLE_KEYS（config 层手写
   // 清单）须含 hidden（双向对账用例：清单与注册表 key 序列任一侧增/删/
   // 改名/调序失配必红），GripGlyph 以空 svg 占位（下拉图标）。手柄组件
-  // 对 hidden 早退不渲染（B1 决策反转：旧「隐形热区」语义推翻——不可见
+  // 对 hidden 早退不渲染（旧「隐形热区」语义推翻——不可见
   // 却可拖是隐蔽交互面，textarea 回退原生 resize）。
   hidden: { fill: "none", content: null },
 };
@@ -450,7 +450,7 @@ export default function TextareaResizeGrip({
   const grip = GRIP_SVGS[resolveGripStyle(variant)];
 
   // 基线元素定位经 useCallback 稳定：fallback 补测效应按锁定态切换收敛
-  // 依赖（B6），稳定引用避免效应被逐渲染重触发。
+  // 依赖，稳定引用避免效应被逐渲染重触发。
   const getBaselineEl = useCallback(() => {
     const el = target.current;
     if (!el) return null;
@@ -477,7 +477,7 @@ export default function TextareaResizeGrip({
     );
   }, [value, target, getBaselineEl]);
 
-  // hidden 变体早退（B1 决策反转）：完全不渲染手柄，textarea 回退原生
+  // hidden 变体早退：完全不渲染手柄，textarea 回退原生
   // resize。置于全部 hooks 之后满足 Rules of Hooks——hidden ↔ 其他样式
   // 切换重渲染时 hook 调用序列保持一致。GRIP_SVGS.hidden 条目保留
   // （TEXTAREA_GRIP_STYLE_KEYS 清单条目与 GripGlyph 占位依赖它，
@@ -753,7 +753,7 @@ export default function TextareaResizeGrip({
       onPointerCancel={endSession}
       onLostPointerCapture={endSession}
       onKeyDown={handleKeyDown}
-      // 双击显式解锁（B3）：与拖拽单击互不干扰（dblclick 由两次 pointerup
+      // 双击显式解锁：与拖拽单击互不干扰（dblclick 由两次 pointerup
       // 之后的独立事件承载）；未传 onRelease 时为 no-op。
       onDoubleClick={(event) => {
         event.preventDefault();

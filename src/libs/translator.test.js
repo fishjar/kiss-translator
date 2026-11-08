@@ -11007,7 +11007,7 @@ describe("Translator rule styles", () => {
       expect(lastCall.text).toContain("Xyzzy");
     });
 
-    test("零宽臂术语真实链路：只有零宽分支可命中时，序列化产物无凭空占位符（统一计划 20260829 Task 6）", async () => {
+    test("零宽臂术语真实链路：只有零宽分支可命中时，序列化产物无凭空占位符", async () => {
       apiTranslate.mockImplementation(({ text }) =>
         Promise.resolve({ trText: text, isSame: false })
       );
@@ -11043,7 +11043,7 @@ describe("Translator rule styles", () => {
       expect(inner.textContent).toBe("xX finish line");
     });
 
-    test("零宽臂术语真实链路：消费臂命中时占位符与真实命中一一对应（统一计划 20260829 Task 6）", async () => {
+    test("零宽臂术语真实链路：消费臂命中时占位符与真实命中一一对应", async () => {
       apiTranslate.mockImplementation(({ text }) =>
         Promise.resolve({ trText: text, isSame: false })
       );

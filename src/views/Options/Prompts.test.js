@@ -335,7 +335,7 @@ describe("Prompts", () => {
     unmount();
   });
 
-  // B3 七语言完整性：新增的 field_resize_unlock_hint 必须在主 I18N 字典
+  // 七语言完整性：新增的 field_resize_unlock_hint 必须在主 I18N 字典
   // 具备全部 7 种语言的非空字段，且语言集合与相邻的 field_resize_height
   // 完全一致（真实字典遍历断言，非 key 名 mock）。
   test("ships the unlock hint key with all seven non-empty language fields", () => {
@@ -585,7 +585,7 @@ describe("Prompts", () => {
 
   // 会话高度记忆按提示词 slug 隔离：切换选中提示词后字段不得继承上一份
   // 提示词的锁定态（编辑器 DOM 不重挂载，隔离由 hook lockKey 含 slug 承
-  // 担，见上方 B5 注释），切回时恢复各自记忆。
+  // 担），切回时恢复各自记忆。
   test("scopes prompt height memories per prompt slug across selection switches", async () => {
     __resetSessionHeightMapForTests();
     const promptA = createPrompt(PROMPT_CATEGORY_USER, {

@@ -246,7 +246,6 @@ function renderPlayground(
 
   // testing-library/no-unnecessary-act 误报：本处是 createRoot 并发根的初始
   // render，去掉 act 后 DOM 不同步提交（实测 37 用例 textarea 为 null），
-  // 属计划 :196 回退纪律——保留 act + 行内 disable 并申报。
   // eslint-disable-next-line testing-library/no-unnecessary-act
   act(() => {
     root.render(<DraftHarness />);
@@ -752,7 +751,7 @@ describe("TerminologyPlayground", () => {
   test("rejects pure zero-width term segments: error alert with zero-width diagnostic copy, no success summary", async () => {
     const { container, root } = renderPlayground({ rule: null });
     await flushEffects();
-    // 纯零宽模式 (?=x)：统一计划 Task 2 起为致命诊断 zero-width-matching-pattern，
+    // 纯零宽模式 (?=x)：判定为致命诊断 zero-width-matching-pattern，
     // UI 经 formatFatalDiagnostic 渲染新 i18n 键（七语言，此处 zh 渲染）。
     await enterTerms(container, "(?=x),Y\nAPI,接口;");
 
@@ -1873,7 +1872,7 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
-  // ── AI 测试请求/响应双样式展示（Task 4） ──
+  // ── AI 测试请求/响应双样式展示 ──
 
   /** 在 AI 术语输入框填入草稿（父级持有 state，直接驱动）。 */
   function fillAiTerms(container, setAiTermsDraft, value) {
@@ -2245,7 +2244,7 @@ describe("TerminologyPlayground", () => {
     );
     expect(reqJson).not.toBeNull();
 
-    // 面板滚动区存在且包含 JSON 内容（Task 2.3：滚动由外层 scroll 区统一管理）
+    // 面板滚动区存在且包含 JSON 内容（滚动由外层 scroll 区统一管理）
     const reqScroll = container.querySelector(
       '[data-testid="terminology-ai-req-scroll"]'
     );
@@ -2449,7 +2448,7 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
-  // ── Task 8 新增护栏用例（R1/R2/R3/R4/D2–D7） ──
+  // ── 护栏用例（卸载安全 / 空结果 / 异常兜底 / 过期回包） ──
 
   test("R1: AI example text covers every entered term", async () => {
     mockResolvedTransApis.push(
@@ -2972,7 +2971,7 @@ describe("TerminologyPlayground", () => {
         .getAttribute("data-state")
     ).toBe("delivered");
 
-    // 删掉该行（R4 现场证据）→ missing。
+    // 删掉该行 → missing。
     mockApiTranslateWithCapture({
       reqUserMsg: {
         role: "user",
@@ -3406,7 +3405,7 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
-  // ── §B UI 细化新用例（Task 4.3） ──
+  // ── UI 细化新用例 ──
 
   test("AI help section: collapsed by default, expands on click, collapses on second click", async () => {
     const { container, root } = renderPlayground({ rule: null });
@@ -3502,7 +3501,7 @@ describe("TerminologyPlayground", () => {
     const { container, root } = renderPlayground({ rule: null });
     await flushEffects();
 
-    // 常显说明段使用 caption 字号/字重（Task 1.1：body2 → caption 降级）。
+    // 常显说明段使用 caption 字号/字重（由 body2 降级而来）。
     const helpText = container.querySelector(
       '[data-testid="terminology-ai-terms"] .MuiTypography-caption'
     );
@@ -3629,7 +3628,7 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
-  test("Task 2.2 structure: header toggle is not inside the scroll area", async () => {
+  test("header toggle is not inside the scroll area", async () => {
     mockResolvedTransApis.push(
       mockResolvedApi({ apiSlug: "openai", apiName: "OpenAI" })
     );
@@ -3662,7 +3661,7 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
-  // ── AI 测试目标语言下拉 + 持久化（本计划 Task 1/2/4） ──
+  // ── AI 测试目标语言下拉 + 持久化 ──
 
   /* eslint-disable-next-line testing-library/no-container, testing-library/no-node-access -- jsdom 交互模式与全文件既有写法一致；render() 未用 TL，screen 不可用。 */
   function queryTestid(testid) {
@@ -3858,7 +3857,7 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
-  // ── 窄屏适配（本计划 Task 5） ──
+  // ── 窄屏适配 ──
 
   test("every table is wrapped in a horizontally scrollable container", async () => {
     mockResolvedTransApis.push(
@@ -3907,7 +3906,7 @@ describe("TerminologyPlayground", () => {
     act(() => root.unmount());
   });
 
-  // ── 连续测试轮次隔离 / 取消复位 / 失败轮请求面板（本计划 Task 1/3/6/7） ──
+  // ── 连续测试轮次隔离 / 取消复位 / 失败轮请求面板 ──
 
   /**
    * 排入「下一轮」AI 测试的 mock 实现（mockImplementationOnce，按 FIFO 消费）。
@@ -4021,7 +4020,7 @@ describe("TerminologyPlayground", () => {
       "响应体-r1"
     );
 
-    // ── 第二轮：受控 pending，断言 testing 态结果区整体隐藏（D2/D3 的可观测等价） ──
+    // ── 第二轮：受控 pending，断言 testing 态结果区整体隐藏 ──
     fillAiTerms(container, setAiTermsDraft, "quzzle,缓存节点");
     const round2 = queueAiRound({
       label: "r2",
@@ -4404,7 +4403,7 @@ test("C1 Red：maskForDisplay 对零 own 键非纯对象返回类型标签而非
   });
   // 数组完全不变。
   expect(maskForDisplay([{ a: 1 }])).toEqual([{ a: 1 }]);
-  // 带 own 可枚举键的类实例：E1 窄门闸不吞掩码内容（green-to-green 锁定）。
+  // 带 own 可枚举键的类实例：窄门闸不吞掩码内容（green-to-green 锁定）。
   class WithOwnKey {
     constructor() {
       this.token = "secret";
@@ -4459,7 +4458,7 @@ describe("TerminologyPlayground textarea grip style", () => {
     act(() => root.unmount());
   });
 
-  // 意见 A：grip 样式切到 hidden 时自动释放会话高度锁（红：现实现残留
+  // grip 样式切到 hidden 时自动释放会话高度锁（红：现实现残留
   // kt-height-locked 与内联高度，字段被永久钉死）。
   test("switching to hidden releases the session height lock", async () => {
     mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");

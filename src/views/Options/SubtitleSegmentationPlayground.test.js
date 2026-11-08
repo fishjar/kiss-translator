@@ -619,7 +619,7 @@ describe("SubtitleSegmentationPlayground textarea grip style", () => {
     cache.sheet.flush();
   });
 
-  // 意见 A：grip 样式切到 hidden 时自动释放会话高度锁——锁定类与内联
+  // grip 样式切到 hidden 时自动释放会话高度锁——锁定类与内联
   // 高度一并撤销，字段不被 kt-height-locked 永久钉死（红：现实现残留锁类）。
   test("switching to hidden releases the session height lock", async () => {
     mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");
