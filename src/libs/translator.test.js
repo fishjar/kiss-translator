@@ -3404,11 +3404,233 @@ describe("Translator rule styles", () => {
   });
 
   describe("paragraph auxiliary nodes", () => {
+    test("refreshes layout snapshots between preview scans", () => {
+      document.body.innerHTML =
+        '<main id="root"><div id="target">Outer <span id="nested" style="display:none"><div id="block">Nested block</div></span> after.</div></main>';
+      const translator = createTranslator(
+        { transOpen: "false" },
+        { preInit: false }
+      );
+      expect(translator.previewRule().targets.map((node) => node.id)).toEqual([
+        "target",
+      ]);
+      document.querySelector("#nested").style.display = "contents";
+      expect(translator.previewRule().targets.map((node) => node.id)).toEqual([
+        "target",
+        "block",
+      ]);
+      document.querySelector("#nested").style.display = "inline-flex";
+      expect(translator.previewRule().targets.map((node) => node.id)).toEqual([
+        "target",
+      ]);
+      translator.updateRule({
+        keepSelector: "#nested",
+        blockSelector: "[invalid",
+      });
+      expect(translator.previewRule().targets.map((node) => node.id)).toEqual([
+        "target",
+      ]);
+    });
+
+    test("adopts and restores a group spanning ignored and hidden nodes", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p id="target">Before<span class="excluded">SECRET</span><unknown-box hidden>Hidden</unknown-box><script>metadata</script>after.</p></main>';
+      const target = document.querySelector("#target");
+      const originals = [...target.childNodes];
+      target.insertAdjacentHTML(
+        "beforeend",
+        '<kiss-translator class="kiss-translator-wrapper notranslate"><font class="kiss-translator-inner">Existing translation</font></kiss-translator>'
+      );
+      const translator = createTranslator({ ignoreSelector: ".excluded" });
+      await flushAsync();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      translator.updateRule({ transOnly: "true" });
+      await flushAsync();
+      translator.updateRule({ transOnly: "false" });
+      await flushAsync();
+      translator.disable();
+      expect([...target.childNodes]).toEqual(originals);
+      originals.forEach((node, index) =>
+        expect(target.childNodes[index]).toBe(node)
+      );
+    });
+
+    test("preserves existing whitespace around skipped inline content", async () => {
+      document.body.innerHTML =
+        '<main id="root"><div>Before<span class="excluded">SECRET</span> <b>after.</b></div></main>';
+      createTranslator({ ignoreSelector: ".excluded", hasRichText: "false" });
+      await flushAsync();
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Before after.",
+      ]);
+    });
+
+    test.each(["true", "false"])(
+      "skips ignored inline content without splitting: autoScan=%s",
+      async (autoScan) => {
+        document.body.innerHTML =
+          '<main id="root"><div id="target">Before<span class="excluded">SECRET<div>nested secret</div></span><button>SECRET button</button>after.</div></main>';
+        const translator = createTranslator({
+          autoScan,
+          selector: "#target",
+          ignoreSelector: ".excluded, button",
+          hasRichText: "false",
+        });
+        await flushAsync();
+        expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+          "Beforeafter.",
+        ]);
+        translator.disable();
+        expect(document.querySelector(".excluded div").textContent).toBe(
+          "nested secret"
+        );
+      }
+    );
+
+    test.each(["true", "false"])(
+      "keeps visible ignored blocks as boundaries: autoScan=%s",
+      async (autoScan) => {
+        document.body.innerHTML =
+          '<main id="root"><div id="target">Before<div class="excluded">SECRET</div>after.</div></main>';
+        createTranslator({
+          autoScan,
+          selector: "#target",
+          ignoreSelector: ".excluded",
+        });
+        await flushAsync();
+        expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+          "Before",
+          "after.",
+        ]);
+      }
+    );
+
+    test.each(["span", "unknown-widget"])(
+      "scans nested blocks through ordinary inline flow: %s",
+      async (tag) => {
+        document.body.innerHTML = `<main id="root"><div id="target">Outer before<${tag} style="display:inline">Inner before<div>Block source</div>Inner after</${tag}>Outer after</div></main>`;
+        createTranslator({ hasRichText: "false" });
+        await flushAsync();
+        expect(
+          apiTranslate.mock.calls.map(([args]) => args.text).sort()
+        ).toEqual(
+          [
+            "Block source",
+            "Inner after",
+            "Inner before",
+            "Outer after",
+            "Outer before",
+          ].sort()
+        );
+      }
+    );
+
+    test.each(["inline-block", "inline-flex", "inline-grid", "inline-table"])(
+      "keeps custom atomic inline layout together: %s",
+      async (display) => {
+        document.body.innerHTML = `<main id="root"><div>Before <custom-box style="display:${display}"><div>middle</div></custom-box> after.</div></main>`;
+        createTranslator({ hasRichText: "false" });
+        await flushAsync();
+        expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+          "Before middle after.",
+        ]);
+      }
+    );
+
+    test.each(
+      [false, true].flatMap((transOnly) =>
+        [false, true].map((wrapOriginal) => ({
+          transOnly: String(transOnly),
+          wrapOriginal: String(wrapOriginal),
+        }))
+      )
+    )("restores skipped and kept source nodes in order: %j", async (rule) => {
+      document.body.innerHTML =
+        '<style>.css-hidden { display:none }</style><main id="root"><p id="target">Before <span class="excluded">SECRET ignored</span><unknown-box hidden>SECRET hidden</unknown-box><code>kept<span class="css-hidden">SECRET nested</span></code><script>SECRET script</script> after.</p></main>';
+      const target = document.querySelector("#target");
+      const originals = [...target.childNodes];
+      const translator = createTranslator({
+        ...rule,
+        ignoreSelector: ".excluded",
+        keepSelector: "code, script, unknown-box",
+      });
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0].text).not.toMatch(/SECRET|kept/);
+      expect(
+        target.querySelector(`.${Translator.KISS_CLASS.inner} .excluded`)
+      ).toBeNull();
+      translator.updateRule({ transOnly: "true" });
+      await flushAsync();
+      translator.updateRule({ transOnly: "false" });
+      await flushAsync();
+      translator.disable();
+      expect([...target.childNodes]).toEqual(originals);
+      originals.forEach((node, index) =>
+        expect(target.childNodes[index]).toBe(node)
+      );
+    });
+
+    test.each([
+      '<link rel="mw:PageProp/Category" href="./Category:Example">',
+      '<meta name="example" content="secret">',
+      '<div style="display:none">secret</div>',
+      '<unknown-widget style="display:none">secret</unknown-widget>',
+      '<span class="css-hidden">secret</span>',
+      "<unknown-widget hidden>secret</unknown-widget>",
+    ])("continues across elements without a layout box: %s", async (html) => {
+      document.body.innerHTML =
+        '<style>.css-hidden { display:none }</style><main id="root"><div id="target">Before ' +
+        html +
+        "after.</div></main>";
+      const source = document.querySelector("#target");
+      const auxiliary = source.firstElementChild;
+      const translator = createTranslator();
+      await flushAsync();
+      expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
+        "Before after.",
+      ]);
+      translator.disable();
+      expect(source.firstElementChild).toBe(auxiliary);
+    });
+
+    test.each([
+      ['<div style="display:inline">middle</div>', false],
+      ['<span style="display:block">middle</span>', true],
+      ['<a style="display:block">middle</a>', true],
+      ['<b style="display:inline-block">middle</b>', false],
+      ['<span style="display:inline-flex">middle</span>', false],
+      ['<span style="display:inline-grid">middle</span>', false],
+      ['<div style="display:contents">middle</div>', false],
+      ['<span style="display:contents"><div>middle</div></span>', true],
+    ])(
+      "uses rendered layout for paragraph boundaries: %s",
+      async (html, block) => {
+        document.body.innerHTML =
+          '<main id="root"><div id="target">Before ' +
+          html +
+          " after.</div></main>";
+        expect(
+          Translator.isBlockNode(
+            document.querySelector("#target").firstElementChild
+          )
+        ).toBe(block);
+        createTranslator({ hasRichText: "false" });
+        await flushAsync();
+        const texts = apiTranslate.mock.calls.map(([args]) => args.text);
+        if (block) {
+          expect(texts).toHaveLength(3);
+        } else {
+          expect(texts).toEqual(["Before middle after."]);
+        }
+      }
+    );
+
     test("rechecks formula display after a temporary rendering state", async () => {
       document.body.innerHTML =
         '<main id="root"><p>Before the formula <span class="MathJax" style="display:none">x+y</span> and after it.</p></main>';
       const formula = document.querySelector(".MathJax");
-      expect(Translator.isBlockNode(formula)).toBe(true);
+      expect(Translator.isBlockNode(formula)).toBe(false);
       formula.style.display = "inline";
       expect(Translator.isBlockNode(formula)).toBe(false);
       createTranslator({ keepSelector: ".MathJax" });
@@ -3546,17 +3768,15 @@ describe("Translator rule styles", () => {
     test.each([
       ["<br>", {}],
       ["<div></div>", {}],
-      ['<div style="display:none">hidden block</div>', {}],
       ["<span data-kiss-ui>plugin content</span>", {}],
       [
-        '<span class="excluded">excluded text</span>',
+        '<span class="excluded" style="display:block">excluded text</span>',
         { ignoreSelector: ".excluded" },
       ],
       [
         '<span class="block" style="display:none">hidden block</span>',
         { blockSelector: ".block" },
       ],
-      ['<span display="block" style="display:none">hidden block</span>', {}],
     ])("keeps the boundary at %s", async (boundary, rule) => {
       document.body.innerHTML =
         '<main id="root"><div id="target">Before the boundary ' +
@@ -7563,6 +7783,9 @@ describe("Translator rule styles", () => {
       '<main id="root"><p id="target">Paragraph text <a id="link" href="#">link text</a> tail</p></main>';
     const target = document.getElementById("target");
     const link = document.getElementById("link");
+    // Supply the actual hit target instead of relying on empty computed styles
+    // in jsdom to classify a normal inline link as a block.
+    document.elementFromPoint = () => link;
 
     createTranslator(
       { transOpen: "false" },
@@ -7607,6 +7830,7 @@ describe("Translator rule styles", () => {
     releaseRight();
 
     // 再翻译段落
+    document.elementFromPoint = () => target;
     await hoverNode(target, 20, 20);
     pressRightOn(target);
     jest.advanceTimersByTime(300);

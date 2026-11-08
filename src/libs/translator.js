@@ -70,6 +70,9 @@ import {
   isInNonContent,
   NON_CONTENT_SELECTOR,
   visitTranslationTargets,
+  BLOCK_LAYOUT_TAGS,
+  getNodeLayout,
+  hasBlockLayout,
   isInlineHidden,
   isInInlineHidden,
   getInlineVisibleText,
@@ -107,85 +110,7 @@ export class Translator {
   static TAGS = {
     // 强制换行标签
     BREAK_LINE: new Set(["BR", "WBR"]),
-    // 块级标签
-    BLOCK: new Set([
-      "ADDRESS",
-      "ARTICLE",
-      "ASIDE",
-      "BLOCKQUOTE",
-      "CANVAS",
-      "DD",
-      "DIV",
-      "DL",
-      "DT",
-      "FIELDSET",
-      "FIGCAPTION",
-      "FIGURE",
-      "FOOTER",
-      "FORM",
-      "H1",
-      "H2",
-      "H3",
-      "H4",
-      "H5",
-      "H6",
-      "HEADER",
-      "HR",
-      "LI",
-      "MAIN",
-      "NAV",
-      "NOSCRIPT",
-      "OL",
-      "P",
-      "PRE",
-      "SECTION",
-      "TABLE",
-      "TFOOT",
-      "UL",
-      "VIDEO",
-    ]),
-    // 行级标签
-    INLINE: new Set([
-      // "A",
-      "ABBR",
-      "ACRONYM",
-      "B",
-      "BDO",
-      "BIG",
-      "BR",
-      "BUTTON",
-      "CITE",
-      "CODE",
-      "DFN",
-      "DEL",
-      "FONT",
-      "EM",
-      "I",
-      "IMG",
-      "INPUT",
-      "INS",
-      "KBD",
-      "LABEL",
-      "MAP",
-      "MARK",
-      "OBJECT",
-      "OUTPUT",
-      "Q",
-      "RUBY",
-      "SAMP",
-      "SCRIPT",
-      "SELECT",
-      "SMALL",
-      // "SPAN",
-      "STRONG",
-      "SUB",
-      "SUP",
-      "TEXTAREA",
-      "TIME",
-      "TT",
-      "U",
-      "VAR",
-    ]),
+    BLOCK: BLOCK_LAYOUT_TAGS,
     // 需要被作为占位符替换以保持原文格式不被机器翻译破坏的复杂标签
     REPLACE: new Set([
       "ABBR",
@@ -307,28 +232,7 @@ export class Translator {
    */
   static isBlockNode(el) {
     if (!Translator.isElementOrFragment(el)) return false;
-
-    // 若有显式的 inline 属性设置，直接判定非块级
-    if (el.attributes?.display?.value?.includes("inline")) return false;
-    // 若有显式的 block 属性设置，直接判定为块级
-    if (el.attributes?.display?.value?.includes("block")) return true;
-
-    // 若标签在内联标签集合中，直接判定非块级
-    if (Translator.TAGS.INLINE.has(el.nodeName?.toUpperCase())) return false;
-    // 若标签在块级标签集合中，直接判定为块级
-    if (Translator.TAGS.BLOCK.has(el.nodeName?.toUpperCase())) return true;
-
-    // 自定义组件标签 (如 <gg-article>) 默认 computed display 常为 inline，但如果内部包含块级元素，则属于结构容器
-    if (el.nodeName?.includes("-")) {
-      for (const child of el.children) {
-        if (Translator.isBlockNode(child)) {
-          return true;
-        }
-      }
-    }
-
-    // 页面渲染期间定位和显示样式会变化，不能永久缓存临时状态。
-    return !window.getComputedStyle(el).display.startsWith("inline");
+    return hasBlockLayout(el);
   }
 
   // 判断是否包含块级子元素
@@ -752,22 +656,30 @@ export class Translator {
     return selectors.join(", ");
   }
 
-  #isIgnoredElement(node) {
-    return (
-      node?.nodeType === Node.ELEMENT_NODE &&
-      node.matches?.(this.#ignoreSelector)
-    );
-  }
-
   // 行内可见文本的统一跳过口径（#getSourceText 与句拆 textLength/句末
   // 判断共用）：非内容节点、KISS UI 节点、ignoreSelector 命中（keepSelector
   // 行内保留除外）中的文本一律不计。
+  #getContentRole(
+    element,
+    rule = this.#rule,
+    readLayout = getNodeLayout,
+    ignoreSelector = this.#getIgnoreSelector(rule)
+  ) {
+    if (!Translator.isElement(element)) return "translate";
+    if (
+      readLayout(element) === "hidden" ||
+      element.matches(NON_CONTENT_SELECTOR)
+    )
+      return "skip";
+    const ignored = element.matches(ignoreSelector);
+    if (ignored && element.matches(Translator.KISS_IGNORE_SELECTOR))
+      return "skip";
+    if (this.#isKeptInline(element, rule, readLayout)) return "keep";
+    return ignored ? "skip" : "translate";
+  }
+
   #isInlineContentSkipped(element) {
-    return (
-      element.matches(NON_CONTENT_SELECTOR) ||
-      element.matches(Translator.KISS_IGNORE_SELECTOR) ||
-      (element.matches(this.#ignoreSelector) && !this.#isKeptInline(element))
-    );
+    return this.#getContentRole(element) === "skip";
   }
 
   #getSourceText(node) {
@@ -777,11 +689,11 @@ export class Translator {
     );
   }
 
-  #matchesBlockSelector(node) {
-    const selector = this.#rule.blockSelector?.trim();
+  #matchesBlockSelector(node, rule = this.#rule) {
+    const selector = rule.blockSelector?.trim();
     if (
       !selector ||
-      this.#blockSelectorInvalid ||
+      (rule === this.#rule && this.#blockSelectorInvalid) ||
       !Translator.isElement(node)
     ) {
       return false;
@@ -790,7 +702,7 @@ export class Translator {
     try {
       return node.matches(selector);
     } catch (err) {
-      this.#blockSelectorInvalid = true;
+      if (rule === this.#rule) this.#blockSelectorInvalid = true;
       logger.child("translator").warn("invalid blockSelector", err);
       return false;
     }
@@ -817,7 +729,11 @@ export class Translator {
 
   #isBlockNode(node) {
     if (this.#matchesBlockSelector(node)) return true;
-    return Translator.isBlockNode(node);
+    return hasBlockLayout(
+      node,
+      (child) => this.#matchesBlockSelector(child),
+      (child) => this.#getContentRole(child) !== "translate"
+    );
   }
 
   #hasBlockNode(node) {
@@ -1038,7 +954,7 @@ export class Translator {
     // 保留原有结构，避免将隐藏子节点和元数据展平成正文。
     if (
       pre.querySelector(PARAGRAPH_METADATA_SELECTOR) ||
-      Array.from(pre.querySelectorAll("[style]")).some(isInlineHidden)
+      Array.from(pre.querySelectorAll("*")).some(isInlineHidden)
     )
       return;
     if (pre.dataset.kissPreprocessed === "true") {
@@ -2975,20 +2891,31 @@ export class Translator {
   }
 
   #targetOptions(rule = this.#rule) {
-    const isBlock = (node) => {
-      try {
-        if (rule.blockSelector && node.matches?.(rule.blockSelector))
-          return true;
-      } catch {
-        /* Invalid legacy block selectors fall back to tag/display. */
-      }
-      return Translator.isBlockNode(node);
+    // One synchronous scan owns these snapshots. Later scans always read live
+    // styles again, including after a formula or component changes display.
+    const layouts = new WeakMap();
+    const contentRoles = new WeakMap();
+    const ignoreSelector = this.#getIgnoreSelector(rule);
+    const readLayout = (node) => {
+      if (!layouts.has(node)) layouts.set(node, getNodeLayout(node));
+      return layouts.get(node);
     };
+    const isPreserved = (node) => {
+      if (!contentRoles.has(node))
+        contentRoles.set(
+          node,
+          this.#getContentRole(node, rule, readLayout, ignoreSelector)
+        );
+      return contentRoles.get(node) !== "translate";
+    };
+    const isForcedBlock = (node) => this.#matchesBlockSelector(node, rule);
     return {
       ...rule,
-      ignoreSelector: this.#getIgnoreSelector(rule),
-      isBlock,
-      isPreservedInline: (node) => this.#isKeptInline(node, rule, isBlock),
+      ignoreSelector,
+      getLayout: readLayout,
+      isBlock: (node) =>
+        hasBlockLayout(node, isForcedBlock, isPreserved, readLayout),
+      isPreservedInline: (node) => this.#isKeptInline(node, rule, readLayout),
       hasText: Translator.hasTextNode,
       wrapperClass: Translator.KISS_CLASS.warpper,
     };
@@ -3510,12 +3437,15 @@ export class Translator {
   }
 
   // Only inline keep elements may bypass configurable ignores inside a paragraph.
-  #isKeptInline(node, rule = this.#rule, isBlock) {
+  #isKeptInline(node, rule = this.#rule, readLayout = getNodeLayout) {
     if (!Translator.isElement(node)) return false;
     try {
       return (
         node.matches(rule.keepSelector) &&
-        !(isBlock ? isBlock(node) : this.#isBlockNode(node))
+        !node.matches(NON_CONTENT_SELECTOR) &&
+        !this.#isKissIgnoredNode(node) &&
+        !["hidden", "block"].includes(readLayout(node)) &&
+        !this.#matchesBlockSelector(node, rule)
       );
     } catch (err) {
       logger
@@ -3526,7 +3456,7 @@ export class Translator {
   }
 
   /**
-   * 判断非正文元数据或隐藏的行内节点在段落分组中的作用。
+   * 不生成布局盒的节点作为辅助节点，不因标签类型中断段落。
    * @param {Node} node 待判断的节点。
    * @returns {"boundary" | "auxiliary" | undefined}
    *   `"boundary"` 表示在此结束当前翻译组。
@@ -3535,52 +3465,34 @@ export class Translator {
    */
   #getParagraphAuxiliaryRole(node) {
     if (!Translator.isElement(node)) return undefined;
-    const tag = node.tagName.toUpperCase();
-    const isHiddenInline =
-      isInlineHidden(node) &&
-      (tag === "SPAN" || tag === "A" || Translator.TAGS.INLINE.has(tag));
-    if (!isHiddenInline && !node.matches(PARAGRAPH_METADATA_SELECTOR))
-      return undefined;
     if (
-      Translator.TAGS.BREAK_LINE.has(tag) ||
-      node.getAttribute("display")?.startsWith("block") ||
-      node.style?.display?.startsWith("block") ||
       this.#matchesBlockSelector(node) ||
-      this.#isKissIgnoredNode(node)
+      this.#isKissIgnoredNode(node) ||
+      node.localName === this.#translationTagName
     )
+      return "boundary";
+    if (this.#getContentRole(node) !== "skip") return undefined;
+    if (isInlineHidden(node) || node.matches(PARAGRAPH_METADATA_SELECTOR))
+      return "auxiliary";
+    if (Translator.TAGS.BREAK_LINE.has(node.tagName) || this.#isBlockNode(node))
       return "boundary";
     return "auxiliary";
   }
 
-  // 判断是否需要换行
+  // Group boundaries and recursion stops differ: skipped inline subtrees are
+  // retained in the source group, but cleanup must never enter them.
   #shouldBreak(node, breakAtAuxiliary = false) {
     if (!Translator.isElementOrFragment(node)) return false;
     const auxiliaryRole = this.#getParagraphAuxiliaryRole(node);
     if (auxiliaryRole) return breakAtAuxiliary || auxiliaryRole === "boundary";
-    if (isInlineHidden(node) || this.#isKissIgnoredNode(node)) return true;
     if (this.#isKeptInline(node)) return false;
-
-    if (
-      Translator.TAGS.BREAK_LINE.has(node.nodeName?.toUpperCase()) ||
-      node.matches?.(this.#ignoreSelector) ||
-      node.nodeName?.toLowerCase() === this.#translationTagName
-    ) {
+    if (Translator.TAGS.BREAK_LINE.has(node.nodeName?.toUpperCase()))
       return true;
-    }
-
-    if (this.#rule.autoScan === "true" && this.#isBlockNode(node)) {
-      return true;
-    }
-
-    if (
-      this.#rule.autoScan === "false" &&
-      (node.matches(this.#rule.selector) ||
-        node.querySelector(this.#rule.selector))
-    ) {
-      return true;
-    }
-
-    return false;
+    if (this.#rule.autoScan === "true") return this.#isBlockNode(node);
+    return Boolean(
+      node.matches?.(this.#rule.selector) ||
+        node.querySelector?.(this.#rule.selector)
+    );
   }
 
   // 过滤文本
@@ -4645,7 +4557,6 @@ overflow-wrap: anywhere !important;`;
       // 文本节点
       if (node.nodeType === Node.TEXT_NODE) {
         let text = node.textContent;
-        if (!text.trim()) return "";
 
         // 专业术语替换：matcher 一次物化（热路径零编译），applyTermReplace 内部重置 lastIndex
         if (termMatcher) {
@@ -4668,17 +4579,15 @@ overflow-wrap: anywhere !important;`;
 
       // 元素节点
       if (node.nodeType === Node.ELEMENT_NODE) {
-        if (isInNonContent(node) || this.#isKissIgnoredNode(node)) return "";
+        const contentRole = this.#getContentRole(node);
+        if (contentRole === "skip") return "";
 
         // 收藏词高亮只影响原文显示，不应改变翻译请求的结构
         if (node.classList.contains(Translator.KISS_CLASS.highlight)) {
           return Array.from(node.childNodes, traverse).join("");
         }
 
-        const keptInline = this.#isKeptInline(node);
-        if (this.#isIgnoredElement(node) && !keptInline) {
-          return "";
-        }
+        const keptInline = contentRole === "keep";
 
         if (
           (this.#rule.hasRichText === "true" &&
