@@ -59,6 +59,30 @@ describe("FabManager temporary shortcut", () => {
     expect(document.getElementById(APP_CONSTS.fabID)).toBe(host);
   });
 
+  test.each(["input", "textarea", "contenteditable", "shadow input"])(
+    "does not show the FAB while editing %s",
+    (kind) => {
+      createManager({ isHide: true });
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+      const root =
+        kind === "shadow input" ? host.attachShadow({ mode: "open" }) : host;
+      let tag = "input";
+      if (kind === "textarea") tag = "textarea";
+      if (kind === "contenteditable") tag = "div";
+      const input = document.createElement(tag);
+      if (kind === "contenteditable") {
+        input.setAttribute("contenteditable", "true");
+        input.tabIndex = 0;
+      }
+      root.appendChild(input);
+      input.focus();
+      pressShortcut();
+      expect(manager.isVisible).toBe(false);
+      host.remove();
+    }
+  );
+
   test("leaves an already visible FAB shown without remounting", () => {
     createManager({ isHide: false });
     const host = document.getElementById(APP_CONSTS.fabID);

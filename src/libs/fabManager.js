@@ -42,9 +42,19 @@ export class FabManager extends ShadowDomManager {
     }
 
     // Register even when hidden, for both extensions and userscripts.
-    this.#clearShortcut = shortcutRegister(["AltLeft", "KeyB"], () =>
-      this.show()
-    );
+    this.#clearShortcut = shortcutRegister(["AltLeft", "KeyB"], () => {
+      let active = document.activeElement;
+      while (active?.shadowRoot?.activeElement) {
+        active = active.shadowRoot.activeElement;
+      }
+      if (
+        active?.closest(
+          'input, textarea, [contenteditable]:not([contenteditable="false"])'
+        )
+      )
+        return;
+      this.show();
+    });
   }
 
   show(props) {
