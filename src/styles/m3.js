@@ -93,6 +93,42 @@ export const M3_BRAND_COLORS = {
   },
 };
 
+// 图标风格快照 store：分发器组件经 useSyncExternalStore 订阅本 store，由
+// M3Theme 把 setting.iconStyle 推入——图标模块自身保持零重依赖（不 import
+// hooks/Setting，避免拖入 apis 重图）。当前 iconStyle 设置键切换不可达、
+// resolveIconStyle 恒回退缺省 lucide（安全回退）。终局设计：快照推送将由
+// hooks/Setting.js 统一推送，带 isLoading 守卫，并统一推送 iconStyle+iconColor
+// 双快照。
+export const DEFAULT_ICON_STYLE = "lucide";
+export const DEFAULT_ICON_COLOR = "#90b2ba";
+
+export function resolveIconStyle(value) {
+  return value === "mui" ? "mui" : DEFAULT_ICON_STYLE;
+}
+
+let iconStyleSnapshot = DEFAULT_ICON_STYLE;
+const iconStyleListeners = new Set();
+
+export function setIconStyleSnapshot(value) {
+  const next = resolveIconStyle(value);
+  if (next === iconStyleSnapshot) {
+    return;
+  }
+  iconStyleSnapshot = next;
+  iconStyleListeners.forEach((listener) => listener(next));
+}
+
+export function subscribeIconStyle(listener) {
+  iconStyleListeners.add(listener);
+  return () => {
+    iconStyleListeners.delete(listener);
+  };
+}
+
+export function getIconStyleSnapshot() {
+  return iconStyleSnapshot;
+}
+
 export function resolveM3Colors(mode = "light", brand = "blue") {
   return {
     ...M3_COLORS[mode],
@@ -141,6 +177,36 @@ export function createM3CssVariableDeclarations(colors) {
 
 export const M3_FONT_FAMILY =
   '"Google Sans Flex", "Google Sans", "Noto Sans SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+/* 焦点静默抑制规则（单源）：M3Theme 域经 M3_GLOBAL_CSS 注入；
+   FileTranslate 等自建 ThemeProvider 域直接注入本导出。 */
+export const FOCUS_SILENT_CSS = String.raw`
+[data-kt-focus-silent="true"]:focus-visible { outline: none !important; }
+[data-kt-focus-silent="true"][role="option"]:focus-visible,
+[data-kt-focus-silent="true"][role="menuitem"]:focus-visible,
+[data-kt-focus-silent="true"][role="menuitemcheckbox"]:focus-visible,
+[data-kt-focus-silent="true"][role="menuitemradio"]:focus-visible,
+[data-kt-focus-silent="true"][role="switch"]:focus-visible,
+[data-kt-focus-silent="true"].MuiMenuItem-root:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+/* 不支持 :focus-visible 的内核会整条丢弃上方规则，静默标记随之失效；
+   该窗口内浏览器对脚本聚焦一律按 :focus 绘制轮廓，故以 :focus 等价
+   兜底。键盘模态切入时静默标记已被清除，键盘语境的环不受影响。 */
+@supports not selector(:focus-visible) {
+  [data-kt-focus-silent="true"]:focus { outline: none !important; }
+  [data-kt-focus-silent="true"][role="option"]:focus,
+  [data-kt-focus-silent="true"][role="menuitem"]:focus,
+  [data-kt-focus-silent="true"][role="menuitemcheckbox"]:focus,
+  [data-kt-focus-silent="true"][role="menuitemradio"]:focus,
+  [data-kt-focus-silent="true"][role="switch"]:focus,
+  [data-kt-focus-silent="true"].MuiMenuItem-root:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+`;
 
 export const M3_GLOBAL_CSS = String.raw`
 :host,
@@ -213,6 +279,38 @@ export const M3_GLOBAL_CSS = String.raw`
   .kt-m3-root .MuiSlider-input:focus-visible { outline: none; }
 }
 
+/* Select 触发元焦点环恢复（焦点环配对：有语义必有环）：div.MuiSelect-select
+   （role=combobox 触发元）class 链含 MuiInputBase-input，被上方 input
+   豁免规则误伤（豁免本意是文本输入的容器焦点渲染口径），键盘聚焦零环。
+   恢复规则排在豁免块之后（同特异性靠后者胜）；形态对齐全局基格外扩 2px。 */
+@supports selector(:focus-visible) {
+  .kt-m3-root .MuiSelect-select:focus-visible {
+    outline: 3px solid var(--kt-pri);
+    outline-offset: 2px;
+  }
+}
+
+@media (forced-colors: active) {
+  .kt-m3-root .MuiSelect-select:focus-visible {
+    outline: 3px solid;
+    outline-offset: 2px;
+  }
+}
+
+/* 旧内核兜底（焦点环配对：有语义必有环）：不支持 :focus-visible/selector() 的
+   内核（Safari ≤15.4 等）整块跳过上方 @supports，且全局姿态鼠标 :focus
+   零指示、键盘指示全走 :focus-visible → 旧内核键盘聚焦 Select 触发元零
+   环。必须用 @supports not 包裹：裸 :focus 规则会破坏现代内核"鼠标 :focus
+   零指示"姿态（鼠标点击 Select 也画环）；@supports not 块现代内核整块
+   跳过，行为零变化。形态对齐上方现代环（3px 主色外扩 2px）。旧内核
+   forced-colors 场景由系统配色天然提供焦点指示，不另加同构兜底块。 */
+@supports not selector(:focus-visible) {
+  .kt-m3-root .MuiSelect-select:focus {
+    outline: 3px solid var(--kt-pri);
+    outline-offset: 2px;
+  }
+}
+
 .kt-m3-root ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -264,6 +362,15 @@ export const M3_GLOBAL_CSS = String.raw`
     box-shadow: inset 0 0 0 3px var(--kt-pri);
   }
 }
+
+/* 脚本化聚焦抑制：指针模态下由 scriptFocus() 落焦的元素不得长出焦点框。
+   模态判定见 hooks/focusModality.js——浏览器对脚本化聚焦沿用上一次交互的
+   :focus-visible 结果，故"鼠标开菜单→焦点移到选中项"也会画环，历次只改
+   画法（outline→inset）不改触发域的修法必然复发。规则本体单源于
+   FOCUS_SILENT_CSS（含选择器与排序约束说明），此处插值注入；
+   必须排在本文件最后一个 @supports selector(:focus-visible) 块之后：
+   同特异性靠源码顺序压过各块的 outline 处置。 */
+${FOCUS_SILENT_CSS}
 
 /* forced-colors 域 UA 忽略 box-shadow，上方内嵌环失效而 outline:none 仍生效
    → 该域换系统色描边（不写颜色，outline-color 由强制引擎接管）。必须排在

@@ -3,13 +3,18 @@ import { SETTINGS_FONT_SIZE, SETTINGS_HELPER_FONT_SIZE } from "./typography";
 const NARROW_OPTIONS_MAIN_STYLES = String.raw`
   .kt-overview-top { grid-template-columns: 1fr; }
   .kt-sync-methods { grid-template-columns: 1fr; }
-  .kt-style-grid { grid-template-columns: 1fr; }
+  .kt-style-grid { flex-direction: column; align-items: stretch; }
+  .kt-style-grid__column { display: contents; }
   .kt-overview-settings .MuiFormControl-root { grid-template-columns: 1fr; gap: 7px; padding-block: 11px; }
   .kt-overview-settings .MuiInputLabel-root,
   .kt-overview-settings .MuiInputBase-root { grid-column: 1; }
   .kt-overview-settings .MuiInputLabel-root { grid-row: 1; }
   .kt-overview-settings .MuiInputBase-root { grid-row: 2; width: 100%; }
   .kt-settings-row { align-items: flex-start; flex-direction: column; gap: 10px; padding: 14px 15px; }
+  .kt-settings-row.kt-settings-row--inline-control { flex-direction: row; align-items: center; }
+  .kt-settings-row.kt-settings-row--inline-control .kt-settings-row__control { width: auto; max-width: 58%; justify-content: flex-end; }
+  .kt-style-split-group__label { display: none; }
+  .kt-style-card { margin-bottom: 0; }
   .kt-settings-row__control { width: 100%; max-width: none; justify-content: stretch; }
   .kt-settings-row__control .kt-settings-select,
   .kt-settings-segmented,
@@ -221,6 +226,13 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
 .kt-settings-select:not(.kt-settings-select--with-label) .MuiFilledInput-root { min-height: 44px; }
 .kt-settings-select .MuiSelect-select { color: var(--kt-on); font-size: var(--kt-settings-font-size); text-overflow: ellipsis; }
 .kt-settings-select:not(.kt-settings-select--with-label) .MuiSelect-select { padding: 11px 34px 11px 14px; }
+/* SettingsSelect 下游菜单几何（真下拉：行高 48 / padding 16 / 间距 12 /
+   圆角 4dp，在仓先例 .kt-template-item）；间距 12 为行内间距（同
+   .kt-template-item），菜单行彼此贴邻、容器无行间 gap。挂载标记经主题层
+   MuiSelect MenuProps.MenuListProps 接线（实例 MenuProps 会整体覆写主题层，
+   不得在组件实例挂）；ListSubheader 组头非数据行，不套行几何。 */
+.kt-settings-select__menu { padding: 4px; display: flex; flex-direction: column; }
+.kt-settings-select__menu .MuiMenuItem-root { min-height: 48px; gap: 12px; padding: 0 16px; border-radius: 4px; }
 .kt-settings-segmented { width: 100%; min-width: 0; max-width: 100%; min-height: 44px; gap: 2px; overflow: hidden; padding: 3px; border: 1px solid color-mix(in srgb, var(--kt-linev) 72%, transparent); border-radius: 999px; background: var(--kt-sf2); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .04); }
 .kt-settings-segmented > button { min-width: 0; min-height: 36px; flex: 1 1 auto; overflow: hidden; padding: 6px 10px; border: 0 !important; border-radius: 999px !important; color: var(--kt-onv); font-size: var(--kt-settings-font-size); line-height: 20px; text-transform: none; transition: background-color .2s ease, color .2s ease, box-shadow .2s ease; white-space: normal; }
 .kt-settings-segmented > button.Mui-selected { background: var(--kt-secc); color: var(--kt-onsecc); font-weight: 650; }
@@ -264,14 +276,84 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
 .kt-shortcut-input--compact .MuiFilledInput-input { padding-block: 11px; font-family: ui-monospace, monospace; font-size: var(--kt-settings-font-size); }
 .kt-shortcut-input--compact .MuiIconButton-root { width: 44px; height: 44px; flex: none; }
 .kt-style-manager { margin-top: 20px; }
-.kt-style-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.kt-style-grid .kt-style-card { margin: 0 !important; border-radius: 12px !important; }
-.kt-style-grid .kt-style-card.Mui-expanded { grid-column: 1 / -1; }
-.kt-style-card .MuiAccordionSummary-root { min-height: 124px; align-items: stretch; }
-.kt-style-card .MuiAccordionSummary-content { min-width: 0; margin: 0; }
-.kt-style-card__summary { min-width: 0; display: flex; flex: 1; flex-direction: column; justify-content: center; gap: 3px; padding: 12px 0; color: var(--kt-on); }
-.kt-style-card__summary > span { overflow: hidden; font-size: 12px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
-.kt-style-card__summary > .MuiTypography-root { margin-top: 7px; color: var(--kt-onv); font-size: 11px; font-weight: 700; }
+/* 样式库操作簇：胶囊按钮组（假分体·两成员各扛恒定义）。M3 无一等分体
+   按钮，此为官方替代「独立按钮成组」的胶囊收紧项目扩展组件（M3 分体按钮变体）。
+   外 full 内 4px 收口；状态层/焦点环交成员 MUI Button，组壳不造环。 */
+.kt-style-split-group { display: inline-flex; align-items: stretch; gap: 2px; }
+.kt-style-split-group .MuiButton-root { min-height: 40px; }
+.kt-style-split-group__leading { border-radius: 9999px 4px 4px 9999px; }
+.kt-style-split-group__trailing { border-radius: 4px 9999px 9999px 4px; min-width: 40px; padding-inline: 10px; }
+.kt-style-split-group__trailing svg { transition: transform .2s cubic-bezier(.4, 0, .2, 1); }
+.kt-style-split-group__trailing[aria-expanded="true"] svg { transform: rotate(180deg); }
+/* ── 确定性双列瀑布流：显式双列按数据序对半切分分布（左列前 ⌈n/2⌉、右列
+   余下）——既杜绝 CSS 多列平衡在 ≤2 项时全堆左列的退化，又保证窄屏列容器
+   display:contents 展平后 DOM 文档序＝数据序（视觉＝Tab＝读屏序）；
+   窄屏交叉轴 stretch 满宽、卡宽恒不变（展开只变高） ── */
+.kt-style-grid { display: flex; align-items: flex-start; gap: 16px; }
+.kt-style-grid__column { min-width: 0; flex: 1 1 0; }
+/* 卡片 */
+.kt-style-card { width: 100%; margin-bottom: 14px; background: var(--kt-bg); border: 1px solid var(--kt-linev); border-radius: 12px; overflow: hidden; transition: border-color .15s; }
+.kt-style-card.is-expanded { border-color: color-mix(in srgb, var(--kt-pri) 45%, var(--kt-linev)); }
+/* header：收起态恒定 46px（名字区 + 「译文」演示 + 箭头钮）；展开态名称
+   原地转为规范输入框（56px），header 放高容纳、不再溢出容器 */
+.kt-style-card__header { height: 46px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.kt-style-card.is-expanded .kt-style-card__header { height: auto; min-height: 46px; padding-block: 8px; border-bottom: 1px solid var(--kt-linev); }
+.kt-style-card__name-text { min-width: 0; flex: 1; overflow: hidden; font-size: 13px; font-weight: 700; color: var(--kt-on); text-overflow: ellipsis; white-space: nowrap; }
+/* 名称类字段：沿用项目既定家族（Apis apiName / Prompts prompt_name 同款
+   TextField size="small" filled 形态），不做自定几何——手柄体系仅接
+   多行代码框，名称框无手柄 */
+.kt-style-card__name-input { flex: none; width: 160px; }
+/* 「译文」演示：唯一实时样式载体；contain:paint 沙箱裁剪 position:fixed 类危险声明 */
+.kt-style-card__demo { flex-shrink: 0; min-width: 0; max-width: 45%; overflow: hidden; font-size: 14px; white-space: nowrap; contain: paint; cursor: default; }
+.kt-style-card__demo.is-invalid .kt-style-demo { color: var(--kt-err) !important; text-decoration: underline wavy var(--kt-err) !important; }
+/* 箭头钮：180° 旋转与 aria-expanded 同步；State Layer 瞬时反馈（hover
+   0.08 / active 0.12 半透明叠加）。图标着色消费 --kt-icon accent 体系
+   （与 src/components/icons 组件库同口径，变量缺失时回退 --kt-onv）；焦点环对齐其自绘控件范式（outline:none +
+   box-shadow 主色环，forced-colors 换 outline 不写色） */
+.kt-style-card__toggle { position: relative; overflow: visible; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 4px; border: none; border-radius: 4px; background: transparent; color: var(--kt-icon, var(--kt-onv)); cursor: pointer; }
+.kt-style-card__toggle .m3-state-layer { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; overflow: hidden; }
+.kt-style-card__toggle .m3-state-layer::before { content: ""; position: absolute; inset: 0; background-color: currentColor; opacity: 0; transition: opacity .15s var(--kt-spring, cubic-bezier(.3, 1.4, .4, 1)); }
+.kt-style-card__toggle:hover .m3-state-layer::before { opacity: .08; }
+.kt-style-card__toggle:active .m3-state-layer::before { opacity: .12; }
+.kt-style-card__toggle:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--kt-pri); }
+@media (forced-colors: active) { .kt-style-card__toggle:focus-visible { outline: 3px solid; outline-offset: -3px; box-shadow: none; } }
+.kt-style-card__toggle svg { width: 18px; height: 18px; transform: rotate(0deg); transition: transform .2s cubic-bezier(.4, 0, .2, 1); }
+.kt-style-card.is-expanded .kt-style-card__toggle svg { transform: rotate(180deg); }
+/* body：代码框（CodeField 多行 + 通用拉伸手柄）+ 底部按钮行 */
+.kt-style-card__body { padding: 10px 14px; }
+.kt-style-card__code-field { width: 100%; }
+.kt-style-card__footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+/* 模板选择模态：列表容器按长数据列表框纪律（N>5：max-height 280 +
+   纵向滚动；overscroll contain 物理隔离滚动误关；横向溢出钳制——行内容
+   收缩由 min-width:0 纪律承担，绝不出现横向滚动条） */
+.kt-template-list { max-width: 100%; min-width: 0; max-height: 280px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+/* 选项行：几何（行高 48 / padding 16 / 间距 12 / 圆角 4dp）。
+   焦点环范式同箭头钮（自绘控件口径）；state-layer 过渡
+   opacity .15s var(--kt-spring) 带字面回退——Portal 内 .kt-m3-root 变量不可解析 */
+.kt-template-item { position: relative; min-width: 0; min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; border-radius: 4px; cursor: pointer; }
+.kt-template-item .m3-state-layer { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; overflow: hidden; }
+.kt-template-item .m3-state-layer::before { content: ""; position: absolute; inset: 0; background-color: currentColor; opacity: 0; transition: opacity .15s var(--kt-spring, cubic-bezier(.3, 1.4, .4, 1)); }
+.kt-template-item:hover .m3-state-layer::before { opacity: .08; }
+.kt-template-item:active .m3-state-layer::before { opacity: .12; }
+/* 焦点环内嵌口径（同 m3.js 手柄注释的相邻盒论证）：模板行彼此贴邻且
+   列表/Paper overflow 裁剪外扩环——外环上下被邻行压住、左右被容器缘裁掉
+   （浏览器实测：上下缺角、左右几乎不可见）；inset 2px 主色环贴边完整可见。 */
+.kt-template-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--kt-pri); }
+@media (forced-colors: active) { .kt-template-item:focus-visible { outline: 3px solid; outline-offset: -3px; box-shadow: none; } }
+/* ✕ 关闭钮：Dialog Portal 在 .kt-m3-root 之外（全局环规则不可达），Paper
+   根已重定 --kt-pri；有语义必有环，范式对齐同文件自绘控件。 */
+.kt-template-modal__close:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--kt-pri); }
+@media (forced-colors: active) { .kt-template-modal__close:focus-visible { outline: 3px solid; outline-offset: -3px; box-shadow: none; } }
+/* 旧内核兜底：模板行与 ✕ 关闭钮在 Dialog Portal 内（.kt-m3-root
+   之外），旧内核既无基格 :focus 环可依赖、:focus-visible 规则又因未知伪类
+   整条丢弃 → 零指示；@supports not 块现代内核整块跳过（行为零变化），形态
+   各自对齐上方现代环（模板行内嵌、关闭钮外扩）。旧内核 forced-colors 场景
+   由系统配色天然提供焦点指示，不另加同构块。 */
+@supports not selector(:focus-visible) {
+  .kt-template-item:focus { outline: none; box-shadow: inset 0 0 0 2px var(--kt-pri); }
+  .kt-template-modal__close:focus { outline: none; box-shadow: 0 0 0 2px var(--kt-pri); }
+}
+.kt-template-item__name { min-width: 0; overflow: hidden; font-size: 13px; color: var(--kt-on); text-overflow: ellipsis; white-space: nowrap; }
 .kt-overview-top { display: grid; grid-template-columns: 1.35fr 1fr; gap: 14px; margin-bottom: 20px; }
 .kt-overview-hero { min-height: 200px; display: flex; flex-direction: column; position: relative; padding: 24px; border-radius: 16px; background: var(--kt-pric); color: var(--kt-onpric); overflow: hidden; }
 .kt-overview-hero__header { display: flex; align-items: center; gap: 13px; }

@@ -271,4 +271,152 @@ describe("Popup menu placement", () => {
     expect(scrollBy).toHaveBeenCalled();
     expect(document.documentElement.scrollTop).toBeGreaterThan(0);
   });
+
+  test("menu list container never seizes focus (three-key contract off)", () => {
+    // 三键同给（autoFocus=false + disableAutoFocus + disableAutoFocusItem）
+    // 确保 MUI 不自动聚焦 ul 容器。焦点交接唯一所有权归 scriptFocus
+    // （focusFirstItem 主动交付给选中项）。spy HTMLUListElement.prototype.focus
+    // 断言 render 后 ul.focus 未被调用——容器不抢焦。
+    const focusCalls = [];
+    const ulFocusSpy = jest
+      .spyOn(HTMLUListElement.prototype, "focus")
+      .mockImplementation(function () {
+        focusCalls.push(this);
+      });
+    try {
+      render({ direction: "down" });
+      expect(focusCalls).toHaveLength(0);
+    } finally {
+      ulFocusSpy.mockRestore();
+    }
+  });
+});
+
+describe("PopupMenu focus contract locks", () => {
+  // 轻量夹具：.kt-m3-root 内锚点 + 渲染靶点（与生产入口同构，无 shadow）。
+  function mountMenuFixture() {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const m3Root = document.createElement("div");
+    m3Root.className = "kt-m3-root";
+    host.appendChild(m3Root);
+    const anchorEl = document.createElement("button");
+    anchorEl.textContent = "Style";
+    m3Root.appendChild(anchorEl);
+    const renderTarget = document.createElement("div");
+    m3Root.appendChild(renderTarget);
+    const root = createRoot(renderTarget);
+    const render = (children) =>
+      act(() =>
+        root.render(
+          <PopupMenu
+            anchorEl={anchorEl}
+            open
+            onClose={jest.fn()}
+            className="kt-popup-style-menu"
+            estimatedHeight={250}
+          >
+            {children}
+          </PopupMenu>
+        )
+      );
+    return { host, root, render };
+  }
+
+  // rAF 间 Flush：focusFirstItem 由 requestAnimationFrame(placementReady)
+  // 触发，间谍截获回调后统一在 act 内执行并清空，防跨用例串扰。
+  async function flushFocusFrames(rafSpy) {
+    await act(async () => {
+      rafSpy.mock.calls.forEach((call) => call[0](16));
+      rafSpy.mockClear();
+    });
+  }
+
+  test("hands focus to the selected item and never to the ul container", async () => {
+    // 焦点交接唯一所有权归 scriptFocus（focusFirstItem）：打开后焦点落
+    // Mui-selected 项；三键同给（autoFocus=false + disableAutoFocus +
+    // disableAutoFocusItem）下 MenuList 容器零聚焦腿——ul.focus 恒不调用。
+    const rafSpy = jest.spyOn(window, "requestAnimationFrame");
+    const ulFocusSpy = jest
+      .spyOn(HTMLUListElement.prototype, "focus")
+      .mockImplementation(() => {});
+    const { host, root, render } = mountMenuFixture();
+    try {
+      render(<MenuItem selected>Selected item</MenuItem>);
+      await flushFocusFrames(rafSpy);
+      const paper = document.querySelector(".kt-popup-style-menu");
+      const selected = paper.querySelector(".MuiMenuItem-root.Mui-selected");
+      expect(selected).not.toBeNull();
+      expect(document.activeElement).toBe(selected);
+      expect(document.activeElement).not.toBe(paper.querySelector("ul"));
+      expect(ulFocusSpy).not.toHaveBeenCalled();
+    } finally {
+      ulFocusSpy.mockRestore();
+      rafSpy.mockRestore();
+      act(() => root.unmount());
+      host.remove();
+    }
+  });
+
+  test("leaves focus untouched when no focusable item exists (no container fallback)", async () => {
+    // 容器零焦点（宁缺勿错）：全部项不可聚焦时 focusFirstItem 不聚焦任何
+    // 目标——严禁回退聚焦 [role="menu"] / ul 容器本体。
+    const rafSpy = jest.spyOn(window, "requestAnimationFrame");
+    const { host, root, render } = mountMenuFixture();
+    try {
+      render(<MenuItem disabled>Disabled item</MenuItem>);
+      await flushFocusFrames(rafSpy);
+      const paper = document.querySelector(".kt-popup-style-menu");
+      expect(document.activeElement).not.toBe(paper.querySelector("ul"));
+      expect(paper.contains(document.activeElement)).toBe(false);
+    } finally {
+      rafSpy.mockRestore();
+      act(() => root.unmount());
+      host.remove();
+    }
+  });
+
+  test("isShadowMenu resolves true for shadow-mounted menus", () => {
+    // isShadowMenu 判据的挂载拓扑前提锁：anchor 在 shadow root 内的
+    // .kt-m3-root 中时，菜单最终挂载进 ShadowRoot（而非 document.body），
+    // 容器根 getRootNode()=ShadowRoot、.host 存在。本用例只验证拓扑前提
+    // 本身，不覆盖 disableEnforceFocus 的行为面（后者由三键 prop 与
+    // FocusTrap 行为锁另行覆盖）。
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const shadow = host.attachShadow({ mode: "open" });
+    const m3Root = document.createElement("div");
+    m3Root.className = "kt-m3-root";
+    shadow.appendChild(m3Root);
+    const shadowAnchor = document.createElement("button");
+    shadowAnchor.textContent = "Shadow";
+    m3Root.appendChild(shadowAnchor);
+    const shadowRenderTarget = document.createElement("div");
+    m3Root.appendChild(shadowRenderTarget);
+    const shadowRootInstance = createRoot(shadowRenderTarget);
+
+    try {
+      act(() =>
+        shadowRootInstance.render(
+          <PopupMenu
+            anchorEl={shadowAnchor}
+            open
+            onClose={jest.fn()}
+            className="kt-popup-style-menu"
+            estimatedHeight={250}
+          >
+            <MenuItem selected>Shadow item</MenuItem>
+          </PopupMenu>
+        )
+      );
+      // 菜单应挂载到 shadow root 内的 .kt-m3-root（而非 document.body）
+      const paper = m3Root.querySelector(".kt-popup-style-menu");
+      expect(paper).not.toBeNull();
+      // 验证 paper 在 shadow root 内（getRootNode() 返回 ShadowRoot）
+      expect(paper.getRootNode()).toBe(shadow);
+    } finally {
+      act(() => shadowRootInstance.unmount());
+      host.remove();
+    }
+  });
 });

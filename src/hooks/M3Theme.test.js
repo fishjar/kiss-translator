@@ -13,6 +13,12 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 jest.mock("./ColorMode", () => ({
   useDarkMode: () => ({ darkMode: "auto" }),
 }));
+// 本套件只渲染 M3Theme 本体；真实 Setting 会级联引出 storage/apis 依赖
+// （query-string 等 ESM 包无法被 jest 转译），与其他渲染 M3Theme 的测试
+// 保持同一 mock 口径。
+jest.mock("./Setting", () => ({
+  useSetting: () => ({ setting: {} }),
+}));
 jest.mock("./SystemColorScheme", () => ({
   useSystemDarkPreference: () => true,
 }));
