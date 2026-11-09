@@ -1,4 +1,7 @@
 import { TextEncoder, TextDecoder } from "util";
+import fs from "fs";
+import { createRequire } from "module";
+import path from "path";
 import { installYoutubeBridge } from "./youtubeBridge";
 
 const url = "https://www.youtube.com/api/timedtext?v=one&lang=en&pot=token";
@@ -170,4 +173,76 @@ test("reloads an enabled CC track without toggling CC, and tolerates unavailable
   expect((await request("refresh")).result.videoId).toBe("one");
   expect(player.setOption).toHaveBeenCalledWith("captions", "reload", true);
   expect(click).not.toHaveBeenCalled();
+});
+
+// The userscript injects this installer as `(${fn})()` source text (src/injectors/index.js),
+// so the production-compiled function must not reference bundle-scoped Babel helpers.
+const compileInstallerForProduction = () => {
+  const cwd = path.resolve(__dirname, "../..");
+  const craRequire = createRequire(require.resolve("react-scripts/package.json"));
+  const babel = craRequire("@babel/core");
+  const filename = path.join(__dirname, "youtubeBridge.js");
+  const saved = { BABEL_ENV: process.env.BABEL_ENV, NODE_ENV: process.env.NODE_ENV };
+  process.env.BABEL_ENV = process.env.NODE_ENV = "production";
+  let code;
+  try {
+    ({ code } = babel.transformSync(fs.readFileSync(filename, "utf8"), {
+      babelrc: false,
+      configFile: false,
+      cwd,
+      filename,
+      browserslistEnv: "production",
+      presets: [craRequire.resolve("babel-preset-react-app")],
+    }));
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+  const ast = babel.parseSync(code, { babelrc: false, configFile: false, cwd, filename });
+  const fn = ast.program.body
+    .map((node) => node.declaration || node)
+    .find(
+      (node) =>
+        node.type === "FunctionDeclaration" && node.id?.name === "installYoutubeBridge"
+    );
+  return code.slice(fn.start, fn.end);
+};
+
+test("production-compiled installer still answers requests once serialized into the page", async () => {
+  const source = compileInstallerForProduction();
+  const add = jest.spyOn(window, "addEventListener");
+  try {
+    (0, eval)(`(${source})()`);
+    const onMessage = add.mock.calls.find(([type]) => type === "message")?.[1];
+    expect(onMessage).toEqual(expect.any(Function));
+    await onMessage(
+      new MessageEvent("message", {
+        source: window,
+        origin: window.location.origin,
+        data: {
+          protocol: "kiss-youtube-captions-v1",
+          type: "request",
+          requestId: "serialized",
+          videoId: "one",
+          action: "snapshot",
+        },
+      })
+    );
+  } finally {
+    add.mockRestore();
+  }
+  expect(posts).toContainEqual(
+    expect.objectContaining({
+      protocol: "kiss-youtube-captions-v1",
+      type: "response",
+      requestId: "serialized",
+      videoId: "one",
+    })
+  );
+  expect(window.postMessage).toHaveBeenCalledWith(
+    expect.objectContaining({ requestId: "serialized" }),
+    window.location.origin
+  );
 });

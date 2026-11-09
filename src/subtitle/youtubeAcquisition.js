@@ -9,6 +9,11 @@ export const YOUTUBE_CAPTION_PROTOCOL = "kiss-youtube-captions-v1";
 const fail = (code) => Object.assign(new Error(code), { code });
 const aborted = () => new DOMException("Aborted", "AbortError");
 
+// Userscript managers such as Tampermonkey in Firefox give the script a sandbox
+// `window`; messages from the page bridge then come from `unsafeWindow`.
+const pageWindow = () =>
+  typeof unsafeWindow !== "undefined" ? unsafeWindow : window;
+
 export class YouTubeCaptionBridgeClient {
   pending = new Map();
   sequence = 0;
@@ -17,7 +22,7 @@ export class YouTubeCaptionBridgeClient {
     this.onMessage = (event) => {
       const data = event.data;
       if (
-        event.source !== window ||
+        event.source !== pageWindow() ||
         event.origin !== window.location.origin ||
         data?.protocol !== YOUTUBE_CAPTION_PROTOCOL
       )
