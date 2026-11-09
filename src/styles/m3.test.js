@@ -406,6 +406,24 @@ describe("MUI-managed focus exemptions", () => {
       '[data-kt-focus-silent="true"][role="menuitem"]:focus,'
     );
   });
+  test("box-shadow ring control families are listed in both silent blocks", () => {
+    // ToggleButton 的键盘环是 inset box-shadow（M3Theme 的 &&:focus-visible
+    // 键），通用 outline 规则压不住；原生 button 无 role 属性不匹配
+    // [role="button"]；tab 与 AccordionSummary 同属 box-shadow 环家族。
+    // 三类控件须同时入 :focus-visible 清单与 :focus 旧内核回退清单。
+    for (const tail of [
+      '[role="tab"]',
+      ".MuiToggleButton-root",
+      ".MuiAccordionSummary-root",
+    ]) {
+      expect(FOCUS_SILENT_CSS).toContain(
+        `[data-kt-focus-silent="true"]${tail}:focus-visible,`
+      );
+      expect(FOCUS_SILENT_CSS).toContain(
+        `[data-kt-focus-silent="true"]${tail}:focus,`
+      );
+    }
+  });
 });
 
 describe("锁定态最小高度不变量", () => {
@@ -744,6 +762,40 @@ describe("icon hue WCAG contrast envelope", () => {
       expect(contrastRatio(secondaryContainer, "#F0F4F9")).toBeGreaterThanOrEqual(1.14);
       expect(contrastRatio(secondaryContainer, onSecondaryContainer)).toBeGreaterThanOrEqual(4.5);
     }
+  });
+
+  test("selected hover composite keeps WCAG AA contrast with onSurface foreground", () => {
+    // 选中行悬停合成底＝color-mix(in srgb, secondaryContainer 92%,
+    // currentColor 8%)，悬停前景换 onSurface（M3Theme hover 前景杠杆）。
+    // 合成底对 onSurface 须在两主题全域 ≥4.5；旧口径（前景
+    // onSecondaryContainer）dark 最小 3.954 即缺陷面。sRGB 逐通道插值
+    // 与 CSS color-mix(in srgb) 语义一致。
+    const colorMix = (a, b, ratio) => {
+      const channels = (hex) =>
+        [1, 3, 5].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16));
+      const [ca, cb] = [channels(a), channels(b)];
+      const mixed = ca.map((channel, index) =>
+        Math.round(channel * ratio + cb[index] * (1 - ratio))
+      );
+      return `#${mixed.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+    };
+    const familyHues = [];
+    for (let h = 0; h <= 360; h += 5) familyHues.push(h);
+    familyHues.push(59, 59.5, 60, 93.5, 0, 44.3, 92.9, 191.4, 270, 337.1);
+    let darkFloor = Infinity;
+    for (const h of familyHues) {
+      for (const theme of ["light", "dark"]) {
+        const f = calculateAdaptiveAccentFamilies(h, theme);
+        const { onSurface } = resolveM3Colors(theme);
+        const hoverBackground = colorMix(f.secondaryContainer, onSurface, 0.92);
+        const ratio = contrastRatio(hoverBackground, onSurface);
+        if (theme === "dark") darkFloor = Math.min(darkFloor, ratio);
+        expect(ratio).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+    // dark 域实测极小点（hue0 邻域）显式闸：合成底对 onSurface 下限
+    // 6.35 量级，远离 4.5 破线区。
+    expect(darkFloor).toBeGreaterThanOrEqual(6);
   });
 
   test("primary and accent families keep WCAG AA contrast across the full hue ring", () => {
