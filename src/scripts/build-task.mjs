@@ -144,6 +144,16 @@ try {
       }
     }
 
+    // 油猴分发副本（userscript.zip）没有扩展商店的许可页兜底：随包携带
+    // 图标许可文本，保证 Lucide ISC / Feather MIT 声明在分发件内可达。
+    const licenseSource = inDest("icons-license.txt");
+    if (!(await fs.pathExists(licenseSource))) {
+      throw new Error(
+        "icons-license.txt is missing from the build output; the userscript.zip distribution must carry the Lucide ISC / Feather MIT license text."
+      );
+    }
+    await fs.copy(licenseSource, path.join(userscriptDir, "icons-license.txt"));
+
     // 字幕测试样本只随 GitHub Pages Web 产物发布，不进入任何插件压缩包。
     await copySubtitleSamplesToWeb(targetDir);
 

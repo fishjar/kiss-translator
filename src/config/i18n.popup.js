@@ -14,6 +14,7 @@ const labels = {
     "Translation failed. Please try again.",
     "翻譯失敗，請重試",
   ],
+  popup_text_retry: ["重试", "Retry", "重試"],
   popup_text_auto_badge: ["自动", "Auto", "自動"],
   popup_text_source_placeholder: [
     "输入要翻译的文本",
