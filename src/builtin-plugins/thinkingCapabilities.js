@@ -6,6 +6,7 @@ import {
   OPT_TRANS_ALIYUNBAILIAN,
   OPT_TRANS_CEREBRAS,
   OPT_TRANS_ZAI,
+  OPT_TRANS_KIMI,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_APIMART,
   OPT_TRANS_OPENAI,
@@ -396,6 +397,32 @@ const getGlmCapability = (model) => {
     ? explicitThinking()
     : null;
 };
+// https://platform.kimi.com/docs/api/models-overview
+// https://www.kimi.com/code/docs/
+const getKimiCapability = (model) => {
+  const name = modelName(model);
+  // 开放平台 K3 系列始终思考，只接受 reasoning_effort。
+  if (["kimi-k3", "kimi-k3.1-pro", "kimi-k3.1-pro-highspeed"].includes(name))
+    return createOpenAIThinkingCapability(["max", "high", "low"], {
+      adapter: "openai",
+      disable: null,
+    });
+  // 开放平台 K2.7 Code 收到 disabled 会报错，也没有强度参数。
+  if (["kimi-k2.7-code", "kimi-k2.7-code-highspeed"].includes(name))
+    return createThinkingCapability(null, { enable: "omit", disable: null });
+  // Kimi Code 的 K3.1 Pro 拒绝 disabled，关闭思考时只能降到最低强度。
+  if (["k3.1-pro", "k3.1-pro-highspeed"].includes(name))
+    return createThinkingCapability(["max", "high", "low"], {
+      enable: "explicit",
+      disable: null,
+    });
+  // 其余 Kimi Code 模型用 thinking.type 开关思考，开启时可再指定强度。
+  if (["kimi-for-coding", "k3", "k3-256k"].includes(name))
+    return explicitThinking(["max", "high", "low"]);
+  return ["kimi-k2.6", "kimi-for-coding-highspeed"].includes(name)
+    ? explicitThinking()
+    : null;
+};
 // https://help.aliyun.com/zh/model-studio/deep-thinking
 const getQwenCapability = (model) => {
   const name = modelName(model);
@@ -530,6 +557,10 @@ export const THINKING_API_REGISTRY = {
   [OPT_TRANS_ZAI]: {
     adapter: "deepseek",
     resolveCapability: ({ model }) => getGlmCapability(model),
+  },
+  [OPT_TRANS_KIMI]: {
+    adapter: "deepseek",
+    resolveCapability: ({ model }) => getKimiCapability(model),
   },
   [OPT_TRANS_ALIYUNBAILIAN]: {
     adapter: "boolean",

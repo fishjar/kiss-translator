@@ -60,6 +60,7 @@ export const OPT_TRANS_ALIYUNBAILIAN = "AliyunBailian"; // 阿里云百炼大模
 export const OPT_TRANS_QWENMT = "QwenMT"; // 阿里云百炼 Qwen-MT 专用翻译
 export const OPT_TRANS_CEREBRAS = "Cerebras"; // Cerebras AI 翻译极速推理服务
 export const OPT_TRANS_ZAI = "Zai"; // 智谱 AI 翻译服务
+export const OPT_TRANS_KIMI = "Kimi"; // Kimi（月之暗面）AI 翻译服务
 export const OPT_TRANS_DEEPL = "DeepL"; // DeepL 官方专业翻译 API
 export const OPT_TRANS_DEEPLX = "DeepLX"; // DeepLX 开源/自定义中转端
 export const OPT_TRANS_DEEPLFREE = "DeepLFree"; // DeepL 免费网页翻译接口
@@ -102,6 +103,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_QWENMT,
   OPT_TRANS_CEREBRAS,
   OPT_TRANS_ZAI,
+  OPT_TRANS_KIMI,
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
   OPT_TRANS_YANDEX,
@@ -159,6 +161,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_ALIYUNBAILIAN,
     OPT_TRANS_CEREBRAS,
     OPT_TRANS_ZAI,
+    OPT_TRANS_KIMI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
     OPT_TRANS_CLAUDE,
@@ -181,6 +184,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_QWENMT,
     OPT_TRANS_CEREBRAS,
     OPT_TRANS_ZAI,
+    OPT_TRANS_KIMI,
     OPT_TRANS_DEEPL,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
@@ -206,6 +210,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_ALIYUNBAILIAN,
     OPT_TRANS_CEREBRAS,
     OPT_TRANS_ZAI,
+    OPT_TRANS_KIMI,
     OPT_TRANS_GOOGLE_2,
     OPT_TRANS_GOOGLE_CLOUD,
     OPT_TRANS_YANDEX,
@@ -234,6 +239,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_ALIYUNBAILIAN,
     OPT_TRANS_CEREBRAS,
     OPT_TRANS_ZAI,
+    OPT_TRANS_KIMI,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
@@ -256,6 +262,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_ALIYUNBAILIAN,
     OPT_TRANS_CEREBRAS,
     OPT_TRANS_ZAI,
+    OPT_TRANS_KIMI,
     OPT_TRANS_OPENAI,
     OPT_TRANS_GEMINI,
     OPT_TRANS_GEMINI_2,
@@ -276,6 +283,7 @@ export const API_SPE_TYPES = {
     OPT_TRANS_EPHONEAI,
     OPT_TRANS_APIMART,
     OPT_TRANS_ZAI,
+    OPT_TRANS_KIMI,
     OPT_TRANS_DEEPL,
     OPT_TRANS_DEEPLFREE,
     OPT_TRANS_DEEPLX,

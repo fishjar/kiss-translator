@@ -16,6 +16,7 @@ import {
   OPT_TRANS_QWENMT,
   OPT_TRANS_CEREBRAS,
   OPT_TRANS_ZAI,
+  OPT_TRANS_KIMI,
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLX,
   OPT_TRANS_DEEPLFREE,
@@ -157,6 +158,12 @@ export const NATIVE_PRESET_OVERRIDES = {
     url: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
     modelListUrl: "https://open.bigmodel.cn/api/paas/v4/models",
     model: "glm-5.3-flash",
+    ...defaultAiApiOpts,
+  },
+  [OPT_TRANS_KIMI]: {
+    url: "https://api.moonshot.cn/v1/chat/completions",
+    modelListUrl: "https://api.moonshot.cn/v1/models",
+    model: "kimi-k2.6",
     ...defaultAiApiOpts,
   },
   [OPT_TRANS_DEEPLX]: {

@@ -160,6 +160,12 @@ const contracts = {
     stream: false,
     usesMessages: false,
   },
+  Kimi: {
+    names: textCapabilities,
+    batch: true,
+    stream: true,
+    usesMessages: true,
+  },
   ePhoneAI: {
     names: textCapabilities,
     batch: true,

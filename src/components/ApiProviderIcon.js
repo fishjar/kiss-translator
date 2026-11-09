@@ -36,6 +36,7 @@ import {
   OPT_TRANS_YANDEX,
   OPT_TRANS_YANDEXFREE,
   OPT_TRANS_ZAI,
+  OPT_TRANS_KIMI,
 } from "../config";
 import { browser, isOptions } from "../libs/browser";
 import { isGm } from "../libs/client";
@@ -55,6 +56,7 @@ const API_ICON_FILES = {
   [OPT_TRANS_QWENMT]: "QwenMT.svg",
   [OPT_TRANS_CEREBRAS]: "Cerebras.svg",
   [OPT_TRANS_ZAI]: "Zai.svg",
+  [OPT_TRANS_KIMI]: "Kimi.svg",
   [OPT_TRANS_DEEPL]: "DeepL.svg",
   [OPT_TRANS_DEEPLFREE]: "DeepL.svg",
   [OPT_TRANS_DEEPLX]: "DeepL.svg",

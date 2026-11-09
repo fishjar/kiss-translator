@@ -1,7 +1,7 @@
 {
   "capturedAt": "2026-10-20",
-  "presetCount": 35,
-  "sha256": "0a00f7e992c8e6d3fbedd9b50d5de35ce0f171d51debeff4cc6bb7935b944edd",
+  "presetCount": 36,
+  "sha256": "93259fe9bee81892c23a2c77971694374a84646034755939901d069be77a34d9",
   "purpose": "Compiled defaults after removing unreleased root capability tags; main-branch settings and language mappings remain protected.",
-  "languageMappingsSha256": "836c77816a25bdf47bfc6593b74f99ccc89e3d42341847972a87a45b1e52b485"
+  "languageMappingsSha256": "45441014fb275773f68d62caa9bd60115bb4d45b9643a99ba4f6c9bfce71f9a8"
 }

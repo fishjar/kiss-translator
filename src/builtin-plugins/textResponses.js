@@ -7,6 +7,7 @@ import {
   OPT_TRANS_ALIYUNBAILIAN,
   OPT_TRANS_CEREBRAS,
   OPT_TRANS_ZAI,
+  OPT_TRANS_KIMI,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_OPENAI,
   OPT_TRANS_GEMINI,
@@ -37,6 +38,7 @@ export function parseNativeDictionaryResponse(res, apiType) {
     case OPT_TRANS_ALIYUNBAILIAN:
     case OPT_TRANS_CEREBRAS:
     case OPT_TRANS_ZAI:
+    case OPT_TRANS_KIMI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
@@ -68,6 +70,7 @@ export function parseNativeSummaryResponse(res, apiType) {
     case OPT_TRANS_ALIYUNBAILIAN:
     case OPT_TRANS_CEREBRAS:
     case OPT_TRANS_ZAI:
+    case OPT_TRANS_KIMI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
@@ -111,6 +114,7 @@ export async function parseNativeSubtitleResponse(
     case OPT_TRANS_ALIYUNBAILIAN:
     case OPT_TRANS_CEREBRAS:
     case OPT_TRANS_ZAI:
+    case OPT_TRANS_KIMI:
     case OPT_TRANS_GEMINI_2:
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:

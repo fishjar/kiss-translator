@@ -17,6 +17,7 @@ import {
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_XIAOMIMIMO,
   OPT_TRANS_OPENCODEGO,
+  OPT_TRANS_KIMI,
 } from "../config/apiConstants";
 
 // 原生协议适配：保持旧参数、字段和厂家差异，不加载用户脚本解释器。
@@ -173,6 +174,11 @@ const applyThinkingParameters = (body, options) => {
     /^mimo-/.test(options.model) &&
     options.thinkingMode !== "disabled"
   ) {
+    delete body.temperature;
+    delete body.top_p;
+  }
+  // Kimi 的 K 系列模型固定采样参数，传入其他值会返回 400，官方建议不传。
+  if (options.apiType === OPT_TRANS_KIMI && /^(kimi-|k3)/.test(options.model)) {
     delete body.temperature;
     delete body.top_p;
   }
