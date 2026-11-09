@@ -143,6 +143,9 @@ const messages = {
   ],
   exclude: ["排除此区域", "Exclude this area"],
   reload: ["重新读取规则", "Reload rules"],
+  clearText: ["清空", "Clear"],
+  openText: ["打开", "Open"],
+  closeText: ["关闭", "Close"],
   scanAll: [
     "当前开启强制扫描或纯文本模式，排除规则可能不生效；请先在设置中关闭这些模式。",
     "Scan-all or plain-text mode is enabled. Exclusions may not apply; disable these modes in settings first.",

@@ -1,10 +1,12 @@
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
+import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { apiDict } from "../../apis";
+import { RefreshRoundedIcon } from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import { BrowserTtsBtn } from "./AudioBtn";
 import CopyBtn from "./CopyBtn";
@@ -116,7 +118,11 @@ export default function AiDictCont({
         }
 
         if (active) {
-          setError({ key: requestKey, message: err.message });
+          // 空 Error/非 Error 拒绝值会让 Alert 渲染空文案——通用文案兜底。
+          setError({
+            key: requestKey,
+            message: err?.message || i18n("popup_text_failed"),
+          });
         }
       } finally {
         if (active) {
@@ -153,7 +159,25 @@ export default function AiDictCont({
   }, [requestRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) {
-    return <Alert severity="error">{error.message}</Alert>;
+    return (
+      <Alert
+        severity="error"
+        // 失败重试入口独立于宿主的提交链：AI 词典请求失败时即使普通翻译
+        // 成功、原文未改，也能在此就地重发（本地 revision 自增重跑请求）。
+        action={
+          <IconButton
+            size="small"
+            onClick={() => setAttemptRevision((revision) => revision + 1)}
+            title={i18n("popup_text_retry")}
+            aria-label={i18n("popup_text_retry")}
+          >
+            <RefreshRoundedIcon fontSize="inherit" />
+          </IconButton>
+        }
+      >
+        {error.message}
+      </Alert>
+    );
   }
 
   if (loading && !markdown) {
