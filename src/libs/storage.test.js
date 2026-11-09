@@ -32,6 +32,7 @@ const {
 } = require("../config");
 const {
   getSettingWithDefault,
+  normalizeStoredSetting,
   runDataMigration,
   saveEdit,
 } = require("./storage");
@@ -603,7 +604,7 @@ describe("settings storage migration", () => {
   );
 
   test("fills in new mouse hover hold defaults without overriding stored choices", async () => {
-    // 旧版本升级上来的设置：mouseHoverSetting 里没有本轮新增的键
+    // 旧版本升级上来的设置：mouseHoverSetting 里没有新增的悬停键
     window.localStorage.setItem(
       STOKEY_SETTING,
       JSON.stringify({
@@ -937,5 +938,66 @@ describe("settings storage migration", () => {
     expect(globalThis.GM_getValue).toHaveBeenCalledWith("legacy-gm-key");
     expect(globalThis.GM_deleteValue).toHaveBeenCalledWith("legacy-gm-key");
     expect(stored.has("legacy-gm-key")).toBe(false);
+  });
+});
+
+describe("stored icon appearance normalization", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  test("missing icon appearance keys resolve to the lucide defaults", () => {
+    const normalized = normalizeStoredSetting({
+      version: CURRENT_SETTINGS_VERSION,
+    });
+    expect(normalized.iconStyle).toBe("lucide");
+    expect(normalized.iconColor).toBe("#90b2ba");
+  });
+
+  test("invalid iconStyle and iconColor values fall back to the lucide defaults", () => {
+    const normalized = normalizeStoredSetting({
+      version: CURRENT_SETTINGS_VERSION,
+      iconStyle: "nope",
+      iconColor: "nope",
+    });
+    expect(normalized.iconStyle).toBe("lucide");
+    expect(normalized.iconColor).toBe("#90b2ba");
+  });
+
+  test("legacy stored md3 migrates to the lucide default", () => {
+    const normalized = normalizeStoredSetting({
+      version: CURRENT_SETTINGS_VERSION,
+      iconStyle: "md3",
+    });
+    expect(normalized.iconStyle).toBe("lucide");
+  });
+
+  test("a valid mui style is kept and hex colors are canonicalized", () => {
+    const normalized = normalizeStoredSetting({
+      version: CURRENT_SETTINGS_VERSION,
+      iconStyle: "mui",
+      iconColor: " #90B2BA ",
+    });
+    expect(normalized.iconStyle).toBe("mui");
+    expect(normalized.iconColor).toBe("#90b2ba");
+  });
+
+  test("storage reads normalize the persisted icon appearance", async () => {
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: CURRENT_SETTINGS_VERSION,
+        iconStyle: "",
+        iconColor: "#fff",
+      })
+    );
+    const setting = await getSettingWithDefault();
+    expect(setting.iconStyle).toBe("lucide");
+    expect(setting.iconColor).toBe("#90b2ba");
+  });
+
+  test("a null stored setting resolves to the lucide defaults", () => {
+    const normalized = normalizeStoredSetting(null);
+    expect(normalized.iconStyle).toBe("lucide");
   });
 });

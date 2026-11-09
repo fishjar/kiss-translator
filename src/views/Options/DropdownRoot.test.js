@@ -142,6 +142,30 @@ test("closes when focus moves outside without stealing the new focus", () => {
   expect(document.activeElement).toBe(button);
 });
 
+test("yields the blur close to another open MUI modal surface", () => {
+  // 焦点落入另一个已打开的 MUI Modal 面（嵌套 Dialog/Popover/Autocomplete
+  // 共用 MuiModal-root 门户）且该面不含本弹层时，关闭语义归该面自身：
+  // dismissOnFocus 不误判为焦点丢失、不代关本层；焦点落到普通外部控件时
+  // 照常关闭（正向对照）。
+  mountSelect();
+  const modal = document.createElement("div");
+  modal.className = "MuiModal-root";
+  const modalInput = document.createElement("input");
+  modal.appendChild(modalInput);
+  document.body.appendChild(modal);
+  try {
+    act(() => modalInput.focus());
+    expect(listbox()).not.toBeNull();
+    expect(document.activeElement).toBe(modalInput);
+    const button = container.querySelector("button");
+    act(() => button.focus());
+    expect(listbox()).toBeNull();
+    expect(document.activeElement).toBe(button);
+  } finally {
+    modal.remove();
+  }
+});
+
 test("closes a free-text autocomplete on page scroll without committing a draft", () => {
   const onChange = jest.fn();
   act(() =>

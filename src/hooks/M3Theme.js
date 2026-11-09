@@ -1,14 +1,17 @@
 import { useMemo } from "react";
+import { useSyncExternalStore } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline, GlobalStyles } from "@mui/material";
 import { useDarkMode } from "./ColorMode";
 import { THEME_DARK, THEME_LIGHT } from "../config";
 import {
   createM3CssVariables,
+  getIconColorSnapshot,
   M3_FONT_FAMILY,
   M3_GLOBAL_CSS,
   resolveM3Colors,
   resolveM3ThemeMode,
+  subscribeIconColor,
 } from "../styles/m3";
 import { getMuiSwitchStyleOverrides } from "./themeStyles";
 import { useSystemDarkPreference } from "./SystemColorScheme";
@@ -26,6 +29,11 @@ export default function M3Theme({
 }) {
   const { darkMode } = useDarkMode();
   const systemPrefersDark = useSystemDarkPreference();
+  const iconColor = useSyncExternalStore(
+    subscribeIconColor,
+    getIconColorSnapshot,
+    getIconColorSnapshot
+  );
 
   const previewMode =
     process.env.NODE_ENV === "development"
@@ -36,8 +44,8 @@ export default function M3Theme({
       ? previewMode
       : resolveM3ThemeMode(darkMode, systemPrefersDark);
   const colors = useMemo(
-    () => resolveM3Colors(resolvedMode, M3_BRAND_COLOR),
-    [resolvedMode]
+    () => resolveM3Colors(resolvedMode, M3_BRAND_COLOR, iconColor),
+    [resolvedMode, iconColor]
   );
 
   const theme = useMemo(() => {
@@ -194,6 +202,14 @@ export default function M3Theme({
                 outline: `3px solid ${color.primary}`,
                 outlineOffset: 2,
               },
+              // :has() 兜底：thumb 内含的 input 获焦时 thumb 自身不匹配 :focus-visible，
+              // 须在外层匹配"含 focus-visible 后代"以显示焦点环。
+              "@supports selector(:has(*))": {
+                "&:has(:focus-visible)": {
+                  outline: `3px solid ${color.primary}`,
+                  outlineOffset: 2,
+                },
+              },
             },
           },
         },
@@ -203,6 +219,14 @@ export default function M3Theme({
               "&.Mui-focusVisible": {
                 outline: `3px solid ${color.primary}`,
                 outlineOffset: 0,
+              },
+              // :has() 兜底：Radio root 内含的 input 获焦时 root 自身不匹配 :focus-visible，
+              // 须在外层匹配"含 focus-visible 后代"以显示焦点环。
+              "@supports selector(:has(*))": {
+                "&:has(:focus-visible)": {
+                  outline: `3px solid ${color.primary}`,
+                  outlineOffset: 0,
+                },
               },
             },
           },
