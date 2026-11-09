@@ -186,6 +186,7 @@ describe("DualActionButton", () => {
     await act(async () => finish());
     expect(buttons[3].disabled).toBe(false);
   });
+
 });
 
 describe("ImageLayoutOverlay", () => {
@@ -415,6 +416,17 @@ describe("ImageTranslateContent", () => {
 
     expect(container.textContent).toContain("Item failed");
     expect(container.textContent).toContain("Rate limit exceeded");
+    // 条目级错误底的字面量须令牌化：emotion speedy 模式经 insertRule 注入，
+    // 样式文本只能从 style.sheet.cssRules 读取（textContent 恒空）。
+    const emotionCss = [...document.querySelectorAll("style")]
+      .flatMap((node) => Array.from(node.sheet?.cssRules ?? []))
+      .map((rule) => rule.cssText)
+      .join("");
+    // MUI error 色 Button 边框合法使用 rgba(211,47,47,.5)/.04（不在整改面），
+    // 故禁断言收窄到错误底精确字面量 0.08，避免误伤合法消费者。
+    expect(emotionCss.trim()).not.toBe("");
+    expect(emotionCss).not.toContain("rgba(211, 47, 47, 0.08)");
+    expect(emotionCss).toContain("background-color: var(--kt-errc)");
     const buttons = Array.from(container.querySelectorAll("button"));
     const retryItemBtn = buttons.find((btn) =>
       btn.textContent.includes("重试")

@@ -1,5 +1,7 @@
-import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
-import VolunteerActivismRoundedIcon from "@mui/icons-material/VolunteerActivismRounded";
+import {
+  RateReviewRoundedIcon,
+  VolunteerActivismRoundedIcon,
+} from "../../components/icons";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import MenuItem from "@mui/material/MenuItem";

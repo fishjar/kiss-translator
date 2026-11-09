@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import DeleteSweepRoundedIcon from "@mui/icons-material/DeleteSweepRounded";
+import {
+  CheckRoundedIcon,
+  DeleteSweepRoundedIcon,
+} from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import { tryClearCaches } from "../../libs/cache";
 import { logger } from "../../libs/log";
