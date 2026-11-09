@@ -28,5 +28,11 @@
   },
   "toggle_tranbox": {
     "message": "Basculer la boîte de traduction"
+  },
+  "image_screenshot_command": {
+    "message": "Traduction de capture d’écran"
+  },
+  "image_screenshot": {
+    "message": "Traduction de capture d’écran"
   }
 }

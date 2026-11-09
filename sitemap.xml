@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://kiss-translator.rayjar.com/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://kiss-translator.rayjar.com/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://kiss-translator.rayjar.com/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://kiss-translator.rayjar.com/" />
+    <xhtml:link rel="alternate" hreflang="zh-TW" href="https://kiss-translator.rayjar.com/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://kiss-translator.rayjar.com/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://kiss-translator.rayjar.com/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://kiss-translator.rayjar.com/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://kiss-translator.rayjar.com/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://kiss-translator.rayjar.com/" />
+    <xhtml:link rel="alternate" hreflang="vi" href="https://kiss-translator.rayjar.com/" />
+    <xhtml:link rel="alternate" hreflang="ru" href="https://kiss-translator.rayjar.com/" />
+  </url>
+  <url>
+    <loc>https://kiss-translator.rayjar.com/file-translate.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kiss-translator.rayjar.com/options.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>
