@@ -3,7 +3,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFavWords } from "../../hooks/FavWords";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { useSetting } from "../../hooks/Setting";
 import { EVENT_FAVORITE_WORD_CHANGE } from "../../config";
 
@@ -13,8 +13,9 @@ import { EVENT_FAVORITE_WORD_CHANGE } from "../../config";
  * @param {Object} props
  * @param {string} props.word - Word to add to or remove from favorites.
  * @param {string} props.title - Hover tooltip text.
+ * @param {{sentence?: string, url?: string}|null} props.source - Optional webpage source metadata.
  */
-export default function FavBtn({ word, title }) {
+export default function FavBtn({ word, title, source = null }) {
   // Read favorite words and the toggle action from useFavWords.
   const { favWords, toggleFav, mergeWords, isLoading } = useFavWords();
   const { context, setting } = useSetting();
@@ -24,6 +25,10 @@ export default function FavBtn({ word, title }) {
   const isFavorite = Boolean(favWords[word]);
   const autoCollect =
     context === "tranbox" && setting?.tranboxSetting?.autoFavWord;
+  const hasSource = Boolean(
+    (typeof source?.sentence === "string" && source.sentence.trim()) ||
+      (typeof source?.url === "string" && source.url.trim())
+  );
 
   // Toggle the favorite state on click.
   const saveFavorite = useCallback(
@@ -33,8 +38,12 @@ export default function FavBtn({ word, title }) {
       try {
         setLoading(true);
         const receipt = await (collectOnly
-          ? mergeWords([word])
-          : toggleFav(word));
+          ? hasSource
+            ? mergeWords([word], { source })
+            : mergeWords([word])
+          : hasSource
+            ? toggleFav(word, null, "", "", [], source)
+            : toggleFav(word));
         const isFavorite = Boolean(receipt.value[word]);
         document.dispatchEvent(
           new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
@@ -42,13 +51,13 @@ export default function FavBtn({ word, title }) {
           })
         );
       } catch (err) {
-        kissLog("set fav", err);
+        logger.child("fav-btn").info("set fav", err);
       } finally {
         pending.current = false;
         setLoading(false);
       }
     },
-    [mergeWords, toggleFav, word, isLoading]
+    [hasSource, mergeWords, source, toggleFav, word, isLoading]
   );
 
   useEffect(() => {

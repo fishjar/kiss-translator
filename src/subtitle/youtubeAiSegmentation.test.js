@@ -9,15 +9,19 @@ import {
   prepareTimedTextEvents,
 } from "./youtubeSubtitleProcessing";
 
-jest.mock("../libs/log.js", () => ({
-  LogLevel: {
-    INFO: { value: "info" },
-  },
-  logger: {
-    debug: jest.fn(),
-    info: jest.fn(),
-  },
-}));
+jest.mock("../libs/log.js", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      LogLevel: {
+        INFO: { value: "info" },
+      },
+      logger: {
+        debug: jest.fn(),
+        info: jest.fn(),
+      },
+    }))()
+  )
+);
 
 /**
  * 创建一个可由测试主动 resolve/reject 的 Promise。
@@ -409,6 +413,7 @@ describe("eventsToSubtitles", () => {
       return deferred.promise;
     });
     const onAppendSubtitles = jest.fn();
+    const onChunkComplete = jest.fn();
 
     const resultPromise = eventsToSubtitles({
       videoId: "video-1",
@@ -431,6 +436,7 @@ describe("eventsToSubtitles", () => {
       builtinSegment: jest.fn(),
       formatSubtitles: jest.fn(() => []),
       onAppendSubtitles,
+      onChunkComplete,
       getCurrentVideoId: () => "video-1",
     });
 
@@ -442,8 +448,16 @@ describe("eventsToSubtitles", () => {
       chunkNum: 1,
     });
 
+    expect(onChunkComplete).not.toHaveBeenCalled();
     deferred.resolve([subtitle]);
     await expect(resultPromise).resolves.toEqual([[subtitle], 100]);
+    expect(onChunkComplete).toHaveBeenCalledTimes(1);
+    expect(onChunkComplete).toHaveBeenCalledWith({
+      subtitles: [subtitle],
+      progressed: 100,
+      start: flatEvents[0].start,
+      end: flatEvents.at(-1).end,
+    });
   });
 
   test("keeps AI translations by default when segmentation and translation APIs differ", async () => {

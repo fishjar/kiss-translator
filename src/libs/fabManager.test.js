@@ -59,6 +59,30 @@ describe("FabManager temporary shortcut", () => {
     expect(document.getElementById(APP_CONSTS.fabID)).toBe(host);
   });
 
+  test.each(["input", "textarea", "contenteditable", "shadow input"])(
+    "does not show the FAB while editing %s",
+    (kind) => {
+      createManager({ isHide: true });
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+      const root =
+        kind === "shadow input" ? host.attachShadow({ mode: "open" }) : host;
+      let tag = "input";
+      if (kind === "textarea") tag = "textarea";
+      if (kind === "contenteditable") tag = "div";
+      const input = document.createElement(tag);
+      if (kind === "contenteditable") {
+        input.setAttribute("contenteditable", "true");
+        input.tabIndex = 0;
+      }
+      root.appendChild(input);
+      input.focus();
+      pressShortcut();
+      expect(manager.isVisible).toBe(false);
+      host.remove();
+    }
+  );
+
   test("leaves an already visible FAB shown without remounting", () => {
     createManager({ isHide: false });
     const host = document.getElementById(APP_CONSTS.fabID);
@@ -68,6 +92,54 @@ describe("FabManager temporary shortcut", () => {
 
     expect(manager.isVisible).toBe(true);
     expect(document.getElementById(APP_CONSTS.fabID)).toBe(host);
+  });
+
+  test("suspends the entire host and ignores display requests until resumed", () => {
+    const config = { isHide: false, x: 10, y: 250, size: 64 };
+    createManager(config);
+    const host = document.getElementById(APP_CONSTS.fabID);
+    const menu = document.createElement("div");
+    menu.className = "kt-content-fab-menu";
+    host.shadowRoot.appendChild(menu);
+    act(() => manager.suspend());
+    expect(host.style.getPropertyValue("display")).toBe("none");
+    expect(host.style.getPropertyPriority("display")).toBe("important");
+    expect(manager.isVisible).toBe(false);
+    pressShortcut();
+    act(() => {
+      manager.show();
+      manager.suspend();
+    });
+    expect(host.style.display).toBe("none");
+    act(() => manager.resume());
+    expect(manager.isVisible).toBe(true);
+    expect(document.getElementById(APP_CONSTS.fabID)).toBe(host);
+    expect(config).toEqual({ isHide: false, x: 10, y: 250, size: 64 });
+    menu.remove();
+  });
+
+  test.each([true, false])(
+    "keeps an originally hidden FAB hidden (persisted hide: %s)",
+    (isHide) => {
+      createManager({ isHide });
+      act(() => {
+        manager.hide();
+        manager.suspend();
+      });
+      pressShortcut();
+      act(() => manager.resume());
+      expect(manager.isVisible).toBe(false);
+    }
+  );
+
+  test("destroying a suspended FAB prevents late resume from remounting it", () => {
+    createManager({ isHide: false });
+    act(() => {
+      manager.suspend();
+      manager.destroy();
+      manager.resume();
+    });
+    expect(document.getElementById(APP_CONSTS.fabID)).toBeNull();
   });
 
   test.each([["KeyB"], ["AltLeft", "KeyC"], ["AltLeft", "ShiftLeft", "KeyB"]])(

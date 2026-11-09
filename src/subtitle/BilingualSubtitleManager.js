@@ -4,6 +4,10 @@ import { decodeHTMLEntities } from "../libs/html.js";
 import { parseMathInText } from "../libs/mathParse.js";
 import { apiTranslate } from "../apis/index.js";
 import { resolveApiPromptSettings } from "../config/prompt.js";
+import {
+  availableApiForScene,
+  withScenePrompt,
+} from "../config/serviceSelection.js";
 import { trustedTypesHelper } from "../libs/trustedTypes.js";
 import { isSubtitleModeEnabled } from "./modes.js";
 import {
@@ -30,6 +34,12 @@ export class BilingualSubtitleManager {
   #seekSyncRafId = null; // 控制进度 seek 完毕后强制同步的 requestAnimationFrame ID
   #translationSessionId = 0; // 当前翻译会话版本 ID，用于防竞态过滤过期异步请求
   #abortController = null; // 用于在实例销毁时中止所有尚未返回的网络请求
+  #captionHovered = false;
+  #isDragging = false;
+  #cleanupDragging = null;
+  #clearHoverPlaybackOwnership = () => {
+    this.#wasPlayingBeforeHover = false;
+  };
   #wasPlayingBeforeHover = false; // 记录鼠标 hover 单词前视频是否原本处于播放状态，用于离开时恢复播放
   #hoverTarget = null;
   #playerControlBarObserver = null; // 监听播放器底部控制条显隐突变的 MutationObserver
@@ -66,6 +76,9 @@ export class BilingualSubtitleManager {
       this.#wordTooltipController = new WordTooltipController({
         getVideoContainer: () => this.#videoEl.parentElement?.parentElement,
         getTimestamp: () => this.#getCurrentSubtitleStartTime(),
+        closeDelay: this.#setting.hoverLookupCloseDelay,
+        onClose: ({ relatedTarget }) =>
+          this.#restoreHoverPlayback(relatedTarget),
       });
     }
   }
@@ -83,11 +96,13 @@ export class BilingualSubtitleManager {
    */
   start() {
     if (this.#formattedSubtitles.length === 0) {
-      logger.warn("Bilingual Subtitles: No subtitles to display.");
+      logger
+        .child("subtitle")
+        .debug("Bilingual Subtitles: No subtitles to display.");
       return;
     }
 
-    logger.info("Bilingual Subtitle Manager: Starting...");
+    logger.child("subtitle").debug("Bilingual Subtitle Manager: Starting...");
     this.#createCaptionWindow(); // 1. 创建悬浮字幕 DOM 树并挂载到网页
     this.#attachEventListeners(); // 2. 绑定视频播放事件
     this.onTimeUpdate(); // 3. 触发一次初始化同步渲染
@@ -97,7 +112,11 @@ export class BilingualSubtitleManager {
    * 销毁当前实例，全面清理 DOM 元素、未决请求、事件监听以及轮询定时器，防止内存泄漏
    */
   destroy() {
-    logger.info("Bilingual Subtitle Manager: Destroying...");
+    logger.child("subtitle").debug("Bilingual Subtitle Manager: Destroying...");
+    this.#wasPlayingBeforeHover = false;
+    this.#captionHovered = false;
+    this.#cleanupDragging?.();
+    this.#cleanupDragging = null;
     this.#translationSessionId += 1; // 递增会话 ID，使当前在途的异步请求回调全部失效
     this.#abortController?.abort(); // 中止未返回的底层请求
     this.#abortController = null;
@@ -164,7 +183,13 @@ export class BilingualSubtitleManager {
     let lastControlBarHiddenState = null;
 
     const syncPaperElBottom = ({ force = false } = {}) => {
-      const isHidden = player.classList.contains("ytp-autohide");
+      // Preserve the dragged bottom until onDragEnd reads and saves it.
+      if (this.#isDragging) return;
+      // Freeze only the control-bar offset; explicit resizing and dragging still work.
+      const isHidden =
+        this.#captionHovered && lastControlBarHiddenState !== null
+          ? lastControlBarHiddenState
+          : player.classList.contains("ytp-autohide");
       if (!force && isHidden === lastControlBarHiddenState) return;
       lastControlBarHiddenState = isHidden;
 
@@ -261,7 +286,7 @@ export class BilingualSubtitleManager {
     // 寻找到 YouTube 原生的视频包裹容器节点，以将其挂载进去
     const videoContainer = this.#videoEl.parentElement?.parentElement;
     if (!videoContainer) {
-      logger.warn("could not find videoContainer");
+      logger.child("subtitle").debug("could not find videoContainer");
       return;
     }
 
@@ -278,29 +303,20 @@ export class BilingualSubtitleManager {
       (draggedBottom) => this.#syncPaperBottomAfterDrag?.(draggedBottom)
     );
 
-    // 5. 如果开启了悬浮查词，则在鼠标 hover 字幕窗口时暂停视频，方便用户稳妥查词；移开鼠标时自动恢复播放
+    // Keep our hover pause while the lookup panel is open or awaiting dismissal.
     if (isHoverLookupEnabled) {
-      this.#captionWindowEl.addEventListener("pointerenter", (e) => {
-        if (e.target === this.#captionWindowEl) {
-          this.#wasPlayingBeforeHover = this.#videoEl && !this.#videoEl.paused;
-          if (this.#videoEl && !this.#videoEl.paused) {
-            this.#videoEl.pause();
-          }
+      this.#captionWindowEl.addEventListener("pointerenter", () => {
+        this.#captionHovered = true;
+        if (this.#videoEl && !this.#videoEl.paused) {
+          this.#wasPlayingBeforeHover = true;
+          this.#videoEl.pause();
         }
       });
-
-      this.#captionWindowEl.addEventListener("pointerleave", (e) => {
-        if (e.target === this.#captionWindowEl) {
-          if (
-            this.#wasPlayingBeforeHover &&
-            this.#videoEl &&
-            this.#videoEl.paused
-          ) {
-            this.#videoEl.play();
-          }
-          this.#wasPlayingBeforeHover = false;
-          this.#hoverTarget = null;
-        }
+      this.#captionWindowEl.addEventListener("pointerleave", () => {
+        this.#captionHovered = false;
+        this.#syncPaperPosition?.();
+        this.#hoverTarget = null;
+        this.#restoreHoverPlayback();
       });
     }
 
@@ -311,6 +327,21 @@ export class BilingualSubtitleManager {
   /**
    * 为翻译分词后产生的每一个单词标签绑 hover 移入/移出事件
    */
+  #restoreHoverPlayback(relatedTarget = null) {
+    if (
+      this.#captionHovered ||
+      this.#wordTooltipController?.isOpen ||
+      (relatedTarget instanceof Node &&
+        this.#captionWindowEl?.contains(relatedTarget))
+    )
+      return;
+    const resume = this.#wasPlayingBeforeHover;
+    this.#wasPlayingBeforeHover = false;
+    if (resume && this.#videoEl?.paused) {
+      this.#videoEl.play()?.catch(() => {});
+    }
+  }
+
   #attachSpanListeners() {
     this.#wordTooltipController?.attachSpanListeners(this.#captionWindowEl);
   }
@@ -329,11 +360,24 @@ export class BilingualSubtitleManager {
     handleElement,
     dragEndCallback
   ) {
-    let isDragging = false;
     let hasDragged = false;
     let startY;
     let initialBottom;
     let dragElementHeight;
+    let syncTimeout = null;
+
+    const stopDragging = () => {
+      this.#isDragging = false;
+      handleElement.style.cursor = "grab";
+      document.removeEventListener("mousemove", onDragMove, { capture: true });
+      document.removeEventListener("touchmove", onDragMove, { capture: true });
+      document.removeEventListener("mouseup", onDragEnd, { capture: true });
+      document.removeEventListener("touchend", onDragEnd, { capture: true });
+      document.removeEventListener("touchcancel", onDragEnd, { capture: true });
+      window.removeEventListener("blur", onDragEnd);
+      clearTimeout(syncTimeout);
+      syncTimeout = null;
+    };
 
     const onDragStart = (e) => {
       // 限制仅允许鼠标左键拖拽
@@ -341,7 +385,7 @@ export class BilingualSubtitleManager {
 
       e.preventDefault();
 
-      isDragging = true;
+      this.#isDragging = true;
       hasDragged = false;
       handleElement.style.cursor = "grabbing";
       // 兼容触屏端拖拽
@@ -362,10 +406,12 @@ export class BilingualSubtitleManager {
       });
       document.addEventListener("mouseup", onDragEnd, { capture: true });
       document.addEventListener("touchend", onDragEnd, { capture: true });
+      document.addEventListener("touchcancel", onDragEnd, { capture: true });
+      window.addEventListener("blur", onDragEnd);
     };
 
     const onDragMove = (e) => {
-      if (!isDragging) return;
+      if (!this.#isDragging) return;
 
       e.preventDefault();
 
@@ -387,18 +433,19 @@ export class BilingualSubtitleManager {
     };
 
     const onDragEnd = (e) => {
-      if (!isDragging) return;
+      if (!this.#isDragging) return;
 
       e.preventDefault();
 
-      isDragging = false;
-      handleElement.style.cursor = "grab";
-
       // 卸载全局移动监听，避免内存泄漏与事件漂移
-      document.removeEventListener("mousemove", onDragMove, { capture: true });
-      document.removeEventListener("touchmove", onDragMove, { capture: true });
-      document.removeEventListener("mouseup", onDragEnd, { capture: true });
-      document.removeEventListener("touchend", onDragEnd, { capture: true });
+      stopDragging();
+
+      // A cancelled gesture restores the saved position without persisting the drag.
+      if (e.type === "touchcancel" || e.type === "blur") {
+        if (e.type === "blur") this.#captionHovered = false;
+        this.#syncPaperPosition?.();
+        return;
+      }
 
       if (
         hasDragged &&
@@ -406,9 +453,9 @@ export class BilingualSubtitleManager {
         typeof dragEndCallback === "function"
       )
         dragEndCallback(parseFloat(dragElement.style.bottom) || 0);
-      const finalBottomPx = dragElement.style.bottom;
-      setTimeout(() => {
-        dragElement.style.bottom = finalBottomPx;
+      syncTimeout = setTimeout(() => {
+        syncTimeout = null;
+        this.#syncPaperPosition?.();
       }, 50);
     };
 
@@ -416,12 +463,18 @@ export class BilingualSubtitleManager {
     handleElement.addEventListener("touchstart", onDragStart, {
       passive: false,
     });
+    this.#cleanupDragging = () => {
+      stopDragging();
+      handleElement.removeEventListener("mousedown", onDragStart);
+      handleElement.removeEventListener("touchstart", onDragStart);
+    };
   }
 
   /**
    * 绑定原生视频事件
    */
   #attachEventListeners() {
+    this.#videoEl.addEventListener("play", this.#clearHoverPlaybackOwnership);
     this.#videoEl.addEventListener("timeupdate", this.onTimeUpdate);
     this.#videoEl.addEventListener("seeking", this.onSeeking);
     this.#videoEl.addEventListener("seeked", this.onSeek);
@@ -431,6 +484,10 @@ export class BilingualSubtitleManager {
    * 卸载原生视频事件
    */
   #removeEventListeners() {
+    this.#videoEl.removeEventListener(
+      "play",
+      this.#clearHoverPlaybackOwnership
+    );
     this.#videoEl.removeEventListener("timeupdate", this.onTimeUpdate);
     this.#videoEl.removeEventListener("seeking", this.onSeeking);
     this.#videoEl.removeEventListener("seeked", this.onSeek);
@@ -630,6 +687,7 @@ export class BilingualSubtitleManager {
    * @param {number} currentTimeMs - 当前视频播放毫秒
    */
   #triggerTranslations(currentTimeMs) {
+    if (this.#setting.managedTranslations) return;
     const { preTrans = 90 } = this.#setting;
     const endTimeMs = currentTimeMs + preTrans * 1000;
     const subs = this.#formattedSubtitles;
@@ -687,6 +745,7 @@ export class BilingualSubtitleManager {
     const updateSubtitleTranslation = (translation) => {
       if (!translation || sessionId !== this.#translationSessionId) return;
       if (signal?.aborted) return;
+      if (!this.#formattedSubtitles.includes(subtitle)) return;
 
       // 字幕以纯文本渲染，开启后将模型输出的行内 LaTeX 转成可读的 Unicode。
       const decoded = decodeHTMLEntities(translation);
@@ -714,6 +773,9 @@ export class BilingualSubtitleManager {
 
     subtitle.isTranslating = true;
     try {
+      if (this.#setting.beforeTranslate) await this.#setting.beforeTranslate();
+      if (signal?.aborted || sessionId !== this.#translationSessionId) return;
+      if (!this.#formattedSubtitles.includes(subtitle)) return;
       const {
         fromLang,
         toLang,
@@ -723,14 +785,24 @@ export class BilingualSubtitleManager {
         prompts,
       } = this.#setting;
 
+      const selectedApi =
+        availableApiForScene(
+          this.#setting,
+          this.#setting.transApis || [],
+          "translate"
+        ) ||
+        (!this.#setting.transApis && rawApiSetting);
+      if (!selectedApi) throw new Error("没有可用的字幕翻译接口");
       const apiSetting = resolveApiPromptSettings(
-        rawApiSetting,
+        withScenePrompt(selectedApi, this.#setting),
         prompts,
         this.#setting
       );
-
-      const { trText } = await apiTranslate({
+      const response = await apiTranslate({
         text: subtitle.text,
+        scene: this.#setting,
+        onTerminologyWarning: this.#setting.onTerminologyWarning,
+        terminologyTables: this.#setting.terminologyTables,
         fromLang,
         toLang,
         apiSetting,
@@ -738,17 +810,29 @@ export class BilingualSubtitleManager {
         translateVariants,
         signal,
         onStreamChunk: ({ text }) => {
-          // 字幕单句翻译的流式 chunk 只更新当前字幕对象，不改时间轴结构。
           updateSubtitleTranslation(normalizeStreamText(text));
         },
       });
+      const trText = response?.trText;
+      if (!trText) throw new Error("字幕翻译返回空结果");
+      if (!this.#formattedSubtitles.includes(subtitle)) return;
       // 竞态校验：如翻译异步返回时会话 ID 已过时，丢弃结果防止脏数据覆盖
       if (sessionId !== this.#translationSessionId) return;
+      subtitle._translationFailed = false;
       updateSubtitleTranslation(trText);
+      subtitle._finalTranslation = subtitle.translation;
+      this.#setting.onTranslationComplete?.({
+        start: subtitle.start,
+        end: subtitle.end,
+        text: subtitle.text,
+        translation: subtitle.translation,
+      });
     } catch (error) {
       if (sessionId !== this.#translationSessionId) return;
       if (error?.name === "AbortError") return; // 属于 Abort 中止，静默退出
-      logger.info("Translation failed for:", subtitle.text, error);
+      logger.child("subtitle").error("Subtitle translation failed");
+      this.#setting.onTranslationError?.();
+      subtitle._translationFailed = true;
       if (
         !subtitle.translation ||
         subtitle.translation === "[Translation failed]"
@@ -775,9 +859,12 @@ export class BilingualSubtitleManager {
       return;
     }
 
-    logger.info(
-      `Bilingual Subtitle Manager: Appending ${newSubtitlesChunk.length} new subtitles...`
-    );
+    logger
+      .child("subtitle")
+      .info(
+        "Bilingual Subtitle Manager: appending new subtitles; count:",
+        newSubtitlesChunk.length
+      );
 
     // 由于上层 provider 在 processRemainingChunksAsync 时直接 push 了全局 subtitles 数组，
     // 这里指向的是同一个底层数组引用，无需重复 push 和 sort 排序，直接将当前索引置 -1 强制触发一次 timeupdate 重刷即可。
@@ -786,6 +873,19 @@ export class BilingualSubtitleManager {
       forceRender: true,
       forceTriggerTranslations: true,
     });
+  }
+
+  retryFailedTranslations() {
+    for (const subtitle of this.#formattedSubtitles) {
+      if (
+        !subtitle.isTranslating &&
+        (subtitle._translationFailed ||
+          subtitle.translation === "[Translation failed]")
+      ) {
+        subtitle.translation = "";
+        this.#translateAndStore(subtitle);
+      }
+    }
   }
 
   repairChunkTranslations(subtitles) {

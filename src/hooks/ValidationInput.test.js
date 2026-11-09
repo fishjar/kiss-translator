@@ -62,3 +62,28 @@ test("uses an unrestricted native step for floating-point settings", () => {
   expect(view.input.step).toBe("any");
   view.cleanup();
 });
+
+test("service drafts retain out-of-range and empty values without blur coercion", () => {
+  const onChange = jest.fn();
+  const view = renderInput({
+    value: 1,
+    min: 0,
+    max: 2,
+    name: "temperature",
+    onChange,
+    validateOnBlur: false,
+  });
+  act(() => Simulate.change(view.input, { target: { value: "5" } }));
+  act(() => Simulate.blur(view.input));
+  expect(view.input.value).toBe("5");
+  expect(onChange).toHaveBeenLastCalledWith({
+    target: { name: "temperature", value: 5 },
+  });
+  act(() => Simulate.change(view.input, { target: { value: "" } }));
+  act(() => Simulate.blur(view.input));
+  expect(view.input.value).toBe("");
+  expect(onChange).toHaveBeenLastCalledWith({
+    target: { name: "temperature", value: "" },
+  });
+  view.cleanup();
+});

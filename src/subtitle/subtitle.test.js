@@ -8,15 +8,19 @@ jest.mock("../libs/storage.js", () => ({
   saveEdit: jest.fn(),
 }));
 
-jest.mock("../libs/log.js", () => ({
-  LogLevel: {
-    INFO: { value: "info" },
-  },
-  logger: {
-    warn: jest.fn(),
-    error: jest.fn(),
-  },
-}));
+jest.mock("../libs/log.js", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      LogLevel: {
+        INFO: { value: "info" },
+      },
+      logger: {
+        warn: jest.fn(),
+        error: jest.fn(),
+      },
+    }))()
+  )
+);
 
 jest.mock("../injectors/index.js", () => ({
   injectJs: jest.fn(),
@@ -105,33 +109,56 @@ describe("runSubtitle", () => {
     jest.clearAllMocks();
   });
 
-  test("keeps the runtime API slug aligned with the first enabled service", () => {
-    const disabledApi = {
-      apiSlug: "disabled-api",
-      apiName: "Disabled API",
-      isDisabled: true,
-    };
-    const enabledApi = {
-      apiSlug: "enabled-api",
-      apiName: "Enabled API",
-    };
+  test.each(["disabled-api", "missing-api"])(
+    "does not fall back when the selected service %s is unavailable",
+    (selectedSlug) => {
+      const disabledApi = {
+        apiSlug: "disabled-api",
+        apiName: "Disabled API",
+        apiType: "Microsoft",
+        isDisabled: true,
+      };
+      const enabledApi = {
+        apiSlug: "enabled-api",
+        apiName: "Enabled API",
+        apiType: "Microsoft",
+      };
 
+      runSubtitle({
+        href: "https://www.youtube.com/watch?v=video-1",
+        setting: {
+          subtitleSetting: {
+            enabled: true,
+            apiSlug: selectedSlug,
+          },
+          transApis: [disabledApi, enabledApi],
+        },
+      });
+
+      expect(YouTubeInitializer).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith(
+        "start subtitle provider failed",
+        expect.any(Error)
+      );
+    }
+  );
+
+  test("starts only the selected available service with the aligned runtime slug", () => {
+    const selected = { apiSlug: "selected", apiType: "Microsoft" };
+    const other = { apiSlug: "other", apiType: "Google" };
     runSubtitle({
       href: "https://www.youtube.com/watch?v=video-1",
       setting: {
-        subtitleSetting: {
-          enabled: true,
-          apiSlug: disabledApi.apiSlug,
-        },
-        transApis: [disabledApi, enabledApi],
+        subtitleSetting: { enabled: true, apiSlug: selected.apiSlug },
+        transApis: [other, selected],
       },
     });
-
+    expect(YouTubeInitializer).toHaveBeenCalledTimes(1);
     expect(YouTubeInitializer).toHaveBeenCalledWith(
       expect.objectContaining({
-        apiSlug: enabledApi.apiSlug,
-        apiSetting: enabledApi,
-        transApis: [disabledApi, enabledApi],
+        apiSlug: selected.apiSlug,
+        apiSetting: selected,
+        transApis: [other, selected],
       })
     );
   });

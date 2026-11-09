@@ -218,9 +218,14 @@ describe("unified thinking capabilities", () => {
     ).toBeNull();
   });
 
-  test.each(["gpt-5.6-sol", "gpt-5.4-pro", "gpt-5.3-codex", "gpt-5"])(
+  test.each([
+    ["gpt-5.6-sol", "none"],
+    ["gpt-5.4-pro", "medium"],
+    ["gpt-5.3-codex", "low"],
+    ["gpt-5", "minimal"],
+  ])(
     "keeps the OpenAI interface default for model %s",
-    (model) => {
+    (model, disabledEffort) => {
       expect(
         normalizeThinkingSettings({
           apiType: OPT_TRANS_OPENAI,
@@ -234,7 +239,7 @@ describe("unified thinking capabilities", () => {
           model,
           thinkingMode: "disabled",
         })
-      ).toEqual({ thinkingMode: "disabled", thinkingEffort: "none" });
+      ).toEqual({ thinkingMode: "disabled", thinkingEffort: disabledEffort });
     }
   );
 
@@ -305,16 +310,20 @@ describe("unified thinking capabilities", () => {
     [OPT_TRANS_ALIYUNBAILIAN, "boolean"],
     [OPT_TRANS_SILICONFLOW, "siliconflow"],
   ])("uses explicit thinking modes for %s", (apiType, adapter) => {
-    const capability = getThinkingCapability({ apiType });
+    const model =
+      apiType === OPT_TRANS_ZAI
+        ? "glm-4.7-flash"
+        : DEFAULT_API_LIST.find((api) => api.apiType === apiType).model;
+    const capability = getThinkingCapability({ apiType, model });
     expect(capability).toMatchObject({ adapter });
     expect(
-      normalizeThinkingSettings({ apiType, thinkingMode: "auto" })
+      normalizeThinkingSettings({ apiType, model, thinkingMode: "auto" })
     ).toEqual({ thinkingMode: "auto", thinkingEffort: "_default" });
     expect(
-      normalizeThinkingSettings({ apiType, thinkingMode: "enabled" })
+      normalizeThinkingSettings({ apiType, model, thinkingMode: "enabled" })
     ).toEqual({ thinkingMode: "enabled", thinkingEffort: null });
     expect(
-      normalizeThinkingSettings({ apiType, thinkingMode: "disabled" })
+      normalizeThinkingSettings({ apiType, model, thinkingMode: "disabled" })
     ).toEqual({ thinkingMode: "disabled", thinkingEffort: null });
   });
 
@@ -443,7 +452,7 @@ test("OpenRouter uses the shared disabled thinking default", () => {
   );
 
   expect(openrouter).toMatchObject({
-    model: "openai/gpt-4o",
+    model: "openai/gpt-6-luna",
     thinkingMode: "disabled",
     thinkingEffort: "_default",
   });
@@ -457,19 +466,21 @@ test("Gemini uses stable Interactions while the model list stays on v1beta", () 
   expect(gemini).toMatchObject({
     url: GEMINI_INTERACTIONS_URL,
     modelListUrl: "https://generativelanguage.googleapis.com/v1beta/models",
-    model: "gemini-3.6-flash",
+    model: "gemini-3.8-flash",
     thinkingMode: "disabled",
+    thinkingEffort: "low",
   });
 });
 
-test("Gemini2 defaults to a model that can disable thinking", () => {
+test("Gemini2 defaults to Flash 3.8 at its lowest thinking level", () => {
   const gemini2 = DEFAULT_API_LIST.find(
     (api) => api.apiType === OPT_TRANS_GEMINI_2
   );
 
   expect(gemini2).toMatchObject({
-    model: "gemini-3.6-flash",
+    model: "gemini-3.8-flash",
     thinkingMode: "disabled",
+    thinkingEffort: "low",
   });
 });
 
@@ -567,7 +578,7 @@ test("filters native Gemini thinking efforts by model capability", () => {
       apiType: OPT_TRANS_GEMINI,
       model: "gemini-3.6-flash",
     }).map((item) => item.value)
-  ).toEqual(["high", "medium", "low"]);
+  ).toEqual(["high", "medium", "low", "minimal"]);
 });
 
 describe("normalizeApiModelListUrls", () => {

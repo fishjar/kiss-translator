@@ -1,8 +1,11 @@
 {
   "manifest_version": 3,
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "name": "__MSG_app_name__",
   "description": "__MSG_app_description__",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "default_locale": "en",
   "author": "Gabe<yugang2002@gmail.com>",
   "homepage_url": "https://github.com/fishjar/kiss-translator",
@@ -76,12 +79,16 @@
     "toggleStyle": {
       "description": "__MSG_toggle_style__"
     },
+    "imageScreenshot": {
+      "description": "__MSG_image_screenshot_command__"
+    },
     "openOptions": {
       "description": "__MSG_open_options__"
     }
   },
   "permissions": [
     "storage",
+    "offscreen",
     "tts",
     "contextMenus",
     "scripting",

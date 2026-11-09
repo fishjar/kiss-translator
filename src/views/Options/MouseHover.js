@@ -3,6 +3,8 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import { useI18n } from "../../hooks/I18n";
 import ShortcutInput from "./ShortcutInput";
+import ServiceSelect from "./ServiceSelect";
+import ScenePromptSelect from "./ScenePromptSelect";
 import TextField from "@mui/material/TextField";
 import { useMouseHoverSetting } from "../../hooks/MouseHover";
 import { useApiList } from "../../hooks/Api";
@@ -11,9 +13,12 @@ import {
   DEFAULT_MOUSEHOVER_KEY,
   DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
   DEFAULT_MOUSE_HOVER_HOLD_DELAY,
+  DEFAULT_MOUSE_HOVER_SETTING,
   GLOBAL_KEY,
   OPT_MOUSE_HOVER_DISPLAY_BILINGUAL,
   OPT_MOUSE_HOVER_DISPLAY_BUBBLE,
+  OPT_MOUSE_HOVER_HOLD_BUTTON_LEFT,
+  OPT_MOUSE_HOVER_HOLD_BUTTON_RIGHT,
   OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK,
   OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE,
   OPT_MOUSE_HOVER_TRANS_AREA,
@@ -124,9 +129,30 @@ export default function MouseHoverSetting() {
     [updateMouseHoverSetting]
   );
 
-  const handleApiChange = useCallback(
-    (e) => {
-      updateMouseHoverSetting({ apiSlug: e.target.value });
+  // Switch the hold trigger between the left and the right mouse button.
+  // The context-menu suppression choice is remembered: it only applies in
+  // right-button mode, keeps its default (on) for untouched settings, and is
+  // restored as-is when switching back to the right button.
+  const handleHoldButtonChange = useCallback(
+    (value) => {
+      updateMouseHoverSetting({ mouseHoverHoldButton: value });
+    },
+    [updateMouseHoverSetting]
+  );
+
+  // Toggle native context-menu suppression for the right-button hold trigger.
+  const handleSuppressContextMenuChange = useCallback(
+    (checked) => {
+      updateMouseHoverSetting({ mouseHoverSuppressContextMenu: checked });
+    },
+    [updateMouseHoverSetting]
+  );
+
+  // Revert the translation when the browser (e.g. Edge mouse gestures) takes
+  // over the right-button hold, so a drawn gesture leaves no translation behind.
+  const handleRevertOnGestureChange = useCallback(
+    (checked) => {
+      updateMouseHoverSetting({ mouseHoverHoldRevertOnGesture: checked });
     },
     [updateMouseHoverSetting]
   );
@@ -138,18 +164,20 @@ export default function MouseHoverSetting() {
     mouseHoverKey2 = [],
     mouseHoverKeyHold = false,
     mouseHoverKey2Hold = false,
+    mouseHoverHoldButton = OPT_MOUSE_HOVER_HOLD_BUTTON_LEFT,
     mouseHoverHoldDelay = DEFAULT_MOUSE_HOVER_HOLD_DELAY,
+    mouseHoverSuppressContextMenu = DEFAULT_MOUSE_HOVER_SETTING.mouseHoverSuppressContextMenu,
+    mouseHoverHoldRevertOnGesture = DEFAULT_MOUSE_HOVER_SETTING.mouseHoverHoldRevertOnGesture,
     mouseHoverTransMode = OPT_MOUSE_HOVER_TRANS_AREA,
     mouseHoverTransDisplay = OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK,
     mouseHoverPreventClick = false,
     blacklist = "",
     displayMode = OPT_MOUSE_HOVER_DISPLAY_BILINGUAL,
-    apiSlug = GLOBAL_KEY,
     bubbleStyle = DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
   } = mouseHoverSetting;
-  const selectedApiSlug = enabledApis.some((api) => api.apiSlug === apiSlug)
-    ? apiSlug
-    : GLOBAL_KEY;
+
+  const isRightButtonHold =
+    mouseHoverHoldButton === OPT_MOUSE_HOVER_HOLD_BUTTON_RIGHT;
 
   return (
     <Box>
@@ -160,10 +188,11 @@ export default function MouseHoverSetting() {
             description={i18n("touch_help")}
           >
             <SettingsSegmented
-              value={mouseHoverSetting.touchMode || "tap"}
+              value={mouseHoverSetting.touchMode || "off"}
               label={i18n("touch_mode")}
               onChange={(touchMode) => updateMouseHoverSetting({ touchMode })}
               items={[
+                { value: "off", label: i18n("touch_off") },
                 { value: "tap", label: i18n("touch_tap") },
                 { value: "swipe", label: i18n("touch_swipe") },
               ]}
@@ -177,8 +206,16 @@ export default function MouseHoverSetting() {
                 updateMouseHoverSetting({ touchDirection })
               }
               items={[
-                { value: "right", label: i18n("touch_right") },
-                { value: "left", label: i18n("touch_left") },
+                {
+                  value: "right",
+                  label: i18n("touch_right"),
+                  disabled: mouseHoverSetting.touchMode !== "swipe",
+                },
+                {
+                  value: "left",
+                  label: i18n("touch_left"),
+                  disabled: mouseHoverSetting.touchMode !== "swipe",
+                },
               ]}
             />
           </SettingsRow>
@@ -240,26 +277,35 @@ export default function MouseHoverSetting() {
               label={i18n("translate_service")}
               description={i18n("mousehover_bubble_api_helper")}
             >
-              <TextField
-                select
-                hiddenLabel
-                size="small"
-                variant="filled"
-                className="kt-settings-select"
-                name="apiSlug"
-                value={selectedApiSlug}
-                inputProps={{ "aria-label": i18n("translate_service") }}
-                onChange={handleApiChange}
-              >
-                <MenuItem value={GLOBAL_KEY}>
-                  {i18n("mousehover_follow_page_rule")}
-                </MenuItem>
-                {enabledApis.map((api) => (
-                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
-                    {api.apiName}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <ServiceSelect
+                scene={mouseHoverSetting}
+                apis={[
+                  {
+                    apiSlug: GLOBAL_KEY,
+                    apiName: i18n("mousehover_follow_page_rule"),
+                  },
+                  ...enabledApis,
+                ]}
+                label={i18n("translate_service")}
+                onChange={(apiSlug) =>
+                  updateMouseHoverSetting({
+                    apiSlug: apiSlug || GLOBAL_KEY,
+                  })
+                }
+              />
+            </SettingsRow>
+          )}
+          {displayMode === OPT_MOUSE_HOVER_DISPLAY_BUBBLE && (
+            <SettingsRow label={i18n("translation_prompt", "翻译提示词")}>
+              <ScenePromptSelect
+                scene={mouseHoverSetting}
+                apis={enabledApis}
+                label={i18n("translation_prompt", "翻译提示词")}
+                value={mouseHoverSetting.promptSlug}
+                onChange={(promptSlug) =>
+                  updateMouseHoverSetting({ promptSlug })
+                }
+              />
             </SettingsRow>
           )}
         </SettingsCard>
@@ -268,6 +314,26 @@ export default function MouseHoverSetting() {
       {(mouseHoverKeyHold || mouseHoverKey2Hold) && (
         <SettingsSection>
           <SettingsCard>
+            <SettingsRow
+              label={i18n("mousehover_hold_button")}
+              description={i18n("mousehover_hold_button_helper")}
+            >
+              <SettingsSegmented
+                value={mouseHoverHoldButton}
+                label={i18n("mousehover_hold_button")}
+                onChange={handleHoldButtonChange}
+                items={[
+                  {
+                    value: OPT_MOUSE_HOVER_HOLD_BUTTON_LEFT,
+                    label: i18n("mousehover_hold_button_left"),
+                  },
+                  {
+                    value: OPT_MOUSE_HOVER_HOLD_BUTTON_RIGHT,
+                    label: i18n("mousehover_hold_button_right"),
+                  },
+                ]}
+              />
+            </SettingsRow>
             <SettingsRow
               label={i18n("mousehover_hold_delay")}
               description={i18n("mousehover_hold_delay_helper")}
@@ -337,15 +403,40 @@ export default function MouseHoverSetting() {
               </TextField>
             </SettingsRow>
             <SettingsRow
+              label={i18n("mousehover_hold_suppress_menu")}
+              description={i18n("mousehover_hold_suppress_menu_helper")}
+            >
+              <SettingsSwitch
+                checked={isRightButtonHold && mouseHoverSuppressContextMenu}
+                disabled={!isRightButtonHold}
+                label={i18n("mousehover_hold_suppress_menu")}
+                onChange={handleSuppressContextMenuChange}
+              />
+            </SettingsRow>
+            <SettingsRow
+              label={i18n("mousehover_hold_revert_on_gesture")}
+              description={i18n("mousehover_hold_revert_on_gesture_helper")}
+            >
+              <SettingsSwitch
+                checked={isRightButtonHold && mouseHoverHoldRevertOnGesture}
+                disabled={!isRightButtonHold}
+                label={i18n("mousehover_hold_revert_on_gesture")}
+                onChange={handleRevertOnGestureChange}
+              />
+            </SettingsRow>
+            <SettingsRow
               label={i18n("mousehover_hold_prevent_click")}
               description={
-                mouseHoverPreventClick
-                  ? i18n("mousehover_hold_prevent_click_helper")
-                  : undefined
+                isRightButtonHold
+                  ? i18n("mousehover_hold_prevent_click_left_only")
+                  : mouseHoverPreventClick
+                    ? i18n("mousehover_hold_prevent_click_helper")
+                    : undefined
               }
             >
               <SettingsSwitch
-                checked={mouseHoverPreventClick}
+                checked={!isRightButtonHold && mouseHoverPreventClick}
+                disabled={isRightButtonHold}
                 label={i18n("mousehover_hold_prevent_click")}
                 onChange={handlePreventClickChange}
               />

@@ -121,6 +121,7 @@ describe("touch paragraph gestures", () => {
     "removed",
     "mode",
     "mouse",
+    "pen",
   ])("rejects %s", (reason) => {
     controller.setMode("tap");
     pointer(
@@ -129,7 +130,7 @@ describe("touch paragraph gestures", () => {
       100,
       100,
       1,
-      reason === "mouse" ? "mouse" : "touch"
+      ["mouse", "pen"].includes(reason) ? reason : "touch"
     );
     if (reason === "timeout") jest.advanceTimersByTime(301);
     if (reason === "movement") pointer(node, "pointermove", 130);
@@ -148,7 +149,7 @@ describe("touch paragraph gestures", () => {
       "<a><span>Link</span></a>",
       "<button><span>Button</span></button>",
       '<div contenteditable="true"><span>Edit</span></div>',
-      '<div class="notranslate"><span>UI</span></div>',
+      "<div data-kiss-ui><span>UI</span></div>",
     ]) {
       node.innerHTML = html;
       pointer(node.querySelector("span"), "pointerdown");
@@ -159,6 +160,11 @@ describe("touch paragraph gestures", () => {
     Object.defineProperty(node, "clientWidth", { value: 100 });
     expect(isTouchExcluded(node)).toBe(true);
     expect(toggle).not.toHaveBeenCalled();
+  });
+
+  test("does not hard-code website notranslate markers as plugin UI", () => {
+    node.classList.add("notranslate");
+    expect(isTouchExcluded(node)).toBe(false);
   });
 
   test("leaves a text selection intact", () => {

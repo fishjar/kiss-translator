@@ -65,4 +65,67 @@ describe("homepage video showcase", () => {
 
     expect(container.innerHTML).not.toContain("youtube-nocookie.com");
   });
+
+  test("renders all core homepage sections properly", () => {
+    act(() => root.render(<Homepage />));
+
+    expect(container.textContent).toContain("KISS Translator");
+    expect(container.querySelector("#install-matrix")).not.toBeNull();
+  });
+
+  test("public/404.html executes inline script and corrects links under custom domain and subpath deployments", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const htmlPath = path.resolve(__dirname, "../../public/404.html");
+    const html = fs.readFileSync(htmlPath, "utf-8");
+
+    // 提取 public/404.html 中的 <script> 代码，直接执行实际脚本而不是复制逻辑
+    const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
+    expect(scriptMatch).not.toBeNull();
+    const scriptCode = scriptMatch[1];
+
+    // 场景 1：自定义域名深层路径 /missing/deep
+    document.body.innerHTML = `
+      <a id="home-link" href="/">返回主页 / Home</a>
+      <a id="options-link" href="/options.html">脚本设置 / Settings</a>
+      <a id="file-link" href="/file-translate.html">文件翻译 / File Translate</a>
+    `;
+    delete window.location;
+    window.location = new URL(
+      "https://kiss-translator.rayjar.com/missing/deep"
+    );
+
+    new Function(scriptCode)();
+
+    expect(document.getElementById("home-link").getAttribute("href")).toBe("/");
+    expect(document.getElementById("options-link").getAttribute("href")).toBe(
+      "/options.html"
+    );
+    expect(document.getElementById("file-link").getAttribute("href")).toBe(
+      "/file-translate.html"
+    );
+
+    // 场景 2：GitHub Pages 子路径部署 /kiss-translator/missing/deep
+    document.body.innerHTML = `
+      <a id="home-link" href="/">返回主页 / Home</a>
+      <a id="options-link" href="/options.html">脚本设置 / Settings</a>
+      <a id="file-link" href="/file-translate.html">文件翻译 / File Translate</a>
+    `;
+    delete window.location;
+    window.location = new URL(
+      "https://fishjar.github.io/kiss-translator/missing/deep"
+    );
+
+    new Function(scriptCode)();
+
+    expect(document.getElementById("home-link").getAttribute("href")).toBe(
+      "/kiss-translator/"
+    );
+    expect(document.getElementById("options-link").getAttribute("href")).toBe(
+      "/kiss-translator/options.html"
+    );
+    expect(document.getElementById("file-link").getAttribute("href")).toBe(
+      "/kiss-translator/file-translate.html"
+    );
+  });
 });

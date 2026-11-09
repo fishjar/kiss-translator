@@ -11,6 +11,8 @@ import {
   DEFAULT_INPUT_RULE,
 } from "../../config";
 import ShortcutInput from "./ShortcutInput";
+import ServiceSelect from "./ServiceSelect";
+import ScenePromptSelect from "./ScenePromptSelect";
 import { useInputRule } from "../../hooks/InputRule";
 import { useCallback } from "react";
 import { useApiList } from "../../hooks/Api";
@@ -73,7 +75,6 @@ export default function InputSetting() {
   // 解构当前输入查词翻译的各项具体设置
   const {
     transOpen,
-    apiSlug,
     fromLang,
     toLang,
     triggerShortcut,
@@ -169,14 +170,20 @@ export default function InputSetting() {
 
       <SettingsAdvanced rows label={i18n("settings_detailed_controls")}>
         <SettingsRow label={i18n("translate_service")}>
-          <SettingsSelect
-            value={apiSlug}
+          <ServiceSelect
+            scene={inputRule}
+            apis={enabledApis}
             label={i18n("translate_service")}
-            onChange={(value) => updateInputRule({ apiSlug: value })}
-            options={enabledApis.map((api) => ({
-              value: api.apiSlug,
-              label: api.apiName,
-            }))}
+            onChange={(apiSlug) => updateInputRule({ apiSlug })}
+          />
+        </SettingsRow>
+        <SettingsRow label={i18n("translation_prompt", "翻译提示词")}>
+          <ScenePromptSelect
+            scene={inputRule}
+            apis={enabledApis}
+            label={i18n("translation_prompt", "翻译提示词")}
+            value={inputRule.promptSlug}
+            onChange={(promptSlug) => updateInputRule({ promptSlug })}
           />
         </SettingsRow>
         <SettingsRow label={i18n("from_lang")}>

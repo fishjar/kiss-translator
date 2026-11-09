@@ -8,6 +8,7 @@ import browser from "webextension-polyfill";
 import { isExt, isGm } from "./client";
 import { isBg } from "./browser";
 import { PORT_STREAM_FETCH } from "../config";
+import { startHttpDiagnostic } from "./diagnostics/http";
 import { createSSEParser, createAsyncQueue } from "./stream";
 import {
   createTimeoutSignal,
@@ -228,6 +229,11 @@ async function* fetchStreamGM(
  * @returns {AsyncGenerator<string>} 逐条产出 SSE data 字段。
  */
 export async function* fetchStreamNative(input, init = {}, opts = {}) {
+  if (input === "local-ai://chat") {
+    const { streamLocalChat } = await import("./localAiTransport");
+    yield* streamLocalChat(init, opts);
+    return;
+  }
   const options = typeof opts === "number" ? { httpTimeout: opts } : opts || {};
   const timeout = normalizeHttpTimeout(options.httpTimeout);
   const signal = mergeAbortSignals([
@@ -235,28 +241,45 @@ export async function* fetchStreamNative(input, init = {}, opts = {}) {
     options.signal,
     createTimeoutSignal(timeout),
   ]);
-  const response = await fetch(input, { ...init, signal });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  const parseSSE = createSSEParser();
-
+  const diagnostic = await startHttpDiagnostic(input, init, {
+    context: options.diagnostic,
+  });
+  let reader,
+    failure,
+    completed = false;
   try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    const response = await fetch(input, { ...init, signal });
+    diagnostic.response(response);
 
-      for (const data of parseSSE(decoder.decode(value, { stream: true }))) {
-        yield data;
-      }
+    if (!response.ok) {
+      await diagnostic.errorBody(response);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const parseSSE = createSSEParser();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        diagnostic.chunk(value);
+
+        for (const data of parseSSE(decoder.decode(value, { stream: true }))) {
+          yield data;
+        }
+      }
+      completed = true;
+    } finally {
+      // 当调用方提前结束 async generator 时，主动释放 reader 锁并推动底层连接关闭。
+      await reader.cancel?.();
+    }
+  } catch (error) {
+    failure = error;
+    throw error;
   } finally {
-    // 当调用方提前结束 async generator 时，主动释放 reader 锁并推动底层连接关闭。
-    await reader.cancel?.();
+    await diagnostic.finish(failure, completed);
   }
 }
 

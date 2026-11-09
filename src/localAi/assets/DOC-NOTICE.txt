@@ -1,0 +1,12 @@
+PP-DocLayoutV3 document layout processing
+Copyright 2026 The PaddlePaddle Team and The HuggingFace Inc. team.
+Licensed under the Apache License, Version 2.0.
+https://www.apache.org/licenses/LICENSE-2.0
+
+Preprocessing and postprocessing are adapted from:
+https://github.com/huggingface/transformers/blob/main/src/transformers/models/pp_doclayout_v3/image_processing_pp_doclayout_v3.py
+
+Model: Bei0001/PP-DocLayoutV3-ONNX
+Revision: ff677269004f03007705f3e7f1bc8d0f4546d299
+License: Apache-2.0, as declared by the model repository.
+Model weights are downloaded separately and are not included in this extension.

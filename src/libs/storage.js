@@ -1,8 +1,10 @@
 import {
   STOKEY_SETTING,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
+  STOKEY_SETTING_BACKUP_V3_BEFORE_V4,
   STOKEY_SETTING_OLD,
   STOKEY_RULES,
+  STOKEY_RULES_IGNORE_MIGRATED,
   STOKEY_RULES_OLD,
   STOKEY_WORDS,
   STOKEY_FAB,
@@ -13,14 +15,19 @@ import {
   STOKEY_DISABLED_SUB_RULES,
   DEFAULT_SETTING,
   DEFAULT_RULES,
+  GLOBLA_RULE,
   DEFAULT_SYNC,
   BUILTIN_RULES,
   getSettingVersion,
   migrateSettingPromptsToV2,
   migrateSettingToV3,
+  migrateSettingToV5,
   SETTINGS_VERSION_V2,
+  SETTINGS_VERSION_V4,
   CURRENT_SETTINGS_VERSION,
   DEFAULT_TRANBOX_SETTING,
+  DEFAULT_IMAGE_TRANSLATE_SETTING,
+  DEFAULT_MOUSE_HOVER_SETTING,
   normalizeApiThinkingSettings,
   KV_SETTING_KEY,
   KV_RULES_KEY,
@@ -28,12 +35,13 @@ import {
 } from "../config";
 import { isExt, isGm } from "./client";
 import { browser } from "./browser";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { debounce } from "./utils";
 import { getGmMethod } from "./gmMethods";
 import { publishStorageWrite } from "./storageEvents";
 import { withStorageLock } from "./storageCoordination";
 import { cloneStorageValue, isSameStorageValue } from "./storageEquality";
+import { splitSelectorList } from "./selectorList";
 
 const SYNC_KEYS = {
   [STOKEY_SETTING]: KV_SETTING_KEY,
@@ -187,7 +195,7 @@ function parseStoredValue(val, key) {
   try {
     return JSON.parse(val);
   } catch (err) {
-    kissLog("parse json in storage err: ", key);
+    logger.child("storage").warn("parse json in storage err: ", key);
   }
   return null;
 }
@@ -360,7 +368,9 @@ export function withTransaction(operation) {
         } catch (recoveryError) {
           error.storageRecoveryFailed = true;
           error.storageOutcome = "unknown";
-          kissLog("Unable to compensate a storage transaction", recoveryError);
+          logger
+            .child("storage")
+            .error("Unable to compensate a storage transaction", recoveryError);
         }
       }
       error.storageOutcome ||= "not-committed";
@@ -523,6 +533,17 @@ const mergeSettingWithDefault = (setting) => {
       ...DEFAULT_TRANBOX_SETTING,
       ...(setting?.tranboxSetting || {}),
     },
+    imageTranslateSetting: {
+      ...DEFAULT_IMAGE_TRANSLATE_SETTING,
+      ...(setting?.imageTranslateSetting || {}),
+    },
+    // 悬停/按住翻译的子设置同样补齐默认值：旧版本升级上来的设置缺少
+    // 新增键（如按住触发按键、屏蔽右键菜单）时，运行时与设置界面必须
+    // 得到同一个默认值，否则会出现开关显示与实际行为不一致。
+    mouseHoverSetting: {
+      ...DEFAULT_MOUSE_HOVER_SETTING,
+      ...(setting?.mouseHoverSetting || {}),
+    },
     version: setting?.version ?? DEFAULT_SETTING.version,
   };
 
@@ -546,19 +567,92 @@ export const migrateStoredSettingToV2 = async (
 
 /** Return false if migration cannot persist settings; reads still reject. */
 export const runDataMigration = async () => {
+  try {
+    await withTransaction(async (transaction) => {
+      if (await transaction.getObj(STOKEY_RULES_IGNORE_MIGRATED)) return;
+      const rules = (await transaction.getObj(STOKEY_RULES)) || DEFAULT_RULES;
+      const globalRule = rules.find((rule) => rule.pattern === "*");
+      const nextGlobal = { ...(globalRule || GLOBLA_RULE) };
+      try {
+        for (const [field, additions] of [
+          [
+            "ignoreSelector",
+            [
+              "address",
+              "select",
+              "option",
+              ".notranslate",
+              "[translate='no']",
+              "svg",
+              ".MathJax_Display",
+            ],
+          ],
+          ["keepSelector", [".MathJax"]],
+        ]) {
+          const selectors = [
+            ...new Set(
+              splitSelectorList(nextGlobal[field] ?? GLOBLA_RULE[field])
+            ),
+          ];
+          const patchMode = selectors.some((item) => /^[+-]/.test(item));
+          for (const selector of additions) {
+            // Preserve existing additions and explicit removals.
+            if (
+              !selectors.some(
+                (item) => item.replace(/^[+-]\s*/, "") === selector
+              )
+            ) {
+              selectors.push(patchMode ? `+${selector}` : selector);
+            }
+          }
+          nextGlobal[field] = selectors
+            .filter(
+              (selector) =>
+                field !== "ignoreSelector" ||
+                patchMode ||
+                ![
+                  "[class*='logo'] svg",
+                  '[class*="logo"] svg',
+                  "[id*='logo'] svg",
+                  '[id*="logo"] svg',
+                ].includes(selector)
+            )
+            .join(", ");
+        }
+      } catch (err) {
+        // Keep both fields and the marker unchanged so invalid input can be repaired.
+        logger
+          .child("storage")
+          .warn("Skipping invalid legacy selector migration:", err);
+        return;
+      }
+      const nextRules = globalRule
+        ? rules.map((rule) => (rule === globalRule ? nextGlobal : rule))
+        : [nextGlobal, ...rules];
+      // A format migration is not a user edit and must not win sync conflicts.
+      await transaction.setObj(STOKEY_RULES, nextRules);
+      await transaction.setObj(STOKEY_RULES_IGNORE_MIGRATED, true);
+    });
+  } catch (err) {
+    logger.child("storage").warn("Selector migration failed:", err);
+    return false;
+  }
   const rawSetting = await getSetting();
   if (!rawSetting) return true;
 
   const needsSchemaMigration =
-    getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
-  const needsThemeMigration = typeof rawSetting.darkMode === "boolean";
+    rawSetting && getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION;
+  const needsThemeMigration = typeof rawSetting?.darkMode === "boolean";
   if (!needsSchemaMigration && !needsThemeMigration) return true;
 
   try {
     let nextSetting = rawSetting;
     if (needsSchemaMigration) {
       const v2Setting = await migrateStoredSettingToV2(rawSetting, rawSetting);
-      nextSetting = migrateSettingToV3(v2Setting);
+      if (getSettingVersion(v2Setting) < SETTINGS_VERSION_V4) {
+        await setObj(STOKEY_SETTING_BACKUP_V3_BEFORE_V4, rawSetting);
+      }
+      nextSetting = migrateSettingToV5(migrateSettingToV3(v2Setting));
     }
     if (needsThemeMigration) {
       nextSetting = {
@@ -566,11 +660,16 @@ export const runDataMigration = async () => {
         darkMode: rawSetting.darkMode ? "dark" : "light",
       };
     }
-    await setObj(STOKEY_SETTING, nextSetting);
-    kissLog(`Migration to V${CURRENT_SETTINGS_VERSION} completed.`);
+    if (needsSchemaMigration || needsThemeMigration)
+      await setObj(STOKEY_SETTING, nextSetting);
+    logger
+      .child("storage")
+      .info("Data migration completed; version:", CURRENT_SETTINGS_VERSION);
     return true;
   } catch (err) {
-    kissLog(`Data migration to V${CURRENT_SETTINGS_VERSION} failed:`, err);
+    logger
+      .child("storage")
+      .warn("Data migration failed; version:", CURRENT_SETTINGS_VERSION, err);
     return false;
   }
 };
@@ -583,7 +682,7 @@ export const normalizeStoredSetting = (rawSetting) => {
 
   let setting =
     getSettingVersion(rawSetting) < CURRENT_SETTINGS_VERSION
-      ? migrateSettingToV3(rawSetting)
+      ? migrateSettingToV5(rawSetting)
       : rawSetting;
 
   if (typeof setting.darkMode === "boolean") {
@@ -736,6 +835,6 @@ export const tryInitDefaultData = async (uiLang) => {
       BUILTIN_RULES
     );
   } catch (err) {
-    kissLog("init default", err);
+    logger.child("storage").error("init default", err);
   }
 };

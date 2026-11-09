@@ -1,6 +1,10 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import DraggableResizable from "./DraggableResizable";
+import {
+  PANEL_BITMAP_CURSORS,
+  PANEL_KEYWORD_CURSORS,
+} from "../../styles/cursors";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -204,5 +208,48 @@ describe("DraggableResizable auto height bounds", () => {
     });
 
     expect(panel.setPosition).not.toHaveBeenCalled();
+  });
+
+  // 真红主路径：Windows+Chromium 判定命中（UA-CH mock）下面板 8 向 resize
+  // 手柄与标题栏拖动区必须使用共享自绘位图光标——Windows Chromium 在硬件
+  // 覆盖层合成路径下会把单色系统光标渲染成白色，位图光标使显示颜色确定
+  // 化；关键字仅作位图加载失败回退。当前实现为裸关键字，本用例首跑必红。
+  test("panel handles use shared bitmap cursors on Windows Chromium", () => {
+    Object.defineProperty(window.navigator, "userAgentData", {
+      configurable: true,
+      value: { platform: "Windows" },
+    });
+    try {
+      renderPanel();
+      const panel = container.querySelector(".KT-draggable");
+      const directions = ["nw", "n", "ne", "w", null, "e", "sw", "s", "se"];
+      [...panel.children].forEach((child, i) => {
+        // 第 5 格是 TranslationPanelSurface 面板本体，不携带手柄光标。
+        if (directions[i] === null) return;
+        expect(child.style.cursor).toBe(PANEL_BITMAP_CURSORS[directions[i]]);
+      });
+      const header = container.querySelector(".KT-draggable-header");
+      expect(header.style.cursor).toBe(PANEL_BITMAP_CURSORS.move);
+    } finally {
+      delete window.navigator.userAgentData;
+    }
+  });
+
+  // 非 Windows 默认环境（jsdom 现状）不变式：手柄光标不含位图 data-URI、
+  // 仍为纯关键字光标（改动前后都应通过）。注意：改后回退关键字体系为
+  // ns-resize/ew-resize 等方向键回退（与改动前的 row-resize/col-resize 为
+  // 同义关键字、浏览器渲染同一系统光标，视觉零变化但字符串不同），故此
+  // 处不逐字比对字符串，改为比对关键字表值（实现后生效）。
+  test("panel handles keep the plain keyword cursor outside Windows Chromium", () => {
+    renderPanel();
+    const panel = container.querySelector(".KT-draggable");
+    const directions = ["nw", "n", "ne", "w", null, "e", "sw", "s", "se"];
+    [...panel.children].forEach((child, i) => {
+      expect(child.style.cursor).not.toContain("data:image");
+      if (directions[i] === null) return;
+      expect(child.style.cursor).toBe(PANEL_KEYWORD_CURSORS[directions[i]]);
+    });
+    const header = container.querySelector(".KT-draggable-header");
+    expect(header.style.cursor).toBe("move");
   });
 });

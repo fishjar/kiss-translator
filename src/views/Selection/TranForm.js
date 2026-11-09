@@ -1,13 +1,11 @@
+import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import DoneIcon from "@mui/icons-material/Done";
-import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 import CircularProgress from "@mui/material/CircularProgress";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import { useI18n } from "../../hooks/I18n";
@@ -18,15 +16,10 @@ import {
   OPT_DICT_ALL,
   OPT_SUG_ALL,
   OPT_LANGS_MAP,
-  OPT_DICT_MAP,
-  OPT_SUG_MAP,
-  API_SPE_TYPES,
-  PROMPT_CATEGORY_DICTIONARY,
   PROMPT_MODE_FOLLOW_API,
-  findPromptBySlug,
 } from "../../config";
 import {
-  useId,
+  Fragment,
   useState,
   useMemo,
   useEffect,
@@ -35,17 +28,16 @@ import {
   useCallback,
 } from "react";
 import TranCont from "./TranCont";
-import DictCont from "./DictCont";
-import AiDictCont from "./AiDictCont";
-import SugCont from "./SugCont";
+import { BrowserTtsBtn } from "./AudioBtn";
 import CopyBtn from "./CopyBtn";
-import Zdic from "./Zdic";
-import { isValidWord, isSingleChineseChar } from "../../libs/utils";
-import { kissLog } from "../../libs/log";
+import DictionaryPanels from "../../components/TranslationPanel/DictionaryPanels";
+import { isValidWord } from "../../libs/utils";
+import { logger } from "../../libs/log";
 import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
 import { isShadowHostMoving } from "../../libs/shadowHost";
+import { isApiAvailableFor } from "../../config/serviceSelection";
 import TextareaResizeGrip from "../../components/TextareaResizeGrip";
 import useTextareaHeightLock, {
   useTextareaGripStyle,
@@ -63,9 +55,6 @@ export const formatLanguageOptionName = (name) => {
 
   return parts.join(" - ");
 };
-
-// Treat whitespace-only prompts as unconfigured.
-const hasPrompt = (value) => typeof value === "string" && Boolean(value.trim());
 
 const resolveActiveApiSlugs = (apiSlugs, optApis) => {
   if (apiSlugs === undefined || apiSlugs === null) {
@@ -113,6 +102,7 @@ function writeStoredApiChoice(storageKey, slugs) {
 
 export default function TranForm({
   text,
+  scene,
   setText,
   translationText = text,
   apiSlugs: initApiSlugs,
@@ -128,28 +118,62 @@ export default function TranForm({
   enSug: initEnSug = "-",
   aiDictApiSlug = "-",
   aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
+  ttsApiSlug = "",
   prompts = [],
   selectionContext = "",
+  selectionSource = null,
   isPlaygound = false,
   autoFocusInput = true,
   syncExternalTextWhileEditing = false,
   apiSlugsStorageKey = undefined,
   playgroundConfigHeader = null,
+  playgroundConfigExtra = null,
+  playgroundConfigExpanded = true,
   configActions = null,
   initialSettingsReady = true,
 }) {
   const i18n = useI18n();
-  const dictionaryTabsId = useId();
-  const defaultDictionaryTabId = `${dictionaryTabsId}-default-tab`;
-  const defaultDictionaryPanelId = `${dictionaryTabsId}-default-panel`;
-  const aiDictionaryTabId = `${dictionaryTabsId}-ai-tab`;
-  const aiDictionaryPanelId = `${dictionaryTabsId}-ai-panel`;
 
   // Keep the draft while focus moves between source and result controls.
   const [editMode, setEditMode] = useState(false);
   // Keep draft input until blur or submission updates the outer text state.
   const [editText, setEditText] = useState(text);
   const editTextRef = useRef(editText);
+  // Source validity belongs to the selection snapshot, not to the current text.
+  // This prevents a manually edited word from restoring its old source when the
+  // draft is changed back to the selected text. External text synchronization
+  // never calls invalidateFavoriteSource; a new snapshot resets the ref below.
+  const favoriteSourceSnapshotRef = useRef(selectionSource);
+  const favoriteSourceInvalidatedRef = useRef(false);
+  const favoriteSourceSnapshotChanged =
+    favoriteSourceSnapshotRef.current !== selectionSource;
+  useLayoutEffect(() => {
+    favoriteSourceSnapshotRef.current = selectionSource;
+    favoriteSourceInvalidatedRef.current = false;
+  }, [selectionSource]);
+  const invalidateFavoriteSource = useCallback(() => {
+    if (favoriteSourceSnapshotRef.current) {
+      favoriteSourceInvalidatedRef.current = true;
+    }
+  }, []);
+  const favoriteSource = useMemo(() => {
+    const selectedText = String(selectionSource?.text || "").trim();
+    const currentText = String(text || "").trim();
+    const draftText = String(editText || "").trim();
+    if (
+      (!favoriteSourceSnapshotChanged &&
+        favoriteSourceInvalidatedRef.current) ||
+      !selectedText ||
+      selectedText !== currentText ||
+      draftText !== currentText
+    ) {
+      return null;
+    }
+
+    const sentence = String(selectionSource?.sentence || "").trim();
+    const url = String(selectionSource?.url || "").trim();
+    return sentence || url ? { sentence, url } : null;
+  }, [editText, favoriteSourceSnapshotChanged, selectionSource, text]);
   const [requestRevision, setRequestRevision] = useState(0);
   const [apiSlugs, setApiSlugs] = useState(initApiSlugs);
   const [hasUserChangedApiSlugs, setHasUserChangedApiSlugs] = useState(false);
@@ -160,8 +184,6 @@ export default function TranForm({
   const [enDict, setEnDict] = useState(initEnDict);
   const [enSug, setEnSug] = useState(initEnSug);
   const initialSettingsAppliedRef = useRef(initialSettingsReady);
-  const [dictTab, setDictTab] = useState("default");
-  const hasUserChangedDictTabRef = useRef(false);
   // Bind detection results to their input and detector to ignore stale requests.
   const [detection, setDetection] = useState({
     key: "",
@@ -298,7 +320,28 @@ export default function TranForm({
 
   // Commit external replacements before removed-control observers can submit a
   // draft from the same render. Hosts opt in for clipboard and selection updates.
+  // lastSyncedTextRef records the text this effect last observed, so an
+  // editMode transition alone (for example the one handlePaste triggers) no
+  // longer clears a pasted draft: only a genuine external text change, or
+  // leaving edit mode, may resync the draft to the committed text.
+  // lastSyncedEditingRef records the previous value of the sync option so
+  // a false→true transition mid-edit counts as a fresh sync trigger (host
+  // text overwrites the draft) without losing the editMode-only protection
+  // that still applies when the option is not enabled or stable.
+  const lastSyncedTextRef = useRef(text);
+  const lastSyncedEditingRef = useRef(syncExternalTextWhileEditing);
   useLayoutEffect(() => {
+    const syncOptionJustEnabled =
+      syncExternalTextWhileEditing && !lastSyncedEditingRef.current;
+    lastSyncedEditingRef.current = syncExternalTextWhileEditing;
+    if (
+      lastSyncedTextRef.current === text &&
+      editMode &&
+      !syncOptionJustEnabled
+    ) {
+      return;
+    }
+    lastSyncedTextRef.current = text;
     if (syncExternalTextWhileEditing || !editMode) {
       editTextRef.current = text;
       setEditText(text);
@@ -328,7 +371,7 @@ export default function TranForm({
         }
       } catch (err) {
         if (active) {
-          kissLog("tranbox: detect lang", err);
+          logger.child("tran-form").warn("tranbox: detect lang", err);
           setDetection({ key: detectionKey, lang: "", loading: false });
         }
       }
@@ -339,15 +382,19 @@ export default function TranForm({
     };
   }, [text, langDetector, detectionKey]);
 
-  // Paste clipboard text into the translation input.
+  // Paste into the visible draft without translating until the user submits.
   const handlePaste = async () => {
     try {
       const pastedText = (await navigator.clipboard.readText()).trim();
-      // Pasting replaces the draft even while focus stays in the text controls.
+      if (!pastedText) return;
+      if (pastedText !== editTextRef.current) {
+        invalidateFavoriteSource();
+      }
       setEditText(pastedText);
-      setText(pastedText);
+      setEditMode(true);
+      inputRef.current?.focus({ preventScroll: true });
     } catch (err) {
-      //
+      // Clipboard access is optional; leave the current draft unchanged.
     }
   };
 
@@ -369,7 +416,7 @@ export default function TranForm({
   const optApis = useMemo(
     () =>
       transApis
-        .filter((api) => !api.isDisabled)
+        .filter((api) => isApiAvailableFor(api, "translate"))
         .map((api) => ({
           key: api.apiSlug,
           name: api.apiName || api.apiSlug,
@@ -377,13 +424,16 @@ export default function TranForm({
     [transApis]
   );
 
-  const isWord = useMemo(() => isValidWord(text), [text]);
   const xs = useMemo(() => (isPlaygound ? 6 : 4), [isPlaygound]);
   const md = useMemo(() => (isPlaygound ? 3 : 4), [isPlaygound]);
 
   const activeApiSlugs = useMemo(
     () => resolveActiveApiSlugs(apiSlugs, optApis),
     [apiSlugs, optApis]
+  );
+  const dictionaryTranslationApi = useMemo(
+    () => transApis.find((api) => api.apiSlug === activeApiSlugs[0]) || null,
+    [transApis, activeApiSlugs]
   );
 
   // 本地持久化接口选择恢复（apiSlugsStorageKey 可选）。
@@ -416,66 +466,8 @@ export default function TranForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [optApis]);
 
-  // Use Bing/Youdao for English words and Zdic for single Chinese characters.
-  const defaultDictAvailable =
-    (isWord && OPT_DICT_MAP.has(enDict)) || isSingleChineseChar(text);
-  const aiDictApiSetting = useMemo(() => {
-    if (!aiDictApiSlug || aiDictApiSlug === "-") {
-      return null;
-    }
-
-    // Stored slugs can outlive changes to API availability, API type, or prompt category.
-    // Recheck eligibility to avoid sending dictionary prompts to a non-AI endpoint.
-    const apiSetting = transApis.find(
-      (api) =>
-        api.apiSlug === aiDictApiSlug &&
-        !api.isDisabled &&
-        API_SPE_TYPES.ai.has(api.apiType)
-    );
-    if (!apiSetting) {
-      return null;
-    }
-
-    // Following the API requires a resolved, nonblank dictPrompt.
-    // Empty prompts would create a billed request without useful instructions.
-    if (aiDictPromptSlug === PROMPT_MODE_FOLLOW_API) {
-      return hasPrompt(apiSetting.dictPrompt) ? apiSetting : null;
-    }
-
-    // Override the API's dictionary prompt with the selected global prompt.
-    const prompt = findPromptBySlug(prompts, aiDictPromptSlug);
-    if (
-      !prompt ||
-      prompt.category !== PROMPT_CATEGORY_DICTIONARY ||
-      !hasPrompt(prompt.systemPrompt)
-    ) {
-      return null;
-    }
-
-    return {
-      ...apiSetting,
-      dictPromptSlug: prompt.slug,
-      dictPrompt: prompt.systemPrompt,
-      dictUserPrompt: prompt.userPrompt,
-    };
-  }, [aiDictApiSlug, aiDictPromptSlug, prompts, transApis]);
-  const aiDictAvailable = Boolean(text?.trim() && aiDictApiSetting);
-
-  useEffect(() => {
-    if (hasUserChangedDictTabRef.current) {
-      return;
-    }
-
-    // Prefer the faster default dictionary when available, otherwise select the AI dictionary.
-    if (defaultDictAvailable) {
-      setDictTab("default");
-      return;
-    }
-
-    if (aiDictAvailable) {
-      setDictTab("ai");
-    }
-  }, [text, defaultDictAvailable, aiDictAvailable]);
+  // Dictionary availability now lives in DictionaryPanels alone; the source row
+  // no longer gates the read-aloud icon on it.
 
   const commitEditText = useCallback(() => {
     setEditMode(false);
@@ -499,13 +491,6 @@ export default function TranForm({
     observer.observe(form, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, [editMode, commitEditText]);
-
-  const submitTranslation = () => {
-    // Keyboard submissions keep editing active while the input retains focus.
-    setText(editText.trim());
-    // Explicit submissions retry unchanged text; ordinary blur commits do not.
-    setRequestRevision((revision) => revision + 1);
-  };
 
   const submitAndBlur = (event) => {
     event.stopPropagation();
@@ -534,8 +519,11 @@ export default function TranForm({
     }
   }, []);
 
+  const ConfigContainer = isPlaygound ? Collapse : Fragment;
   const translationResults = activeApiSlugs.map((slug) => (
     <TranCont
+      scene={scene}
+      ttsApiSlug={ttsApiSlug}
       key={slug}
       text={translationText}
       fromLang={fromLang}
@@ -599,244 +587,256 @@ export default function TranForm({
           {!simpleStyle && (
             <>
               {isPlaygound && playgroundConfigHeader}
-              {/* Service and language settings grid. */}
-              <Grid
-                className={
-                  isPlaygound
-                    ? "kt-playground-config__grid"
-                    : "kt-translation-config"
-                }
-                container
-                spacing={2}
-                columns={12}
+              <ConfigContainer
+                {...(isPlaygound
+                  ? {
+                      in: playgroundConfigExpanded,
+                      id: "kt-playground-config-content",
+                    }
+                  : {})}
               >
-                {/* Select multiple translation engines to compare their results. */}
+                {/* Service and language settings grid. */}
                 <Grid
                   className={
                     isPlaygound
-                      ? "kt-playground-config__service"
-                      : "kt-translation-config__service"
+                      ? "kt-playground-config__grid"
+                      : "kt-translation-config"
                   }
-                  item
-                  xs={xs}
-                  md={md}
+                  container
+                  spacing={2}
+                  columns={12}
                 >
-                  <TextField
-                    select
-                    SelectProps={{
-                      multiple: true,
-                      MenuProps: selectMenuProps,
-                    }}
-                    fullWidth
-                    size="small"
-                    value={activeApiSlugs}
-                    name="apiSlugs"
-                    label={i18n("translate_service_multiple")}
-                    onChange={(e) => {
-                      setHasUserChangedApiSlugs(true);
-                      setApiSlugs(e.target.value);
-                      // 仅在宿主显式提供 storageKey 时写回（空数组 = 用户显式清空）。
-                      if (apiSlugsStorageKey) {
-                        writeStoredApiChoice(
-                          apiSlugsStorageKey,
-                          e.target.value
-                        );
-                      }
-                    }}
+                  {/* Select multiple translation engines to compare their results. */}
+                  <Grid
+                    className={
+                      isPlaygound
+                        ? "kt-playground-config__service"
+                        : "kt-translation-config__service"
+                    }
+                    item
+                    xs={xs}
+                    md={md}
                   >
-                    {optApis.map(({ key, name }) => (
-                      <MenuItem key={key} value={key}>
-                        {name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                {/* Source language. */}
-                <Grid
-                  className={
-                    isPlaygound ? undefined : "kt-translation-config__language"
-                  }
-                  item
-                  xs={xs}
-                  md={md}
-                >
-                  <TextField
-                    select
-                    SelectProps={{ MenuProps: selectMenuProps }}
-                    fullWidth
-                    size="small"
-                    name="fromLang"
-                    value={fromLang}
-                    label={i18n("from_lang")}
-                    onChange={(e) => {
-                      setFromLang(e.target.value);
-                    }}
-                  >
-                    {OPT_LANGS_FROM.map(([lang, name]) => (
-                      <MenuItem key={lang} value={lang}>
-                        {formatLanguageOptionName(name)}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                {/* Target language. */}
-                <Grid
-                  className={
-                    isPlaygound ? undefined : "kt-translation-config__language"
-                  }
-                  item
-                  xs={xs}
-                  md={md}
-                >
-                  <TextField
-                    select
-                    SelectProps={{ MenuProps: selectMenuProps }}
-                    fullWidth
-                    size="small"
-                    name="toLang"
-                    value={toLang}
-                    label={i18n("to_lang")}
-                    onChange={(e) => {
-                      setToLang(e.target.value);
-                    }}
-                  >
-                    {OPT_LANGS_TO.map(([lang, name]) => (
-                      <MenuItem key={lang} value={lang}>
-                        {formatLanguageOptionName(name)}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-
-                {/* Show additional configuration controls in the Playground. */}
-                {isPlaygound && (
-                  <>
-                    {/* Secondary target language. */}
-                    <Grid item xs={xs} md={md}>
-                      <TextField
-                        select
-                        SelectProps={{ MenuProps: selectMenuProps }}
-                        fullWidth
-                        size="small"
-                        name="toLang2"
-                        value={toLang2}
-                        label={i18n("to_lang2")}
-                        onChange={(e) => {
-                          setToLang2(e.target.value);
-                        }}
-                      >
-                        {OPT_LANGS_TO.map(([lang, name]) => (
-                          <MenuItem key={lang} value={lang}>
-                            {formatLanguageOptionName(name)}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    {/* English dictionary service. */}
-                    <Grid item xs={xs} md={md}>
-                      <TextField
-                        select
-                        SelectProps={{ MenuProps: selectMenuProps }}
-                        fullWidth
-                        size="small"
-                        name="enDict"
-                        value={enDict}
-                        label={i18n("english_dict")}
-                        onChange={(e) => {
-                          setEnDict(e.target.value);
-                        }}
-                      >
-                        <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                        {OPT_DICT_ALL.map((item) => (
-                          <MenuItem value={item} key={item}>
-                            {item}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    {/* Input suggestion service. */}
-                    <Grid item xs={xs} md={md}>
-                      <TextField
-                        select
-                        SelectProps={{ MenuProps: selectMenuProps }}
-                        fullWidth
-                        size="small"
-                        name="enSug"
-                        value={enSug}
-                        label={i18n("english_suggest")}
-                        onChange={(e) => {
-                          setEnSug(e.target.value);
-                        }}
-                      >
-                        <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                        {OPT_SUG_ALL.map((item) => (
-                          <MenuItem value={item} key={item}>
-                            {item}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    {/* Language detection engine. */}
-                    <Grid item xs={xs} md={md}>
-                      <TextField
-                        select
-                        SelectProps={{ MenuProps: selectMenuProps }}
-                        fullWidth
-                        size="small"
-                        name="langDetector"
-                        value={langDetector}
-                        label={i18n("detected_lang")}
-                        onChange={(e) => {
-                          setLangDetector(e.target.value);
-                        }}
-                      >
-                        <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                        {OPT_LANGDETECTOR_ALL.map((item) => (
-                          <MenuItem value={item} key={item}>
-                            {item}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    {/* Read-only language detection result. */}
-                    <Grid item xs={xs} md={md}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        name="deLang"
-                        value={
-                          deLang &&
-                          formatLanguageOptionName(OPT_LANGS_MAP.get(deLang))
+                    <TextField
+                      select
+                      SelectProps={{
+                        multiple: true,
+                        MenuProps: selectMenuProps,
+                      }}
+                      fullWidth
+                      size="small"
+                      value={activeApiSlugs}
+                      name="apiSlugs"
+                      label={i18n("translate_service_multiple")}
+                      onChange={(e) => {
+                        setHasUserChangedApiSlugs(true);
+                        setApiSlugs(e.target.value);
+                        // 仅在宿主显式提供 storageKey 时写回（空数组 = 用户显式清空）。
+                        if (apiSlugsStorageKey) {
+                          writeStoredApiChoice(
+                            apiSlugsStorageKey,
+                            e.target.value
+                          );
                         }
-                        label={i18n("detected_result")}
-                        placeholder="—"
-                        InputLabelProps={{ shrink: true }}
-                        inputProps={{ "aria-busy": deLoading }}
-                        InputProps={{
-                          readOnly: true,
-                          startAdornment: (
-                            <Box
-                              sx={{
-                                width: 16,
-                                height: 16,
-                                display: "grid",
-                                placeItems: "center",
-                              }}
-                            >
-                              {deLoading && (
+                      }}
+                    >
+                      {optApis.map(({ key, name }) => (
+                        <MenuItem key={key} value={key}>
+                          {name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  {/* Source language. */}
+                  <Grid
+                    className={
+                      isPlaygound
+                        ? undefined
+                        : "kt-translation-config__language"
+                    }
+                    item
+                    xs={xs}
+                    md={md}
+                  >
+                    <TextField
+                      select
+                      SelectProps={{ MenuProps: selectMenuProps }}
+                      fullWidth
+                      size="small"
+                      name="fromLang"
+                      value={fromLang}
+                      label={i18n("from_lang")}
+                      onChange={(e) => {
+                        setFromLang(e.target.value);
+                      }}
+                    >
+                      {OPT_LANGS_FROM.map(([lang, name]) => (
+                        <MenuItem key={lang} value={lang}>
+                          {formatLanguageOptionName(name)}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  {/* Target language. */}
+                  <Grid
+                    className={
+                      isPlaygound
+                        ? undefined
+                        : "kt-translation-config__language"
+                    }
+                    item
+                    xs={xs}
+                    md={md}
+                  >
+                    <TextField
+                      select
+                      SelectProps={{ MenuProps: selectMenuProps }}
+                      fullWidth
+                      size="small"
+                      name="toLang"
+                      value={toLang}
+                      label={i18n("to_lang")}
+                      onChange={(e) => {
+                        setToLang(e.target.value);
+                      }}
+                    >
+                      {OPT_LANGS_TO.map(([lang, name]) => (
+                        <MenuItem key={lang} value={lang}>
+                          {formatLanguageOptionName(name)}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+
+                  {/* Show additional configuration controls in the Playground. */}
+                  {isPlaygound && (
+                    <>
+                      {/* Secondary target language. */}
+                      <Grid item xs={xs} md={md}>
+                        <TextField
+                          select
+                          SelectProps={{ MenuProps: selectMenuProps }}
+                          fullWidth
+                          size="small"
+                          name="toLang2"
+                          value={toLang2}
+                          label={i18n("to_lang2")}
+                          onChange={(e) => {
+                            setToLang2(e.target.value);
+                          }}
+                        >
+                          {OPT_LANGS_TO.map(([lang, name]) => (
+                            <MenuItem key={lang} value={lang}>
+                              {formatLanguageOptionName(name)}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                      {/* English dictionary service. */}
+                      <Grid item xs={xs} md={md}>
+                        <TextField
+                          select
+                          SelectProps={{ MenuProps: selectMenuProps }}
+                          fullWidth
+                          size="small"
+                          name="enDict"
+                          value={enDict}
+                          label={i18n("english_dict")}
+                          onChange={(e) => {
+                            setEnDict(e.target.value);
+                          }}
+                        >
+                          <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                          {OPT_DICT_ALL.map((item) => (
+                            <MenuItem value={item} key={item}>
+                              {item}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                      {/* Input suggestion service. */}
+                      <Grid item xs={xs} md={md}>
+                        <TextField
+                          select
+                          SelectProps={{ MenuProps: selectMenuProps }}
+                          fullWidth
+                          size="small"
+                          name="enSug"
+                          value={enSug}
+                          label={i18n("english_suggest")}
+                          onChange={(e) => {
+                            setEnSug(e.target.value);
+                          }}
+                        >
+                          <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                          {OPT_SUG_ALL.map((item) => (
+                            <MenuItem value={item} key={item}>
+                              {item}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                      {/* Language detection engine. */}
+                      <Grid item xs={xs} md={md}>
+                        <TextField
+                          select
+                          SelectProps={{ MenuProps: selectMenuProps }}
+                          fullWidth
+                          size="small"
+                          name="langDetector"
+                          value={langDetector}
+                          label={i18n("detected_lang")}
+                          onChange={(e) => {
+                            setLangDetector(e.target.value);
+                          }}
+                        >
+                          <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
+                          {OPT_LANGDETECTOR_ALL.map((item) => (
+                            <MenuItem value={item} key={item}>
+                              {item}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                      {/* Read-only language detection result. */}
+                      <Grid item xs={xs} md={md}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          name="deLang"
+                          value={
+                            deLang &&
+                            formatLanguageOptionName(OPT_LANGS_MAP.get(deLang))
+                          }
+                          label={i18n("detected_result")}
+                          placeholder="—"
+                          InputLabelProps={{ shrink: true }}
+                          inputProps={{ "aria-busy": deLoading }}
+                          InputProps={{
+                            readOnly: true,
+                            startAdornment: deLoading ? (
+                              <Box
+                                sx={{
+                                  width: 16,
+                                  height: 16,
+                                  display: "grid",
+                                  placeItems: "center",
+                                }}
+                              >
                                 <CircularProgress
                                   size={16}
                                   aria-label={i18n("detected_lang")}
                                 />
-                              )}
-                            </Box>
-                          ),
-                        }}
-                      />
-                    </Grid>
-                  </>
-                )}
-              </Grid>
+                              </Box>
+                            ) : null,
+                          }}
+                        />
+                      </Grid>
+                    </>
+                  )}
+                </Grid>
+                {isPlaygound && playgroundConfigExtra}
+              </ConfigContainer>
             </>
           )}
           {configActions}
@@ -881,6 +881,7 @@ export default function TranForm({
               }}
               value={editText}
               onChange={(e) => {
+                invalidateFavoriteSource();
                 setEditText(e.target.value);
               }}
               onFocus={() => {
@@ -888,9 +889,9 @@ export default function TranForm({
               }}
               onKeyDown={(event) => {
                 if (event.nativeEvent.isComposing) return;
-                if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                if (event.key === "Enter" && !event.shiftKey) {
                   event.preventDefault();
-                  if (!event.repeat && editText.trim()) submitTranslation();
+                  if (!event.repeat && editText.trim()) submitAndBlur(event);
                 }
               }}
               InputProps={{
@@ -904,6 +905,9 @@ export default function TranForm({
                           : undefined
                       }
                       direction="row"
+                      spacing={1}
+                      useFlexGap
+                      onPointerDown={preserveSourceFocus}
                       sx={
                         isPlaygound
                           ? undefined
@@ -914,44 +918,41 @@ export default function TranForm({
                             }
                       }
                     >
-                      {editMode && editText !== text ? (
-                        /* Show the submit checkmark while editing. */
+                      {!editText.trim() ? (
                         <IconButton
                           size="small"
-                          onPointerDown={(e) => e.preventDefault()}
+                          onClick={handlePaste}
+                          title={i18n("paste")}
+                          aria-label={i18n("paste")}
+                        >
+                          <ContentPasteIcon fontSize="inherit" />
+                        </IconButton>
+                      ) : editMode ? (
+                        <IconButton
+                          size="small"
                           onClick={submitAndBlur}
                           title={i18n("submit")}
                           aria-label={i18n("submit")}
                         >
                           <DoneIcon fontSize="inherit" />
                         </IconButton>
-                      ) : text ? (
-                        /* Show the copy action when text is present. */
+                      ) : (
                         <CopyBtn
                           text={text}
                           title={i18n("copy")}
                           copiedLabel={i18n("copy_success", "Copied")}
                         />
-                      ) : (
-                        /* Show the paste action when the input is empty. */
-                        <IconButton
-                          size="small"
-                          onClick={handlePaste}
-                          title={i18n("paste")}
-                        >
-                          <ContentPasteIcon fontSize="inherit" />
-                        </IconButton>
                       )}
-                      {text && editText.trim() === text && (
-                        <IconButton
-                          size="small"
-                          onPointerDown={(event) => event.preventDefault()}
-                          onClick={submitAndBlur}
-                          title={i18n("translate")}
-                          aria-label={i18n("translate")}
-                        >
-                          <ReplayRoundedIcon fontSize="inherit" />
-                        </IconButton>
+                      {Boolean(editText.trim()) && (
+                        <BrowserTtsBtn
+                          serviceId={ttsApiSlug}
+                          text={editText}
+                          lang={
+                            fromLang === "auto" ? deLang || "en-US" : fromLang
+                          }
+                          title={i18n("read_source_aloud")}
+                          stopTitle={i18n("stop_speaking")}
+                        />
                       )}
                     </Stack>
                     {(editText.trim() ||
@@ -997,98 +998,26 @@ export default function TranForm({
         translationResults
       )}
 
-      {/* 2. Show the default and AI dictionaries according to availability. */}
-      {(defaultDictAvailable || aiDictAvailable) && (
-        <Box
-          className={
-            isPlaygound ? "kt-playground-translator__auxiliary" : undefined
-          }
-        >
-          {aiDictAvailable ? (
-            <>
-              <Tabs
-                value={defaultDictAvailable ? dictTab : "ai"}
-                onChange={(_, value) => {
-                  hasUserChangedDictTabRef.current = true;
-                  setDictTab(value);
-                }}
-                variant="scrollable"
-                allowScrollButtonsMobile
-                aria-label={i18n("default_dict", "Dictionary")}
-                sx={{ minHeight: 36, mb: 1 }}
-              >
-                {defaultDictAvailable && (
-                  <Tab
-                    id={defaultDictionaryTabId}
-                    aria-controls={defaultDictionaryPanelId}
-                    value="default"
-                    label={i18n("default_dict", "默认词典")}
-                    sx={{ minHeight: 36, py: 0.5 }}
-                  />
-                )}
-                <Tab
-                  id={aiDictionaryTabId}
-                  aria-controls={aiDictionaryPanelId}
-                  value="ai"
-                  label={i18n("ai_dict", "AI词典")}
-                  sx={{ minHeight: 36, py: 0.5 }}
-                />
-              </Tabs>
-              {defaultDictAvailable && dictTab === "default" && (
-                <Box
-                  id={defaultDictionaryPanelId}
-                  role="tabpanel"
-                  aria-labelledby={defaultDictionaryTabId}
-                >
-                  {isWord && OPT_DICT_MAP.has(enDict) && (
-                    <DictCont text={text} enDict={enDict} />
-                  )}
-                  {isSingleChineseChar(text) && <Zdic text={text} />}
-                </Box>
-              )}
-              {(!defaultDictAvailable || dictTab === "ai") && (
-                <Box
-                  id={aiDictionaryPanelId}
-                  role="tabpanel"
-                  aria-labelledby={aiDictionaryTabId}
-                >
-                  <AiDictCont
-                    text={text}
-                    fromLang={fromLang}
-                    speechLang={fromLang === "auto" ? deLang : fromLang}
-                    toLang={realToLang}
-                    apiSetting={aiDictApiSetting}
-                    context={
-                      // Pass context only when it contains the current text, so manual input cannot reuse stale selection context.
-                      selectionContext && selectionContext.includes(text)
-                        ? selectionContext
-                        : ""
-                    }
-                  />
-                </Box>
-              )}
-            </>
-          ) : (
-            <>
-              {isWord && OPT_DICT_MAP.has(enDict) && (
-                <DictCont text={text} enDict={enDict} />
-              )}
-              {isSingleChineseChar(text) && <Zdic text={text} />}
-            </>
-          )}
-        </Box>
-      )}
-
-      {/* 3. Show enabled input suggestions for valid English words. */}
-      {isWord &&
-        OPT_SUG_MAP.has(enSug) &&
-        (isPlaygound ? (
-          <Box className="kt-playground-translator__auxiliary">
-            <SugCont text={text} enSug={enSug} />
-          </Box>
-        ) : (
-          <SugCont text={text} enSug={enSug} />
-        ))}
+      {/* 2 and 3. Dictionary, Chinese character dictionary and suggestions. */}
+      <DictionaryPanels
+        text={text}
+        enDict={enDict}
+        enSug={enSug}
+        fromLang={fromLang}
+        toLang={realToLang}
+        detectedLang={deLang}
+        transApis={transApis}
+        prompts={prompts}
+        aiDictApiSlug={aiDictApiSlug}
+        aiDictPromptSlug={aiDictPromptSlug}
+        requestRevision={requestRevision}
+        source={favoriteSource}
+        context={selectionContext}
+        ttsApiSlug={ttsApiSlug}
+        translateVariants={translateVariants}
+        dictionaryTranslationApi={dictionaryTranslationApi}
+        isPlayground={isPlaygound}
+      />
     </Stack>
   );
 }

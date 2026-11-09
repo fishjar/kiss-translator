@@ -1,8 +1,14 @@
+import { terminologyWarningHandler } from "./terminologyWarning";
+import {
+  compileTerminology,
+  terminologySourceList,
+  EMPTY_TERMINOLOGY_TABLES,
+} from "./terminology";
+import { loadTerminologySnapshot } from "./terminologyStorage";
 import { TouchParagraph, touchParent, isTouchExcluded } from "./touchParagraph";
 import { isInBlacklist } from "./blacklist";
 import {
   APP_LCNAME,
-  APP_CONSTS,
   OPT_STYLE_FUZZY,
   GLOBLA_RULE,
   GLOBAL_KEY,
@@ -11,9 +17,11 @@ import {
   OPT_STYLE_NONE,
   DEFAULT_MOUSE_HOVER_BUBBLE_STYLE,
   DEFAULT_MOUSE_HOVER_HOLD_DELAY,
+  DEFAULT_MOUSE_HOVER_SETTING,
   OPT_HIGHLIGHT_WORDS_BEFORETRANS,
   OPT_HIGHLIGHT_WORDS_AFTERTRANS,
   OPT_MOUSE_HOVER_DISPLAY_BUBBLE,
+  OPT_MOUSE_HOVER_HOLD_BUTTON_RIGHT,
   OPT_MOUSE_HOVER_TRANS_AREA,
   OPT_MOUSE_HOVER_TRANS_DISPLAY_BLOCK,
   OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE,
@@ -22,7 +30,6 @@ import {
   OPT_SPLIT_PARAGRAPH_PUNCTUATION,
   OPT_SPLIT_PARAGRAPH_DISABLE,
   OPT_SPLIT_PARAGRAPH_TEXTLENGTH,
-  API_SPE_TYPES,
   MSG_INJECT_CSS,
   MSG_UPDATE_ICON,
   EVENT_FAVORITE_WORD_CHANGE,
@@ -31,8 +38,12 @@ import {
   newI18n,
 } from "../config";
 import { resolveApiPromptSettings } from "../config/prompt";
-import { interpreter } from "./interpreter";
-import { clearFetchPool } from "./pool";
+import {
+  availableApiForScene,
+  withScenePrompt,
+} from "../config/serviceSelection";
+import { getInterpreter } from "./interpreter";
+import { supportsServiceFeature } from "../providers/features";
 import { debounce, scheduleIdle, genEventName, parseAITerms } from "./utils";
 import {
   parseTerms,
@@ -43,8 +54,7 @@ import {
 import { escapeHTML } from "./html";
 import { parseMathInText } from "./mathParse";
 import { apiMicrosoftDict, apiTranslate, apiYoudaoDict } from "../apis";
-import { kissLog } from "./log";
-import { clearAllBatchQueue } from "./batchQueue";
+import { logger } from "./log";
 import { genTextClass } from "./style";
 import { createLoadingSVG, createRetrySVG } from "./svg";
 import { shortcutRegister } from "./shortcut";
@@ -56,9 +66,29 @@ import { injectInternalCss } from "./injector";
 import { isExt } from "./client";
 import { sendBgMsg } from "./msg";
 import { getDocInfo } from "./docInfo";
-import { isInNonContent, visitTranslationTargets } from "./translationTargets";
+import {
+  isInNonContent,
+  NON_CONTENT_SELECTOR,
+  visitTranslationTargets,
+  BLOCK_LAYOUT_TAGS,
+  getNodeLayout,
+  hasBlockLayout,
+  isInlineHidden,
+  isInInlineHidden,
+  getInlineVisibleText,
+  cloneWithoutInlineHidden,
+  getPreservedInlineAncestor,
+} from "./translationTargets";
 import { normalizeRuleApi } from "./apiSelection";
 import { isSameStorageValue } from "./storageEquality";
+import { KISS_UI_SELECTOR } from "./kissUi";
+
+const PARAGRAPH_METADATA_SELECTOR = "script, style, template";
+
+// 判定“这次按住在翻译触发前就已经在移动”的最小位移 (CSS 像素)。
+// 用于区分两种按住：一按下就开始移动（本意是拖拽/手势）与按住不动、
+// 看到译文之后才移动（本意就是翻译）。取 3px 以排除像素级抖动噪声。
+const MOUSE_HOLD_MOVING_FLOOR = 3;
 
 /**
  * @class Translator
@@ -76,92 +106,11 @@ function getRuntimeApiSettings(api) {
 }
 
 export class Translator {
-  // 块级判定缓存，避免对同一节点高频调用 window.getComputedStyle(el) 造成浏览器回流（Reflow）
-  static displayCache = new WeakMap();
-
   // HTML 元素标签分类
   static TAGS = {
     // 强制换行标签
     BREAK_LINE: new Set(["BR", "WBR"]),
-    // 块级标签
-    BLOCK: new Set([
-      "ADDRESS",
-      "ARTICLE",
-      "ASIDE",
-      "BLOCKQUOTE",
-      "CANVAS",
-      "DD",
-      "DIV",
-      "DL",
-      "DT",
-      "FIELDSET",
-      "FIGCAPTION",
-      "FIGURE",
-      "FOOTER",
-      "FORM",
-      "H1",
-      "H2",
-      "H3",
-      "H4",
-      "H5",
-      "H6",
-      "HEADER",
-      "HR",
-      "LI",
-      "MAIN",
-      "NAV",
-      "NOSCRIPT",
-      "OL",
-      "P",
-      "PRE",
-      "SECTION",
-      "TABLE",
-      "TFOOT",
-      "UL",
-      "VIDEO",
-    ]),
-    // 行级标签
-    INLINE: new Set([
-      // "A",
-      "ABBR",
-      "ACRONYM",
-      "B",
-      "BDO",
-      "BIG",
-      "BR",
-      "BUTTON",
-      "CITE",
-      "CODE",
-      "DFN",
-      "DEL",
-      "FONT",
-      "EM",
-      "I",
-      "IMG",
-      "INPUT",
-      "INS",
-      "KBD",
-      "LABEL",
-      "MAP",
-      "MARK",
-      "OBJECT",
-      "OUTPUT",
-      "Q",
-      "RUBY",
-      "SAMP",
-      "SCRIPT",
-      "SELECT",
-      "SMALL",
-      // "SPAN",
-      "STRONG",
-      "SUB",
-      "SUP",
-      "TEXTAREA",
-      "TIME",
-      "TT",
-      "U",
-      "VAR",
-    ]),
+    BLOCK: BLOCK_LAYOUT_TAGS,
     // 需要被作为占位符替换以保持原文格式不被机器翻译破坏的复杂标签
     REPLACE: new Set([
       "ABBR",
@@ -278,34 +227,12 @@ export class Translator {
 
   /**
    * 判断目标元素是否为块级（Block）节点
-   * // REVIEW: 缓存失效风险。使用 WeakMap 缓存了元素的 block 判定结果，如果在页面运行期间，
-   * // 某个元素的 display 样式被动态修改（如从 none 变更为 block，或者从 inline 变更为 block），
-   * // displayCache 中缓存的旧状态不会被失效或刷新，这可能导致后续的扫描和翻译无法准确处理该节点。
    * @param {Node} el - 待检测的 DOM 节点
    * @returns {boolean}
    */
   static isBlockNode(el) {
     if (!Translator.isElementOrFragment(el)) return false;
-
-    // 若有显式的 inline 属性设置，直接判定非块级
-    if (el.attributes?.display?.value?.includes("inline")) return false;
-    // 若有显式的 block 属性设置，直接判定为块级
-    if (el.attributes?.display?.value?.includes("block")) return true;
-
-    // 若标签在内联标签集合中，直接判定非块级
-    if (Translator.TAGS.INLINE.has(el.nodeName?.toUpperCase())) return false;
-    // 若标签在块级标签集合中，直接判定为块级
-    if (Translator.TAGS.BLOCK.has(el.nodeName?.toUpperCase())) return true;
-
-    // 优先读取 WeakMap 缓存
-    if (Translator.displayCache.has(el)) {
-      return Translator.displayCache.get(el);
-    }
-
-    // 降级回滚：调用 getComputedStyle 进行高开销的布局样式计算
-    const isBlock = !window.getComputedStyle(el).display.startsWith("inline");
-    Translator.displayCache.set(el, isBlock);
-    return isBlock;
+    return hasBlockLayout(el);
   }
 
   // 判断是否包含块级子元素
@@ -336,16 +263,13 @@ export class Translator {
   }
 
   // 内置忽略元素
-  static KISS_IGNORE_SELECTOR = `.${Translator.KISS_CLASS.warpper}, .${Translator.KISS_CLASS.hoverBubble}, .kiss-caption-container, .kiss-subtitle-controls, #kiss-youtube-subtitle-list-container,
-  #${APP_CONSTS.fabID}, .${APP_CONSTS.fabID}_warpper,
-  #${APP_CONSTS.boxID}, .${APP_CONSTS.boxID}_warpper,
-  #${APP_CONSTS.popupID}, .${APP_CONSTS.popupID}_warpper, #kiss-rule-editor, #kiss-rule-highlights`;
+  static KISS_IGNORE_SELECTOR = KISS_UI_SELECTOR;
 
-  static BUILTIN_IGNORE_SELECTOR = `address, area, audio, br, canvas,
+  static BUILTIN_IGNORE_SELECTOR = `area, audio, br, canvas,
   data, datalist, embed, head, iframe, input, noscript, map,
-  object, option, param, picture, progress,
-  select, script, style, svg, track, textarea, template,
-  video, wbr, .notranslate, [contenteditable='true'], [translate='no']`;
+  object, param, picture, progress,
+  script, style, track, textarea, template,
+  video, wbr, [contenteditable='true']`;
 
   #setting; // 设置选项
   #rule; // 规则
@@ -356,6 +280,7 @@ export class Translator {
   #mouseHoverEnabled = false; // 鼠标悬停翻译
   #enabled = false; // 全局默认状态
   #runId = 0; // 用于中止过期的异步请求
+  #translationController = new AbortController();
 
   #transOnlyRevertTimer = null;
   #transOnlyRevertTarget = null;
@@ -371,6 +296,11 @@ export class Translator {
   #translationTagName = APP_LCNAME; // 翻译容器的标签名
   #eventName = ""; // 通信事件名称
   #docInfo = {}; // 网页信息
+  #terminologyWarning = null;
+  #terminologyTables = [];
+  #terminologyReady = false;
+  #terminologyLoading = null;
+  #requestTerminologySnapshots = new Map();
   #glossary = {}; // AI词典
   #blockSelectorInvalid = false; // 自定义块级选择器是否已确认无效
   #textClass = {}; // 译文样式class
@@ -392,7 +322,7 @@ export class Translator {
 
   #removeKeydownHandler; // 快捷键清理函数
   #removeKeydownHandler2; // 备用快捷键清理函数
-  #removeMouseHoldHandlers; // 按住鼠标左键触发方式的清理函数
+  #removeMouseHoldHandlers; // 按住鼠标按键触发方式的清理函数
   #touchController = null;
   #touchPending = new Map();
   #touchCandidates = new Set();
@@ -486,20 +416,27 @@ export class Translator {
     return true;
   }
 
-  #mouseHoldTimer = null; // 按住左键等待触发翻译的定时器
-  #mouseHoldActive = false; // 是否处于按住左键状态
+  #mouseHoldTimer = null; // 按住按键等待触发翻译的定时器
+  #mouseHoldActive = false; // 是否处于按住状态
   #mouseHoldTriggered = false; // 本次按住是否已经触发过翻译
-  #mouseHoldStartX = 0; // 按住左键时的起始 X 坐标
-  #mouseHoldStartY = 0; // 按住左键时的起始 Y 坐标
-  #mouseHoldDownTarget = null; // 按住左键按下时的事件目标（坐标定位失败时兜底）
-  #boundMouseDownHandler = null; // 鼠标左键按下事件
-  #boundMouseUpHandler = null; // 鼠标左键松开事件
+  #mouseHoldArmedButton = null; // 本次按住所用的鼠标按键（0 左键 / 2 右键），未按住时为 null
+  #mouseHoldStartX = 0; // 按住时的起始 X 坐标
+  #mouseHoldStartY = 0; // 按住时的起始 Y 坐标
+  #mouseHoldDownTarget = null; // 按住按下时的事件目标（坐标定位失败时兜底）
+  #boundMouseDownHandler = null; // 鼠标按键按下事件
+  #boundMouseUpHandler = null; // 鼠标按键松开事件
   #boundMouseHoldMoveHandler = null; // 按住期间移动取消事件
   #boundMouseHoldClickHandler = null; // 按住翻译后拦截点击的事件
+  #boundMouseHoldContextMenuHandler = null; // 右键按住的右键菜单事件
   #boundCancelMouseHold = null; // 取消按住状态的绑定函数
   #mouseHoldSuppressClick = false; // 本次按住翻译成功后是否阻止松开时的点击
+  #mouseHoldSuppressContextMenu = false; // 本次右键按住翻译成功后是否屏蔽原生右键菜单
+  #mouseHoldSuppressMenuToken = 0; // 菜单屏蔽标记的代次，防止过期兜底定时器清掉新一轮的标记
   #mouseHoldPreventClickEnabled = false; // 本次按住是否启用“阻止点击跳转”
   #mouseHoldInteractive = false; // 按住起点是否位于链接/按钮等可交互元素上
+  #mouseHoldRevertContext = null; // 本次按住实际切换了什么（用于被浏览器手势接管后反向撤回）
+  #mouseHoldMenuFiredWhilePressing = false; // 本次按住期间是否已经弹过原生菜单（按下即弹菜单的平台）
+  #mouseHoldMovedBeforeTrigger = false; // 翻译触发前指针是否已经在移动（本意是拖拽/手势）
   #holdRequestConcurrency = 0; // 按住触发翻译的在途 API 请求数
   #holdRequestWaiters = []; // 等待并发名额的翻译请求
   #holdRequestLimit = 5; // 按住触发翻译的最大并发请求数
@@ -719,18 +656,44 @@ export class Translator {
     return selectors.join(", ");
   }
 
-  #isIgnoredElement(node) {
-    return (
-      node?.nodeType === Node.ELEMENT_NODE &&
-      node.matches?.(this.#ignoreSelector)
+  // 行内可见文本的统一跳过口径（#getSourceText 与句拆 textLength/句末
+  // 判断共用）：非内容节点、KISS UI 节点、ignoreSelector 命中（keepSelector
+  // 行内保留除外）中的文本一律不计。
+  #getContentRole(
+    element,
+    rule = this.#rule,
+    readLayout = getNodeLayout,
+    ignoreSelector = this.#getIgnoreSelector(rule)
+  ) {
+    if (!Translator.isElement(element)) return "translate";
+    if (
+      readLayout(element) === "hidden" ||
+      element.matches(NON_CONTENT_SELECTOR)
+    )
+      return "skip";
+    const ignored = element.matches(ignoreSelector);
+    if (ignored && element.matches(Translator.KISS_IGNORE_SELECTOR))
+      return "skip";
+    if (this.#isKeptInline(element, rule, readLayout)) return "keep";
+    return ignored ? "skip" : "translate";
+  }
+
+  #isInlineContentSkipped(element) {
+    return this.#getContentRole(element) === "skip";
+  }
+
+  #getSourceText(node) {
+    if (isInNonContent(node) || this.#isKissIgnoredNode(node)) return "";
+    return getInlineVisibleText(node, (element) =>
+      this.#isInlineContentSkipped(element)
     );
   }
 
-  #matchesBlockSelector(node) {
-    const selector = this.#rule.blockSelector?.trim();
+  #matchesBlockSelector(node, rule = this.#rule) {
+    const selector = rule.blockSelector?.trim();
     if (
       !selector ||
-      this.#blockSelectorInvalid ||
+      (rule === this.#rule && this.#blockSelectorInvalid) ||
       !Translator.isElement(node)
     ) {
       return false;
@@ -739,8 +702,8 @@ export class Translator {
     try {
       return node.matches(selector);
     } catch (err) {
-      this.#blockSelectorInvalid = true;
-      kissLog("invalid blockSelector", err);
+      if (rule === this.#rule) this.#blockSelectorInvalid = true;
+      logger.child("translator").warn("invalid blockSelector", err);
       return false;
     }
   }
@@ -760,13 +723,17 @@ export class Translator {
 
       style.cssText = `${style.cssText || ""}${cssText}`;
     } catch (err) {
-      kissLog("append rule style error", label, err);
+      logger.child("translator").warn("append rule style error", label, err);
     }
   }
 
   #isBlockNode(node) {
     if (this.#matchesBlockSelector(node)) return true;
-    return Translator.isBlockNode(node);
+    return hasBlockLayout(
+      node,
+      (child) => this.#matchesBlockSelector(child),
+      (child) => this.#getContentRole(child) !== "translate"
+    );
   }
 
   #hasBlockNode(node) {
@@ -983,6 +950,13 @@ export class Translator {
   }
 
   #initPlainTextPre(pre) {
+    if (isInInlineHidden(pre)) return;
+    // 保留原有结构，避免将隐藏子节点和元数据展平成正文。
+    if (
+      pre.querySelector(PARAGRAPH_METADATA_SELECTOR) ||
+      Array.from(pre.querySelectorAll("*")).some(isInlineHidden)
+    )
+      return;
     if (pre.dataset.kissPreprocessed === "true") {
       return;
     }
@@ -1004,18 +978,19 @@ export class Translator {
   // 接口参数
   // todo: 不用频繁查找计算
   get #apiSetting() {
-    const api = this.#apisMap.get(this.#rule.apiSlug);
+    const api = availableApiForScene(this.#rule, this.#setting.transApis);
     return api && !api.isDisabled ? api : undefined;
   }
 
   // 气泡模式可使用独立接口；配置失效时继续跟随当前网页规则。
   get #hoverBubbleApiSetting() {
-    const apiSlug = this.#setting.mouseHoverSetting?.apiSlug;
+    const scene = this.#setting.mouseHoverSetting;
+    const apiSlug = scene?.apiSlug;
     if (!apiSlug || apiSlug === GLOBAL_KEY) {
       return this.#apiSetting;
     }
 
-    const apiSetting = this.#apisMap.get(apiSlug);
+    const apiSetting = availableApiForScene(scene, this.#setting.transApis);
     return apiSetting && !apiSetting.isDisabled ? apiSetting : this.#apiSetting;
   }
 
@@ -1231,7 +1206,7 @@ export class Translator {
         this.#startObserveShadowRoot(shadowRoot);
       });
     } catch (err) {
-      kissLog("findAllShadowRoots", err);
+      logger.child("translator").warn("findAllShadowRoots", err);
     }
   }
 
@@ -1246,7 +1221,9 @@ export class Translator {
       textSheet.replaceSync(textStyles);
       this.#textSheet = textSheet;
     } catch (err) {
-      kissLog("createTextStyles: CSSStyleSheet not available", err);
+      logger
+        .child("translator")
+        .info("createTextStyles: CSSStyleSheet not available", err);
       // CSSStyleSheet 在当前环境不可用（Firefox 内容脚本等），改用内联 <style>
       this.#useSheetFallback = true;
     }
@@ -1290,6 +1267,23 @@ export class Translator {
     this.#combinedTermsRegex = null;
     this.#termMatcher = null;
 
+    const sources = [
+      ...terminologySourceList(this.#rule),
+      this.#apiSetting || {},
+    ];
+    if (
+      this.#rule.terminologySources ||
+      sources.some(
+        (source) =>
+          source.termsList?.length || (source !== this.#rule && source.terms)
+      )
+    ) {
+      const resolved = compileTerminology(sources, this.#terminologyTables);
+      this.#termEntries = resolved.normalEntries;
+      this.#combinedTermsRegex = buildTermsRegex(resolved.normalEntries);
+      this.#termMatcher = buildTermsMatcher(resolved.normalEntries);
+      return;
+    }
     if (!termsString || typeof termsString !== "string") return;
 
     // 纯函数解析：按 key.length 降序、同 key 去重、非法正则收集。
@@ -1301,14 +1295,16 @@ export class Translator {
 
     if (invalid.length > 0) {
       invalid.forEach(({ key, error }) =>
-        kissLog(`Invalid RegExp for term: "${key}"`, error)
+        logger.child("translator").warn("Invalid RegExp for term:", key, error)
       );
     }
 
     // 保留诊断与 hasErrors 日志（供 Playground / 控制台排查），但不再因任一非法段
     // 禁用整份术语：parseTerms 已逐条排除非法项，返回的 terms 是可安全应用的合法集合。
     if (hasErrors) {
-      kissLog("Term parse errors (legal terms still applied): ", diagnostics);
+      logger
+        .child("translator")
+        .warn("Term parse errors (legal terms still applied): ", diagnostics);
     }
 
     this.#termEntries = terms;
@@ -1420,6 +1416,14 @@ export class Translator {
             this.#queueForRescan(mutation.target.parentElement, false, true);
           }
         } else if (mutation.type === "childList") {
+          if (
+            getPreservedInlineAncestor(mutation.target, (node) =>
+              this.#isKeptInline(node)
+            )
+          ) {
+            this.#queueForRescan(mutation.target, false, true);
+            continue;
+          }
           let nodes = new Set();
           let hasText = false;
           if (
@@ -1629,7 +1633,7 @@ export class Translator {
     this.#handleKeyDown();
   }
 
-  // 获取按住左键触发翻译需要等待的毫秒数
+  // 获取按住按键触发翻译需要等待的毫秒数
   #getMouseHoldDelay() {
     const delay = Number(this.#setting.mouseHoverSetting?.mouseHoverHoldDelay);
     return Number.isFinite(delay) && delay > 0
@@ -1637,7 +1641,7 @@ export class Translator {
       : DEFAULT_MOUSE_HOVER_HOLD_DELAY;
   }
 
-  // 按住左键译文是否独立成块显示（默认独立成块，便于长文对照阅读）
+  // 按住按键译文是否独立成块显示（默认独立成块，便于长文对照阅读）
   #getMouseHoldBlockDisplay() {
     const display =
       this.#setting.mouseHoverSetting?.mouseHoverTransDisplay ||
@@ -1645,7 +1649,7 @@ export class Translator {
     return display !== OPT_MOUSE_HOVER_TRANS_DISPLAY_INLINE;
   }
 
-  // 纯触屏设备（无任何支持悬停的指针输入）上“按住鼠标左键”没有对应语义，
+  // 纯触屏设备（无任何支持悬停的指针输入）上“按住鼠标按键”没有对应语义，
   // 长按会触发系统菜单/选词，容易误触发翻译，因此不注册按住监听。
   // 使用 any-hover：触屏为主但外接鼠标/触控板的混合设备仍应启用。
   // matchMedia 不可用或抛错时（极旧环境）默认启用。
@@ -1660,7 +1664,7 @@ export class Translator {
     }
   }
 
-  // 注册“按住鼠标左键不放”触发翻译/还原的监听
+  // 注册“按住鼠标按键不放”触发翻译/还原的监听
   #registerMouseHoldHandler() {
     if (this.#removeMouseHoldHandlers) return;
 
@@ -1670,6 +1674,8 @@ export class Translator {
       this.#handleMouseHoldMove(event);
     this.#boundMouseHoldClickHandler = (event) =>
       this.#handleMouseHoldClick(event);
+    this.#boundMouseHoldContextMenuHandler = (event) =>
+      this.#handleMouseHoldContextMenu(event);
     this.#boundCancelMouseHold = () => this.#cancelMouseHold();
 
     document.addEventListener("mousedown", this.#boundMouseDownHandler, true);
@@ -1687,8 +1693,12 @@ export class Translator {
       this.#boundCancelMouseHold,
       true
     );
-    // 按住期间弹出右键/移动端长按菜单时取消
-    document.addEventListener("contextmenu", this.#boundCancelMouseHold, true);
+    // 右键菜单：左键模式下弹出菜单即取消按住；右键模式下需保留按住并按选项决定是否屏蔽菜单
+    document.addEventListener(
+      "contextmenu",
+      this.#boundMouseHoldContextMenuHandler,
+      true
+    );
 
     this.#removeMouseHoldHandlers = () => {
       document.removeEventListener(
@@ -1719,18 +1729,161 @@ export class Translator {
       );
       document.removeEventListener(
         "contextmenu",
-        this.#boundCancelMouseHold,
+        this.#boundMouseHoldContextMenuHandler,
         true
       );
       this.#removeMouseHoldHandlers = null;
       this.#boundCancelMouseHold = null;
+      this.#boundMouseHoldContextMenuHandler = null;
     };
   }
 
-  // 鼠标左键按下：等待设定的延迟后触发翻译/还原
+  // 当前配置的按住触发按键（0 = 鼠标左键，2 = 鼠标右键）
+  #getMouseHoldButton() {
+    return this.#setting.mouseHoverSetting?.mouseHoverHoldButton ===
+      OPT_MOUSE_HOVER_HOLD_BUTTON_RIGHT
+      ? 2
+      : 0;
+  }
+
+  // 右键模式下按住翻译成功后是否屏蔽原生右键菜单
+  #shouldSuppressContextMenu() {
+    return this.#shouldBooleanSetting(
+      "mouseHoverSuppressContextMenu",
+      this.#setting.mouseHoverSetting?.mouseHoverSuppressContextMenu
+    );
+  }
+
+  // 右键模式下按住被浏览器手势接管（如 Edge 内置鼠标手势）时是否撤回译文
+  #shouldRevertOnGesture() {
+    return this.#shouldBooleanSetting(
+      "mouseHoverHoldRevertOnGesture",
+      this.#setting.mouseHoverSetting?.mouseHoverHoldRevertOnGesture
+    );
+  }
+
+  // 读取布尔型按住选项：键缺失时统一回落到 DEFAULT_MOUSE_HOVER_SETTING，
+  // 避免“设置界面显示开、运行时按关执行”（默认值只保留一处来源）
+  #shouldBooleanSetting(key, value) {
+    return value === undefined
+      ? Boolean(DEFAULT_MOUSE_HOVER_SETTING[key])
+      : Boolean(value);
+  }
+
+  // 屏蔽原生右键菜单
+  #blockContextMenu(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+  }
+
+  // 清除“本次按住要屏蔽右键菜单”的标记（并推进代次，避免兜底定时器误清）
+  #clearHoldMenuSuppression() {
+    this.#mouseHoldSuppressContextMenu = false;
+    this.#mouseHoldSuppressMenuToken += 1;
+  }
+
+  // 目标当前是否处于已翻译状态。
+  // 单一节点用“直接子节点”判定，与清理原语（#findTranslationWrappers 的
+  // :scope > 语义）保持一致；否则“节点内已有被翻译过的后代”会让判定偏成
+  // 已翻译，撤回方向反掉。区域容器则按整块范围查找任意后代译文。
+  #hasHoldTranslation(context) {
+    const { target } = context;
+    if (!Translator.isElement(target)) return false;
+    if (context.kind === "area") {
+      return Boolean(
+        target.querySelector?.(`.${Translator.KISS_CLASS.warpper}`)
+      );
+    }
+    return this.#findTranslationWrappers(target).length > 0;
+  }
+
+  // 这次按住在该目标上是否真的会产生译文。
+  // 规则允许但文本无效（空白/单字符/超长）时 #processNode 会直接跳过，
+  // 此时不能谎报“已接受”，否则会误吞右键菜单；已翻译过的目标（还原方向）不受此限。
+  #hasHoldTranslatableText(node) {
+    if (!Translator.isElement(node)) return false;
+    if (this.#processedNodes.has(node)) return true;
+    return !this.#isInvalidText(this.#getSourceText(node));
+  }
+
+  // 记住本次按住的翻译目标，供被浏览器手势接管后反向撤回
+  #rememberMouseHoldRevert(kind, target, blockDisplay) {
+    this.#mouseHoldRevertContext = { kind, target, blockDisplay };
+  }
+
+  // 反向撤回本次按住的改动。
+  // 判据取“撤回时刻”的状态而不是“触发时刻”：译文容器由异步流程插入，
+  // 触发瞬间通常还查不到，按触发时刻判断会一律偏成“还原”。
+  #revertMouseHoldTranslation() {
+    const context = this.#mouseHoldRevertContext;
+    this.#mouseHoldRevertContext = null;
+    if (!context) return;
+    // 与触发路径保持一致：推进代次。否则这里发起的异步任务会在语言检测
+    // 之后因代次不等于 #holdGeneration 被当作过期任务丢弃（fromLang=auto 时
+    // 译文就放不回来了）。
+    const generation = this.#holdGeneration + 1;
+    this.#holdGeneration = generation;
+    try {
+      if (context.kind === "bubble") {
+        this.#hideHoverBubble();
+        return;
+      }
+      // 当前已有译文 = 本次按住是“翻译”，撤回即移除（区域整块还原、单元只清自身）；
+      // 当前没有译文 = 本次按住是“还原”，撤回即把译文翻回来
+      if (this.#hasHoldTranslation(context)) {
+        if (context.kind === "area") {
+          this.#restoreHoverBlock(context.target);
+        } else {
+          this.#cleanupDirectTranslations(context.target);
+        }
+        return;
+      }
+      if (context.kind === "area") {
+        this.#toggleHoverBlock(context.target, generation);
+      } else {
+        this.#toggleTargetNode(
+          context.target,
+          true,
+          context.blockDisplay,
+          generation
+        );
+      }
+    } catch (err) {
+      logger.child("translator").warn("mouse hold revert", err);
+    }
+  }
+
+  // 这次按住被浏览器接管了（松开事件不会派发，页面只能从事后的 mousemove
+  // 里通过 buttons 得知按键已松开）：撤回译文并结束按住状态。
+  // 只有“翻译触发前指针已经在移动”的按住才撤回——那种按住的本意是拖拽/手势；
+  // 先按住不动、看到译文之后才开始移动的，说明译文正是用户要的，予以保留。
+  #handleMouseHoldTakeover() {
+    if (this.#shouldRevertOnGesture() && this.#mouseHoldMovedBeforeTrigger) {
+      this.#revertMouseHoldTranslation();
+    } else {
+      this.#mouseHoldRevertContext = null;
+    }
+    // 译文已撤回，没有理由再屏蔽随后的右键菜单
+    this.#clearHoldMenuSuppression();
+    this.#cancelMouseHold();
+  }
+
+  // 鼠标按键按下：等待设定的延迟后触发翻译/还原
   #handleMouseHoldDown(event) {
-    if (event.button !== 0) return;
-    const target = event.target;
+    if (event.button !== this.#getMouseHoldButton()) return;
+    // 新的一次按下先结束上一轮状态：上一次按住的 mouseup 可能已经丢失
+    // （浏览器手势/窗口外松开），残留的屏蔽标记会吞掉下面输入框的右键菜单
+    this.#cancelMouseHold();
+    this.#clearHoldMenuSuppression();
+    // Shadow DOM 内的按下会被重定向为宿主元素，这里取合成路径上的真实目标，
+    // 否则 Shadow DOM 里的输入框/可编辑区域无法被下面的排除规则识别
+    const path = event.composedPath?.();
+    const deepTarget = path?.length ? path[0] : event.target;
+    const target =
+      deepTarget?.nodeType === Node.ELEMENT_NODE
+        ? deepTarget
+        : deepTarget?.parentElement || event.target;
     if (
       target?.closest?.(
         "input, textarea, select, [contenteditable='true'], [contenteditable='']"
@@ -1739,9 +1892,11 @@ export class Translator {
       return;
     }
 
-    this.#cancelMouseHold();
     this.#mouseHoldActive = true;
     this.#mouseHoldTriggered = false;
+    // 记录本次按住所用的按键：按住期间切换左键/右键模式时，
+    // 松开事件仍按本次按下的按键来匹配，避免状态残留
+    this.#mouseHoldArmedButton = event.button;
     this.#mouseHoldSuppressClick = false;
     this.#mouseHoldPreventClickEnabled = Boolean(
       this.#setting.mouseHoverSetting?.mouseHoverPreventClick
@@ -1752,6 +1907,10 @@ export class Translator {
     this.#mouseHoldStartX = event.clientX;
     this.#mouseHoldStartY = event.clientY;
     this.#mouseHoldDownTarget = target;
+    // 新的一次按下开始，上一轮用于撤回的上下文作废
+    this.#mouseHoldRevertContext = null;
+    this.#mouseHoldMenuFiredWhilePressing = false;
+    this.#mouseHoldMovedBeforeTrigger = false;
 
     this.#mouseHoldTimer = setTimeout(() => {
       this.#mouseHoldTimer = null;
@@ -1766,28 +1925,99 @@ export class Translator {
       const accepted = this.#handleMouseHoldToggle(generation);
       if (accepted) {
         this.#holdGeneration = generation;
-      }
-      // 只有实际接受（翻译或还原）了目标时才启用点击抑制：
-      // 被规则排除或未命中任何目标的按住不应吞掉后续的导航/按钮点击
-      if (
-        accepted &&
-        this.#mouseHoldPreventClickEnabled &&
-        this.#mouseHoldInteractive
-      ) {
-        this.#mouseHoldSuppressClick = true;
+        if (this.#mouseHoldArmedButton === 2) {
+          // 右键模式：翻译成功后屏蔽这次松开时的原生右键菜单，
+          // 避免菜单盖住译文（关闭该选项时保留原生菜单）
+          if (this.#shouldSuppressContextMenu()) {
+            this.#mouseHoldSuppressContextMenu = true;
+            this.#mouseHoldSuppressMenuToken += 1;
+          }
+        } else if (
+          // 左键模式：只有实际接受（翻译或还原）了目标时才启用点击抑制：
+          // 被规则排除或未命中任何目标的按住不应吞掉后续的导航/按钮点击
+          this.#mouseHoldPreventClickEnabled &&
+          this.#mouseHoldInteractive
+        ) {
+          this.#mouseHoldSuppressClick = true;
+        }
       }
     }, this.#getMouseHoldDelay());
   }
 
-  // 鼠标左键松开：取消本次按住状态
+  // 鼠标按键松开：取消本次按住状态
   #handleMouseHoldUp(event) {
-    if (event.button !== 0) return;
+    // 按住期间可能切换了左键/右键模式，本次按下的按键与当前配置的按键
+    // 任一匹配都结束按住状态，避免 mouseup 被漏掉后状态长期残留
+    if (
+      event.button !== this.#mouseHoldArmedButton &&
+      event.button !== this.#getMouseHoldButton()
+    ) {
+      return;
+    }
+    this.#cancelMouseHold();
+  }
+
+  // 右键菜单事件：
+  // - 左键模式：按住期间弹出菜单即取消按住（原有行为）
+  // - 右键模式：短按右键保留原生菜单；按住翻译成功的那一次屏蔽菜单
+  #handleMouseHoldContextMenu(event) {
+    // 本次右键按住已经触发过翻译：屏蔽菜单并消费标志
+    if (this.#mouseHoldSuppressContextMenu) {
+      this.#mouseHoldSuppressContextMenu = false;
+      this.#blockContextMenu(event);
+      return;
+    }
+    // 右键按住的按住状态仍然有效（部分平台在按下瞬间就触发 contextmenu）
+    if (this.#mouseHoldActive && this.#mouseHoldArmedButton === 2) {
+      if (this.#shouldSuppressContextMenu()) {
+        // 屏蔽菜单但保留按住状态，让翻译仍能触发。
+        // 翻译尚未触发就弹菜单 = 该平台“按下即弹菜单”（macOS/Linux），
+        // 记下来：这类按住本来就不会有 mouseup，不能当成手势接管而撤回译文
+        if (!this.#mouseHoldTriggered) {
+          this.#mouseHoldMenuFiredWhilePressing = true;
+        }
+        this.#blockContextMenu(event);
+      } else {
+        // 保留原生菜单：菜单接管了这次右键，结束尚未完成的按住，
+        // 否则菜单打开后（该平台不再派发 mouseup）仍会弹出译文
+        this.#cancelMouseHold();
+      }
+      return;
+    }
     this.#cancelMouseHold();
   }
 
   // 按住期间鼠标明显移动（拖选/拖动）时取消触发
   #handleMouseHoldMove(event) {
-    if (!this.#mouseHoldActive || this.#mouseHoldTriggered) return;
+    if (!this.#mouseHoldActive) return;
+    // 页面报告“没有任何按键按下”，但我们仍在跟踪这次按住 = 松开事件丢失
+    // （Edge 内置手势等浏览器接管，或松手发生在窗口外）。
+    if (typeof event.buttons === "number" && event.buttons === 0) {
+      if (
+        this.#mouseHoldArmedButton === 2 &&
+        !this.#mouseHoldMenuFiredWhilePressing
+      ) {
+        this.#handleMouseHoldTakeover();
+        return;
+      }
+      // 非接管场景（左键模式、按下即弹菜单的平台）：页面自绘的合成 mousemove
+      // 也可能带 buttons=0，因此只在翻译已经触发后才据此结束按住；
+      // 触发前仍走位移规则，保持原有行为
+      if (this.#mouseHoldTriggered) {
+        this.#cancelMouseHold();
+        return;
+      }
+    }
+    if (this.#mouseHoldTriggered) return;
+    const distance = Math.hypot(
+      event.clientX - this.#mouseHoldStartX,
+      event.clientY - this.#mouseHoldStartY
+    );
+    // 触发前就已明显移动 = 这次按下的本意是拖拽/手势（而不是按住翻译），
+    // 供“被浏览器手势接管”时判断要不要撤回译文
+    if (distance >= MOUSE_HOLD_MOVING_FLOOR) {
+      this.#mouseHoldMovedBeforeTrigger = true;
+    }
     const moved =
       Math.abs(event.clientX - this.#mouseHoldStartX) > 6 ||
       Math.abs(event.clientY - this.#mouseHoldStartY) > 6;
@@ -1803,13 +2033,17 @@ export class Translator {
     event.stopImmediatePropagation?.();
   }
 
-  // 取消按住左键触发的等待状态
+  // 取消按住触发的等待状态
   #cancelMouseHold() {
     this.#mouseHoldActive = false;
     this.#mouseHoldTriggered = false;
+    this.#mouseHoldArmedButton = null;
     this.#mouseHoldPreventClickEnabled = false;
     this.#mouseHoldInteractive = false;
     this.#mouseHoldDownTarget = null;
+    this.#mouseHoldRevertContext = null;
+    this.#mouseHoldMenuFiredWhilePressing = false;
+    this.#mouseHoldMovedBeforeTrigger = false;
     if (this.#mouseHoldSuppressClick) {
       // click 事件在 mouseup 之后同步触发，这里仅作为兜底清理，
       // 避免窗口失焦等场景下标志残留导致下一次点击被误拦截。
@@ -1817,13 +2051,24 @@ export class Translator {
         this.#mouseHoldSuppressClick = false;
       }, 0);
     }
+    if (this.#mouseHoldSuppressContextMenu) {
+      // 右键菜单在 mouseup 之后紧接着触发（部分平台在按下时触发），
+      // 这里延迟兜底清理，避免上下文被中断时标志残留。
+      // 带上代次判断：清理期间如果又完成了一次右键按住，不能把新标记清掉。
+      const token = this.#mouseHoldSuppressMenuToken;
+      setTimeout(() => {
+        if (this.#mouseHoldSuppressMenuToken === token) {
+          this.#mouseHoldSuppressContextMenu = false;
+        }
+      }, 500);
+    }
     if (this.#mouseHoldTimer) {
       clearTimeout(this.#mouseHoldTimer);
       this.#mouseHoldTimer = null;
     }
   }
 
-  // 按住左键到点后执行：优先翻译/还原光标所在的整块文字区域
+  // 按住按键到点后执行：优先翻译/还原光标所在的整块文字区域
   #handleMouseHoldToggle(generation) {
     if (!this.#isInitialized) {
       this.#init();
@@ -1879,7 +2124,7 @@ export class Translator {
         }
       }
     } catch (err) {
-      kissLog("mouse hold resolve target", err);
+      logger.child("translator").warn("mouse hold resolve target", err);
     }
     // 坐标定位失败时退回 mousedown 按下时的目标元素
     if (!targetNode) {
@@ -1887,6 +2132,7 @@ export class Translator {
     }
     if (this.#canShowOriginalInHoverBubble(targetNode)) {
       this.#showOriginalHoverBubble(targetNode);
+      this.#rememberMouseHoldRevert("bubble", targetNode, false);
       return true;
     }
     if (!targetNode) return false;
@@ -1902,7 +2148,10 @@ export class Translator {
     const atomicTarget = this.#findAtomicHoldTarget(targetNode);
     if (atomicTarget) {
       if (this.#isHoldTargetAllowed(atomicTarget)) {
+        // 单字符图标按钮等文本无效的目标不会产生译文，不能算“已接受”
+        if (!this.#hasHoldTranslatableText(atomicTarget)) return false;
         this.#toggleTargetNode(atomicTarget, true, false, generation);
+        this.#rememberMouseHoldRevert("node", atomicTarget, false);
         return true;
       }
       // 原子目标被规则排除时，回退到悬停时登记的容器/原文单元
@@ -1930,31 +2179,29 @@ export class Translator {
       OPT_MOUSE_HOVER_TRANS_AREA;
     if (transMode === OPT_MOUSE_HOVER_TRANS_PARAGRAPH) {
       // 只翻译当前段：与旧版鼠标悬停翻译行为一致
-      this.#toggleTargetNode(
-        targetNode,
-        true,
-        this.#getMouseHoldBlockDisplay(),
-        generation
-      );
+      if (!this.#hasHoldTranslatableText(targetNode)) return false;
+      const blockDisplay = this.#getMouseHoldBlockDisplay();
+      this.#toggleTargetNode(targetNode, true, blockDisplay, generation);
+      this.#rememberMouseHoldRevert("node", targetNode, blockDisplay);
       return true;
     }
 
     const area = this.#findMouseHoverAreaNode(targetNode, transMode);
     if (!area || area === targetNode) {
-      this.#toggleTargetNode(
-        targetNode,
-        true,
-        this.#getMouseHoldBlockDisplay(),
-        generation
-      );
+      if (!this.#hasHoldTranslatableText(targetNode)) return false;
+      const blockDisplay = this.#getMouseHoldBlockDisplay();
+      this.#toggleTargetNode(targetNode, true, blockDisplay, generation);
+      this.#rememberMouseHoldRevert("node", targetNode, blockDisplay);
       return true;
     }
-    return this.#toggleHoverBlock(area, generation);
+    const accepted = this.#toggleHoverBlock(area, generation);
+    if (accepted) this.#rememberMouseHoldRevert("area", area, false);
+    return accepted;
   }
 
   // 查找可作为独立翻译目标的链接/按钮等可交互文字元素。
   // 按钮、链接、summary 等元素即使不在常规扫描范围内，
-  // 也允许通过按住左键单独翻译，便于处理图标旁文字、按钮文案等短文本。
+  // 也允许通过按住按键单独翻译，便于处理图标旁文字、按钮文案等短文本。
   #findAtomicHoldTarget(node) {
     let current = node;
     while (current && current !== document.body) {
@@ -2003,7 +2250,6 @@ export class Translator {
     let current;
     while ((current = walker.nextNode())) {
       if (!current.nodeValue?.trim()) continue;
-      if (isInNonContent(current)) continue;
       if (leaf) return null; // 存在多个非空文本节点时不下钻
       leaf = current.parentElement;
     }
@@ -2025,7 +2271,6 @@ export class Translator {
     while ((current = walker.nextNode())) {
       const text = current.nodeValue?.trim() || "";
       if (!text) continue;
-      if (isInNonContent(current)) continue;
       if (
         current.parentElement?.closest?.(`.${Translator.KISS_CLASS.warpper}`)
       ) {
@@ -2070,7 +2315,7 @@ export class Translator {
     }
   }
 
-  // 按住左键翻译的目标是否允许翻译（遵循个人/订阅/全局规则设置）
+  // 按住翻译的目标是否允许翻译（遵循个人/订阅/全局规则设置）
   #isHoldTargetAllowed(node) {
     if (!node) return false;
     if (node.closest?.(this.#ignoreSelector)) return false;
@@ -2173,8 +2418,14 @@ export class Translator {
     }
     // 缓存与新鲜收集的单元统一执行完整规则校验（ignore/roots/selector）：
     // updateRule 收紧范围规则后，旧的已观察单元不会被继续翻译
-    units = units.filter((unit) => this.#isHoldTargetAllowed(unit));
+    units = units.filter(
+      (unit) =>
+        this.#isHoldTargetAllowed(unit) && this.#hasHoldTranslatableText(unit)
+    );
     if (units.length === 0) {
+      // 没有可翻译单元时退回悬停节点；文本无效则如实返回“未接受”，
+      // 否则会在没有译文的情况下误吞右键菜单
+      if (!this.#hasHoldTranslatableText(this.#hoveredNode)) return false;
       this.#toggleTargetNode(
         this.#hoveredNode,
         true,
@@ -2237,8 +2488,11 @@ export class Translator {
         : node.matches?.(this.#ignoreSelector);
       if (isIgnored) return;
       if (this.#observedNodes.has(node)) {
-        // 超大容器不适合作为单一翻译单元（会超过接口长度限制），继续下钻到子单元
-        const isOversized = (node.textContent || "").trim().length > maxLength;
+        // 已处理单元保留还原/取消能力；新单元只按实际可翻译原文判断长度。
+        // 超大容器继续下钻到子单元，不把隐藏内容或已渲染的译文计入上限。
+        const isOversized =
+          !this.#processedNodes.has(node) &&
+          this.#getSourceText(node).trim().length > maxLength;
         if (!isOversized) {
           units.push(node);
         }
@@ -2437,7 +2691,7 @@ export class Translator {
         }
       }
     } catch (err) {
-      kissLog("无法访问某个 shadowRoot", err);
+      logger.child("translator").warn("无法访问某个 shadowRoot", err);
     }
     // const end = performance.now();
     // const duration = end - start;
@@ -2447,14 +2701,18 @@ export class Translator {
 
   // 向上查找发生变化的块级元素
   #findChangeContainer(startNode) {
+    const preserved = getPreservedInlineAncestor(startNode, (node) =>
+      this.#isKeptInline(node)
+    );
+    const scanStart = preserved ? preserved.parentElement : startNode;
     if (
-      !Translator.isElementOrFragment(startNode) ||
-      startNode.closest?.(this.#ignoreSelector)
+      !Translator.isElementOrFragment(scanStart) ||
+      scanStart.closest?.(this.#ignoreSelector)
     ) {
       return null;
     }
 
-    let current = startNode;
+    let current = scanStart;
     while (current && current !== document.body) {
       if (current.classList?.contains(Translator.KISS_CLASS.original)) {
         current = current.parentElement;
@@ -2530,6 +2788,10 @@ export class Translator {
     if (!container) return;
 
     if (!preserveTranslations) {
+      const preserved = getPreservedInlineAncestor(changedNode, (node) =>
+        this.#isKeptInline(node)
+      );
+      if (preserved) this.#cleanupAllTranslations(preserved);
       this.#processedNodes.delete(container); // 删除处理状态，允许重新翻译
       if (preserveDescendants) {
         this.#cleanupUnitTranslations(container);
@@ -2561,15 +2823,13 @@ export class Translator {
   // 监控shadowroot
   #startObserveShadowRoot(shadowRoot) {
     try {
-      if (
-        shadowRoot.host.matches(`#${APP_CONSTS.fabID}, #${APP_CONSTS.boxID}`)
-      ) {
+      if (this.#isKissIgnoredNode(shadowRoot.host)) {
         return;
       }
       this.#startObserveRoot(shadowRoot);
       this.#injectSheet(shadowRoot);
     } catch (err) {
-      kissLog("startObserveShadowRoot", err);
+      logger.child("translator").info("startObserveShadowRoot", err);
     }
   }
 
@@ -2589,7 +2849,7 @@ export class Translator {
   // 开始/重新监控节点
   #startObserveNode(node) {
     // todo: DocumentFragment 无法被 this.#io.observe
-    if (!Translator.isElement(node)) return;
+    if (!Translator.isElement(node) || isInInlineHidden(node)) return;
     this.#touchCandidates.add(node);
     this.#touchController?.observe(node);
     if (this.#tryAdoptExistingTranslationHost(node)) {
@@ -2631,18 +2891,31 @@ export class Translator {
   }
 
   #targetOptions(rule = this.#rule) {
+    // One synchronous scan owns these snapshots. Later scans always read live
+    // styles again, including after a formula or component changes display.
+    const layouts = new WeakMap();
+    const contentRoles = new WeakMap();
+    const ignoreSelector = this.#getIgnoreSelector(rule);
+    const readLayout = (node) => {
+      if (!layouts.has(node)) layouts.set(node, getNodeLayout(node));
+      return layouts.get(node);
+    };
+    const isPreserved = (node) => {
+      if (!contentRoles.has(node))
+        contentRoles.set(
+          node,
+          this.#getContentRole(node, rule, readLayout, ignoreSelector)
+        );
+      return contentRoles.get(node) !== "translate";
+    };
+    const isForcedBlock = (node) => this.#matchesBlockSelector(node, rule);
     return {
       ...rule,
-      ignoreSelector: this.#getIgnoreSelector(rule),
-      isBlock: (node) => {
-        try {
-          if (rule.blockSelector && node.matches?.(rule.blockSelector))
-            return true;
-        } catch {
-          /* Invalid legacy block selectors fall back to tag/display. */
-        }
-        return Translator.isBlockNode(node);
-      },
+      ignoreSelector,
+      getLayout: readLayout,
+      isBlock: (node) =>
+        hasBlockLayout(node, isForcedBlock, isPreserved, readLayout),
+      isPreservedInline: (node) => this.#isKeptInline(node, rule, readLayout),
       hasText: Translator.hasTextNode,
       wrapperClass: Translator.KISS_CLASS.warpper,
     };
@@ -2729,12 +3002,16 @@ export class Translator {
     if (
       !this.#apiSetting ||
       this.#processedNodes.has(node) ||
-      !Translator.isElementOrFragment(node)
+      !Translator.isElementOrFragment(node) ||
+      isInInlineHidden(node)
     ) {
       return;
     }
 
     if (options.valid && !options.valid()) return;
+    // Invalid sources must not become processed/restorable hold targets.
+    const sourceText = this.#getSourceText(node);
+    if (this.#isInvalidText(sourceText)) return;
     const appliedRule = { ...this.#rule };
     this.#processedNodes.set(node, appliedRule);
     // 按住操作代次与 runId：语言检测等异步环节完成后据此判断任务是否已过期
@@ -2744,11 +3021,6 @@ export class Translator {
       this.#holdProcessGenerations.set(node, generation);
     } else {
       this.#holdProcessGenerations.delete(node);
-    }
-
-    // 提前检测文本
-    if (this.#isInvalidText(node.textContent)) {
-      return;
     }
 
     // 提前进行语言检测
@@ -2766,7 +3038,7 @@ export class Translator {
     } = this.#setting;
     if (fromLang === "auto") {
       // revert 529
-      deLang = await tryDetectLang(node.textContent, langDetector);
+      deLang = await tryDetectLang(sourceText, langDetector);
       // 语言检测期间可能发生了还原、重新触发或停止/重扫：
       // 任务已失效，不再创建译文容器或发起翻译请求。
       // 只撤销本任务的标记，不能清除重扫后新任务的状态。
@@ -3076,9 +3348,23 @@ export class Translator {
     let textLength = 0;
 
     [...parentNode.childNodes].forEach((node) => {
-      textLength += node.textContent.length;
+      if (this.#getParagraphAuxiliaryRole(node)) return;
+      // 文本长度与句末判断同 #getSourceText 过滤口径：元素子节点统一走
+      // getInlineVisibleText（auxiliary + 共享跳过谓词），KISS UI / 忽略
+      // 元素（含无元素子级的叶子元素）文本不计数、不参与句末判断；文本
+      // 节点维持 textContent 原状。
+      const text =
+        node.nodeType === Node.ELEMENT_NODE
+          ? getInlineVisibleText(
+              node,
+              (element) =>
+                Boolean(this.#getParagraphAuxiliaryRole(element)) ||
+                this.#isInlineContentSkipped(element)
+            )
+          : node.textContent;
+      textLength += text.length;
 
-      const isSentenceEnd = sentenceEndRegexForTest.test(node.textContent);
+      const isSentenceEnd = sentenceEndRegexForTest.test(text);
       if (
         !isSentenceEnd ||
         node.nextSibling?.nodeName?.toUpperCase() === "BR"
@@ -3116,7 +3402,7 @@ export class Translator {
             child.replaceWith(document.createTextNode(child.textContent));
           } else if (child.classList.contains(Translator.KISS_CLASS.br)) {
             child.remove();
-          } else if (!this.#shouldBreak(child)) {
+          } else if (!this.#shouldBreak(child, true)) {
             stack.push(child);
           }
         }
@@ -3150,44 +3436,63 @@ export class Translator {
     );
   }
 
-  // 判断是否需要换行
-  #shouldBreak(node) {
-    if (!Translator.isElementOrFragment(node)) return false;
-    if (isInNonContent(node)) return true;
-
-    let matchesKeepSelector = false;
+  // Only inline keep elements may bypass configurable ignores inside a paragraph.
+  #isKeptInline(node, rule = this.#rule, readLayout = getNodeLayout) {
+    if (!Translator.isElement(node)) return false;
     try {
-      matchesKeepSelector = node.matches(this.#rule.keepSelector);
-    } catch (err) {
-      kissLog(
-        "keepSelector match error in shouldBreak",
-        this.#rule.keepSelector,
-        err
+      return (
+        node.matches(rule.keepSelector) &&
+        !node.matches(NON_CONTENT_SELECTOR) &&
+        !this.#isKissIgnoredNode(node) &&
+        !["hidden", "block"].includes(readLayout(node)) &&
+        !this.#matchesBlockSelector(node, rule)
       );
+    } catch (err) {
+      logger
+        .child("translator")
+        .warn("keepSelector match error", rule.keepSelector, err);
+      return false;
     }
-    if (matchesKeepSelector) return false;
+  }
 
+  /**
+   * 不生成布局盒的节点作为辅助节点，不因标签类型中断段落。
+   * @param {Node} node 待判断的节点。
+   * @returns {"boundary" | "auxiliary" | undefined}
+   *   `"boundary"` 表示在此结束当前翻译组。
+   *   `"auxiliary"` 表示保留在原文节点组中，继续分组，且节点内容不送翻。
+   *   `undefined` 表示交由常规段落边界规则处理。
+   */
+  #getParagraphAuxiliaryRole(node) {
+    if (!Translator.isElement(node)) return undefined;
     if (
-      Translator.TAGS.BREAK_LINE.has(node.nodeName?.toUpperCase()) ||
-      node.matches?.(this.#ignoreSelector) ||
-      node.nodeName?.toLowerCase() === this.#translationTagName
-    ) {
-      return true;
-    }
+      this.#matchesBlockSelector(node) ||
+      this.#isKissIgnoredNode(node) ||
+      node.localName === this.#translationTagName
+    )
+      return "boundary";
+    if (this.#getContentRole(node) !== "skip") return undefined;
+    if (isInlineHidden(node) || node.matches(PARAGRAPH_METADATA_SELECTOR))
+      return "auxiliary";
+    if (Translator.TAGS.BREAK_LINE.has(node.tagName) || this.#isBlockNode(node))
+      return "boundary";
+    return "auxiliary";
+  }
 
-    if (this.#rule.autoScan === "true" && this.#isBlockNode(node)) {
+  // Group boundaries and recursion stops differ: skipped inline subtrees are
+  // retained in the source group, but cleanup must never enter them.
+  #shouldBreak(node, breakAtAuxiliary = false) {
+    if (!Translator.isElementOrFragment(node)) return false;
+    const auxiliaryRole = this.#getParagraphAuxiliaryRole(node);
+    if (auxiliaryRole) return breakAtAuxiliary || auxiliaryRole === "boundary";
+    if (this.#isKeptInline(node)) return false;
+    if (Translator.TAGS.BREAK_LINE.has(node.nodeName?.toUpperCase()))
       return true;
-    }
-
-    if (
-      this.#rule.autoScan === "false" &&
-      (node.matches(this.#rule.selector) ||
-        node.querySelector(this.#rule.selector))
-    ) {
-      return true;
-    }
-
-    return false;
+    if (this.#rule.autoScan === "true") return this.#isBlockNode(node);
+    return Boolean(
+      node.matches?.(this.#rule.selector) ||
+        node.querySelector?.(this.#rule.selector)
+    );
   }
 
   // 过滤文本
@@ -3308,6 +3613,7 @@ export class Translator {
 
     const panel = document.createElement("span");
     panel.className = "notranslate";
+    panel.setAttribute("data-kiss-ui", "");
     panel.setAttribute("translate", "no");
     panel.style.cssText = [
       "position: fixed",
@@ -3379,7 +3685,9 @@ export class Translator {
           copyButton.textContent = copyText;
         }, 800);
       } catch (copyErr) {
-        kissLog("copy translate error: ", this.#formatTranslateError(copyErr));
+        logger
+          .child("translator")
+          .error("copy translate error: ", this.#formatTranslateError(copyErr));
       }
     });
 
@@ -3499,7 +3807,9 @@ export class Translator {
   // 显示在原文下方，并留出上下间距（margin: 8px 0），便于对照阅读。
   async #translateNodeGroup(nodes, hostNode, deLang, options = {}) {
     if (options.valid && !options.valid()) return;
+    if (isInInlineHidden(hostNode)) return;
     const currentRunId = this.#runId;
+    const signal = this.#translationController.signal;
     const {
       transTag,
       textStyle,
@@ -3530,9 +3840,21 @@ export class Translator {
     let wrapper = null;
 
     try {
+      const selectedApi = options.touch
+        ? this.#hoverBubbleApiSetting
+        : this.#apiSetting;
+      let terminology = this.#prepareRequestTerminology(selectedApi);
+      if (terminology.then) terminology = await terminology;
+      if (
+        signal.aborted ||
+        currentRunId !== this.#runId ||
+        (options.valid && !options.valid())
+      )
+        return;
       const [processedString, placeholderMap] = this.#serializeForTranslation(
         nodes,
-        termsStyle
+        termsStyle,
+        terminology
       );
       if (this.#isInvalidText(processedString)) return;
 
@@ -3602,7 +3924,7 @@ export class Translator {
       const isStreamRender =
         streamRenderMode !== "disabled" &&
         this.#apiSetting.useStream &&
-        API_SPE_TYPES.stream.has(this.#apiSetting.apiType);
+        supportsServiceFeature(this.#apiSetting, "stream");
 
       // REVIEW: 极佳的性能优化设计 (RequestAnimationFrame 缓冲刷新)！
       // 大模型流式输出（onStreamChunk）返回速率极快（每秒可达几十次）。
@@ -3677,7 +3999,10 @@ export class Translator {
           processedString,
           deLang,
           onStreamChunk,
-          options.touch ? this.#hoverBubbleApiSetting : null
+          options.touch ? selectedApi : null,
+          signal,
+          true,
+          terminology
         );
         translatedText = result.trText;
         isSameLang = result.isSame;
@@ -3774,37 +4099,49 @@ export class Translator {
           // 同步运行的 `interpreter.run('exports.transEndHook = ...')` 会直接覆盖上一个任务尚未执行完毕的 exports.transEndHook 引用。
           // 这可能导致后一个任务的 Hook 函数被错误地执行多次，或者前一个任务执行了不匹配的、新覆盖的 Hook 函数，出现非预期的运行时状态混乱。
           if (transEndHook?.trim()) {
-            try {
-              interpreter.run(`exports.transEndHook = ${transEndHook}`);
-              interpreter.exports.transEndHook(
-                {
-                  hostNode,
-                  parentNode,
-                  nodes,
-                  wrapperNode: wrapper,
-                  innerNode: inner,
-                },
-                {
-                  text: processedString,
-                  fromLang: deLang || this.#rule.fromLang,
-                  toLang,
-                }
-              );
-            } catch (err) {
-              kissLog("transEndHook", err);
-            }
+            getInterpreter()
+              .then((interpreter) => {
+                interpreter.run(`exports.transEndHook = ${transEndHook}`);
+                interpreter.exports.transEndHook(
+                  {
+                    hostNode,
+                    parentNode,
+                    nodes,
+                    wrapperNode: wrapper,
+                    innerNode: inner,
+                  },
+                  {
+                    text: processedString,
+                    fromLang: deLang || this.#rule.fromLang,
+                    toLang,
+                  }
+                );
+              })
+              .catch((err) => {
+                logger.child("translator").warn("transEndHook", err);
+              });
           }
         },
         nodes
       );
     } catch (err) {
+      if (
+        signal.aborted ||
+        currentRunId !== this.#runId ||
+        (options.valid && !options.valid())
+      )
+        return;
       // 容器已被还原移除时丢弃过期失败结果，避免 “Request terminated” 分支的
       // #cleanupDirectTranslations(hostNode) 误删宿主上随后产生的新译文，
       // 也避免在已脱离文档的容器里渲染重试按钮。
       if (wrapper && !wrapper.isConnected) return;
 
       const errorText = this.#formatTranslateError(err);
-      kissLog("translate group error: ", errorText);
+      logger.child("translator").error("translate group error: ", errorText);
+      if (!wrapper) {
+        this.#processedNodes.delete(hostNode);
+        return;
+      }
       if (err?.message === "Request terminated") {
         this.#cleanupDirectTranslations(hostNode);
         return;
@@ -3812,28 +4149,22 @@ export class Translator {
 
       // 失败重试按钮
       try {
-        const lastWrapper = hostNode.querySelector(
-          `:scope > .${Translator.KISS_CLASS.warpper}:last-of-type`
-        );
-        if (lastWrapper) {
-          const inner = lastWrapper.querySelector(
-            `.${Translator.KISS_CLASS.inner}`
-          );
-          if (inner) {
-            inner.textContent = "";
-            const retryNode = this.#createRetryErrorNode(errorText, () => {
-              this.#withViewportAnchor(() => {
-                touchTranslationOwners.delete(lastWrapper);
-                lastWrapper.remove();
-              });
-              this.#processedNodes.delete(hostNode);
-              this.#translateNodeGroup(nodes, hostNode, deLang, options);
+        // 只处理本次请求自己的 wrapper：宿主上可能还有其他分组已成功的译文
+        const inner = wrapper.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        if (inner) {
+          inner.textContent = "";
+          const retryNode = this.#createRetryErrorNode(errorText, () => {
+            this.#withViewportAnchor(() => {
+              touchTranslationOwners.delete(wrapper);
+              wrapper.remove();
             });
-            inner.appendChild(retryNode);
-          }
+            this.#processedNodes.delete(hostNode);
+            this.#translateNodeGroup(nodes, hostNode, deLang, options);
+          });
+          inner.appendChild(retryNode);
         }
       } catch (retryErr) {
-        kissLog("retry icon error: ", retryErr.message);
+        logger.child("translator").warn("retry icon error: ", retryErr.message);
         this.#cleanupDirectTranslations(hostNode);
       }
     }
@@ -3955,7 +4286,7 @@ export class Translator {
       ) {
         return;
       }
-      kissLog("favorite word lookup failed", err);
+      logger.child("translator").warn("favorite word lookup failed", err);
       this.#showFavoriteBubble(
         i18n("favorite_word_lookup_failed", "Failed to load definition."),
         "error"
@@ -4099,6 +4430,7 @@ overflow-wrap: anywhere !important;`;
 
   // 气泡模式下翻译目标节点，处理请求竞态与错误边界
   async #translateHoverBubbleNode(node) {
+    const signal = this.#translationController.signal;
     this.#clearHoverOriginalTimer();
     if (!this.#hoverBubbleApiSetting) {
       this.#hideHoverBubble();
@@ -4107,7 +4439,7 @@ overflow-wrap: anywhere !important;`;
     if (!Translator.isElementOrFragment(node)) return;
     if (this.#hoverBubbleTarget === node && this.#hoverBubbleNode) return;
 
-    const text = node.textContent || "";
+    const text = this.#getSourceText(node);
     if (this.#isInvalidText(text)) {
       this.#hideHoverBubble();
       return;
@@ -4146,13 +4478,26 @@ overflow-wrap: anywhere !important;`;
         return;
       }
 
+      const selectedApi = this.#hoverBubbleApiSetting;
+      let terminology = this.#prepareRequestTerminology(selectedApi);
+      if (terminology.then) terminology = await terminology;
+      if (
+        signal.aborted ||
+        this.#hoverBubbleRunId !== currentRunId ||
+        this.#hoverBubbleTarget !== node
+      )
+        return;
       const { trText, isSame } = await this.#translateFetch(
         text,
         deLang,
         null,
-        this.#hoverBubbleApiSetting
+        selectedApi,
+        signal,
+        false,
+        terminology
       );
       if (
+        signal.aborted ||
         this.#hoverBubbleRunId !== currentRunId ||
         this.#hoverBubbleTarget !== node
       ) {
@@ -4171,6 +4516,7 @@ overflow-wrap: anywhere !important;`;
       );
     } catch (err) {
       if (
+        signal.aborted ||
         this.#hoverBubbleRunId !== currentRunId ||
         this.#hoverBubbleTarget !== node
       ) {
@@ -4181,7 +4527,12 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 处理节点转为翻译字符串
-  #serializeForTranslation(nodes, termsStyle) {
+  #serializeForTranslation(nodes, termsStyle, terminology) {
+    const termEntries =
+      terminology?.resolved.normalEntries || this.#termEntries;
+    const termMatcher = terminology
+      ? terminology.matcher
+      : this.#termMatcher || this.#combinedTermsRegex;
     let replaceCounter = 0; // {{n}}
     let wrapCounter = 0; // <tagn>
     const placeholderMap = new Map();
@@ -4195,6 +4546,7 @@ overflow-wrap: anywhere !important;`;
     };
 
     const traverse = (node) => {
+      if (isInlineHidden(node)) return "";
       if (
         node.nodeType !== Node.ELEMENT_NODE &&
         node.nodeType !== Node.TEXT_NODE
@@ -4204,22 +4556,20 @@ overflow-wrap: anywhere !important;`;
 
       // 文本节点
       if (node.nodeType === Node.TEXT_NODE) {
-        if (isInNonContent(node)) return "";
         let text = node.textContent;
-        if (!text.trim()) return "";
 
         // 专业术语替换：matcher 一次物化（热路径零编译），applyTermReplace 内部重置 lastIndex
-        if (this.#combinedTermsRegex) {
+        if (termMatcher) {
           const { output } = applyTermReplace(
             text,
-            this.#termEntries,
+            termEntries,
             (termEntry, fullMatch) => {
               const termValue = termEntry.value;
               return pushReplace(
                 `<i class="${Translator.KISS_CLASS.term}" style="${termsStyle}">${termValue || fullMatch}</i>`
               );
             },
-            this.#termMatcher || this.#combinedTermsRegex
+            termMatcher
           );
           text = output;
         }
@@ -4229,36 +4579,33 @@ overflow-wrap: anywhere !important;`;
 
       // 元素节点
       if (node.nodeType === Node.ELEMENT_NODE) {
-        if (isInNonContent(node)) return "";
+        const contentRole = this.#getContentRole(node);
+        if (contentRole === "skip") return "";
 
         // 收藏词高亮只影响原文显示，不应改变翻译请求的结构
         if (node.classList.contains(Translator.KISS_CLASS.highlight)) {
           return Array.from(node.childNodes, traverse).join("");
         }
 
-        if (this.#isIgnoredElement(node)) {
-          return "";
-        }
-
-        let matchesKeepSelector = false;
-        try {
-          matchesKeepSelector = node.matches(this.#rule.keepSelector);
-        } catch (err) {
-          kissLog("keepSelector match error", this.#rule.keepSelector, err);
-        }
+        const keptInline = contentRole === "keep";
 
         if (
           (this.#rule.hasRichText === "true" &&
             Translator.TAGS.REPLACE.has(node.tagName)) ||
-          matchesKeepSelector ||
+          keptInline ||
           // node.matches(this.#ignoreSelector) ||
           !node.textContent.trim()
         ) {
+          const serializedNode = cloneWithoutInlineHidden(node);
+          serializedNode
+            .querySelectorAll(
+              `${Translator.KISS_IGNORE_SELECTOR}, ${NON_CONTENT_SELECTOR}`
+            )
+            .forEach((child) => child.remove());
           if (
             node.tagName?.toUpperCase() === "IMG" ||
             node.tagName?.toUpperCase() === "SVG"
           ) {
-            const serializedNode = node.cloneNode(true);
             const width = node.offsetWidth;
             const height = node.offsetHeight;
             if (width > 0) {
@@ -4267,9 +4614,8 @@ overflow-wrap: anywhere !important;`;
             if (height > 0) {
               serializedNode.style.height = `${height}px`;
             }
-            return pushReplace(serializedNode.outerHTML);
           }
-          return pushReplace(node.outerHTML);
+          return pushReplace(serializedNode.outerHTML);
         }
 
         let innerContent = "";
@@ -4277,11 +4623,11 @@ overflow-wrap: anywhere !important;`;
           try {
             innerContent += traverse(child);
           } catch (err) {
-            kissLog("traverse child error", child.nodeName, err);
+            logger
+              .child("translator")
+              .warn("traverse child error", child.nodeName, err);
           }
         });
-
-        if (!innerContent) return "";
 
         if (
           this.#rule.hasRichText === "true" &&
@@ -4388,7 +4734,9 @@ overflow-wrap: anywhere !important;`;
       // 获取还原完毕后的富文本 HTML 字符串
       result = doc.body.innerHTML;
     } catch (e) {
-      kissLog("DOMParser restore failed, fallback to raw", e);
+      logger
+        .child("translator")
+        .warn("DOMParser restore failed, fallback to raw", e);
       // 如果 DOMParser 解析出错（比如翻译源返回了破碎的 HTML 片段），则回退，继续尝试用正则直接替换普通占位符
     }
 
@@ -4401,15 +4749,66 @@ overflow-wrap: anywhere !important;`;
     return result;
   }
 
+  // Keep each request's matcher, glossary and API signature on the same snapshot.
+  #prepareRequestTerminology(api = {}) {
+    const sources = [...terminologySourceList(this.#rule), api];
+    const key = JSON.stringify(
+      sources.map(({ terms, aiTerms, termsList }) => [
+        terms || "",
+        aiTerms || "",
+        termsList || [],
+      ])
+    );
+    if (this.#requestTerminologySnapshots.has(key))
+      return this.#requestTerminologySnapshots.get(key);
+    const compile = (tables) => {
+      const resolved = compileTerminology(sources, tables);
+      return {
+        tables,
+        resolved,
+        matcher: buildTermsMatcher(resolved.normalEntries),
+      };
+    };
+    const ids = sources.flatMap((source) => source.termsList || []);
+    if (
+      !ids.length ||
+      (this.#terminologyReady &&
+        ids.every((id) =>
+          [...terminologySourceList(this.#rule), this.#apiSetting || {}].some(
+            (source) => source.termsList?.includes(id)
+          )
+        ))
+    ) {
+      const snapshot = compile(
+        ids.length ? this.#terminologyTables : EMPTY_TERMINOLOGY_TABLES
+      );
+      this.#requestTerminologySnapshots.set(key, snapshot);
+      return snapshot;
+    }
+    const pending = loadTerminologySnapshot(sources)
+      .then(compile)
+      .finally(() => {
+        if (this.#requestTerminologySnapshots.get(key) === pending)
+          this.#requestTerminologySnapshots.delete(key);
+      });
+    this.#requestTerminologySnapshots.set(key, pending);
+    return pending;
+  }
+
   // 发起翻译请求
-  #translateFetch(
+  async #translateFetch(
     text,
     deLang = "",
     onStreamChunk = null,
-    apiSettingOverride = null
+    apiSettingOverride = null,
+    signal = this.#translationController.signal,
+    normalTermsApplied = true,
+    terminology = null
   ) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
+    const hoverScene = apiSettingOverride && this.#setting.mouseHoverSetting;
+    const scene = hoverScene || this.#rule;
     const selectedApi = apiSettingOverride || this.#apiSetting;
     if (!selectedApi || selectedApi.isDisabled) {
       return Promise.reject(
@@ -4417,14 +4816,19 @@ overflow-wrap: anywhere !important;`;
       );
     }
     const rawApiSetting = { ...selectedApi };
+    if (!terminology) {
+      terminology = this.#prepareRequestTerminology(rawApiSetting);
+      if (terminology.then) terminology = await terminology;
+    }
+    if (signal.aborted) throw new DOMException("Cancelled", "AbortError");
 
     const apiSetting = resolveApiPromptSettings(
-      rawApiSetting,
+      withScenePrompt(rawApiSetting, scene),
       this.#setting.prompts,
       this.#setting.subtitleSetting
     );
 
-    const glossary = { ...this.#glossary };
+    const glossary = { ...terminology.resolved.glossary };
     const apisMap = this.#apisMap;
 
     const args = {
@@ -4435,6 +4839,11 @@ overflow-wrap: anywhere !important;`;
       glossary,
       onStreamChunk,
       textFormat: "html",
+      scene: this.#rule,
+      terminologyTables: terminology.tables,
+      normalTermsApplied,
+      onTerminologyWarning: (this.#terminologyWarning ||=
+        terminologyWarningHandler(this.#setting.uiLang)),
       translateVariants: this.#setting.translateVariants,
     };
 
@@ -4445,6 +4854,7 @@ overflow-wrap: anywhere !important;`;
     // 这可能导致先前发起的、仍在执行准备阶段的请求，在调用 transStartHook 时执行成了后一个翻译源的钩子逻辑。
     if (transStartHook?.trim()) {
       try {
+        const interpreter = await getInterpreter();
         interpreter.run(`exports.transStartHook = ${transStartHook}`);
         const hookResult = interpreter.exports.transStartHook({
           ...args,
@@ -4454,11 +4864,21 @@ overflow-wrap: anywhere !important;`;
           Object.assign(args, hookResult);
         }
       } catch (err) {
-        kissLog("transStartHook", err);
+        logger.child("translator").warn("transStartHook", err);
       }
     }
 
-    return apiTranslate(args);
+    // Hooks and request preparation may finish after this session was cancelled.
+    if (signal.aborted) throw new DOMException("Cancelled", "AbortError");
+    return apiTranslate({ ...args, signal });
+  }
+
+  #cancelTranslationRequests() {
+    this.#requestTerminologySnapshots.clear();
+    this.#runId++;
+    this.#translationController.abort();
+    this.#translationController = new AbortController();
+    this.#hideHoverBubble();
   }
 
   // 查找指定节点下所有译文节点
@@ -4514,7 +4934,7 @@ overflow-wrap: anywhere !important;`;
       for (const child of node.children) {
         if (child.classList.contains(Translator.KISS_CLASS.warpper)) {
           wrappers.push(child);
-        } else if (!this.#shouldBreak(child)) {
+        } else if (!this.#shouldBreak(child, true)) {
           stack.push(child);
         }
       }
@@ -4546,12 +4966,7 @@ overflow-wrap: anywhere !important;`;
     }
 
     while (current) {
-      if (
-        this.#shouldBreak(current) &&
-        !Translator.TAGS.WARP.has(current.nodeName?.toUpperCase())
-      ) {
-        break;
-      }
+      if (this.#shouldBreak(current)) break;
 
       if (
         current.nodeType === Node.ELEMENT_NODE ||
@@ -4711,7 +5126,15 @@ overflow-wrap: anywhere !important;`;
         const sourceParents = originalUnits.map((node) => node.parentNode);
         this.#withIgnoredMutations([...sourceParents, parent], () => {
           const frag = document.createDocumentFragment();
-          originalUnits.forEach((node) => frag.appendChild(node));
+          originalUnits.forEach((node) => {
+            // 清理可能随 originalUnits 被移入 template 的残留未决 wrapper/loading 图标
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              node
+                .querySelectorAll?.(`.${Translator.KISS_CLASS.warpper}`)
+                .forEach((w) => w.remove());
+            }
+            frag.appendChild(node);
+          });
           if (this.#rule.transOrder === "translation-first") {
             el.after(frag);
           } else {
@@ -5137,7 +5560,7 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 注入JS/CSS
-  #initInjector() {
+  async #initInjector() {
     if (this.#isJsInjected) {
       return;
     }
@@ -5167,6 +5590,7 @@ overflow-wrap: anywhere !important;`;
         const glossary = { ...this.#glossary };
         const apisMap = this.#apisMap;
         const apiDectect = tryDetectLang;
+        const interpreter = await getInterpreter();
         interpreter.import({
           KT: {
             apiTranslate,
@@ -5180,7 +5604,7 @@ overflow-wrap: anywhere !important;`;
         interpreter.run(injectJs);
       }
     } catch (err) {
-      kissLog("inject js", err);
+      logger.child("translator").warn("inject js", err);
     }
   }
 
@@ -5200,10 +5624,51 @@ overflow-wrap: anywhere !important;`;
 
   // 开启翻译
   enable() {
+    const sources = [
+      ...terminologySourceList(this.#rule),
+      this.#apiSetting || {},
+    ];
+    if (
+      !this.#terminologyReady &&
+      sources.some((source) => source.termsList?.length)
+    ) {
+      if (!this.#terminologyLoading) {
+        const runId = this.#runId;
+        const pending = loadTerminologySnapshot(sources)
+          .then((tables) => {
+            if (runId !== this.#runId) return;
+            this.#terminologyTables = tables;
+            this.#terminologyReady = true;
+            this.#parseTerms(this.#rule.terms);
+            const missing = compileTerminology(sources, tables).missingTableIds;
+            if (missing.length)
+              logger
+                .child("translator")
+                .warn("Terminology tables unavailable", missing);
+            if (this.#enabled) {
+              this.#terminologyWarning = terminologyWarningHandler(
+                this.#setting.uiLang
+              );
+              this.rescan();
+            } else this.enable();
+          })
+          .catch((error) =>
+            logger.child("translator").warn("Unable to load terminology", error)
+          )
+          .finally(() => {
+            if (this.#terminologyLoading === pending)
+              this.#terminologyLoading = null;
+          });
+        this.#terminologyLoading = pending;
+      }
+      return this.#terminologyLoading;
+    }
+
     if (this.#enabled || this.#editorPaused) return;
+    this.#terminologyWarning = terminologyWarningHandler(this.#setting.uiLang);
     this.#enabled = true;
     this.#rule.transOpen = "true";
-    this.#runId++;
+    this.#cancelTranslationRequests();
     this.#restorePendingPlainTextPreSources();
 
     if (this.#isInitialized) {
@@ -5232,34 +5697,45 @@ overflow-wrap: anywhere !important;`;
   async #translateTitle() {
     if (!this.#apiSetting) return;
     const runId = this.#runId;
+    const signal = this.#translationController.signal;
     const docInfo = getDocInfo();
     if (!docInfo?.title) return;
 
     try {
       const deLang = await tryDetectLang(docInfo.title);
       if (runId !== this.#runId || this.#editorPaused) return;
-      const { trText } = await this.#translateFetch(docInfo.title, deLang);
+      const { trText } = await this.#translateFetch(
+        docInfo.title,
+        deLang,
+        null,
+        null,
+        signal,
+        false
+      );
       if (runId !== this.#runId || this.#editorPaused) return;
       this.#docInfo.title = document.title; // 缓存原标题
       document.title = trText || docInfo.title;
     } catch (err) {
-      kissLog("tanslate title", err);
+      logger.child("translator").info("translate title", err);
     }
   }
 
   // 关闭翻译
   disable() {
+    if (this.#terminologyLoading) {
+      this.#cancelTranslationRequests();
+      this.#terminologyLoading = null;
+    }
     if (!this.#enabled) return;
     this.#enabled = false;
+    this.#terminologyReady = false;
     this.#rule.transOpen = "false";
-    this.#runId++;
+    this.#cancelTranslationRequests();
     // 关闭翻译时立即废弃语言检测中的按住任务
     this.#holdGeneration += 1;
 
     this.#cleanupAllNodes();
     this.#restorePendingPlainTextPreSources();
-    clearFetchPool();
-    clearAllBatchQueue();
 
     // 恢复页面标题
     if (this.#rule.transTitle === "true" && this.#docInfo.title) {
@@ -5272,14 +5748,12 @@ overflow-wrap: anywhere !important;`;
   // 重新扫描页面
   rescan() {
     if (!this.#isInitialized || this.#editorPaused) return;
-    this.#runId++;
+    this.#cancelTranslationRequests();
     const touchMode = this.#touchController?.mode || "off";
     this.setTouchMode("off");
 
     this.#cleanupAllNodes();
     this.#resetOptions();
-    clearFetchPool();
-    clearAllBatchQueue();
 
     // 重新初始化
     this.#init();
@@ -5288,7 +5762,7 @@ overflow-wrap: anywhere !important;`;
 
   // 切换是否翻译
   toggle() {
-    this.#enabled ? this.disable() : this.enable();
+    this.#enabled || this.#terminologyLoading ? this.disable() : this.enable();
   }
 
   toggleTransOnly() {
@@ -5323,6 +5797,7 @@ overflow-wrap: anywhere !important;`;
 
   // 停止运行
   stop({ preserveInjector = false } = {}) {
+    this.#cancelTranslationRequests();
     this.setTouchMode("off");
     document.removeEventListener(
       EVENT_FAVORITE_WORD_CHANGE,
@@ -5356,6 +5831,15 @@ overflow-wrap: anywhere !important;`;
     }
     let hasChanged = false;
     let needsRescan = false;
+    if (
+      ["apiSlug", "fromLang", "toLang", "hasRichText"].some(
+        (key) =>
+          Object.prototype.hasOwnProperty.call(newRule, key) &&
+          newRule[key] !== this.#rule[key]
+      )
+    ) {
+      this.#cancelTranslationRequests();
+    }
     const oldTransAllnow = apiState.oldTransAllnow ?? this.#transAllnow;
     const oldRootMargin = apiState.oldRootMargin ?? this.#rootMargin;
     for (const key in newRule) {
@@ -5386,12 +5870,33 @@ overflow-wrap: anywhere !important;`;
     this.#placeholderCache = null;
     this.#blockSelectorInvalid = false;
 
+    if (
+      !newRule.terminologySources &&
+      this.#rule.terminologySources &&
+      ["terms", "aiTerms", "termsList"].some((key) =>
+        Object.prototype.hasOwnProperty.call(newRule, key)
+      )
+    ) {
+      const patch = Object.fromEntries(
+        ["terms", "aiTerms", "termsList"]
+          .filter((key) => Object.prototype.hasOwnProperty.call(newRule, key))
+          .map((key) => [key, newRule[key]])
+      );
+      const [first = {}, ...rest] = this.#rule.terminologySources;
+      this.#rule.terminologySources = [{ ...first, ...patch }, ...rest];
+    }
+
     // terms 变更时重新解析术语：updateRule 可能由扩展/Popup 在运行期推送新规则，
     // 必须同步刷新 #termEntries 与 #combinedTermsRegex，否则术语停留在构造时的旧值
     // （历史缺陷：只有 #rule.terms 被覆盖，解析状态不更新导致新术语静默不生效）。
     // 用 hasOwnProperty 判定（与上方 3991 行一致）：显式传 terms: undefined 不触发重解析，
     // 避免把解析状态置位到 undefined 派生值。
-    if (Object.prototype.hasOwnProperty.call(newRule, "terms")) {
+    if (
+      ["terms", "termsList", "terminologySources", "apiSlug"].some((key) =>
+        Object.prototype.hasOwnProperty.call(newRule, key)
+      )
+    ) {
+      this.#terminologyReady = false;
       this.#parseTerms(this.#rule.terms);
     }
 
@@ -5400,6 +5905,22 @@ overflow-wrap: anywhere !important;`;
     // 导致 AI 翻译静默不生效。这里与 terms 分支并列，保持两者解析状态一致。
     if (Object.prototype.hasOwnProperty.call(newRule, "aiTerms")) {
       this.#glossary = parseAITerms(this.#rule.aiTerms);
+    }
+
+    const hasSelectedTables = [
+      ...terminologySourceList(this.#rule),
+      this.#apiSetting || {},
+    ].some((source) => source.termsList?.length);
+    if (
+      (this.#enabled || this.#terminologyLoading) &&
+      !this.#terminologyReady &&
+      (hasSelectedTables || this.#terminologyLoading)
+    ) {
+      this.#cancelTranslationRequests();
+      this.#terminologyLoading = null;
+      if (this.#enabled && !hasSelectedTables) this.rescan();
+      else this.enable();
+      return;
     }
 
     const needsTriggerRescan =
@@ -5447,13 +5968,14 @@ overflow-wrap: anywhere !important;`;
     this.#setting = { ...this.#setting, transApis: nextApis };
     this.#apisMap = new Map(nextApis.map((api) => [api.apiSlug, api]));
     const nextRule = normalizeRuleApi(this.#rule, nextApis);
-    const nextApi = this.#apisMap.get(nextRule.apiSlug);
+    const nextApi = availableApiForScene(nextRule, nextApis);
     const enabledApi = nextApi && !nextApi.isDisabled ? nextApi : undefined;
     const selectionChanged = oldApi?.apiSlug !== enabledApi?.apiSlug;
-    const hoverApiSlug = this.#setting.mouseHoverSetting?.apiSlug;
+    const hoverScene = this.#setting.mouseHoverSetting;
+    const hoverApiSlug = hoverScene?.apiSlug;
     const hoverApi =
       hoverApiSlug && hoverApiSlug !== GLOBAL_KEY
-        ? this.#apisMap.get(hoverApiSlug)
+        ? availableApiForScene(hoverScene, nextApis)
         : undefined;
     const nextHoverApi =
       hoverApi && !hoverApi.isDisabled ? hoverApi : enabledApi;

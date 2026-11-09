@@ -1,3 +1,4 @@
+import { decodeHTMLText } from "./htmlTextDecoder";
 import { trustedTypesHelper } from "./trustedTypes";
 
 /**
@@ -39,13 +40,7 @@ export function escapeHTML(str) {
 export function decodeHTMLEntities(str) {
   if (!str || typeof str !== "string") return str;
 
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(
-    trustedTypesHelper.createHTML(str),
-    "text/html"
-  );
-
-  return doc.documentElement.textContent || "";
+  return decodeHTMLText(str);
 }
 
 export const encodeHTMLTranslationText = (text) =>

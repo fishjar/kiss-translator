@@ -20,7 +20,12 @@ jest.mock("../../hooks/Fab", () => ({
 }));
 jest.mock("../../hooks/M3Theme", () => ({
   __esModule: true,
-  default: ({ children }) => children,
+  default: ({ children }) =>
+    require("react").createElement(
+      "div",
+      { className: "kt-m3-root" },
+      children
+    ),
 }));
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key) => key,
@@ -427,8 +432,32 @@ describe.each(["document", "shadow root"])(
           })
         )
       );
+      const list = contentRoot.querySelector('[role="listbox"]');
+      expect(list.closest(".kt-m3-root")).toBe(
+        container.querySelector(".kt-m3-root")
+      );
+      expect(list.closest(".kt-content-fab-menu")).toBeNull();
+      // Opening the Select can retarget the release click to its modal root.
+      click(list.closest(".MuiModal-root"));
+      click(list.closest(".kt-m3-root"));
+      expect(menu()).not.toBeNull();
+      expect(document.querySelector('[role="listbox"]')).toBe(
+        context === "shadow root" ? null : list
+      );
+      act(() =>
+        list.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "End",
+            bubbles: true,
+            composed: true,
+          })
+        )
+      );
+      expect(list.getRootNode().activeElement).toBe(
+        list.querySelector('[data-value="swipe"]')
+      );
       await act(async () => {
-        document.querySelector('[data-value="tap"]').click();
+        list.querySelector('[data-value="tap"]').click();
       });
       expect(menu()).not.toBeNull();
       expect(select.textContent).toBe("touch_tap");

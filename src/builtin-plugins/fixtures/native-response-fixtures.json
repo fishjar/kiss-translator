@@ -1,0 +1,63 @@
+{
+  "description": "Sanitized complete-response fixtures for native scene routing; local mocks only, not live vendor verification.",
+  "input": "hello",
+  "expectedText": "你好",
+  "responses": {
+    "Google": { "sentences": [{ "trans": "你好" }], "src": "en" },
+    "Google2": [["你好"], ["en"]],
+    "GoogleCloud": {
+      "data": {
+        "translations": [
+          { "translatedText": "你好", "detectedSourceLanguage": "en" }
+        ]
+      }
+    },
+    "Microsoft": [
+      {
+        "translations": [{ "text": "你好" }],
+        "detectedLanguage": { "language": "en" }
+      }
+    ],
+    "AzureAI": [
+      {
+        "translations": [{ "text": "你好" }],
+        "detectedLanguage": { "language": "en" }
+      }
+    ],
+    "Tencent": { "auto_translation": ["你好"], "src_lang": "en" },
+    "Volcengine": { "translation": "你好", "detected_language": "en" },
+    "Yandex": {
+      "translations": [{ "text": "你好", "detectedLanguageCode": "en" }]
+    },
+    "YandexFree": { "text": ["你好"], "lang": "en-zh" },
+    "DeepL": {
+      "translations": [{ "text": "你好", "detected_source_language": "EN" }]
+    },
+    "DeepLFree": { "result": { "texts": [{ "text": "你好" }], "lang": "EN" } },
+    "DeepLX": { "data": "你好", "source_lang": "EN" },
+    "Baidu": { "type": 2, "data": [{ "dst": "你好" }], "from": "en" },
+    "Gemini": {
+      "candidates": [
+        {
+          "content": { "role": "model", "parts": [{ "text": "你好" }] },
+          "finishReason": "STOP"
+        }
+      ]
+    },
+    "Claude": {
+      "role": "assistant",
+      "content": [{ "type": "text", "text": "你好" }],
+      "stop_reason": "end_turn"
+    },
+    "CloudflareAI": { "result": { "translated_text": "你好" } },
+    "Custom": { "text": "你好", "src": "en" },
+    "openaiCompatible": {
+      "choices": [
+        {
+          "message": { "role": "assistant", "content": "你好" },
+          "finish_reason": "stop"
+        }
+      ]
+    }
+  }
+}

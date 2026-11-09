@@ -1,3 +1,4 @@
+import { logger } from "../../libs/log";
 import { useEffect, useState } from "react";
 import {
   Typography,
@@ -37,7 +38,7 @@ export default function Zdic({ text }) {
       })
       .catch((err) => {
         if (active) {
-          console.error("获取汉典数据失败:", err);
+          logger.child("zdic").error("获取汉典数据失败:", err);
           setLoading(false);
         }
       });

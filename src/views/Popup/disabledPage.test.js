@@ -16,10 +16,14 @@ jest.mock("../../libs/storage", () => ({
 }));
 jest.mock("../../libs/subRules", () => ({ loadOrFetchSubRules: jest.fn() }));
 jest.mock("../../libs/sync", () => ({ trySyncRules: jest.fn() }));
-jest.mock("../../libs/log", () => ({
-  ...jest.requireActual("../../libs/log"),
-  kissLog: jest.fn(),
-}));
+jest.mock("../../libs/log", () =>
+  jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      ...jest.requireActual("../../libs/log"),
+      kissLog: jest.fn(),
+    }))()
+  )
+);
 
 const tab = { id: 7, url: "https://example.com/article", status: "complete" };
 const setting = {
@@ -78,9 +82,9 @@ test("uses the first enabled API in a disabled-site snapshot without writing its
   getSettingWithDefault.mockResolvedValue({
     ...setting,
     transApis: [
-      { apiSlug: "google", isDisabled: true },
-      { apiSlug: "later", sortOrder: 3 },
-      { apiSlug: "first", sortOrder: -1 },
+      { apiType: "Google", apiSlug: "google", isDisabled: true },
+      { apiType: "Google", apiSlug: "later", sortOrder: 3 },
+      { apiType: "Google", apiSlug: "first", sortOrder: -1 },
     ],
   });
   const snapshot = await loadDisabledPopupData(tab);

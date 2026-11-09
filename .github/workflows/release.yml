@@ -25,6 +25,9 @@ jobs:
           path: build
   deploy-web:
     needs: build
+    concurrency:
+      group: deploy-website
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

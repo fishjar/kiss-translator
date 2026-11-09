@@ -12,8 +12,17 @@ import Layout from "./Layout";
 import SyncSetting from "./SyncSetting";
 import { SettingProvider } from "../../hooks/Setting";
 import ThemeProvider from "./OptionsTheme";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { isGm } from "../../libs/client";
+import {
+  createContext,
+  useContext,
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { isGm, isExt } from "../../libs/client";
+import Diagnostics from "./Diagnostics";
 import { STOKEY_SETTING } from "../../config";
 import { AlertProvider } from "../../hooks/Alert";
 import { ConfirmProvider } from "../../hooks/Confirm";
@@ -23,23 +32,75 @@ import Stack from "@mui/material/Stack";
 import Alert from "@mui/material/Alert";
 import Apis from "./Apis";
 import Prompts from "./Prompts";
+import TerminologyTables from "./TerminologyTables";
 import InputSetting from "./InputSetting";
 import Tranbox from "./Tranbox";
 import FavWords from "./FavWords";
 import Playgound from "./Playground";
 import MouseHoverSetting from "./MouseHover";
 import SubtitleSetting from "./Subtitle";
+import ImageTranslate from "./ImageTranslate";
 import StylesSetting from "./StylesSetting";
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
 import InteractionLock from "./InteractionLock";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import { openFileTranslatePage } from "../../libs/navigation";
+import { isAutoTranslateClipboardSupported } from "../../libs/client";
 import {
   createOptionsStartup,
   getRequiredOptionsSyncKeys,
   OPTIONS_SYNC_KEYS,
 } from "./startup";
 
+import { useI18n } from "../../hooks/I18n";
+
 export { normalizeOptionsPath as normalizeOptionsHashPath } from "./paths";
+
+const ProviderPlugins =
+  process.env.REACT_APP_CLIENT === "chrome" ||
+  process.env.REACT_APP_CLIENT === "firefox"
+    ? lazy(() => import("./ProviderPlugins"))
+    : UnsupportedProviderPlugins;
+
+function UnsupportedProviderPlugins() {
+  const i18n = useI18n();
+  return <Alert severity="info">{i18n("provider_plugins_unsupported")}</Alert>;
+}
+
+function LoadingProviderPlugins() {
+  const i18n = useI18n();
+  return <div>{i18n("provider_plugins_loading")}</div>;
+}
+const LocalAi = lazy(() => import("./LocalAi"));
+
+function FileTranslateRedirect() {
+  const i18n = useI18n();
+  useEffect(() => {
+    openFileTranslatePage();
+  }, []);
+
+  return (
+    <Box sx={{ p: 4, textAlign: "center" }}>
+      <Typography variant="body1" sx={{ mb: 2 }}>
+        {i18n(
+          "file_translate_redirect_notice",
+          "文件翻译已升级为独立全屏页面，正在新标签页中打开..."
+        )}
+      </Typography>
+      <Button
+        variant="contained"
+        startIcon={<OpenInNewRoundedIcon />}
+        onClick={() => openFileTranslatePage()}
+      >
+        {i18n("file_translate_open_new_tab", "在新标签页中打开文件翻译")}
+      </Button>
+    </Box>
+  );
+}
 
 function SyncBackdrop({ open }) {
   return (
@@ -109,12 +170,36 @@ function OptionsRouter({ pendingKeys }) {
           <Route path="tranbox" element={<Tranbox />} />
           <Route path="mousehover" element={<MouseHoverSetting />} />
           <Route path="subtitle" element={<SubtitleSetting />} />
+          <Route path="image-translate" element={<ImageTranslate />} />
           <Route path="apis" element={<Apis />} />
+          <Route
+            path="plugins"
+            element={
+              <Suspense fallback={<LoadingProviderPlugins />}>
+                <ProviderPlugins />
+              </Suspense>
+            }
+          />
+          {isAutoTranslateClipboardSupported && (
+            <Route
+              path="local-ai"
+              element={
+                <Suspense fallback={null}>
+                  <LocalAi />
+                </Suspense>
+              }
+            />
+          )}
+          {isAutoTranslateClipboardSupported && (
+            <Route path="file-translate" element={<FileTranslateRedirect />} />
+          )}
           <Route path="prompts" element={<Prompts />} />
+          <Route path="terms" element={<TerminologyTables />} />
           <Route path="sync" element={<SyncSetting />} />
           <Route path="words" element={<FavWords />} />
           <Route path="playground" element={<OptionsPlayground />} />
           <Route path="about" element={<About />} />
+          {isExt && <Route path="diagnostics" element={<Diagnostics />} />}
         </Route>
       )
     );
@@ -164,7 +249,7 @@ export default function Options() {
       <center>
         <Divider>
           <Link
-            href={process.env.REACT_APP_HOMEPAGE}
+            href={process.env.REACT_APP_SITEURL}
           >{`KISS Translator v${process.env.REACT_APP_VERSION}`}</Link>
         </Divider>
         <Alert severity="error">{error}</Alert>

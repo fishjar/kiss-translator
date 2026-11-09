@@ -1,6 +1,8 @@
+import { terminologyWarningHandler } from "../libs/terminologyWarning";
+import { loadTerminologySnapshot } from "../libs/terminologyStorage";
 import { YouTubeInitializer } from "./YouTubeCaptionProvider.js";
 import { isMatch } from "../libs/utils.js";
-import { DEFAULT_API_SETTING } from "../config/api.js";
+import { availableApiForScene } from "../config/serviceSelection.js";
 import { DEFAULT_SUBTITLE_SETTING } from "../config/setting.js";
 import { STOKEY_SETTING } from "../config/storage.js";
 import { logger } from "../libs/log.js";
@@ -24,7 +26,7 @@ export function persistSubtitlePosition(positionRatio) {
   }))
     .then(() => undefined)
     .catch((err) => {
-      logger.warn("save subtitle position failed", err);
+      logger.child("subtitle").warn("save subtitle position failed", err);
     });
 }
 
@@ -38,7 +40,7 @@ export function persistSubtitlePosition(positionRatio) {
  * @param {string} params.href - 当前浏览器网页的完整链接 (document.location.href)
  * @param {object} params.setting - 全局用户配置选项，包括 subtitleSetting 和 transApis
  */
-export function runSubtitle({ href, setting }) {
+export async function runSubtitle({ href, setting }) {
   try {
     // 获取字幕配置，若无则使用默认字幕配置
     const subtitleSetting = setting.subtitleSetting || DEFAULT_SUBTITLE_SETTING;
@@ -59,17 +61,30 @@ export function runSubtitle({ href, setting }) {
 
       // 2. 获取当前字幕翻译所关联的翻译 API 配置 (apiSetting)
       const transApis = setting.transApis || [];
-      const enabledTransApis = transApis.filter((api) => !api.isDisabled);
-      const apiSetting =
-        enabledTransApis.find(
-          (api) => api.apiSlug === subtitleSetting.apiSlug
-        ) ||
-        enabledTransApis[0] ||
-        DEFAULT_API_SETTING;
+      const apiSetting = availableApiForScene(
+        subtitleSetting,
+        transApis,
+        "translate"
+      );
+
+      if (!apiSetting) throw new Error("没有可用的字幕翻译接口");
 
       // 3. 启动特定平台的字幕翻译与渲染引擎 (如 YouTubeCaptionProvider)
       // 将整理好的字幕配置、翻译 API 配置、所有已启用的 API 列表以及 UI 界面语言传递给对应的 provider
+      const segmentationApi = transApis.find(
+        (api) => api.apiSlug === subtitleSetting.segSlug
+      );
+      const sources = [subtitleSetting, apiSetting, segmentationApi].filter(
+        Boolean
+      );
+      const terminologyTables = sources.some(
+        (source) => source.termsList?.length
+      )
+        ? await loadTerminologySnapshot(sources)
+        : [];
       provider.start({
+        terminologyTables,
+        onTerminologyWarning: terminologyWarningHandler(setting.uiLang),
         ...subtitleSetting,
         apiSlug: apiSetting.apiSlug,
         apiSetting,
@@ -82,6 +97,6 @@ export function runSubtitle({ href, setting }) {
       });
     }
   } catch (err) {
-    logger.error("start subtitle provider failed", err);
+    logger.child("subtitle").error("start subtitle provider failed", err);
   }
 }

@@ -1,7 +1,17 @@
+import TerminologySelect from "./TerminologySelect";
+import { isApiConfigured } from "../../config/serviceSelection";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import { AsrCacheClient } from "../../subtitle/asr/cacheBridge";
+import { captionCacheRequest } from "../../subtitle/captionCache";
+import { formatBytes } from "../../localAi/core/progress";
+import { isApiAvailableFor } from "../../config/serviceSelection";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import CodeField from "./CodeField";
+import ServiceSelect from "./ServiceSelect";
+import LocalServiceNotice from "../../components/ExtensionLocalServiceNotice";
+import ScenePromptSelect from "./ScenePromptSelect";
 import MenuItem from "@mui/material/MenuItem";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -20,25 +30,30 @@ import {
   DEFAULT_SUBTITLE_PROMPT_SLUG,
   PROMPT_MODE_FOLLOW_API,
   PROMPT_MODE_GLOBAL,
+  OPT_TRANS_BUILTINAI,
   getPromptDisplayName,
   getSubtitlePromptOptions,
+  getSummaryPromptOptions,
 } from "../../config";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
 import Switch from "@mui/material/Switch";
 import { useSubtitle } from "../../hooks/Subtitle";
 import { useApiList } from "../../hooks/Api";
+import { supportsApiCapability } from "../../config/serviceSelection";
 import { usePromptList } from "../../hooks/Prompt";
 import ValidationInput from "../../hooks/ValidationInput";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { normalizeSubtitleMode } from "../../subtitle/modes";
+import {
+  normalizeSubtitleMode,
+  normalizeHoverLookupCloseDelay,
+} from "../../subtitle/modes";
 import {
   SettingsAdvanced,
   SettingsCard,
   SettingsRow,
   SettingsSection,
   SettingsSegmented,
-  SettingsSelect,
   SettingsSwitch,
 } from "./SettingsCard";
 
@@ -408,16 +423,79 @@ function SubtitleStylePreview({
  * 视频双语字幕翻译设置页面组件 (SubtitleSetting)
  */
 export default function SubtitleSetting() {
+  const captionCacheSupported = [
+    "chrome",
+    "edge",
+    "firefox",
+    "safari",
+    "thunderbird",
+  ].includes(process.env.REACT_APP_CLIENT);
+  const [cacheClearState, setCacheClearState] = useState("idle");
+  const [audioClearState, setAudioClearState] = useState("idle");
+  const [cacheStats, setCacheStats] = useState(null);
+  const [captionStats, setCaptionStats] = useState(null);
+  const [captionClearState, setCaptionClearState] = useState("idle");
+  const captionStatsVersion = useRef(0);
   const i18n = useI18n();
+
+  useEffect(() => {
+    let active = true;
+    let cache;
+    const statsVersion = ++captionStatsVersion.current;
+    if (captionCacheSupported)
+      void captionCacheRequest("stats")
+        .then((stats) => {
+          if (active && statsVersion === captionStatsVersion.current)
+            setCaptionStats(stats);
+        })
+        .catch(() => {});
+    if (["chrome", "edge"].includes(process.env.REACT_APP_CLIENT)) {
+      cache = new AsrCacheClient();
+      if (typeof cache?.getStats === "function") {
+        cache
+          .getStats()
+          .then((stats) => {
+            if (active && stats) setCacheStats(stats);
+          })
+          .catch(() => {})
+          .finally(() => cache.close?.());
+      }
+    }
+    return () => {
+      active = false;
+      cache?.close?.();
+    };
+  }, [captionCacheSupported]);
   // 字幕设置 Hook
   const { subtitleSetting, updateSubtitle } = useSubtitle();
   // 启用的翻译引擎列表与 AI 模型引擎列表
-  const { enabledApis, aiEnabledApis } = useApiList();
+  const { enabledApis, aiEnabledApis, transApis } = useApiList();
+  const segmentationApis = (transApis || aiEnabledApis).filter(
+    (api) =>
+      !api.isDisabled &&
+      isApiConfigured(api) &&
+      supportsApiCapability(api, "segmentSubtitle")
+  );
+  const asrApis = (transApis || []).filter((api) =>
+    isApiAvailableFor(api, "transcribe")
+  );
   const { prompts } = usePromptList();
   const subtitlePromptOptions = useMemo(
     () => getSubtitlePromptOptions(prompts),
     [prompts]
   );
+  const summaryPromptOptions = useMemo(
+    () => getSummaryPromptOptions(prompts),
+    [prompts]
+  );
+  const summaryApis = useMemo(() => {
+    return (transApis || enabledApis || []).filter(
+      (api) =>
+        !api.isDisabled &&
+        isApiConfigured(api) &&
+        supportsApiCapability(api, "summarize")
+    );
+  }, [enabledApis, transApis]);
 
   // 通用表单变动提交
   const handleChange = (e) => {
@@ -459,6 +537,9 @@ export default function SubtitleSetting() {
   // 解构当前字幕翻译的具体设置
   const {
     enabled,
+    asrApiSlug = "-",
+    audioCacheLimit = 100,
+    captionCacheLimit = 100,
     apiSlug,
     segSlug,
     forceSubtitleRetranslate = false,
@@ -474,6 +555,7 @@ export default function SubtitleSetting() {
     blurTranslation = false,
     enhanceMode,
     hoverLookupMode,
+    hoverLookupCloseDelay,
     autoFavWord = false,
     showList = OPT_ENHANCE_MOBILE_OFF,
     skipAd = false,
@@ -486,7 +568,20 @@ export default function SubtitleSetting() {
     showLoadNotification = true,
     hideSubtitleButton = false,
     rememberPosition = false,
+    summaryApiSlug = "-",
+    summaryPromptSlug = "default_video_summary",
   } = subtitleSetting;
+
+  const activeSummaryApi = summaryApis.find(
+    (api) => api.apiSlug === summaryApiSlug
+  );
+  const isBuiltinSummary = activeSummaryApi?.apiType === OPT_TRANS_BUILTINAI;
+  const isBuiltinSummarizerSupported = useMemo(() => {
+    return (
+      typeof globalThis.Summarizer !== "undefined" ||
+      typeof globalThis.ai?.summarizer !== "undefined"
+    );
+  }, []);
 
   // 整理悬浮查词模式和字幕列表模式的回退逻辑
   const hoverLookupModeValue = normalizeSubtitleMode(
@@ -816,16 +911,28 @@ export default function SubtitleSetting() {
         <SettingsSection title={i18n("settings_quality_group")}>
           <SettingsCard>
             <SettingsRow label={i18n("translate_service")}>
-              <SettingsSelect
-                value={apiSlug}
+              <ServiceSelect
+                scene={subtitleSetting}
+                apis={enabledApis}
                 label={i18n("translate_service")}
-                onChange={(value) => updateSubtitle({ apiSlug: value })}
-                options={enabledApis.map((api) => ({
-                  value: api.apiSlug,
-                  label: api.apiName,
-                }))}
+                onChange={(apiSlug) => updateSubtitle({ apiSlug })}
               />
             </SettingsRow>
+            <SettingsRow label={i18n("translation_prompt", "翻译提示词")}>
+              <ScenePromptSelect
+                scene={subtitleSetting}
+                apis={enabledApis}
+                label={i18n("translation_prompt", "翻译提示词")}
+                value={subtitleSetting.promptSlug}
+                onChange={(promptSlug) => updateSubtitle({ promptSlug })}
+              />
+            </SettingsRow>
+            <LocalServiceNotice
+              apis={enabledApis.filter((api) =>
+                [segSlug, summaryApiSlug, aiContextSlug].includes(api.apiSlug)
+              )}
+              i18n={i18n}
+            />
             {/* Keep TextField so mismatched segmentation and translation
                 services retain their helper text and error state. */}
             <SettingsRow label={i18n("ai_segmentation")}>
@@ -854,12 +961,168 @@ export default function SubtitleSetting() {
                 }}
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                {aiEnabledApis.map((api) => (
+                {segmentationApis.map((api) => (
                   <MenuItem key={api.apiSlug} value={api.apiSlug}>
                     {api.apiName}
                   </MenuItem>
                 ))}
               </TextField>
+            </SettingsRow>
+            <SettingsRow
+              label={i18n("youtube_caption_cache_limit")}
+              description={i18n("youtube_caption_cache_limit_hint")}
+            >
+              <ValidationInput
+                size="small"
+                type="number"
+                name="captionCacheLimit"
+                value={captionCacheLimit}
+                onChange={handleChange}
+                min={0}
+                max={1000}
+                inputProps={{
+                  "aria-label": i18n("youtube_caption_cache_limit"),
+                }}
+                disabled={!captionCacheSupported}
+              />
+            </SettingsRow>
+            <SettingsRow label={i18n("youtube_caption_cache_clear")}>
+              <Button
+                disabled={
+                  !captionCacheSupported || captionClearState === "busy"
+                }
+                onClick={async () => {
+                  setCaptionClearState("busy");
+                  captionStatsVersion.current++;
+                  try {
+                    if ((await captionCacheRequest("clear")) !== true)
+                      throw new Error("CACHE_CLEAR_FAILED");
+                    setCaptionStats({ bytes: 0, count: 0 });
+                    setCaptionClearState("cleared");
+                  } catch {
+                    setCaptionClearState("error");
+                  }
+                }}
+              >
+                {`${i18n(captionClearState === "cleared" ? "youtube_asr_cleared" : captionClearState === "error" ? "youtube_caption_cache_clear_failed" : "youtube_caption_cache_clear")} (${captionStats?.count ?? 0} · ${formatBytes(captionStats?.bytes ?? 0)})`}
+              </Button>
+            </SettingsRow>
+            <SettingsRow
+              label={i18n("youtube_asr_service")}
+              description={i18n("youtube_asr_hint")}
+            >
+              <TextField
+                select
+                hiddenLabel
+                size="small"
+                variant="filled"
+                className="kt-settings-select"
+                value={asrApiSlug}
+                inputProps={{ "aria-label": i18n("youtube_asr_service") }}
+                disabled={
+                  !["chrome", "edge"].includes(process.env.REACT_APP_CLIENT)
+                }
+                onChange={(event) =>
+                  updateSubtitle({ asrApiSlug: event.target.value })
+                }
+              >
+                <MenuItem value="-">{i18n("disable")}</MenuItem>
+                {asrApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName}
+                  </MenuItem>
+                ))}
+                {asrApiSlug !== "-" &&
+                  !asrApis.some((api) => api.apiSlug === asrApiSlug) && (
+                    <MenuItem value={asrApiSlug} disabled>
+                      {asrApiSlug} ({i18n("youtube_asr_unavailable")})
+                    </MenuItem>
+                  )}
+              </TextField>
+            </SettingsRow>
+            <SettingsRow
+              label={i18n("youtube_asr_audio_cache_limit")}
+              description={i18n("youtube_asr_audio_cache_limit_hint")}
+            >
+              <ValidationInput
+                size="small"
+                type="number"
+                name="audioCacheLimit"
+                value={audioCacheLimit}
+                onChange={handleChange}
+                min={0}
+                max={1000}
+                inputProps={{
+                  "aria-label": i18n("youtube_asr_audio_cache_limit"),
+                }}
+                disabled={
+                  !["chrome", "edge"].includes(process.env.REACT_APP_CLIENT)
+                }
+              />
+            </SettingsRow>
+            <SettingsRow label={i18n("youtube_asr_clear")}>
+              <Button
+                disabled={
+                  cacheClearState === "busy" ||
+                  !["chrome", "edge"].includes(process.env.REACT_APP_CLIENT)
+                }
+                onClick={async () => {
+                  setCacheClearState("busy");
+                  const cache = new AsrCacheClient();
+                  try {
+                    await cache.clearSubtitles();
+                    setCacheClearState("cleared");
+                    setCacheStats((prev) => ({
+                      ...prev,
+                      subtitles: { bytes: 0, count: 0 },
+                    }));
+                  } catch {
+                    setCacheClearState("unsaved");
+                  } finally {
+                    cache.close();
+                  }
+                }}
+              >
+                {`${i18n(
+                  cacheClearState === "cleared"
+                    ? "youtube_asr_cleared"
+                    : cacheClearState === "unsaved"
+                      ? "youtube_asr_unsaved"
+                      : "youtube_asr_clear"
+                )} (${formatBytes(cacheStats?.subtitles?.bytes ?? 0)})`}
+              </Button>
+            </SettingsRow>
+            <SettingsRow label={i18n("youtube_asr_clear_audio")}>
+              <Button
+                disabled={
+                  audioClearState === "busy" ||
+                  !["chrome", "edge"].includes(process.env.REACT_APP_CLIENT)
+                }
+                onClick={async () => {
+                  setAudioClearState("busy");
+                  const cache = new AsrCacheClient();
+                  try {
+                    await cache.clearAudio();
+                    setAudioClearState("cleared");
+                    setCacheStats((prev) => ({
+                      ...prev,
+                      audio: { bytes: 0, count: 0 },
+                    }));
+                  } catch {
+                    setAudioClearState("unsaved");
+                  } finally {
+                    cache.close();
+                  }
+                }}
+              >
+                {`${i18n(
+                  audioClearState === "cleared"
+                    ? "youtube_asr_audio_cleared"
+                    : audioClearState === "unsaved"
+                      ? "youtube_asr_unsaved"
+                      : "youtube_asr_clear_audio"
+                )} (${formatBytes(cacheStats?.audio?.bytes ?? 0)})`}
+              </Button>
             </SettingsRow>
             <SettingsRow
               label={i18n("is_skip_ad")}
@@ -871,6 +1134,17 @@ export default function SubtitleSetting() {
                 onChange={(checked) => updateSubtitle({ skipAd: checked })}
               />
             </SettingsRow>
+          </SettingsCard>
+        </SettingsSection>
+
+        <SettingsSection title={i18n("terminology_tables", "术语表")}>
+          <SettingsCard>
+            <Box sx={{ p: 2 }}>
+              <TerminologySelect
+                value={subtitleSetting.termsList || []}
+                onChange={(termsList) => updateSubtitle({ termsList })}
+              />
+            </Box>
           </SettingsCard>
         </SettingsSection>
 
@@ -903,6 +1177,26 @@ export default function SubtitleSetting() {
                 ]}
               />
             </SettingsRow>
+            <SettingsRow
+              label={i18n("subtitle_hover_lookup_close_delay")}
+              description={i18n(
+                "subtitle_hover_lookup_close_delay_description"
+              )}
+            >
+              <ValidationInput
+                size="small"
+                name="hoverLookupCloseDelay"
+                value={normalizeHoverLookupCloseDelay(hoverLookupCloseDelay)}
+                onChange={handleChange}
+                min={0}
+                max={30}
+                disabled={hoverLookupModeValue === OPT_ENHANCE_OFF}
+                inputProps={{
+                  "aria-label": i18n("subtitle_hover_lookup_close_delay"),
+                }}
+                sx={{ width: 130 }}
+              />
+            </SettingsRow>
             <SettingsRow label={i18n("auto_fav_word")}>
               <SettingsSwitch
                 checked={autoFavWord}
@@ -910,6 +1204,83 @@ export default function SubtitleSetting() {
                 onChange={(checked) => updateSubtitle({ autoFavWord: checked })}
               />
             </SettingsRow>
+            <SettingsRow
+              label={i18n("video_summary_service", "视频总结服务")}
+              description={
+                isBuiltinSummary && !isBuiltinSummarizerSupported
+                  ? i18n(
+                      "builtin_ai_summarizer_unsupported_hint",
+                      "当前浏览器未检测到 Chrome Summarizer API（需要 Chrome 138+ 或在 chrome://flags 中开启实验性标志；若不可用，建议切换为网络 AI 或本地大模型）"
+                    )
+                  : i18n(
+                      "video_summary_service_helper",
+                      "启用后可在 YouTube 侧栏一键对视频字幕原稿生成结构化要点总结"
+                    )
+              }
+            >
+              <TextField
+                select
+                size="small"
+                name="summaryApiSlug"
+                value={summaryApiSlug || "-"}
+                onChange={handleChange}
+                sx={{ minWidth: 200 }}
+              >
+                <MenuItem value="-">{i18n("disable", "禁用")}</MenuItem>
+                {summaryApis.map((api) => (
+                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
+                    {api.apiName || api.apiType || api.apiSlug}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </SettingsRow>
+            {summaryApiSlug !== "-" && (
+              <SettingsRow
+                label={i18n("video_summary_prompt", "总结提示词")}
+                description={
+                  isBuiltinSummary
+                    ? i18n(
+                        "builtin_ai_keypoints_hint",
+                        "内置引擎使用官方标准要点参数 (Key-points / 5要点)"
+                      )
+                    : ""
+                }
+              >
+                {isBuiltinSummary ? (
+                  <TextField
+                    size="small"
+                    disabled
+                    value={i18n(
+                      "builtin_ai_keypoints_hint",
+                      "内置引擎使用官方标准要点参数 (Key-points / 5要点)"
+                    )}
+                    sx={{ minWidth: 280 }}
+                  />
+                ) : (
+                  <TextField
+                    select
+                    size="small"
+                    name="summaryPromptSlug"
+                    value={
+                      summaryPromptOptions.some(
+                        (p) => p.slug === summaryPromptSlug
+                      )
+                        ? summaryPromptSlug
+                        : summaryPromptOptions[0]?.slug ||
+                          "default_video_summary"
+                    }
+                    onChange={handleChange}
+                    sx={{ minWidth: 200 }}
+                  >
+                    {summaryPromptOptions.map((prompt) => (
+                      <MenuItem key={prompt.slug} value={prompt.slug}>
+                        {getPromptDisplayName(prompt, i18n)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              </SettingsRow>
+            )}
           </SettingsCard>
         </SettingsSection>
 
@@ -984,7 +1355,7 @@ export default function SubtitleSetting() {
                 onChange={handleChange}
               >
                 <MenuItem value={"-"}>{i18n("disable")}</MenuItem>
-                {aiEnabledApis.map((api) => (
+                {summaryApis.map((api) => (
                   <MenuItem key={api.apiSlug} value={api.apiSlug}>
                     {api.apiName}
                   </MenuItem>

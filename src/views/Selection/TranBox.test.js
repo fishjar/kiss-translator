@@ -4,6 +4,10 @@ import { createRoot } from "react-dom/client";
 import TranBox, { getOverflowMenuPosition } from "./TranBox";
 import { MSG_OPEN_SEPARATE_WINDOW } from "../../config/msg.js";
 import { sendBgMsg } from "../../libs/msg.js";
+import {
+  composeTerminology,
+  terminologySourceList,
+} from "../../libs/terminology";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -31,9 +35,10 @@ jest.mock("../../components/Logo", () => ({
   __esModule: true,
   default: () => null,
 }));
+const mockTranForm = jest.fn(() => null);
 jest.mock("./TranForm.js", () => ({
   __esModule: true,
-  default: () => null,
+  default: (props) => mockTranForm(props),
 }));
 
 describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
@@ -399,5 +404,113 @@ describe("overflow menu viewport placement", () => {
     expect(
       position.top + Math.min(menu.height, position.maxHeight)
     ).toBeLessThanOrEqual(viewport.height - 8);
+  });
+});
+
+describe("TranBox scene terminology resolution", () => {
+  let container;
+  let root;
+
+  beforeEach(() => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    mockTranForm.mockClear();
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  test("uses tranboxSetting as scene when rule is not provided (standalone / popup)", () => {
+    const tranboxSetting = { fromLang: "auto", toLang: "zh-CN" };
+    act(() => {
+      root.render(
+        <TranBox
+          showBox={true}
+          tranboxSetting={tranboxSetting}
+          transApis={[]}
+          prompts={[]}
+        />
+      );
+    });
+
+    expect(mockTranForm).toHaveBeenCalled();
+    const lastProps = mockTranForm.mock.calls.at(-1)[0];
+    expect(lastProps.scene).toBe(tranboxSetting);
+    expect(lastProps.scene.terms).toBeUndefined();
+    expect(lastProps.scene.termsList).toBeUndefined();
+  });
+
+  test("merges rule terminology when rule is provided (web page triggered)", () => {
+    const tranboxSetting = { fromLang: "auto", toLang: "zh-CN" };
+    const rule = {
+      terms: "apple,苹果手机",
+      aiTerms: "prompt,提示词",
+      termsList: ["table_page_1"],
+    };
+
+    act(() => {
+      root.render(
+        <TranBox
+          showBox={true}
+          tranboxSetting={tranboxSetting}
+          rule={rule}
+          transApis={[]}
+          prompts={[]}
+        />
+      );
+    });
+
+    expect(mockTranForm).toHaveBeenCalled();
+    const lastProps = mockTranForm.mock.calls.at(-1)[0];
+    expect(lastProps.scene).toEqual({
+      fromLang: "auto",
+      toLang: "zh-CN",
+      terms: "apple,苹果手机",
+      aiTerms: "prompt,提示词",
+      termsList: ["table_page_1"],
+    });
+  });
+
+  test("preserves inherited inline terms and site-table priority", () => {
+    const rule = {
+      terms: "component,部件",
+      termsList: ["site"],
+      terminologySources: [
+        { terms: "component,部件", termsList: ["site"] },
+        { terms: "React,框架\nRedux,状态库", aiTerms: "API,全局接口" },
+      ],
+    };
+    act(() => {
+      root.render(
+        <TranBox
+          showBox
+          tranboxSetting={{}}
+          rule={rule}
+          transApis={[]}
+          prompts={[]}
+        />
+      );
+    });
+    const scene = mockTranForm.mock.calls.at(-1)[0].scene;
+    const resolved = composeTerminology(terminologySourceList(scene), [
+      {
+        id: "site",
+        terms: "React,站点框架",
+        aiTerms: "API,站点接口",
+        normalMatchMode: "auto",
+      },
+    ]);
+    expect(scene.terminologySources).toEqual(rule.terminologySources);
+    expect(
+      resolved.normalEntries.map(({ key, value }) => [key, value])
+    ).toEqual([
+      ["component", "部件"],
+      ["React", "站点框架"],
+      ["Redux", "状态库"],
+    ]);
+    expect(resolved.glossary).toEqual({ API: "站点接口" });
   });
 });

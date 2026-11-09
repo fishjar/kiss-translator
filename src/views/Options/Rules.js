@@ -1,6 +1,9 @@
+import TerminologySelect from "./TerminologySelect";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import ServiceSelect from "./ServiceSelect";
+import ScenePromptSelect from "./ScenePromptSelect";
 import InputAdornment from "@mui/material/InputAdornment";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import CodeField from "./CodeField";
@@ -64,7 +67,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CancelIcon from "@mui/icons-material/Cancel";
 import SaveIcon from "@mui/icons-material/Save";
 import ValidationInput from "../../hooks/ValidationInput";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { useApiList } from "../../hooks/Api";
 import ShowMoreButton from "./ShowMoreButton";
 import { useConfirm } from "../../hooks/Confirm";
@@ -128,7 +131,8 @@ export function queueDisabledSubRuleRemoval(
 const calculateInitialValues = (rule) => {
   // REVIEW: GLOBLA_RULE 存在拼写错误，疑似应为 GLOBAL_RULE。此处为兼容底层导出的拼写而沿用。
   const base = rule?.pattern === "*" ? GLOBLA_RULE : DEFAULT_RULE;
-  return { ...base, ...(rule || {}) };
+  const merged = { ...base, ...(rule || {}) };
+  return merged;
 };
 
 const getComparableFormValues = (values) => {
@@ -141,7 +145,12 @@ const getComparableFormValues = (values) => {
     comparable.transOnlyRevertDelay = GLOBAL_KEY;
   }
   // Number inputs and older saved rules can represent the same value differently.
-  for (const name of ["splitLength", "transOnlyRevertDelay"]) {
+  for (const name of [
+    "splitLength",
+    "transOnlyRevertDelay",
+    "imageMinWidth",
+    "imageMinHeight",
+  ]) {
     const value = comparable[name];
     // Personal numeric zero inherits; a string zero overrides the global value.
     if (comparable.pattern !== GLOBAL_KEY && value === 0) continue;
@@ -266,7 +275,6 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
     grandStyle = "", // 针对选择器祖父元素的样式
     injectJs = "", // 页面注入 JS 脚本
     injectCss = "", // 页面注入 CSS 样式
-    apiSlug, // 指定的翻译服务标识
     fromLang, // 源语言
     toLang, // 目标语言
     textStyle, // 预设译文样式 slug
@@ -297,6 +305,11 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
     splitLength = 0, // 段落切分最大长度
     highlightWords = OPT_HIGHLIGHT_WORDS_DISABLE, // 单词高亮策略
     transOrder, // 文本顺序：由 DEFAULT_RULE / GLOBLA_RULE 提供初始值
+    imageTransOpen = "true", // 是否开启图片翻译悬停
+    imageSelector = "", // 图片翻译目标选择器
+    imageIgnoreSelector = "", // 图片翻译排除选择器
+    imageMinWidth = 120, // 图片最小宽度
+    imageMinHeight = 80, // 图片最小高度
   } = formValues;
 
   const globalRule = rules?.list?.find((item) => item.pattern === GLOBAL_KEY);
@@ -405,7 +418,7 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
       }
       setErrors({});
     } catch (error) {
-      kissLog("save rule", error);
+      logger.child("options").error("save rule", error);
       alert.error(error?.message || String(error));
     } finally {
       savingRef.current = false;
@@ -560,23 +573,45 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
             </Grid>
             {/* 翻译引擎服务设置 */}
             <Grid item xs={12} sm={12} md={6} lg={6}>
-              <TextField
-                select
-                size="small"
+              <ServiceSelect
                 fullWidth
-                name="apiSlug"
-                value={apiSlug}
+                scene={formValues}
+                apis={
+                  rule?.pattern === "*"
+                    ? enabledApis
+                    : [
+                        { apiSlug: GLOBAL_KEY, apiName: i18n("follow_global") },
+                        ...enabledApis,
+                      ]
+                }
                 label={i18n("translate_service")}
                 disabled={disabled}
-                onChange={handleChange}
-              >
-                {GlobalItem}
-                {enabledApis.map((api) => (
-                  <MenuItem key={api.apiSlug} value={api.apiSlug}>
-                    {api.apiName}
-                  </MenuItem>
-                ))}
-              </TextField>
+                onChange={(apiSlug) =>
+                  setFormValues((previous) => ({
+                    ...previous,
+                    apiSlug: apiSlug || GLOBAL_KEY,
+                  }))
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
+              <ScenePromptSelect
+                scene={{
+                  ...formValues,
+                  apiSlug:
+                    formValues.apiSlug === GLOBAL_KEY
+                      ? globalRule?.apiSlug
+                      : formValues.apiSlug,
+                }}
+                apis={enabledApis}
+                fullWidth
+                label={i18n("translation_prompt", "翻译提示词")}
+                value={formValues.promptSlug}
+                disabled={disabled}
+                onChange={(promptSlug) =>
+                  updateFormValue("promptSlug", promptSlug)
+                }
+              />
             </Grid>
             {/* 源语言设置 */}
             <Grid item xs={12} sm={12} md={6} lg={6}>
@@ -936,6 +971,16 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
         {/* 高级选项面板 */}
         {showMore && (
           <>
+            <TerminologySelect
+              value={formValues.termsList || []}
+              disabled={disabled}
+              onChange={(termsList) =>
+                handleChange({
+                  preventDefault() {},
+                  target: { name: "termsList", value: termsList },
+                })
+              }
+            />
             {/* 专有名词对照翻译设置 */}
             <TextField
               size="small"
@@ -1067,6 +1112,82 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
               onChange={handleChange}
               maxRows={10}
             />
+
+            {/* 图片翻译悬停开关 */}
+            <TextField
+              select
+              size="small"
+              fullWidth
+              name="imageTransOpen"
+              value={imageTransOpen}
+              label={i18n("image_hover_enable", "网页图片悬停识别")}
+              disabled={disabled}
+              onChange={handleChange}
+            >
+              {GlobalItem}
+              <MenuItem value={"true"}>
+                {i18n("default_enabled", "开启")}
+              </MenuItem>
+              <MenuItem value={"false"}>
+                {i18n("default_disabled", "关闭")}
+              </MenuItem>
+            </TextField>
+
+            {/* 图片目标 CSS 选择器 */}
+            <CodeField
+              size="small"
+              label={i18n("image_selector", "图片选择器")}
+              helperText={i18n(
+                "image_selector_helper",
+                "自定义匹配需要识别的图片 CSS 选择器，留空则匹配默认图片"
+              )}
+              name="imageSelector"
+              value={imageSelector}
+              disabled={disabled}
+              onChange={handleChange}
+            />
+
+            {/* 图片排除 CSS 选择器 */}
+            <CodeField
+              size="small"
+              label={i18n("image_ignore_selector", "图片排除选择器")}
+              helperText={i18n(
+                "image_ignore_selector_helper",
+                "自定义排除不进行悬停翻译的图片 CSS 选择器"
+              )}
+              name="imageIgnoreSelector"
+              value={imageIgnoreSelector}
+              disabled={disabled}
+              onChange={handleChange}
+            />
+
+            {/* 图片最小宽高 */}
+            <Grid container spacing={2} columns={12}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  type="number"
+                  size="small"
+                  fullWidth
+                  name="imageMinWidth"
+                  value={imageMinWidth}
+                  label={i18n("image_min_width", "最小图片宽度 (px)")}
+                  disabled={disabled}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  type="number"
+                  size="small"
+                  fullWidth
+                  name="imageMinHeight"
+                  value={imageMinHeight}
+                  label={i18n("image_min_height", "最小图片高度 (px)")}
+                  disabled={disabled}
+                  onChange={handleChange}
+                />
+              </Grid>
+            </Grid>
           </>
         )}
 
@@ -1204,7 +1325,7 @@ function RuleAccordion({
       .catch((err) => {
         if (active && requestId === subRuleRequestRef.current) {
           setDisabledByUser(false);
-          kissLog("getDisabledSubRules", err);
+          logger.child("options").info("getDisabledSubRules", err);
         }
       })
       .finally(() => {
@@ -1248,7 +1369,7 @@ function RuleAccordion({
     } catch (err) {
       if (requestId !== subRuleRequestRef.current) return;
       setDisabledByUser(previousDisabled);
-      kissLog("toggle disabled sub rule", err);
+      logger.child("options").info("toggle disabled sub rule", err);
       alert.error(i18n("rule_toggle_failed"));
     } finally {
       if (requestId === subRuleRequestRef.current) {
@@ -1364,7 +1485,7 @@ function ShareButton({ rules, injectRules, selectedUrl }) {
       window.open(url, "_blank");
     } catch (err) {
       alert.warning(i18n("error_got_some_wrong"));
-      kissLog("share rules", err);
+      logger.child("options").error("share rules", err);
     } finally {
       sharingRef.current = false;
       setSharing(false);
@@ -1434,7 +1555,7 @@ function UserRules({ subRules, rules }) {
     try {
       await rules.merge(JSON.parse(data));
     } catch (err) {
-      kissLog("import rules", err);
+      logger.child("options").error("import rules", err);
     }
   };
 
@@ -1604,10 +1725,10 @@ function SubRulesItem({
       try {
         await queueDisabledSubRuleRemoval(url);
       } catch (err) {
-        kissLog("removeDisabledSubRules", err);
+        logger.child("options").info("removeDisabledSubRules", err);
       }
     } catch (err) {
-      kissLog("del subrules", err);
+      logger.child("options").info("del subrules", err);
     }
   };
 
@@ -1622,7 +1743,7 @@ function SubRulesItem({
       }
       await updateDataCache(url); // 更新最近同步时间戳
     } catch (err) {
-      kissLog("sync sub rules", err);
+      logger.child("options").warn("sync sub rules", err);
       alert.error(
         <>
           <p>Sync Error:</p>
@@ -1755,7 +1876,7 @@ function SubRulesEdit({ subList, beginSubAdd, addSub, updateDataCache }) {
       setInputText("");
     } catch (err) {
       if (!isCurrent()) return;
-      kissLog("fetch rules", err);
+      logger.child("options").error("fetch rules", err);
       if (mountedRef.current) setInputError(i18n("error_fetch_url"));
     } finally {
       operation.finish();
@@ -1867,7 +1988,9 @@ function SubRules({ subRules, syncCaches }) {
     if (loading) return;
     // Automatic downloads write timestamps outside this view's cache state.
     // Refresh when opening the tab or finishing a subscription load.
-    reloadSync().catch((error) => kissLog("load sync caches", error));
+    reloadSync().catch((error) =>
+      logger.child("options").warn("load sync caches", error)
+    );
   }, [loading, selectedUrl, reloadSync]);
 
   useLayoutEffect(() => {

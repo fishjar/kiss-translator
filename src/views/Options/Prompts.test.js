@@ -5,6 +5,7 @@ import {
   PROMPT_CATEGORY_DICTIONARY,
   PROMPT_CATEGORY_SUBTITLE,
   PROMPT_CATEGORY_USER,
+  PROMPT_CATEGORY_VLM,
 } from "../../config";
 import Prompts from "./Prompts";
 import { SettingsSearchContext } from "./SettingsSearchTarget";
@@ -183,6 +184,23 @@ describe("Prompts", () => {
     mockUsePromptList.mockReset();
     mockConfirm.mockReset();
     document.body.innerHTML = "";
+  });
+
+  test("keeps the VLM user prompt searchable and resizable without a system field", async () => {
+    const { container, search, unmount } = renderPrompts(PROMPT_CATEGORY_VLM);
+    await search({ target: "user_prompt", navigationKey: "vlm" });
+    expect(container.textContent).not.toContain("系统提示词");
+    expect(container.textContent).toContain("用户提示词");
+    const textareas = container.querySelectorAll(
+      'textarea.kt-resizable-textarea:not([aria-hidden="true"])'
+    );
+    expect(textareas).toHaveLength(1);
+    expect(
+      textareas[0]
+        .closest(".MuiInputBase-root")
+        .querySelector('[role="slider"]')
+    ).not.toBeNull();
+    unmount();
   });
 
   test("shows system and user prompt fields for dictionary prompts", () => {

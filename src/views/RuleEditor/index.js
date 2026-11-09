@@ -36,6 +36,8 @@ import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import M3Theme from "../../hooks/M3Theme";
 import { SettingProvider } from "../../hooks/Setting";
 import { useI18n } from "../../hooks/I18n";
+import { registerI18n } from "../../config/i18n";
+import { RULE_EDITOR_I18N } from "../../config/i18n.ruleEditor";
 import {
   STOKEY_RULE_EDITOR_POSITION,
   STOKEY_RULE_INSPECTOR_POSITION,
@@ -56,6 +58,8 @@ import EditorSelect from "./EditorSelect";
 import { getEditorPortalContainer } from "./portal";
 import usePanelPosition from "./usePanelPosition";
 import usePanelViewport from "./usePanelViewport";
+
+registerI18n(RULE_EDITOR_I18N);
 
 const selectorLabels = {
   selector: "target_selector",

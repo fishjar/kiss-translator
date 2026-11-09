@@ -17,6 +17,7 @@ import {
   OPT_TRANBOX_TRIGGER_DBLCLICK,
   OPT_TRANBOX_INTERACT_CLICK,
   OPT_TRANBOX_INTERACT_DBLCLICK,
+  DEFAULT_TRANBOX_HOVER_DELAY,
 } from "../config";
 import {
   getMaxTranBoxX,
@@ -26,6 +27,7 @@ import {
 
 const TRANBTN_SIZE = 40;
 const TRANBTN_MOUSE_GAP = isMobile ? 16 : 12;
+const MAX_SOURCE_SENTENCE_LENGTH = 1000;
 
 function getPointerPosition(e) {
   const touch = e?.changedTouches?.[0] || e?.touches?.[0];
@@ -133,7 +135,7 @@ function isTranboxEvent(e) {
 function isPanelInteractiveTarget(target) {
   return Boolean(
     target?.closest?.(
-      'button, input, textarea, select, [role="tab"], [role="button"]'
+      'button, input, textarea, select, [role="tab"], [role="button"], [role="option"], [role="menuitem"]'
     )
   );
 }
@@ -146,6 +148,10 @@ function isTranButtonEvent(e) {
   return getEventPath(e).some((node) =>
     node?.classList?.contains?.("KT-tranbtn")
   );
+}
+
+function isFabEvent(e) {
+  return getEventPath(e).some((node) => node?.id === APP_CONSTS.fabID);
 }
 
 function isUsableRect(rect) {
@@ -214,6 +220,113 @@ function getTargetContext(target) {
     .slice(0, 1000);
 }
 
+function normalizeContextText(value) {
+  return String(value || "").replace(/\s+/g, " ");
+}
+
+function getSelectionContainer(selection, target) {
+  const node =
+    selection?.rangeCount > 0
+      ? selection.getRangeAt(0).commonAncestorContainer
+      : target;
+  const element =
+    node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+  return (
+    element?.closest?.("p, li, blockquote, article, section, main, div") ||
+    element
+  );
+}
+
+function getSelectionBoundaryOffsets(selection, container) {
+  try {
+    if (!selection || selection.rangeCount === 0 || !container) return null;
+    const range = selection.getRangeAt(0);
+    const ownerDocument = container.ownerDocument || document;
+    const startRange = ownerDocument.createRange();
+    const endRange = ownerDocument.createRange();
+    startRange.selectNodeContents(container);
+    endRange.selectNodeContents(container);
+    startRange.setEnd(range.startContainer, range.startOffset);
+    endRange.setEnd(range.endContainer, range.endOffset);
+    return {
+      start: normalizeContextText(startRange.toString()).length,
+      end: normalizeContextText(endRange.toString()).length,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getSelectionSentence(selection, target) {
+  try {
+    if (!selection || selection.rangeCount === 0) return "";
+    const selectedText = selection.toString()?.trim() || "";
+    if (!selectedText) return "";
+
+    const container = getSelectionContainer(selection, target);
+    const fullText = normalizeContextText(container?.textContent || "");
+    if (!fullText) return selectedText.slice(0, MAX_SOURCE_SENTENCE_LENGTH);
+
+    const offsets = getSelectionBoundaryOffsets(selection, container);
+    const start = Math.min(
+      Math.max(offsets?.start ?? fullText.indexOf(selectedText), 0),
+      fullText.length
+    );
+    const end = Math.min(
+      Math.max(offsets?.end ?? start + selectedText.length, start),
+      fullText.length
+    );
+
+    let sentenceStart = 0;
+    for (let index = Math.max(start - 1, 0); index >= 0; index -= 1) {
+      if (/[.!?。！？…]/.test(fullText[index])) {
+        sentenceStart = index + 1;
+        break;
+      }
+    }
+
+    let sentenceEnd = fullText.length;
+    for (let index = end; index < fullText.length; index += 1) {
+      if (/[.!?。！？…]/.test(fullText[index])) {
+        sentenceEnd = index + 1;
+        break;
+      }
+    }
+
+    const sentence = fullText.slice(sentenceStart, sentenceEnd).trim();
+    if (sentence.length <= MAX_SOURCE_SENTENCE_LENGTH) return sentence;
+
+    const selectedStart = Math.max(start - sentenceStart, 0);
+    const windowStart = Math.max(
+      0,
+      Math.min(
+        selectedStart - Math.floor(MAX_SOURCE_SENTENCE_LENGTH / 2),
+        sentence.length - MAX_SOURCE_SENTENCE_LENGTH
+      )
+    );
+    return sentence.slice(
+      windowStart,
+      windowStart + MAX_SOURCE_SENTENCE_LENGTH
+    );
+  } catch {
+    return "";
+  }
+}
+
+function getSelectionSource(selection, target) {
+  const text = selection?.toString()?.trim() || "";
+  if (!text) return null;
+
+  const sentence = getSelectionSentence(selection, target);
+  const url =
+    typeof window !== "undefined" && typeof window.location?.href === "string"
+      ? window.location.href
+      : "";
+  if (!sentence && !url) return null;
+
+  return { text, sentence, url };
+}
+
 function getSelectionContext(selection) {
   try {
     if (!selection || selection.rangeCount === 0) return "";
@@ -240,10 +353,12 @@ export default function useSelectionController({
   boxOffsetY,
   boxSize,
   setBoxPosition,
+  hideClickAway,
 }) {
   const {
     hideTranBtn = false,
     triggerMode,
+    triggerHoverDelay = DEFAULT_TRANBOX_HOVER_DELAY,
     btnPositionMode = OPT_TRANBOX_BTN_POSITION_FIXED,
     btnOffsetX = 0,
     btnOffsetY = 0,
@@ -251,16 +366,30 @@ export default function useSelectionController({
     skipLangs = [],
   } = tranboxSetting;
 
+  // Historical setting name: any falsy value pins the panel, while an absent
+  // one was never declared and must keep the pre-follow behaviour.
+  const isPinnedBox = hideClickAway !== undefined && !hideClickAway;
+
   const [showBox, updateShowBox] = useState(false);
   const [showBtn, setShowBtn] = useState(false);
   const [selectedText, setSelText] = useState("");
   const [text, setText] = useState("");
   const [textContext, setTextContext] = useState("");
+  const [selectionSource, setSelectionSource] = useState(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const selectionRootRef = useRef(document);
   const pendingSelectionRef = useRef(null);
   const selectionRevisionRef = useRef(0);
   const selectionAtPressRef = useRef(null);
+
+  // The follow gate runs after awaits, so it reads visibility from this mirror
+  // rather than from a value captured when the handler was created.
+  const showBoxRef = useRef(false);
+
+  useEffect(() => {
+    showBoxRef.current = showBox;
+  }, [showBox]);
+
   const setShowBox = useCallback((next) => {
     if (next === false) selectionRevisionRef.current += 1;
     updateShowBox(next);
@@ -272,6 +401,10 @@ export default function useSelectionController({
     };
     const handlePointerDown = (event) => {
       invalidatePendingSelection();
+      if (isFabEvent(event)) {
+        setShowBtn(false);
+        return;
+      }
       // Keep the dismissed range across later presses while the panel is hidden.
       // Only a selection change should allow that range to trigger again.
       if (!showBox || isTranboxEvent(event) || isTranButtonEvent(event)) return;
@@ -342,6 +475,7 @@ export default function useSelectionController({
       pendingSelectionRef.current = snapshot;
       setSelText(snapshot.text);
       setTextContext(snapshot.context);
+      setSelectionSource(snapshot.selectionSource || null);
       setShowBtn(false);
       setText(snapshot.text);
       setShowBox(true);
@@ -354,7 +488,12 @@ export default function useSelectionController({
       const pending = pendingSelectionRef.current;
       const snapshot =
         inputText && pending?.text !== inputText
-          ? { text: inputText, context: "", source: "manual" }
+          ? {
+              text: inputText,
+              context: "",
+              source: "manual",
+              selectionSource: null,
+            }
           : pending || { text: selectedText, context: "", source: "manual" };
 
       commitSelectionSnapshot(snapshot);
@@ -379,6 +518,8 @@ export default function useSelectionController({
         context: getSelectionContext(selection) || getTargetContext(target),
         pointerPosition,
         source,
+        selectionSource:
+          source === "page" ? getSelectionSource(selection, target) : null,
         rect,
         lastRect,
       };
@@ -436,7 +577,18 @@ export default function useSelectionController({
         return;
       }
 
-      if (snapshot.rect && followSelection) {
+      // A pinned panel the user is already looking at must stay put: moving it
+      // onto the fresh selection covers the text being translated, and a pinned
+      // panel never dismisses itself to uncover it again.
+      // Visibility is read here, after the awaits, because the panel may have
+      // been opened while this selection was still settling.
+      const panelIsVisible = showBoxRef.current;
+
+      if (
+        snapshot.rect &&
+        followSelection &&
+        (!isPinnedBox || !panelIsVisible)
+      ) {
         setBoxPosition(
           getFollowBoxPosition(snapshot.rect, boxOffsetX, boxOffsetY, boxSize)
         );
@@ -489,6 +641,7 @@ export default function useSelectionController({
       btnOffsetX,
       btnOffsetY,
       followSelection,
+      isPinnedBox,
       boxOffsetX,
       boxOffsetY,
       commitSelectionSnapshot,
@@ -503,6 +656,11 @@ export default function useSelectionController({
     async (e) => {
       if (e.button === 2) return;
       if (isTranButtonEvent(e)) return;
+      if (isFabEvent(e)) {
+        selectionRevisionRef.current += 1;
+        setShowBtn(false);
+        return;
+      }
 
       const isFromTranbox = isTranboxEvent(e);
       if (isFromTranbox && isPanelInteractiveEvent(e)) return;
@@ -664,10 +822,12 @@ export default function useSelectionController({
     text,
     setText,
     textContext,
+    selectionSource,
     position,
     setPosition,
     handleOpenTranbox,
     handleToggleTranbox,
     btnEvent,
+    triggerHoverDelay,
   };
 }

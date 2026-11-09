@@ -1,19 +1,3 @@
-let mockRealTouchControl = false;
-jest.mock(
-  "../../components/TouchTranslateControl",
-  () => (props) =>
-    mockRealTouchControl
-      ? require("react").createElement(
-          jest.requireActual("../../components/TouchTranslateControl").default,
-          props
-        )
-      : null
-);
-jest.mock("../../hooks/MouseHover", () => ({
-  useMouseHoverSetting: () => ({
-    updateMouseHoverSetting: mockUpdateMouseHoverSetting,
-  }),
-}));
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import { act, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -34,6 +18,22 @@ import {
   MSG_TOUCH_TRANSLATE_STATE,
   OPT_LANGS_FROM_REVERSED,
 } from "../../config";
+let mockRealTouchControl = false;
+jest.mock(
+  "../../components/TouchTranslateControl",
+  () => (props) =>
+    mockRealTouchControl
+      ? require("react").createElement(
+          jest.requireActual("../../components/TouchTranslateControl").default,
+          props
+        )
+      : null
+);
+jest.mock("../../hooks/MouseHover", () => ({
+  useMouseHoverSetting: () => ({
+    updateMouseHoverSetting: mockUpdateMouseHoverSetting,
+  }),
+}));
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -94,10 +94,14 @@ jest.mock("../../libs/client", () => ({
   },
 }));
 jest.mock("../../libs/cache", () => ({ tryClearCaches: jest.fn() }));
-jest.mock("../../libs/log", () => ({
-  ...jest.requireActual("../../libs/log"),
-  kissLog: jest.fn(),
-}));
+jest.mock("../../libs/log", () =>
+  jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      ...jest.requireActual("../../libs/log"),
+      kissLog: jest.fn(),
+    }))()
+  )
+);
 jest.mock("../../libs/rules", () => ({ saveRule: jest.fn() }));
 jest.mock("../../libs/storage", () => ({
   getRulesWithDefault: jest.fn(async () => []),
@@ -260,13 +264,19 @@ describe("PopupCont capability parity", () => {
     async (apiSlug) => {
       const transApis = [
         {
+          apiType: "Google",
           apiSlug: "disabled",
           apiName: "Disabled",
           isDisabled: true,
           sortOrder: -2,
         },
-        { apiSlug: "later", apiName: "Later", sortOrder: 3 },
-        { apiSlug: "pinned", apiName: "Pinned", sortOrder: -1 },
+        { apiType: "Google", apiSlug: "later", apiName: "Later", sortOrder: 3 },
+        {
+          apiType: "Google",
+          apiSlug: "pinned",
+          apiName: "Pinned",
+          sortOrder: -1,
+        },
       ];
       const processActions = jest.fn(({ args }) => ({ rule: args }));
       const view = renderPopupCont(
@@ -300,8 +310,8 @@ describe("PopupCont capability parity", () => {
 
   test("uses current stored services when the page snapshot still contains a disabled choice", async () => {
     const oldApis = [
-      { apiSlug: "google", apiName: "Google", sortOrder: 0 },
-      { apiSlug: "next", apiName: "Next", sortOrder: 1 },
+      { apiType: "Google", apiSlug: "google", apiName: "Google", sortOrder: 0 },
+      { apiType: "Google", apiSlug: "next", apiName: "Next", sortOrder: 1 },
     ];
     const processActions = jest.fn(({ args }) => ({ rule: args }));
     const view = renderPopupCont(
@@ -355,17 +365,32 @@ describe("PopupCont capability parity", () => {
     }
   });
 
-  test.each([false, true])(
-    "waits for the receiver's API snapshot before settling fallback (needs retry: %s)",
-    async (needsRetry) => {
+  test.each([
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true],
+  ])(
+    "waits for the receiver's API snapshot before settling fallback (needs retry: %s, capability-only change: %s)",
+    async (needsRetry, capabilityOnly) => {
       jest.useFakeTimers();
       const oldApis = [
-        { apiSlug: "old" },
-        { apiSlug: "next", isDisabled: true },
+        { apiType: "Google", apiSlug: "old" },
+        {
+          apiType: "Google",
+          apiSlug: "next",
+          isDisabled: !capabilityOnly,
+          enabledCapabilities: capabilityOnly ? [] : undefined,
+        },
       ];
       const newApis = [
-        { apiSlug: "old", isDisabled: true },
-        { apiSlug: "next", apiName: "Next" },
+        {
+          apiType: "Google",
+          apiSlug: "old",
+          isDisabled: !capabilityOnly,
+          enabledCapabilities: capabilityOnly ? [] : undefined,
+        },
+        { apiType: "Google", apiSlug: "next", apiName: "Next" },
       ];
       let writes = 0;
       const processActions = jest.fn(({ action }) => {
@@ -422,10 +447,10 @@ describe("PopupCont capability parity", () => {
 
   test("does not resend an old fallback after the user selects another available service", async () => {
     jest.useFakeTimers();
-    const oldApis = [{ apiSlug: "old" }];
+    const oldApis = [{ apiType: "Google", apiSlug: "old" }];
     const newApis = [
-      { apiSlug: "next", apiName: "Next", sortOrder: 0 },
-      { apiSlug: "manual", apiName: "Manual", sortOrder: 1 },
+      { apiType: "Google", apiSlug: "next", apiName: "Next", sortOrder: 0 },
+      { apiType: "Google", apiSlug: "manual", apiName: "Manual", sortOrder: 1 },
     ];
     const processActions = jest.fn(({ args }) =>
       args?.apiSlug === "manual"
@@ -462,10 +487,10 @@ describe("PopupCont capability parity", () => {
 
   test("adopts a newer valid receiver choice instead of overriding it with automatic fallback", async () => {
     jest.useFakeTimers();
-    const oldApis = [{ apiSlug: "old" }];
+    const oldApis = [{ apiType: "Google", apiSlug: "old" }];
     const newApis = [
-      { apiSlug: "next", apiName: "Next" },
-      { apiSlug: "manual", apiName: "Manual" },
+      { apiType: "Google", apiSlug: "next", apiName: "Next" },
+      { apiType: "Google", apiSlug: "manual", apiName: "Manual" },
     ];
     const processActions = jest.fn(({ action }) =>
       action === MSG_TRANS_GETRULE
@@ -499,8 +524,16 @@ describe("PopupCont capability parity", () => {
   });
 
   test.each([
-    ["disabled", "true", [{ apiSlug: "google", isDisabled: true }]],
-    ["disabled", "false", [{ apiSlug: "google", isDisabled: true }]],
+    [
+      "disabled",
+      "true",
+      [{ apiType: "Google", apiSlug: "google", isDisabled: true }],
+    ],
+    [
+      "disabled",
+      "false",
+      [{ apiType: "Google", apiSlug: "google", isDisabled: true }],
+    ],
     ["empty", "true", []],
     ["empty", "false", []],
   ])(
@@ -546,7 +579,7 @@ describe("PopupCont capability parity", () => {
   );
 
   test("recovers the translation action when a service becomes available again", async () => {
-    const api = { apiSlug: "google", apiName: "Google" };
+    const api = { apiType: "Google", apiSlug: "google", apiName: "Google" };
     const processActions = jest.fn(({ args }) => ({
       rule:
         args && "enabled" in args ? { transOpen: String(args.enabled) } : args,
@@ -591,7 +624,7 @@ describe("PopupCont capability parity", () => {
 
   test("closes an open service menu when the last available service is disabled", async () => {
     const transApis = ["google", "second", "third", "fourth"].map(
-      (apiSlug) => ({ apiSlug })
+      (apiSlug) => ({ apiType: "Google", apiSlug })
     );
     const view = renderPopupCont(
       { setting: { transApis } },
@@ -889,8 +922,9 @@ describe("PopupCont capability parity", () => {
           })
         );
         expect(mockUpdateMouseHoverSetting).not.toHaveBeenCalled();
-        if (transition === "navigation")
-          expect(onPageUnavailable).toHaveBeenCalledTimes(1);
+        expect(onPageUnavailable).toHaveBeenCalledTimes(
+          transition === "navigation" ? 1 : 0
+        );
       } finally {
         if (!unmounted) view.cleanup();
       }
@@ -1639,7 +1673,7 @@ describe("PopupCont capability parity", () => {
         (apiSlug) => ({
           apiSlug,
           apiName: apiSlug,
-          apiType: apiSlug,
+          apiType: "Google",
         })
       ),
     };
@@ -1678,6 +1712,78 @@ describe("PopupCont capability parity", () => {
         "openai",
       ]);
       expect(moreServices.getAttribute("aria-expanded")).toBe("false");
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("filters capability-only services from the row, overflow count and menu and reacts to capability changes", async () => {
+    const translators = ["one", "two", "three", "four"].map((apiSlug) => ({
+      apiSlug,
+      apiName: apiSlug,
+      apiType: "Google",
+    }));
+    const otherServices = [
+      "recognizeText",
+      "analyzeLayout",
+      "transcribe",
+      "speak",
+    ].map((capability) => ({
+      apiSlug: capability,
+      apiName: capability,
+      sortOrder: -1,
+      provider: {
+        apiVersion: 1,
+        implementation: { kind: "native" },
+        capabilities: { [capability]: {} },
+      },
+    }));
+    const processActions = jest.fn(({ args }) => ({ rule: args }));
+    const view = renderPopupCont(
+      {
+        rule: { apiSlug: "one" },
+        setting: { transApis: [...otherServices, ...translators] },
+        processActions,
+      },
+      { statefulRule: true }
+    );
+    try {
+      await flushEffects();
+      const visible = () =>
+        [...view.container.querySelectorAll(".kt-popup-service")].map(
+          (item) => item.textContent
+        );
+      expect(visible()).toEqual(["one", "two", "three"]);
+      const more = view.container.querySelector(".kt-popup-more-service");
+      expect(more.textContent).toContain("+1");
+      act(() => more.click());
+      expect(
+        [...document.body.querySelectorAll('[role="menuitem"]')].map(
+          (item) => item.textContent
+        )
+      ).toEqual(["one", "two", "three", "four"]);
+      view.updateRuntimeSetting({
+        transApis: [
+          ...otherServices,
+          { ...translators[0], enabledCapabilities: [] },
+          ...translators.slice(1),
+        ],
+      });
+      await flushEffects();
+      expect(visible()).toEqual(["two", "three", "four"]);
+      expect(processActions).toHaveBeenCalledWith({
+        action: MSG_TRANS_PUTRULE,
+        args: { apiSlug: "two" },
+      });
+      expect(saveRule).not.toHaveBeenCalled();
+      view.updateRuntimeSetting({ transApis: otherServices });
+      await flushEffects();
+      expect(
+        view.container.querySelector(".kt-popup-services-empty")
+      ).not.toBeNull();
+      expect(
+        view.container.querySelector(".kt-popup-translate-button").disabled
+      ).toBe(true);
     } finally {
       view.cleanup();
     }
@@ -1732,11 +1838,9 @@ describe("PopupCont capability parity", () => {
             ? { blacklist: "example.com\nother.example", retained: true }
             : { blacklist: "other.example", retained: true }
         );
-        if (operation === "add") {
-          expect(reduce({ blacklist: "other.example" }).blacklist).toBe(
-            "other.example\nexample.com"
-          );
-        }
+        expect(reduce({ blacklist: "other.example" }).blacklist).toBe(
+          operation === "add" ? "other.example\nexample.com" : "other.example"
+        );
         expect(view.container.querySelector(".MuiSnackbar-root")).toBeNull();
         await act(async () => completeSave({ value, changed: true }));
         expect(view.container.querySelector('[role="alert"]')).toBeNull();
@@ -1928,6 +2032,7 @@ describe("PopupCont capability parity", () => {
         processActions,
         setting: {
           transApis: ["google", "deepl", "microsoft"].map((apiSlug) => ({
+            apiType: "Google",
             apiSlug,
             apiName: apiSlug,
           })),
@@ -2267,14 +2372,12 @@ describe("PopupCont capability parity", () => {
                 candidate.textContent.includes("popup_disable_site")
               );
         await act(async () => button.click());
-        if (action === "save") {
-          expect(saveRule).toHaveBeenCalledWith(
-            expect.objectContaining({ pattern: "*.example.com" })
-          );
-        } else {
-          const update = mockUpdateSetting.mock.calls[0][0];
-          expect(update({ blacklist: "" }).blacklist).toBe("*.example.com");
-        }
+        expect(saveRule).toHaveBeenCalledTimes(action === "save" ? 1 : 0);
+        const pattern =
+          action === "save"
+            ? saveRule.mock.calls[0][0].pattern
+            : mockUpdateSetting.mock.calls[0][0]({ blacklist: "" }).blacklist;
+        expect(pattern).toBe("*.example.com");
       } finally {
         view.cleanup();
       }
@@ -2451,6 +2554,7 @@ describe("PopupCont capability parity", () => {
       {
         setting: {
           transApis: ["google", "deepl"].map((apiSlug) => ({
+            apiType: "Google",
             apiSlug,
             apiName: apiSlug,
           })),

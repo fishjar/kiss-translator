@@ -1,8 +1,25 @@
-import {
+// These storage fixtures use localStorage rather than extension storage.
+const originalClient = process.env.REACT_APP_CLIENT;
+process.env.REACT_APP_CLIENT = "web";
+afterAll(() => {
+  if (originalClient === undefined) delete process.env.REACT_APP_CLIENT;
+  else process.env.REACT_APP_CLIENT = originalClient;
+});
+
+const {
   STOKEY_SETTING,
   STOKEY_SETTING_BACKUP_V1_BEFORE_V2,
+  STOKEY_RULES,
+  STOKEY_RULES_IGNORE_MIGRATED,
+  DEFAULT_IGNORE_SELECTOR,
+  DEFAULT_KEEP_SELECTOR,
+  STOKEY_SYNC,
+  KV_RULES_KEY,
   SETTINGS_VERSION_V2,
   SETTINGS_VERSION_V3,
+  SETTINGS_VERSION_V4,
+  CURRENT_SETTINGS_VERSION,
+  DEFAULT_VLM_PROMPT_SLUG,
   DEFAULT_SUBTITLE_SETTING,
   DEFAULT_API_LIST,
   OPT_TRANS_BUILTINAI,
@@ -12,13 +29,19 @@ import {
   OPT_TRANS_MICROSOFT,
   OPT_TRANS_OPENAI,
   OPT_TRANS_TENCENT,
-} from "../config";
-import { getSettingWithDefault, runDataMigration } from "./storage";
+} = require("../config");
+const {
+  getSettingWithDefault,
+  runDataMigration,
+  saveEdit,
+} = require("./storage");
 
 // 存储测试不涉及流式解析，隔离 ESM-only 依赖以免 Jest 27 在加载阶段失败。
 jest.mock("@streamparser/json", () => ({ JSONParser: jest.fn() }));
 // jsdom 并非扩展页面，使用空实现避免 webextension-polyfill 在模块初始化时主动抛错。
 jest.mock("webextension-polyfill", () => ({}));
+jest.mock("./subRules", () => ({ loadOrFetchSubRules: jest.fn() }));
+jest.mock("./sync", () => ({ trySyncRules: jest.fn() }));
 
 const readStoredJson = (key) => JSON.parse(window.localStorage.getItem(key));
 
@@ -36,6 +59,26 @@ function loadGmStorageModule() {
 }
 
 describe("settings storage migration", () => {
+  test("existing service instances and scene choices are not supplemented by new install defaults", async () => {
+    const existing = {
+      version: CURRENT_SETTINGS_VERSION,
+      transApis: [
+        {
+          apiSlug: "mine",
+          apiType: "LocalAI",
+          apiName: "My service",
+          modelRef: "hy-mt2-1.8b",
+          device: "wasm",
+        },
+      ],
+      fileTranslateSetting: { pdf: { apiSlug: "mine" } },
+    };
+    window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(existing));
+    const setting = await getSettingWithDefault();
+    expect(setting.transApis).toHaveLength(1);
+    expect(setting.transApis[0]).toMatchObject(existing.transApis[0]);
+    expect(setting.fileTranslateSetting.pdf.apiSlug).toBe("mine");
+  });
   beforeEach(() => {
     window.localStorage.clear();
     delete window.KISS_GM;
@@ -71,11 +114,286 @@ describe("settings storage migration", () => {
     const stored = readStoredJson(STOKEY_SETTING);
 
     expect(backup).toEqual(oldSetting);
-    expect(stored.version).toBe(SETTINGS_VERSION_V3);
+    expect(stored.version).toBe(CURRENT_SETTINGS_VERSION);
     expect(stored.transApis[0].batchPromptSlug).toMatch(
       /^prompt_migrated_batch_/
     );
     expect(stored.transApis[0]).not.toHaveProperty("systemPrompt");
+  });
+
+  test("does not migrate single-service rules into fallback lists", async () => {
+    const rules = [
+      { pattern: "*", apiSlug: "primary" },
+      { pattern: "example.com", apiSlug: "*" },
+    ];
+    window.localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+    await runDataMigration();
+    expect(readStoredJson(STOKEY_RULES)).toMatchObject(rules);
+    expect(readStoredJson(STOKEY_RULES)[0]).not.toHaveProperty(
+      "fallbackApiSlugs"
+    );
+  });
+
+  test("migrates only global selectors once and preserves later edits", async () => {
+    const site = { pattern: "example.com", ignoreSelector: "-.notranslate" };
+    const globalRule = {
+      pattern: "*",
+      ignoreSelector: ".mine, svg, .mine",
+      apiSlug: "mine",
+    };
+    localStorage.setItem(STOKEY_RULES, JSON.stringify([globalRule, site]));
+    expect(await runDataMigration()).toBe(true);
+    const migrated = readStoredJson(STOKEY_RULES);
+    expect(migrated[0]).toEqual({
+      ...globalRule,
+      keepSelector: DEFAULT_KEEP_SELECTOR,
+      ignoreSelector:
+        ".mine, svg, address, select, option, .notranslate, [translate='no'], .MathJax_Display",
+    });
+    expect(migrated[1]).toEqual(site);
+    expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+    migrated[0].ignoreSelector = ".mine";
+    localStorage.setItem(STOKEY_RULES, JSON.stringify(migrated));
+    await runDataMigration();
+    expect(readStoredJson(STOKEY_RULES)).toEqual(migrated);
+  });
+
+  describe("global selector migration from master", () => {
+    test("new installs include MathJax defaults", async () => {
+      expect(await runDataMigration()).toBe(true);
+      const globalRule = readStoredJson(STOKEY_RULES).find(
+        (rule) => rule.pattern === "*"
+      );
+      expect(globalRule.ignoreSelector).toBe(DEFAULT_IGNORE_SELECTOR);
+      expect(globalRule.keepSelector).toBe(DEFAULT_KEEP_SELECTOR);
+      expect(globalRule.ignoreSelector).toContain(".MathJax_Display");
+      expect(globalRule.keepSelector).toContain(".MathJax");
+      expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+    });
+
+    test.each([
+      [".mine", "code"],
+      [".mine, .MathJax_Display", "code, +.MathJax"],
+      ["-.blocked, .another", "+code, -.removed"],
+      ["-svg, [class*='logo'] svg", "code"],
+      ["-.MathJax_Display", "-.other, .MathJax"],
+      [':is(.one, .two), [data-label="a,b"]', "a:has(code, cite)"],
+    ])(
+      "preserves selector semantics and later edits: %s / %s",
+      async (ignoreSelector, keepSelector) => {
+        const site = {
+          pattern: "example.com",
+          ignoreSelector: "-.MathJax_Display",
+          keepSelector: "-.MathJax",
+        };
+        const globalRule = {
+          pattern: "*",
+          apiSlug: "custom",
+          ignoreSelector,
+          keepSelector,
+        };
+        localStorage.setItem(STOKEY_RULES, JSON.stringify([globalRule, site]));
+        expect(await runDataMigration()).toBe(true);
+        const migrated = readStoredJson(STOKEY_RULES);
+        expect(migrated[1]).toEqual(site);
+        expect(migrated[0].apiSlug).toBe("custom");
+        const { splitSelectorList } = require("./selectorList");
+        const { mergeSelectors } = require("./rules");
+        for (const [field, selector] of [
+          ["ignoreSelector", ".MathJax_Display"],
+          ["keepSelector", ".MathJax"],
+        ]) {
+          const original = splitSelectorList(globalRule[field]);
+          const next = splitSelectorList(migrated[0][field]);
+          expect(next).toEqual(expect.arrayContaining(original));
+          expect(
+            next.filter((item) => item.replace(/^[+-]\s*/, "") === selector)
+          ).toHaveLength(1);
+          const explicitlyRemoved =
+            globalRule[field].includes(`-${selector}`) ||
+            (field === "keepSelector" && keepSelector === "-.other, .MathJax");
+          expect(
+            splitSelectorList(mergeSelectors("", migrated[0][field])).includes(
+              selector
+            )
+          ).toBe(!explicitlyRemoved);
+        }
+        const edited = [
+          { ...globalRule, ignoreSelector: ".edited", keepSelector: "code" },
+          site,
+        ];
+        localStorage.setItem(STOKEY_RULES, JSON.stringify(edited));
+        await runDataMigration();
+        expect(readStoredJson(STOKEY_RULES)).toEqual(edited);
+      }
+    );
+
+    test.each(["ignoreSelector", "keepSelector"])(
+      "leaves invalid %s untouched and retries after repair",
+      async (field) => {
+        const rules = [
+          {
+            pattern: "*",
+            ignoreSelector: ".mine",
+            keepSelector: "code",
+            [field]: "[broken",
+          },
+        ];
+        const bytes = JSON.stringify(rules);
+        localStorage.setItem(STOKEY_RULES, bytes);
+        localStorage.setItem(
+          STOKEY_SETTING,
+          JSON.stringify({ version: SETTINGS_VERSION_V3, darkMode: true })
+        );
+        expect(await runDataMigration()).toBe(true);
+        expect(localStorage.getItem(STOKEY_RULES)).toBe(bytes);
+        expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBeNull();
+        expect(readStoredJson(STOKEY_SETTING).version).toBe(
+          CURRENT_SETTINGS_VERSION
+        );
+        rules[0][field] = ".repaired";
+        localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+        expect(await runDataMigration()).toBe(true);
+        expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+        expect(readStoredJson(STOKEY_RULES)[0][field]).toContain(".repaired");
+      }
+    );
+  });
+
+  test.each([
+    null,
+    {
+      syncUrl: "https://sync.example.invalid",
+      destinationRevision: 3,
+      syncMeta: {
+        [KV_RULES_KEY]: {
+          updateAt: 100,
+          syncAt: 80,
+          pendingUpload: true,
+          firstAttemptAt: 60,
+        },
+        unrelated: { updateAt: 300, syncAt: 200 },
+      },
+    },
+  ])(
+    "migration preserves sync metadata and user edits still advance it: %j",
+    async (sync) => {
+      const rules = [{ pattern: "*", ignoreSelector: ".mine" }];
+      localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+      if (sync) localStorage.setItem(STOKEY_SYNC, JSON.stringify(sync));
+      const before = localStorage.getItem(STOKEY_SYNC);
+      expect(await runDataMigration()).toBe(true);
+      expect(localStorage.getItem(STOKEY_SYNC)).toBe(before);
+      expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+      await saveEdit(STOKEY_RULES, [
+        { ...rules[0], ignoreSelector: ".edited" },
+      ]);
+      expect(
+        readStoredJson(STOKEY_SYNC).syncMeta[KV_RULES_KEY].updateAt
+      ).toBeGreaterThan(sync?.syncMeta[KV_RULES_KEY].updateAt || 0);
+    }
+  );
+
+  test("invalid legacy selectors remain repairable without blocking other migrations", async () => {
+    const rules = [{ pattern: "*", ignoreSelector: "svg, [broken" }];
+    const bytes = JSON.stringify(rules);
+    localStorage.setItem(STOKEY_RULES, bytes);
+    localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({ version: SETTINGS_VERSION_V3, darkMode: true })
+    );
+    expect(await runDataMigration()).toBe(true);
+    expect(localStorage.getItem(STOKEY_RULES)).toBe(bytes);
+    expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBeNull();
+    expect(readStoredJson(STOKEY_SETTING)).toMatchObject({
+      version: CURRENT_SETTINGS_VERSION,
+      darkMode: "dark",
+    });
+    rules[0].ignoreSelector = ".repaired";
+    await saveEdit(STOKEY_RULES, rules);
+    expect(await runDataMigration()).toBe(true);
+    expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+    expect(readStoredJson(STOKEY_RULES)[0].ignoreSelector).toContain(
+      ".repaired"
+    );
+    expect(readStoredJson(STOKEY_RULES)[0].ignoreSelector).toContain(
+      "[translate='no']"
+    );
+  });
+
+  test.each([
+    "svg, [class*='logo'] svg, [id*='logo'] svg",
+    '[class*="logo"] svg, [id*="logo"] svg',
+  ])(
+    "removes redundant global logo SVG defaults during migration: %s",
+    async (legacy) => {
+      const site = {
+        pattern: "example.com",
+        ignoreSelector: "[class*='logo'] svg",
+      };
+      const rules = [
+        {
+          pattern: "*",
+          ignoreSelector: `${legacy}, img[src*='.svg'], .logo svg, .mine`,
+        },
+        site,
+      ];
+      localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+      expect(await runDataMigration()).toBe(true);
+      const migrated = readStoredJson(STOKEY_RULES);
+      const { splitSelectorList } = require("./selectorList");
+      expect(splitSelectorList(migrated[0].ignoreSelector)).toEqual(
+        expect.arrayContaining([
+          "svg",
+          "img[src*='.svg']",
+          ".logo svg",
+          ".mine",
+        ])
+      );
+      expect(migrated[0].ignoreSelector).not.toMatch(/\[(?:class|id)\*=/);
+      expect(migrated[1]).toEqual(site);
+      migrated[0].ignoreSelector += ", [class*='logo'] svg";
+      localStorage.setItem(STOKEY_RULES, JSON.stringify(migrated));
+      await runDataMigration();
+      expect(readStoredJson(STOKEY_RULES)).toEqual(migrated);
+    }
+  );
+
+  test.each([null, [{ pattern: "example.com", ignoreSelector: ".mine" }]])(
+    "supplies global defaults when no global rule exists: %j",
+    async (rules) => {
+      if (rules) localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+      expect(await runDataMigration()).toBe(true);
+      const { getRulesWithDefault } = require("./storage");
+      const migrated = await getRulesWithDefault();
+      expect(
+        migrated.find((rule) => rule.pattern === "*").ignoreSelector
+      ).toContain("[translate='no']");
+      if (rules) expect(migrated.slice(1)).toEqual(rules);
+      expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+    }
+  );
+
+  test("rolls back rule changes if the completion marker fails, then retries", async () => {
+    const rules = [{ pattern: "*", ignoreSelector: ".mine" }];
+    localStorage.setItem(STOKEY_RULES, JSON.stringify(rules));
+    const originalSet = Storage.prototype.setItem;
+    const write = jest
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(function (key, value) {
+        if (key === STOKEY_RULES_IGNORE_MIGRATED)
+          throw new Error("marker unavailable");
+        return originalSet.call(this, key, value);
+      });
+    try {
+      expect(await runDataMigration()).toBe(false);
+      expect(readStoredJson(STOKEY_RULES)).toEqual(rules);
+      expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBeNull();
+    } finally {
+      write.mockRestore();
+    }
+    expect(await runDataMigration()).toBe(true);
+    expect(readStoredJson(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
   });
 
   test.each([
@@ -93,8 +411,9 @@ describe("settings storage migration", () => {
 
       await runDataMigration();
 
-      expect(readStoredJson(STOKEY_SETTING)).toEqual({
+      expect(readStoredJson(STOKEY_SETTING)).toMatchObject({
         ...oldSetting,
+        version: CURRENT_SETTINGS_VERSION,
         darkMode: expected,
       });
       expect(readStoredJson(STOKEY_SETTING_BACKUP_V1_BEFORE_V2)).toBe(null);
@@ -109,12 +428,15 @@ describe("settings storage migration", () => {
       await runDataMigration();
 
       expect(readStoredJson(STOKEY_SETTING)).toMatchObject({
-        version: SETTINGS_VERSION_V3,
+        version: CURRENT_SETTINGS_VERSION,
         darkMode: "dark",
       });
-      expect(setItem).toHaveBeenCalledTimes(1);
+      expect(
+        setItem.mock.calls.filter(([key]) => key === STOKEY_SETTING)
+      ).toHaveLength(1);
+      const writes = setItem.mock.calls.length;
       await runDataMigration();
-      expect(setItem).toHaveBeenCalledTimes(1);
+      expect(setItem).toHaveBeenCalledTimes(writes);
     } finally {
       setItem.mockRestore();
     }
@@ -150,7 +472,7 @@ describe("settings storage migration", () => {
 
     const setting = await getSettingWithDefault();
 
-    expect(setting.version).toBe(SETTINGS_VERSION_V3);
+    expect(setting.version).toBe(CURRENT_SETTINGS_VERSION);
     expect(setting.transApis[0].batchPromptSlug).toMatch(
       /^prompt_migrated_batch_/
     );
@@ -171,7 +493,7 @@ describe("settings storage migration", () => {
       const setItem = jest.spyOn(window.Storage.prototype, "setItem");
       try {
         await expect(getSettingWithDefault()).resolves.toMatchObject({
-          version: SETTINGS_VERSION_V3,
+          version: CURRENT_SETTINGS_VERSION,
           darkMode: expected,
           uiLang: "en",
         });
@@ -183,6 +505,142 @@ describe("settings storage migration", () => {
       }
     }
   );
+
+  test.each([false, true])(
+    "migrates V4 visual references through storage (persist: %p)",
+    async (persist) => {
+      const oldSetting = {
+        version: SETTINGS_VERSION_V4,
+        uiLang: "en",
+        transApis: [
+          { apiSlug: "missing", apiType: OPT_TRANS_OPENAI, tone: "formal" },
+          {
+            apiSlug: "custom",
+            apiType: OPT_TRANS_OPENAI,
+            vlmPromptSlug: "mine",
+          },
+          { apiSlug: "empty", apiType: OPT_TRANS_OPENAI, vlmPromptSlug: "" },
+        ],
+        fileTranslateSetting: {
+          image: { ocrGroup: "old", promptSlug: "translation" },
+        },
+      };
+      const serialized = JSON.stringify(oldSetting);
+      window.localStorage.setItem(STOKEY_SETTING, serialized);
+      const setItem = jest.spyOn(window.Storage.prototype, "setItem");
+      try {
+        if (persist) await runDataMigration();
+        const setting = persist
+          ? readStoredJson(STOKEY_SETTING)
+          : await getSettingWithDefault();
+        expect(setting).toMatchObject({
+          version: CURRENT_SETTINGS_VERSION,
+          uiLang: "en",
+          transApis: [
+            {
+              apiSlug: "missing",
+              vlmPromptSlug: DEFAULT_VLM_PROMPT_SLUG,
+              tone: "formal",
+            },
+            { apiSlug: "custom", vlmPromptSlug: "mine" },
+            { apiSlug: "empty", vlmPromptSlug: "" },
+          ],
+          fileTranslateSetting: {
+            image: {
+              vlmPromptSlug: "",
+              ocrGroup: "old",
+              promptSlug: "translation",
+            },
+          },
+        });
+        if (persist) {
+          expect(setItem).toHaveBeenCalled();
+          setItem.mockClear();
+          await runDataMigration();
+          expect(setItem).not.toHaveBeenCalled();
+          expect(readStoredJson(STOKEY_SETTING)).toEqual(setting);
+        } else {
+          expect(setItem).not.toHaveBeenCalled();
+          expect(window.localStorage.getItem(STOKEY_SETTING)).toBe(serialized);
+        }
+      } finally {
+        setItem.mockRestore();
+      }
+    }
+  );
+
+  test("preserves explicit V4 image visual references through both storage entry points", async () => {
+    const oldSetting = {
+      version: SETTINGS_VERSION_V4,
+      fileTranslateSetting: { image: { vlmPromptSlug: "mine" } },
+    };
+    window.localStorage.setItem(STOKEY_SETTING, JSON.stringify(oldSetting));
+    expect(
+      (await getSettingWithDefault()).fileTranslateSetting.image.vlmPromptSlug
+    ).toBe("mine");
+    await runDataMigration();
+    expect(
+      readStoredJson(STOKEY_SETTING).fileTranslateSetting.image.vlmPromptSlug
+    ).toBe("mine");
+  });
+
+  test.each([undefined, "off", "tap", "swipe"])(
+    "defaults missing touch mode to off and preserves stored %s without rewriting storage",
+    async (touchMode) => {
+      const stored = JSON.stringify({
+        version: CURRENT_SETTINGS_VERSION,
+        mouseHoverSetting: { touchMode, touchDirection: "left" },
+      });
+      window.localStorage.setItem(STOKEY_SETTING, stored);
+      await expect(getSettingWithDefault()).resolves.toMatchObject({
+        mouseHoverSetting: {
+          touchMode: touchMode || "off",
+          touchDirection: "left",
+        },
+      });
+      expect(window.localStorage.getItem(STOKEY_SETTING)).toBe(stored);
+    }
+  );
+
+  test("fills in new mouse hover hold defaults without overriding stored choices", async () => {
+    // 旧版本升级上来的设置：mouseHoverSetting 里没有本轮新增的键
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V3,
+        mouseHoverSetting: {
+          mouseHoverKeyHold: true,
+          mouseHoverHoldDelay: 500,
+        },
+      })
+    );
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      mouseHoverSetting: {
+        mouseHoverKeyHold: true,
+        mouseHoverHoldDelay: 500,
+        mouseHoverHoldButton: "left",
+        mouseHoverSuppressContextMenu: true,
+      },
+    });
+
+    // 用户已经改过的值必须保留
+    window.localStorage.setItem(
+      STOKEY_SETTING,
+      JSON.stringify({
+        version: SETTINGS_VERSION_V3,
+        mouseHoverSetting: {
+          mouseHoverHoldButton: "right",
+          mouseHoverSuppressContextMenu: false,
+        },
+      })
+    );
+    await expect(getSettingWithDefault()).resolves.toMatchObject({
+      mouseHoverSetting: {
+        mouseHoverHoldButton: "right",
+        mouseHoverSuppressContextMenu: false,
+      },
+    });
+  });
 
   test("merges the language variant default without overriding an explicit choice", async () => {
     window.localStorage.setItem(
@@ -339,7 +797,9 @@ describe("settings storage migration", () => {
 
       const setting = await getSettingWithDefault();
 
-      expect(setting.transApis).toHaveLength(savedApis.length);
+      expect(setting.transApis).toHaveLength(
+        version < SETTINGS_VERSION_V4 ? savedApis.length + 2 : savedApis.length
+      );
       savedApis.forEach((savedApi, index) => {
         const loadedApi = setting.transApis[index];
         [

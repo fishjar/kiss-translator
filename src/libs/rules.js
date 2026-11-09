@@ -17,7 +17,7 @@ import {
 import { loadOrFetchSubRules } from "./subRules";
 import { getRulesWithDefault, saveEdit, getDisabledSubRules } from "./storage";
 import { trySyncRules } from "./sync";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { splitSelectorList } from "./selectorList";
 
 /**
@@ -41,7 +41,7 @@ export function mergeSelectors(defaultStr, userStr) {
     defaultList = splitSelectorList(defaultStr);
     userList = splitSelectorList(userStr);
   } catch (err) {
-    kissLog("invalid selector list", err);
+    logger.child("rules").warn("invalid selector list", err);
     return userStr;
   }
 
@@ -132,7 +132,6 @@ export const mergeRules = (baseRule, overrideRule) => {
   if (!baseRule) return { ...overrideRule };
 
   const merged = { ...baseRule };
-
   // 1. 合并 CSS 选择器类型的属性，支持追加/剔除
   [
     "selector",
@@ -140,6 +139,8 @@ export const mergeRules = (baseRule, overrideRule) => {
     "blockSelector",
     "rootsSelector",
     "ignoreSelector",
+    "imageSelector",
+    "imageIgnoreSelector",
   ].forEach((key) => {
     merged[key] = mergeSelectors(baseRule[key] || "", overrideRule[key] || "");
   });
@@ -186,6 +187,7 @@ export const mergeRules = (baseRule, overrideRule) => {
     "highlightWords",
     "textStyle",
     "originalTextStyle",
+    "imageTransOpen",
   ].forEach((key) => {
     if (overrideRule[key] && overrideRule[key] !== GLOBAL_KEY) {
       merged[key] = overrideRule[key];
@@ -193,7 +195,12 @@ export const mergeRules = (baseRule, overrideRule) => {
   });
 
   // 4. 合并数字数值类型属性
-  ["splitLength", "transOnlyRevertDelay"].forEach((key) => {
+  [
+    "splitLength",
+    "transOnlyRevertDelay",
+    "imageMinWidth",
+    "imageMinHeight",
+  ].forEach((key) => {
     if (overrideRule[key] && overrideRule[key] !== GLOBAL_KEY) {
       merged[key] = overrideRule[key];
     }
@@ -204,6 +211,14 @@ export const mergeRules = (baseRule, overrideRule) => {
     merged.pattern = overrideRule.pattern;
   }
 
+  if (overrideRule.termsList || baseRule.termsList) {
+    merged.termsList = [
+      ...new Set([
+        ...(overrideRule.termsList || []),
+        ...(baseRule.termsList || []),
+      ]),
+    ];
+  }
   return merged;
 };
 
@@ -218,7 +233,6 @@ export const deriveRuleContext = (
     ...GLOBLA_RULE,
     ...(personalRules.find((r) => r.pattern === GLOBAL_KEY) || {}),
   };
-
   // Find the active personal rule, excluding the global rule.
   // The visual editor can keep editing a renamed rule even when its new
   // pattern no longer matches the page used to select elements.
@@ -245,6 +259,13 @@ export const deriveRuleContext = (
   // Apply global, subscribed and personal rules in increasing priority.
   const inherited = mergeRules(globalRule, matchedSubRule);
   const finalRule = mergeRules(inherited, matchedPersonalRule);
+  finalRule.terminologySources = [
+    matchedPersonalRule,
+    matchedSubRule,
+    globalRule,
+  ]
+    .filter(Boolean)
+    .map(({ terms, aiTerms, termsList }) => ({ terms, aiTerms, termsList }));
 
   return {
     effective: finalRule,
@@ -277,11 +298,11 @@ export const resolveRuleContext = async (
         try {
           disabledPatterns = (await getDisabledSubRules(selectedSub.url)) || [];
         } catch (err) {
-          kissLog("getDisabledSubRules", err);
+          logger.child("rules").info("getDisabledSubRules", err);
         }
       }
     } catch (err) {
-      kissLog("load injectRules", err);
+      logger.child("rules").warn("load injectRules", err);
     }
   }
 
@@ -338,6 +359,7 @@ export const checkRules = (rules) => {
         ignoreSelector,
         terms,
         aiTerms,
+        termsList,
         termsStyle,
         highlightStyle,
         textExtStyle,
@@ -381,6 +403,9 @@ export const checkRules = (rules) => {
         ignoreSelector: type(ignoreSelector) === "string" ? ignoreSelector : "",
         terms: type(terms) === "string" ? terms : "",
         aiTerms: type(aiTerms) === "string" ? aiTerms : "",
+        termsList: Array.isArray(termsList)
+          ? [...new Set(termsList.filter((id) => typeof id === "string"))]
+          : [],
         termsStyle: type(termsStyle) === "string" ? termsStyle : "",
         highlightStyle: type(highlightStyle) === "string" ? highlightStyle : "",
         textExtStyle: type(textExtStyle) === "string" ? textExtStyle : "",

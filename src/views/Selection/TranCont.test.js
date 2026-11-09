@@ -1435,6 +1435,23 @@ describe("TranCont", () => {
     });
   });
 
+  test("a user plugin streams by its declared translation feature without a vendor classification", async () => {
+    const plugin = {
+      ...baseApiSetting,
+      apiType: "Plugin",
+      provider: {
+        capabilities: { translate: { outputModes: ["complete", "stream"] } },
+      },
+    };
+    apiTranslate.mockResolvedValueOnce({ trText: "插件译文" });
+    const rendered = renderTranCont({ transApis: [plugin] });
+    await flushEffects();
+    expect(apiTranslate.mock.calls[0][0].onStreamChunk).toEqual(
+      expect.any(Function)
+    );
+    act(() => rendered.root.unmount());
+  });
+
   test("aborts stale request and prevents stale result overwrite", async () => {
     const first = createDeferred();
     const second = createDeferred();
@@ -1593,6 +1610,51 @@ describe("TranCont", () => {
       deferred.resolve({ trText: "卸载后的译文" });
       await deferred.promise;
     });
+  });
+});
+
+describe("TranCont action cluster spacing", () => {
+  beforeEach(() => {
+    __resetSessionHeightMapForTests();
+    apiTranslate.mockReset();
+    document.body.innerHTML = "";
+  });
+
+  afterEach(() => {
+    mockUseTextareaGripStyle.mockReset();
+    mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");
+  });
+
+  test("gaps the Playground result action cluster by 8px", async () => {
+    apiTranslate.mockResolvedValueOnce({ trText: "译文" });
+    const { container, root } = renderTranCont({ isPlayground: true });
+    await flushEffects();
+
+    const actions = container.querySelector(
+      ".kt-translation-result .kt-resizable-text-field .MuiStack-root"
+    );
+    expect(actions).not.toBeNull();
+    expect(actions.classList).toContain("kt-translation-text-field__actions");
+    expect(window.getComputedStyle(actions).gap).toBe("8px");
+
+    act(() => root.unmount());
+  });
+
+  test("gaps the selection-panel result action cluster by the same 8px", async () => {
+    apiTranslate.mockResolvedValueOnce({ trText: "译文" });
+    const { container, root } = renderTranCont();
+    await flushEffects();
+
+    const actions = container.querySelector(
+      ".kt-translation-result .kt-resizable-text-field .MuiStack-root"
+    );
+    expect(actions).not.toBeNull();
+    expect(actions.classList).not.toContain(
+      "kt-translation-text-field__actions"
+    );
+    expect(window.getComputedStyle(actions).gap).toBe("8px");
+
+    act(() => root.unmount());
   });
 });
 

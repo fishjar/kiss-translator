@@ -50,16 +50,11 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-shell--window .kt-translation-panel__body,
 .kt-popup-shell--window .kt-tranbox-content,
 .kt-popup-shell--window .kt-tranbox-content > .MuiStack-root { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.kt-popup-shell--window .kt-translation-source textarea:not([aria-hidden="true"]) { min-height: 72px; }
-.kt-popup-shell--window .kt-translation-result { flex: 1; display: flex; flex-direction: column; min-height: 180px; }
-.kt-popup-shell--window .kt-translation-result > .MuiFormControl-root,
-.kt-popup-shell--window .kt-translation-result .MuiInputBase-root { flex: 1; }
-.kt-popup-shell--window .kt-translation-result .MuiInputBase-root { align-items: stretch; }
-/* Neutralize TextareaAutosize's inline height so the unlocked result stretches.
-   TranCont retains ownership of resize and its hidden-state behavior. */
-.kt-popup-shell--window .kt-translation-result textarea:not([aria-hidden="true"]) { flex: 1; height: auto !important; min-height: 140px; overflow-y: auto !important; }
-/* Override the unlocked rule with higher specificity for explicitly locked
-   results, preserving scrolling regardless of global stylesheet order. */
+.kt-popup-shell--window .kt-translation-source textarea:not([aria-hidden="true"]) { min-height: 28px; }
+.kt-popup-shell--window .kt-translation-result { flex: 0 0 auto; min-height: 0; }
+.kt-popup-shell--window .kt-translation-result textarea:not([aria-hidden="true"]) { min-height: 28px; }
+/* Override unlocked inline height for explicitly locked results so the field
+   fills its manual drag target, preserving scrolling regardless of global stylesheet order. */
 .kt-popup-shell--window .kt-translation-result .kt-height-locked textarea:not([aria-hidden="true"]) { height: 100% !important; }
 
 .kt-popup-shell.kt-popup-shell--content { width: 100%; min-width: 0; max-height: none; overflow: visible; }

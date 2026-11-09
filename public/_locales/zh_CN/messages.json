@@ -28,5 +28,11 @@
   },
   "toggle_tranbox": {
     "message": "切换划词翻译"
+  },
+  "image_screenshot_command": {
+    "message": "截图翻译"
+  },
+  "image_screenshot": {
+    "message": "截图翻译"
   }
 }

@@ -6,7 +6,7 @@ import {
 } from "../../config";
 import { isGm } from "../../libs/client";
 import { adaptScript } from "../../libs/gm";
-import { kissLog } from "../../libs/log";
+import { logger } from "../../libs/log";
 import { runDataMigration } from "../../libs/storage";
 import { refreshStorageKeys } from "../../libs/storageRefresh";
 import { trySyncRules, trySyncSetting, trySyncWords } from "../../libs/sync";
@@ -77,7 +77,7 @@ async function syncAndRefresh(key, sync) {
   try {
     await sync();
   } catch (error) {
-    kissLog(`sync options ${key}`, error?.message || error);
+    logger.child("options").warn("sync options", error?.message || error, key);
   }
 
   // Failed network requests may still update sync metadata or local storage.

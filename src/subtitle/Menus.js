@@ -35,12 +35,22 @@ function MenuItem({ children, onClick, disabled = false }) {
 
   return (
     <div
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
+      onKeyDown={(event) => {
+        if (!disabled && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          event.stopPropagation();
+          onClick?.();
+        }
+      }}
       style={{
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
         padding: "0px 8px",
-        opacity: hover ? 1 : 0.8,
+        opacity: disabled ? 0.45 : hover ? 1 : 0.8,
         background: `rgba(255, 255, 255, ${hover ? 0.1 : 0})`,
         cursor: disabled ? "default" : "pointer",
         transition: "background 0.2s, opacity 0.2s",
@@ -48,7 +58,7 @@ function MenuItem({ children, onClick, disabled = false }) {
       }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
     >
       {children}
     </div>
@@ -107,6 +117,122 @@ function Switch({ label, name, value, onChange, disabled }) {
 }
 
 /**
+ * DropdownPanel 组件 - 下拉浮动面板容器
+ *
+ * @param {object} props
+ * @param {React.ReactNode} props.children
+ */
+function DropdownPanel({ children }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: "100%",
+        background: "rgba(0,0,0,.8)",
+        borderRadius: 5,
+        maxHeight: 200,
+        overflow: "auto",
+        zIndex: 1000,
+        marginTop: 4,
+        padding: "4px 0",
+        boxSizing: "border-box",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * DropdownOption 组件 - 单个下拉选项行
+ *
+ * @param {object} props
+ * @param {*} props.value - 选项对应的值
+ * @param {boolean} props.selected - 是否为选中状态
+ * @param {string} [props.label] - 选项标签文本（未传入 children 时直接作为文本节点渲染）
+ * @param {Function} props.onClick - 点击选项的回调
+ * @param {Function} [props.onClose] - 按 Esc 关闭浮层的回调
+ * @param {React.ReactNode} [props.children] - 自定义子节点
+ */
+function DropdownOption({
+  value,
+  selected,
+  label,
+  onClick,
+  onClose,
+  children,
+}) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      role="option"
+      aria-selected={selected}
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          onClick(value);
+        }
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          onClose?.();
+        }
+      }}
+      onClick={() => onClick(value)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        boxSizing: "border-box",
+        padding: "4px 14px",
+        minHeight: 26,
+        fontSize: 12,
+        lineHeight: "18px",
+        cursor: "pointer",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        background: selected
+          ? hover
+            ? "rgba(32,156,238,.4)"
+            : "rgba(32,156,238,.3)"
+          : hover
+            ? "rgba(255,255,255,.1)"
+            : "transparent",
+        opacity: selected ? 1 : 0.8,
+        transition: "all 0.2s",
+      }}
+    >
+      {children || label}
+    </div>
+  );
+}
+
+/**
+ * DropdownEmpty 组件 - 下拉选项为空时的占位显示
+ */
+function DropdownEmpty({ i18n }) {
+  return (
+    <div
+      style={{
+        padding: "4px 14px",
+        fontSize: 12,
+        opacity: 0.6,
+        textAlign: "center",
+        boxSizing: "border-box",
+      }}
+    >
+      {i18n ? i18n("none", "无") : "无"}
+    </div>
+  );
+}
+
+/**
  * Select 组件 - 下拉选择菜单组件 (Select Component)
  *
  * @param {object} props
@@ -160,48 +286,138 @@ function Select({ label, name, value, options, onChange, disabled }) {
       </MenuItem>
       {/* 下拉浮出面板 */}
       {isOpen && (
+        <DropdownPanel>
+          {options.map((option) => (
+            <DropdownOption
+              key={option.value}
+              value={option.value}
+              selected={option.value === value}
+              label={option.label}
+              onClick={handleSelect}
+              onClose={() => setIsOpen(false)}
+            />
+          ))}
+        </DropdownPanel>
+      )}
+    </div>
+  );
+}
+
+/**
+ * MultiSelect 组件 - 多选下拉菜单组件
+ *
+ * @param {object} props
+ * @param {string} props.label - 下拉标题文本
+ * @param {string} props.name - 表单字段 Key 名
+ * @param {Array<string>} [props.value=[]] - 当前选中的 ID 数组
+ * @param {Array<object>} props.options - 下拉选项数组，每一项为 { value, label }
+ * @param {Function} props.onChange - 选项改变时的回调
+ * @param {boolean} [props.disabled=false] - 是否禁用下拉框
+ * @param {Function} props.i18n - 国际化函数
+ */
+function MultiSelect({
+  label,
+  name,
+  value = [],
+  options = [],
+  onChange,
+  disabled = false,
+  i18n,
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedValues = useMemo(
+    () => (Array.isArray(value) ? value : []),
+    [value]
+  );
+
+  const summary = useMemo(() => {
+    if (!selectedValues.length) return i18n ? i18n("none", "无") : "无";
+    const labels = selectedValues
+      .map((id) => options.find((opt) => opt.value === id)?.label || id)
+      .filter(Boolean);
+    if (!labels.length) return i18n ? i18n("none", "无") : "无";
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return `${labels[0]}, ${labels[1]}`;
+    return i18n
+      ? `${i18n("selected", "已选")} ${labels.length}`
+      : `已选 ${labels.length}`;
+  }, [selectedValues, options, i18n]);
+
+  const handleToggle = useCallback(() => {
+    if (disabled) return;
+    setIsOpen((prev) => !prev);
+  }, [disabled]);
+
+  const handleItemClick = useCallback(
+    (optionValue) => {
+      const exists = selectedValues.includes(optionValue);
+      const next = exists
+        ? selectedValues.filter((v) => v !== optionValue)
+        : [...selectedValues, optionValue];
+      onChange({ name, value: next });
+    },
+    [onChange, name, selectedValues]
+  );
+
+  return (
+    <div style={{ position: "relative" }}>
+      <MenuItem onClick={handleToggle} disabled={disabled}>
+        <Label>{label}</Label>
         <div
           style={{
-            position: "absolute",
-            right: 0,
-            top: "100%",
-            background: "rgba(0,0,0,.8)",
-            borderRadius: 5,
-            minWidth: 250,
-            maxHeight: 200,
-            overflow: "auto",
-            zIndex: 1000,
-            marginTop: 4,
+            fontSize: 12,
+            opacity: 0.8,
+            maxWidth: 130,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
           }}
         >
-          {options.map((option) => (
-            <div
-              key={option.value}
-              onClick={() => handleSelect(option.value)}
-              style={{
-                padding: "8px 12px",
-                cursor: "pointer",
-                background:
-                  option.value === value
-                    ? "rgba(32,156,238,.3)"
-                    : "transparent",
-                opacity: option.value === value ? 1 : 0.8,
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background =
-                  option.value === value
-                    ? "rgba(32,156,238,.3)"
-                    : "transparent";
-              }}
-            >
-              {option.label}
-            </div>
-          ))}
+          {summary}
         </div>
+      </MenuItem>
+      {isOpen && (
+        <DropdownPanel>
+          {options.length === 0 ? (
+            <DropdownEmpty i18n={i18n} />
+          ) : (
+            options.map((option) => {
+              const isSelected = selectedValues.includes(option.value);
+              return (
+                <DropdownOption
+                  key={option.value}
+                  value={option.value}
+                  selected={isSelected}
+                  onClick={handleItemClick}
+                  onClose={() => setIsOpen(false)}
+                >
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      flex: 1,
+                      marginRight: 8,
+                    }}
+                  >
+                    {option.label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "bold",
+                      lineHeight: 1,
+                      color: isSelected ? "#209cee" : "transparent",
+                      userSelect: "none",
+                    }}
+                  >
+                    ✓
+                  </span>
+                </DropdownOption>
+              );
+            })
+          )}
+        </DropdownPanel>
       )}
     </div>
   );
@@ -248,6 +464,11 @@ export function Menus({
   updateSetting,
   downloadSubtitle,
   transApis,
+  canDownload = false,
+  asr,
+  asrActions,
+  onClose,
+  terminologyDirectory = [],
 }) {
   // 当快捷菜单的任何子选项发生更改时，统一向上层派发更新事件
   const handleChange = useCallback(
@@ -297,12 +518,15 @@ export function Menus({
     return options;
   }, [aiEnabledApis, i18n]);
 
-  // 根据当前字幕处理/翻译进度值，动态计算快捷菜单底部的下载按钮状态文案
-  const status = useMemo(() => {
-    if (progressed === 0) return i18n("waiting_subtitles");
-    if (progressed === 100) return i18n("download_subtitles");
-    return i18n("processing_subtitles");
-  }, [progressed, i18n]);
+  // 构造专业术语（术语表）多选列表选项
+  const terminologyOptions = useMemo(
+    () =>
+      (terminologyDirectory || []).map((table) => ({
+        value: table.id,
+        label: table.name || table.id,
+      })),
+    [terminologyDirectory]
+  );
 
   // 从表单配置对象中解构出字幕交互相关的控制值
   const {
@@ -313,20 +537,32 @@ export function Menus({
     blurTranslation, // 是否启用模糊隐藏译文，悬浮时显示的背词模式
     autoTranslate, // 当前视频是否开启字幕翻译
     aiContextSlug, // 选中的上下文增强服务 apiSlug
-  } = formData;
+    termsList = [], // 当前视频临时选中的术语表 ID 列表
+  } = formData || {};
 
   return (
     <div
+      role="dialog"
+      aria-label={i18n("enable_subtitle_translate")}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          onClose?.();
+        }
+      }}
       style={{
         position: "absolute",
         left: 0,
-        bottom: 100,
+        bottom: 48,
         background: "rgba(0,0,0,.6)",
         width: 250,
         lineHeight: "40px",
         fontSize: 16,
         padding: 8,
         borderRadius: 5,
+        maxWidth: "calc(100vw - 32px)",
+        maxHeight: "min(70vh, 520px)",
+        overflowY: "auto",
       }}
     >
       {/* 当前视频的翻译开关 */}
@@ -336,6 +572,19 @@ export function Menus({
         value={autoTranslate}
         label={i18n("enable_subtitle_translate")}
       />
+      {asr && (
+        <>
+          <Switch
+            label={i18n("youtube_asr_start")}
+            name="asrEnabled"
+            value={asr.active}
+            onChange={({ value }) =>
+              value ? asrActions?.start?.() : asrActions?.stop?.()
+            }
+            disabled={!autoTranslate || !asr.available}
+          />
+        </>
+      )}
       {/* 当前页面的字幕翻译服务，不修改持久化默认设置 */}
       <Select
         onChange={handleChange}
@@ -345,6 +594,19 @@ export function Menus({
         label={i18n("translate_service")}
         disabled={transApiOptions.length === 0}
       />
+      {/* 当前页面的专业术语临时选项，不修改持久化默认设置 */}
+      <MultiSelect
+        onChange={handleChange}
+        name="termsList"
+        value={termsList || []}
+        options={terminologyOptions}
+        label={i18n("terminology_tables", "术语表")}
+        i18n={i18n}
+        disabled={
+          terminologyOptions.length === 0 &&
+          (!termsList || termsList.length === 0)
+        }
+      />
       {/* 智能断句下拉项：若可用 AI 大模型数量为 0 时禁用下拉 */}
       <Select
         onChange={handleChange}
@@ -352,7 +614,10 @@ export function Menus({
         value={segSlug || "-"}
         options={segOptions}
         label={i18n("ai_segmentation")}
-        disabled={segOptions.length <= 1}
+        disabled={
+          segOptions.length <= 1 ||
+          (asr?.active && asr.timingSource === "audio-chunk")
+        }
       />
       {/* 视频上下文增强下拉项：通过 AI 预分析视频内容，帮助更准确地进行专业词汇翻译 */}
       <Select
@@ -386,9 +651,19 @@ export function Menus({
       />
       {/* 字幕下载动作按钮：按需 AI 断句下允许下载当前已处理的字幕 */}
       <Button
-        label={`${status} [${progressed}%] `}
+        label={i18n(
+          canDownload && progressed < 100
+            ? "youtube_caption_download_partial"
+            : "download_subtitles"
+        )}
         onClick={downloadSubtitle}
+        disabled={!canDownload}
       />
+      {!canDownload && (
+        <div style={{ fontSize: 12, lineHeight: "20px", padding: "0 8px" }}>
+          {i18n("youtube_caption_no_download")}
+        </div>
+      )}
     </div>
   );
 }

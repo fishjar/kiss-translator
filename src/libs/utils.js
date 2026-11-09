@@ -524,15 +524,20 @@ export function parseAITerms(termsString) {
   if (typeof termsString !== "string" || termsString.trim() === "") return {};
 
   try {
-    return Object.fromEntries(
-      termsString
-        .split(/\n|;/)
-        .map((line) => {
-          const [k = "", v = ""] = line.split(",").map((s) => s.trim());
-          return [k, v];
-        })
-        .filter(([k]) => k)
-    );
+    const entries = new Map();
+    termsString
+      .split(/\n|;/)
+      .map((line) => {
+        const trimmed = line.trim();
+        const idx = trimmed.indexOf(",");
+        if (idx === -1) return [trimmed, ""];
+        return [trimmed.slice(0, idx).trim(), trimmed.slice(idx + 1).trim()];
+      })
+      .filter(([k]) => k)
+      .forEach(([k, v]) => {
+        if (!entries.has(k)) entries.set(k, v);
+      });
+    return Object.fromEntries(entries);
   } catch (err) {
     return {};
   }

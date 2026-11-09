@@ -18,7 +18,7 @@ import {
   apiTencentLangdetect,
   apiBuiltinAIDetect,
 } from "../apis";
-import { kissLog } from "./log";
+import { logger } from "./log";
 import { normalizeLanguageCode } from "./language";
 
 // 各个平台的语言检测函数映射表
@@ -43,6 +43,23 @@ const langdetectFns = {
 export const tryDetectLang = async (text, langDetector = "-") => {
   let deLang = "";
 
+  // Existing detector type values stay valid; additional values are service instance IDs.
+  if (
+    langDetector &&
+    langDetector !== "-" &&
+    !OPT_LANGDETECTOR_MAP.has(langDetector)
+  ) {
+    try {
+      const { invokeSavedService } = await import("../providers/savedService");
+      const result = await invokeSavedService(langDetector, "detectLanguage", {
+        text,
+      }).result;
+      deLang = normalizeLanguageCode(result.language);
+    } catch (err) {
+      logger.child("detect").warn("detect lang provider", err);
+    }
+  }
+
   // 1. 如果配置了特定的远程/内置 AI 语言检测服务，则首选该服务进行识别
   if (OPT_LANGDETECTOR_MAP.has(langDetector)) {
     try {
@@ -53,7 +70,7 @@ export const tryDetectLang = async (text, langDetector = "-") => {
         deLang = normalizeLanguageCode(mappedLang);
       }
     } catch (err) {
-      kissLog("detect lang remote", err);
+      logger.child("detect").warn("detect lang remote", err);
     }
   }
 
@@ -68,7 +85,7 @@ export const tryDetectLang = async (text, langDetector = "-") => {
         deLang = normalizedLang;
       }
     } catch (err) {
-      kissLog("detect lang local", err);
+      logger.child("detect").warn("detect lang local", err);
     }
   }
 

@@ -333,7 +333,7 @@ function scanWithTerms(text, regex, termList, replacer, matcher) {
   };
 
   while ((match = regex.exec(text)) !== null) {
-    const fullMatch = match[0];
+    let fullMatch = match[0];
     const start = match.index;
 
     // 零宽命中守卫：静态层只拦"整个 pattern 纯零宽"，混合臂（如 a|(?=x)）的
@@ -357,6 +357,62 @@ function scanWithTerms(text, regex, termList, replacer, matcher) {
     }
     if (termIndex === -1) {
       termIndex = resolvePhaseTermIndex(start, fullMatch);
+    }
+
+    if (
+      termIndex >= 0 &&
+      termList[termIndex].acceptMatch &&
+      !termList[termIndex].acceptMatch(text, start, start + fullMatch.length)
+    ) {
+      // Retry the combined expression at this position. Keep every capture slot
+      // even for rejected arms so numeric backreferences retain their meaning.
+      const rejected = new Set([termIndex]);
+      const fallbacks = matcher?.boundaryFallbacks;
+      termIndex = -1;
+      while (rejected.size <= termList.length) {
+        const cacheKey = [...rejected].sort((a, b) => a - b).join(",");
+        let candidate = fallbacks?.get(cacheKey);
+        if (!candidate) {
+          candidate = new RegExp(
+            termList
+              .map(
+                (entry, index) =>
+                  `${rejected.has(index) ? "(?!)" : ""}${entry.pattern}`
+              )
+              .join("|"),
+            regex.flags
+          );
+          if (fallbacks) {
+            if (fallbacks.size >= 32)
+              fallbacks.delete(fallbacks.keys().next().value);
+            fallbacks.set(cacheKey, candidate);
+          }
+        }
+        candidate.lastIndex = start;
+        const alternative = candidate.exec(text);
+        if (alternative?.index !== start || !alternative[0].length) break;
+        const branch = branchBaseGroups.findIndex(
+          (group) => alternative[group] !== undefined
+        );
+        if (branch < 0) break;
+        const index = branchTermIndex[branch];
+        const entry = termList[index];
+        if (
+          entry.acceptMatch &&
+          !entry.acceptMatch(text, start, start + alternative[0].length)
+        ) {
+          rejected.add(index);
+          continue;
+        }
+        termIndex = index;
+        fullMatch = alternative[0];
+        break;
+      }
+      if (termIndex < 0) {
+        regex.lastIndex = start + 1;
+        continue;
+      }
+      regex.lastIndex = start + fullMatch.length;
     }
 
     if (termIndex === -1) {
@@ -790,6 +846,9 @@ export function buildTermsMatcher(parsedTerms) {
   return {
     termList,
     regex,
+    boundaryFallbacks: termList.some((entry) => entry.acceptMatch)
+      ? new Map()
+      : null,
     phaseRegex: mappingAligned ? new RegExp(regex.source, regex.flags) : null,
     branchBaseGroups,
     branchTermIndex,

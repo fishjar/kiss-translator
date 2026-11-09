@@ -41,10 +41,11 @@ describe("homepage content", () => {
       expect(content.videoSubtitle).toBeTruthy();
       expect(content.videoLabel).toBeTruthy();
       expect(content.watchOnYouTube).toBeTruthy();
-      expect(content.features).toHaveLength(9);
+      expect(content.features).toHaveLength(12);
       expect(content.installs).toHaveLength(6);
-      expect(content.ecosystemProjects).toHaveLength(2);
+      expect(content.ecosystemProjects).toHaveLength(3);
       expect(content.ecosystemProjects.map(({ name }) => name)).toEqual([
+        "kiss-translator-plugins",
         "kiss-worker",
         "kiss-rules",
       ]);

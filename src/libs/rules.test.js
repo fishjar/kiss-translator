@@ -1,7 +1,13 @@
-import { checkRules, matchRule, saveRule } from "./rules";
+import {
+  checkRules,
+  deriveRuleContext,
+  matchesRulePattern,
+  matchRule,
+  saveRule,
+} from "./rules";
 import { getDisabledSubRules, getRulesWithDefault, saveEdit } from "./storage";
 import { loadOrFetchSubRules } from "./subRules";
-import { GLOBLA_RULE } from "../config/rules";
+import { BUILTIN_RULES, GLOBLA_RULE } from "../config/rules";
 import { OPT_TRANS_MICROSOFT, OPT_TRANS_TENCENT } from "../config/api";
 import { DEFAULT_API_SETTING } from "../config";
 
@@ -19,12 +25,16 @@ jest.mock("./sync", () => ({
   trySyncRules: jest.fn(),
 }));
 
-jest.mock("./log", () => ({
-  kissLog: jest.fn(),
-  LogLevel: {
-    INFO: { value: 3 },
-  },
-}));
+jest.mock("./log", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      kissLog: jest.fn(),
+      LogLevel: {
+        INFO: { value: 3 },
+      },
+    }))()
+  )
+);
 
 // Translator 链路集成测试所需的替身（与 translator.test.js 相同的模式）
 jest.mock("../apis", () => ({
@@ -43,6 +53,53 @@ jest.mock("./detect", () => ({
 
 test("uses Microsoft as the default webpage translator", () => {
   expect(GLOBLA_RULE.apiSlug).toBe(OPT_TRANS_MICROSOFT);
+});
+
+describe("official rule URL boundaries", () => {
+  test.each([
+    ["http://github.com/jackc/pgx", true],
+    ["https://github.com/jackc/pgx", true],
+    ["https://pkg.go.dev/github.com/jackc/pgx/v5#section-readme", false],
+    ["https://docs.github.com/en", false],
+    ["https://github.com.example.org/", false],
+  ])("GitHub rule matches %s: %s", (href, expected) => {
+    const githubRule = BUILTIN_RULES.find((rule) =>
+      matchesRulePattern("https://github.com/jackc/pgx", rule.pattern)
+    );
+    expect(githubRule.autoScan).toBe("false");
+    expect(matchesRulePattern(href, githubRule.pattern)).toBe(expected);
+  });
+
+  test.each([
+    ["https://twitter.com/user", "://twitter.com/, https://x.com/", true],
+    ["https://x.com/user", "://twitter.com/, https://x.com/", true],
+    ["http://x.com/user", "://twitter.com/, https://x.com/", false],
+    [
+      "https://example.org/twitter.com/user",
+      "://twitter.com/, https://x.com/",
+      false,
+    ],
+    ["https://go.dev/doc/install", "://go.dev/doc/", true],
+    ["https://go.dev/tour/", "://go.dev/doc/", false],
+    ["https://example.org/go.dev/doc/install", "://go.dev/doc/", false],
+    ["https://team.notion.site/page", "://*.notion.site/", true],
+    ["https://notion.site/page", "://*.notion.site/", false],
+    ["https://team.notion.site.example.org/", "://*.notion.site/", false],
+    ["https://bugs.example.org/show_bug.cgi?id=1", "/show_bug.cgi", true],
+  ])("matches %s against %s: %s", (href, pattern, expected) => {
+    expect(matchesRulePattern(href, pattern)).toBe(expected);
+  });
+
+  test.each([
+    ["https://pkg.go.dev/github.com/jackc/pgx/v5#section-readme", "true"],
+    ["https://github.com/jackc/pgx", "false"],
+  ])("resolves autoScan for %s to %s", (href, autoScan) => {
+    const context = deriveRuleContext(href, {
+      personalRules: [{ ...GLOBLA_RULE, autoScan: "true" }],
+      subRules: BUILTIN_RULES,
+    });
+    expect(context.effective.autoScan).toBe(autoScan);
+  });
 });
 
 test("keeps an explicitly stored Tencent global rule", async () => {
@@ -556,5 +613,29 @@ describe("rules terms integration（规则链路：原始规则 → 合并 → T
     expect(requestedText).toBe("[[1]] only");
     const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
     expect(inner.textContent).toBe("接口 only");
+  });
+
+  test("inherits and overrides image translation rule properties", async () => {
+    getRulesWithDefault.mockResolvedValue([
+      {
+        pattern: "example.com",
+        imageTransOpen: "false",
+        imageSelector: ".custom-img",
+        imageIgnoreSelector: ".skip-img",
+        imageMinWidth: 200,
+        imageMinHeight: 150,
+      },
+      GLOBLA_RULE,
+    ]);
+
+    const rule = await matchRule("https://example.com/gallery", {
+      injectRules: false,
+      subrulesList: [],
+    });
+    expect(rule.imageTransOpen).toBe("false");
+    expect(rule.imageSelector).toContain(".custom-img");
+    expect(rule.imageIgnoreSelector).toContain(".skip-img");
+    expect(rule.imageMinWidth).toBe(200);
+    expect(rule.imageMinHeight).toBe(150);
   });
 });

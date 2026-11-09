@@ -1,5 +1,6 @@
+import { getWordsWithDefault } from "../libs/storage.js";
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager";
-import { apiTranslate } from "../apis/index.js";
+import { apiTranslate, apiMicrosoftDict } from "../apis/index.js";
 
 jest.mock("../apis/index.js", () => ({
   apiTranslate: jest.fn(),
@@ -14,15 +15,19 @@ jest.mock("../libs/storage.js", () => ({
   })),
 }));
 
-jest.mock("../libs/log.js", () => ({
-  LogLevel: {
-    INFO: { value: "info" },
-  },
-  logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-  },
-}));
+jest.mock("../libs/log.js", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      LogLevel: {
+        INFO: { value: "info" },
+      },
+      logger: {
+        info: jest.fn(),
+        warn: jest.fn(),
+      },
+    }))()
+  )
+);
 
 /**
  * 创建一个可由测试主动 resolve/reject 的 Promise。
@@ -118,6 +123,24 @@ async function waitForMutationObserver() {
 }
 
 describe("BilingualSubtitleManager", () => {
+  test("ASR-managed captions render originals and updates without invoking page translation", async () => {
+    apiTranslate.mockClear();
+    const videoEl = createVideoElement();
+    const captions = [{ ...subtitle, translation: "" }];
+    const manager = new BilingualSubtitleManager({
+      videoEl,
+      formattedSubtitles: captions,
+      setting: { ...setting, managedTranslations: true },
+    });
+    manager.start();
+    videoEl.dispatchEvent(new Event("timeupdate"));
+    await Promise.resolve();
+    expect(apiTranslate).not.toHaveBeenCalled();
+    captions[0].translation = "识别后的译文";
+    manager.appendSubtitles(captions);
+    expect(getCaptionLines()).toContain("识别后的译文");
+    manager.destroy();
+  });
   beforeEach(() => {
     apiTranslate.mockReset();
   });
@@ -216,6 +239,88 @@ describe("BilingualSubtitleManager", () => {
     manager.destroy();
   });
 
+  test.each(["success", "failure", "cancel"])(
+    "only a successful final response publishes a persistable translation: %s",
+    async (outcome) => {
+      const deferred = createDeferred();
+      const onTranslationComplete = jest.fn();
+      apiTranslate.mockImplementation(({ onStreamChunk }) => {
+        onStreamChunk({ text: "unfinished" });
+        return deferred.promise;
+      });
+      const manager = new BilingualSubtitleManager({
+        videoEl: createVideoElement(),
+        formattedSubtitles: [{ ...subtitle }],
+        setting: { ...setting, onTranslationComplete },
+      });
+      manager.start();
+      await Promise.resolve();
+      expect(onTranslationComplete).not.toHaveBeenCalled();
+      if (outcome === "cancel") manager.destroy();
+      if (outcome === "failure") deferred.reject(new Error("failed"));
+      else deferred.resolve({ trText: "final result" });
+      await deferred.promise.catch(() => {});
+      await Promise.resolve();
+      if (outcome === "success")
+        expect(onTranslationComplete).toHaveBeenCalledWith({
+          ...subtitle,
+          translation: "final result",
+        });
+      else expect(onTranslationComplete).not.toHaveBeenCalled();
+      manager.destroy();
+    }
+  );
+
+  test("replaced source cues discard late stream and final responses", async () => {
+    const deferred = createDeferred();
+    let stream;
+    apiTranslate.mockImplementation(({ onStreamChunk }) => {
+      stream = onStreamChunk;
+      return deferred.promise;
+    });
+    const onTranslationComplete = jest.fn();
+    const cues = [{ ...subtitle }];
+    const manager = new BilingualSubtitleManager({
+      videoEl: createVideoElement(),
+      formattedSubtitles: cues,
+      setting: { ...setting, onTranslationComplete },
+    });
+    manager.onSubtitleUpdate = jest.fn();
+    manager.start();
+    cues.splice(0, 1, {
+      ...subtitle,
+      text: "different source",
+      translation: "new translation",
+    });
+    stream({ text: "stale stream" });
+    deferred.resolve({ trText: "stale final" });
+    await deferred.promise;
+    await Promise.resolve();
+    expect(manager.onSubtitleUpdate).not.toHaveBeenCalled();
+    expect(onTranslationComplete).not.toHaveBeenCalled();
+    expect(cues[0].translation).toBe("new translation");
+    manager.destroy();
+  });
+
+  test("missing translations wait for the runtime context before making a request", async () => {
+    const context = createDeferred();
+    const beforeTranslate = jest.fn(() => context.promise);
+    apiTranslate.mockResolvedValue({ trText: "final result" });
+    const manager = new BilingualSubtitleManager({
+      videoEl: createVideoElement(),
+      formattedSubtitles: [{ ...subtitle }],
+      setting: { ...setting, beforeTranslate },
+    });
+    manager.start();
+    expect(beforeTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate).not.toHaveBeenCalled();
+    context.resolve();
+    await context.promise;
+    await Promise.resolve();
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    manager.destroy();
+  });
+
   test("updates current subtitle and list callback with streaming translation chunk", async () => {
     const deferred = createDeferred();
     apiTranslate.mockImplementation(({ onStreamChunk }) => {
@@ -256,6 +361,28 @@ describe("BilingualSubtitleManager", () => {
     manager.destroy();
   });
 
+  test("selected subtitle failure never invokes the leftover fallback service", async () => {
+    const primary = { apiSlug: "primary", apiType: "Microsoft" };
+    apiTranslate.mockRejectedValue(new Error("selected failed"));
+    const failedSubtitle = { ...subtitle, translation: "[Translation failed]" };
+    const manager = new BilingualSubtitleManager({
+      videoEl: createVideoElement(),
+      formattedSubtitles: [failedSubtitle],
+      setting: {
+        ...setting,
+        apiSlug: "primary",
+        apiSlugs: ["backup"],
+        apiSetting: primary,
+        transApis: [primary, { ...primary, apiSlug: "backup" }],
+      },
+    });
+    manager.repairChunkTranslations([failedSubtitle]);
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(apiTranslate.mock.calls[0][0].apiSetting.apiSlug).toBe("primary");
+    manager.destroy();
+  });
+
   test("repairs failed chunk translations immediately", async () => {
     const deferred = createDeferred();
     apiTranslate.mockReturnValue(deferred.promise);
@@ -277,6 +404,7 @@ describe("BilingualSubtitleManager", () => {
     expect(apiTranslate).toHaveBeenCalledWith(
       expect.objectContaining({
         text: "hello world",
+        scene: expect.objectContaining({ fromLang: "en", toLang: "zh-CN" }),
         fromLang: "en",
         toLang: "zh-CN",
         apiSetting: expect.objectContaining(setting.apiSetting),
@@ -659,5 +787,492 @@ describe("BilingualSubtitleManager", () => {
     expect(getCaptionBottom()).toBe(70);
 
     manager.destroy();
+  });
+});
+
+describe("lookup panel playback ownership", () => {
+  let manager, video, caption, word, paused;
+  const point = (node, type, relatedTarget = null) =>
+    node.dispatchEvent(new MouseEvent(type, { relatedTarget }));
+  const tick = async (ms) => {
+    jest.advanceTimersByTime(ms);
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+  };
+  const setup = (initiallyPaused = false, closeDelay = 2, overrides = {}) => {
+    video = createVideoElement();
+    paused = initiallyPaused;
+    Object.defineProperty(video, "paused", {
+      get: () => paused,
+      configurable: true,
+    });
+    video.pause = jest.fn(() => {
+      paused = true;
+    });
+    video.play = jest.fn(() => {
+      paused = false;
+      video.dispatchEvent(new Event("play"));
+      return Promise.resolve();
+    });
+    manager = new BilingualSubtitleManager({
+      videoEl: video,
+      formattedSubtitles: [{ ...subtitle, translation: "你好" }],
+      setting: {
+        ...setting,
+        hoverLookupMode: "on",
+        hoverLookupCloseDelay: closeDelay,
+        ...overrides,
+      },
+    });
+    manager.start();
+    caption = document.querySelector(".kiss-caption-window");
+    word = caption.querySelector(".kiss-subtitle-word");
+  };
+  const open = async () => {
+    point(caption, "pointerenter");
+    point(word, "pointerenter");
+    await tick(300);
+  };
+  const leaveCaption = () => {
+    point(word, "pointerleave");
+    point(caption, "pointerleave");
+  };
+  beforeEach(() => {
+    jest.useFakeTimers();
+    getWordsWithDefault.mockResolvedValue({});
+    apiMicrosoftDict.mockResolvedValue({ trs: [{ def: "definition" }] });
+    apiTranslate.mockResolvedValue([]);
+  });
+  afterEach(() => {
+    manager?.destroy();
+    manager = null;
+    jest.useRealTimers();
+    document.body.innerHTML = "";
+  });
+
+  test.each([true, false])(
+    "keeps captions fixed during hover when controls initially visible: %p",
+    async (initiallyVisible) => {
+      setup(true);
+      setControlBarVisible(video, initiallyVisible);
+      await waitForMutationObserver();
+      const initialBottom = getCaptionBottom();
+      point(caption, "pointerenter");
+
+      setControlBarVisible(video, !initiallyVisible);
+      await waitForMutationObserver();
+      expect(getCaptionBottom()).toBe(initialBottom);
+
+      // Streaming translations also force a position sync when redrawn.
+      manager.updateSetting({});
+      expect(getCaptionBottom()).toBe(initialBottom);
+
+      point(caption, "pointerleave");
+      expect(getCaptionBottom()).toBe(initiallyVisible ? 20 : 60);
+      expect(video.play).not.toHaveBeenCalled();
+    }
+  );
+
+  test("still resizes remembered captions while hovering", async () => {
+    const originalResizeObserver = global.ResizeObserver;
+    let resize;
+    global.ResizeObserver = class {
+      constructor(callback) {
+        resize = callback;
+      }
+      observe() {}
+      disconnect() {}
+    };
+    try {
+      setup(true, 2, { rememberPosition: true, positionRatio: 0.05 });
+      setControlBarVisible(video, true);
+      await waitForMutationObserver();
+      point(caption, "pointerenter");
+      setControlBarVisible(video, false);
+      await waitForMutationObserver();
+      Object.defineProperty(
+        video.closest(".html5-video-player"),
+        "clientHeight",
+        {
+          value: 800,
+          configurable: true,
+        }
+      );
+      resize();
+      expect(getCaptionBottom()).toBe(80);
+      point(caption, "pointerleave");
+      expect(getCaptionBottom()).toBe(40);
+    } finally {
+      manager?.destroy();
+      manager = null;
+      global.ResizeObserver = originalResizeObserver;
+    }
+  });
+
+  test("preserves dragging and never restores a stale offset after leaving hover", async () => {
+    const onSubtitlePositionChange = jest.fn();
+    setup(true, 2, {
+      rememberPosition: true,
+      positionRatio: 0.05,
+      onSubtitlePositionChange,
+    });
+    setControlBarVisible(video, true);
+    await waitForMutationObserver();
+    const paper = document.querySelector(".kiss-caption-paper");
+    const container = document.querySelector(".kiss-caption-container");
+    Object.defineProperty(container, "clientHeight", { value: 400 });
+    Object.defineProperty(paper, "offsetHeight", { value: 40 });
+    container.getBoundingClientRect = () => ({ bottom: 400 });
+    paper.getBoundingClientRect = () => ({ bottom: 400 - getCaptionBottom() });
+    point(caption, "pointerenter");
+    caption.dispatchEvent(
+      new MouseEvent("mousedown", { button: 0, clientY: 100 })
+    );
+    document.dispatchEvent(new MouseEvent("mousemove", { clientY: 130 }));
+    expect(getCaptionBottom()).toBe(30);
+    document.dispatchEvent(new MouseEvent("mouseup", { clientY: 130 }));
+    expect(getCaptionBottom()).toBe(70);
+    expect(onSubtitlePositionChange).toHaveBeenCalledTimes(1);
+    expect(onSubtitlePositionChange).toHaveBeenCalledWith(0.075);
+    setControlBarVisible(video, false);
+    await waitForMutationObserver();
+    expect(getCaptionBottom()).toBe(70);
+    point(caption, "pointerleave");
+    expect(getCaptionBottom()).toBe(30);
+    await tick(50);
+    expect(getCaptionBottom()).toBe(30);
+  });
+
+  test.each([
+    [true, true],
+    [true, false],
+    [false, true],
+    [false, false],
+  ])(
+    "preserves a drag when the pointer leaves before mouseup (remember: %p, controls visible: %p)",
+    async (rememberPosition, controlsVisible) => {
+      const onSubtitlePositionChange = jest.fn();
+      setup(true, 2, {
+        rememberPosition,
+        positionRatio: 0.05,
+        onSubtitlePositionChange,
+      });
+      setControlBarVisible(video, true);
+      await waitForMutationObserver();
+      const paper = document.querySelector(".kiss-caption-paper");
+      const container = document.querySelector(".kiss-caption-container");
+      Object.defineProperty(container, "clientHeight", { value: 400 });
+      Object.defineProperty(paper, "offsetHeight", { value: 40 });
+      container.getBoundingClientRect = () => ({ bottom: 400 });
+      paper.getBoundingClientRect = () => ({
+        bottom: 400 - getCaptionBottom(),
+      });
+      point(caption, "pointerenter");
+      caption.dispatchEvent(
+        new MouseEvent("mousedown", { button: 0, clientY: 100 })
+      );
+      document.dispatchEvent(new MouseEvent("mousemove", { clientY: 130 }));
+      expect(getCaptionBottom()).toBe(30);
+
+      point(caption, "pointerleave");
+      expect(getCaptionBottom()).toBe(30);
+      setControlBarVisible(video, controlsVisible);
+      await waitForMutationObserver();
+      expect(getCaptionBottom()).toBe(30);
+      // A subtitle redraw must also leave the in-progress drag untouched.
+      manager.updateSetting({});
+      expect(getCaptionBottom()).toBe(30);
+      expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+
+      document.dispatchEvent(new MouseEvent("mouseup", { clientY: 130 }));
+      expect(onSubtitlePositionChange.mock.calls).toEqual(
+        rememberPosition ? [[0.075]] : []
+      );
+      expect(getCaptionBottom()).toBe(controlsVisible ? 70 : 30);
+      await tick(50);
+      expect(getCaptionBottom()).toBe(controlsVisible ? 70 : 30);
+      setControlBarVisible(video, false);
+      await waitForMutationObserver();
+      expect(getCaptionBottom()).toBe(30);
+    }
+  );
+
+  const touch = (node, type, clientY = 100) => {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "touches", {
+      value: type === "touchend" || type === "touchcancel" ? [] : [{ clientY }],
+    });
+    node.dispatchEvent(event);
+  };
+  const prepareTouchDrag = async (overrides = {}) => {
+    const onSubtitlePositionChange = jest.fn();
+    setup(true, 2, {
+      rememberPosition: true,
+      positionRatio: 0.05,
+      onSubtitlePositionChange,
+      ...overrides,
+    });
+    setControlBarVisible(video, true);
+    await waitForMutationObserver();
+    const paper = document.querySelector(".kiss-caption-paper");
+    const container = document.querySelector(".kiss-caption-container");
+    Object.defineProperty(container, "clientHeight", { value: 400 });
+    Object.defineProperty(paper, "offsetHeight", { value: 40 });
+    container.getBoundingClientRect = () => ({ bottom: 400 });
+    paper.getBoundingClientRect = () => ({ bottom: 400 - getCaptionBottom() });
+    return { paper, onSubtitlePositionChange };
+  };
+
+  test.each([
+    [true, false],
+    [true, true],
+    [false, false],
+    [false, true],
+  ])(
+    "touch cancellation restores positioning without saving (remember: %p, moved: %p)",
+    async (rememberPosition, moved) => {
+      const { onSubtitlePositionChange } = await prepareTouchDrag({
+        rememberPosition,
+      });
+      touch(caption, "touchstart");
+      if (moved) touch(document, "touchmove", 130);
+      touch(document, "touchcancel");
+      expect(caption.style.cursor).toBe("grab");
+      expect(getCaptionBottom()).toBe(60);
+      expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+
+      // Cancellation detaches movement and end handlers, including duplicate cancels.
+      touch(document, "touchmove", 180);
+      touch(document, "touchend");
+      touch(document, "touchcancel");
+      expect(getCaptionBottom()).toBe(60);
+      expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+      setControlBarVisible(video, false);
+      await waitForMutationObserver();
+      expect(getCaptionBottom()).toBe(20);
+      manager.updateSetting({});
+      await tick(50);
+      expect(getCaptionBottom()).toBe(20);
+
+      // A subsequent gesture must save only its own position.
+      setControlBarVisible(video, true);
+      await waitForMutationObserver();
+      touch(caption, "touchstart");
+      touch(document, "touchmove", 130);
+      touch(document, "touchend");
+      expect(getCaptionBottom()).toBe(70);
+      expect(onSubtitlePositionChange.mock.calls).toEqual(
+        rememberPosition ? [[0.075]] : []
+      );
+    }
+  );
+
+  test.each([false, true])(
+    "window blur cancels a mouse drag without saving (moved: %p)",
+    async (moved) => {
+      const { onSubtitlePositionChange } = await prepareTouchDrag();
+      point(caption, "pointerenter");
+      caption.dispatchEvent(
+        new MouseEvent("mousedown", { button: 0, clientY: 100 })
+      );
+      if (moved)
+        document.dispatchEvent(new MouseEvent("mousemove", { clientY: 130 }));
+      window.dispatchEvent(new Event("blur"));
+      expect(getCaptionBottom()).toBe(60);
+      expect(caption.style.cursor).toBe("grab");
+      document.dispatchEvent(new MouseEvent("mousemove", { clientY: 180 }));
+      document.dispatchEvent(new MouseEvent("mouseup", { clientY: 180 }));
+      expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+      setControlBarVisible(video, false);
+      await waitForMutationObserver();
+      expect(getCaptionBottom()).toBe(20);
+      manager.updateSetting({});
+      expect(getCaptionBottom()).toBe(20);
+      caption.dispatchEvent(
+        new MouseEvent("mousedown", { button: 0, clientY: 100 })
+      );
+      document.dispatchEvent(new MouseEvent("mousemove", { clientY: 90 }));
+      document.dispatchEvent(new MouseEvent("mouseup", { clientY: 90 }));
+      expect(getCaptionBottom()).toBe(30);
+      expect(onSubtitlePositionChange).toHaveBeenCalledTimes(1);
+      expect(onSubtitlePositionChange).toHaveBeenCalledWith(0.075);
+    }
+  );
+
+  test.each([false, true])(
+    "destroy cleans up a drag and its delayed sync (ended: %p)",
+    async (ended) => {
+      const { paper, onSubtitlePositionChange } = await prepareTouchDrag();
+      const oldCaption = caption;
+      touch(caption, "touchstart");
+      touch(document, "touchmove", 130);
+      if (ended) touch(document, "touchend");
+      const removeDocument = jest.spyOn(document, "removeEventListener");
+      const removeWindow = jest.spyOn(window, "removeEventListener");
+      try {
+        manager.destroy();
+        manager = null;
+        for (const type of [
+          "mousemove",
+          "touchmove",
+          "mouseup",
+          "touchend",
+          "touchcancel",
+        ]) {
+          expect(removeDocument).toHaveBeenCalledWith(
+            type,
+            expect.any(Function),
+            { capture: true }
+          );
+        }
+        expect(removeWindow).toHaveBeenCalledWith("blur", expect.any(Function));
+        const bottom = paper.style.bottom;
+        touch(oldCaption, "touchstart");
+        touch(document, "touchmove", 170);
+        touch(document, "touchcancel");
+        window.dispatchEvent(new Event("blur"));
+        await tick(50);
+        expect(paper.style.bottom).toBe(bottom);
+        expect(onSubtitlePositionChange).toHaveBeenCalledTimes(ended ? 1 : 0);
+        const next = await prepareTouchDrag();
+        touch(caption, "touchstart");
+        touch(document, "touchmove", 130);
+        touch(document, "touchend");
+        expect(getCaptionBottom()).toBe(70);
+        expect(next.onSubtitlePositionChange).toHaveBeenCalledTimes(1);
+        expect(next.onSubtitlePositionChange).toHaveBeenCalledWith(0.075);
+      } finally {
+        removeDocument.mockRestore();
+        removeWindow.mockRestore();
+      }
+    }
+  );
+
+  test("touch cancellation catches up with controls and resizing during the drag", async () => {
+    const originalResizeObserver = global.ResizeObserver;
+    let resize;
+    global.ResizeObserver = class {
+      constructor(callback) {
+        resize = callback;
+      }
+      observe() {}
+      disconnect() {}
+    };
+    try {
+      const { onSubtitlePositionChange } = await prepareTouchDrag();
+      touch(caption, "touchstart");
+      touch(document, "touchmove", 130);
+      setControlBarVisible(video, false);
+      await waitForMutationObserver();
+      Object.defineProperty(
+        video.closest(".html5-video-player"),
+        "clientHeight",
+        { value: 800, configurable: true }
+      );
+      resize();
+      manager.updateSetting({});
+      expect(getCaptionBottom()).toBe(30);
+      touch(document, "touchcancel");
+      expect(getCaptionBottom()).toBe(40);
+      expect(onSubtitlePositionChange).not.toHaveBeenCalled();
+      Object.defineProperty(
+        video.closest(".html5-video-player"),
+        "clientHeight",
+        { value: 600, configurable: true }
+      );
+      resize();
+      expect(getCaptionBottom()).toBe(30);
+    } finally {
+      global.ResizeObserver = originalResizeObserver;
+    }
+  });
+
+  test("an earlier drag timeout cannot overwrite a later touch drag or save its cancellation", async () => {
+    const { onSubtitlePositionChange } = await prepareTouchDrag();
+    touch(caption, "touchstart");
+    touch(document, "touchmove", 130);
+    touch(document, "touchend");
+    expect(getCaptionBottom()).toBe(70);
+    touch(caption, "touchstart");
+    touch(document, "touchmove", 150);
+    expect(getCaptionBottom()).toBe(20);
+    await tick(50);
+    expect(getCaptionBottom()).toBe(20);
+    touch(document, "touchcancel");
+    expect(getCaptionBottom()).toBe(70);
+    expect(onSubtitlePositionChange).toHaveBeenCalledTimes(1);
+    expect(onSubtitlePositionChange).toHaveBeenCalledWith(0.075);
+  });
+
+  test("keeps the hover pause through the delay and panel interaction, then resumes", async () => {
+    setup();
+    await open();
+    expect(video.pause).toHaveBeenCalledTimes(1);
+    leaveCaption();
+    await tick(1000);
+    expect(video.play).not.toHaveBeenCalled();
+    const panel = document.querySelector(".kiss-word-tooltip");
+    point(panel, "pointerenter");
+    await tick(5000);
+    expect(video.play).not.toHaveBeenCalled();
+    point(panel, "pointerleave");
+    expect(video.play).toHaveBeenCalledTimes(1);
+  });
+  test("restores playback when the word delay expires", async () => {
+    setup(false, 5);
+    await open();
+    leaveCaption();
+    await tick(4999);
+    expect(video.play).not.toHaveBeenCalled();
+    await tick(1);
+    expect(video.play).toHaveBeenCalledTimes(1);
+  });
+  test("does not auto-play a video that was already manually paused", async () => {
+    setup(true);
+    await open();
+    leaveCaption();
+    await tick(2000);
+    expect(video.play).not.toHaveBeenCalled();
+  });
+  test("returning from the panel to the caption does not briefly resume playback", async () => {
+    setup();
+    await open();
+    leaveCaption();
+    const panel = document.querySelector(".kiss-word-tooltip");
+    point(panel, "pointerenter");
+    point(panel, "pointerleave", word);
+    point(caption, "pointerenter");
+    point(word, "pointerenter");
+    await tick(300);
+    expect(video.play).not.toHaveBeenCalled();
+    leaveCaption();
+    await tick(2000);
+    expect(video.play).toHaveBeenCalledTimes(1);
+  });
+  test("destroy while hover-paused clears dismissal without playing the old video", async () => {
+    setup();
+    await open();
+    leaveCaption();
+    manager.destroy();
+    manager = null;
+    await tick(10000);
+    expect(video.play).not.toHaveBeenCalled();
+    expect(document.querySelector(".kiss-word-tooltip")).toBeNull();
+  });
+  test("a manual play then pause clears ownership, and destroy cannot resume an old video", async () => {
+    setup();
+    await open();
+    leaveCaption();
+    await video.play();
+    paused = true;
+    video.play.mockClear();
+    await tick(2000);
+    expect(video.play).not.toHaveBeenCalled();
+    point(caption, "pointerenter");
+    point(word, "pointerenter");
+    await tick(300);
+    manager.destroy();
+    manager = null;
+    await tick(10000);
+    expect(video.play).not.toHaveBeenCalled();
   });
 });

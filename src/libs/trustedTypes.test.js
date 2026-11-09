@@ -74,7 +74,7 @@ describe("trustedTypesHelper", () => {
         createScriptURL: expect.any(Function),
       })
     );
-    expect(policy.createHTML).toHaveBeenCalledWith("<b>hello</b>");
+    expect(policy.createHTML).toHaveBeenCalledWith("<b>hello</b>", undefined);
     expect(sanitize).not.toHaveBeenCalledWith("<b>hello</b>");
     expect(trustedTypesHelper.isEnabled()).toBe(true);
   });

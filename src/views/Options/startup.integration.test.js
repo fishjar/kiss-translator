@@ -7,7 +7,9 @@ import {
   DEFAULT_SYNC,
   SETTINGS_VERSION_V2,
   STOKEY_RULES,
+  STOKEY_RULES_IGNORE_MIGRATED,
   STOKEY_SETTING,
+  STOKEY_SETTING_BACKUP_V3_BEFORE_V4,
   STOKEY_SYNC,
   STOKEY_WORDS,
 } from "../../config";
@@ -56,11 +58,15 @@ jest.mock("../../libs/gm", () => ({ adaptScript: jest.fn() }));
 
 jest.mock("../../libs/msg", () => ({ sendBgMsg: jest.fn() }));
 
-jest.mock("../../libs/log", () => ({
-  kissLog: jest.fn(),
-  logger: { setLevel: jest.fn(), error: jest.fn() },
-  LogLevel: { INFO: { value: 1 } },
-}));
+jest.mock("../../libs/log", () =>
+  jest.requireActual("../../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      kissLog: jest.fn(),
+      logger: { setLevel: jest.fn(), error: jest.fn() },
+      LogLevel: { INFO: { value: 1 } },
+    }))()
+  )
+);
 
 jest.mock("../../libs/storage", () => {
   const actual = jest.requireActual("../../libs/storage");
@@ -161,11 +167,25 @@ function mockSettingsPage(testId, withRules = false) {
 function MockRulesOutput() {
   const React = require("react");
   const { useRules } = require("../../hooks/Rules");
-  const { list } = useRules();
+  const { list, put } = useRules();
   return React.createElement(
-    "output",
-    { "data-testid": "rules-value" },
-    list.map((rule) => rule.marker || rule.pattern).join(",")
+    React.Fragment,
+    null,
+    React.createElement(
+      "output",
+      { "data-testid": "rules-value" },
+      list.map((rule) => rule.marker || rule.pattern).join(",")
+    ),
+    list.some((rule) => rule.ignoreSelector === "[broken")
+      ? React.createElement(
+          "button",
+          {
+            "data-testid": "repair-ignore-selector",
+            onClick: () => put("*", { ignoreSelector: ".repaired" }),
+          },
+          "Repair ignore selector"
+        )
+      : null
   );
 }
 
@@ -323,6 +343,38 @@ describe("Options startup with real storage hooks", () => {
     else process.env.REACT_APP_NAME = originalAppName;
     if (originalAppVersion === undefined) delete process.env.REACT_APP_VERSION;
     else process.env.REACT_APP_VERSION = originalAppVersion;
+  });
+
+  test("opens rules with an invalid legacy selector and saves a repair before retrying migration", async () => {
+    const rules = [
+      { pattern: "*", marker: "broken-rules", ignoreSelector: "[broken" },
+    ];
+    storedValues.set(STOKEY_RULES, rules);
+    const view = renderOptions("#/rules");
+    await flushEffects();
+    expect(
+      view.container.querySelector('[data-testid="rules-page"]')
+    ).not.toBeNull();
+    expectInteractionBlocked(view, false);
+    expect(storedValues.get(STOKEY_RULES)).toEqual(rules);
+    expect(storedValues.has(STOKEY_RULES_IGNORE_MIGRATED)).toBe(false);
+    await act(async () => {
+      view.container
+        .querySelector('[data-testid="repair-ignore-selector"]')
+        .click();
+    });
+    await flushEffects();
+    expect(storedValues.get(STOKEY_RULES)[0].ignoreSelector).toBe(".repaired");
+    await act(async () => {
+      expect(await runDataMigration()).toBe(true);
+    });
+    expect(storedValues.get(STOKEY_RULES_IGNORE_MIGRATED)).toBe(true);
+    expect(storedValues.get(STOKEY_RULES)[0].ignoreSelector).toContain(
+      ".repaired"
+    );
+    expect(storedValues.get(STOKEY_RULES)[0].ignoreSelector).toContain(
+      "[translate='no']"
+    );
   });
 
   test("initializes Playground only after synchronized settings reach the provider", async () => {
@@ -537,10 +589,17 @@ describe("Options startup with real storage hooks", () => {
     const host = renderOptions("#/apis");
     await flushEffects();
     expect(runDataMigration).toHaveBeenCalledTimes(1);
-    expect(browser.storage.local.set).toHaveBeenCalledTimes(1);
-    const normalized = JSON.parse(
-      browser.storage.local.set.mock.calls[0][0][STOKEY_SETTING]
+    expect(
+      browser.storage.local.set.mock.calls.filter(
+        ([values]) =>
+          values[STOKEY_SETTING] || values[STOKEY_SETTING_BACKUP_V3_BEFORE_V4]
+      )
+    ).toHaveLength(2);
+    const normalizedCall = browser.storage.local.set.mock.calls.find(
+      (call) => call[0]?.[STOKEY_SETTING]
     );
+    expect(normalizedCall).toBeDefined();
+    const normalized = JSON.parse(normalizedCall[0][STOKEY_SETTING]);
     expect(normalized).toMatchObject({
       marker: "legacy-setting",
       version: CURRENT_SETTINGS_VERSION,
@@ -576,7 +635,17 @@ describe("Options startup with real storage hooks", () => {
     });
     expect(storedValues.get(STOKEY_SETTING)).toEqual(remoteSetting);
     expect(trySyncSetting).toHaveBeenCalledTimes(1);
-    expect(browser.storage.local.set).toHaveBeenCalledTimes(2);
+    expect(
+      browser.storage.local.set.mock.calls.filter(
+        ([values]) =>
+          values[STOKEY_SETTING] || values[STOKEY_SETTING_BACKUP_V3_BEFORE_V4]
+      )
+    ).toHaveLength(3);
+    expect(
+      browser.storage.local.set.mock.calls
+        .filter(([values]) => values[STOKEY_SETTING])
+        .map(([values]) => JSON.parse(values[STOKEY_SETTING]).marker)
+    ).toEqual(["legacy-setting", "remote-setting"]);
     expect(syncData).not.toHaveBeenCalled();
     expectInteractionBlocked(host, false);
   });

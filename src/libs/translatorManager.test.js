@@ -16,6 +16,7 @@ const mockTransboxArgs = [];
 const mockInputTranslatorInstances = [];
 const mockPopupInstances = [];
 const mockFabInstances = [];
+const mockImageTranslateInstances = [];
 const mockPopupDocumentIdentity = jest.fn();
 const activeManagers = [];
 
@@ -94,7 +95,9 @@ jest.mock("./translator", () => ({
       disable: jest.fn(),
       toggleTransOnly: jest.fn(),
       toggleStyle: jest.fn(),
-      updateRule: jest.fn(),
+      updateRule: jest.fn(function updateRule(patch) {
+        this.rule = { ...this.rule, ...patch };
+      }),
       updateApiSettings: jest.fn(function updateApiSettings(transApis) {
         this.setting = { ...this.setting, transApis };
       }),
@@ -131,6 +134,7 @@ jest.mock("./tranbox", () => ({
       toggle: jest.fn(() => {
         enabled = !enabled;
       }),
+      update: jest.fn(),
     };
     mockTransboxInstances.push(instance);
     return instance;
@@ -166,8 +170,23 @@ jest.mock("./fabManager", () => ({
   FabManager: jest.fn().mockImplementation(() => {
     const instance = {
       destroy: jest.fn(),
+      suspend: jest.fn(),
+      resume: jest.fn(),
     };
     mockFabInstances.push(instance);
+    return instance;
+  }),
+}));
+
+jest.mock("./imageTranslate/imageTranslateManager", () => ({
+  ImageTranslateManager: jest.fn().mockImplementation(() => {
+    const instance = {
+      destroy: jest.fn(),
+      updateSetting: jest.fn(),
+      updateRule: jest.fn(),
+      startScreenshot: jest.fn(),
+    };
+    mockImageTranslateInstances.push(instance);
     return instance;
   }),
 }));
@@ -184,12 +203,16 @@ jest.mock("./iframe", () => ({
   sendIframeMsg: jest.fn(),
 }));
 
-jest.mock("./log", () => ({
-  logger: {
-    debug: jest.fn(),
-    info: jest.fn(),
-  },
-}));
+jest.mock("./log", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      logger: {
+        debug: jest.fn(),
+        info: jest.fn(),
+      },
+    }))()
+  )
+);
 
 const { browser } = require("./browser");
 const { Translator } = require("./translator");
@@ -197,6 +220,9 @@ const { TransboxManager } = require("./tranbox");
 const { InputTranslator } = require("./inputTranslate");
 const { PopupManager } = require("./popupManager");
 const { FabManager } = require("./fabManager");
+const {
+  ImageTranslateManager,
+} = require("./imageTranslate/imageTranslateManager");
 const { sendIframeMsg } = require("./iframe");
 const TranslatorManager = require("./translatorManager").default;
 
@@ -216,7 +242,9 @@ function setupMockConstructors() {
       disable: jest.fn(),
       toggleTransOnly: jest.fn(),
       toggleStyle: jest.fn(),
-      updateRule: jest.fn(),
+      updateRule: jest.fn(function updateRule(patch) {
+        this.rule = { ...this.rule, ...patch };
+      }),
       updateApiSettings: jest.fn(function updateApiSettings(transApis) {
         this.setting = { ...this.setting, transApis };
       }),
@@ -251,6 +279,7 @@ function setupMockConstructors() {
       toggle: jest.fn(() => {
         enabled = !enabled;
       }),
+      update: jest.fn(),
     };
     mockTransboxInstances.push(instance);
     return instance;
@@ -280,8 +309,21 @@ function setupMockConstructors() {
   FabManager.mockImplementation(() => {
     const instance = {
       destroy: jest.fn(),
+      suspend: jest.fn(),
+      resume: jest.fn(),
     };
     mockFabInstances.push(instance);
+    return instance;
+  });
+
+  ImageTranslateManager.mockImplementation(() => {
+    const instance = {
+      destroy: jest.fn(),
+      updateSetting: jest.fn(),
+      updateRule: jest.fn(),
+      startScreenshot: jest.fn(),
+    };
+    mockImageTranslateInstances.push(instance);
     return instance;
   });
 }
@@ -377,6 +419,7 @@ describe("TranslatorManager SPA lifecycle", () => {
     mockInputTranslatorInstances.length = 0;
     mockPopupInstances.length = 0;
     mockFabInstances.length = 0;
+    mockImageTranslateInstances.length = 0;
     activeManagers.length = 0;
     setupMockConstructors();
   });
@@ -403,6 +446,21 @@ describe("TranslatorManager SPA lifecycle", () => {
     expect(browser.runtime.onMessage.addListener).toHaveBeenCalledTimes(1);
   });
 
+  test("coordinates screenshot FAB suspension and closes the image session before destroying the FAB", () => {
+    const manager = createManager();
+    manager.start();
+    const { onScreenshotSessionChange } =
+      ImageTranslateManager.mock.calls[0][0];
+    onScreenshotSessionChange(true);
+    expect(mockFabInstances[0].suspend).toHaveBeenCalledTimes(1);
+    onScreenshotSessionChange(false);
+    expect(mockFabInstances[0].resume).toHaveBeenCalledTimes(1);
+    manager.stop();
+    expect(
+      mockImageTranslateInstances[0].destroy.mock.invocationCallOrder[0]
+    ).toBeLessThan(mockFabInstances[0].destroy.mock.invocationCallOrder[0]);
+  });
+
   test.each([false, true])(
     "preserves a confirmed FAB page preference after replacing the body (initial hide: %s)",
     async (isHide) => {
@@ -425,7 +483,155 @@ describe("TranslatorManager SPA lifecycle", () => {
     }
   );
 
-  test("touch mode is document-local and survives runtime recreation", () => {
+  describe("saved touch settings", () => {
+    let originalPointer, originalTouchPoints;
+    beforeEach(() => {
+      originalPointer = window.PointerEvent;
+      originalTouchPoints = Object.getOwnPropertyDescriptor(
+        navigator,
+        "maxTouchPoints"
+      );
+      window.PointerEvent = MouseEvent;
+      Object.defineProperty(navigator, "maxTouchPoints", {
+        configurable: true,
+        value: 2,
+      });
+    });
+    afterEach(() => {
+      window.PointerEvent = originalPointer;
+      if (originalTouchPoints) {
+        Object.defineProperty(navigator, "maxTouchPoints", originalTouchPoints);
+      } else {
+        delete navigator.maxTouchPoints;
+      }
+    });
+
+    test.each([
+      ["off", "left", false],
+      ["tap", "right", false],
+      ["swipe", "left", false],
+      ["swipe", "right", true],
+      [undefined, undefined, false],
+      ["invalid", "right", false],
+    ])("initializes %s / %s in iframe=%s", (mode, direction, isIframe) => {
+      const manager = createManager({
+        isIframe,
+        setting: {
+          mouseHoverSetting: { touchMode: mode, touchDirection: direction },
+        },
+      });
+      manager.start();
+      expect(mockTranslatorInstances[0].setTouchMode).toHaveBeenCalledWith(
+        ["tap", "swipe"].includes(mode) ? mode : "off"
+      );
+      expect(
+        sendRuntimeMessage({ action: "touch-state" }).touchTranslate.direction
+      ).toBe(direction || "right");
+    });
+
+    test.each(["page", "extension"])(
+      "closing from %s stops saved touch mode in child frames",
+      (source) => {
+        const manager = createManager({
+          setting: { mouseHoverSetting: { touchMode: "tap" } },
+        });
+        manager.start();
+        const child = createManager({
+          isIframe: true,
+          setting: { mouseHoverSetting: { touchMode: "swipe" } },
+        });
+        child.start();
+        expect(mockTranslatorInstances[1].setTouchMode).toHaveBeenCalledWith(
+          "swipe"
+        );
+        const command = { action: "touch-mode-set", args: { mode: "off" } };
+        if (source === "page") {
+          PopupManager.mock.calls[0][0].processActions(command);
+        } else {
+          sendRuntimeMessage(command);
+        }
+        expect(
+          mockTranslatorInstances[0].setTouchMode
+        ).toHaveBeenLastCalledWith("off");
+        expect(sendIframeMsg).toHaveBeenCalledWith(
+          command.action,
+          command.args
+        );
+
+        // Deliver the parent message to the child, as sendIframeMsg does.
+        sendIframeMsg.mockClear();
+        window.dispatchEvent(new MessageEvent("message", { data: command }));
+        expect(
+          mockTranslatorInstances[1].setTouchMode
+        ).toHaveBeenLastCalledWith("off");
+        // Nested frames must receive off as well.
+        expect(sendIframeMsg).toHaveBeenCalledWith(
+          command.action,
+          command.args
+        );
+      }
+    );
+
+    test("leaves saved touch settings intact on a mouse-only PC", () => {
+      Object.defineProperty(navigator, "maxTouchPoints", { value: 0 });
+      const manager = createManager({
+        setting: {
+          mouseHoverSetting: { touchMode: "swipe", touchDirection: "left" },
+        },
+      });
+      manager.start();
+      expect(mockTranslatorInstances[0].setTouchMode).toHaveBeenCalledWith(
+        "off"
+      );
+      expect(mockTranslatorArgs[0].setting.mouseHoverSetting).toEqual({
+        touchMode: "swipe",
+        touchDirection: "left",
+      });
+    });
+
+    test("uses new saved settings on a fresh page, retaining current state on SPA rebuild", () => {
+      const transApis = [{ apiSlug: "selected" }];
+      const manager = createManager({
+        setting: {
+          transApis,
+          mouseHoverSetting: { touchMode: "tap", touchDirection: "right" },
+        },
+      });
+      manager.start();
+      sendSettingChange({
+        transApis,
+        mouseHoverSetting: { touchMode: "swipe", touchDirection: "left" },
+      });
+      expect(
+        sendRuntimeMessage({ action: "touch-state" }).touchTranslate
+      ).toMatchObject({ mode: "tap", direction: "right" });
+      sendRuntimeMessage({ action: "touch-mode-set", args: { mode: "off" } });
+      manager.restart();
+      expect(
+        sendRuntimeMessage({ action: "touch-state" }).touchTranslate
+      ).toMatchObject({ mode: "off", direction: "right" });
+      manager.stop();
+      const next = createManager({
+        setting: {
+          transApis,
+          mouseHoverSetting: { touchMode: "swipe", touchDirection: "left" },
+        },
+      });
+      next.start();
+      const response = jest.fn();
+      browser.runtime.onMessage.addListener.mock.calls.at(-1)[0](
+        { action: "touch-state" },
+        {},
+        response
+      );
+      expect(response.mock.calls[0][0].touchTranslate).toMatchObject({
+        mode: "swipe",
+        direction: "left",
+      });
+    });
+  });
+
+  test("explicit touch mode changes survive runtime recreation", () => {
     const manager = createManager();
     manager.start();
     expect(
@@ -501,7 +707,9 @@ describe("TranslatorManager SPA lifecycle", () => {
         .touchTranslate.mode
     ).toBe("off");
     expect(mockTranslatorInstances[0].setTouchMode).toHaveBeenCalledWith("off");
-    expect(sendIframeMsg).not.toHaveBeenCalled();
+    expect(sendIframeMsg).toHaveBeenCalledWith("touch-mode-set", {
+      mode: "off",
+    });
   });
 
   test("does not restart after stop", async () => {
@@ -1824,5 +2032,63 @@ describe("TranslatorManager SPA lifecycle", () => {
       browser.runtime.onMessage.addListener.mock.calls[0][0]
     );
     expect(mockTransboxInstances[0].disable).toHaveBeenCalledTimes(1);
+  });
+
+  test("syncs settings and rules to imageTranslateManager on storage update and MSG_TRANS_PUTRULE", () => {
+    const manager = createManager({
+      setting: { transApis: [{ apiSlug: "initial" }] },
+    });
+    manager.start();
+    const imageManager = mockImageTranslateInstances[0];
+
+    const newSetting = {
+      transApis: [{ apiSlug: "updated" }],
+      imageTranslateSetting: { fromLang: "en" },
+    };
+    sendSettingChange(newSetting);
+    expect(imageManager.updateSetting).toHaveBeenCalledWith(
+      expect.objectContaining(newSetting)
+    );
+
+    const newRule = { minWidth: 150 };
+    const handler = browser.runtime.onMessage.addListener.mock.calls[0][0];
+    handler({ action: "trans-putrule", args: newRule }, {}, jest.fn());
+    expect(imageManager.updateRule).toHaveBeenCalledWith(newRule);
+    expect(mockTransboxInstances[0].update).toHaveBeenCalledWith({
+      rule: expect.objectContaining(newRule),
+    });
+  });
+
+  test("preserves complete selection rules across successive patches", () => {
+    const rule = {
+      toLang: "zh-CN",
+      terms: "React,框架",
+      aiTerms: "component,组件",
+      termsList: ["frontend"],
+      terminologySources: [{ terms: "React,框架", termsList: ["frontend"] }],
+    };
+    const manager = createManager({ rule });
+    manager.start();
+    const handler = browser.runtime.onMessage.addListener.mock.calls.at(-1)[0];
+    handler({ action: "trans-putrule", args: { toLang: "en" } }, {}, jest.fn());
+    handler(
+      { action: "trans-putrule", args: { fromLang: "ja" } },
+      {},
+      jest.fn()
+    );
+    expect(mockTransboxInstances.at(-1).update).toHaveBeenLastCalledWith({
+      rule: expect.objectContaining({ ...rule, toLang: "en", fromLang: "ja" }),
+    });
+  });
+
+  test("passes initial rule to TransboxManager on creation", () => {
+    const rule = { terms: "apple,苹果", termsList: ["tbl_1"] };
+    const manager = createManager({ rule });
+    manager.start();
+    expect(mockTransboxArgs[mockTransboxArgs.length - 1]).toEqual(
+      expect.objectContaining({
+        rule: expect.objectContaining(rule),
+      })
+    );
   });
 });

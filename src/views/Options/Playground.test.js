@@ -6,6 +6,9 @@ import { defaultSystemPrompt } from "../../config";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+jest.mock("../../hooks/Terminology", () => ({
+  useTerminologyDirectory: () => ({ tables: [], error: "" }),
+}));
 const mockTranForm = jest.fn();
 const mockTerminology = jest.fn();
 
@@ -866,4 +869,47 @@ describe("draft multi-tab race and unload flush (M3/B1)", () => {
 
     act(() => root.unmount());
   });
+});
+
+test("text translation terminology is isolated, survives tab switches, and resets after leaving", () => {
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  const latest = () => mockTranForm.mock.calls.at(-1)[0];
+  act(() => root.render(<Playground />));
+  const storageBefore = { ...localStorage };
+  expect(latest().scene).toEqual({ termsList: [], terms: "", aiTerms: "" });
+  act(() =>
+    latest().playgroundConfigExtra.props.children.props.onChange({
+      termsList: ["b", "a"],
+      terms: "act,行动",
+      aiTerms: "component,本次组件",
+    })
+  );
+  const scene = latest().scene;
+  act(() =>
+    container
+      .querySelector('[aria-controls="kt-playground-config-content"]')
+      .click()
+  );
+  expect(latest().playgroundConfigExpanded).toBe(false);
+  expect(latest().scene).toBe(scene);
+  expect(container.querySelector('input[type="checkbox"]')).not.toBeNull();
+  expect(container.textContent).toContain(
+    "选择本次测试使用的服务、语言和辅助工具"
+  );
+  act(() =>
+    container
+      .querySelector('[aria-controls="kt-playground-segmentation-panel"]')
+      .click()
+  );
+  act(() => container.querySelector("#kt-playground-translation-tab").click());
+  expect(latest().scene).toBe(scene);
+  expect(latest().playgroundConfigExpanded).toBe(false);
+  act(() => root.unmount());
+  expect({ ...localStorage }).toEqual(storageBefore);
+  const nextRoot = createRoot(container);
+  act(() => nextRoot.render(<Playground />));
+  expect(latest().scene).toEqual({ termsList: [], terms: "", aiTerms: "" });
+  expect(latest().playgroundConfigExpanded).toBe(true);
+  act(() => nextRoot.unmount());
 });

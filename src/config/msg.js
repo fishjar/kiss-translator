@@ -4,6 +4,7 @@
  */
 
 // --- 浏览器扩展快捷键 / 菜单命令类型 ---
+export const MSG_YOUTUBE_CAPTION_CACHE = "youtubeCaptionCache";
 export const CMD_TOGGLE_TRANSLATE = "toggleTranslate"; // 切换网页双语翻译
 export const CMD_TOGGLE_TRANSLATE_ONLY = "toggleTranslateOnly"; // 切换网页仅显示译文（单语翻译模式）
 export const CMD_TOGGLE_STYLE = "toggleStyle"; // 切换译文样式效果
@@ -11,6 +12,7 @@ export const CMD_OPEN_OPTIONS = "openOptions"; // 打开选项配置页面
 export const CMD_OPEN_TRANBOX = "openTranbox"; // 开启划词翻译面板
 export const CMD_TOGGLE_TRANBOX = "toggleTranbox"; // 显隐划词翻译面板
 export const CMD_OPEN_SEPARATE_WINDOW = "openSeparateWindow"; // 打开独立的翻译悬浮窗口
+export const CMD_IMAGE_SCREENSHOT = "imageScreenshot"; // 截图翻译命令
 
 // --- 扩展运行中的内部通信 Message Action 常量 ---
 export const MSG_FETCH = "kiss_fetch"; // 代理请求 (避免内容脚本跨域限制)
@@ -42,13 +44,23 @@ export const MSG_INJECT_CSS = "inject_css"; // 在主文档或 Shadow Root 中�
 export const MSG_UPDATE_CSP = "update_csp"; // 请求后台脚本动态更新内容安全策略(CSP)及请求头 Origin
 export const MSG_BUILTINAI_DETECT = "builtinai_detect"; // 调用内置 AI 执行语言检测
 export const MSG_BUILTINAI_TRANSLATE = "builtinai_translte"; // 调用内置 AI 执行文本翻译
+export const MSG_BUILTINAI_SUMMARIZE = "builtinai_summarize"; // 调用内置 AI 执行文本总结
+export const MSG_BUILTINAI_PROGRESS = "builtinai_progress"; // Chrome 内置模型下载进度通知
+export const MSG_LOCAL_AI_RPC = "local_ai_rpc";
+export const MSG_LOCAL_AI_CANCEL = "local_ai_cancel";
 export const MSG_SET_LOGLEVEL = "set_loglevel"; // 设置当前会话的日志等级
 export const MSG_CLEAR_CACHES = "clear_caches"; // 请求后台脚本清理本地翻译 HTTP 缓存
 export const MSG_OPEN_SEPARATE_WINDOW = "open_separate_window"; // 请求后台脚本开启独立窗口
 export const MSG_FIT_SEPARATE_WINDOW = "fit_separate_window"; // Fit the separate window after its content renders.
 export const MSG_UPDATE_SEPARATE_WINDOW_BOUNDS =
   "update_separate_window_bounds"; // Cache the actual separate window bounds.
+export const MSG_IMAGE_SCREENSHOT = "image_screenshot"; // 触发当前页面截图翻译
+export const MSG_CAPTURE_VISIBLE_TAB = "capture_visible_tab"; // 请求后台捕获视口画面
+export const MSG_IMAGE_TRANSLATE_EXECUTE = "image_translate_execute"; // 请求后台执行图片识别/翻译流水线
+export const MSG_IMAGE_TRANSLATE_CANCEL = "image_translate_cancel"; // 取消图片识别/翻译任务
+export const MSG_IMAGE_TRANSLATE_PROGRESS = "image_translate_progress"; // 图片识别/翻译进度
 export const PORT_STREAM_FETCH = "kiss_stream_fetch"; // 双向长连接端口名称：用于大模型翻译时的流式输出通道
+export const PORT_FETCH = "kiss_fetch_port";
 export const MSG_UPDATE_ICON = "update_icon"; // 通知后台脚本更新扩展的工具栏图标状态 (激活/灰色状态)
 export const MSG_SHA256 = "sha256"; // 请求后台脚本代算 SHA-256 签名
 
@@ -66,3 +78,7 @@ export const MSG_MENUS_UPDATEFORM = "updateFormData"; // 更新表单参数数�
 
 export const MSG_TOUCH_TRANSLATE_MODE_SET = "touch_translate_mode_set";
 export const MSG_TOUCH_TRANSLATE_STATE = "touch_translate_state";
+export const MSG_LOCAL_AI_SETTINGS = "local_ai_settings";
+export const MSG_LOCAL_AI_HOST = "local_ai_host";
+
+export const MSG_SCREENSHOT_SUPPORT = "screenshot_support";

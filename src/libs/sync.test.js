@@ -1,5 +1,6 @@
 jest.mock("../config", () => ({
   ...jest.requireActual("../config/client"),
+  ...jest.requireActual("../config/prompt"),
   APP_LCNAME: "kiss-translator",
   KV_SETTING_KEY: "kiss-setting_v2.json",
   KV_RULES_KEY: "kiss-rules_v2.json",
@@ -27,7 +28,11 @@ jest.mock("./storage", () => ({
   setSetting: jest.fn(),
   setRules: jest.fn(),
   setWords: jest.fn(),
-  storage: { withTransaction: jest.fn(), readSyncSnapshot: jest.fn() },
+  storage: {
+    withTransaction: jest.fn(),
+    readSyncSnapshot: jest.fn(),
+    getObj: async () => [],
+  },
 }));
 
 jest.mock("../apis", () => ({
@@ -55,9 +60,13 @@ jest.mock("./fetch", () => ({
   fetchPatcher: jest.fn(),
 }));
 
-jest.mock("./log", () => ({
-  kissLog: jest.fn(),
-}));
+jest.mock("./log", () =>
+  jest.requireActual("../testUtils/scopedLogMock").withScopedLogMock(
+    (() => ({
+      kissLog: jest.fn(),
+    }))()
+  )
+);
 
 jest.mock("./syncCrypto", () => ({
   encryptSyncValue: jest.fn(),
@@ -97,7 +106,10 @@ const WORDS_KEY = "kiss-words.json";
 
 beforeEach(() => {
   const transaction = {
-    getObj: () => getSyncWithDefault(),
+    getObj: (key) =>
+      key === "kiss_terminology_index_v1"
+        ? Promise.resolve([])
+        : getSyncWithDefault(),
     setObj: (key, value) =>
       ({
         setting: setSetting,
@@ -270,6 +282,66 @@ describe("GitHub Gist sync", () => {
     expect(result).toBeUndefined();
     expect(apiGetGist).not.toHaveBeenCalled();
     expect(encryptSyncValue).not.toHaveBeenCalled();
+  });
+
+  test("uses the current automatic-sync preference instead of a queued snapshot", async () => {
+    const snapshot = {
+      syncType: "GitHub Gist",
+      syncUrl: "existing-gist",
+      syncKey: SYNC_KEY,
+      syncEncryptKey: SYNC_ENCRYPT_KEY,
+      autoSync: true,
+    };
+    getSyncWithDefault.mockResolvedValue({ ...snapshot, autoSync: false });
+
+    expect(
+      await syncData(
+        SETTING_KEY,
+        { local: true },
+        {
+          automatic: true,
+          syncConfig: snapshot,
+        }
+      )
+    ).toBeUndefined();
+    expect(apiGetGist).not.toHaveBeenCalled();
+    expect(encryptSyncValue).not.toHaveBeenCalled();
+  });
+
+  test.each([undefined, true])(
+    "automatic sync remains enabled when autoSync is %s",
+    async (autoSync) => {
+      getSyncWithDefault.mockResolvedValue({
+        syncType: "GitHub Gist",
+        syncUrl: "existing-gist",
+        syncKey: SYNC_KEY,
+        syncEncryptKey: SYNC_ENCRYPT_KEY,
+        autoSync,
+      });
+      apiGetGist.mockResolvedValue({ files: {} });
+      await syncData(SETTING_KEY, { local: true }, { automatic: true });
+      expect(apiUpdateGistFile).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  test("does not upload when automatic sync is disabled during Gist discovery", async () => {
+    const config = {
+      syncType: "GitHub Gist",
+      syncUrl: "",
+      syncKey: SYNC_KEY,
+      syncEncryptKey: SYNC_ENCRYPT_KEY,
+    };
+    getSyncWithDefault.mockResolvedValue(config);
+    apiListGists.mockImplementationOnce(async () => {
+      getSyncWithDefault.mockResolvedValue({ ...config, autoSync: false });
+      return [];
+    });
+
+    expect(
+      await syncData(SETTING_KEY, { local: true }, { automatic: true })
+    ).toBeUndefined();
+    expect(apiCreateGist).not.toHaveBeenCalled();
+    expect(apiUpdateGistFile).not.toHaveBeenCalled();
   });
 
   test("reuses the newest existing fixed-description gist when syncUrl is empty", async () => {
@@ -582,6 +654,7 @@ describe("GitHub Gist sync", () => {
 
   test("changes encryption passphrase after re-encrypting personal sync data", async () => {
     getSyncWithDefault.mockResolvedValue({
+      autoSync: false,
       syncType: "GitHub Gist",
       syncUrl: "existing-gist",
       syncKey: SYNC_KEY,
@@ -629,23 +702,33 @@ describe("GitHub Gist sync", () => {
       SYNC_ENCRYPT_KEY
     );
     expect(encryptSyncValue).toHaveBeenNthCalledWith(
-      4,
+      5,
       JSON.stringify({ setting: true }),
       NEW_SYNC_ENCRYPT_KEY
     );
     expect(encryptSyncValue).toHaveBeenNthCalledWith(
-      5,
+      6,
       JSON.stringify([{ pattern: "*" }]),
       NEW_SYNC_ENCRYPT_KEY
     );
     expect(encryptSyncValue).toHaveBeenNthCalledWith(
-      6,
+      7,
       JSON.stringify({ hello: true }),
       NEW_SYNC_ENCRYPT_KEY
     );
-    const uploadedSetting = JSON.parse(apiUpdateGistFile.mock.calls[3][3]);
-    const uploadedRules = JSON.parse(apiUpdateGistFile.mock.calls[4][3]);
-    const uploadedWords = JSON.parse(apiUpdateGistFile.mock.calls[5][3]);
+    expect(encryptSyncValue).toHaveBeenNthCalledWith(
+      4,
+      JSON.stringify({ formatVersion: 1, tables: [] }),
+      SYNC_ENCRYPT_KEY
+    );
+    expect(encryptSyncValue).toHaveBeenNthCalledWith(
+      8,
+      JSON.stringify({ formatVersion: 1, tables: [] }),
+      NEW_SYNC_ENCRYPT_KEY
+    );
+    const uploadedSetting = JSON.parse(apiUpdateGistFile.mock.calls[4][3]);
+    const uploadedRules = JSON.parse(apiUpdateGistFile.mock.calls[5][3]);
+    const uploadedWords = JSON.parse(apiUpdateGistFile.mock.calls[6][3]);
     expect(uploadedSetting.updateAt).toBe(9999);
     expect(uploadedRules.updateAt).toBe(9999);
     expect(uploadedWords.updateAt).toBe(9999);

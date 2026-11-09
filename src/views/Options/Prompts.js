@@ -44,6 +44,7 @@ import {
   PROMPT_CATEGORY_DICTIONARY,
   PROMPT_CATEGORY_SUBTITLE,
   PROMPT_CATEGORY_USER,
+  PROMPT_CATEGORY_VLM,
   PROMPT_TEMPLATE_CATEGORIES,
   getPromptCategoryDisplayName,
   getPromptDisplayName,
@@ -75,7 +76,8 @@ const TRANSLATION_PROMPT_PLACEHOLDERS = [
 const hasUserPromptField = ({ category }) =>
   category === PROMPT_CATEGORY_USER ||
   category === PROMPT_CATEGORY_DICTIONARY ||
-  category === PROMPT_CATEGORY_BATCH_SYSTEM;
+  category === PROMPT_CATEGORY_BATCH_SYSTEM ||
+  category === PROMPT_CATEGORY_VLM;
 
 const BATCH_TRANSLATION_PROMPT_PLACEHOLDERS = [
   INPUT_PLACE_SEGMENTS,
@@ -341,57 +343,59 @@ function PromptFields({
         disabled={isPreset}
       />
 
-      <Stack spacing={1}>
-        <CodeField
-          className="kt-resizable-text-field"
-          size="small"
-          label={i18n("system_prompt", "系统提示词")}
-          name="systemPrompt"
-          value={formData.systemPrompt}
-          onChange={handleChange}
-          inputRef={systemPromptRef}
-          minRows={3}
-          maxRows={14}
-          disabled={isPreset}
-          InputProps={{
-            ...systemHeightLock.rootProps,
-            endAdornment:
-              formData.systemPrompt.trim() ||
-              systemHeightLock.lockedHeight != null ? (
-                <TextareaResizeGrip
-                  target={systemHeightLock.textareaRef}
-                  onResize={systemHeightLock.applyHeight}
-                  value={systemHeightLock.lockedHeight}
-                  label={i18n("field_resize_height")}
-                  variant={gripStyle}
-                  onRelease={systemHeightLock.releaseHeight}
-                  unlockHint={i18n("field_resize_unlock_hint")}
-                />
-              ) : null,
-          }}
-          inputProps={{
-            className: "kt-resizable-textarea",
-            style: { resize: gripStyle === "hidden" ? "vertical" : "none" },
-          }}
-          sx={{
-            "& .MuiInputBase-root": {
-              overflow: "visible",
-            },
-          }}
-        />
-        {!isPreset && (
-          <PromptPlaceholderButtons
-            category={formData.category}
-            onInsert={(placeholder) =>
-              handleInsertPlaceholder(
-                "systemPrompt",
-                systemPromptRef,
-                placeholder
-              )
-            }
+      {formData.category !== PROMPT_CATEGORY_VLM && (
+        <Stack spacing={1}>
+          <CodeField
+            className="kt-resizable-text-field"
+            size="small"
+            label={i18n("system_prompt", "系统提示词")}
+            name="systemPrompt"
+            value={formData.systemPrompt}
+            onChange={handleChange}
+            inputRef={systemPromptRef}
+            minRows={3}
+            maxRows={14}
+            disabled={isPreset}
+            InputProps={{
+              ...systemHeightLock.rootProps,
+              endAdornment:
+                formData.systemPrompt.trim() ||
+                systemHeightLock.lockedHeight != null ? (
+                  <TextareaResizeGrip
+                    target={systemHeightLock.textareaRef}
+                    onResize={systemHeightLock.applyHeight}
+                    value={systemHeightLock.lockedHeight}
+                    label={i18n("field_resize_height")}
+                    variant={gripStyle}
+                    onRelease={systemHeightLock.releaseHeight}
+                    unlockHint={i18n("field_resize_unlock_hint")}
+                  />
+                ) : null,
+            }}
+            inputProps={{
+              className: "kt-resizable-textarea",
+              style: { resize: gripStyle === "hidden" ? "vertical" : "none" },
+            }}
+            sx={{
+              "& .MuiInputBase-root": {
+                overflow: "visible",
+              },
+            }}
           />
-        )}
-      </Stack>
+          {!isPreset && (
+            <PromptPlaceholderButtons
+              category={formData.category}
+              onInsert={(placeholder) =>
+                handleInsertPlaceholder(
+                  "systemPrompt",
+                  systemPromptRef,
+                  placeholder
+                )
+              }
+            />
+          )}
+        </Stack>
+      )}
 
       {showUserPrompt && (
         <Stack spacing={1}>

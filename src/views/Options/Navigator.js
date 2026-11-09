@@ -13,7 +13,12 @@ import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
 import SubtitlesRoundedIcon from "@mui/icons-material/SubtitlesRounded";
+import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
+import FileUploadRoundedIcon from "@mui/icons-material/FileUploadRounded";
+import MemoryRoundedIcon from "@mui/icons-material/MemoryRounded";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import { openFileTranslatePage } from "../../libs/navigation";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../../components/Logo";
 import { useI18n } from "../../hooks/I18n";
@@ -89,6 +94,22 @@ export default function Navigator({ open, isMobile = false, onClose }) {
               "/subtitle",
               SubtitlesRoundedIcon,
             ],
+            [
+              "image-translate",
+              i18n("image_translate", "图片翻译"),
+              "/image-translate",
+              ImageRoundedIcon,
+            ],
+            ...(isAutoTranslateClipboardSupported
+              ? [
+                  [
+                    "file-translate",
+                    i18n("file_translate", "文件翻译"),
+                    "/file-translate",
+                    FileUploadRoundedIcon,
+                  ],
+                ]
+              : []),
           ],
         },
         {
@@ -96,7 +117,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
           items: [
             [
               "apis",
-              i18n("options_translation_services"),
+              i18n("options_service_config", "服务配置"),
               "/apis",
               ApiRoundedIcon,
             ],
@@ -106,12 +127,39 @@ export default function Navigator({ open, isMobile = false, onClose }) {
               "/prompts",
               DescriptionRoundedIcon,
             ],
+            ...(["chrome", "firefox"].includes(process.env.REACT_APP_CLIENT) &&
+            typeof indexedDB !== "undefined"
+              ? [
+                  [
+                    "plugins",
+                    i18n("provider_plugins", "接口插件"),
+                    "/plugins",
+                    ApiRoundedIcon,
+                  ],
+                ]
+              : []),
+            ...(isAutoTranslateClipboardSupported
+              ? [
+                  [
+                    "local-ai",
+                    i18n("local_ai_title", "本地 AI"),
+                    "/local-ai",
+                    MemoryRoundedIcon,
+                  ],
+                ]
+              : []),
           ],
         },
         {
           label: i18n("options_group_data"),
           items: [
             ["sync", i18n("options_data_sync"), "/sync", CloudSyncRoundedIcon],
+            [
+              "terms",
+              i18n("terminology_tables", "Terminology tables"),
+              "/terms",
+              DescriptionRoundedIcon,
+            ],
             ["words", i18n("favorite_words"), "/words", BookmarksRoundedIcon],
           ],
         },
@@ -119,6 +167,16 @@ export default function Navigator({ open, isMobile = false, onClose }) {
           label: "",
           items: [
             ["playground", "Playground", "/playground", BugReportRoundedIcon],
+            ...(isExt
+              ? [
+                  [
+                    "diagnostics",
+                    i18n("diagnostics_title"),
+                    "/diagnostics",
+                    BugReportRoundedIcon,
+                  ],
+                ]
+              : []),
             ["about", i18n("about"), "/about", InfoRoundedIcon],
           ],
         },
@@ -148,7 +206,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
     >
       <a
         className="kt-options-brand"
-        href={process.env.REACT_APP_HOMEPAGE}
+        href={process.env.REACT_APP_SITEURL}
         target="_blank"
         rel="noreferrer"
       >
@@ -201,15 +259,33 @@ export default function Navigator({ open, isMobile = false, onClose }) {
                   className={searching ? "kt-options-nav__result" : undefined}
                   key={id}
                 >
-                  <NavLink
-                    className="kt-options-nav__link"
-                    to={path}
-                    end={path === "/"}
-                    onClick={isMobile ? onClose : undefined}
-                  >
-                    <Icon />
-                    <span>{label}</span>
-                  </NavLink>
+                  {id === "file-translate" ? (
+                    <button
+                      type="button"
+                      className="kt-options-nav__link"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (isMobile && onClose) onClose();
+                        openFileTranslatePage();
+                      }}
+                    >
+                      <Icon />
+                      <span style={{ flex: 1 }}>{label}</span>
+                      <OpenInNewRoundedIcon
+                        sx={{ fontSize: 16, opacity: 0.65, ml: "auto" }}
+                      />
+                    </button>
+                  ) : (
+                    <NavLink
+                      className="kt-options-nav__link"
+                      to={path}
+                      end={path === "/"}
+                      onClick={isMobile ? onClose : undefined}
+                    >
+                      <Icon />
+                      <span>{label}</span>
+                    </NavLink>
+                  )}
                   {searching && matches.length > 0 && (
                     <ul className="kt-options-nav__settings" aria-label={label}>
                       {matches.map((entry) => {

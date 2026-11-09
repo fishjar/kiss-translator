@@ -1,0 +1,154 @@
+.kt-pdf-workspace {
+  flex: 1;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.kt-pdf-reading {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+.kt-pdf-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.kt-pdf-column-header {
+  padding: 8px 12px;
+  height: 48px;
+  min-height: 48px;
+  box-sizing: border-box;
+  overflow-x: auto;
+  flex-shrink: 0;
+  background: inherit;
+}
+.kt-pdf-column-header > * {
+  flex-shrink: 0;
+}
+.kt-pdf-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.kt-pdf-pages {
+  background: #8882;
+}
+.kt-pdf-markdown {
+  padding: 40px 22px 12px;
+  line-height: 1.7;
+}
+.kt-pdf-toc {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.kt-pdf-block {
+  position: relative;
+  padding: 2px 0 10px;
+  border-bottom: 1px solid #8881;
+}
+.kt-pdf-block-actions {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  transform: translateY(-100%);
+  z-index: 5;
+  display: flex;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.kt-pdf-block:hover .kt-pdf-block-actions,
+.kt-pdf-block:focus-within .kt-pdf-block-actions,
+.kt-pdf-block-active .kt-pdf-block-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+.kt-pdf-source {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  font-family: monospace;
+  font-size: 13px;
+}
+.kt-pdf-markdown img {
+  max-width: 100%;
+  height: auto;
+}
+.kt-equation-fallback {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+.kt-equation-fallback img {
+  display: block;
+  margin: auto;
+  max-width: 100%;
+}
+.kt-equation-number {
+  white-space: nowrap;
+}
+.kt-pdf-recognition-pending {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  color: #1976d2;
+  vertical-align: middle;
+  animation: kt-pdf-recognition-spin 0.8s linear infinite;
+}
+@keyframes kt-pdf-recognition-spin {
+  to { transform: rotate(360deg); }
+}
+.kt-pdf-markdown pre {
+  overflow: auto;
+  padding: 12px;
+  background: #8881;
+}
+.kt-pdf-markdown .kt-source {
+  opacity: 0.7;
+}
+.kt-pdf-markdown .kt-target {
+  margin-top: 0.4em;
+}
+.kt-pdf-markdown .kt-document-warning {
+  border-left: 3px solid #b78a26;
+  padding-left: 12px;
+}
+.kt-pdf-markdown .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5em 0;
+  height: auto;
+}
+.kt-pdf-markdown table {
+  border-collapse: collapse;
+  display: block;
+  overflow: auto;
+}
+.kt-pdf-markdown td,
+.kt-pdf-markdown th {
+  padding: 6px 10px;
+  border: 1px solid #8886;
+}
+@media (max-width: 999px) {
+  .kt-pdf-markdown {
+    padding: 40px 12px 12px;
+  }
+}
