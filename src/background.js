@@ -195,9 +195,7 @@ const CSP_RULE_START_ID = 1;
 const ORI_RULE_START_ID = 10000;
 // 获取扩展自身的请求发起方域名。
 // Chrome 使用扩展 ID，Firefox 使用 moz-extension UUID。
-const EXTENSION_INITIATOR_DOMAIN = new URL(
-  browser.runtime.getURL("")
-).hostname;
+const EXTENSION_INITIATOR_DOMAIN = new URL(browser.runtime.getURL("")).hostname;
 
 // 需要从 HTTP 响应头中移除的 CSP (Content-Security-Policy) 键名，用以允许加载第三方翻译接口脚本/发送翻译请求
 const CSP_REMOVE_HEADERS = [
@@ -641,9 +639,7 @@ async function updateCspRules({ csplist, orilist }) {
         id: ORI_RULE_START_ID + index,
         action: {
           type: "modifyHeaders",
-          requestHeaders: [
-            { header: "Origin", operation: "set", value: url },
-          ],
+          requestHeaders: [{ header: "Origin", operation: "set", value: url }],
         },
         condition: {
           urlFilter: url,
