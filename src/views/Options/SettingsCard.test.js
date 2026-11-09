@@ -347,6 +347,21 @@ describe("SettingsSegmented", () => {
 
     view.unmount();
   });
+
+  test("every segment renders an always-present aria-hidden checkmark glyph", () => {
+    // 恒渲染（含非选中段）：选中态由 CSS max-width/opacity 插值表达，
+    // 严禁 display 切换；glyph 对辅助技术隐藏，语义走 radio aria-checked。
+    const view = renderSegmented({ initialValue: "middle", items });
+    const radios = view.radios();
+    for (const radio of radios) {
+      const checkmark = radio.querySelector(
+        "svg.kt-settings-segmented__checkmark"
+      );
+      expect(checkmark).not.toBeNull();
+      expect(checkmark.getAttribute("aria-hidden")).toBe("true");
+    }
+    view.unmount();
+  });
 });
 
 describe("SettingsSelect", () => {
@@ -456,10 +471,14 @@ describe("SettingsSelect", () => {
       }
       // 选中项勾选态随受控 value 数组，形态走分发器字形。
       expect(
-        menuItems[0].querySelector("[data-checked]").getAttribute("data-checked")
+        menuItems[0]
+          .querySelector("[data-checked]")
+          .getAttribute("data-checked")
       ).toBe("true");
       expect(
-        menuItems[1].querySelector("[data-checked]").getAttribute("data-checked")
+        menuItems[1]
+          .querySelector("[data-checked]")
+          .getAttribute("data-checked")
       ).toBe("false");
     } finally {
       act(() => root.unmount());
@@ -645,6 +664,111 @@ describe("SettingsSelect", () => {
     }
   });
 
+  test("unselect direction removes every equal-value twin from mixed stored values", () => {
+    // 取消方向对称归一：value 含 ["2", 2] 双等值条目时，点击取消 2 须经
+    // areEqualValues 滤除全部等值孪生，回传 []；严格 indexOf 只移除其一
+    // 会残留另一条，勾选态卡死。
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const handleChange = jest.fn();
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["2", 2]}
+            options={[
+              { value: 1, label: "Option 1" },
+              { value: 2, label: "Option 2" },
+            ]}
+            onChange={handleChange}
+          />
+        );
+      });
+      act(() =>
+        container
+          .querySelector(".MuiSelect-select")
+          .dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, button: 0 })
+          )
+      );
+      const menuItems = [...document.querySelectorAll(".MuiMenuItem-root")];
+      act(() => {
+        menuItems[1].dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+      expect(handleChange).toHaveBeenCalledWith([]);
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("closed trigger renders one label per option even for mixed equal-value twins", () => {
+    // 取消方向已按 areEqualValues 滤除等值孪生，展示方向同源：value 含
+    // ["2", 2] 双等值条目时二者命中同一 option，关闭态标签只出一次，
+    // 不重复渲染；对象值按引用比较不受影响。
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const handleChange = jest.fn();
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["2", 2]}
+            options={[
+              { value: 1, label: "Option 1" },
+              { value: 2, label: "Option 2" },
+            ]}
+            onChange={handleChange}
+          />
+        );
+      });
+      expect(container.querySelector(".MuiSelect-select").textContent).toBe(
+        "Option 2"
+      );
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("multiple trigger drops stale object values instead of rendering empty slots", () => {
+    // 未命中且值本身是对象（对象选项值变更后残留）不能作 React 子节点：
+    // 空串占槽经分隔符产出悬挂逗号。展示序列在过滤阶段剔除此类残留；
+    // 标量未命中仍原样透传。
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const staleObject = { id: 99 };
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["opt2", staleObject, "opt1"]}
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+      expect(container.querySelector(".MuiSelect-select").textContent).toBe(
+        "Option 1, Option 2"
+      );
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
   test("caller SelectProps merge keeps multi render injection and caller keys", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);
@@ -673,6 +797,89 @@ describe("SettingsSelect", () => {
       expect(container.querySelector(".MuiSelect-select").textContent).toBe(
         "Option 1"
       );
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("MenuProps.disableScrollLock toggles the body scroll lock behaviorally", () => {
+    // 属性合流断言证不了行为：MUI ModalManager 开菜单锁 body（inline
+    // overflow hidden），传 flag 后不锁。两场景各自 createRoot——复用
+    // 已卸载 root 会抛 "Cannot update an unmounted root"。
+    const openAndProbe = (selectProps) => {
+      const container = document.createElement("div");
+      document.body.appendChild(container);
+      const root = createRoot(container);
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Lock"
+            value="opt1"
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+            SelectProps={selectProps}
+          />
+        );
+      });
+      const combobox = container.querySelector('[role="combobox"]');
+      act(() => {
+        combobox.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, button: 0 })
+        );
+      });
+      return {
+        listbox: document.querySelector('[role="listbox"]'),
+        bodyOverflow: document.body.style.overflow,
+        cleanup: () => {
+          act(() => root.unmount());
+          container.remove();
+        },
+      };
+    };
+    const first = openAndProbe(undefined);
+    try {
+      expect(first.listbox).not.toBeNull();
+      expect(first.bodyOverflow).toBe("hidden");
+    } finally {
+      first.cleanup();
+    }
+    const second = openAndProbe({ MenuProps: { disableScrollLock: true } });
+    try {
+      expect(second.listbox).not.toBeNull();
+      expect(second.bodyOverflow).toBe("");
+    } finally {
+      second.cleanup();
+    }
+  });
+
+  test("entry declares listbox popup semantics with preserved aria-label", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Service"
+            value="opt1"
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+      // 入口本体（combobox）须与下游 listbox 语义配对：aria-haspopup 由 MUI
+      // Select 内建承担，aria-label 经 inputProps 链路落在入口本体。
+      const combobox = container.querySelector('[role="combobox"]');
+      expect(combobox).not.toBeNull();
+      expect(combobox.getAttribute("aria-haspopup")).toBe("listbox");
+      expect(combobox.getAttribute("aria-label")).toBe("Service");
     } finally {
       act(() => root.unmount());
       container.remove();

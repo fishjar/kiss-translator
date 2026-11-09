@@ -17,7 +17,7 @@ export default function ImageLayoutOverlay({
 }) {
   // 悬浮线框层游离于 M3Theme 之外（挂在宿主页面 body），无 CSS 变量可消费：
   // 恒浅口径主色族取自 useIconAccent（深调主色，白字/徽章达标）；
-  // disabled 灰同 PdfPage.js:29-33 口径取 MUI 运行时 palette.grey（非 CSS 变量）。
+  // disabled 灰取 MUI 运行时 palette.grey（非 CSS 变量）。
   const { accent } = useIconAccent();
   const theme = useTheme();
   if (!visible || !regions?.length || !imageRect) return null;
@@ -99,9 +99,9 @@ export default function ImageLayoutOverlay({
               fill={
                 enabled
                   ? alpha(accent.primary, 0.14)
-                  : alpha(theme.palette.grey[500], 0.15)
+                  : alpha(theme.palette.grey[800], 0.15)
               }
-              stroke={enabled ? accent.primary : theme.palette.grey[500]}
+              stroke={enabled ? accent.primary : theme.palette.grey[800]}
               strokeDasharray={enabled ? undefined : "4 3"}
               strokeWidth="2"
               vectorEffect="non-scaling-stroke"
@@ -118,21 +118,19 @@ export default function ImageLayoutOverlay({
                   y={minY}
                   width="22"
                   height="16"
-                  fill={enabled ? accent.primary : theme.palette.grey[500]}
+                  fill={enabled ? accent.primary : theme.palette.grey[800]}
                   rx="3"
                 />
                 <text
                   x={minX + 11}
                   y={minY + 12}
                   textAnchor="middle"
-                  // 启用态深调主色白字达标；禁用态灰底（grey[500]）白字对比不足，
-                  // 镜像 PdfPage.js 对该灰底取主题最优前景，不硬编码白色。
+                  // 启用态深调主色白字达标；禁用态灰底对该底色取主题最优
+                  // 前景，不硬编码白色。
                   fill={
                     enabled
                       ? "#ffffff"
-                      : theme.palette.getContrastText(
-                          theme.palette.grey[500]
-                        )
+                      : theme.palette.getContrastText(theme.palette.grey[800])
                   }
                   fontSize="11"
                   fontWeight="bold"

@@ -134,13 +134,13 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
 @media (hover: hover) {
   .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root:hover { background: color-mix(in srgb, var(--kt-onsecc) 8%, var(--kt-secc)); }
 }
-.kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-focusVisible { background: color-mix(in srgb, var(--kt-onsecc) 10%, var(--kt-secc)); outline: none; box-shadow: inset 0 0 0 3px var(--kt-pri); }
+.kt-options-page .kt-translation-text-field__actions .MuiIconButton-root:focus-visible { background: color-mix(in srgb, var(--kt-onsecc) 10%, var(--kt-secc)); outline: none; box-shadow: inset 0 0 0 3px var(--kt-pri); }
 /* forced-colors 域 UA 忽略上方 inset box-shadow，而 outline:none 仍生效
    → 该域键盘焦点零指示。换系统色描边（不写颜色，outline-color 由强制
    引擎接管）；offset -3px 内收，不出 34px 按钮圆外。必须排在其后：同特
    异性靠源码顺序压过 outline:none。上方环若改回描边，本块须一并删除。 */
 @media (forced-colors: active) {
-  .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-focusVisible { outline: 3px solid; outline-offset: -3px; }
+  .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root:focus-visible { outline: 3px solid; outline-offset: -3px; }
 }
 .kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-disabled { background: var(--kt-sf2); color: var(--kt-line); }
 .kt-options-page .kt-translation-text-field--source textarea { caret-color: var(--kt-pri); }
@@ -230,6 +230,8 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
   .kt-settings-segmented > button.Mui-selected:hover { background: color-mix(in srgb, var(--kt-onsecc) 8%, var(--kt-secc)); }
 }
 .kt-settings-segmented__label { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.kt-settings-segmented__checkmark { width: 15px; height: 15px; flex: none; max-width: 0; opacity: 0; transform: scale(.6); margin-right: 0; transition: max-width .2s ease, opacity .15s ease, transform .15s ease, margin-right .2s ease; }
+.kt-settings-segmented > button.Mui-selected .kt-settings-segmented__checkmark { max-width: 15px; opacity: 1; transform: scale(1); margin-right: 4px; }
 .kt-settings-segmented > button svg { width: 15px; height: 15px; flex: none; }
 .kt-settings-segmented > button:focus { outline: none; box-shadow: inset 0 0 0 2px var(--kt-pri); }
 .kt-settings-segmented > button.Mui-selected:focus { box-shadow: inset 0 0 0 2px var(--kt-onsecc); }
@@ -244,9 +246,10 @@ button.kt-options-nav__link { width: 100%; border: none; background: transparent
   .kt-settings-segmented > button.Mui-selected:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--kt-onsecc) 55%, transparent); }
 }
 /* forced-colors 域 UA 丢弃 box-shadow 焦点环：未选按钮走系统色 outline，
-   选中按钮走 Highlight 描边，二者均关 box-shadow 防止与 outline 双显。
-   必须排在默认 :focus-visible 之后：同特异度靠源码顺序压过 outline:none。 */
+   选中按钮走 Highlight 描边（无论是否聚焦，UA 已接管底色故须显式描边方可辨），
+   三者均关 box-shadow 防止与 outline 双显。必须排在默认 :focus-visible 之后。 */
 @media (forced-colors: active) {
+  .kt-settings-segmented > button.Mui-selected { outline: 2px solid Highlight; outline-offset: -2px; box-shadow: none; }
   .kt-settings-segmented > button:focus-visible { outline: 3px solid; outline-offset: -3px; box-shadow: none; }
   .kt-settings-segmented > button.Mui-selected:focus-visible { outline: 3px solid Highlight; outline-offset: -3px; box-shadow: none; }
 }
