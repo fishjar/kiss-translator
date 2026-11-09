@@ -35,6 +35,10 @@ jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key) => key,
 }));
 
+jest.mock("../../hooks/Setting", () => ({
+  useSetting: () => ({ setting: {} }),
+}));
+
 jest.mock("../../hooks/Tranbox", () => ({
   useTranbox: jest.fn(),
 }));

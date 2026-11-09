@@ -128,7 +128,9 @@ describe("focus modality store", () => {
       expect(removeDoc).toHaveBeenCalledTimes(3);
       expect(removeView).toHaveBeenCalledTimes(1);
       const blurAdd = addView.mock.calls.find(([type]) => type === "blur");
-      const blurRemove = removeView.mock.calls.find(([type]) => type === "blur");
+      const blurRemove = removeView.mock.calls.find(
+        ([type]) => type === "blur"
+      );
       expect(blurAdd).toBeDefined();
       expect(blurRemove).toBeDefined();
       expect(blurRemove[1]).toBe(blurAdd[1]);
@@ -281,6 +283,81 @@ describe("focus modality store", () => {
       new Event("pointerdown", { bubbles: true, cancelable: true })
     );
     expect(isKeyboardModality()).toBe(false);
+  });
+
+  test("pointer interaction memory stays isolated per document", () => {
+    installFocusModality(document);
+    const secondDoc = document.implementation.createHTMLDocument("second");
+    installFocusModality(secondDoc);
+    const scopeA = document.createElement("div");
+    scopeA.className = "kt-m3-root";
+    document.body.appendChild(scopeA);
+    const a = document.createElement("div");
+    scopeA.appendChild(a);
+    const scopeB = secondDoc.createElement("div");
+    scopeB.className = "kt-m3-root";
+    secondDoc.body.appendChild(scopeB);
+    const b = secondDoc.createElement("div");
+    scopeB.appendChild(b);
+    // A 文档真实 pointerdown：指针记录只落 A 文档。
+    a.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+    // B 文档的 focusin 不得因 A 文档的指针记录而静默。
+    b.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    expect(b.hasAttribute(FOCUS_SILENT_ATTR)).toBe(false);
+    // A 文档自身的 focusin 照常静默。
+    a.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    expect(a.hasAttribute(FOCUS_SILENT_ATTR)).toBe(true);
+    scopeA.remove();
+  });
+
+  test("pointer events targeting a document record on that document", () => {
+    installFocusModality(document);
+    const secondDoc = document.implementation.createHTMLDocument("second");
+    installFocusModality(secondDoc);
+    const scopeB = secondDoc.createElement("div");
+    scopeB.className = "kt-m3-root";
+    secondDoc.body.appendChild(scopeB);
+    const b = secondDoc.createElement("div");
+    scopeB.appendChild(b);
+    // 指针事件目标本身是 Document：指针记录须落该文档本身，不得因
+    // ownerDocument 为 null 回退全局 document（回退会漏记，目标文档
+    // 键盘环失明）。
+    secondDoc.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+    b.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    expect(b.hasAttribute(FOCUS_SILENT_ATTR)).toBe(true);
+    scopeB.remove();
+  });
+
+  test("window blur resets only its own document's pointer record", () => {
+    const fakeView = {
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    };
+    const fakeDoc = {
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      defaultView: fakeView,
+    };
+    fakeView.document = fakeDoc;
+    installFocusModality(document);
+    installFocusModality(fakeDoc);
+    const scope = document.createElement("div");
+    scope.className = "kt-m3-root";
+    document.body.appendChild(scope);
+    const a = document.createElement("div");
+    scope.appendChild(a);
+    // 两个文档各记录一次指针交互。
+    a.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+    notePointerInteraction({ target: { ownerDocument: fakeDoc } });
+    // fake 文档失焦：只重置 fake 文档的记录，A 文档记录保留。
+    const blurHandler = fakeView.addEventListener.mock.calls.find(
+      ([type]) => type === "blur"
+    )[1];
+    blurHandler({ target: fakeView });
+    // A 文档记录仍在：focusin 照常静默。
+    a.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    expect(a.hasAttribute(FOCUS_SILENT_ATTR)).toBe(true);
+    scope.remove();
   });
 
   test("repeat install on any document stays idempotent", () => {
@@ -503,6 +580,21 @@ describe("scriptFocus", () => {
     expect(scriptFocus(item, { silent: true })).toBe(true);
     expect(item.getAttribute(FOCUS_SILENT_ATTR)).toBe("true");
     item.remove();
+  });
+
+  test("never marks editable targets silent and still clears a stale marker", () => {
+    // 契约：可编辑目标与 handleFocusIn 同闸——浏览器对可编辑元素恒判
+    // :focus-visible，静默标记会吞掉其环；遗留标记仍走移除分支清走。
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    markSilentFocus(input);
+    expect(input.getAttribute(FOCUS_SILENT_ATTR)).toBe("true");
+    expect(scriptFocus(input, { silent: true })).toBe(true);
+    expect(document.activeElement).toBe(input);
+    expect(input.hasAttribute(FOCUS_SILENT_ATTR)).toBe(false);
+    input.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    expect(input.hasAttribute(FOCUS_SILENT_ATTR)).toBe(false);
+    input.remove();
   });
 
   test("does not silence scripted focus when pointer interaction is unknown", () => {

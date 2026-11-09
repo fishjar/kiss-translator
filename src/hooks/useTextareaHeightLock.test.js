@@ -448,7 +448,7 @@ describe("useTextareaHeightLock", () => {
     await act(async () => lock.applyHeight(200));
     await act(async () => lock.applyHeight(300));
     await advanceFrame();
-    // 两次 applyHeight 只触发一次实测（红：现实现逐变更同步实测 2 次）。
+    // 两次 applyHeight 只触发一次实测。
     expect(gBCRSpy.mock.calls.length).toBeLessThanOrEqual(1);
     expect(cancelSpy).toHaveBeenCalledWith(rafSpy.mock.results[0].value);
     expect(lock.lockedHeight).toBe(300);

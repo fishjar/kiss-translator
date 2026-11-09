@@ -31,7 +31,7 @@ const listeners = new Set();
 // 安装不再静默摘掉第一个 document 的监听（对齐 M3Theme 的 per-document 契约）。
 const installedHandlers = new Map();
 
-// PR1-2: 仅文本类 INPUT type 视为可编辑目标，非文本类型（radio/checkbox/range/button 等）
+// 仅文本类 INPUT type 视为可编辑目标，非文本类型（radio/checkbox/range/button 等）
 // 不得阻止 noteKeyboardInteraction 切换到键盘模态
 const TEXT_INPUT_TYPES = new Set([
   "text",
@@ -52,9 +52,7 @@ const isEditableTarget = (target) => {
     return TEXT_INPUT_TYPES.has(type);
   }
   return (
-    tag === "TEXTAREA" ||
-    tag === "SELECT" ||
-    target.isContentEditable === true
+    tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable === true
   );
 };
 
@@ -101,13 +99,33 @@ export function subscribeFocusModality(listener) {
   };
 }
 
-// 自文档上次 blur 以来是否发生过页面内指针交互。浏览器把脚本化聚焦的
-// 模态沿用至上一次交互：焦点从浏览器界面重新进入页面时模态未知，此时
-// 不得静默焦点环；只有页面内真实 pointerdown 之后才允许静默。
-let hasPointerInteraction = false;
+// 自文档上次 blur 以来该文档内是否发生过页面内指针交互（按文档隔离：
+// 多文档拓扑下 A 文档的 pointerdown 不得让 B 文档的脚本化聚焦静默）。
+// 浏览器把脚本化聚焦的模态沿用至上一次交互：焦点从浏览器界面重新进入
+// 页面时模态未知，此时不得静默焦点环；只有页面内真实 pointerdown 之后
+// 才允许静默。解析不出所属文档的事件回退到模块级单值保底。
+const pointerInteractionByDoc = new WeakMap();
+let fallbackPointerInteraction = false;
 
-export function notePointerInteraction() {
-  hasPointerInteraction = true;
+const getPointerInteraction = (doc) =>
+  doc ? Boolean(pointerInteractionByDoc.get(doc)) : fallbackPointerInteraction;
+
+const setPointerInteraction = (doc, next) => {
+  if (doc) pointerInteractionByDoc.set(doc, next);
+  else fallbackPointerInteraction = next;
+};
+
+export function notePointerInteraction(event) {
+  const realTarget = resolveRealTarget(event);
+  // 无参调用（复位助手）视作主文档的指针交互，与既有单值语义等价。
+  // 目标本身是 Document（如文档级派发）时 ownerDocument 为 null，记录须
+  // 落该文档本身，不得回退全局 document。
+  const doc =
+    realTarget?.ownerDocument ??
+    (realTarget?.nodeType === 9 ? realTarget : null) ??
+    event?.target?.ownerDocument ??
+    (typeof document !== "undefined" ? document : null);
+  setPointerInteraction(doc, true);
   setKeyboardModality(false);
 }
 
@@ -181,9 +199,11 @@ function handleFocusIn(event) {
   // 键盘模态不做元素级标记，键盘环由既有环族照常驱动。
   // shadow 组合事件冒泡出根后 event.target 重定向为 shadow host，须取派发原始节点。
   if (keyboardModality) return;
-  // 页面内指针交互缺席（焦点自浏览器界面进入、模态未知）时保留焦点环。
-  if (!hasPointerInteraction) return;
   const target = resolveRealTarget(event);
+  // 页面内指针交互缺席（焦点自浏览器界面进入、模态未知）时保留焦点环；
+  // 判定取目标所属文档的记录，其他文档的指针交互不得跨文档静默。
+  const doc = target?.ownerDocument ?? event?.target?.ownerDocument ?? null;
+  if (!getPointerInteraction(doc)) return;
   // 可编辑目标不挂静默标记：浏览器对可编辑元素的聚焦恒判 :focus-visible，
   // FOCUS_SILENT_CSS 的通用抑制规则会吞掉其 outline 环，与"静默只服务
   // 指针语境的命令类控件"契约不符。
@@ -201,7 +221,7 @@ export function installFocusModality(ownerDocument) {
   if (!doc || typeof doc.addEventListener !== "function") return false;
   if (installedHandlers.has(doc)) return true;
   const handlers = {
-    pointerdown: () => notePointerInteraction(),
+    pointerdown: (event) => notePointerInteraction(event),
     keydown: (event) => noteKeyboardInteraction(event),
     focusin: handleFocusIn,
   };
@@ -217,7 +237,8 @@ export function installFocusModality(ownerDocument) {
   if (typeof view?.addEventListener === "function") {
     handlers.viewBlur = (event) => {
       if (event.target !== view && event.target !== view.document) return;
-      hasPointerInteraction = false;
+      // 失焦只重置本文档的指针记录，其他文档的记录不受影响。
+      setPointerInteraction(view.document, false);
       revealActiveSilentFocus(view.document);
     };
     view.addEventListener("blur", handlers.viewBlur, true);
@@ -234,11 +255,7 @@ export function uninstallFocusModality(targetDocument) {
   if (targetDocument === undefined) {
     let cleaned = false;
     for (const [doc, handlers] of installedHandlers) {
-      doc.defaultView?.removeEventListener?.(
-        "blur",
-        handlers.viewBlur,
-        true
-      );
+      doc.defaultView?.removeEventListener?.("blur", handlers.viewBlur, true);
       doc.removeEventListener("pointerdown", handlers.pointerdown, true);
       doc.removeEventListener("keydown", handlers.keydown, true);
       doc.removeEventListener("focusin", handlers.focusin, true);
@@ -284,7 +301,8 @@ export function scriptFocus(element, options = {}) {
   installFocusModality(element.ownerDocument);
   const silent =
     options.silent === undefined
-      ? !keyboardModality && hasPointerInteraction
+      ? !keyboardModality &&
+        getPointerInteraction(element.ownerDocument ?? null)
       : Boolean(options.silent);
   if (options.preventScroll === false) element.focus();
   else element.focus({ preventScroll: true });
@@ -298,7 +316,9 @@ export function scriptFocus(element, options = {}) {
   // silent:false 是调用方对"本次聚焦必须出环"的显式声明：先前遗留的标记必须
   // 当场失效。与 silent:true 同一时序约束——只在 landed 之后处置标记，focus
   // 未落地时既不留下也不清除任何痕迹。
-  if (silent && landed) markSilentFocus(element);
+  // 可编辑目标与 handleFocusIn 同闸：浏览器对可编辑元素恒判 :focus-visible，
+  // 静默标记会吞掉其环；可编辑目标落入移除分支，遗留标记照常清走。
+  if (silent && landed && !isEditableTarget(element)) markSilentFocus(element);
   else if (landed) element.removeAttribute(FOCUS_SILENT_ATTR);
   return true;
 }

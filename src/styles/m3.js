@@ -468,7 +468,7 @@ export const M3_GLOBAL_CSS = String.raw`
 
 /* MUI 脚本化焦点管理（开菜单聚焦选中项、关菜单回焦触发器）令 :focus-visible
    在鼠标路径命中；唯一命中全局环的 ButtonBase 场景＝MenuItem（其余家族成员
-   由 M3Theme 自带 fv/boxShadow 或 MUI 自带 .Mui-focusVisible 承担键盘指示）。
+   由 M3Theme 各组件自带的 :focus-visible 内嵌环承担键盘指示）。
    MuiSelect-select（combobox 触发元）不豁免：其键盘指示由下方"Select 触发元
    焦点环"三段配对承担。特异性 0,3,0 > 全局 0,2,0，与书写顺序无关。 */
 .kt-m3-root .MuiMenuItem-root:focus {
@@ -485,6 +485,22 @@ export const M3_GLOBAL_CSS = String.raw`
    :focus-visible（键盘语境），描边色交强制引擎（不写颜色），指针模态零变化。 */
 @media (forced-colors: active) {
   .kt-m3-root .MuiMenuItem-root:focus-visible {
+    outline: 3px solid;
+    outline-offset: -3px;
+  }
+  .MuiMenu-paper .MuiMenuItem-root:focus-visible {
+    outline: 3px solid;
+    outline-offset: -3px;
+  }
+}
+
+/* 旧内核兜底（焦点环配对：有语义必有环）：不支持 :focus-visible 的内核
+   整块跳过上方 @supports 与 HC 块，而 MenuItem 豁免（上方 outline:none）
+   无条件生效——旧内核键盘聚焦 MenuItem 零指示（HC 域更因 boxShadow 被
+   引擎丢弃而全盲）。本块现代内核整块跳过（鼠标姿态零变化），仅旧内核
+   生效；内缩形态随 HC 先例，描边色交强制引擎。 */
+@supports not selector(:focus-visible) {
+  .kt-m3-root .MuiMenuItem-root:focus {
     outline: 3px solid;
     outline-offset: -3px;
   }
