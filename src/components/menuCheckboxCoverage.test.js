@@ -22,13 +22,14 @@ const PRIMITIVES = [
 ];
 const DIRECT_SITES = [
   REL("views", "Selection", "TranForm.js"),
+  REL("views", "Popup", "PopupTextPanel.js"),
   REL("components", "TerminologySelect.js"),
   REL("views", "Options", "CapabilityOptions.js"),
   REL("views", "Options", "Setting.js"),
 ];
 // 待转换多选面：字形接线尚未落地，登记于此防止契约误报；
 // 各自转换落地后须移入上方严格清单，不得滞留。
-const PENDING_CONVERSIONS = [REL("views", "Popup", "PopupTextPanel.js")];
+const PENDING_CONVERSIONS = [];
 const DELEGATES = [
   REL("views", "FileTranslate", "ServiceSelect.js"),
   REL("views", "Options", "ServiceSelect.js"),

@@ -164,9 +164,15 @@ describe("ScreenshotOverlay", () => {
       expect(root().textContent).toContain("拖动框选文字区域，点击 × 取消");
       expect(root().querySelector("button").style.minWidth).toBe("44px");
       drag(100, 120, 400, 280);
-      expect(root().querySelector(".kt-screenshot-handle").style.width).toBe(
-        "44px"
-      );
+      const handle = root().querySelector(".kt-screenshot-handle");
+      expect(handle.style.width).toBe("44px");
+      // 44px 触控命中区不再绘制外层底色/边框；可见手柄恒由内部 span 呈现，
+      // 选区边缘不被白色方块包裹。
+      expect(handle.style.backgroundColor).toBe("");
+      expect(handle.style.border).toBe("");
+      const dot = handle.firstElementChild;
+      expect(dot.style.backgroundColor).not.toBe("");
+      expect(dot.style.border).not.toBe("");
     } finally {
       window.matchMedia = previous;
     }
