@@ -1,5 +1,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { readFileSync } from "fs";
+import path from "path";
 import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
 import RuleEditor from ".";
@@ -12,6 +14,11 @@ import {
   STOKEY_RULE_EDITOR_POSITION,
   STOKEY_RULE_INSPECTOR_POSITION,
 } from "../../config";
+import {
+  DEFAULT_ICON_COLOR,
+  calculateAdaptivePrimaryFamily,
+  resolveIconHue,
+} from "../../styles/m3";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 jest.mock("../../hooks/ColorMode", () => ({
@@ -122,6 +129,37 @@ const mountInShadow = () => {
   root = createRoot(wrapper);
   return shadow;
 };
+// Emotion 规则文本从 cache 的实际注入容器收集：默认 head（document 查询已
+// 覆盖），容器为 ShadowRoot 时（mountInShadow 路径）必须从该根收集，否则
+// 规则缺失、断言空转。
+const collectEmotionRuleText = () => {
+  const styleRoots = [
+    document,
+    ...(cache.sheet?.container &&
+    cache.sheet.container.nodeType === Node.DOCUMENT_FRAGMENT_NODE
+      ? [cache.sheet.container]
+      : []),
+  ];
+  return styleRoots
+    .flatMap((styleRoot) =>
+      Array.from(styleRoot.querySelectorAll("style[data-emotion]")).flatMap(
+        (style) => [
+          style.textContent,
+          ...Array.from(style.sheet?.cssRules || []).map((rule) => rule.cssText),
+        ]
+      )
+    )
+    .join("\n")
+    .replace(/\s+/g, "");
+};
+const emotionRulesOf = (element, emotionRuleText) =>
+  Array.from(element.classList)
+    .flatMap((cls) =>
+      Array.from(
+        emotionRuleText.matchAll(new RegExp("\\." + cls + "[^{}]*\\{[^}]*\\}", "g"))
+      ).map((match) => match[0])
+    )
+    .join("\n");
 const click = (element) =>
   act(() => element.dispatchEvent(new MouseEvent("click", { bubbles: true })));
 
@@ -136,6 +174,51 @@ test("the entire rule card selects the entry while delete acts independently", a
   click(container.querySelector('[aria-label="rule_editor_delete: .story"]'));
   expect(session.remove).toHaveBeenCalledWith(".story");
   expect(session.edit).toHaveBeenCalledTimes(3);
+});
+
+test("entry source caption follows the selected card contrast color", async () => {
+  Object.assign(session.getSnapshot(), {
+    editing: ".story",
+    entries: [
+      { selector: ".story", count: 2, source: "global" },
+      { selector: ".other", count: 1, source: "user" },
+    ],
+  });
+  await render();
+  // jsdom 不解析 var() 且 emotion 样式表不进 document，颜色契约以 emotion
+  // 类哈希差分断言：sx 中唯一随选中态变化的维度是 color（mt 恒定），选中/
+  // 未选中的 caption 类必不相同，且翻转选中态后两类互换。
+  // Editor 的 t() 会给键加 rule_editor_ 前缀，恒等 i18n 下来源文本即前缀键。
+  const captionOf = (card) =>
+    [...card.querySelectorAll(".MuiTypography-root")].find((node) =>
+      ["rule_editor_global", "rule_editor_user"].includes(node.textContent)
+    );
+  const emotionClassOf = (caption) =>
+    [...caption.classList].find((name) =>
+      name.startsWith("rule-editor-test-")
+    );
+  const selectedCaption = captionOf(
+    container.querySelector('button[aria-label=".story"]')
+  );
+  const idleCaption = captionOf(
+    container.querySelector('button[aria-label=".other"]')
+  );
+  expect(selectedCaption).toBeTruthy();
+  expect(idleCaption).toBeTruthy();
+  const selectedClass = emotionClassOf(selectedCaption);
+  const idleClass = emotionClassOf(idleCaption);
+  expect(selectedClass).toBeTruthy();
+  expect(idleClass).toBeTruthy();
+  expect(selectedClass).not.toBe(idleClass);
+  // 翻转选中态：同一 caption 的类跟随选中状态互换，证明差异由选中态驱动。
+  session.getSnapshot().editing = ".other";
+  await render();
+  expect(
+    emotionClassOf(captionOf(container.querySelector('button[aria-label=".story"]')))
+  ).toBe(idleClass);
+  expect(
+    emotionClassOf(captionOf(container.querySelector('button[aria-label=".other"]')))
+  ).toBe(selectedClass);
 });
 
 test("selector input and save live only in the closable inspector", async () => {
@@ -377,6 +460,24 @@ test("site pattern supports custom input and dropdown choices without saving", a
   expect(session.save).not.toHaveBeenCalled();
 });
 
+test("selected pattern option uses the secondary-container fill (M3 v3.1 §3.1.C)", async () => {
+  // 源码契约（先例：subtitle/AccentExemptionTripwire.test.js 的源码级 tripwire）：
+  // 本测试的自定义 emotion cache 下，sx var() 声明的 computed 与注入文本均不可观测，
+  // secc 形态以 index.js 源文锁定；元素级竖条负锁照旧走 computed。
+  const source = readFileSync(path.resolve(__dirname, "index.js"), "utf8");
+  expect(source).toMatch(
+    /'&\[aria-selected="true"\]':\s*\{\s*bgcolor:\s*"var\(--kt-secc\)",\s*color:\s*"var\(--kt-onsecc\)",\s*"&\.Mui-focused":\s*\{\s*bgcolor:\s*"var\(--kt-secc\)"\s*\},\s*\}/
+  );
+  expect(source).not.toContain("inset 3px 0 0");
+  await render();
+  click(container.querySelector(".MuiAutocomplete-popupIndicator"));
+  const selected = [...document.querySelectorAll('[role="option"]')].find(
+    (item) => item.getAttribute("aria-selected") === "true"
+  );
+  expect(selected).toBeTruthy();
+  expect(getComputedStyle(selected).boxShadow).not.toContain("inset 3px 0 0");
+});
+
 test("element menu offers children and picked alternatives with text previews", async () => {
   const page = document.createElement("main");
   page.innerHTML =
@@ -466,7 +567,15 @@ test("the editor keeps its M3 font, filled fields and pill buttons on small-root
     await render();
     const themeRoot = container.querySelector(".kt-m3-root");
     expect(themeRoot.dataset.theme).toBe("light");
-    expect(themeRoot.style.getPropertyValue("--kt-pri")).toBe("#0B57D0");
+    // --kt-pri 随主题色自适应派生（resolveM3Colors → calculateAdaptivePrimaryFamily），
+    // 不再是硬编码 #0B57D0；以默认主题色快照的色相推导浅色家族主色，与
+    // M3Theme.test.js 派生式断言同规（禁硬编码环上某一点）。
+    expect(themeRoot.style.getPropertyValue("--kt-pri")).toBe(
+      calculateAdaptivePrimaryFamily(
+        resolveIconHue(DEFAULT_ICON_COLOR),
+        "light"
+      ).primary
+    );
     const save = container.querySelector('[aria-label="rule_editor_save"]');
     expect(getComputedStyle(save).fontFamily).toContain("Google Sans");
     expect(getComputedStyle(save).fontSize).toBe("13px");
@@ -492,6 +601,17 @@ test.each([false, true])(
   }
 );
 
+test("the pick action is a primary-emphasis button, not secondary", async () => {
+  Object.assign(session.getSnapshot(), { inspectorOpen: true });
+  await render();
+  const pick = [...container.querySelectorAll("button")].find(
+    (element) => element.textContent === "rule_editor_pick"
+  );
+  expect(pick).toBeDefined();
+  expect(pick.className).toContain("MuiButton-containedPrimary");
+  expect(pick.className).not.toContain("MuiButton-containedSecondary");
+});
+
 test("manual addition shows only the selector input and save action", async () => {
   Object.assign(session.getSnapshot(), { inspectorOpen: true, input: "" });
   await render();
@@ -503,6 +623,87 @@ test("manual addition shows only the selector input and save action", async () =
   expect(inspector.textContent).not.toContain("target_selector");
   expect(inspector.textContent).not.toContain("rule_editor_pick");
   expect(inspector.textContent).toContain("rule_editor_add");
+});
+
+    test("fragile warning on a selected candidate takes the on-secondary-container contrast color", async () => {
+  const element = document.createElement("p");
+  Object.assign(session.getSnapshot(), {
+    inspectorOpen: true,
+    selected: element,
+    ancestors: [element],
+    input: ".story",
+    candidates: [
+      { selector: ".story", count: 1, kind: "class", fragile: true },
+      { selector: ".other", count: 1, kind: "tag", fragile: true },
+    ],
+  });
+  await render();
+  const aside = container.querySelector(
+    'aside[aria-label="rule_editor_candidates"]'
+  );
+  const captionOfText = (card, text) =>
+    [...card.querySelectorAll(".MuiTypography-root")].find(
+      (node) => node.textContent === text
+    );
+  const emotionClassOf = (caption) =>
+    [...caption.classList].find((name) =>
+      name.startsWith("rule-editor-test-")
+    );
+  const selectedCard = aside.querySelector('[aria-pressed="true"]');
+  const idleCard = aside.querySelector('[aria-pressed="false"]');
+  expect(selectedCard).toBeTruthy();
+  expect(idleCard).toBeTruthy();
+  const selectedFragile = captionOfText(selectedCard, "rule_editor_fragile");
+  const selectedKind = captionOfText(selectedCard, "rule_editor_class");
+  const idleFragile = captionOfText(idleCard, "rule_editor_fragile");
+  const idleKind = captionOfText(idleCard, "rule_editor_tag");
+  expect(selectedFragile).toBeTruthy();
+  expect(selectedKind).toBeTruthy();
+  expect(idleFragile).toBeTruthy();
+  expect(idleKind).toBeTruthy();
+  // 选中卡文字色：与 --kt-secc 背景配对的 --kt-onsecc（index.js fragile/kind
+  // 三元：selected → onsecc，idle → warning.main / text.secondary）。类名相等
+  // 只是颜色代理，断言走 CSSOM 规则文本直证颜色（jsdom var() 计算值无鉴别力）。
+  const emotionRuleText = collectEmotionRuleText();
+  expect(emotionRulesOf(selectedFragile, emotionRuleText)).toContain(
+    "color:var(--kt-onsecc)"
+  );
+  expect(emotionRulesOf(selectedKind, emotionRuleText)).toContain(
+    "color:var(--kt-onsecc)"
+  );
+  // 未选中卡：fragile 仍 warning.main，与 kind 的 text.secondary 不同类（保留现样式）。
+  expect(emotionClassOf(idleFragile)).not.toBe(emotionClassOf(idleKind));
+});
+
+test("selected candidate card consumes the secondary-container background (M3 v3.1 §2.1)", async () => {
+  const element = document.createElement("p");
+  Object.assign(session.getSnapshot(), {
+    inspectorOpen: true,
+    selected: element,
+    ancestors: [element],
+    input: ".story",
+    candidates: [
+      { selector: ".story", count: 1, kind: "class" },
+      { selector: ".other", count: 1, kind: "tag" },
+    ],
+  });
+  await render();
+  const aside = container.querySelector(
+    'aside[aria-label="rule_editor_candidates"]'
+  );
+  const selectedCard = aside.querySelector('[aria-pressed="true"]');
+  expect(selectedCard).toBeTruthy();
+  // 选中卡片背景走 secondary-container 令牌（cardStyle bgcolor 经 sx 编译为
+  // CSS 变量消费）。jsdom 不解析 CSS 变量（getComputedStyle 对 var() 背景
+  // 返回 transparent），计算值断言无鉴别力（transparent 恒真＝误通过）；
+  // 行为断言走 CSSOM 规则文本：卡片 emotion 规则必须以 var(--kt-secc) 为
+  // 背景——背景漂移为 transparent 或其他令牌时此断言即红。
+  const emotionRuleText = collectEmotionRuleText();
+  const cardRules = emotionRulesOf(
+    selectedCard.closest(".MuiCard-root") || selectedCard,
+    emotionRuleText
+  );
+  expect(cardRules).toContain("background-color:var(--kt-secc)");
 });
 
 test("selected candidate shows its current match inline without a bottom navigation bar", async () => {

@@ -6,6 +6,7 @@
 
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
+import { setIconColorSnapshot } from "../../styles/m3";
 import DualActionButton from "./DualActionButton";
 import ImageTranslateContent from "./ImageTranslateContent";
 import ImageTranslateTitleBar, {
@@ -185,6 +186,72 @@ describe("DualActionButton", () => {
     expect(onCancelClick).not.toHaveBeenCalled();
     await act(async () => finish());
     expect(buttons[3].disabled).toBe(false);
+  });
+
+  test("overlay accent follows the icon color snapshot instead of a hardcoded blue", () => {
+    act(() => setIconColorSnapshot("#ba9090"));
+    try {
+      act(() => {
+        root.render(<DualActionButton visible={true} />);
+      });
+      // hue 0 恒浅口径家族主色 + 白字（calculateAdaptivePrimaryFamily(0,
+      // "light") 契约推导）；序列化形态由浏览器决定，hex 与 rgb 皆可。
+      const translate = container.querySelector(
+        ".kt-image-dual-btn--translate"
+      );
+      expect(translate.style.background).toMatch(/#723b3b|114, 59, 59/);
+      expect(translate.style.color).toMatch(/#FFFFFF|#ffffff|255, 255, 255/);
+      // 不该触发域：未激活布局钮保持透明，不被 accent 污染。
+      const layout = container.querySelector(".kt-image-dual-btn--layout");
+      expect(layout.style.background).toBe("transparent");
+      // 激活态布局钮走 accent 深调主色。
+      act(() => {
+        root.render(<DualActionButton visible={true} layoutState="active" />);
+      });
+      expect(
+        container.querySelector(".kt-image-dual-btn--layout").style.background
+      ).toMatch(/#723b3b|114, 59, 59/);
+      // hover 深化档：进入 hsl(0,32,28)（#5e3131），离开回主色。
+      const hoverTarget = container.querySelector(
+        ".kt-image-dual-btn--translate"
+      );
+      act(() => {
+        hoverTarget.dispatchEvent(
+          new MouseEvent("mouseover", { bubbles: true })
+        );
+      });
+      expect(hoverTarget.style.backgroundColor).toMatch(/#5e3131|94, 49, 49/);
+      act(() => {
+        hoverTarget.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+      });
+      expect(hoverTarget.style.backgroundColor).toMatch(/#723b3b|114, 59, 59/);
+    } finally {
+      act(() => setIconColorSnapshot("#90b2ba"));
+    }
+  });
+
+  test("layout overlay stroke, fill and badge follow the snapshot accent", () => {
+    act(() => setIconColorSnapshot("#ba9090"));
+    try {
+      act(() => {
+        root.render(
+          <ImageLayoutOverlay
+            visible={true}
+            imageRect={{ left: 0, top: 0, width: 100, height: 100 }}
+            regions={[{ polygon: [[0, 0], [50, 0], [50, 40]], type: "text" }]}
+          />
+        );
+      });
+      const polygon = container.querySelector("polygon");
+      // 8 位 Hex 尾缀 24 ≈ 0.14 透明度填充 + 深调描边 + 徽章实色（字面量断言）。
+      expect(polygon.getAttribute("fill")).toBe("#723b3b24");
+      expect(polygon.getAttribute("stroke")).toBe("#723b3b");
+      expect(container.querySelector("rect").getAttribute("fill")).toBe(
+        "#723b3b"
+      );
+    } finally {
+      act(() => setIconColorSnapshot("#90b2ba"));
+    }
   });
 });
 
@@ -399,6 +466,16 @@ describe("ImageTranslateContent", () => {
 
     expect(container.textContent).toContain("Item failed");
     expect(container.textContent).toContain("Rate limit exceeded");
+    // 条目级错误底的字面量须令牌化：emotion speedy 模式经 insertRule 注入，
+    // 样式文本只能从 style.sheet.cssRules 读取（textContent 恒空）。
+    const emotionCss = [...document.querySelectorAll("style")]
+      .flatMap((node) => Array.from(node.sheet?.cssRules ?? []))
+      .map((rule) => rule.cssText)
+      .join("");
+    // MUI error 色 Button 边框合法使用 rgba(211,47,47,.5)/.04（不在整改面），
+    // 故禁断言收窄到错误底精确字面量 0.08，避免误伤合法消费者。
+    expect(emotionCss).not.toContain("rgba(211, 47, 47, 0.08)");
+    expect(emotionCss).toContain("background-color: var(--kt-errc)");
     const buttons = Array.from(container.querySelectorAll("button"));
     const retryItemBtn = buttons.find((btn) =>
       btn.textContent.includes("重试")

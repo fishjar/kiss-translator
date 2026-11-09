@@ -1,9 +1,18 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
+import { readFileSync } from "fs";
+import path from "path";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 import ImageSourcePreview from "./ImageSourcePreview";
 
+const source = readFileSync(
+  path.resolve(__dirname, "ImageSourcePreview.js"),
+  "utf8"
+);
+
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+const accentTheme = createTheme({ palette: { primary: { main: "#0088ff" } } });
 const poly = [
   [10, 20],
   [100, 20],
@@ -45,6 +54,11 @@ describe("ImageSourcePreview regions", () => {
     globalThis.ResizeObserver = originalObserver;
   });
 
+  test("region label foreground consumes theme tokens, not hardcoded white", () => {
+    expect(source).not.toMatch(/color: "#fff"/);
+    expect(source).toMatch(/color: enabled[\s\S]{0,160}primary\.contrastText/);
+  });
+
   const measure = (width = 400, height = 200) => {
     const image = container.querySelector("img");
     Object.defineProperties(image, {
@@ -57,17 +71,19 @@ describe("ImageSourcePreview regions", () => {
   const render = (props = {}) =>
     act(() =>
       root.render(
-        <div onClick={props.onZoom}>
-          <ImageSourcePreview
-            src="sample.png"
-            alt="source"
-            rows={rows}
-            regionLabel={(row) => row.source}
-            selectLabel="include"
-            excludeLabel="exclude"
-            {...props}
-          />
-        </div>
+        <ThemeProvider theme={accentTheme}>
+          <div onClick={props.onZoom}>
+            <ImageSourcePreview
+              src="sample.png"
+              alt="source"
+              rows={rows}
+              regionLabel={(row) => row.source}
+              selectLabel="include"
+              excludeLabel="exclude"
+              {...props}
+            />
+          </div>
+        </ThemeProvider>
       )
     );
 
@@ -95,7 +111,7 @@ describe("ImageSourcePreview regions", () => {
       expect(labels[1].textContent).toBe("标题 (排除)");
       expect(getComputedStyle(labels[0]).fontSize).toBe("10px");
       expect(getComputedStyle(labels[0]).backgroundColor).toBe(
-        "rgb(25, 118, 210)"
+        "rgb(0, 136, 255)"
       );
       expect(container.querySelector("polygon").getAttribute("points")).toBe(
         "10,20 100,20 100,60 10,60"
@@ -146,5 +162,32 @@ describe("ImageSourcePreview regions", () => {
     expect(polygons[0].getAttribute("tabindex")).toBe("-1");
     render({ showRegions: false });
     expect(container.querySelector("svg")).toBeNull();
+  });
+
+  test("region boxes tokenize colors and keep hit-testing when disabled", () => {
+    const toggle = jest.fn(),
+      zoom = jest.fn();
+    render({ disabled: true, onToggleRegion: toggle, onZoom: zoom });
+    measure();
+    const polygon = container.querySelector("polygon");
+    expect(polygon.getAttribute("aria-disabled")).toBe("true");
+    // 禁用态仍保留指针命中：点击由现有处理器拦截（阻止切换 + stopPropagation），
+    // 而非穿透到下层图像。
+    expect(getComputedStyle(polygon).pointerEvents).toBe("all");
+    const label = container.querySelector('[data-testid="image-layout-type"]');
+    expect(getComputedStyle(label).pointerEvents).toBe("auto");
+    act(() =>
+      polygon.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    );
+    expect(toggle).not.toHaveBeenCalled();
+    expect(zoom).not.toHaveBeenCalled();
+    render({ disabled: false, onToggleRegion: toggle, onZoom: zoom });
+    measure();
+    const enabledPolygon = container.querySelector("polygon");
+    expect(getComputedStyle(enabledPolygon).pointerEvents).toBe("all");
+    act(() =>
+      enabledPolygon.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    );
+    expect(toggle).toHaveBeenCalledWith(0);
   });
 });

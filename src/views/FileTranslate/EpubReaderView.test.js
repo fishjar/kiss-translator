@@ -1,6 +1,8 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import React, { act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { readFileSync } from "fs";
+import path from "path";
 import * as fflate from "fflate";
 import DOMPurify from "dompurify";
 import EpubReaderView, { sanitizeEpubReaderHtml } from "./EpubReaderView";
@@ -1535,5 +1537,41 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     expect(cleaned).not.toContain("banner.jpg");
     expect(cleaned).toContain("none");
     expect(cleaned).toContain('href="https://example.com/safe"');
+  });
+});
+
+describe("EpubReaderView search-current warning exemption tripwire (v5 T7)", () => {
+  const source = readFileSync(
+    path.resolve(__dirname, "EpubReaderView.js"),
+    "utf8"
+  );
+
+  test("#f59e0b stays pinned at exactly one site with an adjacent warning-exempt comment", () => {
+    // 搜索当前命中高亮为固定警示域语义色（与主题明暗无关），主题表（EPUB_READER_THEMES
+    // 仅四槽）无警示槽，接入须发明色值——豁免保留字面量，代码位钉死 1。
+    // 计数口径＝代码行（排除注释行）：计划规定的光环豁免注释文案本身提及
+    // 「#f59e0b」，裸全文计数会把注释提及计入而恒红不可转绿。
+    const codeLines = source
+      .split("\n")
+      .filter(
+        (line) => line.includes("#f59e0b") && !line.trim().startsWith("//")
+      );
+    expect(codeLines.length).toBe(1);
+    const { index } = source.match(/#f59e0b/);
+    // 相邻校验：字面量上方紧邻行须携带 warning-exempt 说明
+    // （slice 至字面量起点，断言以 backgroundColor 声明开引号收尾）。
+    expect(source.slice(0, index)).toMatch(
+      /warning-exempt[^\n]*\n\s*backgroundColor:\s*"\s*$/
+    );
+  });
+
+  test("rgba(245, 158, 11 halo stays pinned at exactly one site with its own warning-exempt comment", () => {
+    // 同族伴生光环独立钉死：精确 1 处，上方紧邻行携带独立 warning-exempt 说明
+    // （slice 至字面量起点，断言以 boxShadow 声明内 rgba( 收尾）。
+    expect((source.match(/rgba\(245, 158, 11/g) || []).length).toBe(1);
+    const { index } = source.match(/rgba\(245, 158, 11/);
+    expect(source.slice(0, index)).toMatch(
+      /warning-exempt[^\n]*\n\s*boxShadow:\s*"0 0 0 2px $/
+    );
   });
 });

@@ -207,7 +207,7 @@ export const dictHandlers = {
                   {sentence.eng?.split(data.word)?.map((part, i, arr) => (
                     <span key={i}>
                       {i > 0 && (
-                        <span style={{ fontWeight: "bold", color: "#1e88e5" }}>
+                        <span style={{ fontWeight: "bold", color: "var(--kt-pri)" }}>
                           {data.word}
                         </span>
                       )}
@@ -358,7 +358,7 @@ export const dictHandlers = {
                         <span key={i}>
                           {i > 0 && data.ec?.word?.["return-phrase"] && (
                             <span
-                              style={{ fontWeight: "bold", color: "#1e88e5" }}
+                              style={{ fontWeight: "bold", color: "var(--kt-pri)" }}
                             >
                               {data.ec.word["return-phrase"]}
                             </span>

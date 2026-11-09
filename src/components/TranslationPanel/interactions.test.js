@@ -156,6 +156,7 @@ describe.each(["document", "shadow"])(
       });
       apiTranslate.mockReset().mockResolvedValue({ trText: "First result" });
       speak.mockReset().mockReturnValue(true);
+      stopSpeech.mockReset();
     });
 
     afterEach(() => {

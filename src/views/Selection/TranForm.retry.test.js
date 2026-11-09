@@ -107,6 +107,14 @@ describe("Explicit translation submissions", () => {
     act(() => button.click());
     return button;
   };
+  // Unchanged-text retry enters through Enter: submitAndBlur is the shared
+  // entry for keyboard and dirty-draft button clicks. A focused draft equal to
+  // committed text deliberately shows no submit button (selection opens show
+  // copy), so retry without edits cannot go through a button click.
+  const retrySubmitUnchanged = () => {
+    act(() => input().focus());
+    pressEnter();
+  };
   const resultValues = () =>
     [
       ...container.querySelectorAll(
@@ -169,7 +177,7 @@ describe("Explicit translation submissions", () => {
     }
   );
 
-  test.each(["button", "Enter", "Ctrl+Enter", "Cmd+Enter"])(
+  test.each(["Enter", "Ctrl+Enter", "Cmd+Enter"])(
     "retries a failed request for unchanged text with %s",
     async (action) => {
       apiTranslate.mockRejectedValueOnce(new Error("Temporary network error"));
@@ -177,20 +185,10 @@ describe("Explicit translation submissions", () => {
       expect(container.textContent).toContain("Temporary network error");
       expect(apiTranslate).toHaveBeenCalledTimes(1);
       const firstRequest = apiTranslate.mock.calls[0][0];
-      act(() => input().focus());
-      const button = submitButton();
-      expect(button).not.toBeNull();
-      expect(button.disabled).toBe(false);
-      expect(button.getAttribute("aria-label")).toBe("submit");
-
-      if (action === "button") {
-        act(() => button.click());
-      } else {
-        pressEnter({
-          ctrlKey: action === "Ctrl+Enter",
-          metaKey: action === "Cmd+Enter",
-        });
-      }
+      pressEnter({
+        ctrlKey: action === "Ctrl+Enter",
+        metaKey: action === "Cmd+Enter",
+      });
       await flushEffects();
 
       expect(apiTranslate).toHaveBeenCalledTimes(2);
@@ -205,6 +203,26 @@ describe("Explicit translation submissions", () => {
       expect(container.textContent).not.toContain("Temporary network error");
     }
   );
+
+  test("focused unchanged source offers no submit button until the draft is edited", async () => {
+    await renderPanel();
+    expect(submitButton()).toBeNull();
+    act(() => input().focus());
+    expect(submitButton()).toBeNull();
+    updateDraft("Source text!");
+    expect(submitButton()).not.toBeNull();
+  });
+
+  test("whitespace-only edits offer no submit button", async () => {
+    // 契约：提交按钮只在"草稿去掉首尾空白后与原文不同"时出现；仅空白/换行
+    // 差异提交后内容不变，出现按钮即诱导无谓重翻。
+    await renderPanel();
+    act(() => input().focus());
+    updateDraft("  Source text  \n");
+    expect(submitButton()).toBeNull();
+    updateDraft("  Source text!  ");
+    expect(submitButton()).not.toBeNull();
+  });
 
   test("submits an entire edited draft beyond 5000 characters once", async () => {
     const longText = "Long source text ".repeat(400).trim();
@@ -242,7 +260,7 @@ describe("Explicit translation submissions", () => {
     expect(apiTranslate).toHaveBeenCalledTimes(2);
     apiTranslate.mockResolvedValue({ trText: "Recovered translation" });
 
-    clickSubmit();
+    retrySubmitUnchanged();
     await flushEffects();
 
     expect(
@@ -268,7 +286,7 @@ describe("Explicit translation submissions", () => {
     });
     const pendingRequest = apiTranslate.mock.calls[1][0];
 
-    clickSubmit();
+    retrySubmitUnchanged();
     await flushEffects();
 
     expect(
@@ -294,7 +312,7 @@ describe("Explicit translation submissions", () => {
     const firstRequest = apiTranslate.mock.calls[0][0];
     act(() => firstRequest.onStreamChunk({ text: "First partial result" }));
 
-    clickSubmit();
+    retrySubmitUnchanged();
     await flushEffects();
     expect(apiTranslate).toHaveBeenCalledTimes(1);
     expect(firstRequest.signal.aborted).toBe(false);
@@ -478,7 +496,7 @@ describe("Explicit translation submissions", () => {
     expect(revisionsBefore).not.toHaveLength(0);
     expect(new Set(revisionsBefore)).toEqual(new Set([0]));
 
-    clickSubmit();
+    retrySubmitUnchanged();
     await flushEffects();
 
     const revisionsAfter = AiDictCont.mock.calls.map(

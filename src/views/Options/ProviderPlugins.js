@@ -28,7 +28,7 @@ import {
 } from "../../providers/compatibility";
 import PluginPromptPreview from "./PluginPromptPreview";
 import { defaultPromptCapabilities } from "../../providers/defaultPrompts";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { ExpandMoreIcon } from "../../components/icons";
 import {
   Box,
   TableContainer,

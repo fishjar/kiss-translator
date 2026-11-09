@@ -1,7 +1,6 @@
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import KeyboardRoundedIcon from "@mui/icons-material/KeyboardRounded";
-import MouseRoundedIcon from "@mui/icons-material/MouseRounded";
-import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
+import { KeyboardRoundedIcon } from "../../components/icons";
+import { MouseRoundedIcon } from "../../components/icons";
+import { SelectAllRoundedIcon } from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import { usePopupFeatureToggles } from "./usePopupFeatureToggles";
 
@@ -40,9 +39,7 @@ export default function GlobalFeatures(props) {
     >
       {features.map((feature) => {
         const label = i18n(FEATURE_LABELS[feature.name]);
-        const FeatureIcon = feature.enabled
-          ? CheckRoundedIcon
-          : FEATURE_ICONS[feature.name];
+        const FeatureIcon = FEATURE_ICONS[feature.name];
         return (
           <button
             type="button"

@@ -20,7 +20,7 @@ function ThemeProbe() {
   return null;
 }
 
-test("dropdown paper radius stays a raw 12px in sx and styleOverrides", () => {
+test("dropdown paper radius stays a raw 4px in sx and styleOverrides", () => {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -34,16 +34,24 @@ test("dropdown paper radius stays a raw 12px in sx and styleOverrides", () => {
   });
 
   // A numeric borderRadius inside `sx` is multiplied by
-  // theme.shape.borderRadius (12 * 12 = 144px) and clips the first/last
+  // theme.shape.borderRadius (4 * 12 = 48px) and clips the first/last
   // options, so the value must remain a length string.
   const selectPaperSx =
     capturedTheme.components.MuiSelect.defaultProps.MenuProps.PaperProps.sx;
-  expect(selectPaperSx(capturedTheme).borderRadius).toBe("12px");
+  expect(selectPaperSx(capturedTheme).borderRadius).toBe("4px");
 
   const menuPaper = capturedTheme.components.MuiMenu.styleOverrides.paper({
     theme: capturedTheme,
   });
-  expect(menuPaper.borderRadius).toBe("12px");
+  expect(menuPaper.borderRadius).toBe("4px");
+
+  // 超高菜单（maxHeight 320px 截断）纵向必须可滚动，横向仍裁剪保圆角包角。
+  expect(selectPaperSx(capturedTheme).overflowX).toBe("hidden");
+  expect(selectPaperSx(capturedTheme).overflowY).toBe("auto");
+  expect(selectPaperSx(capturedTheme).overflow).toBeUndefined();
+  expect(menuPaper.overflowX).toBe("hidden");
+  expect(menuPaper.overflowY).toBe("auto");
+  expect(menuPaper.overflow).toBeUndefined();
 
   act(() => root.unmount());
   container.remove();
