@@ -1,4 +1,18 @@
 jest.mock("../../components/TouchTranslateControl", () => () => null);
+// isShadowMenu prop 锁：partial mock Dialog 捕获 props，断言
+// disableEnforceFocus 与容器上下文匹配。其他用例仍走真实 Dialog 渲染。
+const mockDialogProps = { latest: null };
+jest.mock("@mui/material/Dialog", () => {
+  const actual = jest.requireActual("@mui/material/Dialog");
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: React.forwardRef(function DialogProbe(props, ref) {
+      mockDialogProps.latest = props;
+      return React.createElement(actual.default, { ...props, ref });
+    }),
+  };
+});
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -151,6 +165,20 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     );
   });
 
+  test("unmounting leaves no state-update warnings on the ref path", () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      render();
+      act(() => root.unmount());
+      // 卸载链路不得有状态更新告警：ref 卸载回调只清锚点，不触发 setState。
+      expect(errorSpy.mock.calls).toEqual([]);
+    } finally {
+      errorSpy.mockRestore();
+      // 本用例已自行卸载，重建空根供 afterEach 统一卸载，避免二次卸载噪声。
+      root = createRoot(container);
+    }
+  });
+
   test("localizes the screenshot menu item in English", () => {
     useI18n.mockReturnValue(newI18n("en"));
     render();
@@ -167,6 +195,11 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     render();
     expect(menuItems()).toHaveLength(0);
     expect(fab().getAttribute("aria-expanded")).toBe("false");
+    // The menu trigger keeps native button semantics; aria-expanded carries state.
+    expect(fab().getAttribute("role")).toBeNull();
+    expect(fab().getAttribute("aria-checked")).toBeNull();
+    expect(fab().getAttribute("type")).toBe("button");
+    expect(fab().classList.contains("kt-content-fab--x")).toBe(false);
     const speedDialIcon = fab().querySelector(".MuiSpeedDialIcon-root");
     expect(fab().querySelectorAll(".MuiSpeedDialIcon-root svg")).toHaveLength(
       2
@@ -181,6 +214,8 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     clickFab();
 
     expect(fab().getAttribute("aria-expanded")).toBe("true");
+    expect(fab().getAttribute("aria-checked")).toBeNull();
+    expect(fab().classList.contains("kt-content-fab--x")).toBe(true);
     expect(fab().id).toBe("kt-content-fab-button");
     expect(fab().getAttribute("aria-controls")).toBe("kt-content-fab-menu");
     const menu = container.querySelector("#kt-content-fab-menu");
@@ -635,5 +670,30 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     );
 
     expect(menuItems()).toHaveLength(0);
+  });
+
+  test("disableEnforceFocus is conditional on isShadowMenu", async () => {
+    // isShadowMenu prop 锁：通过 partial mock Dialog 捕获 props，
+    // 断言 disableEnforceFocus 与容器上下文匹配（shadow=true, document=false）。
+    mockDialogProps.latest = null;
+
+    // 触发 notice dialog（hide-toggle 流程）：保存 promise 就地落定并等待
+    // 异步保存引发的 setNotice 重渲染完成，再检查捕获到的 props。
+    let finishSave;
+    const savePromise = new Promise((resolve) => (finishSave = resolve));
+    updateFab.mockReturnValue(savePromise);
+    render();
+    clickFab();
+    const toggle = menuItems().at(-1);
+    act(() => toggle.click());
+    await act(async () => {
+      finishSave();
+      await savePromise;
+    });
+
+    // 先断言 Dialog 实际处于打开态，确保后续断言针对真正打开的 notice Dialog
+    expect(mockDialogProps.latest?.open).toBe(true);
+    const expectedValue = context === "shadow root";
+    expect(mockDialogProps.latest.disableEnforceFocus).toBe(expectedValue);
   });
 });

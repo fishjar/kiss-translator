@@ -51,12 +51,18 @@ import { registerI18n } from "../../config/i18n";
 import { CUSTOM_API_HELP_I18N } from "../../config/locales/customApiHelp";
 import Typography from "@mui/material/Typography";
 import AddServiceMenu from "./AddServiceMenu";
-import AddIcon from "@mui/icons-material/Add";
-import SwapVertIcon from "@mui/icons-material/SwapVert";
-import PushPinIcon from "@mui/icons-material/PushPin";
-import DeleteIcon from "@mui/icons-material/Delete";
-import BlockIcon from "@mui/icons-material/Block";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import {
+  AddIcon,
+  BlockIcon,
+  CheckBoxRoundedIcon,
+  CheckBoxOutlineBlankRoundedIcon,
+  CheckCircleOutlineIcon,
+  DeleteIcon,
+  DragIndicatorIcon,
+  KeyboardArrowDownIcon,
+  PushPinIcon,
+  SwapVertIcon,
+} from "../../components/icons";
 import Alert from "@mui/material/Alert";
 import { useAlert } from "../../hooks/Alert";
 import Menu from "@mui/material/Menu";
@@ -64,10 +70,6 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import Tooltip from "@mui/material/Tooltip";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import CheckBoxRoundedIcon from "@mui/icons-material/CheckBoxRounded";
-import CheckBoxOutlineBlankRoundedIcon from "@mui/icons-material/CheckBoxOutlineBlankRounded";
 import Link from "@mui/material/Link";
 import {
   API_SORT_MODES,
@@ -1767,7 +1769,7 @@ function ApiListItem({
 
   const displayName =
     localizeServiceName(api, providerText) || getApiDisplayName(api);
-  const cardSelected = bulkMode ? checked : selected;
+  const singleSelected = !bulkMode && selected;
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -1804,7 +1806,7 @@ function ApiListItem({
       <ListItemButton
         ref={cardRef}
         className="kt-api-list__card"
-        selected={cardSelected}
+        selected={singleSelected}
         onClick={handleContentClick}
         aria-current={!bulkMode && selected ? "true" : undefined}
         role={bulkMode ? "checkbox" : undefined}
@@ -1834,16 +1836,18 @@ function ApiListItem({
             "color",
           ]),
           "&.Mui-selected": {
-            borderColor: theme.palette.primary.main,
+            // 选中标记必须独立于填充可辨：填充色即描边色会吞掉边框，
+            // 选中边界改走 onSecondaryContainer（与相邻填充对比度远超 3:1），
+            // 填充与文字仍走 secondaryContainer 配对令牌。
+            borderColor: theme.palette.secondary.contrastText,
             backgroundColor: theme.palette.secondary.main,
             color: theme.palette.secondary.contrastText,
           },
           "&.Mui-selected:hover": {
-            backgroundColor: theme.palette.secondary.main,
+            backgroundColor: `color-mix(in srgb, ${theme.palette.secondary.contrastText} 12%, ${theme.palette.secondary.main})`,
           },
           "&.Mui-selected .kt-api-list__secondary": {
             color: "inherit",
-            opacity: 0.78,
           },
         })}
       >
@@ -1855,7 +1859,10 @@ function ApiListItem({
               ...apiListControlSx,
               display: "inline-flex",
               alignSelf: "center",
-              color: checked ? "primary.main" : "text.secondary",
+              // 批量卡已无整卡持续染色，勾选字形不得继承"已选墨色"（该墨色已移除）；
+              // 钉稳定 token text.secondary，选中态由图标交换（filled vs outline）＋
+              // aria-checked 单通道承载，与同行拖动指示同源。
+              color: "text.secondary",
             }}
           >
             {checked ? (
@@ -1876,7 +1883,7 @@ function ApiListItem({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              color: cardSelected ? "inherit" : "text.secondary",
+              color: singleSelected ? "inherit" : "text.secondary",
               cursor: "grab",
               "&:active": {
                 cursor: "grabbing",

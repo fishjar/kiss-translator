@@ -31,7 +31,7 @@ const listeners = new Set();
 // 安装不再静默摘掉第一个 document 的监听（对齐 M3Theme 的 per-document 契约）。
 const installedHandlers = new Map();
 
-// PR1-2: 仅文本类 INPUT type 视为可编辑目标，非文本类型（radio/checkbox/range/button 等）
+// 仅文本类 INPUT type 视为可编辑目标，非文本类型（radio/checkbox/range/button 等）
 // 不得阻止 noteKeyboardInteraction 切换到键盘模态
 const TEXT_INPUT_TYPES = new Set([
   "text",
@@ -284,7 +284,9 @@ export function scriptFocus(element, options = {}) {
   // silent:false 是调用方对"本次聚焦必须出环"的显式声明：先前遗留的标记必须
   // 当场失效。与 silent:true 同一时序约束——只在 landed 之后处置标记，focus
   // 未落地时既不留下也不清除任何痕迹。
-  if (silent && landed) markSilentFocus(element);
+  // 可编辑目标与 handleFocusIn 同闸：浏览器对可编辑元素恒判 :focus-visible，
+  // 静默标记会吞掉其环；可编辑目标落入移除分支，遗留标记照常清走。
+  if (silent && landed && !isEditableTarget(element)) markSilentFocus(element);
   else if (landed) element.removeAttribute(FOCUS_SILENT_ATTR);
   return true;
 }

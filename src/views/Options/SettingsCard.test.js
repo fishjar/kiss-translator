@@ -347,6 +347,21 @@ describe("SettingsSegmented", () => {
 
     view.unmount();
   });
+
+  test("every segment renders an always-present aria-hidden checkmark glyph", () => {
+    // 恒渲染（含非选中段）：选中态由 CSS max-width/opacity 插值表达，
+    // 严禁 display 切换；glyph 对辅助技术隐藏，语义走 radio aria-checked。
+    const view = renderSegmented({ initialValue: "middle", items });
+    const radios = view.radios();
+    for (const radio of radios) {
+      const checkmark = radio.querySelector(
+        "svg.kt-settings-segmented__checkmark"
+      );
+      expect(checkmark).not.toBeNull();
+      expect(checkmark.getAttribute("aria-hidden")).toBe("true");
+    }
+    view.unmount();
+  });
 });
 
 describe("SettingsSelect", () => {
@@ -665,6 +680,36 @@ describe("SettingsSelect", () => {
       expect(container.querySelector(".MuiSelect-select").textContent).toBe(
         "Option 1"
       );
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("entry declares listbox popup semantics with preserved aria-label", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Service"
+            value="opt1"
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+      // 入口本体（combobox）须与下游 listbox 语义配对：aria-haspopup 由 MUI
+      // Select 内建承担，aria-label 经 inputProps 链路落在入口本体。
+      const combobox = container.querySelector('[role="combobox"]');
+      expect(combobox).not.toBeNull();
+      expect(combobox.getAttribute("aria-haspopup")).toBe("listbox");
+      expect(combobox.getAttribute("aria-label")).toBe("Service");
     } finally {
       act(() => root.unmount());
       container.remove();

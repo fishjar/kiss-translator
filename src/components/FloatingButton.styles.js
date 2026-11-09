@@ -22,14 +22,17 @@ export const FLOATING_BUTTON_STYLES = String.raw`
     background-color: color-mix(in srgb, var(--kt-onpric) 8%, var(--kt-pric));
   }
 }
-.kt-content-fab.MuiFab-root.Mui-focusVisible,
+.kt-content-fab.MuiFab-root:focus-visible,
 .kt-content-fab.MuiFab-root[aria-expanded="true"],
 .kt-content-fab.MuiFab-root:active {
   background-color: var(--kt-pric);
   background-color: color-mix(in srgb, var(--kt-onpric) 10%, var(--kt-pric));
 }
 .kt-content-fab.MuiFab-root:active { transform: scale(.96); }
-.kt-content-fab.MuiFab-root.Mui-focusVisible { outline: none; box-shadow: var(--kt-shadow-2), inset 0 0 0 3px var(--kt-pri); }
+.kt-content-fab.MuiFab-root:focus-visible { outline: none; box-shadow: var(--kt-shadow-2), inset 0 0 0 3px var(--kt-pri); }
+@media (forced-colors: active) {
+  .kt-content-fab.MuiFab-root:focus-visible { outline: 3px solid; outline-offset: -3px; box-shadow: none; }
+}
 .kt-content-fab .MuiSpeedDialIcon-root { width: var(--kt-fab-icon-size, 24px); height: var(--kt-fab-icon-size, 24px); display: grid; place-items: center; }
 .kt-content-fab .MuiSvgIcon-root { width: var(--kt-fab-icon-size, 24px); height: var(--kt-fab-icon-size, 24px); font-size: var(--kt-fab-icon-size, 24px); }
 `;

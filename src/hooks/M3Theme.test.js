@@ -99,9 +99,9 @@ test("scopes the resolved Material 3 palette to its root", () => {
     capturedTheme.components.MuiButton.styleOverrides.root.transition
   ).toContain("border-color .3s");
   expect(
-    capturedTheme.components.MuiButton.styleOverrides.root["&.Mui-focusVisible"]
+    capturedTheme.components.MuiButton.styleOverrides.root["&:focus-visible"]
   ).toEqual({
-    outline: "3px solid #a5bfc5",
+    outline: `3px solid ${capturedTheme.palette.primary.main}`,
     outlineOffset: 2,
   });
   expect(capturedTheme.components.MuiCard.styleOverrides.root).toMatchObject({
@@ -112,10 +112,10 @@ test("scopes the resolved Material 3 palette to its root", () => {
     transition: "background-color .2s ease, color .2s ease",
   });
   expect(
-    capturedTheme.components.MuiTab.styleOverrides.root["&&.Mui-focusVisible"]
+    capturedTheme.components.MuiTab.styleOverrides.root["&&:focus-visible"]
   ).toMatchObject({
     outline: "none",
-    boxShadow: "inset 0 0 0 3px #a5bfc5",
+    boxShadow: `inset 0 0 0 3px ${capturedTheme.palette.primary.main}`,
   });
   // forced-colors（HC）域兜底：box-shadow 被强制引擎忽略，须有系统色描边。
   expect(
@@ -123,7 +123,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
       "@media (forced-colors: active)"
     ]
   ).toMatchObject({
-    "&&.Mui-focusVisible:focus": { outline: "3px solid", outlineOffset: -3 },
+    "&&:focus-visible:focus": { outline: "3px solid", outlineOffset: -3 },
   });
   // 非 forced-colors 域不得出现 3px 描边兜底（防泄漏到常规域）。
   expect(
@@ -144,7 +144,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
   // onSecondaryContainer 才可见（描边与选中前景联动）。
   expect(
     capturedTheme.components.MuiTab.styleOverrides.root[
-      "&&.Mui-selected.Mui-focusVisible"
+      "&&.Mui-selected:focus-visible"
     ]
   ).toMatchObject({
     boxShadow: `inset 0 0 0 3px ${
@@ -154,7 +154,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
   // 弹窗选中 Tab 背景为表面色（styles.js 的 --kt-sf0），选中+聚焦环必须改用 primary 才可见。
   expect(
     capturedTheme.components.MuiTab.styleOverrides.root[
-      ".kt-popup-tabs &&.Mui-selected.Mui-focusVisible"
+      ".kt-popup-tabs &&.Mui-selected:focus-visible"
     ]
   ).toMatchObject({
     boxShadow: `inset 0 0 0 3px ${
@@ -167,7 +167,8 @@ test("scopes the resolved Material 3 palette to its root", () => {
     transition:
       "background-color .2s ease, color .2s ease, box-shadow .2s ease",
   });
-  expect(menuItemRoot.borderRadius).toBeUndefined();
+  // 几何锁（规范菜单度量）：行圆角 4dp，选中底色/染层/焦点环跟随行盒圆角。
+  expect(menuItemRoot.borderRadius).toBe(4);
   // 选中态走 secondary-container 族底色，文字色 onSecondaryContainer。
   const accent = calculateAdaptiveAccentFamilies(191.4, "dark");
   expect(menuItemRoot["&.Mui-selected"]).toEqual({
@@ -187,10 +188,10 @@ test("scopes the resolved Material 3 palette to its root", () => {
   // 菜单焦点环挂 :focus-visible 键盘语境伪类
   // （MenuList selectedMenu 变体打开即给选中项注入 .Mui-focusVisible 类，
   // 与输入方式无关 → 挂点换伪类封死鼠标链路误显环）；环改 inset 内嵌
-  // （MenuList "8px 0" 零水平 padding，外描环必被裁），底色保留 State Layer 12% 叠色。
+  // （不依赖容器 padding 余量，任何内缩形态下行为稳定），底色保留 State Layer 12% 叠色。
   expect(menuItemRoot["&&:focus-visible"]).toEqual({
     outline: "none",
-    boxShadow: "inset 0 0 0 3px #a5bfc5",
+    boxShadow: `inset 0 0 0 3px ${capturedTheme.palette.primary.main}`,
     backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
   });
   // .Mui-focusVisible 挂点不得残留任何样式（鼠标打开路径不命中环）。
@@ -202,33 +203,63 @@ test("scopes the resolved Material 3 palette to its root", () => {
     outlineOffset: -3,
   });
   expect(menuItemRoot["&&.Mui-selected.Mui-focusVisible"]).toBeUndefined();
-  // PR1-1: 多选 listbox option 行必须存在专属 hover，8% currentColor 叠色，不得透明
+  // 多选 listbox option 行必须存在专属 hover，8% currentColor 叠色，不得透明
   expect(menuItemRoot['[aria-multiselectable="true"] &.Mui-selected:hover']).toEqual({
     backgroundColor: "color-mix(in srgb, currentColor 8%, transparent)",
   });
-  // PR2-1 缺口: 单选 selected focus-visible 必须以 secondaryContainer/onSecondaryContainer 合成 12% 状态层
+  // 单选 selected focus-visible 保留原选中底色（不得叠状态层：暗色域
+  // 12% 叠色会把文字对比度压到 4.5:1 以下），焦点指示由内嵌环承担。
   expect(menuItemRoot["&&.Mui-selected:focus-visible"]).toEqual({
     outline: "none",
-    boxShadow: "inset 0 0 0 3px #a5bfc5",
-    backgroundColor: `color-mix(in srgb, ${accent.secondaryContainer} 88%, ${accent.onSecondaryContainer} 12%)`,
+    boxShadow: `inset 0 0 0 3px ${capturedTheme.palette.primary.main}`,
   });
+  // 对比度契约锁：onSecondaryContainer 文字对 secondaryContainer 底色的
+  // 对比度在深浅两域的连续 hue 扫描下必须 ≥4.5:1（AA，普通字号）。
+  const luminance = (hex) => {
+    const channels = hex
+      .match(/[0-9a-f]{2}/gi)
+      .map((byte) => parseInt(byte, 16) / 255)
+      .map((channel) =>
+        channel <= 0.03928
+          ? channel / 12.92
+          : ((channel + 0.055) / 1.055) ** 2.4
+      );
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  };
+  const contrast = (foreground, background) => {
+    const [a, b] = [luminance(foreground), luminance(background)].sort(
+      (x, y) => y - x
+    );
+    return (a + 0.05) / (b + 0.05);
+  };
+  for (const mode of ["dark", "light"]) {
+    let floor = Infinity;
+    for (let hue = 0; hue < 360; hue += 0.5) {
+      const family = calculateAdaptiveAccentFamilies(hue, mode);
+      floor = Math.min(
+        floor,
+        contrast(family.onSecondaryContainer, family.secondaryContainer)
+      );
+    }
+    expect(floor).toBeGreaterThanOrEqual(4.5);
+  }
   // 多选 menuitemcheckbox focus-visible 保持透明底（覆盖 &&.Mui-selected:focus-visible）
   expect(menuItemRoot['&&.Mui-selected[role="menuitemcheckbox"]:focus-visible']).toEqual({
     outline: "none",
-    boxShadow: "inset 0 0 0 3px #a5bfc5",
+    boxShadow: `inset 0 0 0 3px ${capturedTheme.palette.primary.main}`,
     backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
   });
   // 多选 multiselectable option focus-visible 保持透明底（覆盖 &&.Mui-selected:focus-visible）
   expect(menuItemRoot['[aria-multiselectable="true"] &.Mui-selected:focus-visible']).toEqual({
     outline: "none",
-    boxShadow: "inset 0 0 0 3px #a5bfc5",
+    boxShadow: `inset 0 0 0 3px ${capturedTheme.palette.primary.main}`,
     backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
   });
   expect(capturedTheme.components.MuiMenu.styleOverrides.paper).toMatchObject({
     borderRadius: 4,
   });
   expect(capturedTheme.components.MuiMenu.styleOverrides.list).toMatchObject({
-    padding: "8px 0",
+    padding: "8px 8px",
   });
   const iconButtonRoot =
     capturedTheme.components.MuiIconButton.styleOverrides.root;
@@ -247,25 +278,25 @@ test("scopes the resolved Material 3 palette to its root", () => {
   expect(primaryIconButton.color).toBe(undefined);
   expect(primaryIconButton["&:hover"]).toBe(undefined);
   expect(defaultIconButton["&:focus-visible"]).toEqual({
-    outline: "3px solid #a5bfc5",
+    outline: `3px solid ${capturedTheme.palette.primary.main}`,
     outlineOffset: 2,
   });
   const sliderThumb = capturedTheme.components.MuiSlider.styleOverrides.thumb;
   expect(sliderThumb["&:focus-visible"]).toMatchObject({
-    outline: "3px solid #a5bfc5",
+    outline: `3px solid ${capturedTheme.palette.primary.main}`,
     outlineOffset: 2,
   });
   expect(
     sliderThumb["@supports selector(:has(*))"]["&:has(:focus-visible)"]
-  ).toMatchObject({ outline: "3px solid #a5bfc5", outlineOffset: 2 });
+  ).toMatchObject({ outline: `3px solid ${capturedTheme.palette.primary.main}`, outlineOffset: 2 });
   const radioRoot = capturedTheme.components.MuiRadio.styleOverrides.root;
   expect(radioRoot["&:focus-visible"]).toMatchObject({
-    outline: "3px solid #a5bfc5",
+    outline: `3px solid ${capturedTheme.palette.primary.main}`,
     outlineOffset: 0,
   });
   expect(
     radioRoot["@supports selector(:has(*))"]["&:has(:focus-visible)"]
-  ).toMatchObject({ outline: "3px solid #a5bfc5", outlineOffset: 0 });
+  ).toMatchObject({ outline: `3px solid ${capturedTheme.palette.primary.main}`, outlineOffset: 0 });
   expect(
     capturedTheme.components.MuiToggleButton.styleOverrides.root[
       "&.Mui-selected"
@@ -277,7 +308,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
   });
   expect(
     capturedTheme.components.MuiToggleButton.styleOverrides.root[
-      "&&.Mui-selected.Mui-focusVisible"
+      "&&.Mui-selected:focus-visible"
     ]
   ).toMatchObject({
     boxShadow: `inset 0 0 0 3px ${accent.onSecondaryContainer}`,
@@ -288,7 +319,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
       "@media (forced-colors: active)"
     ]
   ).toMatchObject({
-    "&&.Mui-focusVisible:focus": { outline: "3px solid", outlineOffset: -3 },
+    "&&:focus-visible:focus": { outline: "3px solid", outlineOffset: -3 },
   });
   // 非 forced-colors 域不得出现 3px 描边兜底。
   expect(
@@ -299,16 +330,16 @@ test("scopes the resolved Material 3 palette to its root", () => {
   ).toEqual(["none"]);
   expect(
     capturedTheme.components.MuiListItemButton.styleOverrides.root[
-      "&&.Mui-focusVisible"
+      "&&:focus-visible"
     ].boxShadow
-  ).toBe("inset 0 0 0 3px #a5bfc5");
+  ).toBe(`inset 0 0 0 3px ${capturedTheme.palette.primary.main}`);
   // forced-colors（HC）域兜底：surfaceHigh tint 通道保留，仅补系统色描边。
   expect(
     capturedTheme.components.MuiListItemButton.styleOverrides.root[
       "@media (forced-colors: active)"
     ]
   ).toMatchObject({
-    "&&.Mui-focusVisible:focus": { outline: "3px solid", outlineOffset: -3 },
+    "&&:focus-visible:focus": { outline: "3px solid", outlineOffset: -3 },
   });
   // 非 forced-colors 域不得出现 3px 描边兜底。
   expect(
@@ -321,19 +352,19 @@ test("scopes the resolved Material 3 palette to its root", () => {
   ).toEqual(["none"]);
   expect(
     capturedTheme.components.MuiListItemButton.styleOverrides.root[
-      "&&.Mui-selected.Mui-focusVisible"
+      "&&.Mui-selected:focus-visible"
     ].boxShadow
   ).toBe(`inset 0 0 0 3px ${accent.onSecondaryContainer}`);
   expect(
     capturedTheme.components.MuiListItemButton.styleOverrides.root[
-      "&&.Mui-selected.Mui-focusVisible"
+      "&&.Mui-selected:focus-visible"
     ].backgroundColor
   ).toBe(accent.secondaryContainer);
   expect(
     capturedTheme.components.MuiAccordionSummary.styleOverrides.root[
-      "&&.Mui-focusVisible"
+      "&&:focus-visible"
     ].boxShadow
-  ).toBe("inset 0 0 0 3px #a5bfc5");
+  ).toBe(`inset 0 0 0 3px ${capturedTheme.palette.primary.main}`);
   expect(
     capturedTheme.components.MuiLoadingButton.styleOverrides.loadingIndicator
       .color
@@ -468,10 +499,10 @@ test("partial component options preserve M3 button defaults and focus treatment"
     });
     expect(
       capturedTheme.components.MuiButton.styleOverrides.root[
-        "&.Mui-focusVisible"
+        "&:focus-visible"
       ]
     ).toEqual({
-      outline: "3px solid #a5bfc5",
+      outline: `3px solid ${capturedTheme.palette.primary.main}`,
       outlineOffset: 2,
     });
   } finally {
@@ -693,7 +724,7 @@ describe("lucide builtin icon contracts", () => {
   });
 
   test("updates theme output when icon snapshots change after mount", () => {
-    // PR #17 评审 Nitpick #8：既有用例全部挂载前设置快照；本用例补挂载后
+    // 既有用例全部挂载前设置快照；本用例补挂载后
     // setIconStyleSnapshot/setIconColorSnapshot 的订阅响应缺口——M3Theme 内部
     // useSyncExternalStore 须实时响应快照变化。
     // 初始快照（afterEach 已重置）为 lucide + #90b2ba，渲染后断言基准值。

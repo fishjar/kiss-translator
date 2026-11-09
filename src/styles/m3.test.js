@@ -308,14 +308,21 @@ describe("MUI-managed focus exemptions", () => {
   test("baseline branch exempts MUI-managed focus controls", () => {
     for (const sel of BASELINE_SELECTORS) {
       expect(M3_GLOBAL_CSS).toMatch(
-        new RegExp(sel.replace(/[.:]/g, "\\$&") + "\\s*\\{[^}]*outline:\\s*none;")
+        new RegExp(
+          sel.replace(/[.:]/g, "\\$&") + "\\s*\\{[^}]*outline:\\s*none;"
+        )
       );
     }
   });
   test("@supports block exempts MUI-managed focus controls", () => {
-    const bodies = getCssAtRuleBodies(M3_GLOBAL_CSS, "@supports selector(:focus-visible)");
+    const bodies = getCssAtRuleBodies(
+      M3_GLOBAL_CSS,
+      "@supports selector(:focus-visible)"
+    );
     for (const sel of ALL_SELECTORS) {
-      const re = new RegExp(sel.replace(/[.:]/g, "\\$&") + "\\s*\\{[^}]*outline:\\s*none;");
+      const re = new RegExp(
+        sel.replace(/[.:]/g, "\\$&") + "\\s*\\{[^}]*outline:\\s*none;"
+      );
       expect(bodies.some((body) => re.test(body))).toBe(true);
     }
   });
@@ -324,7 +331,10 @@ describe("MUI-managed focus exemptions", () => {
     // outline:none，而 MUI 的 focusVisible 指示走 boxShadow——强制颜色域会丢弃
     // box-shadow，键盘聚焦的 MenuItem 将无任何可见指示。本块只覆盖 :focus-visible
     //（键盘语境），描边色交强制引擎，指针模态行为零变化。
-    const bodies = getCssAtRuleBodies(M3_GLOBAL_CSS, "@media (forced-colors: active)");
+    const bodies = getCssAtRuleBodies(
+      M3_GLOBAL_CSS,
+      "@media (forced-colors: active)"
+    );
     expect(
       bodies.some((body) =>
         /\.kt-m3-root \.MuiMenuItem-root:focus-visible\s*\{[^}]*outline:\s*3px solid;[^}]*outline-offset:\s*-3px;/.test(
@@ -354,6 +364,19 @@ describe("icon style keys and icon color palette", () => {
     expect(resolveIconColorHex("nope")).toBe("#90b2ba");
     expect(resolveIconColorHex("#fff")).toBe("#90b2ba");
     expect(resolveIconColorHex(undefined)).toBe("#90b2ba");
+  });
+
+  test("achromatic hex falls back to the default color instead of reading as red hue", () => {
+    // hexToHsl 对 r=g=b 恒返回 h=0；若原样接受，下游只取色相的消费方
+    //（自适应强调色、滑轨反解）会把黑白灰读成红色相。
+    expect(resolveIconColorHex("#808080")).toBe("#90b2ba");
+    expect(resolveIconColorHex("#FFFFFF")).toBe("#90b2ba");
+    expect(resolveIconColorHex("#000000")).toBe("#90b2ba");
+    expect(hexToHsl(resolveIconColorHex("#808080")).h).not.toBe(0);
+    // 格式校验与彩度非零的合法值处理不变。
+    expect(resolveIconColorHex("#00ff00")).toBe("#00ff00");
+    expect(resolveIconColorHex("#90b2ba")).toBe("#90b2ba");
+    expect(resolveIconColorHex("#12345")).toBe("#90b2ba");
   });
 });
 
@@ -630,9 +653,15 @@ describe("icon hue WCAG contrast envelope", () => {
     for (const h of gateHues) {
       const { secondaryContainer, onSecondaryContainer } =
         calculateAdaptiveAccentFamilies(h, "light");
-      expect(contrastRatio(secondaryContainer, "#FFFFFF")).toBeGreaterThanOrEqual(1.26);
-      expect(contrastRatio(secondaryContainer, "#F0F4F9")).toBeGreaterThanOrEqual(1.14);
-      expect(contrastRatio(secondaryContainer, onSecondaryContainer)).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(secondaryContainer, "#FFFFFF")
+      ).toBeGreaterThanOrEqual(1.26);
+      expect(
+        contrastRatio(secondaryContainer, "#F0F4F9")
+      ).toBeGreaterThanOrEqual(1.14);
+      expect(
+        contrastRatio(secondaryContainer, onSecondaryContainer)
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 
@@ -643,18 +672,34 @@ describe("icon hue WCAG contrast envelope", () => {
     const familyHues = [];
     for (let h = 0; h <= 360; h += 5) familyHues.push(h);
     familyHues.push(
-      59, 59.5, 60, 240, 35, 91, 93.5, 100.5, 102.5, 44.3, 92.9, 191.4, 270,
+      59,
+      59.5,
+      60,
+      240,
+      35,
+      91,
+      93.5,
+      100.5,
+      102.5,
+      44.3,
+      92.9,
+      191.4,
+      270,
       337.1
     );
     for (const h of familyHues) {
       for (const theme of ["light", "dark"]) {
         const p = calculateAdaptivePrimaryFamily(h, theme);
-        expect(contrastRatio(p.primary, p.onPrimary)).toBeGreaterThanOrEqual(4.5);
+        expect(contrastRatio(p.primary, p.onPrimary)).toBeGreaterThanOrEqual(
+          4.5
+        );
         expect(
           contrastRatio(p.primaryContainer, p.onPrimaryContainer)
         ).toBeGreaterThanOrEqual(4.5);
         const f = calculateAdaptiveAccentFamilies(h, theme);
-        expect(contrastRatio(f.secondary, f.onSecondary)).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrastRatio(f.secondary, f.onSecondary)
+        ).toBeGreaterThanOrEqual(4.5);
         expect(
           contrastRatio(f.secondaryContainer, f.onSecondaryContainer)
         ).toBeGreaterThanOrEqual(4.5);

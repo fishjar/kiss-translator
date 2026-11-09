@@ -31,7 +31,7 @@ describe("focus modality wiring gate", () => {
     // 菜单展开期间焦点移到菜单项，字段边框全模态让位：aria-expanded 由 MUI
     // 恒定管理，打开期 "true" 命中透明边框，关闭期回 "false" 不命中。
     const block = M3_THEME.match(
-      /'&\.Mui-focused:has\(\.MuiSelect-select\[aria-expanded="true"\]\)':\s*\{[\s\S]*?\}/
+      /'&\.Mui-focused:has\(\.MuiSelect-select\[aria-expanded="true"\]\)(?::not\(\.Mui-error\))?\':\s*\{[\s\S]*?\}/
     )?.[0];
     expect(block).toBeDefined();
     expect(block).toContain('borderColor: "transparent"');
@@ -40,7 +40,7 @@ describe("focus modality wiring gate", () => {
   test("pointer-silence suppression key keeps the filled background", () => {
     // 防回归断言：压制边框的同时必须压住聚焦换底色，字段不得隐没。
     const block = M3_THEME.match(
-      /'&\.Mui-focused:has\(\.MuiSelect-select\[data-kt-focus-silent="true"\]\)':\s*\{[\s\S]*?\}/
+      /'&\.Mui-focused:has\(\.MuiSelect-select\[data-kt-focus-silent="true"\]\)(?::not\(\.Mui-error\))?\':\s*\{[\s\S]*?\}/
     )?.[0];
     expect(block).toBeDefined();
     expect(block).toContain("backgroundColor: color.surfaceContainer");
@@ -48,10 +48,21 @@ describe("focus modality wiring gate", () => {
 
   test("open-state suppression key keeps the filled background", () => {
     const block = M3_THEME.match(
-      /'&\.Mui-focused:has\(\.MuiSelect-select\[aria-expanded="true"\]\)':\s*\{[\s\S]*?\}/
+      /'&\.Mui-focused:has\(\.MuiSelect-select\[aria-expanded="true"\]\)(?::not\(\.Mui-error\))?\':\s*\{[\s\S]*?\}/
     )?.[0];
     expect(block).toBeDefined();
     expect(block).toContain("backgroundColor: color.surfaceContainer");
+  });
+
+  test("both suppression halves stand down while the field is in error state", () => {
+    // 特异度账：两条静默规则 (0,4,0) 压过 &.Mui-error.Mui-focused (0,3,0)，
+    // 不带 :not(.Mui-error) 时错误描边会被透明覆盖，校验信号消失。
+    expect(M3_THEME).toContain(
+      '&.Mui-focused:has(.MuiSelect-select[data-kt-focus-silent="true"]):not(.Mui-error)'
+    );
+    expect(M3_THEME).toContain(
+      '&.Mui-focused:has(.MuiSelect-select[aria-expanded="true"]):not(.Mui-error)'
+    );
   });
 
   test("multi-select rows opt out of the selected fill (hit semantics)", () => {

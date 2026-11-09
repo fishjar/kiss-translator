@@ -20,8 +20,35 @@ import {
 import { fetchModelCatalog } from "../../libs/modelList";
 import { apiTranslate } from "../../apis";
 import { SettingProvider } from "../../hooks/Setting";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+function hexToRgbString(hex) {
+  if (!/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex)) {
+    throw new Error(`Unsupported hex color: ${hex}`);
+  }
+  const value = hex.replace("#", "");
+  const full =
+    value.length === 3
+      ? value
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : value;
+  const num = parseInt(full, 16);
+  return `rgb(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255})`;
+}
+
+test("hexToRgbString rejects inputs that are not 3- or 6-digit hex", () => {
+  for (const invalid of ["rgb(1, 2, 3)", "#11223344", "12345", "zzzzzz", ""]) {
+    expect(() => hexToRgbString(invalid)).toThrow(
+      `Unsupported hex color: ${invalid}`
+    );
+  }
+  expect(hexToRgbString("#90b2ba")).toBe("rgb(144, 178, 186)");
+  expect(hexToRgbString("#fff")).toBe("rgb(255, 255, 255)");
+});
 HTMLElement.prototype.scrollTo = jest.fn();
 const mockConfirm = jest.fn();
 const mockAlertInfo = jest.fn();
@@ -310,7 +337,8 @@ async function renderApis(
   api = createApi(),
   update = jest.fn(),
   prompts = [],
-  searchNavigation = {}
+  searchNavigation = {},
+  theme = null
 ) {
   mockUsePromptList.mockReturnValue({ prompts });
   let apis = Array.isArray(api) ? api : [api];
@@ -341,13 +369,18 @@ async function renderApis(
 
   configureApiMocks();
 
-  const render = () => (
-    <div className="kt-m3-root">
-      <SettingsSearchContext.Provider value={searchNavigation}>
-        <Apis />
-      </SettingsSearchContext.Provider>
-    </div>
-  );
+  const render = () => {
+    const tree = (
+      <div className="kt-m3-root">
+        <SettingsSearchContext.Provider value={searchNavigation}>
+          <Apis />
+        </SettingsSearchContext.Provider>
+      </div>
+    );
+    // theme 为空时挂载路径与既有用例逐字同构（无 Provider，走 MUI 默认主题）；
+    // 仅在需要把 primary/secondary 的 contrastText 拉开区分的用例里注入显式主题。
+    return theme ? <ThemeProvider theme={theme}>{tree}</ThemeProvider> : tree;
+  };
 
   await act(async () => {
     root.render(render());
@@ -777,8 +810,108 @@ describe("Apis ordering and master-detail layout", () => {
       Simulate.keyUp(bulkCards[1], { key: " " });
     });
     expect(bulkCards[1].getAttribute("aria-checked")).toBe("true");
+    // 契约：勾选指示与同行拖动指示同源——批量卡已无整卡持续染色，两者一律钉稳定
+    // token text.secondary（不再 inherit 已移除的选中墨色）。jsdom 对同一具名 token
+    // 返回同一 rgb，等值即"同源"盘面证据；"不得回退成 primary/secondary 墨色"由下方区分性用例证伪。
+    expect(
+      getComputedStyle(bulkCards[1].querySelector(".kt-api-list__check")).color
+    ).toBe(
+      getComputedStyle(bulkCards[1].querySelector('[draggable="true"]')).color
+    );
     expect(getInput(view.container, "apiName").value).toBe("Alpha");
     expect(mockConfirm).not.toHaveBeenCalled();
+
+    view.unmount();
+  });
+
+  test("bulk checked card drops the persistent secondary fill but keeps a visible same-source glyph", async () => {
+    // 批量勾选是 role=checkbox 多选载体，整卡 secondary
+    // 持续填充＝aria 布尔驱动的第二视觉通道，禁止；选择态只由 aria-checked＋字形
+    // 图标交换单通道承载。注入 primary/secondary 互异主题，令"回退成染色/钉墨色"
+    // 与"正确去染色"可判别。
+    const theme = createTheme({
+      palette: {
+        primary: { main: "#10b981", contrastText: "#001a0d" },
+        secondary: { main: "#b91c1c", contrastText: "#fff5f0" },
+      },
+    });
+    const view = await renderApis(
+      [
+        createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+        createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 1 }),
+      ],
+      jest.fn(),
+      [],
+      {},
+      theme
+    );
+    const bulkButton = Array.from(
+      view.container.querySelectorAll("button")
+    ).find((button) => button.textContent === "bulk_actions");
+    await act(async () => Simulate.click(bulkButton));
+    const bulkCards = Array.from(
+      view.container.querySelectorAll('.kt-api-list__card[role="checkbox"]')
+    );
+    await act(async () => {
+      Simulate.keyDown(bulkCards[1], { key: " " });
+      Simulate.keyUp(bulkCards[1], { key: " " });
+    });
+    expect(bulkCards[1].getAttribute("aria-checked")).toBe("true");
+
+    // 闸一：勾选卡不得再是 .Mui-selected 载体（结构性，独立于任何色值计算）。
+    expect(bulkCards[1].classList.contains("Mui-selected")).toBe(false);
+    // 闸二：勾选卡底色不得等于 secondary 容器填充，且与未勾选同行卡同底（无差异染色）。
+    expect(getComputedStyle(bulkCards[1]).backgroundColor).not.toBe(
+      hexToRgbString(theme.palette.secondary.main)
+    );
+    expect(getComputedStyle(bulkCards[1]).backgroundColor).toBe(
+      getComputedStyle(bulkCards[0]).backgroundColor
+    );
+    // 闸三：卡文字不得是已移除的选中墨色（secondary.contrastText）。
+    expect(getComputedStyle(bulkCards[1]).color).not.toBe(
+      hexToRgbString(theme.palette.secondary.contrastText)
+    );
+    // 字形可见性：勾选 svg 在场，颜色为具名 token（非 inherit 空串）、与拖动同源、且非选中墨色。
+    const check = bulkCards[1].querySelector(".kt-api-list__check");
+    expect(check.querySelector("svg")).not.toBeNull();
+    const checkColor = getComputedStyle(check).color;
+    const dragColor = getComputedStyle(
+      bulkCards[1].querySelector('[draggable="true"]')
+    ).color;
+    expect(checkColor).not.toBe("");
+    expect(checkColor).toBe(dragColor);
+    expect(checkColor).not.toBe(
+      hexToRgbString(theme.palette.secondary.contrastText)
+    );
+
+    view.unmount();
+  });
+
+  test("normal single-select card still retains its secondary-container fill", async () => {
+    // 契约：本修正只去"批量多选载体"的整卡染色，正常单选/aria-current 卡的
+    // secondary 容器持久填充是合法单选态，必须原样保留。回归护栏（改前改后皆绿）。
+    const theme = createTheme({
+      palette: {
+        primary: { main: "#10b981", contrastText: "#001a0d" },
+        secondary: { main: "#b91c1c", contrastText: "#fff5f0" },
+      },
+    });
+    const view = await renderApis(
+      [
+        createApi({ apiSlug: "alpha", apiName: "Alpha", sortOrder: 0 }),
+        createApi({ apiSlug: "beta", apiName: "Beta", sortOrder: 1 }),
+      ],
+      jest.fn(),
+      [],
+      {},
+      theme
+    );
+    const normalCard = getApiListItem(view.container, "Alpha");
+    expect(normalCard.getAttribute("aria-current")).toBe("true");
+    expect(normalCard.classList.contains("Mui-selected")).toBe(true);
+    expect(getComputedStyle(normalCard).backgroundColor).toBe(
+      hexToRgbString(theme.palette.secondary.main)
+    );
 
     view.unmount();
   });

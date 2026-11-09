@@ -500,3 +500,153 @@ test("external service timeout is a saved service option, separate from pluginCo
   expect(saved.transApis[0].httpTimeout).toBe(600);
   expect(saved.transApis[0].pluginConfig).toEqual(api.pluginConfig);
 });
+
+test("the bare model Autocomplete popper mounts inside the .kt-m3-root scope", () => {
+  // 弹层默认 portal 到 body，脱离 .kt-m3-root 令牌作用域后选中态
+  // var(--kt-secc)/var(--kt-onsecc) 不可达；须与 ReusableAutocomplete
+  // 同回退链挂回根内。
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  document.body.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  act(() =>
+    popperRoot.render(
+      <ProviderSettings
+        service={{ modelField: "model", models: [{ id: "m1" }] }}
+        fields={[{ key: "model", label: "Model", type: "text" }]}
+        values={{ model: "" }}
+        onChange={jest.fn()}
+      />
+    )
+  );
+  const input = mount.querySelector("input");
+  act(() => Simulate.mouseDown(input, { button: 0 }));
+  const popper = document.querySelector(".kt-autocomplete-popper");
+  expect(popper).toBeTruthy();
+  expect(popper.parentElement).toBe(wrapper);
+  act(() => popperRoot.unmount());
+  wrapper.remove();
+});
+
+test("the model popper styles inject into the shadow root when the field lives in a shadow tree", () => {
+  // ProviderSettings 位于影子树内时，head 注入体不级联进影子根：注入目标
+  // 必须随字段节点所属根走（getRootNode），选中/聚焦/圆角规则才能在影子
+  // 树内的弹层上生效。
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  shadow.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  act(() =>
+    popperRoot.render(
+      <ProviderSettings
+        service={{ modelField: "model", models: [{ id: "m1" }] }}
+        fields={[{ key: "model", label: "Model", type: "text" }]}
+        values={{ model: "" }}
+        onChange={jest.fn()}
+      />
+    )
+  );
+  const input = mount.querySelector("input");
+  act(() => Simulate.mouseDown(input, { button: 0 }));
+  // 弹层挂回影子根内的 .kt-m3-root，注入体落在同一影子根（head 零泄漏）。
+  const popper = shadow.querySelector(".kt-autocomplete-popper");
+  expect(popper).toBeTruthy();
+  expect(popper.parentElement).toBe(wrapper);
+  const injected = shadow.querySelector("#kt-autocomplete-styles");
+  expect(injected).toBeTruthy();
+  expect(injected.textContent).toContain('[aria-selected="true"]');
+  expect(injected.textContent).toContain("border-radius: 8px");
+  act(() => popperRoot.unmount());
+  host.remove();
+});
+
+test("the model popper emotion styles mount inside the shadow root via a per-root cache", () => {
+  // 弹层经 container portal 回影子根后，其 Paper/Listbox 的 emotion 规则
+  // 若仍由 head 默认缓存产出则不级联进影子树：组件树必须整体包进以影子根
+  // 为 container 的专属缓存，样式注入目标与弹层挂载点同根。
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  shadow.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  try {
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          service={{ modelField: "model", models: [{ id: "m1" }] }}
+          fields={[{ key: "model", label: "Model", type: "text" }]}
+          values={{ model: "" }}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    const input = mount.querySelector("input");
+    act(() => Simulate.mouseDown(input, { button: 0 }));
+    const popper = shadow.querySelector(".kt-autocomplete-popper");
+    expect(popper).toBeTruthy();
+    const shadowEmotionStyles = shadow.querySelectorAll(
+      'style[data-emotion="kt-aut-popper"]'
+    );
+    expect(shadowEmotionStyles.length).toBeGreaterThan(0);
+  } finally {
+    act(() => popperRoot.unmount());
+    host.remove();
+  }
+});
+
+test("injects the pseudo-dropdown styles when the model field arrives after mount", () => {
+  // 模型字段随 fields 异步到达（如 service 配置迟加载）：注入 effect 必须
+  // 随 fields 重跑，否则晚到的模型 Autocomplete 弹层选中态规则整体缺注入。
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  shadow.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  try {
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          service={{ modelField: "model", models: [{ id: "m1" }] }}
+          fields={[]}
+          values={{ model: "" }}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          service={{ modelField: "model", models: [{ id: "m1" }] }}
+          fields={[{ key: "model", label: "Model", type: "text" }]}
+          values={{ model: "" }}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    const input = mount.querySelector("input");
+    act(() => Simulate.mouseDown(input, { button: 0 }));
+    const popper = shadow.querySelector(".kt-autocomplete-popper");
+    expect(popper).toBeTruthy();
+    const injected = shadow.querySelector("#kt-autocomplete-styles");
+    expect(injected).toBeTruthy();
+    expect(injected.textContent).toContain('[aria-selected="true"]');
+  } finally {
+    act(() => popperRoot.unmount());
+    host.remove();
+  }
+});

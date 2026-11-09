@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { act } from "react";
+import { Simulate } from "react-dom/test-utils";
 import TextField from "@mui/material/TextField";
 import ReusableAutocomplete from "./ReusableAutocomplete";
 
@@ -58,7 +59,9 @@ test("adopts the renderInput slot provided through baseSlot", async () => {
   // MUI 的开面板路径是 input 的 mousedown（useAutocomplete handleInputMouseDown
   // → handlePopupIndicator），click 不进该路径，故夹具派发 mousedown。
   await act(async () => {
-    input.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+    input.dispatchEvent(
+      new MouseEvent("mousedown", { bubbles: true, button: 0 })
+    );
   });
   expect(input.getAttribute("aria-expanded")).toBe("true");
   expect(document.querySelector(".MuiAutocomplete-popper")).not.toBeNull();
@@ -91,9 +94,11 @@ test("applies the current pseudo-dropdown selected-state shape to all options", 
   expect(selected.className).toContain("kt-autocomplete-option");
   const styleTag = document.querySelector("style[data-kt-autocomplete]");
   expect(styleTag.textContent).toContain(
-    '.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"] {'
+    'ul.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"] {'
   );
-  expect(styleTag.textContent).toContain("background-color: var(--kt-secc, #e8def8)");
+  expect(styleTag.textContent).toContain(
+    "background-color: var(--kt-secc, #e8def8)"
+  );
   expect(styleTag.textContent).toContain("color: var(--kt-onsecc, #1d192b)");
   // pri 竖条形态不得回流。
   expect(styleTag.textContent).not.toContain("inset 3px 0 0");
@@ -105,17 +110,17 @@ test("applies the current pseudo-dropdown selected-state shape to all options", 
   // 瞬时状态层：hover/focus 一律 currentColor 8% 叠加层，
   // 严禁实心 surface 令牌 --kt-sf3；持久 [aria-selected] secondary-container 另计（单通道选择态）。
   expect(styleTag.textContent).toContain(
-    ".MuiAutocomplete-listbox .MuiAutocomplete-option:hover { background-color: color-mix(in srgb, currentColor 8%, transparent); }"
+    "ul.MuiAutocomplete-listbox .MuiAutocomplete-option:hover { background-color: color-mix(in srgb, currentColor 8%, transparent); }"
   );
   expect(styleTag.textContent).toContain(
-    ".MuiAutocomplete-listbox .MuiAutocomplete-option.Mui-focused { background-color: color-mix(in srgb, currentColor 8%, transparent); }"
+    "ul.MuiAutocomplete-listbox .MuiAutocomplete-option.Mui-focused { background-color: color-mix(in srgb, currentColor 8%, transparent); }"
   );
   expect(styleTag.textContent).not.toContain("--kt-sf3");
   expect(styleTag.textContent).toContain(
-    ".MuiAutocomplete-listbox .MuiAutocomplete-option.Mui-focused {"
+    "ul.MuiAutocomplete-listbox .MuiAutocomplete-option.Mui-focused {"
   );
   expect(styleTag.textContent).toContain(
-    '.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"].Mui-focused {'
+    'ul.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"].Mui-focused {'
   );
   expect(styleTag.textContent).toContain("border-radius: 8px");
 });
@@ -137,7 +142,9 @@ test("installs the pseudo-dropdown stylesheet once per document, not per instanc
     expect(
       document.querySelectorAll("style[data-kt-autocomplete]")
     ).toHaveLength(1);
-    expect(document.querySelectorAll("#kt-autocomplete-styles")).toHaveLength(1);
+    expect(document.querySelectorAll("#kt-autocomplete-styles")).toHaveLength(
+      1
+    );
     // 反例：注入体只允许挂在 document.head，不得留在任一实例子树内。
     expect(container.querySelector("style[data-kt-autocomplete]")).toBeNull();
     expect(second.querySelector("style[data-kt-autocomplete]")).toBeNull();
@@ -151,8 +158,7 @@ test("installs the pseudo-dropdown stylesheet once per document, not per instanc
     expect(emotionTags.length).toBeGreaterThan(0);
     emotionTags.forEach((tag) => {
       expect(
-        injected.compareDocumentPosition(tag) &
-          Node.DOCUMENT_POSITION_PRECEDING
+        injected.compareDocumentPosition(tag) & Node.DOCUMENT_POSITION_PRECEDING
       ).toBeTruthy();
     });
   } finally {
@@ -189,7 +195,9 @@ test("keeps the pseudo-dropdown stylesheet out of the host document under a shad
     // 影子根内就地注入同一份选中态规则。
     const injected = shadowRoot.querySelector("style[data-kt-autocomplete]");
     expect(injected).not.toBeNull();
-    expect(injected.textContent).toContain("background-color: var(--kt-secc, #e8def8)");
+    expect(injected.textContent).toContain(
+      "background-color: var(--kt-secc, #e8def8)"
+    );
   } finally {
     await act(async () => hostRoot.unmount());
     host.remove();
@@ -254,7 +262,9 @@ test("mounts the popper inside the M3 root even when the input slot never sets t
           options={["alpha", "beta"]}
           openOnFocus
           baseSlot={{
-            renderInput: (params) => <TextField {...params} aria-label="custom-slot" />,
+            renderInput: (params) => (
+              <TextField {...params} aria-label="custom-slot" />
+            ),
           }}
         />
       );
@@ -338,6 +348,63 @@ test("mounts the popper into the shadow root when the theme root sits on the sha
   }
 });
 
+test("shadow-root pointerdown inside the popup neither dismisses it nor breaks selection", async () => {
+  // 影子宿主下 document 级监听收到的 event.target 被重定向为宿主，旧
+  // contains() 判定把弹层内点击误判为外部——pointerdown 即误关弹层，
+  // 后续 click 落空。composedPath 归属判定后：选项 pointerdown 不关弹层，
+  // 同一手势的 click 仍能提交选择。
+  const onChange = jest.fn();
+  const host = document.createElement("div");
+  host.className = "kt-m3-root";
+  document.body.appendChild(host);
+  const shadowRoot = host.attachShadow({ mode: "open" });
+  const inner = document.createElement("div");
+  shadowRoot.appendChild(inner);
+  const popperRoot = createRoot(inner);
+  try {
+    await act(async () => {
+      popperRoot.render(
+        <ReusableAutocomplete
+          name="x"
+          label="X"
+          value=""
+          options={["alpha", "beta"]}
+          openOnFocus
+          onChange={onChange}
+        />
+      );
+    });
+    const input = inner.querySelector('input[role="combobox"]');
+    await act(async () => {
+      input.focus();
+    });
+    const popper = shadowRoot.querySelector(".MuiAutocomplete-popper");
+    expect(popper).not.toBeNull();
+    const option = popper.querySelector('[role="option"]');
+    expect(option).not.toBeNull();
+    // 影子内 pointerdown：误关回归绊线（修复前 target=宿主 → backdropClick
+    // 误关，此处弹层消失、后续 click 静默落空）。原生派发（composed=true）
+    // 才能穿透影子边界触发 document 级捕获监听：React Simulate 事件不出
+    // 影子根，合成形态下本断言属假绿（jsdom 无 PointerEvent 构造器，
+    // 先例：focusModality.test.js、TextareaResizeGrip.test.js）。
+    act(() => {
+      option.dispatchEvent(
+        new Event("pointerdown", { bubbles: true, composed: true })
+      );
+    });
+    expect(shadowRoot.querySelector(".MuiAutocomplete-popper")).not.toBeNull();
+    act(() => Simulate.click(option));
+    // ReusableAutocomplete 经合成事件单参提交：target.value 即所选选项值。
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ target: { name: "x", value: "alpha" } })
+    );
+    expect(inner.querySelector('input[role="combobox"]')).toBe(input);
+  } finally {
+    await act(async () => popperRoot.unmount());
+    host.remove();
+  }
+});
+
 test("injects the pseudo-dropdown stylesheet into the shadow root hosting the popper", async () => {
   // 契约：Popper 经 container 挂入影子树内的 .kt-m3-root 时，document.head
   // 的注入体不级联进影子树，选中/聚焦/圆角规则在影子内整体失活——同一份
@@ -384,12 +451,31 @@ test("injects the pseudo-dropdown stylesheet into the shadow root hosting the po
       .join("\n")
       .replace(/\s+/g, "");
     expect(popperShadowRuleText).toContain("z-index:2147483647");
-    // 影子根内必须有一份注入体且含选中态规则。
+    // 影子根内必须有一份注入体且含选中态规则（含 ul 元素限定的提升特异度
+    // 与键盘高亮 Mui-focusVisible 选中态覆盖）。
     const shadowStyle = shadowRoot.querySelector("style[data-kt-autocomplete]");
     expect(shadowStyle).not.toBeNull();
     expect(shadowStyle.textContent).toContain(
-      '.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"] {'
+      'ul.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"] {'
     );
+    expect(shadowStyle.textContent).toContain(
+      'ul.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"].Mui-focusVisible {'
+    );
+    // 影子根内层叠顺序登记：无论注入体与 emotion 标签谁先谁后，选中态规则
+    // (0,3,1)/(0,4,1) 特异度严格高于 MUI v5 同键规则 (0,2,0)/(0,3,0)，层叠
+    // 结果与标签物理顺序无关。此处断言注入体与 emotion 标签是不同节点，
+    // 并登记实测先后供层叠推演锚定。
+    const injectedIndex = [...shadowRoot.children].indexOf(shadowStyle);
+    const emotionIndexes = popperShadowStyles.map((style) =>
+      [...shadowRoot.children].indexOf(style)
+    );
+    expect(injectedIndex).toBeGreaterThanOrEqual(0);
+    // 实测物理顺序：data-kt-autocomplete 注入体（ensurePseudoDropdownStyles
+    // 挂载期追加）先于弹层渲染期经影子缓存注入的 emotion 标签——注入体在前的
+    // 形态真实存在。选中态规则 (0,3,1)/(0,4,1) 特异度严格高于 MUI v5 同键规则
+    // (0,2,0)/(0,3,0)，层叠结果因此与该顺序无关；若此断言红说明注入时序翻转，
+    // 层叠结果仍不变，按新顺序更新本登记即可，严禁回退特异度。
+    expect(emotionIndexes.some((index) => index > injectedIndex)).toBe(true);
     // document 零污染：head 注入仅限 Document（及挂载期未就绪的 null 回退）
     // 场景，组件活在影子树内时不得向宿主 head 泄漏注入体。
     expect(
@@ -399,6 +485,69 @@ test("injects the pseudo-dropdown stylesheet into the shadow root hosting the po
     expect(rootWrapper.querySelector("style[data-kt-autocomplete]")).toBeNull();
   } finally {
     await act(async () => popperRoot.unmount());
+    host.remove();
+  }
+});
+
+test("container override into a shadow root re-homes injection and emotion cache to that root", async () => {
+  // 契约：调用方经 slotProps.popper.container 显式指定影子根容器时，伪下拉
+  // 规则注入与弹层 emotion 缓存都必须跟随最终解析出的容器根，而非输入框
+  // 所在根节点——head 注入体与 head 默认缓存的规则都不级联进影子树，
+  // 两者落 head 即整体失活。容器回退链（.kt-m3-root 祖先 → 影子根 → body）
+  // 行为不变。
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const shadowRoot = host.attachShadow({ mode: "open" });
+  const inner = document.createElement("div");
+  document.body.appendChild(inner);
+  const popperRoot = createRoot(inner);
+  try {
+    await act(async () => {
+      popperRoot.render(
+        <ReusableAutocomplete
+          name="x"
+          label="X"
+          value="alpha"
+          options={["alpha", "beta"]}
+          openOnFocus
+          slotProps={{ popper: { container: () => shadowRoot } }}
+        />
+      );
+    });
+    const input = inner.querySelector('input[role="combobox"]');
+    await act(async () => {
+      input.focus();
+    });
+    const popper = shadowRoot.querySelector(".MuiAutocomplete-popper");
+    expect(popper).not.toBeNull();
+    expect(popper.getRootNode()).toBe(shadowRoot);
+    // 伪下拉规则注入体落在影子根，head 零泄漏。
+    const injected = shadowRoot.querySelector("style[data-kt-autocomplete]");
+    expect(injected).not.toBeNull();
+    expect(injected.textContent).toContain(
+      'ul.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"] {'
+    );
+    expect(
+      document.querySelectorAll("style[data-kt-autocomplete]")
+    ).toHaveLength(0);
+    // 弹层 emotion 影子缓存同根：textContent 包含判定（jsdom 影子根内
+    // style 无 sheet，speedy:false 为 textContent 形态），须含 sx 的顶层
+    // zIndex 声明；head 零泄漏。
+    const cacheStyles = shadowRoot.querySelectorAll(
+      'style[data-emotion="kt-aut-popper"]'
+    );
+    expect(cacheStyles.length).toBeGreaterThan(0);
+    const cacheText = Array.from(cacheStyles)
+      .map((style) => style.textContent)
+      .join("\n")
+      .replace(/\s+/g, "");
+    expect(cacheText).toContain("z-index:2147483647");
+    expect(
+      document.querySelectorAll('style[data-emotion="kt-aut-popper"]')
+    ).toHaveLength(0);
+  } finally {
+    await act(async () => popperRoot.unmount());
+    inner.remove();
     host.remove();
   }
 });
@@ -540,7 +689,11 @@ test("option state styling survives a custom renderOption", async () => {
         baseSlot={{
           renderOption: (props, option) => {
             const { key, ...optionProps } = props;
-            return <li key={key} {...optionProps}>custom {option}</li>;
+            return (
+              <li key={key} {...optionProps}>
+                custom {option}
+              </li>
+            );
           },
         }}
       />
@@ -568,7 +721,7 @@ test("option state styling survives a custom renderOption", async () => {
 test("respects a caller-provided popper container instead of the default fallback chain", async () => {
   // 契约：调用方显式传入 slotProps.popper.container 时必须被尊重，
   // 不得被组件默认三级回退（closest→影子根→body）无条件覆盖。本用例
-  // 容器不在任何 .kt-m3-root 内，旧实现会把弹层覆盖回 body 直下（真红）。
+  // 容器不在任何 .kt-m3-root 内，钉死"不回落 body"的行为。
   const customNode = document.createElement("div");
   document.body.appendChild(customNode);
   try {
@@ -595,4 +748,36 @@ test("respects a caller-provided popper container instead of the default fallbac
   } finally {
     customNode.remove();
   }
+});
+
+test("scopes injected dropdown rules to the component popper class and merges caller className", async () => {
+  // 注入体挂 head 即全文档生效：不限定本组件专属弹层类，会连带染宿主页面
+  // 与插件面自有的 MUI Autocomplete；调用方 className 须合并而非覆盖。
+  await act(async () => {
+    root.render(
+      <ReusableAutocomplete
+        name="x"
+        label="X"
+        value="alpha"
+        options={["alpha", "beta"]}
+        openOnFocus
+        slotProps={{ popper: { className: "caller-popper-class" } }}
+      />
+    );
+  });
+  const input = container.querySelector('input[role="combobox"]');
+  await act(async () => {
+    input.focus();
+  });
+  const popper = document.querySelector(".MuiAutocomplete-popper");
+  expect(popper).not.toBeNull();
+  expect(popper.classList.contains("kt-autocomplete-popper")).toBe(true);
+  expect(popper.classList.contains("caller-popper-class")).toBe(true);
+
+  const styleTag = document.querySelector("style[data-kt-autocomplete]");
+  expect(styleTag.textContent).toContain(
+    ".kt-autocomplete-popper ul.MuiAutocomplete-listbox .MuiAutocomplete-option { border-radius: 8px; }"
+  );
+  // 行首裸 ul.MuiAutocomplete 规则残留即泄漏面。
+  expect(styleTag.textContent).not.toMatch(/^ul\.MuiAutocomplete-listbox/m);
 });

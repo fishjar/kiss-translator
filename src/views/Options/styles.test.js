@@ -74,14 +74,48 @@ describe("settings segmented controls", () => {
       )
     ).toBe(true);
     const segmentedForcedColorsIndex = OPTIONS_STYLES.indexOf(
-      "@media (forced-colors: active) {\n  .kt-settings-segmented > button:focus-visible"
+      "@media (forced-colors: active) {\n  .kt-settings-segmented > button.Mui-selected {"
     );
     expect(segmentedForcedColorsIndex).toBeGreaterThan(
       OPTIONS_STYLES.indexOf(".kt-settings-segmented > button:focus-visible")
     );
+    // forced-colors 域选中态须有独立于键盘焦点的描边（UA 弃 box-shadow、
+    // 接管 background 后，仅 :focus-visible 描边会让「选中未聚焦」视觉归零）。
+    expect(
+      forcedColorBodies.some((body) =>
+        /\.kt-settings-segmented > button\.Mui-selected\s*\{[^}]*outline:\s*2px solid Highlight/.test(
+          body
+        )
+      )
+    ).toBe(true);
     expect(OPTIONS_STYLES).toMatch(
       /\.kt-options-page \.MuiSwitch-root\.MuiSwitch-sizeSmall \.MuiSwitch-switchBase\s*\{[^}]*display:\s*grid;[^}]*place-items:\s*center;/
     );
+  });
+
+  test("expands the segment checkmark through interpolation, not display switching", () => {
+    // 恒渲染 Checkmark：选中态由 max-width/opacity/transform 插值展开，
+    // 严禁 display:none 切换（布局零横跳）。
+    const collapsedRule = OPTIONS_STYLES.match(
+      /\.kt-settings-segmented__checkmark\s*\{([^}]*)\}/
+    )?.[1];
+    const expandedRule = OPTIONS_STYLES.match(
+      /\.kt-settings-segmented > button\.Mui-selected \.kt-settings-segmented__checkmark\s*\{([^}]*)\}/
+    )?.[1];
+    expect(collapsedRule).toContain("max-width: 0");
+    expect(collapsedRule).toContain("opacity: 0");
+    expect(collapsedRule).toContain("transform: scale(.6)");
+    expect(collapsedRule).toContain("transition:");
+    expect(expandedRule).toContain("max-width: 15px");
+    expect(expandedRule).toContain("opacity: 1");
+    expect(expandedRule).toContain("transform: scale(1)");
+    const checkmarkBlocks = OPTIONS_STYLES.match(
+      /\.kt-settings-segmented__checkmark[^{]*\{[^}]*\}/g
+    );
+    for (const block of checkmarkBlocks) {
+      expect(block).not.toContain("display: none");
+      expect(block).not.toContain("display:none");
+    }
   });
 });
 
@@ -247,7 +281,7 @@ describe("settings layout boundaries", () => {
       /\.kt-options-page \.kt-translation-text-field \.MuiInputBase-inputMultiline\s*\{[^}]*padding:\s*30px 66px 62px 16px;/
     );
     expect(OPTIONS_STYLES).toMatch(
-      /\.kt-options-page \.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*outline:\s*none;[^}]*box-shadow:\s*inset 0 0 0 3px var\(--kt-pri\);/
+      /\.kt-options-page \.kt-translation-text-field__actions \.MuiIconButton-root:focus-visible\s*\{[^}]*outline:\s*none;[^}]*box-shadow:\s*inset 0 0 0 3px var\(--kt-pri\);/
     );
     const forcedColorBodies = getCssAtRuleBodies(
       OPTIONS_STYLES,
@@ -258,19 +292,19 @@ describe("settings layout boundaries", () => {
       OPTIONS_STYLES
     );
     expect(cssOutsideForcedColors).not.toMatch(
-      /\.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*outline:\s*3px/
+      /\.kt-translation-text-field__actions \.MuiIconButton-root:focus-visible\s*\{[^}]*outline:\s*3px/
     );
     expect(forcedColorBodies.length).toBeGreaterThanOrEqual(1);
     expect(
       forcedColorBodies.some((body) =>
-        /\.kt-options-page \.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*outline:\s*3px solid;[^}]*outline-offset:\s*-3px;/.test(
+        /\.kt-options-page \.kt-translation-text-field__actions \.MuiIconButton-root:focus-visible\s*\{[^}]*outline:\s*3px solid;[^}]*outline-offset:\s*-3px;/.test(
           body
         )
       )
     ).toBe(true);
     expect(
       OPTIONS_STYLES.indexOf(
-        ".kt-options-page .kt-translation-text-field__actions .MuiIconButton-root.Mui-focusVisible"
+        ".kt-options-page .kt-translation-text-field__actions .MuiIconButton-root:focus-visible"
       )
     ).toBeLessThan(OPTIONS_STYLES.indexOf("@media (forced-colors: active)"));
     const hoverBodies = getCssAtRuleBodies(
@@ -291,7 +325,7 @@ describe("settings layout boundaries", () => {
         )
     ).toBe(true);
     expect(OPTIONS_STYLES).toMatch(
-      /\.kt-translation-text-field__actions \.MuiIconButton-root\.Mui-focusVisible\s*\{[^}]*var\(--kt-onsecc\) 10%/
+      /\.kt-translation-text-field__actions \.MuiIconButton-root:focus-visible\s*\{[^}]*var\(--kt-onsecc\) 10%/
     );
   });
 
@@ -410,7 +444,7 @@ describe("settings layout boundaries", () => {
     );
   });
 
-  test("preset chips paint the secondary-container selected form without pri ring (W8)", () => {
+  test("preset chips paint the secondary-container selected form without pri ring", () => {
     const selectedRule = OPTIONS_STYLES.match(
       /\.kt-settings-preset-chip\[aria-pressed="true"\]\s*\{([^}]*)\}/
     )?.[1];

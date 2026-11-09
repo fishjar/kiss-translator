@@ -67,9 +67,12 @@ const MULTI_MARKERS = [
   /<Select\s+[^>]*\bmultiple\b/,
   /multiple=\{/,
   // JSX 开标签内的裸 multiple 属性（Autocomplete 等非 Select 组件形态）；
-  // (?=[\s/>]) 排除 multiple={...} 值表达式形态（已被上一标记覆盖），
-  // [^<>]* 不跨标签边界，天然排除散文与解构。
-  /<[A-Za-z][^<>]*\smultiple(?=[\s/>])/,
+  // (?=[\s/>]) 排除 multiple={...} 值表达式形态（已被上一标记覆盖）。
+  // 开标签内容 = "非尖/花括号字符 或 一层花括号表达式" 的受控片段：
+  // 属性内箭头函数/比较符的 `>` 藏在表达式花括号里不截断匹配（如
+  // <Select onChange={(e) => set(e)} multiple>），裸 `>`（真标签结束）仍
+  // 终止开标签——散文与后续标签不会被误并进匹配（fail-loud 且无误报）。
+  /<[A-Za-z](?:[^<>{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\smultiple(?=[\s/>])/,
 ];
 
 describe("multi-select checkbox coverage", () => {
@@ -102,10 +105,25 @@ describe("multi-select checkbox coverage", () => {
         marker.test('<Autocomplete multiple disableCloseOnSelect />')
       )
     ).toBe(true);
+    // 属性内箭头函数的 `>` 不得截断匹配：multiple 出现在含箭头函数属性
+    // 之后的开标签内，仍须被识别（漏检即静默放过非标准多选面）。
+    expect(
+      MULTI_MARKERS.some((marker) =>
+        marker.test(
+          '<Select\n  onChange={(event) => setValue(event.target.value)}\n  multiple\n/>'
+        )
+      )
+    ).toBe(true);
     // 非 multiple 属性不命中。
     expect(
       MULTI_MARKERS.some((marker) =>
         marker.test('<Autocomplete disableCloseOnSelect />')
+      )
+    ).toBe(false);
+    // 散文/后续标签内的 multiple 不被误并（开标签在裸 `>` 处终止）。
+    expect(
+      MULTI_MARKERS.some((marker) =>
+        marker.test('<Autocomplete />\n  the multiple paths are listed')
       )
     ).toBe(false);
   });

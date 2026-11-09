@@ -26,9 +26,20 @@ import {
 } from "../../config/serviceSelection";
 import { validateEnabledCapabilities } from "../../providers/capabilities";
 import Autocomplete from "@mui/material/Autocomplete";
+// 本面用裸 MUI Autocomplete，伪下拉样式由 ReusableAutocomplete 的注入体承担，
+// 而注入规则整组限定在专属弹层类下，故须挂同一类（单源常量，勿重写字面量）；
+// 注入入口亦须共用——本面可独立于任何 ReusableAutocomplete 实例挂载，
+// 挂载期由 ProviderSettings 兜底注入同一份注入体。
+import {
+  PSEUDO_DROPDOWN_POPPER_CLASS,
+  ensurePseudoDropdownStyles,
+  getShadowCache,
+  resolvePopperContainer,
+} from "./ReusableAutocomplete";
 import { ServiceUpgradeAction } from "./ServiceUpgrade";
 import { capabilityLabelKeys } from "../../providers/capabilityLabels";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useMemo, useRef } from "react";
+import { CacheProvider } from "@emotion/react";
 import {
   Alert,
   Button,
@@ -592,7 +603,27 @@ export function ProviderSettings({
   compact = false,
 }) {
   const providerText = useProviderI18n();
-  return fields.map((field) => {
+  // 裸 Autocomplete 弹层与 emotion 样式的按根接线：fields 可异步到达（service
+  // 配置迟加载），effect 必须随 fields 重跑；挂载后模型字段 ref 已回填。
+  // 按字段节点所属根判定（主文档 → head 去重注入；影子宿主 → 该影子根注入
+  // + emotion 影子缓存——head 默认缓存的规则不级联进影子树）。无模型字段则
+  // 整个面不存在弹层，跳过注入，不向宿主文档落样式。缓存翻转守卫单向
+  // （null → cache）：包裹翻转 = 返回树根元素类型翻转，React 视为不同节点
+  // 整树卸载重挂，不得随重渲染来回翻转。modelFieldRef 声明在本 effect 之下
+  // （函数组件体内 ref 不受书写顺序约束，闭包执行时序合法）。
+  const [shadowCache, setShadowCache] = useState(null);
+  useLayoutEffect(() => {
+    const ownerRoot = modelFieldRef.current?.getRootNode?.();
+    if (ownerRoot?.host) setShadowCache(getShadowCache(ownerRoot));
+  }, [fields]);
+  useEffect(() => {
+    const fieldNode = modelFieldRef.current;
+    if (!fieldNode) return;
+    ensurePseudoDropdownStyles(fieldNode.getRootNode());
+  }, [fields]);
+  // 裸 Autocomplete 弹层挂根锚点：MUI v5 Autocomplete forwardRef 到根 div。
+  const modelFieldRef = useRef(null);
+  const content = fields.map((field) => {
     const sx =
       compact &&
       (field.type === "password" ||
@@ -604,9 +635,19 @@ export function ProviderSettings({
       return (
         <Autocomplete
           key={field.key}
+          ref={modelFieldRef}
           freeSolo
           forcePopupIcon
           size="small"
+          slotProps={{
+            popper: {
+              className: PSEUDO_DROPDOWN_POPPER_CLASS,
+              // 弹层默认 portal 到 body，脱离 .kt-m3-root 令牌作用域；与
+              // ReusableAutocomplete 共用同一回退链（.kt-m3-root 祖先 →
+              // 影子根 → body），以字段根节点为锚点解析容器。
+              container: () => resolvePopperContainer(modelFieldRef.current),
+            },
+          }}
           options={(service?.models || []).map((model) => model.id)}
           value={values[field.key] || ""}
           onChange={(_, value) => onChange(field.key, value || "")}
@@ -678,4 +719,12 @@ export function ProviderSettings({
       </Field>
     );
   });
+  // 影子宿主场景整树包进影子根专属缓存：head 默认缓存的 MUI 规则不级联进
+  // 影子树，弹层已 portal 回影子根而样式落 head 即整体失活。非影子路径
+  // （shadowCache 为 null）零包裹、零行为变化。
+  return shadowCache ? (
+    <CacheProvider value={shadowCache}>{content}</CacheProvider>
+  ) : (
+    content
+  );
 }

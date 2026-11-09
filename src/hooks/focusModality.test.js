@@ -474,6 +474,21 @@ describe("scriptFocus", () => {
     item.remove();
   });
 
+  test("never marks editable targets silent and still clears a stale marker", () => {
+    // 契约：可编辑目标与 handleFocusIn 同闸——浏览器对可编辑元素恒判
+    // :focus-visible，静默标记会吞掉其环；遗留标记仍走移除分支清走。
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    markSilentFocus(input);
+    expect(input.getAttribute(FOCUS_SILENT_ATTR)).toBe("true");
+    expect(scriptFocus(input, { silent: true })).toBe(true);
+    expect(document.activeElement).toBe(input);
+    expect(input.hasAttribute(FOCUS_SILENT_ATTR)).toBe(false);
+    input.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    expect(input.hasAttribute(FOCUS_SILENT_ATTR)).toBe(false);
+    input.remove();
+  });
+
   test("does not silence scripted focus when pointer interaction is unknown", () => {
     // 契约：焦点自浏览器界面回到页面、模态未知时保留焦点环；
     // 只有页面内真实指针交互之后才允许静默（与 handleFocusIn 同判据）。

@@ -1,13 +1,15 @@
 import { supportsTouch } from "../../libs/touchCapability";
 import TouchTranslateControl from "../../components/TouchTranslateControl";
-import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
-import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
-import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
-import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
-import CropRoundedIcon from "@mui/icons-material/CropRounded";
+import {
+  PaletteRoundedIcon,
+  SelectAllRoundedIcon,
+  SettingsRoundedIcon,
+  TranslateRoundedIcon,
+  TuneRoundedIcon,
+  VisibilityRoundedIcon,
+  VisibilityOffRoundedIcon,
+  CropRoundedIcon,
+} from "../../components/icons";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -25,6 +27,7 @@ import {
   useMemo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useSyncExternalStore,
 } from "react";
@@ -46,6 +49,7 @@ import { useFab } from "../../hooks/Fab";
 import { isExt } from "../../libs/client";
 import { sendBgMsg } from "../../libs/msg";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
+import { scriptFocus } from "../../hooks/focusModality";
 import { isFabHiddenOnPage } from "../../libs/fabVisibility";
 import useWindowSize from "../../hooks/WindowSize";
 import { useFullscreenDetect } from "../../hooks/useFullscreenDetect";
@@ -132,7 +136,17 @@ export function ContentFabContent({
   const [open, setOpen] = useState(false); // Action menu visibility.
   const [savingVisibility, setSavingVisibility] = useState(false);
   const [notice, setNotice] = useState("");
+  // 影子容器判据：FAB 锚点挂在 shadow root 内时 MUI focus trap 会把宿主当
+  // activeElement 抢焦，需禁 enforceFocus；document 容器保持默认。
+  const [isShadowMenu, setIsShadowMenu] = useState(false);
   const anchorRef = useRef(null);
+  // 稳定 ref 回调：卸载回调（node 为 null）只清锚点（Popper/Dialog 定位依赖），
+  // 不触发 isShadowMenu 状态更新；仅真实挂载时按节点的 shadow root 判定。
+  const handleFabRef = useCallback((node) => {
+    anchorRef.current = node;
+    if (!node) return;
+    setIsShadowMenu(Boolean(node.getRootNode?.()?.host));
+  }, []);
   const menuRef = useRef(null);
   const popperRef = useRef(null);
   const handleMenuNavigation = useMemo(
@@ -152,12 +166,25 @@ export function ContentFabContent({
 
   const closeMenu = useCallback((restoreFocus = false) => {
     setOpen(false);
-    if (restoreFocus) anchorRef.current?.focus();
+    if (restoreFocus) scriptFocus(anchorRef.current);
   }, []);
 
   useEffect(() => {
     if (!opensMenu) closeMenu();
   }, [closeMenu, opensMenu]);
+
+  // 焦点照旧进入首项（方向键可用），但环只在键盘模态出现：MenuList 的
+  // autoFocusItem 会在鼠标打开时也画环，故关掉它并在此按模态聚焦。
+  // 执行口径为同步 effect（与 MenuList autoFocusItem 的 useEnhancedEffect
+  // 同时机层级），不用 requestAnimationFrame：焦点归属不得晚于本次提交。
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    const items = menuRef.current?.querySelectorAll(
+      '.MuiMenuItem-root:not(.Mui-disabled), [role="menuitem"]:not([aria-disabled="true"]), [role="menuitemcheckbox"]:not([aria-disabled="true"])'
+    );
+    scriptFocus(items?.[0] ?? null);
+    return undefined;
+  }, [open]);
 
   useEffect(() => {
     if (!opensMenu || !open) return;
@@ -370,11 +397,13 @@ export function ContentFabContent({
       handler={
         <FloatingButton
           id="kt-content-fab-button"
-          ref={anchorRef}
+          ref={handleFabRef}
           size={fabSize}
           opensMenu={opensMenu}
           open={open}
           aria-expanded={opensMenu ? open : undefined}
+          type="button"
+          className={open ? "kt-content-fab--x" : ""}
           aria-haspopup={opensMenu ? "menu" : opensPopup ? "dialog" : undefined}
           aria-controls={opensMenu && open ? "kt-content-fab-menu" : undefined}
           aria-label={i18n(opensPopup ? "fab_click_popup" : "translate")}
@@ -397,7 +426,6 @@ export function ContentFabContent({
           <MenuList
             id="kt-content-fab-menu"
             aria-labelledby="kt-content-fab-button"
-            autoFocusItem
             onKeyDownCapture={handleMenuNavigation}
             onKeyDown={handleMenuKeyDown}
           >
@@ -442,7 +470,7 @@ export function ContentFabContent({
         open={Boolean(notice)}
         // Retain shadow-root styles without inheriting the draggable transform.
         container={() => anchorRef.current?.closest(".kt-m3-root")}
-        disableEnforceFocus
+        disableEnforceFocus={isShadowMenu}
         disableRestoreFocus
         disableScrollLock
         onClose={closeNotice}

@@ -1,7 +1,10 @@
 import MenuCheckGlyph from "../../components/MenuCheckGlyph";
 import ListSubheader from "@mui/material/ListSubheader";
 import { Fragment, useEffect, useId, useRef, useState } from "react";
-import { ExpandMoreRoundedIcon } from "../../components/icons";
+import {
+  CheckRoundedIcon,
+  ExpandMoreRoundedIcon,
+} from "../../components/icons";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -164,6 +167,10 @@ export function SettingsSegmented({
             onKeyDown={(event) => handleKeyDown(event, index)}
             key={normalized.value}
           >
+            <CheckRoundedIcon
+              aria-hidden="true"
+              className="kt-settings-segmented__checkmark"
+            />
             <span className="kt-settings-segmented__label">
               {normalized.label}
             </span>

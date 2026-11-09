@@ -237,8 +237,12 @@ export function getIconColorSnapshot() {
 export function resolveIconColorHex(value) {
   // 通用放行：任意合法 6 位 Hex 一律接受（连续色相环存储格式），
   // 非法输入回落默认，保证存储清洗与快照归一单点收敛。
+  // 无彩度值（r=g=b，黑白灰）一并回落：hexToHsl 对其恒返回 h=0，
+  // 只取色相的下游（自适应强调色、滑轨反解）会把它读成红色相。
   const key = typeof value === "string" ? value.trim().toLowerCase() : "";
-  return /^#[0-9a-f]{6}$/.test(key) ? key : DEFAULT_ICON_COLOR;
+  if (!/^#[0-9a-f]{6}$/.test(key)) return DEFAULT_ICON_COLOR;
+  const [r, g, b] = [key.slice(1, 3), key.slice(3, 5), key.slice(5, 7)];
+  return r === g && g === b ? DEFAULT_ICON_COLOR : key;
 }
 
 // 图标色归一 + 色相反解的单点收敛：各自适应主色/强调色消费方只取色相，
@@ -441,7 +445,7 @@ export const M3_GLOBAL_CSS = String.raw`
 
 /* MUI 脚本化焦点管理（开菜单聚焦选中项、关菜单回焦触发器）令 :focus-visible
    在鼠标路径命中；唯一命中全局环的 ButtonBase 场景＝MenuItem（其余家族成员
-   由 M3Theme 自带 fv/boxShadow 或 MUI 自带 .Mui-focusVisible 承担键盘指示）。
+   由 M3Theme 各组件自带的 :focus-visible 内嵌环承担键盘指示）。
    MuiSelect-select（combobox 触发元）不豁免：其键盘指示由下方"Select 触发元
    焦点环"三段配对承担。特异性 0,3,0 > 全局 0,2,0，与书写顺序无关。 */
 .kt-m3-root .MuiMenuItem-root:focus {

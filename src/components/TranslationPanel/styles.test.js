@@ -1,0 +1,91 @@
+import { TRANSLATION_PANEL_STYLES } from "./styles";
+
+// 选中/按下/hover 态统一走 secondary-container 族令牌。
+describe("TranslationPanel pressed/checked states use the secondary-container tokens", () => {
+  // 嵌套感知提取：@media/@container 块只收内层独立规则，外层前缀不与
+  // 内层规则拼接，状态选择器规则不因嵌套结构调整而漏检。
+  const extractCssRules = (css) => {
+    const rules = [];
+    for (const m of css.matchAll(/([^{}]+)\{((?:[^{}]*\{[^{}]*\})*[^{}]*)\}/g)) {
+      if (m[1].trim().startsWith("@")) {
+        for (const inner of m[2].matchAll(/[^{}]+\{[^{}]*\}/g)) {
+          rules.push(inner[0].trim());
+        }
+      } else {
+        rules.push(`${m[1].trim()} { ${m[2].trim()} }`);
+      }
+    }
+    return rules;
+  };
+  const stateRules = extractCssRules(TRANSLATION_PANEL_STYLES).filter((rule) => /aria-pressed="true"|aria-checked="true"|button:hover/.test(rule));
+    // 伪下拉对勾已移除：__menu-check 规则不再存在，stateRules 无需额外过滤。
+
+  test("menu styles no longer contain any __menu-check rules", () => {
+    const glyphRules = TRANSLATION_PANEL_STYLES.split("\n").filter(
+      (line) => line.includes("{") && line.includes("__menu-check")
+    );
+    expect(glyphRules.length).toBe(0);
+  });
+
+  test("state rules consume the secondary-container tokens", () => {
+    // aria-pressed="true"（按压图标钮）走 secc 族；aria-checked="true" 菜单行
+    // 持久零底色（状态由成对图标承载）；hover 走 State Layer 叠色。
+    const seccRules = stateRules.filter((rule) =>
+      /aria-pressed="true"/.test(rule)
+    );
+    // 空集会让下方遍历空转：按压态规则被整体删除时必须在此失败。
+    expect(seccRules.length).toBeGreaterThan(0);
+    for (const rule of seccRules) {
+      expect(rule).toContain("var(--kt-secc)");
+      expect(rule).toContain("var(--kt-onsecc)");
+    }
+    const checkedRules = stateRules.filter((rule) =>
+      /aria-checked="true"/.test(rule)
+    );
+    expect(checkedRules).toHaveLength(1);
+    expect(checkedRules[0]).toContain("background: transparent");
+    expect(checkedRules[0]).not.toContain("--kt-secc");
+    // hover 规则走 State Layer 叠色（color-mix currentColor 8%）。
+    const hoverRules = stateRules.filter((rule) => /button:hover/.test(rule));
+    for (const rule of hoverRules) {
+      expect(rule).toContain("color-mix(in srgb, currentColor 8%, transparent)");
+    }
+  });
+
+  test("state rules no longer consume the primary tokens for selected states", () => {
+    for (const rule of stateRules) {
+      expect(rule).not.toContain("--kt-pri");
+      expect(rule).not.toContain("--kt-onpri");
+    }
+  });
+});
+
+// 菜单结构规范对齐的静态契约（容器 4dp/8px 0/边框；条目 48px/0 16px/无圆角；前置勾标）。
+describe("tranbox header menu follows the M3 structural spec", () => {
+  const menuRule = TRANSLATION_PANEL_STYLES.match(
+    /\.kt-tranbox-header__menu\s*\{([^}]*)\}/
+  )?.[1];
+  const buttonRule = TRANSLATION_PANEL_STYLES.match(
+    /\.kt-tranbox-header__menu button\s*\{([^}]*)\}/
+  )?.[1];
+
+  test("menu container uses the 4dp corner with 8px vertical padding and a hairline border", () => {
+    expect(menuRule).toContain("border-radius: 4px");
+    expect(menuRule).toContain("padding: 8px 0");
+    expect(menuRule).toContain("border: 1px solid var(--kt-linev)");
+  });
+
+  test("menu buttons are 48px tall with 16px inline padding and no corner radius", () => {
+    expect(buttonRule).toContain("min-height: 48px");
+    expect(buttonRule).toContain("padding: 0 16px");
+    expect(buttonRule).not.toContain("border-radius");
+    // 菜单行内间距统一 12dp 几何口径。
+    expect(buttonRule).toContain("gap: 12px");
+  });
+
+  test("menu check glyph rules have been removed (fake dropdown check eliminated)", () => {
+    expect(TRANSLATION_PANEL_STYLES).not.toContain("__menu-check");
+  });
+
+
+});
