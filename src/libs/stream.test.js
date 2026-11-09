@@ -17,6 +17,8 @@ import {
 } from "./stream";
 import {
   OPT_TRANS_CLAUDE,
+  OPT_TRANS_OPENAI,
+  OPT_TRANS_OPENROUTER,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_APIMART,
   OPT_TRANS_GEMINI,
@@ -108,6 +110,40 @@ describe("createSSEParser", () => {
 });
 
 describe("getStreamDelta", () => {
+  test.each([OPT_TRANS_OPENAI, OPT_TRANS_OPENROUTER])(
+    "turns %s mid-stream errors into terminal fallback errors",
+    (apiType) => {
+      expect(
+        getStreamDelta(
+          { choices: [{ delta: { content: "partial" } }] },
+          apiType
+        )
+      ).toBe("partial");
+      expect(() =>
+        getStreamDelta(
+          { error: { message: "Provider unavailable", code: 503 } },
+          apiType
+        )
+      ).toThrow(
+        expect.objectContaining({
+          message: "Provider unavailable",
+          isAIStreamTerminal: true,
+        })
+      );
+    }
+  );
+
+  test("uses a fallback message for OpenAI-compatible errors without a message", () => {
+    expect(() =>
+      getStreamDelta({ error: { code: 500 } }, OPT_TRANS_OPENAI)
+    ).toThrow(
+      expect.objectContaining({
+        message: "OpenAI-compatible stream failed",
+        isAIStreamTerminal: true,
+      })
+    );
+  });
+
   test("extracts ePhoneAI as an OpenAI-compatible stream", () => {
     const chunk = {
       choices: [{ delta: { content: "hello" } }],
