@@ -7,6 +7,10 @@ import {
   normalizeZhLang,
   quickDetectLang,
 } from "../libs/detectFast";
+import {
+  isPdfTextLayerSelection,
+  joinPdfSelectionLines,
+} from "../libs/pdf/selectionText";
 import useAutoHideTranBtn from "./useAutoHideTranBtn";
 import {
   APP_CONSTS,
@@ -313,8 +317,16 @@ function getSelectionSentence(selection, target) {
   }
 }
 
-function getSelectionSource(selection, target) {
+/** 读取选区文本；PDF 文字层按行断开，需要先拼回段落。 */
+function getSelectedText(selection) {
   const text = selection?.toString()?.trim() || "";
+  return isPdfTextLayerSelection(selection)
+    ? joinPdfSelectionLines(text)
+    : text;
+}
+
+function getSelectionSource(selection, target) {
+  const text = getSelectedText(selection);
   if (!text) return null;
 
   const sentence = getSelectionSentence(selection, target);
@@ -410,7 +422,7 @@ export default function useSelectionController({
       if (!showBox || isTranboxEvent(event) || isTranButtonEvent(event)) return;
       const selection = window.getSelection();
       selectionAtPressRef.current = {
-        text: selection?.toString()?.trim(),
+        text: getSelectedText(selection),
         anchorNode: selection?.anchorNode,
         anchorOffset: selection?.anchorOffset,
         focusNode: selection?.focusNode,
@@ -425,7 +437,7 @@ export default function useSelectionController({
       if (!previous || previous.changed) return;
       const selection = window.getSelection();
       if (
-        previous.text !== selection?.toString()?.trim() ||
+        previous.text !== getSelectedText(selection) ||
         ["anchorNode", "anchorOffset", "focusNode", "focusOffset"].some(
           (key) => previous[key] !== selection?.[key]
         )
@@ -503,7 +515,7 @@ export default function useSelectionController({
 
   const createSelectionSnapshot = useCallback(
     (selection, pointerPosition, source, target) => {
-      const currentSelectedText = selection?.toString()?.trim() || "";
+      const currentSelectedText = getSelectedText(selection);
       if (!currentSelectedText) return null;
       const selectionRects = getSelectionRects(selection);
       const rect = isUsableRect(selectionRects?.rect)

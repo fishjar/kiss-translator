@@ -6,6 +6,7 @@ const TerserPlugin = require("terser-webpack-plugin");
 const path = require("path");
 const fs = require("fs");
 const configureHtmlDecoder = require("./src/scripts/html-decoder-webpack.cjs");
+const configurePdfReader = require("./src/scripts/pdf-reader-webpack.cjs");
 let webpack;
 try {
   webpack = require("webpack");
@@ -129,6 +130,7 @@ const extWebpack = (config, env) => {
       filename: "css/[name].css",
     })
   );
+  configurePdfReader(config, { paths, minify, HtmlWebpackPlugin });
 
   config.ignoreWarnings = [
     ...(config.ignoreWarnings || []),

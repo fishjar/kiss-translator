@@ -16,6 +16,7 @@ import { runSubtitle } from "./subtitle/subtitle";
 import { logger } from "./libs/log";
 import { injectInlineJs } from "./libs/injector";
 import TranslatorManager from "./libs/translatorManager";
+import { openPdfReader, shouldOpenPdfReader } from "./libs/pdfReaderLink";
 
 /**
  * 油猴脚本特权桥接设置。
@@ -291,6 +292,17 @@ export async function run(isUserscript = false) {
 
     if (!isUserscript) {
       blacklistStartupRecovery.cancel();
+    }
+
+    // 5.0. 在线 PDF 转交内置阅读器，否则划词读不到原生查看器里的选区
+    if (
+      isPdfDocument &&
+      !isIframe &&
+      !isUserscript &&
+      shouldOpenPdfReader(href)
+    ) {
+      openPdfReader(href);
+      return;
     }
 
     // 5.1. iframe 空内容拦截：默认允许 iframe 翻译，但空 iframe 不继续挂载后续脚本

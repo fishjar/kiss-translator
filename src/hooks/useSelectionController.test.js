@@ -279,6 +279,50 @@ describe("useSelectionController", () => {
     });
   });
 
+  test("joins PDF text layer lines into one paragraph", async () => {
+    const controller = renderController();
+    const layer = document.createElement("div");
+    layer.className = "textLayer";
+    document.body.appendChild(layer);
+    const line = createParagraph("line one\nline two", layer);
+
+    currentSelection = {
+      ...makeSelection("line one\nline two", line),
+      anchorNode: line.firstChild,
+    };
+    await dispatchWindowMouseup();
+    act(() => {
+      controller.state.handleOpenTranbox();
+    });
+
+    expect(controller.state.text).toBe("line one line two");
+    expect(controller.state.selectionSource.text).toBe("line one line two");
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
+  test("keeps line breaks in ordinary page selections", async () => {
+    const controller = renderController();
+    const paragraph = createParagraph("line one\nline two");
+
+    currentSelection = {
+      ...makeSelection("line one\nline two", paragraph),
+      anchorNode: paragraph.firstChild,
+    };
+    await dispatchWindowMouseup();
+    act(() => {
+      controller.state.handleOpenTranbox();
+    });
+
+    expect(controller.state.text).toBe("line one\nline two");
+
+    act(() => {
+      controller.root.unmount();
+    });
+  });
+
   test("captures the sentence and URL for the selected repeated word", async () => {
     const controller = renderController();
     const pageParagraph = createParagraph(

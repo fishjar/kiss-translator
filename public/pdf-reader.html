@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PDF</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        background: #525659;
+        color: #e8eaed;
+        font:
+          13px/1.4 system-ui,
+          -apple-system,
+          "PingFang SC",
+          sans-serif;
+      }
+      #toolbar {
+        position: fixed;
+        inset: 0 0 auto 0;
+        z-index: 10;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 40px;
+        padding: 0 12px;
+        background: #323639;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+      }
+      #title {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      #toolbar input,
+      #toolbar button {
+        box-sizing: border-box;
+        height: 26px;
+        border: 0;
+        border-radius: 4px;
+        background: #474a4d;
+        color: inherit;
+        font: inherit;
+      }
+      #toolbar input {
+        width: 52px;
+        padding: 0 4px;
+        text-align: center;
+      }
+      #toolbar button {
+        min-width: 26px;
+        padding: 0 8px;
+        cursor: pointer;
+      }
+      #toolbar button:hover {
+        background: #5a5d60;
+      }
+      #toolbar a {
+        color: #8ab4f8;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      #viewerContainer {
+        position: absolute;
+        inset: 40px 0 0 0;
+        overflow: auto;
+      }
+      #status {
+        position: fixed;
+        top: 56px;
+        left: 50%;
+        z-index: 10;
+        padding: 8px 14px;
+        border-radius: 6px;
+        background: #202124;
+        transform: translateX(-50%);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="toolbar">
+      <span id="title"></span>
+      <input id="page" type="number" min="1" value="1" aria-label="页码" />
+      <span>/ <span id="total">-</span></span>
+      <button id="zoom-out" type="button" title="缩小">−</button>
+      <button id="zoom-fit" type="button">适合宽度</button>
+      <button id="zoom-in" type="button" title="放大">+</button>
+      <a id="native" href="#">用浏览器打开</a>
+    </div>
+    <div id="viewerContainer">
+      <div id="viewer" class="pdfViewer"></div>
+    </div>
+    <div id="status" hidden></div>
+  </body>
+</html>

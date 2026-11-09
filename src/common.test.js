@@ -54,6 +54,11 @@ jest.mock("./libs/injector", () => ({
   injectInlineJs: jest.fn(),
 }));
 
+jest.mock("./libs/pdfReaderLink", () => ({
+  shouldOpenPdfReader: jest.fn(),
+  openPdfReader: jest.fn(),
+}));
+
 jest.mock("./libs/translatorManager", () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({
@@ -72,6 +77,7 @@ const { isInBlacklist } = require("./libs/blacklist");
 const { runSubtitle } = require("./subtitle/subtitle");
 const { injectInlineJs } = require("./libs/injector");
 const TranslatorManager = require("./libs/translatorManager").default;
+const { shouldOpenPdfReader, openPdfReader } = require("./libs/pdfReaderLink");
 const { run } = require("./common");
 
 function setReadyState(value) {
@@ -113,6 +119,7 @@ describe("common iframe startup", () => {
     delete globalThis.unsafeWindow;
     jest.clearAllMocks();
     isInBlacklist.mockImplementation(() => false);
+    shouldOpenPdfReader.mockImplementation(() => false);
 
     TranslatorManager.mockImplementation(() => ({
       start: mockTranslatorManagerStart,
@@ -288,6 +295,47 @@ describe("common iframe startup", () => {
     expect(TranslatorManager.mock.calls[0][0].transboxOnly).toBe(true);
     expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
     expect(runSubtitle).not.toHaveBeenCalled();
+  });
+
+  test("opens online PDFs in the bundled reader instead of the native viewer", async () => {
+    setContentType("application/pdf");
+    shouldOpenPdfReader.mockImplementation(() => true);
+
+    await run();
+
+    expect(openPdfReader).toHaveBeenCalledTimes(1);
+    expect(TranslatorManager).not.toHaveBeenCalled();
+  });
+
+  test("keeps the native viewer for PDFs in iframes", async () => {
+    setContentType("application/pdf");
+    shouldOpenPdfReader.mockImplementation(() => true);
+    mockIsIframe = true;
+
+    await run();
+
+    expect(openPdfReader).not.toHaveBeenCalled();
+  });
+
+  test("keeps the native viewer on blacklisted PDF pages", async () => {
+    setContentType("application/pdf");
+    shouldOpenPdfReader.mockImplementation(() => true);
+    isInBlacklist.mockImplementation(() => true);
+
+    await run();
+
+    expect(openPdfReader).not.toHaveBeenCalled();
+  });
+
+  test("does not open the reader from the userscript build", async () => {
+    setContentType("application/pdf");
+    shouldOpenPdfReader.mockImplementation(() => true);
+    globalThis.GM = { info: {} };
+
+    await run(true).catch(() => {});
+
+    expect(openPdfReader).not.toHaveBeenCalled();
+    delete globalThis.GM;
   });
 
   test("skips non-PDF media documents before rule matching and manager startup", async () => {

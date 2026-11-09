@@ -39,7 +39,8 @@
     {
       "resources": [
         "injector-shadowroot.js",
-        "api/*"
+        "api/*",
+        "pdf-reader.html"
       ],
       "matches": [
         "<all_urls>"
