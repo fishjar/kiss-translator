@@ -6,11 +6,7 @@ import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import RemoveRoundedIcon from "@mui/icons-material/RemoveRounded";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
+import { RemoveRoundedIcon, AddRoundedIcon, RestartAltRoundedIcon, CloseRoundedIcon, FileDownloadRoundedIcon } from "../../components/icons";
 
 /**
  * 原图与译图大图放大查看器（沉浸式半透明毛玻璃背景、无边框、悬浮胶囊工具栏）
@@ -188,7 +184,7 @@ export default function ImageViewerDialog({
               value={activeTab}
               exclusive
               onChange={(e, val) => val && setActiveTab(val)}
-              sx={{
+              sx={(theme) => ({
                 bgcolor: "transparent",
                 "& .MuiToggleButton-root": {
                   color: "rgba(255, 255, 255, 0.75)",
@@ -205,15 +201,15 @@ export default function ImageViewerDialog({
                     color: "#fff",
                   },
                   "&.Mui-selected": {
-                    bgcolor: "primary.main",
-                    color: "#fff",
+                    bgcolor: "secondary.main",
+                    color: "secondary.contrastText",
                     fontWeight: 600,
                     "&:hover": {
-                      bgcolor: "primary.dark",
+                      bgcolor: `color-mix(in srgb, ${theme.palette.secondary.contrastText} 12%, ${theme.palette.secondary.main})`,
                     },
                   },
                 },
-              }}
+              })}
             >
               <ToggleButton value="source">
                 {i18n("source_image_title", "原图预览")}
