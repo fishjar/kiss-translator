@@ -382,6 +382,9 @@ export const FOCUS_SILENT_CSS = String.raw`
 [data-kt-focus-silent="true"][role="menuitemcheckbox"]:focus-visible,
 [data-kt-focus-silent="true"][role="menuitemradio"]:focus-visible,
 [data-kt-focus-silent="true"][role="switch"]:focus-visible,
+[data-kt-focus-silent="true"][role="tab"]:focus-visible,
+[data-kt-focus-silent="true"].MuiToggleButton-root:focus-visible,
+[data-kt-focus-silent="true"].MuiAccordionSummary-root:focus-visible,
 [data-kt-focus-silent="true"].MuiMenuItem-root:focus-visible {
   outline: none !important;
   box-shadow: none !important;
@@ -397,6 +400,10 @@ export const FOCUS_SILENT_CSS = String.raw`
 [data-kt-focus-silent="true"][role="menuitemcheckbox"]:focus,
 [data-kt-focus-silent="true"][role="menuitemradio"]:focus,
 [data-kt-focus-silent="true"][role="switch"]:focus,
+/* ToggleButton/AccordionSummary/tab 的键盘环为 box-shadow 形态，须入清单。 */
+[data-kt-focus-silent="true"][role="tab"]:focus,
+[data-kt-focus-silent="true"].MuiToggleButton-root:focus,
+[data-kt-focus-silent="true"].MuiAccordionSummary-root:focus,
 [data-kt-focus-silent="true"].MuiMenuItem-root:focus {
   outline: none !important;
   box-shadow: none !important;
