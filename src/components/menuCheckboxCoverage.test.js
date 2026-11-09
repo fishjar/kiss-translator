@@ -17,7 +17,7 @@ const REL = (...parts) => path.join(...parts);
 
 // 扫描覆盖的多选面清单（仅登记已接入分发器字形的面）：
 const PRIMITIVES = [REL("views", "Options", "SettingsCard.js")];
-const DIRECT_SITES = [];
+const DIRECT_SITES = [REL("views", "Popup", "PopupTextPanel.js")];
 // 待转换多选面：字形接线尚未落地，登记于此防止契约误报；
 // 各自转换落地后须移入上方严格清单，不得滞留。
 const PENDING_CONVERSIONS = [
@@ -26,7 +26,6 @@ const PENDING_CONVERSIONS = [
   REL("components", "TerminologySelect.js"),
   REL("views", "Options", "CapabilityOptions.js"),
   REL("views", "Options", "Setting.js"),
-  REL("views", "Popup", "PopupTextPanel.js"),
 ];
 const DELEGATES = [
   REL("views", "FileTranslate", "ServiceSelect.js"),

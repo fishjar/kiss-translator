@@ -1851,8 +1851,7 @@ describe("TranCont textarea grip style", () => {
     act(() => root.unmount());
   });
 
-  // B1：hidden = 完全不渲染手柄 + textarea 原生 resize 回退（红：现实现
-  // 渲染空图形手柄且 resize 压成 none）。
+  // hidden = 完全不渲染手柄 + textarea 原生 resize 回退。
   test("hidden variant renders no grip and restores native resize", async () => {
     mockUseTextareaGripStyle.mockReturnValue("hidden");
     apiTranslate.mockResolvedValueOnce({ trText: "译文" });
@@ -1869,8 +1868,7 @@ describe("TranCont textarea grip style", () => {
     act(() => root.unmount());
   });
 
-  // 意见 A：grip 样式切到 hidden 时自动释放会话高度锁（红：现实现残留
-  // kt-height-locked 与内联高度，字段被永久钉死）。
+  // grip 样式切到 hidden 时自动释放会话高度锁。
   test("switching to hidden releases the session height lock", async () => {
     mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");
     apiTranslate.mockResolvedValue({ trText: "译文" });

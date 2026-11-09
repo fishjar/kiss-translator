@@ -1,6 +1,6 @@
 import TerminologySelect from "../../components/TerminologySelect";
 import { Box } from "@mui/material";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import { ArrowForwardRoundedIcon } from "../../components/icons";
 import { OPT_LANGS_FROM_REVERSED, OPT_LANGS_TO_REVERSED } from "../../config";
 import { SettingsSelect } from "../Options/SettingsCard";
 import ServiceSelect from "./ServiceSelect";
