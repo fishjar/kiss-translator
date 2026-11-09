@@ -309,14 +309,21 @@ describe("MUI-managed focus exemptions", () => {
   test("baseline branch exempts MUI-managed focus controls", () => {
     for (const sel of BASELINE_SELECTORS) {
       expect(M3_GLOBAL_CSS).toMatch(
-        new RegExp(sel.replace(/[.:]/g, "\\$&") + "\\s*\\{[^}]*outline:\\s*none;")
+        new RegExp(
+          sel.replace(/[.:]/g, "\\$&") + "\\s*\\{[^}]*outline:\\s*none;"
+        )
       );
     }
   });
   test("@supports block exempts MUI-managed focus controls", () => {
-    const bodies = getCssAtRuleBodies(M3_GLOBAL_CSS, "@supports selector(:focus-visible)");
+    const bodies = getCssAtRuleBodies(
+      M3_GLOBAL_CSS,
+      "@supports selector(:focus-visible)"
+    );
     for (const sel of ALL_SELECTORS) {
-      const re = new RegExp(sel.replace(/[.:]/g, "\\$&") + "\\s*\\{[^}]*outline:\\s*none;");
+      const re = new RegExp(
+        sel.replace(/[.:]/g, "\\$&") + "\\s*\\{[^}]*outline:\\s*none;"
+      );
       expect(bodies.some((body) => re.test(body))).toBe(true);
     }
   });
@@ -325,10 +332,22 @@ describe("MUI-managed focus exemptions", () => {
     // outline:none，而 MUI 的 focusVisible 指示走 boxShadow——强制颜色域会丢弃
     // box-shadow，键盘聚焦的 MenuItem 将无任何可见指示。本块只覆盖 :focus-visible
     //（键盘语境），描边色交强制引擎，指针模态行为零变化。
-    const bodies = getCssAtRuleBodies(M3_GLOBAL_CSS, "@media (forced-colors: active)");
+    const bodies = getCssAtRuleBodies(
+      M3_GLOBAL_CSS,
+      "@media (forced-colors: active)"
+    );
     expect(
       bodies.some((body) =>
         /\.kt-m3-root \.MuiMenuItem-root:focus-visible\s*\{[^}]*outline:\s*3px solid;[^}]*outline-offset:\s*-3px;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+    // Portal 形态：MUI Menu 挂 body 后菜单项不在 .kt-m3-root 内，
+    // 纸容器（MuiMenu-paper slot 类）作用域须独立承载同一描边。
+    expect(
+      bodies.some((body) =>
+        /\.MuiMenu-paper \.MuiMenuItem-root:focus-visible\s*\{[^}]*outline:\s*3px solid;[^}]*outline-offset:\s*-3px;/.test(
           body
         )
       )
@@ -758,9 +777,15 @@ describe("icon hue WCAG contrast envelope", () => {
     for (const h of gateHues) {
       const { secondaryContainer, onSecondaryContainer } =
         calculateAdaptiveAccentFamilies(h, "light");
-      expect(contrastRatio(secondaryContainer, "#FFFFFF")).toBeGreaterThanOrEqual(1.26);
-      expect(contrastRatio(secondaryContainer, "#F0F4F9")).toBeGreaterThanOrEqual(1.14);
-      expect(contrastRatio(secondaryContainer, onSecondaryContainer)).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrastRatio(secondaryContainer, "#FFFFFF")
+      ).toBeGreaterThanOrEqual(1.26);
+      expect(
+        contrastRatio(secondaryContainer, "#F0F4F9")
+      ).toBeGreaterThanOrEqual(1.14);
+      expect(
+        contrastRatio(secondaryContainer, onSecondaryContainer)
+      ).toBeGreaterThanOrEqual(4.5);
     }
   });
 
@@ -772,7 +797,9 @@ describe("icon hue WCAG contrast envelope", () => {
     // 与 CSS color-mix(in srgb) 语义一致。
     const colorMix = (a, b, ratio) => {
       const channels = (hex) =>
-        [1, 3, 5].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16));
+        [1, 3, 5].map((offset) =>
+          Number.parseInt(hex.slice(offset, offset + 2), 16)
+        );
       const [ca, cb] = [channels(a), channels(b)];
       const mixed = ca.map((channel, index) =>
         Math.round(channel * ratio + cb[index] * (1 - ratio))
@@ -805,18 +832,34 @@ describe("icon hue WCAG contrast envelope", () => {
     const familyHues = [];
     for (let h = 0; h <= 360; h += 5) familyHues.push(h);
     familyHues.push(
-      59, 59.5, 60, 240, 35, 91, 93.5, 100.5, 102.5, 44.3, 92.9, 191.4, 270,
+      59,
+      59.5,
+      60,
+      240,
+      35,
+      91,
+      93.5,
+      100.5,
+      102.5,
+      44.3,
+      92.9,
+      191.4,
+      270,
       337.1
     );
     for (const h of familyHues) {
       for (const theme of ["light", "dark"]) {
         const p = calculateAdaptivePrimaryFamily(h, theme);
-        expect(contrastRatio(p.primary, p.onPrimary)).toBeGreaterThanOrEqual(4.5);
+        expect(contrastRatio(p.primary, p.onPrimary)).toBeGreaterThanOrEqual(
+          4.5
+        );
         expect(
           contrastRatio(p.primaryContainer, p.onPrimaryContainer)
         ).toBeGreaterThanOrEqual(4.5);
         const f = calculateAdaptiveAccentFamilies(h, theme);
-        expect(contrastRatio(f.secondary, f.onSecondary)).toBeGreaterThanOrEqual(4.5);
+        expect(
+          contrastRatio(f.secondary, f.onSecondary)
+        ).toBeGreaterThanOrEqual(4.5);
         expect(
           contrastRatio(f.secondaryContainer, f.onSecondaryContainer)
         ).toBeGreaterThanOrEqual(4.5);
@@ -825,5 +868,36 @@ describe("icon hue WCAG contrast envelope", () => {
         ).toBeGreaterThanOrEqual(4.5);
       }
     }
+  });
+});
+
+describe("m3 global css legacy focus-visible fallback", () => {
+  test("MenuItem keeps a keyboard ring on engines without :focus-visible", () => {
+    // 旧内核整块跳过 @supports 与 :focus-visible HC 块，而 MenuItem 豁免
+    // （outline:none）无条件生效——键盘聚焦菜单项零指示（HC 域更因
+    // boxShadow 被引擎丢弃而全盲）。旧内核兜底块须在豁免之后声明，
+    // 且不得以裸规则出现在顶层；扫描按块体全集，不依赖块在文本中的位置。
+    const css = M3_GLOBAL_CSS;
+    const legacyBodies = getCssAtRuleBodies(
+      css,
+      "@supports not selector(:focus-visible)"
+    );
+    expect(
+      legacyBodies.some((body) =>
+        /\.kt-m3-root \.MuiMenuItem-root:focus\s*\{[^}]*outline:\s*3px solid;[^}]*outline-offset:\s*-3px;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+    // 顺序守卫：兜底块须后置于无条件豁免（同特异性靠源序胜出）。
+    expect(
+      css.indexOf("@supports not selector(:focus-visible)")
+    ).toBeGreaterThan(css.indexOf(".kt-m3-root .MuiMenuItem-root:focus {"));
+    // 结构闸：兜底 3px 环禁止裸规则现于顶层（现代内核鼠标姿态锁定）。
+    expect(stripTopLevelAtRuleBlocks(css)).not.toMatch(
+      /\.MuiMenuItem-root:focus\s*\{[^}]*outline:\s*3px solid;/
+    );
+    // 棘轮闸：自持焦点环不得绑 .Mui-focusVisible 类门控。
+    expect(css).not.toContain(".Mui-focusVisible");
   });
 });

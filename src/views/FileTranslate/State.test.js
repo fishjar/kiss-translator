@@ -1,9 +1,36 @@
 /* eslint-disable testing-library/no-unnecessary-act -- These tests use React createRoot directly. */
 import React, { act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { FileTranslationProvider, useFileTranslation } from "./State";
+import { readFileSync } from "fs";
+import path from "path";
+import {
+  FileTranslationProvider,
+  useFileTranslation,
+  stateSecondaryPalette,
+} from "./State";
 import { getFileClient } from "../../fileTranslation/client";
 import { useTheme } from "@mui/material";
+import {
+  getIconStyleSnapshot,
+  setIconStyleSnapshot,
+} from "../../styles/iconStyleStore";
+import { CheckIcon } from "../../components/icons";
+
+// 域主题 secondary 深浅覆盖锁：浅档沿用域内定型值，暗档补 M3 暗色
+// secondaryContainer 族（m3.js 暗色静态定值）——MuiMenuItem 选中态在暗色
+// 界面不再使用浅底深字。
+describe("stateSecondaryPalette theme coverage", () => {
+  test("light mode keeps the domain-fixed pair and dark mode switches to the M3 dark container family", () => {
+    expect(stateSecondaryPalette("light")).toEqual({
+      main: "#E8DEF8",
+      contrastText: "#1D192B",
+    });
+    expect(stateSecondaryPalette("dark")).toEqual({
+      main: "#004A77",
+      contrastText: "#C2E7FF",
+    });
+  });
+});
 
 jest.mock("../../fileTranslation/client", () => ({ getFileClient: jest.fn() }));
 
@@ -669,10 +696,11 @@ test("overrides MuiMenuItem so menu rows share one height and padding token", as
     )
   );
   expect(capturedTheme.components.MuiMenuItem).toBeDefined();
-  const menuItemRoot =
-    capturedTheme.components.MuiMenuItem.styleOverrides.root({
+  const menuItemRoot = capturedTheme.components.MuiMenuItem.styleOverrides.root(
+    {
       theme: capturedTheme,
-    });
+    }
+  );
   // 选中态走 secondary-container 族底色。
   expect(menuItemRoot["&.Mui-selected"]).toEqual({
     backgroundColor: capturedTheme.palette.secondary.main,
@@ -682,9 +710,11 @@ test("overrides MuiMenuItem so menu rows share one height and padding token", as
   expect(menuItemRoot["&::before"]).toBeUndefined();
   expect(menuItemRoot["&.Mui-selected::before"]).toBeUndefined();
   // hover/selected:hover 恢复半透明叠色；
-  // 选中行 hover 保留 secondary 实底（contrastText 12% 叠 secondary.main）。
+  // 选中行 hover 保留 secondary 实底（State Layer 12% 随 currentColor 叠
+  // secondary.main），浅档前景保持容器前景。
   expect(menuItemRoot["&.Mui-selected:hover"]).toEqual({
-    backgroundColor: `color-mix(in srgb, ${capturedTheme.palette.secondary.contrastText} 12%, ${capturedTheme.palette.secondary.main})`,
+    color: capturedTheme.palette.secondary.contrastText,
+    backgroundColor: `color-mix(in srgb, currentColor 12%, ${capturedTheme.palette.secondary.main})`,
   });
   expect(menuItemRoot["&:hover"]).toEqual({
     backgroundColor: "color-mix(in srgb, currentColor 8%, transparent)",
@@ -697,36 +727,50 @@ test("overrides MuiMenuItem so menu rows share one height and padding token", as
     boxShadow: "inset 0 0 0 3px #0B57D0",
     backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
   });
-  // 暗色档：焦点环换用 m3.js 暗色 primary 定型值，对暗底对比达标。
-  const darkMenuItemRoot = capturedTheme.components.MuiMenuItem.styleOverrides.root(
-    {
+  // 暗色档：焦点环换用 m3.js 暗色 primary 定型值，对暗底对比达标；
+  // secondary 桩使用真实暗档容器族（浅色 token 会令暗档叠层对比断言
+  // 自引自算、无鉴别力）。
+  const darkMenuItemRoot =
+    capturedTheme.components.MuiMenuItem.styleOverrides.root({
       theme: {
         palette: {
           mode: "dark",
-          secondary: { main: "#E8DEF8", contrastText: "#1D192B" },
+          secondary: stateSecondaryPalette("dark"),
         },
         // root 函数体内调用 theme.spacing(0.5)（State.js:382-383 paddingTop/
         // paddingBottom），存根缺 spacing 会先 TypeError；八分度缺省即可。
         spacing: (n) => n * 8,
       },
-    }
-  );
+    });
   expect(darkMenuItemRoot["&&:focus-visible"].boxShadow).toBe(
     "inset 0 0 0 3px #A8C7FA"
   );
   // 选中行键盘焦点保留 secondary 实底（特异性 (0,4,0) 恒压通用的 (0,3,0)）。
   expect(menuItemRoot["&&.Mui-selected:focus-visible"]).toEqual({
-    backgroundColor: `color-mix(in srgb, ${capturedTheme.palette.secondary.contrastText} 12%, ${capturedTheme.palette.secondary.main})`,
+    color: capturedTheme.palette.secondary.contrastText,
+    backgroundColor: `color-mix(in srgb, currentColor 12%, ${capturedTheme.palette.secondary.main})`,
+  });
+  // 暗档选中行瞬时态前景升为白：暗容器底与其 12% 白叠层合成底对白字
+  // 均不低于 4.5:1（浅档容器前景保持不变）。
+  expect(darkMenuItemRoot["&.Mui-selected:hover"]).toEqual({
+    color: "#ffffff",
+    backgroundColor: `color-mix(in srgb, currentColor 12%, ${stateSecondaryPalette("dark").main})`,
+  });
+  expect(darkMenuItemRoot["&&.Mui-selected:focus-visible"]).toEqual({
+    color: "#ffffff",
+    backgroundColor: `color-mix(in srgb, currentColor 12%, ${stateSecondaryPalette("dark").main})`,
   });
   // .Mui-focusVisible 挂点不得残留任何样式（鼠标打开路径不命中环）。
   expect(menuItemRoot["&&.Mui-focusVisible"]).toBeUndefined();
   // 数据多选菜单（aria-multiselectable，经 TerminologySelect 的 <Select multiple>
   // 进入本域主题）：持久选中染色禁令与瞬时反馈保留同时成立——选中行去底色、
   // hover 8% 叠加、focus-visible 12% 叠加。
-  expect(menuItemRoot['[aria-multiselectable="true"] &&.Mui-selected']).toEqual({
-    backgroundColor: "transparent",
-    color: "inherit",
-  });
+  expect(menuItemRoot['[aria-multiselectable="true"] &&.Mui-selected']).toEqual(
+    {
+      backgroundColor: "transparent",
+      color: "inherit",
+    }
+  );
   expect(
     menuItemRoot['[aria-multiselectable="true"] &&.Mui-selected:hover']
   ).toEqual({
@@ -738,10 +782,28 @@ test("overrides MuiMenuItem so menu rows share one height and padding token", as
     backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
   });
   // forced-colors 兜底（对齐 M3Theme forcedColorsFocusRing 配对模式）。
-  expect(menuItemRoot["@media (forced-colors: active)"]["&&:focus-visible"]).toEqual({
-    outline: "3px solid",
-    outlineOffset: -3,
+  expect(
+    menuItemRoot["@media (forced-colors: active)"]["&&:focus-visible"]
+  ).toEqual({
+    outline: "2px solid CanvasText",
+    outlineOffset: 2,
   });
+  // Switch size="small" 是本域唯一实际渲染尺寸：MUI small 内建档挂在根
+  // 变体类上、特异度压过槽位同值复刻（Switch.js:85-108），四键必须以同
+  // 选择器形态钉回 52x32 档——否则 small 开关按 40x24 渲染、checked 位移
+  // 掉到 16px，thumb 与输入区双双错位。
+  const switchRoot = capturedTheme.components.MuiSwitch.styleOverrides.root;
+  expect(switchRoot["&.MuiSwitch-sizeSmall"]).toEqual({
+    width: 52,
+    height: 32,
+    padding: 0,
+  });
+  expect(switchRoot["&.MuiSwitch-sizeSmall .MuiSwitch-switchBase"]).toEqual({
+    padding: 0,
+  });
+  expect(
+    switchRoot["&.MuiSwitch-sizeSmall .MuiSwitch-switchBase.Mui-checked"]
+  ).toEqual({ transform: "translateX(20px)" });
 });
 
 test("gives the settings select entry its own baseline in the State theme", async () => {
@@ -844,19 +906,32 @@ test("pins the FileTranslate MuiSwitch overrides to the current switch system", 
   });
   // 契约三：焦点环沿用现行 focusRing 形态（3px solid + offset 2），色值按
   // mode 二态：浅色 #0B57D0、暗色 #A8C7FA（暗档对暗底对比达标）。
-  expect(switchBase["&.Mui-focusVisible"]).toEqual({
+  expect(switchBase["&:focus-visible"]).toEqual({
     outline: "3px solid #0B57D0",
     outlineOffset: 2,
   });
+  expect(
+    switchBase["@supports selector(:has(*))"][
+      "&:has(.MuiSwitch-input:focus-visible)"
+    ]
+  ).toEqual({ outline: "3px solid #0B57D0", outlineOffset: 2 });
   const darkSwitchBase = switchOverrides.switchBase({
-    theme: { palette: { mode: "dark" } },
+    theme: { palette: { mode: "dark", primary: { main: "#0B57D0" } } },
   });
-  expect(darkSwitchBase["&.Mui-focusVisible"]).toEqual({
+  expect(darkSwitchBase["&:focus-visible"]).toEqual({
     outline: "3px solid #A8C7FA",
     outlineOffset: 2,
   });
+  expect(
+    darkSwitchBase["@supports selector(:has(*))"][
+      "&:has(.MuiSwitch-input:focus-visible)"
+    ]
+  ).toEqual({ outline: "3px solid #A8C7FA", outlineOffset: 2 });
   // 契约四：track 保留现行 2px border（宽度与线形钉死，色值属颜色豁免域不钉）。
-  expect(switchOverrides.track).toMatchObject({ borderRadius: 999, opacity: 1 });
+  expect(switchOverrides.track).toMatchObject({
+    borderRadius: 999,
+    opacity: 1,
+  });
   expect(switchOverrides.track.border).toMatch(/^2px solid /);
 });
 
@@ -883,4 +958,120 @@ test("FileTranslationProvider marks document.body as kt-focus-silent-scope", asy
   // 卸载必须移除该类（幂等清理，不污染后续挂载域）。
   act(() => root.unmount());
   expect(document.body.classList.contains("kt-focus-silent-scope")).toBe(false);
+});
+
+test("provider subtree does not re-render on icon style snapshot changes", async () => {
+  // 契约：iconStyle 的域内消费走分发器逐图标订阅与桥接写入，provider 顶层
+  // 订阅属多余重渲染源——本用例锁定「不再订阅」的行为面。
+  const client = makeClient();
+  client.session = { sessionId: "s1", extensionVersion: "2.1.0" };
+  client.connect.mockResolvedValue(client.session);
+  client.request.mockResolvedValue({
+    scenes: {},
+    services: [],
+    prompts: [],
+    styles: [],
+    models: [],
+    ocrModels: [],
+  });
+  getFileClient.mockReturnValue(client);
+  let probeRenders = 0;
+  function Probe() {
+    probeRenders += 1;
+    return null;
+  }
+  await act(async () =>
+    root.render(
+      <FileTranslationProvider>
+        <Content />
+        <Probe />
+      </FileTranslationProvider>
+    )
+  );
+  const before = probeRenders;
+  act(() => {
+    setIconStyleSnapshot(before % 2 === 0 ? "mui" : "lucide");
+  });
+  expect(probeRenders).toBe(before);
+  act(() => {
+    setIconStyleSnapshot("lucide");
+  });
+});
+
+test("State.js no longer subscribes the icon style store at provider level", () => {
+  // 静态闸：删除即终态，防回流。
+  const source = readFileSync(path.join(__dirname, "State.js"), "utf8");
+  expect(source).not.toContain("subscribeIconStyle");
+});
+
+test("context refresh still mirrors iconStyle into the store snapshot", async () => {
+  // 桥接保留闸：删除顶层订阅不得带走桥接写入腿。
+  const client = makeClient();
+  client.session = { sessionId: "s2", extensionVersion: "2.1.0" };
+  client.connect.mockResolvedValue(client.session);
+  client.request.mockResolvedValue({
+    scenes: {},
+    services: [],
+    prompts: [],
+    styles: [],
+    models: [],
+    ocrModels: [],
+    iconStyle: "mui",
+  });
+  getFileClient.mockReturnValue(client);
+  await act(async () =>
+    root.render(
+      <FileTranslationProvider>
+        <Content />
+      </FileTranslationProvider>
+    )
+  );
+  expect(getIconStyleSnapshot()).toBe("mui");
+  act(() => {
+    setIconStyleSnapshot("lucide");
+  });
+});
+
+test("dispatcher icons in the FileTranslate domain follow the icon style snapshot", async () => {
+  // 契约：#6 删 provider 顶层订阅后，域内显式图标仍由逐图标分发器自订阅
+  // 响应 iconStyle 变化——不得因删订阅而冻结字形。
+  const client = makeClient();
+  client.session = { sessionId: "s-icon", extensionVersion: "2.1.0" };
+  client.connect.mockResolvedValue(client.session);
+  client.request.mockResolvedValue({
+    scenes: {},
+    services: [],
+    prompts: [],
+    styles: [],
+    models: [],
+    ocrModels: [],
+  });
+  getFileClient.mockReturnValue(client);
+  setIconStyleSnapshot("lucide");
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const iconRoot = createRoot(host);
+  try {
+    await act(async () =>
+      iconRoot.render(
+        <FileTranslationProvider>
+          <CheckIcon data-testid="probe-icon" />
+        </FileTranslationProvider>
+      )
+    );
+    const lucidePath = host.querySelector("svg path")?.getAttribute("d");
+    expect(lucidePath).toBeTruthy();
+    act(() => {
+      setIconStyleSnapshot("mui");
+    });
+    const muiPath = host.querySelector("svg path")?.getAttribute("d");
+    expect(muiPath).toBeTruthy();
+    expect(muiPath).not.toBe(lucidePath);
+  } finally {
+    act(() => iconRoot.unmount());
+    host.remove();
+    act(() => {
+      setIconStyleSnapshot("lucide");
+    });
+  }
 });

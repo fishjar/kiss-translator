@@ -1,5 +1,6 @@
 import { supportsTouch } from "../../libs/touchCapability";
 import TouchTranslateControl from "../../components/TouchTranslateControl";
+import { scriptFocus } from "../../hooks/focusModality";
 import {
   useCallback,
   useEffect,
@@ -8,22 +9,22 @@ import {
   useRef,
   useState,
 } from "react";
-import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
-import BookmarkAddRoundedIcon from "@mui/icons-material/BookmarkAddRounded";
-import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import DoNotDisturbOnRoundedIcon from "@mui/icons-material/DoNotDisturbOnRounded";
-import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import HighlightAltRoundedIcon from "@mui/icons-material/HighlightAltRounded";
-import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
-import RadioButtonCheckedIcon from "@mui/icons-material/RadioButtonChecked";
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
-import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
-import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
-import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
-import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
+import { ArrowDropDownRoundedIcon } from "../../components/icons";
+import { BookmarkAddRoundedIcon } from "../../components/icons";
+import { BlockRoundedIcon } from "../../components/icons";
+import { CheckRoundedIcon } from "../../components/icons";
+import { DoNotDisturbOnRoundedIcon } from "../../components/icons";
+import { ErrorOutlineRoundedIcon } from "../../components/icons";
+import { ExpandMoreRoundedIcon } from "../../components/icons";
+import { HighlightAltRoundedIcon } from "../../components/icons";
+import { LanguageRoundedIcon } from "../../components/icons";
+import { OpenInNewRoundedIcon } from "../../components/icons";
+import { RadioButtonCheckedIcon } from "../../components/icons";
+import { RadioButtonUncheckedIcon } from "../../components/icons";
+import { RestartAltRoundedIcon } from "../../components/icons";
+import { SwapHorizRoundedIcon } from "../../components/icons";
+import { TranslateRoundedIcon } from "../../components/icons";
+import { UndoRoundedIcon } from "../../components/icons";
 import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import {
@@ -111,7 +112,7 @@ function handleRadioKeyDown(event) {
             (["ArrowLeft", "ArrowUp"].includes(event.key) ? -1 : 1) +
             buttons.length) %
           buttons.length;
-  buttons[next].focus();
+  scriptFocus(buttons[next], { preventScroll: false });
   buttons[next].click();
 }
 const normalizedValue = (name, value) =>
@@ -805,10 +806,11 @@ export default function PopupCont({
   useEffect(() => {
     if (openMenu?.name !== "style") return undefined;
     const frame = requestAnimationFrame(() =>
-      (
+      scriptFocus(
         styleGridRef.current?.querySelector('[aria-pressed="true"]') ||
-        styleGridRef.current?.querySelector("button")
-      )?.focus()
+          styleGridRef.current?.querySelector("button"),
+        { preventScroll: false }
+      )
     );
     return () => cancelAnimationFrame(frame);
   }, [openMenu?.name]);
@@ -1073,6 +1075,9 @@ export default function PopupCont({
               transform: `translateX(${enabledValue(transOnly) ? 100 : 0}%)`,
             }}
           />
+          {/* NARROW_SEGMENT_CHECKMARK_EXEMPTION: popup 弹层 40px 高微型分段、
+              选项文案 ≤4 字，按 M3 分段规范特别豁免移除 Checkmark，
+              纯 secondaryContainer 呈现。 */}
           {[false, true].map((only) => (
             <button
               type="button"
@@ -1265,30 +1270,31 @@ export default function PopupCont({
         {...menuProps("service")}
         className="kt-popup-service-menu"
         ariaLabel={i18n("popup_more_services")}
-        estimatedHeight={services.length * 38 + 12}
+        estimatedHeight={services.length * 48 + 16}
       >
         {services.map((service) => (
           <MenuItem
             className="kt-popup-service-option"
             key={service.key}
+            role="menuitemradio"
+            aria-checked={service.key === apiSlug}
             selected={service.key === apiSlug}
             onClick={() => {
               void putRuleValue("apiSlug", service.key);
               setOpenMenu(null);
             }}
           >
+            {service.key === apiSlug ? (
+              <RadioButtonCheckedIcon />
+            ) : (
+              <RadioButtonUncheckedIcon />
+            )}
             <ApiProviderIcon
               apiType={service.type}
               className="kt-service-logo"
               lightSurface
             />
             <span>{service.name}</span>
-            {service.key === apiSlug && (
-              <CheckRoundedIcon
-                className="kt-popup-menu-check"
-                aria-hidden="true"
-              />
-            )}
           </MenuItem>
         ))}
       </PopupMenu>
@@ -1336,7 +1342,7 @@ export default function PopupCont({
                 : event.key === "End"
                   ? buttons.length - 1
                   : (index + offset + buttons.length) % buttons.length;
-            buttons[next].focus();
+            scriptFocus(buttons[next], { preventScroll: false });
           }}
         >
           {allTextStyles.map((style) => (
