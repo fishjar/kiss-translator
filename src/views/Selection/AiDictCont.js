@@ -1,10 +1,12 @@
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
+import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { apiDict } from "../../apis";
+import { RefreshRoundedIcon } from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import { BrowserTtsBtn } from "./AudioBtn";
 import CopyBtn from "./CopyBtn";
@@ -116,7 +118,11 @@ export default function AiDictCont({
         }
 
         if (active) {
-          setError({ key: requestKey, message: err.message });
+          // 空 Error/非 Error 拒绝值会让 Alert 渲染空文案——通用文案兜底。
+          setError({
+            key: requestKey,
+            message: err?.message || i18n("popup_text_failed"),
+          });
         }
       } finally {
         if (active) {
@@ -148,12 +154,33 @@ export default function AiDictCont({
       error.key ===
         getRequestKey({ text, fromLang, toLang, apiSettingKey, context })
     ) {
-      setAttemptRevision(requestRevision);
+      // 本地重试计数与宿主提交版本是两条独立计数：宿主 requestRevision
+      // 变更只触发本地自增。若以宿主值直接赋值，宿主递增结果与本地已自增
+      // 的计数同值时 setState 不产生变化，请求 effect 不重跑，重试被吞。
+      setAttemptRevision((revision) => revision + 1);
     }
   }, [requestRevision]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) {
-    return <Alert severity="error">{error.message}</Alert>;
+    return (
+      <Alert
+        severity="error"
+        // 失败重试入口独立于宿主的提交链：AI 词典请求失败时即使普通翻译
+        // 成功、原文未改，也能在此就地重发（本地 revision 自增重跑请求）。
+        action={
+          <IconButton
+            size="small"
+            onClick={() => setAttemptRevision((revision) => revision + 1)}
+            title={i18n("popup_text_retry")}
+            aria-label={i18n("popup_text_retry")}
+          >
+            <RefreshRoundedIcon fontSize="inherit" />
+          </IconButton>
+        }
+      >
+        {error.message}
+      </Alert>
+    );
   }
 
   if (loading && !markdown) {
