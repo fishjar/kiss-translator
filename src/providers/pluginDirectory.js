@@ -1,5 +1,7 @@
 import { downloadProviderPackage } from "./package";
 import { providerError } from "./capabilities";
+import { capabilityLabelKeys } from "./capabilityLabels";
+import { validateCapabilities } from "./instances";
 import { SDK_VERSION } from "./sdk/version";
 
 import {
@@ -11,8 +13,16 @@ export const OFFICIAL_REPOSITORY =
   "https://github.com/fishjar/kiss-translator-plugins";
 export const OFFICIAL_BASE =
   "https://raw.githubusercontent.com/fishjar/kiss-translator-plugins/dist/";
+export const COMMUNITY_PAGE_SIZE = 10;
+const COMMUNITY_RESULT_LIMIT = 1000;
 const PREFIX = "kiss-plugin-directory-v1:";
+const REFRESH_INTERVAL = 60000;
+const COMMUNITY_TTL = 3600000;
 const inflight = new Map();
+
+export function pluginDirectoryCacheKey(kind, page = 1) {
+  return kind === "official" ? kind : `community:stars:${page}`;
+}
 
 export function readDirectoryCache(key) {
   try {
@@ -23,8 +33,20 @@ export function readDirectoryCache(key) {
   }
 }
 
+function writeDirectoryCache(key, value) {
+  try {
+    localStorage.setItem(PREFIX + key, JSON.stringify(value));
+  } catch {
+    /* Storage is optional. */
+  }
+}
+
 // Bound both metadata headers and body; never retain credentials or HTML responses.
-export async function fetchDirectoryJson(url, fetchImpl = globalThis.fetch) {
+export async function fetchDirectoryJson(
+  url,
+  fetchImpl = globalThis.fetch,
+  { revalidate = false } = {}
+) {
   const controller = new AbortController();
   let reader;
   let timer;
@@ -41,6 +63,7 @@ export async function fetchDirectoryJson(url, fetchImpl = globalThis.fetch) {
       fetchImpl(url, {
         credentials: "omit",
         redirect: "error",
+        ...(revalidate && { cache: "no-cache" }),
         signal: controller.signal,
         headers: { Accept: "application/json" },
       }),
@@ -138,6 +161,14 @@ export function validateOfficialDirectory(data) {
   return data;
 }
 
+function isRepositoryName(name) {
+  return (
+    typeof name === "string" &&
+    /^[A-Za-z0-9][A-Za-z0-9-]*\/[\w.-]+$/.test(name) &&
+    ![".", ".."].includes(name.split("/")[1])
+  );
+}
+
 export function validateCommunityDirectory(data) {
   if (!Array.isArray(data?.items) || !Number.isFinite(data.total_count))
     throw providerError(
@@ -146,10 +177,10 @@ export function validateCommunityDirectory(data) {
     );
   const seen = new Set();
   const items = data.items
+    .slice(0, COMMUNITY_PAGE_SIZE)
     .filter((repo) => {
       if (
-        !/^[A-Za-z0-9][A-Za-z0-9-]*\/[\w.-]+$/.test(repo?.full_name) ||
-        [".", ".."].includes(repo.full_name?.split("/")[1]) ||
+        !isRepositoryName(repo?.full_name) ||
         repo.html_url !== `https://github.com/${repo.full_name}` ||
         repo.html_url.toLowerCase() === OFFICIAL_REPOSITORY.toLowerCase() ||
         repo.fork ||
@@ -167,9 +198,94 @@ export function validateCommunityDirectory(data) {
     }));
   return {
     items,
-    total_count: Math.min(data.total_count, 1000),
+    total_count: Math.min(data.total_count, COMMUNITY_RESULT_LIMIT),
     incomplete_results: !!data.incomplete_results,
   };
+}
+
+function directoryTranslations(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      ([, text]) => typeof text === "string" && text.trim()
+    )
+  );
+}
+
+function communityPluginSummary(data, capabilities) {
+  if (
+    typeof data?.name !== "string" ||
+    !data.name.trim() ||
+    typeof data.version !== "string" ||
+    !/^\d+\.\d+\.\d+$/.test(data.version) ||
+    !Array.isArray(capabilities)
+  )
+    return null;
+  return {
+    name: data.name,
+    version: data.version,
+    description: typeof data.description === "string" ? data.description : "",
+    nameI18n: directoryTranslations(data.nameI18n),
+    descriptionI18n: directoryTranslations(data.descriptionI18n),
+    capabilities: [
+      ...new Set(
+        capabilities.filter(
+          (name) =>
+            typeof name === "string" && Object.hasOwn(capabilityLabelKeys, name)
+        )
+      ),
+    ],
+  };
+}
+
+function summarizeCommunityManifest(manifest) {
+  if (
+    typeof manifest?.id !== "string" ||
+    !/^[a-z][a-z0-9-]{1,100}$/.test(manifest.id) ||
+    !Number.isSafeInteger(manifest.apiVersion) ||
+    manifest.apiVersion < 1 ||
+    !Array.isArray(manifest.services) ||
+    !manifest.services.length
+  )
+    return null;
+  const capabilities = manifest.services.flatMap((service) => {
+    validateCapabilities(service?.capabilities, { external: true });
+    return Object.keys(service.capabilities);
+  });
+  return communityPluginSummary(manifest, capabilities);
+}
+
+export async function loadCommunityPluginMetadata(
+  fullName,
+  { force = false, fetchImpl } = {}
+) {
+  if (!isRepositoryName(fullName)) return null;
+  const key = `community:manifest:${fullName.toLowerCase()}`;
+  const cached = readDirectoryCache(key);
+  const ttl = force || cached?.data === null ? REFRESH_INTERVAL : COMMUNITY_TTL;
+  if (cached && Date.now() - cached.time < ttl) {
+    if (cached.data === null) return null;
+    const summary = communityPluginSummary(
+      cached.data,
+      cached.data?.capabilities
+    );
+    if (summary) return summary;
+  }
+  if (inflight.has(key)) return inflight.get(key);
+  const request = (async () => {
+    const url = `https://raw.githubusercontent.com/${fullName}/HEAD/manifest.json`;
+    const data = await fetchDirectoryJson(url, fetchImpl, { revalidate: force })
+      .then(summarizeCommunityManifest)
+      .catch(() => null);
+    writeDirectoryCache(key, { data, time: Date.now() });
+    return data;
+  })();
+  inflight.set(key, request);
+  try {
+    return await request;
+  } finally {
+    inflight.delete(key);
+  }
 }
 
 export async function loadPluginDirectory(
@@ -180,13 +296,14 @@ export async function loadPluginDirectory(
     !["official", "community"].includes(kind) ||
     !Number.isInteger(page) ||
     page < 1 ||
-    page > 50
+    page >
+      (kind === "community" ? COMMUNITY_RESULT_LIMIT / COMMUNITY_PAGE_SIZE : 50)
   )
     throw new Error("Invalid directory request");
-  const key = kind === "official" ? kind : `${kind}:${page}`;
+  const key = pluginDirectoryCacheKey(kind, page);
   const cached = readDirectoryCache(key);
-  const ttl = kind === "official" ? 60000 : 3600000;
-  if (cached?.data && Date.now() - cached.time < (force ? 60000 : ttl)) {
+  const ttl = kind === "official" || force ? REFRESH_INTERVAL : COMMUNITY_TTL;
+  if (cached?.data && Date.now() - cached.time < ttl) {
     try {
       return kind === "official"
         ? validateOfficialDirectory(cached.data)
@@ -203,35 +320,29 @@ export async function loadPluginDirectory(
     );
   if (
     force &&
-    Date.now() - (readDirectoryCache(kind + ":refresh")?.time || 0) < 60000
+    Date.now() - (readDirectoryCache(kind + ":refresh")?.time || 0) <
+      REFRESH_INTERVAL
   )
     throw providerError("HTTP_ERROR", "Please wait before refreshing again.");
   if (inflight.has(key)) return inflight.get(key);
-  const write = (cacheKey, value) => {
-    try {
-      localStorage.setItem(PREFIX + cacheKey, JSON.stringify(value));
-    } catch {
-      /* Storage is optional. */
-    }
-  };
   const request = (async () => {
     const refreshTime = Date.now();
-    if (force) write(kind + ":refresh", { time: refreshTime });
+    if (force) writeDirectoryCache(kind + ":refresh", { time: refreshTime });
     try {
       const url =
         kind === "official"
           ? `${OFFICIAL_BASE}catalog.json`
-          : `https://api.github.com/search/repositories?q=${encodeURIComponent("topic:kiss-translator-plugin archived:false fork:false")}&sort=updated&order=desc&per_page=20&page=${page}`;
+          : `https://api.github.com/search/repositories?q=${encodeURIComponent("topic:kiss-translator-plugin archived:false fork:false")}&sort=stars&order=desc&per_page=${COMMUNITY_PAGE_SIZE}&page=${page}`;
       const data = await fetchDirectoryJson(url, fetchImpl);
       const validated =
         kind === "official"
           ? validateOfficialDirectory(data)
           : validateCommunityDirectory(data);
-      write(key, { data: validated, time: Date.now() });
+      writeDirectoryCache(key, { data: validated, time: Date.now() });
       return validated;
     } catch (error) {
       if (Number.isFinite(error.retryAt) && error.retryAt > Date.now()) {
-        write(kind + ":cooldown", {
+        writeDirectoryCache(kind + ":cooldown", {
           time: Date.now(),
           until: error.retryAt,
         });
