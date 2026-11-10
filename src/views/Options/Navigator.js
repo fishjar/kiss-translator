@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import ApiRoundedIcon from "@mui/icons-material/ApiRounded";
 import BookmarksRoundedIcon from "@mui/icons-material/BookmarksRounded";
 import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
@@ -44,11 +44,16 @@ export default function Navigator({ open, isMobile = false, onClose }) {
   const {
     setting: { uiLang },
   } = useSetting();
+  const [inputValue, setInputValue] = useState("");
   const [query, setQuery] = useState("");
+  // IME pre-edit text must not change results or highlights before it commits.
+  const composing = useRef(false);
   const location = useLocation();
   const navigate = useNavigate();
   const searching = Boolean(query.trim());
   const clearSearch = () => {
+    composing.current = false;
+    setInputValue("");
     setQuery("");
     const params = new URLSearchParams(location.search);
     if (params.has("setting")) {
@@ -241,12 +246,26 @@ export default function Navigator({ open, isMobile = false, onClose }) {
         <SearchRoundedIcon />
         <input
           type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          value={inputValue}
+          onChange={(event) => {
+            const value = event.target.value;
+            setInputValue(value);
+            if (!composing.current && !event.nativeEvent.isComposing)
+              setQuery(value);
+          }}
+          onCompositionStart={() => {
+            composing.current = true;
+          }}
+          onCompositionEnd={(event) => {
+            composing.current = false;
+            const value = event.currentTarget.value;
+            setInputValue(value);
+            setQuery(value);
+          }}
           placeholder={i18n("options_search")}
           aria-label={i18n("options_search")}
         />
-        {query.length > 0 && (
+        {inputValue.length > 0 && (
           <button
             type="button"
             className="kt-options-search__clear"

@@ -1,5 +1,3 @@
-import { I18N } from "../../config/i18n";
-
 // Index labels instead of mounted pages: advanced controls and other routes may
 // not exist in the DOM yet. Never include user-entered values or credentials.
 export const SETTINGS_SEARCH_KEYS = {
@@ -272,18 +270,24 @@ export const SETTINGS_SEARCH_LABELS = {
 };
 
 const SEARCH_ALIASES = {
-  api_url: "API URL endpoint 接口地址",
-  api_key: "API Key 密钥",
-  api_model: "模型",
-  api_temperature: "温度",
-  api_max_tokens: "最大令牌数",
-  api_request_hook: "请求钩子",
-  api_response_hook: "响应钩子",
-  use_batch_fetch: "批量",
-  batch_size: "批量",
-  batch_interval: "批量",
-  batch_length: "批量",
-  batch_concurrency: "批量",
+  zh: {
+    api_url: "API URL 接口地址",
+    api_key: "API Key 密钥",
+    api_model: "模型",
+    api_temperature: "温度",
+    api_max_tokens: "最大令牌数",
+    api_request_hook: "请求钩子",
+    api_response_hook: "响应钩子",
+    use_batch_fetch: "批量",
+    batch_size: "批量",
+    batch_interval: "批量",
+    batch_length: "批量",
+    batch_concurrency: "批量",
+  },
+  en: {
+    api_url: "API URL endpoint",
+    api_key: "API Key",
+  },
 };
 
 const OPTION_KEYS = {
@@ -489,13 +493,8 @@ export function getSettingsSearchEntries(
           [
             label,
             description,
-            I18N[key]?.en,
-            SEARCH_ALIASES[key],
-            ...(OPTION_KEYS[key] || []).flatMap((item) => [
-              i18n(item, ""),
-              I18N[item]?.en,
-            ]),
-            ...descriptionKeys.map((item) => I18N[item]?.en),
+            SEARCH_ALIASES[uiLang]?.[key],
+            ...(OPTION_KEYS[key] || []).map((item) => i18n(item, "")),
           ].filter(Boolean)
         ),
       ];
@@ -503,10 +502,7 @@ export function getSettingsSearchEntries(
         key,
         label,
         searchTexts,
-        text: normalizeSearchText(
-          [...searchTexts, key.replace(/_/g, " ")].join(" "),
-          uiLang
-        ),
+        text: normalizeSearchText(searchTexts.join(" "), uiLang),
       };
     });
 }

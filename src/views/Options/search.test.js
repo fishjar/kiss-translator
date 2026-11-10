@@ -76,16 +76,16 @@ test.each([
   ["黑名单", "selection", "blacklist"],
   ["断句", "subtitle", "ai_segmentation"],
   ["加密", "sync", "data_sync_encrypt_key"],
-  ["system prompt", "prompts", "system_prompt"],
-  ["HTTP TIMEOUT", "overview", "http_timeout"],
+  ["system prompt", "prompts", "system_prompt", "en"],
+  ["REQUEST TIMEOUT", "overview", "http_timeout", "en"],
   ["模型", "apis", "api_model"],
   ["API KEY", "apis", "api_key"],
   ["深色", "appearance", "settings_appearance_mode"],
-  ["DARK", "appearance", "settings_appearance_mode"],
+  ["DARK", "appearance", "settings_appearance_mode", "en"],
   ["批量", "apis", "batch_size"],
-  ["ｈｔｔｐ　ｔｉｍｅｏｕｔ", "apis", "http_timeout"],
-])("finds %s in unmounted page %s", (query, pageId, key) => {
-  const result = search(query).find(([id]) => id === pageId);
+  ["ｒｅｑｕｅｓｔ　ｔｉｍｅｏｕｔ", "apis", "http_timeout", "en"],
+])("finds %s in unmounted page %s", (query, pageId, key, lang = "zh") => {
+  const result = search(query, lang).find(([id]) => id === pageId);
   expect(result?.[4].map((entry) => entry.key)).toContain(key);
 });
 
@@ -189,6 +189,48 @@ test("rebuilds localized results when the UI language changes", () => {
       .find(([id]) => id === "overview")[4]
       .map((entry) => entry.key)
   ).toContain("if_clear_cache");
+});
+
+test.each([
+  "Secondary",
+  "When enabled",
+  "Opacity",
+  "DARK",
+  "http timeout",
+  "fab half hide",
+])(
+  "does not index foreign labels, options, descriptions or internal keys for %s",
+  (query) => {
+    expect(search(query, "zh")).toHaveLength(0);
+  }
+);
+
+test("indexes only localized aliases while retaining visible technical labels", () => {
+  expect(search("模型", "en")).toHaveLength(0);
+  expect(search("endpoint", "zh")).toHaveLength(0);
+  expect(
+    search("endpoint", "en")
+      .find(([id]) => id === "apis")[4]
+      .map((entry) => entry.key)
+  ).toContain("api_url");
+  expect(
+    search("LaTeX", "zh")
+      .find(([id]) => id === "overview")[4]
+      .map((entry) => entry.key)
+  ).toContain("parse_latex");
+  expect(
+    search("Key", "zh")
+      .find(([id]) => id === "apis")[4]
+      .map((entry) => entry.key)
+  ).toContain("api_key");
+  const i18n = (key, fallback = key) => I18N[key]?.zh ?? fallback;
+  const entries = getSettingsSearchEntries("overview", i18n, "zh");
+  expect(
+    entries.find((entry) => entry.key === "context_menus").searchTexts
+  ).not.toContain(I18N.secondary_context_menus.en);
+  expect(
+    entries.find((entry) => entry.key === "translate_variants").searchTexts
+  ).not.toContain(I18N.translate_variants_helper.en);
 });
 
 test("accepts deep links only for fields on their destination page", () => {
