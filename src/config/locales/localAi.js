@@ -767,6 +767,16 @@ export const LOCAL_AI_I18N = {
     en: "Completed",
     zh_TW: "完成",
   },
+  local_ai_models_expand_section: {
+    zh: "展开",
+    en: "Expand",
+    zh_TW: "展開",
+  },
+  local_ai_models_collapse_section: {
+    zh: "收起",
+    en: "Collapse",
+    zh_TW: "收起",
+  },
   local_ai_models_mirror: {
     zh: "下载源镜像",
     en: "Download Mirror",
