@@ -1,5 +1,6 @@
 import { useI18n } from "../../hooks/I18n";
 import { Alert, TextField, MenuItem, Chip, Stack } from "@mui/material";
+import MenuCheckGlyph from "../../components/MenuCheckGlyph";
 import {
   supportedApiCapabilities,
   enabledApiCapabilities,
@@ -50,6 +51,10 @@ export default function CapabilityOptions({ api, onChange }) {
       >
         {supported.map((name) => (
           <MenuItem key={name} value={name}>
+            <MenuCheckGlyph
+              checked={Array.isArray(enabled) && enabled.includes(name)}
+              style={{ marginRight: 10 }}
+            />
             {i18n(capabilityLabelKeys[name], name)}
           </MenuItem>
         ))}

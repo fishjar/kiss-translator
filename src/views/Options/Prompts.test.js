@@ -296,7 +296,7 @@ describe("Prompts", () => {
     unmount();
   });
 
-  // B3：双击手柄显式解锁——内容非空时手柄保持在场（门控分支存续态：
+  // 双击手柄显式解锁——内容非空时手柄保持在场（门控分支存续态：
   // formData.systemPrompt.trim() || lockedHeight != null 的前半支），但
   // 锁定态整体回原（kt-height-locked 类与内联高度由受管属性一并撤销）。
   test("releases the height on grip double-click while keeping the grip mounted for non-empty content", () => {
@@ -335,7 +335,7 @@ describe("Prompts", () => {
     unmount();
   });
 
-  // B3 七语言完整性：新增的 field_resize_unlock_hint 必须在主 I18N 字典
+  // 七语言完整性：新增的 field_resize_unlock_hint 必须在主 I18N 字典
   // 具备全部 7 种语言的非空字段，且语言集合与相邻的 field_resize_height
   // 完全一致（真实字典遍历断言，非 key 名 mock）。
   test("ships the unlock hint key with all seven non-empty language fields", () => {
@@ -353,10 +353,10 @@ describe("Prompts", () => {
     );
   });
 
-  // B5：PromptFields 不得以 slug 作 key——保存/列表重建触发整块重挂载
+  // PromptFields 不得以 slug 作 key——保存/列表重建触发整块重挂载
   // 会丢焦点、丢滚动与输入法合成态。prompt 变更重置由既有
   // lastSyncedPromptRef 快照比对承担，高度记忆隔离由 hook lockKey（含
-  // slug）承担，key 属纯有害冗余（红：现实现切换后编辑器 DOM 节点易主）。
+  // slug）承担，key 属纯有害冗余。
   test("keeps the PromptFields editor DOM alive across prompt selection switches", async () => {
     const promptA = createPrompt(PROMPT_CATEGORY_USER, {
       slug: "prompt_aaa",
@@ -583,9 +583,41 @@ describe("Prompts", () => {
     unmount();
   });
 
+  // 列表项行首字形与预设归属解耦：列表仅承担选择，不得以 EditIcon 暗示
+  // 可编辑——预设项与自建项统一走 TextSnippetIcon。两行的行首 SVG 必须
+  // 逐字一致（统一字形由本断言钉死）。
+  test("renders the same leading glyph for preset and user prompts", () => {
+    const customPrompt = createPrompt(PROMPT_CATEGORY_USER, {
+      slug: "custom_prompt",
+      name: "Custom prompt",
+    });
+    const presetPrompt = createPrompt(PROMPT_CATEGORY_USER, {
+      slug: "preset_prompt",
+      name: "Preset prompt",
+    });
+    const { container, unmount } = renderPrompts(
+      [customPrompt, presetPrompt],
+      {
+        isPresetPromptSlug: (slug) => slug === "preset_prompt",
+      }
+    );
+    const promptList = container.querySelector(".kt-prompt-editor__list");
+    const leadingGlyph = (name) => {
+      const button = Array.from(
+        promptList.querySelectorAll(".MuiListItemButton-root")
+      ).find((item) => item.textContent === name);
+      return button?.querySelector("svg")?.innerHTML ?? null;
+    };
+    const customGlyph = leadingGlyph("Custom prompt");
+    const presetGlyph = leadingGlyph("Preset prompt");
+    expect(customGlyph).not.toBeNull();
+    expect(customGlyph).toBe(presetGlyph);
+    unmount();
+  });
+
   // 会话高度记忆按提示词 slug 隔离：切换选中提示词后字段不得继承上一份
   // 提示词的锁定态（编辑器 DOM 不重挂载，隔离由 hook lockKey 含 slug 承
-  // 担，见上方 B5 注释），切回时恢复各自记忆。
+  // 担），切回时恢复各自记忆。
   test("scopes prompt height memories per prompt slug across selection switches", async () => {
     __resetSessionHeightMapForTests();
     const promptA = createPrompt(PROMPT_CATEGORY_USER, {
@@ -753,8 +785,7 @@ describe("Prompts textarea grip style", () => {
     unmount();
   });
 
-  // B1：hidden = 完全不渲染手柄 + textarea 原生 resize 回退（红：现实现
-  // 渲染空图形手柄且 resize 压成 none——不可见却可拖是隐蔽交互面）。
+  // hidden = 完全不渲染手柄 + textarea 原生 resize 回退。
   test("hidden variant renders no grip and restores native resize", () => {
     mockUseTextareaGripStyle.mockReturnValue("hidden");
     const { container, unmount } = renderPrompts(PROMPT_CATEGORY_DICTIONARY);

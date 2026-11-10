@@ -1,7 +1,7 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import LogViewer, { useLocalAiLog } from "./LogViewer";
+import LogViewer, { useLocalAiLog, LOG_LEVEL_COLORS, logLevelColor } from "./LogViewer";
 
 jest.mock("../../../hooks/I18n", () => ({
   useI18n: () => (_, fallback) => fallback,
@@ -108,5 +108,45 @@ describe("local AI log scrolling", () => {
     expect(current.logs).toEqual([]);
     act(() => current.addLog("after clear"));
     expect(current.logs.map((log) => log.message)).toEqual(["after clear"]);
+  });
+});
+
+describe("local AI log level colors consume kt tokens (W13)", () => {
+  it("maps error/success/info to kt semantic tokens and pins warn as the only hex literal", () => {
+    // 四键齐全：级色映射表是组件渲染与 tripwire 的共同契约面。
+    expect(Object.keys(LOG_LEVEL_COLORS).sort()).toEqual([
+      "error",
+      "info",
+      "success",
+      "warn",
+    ]);
+    expect(LOG_LEVEL_COLORS.error).toBe("var(--kt-err)");
+    expect(LOG_LEVEL_COLORS.success).toBe("var(--kt-grn)");
+    expect(LOG_LEVEL_COLORS.info).toBe("var(--kt-pri)");
+    // warn 无 kt 语义令牌（m3.js 令牌清单无 --kt-warn），暗色档使用琥珀字面量。
+    expect(LOG_LEVEL_COLORS.warn).toBe("#f59e0b");
+    // 全对象仅 warn 一个 hex 字面量：计数钉死＝1，防新增裸色回流。
+    const hexLiterals = Object.values(LOG_LEVEL_COLORS).filter((value) =>
+      /^#[0-9a-fA-F]{3,8}$/.test(value)
+    );
+    expect(hexLiterals).toEqual(["#f59e0b"]);
+  });
+
+  it("resolves warn per theme: amber on dark, deep amber on light", () => {
+    // warn 暗色档琥珀 #f59e0b（#111827 底 8.26 ✓），浅色档深琥珀 #b45309
+    // （#f8fafc 底 4.79 ✓，WCAG AA 4.5 线；浅色沿用 amber 仅 2.05）——
+    // 与时间戳灰 --kt-onv 及 error/success/info 语义三色均分离。
+    // 其余级别不随主题切换。
+    expect(logLevelColor("warn", true)).toBe("#f59e0b");
+    expect(logLevelColor("warn", false)).toBe("#b45309");
+    expect(logLevelColor("error", false)).toBe("var(--kt-err)");
+    expect(logLevelColor("success", true)).toBe("var(--kt-grn)");
+    expect(logLevelColor("info", false)).toBe("var(--kt-pri)");
+    // 未知级别退回 info 主色。
+    expect(logLevelColor("verbose", false)).toBe("var(--kt-pri)");
+    // 原型链键不得被当作级别色：查找仅认自有属性，"constructor"/"toString"
+    // 等键按未知级别回退主色（直取会把原型函数当颜色值）。
+    expect(logLevelColor("constructor", false)).toBe("var(--kt-pri)");
+    expect(logLevelColor("toString", true)).toBe("var(--kt-pri)");
   });
 });

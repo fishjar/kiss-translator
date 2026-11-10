@@ -1,15 +1,14 @@
 import {
   Alert,
-  Checkbox,
   Chip,
   FormControl,
   FormHelperText,
   InputLabel,
-  ListItemText,
   MenuItem,
   Select,
   Stack,
 } from "@mui/material";
+import MenuCheckGlyph from "./MenuCheckGlyph";
 
 export default function TerminologySelect({
   tables = [],
@@ -66,8 +65,11 @@ export default function TerminologySelect({
               })),
           ].map((table) => (
             <MenuItem key={table.id} value={table.id}>
-              <Checkbox checked={value.includes(table.id)} />
-              <ListItemText primary={table.name} />
+              <MenuCheckGlyph
+                checked={Array.isArray(value) && value.includes(table.id)}
+                style={{ marginRight: 10 }}
+              />
+              {table.name}
             </MenuItem>
           ))}
         </Select>

@@ -17,10 +17,7 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
-import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import StopRoundedIcon from "@mui/icons-material/StopRounded";
+import { UploadFileRoundedIcon, ContentCopyRoundedIcon, PlayArrowRoundedIcon, StopRoundedIcon } from "../../../components/icons";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { OcrClient } from "../../../localAi/core/ocrClient";
 import {

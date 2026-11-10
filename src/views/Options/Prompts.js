@@ -7,13 +7,14 @@ import {
   useRef,
   useState,
 } from "react";
-import AddIcon from "@mui/icons-material/Add";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DeleteIcon from "@mui/icons-material/Delete";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import LockIcon from "@mui/icons-material/Lock";
-import SaveIcon from "@mui/icons-material/Save";
-import TextSnippetIcon from "@mui/icons-material/TextSnippet";
+import {
+  AddIcon,
+  ContentCopyIcon,
+  DeleteIcon,
+  KeyboardArrowDownIcon,
+  SaveIcon,
+  TextSnippetIcon,
+} from "../../components/icons";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import List from "@mui/material/List";
@@ -164,7 +165,7 @@ function PromptPlaceholderButtons({ category, disabled, onInsert }) {
   );
 }
 
-function PromptListItem({ prompt, selected, isPreset, onSelect }) {
+function PromptListItem({ prompt, selected, onSelect }) {
   const i18n = useI18n();
 
   return (
@@ -188,11 +189,7 @@ function PromptListItem({ prompt, selected, isPreset, onSelect }) {
           borderRadius: "8px",
         }}
       >
-        {isPreset ? (
-          <LockIcon fontSize="small" color="action" />
-        ) : (
-          <TextSnippetIcon fontSize="small" color="action" />
-        )}
+        <TextSnippetIcon fontSize="small" color="action" />
         <Typography
           sx={{
             minWidth: 0,
@@ -685,7 +682,6 @@ export default function Prompts() {
                   key={normalizePrompt(prompt).slug}
                   prompt={prompt}
                   selected={normalizePrompt(prompt).slug === selectedPromptSlug}
-                  isPreset={isPresetPromptSlug(normalizePrompt(prompt).slug)}
                   onSelect={() => void handleSelectPrompt(prompt)}
                 />
               ))}
@@ -748,7 +744,7 @@ export default function Prompts() {
                 onClick={() => void handleAddPromptFromTemplate(template)}
                 sx={{ gap: 1 }}
               >
-                <LockIcon fontSize="small" color="action" />
+                <TextSnippetIcon fontSize="small" color="action" />
                 <Box component="span" sx={{ flex: 1 }}>
                   {getPromptDisplayName(template, i18n)}
                 </Box>

@@ -5,9 +5,38 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import { ContentCopyRoundedIcon, DeleteOutlineRoundedIcon } from "../../../components/icons";
 import { useI18n } from "../../../hooks/I18n";
+import { useTheme } from "@mui/material/styles";
+
+// 级色映射既有 kt 语义令牌；warn 无对应语义令牌，暗色档使用琥珀字面量，
+// 浅色档由 logLevelColor 切换深琥珀 #b45309（#f8fafc 底 4.79 ✓，且与
+// 时间戳灰及 error/success/info 语义三色分离）。warn 字面量
+// 仅适用暗色档：调用方须经 logLevelColor 取 warn 级色，不得直读
+// LOG_LEVEL_COLORS.warn。
+export const LOG_LEVEL_COLORS = {
+  error: "var(--kt-err)",
+  warn: "#f59e0b" /* 暗色档琥珀（#111827 底 8.26 ✓）；浅色档经 logLevelColor
+     切深琥珀 #b45309：#f8fafc 底 4.79 ✓，且与时间戳灰及 err/grn/pri
+     语义三色分离 */,
+  success: "var(--kt-grn)",
+  info: "var(--kt-pri)",
+};
+
+// 级色取值入口（WCAG AA 文本 4.5 对比线）：
+// warn 主题感知——暗色档琥珀 #f59e0b（#111827 底 8.26 ✓），浅色档深琥珀
+// #b45309（#f8fafc 底 4.79 ✓，且与时间戳灰 --kt-onv 及 error/success/info
+// 语义三色均分离）。其余级别不随主题切换；未知级别退回 info 主色。查找
+// 仅认自有属性："constructor"/"toString" 等原型链键不是级别，直取会把函数当颜色。
+export const logLevelColor = (level, darkMode) =>
+  level === "warn" && !darkMode
+    ? "#b45309"
+    : Object.prototype.hasOwnProperty.call(LOG_LEVEL_COLORS, level)
+      ? LOG_LEVEL_COLORS[level]
+      : "var(--kt-pri)";
+
+// 时间戳恒用中性分级令牌（不随 warn 浅色档变化）。
+const TIMESTAMP_COLOR = "var(--kt-onv)";
 
 /**
  * 独立的本地 AI 日志 Hook：管理当前 Tab 的运行日志与添加/清空方法。
@@ -42,6 +71,7 @@ export function useLocalAiLog() {
  */
 export default function LogViewer({ logs = [], onClear }) {
   const i18n = useI18n();
+  const darkMode = useTheme().palette.mode === "dark";
   const [copied, setCopied] = useState(false);
   const logRef = useRef(null);
 
@@ -141,26 +171,23 @@ export default function LogViewer({ logs = [], onClear }) {
           ) : (
             <>
               {logs.map((log, index) => {
-                const color =
-                  log.level === "error"
-                    ? "#ef4444"
-                    : log.level === "warn"
-                      ? "#f59e0b"
-                      : log.level === "success"
-                        ? "#10b981"
-                        : "#3b82f6";
+                const color = logLevelColor(log.level, darkMode);
                 return (
                   <Box
                     key={index}
                     sx={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}
                   >
-                    <span style={{ color: "#9ca3af" }}>[{log.time}]</span>{" "}
+                    <span style={{ color: TIMESTAMP_COLOR }}>[{log.time}]</span>{" "}
                     <span style={{ color, fontWeight: 600 }}>
                       [{log.level.toUpperCase()}]
                     </span>{" "}
+                    {/* 消息正文仅 error 级染色，级色取值与 LOG_LEVEL_COLORS 映射同源。 */}
                     <span
                       style={{
-                        color: log.level === "error" ? "#ef4444" : "inherit",
+                        color:
+                          log.level === "error"
+                            ? LOG_LEVEL_COLORS.error
+                            : "inherit",
                       }}
                     >
                       {log.message
