@@ -28,6 +28,10 @@ try {
   }
 
   content = content.replace(new RegExp(oldStr, "g"), newStr);
+  content = content.replace(
+    /^(\/\/ @(?:downloadURL|updateURL)\s+)(\S+)$/gm,
+    (_, prefix, url) => prefix + new URL(path.basename(destFile), url).href
+  );
 
   // 4. 写入原 Web 目录
   await fs.writeFile(destFile, content, "utf-8");

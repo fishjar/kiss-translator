@@ -1,4 +1,5 @@
 import { logger } from "../../libs/log";
+import { isGm } from "../../libs/client";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import Header from "./Header";
@@ -72,10 +73,17 @@ export function isNewerVersion(remoteVersion, currentVersion) {
 }
 
 export async function fetchLatestVersion({ signal, now = Date.now } = {}) {
-  const versionUrls = [
-    process.env.REACT_APP_VERSION_URL,
-    process.env.REACT_APP_VERSION_URL_GITHUB,
-  ].filter(Boolean);
+  const versionUrls = (
+    isGm
+      ? [
+          process.env.REACT_APP_USERSCRIPT_VERSION_URL,
+          process.env.REACT_APP_USERSCRIPT_VERSION_URL_GITHUB,
+        ]
+      : [
+          process.env.REACT_APP_VERSION_URL,
+          process.env.REACT_APP_VERSION_URL_GITHUB,
+        ]
+  ).filter(Boolean);
   let lastError;
 
   for (const versionUrl of versionUrls) {
@@ -105,6 +113,9 @@ export default function Layout() {
   const i18n = useI18n();
   const { setting } = useSetting();
   const checkUpdate = setting?.checkUpdate ?? true;
+  const currentVersion = isGm
+    ? window.APP_INFO?.version
+    : process.env.REACT_APP_VERSION;
   const [navigationOpen, setNavigationOpen] = useState(false);
   const navigationTriggerRef = useRef(null);
   const backgroundRef = useRef(null);
@@ -117,7 +128,7 @@ export default function Layout() {
 
   useEffect(() => {
     if (process.env.NODE_ENV === "test") return undefined;
-    if (!checkUpdate) {
+    if (!checkUpdate || !isValidVersion(currentVersion)) {
       setLatestVersion("");
       return undefined;
     }
@@ -125,12 +136,10 @@ export default function Layout() {
     const controller = new AbortController();
     fetchLatestVersion({ signal: controller.signal })
       .then((version) => {
-        if (
-          active &&
-          version &&
-          isNewerVersion(version, process.env.REACT_APP_VERSION)
-        ) {
-          setLatestVersion(version);
+        if (active) {
+          setLatestVersion(
+            isNewerVersion(version, currentVersion) ? version : ""
+          );
         }
       })
       .catch((error) => {
@@ -142,7 +151,7 @@ export default function Layout() {
       active = false;
       controller.abort();
     };
-  }, [checkUpdate]);
+  }, [checkUpdate, currentVersion]);
 
   useEffect(() => {
     setNavigationOpen(false);
@@ -342,16 +351,32 @@ export default function Layout() {
                 <div className="kt-options-version-alert" role="status">
                   <span>
                     {i18n("version_warning")
-                      .replace("{0}", process.env.REACT_APP_VERSION)
+                      .replace("{0}", currentVersion)
                       .replace("{1}", latestVersion)}
                   </span>
                   <a
-                    href={process.env.REACT_APP_RELEASES_URL}
+                    href={
+                      isGm
+                        ? process.env.REACT_APP_USERSCRIPT_DOWNLOADURL
+                        : process.env.REACT_APP_RELEASES_URL
+                    }
                     target="_blank"
                     rel="noreferrer"
                   >
                     {i18n("download_update")}
                   </a>
+                  {isGm && (
+                    <>
+                      {" · "}
+                      <a
+                        href={process.env.REACT_APP_USERSCRIPT_IOS_DOWNLOADURL}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        iOS Safari
+                      </a>
+                    </>
+                  )}
                 </div>
               )}
               <SettingsSearchTarget

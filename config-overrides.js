@@ -6,6 +6,12 @@ const TerserPlugin = require("terser-webpack-plugin");
 const path = require("path");
 const fs = require("fs");
 const configureHtmlDecoder = require("./src/scripts/html-decoder-webpack.cjs");
+
+// CRA reads this value when creating the Webpack environment for the bundle.
+if (process.env.REACT_APP_CLIENT === "userscript") {
+  process.env.REACT_APP_VERSION = require("./package.json").userscriptVersion;
+}
+
 let webpack;
 try {
   webpack = require("webpack");
