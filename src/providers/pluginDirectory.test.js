@@ -4,6 +4,7 @@ import {
   OFFICIAL_BASE,
   validateOfficialDirectory,
   validateCommunityDirectory,
+  loadCommunityPluginMetadata,
   loadPluginDirectory,
   downloadOfficialPlugin,
   fetchDirectoryJson,
@@ -197,21 +198,136 @@ test("community discovery filters official, archived, forked, invalid and duplic
   expect(result.items.map((item) => item.full_name)).toEqual(["author/plugin"]);
 });
 
-test("discovery caches each page, uses topic search and deduplicates concurrent requests", async () => {
-  const fetchImpl = jest.fn(async () => json({ total_count: 21, items: [] }));
+test("discovery caches pages of 10 sorted by stars and deduplicates concurrent requests", async () => {
+  const items = Array.from({ length: 20 }, (_, index) => ({
+    full_name: `author/plugin-${index}`,
+    html_url: `https://github.com/author/plugin-${index}`,
+  }));
+  const legacy = { time: Date.now(), data: { total_count: 0, items: [] } };
+  localStorage.setItem(
+    "kiss-plugin-directory-v1:community:1",
+    JSON.stringify(legacy)
+  );
+  const fetchImpl = jest.fn(async () => json({ total_count: 21, items }));
   await Promise.all([
     loadPluginDirectory("community", { fetchImpl }),
     loadPluginDirectory("community", { fetchImpl }),
   ]);
   expect(fetchImpl).toHaveBeenCalledTimes(1);
-  expect(decodeURIComponent(fetchImpl.mock.calls[0][0])).toContain(
+  const firstPageUrl = new URL(fetchImpl.mock.calls[0][0]);
+  expect(firstPageUrl.searchParams.get("q")).toBe(
     "topic:kiss-translator-plugin archived:false fork:false"
   );
-  await loadPluginDirectory("community", { fetchImpl });
+  expect(firstPageUrl.searchParams.get("sort")).toBe("stars");
+  expect(firstPageUrl.searchParams.get("order")).toBe("desc");
+  expect(firstPageUrl.searchParams.get("per_page")).toBe("10");
+  const cached = await loadPluginDirectory("community", { fetchImpl });
+  expect(cached.items).toHaveLength(10);
   expect(fetchImpl).toHaveBeenCalledTimes(1);
   await loadPluginDirectory("community", { page: 2, fetchImpl });
   expect(fetchImpl).toHaveBeenCalledTimes(2);
   expect(fetchImpl.mock.calls[1][0]).toContain("page=2");
+});
+
+test("community metadata reads one default-branch manifest and caches only its display summary", async () => {
+  const fetchImpl = jest.fn(async () =>
+    json({
+      ...manifest,
+      description: "Plugin description",
+      nameI18n: { en: "Localized plugin", zh: { invalid: true } },
+      descriptionI18n: { en: "Localized description" },
+      services: [
+        ...manifest.services,
+        {
+          capabilities: {
+            chat: { handler: "chat" },
+            translate: { handler: "translate" },
+          },
+        },
+      ],
+      permissions: { network: ["https://example.invalid"] },
+    })
+  );
+  const summary = {
+    name: manifest.name,
+    version: manifest.version,
+    description: "Plugin description",
+    nameI18n: { en: "Localized plugin" },
+    descriptionI18n: { en: "Localized description" },
+    capabilities: ["chat", "translate"],
+  };
+  await expect(
+    Promise.all([
+      loadCommunityPluginMetadata("Author/Plugin", { fetchImpl }),
+      loadCommunityPluginMetadata("author/plugin", { fetchImpl }),
+    ])
+  ).resolves.toEqual([summary, summary]);
+  expect(fetchImpl).toHaveBeenCalledTimes(1);
+  expect(fetchImpl).toHaveBeenCalledWith(
+    "https://raw.githubusercontent.com/Author/Plugin/HEAD/manifest.json",
+    expect.objectContaining({ credentials: "omit", redirect: "error" })
+  );
+  expect(
+    JSON.parse(
+      localStorage.getItem(
+        "kiss-plugin-directory-v1:community:manifest:author/plugin"
+      )
+    ).data
+  ).toEqual(summary);
+  await expect(
+    loadCommunityPluginMetadata("author/plugin", { fetchImpl })
+  ).resolves.toEqual(summary);
+  await expect(
+    loadCommunityPluginMetadata("author/..", { fetchImpl })
+  ).resolves.toBeNull();
+  expect(fetchImpl).toHaveBeenCalledTimes(1);
+});
+
+test("community metadata uses an hour cache and revalidates on manual refresh after one minute", async () => {
+  jest.useFakeTimers();
+  try {
+    const fetchImpl = jest.fn(async () => json(manifest));
+    const load = (force = false) =>
+      loadCommunityPluginMetadata("author/plugin", { force, fetchImpl });
+    await load();
+    await load(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(60000);
+    await load();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    await load(true);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[1][1].cache).toBe("no-cache");
+    jest.advanceTimersByTime(3600000);
+    await load();
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test("missing and malformed community manifests fall back and can be retried after a minute", async () => {
+  jest.useFakeTimers();
+  try {
+    const fetchImpl = jest
+      .fn(async () => json(manifest))
+      .mockResolvedValueOnce({ ok: false, status: 404 })
+      .mockResolvedValueOnce(
+        json({ ...manifest, services: [{ capabilities: [] }] })
+      );
+    const load = (force = false) =>
+      loadCommunityPluginMetadata("author/plugin", { force, fetchImpl });
+    await expect(load()).resolves.toBeNull();
+    await expect(load(true)).resolves.toBeNull();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(60000);
+    await expect(load()).resolves.toBeNull();
+    jest.advanceTimersByTime(60000);
+    await expect(load()).resolves.toMatchObject({ name: manifest.name });
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  } finally {
+    jest.useRealTimers();
+  }
 });
 
 test("failed refresh preserves cached data and respects GitHub Retry-After", async () => {
