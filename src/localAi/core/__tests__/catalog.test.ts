@@ -53,7 +53,7 @@ describe("catalog", () => {
         count++;
       }
     }
-    expect(count).toBe(160);
+    expect(count).toBe(161);
   });
 
   it("kokoro 音色哈希表与音色列表一一对应", () => {

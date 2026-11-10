@@ -810,6 +810,30 @@ export const CATALOG: ModelManifest[] = [
     ],
   }),
   manifest({
+    // 翻译专用模型（bilibili Index-Translate，150 语言互译，基于 Qwen3.5 / qwen35 架构）；
+    // 官方 GGUF 仓库，HF 与 ModelScope 同名。内嵌 chat template 未传 enable_thinking 时
+    // 默认注入空 <think></think>，即非思考模式，符合官方推荐用法。仅收录文本主权重，不含 mmproj。
+    id: "index-translate-2b",
+    name: "Index-Translate 2B 翻译 (Q4_K_M)",
+    version: "IndexTeam/Index-Translate-2B-GGUF@main",
+    license: "apache-2.0",
+    task: "llm",
+    runtime: "wllama",
+    format: "gguf",
+    backend: ["webgpu", "wasm"],
+    languages: ["zh", "en", "multilingual"],
+    multilingual: true,
+    source: "IndexTeam/Index-Translate-2B-GGUF",
+    dir: "llm/index-translate-2b",
+    files: [
+      {
+        path: "Index-Translate-2B.Q4_K_M.gguf",
+        size: 1312164352,
+        sha256: "044b313d29342bd3b2c77cbb64023ca0d209bd9b3247763f9d162767ef2d746a",
+      },
+    ],
+  }),
+  manifest({
     id: "laya-multilingual-fp16",
     name: "Laya Multilingual (FP16 · JEV 决策引擎 · 100+ 语言)",
     version: "mizchi/laya-multilingual-onnx@main",
