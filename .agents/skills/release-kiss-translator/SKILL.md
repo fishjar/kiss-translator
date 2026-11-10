@@ -5,7 +5,7 @@ description: Safely automate a complete KISS Translator release using the reposi
 
 # Release KISS Translator
 
-Follow `VERSION_MANAGEMENT.md` and the repository's current scripts and workflow files. Treat `package.json` as the only version source. Never perform only part of a requested full release silently: report the exact completed stage and any remaining gate.
+Follow `VERSION_MANAGEMENT.md` and the repository's current scripts and workflow files. Use `package.json`'s `version` for the tag, extension packages and userscripts. Its `extensionStoreVersion` tracks the version available in extension stores. Never perform only part of a requested full release silently: report the exact completed stage and any remaining gate.
 
 ## Safety rules
 
@@ -44,14 +44,14 @@ Follow `VERSION_MANAGEMENT.md` and the repository's current scripts and workflow
    pnpm version:set -- <version>
    ```
 
-2. Confirm `package.json`, `.env`, `public/manifest.json`, `public/manifest.firefox.json`, and `public/manifest.thunderbird.json` all contain the target version.
+2. Confirm `package.json`'s `version`, `.env`, `public/manifest.json`, `public/manifest.firefox.json`, and `public/manifest.thunderbird.json` all contain the target version. Advance `extensionStoreVersion` only when the new extension version is available in stores.
 3. Find the latest version tag with `git tag --sort=-version:refname`. Review `git log --oneline --no-merges <latest-tag>..HEAD`, then prepend one `## v<target>` section to `CHANGELOG.md`:
    - Write concise Chinese bullets describing user-visible changes.
    - Summarize behavior rather than copying commit messages mechanically.
    - Exclude merges, formatting-only work, and internal implementation detail unless release-relevant.
    - Preserve UTF-8 and every existing historical entry unchanged.
 4. Run `pnpm format`, inspect `git diff --name-only` and `git diff`, and stop if formatting touched unrelated files. Do not silently include cleanup.
-5. Run `pnpm build+zip`, then recheck all version values, the top CHANGELOG heading, `git diff --check`, and the complete diff.
+5. Run `pnpm build+zip`. Confirm that the extension manifests and both userscripts use the target version and that the generated `version.txt` and `userscript-version.txt` match `extensionStoreVersion` and `version` respectively. Recheck the top CHANGELOG heading, `git diff --check`, and the complete diff.
 6. Stage only the reviewed release files. Commit as `chore: bump version to <target>` and push with `git push origin dev`. Do not use `git add .`.
 
 ## 3. Create and merge the release PR

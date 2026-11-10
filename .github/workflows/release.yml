@@ -17,6 +17,14 @@ jobs:
         with:
           node-version: 24
           cache: "pnpm"
+      - name: Verify release tag
+        run: |
+          node -e '
+            const expected = "v" + require("./package.json").version;
+            if (process.env.GITHUB_REF_NAME !== expected) {
+              throw new Error(`Release tag must be ${expected}`);
+            }
+          '
       - run: pnpm install
       - run: pnpm build+zip
       - uses: actions/upload-artifact@v4
