@@ -21,6 +21,9 @@
   min-height: 0;
   overflow: hidden;
 }
+.kt-pdf-column[hidden] {
+  display: none;
+}
 .kt-pdf-column-header {
   padding: 8px 12px;
   height: 48px;

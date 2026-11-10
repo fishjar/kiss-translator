@@ -7,6 +7,11 @@ import {
 import { isApiConfigured } from "../../config/serviceSelection";
 import { supportsApiCapability } from "../../config/serviceSelection";
 import { runTranslationTasks } from "../../libs/translationTasks";
+import { FILE_TRANSLATE_I18N } from "../../config/locales/fileTranslate";
+import {
+  downloadOnlineFile,
+  onlineFileUrl,
+} from "../../fileTranslation/onlineFile";
 import {
   lazy,
   Suspense,
@@ -504,11 +509,15 @@ export default function FileTranslateView() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteError, setPasteError] = useState("");
+  const [onlineImport, setOnlineImport] = useState(null);
+  const [pdfFullscreen, setPdfFullscreen] = useState(false);
   const [pendingTextMode, setPendingTextMode] = useState(null);
   const [isEntireTranslated, setIsEntireTranslated] = useState(false);
   // 顶栏第二行核心配置项展开/收起状态（默认展开）
 
   const controller = useRef(null);
+  const onlineDownload = useRef(null);
+  const onlineFileTarget = useRef(null);
   const fileInputRef = useRef(null);
   const leftScrollRef = useRef(null);
   const rightScrollRef = useRef(null);
@@ -777,8 +786,60 @@ export default function FileTranslateView() {
     }
   };
 
+  const cancelOnlineImport = () => {
+    onlineDownload.current?.abort();
+    onlineDownload.current = null;
+    setOnlineImport(null);
+  };
+
+  const importOnline = async (url, pastedText = "") => {
+    cancelOnlineImport();
+    const download = new AbortController();
+    onlineDownload.current = download;
+    setOnlineImport({ loading: true });
+    try {
+      const downloaded = await downloadOnlineFile(url, download.signal);
+      if (onlineDownload.current !== download) return;
+      const { select, maxImageFileMB } = onlineFileTarget.current;
+      if (
+        getFileMode(downloaded) === "image" &&
+        downloaded.size > maxImageFileMB * 1024 ** 2
+      ) {
+        setOnlineImport({
+          error: i18n(
+            "file_online_image_limit",
+            "图片超过文件翻译设置中的大小上限。"
+          ),
+          pastedText,
+        });
+        return;
+      }
+      select(downloaded);
+    } catch (err) {
+      if (onlineDownload.current !== download) return;
+      const code = FILE_TRANSLATE_I18N[err?.code]?.en
+        ? err.code
+        : "file_online_failed";
+      setOnlineImport({
+        error: i18n(code, FILE_TRANSLATE_I18N[code].en).replace(
+          "{0}",
+          () => err?.message || ""
+        ),
+        pastedText,
+      });
+    } finally {
+      if (onlineDownload.current === download) onlineDownload.current = null;
+    }
+  };
+
+  const pastedTextFile = (text) =>
+    new File([text], i18n("file_pasted_text_name", "粘贴文本.txt"), {
+      type: "text/plain",
+    });
+
   const handlePaste = (event) => {
     event.preventDefault();
+    cancelOnlineImport();
     const data = event.clipboardData;
     const files = Array.from(data?.files || []);
     const fileItems = Array.from(data?.items || []).filter(
@@ -821,16 +882,18 @@ export default function FileTranslateView() {
     }
     setPasteOpen(false);
     setPasteError("");
-    selectFile(
-      selected ||
-        new File([text], i18n("file_pasted_text_name", "粘贴文本.txt"), {
-          type: "text/plain",
-        })
-    );
+    const url = !selected && onlineFileUrl(text);
+    if (url) {
+      void importOnline(url, text);
+    } else {
+      selectFile(selected || pastedTextFile(text));
+    }
   };
 
   // 选入文件处理与全自动格式识别判定
   const selectFile = async (selected) => {
+    cancelOnlineImport();
+    setPdfFullscreen(false);
     setInputNotices([]);
     setPendingTextMode(null);
     // 换书或重选文件时：在任何异步操作前立即记录本次唯一任务会话 ID，并中止旧任务
@@ -956,6 +1019,34 @@ export default function FileTranslateView() {
     }
   };
 
+  onlineFileTarget.current = {
+    select: selectFile,
+    maxImageFileMB: context.limits?.maxImageFileMB ?? Infinity,
+  };
+  useEffect(() => {
+    const value = new URLSearchParams(window.location.search).get("file");
+    // Wait for the committed mount so StrictMode's rehearsal never downloads.
+    let active = true;
+    queueMicrotask(() => {
+      if (!active || value === null) return;
+      const url = onlineFileUrl(value);
+      if (url) {
+        void importOnline(url);
+      } else {
+        setOnlineImport({
+          error: i18n("file_online_invalid", "请输入有效的 HTTP(S) 文件链接。"),
+        });
+      }
+    });
+    return () => {
+      active = false;
+      onlineDownload.current?.abort();
+      onlineDownload.current = null;
+    };
+    // The query parameter is only consumed when the page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // 切换译文字体并对已完成翻译的图片进行热重绘
   const handleFontChange = async (fontFamily) => {
     patchScene({ fontFamily });
@@ -966,6 +1057,8 @@ export default function FileTranslateView() {
 
   // 清除已选文件，重置回未上传状态（彻底中止旧任务控制器并自增 taskId 阻断异步回调）
   const handleClearFile = () => {
+    cancelOnlineImport();
+    setPdfFullscreen(false);
     setPendingTextMode(null);
     taskIdRef.current += 1;
     controller.current?.abort();
@@ -2375,6 +2468,9 @@ export default function FileTranslateView() {
         bgcolor: "background.default",
         color: "text.primary",
         position: "relative",
+        ...(pdfFullscreen && {
+          "& > :not([data-file-workspace])": { display: "none" },
+        }),
       }}
       onDragOver={(e) => {
         e.preventDefault();
@@ -3090,6 +3186,33 @@ export default function FileTranslateView() {
       )}
 
       {connectionNotice}
+      {onlineImport && (
+        <ReaderAlert
+          severity={onlineImport.loading ? "info" : "error"}
+          sx={{ mx: 1.5, mt: 1.25 }}
+          onClose={cancelOnlineImport}
+          action={
+            onlineImport.loading ? (
+              <Button size="small" onClick={cancelOnlineImport}>
+                {i18n("cancel", "取消")}
+              </Button>
+            ) : onlineImport.pastedText ? (
+              <Button
+                size="small"
+                onClick={() =>
+                  selectFile(pastedTextFile(onlineImport.pastedText))
+                }
+              >
+                {i18n("file_online_as_text", "按文本导入")}
+              </Button>
+            ) : undefined
+          }
+        >
+          {onlineImport.loading
+            ? i18n("file_online_loading", "正在下载文件…")
+            : onlineImport.error}
+        </ReaderAlert>
+      )}
 
       {/* 模块 2：下面全部用来浏览和翻译（未上传展示上传框，上传后展示左右双栏或窄屏上下双栏） */}
       {inputNotices.length > 0 && (
@@ -3107,10 +3230,11 @@ export default function FileTranslateView() {
         </ReaderAlert>
       )}
       <Box
+        data-file-workspace
         sx={{
           flex: 1,
           minHeight: 0,
-          p: 1.5,
+          p: pdfFullscreen ? 0 : 1.5,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -3199,6 +3323,8 @@ export default function FileTranslateView() {
               onStateChange={setPdfState}
               onChangeFile={selectFile}
               onClear={handleClearFile}
+              fullscreen={pdfFullscreen}
+              onFullscreenChange={setPdfFullscreen}
             />
           </Suspense>
         ) : (
@@ -4130,6 +4256,12 @@ export default function FileTranslateView() {
             {i18n(
               "file_paste_hint",
               "在下方区域按 Ctrl+V（Mac：⌘V）粘贴文件、截图或文本。文本默认按 TXT 导入，可在选项中切换为 Markdown。若无法粘贴文件，请选择或拖入文件。"
+            )}
+          </DialogContentText>
+          <DialogContentText>
+            {i18n(
+              "file_online_paste_hint",
+              "也可以粘贴在线文件直链，下载后会自动载入。"
             )}
           </DialogContentText>
           <Box
