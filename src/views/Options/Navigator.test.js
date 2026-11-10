@@ -44,7 +44,7 @@ describe("settings navigator semantics", () => {
     "filters with UI locale %s, label %s, and query %s",
     (uiLang, label, query) => {
       mockUiLang = uiLang;
-      mockLabels = { prompt_management: label };
+      mockLabels = { prompt_management: "Templates", prompt_name: label };
       const container = document.createElement("div");
       document.body.appendChild(container);
       const root = createRoot(container);
@@ -70,7 +70,13 @@ describe("settings navigator semantics", () => {
         '.kt-options-nav__link[href="/prompts"]'
       );
       expect(link).not.toBeNull();
-      expect(link.textContent).toBe(label);
+      expect(link.textContent).toBe("Templates");
+      const field = container.querySelector(
+        'a[href="/prompts?setting=prompt_name"]'
+      );
+      expect(field.textContent).toBe(label);
+      expect(field.querySelector("mark").textContent).toBe(label.split(" ")[0]);
+      expect(link.querySelector("mark")).toBeNull();
 
       act(() => root.unmount());
       container.remove();
@@ -197,9 +203,42 @@ test("groups concrete Chinese settings below their navigation category and links
     'a[href="/input?setting=combo_timeout"]'
   );
   expect(target.textContent).toBe(I18N.combo_timeout.zh);
+  expect(target.querySelector("mark").textContent).toBe("超时");
   act(() => target.click());
   expect(onClose).toHaveBeenCalledTimes(1);
   expect(target.getAttribute("aria-current")).toBe("location");
+
+  search("字幕");
+  const subtitle = container.querySelector('a[href="/subtitle"]').parentElement;
+  const subtitleFields = [
+    ...subtitle.querySelectorAll(".kt-options-nav__setting"),
+  ];
+  expect(subtitleFields.map((field) => field.getAttribute("href"))).toEqual([
+    "/subtitle?setting=toggle_subtitle_translate",
+    "/subtitle?setting=settings_subtitle_auto_start",
+    "/subtitle?setting=show_subtitle_list",
+    "/subtitle?setting=subtitle_loading_notification",
+    "/subtitle?setting=remember_subtitle_position",
+  ]);
+  for (const field of subtitleFields)
+    expect(field.querySelector("mark").textContent).toBe("字幕");
+  const latex = container.querySelector('a[href="/?setting=parse_latex"]');
+  expect(latex.querySelector(".kt-options-nav__match-detail").textContent).toBe(
+    I18N.parse_latex_helper.zh
+  );
+  expect(latex.querySelector("mark").textContent).toBe("字幕");
+  expect(container.querySelector(".kt-options-nav__link mark")).toBeNull();
+
+  search("深色");
+  const appearance = container.querySelector(
+    'a[href="/styles?setting=settings_appearance_mode"]'
+  );
+  expect(
+    appearance.querySelector(".kt-options-nav__match-detail mark").textContent
+  ).toBe("深色");
+
+  search("通用");
+  expect(container.querySelector(".kt-options-nav__empty")).not.toBeNull();
 
   search("无此设置xyz");
   expect(container.querySelector(".kt-options-nav__empty").textContent).toBe(

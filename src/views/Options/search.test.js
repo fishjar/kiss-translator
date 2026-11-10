@@ -5,6 +5,8 @@ import {
   SETTINGS_SEARCH_KEYS,
   SETTINGS_SEARCH_LABELS,
   getSettingsSearchEntries,
+  getSettingsSearchHighlightParts,
+  getSettingsSearchTerms,
   getSettingsSearchTarget,
   searchSettingsGroups,
 } from "./search";
@@ -87,10 +89,96 @@ test.each([
   expect(result?.[4].map((entry) => entry.key)).toContain(key);
 });
 
-test("matches page titles with concrete children and rejects unrelated text", () => {
+test("matches only child settings even when the query matches their page title", () => {
+  const subtitle = search("字幕").find(([id]) => id === "subtitle");
+  expect(subtitle[4].map((entry) => entry.key)).toEqual([
+    "toggle_subtitle_translate",
+    "settings_subtitle_auto_start",
+    "show_subtitle_list",
+    "subtitle_loading_notification",
+    "remember_subtitle_position",
+  ]);
   const result = search("字幕翻译").find(([id]) => id === "subtitle");
-  expect(result[4].map((entry) => entry.key)).toContain("ai_segmentation");
+  expect(result[4].map((entry) => entry.key)).toEqual([
+    "toggle_subtitle_translate",
+  ]);
   expect(search("this setting does not exist")).toHaveLength(0);
+});
+
+test("does not use group or page titles to satisfy any search term", () => {
+  const groups = [
+    {
+      label: "通用",
+      items: [
+        [
+          "subtitle",
+          "字幕翻译",
+          "/subtitle",
+          null,
+          [{ key: "to_lang", label: "目标语言", text: "目标语言 language" }],
+        ],
+        ["image", "图片翻译", "/image", null, []],
+      ],
+    },
+  ];
+  for (const query of [
+    "通用",
+    "字幕",
+    "图片翻译",
+    "字幕 language",
+    "通用 语言",
+  ])
+    expect(searchSettingsGroups(groups, query, "zh")).toEqual([]);
+  const result = searchSettingsGroups(groups, "language", "zh");
+  expect(result[0].label).toBe("通用");
+  expect(result[0].items[0].slice(0, 4)).toEqual(
+    groups[0].items[0].slice(0, 4)
+  );
+  expect(result[0].items[0][4][0].key).toBe("to_lang");
+  expect(searchSettingsGroups(groups, "  ", "zh")).toBe(groups);
+});
+
+test.each([
+  ["显示字幕列表和字幕通知", "字幕", "zh", ["字幕", "字幕"]],
+  ["HTTP Timeout", "ｈｔｔｐ　ＴＩＭＥＯＵＴ", "en", ["HTTP", "Timeout"]],
+  ["İstem Yönetimi", "İSTEM", "tr_TR", ["İstem"]],
+  ["Prompt Management", "PROMPT", "invalid_locale!", ["Prompt"]],
+  ["ﬃ Filter", "ffi", "en", ["ﬃ"]],
+  ["Cafe\u0301", "café", "en", ["Cafe\u0301"]],
+  ["Max Tokens (0-1000000)", "(0-1000000)", "en", ["(0-1000000)"]],
+  ["字幕字幕", "字幕 字", "zh", ["字幕字幕"]],
+  ["目标语言", "字幕", "zh", []],
+  ["目标语言", "  ", "zh", []],
+])(
+  "highlights normalized matches in %s without changing the label",
+  (text, query, lang, matches) => {
+    const parts = getSettingsSearchHighlightParts(
+      text,
+      getSettingsSearchTerms(query, lang),
+      lang
+    );
+    expect(parts.map((part) => part.text).join("")).toBe(text);
+    expect(
+      parts.filter((part) => part.matched).map((part) => part.text)
+    ).toEqual(matches);
+  }
+);
+
+test("highlights normalized text when grapheme segmentation is unavailable", () => {
+  const segmenter = Intl.Segmenter;
+  Intl.Segmenter = undefined;
+  try {
+    const parts = getSettingsSearchHighlightParts(
+      "ﬃ Cafe\u0301",
+      getSettingsSearchTerms("FFI CAFÉ", "en"),
+      "en"
+    );
+    expect(
+      parts.filter((part) => part.matched).map((part) => part.text)
+    ).toEqual(["ﬃ", "Cafe\u0301"]);
+  } finally {
+    Intl.Segmenter = segmenter;
+  }
 });
 
 test("rebuilds localized results when the UI language changes", () => {

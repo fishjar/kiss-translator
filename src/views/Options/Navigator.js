@@ -23,8 +23,21 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../../components/Logo";
 import { useI18n } from "../../hooks/I18n";
 import { useSetting } from "../../hooks/Setting";
-import { getSettingsSearchEntries, searchSettingsGroups } from "./search";
+import {
+  getSettingsSearchEntries,
+  getSettingsSearchHighlightParts,
+  getSettingsSearchTerms,
+  normalizeSearchText,
+  searchSettingsGroups,
+} from "./search";
 import { isExt, isAutoTranslateClipboardSupported } from "../../libs/client";
+
+function SearchHighlight({ text, terms, uiLang }) {
+  return getSettingsSearchHighlightParts(text, terms, uiLang).map(
+    (part, index) =>
+      part.matched ? <mark key={index}>{part.text}</mark> : part.text
+  );
+}
 
 export default function Navigator({ open, isMobile = false, onClose }) {
   const i18n = useI18n();
@@ -194,6 +207,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
   );
 
   const visibleGroups = searchSettingsGroups(groups, query, uiLang);
+  const searchTerms = getSettingsSearchTerms(query, uiLang);
 
   return (
     <aside
@@ -290,6 +304,24 @@ export default function Navigator({ open, isMobile = false, onClose }) {
                     <ul className="kt-options-nav__settings" aria-label={label}>
                       {matches.map((entry) => {
                         const search = `?setting=${encodeURIComponent(entry.key)}`;
+                        const labelText = normalizeSearchText(
+                          entry.label,
+                          uiLang
+                        );
+                        const details = [
+                          ...new Set(
+                            searchTerms
+                              .filter((term) => !labelText.includes(term))
+                              .map((term) =>
+                                entry.searchTexts.find((text) =>
+                                  normalizeSearchText(text, uiLang).includes(
+                                    term
+                                  )
+                                )
+                              )
+                              .filter(Boolean)
+                          ),
+                        ];
                         return (
                           <li key={entry.key}>
                             <Link
@@ -303,7 +335,23 @@ export default function Navigator({ open, isMobile = false, onClose }) {
                               }
                               onClick={isMobile ? onClose : undefined}
                             >
-                              {entry.label}
+                              <SearchHighlight
+                                text={entry.label}
+                                terms={searchTerms}
+                                uiLang={uiLang}
+                              />
+                              {details.map((text) => (
+                                <span
+                                  className="kt-options-nav__match-detail"
+                                  key={text}
+                                >
+                                  <SearchHighlight
+                                    text={text}
+                                    terms={searchTerms}
+                                    uiLang={uiLang}
+                                  />
+                                </span>
+                              ))}
                             </Link>
                           </li>
                         );
