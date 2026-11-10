@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { ContentCopyIcon } from "../../components/icons";
 import { useAlert } from "../../hooks/Alert";
 import ValidationInput from "../../hooks/ValidationInput";
 import { DEFAULT_HTTP_TIMEOUT } from "../../config/apiConstants";

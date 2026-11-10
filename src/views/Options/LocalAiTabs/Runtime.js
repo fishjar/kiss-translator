@@ -15,7 +15,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import { PowerSettingsNewIcon } from "../../../components/icons";
 import { runtimeHost } from "../../../localAi/runtime/runtimeHostAdapter";
 import { nextRpcId } from "../../../localAi/runtime/rpc";
 import { getRuntimeStatus } from "../../../localAi/core/runtimeClient";
