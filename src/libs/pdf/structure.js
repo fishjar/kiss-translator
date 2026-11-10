@@ -2,6 +2,41 @@ import { textRegion, sourceAnchor } from "./formulaGeometry";
 
 export const TEXT_GEOMETRY_VERSION = 1;
 
+const COMPOUND_PREFIX = /^(?:self|well|cross)$/i;
+const COMPOUND_SUFFIX =
+  /^(?:based|aware|driven|level|scale|free|specific|wise|like|oriented|related|dependent|independent|supervised|answering|attention|learning|training|trained|tuning|making|solving|sized|world|time|term|grained|order|sensitive|invariant|agnostic|efficient|effective|consuming|intensive|ended|fold|step|stage|shot|layer|class|label|task|domain|source)$/i;
+
+function appendLine(prior, next) {
+  const left = prior.text.trimEnd();
+  const right = next.trimStart();
+  const word = /[-\u2010]$/.test(left)
+    ? left.match(/([\p{L}\p{N}\u2010-]+)[-\u2010]$/u)?.[1]
+    : "";
+  const continuation = word && right.match(/^[\p{L}\p{N}\u2010-]+/u)?.[0];
+  const softHyphen = left.endsWith("\u00ad");
+  const joinWord = word && continuation;
+  const removeHyphen =
+    softHyphen ||
+    (joinWord &&
+      /[a-z]$/.test(word) &&
+      /^[a-z]/.test(continuation) &&
+      !/[-\u2010]/.test(word) &&
+      !/[-\u2010]/.test(continuation) &&
+      !COMPOUND_PREFIX.test(word) &&
+      !(word.length >= 4 && COMPOUND_SUFFIX.test(continuation)));
+  const end = left.length - (removeHyphen ? 1 : 0);
+  const separator = softHyphen || joinWord ? "" : " ";
+  if (end < prior.text.length)
+    prior.textSources = prior.textSources
+      .filter((range) => range.start < end)
+      .map((range) => ({ ...range, end: Math.min(range.end, end) }));
+  prior.text = left.slice(0, end) + separator + right;
+  return {
+    offset: end + separator.length,
+    leading: next.length - right.length,
+  };
+}
+
 const union = (rects) => [
   Math.min(...rects.map((r) => r[0])),
   Math.min(...rects.map((r) => r[1])),
@@ -501,23 +536,22 @@ export function paragraphBlocks(raw, lines, regions = []) {
       region?.id === prior.regionId &&
       !(type === "heading" && /^\d+(?:\.\d+)*\s/.test(line.text))
     ) {
-      const textOffset =
-        prior.text.replace(/([a-z])-$/, "$1").length +
-        (/[a-z]-$/.test(prior.lastText) ? 0 : 1);
+      const { offset, leading } = appendLine(prior, line.text);
       prior.textSources.push(
         ...(anchor
-          ? [{ start: textOffset, end: textOffset + line.text.length, anchor }]
+          ? [
+              {
+                start: offset,
+                end: offset + line.text.length - leading,
+                anchor,
+              },
+            ]
           : [])
       );
       prior.sourceAnchors.push(
         ...(anchor ? [anchor] : []),
         ...inlineMath.map((formula) => formula.sourceAnchor).filter(Boolean)
       );
-      prior.text =
-        prior.text.replace(/([a-z])-$/, "$1") +
-        (/[a-z]-$/.test(prior.lastText) ? "" : " ") +
-        line.text;
-      prior.lastText = line.text;
       prior.lastBaseline = line.baseline;
       prior.bbox = union([prior.bbox, line.bbox]);
       prior.fragments[0].bbox = union([prior.fragments[0].bbox, sourceBBox]);
@@ -554,7 +588,6 @@ export function paragraphBlocks(raw, lines, regions = []) {
         ],
         links,
         inlineMath,
-        lastText: line.text,
         lastBaseline: line.baseline,
         font: lineFont,
         bbox: line.bbox,
@@ -726,28 +759,21 @@ export function mergeAcrossPages(blocks, pages) {
       Math.abs(last.bbox[0] / prevPage.width - first.bbox[0] / nextPage.width) <
         0.04 &&
       !/[.!?:;。！？：；]$/.test(prior.text.trim()) &&
-      /^[a-z]/.test(block.text.trim());
+      (/^[a-z]/.test(block.text.trim()) ||
+        (/[\p{L}\p{N}][-\u00ad\u2010]$/u.test(prior.text.trimEnd()) &&
+          /^[\p{Lu}\p{N}]/u.test(block.text.trimStart())));
     if (can) {
-      const hyphen = /[a-z]-$/.test(prior.text);
-      const trimmedLength = prior.text.replace(/([a-z])-$/, "$1").length;
-      const offset = trimmedLength + (hyphen ? 0 : 1);
-      if (hyphen)
-        prior.textSources = prior.textSources.map((range) => ({
-          ...range,
-          end: Math.min(range.end, trimmedLength),
-        }));
+      const { offset, leading } = appendLine(prior, block.text);
       prior.textSources.push(
-        ...block.textSources.map((range) => ({
-          ...range,
-          start: range.start + offset,
-          end: range.end + offset,
-        }))
+        ...block.textSources
+          .filter((range) => range.end > leading)
+          .map((range) => ({
+            ...range,
+            start: Math.max(range.start, leading) - leading + offset,
+            end: range.end - leading + offset,
+          }))
       );
       prior.sourceAnchors.push(...block.sourceAnchors);
-      prior.text =
-        prior.text.replace(/([a-z])-$/, "$1") +
-        (hyphen ? "" : " ") +
-        block.text;
       prior.fragments.push(...block.fragments);
       prior.spanIds.push(...block.spanIds);
       prior.links = [...(prior.links || []), ...(block.links || [])];

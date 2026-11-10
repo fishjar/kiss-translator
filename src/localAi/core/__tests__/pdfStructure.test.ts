@@ -241,6 +241,43 @@ describe("PDF structural flow", () => {
       ])
     ).toHaveLength(2);
   });
+  it.each([
+    ["first-", "order", "first-order", 6],
+    ["self-", "couplings", "self-couplings", 5],
+    ["DarkSide-", "50", "DarkSide-50", 9],
+    ["Katz-", "Tao", "Katz-Tao", 5],
+    ["end-to-", "end", "end-to-end", 7],
+    ["question-", "answering", "question-answering", 9],
+    ["contin-", "uation", "continuation", 6],
+    ["contin\u00ad", "uation", "continuation", 6],
+    ["other", "words", "other words", 6],
+  ])("joins %s and %s across lines and pages", (left, right, expected, offset) => {
+    const pages = [1, 2].map((page) => ({ page, width: 600, height: 800 }));
+    const row = (text: string, y: number) => ({
+      ...line(text, 30, y),
+      baseline: y + 10,
+      spans: [{ id: text, font: "regular", text }],
+    });
+    const [pageOne] = paragraphBlocks(pages[0], [row(left, 740), row(right, 752)]);
+    expect(blockToMarkdown(pageOne)).toBe(expected);
+
+    const separate = [
+      paragraphBlocks(pages[0], [row(left, 740)])[0],
+      paragraphBlocks(pages[1], [row(right, 60)])[0],
+    ];
+    const anchors = [{ id: "left" }, { id: "right" }];
+    separate.forEach((block, index) => {
+      block.textSources = [{ start: 0, end: block.text.length, anchor: anchors[index] }];
+    });
+    const merged = mergeAcrossPages(separate, pages);
+    expect(merged).toHaveLength(1);
+    const ranges = [];
+    expect(blockToMarkdown(merged[0], ranges)).toBe(expected);
+    expect(ranges).toEqual([
+      { start: 0, end: Math.min(left.length, offset), anchor: anchors[0] },
+      { start: offset, end: expected.length, anchor: anchors[1] },
+    ]);
+  });
   it("prefers bookmark navigation and fills missing Markdown headings", () => {
     const blocks = [
       {
