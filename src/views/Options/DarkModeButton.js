@@ -1,6 +1,8 @@
-import BrightnessAutoRoundedIcon from "@mui/icons-material/BrightnessAutoRounded";
-import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
-import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
+import {
+  BrightnessAutoRoundedIcon,
+  DarkModeRoundedIcon,
+  LightModeRoundedIcon,
+} from "../../components/icons";
 import IconButton from "@mui/material/IconButton";
 import { useDarkMode } from "../../hooks/ColorMode";
 import { useI18n } from "../../hooks/I18n";
