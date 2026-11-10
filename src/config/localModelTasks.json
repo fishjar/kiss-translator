@@ -32,6 +32,7 @@
     "unlimited-ocr-iq2m": ["webgpu", "wasm"],
     "hy-mt2-1.8b": ["webgpu", "wasm"],
     "hy-mt2-1.8b-onnx": ["webgpu", "wasm"],
+    "index-translate-2b": ["webgpu", "wasm"],
     "laya-multilingual-fp16": ["webgpu", "wasm"],
     "laya-multilingual-int8": ["webgpu", "wasm"]
   },
@@ -61,6 +62,7 @@
     "unlimited-ocr-iq2m": "ocr-vlm",
     "hy-mt2-1.8b": "llm",
     "hy-mt2-1.8b-onnx": "llm",
+    "index-translate-2b": "llm",
     "laya-multilingual-fp16": "decision",
     "laya-multilingual-int8": "decision"
   },
