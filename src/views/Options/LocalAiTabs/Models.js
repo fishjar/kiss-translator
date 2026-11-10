@@ -14,11 +14,13 @@ import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
 import IconButton from "@mui/material/IconButton";
 import Collapse from "@mui/material/Collapse";
-import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
-import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
-import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
+import {
+  KeyboardArrowDownRoundedIcon,
+  KeyboardArrowUpRoundedIcon,
+  DeleteOutlineRoundedIcon,
+  DownloadRoundedIcon,
+  PauseCircleOutlineRoundedIcon,
+} from "../../../components/icons";
 import { sharedModelManager as manager } from "../../../localAi/core/modelManager";
 import { runtimeHost } from "../../../localAi/runtime/runtimeHostAdapter";
 import { nextRpcId } from "../../../localAi/runtime/rpc";
@@ -180,6 +182,17 @@ function ModelCard({ rec }) {
             <IconButton
               size="small"
               onClick={() => setCollapsed(!collapsed)}
+              aria-expanded={!collapsed}
+              aria-label={`${i18n(
+                collapsed
+                  ? "local_ai_models_expand_section"
+                  : "local_ai_models_collapse_section"
+              )} ${getModelDisplayName(manifest, i18n)}`}
+              title={`${i18n(
+                collapsed
+                  ? "local_ai_models_expand_section"
+                  : "local_ai_models_collapse_section"
+              )} ${getModelDisplayName(manifest, i18n)}`}
               sx={{ flexShrink: 0 }}
             >
               {collapsed ? (
@@ -412,6 +425,17 @@ function OcrGroupCard({ group, det, rec }) {
             <IconButton
               size="small"
               onClick={() => setCollapsed(!collapsed)}
+              aria-expanded={!collapsed}
+              aria-label={`${i18n(
+                collapsed
+                  ? "local_ai_models_expand_section"
+                  : "local_ai_models_collapse_section"
+              )} ${getModelDisplayName(group, i18n)}`}
+              title={`${i18n(
+                collapsed
+                  ? "local_ai_models_expand_section"
+                  : "local_ai_models_collapse_section"
+              )} ${getModelDisplayName(group, i18n)}`}
               sx={{ flexShrink: 0 }}
             >
               {collapsed ? (
