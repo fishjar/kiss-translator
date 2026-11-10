@@ -179,10 +179,15 @@ test("reloads an enabled CC track without toggling CC, and tolerates unavailable
 // so the production-compiled function must not reference bundle-scoped Babel helpers.
 const compileInstallerForProduction = () => {
   const cwd = path.resolve(__dirname, "../..");
-  const craRequire = createRequire(require.resolve("react-scripts/package.json"));
+  const craRequire = createRequire(
+    require.resolve("react-scripts/package.json")
+  );
   const babel = craRequire("@babel/core");
   const filename = path.join(__dirname, "youtubeBridge.js");
-  const saved = { BABEL_ENV: process.env.BABEL_ENV, NODE_ENV: process.env.NODE_ENV };
+  const saved = {
+    BABEL_ENV: process.env.BABEL_ENV,
+    NODE_ENV: process.env.NODE_ENV,
+  };
   process.env.BABEL_ENV = process.env.NODE_ENV = "production";
   let code;
   try {
@@ -200,12 +205,18 @@ const compileInstallerForProduction = () => {
       else process.env[key] = value;
     }
   }
-  const ast = babel.parseSync(code, { babelrc: false, configFile: false, cwd, filename });
+  const ast = babel.parseSync(code, {
+    babelrc: false,
+    configFile: false,
+    cwd,
+    filename,
+  });
   const fn = ast.program.body
     .map((node) => node.declaration || node)
     .find(
       (node) =>
-        node.type === "FunctionDeclaration" && node.id?.name === "installYoutubeBridge"
+        node.type === "FunctionDeclaration" &&
+        node.id?.name === "installYoutubeBridge"
     );
   return code.slice(fn.start, fn.end);
 };

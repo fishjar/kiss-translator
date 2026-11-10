@@ -43,7 +43,8 @@ export function installYoutubeBridge(createAudioBridge) {
   const post = (data) => {
     // Object spread compiles to a bundle-scoped helper that is missing once this
     // installer is serialized into the page by the userscript.
-    if (!disposed) window.postMessage(Object.assign({ protocol }, data), origin);
+    if (!disposed)
+      window.postMessage(Object.assign({ protocol }, data), origin);
   };
   const clear = () => {
     captureReads.forEach((controller) => controller.abort());
