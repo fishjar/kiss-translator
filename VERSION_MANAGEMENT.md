@@ -13,8 +13,12 @@
 
 ## ✨ 解决方案
 
-### 单一版本源
-**`package.json` 是项目中唯一的版本号来源**。其他所有文件的版本号均由此文件自动分发与同步。
+### 版本来源
+
+- `package.json` 的 `version` 是项目和扩展的版本，自动同步到 `.env` 和各扩展 manifest。Web 构建用它生成 `version.txt`。
+- `package.json` 的 `userscriptVersion` 是普通油猴脚本和 iOS Safari 脚本的版本。Web 构建用它生成 `userscript-version.txt`，供油猴设置页检查更新。
+
+只发布油猴时，提升 `userscriptVersion` 后运行 `pnpm build:web`，通过网站发布流程部署设置页、两个脚本和版本文件。`pnpm version:*` 只调整项目和扩展版本。统一发版如果也更新油猴，需将 `userscriptVersion` 提升到高于上次油猴发布的版本。
 
 ### 自动同步机制
 * **构建时自动同步：** 执行以下打包命令时，底层会自动先触发版本号同步，确保产物一致。

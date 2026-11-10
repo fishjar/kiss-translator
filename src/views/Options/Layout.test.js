@@ -12,10 +12,12 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let mockPathname = "/";
 let mockCheckUpdate = true;
+let mockIsGm = false;
 
 beforeEach(() => {
   mockPathname = "/";
   mockCheckUpdate = true;
+  mockIsGm = false;
 });
 
 test("uses the wide content rail for dense workspace pages", () => {
@@ -41,6 +43,11 @@ jest.mock("react-router-dom", () => ({
   useLocation: () => ({ pathname: mockPathname }),
 }));
 jest.mock("../../hooks/I18n", () => ({ useI18n: () => (key) => key }));
+jest.mock("../../libs/client", () => ({
+  get isGm() {
+    return mockIsGm;
+  },
+}));
 jest.mock("../../hooks/Setting", () => ({
   useSetting: () => ({ setting: { checkUpdate: mockCheckUpdate } }),
 }));
@@ -392,19 +399,31 @@ describe("isNewerVersion", () => {
 });
 
 describe("Layout checkUpdate setting effect", () => {
-  const originalNodeEnv = process.env.NODE_ENV;
+  const originalEnv = process.env;
   const originalFetch = global.fetch;
 
   beforeEach(() => {
-    process.env.NODE_ENV = "development";
-    process.env.REACT_APP_VERSION = "2.0.32";
-    process.env.REACT_APP_VERSION_URL = "https://primary.example/version.txt";
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: "development",
+      REACT_APP_VERSION: "2.0.32",
+      REACT_APP_VERSION_URL: "https://primary.example/version.txt",
+      REACT_APP_USERSCRIPT_VERSION_URL:
+        "https://primary.example/userscript-version.txt",
+      REACT_APP_USERSCRIPT_VERSION_URL_GITHUB:
+        "https://github.example/userscript-version.txt",
+      REACT_APP_USERSCRIPT_DOWNLOADURL:
+        "https://primary.example/script.user.js",
+      REACT_APP_USERSCRIPT_IOS_DOWNLOADURL:
+        "https://primary.example/script-ios.user.js",
+    };
     global.fetch = jest.fn();
   });
 
   afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+    process.env = originalEnv;
     global.fetch = originalFetch;
+    delete window.APP_INFO;
   });
 
   test("does not fetch latest version when checkUpdate is false", async () => {
@@ -474,4 +493,53 @@ describe("Layout checkUpdate setting effect", () => {
 
     act(() => root.unmount());
   });
+
+  test.each([
+    ["userscript", true, "2.2.0", true],
+    ["current userscript", true, "2.2.1", false],
+    ["extension", false, undefined, false],
+    ["userscript without bridge version", true, undefined, false],
+    ["userscript with invalid bridge version", true, "invalid", false],
+  ])(
+    "checks the right version for %s",
+    async (_, isGm, installed, showsAlert) => {
+      mockIsGm = isGm;
+      process.env.REACT_APP_VERSION = isGm ? "2.2.1" : "2.2.0";
+      if (installed) window.APP_INFO = { version: installed };
+      global.fetch.mockImplementation(async (url) => ({
+        ok: !url.startsWith("https://primary.example/userscript-version.txt"),
+        text: async () =>
+          url.includes("userscript-version.txt") ? "2.2.1" : "2.2.0",
+      }));
+
+      const container = document.createElement("div");
+      const root = createRoot(container);
+      await act(async () => root.render(<Layout />));
+
+      const versionUrls = global.fetch.mock.calls.map(
+        ([url]) => url.split("?")[0]
+      );
+      expect(versionUrls).toEqual(
+        !isGm
+          ? ["https://primary.example/version.txt"]
+          : !isValidVersion(installed)
+            ? []
+            : [
+                "https://primary.example/userscript-version.txt",
+                "https://github.example/userscript-version.txt",
+              ]
+      );
+      const alert = container.querySelector(".kt-options-version-alert");
+      expect(Boolean(alert)).toBe(showsAlert);
+      if (showsAlert) {
+        expect(
+          Array.from(alert.querySelectorAll("a"), ({ href }) => href)
+        ).toEqual([
+          "https://primary.example/script.user.js",
+          "https://primary.example/script-ios.user.js",
+        ]);
+      }
+      act(() => root.unmount());
+    }
+  );
 });

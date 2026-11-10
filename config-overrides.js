@@ -6,6 +6,12 @@ const TerserPlugin = require("terser-webpack-plugin");
 const path = require("path");
 const fs = require("fs");
 const configureHtmlDecoder = require("./src/scripts/html-decoder-webpack.cjs");
+
+// CRA reads this value when creating the Webpack environment for the bundle.
+if (process.env.REACT_APP_CLIENT === "userscript") {
+  process.env.REACT_APP_VERSION = require("./package.json").userscriptVersion;
+}
+
 let webpack;
 try {
   webpack = require("webpack");
@@ -310,7 +316,9 @@ const userscriptWebpack = (config, env) => {
 
   config.output.filename = "[name].js";
   config.output.publicPath = env === "production" ? "./" : "/";
-  config.optimization.splitChunks = { cacheGroups: { default: false } };
+  // 油猴脚本在第三方页面运行，动态导入的模块必须随各自入口一起打包。
+  config.output.asyncChunks = false;
+  config.optimization.splitChunks = false;
   config.optimization.runtimeChunk = false;
   config.optimization.minimize = env === "production";
 
@@ -341,10 +349,6 @@ const userscriptWebpack = (config, env) => {
   );
 
   config.plugins.push(
-    // 强制限制分包数量为 1，确保油猴脚本和页面脚本自包含，避免产生外部 chunk 导致 404 异常
-    new webpack.optimize.LimitChunkCountPlugin({
-      maxChunks: 1,
-    }),
     new HtmlWebpackPlugin({
       inject: true,
       chunks: ["main"],
@@ -359,6 +363,18 @@ const userscriptWebpack = (config, env) => {
     }),
     {
       apply(compiler) {
+        compiler.hooks.afterCompile.tap("UserscriptChunks", (compilation) => {
+          const entry = compilation.entrypoints.get("kiss-translator.user");
+          if (
+            entry &&
+            (entry.chunks.length !== 1 ||
+              entry.getEntrypointChunk().getAllAsyncChunks().size > 0)
+          ) {
+            compilation.errors.push(
+              new Error("kiss-translator.user.js must bundle its JS imports")
+            );
+          }
+        });
         compiler.hooks.done.tap("BundleModuleReport", (stats) => {
           const destination = path.resolve(__dirname, "tmp/build-analysis");
           fs.mkdirSync(destination, { recursive: true });
