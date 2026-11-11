@@ -3125,6 +3125,16 @@ export const LOCAL_AI_I18N = {
     vi: "Hy-MT2 1.8B Dịch thuật (ONNX q4f16)",
     ru: "Hy-MT2 1.8B Перевод (ONNX q4f16)",
   },
+  model_name_index_translate_2b: {
+    zh: "Index-Translate 2B 翻译 (Q4_K_M)",
+    en: "Index-Translate 2B Translation (Q4_K_M)",
+    zh_TW: "Index-Translate 2B 翻譯 (Q4_K_M)",
+    ja: "Index-Translate 2B 翻訳 (Q4_K_M)",
+    ko: "Index-Translate 2B 번역 (Q4_K_M)",
+    tr: "Index-Translate 2B Çeviri (Q4_K_M)",
+    vi: "Index-Translate 2B Dịch thuật (Q4_K_M)",
+    ru: "Index-Translate 2B Перевод (Q4_K_M)",
+  },
   model_name_laya_multilingual_fp16: {
     zh: "Laya Multilingual (FP16 · JEV 决策引擎 · 100+ 语言)",
     en: "Laya Multilingual (FP16 · JEV Decision Engine · 100+ Languages)",

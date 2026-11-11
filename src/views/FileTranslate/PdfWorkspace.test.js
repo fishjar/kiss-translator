@@ -1,5 +1,5 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
-import { act, createRef } from "react";
+import { act, createRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import PdfWorkspace from "./PdfWorkspace";
 import { openPdf } from "../../libs/pdf/pdfDocument";
@@ -12,6 +12,7 @@ jest.mock("./State", () => {
       connected: true,
       client: { request: mockRequest, session: { capabilities: ["doc"] } },
       openSettings: jest.fn(),
+      i18n: (_key, fallback) => fallback,
     }),
   };
 });
@@ -150,6 +151,56 @@ test("PDF drawer starts closed at 270px, preserves navigation and has no footer 
   expect(drawer.getAttribute("aria-hidden")).toBe("false");
   expect(HTMLElement.prototype.scrollTo).toHaveBeenCalled();
   expect(container.textContent).toContain("该目录位置暂无对应 Markdown 内容");
+  expect(openPdf).toHaveBeenCalledTimes(1);
+});
+
+test("PDF fullscreen hides the translation pane and Escape restores focus and reading position", async () => {
+  const file = new File(["pdf"], "test.pdf");
+  const changed = jest.fn();
+  function Reader() {
+    const [fullscreen, setFullscreen] = useState(false);
+    return (
+      <PdfWorkspace
+        file={file}
+        fullscreen={fullscreen}
+        onFullscreenChange={(value) => {
+          changed(value);
+          setFullscreen(value);
+        }}
+      />
+    );
+  }
+  await act(async () => root.render(<Reader />));
+  const source = container.querySelector(".kt-pdf-pages");
+  const page = source.querySelector("[data-pdf-page]");
+  const translation = container
+    .querySelector(".kt-pdf-markdown")
+    .closest(".kt-pdf-column");
+  const toggle = [...container.querySelectorAll("button")].find(
+    (button) => button.textContent === "全屏"
+  );
+  Object.defineProperties(page, {
+    offsetTop: { value: 100 },
+    offsetHeight: { value: 800 },
+  });
+  page.removeAttribute("data-scale");
+  source.scrollTop = 160;
+
+  act(() => toggle.click());
+  expect(changed).toHaveBeenNthCalledWith(1, true);
+  expect(translation.hidden).toBe(true);
+  expect(source.scrollTop).toBe(160);
+  expect(toggle.textContent).toBe("退出全屏");
+
+  page.dataset.scale = "0";
+  source.scrollTop = 240;
+  act(() =>
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))
+  );
+  expect(changed).toHaveBeenNthCalledWith(2, false);
+  expect(translation.hidden).toBe(false);
+  expect(source.scrollTop).toBe(240);
+  expect(document.activeElement).toBe(toggle);
   expect(openPdf).toHaveBeenCalledTimes(1);
 });
 
