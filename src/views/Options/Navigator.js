@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import ApiRoundedIcon from "@mui/icons-material/ApiRounded";
 import BookmarksRoundedIcon from "@mui/icons-material/BookmarksRounded";
 import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
@@ -23,19 +23,37 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import Logo from "../../components/Logo";
 import { useI18n } from "../../hooks/I18n";
 import { useSetting } from "../../hooks/Setting";
-import { getSettingsSearchEntries, searchSettingsGroups } from "./search";
+import {
+  getSettingsSearchEntries,
+  getSettingsSearchHighlightParts,
+  getSettingsSearchTerms,
+  normalizeSearchText,
+  searchSettingsGroups,
+} from "./search";
 import { isExt, isAutoTranslateClipboardSupported } from "../../libs/client";
+
+function SearchHighlight({ text, terms, uiLang }) {
+  return getSettingsSearchHighlightParts(text, terms, uiLang).map(
+    (part, index) =>
+      part.matched ? <mark key={index}>{part.text}</mark> : part.text
+  );
+}
 
 export default function Navigator({ open, isMobile = false, onClose }) {
   const i18n = useI18n();
   const {
     setting: { uiLang },
   } = useSetting();
+  const [inputValue, setInputValue] = useState("");
   const [query, setQuery] = useState("");
+  // IME pre-edit text must not change results or highlights before it commits.
+  const composing = useRef(false);
   const location = useLocation();
   const navigate = useNavigate();
   const searching = Boolean(query.trim());
   const clearSearch = () => {
+    composing.current = false;
+    setInputValue("");
     setQuery("");
     const params = new URLSearchParams(location.search);
     if (params.has("setting")) {
@@ -194,6 +212,7 @@ export default function Navigator({ open, isMobile = false, onClose }) {
   );
 
   const visibleGroups = searchSettingsGroups(groups, query, uiLang);
+  const searchTerms = getSettingsSearchTerms(query, uiLang);
 
   return (
     <aside
@@ -227,12 +246,26 @@ export default function Navigator({ open, isMobile = false, onClose }) {
         <SearchRoundedIcon />
         <input
           type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          value={inputValue}
+          onChange={(event) => {
+            const value = event.target.value;
+            setInputValue(value);
+            if (!composing.current && !event.nativeEvent.isComposing)
+              setQuery(value);
+          }}
+          onCompositionStart={() => {
+            composing.current = true;
+          }}
+          onCompositionEnd={(event) => {
+            composing.current = false;
+            const value = event.currentTarget.value;
+            setInputValue(value);
+            setQuery(value);
+          }}
           placeholder={i18n("options_search")}
           aria-label={i18n("options_search")}
         />
-        {query.length > 0 && (
+        {inputValue.length > 0 && (
           <button
             type="button"
             className="kt-options-search__clear"
@@ -290,6 +323,24 @@ export default function Navigator({ open, isMobile = false, onClose }) {
                     <ul className="kt-options-nav__settings" aria-label={label}>
                       {matches.map((entry) => {
                         const search = `?setting=${encodeURIComponent(entry.key)}`;
+                        const labelText = normalizeSearchText(
+                          entry.label,
+                          uiLang
+                        );
+                        const details = [
+                          ...new Set(
+                            searchTerms
+                              .filter((term) => !labelText.includes(term))
+                              .map((term) =>
+                                entry.searchTexts.find((text) =>
+                                  normalizeSearchText(text, uiLang).includes(
+                                    term
+                                  )
+                                )
+                              )
+                              .filter(Boolean)
+                          ),
+                        ];
                         return (
                           <li key={entry.key}>
                             <Link
@@ -303,7 +354,23 @@ export default function Navigator({ open, isMobile = false, onClose }) {
                               }
                               onClick={isMobile ? onClose : undefined}
                             >
-                              {entry.label}
+                              <SearchHighlight
+                                text={entry.label}
+                                terms={searchTerms}
+                                uiLang={uiLang}
+                              />
+                              {details.map((text) => (
+                                <span
+                                  className="kt-options-nav__match-detail"
+                                  key={text}
+                                >
+                                  <SearchHighlight
+                                    text={text}
+                                    terms={searchTerms}
+                                    uiLang={uiLang}
+                                  />
+                                </span>
+                              ))}
                             </Link>
                           </li>
                         );

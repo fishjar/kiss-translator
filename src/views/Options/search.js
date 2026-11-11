@@ -1,5 +1,3 @@
-import { I18N } from "../../config/i18n";
-
 // Index labels instead of mounted pages: advanced controls and other routes may
 // not exist in the DOM yet. Never include user-entered values or credentials.
 export const SETTINGS_SEARCH_KEYS = {
@@ -272,18 +270,24 @@ export const SETTINGS_SEARCH_LABELS = {
 };
 
 const SEARCH_ALIASES = {
-  api_url: "API URL endpoint 接口地址",
-  api_key: "API Key 密钥",
-  api_model: "模型",
-  api_temperature: "温度",
-  api_max_tokens: "最大令牌数",
-  api_request_hook: "请求钩子",
-  api_response_hook: "响应钩子",
-  use_batch_fetch: "批量",
-  batch_size: "批量",
-  batch_interval: "批量",
-  batch_length: "批量",
-  batch_concurrency: "批量",
+  zh: {
+    api_url: "API URL 接口地址",
+    api_key: "API Key 密钥",
+    api_model: "模型",
+    api_temperature: "温度",
+    api_max_tokens: "最大令牌数",
+    api_request_hook: "请求钩子",
+    api_response_hook: "响应钩子",
+    use_batch_fetch: "批量",
+    batch_size: "批量",
+    batch_interval: "批量",
+    batch_length: "批量",
+    batch_concurrency: "批量",
+  },
+  en: {
+    api_url: "API URL endpoint",
+    api_key: "API Key",
+  },
 };
 
 const OPTION_KEYS = {
@@ -386,6 +390,55 @@ export function normalizeSearchText(text, uiLang) {
   }
 }
 
+export const getSettingsSearchTerms = (query, uiLang) =>
+  normalizeSearchText(query.trim(), uiLang).split(/\s+/).filter(Boolean);
+
+export function getSettingsSearchHighlightParts(text, terms, uiLang) {
+  const normalized = normalizeSearchText(text, uiLang);
+  // Normalization can change character counts (for example, ligatures). Map
+  // matches back to complete graphemes so labels retain their original spelling.
+  const segments =
+    typeof Intl.Segmenter === "function"
+      ? new Intl.Segmenter(undefined, {
+          granularity: "grapheme",
+        }).segment(text)
+      : text.matchAll(/\P{M}\p{M}*|\p{M}+/gu);
+  const offsets = [];
+  for (const segment of segments) {
+    const value = segment.segment ?? segment[0];
+    for (let i = 0; i < normalizeSearchText(value, uiLang).length; i++)
+      offsets.push([segment.index, segment.index + value.length]);
+  }
+  const ranges = terms.flatMap((term) => {
+    const matches = [];
+    let index = normalized.indexOf(term);
+    while (term && index !== -1) {
+      matches.push([offsets[index][0], offsets[index + term.length - 1][1]]);
+      index = normalized.indexOf(term, index + 1);
+    }
+    return matches;
+  });
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  for (const range of ranges) {
+    const previous = merged[merged.length - 1];
+    if (previous && range[0] <= previous[1])
+      previous[1] = Math.max(previous[1], range[1]);
+    else merged.push(range);
+  }
+  const parts = [];
+  let cursor = 0;
+  for (const [start, end] of merged) {
+    if (start > cursor)
+      parts.push({ text: text.slice(cursor, start), matched: false });
+    parts.push({ text: text.slice(start, end), matched: true });
+    cursor = end;
+  }
+  if (cursor < text.length)
+    parts.push({ text: text.slice(cursor), matched: false });
+  return parts;
+}
+
 export function getSettingsSearchEntries(
   id,
   i18n,
@@ -424,58 +477,48 @@ export function getSettingsSearchEntries(
     })
     .map((key) => {
       const descriptionKeys = [
-        `${key}_helper`,
-        `${key}_help`,
-        DESCRIPTION_KEYS[key],
-      ].filter(Boolean);
+        ...new Set(
+          [`${key}_helper`, `${key}_help`, DESCRIPTION_KEYS[key]].filter(
+            Boolean
+          )
+        ),
+      ];
       const description = descriptionKeys
         .map((item) => i18n(item, ""))
         .filter(Boolean)
         .join(" ");
       const label = getSettingsSearchLabel(key, i18n);
-      return {
-        key,
-        label,
-        text: normalizeSearchText(
+      const searchTexts = [
+        ...new Set(
           [
             label,
             description,
-            I18N[key]?.en || "",
-            key.replace(/_/g, " "),
-            SEARCH_ALIASES[key] || "",
-            ...(OPTION_KEYS[key] || []).flatMap((item) => [
-              i18n(item, ""),
-              I18N[item]?.en || "",
-            ]),
-            ...descriptionKeys.map((item) => I18N[item]?.en || ""),
-          ].join(" "),
-          uiLang
+            SEARCH_ALIASES[uiLang]?.[key],
+            ...(OPTION_KEYS[key] || []).map((item) => i18n(item, "")),
+          ].filter(Boolean)
         ),
+      ];
+      return {
+        key,
+        label,
+        searchTexts,
+        text: normalizeSearchText(searchTexts.join(" "), uiLang),
       };
     });
 }
 
 export function searchSettingsGroups(groups, query, uiLang) {
-  const terms = normalizeSearchText(query.trim(), uiLang)
-    .split(/\s+/)
-    .filter(Boolean);
+  const terms = getSettingsSearchTerms(query, uiLang);
   if (!terms.length) return groups;
   return groups
     .map((group) => ({
       ...group,
       items: group.items
         .map(([id, label, path, Icon, entries]) => {
-          const pageText = normalizeSearchText(
-            `${group.label} ${label}`,
-            uiLang
-          );
           const matches = entries.filter((entry) =>
-            terms.every((term) => `${pageText} ${entry.text}`.includes(term))
+            terms.every((term) => entry.text.includes(term))
           );
-          const pageMatches = terms.every((term) => pageText.includes(term));
-          return pageMatches || matches.length
-            ? [id, label, path, Icon, matches]
-            : null;
+          return matches.length ? [id, label, path, Icon, matches] : null;
         })
         .filter(Boolean),
     }))

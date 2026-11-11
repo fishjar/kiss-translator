@@ -7,6 +7,7 @@ import FileTranslatePage from "./index";
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const originalResizeObserver = globalThis.ResizeObserver;
 let mockConnected = true;
+let mockOnlineLanguage = "zh";
 let mockPdfStateOverrides = {};
 const mockAnalyzeLayout = jest.fn().mockResolvedValue({ regions: [] });
 beforeAll(() => {
@@ -78,9 +79,16 @@ jest.mock("../../localAi/core/inputFiles", () => ({
   validateInputFile: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock("../../hooks/I18n", () => ({
-  useI18n: () => (key, fallback) => fallback || key,
-}));
+jest.mock("../../hooks/I18n", () => {
+  const { FILE_TRANSLATE_I18N } = require("../../config/locales/fileTranslate");
+  return {
+    useI18n: () => (key, fallback) =>
+      (key.startsWith("file_online_") &&
+        FILE_TRANSLATE_I18N[key]?.[mockOnlineLanguage]) ||
+      fallback ||
+      key,
+  };
+});
 
 const mockSetting = {
   transApis: [
@@ -349,6 +357,137 @@ describe("FileTranslatePage (M2 UI)", () => {
           .click()
       );
     };
+
+    test("pasting a PDF URL imports it even without a filename extension", async () => {
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        headers: new Map([["content-type", "application/pdf"]]),
+        body: {
+          getReader: () => ({
+            read: jest
+              .fn()
+              .mockResolvedValueOnce({
+                value: new Uint8Array([37, 80, 68, 70]),
+              })
+              .mockResolvedValueOnce({ done: true }),
+            releaseLock: jest.fn(),
+          }),
+        },
+      });
+      try {
+        await act(async () => root.render(<FileTranslatePage />));
+        await paste({ text: "  https://example.org/pdf/123  " });
+        expect(container.textContent).toContain("123.pdf");
+        expect(global.fetch).toHaveBeenCalledWith(
+          "https://example.org/pdf/123",
+          expect.objectContaining({
+            credentials: "omit",
+            referrerPolicy: "no-referrer",
+          })
+        );
+      } finally {
+        global.fetch = originalFetch;
+      }
+    });
+
+    test("failed link import leaves the current file and offers the pasted URL as text", async () => {
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockRejectedValue(
+        Object.assign(new TypeError("Failed to fetch"), {
+          code: "NETWORK_ERROR",
+        })
+      );
+      try {
+        await act(async () => root.render(<FileTranslatePage />));
+        await upload("original.txt");
+        await paste({ text: "https://example.org/paper.pdf" });
+        expect(container.textContent).toContain("original.txt");
+        expect(container.textContent).toContain("无法下载该链接");
+        await act(async () => {
+          button("按文本导入").click();
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        });
+        expect(container.textContent).toContain("粘贴文本.txt");
+      } finally {
+        global.fetch = originalFetch;
+      }
+    });
+
+    test.each([
+      ["text/html", 1, "链接未返回支持的文件格式"],
+      ["application/pdf", 100 * 1024 ** 2 + 1, "在线文件超过 100 MiB"],
+      ["application/pdf", 0, "下载的文件为空"],
+    ])(
+      "rejects an unusable response (%s, %i bytes)",
+      async (type, size, message) => {
+        const originalFetch = global.fetch;
+        const cancel = jest.fn().mockResolvedValue(undefined);
+        global.fetch = jest.fn().mockResolvedValue({
+          ok: true,
+          headers: new Map([["content-type", type]]),
+          body: {
+            cancel,
+            getReader: () => ({
+              read: jest
+                .fn()
+                .mockResolvedValue(
+                  size ? { value: { byteLength: size } } : { done: true }
+                ),
+              releaseLock: jest.fn(),
+            }),
+          },
+        });
+        try {
+          await act(async () => root.render(<FileTranslatePage />));
+          await paste({ text: "https://example.org/paper.pdf" });
+          expect(container.textContent).toContain(message);
+          expect(cancel).toHaveBeenCalledTimes(1);
+        } finally {
+          global.fetch = originalFetch;
+        }
+      }
+    );
+
+    test.each([
+      ["ja", "サイトからファイルを取得できませんでした（HTTP 404）。"],
+      ["unregistered", "The site could not provide the file (HTTP 404)."],
+    ])("preserves the HTTP status in %s", async (locale, message) => {
+      const originalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 404 });
+      mockOnlineLanguage = locale;
+      try {
+        await act(async () => root.render(<FileTranslatePage />));
+        await paste({ text: "https://example.org/missing.pdf" });
+        expect(container.textContent).toContain(message);
+      } finally {
+        mockOnlineLanguage = "zh";
+        global.fetch = originalFetch;
+      }
+    });
+
+    test("a new local file cancels a pending URL import", async () => {
+      const originalFetch = global.fetch;
+      let finish;
+      global.fetch = jest.fn(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          })
+      );
+      try {
+        await act(async () => root.render(<FileTranslatePage />));
+        await paste({ text: "https://example.org/paper.pdf" });
+        expect(container.textContent).toContain("正在下载文件");
+        await upload("new.txt");
+        expect(global.fetch.mock.calls[0][1].signal.aborted).toBe(true);
+        await act(async () => finish({ ok: false, status: 500 }));
+        expect(container.textContent).toContain("new.txt");
+        expect(container.textContent).not.toContain("HTTP 500");
+      } finally {
+        global.fetch = originalFetch;
+      }
+    });
 
     test.each(["  hello\nworld  ", "  \n\t", "# Title\n\n**bold**"])(
       "pasted text preserves content and defaults to TXT: %j",

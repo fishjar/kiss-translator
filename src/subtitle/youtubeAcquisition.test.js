@@ -335,3 +335,35 @@ test("client ignores forged response origins and cancels pending RPC on disposal
   client.dispose();
   await expect(promise).rejects.toMatchObject({ name: "AbortError" });
 });
+
+test("client accepts bridge responses from unsafeWindow when the userscript has a sandbox window", async () => {
+  window.history.replaceState({}, "", "/watch?v=one");
+  const page = {};
+  global.unsafeWindow = page;
+  const client = new YouTubeCaptionBridgeClient();
+  try {
+    const promise = client.request("snapshot", "one");
+    const requestId = [...client.pending.keys()][0];
+    const respond = (source) =>
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          source,
+          origin: window.location.origin,
+          data: {
+            protocol: YOUTUBE_CAPTION_PROTOCOL,
+            type: "response",
+            requestId,
+            videoId: "one",
+            result: snapshot(),
+          },
+        })
+      );
+    respond(window);
+    expect(client.pending.size).toBe(1);
+    respond(page);
+    await expect(promise).resolves.toMatchObject({ videoId: "one" });
+  } finally {
+    client.dispose();
+    delete global.unsafeWindow;
+  }
+});

@@ -32,6 +32,50 @@ beforeEach(() => {
   mockOpenFileTranslatePage.mockReset();
 });
 
+function renderSearchNavigator() {
+  mockUiLang = "zh";
+  mockLabels = Object.fromEntries(
+    Object.entries(I18N).map(([key, translations]) => [key, translations.zh])
+  );
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  act(() =>
+    root.render(
+      <MemoryRouter>
+        <Navigator open />
+      </MemoryRouter>
+    )
+  );
+  const input = container.querySelector('input[type="search"]');
+  const nav = container.querySelector("nav");
+  const change = (value, isComposing = false) =>
+    act(() => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      ).set.call(input, value);
+      input.dispatchEvent(
+        new InputEvent("input", { bubbles: true, isComposing })
+      );
+    });
+  const composition = (type) =>
+    act(() =>
+      input.dispatchEvent(new CompositionEvent(type, { bubbles: true }))
+    );
+  return {
+    container,
+    input,
+    nav,
+    change,
+    composition,
+    unmount: () => {
+      act(() => root.unmount());
+      container.remove();
+    },
+  };
+}
+
 describe("settings navigator semantics", () => {
   test.each([
     ["tr", "İstem Yönetimi", "istem"],
@@ -44,7 +88,7 @@ describe("settings navigator semantics", () => {
     "filters with UI locale %s, label %s, and query %s",
     (uiLang, label, query) => {
       mockUiLang = uiLang;
-      mockLabels = { prompt_management: label };
+      mockLabels = { prompt_management: "Templates", prompt_name: label };
       const container = document.createElement("div");
       document.body.appendChild(container);
       const root = createRoot(container);
@@ -70,7 +114,13 @@ describe("settings navigator semantics", () => {
         '.kt-options-nav__link[href="/prompts"]'
       );
       expect(link).not.toBeNull();
-      expect(link.textContent).toBe(label);
+      expect(link.textContent).toBe("Templates");
+      const field = container.querySelector(
+        'a[href="/prompts?setting=prompt_name"]'
+      );
+      expect(field.textContent).toBe(label);
+      expect(field.querySelector("mark").textContent).toBe(label.split(" ")[0]);
+      expect(link.querySelector("mark")).toBeNull();
 
       act(() => root.unmount());
       container.remove();
@@ -197,9 +247,42 @@ test("groups concrete Chinese settings below their navigation category and links
     'a[href="/input?setting=combo_timeout"]'
   );
   expect(target.textContent).toBe(I18N.combo_timeout.zh);
+  expect(target.querySelector("mark").textContent).toBe("超时");
   act(() => target.click());
   expect(onClose).toHaveBeenCalledTimes(1);
   expect(target.getAttribute("aria-current")).toBe("location");
+
+  search("字幕");
+  const subtitle = container.querySelector('a[href="/subtitle"]').parentElement;
+  const subtitleFields = [
+    ...subtitle.querySelectorAll(".kt-options-nav__setting"),
+  ];
+  expect(subtitleFields.map((field) => field.getAttribute("href"))).toEqual([
+    "/subtitle?setting=toggle_subtitle_translate",
+    "/subtitle?setting=settings_subtitle_auto_start",
+    "/subtitle?setting=show_subtitle_list",
+    "/subtitle?setting=subtitle_loading_notification",
+    "/subtitle?setting=remember_subtitle_position",
+  ]);
+  for (const field of subtitleFields)
+    expect(field.querySelector("mark").textContent).toBe("字幕");
+  const latex = container.querySelector('a[href="/?setting=parse_latex"]');
+  expect(latex.querySelector(".kt-options-nav__match-detail").textContent).toBe(
+    I18N.parse_latex_helper.zh
+  );
+  expect(latex.querySelector("mark").textContent).toBe("字幕");
+  expect(container.querySelector(".kt-options-nav__link mark")).toBeNull();
+
+  search("深色");
+  const appearance = container.querySelector(
+    'a[href="/styles?setting=settings_appearance_mode"]'
+  );
+  expect(
+    appearance.querySelector(".kt-options-nav__match-detail mark").textContent
+  ).toBe("深色");
+
+  search("通用");
+  expect(container.querySelector(".kt-options-nav__empty")).not.toBeNull();
 
   search("无此设置xyz");
   expect(container.querySelector(".kt-options-nav__empty").textContent).toBe(
@@ -294,4 +377,94 @@ test("terminology tables belong to the data group between sync and favorite word
     [...section.querySelectorAll("a")].map((link) => link.getAttribute("href"))
   ).toEqual(["/sync", "/terms", "/words"]);
   act(() => root.unmount());
+});
+
+test("does not show English fallback details when searching the Chinese interface", () => {
+  const view = renderSearchNavigator();
+  view.change("y");
+  for (const key of [
+    "context_menus",
+    "translate_variants",
+    "check_update",
+    "fab_half_hide",
+    "fab_exception_list",
+    "fab_opacity",
+    "if_clear_cache",
+    "disabled_csplist",
+  ])
+    expect(
+      view.container.querySelector(`a[href="/?setting=${key}"]`)
+    ).toBeNull();
+  view.change("Secondary");
+  expect(view.container.querySelector(".kt-options-nav__empty")).not.toBeNull();
+  view.unmount();
+});
+
+test.each(["input-first", "compositionend-first"])(
+  "keeps results and highlights stable through IME pre-edit with %s event order",
+  (order) => {
+    const view = renderSearchNavigator();
+    view.change("缓存");
+    const before = view.nav.innerHTML;
+    view.composition("compositionstart");
+    for (const value of ["z", "zi", "zi'mu"]) {
+      view.change(value, true);
+      expect(view.input.value).toBe(value);
+      expect(view.nav.innerHTML).toBe(before);
+    }
+    let beforeCommit = before;
+    if (order === "input-first") {
+      view.change("字幕");
+      beforeCommit = view.nav.innerHTML;
+      view.composition("compositionend");
+    } else {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      ).set.call(view.input, "字幕");
+      view.composition("compositionend");
+      view.change("字幕");
+    }
+    expect(beforeCommit).toBe(before);
+    expect(view.input.value).toBe("字幕");
+    expect(view.nav.innerHTML).not.toBe(before);
+    expect(
+      view.container.querySelectorAll('a[href^="/subtitle?setting="]')
+    ).toHaveLength(5);
+    expect(view.nav.querySelector("mark").textContent).toBe("字幕");
+    view.unmount();
+  }
+);
+
+test("ignores native composing input even without a compositionstart event", () => {
+  const view = renderSearchNavigator();
+  const before = view.nav.innerHTML;
+  view.change("y", true);
+  expect(view.input.value).toBe("y");
+  expect(view.nav.innerHTML).toBe(before);
+  view.change("语言");
+  expect(view.nav.innerHTML).not.toBe(before);
+  view.unmount();
+});
+
+test("cancels IME pre-edit and clears both the draft and committed search", () => {
+  const view = renderSearchNavigator();
+  view.change("字幕");
+  const before = view.nav.innerHTML;
+  view.composition("compositionstart");
+  view.change("字幕y", true);
+  view.change("字幕", true);
+  view.composition("compositionend");
+  expect(view.nav.innerHTML).toBe(before);
+  view.composition("compositionstart");
+  view.change("字幕y", true);
+  act(() => view.container.querySelector(".kt-options-search__clear").click());
+  expect(view.input.value).toBe("");
+  expect(
+    view.container.querySelectorAll(".kt-options-nav__setting")
+  ).toHaveLength(0);
+  expect(view.container.querySelector(".kt-options-search__clear")).toBeNull();
+  view.change("超时");
+  expect(view.nav.querySelector("mark").textContent).toBe("超时");
+  view.unmount();
 });

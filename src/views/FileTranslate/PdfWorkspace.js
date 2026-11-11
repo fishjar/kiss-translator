@@ -175,6 +175,10 @@ function SourceToolbar({
 }
 
 const PREF_KEY = "kiss_pdf_reader";
+function pdfPageScale(page) {
+  const scale = Number(page.dataset.scale);
+  return Number.isFinite(scale) && scale > 0 ? scale : 1;
+}
 function preferences() {
   try {
     const stored = JSON.parse(localStorage.getItem(PREF_KEY) || "{}");
@@ -198,6 +202,8 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     hasLayoutService,
     activeLayoutApi,
     ignoreCache = false,
+    fullscreen = false,
+    onFullscreenChange,
   },
   ref
 ) {
@@ -284,6 +290,8 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     [layoutComplete, setLayoutComplete] = useState(false),
     [showLayoutAreas, setShowLayoutAreas] = useState(false);
   const tocToggleRef = useRef(null),
+    fullscreenToggleRef = useRef(null),
+    fullscreenPosition = useRef(null),
     pdfScroll = useRef(null),
     mdScroll = useRef(null),
     abortRef = useRef(null),
@@ -335,6 +343,50 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     observer.observe(pdfScroll.current);
     return () => observer.disconnect();
   }, [isPdf]);
+
+  const toggleFullscreen = useCallback(() => {
+    const container = pdfScroll.current;
+    if (!container || !onFullscreenChange) return;
+    const page = [...container.querySelectorAll("[data-pdf-page]")].find(
+      (element) =>
+        element.offsetTop + element.offsetHeight > container.scrollTop
+    );
+    fullscreenPosition.current = page
+      ? {
+          page: page.dataset.pdfPage,
+          y: (container.scrollTop - page.offsetTop) / pdfPageScale(page),
+        }
+      : null;
+    cancelAnimationFrame(raf.current);
+    syncOwner.current = null;
+    onFullscreenChange(!fullscreen);
+  }, [fullscreen, onFullscreenChange]);
+
+  useLayoutEffect(() => {
+    const position = fullscreenPosition.current;
+    const container = pdfScroll.current;
+    if (!position || !container) return;
+    if (container.clientWidth && container.clientWidth !== pageWidth) {
+      setPageWidth(container.clientWidth);
+      return;
+    }
+    const page = container.querySelector(`[data-pdf-page="${position.page}"]`);
+    if (page)
+      container.scrollTop = page.offsetTop + position.y * pdfPageScale(page);
+    fullscreenPosition.current = null;
+    if (!fullscreen)
+      fullscreenToggleRef.current?.focus({ preventScroll: true });
+  }, [fullscreen, pageWidth]);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    const exit = (event) => {
+      if (event.key === "Escape" && !event.defaultPrevented && !event.repeat)
+        toggleFullscreen();
+    };
+    document.addEventListener("keydown", exit);
+    return () => document.removeEventListener("keydown", exit);
+  }, [fullscreen, toggleFullscreen]);
   useEffect(() => {
     setDrawer(false);
     setHoverBlock(null);
@@ -943,7 +995,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     const container = pdfScroll.current,
       element = container?.querySelector(`[data-pdf-page="${fragment.page}"]`);
     if (!element) return;
-    const scale = Number(element.dataset.scale);
+    const scale = pdfPageScale(element);
     container.scrollTo({
       top: element.offsetTop + fragment.bbox[1] * scale - 40,
     });
@@ -1065,7 +1117,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           y = Math.max(
             0,
             (container.scrollTop - element.offsetTop + 60) /
-              Number(element.dataset.scale)
+              pdfPageScale(element)
           );
         setPageNumber(page);
         const active = toc
@@ -1073,6 +1125,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           .at(-1);
         if (active) setSelected(active.id);
         if (
+          !fullscreen &&
           pref.sync &&
           view === "read" &&
           syncOwner.current === pane &&
@@ -1087,6 +1140,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           }
         }
       } else if (
+        !fullscreen &&
         pref.sync &&
         view === "read" &&
         syncOwner.current === pane &&
@@ -1508,7 +1562,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
   );
   return (
     <Box className="kt-pdf-workspace">
-      {error && (
+      {!fullscreen && error && (
         <ReaderAlert
           severity="error"
           onClose={() => setError("")}
@@ -1517,7 +1571,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           {error}
         </ReaderAlert>
       )}
-      {missing && (
+      {!fullscreen && missing && (
         <ReaderAlert
           severity="warning"
           sx={{ mb: 1.5 }}
@@ -1690,6 +1744,25 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                 >
                   适宽
                 </Button>
+                {onFullscreenChange && (
+                  <Button
+                    ref={fullscreenToggleRef}
+                    size="small"
+                    variant="outlined"
+                    disabled={!pdf}
+                    onClick={toggleFullscreen}
+                    sx={{
+                      height: 26,
+                      fontSize: 11,
+                      px: 0.75,
+                      minWidth: "auto",
+                    }}
+                  >
+                    {fullscreen
+                      ? i18n("file_pdf_exit_fullscreen", "退出全屏")
+                      : i18n("file_pdf_fullscreen", "全屏")}
+                  </Button>
+                )}
                 <Tooltip
                   title={
                     !hasLayoutResult
@@ -1797,6 +1870,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         <Card
           variant="outlined"
           className="kt-pdf-column"
+          hidden={fullscreen}
           sx={{
             flex: "1 1 0",
             position: "relative",

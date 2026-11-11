@@ -344,6 +344,16 @@ export const PROVIDER_PLUGINS_I18N = {
     vi: "Kho GitHub công khai có chủ đề kiss-translator-plugin, do tác giả phát hành, chưa được duyệt chính thức. Mỗi kho một plugin; có thể nhập thủ công.",
     ru: "Публичные репозитории GitHub с темой kiss-translator-plugin. Опубликованы авторами без официальной проверки. Один плагин на репозиторий; доступен ручной импорт.",
   },
+  plugin_directory_metadata_failed: {
+    zh: "插件详情加载失败。",
+    en: "Could not load plugin details.",
+    zh_TW: "插件詳細資料載入失敗。",
+    ja: "プラグインの詳細を読み込めませんでした。",
+    ko: "플러그인 상세 정보를 불러오지 못했습니다.",
+    tr: "Eklenti ayrıntıları yüklenemedi.",
+    vi: "Không tải được thông tin chi tiết của plugin.",
+    ru: "Не удалось загрузить сведения о плагине.",
+  },
 
   plugin_plugin_service_apis: {
     zh: "插件服务接口",
