@@ -1,4 +1,4 @@
-import { I18N, registerI18n } from "../../config/i18n";
+import { I18N, UI_LANGS, registerI18n } from "../../config/i18n";
 import { TERMINOLOGY_PLAYGROUND_I18N } from "../../config/locales/terminologyPlayground";
 import { SUBTITLE_PLAYGROUND_I18N } from "../../config/locales/subtitlePlayground";
 import {
@@ -232,6 +232,19 @@ test("indexes only localized aliases while retaining visible technical labels", 
     entries.find((entry) => entry.key === "translate_variants").searchTexts
   ).not.toContain(I18N.translate_variants_helper.en);
 });
+
+test.each(UI_LANGS)(
+  "retains shared API aliases with real dictionary entries in %s (%s)",
+  (lang) => {
+    for (const [query, key] of [
+      ["API Key", "api_key"],
+      ["API URL", "api_url"],
+    ]) {
+      const entries = search(query, lang).find(([id]) => id === "apis")?.[4];
+      expect(entries?.map((entry) => entry.key)).toContain(key);
+    }
+  }
+);
 
 test("accepts deep links only for fields on their destination page", () => {
   expect(getSettingsSearchTarget("/input", "?setting=combo_timeout")).toBe(
