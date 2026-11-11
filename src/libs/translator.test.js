@@ -1775,7 +1775,7 @@ describe("Translator rule styles", () => {
       const { BUILTIN_RULES } = require("../config/rules");
       document.body.innerHTML = `<main id="root" class="markdown-body"><li>Visible task<div id="DndDescribedBy-0" style="display:none">SECRET instructions</div><div id="DndLiveRegion-0" style="clip-path:inset(100%)">SECRET announcement</div></li></main>`;
       createTranslator(
-        BUILTIN_RULES.find((rule) => rule.pattern === "github.com")
+        BUILTIN_RULES.find((rule) => rule.pattern === "://github.com/")
       );
       await flushAsync();
       expect(apiTranslate).toHaveBeenCalledTimes(1);
@@ -1845,7 +1845,7 @@ describe("Translator rule styles", () => {
       async (mode) => {
         const { BUILTIN_RULES } = require("../config/rules");
         const github = BUILTIN_RULES.find(
-          (rule) => rule.pattern === "github.com"
+          (rule) => rule.pattern === "://github.com/"
         );
         document.body.innerHTML =
           '<main id="root" class="markdown-body"><li id="target">Visible source<div id="DndLiveRegion-0" style="clip-path:inset(100%)">SECRET Press spacebar to reorder with a long announcement</div></li></main>';
@@ -3534,6 +3534,116 @@ describe("Translator rule styles", () => {
         expect(apiTranslate.mock.calls.map(([args]) => args.text)).toEqual([
           "Before middle after.",
         ]);
+      }
+    );
+
+    test.each(
+      ["inline-block", "inline-flex", "inline-grid", "inline-table"].flatMap(
+        (display) =>
+          ["true", "false"].map((hasRichText) => ({ display, hasRichText }))
+      )
+    )(
+      "preserves atomic layout without splitting or leaking skipped content: %j",
+      async ({ display, hasRichText }) => {
+        document.body.innerHTML = `<main id="root"><div id="target">Before <div class="atomic" style="display:${display}"><div class="structure"><span>middle</span><span class="excluded">SECRET ignored</span><span hidden>SECRET hidden</span><code>kept</code><script>SECRET metadata</script></div></div> after.</div></main>`;
+        apiTranslate.mockImplementation(async ({ text }) => ({ trText: text }));
+        const translator = createTranslator({
+          hasRichText,
+          ignoreSelector: ".excluded",
+          keepSelector: "code",
+        });
+        await flushAsync();
+
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        const request = apiTranslate.mock.calls[0][0].text;
+        expect(request).toMatch(/^Before .+ after\.$/);
+        expect(request).not.toMatch(/SECRET|kept/);
+        const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        expect(inner.textContent).toBe("Before middlekept after.");
+        expect(inner.querySelector(".excluded, [hidden], script")).toBeNull();
+        expect(inner.querySelector("code").textContent).toBe("kept");
+        if (hasRichText === "true") {
+          expect(
+            inner.querySelector(".atomic > .structure > span").textContent
+          ).toBe("middle");
+          expect(
+            window.getComputedStyle(inner.querySelector(".atomic")).display
+          ).toBe(display);
+        } else {
+          expect(request).not.toMatch(/<\/?\w/);
+          expect(inner.querySelector(".atomic")).toBeNull();
+        }
+        translator.disable();
+        expect(document.querySelector(".excluded").textContent).toBe(
+          "SECRET ignored"
+        );
+      }
+    );
+
+    test.each(
+      ["true", "false"].flatMap((transOnly) =>
+        ["compact", "attribute"].map((placetagFormat) => ({
+          transOnly,
+          placetagFormat,
+        }))
+      )
+    )(
+      "retains Google result counter-flips in translated headings and site details: %j",
+      async ({ transOnly, placetagFormat }) => {
+        document.body.innerHTML = `
+        <style>
+          .V9tjod { display:block }
+          .V9tjod, .V9tjod .LC20lb, .V9tjod .ESMNde { transform:scaleY(-1) }
+          .LC20lb, .ESMNde { display:inline-block }
+          .q0vns { display:flex }
+        </style>
+        <main id="root"><span class="V9tjod"><a href="/result"><h3 class="LC20lb">Nobara title</h3><br><div class="ESMNde"><div class="q0vns"><span class="icon"><img src="/favicon.png" alt=""></span><div class="details"><div class="site-name">Example site</div><div class="site-url"><cite>https://example.com</cite></div></div></div></div></a></span></main>`;
+        const link = document.querySelector("#root a");
+        const originalNodes = [...link.childNodes];
+        apiTranslate.mockImplementation(async ({ text }) => ({
+          trText: text
+            .replace("Nobara title", "诺巴拉标题")
+            .replace("Example site", "示例站点"),
+        }));
+        const translator = createTranslator(
+          { hasRichText: "true", transOnly },
+          {
+            transApis: [
+              {
+                ...createApiSetting(DEFAULT_API_SETTING.apiSlug),
+                placetagFormat,
+              },
+            ],
+          }
+        );
+        await flushAsync();
+
+        expect(apiTranslate).toHaveBeenCalledTimes(2);
+        const inners = link.querySelectorAll(`.${Translator.KISS_CLASS.inner}`);
+        const title = inners[0].querySelector("h3.LC20lb");
+        const site = inners[1].querySelector(".ESMNde > .q0vns > .details");
+        expect(title).not.toBeNull();
+        expect(title.textContent).toBe("诺巴拉标题");
+        expect(site).not.toBeNull();
+        expect(site.querySelector(".site-name").textContent).toBe("示例站点");
+        expect(site.querySelector(".site-url > cite").textContent).toBe(
+          "https://example.com"
+        );
+        expect(inners[1].querySelector(".q0vns > .icon > img")).not.toBeNull();
+        expect(window.getComputedStyle(title).transform).toBe("scaleY(-1)");
+        expect(window.getComputedStyle(site.closest(".ESMNde")).transform).toBe(
+          "scaleY(-1)"
+        );
+
+        translator.updateRule({
+          transOnly: transOnly === "true" ? "false" : "true",
+        });
+        await flushAsync();
+        translator.disable();
+        expect([...link.childNodes]).toEqual(originalNodes);
+        originalNodes.forEach((node, index) =>
+          expect(link.childNodes[index]).toBe(node)
+        );
       }
     );
 

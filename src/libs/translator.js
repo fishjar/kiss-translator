@@ -4545,7 +4545,7 @@ overflow-wrap: anywhere !important;`;
       return placeholder;
     };
 
-    const traverse = (node) => {
+    const traverse = (node, preserveLayout = false) => {
       if (isInlineHidden(node)) return "";
       if (
         node.nodeType !== Node.ELEMENT_NODE &&
@@ -4582,9 +4582,17 @@ overflow-wrap: anywhere !important;`;
         const contentRole = this.#getContentRole(node);
         if (contentRole === "skip") return "";
 
+        // Atomic inline boxes share the surrounding sentence, but their inner
+        // layout must survive reconstruction (e.g. Google's counter-flips).
+        const preserveStructure =
+          this.#rule.hasRichText === "true" &&
+          (preserveLayout || getNodeLayout(node) === "atomic");
+
         // 收藏词高亮只影响原文显示，不应改变翻译请求的结构
         if (node.classList.contains(Translator.KISS_CLASS.highlight)) {
-          return Array.from(node.childNodes, traverse).join("");
+          return Array.from(node.childNodes, (child) =>
+            traverse(child, preserveStructure)
+          ).join("");
         }
 
         const keptInline = contentRole === "keep";
@@ -4621,7 +4629,7 @@ overflow-wrap: anywhere !important;`;
         let innerContent = "";
         node.childNodes.forEach((child) => {
           try {
-            innerContent += traverse(child);
+            innerContent += traverse(child, preserveStructure);
           } catch (err) {
             logger
               .child("translator")
@@ -4631,7 +4639,8 @@ overflow-wrap: anywhere !important;`;
 
         if (
           this.#rule.hasRichText === "true" &&
-          Translator.TAGS.WARP.has(node.tagName?.toUpperCase())
+          (preserveStructure ||
+            Translator.TAGS.WARP.has(node.tagName?.toUpperCase()))
         ) {
           wrapCounter++;
           const { tagName, format } = this.#placeholderConfig;
@@ -4673,7 +4682,10 @@ overflow-wrap: anywhere !important;`;
       return tag;
     }
 
-    let processedString = nodes.map(traverse).join("").trim();
+    let processedString = nodes
+      .map((node) => traverse(node))
+      .join("")
+      .trim();
 
     // 先清理整个翻译片段两端的源码排版空白，再保护正文内部的换行和 Tab。
     // 不能逐个 trim 文本节点，否则会破坏行内元素之间的必要空格。
