@@ -1304,7 +1304,7 @@ export class RuntimeManager {
         service: "decision",
         modelId: spec.modelId,
         state: "loading",
-        pinned: true, // 文档 §11：Laya/JEV 常驻内存
+        pinned: true, // Laya/JEV 常驻内存
         unloadFn: async () => {
           this.disposeJev();
           this.invalidateSession("decision", "JEV 模型已被卸载或淘汰");

@@ -149,9 +149,9 @@ describe("TextareaResizeGrip", () => {
 
   // 未锁定（value 非数值）时 role="slider" 仍必须携带 aria-valuenow
   // （ARIA 规范必需属性，axe 校验项）：首个渲染事务内 target ref 尚未
-  // 挂载，回落最小高度；锁定态边界变更（B6 依赖收敛的合法补测触发）
+  // 挂载，回落最小高度；锁定态边界变更（依赖收敛的合法补测触发）
   // 回落基线元素实测高度（jsdom offsetHeight 恒 0，经 spy 注入实测值
-  // 验证测量路径）。同 props 重渲染不再逐渲染实测（见 B6 专用用例）。
+  // 验证测量路径）。同 props 重渲染不再逐渲染实测（见专用用例）。
   // 回落播报值逐字反映实测/回落口径：初始回落为补测托底下界
   // MIN_TARGET_HEIGHT_PX（40），补测后播报实测值，不再被锁定下界托高。
   test("reports a slider value fallback while the height is unlocked", async () => {
@@ -599,8 +599,7 @@ describe("TextareaResizeGrip", () => {
     await act(async () => root.unmount());
   });
 
-  // PR #7 遗留意见（#43/#41/#36/#40）：Escape 分支缺 stopPropagation。
-  // 手柄祖先链上有 React onKeyDown（Action/index.js 弹窗壳
+  // Escape 分支缺 stopPropagation。手柄祖先链上有 React onKeyDown（Action/index.js 弹窗壳
   // setShowPopup(false)），preventDefault 对祖先 handler 无效——不阻断
   // 冒泡会在「解锁高度」的同时关掉整个弹窗。断言祖先容器监听不被触达。
   test("stops Escape propagation so ancestor popup handlers are not reached", async () => {
@@ -685,7 +684,7 @@ describe("TextareaResizeGrip", () => {
     await act(async () => root.unmount());
   });
 
-  // PR #7 遗留意见：拖拽会话进行中按 Escape——必须终止活跃会话并释放
+  // 拖拽会话进行中按 Escape——必须终止活跃会话并释放
   // pointer capture，否则后续 pointermove 继续触发 onResize，把刚解锁的
   // 高度重新锁回去。无活跃会话时 Escape 不得触碰 releasePointerCapture
   // 也不得抛错（空值守卫）。
@@ -811,9 +810,9 @@ describe("TextareaResizeGrip", () => {
     await act(async () => root.unmount());
   });
 
-  // 意见 C：解锁提示文案本体自带括号（zh/zh_TW 全角、其余半角+前导空格），
-  // 组件侧零括号直连——锁死真实 I18N 字典的括号形态契约。PR #7 遗留意见
-  // （#44/#29 后半/#37 后半）：提示须同时提及 Esc 键盘解锁入口。
+  // 解锁提示文案本体自带括号（zh/zh_TW 全角、其余半角+前导空格），
+  // 组件侧零括号直连——锁死真实 I18N 字典的括号形态契约。
+  // 提示须同时提及 Esc 键盘解锁入口。
   test("ships the unlock hint with brackets baked into the i18n copy", () => {
     const entry = I18N.field_resize_unlock_hint;
     expect(entry).toBeDefined();
@@ -967,8 +966,7 @@ describe("TextareaResizeGrip", () => {
 
       expect(gripCss).toContain("cursor:url(data:image/png;base64,");
       // Emotion 序列化会去掉逗号后空格（", ns-resize" → ",ns-resize"），
-      // 故此断言不含空格（计划原断言 ") 16 16, ns-resize" 与序列化产物
-      // 不符，属事实纠偏，见证据日志）。
+      // 故此断言不含空格。
       expect(gripCss).toContain(") 16 16,ns-resize");
     } finally {
       await act(async () => root.unmount());
@@ -1035,7 +1033,7 @@ describe("TextareaResizeGrip", () => {
     await act(async () => root.unmount());
   });
 
-  // B1 决策反转：hidden = 完全不渲染手柄 + textarea 原生 resize 回退。
+  // hidden = 完全不渲染手柄 + textarea 原生 resize 回退。
   // 旧「隐形热区」语义（空图形 + 24×24 可交互 Box）被推翻——不可见却可
   // 拖是隐蔽交互面，回退原生 resize 才是「隐藏」的自然语义。GRIP_SVGS
   // 的 hidden 条目保留（TEXTAREA_GRIP_STYLE_KEYS 清单须含 hidden，由
@@ -1109,7 +1107,7 @@ describe("TextareaResizeGrip", () => {
     await act(async () => root.unmount());
   });
 
-  // B6 护栏：依赖收敛不得漏掉「锁定态切换」补测——解锁时基线高度可能已
+  // 护栏：依赖收敛不得漏掉「锁定态切换」补测——解锁时基线高度可能已
   // 变（锁定期间内容增高等），补测必须重跑，播报值不得滞留旧实测。
   test("re-measures the fallback height after the locked value releases", async () => {
     const onResize = jest.fn();

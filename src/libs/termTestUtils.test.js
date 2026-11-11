@@ -340,7 +340,7 @@ describe("termTestUtils generateTermTestText strict literal $ sample integrity",
   });
 });
 
-// ─── generateTermTestText 显式 seed 轮换（Task 11） ──────────────────────────
+// ─── generateTermTestText 显式 seed 轮换 ──────────────────────────
 describe("termTestUtils generateTermTestText seed rotation", () => {
   const parsed = parseTerms("API,接口;APIKey,应用编程接口;GPT,生成式预训练");
 
@@ -1166,8 +1166,8 @@ describe("termTestUtils selectDisplayedResults", () => {
   });
 });
 
-// ─── 冲突分析记忆化与 conflicts 复用（统一计划 20260829 Task 4）──────────────
-describe("termTestUtils 冲突分析记忆化（统一计划 20260829 Task 4）", () => {
+// ─── 冲突分析记忆化与 conflicts 复用 ──────────────
+describe("termTestUtils 冲突分析记忆化", () => {
   function installCountingRegExp() {
     const RealRegExp = RegExp;
     let count = 0;

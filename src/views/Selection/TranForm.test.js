@@ -2130,7 +2130,7 @@ describe("TranForm textarea grip style", () => {
     act(() => root.unmount());
   });
 
-  // 意见 A：grip 样式切到 hidden 时自动释放会话高度锁（红：现实现残留
+  // grip 样式切到 hidden 时自动释放会话高度锁（红：现实现残留
   // kt-height-locked 与内联高度，字段被永久钉死）。
   test("switching to hidden releases the session height lock", () => {
     mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");

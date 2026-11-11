@@ -1,4 +1,4 @@
-// GPU TaskScheduler（文档 §12）：
+// GPU TaskScheduler：
 // 同一时间限制单个 heavy GPU inference 执行，按优先级 P0(Decision/JEV) ~ P5(Preload) 排队。
 // 核心不变量：
 // 1. 活跃任务取消或超时时，必须通知服务层停止底层执行（onCancel / AbortSignal）；

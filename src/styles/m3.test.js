@@ -222,6 +222,61 @@ describe("M3 keyboard focus", () => {
       )
     ).toBe(true);
   });
+
+  test("restores the MUI Select trigger ring suppressed by the input exemption", () => {
+    // 焦点环配对·有语义必有环：div.MuiSelect-select（role=combobox 触发元）
+    // class 链含 MuiInputBase-input，被上方 input 豁免规则误伤（豁免本意
+    // 是文本输入的容器焦点渲染口径）→ 键盘聚焦零环。恢复规则形态对齐
+    // 全局基格（外扩 2px 主色环），排在豁免块之后靠源码顺序压制；
+    // forced-colors 换系统色描边（UA 丢弃 outline 色来源）。规则未落即红。
+    const focusVisibleBodies = getCssAtRuleBodies(
+      M3_GLOBAL_CSS,
+      "@supports selector(:focus-visible)"
+    );
+    expect(
+      focusVisibleBodies.some((body) =>
+        /\.kt-m3-root \.MuiSelect-select:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--kt-pri\);[^}]*outline-offset:\s*2px;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+    // 顺序硬闸：恢复规则必须排在 .MuiInputBase-input:focus-visible 豁免
+    // 之后（同特异性靠后者胜），否则修复静默失效
+    expect(
+      M3_GLOBAL_CSS.indexOf(".kt-m3-root .MuiSelect-select:focus-visible")
+    ).toBeGreaterThan(
+      M3_GLOBAL_CSS.indexOf(".kt-m3-root .MuiInputBase-input:focus-visible")
+    );
+    const forcedColorBodies = getCssAtRuleBodies(
+      M3_GLOBAL_CSS,
+      "@media (forced-colors: active)"
+    );
+    expect(
+      forcedColorBodies.some((body) =>
+        /\.kt-m3-root \.MuiSelect-select:focus-visible\s*\{[^}]*outline:\s*3px solid;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+  });
+
+  test("ships a legacy-browser focus fallback for the Select trigger ring", () => {
+    // 旧内核兜底（焦点环配对）：不支持 :focus-visible/selector() 的内核整块跳过
+    // 上方 @supports，全局姿态鼠标 :focus 零指示 → 键盘聚焦零环。兜底
+    // 规则必须被 @supports not 包裹（裸 :focus 会破坏现代内核鼠标零指示
+    // 姿态），块内形态对齐现代环（3px 主色外扩 2px）。块未落即红。
+    const fallbackBodies = getCssAtRuleBodies(
+      M3_GLOBAL_CSS,
+      "@supports not selector(:focus-visible)"
+    );
+    expect(
+      fallbackBodies.some((body) =>
+        /\.kt-m3-root \.MuiSelect-select:focus\s*\{[^}]*outline:\s*3px solid var\(--kt-pri\);[^}]*outline-offset:\s*2px;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+  });
 });
 
 describe("锁定态最小高度不变量", () => {

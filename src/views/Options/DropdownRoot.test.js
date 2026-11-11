@@ -15,6 +15,11 @@ jest.mock("../../hooks/ColorMode", () => ({
 jest.mock("../../hooks/SystemColorScheme", () => ({
   useSystemDarkPreference: () => false,
 }));
+// M3Theme 现直接接线 setting.iconStyle → 图标风格快照 store；mock 掉
+// Setting 阻断其 storage/apis 重依赖链（与上方 ColorMode mock 同口径）。
+jest.mock("../../hooks/Setting", () => ({
+  useSetting: () => ({ setting: {} }),
+}));
 
 let container;
 let root;

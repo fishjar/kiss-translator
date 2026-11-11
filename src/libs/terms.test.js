@@ -10,7 +10,7 @@ import {
 } from "./terms";
 import { detectTermConflicts } from "./termTestUtils";
 
-// 术语替换纯函数测试（Task 1）
+// 术语替换纯函数测试
 // 覆盖：解析规格、排序、去重、非法正则、无单词边界匹配（上游语义）、冲突矩阵 4 类、空译文语义、旧引擎复现
 describe("terms parseTerms", () => {
   test("parses key,value pairs separated by newline or semicolon", () => {
@@ -405,11 +405,11 @@ describe("terms applyTermReplace with capture groups in keys (分支映射)", ()
   });
 });
 
-// ─── Task 14：点号字面量与正则语义 ──────────────────────────────────────────
+// ─── 点号字面量与正则语义 ──────────────────────────────────────────
 // 术语 key 默认按正则源码处理（与既有规则语义一致，不改为字面量以免破坏已有正则规则）。
 // 点号术语（如 Dr.whob）与其他 key 一样一律按 (key) 语义匹配（无单词边界）；
 // 未转义的点号按正则通配符工作，界面需给出转义警告。
-describe("terms 点号字面量与正则语义（Task 14）", () => {
+describe("terms 点号字面量与正则语义", () => {
   test("Dr.whob 按正则语义解析（isWord 仅诊断元数据）", () => {
     const parsed = parseTerms("Dr.whob,神经病");
     const entry = parsed.terms[0];
@@ -596,7 +596,7 @@ describe("terms P1 分支识别修复（lookbehind / 嵌套捕获组 / 零宽边
   });
 });
 
-// ─── 零宽防护与 flags 继承（统一计划 20260829 Task 2）────────────────────────
+// ─── 零宽防护与 flags 继承 ───────────────────────
 // 纯零宽模式（整个 pattern 无任何可消费原子，如 (?=x)、(?<=x)、\b）在非空文本上
 // 也能零宽命中并逐位置注入译文（"xx" → "YxYx"）。防护分两层：
 //   静态层：isZeroWidthOnlyPattern 在 parseTerms 中判定，产出致命诊断
@@ -604,9 +604,9 @@ describe("terms P1 分支识别修复（lookbehind / 嵌套捕获组 / 零宽边
 //           a*/x?/^ 等空匹配模式仍归 empty-matching，不重复归类）；
 //   运行时层：混合臂（如 a|(?=x)）合法保留，scanWithTerms 对零宽命中跳过
 //           replacer 与 span，仅手动前进，杜绝 start===end 的 span。
-// flags 继承（F6）：phaseRegex 必须继承外部组合正则的全部 flags（i/m/s），
+// flags 继承：phaseRegex 必须继承外部组合正则的全部 flags（i/m/s），
 //   否则大小写不敏感等场景下分支反查失败，术语被兜底路径静默放弃。
-describe("terms 零宽防护与 flags 继承（统一计划 20260829 Task 2）", () => {
+describe("terms 零宽防护与 flags 继承", () => {
   const replacer = (t, m) => t.value || m;
 
   test("混合臂运行时零宽守卫：a|(?=x) 消费臂照常替换，零宽臂不产 span 不调 replacer", () => {
@@ -663,7 +663,7 @@ describe("terms 零宽防护与 flags 继承（统一计划 20260829 Task 2）",
   });
 
   test("负向环视与 \\B 在空串上匹配空串，先被既有 empty-matching 门闸拦截", () => {
-    // 计划预测修订（Task 1 取证实测）：(?<!y)/(?!x)/\B 的 test("") 为 true，
+    // 实测：(?<!y)/(?!x)/\B 的 test("") 为 true，
     // 先被既有 empty-matching 门闸拒绝（类型为 empty-matching-pattern 而非新
     // 类型），零宽防护目标一致。
     for (const key of ["(?<!y)", "(?!x)", "\\B"]) {
@@ -744,13 +744,13 @@ describe("terms 零宽防护与 flags 继承（统一计划 20260829 Task 2）",
   });
 });
 
-// ─── matcher 缓存与 naive 缓存（统一计划 20260829 Task 3）────────────────────
+// ─── matcher 缓存与 naive 缓存 ───────────────────
 // 生产 Translator 对每个文本节点调用一次 applyTermReplace；逐节点重建分支槽位表
 // （每术语 1 次 new RegExp 探针）与 phaseRegex 是页面级卡顿根因。matcher 把
 // 组合正则、phaseRegex、槽位表一次物化，热路径零编译。naive 引擎同链路，
 // 按 originalOrder 引用做 WeakMap 记忆化。
 // 计数手段：临时把 global.RegExp 替换为计数子类（finally 还原），断言增量编译数。
-describe("terms matcher 缓存与 naive 缓存（统一计划 20260829 Task 3）", () => {
+describe("terms matcher 缓存与 naive 缓存", () => {
   const replacer = (t, m) => t.value || m;
 
   /** 临时替换 global.RegExp 为计数子类；返回还原函数，调用后取回计数。 */
@@ -962,11 +962,11 @@ describe("terms matcher 缓存与 naive 缓存（统一计划 20260829 Task 3）
   });
 });
 
-// ─── Task 2：fast/full 解析契约与生产热路径性能解耦 ──────────────────────────
+// ─── fast/full 解析契约与生产热路径性能解耦 ──────────────────────────
 // parseTerms 默认（full）保留跨术语 conflicting-pattern 两两分析，用于 Playground / CLI
 // 诊断；生产 Translator 用 fast 模式省略该 O(n²) 分析。两种模式必须共享同一套基础解析
 // 结果，仅 full 额外产生 conflicting-pattern 及派生诊断状态。
-describe("terms fast/full 解析契约（Task 2）", () => {
+describe("terms fast/full 解析契约", () => {
   test("fast 模式产出 diagnosticsMode=fast，且不含 conflicting-pattern 完整分析", () => {
     const input = "Dr\\.who;Dr.who,神经病患者";
     const full = parseTerms(input); // 默认 full
@@ -1049,11 +1049,11 @@ describe("terms fast/full 解析契约（Task 2）", () => {
   });
 });
 
-// ─── Task 10：严格非法输入诊断 ──────────────────────────────────────────────
+// ─── 严格非法输入诊断 ──────────────────────────────────────────────
 // 解析结果区分：有效映射 / 有效保留规则 / 空源术语 / 空译文(多余逗号) /
 // 重复映射 / 冲突映射（同源不同译文）/ 冲突映射（正则重叠）。
 // 只要存在致命非法段，hasErrors=true，消费方不得生成"替换测试成功"摘要。
-describe("terms 严格非法输入诊断（Task 10）", () => {
+describe("terms 严格非法输入诊断", () => {
   test("固定输入 1：Dr.who, 尾巴逗号按保留原文处理（非致命提醒）", () => {
     const parsed = parseTerms("Dr.who,");
     expect(parsed.hasErrors).toBe(false);
@@ -1261,7 +1261,7 @@ describe("terms 严格非法输入诊断（Task 10）", () => {
   });
 });
 
-// ─── 术语冲突分析引擎加固（统一计划 20260829 Task 4）─────────────────────────
+// ─── 术语冲突分析引擎加固 ────────────────────────
 // analyzeCrossTermPatternConflicts 是 O(n²) 两两交叉分析：原实现对每个有序对
 // 编译 2 次正则（fullRegexMatches），40 条术语即 3120 次编译。加固手段：
 //   ① isStrictLiteralPattern 白名单短路：双方均为严格字面量（未转义元字符为空，
@@ -1269,8 +1269,8 @@ describe("terms 严格非法输入诊断（Task 10）", () => {
 //     命中自身去转义文本，双 key 不同则必然无冲突——零编译跳过；
 //   ② 按 key 预编译：非白名单对的正则每个 key 只编译一次。
 // 白名单文法反例锁定：\d 的被转义字符 d 不是元字符，不得判为字面量，
-// 否则 \d × 5 的 conflicting-pattern 检出会被漏掉（B3）。
-describe("terms 冲突分析引擎加固（统一计划 20260829 Task 4）", () => {
+// 否则 \d × 5 的 conflicting-pattern 检出会被漏掉。
+describe("terms 冲突分析引擎加固", () => {
   function installCountingRegExp() {
     const RealRegExp = RegExp;
     let count = 0;
@@ -1327,7 +1327,7 @@ describe("terms 冲突分析引擎加固（统一计划 20260829 Task 4）", () 
     expect(fullDelta - fastDelta).toBe(0);
   });
 
-  test("B3 锁定：\\d × 5 与 \\w × A 的 conflicting-pattern 必须检出", () => {
+  test("\\d × 5 与 \\w × A 的 conflicting-pattern 必须检出", () => {
     for (const input of ["\\d,数字;5,five", "\\w,词;A,甲"]) {
       const parsed = parseTerms(input);
       expect(parsed.hasErrors).toBe(true);
@@ -1352,16 +1352,16 @@ describe("terms 冲突分析引擎加固（统一计划 20260829 Task 4）", () 
   });
 });
 
-// ─── 字符级不变量对抗矩阵（统一计划 20260829 Task 1 语料裁剪落库，Task 6）────
+// ─── 字符级不变量对抗矩阵 ─
 // 「无新问题」的字符级不变量：每个字符要么原样保留，要么在真实命中的 span 内被
 // 显式替换（output 可由 text + spans 精确重建）。四道防线对应四不变量：
 //   ① spans 重建 === output；
 //   ② span start<end 有序不重叠（零宽 span 是注入事故的直接证据）；
 //   ③ 同输入两次调用全等（lastIndex 卫生 / 幂等）；
 //   ④ 非法正则语料不抛异常。
-// Task 1 取证阶段的对抗扫描（54 组 × 21 文本）在修复前恰好产生 80 项零宽 span
+// 对抗扫描（54 组 × 21 文本）在修复前恰好产生 80 项零宽 span
 // 违例、其余不变量全绿；此处以确定性固定语料把"修复后行为"永久落库。
-describe("terms 字符级不变量对抗矩阵（统一计划 20260829 Task 6）", () => {
+describe("terms 字符级不变量对抗矩阵", () => {
   const MATRIX_TERMS = [
     // 常规字面量 / 正则 / 捕获组 / 消费型环视
     "API,接口",

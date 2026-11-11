@@ -51,7 +51,6 @@ import { tryClearCaches } from "../../libs/cache";
 import { logger } from "../../libs/log";
 import { getDomainOptions } from "../../libs/url";
 import {
-  getCompactStylePreviewCode,
   useAllTextStyles,
 } from "../../hooks/CustomStyles";
 import { useOverviewShortcuts } from "../../hooks/Commands";
@@ -60,13 +59,17 @@ import { useSetting } from "../../hooks/Setting";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
 import { COLLAPSED_SERVICE_LIMIT, getVisibleServices } from "./services";
 import CompactLanguageSelect from "./CompactLanguageSelect";
-import PopupStylePreview from "./PopupStylePreview";
+import {
+  textStyleEntryPreview,
+  textStyleOptionLabel,
+} from "./textStylePreview";
 import PopupMenu from "./PopupMenu";
 import GlobalFeatures from "./GlobalFeatures";
 import { queryPopupData } from "./loadData";
 import { useConfirmedPopupUpdate } from "./useConfirmedPopupUpdate";
 import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 import { getEnabledApis, resolveApiSelection } from "../../libs/apiSelection";
+import { scriptFocus } from "../../hooks/focusModality";
 
 const isTouchAction = (action) =>
   action === MSG_TOUCH_TRANSLATE_STATE ||
@@ -112,7 +115,10 @@ function handleRadioKeyDown(event) {
             (["ArrowLeft", "ArrowUp"].includes(event.key) ? -1 : 1) +
             buttons.length) %
           buttons.length;
-  buttons[next].focus();
+  // 脚本聚焦路径不得裸调 .focus()，统一经 scriptFocus 唯一入口。
+  // radiogroup 方向键导航处模态必为键盘态（导航键刚按下），scriptFocus
+  // 不挂静默标记、环照常出；preventScroll:false 允许弹窗文档滚动露出目标段。
+  scriptFocus(buttons[next], { preventScroll: false });
   buttons[next].click();
 }
 const normalizedValue = (name, value) =>
@@ -189,7 +195,6 @@ export default function PopupCont({
     contextSetting?.transApis || setting?.transApis || []
   );
   const serviceFallbackAttemptRef = useRef(null);
-  const styleGridRef = useRef(null);
   const activeRef = useRef(true);
   const visibleRef = useRef(isVisible);
   const touchActivityRef = useRef(0);
@@ -819,20 +824,28 @@ export default function PopupCont({
   const menuProps = (name) => ({
     anchorEl: openMenu?.name === name ? openMenu.anchor : null,
     open: openMenu?.name === name,
-    onClose: () => setOpenMenu(null),
+    onClose: () => {
+      const anchor = openMenu?.anchor;
+      setOpenMenu(null);
+      // opener 回退：MUI Modal 卸载时会先把焦点恢复到打开前元素，
+      // 数据单选收起后在模态卸载后显式把焦点交回入口本体。
+      // 经 scriptFocus 而非裸 .focus()：指针模态静默、键盘模态出环，
+      // 与焦点环配对法则同源。
+      if (name === "style") {
+        setTimeout(() => scriptFocus(anchor), 0);
+      }
+    },
   });
-  useEffect(() => {
-    if (openMenu?.name !== "style") return undefined;
-    const frame = requestAnimationFrame(() =>
-      (
-        styleGridRef.current?.querySelector('[aria-pressed="true"]') ||
-        styleGridRef.current?.querySelector("button")
-      )?.focus()
-    );
-    return () => cancelAnimationFrame(frame);
-  }, [openMenu?.name]);
   const showMenu = (name, event) =>
     setOpenMenu({ name, anchor: event.currentTarget });
+  const selectTextStyleOption = (styleSlug) => {
+    void putRuleValue("textStyle", styleSlug);
+    // 关闭回退与 onClose 同轨：键盘选择样式后菜单卸载，焦点必须交回入口
+    // 本体（经 scriptFocus：指针模态静默、键盘模态出环），不得掉落 body。
+    const anchor = openMenu?.anchor;
+    setOpenMenu(null);
+    if (anchor) setTimeout(() => scriptFocus(anchor), 0);
+  };
   const dirtyDot = (name) =>
     isDirty(name) && <span className="kt-popup-dirty-dot" aria-hidden="true" />;
   const saveLabel =
@@ -1060,21 +1073,20 @@ export default function PopupCont({
         <button
           type="button"
           className="kt-popup-style-select"
-          aria-label={i18n("text_style_alt")}
-          aria-haspopup="menu"
+          aria-label={
+            activeStyle
+              ? `${i18n("text_style_alt")}: ${activeStyle.styleName}`
+              : i18n("text_style_alt")
+          }
+          aria-haspopup="listbox"
           aria-expanded={openMenu?.name === "style"}
+          aria-controls="kt-popup-style-list"
           disabled={blockedControls}
           onClick={(event) => showMenu("style", event)}
         >
           <span className="kt-popup-style-label">{i18n("popup_style")}</span>
           <span className="kt-popup-style-value">
-            <PopupStylePreview
-              styleSlug={textStyle}
-              previewCode={
-                activeStyle ? getCompactStylePreviewCode(activeStyle) : ""
-              }
-              label={activeStyle?.styleName || textStyle}
-            />
+            {activeStyle ? textStyleEntryPreview(activeStyle, i18n) : null}
           </span>
           <ExpandMoreRoundedIcon aria-hidden="true" />
           {dirtyDot("textStyle")}
@@ -1346,67 +1358,36 @@ export default function PopupCont({
         className="kt-popup-style-menu"
         direction={isContent ? "auto" : "down"}
         ariaLabel={i18n("text_style_alt")}
-        estimatedHeight={Math.ceil(allTextStyles.length / 3) * 40 + 16}
+        menuRole="listbox"
+        id="kt-popup-style-list"
+        paperMaxWidth="min(280px, calc(100vw - 24px))"
+        estimatedHeight={allTextStyles.length * 48 + 16}
       >
-        <div
-          className="kt-popup-style-grid"
-          ref={styleGridRef}
-          tabIndex={-1}
-          role="group"
-          aria-label={i18n("text_style_alt")}
-          onKeyDown={(event) => {
-            if (
-              ![
-                "ArrowLeft",
-                "ArrowRight",
-                "ArrowUp",
-                "ArrowDown",
-                "Home",
-                "End",
-              ].includes(event.key)
-            )
-              return;
-            const buttons = Array.from(
-              event.currentTarget.querySelectorAll("button")
-            );
-            const index = buttons.indexOf(event.target);
-            if (index < 0 || !buttons.length) return;
-            event.preventDefault();
-            event.stopPropagation();
-            const offset = {
-              ArrowLeft: -1,
-              ArrowRight: 1,
-              ArrowUp: -3,
-              ArrowDown: 3,
-            }[event.key];
-            const next =
-              event.key === "Home"
-                ? 0
-                : event.key === "End"
-                  ? buttons.length - 1
-                  : (index + offset + buttons.length) % buttons.length;
-            buttons[next].focus();
-          }}
-        >
-          {allTextStyles.map((style) => (
-            <button
-              type="button"
-              className="kt-popup-style-chip"
-              aria-pressed={style.styleSlug === textStyle}
-              key={style.styleSlug}
-              onClick={() => {
-                void putRuleValue("textStyle", style.styleSlug);
-                setOpenMenu(null);
-              }}
-            >
-              <PopupStylePreview
-                styleSlug={style.styleSlug}
-                previewCode={getCompactStylePreviewCode(style)}
-                label={style.styleName}
-              />
-            </button>
-          ))}
-        </div>
+        {allTextStyles.map((style) => (
+          <div
+            role="option"
+            aria-selected={style.styleSlug === textStyle}
+            tabIndex={-1}
+            key={style.styleSlug}
+            className={`kt-popup-style-option${
+              style.styleSlug === textStyle
+                ? " kt-popup-style-option--selected"
+                : ""
+            }`}
+            onClick={() => selectTextStyleOption(style.styleSlug)}
+            onKeyDown={(event) => {
+              // div[role=option] 无原生键盘激活；方向键导航由 PopupMenu 挂到
+              // MenuListProps.onKeyDownCapture 的 libs/menuFocus 共享处理器接管
+              // （它不动 Enter/Space，让它们冒泡到此），此处仅接激活复用点击路径。
+              if (event.key !== "Enter" && event.key !== " ") return;
+              event.preventDefault();
+              event.stopPropagation();
+              selectTextStyleOption(style.styleSlug);
+            }}
+          >
+            {textStyleOptionLabel(style, i18n)}
+          </div>
+        ))}
       </PopupMenu>
     </section>
   );
