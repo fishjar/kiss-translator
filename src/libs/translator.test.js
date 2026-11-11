@@ -3581,6 +3581,125 @@ describe("Translator rule styles", () => {
     );
 
     test.each(
+      ["custom-box", "unknownbox"].flatMap((tag) =>
+        ["true", "false"].flatMap((transOnly) =>
+          ["compact", "attribute"].map((placetagFormat) => ({
+            tag,
+            transOnly,
+            placetagFormat,
+          }))
+        )
+      )
+    )(
+      "flattens unsupported atomic shells and their block descendants: %j",
+      async ({ tag, transOnly, placetagFormat }) => {
+        document.body.innerHTML = `<main id="root"><div id="target">Before <${tag} class="unsupported" style="display:inline-block"><div class="layout">middle</div></${tag}> between <div class="atomic" style="display:inline-flex"><${tag} class="unsupported"><div class="layout">nested</div></${tag}></div> after.</div></main>`;
+        const target = document.querySelector("#target");
+        const originalNodes = [...target.childNodes];
+        apiTranslate.mockImplementation(async ({ text }) => ({
+          trText: text
+            .replace("middle", "translated middle")
+            .replace("nested", "translated nested"),
+        }));
+        const translator = createTranslator(
+          { hasRichText: "true", transOnly },
+          {
+            transApis: [
+              {
+                ...createApiSetting(DEFAULT_API_SETTING.apiSlug),
+                placetagFormat,
+              },
+            ],
+          }
+        );
+        await flushAsync();
+
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        const inner = target.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        expect(inner.textContent).toBe(
+          "Before translated middle between translated nested after."
+        );
+        expect(inner.querySelector(".unsupported, .layout")).toBeNull();
+        expect(inner.querySelector(".atomic").textContent).toBe(
+          "translated nested"
+        );
+        expect(
+          window.getComputedStyle(inner.querySelector(".atomic")).display
+        ).toBe("inline-flex");
+
+        translator.disable();
+        originalNodes.forEach((node, index) =>
+          expect(target.childNodes[index]).toBe(node)
+        );
+      }
+    );
+
+    test.each(
+      ["true", "false"].flatMap((transOnly) =>
+        ["compact", "attribute"].map((placetagFormat) => ({
+          transOnly,
+          placetagFormat,
+        }))
+      )
+    )(
+      "restores real inline tables with captions and translated cells: %j",
+      async ({ transOnly, placetagFormat }) => {
+        document.body.innerHTML = `<main id="root"><div id="target">Before <table class="atomic" style="display:inline-table;width:200px"><caption>Summary</caption><thead><tr><th>Heading</th></tr></thead><tbody><tr><td>First cell <b>bold</b></td><td>Second cell <code>kept</code></td><td class="excluded">SECRET ignored</td><td hidden>SECRET hidden</td></tr></tbody></table> after.</div></main>`;
+        const target = document.querySelector("#target");
+        const originalNodes = [...target.childNodes];
+        apiTranslate.mockImplementation(async ({ text }) => ({
+          trText: text
+            .replace("Summary", "translated summary")
+            .replace("Heading", "translated heading")
+            .replace("First cell", "translated first")
+            .replace("Second cell", "translated second"),
+        }));
+        const translator = createTranslator(
+          { hasRichText: "true", transOnly, ignoreSelector: ".excluded" },
+          {
+            transApis: [
+              {
+                ...createApiSetting(DEFAULT_API_SETTING.apiSlug),
+                placetagFormat,
+              },
+            ],
+          }
+        );
+        await flushAsync();
+
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).not.toMatch(/SECRET|kept/);
+        const inner = target.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        const table = inner.querySelector("table.atomic");
+        expect(table).not.toBeNull();
+        expect(table.caption.textContent).toBe("translated summary");
+        expect(table.querySelector("thead > tr > th").textContent).toBe(
+          "translated heading"
+        );
+        expect(
+          [...table.querySelectorAll("tbody > tr > td")].map(
+            (cell) => cell.textContent
+          )
+        ).toEqual(["translated first bold", "translated second kept"]);
+        expect(table.querySelector("td > b").textContent).toBe("bold");
+        expect(table.querySelector("td > code").textContent).toBe("kept");
+        expect(inner.querySelector(".excluded, [hidden]")).toBeNull();
+        expect(window.getComputedStyle(table).display).toBe("inline-table");
+        expect(table.style.width).toBe("200px");
+        expect(
+          [...inner.childNodes]
+            .filter((node) => node.nodeType === Node.TEXT_NODE)
+            .map((node) => node.textContent)
+        ).toEqual(["Before ", " after."]);
+
+        translator.disable();
+        originalNodes.forEach((node, index) =>
+          expect(target.childNodes[index]).toBe(node)
+        );
+      }
+    );
+
+    test.each(
       ["true", "false"].flatMap((transOnly) =>
         ["compact", "attribute"].map((placetagFormat) => ({
           transOnly,
