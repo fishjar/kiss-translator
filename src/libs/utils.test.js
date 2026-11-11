@@ -1,4 +1,4 @@
-import { parseAITerms } from "./utils";
+import { parseAITerms, stripMarkdownCodeBlock } from "./utils";
 import { parseTerms } from "./terms";
 
 // parseAITerms 纯函数单元测试
@@ -76,5 +76,21 @@ describe("parseAITerms", () => {
     expect(parseAITerms("__proto__,x")).toEqual({ ["__proto__"]: "x" });
     expect(parseAITerms("a,1\n  \nb,2")).toEqual({ a: "1", b: "2" });
     expect(parseAITerms("a,1\r\nb,2")).toEqual({ a: "1", b: "2" });
+  });
+});
+
+describe("stripMarkdownCodeBlock", () => {
+  test("strips a fenced block whose language id contains +, #, digits, or a hyphen", () => {
+    expect(stripMarkdownCodeBlock("```c++\nint x = 1;\n```")).toBe("int x = 1;");
+    expect(stripMarkdownCodeBlock("```C++\nint x = 1;\n```")).toBe("int x = 1;");
+    expect(stripMarkdownCodeBlock("```c#\nvar x = 1;\n```")).toBe("var x = 1;");
+    expect(stripMarkdownCodeBlock("```objective-c\nint x = 1;\n```")).toBe("int x = 1;");
+    expect(stripMarkdownCodeBlock("```json5\n{x: 1}\n```")).toBe("{x: 1}");
+  });
+
+  test("still strips plain and letter-only fences, including start-only mode", () => {
+    expect(stripMarkdownCodeBlock("```js\nconst x = 1;\n```")).toBe("const x = 1;");
+    expect(stripMarkdownCodeBlock("```\nplain\n```")).toBe("plain");
+    expect(stripMarkdownCodeBlock("```c++\nint x = 1;\n```", true)).toBe("int x = 1;\n```");
   });
 });
