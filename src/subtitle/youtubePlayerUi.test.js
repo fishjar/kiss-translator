@@ -24,6 +24,11 @@ jest.mock("./Menus.js", () => ({
   Menus: () => null,
 }));
 
+jest.mock("../hooks/focusModality", () => ({
+  scriptFocus: jest.fn(),
+  installFocusModality: jest.fn(() => true),
+}));
+
 describe("YouTubePlayerUi", () => {
   let setting;
 
@@ -128,6 +133,29 @@ describe("YouTubePlayerUi", () => {
     setting.hideSubtitleButton = false;
     ui.injectToggleButton(controls);
     expect(document.querySelector(".kiss-subtitle-button")).not.toBeNull();
+  });
+
+  test("initial focus lands on the first focusable row including switch rows", () => {
+    // 开关行 role 已按 ARIA switch 语义挂 role="switch"；初始焦点选择器若只认
+    // [role=button] 会漏掉菜单顶部的开关行。querySelector 逗号选择器天然按
+    // 文档序取首个匹配，满足"文档序第一"的交接契约。
+    document.body.innerHTML =
+      '<div class="ytp-right-controls"></div>' +
+      '<div id="kiss-subtitle-menus">' +
+      '<div role="switch" tabindex="0" data-row="switch-a"></div>' +
+      '<div role="button" tabindex="0" data-row="button-a"></div>' +
+      "</div>";
+    const controls = document.querySelector(".ytp-right-controls");
+    const ui = createUi();
+
+    ui.injectToggleButton(controls);
+    const toggleButton = document.querySelector(".kiss-subtitle-button");
+    toggleButton.onclick();
+    jest.runAllTimers();
+
+    const { scriptFocus } = require("../hooks/focusModality");
+    expect(scriptFocus).toHaveBeenCalledTimes(1);
+    expect(scriptFocus.mock.calls[0][0].dataset.row).toBe("switch-a");
   });
 
   test("hides notification when loading notification setting is disabled", () => {

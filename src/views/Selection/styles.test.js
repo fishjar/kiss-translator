@@ -26,11 +26,10 @@ describe("selection Material 3 shapes", () => {
     expect(dragRule).toContain("cursor: move");
   });
 
-  // 真红主路径：TRANSLATION_PANEL_STYLES 在模块加载期定型（平台不会在会
-  // 话中途改变，模块加载期求值属可接受），Windows 分支须经
-  // jest.isolateModules 先行 mock navigator 再重新求值模块后断言拖拽图
-  // 标携带位图光标（同根因：Windows Chromium 单色光标反白缺陷）。当前实
-  // 现为字面量 cursor: move，本用例首跑必红。
+  // TRANSLATION_PANEL_STYLES 在模块加载期定型（平台不会在会话中途改变，
+  // 模块加载期求值属可接受），Windows 分支须经 jest.isolateModules 先行
+  // mock navigator 再重新求值模块后断言拖拽图标携带位图光标（同根因：
+  // Windows Chromium 单色光标反白缺陷）。
   test("uses the shared bitmap cursor for the header drag glyph on Windows Chromium", () => {
     jest.isolateModules(() => {
       Object.defineProperty(window.navigator, "userAgentData", {
@@ -60,13 +59,19 @@ describe("selection Material 3 shapes", () => {
       /\.kt-tranbox-header__menu\s*\{[^}]*border-radius:\s*4px;/
     );
     expect(TRANSLATION_PANEL_STYLES).toMatch(
-      /\.kt-tranbox-header__menu button\s*\{[^}]*border-radius:\s*8px;/
+      /\.kt-tranbox-header__menu\s*\{[^}]*padding:\s*8px 0;/
+    );
+    const menuButtonRule = TRANSLATION_PANEL_STYLES.match(
+      /\.kt-tranbox-header__menu button\s*\{([^}]*)\}/
+    )?.[1];
+    expect(menuButtonRule).toContain("min-height: 48px");
+    expect(menuButtonRule).toContain("padding: 0 16px");
+    expect(menuButtonRule).not.toContain("border-radius");
+    expect(TRANSLATION_PANEL_STYLES).toMatch(
+      /\.kt-tranbox-header \.MuiIconButton-root\[aria-pressed="true"\]:hover\s*\{[^}]*var\(--kt-onsecc\) 8%/
     );
     expect(TRANSLATION_PANEL_STYLES).toMatch(
-      /\.kt-tranbox-header \.MuiIconButton-root\[aria-pressed="true"\]:hover\s*\{[^}]*var\(--kt-onpric\) 8%/
-    );
-    expect(TRANSLATION_PANEL_STYLES).toMatch(
-      /\.kt-tranbox-header \.MuiIconButton-root\[aria-pressed="true"\]\.Mui-focusVisible,[\s\S]*?\[aria-pressed="true"\]:active\s*\{[^}]*var\(--kt-onpric\) 10%/
+      /\.kt-tranbox-header \.MuiIconButton-root\[aria-pressed="true"\]:focus-visible,[\s\S]*?\[aria-pressed="true"\]:active\s*\{[^}]*var\(--kt-onsecc\) 10%/
     );
     expect(TRANSLATION_PANEL_STYLES).not.toContain(
       ".KT-draggable-container .MuiStack-root { gap: 12px; }"

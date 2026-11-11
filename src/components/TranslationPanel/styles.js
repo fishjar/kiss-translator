@@ -20,20 +20,27 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-tranbox-header .MuiIconButton-root svg { width: 18px; height: 18px; }
 .kt-tranbox-header--compact { flex: none; min-height: 0; padding: 8px 0; border: 0; border-radius: 0; }
 .kt-tranbox-header--compact .MuiIconButton-root { width: 40px; height: 40px; }
-.kt-tranbox-header .MuiIconButton-root[aria-pressed="true"] { background: var(--kt-pric); color: var(--kt-onpric); }
+.kt-tranbox-header .MuiIconButton-root[aria-pressed="true"] { background: var(--kt-secc); color: var(--kt-onsecc); }
 @media (hover: hover) {
-  .kt-tranbox-header .MuiIconButton-root[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--kt-onpric) 8%, var(--kt-pric)); }
+  .kt-tranbox-header .MuiIconButton-root[aria-pressed="true"]:hover { background: color-mix(in srgb, var(--kt-onsecc) 8%, var(--kt-secc)); }
 }
-.kt-tranbox-header .MuiIconButton-root[aria-pressed="true"].Mui-focusVisible,
-.kt-tranbox-header .MuiIconButton-root[aria-pressed="true"]:active { background: color-mix(in srgb, var(--kt-onpric) 10%, var(--kt-pric)); }
-.kt-tranbox-header__menu { box-sizing: border-box; min-width: min(206px, calc(100vw - 16px)); max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); display: flex; flex-direction: column; position: absolute; top: 48px; right: 42px; z-index: 4; overflow-x: hidden; overflow-y: auto; padding: 6px; border: 1px solid var(--kt-linev); border-radius: 4px; background: var(--kt-sf0); box-shadow: var(--kt-shadow-2); }
-.kt-tranbox-header__menu button { min-height: 39px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: var(--kt-on); cursor: pointer; font: inherit; font-size: 11.5px; text-align: left; }
-.kt-tranbox-header__menu button[aria-checked="true"] { background: var(--kt-pric); color: var(--kt-onpric); }
+.kt-tranbox-header .MuiIconButton-root[aria-pressed="true"]:focus-visible,
+.kt-tranbox-header .MuiIconButton-root[aria-pressed="true"]:active { background: color-mix(in srgb, var(--kt-onsecc) 10%, var(--kt-secc)); }
+.kt-tranbox-header__menu { box-sizing: border-box; min-width: min(206px, calc(100vw - 16px)); max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); display: flex; flex-direction: column; position: absolute; top: 48px; right: 42px; z-index: 4; overflow-x: hidden; overflow-y: auto; padding: 8px 0; border: 1px solid var(--kt-linev); border-radius: 4px; background: var(--kt-sf0); box-shadow: var(--kt-shadow-2); }
+.kt-tranbox-header__menu button { min-height: 48px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 16px; border: 0; background: transparent; color: var(--kt-on); cursor: pointer; font: inherit; font-size: 11.5px; text-align: left; }
+/* 本菜单 overflow-x: hidden：外扩 outline（offset 2px）会被切掉左右只余上下，
+   故手写项统一改内嵌环；forced-colors 域 box-shadow 被忽略，回落系统色内描边。 */
+.kt-tranbox-header__menu button:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--kt-pri); }
+@media (forced-colors: active) {
+  .kt-tranbox-header__menu button:focus-visible { outline: 3px solid; outline-offset: -3px; box-shadow: none; }
+}
+.kt-tranbox-header__menu button[aria-checked="true"] { background: transparent; }
 .kt-tranbox-header__menu button:disabled { opacity: .5; cursor: default; }
 @media (hover: hover) {
-  .kt-tranbox-header__menu button:hover { background: var(--kt-pric); color: var(--kt-onpric); }
+  .kt-tranbox-header__menu button:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
 }
 .kt-tranbox-header__menu svg { width: 18px; height: 18px; flex: none; }
+.kt-tranbox-header__menu-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .kt-tranbox-content { container-type: inline-size; container-name: kt-translation-content; padding: 14px !important; background: var(--kt-sf0) !important; color: var(--kt-on) !important; }
 .kt-translation-config-row { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }

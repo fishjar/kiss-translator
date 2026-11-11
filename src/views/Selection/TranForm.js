@@ -2,12 +2,13 @@ import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
+import MenuCheckGlyph from "../../components/MenuCheckGlyph";
 import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
-import DoneIcon from "@mui/icons-material/Done";
+import { CheckIcon as DoneIcon } from "../../components/icons";
 import CircularProgress from "@mui/material/CircularProgress";
-import ContentPasteIcon from "@mui/icons-material/ContentPaste";
+import { ContentPasteIcon } from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import {
   OPT_LANGS_FROM_REVERSED as OPT_LANGS_FROM,
@@ -35,7 +36,10 @@ import { isValidWord } from "../../libs/utils";
 import { logger } from "../../libs/log";
 import { tryDetectLang } from "../../libs/detect";
 import { isSameTranslationLanguage } from "../../libs/language";
-import { createMenuKeyDownHandler } from "../../libs/menuFocus";
+import {
+  createMenuKeyDownHandler,
+  focusMenuTarget,
+} from "../../libs/menuFocus";
 import { isShadowHostMoving } from "../../libs/shadowHost";
 import { isApiAvailableFor } from "../../config/serviceSelection";
 import TextareaResizeGrip from "../../components/TextareaResizeGrip";
@@ -64,6 +68,22 @@ const resolveActiveApiSlugs = (apiSlugs, optApis) => {
   const validSlugs = new Set(optApis.map((api) => api.key));
   return apiSlugs.filter((slug) => validSlugs.has(slug));
 };
+
+// MUI 自持焦点（MenuList.js:216-225 给选中项克隆 autoFocus:true）不经
+// scriptFocus()：脚本化聚焦会被浏览器判给 :focus-visible，纯鼠标打开也长出
+// 焦点框。关掉 MUI 三键后由本组件在 Paper 挂载时经 scriptFocus() 交接焦点
+// （模态裁决留在 hooks/focusModality.js 单源），先例同形：
+// PopupMenu 的挂载期交接与 Options/DropdownRoot 的挂载期交接。
+// 已聚焦在 Paper 内则不再二次交接：ref 回调身份随 memo 重建而变（isShadowMenu
+// 挂载时翻转一次），无此判据会把键盘态下光标走到的位置强行拉回选中项。
+// 目标取"最后一个选中项"以对齐 MUI 自身的 lookahead 语义（Menu 组件的
+// selectedMenu 变体取最后一个 selected，无则取首个非 disabled），多选 ≥2 项
+// 时焦点位置与现状逐位一致。守卫/聚焦/滚动统一走 libs/menuFocus 的
+// focusMenuTarget（共享可聚焦项口径排除 .Mui-disabled 与 aria-disabled）。
+// 纯函数（无组件态依赖）故置于模块域并具名导出，供守卫单元测试直测。
+export function focusSelectedOption(paper) {
+  return focusMenuTarget(paper, { pick: "last" });
+}
 
 /**
  * Translation form with language and service choices, dictionaries, detection, and text input.
@@ -175,6 +195,9 @@ export default function TranForm({
     return sentence || url ? { sentence, url } : null;
   }, [editText, favoriteSourceSnapshotChanged, selectionSource, text]);
   const [requestRevision, setRequestRevision] = useState(0);
+  // 提交后仍处于失败态的服务（slug 集合）：失败未清除前，即使草稿与已提交
+  // 文本相同，源输入行也保留可点击的重试入口（与 Enter 提交同走 submitAndBlur）。
+  const [failedApiSlugs, setFailedApiSlugs] = useState(() => new Set());
   const [apiSlugs, setApiSlugs] = useState(initApiSlugs);
   const [hasUserChangedApiSlugs, setHasUserChangedApiSlugs] = useState(false);
   const [fromLang, setFromLang] = useState(initFromLang);
@@ -235,9 +258,25 @@ export default function TranForm({
     () => ({
       container: () => inputRef.current?.closest(".kt-m3-root"),
       disableScrollLock: true,
+      // 焦点交接单路化：onEnter（进入过渡启动即同步触发，每次打开必走）是
+      // 唯一交接路径，守卫内聚于 focusSelectedOption（已在 Paper 内则让位）；
+      // 无需 onEntered 的过渡完成计时兜底。交接目标取各菜单过渡自身提供的
+      // 节点（Grow 的过渡根即 Paper）：共享单个 ref 登记 Paper 会让先关菜单
+      // 的迟到 ref(null) 抹掉后开菜单刚登记的节点，快关-切换-重开序下 B 的
+      // 交接会拿空，各取过渡节点后此竞态不复存在。
+      TransitionProps: {
+        onEnter: (el) => focusSelectedOption(el),
+      },
+      // 三键同给，缺一不可：autoFocus=false 关 MUI Menu 的项腿（selected 项
+      // 克隆 autoFocus 与 MenuList 容器首项聚焦两条自动聚焦腿）；
+      // disableAutoFocusItem=true 与它联用才不会反而打开 MenuList 的容器腿
+      // （单给这一键会去聚焦 ul）；disableAutoFocus=true 让 Popover/Modal 不再
+      // 自己拓焦（原值 isShadowMenu 在非 shadow 面为假，独立窗口就走在这腿上）。
+      autoFocus: false,
+      disableAutoFocusItem: true,
+      disableAutoFocus: true,
       // MUI's trap sees the shadow host as active and otherwise steals focus
       // from the selected option. Its normal focus restoration still applies.
-      disableAutoFocus: isShadowMenu,
       disableEnforceFocus: isShadowMenu,
       MenuListProps: {
         onKeyDownCapture: createMenuKeyDownHandler({
@@ -505,6 +544,25 @@ export default function TranForm({
     setRequestRevision((revision) => revision + 1);
   };
 
+  // 各结果面板上报自身请求失败态的翻转；按 slug 记账，全部恢复后重试入口退场。
+  const handleApiErrorChange = useCallback((slug, failed) => {
+    setFailedApiSlugs((prev) => {
+      if (prev.has(slug) === failed) return prev;
+      const next = new Set(prev);
+      if (failed) {
+        next.add(slug);
+      } else {
+        next.delete(slug);
+      }
+      return next;
+    });
+  }, []);
+
+  // 换取文本（新选取或重新提交）后旧的失败记录失效，由结果面板重新上报。
+  useEffect(() => {
+    setFailedApiSlugs(new Set());
+  }, [text]);
+
   const preserveSourceFocus = useCallback((event) => {
     const input = inputRef.current;
     // Result actions use the current translation without submitting a draft.
@@ -537,6 +595,7 @@ export default function TranForm({
       detectedLang={deLang}
       sourceDetectionPending={fromLang === "auto" && deLoading}
       requestRevision={requestRevision}
+      onErrorChange={handleApiErrorChange}
       onActionPointerDown={preserveSourceFocus}
     />
   ));
@@ -622,6 +681,14 @@ export default function TranForm({
                       SelectProps={{
                         multiple: true,
                         MenuProps: selectMenuProps,
+                        // 多选关闭态 trigger 显示服务名 join；勾选字形只留在菜单行内。
+                        renderValue: (selected) =>
+                          (Array.isArray(selected) ? selected : [])
+                            .map(
+                              (key) =>
+                                optApis.find((o) => o.key === key)?.name ?? key
+                            )
+                            .join(", "),
                       }}
                       fullWidth
                       size="small"
@@ -642,6 +709,13 @@ export default function TranForm({
                     >
                       {optApis.map(({ key, name }) => (
                         <MenuItem key={key} value={key}>
+                          <MenuCheckGlyph
+                            checked={
+                              Array.isArray(activeApiSlugs) &&
+                              activeApiSlugs.includes(key)
+                            }
+                            style={{ marginRight: 10 }}
+                          />
                           {name}
                         </MenuItem>
                       ))}
@@ -918,16 +992,10 @@ export default function TranForm({
                             }
                       }
                     >
-                      {!editText.trim() ? (
-                        <IconButton
-                          size="small"
-                          onClick={handlePaste}
-                          title={i18n("paste")}
-                          aria-label={i18n("paste")}
-                        >
-                          <ContentPasteIcon fontSize="inherit" />
-                        </IconButton>
-                      ) : editMode ? (
+                      {(editMode &&
+                        editText.trim() &&
+                        editText.trim() !== String(text ?? "").trim()) ||
+                      (editText.trim() && failedApiSlugs.size > 0) ? (
                         <IconButton
                           size="small"
                           onClick={submitAndBlur}
@@ -935,6 +1003,15 @@ export default function TranForm({
                           aria-label={i18n("submit")}
                         >
                           <DoneIcon fontSize="inherit" />
+                        </IconButton>
+                      ) : !editText.trim() || !text ? (
+                        <IconButton
+                          size="small"
+                          onClick={handlePaste}
+                          title={i18n("paste")}
+                          aria-label={i18n("paste")}
+                        >
+                          <ContentPasteIcon fontSize="inherit" />
                         </IconButton>
                       ) : (
                         <CopyBtn

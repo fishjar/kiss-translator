@@ -3,9 +3,11 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import ReaderAlert from "./ReaderAlert";
 import Box from "@mui/material/Box";
@@ -19,8 +21,26 @@ import { I18N, UI_LANGS } from "../../config/i18n";
 import { OPT_STYLE_ALL } from "../../config/styles";
 import { builtinStylesMap } from "../../libs/style";
 import { useHomepageSettings } from "../../homepage/useHomepageSettings";
+import { FOCUS_SILENT_CSS, resolveM3Colors } from "../../styles/m3";
+import {
+  getIconStyleSnapshot,
+  setIconStyleSnapshot,
+  subscribeIconStyle,
+} from "../../styles/iconStyleStore";
+import { installFocusModality } from "../../hooks/focusModality";
 
 const Context = createContext(null);
+
+// 本域自建主题的 secondary 档：MuiMenuItem 选中态底/文字唯一来源。
+// 浅档沿用域内定型值；暗档补齐 M3 暗色 secondaryContainer 族（m3.js 暗色
+// 静态定值，与 M3Theme MenuItem 选中态同源）——浅底深字在暗色界面下刺眼，
+// 且属深浅覆盖结构缺档（任一应覆盖位置缺失即未通过）。
+export function stateSecondaryPalette(themeMode) {
+  return themeMode === "dark"
+    ? { main: "#004A77", contrastText: "#C2E7FF" }
+    : { main: "#E8DEF8", contrastText: "#1D192B" };
+}
+
 const LANGUAGE_STORAGE_KEY = "kiss-file-translate-lang";
 const validLanguage = (language) =>
   UI_LANGS.some(([code]) => code === language);
@@ -47,6 +67,18 @@ export function useFileTranslation() {
 
 export function FileTranslationProvider({ children }) {
   const preferences = useHomepageSettings();
+  // 焦点静默机制（对齐 M3Theme.js 挂载形态）：本域自建 ThemeProvider 不经
+  // M3Theme，模态监听须在此对 ownerDocument 显式安装（幂等，per-document），
+  // 否则指针路径上 MUI 脚本聚焦的菜单项会裸奔 :focus-visible 焦点框。
+  useLayoutEffect(() => {
+    installFocusModality(document);
+    // 焦点静默作用域挂到 document.body：MUI Select 菜单经 Portal 挂在
+    // body 直下，Portal 内容的祖先链不经过 #root 内任何 wrapper，
+    // closest(".kt-m3-root, .kt-focus-silent-scope") 只有 body 挂类才能
+    // 命中。本页为扩展自有整页文档，整文档入作用域语义正确。
+    document.body.classList.add("kt-focus-silent-scope");
+    return () => document.body.classList.remove("kt-focus-silent-scope");
+  }, []);
   const [context, setContext] = useState(EMPTY);
   const [session, setSession] = useState(null);
   const [cachedLanguage, setCachedLanguage] = useState(readLanguage);
@@ -108,6 +140,10 @@ export function FileTranslationProvider({ children }) {
       sessionId === client.session?.sessionId
     ) {
       setContext(next);
+      // 图标样式桥接：扩展侧选择的 iconStyle 经既有快照机制写入 store
+      // （内部归一化 + 同值去重），独立文件翻译页的图标组件据此读取用户
+      // 设置而非默认档；无效会话路径不触碰快照。
+      setIconStyleSnapshot(next.iconStyle);
       if (validLanguage(next.uiLang)) {
         setCachedLanguage(next.uiLang);
         try {
@@ -291,13 +327,46 @@ export function FileTranslationProvider({ children }) {
     ],
     [context.styles, i18n]
   );
+  // 订阅保留使图标样式变化仍触发本组件重渲染（用户处方）；返回值本域不消费。
+  useSyncExternalStore(subscribeIconStyle, getIconStyleSnapshot);
+  // 强调色派生：扩展侧 iconColor 桥接进来后，secondary 容器族与主题主色
+  // 随用户设置走（m3.js 自适应色族）；未设置时回落域内定型档，themeMode
+  // 对配色的既有作用不变。iconColor 纳入 memo 依赖保证刷新连接后主题更新。
+  const accentColors = useMemo(
+    () => resolveM3Colors(preferences.themeMode, "blue", context.iconColor),
+    [preferences.themeMode, context.iconColor]
+  );
   const theme = useMemo(
     () =>
       createTheme({
-        palette: { mode: preferences.themeMode, primary: { main: "#0B57D0" } },
+        palette: {
+          mode: preferences.themeMode,
+          primary: context.iconColor
+            ? { main: accentColors.primary }
+            : { main: "#0B57D0" },
+          secondary: context.iconColor
+            ? {
+                main: accentColors.secondaryContainer,
+                contrastText: accentColors.onSecondaryContainer,
+              }
+            : stateSecondaryPalette(preferences.themeMode),
+        },
         shape: { borderRadius: 4 },
         typography: { button: { textTransform: "none" } },
         components: {
+          MuiCssBaseline: {
+            styleOverrides: {
+              // SettingsSelect 复用挂类 kt-settings-select（SettingsCard.js:204），
+              // 但 OPTIONS_STYLES 不注入本域（仅 Options/Layout.js:316 注入），
+              // 该类在此页原为死类：字号回落浏览器默认 16px。补对齐 Options 域
+              // 的最小等价规则；本域无 --kt-on / --kt-settings-font-size 变量集，
+              // 规则不得携带这些 var，font-weight 缺省回落主题默认，color 走继承。
+              ".kt-settings-select .MuiSelect-select": {
+                fontSize: "14px",
+                textOverflow: "ellipsis",
+              },
+            },
+          },
           MuiTextField: {
             defaultProps: { size: "small", variant: "outlined" },
           },
@@ -335,9 +404,165 @@ export function FileTranslationProvider({ children }) {
                   : {},
             },
           },
+          MuiMenuItem: {
+            styleOverrides: {
+              root: ({ theme }) => ({
+                paddingTop: theme.spacing(0.5),
+                paddingBottom: theme.spacing(0.5),
+                "&.Mui-selected": {
+                  backgroundColor: theme.palette.secondary.main,
+                  color: theme.palette.secondary.contrastText,
+                },
+                "&.Mui-selected:hover": {
+                  backgroundColor: `color-mix(in srgb, ${theme.palette.secondary.contrastText} 12%, ${theme.palette.secondary.main})`,
+                },
+                // FileTranslate 域主题不继承 M3Theme 基槽：hover/focusVisible 恢复
+                // State Layer（currentColor 半透明叠加，不依赖基槽注入），
+                // 键盘焦点环挂 :focus-visible 键盘语境伪类＋inset 内嵌（同 M3Theme
+                // MenuItem 双缺陷修复），HC 域 outline 内描兜底。
+                "&:hover": {
+                  backgroundColor:
+                    "color-mix(in srgb, currentColor 8%, transparent)",
+                },
+                "&&:focus-visible": {
+                  outline: "none",
+                  boxShadow:
+                    theme.palette.mode === "dark"
+                      ? `inset 0 0 0 3px ${
+                          context.iconColor ? accentColors.primary : "#A8C7FA"
+                        }`
+                      : `inset 0 0 0 3px ${theme.palette.primary.main}`,
+                  backgroundColor:
+                    "color-mix(in srgb, currentColor 12%, transparent)",
+                },
+                "&&.Mui-selected:focus-visible": {
+                  backgroundColor: `color-mix(in srgb, ${theme.palette.secondary.contrastText} 12%, ${theme.palette.secondary.main})`,
+                },
+                // 数据多选菜单（aria-multiselectable，本域经 TerminologySelect 的
+                // multiple 形态 Select 进入）：持久选中染色禁令下选中行
+                // 去底色（选中语义由勾号承载），但瞬时反馈必须保留
+                // ——hover 8%、focus-visible 12% 叠加，后置规则在同特异度
+                // 平手中胜出，focus-visible 配套规则 (0,5,0) 防去染色连带删除键盘反馈。
+                '[aria-multiselectable="true"] &&.Mui-selected': {
+                  backgroundColor: "transparent",
+                  color: "inherit",
+                },
+                '[aria-multiselectable="true"] &&.Mui-selected:hover': {
+                  backgroundColor:
+                    "color-mix(in srgb, currentColor 8%, transparent)",
+                },
+                '[aria-multiselectable="true"] &&.Mui-selected:focus-visible': {
+                  backgroundColor:
+                    "color-mix(in srgb, currentColor 12%, transparent)",
+                },
+                // forced-colors 兜底（对齐 M3Theme forcedColorsFocusRing 配对模式）。
+                "@media (forced-colors: active)": {
+                  "&&:focus-visible": {
+                    outline: "3px solid",
+                    outlineOffset: -3,
+                  },
+                },
+              }),
+            },
+          },
+          MuiSwitch: {
+            styleOverrides: {
+              // 本地同值复刻现行 Switch 形态（52x32 几何档）：
+              // themeStyles.getMuiSwitchStyleOverrides 虽已导出，但入参需
+              // M3 令牌对象（outline/onSurface/onPrimary/surface/surfaceHigh），
+              // State 域无该令牌集，伪造 shim 令牌的漂移风险高于字面量复刻；
+              // 几何值由测试逐字钉死作漂移绊线。
+              root: {
+                width: 52,
+                height: 32,
+                padding: 0,
+                overflow: "visible",
+                // size="small" 是本域 Switch 的唯一实际渲染尺寸（忽略缓存/
+                // 布局线框等开关），而 MUI 的 small 内建档（40x24、switchBase
+                // padding 4、checked 位移 16px）挂在根元素变体类上，特异度
+                // 压过上方槽位复刻——以同选择器形态钉回 52x32 档，checked
+                // 位移与输入区随之对齐。
+                "&.MuiSwitch-sizeSmall": { width: 52, height: 32, padding: 0 },
+                "&.MuiSwitch-sizeSmall .MuiSwitch-switchBase": { padding: 0 },
+                "&.MuiSwitch-sizeSmall .MuiSwitch-switchBase.Mui-checked": {
+                  transform: "translateX(20px)",
+                },
+              },
+              switchBase: ({ theme }) => ({
+                // 整组布局键同值复刻现行 switchBase（themeStyles.js:15-25）：
+                // 缺任意键都会让未选 thumb 脱离网格居中而垂直错位；
+                // 颜色键走主题主色引用（浅档/选中轨道）与暗档定型字面量回退。
+                width: 32,
+                height: 32,
+                display: "grid",
+                placeItems: "center",
+                top: 0,
+                left: 0,
+                padding: 0,
+                transform: "none",
+                "&:focus-visible": {
+                  // 浅档走主题主色（iconColor 桥接后随 accent 联动）；暗档保留
+                  // m3.js 暗色档 primary 定型字面量回退——未桥接时 accentColors
+                  // 默认档是 DEFAULT_ICON_COLOR 色相（teal 系），不等于暗色焦点环
+                  // 定型色 #A8C7FA，且对比度闸按 #A8C7FA 钉死。
+                  outline:
+                    theme.palette.mode === "dark"
+                      ? `3px solid ${
+                          context.iconColor ? accentColors.primary : "#A8C7FA"
+                        }`
+                      : `3px solid ${theme.palette.primary.main}`,
+                  outlineOffset: 2,
+                },
+                // :has() 兜底：.MuiSwitch-input 获焦时 switchBase 自身不匹配
+                // :focus-visible，须在外层匹配"含焦点可见输入框的后代"以显示焦点环。
+                "@supports selector(:has(*))": {
+                  "&:has(.MuiSwitch-input:focus-visible)": {
+                    outline:
+                      theme.palette.mode === "dark"
+                        ? `3px solid ${
+                            context.iconColor ? accentColors.primary : "#A8C7FA"
+                          }`
+                        : `3px solid ${theme.palette.primary.main}`,
+                    outlineOffset: 2,
+                  },
+                },
+                "&.Mui-checked": {
+                  padding: 0,
+                  transform: "translateX(20px)",
+                  // MUI thumb 取 currentColor（Switch.js:197）：未指定时 checked
+                  // thumb 继承 primary.main，与主题主色轨道同色而不可见；
+                  // 指定白色保证选中 thumb 在轨道上有对比度。
+                  color: "#fff",
+                  "& + .MuiSwitch-track": {
+                    borderColor: theme.palette.primary.main,
+                    backgroundColor: theme.palette.primary.main,
+                    opacity: 1,
+                  },
+                  "& .MuiSwitch-thumb": { width: 24, height: 24 },
+                  "& .MuiSwitch-input": { left: -20 },
+                },
+              }),
+              input: {
+                left: 0,
+                width: 52,
+                height: 32,
+                borderRadius: 999,
+              },
+              thumb: { width: 16, height: 16 },
+              track: {
+                border: "2px solid rgba(128,128,128,.5)",
+                // 未选轨道底色与边框同族半透明灰：随明暗底自适应合成（等价 MUI
+                // 默认的轨道 opacity 语义），避免 opacity:1 时回退成实心黑/白；
+                // 选中态由上方 Mui-checked 规则（优先级更高）覆盖为主题主色。
+                backgroundColor: "rgba(128,128,128,.5)",
+                borderRadius: 999,
+                opacity: 1,
+              },
+            },
+          },
         },
       }),
-    [preferences.themeMode]
+    [preferences.themeMode, context.iconColor, accentColors]
   );
   const openSettings = useCallback((path = "") => {
     const page = path.includes("local-ai")
@@ -489,7 +714,12 @@ export function FileTranslationProvider({ children }) {
   return (
     <Context.Provider value={value}>
       <ThemeProvider theme={theme}>
+        <style>{FOCUS_SILENT_CSS}</style>
         <CssBaseline />
+        {/* 焦点静默作用域类由上方 useLayoutEffect 统一挂到 document.body
+            （MUI Portal 内容祖先链只到 body，wrapper 在 #root 内无法命中
+            Portal 菜单项）；本域不挂 .kt-m3-root（避免 m3.js 根规则整体
+            注入与本域主题 override 冲突）。 */}
         {children}
       </ThemeProvider>
     </Context.Provider>

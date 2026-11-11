@@ -347,6 +347,21 @@ describe("SettingsSegmented", () => {
 
     view.unmount();
   });
+
+  test("every segment renders an always-present aria-hidden checkmark glyph", () => {
+    // 恒渲染（含非选中段）：选中态由 CSS max-width/opacity 插值表达，
+    // 严禁 display 切换；glyph 对辅助技术隐藏，语义走 radio aria-checked。
+    const view = renderSegmented({ initialValue: "middle", items });
+    const radios = view.radios();
+    for (const radio of radios) {
+      const checkmark = radio.querySelector(
+        "svg.kt-settings-segmented__checkmark"
+      );
+      expect(checkmark).not.toBeNull();
+      expect(checkmark.getAttribute("aria-hidden")).toBe("true");
+    }
+    view.unmount();
+  });
 });
 
 describe("SettingsSelect", () => {
@@ -417,6 +432,288 @@ describe("SettingsSelect", () => {
 
     act(() => root.unmount());
     container.remove();
+  });
+
+  test("multiple mode renders a check glyph per option and reflects the checked state", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["opt1"]}
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+
+      act(() =>
+        container
+          .querySelector(".MuiSelect-select")
+          .dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, button: 0 })
+          )
+      );
+      const menuItems = [...document.querySelectorAll(".MuiMenuItem-root")];
+      expect(menuItems.length).toBe(2);
+      for (const item of menuItems) {
+        const box = item.querySelector("[data-checked]");
+        expect(box).not.toBeNull();
+        expect(box.getAttribute("aria-hidden")).toBe("true");
+        expect(box.querySelector("svg")).not.toBeNull();
+      }
+      // 选中项勾选态随受控 value 数组，形态走分发器字形。
+      expect(
+        menuItems[0].querySelector("[data-checked]").getAttribute("data-checked")
+      ).toBe("true");
+      expect(
+        menuItems[1].querySelector("[data-checked]").getAttribute("data-checked")
+      ).toBe("false");
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("single mode keeps MenuItems free of check glyphs", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Single"
+            value="opt1"
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+
+      act(() =>
+        container
+          .querySelector(".MuiSelect-select")
+          .dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, button: 0 })
+          )
+      );
+      const menuItems = [...document.querySelectorAll(".MuiMenuItem-root")];
+      expect(menuItems.length).toBe(2);
+      for (const item of menuItems) {
+        expect(item.querySelector("[data-checked]")).toBeNull();
+      }
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("multiple trigger renders JSX labels as nodes, not [object Object]", () => {
+    // 契约：多选 trigger 不得把 label 字符串化。纯文本 label 的输出必须与今日
+    // 逐字一致（"a, b"），JSX label 则按节点渲染，混合数组同样成立。
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["opt1", "opt2"]}
+            options={[
+              { value: "opt1", label: <span>Option one</span> },
+              { value: "opt2", label: "Option two" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+      const trigger = container.querySelector(".MuiSelect-select");
+      expect(trigger.textContent).toBe("Option one, Option two");
+      expect(container.textContent).not.toContain("[object Object]");
+      expect(trigger.querySelector("span")).not.toBeNull();
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("multiple trigger keeps plain text labels byte-for-byte unchanged", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["opt1", "opt2"]}
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+      expect(container.querySelector(".MuiSelect-select").textContent).toBe(
+        "Option 1, Option 2"
+      );
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("multiple trigger orders labels by options order regardless of value order", () => {
+    // MUI renderValue 收到的 selected 即受控 value 原序：逆序 value 会把
+    // 关闭态标签染成逆序。展示序必须钉死在 options 序，未知值殿后。
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["opt2", "opt1"]}
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+      expect(container.querySelector(".MuiSelect-select").textContent).toBe(
+        "Option 1, Option 2"
+      );
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("string values match numeric option values for both trigger label and check glyph", () => {
+    // MUI SelectInput 对标量值走字符串化比较（DOM 侧 value 恒为字符串）：
+    // 受控 value 为 "2"、选项值为 2 时，MUI 照常勾选该项。标签查找与勾选
+    // 判定须共用同一规则，否则出现"勾了但标签显示原值"的口径分裂。
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["2"]}
+            options={[
+              { value: 1, label: "Option 1" },
+              { value: 2, label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+      expect(container.querySelector(".MuiSelect-select").textContent).toBe(
+        "Option 2"
+      );
+      act(() =>
+        container
+          .querySelector(".MuiSelect-select")
+          .dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, button: 0 })
+          )
+      );
+      const menuItems = [...document.querySelectorAll(".MuiMenuItem-root")];
+      expect(
+        menuItems[1]
+          .querySelector("[data-checked]")
+          .getAttribute("data-checked")
+      ).toBe("true");
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("caller SelectProps merge keeps multi render injection and caller keys", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["opt1"]}
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+            SelectProps={{
+              MenuProps: { disableScrollLock: true },
+              renderValue: () => "OVERRIDE",
+            }}
+          />
+        );
+      });
+      // 调用方传入的 renderValue 不得覆盖多选注入（关闭态标签仍逐项渲染）；
+      // MenuProps 等调用方关切键原样合流传递。
+      expect(container.querySelector(".MuiSelect-select").textContent).toBe(
+        "Option 1"
+      );
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("entry declares listbox popup semantics with preserved aria-label", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Service"
+            value="opt1"
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+      // 入口本体（combobox）须与下游 listbox 语义配对：aria-haspopup 由 MUI
+      // Select 内建承担，aria-label 经 inputProps 链路落在入口本体。
+      const combobox = container.querySelector('[role="combobox"]');
+      expect(combobox).not.toBeNull();
+      expect(combobox.getAttribute("aria-haspopup")).toBe("listbox");
+      expect(combobox.getAttribute("aria-label")).toBe("Service");
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
   });
 });
 

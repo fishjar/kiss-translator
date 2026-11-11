@@ -241,6 +241,7 @@ const translateBuiltinText = async (
  * @param {HTMLElement|null} [props.actionContainer=null] Host for single-provider popup actions.
  * @param {boolean} [props.waitForSourceDetection=false] Whether the target requires completed source detection.
  * @param {number} [props.requestRevision=0] Explicit submission revision for retrying unchanged input.
+ * @param {Function} [props.onErrorChange] Reports (apiSlug, failed) whenever this provider's error state flips.
  * @param {Function} [props.onActionPointerDown] Host focus policy for result actions.
  * @returns {JSX.Element|null} Result view for one translation provider.
  */
@@ -262,6 +263,7 @@ export default function TranCont({
   showProvider = true,
   actionContainer = null,
   requestRevision = 0,
+  onErrorChange,
   onActionPointerDown,
   ttsApiSlug = "",
 }) {
@@ -407,7 +409,12 @@ export default function TranCont({
         }
 
         if (active) {
-          setError(err.message);
+          // 空 Error/非 Error 拒绝值会让 error 存成空串，失败态随之丢失
+          // （onErrorChange 依赖非空 error）——通用文案兜底保证失败态成立。
+          setError(
+            err?.message ||
+              i18n("popup_text_failed", "Translation failed. Please retry.")
+          );
         }
       } finally {
         if (active) {
@@ -424,7 +431,7 @@ export default function TranCont({
       controller.abort();
     };
   }, [
-    i18n.language,
+    i18n,
     scene,
     text,
     fromLang,
@@ -443,6 +450,15 @@ export default function TranCont({
   useEffect(() => {
     if (!requestPendingRef.current) setAttemptRevision(requestRevision);
   }, [requestRevision]);
+
+  // Report error-state transitions so hosts can keep a retry entry available
+  // when a failed request leaves the submitted text unchanged. The unmount
+  // cleanup clears the host's record so a removed provider cannot leave a
+  // stale retry entry behind.
+  useEffect(() => {
+    onErrorChange?.(apiSlug, Boolean(error));
+    return () => onErrorChange?.(apiSlug, false);
+  }, [apiSlug, error, onErrorChange]);
 
   if (!apiSetting) {
     return null;

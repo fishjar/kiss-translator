@@ -6,6 +6,10 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import OptionsTheme from "./OptionsTheme";
 import ReusableAutocomplete from "./ReusableAutocomplete";
+import {
+  noteKeyboardInteraction,
+  notePointerInteraction,
+} from "../../hooks/focusModality";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -121,6 +125,32 @@ test("allows another control to act on the same pointer press that closes the me
   expect(document.activeElement).toBe(button);
 });
 
+test("pointer-opened menus mark the focused option as silent", () => {
+  notePointerInteraction();
+  mountSelect();
+  const focused = document.activeElement;
+  expect(focused).not.toBe(document.body);
+  expect(focused.getAttribute("data-kt-focus-silent")).toBe("true");
+  act(() => {
+    focused.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+  });
+  expect(focused.hasAttribute("data-kt-focus-silent")).toBe(false);
+});
+
+test("keyboard-opened menus keep the focus ring marker-free", () => {
+  noteKeyboardInteraction(
+    new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+  );
+  try {
+    mountSelect();
+    expect(document.activeElement.hasAttribute("data-kt-focus-silent")).toBe(
+      false
+    );
+  } finally {
+    notePointerInteraction();
+  }
+});
+
 test.each(["Escape", "Tab"])("closes on %s and restores the trigger", (key) => {
   const trigger = mountSelect();
   const event = new KeyboardEvent("keydown", {
@@ -170,4 +200,48 @@ test("closes a free-text autocomplete on page scroll without committing a draft"
   expect(listbox()).toBeNull();
   expect(document.activeElement).toBe(input);
   expect(onChange).not.toHaveBeenCalled();
+});
+
+test("zero-item popup does not focus the listbox container (no container fallback leg)", () => {
+  function Harness() {
+    const [value, setValue] = useState("");
+    return (
+      <StrictMode>
+        <OptionsTheme>
+          <TextField
+            select
+            label="Mode"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+          <button onClick={outsideClick}>Other control</button>
+        </OptionsTheme>
+      </StrictMode>
+    );
+  }
+  act(() => root.render(<Harness />));
+  const trigger = container.querySelector('[role="combobox"]');
+  trigger.parentElement.getBoundingClientRect = () => ({
+    top: 100,
+    bottom: 148,
+    left: 100,
+    right: 360,
+    width: 260,
+    height: 48,
+  });
+  act(() => Simulate.mouseDown(trigger, { button: 0 }));
+  const box = document.querySelector('[role="listbox"]');
+  expect(box).not.toBeNull();
+  expect(document.activeElement).not.toBe(box);
+  // 空菜单焦点始终留在触发器上：Escape 到不了 Popper 的 capture handler，
+  // 关闭由 document capture 兜底腿承担——按键后菜单必须卸载且焦点复原。
+  // 原生 KeyboardEvent 派发（Simulate 的合成路径不经过真实 DOM 传播，
+  // document capture 监听收不到）。
+  act(() =>
+    trigger.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+    )
+  );
+  expect(document.querySelector('[role="listbox"]')).toBeNull();
+  expect(document.activeElement).toBe(trigger);
 });

@@ -1,17 +1,19 @@
 import IconButton from "@mui/material/IconButton";
-import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
-import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import PushPinIcon from "@mui/icons-material/PushPin";
-import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
-import MyLocationIcon from "@mui/icons-material/MyLocation";
-import MyLocationOutlinedIcon from "@mui/icons-material/MyLocationOutlined";
-import CloseIcon from "@mui/icons-material/Close";
-import LightModeIcon from "@mui/icons-material/LightMode";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
-import BrightnessAutoIcon from "@mui/icons-material/BrightnessAuto";
-import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+import {
+  BrightnessAutoIcon,
+  CloseIcon,
+  DarkModeIcon,
+  DragIndicatorRoundedIcon,
+  LightModeIcon,
+  MoreVertIcon,
+  MyLocationIcon,
+  MyLocationOutlinedIcon,
+  OpenInNewIcon,
+  PushPinIcon,
+  PushPinOutlinedIcon,
+  UnfoldLessIcon,
+  UnfoldMoreIcon,
+} from "../icons";
 import {
   useCallback,
   useEffect,
@@ -24,6 +26,7 @@ import {
 import { useI18n } from "../../hooks/I18n";
 import { useDarkMode } from "../../hooks/ColorMode";
 import { createMenuKeyDownHandler } from "../../libs/menuFocus";
+import { scriptFocus } from "../../hooks/focusModality";
 import Logo from "../Logo";
 
 export function getOverflowMenuPosition(anchor, menu, viewport) {
@@ -107,7 +110,9 @@ export default function TranslationPanelHeader({
     const items = menuRef.current?.querySelectorAll(
       '[role^="menuitem"]:not(:disabled)'
     );
-    items?.[focusLastItemRef.current ? items.length - 1 : 0]?.focus();
+    scriptFocus(
+      items?.[focusLastItemRef.current ? items.length - 1 : 0] ?? null
+    );
   }, [showMore]);
 
   useEffect(() => {
@@ -144,7 +149,8 @@ export default function TranslationPanelHeader({
       event.stopPropagation();
       setShowMore(false);
       // For Tab, let the browser continue from the trigger in either direction.
-      menuButtonRef.current?.focus();
+      // 键盘关闭：模态此时为真，scriptFocus 不留静默标记，环照常出现。
+      scriptFocus(menuButtonRef.current ?? null);
       return;
     }
     navigateMenu(event);
@@ -240,7 +246,9 @@ export default function TranslationPanelHeader({
               onClick={onOpenSeparateWindow}
             >
               <OpenInNewIcon />
-              {i18n("open_separate_window")}
+              <span className="kt-tranbox-header__menu-label">
+                {i18n("open_separate_window")}
+              </span>
             </button>
           )}
 
@@ -252,15 +260,18 @@ export default function TranslationPanelHeader({
               role="menuitemcheckbox"
               aria-checked={simpleStyle}
               disabled={simpleStyleDisabled}
-              onClick={() => {
-                setShowMore(false);
-                // Collapsing removes the input; expansion will focus it again.
-                menuButtonRef.current?.focus();
-                setSimpleStyle((pre) => !pre);
-              }}
+            onClick={() => {
+              setShowMore(false);
+              // Collapsing removes the input; expansion will focus it again.
+              // 点击关闭＝指针模态，静默回焦，不在触发器上留下焦点框。
+              scriptFocus(menuButtonRef.current ?? null);
+              setSimpleStyle((pre) => !pre);
+            }}
             >
               {simpleStyle ? <UnfoldMoreIcon /> : <UnfoldLessIcon />}
-              {i18n("btn_tip_simple_style")}
+              <span className="kt-tranbox-header__menu-label">
+                {i18n("btn_tip_simple_style")}
+              </span>
             </button>
           )}
 
@@ -278,7 +289,9 @@ export default function TranslationPanelHeader({
               ) : (
                 <MyLocationOutlinedIcon />
               )}
-              {i18n("btn_tip_follow_selection")}
+              <span className="kt-tranbox-header__menu-label">
+                {i18n("btn_tip_follow_selection")}
+              </span>
             </button>
           )}
 
@@ -296,7 +309,9 @@ export default function TranslationPanelHeader({
             ) : (
               <LightModeIcon />
             )}
-            {i18n("btn_tip_dark_mode")}
+            <span className="kt-tranbox-header__menu-label">
+              {i18n("btn_tip_dark_mode")}
+            </span>
           </button>
         </div>
       )}

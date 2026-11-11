@@ -1,9 +1,30 @@
 /* eslint-disable testing-library/no-unnecessary-act -- These tests use React createRoot directly. */
 import React, { act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { FileTranslationProvider, useFileTranslation } from "./State";
+import {
+  FileTranslationProvider,
+  useFileTranslation,
+  stateSecondaryPalette,
+} from "./State";
 import { getFileClient } from "../../fileTranslation/client";
 import { useTheme } from "@mui/material";
+import { setIconStyleSnapshot } from "../../styles/iconStyleStore";
+
+// 域主题 secondary 深浅覆盖锁：浅档沿用域内定型值，暗档补 M3 暗色
+// secondaryContainer 族（m3.js 暗色静态定值）——MuiMenuItem 选中态在暗色
+// 界面不再使用浅底深字。
+describe("stateSecondaryPalette theme coverage", () => {
+  test("light mode keeps the domain-fixed pair and dark mode switches to the M3 dark container family", () => {
+    expect(stateSecondaryPalette("light")).toEqual({
+      main: "#E8DEF8",
+      contrastText: "#1D192B",
+    });
+    expect(stateSecondaryPalette("dark")).toEqual({
+      main: "#004A77",
+      contrastText: "#C2E7FF",
+    });
+  });
+});
 
 jest.mock("../../fileTranslation/client", () => ({ getFileClient: jest.fn() }));
 
@@ -30,17 +51,17 @@ function deferred() {
   });
   return { promise, resolve, reject };
 }
-let value, container, root;
+let value, container, root, capturedTheme;
 function Content() {
   value = useFileTranslation();
-  const theme = useTheme();
+  capturedTheme = useTheme();
   return (
     <>
       <h1>File Translation</h1>
       {value.connectionStatus}
       {value.connectionNotice}
       <div data-testid="content">File content</div>
-      <div data-testid="theme">{theme.palette.mode}</div>
+      <div data-testid="theme">{capturedTheme.palette.mode}</div>
     </>
   );
 }
@@ -515,4 +536,272 @@ test("successful reader settings save clears its error and preserves model warni
   } finally {
     jest.useRealTimers();
   }
+});
+
+test("overrides MuiMenuItem so menu rows share one height and padding token", async () => {
+  const client = makeClient();
+  client.session = { sessionId: "theme", extensionVersion: "2.1.0" };
+  client.connect.mockResolvedValue(client.session);
+  client.request.mockResolvedValue({
+    scenes: {},
+    services: [],
+    prompts: [],
+    styles: [],
+  });
+  getFileClient.mockReturnValue(client);
+  await act(async () =>
+    root.render(
+      <FileTranslationProvider>
+        <Content />
+      </FileTranslationProvider>
+    )
+  );
+  expect(capturedTheme.components.MuiMenuItem).toBeDefined();
+  const menuItemRoot = capturedTheme.components.MuiMenuItem.styleOverrides.root(
+    {
+      theme: capturedTheme,
+    }
+  );
+  // 选中态走 secondary-container 族底色。
+  expect(menuItemRoot["&.Mui-selected"]).toEqual({
+    backgroundColor: capturedTheme.palette.secondary.main,
+    color: capturedTheme.palette.secondary.contrastText,
+  });
+  // 勾槽 ::before 整体退役。
+  expect(menuItemRoot["&::before"]).toBeUndefined();
+  expect(menuItemRoot["&.Mui-selected::before"]).toBeUndefined();
+  // hover/selected:hover 恢复半透明叠色；
+  // 选中行 hover 保留 secondary 实底（contrastText 12% 叠 secondary.main）。
+  expect(menuItemRoot["&.Mui-selected:hover"]).toEqual({
+    backgroundColor: `color-mix(in srgb, ${capturedTheme.palette.secondary.contrastText} 12%, ${capturedTheme.palette.secondary.main})`,
+  });
+  expect(menuItemRoot["&:hover"]).toEqual({
+    backgroundColor: "color-mix(in srgb, currentColor 8%, transparent)",
+  });
+  // 焦点环挂 :focus-visible 键盘语境伪类（同 M3Theme
+  // MenuItem 双缺陷修复：.Mui-focusVisible 类与输入方式无关，鼠标链路误显环）；
+  // 环改 inset 内嵌（MenuList 零水平 padding 场景外描环被裁），底色保留 State Layer 12%。
+  expect(menuItemRoot["&&:focus-visible"]).toEqual({
+    outline: "none",
+    boxShadow: "inset 0 0 0 3px #0B57D0",
+    backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
+  });
+  // 暗色档：焦点环换用 m3.js 暗色 primary 定型值，对暗底对比达标。
+  const darkMenuItemRoot =
+    capturedTheme.components.MuiMenuItem.styleOverrides.root({
+      theme: {
+        palette: {
+          mode: "dark",
+          secondary: { main: "#E8DEF8", contrastText: "#1D192B" },
+        },
+        // root 函数体内调用 theme.spacing(0.5)（State.js:382-383 paddingTop/
+        // paddingBottom），存根缺 spacing 会先 TypeError；八分度缺省即可。
+        spacing: (n) => n * 8,
+      },
+    });
+  expect(darkMenuItemRoot["&&:focus-visible"].boxShadow).toBe(
+    "inset 0 0 0 3px #A8C7FA"
+  );
+  // 选中行键盘焦点保留 secondary 实底（特异性 (0,4,0) 恒压通用的 (0,3,0)）。
+  expect(menuItemRoot["&&.Mui-selected:focus-visible"]).toEqual({
+    backgroundColor: `color-mix(in srgb, ${capturedTheme.palette.secondary.contrastText} 12%, ${capturedTheme.palette.secondary.main})`,
+  });
+  // .Mui-focusVisible 挂点不得残留任何样式（鼠标打开路径不命中环）。
+  expect(menuItemRoot["&&.Mui-focusVisible"]).toBeUndefined();
+  // 数据多选菜单（aria-multiselectable，经 TerminologySelect 的 <Select multiple>
+  // 进入本域主题）：持久选中染色禁令与瞬时反馈保留同时成立——选中行去底色、
+  // hover 8% 叠加、focus-visible 12% 叠加。
+  expect(menuItemRoot['[aria-multiselectable="true"] &&.Mui-selected']).toEqual(
+    {
+      backgroundColor: "transparent",
+      color: "inherit",
+    }
+  );
+  expect(
+    menuItemRoot['[aria-multiselectable="true"] &&.Mui-selected:hover']
+  ).toEqual({
+    backgroundColor: "color-mix(in srgb, currentColor 8%, transparent)",
+  });
+  expect(
+    menuItemRoot['[aria-multiselectable="true"] &&.Mui-selected:focus-visible']
+  ).toEqual({
+    backgroundColor: "color-mix(in srgb, currentColor 12%, transparent)",
+  });
+  // forced-colors 兜底（对齐 M3Theme forcedColorsFocusRing 配对模式）。
+  expect(
+    menuItemRoot["@media (forced-colors: active)"]["&&:focus-visible"]
+  ).toEqual({
+    outline: "3px solid",
+    outlineOffset: -3,
+  });
+  // Switch size="small" 是本域唯一实际渲染尺寸：MUI small 内建档挂在根
+  // 变体类上、特异度压过槽位同值复刻（Switch.js:85-108），四键必须以同
+  // 选择器形态钉回 52x32 档——否则 small 开关按 40x24 渲染、checked 位移
+  // 掉到 16px，thumb 与输入区双双错位。
+  const switchRoot = capturedTheme.components.MuiSwitch.styleOverrides.root;
+  expect(switchRoot["&.MuiSwitch-sizeSmall"]).toEqual({
+    width: 52,
+    height: 32,
+    padding: 0,
+  });
+  expect(switchRoot["&.MuiSwitch-sizeSmall .MuiSwitch-switchBase"]).toEqual({
+    padding: 0,
+  });
+  expect(
+    switchRoot["&.MuiSwitch-sizeSmall .MuiSwitch-switchBase.Mui-checked"]
+  ).toEqual({ transform: "translateX(20px)" });
+});
+
+test("gives the settings select entry its own baseline in the State theme", async () => {
+  const client = makeClient();
+  client.session = { sessionId: "theme-select", extensionVersion: "2.1.0" };
+  client.connect.mockResolvedValue(client.session);
+  client.request.mockResolvedValue({
+    scenes: {},
+    services: [],
+    prompts: [],
+    styles: [],
+  });
+  getFileClient.mockReturnValue(client);
+  await act(async () =>
+    root.render(
+      <FileTranslationProvider>
+        <Content />
+      </FileTranslationProvider>
+    )
+  );
+  // 运行时注入实证：<CssBaseline /> 把 MuiCssBaseline.styleOverrides 经 emotion
+  // Global 落进 document.head；emotion 经 CSSOM insertRule 注入，style 标签
+  // textContent 恒空，故必须读 document.styleSheets 的规则面而非标签文本。
+  // 注入断言同时是行为级防退化锁：若有人退回 "@global" 包裹（emotion 序列化
+  // 器无该键特殊处理，产出被 CSSOM 丢弃的未知 at-rule），顶层选择器规则不在
+  // 场即红。
+  const injectedRules = Array.from(document.styleSheets).flatMap((sheet) => {
+    try {
+      return Array.from(sheet.cssRules);
+    } catch {
+      return [];
+    }
+  });
+  const injectedRule = injectedRules.find(
+    (rule) => rule.selectorText === ".kt-settings-select .MuiSelect-select"
+  );
+  expect(injectedRule).toBeDefined();
+  expect(injectedRule.style.getPropertyValue("font-size")).toBe("14px");
+  expect(injectedRule.style.getPropertyValue("text-overflow")).toBe("ellipsis");
+  const selectRule =
+    capturedTheme.components.MuiCssBaseline.styleOverrides[
+      ".kt-settings-select .MuiSelect-select"
+    ];
+  // 与 Options 域去 600 后的规则对齐（字重回落主题默认 400）：
+  // State 域无 --kt-on / --kt-settings-font-size 变量集，规则不得引用，
+  // font-size 用 14px 字面量对齐该域既有设置字号口径；color 走继承。
+  expect(selectRule).toEqual({
+    fontSize: "14px",
+    textOverflow: "ellipsis",
+  });
+});
+
+test("pins the FileTranslate MuiSwitch overrides to the current switch system", async () => {
+  const client = makeClient();
+  client.session = { sessionId: "theme-switch", extensionVersion: "2.1.0" };
+  client.connect.mockResolvedValue(client.session);
+  client.request.mockResolvedValue({
+    scenes: {},
+    services: [],
+    prompts: [],
+    styles: [],
+  });
+  getFileClient.mockReturnValue(client);
+  await act(async () =>
+    root.render(
+      <FileTranslationProvider>
+        <Content />
+      </FileTranslationProvider>
+    )
+  );
+  const switchOverrides = capturedTheme.components.MuiSwitch.styleOverrides;
+  // switchBase 为函数形态（({ theme }) => ({ ... })）：先调用取对象再断言；
+  // 几何键与 mode 无关，用浅色 capturedTheme 调用一次供全部几何断言复用。
+  const switchBase = switchOverrides.switchBase({ theme: capturedTheme });
+  // 契约一：轨 52x32，thumb 未选 16 / 选中 24，位移 translateX(20px)。
+  expect(switchOverrides.root).toMatchObject({
+    width: 52,
+    height: 32,
+    padding: 0,
+  });
+  expect(switchBase["&.Mui-checked"].transform).toBe("translateX(20px)");
+  expect(switchBase["&.Mui-checked"]["& .MuiSwitch-thumb"]).toEqual({
+    width: 24,
+    height: 24,
+  });
+  expect(switchOverrides.thumb).toMatchObject({ width: 16, height: 16 });
+  // 契约二：switchBase 整组布局键同值复刻现行（未选 thumb 网格居中，无垂直错位）。
+  expect(switchBase).toMatchObject({
+    width: 32,
+    height: 32,
+    display: "grid",
+    placeItems: "center",
+    top: 0,
+    left: 0,
+    padding: 0,
+    transform: "none",
+  });
+  expect(switchBase["&.Mui-checked"]["& .MuiSwitch-input"]).toEqual({
+    left: -20,
+  });
+  // 契约三：焦点环沿用现行 focusRing 形态（3px solid + offset 2），色值按
+  // mode 二态：浅色 #0B57D0、暗色 #A8C7FA（暗档对暗底对比达标）。
+  expect(switchBase["&:focus-visible"]).toEqual({
+    outline: "3px solid #0B57D0",
+    outlineOffset: 2,
+  });
+  expect(
+    switchBase["@supports selector(:has(*))"][
+      "&:has(.MuiSwitch-input:focus-visible)"
+    ]
+  ).toEqual({ outline: "3px solid #0B57D0", outlineOffset: 2 });
+  const darkSwitchBase = switchOverrides.switchBase({
+    theme: { palette: { mode: "dark", primary: { main: "#0B57D0" } } },
+  });
+  expect(darkSwitchBase["&:focus-visible"]).toEqual({
+    outline: "3px solid #A8C7FA",
+    outlineOffset: 2,
+  });
+  expect(
+    darkSwitchBase["@supports selector(:has(*))"][
+      "&:has(.MuiSwitch-input:focus-visible)"
+    ]
+  ).toEqual({ outline: "3px solid #A8C7FA", outlineOffset: 2 });
+  // 契约四：track 保留现行 2px border（宽度与线形钉死，色值属颜色豁免域不钉）。
+  expect(switchOverrides.track).toMatchObject({
+    borderRadius: 999,
+    opacity: 1,
+  });
+  expect(switchOverrides.track.border).toMatch(/^2px solid /);
+});
+
+test("FileTranslationProvider marks document.body as kt-focus-silent-scope", async () => {
+  // 防恒真：渲染前 body 不得已带该类。
+  expect(document.body.classList.contains("kt-focus-silent-scope")).toBe(false);
+  const client = makeClient();
+  client.connect.mockRejectedValue(new Error("missing"));
+  getFileClient.mockReturnValue(client);
+  await act(async () =>
+    root.render(
+      <FileTranslationProvider>
+        <Content />
+      </FileTranslationProvider>
+    )
+  );
+  // 作用域类必须落在 document.body（MUI Portal 内容的祖先链只到 body，
+  // #root 内 wrapper 无法命中 Portal 菜单项）。
+  expect(document.body.classList.contains("kt-focus-silent-scope")).toBe(true);
+  // children 可查询性契约不破（既有 DOM 查询不依赖 wrapper）。
+  expect(container.querySelector('[data-testid="content"]').textContent).toBe(
+    "File content"
+  );
+  // 卸载必须移除该类（幂等清理，不污染后续挂载域）。
+  act(() => root.unmount());
+  expect(document.body.classList.contains("kt-focus-silent-scope")).toBe(false);
 });

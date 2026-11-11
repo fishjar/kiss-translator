@@ -65,4 +65,9 @@ describe("translation box defaults", () => {
       capability: "recognizeText",
     });
   });
+
+  test("ships lucide icon style and default morandi icon color", () => {
+    expect(DEFAULT_SETTING.iconStyle).toBe("lucide");
+    expect(DEFAULT_SETTING.iconColor).toBe("#90b2ba");
+  });
 });

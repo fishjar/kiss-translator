@@ -2,10 +2,19 @@
 import { act, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
-import TranForm, { formatLanguageOptionName } from "./TranForm";
+import TranForm, {
+  formatLanguageOptionName,
+  focusSelectedOption,
+} from "./TranForm";
 import { apiDict } from "../../apis";
 import { tryDetectLang } from "../../libs/detect";
 import { mountShadowHost } from "../../libs/shadowHost";
+import * as focusModality from "../../hooks/focusModality";
+import {
+  FOCUS_SILENT_ATTR,
+  isKeyboardModality,
+  notePointerInteraction,
+} from "../../hooks/focusModality";
 import { __resetSessionHeightMapForTests } from "../../hooks/useTextareaHeightLock";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -353,6 +362,26 @@ describe.each([false, true, "fullscreen"])(
       await flushEffects();
     };
 
+    // 指针形态的打开也必须把静默标记交给焦点落点自身：现状焦点由 MUI 裸
+    // .focus() 写入（MenuList.js:216-225），不经 scriptFocus()；面板内 focusin
+    // 还被重定向到宿主 → 项上无标记 → m3.js:499/500-507 全数失配。
+    // 前置复位为指针模态：模态是模块级状态且不随 uninstall 重置（
+    // focusModality.js:43-47,96-106），同套件内先跑的 ArrowDown 用例会把它
+    // 粘滞成键盘态，不复位就测不到本契约。
+    test("pointer-open handoff marks the focused option itself, not the host", async () => {
+      notePointerInteraction();
+      expect(isKeyboardModality()).toBe(false);
+      await open("fromLang");
+      const items = options();
+      const focused = focusRoot.activeElement;
+      expect(items).toContain(focused);
+      expect(focused.getAttribute(FOCUS_SILENT_ATTR)).toBe("true");
+      if (shadow) {
+        expect(document.activeElement).toBe(view.host);
+        expect(view.host.hasAttribute(FOCUS_SILENT_ATTR)).toBe(false);
+      }
+    });
+
     test.each(["fromLang", "toLang", "apiSlugs"])(
       "enters, navigates and dismisses %s",
       async (name) => {
@@ -408,6 +437,57 @@ describe.each([false, true, "fullscreen"])(
       expect(focusRoot.activeElement).toBe(items[2]);
       press("Escape");
       expect(focusRoot.activeElement).toBe(trigger("apiSlugs"));
+    });
+
+    test("refocuses the selected option immediately when reopening before the exit transition", async () => {
+      // 交接挂在过渡 onEnter 上（进入即同步触发）：Paper 复用窗口内重开
+      // 同样立即交接，无需等待任何 timeout 兜底。
+      await open("fromLang");
+      const items = options();
+      const selectedIndex = items.findIndex(
+        (item) => item.getAttribute("aria-selected") === "true"
+      );
+      expect(focusRoot.activeElement).toBe(items[selectedIndex]);
+      // 立即关闭：退出动画在真实计时器上尚未走完（flushEffects 只冲微任务）。
+      press("Escape");
+      // 动画窗口内重开。交接路径挂在过渡 onEnter 上：进入即同步触发，
+      // 无需等待任何 timeout 兜底。
+      await open("fromLang");
+      const reopened = options();
+      const reopenedSelected = reopened.findIndex(
+        (item) => item.getAttribute("aria-selected") === "true"
+      );
+      expect(reopenedSelected).toBe(selectedIndex);
+      expect(focusRoot.activeElement).toBe(reopened[reopenedSelected]);
+    });
+
+    test("cursor focus on a non-selected option persists across the synchronous reopen handover", async () => {
+      // 影子树内 doc.activeElement 是宿主元素，paper.contains(宿主) 恒假：
+      // document 判焦守卫失灵，进入过渡的交接路径会把键盘光标从非选中项
+      // 强行拉回选中项。守卫必须取 Paper 所属根节点的 activeElement
+      // （守卫让位语义由 focusSelectedOption 单元测试直测，见本文件
+      // describe("focusSelectedOption guard (unit)")）；本用例保留为
+      // 「无晚到交接」回归绊线。
+      await open("fromLang");
+      const items = options();
+      const selectedIndex = items.findIndex(
+        (item) => item.getAttribute("aria-selected") === "true"
+      );
+      press("ArrowDown");
+      press("Escape");
+      // 关闭动画未结束即重开：Transition 保持挂载、in 翻转。焦点交接单路化
+      // 后只挂 onEnter，在重开 commit 内同步触发（进入即完成），无晚到交接
+      // 路径，断言无需任何计时兜底。守卫让位语义（焦点已在 Paper 内则不抢）
+      // 由本文件 describe("focusSelectedOption guard (unit)") 单元直测。
+      await open("fromLang");
+      const items2 = options();
+      const cursor = items2[Math.min(selectedIndex + 1, items2.length - 1)];
+      act(() => cursor.focus());
+      // 等待重开过渡完成，验证无晚到交接会把焦点从 cursor 抢走。
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      });
+      expect(focusRoot.activeElement).toBe(cursor);
     });
 
     test("selects a language with Enter and restores focus", async () => {
@@ -1006,6 +1086,56 @@ describe("TranForm source input", () => {
     );
     expect(sourceInput.value).toBe("clipboard text");
     expect(setText).not.toHaveBeenCalled();
+
+    act(() => root.unmount());
+  });
+
+  test("keeps the paste action reachable when the draft is cleared while text exists", async () => {
+    const setText = jest.fn();
+    const { container, root } = renderTranForm({
+      text: "library",
+      setText,
+      simpleStyle: false,
+    });
+    await flushEffects();
+
+    const sourceInput = container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    act(() => sourceInput.focus());
+    await flushEffects();
+    act(() => Simulate.change(sourceInput, { target: { value: "" } }));
+
+    // 草稿清空后必须回到 Paste，且绝不能出现可提交空文本的 Submit 按钮。
+    expect(container.querySelector('button[title="paste"]')).not.toBeNull();
+    expect(container.querySelector('button[title="submit"]')).toBeNull();
+
+    act(() => root.unmount());
+  });
+
+  test("shows copy while editing an unchanged draft", async () => {
+    const setText = jest.fn();
+    const { container, root } = renderTranForm({
+      text: "library",
+      setText,
+      simpleStyle: false,
+    });
+    await flushEffects();
+
+    const sourceInput = container.querySelector(
+      '.kt-translation-source textarea:not([aria-hidden="true"])'
+    );
+    act(() => sourceInput.focus());
+    await flushEffects();
+
+    // 未改动的草稿：不出现 Submit，保留 Copy 入口。
+    // 本套件将 ./CopyBtn mock 为无 title、文本为 "copy" 的按钮（:114-118），
+    // 故以按钮文本定位 Copy 入口，而非 title 属性。
+    expect(container.querySelector('button[title="submit"]')).toBeNull();
+    const copyButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "copy"
+    );
+    expect(copyButton).not.toBeUndefined();
 
     act(() => root.unmount());
   });
@@ -1833,7 +1963,7 @@ describe("TranForm API selection persistence (apiSlugsStorageKey)", () => {
     window.localStorage.removeItem(TEST_STORAGE_KEY);
   });
 
-  test("P4 Red: 用户多选接口后写入 storageKey，并在重新挂载后恢复选择", async () => {
+  test("用户多选接口后写入 storageKey，并在重新挂载后恢复选择", async () => {
     // 第一次挂载：无持久化值，从 prop initApiSlugs=[] 启动
     const view = renderTranForm({
       simpleStyle: false,
@@ -1989,7 +2119,7 @@ describe("TranForm API selection persistence (apiSlugsStorageKey)", () => {
     act(() => root.unmount());
   });
 
-  test("Fix3 Red：恢复 pending 恰好读取一次 storage 且不回退用户窗口期内选择", async () => {
+  test("恢复 pending 恰好读取一次 storage 且不回退用户窗口期内选择", async () => {
     // 前置（防假绿 Red）：必须预置有效可恢复选择——旧实现的确定性重读依赖
     // 恢复分支实际执行 setApiSlugs 触发重渲染；无预置时置 null 无 setState，
     // 计数恒 1，断言在坏代码上也绿。
@@ -2114,8 +2244,7 @@ describe("TranForm textarea grip style", () => {
     act(() => root.unmount());
   });
 
-  // B1：hidden = 完全不渲染手柄 + textarea 原生 resize 回退（红：现实现
-  // 渲染空图形手柄且 resize 压成 none）。
+  // hidden = 完全不渲染手柄 + textarea 原生 resize 回退。
   test("hidden variant renders no grip and restores native resize", () => {
     mockUseTextareaGripStyle.mockReturnValue("hidden");
     const { container, root } = renderTranForm({
@@ -2130,8 +2259,7 @@ describe("TranForm textarea grip style", () => {
     act(() => root.unmount());
   });
 
-  // 意见 A：grip 样式切到 hidden 时自动释放会话高度锁（红：现实现残留
-  // kt-height-locked 与内联高度，字段被永久钉死）。
+  // grip 样式切到 hidden 时自动释放会话高度锁。
   test("switching to hidden releases the session height lock", () => {
     mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");
     const { container, root, rerender } = renderTranForm({
@@ -2198,4 +2326,113 @@ test("collapsing Playground configuration preserves source, settings, and result
   act(() => view.root.unmount());
   view.host.remove();
   jest.useRealTimers();
+});
+
+describe("focusSelectedOption guard (unit)", () => {
+  test("does not hand over when focus already sits on a non-selected option inside the paper", () => {
+    // 影子根守卫探针：焦点已在 Paper 内的判据是 Paper 所属根节点的
+    // activeElement（ShadowRoot.activeElement），而 ownerDocument.activeElement
+    // 是影子宿主（Paper 外）。两态并存时守卫必须让位——scriptFocus 不被调用，
+    // 键盘光标不被强行拉回选中项。
+    const scriptFocusSpy = jest.spyOn(focusModality, "scriptFocus");
+    // 宿主用 div+tabIndex：jsdom 的 attachShadow 宿主白名单不含 button，
+    // div 在白名单内且 tabIndex=-1 同样可成为 document.activeElement。
+    const host = document.createElement("div");
+    host.tabIndex = -1;
+    document.body.appendChild(host);
+    const shadow = host.attachShadow({ mode: "open" });
+    const paper = document.createElement("div");
+    shadow.appendChild(paper);
+    const selected = document.createElement("div");
+    selected.setAttribute("role", "option");
+    selected.setAttribute("aria-selected", "true");
+    const cursor = document.createElement("button");
+    paper.appendChild(selected);
+    paper.appendChild(cursor);
+
+    cursor.focus();
+    expect(shadow.activeElement).toBe(cursor);
+    // 宿主侧说明（jsdom 实测回执）：无法独立构造「document.activeElement=宿主
+    // 且 shadow.activeElement=影子内节点」——聚焦宿主会清空 shadow.activeElement；
+    // 生产上二者本就是同一次聚焦的两侧（浏览器把 doc.activeElement 重定向为
+    // 宿主）。守卫判据取影子侧 activeElement，聚焦影子内光标即触发被测分支。
+
+    try {
+      focusSelectedOption(paper);
+      expect(scriptFocusSpy).not.toHaveBeenCalled();
+    } finally {
+      scriptFocusSpy.mockRestore();
+      host.remove();
+    }
+  });
+
+  test("container fallback leg removed: ul[role=listbox] never seizes focus when no items are available", () => {
+    // 容器兜底腿已移除：paper 内仅含 [role=listbox]/[role=menu]
+    // 容器、无任何可聚焦菜单项（全 disabled 或空菜单）时，scriptFocus 目标为
+    // null、容器不得被脚本聚焦。
+    const focusCalls = [];
+    const ulFocusSpy = jest
+      .spyOn(HTMLUListElement.prototype, "focus")
+      .mockImplementation(function () {
+        focusCalls.push(this);
+      });
+    const scriptFocusSpy = jest.spyOn(focusModality, "scriptFocus");
+    const paper = document.createElement("div");
+    const ul = document.createElement("ul");
+    ul.setAttribute("role", "listbox");
+    paper.appendChild(ul);
+
+    try {
+      focusSelectedOption(paper);
+      expect(focusCalls).toHaveLength(0);
+      expect(scriptFocusSpy).toHaveBeenCalledWith(null);
+    } finally {
+      ulFocusSpy.mockRestore();
+      scriptFocusSpy.mockRestore();
+    }
+  });
+
+  test("scrolls the focused option into the paper view after handing over focus", () => {
+    // 焦点交接后同步滚动：用 getBoundingClientRect 视口增量把目标滚入
+    // Paper 可视区（t.top − s.top − (clientHeight − offsetHeight)/2），
+    // 只加到 paper.scrollTop、不碰外层页面滚动；不依赖 offsetTop
+    // （MUI 弹层 offsetParent 未必是 paper，会算错）。
+    const paper = document.createElement("div");
+    const item = document.createElement("div");
+    item.setAttribute("role", "option");
+    item.setAttribute("aria-selected", "true");
+    paper.appendChild(item);
+    document.body.appendChild(paper);
+    Object.defineProperty(paper, "clientHeight", {
+      value: 300,
+      configurable: true,
+    });
+    Object.defineProperty(item, "offsetHeight", {
+      value: 48,
+      configurable: true,
+    });
+    jest
+      .spyOn(item, "getBoundingClientRect")
+      .mockReturnValue({ top: 350, height: 48 });
+    jest
+      .spyOn(paper, "getBoundingClientRect")
+      .mockReturnValue({ top: 20 });
+    let paperScrollTop = 0;
+    Object.defineProperty(paper, "scrollTop", {
+      configurable: true,
+      get: () => paperScrollTop,
+      set: (value) => {
+        paperScrollTop = value;
+      },
+    });
+
+    try {
+      focusSelectedOption(paper);
+      expect(paperScrollTop).toBe(350 - 20 - (300 - 48) / 2);
+    } finally {
+      item.getBoundingClientRect.mockRestore();
+      paper.getBoundingClientRect.mockRestore();
+      paper.remove();
+    }
+  });
 });

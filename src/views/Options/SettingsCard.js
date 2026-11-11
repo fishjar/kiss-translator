@@ -1,6 +1,10 @@
+import MenuCheckGlyph from "../../components/MenuCheckGlyph";
 import ListSubheader from "@mui/material/ListSubheader";
-import { useEffect, useId, useRef, useState } from "react";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
+import {
+  CheckRoundedIcon,
+  ExpandMoreRoundedIcon,
+} from "../../components/icons";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -82,6 +86,7 @@ export function SettingsSegmented({
   items,
   label,
   className = "",
+  size = "medium",
 }) {
   const itemRefs = useRef([]);
   const normalizedItems = items.map((item) =>
@@ -132,11 +137,12 @@ export function SettingsSegmented({
   return (
     <ToggleButtonGroup
       exclusive
+      size={size === "small" ? "small" : "medium"}
       value={value}
       onChange={(_event, nextValue) => {
         if (nextValue !== null) onChange(nextValue);
       }}
-      className={`kt-settings-segmented ${className}`.trim()}
+      className={`kt-settings-segmented ${size === "small" ? "kt-settings-segmented--small " : ""}${className}`.trim()}
       aria-label={label}
       role="radiogroup"
     >
@@ -161,6 +167,10 @@ export function SettingsSegmented({
             onKeyDown={(event) => handleKeyDown(event, index)}
             key={normalized.value}
           >
+            <CheckRoundedIcon
+              aria-hidden="true"
+              className="kt-settings-segmented__checkmark"
+            />
             <span className="kt-settings-segmented__label">
               {normalized.label}
             </span>
@@ -170,6 +180,18 @@ export function SettingsSegmented({
     </ToggleButtonGroup>
   );
 }
+
+// 与 MUI SelectInput.areEqualValues 同规则：对象值恒等比较，标量值
+// 字符串化比较（DOM 侧 value 一律字符串化）。标签查找与勾选判定共用
+// 此规则，避免"勾了但标签显示原值"的口径分裂。
+const areEqualValues = (a, b) => {
+  if (typeof b === "object" && b !== null) return a === b;
+  return String(a) === String(b);
+};
+
+// 多选排序键：标量值字符串化归一（与 areEqualValues 同口径），对象值
+// 以恒等身份作键——Map 身份判定与恒等比较同源。
+const orderKey = (v) => (typeof v === "object" && v !== null ? v : String(v));
 
 export function SettingsSelect({
   value,
@@ -187,6 +209,10 @@ export function SettingsSelect({
   ...rest
 }) {
   const isHiddenLabel = hiddenLabel !== undefined ? hiddenLabel : !fullWidth;
+  // 调用方 SelectProps 单独摘出合流：整包展开会覆盖多选渲染配置
+  // （multiple/renderValue），MenuProps 等其余键保留调用方值；
+  // 多选注入键后置胜出，单选不注入 renderValue（调用方自带则原样生效）。
+  const { SelectProps: callerSelectProps, ...textFieldProps } = rest;
   return (
     <TextField
       select
@@ -201,14 +227,63 @@ export function SettingsSelect({
       className={`kt-settings-select ${fullWidth ? "kt-settings-select--full" : ""} ${!isHiddenLabel ? "kt-settings-select--with-label" : ""} ${className}`.trim()}
       value={value}
       disabled={disabled}
-      SelectProps={{ multiple, displayEmpty: true }}
+      SelectProps={{
+        ...callerSelectProps,
+        multiple,
+        displayEmpty: true,
+        ...(multiple
+          ? {
+              // 仅多选注入：关闭态 trigger 逐项渲染（单选显示不受影响）。
+              // 标签按 options 序输出，不随受控 value 的书写顺序漂移；
+              // 不得 join：label 可为 JSX 节点，字符串化会把 React 元素变成
+              // [object Object]；分隔符作独立文本节点插入，纯文本 label 的
+              // 输出与旧实现逐字一致。
+              renderValue: (selected) => {
+                const optionOrder = new Map(
+                  options.map((o, index) => [
+                    orderKey(Array.isArray(o) ? o[0] : o.value),
+                    index,
+                  ])
+                );
+                return (Array.isArray(selected) ? selected : [])
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      (optionOrder.get(orderKey(a)) ?? Infinity) -
+                      (optionOrder.get(orderKey(b)) ?? Infinity)
+                  )
+                  .map((v) => {
+                    const hit = options.find((o) => {
+                      const optionValue = Array.isArray(o) ? o[0] : o.value;
+                      return (
+                        optionValue !== undefined &&
+                        areEqualValues(v, optionValue)
+                      );
+                    });
+                    // 未命中且值本身是对象（对象选项值变更后残留等）不能作
+                    // React 子节点，回退可渲染空态；标量原值照旧透传。
+                    if (hit) return Array.isArray(hit) ? hit[1] : hit.label;
+                    return v && typeof v === "object" ? "" : v;
+                  })
+                  .flatMap((node, index) =>
+                    index === 0
+                      ? [<Fragment key={index}>{node}</Fragment>]
+                      : [
+                          <Fragment key={`${index}-sep`}>, </Fragment>,
+                          <Fragment key={index}>{node}</Fragment>,
+                        ]
+                  );
+              },
+            }
+          : {}),
+      }}
       inputProps={{ "aria-label": label }}
       onChange={(event) => onChange(event.target.value)}
       sx={{
         ...(fullWidth ? { width: "100%", maxWidth: "none" } : {}),
         ...sx,
       }}
-      {...rest}
+      {...textFieldProps}
     >
       {options.map((option) => {
         const normalized = Array.isArray(option)
@@ -220,8 +295,17 @@ export function SettingsSelect({
               {normalized.groupLabel}
             </ListSubheader>
           );
+        // 勾选判定与 MUI SelectInput 同源：value.some(areEqualValues(v, 项值))，
+        // 字符串化标量口径；与上方标签查找共用同一规则。
+        const checked =
+          multiple &&
+          Array.isArray(value) &&
+          value.some((v) => areEqualValues(v, normalized.value));
         return (
           <MenuItem key={normalized.value} value={normalized.value}>
+            {multiple && (
+              <MenuCheckGlyph checked={checked} style={{ marginRight: 10 }} />
+            )}
             {normalized.label}
           </MenuItem>
         );
