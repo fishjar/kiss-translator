@@ -1,4 +1,9 @@
-import { translationOptions } from "./defaultPrompts";
+import { selectedPluginPrompt, translationOptions } from "./defaultPrompts";
+import {
+  DEFAULT_SUMMARY_PROMPT,
+  PROMPT_CATEGORY_SUMMARY,
+  findPromptBySlug,
+} from "../config/prompt";
 
 export const structuredTestSamples = Object.freeze({
   segmentSubtitle: {
@@ -43,24 +48,49 @@ export function createTestInput(capability, text, file, assets) {
   return { text, language: "zh-CN" };
 }
 
-export function applyTestPrompt(capability, input, api) {
+function testPromptPair(api, systemKey, userKey, targetSystemKey) {
+  if (!Object.hasOwn(api, systemKey) && !Object.hasOwn(api, userKey)) return {};
+  return {
+    [targetSystemKey]: api[systemKey] ?? "",
+    userPrompt: api[userKey] ?? "",
+  };
+}
+
+export function applyTestPrompt(
+  capability,
+  input,
+  api,
+  { prompts = [], subtitleSetting = {} } = {}
+) {
   if (capability === "translate")
     return {
       ...input,
       ...(api.provider?.implementation?.kind !== "native" &&
         translationOptions(api)),
-      systemPrompt:
-        (api.useBatchFetch ? api.systemPrompt : api.nobatchPrompt) ?? undefined,
-      userPrompt:
-        (api.useBatchFetch ? api.batchUserPrompt : api.nobatchUserPrompt) ??
-        undefined,
+      ...testPromptPair(
+        api,
+        api.useBatchFetch ? "systemPrompt" : "nobatchPrompt",
+        api.useBatchFetch ? "batchUserPrompt" : "nobatchUserPrompt",
+        "systemPrompt"
+      ),
     };
   if (capability === "dictionary")
     return {
       ...input,
-      instructions: api.dictPrompt || undefined,
-      userPrompt: api.dictUserPrompt || undefined,
+      ...testPromptPair(api, "dictPrompt", "dictUserPrompt", "instructions"),
     };
+  if (capability === "summarize") {
+    const scene = findPromptBySlug(prompts, subtitleSetting.summaryPromptSlug);
+    const prompt =
+      (scene?.category === PROMPT_CATEGORY_SUMMARY && scene) ||
+      selectedPluginPrompt(api, "summary") ||
+      DEFAULT_SUMMARY_PROMPT;
+    return {
+      ...input,
+      instructions: prompt.systemPrompt ?? "",
+      userPrompt: prompt.userPrompt ?? "",
+    };
+  }
   if (capability === "segmentSubtitle")
     return { ...input, instructions: api.subtitlePrompt || undefined };
   if (capability === "parseImage" && api.vlmPrompt)

@@ -2619,6 +2619,34 @@ describe("TerminologyPlayground", () => {
     }
   );
 
+  test.each([undefined, null, "", "Fixed user input"])(
+    "labels the actual custom single template %p without assuming a default",
+    async (nobatchUserPrompt) => {
+      mockResolvedTransApis.push(
+        mockResolvedApi({
+          useBatchFetch: false,
+          nobatchPrompt: "Rules",
+          nobatchUserPrompt,
+        })
+      );
+      mockApiTranslateWithCapture();
+      const { container, root, setAiTermsDraft } = renderPlayground({
+        rule: null,
+      });
+      try {
+        await flushEffects();
+        fillAiTerms(container, setAiTermsDraft, "zorp,数据管道");
+        await runAiTest(container);
+        expect(
+          container.querySelector('[data-testid="terminology-ai-prompt-label"]')
+            .textContent
+        ).toContain("自定义非批量提示词");
+      } finally {
+        act(() => root.unmount());
+      }
+    }
+  );
+
   test("treats an empty Hy-MT target as the generated self-mapping", async () => {
     const apiOverrides = {
       useBatchFetch: true,
@@ -2942,6 +2970,7 @@ describe("TerminologyPlayground", () => {
         apiSlug: "openai",
         apiName: "OpenAI",
         useBatchFetch: false,
+        nobatchUserPrompt: defaultNobatchUserPrompt,
       })
     );
     mockApiTranslateWithCapture({

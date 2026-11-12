@@ -617,8 +617,7 @@ function buildPromptLabel(
     );
   }
   if (category === "ai" && !isBatch) {
-    const actualNobatch = nobatchUserPrompt ?? defaultNobatchUserPrompt;
-    return actualNobatch === defaultNobatchUserPrompt
+    return nobatchUserPrompt === defaultNobatchUserPrompt
       ? i18n("terminology_playground_prompt_nobatch", "非批量翻译提示词")
       : i18n(
           "terminology_playground_prompt_custom_nobatch",

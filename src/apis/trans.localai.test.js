@@ -11,6 +11,7 @@ jest.mock("../libs/fetch", () => ({
 
 import { handleSummarize, parseTransRes } from "./trans";
 import {
+  defaultContextSummaryPrompt,
   OPT_TRANS_LOCALAI,
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_APIMART,
@@ -84,6 +85,20 @@ describe("handleSummarize LocalAI", () => {
   beforeEach(() => {
     sendBgMsg.mockReset();
   });
+  test("default context summary sends title, description and transcript", async () => {
+    sendBgMsg.mockResolvedValueOnce({ text: "Summary" });
+    await handleSummarize({
+      title: "Video title",
+      description: "Video description",
+      transcript: "Transcript text",
+      prompt: defaultContextSummaryPrompt,
+      apiSetting: { apiType: OPT_TRANS_LOCALAI },
+    });
+    const messages = sendBgMsg.mock.calls[0][1].payload.messages;
+    expect(messages[1].content).toContain("Title: Video title");
+    expect(messages[1].content).toContain("Description: Video description");
+    expect(messages[1].content).toContain("Transcript text");
+  });
 
   test("展开自定义 userPrompt 和 systemPrompt 占位符并以规范角色消息发送给本地模型", async () => {
     sendBgMsg.mockResolvedValueOnce({ text: "本地模型总结结果" });
@@ -135,34 +150,38 @@ describe("handleSummarize LocalAI", () => {
     });
   });
 
-  test("未提供自定义 userPrompt 时采用默认标题、简介与字幕拼接结构", async () => {
-    sendBgMsg.mockResolvedValueOnce("纯文本总结");
+  test.each([undefined, "", "Summarize this."])(
+    "摘要模板 %s 不隐式加入标题和简介，并保留显式空模板",
+    async (userPrompt) => {
+      sendBgMsg.mockResolvedValueOnce("纯文本总结");
 
-    const apiSetting = {
-      apiType: OPT_TRANS_LOCALAI,
-      apiSlug: "local_qwen",
-      modelRef: "qwen2.5-0.5b",
-    };
+      const apiSetting = {
+        apiType: OPT_TRANS_LOCALAI,
+        apiSlug: "local_qwen",
+        modelRef: "qwen2.5-0.5b",
+      };
 
-    const result = await handleSummarize({
-      title: "Default Title",
-      description: "Default Desc",
-      transcript: "Line 1\nLine 2",
-      apiSetting,
-      prompt: {
-        slug: "no_user_prompt",
-        systemPrompt: "Default System",
-      },
-      to: "en",
-    });
+      const result = await handleSummarize({
+        title: "Default Title",
+        description: "Default Desc",
+        transcript: "Line 1\nLine 2",
+        apiSetting,
+        prompt: {
+          slug: "no_user_prompt",
+          systemPrompt: "Default System",
+          userPrompt,
+        },
+        to: "en",
+      });
 
-    expect(result).toBe("纯文本总结");
-    const [, msgPayload] = sendBgMsg.mock.calls[0];
-    const userMsg = msgPayload.payload.messages.find((m) => m.role === "user");
-    expect(userMsg.content).toContain("Title: Default Title");
-    expect(userMsg.content).toContain("Description: Default Desc");
-    expect(userMsg.content).toContain("Transcript:\nLine 1\nLine 2");
-  });
+      expect(result).toBe("纯文本总结");
+      const [, msgPayload] = sendBgMsg.mock.calls[0];
+      const userMsg = msgPayload.payload.messages.find(
+        (m) => m.role === "user"
+      );
+      expect(userMsg?.content ?? "").toBe(userPrompt ?? "");
+    }
+  );
 
   test("支持 AbortSignal 取消并在取消时向后台发送 MSG_LOCAL_AI_CANCEL", async () => {
     const controller = new AbortController();
@@ -187,6 +206,7 @@ describe("handleSummarize LocalAI", () => {
       transcript: "Transcript",
       apiSetting,
       signal: controller.signal,
+      prompt: { userPrompt: "{{transcript}}" },
     });
 
     const cancelCall = sendBgMsg.mock.calls.find(

@@ -1,3 +1,4 @@
+import { resolveAiDictApiSetting } from "../../libs/aiDictionary";
 import Stack from "@mui/material/Stack";
 import { useId, useMemo, useRef, useState } from "react";
 import { useRevealSearchTarget } from "./SettingsSearchTarget";
@@ -31,42 +32,8 @@ import {
   DEFAULT_SETTING,
   DEFAULT_TRANBOX_SETTING,
   OPT_DICT_MAP,
-  PROMPT_MODE_FOLLOW_API,
-  findPromptBySlug,
   resolveApiPromptList,
 } from "../../config";
-
-function resolveAiDictApiSetting({
-  aiDictApiSlug,
-  aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
-  prompts = [],
-  transApis = [],
-}) {
-  if (!aiDictApiSlug || aiDictApiSlug === "-") {
-    return null;
-  }
-
-  const apiSetting = transApis.find((api) => api.apiSlug === aiDictApiSlug);
-  if (!apiSetting) {
-    return null;
-  }
-
-  if (aiDictPromptSlug === PROMPT_MODE_FOLLOW_API) {
-    return apiSetting.dictPrompt ? apiSetting : null;
-  }
-
-  const prompt = findPromptBySlug(prompts, aiDictPromptSlug);
-  if (!prompt) {
-    return null;
-  }
-
-  return {
-    ...apiSetting,
-    dictPromptSlug: prompt.slug,
-    dictPrompt: prompt.systemPrompt,
-    dictUserPrompt: prompt.userPrompt,
-  };
-}
 
 function getSafeSourceUrl(value) {
   try {

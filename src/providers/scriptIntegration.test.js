@@ -1,3 +1,4 @@
+import defaults from "./sdk/defaultTranslationPrompts.json";
 import { testPackage } from "./testSupport/packages";
 import Sval from "sval";
 import { createServiceInstance, projectInstanceConfig } from "./instances";
@@ -66,7 +67,7 @@ test("timestamped ASR rule uses verbose JSON and returns real segments through t
   ).toEqual([{ start: 0.2, end: 1.4, text: "hello" }]);
 });
 
-test("native default prompt references do not overwrite the plugin's ID-based translation contract", () => {
+test("new plugin instances select their presets before inheriting host fields", () => {
   const pack = example();
   const api = resolveApiPromptSettings({
     ...DEFAULT_API_SETTING,
@@ -87,14 +88,16 @@ test("native default prompt references do not overwrite the plugin's ID-based tr
   );
   expect(api.systemPrompt).toContain("JSON");
   expect(
-    providerHelpers.translation.buildMessages({
-      items: [{ id: "0", text: "hello" }],
-      targetLanguage: "zh",
-      translationMode: "single",
-      outputProtocol: "text",
-      systemPrompt: api.nobatchPrompt,
-      userPrompt: api.nobatchUserPrompt,
-    })[1].content
+    providerHelpers.translation
+      .buildMessages({
+        items: [{ id: "0", text: "hello" }],
+        targetLanguage: "zh",
+        translationMode: "single",
+        outputProtocol: "text",
+        systemPrompt: api.nobatchPrompt,
+        userPrompt: api.nobatchUserPrompt,
+      })
+      .find((m) => m.role === "user").content
   ).toContain("hello");
 });
 
@@ -178,6 +181,7 @@ test("the same text service streams ordered translation items and rejects missin
       { id: "b", text: "B" },
     ],
     targetLanguage: "zh",
+    ...defaults,
   };
   const emit = jest.fn(async () => {});
   let text = '[{"id":"b","text":"乙"},{"id":"a","text":"甲"}]';
@@ -266,6 +270,7 @@ test("synthetic mixed package runs translation with the production SDK and indep
         { id: "b", text: "B" },
       ],
       targetLanguage: "zh",
+      ...defaults,
     },
     config,
     {

@@ -1,4 +1,4 @@
-import { buildSystemRoleMessages } from "./messages";
+import { buildSystemRoleMessages, compactMessages } from "./messages";
 import { applyThinkingParameters } from "./thinking";
 import { OPT_TRANS_OLLAMA } from "../config";
 
@@ -33,7 +33,11 @@ const genOllama = ({
   };
   const body = {
     model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
+    messages: compactMessages([
+      ...buildSystemRoleMessages(systemPrompt),
+      ...hisMsgs,
+      userMsg,
+    ]),
     temperature,
     max_tokens: maxTokens,
   };
@@ -54,7 +58,7 @@ const genOllama = ({
     headers.Authorization = `Bearer ${key}`;
   }
 
-  return { url, body, headers, userMsg };
+  return { url, body, headers, userMsg: compactMessages([userMsg])[0] };
 };
 
 export { genOllama };

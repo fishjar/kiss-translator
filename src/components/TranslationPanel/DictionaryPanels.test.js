@@ -88,7 +88,7 @@ describe("getDictionaryAvailability", () => {
     expect(
       probe({ ...base, transApis: [{ apiSlug: "openai", apiType: "OpenAI" }] })
         .aiDictAvailable
-    ).toBe(false);
+    ).toBe(true);
     expect(
       probe({ ...base, transApis: [], aiDictApiSlug: "gone" }).aiDictAvailable
     ).toBe(false);
@@ -105,7 +105,7 @@ describe("getDictionaryAvailability", () => {
         ...base,
         transApis: [{ apiSlug: "openai", apiType: "OpenAI", dictPrompt: "  " }],
       }).aiDictAvailable
-    ).toBe(false);
+    ).toBe(true);
     const prompt = {
       slug: "p1",
       category: PROMPT_CATEGORY_DICTIONARY,
@@ -354,3 +354,31 @@ describe("DictionaryPanels rendering", () => {
     );
   });
 });
+
+test.each(["follow_api", "user-only"])(
+  "user-only dictionary is available in panel mode %s",
+  (aiDictPromptSlug) => {
+    const result = getDictionaryAvailability({
+      text: "bank",
+      aiDictApiSlug: "openai",
+      aiDictPromptSlug,
+      transApis: [
+        {
+          apiSlug: "openai",
+          apiType: "OpenAI",
+          dictPrompt: "",
+          dictUserPrompt: "{{text}}",
+        },
+      ],
+      prompts: [
+        {
+          slug: "user-only",
+          category: PROMPT_CATEGORY_DICTIONARY,
+          systemPrompt: "",
+          userPrompt: "{{text}}",
+        },
+      ],
+    });
+    expect(result.aiDictAvailable).toBe(true);
+  }
+);

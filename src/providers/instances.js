@@ -6,7 +6,7 @@ import {
   validateEnabledCapabilities,
 } from "./capabilities";
 import { providerHelpers } from "./sdk";
-import { validateDefaultPrompts } from "./defaultPrompts";
+import { selectedPluginPrompt, validateDefaultPrompts } from "./defaultPrompts";
 
 import {
   assertPluginCompatibility,
@@ -245,11 +245,13 @@ export function createServiceInstance(
     apiType: "Plugin",
     sourceType: "network",
     isDisabled: false,
-    // The host's legacy form defaults are merged by callers. Explicitly clear
-    // inherited native prompt references; users can bind prompt entities later.
-    batchPromptSlug: "",
-    nobatchPromptSlug: "",
-    dictPromptSlug: "",
+    // Choose presets at creation so inherited form fields cannot hide defaults.
+    // Existing instances retain their saved references and inline templates.
+    batchPromptSlug: selectedPluginPrompt({ provider }, "batch")?.slug || "",
+    nobatchPromptSlug:
+      selectedPluginPrompt({ provider }, "nobatch")?.slug || "",
+    dictPromptSlug:
+      selectedPluginPrompt({ provider }, "dictionary")?.slug || "",
     subtitlePromptSlug: "",
     vlmPromptSlug: "",
     provider,

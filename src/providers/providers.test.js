@@ -270,7 +270,7 @@ test("translation utility keeps caller prompt and stable IDs and rejects missing
       targetLanguage: "zh",
       document: { title: "page" },
       userPrompt: "{{title}} {{text}} {{to}} {{segments}}",
-    })[1].content
+    }).find((m) => m.role === "user").content
   ).toBe('page A zh [{"id":"a","text":"A"}]');
   expect(
     parseResult('[{"id":"b","text":"乙"},{"id":"a","text":"甲"}]', { items })

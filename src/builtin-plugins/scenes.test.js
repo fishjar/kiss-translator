@@ -155,6 +155,7 @@ test("an explicit multi-item native request uses batch encoding even when host a
     useStream: false,
     useContext: false,
     batchProtocol: "json",
+    batchUserPrompt: "{{segments}}",
   };
   fetchData.mockResolvedValue({
     choices: [

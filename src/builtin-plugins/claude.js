@@ -1,3 +1,4 @@
+import { compactMessages } from "./messages";
 import { applyThinkingParameters } from "./thinking";
 import {
   ANTHROPIC_API_VERSION,
@@ -36,10 +37,11 @@ const genClaude = ({
         ]
       : userPrompt,
   };
+  const messages = compactMessages([...hisMsgs, userMsg]);
   const body = {
     model,
     ...(systemPrompt?.trim() ? { system: systemPrompt } : {}),
-    messages: [...hisMsgs, userMsg],
+    messages,
     temperature,
     max_tokens: maxTokens,
     stream: useStream,
@@ -61,7 +63,7 @@ const genClaude = ({
     "x-api-key": key,
   };
 
-  return { url, body, headers, userMsg };
+  return { url, body, headers, userMsg: compactMessages([userMsg])[0] };
 };
 
 // With thinking enabled the first content block is a thinking block with no text, so the

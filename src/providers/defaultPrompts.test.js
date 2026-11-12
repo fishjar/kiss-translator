@@ -194,6 +194,44 @@ test("task and scene instructions override defaults; batch tasks and image calls
       systemPrompt: "",
       userPrompt: "",
     })
-  ).toMatchObject({ systemPrompt: "", userPrompt: "" });
+  ).toMatchObject({ systemPrompt: "single", userPrompt: "" });
   expect(input.systemPrompt).toBeUndefined();
 });
+
+test.each(["dictionary", "summarize"])(
+  "%s custom templates form a complete pair",
+  (capability) => {
+    const slot = capability === "dictionary" ? "dictionary" : "summary";
+    const instance = {
+      provider: {
+        defaultPrompts: {
+          [slot]: [
+            {
+              id: "default",
+              instructions: "unused",
+              systemPrompt: "Default",
+              userPrompt: "Default input",
+            },
+          ],
+        },
+      },
+    };
+    expect(
+      withDefaultPromptInput(instance, capability, { text: "Input" })
+    ).toMatchObject({ instructions: "Default", userPrompt: "Default input" });
+    for (const value of ["Custom"]) {
+      expect(
+        withDefaultPromptInput(instance, capability, {
+          text: "Input",
+          instructions: value,
+        })
+      ).toMatchObject({ instructions: value ?? "", userPrompt: "" });
+      expect(
+        withDefaultPromptInput(instance, capability, {
+          text: "Input",
+          userPrompt: value,
+        })
+      ).toMatchObject({ instructions: "", userPrompt: value ?? "" });
+    }
+  }
+);

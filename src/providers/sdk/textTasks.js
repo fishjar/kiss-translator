@@ -1,6 +1,12 @@
+import { compactMessages } from "./messages";
 import { providerError } from "../capabilities";
 import { validateResult } from "../validation";
 import defaults from "./defaultTextTaskPrompts.json";
+import {
+  renderTemplate,
+  assertPromptMessages,
+  resolvePromptPair,
+} from "./template";
 
 const contracts = {
   segmentSubtitle:
@@ -32,7 +38,10 @@ export function buildTextTaskMessages(task, input, descriptor = {}) {
     url: input.document?.url || "",
     tone: input.tone || "",
     glossary: Object.entries(input.glossary || {})
-      .map(([key, value]) => `- ${key}: ${value}`)
+      .map(([key, value]) => {
+        const source = String(key ?? "").trim();
+        return `- ${source}: ${String(value ?? "").trim() || source}`;
+      })
       .join("\n"),
     items: JSON.stringify(input.items || []),
   };
@@ -42,15 +51,24 @@ export function buildTextTaskMessages(task, input, descriptor = {}) {
     to: values.targetLanguage,
     toLang: values.targetLanguage,
   });
-  const render = (template) =>
-    template.replace(/\{\{([A-Za-z][\w]*)\}\}/g, (match, key) =>
-      Object.hasOwn(values, key) ? values[key] : match
-    );
+  const render = (template) => renderTemplate(template, values);
   let contract = contracts[task];
   if (["recognizeText", "parseImage"].includes(task) && descriptor.coordinates)
     contract =
       'Return only JSON {"text":"all extracted text","format":"text","items":[{"text":"region text","poly":[[0,0],[100,0],[100,50],[0,50]]}]}. Return actual text region polygons in image pixels, never invented or whole-image fallback boxes.';
-  let user = render(input.userPrompt ?? prompt.userPrompt ?? "{{text}}");
+  const explicitTemplates = ["dictionary", "summarize"].includes(task);
+  const pair = resolvePromptPair(input.instructions, input.userPrompt, prompt);
+  let user = render(
+    explicitTemplates
+      ? pair.userPrompt
+      : (input.userPrompt ?? prompt.userPrompt ?? "{{text}}")
+  );
+  const system = render(
+    explicitTemplates
+      ? pair.systemPrompt
+      : (input.instructions ?? prompt.systemPrompt ?? "")
+  );
+  if (explicitTemplates) assertPromptMessages(system, user);
   if (task === "segmentSubtitle") user = values.items;
   if (task === "detectLanguage")
     user = JSON.stringify({ text: input.text, candidates: input.candidates });
@@ -73,17 +91,17 @@ export function buildTextTaskMessages(task, input, descriptor = {}) {
       },
     ];
   }
-  return [
+  return compactMessages([
     {
       role: "system",
       content:
-        render(input.instructions ?? prompt.systemPrompt ?? "") +
+        system +
         (contract
           ? `\nWire output contract: ${contract} This wire format replaces any output format in the task instructions.`
           : ""),
     },
     { role: "user", content: user },
-  ];
+  ]);
 }
 
 export function parseTextTaskResult(task, text, input, descriptor = {}) {

@@ -31,6 +31,7 @@ const getOpenAiApiSetting = () => ({
   key: "test-key",
   model: "deepseek-v4-flash",
   useBatchFetch: true,
+  batchUserPrompt: "{{segments}}",
   useStream: false,
   batchInterval: 0,
   batchSize: 10,
