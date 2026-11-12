@@ -74,6 +74,8 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
       root.unmount();
     });
     container.remove();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 
   test("目录默认关闭，展开后点击章节跳转保持展开", () => {
@@ -318,6 +320,7 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
   });
 
   test("6. 正文搜索功能：支持关键词高亮、匹配计数统计、前后跳转与清除", () => {
+    jest.useFakeTimers();
     act(() => {
       root.render(
         <EpubReaderView
@@ -349,6 +352,7 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     act(() => {
       setInputValue(searchInput, "paragraph");
     });
+    act(() => jest.advanceTimersByTime(300));
 
     const highlights = container.querySelectorAll("mark.kt-search-highlight");
     expect(highlights.length).toBeGreaterThan(0);
@@ -370,6 +374,7 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
   });
 
   test("7. 触发翻译时自动清除搜索框：点击【试译当前章节】或进入 busy 状态时自动清空搜索框与正文高亮", () => {
+    jest.useFakeTimers();
     const onTranslateChapterMock = jest.fn();
 
     act(() => {
@@ -404,6 +409,7 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     act(() => {
       setInputValue(searchInput, "paragraph");
     });
+    act(() => jest.advanceTimersByTime(300));
     expect(
       container.querySelectorAll("mark.kt-search-highlight").length
     ).toBeGreaterThan(0);
@@ -429,6 +435,7 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     act(() => {
       setInputValue(searchInput, "paragraph");
     });
+    act(() => jest.advanceTimersByTime(300));
     expect(
       container.querySelectorAll("mark.kt-search-highlight").length
     ).toBeGreaterThan(0);
@@ -451,6 +458,303 @@ describe("EpubReaderView (EPUB 体验细节与样式)", () => {
     expect(container.querySelectorAll("mark.kt-search-highlight").length).toBe(
       0
     );
+  });
+
+  const renderSearchReader = (props = {}) => {
+    act(() =>
+      root.render(
+        <EpubReaderView
+          epubBook={mockEpubBook}
+          currentChapterIndex={0}
+          epubViewMode="source"
+          chapterStates={{}}
+          busy={false}
+          i18n={mockI18n}
+          {...props}
+        />
+      )
+    );
+    return container.querySelector('input[aria-label="search content"]');
+  };
+  const typeSearch = (input, value) => {
+    act(() => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      ).set.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  };
+  const marks = () => container.querySelectorAll("mark.kt-search-highlight");
+
+  test("正文搜索等待 300ms，仅执行最后一次输入，等待期间禁止导航旧结果", () => {
+    jest.useFakeTimers();
+    const input = renderSearchReader();
+    const walker = jest.spyOn(document, "createTreeWalker");
+    typeSearch(input, "Source");
+    act(() => jest.advanceTimersByTime(299));
+    expect(input.value).toBe("Source");
+    expect(walker).not.toHaveBeenCalled();
+    typeSearch(input, "paragraph");
+    act(() => jest.advanceTimersByTime(299));
+    expect(marks()).toHaveLength(0);
+    act(() => jest.advanceTimersByTime(1));
+    expect(walker).toHaveBeenCalledTimes(1);
+    expect(marks()).toHaveLength(2);
+    typeSearch(input, "Chapter");
+    const next = container
+      .querySelector('[data-testid="KeyboardArrowDownRoundedIcon"]')
+      .closest("button");
+    expect(next.disabled).toBe(true);
+    act(() =>
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+      )
+    );
+    expect(marks()[0].classList.contains("kt-search-current")).toBe(true);
+    act(() => jest.advanceTimersByTime(300));
+    expect(next.disabled).toBe(false);
+    expect([...marks()].every((mark) => mark.textContent === "Chapter")).toBe(
+      true
+    );
+    act(() =>
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+      )
+    );
+    expect(marks()[1].classList.contains("kt-search-current")).toBe(true);
+    typeSearch(input, "");
+    expect(marks()).toHaveLength(0);
+  });
+
+  test("中文组合输入取消已有任务，组合结束后再防抖搜索", () => {
+    jest.useFakeTimers();
+    const input = renderSearchReader();
+    typeSearch(input, "Source");
+    act(() =>
+      input.dispatchEvent(
+        new CompositionEvent("compositionstart", { bubbles: true })
+      )
+    );
+    typeSearch(input, "paragraph");
+    act(() => jest.advanceTimersByTime(1000));
+    expect(marks()).toHaveLength(0);
+    act(() =>
+      input.dispatchEvent(
+        new CompositionEvent("compositionend", { bubbles: true })
+      )
+    );
+    act(() => jest.advanceTimersByTime(299));
+    expect(marks()).toHaveLength(0);
+    act(() => jest.advanceTimersByTime(1));
+    expect(marks()).toHaveLength(2);
+  });
+
+  test.each(["clear", "translate", "busy", "busy-empty", "blur"])(
+    "%s 在缺失 compositionend 时恢复搜索和全屏 Esc",
+    (action) => {
+      jest.useFakeTimers();
+      const changed = jest.fn();
+      const props = { fullscreen: true, onFullscreenChange: changed };
+      const input = renderSearchReader(props);
+      act(() => {
+        input.focus();
+        input.dispatchEvent(
+          new CompositionEvent("compositionstart", { bubbles: true })
+        );
+      });
+      if (action !== "busy-empty") typeSearch(input, "Source");
+      act(() =>
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))
+      );
+      expect(changed).not.toHaveBeenCalled();
+
+      if (action.startsWith("busy")) {
+        renderSearchReader({ ...props, busy: true });
+        renderSearchReader(props);
+      } else if (action === "blur") {
+        act(() => input.blur());
+      } else {
+        const button =
+          action === "clear"
+            ? container
+                .querySelector('[data-testid="CloseRoundedIcon"]')
+                .closest("button")
+            : [...container.querySelectorAll("button")].find(
+                (button) => button.textContent === "试译当前章节"
+              );
+        act(() => button.click());
+      }
+
+      typeSearch(input, "paragraph");
+      act(() => jest.advanceTimersByTime(300));
+      expect(marks()).toHaveLength(2);
+      act(() =>
+        input.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+        )
+      );
+      expect(marks()[1].classList.contains("kt-search-current")).toBe(true);
+      act(() =>
+        input.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "Escape",
+            bubbles: true,
+            cancelable: true,
+          })
+        )
+      );
+      expect(input.value).toBe("");
+      expect(changed).not.toHaveBeenCalled();
+      act(() =>
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))
+      );
+      expect(changed).toHaveBeenCalledWith(false);
+    }
+  );
+
+  test("未提供全屏回调时 Esc 不缓存滚动位置", () => {
+    renderSearchReader({ fullscreen: true });
+    const scroll = container.querySelector(
+      ".kt-epub-reader-body"
+    ).parentElement;
+    scroll.scrollTop = 100;
+    act(() =>
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))
+    );
+    scroll.scrollTop = 800;
+    renderSearchReader({ fullscreen: false });
+    expect(scroll.scrollTop).toBe(800);
+  });
+
+  test.each(["clear", "translate", "busy", "book", "unmount"])(
+    "%s 取消待执行正文搜索",
+    (action) => {
+      jest.useFakeTimers();
+      const input = renderSearchReader();
+      typeSearch(input, "paragraph");
+      act(() => jest.advanceTimersByTime(200));
+      if (action === "clear") typeSearch(input, "");
+      if (action === "translate")
+        act(() =>
+          [...container.querySelectorAll("button")]
+            .find((button) => button.textContent === "试译当前章节")
+            .click()
+        );
+      if (action === "busy") renderSearchReader({ busy: true });
+      if (action === "book")
+        renderSearchReader({
+          epubBook: { ...mockEpubBook, title: "New book" },
+        });
+      if (action === "unmount") act(() => root.render(null));
+      const walker = jest.spyOn(document, "createTreeWalker");
+      act(() => jest.advanceTimersByTime(1000));
+      expect(walker).not.toHaveBeenCalled();
+      expect(marks()).toHaveLength(0);
+      if (action !== "unmount") expect(input.value).toBe("");
+    }
+  );
+
+  test("正文更新取消旧任务，仅高亮最新内容", () => {
+    jest.useFakeTimers();
+    const input = renderSearchReader();
+    typeSearch(input, "updated");
+    act(() => jest.advanceTimersByTime(200));
+    renderSearchReader({
+      epubViewMode: "target",
+      chapterStates: {
+        "OEBPS/ch1.xhtml": {
+          status: "done",
+          targetHtml: "<p>updated text</p>",
+        },
+      },
+    });
+    act(() => jest.advanceTimersByTime(100));
+    expect(marks()).toHaveLength(0);
+    act(() => jest.advanceTimersByTime(200));
+    expect(marks()).toHaveLength(1);
+    expect(marks()[0].textContent).toBe("updated");
+  });
+
+  test("EPUB 全屏保留正文、搜索和位置，Esc 优先清空搜索、关闭目录和设置", () => {
+    jest.useFakeTimers();
+    function Reader() {
+      const [fullscreen, setFullscreen] = React.useState(false);
+      return (
+        <EpubReaderView
+          epubBook={mockEpubBook}
+          currentChapterIndex={0}
+          epubViewMode="source"
+          chapterStates={{}}
+          i18n={mockI18n}
+          fullscreen={fullscreen}
+          onFullscreenChange={setFullscreen}
+        />
+      );
+    }
+    act(() => root.render(<Reader />));
+    const body = container.querySelector(".kt-epub-reader-body");
+    const scroll = body.parentElement;
+    const input = container.querySelector('input[aria-label="search content"]');
+    const toggle = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "全屏"
+    );
+    typeSearch(input, "paragraph");
+    act(() => jest.advanceTimersByTime(300));
+    scroll.scrollTop = 500;
+    act(() => toggle.click());
+    expect(toggle.textContent).toBe("退出全屏");
+    expect(container.querySelector(".kt-epub-reader-body")).toBe(body);
+    expect(scroll.scrollTop).toBe(500);
+    expect(input.value).toBe("paragraph");
+    expect(marks()).toHaveLength(2);
+    act(() =>
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Escape",
+          bubbles: true,
+          cancelable: true,
+        })
+      )
+    );
+    expect(input.value).toBe("");
+    expect(toggle.textContent).toBe("退出全屏");
+    act(() => container.querySelector('button[aria-label="展开目录"]').click());
+    act(() =>
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", cancelable: true })
+      )
+    );
+    expect(
+      container.querySelector('button[aria-label="展开目录"]')
+    ).toBeTruthy();
+    expect(toggle.textContent).toBe("退出全屏");
+    act(() =>
+      [...container.querySelectorAll("button")]
+        .find((button) => button.textContent === "Aa")
+        .click()
+    );
+    act(() =>
+      document
+        .querySelector('[role="presentation"] [tabindex="-1"]')
+        .dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "Escape",
+            bubbles: true,
+            cancelable: true,
+          })
+        )
+    );
+    expect(toggle.textContent).toBe("退出全屏");
+    scroll.scrollTop = 750;
+    act(() =>
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", cancelable: true })
+      )
+    );
+    expect(toggle.textContent).toBe("全屏");
+    expect(scroll.scrollTop).toBe(750);
+    expect(document.activeElement).toBe(toggle);
   });
 
   test("8. 目录栏宽度拖拽调整：支持通过鼠标拖动分割线调整宽度并持久化至 localStorage", async () => {
