@@ -900,19 +900,6 @@ describe("TranForm AI dictionary revalidates stale settings", () => {
       },
     ],
     [
-      "the API's own dictionary prompt is blank",
-      {
-        transApis: [
-          {
-            apiSlug: "openai",
-            apiName: "OpenAI",
-            apiType: "OpenAI",
-            dictPrompt: "   ",
-          },
-        ],
-      },
-    ],
-    [
       "the chosen prompt is not a dictionary prompt",
       {
         aiDictPromptSlug: "translate-en",
@@ -921,19 +908,6 @@ describe("TranForm AI dictionary revalidates stale settings", () => {
             slug: "translate-en",
             category: "translate prompt",
             systemPrompt: "Translate this",
-          },
-        ],
-      },
-    ],
-    [
-      "the chosen dictionary prompt is blank",
-      {
-        aiDictPromptSlug: "dict-en",
-        prompts: [
-          {
-            slug: "dict-en",
-            category: "dictionary prompt",
-            systemPrompt: "  ",
           },
         ],
       },
@@ -949,6 +923,37 @@ describe("TranForm AI dictionary revalidates stale settings", () => {
       root.unmount();
     });
   });
+
+  test.each([
+    {
+      transApis: [
+        {
+          apiSlug: "openai",
+          apiName: "OpenAI",
+          apiType: "OpenAI",
+          dictPrompt: "   ",
+        },
+      ],
+    },
+    {
+      aiDictPromptSlug: "dict-en",
+      prompts: [
+        {
+          slug: "dict-en",
+          category: "dictionary prompt",
+          systemPrompt: "  ",
+        },
+      ],
+    },
+  ])(
+    "offers the AI dictionary using defaults for blank settings (%#)",
+    async (props) => {
+      const { container, root } = renderTranForm(props);
+      await flushEffects();
+      expect(tabCount(container)).toBe(2);
+      act(() => root.unmount());
+    }
+  );
 
   test("still offers the AI dictionary when the stored settings are valid", async () => {
     const { container, root } = renderTranForm({

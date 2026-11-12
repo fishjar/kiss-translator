@@ -1,5 +1,6 @@
 # 文档目录
 
+- [提示词执行规则](prompt-template-contract.md)：显式占位符、空模板与兼容变化。
 - [插件开发指南](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)：当前插件契约与开发流程。
 - [OpenAI 兼容协议插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md)：聊天、翻译、转写、语音与图片识别。
 - [DeepSeek 插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)：聊天、翻译与声明式协议规则。

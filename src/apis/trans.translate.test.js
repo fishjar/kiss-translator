@@ -56,6 +56,8 @@ const getApiSetting = (apiType) => ({
   ...DEFAULT_API_LIST.find((api) => api.apiType === apiType),
   useStream: true,
   useBatchFetch: true,
+  batchUserPrompt: "{{segments}}",
+  nobatchUserPrompt: "{{text}}",
   key: "test-key",
   model: "test-model",
   fetchInterval: 0,
@@ -1543,7 +1545,7 @@ describe("handleTranslate", () => {
       useContext: true,
       contextSize: 10,
       nobatchPrompt: "Translate {{text}}.",
-      nobatchUserPrompt: "",
+      nobatchUserPrompt: "{{text}}",
     };
     fetchData
       .mockResolvedValueOnce({ role: "assistant", content: firstContent })
@@ -1691,7 +1693,7 @@ describe("handleTranslate", () => {
       useContext: true,
       contextSize: 10,
       nobatchPrompt: "Translate {{text}}.",
-      nobatchUserPrompt: "",
+      nobatchUserPrompt: "{{text}}",
       ...update,
     };
     for (const response of responses) {
@@ -1885,7 +1887,7 @@ describe("handleTranslate", () => {
       useBatchFetch: false,
       useContext: true,
       nobatchPrompt: "Translate {{text}}.",
-      nobatchUserPrompt: "",
+      nobatchUserPrompt: "{{text}}",
     };
     // round 1 只有 role delta、无文本 content → fullContent 恒空 → 整对不写
     mockStreamRound([{ choices: [{ delta: { role: "assistant" } }] }]);
@@ -1963,7 +1965,7 @@ describe("handleTranslate", () => {
       useBatchFetch: false,
       useContext: true,
       nobatchPrompt: "Translate {{text}}.",
-      nobatchUserPrompt: "",
+      nobatchUserPrompt: "{{text}}",
     };
     // round 1 只有 role delta、无文本 content → fullContent 恒空 → 整对不写
     mockStreamRound([{ choices: [{ delta: { role: "assistant" } }] }]);
@@ -1999,7 +2001,7 @@ describe("handleTranslate", () => {
       // CLAUDE 默认条目为 realtime 渲染，会产生 partialText 中间产出；钉死 disabled 使结果断言确定。
       streamRenderMode: "disabled",
       nobatchPrompt: "Translate {{text}}.",
-      nobatchUserPrompt: "",
+      nobatchUserPrompt: "{{text}}",
     };
     mockStreamRound(claudeTextStream("你好"));
     mockStreamRound(claudeTextStream("第二轮"));
@@ -2050,7 +2052,7 @@ describe("handleTranslate", () => {
       contextSize: 3,
       streamRenderMode: "disabled",
       nobatchPrompt: "Translate {{text}}.",
-      nobatchUserPrompt: "",
+      nobatchUserPrompt: "{{text}}",
     };
     // round 1 无文本 delta → 不写历史对；round 2/3 正常流式
     mockStreamRound([

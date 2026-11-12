@@ -1,4 +1,4 @@
-import { buildSystemRoleMessages } from "./messages";
+import { buildSystemRoleMessages, compactMessages } from "./messages";
 import { applyThinkingParameters } from "./thinking";
 import {
   OPT_TRANS_OPENROUTER,
@@ -38,7 +38,11 @@ const genOpenRouter = ({
   };
   const body = {
     model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
+    messages: compactMessages([
+      ...buildSystemRoleMessages(systemPrompt),
+      ...hisMsgs,
+      userMsg,
+    ]),
     temperature,
     max_tokens: maxTokens,
     stream: useStream,
@@ -59,7 +63,7 @@ const genOpenRouter = ({
     "X-OpenRouter-Title": "KISS Translator",
   };
 
-  return { url, body, headers, userMsg };
+  return { url, body, headers, userMsg: compactMessages([userMsg])[0] };
 };
 
 const genOrcaRouter = ({
@@ -92,7 +96,11 @@ const genOrcaRouter = ({
   };
   const body = {
     model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
+    messages: compactMessages([
+      ...buildSystemRoleMessages(systemPrompt),
+      ...hisMsgs,
+      userMsg,
+    ]),
     temperature,
     max_completion_tokens: maxTokens,
     stream: useStream,
@@ -117,7 +125,7 @@ const genOrcaRouter = ({
     "X-Title": "KISS Translator",
   };
 
-  return { url, body, headers, userMsg };
+  return { url, body, headers, userMsg: compactMessages([userMsg])[0] };
 };
 
 const genRequesty = ({
@@ -150,7 +158,11 @@ const genRequesty = ({
   };
   const body = {
     model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
+    messages: compactMessages([
+      ...buildSystemRoleMessages(systemPrompt),
+      ...hisMsgs,
+      userMsg,
+    ]),
     temperature,
     max_completion_tokens: maxTokens,
     stream: useStream,
@@ -175,7 +187,7 @@ const genRequesty = ({
     "X-Title": "KISS Translator",
   };
 
-  return { url, body, headers, userMsg };
+  return { url, body, headers, userMsg: compactMessages([userMsg])[0] };
 };
 
 export { genOpenRouter, genOrcaRouter, genRequesty };

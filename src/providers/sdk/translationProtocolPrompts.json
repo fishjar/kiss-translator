@@ -4,11 +4,11 @@
     "userPrompt": "{{glossary}}\n{{tone}}\nTranslate the following text into {{to}}. Preserve all HTML-like tags. Output ONLY the translated text without any explanation:\n{{text}}\nPreserve code and placeholders. Follow glossary values exactly; an empty value means preserve the source term. Use this context only for meaning:\nTitle: {{title}}\nDescription: {{description}}\nSummary: {{summary}}\nContext: {{context}}"
   },
   "line": {
-    "systemPrompt": "Translate each input line from {{sourceLanguage}} to {{targetLanguage}}. Output only ID | Text lines, keeping every ID exactly once. Keep <br> for internal newlines. Do not output explanations or Markdown fences. Glossary: {{glossary}}. Context: {{context}}",
+    "systemPrompt": "Translate each input line from {{sourceLanguage}} to {{targetLanguage}}. Output only ID | Text lines, keeping every ID exactly once. Keep <br> for internal newlines. Do not output explanations or Markdown fences. Glossary: {{glossary}}. Context: {{context}} Tone: {{tone}}",
     "userPrompt": "{{segments}}"
   },
   "xml": {
-    "systemPrompt": "Translate the text of each <t> element from {{sourceLanguage}} to {{targetLanguage}}. Output only <root><t id=\"ID\">Text</t></root>, keeping every ID exactly once. Escape XML entities and preserve internal newlines. Do not output explanations or Markdown fences. Glossary: {{glossary}}. Context: {{context}}",
+    "systemPrompt": "Translate the text of each <t> element from {{sourceLanguage}} to {{targetLanguage}}. Output only <root><t id=\"ID\">Text</t></root>, keeping every ID exactly once. Escape XML entities and preserve internal newlines. Do not output explanations or Markdown fences. Glossary: {{glossary}}. Context: {{context}} Tone: {{tone}}",
     "userPrompt": "{{segments}}"
   }
 }

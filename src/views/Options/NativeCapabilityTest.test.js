@@ -16,6 +16,7 @@ jest.mock("../../config/serviceSelection", () => ({
   enabledApiCapabilities: (api) => api.enabledCapabilities,
 }));
 jest.mock("../../config/prompt", () => ({
+  ...jest.requireActual("../../config/prompt"),
   resolveApiPromptSettings: (api) => api,
 }));
 jest.mock("../../hooks/Prompt", () => ({
@@ -118,4 +119,17 @@ test("service tests preserve a saved timeout and do not force 60 seconds", async
   await act(async () => button("执行测试").click());
   expect(invokeService.mock.calls.at(-1)[0].httpTimeout).toBe(600);
   expect(invokeService.mock.calls.at(-1)[3].timeoutMs).toBeUndefined();
+});
+
+test("summary capability test explicitly supplies the default template pair", async () => {
+  invokeService.mockReturnValue({
+    result: Promise.resolve({ text: "Summary" }),
+    cancel: jest.fn(),
+  });
+  await render({ apiSlug: "summary", enabledCapabilities: ["summarize"] });
+  await act(async () => button("执行测试").click());
+  expect(invokeService.mock.calls[0][2]).toMatchObject({
+    instructions: expect.stringContaining("Summarize"),
+    userPrompt: expect.stringContaining("{{transcript}}"),
+  });
 });

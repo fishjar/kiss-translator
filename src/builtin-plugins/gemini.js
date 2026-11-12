@@ -4,7 +4,7 @@ import {
   isGeminiInteractionsUrl,
 } from "../config";
 import { applyThinkingParameters } from "./thinking";
-import { buildSystemRoleMessages } from "./messages";
+import { buildSystemRoleMessages, compactMessages } from "./messages";
 
 // 原生协议适配：保持旧参数、字段和厂家差异，不加载用户脚本解释器。
 const geminiText = (parts) =>
@@ -60,10 +60,11 @@ const genGemini = ({
       temperature,
     };
 
+    const input = compactMessages([...hisMsgs, userMsg]);
     const body = {
       model,
-      system_instruction: systemPrompt,
-      input: [...hisMsgs, userMsg],
+      ...(systemPrompt?.trim() ? { system_instruction: systemPrompt } : {}),
+      input,
       stream: useStream,
       // Interactions 默认会在服务端保存会话；翻译历史由客户端维护，因此显式关闭存储。
       store: false,
@@ -81,7 +82,7 @@ const genGemini = ({
       "x-goog-api-key": key,
     };
 
-    return { url, body, headers, userMsg };
+    return { url, body, headers, userMsg: compactMessages([userMsg])[0] };
   }
 
   // 自定义代理通常只实现 generateContent，不能随官方默认端点一起强制迁移协议。
@@ -100,11 +101,12 @@ const genGemini = ({
     ],
   };
 
+  const contents = compactMessages([...hisMsgs, userMsg]);
   const body = {
     ...(systemPrompt?.trim()
       ? { systemInstruction: { parts: [{ text: systemPrompt }] } }
       : {}),
-    contents: [...hisMsgs, userMsg],
+    contents,
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature,
@@ -144,7 +146,7 @@ const genGemini = ({
     "x-goog-api-key": key,
   };
 
-  return { url, body, headers, userMsg };
+  return { url, body, headers, userMsg: compactMessages([userMsg])[0] };
 };
 
 const genGemini2 = ({
@@ -178,7 +180,11 @@ const genGemini2 = ({
   };
   const body = {
     model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
+    messages: compactMessages([
+      ...buildSystemRoleMessages(systemPrompt),
+      ...hisMsgs,
+      userMsg,
+    ]),
     temperature,
     max_tokens: maxTokens,
     stream: useStream,
@@ -197,7 +203,7 @@ const genGemini2 = ({
     Authorization: `Bearer ${key}`,
   };
 
-  return { url, body, headers, userMsg };
+  return { url, body, headers, userMsg: compactMessages([userMsg])[0] };
 };
 
 export {

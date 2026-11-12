@@ -117,59 +117,63 @@ test.each(["import", "clear"])(
   }
 );
 
-test("keeps every dictionary tab linked to a persistent panel", () => {
-  useFavWords.mockReturnValue({
-    favList: [["library", { definition: "n. collection" }]],
-    wordList: ["library"],
-    mergeWords: jest.fn(),
-    clearWords: jest.fn(),
-  });
-  useSetting.mockReturnValue({
-    setting: {
-      transApis: [
-        {
-          apiSlug: "openai",
-          apiName: "OpenAI",
-          apiType: "OpenAI",
-          dictPrompt: "Define the word",
+test.each([false, true])(
+  "keeps every dictionary tab linked to a persistent panel (userOnly=%s)",
+  (userOnly) => {
+    useFavWords.mockReturnValue({
+      favList: [["library", { definition: "n. collection" }]],
+      wordList: ["library"],
+      mergeWords: jest.fn(),
+      clearWords: jest.fn(),
+    });
+    useSetting.mockReturnValue({
+      setting: {
+        transApis: [
+          {
+            apiSlug: "openai",
+            apiName: "OpenAI",
+            apiType: "OpenAI",
+            dictPrompt: userOnly ? "" : "Define the word",
+            dictUserPrompt: userOnly ? "{{text}}" : "",
+          },
+        ],
+        prompts: [],
+        subtitleSetting: {},
+        tranboxSetting: {
+          enDict: "Bing",
+          enSug: "-",
+          aiDictApiSlug: "openai",
+          aiDictPromptSlug: PROMPT_MODE_FOLLOW_API,
+          fromLang: "en",
+          toLang: "zh-CN",
         },
-      ],
-      prompts: [],
-      subtitleSetting: {},
-      tranboxSetting: {
-        enDict: "Bing",
-        enSug: "-",
-        aiDictApiSlug: "openai",
-        aiDictPromptSlug: PROMPT_MODE_FOLLOW_API,
-        fromLang: "en",
-        toLang: "zh-CN",
       },
-    },
-  });
-  const container = document.createElement("div");
-  document.body.appendChild(container);
-  const root = createRoot(container);
-  act(() => root.render(<FavWords />));
-  act(() => container.querySelector(".MuiAccordionSummary-root").click());
+    });
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(<FavWords />));
+    act(() => container.querySelector(".MuiAccordionSummary-root").click());
 
-  const tabs = Array.from(container.querySelectorAll('[role="tab"]'));
-  expect(tabs).toHaveLength(2);
-  const panels = tabs.map((tab) =>
-    document.getElementById(tab.getAttribute("aria-controls"))
-  );
-  expect(panels.every(Boolean)).toBe(true);
-  expect(panels[0].getAttribute("aria-labelledby")).toBe(tabs[0].id);
-  expect(panels[1].getAttribute("aria-labelledby")).toBe(tabs[1].id);
-  expect(panels[0].hidden).toBe(false);
-  expect(panels[1].hidden).toBe(true);
+    const tabs = Array.from(container.querySelectorAll('[role="tab"]'));
+    expect(tabs).toHaveLength(2);
+    const panels = tabs.map((tab) =>
+      document.getElementById(tab.getAttribute("aria-controls"))
+    );
+    expect(panels.every(Boolean)).toBe(true);
+    expect(panels[0].getAttribute("aria-labelledby")).toBe(tabs[0].id);
+    expect(panels[1].getAttribute("aria-labelledby")).toBe(tabs[1].id);
+    expect(panels[0].hidden).toBe(false);
+    expect(panels[1].hidden).toBe(true);
 
-  act(() => tabs[1].click());
-  expect(panels[0].hidden).toBe(true);
-  expect(panels[1].hidden).toBe(false);
+    act(() => tabs[1].click());
+    expect(panels[0].hidden).toBe(true);
+    expect(panels[1].hidden).toBe(false);
 
-  act(() => root.unmount());
-  container.remove();
-});
+    act(() => root.unmount());
+    container.remove();
+  }
+);
 
 test("shows saved source details, keeps unsafe URLs unlinked, and supports old entries", () => {
   useFavWords.mockReturnValue({

@@ -6,12 +6,17 @@ import {
 import { nativeResponseParsers } from "../builtin-plugins/responses";
 import { getStreamDelta } from "../builtin-plugins/streamResponses";
 import { getBuiltinServiceDefinition } from "../builtin-plugins/definitions";
-import { buildSystemRoleMessages } from "../builtin-plugins/messages";
+import {
+  buildSystemRoleMessages,
+  compactMessages,
+  requireConversationInput,
+} from "../builtin-plugins/messages";
 import { nativeRequestBuilders as genReqFuncs } from "../builtin-plugins/requests";
 
 import {
   OPT_TRANS_OPENCODEGO,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_CLAUDE,
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_LOCALAI,
   INPUT_PLACE_FROM,
@@ -21,7 +26,6 @@ import {
   defaultSubtitlePrompt,
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
-  defaultDictUserPrompt,
   INPUT_PLACE_TONE,
   INPUT_PLACE_TITLE,
   INPUT_PLACE_DESCRIPTION,
@@ -79,32 +83,18 @@ import {
   mapBoundaryItemToCue,
 } from "../subtitle/subtitleBoundaryProtocol";
 
+import { resolveSummaryPrompt, resolveEmptyApiPrompts } from "../config";
+import {
+  assertPromptMessages,
+  renderTemplate,
+} from "../providers/sdk/template";
+
 import { selectNativeEndpoint } from "../builtin-plugins/credentials";
 
 /**
  * 依据配置参数和当前页面元数据生成大模型 Prompt 系统指示。
  */
-const genSystemPrompt = ({
-  systemPrompt,
-  tone,
-  from,
-  to,
-  fromLang,
-  toLang,
-  texts,
-  docInfo: { title = "", description = "", summary = "", context = "" } = {},
-}) =>
-  String(systemPrompt || "")
-    .replaceAll(INPUT_PLACE_TITLE, title)
-    .replaceAll(INPUT_PLACE_DESCRIPTION, description)
-    .replaceAll(INPUT_PLACE_SUMMARY, summary)
-    .replaceAll(INPUT_PLACE_CONTEXT, context)
-    .replaceAll(INPUT_PLACE_TONE, tone)
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_FROM_LANG, fromLang)
-    .replaceAll(INPUT_PLACE_TO_LANG, toLang)
-    .replaceAll(INPUT_PLACE_TEXT, texts[0]);
+const genSystemPrompt = (args) => renderPrompt(args.systemPrompt, args);
 
 // 构建 Hy-MT 官方范式的术语与语气前置约束块
 const buildHyMtGlossaryBlock = (glossary) => {
@@ -146,280 +136,90 @@ const buildContextBlock = (context) => {
   return c ? `Context: ${c}` : "";
 };
 
-// 智能替换块级占位符：独立成行时展开或彻底抹除，行内时普通替换
-const renderBlockPlaceholder = (
+// 系统与用户模板共享字段值；用户模板保留独立成行占位符的块级展开。
+const renderPrompt = (
   template,
-  placeholder,
-  blockContent,
-  inlineContent = blockContent
+  {
+    tone,
+    glossary = {},
+    aiTerms = "",
+    from,
+    to,
+    fromLang,
+    toLang,
+    texts = [],
+    batchProtocol = "line",
+    docInfo = {},
+  },
+  block = false
 ) => {
-  if (!template.includes(placeholder)) return template;
-  const standaloneRegex = new RegExp(
-    `^[ \\t]*${placeholder.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}[ \\t]*(?:\\r?\\n|$)`,
-    "gm"
-  );
-  if (blockContent && blockContent.trim()) {
-    template = template.replace(standaloneRegex, `${blockContent.trim()}\n\n`);
-  } else {
-    template = template.replace(standaloneRegex, "");
-  }
-  return template.replaceAll(
-    placeholder,
-    inlineContent ? String(inlineContent).trim() : ""
-  );
-};
-
-const genUserPrompt = ({
-  nobatchUserPrompt,
-  batchUserPrompt,
-  batchProtocol = "line",
-  useBatchFetch,
-  tone,
-  glossary = {}, // 规则中的AI专业术语
-  aiTerms = "", // 接口中的AI专业术语
-  from,
-  to,
-  fromLang,
-  toLang,
-  texts,
-  docInfo: { title = "", description = "", summary = "", context = "" } = {},
-}) => {
-  // 合并规则与接口中的AI专业术语
-  if (aiTerms) {
-    const aiGlossary = parseAITerms(aiTerms);
-    glossary = { ...aiGlossary, ...glossary };
-  }
-
-  const glossaryStr = Object.entries(glossary)
+  const mergedGlossary = { ...parseAITerms(aiTerms), ...glossary };
+  const glossaryStr = Object.entries(mergedGlossary)
     .map(([term, definition]) => {
-      const src = String(term ?? "").trim();
-      const target = String(definition ?? "").trim();
-      return `- ${src}: ${target || src}`;
+      const source = String(term ?? "").trim();
+      return `- ${source}: ${String(definition ?? "").trim() || source}`;
     })
     .join("\n");
-
-  if (useBatchFetch) {
-    if (batchUserPrompt && batchUserPrompt.trim()) {
-      let segmentsStr = "";
-      if (batchProtocol === "xml") {
-        segmentsStr = `<root>\n${texts
-          .map((text, i) => `  <t id="${i}">${text}</t>`)
-          .join("\n")}\n</root>`;
-      } else if (batchProtocol === "json") {
-        segmentsStr = JSON.stringify(texts.map((text, i) => ({ id: i, text })));
-      } else {
-        // 默认按 line 单行管道协议格式化，句子内部换行转义为 <br>
-        segmentsStr = texts
-          .map(
-            (text, i) =>
-              `${i} | ${String(text ?? "").replace(/\r?\n/g, "<br>")}`
-          )
-          .join("\n");
+  const { title, description, summary, context } = docInfo || {};
+  const fields = [
+    [INPUT_PLACE_TITLE, title, buildTitleBlock(title)],
+    [INPUT_PLACE_DESCRIPTION, description, buildDescriptionBlock(description)],
+    [INPUT_PLACE_SUMMARY, summary, buildSummaryBlock(summary)],
+    [INPUT_PLACE_CONTEXT, context, buildContextBlock(context)],
+    [INPUT_PLACE_GLOSSARY, glossaryStr, buildHyMtGlossaryBlock(mergedGlossary)],
+    [INPUT_PLACE_TONE, tone, buildHyMtToneBlock(tone)],
+  ];
+  const values = new Map(
+    fields.map(([key, value, content]) => [key, { value, content }])
+  );
+  for (const [key, value] of [
+    [INPUT_PLACE_FROM, from],
+    [INPUT_PLACE_TO, to],
+    [INPUT_PLACE_FROM_LANG, fromLang],
+    [INPUT_PLACE_TO_LANG, toLang],
+    [INPUT_PLACE_TEXT, texts[0]],
+    [INPUT_PLACE_SEGMENTS, encodePromptSegments(texts, batchProtocol)],
+  ])
+    values.set(key, { value });
+  return String(template ?? "").replace(
+    /^[ \t]*\{\{([A-Za-z][\w]*)\}\}[ \t]*(?:\r?\n|$)|\{\{([A-Za-z][\w]*)\}\}/gm,
+    (match, standalone, inline) => {
+      const placeholder = `{{${standalone || inline}}}`;
+      const field = values.get(placeholder);
+      if (!field) return match;
+      if (block && standalone && field.content !== undefined) {
+        return field.content.trim() ? `${field.content.trim()}\n\n` : "";
       }
-
-      const glossaryBlock = buildHyMtGlossaryBlock(glossary);
-      const toneBlock = buildHyMtToneBlock(tone);
-      const titleBlock = buildTitleBlock(title);
-      const descriptionBlock = buildDescriptionBlock(description);
-      const summaryBlock = buildSummaryBlock(summary);
-      const contextBlock = buildContextBlock(context);
-
-      // 未显式声明占位符的非空术语和语气，参照 Hy-MT 范式自动前置注入（聚合场景丢弃上下文）
-      const unreferencedConstraints = [];
-      if (
-        !batchUserPrompt.includes(INPUT_PLACE_GLOSSARY) &&
-        Object.keys(glossary).length > 0
-      ) {
-        unreferencedConstraints.push(glossaryBlock);
-      }
-      if (
-        !batchUserPrompt.includes(INPUT_PLACE_TONE) &&
-        tone &&
-        String(tone).trim()
-      ) {
-        unreferencedConstraints.push(toneBlock);
-      }
-
-      let compiled = String(batchUserPrompt);
-
-      // 智能替换块级占位符（上下文各个独立字段、术语、语气）
-      compiled = renderBlockPlaceholder(
-        compiled,
-        INPUT_PLACE_TITLE,
-        titleBlock,
-        title
+      const value = String(field.value ?? "");
+      return match.replace(placeholder, () =>
+        block && field.content !== undefined ? value.trim() : value
       );
-      compiled = renderBlockPlaceholder(
-        compiled,
-        INPUT_PLACE_DESCRIPTION,
-        descriptionBlock,
-        description
-      );
-      compiled = renderBlockPlaceholder(
-        compiled,
-        INPUT_PLACE_SUMMARY,
-        summaryBlock,
-        summary
-      );
-      compiled = renderBlockPlaceholder(
-        compiled,
-        INPUT_PLACE_CONTEXT,
-        contextBlock,
-        context
-      );
-      compiled = renderBlockPlaceholder(
-        compiled,
-        INPUT_PLACE_GLOSSARY,
-        glossaryBlock,
-        glossaryStr
-      );
-      compiled = renderBlockPlaceholder(
-        compiled,
-        INPUT_PLACE_TONE,
-        toneBlock,
-        tone
-      );
-
-      // 替换其他常规文本占位符
-      compiled = compiled
-        .replaceAll(INPUT_PLACE_FROM, from)
-        .replaceAll(INPUT_PLACE_TO, to)
-        .replaceAll(INPUT_PLACE_FROM_LANG, fromLang)
-        .replaceAll(INPUT_PLACE_TO_LANG, toLang);
-
-      if (compiled.includes(INPUT_PLACE_SEGMENTS)) {
-        compiled = compiled.replaceAll(INPUT_PLACE_SEGMENTS, segmentsStr);
-      } else {
-        // 遗漏占位符自动末尾追加兜底
-        compiled = `${compiled.trim()}\n\n${segmentsStr}`;
-      }
-
-      if (unreferencedConstraints.length > 0) {
-        compiled = `${unreferencedConstraints.join("\n\n")}\n\n${compiled.trim()}`;
-      }
-
-      return compiled.replace(/\n{3,}/g, "\n\n").trim();
     }
-
-    const promptObj = {
-      targetLanguage: toLang,
-      segments: texts.map((text, i) => ({ id: i, text })),
-    };
-
-    title && (promptObj.title = title);
-    description && (promptObj.description = description);
-
-    Object.keys(glossary).length !== 0 && (promptObj.glossary = glossary);
-    tone && (promptObj.tone = tone);
-
-    return JSON.stringify(promptObj);
-  }
-
-  const glossaryBlock = buildHyMtGlossaryBlock(glossary);
-  const toneBlock = buildHyMtToneBlock(tone);
-  const titleBlock = buildTitleBlock(title);
-  const descriptionBlock = buildDescriptionBlock(description);
-  const summaryBlock = buildSummaryBlock(summary);
-  const contextBlock = buildContextBlock(context);
-
-  // 单句翻译：仅在有效翻译模板（包含待翻译文本占位符）或默认模板中前置注入未引用的术语和语气
-  const unreferencedNobatchConstraints = [];
-  const nobatchStr = String(nobatchUserPrompt || "");
-  const isFullTranslatePrompt =
-    nobatchStr.includes(INPUT_PLACE_TEXT) || !nobatchUserPrompt;
-
-  if (isFullTranslatePrompt) {
-    if (
-      !nobatchStr.includes(INPUT_PLACE_GLOSSARY) &&
-      Object.keys(glossary).length > 0
-    ) {
-      unreferencedNobatchConstraints.push(glossaryBlock);
-    }
-    if (!nobatchStr.includes(INPUT_PLACE_TONE) && tone && String(tone).trim()) {
-      unreferencedNobatchConstraints.push(toneBlock);
-    }
-  }
-
-  let compiled = String(nobatchUserPrompt || "");
-
-  // 智能替换块级占位符（上下文各个独立字段、术语、语气）
-  compiled = renderBlockPlaceholder(
-    compiled,
-    INPUT_PLACE_TITLE,
-    titleBlock,
-    title
   );
-  compiled = renderBlockPlaceholder(
-    compiled,
-    INPUT_PLACE_DESCRIPTION,
-    descriptionBlock,
-    description
-  );
-  compiled = renderBlockPlaceholder(
-    compiled,
-    INPUT_PLACE_SUMMARY,
-    summaryBlock,
-    summary
-  );
-  compiled = renderBlockPlaceholder(
-    compiled,
-    INPUT_PLACE_CONTEXT,
-    contextBlock,
-    context
-  );
-  compiled = renderBlockPlaceholder(
-    compiled,
-    INPUT_PLACE_GLOSSARY,
-    glossaryBlock,
-    glossaryStr
-  );
-  compiled = renderBlockPlaceholder(
-    compiled,
-    INPUT_PLACE_TONE,
-    toneBlock,
-    tone
-  );
-
-  compiled = compiled
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_FROM_LANG, fromLang)
-    .replaceAll(INPUT_PLACE_TO_LANG, toLang)
-    .replaceAll(INPUT_PLACE_TEXT, texts[0]);
-
-  if (unreferencedNobatchConstraints.length > 0) {
-    compiled = `${unreferencedNobatchConstraints.join("\n\n")}\n\n${compiled.trim()}`;
-  }
-
-  return compiled.replace(/\n{3,}/g, "\n\n").trim();
 };
+
+const encodePromptSegments = (texts, protocol) => {
+  if (protocol === "xml")
+    return `<root>\n${texts.map((text, i) => `  <t id="${i}">${text}</t>`).join("\n")}\n</root>`;
+  if (protocol === "json")
+    return JSON.stringify(texts.map((text, id) => ({ id, text })));
+  return texts
+    .map((text, i) => `${i} | ${String(text ?? "").replace(/\r?\n/g, "<br>")}`)
+    .join("\n");
+};
+
+const genUserPrompt = (args) =>
+  renderPrompt(
+    args.useBatchFetch ? args.batchUserPrompt : args.nobatchUserPrompt,
+    args,
+    true
+  )
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 
 // 统一生成最终字幕系统提示词；缓存签名与实际请求必须复用同一结果。
-export const buildSubtitleSystemPrompt = ({
-  subtitlePrompt,
-  tone,
-  from,
-  to,
-  fromLang,
-  toLang,
-  docInfo: { title = "", description = "", summary = "" } = {},
-  aiTerms = "",
-}) => {
-  const aiGlossary = parseAITerms(aiTerms);
-  const glossaryStr = Object.entries(aiGlossary)
-    .map(([term, definition]) => `- ${term}: ${definition}`)
-    .join("\n");
-  return String(subtitlePrompt || "")
-    .replaceAll(INPUT_PLACE_TITLE, title)
-    .replaceAll(INPUT_PLACE_DESCRIPTION, description)
-    .replaceAll(INPUT_PLACE_SUMMARY, summary)
-    .replaceAll(INPUT_PLACE_TONE, tone)
-    .replaceAll(INPUT_PLACE_GLOSSARY, glossaryStr)
-    .replaceAll(INPUT_PLACE_FROM, from)
-    .replaceAll(INPUT_PLACE_TO, to)
-    .replaceAll(INPUT_PLACE_FROM_LANG, fromLang)
-    .replaceAll(INPUT_PLACE_TO_LANG, toLang);
-};
+export const buildSubtitleSystemPrompt = (args) =>
+  renderPrompt(args.subtitlePrompt, args);
 
 // 字幕用户消息保持为纯 JSON，避免只读上下文污染模型的边界编号。
 const buildSubtitleUserPrompt = ({ formattedEvents }) =>
@@ -731,7 +531,9 @@ const genInit = ({
  * @param {*}
  * @returns
  */
-export const genTransReq = async ({ reqHook, ...args }) => {
+export const genTransReq = async ({ reqHook, renderedPrompts, ...args }) => {
+  if (!args.events && args.vlmPrompt === undefined && !renderedPrompts)
+    args = resolveEmptyApiPrompts(args);
   Object.assign(args, selectNativeEndpoint(args));
   const {
     apiType,
@@ -741,8 +543,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     batchProtocol,
     subtitlePrompt,
     // userPrompt,
-    nobatchPrompt = defaultNobatchPrompt,
-    nobatchUserPrompt = defaultNobatchUserPrompt,
+    nobatchPrompt,
+    nobatchUserPrompt,
     useBatchFetch,
     from,
     to,
@@ -761,6 +563,12 @@ export const genTransReq = async ({ reqHook, ...args }) => {
   if (args.vlmPrompt !== undefined) {
     args.systemPrompt = "";
     args.userPrompt = args.vlmPrompt;
+  } else if (renderedPrompts) {
+    assertPromptMessages(
+      renderedPrompts.systemPrompt,
+      renderedPrompts.userPrompt
+    );
+    Object.assign(args, renderedPrompts);
   } else if (getBuiltinServiceDefinition(apiType)?.usesMessages) {
     const docInfo = externalDocInfo || getDocInfo();
 
@@ -778,6 +586,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         })
       : genSystemPrompt({
           systemPrompt: useBatchFetch ? systemPrompt : nobatchPrompt,
+          batchProtocol,
           from,
           to,
           fromLang,
@@ -785,6 +594,8 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           texts,
           docInfo,
           tone,
+          glossary,
+          aiTerms,
         });
 
     args.systemPrompt = baseSystemPrompt;
@@ -809,6 +620,17 @@ export const genTransReq = async ({ reqHook, ...args }) => {
           glossary,
           aiTerms,
         });
+    if (!events) assertPromptMessages(args.systemPrompt, args.userPrompt);
+  }
+
+  // Old turns cannot stand in for an empty current template input.
+  // Explicit body/hook input is still validated after those overrides run.
+  if (
+    (apiType === OPT_TRANS_CLAUDE || apiType === OPT_TRANS_GEMINI) &&
+    !String(args.userPrompt ?? "").trim() &&
+    !args.imageData
+  ) {
+    args.hisMsgs = [];
   }
 
   const {
@@ -818,6 +640,17 @@ export const genTransReq = async ({ reqHook, ...args }) => {
     userMsg = null,
     method = "POST",
   } = genReqFuncs[apiType](args);
+
+  const finalizeRequest = (request) => {
+    if (apiType === OPT_TRANS_CLAUDE || apiType === OPT_TRANS_GEMINI) {
+      const payload = request.body || {};
+      requireConversationInput(
+        payload.messages || payload.contents || payload.input || [],
+        apiType === OPT_TRANS_CLAUDE ? "Claude Messages" : "Gemini"
+      );
+    }
+    return genInit(request);
+  };
 
   if (events && apiType === OPT_TRANS_GEMINI) {
     if (body?.generation_config) {
@@ -851,6 +684,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
 
   // 执行 request hook
   if (apiType !== OPT_TRANS_LOCALAI && reqHook?.trim() && !events) {
+    let hookResult;
     try {
       const req = {
         url,
@@ -859,7 +693,7 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         userMsg,
         method,
       };
-      const hookResult = await callLegacyRequestHook(
+      hookResult = await callLegacyRequestHook(
         reqHook,
         {
           ...args,
@@ -873,16 +707,16 @@ export const genTransReq = async ({ reqHook, ...args }) => {
         },
         req
       );
-      if (hookResult && hookResult.url) {
-        return genInit(hookResult);
-      }
     } catch (err) {
       logger.child("translation").info("run req hook", err);
       throw new Error(`Request hook error: ${err.message}`);
     }
+    if (hookResult && hookResult.url) {
+      return finalizeRequest(hookResult);
+    }
   }
 
-  return genInit({ url, body, headers, userMsg, method });
+  return finalizeRequest({ url, body, headers, userMsg, method });
 };
 
 /**
@@ -1007,6 +841,7 @@ export const handleDict = async (options) => {
       text: options.text,
       sourceLanguage: options.fromLang,
       language: options.toLang,
+      glossary: parseAITerms(options.apiSetting.aiTerms),
       context: options.context || "",
       document: Object.fromEntries(
         ["title", "description", "summary", "url"].map((key) => [
@@ -1014,8 +849,11 @@ export const handleDict = async (options) => {
           options.docInfo?.[key] || "",
         ])
       ),
-      instructions: options.apiSetting.dictPrompt,
-      userPrompt: options.apiSetting.dictUserPrompt,
+      ...((Object.hasOwn(options.apiSetting, "dictPrompt") ||
+        Object.hasOwn(options.apiSetting, "dictUserPrompt")) && {
+        instructions: options.apiSetting.dictPrompt,
+        userPrompt: options.apiSetting.dictUserPrompt,
+      }),
     },
     {
       signal: options.signal,
@@ -1045,7 +883,7 @@ export const handleNativeDict = async ({
 
   if (
     apiSetting.provider &&
-    apiSetting.provider.implementation.kind !== "native"
+    apiSetting.provider.implementation?.kind !== "native"
   ) {
     const { invokeTextScene } = await import("../providers/sceneAdapter");
     return invokeTextScene(
@@ -1055,6 +893,7 @@ export const handleNativeDict = async ({
         text,
         sourceLanguage: fromLang,
         language: toLang,
+        glossary: parseAITerms(apiSetting.aiTerms),
         context,
         document: Object.fromEntries(
           ["title", "description", "summary", "url"].map((key) => [
@@ -1062,8 +901,11 @@ export const handleNativeDict = async ({
             docInfo?.[key] || "",
           ])
         ),
-        instructions: apiSetting.dictPrompt,
-        userPrompt: apiSetting.dictUserPrompt,
+        ...((Object.hasOwn(apiSetting, "dictPrompt") ||
+          Object.hasOwn(apiSetting, "dictUserPrompt")) && {
+          instructions: apiSetting.dictPrompt,
+          userPrompt: apiSetting.dictUserPrompt,
+        }),
       },
       {
         signal,
@@ -1072,32 +914,23 @@ export const handleNativeDict = async ({
     );
   }
 
-  const {
-    apiType,
-    fetchInterval,
-    fetchLimit,
-    httpTimeout,
-    dictPrompt,
-    dictUserPrompt,
-  } = apiSetting;
+  const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
   const enableStream =
     Boolean(onStreamChunk) &&
     apiSetting.useStream &&
     getBuiltinServiceDefinition(
       apiType
     )?.capabilities.dictionary?.outputModes.includes("stream");
-  if (!dictPrompt) {
-    throw new Error("AI dictionary prompt is empty.");
-  }
 
   // 词典请求本质上是单条文本解析，强制关闭批量模式与翻译语气注入。
+  const dictDefaults = resolveEmptyApiPrompts(apiSetting);
   const requestApiSetting = {
     ...apiSetting,
     tone: "",
     useBatchFetch: false,
     useStream: enableStream,
-    nobatchPrompt: dictPrompt,
-    nobatchUserPrompt: dictUserPrompt ?? defaultDictUserPrompt,
+    nobatchPrompt: dictDefaults.dictPrompt,
+    nobatchUserPrompt: dictDefaults.dictUserPrompt,
   };
   const dictDocInfo = docInfo || getDocInfo();
 
@@ -1273,7 +1106,7 @@ export async function* handleNativeTranslate(
 
   if (
     apiSetting.provider &&
-    apiSetting.provider.implementation.kind !== "native"
+    apiSetting.provider.implementation?.kind !== "native"
   ) {
     const { translatePlugin } = await import("../providers/translationAdapter");
     yield* translatePlugin(texts, {
@@ -1685,7 +1518,7 @@ export const handleNativeSubtitle = async ({
 }) => {
   if (
     apiSetting.provider &&
-    apiSetting.provider.implementation.kind !== "native"
+    apiSetting.provider.implementation?.kind !== "native"
   ) {
     const { segmentPlugin } = await import("../providers/sceneAdapter");
     return segmentPlugin(events, {
@@ -1862,16 +1695,6 @@ async function handleSubtitleStreamInternal(
  * @param {*} param0
  * @returns
  */
-const summarizeSystemPrompt = `Analyze the video title, description, and transcript below. Produce a concise briefing (max 300 words) to help a subtitle translator understand the content accurately.
-
-Cover these aspects:
-1. Main topic, themes, and subject domain
-2. Key terminology with brief definitions or context
-3. Important proper nouns (people, organizations, products, places)
-4. Speaker's tone and register
-5. Abbreviations, jargon, or ambiguous terms needing consistent handling
-
-Output plain text only. No markdown, no formatting, no headers.`;
 
 export const handleSummarize = async (options) => {
   if (!options.apiSetting.provider) return handleNativeSummarize(options);
@@ -1882,8 +1705,8 @@ export const handleSummarize = async (options) => {
     {
       text: options.transcript,
       language: options.to || "zh-CN",
-      instructions: options.prompt?.systemPrompt,
-      userPrompt: options.prompt?.userPrompt,
+      instructions: options.prompt?.systemPrompt ?? "",
+      userPrompt: options.prompt?.userPrompt ?? "",
       context: [options.title, options.description].filter(Boolean).join("\n"),
       document: {
         title: options.title || "",
@@ -1906,7 +1729,7 @@ export const handleNativeSummarize = async ({
 }) => {
   if (
     apiSetting.provider &&
-    apiSetting.provider.implementation.kind !== "native"
+    apiSetting.provider.implementation?.kind !== "native"
   ) {
     const { invokeTextScene } = await import("../providers/sceneAdapter");
     return invokeTextScene(
@@ -1915,8 +1738,8 @@ export const handleNativeSummarize = async ({
       {
         text: transcript,
         language: to,
-        instructions: prompt?.systemPrompt,
-        userPrompt: prompt?.userPrompt,
+        instructions: prompt?.systemPrompt ?? "",
+        userPrompt: prompt?.userPrompt ?? "",
         context: [title, description].filter(Boolean).join("\n"),
         document: { title: title || "", description: description || "" },
       },
@@ -1954,34 +1777,20 @@ export const handleNativeSummarize = async ({
     return (summary || "").trim();
   }
 
-  // 统一展开提示词模板，确保本地大模型与网络大模型均能正确支持自定义 userPrompt
-  let userPrompt = prompt?.userPrompt;
-  if (userPrompt) {
-    userPrompt = userPrompt
-      .replaceAll("{{title}}", title || "")
-      .replaceAll("{{description}}", description || "")
-      .replaceAll("{{transcript}}", transcript || "")
-      .replaceAll(INPUT_PLACE_TO, to);
-  } else {
-    userPrompt = [
-      title && `Title: ${title}`,
-      description && `Description: ${description}`,
-      `\nTranscript:\n${transcript}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  const systemPrompt = (
-    prompt?.systemPrompt || summarizeSystemPrompt
-  ).replaceAll(INPUT_PLACE_TO, to);
+  // 按原始模板对选择默认值，再单次展开摘要支持的占位符。
+  const renderSummary = (template) =>
+    renderTemplate(template, { title, description, transcript, to });
+  const pair = resolveSummaryPrompt(apiSetting, prompt);
+  const userPrompt = renderSummary(pair.userPrompt);
+  const systemPrompt = renderSummary(pair.systemPrompt);
+  assertPromptMessages(systemPrompt, userPrompt);
 
   // 2. 本地大模型 (LocalAI)
   if (apiType === OPT_TRANS_LOCALAI) {
-    const messages = [
+    const messages = compactMessages([
       ...buildSystemRoleMessages(systemPrompt),
       { role: "user", content: userPrompt },
-    ];
+    ]);
     const id = `local-summary-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const cancel = () => {
       void sendBgMsg(MSG_LOCAL_AI_CANCEL, { id });
@@ -2023,8 +1832,7 @@ export const handleNativeSummarize = async ({
     fromLang: "auto",
     toLang: to || "en",
     useBatchFetch: false,
-    nobatchPrompt: systemPrompt,
-    nobatchUserPrompt: userPrompt,
+    renderedPrompts: { systemPrompt, userPrompt },
   });
 
   const res = await fetchData(input, init, {

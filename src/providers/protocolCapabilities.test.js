@@ -43,9 +43,13 @@ function fixture(task, kind) {
   const outputAudio = assets.put(new NodeBlob(["mp3"], { type: "audio/mpeg" }));
   const inputs = {
     chat: { messages: [{ role: "user", content: "hello" }] },
-    translate: { items: [{ id: "a", text: "hello" }], targetLanguage: "zh" },
-    summarize: { text: "article", language: "zh" },
-    dictionary: { text: "bank", language: "zh" },
+    translate: {
+      items: [{ id: "a", text: "hello" }],
+      targetLanguage: "zh",
+      userPrompt: "{{segments}}",
+    },
+    summarize: { text: "article", language: "zh", userPrompt: "{{text}}" },
+    dictionary: { text: "bank", language: "zh", userPrompt: "{{text}}" },
     detectLanguage: { text: "hello", candidates: ["en", "zh"] },
     suggest: { text: "hel", language: "en" },
     segmentSubtitle: {
@@ -401,7 +405,7 @@ test("summary scene prompt aliases render the transcript and video metadata", ()
     document: { title: "Video title", description: "Video description" },
     userPrompt: "{{title}}|{{description}}|{{transcript}}",
   });
-  expect(messages[1].content).toBe(
+  expect(messages.find((m) => m.role === "user").content).toBe(
     "Video title|Video description|The full transcript"
   );
 });

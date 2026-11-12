@@ -60,6 +60,7 @@ function example() {
 
 const chatInput = { messages: [{ role: "user", content: "Hello" }] };
 const translationInput = {
+  ...defaults,
   items: [
     { id: "a", text: "A" },
     { id: "b", text: "B" },

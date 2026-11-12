@@ -1,4 +1,7 @@
 import { providerError } from "./capabilities";
+import { hasPromptPair } from "./sdk/template";
+import { TRANSLATION_PROTOCOL_PROMPTS } from "./sdk/translation";
+import textTaskDefaults from "./sdk/defaultTextTaskPrompts.json";
 
 export const defaultPromptCapabilities = Object.freeze({
   batch: "translate",
@@ -133,8 +136,9 @@ export function validateDefaultPrompts(service) {
   }
 }
 
-/** Explicit task/scene instructions win; the snapshot supplies only absent defaults. */
+/** Nonblank task/scene pairs win; blank pairs select complete defaults. */
 export function withDefaultPromptInput(instance, capability, input) {
+  if (instance.provider?.implementation?.kind === "native") return input;
   const slot =
     capability === "translate"
       ? (
@@ -155,16 +159,49 @@ export function withDefaultPromptInput(instance, capability, input) {
           recognizeText: "recognizeText",
           analyzeLayout: "analyzeLayout",
         }[capability];
-  const prompt = selectedPluginPrompt(instance, slot);
-  if (!prompt || !input || typeof input !== "object") return input;
+  if (!input || typeof input !== "object") return input;
+  const protocol =
+    input.outputProtocol ||
+    (input.translationMode === "single"
+      ? "text"
+      : input.translationMode === "batch" || instance.useBatchFetch
+        ? instance.batchProtocol || "json"
+        : instance.useBatchFetch === false
+          ? "text"
+          : "json");
+  const selected = selectedPluginPrompt(instance, slot);
+  const paired = ["translate", "dictionary", "summarize"].includes(capability);
+  const usable = (preset) =>
+    preset &&
+    (!paired ||
+      (hasPromptPair(preset.systemPrompt, preset.userPrompt) &&
+        (capability !== "translate" ||
+          !input.outputProtocol ||
+          (preset.protocol || (slot === "batch" ? "json" : "text")) ===
+            input.outputProtocol)));
+  const prompt =
+    (usable(selected)
+      ? selected
+      : getPluginPromptOptions(instance, slot).find(usable)) ||
+    (capability === "translate"
+      ? { ...TRANSLATION_PROTOCOL_PROMPTS[protocol], protocol }
+      : ["dictionary", "summarize"].includes(capability)
+        ? textTaskDefaults[capability]
+        : undefined);
+  if (!prompt) return input;
+  const systemKey =
+    capability === "translate" ? "systemPrompt" : "instructions";
+  const custom = hasPromptPair(input[systemKey], input.userPrompt);
   if (capability === "translate")
     return {
       ...input,
       ...(input.outputProtocol === undefined && {
         outputProtocol: prompt.protocol || (slot === "batch" ? "json" : "text"),
       }),
-      systemPrompt: input.systemPrompt ?? prompt.systemPrompt,
-      userPrompt: input.userPrompt ?? prompt.userPrompt,
+      systemPrompt: custom
+        ? (input.systemPrompt ?? "")
+        : (prompt.systemPrompt ?? ""),
+      userPrompt: custom ? (input.userPrompt ?? "") : (prompt.userPrompt ?? ""),
     };
   if (["parseImage", "recognizeText", "analyzeLayout"].includes(capability))
     return {
@@ -173,10 +210,18 @@ export function withDefaultPromptInput(instance, capability, input) {
         input.prompt ??
         [prompt.systemPrompt, prompt.userPrompt].filter(Boolean).join("\n\n"),
     };
+  if (["dictionary", "summarize"].includes(capability))
+    return {
+      ...input,
+      instructions: custom
+        ? (input.instructions ?? "")
+        : (prompt.systemPrompt ?? ""),
+      userPrompt: custom ? (input.userPrompt ?? "") : (prompt.userPrompt ?? ""),
+    };
   return {
     ...input,
     instructions: input.instructions ?? prompt.systemPrompt,
-    ...(["dictionary", "summarize", "suggest"].includes(capability) && {
+    ...(capability === "suggest" && {
       userPrompt: input.userPrompt ?? prompt.userPrompt,
     }),
   };

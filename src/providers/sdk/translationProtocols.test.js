@@ -6,6 +6,8 @@ import {
   TRANSLATION_PROTOCOL_PROMPTS,
 } from "./translation";
 import { encodeSegments } from "./segments";
+import textDefaults from "./defaultTextTaskPrompts.json";
+import { buildTextTaskMessages } from "./textTasks";
 import {
   resolveApiPromptSettings,
   findPromptBySlug,
@@ -37,13 +39,70 @@ const inputFor = (outputProtocol) => ({
   targetLanguage: "en",
   translationMode: outputProtocol === "text" ? "single" : "batch",
   outputProtocol,
+  ...TRANSLATION_PROTOCOL_PROMPTS[outputProtocol],
+});
+
+test.each(["line", "xml"])(
+  "%s default template uses explicit tone and empty glossary renders empty",
+  (protocol) => {
+    const content = buildMessages({ ...inputFor(protocol), tone: "formal" })
+      .map((m) => m.content)
+      .join("\n");
+    expect(content).toContain("formal");
+    const custom = buildMessages({
+      ...inputFor(protocol),
+      systemPrompt: "{{unknown}}",
+      userPrompt: "{{glossary}}",
+      tone: "formal",
+    });
+    expect(custom).toEqual([{ role: "system", content: "{{unknown}}" }]);
+  }
+);
+
+test("default SDK dictionary uses glossary, custom template can omit it", () => {
+  const input = {
+    text: "bank",
+    language: "zh",
+    glossary: { bank: "河岸" },
+    instructions: textDefaults.dictionary.systemPrompt,
+    userPrompt: textDefaults.dictionary.userPrompt,
+  };
+  expect(buildTextTaskMessages("dictionary", input)[1].content).toContain(
+    "- bank: 河岸"
+  );
+  expect(
+    buildTextTaskMessages("dictionary", {
+      ...input,
+      instructions: "Define",
+      userPrompt: "{{text}}",
+    })[1].content
+  ).toBe("bank");
+});
+
+test("empty standalone SDK placeholders disappear without removing static labels", () => {
+  expect(
+    buildMessages({
+      ...inputFor("line"),
+      systemPrompt: "{{unknown}}",
+      userPrompt: "{{glossary}}\n{{tone}}\nTitle: {{title}}\n{{segments}}",
+    })[1].content
+  ).toBe(`Title: \n${encodeSegments(items, "line")}`);
+  expect(
+    buildTextTaskMessages("dictionary", {
+      text: "bank",
+      instructions: "Define",
+      userPrompt: "{{glossary}}\nTitle: {{title}}\n{{text}}",
+    })[1].content
+  ).toBe("Title: \nbank");
 });
 
 test.each(Object.keys(outputs))(
   "%s default prompts, complete and split streaming results agree",
   async (protocol) => {
     const input = inputFor(protocol);
-    expect(buildMessages(input)[1].content).toContain(
+    expect(
+      buildMessages(input).find((m) => m.role === "user").content
+    ).toContain(
       protocol === "text" ? items[0].text : encodeSegments(items, protocol)
     );
     expect(
@@ -155,7 +214,7 @@ test.each([
     userPrompt: batch ? api.batchUserPrompt : api.nobatchUserPrompt,
   };
   expect(input.systemPrompt).toBe(prompt.systemPrompt);
-  expect(buildMessages(input)[1].content).toContain(
+  expect(buildMessages(input).find((m) => m.role === "user").content).toContain(
     protocol === "text" ? items[0].text : encodeSegments(input.items, protocol)
   );
   expect(parseResult(outputs[protocol], input)).toEqual({ items: input.items });
@@ -163,7 +222,7 @@ test.each([
 
 test("single-item batches retain their chosen protocol", () => {
   const input = { ...inputFor("xml"), items: items.slice(0, 1) };
-  expect(buildMessages(input)[1].content).toContain(
+  expect(buildMessages(input).find((m) => m.role === "user").content).toContain(
     encodeSegments(input.items, "xml")
   );
   expect(parseResult(encodeSegments(input.items, "xml"), input)).toEqual({
@@ -171,24 +230,31 @@ test("single-item batches retain their chosen protocol", () => {
   });
 });
 
-test("explicit empty prompt templates are not replaced by protocol defaults", () => {
+test("explicit empty prompt templates use protocol defaults", () => {
   expect(
     buildMessages({ ...inputFor("text"), systemPrompt: "", userPrompt: "" })
-  ).toEqual([
-    { role: "system", content: "" },
-    { role: "user", content: "" },
-  ]);
+  ).toEqual(
+    buildMessages({
+      ...inputFor("text"),
+      systemPrompt: undefined,
+      userPrompt: undefined,
+    })
+  );
 });
 
-test("empty inherited host fields use SDK defaults while an explicit empty entity is retained", () => {
+test("empty inline fields and empty presets use defaults without mutating storage", () => {
   const base = {
-    provider: { implementation: { kind: "script" } },
+    provider: {
+      implementation: { kind: "script" },
+      capabilities: { translate: { outputModes: ["text"] } },
+    },
     nobatchPrompt: "",
     nobatchUserPrompt: "",
   };
   const resolved = resolveApiPromptSettings(base);
-  expect(resolved.nobatchPrompt).toBeUndefined();
-  expect(resolved.nobatchUserPrompt).toBeUndefined();
+  expect((resolved.nobatchPrompt + resolved.nobatchUserPrompt).trim()).not.toBe(
+    ""
+  );
   const explicit = resolveApiPromptSettings(
     { ...base, nobatchPromptSlug: "empty" },
     [
@@ -200,6 +266,7 @@ test("empty inherited host fields use SDK defaults while an explicit empty entit
       },
     ]
   );
-  expect(explicit.nobatchPrompt).toBe("");
-  expect(explicit.nobatchUserPrompt).toBe("");
+  expect((explicit.nobatchPrompt + explicit.nobatchUserPrompt).trim()).not.toBe(
+    ""
+  );
 });

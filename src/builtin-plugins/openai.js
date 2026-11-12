@@ -1,3 +1,4 @@
+import { compactMessages } from "./messages";
 import { buildChatBody } from "../providers/sdk/openai";
 
 /** Trusted, statically bundled adapter. Shared by native OpenAI-compatible providers. */
@@ -35,7 +36,11 @@ export function buildOpenAIRequest(
   };
   const body = buildChatBody({
     model,
-    messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
+    messages: compactMessages([
+      ...buildSystemRoleMessages(systemPrompt),
+      ...hisMsgs,
+      userMsg,
+    ]),
     temperature,
     max_completion_tokens: maxTokens,
     stream: useStream,
@@ -53,5 +58,5 @@ export function buildOpenAIRequest(
     "Content-type": "application/json",
     Authorization: `Bearer ${key}`,
   };
-  return { url, body, headers, userMsg };
+  return { url, body, headers, userMsg: compactMessages([userMsg])[0] };
 }

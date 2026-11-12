@@ -39,8 +39,11 @@ import {
   OPT_TRANS_GOOGLE,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
-  defaultNobatchUserPrompt,
-  defaultDictUserPrompt,
+  INPUT_PLACE_TONE,
+  INPUT_PLACE_GLOSSARY,
+  defaultContextSummaryPrompt,
+  resolveEmptyApiPrompts,
+  resolveSummaryPrompt,
 } from "../config";
 import { getSetting } from "../libs/storage";
 import { logger } from "../libs/log";
@@ -79,7 +82,7 @@ export {
   apiYoudaoSuggest,
 };
 
-const PROMPT_CACHE_SALT = "prompt-cache";
+const PROMPT_CACHE_SALT = "prompt-cache-default-pair-v5";
 const PROMPT_CACHE_SCOPE_BATCH = "batch";
 const PROMPT_CACHE_SCOPE_NOBATCH = "nobatch";
 const PROMPT_CACHE_SCOPE_DICT = "dict";
@@ -131,42 +134,72 @@ function getTranslatePromptCacheScope(apiSetting = {}) {
     : PROMPT_CACHE_SCOPE_NOBATCH;
 }
 
-function getPromptCacheFields(apiSetting = {}, promptScope, glossary = {}) {
-  let fields = [];
-
+function getPromptTemplateFields(apiSetting, promptScope) {
   if (promptScope === PROMPT_CACHE_SCOPE_BATCH) {
-    fields = [apiSetting.systemPrompt || ""];
-    if (apiSetting.batchUserPrompt) {
-      fields.push(apiSetting.batchUserPrompt);
-    }
-    if (apiSetting.batchProtocol) {
-      fields.push(apiSetting.batchProtocol);
-    }
-  } else if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
-    fields = [
-      apiSetting.nobatchPrompt || "",
-      apiSetting.nobatchUserPrompt ?? defaultNobatchUserPrompt,
-    ];
-  } else if (promptScope === PROMPT_CACHE_SCOPE_DICT) {
     return [
-      apiSetting.dictPrompt || "",
-      apiSetting.dictUserPrompt ?? defaultDictUserPrompt,
-      apiSetting.aiTerms || "",
+      apiSetting.systemPrompt || "",
+      ...[apiSetting.batchUserPrompt, apiSetting.batchProtocol].filter(Boolean),
     ];
-  } else if (promptScope === PROMPT_CACHE_SCOPE_QWEN_MT) {
-    fields = [];
-  } else {
-    return [];
   }
+  if (promptScope === PROMPT_CACHE_SCOPE_NOBATCH) {
+    return [apiSetting.nobatchPrompt || "", apiSetting.nobatchUserPrompt ?? ""];
+  }
+  if (promptScope === PROMPT_CACHE_SCOPE_DICT) {
+    return [apiSetting.dictPrompt || "", apiSetting.dictUserPrompt ?? ""];
+  }
+  return [];
+}
 
-  fields.push(apiSetting.tone || "", apiSetting.aiTerms || "");
-  if (apiSetting.terminologySignature)
-    fields.push(apiSetting.terminologySignature);
-  const glossaryEntries = Object.entries(glossary || {}).sort();
-  if (glossaryEntries.length) {
-    fields.push(JSON.stringify(glossaryEntries));
+function getPromptParameterUsage(apiSetting, promptScope) {
+  const templates = getPromptTemplateFields(apiSetting, promptScope).join("\n");
+  // Plugins and request hooks may read task parameters independently of templates.
+  const conservative =
+    (apiSetting.provider &&
+      apiSetting.provider.implementation?.kind !== "native") ||
+    (apiSetting.apiType !== OPT_TRANS_LOCALAI && apiSetting.reqHook?.trim()) ||
+    promptScope === PROMPT_CACHE_SCOPE_QWEN_MT;
+  return {
+    tone:
+      promptScope !== PROMPT_CACHE_SCOPE_DICT &&
+      (conservative || templates.includes(INPUT_PLACE_TONE)),
+    glossary: conservative || templates.includes(INPUT_PLACE_GLOSSARY),
+  };
+}
+
+function getPromptCacheFields(apiSetting = {}, promptScope, glossary = {}) {
+  if (promptScope === PROMPT_CACHE_SCOPE_PLAIN) return [];
+  const fields = getPromptTemplateFields(apiSetting, promptScope);
+  const usage = getPromptParameterUsage(apiSetting, promptScope);
+  if (usage.tone) fields.push(apiSetting.tone || "");
+  if (usage.glossary) {
+    fields.push(apiSetting.aiTerms || "");
+    if (apiSetting.terminologySignature)
+      fields.push(apiSetting.terminologySignature);
+    const entries = Object.entries(glossary || {}).sort();
+    if (entries.length) fields.push(JSON.stringify(entries));
   }
   return fields;
+}
+
+function getPromptProviderCacheSignature(
+  apiSetting,
+  capability,
+  context,
+  promptScope
+) {
+  if (apiSetting.provider.implementation?.kind !== "native") {
+    return providerCacheSignature(apiSetting, capability, context);
+  }
+  const usage = getPromptParameterUsage(apiSetting, promptScope);
+  const projectedApi = { ...apiSetting };
+  const projectedContext = { ...context };
+  if (!usage.tone) delete projectedApi.tone;
+  if (!usage.glossary) {
+    delete projectedApi.aiTerms;
+    delete projectedApi.terminologySignature;
+    delete projectedContext.glossary;
+  }
+  return providerCacheSignature(projectedApi, capability, projectedContext);
 }
 
 async function getPromptCacheSig(apiSetting = {}, promptScope, glossary) {
@@ -659,8 +692,22 @@ const executeApiTranslate = async ({
       new Error("Translation capability is disabled or unsupported."),
       { code: "CAPABILITY_DISABLED" }
     );
+  const useBatchFetch = Boolean(
+    apiSetting.useBatchFetch &&
+      cacheMode === "default" &&
+      supportsServiceFeature(apiSetting, "batch")
+  );
+  apiSetting = resolveEmptyApiPrompts(
+    {
+      ...apiSetting,
+      useBatchFetch,
+      ...(!useBatchFetch &&
+        apiSetting.provider?.implementation?.kind !== "native" &&
+        apiSetting.provider && { outputProtocol: "text" }),
+    },
+    "translate"
+  );
   const { apiType, apiSlug } = apiSetting;
-  const useBatchFetch = apiSetting.useBatchFetch && cacheMode === "default";
   const langMap = OPT_LANGS_TO_SPEC[apiType] || OPT_LANGS_SPEC_DEFAULT;
   const fromMap = OPT_LANGS_FROM_SPEC[apiType] || langMap;
   const from = fromMap.get(fromLang);
@@ -680,14 +727,19 @@ const executeApiTranslate = async ({
     glossary
   );
   if (apiSetting.provider) {
-    promptSig = await providerCacheSignature(apiSetting, "translate", {
-      promptSig,
-      glossary,
-      docInfo,
-      fromLang,
-      toLang,
-      textFormat,
-    });
+    promptSig = await getPromptProviderCacheSignature(
+      apiSetting,
+      "translate",
+      {
+        promptSig,
+        glossary,
+        docInfo,
+        fromLang,
+        toLang,
+        textFormat,
+      },
+      getTranslatePromptCacheScope(apiSetting)
+    );
   }
   const cacheOpts = {
     apiSlug,
@@ -840,7 +892,7 @@ const executeApiTranslate = async ({
       srCode =
         OPT_LANGS_TO_CODE[apiType]?.get(srLang) ||
         (apiSetting.provider &&
-        apiSetting.provider.implementation.kind !== "native"
+        apiSetting.provider.implementation?.kind !== "native"
           ? normalizeLanguageCode(srLang)
           : "");
     }
@@ -906,6 +958,7 @@ export const apiDict = async ({
     throw new DOMException("The operation was aborted.", "AbortError");
   }
 
+  apiSetting = resolveEmptyApiPrompts(apiSetting, "dictionary");
   const { apiType } = apiSetting;
   if (!supportsApiCapability(apiSetting, "dictionary")) {
     throw new Error("AI dictionary only supports AI APIs.");
@@ -938,16 +991,21 @@ export const apiDict = async ({
     toLang,
     version: [v1, v2].join("."),
     promptSig: apiSetting.provider
-      ? await providerCacheSignature(apiSetting, "dictionary", {
-          promptSig: await getPromptCacheSig(
-            apiSetting,
-            PROMPT_CACHE_SCOPE_DICT
-          ),
-          context,
-          docInfo: effectiveDocInfo,
-          fromLang,
-          toLang,
-        })
+      ? await getPromptProviderCacheSignature(
+          apiSetting,
+          "dictionary",
+          {
+            promptSig: await getPromptCacheSig(
+              apiSetting,
+              PROMPT_CACHE_SCOPE_DICT
+            ),
+            context,
+            docInfo: effectiveDocInfo,
+            fromLang,
+            toLang,
+          },
+          PROMPT_CACHE_SCOPE_DICT
+        )
       : await getPromptCacheSig(apiSetting, PROMPT_CACHE_SCOPE_DICT),
     contextSig: contextSig.slice(0, 16),
   };
@@ -1151,6 +1209,7 @@ export const apiSummarizeContext = async ({
   const cacheOpts = {
     apiSlug: apiSetting.apiSlug,
     videoId,
+    promptVersion: PROMPT_CACHE_SALT,
     ...((apiSetting.provider || apiSetting.enabledCapabilities) && {
       providerSig: await providerCacheSignature(apiSetting, "summarize", {
         title,
@@ -1173,6 +1232,7 @@ export const apiSummarizeContext = async ({
     description,
     transcript,
     apiSetting,
+    prompt: defaultContextSummaryPrompt,
   });
 
   if (summary) {
@@ -1197,7 +1257,9 @@ export const getVideoSummarySignature = async ({
   prompt = {},
   to = "zh-CN",
 }) => {
+  prompt = resolveSummaryPrompt(apiSetting, prompt);
   const contentToDigest = [
+    PROMPT_CACHE_SALT,
     videoId,
     apiSetting?.apiSlug || "",
     apiSetting?.modelRef || apiSetting?.model || "",
@@ -1240,6 +1302,7 @@ export const apiSummarizeVideo = async ({
       new Error("Summary capability is disabled or unsupported."),
       { code: "CAPABILITY_DISABLED" }
     );
+  prompt = resolveSummaryPrompt(apiSetting, prompt);
   const summarySig = await getVideoSummarySignature({
     videoId,
     title,

@@ -204,7 +204,8 @@ export default function PluginInstanceFields({
       const input = applyTestPrompt(
         capability,
         createTestInput(capability, text, file, assets),
-        current
+        current,
+        { prompts: saved.prompts, subtitleSetting: saved.subtitleSetting }
       );
       if (active.current !== job || job.cancelled) return;
       const invocation = invokeInstance(current, capability, input, {

@@ -1,4 +1,10 @@
+import { compactMessages } from "./messages";
 import { providerError } from "../capabilities";
+import {
+  renderTemplate,
+  assertPromptMessages,
+  resolvePromptPair,
+} from "./template";
 
 import defaultTranslationPrompts from "./defaultTranslationPrompts.json";
 import protocolPrompts from "./translationProtocolPrompts.json";
@@ -81,7 +87,9 @@ export function buildMessages(input) {
     sourceLanguage: input.sourceLanguage || "auto",
     targetLanguage: input.targetLanguage,
     items: JSON.stringify(input.items),
-    glossary: JSON.stringify(input.glossary || {}),
+    glossary: Object.keys(input.glossary || {}).length
+      ? JSON.stringify(input.glossary)
+      : "",
     context: input.context || "",
     from: input.sourceLanguage || "auto",
     to: input.targetLanguage,
@@ -101,18 +109,19 @@ export function buildMessages(input) {
     summary: input.document?.summary || "",
     url: input.document?.url || "",
   };
-  const render = (template) =>
-    template.replace(/\{\{([A-Za-z][\w]*)\}\}/g, (match, key) =>
-      Object.prototype.hasOwnProperty.call(values, key) ? values[key] : match
-    );
-  const system =
-    input.systemPrompt ?? TRANSLATION_PROTOCOL_PROMPTS[protocol].systemPrompt;
-  const user =
-    input.userPrompt ?? TRANSLATION_PROTOCOL_PROMPTS[protocol].userPrompt;
-  return [
-    { role: "system", content: render(system) },
-    { role: "user", content: render(user) },
-  ];
+  const render = (template) => renderTemplate(template, values);
+  const pair = resolvePromptPair(
+    input.systemPrompt,
+    input.userPrompt,
+    TRANSLATION_PROTOCOL_PROMPTS[protocol]
+  );
+  const system = render(pair.systemPrompt);
+  const user = render(pair.userPrompt);
+  assertPromptMessages(system, user);
+  return compactMessages([
+    { role: "system", content: system },
+    { role: "user", content: user },
+  ]);
 }
 
 export function parseResult(text, options) {

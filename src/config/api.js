@@ -335,6 +335,10 @@ export const defaultDictUserPrompt = `# Input Data
 - Document summary: ${INPUT_PLACE_SUMMARY}
 - Surrounding paragraph: ${INPUT_PLACE_CONTEXT}
 
+# Glossary
+${INPUT_PLACE_GLOSSARY}
+Use glossary translations exactly; an empty translation means preserve the source term.
+
 ## [Target] (Required)
 > Use this text to choose between dictionary mode and pure translation mode:
 ${INPUT_PLACE_TEXT}`;
@@ -508,3 +512,20 @@ export const DEFAULT_API_TYPE = OPT_TRANS_MICROSOFT;
 export const DEFAULT_API_SETTING = DEFAULT_API_LIST.find(
   (a) => a.apiType === DEFAULT_API_TYPE
 );
+
+const summarizeSystemPrompt = `Analyze the video title, description, and transcript below. Produce a concise briefing (max 300 words) to help a subtitle translator understand the content accurately.
+
+Cover these aspects:
+1. Main topic, themes, and subject domain
+2. Key terminology with brief definitions or context
+3. Important proper nouns (people, organizations, products, places)
+4. Speaker's tone and register
+5. Abbreviations, jargon, or ambiguous terms needing consistent handling
+
+Output plain text only. No markdown, no formatting, no headers.`;
+
+export const defaultContextSummaryPrompt = Object.freeze({
+  systemPrompt: summarizeSystemPrompt,
+  userPrompt:
+    "Title: {{title}}\nDescription: {{description}}\n\nTranscript:\n{{transcript}}",
+});

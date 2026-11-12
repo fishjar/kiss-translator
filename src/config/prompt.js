@@ -1,3 +1,7 @@
+import { getBuiltinServiceDefinition } from "../builtin-plugins/definitions";
+import { hasPromptPair, resolvePromptPair } from "../providers/sdk/template";
+import { withDefaultPromptInput } from "../providers/defaultPrompts";
+import { getSupportedCapabilityDescriptor } from "../providers/capabilities";
 import {
   defaultNobatchPrompt,
   defaultNobatchUserPrompt,
@@ -1161,6 +1165,119 @@ export function removePromptReferences(setting = {}, promptSlug) {
   return nextSetting;
 }
 
+export function resolveSummaryPrompt(api = {}, prompt) {
+  if (hasPromptPair(prompt?.systemPrompt, prompt?.userPrompt)) return prompt;
+  if (api.provider && api.provider.implementation?.kind !== "native") {
+    const selected = withDefaultPromptInput(api, "summarize", {});
+    return {
+      ...prompt,
+      systemPrompt: selected.instructions,
+      userPrompt: selected.userPrompt,
+    };
+  }
+  return {
+    ...prompt,
+    ...resolvePromptPair(null, null, DEFAULT_SUMMARY_PROMPT),
+  };
+}
+
+// Resolve blank raw pairs without mutating saved settings.
+export function resolveEmptyApiPrompts(api = {}, requestedCapability) {
+  const next = { ...api };
+  const external =
+    api.provider && api.provider.implementation?.kind !== "native";
+  if (
+    !external &&
+    api.apiType &&
+    !getBuiltinServiceDefinition(api.apiType)?.usesMessages
+  )
+    return api;
+  const protocol = api.batchProtocol || "line";
+  const batchDefaults = {
+    json: {
+      systemPrompt: defaultSystemPromptJson,
+      userPrompt: defaultBatchUserPromptJson,
+    },
+    line: {
+      systemPrompt: defaultSystemPromptLines,
+      userPrompt: defaultBatchUserPromptLines,
+    },
+    xml: {
+      systemPrompt: defaultSystemPromptXml,
+      userPrompt: defaultBatchUserPromptXml,
+    },
+  }[protocol];
+  for (const [systemKey, userKey, capability, batch, defaults] of [
+    ["systemPrompt", "batchUserPrompt", "translate", true, batchDefaults],
+    [
+      "nobatchPrompt",
+      "nobatchUserPrompt",
+      "translate",
+      false,
+      {
+        systemPrompt: defaultNobatchPrompt,
+        userPrompt: defaultNobatchUserPrompt,
+      },
+    ],
+    [
+      "dictPrompt",
+      "dictUserPrompt",
+      "dictionary",
+      false,
+      { systemPrompt: defaultDictPrompt, userPrompt: defaultDictUserPrompt },
+    ],
+  ]) {
+    if (external && !getSupportedCapabilityDescriptor(api, capability))
+      continue;
+    if (
+      requestedCapability &&
+      (requestedCapability !== capability ||
+        (capability === "translate" && Boolean(api.useBatchFetch) !== batch))
+    )
+      continue;
+    if (hasPromptPair(next[systemKey], next[userKey])) continue;
+    const slugKey =
+      capability === "dictionary"
+        ? "dictPromptSlug"
+        : batch
+          ? "batchPromptSlug"
+          : "nobatchPromptSlug";
+    const preset = findPromptBySlug([], api[slugKey]);
+    const nativeDefault = hasPromptPair(
+      preset?.systemPrompt,
+      preset?.userPrompt
+    )
+      ? preset
+      : defaults;
+    const selected = external
+      ? withDefaultPromptInput(
+          api,
+          capability,
+          capability === "translate"
+            ? { translationMode: batch ? "batch" : "single" }
+            : {}
+        )
+      : nativeDefault;
+    next[systemKey] =
+      selected?.[
+        capability === "dictionary" && external
+          ? "instructions"
+          : "systemPrompt"
+      ] ?? "";
+    next[userKey] = selected?.userPrompt ?? "";
+    if (!external && batch && preset?.protocol)
+      next.batchProtocol = preset.protocol;
+    if (
+      external &&
+      capability === "translate" &&
+      Boolean(api.useBatchFetch) === batch &&
+      selected.outputProtocol
+    )
+      next.outputProtocol = selected.outputProtocol;
+  }
+  return next;
+}
+
 /**
  * 在运行时，将接口配置中引用的提示词 Slug 解析展开。
  * 它会根据配置中的 `***PromptSlug` 字段，去 `userPrompts` 或预设列表中寻找实际的提示词文本，
@@ -1219,17 +1336,15 @@ export function resolveApiPromptSettings(
     ]) {
       const pluginSelection =
         !next[slugKey] || isPluginPromptSlug(next[slugKey]);
-      const prompt = pluginSelection
-        ? selectedPluginPrompt(next, slot)
-        : findPromptBySlug(userPrompts, next[slugKey]);
-      if (!prompt) {
-        // Empty legacy host defaults are not explicit plugin prompt templates.
-        if (!next[slugKey] && ["batch", "nobatch"].includes(slot)) {
-          if (next[systemKey] === "") delete next[systemKey];
-          if (userKey && next[userKey] === "") delete next[userKey];
-        }
-        continue;
-      }
+      const inlinePair =
+        userKey && hasPromptPair(next[systemKey], next[userKey]);
+      const prompt =
+        !next[slugKey] && inlinePair
+          ? undefined
+          : pluginSelection
+            ? selectedPluginPrompt(next, slot)
+            : findPromptBySlug(userPrompts, next[slugKey]);
+      if (!prompt) continue;
       next[systemKey] =
         slot === "vlm" ? imagePromptText(prompt) : prompt.systemPrompt;
       if (userKey) next[userKey] = prompt.userPrompt;
@@ -1254,7 +1369,7 @@ export function resolveApiPromptSettings(
       );
       if (prompt) next.subtitlePrompt = prompt.systemPrompt;
     }
-    return next;
+    return resolveEmptyApiPrompts(next);
   }
 
   const cleanedApiSetting = removeLegacyApiPromptIds(apiSetting);
@@ -1264,11 +1379,16 @@ export function resolveApiPromptSettings(
     nextApiSetting,
     "batchPromptSlug"
   );
-  const hasBatchPromptInlineValue = hasOwn(nextApiSetting, "systemPrompt");
+  const hasBatchPromptInlineValue =
+    hasOwn(nextApiSetting, "systemPrompt") ||
+    hasOwn(nextApiSetting, "batchUserPrompt");
   const batchPromptSlug = getPromptFieldValue(
     nextApiSetting,
     "batchPromptSlug",
-    DEFAULT_BATCH_PROMPT_SLUG
+    {
+      line: PROMPT_SLUG_BATCH_TRANSLATION_LINE,
+      xml: PROMPT_SLUG_BATCH_TRANSLATION_XML,
+    }[nextApiSetting.batchProtocol] || DEFAULT_BATCH_PROMPT_SLUG
   );
   const batchPrompt = findPromptBySlugOrDefault(
     userPrompts,
@@ -1286,12 +1406,6 @@ export function resolveApiPromptSettings(
       delete nextApiSetting.batchProtocol;
     }
   } else if (batchPrompt) {
-    if (
-      nextApiSetting.batchUserPrompt === undefined &&
-      batchPrompt.userPrompt
-    ) {
-      nextApiSetting.batchUserPrompt = batchPrompt.userPrompt;
-    }
     if (!nextApiSetting.batchProtocol && batchPrompt.protocol) {
       nextApiSetting.batchProtocol = batchPrompt.protocol;
     }
@@ -1386,7 +1500,7 @@ export function resolveApiPromptSettings(
 
   // Scene callers already resolve prompts here. Project old built-ins at the same
   // read-only boundary so existing apiSlug references enter compiled routing.
-  return withBuiltinProvider(nextApiSetting);
+  return withBuiltinProvider(resolveEmptyApiPrompts(nextApiSetting));
 }
 
 /**

@@ -500,3 +500,37 @@ test("external service timeout is a saved service option, separate from pluginCo
   expect(saved.transApis[0].httpTimeout).toBe(600);
   expect(saved.transApis[0].pluginConfig).toEqual(api.pluginConfig);
 });
+
+test("summary capability test supplies the saved scene template pair", async () => {
+  const summaryApi = {
+    ...api,
+    enabledCapabilities: ["summarize"],
+    provider: {
+      ...api.provider,
+      capabilities: { summarize: { handler: "summarize" } },
+    },
+  };
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [summaryApi],
+    prompts: [
+      {
+        slug: "summary-scene",
+        category: "summary prompt",
+        systemPrompt: "",
+        userPrompt: "Scene {{transcript}}",
+      },
+    ],
+    subtitleSetting: { summaryPromptSlug: "summary-scene" },
+  });
+  invokeService.mockReturnValue({
+    result: Promise.resolve({ text: "Summary" }),
+    events: (async function* () {})(),
+    cancel: jest.fn(),
+  });
+  await render(summaryApi);
+  await act(async () => button("执行测试").click());
+  expect(invokeService.mock.calls[0][2]).toMatchObject({
+    instructions: "",
+    userPrompt: "Scene {{transcript}}",
+  });
+});
