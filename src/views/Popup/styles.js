@@ -179,7 +179,9 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-style-select:hover { background: var(--kt-sf3); }
 .kt-popup-style-select[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--kt-popup-focus, #A8C7FA); }
 .kt-popup-style-label { flex: none; color: var(--kt-popup-muted); font-size: 11px; font-weight: 600; }
-.kt-popup-style-value { min-width: 0; flex: 1; overflow: hidden; font-size: 13px; font-weight: 600; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.kt-popup-style-value { height: 100%; min-width: 0; flex: 1; overflow: hidden; font-size: 13px; font-weight: 600; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.kt-popup-style-value::after { content: ""; display: inline-block; height: 100%; vertical-align: middle; }
+.kt-popup-style-value > span { display: inline; vertical-align: middle; }
 .kt-popup-style-select > svg { width: 18px; height: 18px; flex: none; color: var(--kt-onv); }
 .kt-popup-display-mode { position: relative; min-width: 0; height: 40px; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); padding: 3px; border-radius: 12px; background: var(--kt-sf2); }
 .kt-popup-display-mode .kt-popup-segment-indicator { top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); }
