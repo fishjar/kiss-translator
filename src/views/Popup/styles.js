@@ -260,9 +260,9 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-service-option > span:not(.kt-service-logo) { flex: 1; white-space: nowrap; }
 .kt-popup-style-menu.MuiPaper-root { width: 322px; padding: 8px; }
 .kt-popup-style-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); grid-auto-rows: 34px; align-content: start; gap: 6px; }
-.kt-popup-style-chip { min-width: 0; height: 34px; display: flex; align-items: center; justify-content: center; padding: 0 4px; overflow: hidden; border: 1px solid var(--kt-linev); border-radius: 8px; background: var(--kt-sf0); color: var(--kt-on); font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.kt-popup-style-chip { min-width: 0; height: 34px; display: inline-block; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; border: 1px solid var(--kt-linev); border-radius: 8px; background: var(--kt-sf0); color: var(--kt-on); font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
 .kt-popup-style-chip[aria-pressed="true"] { border-color: var(--kt-pri); background: var(--kt-pric); color: var(--kt-onpric); }
-.kt-popup-style-chip > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.kt-popup-style-chip > span { display: inline; }
 .kt-popup-language-menu.MuiPaper-root { max-height: min(320px, calc(100% - 16px)); scrollbar-gutter: stable; }
 .kt-popup-language-option.MuiMenuItem-root,
 .kt-popup-language-menu .MuiMenuItem-root { min-height: 36px; height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 10px; }
