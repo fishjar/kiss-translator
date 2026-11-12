@@ -1864,6 +1864,37 @@ describe("FileTranslatePage (M2 UI)", () => {
     expect(container.textContent).toContain("试译当前章节");
     expect(container.textContent).toContain("一键翻译");
     expect(container.textContent).toContain("Aa");
+
+    const workspace = container.querySelector("[data-file-workspace]");
+    const toolbar = [...workspace.parentElement.children].find((element) =>
+      element.querySelector('button[aria-label="收起配置"]')
+    );
+    const fullscreenButton = () =>
+      [...workspace.querySelectorAll("button")].find(
+        (button) => button.textContent === "全屏"
+      );
+    await act(async () => fullscreenButton().click());
+    expect(getComputedStyle(toolbar).display).toBe("none");
+    expect(getComputedStyle(workspace).padding).toBe("0px");
+    expect(workspace.textContent).toContain("退出全屏");
+
+    // 重新选择文件会重置共用全屏状态。
+    await act(async () =>
+      fileInput.dispatchEvent(new Event("change", { bubbles: true }))
+    );
+    expect(fullscreenButton()).toBeTruthy();
+    expect(getComputedStyle(toolbar).display).not.toBe("none");
+    expect(getComputedStyle(workspace).padding).toBe("12px");
+
+    await act(async () => fullscreenButton().click());
+    await act(async () =>
+      container
+        .querySelector(".MuiChip-deleteIcon")
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    );
+    expect(getComputedStyle(toolbar).display).not.toBe("none");
+    expect(getComputedStyle(workspace).padding).toBe("12px");
+    expect(workspace.querySelector(".kt-epub-reader-body")).toBeNull();
   });
 
   test("换书时自动中止正在运行的翻译任务并防止旧任务回调写入状态（修复问题 1）", async () => {
