@@ -467,6 +467,8 @@ export function Menus({
   canDownload = false,
   asr,
   asrActions,
+  subtitleListVisible = false,
+  onSubtitleListToggle,
   onClose,
   terminologyDirectory = [],
 }) {
@@ -572,6 +574,15 @@ export function Menus({
         value={autoTranslate}
         label={i18n("enable_subtitle_translate")}
       />
+      {onSubtitleListToggle && (
+        <Switch
+          label={i18n("show_subtitle_list", "显示字幕列表")}
+          name="subtitleListVisible"
+          value={subtitleListVisible}
+          onChange={({ value }) => onSubtitleListToggle(value)}
+          disabled={!autoTranslate}
+        />
+      )}
       {asr && (
         <>
           <Switch

@@ -140,7 +140,8 @@ export class YouTubeCaptionProvider {
 
   // 挂载在视频右侧/下方的双语字幕列表面板管理器实例
   #subtitleListManager = null;
-  #asrPanelClosed = false;
+  // Keep the user's list visibility choice across video navigation until page reload.
+  #subtitleListOverride = null;
   #asrTabSuggested = false;
 
   /**
@@ -403,7 +404,6 @@ export class YouTubeCaptionProvider {
     void this.#asr?.stop();
     this.#asrDisabled = false;
     this.#asrWanted = false;
-    this.#asrPanelClosed = false;
     this.#asrTabSuggested = false;
     this.#captionCooldownUntil = 0;
     this.#seekCleanup?.();
@@ -465,7 +465,6 @@ export class YouTubeCaptionProvider {
       this.#destroyManager();
       this.#subtitleListManager?.destroy();
       this.#subtitleListManager = null;
-      this.#asrPanelClosed = false;
       this.#playerUi.removeToggleButton();
       this.#adObserver?.disconnect();
       this.#boundPlayer = player;
@@ -494,7 +493,7 @@ export class YouTubeCaptionProvider {
       this.#lastCc = cc?.getAttribute("aria-pressed") === "true";
       if (cc) this.#observeYtSubtitleState(cc);
     }
-    if (youtubeAsrSupported && this.#setting.autoTranslate && !this.#ccBlocked)
+    if (this.#setting.autoTranslate && !this.#ccBlocked)
       this.#ensureSubtitleList();
     if (this.#asr?.active) {
       void this.#asr.tick();
@@ -568,9 +567,14 @@ export class YouTubeCaptionProvider {
   }
 
   #suggestAsrTab() {
-    if (!youtubeAsrSupported || this.#asrTabSuggested || this.#asrDisabled)
+    if (
+      !youtubeAsrSupported ||
+      this.#asrTabSuggested ||
+      this.#asrDisabled ||
+      !this.#asr?.service()
+    )
       return;
-    this.#ensureSubtitleList(true);
+    this.#ensureSubtitleList();
     if (!this.#subtitleListManager) return;
     this.#asrTabSuggested = true;
     this.#subtitleListManager.selectAsrTab();
@@ -626,16 +630,9 @@ export class YouTubeCaptionProvider {
     this.#flatEvents = [];
     this.#rawSubtitleEvents = [];
     this.#acquisitionState = { phase: "off" };
-    this.#asrPanelClosed = false;
-    if (this.#subtitleListManager && !this.#subtitleListManager.asrActions) {
-      this.#subtitleListManager.destroy();
-      this.#subtitleListManager = null;
-    }
     this.#progressed = 0;
-    this.#ensureSubtitleList(true);
     this.#subtitleListManager?.setBilingualSubtitles([], 0);
     this.#playerUi.hideYtCaption();
-    this.#subtitleListManager?.selectAsrTab();
     this.#asr.start();
   }
 
@@ -836,13 +833,6 @@ export class YouTubeCaptionProvider {
     } catch (error) {
       if (version !== this.#acquisitionVersion || error.name === "AbortError")
         return;
-      if (
-        error.code === "NO_SUBTITLES" &&
-        youtubeAsrSupported &&
-        !this.#asrDisabled
-      ) {
-        this.#suggestAsrTab();
-      }
       this.#acquisitionState = {
         ...this.#acquisitionState,
         phase: error.code === "NO_SUBTITLES" ? "empty" : "error",
@@ -850,6 +840,13 @@ export class YouTubeCaptionProvider {
         cooldownUntil:
           error.cooldownUntil || this.#acquisitionState.cooldownUntil || 0,
       };
+      if (
+        error.code === "NO_SUBTITLES" &&
+        youtubeAsrSupported &&
+        !this.#asrDisabled
+      ) {
+        this.#suggestAsrTab();
+      }
       this.#playerUi.updateMenuProps();
       this.#captionCooldownUntil = Math.max(
         this.#captionCooldownUntil,
@@ -1238,6 +1235,7 @@ export class YouTubeCaptionProvider {
         cooldownUntil: this.#captionCooldownUntil,
       };
       this.#processingId = null;
+      this.#ensureSubtitleList();
       if (this.#asrWanted && !this.#asrDisabled) this.#startAsr();
       else void this.#acquire();
     }
@@ -1346,6 +1344,16 @@ export class YouTubeCaptionProvider {
         if (this.#managerInstance && this.#subtitles.length)
           this.#managerInstance.retryFailedTranslations?.();
         else this.#reProcessEvents();
+        this.#playerUi.updateMenuProps();
+      },
+      subtitleListVisible: !!this.#subtitleListManager?.container,
+      onSubtitleListToggle: (visible) => {
+        this.#subtitleListOverride = visible;
+        if (visible) this.#ensureSubtitleList();
+        else {
+          this.#subtitleListManager?.destroy();
+          this.#subtitleListManager = null;
+        }
         this.#playerUi.updateMenuProps();
       },
       canDownload: this.#subtitles.length > 0,
@@ -2088,28 +2096,35 @@ export class YouTubeCaptionProvider {
     });
 
     this.#ensureSubtitleList();
-    if (this.#subtitleListManager)
-      this.#managerInstance.onSubtitleUpdate = (update) =>
-        this.#subtitleListManager?.updateSingleSubtitle(update);
+    this.#managerInstance.onSubtitleUpdate = (update) =>
+      this.#subtitleListManager?.updateSingleSubtitle(update);
 
     this.#managerInstance.start();
 
     this.#playerUi.hideYtCaption();
   }
 
-  #ensureSubtitleList(forceAsr = false) {
+  #ensureSubtitleList() {
     const videoEl = this.#videoEl;
-    if (
-      !videoEl ||
-      this.#subtitleListManager ||
-      this.#asrPanelClosed ||
-      !this.#setting.autoTranslate
-    )
+    if (!videoEl || this.#subtitleListManager || !this.#setting.autoTranslate)
       return;
     if (
-      !forceAsr &&
-      !this.#asr?.active &&
-      !isSubtitleModeEnabled(this.#setting.showList, this.#setting.enhanceMode)
+      !(
+        this.#subtitleListOverride ??
+        isSubtitleModeEnabled(this.#setting.showList, this.#setting.enhanceMode)
+      )
+    )
+      return;
+    const canRecommendAsr =
+      this.#acquisitionState.phase === "empty" &&
+      youtubeAsrSupported &&
+      !this.#asrDisabled &&
+      !!this.#asr?.service();
+    // Only explicit opens may show an empty list before captions or an ASR recommendation.
+    // Starting ASR itself must not open the list, including when its first cues arrive.
+    if (
+      this.#subtitleListOverride !== true &&
+      (this.#asr?.active || (!this.#subtitles.length && !canRecommendAsr))
     )
       return;
     this.#subtitleListManager = new YouTubeSubtitleList(videoEl, this.#i18n, {
@@ -2117,8 +2132,9 @@ export class YouTubeCaptionProvider {
       retryCaptions: () =>
         this.#acquire({ enableCc: this.#ccBlocked, refresh: true }),
       onClose: () => {
-        this.#asrPanelClosed = true;
+        this.#subtitleListOverride = false;
         this.#subtitleListManager = null;
+        this.#playerUi.updateMenuProps();
       },
       enableHoverLookup: isSubtitleModeEnabled(
         this.#setting.hoverLookupMode,
@@ -2158,7 +2174,7 @@ export class YouTubeCaptionProvider {
       this.#rawSubtitleEvents,
       this.#progressed
     );
-    if (forceAsr || this.#asr?.active) {
+    if (this.#asr?.active) {
       this.#subtitleListManager.updateAsrTasks({
         reset: true,
         tasks: this.#asr?.tasks?.snapshot() || [],
@@ -2167,6 +2183,7 @@ export class YouTubeCaptionProvider {
 
     this.#subtitleListManager.updateCaptionState?.(this.#acquisitionState);
     this.#subtitleListManager.turnOnAutoSub();
+    this.#playerUi.updateMenuProps();
   }
 
   /**
