@@ -73,6 +73,28 @@ describe("subtitle Menus", () => {
       view.cleanup();
     }
   );
+  test.each([false, true])(
+    "list toggle controls visibility independently when visible=%s",
+    (visible) => {
+      const onSubtitleListToggle = jest.fn();
+      const start = jest.fn();
+      const view = renderMenus({
+        subtitleListVisible: visible,
+        onSubtitleListToggle,
+        asr: { active: false, available: true },
+        asrActions: { start },
+      });
+      const row = [...view.container.querySelectorAll('[role="button"]')].find(
+        (item) => item.textContent === "show_subtitle_list"
+      );
+      act(() => row.click());
+      expect(onSubtitleListToggle).toHaveBeenCalledWith(!visible);
+      expect(start).not.toHaveBeenCalled();
+      expect(view.updateSetting).not.toHaveBeenCalled();
+      view.cleanup();
+    }
+  );
+
   test("audio-block results disable segmentation without putting guidance in the menu", () => {
     const view = renderMenus({
       transApis: [{ apiSlug: "ai", apiName: "AI", apiType: "OpenAI" }],
