@@ -224,6 +224,14 @@ const RULES_MAP = {
     parentStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
     grandStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
   },
+  "://web.telegram.org/k": {
+    autoScan: `false`,
+    selector:
+      ".bubbles .translatable-message, .bubbles .message:not(:has(.translatable-message))",
+    rootsSelector: "body",
+    ignoreSelector:
+      "+ .time, .time-inner, .peer-title, .document-wrapper, reactions-element",
+  },
   "://web.telegram.org/": {
     autoScan: `false`,
     selector: ".text-content, .embedded-text-wrapper",

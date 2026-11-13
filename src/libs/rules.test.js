@@ -102,6 +102,55 @@ describe("official rule URL boundaries", () => {
   });
 });
 
+describe("Telegram client rules", () => {
+  const effectiveRule = (href) =>
+    deriveRuleContext(href, {
+      personalRules: [GLOBLA_RULE],
+      subRules: BUILTIN_RULES,
+    }).effective;
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  test.each([
+    "https://web.telegram.org/k/",
+    "https://web.telegram.org/k/#@telegram",
+  ])(
+    "selects Web K message bodies without duplicate outer messages: %s",
+    (href) => {
+      document.body.innerHTML = `
+      <aside><span class="translatable-message" id="sidebar">Chat preview</span></aside>
+      <main class="bubbles">
+        <div class="message"><span class="translatable-message" id="incoming">Hello <b>world</b></span><span class="time">12:00</span></div>
+        <div class="message" id="outgoing">Plain outgoing message<span class="time">12:01</span><reactions-element>1</reactions-element><button>Reply</button></div>
+        <div class="message"><span class="translatable-message" id="caption">Photo caption</span></div>
+      </main>`;
+      const rule = effectiveRule(href);
+      expect(rule.autoScan).toBe("false");
+      expect(document.querySelector(rule.rootsSelector)).toBe(document.body);
+      expect(
+        Array.from(document.querySelectorAll(rule.selector), (el) => el.id)
+      ).toEqual(["incoming", "outgoing", "caption"]);
+      expect(document.querySelector(".time").matches(rule.ignoreSelector)).toBe(
+        true
+      );
+      expect(
+        document.querySelector("reactions-element").matches(rule.ignoreSelector)
+      ).toBe(true);
+      expect(
+        document.querySelector("button").matches(rule.ignoreSelector)
+      ).toBe(true);
+    }
+  );
+
+  test("retains Web A roots and message selectors", () => {
+    const rule = effectiveRule("https://web.telegram.org/a/#@telegram");
+    expect(rule.rootsSelector).toBe(".Transition");
+    expect(rule.selector).toBe(".text-content, .embedded-text-wrapper");
+  });
+});
+
 test("keeps an explicitly stored Tencent global rule", async () => {
   getDisabledSubRules.mockResolvedValue([]);
   getRulesWithDefault.mockResolvedValue([
