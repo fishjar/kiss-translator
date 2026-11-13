@@ -75,6 +75,13 @@ export function getStreamDelta(json, apiType) {
           : "";
       }
 
+      // generateContent (alt=sse) 没有 event_type：中途的 {error:{...}} 必须终止，交由上层回退到非流式
+      if (json.error) {
+        const error = new Error(json.error?.message || "Gemini stream failed");
+        error.isAIStreamTerminal = true;
+        throw error;
+      }
+
       // 谷歌原生 Gemini API 的 delta 提取逻辑 (排除思维链思考过程)
       const parts = json.candidates?.[0]?.content?.parts;
       return (
