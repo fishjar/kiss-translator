@@ -4296,7 +4296,7 @@ describe("Translator rule styles", () => {
     const requestedText = apiTranslate.mock.calls[0][0].text;
     const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
 
-    expect(requestedText).toBe("First{1}column{2}Second line");
+    expect(requestedText).toBe("First{{1}}column{{2}}Second line");
     expect(requestedText).not.toContain("\t");
     expect(requestedText).not.toContain("\n");
     expect(inner.textContent).toBe(sourceText);
