@@ -76,7 +76,7 @@ import {
 
 registerI18n(TERMINOLOGY_PLAYGROUND_I18N);
 
-// 占位符格式由 apiSetting.placeholder 配置决定，默认取内置第一项 "{ }" → 生成 {1}、{2}…
+// 占位符格式由 apiSetting.placeholder 配置决定，默认取内置第一项 "{{ }}" → 生成 {{1}}、{{2}}…
 const [PLACEHOLDER_START, PLACEHOLDER_END] = BUILTIN_PLACEHOLDERS[0].split(" ");
 
 // 接口条目的运行时必需默认字段（2026-08-20 根因修复）。
@@ -86,7 +86,7 @@ const [PLACEHOLDER_START, PLACEHOLDER_END] = BUILTIN_PLACEHOLDERS[0].split(" ");
 // 整页翻译在发请求前就失败。真实扩展条目由设置页基于 defaultApi 构建；
 // Playground 做真实 AI 测试前，必须在所有读取点补齐这些字段，否则必然复现同一崩溃。
 const API_RUNTIME_DEFAULTS = {
-  placeholder: "{ }", // BUILTIN_PLACEHOLDERS[0]
+  placeholder: BUILTIN_PLACEHOLDERS[0],
   placetag: "i", // BUILTIN_PLACETAGS[0]
   placetagFormat: "compact",
   rootMargin: 2000, // defaultApi.rootMargin
