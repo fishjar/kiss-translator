@@ -620,7 +620,6 @@ export default function Popup() {
             rule={rule}
             setting={setting}
             setRule={setRule}
-            handleOpenSetting={handleOpenSetting}
           />
         ) : isLoading ? (
           <div

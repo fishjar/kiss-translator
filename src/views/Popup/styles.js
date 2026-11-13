@@ -62,14 +62,17 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-header { height: 48px; min-height: 48px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 12px; background: var(--kt-sf0); }
 .kt-popup-header__logo { width: 26px; height: 26px; border-radius: 8px; }
 .kt-popup-brand-button { display: block; flex: none; padding: 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
-.kt-popup-header__identity { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.kt-popup-header__identity { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .kt-popup-header__title { min-width: 0; max-width: 100%; overflow: hidden; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .kt-popup-header__version { color: var(--kt-line); font-size: 10.5px; }
 .kt-popup-header__spacer { flex: 1; }
 .kt-popup-header__drag { display: flex; flex: none; color: var(--kt-onv); cursor: move; }
+.kt-popup-header__support { display: inline-flex; flex: none; }
 .kt-popup-header__actions { display: flex; flex: none; align-items: center; gap: 6px; margin-left: auto; }
-.kt-popup-header .MuiIconButton-root { width: 32px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--kt-onv); }
-.kt-popup-header .MuiIconButton-root svg { width: 20px; height: 20px; }
+.kt-popup-header .MuiIconButton-root { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; width: 32px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--kt-onv); }
+.kt-popup-header .MuiIconButton-root svg { display: inline-block; flex: none; fill: currentColor; width: 20px; height: 20px; }
+.kt-popup-header--content .MuiIconButton-root { width: 40px; height: 40px; }
+.kt-popup-header--content .kt-popup-header__actions { gap: 0; }
 .kt-popup-header .MuiIconButton-root:hover { background: var(--kt-sf2); }
 .kt-popup-header__sponsor.MuiIconButton-root { background: transparent; color: var(--kt-onv); }
 .kt-popup-header__sponsor.MuiIconButton-root:hover { background: var(--kt-sf2); }
@@ -236,8 +239,6 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-cache-button[data-status="clearing"] { cursor: progress; }
 .kt-popup-version { margin-left: auto; padding-right: 6px; color: var(--kt-line); font-size: 11px; white-space: nowrap; }
 .kt-popup-action-error { color: var(--kt-err); font-size: 11px; }
-.kt-popup-all-settings { min-height: 36px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--kt-sf2); color: var(--kt-pri); font-size: 12px; font-weight: 700; cursor: pointer; }
-.kt-popup-all-settings:hover { background: var(--kt-sf3); }
 
 /* Menus are portaled to the theme root, outside the scrolling popup shell. */
 .kt-popup-menu.MuiPaper-root,
