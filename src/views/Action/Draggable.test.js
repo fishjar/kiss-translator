@@ -207,6 +207,78 @@ describe("Draggable FAB edge locking", () => {
     expect(draggable.querySelector(".MuiPaper-root")).not.toBeNull();
   });
 
+  test("applies a non-snapping panel's initial position before paint", () => {
+    renderFab({ snapEdge: false, left: 120, top: 90 });
+    expect(draggable.style.transform).toBe("translate(120px, 90px)");
+    expect(putFab).not.toHaveBeenCalled();
+  });
+
+  test("centers using the rendered panel height instead of its estimate", () => {
+    getBoundingClientRect.mockReturnValue({ width: 360, height: 200 });
+    renderFab({
+      snapEdge: false,
+      left: undefined,
+      top: undefined,
+      width: 360,
+      height: 442,
+    });
+    expect(draggable.style.transform).toBe("translate(120px, 100px)");
+  });
+
+  test("centers a new panel and restores its reported position after remount", () => {
+    const onPositionChange = jest.fn();
+    renderFab({
+      snapEdge: false,
+      left: undefined,
+      top: undefined,
+      onPositionChange,
+    });
+    expect(draggable.style.transform).toBe("translate(280px, 180px)");
+    expect(onPositionChange).toHaveBeenLastCalledWith({
+      x: 280 / 600,
+      y: 180 / 400,
+    });
+
+    const handle = draggable.firstElementChild.firstElementChild;
+    act(() =>
+      handle.dispatchEvent(
+        new MouseEvent("pointerdown", {
+          bubbles: true,
+          clientX: 290,
+          clientY: 190,
+        })
+      )
+    );
+    act(() =>
+      handle.dispatchEvent(
+        new MouseEvent("pointermove", {
+          bubbles: true,
+          clientX: 390,
+          clientY: 240,
+        })
+      )
+    );
+    act(() =>
+      handle.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }))
+    );
+    const saved = onPositionChange.mock.calls.at(-1)[0];
+    expect(draggable.getBoundingClientRect().left).toBeCloseTo(380);
+    expect(draggable.getBoundingClientRect().top).toBeCloseTo(230);
+
+    act(() => root.render(null));
+    renderFab({ snapEdge: false, left: saved.x * 600, top: saved.y * 400 });
+    expect(draggable.getBoundingClientRect().left).toBeCloseTo(380);
+    expect(draggable.getBoundingClientRect().top).toBeCloseTo(230);
+    expect(putFab).not.toHaveBeenCalled();
+  });
+
+  test("clamps a remembered panel inside a smaller viewport", () => {
+    const fab = renderFab({ snapEdge: false, left: 550, top: 350 });
+    setViewport(300, 200);
+    rerenderFab(fab, { windowSize: { w: 300, h: 200 } });
+    expect(draggable.style.transform).toBe("translate(260px, 160px)");
+  });
+
   test("does not begin a panel drag from an interactive header control", () => {
     const onStart = jest.fn();
     renderFab({

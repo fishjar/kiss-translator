@@ -8,6 +8,7 @@ import { getCurTab, sendBgMsg } from "../../libs/msg";
 import { MSG_FIT_SEPARATE_WINDOW, STOKEY_SETTING } from "../../config";
 import { SEPARATE_WINDOW_CONTENT_WIDTH } from "../../config/app";
 import { loadPopupData } from "./loadData";
+import { tryClearCaches } from "../../libs/cache";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let mockIsFirefox = false;
@@ -47,6 +48,7 @@ jest.mock("../../libs/msg", () => ({
   sendBgMsg: jest.fn(),
 }));
 jest.mock("./loadData", () => ({ loadPopupData: jest.fn() }));
+jest.mock("../../libs/cache", () => ({ tryClearCaches: jest.fn() }));
 jest.mock("./disabledPage", () => ({ loadDisabledPopupData: jest.fn() }));
 jest.mock("./PopupCont", () => {
   const React = require("react");
@@ -442,6 +444,8 @@ describe("shared translation panel hosts", () => {
 
     const form = view.container.querySelector('[data-testid="tran-form"]');
     expect(form.dataset.simpleStyle).toBe("true");
+    expect(form.closest(".kt-popup-text-panel--minimal")).not.toBeNull();
+    const menuTrigger = form.querySelector('button[title="more"]');
     expect(form.dataset.autoFocus).toBe("false");
     expect(form.dataset.syncExternal).toBe("true");
     expect(form.querySelector('[data-testid="source-text"]').textContent).toBe(
@@ -456,6 +460,8 @@ describe("shared translation panel hosts", () => {
     act(() => restoreButton.click());
 
     expect(form.dataset.simpleStyle).toBe("false");
+    expect(form.closest(".kt-popup-text-panel--minimal")).toBeNull();
+    expect(form.querySelector('button[title="more"]')).toBe(menuTrigger);
     expect(form.querySelector('[data-testid="source-text"]').textContent).toBe(
       "Clipboard source text"
     );
@@ -780,6 +786,38 @@ describe("Popup default view", () => {
       await Promise.resolve();
     });
   }
+
+  test.each([true, false])(
+    "keeps cache clearing and version available without page translation (cleared: %s)",
+    async (cleared) => {
+      loadPopupData.mockResolvedValue(null);
+      let resolveClear;
+      tryClearCaches.mockReset().mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveClear = resolve;
+          })
+      );
+      await renderPopup("page");
+      await flushEffects();
+
+      expect(container.textContent).toContain("popup_page_unavailable");
+      const footer = container.querySelector(".kt-popup-bottom-actions");
+      expect(footer.querySelector(".kt-popup-version").textContent).toBe(
+        `v${process.env.REACT_APP_VERSION}`
+      );
+      expect(footer.querySelector(".kt-popup-disable-button")).toBeNull();
+      const button = footer.querySelector(".kt-popup-cache-button");
+      act(() => button.click());
+      expect(button.disabled).toBe(true);
+      expect(button.getAttribute("data-status")).toBe("clearing");
+      expect(tryClearCaches).toHaveBeenCalledTimes(1);
+      await act(async () => resolveClear(cleared));
+      expect(button.textContent).toContain(
+        cleared ? "popup_cache_cleared" : "popup_cache_failed"
+      );
+    }
+  );
 
   test.each([undefined, "page", "invalid"])(
     "opens the webpage panel for preference %p",

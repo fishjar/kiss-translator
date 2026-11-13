@@ -112,6 +112,7 @@ export default function Draggable({
   onMove,
   onDeactivate,
   onPositionTransitionEnd,
+  onPositionChange,
   handler, // The drag handle.
   children, // The main content.
   usePaper,
@@ -173,14 +174,11 @@ export default function Draggable({
   // Store proportional positions so they scale with viewport changes.
   // Edge snapping normalizes invalid coordinates from zero-sized viewports.
   const latestPosition = useRef({
-    x: left / windowWidth,
-    y: top / windowHeight,
+    x: (left ?? (windowWidth - width) / 2) / Math.max(1, windowWidth),
+    y: (top ?? (windowHeight - height) / 2) / Math.max(1, windowHeight),
   });
   const latestEdge = useRef(edge);
-  const [position, setPosition] = useState({
-    x: left / windowWidth,
-    y: top / windowHeight,
-  });
+  const [position, setPosition] = useState(latestPosition.current);
   // Debounce storage updates for the latest drag position.
   const setFabPosition = useMemo(() => debounce(putFab, 500), []);
 
@@ -232,6 +230,53 @@ export default function Draggable({
       containerRef.current.style.transform = `translate(${x}px, ${y}px)`;
     }
   }, []);
+
+  // Non-snapping panels need an initial transform too. With no saved position,
+  // center using the rendered dimensions rather than the estimated panel height.
+  useLayoutEffect(() => {
+    if (snapEdge || origin) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const panelWidth = rect.width || width;
+    const panelHeight = rect.height || height;
+    const firstPosition = !hasAppliedPositionRef.current;
+    const x = limitFloat(
+      firstPosition && left === undefined
+        ? (windowWidth - panelWidth) / 2
+        : position.x * windowWidth,
+      0,
+      Math.max(0, windowWidth - panelWidth)
+    );
+    const y = limitFloat(
+      firstPosition && top === undefined
+        ? (windowHeight - panelHeight) / 2
+        : position.y * windowHeight,
+      0,
+      Math.max(0, windowHeight - panelHeight)
+    );
+    applyTransform(x, y);
+    const nextPosition = {
+      x: x / Math.max(1, windowWidth),
+      y: y / Math.max(1, windowHeight),
+    };
+    latestPosition.current = nextPosition;
+    onPositionChange?.(nextPosition);
+    if (nextPosition.x !== position.x || nextPosition.y !== position.y) {
+      setPosition(nextPosition);
+    }
+  }, [
+    applyTransform,
+    height,
+    left,
+    onPositionChange,
+    origin,
+    position.x,
+    position.y,
+    snapEdge,
+    top,
+    width,
+    windowHeight,
+    windowWidth,
+  ]);
 
   // Keep event handlers synchronized with the latest position.
   useEffect(() => {
@@ -405,8 +450,19 @@ export default function Draggable({
     let y = origin.y + dy;
 
     // Keep the dragged control within the reachable viewport bounds.
-    x = limitNumber(x, -width / 2, windowWidth - width / 2);
-    y = limitNumber(y, 0, windowHeight - height / 2);
+    const rect = containerRef.current.getBoundingClientRect();
+    x = limitNumber(
+      x,
+      snapEdge ? -width / 2 : 0,
+      snapEdge ? windowWidth - width / 2 : Math.max(0, windowWidth - rect.width)
+    );
+    y = limitNumber(
+      y,
+      0,
+      snapEdge
+        ? windowHeight - height / 2
+        : Math.max(0, windowHeight - rect.height)
+    );
 
     applyTransform(x, y);
     const relativePosition = {

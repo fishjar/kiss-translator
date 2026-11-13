@@ -8,8 +8,7 @@ import {
   getTranBoxViewportHeight,
 } from "./tranboxPosition";
 
-// These values pin TRANBOX_CHROME_HEIGHT. The redesign increased the header
-// from 36px to 56px and added a 1px card border, requiring 22px more outer height.
+// These values pin the header, bottom padding, resize grips, and card borders.
 describe("translation box viewport bounds", () => {
   let originalInnerWidth;
   let originalInnerHeight;
@@ -53,9 +52,9 @@ describe("translation box viewport bounds", () => {
     clientHeight.mockReturnValue(500);
 
     expect(getMaxTranBoxContentWidth()).toBe(784);
-    expect(getMaxTranBoxContentHeight()).toBe(426);
+    expect(getMaxTranBoxContentHeight()).toBe(432);
     expect(getMaxTranBoxX(400)).toBe(384);
-    expect(getMaxTranBoxY(200)).toBe(226);
+    expect(getMaxTranBoxY(200)).toBe(232);
   });
 
   test.each([0, undefined])(
@@ -64,12 +63,12 @@ describe("translation box viewport bounds", () => {
       clientWidth.mockReturnValue(measurement);
       clientHeight.mockReturnValue(485);
       expect(getMaxTranBoxContentWidth()).toBe(784);
-      expect(getMaxTranBoxY(200)).toBe(211);
+      expect(getMaxTranBoxY(200)).toBe(217);
 
       clientWidth.mockReturnValue(785);
       clientHeight.mockReturnValue(measurement);
       expect(getMaxTranBoxX(400)).toBe(369);
-      expect(getMaxTranBoxContentHeight()).toBe(426);
+      expect(getMaxTranBoxContentHeight()).toBe(432);
       expect(getTranBoxViewportHeight()).toBe(500);
     }
   );
@@ -78,7 +77,7 @@ describe("translation box viewport bounds", () => {
     jest.spyOn(document, "documentElement", "get").mockReturnValue(null);
 
     expect(getMaxTranBoxContentWidth()).toBe(784);
-    expect(getMaxTranBoxContentHeight()).toBe(426);
+    expect(getMaxTranBoxContentHeight()).toBe(432);
   });
 
   test("uses the body client area for a quirks-mode document", () => {
@@ -89,19 +88,19 @@ describe("translation box viewport bounds", () => {
     clientHeight.mockReturnValue(2200);
 
     expect(getMaxTranBoxX(400)).toBe(369);
-    expect(getMaxTranBoxY(200)).toBe(211);
+    expect(getMaxTranBoxY(200)).toBe(217);
   });
 
   test("reads current client bounds after a viewport change", () => {
     clientWidth.mockReturnValue(785);
     clientHeight.mockReturnValue(485);
     expect(getMaxTranBoxX(400)).toBe(369);
-    expect(getMaxTranBoxY(200)).toBe(211);
+    expect(getMaxTranBoxY(200)).toBe(217);
 
     clientWidth.mockReturnValue(1000);
     clientHeight.mockReturnValue(700);
     expect(getMaxTranBoxX(400)).toBe(584);
-    expect(getMaxTranBoxY(200)).toBe(426);
+    expect(getMaxTranBoxY(200)).toBe(432);
   });
 
   test("never returns negative limits for a narrow client area", () => {
@@ -114,10 +113,10 @@ describe("translation box viewport bounds", () => {
     expect(getMaxTranBoxY(200)).toBe(0);
   });
 
-  test("includes the 56px header, resize grips, and card border", () => {
-    expect(getTranBoxOuterHeight(200)).toBe(274);
-    expect(getMaxTranBoxContentHeight()).toBe(426);
-    expect(getMaxTranBoxY(200)).toBe(226);
+  test("includes the 42px header, bottom padding, resize grips, and card border", () => {
+    expect(getTranBoxOuterHeight(200)).toBe(268);
+    expect(getMaxTranBoxContentHeight()).toBe(432);
+    expect(getMaxTranBoxY(200)).toBe(232);
   });
 
   test("never returns negative height or position limits", () => {

@@ -685,7 +685,7 @@ export default function TranCont({
                 className={
                   isPlayground
                     ? "kt-translation-text-field__actions"
-                    : undefined
+                    : "kt-translation-text-actions"
                 }
                 direction="row"
                 spacing={1}

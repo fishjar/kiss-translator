@@ -1524,7 +1524,7 @@ describe("TranForm translation service selection", () => {
     expect(container.querySelector('[role="listbox"]')).not.toBeNull();
     expect(
       getComputedStyle(container.querySelector(".MuiPopover-root")).zIndex
-    ).toBe("2147483647");
+    ).toBe("2147483646");
 
     await act(async () => {
       [...document.body.querySelectorAll('[role="option"]')]
