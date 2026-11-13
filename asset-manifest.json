@@ -1,12 +1,12 @@
 {
   "files": {
-    "main.js": "/assets/homepage/main.23b59c64.js",
+    "main.js": "/assets/homepage/main.e556c95b.js",
     "options.js": "/options.js",
     "kiss-translator.user.js": "/kiss-translator.user.js",
-    "static/js/770.b26b3853.chunk.js": "/static/js/770.b26b3853.chunk.js",
+    "static/js/130.9cb6c60a.chunk.js": "/static/js/130.9cb6c60a.chunk.js",
     "options.html": "/options.html",
     "index.html": "/index.html",
-    "fileTranslate.js": "/assets/homepage/fileTranslate.307dca22.js",
+    "fileTranslate.js": "/assets/homepage/fileTranslate.eb9b17ca.js",
     "assets/homepage/158.be17c1b2.chunk.js": "/assets/homepage/158.be17c1b2.chunk.js",
     "assets/homepage/677.02047bf6.chunk.css": "/assets/homepage/677.02047bf6.chunk.css",
     "assets/homepage/677.7141c422.chunk.js": "/assets/homepage/677.7141c422.chunk.js",
@@ -304,6 +304,6 @@
     "assets/pdf/cmaps/CNS2-V.bcmap": "/assets/pdf/cmaps/CNS2-V.bcmap"
   },
   "entrypoints": [
-    "assets/homepage/main.23b59c64.js"
+    "assets/homepage/main.e556c95b.js"
   ]
 }

@@ -16,6 +16,7 @@
     "ignoreSelector": "[data-testid='videoPlayer'], [data-testid^='tweetTextarea']",
     "autoScan": "false",
     "selectStyle": "-webkit-line-clamp: unset; max-height: none; height: auto;",
+    "injectCss": "[data-testid='tweetPhoto'] img, [data-testid='card.layoutLarge.media'] img { opacity: 1 !important; }",
     "pattern": "://twitter.com/, https://x.com/"
   },
   {
@@ -31,6 +32,13 @@
     "parentStyle": "-webkit-line-clamp: unset; max-height: none; height: auto;",
     "grandStyle": "-webkit-line-clamp: unset; max-height: none; height: auto;",
     "pattern": "://www.youtube.com/"
+  },
+  {
+    "autoScan": "false",
+    "selector": ".bubbles .translatable-message, .bubbles .message:not(:has(.translatable-message))",
+    "rootsSelector": "body",
+    "ignoreSelector": "+ .time, .time-inner, .peer-title, .document-wrapper, reactions-element",
+    "pattern": "://web.telegram.org/k"
   },
   {
     "autoScan": "false",
