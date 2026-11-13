@@ -11,7 +11,8 @@
  */
 export function stripMarkdownCodeBlock(text, startOnly = false) {
   if (!text) return "";
-  let result = text.replace(/^```[a-z]*\s*\n?/i, "");
+  // Language IDs may include digits and symbols (c++, c#, objective-c, json5).
+  let result = text.replace(/^```(?:[a-z][a-z0-9_+#.-]*)?\s*\n?/i, "");
   if (!startOnly) {
     result = result.replace(/\n?```$/i, "");
   }
