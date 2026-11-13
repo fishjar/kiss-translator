@@ -234,6 +234,48 @@ describe("getStreamDelta", () => {
     ).toThrow("bad request");
   });
 
+  test("turns Gemini generateContent mid-stream errors into terminal fallback errors", () => {
+    expect(
+      getStreamDelta(
+        {
+          candidates: [{ content: { parts: [{ text: "partial" }] } }],
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toBe("partial");
+    expect(() =>
+      getStreamDelta(
+        {
+          error: {
+            code: 503,
+            message: "The model is overloaded. Please try again later.",
+            status: "UNAVAILABLE",
+          },
+        },
+        OPT_TRANS_GEMINI
+      )
+    ).toThrow(
+      expect.objectContaining({
+        message: "The model is overloaded. Please try again later.",
+        isAIStreamTerminal: true,
+      })
+    );
+  });
+
+  test("uses a fallback message for Gemini generateContent errors without a message", () => {
+    expect(() =>
+      getStreamDelta(
+        { error: { code: 500, status: "INTERNAL" } },
+        OPT_TRANS_GEMINI
+      )
+    ).toThrow(
+      expect.objectContaining({
+        message: "Gemini stream failed",
+        isAIStreamTerminal: true,
+      })
+    );
+  });
+
   test("extracts only text deltas from Claude content_block_delta events", () => {
     expect(
       getStreamDelta(
