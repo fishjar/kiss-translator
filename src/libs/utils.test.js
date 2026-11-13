@@ -80,17 +80,50 @@ describe("parseAITerms", () => {
 });
 
 describe("stripMarkdownCodeBlock", () => {
+  test.each([
+    '[{"i":0,"t":"你好"}]',
+    "[1,2,3]",
+    '{"a": 1}',
+    '<t id="0">你好</t>',
+    "译文内容",
+    "12345",
+  ])("preserves adjacent body content: %s", (body) => {
+    expect(stripMarkdownCodeBlock("```" + body + "```")).toBe(body);
+    expect(stripMarkdownCodeBlock("```" + body + "\n```")).toBe(body);
+    expect(stripMarkdownCodeBlock("```" + body + "```", true)).toBe(
+      body + "```"
+    );
+  });
+
+  test.each(["", "plain text", '{"a": 1}', "译文内容"])(
+    "preserves unfenced input: %s",
+    (text) => {
+      expect(stripMarkdownCodeBlock(text)).toBe(text);
+      expect(stripMarkdownCodeBlock(text, true)).toBe(text);
+    }
+  );
+
   test("strips a fenced block whose language id contains +, #, digits, or a hyphen", () => {
-    expect(stripMarkdownCodeBlock("```c++\nint x = 1;\n```")).toBe("int x = 1;");
-    expect(stripMarkdownCodeBlock("```C++\nint x = 1;\n```")).toBe("int x = 1;");
+    expect(stripMarkdownCodeBlock("```c++\nint x = 1;\n```")).toBe(
+      "int x = 1;"
+    );
+    expect(stripMarkdownCodeBlock("```C++\nint x = 1;\n```")).toBe(
+      "int x = 1;"
+    );
     expect(stripMarkdownCodeBlock("```c#\nvar x = 1;\n```")).toBe("var x = 1;");
-    expect(stripMarkdownCodeBlock("```objective-c\nint x = 1;\n```")).toBe("int x = 1;");
+    expect(stripMarkdownCodeBlock("```objective-c\nint x = 1;\n```")).toBe(
+      "int x = 1;"
+    );
     expect(stripMarkdownCodeBlock("```json5\n{x: 1}\n```")).toBe("{x: 1}");
   });
 
   test("still strips plain and letter-only fences, including start-only mode", () => {
-    expect(stripMarkdownCodeBlock("```js\nconst x = 1;\n```")).toBe("const x = 1;");
+    expect(stripMarkdownCodeBlock("```js\nconst x = 1;\n```")).toBe(
+      "const x = 1;"
+    );
     expect(stripMarkdownCodeBlock("```\nplain\n```")).toBe("plain");
-    expect(stripMarkdownCodeBlock("```c++\nint x = 1;\n```", true)).toBe("int x = 1;\n```");
+    expect(stripMarkdownCodeBlock("```c++\nint x = 1;\n```", true)).toBe(
+      "int x = 1;\n```"
+    );
   });
 });
