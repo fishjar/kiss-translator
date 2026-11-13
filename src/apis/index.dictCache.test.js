@@ -29,17 +29,20 @@ jest.mock("../libs/stream", () => ({
 }));
 
 import { apiDict } from "./index";
+import { withBuiltinProvider } from "../builtin-plugins";
 import { fetchData } from "../libs/fetch";
 import { getHttpCachePolyfill, putHttpCachePolyfill } from "../libs/cache";
 import {
   DEFAULT_API_LIST,
   OPT_TRANS_OPENAI,
   defaultDictUserPrompt,
+  resolveEmptyApiPrompts,
 } from "../config";
 
 const baseApi = {
   ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_OPENAI),
   apiSlug: "dictionary_terms_cache",
+  isDisabled: false,
   key: "test-key",
   model: "test-model",
   url: "https://example.com/chat/completions",
@@ -73,6 +76,48 @@ describe("apiDict terminology cache", () => {
       choices: [{ message: { content: "## library\nDefault definition." } }],
     });
   });
+  test.each([false, true])(
+    "empty and explicit dictionary defaults share a cache; used terms invalidate it (native=%s)",
+    async (provider) => {
+      const empty = dictionaryArgs({
+        dictPrompt: null,
+        dictUserPrompt: " ",
+        aiTerms: "library,archive",
+      });
+      if (provider) empty.apiSetting = withBuiltinProvider(empty.apiSetting);
+      const stored = JSON.stringify(empty.apiSetting);
+      await apiDict(empty);
+      await apiDict({
+        ...empty,
+        apiSetting: resolveEmptyApiPrompts(empty.apiSetting, "dictionary"),
+      });
+      expect(fetchData).toHaveBeenCalledTimes(1);
+      expect(getRequestUserPrompt(0)).toContain("archive");
+      await apiDict({
+        ...empty,
+        apiSetting: { ...empty.apiSetting, aiTerms: "library,repository" },
+      });
+      expect(fetchData).toHaveBeenCalledTimes(2);
+      expect(getRequestUserPrompt(1)).toContain("repository");
+      expect(JSON.stringify(empty.apiSetting)).toBe(stored);
+    }
+  );
+
+  test.each([false, true])(
+    "unused terminology does not change the custom dictionary cache (native provider=%s)",
+    async (provider) => {
+      for (const value of ["archive", "repository"]) {
+        const args = dictionaryArgs({
+          dictUserPrompt: "{{text}}",
+          aiTerms: `library,${value}`,
+        });
+        if (provider) args.apiSetting = withBuiltinProvider(args.apiSetting);
+        await apiDict(args);
+      }
+      expect(fetchData).toHaveBeenCalledTimes(1);
+      expect(getRequestUserPrompt(0)).toBe("library");
+    }
+  );
 
   test("refreshes changed terminology and reuses unchanged terminology", async () => {
     fetchData

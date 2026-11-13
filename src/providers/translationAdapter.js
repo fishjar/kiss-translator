@@ -39,13 +39,21 @@ export async function* translatePlugin(
       },
       tone: apiSetting.tone || "",
       textFormat,
-      systemPrompt:
-        (apiSetting.useBatchFetch
+      ...((Object.hasOwn(
+        apiSetting,
+        apiSetting.useBatchFetch ? "systemPrompt" : "nobatchPrompt"
+      ) ||
+        Object.hasOwn(
+          apiSetting,
+          apiSetting.useBatchFetch ? "batchUserPrompt" : "nobatchUserPrompt"
+        )) && {
+        systemPrompt: apiSetting.useBatchFetch
           ? apiSetting.systemPrompt
-          : apiSetting.nobatchPrompt) ?? undefined,
-      userPrompt: apiSetting.useBatchFetch
-        ? apiSetting.batchUserPrompt
-        : apiSetting.nobatchUserPrompt,
+          : apiSetting.nobatchPrompt,
+        userPrompt: apiSetting.useBatchFetch
+          ? apiSetting.batchUserPrompt
+          : apiSetting.nobatchUserPrompt,
+      }),
     },
     {
       signal,

@@ -27,6 +27,11 @@ export default function Action({ translator, processActions }) {
   const headerRef = useRef(null);
   const clearPanelFocusRef = useRef(null);
   const windowSize = useWindowSize();
+  const popupPositionRef = useRef(null);
+  const savedPopupPosition = popupPositionRef.current;
+  const rememberPopupPosition = useCallback((position) => {
+    popupPositionRef.current = position;
+  }, []);
 
   const panelRef = useCallback((panel) => {
     clearPanelFocusRef.current?.();
@@ -111,9 +116,13 @@ export default function Action({ translator, processActions }) {
   // Size and center the panel within the current viewport.
   const popProps = useMemo(() => {
     const width = Math.min(windowSize.w, 360);
-    const height = Math.min(windowSize.h, 442);
-    const left = (windowSize.w - width) / 2;
-    const top = (windowSize.h - height) / 2;
+    const height = windowSize.h;
+    const left = savedPopupPosition
+      ? savedPopupPosition.x * windowSize.w
+      : undefined;
+    const top = savedPopupPosition
+      ? savedPopupPosition.y * windowSize.h
+      : undefined;
     return {
       windowSize,
       width,
@@ -121,7 +130,7 @@ export default function Action({ translator, processActions }) {
       left,
       top,
     };
-  }, [windowSize]);
+  }, [windowSize, savedPopupPosition]);
 
   return (
     <SettingProvider context="contentPopup">
@@ -131,11 +140,14 @@ export default function Action({ translator, processActions }) {
           <Draggable
             key="pop"
             {...popProps}
+            onPositionChange={rememberPopupPosition}
             usePaper // Use a paper background with a shadow.
             handler={
               // Drag the panel from its header.
               <Box ref={headerRef} style={{ cursor: "move" }}>
                 <Header
+                  processActions={processActions}
+                  openSettings={handleOpenSetting}
                   onClose={() => {
                     setShowPopup(false);
                   }}
@@ -158,7 +170,7 @@ export default function Action({ translator, processActions }) {
                 }
               }}
               style={{
-                maxHeight: Math.max(0, popProps.height - 57),
+                maxHeight: Math.max(0, popProps.height - 43), // 42px header + 1px divider.
                 overflowY: "auto",
               }}
             >
@@ -166,7 +178,6 @@ export default function Action({ translator, processActions }) {
                 rule={rule}
                 setting={setting}
                 setRule={setRule}
-                handleOpenSetting={handleOpenSetting}
                 processActions={processActions}
                 isContent={true} // Identify the panel embedded in the page content.
               />

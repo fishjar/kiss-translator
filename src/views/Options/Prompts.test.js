@@ -4,6 +4,7 @@ import {
   PROMPT_CATEGORY_BATCH_SYSTEM,
   PROMPT_CATEGORY_DICTIONARY,
   PROMPT_CATEGORY_SUBTITLE,
+  PROMPT_CATEGORY_SUMMARY,
   PROMPT_CATEGORY_USER,
   PROMPT_CATEGORY_VLM,
 } from "../../config";
@@ -180,6 +181,26 @@ describe("Prompts search navigation", () => {
 });
 
 describe("Prompts", () => {
+  test("summary prompts expose both fields and supported placeholders", () => {
+    const { container, unmount } = renderPrompts(PROMPT_CATEGORY_SUMMARY);
+    expect(container.querySelector('[name="systemPrompt"]')).not.toBeNull();
+    expect(container.querySelector('[name="userPrompt"]')).not.toBeNull();
+    for (const placeholder of [
+      "{{title}}",
+      "{{description}}",
+      "{{transcript}}",
+      "{{to}}",
+    ])
+      expect(container.textContent).toContain(placeholder);
+    expect(container.textContent).not.toContain("{{glossary}}");
+    unmount();
+  });
+
+  test("dictionary prompts offer the glossary placeholder", () => {
+    const { container, unmount } = renderPrompts(PROMPT_CATEGORY_DICTIONARY);
+    expect(container.textContent).toContain("{{glossary}}");
+    unmount();
+  });
   afterEach(() => {
     mockUsePromptList.mockReset();
     mockConfirm.mockReset();

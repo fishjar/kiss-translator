@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import Navigator from "./Navigator";
 import { I18N } from "../../config/i18n";
+import * as settingsSearch from "./search";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -10,10 +11,16 @@ let mockUiLang = "en";
 let mockLabels = {};
 
 jest.mock("../../hooks/I18n", () => ({
-  useI18n:
-    () =>
-    (key, defaultText = key) =>
-      mockLabels[key] ?? defaultText,
+  useI18n: () => {
+    const { useMemo } = jest.requireActual("react");
+    const labels = mockLabels;
+    return useMemo(
+      () =>
+        (key, defaultText = key) =>
+          labels[key] ?? defaultText,
+      [labels]
+    );
+  },
 }));
 jest.mock("../../hooks/Setting", () => ({
   useSetting: () => ({ setting: { uiLang: mockUiLang } }),
@@ -40,13 +47,15 @@ function renderSearchNavigator() {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
-  act(() =>
-    root.render(
-      <MemoryRouter>
-        <Navigator open />
-      </MemoryRouter>
-    )
-  );
+  const render = () =>
+    act(() =>
+      root.render(
+        <MemoryRouter>
+          <Navigator open />
+        </MemoryRouter>
+      )
+    );
+  render();
   const input = container.querySelector('input[type="search"]');
   const nav = container.querySelector("nav");
   const change = (value, isComposing = false) =>
@@ -69,6 +78,7 @@ function renderSearchNavigator() {
     nav,
     change,
     composition,
+    rerender: render,
     unmount: () => {
       act(() => root.unmount());
       container.remove();
@@ -445,6 +455,61 @@ test("ignores native composing input even without a compositionstart event", () 
   view.change("语言");
   expect(view.nav.innerHTML).not.toBe(before);
   view.unmount();
+});
+
+test("reuses filtering and highlighting until the IME query commits", () => {
+  const filter = jest.spyOn(settingsSearch, "searchSettingsGroups");
+  const highlight = jest.spyOn(
+    settingsSearch,
+    "getSettingsSearchHighlightParts"
+  );
+  const view = renderSearchNavigator();
+  try {
+    view.change("缓存");
+    expect(highlight).toHaveBeenCalled();
+    filter.mockClear();
+    highlight.mockClear();
+    view.composition("compositionstart");
+    for (const value of ["z", "zi", "zi'mu"]) {
+      view.change(value, true);
+      expect(view.input.value).toBe(value);
+    }
+    expect(filter).not.toHaveBeenCalled();
+    expect(highlight).not.toHaveBeenCalled();
+    view.change("字幕");
+    view.composition("compositionend");
+    expect(filter).toHaveBeenCalledWith(expect.any(Array), "字幕", "zh");
+    expect(highlight).toHaveBeenCalled();
+    expect(view.nav.querySelector("mark").textContent).toBe("字幕");
+  } finally {
+    view.unmount();
+    filter.mockRestore();
+    highlight.mockRestore();
+  }
+});
+
+test("refreshes cached results and highlights when the UI language changes", () => {
+  const view = renderSearchNavigator();
+  try {
+    view.change("缓存");
+    expect(view.nav.querySelector("mark").textContent).toBe("缓存");
+    mockUiLang = "en";
+    mockLabels = Object.fromEntries(
+      Object.entries(I18N).map(([key, translations]) => [key, translations.en])
+    );
+    view.rerender();
+    expect(view.input.value).toBe("缓存");
+    expect(view.nav.querySelector("mark")).toBeNull();
+    expect(view.nav.querySelector(".kt-options-nav__empty").textContent).toBe(
+      I18N.options_no_results.en
+    );
+    view.change("cache");
+    expect(view.nav.querySelector("mark").textContent.toLowerCase()).toBe(
+      "cache"
+    );
+  } finally {
+    view.unmount();
+  }
 });
 
 test("cancels IME pre-edit and clears both the draft and committed search", () => {

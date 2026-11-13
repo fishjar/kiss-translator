@@ -269,10 +269,16 @@ export const SETTINGS_SEARCH_LABELS = {
   api_response_hook: "Response Hook",
 };
 
+// These technical names are shared across interface languages.
+const SHARED_SEARCH_ALIASES = {
+  api_url: "API URL",
+  api_key: "API Key",
+};
+
 const SEARCH_ALIASES = {
   zh: {
-    api_url: "API URL 接口地址",
-    api_key: "API Key 密钥",
+    api_url: "接口地址",
+    api_key: "密钥",
     api_model: "模型",
     api_temperature: "温度",
     api_max_tokens: "最大令牌数",
@@ -285,8 +291,7 @@ const SEARCH_ALIASES = {
     batch_concurrency: "批量",
   },
   en: {
-    api_url: "API URL endpoint",
-    api_key: "API Key",
+    api_url: "endpoint",
   },
 };
 
@@ -493,6 +498,7 @@ export function getSettingsSearchEntries(
           [
             label,
             description,
+            SHARED_SEARCH_ALIASES[key],
             SEARCH_ALIASES[uiLang]?.[key],
             ...(OPTION_KEYS[key] || []).map((item) => i18n(item, "")),
           ].filter(Boolean)

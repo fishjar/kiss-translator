@@ -408,7 +408,11 @@ test("v2 text tasks execute through the registry and capability switches still a
     registry.invoke(
       "test",
       "translate",
-      { items: [{ id: "a", text: "A" }], targetLanguage: "zh" },
+      {
+        items: [{ id: "a", text: "A" }],
+        targetLanguage: "zh",
+        userPrompt: "{{segments}}",
+      },
       { streaming: "disabled" }
     ).result
   ).resolves.toEqual({ items: [{ id: "a", text: "甲" }] });
@@ -496,7 +500,12 @@ test("dictionary streams text deltas and returns the complete Markdown", async (
     yield { type: "sse", data: "[DONE]" };
   };
   await expect(
-    runDeclarative(instance.provider, "dictionary", { text: "bank" }, ctx)
+    runDeclarative(
+      instance.provider,
+      "dictionary",
+      { text: "bank", userPrompt: "{{text}}" },
+      ctx
+    )
   ).resolves.toEqual({ text: "# Bank", format: "markdown" });
   expect(ctx.emit).toHaveBeenCalledWith(
     expect.objectContaining({ type: "text.delta", text: "# Bank" })
@@ -551,6 +560,11 @@ test("dictionary rejects an empty completion", async () => {
     }),
   });
   await expect(
-    runDeclarative(instance.provider, "dictionary", { text: "bank" }, ctx)
+    runDeclarative(
+      instance.provider,
+      "dictionary",
+      { text: "bank", userPrompt: "{{text}}" },
+      ctx
+    )
   ).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
 });

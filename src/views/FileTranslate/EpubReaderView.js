@@ -4,6 +4,7 @@ import React, {
   useMemo,
   useRef,
   useEffect,
+  useLayoutEffect,
   useCallback,
 } from "react";
 import Box from "@mui/material/Box";
@@ -292,6 +293,8 @@ export default function EpubReaderView({
   i18n,
   textStyleClass = "",
   rawStyleCode = "",
+  fullscreen = false,
+  onFullscreenChange,
 }) {
   const [tocCollapsed, setTocCollapsed] = useState(true);
   const [tocSearch, setTocSearch] = useState("");
@@ -324,15 +327,64 @@ export default function EpubReaderView({
 
   // 正文搜索相关状态与 DOM 引用
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchComposing, setSearchComposing] = useState(false);
+  const [searchPending, setSearchPending] = useState(false);
+  const searchTimerRef = useRef(null);
   const [matchCount, setMatchCount] = useState(0);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const contentBodyRef = useRef(null);
   const highlightMarksRef = useRef([]);
 
   const scrollContainerRef = useRef(null);
+  const fullscreenToggleRef = useRef(null);
+  const fullscreenScrollRef = useRef(null);
   const isNavigatingRef = useRef(false);
   // 记录是否是由正文容器自然滚动引发的当前章节索引更新（避免触发 scrollTop = 0 回跳）
   const scrollDrivenChapterRef = useRef(null);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!onFullscreenChange) return;
+    fullscreenScrollRef.current = scrollContainerRef.current?.scrollTop ?? 0;
+    onFullscreenChange(!fullscreen);
+  }, [fullscreen, onFullscreenChange]);
+
+  useLayoutEffect(() => {
+    if (fullscreenScrollRef.current === null) return;
+    if (scrollContainerRef.current)
+      scrollContainerRef.current.scrollTop = fullscreenScrollRef.current;
+    fullscreenScrollRef.current = null;
+    if (!fullscreen)
+      fullscreenToggleRef.current?.focus({ preventScroll: true });
+  }, [fullscreen]);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    const exit = (event) => {
+      if (
+        event.key === "Escape" &&
+        !event.defaultPrevented &&
+        !event.repeat &&
+        !event.isComposing &&
+        !searchComposing &&
+        tocCollapsed &&
+        !fontMenuAnchor
+      )
+        toggleFullscreen();
+    };
+    document.addEventListener("keydown", exit);
+    return () => document.removeEventListener("keydown", exit);
+  }, [
+    fullscreen,
+    toggleFullscreen,
+    tocCollapsed,
+    fontMenuAnchor,
+    searchComposing,
+  ]);
+
+  const cancelSearch = useCallback(() => {
+    clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = null;
+  }, []);
 
   // 清除正文搜索高亮并恢复原生文本节点
   const clearHighlights = useCallback(() => {
@@ -353,6 +405,18 @@ export default function EpubReaderView({
     setMatchCount(0);
     setCurrentMatchIndex(0);
   }, []);
+
+  const resetSearch = useCallback(() => {
+    cancelSearch();
+    setSearchQuery("");
+    setSearchComposing(false);
+    setSearchPending(false);
+    clearHighlights();
+  }, [cancelSearch, clearHighlights]);
+
+  useEffect(() => {
+    resetSearch();
+  }, [epubBook, resetSearch]);
 
   // 执行正文关键词高亮（使用 TreeWalker 仅处理文本节点，避免破坏标签和属性）
   const applyHighlights = useCallback(
@@ -447,8 +511,12 @@ export default function EpubReaderView({
     marks[newIndex].scrollIntoView?.({ behavior: "smooth", block: "center" });
   }, []);
 
-  const handleNextMatch = () => jumpToMatch(currentMatchIndex + 1);
-  const handlePrevMatch = () => jumpToMatch(currentMatchIndex - 1);
+  const handleNextMatch = () => {
+    if (!searchPending) jumpToMatch(currentMatchIndex + 1);
+  };
+  const handlePrevMatch = () => {
+    if (!searchPending) jumpToMatch(currentMatchIndex - 1);
+  };
 
   // 外部显式切换章节时自动回到页面顶端；如果是用户自然滚动或正在导航锚点 (isNavigatingRef) 则跳过，避免冲掉目标锚点
   useEffect(() => {
@@ -467,16 +535,14 @@ export default function EpubReaderView({
 
   // 翻译进行中时自动清空正文搜索框与高亮，避免高亮标记干扰翻译或被带入处理
   useEffect(() => {
-    if (busy && (searchQuery || highlightMarksRef.current.length > 0)) {
-      setSearchQuery("");
-      clearHighlights();
+    if (busy) {
+      resetSearch();
     }
-  }, [busy, searchQuery, clearHighlights]);
+  }, [busy, searchQuery, resetSearch]);
 
   // 点击试译当前章节前先清空搜索框
   const handleTranslateChapterClick = () => {
-    setSearchQuery("");
-    clearHighlights();
+    resetSearch();
     onTranslateChapter?.();
   };
 
@@ -872,14 +938,33 @@ export default function EpubReaderView({
     [displayHtml]
   );
 
-  // 监听正文内容渲染或搜索关键词变化，自动更新高亮与计数
+  // 输入停止后再遍历正文；正文变化或翻译开始时取消过期任务。
   useEffect(() => {
-    if (searchQuery.trim()) {
-      applyHighlights(searchQuery);
-    } else {
+    cancelSearch();
+    if (busy || !searchQuery.trim()) {
       clearHighlights();
+      setSearchPending(false);
+    } else {
+      setSearchPending(true);
+      if (!searchComposing) {
+        searchTimerRef.current = setTimeout(() => {
+          searchTimerRef.current = null;
+          applyHighlights(searchQuery);
+          setSearchPending(false);
+        }, 300);
+      }
     }
-  }, [displayHtml, searchQuery, applyHighlights, clearHighlights]);
+    return cancelSearch;
+  }, [
+    epubBook,
+    displayHtml,
+    searchQuery,
+    searchComposing,
+    busy,
+    applyHighlights,
+    clearHighlights,
+    cancelSearch,
+  ]);
 
   // 字号增减调节
   const adjustFontSize = (delta) => {
@@ -1117,7 +1202,11 @@ export default function EpubReaderView({
               <InputBase
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onCompositionStart={() => setSearchComposing(true)}
+                onCompositionEnd={() => setSearchComposing(false)}
+                onBlur={() => setSearchComposing(false)}
                 onKeyDown={(e) => {
+                  if (searchComposing || e.nativeEvent.isComposing) return;
                   if (e.key === "Enter") {
                     e.preventDefault();
                     if (e.shiftKey) {
@@ -1125,8 +1214,9 @@ export default function EpubReaderView({
                     } else {
                       handleNextMatch();
                     }
-                  } else if (e.key === "Escape") {
-                    setSearchQuery("");
+                  } else if (e.key === "Escape" && searchQuery) {
+                    e.preventDefault();
+                    resetSearch();
                   }
                 }}
                 placeholder={i18n("search_content_placeholder", "搜索正文...")}
@@ -1158,15 +1248,17 @@ export default function EpubReaderView({
                       userSelect: "none",
                     }}
                   >
-                    {matchCount > 0
-                      ? `${currentMatchIndex + 1}/${matchCount}`
-                      : "0/0"}
+                    {searchPending
+                      ? "…"
+                      : matchCount > 0
+                        ? `${currentMatchIndex + 1}/${matchCount}`
+                        : "0/0"}
                   </Typography>
                   <Tooltip title={i18n("search_prev", "上一个 (Shift+Enter)")}>
                     <span>
                       <IconButton
                         size="small"
-                        disabled={matchCount === 0}
+                        disabled={searchPending || matchCount === 0}
                         onClick={handlePrevMatch}
                         sx={{ p: 0.25 }}
                       >
@@ -1178,7 +1270,7 @@ export default function EpubReaderView({
                     <span>
                       <IconButton
                         size="small"
-                        disabled={matchCount === 0}
+                        disabled={searchPending || matchCount === 0}
                         onClick={handleNextMatch}
                         sx={{ p: 0.25 }}
                       >
@@ -1188,7 +1280,7 @@ export default function EpubReaderView({
                   </Tooltip>
                   <IconButton
                     size="small"
-                    onClick={() => setSearchQuery("")}
+                    onClick={resetSearch}
                     sx={{ p: 0.25 }}
                   >
                     <CloseRoundedIcon sx={{ fontSize: 14 }} />
@@ -1281,6 +1373,25 @@ export default function EpubReaderView({
                 }}
               >
                 {i18n("stop_translation", "停止")}
+              </Button>
+            )}
+            {onFullscreenChange && (
+              <Button
+                ref={fullscreenToggleRef}
+                size="small"
+                variant="outlined"
+                onClick={toggleFullscreen}
+                sx={{
+                  height: 30,
+                  fontSize: 12,
+                  px: 1.25,
+                  minWidth: "auto",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {fullscreen
+                  ? i18n("file_pdf_exit_fullscreen", "退出全屏")
+                  : i18n("file_pdf_fullscreen", "全屏")}
               </Button>
             )}
           </Box>

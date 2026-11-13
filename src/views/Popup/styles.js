@@ -50,6 +50,10 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-shell--window .kt-translation-panel__body,
 .kt-popup-shell--window .kt-tranbox-content,
 .kt-popup-shell--window .kt-tranbox-content > .MuiStack-root { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.kt-popup-shell--window .kt-popup-text-panel--minimal .kt-tranbox-content { container-type: normal; padding-bottom: 60px !important; }
+.kt-popup-shell--window .kt-popup-text-panel--minimal .kt-translation-config-actions { position: fixed; right: 10px; bottom: 10px; z-index: 21; }
+.kt-popup-shell--window .kt-popup-text-panel--minimal .kt-tranbox-header--compact { border-radius: 50%; box-shadow: var(--kt-shadow-2); }
+.kt-popup-shell--window .kt-popup-text-panel--minimal .kt-tranbox-header--compact .MuiIconButton-root { border-radius: 50%; }
 .kt-popup-shell--window .kt-translation-source textarea:not([aria-hidden="true"]) { min-height: 28px; }
 .kt-popup-shell--window .kt-translation-result { flex: 0 0 auto; min-height: 0; }
 .kt-popup-shell--window .kt-translation-result textarea:not([aria-hidden="true"]) { min-height: 28px; }
@@ -62,14 +66,16 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-header { height: 48px; min-height: 48px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 12px; background: var(--kt-sf0); }
 .kt-popup-header__logo { width: 26px; height: 26px; border-radius: 8px; }
 .kt-popup-brand-button { display: block; flex: none; padding: 0; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
-.kt-popup-header__identity { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.kt-popup-header__identity { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .kt-popup-header__title { min-width: 0; max-width: 100%; overflow: hidden; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.kt-popup-header__version { color: var(--kt-line); font-size: 10.5px; }
 .kt-popup-header__spacer { flex: 1; }
 .kt-popup-header__drag { display: flex; flex: none; color: var(--kt-onv); cursor: move; }
+.kt-popup-header__support { display: inline-flex; flex: none; }
 .kt-popup-header__actions { display: flex; flex: none; align-items: center; gap: 6px; margin-left: auto; }
-.kt-popup-header .MuiIconButton-root { width: 32px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--kt-onv); }
-.kt-popup-header .MuiIconButton-root svg { width: 20px; height: 20px; }
+.kt-popup-header .MuiIconButton-root { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; width: 32px; height: 32px; flex: none; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--kt-onv); }
+.kt-popup-header .MuiIconButton-root svg { display: inline-block; flex: none; fill: currentColor; width: 20px; height: 20px; }
+.kt-popup-header--content { box-sizing: border-box; height: 42px; min-height: 42px; gap: 4px; padding-inline: 8px; }
+.kt-popup-header--content .kt-popup-header__actions { gap: 0; }
 .kt-popup-header .MuiIconButton-root:hover { background: var(--kt-sf2); }
 .kt-popup-header__sponsor.MuiIconButton-root { background: transparent; color: var(--kt-onv); }
 .kt-popup-header__sponsor.MuiIconButton-root:hover { background: var(--kt-sf2); }
@@ -80,7 +86,8 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-tabs .MuiTab-root.Mui-selected { background: var(--kt-sf0); color: var(--kt-on); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,.1); }
 .kt-popup-tab-label { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kt-popup-scroll { height: auto; overflow: visible; }
-.kt-popup-content { display: flex; flex-direction: column; gap: 10px; padding: 4px 12px 12px; }
+.kt-popup-content { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
+.kt-popup-shell:not(.kt-popup-shell--content):not(.kt-popup-shell--window) .kt-popup-content { padding-top: 4px; }
 .kt-popup-loading { min-height: 260px; display: grid; place-items: center; color: var(--kt-onv); }
 .kt-popup-loading svg { animation: kt-m3-spin .8s linear infinite; }
 
@@ -179,7 +186,9 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-style-select:hover { background: var(--kt-sf3); }
 .kt-popup-style-select[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--kt-popup-focus, #A8C7FA); }
 .kt-popup-style-label { flex: none; color: var(--kt-popup-muted); font-size: 11px; font-weight: 600; }
-.kt-popup-style-value { min-width: 0; flex: 1; overflow: hidden; font-size: 13px; font-weight: 600; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.kt-popup-style-value { height: 100%; min-width: 0; flex: 1; overflow: hidden; font-size: 13px; font-weight: 600; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.kt-popup-style-value::after { content: ""; display: inline-block; height: 100%; vertical-align: middle; }
+.kt-popup-style-value > span { display: inline; vertical-align: middle; }
 .kt-popup-style-select > svg { width: 18px; height: 18px; flex: none; color: var(--kt-onv); }
 .kt-popup-display-mode { position: relative; min-width: 0; height: 40px; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); padding: 3px; border-radius: 12px; background: var(--kt-sf2); }
 .kt-popup-display-mode .kt-popup-segment-indicator { top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); }
@@ -234,8 +243,6 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-cache-button[data-status="clearing"] { cursor: progress; }
 .kt-popup-version { margin-left: auto; padding-right: 6px; color: var(--kt-line); font-size: 11px; white-space: nowrap; }
 .kt-popup-action-error { color: var(--kt-err); font-size: 11px; }
-.kt-popup-all-settings { min-height: 36px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--kt-sf2); color: var(--kt-pri); font-size: 12px; font-weight: 700; cursor: pointer; }
-.kt-popup-all-settings:hover { background: var(--kt-sf3); }
 
 /* Menus are portaled to the theme root, outside the scrolling popup shell. */
 .kt-popup-menu.MuiPaper-root,
@@ -260,9 +267,9 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-service-option > span:not(.kt-service-logo) { flex: 1; white-space: nowrap; }
 .kt-popup-style-menu.MuiPaper-root { width: 322px; padding: 8px; }
 .kt-popup-style-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); grid-auto-rows: 34px; align-content: start; gap: 6px; }
-.kt-popup-style-chip { min-width: 0; height: 34px; display: flex; align-items: center; justify-content: center; padding: 0 4px; overflow: hidden; border: 1px solid var(--kt-linev); border-radius: 8px; background: var(--kt-sf0); color: var(--kt-on); font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.kt-popup-style-chip { min-width: 0; height: 34px; display: inline-block; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; border: 1px solid var(--kt-linev); border-radius: 8px; background: var(--kt-sf0); color: var(--kt-on); font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
 .kt-popup-style-chip[aria-pressed="true"] { border-color: var(--kt-pri); background: var(--kt-pric); color: var(--kt-onpric); }
-.kt-popup-style-chip > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.kt-popup-style-chip > span { display: inline; }
 .kt-popup-language-menu.MuiPaper-root { max-height: min(320px, calc(100% - 16px)); scrollbar-gutter: stable; }
 .kt-popup-language-option.MuiMenuItem-root,
 .kt-popup-language-menu .MuiMenuItem-root { min-height: 36px; height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 10px; }

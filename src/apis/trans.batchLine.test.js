@@ -19,7 +19,12 @@ const { TextDecoder, TextEncoder } = require("util");
 global.TextEncoder = global.TextEncoder || TextEncoder;
 global.TextDecoder = global.TextDecoder || TextDecoder;
 
-import { genTransReq, handleTranslate, alignBatchTranslations } from "./trans";
+import {
+  genTransReq,
+  handleTranslate,
+  alignBatchTranslations,
+  buildSubtitleSystemPrompt,
+} from "./trans";
 import {
   DEFAULT_API_LIST,
   OPT_TRANS_OPENAI,
@@ -146,7 +151,7 @@ describe("Batch Translation Protocols & Custom Batch User Prompt", () => {
       );
     });
 
-    test("automatically appends segments at the end when {{segments}} placeholder is missing", async () => {
+    test("does not append segments when {{segments}} is missing", async () => {
       const texts = ["Sentence one", "Sentence two"];
 
       const [, reqInit] = await genTransReq({
@@ -169,12 +174,10 @@ describe("Batch Translation Protocols & Custom Batch User Prompt", () => {
       const body = JSON.parse(reqInit.body);
       const userMessage = body.messages.find((m) => m.role === "user");
 
-      expect(userMessage.content).toBe(
-        "Translate to zh-CN directly:\n\n0 | Sentence one\n1 | Sentence two"
-      );
+      expect(userMessage.content).toBe("Translate to zh-CN directly:");
     });
 
-    test("falls back to legacy JSON prompt object when batchUserPrompt is undefined or empty", async () => {
+    test("keeps empty batch user template empty", async () => {
       const texts = ["Fallback text"];
 
       const [, reqInit] = await genTransReq({
@@ -194,12 +197,7 @@ describe("Batch Translation Protocols & Custom Batch User Prompt", () => {
 
       const body = JSON.parse(reqInit.body);
       const userMessage = body.messages.find((m) => m.role === "user");
-      const parsed = JSON.parse(userMessage.content);
-
-      expect(parsed).toEqual({
-        targetLanguage: "zh-CN",
-        segments: [{ id: 0, text: "Fallback text" }],
-      });
+      expect(userMessage).toBeUndefined();
     });
 
     test("omits system role message when systemPrompt is empty or blank", async () => {
@@ -308,8 +306,123 @@ describe("Batch Translation Protocols & Custom Batch User Prompt", () => {
     });
   });
 
-  describe("Hy-MT Glossary & Tone Conditional Pre-injection", () => {
-    test("injects glossary and tone using Hy-MT format when not referenced in batch template, drops context", async () => {
+  describe("Explicit optional placeholders", () => {
+    test.each([true, false])(
+      "renders system glossary with rule precedence (batch=%s)",
+      async (useBatchFetch) => {
+        const [, init] = await genTransReq({
+          ...getTestApiSetting(),
+          useBatchFetch,
+          systemPrompt: "Terms: {{glossary}}",
+          nobatchPrompt: "Terms: {{glossary}}",
+          batchUserPrompt: "{{segments}}",
+          nobatchUserPrompt: "{{text}}",
+          texts: ["Hello"],
+          aiTerms: "React,framework\nAPI,接口",
+          glossary: { React: "", API: "规则接口" },
+        });
+        const messages = JSON.parse(init.body).messages;
+        expect(messages[0].content).toBe(
+          "Terms: - React: React\n- API: 规则接口"
+        );
+        expect(messages[1].content).not.toContain("规则接口");
+      }
+    );
+
+    test("missing values render empty while unknown placeholders survive", async () => {
+      const template =
+        "{{from}}|{{to}}|{{fromLang}}|{{toLang}}|{{tone}}|{{title}}|{{glossary}}|{{unknown}}";
+      const [, init] = await genTransReq({
+        ...getTestApiSetting(),
+        useBatchFetch: false,
+        nobatchPrompt: template,
+        nobatchUserPrompt: template,
+        texts: ["Hello"],
+        docInfo: { title: null },
+        tone: null,
+      });
+      for (const message of JSON.parse(init.body).messages) {
+        expect(message.content).toBe("|||||||{{unknown}}");
+      }
+      expect(
+        buildSubtitleSystemPrompt({
+          subtitlePrompt: template,
+          docInfo: { title: null },
+        })
+      ).toBe("|||||||{{unknown}}");
+    });
+
+    test.each([
+      [false, "line", "Translate: {{text}}"],
+      [true, "line", "Translate: {{segments}}"],
+      [true, "xml", "Translate: {{segments}}"],
+      [true, "json", "Translate: {{segments}}"],
+      [true, "json", ""],
+      [true, "line", "Translate accurately."],
+      [false, "line", ""],
+    ])(
+      "only renders tone where explicitly referenced (batch=%s, protocol=%s, template=%s)",
+      async (useBatchFetch, batchProtocol, template) => {
+        const request = async (systemPrompt) => {
+          const [, reqInit] = await genTransReq({
+            apiType: OPT_TRANS_OPENAI,
+            url: "https://api.openai.com/v1/chat/completions",
+            key: "sk-test",
+            model: "gpt-model",
+            useBatchFetch,
+            batchProtocol,
+            batchUserPrompt: template,
+            nobatchUserPrompt: template,
+            systemPrompt,
+            nobatchPrompt: systemPrompt,
+            from: "en",
+            to: "zh-CN",
+            fromLang: "English",
+            toLang: "Chinese",
+            texts: ["Hello world"],
+            tone: "formal",
+            glossary: { secretTerm: "secretTranslation" },
+            aiTerms: "interfaceTerm,interfaceTranslation",
+            docInfo: {
+              title: "secretTitle",
+              description: "secretDescription",
+              summary: "secretSummary",
+              context: "secretContext",
+            },
+          });
+          return JSON.parse(reqInit.body).messages;
+        };
+
+        const withoutTone = await request("Translate accurately.");
+        expect(JSON.stringify(withoutTone)).not.toContain("formal");
+        expect(JSON.stringify(withoutTone)).not.toContain("translation style");
+        for (const value of [
+          "secretTerm",
+          "secretTranslation",
+          "interfaceTerm",
+          "interfaceTranslation",
+          "secretTitle",
+          "secretDescription",
+          "secretSummary",
+          "secretContext",
+        ]) {
+          expect(JSON.stringify(withoutTone)).not.toContain(value);
+        }
+        const user = withoutTone.find((m) => m.role === "user")?.content ?? "";
+        if (useBatchFetch && !template.includes("{{segments}}"))
+          expect(user).toBe(template);
+
+        const systemTone = await request("Style: {{tone}}");
+        expect(systemTone.find((m) => m.role === "system").content).toBe(
+          "Style: formal"
+        );
+        expect(
+          systemTone.find((m) => m.role === "user")?.content ?? ""
+        ).not.toContain("formal");
+      }
+    );
+
+    test("injects glossary and renders the explicit tone placeholder in the default batch template, drops context", async () => {
       const texts = ["Use token in pipeline."];
       const [, reqInit] = await genTransReq({
         apiType: OPT_TRANS_OPENAI,
@@ -338,7 +451,6 @@ describe("Batch Translation Protocols & Custom Batch User Prompt", () => {
       expect(userMessage.content).toContain(
         "Reference the following translations:\ntoken translates to 令牌\npipeline translates to 管线"
       );
-      // 包含 Hy-MT 范式的前置 Tone
       expect(userMessage.content).toContain(
         "Note that the translation style must strictly conform to [formal]."
       );

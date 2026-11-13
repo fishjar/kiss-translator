@@ -1,5 +1,7 @@
 /* eslint-disable testing-library/no-unnecessary-act -- Native React DOM events require act. */
 import { act } from "react";
+import { createRoot } from "react-dom/client";
+import DraggableResizable from "../../views/Selection/DraggableResizable";
 import { ScreenshotOverlay } from "./screenshotOverlay";
 import { APP_CONSTS, MSG_CAPTURE_VISIBLE_TAB } from "../../config";
 import { sendBgMsg } from "../msg";
@@ -39,6 +41,37 @@ describe("ScreenshotOverlay", () => {
     target.dispatchEvent(
       new MouseEvent(type, { bubbles: true, clientX: x, clientY: y, button: 0 })
     );
+  test("covers selection translation panels even when mounted after the screenshot overlay", () => {
+    const host = document.createElement("div");
+    document.documentElement.appendChild(host);
+    const panelRoot = createRoot(host);
+    try {
+      act(() =>
+        panelRoot.render(
+          <DraggableResizable
+            position={{ x: 100, y: 100 }}
+            size={{ w: 320, h: 300 }}
+            minSize={{ w: 100, h: 100 }}
+            maxSize={{ w: 800, h: 800 }}
+            setPosition={jest.fn()}
+            setSize={jest.fn()}
+            autoHeight={false}
+            header={<span>Translation</span>}
+          >
+            <div>Selected text translation</div>
+          </DraggableResizable>
+        )
+      );
+      const panel = host.querySelector(".KT-draggable");
+      expect(panel.textContent).toContain("Selected text translation");
+      expect(Number(getComputedStyle(root()).zIndex)).toBeGreaterThan(
+        Number(getComputedStyle(panel).zIndex)
+      );
+    } finally {
+      act(() => panelRoot.unmount());
+      host.remove();
+    }
+  });
   const drag = (x, y, endX, endY, target = root().firstElementChild) => {
     act(() => {
       mouse(target, "pointerdown", x, y);

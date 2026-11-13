@@ -87,6 +87,29 @@ async function flushPromises() {
 }
 
 describe("YouTubeSubtitleList", () => {
+  test("explicit initialization mounts an empty list without ASR support and can be closed", () => {
+    const onClose = jest.fn();
+    const list = new YouTubeSubtitleList(createVideoElement(), (key) => key, {
+      onClose,
+    });
+    try {
+      list.initialize([], [], 0);
+      expect(list.container?.isConnected).toBe(true);
+      expect(list.subtitleTabEl.textContent).toContain("[0%]");
+      expect(list.asrPanel).toBeFalsy();
+      const close = [...list.container.querySelectorAll("button")].find(
+        (button) => button.textContent === "×"
+      );
+      close.click();
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(
+        document.getElementById("kiss-youtube-subtitle-list-container")
+      ).toBeNull();
+    } finally {
+      list.destroy();
+    }
+  });
+
   test("ASR controls stay mounted in Shorts, hide in fullscreen and return to the normal sidebar", () => {
     const video = createVideoElement(),
       list = new YouTubeSubtitleList(video, (key) => key, { asrActions: {} });

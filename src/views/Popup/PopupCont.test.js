@@ -181,7 +181,6 @@ function renderPopupCont(props = {}, { statefulRule = false } = {}) {
     rule,
     setting,
     setRule: jest.fn(),
-    handleOpenSetting: jest.fn(),
     ...props,
   };
   const currentSetting = { ...setting, ...props.setting };
@@ -1252,23 +1251,14 @@ describe("PopupCont capability parity", () => {
     view.cleanup();
   });
 
-  test("preserves upstream review and support links in the content popup", async () => {
+  test("leaves content support and settings actions to the header", async () => {
     const view = renderPopupCont({
       isContent: true,
       processActions: jest.fn(),
     });
     await flushEffects();
-
-    const supportLinks = view.container.querySelectorAll(".kt-popup-support a");
-    expect(supportLinks).toHaveLength(2);
-    expect(supportLinks[0].textContent).toContain("comment_support");
-    expect(supportLinks[0].href).toBe(
-      "https://chromewebstore.google.com/detail/kiss-translator/bdiifdefkgmcblbcghdlonllpjhhjgof/reviews"
-    );
-    expect(supportLinks[1].textContent).toContain("appreciate_support");
-    expect(supportLinks[1].href).toBe(
-      "https://github.com/fishjar/kiss-translator#%E8%B5%9E%E8%B5%8F"
-    );
+    expect(view.container.querySelector(".kt-popup-support")).toBeNull();
+    expect(view.container.querySelector(".kt-popup-all-settings")).toBeNull();
     view.cleanup();
   });
 
@@ -1285,85 +1275,95 @@ describe("PopupCont capability parity", () => {
     view.cleanup();
   });
 
-  test("shows persistent global segments without changing preferences until clicked", async () => {
-    const processActions = jest.fn();
-    const setting = {
-      tranboxSetting: { transOpen: true },
-      mouseHoverSetting: { useMouseHover: true },
-      inputRule: { transOpen: true },
-    };
-    const view = renderPopupCont({ processActions, setting });
-    await flushEffects();
-
-    [
-      "selection_translate",
-      "popup_hover_translation",
-      "input_translate",
-    ].forEach((label) => {
-      expect(view.container.textContent).toContain(label);
-    });
-    expect(processActions).not.toHaveBeenCalled();
-    expect(mockUpdateSetting).not.toHaveBeenCalled();
-    const group = view.container.querySelector(".kt-popup-global-features");
-    expect(group.previousElementSibling.className).toBe(
-      "kt-popup-settings-grid"
-    );
-    expect(group.nextElementSibling.className).toBe("kt-popup-bottom-actions");
-    expect(group.getAttribute("role")).toBe("group");
-    expect(group.closest('[aria-disabled="true"]')).toBeNull();
-    expect(setting).toEqual({
-      tranboxSetting: { transOpen: true },
-      mouseHoverSetting: { useMouseHover: true },
-      inputRule: { transOpen: true },
-    });
-    view.cleanup();
-  });
-
-  test("confirms and persists a global toggle without dirtying or saving it in a site rule", async () => {
-    mockContextSetting = {
-      blacklist: "",
-      mouseHoverSetting: { useMouseHover: false, retained: true },
-    };
-    mockUpdateSetting.mockImplementation(async (reduce) => {
-      mockContextSetting = reduce(mockContextSetting);
-      return { value: mockContextSetting, changed: true };
-    });
-    const processActions = jest.fn(({ action, args }) =>
-      action === MSG_MOUSEHOVER_TOGGLE
-        ? { setting: { mouseHoverSetting: { useMouseHover: args.enabled } } }
-        : undefined
-    );
-    const view = renderPopupCont({ processActions });
-    try {
+  test.each([false, true])(
+    "shows global segments without changing preferences until clicked (content: %s)",
+    async (isContent) => {
+      const processActions = jest.fn();
+      const setting = {
+        tranboxSetting: { transOpen: true },
+        mouseHoverSetting: { useMouseHover: true },
+        inputRule: { transOpen: true },
+      };
+      const view = renderPopupCont({ processActions, setting, isContent });
       await flushEffects();
-      await act(async () =>
-        view.container
-          .querySelector('.kt-popup-global-feature[data-feature="hover"]')
-          .click()
-      );
-      expect(processActions).toHaveBeenCalledWith({
-        action: MSG_MOUSEHOVER_TOGGLE,
-        args: { enabled: true },
+
+      [
+        "selection_translate",
+        "popup_hover_translation",
+        "input_translate",
+      ].forEach((label) => {
+        expect(view.container.textContent).toContain(label);
       });
-      expect(mockContextSetting.mouseHoverSetting).toEqual({
-        useMouseHover: true,
-        retained: true,
-      });
-      expect(
-        view.container
-          .querySelector(".kt-popup-save-button")
-          .getAttribute("data-dirty-count")
-      ).toBe("0");
-      await act(async () =>
-        view.container.querySelector(".kt-popup-save-button").click()
+      expect(processActions).not.toHaveBeenCalled();
+      expect(mockUpdateSetting).not.toHaveBeenCalled();
+      const group = view.container.querySelector(".kt-popup-global-features");
+      expect(group.previousElementSibling.className).toBe(
+        "kt-popup-settings-grid"
       );
-      expect(saveRule.mock.calls[0][0].pattern).toBe("example.com");
-      for (const name of ["tranboxSetting", "mouseHoverSetting", "inputRule"])
-        expect(saveRule.mock.calls[0][0]).not.toHaveProperty(name);
-    } finally {
+      expect(group.nextElementSibling.className).toBe(
+        "kt-popup-bottom-actions"
+      );
+      expect(group.getAttribute("role")).toBe("group");
+      expect(group.closest('[aria-disabled="true"]')).toBeNull();
+      expect(setting).toEqual({
+        tranboxSetting: { transOpen: true },
+        mouseHoverSetting: { useMouseHover: true },
+        inputRule: { transOpen: true },
+      });
       view.cleanup();
     }
-  });
+  );
+
+  test.each([false, true])(
+    "confirms and persists a global toggle without saving it in a site rule (content: %s)",
+    async (isContent) => {
+      mockContextSetting = {
+        blacklist: "",
+        mouseHoverSetting: { useMouseHover: false, retained: true },
+      };
+      mockUpdateSetting.mockImplementation(async (reduce) => {
+        mockContextSetting = reduce(mockContextSetting);
+        return { value: mockContextSetting, changed: true };
+      });
+      const processActions = jest.fn(({ action, args }) =>
+        action === MSG_MOUSEHOVER_TOGGLE
+          ? { setting: { mouseHoverSetting: { useMouseHover: args.enabled } } }
+          : undefined
+      );
+      const view = renderPopupCont({ processActions, isContent });
+      try {
+        await flushEffects();
+        await act(async () =>
+          view.container
+            .querySelector('.kt-popup-global-feature[data-feature="hover"]')
+            .click()
+        );
+        expect(processActions).toHaveBeenCalledWith({
+          action: MSG_MOUSEHOVER_TOGGLE,
+          args: { enabled: true },
+        });
+        expect(mockContextSetting.mouseHoverSetting).toEqual({
+          useMouseHover: true,
+          retained: true,
+        });
+        expect(
+          view.container
+            .querySelector(".kt-popup-save-button")
+            .getAttribute("data-dirty-count")
+        ).toBe("0");
+        await act(async () =>
+          view.container.querySelector(".kt-popup-save-button").click()
+        );
+        expect(saveRule.mock.calls[0][0].pattern).toBe(
+          isContent ? window.location.hostname : "example.com"
+        );
+        for (const name of ["tranboxSetting", "mouseHoverSetting", "inputRule"])
+          expect(saveRule.mock.calls[0][0]).not.toHaveProperty(name);
+      } finally {
+        view.cleanup();
+      }
+    }
+  );
 
   test("keeps permitted global preferences available in the disabled-site snapshot", async () => {
     mockContextSetting = {

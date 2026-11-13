@@ -2,7 +2,13 @@ import { resolveApiPromptSettings, PROMPT_MODE_GLOBAL } from "../config/prompt";
 import { translatePlugin } from "./translationAdapter";
 import { invokePlugin } from "./bridge";
 jest.mock("./bridge", () => ({ invokePlugin: jest.fn() }));
-const provider = { implementation: { kind: "script" } };
+const provider = {
+  implementation: { kind: "script" },
+  capabilities: {
+    translate: { outputModes: ["text"] },
+    dictionary: { outputModes: ["text"] },
+  },
+};
 const prompts = [
   {
     slug: "own-single",
@@ -19,8 +25,37 @@ const prompts = [
     userPrompt: "",
   },
 ];
-test("external handlers inherit only explicit prompt entities and global scene choice wins", () => {
-  expect(resolveApiPromptSettings({ provider }, prompts)).toEqual({ provider });
+test.each(["transcribe", "parseImage"])(
+  "%s-only services do not acquire translation or dictionary defaults",
+  (capability) => {
+    const api = {
+      provider: {
+        implementation: { kind: "script" },
+        capabilities: { [capability]: { outputModes: ["text"] } },
+      },
+    };
+    expect(resolveApiPromptSettings(api, prompts)).toEqual(api);
+  }
+);
+
+test("a translate-only service does not acquire dictionary defaults", () => {
+  const api = {
+    provider: {
+      ...provider,
+      capabilities: { translate: provider.capabilities.translate },
+    },
+  };
+  const resolved = resolveApiPromptSettings(api);
+  expect(resolved.nobatchUserPrompt).toContain("{{text}}");
+  expect(resolved.dictPrompt).toBeUndefined();
+  expect(resolved.dictUserPrompt).toBeUndefined();
+});
+test("external handlers resolve task defaults and global scene choice wins", () => {
+  expect(resolveApiPromptSettings({ provider }, prompts)).toMatchObject({
+    provider,
+    nobatchUserPrompt: expect.stringContaining("{{text}}"),
+    dictUserPrompt: expect.stringContaining("{{text}}"),
+  });
   const api = {
     provider,
     nobatchPromptSlug: "own-single",

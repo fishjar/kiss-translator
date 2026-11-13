@@ -27,6 +27,7 @@ import {
 } from "../../config";
 import { logger } from "../../libs/log";
 import PopupCont from "./PopupCont";
+import BottomActions from "./BottomActions";
 import TranslationPanelSurface from "../../components/TranslationPanel/Surface";
 import TranslationPanelHeader from "../../components/TranslationPanel/Header";
 import TranslationPanelContent from "../../components/TranslationPanel/Content";
@@ -362,8 +363,13 @@ export function Trantab({ isSeparate = false, isVisible = true }) {
     );
   }
 
+  const isMinimal = simpleStyle && Boolean(text.trim());
+
   return (
-    <div className="kt-popup-text-panel" ref={panelRef}>
+    <div
+      className={`kt-popup-text-panel${isMinimal ? " kt-popup-text-panel--minimal" : ""}`}
+      ref={panelRef}
+    >
       <TranslationPanelSurface embedded>
         <TranslationPanelContent
           configActions={
@@ -383,7 +389,7 @@ export function Trantab({ isSeparate = false, isVisible = true }) {
           toLang={toLang}
           toLang2={toLang2}
           transApis={resolvedTransApis}
-          simpleStyle={isSeparate && simpleStyle && Boolean(text.trim())}
+          simpleStyle={isMinimal}
           langDetector={langDetector}
           enDict={enDict}
           enSug={enSug}
@@ -620,7 +626,6 @@ export default function Popup() {
             rule={rule}
             setting={setting}
             setRule={setRule}
-            handleOpenSetting={handleOpenSetting}
           />
         ) : isLoading ? (
           <div
@@ -631,30 +636,35 @@ export default function Popup() {
             <AutorenewRoundedIcon />
           </div>
         ) : (
-          <div className="kt-popup-empty">
-            <span>{i18n("popup_page_unavailable")}</span>
-            <div className="kt-popup-empty__actions">
-              <Button
-                variant="text"
-                onClick={() => {
-                  window.open(REVIEW_URL, "_blank", "noopener,noreferrer");
-                }}
-              >
-                {i18n("comment_support")}
-              </Button>
-              <Button
-                variant="text"
-                onClick={() => {
-                  window.open(SUPPORT_URL, "_blank", "noopener,noreferrer");
-                }}
-              >
-                {i18n("appreciate_support")}
-              </Button>
-              <Button variant="text" onClick={handleOpenSetting}>
-                {i18n("setting")}
-              </Button>
+          <>
+            <div className="kt-popup-empty">
+              <span>{i18n("popup_page_unavailable")}</span>
+              <div className="kt-popup-empty__actions">
+                <Button
+                  variant="text"
+                  onClick={() => {
+                    window.open(REVIEW_URL, "_blank", "noopener,noreferrer");
+                  }}
+                >
+                  {i18n("comment_support")}
+                </Button>
+                <Button
+                  variant="text"
+                  onClick={() => {
+                    window.open(SUPPORT_URL, "_blank", "noopener,noreferrer");
+                  }}
+                >
+                  {i18n("appreciate_support")}
+                </Button>
+                <Button variant="text" onClick={handleOpenSetting}>
+                  {i18n("setting")}
+                </Button>
+              </div>
             </div>
-          </div>
+            <div className="kt-popup-content">
+              <BottomActions />
+            </div>
+          </>
         )}
       </div>
       {hasVisitedText && (

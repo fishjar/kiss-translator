@@ -103,6 +103,13 @@ const handlers = {
         // already contains a batch and must retain its IDs during wire encoding.
         useBatchFetch: input.items.length > 1 || api.useBatchFetch,
         useStream: ctx.options.streaming,
+        ...((Object.hasOwn(input, "systemPrompt") ||
+          Object.hasOwn(input, "userPrompt")) && {
+          systemPrompt: input.systemPrompt ?? "",
+          batchUserPrompt: input.userPrompt ?? "",
+          nobatchPrompt: input.systemPrompt ?? "",
+          nobatchUserPrompt: input.userPrompt ?? "",
+        }),
       },
       ...languageOptions(input, api, ctx.nativeOptions),
       glossary: input.glossary,
@@ -173,7 +180,15 @@ const handlers = {
       ...ctx.nativeOptions,
       text: input.text,
       ...languageOptions(input, api, ctx.nativeOptions),
-      apiSetting: { ...api, useStream: ctx.options.streaming },
+      apiSetting: {
+        ...api,
+        useStream: ctx.options.streaming,
+        ...((Object.hasOwn(input, "instructions") ||
+          Object.hasOwn(input, "userPrompt")) && {
+          dictPrompt: input.instructions ?? "",
+          dictUserPrompt: input.userPrompt ?? "",
+        }),
+      },
       context: input.context,
       signal: ctx.signal,
       onStreamChunk,
@@ -185,12 +200,16 @@ const handlers = {
       text: await handleSummarize({
         ...ctx.nativeOptions,
         transcript: input.text,
-        description: ctx.nativeOptions?.description ?? input.context,
+        title: ctx.nativeOptions?.title ?? input.document?.title,
+        description:
+          ctx.nativeOptions?.description ??
+          input.document?.description ??
+          input.context,
         to: input.language,
-        prompt: {
-          systemPrompt: input.instructions,
-          userPrompt: input.userPrompt,
-        },
+        prompt:
+          input.instructions !== undefined || input.userPrompt !== undefined
+            ? { systemPrompt: input.instructions, userPrompt: input.userPrompt }
+            : ctx.nativeOptions?.prompt,
         apiSetting: api,
         signal: ctx.signal,
       }),

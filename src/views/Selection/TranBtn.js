@@ -96,7 +96,7 @@ export default function TranBtn({
         position: "fixed",
         left: position.x,
         top: position.y,
-        zIndex: 2147483647,
+        zIndex: 2147483646,
       }}
       // Preserve the page selection while activating the trigger.
       onMouseDown={(e) => e.preventDefault()}

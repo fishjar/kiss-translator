@@ -57,3 +57,30 @@ export async function prepareMessages(messages, readAsset) {
   }
   return prepared;
 }
+
+// Keep non-text parts intact; omit blank text without changing roles or content.
+export function compactMessages(messages) {
+  return messages.flatMap((message) => {
+    // Gemini context includes non-message steps such as thought signatures.
+    if (message.type && message.type !== "user_input") return [message];
+    const key = Object.hasOwn(message, "parts") ? "parts" : "content";
+    const value = message[key];
+    if (Array.isArray(value)) {
+      const parts = value.filter((part) =>
+        part.type === "text" || (!part.type && Object.hasOwn(part, "text"))
+          ? Boolean(String(part.text ?? "").trim())
+          : true
+      );
+      return parts.length ? [{ ...message, [key]: parts }] : [];
+    }
+    return typeof value === "string" && value.trim() ? [message] : [];
+  });
+}
+
+export function requireConversationInput(messages, protocol) {
+  if (!compactMessages(messages).length)
+    throw providerError(
+      "INVALID_INPUT",
+      `${protocol} 不支持仅系统提示词，请在用户模板中明确提供内容`
+    );
+}

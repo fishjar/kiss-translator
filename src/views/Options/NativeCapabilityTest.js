@@ -89,7 +89,8 @@ export default function NativeCapabilityTest({ api, translationTest }) {
       const input = applyTestPrompt(
         capability,
         createTestInput(capability, text, file, assets),
-        resolvedApi
+        resolvedApi,
+        { prompts, subtitleSetting: setting?.subtitleSetting }
       );
       const call = invokeService(resolvedApi, capability, input, {
         assets,

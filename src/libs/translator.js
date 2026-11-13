@@ -4545,7 +4545,7 @@ overflow-wrap: anywhere !important;`;
       return placeholder;
     };
 
-    const traverse = (node) => {
+    const traverse = (node, preserveLayout = false) => {
       if (isInlineHidden(node)) return "";
       if (
         node.nodeType !== Node.ELEMENT_NODE &&
@@ -4582,9 +4582,21 @@ overflow-wrap: anywhere !important;`;
         const contentRole = this.#getContentRole(node);
         if (contentRole === "skip") return "";
 
+        // Atomic inline boxes share the surrounding sentence, but their inner
+        // layout must survive reconstruction (e.g. Google's counter-flips).
+        // DOMPurify unwraps custom/unknown shells, so flatten their layout
+        // descendants too instead of exposing blocks in the surrounding text.
+        const preserveStructure =
+          this.#rule.hasRichText === "true" &&
+          !node.localName.includes("-") &&
+          !(node instanceof HTMLUnknownElement) &&
+          (preserveLayout || getNodeLayout(node) === "atomic");
+
         // 收藏词高亮只影响原文显示，不应改变翻译请求的结构
         if (node.classList.contains(Translator.KISS_CLASS.highlight)) {
-          return Array.from(node.childNodes, traverse).join("");
+          return Array.from(node.childNodes, (child) =>
+            traverse(child, preserveStructure)
+          ).join("");
         }
 
         const keptInline = contentRole === "keep";
@@ -4621,7 +4633,7 @@ overflow-wrap: anywhere !important;`;
         let innerContent = "";
         node.childNodes.forEach((child) => {
           try {
-            innerContent += traverse(child);
+            innerContent += traverse(child, preserveStructure);
           } catch (err) {
             logger
               .child("translator")
@@ -4631,15 +4643,19 @@ overflow-wrap: anywhere !important;`;
 
         if (
           this.#rule.hasRichText === "true" &&
-          Translator.TAGS.WARP.has(node.tagName?.toUpperCase())
+          (preserveStructure ||
+            Translator.TAGS.WARP.has(node.tagName?.toUpperCase()))
         ) {
           wrapCounter++;
           const { tagName, format } = this.#placeholderConfig;
 
-          // 存储序号对应的原始标签对（使用TAG_前缀避免与普通占位符{{1}}冲突）
+          // Snapshot the shell before an asynchronous request or DOM update.
           placeholderMap.set(`TAG_${wrapCounter}`, {
-            openTag: buildOpeningTag(node),
-            closeTag: `</${node.localName}>`,
+            tagName: node.localName,
+            attributes: Array.from(node.attributes, ({ name, value }) => [
+              name,
+              value,
+            ]),
           });
 
           // 生成占位符
@@ -4663,17 +4679,10 @@ overflow-wrap: anywhere !important;`;
       return "";
     };
 
-    function buildOpeningTag(node) {
-      const escapeAttr = (str) => str.replace(/"/g, "&quot;");
-      let tag = `<${node.tagName.toLowerCase()}`;
-      for (const attr of node.attributes) {
-        tag += ` ${attr.name}="${escapeAttr(attr.value)}"`;
-      }
-      tag += ">";
-      return tag;
-    }
-
-    let processedString = nodes.map(traverse).join("").trim();
+    let processedString = nodes
+      .map((node) => traverse(node))
+      .join("")
+      .trim();
 
     // 先清理整个翻译片段两端的源码排版空白，再保护正文内部的换行和 Tab。
     // 不能逐个 trim 文本节点，否则会破坏行内元素之间的必要空格。
@@ -4716,17 +4725,20 @@ overflow-wrap: anywhere !important;`;
       const selector = `${safeTag}[${restoreAttr}]`;
       const placeholders = Array.from(doc.querySelectorAll(selector));
 
-      // 4. 自底向上倒序还原：为了保证嵌套标签的父子包含层级不被破坏，必须从最深处的子节点开始依次向外层父节点还原。
-      // 这里的 placeholders.reverse() 正是实现了自底向上（倒序）替换 DOM 节点，逻辑非常严密！
+      // Rebuild from the leaves in this inert document. Parsing individual
+      // table fragments would strip cells/rows without their parent context.
+      // The complete tree is sanitized before insertion into the live page.
       placeholders.reverse().forEach((node) => {
         const index = node.getAttribute(restoreAttr);
         if (index) {
-          const tagPair = placeholderMap.get(`TAG_${index}`);
-          if (tagPair) {
-            // 使用原本的 HTML 标签对 (如 <a href="...">...</a>) 完整包裹当前节点的内容，并使用 outerHTML 替换整个临时 span 节点
-            node.outerHTML = trustedTypesHelper.createHTML(
-              `${tagPair.openTag}${node.innerHTML}${tagPair.closeTag}`
-            );
+          const shell = placeholderMap.get(`TAG_${index}`);
+          if (shell) {
+            const element = doc.createElement(shell.tagName);
+            for (const [name, value] of shell.attributes) {
+              element.setAttribute(name, value);
+            }
+            while (node.firstChild) element.appendChild(node.firstChild);
+            node.replaceWith(element);
           }
         }
       });

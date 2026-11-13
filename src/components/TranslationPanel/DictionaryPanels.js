@@ -5,14 +5,9 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   OPT_DICT_MAP,
   OPT_SUG_MAP,
-  PROMPT_CATEGORY_DICTIONARY,
   PROMPT_MODE_FOLLOW_API,
-  findPromptBySlug,
 } from "../../config";
-import {
-  isApiConfigured,
-  supportsApiCapability,
-} from "../../config/serviceSelection";
+import { resolveAiDictApiSetting } from "../../libs/aiDictionary";
 import { useI18n } from "../../hooks/I18n";
 import { isSingleChineseChar, isValidWord } from "../../libs/utils";
 import AiDictCont from "../../views/Selection/AiDictCont";
@@ -20,69 +15,7 @@ import DictCont from "../../views/Selection/DictCont";
 import SugCont from "../../views/Selection/SugCont";
 import Zdic from "../../views/Selection/Zdic";
 
-// Treat whitespace-only prompts as unconfigured.
-const hasPrompt = (value) => typeof value === "string" && Boolean(value.trim());
-
-/**
- * Revalidate a stored AI dictionary slug against current API availability.
- *
- * @param {Object} settings
- * @param {Array<Object>} [settings.transApis]
- * @param {Array<Object>} [settings.prompts]
- * @param {string} [settings.aiDictApiSlug]
- * @param {string} [settings.aiDictPromptSlug]
- * @returns {Object|null} An API setting carrying the resolved dictionary prompt.
- */
-export function resolveAiDictApiSetting({
-  transApis = [],
-  prompts = [],
-  aiDictApiSlug = "-",
-  aiDictPromptSlug = PROMPT_MODE_FOLLOW_API,
-}) {
-  if (!aiDictApiSlug || aiDictApiSlug === "-") {
-    return null;
-  }
-
-  // Stored slugs can outlive changes to API availability, API type, or prompt category.
-  // Recheck eligibility to avoid sending dictionary prompts to a non-AI endpoint.
-  const apiSetting = transApis.find(
-    (api) =>
-      api.apiSlug === aiDictApiSlug &&
-      !api.isDisabled &&
-      isApiConfigured(api) &&
-      supportsApiCapability(api, "dictionary")
-  );
-  if (!apiSetting) {
-    return null;
-  }
-
-  // Following the API requires a resolved, nonblank dictPrompt.
-  // Empty prompts would create a billed request without useful instructions.
-  if (aiDictPromptSlug === PROMPT_MODE_FOLLOW_API) {
-    const { provider } = apiSetting;
-    if (provider && provider.implementation?.kind !== "native") {
-      return apiSetting;
-    }
-    return hasPrompt(apiSetting.dictPrompt) ? apiSetting : null;
-  }
-
-  // Override the API's dictionary prompt with the selected global prompt.
-  const prompt = findPromptBySlug(prompts, aiDictPromptSlug);
-  if (
-    !prompt ||
-    prompt.category !== PROMPT_CATEGORY_DICTIONARY ||
-    !hasPrompt(prompt.systemPrompt)
-  ) {
-    return null;
-  }
-
-  return {
-    ...apiSetting,
-    dictPromptSlug: prompt.slug,
-    dictPrompt: prompt.systemPrompt,
-    dictUserPrompt: prompt.userPrompt,
-  };
-}
+export { resolveAiDictApiSetting } from "../../libs/aiDictionary";
 
 /**
  * Pure availability probe used by the dictionary panel itself. Hosts must not

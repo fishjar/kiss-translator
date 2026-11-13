@@ -59,10 +59,11 @@ export default function PluginPromptSettings({
     <Container {...(!inline && { spacing: 2 })}>
       {visibleSlots.map(([, slot, key, label, options]) => {
         const slug = api[key] || "";
-        const choices = [
-          ...getPluginPromptOptions(api, slot),
-          ...options(prompts),
-        ];
+        const pluginChoices = getPluginPromptOptions(api, slot);
+        const defaultSlug = ["batch", "nobatch", "dictionary"].includes(slot)
+          ? pluginChoices[0]?.slug
+          : undefined;
+        const choices = [...pluginChoices, ...options(prompts)];
         const unavailable = Boolean(
           slug && !choices.some((item) => item.slug === slug)
         );
@@ -91,11 +92,18 @@ export default function PluginPromptSettings({
                       )
                     : i18n("plugin_plugin_default"),
               }}
-              onChange={(event) => onChange(key, event.target.value)}
+              onChange={(event) =>
+                onChange(key, event.target.value || defaultSlug || "")
+              }
             >
               <MenuItem
                 value=""
                 disabled={!api.provider.defaultPrompts?.[slot]?.length}
+                onClick={() => {
+                  // Select does not emit onChange when the displayed value is already empty.
+                  if ((!slug || unavailable) && defaultSlug)
+                    onChange(key, defaultSlug);
+                }}
               >
                 {i18n("plugin_plugin_default")}
               </MenuItem>

@@ -358,10 +358,9 @@ export class YouTubeSubtitleList {
     this.bilingualSubtitles = subtitles || [];
     this.rawSubtitleEvents = rawSubtitleEvents || [];
     this.subtitleProgress = this._normalizeProgress(progressed);
-    if (this.bilingualSubtitles.length > 0 || this.asrActions) {
-      this.createSubtitleList();
-      this.setupEventListeners();
-    }
+    // The provider decides when to open; explicit opens also need a panel without cues or ASR.
+    this.createSubtitleList();
+    this.setupEventListeners();
     this._updateDownloadButtonsState();
   }
 

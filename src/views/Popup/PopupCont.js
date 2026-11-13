@@ -11,7 +11,6 @@ import ArrowDropDownRoundedIcon from "@mui/icons-material/ArrowDropDownRounded";
 import BookmarkAddRoundedIcon from "@mui/icons-material/BookmarkAddRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import DeleteSweepRoundedIcon from "@mui/icons-material/DeleteSweepRounded";
 import DoNotDisturbOnRoundedIcon from "@mui/icons-material/DoNotDisturbOnRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
@@ -47,7 +46,6 @@ import {
 } from "../../config";
 import { saveRule } from "../../libs/rules";
 import { getRulesWithDefault } from "../../libs/storage";
-import { tryClearCaches } from "../../libs/cache";
 import { logger } from "../../libs/log";
 import { getDomainOptions } from "../../libs/url";
 import {
@@ -63,9 +61,9 @@ import CompactLanguageSelect from "./CompactLanguageSelect";
 import PopupStylePreview from "./PopupStylePreview";
 import PopupMenu from "./PopupMenu";
 import GlobalFeatures from "./GlobalFeatures";
+import BottomActions from "./BottomActions";
 import { queryPopupData } from "./loadData";
 import { useConfirmedPopupUpdate } from "./useConfirmedPopupUpdate";
-import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 import { getEnabledApis, resolveApiSelection } from "../../libs/apiSelection";
 
 const isTouchAction = (action) =>
@@ -144,7 +142,6 @@ export default function PopupCont({
   rule,
   setting,
   setRule,
-  handleOpenSetting,
   processActions,
   targetTab,
   documentInfo,
@@ -166,7 +163,6 @@ export default function PopupCont({
   const [savedPatterns, setSavedPatterns] = useState([]);
   const [openMenu, setOpenMenu] = useState(null);
   const [saveStatus, setSaveStatus] = useState("idle");
-  const [cacheStatus, setCacheStatus] = useState("idle");
   const [editorOpening, setEditorOpening] = useState(false);
   const [editorError, setEditorError] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -181,7 +177,6 @@ export default function PopupCont({
   const translationTogglePendingRef = useRef(false);
   const savePendingRef = useRef(false);
   const blacklistPendingRef = useRef(false);
-  const cachePendingRef = useRef(false);
   const editorPendingRef = useRef(false);
   const ruleUpdatePendingRef = useRef(0);
   const ruleRef = useRef(rule);
@@ -628,21 +623,6 @@ export default function PopupCont({
       if (activeRef.current) setEditorOpening(false);
     }
   }, [canEditRule, processActions, sendPageMessage, resetLater]);
-  const handleClearCache = useCallback(async () => {
-    if (cachePendingRef.current || cacheStatus === "done") return;
-    cachePendingRef.current = true;
-    setCacheStatus("clearing");
-    let cleared = false;
-    try {
-      cleared = await tryClearCaches();
-    } catch (error) {
-      logger.child("popup").error("clear popup cache", error);
-    }
-    cachePendingRef.current = false;
-    if (!activeRef.current) return;
-    setCacheStatus(cleared ? "done" : "error");
-    resetLater("cache", () => setCacheStatus("idle"));
-  }, [cacheStatus, resetLater]);
   const handleSaveRule = useCallback(async () => {
     if (
       !selectedDomain ||
@@ -1194,25 +1174,23 @@ export default function PopupCont({
           {saveLabel}
         </button>
       </div>
-      {!isContent && (
-        <GlobalFeatures
-          setting={setting}
-          capabilities={capabilities}
-          processActions={processActions}
-          targetTab={targetTab}
-          documentInfo={documentInfo}
-          isDisabledPage={isDisabledPage}
-          isVisible={isVisible}
-          onPageUnavailable={onPageUnavailable}
-        />
-      )}
+      <GlobalFeatures
+        setting={setting}
+        capabilities={capabilities}
+        processActions={processActions}
+        targetTab={targetTab}
+        documentInfo={documentInfo}
+        isDisabledPage={isDisabledPage}
+        isVisible={isVisible}
+        onPageUnavailable={onPageUnavailable}
+      />
       {!blockedControls && (
         <TouchTranslateControl
           processActions={dispatchTouchAction}
           inlineFeedback
         />
       )}
-      <div className="kt-popup-bottom-actions">
+      <BottomActions>
         {!isInCurrentBlacklist && (
           <button
             type="button"
@@ -1224,53 +1202,11 @@ export default function PopupCont({
             {i18n("popup_disable_site")}
           </button>
         )}
-        <button
-          type="button"
-          className="kt-popup-cache-button"
-          data-status={cacheStatus}
-          disabled={cacheStatus === "clearing" || cacheStatus === "done"}
-          onClick={() => void handleClearCache()}
-        >
-          {cacheStatus === "done" ? (
-            <CheckRoundedIcon aria-hidden="true" />
-          ) : (
-            <DeleteSweepRoundedIcon aria-hidden="true" />
-          )}
-          {i18n(
-            cacheStatus === "done"
-              ? "popup_cache_cleared"
-              : cacheStatus === "error"
-                ? "popup_cache_failed"
-                : "clear_cache"
-          )}
-        </button>
-        <span className="kt-popup-version">
-          v{process.env.REACT_APP_VERSION}
-        </span>
-      </div>
+      </BottomActions>
       {actionError && (
         <span className="kt-popup-action-error" role="status">
           {actionError}
         </span>
-      )}
-      {isContent && (
-        <>
-          <button
-            type="button"
-            className="kt-popup-all-settings"
-            onClick={handleOpenSetting}
-          >
-            {i18n("popup_all_settings")}
-          </button>
-          <div className="kt-popup-support">
-            <a href={REVIEW_URL} target="_blank" rel="noopener noreferrer">
-              {i18n("comment_support")}
-            </a>
-            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
-              {i18n("appreciate_support")}
-            </a>
-          </div>
-        </>
       )}
       <PopupMenu
         {...menuProps("pattern")}

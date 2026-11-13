@@ -510,7 +510,7 @@ export default function FileTranslateView() {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteError, setPasteError] = useState("");
   const [onlineImport, setOnlineImport] = useState(null);
-  const [pdfFullscreen, setPdfFullscreen] = useState(false);
+  const [workspaceFullscreen, setWorkspaceFullscreen] = useState(false);
   const [pendingTextMode, setPendingTextMode] = useState(null);
   const [isEntireTranslated, setIsEntireTranslated] = useState(false);
   // 顶栏第二行核心配置项展开/收起状态（默认展开）
@@ -893,7 +893,7 @@ export default function FileTranslateView() {
   // 选入文件处理与全自动格式识别判定
   const selectFile = async (selected) => {
     cancelOnlineImport();
-    setPdfFullscreen(false);
+    setWorkspaceFullscreen(false);
     setInputNotices([]);
     setPendingTextMode(null);
     // 换书或重选文件时：在任何异步操作前立即记录本次唯一任务会话 ID，并中止旧任务
@@ -1058,7 +1058,7 @@ export default function FileTranslateView() {
   // 清除已选文件，重置回未上传状态（彻底中止旧任务控制器并自增 taskId 阻断异步回调）
   const handleClearFile = () => {
     cancelOnlineImport();
-    setPdfFullscreen(false);
+    setWorkspaceFullscreen(false);
     setPendingTextMode(null);
     taskIdRef.current += 1;
     controller.current?.abort();
@@ -2468,7 +2468,7 @@ export default function FileTranslateView() {
         bgcolor: "background.default",
         color: "text.primary",
         position: "relative",
-        ...(pdfFullscreen && {
+        ...(workspaceFullscreen && {
           "& > :not([data-file-workspace])": { display: "none" },
         }),
       }}
@@ -3234,7 +3234,7 @@ export default function FileTranslateView() {
         sx={{
           flex: 1,
           minHeight: 0,
-          p: pdfFullscreen ? 0 : 1.5,
+          p: workspaceFullscreen ? 0 : 1.5,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -3293,6 +3293,8 @@ export default function FileTranslateView() {
           </Box>
         ) : mode === "epub" && epubBook ? (
           <EpubReaderView
+            fullscreen={workspaceFullscreen}
+            onFullscreenChange={setWorkspaceFullscreen}
             epubBook={epubBook}
             currentChapterIndex={currentChapterIndex}
             onSelectChapter={(idx) => setCurrentChapterIndex(idx)}
@@ -3323,8 +3325,8 @@ export default function FileTranslateView() {
               onStateChange={setPdfState}
               onChangeFile={selectFile}
               onClear={handleClearFile}
-              fullscreen={pdfFullscreen}
-              onFullscreenChange={setPdfFullscreen}
+              fullscreen={workspaceFullscreen}
+              onFullscreenChange={setWorkspaceFullscreen}
             />
           </Suspense>
         ) : (

@@ -49,7 +49,7 @@ import { genClaude } from "./claude";
 import { genCloudflareAI } from "./cloudflare";
 import { genOllama } from "./ollama";
 import { genOpenRouter, genOrcaRouter, genRequesty } from "./routers";
-import { buildSystemRoleMessages } from "./messages";
+import { buildSystemRoleMessages, compactMessages } from "./messages";
 
 // 原生协议适配：保持旧参数、字段和厂家差异，不加载用户脚本解释器。
 const genCustom = ({ texts, fromLang, toLang, url, key, useBatchFetch }) => {
@@ -77,12 +77,16 @@ const genLocalAI = ({
   const userMsg = { role: "user", content: userPrompt };
   return {
     url: "local-ai://chat",
-    userMsg,
+    userMsg: compactMessages([userMsg])[0],
     body: {
       ...(cacheMode && { cacheMode }),
       modelRef,
       loadSpec: { device: device || "webgpu" },
-      messages: [...buildSystemRoleMessages(systemPrompt), ...hisMsgs, userMsg],
+      messages: compactMessages([
+        ...buildSystemRoleMessages(systemPrompt),
+        ...hisMsgs,
+        userMsg,
+      ]),
       temperature,
       maxTokens,
     },

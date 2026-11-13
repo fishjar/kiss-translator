@@ -210,6 +210,7 @@ const RULES_MAP = {
     ignoreSelector: `[data-testid='videoPlayer'], [data-testid^='tweetTextarea']`,
     autoScan: `false`,
     selectStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
+    injectCss: `[data-testid='tweetPhoto'] img, [data-testid='card.layoutLarge.media'] img { opacity: 1 !important; }`,
   },
   "://www.youtube.com/live_chat": {
     rootsSelector: `div#items`,
@@ -222,6 +223,14 @@ const RULES_MAP = {
     selectStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
     parentStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
     grandStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
+  },
+  "://web.telegram.org/k": {
+    autoScan: `false`,
+    selector:
+      ".bubbles .translatable-message, .bubbles .message:not(:has(.translatable-message))",
+    rootsSelector: "body",
+    ignoreSelector:
+      "+ .time, .time-inner, .peer-title, .document-wrapper, reactions-element",
   },
   "://web.telegram.org/": {
     autoScan: `false`,

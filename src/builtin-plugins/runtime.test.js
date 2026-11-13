@@ -1,5 +1,8 @@
 import { createNativeRegistry } from "./runtime";
-import { handleNativeTranslate as handleTranslate } from "../apis/trans";
+import {
+  handleNativeTranslate as handleTranslate,
+  handleNativeSummarize,
+} from "../apis/trans";
 import { OPT_TRANS_OPENAI } from "../config/api";
 import { apiTranslate } from "../apis";
 jest.mock("query-string", () => ({
@@ -18,6 +21,35 @@ beforeEach(() =>
     yield { id: 1, result: ["乙", "en"] };
     yield { id: 0, result: ["甲", "en"] };
   })
+);
+
+test.each([undefined, {}, { systemPrompt: "Custom", userPrompt: "" }])(
+  "native summary dispatch preserves absence versus custom prompt (%#)",
+  async (prompt) => {
+    handleNativeSummarize.mockResolvedValueOnce("Summary");
+    const api = {
+      apiType: OPT_TRANS_OPENAI,
+      apiSlug: "summary",
+      useStream: false,
+    };
+    const registry = createNativeRegistry(() => api, {
+      nativeOptions: { prompt },
+    });
+    await registry.invoke("summary", "summarize", {
+      text: "Transcript",
+      document: { title: "Title", description: "Description" },
+      instructions: prompt?.systemPrompt,
+      userPrompt: prompt?.userPrompt,
+    }).result;
+    expect(handleNativeSummarize).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        title: "Title",
+        description: "Description",
+        transcript: "Transcript",
+        prompt,
+      })
+    );
+  }
 );
 
 test("old network VLM selections and snapshots cannot invoke a removed native handler", async () => {

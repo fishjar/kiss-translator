@@ -34,6 +34,8 @@ const getApiSetting = (update = {}) => ({
   ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_OPENCODEGO),
   key: "test-key",
   useBatchFetch: false,
+  nobatchUserPrompt: "{{text}}",
+  batchUserPrompt: "{{segments}}",
   useStream: false,
   ...update,
 });
@@ -216,7 +218,12 @@ test("subtitle and summary requests also carry the session without relying on ho
   fetchData.mockResolvedValueOnce({
     choices: [{ message: { content: "A greeting." } }],
   });
-  await handleSummarize({ title: "Example", transcript: "hello", apiSetting });
+  await handleSummarize({
+    title: "Example",
+    transcript: "hello",
+    apiSetting,
+    prompt: { userPrompt: "{{transcript}}" },
+  });
   const subtitleId = fetchData.mock.calls[0][1].headers[sessionHeader];
   expect(subtitleId).toMatch(uuidPattern);
   expect(fetchData.mock.calls[1][1].headers[sessionHeader]).toBe(subtitleId);

@@ -683,3 +683,52 @@ describe("scene translation prompt overrides", () => {
     expect(resolveApiPromptSettings(api, prompts).useBatchFetch).toBe(true);
   });
 });
+
+test.each([false, true])(
+  "inline batch pair is never completed from defaults (plugin=%s)",
+  (plugin) => {
+    const api = {
+      apiType: "OpenAI",
+      batchUserPrompt: "{{segments}}",
+      ...(plugin && {
+        provider: {
+          implementation: { kind: "script" },
+          defaultPrompts: {
+            batch: [
+              {
+                id: "default",
+                systemPrompt: "Preset",
+                userPrompt: "Default input",
+              },
+            ],
+          },
+        },
+      }),
+    };
+    const resolved = resolveApiPromptSettings(api);
+    expect(resolved.systemPrompt ?? "").toBe("");
+    expect(resolved.batchUserPrompt).toBe("{{segments}}");
+  }
+);
+test.each(["batch", "nobatch", "dictionary"])(
+  "legacy empty %s fields resolve defaults without mutating storage",
+  (slot) => {
+    const fields = {
+      batch: ["systemPrompt", "batchUserPrompt"],
+      nobatch: ["nobatchPrompt", "nobatchUserPrompt"],
+      dictionary: ["dictPrompt", "dictUserPrompt"],
+    }[slot];
+    const resolved = resolveApiPromptSettings({
+      provider: {
+        implementation: { kind: "script" },
+        capabilities: {
+          translate: { outputModes: ["text"] },
+          dictionary: { outputModes: ["text"] },
+        },
+      },
+      [fields[0]]: "",
+      [fields[1]]: "",
+    });
+    expect((resolved[fields[0]] + resolved[fields[1]]).trim()).not.toBe("");
+  }
+);

@@ -19,9 +19,12 @@ jest.mock("../libs/stream", () => ({
   detectStreamFormat: jest.fn(),
 }));
 
+jest.mock("../providers/sceneAdapter", () => ({ invokeTextScene: jest.fn() }));
+
 import { fetchData, fetchStream } from "../libs/fetch";
+import { invokeTextScene } from "../providers/sceneAdapter";
 import { DEFAULT_API_LIST, OPT_TRANS_OPENAI } from "../config";
-import { handleDict } from "./trans";
+import { handleDict, handleNativeDict } from "./trans";
 
 const openaiApi = {
   ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_OPENAI),
@@ -39,6 +42,24 @@ describe("handleDict", () => {
     fetchData.mockReset();
     fetchStream.mockReset();
   });
+  test.each([handleDict, handleNativeDict])(
+    "passes interface terminology to plugin dictionary task input (%#)",
+    async (handler) => {
+      invokeTextScene.mockResolvedValueOnce("Definition");
+      const apiSetting = {
+        ...openaiApi,
+        aiTerms: "bank,河岸\nReact,",
+        provider: { implementation: { kind: "script" } },
+      };
+      await handler({ text: "bank", fromLang: "en", toLang: "zh", apiSetting });
+      expect(invokeTextScene).toHaveBeenLastCalledWith(
+        apiSetting,
+        "dictionary",
+        expect.objectContaining({ glossary: { bank: "河岸", React: "" } }),
+        expect.any(Object)
+      );
+    }
+  );
 
   test("uses dictionary system and user prompts with context placeholders", async () => {
     fetchData.mockResolvedValueOnce({
@@ -67,7 +88,7 @@ describe("handleDict", () => {
     );
   });
 
-  test("falls back to default dictionary user prompt for old api settings", async () => {
+  test("does not fill a missing dictionary user template", async () => {
     fetchData.mockResolvedValueOnce({
       choices: [{ message: { content: "## library\nA place for books." } }],
     });
@@ -90,12 +111,7 @@ describe("handleDict", () => {
 
     expect(body.messages[0].content).toBe("Dictionary rules for library.");
     expect(body.messages[0].content).not.toContain("# Context");
-    expect(body.messages[body.messages.length - 1].content).toContain(
-      "Surrounding paragraph: The library closes at six."
-    );
-    expect(body.messages[body.messages.length - 1].content).toContain(
-      "library"
-    );
+    expect(body.messages.some((m) => m.role === "user")).toBe(false);
   });
 
   test("allows empty dictionary user prompt", async () => {
@@ -121,7 +137,7 @@ describe("handleDict", () => {
 
     expect(body.messages[0].content).toBe("Dictionary rules for library.");
     expect(body.messages[0].content).not.toContain("# Context");
-    expect(body.messages[body.messages.length - 1].content).toBe("");
+    expect(body.messages.some((m) => m.role === "user")).toBe(false);
   });
 
   test("streams dictionary markdown when callback is provided", async () => {
