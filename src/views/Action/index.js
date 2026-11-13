@@ -136,6 +136,7 @@ export default function Action({ translator, processActions }) {
               // Drag the panel from its header.
               <Box ref={headerRef} style={{ cursor: "move" }}>
                 <Header
+                  openSettings={handleOpenSetting}
                   onClose={() => {
                     setShowPopup(false);
                   }}
@@ -166,7 +167,6 @@ export default function Action({ translator, processActions }) {
                 rule={rule}
                 setting={setting}
                 setRule={setRule}
-                handleOpenSetting={handleOpenSetting}
                 processActions={processActions}
                 isContent={true} // Identify the panel embedded in the page content.
               />

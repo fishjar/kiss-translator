@@ -65,7 +65,6 @@ import PopupMenu from "./PopupMenu";
 import GlobalFeatures from "./GlobalFeatures";
 import { queryPopupData } from "./loadData";
 import { useConfirmedPopupUpdate } from "./useConfirmedPopupUpdate";
-import { REVIEW_URL, SUPPORT_URL } from "./supportLinks";
 import { getEnabledApis, resolveApiSelection } from "../../libs/apiSelection";
 
 const isTouchAction = (action) =>
@@ -144,7 +143,6 @@ export default function PopupCont({
   rule,
   setting,
   setRule,
-  handleOpenSetting,
   processActions,
   targetTab,
   documentInfo,
@@ -1252,25 +1250,6 @@ export default function PopupCont({
         <span className="kt-popup-action-error" role="status">
           {actionError}
         </span>
-      )}
-      {isContent && (
-        <>
-          <button
-            type="button"
-            className="kt-popup-all-settings"
-            onClick={handleOpenSetting}
-          >
-            {i18n("popup_all_settings")}
-          </button>
-          <div className="kt-popup-support">
-            <a href={REVIEW_URL} target="_blank" rel="noopener noreferrer">
-              {i18n("comment_support")}
-            </a>
-            <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer">
-              {i18n("appreciate_support")}
-            </a>
-          </div>
-        </>
       )}
       <PopupMenu
         {...menuProps("pattern")}

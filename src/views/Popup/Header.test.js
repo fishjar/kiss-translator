@@ -39,6 +39,51 @@ describe("Popup Header support menu", () => {
     window.open = originalWindowOpen;
   });
 
+  test("places support, settings and close in the content header", () => {
+    const openSettings = jest.fn();
+    const onClose = jest.fn();
+    act(() =>
+      root.render(<Header onClose={onClose} openSettings={openSettings} />)
+    );
+    const buttons = container.querySelectorAll(
+      ".kt-popup-header__actions button"
+    );
+    expect(
+      Array.from(buttons, (button) => button.getAttribute("aria-label"))
+    ).toEqual(["popup_support", "setting", "close"]);
+    act(() => buttons[1].click());
+    expect(openSettings).toHaveBeenCalledTimes(1);
+    act(() => buttons[2].click());
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("keeps the content support menu inside its shadow theme root", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const shadow = host.attachShadow({ mode: "open" });
+    const themeRoot = document.createElement("div");
+    themeRoot.className = "kt-m3-root";
+    shadow.appendChild(themeRoot);
+    act(() => root.unmount());
+    root = createRoot(themeRoot);
+    act(() =>
+      root.render(<Header onClose={jest.fn()} openSettings={jest.fn()} />)
+    );
+    const sponsor = themeRoot.querySelector('[aria-label="popup_support"]');
+    act(() => sponsor.click());
+    const items = shadow.querySelectorAll('[role="menuitem"]');
+    expect(items).toHaveLength(2);
+    expect(document.body.querySelector('[role="menuitem"]')).toBeNull();
+    act(() => items[0].click());
+    expect(window.open).toHaveBeenCalledWith(
+      REVIEW_URL,
+      "_blank",
+      "noopener,noreferrer"
+    );
+    expect(shadow.querySelector('[role="menuitem"]')).toBeNull();
+    expect(shadow.activeElement).toBe(sponsor);
+  });
+
   test("unsupported screenshot leaves popup open", async () => {
     const {
       checkScreenshotSupport,
