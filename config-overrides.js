@@ -287,6 +287,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       api.siliconflow.cn
 // @connect       api.xiaomimimo.com
 // @connect       dashscope.aliyuncs.com
+// @connect       xf-yun.com
 // @connect       api.cerebras.ai
 // @connect       open.bigmodel.cn
 // @connect       api.cloudflare.com
