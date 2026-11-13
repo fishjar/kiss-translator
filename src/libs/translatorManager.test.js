@@ -201,6 +201,7 @@ jest.mock("./touch", () => ({
 
 jest.mock("./iframe", () => ({
   sendIframeMsg: jest.fn(),
+  sendTopMsg: jest.fn(),
 }));
 
 jest.mock("./log", () =>
@@ -223,10 +224,13 @@ const { FabManager } = require("./fabManager");
 const {
   ImageTranslateManager,
 } = require("./imageTranslate/imageTranslateManager");
-const { sendIframeMsg } = require("./iframe");
+const { sendIframeMsg, sendTopMsg } = require("./iframe");
+const { shortcutRegister } = require("./shortcut");
 const TranslatorManager = require("./translatorManager").default;
 
 function setupMockConstructors() {
+  // Userscript frames register shortcuts and call the returned cleanup on stop.
+  shortcutRegister.mockImplementation(() => jest.fn());
   Translator.mockImplementation((args) => {
     mockTranslatorArgs.push(args);
     const instance = {
@@ -1541,6 +1545,93 @@ describe("TranslatorManager SPA lifecycle", () => {
       1
     );
     expect(sendIframeMsg).not.toHaveBeenCalled();
+  });
+
+  describe("userscript shortcuts", () => {
+    const shortcuts = {
+      translate: ["AltLeft", "KeyQ"],
+      transonly: ["AltLeft", "KeyW"],
+      style: ["AltLeft", "KeyC"],
+      popup: ["AltLeft", "KeyK"],
+      setting: ["AltLeft", "KeyO"],
+    };
+    const tranboxShortcut = ["AltLeft", "KeyS"];
+    const setting = {
+      shortcuts,
+      tranboxSetting: { transOpen: true, tranboxShortcut },
+    };
+    const findShortcut = (keys) =>
+      shortcutRegister.mock.calls.find(
+        ([registered]) => JSON.stringify(registered) === JSON.stringify(keys)
+      );
+    const press = (keys) => {
+      const registration = findShortcut(keys);
+      expect(registration).toBeDefined();
+      registration[1]();
+    };
+
+    test.each([
+      ["translate", shortcuts.translate, "trans-toggle"],
+      ["translate-only", shortcuts.transonly, "trans-toggle-only"],
+      ["style", shortcuts.style, "trans-toggle-style"],
+      ["popup", shortcuts.popup, "popup-toggle"],
+      ["selection", tranboxShortcut, "transbox-toggle"],
+    ])(
+      "a child frame hands the %s shortcut to the top frame",
+      (_name, keys, action) => {
+        createManager({ isUserscript: true, isIframe: true, setting }).start();
+
+        press(keys);
+
+        // The top frame runs the action and relays it back down, so the
+        // focused child must neither act nor relay on the key press itself.
+        expect(sendTopMsg).toHaveBeenCalledTimes(1);
+        expect(sendTopMsg).toHaveBeenCalledWith(action);
+        expect(sendIframeMsg).not.toHaveBeenCalled();
+        const translator = mockTranslatorInstances[0];
+        expect(translator.toggle).not.toHaveBeenCalled();
+        expect(translator.toggleTransOnly).not.toHaveBeenCalled();
+        expect(translator.toggleStyle).not.toHaveBeenCalled();
+        expect(mockTransboxInstances[0].toggle).not.toHaveBeenCalled();
+      }
+    );
+
+    test("a child frame applies the relayed action once without sending it up again", () => {
+      createManager({ isUserscript: true, isIframe: true, setting }).start();
+      press(shortcuts.translate);
+      sendTopMsg.mockClear();
+
+      window.dispatchEvent(
+        new MessageEvent("message", { data: { action: "trans-toggle" } })
+      );
+
+      expect(mockTranslatorInstances[0].toggle).toHaveBeenCalledTimes(1);
+      expect(sendTopMsg).not.toHaveBeenCalled();
+    });
+
+    test("a child frame leaves the settings shortcut to the top frame", () => {
+      createManager({ isUserscript: true, isIframe: true, setting }).start();
+
+      expect(findShortcut(shortcuts.setting)).toBeUndefined();
+    });
+
+    test("the top frame runs its shortcuts itself and relays them to frames", () => {
+      createManager({ isUserscript: true, setting }).start();
+
+      press(shortcuts.translate);
+
+      expect(mockTranslatorInstances[0].toggle).toHaveBeenCalledTimes(1);
+      expect(sendIframeMsg).toHaveBeenCalledWith("trans-toggle", undefined);
+      expect(sendTopMsg).not.toHaveBeenCalled();
+      expect(findShortcut(shortcuts.setting)).toBeDefined();
+    });
+
+    test("the extension registers no page shortcuts in any frame", () => {
+      createManager({ setting }).start();
+      createManager({ isIframe: true, setting }).start();
+
+      expect(shortcutRegister).not.toHaveBeenCalled();
+    });
   });
 
   test("rejects page operations when only PDF selection translation exists", () => {
