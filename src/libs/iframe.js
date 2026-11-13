@@ -27,3 +27,15 @@ export const sendIframeMsg = (action, args) => {
 export const sendParentMsg = (action, args) => {
   window.parent.postMessage({ action, args }, "*");
 };
+
+/**
+ * 从当前 iframe 子页面向顶层 window 窗口发送 postMessage 消息。
+ * 键盘事件只会到达获得焦点的文档；子页面借此把页面级动作交给顶层页面，
+ * 再由顶层页面沿 sendIframeMsg 逐层下发，嵌套 iframe 也能保持同步。
+ * REVIEW: 同上，此处 targetOrigin 为 "*"。只发送固定的动作名，不携带页面数据。
+ * @param {string} action 指令动作名称
+ * @param {Object} args 指令参数
+ */
+export const sendTopMsg = (action, args) => {
+  window.top.postMessage({ action, args }, "*");
+};

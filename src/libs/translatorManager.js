@@ -11,7 +11,7 @@ import { Translator } from "./translator";
 import { InputTranslator } from "./inputTranslate";
 import { TransboxManager } from "./tranbox";
 import { shortcutRegister } from "./shortcut";
-import { sendIframeMsg } from "./iframe";
+import { sendIframeMsg, sendTopMsg } from "./iframe";
 import {
   EVENT_KISS_INNER,
   EVENT_KISS_TRANSLATOR,
@@ -172,9 +172,11 @@ export default class TranslatorManager {
       this.#setupTouchOperations();
     }
 
-    if (!this.#transboxOnly && !this.#isIframe && this.#isUserscript) {
+    if (!this.#transboxOnly && this.#isUserscript) {
       this.#registerShortcuts();
-      this.#registerMenus();
+      if (!this.#isIframe) {
+        this.#registerMenus();
+      }
     }
 
     if (!this.#transboxOnly) {
@@ -890,29 +892,41 @@ export default class TranslatorManager {
 
   /**
    * 注册页面级快捷键，并保存每个快捷键的清理函数。
+   *
+   * 键盘事件只会到达获得焦点的文档。Userscript 没有 background 统一分发，
+   * 所以子 iframe 也要注册快捷键，并把动作交给顶层页面；顶层页面执行后
+   * 再逐层广播给所有 iframe。子 iframe 不在本地执行，避免广播回来时重复切换。
    */
   #registerShortcuts() {
     const { shortcuts, tranboxSetting } = this._translator.setting;
+    const run = this.#isIframe
+      ? (action) => sendTopMsg(action)
+      : (action) => this.#processActions({ action });
     this.#clearShortcuts = [
       shortcutRegister(shortcuts[OPT_SHORTCUT_TRANSLATE], () =>
-        this.#processActions({ action: MSG_TRANS_TOGGLE })
+        run(MSG_TRANS_TOGGLE)
       ),
       shortcutRegister(shortcuts[OPT_SHORTCUT_TRANSONLY], () =>
-        this.#processActions({ action: MSG_TRANS_TOGGLE_ONLY })
+        run(MSG_TRANS_TOGGLE_ONLY)
       ),
       shortcutRegister(shortcuts[OPT_SHORTCUT_STYLE], () =>
-        this.#processActions({ action: MSG_TRANS_TOGGLE_STYLE })
+        run(MSG_TRANS_TOGGLE_STYLE)
       ),
       shortcutRegister(shortcuts[OPT_SHORTCUT_POPUP], () =>
-        this.#processActions({ action: MSG_POPUP_TOGGLE })
-      ),
-      shortcutRegister(shortcuts[OPT_SHORTCUT_SETTING], () =>
-        window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank")
+        run(MSG_POPUP_TOGGLE)
       ),
       shortcutRegister(tranboxSetting?.tranboxShortcut, () =>
-        this.#processActions({ action: MSG_TRANSBOX_TOGGLE })
+        run(MSG_TRANSBOX_TOGGLE)
       ),
     ];
+    // 设置页只从顶层页面打开：沙箱 iframe 可能禁止弹出新窗口。
+    if (!this.#isIframe) {
+      this.#clearShortcuts.push(
+        shortcutRegister(shortcuts[OPT_SHORTCUT_SETTING], () =>
+          window.open(process.env.REACT_APP_OPTIONSPAGE, "_blank")
+        )
+      );
+    }
   }
 
   /**
