@@ -245,7 +245,7 @@ export default function TranForm({
           disableListWrap: true,
         }),
       },
-      sx: { zIndex: 2147483647 },
+      sx: { zIndex: 2147483646 },
     }),
     [isShadowMenu]
   );
@@ -544,8 +544,8 @@ export default function TranForm({
     <Stack
       ref={formRef}
       className={isPlaygound ? "kt-playground-translator" : undefined}
-      spacing={simpleStyle ? 1 : 2}
-      useFlexGap={isPlaygound}
+      spacing={isPlaygound ? (simpleStyle ? 1 : 2) : "10px"}
+      useFlexGap
       onFocusCapture={(event) => {
         const control = event.target.closest?.(
           ".kt-translation-source, .kt-translation-result"
@@ -902,7 +902,7 @@ export default function TranForm({
                       className={
                         isPlaygound
                           ? "kt-translation-text-field__actions"
-                          : undefined
+                          : "kt-translation-text-actions"
                       }
                       direction="row"
                       spacing={1}

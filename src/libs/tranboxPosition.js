@@ -1,11 +1,10 @@
 // Combined width of the left and right resize grips (8px on each side).
 // DraggableResizable uses lineWidth = 4, with lineWidth * 2 on each grid side.
 const TRANBOX_SIDE_GRIP_WIDTH = 16;
-// Non-content height: 56px header + two 8px resize grips + two 1px card borders.
-// Keep this aligned with .kt-tranbox-header and .KT-draggable-body in
-// Selection/styles.js, plus the outer grid rows in DraggableResizable.
-// Omitting the taller M3 header and borders lets the box overflow by 22px.
-const TRANBOX_CHROME_HEIGHT = 74;
+// Non-content height: 42px header + 8px bottom padding + two 8px resize grips
+// + two 1px card borders. Keep aligned with TranslationPanel/styles.js and
+// the outer grid rows in DraggableResizable.
+const TRANBOX_CHROME_HEIGHT = 68;
 
 // The document client area excludes classic scrollbars. Use the current window's
 // document so embedded frames keep their own bounds; unmeasured roots (including

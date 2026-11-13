@@ -275,7 +275,8 @@ export default function DraggableResizable({
         display: "grid",
         gridTemplateColumns: `${lineWidth * 2}px ${size.w}px ${lineWidth * 2}px`,
         gridTemplateRows: `${lineWidth * 2}px auto ${lineWidth * 2}px`,
-        zIndex: 2147483647,
+        // Keep the screenshot selection overlay above the panel.
+        zIndex: 2147483646,
         borderRadius: "16px",
         overflow: "hidden",
       }}

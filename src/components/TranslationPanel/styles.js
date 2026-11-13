@@ -9,7 +9,9 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-translation-panel__body::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--kt-on) 36%, transparent); }
 .kt-translation-panel--embedded { border: 0; border-radius: 0 !important; box-shadow: none; }
 .kt-translation-panel--embedded .kt-translation-panel__body { border-radius: 0; }
-.kt-tranbox-header { min-height: 56px; display: flex; align-items: center; gap: 6px; position: relative; padding: 7px 8px 7px 10px; border-bottom: 1px solid var(--kt-linev); border-radius: 16px 16px 0 0; background: var(--kt-sf0); color: var(--kt-on); }
+.KT-draggable-body { padding-bottom: 8px; }
+.KT-draggable-body > .kt-translation-panel__body { border-radius: 0 0 8px 8px; clip-path: inset(0 round 0 0 8px 8px); }
+.kt-tranbox-header { box-sizing: border-box; min-height: 42px; display: flex; align-items: center; gap: 6px; position: relative; padding: 3px 8px 4px 10px; border-bottom: 1px solid var(--kt-linev); border-radius: 16px 16px 0 0; background: var(--kt-sf0); color: var(--kt-on); }
 .kt-tranbox-header__drag { display: flex; color: var(--kt-onv); cursor: ${panelCursor("move")}; }
 .kt-tranbox-header__drag svg { width: 19px; height: 19px; }
 .kt-tranbox-header__brand { min-width: 0; flex: 1; display: flex; align-items: center; gap: 7px; overflow: hidden; }
@@ -35,20 +37,25 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 }
 .kt-tranbox-header__menu svg { width: 18px; height: 18px; flex: none; }
 
-.kt-tranbox-content { container-type: inline-size; container-name: kt-translation-content; padding: 14px !important; background: var(--kt-sf0) !important; color: var(--kt-on) !important; }
-.kt-translation-config-row { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.kt-tranbox-content { container-type: inline-size; container-name: kt-translation-content; padding: 10px !important; background: var(--kt-sf0) !important; color: var(--kt-on) !important; }
+.KT-draggable-body .kt-tranbox-content { padding-bottom: 2px !important; }
+.kt-translation-config-row { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
 .kt-translation-config-row > .kt-translation-config { flex: 1; min-width: 0; }
 .kt-translation-config-actions { display: flex; justify-content: flex-end; }
-.kt-translation-config-actions .kt-tranbox-header--compact { padding: 0; }
-.kt-translation-panel__body .MuiGrid-container { width: 100%; margin: 0; padding: 5px; border-radius: 12px; background: var(--kt-sf1); }
-.kt-translation-panel__body .MuiGrid-item { padding: 5px !important; }
+.kt-translation-config-actions .kt-tranbox-header--compact,
+.kt-translation-config-row .kt-tranbox-header--compact { padding: 0; }
+.kt-translation-panel__body .kt-translation-config { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%; margin: 0; padding: 0; background: transparent; }
+.kt-translation-panel__body .kt-translation-config > .MuiGrid-item { min-width: 0; max-width: none; padding: 0 !important; }
+/* Include the input's 1px border when aligning actions with dictionary controls. */
+.kt-translation-panel__body .kt-translation-text-actions { gap: 0; right: -1px; }
+.kt-translation-panel__body .kt-translation-text-actions > .MuiIconButton-root { margin-left: 0; }
 @container kt-translation-content (width < 420px) {
-  .kt-translation-config > .kt-translation-config__service { flex-basis: 100%; max-width: 100%; }
-  .kt-translation-config > .kt-translation-config__language { flex-basis: 50%; max-width: 50%; }
+  .kt-translation-panel__body .kt-translation-config { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kt-translation-config > .kt-translation-config__service { grid-column: 1 / -1; }
 }
 @container kt-translation-content (width < 480px) {
-  .kt-translation-config-row .kt-translation-config__service { flex-basis: 100%; max-width: 100%; }
-  .kt-translation-config-row .kt-translation-config__language { flex-basis: 50%; max-width: 50%; }
+  .kt-translation-panel__body .kt-translation-config-row .kt-translation-config { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kt-translation-config-row .kt-translation-config__service { grid-column: 1 / -1; }
 }
 .kt-translation-panel__body .MuiFilledInput-root { border-radius: 12px; }
 .kt-translation-panel__body .MuiInputLabel-root { font-size: 12px; }

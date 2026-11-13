@@ -44,12 +44,22 @@ jest.mock("../Popup/PopupCont", () => {
 });
 jest.mock("./Draggable", () => {
   const React = require("react");
-  return function Draggable({ width, handler, children }) {
+  return function Draggable({
+    width,
+    left,
+    top,
+    onPositionChange,
+    handler,
+    children,
+  }) {
     return React.createElement(
       "div",
       {
         "data-testid": "draggable",
         "data-width": width,
+        "data-left": left,
+        "data-top": top,
+        onPointerUp: () => onPositionChange?.({ x: 0.25, y: 0.2 }),
         onClick: (event) => event.stopPropagation(),
       },
       handler,
@@ -156,7 +166,7 @@ describe("content action Popup integration", () => {
     expect(
       container.querySelector('[data-testid="popup-content"]').parentElement
         .dataset.boxMaxHeight
-    ).toBe("243");
+    ).toBe("257");
     expect(
       container.querySelector('[data-testid="popup-content"]').parentElement
         .dataset.boxOverflowY
@@ -182,6 +192,45 @@ describe("content action Popup integration", () => {
     expect(
       container.querySelector('[data-testid="draggable"]').dataset.width
     ).toBe("360");
+  });
+
+  test("allows content to grow beyond the old height cap within the viewport", () => {
+    mockWindowSize = { w: 800, h: 600 };
+    const panel = renderAction();
+
+    expect(panel.dataset.boxMaxHeight).toBe("557");
+    expect(panel.dataset.boxOverflowY).toBe("auto");
+  });
+
+  test("remembers the position on reopen and starts fresh for a new page component", () => {
+    mockWindowSize = { w: 800, h: 600 };
+    const panel = renderAction();
+    const draggable = container.querySelector('[data-testid="draggable"]');
+    expect(draggable.dataset.left).toBeUndefined();
+    expect(draggable.dataset.top).toBeUndefined();
+    act(() =>
+      draggable.dispatchEvent(new MouseEvent("pointerup", { bubbles: true }))
+    );
+    pressEscape(panel);
+    act(() =>
+      document.dispatchEvent(
+        new CustomEvent(EVENT_KISS_INNER, {
+          detail: { action: MSG_POPUP_TOGGLE },
+        })
+      )
+    );
+    const reopened = container.querySelector('[data-testid="draggable"]');
+    expect(reopened.dataset.left).toBe("200");
+    expect(reopened.dataset.top).toBe("120");
+
+    act(() => root.render(null));
+    renderAction();
+    expect(
+      container.querySelector('[data-testid="draggable"]').dataset.left
+    ).toBeUndefined();
+    expect(
+      container.querySelector('[data-testid="draggable"]').dataset.top
+    ).toBeUndefined();
   });
 
   test("focuses the panel and restores the opener after Escape", () => {
