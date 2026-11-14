@@ -1,3 +1,4 @@
+import { normalizeTranboxFontSize } from "../../config/tranboxFont";
 import {
   useCallback,
   useEffect,
@@ -177,7 +178,7 @@ export function Trantab({ isSeparate = false, isVisible = true }) {
   const [text, setText] = useState("");
   const [simpleStyle, setSimpleStyle] = useState(false);
   const i18n = useI18n();
-  const { setting } = useSetting();
+  const { setting, updateChild } = useSetting();
   const shouldReadClipboardInitially =
     isAutoTranslateClipboardSupported &&
     (setting?.autoTranslateClipboard ?? false);
@@ -372,9 +373,16 @@ export function Trantab({ isSeparate = false, isVisible = true }) {
     >
       <TranslationPanelSurface embedded>
         <TranslationPanelContent
+          fontSize={normalizeTranboxFontSize(setting.tranboxSetting.fontSize)}
           configActions={
             isSeparate ? (
               <TranslationPanelHeader
+                fontSize={normalizeTranboxFontSize(
+                  setting.tranboxSetting.fontSize
+                )}
+                onFontSizeChange={(fontSize) =>
+                  updateChild("tranboxSetting")({ fontSize })
+                }
                 compact
                 simpleStyle={simpleStyle}
                 setSimpleStyle={setSimpleStyle}

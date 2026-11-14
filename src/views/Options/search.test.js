@@ -75,6 +75,7 @@ test.each([
   ["透明度", "overview", "fab_opacity"],
   ["透明度", "selection", "tranbtn_opacity"],
   ["划词按钮外观", "selection", "tranbtn_appearance"],
+  ["阅读字号", "selection", "tranbox_font_size"],
   ["黑名单", "selection", "blacklist"],
   ["断句", "subtitle", "ai_segmentation"],
   ["加密", "sync", "data_sync_encrypt_key"],

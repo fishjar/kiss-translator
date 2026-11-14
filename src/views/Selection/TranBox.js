@@ -1,3 +1,5 @@
+import { useTranbox } from "../../hooks/Tranbox";
+import { normalizeTranboxFontSize } from "../../config/tranboxFont";
 import { useMemo } from "react";
 import DraggableResizable from "./DraggableResizable";
 import TranslationPanelHeader from "../../components/TranslationPanel/Header";
@@ -15,6 +17,8 @@ const openSeparateWindow = () => sendBgMsg(MSG_OPEN_SEPARATE_WINDOW);
 
 /** Add selection behavior and its draggable host to the shared panel. */
 export default function TranBox(props) {
+  const { tranboxSetting: liveTranboxSetting, updateTranbox } = useTranbox();
+  const fontSize = normalizeTranboxFontSize(liveTranboxSetting.fontSize);
   const simpleStyle = props.simpleStyle;
   const setSimpleStyle = props.setSimpleStyle;
   const hideClickAway = props.hideClickAway;
@@ -79,6 +83,8 @@ export default function TranBox(props) {
           onClose={() => props.setShowBox(false)}
           onOpenSeparateWindow={isExt ? openSeparateWindow : undefined}
           draggable
+          fontSize={fontSize}
+          onFontSizeChange={(fontSize) => updateTranbox({ fontSize })}
           simpleStyle={simpleStyle}
           setSimpleStyle={setSimpleStyle}
           hideClickAway={hideClickAway}
@@ -90,6 +96,7 @@ export default function TranBox(props) {
       onClick={(e) => e.stopPropagation()}
     >
       <TranslationPanelContent
+        fontSize={fontSize}
         scene={scene}
         ttsApiSlug={props.tranboxSetting.ttsApiSlug || ""}
         simpleStyle={simpleStyle}

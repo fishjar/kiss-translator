@@ -30,7 +30,7 @@ jest.mock("query-string", () => ({ stringify: jest.fn() }));
 // 转译会解析崩溃。最小 mock ./Setting 斩断链，useTextareaGripStyle 回落缺省
 // concentric-smooth，与本用例既有断言一致。（与 TerminologyPlayground.test.js 同法。）
 jest.mock("../../hooks/Setting", () => ({
-  useSetting: () => ({ setting: {} }),
+  useSetting: () => ({ setting: {}, updateChild: () => jest.fn() }),
 }));
 jest.mock("../../views/Selection/DictCont", () => () => null);
 jest.mock("../../views/Selection/AiDictCont", () => () => null);

@@ -590,7 +590,11 @@ export default function TranCont({
 
   if (simpleStyle) {
     return (
-      <Box aria-live="polite" aria-busy={loading}>
+      <Box
+        className="kt-translation-reading"
+        aria-live="polite"
+        aria-busy={loading}
+      >
         {error ? (
           <Alert severity="error">{error}</Alert>
         ) : trText ? (

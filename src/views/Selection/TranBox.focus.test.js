@@ -8,6 +8,12 @@ import TranBox from "./TranBox";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+jest.mock("../../hooks/Tranbox", () => ({
+  useTranbox: () => ({
+    tranboxSetting: { fontSize: 16 },
+    updateTranbox: jest.fn(),
+  }),
+}));
 jest.mock("../../hooks/I18n", () => ({ useI18n: () => (key) => key }));
 jest.mock("../../hooks/ColorMode", () => ({
   useDarkMode: () => ({ darkMode: "light", toggleDarkMode: jest.fn() }),

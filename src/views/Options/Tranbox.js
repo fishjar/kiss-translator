@@ -1,3 +1,10 @@
+import Slider from "@mui/material/Slider";
+import { useEffect, useState } from "react";
+import {
+  normalizeTranboxFontSize,
+  TRANBOX_MIN_FONT_SIZE,
+  TRANBOX_MAX_FONT_SIZE,
+} from "../../config/tranboxFont";
 import FabAppearanceSetting from "./FabAppearanceSetting";
 import { isApiConfigured } from "../../config/serviceSelection";
 import Box from "@mui/material/Box";
@@ -57,6 +64,9 @@ export default function Tranbox() {
   const i18n = useI18n();
   // 查词翻译框配置管理 Hook
   const { tranboxSetting, updateTranbox } = useTranbox();
+  const savedFontSize = normalizeTranboxFontSize(tranboxSetting.fontSize);
+  const [fontSize, setFontSize] = useState(savedFontSize);
+  useEffect(() => setFontSize(savedFontSize), [savedFontSize]);
   const shortcutMap = useOverviewShortcuts({ tranboxSetting });
   // 启用的 API 引擎
   // AI 词典只能调用大模型接口，因此这里额外读取已启用的 AI API 列表。
@@ -323,6 +333,42 @@ export default function Tranbox() {
                 label={i18n("use_simple_style")}
                 onChange={(checked) => updateTranbox({ simpleStyle: checked })}
               />
+            </SettingsRow>
+            <SettingsRow
+              label={i18n("tranbox_font_size")}
+              description={i18n("tranbox_font_size_helper")}
+            >
+              <Box
+                data-settings-search-id="tranbox_font_size"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  width: "100%",
+                }}
+              >
+                <Slider
+                  name="tranboxFontSize"
+                  aria-label={i18n("tranbox_font_size")}
+                  value={fontSize}
+                  min={TRANBOX_MIN_FONT_SIZE}
+                  max={TRANBOX_MAX_FONT_SIZE}
+                  step={1}
+                  getAriaValueText={(value) => `${value}px`}
+                  onChange={(_, value) => setFontSize(value)}
+                  onChangeCommitted={(_, value) =>
+                    updateTranbox({ fontSize: value })
+                  }
+                />
+                <output
+                  style={{
+                    whiteSpace: "nowrap",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {fontSize}px
+                </output>
+              </Box>
             </SettingsRow>
           </SettingsCard>
           <FabAppearanceSetting
