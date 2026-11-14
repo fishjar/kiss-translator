@@ -8,9 +8,7 @@ import Chip from "@mui/material/Chip";
 import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import Grid from "@mui/material/Grid";
-import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
+import { RefreshRoundedIcon, CheckCircleRoundedIcon, CancelRoundedIcon } from "../../../components/icons";
 import { detectDevice } from "../../../localAi/core/deviceManager";
 import {
   isModelRunnable,

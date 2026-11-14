@@ -194,6 +194,14 @@ export default function M3Theme({
                 outline: `3px solid ${color.primary}`,
                 outlineOffset: 2,
               },
+              // :has() 兜底：thumb 内含的 input 获焦时 thumb 自身不匹配 :focus-visible，
+              // 须在外层匹配"含 focus-visible 后代"以显示焦点环。
+              "@supports selector(:has(*))": {
+                "&:has(:focus-visible)": {
+                  outline: `3px solid ${color.primary}`,
+                  outlineOffset: 2,
+                },
+              },
             },
           },
         },
@@ -203,6 +211,14 @@ export default function M3Theme({
               "&.Mui-focusVisible": {
                 outline: `3px solid ${color.primary}`,
                 outlineOffset: 0,
+              },
+              // :has() 兜底：Radio root 内含的 input 获焦时 root 自身不匹配 :focus-visible，
+              // 须在外层匹配"含 focus-visible 后代"以显示焦点环。
+              "@supports selector(:has(*))": {
+                "&:has(:focus-visible)": {
+                  outline: `3px solid ${color.primary}`,
+                  outlineOffset: 0,
+                },
               },
             },
           },

@@ -597,9 +597,8 @@ describe("SubtitleSegmentationPlayground textarea grip style", () => {
     cache.sheet.flush();
   });
 
-  // B1：hidden = 不渲染手柄 + textarea 原生 resize 回退。sx 的 !important
-  // 压制必须随 gripStyle 三元翻转（红：现实现 resize none!important 压死
-  // 原生回退且渲染空图形手柄——不可见却可拖是隐蔽交互面）。
+  // hidden = 不渲染手柄 + textarea 原生 resize 回退。sx 的 !important
+  // 压制必须随 gripStyle 三元翻转。
   test("hidden variant renders no grip and restores native resize", async () => {
     mockUseTextareaGripStyle.mockReturnValue("hidden");
     const { container, root, cache, emotionCss } = renderGripPlayground(
@@ -619,8 +618,8 @@ describe("SubtitleSegmentationPlayground textarea grip style", () => {
     cache.sheet.flush();
   });
 
-  // 意见 A：grip 样式切到 hidden 时自动释放会话高度锁——锁定类与内联
-  // 高度一并撤销，字段不被 kt-height-locked 永久钉死（红：现实现残留锁类）。
+  // grip 样式切到 hidden 时自动释放会话高度锁——锁定类与内联
+  // 高度一并撤销，字段不被 kt-height-locked 永久钉死。
   test("switching to hidden releases the session height lock", async () => {
     mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");
     __resetSessionHeightMapForTests();

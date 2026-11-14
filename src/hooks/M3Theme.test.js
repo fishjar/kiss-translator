@@ -125,18 +125,26 @@ test("scopes the resolved Material 3 palette to its root", () => {
   ).toBe("transparent");
   expect(primaryIconButton.color).toBe(undefined);
   expect(primaryIconButton["&:hover"]).toBe(undefined);
-  expect(defaultIconButton["&.Mui-focusVisible"]).toEqual({
-    outline: "3px solid #A8C7FA",
+  expect(defaultIconButton["&:focus-visible"]).toEqual({
+    outline: "3px solid #a5bfc5",
+    outlineOffset: 2,
+  });
+  const sliderThumb = capturedTheme.components.MuiSlider.styleOverrides.thumb;
+  expect(sliderThumb["&:focus-visible"]).toMatchObject({
+    outline: "3px solid #a5bfc5",
     outlineOffset: 2,
   });
   expect(
-    capturedTheme.components.MuiSlider.styleOverrides.thumb[
-      "&.Mui-focusVisible"
-    ]
-  ).toMatchObject({ outline: "3px solid #A8C7FA", outlineOffset: 2 });
+    sliderThumb["@supports selector(:has(*))"]["&:has(:focus-visible)"]
+  ).toMatchObject({ outline: "3px solid #a5bfc5", outlineOffset: 2 });
+  const radioRoot = capturedTheme.components.MuiRadio.styleOverrides.root;
+  expect(radioRoot["&:focus-visible"]).toMatchObject({
+    outline: "3px solid #a5bfc5",
+    outlineOffset: 0,
+  });
   expect(
-    capturedTheme.components.MuiRadio.styleOverrides.root["&.Mui-focusVisible"]
-  ).toMatchObject({ outline: "3px solid #A8C7FA", outlineOffset: 0 });
+    radioRoot["@supports selector(:has(*))"]["&:has(:focus-visible)"]
+  ).toMatchObject({ outline: "3px solid #a5bfc5", outlineOffset: 0 });
   expect(
     capturedTheme.components.MuiToggleButton.styleOverrides.root[
       "&.Mui-selected"

@@ -18,12 +18,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import StopRoundedIcon from "@mui/icons-material/StopRounded";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import { ExpandMoreRoundedIcon, UploadFileRoundedIcon, PlayArrowRoundedIcon, StopRoundedIcon, ContentCopyRoundedIcon, CheckRoundedIcon } from "../../../components/icons";
 
 import { validateInputFile } from "../../../localAi/core/inputFiles";
 import {

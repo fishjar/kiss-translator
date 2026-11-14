@@ -418,6 +418,150 @@ describe("SettingsSelect", () => {
     act(() => root.unmount());
     container.remove();
   });
+
+  test("multiple mode renders a check glyph per option and reflects the checked state", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["opt1"]}
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+
+      act(() =>
+        container
+          .querySelector(".MuiSelect-select")
+          .dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, button: 0 })
+          )
+      );
+      const menuItems = [...document.querySelectorAll(".MuiMenuItem-root")];
+      expect(menuItems.length).toBe(2);
+      for (const item of menuItems) {
+        const box = item.querySelector("[data-checked]");
+        expect(box).not.toBeNull();
+        expect(box.getAttribute("aria-hidden")).toBe("true");
+        expect(box.querySelector("svg")).not.toBeNull();
+      }
+      // 选中项勾选态随受控 value 数组，形态走分发器字形。
+      expect(
+        menuItems[0].querySelector("[data-checked]").getAttribute("data-checked")
+      ).toBe("true");
+      expect(
+        menuItems[1].querySelector("[data-checked]").getAttribute("data-checked")
+      ).toBe("false");
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("single mode keeps MenuItems free of check glyphs", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Single"
+            value="opt1"
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+
+      act(() =>
+        container
+          .querySelector(".MuiSelect-select")
+          .dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, button: 0 })
+          )
+      );
+      const menuItems = [...document.querySelectorAll(".MuiMenuItem-root")];
+      expect(menuItems.length).toBe(2);
+      for (const item of menuItems) {
+        expect(item.querySelector("[data-checked]")).toBeNull();
+      }
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("multiple trigger renders JSX labels as nodes, not [object Object]", () => {
+    // 契约：多选 trigger 不得把 label 字符串化。纯文本 label 的输出必须与今日
+    // 逐字一致（"a, b"），JSX label 则按节点渲染，混合数组同样成立。
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["opt1", "opt2"]}
+            options={[
+              { value: "opt1", label: <span>Option one</span> },
+              { value: "opt2", label: "Option two" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+      const trigger = container.querySelector(".MuiSelect-select");
+      expect(trigger.textContent).toBe("Option one, Option two");
+      expect(container.textContent).not.toContain("[object Object]");
+      expect(trigger.querySelector("span")).not.toBeNull();
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
+  test("multiple trigger keeps plain text labels byte-for-byte unchanged", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      act(() => {
+        root.render(
+          <SettingsSelect
+            label="Multi"
+            multiple
+            value={["opt1", "opt2"]}
+            options={[
+              { value: "opt1", label: "Option 1" },
+              { value: "opt2", label: "Option 2" },
+            ]}
+            onChange={jest.fn()}
+          />
+        );
+      });
+      expect(
+        container.querySelector(".MuiSelect-select").textContent
+      ).toBe("Option 1, Option 2");
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
 });
 
 function containerRole(container, role) {
