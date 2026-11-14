@@ -1,4 +1,35 @@
 export const SETTINGS_I18N = {
+  tranbtn_appearance: {
+    zh: "划词按钮外观",
+    en: "Selection button appearance",
+    zh_TW: "劃詞按鈕外觀",
+    ja: "選択翻訳ボタンの外観",
+    ko: "선택 번역 버튼 모양",
+    tr: "Seçim düğmesi görünümü",
+    vi: "Giao diện nút dịch văn bản đã chọn",
+    ru: "Внешний вид кнопки перевода выделения",
+  },
+  tranbtn_opacity: {
+    zh: `不透明度`,
+    en: `Opacity`,
+    zh_TW: `不透明度`,
+    ja: `不透明度`,
+    ko: `불투명도`,
+    tr: `Opaklık`,
+    vi: `Độ mờ đục`,
+    ru: `Непрозрачность`,
+  },
+  tranbtn_size: {
+    zh: `大小`,
+    en: `Size`,
+    zh_TW: `大小`,
+    ja: `サイズ`,
+    ko: `크기`,
+    tr: `Boyut`,
+    vi: `Kích thước`,
+    ru: `Размер`,
+  },
+
   service_asr_max_duration: {
     zh: "ASR 最大分块时长（秒）",
     en: "Maximum ASR chunk duration (seconds)",

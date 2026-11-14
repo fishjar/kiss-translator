@@ -118,6 +118,8 @@ export default function Selection({
         {/* Show the floating translation action beside the current selection. */}
         {showBtn && (
           <TranBtn
+            btnSize={tranboxSetting?.btnSize}
+            btnOpacity={tranboxSetting?.btnOpacity}
             position={position}
             btnEvent={btnEvent}
             hoverDelay={triggerHoverDelay}

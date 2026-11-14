@@ -1,3 +1,4 @@
+import FabAppearanceSetting from "./FabAppearanceSetting";
 import { isApiConfigured } from "../../config/serviceSelection";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
@@ -324,6 +325,11 @@ export default function Tranbox() {
               />
             </SettingsRow>
           </SettingsCard>
+          <FabAppearanceSetting
+            selection
+            fab={tranboxSetting}
+            onChange={updateTranbox}
+          />
         </SettingsSection>
 
         <SettingsAdvanced label={i18n("settings_detailed_controls")}>

@@ -73,6 +73,8 @@ test.each([
   ["超时", "apis", "http_timeout"],
   ["连击", "input", "combo_timeout"],
   ["透明度", "overview", "fab_opacity"],
+  ["透明度", "selection", "tranbtn_opacity"],
+  ["划词按钮外观", "selection", "tranbtn_appearance"],
   ["黑名单", "selection", "blacklist"],
   ["断句", "subtitle", "ai_segmentation"],
   ["加密", "sync", "data_sync_encrypt_key"],

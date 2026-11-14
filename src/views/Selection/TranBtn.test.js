@@ -47,10 +47,9 @@ test("keeps the selection FAB inside its themed render root", () => {
   expect(button.style.position).toBe("fixed");
   expect(button.style.left).toBe("20px");
   expect(button.style.top).toBe("30px");
-  expect(button.querySelector('[data-testid="TranslateRoundedIcon"]')).not.toBe(
-    null
-  );
-  expect(button.innerHTML).not.toContain("#209CEE");
+  expect(button.querySelector("img").src).toMatch(/^data:image/);
+  expect(button.querySelector("img").draggable).toBe(false);
+  expect(button.style.getPropertyValue("--kt-tranbtn-size")).toBe("32px");
 
   const mouseDown = new MouseEvent("mousedown", {
     bubbles: true,
@@ -160,7 +159,7 @@ describe("hover trigger delay", () => {
 
   test("keeps the wait when the pointer moves onto the button's own icon", () => {
     const view = renderTranBtn({ btnEvent: "onMouseOver", hoverDelay: 300 });
-    const icon = view.button.querySelector("svg");
+    const icon = view.button.querySelector("img");
 
     act(() => {
       view.button.dispatchEvent(
@@ -225,5 +224,15 @@ test("fires immediately on hover when the delay is 0", () => {
     );
   });
   expect(view.onTrigger).toHaveBeenCalledTimes(1);
+  view.cleanup();
+});
+
+test("scales the logo and applies independent appearance preferences", () => {
+  const view = renderTranBtn({ btnSize: 64, btnOpacity: 0.25 });
+  expect(view.button.style.getPropertyValue("--kt-tranbtn-size")).toBe("64px");
+  expect(view.button.style.getPropertyValue("--kt-tranbtn-opacity")).toBe(
+    "0.25"
+  );
+  expect(view.button.querySelector("img").style.width).toBe("64px");
   view.cleanup();
 });

@@ -24,8 +24,8 @@ import {
   getMaxTranBoxY,
   getTranBoxOuterHeight,
 } from "../libs/tranboxPosition";
+import { normalizeTranbtnAppearance } from "../config/tranbtn";
 
-const TRANBTN_SIZE = 40;
 const TRANBTN_MOUSE_GAP = isMobile ? 16 : 12;
 const MAX_SOURCE_SENTENCE_LENGTH = 1000;
 
@@ -78,18 +78,19 @@ function getVisibleViewportBounds() {
   return { left, top, right: left + width, bottom: top + height };
 }
 
-function clampButtonPosition(left, top) {
+function clampButtonPosition(left, top, btnSize) {
   const viewport = getVisibleViewportBounds();
   return {
-    x: limitButtonPosition(left, viewport.left, viewport.right - TRANBTN_SIZE),
-    y: limitButtonPosition(top, viewport.top, viewport.bottom - TRANBTN_SIZE),
+    x: limitButtonPosition(left, viewport.left, viewport.right - btnSize),
+    y: limitButtonPosition(top, viewport.top, viewport.bottom - btnSize),
   };
 }
 
 function getPointerButtonPosition(
   pointerPosition,
   btnOffsetX = 0,
-  btnOffsetY = 0
+  btnOffsetY = 0,
+  btnSize
 ) {
   if (!pointerPosition) return null;
 
@@ -100,14 +101,14 @@ function getPointerButtonPosition(
   let left = pointerPosition.x + TRANBTN_MOUSE_GAP + offsetX;
   let top = pointerPosition.y + TRANBTN_MOUSE_GAP + offsetY;
 
-  if (left + TRANBTN_SIZE > viewport.right) {
-    left = pointerPosition.x - TRANBTN_MOUSE_GAP - TRANBTN_SIZE + offsetX;
+  if (left + btnSize > viewport.right) {
+    left = pointerPosition.x - TRANBTN_MOUSE_GAP - btnSize + offsetX;
   }
-  if (top + TRANBTN_SIZE > viewport.bottom) {
-    top = pointerPosition.y - TRANBTN_MOUSE_GAP - TRANBTN_SIZE + offsetY;
+  if (top + btnSize > viewport.bottom) {
+    top = pointerPosition.y - TRANBTN_MOUSE_GAP - btnSize + offsetY;
   }
 
-  return clampButtonPosition(left, top);
+  return clampButtonPosition(left, top, btnSize);
 }
 
 function getEventPath(e) {
@@ -181,12 +182,21 @@ function getSelectionRects(selection) {
   }
 }
 
-function getSelectionButtonPosition(rect, btnOffsetX = 0, btnOffsetY = 0) {
+function getSelectionButtonPosition(
+  rect,
+  btnOffsetX = 0,
+  btnOffsetY = 0,
+  btnSize
+) {
   if (!rect) return null;
 
   const offsetX = toFiniteNumber(btnOffsetX);
   const offsetY = toFiniteNumber(btnOffsetY);
-  return clampButtonPosition(rect.right + offsetX, rect.bottom + offsetY);
+  return clampButtonPosition(
+    rect.right + offsetX,
+    rect.bottom + offsetY,
+    btnSize
+  );
 }
 
 /**
@@ -366,6 +376,8 @@ export default function useSelectionController({
     skipLangs = [],
   } = tranboxSetting;
 
+  const { btnSize } = normalizeTranbtnAppearance(tranboxSetting);
+
   // Historical setting name: any falsy value pins the panel, while an absent
   // one was never declared and must keep the pre-follow behaviour.
   const isPinnedBox = hideClickAway !== undefined && !hideClickAway;
@@ -457,7 +469,9 @@ export default function useSelectionController({
     if (!showBtn) return;
 
     const keepButtonInViewport = () => {
-      setPosition((current) => clampButtonPosition(current.x, current.y));
+      setPosition((current) =>
+        clampButtonPosition(current.x, current.y, btnSize)
+      );
     };
     const visualViewport = window.visualViewport;
     window.addEventListener("resize", keepButtonInViewport);
@@ -466,7 +480,7 @@ export default function useSelectionController({
       window.removeEventListener("resize", keepButtonInViewport);
       visualViewport?.removeEventListener("resize", keepButtonInViewport);
     };
-  }, [showBtn]);
+  }, [showBtn, btnSize]);
 
   const commitSelectionSnapshot = useCallback(
     (snapshot) => {
@@ -613,17 +627,20 @@ export default function useSelectionController({
           ? getPointerButtonPosition(
               snapshot.pointerPosition,
               btnOffsetX,
-              btnOffsetY
+              btnOffsetY,
+              btnSize
             )
           : getSelectionButtonPosition(
               snapshot.lastRect,
               btnOffsetX,
-              btnOffsetY
+              btnOffsetY,
+              btnSize
             ) ||
             getPointerButtonPosition(
               snapshot.pointerPosition,
               btnOffsetX,
-              btnOffsetY
+              btnOffsetY,
+              btnSize
             );
 
       if (buttonPosition) {
@@ -640,6 +657,7 @@ export default function useSelectionController({
       btnPositionMode,
       btnOffsetX,
       btnOffsetY,
+      btnSize,
       followSelection,
       isPinnedBox,
       boxOffsetX,
