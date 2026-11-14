@@ -375,6 +375,8 @@ describe("shared translation panel hosts", () => {
     expect(menuItems.map((button) => button.textContent)).toEqual([
       "btn_tip_simple_style",
       "btn_tip_dark_mode",
+      "",
+      "",
     ]);
     // Empty windows must keep their input available.
     expect(menuItems[0].disabled).toBe(true);
@@ -903,4 +905,48 @@ describe("Popup default view", () => {
 
     expect(readClipboardTextIfAllowed).toHaveBeenCalledTimes(1);
   });
+});
+
+test("the separate window subscribes to saved reading size and its menu persists changes", () => {
+  const updateTranbox = jest.fn();
+  const updateChild = jest.fn(() => updateTranbox);
+  useSetting.mockReturnValue({
+    setting: {
+      ...setting,
+      autoTranslateClipboard: false,
+      tranboxSetting: { ...setting.tranboxSetting, fontSize: 20 },
+    },
+    updateChild,
+  });
+  const { container, root } = renderTrantab({ isSeparate: true });
+  try {
+    expect(
+      container
+        .querySelector("[data-reading-font-size]")
+        .style.getPropertyValue("--kt-reading-font-size")
+    ).toBe("20px");
+    act(() => container.querySelector('button[title="more"]').click());
+    act(() =>
+      container.querySelector('[aria-label="tranbox_font_increase"]').click()
+    );
+    expect(updateChild).toHaveBeenCalledWith("tranboxSetting");
+    expect(updateTranbox).toHaveBeenCalledWith({ fontSize: 21 });
+    useSetting.mockReturnValue({
+      setting: {
+        ...setting,
+        autoTranslateClipboard: false,
+        tranboxSetting: { ...setting.tranboxSetting, fontSize: 21 },
+      },
+      updateChild,
+    });
+    act(() => root.render(<Trantab isSeparate />));
+    expect(container.querySelector("output").textContent).toBe("21px");
+    expect(
+      container.querySelector("[data-reading-font-size]").dataset
+        .readingFontSize
+    ).toBe("21");
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+  }
 });

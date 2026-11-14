@@ -544,7 +544,13 @@ const resolveBuiltinAISourceLang = async (text) => {
  * 浏览器内置 Gemini Nano AI 翻译 API。
  * 整合了超时管理与内置并发频率池（FetchPool），保证前台调用不易发生死锁。
  */
-const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
+const apiBuiltinAITranslate = async ({
+  text,
+  from,
+  to,
+  apiSetting,
+  textFormat,
+}) => {
   if (!isBuiltinAIAvailable) {
     return ["", true];
   }
@@ -561,6 +567,7 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
       text,
       from,
       to,
+      textFormat,
     }),
     normalizeHttpTimeout(httpTimeout)
   );
@@ -587,6 +594,7 @@ const apiBuiltinAITranslate = async ({ text, from, to, apiSetting }) => {
             text,
             from: mappedFrom,
             to,
+            textFormat,
           }),
           normalizeHttpTimeout(httpTimeout)
         );
@@ -750,6 +758,7 @@ const executeApiTranslate = async ({
     translateVariants,
     version: [v1, v2].join("."),
     promptSig,
+    ...(/[\r\n]/.test(text) && { newlinePolicy: "raw-lf-v1" }),
     ...(docInfo?.summary && { ctx: docInfo.summary.slice(0, 50) }),
   };
   const cacheInput = `${URL_CACHE_TRAN}?${queryString.stringify(cacheOpts)}`;
@@ -784,6 +793,7 @@ const executeApiTranslate = async ({
       from,
       to,
       apiSetting,
+      textFormat,
     });
   } else if (useBatchFetch && supportsServiceFeature(apiSetting, "batch")) {
     // 2.2 支持批量翻译的传统接口 (如 Google/Microsoft/DeepL 等)

@@ -3,6 +3,8 @@
  * @description 应用默认全局设置定义模块。定义快捷键、默认输入框即时翻译规则、划词翻译与词典面板配置、字幕样式及同步 WebDAV 基础结构。
  */
 
+import { DEFAULT_TRANBOX_FONT_SIZE } from "./tranboxFont";
+import { DEFAULT_TRANBTN } from "./tranbtn";
 import { LogLevel } from "../libs/log";
 import {
   OPT_DICT_BING,
@@ -132,6 +134,8 @@ export const OPT_SKIPLANGS_SELECTION = [
 ];
 
 export const DEFAULT_TRANBOX_SETTING = {
+  ...DEFAULT_TRANBTN,
+  fontSize: DEFAULT_TRANBOX_FONT_SIZE,
   transOpen: true, // 是否启用划词翻译功能
   blacklist: "", // 划词翻译禁用的域名列表
   apiSlugs: [OPT_TRANS_MICROSOFT], // 启用的翻译 API (支持多选)

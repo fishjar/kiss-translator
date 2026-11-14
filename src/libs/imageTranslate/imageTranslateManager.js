@@ -563,7 +563,7 @@ export class ImageTranslateManager {
    * 更新规则
    */
   updateRule(rule) {
-    this.#rule = rule;
+    Object.assign(this.#rule, rule);
     this.#hoverDetector?.updateConfig(this.#setting, this.#rule);
   }
 

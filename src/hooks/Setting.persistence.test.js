@@ -83,6 +83,51 @@ describe("settings persistence results", () => {
     expect(previous.tranboxSetting).toEqual({ width: 600 });
   });
 
+  test("persists selection button appearance without changing the page FAB or other selection settings", () => {
+    settings.updateChild("tranboxSetting")({ btnSize: 64, btnOpacity: 0.2 });
+    const reduce = mockUpdate.mock.calls[0][0];
+    const previous = {
+      ...mockSetting,
+      fab: { ...mockSetting.fab, size: 56, opacity: 0.8 },
+      tranboxSetting: { triggerMode: "hover", btnOffsetX: 12 },
+    };
+    const saved = reduce(previous);
+    expect(saved.tranboxSetting).toMatchObject({
+      triggerMode: "hover",
+      btnOffsetX: 12,
+      btnSize: 64,
+      btnOpacity: 0.2,
+    });
+    expect(saved.fab).toEqual(previous.fab);
+    mockSetting = saved;
+    mountProvider();
+    expect(settings.setting.tranboxSetting).toMatchObject({
+      btnSize: 64,
+      btnOpacity: 0.2,
+    });
+  });
+
+  test("persists reading size and restores it without modifying button preferences", () => {
+    settings.updateChild("tranboxSetting")({ fontSize: 24 });
+    const reduce = mockUpdate.mock.calls[0][0];
+    const previous = {
+      ...mockSetting,
+      tranboxSetting: {
+        ...mockSetting.tranboxSetting,
+        btnSize: 32,
+        btnOpacity: 0.5,
+      },
+    };
+    const saved = reduce(previous);
+    expect(saved.tranboxSetting).toEqual({
+      ...previous.tranboxSetting,
+      fontSize: 24,
+    });
+    mockSetting = saved;
+    mountProvider();
+    expect(settings.setting.tranboxSetting.fontSize).toBe(24);
+  });
+
   test("normalizes a legacy theme without issuing a persistent update", () => {
     mockSetting = { ...mockSetting, darkMode: false };
     mountProvider();

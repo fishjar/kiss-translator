@@ -543,6 +543,43 @@ describe("ImageTranslateBox staged actions", () => {
     expect(props.onSettingResetLayout).not.toHaveBeenCalled();
   });
 
+  test("retranslates the current selection after screenshot regions change in place", async () => {
+    const selected = [
+      { order: 0, enabled: false, bbox: [0, 0, 100, 50] },
+      { order: 1, enabled: true, bbox: [0, 50, 100, 100] },
+    ];
+    act(() =>
+      root.render(<ImageTranslateBox {...props} selectedRegions={selected} />)
+    );
+    sendBgMsg.mockResolvedValueOnce({
+      success: true,
+      result: {
+        layout: { regions: selected.map((region) => ({ ...region })) },
+        items: [{ original: "Second", translation: "第二块" }],
+      },
+    });
+    await act(async () => header().onRunAction("all"));
+    expect(content().items[0].original).toBe("Second");
+
+    // ScreenshotOverlay replaces entries while retaining the regions array.
+    selected[0] = { ...selected[0], enabled: true };
+    selected[1] = { ...selected[1], enabled: false };
+    act(() =>
+      root.render(<ImageTranslateBox {...props} selectedRegions={selected} />)
+    );
+    expect(content().items).toEqual([]);
+    sendBgMsg.mockResolvedValueOnce({
+      success: true,
+      result: { items: [{ original: "First", translation: "第一块" }] },
+    });
+    await act(async () => header().onRunAction("all"));
+    expect(sendBgMsg).toHaveBeenLastCalledWith(
+      MSG_IMAGE_TRANSLATE_EXECUTE,
+      expect.objectContaining({ action: "all", selectedRegions: selected })
+    );
+    expect(content().items[0].original).toBe("First");
+  });
+
   test("changing selected regions discards an in-flight result for the old selection", async () => {
     let resolveRecognition;
     sendBgMsg.mockReturnValueOnce(

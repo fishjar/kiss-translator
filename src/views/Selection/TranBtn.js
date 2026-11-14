@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import TranslateRoundedIcon from "@mui/icons-material/TranslateRounded";
+import Logo from "../../components/Logo";
+import { normalizeTranbtnAppearance } from "../../config/tranbtn";
 
 /**
  * Floating trigger shown next to a page selection.
@@ -18,7 +19,12 @@ export default function TranBtn({
   position,
   label = "Translate selection",
   hoverDelay = 0,
+  btnSize,
+  btnOpacity,
+  preview = false,
+  ...buttonProps
 }) {
+  const appearance = normalizeTranbtnAppearance({ btnSize, btnOpacity });
   const hoverTimer = useRef(null);
 
   // A pending hover trigger never outlives the button.
@@ -89,21 +95,27 @@ export default function TranBtn({
 
   return (
     <button
+      {...buttonProps}
       type="button"
       className="KT-tranbtn"
       aria-label={label}
       style={{
-        position: "fixed",
+        position: preview ? "relative" : "fixed",
+        "--kt-tranbtn-size": `${appearance.btnSize}px`,
+        "--kt-tranbtn-opacity": appearance.btnOpacity,
         left: position.x,
         top: position.y,
-        zIndex: 2147483646,
+        zIndex: preview ? undefined : 2147483646,
       }}
       // Preserve the page selection while activating the trigger.
       onMouseDown={(e) => e.preventDefault()}
       {...dynamicTriggerProps}
       onClick={handleClick}
     >
-      <TranslateRoundedIcon aria-hidden="true" />
+      <Logo
+        size={appearance.btnSize}
+        style={{ pointerEvents: "none", borderRadius: "inherit" }}
+      />
     </button>
   );
 }

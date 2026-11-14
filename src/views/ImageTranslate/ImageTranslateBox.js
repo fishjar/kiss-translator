@@ -131,15 +131,15 @@ export default function ImageTranslateBox({
     });
   }, []);
 
-  useEffect(() => {
-    layoutRegionsRef.current = selectedRegions;
-  }, [selectedRegions, requestVersion]);
-
   // 监听选区变化：若选区发生改变，立即作废旧识别项，确保重新翻译时使用新选区
   const currentRegionsKey = (selectedRegions || [])
     .map((r, idx) => `${r.order ?? idx}:${r.enabled !== false}`)
     .join(";");
   const lastRegionsKeyRef = useRef(currentRegionsKey);
+
+  useEffect(() => {
+    layoutRegionsRef.current = selectedRegions;
+  }, [selectedRegions, requestVersion, currentRegionsKey]);
 
   useEffect(() => {
     if (lastRegionsKeyRef.current !== currentRegionsKey) {

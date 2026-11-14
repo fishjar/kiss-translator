@@ -13,15 +13,17 @@ export const SELECTION_STYLES = String.raw`
 .KT-draggable { overflow: visible !important; border-radius: 16px !important; animation: kt-m3-rise .45s var(--kt-spring); }
 .KT-draggable-header { overflow: visible; }
 
-.KT-tranbtn { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 12px; appearance: none; background: var(--kt-pric); box-shadow: var(--kt-shadow-2); color: var(--kt-onpric); cursor: pointer; font: inherit; transition: background .2s, transform .15s; }
+.KT-tranbtn { width: var(--kt-tranbtn-size, 32px); height: var(--kt-tranbtn-size, 32px); opacity: var(--kt-tranbtn-opacity, 1); display: grid; place-items: center; padding: 0; border: 0; border-radius: calc(var(--kt-tranbtn-size, 32px) * .16); appearance: none; background: transparent; box-shadow: none; color: var(--kt-onpric); cursor: pointer; font: inherit; transition: transform .15s, opacity 160ms ease; }
 @media (hover: hover) {
-  .KT-tranbtn:hover { background: color-mix(in srgb, var(--kt-onpric) 8%, var(--kt-pric)); }
+  .KT-tranbtn:hover { opacity: 1; }
 }
-.KT-tranbtn:active { background: color-mix(in srgb, var(--kt-onpric) 10%, var(--kt-pric)); transform: scale(.94); }
-.KT-tranbtn:focus { outline: none; box-shadow: var(--kt-shadow-2), inset 0 0 0 3px var(--kt-pri); }
+.KT-tranbtn:active { transform: scale(.94); }
+.KT-tranbtn:focus { opacity: 1; outline: 2px solid var(--kt-pri); outline-offset: 2px; }
 @supports selector(:focus-visible) {
-  .KT-tranbtn:focus { box-shadow: var(--kt-shadow-2); }
-  .KT-tranbtn:focus-visible { outline: none; box-shadow: var(--kt-shadow-2), inset 0 0 0 3px var(--kt-pri); }
+  .KT-tranbtn:focus { outline: none; }
+  .KT-tranbtn:focus-visible { outline: 2px solid var(--kt-pri); outline-offset: 2px; }
 }
-.KT-tranbtn svg { width: 24px; height: 24px; fill: currentColor; }
+@media (prefers-reduced-motion: reduce) {
+  .KT-tranbtn { transition: none; }
+}
 `;

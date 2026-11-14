@@ -91,9 +91,11 @@ describe("selection Material 3 shapes", () => {
       /\.KT-tranbtn:active\s*\{([^}]*)\}/
     )?.[1];
 
-    expect(baseRule).toContain("border-radius: 12px");
-    expect(baseRule).toContain("width: 40px");
-    expect(baseRule).toContain("height: 40px");
+    expect(baseRule).toContain(
+      "border-radius: calc(var(--kt-tranbtn-size, 32px) * .16)"
+    );
+    expect(baseRule).toContain("width: var(--kt-tranbtn-size, 32px)");
+    expect(baseRule).toContain("height: var(--kt-tranbtn-size, 32px)");
     expect(baseRule).toContain("border: 0");
     expect(baseRule).toContain("color: var(--kt-onpric)");
     expect(baseRule).not.toContain("animation:");
@@ -101,15 +103,15 @@ describe("selection Material 3 shapes", () => {
     expect(SELECTION_STYLES).toMatch(
       /@media\s*\(hover:\s*hover\)\s*\{\s*\.KT-tranbtn:hover/
     );
-    expect(hoverRule).toContain("var(--kt-onpric) 8%");
+    expect(baseRule).toContain("background: transparent");
+    expect(baseRule).toContain("box-shadow: none");
+    expect(hoverRule).not.toContain("background:");
+    expect(activeRule).not.toContain("background:");
     expect(hoverRule).not.toContain("border-radius");
     expect(activeRule).toContain("transform: scale(.94)");
-    expect(SELECTION_STYLES).toMatch(
-      /\.KT-tranbtn svg\s*\{[^}]*fill:\s*currentColor;[^}]*\}/
-    );
-    expect(SELECTION_STYLES).not.toMatch(
-      /\.KT-tranbtn svg\s*\{[^}]*border-radius:/
-    );
+    expect(baseRule).toContain("opacity: var(--kt-tranbtn-opacity, 1)");
+    expect(hoverRule).toContain("opacity: 1");
+    expect(SELECTION_STYLES).toMatch(/\.KT-tranbtn:focus\s*\{[^}]*opacity: 1/);
   });
 
   test("keeps a complete keyboard focus fallback", () => {
@@ -120,13 +122,13 @@ describe("selection Material 3 shapes", () => {
       /\.KT-tranbtn:focus-visible\s*\{([^}]*)\}/
     )?.[1];
 
-    expect(fallbackRule).toContain("outline: none");
-    expect(fallbackRule).toContain("inset 0 0 0 3px var(--kt-pri)");
+    expect(fallbackRule).toContain("outline: 2px solid var(--kt-pri)");
+    expect(fallbackRule).toContain("outline-offset: 2px");
     expect(SELECTION_STYLES).toContain("@supports selector(:focus-visible)");
     expect(SELECTION_STYLES).toMatch(
-      /@supports selector\(:focus-visible\)\s*\{[\s\S]*?\.KT-tranbtn:focus\s*\{[^}]*box-shadow:\s*var\(--kt-shadow-2\);/
+      /@supports selector\(:focus-visible\)\s*\{[\s\S]*?\.KT-tranbtn:focus\s*\{[^}]*outline:\s*none;/
     );
-    expect(visibleRule).toContain("outline: none");
-    expect(visibleRule).toContain("inset 0 0 0 3px var(--kt-pri)");
+    expect(visibleRule).toContain("outline: 2px solid var(--kt-pri)");
+    expect(visibleRule).toContain("outline-offset: 2px");
   });
 });

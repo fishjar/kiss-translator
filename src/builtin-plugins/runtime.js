@@ -83,6 +83,7 @@ const handlers = {
           fromLang: input.sourceLanguage || "auto",
           toLang: input.targetLanguage,
           apiSetting: api,
+          textFormat: input.textFormat || "text",
           signal: ctx.signal,
           useCache: false,
         });

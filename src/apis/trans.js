@@ -213,9 +213,7 @@ const genUserPrompt = (args) =>
     args.useBatchFetch ? args.batchUserPrompt : args.nobatchUserPrompt,
     args,
     true
-  )
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  );
 
 // 统一生成最终字幕系统提示词；缓存签名与实际请求必须复用同一结果。
 export const buildSubtitleSystemPrompt = (args) =>

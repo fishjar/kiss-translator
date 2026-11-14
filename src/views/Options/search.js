@@ -93,6 +93,10 @@ export const SETTINGS_SEARCH_KEYS = {
   ],
   selection: [
     "selection_translate",
+    "tranbox_font_size",
+    "tranbtn_appearance",
+    "tranbtn_opacity",
+    "tranbtn_size",
     "selection_skip_langs",
     "trigger_mode",
     "follow_selection",

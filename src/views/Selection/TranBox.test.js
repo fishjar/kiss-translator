@@ -12,7 +12,15 @@ import {
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const mockToggleDarkMode = jest.fn();
+let mockReadingFontSize = 16;
+const mockUpdateTranbox = jest.fn();
 
+jest.mock("../../hooks/Tranbox", () => ({
+  useTranbox: () => ({
+    tranboxSetting: { fontSize: mockReadingFontSize },
+    updateTranbox: mockUpdateTranbox,
+  }),
+}));
 jest.mock("../../hooks/Setting", () => ({
   SettingProvider: ({ children }) => children,
 }));
@@ -48,6 +56,8 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
   let handlers;
 
   beforeEach(() => {
+    mockReadingFontSize = 16;
+    mockUpdateTranbox.mockReset();
     container = document.createElement("div");
     host = document.createElement("div");
     document.body.appendChild(host);
@@ -104,6 +114,25 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
   const openMenu = () => act(() => actions()[1].click());
   const activeElement = () => container.getRootNode().activeElement;
 
+  test("subscribes to font changes without using the stale selection settings snapshot", () => {
+    const props = render();
+    openMenu();
+    act(() =>
+      container.querySelector('[aria-label="tranbox_font_increase"]').click()
+    );
+    expect(mockUpdateTranbox).toHaveBeenCalledWith({ fontSize: 17 });
+    mockReadingFontSize = 24;
+    act(() => root.render(<TranBox {...props} />));
+    expect(container.querySelector("output").textContent).toBe("24px");
+    expect(
+      container.querySelector("[data-reading-font-size]").dataset
+        .readingFontSize
+    ).toBe("24");
+    expect(
+      container.querySelector('[aria-label="tranbox_font_increase"]').disabled
+    ).toBe(true);
+  });
+
   test("keeps the pin, overflow and close actions always reachable", () => {
     render();
 
@@ -125,6 +154,8 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
       "btn_tip_simple_style",
       "btn_tip_follow_selection",
       "btn_tip_dark_mode",
+      "",
+      "",
     ]);
   });
 
@@ -157,11 +188,11 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
     press("ArrowUp");
     expect(activeElement()).toBe(menuItems()[1]);
     press("End");
-    expect(activeElement()).toBe(menuItems()[3]);
+    expect(activeElement()).toBe(menuItems()[5]);
     press("ArrowDown");
     expect(activeElement()).toBe(menuItems()[0]);
     press("ArrowUp");
-    expect(activeElement()).toBe(menuItems()[3]);
+    expect(activeElement()).toBe(menuItems()[5]);
     press("Home");
     expect(activeElement()).toBe(menuItems()[0]);
     press("Escape");
@@ -183,7 +214,7 @@ describe.each(["document", "shadow"])("TranBox header in %s", (scope) => {
           })
         )
       );
-      expect(activeElement()).toBe(menuItems()[key === "ArrowUp" ? 3 : 0]);
+      expect(activeElement()).toBe(menuItems()[key === "ArrowUp" ? 5 : 0]);
     }
   );
 

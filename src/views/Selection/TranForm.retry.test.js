@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { apiTranslate } from "../../apis";
 import { mountShadowHost } from "../../libs/shadowHost";
 import AiDictCont from "./AiDictCont";
-import TranForm from "./TranForm";
+import TranslationPanelContent from "../../components/TranslationPanel/Content";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -54,7 +54,12 @@ function TranslationPanel({ initialText = "Source text", marker, ...props }) {
   const [text, setText] = useState(initialText);
   return (
     <div data-marker={marker}>
-      <TranForm {...baseProps} {...props} text={text} setText={setText} />
+      <TranslationPanelContent
+        {...baseProps}
+        {...props}
+        text={text}
+        setText={setText}
+      />
     </div>
   );
 }
@@ -135,6 +140,34 @@ describe("Explicit translation submissions", () => {
     act(() => input().dispatchEvent(event));
     return event;
   };
+
+  test("changes reading size during a stream without replacing the form or restarting translation", async () => {
+    const deferred = createDeferred();
+    apiTranslate.mockReturnValueOnce(deferred.promise);
+    await renderPanel({ fontSize: 16 });
+    const source = input();
+    await act(async () =>
+      apiTranslate.mock.calls[0][0].onStreamChunk({
+        text: "Partial translation",
+        isComplete: false,
+      })
+    );
+    await renderPanel({ fontSize: 24 });
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+    expect(input()).toBe(source);
+    expect(input().value).toBe("Source text");
+    expect(resultText()).toBe("Partial translation");
+    expect(
+      container
+        .querySelector("[data-reading-font-size]")
+        .style.getPropertyValue("--kt-reading-font-size")
+    ).toBe("24px");
+    await act(async () => {
+      deferred.resolve({ trText: "Complete translation" });
+      await deferred.promise;
+    });
+    expect(resultText()).toBe("Complete translation");
+  });
 
   test.each([
     ["selection", {}, false],

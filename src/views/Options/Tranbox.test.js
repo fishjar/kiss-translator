@@ -4,6 +4,32 @@ import Tranbox from "./Tranbox";
 import { useTranbox } from "../../hooks/Tranbox";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+jest.mock("@mui/material/Slider", () => {
+  const React = jest.requireActual("react");
+  return function Slider({
+    name,
+    value,
+    min,
+    max,
+    step,
+    onChange,
+    onChangeCommitted,
+    "aria-label": label,
+  }) {
+    return React.createElement("input", {
+      name,
+      type: "range",
+      value,
+      min,
+      max,
+      step,
+      "aria-label": label,
+      onInput: (event) => onChange(event, Number(event.currentTarget.value)),
+      onMouseUp: (event) =>
+        onChangeCommitted(event, Number(event.currentTarget.value)),
+    });
+  };
+});
 
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => (key) => key,
@@ -195,4 +221,49 @@ describe("Tranbox language defaults", () => {
     act(() => root.unmount());
     container.remove();
   });
+});
+
+test("previews and saves reading size, then reflects external changes", () => {
+  const updateTranbox = jest.fn();
+  useTranbox.mockReturnValue({
+    tranboxSetting: { fontSize: 16 },
+    updateTranbox,
+  });
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const root = createRoot(host);
+  try {
+    act(() => root.render(<Tranbox />));
+    const input = host.querySelector('input[name="tranboxFontSize"]');
+    expect([input.min, input.max, input.step, input.value]).toEqual([
+      "12",
+      "24",
+      "1",
+      "16",
+    ]);
+    act(() => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      ).set.call(input, "24");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(input.parentElement.querySelector("output").textContent).toBe(
+      "24px"
+    );
+    expect(updateTranbox).not.toHaveBeenCalled();
+    act(() =>
+      input.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }))
+    );
+    expect(updateTranbox).toHaveBeenCalledWith({ fontSize: 24 });
+    useTranbox.mockReturnValue({
+      tranboxSetting: { fontSize: 12 },
+      updateTranbox,
+    });
+    act(() => root.render(<Tranbox />));
+    expect(input.value).toBe("12");
+  } finally {
+    act(() => root.unmount());
+    host.remove();
+  }
 });
