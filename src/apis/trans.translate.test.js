@@ -357,6 +357,27 @@ describe("handleTranslate", () => {
     expect(result).toEqual([{ id: 0, result: [html, "en"] }]);
   });
 
+  test("encodes raw LF in Google2 HTML requests without changing rich placeholders", async () => {
+    const output = "<i1>First<br><br>Second</i1><br>";
+    fetchData.mockResolvedValueOnce([[output], ["en"]]);
+    const result = await collectAsyncGenerator(
+      handleTranslate(["<i1>First\n\nSecond</i1><br>"], {
+        from: "en",
+        to: "zh-CN",
+        fromLang: "en",
+        toLang: "zh-CN",
+        langMap: () => "",
+        glossary: "",
+        apiSetting: { ...getApiSetting(OPT_TRANS_GOOGLE_2), useStream: false },
+        textFormat: "html",
+        usePool: false,
+      })
+    );
+    expect(JSON.parse(fetchData.mock.calls[0][1].body)[0][0]).toEqual([output]);
+    expect(result).toEqual([{ id: 0, result: [output, "en"] }]);
+    expect(fetchData).toHaveBeenCalledTimes(1);
+  });
+
   test("uses the stable Gemini Interactions request and parses model output steps", async () => {
     fetchData.mockResolvedValueOnce({
       status: "completed",

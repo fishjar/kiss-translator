@@ -53,6 +53,35 @@ const request = async (extra) => {
   return JSON.parse(init.body).messages;
 };
 beforeEach(() => fetchData.mockReset());
+
+test("native plain prompts preserve inserted leading, trailing and repeated newlines", async () => {
+  const text = "\nFirst\n\nSecond\n\n\nThird\n";
+  const messages = await request({
+    texts: [text],
+    nobatchUserPrompt: "{{text}}",
+  });
+  expect(messages.find((m) => m.role === "user").content).toBe(text);
+});
+
+test.each(["json", "xml", "line"])(
+  "native %s batching keeps its newline wire contract",
+  async (batchProtocol) => {
+    const text = "First\n\nSecond\n\n\nThird";
+    const messages = await request({
+      texts: [text],
+      useBatchFetch: true,
+      batchProtocol,
+      systemPrompt: "Rules",
+      batchUserPrompt: "{{segments}}",
+    });
+    const content = messages.find((m) => m.role === "user").content;
+    if (batchProtocol === "json")
+      expect(JSON.parse(content)[0].text).toBe(text);
+    else if (batchProtocol === "xml")
+      expect(content).toContain(`<t id="0">${text}</t>`);
+    else expect(content).toBe("0 | First<br><br>Second<br><br><br>Third");
+  }
+);
 test("inserted fields are never scanned again and dollars are literal", async () => {
   const title = "literal {{tone}} {{to}} {{text}} $$ $& $` $'";
   const messages = await request({
@@ -60,7 +89,7 @@ test("inserted fields are never scanned again and dollars are literal", async ()
     docInfo: { title },
   });
   expect(messages[0].content).toBe(title);
-  expect(messages[1].content).toBe(`Title: ${title}`);
+  expect(messages[1].content).toBe(`Title: ${title}\n\n`);
 });
 test.each(["line", "xml", "json"])(
   "%s system-only segments do not duplicate into user",

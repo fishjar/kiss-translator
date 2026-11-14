@@ -377,6 +377,43 @@ describe("apiTranslate BuiltinAI timeout", () => {
     jest.clearAllMocks();
   });
 
+  test.each(["text", "html"])(
+    "forwards original text and %s format to BuiltinAI",
+    async (textFormat) => {
+      fnPolyfill.mockResolvedValueOnce(["Translated", "en", ""]);
+      await apiTranslate({
+        text: "First\n\nSecond",
+        fromLang: "en",
+        toLang: "zh-CN",
+        apiSetting: getBuiltinAiApiSetting(30),
+        textFormat,
+        useCache: false,
+      });
+      expect(fnPolyfill).toHaveBeenCalledTimes(1);
+      expect(fnPolyfill).toHaveBeenCalledWith(
+        expect.objectContaining({ text: "First\n\nSecond", textFormat })
+      );
+    }
+  );
+
+  test("versions only multiline translation cache keys", async () => {
+    getHttpCachePolyfill.mockResolvedValue(null);
+    fnPolyfill.mockResolvedValue(["Translated", "en", ""]);
+    getHttpCachePolyfill.mockClear();
+    const args = {
+      fromLang: "en",
+      toLang: "zh-CN",
+      apiSetting: getBuiltinAiApiSetting(30),
+    };
+    await apiTranslate({ ...args, text: "First\n\nSecond" });
+    await apiTranslate({ ...args, text: "Single line" });
+    const [multiline, single] = getHttpCachePolyfill.mock.calls.map(
+      ([key]) => new URL(key)
+    );
+    expect(multiline.searchParams.get("newlinePolicy")).toBe("raw-lf-v1");
+    expect(single.searchParams.has("newlinePolicy")).toBe(false);
+  });
+
   test("converts second-based timeout before calling withTimeout", async () => {
     fnPolyfill.mockResolvedValueOnce(["translated text", "en", ""]);
 

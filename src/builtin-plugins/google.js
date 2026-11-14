@@ -23,9 +23,8 @@ const genGoogle = ({ texts, from, to, url, key }) => {
   return { url, headers, method: "GET" };
 };
 
-const genGoogle2 = ({ texts, from, to, url, key, textFormat = "text" }) => {
-  const requestTexts =
-    textFormat === "html" ? texts : texts.map(encodeHTMLTranslationText);
+const genGoogle2 = ({ texts, from, to, url, key }) => {
+  const requestTexts = texts.map(encodeHTMLTranslationText);
   const body = [[requestTexts, from, to], "wt_lib"];
   const headers = {
     "Content-Type": "application/json+protobuf",

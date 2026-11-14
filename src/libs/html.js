@@ -46,5 +46,8 @@ export function decodeHTMLEntities(str) {
 export const encodeHTMLTranslationText = (text) =>
   String(text || "").replace(/\r\n|\r|\n/g, "<br>");
 
+export const decodeHTMLLineBreaks = (text) =>
+  String(text || "").replace(/<br\s*\/?>/gi, "\n");
+
 export const decodeHTMLTranslationText = (text) =>
   decodeHTMLEntities(String(text || "").replace(/<br\s*\/?>[\t ]*/gi, "\n"));

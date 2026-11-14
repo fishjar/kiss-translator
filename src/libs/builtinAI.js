@@ -1,4 +1,5 @@
 import { logger } from "./log";
+import { encodeHTMLTranslationText, decodeHTMLLineBreaks } from "./html";
 
 /**
  * Chrome 浏览器内置翻译
@@ -155,7 +156,12 @@ class ChromeTranslator {
    * @param {string} sourceLanguage 源语种。若为 "auto" 则先调检测 API
    * @returns {Promise<[string, string, string]>} [译文字符串, 最终源语言代码, 报错信息]
    */
-  async translateText(text, targetLanguage, sourceLanguage = "auto") {
+  async translateText(
+    text,
+    targetLanguage,
+    sourceLanguage = "auto",
+    textFormat = "text"
+  ) {
     if (!text || !targetLanguage || typeof text !== "string") {
       return ["", sourceLanguage, "Input text cannot be empty."];
     }
@@ -185,9 +191,17 @@ class ChromeTranslator {
         finalSourceLanguage,
         targetLanguage
       );
-      const translatedText = await translator.translate(text);
+      const translatedText = await translator.translate(
+        encodeHTMLTranslationText(text)
+      );
 
-      return [translatedText, finalSourceLanguage, ""];
+      return [
+        textFormat === "html"
+          ? translatedText
+          : decodeHTMLLineBreaks(translatedText),
+        finalSourceLanguage,
+        "",
+      ];
     } catch (error) {
       logger.child("builtin-a-i").error("translateText", error, `(${text})`);
 
@@ -220,7 +234,12 @@ const chromeTranslator = new ChromeTranslator();
 export const chromeDetect = (args) =>
   chromeTranslator.detectLanguage(args.text);
 export const chromeTranslate = (args) =>
-  chromeTranslator.translateText(args.text, args.to, args.from);
+  chromeTranslator.translateText(
+    args.text,
+    args.to,
+    args.from,
+    args.textFormat
+  );
 
 const getSummarizerFactory = () => {
   if (typeof globalThis.Summarizer !== "undefined") {

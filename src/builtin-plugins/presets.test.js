@@ -15,7 +15,15 @@ import {
 } from "../config/api";
 import baseline from "./fixtures/native-preset-baseline.json";
 import { NATIVE_PRESET_OVERRIDES } from "./presets";
-import { createBuiltinInstance } from "./index";
+import { createBuiltinInstance, withBuiltinProvider } from "./index";
+
+const previousPlacetagDefaults = {
+  Google2: { placetag: "a", placetagFormat: "attribute" },
+  Volcengine: {
+    placetag: "i",
+    placetagFormat: "compact",
+  },
+};
 
 // Preserve the historical hash's protection of unrelated defaults.
 const previousModelDefaults = {
@@ -49,6 +57,9 @@ test("compiled presets preserve unrelated approved defaults while enabling strea
           DEFAULT_API_LIST.map(({ terms, termsList, ...api }) => ({
             ...api,
             ...previousModelDefaults[api.apiType],
+            ...previousPlacetagDefaults[api.apiType],
+            // The historical baseline predates the global double-brace default.
+            placeholder: "{ }",
             ...(api.apiType === OPT_TRANS_LOCALAI && {
               vlmPromptSlug: "vlm-document",
             }),
@@ -74,6 +85,37 @@ test("compiled presets preserve unrelated approved defaults while enabling strea
     expect(
       Object.prototype.hasOwnProperty.call(NATIVE_PRESET_OVERRIDES, api.apiType)
     ).toBe(true);
+});
+
+test("new native instances use provider placeholder defaults without migrating saved settings", () => {
+  expect(DEFAULT_API_SETTING).toMatchObject({
+    placeholder: "{{ }}",
+    placetag: "i",
+    placetagFormat: "compact",
+  });
+  for (const [apiType, placeholder, placetag, placetagFormat] of [
+    ["Google2", "[ ]", "i", "compact"],
+    ["BuiltinAI", "[ ]", "i", "compact"],
+    ["Tencent", "{ }", "i", "compact"],
+    ["Volcengine", "{ }", "a", "attribute"],
+  ]) {
+    expect(createBuiltinInstance(apiType, "new", "New")).toMatchObject({
+      placeholder,
+      placetag,
+      placetagFormat,
+    });
+    const saved = {
+      apiType,
+      apiSlug: "saved",
+      placeholder: "[[ ]]",
+      placetag: "span",
+      placetagFormat: "attribute",
+    };
+    const original = { ...saved };
+    expect(withBuiltinProvider(saved)).toMatchObject(original);
+    expect(saved).toEqual(original);
+    expect(saved.provider).toBeUndefined();
+  }
 });
 
 test("new native instances inherit streaming presets", () => {
