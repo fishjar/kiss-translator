@@ -238,6 +238,14 @@ const contracts = {
     stream: false,
     usesMessages: false,
   },
+  // PaddleOCR 官方异步 API：模型决定实际能力（文字识别 / VLM 解析 / 结构分析），
+  // 具体暴露哪一种由 resolveBuiltinCapabilities 按 model 收窄。
+  PaddleOCR: {
+    names: ["recognizeText", "parseImage", "analyzeLayout"],
+    batch: false,
+    stream: false,
+    usesMessages: false,
+  },
 };
 
 export const builtinServiceDefinitions = Object.fromEntries(
@@ -264,6 +272,11 @@ export const builtinServiceDefinitions = Object.fromEntries(
           if (name === "parseImage") {
             descriptor.inputModalities = ["image"];
             descriptor.taskModes = ["doc", "table", "formula"];
+          }
+          // 原生 OCR 处理器返回文本行多边形，供图片翻译按坐标回填译文。
+          if (name === "recognizeText") {
+            descriptor.inputModalities = ["image"];
+            descriptor.coordinates = true;
           }
           if (name === "chat") descriptor.inputModalities = ["text"];
           return [name, descriptor];

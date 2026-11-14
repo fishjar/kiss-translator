@@ -5,6 +5,7 @@ import { providerHelpers } from "../providers/sdk";
 import {
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_LOCALAI,
+  OPT_TRANS_PADDLEOCR,
   OPT_TRANS_GOOGLE,
   OPT_TRANS_BAIDU,
   OPT_TRANS_TENCENT,
@@ -16,6 +17,11 @@ import {
 } from "./languageMappings";
 import { OPT_LANGS_SPEC_DEFAULT } from "../providers/sdk/languageDictionary";
 import { localHandlers } from "./local";
+import {
+  recognizePaddleText,
+  parsePaddleDocument,
+  analyzePaddleLayout,
+} from "./paddleocr";
 import { speakNative } from "./system-speech";
 import { chatNative } from "./chat";
 import { recognizeNativeNetworkImage } from "../apis/vision";
@@ -239,6 +245,13 @@ const handlers = {
   },
 };
 
+/** PaddleOCR 专属处理器：三条产线共用异步任务客户端，但输出结构不同。 */
+const paddleOcrHandlers = {
+  recognizeText: recognizePaddleText,
+  parseImage: parsePaddleDocument,
+  analyzeLayout: analyzePaddleLayout,
+};
+
 /** The whitelist is compiled from real built-ins; synced flags cannot grant arbitrary native entry access. */
 export function createNativeRegistry(
   resolveInstance,
@@ -307,6 +320,8 @@ export function createNativeRegistry(
                     format: "markdown",
                   };
                 },
+                // 仅覆盖该服务自己的能力处理器，不改动其他内置服务。
+                ...(id === OPT_TRANS_PADDLEOCR && paddleOcrHandlers),
               }
         ).filter(([name]) => definition.capabilities[name])
       )

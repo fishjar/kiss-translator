@@ -1,7 +1,7 @@
 {
-  "capturedAt": "2026-10-20",
-  "presetCount": 35,
-  "sha256": "0a00f7e992c8e6d3fbedd9b50d5de35ce0f171d51debeff4cc6bb7935b944edd",
-  "purpose": "Compiled defaults after removing unreleased root capability tags; main-branch settings and language mappings remain protected.",
+  "capturedAt": "2026-11-14",
+  "presetCount": 36,
+  "sha256": "7c9a905a1151e70b2c14b4ffe67f247887e5c9f6677a90c135c01d8ceed73ef4",
+  "purpose": "Compiled defaults after adding the PaddleOCR official async API provider; main-branch settings and language mappings remain protected.",
   "languageMappingsSha256": "836c77816a25bdf47bfc6593b74f99ccc89e3d42341847972a87a45b1e52b485"
 }

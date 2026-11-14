@@ -22,6 +22,7 @@ import {
   OPT_TRANS_EPHONEAI,
   OPT_TRANS_APIMART,
   OPT_TRANS_BAIDU,
+  OPT_TRANS_PADDLEOCR,
   OPT_TRANS_TENCENT,
   OPT_TRANS_VOLCENGINE,
   OPT_TRANS_YANDEX,
@@ -37,6 +38,7 @@ import {
   OPT_TRANS_REQUESTY,
   OPT_TRANS_CUSTOMIZE,
 } from "../config/apiConstants";
+import { DEFAULT_PADDLEOCR_MODEL, PADDLEOCR_JOB_URL } from "./paddleocrModels";
 
 // Vendor endpoints/models and compatibility Hook templates belong to compiled providers.
 // The caller supplies scene defaults; these overrides never rewrite saved instances.
@@ -102,6 +104,19 @@ export const NATIVE_PRESET_OVERRIDES = {
     useBatchFetch: true,
   },
   [OPT_TRANS_BAIDU]: {},
+  // PaddleOCR 官方异步 API：URL 固定，Token 为 AI Studio Access Token；
+  // 模型在“文字 OCR / VLM / 结构”三组中选择，能力由模型决定。
+  [OPT_TRANS_PADDLEOCR]: {
+    url: PADDLEOCR_JOB_URL,
+    key: "",
+    model: DEFAULT_PADDLEOCR_MODEL,
+    paddleUseDocOrientationClassify: false,
+    paddleUseDocUnwarping: false,
+    paddleUseTextlineOrientation: false,
+    paddleUseTableRecognition: true,
+    paddleUseFormulaRecognition: true,
+    paddleUseChartRecognition: false,
+  },
   [OPT_TRANS_TENCENT]: {
     useBatchFetch: true,
     placeholder: "{ }",

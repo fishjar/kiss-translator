@@ -66,6 +66,7 @@ export const OPT_TRANS_DEEPLFREE = "DeepLFree"; // DeepL 免费网页翻译接�
 export const OPT_TRANS_EPHONEAI = "ePhoneAI"; // ePhone AI 翻译服务
 export const OPT_TRANS_APIMART = "APIMart"; // APIMart 翻译服务
 export const OPT_TRANS_BAIDU = "Baidu"; // 百度翻译 API
+export const OPT_TRANS_PADDLEOCR = "PaddleOCR"; // PaddleOCR 官方异步 API（AI Studio 免费层：文字 OCR / VLM / 结构解析）
 export const OPT_TRANS_TENCENT = "Tencent"; // 腾讯翻译君 API
 export const OPT_TRANS_VOLCENGINE = "Volcengine"; // 火山翻译 API
 export const OPT_TRANS_YANDEX = "Yandex"; // Yandex Cloud Translate API
@@ -106,6 +107,7 @@ export const OPT_ALL_TRANS_TYPES = [
   OPT_TRANS_VOLCENGINE,
   OPT_TRANS_YANDEX,
   OPT_TRANS_YANDEXFREE,
+  OPT_TRANS_PADDLEOCR,
   OPT_TRANS_DEEPL,
   OPT_TRANS_DEEPLFREE,
   OPT_TRANS_DEEPLX,

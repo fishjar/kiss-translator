@@ -1,5 +1,9 @@
 import { resolveBuiltinCapabilities } from "./capabilities";
-import { OPT_TRANS_LOCALAI, OPT_TRANS_OPENAI } from "../config/apiConstants";
+import {
+  OPT_TRANS_LOCALAI,
+  OPT_TRANS_OPENAI,
+  OPT_TRANS_PADDLEOCR,
+} from "../config/apiConstants";
 import { builtinServiceDefinitions } from "./definitions";
 import {
   projectApiCapabilities,
@@ -69,6 +73,39 @@ test("OCR groups have real coordinates while text VLM recognition does not", asy
   expect(vlm).not.toHaveProperty("recognizeText");
   expect(vlm.parseImage.coordinates).toBe(false);
   expect(vlm.parseImage.taskModes).toEqual(["doc", "table", "formula"]);
+});
+
+test("PaddleOCR exposes exactly one capability per model", async () => {
+  const text = await resolveBuiltinCapabilities({
+    apiType: OPT_TRANS_PADDLEOCR,
+    model: "PP-OCRv6",
+  });
+  expect(Object.keys(text)).toEqual(["recognizeText"]);
+  expect(text.recognizeText.coordinates).toBe(true);
+
+  const vlm = await resolveBuiltinCapabilities({
+    apiType: OPT_TRANS_PADDLEOCR,
+    model: "PaddleOCR-VL-1.6",
+  });
+  expect(Object.keys(vlm)).toEqual(["parseImage"]);
+  expect(vlm.parseImage.coordinates).toBe(false);
+  expect(vlm.parseImage.taskModes).toEqual(["doc"]);
+
+  const structure = await resolveBuiltinCapabilities({
+    apiType: OPT_TRANS_PADDLEOCR,
+    model: "PP-StructureV3",
+  });
+  expect(Object.keys(structure)).toEqual(["analyzeLayout"]);
+
+  // 旧配置或未知模型回退到默认的文字 OCR，而不是暴露全部能力。
+  expect(
+    Object.keys(
+      await resolveBuiltinCapabilities({
+        apiType: OPT_TRANS_PADDLEOCR,
+        model: "unknown",
+      })
+    )
+  ).toEqual(["recognizeText"]);
 });
 
 test("legacy user Hook argument mutation cannot alter another instance's compiled descriptors", async () => {

@@ -83,6 +83,15 @@ export const builtinSettingFields = [
       visibleForCapabilities: fieldCapabilities(key),
     }),
   })),
+  // PaddleOCR 官方 API 的 optionalPayload 开关：只在该服务的配置卡片中渲染。
+  ...[
+    "paddleUseDocOrientationClassify",
+    "paddleUseDocUnwarping",
+    "paddleUseTextlineOrientation",
+    "paddleUseTableRecognition",
+    "paddleUseFormulaRecognition",
+    "paddleUseChartRecognition",
+  ].map((key) => ({ key, type: "boolean" })),
   ...[
     ["temperature", 0, 2],
     ["maxTokens", 0, 1000000],
