@@ -97,6 +97,7 @@ function TestController({
   btnPositionMode = "fixed",
   btnOffsetX = 0,
   btnOffsetY = 0,
+  btnSize,
   tranboxInteractMode = "-",
   followSelection = false,
   boxOffsetY = 0,
@@ -112,6 +113,7 @@ function TestController({
     btnPositionMode,
     btnOffsetX,
     btnOffsetY,
+    btnSize,
     tranboxInteractMode,
     toLang,
     ...(skipLangs === undefined ? {} : { skipLangs }),
@@ -620,12 +622,47 @@ describe("useSelectionController", () => {
     });
     await dispatchWindowMouseup();
 
-    expect(controller.state.position).toEqual({ x: 280, y: 200 });
+    expect(controller.state.position).toEqual({ x: 288, y: 208 });
 
     act(() => {
       controller.root.unmount();
     });
   });
+
+  test.each([16, 32, 64])(
+    "clamps both positioning modes using a %spx button",
+    async (btnSize) => {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: 320,
+      });
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        writable: true,
+        value: 240,
+      });
+      for (const btnPositionMode of ["fixed", "mouse"]) {
+        const controller = renderController({ btnSize, btnPositionMode });
+        const paragraph = createParagraph("The library is open.");
+        currentSelection = makeSelection("library", paragraph, {
+          left: 300,
+          right: 318,
+          top: 220,
+          bottom: 238,
+          width: 18,
+          height: 18,
+        });
+        await dispatchWindowMouseup(200, { clientX: 318, clientY: 238 });
+        expect(controller.state.position).toEqual(
+          btnPositionMode === "fixed"
+            ? { x: 320 - btnSize, y: 240 - btnSize }
+            : { x: 318 - 12 - btnSize, y: 238 - 12 - btnSize }
+        );
+        act(() => controller.root.unmount());
+      }
+    }
+  );
 
   test("clamps negative fixed offsets at the viewport origin", async () => {
     const controller = renderController({
@@ -672,7 +709,7 @@ describe("useSelectionController", () => {
     currentSelection = makeSelection("library", pageParagraph);
     await dispatchWindowMouseup(200, { clientX: 318, clientY: 238 });
 
-    expect(controller.state.position).toEqual({ x: 280, y: 200 });
+    expect(controller.state.position).toEqual({ x: 288, y: 208 });
 
     act(() => {
       controller.root.unmount();
@@ -716,7 +753,7 @@ describe("useSelectionController", () => {
     });
     act(() => window.dispatchEvent(new Event("resize")));
 
-    expect(controller.state.position).toEqual({ x: 160, y: 110 });
+    expect(controller.state.position).toEqual({ x: 168, y: 118 });
 
     act(() => {
       controller.root.unmount();

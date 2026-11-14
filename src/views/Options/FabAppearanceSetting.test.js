@@ -36,14 +36,20 @@ jest.mock("@mui/material/Slider", () => {
   };
 });
 
-function renderAppearance(fab = {}) {
+function renderAppearance(fab = {}, selection = false) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   const onChange = jest.fn();
   const render = (nextFab) => {
     act(() =>
-      root.render(<FabAppearanceSetting fab={nextFab} onChange={onChange} />)
+      root.render(
+        <FabAppearanceSetting
+          fab={nextFab}
+          onChange={onChange}
+          selection={selection}
+        />
+      )
     );
   };
   render(fab);
@@ -51,7 +57,8 @@ function renderAppearance(fab = {}) {
     container,
     onChange,
     render,
-    button: () => container.querySelector(".kt-content-fab"),
+    button: () =>
+      container.querySelector(selection ? ".KT-tranbtn" : ".kt-content-fab"),
     opacityLayer: () => container.querySelector(".kt-fab-preview-opacity"),
     unmount: () => {
       act(() => root.unmount());
@@ -141,4 +148,40 @@ describe("floating button appearance preview", () => {
       view.unmount();
     }
   });
+});
+
+test("previews and commits selection preferences independently, then restores saved values", () => {
+  const view = renderAppearance({ btnSize: 32, btnOpacity: 0.5 }, true);
+  try {
+    const size = view.container.querySelector("#tranbtn-size-input");
+    expect([size.min, size.max, size.step]).toEqual(["16", "64", "1"]);
+    dragSlider(size, 64);
+    expect(view.button().style.getPropertyValue("--kt-tranbtn-size")).toBe(
+      "64px"
+    );
+    expect(view.onChange).not.toHaveBeenCalled();
+    act(() => size.dispatchEvent(new MouseEvent("mouseup", { bubbles: true })));
+    expect(view.onChange).toHaveBeenLastCalledWith({ btnSize: 64 });
+    const opacity = view.container.querySelector("#tranbtn-opacity-input");
+    dragSlider(opacity, 20);
+    expect(view.opacityLayer().style.opacity).toBe("0.2");
+    act(() =>
+      opacity.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }))
+    );
+    expect(view.onChange).toHaveBeenLastCalledWith({ btnOpacity: 0.2 });
+    act(() => view.button().click());
+    expect(
+      view.container.querySelector(".kt-fab-preview-stage").dataset.theme
+    ).toBe("dark");
+    act(() => view.button().focus());
+    expect(view.opacityLayer().style.opacity).toBe("1");
+    act(() => view.button().blur());
+    expect(view.opacityLayer().style.opacity).toBe("0.2");
+    view.render({ btnSize: 16, btnOpacity: 0.75 });
+    expect(size.value).toBe("16");
+    expect(opacity.value).toBe("75");
+    expect(view.onChange).toHaveBeenCalledTimes(2);
+  } finally {
+    view.unmount();
+  }
 });
