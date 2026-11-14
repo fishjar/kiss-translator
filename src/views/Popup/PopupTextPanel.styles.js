@@ -1,7 +1,7 @@
 export const POPUP_TEXT_STYLES = String.raw`
 .kt-popup-text-editor { position: relative; width: 100%; min-width: 0; padding: 0; }
 /* The dictionary sits outside the card so it never enters the ratio maths. */
-.kt-popup-text-auxiliary { min-width: 0; padding: 10px 14px 0; }
+.kt-popup-text-auxiliary { min-width: 0; padding: 10px 0 0; }
 /* The dictionary and the suggestion block share the wrapper; stack them without doubling the top pad. */
 .kt-popup-text-auxiliary + .kt-popup-text-auxiliary { padding-top: 0; }
 /* This probe measures the page-derived baseline independently of appended results. */
