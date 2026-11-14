@@ -107,6 +107,27 @@ describe("settings persistence results", () => {
     });
   });
 
+  test("persists reading size and restores it without modifying button preferences", () => {
+    settings.updateChild("tranboxSetting")({ fontSize: 24 });
+    const reduce = mockUpdate.mock.calls[0][0];
+    const previous = {
+      ...mockSetting,
+      tranboxSetting: {
+        ...mockSetting.tranboxSetting,
+        btnSize: 32,
+        btnOpacity: 0.5,
+      },
+    };
+    const saved = reduce(previous);
+    expect(saved.tranboxSetting).toEqual({
+      ...previous.tranboxSetting,
+      fontSize: 24,
+    });
+    mockSetting = saved;
+    mountProvider();
+    expect(settings.setting.tranboxSetting.fontSize).toBe(24);
+  });
+
   test("normalizes a legacy theme without issuing a persistent update", () => {
     mockSetting = { ...mockSetting, darkMode: false };
     mountProvider();

@@ -1017,6 +1017,7 @@ export default function TranForm({
         translateVariants={translateVariants}
         dictionaryTranslationApi={dictionaryTranslationApi}
         isPlayground={isPlaygound}
+        auxiliaryClassName="kt-translation-reading"
       />
     </Stack>
   );

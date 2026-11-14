@@ -16,7 +16,7 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-tranbox-header__drag svg { width: 19px; height: 19px; }
 .kt-tranbox-header__brand { min-width: 0; flex: 1; display: flex; align-items: center; gap: 7px; overflow: hidden; }
 .kt-tranbox-header__logo { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 7px; background: var(--kt-sf1); }
-.kt-tranbox-header__title { min-width: 0; overflow: hidden; color: var(--kt-onv); font-size: 11.5px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.kt-tranbox-header__title { min-width: 0; overflow: hidden; color: var(--kt-onv); font-size: 14px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .kt-tranbox-header__actions { display: flex; flex: none; align-items: center; gap: 1px; }
 .kt-tranbox-header .MuiIconButton-root { width: 34px; height: 34px; }
 .kt-tranbox-header .MuiIconButton-root svg { width: 18px; height: 18px; }
@@ -29,13 +29,18 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-tranbox-header .MuiIconButton-root[aria-pressed="true"].Mui-focusVisible,
 .kt-tranbox-header .MuiIconButton-root[aria-pressed="true"]:active { background: color-mix(in srgb, var(--kt-onpric) 10%, var(--kt-pric)); }
 .kt-tranbox-header__menu { box-sizing: border-box; min-width: min(206px, calc(100vw - 16px)); max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); display: flex; flex-direction: column; position: absolute; top: 48px; right: 42px; z-index: 4; overflow-x: hidden; overflow-y: auto; padding: 6px; border: 1px solid var(--kt-linev); border-radius: 4px; background: var(--kt-sf0); box-shadow: var(--kt-shadow-2); }
-.kt-tranbox-header__menu button { min-height: 39px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: var(--kt-on); cursor: pointer; font: inherit; font-size: 11.5px; text-align: left; }
+.kt-tranbox-header__menu button { min-height: 39px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: var(--kt-on); cursor: pointer; font: inherit; font-size: 14px; text-align: left; }
 .kt-tranbox-header__menu button[aria-checked="true"] { background: var(--kt-pric); color: var(--kt-onpric); }
 .kt-tranbox-header__menu button:disabled { opacity: .5; cursor: default; }
 @media (hover: hover) {
   .kt-tranbox-header__menu button:hover { background: var(--kt-pric); color: var(--kt-onpric); }
 }
 .kt-tranbox-header__menu svg { width: 18px; height: 18px; flex: none; }
+
+.kt-tranbox-header__font-size { display: flex; align-items: center; flex-shrink: 0; gap: 4px; padding: 0 5px 0 11px; min-height: 39px; font-size: 14px; }
+.kt-tranbox-header__font-size > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.kt-tranbox-header__font-size > output { flex: none; min-width: 4ch; text-align: center; font-variant-numeric: tabular-nums; }
+.kt-tranbox-header__menu .kt-tranbox-header__font-size > button { justify-content: center; padding: 0; width: 30px; min-height: 32px; }
 
 .kt-tranbox-content { container-type: inline-size; container-name: kt-translation-content; padding: 10px !important; background: var(--kt-sf0) !important; color: var(--kt-on) !important; }
 .KT-draggable-body .kt-tranbox-content { padding-bottom: 2px !important; }
@@ -65,5 +70,12 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 .kt-translation-panel__body .MuiFormHelperText-root { margin-inline: 8px; }
 .kt-translation-panel__body .MuiAlert-root { border-radius: 12px; }
 .kt-translation-panel__body .MuiCircularProgress-root { color: var(--kt-pri); }
+
+/* Only hosts that opt into reading preferences receive these overrides. */
+.kt-tranbox-content[data-reading-font-size] .kt-translation-config .MuiSelect-select,
+.kt-tranbox-content[data-reading-font-size] .kt-translation-source textarea.MuiInputBase-input,
+.kt-tranbox-content[data-reading-font-size] .kt-translation-result textarea.MuiInputBase-input,
+.kt-tranbox-content[data-reading-font-size] .kt-translation-reading,
+.kt-tranbox-content[data-reading-font-size] .kt-translation-reading .MuiTypography-root { font-size: var(--kt-reading-font-size); line-height: 1.5; }
 
 `;
