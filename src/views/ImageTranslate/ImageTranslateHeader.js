@@ -104,10 +104,12 @@ export function ImageTranslateSettings({
   );
   const vlmPrompts = getVlmPromptOptions(prompts, recognitionApi);
 
-  // 2. 将所有下拉浮层锚定在 Shadow DOM 内当前容器，彻底防漂移
+  // 保留 Shadow DOM 样式，同时避开面板滚动区的裁切与拖拽层的变换。
   const selectMenuProps = useMemo(
     () => ({
-      container: () => rootRef.current,
+      container: () =>
+        rootRef.current?.closest(".kt-m3-root") ||
+        rootRef.current?.ownerDocument.body,
       disableScrollLock: true,
       sx: {
         zIndex: 2147483647,
@@ -125,7 +127,8 @@ export function ImageTranslateSettings({
       ref={rootRef}
       sx={{
         backgroundColor: "background.paper",
-        p: 1.5,
+        py: 1.5,
+        px: "10px",
         userSelect: "none",
       }}
     >
@@ -350,7 +353,9 @@ export default function ImageTranslateHeader({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        p: 1.5,
+        height: "42px",
+        boxSizing: "border-box",
+        px: 1.5,
         borderBottom: "1px solid",
         borderColor: "divider",
       }}

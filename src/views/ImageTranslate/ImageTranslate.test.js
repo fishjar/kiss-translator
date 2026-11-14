@@ -417,6 +417,7 @@ describe("ImageTranslateHeader", () => {
 
   beforeEach(() => {
     container = document.createElement("div");
+    container.className = "kt-m3-root";
     document.body.appendChild(container);
     root = createRoot(container);
   });
@@ -659,5 +660,83 @@ describe("ImageTranslateHeader", () => {
     });
 
     expect(container.textContent).toContain("识别提示词");
+  });
+});
+
+describe.each(["document", "shadow"])("image menus in %s", (scope) => {
+  let host;
+  let themeRoot;
+  let clippedPanel;
+  let root;
+
+  beforeEach(() => {
+    host = document.createElement("div");
+    document.body.appendChild(host);
+    const target =
+      scope === "shadow" ? host.attachShadow({ mode: "open" }) : host;
+    themeRoot = document.createElement("div");
+    themeRoot.className = "kt-m3-root";
+    target.appendChild(themeRoot);
+    clippedPanel = document.createElement("div");
+    clippedPanel.style.overflow = "hidden";
+    themeRoot.appendChild(clippedPanel);
+    root = createRoot(clippedPanel);
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  test("keeps language options outside the clipped panel and selects a language", () => {
+    const onSettingChange = jest.fn();
+    act(() =>
+      root.render(<ImageTranslateHeader onSettingChange={onSettingChange} />)
+    );
+    const select = clippedPanel.querySelector(".MuiSelect-select");
+    select.getBoundingClientRect = () => ({
+      top: 20,
+      left: 20,
+      bottom: 60,
+      right: 180,
+      width: 160,
+      height: 40,
+    });
+    act(() =>
+      select.dispatchEvent(
+        new MouseEvent("mousedown", { bubbles: true, button: 0 })
+      )
+    );
+    const menu = themeRoot.querySelector('[role="listbox"]');
+    expect(menu).not.toBeNull();
+    expect(clippedPanel.contains(menu)).toBe(false);
+    expect(menu.closest(".MuiPopover-root").parentElement).toBe(themeRoot);
+    act(() => menu.querySelector('[data-value="en"]').click());
+    expect(onSettingChange).toHaveBeenCalledWith({ fromLang: "en" });
+  });
+
+  test("keeps action options outside the clipped panel and dispatches an action", () => {
+    const onRunAction = jest.fn();
+    act(() =>
+      root.render(
+        <ImageTranslateActions hasRecognizedText onRunAction={onRunAction} />
+      )
+    );
+    const button = clippedPanel.querySelector('[aria-haspopup="menu"]');
+    button.getBoundingClientRect = () => ({
+      top: 20,
+      left: 300,
+      bottom: 60,
+      right: 340,
+      width: 40,
+      height: 40,
+    });
+    act(() => button.click());
+    const menu = themeRoot.querySelector('[role="menu"]');
+    expect(menu).not.toBeNull();
+    expect(clippedPanel.contains(menu)).toBe(false);
+    expect(menu.closest(".MuiPopover-root").parentElement).toBe(themeRoot);
+    act(() => menu.querySelectorAll('[role="menuitem"]')[2].click());
+    expect(onRunAction).toHaveBeenCalledWith("translate");
   });
 });

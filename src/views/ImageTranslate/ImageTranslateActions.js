@@ -114,9 +114,12 @@ export default function ImageTranslateActions({
           </ButtonGroup>
         )}
       </Box>
-      {/* Split Button Menu 挂载到 rootRef */}
+      {/* 菜单挂载在主题根节点，避开面板滚动区的裁切。 */}
       <Menu
-        container={() => rootRef.current}
+        container={() =>
+          rootRef.current?.closest(".kt-m3-root") ||
+          rootRef.current?.ownerDocument.body
+        }
         disableScrollLock
         anchorEl={actionAnchor}
         open={Boolean(actionAnchor)}

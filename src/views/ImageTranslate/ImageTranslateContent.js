@@ -84,7 +84,7 @@ export default function ImageTranslateContent({
           justifyContent: "space-between",
           gap: 0.5,
           flexWrap: "wrap",
-          px: 1.5,
+          px: "10px",
           backgroundColor: "background.paper",
         }}
       >
@@ -151,7 +151,7 @@ export default function ImageTranslateContent({
               </Button>
             ) : null
           }
-          sx={{ mx: 1.5, mt: 1.5 }}
+          sx={{ mx: "10px", mt: 1.5 }}
         >
           {error}
         </Alert>
@@ -160,7 +160,8 @@ export default function ImageTranslateContent({
       {/* 结果分段列表，与配置和操作栏共用面板滚动区域 */}
       <Box
         sx={{
-          p: 1.5,
+          py: 1.5,
+          px: "10px",
           display: "flex",
           flexDirection: "column",
           gap: 1.5,
