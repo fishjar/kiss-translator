@@ -35,6 +35,8 @@ import {
   EVENT_FAVORITE_WORD_CHANGE,
   OPT_DICT_BING,
   OPT_DICT_MAP,
+  OPT_TRANS_GOOGLE_2,
+  OPT_TRANS_BUILTINAI,
   newI18n,
 } from "../config";
 import { resolveApiPromptSettings } from "../config/prompt";
@@ -51,7 +53,7 @@ import {
   buildTermsMatcher,
   applyTermReplace,
 } from "./terms";
-import { escapeHTML } from "./html";
+import { escapeHTML, decodeHTMLLineBreaks } from "./html";
 import { parseMathInText } from "./mathParse";
 import { apiMicrosoftDict, apiTranslate, apiYoudaoDict } from "../apis";
 import { logger } from "./log";
@@ -1020,24 +1022,26 @@ export class Translator {
   }
 
   // 占位符配置（包含正则）
-  get #placeholderConfig() {
-    if (this.#placeholderCache) {
-      return this.#placeholderCache;
+  #getPlaceholderConfig(apiSetting = this.#apiSetting) {
+    const target = apiSetting || this.#apiSetting || {};
+    const placeholder = target.placeholder || "{{ }}";
+    const format = target.placetagFormat || "compact";
+    const key = JSON.stringify([placeholder, target.placetag, format]);
+    if (this.#placeholderCache?.key === key) {
+      return this.#placeholderCache.config;
     }
 
-    const [startDelimiter, endDelimiter] =
-      this.#apiSetting.placeholder.split(" ");
+    const [startDelimiter, endDelimiter] = placeholder.split(" ");
 
     // 确保 placetag 始终是字符串（兼容旧配置可能是数组）
-    let tagName = this.#apiSetting.placetag;
+    let tagName = target.placetag;
     if (Array.isArray(tagName)) {
       tagName = tagName[0] || "i";
     }
-    if (typeof tagName !== "string") {
+    if (typeof tagName !== "string" || !tagName) {
       tagName = "i"; // 默认值
     }
 
-    const format = this.#apiSetting.placetagFormat || "compact"; // 占位符格式
     const safeTag = "span";
 
     // 1. 缓存常用还原正则
@@ -1068,7 +1072,7 @@ export class Translator {
       placeholderRegex,
     };
 
-    this.#placeholderCache = result;
+    this.#placeholderCache = { key, config: result };
     return result;
   }
 
@@ -3843,6 +3847,11 @@ export class Translator {
       const selectedApi = options.touch
         ? this.#hoverBubbleApiSetting
         : this.#apiSetting;
+      if (!selectedApi) return;
+      const placeholderConfig = this.#getPlaceholderConfig(selectedApi);
+      const requestScene = {
+        ...(options.touch ? this.#setting.mouseHoverSetting : this.#rule),
+      };
       let terminology = this.#prepareRequestTerminology(selectedApi);
       if (terminology.then) terminology = await terminology;
       if (
@@ -3854,7 +3863,8 @@ export class Translator {
       const [processedString, placeholderMap] = this.#serializeForTranslation(
         nodes,
         termsStyle,
-        terminology
+        terminology,
+        placeholderConfig
       );
       if (this.#isInvalidText(processedString)) return;
 
@@ -3999,10 +4009,11 @@ export class Translator {
           processedString,
           deLang,
           onStreamChunk,
-          options.touch ? selectedApi : null,
+          selectedApi,
           signal,
           true,
-          terminology
+          terminology,
+          requestScene
         );
         translatedText = result.trText;
         isSameLang = result.isSame;
@@ -4040,7 +4051,9 @@ export class Translator {
       // 3. 将翻译后文本里的 {{1}}、<tag1> 等占位符还原为对应的 DOM 节点和 HTML 结构
       const htmlString = this.#restoreFromTranslation(
         translatedText,
-        placeholderMap
+        placeholderMap,
+        placeholderConfig,
+        selectedApi.apiType
       );
 
       // REVIEW: 高安全标准的 Trusted Types 注入机制。
@@ -4527,7 +4540,7 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 处理节点转为翻译字符串
-  #serializeForTranslation(nodes, termsStyle, terminology) {
+  #serializeForTranslation(nodes, termsStyle, terminology, placeholderConfig) {
     const termEntries =
       terminology?.resolved.normalEntries || this.#termEntries;
     const termMatcher = terminology
@@ -4536,7 +4549,7 @@ overflow-wrap: anywhere !important;`;
     let replaceCounter = 0; // {{n}}
     let wrapCounter = 0; // <tagn>
     const placeholderMap = new Map();
-    const { startDelimiter, endDelimiter } = this.#placeholderConfig;
+    const { startDelimiter, endDelimiter } = placeholderConfig;
 
     const pushReplace = (html) => {
       replaceCounter++;
@@ -4647,7 +4660,7 @@ overflow-wrap: anywhere !important;`;
             Translator.TAGS.WARP.has(node.tagName?.toUpperCase()))
         ) {
           wrapCounter++;
-          const { tagName, format } = this.#placeholderConfig;
+          const { tagName, format } = placeholderConfig;
 
           // Snapshot the shell before an asynchronous request or DOM update.
           placeholderMap.set(`TAG_${wrapCounter}`, {
@@ -4684,24 +4697,31 @@ overflow-wrap: anywhere !important;`;
       .join("")
       .trim();
 
-    // 先清理整个翻译片段两端的源码排版空白，再保护正文内部的换行和 Tab。
+    // 先清理整个翻译片段两端的源码排版空白，只保护正文内部的 Tab。
     // 不能逐个 trim 文本节点，否则会破坏行内元素之间的必要空格。
-    processedString = processedString.replace(/\r?\n|\t/g, (whitespace) =>
-      pushReplace(whitespace === "\t" ? "&#9;" : "&#10;")
-    );
+    processedString = processedString.replace(/\t/g, () => pushReplace("&#9;"));
 
     return [processedString, placeholderMap];
   }
 
   // 将翻译后的文本与之前序列化时抽离的 HTML 占位符、标签和术语映射进行合并还原，恢复原网页的富文本格式与 DOM 结构
-  #restoreFromTranslation(translatedText, placeholderMap) {
+  #restoreFromTranslation(
+    translatedText,
+    placeholderMap,
+    placeholderConfig,
+    apiType
+  ) {
+    // 原始 DOM br 仍在映射中；只先恢复接口用来传递正文 LF 的 br。
+    if (apiType === OPT_TRANS_GOOGLE_2 || apiType === OPT_TRANS_BUILTINAI) {
+      translatedText = decodeHTMLLineBreaks(translatedText);
+    }
     if (!placeholderMap.size) {
       return translatedText;
     }
 
     if (!translatedText) return "";
 
-    const { safeTag, openRegex, closeRegex } = this.#placeholderConfig;
+    const { safeTag, openRegex, closeRegex } = placeholderConfig;
     const restoreAttr = "data-kiss-restore";
     let textToParse = translatedText;
     let result = translatedText;
@@ -4752,9 +4772,9 @@ overflow-wrap: anywhere !important;`;
       // 如果 DOMParser 解析出错（比如翻译源返回了破碎的 HTML 片段），则回退，继续尝试用正则直接替换普通占位符
     }
 
-    // 5. 还原普通无语义占位符（如术语、换行符、行内图片或不可翻译标记 {{1}}、{{2}} 等）
+    // 5. 还原普通无语义占位符（如术语、Tab、行内图片或不可翻译标记 {{1}}、{{2}} 等）
     result = result.replace(
-      this.#placeholderConfig.placeholderRegex,
+      placeholderConfig.placeholderRegex,
       (match) => placeholderMap.get(match) || match
     );
 
@@ -4815,12 +4835,13 @@ overflow-wrap: anywhere !important;`;
     apiSettingOverride = null,
     signal = this.#translationController.signal,
     normalTermsApplied = true,
-    terminology = null
+    terminology = null,
+    sceneOverride = null
   ) {
     const { toLang, transStartHook } = this.#rule;
     const fromLang = deLang || this.#rule.fromLang;
     const hoverScene = apiSettingOverride && this.#setting.mouseHoverSetting;
-    const scene = hoverScene || this.#rule;
+    const scene = sceneOverride || hoverScene || this.#rule;
     const selectedApi = apiSettingOverride || this.#apiSetting;
     if (!selectedApi || selectedApi.isDisabled) {
       return Promise.reject(

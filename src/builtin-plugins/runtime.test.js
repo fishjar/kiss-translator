@@ -109,25 +109,32 @@ test("external snapshots cannot select a compiled native entry", async () => {
   ).rejects.toMatchObject({ code: "NATIVE_ACCESS_DENIED" });
 });
 
-test("browser native translation consumes the existing object result and preserves the item ID", async () => {
-  apiTranslate.mockResolvedValue({
-    trText: "浏览器译文",
-    srLang: "en",
-    srCode: "en",
-    isSame: false,
-  });
-  const registry = createNativeRegistry(() => ({
-    apiType: "BuiltinAI",
-    apiSlug: "browser",
-    isDisabled: false,
-  }));
-  await expect(
-    registry.invoke("browser", "translate", {
-      items: [{ id: "stable-id", text: "hello" }],
-      targetLanguage: "zh-CN",
-    }).result
-  ).resolves.toEqual({
-    items: [{ id: "stable-id", text: "浏览器译文" }],
-    sourceLanguage: "en",
-  });
-});
+test.each(["text", "html"])(
+  "browser native translation preserves item ID and %s format",
+  async (textFormat) => {
+    apiTranslate.mockResolvedValue({
+      trText: "浏览器译文",
+      srLang: "en",
+      srCode: "en",
+      isSame: false,
+    });
+    const registry = createNativeRegistry(() => ({
+      apiType: "BuiltinAI",
+      apiSlug: "browser",
+      isDisabled: false,
+    }));
+    await expect(
+      registry.invoke("browser", "translate", {
+        items: [{ id: "stable-id", text: "hello" }],
+        targetLanguage: "zh-CN",
+        textFormat,
+      }).result
+    ).resolves.toEqual({
+      items: [{ id: "stable-id", text: "浏览器译文" }],
+      sourceLanguage: "en",
+    });
+    expect(apiTranslate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ textFormat })
+    );
+  }
+);

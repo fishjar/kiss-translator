@@ -64,6 +64,7 @@ const defaultAiApiOpts = {
 export const NATIVE_PRESET_OVERRIDES = {
   [OPT_TRANS_BUILTINAI]: {
     sourceType: "builtin",
+    placeholder: "[ ]",
   },
   [OPT_TRANS_SYSTEM_TTS]: {
     sourceType: "builtin",
@@ -81,8 +82,7 @@ export const NATIVE_PRESET_OVERRIDES = {
     url: "https://translate-pa.googleapis.com/v1/translateHtml",
     key: "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520",
     useBatchFetch: true,
-    placetag: "a",
-    placetagFormat: "attribute",
+    placeholder: "[ ]",
   },
   [OPT_TRANS_GOOGLE_CLOUD]: {
     url: "https://translation.googleapis.com/language/translate/v2",
@@ -104,8 +104,13 @@ export const NATIVE_PRESET_OVERRIDES = {
   [OPT_TRANS_BAIDU]: {},
   [OPT_TRANS_TENCENT]: {
     useBatchFetch: true,
+    placeholder: "{ }",
   },
-  [OPT_TRANS_VOLCENGINE]: {},
+  [OPT_TRANS_VOLCENGINE]: {
+    placeholder: "{ }",
+    placetag: "a",
+    placetagFormat: "attribute",
+  },
   [OPT_TRANS_DEEPL]: {
     url: "https://api-free.deepl.com/v2/translate",
     useBatchFetch: true,

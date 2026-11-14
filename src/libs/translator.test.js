@@ -2959,6 +2959,46 @@ describe("Translator rule styles", () => {
       }
     );
 
+    test("uses the selected touch service for placeholders and newline restoration", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p id="target">act <strong>First\n\nSecond</strong></p></main>';
+      const page = createApiSetting("page");
+      const touch = {
+        ...createApiSetting("touch"),
+        apiType: "Google2",
+        placeholder: "[ ]",
+        placetag: "a",
+        placetagFormat: "attribute",
+        terms: "act,触摸",
+      };
+      const translator = createTranslator(
+        { transOpen: "false", apiSlug: "page", hasRichText: "true" },
+        {
+          preInit: false,
+          transApis: [page, touch],
+          mouseHoverSetting: { apiSlug: "touch" },
+        }
+      );
+      apiTranslate.mockImplementation(async ({ text }) => ({
+        trText: text.replace(/\n/g, "<br>"),
+        isSame: false,
+      }));
+      translator.setTouchMode("tap");
+      const target = document.getElementById("target");
+      tap(target);
+      await flushAsync();
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+      expect(apiTranslate.mock.calls[0][0]).toMatchObject({
+        apiSetting: { apiSlug: "touch" },
+        text: "[1] <a i=1>First\n\nSecond</a>",
+      });
+      const inner = target.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(inner.textContent).toBe("触摸 First\n\nSecond");
+      expect(inner.querySelector("strong").textContent).toBe("First\n\nSecond");
+      expect(inner.querySelector("br")).toBeNull();
+    });
+
     test("concurrent touch tasks share a pending snapshot and can retry a failed load", async () => {
       const { loadTerminologySnapshot } = require("./terminologyStorage");
       let reject;
@@ -4275,7 +4315,7 @@ describe("Translator rule styles", () => {
     expect(apiTranslate.mock.calls[0][0].text).toBe("1. Overall Structure");
   });
 
-  test("protects and restores internal newlines and tabs", async () => {
+  test("preserves raw internal newlines and protects tabs", async () => {
     const sourceText = "First\tcolumn\nSecond line";
     apiTranslate.mockImplementation(({ text }) =>
       Promise.resolve({ trText: text, isSame: false })
@@ -4296,10 +4336,128 @@ describe("Translator rule styles", () => {
     const requestedText = apiTranslate.mock.calls[0][0].text;
     const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
 
-    expect(requestedText).toBe("First{{1}}column{{2}}Second line");
+    expect(requestedText).toBe("First{{1}}column\nSecond line");
     expect(requestedText).not.toContain("\t");
-    expect(requestedText).not.toContain("\n");
     expect(inner.textContent).toBe(sourceText);
+  });
+
+  describe("raw newline serialization", () => {
+    beforeEach(() => {
+      global.Translator = {};
+    });
+    afterEach(() => {
+      delete global.Translator;
+    });
+
+    test.each([undefined, null, ""])(
+      "uses global placeholder defaults for missing or empty configuration (%s)",
+      async (value) => {
+        apiTranslate.mockImplementation(async ({ text }) => ({
+          trText: text,
+          isSame: false,
+        }));
+        document.body.innerHTML =
+          '<main id="root"><p id="target"><span style="display:inline-block">First\tSecond<br><strong>Third</strong></span></p></main>';
+        createTranslator(
+          { autoScan: "false", selector: "#target", hasRichText: "true" },
+          {
+            minLength: 0,
+            transApis: [
+              {
+                ...createApiSetting(DEFAULT_API_SETTING.apiSlug),
+                placeholder: value,
+                placetag: value,
+                placetagFormat: value,
+              },
+            ],
+          }
+        );
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        const requestedText = apiTranslate.mock.calls[0][0].text;
+        expect(requestedText).toMatch(/\{\{\d+\}\}/);
+        expect(requestedText).toMatch(/<i\d+>/);
+        const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        expect(inner.textContent).toBe("First\tSecondThird");
+        expect(inner.querySelectorAll("br")).toHaveLength(1);
+        expect(inner.querySelector("strong").textContent).toBe("Third");
+      }
+    );
+
+    test.each(["Google2", "BuiltinAI", "Google", "OpenAI"])(
+      "restores wire breaks separately from original DOM br for %s",
+      async (apiType) => {
+        const special = ["Google2", "BuiltinAI"].includes(apiType);
+        apiTranslate.mockImplementation(async ({ text }) => ({
+          trText: special ? text.replace(/\n/g, "<br>") : text,
+          isSame: false,
+        }));
+        document.body.innerHTML =
+          '<main id="root"><p id="target"><span style="display:inline-block">First\n\nSecond<br><strong>Third</strong></span></p></main>';
+        createTranslator(
+          {
+            autoScan: "false",
+            selector: "#target",
+            apiSlug: "test",
+            hasRichText: "true",
+          },
+          {
+            minLength: 0,
+            transApis: [
+              { ...createApiSetting("test"), apiType, placeholder: "[ ]" },
+            ],
+          }
+        );
+        await flushAsync();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+        expect(apiTranslate.mock.calls[0][0].text).toContain(
+          "First\n\nSecond[1]"
+        );
+        const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        expect(inner.textContent).toBe("First\n\nSecondThird");
+        expect(inner.querySelectorAll("br")).toHaveLength(1);
+        expect(inner.querySelector("strong").textContent).toBe("Third");
+      }
+    );
+
+    test.each(["Google2", "BuiltinAI"])(
+      "restores %s wire breaks with an empty placeholder map without retrying",
+      async (apiType) => {
+        apiTranslate.mockResolvedValue({
+          trText: "First<br><br>Second",
+          isSame: false,
+        });
+        document.body.innerHTML =
+          '<main id="root"><p>First\n\nSecond</p></main>';
+        createTranslator(
+          {},
+          {
+            transApis: [
+              { ...createApiSetting(DEFAULT_API_SETTING.apiSlug), apiType },
+            ],
+          }
+        );
+        await flushAsync();
+        const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        expect(inner.textContent).toBe("First\n\nSecond");
+        expect(inner.querySelector("br")).toBeNull();
+        expect(apiTranslate).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    test("accepts a response with missing newlines without adding retries", async () => {
+      apiTranslate.mockResolvedValue({
+        trText: "Merged translation",
+        isSame: false,
+      });
+      document.body.innerHTML = '<main id="root"><p>First\n\nSecond</p></main>';
+      createTranslator();
+      await flushAsync();
+      expect(
+        document.querySelector(`.${Translator.KISS_CLASS.inner}`).textContent
+      ).toBe("Merged translation");
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+    });
   });
 
   test("keeps literal backslash-t text unchanged", async () => {
