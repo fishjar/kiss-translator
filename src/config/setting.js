@@ -21,6 +21,7 @@ import {
 import { GLOBAL_KEY } from "./rules";
 import { defaultServices } from "./defaultServices";
 import { DEFAULT_CUSTOM_STYLES } from "./styles";
+import { PADDLEOCR_ORIGIN } from "./apiConstants";
 
 // --- 默认系统快捷键映射 ---
 export const OPT_SHORTCUT_TRANSLATE = "toggleTranslate"; // 切换整页双语翻译
@@ -54,7 +55,7 @@ export const DEFAULT_BLACKLIST = [
   "https://www.deepl.com/translator",
 ];
 export const DEFAULT_CSPLIST = []; // 默认禁用 CSP 安全策略的网址列表
-export const DEFAULT_ORILIST = ["https://dict.youdao.com"]; // 默认在跨域请求中需要重写 Origin 请求头的域名
+export const DEFAULT_ORILIST = ["https://dict.youdao.com", PADDLEOCR_ORIGIN]; // 默认在跨域请求中需要重写 Origin 请求头的域名
 
 // --- 配置同步设置 ---
 export const OPT_SYNCTYPE_WORKER = "KISS-Worker"; // 自建 Cloudflare Worker 同步方案

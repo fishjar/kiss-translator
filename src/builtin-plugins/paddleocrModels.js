@@ -10,11 +10,10 @@
  * 同一个服务实例通过 `model` 选择一个产线，能力随之确定。
  */
 
-import { OPT_TRANS_PADDLEOCR } from "../config/apiConstants";
+import { OPT_TRANS_PADDLEOCR, PADDLEOCR_ORIGIN } from "../config/apiConstants";
 
 // 官方异步任务接口地址（AI Studio 免费层）。
-export const PADDLEOCR_JOB_URL =
-  "https://paddleocr.aistudio-app.com/api/v2/ocr/jobs";
+export const PADDLEOCR_JOB_URL = `${PADDLEOCR_ORIGIN}/api/v2/ocr/jobs`;
 
 // 新实例默认使用最新的通用文字 OCR 模型。
 export const DEFAULT_PADDLEOCR_MODEL = "PP-OCRv6";

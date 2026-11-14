@@ -64,6 +64,7 @@ import {
 import { trySyncSettingAndRules } from "./libs/sync";
 import { fetchHandle, fetchStreamNative } from "./libs/fetch";
 import { handleFetchPort } from "./libs/requestPort";
+import { normalizeOriginRewriteList } from "./libs/originRules";
 import { PORT_FETCH } from "./config/msg";
 import { tryClearCaches, getHttpCache, putHttpCache } from "./libs/cache";
 import { sendTabMsg } from "./libs/msg";
@@ -619,37 +620,31 @@ async function updateCspRules({ csplist, orilist }) {
     }
 
     // 3. 构造并处理 Origin 请求头重写伪装规则
-    if (orilist !== undefined) {
-      let processedOriList = orilist;
-      if (typeof processedOriList === "string") {
-        processedOriList = processedOriList
-          .split(/\n|,/)
-          .map((url) => url.trim())
-          .filter(Boolean);
-      }
+    // PaddleOCR 网关会拒绝跨域 Origin；normalizeOriginRewriteList 会强制补上其域名，
+    // 因此即使旧用户保存的 orilist 没有该域名，也必须始终重建这一组规则。
+    const processedOriList = normalizeOriginRewriteList(orilist);
 
-      // 获取所有属于 Origin 修改段的旧规则 ID，准备清理
-      const oldOriRuleIds = oldRules
-        .filter((rule) => rule.id >= ORI_RULE_START_ID)
-        .map((rule) => rule.id);
-      idsToRemove.push(...oldOriRuleIds);
+    // 获取所有属于 Origin 修改段的旧规则 ID，准备清理
+    const oldOriRuleIds = oldRules
+      .filter((rule) => rule.id >= ORI_RULE_START_ID)
+      .map((rule) => rule.id);
+    idsToRemove.push(...oldOriRuleIds);
 
-      // 将发往特定翻译源的 xmlhttprequest 请求的 Origin 修改为目标源域名，伪装成同源请求
-      const newOriRules = processedOriList.map((url, index) => ({
-        id: ORI_RULE_START_ID + index,
-        action: {
-          type: "modifyHeaders",
-          requestHeaders: [{ header: "Origin", operation: "set", value: url }],
-        },
-        condition: {
-          urlFilter: url,
-          resourceTypes: ["xmlhttprequest"],
-          // 仅匹配由 Kiss Translator 扩展自身发起的请求。
-          initiatorDomains: [EXTENSION_INITIATOR_DOMAIN],
-        },
-      }));
-      rulesToAdd.push(...newOriRules);
-    }
+    // 将发往特定翻译源的 xmlhttprequest 请求的 Origin 修改为目标源域名，伪装成同源请求
+    const newOriRules = processedOriList.map((url, index) => ({
+      id: ORI_RULE_START_ID + index,
+      action: {
+        type: "modifyHeaders",
+        requestHeaders: [{ header: "Origin", operation: "set", value: url }],
+      },
+      condition: {
+        urlFilter: url,
+        resourceTypes: ["xmlhttprequest"],
+        // 仅匹配由 Kiss Translator 扩展自身发起的请求。
+        initiatorDomains: [EXTENSION_INITIATOR_DOMAIN],
+      },
+    }));
+    rulesToAdd.push(...newOriRules);
 
     // REVIEW: 批量更新 DNR 规则。在部分不支持 MV3 动态规则的旧浏览器（如旧版 Firefox）中可能会抛错，
     // 在 catch 中已做了捕获处理，能够保障基础功能的正常工作，但无法去除 CSP 限制。
