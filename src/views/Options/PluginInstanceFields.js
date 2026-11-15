@@ -4,6 +4,7 @@ import SensitiveTextField from "./SensitiveTextField";
 import { useConfirm } from "../../hooks/Confirm";
 import {
   ServiceTestCard,
+  ServiceTestResult,
   ServiceFormHeader,
   BooleanServiceOption,
   serviceTransportFeatures,
@@ -567,15 +568,7 @@ export default function PluginInstanceFields({
                 onChange={(event) => setText(event.target.value)}
               />
             )}
-            {result && (
-              <TextField
-                multiline
-                label={i18n("plugin_result")}
-                maxRows={12}
-                value={result}
-                inputProps={{ readOnly: true }}
-              />
-            )}
+            {result && <ServiceTestResult result={result} />}
             {audioUrl && <audio controls src={audioUrl} />}
           </>
         )}

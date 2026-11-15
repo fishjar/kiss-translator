@@ -1,5 +1,5 @@
 import { useI18n } from "../../hooks/I18n";
-import { ServiceTestCard } from "./ServiceForm";
+import { ServiceTestCard, ServiceTestResult } from "./ServiceForm";
 import { capabilityLabelKeys } from "../../providers/capabilityLabels";
 import { enabledApiCapabilities } from "../../config/serviceSelection";
 import { useEffect, useRef, useState } from "react";
@@ -177,15 +177,7 @@ export default function NativeCapabilityTest({ api, translationTest }) {
           )}
 
           {error && <Alert severity="error">{error}</Alert>}
-          {result && (
-            <TextField
-              multiline
-              label={i18n("plugin_result")}
-              maxRows={12}
-              value={result}
-              InputProps={{ readOnly: true }}
-            />
-          )}
+          {result && <ServiceTestResult result={result} />}
           {audioUrl && <audio controls src={audioUrl} />}
         </>
       )}

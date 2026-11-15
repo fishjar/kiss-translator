@@ -178,10 +178,20 @@ test("editing validates dictionary selections and rejects ambiguous or invalid f
   ).toThrow("Required");
 });
 
+test.each([
+  "http://192.168.6.138:8088",
+  "http://example.invalid",
+  "https://example.invalid",
+])("package accepts declared HTTP/HTTPS origin %s", (origin) => {
+  expect(() =>
+    readProviderPackage(pack({ permissions: { network: [origin] } }))
+  ).not.toThrow();
+});
+
 test("package origin declarations cannot grant cookies, non-origin URLs, secret endpoints or malformed features", () => {
   for (const permissions of [
     { network: ["https://example.invalid/path"] },
-    { network: ["http://example.invalid"] },
+    { network: ["ftp://example.invalid"] },
     { endpointFields: ["password"] },
   ])
     expect(() => readProviderPackage(pack({ permissions }))).toThrow(

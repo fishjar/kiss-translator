@@ -407,15 +407,11 @@ export function validatePermissions(permissions = {}, fields) {
     if (
       typeof origin !== "string" ||
       url.origin !== origin ||
-      (url.protocol !== "https:" &&
-        !(
-          url.protocol === "http:" &&
-          ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
-        ))
+      !["http:", "https:"].includes(url.protocol)
     )
       throw providerError(
         "INVALID_MANIFEST",
-        "Network permissions require HTTPS or loopback origins."
+        "Network permissions require HTTP or HTTPS origins."
       );
   }
   for (const key of permissions.endpointFields || [])
