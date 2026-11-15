@@ -88,8 +88,8 @@ test("PaddleOCR exposes exactly one capability per model", async () => {
     model: "PaddleOCR-VL-1.6",
   });
   expect(Object.keys(vlm)).toEqual(["parseImage"]);
-  // VLM 的 parsing_res_list 带 block_bbox，可以返回版面块坐标。
-  expect(vlm.parseImage.coordinates).toBe(true);
+  // Markdown 回退结果没有坐标，因此能力层面不宣告坐标。
+  expect(vlm.parseImage.coordinates).toBe(false);
   expect(vlm.parseImage.taskModes).toEqual(["doc"]);
 
   const structure = await resolveBuiltinCapabilities({

@@ -31,9 +31,10 @@ export function resolveBuiltinCapabilities(api) {
             outputModes: ["complete"],
             ...(name === "recognizeText" && { coordinates: true }),
             ...(name === "parseImage" && {
-              // VLM 的 prunedResult.parsing_res_list 带 block_bbox，
-              // 可据此回填译文、支持区域选择与译图合成。
-              coordinates: true,
+              // VLM 在缺少 parsing_res_list 时会回退为纯 Markdown，无法保证
+              // 完整坐标，因此不对外宣告坐标能力；有 block_bbox 时仍会随
+              // items 一起返回，供图片翻译按区域回填译文。
+              coordinates: false,
               // 官方 VLM 解析一次输出整页内容，不支持按表格/公式任务模式切换。
               taskModes: ["doc"],
             }),

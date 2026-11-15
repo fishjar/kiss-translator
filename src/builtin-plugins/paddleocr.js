@@ -14,8 +14,8 @@
 import { fetchPatcher } from "../libs/fetch";
 import { providerError } from "../providers/capabilities";
 import {
-  DEFAULT_PADDLEOCR_MODEL,
   PADDLEOCR_JOB_URL,
+  paddleOcrModelInfo,
   paddleOcrOptionalPayload,
 } from "./paddleocrModels";
 
@@ -259,12 +259,13 @@ function normalizeVlmPlainText(text) {
  * 它包含全部版面块以及 block_bbox 坐标；只有在没有版面块时才回退到 Markdown。
  */
 export function parsePaddleDocumentPages(pages = []) {
-  const blocks = [];
-  const markdowns = [];
+  // 按页保存解析结果，保证混合结构（部分页有版面块、部分页只有 Markdown）时不丢内容。
+  const pageResults = [];
   for (const page of pages) {
     for (const result of page?.layoutParsingResults || []) {
       const list = result?.prunedResult?.parsing_res_list;
-      if (Array.isArray(list) && list.length) {
+      const blocks = [];
+      if (Array.isArray(list)) {
         for (const block of list) {
           // 官方版面块的 block_content 一定是字符串；异常结构直接跳过。
           const content =
@@ -273,39 +274,46 @@ export function parsePaddleDocumentPages(pages = []) {
           // 图片类版面块清理后通常为空，直接跳过；其余块（含页眉、页脚、
           // 脚注、页码）全部保留，避免遗漏画面中的文字。
           if (!markdown) continue;
-          const poly = normalizePoly(null, block?.block_bbox);
           blocks.push({
             type: block?.block_label || "text",
             markdown,
             text: normalizeVlmPlainText(content) || markdown,
-            poly,
+            poly: normalizePoly(null, block?.block_bbox),
           });
         }
+      }
+      if (blocks.length) {
+        // 同一页只要有版面块就以版面块为准：markdown.text 会忽略页眉等块，
+        // 而 parsing_res_list 包含完整文字。
+        pageResults.push({
+          blocks,
+          text: blocks.map((block) => block.markdown).join("\n\n"),
+        });
         continue;
       }
+      // 整页都拿不到 parsing_res_list 时才回退到官方 Markdown。
       const markdown = normalizeVlmMarkdown(result?.markdown?.text);
-      if (markdown) markdowns.push(markdown);
+      if (markdown) pageResults.push({ blocks: [], text: markdown });
     }
   }
-  if (!blocks.length && !markdowns.length)
+  if (!pageResults.length)
     throw paddleError("PaddleOCR 未返回文档解析结果", "INVALID_RESPONSE");
-  const text = blocks.length
-    ? blocks.map((block) => block.markdown).join("\n\n")
-    : markdowns.join("\n\n");
-  // 有版面块时按块输出文字项，并带上官方返回的块坐标；
-  // 坐标无效的块只保留在 text 中，避免破坏“坐标必须完整”的结果校验。
-  const located = blocks.filter((block) => hasArea(block.poly));
-  const items = located.length
-    ? located.map(({ text: blockText, poly, type }) => ({
-        text: blockText,
-        poly,
-        type,
-      }))
-    : text
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .map((line) => ({ text: line, poly: null }));
+  const text = pageResults.map((page) => page.text).join("\n\n");
+  // 版面块按原始顺序转为文字项，并带上官方返回的块坐标；
+  // 没有坐标的块和 Markdown 回退页仍然输出，保证不会漏译。
+  const items = pageResults.flatMap((page) =>
+    page.blocks.length
+      ? page.blocks.map(({ text: blockText, poly, type }) => ({
+          text: blockText,
+          ...(hasArea(poly) && { poly }),
+          type,
+        }))
+      : page.text
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => ({ text: line, poly: null }))
+  );
   return { text, items, format: "markdown" };
 }
 
@@ -349,7 +357,9 @@ async function runPaddleJob(input, api, ctx) {
   const blob = ctx.assets.get(input.image);
   if (!blob) throw paddleError("图片数据为空", "INVALID_INPUT");
   const url = String(api.url || PADDLEOCR_JOB_URL).trim();
-  const model = api.model || DEFAULT_PADDLEOCR_MODEL;
+  // 使用规范化后的模型名：未知或已下线的模型回退到默认模型，
+  // 与能力推导保持一致，避免把旧配置里的模型名原样发给服务端。
+  const model = paddleOcrModelInfo(api.model).model;
 
   // 1. 提交任务：本地图片使用 multipart/form-data，字段格式与官方示例一致。
   const form = new FormData();

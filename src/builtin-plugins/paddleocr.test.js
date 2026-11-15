@@ -139,7 +139,46 @@ test("parsePaddleDocumentPages joins markdown pages", () => {
   });
 });
 
-test("parsePaddleDocumentPages reads layout blocks and strips image HTML", () => {
+test("parsePaddleDocumentPages keeps fallback pages and unlocated blocks", () => {
+  const result = parsePaddleDocumentPages([
+    {
+      layoutParsingResults: [
+        {
+          prunedResult: {
+            parsing_res_list: [
+              {
+                block_label: "text",
+                block_content: "第一页正文",
+                block_bbox: [1, 2, 30, 40],
+              },
+              // 没有 block_bbox 的块仍要参与翻译，只是不携带坐标。
+              { block_label: "header", block_content: "无坐标页眉" },
+            ],
+          },
+        },
+        // 同一批结果中混合“只有 Markdown”的页，不能因此丢掉这一页。
+        { markdown: { text: "第二页 Markdown" } },
+      ],
+    },
+  ]);
+  expect(result.text).toBe("第一页正文\n\n无坐标页眉\n\n第二页 Markdown");
+  expect(result.items).toEqual([
+    {
+      text: "第一页正文",
+      poly: [
+        [1, 2],
+        [30, 2],
+        [30, 40],
+        [1, 40],
+      ],
+      type: "text",
+    },
+    { text: "无坐标页眉", type: "header" },
+    { text: "第二页 Markdown", poly: null },
+  ]);
+});
+
+test("parsePaddleDocumentPages maps documents with layout blocks", () => {
   const result = parsePaddleDocumentPages([
     {
       layoutParsingResults: [
@@ -301,6 +340,35 @@ test("recognizePaddleText submits a job, polls, and downloads JSONL", async () =
     "https://paddleocr.invalid/jobs/job-1"
   );
   expect(fetchPatcher.mock.calls[2][0]).toBe("https://result.invalid/jsonl");
+});
+
+test("unknown model falls back to the default OCR model in requests", async () => {
+  const ctx = createContext();
+  fetchPatcher
+    .mockResolvedValueOnce(response({ code: 0, data: { jobId: "job-fb" } }))
+    .mockResolvedValueOnce(
+      response({
+        code: 0,
+        data: {
+          state: "done",
+          resultUrl: { jsonUrl: "https://result.invalid/jsonl" },
+        },
+      })
+    )
+    .mockResolvedValueOnce(response(JSON.stringify({ result: OCR_PAGE })));
+
+  await recognizePaddleText(
+    { image: ctx.image },
+    {
+      url: "https://paddleocr.invalid/jobs",
+      key: "token-1",
+      model: "removed-model",
+    },
+    ctx
+  );
+
+  const [, submitInit] = fetchPatcher.mock.calls[0];
+  expect(submitInit.body.get("model")).toBe("PP-OCRv6");
 });
 
 test("parsePaddleDocument uses the VLM layoutParsingResults output", async () => {
