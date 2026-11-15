@@ -21,7 +21,6 @@ import {
   OPT_LANGS_TO_REVERSED as OPT_LANGS_TO,
 } from "../../config";
 import { recognitionOptions } from "../../fileTranslation/recognition";
-import { paddleOcrServiceLabel } from "../../builtin-plugins/paddleocrModels";
 import { isPluginPromptSlug } from "../../providers/defaultPrompts";
 import {
   supportsApiCapability,
@@ -230,7 +229,7 @@ export function ImageTranslateSettings({
             </MenuItem>
             {layoutServices.map((api) => (
               <MenuItem key={api.apiSlug} value={api.apiSlug}>
-                {paddleOcrServiceLabel(api) || api.apiSlug}
+                {api.apiName || api.apiSlug}
               </MenuItem>
             ))}
           </Select>

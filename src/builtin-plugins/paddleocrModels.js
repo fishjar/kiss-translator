@@ -10,7 +10,7 @@
  * 同一个服务实例通过 `model` 选择一个产线，能力随之确定。
  */
 
-import { OPT_TRANS_PADDLEOCR, PADDLEOCR_ORIGIN } from "../config/apiConstants";
+import { PADDLEOCR_ORIGIN } from "../config/apiConstants";
 
 // 官方异步任务接口地址（AI Studio 免费层）。
 export const PADDLEOCR_JOB_URL = `${PADDLEOCR_ORIGIN}/api/v2/ocr/jobs`;
@@ -103,17 +103,4 @@ export function paddleOcrOptionalPayload(api = {}) {
     ...orientation,
     useChartRecognition: Boolean(api.paddleUseChartRecognition),
   };
-}
-
-/**
- * 服务在场景下拉框中的显示名。PaddleOCR 需要带上模型名，
- * 否则同一服务的多个模型实例无法区分。
- * @param {Object} api 服务实例
- * @returns {string}
- */
-export function paddleOcrServiceLabel(api) {
-  const name = api?.apiName || api?.apiSlug || OPT_TRANS_PADDLEOCR;
-  return api?.apiType === OPT_TRANS_PADDLEOCR && api.model
-    ? `${name} (${api.model})`
-    : name;
 }

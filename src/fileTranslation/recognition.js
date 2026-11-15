@@ -3,7 +3,6 @@ import {
   supportedApiFeature,
   supportsApiCapability,
 } from "../config/serviceSelection";
-import { paddleOcrServiceLabel } from "../builtin-plugins/paddleocrModels";
 
 export const RECOGNITION_CAPABILITIES = ["recognizeText", "parseImage"];
 
@@ -40,7 +39,7 @@ export function recognitionOptions(
       const unavailable = feature.available === false || !isApiConfigured(api);
       options.push({
         value: JSON.stringify({ apiSlug: api.apiSlug, capability }),
-        label: `${paddleOcrServiceLabel(api) || api.apiSlug} · ${
+        label: `${api.apiName || api.apiSlug} · ${
           feature.coordinates
             ? i18n("recognition_with_coordinates", "带文字坐标")
             : i18n("recognition_text_only", "仅文本输出")

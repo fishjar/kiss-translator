@@ -25,7 +25,6 @@ import {
 } from "../../config";
 import { DEFAULT_IMAGE_TRANSLATE_SETTING } from "../../config/setting";
 import { recognitionOptions } from "../../fileTranslation/recognition";
-import { paddleOcrServiceLabel } from "../../builtin-plugins/paddleocrModels";
 import {
   supportsApiCapability,
   isApiConfigured,
@@ -324,7 +323,7 @@ export default function ImageTranslate() {
                   </MenuItem>
                   {layoutApis.map((api) => (
                     <MenuItem key={api.apiSlug} value={api.apiSlug}>
-                      {paddleOcrServiceLabel(api) || api.apiSlug}
+                      {api.apiName || api.apiSlug}
                     </MenuItem>
                   ))}
                 </Select>

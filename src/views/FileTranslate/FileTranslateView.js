@@ -6,7 +6,6 @@ import {
 } from "../../fileTranslation/recognition";
 import { isApiConfigured } from "../../config/serviceSelection";
 import { supportsApiCapability } from "../../config/serviceSelection";
-import { paddleOcrServiceLabel } from "../../builtin-plugins/paddleocrModels";
 import { runTranslationTasks } from "../../libs/translationTasks";
 import { FILE_TRANSLATE_I18N } from "../../config/locales/fileTranslate";
 import {
@@ -472,7 +471,7 @@ export default function FileTranslateView() {
     }
     const options = layoutApis.map((api) => ({
       value: api.apiSlug,
-      label: `${paddleOcrServiceLabel(api) || api.apiType || api.apiSlug}${
+      label: `${api.apiName || api.apiType || api.apiSlug}${
         api.modelRef
           ? ` (${typeof getModelDisplayName === "function" ? getModelDisplayName(api.modelRef, i18n) : api.modelRef})`
           : ""
