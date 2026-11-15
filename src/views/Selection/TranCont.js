@@ -12,6 +12,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { apiTranslate } from "../../apis";
 import { supportsServiceFeature } from "../../providers/features";
+import { getBuiltinServiceDefinition } from "../../builtin-plugins/definitions";
+import { getDocInfo } from "../../libs/docInfo";
 import {
   API_SPE_TYPES,
   OPT_TRANS_BUILTINAI,
@@ -264,6 +266,8 @@ export default function TranCont({
   requestRevision = 0,
   onActionPointerDown,
   ttsApiSlug = "",
+  translationContext = "",
+  selectionUrl = "",
 }) {
   const i18n = useI18n();
   const [trText, setTrText] = useState("");
@@ -333,6 +337,19 @@ export default function TranCont({
     const controller = new AbortController();
     const warnTerminology = terminologyWarningHandler(i18n.language);
     const enableStreamRender = canRenderStream(apiSetting);
+    const context = String(translationContext || "").trim();
+    const sourceUrl = String(selectionUrl || "").trim();
+    const isCurrentSelection = !sourceUrl || sourceUrl === window.location.href;
+    const externalProvider =
+      apiSetting.provider &&
+      apiSetting.provider.implementation?.kind !== "native";
+    const docInfo =
+      context &&
+      isCurrentSelection &&
+      (externalProvider ||
+        getBuiltinServiceDefinition(apiSetting.apiType)?.usesMessages)
+        ? { ...getDocInfo(), context }
+        : undefined;
 
     /**
      * Synchronize streaming text from the translation queue with the output field.
@@ -369,6 +386,7 @@ export default function TranCont({
           apiTranslate({
             text: requestText,
             scene,
+            ...(docInfo ? { docInfo } : {}),
             onTerminologyWarning: warnTerminology,
             fromLang: requestFromLang,
             toLang,
@@ -436,6 +454,8 @@ export default function TranCont({
     waitForDetection,
     attemptRevision,
     retryRevision,
+    translationContext,
+    selectionUrl,
   ]);
 
   // Keep pending requests, including queued batches, intact on repeated submits.

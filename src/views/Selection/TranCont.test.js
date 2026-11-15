@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import TranCont from "./TranCont";
 import { apiTranslate } from "../../apis";
+import { getDocInfo } from "../../libs/docInfo";
 import {
   __getSessionHeightMapForTests,
   __resetSessionHeightMapForTests,
@@ -12,6 +13,14 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 jest.mock("../../apis", () => ({
   apiTranslate: jest.fn(),
+}));
+
+jest.mock("../../libs/docInfo", () => ({
+  getDocInfo: jest.fn(() => ({
+    title: "Article title",
+    description: "Article description",
+    summary: "Article summary",
+  })),
 }));
 
 jest.mock("../../config", () => ({
@@ -183,7 +192,160 @@ describe("TranCont", () => {
   beforeEach(() => {
     __resetSessionHeightMapForTests();
     apiTranslate.mockReset();
+    getDocInfo.mockClear();
+    getDocInfo.mockReturnValue({
+      title: "Article title",
+      description: "Article description",
+      summary: "Article summary",
+    });
     document.body.innerHTML = "";
+    window.history.replaceState({}, "", "/article");
+  });
+
+  describe("selection document context", () => {
+    test("adds valid selection context to native AI requests without dropping page metadata", async () => {
+      apiTranslate.mockResolvedValueOnce({ trText: "扩大" });
+      const { root } = renderTranCont({
+        text: "scale",
+        translationContext:
+          "The company plans to scale its operations across Asia.",
+        selectionUrl: window.location.href,
+      });
+      await flushEffects();
+
+      expect(apiTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: "scale",
+          docInfo: {
+            title: "Article title",
+            description: "Article description",
+            summary: "Article summary",
+            context: "The company plans to scale its operations across Asia.",
+          },
+        })
+      );
+      act(() => root.unmount());
+    });
+
+    test("drops stale selection context after SPA navigation before retrying", async () => {
+      apiTranslate.mockResolvedValue({ trText: "扩展" });
+      const selectionUrl = window.location.href;
+      const props = {
+        text: "scale",
+        translationContext:
+          "The company plans to scale its operations across Asia.",
+        selectionUrl,
+      };
+      const { root } = renderTranCont(props);
+      await flushEffects();
+      expect(apiTranslate.mock.calls[0][0].docInfo.context).toContain("scale");
+
+      window.history.pushState({}, "", "/next-page");
+      act(() => {
+        root.render(
+          <TranCont
+            fromLang="auto"
+            toLang="zh-CN"
+            apiSlug="openai"
+            transApis={[baseApiSetting]}
+            requestRevision={1}
+            {...props}
+          />
+        );
+      });
+      await flushEffects();
+
+      expect(apiTranslate).toHaveBeenCalledTimes(2);
+      expect(apiTranslate.mock.calls[1][0].docInfo).toBeUndefined();
+      expect(getDocInfo).toHaveBeenCalledTimes(1);
+      act(() => root.unmount());
+    });
+
+    test("keeps the original request scope when selection context is absent", async () => {
+      apiTranslate.mockResolvedValueOnce({ trText: "译文" });
+      const { root } = renderTranCont();
+      await flushEffects();
+
+      expect(apiTranslate.mock.calls[0][0].docInfo).toBeUndefined();
+      expect(getDocInfo).not.toHaveBeenCalled();
+      act(() => root.unmount());
+    });
+
+    test("does not read or send selection context for non-AI services", async () => {
+      apiTranslate.mockResolvedValueOnce({ trText: "规模" });
+      const { root } = renderTranCont({
+        apiSlug: "google",
+        transApis: [googleApiSetting],
+        translationContext: "The company plans to scale its operations.",
+        selectionUrl: window.location.href,
+      });
+      await flushEffects();
+
+      expect(apiTranslate.mock.calls[0][0].docInfo).toBeUndefined();
+      expect(getDocInfo).not.toHaveBeenCalled();
+      act(() => root.unmount());
+    });
+
+    test("passes selection context to external translation providers", async () => {
+      const plugin = {
+        ...baseApiSetting,
+        apiType: "Plugin",
+        provider: {
+          implementation: { kind: "plugin" },
+          capabilities: { translate: { outputModes: ["complete"] } },
+        },
+      };
+      apiTranslate.mockResolvedValueOnce({ trText: "扩展" });
+      const { root } = renderTranCont({
+        transApis: [plugin],
+        translationContext: "The company plans to scale its operations.",
+        selectionUrl: window.location.href,
+      });
+      await flushEffects();
+
+      expect(apiTranslate.mock.calls[0][0].docInfo).toEqual({
+        title: "Article title",
+        description: "Article description",
+        summary: "Article summary",
+        context: "The company plans to scale its operations.",
+      });
+      act(() => root.unmount());
+    });
+
+    test("aborts the obsolete request when selection context changes", async () => {
+      const first = createDeferred();
+      const second = createDeferred();
+      apiTranslate
+        .mockReturnValueOnce(first.promise)
+        .mockReturnValueOnce(second.promise);
+      const { root } = renderTranCont({ translationContext: "hello first" });
+      await flushEffects();
+
+      act(() => {
+        root.render(
+          <TranCont
+            text="hello"
+            fromLang="auto"
+            toLang="zh-CN"
+            apiSlug="openai"
+            transApis={[baseApiSetting]}
+            translationContext="hello second"
+          />
+        );
+      });
+      await flushEffects();
+
+      expect(apiTranslate.mock.calls[0][0].signal.aborted).toBe(true);
+      expect(apiTranslate.mock.calls[1][0].docInfo.context).toBe(
+        "hello second"
+      );
+      await act(async () => {
+        first.resolve({ trText: "旧译文" });
+        second.resolve({ trText: "新译文" });
+        await Promise.all([first.promise, second.promise]);
+      });
+      act(() => root.unmount());
+    });
   });
 
   describe("popup results", () => {

@@ -143,6 +143,7 @@ export default function Tranbox() {
     transOpen,
     singleWordNoTrans = false,
     autoFavWord = false,
+    contextAwareTranslate = false,
     fromLang,
     toLang,
     toLang2 = "en",
@@ -178,6 +179,18 @@ export default function Tranbox() {
                 checked={transOpen}
                 label={i18n("selection_translate")}
                 onChange={(checked) => updateTranbox({ transOpen: checked })}
+              />
+            </SettingsRow>
+            <SettingsRow
+              label={i18n("context_aware_translate")}
+              description={i18n("context_aware_translate_helper")}
+            >
+              <SettingsSwitch
+                checked={contextAwareTranslate}
+                label={i18n("context_aware_translate")}
+                onChange={(checked) =>
+                  updateTranbox({ contextAwareTranslate: checked })
+                }
               />
             </SettingsRow>
             <SettingsRow

@@ -31,12 +31,14 @@ import {
   INPUT_PLACE_SEGMENTS,
   INPUT_PLACE_TO,
   INPUT_PLACE_TEXT,
+  INPUT_PLACE_CONTEXT,
   PROMPT_PROTOCOL_LINE,
   PROMPT_PROTOCOL_XML,
   PROMPT_PROTOCOL_JSON,
   defaultBatchUserPromptLines,
   defaultBatchUserPromptXml,
   defaultBatchUserPromptJson,
+  defaultNobatchUserPrompt,
   defaultNobatchUserPromptConcise,
 } from "../config";
 import { fetchData, fetchStream } from "../libs/fetch";
@@ -55,8 +57,100 @@ const getTestApiSetting = (overrides = {}) => ({
 });
 
 describe("Batch Translation Protocols & Custom Batch User Prompt", () => {
+  const renderUserPrompt = async ({
+    template,
+    useBatchFetch,
+    batchProtocol = PROMPT_PROTOCOL_LINE,
+    docInfo = {},
+  }) => {
+    const [, reqInit] = await genTransReq({
+      ...getTestApiSetting({ useBatchFetch, batchProtocol }),
+      systemPrompt: "",
+      ...(useBatchFetch
+        ? { batchUserPrompt: template }
+        : { nobatchPrompt: "", nobatchUserPrompt: template }),
+      from: "en",
+      to: "zh-CN",
+      fromLang: "en",
+      toLang: "zh-CN",
+      texts: ["scale"],
+      glossary: { scale: "扩大" },
+      tone: "formal",
+      docInfo,
+    });
+    return JSON.parse(reqInit.body).messages.find(
+      (message) => message.role === "user"
+    ).content;
+  };
+
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe("selection context prompts", () => {
+    const context = "The company plans to scale its operations across Asia.";
+
+    test.each([
+      ["single", false, PROMPT_PROTOCOL_LINE, defaultNobatchUserPrompt],
+      ["concise", false, PROMPT_PROTOCOL_LINE, defaultNobatchUserPromptConcise],
+      ["line", true, PROMPT_PROTOCOL_LINE, defaultBatchUserPromptLines],
+      ["xml", true, PROMPT_PROTOCOL_XML, defaultBatchUserPromptXml],
+      ["json", true, PROMPT_PROTOCOL_JSON, defaultBatchUserPromptJson],
+    ])(
+      "adds context to the %s default without changing empty-context output",
+      async (_name, useBatchFetch, batchProtocol, template) => {
+        const withContext = await renderUserPrompt({
+          template,
+          useBatchFetch,
+          batchProtocol,
+          docInfo: { context },
+        });
+        expect(withContext).toContain(`Context: ${context}`);
+        expect(withContext).toContain("scale translates to 扩大");
+        expect(withContext).toContain("formal");
+
+        const withoutContext = await renderUserPrompt({
+          template,
+          useBatchFetch,
+          batchProtocol,
+        });
+        const legacyOutput = await renderUserPrompt({
+          template: template.replace(`${INPUT_PLACE_CONTEXT}\n`, ""),
+          useBatchFetch,
+          batchProtocol,
+        });
+        expect(withoutContext).toBe(legacyOutput);
+      }
+    );
+
+    test.each([
+      [false, PROMPT_PROTOCOL_LINE],
+      [true, PROMPT_PROTOCOL_LINE],
+      [true, PROMPT_PROTOCOL_XML],
+      [true, PROMPT_PROTOCOL_JSON],
+    ])(
+      "renders an explicit custom context placeholder (batch=%s, protocol=%s)",
+      async (useBatchFetch, batchProtocol) => {
+        const template = `Reference:\n${INPUT_PLACE_CONTEXT}\nTranslate:\n${
+          useBatchFetch ? INPUT_PLACE_SEGMENTS : INPUT_PLACE_TEXT
+        }`;
+        const prompt = await renderUserPrompt({
+          template,
+          useBatchFetch,
+          batchProtocol,
+          docInfo: { context },
+        });
+        expect(prompt).toContain(`Context: ${context}`);
+        const translatedInput = !useBatchFetch
+          ? "Translate:\nscale"
+          : {
+              [PROMPT_PROTOCOL_LINE]: "0 | scale",
+              [PROMPT_PROTOCOL_XML]: '<t id="0">scale</t>',
+              [PROMPT_PROTOCOL_JSON]: '{"id":0,"text":"scale"}',
+            }[batchProtocol];
+        expect(prompt).toContain(translatedInput);
+      }
+    );
   });
 
   describe("genTransReq - batch formatting and placeholders", () => {
