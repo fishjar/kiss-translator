@@ -59,6 +59,7 @@ export const defaultNobatchUserPrompt = `# Context
 Title: ${INPUT_PLACE_TITLE}
 Description: ${INPUT_PLACE_DESCRIPTION}
 Summary: ${INPUT_PLACE_SUMMARY}
+${INPUT_PLACE_CONTEXT}
 Tone: ${INPUT_PLACE_TONE}
 
 # Glossary:
@@ -76,7 +77,8 @@ Source Text: ${INPUT_PLACE_TEXT}
 Translated Text:`;
 
 export const defaultNobatchPromptConcise = "";
-export const defaultNobatchUserPromptConcise = `${INPUT_PLACE_GLOSSARY}
+export const defaultNobatchUserPromptConcise = `${INPUT_PLACE_CONTEXT}
+${INPUT_PLACE_GLOSSARY}
 ${INPUT_PLACE_TONE}
 Translate the following text into ${INPUT_PLACE_TO}. Preserve all HTML-like tags. Output ONLY the translated text without any explanation:
 ${INPUT_PLACE_TEXT}`;
@@ -111,7 +113,8 @@ export const defaultSystemPromptLines = `Act as a professional machine translati
 
 export const defaultSystemPromptJson = `Act as a professional machine translation engine. Output a raw JSON array strictly. No Markdown fences, no conversational filler.`;
 
-export const defaultBatchUserPromptLines = `${INPUT_PLACE_GLOSSARY}
+export const defaultBatchUserPromptLines = `${INPUT_PLACE_CONTEXT}
+${INPUT_PLACE_GLOSSARY}
 ${INPUT_PLACE_TONE}
 Translate each numbered line below into ${INPUT_PLACE_TO}. Maintain the exact "{id} | {translation}" format for each line. Preserve all HTML-like tags, and keep <br> for internal newlines. Output ONLY the translated result without any additional explanation:
 ${INPUT_PLACE_SEGMENTS}`;

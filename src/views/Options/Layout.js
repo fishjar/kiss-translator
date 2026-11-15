@@ -73,17 +73,10 @@ export function isNewerVersion(remoteVersion, currentVersion) {
 }
 
 export async function fetchLatestVersion({ signal, now = Date.now } = {}) {
-  const versionUrls = (
-    isGm
-      ? [
-          process.env.REACT_APP_USERSCRIPT_VERSION_URL,
-          process.env.REACT_APP_USERSCRIPT_VERSION_URL_GITHUB,
-        ]
-      : [
-          process.env.REACT_APP_VERSION_URL,
-          process.env.REACT_APP_VERSION_URL_GITHUB,
-        ]
-  ).filter(Boolean);
+  const versionUrls = [
+    process.env.REACT_APP_VERSION_URL,
+    process.env.REACT_APP_VERSION_URL_GITHUB,
+  ].filter(Boolean);
   let lastError;
 
   for (const versionUrl of versionUrls) {

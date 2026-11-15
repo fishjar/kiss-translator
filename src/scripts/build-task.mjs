@@ -147,18 +147,9 @@ try {
     // 字幕测试样本只随 GitHub Pages Web 产物发布，不进入任何插件压缩包。
     await copySubtitleSamplesToWeb(targetDir);
 
-    const { version, extensionStoreVersion } = await fs.readJson("package.json");
-    const stableVersion = /^(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*)){2}$/;
-    if (
-      typeof extensionStoreVersion !== "string" ||
-      !stableVersion.test(extensionStoreVersion) ||
-      extensionStoreVersion.localeCompare(version, "en", { numeric: true }) > 0
-    ) {
-      throw new Error(
-        `extensionStoreVersion must be a stable version no higher than ${version}`
-      );
-    }
-    await fs.writeFile(inDest("version.txt"), extensionStoreVersion);
+    const { version } = await fs.readJson("package.json");
+    await fs.writeFile(inDest("version.txt"), version);
+    // 保留旧油猴的更新检查地址，两个文件使用同一发布版本。
     await fs.writeFile(inDest("userscript-version.txt"), version);
     console.log(
       chalk.green(`Version file generated: ${inDest("version.txt")}`)
@@ -201,9 +192,12 @@ try {
       const page = new URL(url);
       return `${page.origin}${page.pathname}*`;
     });
+    // Firefox 的匹配模式不支持端口，带端口的模式永远不会命中；
+    // 端口限制仍由 isFileBridgePage 在脚本内校验。
+    const localPort = target === "firefox" ? "" : ":3000";
     matches.push(
-      "http://localhost:3000/file-translate.html*",
-      "http://127.0.0.1:3000/file-translate.html*"
+      `http://localhost${localPort}/file-translate.html*`,
+      `http://127.0.0.1${localPort}/file-translate.html*`
     );
     manifest.content_scripts.push({
       js: ["file-bridge.js"],

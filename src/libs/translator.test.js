@@ -5666,6 +5666,53 @@ describe("Translator rule styles", () => {
     ).toBeNull();
   });
 
+  test.each(["false", "true"])(
+    "keeps the inline original while the pointer stays on the restored text (wrapOriginal=%s)",
+    async (wrapOriginal) => {
+      document.body.innerHTML =
+        '<main id="root"><p id="target">Hello inline original</p></main>';
+      createTranslator({
+        transOnly: "true",
+        transOnlyRevert: "true",
+        transOnlyRevertDelay: "0.3",
+        wrapOriginal,
+      });
+      await flushAsync();
+
+      const target = document.getElementById("target");
+      const wrapper = document.querySelector(
+        `.${Translator.KISS_CLASS.warpper}`
+      );
+      const inner = wrapper.querySelector(`.${Translator.KISS_CLASS.inner}`);
+      expect(target.textContent).not.toContain("Hello inline original");
+
+      inner.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      jest.advanceTimersByTime(300);
+      expect(target.textContent).toContain("Hello inline original");
+
+      // The translation is now hidden, so the browser reports the pointer moving
+      // onto whatever element holds the restored text.
+      const restored =
+        wrapOriginal === "true"
+          ? target.querySelector(`.${Translator.KISS_CLASS.original}`)
+          : target;
+      expect(restored).not.toBeNull();
+      inner.dispatchEvent(
+        new MouseEvent("mouseout", { bubbles: true, relatedTarget: restored })
+      );
+      restored.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      expect(target.textContent).toContain("Hello inline original");
+
+      restored.dispatchEvent(
+        new MouseEvent("mouseout", {
+          bubbles: true,
+          relatedTarget: document.body,
+        })
+      );
+      expect(target.textContent).not.toContain("Hello inline original");
+    }
+  );
+
   test("shows the hidden original immediately when the hover shortcut is used", async () => {
     document.body.innerHTML =
       '<main id="root"><p>Hello shortcut original</p></main>';

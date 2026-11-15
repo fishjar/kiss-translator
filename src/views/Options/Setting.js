@@ -266,10 +266,18 @@ export default function Settings() {
   };
 
   // Resolve the backup schema before merging with the current settings.
+  // FAB preferences live in their own storage key, so restore them separately.
   const handleImport = async (data) => {
     try {
-      const imported = JSON.parse(data);
+      const { fab: importedFab, ...imported } = JSON.parse(data);
       updateSetting({ ...imported, version: getSettingVersion(imported) });
+      if (
+        importedFab &&
+        typeof importedFab === "object" &&
+        !Array.isArray(importedFab)
+      ) {
+        updateFab(importedFab);
+      }
     } catch (err) {
       logger.child("options").error("import setting", err);
     }
@@ -326,7 +334,7 @@ export default function Settings() {
         >
           <UploadButton text={i18n("import")} handleImport={handleImport} />
           <DownloadButton
-            handleData={() => JSON.stringify(setting, null, 2)}
+            handleData={() => JSON.stringify({ ...setting, fab }, null, 2)}
             text={i18n("export")}
             fileName={`kiss-setting_v2_${Date.now()}.json`}
           />

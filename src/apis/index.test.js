@@ -248,6 +248,95 @@ describe("refresh translation prompt and cache isolation", () => {
   );
 });
 
+describe("selection context cache and batch isolation", () => {
+  let addTask;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getHttpCachePolyfill.mockResolvedValue(null);
+    mockGetCacheDigest.mockImplementation(async (text, salt) =>
+      require("crypto")
+        .createHash("sha256")
+        .update(`${salt}:${text}`)
+        .digest("hex")
+    );
+    handleTranslate.mockImplementation(async function* () {
+      yield { id: 0, result: "single result" };
+    });
+    addTask = jest.fn().mockResolvedValue(["batch result", ""]);
+    getBatchQueue.mockImplementation(() => ({ addTask }));
+  });
+
+  test.each([
+    ["native", false],
+    ["native", true],
+    ["external", false],
+    ["external", true],
+  ])(
+    "isolates no-context and distinct-context requests (%s provider, batch=%s)",
+    async (providerKind, useBatchFetch) => {
+      const baseSetting = {
+        ...getOpenAiApiSetting(""),
+        useBatchFetch,
+        useStream: false,
+        nobatchUserPrompt: "Translate {{text}}\n{{context}}",
+        batchUserPrompt: "Translate {{segments}}\n{{context}}",
+        batchProtocol: "line",
+      };
+      const apiSetting =
+        providerKind === "native"
+          ? withBuiltinProvider(baseSetting)
+          : {
+              ...baseSetting,
+              apiType: "Plugin",
+              provider: {
+                apiVersion: 1,
+                implementation: { kind: "script" },
+                capabilities: {
+                  translate: {
+                    outputModes: ["text"],
+                    batch: { supported: true },
+                  },
+                },
+              },
+            };
+      const args = {
+        text: "scale",
+        fromLang: "en",
+        toLang: "zh-CN",
+        apiSetting,
+      };
+      const contextA = "The company plans to scale its operations.";
+      const contextB = "The scale of the map is one to one hundred.";
+
+      await apiTranslate(args);
+      await apiTranslate({ ...args, docInfo: { context: contextA } });
+      await apiTranslate({ ...args, docInfo: { context: contextA } });
+      await apiTranslate({ ...args, docInfo: { context: contextB } });
+
+      const cacheKeys = getHttpCachePolyfill.mock.calls.map(([key]) => key);
+      expect(new Set(cacheKeys).size).toBe(3);
+      expect(cacheKeys[1]).toBe(cacheKeys[2]);
+      expect(cacheKeys[0]).not.toBe(cacheKeys[1]);
+      expect(cacheKeys[1]).not.toBe(cacheKeys[3]);
+
+      if (useBatchFetch) {
+        const queueKeys = getBatchQueue.mock.calls.map(([key]) => key);
+        expect(new Set(queueKeys).size).toBe(3);
+        expect(queueKeys[1]).toBe(queueKeys[2]);
+        expect(
+          addTask.mock.calls.map(([, task]) => task.docInfo?.context)
+        ).toEqual([undefined, contextA, contextA, contextB]);
+      } else {
+        expect(getBatchQueue).not.toHaveBeenCalled();
+        expect(
+          handleTranslate.mock.calls.map(([, task]) => task.docInfo?.context)
+        ).toEqual([undefined, contextA, contextA, contextB]);
+      }
+    }
+  );
+});
+
 describe("apiSubtitle cache identity", () => {
   const events = [{ start: 100, end: 900, text: "hello" }];
 

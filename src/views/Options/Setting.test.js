@@ -7,6 +7,7 @@ import Settings, {
   ExtCommands,
 } from "./Setting";
 import UploadButton from "./UploadButton";
+import DownloadButton from "./DownloadButton";
 import { OPT_TRANS_GEMINI, SETTINGS_VERSION_V1 } from "../../config";
 import { browser } from "../../libs/browser";
 import { useAlert } from "../../hooks/Alert";
@@ -67,7 +68,7 @@ jest.mock("../../libs/log", () =>
   )
 );
 jest.mock("./UploadButton", () => jest.fn(() => null));
-jest.mock("./DownloadButton", () => () => null);
+jest.mock("./DownloadButton", () => jest.fn(() => null));
 jest.mock("../../hooks/ValidationInput", () => () => null);
 jest.mock("./OverviewHero", () => () => null);
 
@@ -237,7 +238,8 @@ describe("Settings backup import", () => {
       setting: { version: 3, uiLang: "zh", logLevel: 3, clearCache: false },
       updateSetting,
     });
-    useFab.mockReturnValue({ fab: {}, updateFab: jest.fn() });
+    const updateFab = jest.fn();
+    useFab.mockReturnValue({ fab: {}, updateFab });
     UploadButton.mockClear();
     const imported = {
       darkMode: true,
@@ -264,6 +266,47 @@ describe("Settings backup import", () => {
         ...imported,
         version: SETTINGS_VERSION_V1,
       });
+      expect(updateFab).not.toHaveBeenCalled();
+    } finally {
+      act(() => root.unmount());
+    }
+  });
+
+  test("round-trips floating button preferences through export and import", async () => {
+    browser.commands.getAll.mockResolvedValue([]);
+    useAlert.mockReturnValue(alert);
+    const setting = {
+      version: 3,
+      uiLang: "en",
+      logLevel: 3,
+      clearCache: false,
+    };
+    const fab = {
+      isHide: true,
+      halfHide: false,
+      opacity: 0.5,
+      size: 40,
+      fabClickAction: 1,
+      hideExceptionList: "example.com",
+    };
+    const updateSetting = jest.fn();
+    const updateFab = jest.fn();
+    useSetting.mockReturnValue({ setting, updateSetting });
+    useFab.mockReturnValue({ fab, updateFab });
+    UploadButton.mockClear();
+    DownloadButton.mockClear();
+    const { root } = await renderSettings();
+
+    try {
+      const { handleData } = DownloadButton.mock.calls.at(-1)[0];
+      const exported = handleData();
+      expect(JSON.parse(exported)).toEqual({ ...setting, fab });
+
+      const { handleImport } = UploadButton.mock.calls.at(-1)[0];
+      await handleImport(exported);
+
+      expect(updateSetting).toHaveBeenCalledWith(setting);
+      expect(updateFab).toHaveBeenCalledWith(fab);
     } finally {
       act(() => root.unmount());
     }

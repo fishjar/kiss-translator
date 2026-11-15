@@ -252,11 +252,12 @@ test("fixed addresses work without approval and configured endpoints define the 
 });
 
 test.each([
+  ["http://192.168.6.138:8088/test", true],
   ["https://fixed.invalid/test", true],
   ["http://localhost:8765/test", true],
   ["http://127.0.0.1:8765/test", true],
   ["http://[::1]:8765/test", true],
-  ["http://remote.invalid/test", false],
+  ["http://remote.invalid/test", true],
   ["ftp://remote.invalid/test", false],
   ["https://name:password@fixed.invalid/test", false],
 ])(
@@ -289,5 +290,88 @@ test.each([
         : { error: { code: "NETWORK_DENIED" } }
     );
     expect(fetchImpl).toHaveBeenCalledTimes(accepted ? 1 : 0);
+  }
+);
+
+test.each([
+  "http://192.168.6.138:8088/v1",
+  "http://llama.local:8088/v1",
+  "http://10.0.0.2:8088/v1",
+])(
+  "configured HTTP endpoint %s supports requests and streams within its origin",
+  async (baseUrl) => {
+    const fetchImpl = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: new Map(),
+      text: async () => "{}",
+      body: {
+        getReader: () => ({
+          read: async () => ({ done: true }),
+          cancel: async () => {},
+          releaseLock: () => {},
+        }),
+      },
+    }));
+    const broker = createTransportBroker(
+      { ...api, pluginConfig: { ...api.pluginConfig, baseUrl } },
+      { fetchImpl, assets: createAssetStore() }
+    );
+    await broker.http.request({ url: `${baseUrl}/chat/completions` });
+    const stream = broker.http.stream({ url: `${baseUrl}/chat/completions` });
+    await stream.next();
+    await stream.return();
+    for (const url of [
+      "http://192.168.6.139:8088/v1/chat/completions",
+      `${baseUrl.replace(":8088", ":8089")}/chat/completions`,
+      baseUrl.replace("http://", "http://user:password@"),
+    ]) {
+      await expect(broker.http.request({ url })).rejects.toMatchObject({
+        code: "NETWORK_DENIED",
+      });
+    }
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  }
+);
+
+test.each([undefined, "", "private"])(
+  "optional Bearer key %s omits empty authorization and retains supplied keys",
+  async (apiKey) => {
+    const fetchImpl = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      headers: new Map(),
+      text: async () => "{}",
+    }));
+    const instance = { ...api, pluginConfig: { ...api.pluginConfig, apiKey } };
+    const broker = createTransportBroker(instance, {
+      fetchImpl,
+      assets: createAssetStore(),
+    });
+    await broker.http.request({
+      url: "https://example.invalid/test",
+      auth: { type: "bearer", secret: broker.secrets.ref("apiKey") },
+    });
+    expect(fetchImpl.mock.calls[0][1].headers.Authorization).toBe(
+      apiKey ? `Bearer ${apiKey}` : undefined
+    );
+    const required = createTransportBroker(
+      {
+        ...instance,
+        provider: {
+          ...api.provider,
+          settings: [{ key: "apiKey", type: "password", required: true }],
+        },
+      },
+      { fetchImpl, assets: createAssetStore() }
+    );
+    if (!apiKey) {
+      await expect(
+        required.http.request({
+          url: "https://example.invalid/test",
+          auth: { type: "bearer", secret: required.secrets.ref("apiKey") },
+        })
+      ).rejects.toMatchObject({ code: "SECRET_UNAVAILABLE" });
+    }
   }
 );

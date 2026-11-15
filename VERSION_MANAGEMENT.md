@@ -15,10 +15,10 @@
 
 ### 版本来源
 
-- `package.json` 的 `version` 是扩展包、普通油猴脚本和 iOS Safari 脚本的统一构建版本，自动同步到 `.env` 和各扩展 manifest。发布标签为 `v<version>`，Web 构建用该版本生成 `userscript-version.txt`。
-- `package.json` 的 `extensionStoreVersion` 记录扩展商店已开放下载的版本。Web 构建用它生成 `version.txt`，供扩展设置页检查更新。
+- `package.json` 的 `version` 是唯一发布版本，供扩展包、普通油猴脚本和 iOS Safari 脚本共用，自动同步到 `.env` 和各扩展 manifest。发布标签为 `v<version>`。
+- Web 构建用该版本生成 `version.txt`，供扩展和油猴设置页统一检查更新；同时生成内容相同的 `userscript-version.txt`，兼容旧油猴。
 
-油猴修复也走下文的统一发布流程。`pnpm version:*` 只提升构建版本。扩展新版在商店可下载后，再手动更新 `extensionStoreVersion` 并部署主站和 GitHub Pages。只更新该字段时可以走网站部署流程。
+油猴修复也走下文的统一发布流程。使用 `pnpm version:*` 更新统一版本，发布并部署网站后即可提示更新，可能早于扩展商店审核完成，无需等待商店开放下载后再次维护版本或部署。
 
 ### 自动同步机制
 * **构建时自动同步：** 执行以下打包命令时，底层会自动先触发版本号同步，确保产物一致。
