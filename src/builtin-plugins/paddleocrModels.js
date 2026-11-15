@@ -4,7 +4,7 @@
  *
  * 官方免费接口按模型分为三条产线：
  * - 文字 OCR：PP-OCRv6 / PP-OCRv5，返回带坐标的文本行；
- * - OCR VLM：PaddleOCR-VL 系列，返回 Markdown 文档；
+ * - OCR VLM：PaddleOCR-VL 系列，返回 Markdown 与带坐标的版面块；
  * - OCR 结构：PP-StructureV3，返回版面块（parsing_res_list）。
  *
  * 同一个服务实例通过 `model` 选择一个产线，能力随之确定。
@@ -72,6 +72,13 @@ export function paddleOcrCapability(model) {
   return paddleOcrModelInfo(model).capability;
 }
 
+// PaddleOCR-VL-1.5 起新增“印章识别”和“图片块内文字识别”参数；
+// 更早的 PaddleOCR-VL 模型不认识这两个字段，需要按模型区分下发。
+export const PADDLEOCR_VLM_EXTRA_MODELS = new Set([
+  "PaddleOCR-VL-1.6",
+  "PaddleOCR-VL-1.5",
+]);
+
 /**
  * 组装官方 API 的 optionalPayload。
  * 不同产线支持的开关不同：文字 OCR 控制方向/矫正，文档解析控制图表/表格/公式识别。
@@ -79,7 +86,7 @@ export function paddleOcrCapability(model) {
  * @returns {Object} optionalPayload
  */
 export function paddleOcrOptionalPayload(api = {}) {
-  const { groupId } = paddleOcrModelInfo(api.model);
+  const { groupId, model } = paddleOcrModelInfo(api.model);
   const orientation = {
     useDocOrientationClassify: Boolean(api.paddleUseDocOrientationClassify),
     useDocUnwarping: Boolean(api.paddleUseDocUnwarping),
@@ -98,9 +105,18 @@ export function paddleOcrOptionalPayload(api = {}) {
       useFormulaRecognition: api.paddleUseFormulaRecognition !== false,
     };
   }
-  // VLM 文档解析：官方示例使用 useChartRecognition。
-  return {
+  // VLM 文档解析：与官方异步 API 示例一致。
+  // 显式开启版面分析，确保 prunedResult 返回带坐标的 parsing_res_list；
+  // markdown.text 默认会忽略页眉、页脚、页码、脚注，只有解析版面块才能拿到完整文字。
+  const payload = {
     ...orientation,
+    useLayoutDetection: true,
     useChartRecognition: Boolean(api.paddleUseChartRecognition),
   };
+  if (PADDLEOCR_VLM_EXTRA_MODELS.has(model)) {
+    // 默认开启图片块内文字识别，避免整块图片里的文字被漏掉。
+    payload.useOcrForImageBlock = api.paddleUseOcrForImageBlock !== false;
+    if (api.paddleUseSealRecognition) payload.useSealRecognition = true;
+  }
+  return payload;
 }

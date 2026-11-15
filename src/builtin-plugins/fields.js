@@ -91,6 +91,8 @@ export const builtinSettingFields = [
     "paddleUseTableRecognition",
     "paddleUseFormulaRecognition",
     "paddleUseChartRecognition",
+    "paddleUseOcrForImageBlock",
+    "paddleUseSealRecognition",
   ].map((key) => ({ key, type: "boolean" })),
   ...[
     ["temperature", 0, 2],

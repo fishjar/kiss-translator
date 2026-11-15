@@ -116,6 +116,8 @@ export const NATIVE_PRESET_OVERRIDES = {
     paddleUseTableRecognition: true,
     paddleUseFormulaRecognition: true,
     paddleUseChartRecognition: false,
+    paddleUseOcrForImageBlock: true,
+    paddleUseSealRecognition: false,
   },
   [OPT_TRANS_TENCENT]: {
     useBatchFetch: true,

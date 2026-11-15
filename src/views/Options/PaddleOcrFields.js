@@ -9,8 +9,10 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import {
   PADDLEOCR_MODEL_GROUPS,
+  PADDLEOCR_VLM_EXTRA_MODELS,
   paddleOcrModelInfo,
 } from "../../builtin-plugins/paddleocrModels";
 
@@ -91,6 +93,21 @@ export default function PaddleOcrFields({
             "paddleUseChartRecognition",
             i18n("paddleocr_option_chart_recognition", "图表识别")
           )}
+        {selected.groupId === "document" &&
+          PADDLEOCR_VLM_EXTRA_MODELS.has(selected.model) && (
+            <>
+              {/* 图片块内文字识别直接影响“是否漏字”，默认开启。 */}
+              {switchField(
+                "paddleUseOcrForImageBlock",
+                i18n("paddleocr_option_ocr_image_block", "图片内文字识别"),
+                true
+              )}
+              {switchField(
+                "paddleUseSealRecognition",
+                i18n("paddleocr_option_seal_recognition", "印章识别")
+              )}
+            </>
+          )}
         {selected.groupId === "structure" && (
           <>
             {switchField(
@@ -106,6 +123,19 @@ export default function PaddleOcrFields({
           </>
         )}
       </Stack>
+
+      {selected.groupId === "document" && (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ gridColumn: "1 / -1", lineHeight: 1.6 }}
+        >
+          {i18n(
+            "paddleocr_vlm_prompt_hint",
+            "官方 VLM 接口不支持自定义提示词，图片/文件翻译中的“视觉解析提示词”对本服务无效。"
+          )}
+        </Typography>
+      )}
     </>
   );
 }

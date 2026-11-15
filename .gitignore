@@ -11,6 +11,8 @@
 # testing
 /coverage
 /tmp/
+/testdoc
+/.tempScript
 
 # production
 /build

@@ -128,7 +128,96 @@ test("parsePaddleDocumentPages joins markdown pages", () => {
         ],
       },
     ])
-  ).toEqual({ text: "# Title\n\nBody\n\nSecond page", format: "markdown" });
+  ).toEqual({
+    text: "# Title\n\nBody\n\nSecond page",
+    items: [
+      { text: "# Title", poly: null },
+      { text: "Body", poly: null },
+      { text: "Second page", poly: null },
+    ],
+    format: "markdown",
+  });
+});
+
+test("parsePaddleDocumentPages reads layout blocks and strips image HTML", () => {
+  const result = parsePaddleDocumentPages([
+    {
+      layoutParsingResults: [
+        {
+          markdown: {
+            text: "# 标题\n\n![img](imgs/img_in_image_box_47_31_654_248.jpg)",
+          },
+          prunedResult: {
+            parsing_res_list: [
+              {
+                block_label: "doc_title",
+                block_content: "# 标题",
+                block_bbox: [1, 2, 30, 40],
+                block_order: 0,
+              },
+              {
+                // markdown.text 默认忽略页眉，解析版面块才能拿到这部分文字。
+                block_label: "header",
+                block_content: "页眉 2026",
+                block_bbox: [0, 0, 100, 10],
+                block_order: 1,
+              },
+              {
+                // 图片块只有 HTML 占位符，清理后为空，不应出现在结果里。
+                block_label: "image",
+                block_content:
+                  '<div style="text-align: center;"><img src="imgs/img_in_image_box_47_31_654_248.jpg" alt="Image" width="39%" /></div>',
+                block_bbox: [10, 10, 50, 50],
+              },
+              {
+                block_label: "table",
+                block_content:
+                  "<table><tr><td>姓名</td><td>张&amp;三</td></tr></table>",
+                block_bbox: [2, 60, 90, 80],
+                block_order: 2,
+              },
+            ],
+          },
+        },
+      ],
+    },
+  ]);
+  expect(result.text).toBe(
+    "# 标题\n\n页眉 2026\n\n<table><tr><td>姓名</td><td>张&amp;三</td></tr></table>"
+  );
+  expect(result.items).toEqual([
+    {
+      text: "# 标题",
+      poly: [
+        [1, 2],
+        [30, 2],
+        [30, 40],
+        [1, 40],
+      ],
+      type: "doc_title",
+    },
+    {
+      text: "页眉 2026",
+      poly: [
+        [0, 0],
+        [100, 0],
+        [100, 10],
+        [0, 10],
+      ],
+      type: "header",
+    },
+    {
+      // 表格转纯文本：单元格以空格分隔，并还原 HTML 实体。
+      text: "姓名 张&三",
+      poly: [
+        [2, 60],
+        [90, 60],
+        [90, 80],
+        [2, 80],
+      ],
+      type: "table",
+    },
+  ]);
 });
 
 test("parsePaddleStructurePages maps parsing_res_list to layout regions", () => {
@@ -247,12 +336,61 @@ test("parsePaddleDocument uses the VLM layoutParsingResults output", async () =>
     ctx
   );
 
-  expect(result).toEqual({ text: "# Doc", format: "markdown" });
+  expect(result).toEqual({
+    text: "# Doc",
+    items: [{ text: "# Doc", poly: null }],
+    format: "markdown",
+  });
   expect(
     JSON.parse(fetchPatcher.mock.calls[0][1].body.get("optionalPayload"))
   ).toEqual({
     useDocOrientationClassify: false,
     useDocUnwarping: false,
+    useLayoutDetection: true,
+    useChartRecognition: false,
+    useOcrForImageBlock: true,
+  });
+});
+
+test("legacy PaddleOCR-VL does not receive 1.5-only payload fields", async () => {
+  const ctx = createContext();
+  fetchPatcher
+    .mockResolvedValueOnce(response({ code: 0, data: { jobId: "job-3" } }))
+    .mockResolvedValueOnce(
+      response({
+        code: 0,
+        data: {
+          state: "done",
+          resultUrl: { jsonUrl: "https://result.invalid/jsonl" },
+        },
+      })
+    )
+    .mockResolvedValueOnce(
+      response(
+        JSON.stringify({
+          result: { layoutParsingResults: [{ markdown: { text: "# Doc" } }] },
+        })
+      )
+    );
+
+  await parsePaddleDocument(
+    { image: ctx.image },
+    {
+      url: "https://paddleocr.invalid/jobs",
+      key: "token-1",
+      model: "PaddleOCR-VL",
+      paddleUseSealRecognition: true,
+      paddleUseOcrForImageBlock: true,
+    },
+    ctx
+  );
+
+  expect(
+    JSON.parse(fetchPatcher.mock.calls[0][1].body.get("optionalPayload"))
+  ).toEqual({
+    useDocOrientationClassify: false,
+    useDocUnwarping: false,
+    useLayoutDetection: true,
     useChartRecognition: false,
   });
 });

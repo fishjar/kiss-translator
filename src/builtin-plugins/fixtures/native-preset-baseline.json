@@ -1,7 +1,7 @@
 {
-  "capturedAt": "2026-11-14",
+  "capturedAt": "2026-11-15",
   "presetCount": 36,
-  "sha256": "7c9a905a1151e70b2c14b4ffe67f247887e5c9f6677a90c135c01d8ceed73ef4",
-  "purpose": "Compiled defaults after adding the PaddleOCR official async API provider; main-branch settings and language mappings remain protected.",
+  "sha256": "8d14374c273e62618eb348c8c432d13587a5ca4574b3e62e7f49ee8b133a41f7",
+  "purpose": "Compiled defaults after adding PaddleOCR VLM image-block OCR and seal recognition toggles; main-branch settings and language mappings remain protected.",
   "languageMappingsSha256": "836c77816a25bdf47bfc6593b74f99ccc89e3d42341847972a87a45b1e52b485"
 }
