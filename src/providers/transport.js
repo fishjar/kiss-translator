@@ -71,7 +71,16 @@ export function createTransportBroker(
       throw providerError("SECRET_UNAVAILABLE", "Unknown secret field.");
     return { scope: instance.apiSlug, key };
   };
-  const readSecret = (ref) => {
+  const readSecret = (ref, optional = false) => {
+    if (
+      optional &&
+      ref?.scope === instance.apiSlug &&
+      fields.has(ref.key) &&
+      !instance.provider.settings.find((field) => field.key === ref.key)
+        ?.required &&
+      (secrets[ref.key] === undefined || secrets[ref.key] === "")
+    )
+      return "";
     if (
       ref?.scope !== instance.apiSlug ||
       !fields.has(ref.key) ||
@@ -105,15 +114,14 @@ export function createTransportBroker(
       validateResponseAudio(request.responseAudio);
     }
     const url = new URL(request.url);
-    const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     if (
-      (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) ||
+      !["http:", "https:"].includes(url.protocol) ||
       url.username ||
       url.password
     ) {
       throw providerError(
         "NETWORK_DENIED",
-        "Only HTTPS or HTTP loopback endpoints are supported."
+        "Only HTTP or HTTPS endpoints without embedded credentials are supported."
       );
     }
     if (!allowed.has(url.origin))
@@ -172,7 +180,8 @@ export function createTransportBroker(
       }
       for (const key of Object.keys(headers))
         if (key.toLowerCase() === "authorization") delete headers[key];
-      headers.Authorization = `Bearer ${readSecret(ref)}`;
+      const value = readSecret(ref, true);
+      if (value) headers.Authorization = `Bearer ${value}`;
     }
     let body;
     if (request.bodyType === "json") body = JSON.stringify(requestBody);

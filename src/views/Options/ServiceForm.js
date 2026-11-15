@@ -1,4 +1,6 @@
 import { Fragment } from "react";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { useAlert } from "../../hooks/Alert";
 import ValidationInput from "../../hooks/ValidationInput";
 import { DEFAULT_HTTP_TIMEOUT } from "../../config/apiConstants";
 import {
@@ -16,6 +18,8 @@ import {
   Switch,
   TextField,
   MenuItem,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import { useI18n } from "../../hooks/I18n";
 import { useSetting } from "../../hooks/Setting";
@@ -40,6 +44,50 @@ export const serviceFieldsGridSx = {
     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   },
 };
+
+export function ServiceTestResult({ result }) {
+  const i18n = useI18n();
+  const alert = useAlert();
+  return (
+    <Box sx={{ position: "relative" }}>
+      <TextField
+        fullWidth
+        multiline
+        label={i18n("plugin_result")}
+        maxRows={12}
+        value={result}
+        InputProps={{ readOnly: true, sx: { pr: 6 } }}
+      />
+      <Tooltip title={i18n("copy")}>
+        <IconButton
+          size="small"
+          aria-label={i18n("copy")}
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            bgcolor: "background.paper",
+            "&:hover": { bgcolor: "action.hover" },
+          }}
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(result);
+              alert.success(i18n("copy_success"));
+            } catch {
+              alert.error(
+                i18n(
+                  "plugin_copy_failed_copy_manually_from_the_read_only_field"
+                )
+              );
+            }
+          }}
+        >
+          <ContentCopyIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
 
 /** Both implementations keep test inputs and their actions in a separate card. */
 export function ServiceTestCard({ children, actions }) {
