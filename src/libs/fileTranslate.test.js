@@ -5,6 +5,7 @@ import {
   generateStandaloneHtml,
   escapeHtmlText,
   synthesizeTranslatedImage,
+  layoutImageText,
 } from "./fileTranslate";
 import { apiTranslate } from "../apis";
 
@@ -91,6 +92,120 @@ test("image synthesis restores excluded polygons after drawing neighboring trans
     create.mockRestore();
     globalThis.createImageBitmap = originalBitmap;
   }
+});
+
+describe("layoutImageText", () => {
+  // Monospace stand-in: every character is half the font size wide.
+  const measure = (text, fontSize) => text.length * fontSize * 0.5;
+
+  test("wraps a paragraph on spaces at a larger font than a single squeezed line", () => {
+    const text =
+      "The meeting has been moved to next Monday, so please update your calendars accordingly.";
+    const boxW = 300;
+    const boxH = 160;
+    const layout = layoutImageText(text, boxW, boxH, measure);
+
+    expect(layout.lines.length).toBeGreaterThan(1);
+    expect(layout.lines.join(" ")).toBe(text);
+    layout.lines.forEach((line) =>
+      expect(measure(line, layout.fontSize)).toBeLessThanOrEqual(boxW)
+    );
+    expect(layout.lines.length * layout.fontSize * 1.2).toBeLessThanOrEqual(
+      boxH
+    );
+    // One squeezed line would need fontSize <= boxW / (0.5 * text.length) ≈ 6.9px.
+    expect(layout.fontSize).toBeGreaterThan(boxW / (0.5 * text.length));
+  });
+
+  test("breaks CJK text between characters and keeps hard line breaks", () => {
+    const layout = layoutImageText(
+      "会议已更改为下周一请更新日历\n谢谢",
+      100,
+      200,
+      measure
+    );
+
+    expect(layout.lines.length).toBeGreaterThan(2);
+    expect(layout.lines.at(-1)).toBe("谢谢");
+    expect(layout.lines.slice(0, -1).join("")).toBe(
+      "会议已更改为下周一请更新日历"
+    );
+    layout.lines.forEach((line) =>
+      expect(measure(line, layout.fontSize)).toBeLessThanOrEqual(100)
+    );
+  });
+
+  const OPENERS = "「『（【〔〈《｛〝“‘([{";
+  const CLOSERS = "、。，．！？：；）」』】〕〉》｝〟”’.,!?:;)]}";
+  const expectKinsoku = (text, boxW, boxH = 400) => {
+    const layout = layoutImageText(text, boxW, boxH, measure);
+    expect(layout.lines.join("").replace(/\s/g, "")).toBe(
+      text.replace(/\s/g, "")
+    );
+    layout.lines.forEach((line) => {
+      expect(CLOSERS).not.toContain([...line][0]);
+      expect(OPENERS).not.toContain([...line].at(-1));
+    });
+  };
+
+  test("never starts a line with closing punctuation or ends one with an opening bracket", () => {
+    for (let boxW = 40; boxW <= 200; boxW += 5)
+      expectKinsoku(
+        "自分は「年上」の女です。正直、若い子を想定してませんか？はい、そうです。",
+        boxW
+      );
+  });
+
+  test("keeps curly quotes attached to the quoted CJK text", () => {
+    for (let boxW = 40; boxW <= 120; boxW += 5)
+      expectKinsoku("他说“你好”然后走了，‘再见’。", boxW);
+  });
+
+  test("keeps full-width brackets attached to Latin words and digits", () => {
+    for (let boxW = 40; boxW <= 200; boxW += 5)
+      expectKinsoku("【Notice】（123）と（Hello world）です", boxW);
+  });
+
+  test("keeps punctuation attached when a word is split to fit the box", () => {
+    for (let boxW = 30; boxW <= 80; boxW += 5)
+      expectKinsoku("【Internationalization】", boxW, 600);
+  });
+
+  test("prefers a smaller font over splitting words that fit on their own", () => {
+    expect(layoutImageText("I don’t know", 40, 200, measure).lines).toEqual([
+      "I",
+      "don’t",
+      "know",
+    ]);
+  });
+
+  test("collapses blank lines between paragraphs into a single line break", () => {
+    expect(
+      layoutImageText("第一段\n\n第二段", 100, 150, measure).lines
+    ).toEqual(["第一段", "第二段"]);
+  });
+
+  test("keeps a short line-box translation on one line at the line-height font", () => {
+    expect(layoutImageText("Observation", 300, 40, measure)).toEqual({
+      fontSize: Math.round(40 * 0.72),
+      lines: ["Observation"],
+    });
+  });
+
+  test("splits a word wider than the box instead of overflowing it", () => {
+    const layout = layoutImageText("Internationalization", 60, 200, measure);
+
+    expect(layout.lines.join("")).toBe("Internationalization");
+    layout.lines.forEach((line) =>
+      expect(measure(line, layout.fontSize)).toBeLessThanOrEqual(60)
+    );
+  });
+
+  test("returns null when nothing fits at the minimum font size", () => {
+    expect(
+      layoutImageText("Too long for this tiny box", 20, 8, measure)
+    ).toBeNull();
+  });
 });
 
 const setting = {

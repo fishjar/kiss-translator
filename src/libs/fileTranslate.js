@@ -1099,6 +1099,126 @@ export function resolveFontFamily(fontKeyOrCss) {
   return found ? found.font : fontKeyOrCss;
 }
 
+const IMAGE_TEXT_MIN_FONT = 10;
+const IMAGE_TEXT_MAX_FONT = 64;
+const IMAGE_TEXT_LINE_HEIGHT = 1.2;
+const IMAGE_TEXT_CJK_RE =
+  /[\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/u;
+// 避头尾：闭合标点与小假名不出现在行首，开括号与开引号不出现在行尾。
+const IMAGE_TEXT_OPEN = new Set("「『（【〔〈《｛〝“‘([{");
+const IMAGE_TEXT_CLOSE = new Set(
+  "、。，．！？：；）」』】〕〉》｝〟・…‥ー々ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ”’.,!?:;)]}"
+);
+const IMAGE_TEXT_SPACE_RE = /^\s+$/;
+
+// 相邻两个字符之间能否换行。CJK、假名、韩文与全角符号旁可以换行，其余文字只在空白处换行；
+// force 用于拆分比整行还宽的单词，此时任意字符间都可换行，但仍遵守避头尾。
+const canBreakBetween = (prev, next, force) =>
+  !IMAGE_TEXT_OPEN.has(prev) &&
+  !IMAGE_TEXT_CLOSE.has(next) &&
+  (force || IMAGE_TEXT_CJK_RE.test(prev) || IMAGE_TEXT_CJK_RE.test(next));
+
+// 切分为不可再分的片段：连续空白为一个片段，文字按 canBreakBetween 断开
+function tokenizeImageText(text, force = false) {
+  const tokens = [];
+  let token = "";
+  let prev = "";
+  for (const ch of text) {
+    const isSpace = /\s/.test(ch);
+    const tokenIsSpace = IMAGE_TEXT_SPACE_RE.test(token);
+    if (
+      token &&
+      (isSpace
+        ? !tokenIsSpace
+        : tokenIsSpace || canBreakBetween(prev, ch, force))
+    ) {
+      tokens.push(token);
+      token = "";
+    }
+    token += ch;
+    prev = ch;
+  }
+  if (token) tokens.push(token);
+  return tokens;
+}
+
+function wrapImageTextLines(text, maxWidth, measure, splitWords) {
+  const lines = [];
+  let line = "";
+  const flush = () => {
+    const trimmed = line.trim();
+    if (trimmed) lines.push(trimmed);
+    line = "";
+  };
+  const append = (piece) => {
+    const isSpace = IMAGE_TEXT_SPACE_RE.test(piece);
+    if (line && measure(line + piece) > maxWidth) {
+      flush();
+      if (isSpace) return;
+    }
+    if (!line && isSpace) return;
+    if (!line && splitWords && measure(piece) > maxWidth) {
+      const parts = tokenizeImageText(piece, true);
+      if (parts.length > 1) {
+        parts.forEach(append);
+        return;
+      }
+    }
+    line += piece;
+  };
+
+  for (const token of tokenizeImageText(String(text))) {
+    // 显式换行另起一行；连续空行合并为一次换行，图片区域内不保留段间空行
+    if (IMAGE_TEXT_SPACE_RE.test(token) && token.includes("\n")) flush();
+    else append(token);
+  }
+  flush();
+  return lines;
+}
+
+/**
+ * 在识别框内为译文选择最大可容纳的字号并自动换行。
+ * measure(text, fontSize) 返回该字号下的文本宽度。
+ * 优先选择不拆分单词的排版；只有任何字号都放不下完整单词时，才允许拆词。
+ * 最小字号仍放不下时返回 null，由调用方回退为单行压缩绘制。
+ */
+export function layoutImageText(text, boxW, boxH, measure) {
+  const maxFont = Math.max(
+    IMAGE_TEXT_MIN_FONT,
+    Math.min(Math.round(boxH * 0.72), IMAGE_TEXT_MAX_FONT)
+  );
+  const tryFont = (fontSize, splitWords) => {
+    const lines = wrapImageTextLines(
+      text,
+      boxW,
+      (s) => measure(s, fontSize),
+      splitWords
+    );
+    const fits =
+      lines.length > 0 &&
+      lines.length * fontSize * IMAGE_TEXT_LINE_HEIGHT <= boxH &&
+      lines.every((l) => measure(l, fontSize) <= boxW);
+    return fits ? { fontSize, lines } : null;
+  };
+  const largestFit = (splitWords) => {
+    let best = null;
+    let lo = IMAGE_TEXT_MIN_FONT;
+    let hi = maxFont;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const layout = tryFont(mid, splitWords);
+      if (layout) {
+        best = layout;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return best;
+  };
+  return largestFit(false) ?? largestFit(true);
+}
+
 /**
  * 基于 Canvas 将 OCR 识别框中的原文替换绘制为译文，生成译图 Blob
  */
@@ -1226,21 +1346,36 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
       const brightness = (avgR * 299 + avgG * 587 + avgB * 114) / 1000;
       const textColor = brightness > 128 ? "#111827" : "#F9FAFB";
 
-      // 自适应字号并绘制译文
+      // 自适应字号并绘制译文；放得下时自动换行，否则回退为单行压缩
       const text = String(row.target).trim();
-      let fontSize = Math.max(10, Math.min(Math.round(boxH * 0.72), 64));
-      ctx.font = `bold ${fontSize}px ${fontCss}`;
-      let textWidth = ctx.measureText(text).width;
+      const layout = layoutImageText(text, boxW, boxH, (s, size) => {
+        ctx.font = `bold ${size}px ${fontCss}`;
+        return ctx.measureText(s).width;
+      });
+      ctx.fillStyle = textColor;
 
-      if (textWidth > boxW && fontSize > 10) {
-        fontSize = Math.max(10, Math.floor(fontSize * (boxW / textWidth)));
-        ctx.font = `bold ${fontSize}px ${fontCss}`;
+      if (layout && layout.lines.length > 1) {
+        // 多行译文按段落排版：左上对齐
+        const lineHeight = layout.fontSize * IMAGE_TEXT_LINE_HEIGHT;
+        ctx.font = `bold ${layout.fontSize}px ${fontCss}`;
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+        layout.lines.forEach((line, i) => {
+          ctx.fillText(line, minX, minY + lineHeight * (i + 0.5), boxW);
+        });
+        continue;
       }
 
-      ctx.fillStyle = textColor;
+      const fontSize = layout?.fontSize ?? IMAGE_TEXT_MIN_FONT;
+      ctx.font = `bold ${fontSize}px ${fontCss}`;
       ctx.textBaseline = "middle";
       ctx.textAlign = "center";
-      ctx.fillText(text, minX + boxW / 2, minY + boxH / 2, boxW);
+      ctx.fillText(
+        layout?.lines[0] ?? text,
+        minX + boxW / 2,
+        minY + boxH / 2,
+        boxW
+      );
     }
 
     if (originalCanvas) {
