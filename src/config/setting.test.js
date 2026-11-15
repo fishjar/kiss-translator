@@ -30,6 +30,10 @@ describe("translation box defaults", () => {
     expect(DEFAULT_SETTING.autoTranslateClipboard).toBe(false);
   });
 
+  test("does not enhance selection translation with context by default", () => {
+    expect(DEFAULT_TRANBOX_SETTING.contextAwareTranslate).toBe(false);
+  });
+
   test("uses Microsoft for every default translation entry point", () => {
     expect(DEFAULT_INPUT_RULE.apiSlug).toBe(OPT_TRANS_MICROSOFT);
     expect(DEFAULT_TRANBOX_SETTING.apiSlugs).toEqual([OPT_TRANS_MICROSOFT]);

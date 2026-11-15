@@ -56,6 +56,9 @@ export const formatLanguageOptionName = (name) => {
   return parts.join(" - ");
 };
 
+const MAX_SELECTION_CONTEXT_LENGTH = 1000;
+const CONTEXT_AWARE_CONTAINER_TAGS = new Set(["p", "li", "blockquote"]);
+
 const resolveActiveApiSlugs = (apiSlugs, optApis) => {
   if (apiSlugs === undefined || apiSlugs === null) {
     return optApis.slice(0, 1).map((api) => api.key);
@@ -174,6 +177,35 @@ export default function TranForm({
     const url = String(selectionSource?.url || "").trim();
     return sentence || url ? { sentence, url } : null;
   }, [editText, favoriteSourceSnapshotChanged, selectionSource, text]);
+  const translationContext = useMemo(() => {
+    if (!scene?.contextAwareTranslate || !favoriteSource) {
+      return "";
+    }
+
+    const selectedText = String(selectionSource?.text || "").trim();
+    const requestText = String(translationText || "").trim();
+    const context = String(selectionContext || "").trim();
+    if (
+      !selectedText ||
+      selectedText !== requestText ||
+      !selectionSource?.url ||
+      selectionSource.contextTruncated ||
+      !CONTEXT_AWARE_CONTAINER_TAGS.has(selectionSource.contextTagName) ||
+      !context ||
+      context.length > MAX_SELECTION_CONTEXT_LENGTH ||
+      !context.includes(selectedText.replace(/\s+/g, " "))
+    ) {
+      return "";
+    }
+
+    return context;
+  }, [
+    favoriteSource,
+    scene?.contextAwareTranslate,
+    selectionContext,
+    selectionSource,
+    translationText,
+  ]);
   const [requestRevision, setRequestRevision] = useState(0);
   const [apiSlugs, setApiSlugs] = useState(initApiSlugs);
   const [hasUserChangedApiSlugs, setHasUserChangedApiSlugs] = useState(false);
@@ -526,6 +558,8 @@ export default function TranForm({
       ttsApiSlug={ttsApiSlug}
       key={slug}
       text={translationText}
+      translationContext={translationContext}
+      selectionUrl={translationContext ? favoriteSource?.url || "" : ""}
       fromLang={fromLang}
       toLang={realToLang}
       simpleStyle={simpleStyle}

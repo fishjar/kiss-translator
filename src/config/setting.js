@@ -140,6 +140,7 @@ export const DEFAULT_TRANBOX_SETTING = {
   transOpen: true, // 是否启用划词翻译功能
   blacklist: "", // 划词翻译禁用的域名列表
   apiSlugs: [OPT_TRANS_MICROSOFT], // 启用的翻译 API (支持多选)
+  contextAwareTranslate: false,
   singleWordNoTrans: false, // 划词为单个单词时是否仅查询词典，不请求整句翻译服务
   autoFavWord: false, // 打开划词翻译框时自动收藏英文单词
   fromLang: "auto",

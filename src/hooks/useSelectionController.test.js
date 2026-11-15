@@ -298,11 +298,63 @@ describe("useSelectionController", () => {
       text: "library",
       sentence: "The library closes at dusk.",
       url: window.location.href,
+      contextTagName: "p",
+      contextTruncated: false,
     });
 
     act(() => {
       controller.root.unmount();
     });
+  });
+
+  test("records when the original paragraph exceeds the context limit", async () => {
+    const controller = renderController();
+    const paragraph = createParagraph(
+      `The company plans to scale its operations across Asia. ${"x".repeat(1000)}`
+    );
+
+    currentSelection = makeSelection("scale", paragraph);
+    await dispatchWindowMouseup();
+    act(() => controller.state.handleOpenTranbox());
+
+    expect(controller.state.textContext).toHaveLength(1000);
+    expect(controller.state.textContext).toContain("scale");
+    expect(controller.state.selectionSource).toEqual(
+      expect.objectContaining({
+        contextTagName: "p",
+        contextTruncated: true,
+      })
+    );
+
+    act(() => controller.root.unmount());
+  });
+
+  test("records a broad context container without changing dictionary context", async () => {
+    const controller = renderController();
+    const main = document.createElement("main");
+    main.appendChild(
+      document.createTextNode("The company plans to scale its operations.")
+    );
+    const sibling = document.createElement("p");
+    sibling.textContent = "Sensitive sibling paragraph.";
+    main.appendChild(sibling);
+    document.body.appendChild(main);
+
+    currentSelection = makeSelection("scale", main);
+    await dispatchWindowMouseup();
+    act(() => controller.state.handleOpenTranbox());
+
+    expect(controller.state.textContext).toContain(
+      "Sensitive sibling paragraph."
+    );
+    expect(controller.state.selectionSource).toEqual(
+      expect.objectContaining({
+        contextTagName: "main",
+        contextTruncated: false,
+      })
+    );
+
+    act(() => controller.root.unmount());
   });
 
   test.each([
