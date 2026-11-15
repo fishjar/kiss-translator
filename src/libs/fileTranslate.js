@@ -1102,20 +1102,47 @@ export function resolveFontFamily(fontKeyOrCss) {
 const IMAGE_TEXT_MIN_FONT = 10;
 const IMAGE_TEXT_MAX_FONT = 64;
 const IMAGE_TEXT_LINE_HEIGHT = 1.2;
-// CJK、假名、韩文与全角符号可在任意字符间换行；其余文字按空白分词。
-// 避头尾：闭合标点与小假名附着在前一个字符上，开括号附着在后一个字符上，避免出现在行首/行尾。
-const IMAGE_TEXT_CJK =
-  "\\u2e80-\\u9fff\\uac00-\\ud7af\\uf900-\\ufaff\\uff00-\\uffef";
-const IMAGE_TEXT_CLOSE =
-  "、。，．！？：；）」』】〕〉》｝〟・…‥ー々ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ.,!?:;)\\]}";
-const IMAGE_TEXT_OPEN = "「『（【〔〈《｛〝(\\[{";
-const IMAGE_TEXT_TOKEN_RE = new RegExp(
-  `\\s+|[${IMAGE_TEXT_OPEN}]*[${IMAGE_TEXT_CJK}][${IMAGE_TEXT_CLOSE}]*|[^\\s${IMAGE_TEXT_CJK}]+[${IMAGE_TEXT_CLOSE}]*`,
-  "gu"
+const IMAGE_TEXT_CJK_RE =
+  /[\u2e80-\u9fff\uac00-\ud7af\uf900-\ufaff\uff00-\uffef]/u;
+// 避头尾：闭合标点与小假名不出现在行首，开括号与开引号不出现在行尾。
+const IMAGE_TEXT_OPEN = new Set("「『（【〔〈《｛〝“‘([{");
+const IMAGE_TEXT_CLOSE = new Set(
+  "、。，．！？：；）」』】〕〉》｝〟・…‥ー々ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮヵヶ”’.,!?:;)]}"
 );
 const IMAGE_TEXT_SPACE_RE = /^\s+$/;
 
-function wrapImageTextLines(text, maxWidth, measure) {
+// 相邻两个字符之间能否换行。CJK、假名、韩文与全角符号旁可以换行，其余文字只在空白处换行；
+// force 用于拆分比整行还宽的单词，此时任意字符间都可换行，但仍遵守避头尾。
+const canBreakBetween = (prev, next, force) =>
+  !IMAGE_TEXT_OPEN.has(prev) &&
+  !IMAGE_TEXT_CLOSE.has(next) &&
+  (force || IMAGE_TEXT_CJK_RE.test(prev) || IMAGE_TEXT_CJK_RE.test(next));
+
+// 切分为不可再分的片段：连续空白为一个片段，文字按 canBreakBetween 断开
+function tokenizeImageText(text, force = false) {
+  const tokens = [];
+  let token = "";
+  let prev = "";
+  for (const ch of text) {
+    const isSpace = /\s/.test(ch);
+    const tokenIsSpace = IMAGE_TEXT_SPACE_RE.test(token);
+    if (
+      token &&
+      (isSpace
+        ? !tokenIsSpace
+        : tokenIsSpace || canBreakBetween(prev, ch, force))
+    ) {
+      tokens.push(token);
+      token = "";
+    }
+    token += ch;
+    prev = ch;
+  }
+  if (token) tokens.push(token);
+  return tokens;
+}
+
+function wrapImageTextLines(text, maxWidth, measure, splitWords) {
   const lines = [];
   let line = "";
   const flush = () => {
@@ -1130,15 +1157,18 @@ function wrapImageTextLines(text, maxWidth, measure) {
       if (isSpace) return;
     }
     if (!line && isSpace) return;
-    if (!line && [...piece].length > 1 && measure(piece) > maxWidth) {
-      // 单个词比整行还宽时按字符断开
-      for (const ch of piece) append(ch);
-      return;
+    if (!line && splitWords && measure(piece) > maxWidth) {
+      const parts = tokenizeImageText(piece, true);
+      if (parts.length > 1) {
+        parts.forEach(append);
+        return;
+      }
     }
     line += piece;
   };
 
-  for (const token of String(text).match(IMAGE_TEXT_TOKEN_RE) || []) {
+  for (const token of tokenizeImageText(String(text))) {
+    // 显式换行另起一行；连续空行合并为一次换行，图片区域内不保留段间空行
     if (IMAGE_TEXT_SPACE_RE.test(token) && token.includes("\n")) flush();
     else append(token);
   }
@@ -1149,6 +1179,7 @@ function wrapImageTextLines(text, maxWidth, measure) {
 /**
  * 在识别框内为译文选择最大可容纳的字号并自动换行。
  * measure(text, fontSize) 返回该字号下的文本宽度。
+ * 优先选择不拆分单词的排版；只有任何字号都放不下完整单词时，才允许拆词。
  * 最小字号仍放不下时返回 null，由调用方回退为单行压缩绘制。
  */
 export function layoutImageText(text, boxW, boxH, measure) {
@@ -1156,29 +1187,36 @@ export function layoutImageText(text, boxW, boxH, measure) {
     IMAGE_TEXT_MIN_FONT,
     Math.min(Math.round(boxH * 0.72), IMAGE_TEXT_MAX_FONT)
   );
-  const tryFont = (fontSize) => {
-    const lines = wrapImageTextLines(text, boxW, (s) => measure(s, fontSize));
+  const tryFont = (fontSize, splitWords) => {
+    const lines = wrapImageTextLines(
+      text,
+      boxW,
+      (s) => measure(s, fontSize),
+      splitWords
+    );
     const fits =
       lines.length > 0 &&
       lines.length * fontSize * IMAGE_TEXT_LINE_HEIGHT <= boxH &&
       lines.every((l) => measure(l, fontSize) <= boxW);
     return fits ? { fontSize, lines } : null;
   };
-
-  let best = null;
-  let lo = IMAGE_TEXT_MIN_FONT;
-  let hi = maxFont;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    const layout = tryFont(mid);
-    if (layout) {
-      best = layout;
-      lo = mid + 1;
-    } else {
-      hi = mid - 1;
+  const largestFit = (splitWords) => {
+    let best = null;
+    let lo = IMAGE_TEXT_MIN_FONT;
+    let hi = maxFont;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const layout = tryFont(mid, splitWords);
+      if (layout) {
+        best = layout;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
     }
-  }
-  return best;
+    return best;
+  };
+  return largestFit(false) ?? largestFit(true);
 }
 
 /**
