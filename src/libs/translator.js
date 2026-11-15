@@ -5527,11 +5527,13 @@ overflow-wrap: anywhere !important;`;
       const related = e.relatedTarget;
 
       if (related && (wrapper.contains(related) || related === wrapper)) return;
+      // 恢复的原文通常是文本节点，无法成为事件目标；鼠标停在原文上时 relatedTarget 是承载它们的父元素。
+      if (related && related === wrapper.parentElement) return;
 
       const data = this.#translationNodes.get(wrapper);
       if (data && related) {
-        const origNodes = data.nodes || [];
-        for (const node of origNodes) {
+        // 开启“包裹原文”时恢复的单元是包裹元素，而非 data.nodes。
+        for (const node of this.#getOriginalUnits(data)) {
           if (node === related || node.contains?.(related)) return;
         }
       }
