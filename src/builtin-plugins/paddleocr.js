@@ -11,7 +11,9 @@
  *    - OCR 结构：版面块 -> analyzeLayout
  */
 
-import { fetchPatcher } from "../libs/fetch";
+import { fetchData, fetchPatcher } from "../libs/fetch";
+import { isBg } from "../libs/browser";
+import { logger } from "../libs/log";
 import { providerError } from "../providers/capabilities";
 import {
   PADDLEOCR_JOB_URL,
@@ -19,10 +21,19 @@ import {
   paddleOcrOptionalPayload,
 } from "./paddleocrModels";
 
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 1500;
+const SUBMIT_REQUEST_TIMEOUT_SECONDS = 30;
 const POLL_REQUEST_TIMEOUT_SECONDS = 30;
+const DOWNLOAD_REQUEST_TIMEOUT_SECONDS = 60;
+const MAX_JOB_BUDGET_MS = 90_000;
+const MIN_JOB_BUDGET_MS = 30_000;
+// 超过该大小先按原尺寸重新编码为 JPEG，避免大 PNG 上传拖慢/卡住任务；
+// 不改变宽高，因此文字坐标仍与 prepared.size 一致。
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 // 结构解析中这些块通常不含需要翻译的文字，内容为空时直接跳过。
 const SKIP_EMPTY_LAYOUT_LABELS = new Set(["image", "chart", "figure", "seal"]);
+
+const log = logger.child("paddleocr");
 
 /** 统一构造 PaddleOCR 的错误对象。 */
 const paddleError = (message, code = "PROVIDER_ERROR") =>
@@ -49,9 +60,26 @@ function delay(ms, signal) {
 
 /**
  * 发起请求并解析 JSON。
- * 直接使用 fetchPatcher（扩展页面/后台均为原生 fetch），避免 FormData 经过消息通道被 JSON 序列化。
+ * 后台使用 fetchData，让 diagnostics 记录 http.* 状态与耗时；
+ * 扩展页面继续用 fetchPatcher，避免 FormData 经过 runtime 消息通道被 JSON 序列化。
  */
 async function requestJson(url, init, signal, httpTimeout) {
+  if (isBg()) {
+    try {
+      return await fetchData(url, init, {
+        useCache: false,
+        usePool: false,
+        httpTimeout,
+        signal,
+        expect: "json",
+      });
+    } catch (error) {
+      throw paddleError(
+        `PaddleOCR 请求失败：${error?.message || error}`,
+        error?.code || "PROVIDER_ERROR"
+      );
+    }
+  }
   const res = await fetchPatcher(url, init, { signal, httpTimeout });
   const text = await res.text();
   let data = null;
@@ -72,6 +100,26 @@ async function requestJson(url, init, signal, httpTimeout) {
 
 /** 下载 JSONL 结果文本。 */
 async function requestText(url, signal, httpTimeout) {
+  if (isBg()) {
+    try {
+      return await fetchData(
+        url,
+        {},
+        {
+          useCache: false,
+          usePool: false,
+          httpTimeout,
+          signal,
+          expect: "text",
+        }
+      );
+    } catch (error) {
+      throw paddleError(
+        `PaddleOCR 结果下载失败：${error?.message || error}`,
+        error?.code || "PROVIDER_ERROR"
+      );
+    }
+  }
   const res = await fetchPatcher(url, {}, { signal, httpTimeout });
   const text = await res.text();
   if (!res.ok)
@@ -79,6 +127,54 @@ async function requestText(url, signal, httpTimeout) {
       `PaddleOCR 结果下载失败 (${res.status})：${text.slice(0, 300)}`
     );
   return text;
+}
+
+/** 大图按原尺寸重新编码为 JPEG，显著减小上传体积且不改变坐标。 */
+async function prepareUploadBlob(blob) {
+  if (!(blob instanceof Blob) || blob.size <= MAX_UPLOAD_BYTES) return blob;
+  try {
+    const bitmap = await createImageBitmap(blob);
+    try {
+      let canvas;
+      if (typeof OffscreenCanvas !== "undefined") {
+        canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+      } else if (typeof document !== "undefined") {
+        canvas = document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+      } else {
+        return blob;
+      }
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return blob;
+      // 透明 PNG 转 JPEG 时默认会变黑；先铺白底，避免影响 OCR。
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, bitmap.width, bitmap.height);
+      ctx.drawImage(bitmap, 0, 0);
+      const output = canvas.convertToBlob
+        ? await canvas.convertToBlob({ type: "image/jpeg", quality: 0.88 })
+        : await new Promise((resolve) =>
+            canvas.toBlob((value) => resolve(value), "image/jpeg", 0.88)
+          );
+      if (output && output.size < blob.size) {
+        log.info("image.compressed", {
+          fromBytes: blob.size,
+          toBytes: output.size,
+          width: bitmap.width,
+          height: bitmap.height,
+        });
+        return output;
+      }
+    } finally {
+      bitmap.close?.();
+    }
+  } catch (error) {
+    log.warn("image.compress.failed", {
+      bytes: blob.size,
+      message: error?.message || String(error),
+    });
+  }
+  return blob;
 }
 
 /** 把 JSONL 每行解析为官方响应中的 `result` 对象。 */
@@ -361,77 +457,162 @@ async function runPaddleJob(input, api, ctx) {
   // 与能力推导保持一致，避免把旧配置里的模型名原样发给服务端。
   const model = paddleOcrModelInfo(api.model).model;
 
-  // 1. 提交任务：本地图片使用 multipart/form-data，字段格式与官方示例一致。
-  const form = new FormData();
-  form.append("file", blob, "image.png");
-  form.append("model", model);
-  form.append("optionalPayload", JSON.stringify(paddleOcrOptionalPayload(api)));
-  const submitted = await requestJson(
-    url,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
-    },
-    ctx.signal,
-    api.httpTimeout
+  const startedAt = Date.now();
+  const configuredBudget =
+    Number(api.httpTimeout) > 0
+      ? Number(api.httpTimeout) * 1000
+      : MAX_JOB_BUDGET_MS;
+  const deadline = Math.min(
+    startedAt +
+      Math.max(
+        MIN_JOB_BUDGET_MS,
+        Math.min(configuredBudget, MAX_JOB_BUDGET_MS)
+      ),
+    ctx.deadlineAt ?? Infinity
   );
-  if (submitted?.code !== 0)
+  const remainingMs = () => deadline - Date.now();
+  const checkDeadline = (stage) => {
+    if (remainingMs() > 0) return;
     throw paddleError(
-      submitted?.msg || `PaddleOCR 任务提交失败 (${submitted?.code})`
+      `PaddleOCR ${stage}超时（${Math.round(
+        (Date.now() - startedAt) / 1000
+      )}s）`,
+      "PROVIDER_TIMEOUT"
     );
-  const jobId = submitted?.data?.jobId;
-  if (!jobId) throw paddleError("PaddleOCR 未返回任务 ID", "INVALID_RESPONSE");
-  ctx
-    .emit?.({ type: "progress", message: "PADDLEOCR_SUBMITTED" })
-    ?.catch?.(() => {});
+  };
+  const timeoutSeconds = (max) =>
+    Math.max(1, Math.min(max, Math.floor(remainingMs() / 1000) || 1));
 
-  // 2. 轮询任务状态。
-  const jobUrl = `${url.replace(/\/+$/, "")}/${encodeURIComponent(jobId)}`;
-  let jobData;
-  for (;;) {
-    const status = await requestJson(
-      jobUrl,
-      { headers: { Authorization: `Bearer ${token}` } },
+  let jobId = "";
+  try {
+    // 1. 提交任务：本地图片使用 multipart/form-data，字段格式与官方示例一致。
+    const upload = await prepareUploadBlob(blob);
+    log.info("job.submit.start", {
+      serviceId: api.apiSlug,
+      model,
+      bytes: upload.size,
+      type: upload.type || "",
+      elapsedMs: 0,
+    });
+    checkDeadline("提交");
+    const form = new FormData();
+    form.append(
+      "file",
+      upload,
+      upload.type === "image/jpeg" ? "image.jpg" : "image.png"
+    );
+    form.append("model", model);
+    form.append(
+      "optionalPayload",
+      JSON.stringify(paddleOcrOptionalPayload(api))
+    );
+    const submitted = await requestJson(
+      url,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      },
       ctx.signal,
-      POLL_REQUEST_TIMEOUT_SECONDS
+      timeoutSeconds(SUBMIT_REQUEST_TIMEOUT_SECONDS)
     );
-    if (status?.code !== 0)
+    if (submitted?.code !== 0)
       throw paddleError(
-        status?.msg || `PaddleOCR 任务查询失败 (${status?.code})`
+        submitted?.msg || `PaddleOCR 任务提交失败 (${submitted?.code})`
       );
-    jobData = status?.data || {};
-    if (jobData.state === "failed")
-      throw paddleError(jobData.errorMsg || "PaddleOCR 任务解析失败");
-    if (jobData.state === "done") break;
-    const progress = jobData.extractProgress;
+    jobId = submitted?.data?.jobId || "";
+    if (!jobId)
+      throw paddleError("PaddleOCR 未返回任务 ID", "INVALID_RESPONSE");
+    log.info("job.submitted", {
+      jobId,
+      elapsedMs: Date.now() - startedAt,
+    });
     ctx
-      .emit?.({
-        type: "progress",
-        message: `PADDLEOCR_${String(jobData.state || "running").toUpperCase()}`,
-        ...(Number(progress?.totalPages) > 0 && {
-          progress: Math.min(
-            1,
-            Math.max(
-              0,
-              Number(progress.extractedPages) / Number(progress.totalPages)
-            )
-          ),
-        }),
-      })
+      .emit?.({ type: "progress", message: "PADDLEOCR_SUBMITTED" })
       ?.catch?.(() => {});
-    await delay(POLL_INTERVAL_MS, ctx.signal);
-  }
 
-  // 3. 下载 JSONL 结果。
-  const jsonUrl = jobData?.resultUrl?.jsonUrl;
-  if (!jsonUrl)
-    throw paddleError("PaddleOCR 未返回结果地址", "INVALID_RESPONSE");
-  const jsonl = await requestText(jsonUrl, ctx.signal, api.httpTimeout);
-  const pages = parseJsonl(jsonl);
-  if (!pages.length)
-    throw paddleError("PaddleOCR 返回了空结果", "INVALID_RESPONSE");
-  return pages;
+    // 2. 轮询任务状态。
+    const jobUrl = `${url.replace(/\/+$/, "")}/${encodeURIComponent(jobId)}`;
+    let jobData;
+    for (;;) {
+      checkDeadline("轮询");
+      const pollStartedAt = Date.now();
+      const status = await requestJson(
+        jobUrl,
+        { headers: { Authorization: `Bearer ${token}` } },
+        ctx.signal,
+        timeoutSeconds(POLL_REQUEST_TIMEOUT_SECONDS)
+      );
+      if (status?.code !== 0)
+        throw paddleError(
+          status?.msg || `PaddleOCR 任务查询失败 (${status?.code})`
+        );
+      jobData = status?.data || {};
+      if (jobData.state === "failed")
+        throw paddleError(jobData.errorMsg || "PaddleOCR 任务解析失败");
+      const progress = jobData.extractProgress;
+      log.info("job.poll", {
+        jobId,
+        state: jobData.state || "unknown",
+        elapsedMs: Date.now() - startedAt,
+        pollElapsedMs: Date.now() - pollStartedAt,
+        ...(Number(progress?.totalPages) > 0 && {
+          totalPages: Number(progress.totalPages),
+          extractedPages: Number(progress.extractedPages) || 0,
+        }),
+      });
+      if (jobData.state === "done") break;
+      ctx
+        .emit?.({
+          type: "progress",
+          message: `PADDLEOCR_${String(
+            jobData.state || "running"
+          ).toUpperCase()}`,
+          ...(Number(progress?.totalPages) > 0 && {
+            progress: Math.min(
+              1,
+              Math.max(
+                0,
+                Number(progress.extractedPages) / Number(progress.totalPages)
+              )
+            ),
+          }),
+        })
+        ?.catch?.(() => {});
+      await delay(
+        Math.min(POLL_INTERVAL_MS, Math.max(0, remainingMs())),
+        ctx.signal
+      );
+    }
+
+    // 3. 下载 JSONL 结果。
+    const jsonUrl = jobData?.resultUrl?.jsonUrl;
+    if (!jsonUrl)
+      throw paddleError("PaddleOCR 未返回结果地址", "INVALID_RESPONSE");
+    checkDeadline("下载结果");
+    const jsonl = await requestText(
+      jsonUrl,
+      ctx.signal,
+      timeoutSeconds(DOWNLOAD_REQUEST_TIMEOUT_SECONDS)
+    );
+    const pages = parseJsonl(jsonl);
+    if (!pages.length)
+      throw paddleError("PaddleOCR 返回了空结果", "INVALID_RESPONSE");
+    log.info("job.done", {
+      jobId,
+      pages: pages.length,
+      elapsedMs: Date.now() - startedAt,
+    });
+    return pages;
+  } catch (error) {
+    log.error("job.failed", {
+      jobId,
+      elapsedMs: Date.now() - startedAt,
+      code: error?.code || "",
+      message: error?.message || String(error),
+    });
+    throw error;
+  }
 }
 
 /** recognizeText：PP-OCRv5 / PP-OCRv6。 */

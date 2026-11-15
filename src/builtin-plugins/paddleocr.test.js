@@ -14,7 +14,10 @@ import {
   analyzePaddleLayout,
 } from "./paddleocr";
 
-jest.mock("../libs/fetch", () => ({ fetchPatcher: jest.fn() }));
+jest.mock("../libs/fetch", () => ({
+  fetchData: jest.fn(),
+  fetchPatcher: jest.fn(),
+}));
 
 const response = (body, { ok = true, status = 200 } = {}) => ({
   ok,
