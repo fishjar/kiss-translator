@@ -147,18 +147,9 @@ try {
     // 字幕测试样本只随 GitHub Pages Web 产物发布，不进入任何插件压缩包。
     await copySubtitleSamplesToWeb(targetDir);
 
-    const { version, extensionStoreVersion } = await fs.readJson("package.json");
-    const stableVersion = /^(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*)){2}$/;
-    if (
-      typeof extensionStoreVersion !== "string" ||
-      !stableVersion.test(extensionStoreVersion) ||
-      extensionStoreVersion.localeCompare(version, "en", { numeric: true }) > 0
-    ) {
-      throw new Error(
-        `extensionStoreVersion must be a stable version no higher than ${version}`
-      );
-    }
-    await fs.writeFile(inDest("version.txt"), extensionStoreVersion);
+    const { version } = await fs.readJson("package.json");
+    await fs.writeFile(inDest("version.txt"), version);
+    // 保留旧油猴的更新检查地址，两个文件使用同一发布版本。
     await fs.writeFile(inDest("userscript-version.txt"), version);
     console.log(
       chalk.green(`Version file generated: ${inDest("version.txt")}`)
