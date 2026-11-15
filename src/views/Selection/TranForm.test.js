@@ -55,6 +55,7 @@ jest.mock("./TranCont", () => {
     translateVariants,
     detectedLang,
     sourceDetectionPending,
+    translationContext,
   }) =>
     React.createElement("div", {
       "data-testid": "tran-cont",
@@ -64,6 +65,7 @@ jest.mock("./TranCont", () => {
       "data-translate-variants": String(translateVariants),
       "data-detected-lang": detectedLang,
       "data-source-detection-pending": String(sourceDetectionPending),
+      "data-translation-context": translationContext,
     });
 });
 
@@ -1019,7 +1021,9 @@ describe("TranForm source input", () => {
     const source = {
       text: "library",
       sentence: "The library is open.",
-      url: "https://example.com/article",
+      url: window.location.href,
+      contextTagName: "p",
+      contextTruncated: false,
     };
     const { container, root } = renderTranForm({
       text: "library",
@@ -1027,25 +1031,33 @@ describe("TranForm source input", () => {
       setText: jest.fn(),
       simpleStyle: false,
       aiDictApiSlug: "-",
+      apiSlugs: ["openai"],
+      scene: { contextAwareTranslate: true },
     });
     const textarea = container.querySelector("textarea");
     const dictionary = () =>
       container.querySelector('[data-testid="default-dict"]');
+    const translationContext = () =>
+      container.querySelector('[data-testid="tran-cont"]').dataset
+        .translationContext;
 
     expect(dictionary().dataset.sourceSentence).toBe(source.sentence);
     expect(dictionary().dataset.sourceUrl).toBe(source.url);
+    expect(translationContext()).toBe(source.sentence);
 
     act(() => {
       Simulate.change(textarea, { target: { value: "other" } });
     });
     expect(dictionary().dataset.sourceSentence).toBe("");
     expect(dictionary().dataset.sourceUrl).toBe("");
+    expect(translationContext()).toBe("");
 
     act(() => {
       Simulate.change(textarea, { target: { value: "library" } });
     });
     expect(dictionary().dataset.sourceSentence).toBe("");
     expect(dictionary().dataset.sourceUrl).toBe("");
+    expect(translationContext()).toBe("");
 
     act(() => root.unmount());
   });
@@ -1095,6 +1107,110 @@ describe("TranForm source input", () => {
       cleanupFullscreen?.();
     }
   );
+});
+
+describe("TranForm context-aware translation", () => {
+  const source = {
+    text: "scale",
+    sentence: "The company plans to scale its operations across Asia.",
+    url: window.location.href,
+    contextTagName: "p",
+    contextTruncated: false,
+  };
+
+  beforeEach(() => {
+    apiDict.mockReset();
+    document.body.innerHTML = "";
+  });
+
+  const renderContext = (overrides = {}) =>
+    renderTranForm({
+      text: "scale",
+      selectionContext: source.sentence,
+      selectionSource: source,
+      apiSlugs: ["openai"],
+      enDict: "-",
+      aiDictApiSlug: "-",
+      scene: { contextAwareTranslate: true },
+      syncExternalTextWhileEditing: true,
+      ...overrides,
+    });
+
+  const readContext = (container) =>
+    container.querySelector('[data-testid="tran-cont"]').dataset
+      .translationContext;
+
+  test("uses the current valid page snapshot and resets for a new selection", () => {
+    const view = renderContext({ simpleStyle: false });
+    expect(readContext(view.container)).toBe(source.sentence);
+
+    const nextSource = {
+      text: "operations",
+      sentence: "operations expand quickly across Asia.",
+      url: window.location.href,
+      contextTagName: "p",
+      contextTruncated: false,
+    };
+    view.rerender({
+      text: "operations",
+      selectionSource: nextSource,
+      selectionContext: nextSource.sentence,
+    });
+    expect(
+      view.container.querySelector('[data-testid="tran-cont"]').dataset.text
+    ).toBe("operations");
+    expect(
+      view.container.querySelector(".kt-translation-source textarea").value
+    ).toBe("operations");
+    expect(readContext(view.container)).toBe(nextSource.sentence);
+    act(() => view.root.unmount());
+  });
+
+  test("matches selection whitespace after the context normalization", () => {
+    const selectedText = "scale\n  its";
+    const view = renderContext({
+      text: selectedText,
+      selectionSource: { ...source, text: selectedText },
+    });
+
+    expect(readContext(view.container)).toBe(source.sentence);
+    act(() => view.root.unmount());
+  });
+
+  test.each([
+    ["the setting is omitted", { scene: undefined }],
+    ["the setting is off", { scene: { contextAwareTranslate: false } }],
+    ["the source is not a page selection", { selectionSource: null }],
+    [
+      "the source text is stale",
+      { selectionSource: { ...source, text: "operations" } },
+    ],
+    ["the context is blank", { selectionContext: "  " }],
+    [
+      "the context excludes the source",
+      { selectionContext: "Unrelated text." },
+    ],
+    [
+      "the provided context exceeds the existing limit",
+      { selectionContext: `${"x".repeat(1000)} scale` },
+    ],
+    [
+      "the original paragraph was truncated",
+      { selectionSource: { ...source, contextTruncated: true } },
+    ],
+    [
+      "the context comes from a broad page container",
+      { selectionSource: { ...source, contextTagName: "main" } },
+    ],
+    [
+      "the source has no current page URL",
+      { selectionSource: { ...source, url: "" } },
+    ],
+  ])("falls back to ordinary translation when %s", (_case, overrides) => {
+    const view = renderContext(overrides);
+    expect(readContext(view.container)).toBe("");
+    act(() => view.root.unmount());
+  });
 });
 
 describe("TranForm translation service selection", () => {

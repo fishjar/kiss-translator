@@ -223,6 +223,33 @@ describe("Tranbox language defaults", () => {
   });
 });
 
+describe("Tranbox context-aware translation", () => {
+  test("enables context enhancement through the existing settings update path", () => {
+    const updateTranbox = jest.fn();
+    useTranbox.mockReturnValue({
+      tranboxSetting: { contextAwareTranslate: false },
+      updateTranbox,
+    });
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(<Tranbox />));
+
+    const input = container.querySelector(
+      'input[aria-label="context_aware_translate"]'
+    );
+    expect(input).not.toBeNull();
+    expect(input.checked).toBe(false);
+    act(() => input.click());
+    expect(updateTranbox).toHaveBeenCalledWith({
+      contextAwareTranslate: true,
+    });
+
+    act(() => root.unmount());
+    container.remove();
+  });
+});
+
 test("previews and saves reading size, then reflects external changes", () => {
   const updateTranbox = jest.fn();
   useTranbox.mockReturnValue({

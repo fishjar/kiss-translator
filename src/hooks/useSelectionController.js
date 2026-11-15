@@ -218,16 +218,25 @@ function getFollowBoxPosition(rect, boxOffsetX, boxOffsetY, boxSize) {
   };
 }
 
-function getTargetContext(target) {
+function getContextInfo(container, element) {
+  const context = (container?.textContent || element?.textContent || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const contextContainer = container || element;
+  return {
+    context: context.slice(0, MAX_SOURCE_SENTENCE_LENGTH),
+    contextTagName: contextContainer?.tagName?.toLowerCase() || "",
+    contextTruncated: context.length > MAX_SOURCE_SENTENCE_LENGTH,
+  };
+}
+
+function getTargetContextInfo(target) {
   const element =
     target?.nodeType === Node.ELEMENT_NODE ? target : target?.parentElement;
   const container = element?.closest?.(
     "p, li, blockquote, article, section, main, div"
   );
-  return (container?.textContent || element?.textContent || "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 1000);
+  return getContextInfo(container, element);
 }
 
 function normalizeContextText(value) {
@@ -337,22 +346,19 @@ function getSelectionSource(selection, target) {
   return { text, sentence, url };
 }
 
-function getSelectionContext(selection) {
+function getSelectionContextInfo(selection) {
   try {
-    if (!selection || selection.rangeCount === 0) return "";
+    if (!selection || selection.rangeCount === 0) return null;
     const node = selection.getRangeAt(0).commonAncestorContainer;
     const element =
       node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
     const container = element?.closest?.(
       "p, li, blockquote, article, section, main, div"
     );
-    if (!container) return "";
-    return (container?.textContent || element?.textContent || "")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 1000);
+    if (!container) return null;
+    return getContextInfo(container, element);
   } catch {
-    return "";
+    return null;
   }
 }
 
@@ -527,13 +533,24 @@ export default function useSelectionController({
         ? selectionRects.lastRect
         : rect;
 
+      const selectionContext = getSelectionContextInfo(selection);
+      const contextInfo = selectionContext?.context
+        ? selectionContext
+        : getTargetContextInfo(target);
+
       return {
         text: currentSelectedText,
-        context: getSelectionContext(selection) || getTargetContext(target),
+        context: contextInfo.context,
         pointerPosition,
         source,
         selectionSource:
-          source === "page" ? getSelectionSource(selection, target) : null,
+          source === "page"
+            ? {
+                ...getSelectionSource(selection, target),
+                contextTagName: contextInfo.contextTagName,
+                contextTruncated: contextInfo.contextTruncated,
+              }
+            : null,
         rect,
         lastRect,
       };
