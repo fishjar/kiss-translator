@@ -408,10 +408,7 @@ describe("Layout checkUpdate setting effect", () => {
       NODE_ENV: "development",
       REACT_APP_VERSION: "2.0.32",
       REACT_APP_VERSION_URL: "https://primary.example/version.txt",
-      REACT_APP_USERSCRIPT_VERSION_URL:
-        "https://primary.example/userscript-version.txt",
-      REACT_APP_USERSCRIPT_VERSION_URL_GITHUB:
-        "https://github.example/userscript-version.txt",
+      REACT_APP_VERSION_URL_GITHUB: "https://github.example/version.txt",
       REACT_APP_USERSCRIPT_DOWNLOADURL:
         "https://primary.example/script.user.js",
       REACT_APP_USERSCRIPT_IOS_DOWNLOADURL:
@@ -497,7 +494,8 @@ describe("Layout checkUpdate setting effect", () => {
   test.each([
     ["userscript", true, "2.2.0", true],
     ["current userscript", true, "2.2.1", false],
-    ["extension", false, undefined, false],
+    ["extension", false, undefined, true],
+    ["newer userscript", true, "2.2.2", false],
     ["userscript without bridge version", true, undefined, false],
     ["userscript with invalid bridge version", true, "invalid", false],
   ])(
@@ -507,9 +505,8 @@ describe("Layout checkUpdate setting effect", () => {
       process.env.REACT_APP_VERSION = isGm ? "2.2.1" : "2.2.0";
       if (installed) window.APP_INFO = { version: installed };
       global.fetch.mockImplementation(async (url) => ({
-        ok: !url.startsWith("https://primary.example/userscript-version.txt"),
-        text: async () =>
-          url.includes("userscript-version.txt") ? "2.2.1" : "2.2.0",
+        ok: !url.startsWith("https://primary.example/version.txt"),
+        text: async () => "2.2.1",
       }));
 
       const container = document.createElement("div");
@@ -520,18 +517,16 @@ describe("Layout checkUpdate setting effect", () => {
         ([url]) => url.split("?")[0]
       );
       expect(versionUrls).toEqual(
-        !isGm
-          ? ["https://primary.example/version.txt"]
-          : !isValidVersion(installed)
-            ? []
-            : [
-                "https://primary.example/userscript-version.txt",
-                "https://github.example/userscript-version.txt",
-              ]
+        isGm && !isValidVersion(installed)
+          ? []
+          : [
+              "https://primary.example/version.txt",
+              "https://github.example/version.txt",
+            ]
       );
       const alert = container.querySelector(".kt-options-version-alert");
       expect(Boolean(alert)).toBe(showsAlert);
-      if (showsAlert) {
+      if (showsAlert && isGm) {
         expect(
           Array.from(alert.querySelectorAll("a"), ({ href }) => href)
         ).toEqual([
