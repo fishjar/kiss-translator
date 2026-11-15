@@ -123,11 +123,13 @@ for (const target of ["edge-dev", "chrome", "firefox"])
       assert.ok(bridge.matches.includes(`${base}/file-translate.html*`));
       assert.ok(bridge.matches.includes(`${base}/file-translate*`));
     }
+    // Firefox match patterns cannot carry a port; the bridge checks :3000 itself.
+    const localPort = target === "firefox" ? "" : ":3000";
     assert.deepEqual(
       bridge.matches.filter((url) => url.startsWith("http:")),
       [
-        "http://localhost:3000/file-translate.html*",
-        "http://127.0.0.1:3000/file-translate.html*",
+        `http://localhost${localPort}/file-translate.html*`,
+        `http://127.0.0.1${localPort}/file-translate.html*`,
       ]
     );
     assert.ok(await exists(`${root}/file-bridge.js`));

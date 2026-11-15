@@ -192,9 +192,12 @@ try {
       const page = new URL(url);
       return `${page.origin}${page.pathname}*`;
     });
+    // Firefox 的匹配模式不支持端口，带端口的模式永远不会命中；
+    // 端口限制仍由 isFileBridgePage 在脚本内校验。
+    const localPort = target === "firefox" ? "" : ":3000";
     matches.push(
-      "http://localhost:3000/file-translate.html*",
-      "http://127.0.0.1:3000/file-translate.html*"
+      `http://localhost${localPort}/file-translate.html*`,
+      `http://127.0.0.1${localPort}/file-translate.html*`
     );
     manifest.content_scripts.push({
       js: ["file-bridge.js"],
