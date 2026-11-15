@@ -36,6 +36,7 @@ afterAll(() => {
 import {
   OPT_TRANS_OPENAI,
   OPT_TRANS_BAIDU,
+  OPT_TRANS_PADDLEOCR,
   DEFAULT_API_LIST,
   OPT_LANGS_TO_SPEC,
 } from "../config/api";
@@ -195,7 +196,10 @@ test("an explicit multi-item native request uses batch encoding even when host a
 test.each(
   [
     ...DEFAULT_API_LIST.filter(
-      (api) => !["BuiltinAI", "SystemTTS", "LocalAI"].includes(api.apiType)
+      (api) =>
+        !["BuiltinAI", "SystemTTS", "LocalAI", OPT_TRANS_PADDLEOCR].includes(
+          api.apiType
+        )
     ),
     { apiType: OPT_TRANS_BAIDU },
   ].map((api) => api.apiType)
