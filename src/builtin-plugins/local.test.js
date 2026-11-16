@@ -65,6 +65,35 @@ const context = () => ({
   assets: createAssetStore(),
 });
 
+test.each([
+  ["kokoro-82m", {}, {}, "zf_xiaoxiao"],
+  ["kokoro-82m", { voice: "" }, {}, "zf_xiaoxiao"],
+  ["kokoro-82m", { voice: "af_heart" }, {}, "af_heart"],
+  ["kokoro-82m", { voice: "af_heart" }, { voice: "bf_emma" }, "bf_emma"],
+  ["audio8-tts-0.1b-int8", {}, {}, "default"],
+  ["audio8-tts-0.1b-int8", { voice: "en_female_warm" }, {}, "en_female_warm"],
+])(
+  "local TTS resolves voice for %s with config %j and input %j",
+  async (modelRef, config, input, voice) => {
+    resolveModelTarget.mockImplementation(() => {});
+    runtimeHost.request.mockResolvedValue({
+      audio: new Float32Array([0.5]),
+      sampleRate: 24000,
+    });
+    await localHandlers.synthesizeSpeech(
+      { text: "Hello", ...input },
+      { modelRef, ...config },
+      context()
+    );
+    expect(runtimeHost.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({ modelRef, text: "Hello", voice }),
+      }),
+      expect.anything()
+    );
+  }
+);
+
 test("local transcription preserves detected language and an undecided detection result", async () => {
   const ctx = context();
   const audio = ctx.assets.put(new Blob(["wav"]));

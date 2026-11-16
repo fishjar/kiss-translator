@@ -81,6 +81,12 @@ import { fetchModelCatalog } from "../../libs/modelList";
 import Box from "@mui/material/Box";
 import ReusableAutocomplete from "./ReusableAutocomplete";
 import LocalModelSelect from "./LocalModelSelect";
+import TtsVoiceSelect from "./TtsVoiceSelect";
+import { OPT_TRANS_SYSTEM_TTS } from "../../config/apiConstants";
+import {
+  localTtsVoiceOptions,
+  defaultLocalTtsVoice,
+} from "../../localAi/core/ttsVoices";
 import ShowMoreButton from "./ShowMoreButton";
 import {
   OPT_TRANS_DEEPLX,
@@ -343,6 +349,14 @@ function LegacyApiFields({
         ...baseData,
         [name]: value,
       };
+
+      if (
+        name === "modelRef" &&
+        !localTtsVoiceOptions(value).some(
+          (voice) => voice.value === baseData.voice
+        )
+      )
+        newData.voice = defaultLocalTtsVoice(value);
 
       if (["model", "modelRef", "device", "url"].includes(name)) {
         const supported = supportedApiCapabilities(newData);
@@ -905,6 +919,16 @@ function LegacyApiFields({
                 </MenuItem>
               </TextField>
             </>
+          )}
+
+          {((sourceType === "local" && hasCapability("synthesizeSpeech")) ||
+            (apiType === OPT_TRANS_SYSTEM_TTS && hasCapability("speak"))) && (
+            <TtsVoiceSelect
+              api={activeFormData}
+              onChange={(value) =>
+                handleChange({ target: { name: "voice", value } })
+              }
+            />
           )}
 
           {sourceType === "local" && (

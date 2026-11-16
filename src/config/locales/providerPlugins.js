@@ -1726,6 +1726,16 @@ export const PROVIDER_PLUGINS_I18N = {
     vi: "Giọng",
     ru: "Голос",
   },
+  service_default_voice: {
+    zh: "默认音色",
+    en: "Default voice",
+    zh_TW: "預設音色",
+    ja: "デフォルトの音声",
+    ko: "기본 음성",
+    tr: "Varsayılan ses",
+    vi: "Giọng mặc định",
+    ru: "Голос по умолчанию",
+  },
   plugin_audio_synthesis: {
     zh: "语音合成（TTS）",
     en: "Audio synthesis",

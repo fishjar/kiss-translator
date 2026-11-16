@@ -501,6 +501,66 @@ test("external service timeout is a saved service option, separate from pluginCo
   expect(saved.transApis[0].pluginConfig).toEqual(api.pluginConfig);
 });
 
+test("plugin TTS selects and saves its declared voice for capability tests", async () => {
+  const speechApi = {
+    ...api,
+    enabledCapabilities: ["synthesizeSpeech"],
+    pluginConfig: { voice: "alloy" },
+    provider: {
+      ...api.provider,
+      capabilities: { synthesizeSpeech: { handler: "synthesizeSpeech" } },
+      settings: [
+        {
+          key: "voice",
+          label: "音色",
+          type: "select",
+          required: true,
+          options: [
+            { value: "alloy", label: "Alloy" },
+            { value: "nova", label: "Nova" },
+          ],
+        },
+      ],
+    },
+  };
+  await render(speechApi);
+  const select = [...container.querySelectorAll('[role="combobox"]')].find(
+    (item) => item.textContent === "Alloy"
+  );
+  await act(async () => Simulate.mouseDown(select, { button: 0 }));
+  const option = [...document.querySelectorAll('[role="option"]')].find(
+    (item) => item.textContent === "Nova"
+  );
+  await act(async () => option.click());
+  await act(async () => button("保存").click());
+  const saved = mockUpdateSetting.mock.calls[0][0]({ transApis: [speechApi] })
+    .transApis[0];
+  expect(saved.pluginConfig.voice).toBe("nova");
+  await render(saved);
+  expect(
+    [...container.querySelectorAll('[role="combobox"]')].some(
+      (item) => item.textContent === "Nova"
+    )
+  ).toBe(true);
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [saved],
+    prompts: [],
+    subtitleSetting: {},
+  });
+  invokeService.mockReturnValue({
+    result: Promise.resolve({}),
+    events: (async function* () {})(),
+    cancel: jest.fn(),
+  });
+  await act(async () => button("执行测试").click());
+  expect(invokeService).toHaveBeenCalledWith(
+    expect.objectContaining({ pluginConfig: { voice: "nova" } }),
+    "synthesizeSpeech",
+    expect.objectContaining({ text: "Hello" }),
+    expect.anything()
+  );
+});
+
 test("summary capability test supplies the saved scene template pair", async () => {
   const summaryApi = {
     ...api,

@@ -2,7 +2,7 @@ import { speak, stopSpeech } from "../libs/speech";
 import { providerError } from "../providers/capabilities";
 let activeSpeech;
 
-export function speakNative(input, _api, ctx) {
+export function speakNative(input, api, ctx) {
   return new Promise((resolve, reject) => {
     let cancelled = false;
     const task = {};
@@ -24,7 +24,7 @@ export function speakNative(input, _api, ctx) {
     activeSpeech = task;
     if (
       !speak(input.text, input.language, {
-        voice: input.voice,
+        voice: input.voice ?? api.voice,
         speed: input.speed,
         onEnd: (reason) => {
           ctx.signal.removeEventListener("abort", cancel);
