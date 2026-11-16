@@ -131,4 +131,134 @@ describe("selection Material 3 shapes", () => {
     expect(visibleRule).toContain("outline: 2px solid var(--kt-pri)");
     expect(visibleRule).toContain("outline-offset: 2px");
   });
+
+  test("keeps the font-size row on the menu row baseline and styles the split capsule", () => {
+    const valueOf = (rule, key) =>
+      rule.match(new RegExp(`${key}:\\s*([^;]+);`))?.[1];
+    const itemRule = TRANSLATION_PANEL_STYLES.match(
+      /\.kt-tranbox-header__menu button\s*\{([^}]*)\}/
+    )?.[1];
+    const rowRule = TRANSLATION_PANEL_STYLES.match(
+      /\.kt-tranbox-header__font-size\s*\{([^}]*)\}/
+    )?.[1];
+    const capsuleRule = TRANSLATION_PANEL_STYLES.match(
+      /\.kt-tranbox-header__font-size-capsule\s*\{([^}]*)\}/
+    )?.[1];
+    const capsuleButtonRule = TRANSLATION_PANEL_STYLES.match(
+      /\.kt-tranbox-header__font-size-capsule button\s*\{([^}]*)\}/
+    )?.[1];
+    const capsuleIconRule = TRANSLATION_PANEL_STYLES.match(
+      /\.kt-tranbox-header__font-size-capsule button svg\s*\{([^}]*)\}/
+    )?.[1];
+    const capsuleDividerRule = TRANSLATION_PANEL_STYLES.match(
+      /\.kt-tranbox-header__font-size-capsule button:last-child\s*\{([^}]*)\}/
+    )?.[1];
+    const capsuleOutputRule = TRANSLATION_PANEL_STYLES.match(
+      /\.kt-tranbox-header__font-size-capsule output\s*\{([^}]*)\}/
+    )?.[1];
+    const capsuleDisabledRule = TRANSLATION_PANEL_STYLES.match(
+      /\.kt-tranbox-header__menu \.kt-tranbox-header__font-size-capsule button:disabled\s*\{([^}]*)\}/
+    )?.[1];
+    const capsuleActiveRule = TRANSLATION_PANEL_STYLES.match(
+      /\.kt-tranbox-header__menu \.kt-tranbox-header__font-size-capsule button:not\(:disabled\):active\s*\{([^}]*)\}/
+    )?.[1];
+
+    // 行几何与 menu 行基线逐值同步：行高/字号/间距不脱离兄弟行的演进
+    // 口径（行容器为 div，无法字面继承 button 规则，以逐值相等锁钉住）。
+    expect(valueOf(rowRule, "min-height")).toBe(
+      valueOf(itemRule, "min-height")
+    );
+    expect(valueOf(rowRule, "font-size")).toBe(valueOf(itemRule, "font-size"));
+    expect(valueOf(rowRule, "gap")).toBe(valueOf(itemRule, "gap"));
+
+    // 胶囊容器：细线描边胶囊形、透明底；外高与 14px 文本行高对齐
+    // （内容 20px＋上下描边），不高于左侧文字。
+    expect(capsuleRule).toContain("border: 1px solid var(--kt-linev)");
+    expect(capsuleRule).toContain("border-radius: 999px");
+    expect(capsuleRule).toContain("background: transparent");
+
+    // −/＋ 钮：与文本行等高的紧凑钳制、直角交容器圆角、定位锚供触控垫片。
+    expect(capsuleButtonRule).toContain("min-height: 20px");
+    expect(capsuleButtonRule).toContain("width: 26px");
+    expect(capsuleButtonRule).toContain("padding: 0");
+    expect(capsuleButtonRule).toContain("position: relative");
+    expect(capsuleIconRule).toContain("width: 16px");
+    expect(capsuleIconRule).toContain("height: 16px");
+
+    // 分体式中缝：末位（增大）钮左侧细线，分隔数值与动作钮。
+    expect(capsuleDividerRule).toContain(
+      "border-left: 1px solid var(--kt-linev)"
+    );
+
+    // 数值播报为只读隐藏元素：视觉不占位、SR 保留 aria-live。
+    expect(capsuleOutputRule).toContain("position: absolute");
+    expect(capsuleOutputRule).toContain("clip-path: inset(50%)");
+
+    // 到界禁用＝M3 disabled content 口径（38% 不透明度）。
+    expect(capsuleDisabledRule).toContain("opacity: .38");
+
+    // hover/active 走 State Layer 且以 :not(:disabled) 守卫，禁用态不吃
+    // 反馈层；胶囊作用域内不得被 menu 行实底 hover 击穿、不得自绘焦点环。
+    const hoverBodies = getCssAtRuleBodies(
+      TRANSLATION_PANEL_STYLES,
+      "@media (hover: hover)"
+    );
+    const capsuleHover = hoverBodies.find((body) =>
+      /\.kt-tranbox-header__menu \.kt-tranbox-header__font-size-capsule button:not\(:disabled\):hover/.test(
+        body
+      )
+    );
+    expect(capsuleHover).toBeDefined();
+    expect(capsuleHover).toContain(
+      "color-mix(in srgb, currentColor 8%, transparent)"
+    );
+    expect(capsuleHover).not.toContain("var(--kt-pric)");
+    expect(capsuleActiveRule).toContain(
+      "color-mix(in srgb, currentColor 12%, transparent)"
+    );
+    const capsuleRules = [
+      rowRule,
+      capsuleRule,
+      capsuleButtonRule,
+      capsuleIconRule,
+      capsuleDividerRule,
+      capsuleOutputRule,
+      capsuleDisabledRule,
+      capsuleHover,
+      capsuleActiveRule,
+    ].join("\n");
+    expect(capsuleRules).not.toContain(".Mui-focusVisible");
+    expect(capsuleRules).not.toContain("box-shadow");
+    expect(capsuleRules).not.toContain("outline");
+
+    // 触控垫片：48px 命中区随钮心居中（触控域既有形态）。
+    const coarseBodies = getCssAtRuleBodies(
+      TRANSLATION_PANEL_STYLES,
+      "@media (pointer: coarse)"
+    );
+    const touchPad = coarseBodies.find((body) =>
+      /\.kt-tranbox-header__font-size-capsule button::after/.test(body)
+    );
+    expect(touchPad).toBeDefined();
+    expect(touchPad).toContain("width: 48px");
+    expect(touchPad).toContain("height: 48px");
+
+    // 粗指针命中区：钮宽与 48px 垫片同宽 → 相邻命中区中心距 ≥ 垫片宽，
+    // 增/减两枚命中区沿分隔线相接不重叠（jsdom 无命中测试能力，以几何
+    // 等价断言替代触摸坐标验证）。
+    const coarseBody = getCssAtRuleBodies(
+      TRANSLATION_PANEL_STYLES,
+      "@media (pointer: coarse)"
+    ).find((body) =>
+      body.includes(".kt-tranbox-header__font-size-capsule button")
+    );
+    expect(coarseBody).toMatch(
+      /\.kt-tranbox-header__font-size-capsule button \{[^}]*width: 48px/
+    );
+    const hitPad = coarseBody.match(
+      /\.kt-tranbox-header__font-size-capsule button::after \{([^}]*)\}/
+    )?.[1];
+    expect(hitPad).toContain("width: 48px");
+    expect(hitPad).toContain("height: 48px");
+  });
 });
