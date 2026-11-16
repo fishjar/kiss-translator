@@ -1017,9 +1017,15 @@ export default class TranslatorManager {
     if (action === MSG_TOUCH_TRANSLATE_MODE_SET) {
       if (
         (!this._ruleEditorManager?.session || args?.mode === "off") &&
-        ["off", "tap", "swipe"].includes(args?.mode)
+        ["off", "tap", "swipe"].includes(args?.mode) &&
+        (args.direction === undefined ||
+          ["left", "right"].includes(args.direction))
       ) {
-        this.#touchMode = this._translator?.setTouchMode(args.mode) || "off";
+        this.#touchMode =
+          (args.direction === undefined
+            ? this._translator?.setTouchMode(args.mode)
+            : this._translator?.setTouchMode(args.mode, args.direction)) ||
+          "off";
         // Saved modes also start in child frames, which have no status bar.
         // Relay off even for extension commands so their controls can stop them.
         if (args.mode === "off") sendIframeMsg(action, args);

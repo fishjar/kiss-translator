@@ -148,6 +148,48 @@ describe("InputTranslator input button", () => {
     expect(getFloatButton(target).hasAttribute("data-kiss-ui")).toBe(true);
   });
 
+  test.each([false, true])(
+    "excludes own UI across shadow roots (nested: %s)",
+    async (nested) => {
+      const pageInput = document.createElement("input");
+      focusTarget(translator, pageInput);
+      const button = getFloatButton(pageInput);
+      const host = document.createElement("div");
+      host.setAttribute("data-kiss-ui", "");
+      document.body.appendChild(host);
+      let root = host.attachShadow({ mode: "open" });
+      if (nested) {
+        const innerHost = document.createElement("div");
+        root.appendChild(innerHost);
+        root = innerHost.attachShadow({ mode: "open" });
+      }
+      const ownInput = document.createElement("textarea");
+      ownInput.value = "Do not translate extension UI";
+      root.appendChild(ownInput);
+      ownInput.focus();
+      translator.handleFocusIn();
+      expect(button.style.display).toBe("none");
+      apiTranslate.mockClear();
+      await translator.handleTranslate();
+      expect(apiTranslate).not.toHaveBeenCalled();
+      expect(ownInput.value).toBe("Do not translate extension UI");
+      translator.enable();
+      expect(button.style.display).toBe("none");
+    }
+  );
+
+  test("allows inputs inside third-party shadow roots", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = host.attachShadow({ mode: "open" });
+    const target = document.createElement("textarea");
+    root.appendChild(target);
+    target.getBoundingClientRect = jest.fn(() => makeRect());
+    target.focus();
+    translator.handleFocusIn();
+    expect(getFloatButton(host)).toBeTruthy();
+  });
+
   test.each([
     "checkbox",
     "radio",

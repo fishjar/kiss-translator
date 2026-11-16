@@ -60,9 +60,9 @@ export const TOUCH_I18N = {
     ru: "Swipe direction",
   },
   touch_off: {
-    zh: "关闭",
+    zh: "禁用手势翻译",
     en: "Off",
-    zh_TW: "關閉",
+    zh_TW: "禁用手勢翻譯",
     ja: "Off",
     ko: "Off",
     tr: "Off",

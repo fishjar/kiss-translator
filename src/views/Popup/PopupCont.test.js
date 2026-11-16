@@ -720,7 +720,7 @@ describe("PopupCont capability parity", () => {
     expect(onPageUnavailable).not.toHaveBeenCalled();
   });
 
-  test("real touch controls appear below the hero and use the page receiver", async () => {
+  test("real touch controls share the three-column rule action row and use the page receiver", async () => {
     mockRealTouchControl = true;
     window.PointerEvent = MouseEvent;
     Object.defineProperty(navigator, "maxTouchPoints", {
@@ -739,6 +739,23 @@ describe("PopupCont capability parity", () => {
       await flushEffects();
       const control = view.container.querySelector("[data-kiss-touch-ui]");
       const hero = view.container.querySelector(".kt-popup-hero");
+      const row = view.container.querySelector(".kt-popup-rule-actions--touch");
+      expect(row).not.toBeNull();
+      expect(
+        Array.from(row.children).map(
+          (child) => child.className || child.getAttribute("data-kiss-touch-ui")
+        )
+      ).toEqual([
+        "kt-popup-editor-button",
+        "kt-popup-save-button",
+        expect.any(String),
+      ]);
+      expect(control.closest(".kt-popup-rule-actions--touch")).toBe(row);
+      expect(control.querySelector("label")).toBeNull();
+      expect(
+        view.container.querySelectorAll("[data-kiss-touch-ui]")
+      ).toHaveLength(1);
+
       expect(
         hero.compareDocumentPosition(control) & Node.DOCUMENT_POSITION_FOLLOWING
       ).toBeTruthy();
@@ -901,7 +918,7 @@ describe("PopupCont capability parity", () => {
               new MouseEvent("mousedown", { bubbles: true, button: 0 })
             )
         );
-        act(() => document.querySelector('[data-value="swipe"]').click());
+        act(() => document.querySelector('[data-value="swipe-right"]').click());
         if (transition === "navigation") {
           isCurrentPopupDocument.mockResolvedValue(false);
         } else if (transition === "hidden" || transition === "reshown") {

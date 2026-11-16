@@ -418,10 +418,13 @@ describe.each(["document", "shadow root"])(
       render();
       openMenu();
       await act(async () => {
-        Array.from(menu().querySelectorAll('[role="menuitem"]'))
-          .find((el) => el.textContent === "touch_paragraph")
-          .click();
+        await Promise.resolve();
       });
+      expect(
+        Array.from(menu().querySelectorAll('[role="menuitem"]')).some(
+          (el) => el.textContent === "touch_paragraph"
+        )
+      ).toBe(false);
       const select = menu().querySelector('[role="combobox"]');
       act(() =>
         select.dispatchEvent(
@@ -454,7 +457,7 @@ describe.each(["document", "shadow root"])(
         )
       );
       expect(list.getRootNode().activeElement).toBe(
-        list.querySelector('[data-value="swipe"]')
+        list.querySelector('[data-value="swipe-left"]')
       );
       await act(async () => {
         list.querySelector('[data-value="tap"]').click();

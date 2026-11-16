@@ -3270,37 +3270,43 @@ describe("Translator rule styles", () => {
       expect(node.contains(fake)).toBe(true);
     });
 
-    test("restores by swiping over translation text", async () => {
-      const translator = createTranslator(
-        { transOpen: "false" },
-        { preInit: false }
-      );
-      const node = document.getElementById("target");
-      translator.setTouchMode("tap");
-      tap(node);
-      await flushAsync();
-      await flushAsync();
-      translator.setTouchMode("swipe");
-      await flushAsync();
-      const inner = node.querySelector(`.${Translator.KISS_CLASS.inner}`);
-      for (const [type, x] of [
-        ["pointerdown", 100],
-        ["pointerup", 180],
-      ]) {
-        const event = new MouseEvent(type, {
-          bubbles: true,
-          composed: true,
-          clientX: x,
-          clientY: 100,
-        });
-        Object.defineProperties(event, {
-          pointerType: { value: "touch" },
-          pointerId: { value: 1 },
-        });
-        inner.dispatchEvent(event);
+    test.each(["left", "right"])(
+      "restores by swiping %s over translation text",
+      async (direction) => {
+        const translator = createTranslator(
+          { transOpen: "false" },
+          { preInit: false }
+        );
+        const node = document.getElementById("target");
+        translator.setTouchMode("tap");
+        tap(node);
+        await flushAsync();
+        await flushAsync();
+        translator.setTouchMode("swipe", direction);
+        expect(translator.setting.mouseHoverSetting.touchDirection).toBe(
+          direction
+        );
+        await flushAsync();
+        const inner = node.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        for (const [type, x] of [
+          ["pointerdown", 100],
+          ["pointerup", direction === "left" ? 20 : 180],
+        ]) {
+          const event = new MouseEvent(type, {
+            bubbles: true,
+            composed: true,
+            clientX: x,
+            clientY: 100,
+          });
+          Object.defineProperties(event, {
+            pointerType: { value: "touch" },
+            pointerId: { value: 1 },
+          });
+          inner.dispatchEvent(event);
+        }
+        expect(node.textContent).toBe("Hello touch paragraph");
       }
-      expect(node.textContent).toBe("Hello touch paragraph");
-    });
+    );
 
     test("plain text preprocessing remains safe while swipe mode is active", async () => {
       document.getElementById("root").innerHTML = "<pre></pre>";

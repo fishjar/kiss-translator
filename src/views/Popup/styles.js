@@ -205,6 +205,11 @@ export const POPUP_STYLES = String.raw`
 .kt-popup-switch[data-checked="true"] { border-color: var(--kt-pri); background: var(--kt-pri); }
 .kt-popup-switch[data-checked="true"] > span,
 .kt-popup-switch[data-checked="true"]::after { left: 15px; width: 14px; height: 14px; background: var(--kt-onpri); }
+.kt-popup-rule-actions { grid-column: 1 / -1; min-width: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+.kt-popup-rule-actions--touch { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.kt-popup-rule-actions--touch > button { padding: 0 6px; gap: 3px; font-size: 12px; }
+.kt-popup-rule-actions--touch > button svg { width: 14px; height: 14px; margin-inline: 0; }
+.kt-popup-rule-actions > button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kt-popup-editor-button { min-width: 0; height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 0 10px 0 12px; border: 0; border-radius: 12px; background: var(--kt-sf2); color: var(--kt-pri); font-size: 12px; font-weight: 700; text-align: left; white-space: nowrap; cursor: pointer; }
 .kt-popup-editor-button:hover { background: var(--kt-sf3); }
 .kt-popup-editor-button svg { width: 18px; height: 18px; flex: none; margin-inline: 8px; }

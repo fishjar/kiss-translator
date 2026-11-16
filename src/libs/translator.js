@@ -333,7 +333,13 @@ export class Translator {
     return this.#touchController?.mode || "off";
   }
 
-  setTouchMode(mode) {
+  setTouchMode(mode, direction) {
+    if (["left", "right"].includes(direction)) {
+      this.#setting.mouseHoverSetting = {
+        ...this.#setting.mouseHoverSetting,
+        touchDirection: direction,
+      };
+    }
     for (const [node, token] of this.#touchPending) {
       token.cancelled = true;
       this.#cleanupDirectTranslations(node);

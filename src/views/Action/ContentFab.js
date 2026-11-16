@@ -128,7 +128,6 @@ export function ContentFabContent({
   const windowSize = useWindowSize();
   const [moved, setMoved] = useState(false); // Track whether a drag occurred.
   const [showFab, setShowFab] = useState(true);
-  const [touchOpen, setTouchOpen] = useState(false);
   const [open, setOpen] = useState(false); // Action menu visibility.
   const [savingVisibility, setSavingVisibility] = useState(false);
   const [notice, setNotice] = useState("");
@@ -320,12 +319,12 @@ export function ContentFabContent({
       action: () => runAction(MSG_TRANS_TOGGLE),
     },
     {
-      label: i18n("text_style_alt"),
+      label: i18n("fab_toggle_blur"),
       icon: PaletteRoundedIcon,
       action: () => runAction(MSG_TRANS_TOGGLE_STYLE),
     },
     {
-      label: i18n("selection_translate"),
+      label: i18n("fab_open_translation"),
       icon: SelectAllRoundedIcon,
       action: () => runAction(MSG_OPEN_TRANBOX),
       disabled: !selectionEnabled,
@@ -344,12 +343,6 @@ export function ContentFabContent({
       label: i18n("open_setting"),
       icon: SettingsRoundedIcon,
       action: openSettings,
-    },
-    {
-      label: i18n("touch_paragraph"),
-      icon: TranslateRoundedIcon,
-      action: () => setTouchOpen((value) => !value),
-      hidden: !supportsTouch(),
     },
   ].filter((item) => !item.hidden);
 
@@ -414,27 +407,31 @@ export function ContentFabContent({
                 <ListItemText>{label}</ListItemText>
               </MenuItem>
             ))}
-            <MenuItem
-              className="kt-content-fab-menu__item"
-              role="menuitemcheckbox"
-              aria-checked={!hideOnPage}
-              disabled={savingVisibility}
-              onClick={toggleVisibility}
-            >
-              <ListItemIcon>
-                {hideOnPage ? (
-                  <VisibilityRoundedIcon />
-                ) : (
-                  <VisibilityOffRoundedIcon />
-                )}
-              </ListItemIcon>
-              <ListItemText>
-                {i18n(hideOnPage ? "fab_always_show" : "fab_turn_off")}
-              </ListItemText>
-            </MenuItem>
+            {!supportsTouch() && (
+              <MenuItem
+                className="kt-content-fab-menu__item"
+                role="menuitemcheckbox"
+                aria-checked={!hideOnPage}
+                disabled={savingVisibility}
+                onClick={toggleVisibility}
+              >
+                <ListItemIcon>
+                  {hideOnPage ? (
+                    <VisibilityRoundedIcon />
+                  ) : (
+                    <VisibilityOffRoundedIcon />
+                  )}
+                </ListItemIcon>
+                <ListItemText>
+                  {i18n(hideOnPage ? "fab_always_show" : "fab_turn_off")}
+                </ListItemText>
+              </MenuItem>
+            )}
           </MenuList>
-          {touchOpen && (
-            <TouchTranslateControl processActions={processActions} />
+          {supportsTouch() && (
+            <div style={{ padding: "4px" }}>
+              <TouchTranslateControl processActions={processActions} compact />
+            </div>
           )}
         </Paper>
       </Popper>

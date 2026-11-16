@@ -88,7 +88,14 @@ jest.mock("./translator", () => ({
       stop: jest.fn(function stop() {
         this.rule.transOpen = "false";
       }),
-      setTouchMode: jest.fn((mode) => mode),
+      setTouchMode: jest.fn(function (mode, direction) {
+        if (direction)
+          this.setting.mouseHoverSetting = {
+            ...this.setting.mouseHoverSetting,
+            touchDirection: direction,
+          };
+        return mode;
+      }),
       rescan: jest.fn(),
       toggle: jest.fn(),
       enable: jest.fn(),
@@ -239,7 +246,14 @@ function setupMockConstructors() {
       stop: jest.fn(function stop() {
         this.rule.transOpen = "false";
       }),
-      setTouchMode: jest.fn((mode) => mode),
+      setTouchMode: jest.fn(function (mode, direction) {
+        if (direction)
+          this.setting.mouseHoverSetting = {
+            ...this.setting.mouseHoverSetting,
+            touchDirection: direction,
+          };
+        return mode;
+      }),
       rescan: jest.fn(),
       toggle: jest.fn(),
       enable: jest.fn(),
@@ -633,6 +647,27 @@ describe("TranslatorManager SPA lifecycle", () => {
         direction: "left",
       });
     });
+  });
+
+  test("explicit swipe direction survives runtime recreation and rejects invalid directions", () => {
+    const manager = createManager();
+    manager.start();
+    expect(
+      sendRuntimeMessage({
+        action: "touch-mode-set",
+        args: { mode: "swipe", direction: "left" },
+      }).touchTranslate
+    ).toMatchObject({ mode: "swipe", direction: "left" });
+    manager.restart();
+    expect(
+      sendRuntimeMessage({ action: "touch-state" }).touchTranslate
+    ).toMatchObject({ mode: "swipe", direction: "left" });
+    expect(
+      sendRuntimeMessage({
+        action: "touch-mode-set",
+        args: { mode: "swipe", direction: "invalid" },
+      }).touchTranslate.direction
+    ).toBe("left");
   });
 
   test("explicit touch mode changes survive runtime recreation", () => {
