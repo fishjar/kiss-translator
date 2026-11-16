@@ -16,19 +16,50 @@ const MAX_IMAGE_EDGE = 2048;
  */
 export function cropAndCompressImage(
   source,
-  { x = 0, y = 0, width, height, dpr = 1, maxEdge = MAX_IMAGE_EDGE } = {}
+  {
+    x = 0,
+    y = 0,
+    width,
+    height,
+    dpr = 1,
+    maxEdge = MAX_IMAGE_EDGE,
+    type = "image/png",
+    quality,
+  } = {}
 ) {
   return new Promise((resolve, reject) => {
     try {
-      const srcWidth =
-        width != null ? width * dpr : source.naturalWidth || source.width;
-      const srcHeight =
-        height != null ? height * dpr : source.naturalHeight || source.height;
+      const sourceWidth = source?.naturalWidth || source?.width;
+      const sourceHeight = source?.naturalHeight || source?.height;
+      const srcWidth = width != null ? width * dpr : sourceWidth;
+      const srcHeight = height != null ? height * dpr : sourceHeight;
       const srcX = x * dpr;
       const srcY = y * dpr;
+      const outputType = typeof type === "string" ? type.toLowerCase() : "";
 
-      if (!srcWidth || !srcHeight) {
-        return reject(new Error("无效的图像尺寸"));
+      if (
+        !Number.isFinite(sourceWidth) ||
+        !Number.isFinite(sourceHeight) ||
+        sourceWidth <= 0 ||
+        sourceHeight <= 0 ||
+        !Number.isFinite(dpr) ||
+        dpr <= 0 ||
+        !Number.isFinite(srcX) ||
+        !Number.isFinite(srcY) ||
+        srcX < 0 ||
+        srcY < 0 ||
+        !Number.isFinite(srcWidth) ||
+        !Number.isFinite(srcHeight) ||
+        srcWidth <= 0 ||
+        srcHeight <= 0 ||
+        srcX + srcWidth > sourceWidth ||
+        srcY + srcHeight > sourceHeight ||
+        (!Number.isFinite(maxEdge) && maxEdge !== Infinity) ||
+        maxEdge <= 0 ||
+        !/^image\/(png|jpeg|webp|avif)$/.test(outputType) ||
+        (quality != null && (!Number.isFinite(quality) || quality < 0 || quality > 1))
+      ) {
+        return reject(new Error("无效的图像尺寸或编码参数"));
       }
 
       // 等比缩小超大图像
@@ -61,13 +92,32 @@ export function cropAndCompressImage(
         targetHeight
       );
 
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          reject(new Error("图像导出 Blob 失败"));
-        } else {
+      // toBlob 才是真正执行编码/压缩的步骤；仅传入 type/quality
+      // 还不够，浏览器可能在不支持指定格式时静默回退到 PNG。
+      const outputQuality =
+        quality == null ? undefined : Math.min(1, Math.max(0, quality));
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            const error = new Error("图像导出 Blob 失败");
+            error.code = "IMAGE_ENCODE_FAILED";
+            reject(error);
+            return;
+          }
+
+          if (blob.type !== outputType) {
+            const error = new Error("图像编码格式不匹配");
+            error.code = "IMAGE_ENCODE_FAILED";
+            reject(error);
+            return;
+          }
+
           resolve({ blob, width: targetWidth, height: targetHeight });
-        }
-      }, "image/png");
+        },
+        outputType,
+        outputQuality
+      );
     } catch (err) {
       reject(err);
     }

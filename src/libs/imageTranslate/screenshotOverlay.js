@@ -1,7 +1,7 @@
 import { logger } from "../log";
 /**
  * @file screenshotOverlay.js
- * @description 网页视口截图固化、全屏蒙版与可交互框选层（支持多重取消、选区保留、版面分析与线框点选）。
+ * @description 页面坐标选区、可滚动长截图捕获与交互式框选层。
  */
 
 import React from "react";
@@ -30,7 +30,6 @@ export class ScreenshotOverlay {
   #overlayElement = null;
   #selectionElement = null;
   #selectionFrame = null;
-  #imgElement = null;
   #dpr = 1;
 
   #onComplete = null;
@@ -61,6 +60,9 @@ export class ScreenshotOverlay {
   #onSelectionChange = null;
   #cleanupScroll = null;
   #cleanupGesture = null;
+  #autoScrollFrame = null;
+  #autoScrollPoint = null;
+  #autoScrollUpdate = null;
   #coarsePointer = window.matchMedia?.("(pointer: coarse)").matches || false;
   #onLayoutStart = null;
   #onLocalBusyChange = null;
@@ -149,7 +151,7 @@ export class ScreenshotOverlay {
       .forEach((e) => e.remove());
     this.destroy();
 
-    const sessionId = ++this.#currentSessionId;
+    this.#currentSessionId++;
     this.#onComplete = onComplete;
     this.#onCancel = onCancel;
     this.#onLayoutChange = onLayoutChange;
@@ -162,80 +164,12 @@ export class ScreenshotOverlay {
     this.#showLayoutOverlay = true;
     this.#isConfirmed = false;
 
-    // 2. 请求后台捕获当前视口静态快照
-    let captureRes;
-    try {
-      captureRes = await sendBgMsg(MSG_CAPTURE_VISIBLE_TAB);
-      if (captureRes?.unsupported) {
-        if (this.#currentSessionId === sessionId) {
-          alert(
-            this.#i18n(
-              "image_screenshot_unsupported",
-              "当前浏览器不支持截图翻译"
-            )
-          );
-          this.#onCancel?.();
-        }
-        return;
-      }
-      if (!captureRes?.dataUrl) throw new Error("Empty screenshot response");
-    } catch (err) {
-      logger
-        .child("image-translate")
-        .error("[ScreenshotOverlay] Capture visible tab failed:", err);
-      if (this.#currentSessionId === sessionId) {
-        alert(
-          this.#i18n(
-            "image_screenshot_failed",
-            "截图失败，请检查页面访问权限后重试"
-          )
-        );
-        this.#onCancel?.();
-      }
-      return;
-    }
+    // 2. 记录页面坐标基准。截图模式保持页面可滚动，选区使用文档坐标。
+    this.#dpr = window.devicePixelRatio || 1;
 
-    if (
-      this.#currentSessionId !== sessionId ||
-      document.hidden ||
-      document.visibilityState !== "visible" ||
-      !captureRes?.dataUrl
-    ) {
-      if (this.#currentSessionId === sessionId) this.#onCancel?.();
-      return;
-    }
-
-    // 3. 加载图片以获取实际像素尺寸及换算 DPR
-    const img = new Image();
-    try {
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = captureRes.dataUrl;
-      });
-    } catch {
-      if (this.#currentSessionId === sessionId) {
-        this.#onCancel?.();
-      }
-      return;
-    }
-
-    if (
-      this.#currentSessionId !== sessionId ||
-      document.hidden ||
-      document.visibilityState !== "visible"
-    ) {
-      if (this.#currentSessionId === sessionId) this.#onCancel?.();
-      return;
-    }
-
-    this.#imgElement = img;
-    this.#dpr =
-      img.naturalWidth / window.innerWidth || window.devicePixelRatio || 1;
-
-    // 4. 构建全屏蒙版容器
+    // 3. 构建覆盖层；底层直接显示网页原始内容。
     this.#initDom();
-    this.#lockScroll();
+    this.#bindScroll();
     this.#bindWindowEvents();
     this.#render();
   }
@@ -252,7 +186,7 @@ export class ScreenshotOverlay {
       height: 100vh;
       z-index: 2147483647;
       user-select: none;
-      touch-action: none;
+      touch-action: pan-x pan-y;
       cursor: crosshair;
       overflow: hidden;
       outline: none;
@@ -270,21 +204,6 @@ export class ScreenshotOverlay {
         e.stopPropagation();
         this.destroy(true);
         this.#onCancel?.();
-      } else if (
-        !this.#isPopupEvent(e) &&
-        [
-          " ",
-          "ArrowUp",
-          "ArrowDown",
-          "ArrowLeft",
-          "ArrowRight",
-          "PageUp",
-          "PageDown",
-          "Home",
-          "End",
-        ].includes(e.key)
-      ) {
-        e.preventDefault();
       }
     };
 
@@ -298,56 +217,65 @@ export class ScreenshotOverlay {
     window.addEventListener("resize", this.#handleResize, { passive: true });
   }
 
-  #isPopupEvent(event) {
-    return event
-      .composedPath()
-      .some((node) => node.id === APP_CONSTS.imageBoxID);
+
+  #bindScroll() {
+    const onScroll = () => this.#scheduleSelectionPaint();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    this.#cleanupScroll = () => {
+      window.removeEventListener("scroll", onScroll);
+    };
   }
 
-  #lockScroll() {
-    const position = { x: window.scrollX, y: window.scrollY };
-    const saved = [document.documentElement, document.body].map((element) => ({
-      element,
-      properties: [
-        "overflow",
-        "overflow-x",
-        "overflow-y",
-        "scrollbar-gutter",
-      ].map((name) => ({
-        name,
-        value: element.style.getPropertyValue(name),
-        priority: element.style.getPropertyPriority(name),
-      })),
-    }));
-    for (const { element } of saved) {
-      element.style.setProperty("overflow-x", "hidden", "important");
-      element.style.setProperty("overflow-y", "hidden", "important");
-      element.style.setProperty("scrollbar-gutter", "auto", "important");
-    }
-    const preventScroll = (event) => {
-      if (!this.#isPopupEvent(event)) event.preventDefault();
-    };
-    window.addEventListener("wheel", preventScroll, {
-      capture: true,
-      passive: false,
-    });
-    window.addEventListener("touchmove", preventScroll, {
-      capture: true,
-      passive: false,
-    });
-    this.#cleanupScroll = () => {
-      window.removeEventListener("wheel", preventScroll, true);
-      window.removeEventListener("touchmove", preventScroll, true);
-      for (const { element, properties } of saved) {
-        for (const { name } of properties) element.style.removeProperty(name);
-        for (const { name, value, priority } of properties) {
-          if (value) element.style.setProperty(name, value, priority);
+  // 指针靠近视口边缘时持续滚动页面，并用最新 scrollX/Y 重算页面坐标。
+  #updateEdgeAutoScroll(clientX, clientY, update) {
+    this.#autoScrollPoint = { clientX, clientY };
+    this.#autoScrollUpdate = update;
+    update(clientX, clientY);
+
+    if (this.#autoScrollFrame !== null) return;
+
+    const edgeSize = 72;
+    const maxSpeed = 40;
+    const tick = () => {
+      this.#autoScrollFrame = null;
+      const point = this.#autoScrollPoint;
+      const callback = this.#autoScrollUpdate;
+      if (!point || !callback || !this.#cleanupGesture || this.#busy) return;
+
+      const getSpeed = (position, size) => {
+        if (position < edgeSize) {
+          const ratio = Math.min(1, (edgeSize - position) / edgeSize);
+          return -Math.max(4, Math.ceil(Math.pow(ratio, 1.5) * maxSpeed));
         }
-      }
-      if (window.scrollX !== position.x || window.scrollY !== position.y) {
-        window.scrollTo(position.x, position.y);
+        if (position > size - edgeSize) {
+          const ratio = Math.min(1, (position - (size - edgeSize)) / edgeSize);
+          return Math.max(4, Math.ceil(Math.pow(ratio, 1.5) * maxSpeed));
+        }
+        return 0;
+      };
+
+      const dx = getSpeed(point.clientX, window.innerWidth);
+      const dy = getSpeed(point.clientY, window.innerHeight);
+      if (!dx && !dy) return;
+
+      const beforeX = window.scrollX;
+      const beforeY = window.scrollY;
+      window.scrollBy(dx, dy);
+      if (window.scrollX !== beforeX || window.scrollY !== beforeY) {
+        callback(point.clientX, point.clientY);
+        this.#autoScrollFrame = requestAnimationFrame(tick);
       }
     };
+    this.#autoScrollFrame = requestAnimationFrame(tick);
+  }
+
+  #stopEdgeAutoScroll() {
+    if (this.#autoScrollFrame !== null) {
+      cancelAnimationFrame(this.#autoScrollFrame);
+      this.#autoScrollFrame = null;
+    }
+    this.#autoScrollPoint = null;
+    this.#autoScrollUpdate = null;
   }
 
   #invalidateSelection() {
@@ -385,6 +313,7 @@ export class ScreenshotOverlay {
         flushSync(() => this.#render());
       }
       this.#paintSelectionGeometry();
+      if (this.#layoutState === "active") this.#render();
     });
   }
 
@@ -392,13 +321,15 @@ export class ScreenshotOverlay {
     const sel = this.#selection;
     if (!sel || !this.#overlayElement) return;
     const style = this.#overlayElement.style;
-    style.setProperty("--kt-selection-x", `${sel.x}px`);
-    style.setProperty("--kt-selection-y", `${sel.y}px`);
+    const x = sel.x - window.scrollX;
+    const y = sel.y - window.scrollY;
+    style.setProperty("--kt-selection-x", `${x}px`);
+    style.setProperty("--kt-selection-y", `${y}px`);
     style.setProperty("--kt-selection-width", `${sel.w}px`);
     style.setProperty("--kt-selection-height", `${sel.h}px`);
     style.setProperty(
       "--kt-selection-toolbar-top",
-      `${sel.y > 38 ? sel.y - 34 : sel.y + 8}px`
+      `${Math.max(8, Math.min(window.innerHeight - 40, y > 38 ? y - 34 : y + 8))}px`
     );
   }
 
@@ -407,6 +338,54 @@ export class ScreenshotOverlay {
     e.stopPropagation();
     this.destroy(true);
     this.#onCancel?.();
+  };
+
+  // 根据鼠标悬停位置显示选区边框对应的缩放指针。
+  #onSelectionPointerMove = (e) => {
+    if (this.#busy || this.#cleanupGesture || !this.#selection) return;
+
+    const rect = this.#selectionElement.getBoundingClientRect();
+    const hitSize = this.#coarsePointer ? 22 : 12;
+
+    const withinHorizontal =
+      e.clientX >= rect.left - hitSize &&
+      e.clientX <= rect.right + hitSize;
+    const withinVertical =
+      e.clientY >= rect.top - hitSize &&
+      e.clientY <= rect.bottom + hitSize;
+
+    const nearLeft =
+      withinVertical && Math.abs(e.clientX - rect.left) <= hitSize;
+    const nearRight =
+      withinVertical && Math.abs(e.clientX - rect.right) <= hitSize;
+    const nearTop =
+      withinHorizontal && Math.abs(e.clientY - rect.top) <= hitSize;
+    const nearBottom =
+      withinHorizontal && Math.abs(e.clientY - rect.bottom) <= hitSize;
+
+    let dir = "";
+    if (nearTop) dir += "n";
+    else if (nearBottom) dir += "s";
+    if (nearLeft) dir += "w";
+    else if (nearRight) dir += "e";
+
+    const cursor = dir
+      ? dir === "n" || dir === "s"
+        ? "ns-resize"
+        : dir === "e" || dir === "w"
+          ? "ew-resize"
+          : dir === "nw" || dir === "se"
+            ? "nwse-resize"
+            : "nesw-resize"
+      : "move";
+
+    this.#selectionElement.style.cursor = cursor;
+  };
+
+  #onSelectionPointerLeave = () => {
+    if (this.#selectionElement && !this.#cleanupGesture) {
+      this.#selectionElement.style.cursor = this.#busy ? "default" : "move";
+    }
   };
 
   #onPointerDown = (e) => {
@@ -428,9 +407,36 @@ export class ScreenshotOverlay {
       return;
     }
 
+    if (this.#selection) {
+      const rect = {
+        left: this.#selection.x - window.scrollX,
+        top: this.#selection.y - window.scrollY,
+        right: this.#selection.x + this.#selection.w - window.scrollX,
+        bottom: this.#selection.y + this.#selection.h - window.scrollY,
+      };
+      const hitSize = this.#coarsePointer ? 22 : 12;
+      const withinHorizontal =
+        e.clientX >= rect.left - hitSize && e.clientX <= rect.right + hitSize;
+      const withinVertical =
+        e.clientY >= rect.top - hitSize && e.clientY <= rect.bottom + hitSize;
+      const nearLeft = withinVertical && Math.abs(e.clientX - rect.left) <= hitSize;
+      const nearRight = withinVertical && Math.abs(e.clientX - rect.right) <= hitSize;
+      const nearTop = withinHorizontal && Math.abs(e.clientY - rect.top) <= hitSize;
+      const nearBottom = withinHorizontal && Math.abs(e.clientY - rect.bottom) <= hitSize;
+      let dir = "";
+      if (nearTop) dir += "n";
+      else if (nearBottom) dir += "s";
+      if (nearLeft) dir += "w";
+      else if (nearRight) dir += "e";
+      if (dir) {
+        this.#startResize(dir, e);
+        return;
+      }
+    }
+
     const pointerId = e.pointerId;
-    const startX = e.clientX;
-    const startY = e.clientY;
+    const startX = e.clientX + window.scrollX;
+    const startY = e.clientY + window.scrollY;
     let changed = false;
 
     // 点击在已有选区内时支持拖拽移动选区
@@ -453,46 +459,42 @@ export class ScreenshotOverlay {
       this.#layoutRegions = [];
     }
 
-    const onPointerMove = (moveEvent) => {
-      if (moveEvent.pointerId !== pointerId) return;
+    const updateSelection = (clientX, clientY) => {
       if (this.#busy) return;
-      if (
-        !changed &&
-        (moveEvent.clientX !== startX || moveEvent.clientY !== startY)
-      ) {
+      const pageX = clientX + window.scrollX;
+      const pageY = clientY + window.scrollY;
+      if (!changed && (pageX !== startX || pageY !== startY)) {
         flushSync(() => this.#invalidateSelection());
         changed = true;
       }
       if (this.#isSelecting) {
-        const curX = moveEvent.clientX;
-        const curY = moveEvent.clientY;
-        const x = Math.min(this.#dragStart.startX, curX);
-        const y = Math.min(this.#dragStart.startY, curY);
-        const w = Math.abs(curX - this.#dragStart.startX);
-        const h = Math.abs(curY - this.#dragStart.startY);
+        const x = Math.min(this.#dragStart.startX, pageX);
+        const y = Math.min(this.#dragStart.startY, pageY);
+        const w = Math.abs(pageX - this.#dragStart.startX);
+        const h = Math.abs(pageY - this.#dragStart.startY);
         this.#selection = { x, y, w, h };
         this.#scheduleSelectionPaint();
       } else if (this.#isDragging) {
-        const dx = moveEvent.clientX - this.#dragStart.mouseX;
-        const dy = moveEvent.clientY - this.#dragStart.mouseY;
-        const maxX = window.innerWidth - this.#selection.w;
-        const maxY = window.innerHeight - this.#selection.h;
-        this.#selection.x = Math.max(
-          0,
-          Math.min(maxX, this.#dragStart.selX + dx)
-        );
-        this.#selection.y = Math.max(
-          0,
-          Math.min(maxY, this.#dragStart.selY + dy)
-        );
+        const dx = pageX - this.#dragStart.mouseX;
+        const dy = pageY - this.#dragStart.mouseY;
+        const maxX = Math.max(0, Math.max(document.documentElement.scrollWidth, document.body?.scrollWidth || 0, window.innerWidth) - this.#selection.w);
+        const maxY = Math.max(0, Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0, window.innerHeight) - this.#selection.h);
+        this.#selection.x = Math.max(0, Math.min(maxX, this.#dragStart.selX + dx));
+        this.#selection.y = Math.max(0, Math.min(maxY, this.#dragStart.selY + dy));
         this.#scheduleSelectionPaint();
       }
+    };
+
+    const onPointerMove = (moveEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      this.#updateEdgeAutoScroll(moveEvent.clientX, moveEvent.clientY, updateSelection);
     };
 
     const onPointerUp = (event) => {
       if (event.pointerId !== pointerId) return;
       this.#isSelecting = false;
       this.#isDragging = false;
+      this.#stopEdgeAutoScroll();
       document.removeEventListener("pointermove", onPointerMove, true);
       document.removeEventListener("pointerup", onPointerUp, true);
       document.removeEventListener("pointercancel", onPointerUp, true);
@@ -548,29 +550,28 @@ export class ScreenshotOverlay {
     let changed = false;
 
     const pointerId = e.pointerId;
-    const startX = e.clientX;
-    const startY = e.clientY;
+    const startX = e.clientX + window.scrollX;
+    const startY = e.clientY + window.scrollY;
     const initSel = { ...this.#selection };
 
-    const onPointerMove = (moveEvent) => {
-      if (moveEvent.pointerId !== pointerId) return;
+    const updateResize = (clientX, clientY) => {
       if (!this.#isResizing || !this.#selection || this.#busy) return;
-      const dx = moveEvent.clientX - startX;
-      const dy = moveEvent.clientY - startY;
-
-      let { x, y, w, h } = initSel;
-
-      if (dir.includes("e")) w += dx;
-      if (dir.includes("s")) h += dy;
-      if (dir.includes("w")) {
-        x += dx;
-        w -= dx;
-      }
-      if (dir.includes("n")) {
-        y += dy;
-        h -= dy;
-      }
-
+      const dx = clientX + window.scrollX - startX;
+      const dy = clientY + window.scrollY - startY;
+      const pageWidth = Math.max(document.documentElement.scrollWidth, document.body?.scrollWidth || 0, window.innerWidth);
+      const pageHeight = Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0, window.innerHeight);
+      let left = initSel.x;
+      let right = initSel.x + initSel.w;
+      let top = initSel.y;
+      let bottom = initSel.y + initSel.h;
+      if (dir.includes("e")) right = Math.max(0, Math.min(pageWidth, right + dx));
+      if (dir.includes("s")) bottom = Math.max(0, Math.min(pageHeight, bottom + dy));
+      if (dir.includes("w")) left = Math.max(0, Math.min(pageWidth, left + dx));
+      if (dir.includes("n")) top = Math.max(0, Math.min(pageHeight, top + dy));
+      const x = Math.min(left, right);
+      const y = Math.min(top, bottom);
+      const w = Math.abs(right - left);
+      const h = Math.abs(bottom - top);
       if (w > 10 && h > 10) {
         if (!changed && (dx || dy)) {
           flushSync(() => this.#invalidateSelection());
@@ -581,10 +582,16 @@ export class ScreenshotOverlay {
       }
     };
 
+    const onPointerMove = (moveEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      this.#updateEdgeAutoScroll(moveEvent.clientX, moveEvent.clientY, updateResize);
+    };
+
     const onPointerUp = (event) => {
       if (event.pointerId !== pointerId) return;
       this.#isResizing = false;
       this.#resizeDir = null;
+      this.#stopEdgeAutoScroll();
       document.removeEventListener("pointermove", onPointerMove, true);
       document.removeEventListener("pointerup", onPointerUp, true);
       document.removeEventListener("pointercancel", onPointerUp, true);
@@ -633,7 +640,7 @@ export class ScreenshotOverlay {
     }
 
     if (action === "start") {
-      if (!this.#selection || !this.#imgElement || this.#busy) return;
+      if (!this.#selection || this.#busy) return;
 
       const activeApi = this.#getActiveLayoutApi();
       if (!activeApi) {
@@ -656,14 +663,19 @@ export class ScreenshotOverlay {
       this.#layoutTaskId = taskId;
       this.#abortController = new AbortController();
       try {
+        const selectionCanvas = await this.#captureSelectionCanvas(
+          { ...this.#selection },
+          this.#abortController.signal
+        );
         const { blob, width, height } = await cropAndCompressImage(
-          this.#imgElement,
+          selectionCanvas,
           {
-            x: this.#selection.x,
-            y: this.#selection.y,
-            width: this.#selection.w,
-            height: this.#selection.h,
-            dpr: this.#dpr,
+            width: selectionCanvas.width,
+            height: selectionCanvas.height,
+            dpr: 1,
+            maxEdge: 4096,
+            type: "image/jpeg",
+            quality: 0.86,
           }
         );
 
@@ -703,8 +715,12 @@ export class ScreenshotOverlay {
             .child("image-translate")
             .warn("[ScreenshotOverlay] Layout error:", err);
           alert(
-            err?.message ||
-              this.#i18n("image_process_failed", "分析布局失败，请重试")
+            err?.code === "SCREENSHOT_UNSUPPORTED" ||
+              err?.code === "SCREENSHOT_FAILED" ||
+              err?.code === "IMAGE_ENCODE_FAILED"
+              ? this.#getScreenshotErrorMessage(err)
+              : err?.message ||
+                  this.#i18n("image_process_failed", "分析布局失败，请重试")
           );
           this.#layoutState = "idle";
         }
@@ -735,8 +751,8 @@ export class ScreenshotOverlay {
     highlight.className = "kt-screenshot-persistent-highlight notranslate";
     highlight.style.cssText = `
       position: fixed;
-      left: ${sel.x}px;
-      top: ${sel.y}px;
+      left: ${sel.x - window.scrollX}px;
+      top: ${sel.y - window.scrollY}px;
       width: ${sel.w}px;
       height: ${sel.h}px;
       border: 2px dashed #00c853;
@@ -759,26 +775,410 @@ export class ScreenshotOverlay {
       .forEach((e) => e.remove());
   }
 
+  #getScreenshotErrorMessage(error) {
+    if (error?.code === "IMAGE_ENCODE_FAILED") {
+      return this.#i18n(
+        "image_screenshot_encode_failed",
+        "无法压缩截图，请重试"
+      );
+    }
+    if (error?.code === "SCREENSHOT_UNSUPPORTED") {
+      return this.#i18n(
+        "image_screenshot_unsupported",
+        "当前浏览器不支持截图翻译"
+      );
+    }
+    if (error?.code === "SCREENSHOT_FAILED") {
+      return this.#i18n(
+        "image_screenshot_failed",
+        "截图失败，请检查页面访问权限后重试"
+      );
+    }
+    return (
+      error?.message ||
+      this.#i18n(
+        "image_screenshot_failed",
+        "截图失败，请检查页面访问权限后重试"
+      )
+    );
+  }
+
+  async #captureSelectionCanvas(selection, signal) {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    if (!viewportWidth || !viewportHeight) {
+      throw new Error(
+        this.#i18n(
+          "image_screenshot_invalid_viewport",
+          "当前页面视口尺寸无效，无法截图"
+        )
+      );
+    }
+    const doc = document.documentElement;
+    const pageWidth = Math.max(
+      doc.scrollWidth,
+      document.body?.scrollWidth || 0,
+      viewportWidth
+    );
+    const pageHeight = Math.max(
+      doc.scrollHeight,
+      document.body?.scrollHeight || 0,
+      viewportHeight
+    );
+    const maxScrollX = Math.max(0, pageWidth - viewportWidth);
+    const maxScrollY = Math.max(0, pageHeight - viewportHeight);
+    const overlap = Math.min(
+      160,
+      Math.floor(Math.min(viewportWidth, viewportHeight) * 0.2)
+    );
+    const stepX = Math.max(1, viewportWidth - overlap);
+    const stepY = Math.max(1, viewportHeight - overlap);
+    const endX = selection.x + selection.w;
+    const endY = selection.y + selection.h;
+    const originalScroll = { x: window.scrollX, y: window.scrollY };
+    const hiddenElements = [
+      this.#container,
+      document.getElementById(APP_CONSTS.imageBoxID),
+      this.#highlightElement,
+    ]
+      .filter(Boolean)
+      .map((element) => ({
+        element,
+        visibility: element.style.visibility,
+      }));
+    const hideOverlays = () => {
+      for (const { element } of hiddenElements) {
+        element.style.visibility = "hidden";
+      }
+    };
+    const restoreOverlays = () => {
+      for (const { element, visibility } of hiddenElements) {
+        element.style.visibility = visibility;
+      }
+    };
+    const scrollStyle = [document.documentElement, document.body].map(
+      (element) => ({
+        element,
+        behavior: element.style.getPropertyValue("scroll-behavior"),
+        behaviorPriority: element.style.getPropertyPriority("scroll-behavior"),
+        snap: element.style.getPropertyValue("scroll-snap-type"),
+        snapPriority: element.style.getPropertyPriority("scroll-snap-type"),
+      })
+    );
+    for (const { element } of scrollStyle) {
+      element.style.setProperty("scroll-behavior", "auto", "important");
+      element.style.setProperty("scroll-snap-type", "none", "important");
+    }
+    const starts = (start, end, viewport, maxScroll, step) => {
+      const values = [];
+      let current = Math.min(Math.max(0, start), maxScroll);
+      values.push(current);
+      while (current + viewport < end) {
+        const next = Math.min(current + step, maxScroll);
+        if (next <= current) break;
+        values.push(next);
+        current = next;
+      }
+      return values;
+    };
+    const xStarts = starts(
+      selection.x,
+      endX,
+      viewportWidth,
+      maxScrollX,
+      stepX
+    );
+    const yStarts = starts(
+      selection.y,
+      endY,
+      viewportHeight,
+      maxScrollY,
+      stepY
+    );
+    let canvas = null;
+    let context = null;
+    let outputScaleX = 1;
+    let outputScaleY = 1;
+    let scaleLimit = 1;
+    const actualRowPositions = [];
+    const actualColumnPositions = [];
+    const sessionId = this.#currentSessionId;
+
+    const nextFrame = () =>
+      new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    const loadImage = (dataUrl) =>
+      new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = dataUrl;
+      });
+
+    try {
+      for (let row = 0; row < yStarts.length; row++) {
+        for (let column = 0; column < xStarts.length; column++) {
+          if (sessionId !== this.#currentSessionId || signal?.aborted) {
+            throw new Error(
+              this.#i18n("image_screenshot_cancelled", "截图任务已取消")
+            );
+          }
+          window.scrollTo(xStarts[column], yStarts[row]);
+          await nextFrame();
+          await nextFrame();
+          hideOverlays();
+          await nextFrame();
+          await nextFrame();
+          const response = await sendBgMsg(MSG_CAPTURE_VISIBLE_TAB);
+          if (!response?.dataUrl) {
+            if (response?.unsupported) {
+              const error = new Error();
+              error.code = "SCREENSHOT_UNSUPPORTED";
+              throw error;
+            }
+            throw new Error(
+              response?.error ||
+                this.#i18n(
+                  "image_screenshot_capture_failed",
+                  "无法获取当前页面截图，请重试"
+                )
+            );
+          }
+          const image = await loadImage(response.dataUrl).catch(() => {
+            throw new Error(
+              this.#i18n(
+                "image_screenshot_image_load_failed",
+                "无法读取截图图像，请重试"
+              )
+            );
+          });
+          restoreOverlays();
+          if (sessionId !== this.#currentSessionId || signal?.aborted) {
+            throw new Error(
+              this.#i18n("image_screenshot_cancelled", "截图任务已取消")
+            );
+          }
+
+          if (!image.naturalWidth || !image.naturalHeight) {
+            throw new Error(
+              this.#i18n(
+                "image_screenshot_invalid_dimensions",
+                "截图图像尺寸无效"
+              )
+            );
+          }
+          const scaleX = image.naturalWidth / viewportWidth;
+          const scaleY = image.naturalHeight / viewportHeight;
+          if (!canvas) {
+            const maxArea = 25_000_000;
+            scaleLimit = Math.min(
+              1,
+              Math.sqrt(
+                maxArea / (selection.w * scaleX * selection.h * scaleY)
+              ),
+              32767 / (selection.w * scaleX),
+              32767 / (selection.h * scaleY)
+            );
+            outputScaleX = scaleX * scaleLimit;
+            outputScaleY = scaleY * scaleLimit;
+            canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.ceil(selection.w * outputScaleX));
+            canvas.height = Math.max(1, Math.ceil(selection.h * outputScaleY));
+            context = canvas.getContext("2d");
+            if (!context) {
+              throw new Error(
+                this.#i18n(
+                  "image_screenshot_canvas_failed",
+                  "无法创建长截图画布"
+                )
+              );
+            }
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = "high";
+            this.#dpr = outputScaleX;
+          }
+
+          const actualX = window.scrollX;
+          const actualY = window.scrollY;
+          if (column === 0) actualRowPositions[row] = actualY;
+          if (row === 0) actualColumnPositions[column] = actualX;
+          // 不要把上一块与当前块之间的整个重叠区域都裁掉：
+          // 两块恰好相接时，Canvas 对浮点边界的栅格化仍可能留下空像素。
+          // 保留至少 2 个最终画布像素的覆盖量，让后绘制的截图块覆盖接缝。
+          const seamBleedX = Math.max(2, 2 / outputScaleX);
+          const seamBleedY = Math.max(2, 2 / outputScaleY);
+          const skipLeft =
+            column > 0
+              ? Math.max(
+                  0,
+                  actualColumnPositions[column - 1] +
+                    viewportWidth -
+                    actualX -
+                    seamBleedX
+                )
+              : 0;
+          const skipTop =
+            row > 0
+              ? Math.max(
+                  0,
+                  actualRowPositions[row - 1] +
+                    viewportHeight -
+                    actualY -
+                    seamBleedY
+                )
+              : 0;
+          const left = Math.max(selection.x, actualX + skipLeft);
+          const top = Math.max(selection.y, actualY + skipTop);
+          const right = Math.min(endX, actualX + viewportWidth);
+          const bottom = Math.min(endY, actualY + viewportHeight);
+          if (right <= left || bottom <= top) continue;
+
+          // 将相邻截图块的边界统一吸附到最终画布的整数像素，避免
+          // 浮点坐标在 Canvas 栅格化时留下透明缝隙（导出 JPEG 后会变成黑线）。
+          // 使用 floor/ceil 让相邻块在边界处至少覆盖同一列/行像素，形成轻微重叠。
+          const destLeft = Math.max(
+            0,
+            Math.floor((left - selection.x) * outputScaleX)
+          );
+          const destTop = Math.max(
+            0,
+            Math.floor((top - selection.y) * outputScaleY)
+          );
+          const destRight = Math.min(
+            canvas.width,
+            Math.ceil((right - selection.x) * outputScaleX)
+          );
+          const destBottom = Math.min(
+            canvas.height,
+            Math.ceil((bottom - selection.y) * outputScaleY)
+          );
+          const destWidth = destRight - destLeft;
+          const destHeight = destBottom - destTop;
+          if (destWidth <= 0 || destHeight <= 0) continue;
+
+          // 反算整数目标边界对应的源图坐标。边界向外扩展的不足 1px
+          // 会从当前截图块的重叠区域取样，避免只扩展目标矩形却拉伸边缘像素。
+          const rawSourceX =
+            (selection.x + destLeft / outputScaleX - actualX) * scaleX;
+          const rawSourceY =
+            (selection.y + destTop / outputScaleY - actualY) * scaleY;
+          const rawSourceRight =
+            rawSourceX + (destWidth / outputScaleX) * scaleX;
+          const rawSourceBottom =
+            rawSourceY + (destHeight / outputScaleY) * scaleY;
+
+          // floor/ceil 扩展目标边界后，边缘块反算出的源坐标可能略微越界。
+          // 将源区域限制在截图实际尺寸内，并同步收缩目标区域，不能让
+          // drawImage 因源区域越界而整体跳过绘制。
+          const sourceX = Math.max(0, rawSourceX);
+          const sourceY = Math.max(0, rawSourceY);
+          const sourceRight = Math.min(image.naturalWidth, rawSourceRight);
+          const sourceBottom = Math.min(image.naturalHeight, rawSourceBottom);
+          const sourceWidth = sourceRight - sourceX;
+          const sourceHeight = sourceBottom - sourceY;
+          if (sourceWidth <= 0 || sourceHeight <= 0) continue;
+
+          const clippedDestLeft = Math.max(
+            0,
+            Math.floor(
+              destLeft + ((sourceX - rawSourceX) / scaleX) * outputScaleX
+            )
+          );
+          const clippedDestTop = Math.max(
+            0,
+            Math.floor(
+              destTop + ((sourceY - rawSourceY) / scaleY) * outputScaleY
+            )
+          );
+          const clippedDestRight = Math.min(
+            canvas.width,
+            Math.ceil(
+              destLeft + ((sourceRight - rawSourceX) / scaleX) * outputScaleX
+            )
+          );
+          const clippedDestBottom = Math.min(
+            canvas.height,
+            Math.ceil(
+              destTop + ((sourceBottom - rawSourceY) / scaleY) * outputScaleY
+            )
+          );
+          const clippedDestWidth = clippedDestRight - clippedDestLeft;
+          const clippedDestHeight = clippedDestBottom - clippedDestTop;
+          if (clippedDestWidth <= 0 || clippedDestHeight <= 0) continue;
+
+          context.drawImage(
+            image,
+            sourceX,
+            sourceY,
+            sourceWidth,
+            sourceHeight,
+            clippedDestLeft,
+            clippedDestTop,
+            clippedDestWidth,
+            clippedDestHeight
+          );
+          if (row !== yStarts.length - 1 || column !== xStarts.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 520));
+          }
+        }
+      }
+      if (!canvas) {
+        throw new Error(
+          this.#i18n(
+            "image_screenshot_empty_selection",
+            "没有捕获到选区内容"
+          )
+        );
+      }
+      return canvas;
+    } finally {
+      restoreOverlays();
+      window.scrollTo(originalScroll.x, originalScroll.y);
+      for (const {
+        element,
+        behavior,
+        behaviorPriority,
+        snap,
+        snapPriority,
+      } of scrollStyle) {
+        element.style.removeProperty("scroll-behavior");
+        element.style.removeProperty("scroll-snap-type");
+        if (behavior) {
+          element.style.setProperty(
+            "scroll-behavior",
+            behavior,
+            behaviorPriority
+          );
+        }
+        if (snap) {
+          element.style.setProperty("scroll-snap-type", snap, snapPriority);
+        }
+      }
+      await nextFrame();
+    }
+  }
+
   async #downloadSelection() {
-    if (this.#busy || !this.#selection || !this.#imgElement) return;
+    if (this.#busy || !this.#selection) return;
     const selection = { ...this.#selection };
-    const image = this.#imgElement;
     const session = this.#currentSessionId;
     this.#downloadBusy = true;
     this.#render();
     try {
-      const { blob } = await cropAndCompressImage(image, {
-        x: selection.x,
-        y: selection.y,
-        width: selection.w,
-        height: selection.h,
-        dpr: this.#dpr,
-        maxEdge: Infinity,
+      const canvas = await this.#captureSelectionCanvas(selection);
+      const { blob } = await cropAndCompressImage(canvas, {
+        width: canvas.width,
+        height: canvas.height,
+        dpr: 1,
+        maxEdge: 4096,
+        type: "image/jpeg",
+        quality: 0.86,
       });
       if (session === this.#currentSessionId)
         downloadImageBlob(blob, "screenshot");
     } catch (err) {
-      if (session === this.#currentSessionId) throw err;
+      if (session === this.#currentSessionId) {
+        alert(this.#getScreenshotErrorMessage(err));
+      }
     } finally {
       if (session === this.#currentSessionId) {
         this.#downloadBusy = false;
@@ -790,7 +1190,7 @@ export class ScreenshotOverlay {
   async #confirmSelection(action) {
     if (action === "menu" && this.#onToggleBox?.()) return;
     if (this.#busy) return;
-    if (!this.#selection || !this.#imgElement) {
+    if (!this.#selection) {
       this.destroy();
       this.#onCancel?.();
       return;
@@ -814,8 +1214,6 @@ export class ScreenshotOverlay {
     }
 
     const sel = { ...this.#selection };
-    const img = this.#imgElement;
-    const dpr = this.#dpr;
     const sessionId = this.#currentSessionId;
     const wasConfirmed = this.#isConfirmed;
     this.#cropBusy = true;
@@ -829,12 +1227,14 @@ export class ScreenshotOverlay {
     this.#render();
 
     try {
-      const { blob, width, height } = await cropAndCompressImage(img, {
-        x: sel.x,
-        y: sel.y,
-        width: sel.w,
-        height: sel.h,
-        dpr,
+      const canvas = await this.#captureSelectionCanvas(sel);
+      const { blob, width, height } = await cropAndCompressImage(canvas, {
+        width: canvas.width,
+        height: canvas.height,
+        dpr: 1,
+        maxEdge: 4096,
+        type: "image/jpeg",
+        quality: 0.86,
       });
       if (this.#currentSessionId !== sessionId) return;
       this.#cropSize = { width, height };
@@ -853,10 +1253,7 @@ export class ScreenshotOverlay {
       this.#isConfirmed = wasConfirmed;
       if (this.#container && !wasConfirmed)
         this.#container.style.zIndex = "2147483647";
-      alert(
-        err.message ||
-          this.#i18n("image_process_failed", "截图处理失败，请重试")
-      );
+      alert(this.#getScreenshotErrorMessage(err));
     } finally {
       if (this.#currentSessionId === sessionId) {
         this.#cropBusy = false;
@@ -867,12 +1264,12 @@ export class ScreenshotOverlay {
   }
 
   #render() {
-    if (!this.#reactRoot || !this.#imgElement) return;
+    if (!this.#reactRoot) return;
 
     const sel = this.#selection;
     const hasSelection = sel && sel.w >= 10 && sel.h >= 10;
     const hasLayoutService = Boolean(this.#getActiveLayoutApi());
-
+    
     const handles = hasSelection
       ? [
           { dir: "nw", cursor: "nwse-resize" },
@@ -895,34 +1292,17 @@ export class ScreenshotOverlay {
         onPointerDown={this.#onPointerDown}
         onContextMenu={this.#onContextMenu}
         style={{
-          "--kt-selection-x": `${sel?.x || 0}px`,
-          "--kt-selection-y": `${sel?.y || 0}px`,
+          "--kt-selection-x": `${(sel?.x || 0) - window.scrollX}px`,
+          "--kt-selection-y": `${(sel?.y || 0) - window.scrollY}px`,
           "--kt-selection-width": `${sel?.w || 0}px`,
           "--kt-selection-height": `${sel?.h || 0}px`,
-          "--kt-selection-toolbar-top": `${sel && sel.y > 38 ? sel.y - 34 : (sel?.y || 0) + 8}px`,
+          "--kt-selection-toolbar-top": `${Math.max(8, Math.min(window.innerHeight - 40, sel ? (sel.y - window.scrollY > 38 ? sel.y - window.scrollY - 34 : sel.y - window.scrollY + 8) : 8))}px`,
           position: "relative",
           width: "100%",
           height: "100%",
         }}
       >
-        {/* 静态截屏底图 */}
-        <div
-          className="kt-screenshot-background"
-          style={{
-            all: "initial",
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            backgroundImage: `url(${this.#imgElement.src})`,
-            backgroundSize: "100% 100%",
-            backgroundRepeat: "no-repeat",
-            pointerEvents: "none",
-          }}
-        />
-
-        {/* 静态半透明全屏蒙版 */}
+        {/* 半透明全屏蒙版，选区内显示页面原始内容 */}
         <div
           className="kt-screenshot-mask"
           style={{
@@ -970,8 +1350,8 @@ export class ScreenshotOverlay {
                   ? "image_screenshot_touch_tip"
                   : "image_screenshot_esc_tip",
                 this.#coarsePointer
-                  ? "拖动框选文字区域，点击 × 取消"
-                  : "拖拽框选文字区域，按 Esc 取消"
+                  ? "拖动框选区域，可滚动页面扩展选区，点击 × 取消"
+                  : "拖拽框选区域，可滚动页面扩展选区，按 Esc 取消"
               )}
             </span>
             <button
@@ -1008,6 +1388,8 @@ export class ScreenshotOverlay {
             ref={(element) => {
               this.#selectionElement = element;
             }}
+            onPointerMove={this.#onSelectionPointerMove}
+            onPointerLeave={this.#onSelectionPointerLeave}
             style={{
               position: "absolute",
               left: "var(--kt-selection-x)",
@@ -1025,7 +1407,12 @@ export class ScreenshotOverlay {
         {hasSelection && this.#layoutState === "active" && (
           <ImageLayoutOverlay
             regions={this.#layoutRegions}
-            imageRect={{ left: sel.x, top: sel.y, width: sel.w, height: sel.h }}
+            imageRect={{
+              left: sel.x - window.scrollX,
+              top: sel.y - window.scrollY,
+              width: sel.w,
+              height: sel.h,
+            }}
             naturalWidth={this.#cropSize?.width || sel.w * this.#dpr}
             naturalHeight={this.#cropSize?.height || sel.h * this.#dpr}
             isFixed={true}
@@ -1101,6 +1488,7 @@ export class ScreenshotOverlay {
   destroy(clearHighlight = true) {
     this.#currentSessionId++;
     this.#cancelSelectionFrame();
+    this.#stopEdgeAutoScroll();
     this.#cleanupGesture?.();
     this.#cleanupGesture = null;
     this.#cleanupScroll?.();
@@ -1129,7 +1517,6 @@ export class ScreenshotOverlay {
     this.#container?.remove();
     this.#container = null;
     this.#reactRoot = null;
-    this.#imgElement = null;
     this.#selection = null;
     this.#layoutState = "idle";
     this.#layoutRegions = [];

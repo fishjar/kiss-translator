@@ -33,6 +33,49 @@ describe("imageReader", () => {
     expect(result.blob).toBeInstanceOf(Blob);
   });
 
+  test("cropAndCompressImage supports compressed JPEG output", async () => {
+    const mockImage = { naturalWidth: 6000, naturalHeight: 3000 };
+
+    const result = await cropAndCompressImage(mockImage, {
+      maxEdge: 4096,
+      type: "image/jpeg",
+      quality: 0.86,
+    });
+
+    expect(result.width).toBe(4096);
+    expect(result.height).toBe(2048);
+    expect(HTMLCanvasElement.prototype.toBlob).toHaveBeenCalledWith(
+      expect.any(Function),
+      "image/jpeg",
+      0.86
+    );
+    expect(result.blob.type).toBe("image/jpeg");
+  });
+
+  test("rejects when the browser silently falls back to PNG", async () => {
+    HTMLCanvasElement.prototype.toBlob = jest.fn((callback) => {
+      callback(new Blob(["mock-png"], { type: "image/png" }));
+    });
+
+    await expect(
+      cropAndCompressImage(
+        { naturalWidth: 600, naturalHeight: 400 },
+        {
+          type: "image/jpeg",
+          quality: 0.86,
+        }
+      )
+    ).rejects.toMatchObject({ code: "IMAGE_ENCODE_FAILED" });
+  });
+
+  test("returns an encoding error code when Canvas cannot export a Blob", async () => {
+    HTMLCanvasElement.prototype.toBlob = jest.fn((callback) => callback(null));
+
+    await expect(
+      cropAndCompressImage({ naturalWidth: 100, naturalHeight: 100 })
+    ).rejects.toMatchObject({ code: "IMAGE_ENCODE_FAILED" });
+  });
+
   test("cropAndCompressImage preserves smaller dimensions within maxEdge", async () => {
     const mockImage = {
       naturalWidth: 800,
@@ -65,6 +108,22 @@ describe("imageReader", () => {
     // 400 * 2 = 800, 300 * 2 = 600
     expect(result.width).toBe(800);
     expect(result.height).toBe(600);
+  });
+
+
+  test.each([
+    [{ x: -1 }, "negative crop origin"],
+    [{ dpr: 0 }, "zero device pixel ratio"],
+    [{ width: 120, height: 100 }, "crop outside source bounds"],
+    [{ type: "text/plain" }, "unsupported output type"],
+    [{ quality: 1.1 }, "quality outside range"],
+  ])("rejects invalid image options (%s)", async (options) => {
+    await expect(
+      cropAndCompressImage(
+        { naturalWidth: 100, naturalHeight: 100, width: 100, height: 100 },
+        options
+      )
+    ).rejects.toThrow("无效的图像尺寸或编码参数");
   });
 
   test("readImageAsBlob throws error when img is missing or invalid", async () => {

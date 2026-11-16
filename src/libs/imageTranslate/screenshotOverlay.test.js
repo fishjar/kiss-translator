@@ -80,6 +80,15 @@ describe("ScreenshotOverlay", () => {
     });
   };
 
+  const flushCapture = async () =>
+    act(async () => {
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      await Promise.resolve();
+    });
   const pointer = (target, type, x, y, id = 1, primary = true) => {
     const event = new MouseEvent(type, {
       bubbles: true,
@@ -116,7 +125,7 @@ describe("ScreenshotOverlay", () => {
     expect(geometry().left).toBe("40px");
     act(() => {
       pointer(
-        root().querySelectorAll(".kt-screenshot-handle")[4],
+        root().querySelector(".kt-screenshot-selection"),
         "pointerdown",
         240,
         250
@@ -126,8 +135,56 @@ describe("ScreenshotOverlay", () => {
     });
     expect(geometry().width).toBe("230px");
   });
+  test("resizes by dragging anywhere along each border and at a corner", () => {
+    drag(100, 100, 300, 250);
+    const selection = () => root().querySelector(".kt-screenshot-selection");
+
+    drag(180, 100, 180, 80, selection());
+    expect(geometry()).toMatchObject({ top: "80px", height: "170px" });
+
+    drag(170, 250, 170, 270, selection());
+    expect(geometry().height).toBe("190px");
+
+    drag(100, 170, 80, 170, selection());
+    expect(geometry()).toMatchObject({ left: "80px", width: "220px" });
+
+    drag(300, 170, 330, 170, selection());
+    expect(geometry().width).toBe("250px");
+
+    drag(80, 80, 60, 60, selection());
+    expect(geometry()).toMatchObject({
+      left: "60px",
+      top: "60px",
+      width: "270px",
+      height: "210px",
+    });
+  });
+
+  test("keeps the original eight interactive resize handles", () => {
+    drag(100, 100, 300, 250);
+    const handles = root().querySelectorAll(".kt-screenshot-handle");
+    expect(handles).toHaveLength(8);
+    expect(root().querySelectorAll(".kt-screenshot-handle-decoration")).toHaveLength(0);
+  });
+
+  test("keeps the selection anchored to document coordinates while the page scrolls", async () => {
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 120 });
+    await act(async () => {
+      window.dispatchEvent(new Event("scroll"));
+      await new Promise(requestAnimationFrame);
+    });
+    expect(geometry().top).toBe("0px");
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 60 });
+    await act(async () => {
+      window.dispatchEvent(new Event("scroll"));
+      await new Promise(requestAnimationFrame);
+    });
+    expect(geometry().top).toBe("60px");
+  });
+
   test("pointer cancellation keeps geometry without translating and releases gesture", async () => {
     await act(async () => button("menu").click());
+    await flushCapture();
     const count = callbacks.onComplete.mock.calls.length;
     act(() => {
       pointer(root().firstElementChild, "pointerdown", 150, 150);
@@ -135,7 +192,7 @@ describe("ScreenshotOverlay", () => {
       pointer(document, "pointercancel", 170, 180);
     });
     expect(geometry().left).toBe("120px");
-    await act(async () => {});
+    await flushCapture();
     expect(callbacks.onComplete).toHaveBeenCalledTimes(count + 1);
     expect(callbacks.onComplete).toHaveBeenLastCalledWith(
       expect.objectContaining({ action: "update" })
@@ -143,29 +200,30 @@ describe("ScreenshotOverlay", () => {
     drag(10, 10, 70, 80);
     expect(geometry().left).toBe("10px");
   });
-  test("capture rejection is visible and cancels the session", async () => {
+  test("capture rejection is reported when the selected region is confirmed", async () => {
     const alert = jest.spyOn(window, "alert").mockImplementation(() => {});
     sendBgMsg.mockRejectedValueOnce(new Error("permission denied"));
-    await act(async () => overlay.start(callbacks));
-    expect(alert).toHaveBeenCalledWith("截图失败，请检查页面访问权限后重试");
-    expect(callbacks.onCancel).toHaveBeenCalled();
-    expect(root()).toBeNull();
+    await act(async () => button("translate").click());
+    await flushCapture();
+    expect(alert).toHaveBeenCalledWith("permission denied");
+    expect(callbacks.onCancel).not.toHaveBeenCalled();
+    expect(root()).not.toBeNull();
     alert.mockRestore();
   });
 
-  test("coarse pointer gets touch hints and 44px handles", async () => {
+  test("coarse pointer gets touch hints and a wider draggable selection border", async () => {
     const previous = window.matchMedia;
     window.matchMedia = jest.fn(() => ({ matches: true }));
     try {
       act(() => overlay.destroy());
       overlay = new ScreenshotOverlay({});
       await act(async () => overlay.start(callbacks));
-      expect(root().textContent).toContain("拖动框选文字区域，点击 × 取消");
+      expect(root().textContent).toContain("拖动框选区域，可滚动页面扩展选区，点击 × 取消");
       expect(root().querySelector("button").style.minWidth).toBe("44px");
       drag(100, 120, 400, 280);
-      expect(root().querySelector(".kt-screenshot-handle").style.width).toBe(
-        "44px"
-      );
+      expect(root().querySelectorAll(".kt-screenshot-handle")).toHaveLength(0);
+      drag(400, 200, 430, 200, root().querySelector(".kt-screenshot-selection"));
+      expect(geometry().width).toBe("330px");
     } finally {
       window.matchMedia = previous;
     }
@@ -196,12 +254,23 @@ describe("ScreenshotOverlay", () => {
       Object.defineProperty(image, "naturalWidth", {
         value: window.innerWidth,
       });
+      Object.defineProperty(image, "naturalHeight", {
+        value: window.innerHeight,
+      });
       Object.defineProperty(image, "src", {
         get: () => "data:image/png;base64,capture",
         set: () => Promise.resolve().then(() => image.onload?.()),
       });
       return image;
     };
+    jest.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
+      () => ({
+        drawImage: jest.fn(),
+        set imageSmoothingEnabled(_value) {},
+        set imageSmoothingQuality(_value) {},
+      })
+    );
+    jest.spyOn(window, "scrollTo").mockImplementation(() => {});
     cropAndCompressImage.mockImplementation(async (_image, options) => ({
       blob: new Blob(["crop"], { type: "image/png" }),
       width: options.width * options.dpr,
@@ -243,23 +312,22 @@ describe("ScreenshotOverlay", () => {
   afterEach(() => {
     act(() => overlay.destroy());
     global.Image = originalImage;
+    HTMLCanvasElement.prototype.getContext.mockRestore();
+    window.scrollTo.mockRestore();
+    Object.defineProperty(window, "scrollX", { configurable: true, value: 0 });
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
     document.documentElement.removeAttribute("style");
     document.body.removeAttribute("style");
   });
 
-  test("uses one screenshot layer so page image styles cannot shift the selected pixels", () => {
-    const background = root().querySelector(".kt-screenshot-background");
+  test("uses the live page as the screenshot background and keeps the selection overlay", () => {
+    expect(root().querySelector(".kt-screenshot-background")).toBeNull();
     expect(root().querySelector("img")).toBeNull();
-    expect(background.style.all).toBe("initial");
-    expect(background.style.width).toBe("100vw");
-    expect(background.style.height).toBe("100vh");
-    expect(background.style.backgroundSize).toBe("100% 100%");
-    expect(
-      root().querySelector(".kt-screenshot-selection").children
-    ).toHaveLength(0);
-    expect(
-      root().querySelector(".kt-screenshot-mask").style.clipPath
-    ).toContain("polygon(evenodd");
+    expect(root().querySelector(".kt-screenshot-selection").children).toHaveLength(0);
+    expect(root().querySelector(".kt-screenshot-mask").style.clipPath).toContain(
+      "polygon(evenodd"
+    );
+    expect(root().style.touchAction).toBe("pan-x pan-y");
   });
 
   test("coalesces pointer movement into one frame and commits the latest selection on release", () => {
@@ -339,20 +407,19 @@ describe("ScreenshotOverlay", () => {
       330,
       510,
       360,
-      root().querySelectorAll(".kt-screenshot-handle")[4]
+      root().querySelector(".kt-screenshot-selection")
     );
     const selection = { ...geometry() };
     await act(async () => button("download").click());
+    await flushCapture();
     expect(cropAndCompressImage).toHaveBeenLastCalledWith(
-      expect.any(HTMLImageElement),
-      {
-        x: 60,
-        y: 90,
-        width: 450,
-        height: 270,
-        dpr: 2,
-        maxEdge: Infinity,
-      }
+      expect.any(HTMLCanvasElement),
+      expect.objectContaining({
+        width: expect.any(Number),
+        height: expect.any(Number),
+        dpr: 1,
+        maxEdge: 4096,
+      })
     );
     expect(downloadImageBlob).toHaveBeenCalledWith(
       expect.any(Blob),
@@ -369,6 +436,7 @@ describe("ScreenshotOverlay", () => {
   });
 
   test("locks selection during download, prevents duplicates and discards cancelled crops", async () => {
+    drag(10, 10, 80, 80);
     let finish;
     cropAndCompressImage.mockReturnValueOnce(
       new Promise((resolve) => {
@@ -377,6 +445,7 @@ describe("ScreenshotOverlay", () => {
     );
     const selection = geometry();
     act(() => button("download").click());
+    await flushCapture();
     const cropCount = cropAndCompressImage.mock.calls.length;
     act(() => button("download").click());
     drag(10, 10, 80, 80);
@@ -387,34 +456,46 @@ describe("ScreenshotOverlay", () => {
     expect(downloadImageBlob).not.toHaveBeenCalled();
   });
 
-  test("reports a download failure with a Snackbar and keeps the selection", async () => {
+  test("reports a download failure with an alert and keeps the selection", async () => {
+    const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+    drag(10, 10, 80, 80);
     cropAndCompressImage.mockRejectedValueOnce(new Error("export failed"));
+    const selection = geometry();
     await act(async () => button("download").click());
-    expect(document.querySelector(".MuiSnackbar-root").textContent).toContain(
-      "图片下载失败"
-    );
+    await flushCapture();
+    expect(alertMock).toHaveBeenCalledWith("export failed");
     expect(root()).not.toBeNull();
     expect(button("download").disabled).toBe(false);
-    const selection = geometry();
-    const closeNotice = document.querySelector(".MuiSnackbar-root button");
-    act(() => {
-      mouse(closeNotice, "pointerdown", 500, 30);
-      mouse(document, "pointerup", 500, 30);
-      closeNotice.click();
-    });
     expect(geometry()).toEqual(selection);
     expect(callbacks.onCancel).not.toHaveBeenCalled();
+    alertMock.mockRestore();
+  });
+
+  test("shows the localized message when JPEG encoding fails", async () => {
+    const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+    drag(10, 10, 80, 80);
+    cropAndCompressImage.mockRejectedValueOnce(
+      Object.assign(new Error("encoding failed"), {
+        code: "IMAGE_ENCODE_FAILED",
+      })
+    );
+    await act(async () => button("download").click());
+    await flushCapture();
+    expect(alertMock).toHaveBeenCalledWith("无法压缩截图，请重试");
+    alertMock.mockRestore();
   });
 
   test("retains all five buttons and excluded regions after opening the dialog", async () => {
     expect(root().matches(KISS_UI_SELECTOR)).toBe(true);
     await act(async () => button("layout").click());
+    await flushCapture();
     act(() =>
       root()
         .querySelectorAll("polygon")[1]
         .dispatchEvent(new MouseEvent("click", { bubbles: true }))
     );
     await act(async () => button("translate").click());
+    await flushCapture();
     expect(root().querySelectorAll("button.kt-image-dual-btn")).toHaveLength(5);
     expect(root().style.pointerEvents).not.toBe("none");
     expect(callbacks.onComplete.mock.calls[0][0].selectedRegions).toEqual([
@@ -434,12 +515,15 @@ describe("ScreenshotOverlay", () => {
 
   test("locks new selection, movement and resize during analysis and external tasks only", async () => {
     let finish;
-    sendBgMsg.mockReturnValueOnce(
-      new Promise((resolve) => {
-        finish = resolve;
-      })
-    );
+    sendBgMsg
+      .mockResolvedValueOnce({ dataUrl: "data:image/png;base64,capture" })
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+      );
     await act(async () => button("layout").click());
+    await flushCapture();
     const previous = geometry();
     expect(root().querySelectorAll(".kt-screenshot-handle")).toHaveLength(0);
     drag(150, 150, 180, 180);
@@ -448,7 +532,7 @@ describe("ScreenshotOverlay", () => {
     await act(async () =>
       finish({ success: true, result: { layout: { regions } } })
     );
-    expect(root().querySelectorAll(".kt-screenshot-handle")).toHaveLength(8);
+    expect(root().querySelectorAll(".kt-screenshot-handle")).toHaveLength(0);
     act(() => overlay.setTaskState(true));
     drag(150, 150, 180, 180);
     expect(geometry()).toEqual(previous);
@@ -460,7 +544,7 @@ describe("ScreenshotOverlay", () => {
       310,
       450,
       330,
-      root().querySelectorAll(".kt-screenshot-handle")[4]
+      root().querySelector(".kt-screenshot-selection")
     );
     expect(geometry().width).toBe("320px");
   });
@@ -473,6 +557,7 @@ describe("ScreenshotOverlay", () => {
       })
     );
     act(() => button("menu").click());
+    await flushCapture();
     const previous = geometry();
     drag(150, 150, 200, 200);
     expect(geometry()).toEqual(previous);
@@ -513,6 +598,7 @@ describe("ScreenshotOverlay", () => {
 
   test("menu toggles an existing dialog even during a task without cropping again", async () => {
     await act(async () => button("menu").click());
+    await flushCapture();
     const crops = cropAndCompressImage.mock.calls.length;
     callbacks.onToggleBox.mockReturnValue(true);
     act(() => overlay.setTaskState(true));
@@ -526,17 +612,20 @@ describe("ScreenshotOverlay", () => {
     "%s cancels analysis, restores adjustment, and ignores the late result",
     async (entry) => {
       let finish;
-      sendBgMsg.mockReturnValueOnce(
-        new Promise((resolve) => {
-          finish = resolve;
-        })
-      );
+      sendBgMsg
+        .mockResolvedValueOnce({ dataUrl: "data:image/png;base64,capture" })
+        .mockReturnValueOnce(
+          new Promise((resolve) => {
+            finish = resolve;
+          })
+        );
       await act(async () => button("layout").click());
+      await flushCapture();
       act(() => {
         if (entry === "button") button("layout").click();
         else overlay.setLayoutState(null);
       });
-      expect(root().querySelectorAll(".kt-screenshot-handle")).toHaveLength(8);
+      expect(root().querySelectorAll(".kt-screenshot-handle")).toHaveLength(0);
       expect(callbacks.onLocalBusyChange).toHaveBeenLastCalledWith(false);
       await act(async () =>
         finish({ success: true, result: { layout: { regions } } })
@@ -553,6 +642,7 @@ describe("ScreenshotOverlay", () => {
       })
     );
     act(() => button("translate").click());
+    await flushCapture();
     act(() => button("cancel").click());
     expect(root()).toBeNull();
     expect(callbacks.onCancel).toHaveBeenCalledTimes(1);
@@ -565,82 +655,27 @@ describe("ScreenshotOverlay", () => {
     expect(root().querySelector(".kt-screenshot-selection")).toBeNull();
   });
 
-  test("locks background scroll but allows popup scroll, and restores prior styles", async () => {
-    act(() => overlay.destroy());
-    document.documentElement.style.setProperty(
-      "overflow-y",
-      "scroll",
-      "important"
-    );
+  test("allows page scrolling while screenshot mode is active", async () => {
+    document.documentElement.style.setProperty("overflow-y", "scroll", "important");
     document.body.style.setProperty("overflow-x", "clip");
-    document.documentElement.style.setProperty(
-      "scrollbar-gutter",
-      "stable both-edges",
-      "important"
-    );
-    document.body.style.setProperty("scrollbar-gutter", "stable");
-    // Older jsdom versions discard unsupported scrollbar-gutter values.
-    const savedGutter =
-      document.documentElement.style.getPropertyValue("scrollbar-gutter");
-    const savedPriority =
-      document.documentElement.style.getPropertyPriority("scrollbar-gutter");
-    const savedBodyGutter =
-      document.body.style.getPropertyValue("scrollbar-gutter");
-    const gutterStyle = jest.spyOn(
-      document.documentElement.style,
-      "setProperty"
-    );
-    await act(async () => overlay.start(callbacks));
-    expect(document.documentElement.style.overflowY).toBe("hidden");
-    expect(gutterStyle).toHaveBeenCalledWith(
-      "scrollbar-gutter",
-      "auto",
-      "important"
-    );
     const wheel = new WheelEvent("wheel", { bubbles: true, cancelable: true });
     document.body.dispatchEvent(wheel);
-    expect(wheel.defaultPrevented).toBe(true);
+    expect(wheel.defaultPrevented).toBe(false);
     const key = new KeyboardEvent("keydown", {
       key: "PageDown",
       bubbles: true,
       cancelable: true,
     });
     document.body.dispatchEvent(key);
-    expect(key.defaultPrevented).toBe(true);
-    const popup = document.createElement("div");
-    popup.id = APP_CONSTS.imageBoxID;
-    document.body.appendChild(popup);
-    const inner = popup
-      .attachShadow({ mode: "open" })
-      .appendChild(document.createElement("div"));
-    const popupWheel = new WheelEvent("wheel", {
-      bubbles: true,
-      composed: true,
-      cancelable: true,
-    });
-    inner.dispatchEvent(popupWheel);
-    expect(popupWheel.defaultPrevented).toBe(false);
-    act(() =>
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))
-    );
+    expect(key.defaultPrevented).toBe(false);
+
+    act(() => window.dispatchEvent(new Event("scroll")));
     expect(document.documentElement.style.overflowY).toBe("scroll");
-    expect(
-      document.documentElement.style.getPropertyPriority("overflow-y")
-    ).toBe("important");
     expect(document.body.style.overflowX).toBe("clip");
-    expect(
-      document.documentElement.style.getPropertyValue("scrollbar-gutter")
-    ).toBe(savedGutter);
-    expect(
-      document.documentElement.style.getPropertyPriority("scrollbar-gutter")
-    ).toBe(savedPriority);
-    expect(document.body.style.getPropertyValue("scrollbar-gutter")).toBe(
-      savedBodyGutter
-    );
-    gutterStyle.mockRestore();
-    const after = new WheelEvent("wheel", { bubbles: true, cancelable: true });
-    document.body.dispatchEvent(after);
-    expect(after.defaultPrevented).toBe(false);
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    expect(root()).toBeNull();
+    expect(document.documentElement.style.overflowY).toBe("scroll");
+    expect(document.body.style.overflowX).toBe("clip");
   });
 
   test("failed analysis and crop unlock the same selection for retry", async () => {
@@ -649,20 +684,25 @@ describe("ScreenshotOverlay", () => {
     const error = jest.spyOn(console, "error").mockImplementation(() => {});
     try {
       const previous = geometry();
-      sendBgMsg.mockResolvedValueOnce({
-        success: false,
-        error: "analysis failed",
-      });
+      sendBgMsg
+        .mockResolvedValueOnce({ dataUrl: "data:image/png;base64,capture" })
+        .mockResolvedValueOnce({
+          success: false,
+          error: "analysis failed",
+        });
       await act(async () => button("layout").click());
+      await flushCapture();
       expect(alertMock).toHaveBeenLastCalledWith("analysis failed");
-      expect(root().querySelectorAll(".kt-screenshot-handle")).toHaveLength(8);
+      expect(root().querySelectorAll(".kt-screenshot-handle")).toHaveLength(0);
       cropAndCompressImage.mockRejectedValueOnce(new Error("crop failed"));
       await act(async () => button("translate").click());
+      await flushCapture();
       expect(alertMock).toHaveBeenLastCalledWith("crop failed");
       expect(geometry()).toEqual(previous);
-      expect(root().querySelectorAll(".kt-screenshot-handle")).toHaveLength(8);
+      expect(root().querySelectorAll(".kt-screenshot-handle")).toHaveLength(0);
       expect(callbacks.onCancel).not.toHaveBeenCalled();
       await act(async () => button("menu").click());
+      await flushCapture();
       expect(callbacks.onComplete).toHaveBeenCalledTimes(1);
     } finally {
       alertMock.mockRestore();

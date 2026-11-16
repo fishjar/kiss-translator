@@ -1,9 +1,16 @@
-/** Download an already prepared PNG without requesting extension permissions. */
+/** Download an already prepared image without requesting extension permissions. */
 export function downloadImageBlob(blob, source = "image") {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `kiss-${source}-${Date.now()}.png`;
+  const extensions = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/avif": "avif",
+  };
+  const extension = extensions[blob.type] || "png";
+  link.download = `kiss-${source}-${Date.now()}.${extension}`;
   link.style.display = "none";
   document.body.appendChild(link);
   try {
