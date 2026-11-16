@@ -11289,4 +11289,89 @@ describe("Translator rule styles", () => {
       expect(inner.textContent).toBe("YX finish line x");
     });
   });
+
+  describe("trusted hook compatibility", () => {
+    test("updateRule preserves trusted script updates", () => {
+      const translator = createTranslator({ transOpen: "false" });
+      translator.updateRule({
+        transStartHook: "args => args",
+        transEndHook: "args => args",
+        injectJs: "document.title = 'injected'",
+        toLang: "fr",
+      });
+      expect(translator.rule.transStartHook).toBe("args => args");
+      expect(translator.rule.transEndHook).toBe("args => args");
+      expect(translator.rule.injectJs).toBe("document.title = 'injected'");
+      expect(translator.rule.toLang).toBe("fr");
+    });
+
+    test("trusted runtime hook receives the existing service configuration", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Victim article text for audit</p></main>';
+      const hookScript = `args => {
+        document.documentElement.setAttribute('data-audit-key', args.apiSetting.key || 'redacted');
+        return args;
+      }`;
+      const translator = createTranslator(
+        { transOpen: "false" },
+        {
+          preInit: false,
+          transApis: [
+            {
+              ...createApiSetting(DEFAULT_API_SETTING.apiSlug),
+              key: "SECRET_API_KEY_123",
+            },
+          ],
+        }
+      );
+      translator.updateRule({ transStartHook: hookScript });
+      translator.enable();
+      await flushAsync();
+      await flushAsync();
+      expect(document.documentElement.getAttribute("data-audit-key")).toBe(
+        "SECRET_API_KEY_123"
+      );
+      expect(apiTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiSetting: expect.objectContaining({ key: "SECRET_API_KEY_123" }),
+        })
+      );
+    });
+
+    test("hook switching services retains the destination service key", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Sample article for translation</p></main>';
+      const translator = createTranslator(
+        {
+          transOpen: "false",
+          apiSlug: DEFAULT_API_SETTING.apiSlug,
+          transStartHook:
+            "args => ({ ...args, apiSetting: args.apisMap.get('service-b') })",
+        },
+        {
+          preInit: false,
+          transApis: [
+            { ...createApiSetting(DEFAULT_API_SETTING.apiSlug), key: "KEY_A" },
+            {
+              ...createApiSetting("service-b"),
+              key: "KEY_B",
+              url: "https://b.invalid/translate",
+            },
+          ],
+        }
+      );
+      translator.enable();
+      await flushAsync();
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiSetting: expect.objectContaining({
+            apiSlug: "service-b",
+            key: "KEY_B",
+            url: "https://b.invalid/translate",
+          }),
+        })
+      );
+    });
+  });
 });
