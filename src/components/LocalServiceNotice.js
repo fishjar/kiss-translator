@@ -1,6 +1,5 @@
 import { Alert, Button } from "@mui/material";
 import localModelTasks from "../config/localModelTasks.json";
-import { getCatalogModel, getModelDisplayName } from "../localAi/core/catalog";
 
 /** File translation supplies the extension's model context, never the web page's OPFS. */
 export default function LocalServiceNotice({
@@ -39,7 +38,12 @@ export default function LocalServiceNotice({
       }
     >
       {[...new Set(missing)]
-        .map((id) => getModelDisplayName(getCatalogModel(id) || id, i18n))
+        .map((id) => {
+          const name = available.find((model) => model.id === id)?.name || id;
+          return id.startsWith("piper-")
+            ? i18n("model_name_piper", name).replace("{0}", id.slice(6))
+            : i18n(`model_name_${id.replace(/[-.]/g, "_")}`, name);
+        })
         .join("、")}
       {"："}
       {i18n(

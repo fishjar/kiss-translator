@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import LocalServiceNotice from "./LocalServiceNotice";
 import ExtensionLocalServiceNotice from "./ExtensionLocalServiceNotice";
 import { sharedModelManager as manager } from "../localAi/core/modelManager";
+import { LOCAL_AI_I18N } from "../config/locales/localAi";
 jest.mock("../libs/navigation", () => ({ openOptionsPage: jest.fn() }));
 jest.mock("../localAi/core/modelManager", () => ({
   sharedModelManager: {
@@ -20,7 +21,7 @@ const apis = [
     modelRef: "ppocr-v6-medium",
   },
 ];
-const i18n = (key, fallback) => fallback || key;
+const i18n = (key, fallback) => LOCAL_AI_I18N[key]?.zh || fallback || key;
 let container, root;
 beforeEach(() => {
   container = document.createElement("div");
@@ -119,14 +120,38 @@ test("names missing models across services, deduplicates them and falls back to 
           local("pp-doclayout-v3-onnx"),
           local("custom-model"),
         ]}
-        models={[{ id: "qwen2.5-0.5b", state: "downloading" }]}
-        i18n={(key, fallback) => key === "model_name_pp_doclayout_v3_onnx" ? "版面分析模型" : fallback || key}
+        models={[
+          { id: "qwen2.5-0.5b", name: "Qwen2.5 0.5B", state: "downloading" },
+        ]}
+        i18n={(key, fallback) =>
+          key === "model_name_pp_doclayout_v3_onnx"
+            ? "版面分析模型"
+            : fallback || key
+        }
       />
     )
   );
   expect(container.textContent.match(/版面分析模型/g)).toHaveLength(1);
   expect(container.textContent).toContain("Qwen2.5");
   expect(container.textContent).toContain("custom-model");
+});
+
+test("extension notices use manifest names without frontend catalogue imports", async () => {
+  manager.list.mockReturnValue([
+    {
+      manifest: { id: "custom-model", name: "Custom OCR" },
+      state: "not-installed",
+    },
+  ]);
+  await act(async () =>
+    root.render(
+      <ExtensionLocalServiceNotice
+        apis={[{ apiType: "LocalAI", modelRef: "custom-model" }]}
+        i18n={i18n}
+      />
+    )
+  );
+  expect(container.textContent).toContain("Custom OCR");
 });
 test("extension subscription is cleaned up and network services skip initialization", async () => {
   const unsubscribe = jest.fn();
