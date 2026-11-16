@@ -5,6 +5,13 @@ import {
 } from "../apis/trans";
 import { OPT_TRANS_OPENAI } from "../config/api";
 import { apiTranslate } from "../apis";
+import { createRealtimeStreamParser } from "../libs/stream";
+jest.mock("@streamparser/json", () =>
+  jest.requireActual("../../node_modules/@streamparser/json/dist/cjs/index.js")
+);
+const { TextDecoder, TextEncoder } = require("util");
+global.TextEncoder = global.TextEncoder || TextEncoder;
+global.TextDecoder = global.TextDecoder || TextDecoder;
 jest.mock("query-string", () => ({
   stringify: (value) => new URLSearchParams(value).toString(),
 }));
@@ -22,6 +29,39 @@ beforeEach(() =>
     yield { id: 0, result: ["甲", "en"] };
   })
 );
+
+test("native LINE streaming keeps split break tags out of emitted deltas", async () => {
+  handleTranslate.mockImplementationOnce(async function* () {
+    const parser = createRealtimeStreamParser();
+    for (const chunk of ["0 | First", "<br", ">", "<br /", ">Second"]) {
+      yield* parser.write(chunk);
+    }
+    yield { id: 0, result: ["First\n\nSecond", "en"] };
+  });
+  const registry = createNativeRegistry(() => ({
+    apiType: OPT_TRANS_OPENAI,
+    apiSlug: "line-stream",
+    useStream: true,
+    useBatchFetch: true,
+    batchProtocol: "line",
+    streamRenderMode: "realtime",
+  }));
+  const call = registry.invoke("line-stream", "translate", {
+    items: [{ id: "first", text: "First\n\nSecond" }],
+    targetLanguage: "zh-CN",
+  });
+  const events = [];
+  for await (const event of call.events) events.push(event);
+  await expect(call.result).resolves.toMatchObject({
+    items: [{ id: "first", text: "First\n\nSecond" }],
+  });
+  const deltas = events.filter((event) => event.type === "item.delta");
+  expect(deltas.every((event) => event.id === "first")).toBe(true);
+  expect(deltas.map((event) => event.text).join("")).toBe("First\n\nSecond");
+  expect(events.filter((event) => event.type === "item.complete")).toEqual([
+    expect.objectContaining({ id: "first", text: "First\n\nSecond" }),
+  ]);
+});
 
 test.each([undefined, {}, { systemPrompt: "Custom", userPrompt: "" }])(
   "native summary dispatch preserves absence versus custom prompt (%#)",
