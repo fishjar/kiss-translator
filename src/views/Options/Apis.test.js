@@ -2736,6 +2736,98 @@ describe("service capability field filtering", () => {
     jest.clearAllMocks();
     document.body.innerHTML = "";
   });
+  test("local TTS saves its voice, restores it, and resets it when switching engines", async () => {
+    const original = createApi({
+      apiType: "LocalAI",
+      sourceType: "local",
+      modelRef: "kokoro-82m",
+      device: "wasm",
+      enabledCapabilities: ["synthesizeSpeech"],
+    });
+    const view = await renderApis(original);
+    try {
+      expect(getInput(view.container, "voice").value).toBe("zf_xiaoxiao");
+      await act(async () =>
+        Simulate.change(getInput(view.container, "voice"), {
+          target: { value: "af_heart" },
+        })
+      );
+      await act(async () => Simulate.click(getSaveButton(view.container)));
+      const saved = view.update.mock.calls[0][0];
+      expect(saved.voice).toBe("af_heart");
+      await view.rerender([saved]);
+      expect(getInput(view.container, "voice").value).toBe("af_heart");
+      await act(async () =>
+        Simulate.change(getInput(view.container, "modelRef"), {
+          target: { value: "audio8-tts-0.1b-int8" },
+        })
+      );
+      expect(getInput(view.container, "voice").value).toBe("default");
+      await act(async () =>
+        Simulate.change(getInput(view.container, "voice"), {
+          target: { value: "en_female_warm" },
+        })
+      );
+      await act(async () => Simulate.click(getSaveButton(view.container)));
+      expect(view.update.mock.calls.at(-1)[0]).toMatchObject({
+        modelRef: "audio8-tts-0.1b-int8",
+        voice: "en_female_warm",
+      });
+      await act(async () =>
+        Simulate.change(getInput(view.container, "modelRef"), {
+          target: { value: "whisper-base-timestamped" },
+        })
+      );
+      expect(view.container.querySelector('[name="voice"]')).toBeNull();
+    } finally {
+      view.unmount();
+    }
+  });
+
+  test("system TTS refreshes late voices and saves the selected playback name", async () => {
+    const originalSynth = globalThis.speechSynthesis;
+    let refresh;
+    const getVoices = jest.fn(() => []);
+    const removeEventListener = jest.fn();
+    globalThis.speechSynthesis = {
+      getVoices,
+      addEventListener: (_event, listener) => {
+        refresh = listener;
+      },
+      removeEventListener,
+    };
+    const view = await renderApis(
+      createApi({
+        apiType: "SystemTTS",
+        sourceType: "builtin",
+        enabledCapabilities: ["speak"],
+      })
+    );
+    try {
+      expect(getInput(view.container, "voice").value).toBe("");
+      getVoices.mockReturnValue([{ name: "Test voice", lang: "en-US" }]);
+      await act(async () => {
+        refresh();
+      });
+      await act(async () =>
+        Simulate.change(getInput(view.container, "voice"), {
+          target: { value: "Test voice" },
+        })
+      );
+      await act(async () => Simulate.click(getSaveButton(view.container)));
+      expect(view.update).toHaveBeenCalledWith(
+        expect.objectContaining({ voice: "Test voice" })
+      );
+    } finally {
+      view.unmount();
+      expect(removeEventListener).toHaveBeenCalledWith(
+        "voiceschanged",
+        refresh
+      );
+      if (originalSynth === undefined) delete globalThis.speechSynthesis;
+      else globalThis.speechSynthesis = originalSynth;
+    }
+  });
   test.each(["recognizeText", "transcribe", "synthesizeSpeech", "evaluate"])(
     "local %s hides all language and translation fields",
     async (cap) => {

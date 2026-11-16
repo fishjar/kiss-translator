@@ -2,6 +2,8 @@ import { validateConfig, isSettingVisible } from "../providers/instances";
 import { PROVIDER_CAPABILITIES } from "../providers/capabilities";
 
 const fieldTasks = {
+  synthesizeSpeech: ["voice"],
+  speak: ["voice"],
   translate: [
     "aiTerms",
     "tone",
@@ -42,6 +44,7 @@ export const builtinSettingFields = [
     "modelListUrl",
     "modelRef",
     "device",
+    "voice",
     "region",
     "folderId",
     "customHeader",
