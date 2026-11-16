@@ -27,6 +27,52 @@ import {
 } from "../config";
 
 describe("createRealtimeStreamParser", () => {
+  test.each(["<br>", "<br/>", "<br />", "<BR >"])(
+    "keeps LINE prefixes stable across every split of %s",
+    (tag) => {
+      const wire = `0 | First${tag}${tag} Second\n1 | Third${tag} Fourth`;
+      const chunkings = Array.from({ length: wire.length - 1 }, (_, i) => [
+        wire.slice(0, i + 1),
+        wire.slice(i + 1),
+      ]);
+      chunkings.push([...wire]);
+      for (const chunks of chunkings) {
+        const parser = createRealtimeStreamParser();
+        const previous = new Map();
+        for (const chunk of chunks) {
+          for (const { id, partialText } of parser.write(chunk)) {
+            expect(partialText.startsWith(previous.get(id) || "")).toBe(true);
+            previous.set(id, partialText);
+          }
+        }
+        expect(previous.get(0)).toBe("First\n\n Second");
+        expect(previous.get(1)).toBe("Third\n Fourth");
+      }
+    }
+  );
+
+  test("releases LINE suffixes that turn out not to be break tags", () => {
+    const parser = createRealtimeStreamParser();
+    expect(parser.write("0 | First <br")).toEqual([
+      { id: 0, partialText: "First ", isComplete: false },
+    ]);
+    expect(parser.write("oken> <")).toEqual([
+      { id: 0, partialText: "First <broken> ", isComplete: false },
+    ]);
+    expect(parser.write(" 3")).toEqual([
+      { id: 0, partialText: "First <broken> < 3", isComplete: false },
+    ]);
+  });
+
+  test("preserves incomplete break tags on completed lines and in the raw buffer", () => {
+    const parser = createRealtimeStreamParser();
+    expect(parser.write("0 | First<br\n1 | Second<br /")).toEqual([
+      { id: 0, partialText: "First<br", isComplete: true },
+      { id: 1, partialText: "Second", isComplete: false },
+    ]);
+    expect(parser.getBuffer()).toBe("0 | First<br\n1 | Second<br /");
+  });
+
   test("streams partial text from wrapped JSON objects without duplicates", () => {
     const parser = createRealtimeStreamParser();
 

@@ -894,6 +894,61 @@ describe("Batch Translation Protocols & Custom Batch User Prompt", () => {
   });
 
   describe("handleTranslate - streaming missing segment fallback to non-stream", () => {
+    test.each([
+      ["text", ""],
+      ["html", ""],
+      ["text", "<br /"],
+      ["html", "<br /"],
+    ])(
+      "streams split LINE breaks in %s format with final suffix %s without fallback",
+      async (textFormat, suffix) => {
+        fetchStream.mockReturnValueOnce(
+          (async function* () {
+            for (const content of [
+              "0 | First",
+              "<br",
+              ">",
+              "<br /",
+              ">Second",
+              suffix,
+            ]) {
+              yield JSON.stringify({ choices: [{ delta: { content } }] });
+            }
+          })()
+        );
+        const results = [];
+        let previous = "";
+        for await (const item of handleTranslate(["First\n\nSecond"], {
+          from: "en",
+          to: "zh-CN",
+          textFormat,
+          apiSetting: getTestApiSetting({
+            batchProtocol: PROMPT_PROTOCOL_LINE,
+            useStream: true,
+            streamRenderMode: "realtime",
+          }),
+        })) {
+          if (typeof item.partialText === "string") {
+            expect(item.partialText.startsWith(previous)).toBe(true);
+            previous = item.partialText;
+          }
+          results.push(item);
+        }
+        expect(previous).toBe("First\n\nSecond");
+        expect(results.filter((item) => item.result)).toEqual([
+          {
+            id: 0,
+            result: [
+              `First\n\nSecond${textFormat === "html" ? suffix : ""}`,
+              "",
+            ],
+          },
+        ]);
+        expect(fetchStream).toHaveBeenCalledTimes(1);
+        expect(fetchData).not.toHaveBeenCalled();
+      }
+    );
+
     test("triggers non-stream fallback when stream drops intermediate segment (LINE protocol)", async () => {
       // 模拟流式阶段：模型遗漏了 id 1，只返回了 0 和 2
       const streamChunks = async function* () {
