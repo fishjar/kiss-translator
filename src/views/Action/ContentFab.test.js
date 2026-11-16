@@ -151,6 +151,16 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     );
   });
 
+  test("hides visibility controls on touch devices even when temporarily shown", () => {
+    useFab.mockReturnValue({ fab: { isHide: true }, updateFab });
+    render();
+    clickFab();
+    expect(container.querySelector('[role="menuitemcheckbox"]')).toBeNull();
+    expect(menuItems().map((item) => item.textContent)).not.toContain(
+      "touch_paragraph"
+    );
+  });
+
   test("localizes the screenshot menu item in English", () => {
     useI18n.mockReturnValue(newI18n("en"));
     render();
@@ -193,13 +203,11 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     }
     expect(menuItems().map((item) => item.textContent)).toEqual([
       "popup_translate_page",
-      "text_style_alt",
-      "selection_translate",
+      "fab_toggle_blur",
+      "fab_open_translation",
       "image_screenshot_translate",
       "open_menu",
       "open_setting",
-      "touch_paragraph",
-      "fab_turn_off",
     ]);
     expect(fab().querySelectorAll(".MuiSpeedDialIcon-root svg")).toHaveLength(
       2
@@ -276,7 +284,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(menuItems()[2].getAttribute("aria-disabled")).toBe("true");
     act(() => menuItems()[2].click());
     expect(processActions).not.toHaveBeenCalled();
-    expect(menuItems()).toHaveLength(8);
+    expect(menuItems()).toHaveLength(6);
 
     pressMenuKey("ArrowDown");
     expect(focusRoot.activeElement).toBe(menuItems()[1]);
@@ -331,11 +339,11 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     pressMenuKey("ArrowUp");
     expect(focusRoot.activeElement).toBe(menuItems()[1]);
     expect(pressMenuKey("End").defaultPrevented).toBe(true);
-    expect(focusRoot.activeElement).toBe(menuItems()[7]);
+    expect(focusRoot.activeElement).toBe(menuItems()[5]);
     pressMenuKey("ArrowDown");
     expect(focusRoot.activeElement).toBe(menuItems()[0]);
     pressMenuKey("ArrowUp");
-    expect(focusRoot.activeElement).toBe(menuItems()[7]);
+    expect(focusRoot.activeElement).toBe(menuItems()[5]);
     expect(pressMenuKey("Home").defaultPrevented).toBe(true);
     expect(focusRoot.activeElement).toBe(menuItems()[0]);
     expect(processActions).not.toHaveBeenCalled();
@@ -375,7 +383,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
 
     pressMenuKey("Escape");
     clickFab();
-    pressMenuKey("t");
+    pressMenuKey("f");
 
     expect(focusRoot.activeElement).toBe(menuItems()[1]);
   });
@@ -392,6 +400,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   });
 
   test("saves only the hide preference and shows a themed reminder before hiding", async () => {
+    Object.defineProperty(navigator, "maxTouchPoints", { value: 0 });
     let finishSave;
     updateFab.mockReturnValue(new Promise((resolve) => (finishSave = resolve)));
     render();
@@ -426,6 +435,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   });
 
   test("a temporarily shown FAB can restore the always-show preference", async () => {
+    Object.defineProperty(navigator, "maxTouchPoints", { value: 0 });
     useFab.mockReturnValue({ fab: { isHide: true }, updateFab });
     render({ isHide: true });
     clickFab();
@@ -445,6 +455,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   });
 
   test("keeps the FAB and menu available if saving the preference fails", async () => {
+    Object.defineProperty(navigator, "maxTouchPoints", { value: 0 });
     updateFab.mockRejectedValue(new Error("Storage unavailable"));
     render();
     clickFab();
@@ -456,7 +467,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(onVisibilityChange).not.toHaveBeenCalled();
     expect(window.alert).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
-    expect(menuItems()).toHaveLength(8);
+    expect(menuItems()).toHaveLength(7);
     expect(menuItems().at(-1).getAttribute("aria-disabled")).toBeNull();
     act(() => dialog.querySelector("button").click());
     expect(onClose).not.toHaveBeenCalled();
@@ -465,6 +476,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   test.each([false, true])(
     "toggles the effective page preference for a matching exception (global hide: %s)",
     async (isHide) => {
+      Object.defineProperty(navigator, "maxTouchPoints", { value: 0 });
       const stored = { isHide, hideExceptionList: "*", size: 72 };
       useFab.mockReturnValue({ fab: stored, updateFab });
       render({ ...stored, isHide: !isHide });
@@ -496,6 +508,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   test.each(["Escape", "backdrop"])(
     "dismissing the shortcut reminder with %s hides the FAB",
     async (dismissal) => {
+      Object.defineProperty(navigator, "maxTouchPoints", { value: 0 });
       render();
       clickFab();
       await act(async () => menuItems().at(-1).click());
@@ -556,7 +569,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   test("switching to the panel action dismisses the menu and does not restore it later", () => {
     render();
     clickFab();
-    expect(menuItems()).toHaveLength(8);
+    expect(menuItems()).toHaveLength(6);
 
     render({ fabClickAction: 2 });
     expect(menuItems()).toHaveLength(0);
@@ -565,7 +578,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(processActions).not.toHaveBeenCalled();
 
     clickFab();
-    expect(menuItems()).toHaveLength(8);
+    expect(menuItems()).toHaveLength(6);
   });
 
   test.each([0, 1, 2])(
@@ -595,7 +608,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(draggableProps.expanded).toBe(true);
 
     act(() => draggableProps.onStart());
-    expect(menuItems()).toHaveLength(8);
+    expect(menuItems()).toHaveLength(6);
     act(() => draggableProps.onMove());
 
     expect(menuItems()).toHaveLength(0);
@@ -607,7 +620,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
 
     act(() => draggableProps.onStart());
     clickFab();
-    expect(menuItems()).toHaveLength(8);
+    expect(menuItems()).toHaveLength(6);
     expect(draggableProps.expanded).toBe(true);
   });
 
@@ -627,7 +640,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   test("entering video fullscreen closes an open menu", () => {
     render();
     clickFab();
-    expect(menuItems()).toHaveLength(8);
+    expect(menuItems()).toHaveLength(6);
 
     mockIsVideoFullscreen = true;
     act(() =>

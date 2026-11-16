@@ -1,3 +1,4 @@
+import { supportsTouch } from "../../libs/touchCapability";
 import TouchTranslateControl from "../../components/TouchTranslateControl";
 import {
   useCallback,
@@ -1120,59 +1121,79 @@ export default function PopupCont({
             />
           </button>
         ))}
-        {canEditRule || isDisabledPage ? (
+        <div
+          className={`kt-popup-rule-actions${supportsTouch() && !blockedControls ? " kt-popup-rule-actions--touch" : ""}`}
+        >
+          {canEditRule || isDisabledPage ? (
+            <button
+              type="button"
+              className="kt-popup-editor-button"
+              title={i18n(
+                editorOpening
+                  ? "popup_editor_opening"
+                  : editorError
+                    ? "popup_editor_failed"
+                    : "popup_edit_rule"
+              )}
+              aria-busy={editorOpening}
+              data-error={editorError}
+              disabled={blockedControls || editorOpening}
+              onClick={() => void handleOpenRuleEditor()}
+            >
+              <span>
+                {i18n(
+                  editorOpening
+                    ? "popup_editor_opening"
+                    : editorError
+                      ? "popup_editor_failed"
+                      : "popup_edit_rule"
+                )}
+              </span>
+              {editorOpening ? (
+                <OpenInNewRoundedIcon aria-hidden="true" />
+              ) : (
+                <HighlightAltRoundedIcon aria-hidden="true" />
+              )}
+            </button>
+          ) : (
+            <span />
+          )}
           <button
             type="button"
-            className="kt-popup-editor-button"
-            aria-busy={editorOpening}
-            data-error={editorError}
-            disabled={blockedControls || editorOpening}
-            onClick={() => void handleOpenRuleEditor()}
+            className={`kt-popup-save-button${saveStatus === "error" ? " kt-popup-save-button--error" : dirtyFields.length ? " kt-popup-save-button--dirty" : saved ? " kt-popup-save-button--saved" : ""}`}
+            disabled={
+              blockedControls ||
+              !selectedDomain ||
+              saveStatus === "saving" ||
+              Boolean(ruleUpdatePending) ||
+              translationTogglePending ||
+              (saved && saveStatus !== "error")
+            }
+            aria-busy={saveStatus === "saving"}
+            data-dirty-count={dirtyFields.length}
+            data-save-status={saveStatus}
+            title={(dirtyFields.length
+              ? i18n("popup_save_changes_hint").replace(
+                  "{fields}",
+                  dirtyFields
+                    .map((name) => fieldLabels[name])
+                    .join(i18n("popup_list_separator"))
+                )
+              : i18n("popup_save_site_hint")
+            ).replace("{domain}", selectedDomain)}
+            onClick={() => void handleSaveRule()}
           >
-            {i18n(
-              editorOpening
-                ? "popup_editor_opening"
-                : editorError
-                  ? "popup_editor_failed"
-                  : "popup_edit_rule"
-            )}
-            {editorOpening ? (
-              <OpenInNewRoundedIcon aria-hidden="true" />
-            ) : (
-              <HighlightAltRoundedIcon aria-hidden="true" />
-            )}
+            <SaveIcon aria-hidden="true" />
+            <span>{saveLabel}</span>
           </button>
-        ) : (
-          <span />
-        )}
-        <button
-          type="button"
-          className={`kt-popup-save-button${saveStatus === "error" ? " kt-popup-save-button--error" : dirtyFields.length ? " kt-popup-save-button--dirty" : saved ? " kt-popup-save-button--saved" : ""}`}
-          disabled={
-            blockedControls ||
-            !selectedDomain ||
-            saveStatus === "saving" ||
-            Boolean(ruleUpdatePending) ||
-            translationTogglePending ||
-            (saved && saveStatus !== "error")
-          }
-          aria-busy={saveStatus === "saving"}
-          data-dirty-count={dirtyFields.length}
-          data-save-status={saveStatus}
-          title={(dirtyFields.length
-            ? i18n("popup_save_changes_hint").replace(
-                "{fields}",
-                dirtyFields
-                  .map((name) => fieldLabels[name])
-                  .join(i18n("popup_list_separator"))
-              )
-            : i18n("popup_save_site_hint")
-          ).replace("{domain}", selectedDomain)}
-          onClick={() => void handleSaveRule()}
-        >
-          <SaveIcon aria-hidden="true" />
-          {saveLabel}
-        </button>
+          {!blockedControls && (
+            <TouchTranslateControl
+              processActions={dispatchTouchAction}
+              inlineFeedback
+              compact
+            />
+          )}
+        </div>
       </div>
       <GlobalFeatures
         setting={setting}
@@ -1184,12 +1205,6 @@ export default function PopupCont({
         isVisible={isVisible}
         onPageUnavailable={onPageUnavailable}
       />
-      {!blockedControls && (
-        <TouchTranslateControl
-          processActions={dispatchTouchAction}
-          inlineFeedback
-        />
-      )}
       <BottomActions>
         {!isInCurrentBlacklist && (
           <button

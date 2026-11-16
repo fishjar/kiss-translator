@@ -44,6 +44,15 @@ const TEXT_INPUT_TYPES = new Set(["text", "search", "email", "url", "tel"]);
 function isEditableTarget(node) {
   if (!node) return false;
 
+  // Extension controls can live inside nested shadow roots.
+  for (
+    let current = node;
+    current;
+    current = current.parentNode || current.host
+  ) {
+    if (current.hasAttribute?.("data-kiss-ui")) return false;
+  }
+
   if (node.disabled || node.readOnly) return false;
 
   // 1. 标准输入框
@@ -387,6 +396,11 @@ export class InputTranslator {
       this.#resizeObserver.observe(target);
 
       this.showFloatButton(target);
+    } else if (!this.#floatBtn?.contains(target)) {
+      this.hideFloatButton();
+      this.#activeInput = null;
+      this.#resizeObserver?.disconnect();
+      this.#resizeObserver = null;
     }
   }
 
