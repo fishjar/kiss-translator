@@ -19,6 +19,7 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 import BrightnessAutoIcon from "@mui/icons-material/BrightnessAuto";
 import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { FormatSizeRoundedIcon } from "../icons";
 import {
   useCallback,
   useEffect,
@@ -148,6 +149,12 @@ export default function TranslationPanelHeader({
       ownerDocument.removeEventListener("click", handleOutsideClick, true);
   }, [showMore]);
 
+  // 到达字号边界并禁用当前按钮时，把焦点交给另一侧仍可用的按钮，避免焦点
+  // 掉出菜单。单击与长按步进共用同一落点规则。
+  const focusOtherFontSizeButton = (button, delta) => {
+    const buttons = button?.parentElement?.querySelectorAll("button");
+    buttons?.[delta < 0 ? 1 : 0]?.focus();
+  };
   const changeFontSize = (event, delta) => {
     const nextSize = normalizeTranboxFontSize(readingFontSize + delta);
     if (
@@ -155,11 +162,134 @@ export default function TranslationPanelHeader({
       nextSize === TRANBOX_MAX_FONT_SIZE
     ) {
       // Keep keyboard navigation inside the menu when this button becomes disabled.
-      const buttons =
-        event.currentTarget.parentElement.querySelectorAll("button");
-      buttons[delta < 0 ? 1 : 0]?.focus();
+      focusOtherFontSizeButton(event.currentTarget, delta);
     }
     onFontSizeChange(nextSize);
+  };
+
+  // 长按连发：阈值 400ms 起振并步进一格，之后按 150ms 节奏连发；
+  // 步进到界即停，抬起后的 click 不再重复步进。
+  const fontSizeRepeatRef = useRef({
+    timer: null,
+    interval: null,
+    release: null,
+    held: false,
+    trigger: null,
+    pointerId: null,
+  });
+  const readingFontSizeRef = useRef(readingFontSize);
+  useEffect(() => {
+    readingFontSizeRef.current = readingFontSize;
+  }, [readingFontSize]);
+  const stopFontSizeRepeat = () => {
+    const repeat = fontSizeRepeatRef.current;
+    if (repeat.timer) {
+      clearTimeout(repeat.timer);
+      repeat.timer = null;
+    }
+    if (repeat.interval) {
+      clearInterval(repeat.interval);
+      repeat.interval = null;
+    }
+    if (repeat.release) {
+      repeat.release.target.removeEventListener(
+        "pointerup",
+        repeat.release.handler
+      );
+      repeat.release.target.removeEventListener(
+        "pointercancel",
+        repeat.release.handler
+      );
+      repeat.release = null;
+    }
+  };
+  // 卸载与菜单收起都停掉残留的连发定时器：菜单经 Escape 或外点收起后，
+  // 按住中的连发不得在隐藏的菜单里继续步进。
+  useEffect(() => stopFontSizeRepeat, []);
+  useEffect(() => {
+    if (showMore) return;
+    stopFontSizeRepeat();
+    fontSizeRepeatRef.current.held = false;
+  }, [showMore]);
+  const stepFontSize = (delta) => {
+    const current = readingFontSizeRef.current;
+    const nextSize = normalizeTranboxFontSize(current + delta);
+    if (nextSize === current) {
+      stopFontSizeRepeat();
+      // 步进到界即结束本次长按会话：按钮随即禁用、不再有尾随 click，
+      // 抑制标记不得残留吞掉下一次独立激活。
+      fontSizeRepeatRef.current.held = false;
+      return false;
+    }
+    onFontSizeChange(nextSize);
+    if (
+      nextSize === TRANBOX_MIN_FONT_SIZE ||
+      nextSize === TRANBOX_MAX_FONT_SIZE
+    ) {
+      // 本步刚触顶/触底：立即停连发、清抑制标记，并把焦点交给另一侧按钮，
+      // 使长按与单击的边界落点一致；避免释放落在下一节拍前时 held 残留。
+      stopFontSizeRepeat();
+      fontSizeRepeatRef.current.held = false;
+      focusOtherFontSizeButton(fontSizeRepeatRef.current.trigger, delta);
+      return false;
+    }
+    return true;
+  };
+  const startFontSizeRepeat = (event, delta) => {
+    event.stopPropagation();
+    // 仅主键按下进入长按会话：中键与右键不启动字号连发。
+    if (event.button > 0) return;
+    stopFontSizeRepeat();
+    const repeat = fontSizeRepeatRef.current;
+    repeat.held = false;
+    repeat.trigger = event.currentTarget;
+    // 会话归属发起指针：其他指针的抬起/滑离/取消不得替它收尾。合成事件
+    // 缺 pointerId 时归一为 null，与同为缺失的释放互相匹配（jsdom 兼容）。
+    repeat.pointerId = event.pointerId ?? null;
+    const release = (releaseEvent) => {
+      if ((releaseEvent.pointerId ?? null) !== repeat.pointerId) return;
+      stopFontSizeRepeat();
+    };
+    const ownerDoc = event.currentTarget.ownerDocument;
+    ownerDoc.addEventListener("pointerup", release);
+    ownerDoc.addEventListener("pointercancel", release);
+    repeat.release = { target: ownerDoc, handler: release };
+    repeat.timer = setTimeout(() => {
+      repeat.timer = null;
+      repeat.held = true;
+      if (stepFontSize(delta)) {
+        repeat.interval = setInterval(() => {
+          if (!stepFontSize(delta)) {
+            stopFontSizeRepeat();
+          }
+        }, 150);
+      }
+    }, 400);
+  };
+  const handleFontSizePointerUp = (event) => {
+    event.stopPropagation();
+    if ((event.pointerId ?? null) !== fontSizeRepeatRef.current.pointerId)
+      return;
+    stopFontSizeRepeat();
+  };
+  const cancelFontSizeRepeat = (event) => {
+    event.stopPropagation();
+    const repeat = fontSizeRepeatRef.current;
+    // 其他指针滑过按钮产生的 pointerleave/pointercancel 不得中止本会话。
+    if ((event.pointerId ?? null) !== repeat.pointerId) return;
+    // pointerup 结束连发后，释放产生的 pointerleave 不得清抑制标记：尾随 click
+    // 须消费它（短按单步、长按不多步）。仅连发仍活跃时的到达才是真实中止
+    // （按住拖离或 pointercancel），此时清除标记。
+    const stillRepeating = repeat.timer !== null || repeat.interval !== null;
+    stopFontSizeRepeat();
+    if (stillRepeating) repeat.held = false;
+  };
+  const handleFontSizeActivate = (event, delta) => {
+    if (fontSizeRepeatRef.current.held) {
+      fontSizeRepeatRef.current.held = false;
+      return;
+    }
+    changeFontSize(event, delta);
   };
 
   const handleMenuKeyDown = (event) => {
@@ -323,33 +453,40 @@ export default function TranslationPanelHeader({
             {i18n("btn_tip_dark_mode")}
           </button>
           {onFontSizeChange && (
-            <div
-              className="kt-tranbox-header__font-size"
-              role="group"
-              aria-label={i18n("tranbox_font_size")}
-            >
+            <div className="kt-tranbox-header__font-size">
+              <FormatSizeRoundedIcon />
               <span>{i18n("tranbox_font_size")}</span>
-              <button
-                type="button"
-                role="menuitem"
-                tabIndex={-1}
-                aria-label={i18n("tranbox_font_decrease")}
-                disabled={readingFontSize <= TRANBOX_MIN_FONT_SIZE}
-                onClick={(event) => changeFontSize(event, -1)}
-              >
-                <RemoveIcon />
-              </button>
-              <output aria-live="polite">{readingFontSize}px</output>
-              <button
-                type="button"
-                role="menuitem"
-                tabIndex={-1}
-                aria-label={i18n("tranbox_font_increase")}
-                disabled={readingFontSize >= TRANBOX_MAX_FONT_SIZE}
-                onClick={(event) => changeFontSize(event, 1)}
-              >
-                <AddIcon />
-              </button>
+              <div className="kt-tranbox-header__font-size-capsule">
+                <button
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  aria-label={i18n("tranbox_font_decrease")}
+                  disabled={readingFontSize <= TRANBOX_MIN_FONT_SIZE}
+                  onClick={(event) => handleFontSizeActivate(event, -1)}
+                  onPointerDown={(event) => startFontSizeRepeat(event, -1)}
+                  onPointerUp={handleFontSizePointerUp}
+                  onPointerLeave={cancelFontSizeRepeat}
+                  onPointerCancel={cancelFontSizeRepeat}
+                >
+                  <RemoveIcon />
+                </button>
+                <output aria-live="polite">{readingFontSize}px</output>
+                <button
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  aria-label={i18n("tranbox_font_increase")}
+                  disabled={readingFontSize >= TRANBOX_MAX_FONT_SIZE}
+                  onClick={(event) => handleFontSizeActivate(event, 1)}
+                  onPointerDown={(event) => startFontSizeRepeat(event, 1)}
+                  onPointerUp={handleFontSizePointerUp}
+                  onPointerLeave={cancelFontSizeRepeat}
+                  onPointerCancel={cancelFontSizeRepeat}
+                >
+                  <AddIcon />
+                </button>
+              </div>
             </div>
           )}
         </div>
