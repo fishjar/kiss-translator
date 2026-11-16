@@ -23,6 +23,7 @@ export default function ExtensionLocalServiceNotice({
             setRecords(
               manager.list().map((record) => ({
                 id: record.manifest.id,
+                name: record.manifest.name,
                 state: record.state,
               }))
             );

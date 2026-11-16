@@ -384,12 +384,13 @@ export class RuntimeManager {
       this.assertSessionVersion(service, req.options?.sessionVersion);
     if (target) {
       await this.modelManager.init();
-      if (
-        target.installedIds.some(
-          (id) => this.modelManager.get(id)?.state !== "installed"
-        )
-      ) {
-        throw new Error("MODEL_NOT_INSTALLED: 指定模型未安装");
+      const missing = target.installedIds.filter(
+        (id) => this.modelManager.get(id)?.state !== "installed"
+      );
+      if (missing.length) {
+        throw new Error(
+          `MODEL_NOT_INSTALLED: 模型未安装或下载不完整：${missing.map((id) => getCatalogModel(id)?.name || id).join("、")}。请先在本地 AI 模型中心完成安装。`
+        );
       }
     }
     if (this.cancelledRequests.has(req.id))
@@ -940,10 +941,14 @@ export class RuntimeManager {
     const model = getCatalogModel(modelRef);
     if (
       !model ||
-      model.task !== (service === "vlm" ? "ocr-vlm" : "llm") ||
-      this.modelManager.get(modelRef)?.state !== "installed"
+      model.task !== (service === "vlm" ? "ocr-vlm" : "llm")
     ) {
-      throw new Error("MODEL_NOT_INSTALLED: 本地大模型未安装");
+      throw new Error(`INVALID_MODEL: 模型不存在或与服务不兼容：${modelRef}`);
+    }
+    if (this.modelManager.get(modelRef)?.state !== "installed") {
+      throw new Error(
+        `MODEL_NOT_INSTALLED: 模型未安装或下载不完整：${model.name || modelRef}。请先在本地 AI 模型中心完成安装。`
+      );
     }
     const file = model.files[0];
     if (!file) throw new Error("MODEL_LOAD_FAILED: 模型文件缺失");
