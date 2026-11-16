@@ -928,9 +928,9 @@ describe("useSelectionController", () => {
     expect(controller.setBoxPosition).toHaveBeenCalledTimes(1);
     expect(controller.setBoxPosition).toHaveBeenLastCalledWith({
       x: 20,
-      // Selection top 420 - outer height (200 + TRANBOX_CHROME_HEIGHT 74) - boxOffsetY 10.
-      // Update this expectation when the constant in tranboxPosition.js changes.
-      y: 136,
+      // 选区顶部 420 - 面板外部高度 (200 + TRANBOX_CHROME_HEIGHT 68) - 偏移 10。
+      // tranboxPosition.js 中的高度常量变化时，同步更新此预期值。
+      y: 142,
     });
 
     act(() => {
