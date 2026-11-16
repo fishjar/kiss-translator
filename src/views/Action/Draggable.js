@@ -11,6 +11,7 @@ import { isMobile } from "../../libs/mobile";
 import { putFab } from "../../libs/storage";
 import { debounce } from "../../libs/utils";
 import Paper from "@mui/material/Paper";
+import { getViewportSize } from "../../libs/viewport";
 
 const FAB_EDGES = ["left", "right", "top", "bottom"];
 
@@ -292,8 +293,7 @@ export default function Draggable({
     const onResize = () => {
       if (!containerRef.current) return;
       const { x: px, y: py } = latestPosition.current;
-      const newWindowWidth = document.documentElement.clientWidth;
-      const newWindowHeight = document.documentElement.clientHeight;
+      const { w: newWindowWidth, h: newWindowHeight } = getViewportSize();
       const currentPosition = {
         x: px * newWindowWidth,
         y: py * newWindowHeight,

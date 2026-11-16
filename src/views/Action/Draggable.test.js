@@ -15,12 +15,28 @@ describe("Draggable FAB edge locking", () => {
   let originalClientWidth;
   let originalClientHeight;
   let getBoundingClientRect;
+  let originalInnerWidth;
+  let originalInnerHeight;
+  let originalScrollingElement;
 
   beforeEach(() => {
     jest.useFakeTimers();
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
+    originalInnerWidth = Object.getOwnPropertyDescriptor(window, "innerWidth");
+    originalInnerHeight = Object.getOwnPropertyDescriptor(
+      window,
+      "innerHeight"
+    );
+    originalScrollingElement = Object.getOwnPropertyDescriptor(
+      document,
+      "scrollingElement"
+    );
+    Object.defineProperty(document, "scrollingElement", {
+      configurable: true,
+      value: document.documentElement,
+    });
     originalClientWidth = Object.getOwnPropertyDescriptor(
       document.documentElement,
       "clientWidth"
@@ -73,11 +89,30 @@ describe("Draggable FAB edge locking", () => {
     jest.restoreAllMocks();
     putFab.mockReset();
     jest.useRealTimers();
-    restoreViewport("clientWidth", originalClientWidth);
-    restoreViewport("clientHeight", originalClientHeight);
+    restoreProperty(
+      document.documentElement,
+      "clientWidth",
+      originalClientWidth
+    );
+    restoreProperty(
+      document.documentElement,
+      "clientHeight",
+      originalClientHeight
+    );
+    restoreProperty(window, "innerWidth", originalInnerWidth);
+    restoreProperty(window, "innerHeight", originalInnerHeight);
+    restoreProperty(document, "scrollingElement", originalScrollingElement);
   });
 
   function setViewport(width, height) {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: width,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: height,
+    });
     Object.defineProperty(document.documentElement, "clientWidth", {
       configurable: true,
       value: width,
@@ -88,11 +123,11 @@ describe("Draggable FAB edge locking", () => {
     });
   }
 
-  function restoreViewport(property, descriptor) {
+  function restoreProperty(target, property, descriptor) {
     if (descriptor) {
-      Object.defineProperty(document.documentElement, property, descriptor);
+      Object.defineProperty(target, property, descriptor);
     } else {
-      delete document.documentElement[property];
+      delete target[property];
     }
   }
 
@@ -149,6 +184,28 @@ describe("Draggable FAB edge locking", () => {
     expect(draggable.style.transform).toBe("translate(580px, 200px)");
 
     setViewport(1200, 800);
+    act(() => window.dispatchEvent(new Event("resize")));
+    expect(draggable.style.transform).toBe("translate(1180px, 400px)");
+
+    rerenderFab(fab, { windowSize: { w: 1200, h: 800 } });
+    expect(draggable.style.transform).toBe("translate(1180px, 400px)");
+  });
+
+  test("uses the quirks-mode viewport during immediate resize", () => {
+    jest.spyOn(document, "compatMode", "get").mockReturnValue("BackCompat");
+    Object.defineProperty(document, "scrollingElement", {
+      configurable: true,
+      value: document.body,
+    });
+    jest.spyOn(document.body, "clientWidth", "get").mockReturnValue(1200);
+    jest.spyOn(document.body, "clientHeight", "get").mockReturnValue(800);
+    setViewport(1200, 800);
+    Object.defineProperty(document.documentElement, "clientHeight", {
+      configurable: true,
+      value: 9441,
+    });
+    const fab = renderFab();
+
     act(() => window.dispatchEvent(new Event("resize")));
     expect(draggable.style.transform).toBe("translate(1180px, 400px)");
 
