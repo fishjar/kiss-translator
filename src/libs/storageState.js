@@ -150,8 +150,11 @@ export function getStorageState(key, defaultValue) {
     return result;
   };
   const adoptBase = (value) => {
-    if (!isSameStorageValue(base, value)) revision += 1;
-    base = value;
+    // Equal refreshes must not restart consumers that depend on data identity.
+    if (!isSameStorageValue(base, value)) {
+      revision += 1;
+      base = value;
+    }
     initialized = true;
     publish();
   };
