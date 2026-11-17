@@ -191,7 +191,10 @@ export default function ImageTranslate() {
 
             <SettingsRow
               label={i18n("translation_service", "翻译服务")}
-              description={i18n("image_api_desc", "用于翻译识别后文字的服务")}
+              description={i18n(
+                "image_api_desc",
+                "翻译原文；图片解析已返回有效译文时自动跳过"
+              )}
             >
               <ServiceSelect
                 scene={imageSetting}
@@ -274,10 +277,10 @@ export default function ImageTranslate() {
 
             {isVlmService && (
               <SettingsRow
-                label={i18n("vlm_prompt", "视觉模型识别提示词")}
+                label={i18n("vlm_prompt", "视觉解析提示词")}
                 description={i18n(
                   "vlm_prompt_desc",
-                  "指定给 VLM 识别图像文本时的专用提示词"
+                  "选择原文识别、图片翻译或双语解析提示词"
                 )}
               >
                 <ScenePromptSelect
@@ -319,7 +322,7 @@ export default function ImageTranslate() {
                   }
                 >
                   <MenuItem value="">
-                    {i18n("layout_disabled", "不使用布局服务 (整图识别)")}
+                    {i18n("layout_disabled", "不调用独立界面分析服务")}
                   </MenuItem>
                   {layoutApis.map((api) => (
                     <MenuItem key={api.apiSlug} value={api.apiSlug}>

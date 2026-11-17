@@ -334,7 +334,8 @@ describe("ImageTranslateManager", () => {
       expect(document.querySelectorAll("polygon")).toHaveLength(0);
       expect(boxProps().selectedRegions).toBeNull();
       await act(async () => button("layout").click());
-      expect(mockSendBgMsg).toHaveBeenCalledTimes(2);
+      // An unavailable explicit service must not invoke an arbitrary fallback.
+      expect(mockSendBgMsg).toHaveBeenCalledTimes(1);
     });
 
     test.each(["translate", "menu"])(
@@ -483,6 +484,13 @@ describe("ImageTranslateManager", () => {
       act(() =>
         manager.updateSetting({
           ...setting,
+          transApis: [
+            ...setting.transApis,
+            {
+              ...setting.transApis.find((api) => api.apiSlug === "layout"),
+              apiSlug: "replacement",
+            },
+          ],
           imageTranslateSetting: { layoutApiSlug: "replacement" },
         })
       );

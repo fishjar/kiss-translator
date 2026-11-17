@@ -97,6 +97,16 @@ export function createProviderRegistry({
         }
         input = withDefaultPromptInput(instance, capability, input);
         validateInput(capability, input);
+        if (
+          capability === "parseImage" &&
+          input.protocol === "image-json" &&
+          !descriptor.includesTranslation &&
+          !descriptor.includesLayout
+        )
+          throw providerError(
+            "TASK_UNSUPPORTED",
+            "This service does not support structured image results."
+          );
         if (capability === "chat") {
           const modalities = descriptor.inputModalities || ["text"];
           for (const message of input.messages) {

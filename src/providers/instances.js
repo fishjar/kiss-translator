@@ -27,6 +27,9 @@ export function validateCapabilities(capabilities, { external = false } = {}) {
   for (const [name, descriptor] of Object.entries(capabilities)) {
     if (
       !PROVIDER_CAPABILITIES.includes(name) ||
+      (name !== "parseImage" &&
+        (descriptor?.includesTranslation !== undefined ||
+          descriptor?.includesLayout !== undefined)) ||
       (external && name === "speak") ||
       !descriptor ||
       typeof descriptor.handler !== "string" ||
@@ -44,7 +47,12 @@ export function validateCapabilities(capabilities, { external = false } = {}) {
           descriptor.inputModalities.some(
             (mode) => !["text", "image", "audio"].includes(mode)
           ))) ||
-      ["coordinates", "timestamps"].some(
+      [
+        "coordinates",
+        "timestamps",
+        "includesTranslation",
+        "includesLayout",
+      ].some(
         (key) =>
           descriptor[key] !== undefined && typeof descriptor[key] !== "boolean"
       ) ||

@@ -732,3 +732,17 @@ test.each(["batch", "nobatch", "dictionary"])(
     expect((resolved[fields[0]] + resolved[fields[1]]).trim()).not.toBe("");
   }
 );
+
+test("structured vision presets retain protocol metadata through custom copies and serialization", () => {
+  for (const slug of ["vlm-image-translation", "vlm-image-bilingual"]) {
+    const preset = PRESET_PROMPTS.find((prompt) => prompt.slug === slug);
+    const copy = normalizePrompt({
+      ...preset,
+      slug: "custom-" + slug,
+      name: "My image task",
+    });
+    expect(copy.protocol).toBe("image-json");
+    expect(normalizePrompt(JSON.parse(JSON.stringify(copy)))).toEqual(copy);
+    expect(copy.userPrompt).toContain("{{to}}");
+  }
+});

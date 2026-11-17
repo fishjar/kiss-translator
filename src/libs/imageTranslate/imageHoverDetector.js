@@ -109,12 +109,7 @@ export class ImageHoverDetector {
       );
       if (match) return match;
     }
-    return apis.find(
-      (a) =>
-        !a.isDisabled &&
-        isApiConfigured(a) &&
-        supportsApiCapability(a, "analyzeLayout")
-    );
+    return undefined;
   }
 
   #initContainer() {

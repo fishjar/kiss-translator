@@ -145,6 +145,8 @@ function getPromptPlaceholders(category) {
     return TRANSLATION_PROMPT_PLACEHOLDERS;
   }
 
+  if (category === PROMPT_CATEGORY_VLM)
+    return [INPUT_PLACE_FROM, INPUT_PLACE_TO, INPUT_PLACE_GLOSSARY];
   return [];
 }
 
@@ -354,6 +356,25 @@ function PromptFields({
         disabled={isPreset}
       />
 
+      {formData.category === PROMPT_CATEGORY_VLM && (
+        <TextField
+          select
+          size="small"
+          label={i18n("image_result_protocol", "图片结果协议")}
+          value={formData.protocol || ""}
+          disabled={isPreset}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, protocol: e.target.value }))
+          }
+        >
+          <MenuItem value="">
+            {i18n("image_protocol_original", "原文文本（兼容）")}
+          </MenuItem>
+          <MenuItem value="image-json">
+            {i18n("image_protocol_json", "结构化图片结果（JSON）")}
+          </MenuItem>
+        </TextField>
+      )}
       {formData.category !== PROMPT_CATEGORY_VLM && (
         <Stack spacing={1}>
           <CodeField

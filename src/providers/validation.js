@@ -1,4 +1,5 @@
 import { providerError } from "./capabilities";
+import { normalizeImageResult } from "./imageResult";
 import { translationProtocol } from "./sdk/translation";
 
 const object = (value) =>
@@ -232,6 +233,12 @@ export function validateInput(capability, input) {
       code,
       "Invalid image dimensions."
     );
+  if (capability === "parseImage")
+    requireValue(
+      input.protocol === undefined || input.protocol === "image-json",
+      code,
+      "Invalid image protocol."
+    );
   if (["recognizeText", "parseImage"].includes(capability))
     requireValue(
       input.mode === undefined ||
@@ -246,6 +253,7 @@ export function validateResult(capability, result, input, descriptor = {}) {
   checkPayloadBudget(result);
   const code = "INVALID_RESPONSE";
   requireValue(object(result), code, "Capability result must be an object.");
+  if (capability === "parseImage") result = normalizeImageResult(result, input);
   if (capability === "translate") {
     const expected = new Set(input.items.map((item) => item.id));
     requireValue(
@@ -372,7 +380,11 @@ export function validateResult(capability, result, input, descriptor = {}) {
       );
     }
   } else {
-    requireValue(text(result.text), code, "Text result is required.");
+    requireValue(
+      capability === "parseImage" || text(result.text),
+      code,
+      "Text result is required."
+    );
     if (capability === "dictionary")
       requireValue(
         ["text", "markdown"].includes(result.format),

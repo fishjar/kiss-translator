@@ -1159,4 +1159,133 @@ describe("pipelineCore", () => {
       }
     }
   );
+  test.each(["all", "recognize"])(
+    "%s retains a translation-only parsed image without invoking text translation",
+    async (action) => {
+      invokeBackgroundPlugin.mockReturnValueOnce({
+        result: Promise.resolve({
+          format: "text",
+          translation: {
+            text: "译文",
+            targetLanguage: "zh-CN",
+            format: "text",
+          },
+        }),
+        events: { async *[Symbol.asyncIterator]() {} },
+        cancel: jest.fn(),
+      });
+      const plugin = {
+        ...mockSetting.transApis.find((a) => a.apiSlug === "mock-vlm"),
+        apiSlug: "plugin",
+        provider: {
+          apiVersion: 1,
+          capabilities: {
+            parseImage: {
+              handler: "parseImage",
+              includesTranslation: true,
+              outputModes: ["complete"],
+            },
+          },
+          implementation: { kind: "script" },
+        },
+      };
+      const result = await executeImagePipeline({
+        action,
+        imageBlob: new Blob(["image"]),
+        setting: {
+          ...mockSetting,
+          transApis: [...mockSetting.transApis, plugin],
+        },
+        scene: {
+          recognitionService: { apiSlug: "plugin", capability: "parseImage" },
+          toLang: "zh-CN",
+          apiSlug: "mock-trans",
+        },
+      });
+      expect(result.originalText).toBe("");
+      expect(result.translatedText).toBe("译文");
+      expect(executeFileTranslation).not.toHaveBeenCalled();
+    }
+  );
+
+  test("fallback translates only missing region translations", async () => {
+    const result = await executeItemsTranslation({
+      setting: mockSetting,
+      scene: { toLang: "zh-CN" },
+      items: [
+        { text: "Hello", translation: "你好", translationLanguage: "zh-CN" },
+        { text: "World", translation: "" },
+        { text: "", translation: "" },
+      ],
+    });
+    expect(executeFileTranslation).toHaveBeenCalledTimes(1);
+    expect(executeFileTranslation.mock.calls[0][0]).toBe("World");
+    expect(result[0].translation).toBe("你好");
+    expect(result[2].error).toContain("original text");
+  });
+
+  test("structured fused parsing returns layout without preceding analysis or repeated recognition", async () => {
+    const plugin = {
+      apiSlug: "plugin",
+      provider: {
+        apiVersion: 1,
+        capabilities: {
+          parseImage: {
+            handler: "parseImage",
+            includesTranslation: true,
+            includesLayout: true,
+            outputModes: ["complete"],
+          },
+        },
+        implementation: { kind: "script" },
+      },
+    };
+    invokeBackgroundPlugin.mockReturnValueOnce({
+      result: Promise.resolve({
+        format: "text",
+        layout: {
+          regions: [
+            {
+              id: "r1",
+              type: "paragraph",
+              order: 0,
+              text: "Hello",
+              translation: "你好",
+              poly: [
+                [0, 0],
+                [200, 0],
+                [200, 100],
+                [0, 100],
+              ],
+            },
+          ],
+        },
+      }),
+      events: { async *[Symbol.asyncIterator]() {} },
+      cancel: jest.fn(),
+    });
+    const result = await executeImagePipeline({
+      imageBlob: new Blob(["image"]),
+      setting: {
+        ...mockSetting,
+        transApis: [...mockSetting.transApis, plugin],
+      },
+      scene: {
+        recognitionService: { apiSlug: "plugin", capability: "parseImage" },
+        toLang: "zh-CN",
+        apiSlug: "mock-trans",
+        layoutApiSlug: "mock-layout",
+        vlmPromptSlug: "vlm-image-bilingual",
+      },
+    });
+    expect(invokeBackgroundPlugin).toHaveBeenCalledTimes(1);
+    expect(createNativeRegistry).not.toHaveBeenCalled();
+    expect(executeFileTranslation).not.toHaveBeenCalled();
+    expect(result.items[0]).toMatchObject({
+      original: "Hello",
+      translation: "你好",
+      poly: null,
+    });
+    expect(result.layout.regions[0].bbox).toEqual([0, 0, 200, 100]);
+  });
 });

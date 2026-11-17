@@ -31,6 +31,7 @@ export default function ImageTranslateContent({
   actions,
   i18n = (k, d) => d || k,
 }) {
+  const hasSource = items.some((item) => (item.original || item.text)?.trim());
   const [copiedAll, setCopiedAll] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
 
@@ -98,11 +99,13 @@ export default function ImageTranslateContent({
             sx={{ minHeight: 38, "& .MuiTab-root": { minWidth: 48, px: 1 } }}
           >
             <Tab
+              disabled={items.length > 0 && !hasSource}
               value="bilingual"
               label={i18n("image_tab_bilingual", "双语")}
               sx={{ minHeight: 38, py: 0.5, fontSize: "13px" }}
             />
             <Tab
+              disabled={items.length > 0 && !hasSource}
               value="source"
               label={i18n("image_tab_source", "原文")}
               sx={{ minHeight: 38, py: 0.5, fontSize: "13px" }}
@@ -311,7 +314,7 @@ export default function ImageTranslateContent({
                         size="small"
                         variant="outlined"
                         color="error"
-                        disabled={busy}
+                        disabled={busy || !source}
                         onClick={() => onRetryItem?.(index)}
                         sx={{
                           py: 0.2,
