@@ -99,6 +99,21 @@ test("services can be tested without local authorization", async () => {
   expect(button("执行测试").disabled).toBe(false);
 });
 
+test("declared Origin rewriting domains are visible without changing settings", async () => {
+  await render({
+    ...api,
+    provider: {
+      ...api.provider,
+      permissions: {
+        network: ["https://api.invalid"],
+        originRewrite: ["https://api.invalid"],
+      },
+    },
+  });
+  expect(container.textContent).toContain("https://api.invalid");
+  expect(mockUpdateSetting).not.toHaveBeenCalled();
+});
+
 test("changing the model preserves explicitly disabled capabilities", async () => {
   const disabled = {
     ...api,

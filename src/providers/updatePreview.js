@@ -71,6 +71,10 @@ export function previewPackageUpdate(previous, incoming) {
     incomplete: false,
     source,
     network: delta(before.permissions?.network, after.permissions?.network),
+    originRewrite: delta(
+      before.permissions?.originRewrite,
+      after.permissions?.originRewrite
+    ),
     endpoints: delta(
       before.permissions?.endpointFields,
       after.permissions?.endpointFields
@@ -159,6 +163,10 @@ export function previewServiceUpdate(api, manifest, service) {
           after: display(field),
         };
       }),
+    originRewrite: delta(
+      before.permissions?.originRewrite,
+      manifest.permissions?.originRewrite
+    ),
     models: listChanges(before.models, service.models),
     prompts,
     skipped: [...new Set(skipped)],

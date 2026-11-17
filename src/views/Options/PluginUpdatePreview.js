@@ -61,6 +61,7 @@ export default function PluginUpdatePreview({ preview }) {
         <>
           {[
             "network",
+            "originRewrite",
             "endpoints",
             "services",
             "capabilities",

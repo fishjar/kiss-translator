@@ -54,3 +54,11 @@ The first implementation applies this scheduling to the webpage image/screenshot
 ## Compatibility and release
 
 The host checkout remains 2.2.5 during development. New official packages reserve `minHostVersion: "2.2.6"`; release maintainers must confirm the actual supporting release and adjust this floor if its version differs. Do not publish these packages before that host release. Production compatibility checks are unchanged. Plugin host tests may simulate that future version using the test-only `KISS_TRANSLATOR_TEST_VERSION=2.2.6` environment variable; this does not change the host checkout or runtime.
+
+## Plugin Origin rules
+
+`permissions.originRewrite` declares fixed HTTP/HTTPS origins requiring a same-origin Origin header. Entries must also appear in `permissions.network`; paths, queries, credentials and wildcards are forbidden. This permission is preserved in package and instance snapshots and displayed during import and upgrade. Normal request network validation still applies.
+
+The host collects declarations from enabled, compatible and configured external instances with at least one enabled capability, deduplicates origins, and merges them with saved user rules. User rules take precedence; stored `orilist` is unchanged. Multiple plugins/instances sharing an origin produce one rule, retained until the last contributor disappears. Installing a template alone activates nothing; custom endpoints are not automatically included.
+
+Startup and configuration changes synchronize the latest rules serially; unchanged rules do not write DNR. Affected requests await synchronization, without installing/removing rules per request. Synchronization failures block dependent calls while ordinary plugins remain unaffected. Only this extension's Origin rules are updated; CSP and other rules remain intact. Index declares `https://index-translate.bilibili.com` by default, so no manual Origin setting is needed.

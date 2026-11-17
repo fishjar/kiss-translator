@@ -246,9 +246,6 @@ export default function Settings() {
       case "csplist":
         isExt && sendBgMsg(MSG_UPDATE_CSP, { csplist: value });
         break;
-      case "orilist":
-        isExt && sendBgMsg(MSG_UPDATE_CSP, { orilist: value });
-        break;
       default:
     }
     updateSetting({
@@ -753,7 +750,10 @@ export default function Settings() {
             <TextField
               size="small"
               label={i18n("disabled_orilist")}
-              helperText={i18n("pattern_helper")}
+              helperText={i18n(
+                "plugin_origin_rules_merged",
+                "已启用插件声明的 Origin 地址由宿主另外去重合并，不写入此名单。"
+              )}
               name="orilist"
               value={orilist}
               onChange={handleChange}

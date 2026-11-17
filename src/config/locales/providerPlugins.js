@@ -1,4 +1,35 @@
 export const PROVIDER_PLUGINS_I18N = {
+  plugin_origin_rewrite: {
+    zh: "Origin 重写域名",
+    en: "Origin rewrite domains",
+    zh_TW: "Origin 重寫網域",
+    ja: "Origin 書き換えドメイン",
+    ko: "Origin 재작성 도메인",
+    tr: "Origin yeniden yazma alanları",
+    vi: "Miền ghi đè Origin",
+    ru: "Домены подмены Origin",
+  },
+  plugin_diff_originRewrite: {
+    zh: "Origin 重写域名",
+    en: "Origin rewrite domains",
+    zh_TW: "Origin 重寫網域",
+    ja: "Origin 書き換えドメイン",
+    ko: "Origin 재작성 도메인",
+    tr: "Origin yeniden yazma alanları",
+    vi: "Miền ghi đè Origin",
+    ru: "Домены подмены Origin",
+  },
+  plugin_origin_rules_merged: {
+    zh: "已启用插件声明的 Origin 地址由宿主另外去重合并，不写入此名单。",
+    en: "Enabled plugin Origin declarations are merged separately without changing this list.",
+    zh_TW: "已啟用外掛的 Origin 位址另行去重合併，不寫入此名單。",
+    ja: "有効なプラグインの Origin は別途統合され、このリストは変更されません。",
+    ko: "활성 플러그인의 Origin은 별도로 중복 제거되어 병합되며 이 목록은 변경되지 않습니다.",
+    tr: "Etkin eklentilerin Origin adresleri bu liste değiştirilmeden ayrıca birleştirilir.",
+    vi: "Origin của plugin đang bật được gộp và loại trùng riêng, không sửa danh sách này.",
+    ru: "Origin активных плагинов объединяются отдельно без изменения этого списка.",
+  },
+
   plugin_prompt_unavailable: {
     zh: "原提示词不可用，已跟随默认",
     en: "Previous prompt unavailable; using the default",

@@ -180,3 +180,25 @@ test("prompt redaction happens before JSON escaping of credentials", () => {
     "prefix [REDACTED] suffix"
   );
 });
+
+test("plugin and instance upgrade previews expose Origin rewrite permission changes", () => {
+  const before = {
+    permissions: { originRewrite: ["https://a.example"] },
+    services: [],
+  };
+  const after = {
+    permissions: { originRewrite: ["https://b.example"] },
+    services: [],
+  };
+  expect(
+    previewPackageUpdate({ manifest: before }, { manifest: after })
+      .originRewrite
+  ).toEqual({ added: ["https://b.example"], removed: ["https://a.example"] });
+  expect(
+    previewServiceUpdate(
+      { provider: { permissions: before.permissions, settings: [] } },
+      after,
+      { settings: [] }
+    ).originRewrite
+  ).toEqual({ added: ["https://b.example"], removed: ["https://a.example"] });
+});

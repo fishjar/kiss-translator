@@ -334,7 +334,11 @@ export interface PluginManifest extends PluginCompatibility {
   sharedSettings?: ProviderSetting[];
   icon?: string;
   resources?: Array<{ id: string; path: string; mimeType: string }>;
-  permissions?: { network?: string[]; endpointFields?: string[] };
+  permissions?: {
+    network?: string[];
+    endpointFields?: string[];
+    originRewrite?: string[];
+  };
 }
 export interface DeclarativeCondition {
   $if: { $ref: string };

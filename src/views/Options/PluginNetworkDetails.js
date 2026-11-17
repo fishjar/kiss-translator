@@ -72,6 +72,16 @@ export default function PluginNetworkDetails({ summary }) {
           </Typography>
         )
       )}
+      {Boolean(summary.originRewrite?.length) &&
+        section(
+          i18n("plugin_origin_rewrite", "Origin 重写域名"),
+          <Typography
+            variant="body2"
+            sx={{ overflowWrap: "anywhere", fontFamily: "monospace" }}
+          >
+            {summary.originRewrite.join("、")}
+          </Typography>
+        )}
       {section(
         i18n("plugin_linked_services"),
         <Stack spacing={1} useFlexGap sx={{ minWidth: 0 }}>

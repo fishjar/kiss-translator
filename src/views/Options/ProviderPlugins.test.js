@@ -478,7 +478,7 @@ test("interface previews expand independently and copy declared templates withou
       "聚合翻译提示词",
       "词典提示词",
       "字幕提示词",
-      "图片识别提示词",
+      "视觉解析提示词",
     ]);
     const fields = [...preview.querySelectorAll("textarea")].filter(
       (item) => !item.getAttribute("aria-hidden")

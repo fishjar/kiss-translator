@@ -80,6 +80,13 @@ export function installProviderRelay() {
         const instance = setting.transApis.find(
           (api) => api.apiSlug === message.serviceId && !api.isDisabled
         );
+        if (instance?.provider?.permissions?.originRewrite?.length) {
+          const { ensurePluginOriginRules } = await import(
+            "./originRulesBackground"
+          );
+          await ensurePluginOriginRules(instance);
+          if (disconnected) return;
+        }
         const systemSpeech =
           instance?.apiType === OPT_TRANS_SYSTEM_TTS &&
           (!instance.provider ||
