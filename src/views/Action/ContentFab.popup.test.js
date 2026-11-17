@@ -8,7 +8,15 @@ import { PopupManager } from "../../libs/popupManager";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-jest.mock("../../components/TouchTranslateControl", () => () => null);
+jest.mock("../../hooks/useTouchTranslateState", () => ({
+  useTouchState: () => ({
+    state: { mode: "off", supported: true, blocked: false, direction: "left" },
+    failed: false,
+    saveFailed: false,
+    pending: false,
+    change: jest.fn(),
+  }),
+}));
 jest.mock("../../hooks/Setting", () => ({
   SettingProvider: ({ children }) => children,
 }));

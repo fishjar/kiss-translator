@@ -1,4 +1,6 @@
-jest.mock("../../components/TouchTranslateControl", () => () => null);
+jest.mock("../../hooks/useTouchTranslateState", () => ({
+  useTouchState: () => mockTouch,
+}));
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -17,8 +19,17 @@ import { sendBgMsg } from "../../libs/msg";
 import { useFab } from "../../hooks/Fab";
 import { useI18n } from "../../hooks/I18n";
 import { newI18n } from "../../config/i18n";
+import { ACTION_STYLES } from "./styles";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+const mockTouch = {
+  state: null,
+  failed: false,
+  saveFailed: false,
+  pending: false,
+  change: jest.fn(),
+};
 
 let mockIsVideoFullscreen = false;
 let draggableProps = null;
@@ -89,6 +100,16 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     updateFab = jest.fn().mockResolvedValue();
     onClose = jest.fn();
     onVisibilityChange = jest.fn();
+    mockTouch.state = {
+      mode: "off",
+      supported: true,
+      blocked: false,
+      direction: "left",
+    };
+    mockTouch.failed = false;
+    mockTouch.saveFailed = false;
+    mockTouch.pending = false;
+    mockTouch.change = jest.fn();
     useFab.mockReturnValue({ fab: {}, updateFab });
     jest.spyOn(window, "alert").mockImplementation(() => {});
     host = document.createElement("div");
@@ -125,7 +146,11 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
 
   const fab = () => container.querySelector(".kt-content-fab");
   const menuItems = () =>
-    Array.from(container.querySelectorAll(".kt-content-fab-menu__item"));
+    Array.from(
+      container.querySelectorAll(
+        "#kt-content-fab-menu .kt-content-fab-menu__item"
+      )
+    );
   const clickFab = () => act(() => fab().click());
   const pressMenuKey = (key) => {
     const event = new KeyboardEvent("keydown", {
@@ -137,6 +162,25 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     act(() => focusRoot.activeElement.dispatchEvent(event));
     return event;
   };
+  const gestureEntry = () => container.querySelector("#kt-fab-gesture-entry");
+  const gestureView = () =>
+    container.querySelector(".kt-content-fab-menu__gesture");
+  const gestureListbox = () =>
+    container.querySelector("#kt-fab-gesture-listbox");
+  const gestureOptions = () =>
+    Array.from(
+      container.querySelectorAll("#kt-fab-gesture-listbox [role='option']")
+    );
+  const setTouch = (patch) => {
+    Object.assign(mockTouch, patch);
+    render();
+  };
+  const openGestureView = () => {
+    expect(gestureEntry()).not.toBeNull();
+    act(() => gestureEntry().click());
+  };
+  const statusInPanel = () =>
+    container.querySelector(".kt-content-fab-menu [role='status']");
 
   test("uses Material 3 regular FAB geometry for edge snapping", () => {
     render();
@@ -208,6 +252,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
       "image_screenshot_translate",
       "open_menu",
       "open_setting",
+      "touch_mode_shorttouch_summary_off",
     ]);
     expect(fab().querySelectorAll(".MuiSpeedDialIcon-root svg")).toHaveLength(
       2
@@ -284,7 +329,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(menuItems()[2].getAttribute("aria-disabled")).toBe("true");
     act(() => menuItems()[2].click());
     expect(processActions).not.toHaveBeenCalled();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
 
     pressMenuKey("ArrowDown");
     expect(focusRoot.activeElement).toBe(menuItems()[1]);
@@ -339,11 +384,11 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     pressMenuKey("ArrowUp");
     expect(focusRoot.activeElement).toBe(menuItems()[1]);
     expect(pressMenuKey("End").defaultPrevented).toBe(true);
-    expect(focusRoot.activeElement).toBe(menuItems()[5]);
+    expect(focusRoot.activeElement).toBe(menuItems()[6]);
     pressMenuKey("ArrowDown");
     expect(focusRoot.activeElement).toBe(menuItems()[0]);
     pressMenuKey("ArrowUp");
-    expect(focusRoot.activeElement).toBe(menuItems()[5]);
+    expect(focusRoot.activeElement).toBe(menuItems()[6]);
     expect(pressMenuKey("Home").defaultPrevented).toBe(true);
     expect(focusRoot.activeElement).toBe(menuItems()[0]);
     expect(processActions).not.toHaveBeenCalled();
@@ -569,7 +614,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   test("switching to the panel action dismisses the menu and does not restore it later", () => {
     render();
     clickFab();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
 
     render({ fabClickAction: 2 });
     expect(menuItems()).toHaveLength(0);
@@ -578,7 +623,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(processActions).not.toHaveBeenCalled();
 
     clickFab();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
   });
 
   test.each([0, 1, 2])(
@@ -608,7 +653,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     expect(draggableProps.expanded).toBe(true);
 
     act(() => draggableProps.onStart());
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
     act(() => draggableProps.onMove());
 
     expect(menuItems()).toHaveLength(0);
@@ -620,7 +665,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
 
     act(() => draggableProps.onStart());
     clickFab();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
     expect(draggableProps.expanded).toBe(true);
   });
 
@@ -640,7 +685,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
   test("entering video fullscreen closes an open menu", () => {
     render();
     clickFab();
-    expect(menuItems()).toHaveLength(6);
+    expect(menuItems()).toHaveLength(7);
 
     mockIsVideoFullscreen = true;
     act(() =>
@@ -648,5 +693,867 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     );
 
     expect(menuItems()).toHaveLength(0);
+  });
+
+  test("gesture drill-down keeps level 1 a pure menu with a listbox entry", () => {
+    render();
+    clickFab();
+
+    const menu = container.querySelector("#kt-content-fab-menu");
+    expect(menu.getAttribute("role")).toBe("menu");
+    expect(
+      menu.querySelectorAll(
+        '[role="combobox"], .MuiSelect-root, .MuiSelect-select'
+      )
+    ).toHaveLength(0);
+    expect(gestureEntry()).not.toBeNull();
+    expect(gestureEntry().getAttribute("role")).toBe("menuitem");
+
+    expect(gestureView()).not.toBeNull();
+    expect(gestureView().hasAttribute("hidden")).toBe(true);
+    expect(gestureListbox().getAttribute("role")).toBe("listbox");
+    expect(
+      gestureListbox().querySelector(".kt-content-fab-menu__back")
+    ).toBeNull();
+    const options = gestureOptions();
+    expect(options).toHaveLength(4);
+    expect(options.map((option) => option.dataset.mode)).toEqual([
+      "off",
+      "tap",
+      "swipe-right",
+      "swipe-left",
+    ]);
+  });
+
+  test("selected gesture state marks exactly one option", () => {
+    setTouch({ state: { mode: "tap", supported: true, blocked: false } });
+    render();
+    clickFab();
+
+    const selected = gestureOptions().filter(
+      (option) => option.getAttribute("aria-selected") === "true"
+    );
+    expect(selected).toHaveLength(1);
+    expect(selected[0].dataset.mode).toBe("tap");
+  });
+
+  test("gesture entry carries popup semantics and toggles aria-expanded", () => {
+    render();
+    clickFab();
+
+    expect(gestureEntry().getAttribute("aria-haspopup")).toBe("listbox");
+    expect(gestureEntry().getAttribute("aria-controls")).toBe(
+      "kt-fab-gesture-listbox"
+    );
+    expect(gestureEntry().getAttribute("aria-expanded")).toBe("false");
+
+    openGestureView();
+
+    expect(gestureEntry().getAttribute("aria-expanded")).toBe("true");
+    expect(gestureView().hasAttribute("hidden")).toBe(false);
+    expect(gestureView().hasAttribute("aria-hidden")).toBe(false);
+    expect(
+      container.querySelector("#kt-content-fab-menu").hasAttribute("hidden")
+    ).toBe(true);
+
+    act(() =>
+      gestureView().querySelector(".kt-content-fab-menu__back").click()
+    );
+
+    expect(gestureEntry().getAttribute("aria-expanded")).toBe("false");
+    expect(gestureView().hasAttribute("hidden")).toBe(true);
+    expect(
+      container.querySelector("#kt-content-fab-menu").hasAttribute("hidden")
+    ).toBe(false);
+  });
+
+  test("gesture entry is excluded from visibility and selection item semantics", () => {
+    render();
+    clickFab();
+
+    expect(gestureEntry()).not.toBeNull();
+    expect(gestureEntry().hasAttribute("aria-checked")).toBe(false);
+    expect(gestureEntry().getAttribute("role")).toBe("menuitem");
+  });
+
+  test("drill-down containers are never focus targets and initial focus selects the current mode", () => {
+    render();
+    clickFab();
+
+    const menu = container.querySelector("#kt-content-fab-menu");
+    expect(menu.getAttribute("tabindex")).toBe("-1");
+    expect(gestureListbox().hasAttribute("tabindex")).toBe(false);
+    const listboxFocus = jest.spyOn(gestureListbox(), "focus");
+    const menuFocusSpy = jest.spyOn(menu, "focus");
+
+    openGestureView();
+
+    const selected = gestureListbox().querySelector(
+      '[role="option"][aria-selected="true"]'
+    );
+    expect(selected).not.toBeNull();
+    expect(selected.dataset.mode).toBe("off");
+    expect(focusRoot.activeElement).toBe(selected);
+    expect(listboxFocus).not.toHaveBeenCalled();
+    expect(menuFocusSpy).not.toHaveBeenCalled();
+  });
+
+  test.each(["Escape", "ArrowLeft"])(
+    "%s from the listbox returns to the entry without closing the panel",
+    (key) => {
+      render();
+      clickFab();
+      openGestureView();
+      const focused = focusRoot.activeElement;
+      expect(focused.closest("#kt-fab-gesture-listbox")).not.toBeNull();
+      const onPageKeyDown = jest.fn();
+      window.addEventListener("keydown", onPageKeyDown);
+
+      try {
+        const event = new KeyboardEvent("keydown", {
+          key,
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+        });
+        act(() => focused.dispatchEvent(event));
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(onPageKeyDown).not.toHaveBeenCalled();
+        expect(menuItems()).not.toHaveLength(0);
+        expect(focusRoot.activeElement).toBe(gestureEntry());
+      } finally {
+        window.removeEventListener("keydown", onPageKeyDown);
+      }
+    }
+  );
+
+  test.each(["Enter", " ", "ArrowRight"])(
+    "activating the gesture entry with %s drills into level 2",
+    (key) => {
+      render();
+      clickFab();
+      const entry = gestureEntry();
+      expect(entry).not.toBeNull();
+      act(() => entry.focus());
+      const onPageKeyDown = jest.fn();
+      window.addEventListener("keydown", onPageKeyDown);
+
+      try {
+        expect(pressMenuKey(key).defaultPrevented).toBe(true);
+
+        expect(gestureEntry().getAttribute("aria-expanded")).toBe("true");
+        expect(focusRoot.activeElement).not.toBe(entry);
+        expect(gestureListbox().contains(focusRoot.activeElement)).toBe(true);
+        expect(onPageKeyDown).not.toHaveBeenCalled();
+      } finally {
+        window.removeEventListener("keydown", onPageKeyDown);
+      }
+    }
+  );
+
+  test("back button keyboard activation returns to the entry", () => {
+    render();
+    clickFab();
+    openGestureView();
+    const back = gestureView().querySelector(".kt-content-fab-menu__back");
+    act(() => back.focus());
+    expect(pressMenuKey("Enter").defaultPrevented).toBe(true);
+    expect(focusRoot.activeElement).toBe(gestureEntry());
+  });
+
+  test("ArrowUp from the first option reaches the back button", () => {
+    render();
+    clickFab();
+    openGestureView();
+    const back = gestureView().querySelector(".kt-content-fab-menu__back");
+    act(() => gestureOptions()[0].focus());
+
+    expect(pressMenuKey("ArrowUp").defaultPrevented).toBe(true);
+    expect(focusRoot.activeElement).toBe(back);
+  });
+
+  test("back button arrow roving wraps across the first and last options", () => {
+    render();
+    clickFab();
+    openGestureView();
+    const back = gestureView().querySelector(".kt-content-fab-menu__back");
+
+    act(() => back.focus());
+    expect(pressMenuKey("ArrowDown").defaultPrevented).toBe(true);
+    expect(focusRoot.activeElement).toBe(gestureOptions()[0]);
+
+    act(() => back.focus());
+    expect(pressMenuKey("ArrowUp").defaultPrevented).toBe(true);
+    expect(focusRoot.activeElement).toBe(gestureOptions()[3]);
+  });
+
+  test("ArrowDown from the last option reaches the back button", () => {
+    render();
+    clickFab();
+    openGestureView();
+    const back = gestureView().querySelector(".kt-content-fab-menu__back");
+    act(() => gestureOptions()[3].focus());
+
+    expect(pressMenuKey("ArrowDown").defaultPrevented).toBe(true);
+    expect(focusRoot.activeElement).toBe(back);
+  });
+
+  test("entry and back button labels localize to a four character label", () => {
+    useI18n.mockReturnValue(newI18n("zh"));
+    render();
+    clickFab();
+
+    const entry = gestureEntry();
+    expect(entry.textContent).toContain("手势翻译");
+    expect(entry.textContent).not.toContain("触摸");
+
+    openGestureView();
+    const back = gestureView().querySelector(".kt-content-fab-menu__back");
+    expect(back.textContent).toContain("手势翻译");
+    expect(back.textContent).not.toContain("触摸");
+  });
+
+  test.each([
+    ["off", "off", undefined],
+    ["tap", "tap", undefined],
+    ["swipe-right", "swipe", "right"],
+    ["swipe-left", "swipe", "left"],
+  ])(
+    "choosing %s dispatches change(mode, direction) and returns to level 1",
+    (value, mode, direction) => {
+      render();
+      clickFab();
+      openGestureView();
+      const option = gestureListbox().querySelector(
+        `[role="option"][data-mode="${value}"]`
+      );
+
+      act(() => option.click());
+
+      expect(mockTouch.change).toHaveBeenCalledWith(mode, direction);
+      expect(gestureEntry().getAttribute("aria-expanded")).toBe("false");
+      expect(focusRoot.activeElement).toBe(gestureEntry());
+    }
+  );
+
+  test.each(["Enter", " "])(
+    "%s selects the focused option, dispatches change and returns to the entry",
+    (key) => {
+      render();
+      clickFab();
+      openGestureView();
+      const tapOption = gestureListbox().querySelector(
+        '[role="option"][data-mode="tap"]'
+      );
+      act(() => tapOption.focus());
+
+      const event = pressMenuKey(key);
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(mockTouch.change).toHaveBeenCalledWith("tap", undefined);
+      expect(gestureEntry().getAttribute("aria-expanded")).toBe("false");
+      expect(focusRoot.activeElement).toBe(gestureEntry());
+    }
+  );
+
+  test("blocked state disables tap and swipe options and keeps roving on off", () => {
+    setTouch({
+      state: { mode: "off", supported: true, blocked: true, direction: "left" },
+    });
+    render();
+    clickFab();
+    openGestureView();
+
+    for (const option of gestureOptions()) {
+      const disabled = option.dataset.mode !== "off";
+      expect(option.getAttribute("aria-disabled")).toBe(
+        disabled ? "true" : null
+      );
+    }
+    expect(focusRoot.activeElement).toBe(
+      gestureListbox().querySelector('[role="option"][data-mode="off"]')
+    );
+
+    pressMenuKey("ArrowDown");
+    expect(focusRoot.activeElement).toBe(
+      gestureListbox().querySelector('[role="option"][data-mode="off"]')
+    );
+    pressMenuKey("ArrowUp");
+    expect(focusRoot.activeElement).toBe(
+      gestureListbox().querySelector('[role="option"][data-mode="off"]')
+    );
+  });
+
+  test("blocked off option still submits through the hook change", () => {
+    setTouch({
+      state: { mode: "off", supported: true, blocked: true, direction: "left" },
+    });
+    render();
+    clickFab();
+    openGestureView();
+
+    act(() =>
+      gestureListbox().querySelector('[role="option"][data-mode="off"]').click()
+    );
+
+    expect(mockTouch.change).toHaveBeenCalledWith("off", undefined);
+  });
+
+  test("selecting through a disabled option neither persists nor collapses the listbox", () => {
+    setTouch({
+      state: { mode: "off", supported: true, blocked: true, direction: "left" },
+    });
+    render();
+    clickFab();
+    openGestureView();
+    const tapOption = gestureListbox().querySelector(
+      '[role="option"][data-mode="tap"]'
+    );
+    expect(tapOption.getAttribute("aria-disabled")).toBe("true");
+
+    act(() => tapOption.click());
+
+    expect(mockTouch.change).not.toHaveBeenCalled();
+    expect(gestureView().hasAttribute("hidden")).toBe(false);
+  });
+
+  test("level 2 feedback reports page rejection without touching other controls", () => {
+    setTouch({ state: { mode: "tap", supported: true }, failed: true });
+    render();
+    clickFab();
+    openGestureView();
+
+    const status = container.querySelector('[role="status"]');
+    expect(status).not.toBeNull();
+    expect(status.textContent).toBe("touch_failed");
+  });
+
+  test.each([
+    "ArrowDown",
+    "ArrowUp",
+    "Home",
+    "End",
+    "Enter",
+    " ",
+    "ArrowLeft",
+    "Escape",
+  ])(
+    "level 2 containment: %s prevents default and stays inside the panel",
+    (key) => {
+      render();
+      clickFab();
+      openGestureView();
+      const focused = focusRoot.activeElement;
+      expect(focused.closest(".kt-content-fab-menu__gesture")).not.toBeNull();
+      const onPageKeyDown = jest.fn();
+      window.addEventListener("keydown", onPageKeyDown);
+
+      try {
+        const event = new KeyboardEvent("keydown", {
+          key,
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+        });
+        act(() => focused.dispatchEvent(event));
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(onPageKeyDown).not.toHaveBeenCalled();
+      } finally {
+        window.removeEventListener("keydown", onPageKeyDown);
+      }
+    }
+  );
+
+  test("level 2 arrow roving stays inside the listbox options", () => {
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(pressMenuKey("ArrowDown").defaultPrevented).toBe(true);
+    expect(focusRoot.activeElement).toBe(gestureOptions()[1]);
+    pressMenuKey("End");
+    expect(focusRoot.activeElement).toBe(gestureOptions()[3]);
+    pressMenuKey("Home");
+    expect(focusRoot.activeElement).toBe(gestureOptions()[0]);
+    expect(
+      focusRoot.activeElement.closest("#kt-fab-gesture-listbox")
+    ).not.toBeNull();
+  });
+
+  test("action styles ship the focus-visible ring with forced-colors fallback", () => {
+    expect(
+      ACTION_STYLES.includes(".kt-content-fab-menu__item:focus-visible") ||
+        ACTION_STYLES.includes(".kt-content-fab-menu__option:focus-visible")
+    ).toBe(true);
+    expect(ACTION_STYLES).toContain("outline: 2px solid var(--kt-pri)");
+    const ringIndex = ACTION_STYLES.indexOf(
+      ":focus-visible { outline: 2px solid var(--kt-pri)"
+    );
+    const forcedIndex = ACTION_STYLES.indexOf("@media (forced-colors: active)");
+    expect(ringIndex).toBeGreaterThan(-1);
+    expect(forcedIndex).toBeGreaterThan(-1);
+    expect(forcedIndex).toBeGreaterThan(ringIndex);
+    expect(ACTION_STYLES).toContain("outline: 2px solid CanvasText");
+  });
+
+  test("action styles keep a forced-colors marker for the selected option", () => {
+    const forcedIndex = ACTION_STYLES.indexOf("@media (forced-colors: active)");
+    const forcedBody = ACTION_STYLES.slice(forcedIndex);
+    expect(forcedBody).toMatch(
+      /\.kt-content-fab-menu__option\[aria-selected="true"\]\s*\{[^}]*border:\s*2px solid Highlight;/
+    );
+  });
+
+  test("action styles keep the geometry budget", () => {
+    expect(ACTION_STYLES).toContain(
+      "max-width: min(280px, calc(100vw - 24px))"
+    );
+    expect(ACTION_STYLES).toContain("min-height: 48px");
+    expect(ACTION_STYLES).toContain("min-width: 112px");
+    expect(ACTION_STYLES).toContain("width: max-content");
+    expect(ACTION_STYLES).toContain(
+      "max-height: min(400px, calc(100vh - 24px))"
+    );
+  });
+
+  test("gesture options carry no leading glyph and mark selection by state", () => {
+    setTouch({ state: { mode: "tap", supported: true, blocked: false } });
+    render();
+    clickFab();
+    openGestureView();
+
+    const options = gestureOptions();
+    const selected = options.filter(
+      (option) => option.getAttribute("aria-selected") === "true"
+    );
+    expect(selected).toHaveLength(1);
+    expect(selected[0].dataset.mode).toBe("tap");
+    expect(
+      options.filter(
+        (option) => option.getAttribute("aria-selected") === "false"
+      )
+    ).toHaveLength(3);
+    for (const option of options) {
+      expect(
+        option.querySelector(".kt-content-fab-menu__option-icon")
+      ).toBeNull();
+      expect(option.querySelector("svg")).toBeNull();
+    }
+  });
+
+  test("the gesture entry renders a single leading icon and no trailing chevron", () => {
+    render();
+    clickFab();
+
+    const entry = gestureEntry();
+    expect(entry.querySelectorAll(".MuiListItemIcon-root svg")).toHaveLength(1);
+    expect(entry.querySelectorAll("svg")).toHaveLength(1);
+    expect(entry.textContent).toContain("touch_mode_short");
+  });
+
+  test("glyphs never leak into the option accessible name", () => {
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(gestureOptions().map((option) => option.textContent)).toEqual([
+      "touch_summary_off",
+      "touch_summary_tap",
+      "touch_summary_right",
+      "touch_summary_left",
+    ]);
+  });
+
+  test("no feedback node exists while the mode is healthy", () => {
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(container.querySelector('[role="status"]')).toBeNull();
+  });
+
+  test("no feedback node exists before the state arrives", () => {
+    setTouch({ state: null });
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(container.querySelector('[role="status"]')).toBeNull();
+  });
+
+  test("a rejected change stays visible after the view returns to level 1", () => {
+    setTouch({ state: { mode: "tap", supported: true }, failed: true });
+    render();
+    clickFab();
+
+    const status = container.querySelector('[role="status"]');
+    expect(status).not.toBeNull();
+    expect(status.textContent).toBe("touch_failed");
+    expect(gestureView().hasAttribute("hidden")).toBe(true);
+    expect(status.closest("[hidden]")).toBeNull();
+  });
+
+  test.each([
+    [{ failed: true }, "touch_failed"],
+    [{ saveFailed: true }, "touch_save_failed"],
+    [{ failed: true, saveFailed: true }, "touch_save_failed"],
+    [{ state: null, failed: true }, "touch_failed"],
+    [{ state: null, saveFailed: true }, "touch_save_failed"],
+  ])("level 2 feedback surfaces %s", (patch, text) => {
+    setTouch({ ...patch });
+    render();
+    clickFab();
+    openGestureView();
+
+    const status = container.querySelector('[role="status"]');
+    expect(status).not.toBeNull();
+    expect(status.textContent).toBe(text);
+  });
+
+  test.each([
+    [
+      { mode: "off", supported: true, blocked: true, direction: "left" },
+      "touch_blocked",
+    ],
+    [{ mode: "off", supported: false }, "touch_unsupported"],
+  ])("level 2 feedback surfaces state %s", (state, text) => {
+    setTouch({ state });
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(container.querySelector('[role="status"]').textContent).toBe(text);
+  });
+
+  test("level 2 options expose a roving tab stop", () => {
+    render();
+    clickFab();
+    openGestureView();
+    const tabStops = () =>
+      gestureOptions().map((option) => option.getAttribute("tabindex"));
+
+    expect(tabStops()).toEqual(["0", "-1", "-1", "-1"]);
+    pressMenuKey("ArrowDown");
+    expect(tabStops()).toEqual(["-1", "0", "-1", "-1"]);
+    pressMenuKey("End");
+    expect(tabStops()).toEqual(["-1", "-1", "-1", "0"]);
+  });
+
+  test("the selected mode seeds the roving tab stop", () => {
+    setTouch({
+      state: { mode: "swipe", supported: true, direction: "left" },
+    });
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(
+      gestureOptions().map((option) => option.getAttribute("tabindex"))
+    ).toEqual(["-1", "-1", "-1", "0"]);
+  });
+
+  test("a disabled selected mode keeps the tab stop on the fallback", () => {
+    setTouch({ state: { mode: "tap", supported: false } });
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(
+      gestureOptions().map((option) => option.getAttribute("tabindex"))
+    ).toEqual(["0", "-1", "-1", "-1"]);
+  });
+
+  test("an unknown mode never leaves the listbox without a tab stop", () => {
+    setTouch({ state: { mode: "hover", supported: true } });
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(
+      gestureOptions().map((option) => option.getAttribute("tabindex"))
+    ).toEqual(["0", "-1", "-1", "-1"]);
+  });
+
+  test("a stop that becomes disabled while open falls back to off", () => {
+    setTouch({ state: { mode: "swipe", supported: true, direction: "left" } });
+    render();
+    clickFab();
+    openGestureView();
+    expect(gestureOptions()[3].getAttribute("tabindex")).toBe("0");
+
+    setTouch({ state: { mode: "swipe", supported: false } });
+
+    expect(gestureOptions()[0].getAttribute("tabindex")).toBe("0");
+    expect(gestureOptions()[3].getAttribute("tabindex")).toBe("-1");
+    expect(focusRoot.activeElement).toBe(gestureOptions()[3]);
+  });
+
+  test("Tab from level 2 closes the panel and restores the FAB", () => {
+    render();
+    clickFab();
+    openGestureView();
+    const event = new KeyboardEvent("keydown", {
+      key: "Tab",
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    });
+
+    act(() => focusRoot.activeElement.dispatchEvent(event));
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(menuItems()).toHaveLength(0);
+    expect(focusRoot.activeElement).toBe(fab());
+  });
+
+  test("entry metrics and ellipsis are pinned by the style contract", () => {
+    const itemRule = ACTION_STYLES.match(
+      /\.kt-content-fab-menu__item\s*\{([^}]*)\}/
+    )[1];
+    expect(itemRule).toContain("min-height: 48px");
+    expect(itemRule).toContain("padding: 0 16px");
+    expect(itemRule).toContain("border-radius: 4px");
+    expect(itemRule).toContain("font-size: 12.5px");
+    expect(itemRule).toContain("font-weight: 650");
+    expect(itemRule).toContain("line-height: 20px");
+    expect(ACTION_STYLES).toContain(
+      ".kt-content-fab-menu__item .MuiListItemText-root { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }"
+    );
+    expect(ACTION_STYLES).toContain(
+      ".kt-content-fab-menu__option-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }"
+    );
+    expect(ACTION_STYLES).toContain(
+      ".kt-content-fab-menu__option svg { width: 19px; height: 19px; flex-shrink: 0; }"
+    );
+  });
+
+  test.each(["ArrowDown", "ArrowUp", "Home", "End", "Enter", " "])(
+    "level 1 containment: %s prevents default and stays inside the panel",
+    (key) => {
+      render();
+      clickFab();
+      menuItems()[0].focus();
+      const onPageKeyDown = jest.fn();
+      window.addEventListener("keydown", onPageKeyDown);
+
+      try {
+        const event = pressMenuKey(key);
+        expect(event.defaultPrevented).toBe(true);
+        expect(onPageKeyDown).not.toHaveBeenCalled();
+      } finally {
+        window.removeEventListener("keydown", onPageKeyDown);
+      }
+    }
+  );
+
+  test.each(["Enter", " "])(
+    "%s activates the focused action item and closes the menu",
+    (key) => {
+      render();
+      clickFab();
+      menuItems()[1].focus();
+
+      expect(pressMenuKey(key).defaultPrevented).toBe(true);
+      expect(processActions).toHaveBeenCalledWith({
+        action: MSG_TRANS_TOGGLE_STYLE,
+      });
+      expect(menuItems()).toHaveLength(0);
+    }
+  );
+
+  test.each(["Enter", " "])(
+    "a disabled menu item never receives a synthetic activation on %s",
+    (key) => {
+      selectionEnabled = false;
+      render();
+      clickFab();
+      const item = menuItems()[2];
+      act(() => item.focus());
+      const clickSpy = jest.spyOn(item, "click");
+
+      const event = pressMenuKey(key);
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(clickSpy).not.toHaveBeenCalled();
+      expect(processActions).not.toHaveBeenCalled();
+    }
+  );
+
+  test("every interactive row renders a state layer node", () => {
+    render();
+    clickFab();
+
+    for (const item of menuItems()) {
+      expect(item.querySelector(".kt-state-layer")).not.toBeNull();
+    }
+    expect(
+      container
+        .querySelector(".kt-content-fab-menu__back")
+        .querySelector(".kt-state-layer")
+    ).not.toBeNull();
+
+    openGestureView();
+    for (const option of gestureOptions()) {
+      expect(option.querySelector(".kt-state-layer")).not.toBeNull();
+    }
+  });
+
+  test("hover and active feedback use the state layer, not solid tokens", () => {
+    expect(ACTION_STYLES).not.toContain("var(--kt-sf1)");
+    expect(ACTION_STYLES).not.toContain("transform: scale(.97)");
+    expect(ACTION_STYLES).toContain(
+      ".kt-content-fab-menu__item:hover .kt-state-layer { opacity: .08; }"
+    );
+    expect(ACTION_STYLES).toContain(
+      ".kt-content-fab-menu__item:active .kt-state-layer { opacity: .12; }"
+    );
+    expect(ACTION_STYLES).toContain(
+      ".kt-state-layer { position: absolute; inset: 0; border-radius: inherit; background: currentColor; opacity: 0; pointer-events: none; transition: opacity .2s ease; z-index: 1; }"
+    );
+    expect(ACTION_STYLES).toContain(
+      ".kt-content-fab-menu__item .MuiListItemIcon-root { min-width: 24px; color: var(--kt-onv); }"
+    );
+  });
+
+  test("menu rows suppress the theme solid hover in favor of the state layer", () => {
+    expect(ACTION_STYLES).toContain(
+      ".kt-content-fab-menu .kt-content-fab-menu__item:hover { background-color: transparent; }"
+    );
+    expect(ACTION_STYLES).toContain(
+      ".kt-content-fab-menu__item:hover .kt-state-layer { opacity: .08; }"
+    );
+  });
+
+  test("the hover override outranks the MUI theme menu item hover", () => {
+    // The theme injects one class + pseudo; the override scopes two classes
+    // plus pseudo, so it wins the cascade regardless of injection order.
+    const rule = ACTION_STYLES.match(
+      /([^{}]*:hover[^{}]*)\{\s*background-color:\s*transparent;?\s*\}/
+    );
+    expect(rule).not.toBeNull();
+    const classes = (rule[1].match(/\.[a-zA-Z][\w-]*/g) || []).length;
+    expect(classes).toBeGreaterThan(1);
+  });
+
+  test("ring nodes never render a focus state layer", () => {
+    expect(ACTION_STYLES).not.toMatch(
+      /kt-state-layer[^{}]*:focus|:focus[^{}]*kt-state-layer/
+    );
+  });
+
+  test("keyboard focus scrolls only the panel, never the page", () => {
+    render();
+    clickFab();
+    openGestureView();
+    const scroller = container.querySelector(".kt-content-fab-menu");
+    jest
+      .spyOn(scroller, "getBoundingClientRect")
+      .mockReturnValue({ top: 100, bottom: 200 });
+    jest
+      .spyOn(gestureOptions()[1], "getBoundingClientRect")
+      .mockReturnValue({ top: 260, bottom: 308 });
+
+    pressMenuKey("ArrowDown");
+
+    expect(scroller.scrollTop).toBe(108);
+    expect(window.scrollY).toBe(0);
+  });
+
+  test("focuses the back button when the gesture view has no usable option", () => {
+    setTouch({ pending: true });
+    clickFab();
+    openGestureView();
+    const back = gestureView().querySelector(".kt-content-fab-menu__back");
+    expect(back).not.toBeNull();
+    expect(focusRoot.activeElement).toBe(back);
+  });
+
+  test.each(["Enter", " "])("a disabled option stays inert to %s", (key) => {
+    setTouch({ state: { mode: "off", supported: true, blocked: true } });
+    render();
+    clickFab();
+    openGestureView();
+    const tapOption = gestureListbox().querySelector(
+      '[role="option"][data-mode="tap"]'
+    );
+    act(() => tapOption.focus());
+
+    const event = pressMenuKey(key);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(mockTouch.change).not.toHaveBeenCalled();
+  });
+
+  test("an in-flight save marks the listbox busy", () => {
+    setTouch({ pending: true });
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(gestureListbox().getAttribute("aria-busy")).toBe("true");
+  });
+
+  test("an in-flight save disables every option including off", () => {
+    setTouch({ pending: true, state: { mode: "off", supported: true } });
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(
+      gestureOptions().map((option) => option.getAttribute("aria-disabled"))
+    ).toEqual(["true", "true", "true", "true"]);
+  });
+
+  test("an in-flight save leaves the tab stop on no option", () => {
+    setTouch({ pending: true, state: { mode: "tap", supported: true } });
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(
+      gestureOptions().map((option) => option.getAttribute("tabindex"))
+    ).toEqual(["-1", "-1", "-1", "-1"]);
+
+    setTouch({ pending: false });
+
+    expect(
+      gestureOptions().map((option) => option.getAttribute("tabindex"))
+    ).toEqual(["-1", "0", "-1", "-1"]);
+  });
+
+  test("a pending save keeps the gesture view open when off is clicked", () => {
+    setTouch({ pending: true, state: { mode: "off", supported: true } });
+    render();
+    clickFab();
+    openGestureView();
+
+    act(() =>
+      gestureListbox().querySelector('[role="option"][data-mode="off"]').click()
+    );
+
+    expect(mockTouch.change).not.toHaveBeenCalled();
+    expect(gestureView().hasAttribute("hidden")).toBe(false);
+  });
+
+  test("a settled listbox keeps no busy attribute", () => {
+    render();
+    clickFab();
+    openGestureView();
+
+    expect(gestureListbox().hasAttribute("aria-busy")).toBe(false);
+  });
+
+  test("a swipe state without a direction shows no direction summary", () => {
+    setTouch({ state: { mode: "swipe", supported: true } });
+    render();
+    clickFab();
+
+    const summary = gestureEntry().querySelector(
+      ".kt-content-fab-menu__entry-summary"
+    );
+    expect(summary.textContent).not.toContain("touch_summary_left");
+    expect(summary.textContent).not.toContain("touch_summary_right");
   });
 });
