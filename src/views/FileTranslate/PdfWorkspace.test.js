@@ -11,6 +11,7 @@ jest.mock("./State", () => {
       context,
       connected: true,
       client: { request: mockRequest, session: { capabilities: ["doc"] } },
+      waitForSceneSave: mockWaitForPdfSceneSave,
       openSettings: jest.fn(),
       i18n: (_key, fallback) => fallback,
     }),
@@ -61,6 +62,7 @@ jest.mock("./PdfPage", () => {
     );
 });
 const mockRequest = jest.fn();
+const mockWaitForPdfSceneSave = jest.fn();
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let root, container;
 const originalObserver = globalThis.ResizeObserver,
@@ -1338,6 +1340,63 @@ test("changing visual settings releases a pending PDF translation for retry", as
     finishOld({ text: "late translation" });
     await oldTranslation;
   });
+});
+
+test("PDF recognition keeps results when the context catches up to the saved snapshot", async () => {
+  const { context } = require("./State").useFileTranslation();
+  const { parsePdfDocument } = require("../../libs/pdf/pdfParser");
+  const previousScene = context.scenes;
+  const previousSignatures = context.visualSignatures;
+  context.scenes = { pdf: { parseMode: "fast", toLang: "zh-CN" } };
+  context.visualSignatures = { pdf: "before-save" };
+  const saved = {
+    ...context,
+    scenes: { pdf: { parseMode: "fast", toLang: "ja" } },
+    visualSignatures: { pdf: "saved" },
+  };
+  mockWaitForPdfSceneSave.mockResolvedValueOnce(saved);
+  let finishRecognition;
+  parsePdfDocument.mockReturnValueOnce(
+    new Promise((resolve) => (finishRecognition = resolve))
+  );
+  const ref = createRef();
+  const file = new File(["pdf"], "saved.pdf");
+  try {
+    await act(async () => root.render(<PdfWorkspace ref={ref} file={file} />));
+    let running;
+    await act(async () => {
+      running = ref.current.oneClickTranslate();
+    });
+    const options = parsePdfDocument.mock.calls.at(-1)[1];
+    expect(options.toLang).toBe("ja");
+    expect(options.visualSignature).toContain("saved");
+    context.scenes = saved.scenes;
+    context.visualSignatures = saved.visualSignatures;
+    await act(async () => root.render(<PdfWorkspace ref={ref} file={file} />));
+    expect(options.signal.aborted).toBe(false);
+    await act(async () => {
+      finishRecognition({
+        complete: true,
+        assets: [],
+        blocks: [
+          {
+            ...incrementalBlock(1),
+            status: "done",
+            targetRaw: "訳文",
+            visualResult: { translation: "訳文", translationLanguage: "ja" },
+          },
+        ],
+      });
+      await running;
+    });
+    expect(ref.current.getBlocks()[0].targetRaw).toBe("訳文");
+    context.visualSignatures = { pdf: "later-edit" };
+    await act(async () => root.render(<PdfWorkspace ref={ref} file={file} />));
+    expect(ref.current.getBlocks()).toHaveLength(0);
+  } finally {
+    context.scenes = previousScene;
+    context.visualSignatures = previousSignatures;
+  }
 });
 
 test("Fast PDF parsing works with a structured prompt saved on an old host", async () => {

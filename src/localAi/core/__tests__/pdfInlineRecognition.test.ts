@@ -6,7 +6,12 @@ import { textRegion } from "../../../libs/pdf/formulaGeometry";
 import nativeAbsoluteFormulas from "./fixtures/pdfNativeAbsoluteFormulas.json";
 import nativeDisplayFormulas from "./fixtures/pdfNativeDisplayFormulas.json";
 import nativeParagraph from "./fixtures/pdfNativeParagraph.json";
-import { parseDocumentMarkdown } from "../../../libs/document/markdown";
+import {
+  documentMarkdown,
+  parseDocumentMarkdown,
+  translateDocumentBlocks,
+} from "../../../libs/document/markdown";
+import { imageResultItems, normalizeImageResult } from "../../../providers/imageResult";
 import nativeFormulaText from "./fixtures/pdfNativeFormulaText.json";
 import { renderPdfRegion } from "../../../libs/pdf/pdfDocument";
 
@@ -636,6 +641,40 @@ it("retains an original crop for translation-only children beside recognized ori
   expect(parsed.blocks[1].raw).toContain("assets/page-1-scan-visual-source.png");
   expect(parsed.blocks[1].targetRaw).toBe("仅译文");
   expect(parsed.blocks[1].fragments[0].bbox).toEqual([120, 30, 220, 130]);
+});
+
+it("retains and translates the full PDF source beside a coordinate-only layout", async () => {
+  const size = { width: 100, height: 50 };
+  const result = normalizeImageResult(
+    {
+      format: "markdown",
+      text: "First paragraph\n\nSecond paragraph",
+      layout: {
+        regions: [{
+          id: "r",
+          type: "paragraph",
+          order: 0,
+          poly: [[0, 0], [100, 0], [100, 50], [0, 50]],
+        }],
+      },
+    },
+    { imageSize: size }
+  );
+  const recognize = vi.fn(async () => ({
+    ...result,
+    imageSize: size,
+    items: imageResultItems(result),
+  }));
+  const options = config(recognize, [
+    { id: "scan", type: "paragraph", bbox: [20, 30, 220, 130], enabled: true },
+  ]);
+  options.previous.pages[0].spans = [];
+  const parsed = await parsePdfDocument(pdf, options);
+  expect(documentMarkdown(parsed.blocks)).toBe("First paragraph\n\nSecond paragraph");
+  const translate = vi.fn(async (text) => text.replace("paragraph", "段"));
+  await translateDocumentBlocks(parsed.blocks, translate);
+  expect(translate).toHaveBeenCalledTimes(2);
+  expect(documentMarkdown(parsed.blocks, "target")).toBe("First 段\n\nSecond 段");
 });
 
 it("never falls back to full-page recognition when all existing PDF regions are excluded", async () => {

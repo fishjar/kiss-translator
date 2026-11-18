@@ -41,6 +41,19 @@ const EMPTY = {
   ocrModels: [],
 };
 
+function patchSceneValues(scene, patch) {
+  return {
+    ...scene,
+    ...patch,
+    ...(patch.readerPreferences && {
+      readerPreferences: {
+        ...scene?.readerPreferences,
+        ...patch.readerPreferences,
+      },
+    }),
+  };
+}
+
 export function useFileTranslation() {
   return useContext(Context);
 }
@@ -86,11 +99,19 @@ export function FileTranslationProvider({ children }) {
   const clientRef = useRef(null);
   const writes = useRef(Promise.resolve());
   const sceneWrites = useRef({});
+  const optimisticWrites = useRef(new Set());
+  const contextRequest = useRef(0);
+  const confirmedContext = useRef({ request: 0, value: EMPTY });
   const active = useRef(false);
   const refresh = useCallback(async () => {
     const client = clientRef.current;
     const sessionId = client?.session?.sessionId;
     if (!sessionId) return;
+    const request = ++contextRequest.current;
+    // Only writes acknowledged before this read are guaranteed to be in it.
+    const alreadySaved = [...optimisticWrites.current].filter(
+      (entry) => entry.saved
+    );
     let next;
     try {
       next = await client.request("getContext");
@@ -99,8 +120,11 @@ export function FileTranslationProvider({ children }) {
         active.current &&
         client === clientRef.current &&
         sessionId === client.session?.sessionId
-      )
+      ) {
+        if (request < confirmedContext.current.request)
+          return confirmedContext.current.value;
         throw failure;
+      }
       return;
     }
     if (
@@ -108,7 +132,22 @@ export function FileTranslationProvider({ children }) {
       client === clientRef.current &&
       sessionId === client.session?.sessionId
     ) {
-      setContext(next);
+      if (request < confirmedContext.current.request)
+        return confirmedContext.current.value;
+      confirmedContext.current = { request, value: next };
+      alreadySaved.forEach((entry) => optimisticWrites.current.delete(entry));
+      const scenes = { ...next.scenes };
+      for (const entry of optimisticWrites.current) {
+        if (entry.client !== client || entry.sessionId !== sessionId) {
+          optimisticWrites.current.delete(entry);
+        } else {
+          scenes[entry.kind] = patchSceneValues(
+            scenes[entry.kind],
+            entry.patch
+          );
+        }
+      }
+      setContext({ ...next, scenes });
       if (validLanguage(next.uiLang)) {
         setCachedLanguage(next.uiLang);
         try {
@@ -117,6 +156,7 @@ export function FileTranslationProvider({ children }) {
           // Keep the current language even when persistent storage is unavailable.
         }
       }
+      return next;
     }
   }, []);
   const connect = useCallback(
@@ -246,11 +286,13 @@ export function FileTranslationProvider({ children }) {
         ...previous,
         scenes: {
           ...previous.scenes,
-          [kind]: { ...previous.scenes[kind], ...patch },
+          [kind]: patchSceneValues(previous.scenes[kind], patch),
         },
       }));
       const client = clientRef.current;
       const sessionId = client.session.sessionId;
+      const pending = { client, sessionId, kind, patch };
+      optimisticWrites.current.add(pending);
       const write = writes.current.then(async () => {
         if (
           client !== clientRef.current ||
@@ -258,6 +300,7 @@ export function FileTranslationProvider({ children }) {
         )
           return;
         await client.request("patchScene", { kind, patch });
+        pending.saved = true;
         if (
           active.current &&
           client === clientRef.current &&
@@ -265,41 +308,57 @@ export function FileTranslationProvider({ children }) {
         )
           setSaveError("");
       });
-      const pending = { client, sessionId, write };
+      pending.write = write;
       sceneWrites.current[kind] = pending;
-      writes.current = write
-        .catch(async (failure) => {
-          if (
-            active.current &&
-            client === clientRef.current &&
-            sessionId === client.session?.sessionId
-          ) {
-            setSaveError(failure.message);
-            await refresh().catch(() => {});
-          }
-        })
-        .finally(() => {
-          if (sceneWrites.current[kind] === pending)
-            delete sceneWrites.current[kind];
-        });
+      writes.current = write.catch(async (failure) => {
+        optimisticWrites.current.delete(pending);
+        if (
+          active.current &&
+          client === clientRef.current &&
+          sessionId === client.session?.sessionId
+        ) {
+          setSaveError(failure.message);
+          await refresh().catch(() => {});
+        }
+      });
     },
     [refresh]
   );
-  const waitForSceneSave = useCallback(async (kind) => {
-    const pending = sceneWrites.current[kind];
-    if (
-      !pending ||
-      pending.client !== clientRef.current ||
-      pending.sessionId !== pending.client.session?.sessionId
-    )
-      return;
-    await pending.write;
-    if (
-      pending.client !== clientRef.current ||
-      pending.sessionId !== pending.client.session?.sessionId
-    )
-      throw new Error("连接已变化，请重试");
-  }, []);
+  const waitForSceneSave = useCallback(
+    async (kind, signal) => {
+      const client = clientRef.current;
+      const sessionId = client?.session?.sessionId;
+      const check = () => {
+        if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+        if (
+          !active.current ||
+          !sessionId ||
+          client !== clientRef.current ||
+          sessionId !== client.session?.sessionId
+        )
+          throw new Error("连接已变化，请重试");
+      };
+      for (;;) {
+        check();
+        const pending = sceneWrites.current[kind];
+        if (pending?.client === client && pending.sessionId === sessionId) {
+          try {
+            await pending.write;
+          } catch (failure) {
+            if (sceneWrites.current[kind] === pending)
+              delete sceneWrites.current[kind];
+            throw failure;
+          }
+        }
+        check();
+        if (sceneWrites.current[kind] !== pending) continue;
+        const snapshot = await refresh();
+        check();
+        if (sceneWrites.current[kind] === pending) return snapshot;
+      }
+    },
+    [refresh]
+  );
 
   const allTextStyles = useMemo(
     () => [

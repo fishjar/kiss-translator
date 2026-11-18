@@ -9,6 +9,8 @@ const originalResizeObserver = globalThis.ResizeObserver;
 let mockConnected = true;
 let mockOnlineLanguage = "zh";
 let mockPdfStateOverrides = {};
+let mockVisualSignatures;
+let mockTerminologySignatures;
 const mockWaitForSceneSave = jest.fn();
 const mockAnalyzeLayout = jest.fn().mockResolvedValue({ regions: [] });
 beforeAll(() => {
@@ -36,6 +38,8 @@ jest.mock("./State", () => ({
     return {
       context: {
         features: { structuredImageResults: true },
+        visualSignatures: mockVisualSignatures,
+        terminologySignatures: mockTerminologySignatures,
         scenes: setting.fileTranslateSetting,
         services: setting.transApis,
         prompts: require("../../hooks/Prompt").usePromptList().prompts,
@@ -1120,10 +1124,71 @@ describe("FileTranslatePage (M2 UI)", () => {
       );
       await setup();
       await step("布局与识别");
-      expect(mockWaitForSceneSave).toHaveBeenLastCalledWith("image");
+      expect(mockWaitForSceneSave).toHaveBeenLastCalledWith(
+        "image",
+        expect.any(AbortSignal)
+      );
       expect(ops.recognizeFileImage).not.toHaveBeenCalled();
       await act(async () => finishSave());
       expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+    });
+
+    test("uses the saved image snapshot and keeps recognition through its context refresh", async () => {
+      const previousScenes = mockSetting.fileTranslateSetting;
+      mockSetting.fileTranslateSetting.image.layoutApiSlug = "";
+      mockVisualSignatures = { image: "before-save" };
+      mockTerminologySignatures = { image: "before-save-text" };
+      let finishRecognition;
+      ops.recognizeFileImage.mockReturnValueOnce(
+        new Promise((resolve) => (finishRecognition = resolve))
+      );
+      const saved = {
+        scenes: {
+          ...previousScenes,
+          image: { ...previousScenes.image, toLang: "ja" },
+        },
+        services: mockSetting.transApis,
+        features: { structuredImageResults: true },
+        visualSignatures: { image: "saved" },
+        terminologySignatures: { image: "saved-text" },
+      };
+      mockWaitForSceneSave.mockResolvedValueOnce(saved);
+      try {
+        await setup();
+        await act(async () => button("一键翻译").click());
+        expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+        mockSetting.fileTranslateSetting = saved.scenes;
+        mockVisualSignatures = saved.visualSignatures;
+        mockTerminologySignatures = saved.terminologySignatures;
+        await act(async () => root.render(<FileTranslatePage />));
+        await act(async () =>
+          finishRecognition({
+            items: [
+              {
+                text: "",
+                translation: "已保存术语的译文",
+                translationLanguage: "ja",
+                translationFromImage: true,
+                poly: null,
+              },
+              { text: "Missing", poly: null },
+            ],
+          })
+        );
+        expect(container.textContent).toContain("已保存术语的译文");
+        expect(lib.translateFileText).toHaveBeenCalledTimes(1);
+        expect(lib.translateFileText.mock.calls[0].slice(0, 2)).toEqual([
+          "Missing",
+          expect.objectContaining({ toLang: "ja" }),
+        ]);
+        mockVisualSignatures = { image: "later-edit" };
+        await act(async () => root.render(<FileTranslatePage />));
+        expect(container.textContent).not.toContain("已保存术语的译文");
+      } finally {
+        mockSetting.fileTranslateSetting = previousScenes;
+        mockVisualSignatures = undefined;
+        mockTerminologySignatures = undefined;
+      }
     });
 
     test("refresh keeps selection on the same visual region with duplicate text", async () => {

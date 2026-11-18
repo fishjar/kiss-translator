@@ -935,10 +935,10 @@ export async function parsePdfDocument(
             const recognized = cache.get(key);
             if (
               task === "doc" &&
+              recognized.items?.length &&
               (recognized.translation ||
-                recognized.layout ||
-                recognized.items?.some(
-                  (item) => item.translation || item.error
+                recognized.items.some(
+                  (item) => item.regionPoly || item.translation || item.error
                 ))
             ) {
               let sourceFallback = "";
