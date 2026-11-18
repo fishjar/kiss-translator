@@ -11,6 +11,7 @@ import {
 import { useI18n } from "../../hooks/I18n";
 import { useProviderI18n } from "../../hooks/ProviderI18n";
 import { capabilityLabelKeys } from "../../providers/capabilityLabels";
+import PluginFreeBadge from "./PluginFreeBadge";
 import {
   COMMUNITY_PAGE_SIZE,
   loadCommunityPluginMetadata,
@@ -98,6 +99,7 @@ function CommunityPluginCard({
               : fullName}
           </Link>
           {metadata && ` · ${metadata.version}`}
+          <PluginFreeBadge isFree={metadata?.isFree} />
         </Typography>
         <Button disabled={busy} onClick={() => onInstall(repo.html_url)}>
           {i18n("plugin_download_and_install")}
@@ -249,6 +251,7 @@ export default function PluginDirectory({
               <Stack direction="row" alignItems="center" spacing={2}>
                 <Typography sx={{ flex: 1, overflowWrap: "anywhere" }}>
                   {providerText(entry.name, entry.nameI18n)} · {entry.version}
+                  <PluginFreeBadge isFree={entry.isFree} />
                 </Typography>
                 <Button
                   disabled={busy || !!pluginCompatibilityError(entry)}

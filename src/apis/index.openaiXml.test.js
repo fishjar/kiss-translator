@@ -24,6 +24,8 @@ jest.mock("../libs/docInfo", () => ({
 import { apiTranslate } from "./index";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { DEFAULT_API_LIST, OPT_TRANS_OPENAI } from "../config";
+import { getBuiltinServiceDefinition } from "../builtin-plugins/definitions";
+import { clearAllBatchQueue } from "../libs/batchQueue";
 
 const getOpenAiApiSetting = () => ({
   ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_OPENAI),
@@ -44,6 +46,51 @@ const getOpenAiApiSetting = () => ({
 describe("apiTranslate OpenAI XML", () => {
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
+    clearAllBatchQueue();
+  });
+
+  test("splits queued paragraphs at the declared eight-item limit", async () => {
+    const definition = getBuiltinServiceDefinition(OPT_TRANS_OPENAI);
+    const apiSetting = {
+      ...getOpenAiApiSetting(),
+      apiSlug: "limited-batch-test",
+      batchSize: 20,
+      batchInterval: 20,
+      batchConcurrency: 1,
+      provider: {
+        ...definition,
+        apiVersion: 1,
+        capabilities: {
+          ...definition.capabilities,
+          translate: {
+            ...definition.capabilities.translate,
+            batch: { supported: true, maxItems: 8 },
+          },
+        },
+      },
+    };
+    const sizes = [];
+    jest
+      .spyOn(require("./trans"), "handleTranslate")
+      .mockImplementation(async (texts) => {
+        sizes.push(texts.length);
+        return texts.map(() => "译文");
+      });
+    const results = await Promise.all(
+      Array.from({ length: 17 }, (_, i) =>
+        apiTranslate({
+          text: `Source paragraph ${i}.`,
+          fromLang: "en",
+          toLang: "zh-CN",
+          apiSetting,
+          useCache: false,
+          usePool: false,
+        })
+      )
+    );
+    expect(sizes).toEqual([8, 8, 1]);
+    expect(results.every((r) => r.trText === "译文")).toBe(true);
   });
 
   test("returns trText for non-stream batched OpenAI-compatible XML response", async () => {

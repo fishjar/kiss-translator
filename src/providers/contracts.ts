@@ -198,8 +198,33 @@ export interface CapabilityMap {
     };
   };
   parseImage: {
-    input: CapabilityMap["recognizeText"]["input"];
-    result: OcrResult;
+    input: CapabilityMap["recognizeText"]["input"] & {
+      protocol?: "image-json";
+      sourceLanguage?: string;
+      targetLanguage?: string;
+      glossary?: Record<string, string>;
+    };
+    result: {
+      text?: string;
+      format: "text" | "markdown";
+      items?: OcrBlock[];
+      warnings?: string[];
+      translation?: {
+        text: string;
+        targetLanguage: string;
+        format: "text" | "markdown";
+      };
+      layout?: {
+        regions: Array<{
+          id: string;
+          type: string;
+          poly: number[][];
+          order: number;
+          text?: string;
+          translation?: string;
+        }>;
+      };
+    };
   };
   evaluate: {
     input: { state: DecisionState; questions: ProviderDecisionQuestions };
@@ -219,6 +244,8 @@ export interface CapabilityDescriptor {
   batch?: { supported: boolean; maxItems?: number };
   outputModes?: Array<"complete" | "stream">;
   inputModalities?: Array<"text" | "image" | "audio">;
+  includesTranslation?: boolean;
+  includesLayout?: boolean;
   coordinates?: boolean;
   taskModes?: Array<"doc" | "table" | "formula">;
   timestamps?: boolean;
@@ -283,7 +310,7 @@ export interface ServiceDefinition {
         descriptionI18n?: Record<string, string>;
         systemPrompt?: string;
         userPrompt?: string;
-        protocol?: "text" | "json" | "line" | "xml";
+        protocol?: "text" | "json" | "line" | "xml" | "image-json";
       }>
     >
   >;
@@ -302,12 +329,17 @@ export interface PluginManifest extends PluginCompatibility {
   id: string;
   name: string;
   version: string;
+  isFree?: boolean;
   apiVersion: 1;
   services: ServiceDefinition[];
   sharedSettings?: ProviderSetting[];
   icon?: string;
   resources?: Array<{ id: string; path: string; mimeType: string }>;
-  permissions?: { network?: string[]; endpointFields?: string[] };
+  permissions?: {
+    network?: string[];
+    endpointFields?: string[];
+    originRewrite?: string[];
+  };
 }
 export interface DeclarativeCondition {
   $if: { $ref: string };

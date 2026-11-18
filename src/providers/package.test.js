@@ -30,6 +30,18 @@ function pack(changes = {}) {
   });
 }
 
+test("free service declaration is optional and must be boolean", () => {
+  for (const value of [true, false]) {
+    expect(readProviderPackage(pack({ isFree: value })).manifest.isFree).toBe(
+      value
+    );
+  }
+  for (const value of ["true", 1, null, []]) {
+    expect(() => readProviderPackage(pack({ isFree: value }))).toThrow();
+  }
+  expect(readProviderPackage(pack()).manifest.isFree).toBeUndefined();
+});
+
 test("valid package retains executable entries but refuses traversal, native code and missing entries", () => {
   const parsed = readProviderPackage(pack());
   expect(parsed.implementations.chat).toContain("exports.chat");

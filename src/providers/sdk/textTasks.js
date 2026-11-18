@@ -1,3 +1,4 @@
+import { IMAGE_JSON_CONTRACT } from "../imageResult";
 import { compactMessages } from "./messages";
 import { providerError } from "../capabilities";
 import { validateResult } from "../validation";
@@ -56,6 +57,8 @@ export function buildTextTaskMessages(task, input, descriptor = {}) {
   if (["recognizeText", "parseImage"].includes(task) && descriptor.coordinates)
     contract =
       'Return only JSON {"text":"all extracted text","format":"text","items":[{"text":"region text","poly":[[0,0],[100,0],[100,50],[0,50]]}]}. Return actual text region polygons in image pixels, never invented or whole-image fallback boxes.';
+  if (task === "parseImage" && input.protocol === "image-json")
+    contract = IMAGE_JSON_CONTRACT;
   const explicitTemplates = ["dictionary", "summarize"].includes(task);
   const pair = resolvePromptPair(input.instructions, input.userPrompt, prompt);
   let user = render(
@@ -84,7 +87,12 @@ export function buildTextTaskMessages(task, input, descriptor = {}) {
         content: [
           {
             type: "text",
-            text: render(input.prompt ?? prompt.userPrompt) + details,
+            text:
+              render(input.prompt ?? prompt.userPrompt) +
+              (task === "parseImage" && input.protocol === "image-json"
+                ? `\nSource language: ${values.sourceLanguage}. Target language: ${values.targetLanguage}.\nGlossary:\n${values.glossary}`
+                : "") +
+              details,
           },
           { type: "image", asset: input.image },
         ],
@@ -114,7 +122,8 @@ export function parseTextTaskResult(task, text, input, descriptor = {}) {
   else if (task === "summarize") result = { text };
   else if (
     ["recognizeText", "parseImage"].includes(task) &&
-    !descriptor.coordinates
+    !descriptor.coordinates &&
+    !(task === "parseImage" && input.protocol === "image-json")
   )
     result = {
       text,
@@ -142,6 +151,5 @@ export function parseTextTaskResult(task, text, input, descriptor = {}) {
       model: descriptor.model || "unknown",
       usage: descriptor.usage || {},
     };
-  validateResult(task, result, input, descriptor);
-  return result;
+  return validateResult(task, result, input, descriptor);
 }

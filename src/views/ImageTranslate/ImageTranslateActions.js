@@ -142,7 +142,7 @@ export default function ImageTranslateActions({
             onRunAction?.("recognize");
           }}
         >
-          {i18n("image_recognition_service", "文本识别")}
+          {i18n("image_reparse", "重新解析图片")}
         </MenuItem>
         <MenuItem
           disabled={!hasRecognizedText}
@@ -151,7 +151,7 @@ export default function ImageTranslateActions({
             onRunAction?.("translate");
           }}
         >
-          {i18n("image_translate_text", "文本翻译")}
+          {i18n("image_fill_translation", "补译缺失内容")}
         </MenuItem>
       </Menu>
     </Box>

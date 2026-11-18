@@ -121,12 +121,7 @@ export class ScreenshotOverlay {
       );
       if (match) return match;
     }
-    return apis.find(
-      (a) =>
-        !a.isDisabled &&
-        isApiConfigured(a) &&
-        supportsApiCapability(a, "analyzeLayout")
-    );
+    return undefined;
   }
 
   async start({

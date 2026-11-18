@@ -182,7 +182,14 @@ export function ImageTranslateSettings({
         </FormControl>
 
         {/* 翻译服务 */}
-        <FormControl size="small" fullWidth>
+        <FormControl
+          size="small"
+          fullWidth
+          title={i18n(
+            "image_api_desc",
+            "翻译原文；图片解析已返回有效译文时自动跳过"
+          )}
+        >
           <InputLabel>{i18n("translation_service", "翻译服务")}</InputLabel>
           <Select
             label={i18n("translation_service", "翻译服务")}
@@ -225,7 +232,9 @@ export function ImageTranslateSettings({
             MenuProps={selectMenuProps}
           >
             <MenuItem value="">
-              <em>{i18n("image_setting_layout_none", "不启用")}</em>
+              <em>
+                {i18n("image_setting_layout_none", "不调用独立界面分析服务")}
+              </em>
             </MenuItem>
             {layoutServices.map((api) => (
               <MenuItem key={api.apiSlug} value={api.apiSlug}>
@@ -264,10 +273,10 @@ export function ImageTranslateSettings({
         {scene.recognitionService?.capability === "parseImage" && (
           <FormControl size="small" fullWidth>
             <InputLabel shrink>
-              {i18n("plugin_image_recognition_prompt", "识别提示词")}
+              {i18n("plugin_image_recognition_prompt", "视觉解析提示词")}
             </InputLabel>
             <Select
-              label={i18n("plugin_image_recognition_prompt", "识别提示词")}
+              label={i18n("plugin_image_recognition_prompt", "视觉解析提示词")}
               value={
                 vlmPrompts.some((p) => p.slug === scene.vlmPromptSlug)
                   ? scene.vlmPromptSlug

@@ -99,6 +99,21 @@ test("services can be tested without local authorization", async () => {
   expect(button("执行测试").disabled).toBe(false);
 });
 
+test("declared Origin rewriting domains are visible without changing settings", async () => {
+  await render({
+    ...api,
+    provider: {
+      ...api.provider,
+      permissions: {
+        network: ["https://api.invalid"],
+        originRewrite: ["https://api.invalid"],
+      },
+    },
+  });
+  expect(container.textContent).toContain("https://api.invalid");
+  expect(mockUpdateSetting).not.toHaveBeenCalled();
+});
+
 test("changing the model preserves explicitly disabled capabilities", async () => {
   const disabled = {
     ...api,
@@ -166,10 +181,57 @@ test("the cancel button still cancels an active service test", async () => {
   await render();
   await act(async () => button("执行测试").click());
   expect(invokeService).toHaveBeenCalledTimes(1);
+  expect(button("测试中…").disabled).toBe(true);
+  expect(
+    button("测试中…").querySelector('[role="progressbar"]')
+  ).not.toBeNull();
   await act(async () => button("取消").click());
   expect(cancel).toHaveBeenCalledTimes(1);
   expect(button("执行测试").disabled).toBe(false);
+  expect(container.querySelector('[role="progressbar"]')).toBeNull();
 });
+
+test.each(["success", "failure"])(
+  "test loading starts before saved configuration resolves and clears on %s",
+  async (outcome) => {
+    let loaded, finish, fail;
+    getSettingWithDefault.mockReturnValue(
+      new Promise((resolve) => {
+        loaded = resolve;
+      })
+    );
+    invokeService.mockReturnValue({
+      result: new Promise((resolve, reject) => {
+        finish = resolve;
+        fail = reject;
+      }),
+      events: (async function* () {})(),
+      cancel: jest.fn(),
+    });
+    await render();
+    await act(async () => button("执行测试").click());
+    expect(button("测试中…").getAttribute("aria-busy")).toBe("true");
+    expect(
+      button("测试中…").querySelector('[role="progressbar"]')
+    ).not.toBeNull();
+    expect(button("取消").disabled).toBe(false);
+    expect(invokeService).not.toHaveBeenCalled();
+    await act(async () =>
+      loaded({ transApis: [api], prompts: [], subtitleSetting: {} })
+    );
+    expect(button("测试中…").disabled).toBe(true);
+    await act(async () => {
+      if (outcome === "success") finish({ text: "Test completed" });
+      else fail(new Error("Test failed"));
+    });
+    expect(button("执行测试").disabled).toBe(false);
+    expect(button("取消").disabled).toBe(true);
+    expect(container.querySelector('[role="progressbar"]')).toBeNull();
+    expect(container.textContent).toContain(
+      outcome === "success" ? "Test completed" : "Test failed"
+    );
+  }
+);
 
 test("translation quick test stays available while chat is selected and uses edited configuration", async () => {
   const translatedApi = {

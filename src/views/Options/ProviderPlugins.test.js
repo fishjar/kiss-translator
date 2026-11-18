@@ -113,6 +113,47 @@ async function render() {
   );
 }
 
+test("plugin service table shows template image features without adopting instance features", async () => {
+  const current = pack();
+  current.manifest.isFree = true;
+  current.manifest.services[0].capabilities = {
+    parseImage: {
+      handler: "parseImage",
+      includesTranslation: true,
+    },
+  };
+  mockPackages = [current];
+  mockSetting.transApis = [
+    {
+      apiSlug: "old",
+      provider: {
+        source: { pluginId: current.id },
+        capabilities: { parseImage: { includesLayout: true } },
+      },
+    },
+  ];
+  const original = JSON.stringify(mockSetting);
+  await render();
+  expect(container.textContent).toContain("免费");
+  expect(
+    container.querySelector(".MuiChip-colorSuccess").parentElement.textContent
+  ).toContain("Example plugin · 1.0.0");
+  expect(container.textContent).not.toContain("附带译文");
+  await act(async () => {
+    Simulate.mouseOver(container.querySelector('table span[tabindex="0"]'));
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  });
+  expect(document.querySelector('[role="tooltip"]').textContent).toContain(
+    "附带译文：支持"
+  );
+  expect(document.querySelector('[role="tooltip"]').textContent).toContain(
+    "附带布局：未声明支持"
+  );
+  expect(mockUpdateSetting).not.toHaveBeenCalled();
+  expect(JSON.stringify(mockSetting)).toBe(original);
+  mockSetting.transApis = [];
+});
+
 test.each([
   ["empty", [], [], true],
   ["official package", ["deepseek"], [], true],
@@ -159,6 +200,7 @@ test.each([
 
 test("old local examples merge into the official list and explicit updates retain service snapshots", async () => {
   const old = pack("1.2.1", "deepseek");
+  old.manifest.isFree = true;
   mockPackages = [old];
   const entry = {
     id: old.id,
@@ -193,6 +235,12 @@ test("old local examples merge into the official list and explicit updates retai
   await render();
   const sections = container.querySelectorAll("section");
   expect(sections[0].textContent).toContain("Example plugin");
+  const title = sections[0].querySelector(
+    ".MuiChip-colorSuccess"
+  ).parentElement;
+  expect(title.textContent).toContain(
+    "Example plugin · 1.2.1有更新 · 1.2.2免费"
+  );
   expect(sections[1].textContent).not.toContain("Example plugin");
   await act(async () =>
     [...sections[0].querySelectorAll("button")]
@@ -478,7 +526,7 @@ test("interface previews expand independently and copy declared templates withou
       "聚合翻译提示词",
       "词典提示词",
       "字幕提示词",
-      "图片识别提示词",
+      "视觉解析提示词",
     ]);
     const fields = [...preview.querySelectorAll("textarea")].filter(
       (item) => !item.getAttribute("aria-hidden")

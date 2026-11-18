@@ -83,7 +83,13 @@ export async function cachedFileResult({
   const result = await run();
   await validateFileService(api, capability, signal);
   validate?.(result);
-  if (key && (capability === "analyzeLayout" || result.text?.trim()))
+  if (
+    key &&
+    !result.warnings?.length &&
+    (capability === "analyzeLayout" ||
+      result.text?.trim() ||
+      result.translation?.text?.trim())
+  )
     await cache.put(key, result, generation, policy, signal);
   return result;
 }

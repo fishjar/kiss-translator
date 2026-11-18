@@ -43,6 +43,7 @@ export function createTestInput(capability, text, file, assets) {
     if (!file) throw new Error("请选择待识别文件");
     return {
       [capability === "transcribe" ? "audio" : "image"]: assets.put(file),
+      ...(capability === "parseImage" && { targetLanguage: "zh-CN" }),
     };
   }
   return { text, language: "zh-CN" };
@@ -94,6 +95,11 @@ export function applyTestPrompt(
   if (capability === "segmentSubtitle")
     return { ...input, instructions: api.subtitlePrompt || undefined };
   if (capability === "parseImage" && api.vlmPrompt)
-    return { ...input, prompt: api.vlmPrompt };
+    return {
+      ...input,
+      prompt: api.vlmPrompt,
+      protocol: api.vlmProtocol,
+      targetLanguage: "zh-CN",
+    };
   return input;
 }

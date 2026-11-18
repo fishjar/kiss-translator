@@ -5,6 +5,30 @@ import { previewServiceUpdate } from "../../providers/updatePreview";
 jest.mock("../../hooks/I18n", () => ({
   useI18n: () => require("../../config/i18n").newI18n("zh"),
 }));
+jest.mock("../../hooks/ProviderI18n", () => ({
+  useProviderI18n: () => (text) => text,
+}));
+
+test("image feature changes show service names and readable declaration states", () => {
+  const view = renderToStaticMarkup(
+    <PluginUpdatePreview
+      preview={{
+        imageFeatures: [
+          {
+            serviceId: "vision",
+            name: "Vision",
+            field: "includesTranslation",
+            before: true,
+            after: false,
+          },
+        ],
+      }}
+    />
+  );
+  expect(view).toContain("Vision");
+  expect(view).toContain("附带译文");
+  expect(view).toContain("支持 → 未声明支持");
+});
 
 test("missing template is explained without claiming unchanged and source remains visible", () => {
   const view = renderToStaticMarkup(

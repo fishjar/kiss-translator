@@ -8,12 +8,16 @@ jest.mock("./bridge", () => ({
 }));
 jest.mock("./runtime", () => ({ invokeInstance: jest.fn() }));
 jest.mock("../libs/localAiBackground", () => ({ localAiHost: jest.fn() }));
+jest.mock("./originRulesBackground", () => ({
+  ensurePluginOriginRules: jest.fn(),
+}));
 import browser from "webextension-polyfill";
 import { invokeBackgroundPlugin } from "./backgroundInvocation";
 import { invokeProviderPort } from "./bridge";
 import { localAiHost } from "../libs/localAiBackground";
 import { providerHostBusy } from "./hostLease";
 import { invokeInstance } from "./runtime";
+import { ensurePluginOriginRules } from "./originRulesBackground";
 const instance = {
   apiSlug: "image",
   provider: { implementation: { kind: "script" } },
@@ -27,9 +31,56 @@ beforeEach(() => {
   previousChrome = global.chrome;
   global.chrome = { offscreen: { createDocument: jest.fn() } };
   localAiHost.mockResolvedValue({});
+  ensurePluginOriginRules.mockResolvedValue(undefined);
 });
 afterEach(() => {
   global.chrome = previousChrome;
+});
+
+test("a declared Origin permission waits for synchronization before starting the host", async () => {
+  let release;
+  ensurePluginOriginRules.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        release = resolve;
+      })
+  );
+  invokeProviderPort.mockReturnValue({
+    result: Promise.resolve({ text: "ok" }),
+    events: (async function* () {})(),
+    cancel: jest.fn(),
+  });
+  const declared = {
+    ...instance,
+    provider: {
+      ...instance.provider,
+      permissions: { originRewrite: ["https://api.example"] },
+    },
+  };
+  const call = invokeBackgroundPlugin(declared, "parseImage", {});
+  await flush();
+  expect(ensurePluginOriginRules).toHaveBeenCalledWith(declared);
+  expect(localAiHost).not.toHaveBeenCalled();
+  expect(invokeProviderPort).not.toHaveBeenCalled();
+  release();
+  await expect(call.result).resolves.toEqual({ text: "ok" });
+});
+
+test("Origin synchronization failure prevents a dependent request", async () => {
+  ensurePluginOriginRules.mockRejectedValueOnce(
+    new Error("DNR quota exceeded")
+  );
+  const declared = {
+    ...instance,
+    provider: {
+      ...instance.provider,
+      permissions: { originRewrite: ["https://api.example"] },
+    },
+  };
+  await expect(
+    invokeBackgroundPlugin(declared, "parseImage", {}).result
+  ).rejects.toThrow("DNR quota exceeded");
+  expect(invokeProviderPort).not.toHaveBeenCalled();
 });
 test("background without offscreen executes translation locally without local authorization", async () => {
   global.chrome = {};

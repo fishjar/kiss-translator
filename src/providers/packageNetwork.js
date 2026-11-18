@@ -18,6 +18,7 @@ export function packageDefinitions(pack) {
 }
 export function summarizePackageNetwork(definitions) {
   const origins = new Set();
+  const originRewrite = new Set();
   const fields = new Map();
   const fieldTranslations = {};
   const services = new Map();
@@ -25,6 +26,8 @@ export function summarizePackageNetwork(definitions) {
     (provider.permissions?.network || []).forEach((origin) =>
       origins.add(origin)
     );
+    for (const origin of provider.permissions?.originRewrite || [])
+      originRewrite.add(origin);
     for (const key of provider.permissions?.endpointFields || []) {
       const field = provider.settings?.find((item) => item.key === key);
       if (!fields.has(key)) fields.set(key, field?.label || key);
@@ -44,6 +47,7 @@ export function summarizePackageNetwork(definitions) {
   }
   return {
     origins: [...origins],
+    ...(originRewrite.size && { originRewrite: [...originRewrite].sort() }),
     endpointFields: [...new Set(fields.values())],
     ...(Object.keys(fieldTranslations).length && {
       endpointFieldI18n: fieldTranslations,

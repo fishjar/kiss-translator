@@ -1,5 +1,30 @@
 import { mergeSettingFields } from "./instances";
 import { copyCompatibleConfig } from "./upgrade";
+import { imageParsingFeatureLabelKeys } from "./capabilityLabels";
+
+function imageFeatureChanges(before, after) {
+  const ids = [...new Set([...before, ...after].map((service) => service.id))];
+  return ids.flatMap((id) => {
+    const old = before.find((service) => service.id === id);
+    const next = after.find((service) => service.id === id);
+    return Object.keys(imageParsingFeatureLabelKeys).flatMap((field) => {
+      const previous = old?.capabilities?.parseImage?.[field] === true;
+      const incoming = next?.capabilities?.parseImage?.[field] === true;
+      return previous === incoming
+        ? []
+        : [
+            {
+              serviceId: id,
+              name: next?.name || old?.name || id,
+              nameI18n: next?.nameI18n || old?.nameI18n,
+              field,
+              before: previous,
+              after: incoming,
+            },
+          ];
+    });
+  });
+}
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const delta = (before = [], after = []) => ({
@@ -71,6 +96,10 @@ export function previewPackageUpdate(previous, incoming) {
     incomplete: false,
     source,
     network: delta(before.permissions?.network, after.permissions?.network),
+    originRewrite: delta(
+      before.permissions?.originRewrite,
+      after.permissions?.originRewrite
+    ),
     endpoints: delta(
       before.permissions?.endpointFields,
       after.permissions?.endpointFields
@@ -80,6 +109,7 @@ export function previewPackageUpdate(previous, incoming) {
       after.services.map((service) => service.id)
     ),
     capabilities: delta(capabilities(before), capabilities(after)),
+    imageFeatures: imageFeatureChanges(before.services, after.services),
   };
 }
 
@@ -159,7 +189,15 @@ export function previewServiceUpdate(api, manifest, service) {
           after: display(field),
         };
       }),
+    originRewrite: delta(
+      before.permissions?.originRewrite,
+      manifest.permissions?.originRewrite
+    ),
     models: listChanges(before.models, service.models),
+    imageFeatures: imageFeatureChanges(
+      [{ ...before, id: service.id }],
+      [service]
+    ),
     prompts,
     skipped: [...new Set(skipped)],
   };

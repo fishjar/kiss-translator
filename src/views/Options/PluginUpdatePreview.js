@@ -1,8 +1,17 @@
 import { Alert, Box, Stack, Typography } from "@mui/material";
 import { useI18n } from "../../hooks/I18n";
+import { useProviderI18n } from "../../hooks/ProviderI18n";
+import { imageParsingFeatureLabelKeys } from "../../providers/capabilityLabels";
 
 export default function PluginUpdatePreview({ preview }) {
   const i18n = useI18n();
+  const providerText = useProviderI18n();
+  const featureStatus = (value) =>
+    i18n(
+      value
+        ? "plugin_image_feature_supported"
+        : "plugin_image_feature_undeclared"
+    );
   const sourceLabel = (value) =>
     value === "file"
       ? i18n("plugin_local_zip")
@@ -61,12 +70,23 @@ export default function PluginUpdatePreview({ preview }) {
         <>
           {[
             "network",
+            "originRewrite",
             "endpoints",
             "services",
             "capabilities",
             "fields",
             "models",
           ].map((key) => changes(key, preview[key]))}
+          {preview.imageFeatures?.map((change) => (
+            <Typography
+              key={`${change.serviceId}/${change.field}`}
+              variant="body2"
+            >
+              {providerText(change.name, change.nameI18n)} ·{" "}
+              {i18n(imageParsingFeatureLabelKeys[change.field])}：
+              {featureStatus(change.before)} → {featureStatus(change.after)}
+            </Typography>
+          ))}
           {preview.fieldDetails?.map((field) => (
             <Typography
               key={field.key}

@@ -74,13 +74,25 @@ export default function ImageTranslateBox({
         nextScene.recognitionService?.capability !==
           scene.recognitionService?.capability ||
         nextScene.vlmPromptSlug !== scene.vlmPromptSlug ||
-        nextScene.fromLang !== scene.fromLang;
+        nextScene.fromLang !== scene.fromLang ||
+        nextScene.toLang !== scene.toLang;
 
       const isTranslationChanged =
-        nextScene.toLang !== scene.toLang ||
         nextScene.apiSlug !== scene.apiSlug ||
         nextScene.promptSlug !== scene.promptSlug;
 
+      if (
+        (isRecognitionChanged || isTranslationChanged) &&
+        currentTaskIdRef.current
+      ) {
+        sendBgMsg(MSG_IMAGE_TRANSLATE_CANCEL, {
+          taskId: currentTaskIdRef.current,
+        });
+        currentTaskIdRef.current = null;
+        setBusy(false);
+        onTaskStateChange?.({ busy: false, requestVersion });
+        setStage("");
+      }
       setScene(nextScene);
       updateSetting?.({ imageTranslateSetting: nextScene });
 
@@ -97,11 +109,21 @@ export default function ImageTranslateBox({
       } else if (isTranslationChanged) {
         // 翻译配置变更清空旧译文与单项错误
         setItems((prev) =>
-          prev.map((item) => ({ ...item, translation: "", error: undefined }))
+          prev.map((item) => ({
+            ...item,
+            translation: item.translationFromImage ? item.translation : "",
+            error: undefined,
+          }))
         );
       }
     },
-    [scene, updateSetting, onSettingResetLayout]
+    [
+      scene,
+      updateSetting,
+      onSettingResetLayout,
+      onTaskStateChange,
+      requestVersion,
+    ]
   );
 
   // 3. 任务执行状态
@@ -113,6 +135,13 @@ export default function ImageTranslateBox({
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
   const [viewMode, setViewMode] = useState("bilingual");
+  useEffect(() => {
+    if (
+      items.length &&
+      !items.some((item) => (item.original || item.text)?.trim())
+    )
+      setViewMode("target");
+  }, [items]);
 
   const currentTaskIdRef = useRef(null);
   const progressSequenceRef = useRef(0);
@@ -266,6 +295,8 @@ export default function ImageTranslateBox({
               prev.map((item, idx) => ({
                 ...item,
                 translation: resItems[idx]?.translation || "",
+                translationLanguage: resItems[idx]?.translationLanguage,
+                translationFromImage: resItems[idx]?.translationFromImage,
                 error: resItems[idx]?.error || undefined,
               }))
             );
@@ -273,8 +304,7 @@ export default function ImageTranslateBox({
             setItems(
               resItems.map((item) => ({
                 ...item,
-                translation: "", // 识别清空旧翻译
-                error: undefined,
+                translation: item.translation || "",
               }))
             );
           } else {
@@ -343,7 +373,7 @@ export default function ImageTranslateBox({
         const response = await sendBgMsg(MSG_IMAGE_TRANSLATE_EXECUTE, {
           taskId,
           action: "translate",
-          items: [{ ...targetItem, error: undefined }],
+          items: [{ ...targetItem, translation: "", error: undefined }],
           scene,
         });
 
