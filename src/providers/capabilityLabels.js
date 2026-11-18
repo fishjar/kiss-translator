@@ -14,3 +14,8 @@ export const capabilityLabelKeys = {
   synthesizeSpeech: "capability_synthesizeSpeech",
   speak: "capability_speak",
 };
+
+export const imageParsingFeatureLabelKeys = {
+  includesTranslation: "plugin_image_includes_translation",
+  includesLayout: "plugin_image_includes_layout",
+};

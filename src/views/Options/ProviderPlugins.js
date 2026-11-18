@@ -12,6 +12,8 @@ import {
   summarizePackageNetwork,
 } from "../../providers/packageNetwork";
 import PluginNetworkDetails from "./PluginNetworkDetails";
+import ImageParsingFeatures from "./ImageParsingFeatures";
+import PluginFreeBadge from "./PluginFreeBadge";
 import { capabilityLabelKeys } from "../../providers/capabilityLabels";
 import {
   downloadProviderSource,
@@ -123,41 +125,55 @@ function PluginServicesTable({ services = [], previewAvailable = true }) {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Stack
-                    direction="row"
-                    useFlexGap
-                    flexWrap="wrap"
-                    spacing={0.75}
-                  >
-                    {Object.keys(service.capabilities).map((name) => (
-                      <Stack
-                        key={name}
-                        direction="row"
-                        alignItems="center"
-                        spacing={0.75}
-                      >
-                        <Chip
-                          size="small"
-                          label={i18n(capabilityLabelKeys[name], name)}
-                        />
-                        {name === "transcribe" && (
-                          <Typography variant="caption" color="text.secondary">
-                            {i18n("service_asr_timestamp_support")}：
-                            {i18n(
-                              `service_asr_timestamp_${
-                                service.capabilities.transcribe.timestamps ===
-                                true
-                                  ? "supported"
-                                  : service.capabilities.transcribe
-                                        .timestamps === false
-                                    ? "unsupported"
-                                    : "unknown"
-                              }`
-                            )}
-                          </Typography>
-                        )}
-                      </Stack>
-                    ))}
+                  <Stack spacing={1}>
+                    <Stack
+                      direction="row"
+                      useFlexGap
+                      flexWrap="wrap"
+                      spacing={0.75}
+                    >
+                      {Object.keys(service.capabilities).map((name) => (
+                        <Stack
+                          key={name}
+                          direction="row"
+                          alignItems="center"
+                          spacing={0.75}
+                        >
+                          <ImageParsingFeatures
+                            descriptor={
+                              name === "parseImage"
+                                ? service.capabilities.parseImage
+                                : undefined
+                            }
+                          >
+                            <Chip
+                              component="span"
+                              size="small"
+                              label={i18n(capabilityLabelKeys[name], name)}
+                            />
+                          </ImageParsingFeatures>
+                          {name === "transcribe" && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {i18n("service_asr_timestamp_support")}：
+                              {i18n(
+                                `service_asr_timestamp_${
+                                  service.capabilities.transcribe.timestamps ===
+                                  true
+                                    ? "supported"
+                                    : service.capabilities.transcribe
+                                          .timestamps === false
+                                      ? "unsupported"
+                                      : "unknown"
+                                }`
+                              )}
+                            </Typography>
+                          )}
+                        </Stack>
+                      ))}
+                    </Stack>
                   </Stack>
                 </TableCell>
                 <TableCell>
@@ -420,6 +436,20 @@ export default function ProviderPlugins() {
       </Button>
     );
   };
+  const directoryUpdateBadge = (id, version, entries) => {
+    const entry = entries.find((item) => item.id === id);
+    return entry &&
+      !pluginCompatibilityError(entry) &&
+      newerPluginVersion(entry.version, version) ? (
+      <Chip
+        component="span"
+        size="small"
+        color="info"
+        sx={{ ml: 1, verticalAlign: "middle" }}
+        label={`${i18n("plugin_directory_update_available")} · ${entry.version}`}
+      />
+    ) : null;
+  };
   const directoryStatus = (id, version, source, entries) => {
     const entry = entries.find((item) => item.id === id);
     if (!entry) return null;
@@ -431,13 +461,6 @@ export default function ProviderPlugins() {
       );
     return (
       <>
-        {newerPluginVersion(entry.version, version) && (
-          <Chip
-            size="small"
-            color="info"
-            label={`${i18n("plugin_directory_update_available")} · ${entry.version}`}
-          />
-        )}
         {!(
           source?.url === `${OFFICIAL_BASE}${id}/${version}.zip` &&
           source?.archiveSha256
@@ -488,6 +511,7 @@ export default function ProviderPlugins() {
                 >
                   {providerText(index.name || index.pluginId, index.nameI18n)} ·{" "}
                   {index.version}
+                  {directoryUpdateBadge(index.pluginId, index.version, entries)}
                 </Typography>
                 {directoryStatus(
                   index.pluginId,
@@ -644,6 +668,12 @@ export default function ProviderPlugins() {
                 >
                   {providerText(pack.manifest.name, pack.manifest.nameI18n)} ·{" "}
                   {pack.manifest.version}
+                  {directoryUpdateBadge(
+                    pack.id,
+                    pack.manifest.version,
+                    entries
+                  )}
+                  <PluginFreeBadge isFree={pack.manifest.isFree} />
                 </Typography>
                 {directoryStatus(
                   pack.id,

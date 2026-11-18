@@ -4,6 +4,53 @@ import {
   packageSourceLabel,
 } from "./updatePreview";
 
+test("template and instance upgrades report both directions of image feature changes", () => {
+  const previous = {
+    id: "vision",
+    name: "Vision",
+    capabilities: {
+      parseImage: { includesTranslation: true },
+    },
+  };
+  const incoming = {
+    id: "vision",
+    name: "Vision",
+    capabilities: {
+      parseImage: { includesLayout: true },
+    },
+  };
+  const expected = [
+    expect.objectContaining({
+      serviceId: "vision",
+      field: "includesTranslation",
+      before: true,
+      after: false,
+    }),
+    expect.objectContaining({
+      serviceId: "vision",
+      field: "includesLayout",
+      before: false,
+      after: true,
+    }),
+  ];
+  expect(
+    previewPackageUpdate(
+      { manifest: { services: [previous] } },
+      { manifest: { services: [incoming] } }
+    ).imageFeatures
+  ).toEqual(expected);
+  expect(
+    previewServiceUpdate({ provider: previous }, {}, incoming).imageFeatures
+  ).toEqual(expected);
+  expect(
+    previewServiceUpdate(
+      { provider: { capabilities: { parseImage: {} } } },
+      {},
+      { ...incoming, capabilities: { parseImage: { includesLayout: false } } }
+    ).imageFeatures
+  ).toEqual([]);
+});
+
 test.each([
   undefined,
   { id: "test", source: { kind: "file" } },

@@ -57,6 +57,10 @@ The host checkout remains 2.2.5 during development. New official packages reserv
 
 ## Plugin Origin rules
 
+Image parsing declarations are available in a tooltip on the visual-parsing capability label, both in package details and instance settings. True means supported by the adapter; false or omitted means support is not declared. Disabled tasks remain inspectable without being enabled. Package/instance upgrade previews show changes to both declarations.
+
+An optional top-level boolean `isFree` in the plugin manifest declares whether its default service is free to use. Only explicit true displays a green Free badge. The official catalog carries the same metadata; false/omitted does not imply a paid service. This metadata grants no capabilities and does not alter settings or requests.
+
 `permissions.originRewrite` declares fixed HTTP/HTTPS origins requiring a same-origin Origin header. Entries must also appear in `permissions.network`; paths, queries, credentials and wildcards are forbidden. This permission is preserved in package and instance snapshots and displayed during import and upgrade. Normal request network validation still applies.
 
 The host collects declarations from enabled, compatible and configured external instances with at least one enabled capability, deduplicates origins, and merges them with saved user rules. User rules take precedence; stored `orilist` is unchanged. Multiple plugins/instances sharing an origin produce one rule, retained until the last contributor disappears. Installing a template alone activates nothing; custom endpoints are not automatically included.

@@ -145,6 +145,7 @@ function parseProviderFiles(files) {
     !supportsSdkVersion(manifest.apiVersion) ||
     !/^[a-z][a-z0-9-]{1,100}$/.test(manifest.id) ||
     !/^\d+\.\d+\.\d+$/.test(manifest.version) ||
+    (manifest.isFree !== undefined && typeof manifest.isFree !== "boolean") ||
     !Array.isArray(manifest.services) ||
     !manifest.services.length ||
     (manifest.resources !== undefined &&

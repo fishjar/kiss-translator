@@ -329,6 +329,7 @@ export interface PluginManifest extends PluginCompatibility {
   id: string;
   name: string;
   version: string;
+  isFree?: boolean;
   apiVersion: 1;
   services: ServiceDefinition[];
   sharedSettings?: ProviderSetting[];

@@ -50,6 +50,22 @@ const catalog = {
   ],
 };
 
+test("official catalog preserves boolean free declarations and rejects invalid types", () => {
+  for (const isFree of [true, false]) {
+    const data = {
+      ...catalog,
+      plugins: catalog.plugins.map((p) => ({ ...p, isFree })),
+    };
+    expect(validateOfficialDirectory(data).plugins[0].isFree).toBe(isFree);
+  }
+  expect(() =>
+    validateOfficialDirectory({
+      ...catalog,
+      plugins: catalog.plugins.map((p) => ({ ...p, isFree: "yes" })),
+    })
+  ).toThrow();
+});
+
 test("catalog preserves unsupported declarations for explanation, while installation refuses before download", async () => {
   const entry = {
     ...catalog.plugins[0],
