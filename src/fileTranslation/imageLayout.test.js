@@ -39,12 +39,14 @@ test("merges OCR lines into layout paragraphs in reading order and original imag
   expect(result.items).toEqual([
     {
       text: "line one line two",
-      poly: poly([0, 0, 200, 80]),
+      poly: poly([10, 10, 180, 50]),
+      regionPoly: poly([0, 0, 200, 80]),
       box: [0, 0, 200, 80],
     },
     {
       text: "paragraph two",
-      poly: poly([0, 100, 200, 160]),
+      poly: poly([10, 105, 180, 120]),
+      regionPoly: poly([0, 100, 200, 160]),
       box: [0, 100, 200, 160],
     },
   ]);
@@ -96,7 +98,8 @@ test("honors explicit model reading order and preserves layout polygons", () => 
     }
   );
   expect(result.items.map((item) => item.text)).toEqual(["second", "first"]);
-  expect(result.items[1].poly).toEqual(polygon);
+  expect(result.items[1].regionPoly).toEqual(polygon);
+  expect(result.items[1].poly).toEqual(poly([5, 5, 90, 10]));
 });
 
 const layoutApi = {
@@ -242,7 +245,8 @@ test("text-only services recognize layout crops and receive original-image regio
       "paragraph one",
       "paragraph two",
     ]);
-    expect(result.items[0].poly).toEqual(poly([0, 0, 200, 80]));
+    expect(result.items[0].poly).toBeNull();
+    expect(result.items[0].regionPoly).toEqual(poly([0, 0, 200, 80]));
     expect(drawImage.mock.calls[0].slice(1)).toEqual([
       0, 0, 200, 80, 0, 0, 200, 80,
     ]);
@@ -307,7 +311,8 @@ describe("layout regions outside the image", () => {
       expect.objectContaining({
         text: "visible",
         box: [0, 0, 200, 140],
-        poly: poly([0, 0, 200, 140]),
+        poly: null,
+        regionPoly: poly([0, 0, 200, 140]),
       }),
     ]);
     const grouped = groupImageTextByLayout(
@@ -318,7 +323,8 @@ describe("layout regions outside the image", () => {
       clippedLayout
     );
     expect(grouped.items[0].box).toEqual(result.items[0].box);
-    expect(grouped.items[0].poly).toEqual(result.items[0].poly);
+    expect(grouped.items[0].regionPoly).toEqual(result.items[0].regionPoly);
+    expect(grouped.items[0].poly).toEqual(poly([5, 5, 90, 10]));
     expect(image.close).toHaveBeenCalledTimes(1);
   });
   test.each([true, false])(

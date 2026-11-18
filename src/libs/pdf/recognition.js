@@ -5,9 +5,11 @@ export function documentRecognitionKey({
   visionServiceSlug,
   vlmPromptSlug,
   services = [],
+  visualSignature,
 }) {
   return JSON.stringify([
-    "formula-v9",
+    "formula-v10",
+    visualSignature,
     recognitionService,
     visionServiceSlug,
     vlmPromptSlug,

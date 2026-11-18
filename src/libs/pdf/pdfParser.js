@@ -1,3 +1,4 @@
+import { visualDocumentBlocks } from "../document/visualResult";
 import { documentAssetPath } from "../document/assets";
 import { incrementalPdfBlocks } from "./incremental";
 import {
@@ -242,6 +243,7 @@ function simpleTable(spans, box) {
 }
 function readingBlocks(blocks) {
   return blocks.flatMap((block) => {
+    if (block.visualResult) return [block];
     const sourceRanges = [],
       markdown = blockToMarkdown(block, sourceRanges);
     const sourceAnchors = [
@@ -376,6 +378,8 @@ export async function parsePdfDocument(
     visionServiceSlug,
     vlmPromptSlug,
     services = [],
+    beforeDocumentRecognition,
+    visualSignature,
     decisionModel,
     client,
     models,
@@ -394,6 +398,7 @@ export async function parsePdfDocument(
     visionServiceSlug,
     vlmPromptSlug,
     services,
+    visualSignature,
   });
   const pageRegionsMap = {
     ...(layoutRegions || previous?.layoutRegions || {}),
@@ -635,36 +640,41 @@ export async function parsePdfDocument(
         // eslint-disable-next-line no-control-regex
         (nativeText.match(/[\u0000-\u0008]/g) || []).length >
           nativeText.length * 0.05;
-      const visual = badText
-        ? activeRegions.some((r) =>
-            ["text", "paragraph", "title", "table", "formula"].includes(r.type)
-          )
-          ? activeRegions.filter(
-              (r) =>
-                ![
-                  "header",
-                  "footer",
-                  "number",
-                  "image",
-                  "inline-formula",
-                ].includes(r.type) && !insideImage(r)
-            )
-          : imageMasks.length
-            ? []
-            : [
-                {
-                  id: `scan-${raw.page}`,
-                  type: "paragraph",
-                  bbox: [0, 0, raw.width, raw.height],
-                  order: 0,
-                },
-              ]
-        : activeRegions.filter(
-            (r) =>
-              (["table", "formula", "image"].includes(r.type) ||
-                (mode === "smart" && r.type === "inline-formula")) &&
-              (r.type === "image" || !insideImage(r))
-          );
+      const visual =
+        regions.length && !activeRegions.length
+          ? []
+          : badText
+            ? activeRegions.some((r) =>
+                ["text", "paragraph", "title", "table", "formula"].includes(
+                  r.type
+                )
+              )
+              ? activeRegions.filter(
+                  (r) =>
+                    ![
+                      "header",
+                      "footer",
+                      "number",
+                      "image",
+                      "inline-formula",
+                    ].includes(r.type) && !insideImage(r)
+                )
+              : imageMasks.length
+                ? []
+                : [
+                    {
+                      id: `scan-${raw.page}`,
+                      type: "paragraph",
+                      bbox: [0, 0, raw.width, raw.height],
+                      order: 0,
+                    },
+                  ]
+            : activeRegions.filter(
+                (r) =>
+                  (["table", "formula", "image"].includes(r.type) ||
+                    (mode === "smart" && r.type === "inline-formula")) &&
+                  (r.type === "image" || !insideImage(r))
+              );
       if (badText && mode === "smart")
         visual.push(...activeRegions.filter((r) => r.type === "image"));
       const nativeTables = badText
@@ -871,12 +881,16 @@ export async function parsePdfDocument(
               (item) => item.apiSlug === selection.apiSlug
             );
             const key =
-              (recognitionCacheKey = `recognition:v2:${JSON.stringify([selection, task, service?.recognitionSignature, vlmPromptSlug, raw.page, region.id, region.bbox])}`);
+              (recognitionCacheKey = `recognition:${task === "doc" ? "v3" : "v2"}:${JSON.stringify(task === "doc" ? [selection, task, service?.recognitionSignature, vlmPromptSlug, visualSignature, raw.page, region.id, region.bbox] : [selection, task, service?.recognitionSignature, vlmPromptSlug, raw.page, region.id, region.bbox])}`);
             const refresh =
               cacheMode === "refresh" ||
               (retryRegion?.page === raw.page &&
                 retryRegion?.regionId === region.id);
             if (refresh || !cache.has(key)) {
+              if (task === "doc") {
+                await beforeDocumentRecognition?.(selection);
+                check(signal);
+              }
               const masks = imageMasks
                 .filter(
                   (image) =>
@@ -891,6 +905,7 @@ export async function parsePdfDocument(
                 : await renderPdfRegion(page, region.bbox, signal, 2);
               const progressDone = finishedRegions;
               const result = await client.recognize(blob, selection, signal, {
+                kind: "pdf",
                 taskMode: task,
                 promptSlug: task === "doc" ? vlmPromptSlug : "",
                 cacheMode: refresh ? "refresh" : cacheMode,
@@ -918,6 +933,61 @@ export async function parsePdfDocument(
               cache.set(key, result);
             }
             const recognized = cache.get(key);
+            if (
+              task === "doc" &&
+              recognized.items?.length &&
+              (recognized.translation ||
+                recognized.items.some(
+                  (item) => item.regionPoly || item.translation || item.error
+                ))
+            ) {
+              let sourceFallback = "";
+              if (recognized.items.some((item) => !item.text?.trim())) {
+                const name = `page-${raw.page}-${region.id.replace(/[^\w-]/g, "")}-visual-source.png`;
+                if (!assets.some((asset) => asset.name === name))
+                  assets.push({
+                    name,
+                    blob: await renderPdfRegion(page, region.bbox, signal, 1.8),
+                  });
+                sourceFallback = `![第 ${raw.page} 页原文区域](${documentAssetPath(name)})`;
+              }
+              const visual = visualDocumentBlocks(recognized, {
+                id: `p${raw.page}-${region.id}`,
+                page: raw.page,
+                bbox: region.bbox,
+                sourceFallback,
+                fingerprint: recognitionCacheKey,
+                type: region.type,
+              });
+              const placeholder = special.findIndex(
+                (block) => block.id === `p${raw.page}-${region.id}`
+              );
+              if (placeholder >= 0) special.splice(placeholder, 1);
+              special.push(
+                ...visual.map((block, index) => ({
+                  ...block,
+                  regionId: region.id,
+                  sourceAnchors: [
+                    sourceAnchor(raw.page, {
+                      ...region,
+                      id: `${region.id}:${block.id}`,
+                      bbox: block.bbox,
+                    }),
+                  ].filter(Boolean),
+                  order:
+                    region.order === undefined
+                      ? undefined
+                      : region.order + index / (visual.length + 1),
+                }))
+              );
+              await publishPage({
+                stage: "恢复结构",
+                page: raw.page,
+                done: ++finishedRegions,
+                total: jobs.length,
+              });
+              continue;
+            }
             if (task === "formula") formulaOutput = recognized.text;
             if (selection.capability === "recognizeText")
               recognizedBlocks = documentOcrBlocks(

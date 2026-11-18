@@ -185,3 +185,18 @@ test("an explicitly empty content region retains an actionable error beside vali
   );
   expect(imageResultItems(result, "zh-CN")[1].error).toContain("original text");
 });
+
+test("coordinate-only layout preserves top-level source content", () => {
+  const result = normalizeImageResult(
+    {
+      format: "markdown",
+      text: "Whole source",
+      layout: { regions: [{ ...region, text: undefined }] },
+    },
+    input
+  );
+  expect(result.layout.regions[0].poly).toEqual(region.poly);
+  expect(imageResultItems(result, "zh-CN")).toEqual([
+    { text: "Whole source", poly: null },
+  ]);
+});

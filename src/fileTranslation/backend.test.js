@@ -912,3 +912,93 @@ test("page width merges with existing reader settings in storage", async () => {
     },
   });
 });
+
+test.each(["image", "pdf"])(
+  "%s doc recognition accepts translation-only output through the shared contract",
+  async (kind) => {
+    getSettingWithDefault.mockResolvedValue({
+      transApis: [
+        imageService("vision", {
+          parseImage: { handler: "parse", includesTranslation: true },
+        }),
+      ],
+      prompts: [],
+      fileTranslateSetting: { [kind]: { fromLang: "auto", toLang: "zh-CN" } },
+    });
+    prepareImage.mockResolvedValue({
+      blob: new Blob(["image"]),
+      original: { width: 200, height: 100 },
+      size: { width: 100, height: 50 },
+    });
+    invokeBackgroundPlugin.mockClear();
+    invokeBackgroundPlugin.mockReturnValue(
+      recognitionInvocation(
+        Promise.resolve({
+          format: "text",
+          translation: {
+            text: "译文",
+            targetLanguage: "ZH_cn",
+            format: "text",
+          },
+        })
+      )
+    );
+    const result = await executeFileMethod(
+      "recognizeImage",
+      {
+        kind,
+        uploadId: "owned",
+        serviceId: "vision",
+        capability: "parseImage",
+        promptSlug: "vlm-image-translation",
+      },
+      new AbortController().signal,
+      ownedImage()
+    );
+    expect(result.text).toBeUndefined();
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        text: "",
+        translation: "译文",
+        translationLanguage: "ZH_cn",
+        poly: null,
+      }),
+    ]);
+    expect(invokeBackgroundPlugin.mock.calls[0][2]).toMatchObject({
+      sourceLanguage: "auto",
+      targetLanguage: "zh-CN",
+      protocol: "image-json",
+    });
+  }
+);
+
+test("old file pages keep source requests but cannot mislabel structured responses as source text", async () => {
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [
+      imageService("vision", {
+        parseImage: { handler: "parse", includesTranslation: true },
+      }),
+    ],
+    prompts: [],
+  });
+  prepareImage.mockResolvedValue({
+    blob: new Blob(["image"]),
+    original: { width: 100, height: 50 },
+    size: { width: 100, height: 50 },
+  });
+  invokeBackgroundPlugin.mockClear();
+  await expect(
+    executeFileMethod(
+      "recognizeImage",
+      {
+        uploadId: "owned",
+        serviceId: "vision",
+        capability: "parseImage",
+        promptSlug: "vlm-image-bilingual",
+      },
+      new AbortController().signal,
+      ownedImage()
+    )
+  ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+  expect(invokeBackgroundPlugin).not.toHaveBeenCalled();
+});

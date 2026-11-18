@@ -1,3 +1,4 @@
+import { visualMarkdown } from "./visualResult";
 import { runTranslationTasks } from "../translationTasks";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
@@ -416,6 +417,11 @@ const resourceSignatures = (node) => {
 const sameResources = (source, target) =>
   JSON.stringify(source) === JSON.stringify(target);
 function bilingualResult(block) {
+  if (block.visualResult)
+    return {
+      bilingualRaw: [block.raw, block.targetRaw].filter(Boolean).join("\n\n"),
+    };
+
   if (block.ast.type === "html") {
     const sourceBody = sanitizedHtml(block.raw),
       targetBody = sanitizedHtml(block.targetRaw || "");
@@ -511,6 +517,12 @@ export function restoreDocumentBilingual(block) {
   }
 }
 export function isTranslatableBlock(block) {
+  if (block.visualResult)
+    return Boolean(
+      block.visualResult.text?.trim() ||
+        block.visualResult.translation?.trim() ||
+        block.visualResult.error
+    );
   if (block.type === "formula_number" || block.equationNumber) return false;
   if (block.ast?.type === "html") {
     const body = sanitizedHtml(block.raw);
@@ -555,7 +567,21 @@ export async function translateDocumentBlocks(
       delete block.error;
       progress(done, total, block);
       try {
-        if (block.ast.type === "html") {
+        if (block.visualResult) {
+          if (!block.visualResult.text?.trim())
+            throw new Error(
+              "No original text is available for fallback translation."
+            );
+          const parts = parseDocumentMarkdown(
+            visualMarkdown(block.visualResult.text, block.visualResult.format),
+            block.id
+          );
+          await translateDocumentBlocks(parts, translate, signal);
+          const failed = parts.find((part) => part.status === "error");
+          if (failed) throw new Error(failed.error);
+          block.targetRaw = documentMarkdown(parts, "target");
+          block.translationFromImage = false;
+        } else if (block.ast.type === "html") {
           const body = sanitizedHtml(block.raw),
             table = body.querySelector("table") || body;
           const sourceCells =
@@ -693,10 +719,11 @@ export function renderDocumentBlock(
         : mode === "target"
           ? block.targetAst
           : block.bilingualAst;
-    const root = selected
-      ? { type: "root", children: [copy(selected)] }
-      : parser.parse(blockMarkdown(block, mode));
-    if (!complete)
+    const root =
+      block.visualResult || !selected
+        ? parser.parse(blockMarkdown(block, mode))
+        : { type: "root", children: [copy(selected)] };
+    if (!complete && !block.visualResult)
       root.children.push(
         ...parser.parse(blockMarkdown(block, mode).slice(block.raw.length))
           .children

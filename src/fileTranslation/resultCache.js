@@ -54,7 +54,10 @@ export async function cachedFileResult({
   if (enabled && generation !== null) {
     try {
       key = await inferenceCacheKey({
-        namespace: "file-interface-v1",
+        namespace:
+          capability === "parseImage"
+            ? "file-image-parse-v2"
+            : "file-interface-v1",
         version: INFERENCE_CACHE_VERSION,
         config: Object.fromEntries(
           Object.entries(api).filter(

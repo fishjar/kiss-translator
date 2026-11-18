@@ -1,3 +1,6 @@
+import { requiresStructuredImageHost } from "../../fileTranslation/recognition";
+import { visualDocumentBlocks } from "../../libs/document/visualResult";
+import { hasReusableImageTranslation } from "../../providers/imageResult";
 import {
   documentRecognitionSelection,
   documentOcrBlocks,
@@ -214,7 +217,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     const registry = assetPreview.current;
     return () => registry.clear();
   }, [file]);
-  const { context, client, connected, openSettings, i18n } =
+  const { context, client, connected, openSettings, i18n, waitForSceneSave } =
     useFileTranslation();
   const kind = isPdf ? "pdf" : "markdown",
     scene = {
@@ -222,39 +225,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       ...context.scenes[kind],
     };
 
-  const effectiveHasLayoutService = useMemo(() => {
-    if (typeof hasLayoutService === "boolean") return hasLayoutService;
-    if (Array.isArray(context?.services)) {
-      return context.services.some(
-        (api) =>
-          !api.isDisabled && api.enabledCapabilities?.includes("analyzeLayout")
-      );
-    }
-    return true;
-  }, [hasLayoutService, context?.services]);
-
-  const effectiveLayoutApi = useMemo(() => {
-    if (activeLayoutApi) return activeLayoutApi;
-    if (Array.isArray(context?.services)) {
-      const api = scene.layoutApiSlug
-        ? context.services.find((api) => api.apiSlug === scene.layoutApiSlug)
-        : context.services.find(
-            (api) =>
-              !api.isDisabled &&
-              api.layoutAvailable !== false &&
-              api.enabledCapabilities?.includes("analyzeLayout")
-          );
-      return api &&
-        !api.isDisabled &&
-        api.layoutAvailable !== false &&
-        api.enabledCapabilities?.includes("analyzeLayout")
-        ? api
-        : null;
-    }
-    return null;
-  }, [activeLayoutApi, context?.services, scene.layoutApiSlug]);
-  const [localScene, setLocalScene] = useState(scene),
-    [pref, setPref] = useState(preferences),
+  const [pref, setPref] = useState(preferences),
     [pdf, setPdf] = useState(null),
     [bookmarks, setBookmarks] = useState([]),
     [result, setResult] = useState(null),
@@ -314,7 +285,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     translationBusy ||
     automaticBusy;
   blocksRef.current = blocks;
-  const config = { ...scene, ...localScene };
+  const config = scene;
   useEffect(() => {
     if (
       !isPdf &&
@@ -324,10 +295,6 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         "Markdown 引用了相对图片路径，单文件上传无法读取这些图片；本轮不支持文件夹上传。"
       );
   }, [isPdf, markdownContent]);
-  useEffect(() => {
-    setLocalScene(scene);
-  }, [context.scenes, kind]); // eslint-disable-line react-hooks/exhaustive-deps
-
   useEffect(() => {
     try {
       localStorage.setItem(PREF_KEY, JSON.stringify(pref));
@@ -526,7 +493,11 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       ...next,
       blocks: next.blocks.map((block) => {
         const old = previous.find(
-          (item) => item.id === block.id && item.raw === block.raw
+          (item) =>
+            item.id === block.id &&
+            item.raw === block.raw &&
+            JSON.stringify(item.visualResult) ===
+              JSON.stringify(block.visualResult)
         );
         return old
           ? {
@@ -537,6 +508,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
               targetAst: old.targetAst,
               bilingualAst: old.bilingualAst,
               translationKey: old.translationKey,
+              translationFromImage: old.translationFromImage,
               error: old.error,
               bilingualVersion: old.bilingualVersion,
               translationRepairRequired: old.translationRepairRequired,
@@ -552,25 +524,122 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     enqueueTranslation.current?.(next);
     return next;
   };
-  const settingsKey = JSON.stringify({
-    fromLang: config.fromLang,
-    toLang: config.toLang,
-    apiSlug: config.apiSlug,
-    promptSlug: config.promptSlug,
-  });
+  const taskSettings = (snapshot) => {
+    const config = {
+      ...DEFAULT_FILE_TRANSLATE_SETTING[kind],
+      ...snapshot.scenes[kind],
+    };
+    const layoutServices = snapshot.services?.filter(
+      (api) =>
+        !api.isDisabled && api.enabledCapabilities?.includes("analyzeLayout")
+    );
+    const layoutApi =
+      (snapshot === context && activeLayoutApi) ||
+      layoutServices?.find(
+        (api) =>
+          api.layoutAvailable !== false &&
+          (!config.layoutApiSlug || api.apiSlug === config.layoutApiSlug)
+      );
+    return {
+      context: snapshot,
+      config,
+      layoutApi,
+      hasLayout:
+        snapshot === context && typeof hasLayoutService === "boolean"
+          ? hasLayoutService
+          : layoutServices
+            ? layoutServices.length > 0
+            : true,
+      settingsKey: JSON.stringify({
+        fromLang: config.fromLang,
+        toLang: config.toLang,
+        apiSlug: config.apiSlug,
+        promptSlug: config.promptSlug,
+        terminologySignature: snapshot.terminologySignatures?.pdf,
+        serviceSignature: snapshot.services?.find(
+          (api) => api.apiSlug === config.apiSlug
+        )?.translationSignature,
+        prompt: snapshot.prompts?.find(
+          (prompt) => prompt.slug === config.promptSlug
+        ),
+      }),
+      visualSignature: JSON.stringify([
+        config.recognitionService,
+        config.vlmPromptSlug,
+        snapshot.services?.find(
+          (api) => api.apiSlug === config.recognitionService?.apiSlug
+        )?.recognitionSignature,
+        config.fromLang,
+        config.toLang,
+        config.terms,
+        config.aiTerms,
+        config.termsList,
+        snapshot.visualSignatures?.pdf || snapshot.terminologySignatures?.pdf,
+        snapshot.prompts?.find(
+          (prompt) => prompt.slug === config.vlmPromptSlug
+        ),
+      ]),
+    };
+  };
+  const currentTaskSettings = taskSettings(context);
+  const { visualSignature } = currentTaskSettings;
+  const reusableVisual = (block, task) =>
+    block.visualResult &&
+    block.translationFromImage !== false &&
+    hasReusableImageTranslation(block.visualResult, task.config.toLang);
+  const previousVisualSignature = useRef(visualSignature);
+  const preparingPdf = useRef(null);
+  const invalidateVisualBlocks = () => {
+    const next = blocksRef.current
+      .filter((block) => !block.visualResult)
+      .map((block) =>
+        block.status === "busy" ? { ...block, status: "idle" } : block
+      );
+    if (resultRef.current)
+      resultRef.current = {
+        ...resultRef.current,
+        recognitionKey: undefined,
+        complete: false,
+        blocks: next,
+      };
+    publishBlocks(next);
+  };
+  useEffect(() => {
+    if (
+      previousVisualSignature.current === visualSignature ||
+      preparingPdf.current
+    )
+      return;
+    previousVisualSignature.current = visualSignature;
+    if (!isPdf || phase === "opening") return;
+    ++operation.current;
+    abortRef.current?.abort();
+    translationRun.current?.abort.abort();
+    translationRun.current = null;
+    if (automaticRun.current) automaticRun.current.cancelled = true;
+    automaticRun.current = null;
+    enqueueTranslation.current = null;
+    setPhase("idle");
+    setTranslationBusy(false);
+    setAutomaticBusy(false);
+    setProgress(null);
+    setTranslationProgress(null);
+    invalidateVisualBlocks();
+  }, [visualSignature]); // eslint-disable-line react-hooks/exhaustive-deps
   const readyBlock = (block, current = resultRef.current) =>
     !isPdf ||
     block.translationReady === true ||
     (block.translationReady === undefined &&
       current?.complete &&
       !block.pendingSourceIds?.length);
-  const pendingTranslation = (block) =>
+  const pendingTranslation = (block, task = currentTaskSettings) =>
     readyBlock(block) &&
+    !reusableVisual(block, task) &&
     isTranslatableBlock(block) &&
     (ignoreCache ||
-      block.translationKey !== settingsKey ||
+      block.translationKey !== task.settingsKey ||
       block.status !== "done");
-  const readyCount = blocks.filter(pendingTranslation).length;
+  const readyCount = blocks.filter((block) => pendingTranslation(block)).length;
   const canTranslate =
     connected &&
     !translationBusy &&
@@ -600,46 +669,46 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     setProgress(null);
     setTranslationProgress(null);
   };
+  const preparePdf = async (signal) => {
+    if (!isPdf || !connected || !waitForSceneSave) return currentTaskSettings;
+    preparingPdf.current = signal;
+    try {
+      const snapshot = await waitForSceneSave("pdf", signal);
+      if (signal.aborted) throw new DOMException("已取消", "AbortError");
+      const task = taskSettings(snapshot || context);
+      if (previousVisualSignature.current !== task.visualSignature) {
+        previousVisualSignature.current = task.visualSignature;
+        invalidateVisualBlocks();
+      }
+      return task;
+    } finally {
+      if (preparingPdf.current === signal) preparingPdf.current = null;
+    }
+  };
+  const beforeDocumentRecognition = (selection, task) => {
+    const { context, config } = task;
+    const service = context.services?.find(
+      (api) => api.apiSlug === selection.apiSlug
+    );
+    if (
+      selection.capability === "parseImage" &&
+      requiresStructuredImageHost(
+        context,
+        service,
+        config.vlmPromptSlug || service?.vlmPromptSlug
+      )
+    )
+      throw new Error(
+        i18n("file_visual_upgrade_required", "请升级扩展后使用结构化视觉解析")
+      );
+  };
   const parse = async (
     reset = false,
     retryRegion,
-    regions = layoutComplete ? layoutRegions : {}
+    regions = layoutComplete ? layoutRegions : {},
+    prepared
   ) => {
     if (!pdf || busy) return;
-    if (config.parseMode === "smart") {
-      if (!connected || !capabilities.includes("doc")) {
-        setError("Smart 需要支持 DOC 的新版扩展；可切换 Fast。");
-        return;
-      }
-      if (!effectiveHasLayoutService && !Object.keys(regions).length) {
-        setError(
-          i18n
-            ? i18n(
-                "layout_service_empty",
-                "未配置界面分析服务（请在服务配置中添加）"
-              )
-            : "未配置界面分析服务（请在服务配置中添加）"
-        );
-        return;
-      }
-    }
-    const savedTranslations = blocksRef.current;
-    if (reset) {
-      const previous = resultRef.current;
-      resultRef.current = previous
-        ? {
-            ...previous,
-            pageBlocks: [],
-            completedPages: [],
-            warnings: [],
-            blocks: [],
-            complete: false,
-            cache: previous.cache,
-          }
-        : null;
-      publishBlocks([]);
-      setResult(null);
-    }
     const version = ++operation.current,
       abort = new AbortController();
     abortRef.current = abort;
@@ -647,22 +716,58 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     setError("");
     setMissing("");
     setNotice("");
-    enqueueTranslation.current?.(resultRef.current);
     try {
-      const targetLayoutModel =
-        effectiveLayoutApi?.modelRef || config.layoutModel;
-      const targetLayoutDevice =
-        effectiveLayoutApi?.device || config.layoutDevice;
+      const task = prepared || (await preparePdf(abort.signal));
+      if (abort.signal.aborted) return;
+      const { config, context, layoutApi, hasLayout, visualSignature } = task;
+      if (config.parseMode === "smart") {
+        if (!connected || !capabilities.includes("doc")) {
+          setError("Smart 需要支持 DOC 的新版扩展；可切换 Fast。");
+          return;
+        }
+        if (!hasLayout && !Object.keys(regions).length) {
+          setError(
+            i18n
+              ? i18n(
+                  "layout_service_empty",
+                  "未配置界面分析服务（请在服务配置中添加）"
+                )
+              : "未配置界面分析服务（请在服务配置中添加）"
+          );
+          return;
+        }
+      }
+      const savedTranslations = blocksRef.current;
+      if (reset) {
+        const previous = resultRef.current;
+        resultRef.current = previous
+          ? {
+              ...previous,
+              pageBlocks: [],
+              completedPages: [],
+              warnings: [],
+              blocks: [],
+              complete: false,
+              cache: previous.cache,
+            }
+          : null;
+        publishBlocks([]);
+        setResult(null);
+      }
+      enqueueTranslation.current?.(resultRef.current);
       const next = await parsePdfDocument(pdf, {
         ...config,
         mode: config.parseMode,
-        layoutModel: targetLayoutModel,
-        layoutServiceId: effectiveLayoutApi?.apiSlug || config.layoutApiSlug,
-        layoutDevice: targetLayoutDevice,
+        layoutModel: layoutApi?.modelRef || config.layoutModel,
+        layoutServiceId: layoutApi?.apiSlug || config.layoutApiSlug,
+        layoutDevice: layoutApi?.device || config.layoutDevice,
         enableJev: config.enableJev === "true",
         client,
         models: context.models,
         services: context.services,
+        beforeDocumentRecognition: async (selection) =>
+          beforeDocumentRecognition(selection, task),
+        visualSignature,
         signal: abort.signal,
         previous: resultRef.current,
         retryRegion,
@@ -733,7 +838,12 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       }
     }
   };
-  const translate = async (onlyId, parsedResult, automatic = false) => {
+  const translate = async (
+    onlyId,
+    parsedResult,
+    automatic = false,
+    task = currentTaskSettings
+  ) => {
     if (
       !connected ||
       translationRun.current ||
@@ -741,12 +851,14 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       ["opening", "detecting"].includes(phase)
     )
       return;
+    const { config, settingsKey } = task;
     const current = parsedResult || resultRef.current;
     const requested = typeof onlyId === "string" ? [onlyId] : onlyId;
     const targetBlocks = (parsedResult?.blocks || blocksRef.current)
       .filter(
         (block) =>
           readyBlock(block, current) &&
+          !reusableVisual(block, task) &&
           (!Array.isArray(requested) || requested.includes(block.id)) &&
           isTranslatableBlock(block) &&
           (ignoreCache ||
@@ -769,7 +881,11 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       publishBlocks(
         blocksRef.current.map((block) => {
           const translated = targetBlocks.find(
-            (item) => item.id === block.id && item.raw === block.raw
+            (item) =>
+              item.id === block.id &&
+              item.raw === block.raw &&
+              JSON.stringify(item.visualResult) ===
+                JSON.stringify(block.visualResult)
           );
           return translated
             ? {
@@ -780,6 +896,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                 targetAst: translated.targetAst,
                 bilingualAst: translated.bilingualAst,
                 translationKey: translated.translationKey,
+                translationFromImage: translated.translationFromImage,
                 error: translated.error,
                 bilingualVersion: translated.bilingualVersion,
                 translationRepairRequired: translated.translationRepairRequired,
@@ -793,7 +910,10 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     setMode("bilingual");
     try {
       for (const block of targetBlocks) {
-        if (block.translationKey !== settingsKey) {
+        if (
+          !reusableVisual(block, task) &&
+          block.translationKey !== settingsKey
+        ) {
           block.status = "idle";
           delete block.targetRaw;
           delete block.bilingualRaw;
@@ -812,7 +932,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       );
       if (ignoreCache)
         targetBlocks.forEach((block) => {
-          block.status = "idle";
+          if (!reusableVisual(block, task)) block.status = "idle";
         });
       await translateDocumentBlocks(
         targetBlocks,
@@ -878,7 +998,11 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           publishBlocks(
             blocksRef.current.map((block) => {
               const translated = targetBlocks.find(
-                (item) => item.id === block.id && item.raw === block.raw
+                (item) =>
+                  item.id === block.id &&
+                  item.raw === block.raw &&
+                  JSON.stringify(item.visualResult) ===
+                    JSON.stringify(block.visualResult)
               );
               return translated
                 ? {
@@ -889,6 +1013,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                     targetAst: translated.targetAst,
                     bilingualAst: translated.bilingualAst,
                     translationKey: translated.translationKey,
+                    translationFromImage: translated.translationFromImage,
                     error: translated.error,
                     bilingualVersion: translated.bilingualVersion,
                     translationRepairRequired:
@@ -919,6 +1044,9 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       total: 1,
     });
     try {
+      const task = await preparePdf(abort.signal);
+      if (abort.signal.aborted) return;
+      const { config, visualSignature } = task;
       const fragment = block.fragments[0],
         page = await pdf.getPage(fragment.page),
         blob = await renderPdfRegion(page, fragment.bbox, abort.signal, 2);
@@ -927,7 +1055,10 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         config.recognitionService,
         config.visionServiceSlug
       );
+      beforeDocumentRecognition(selection, task);
+      if (abort.signal.aborted) return;
       const response = await client.recognize(blob, selection, abort.signal, {
+        kind: "pdf",
         taskMode: "doc",
         promptSlug: config.vlmPromptSlug,
         cacheMode: ignoreCache ? "refresh" : undefined,
@@ -953,7 +1084,11 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         mounted.current &&
         operation.current === version
       ) {
-        if (!response.text?.trim()) throw new Error("图中文字识别结果为空");
+        if (
+          !response.text?.trim() &&
+          !response.items?.some((item) => item.translation?.trim())
+        )
+          throw new Error("图中文字识别结果为空");
         const located =
           selection.capability === "recognizeText"
             ? documentOcrBlocks(
@@ -964,11 +1099,23 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
               )
             : null;
         const associated = (
-          located ||
-          parseDocumentMarkdown(response.text, `${block.id}-recognized`)
+          response.items?.length &&
+          (response.translation ||
+            response.items.some(
+              (item) => item.regionPoly || item.translation || item.error
+            ))
+            ? visualDocumentBlocks(response, {
+                id: `${block.id}-recognized`,
+                page: fragment.page,
+                bbox: fragment.bbox,
+                sourceFallback: block.raw,
+                fingerprint: visualSignature,
+              })
+            : located ||
+              parseDocumentMarkdown(response.text, `${block.id}-recognized`)
         ).map((b) => ({
           ...b,
-          fragments: located ? b.fragments : block.fragments,
+          fragments: b.visualResult || located ? b.fragments : block.fragments,
           associatedImageId: block.id,
         }));
         setBlocks((prev) =>
@@ -1171,9 +1318,9 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     }
   };
 
-  const detectLayout = async () => {
+  const detectLayout = async (task = currentTaskSettings) => {
     if (!pdf || busy) return;
-    if (!effectiveHasLayoutService) {
+    if (!task.hasLayout) {
       setError(
         i18n
           ? i18n(
@@ -1216,15 +1363,12 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     setMissing("");
     setNotice("");
     try {
-      const targetLayoutModel =
-        effectiveLayoutApi?.modelRef || config.layoutModel;
-      const targetLayoutDevice =
-        effectiveLayoutApi?.device || config.layoutDevice;
+      const { config, context, layoutApi } = task;
       const regions = await detectPdfLayout(pdf, {
         ...config,
-        layoutModel: targetLayoutModel,
-        layoutServiceId: effectiveLayoutApi?.apiSlug || config.layoutApiSlug,
-        layoutDevice: targetLayoutDevice,
+        layoutModel: layoutApi?.modelRef || config.layoutModel,
+        layoutServiceId: layoutApi?.apiSlug || config.layoutApiSlug,
+        layoutDevice: layoutApi?.device || config.layoutDevice,
         client,
         models: context.models,
         services: context.services,
@@ -1310,9 +1454,12 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       promise: Promise.resolve(),
       pumping: false,
     };
+    const preparation = new AbortController();
+    abortRef.current = preparation;
     automaticRun.current = run;
+    setMode("bilingual");
     setAutomaticBusy(true);
-    const pump = () => {
+    const pump = (task) => {
       if (run.pumping || run.cancelled || automaticRun.current !== run)
         return run.promise;
       run.pumping = true;
@@ -1321,7 +1468,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           const candidates = blocksRef.current.filter(
             (block) =>
               !block.translationRepairRequired &&
-              pendingTranslation(block) &&
+              pendingTranslation(block, task) &&
               !run.attempted.has(`${block.id}\0${block.raw}`)
           );
           if (!candidates.length) break;
@@ -1335,7 +1482,8 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           await translate(
             batch.map((block) => block.id),
             undefined,
-            true
+            true,
+            task
           );
         }
       })().finally(() => {
@@ -1343,11 +1491,14 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       });
       return run.promise;
     };
-    enqueueTranslation.current = pump;
     try {
+      const task = await preparePdf(preparation.signal);
+      if (run.cancelled || preparation.signal.aborted) return;
+      const { config, context, visualSignature } = task;
+      enqueueTranslation.current = () => pump(task);
       let currentRegions = layoutRegions;
       if (config.parseMode === "smart" && (!layoutComplete || ignoreCache)) {
-        if (!effectiveHasLayoutService) {
+        if (!task.hasLayout) {
           setError(
             i18n?.(
               "layout_service_empty",
@@ -1356,7 +1507,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           );
           return;
         }
-        currentRegions = await detectLayout();
+        currentRegions = await detectLayout(task);
         if (!currentRegions || run.cancelled) return;
       }
       const currentResult = resultRef.current;
@@ -1365,11 +1516,18 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         !currentResult?.complete ||
         (isPdf &&
           currentResult.recognitionKey !==
-            documentRecognitionKey({ ...config, services: context.services }))
+            documentRecognitionKey({
+              ...config,
+              services: context.services,
+              visualSignature,
+            }))
       )
-        await parse(ignoreCache, undefined, currentRegions);
-      if (!run.cancelled) await pump();
+        await parse(ignoreCache, undefined, currentRegions, task);
+      if (!run.cancelled) await pump(task);
       await run.promise;
+    } catch (error) {
+      if (mounted.current && automaticRun.current === run && !run.cancelled)
+        setError(error.message);
     } finally {
       if (automaticRun.current === run) {
         automaticRun.current = null;

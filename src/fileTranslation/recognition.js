@@ -1,3 +1,5 @@
+import { selectedPluginPrompt } from "../providers/defaultPrompts";
+import { resolveVlmPromptDefinition } from "../config/prompt";
 import {
   supportedApiFeature,
   supportsApiCapability,
@@ -80,5 +82,18 @@ export function hasCompleteCoordinates(items, textField = "text") {
       }, 0);
       return Math.abs(area) > 0;
     })
+  );
+}
+
+export function requiresStructuredImageHost(context, api, slug) {
+  const prompt = context.prompts?.find((item) => item.slug === slug);
+  const protocol =
+    prompt?.protocol ||
+    (slug?.startsWith("plugin:") || !slug
+      ? selectedPluginPrompt(api, "vlm", slug || api?.vlmPromptSlug)?.protocol
+      : resolveVlmPromptDefinition([], slug, api)?.protocol);
+  return (
+    context.features?.structuredImageResults !== true &&
+    protocol === "image-json"
   );
 }

@@ -15,6 +15,14 @@ export function isSameImageTranslationLanguage(actual, expected) {
   return locale(actual) === locale(expected);
 }
 
+export function hasReusableImageTranslation(item, language) {
+  return Boolean(
+    item.translation?.trim() &&
+      (!item.translationLanguage ||
+        isSameImageTranslationLanguage(item.translationLanguage, language))
+  );
+}
+
 export function validImageTranslation(value, targetLanguage) {
   return (
     object(value) &&
@@ -140,7 +148,7 @@ export function normalizeImageResult(value, input = {}) {
 export function imageResultItems(result, targetLanguage) {
   const regions = result.layout?.regions || [];
   if (
-    regions.length &&
+    regions.some((r) => nonempty(r.text) || nonempty(r.translation)) &&
     (!result.translation || regions.every((r) => nonempty(r.translation)))
   )
     return regions
