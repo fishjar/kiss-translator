@@ -35,36 +35,15 @@ export default function PluginNetworkDetails({ summary }) {
         i18n("plugin_fixed_network_addresses"),
         summary.origins.length ? (
           <Stack spacing={1} useFlexGap>
-            {summary.origins.map((origin) => {
-              return (
-                <Box
-                  key={origin}
-                  sx={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 1,
-                    alignItems: "center",
-                    bgcolor: "action.hover",
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: 1.5,
-                    minWidth: 0,
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      flex: "1 1 160px",
-                      minWidth: 0,
-                      overflowWrap: "anywhere",
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {origin}
-                  </Typography>
-                </Box>
-              );
-            })}
+            {summary.origins.map((origin) => (
+              <Typography
+                key={origin}
+                variant="body2"
+                sx={{ overflowWrap: "anywhere", fontFamily: "monospace" }}
+              >
+                {origin}
+              </Typography>
+            ))}
           </Stack>
         ) : (
           <Typography variant="body2">

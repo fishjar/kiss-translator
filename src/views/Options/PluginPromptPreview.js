@@ -72,7 +72,7 @@ export default function PluginPromptPreview({ service }) {
                 ["systemPrompt", i18n("plugin_system_prompt")],
                 ["userPrompt", i18n("plugin_user_prompt")],
               ].map(([key, fieldLabel]) =>
-                prompt[key] !== undefined ? (
+                prompt[key]?.trim() ? (
                   <Box key={key} sx={{ position: "relative" }}>
                     <TextField
                       fullWidth
