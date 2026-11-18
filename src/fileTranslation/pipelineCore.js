@@ -22,6 +22,7 @@ import { prepareImage } from "../localAi/core/inputLimits";
 import { executeFileTranslation } from "../libs/fileTranslationService";
 import {
   imageResultItems,
+  isSameImageTranslationLanguage,
   normalizeImageResult,
 } from "../providers/imageResult";
 import { resolveTerminology } from "../libs/terminologyStorage";
@@ -604,7 +605,7 @@ export async function executeItemsTranslation({
     if (
       item.translation?.trim() &&
       (!item.translationLanguage ||
-        item.translationLanguage.toLowerCase() === scene.toLang?.toLowerCase())
+        isSameImageTranslationLanguage(item.translationLanguage, scene.toLang))
     ) {
       translatedItems.push({ ...item, original: sourceText, error: undefined });
       continue;

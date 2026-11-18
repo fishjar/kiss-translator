@@ -1,4 +1,8 @@
-import { normalizeImageResult, imageResultItems } from "./imageResult";
+import {
+  normalizeImageResult,
+  imageResultItems,
+  isSameImageTranslationLanguage,
+} from "./imageResult";
 import { buildTextTaskMessages, parseTextTaskResult } from "./sdk/textTasks";
 import { validateResult } from "./validation";
 
@@ -20,6 +24,25 @@ const region = {
     [0, 40],
   ],
 };
+
+test.each(["zh_CN", "ZH_cn", "zh-CN"])(
+  "accepts equivalent translation language %s without changing its declaration",
+  (targetLanguage) => {
+    const result = normalizeImageResult(
+      { format: "text", translation: { ...translation, targetLanguage } },
+      input
+    );
+    expect(result.translation.targetLanguage).toBe(targetLanguage);
+    expect(isSameImageTranslationLanguage(targetLanguage, "zh-CN")).toBe(true);
+  }
+);
+
+test.each(["zh-TW", "zh", "en-US"])(
+  "does not collapse distinct language variants: %s",
+  (language) => {
+    expect(isSameImageTranslationLanguage(language, "zh-CN")).toBe(false);
+  }
+);
 
 test("translation-only results never become original OCR text", () => {
   const result = parseTextTaskResult(

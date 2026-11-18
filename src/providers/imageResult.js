@@ -11,13 +11,18 @@ const locale = (value) =>
     .toLowerCase();
 const format = (value) => ["text", "markdown"].includes(value);
 
+export function isSameImageTranslationLanguage(actual, expected) {
+  return locale(actual) === locale(expected);
+}
+
 export function validImageTranslation(value, targetLanguage) {
   return (
     object(value) &&
     nonempty(value.text) &&
     format(value.format) &&
     nonempty(value.targetLanguage) &&
-    (!targetLanguage || locale(value.targetLanguage) === locale(targetLanguage))
+    (!targetLanguage ||
+      isSameImageTranslationLanguage(value.targetLanguage, targetLanguage))
   );
 }
 

@@ -1159,15 +1159,45 @@ describe("pipelineCore", () => {
       }
     }
   );
-  test.each(["all", "recognize"])(
-    "%s retains a translation-only parsed image without invoking text translation",
-    async (action) => {
+  test.each(
+    ["all", "recognize"].flatMap((action) =>
+      ["zh-CN", "zh_CN", "ZH_cn"].flatMap((language) =>
+        ["translation-only", "bilingual", "regions"].map((shape) => [
+          action,
+          language,
+          shape,
+        ])
+      )
+    )
+  )(
+    "%s retains %s translations in %s results without invoking text translation",
+    async (action, language, shape) => {
       invokeBackgroundPlugin.mockReturnValueOnce({
         result: Promise.resolve({
           format: "text",
+          ...(shape === "bilingual" && { text: "Hello" }),
+          ...(shape === "regions" && {
+            layout: {
+              regions: [
+                {
+                  id: "r1",
+                  type: "paragraph",
+                  order: 0,
+                  text: "Hello",
+                  translation: "译文",
+                  poly: [
+                    [0, 0],
+                    [10, 0],
+                    [10, 10],
+                    [0, 10],
+                  ],
+                },
+              ],
+            },
+          }),
           translation: {
             text: "译文",
-            targetLanguage: "zh-CN",
+            targetLanguage: language,
             format: "text",
           },
         }),
@@ -1202,11 +1232,31 @@ describe("pipelineCore", () => {
           apiSlug: "mock-trans",
         },
       });
-      expect(result.originalText).toBe("");
+      expect(result.originalText).toBe(
+        shape === "translation-only" ? "" : "Hello"
+      );
       expect(result.translatedText).toBe("译文");
       expect(executeFileTranslation).not.toHaveBeenCalled();
     }
   );
+
+  test("mismatched language falls back only when original text is available", async () => {
+    const result = await executeItemsTranslation({
+      setting: mockSetting,
+      scene: { toLang: "zh-CN", apiSlug: "mock-trans" },
+      items: [
+        { text: "Hello", translation: "你好", translationLanguage: "zh-TW" },
+        { text: "", translation: "你好", translationLanguage: "zh-TW" },
+        { text: "Legacy", translation: "旧译文" },
+      ],
+    });
+    expect(executeFileTranslation).toHaveBeenCalledTimes(1);
+    expect(executeFileTranslation.mock.calls[0][0]).toBe("Hello");
+    expect(result[0].translationLanguage).toBe("zh-CN");
+    expect(result[1].translation).toBe("");
+    expect(result[1].error).toContain("original text");
+    expect(result[2].translation).toBe("旧译文");
+  });
 
   test("fallback translates only missing region translations", async () => {
     const result = await executeItemsTranslation({
