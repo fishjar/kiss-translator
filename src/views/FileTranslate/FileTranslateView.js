@@ -1,5 +1,7 @@
+import { hasReusableImageTranslation } from "../../providers/imageResult";
 import { logger } from "../../libs/log";
 import {
+  requiresStructuredImageHost,
   recognitionFeature,
   recognitionOptions,
   hasCompleteCoordinates,
@@ -225,6 +227,7 @@ export default function FileTranslateView() {
     i18n,
     uiLang,
     patchScene: saveScene,
+    waitForSceneSave,
     allTextStyles,
     openSettings: openOptionsPage,
   } = useFileTranslation();
@@ -298,8 +301,11 @@ export default function FileTranslateView() {
     );
   const [showImageRegions, setShowImageRegions] = useState(true);
   const selectedImageRows = rows.filter(
-    (row) => row.enabled !== false && row.source?.trim()
+    (row) =>
+      row.enabled !== false &&
+      (row.source?.trim() || row.target?.trim() || row.error)
   );
+  const hasImageOriginal = rows.some((row) => row.source?.trim());
   const imageTranslationComplete =
     selectedImageRows.length > 0 &&
     selectedImageRows.every((row) => row.translated);
@@ -434,16 +440,18 @@ export default function FileTranslateView() {
           },
           "layoutApiSlug"
         )
-      : layoutApis.find((api) => api.layoutAvailable !== false);
+      : mode === "image"
+        ? undefined
+        : layoutApis.find((api) => api.layoutAvailable !== false);
     return api?.layoutAvailable !== false ? api : undefined;
-  }, [scene, setting?.transApis, context.models, layoutApis]);
+  }, [scene, setting?.transApis, context.models, layoutApis, mode]);
 
   const currentLayoutSlug = hasLayoutService
     ? scene.layoutApiSlug || activeLayoutApi?.apiSlug || ""
     : "";
 
   const handleLayoutServiceChange = (newSlug) => {
-    if (!newSlug) return;
+    if (!newSlug && mode !== "image") return;
     const targetApi = layoutApis.find((api) => api.apiSlug === newSlug);
     patchScene({
       layoutApiSlug: newSlug,
@@ -457,7 +465,7 @@ export default function FileTranslateView() {
   };
 
   const layoutSelectOptions = useMemo(() => {
-    if (!hasLayoutService) {
+    if (!hasLayoutService && mode !== "image") {
       return [
         {
           value: "",
@@ -477,6 +485,11 @@ export default function FileTranslateView() {
           : ""
       }${api.layoutAvailable === false ? ` (${i18n("api_unavailable_here", "unavailable here")})` : ""}`,
     }));
+    if (mode === "image")
+      options.unshift({
+        value: "",
+        label: i18n("layout_disabled", "不调用独立界面分析服务"),
+      });
     if (
       currentLayoutSlug &&
       !options.some((o) => o.value === currentLayoutSlug)
@@ -489,6 +502,7 @@ export default function FileTranslateView() {
     return options;
   }, [
     hasLayoutService,
+    mode,
     layoutApis,
     currentLayoutSlug,
     i18n,
@@ -550,13 +564,17 @@ export default function FileTranslateView() {
     setImageStage("");
     setImageFailure(null);
     setRows((previous) =>
-      previous.map((row) => ({
-        ...row,
-        target: "",
-        translated: false,
-        translationKey: undefined,
-        error: undefined,
-      }))
+      previous.map((row) =>
+        row.translationFromImage
+          ? row
+          : {
+              ...row,
+              target: "",
+              translated: false,
+              translationKey: undefined,
+              error: undefined,
+            }
+      )
     );
     setTranslatedImageBlob(null);
     setTranslatedImageUrl("");
@@ -564,10 +582,17 @@ export default function FileTranslateView() {
   const recognitionPromptSlug =
     scene.vlmPromptSlug || activeRecognitionApi?.vlmPromptSlug || "";
   const imageRecognitionSignature = JSON.stringify({
-    layoutService: activeLayoutApi,
+    layoutService: activeLayoutApi?.recognitionSignature || activeLayoutApi,
     layoutApiSlug: scene.layoutApiSlug,
     selection: recognitionSelection,
-    service: activeRecognitionApi,
+    service: activeRecognitionApi?.recognitionSignature || activeRecognitionApi,
+    fromLang: scene.fromLang,
+    toLang: scene.toLang,
+    terminology:
+      context.visualSignatures?.image || context.terminologySignatures?.image,
+    terms: scene.terms,
+    aiTerms: scene.aiTerms,
+    termsList: scene.termsList,
     promptSlug: recognitionPromptSlug,
     prompt: context.prompts?.find(
       (prompt) => prompt.slug === recognitionPromptSlug
@@ -1699,7 +1724,8 @@ export default function FileTranslateView() {
   };
 
   const toggleImageRegion = (index) => {
-    if (busy || !hasImagePolygon(rows[index]?.poly)) return;
+    if (busy || !hasImagePolygon(rows[index]?.regionPoly || rows[index]?.poly))
+      return;
     setRows((previous) =>
       previous.map((row, rowIndex) =>
         rowIndex === index ? { ...row, enabled: row.enabled === false } : row
@@ -1761,7 +1787,24 @@ export default function FileTranslateView() {
         setShowImageRegions(true);
         setRows([]);
         setResultViewMode("source");
+        await waitForSceneSave?.("image");
+        assertCurrent();
+        if (
+          recognitionSelection?.capability === "parseImage" &&
+          requiresStructuredImageHost(
+            context,
+            activeRecognitionApi,
+            recognitionPromptSlug
+          )
+        )
+          throw new Error(
+            i18n(
+              "file_visual_upgrade_required",
+              "请升级扩展后使用结构化视觉解析"
+            )
+          );
         const recognitionOptions = {
+          kind: "image",
           promptSlug: scene.vlmPromptSlug || "",
           ...(ignoreCache && { cacheMode: "refresh" }),
         };
@@ -1785,7 +1828,10 @@ export default function FileTranslateView() {
             );
         if (
           !recognized?.text?.trim() &&
-          !recognized?.items?.some((item) => item.text?.trim())
+          !recognized?.items?.some(
+            (item) =>
+              item.text?.trim() || item.translation?.trim() || item.error
+          )
         )
           throw new Error("图片识别返回空结果");
         if (abort.signal.aborted || taskIdRef.current !== currentTaskId) return;
@@ -1813,7 +1859,9 @@ export default function FileTranslateView() {
               ]
             : []),
           ...(recognized.inputAdjustments || []).map((item) => item.message),
-          ...(!items.some((item) => hasImagePolygon(item.poly))
+          ...(!items.some((item) =>
+            hasImagePolygon(item.regionPoly || item.poly)
+          )
             ? [
                 i18n(
                   "image_region_selection_unavailable",
@@ -1824,21 +1872,34 @@ export default function FileTranslateView() {
         ]);
 
         nextRows = items.map((item) => ({
-          source: item.text,
-          target: "",
+          source: item.text || "",
+          target: item.translation || "",
+          translationLanguage: item.translationLanguage,
+          translationFromImage: item.translationFromImage,
+          format: item.format || recognized.format,
+          id: item.id,
+          regionPoly: item.regionPoly,
+          error: item.error,
           enabled: true,
-          translated: false,
+          translated: hasReusableImageTranslation(item, scene.toLang),
           poly: item.poly,
           box: item.box,
           ...(item.type && { type: item.type }),
           ...(item.label && { label: item.label }),
         }));
+        if (
+          !nextRows.some((row) => row.source?.trim()) &&
+          nextRows.some((row) => row.target?.trim())
+        )
+          setResultViewMode("target");
         if (action === "all") {
           nextRows = nextRows.map((row) => {
-            const old = rows.find(
-              (previous) =>
-                previous.source === row.source &&
-                JSON.stringify(previous.poly) === JSON.stringify(row.poly)
+            const old = rows.find((previous) =>
+              row.id && previous.id
+                ? row.id === previous.id
+                : previous.source === row.source &&
+                  JSON.stringify(previous.regionPoly || previous.poly) ===
+                    JSON.stringify(row.regionPoly || row.poly)
             );
             return old ? { ...row, enabled: old.enabled } : row;
           });
@@ -1851,10 +1912,19 @@ export default function FileTranslateView() {
         currentStage = "translate";
         setImageStage("translate");
         nextRows = nextRows.map((row) =>
+          !row.translationFromImage &&
           (ignoreCache || row.translationKey !== imageTranslationKey) &&
           row.enabled !== false &&
           row.source?.trim()
             ? { ...row, target: "", translated: false }
+            : row
+        );
+        nextRows = nextRows.map((row) =>
+          row.enabled !== false && !row.source?.trim() && !row.target?.trim()
+            ? {
+                ...row,
+                error: i18n("image_no_original_fallback", "没有原文，无法补译"),
+              }
             : row
         );
         setRows(nextRows);
@@ -1866,7 +1936,7 @@ export default function FileTranslateView() {
             ({ row }) =>
               row.enabled !== false &&
               row.source?.trim() &&
-              (!row.translated || ignoreCache)
+              (!row.translated || (ignoreCache && !row.translationFromImage))
           );
         setProgress([0, tasks.length]);
         await runTranslationTasks(
@@ -1910,7 +1980,9 @@ export default function FileTranslateView() {
       if (action === "all" || action === "synthesize") {
         assertCurrent();
         const selected = nextRows.filter(
-          (row) => row.enabled !== false && row.source?.trim()
+          (row) =>
+            row.enabled !== false &&
+            (row.source?.trim() || row.target?.trim() || row.error)
         );
         if (hasCompleteCoordinates(selected, "source")) {
           currentStage = "synthesize";
@@ -2243,6 +2315,16 @@ export default function FileTranslateView() {
         }}
       />
 
+      {(mode === "image" || mode === "pdf") &&
+        isVlmRecognition &&
+        !context.features?.structuredImageResults && (
+          <Typography variant="caption" color="text.secondary">
+            {i18n(
+              "file_visual_upgrade_required",
+              "请升级扩展后使用结构化视觉解析"
+            )}
+          </Typography>
+        )}
       {(mode === "image" || mode === "pdf") && isVlmRecognition && (
         <Box sx={{ width: 170, flexShrink: 0 }}>
           <ScenePromptSelect
@@ -2250,6 +2332,9 @@ export default function FileTranslateView() {
             prompts={context.prompts}
             category={PROMPT_CATEGORY_VLM}
             recognitionApi={activeRecognitionApi}
+            structuredImageResults={
+              context.features?.structuredImageResults === true
+            }
             fullWidth
             size="small"
             variant="outlined"
@@ -3424,7 +3509,9 @@ export default function FileTranslateView() {
                     </Typography>
 
                     {mode === "image" &&
-                      rows.some((row) => hasImagePolygon(row.poly)) && (
+                      rows.some((row) =>
+                        hasImagePolygon(row.regionPoly || row.poly)
+                      ) && (
                         <FormControlLabel
                           sx={{ m: 0, whiteSpace: "nowrap" }}
                           label={
@@ -3763,6 +3850,7 @@ export default function FileTranslateView() {
                       {mode === "image" && (
                         <ToggleButton
                           value="source"
+                          disabled={!hasImageOriginal}
                           sx={{ px: 1.25, py: 0.25, fontSize: 12 }}
                         >
                           {i18n("view_source_only", "原文")}
@@ -3808,6 +3896,7 @@ export default function FileTranslateView() {
                       ) : (
                         <ToggleButton
                           value="bilingual"
+                          disabled={mode === "image" && !hasImageOriginal}
                           sx={{
                             px: 1.25,
                             py: 0.25,
@@ -4126,7 +4215,11 @@ export default function FileTranslateView() {
                                     wordBreak: "break-word",
                                   }}
                                 >
-                                  {row.source}
+                                  {row.source ||
+                                    i18n(
+                                      "image_original_unavailable",
+                                      "未返回原文"
+                                    )}
                                 </Typography>
                               )}
                               <Typography

@@ -85,6 +85,7 @@ export function FileTranslationProvider({ children }) {
   }, [reconnectAt]);
   const clientRef = useRef(null);
   const writes = useRef(Promise.resolve());
+  const sceneWrites = useRef({});
   const active = useRef(false);
   const refresh = useCallback(async () => {
     const client = clientRef.current;
@@ -250,35 +251,55 @@ export function FileTranslationProvider({ children }) {
       }));
       const client = clientRef.current;
       const sessionId = client.session.sessionId;
-      writes.current = writes.current
-        .catch(() => {})
-        .then(async () => {
-          if (
-            client !== clientRef.current ||
-            sessionId !== client.session?.sessionId
-          )
-            return;
-          await client.request("patchScene", { kind, patch });
-          if (
-            active.current &&
-            client === clientRef.current &&
-            sessionId === client.session?.sessionId
-          )
-            setSaveError("");
-        })
-        .catch((failure) => {
+      const write = writes.current.then(async () => {
+        if (
+          client !== clientRef.current ||
+          sessionId !== client.session?.sessionId
+        )
+          return;
+        await client.request("patchScene", { kind, patch });
+        if (
+          active.current &&
+          client === clientRef.current &&
+          sessionId === client.session?.sessionId
+        )
+          setSaveError("");
+      });
+      const pending = { client, sessionId, write };
+      sceneWrites.current[kind] = pending;
+      writes.current = write
+        .catch(async (failure) => {
           if (
             active.current &&
             client === clientRef.current &&
             sessionId === client.session?.sessionId
           ) {
             setSaveError(failure.message);
-            refresh().catch(() => {});
+            await refresh().catch(() => {});
           }
+        })
+        .finally(() => {
+          if (sceneWrites.current[kind] === pending)
+            delete sceneWrites.current[kind];
         });
     },
     [refresh]
   );
+  const waitForSceneSave = useCallback(async (kind) => {
+    const pending = sceneWrites.current[kind];
+    if (
+      !pending ||
+      pending.client !== clientRef.current ||
+      pending.sessionId !== pending.client.session?.sessionId
+    )
+      return;
+    await pending.write;
+    if (
+      pending.client !== clientRef.current ||
+      pending.sessionId !== pending.client.session?.sessionId
+    )
+      throw new Error("连接已变化，请重试");
+  }, []);
 
   const allTextStyles = useMemo(
     () => [
@@ -481,6 +502,7 @@ export function FileTranslationProvider({ children }) {
     i18n,
     uiLang: language,
     patchScene,
+    waitForSceneSave,
     allTextStyles,
     openSettings,
     toggleTheme: preferences.toggleThemeMode,

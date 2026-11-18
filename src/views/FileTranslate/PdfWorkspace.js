@@ -1,3 +1,6 @@
+import { requiresStructuredImageHost } from "../../fileTranslation/recognition";
+import { visualDocumentBlocks } from "../../libs/document/visualResult";
+import { hasReusableImageTranslation } from "../../providers/imageResult";
 import {
   documentRecognitionSelection,
   documentOcrBlocks,
@@ -214,7 +217,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     const registry = assetPreview.current;
     return () => registry.clear();
   }, [file]);
-  const { context, client, connected, openSettings, i18n } =
+  const { context, client, connected, openSettings, i18n, waitForSceneSave } =
     useFileTranslation();
   const kind = isPdf ? "pdf" : "markdown",
     scene = {
@@ -526,7 +529,11 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       ...next,
       blocks: next.blocks.map((block) => {
         const old = previous.find(
-          (item) => item.id === block.id && item.raw === block.raw
+          (item) =>
+            item.id === block.id &&
+            item.raw === block.raw &&
+            JSON.stringify(item.visualResult) ===
+              JSON.stringify(block.visualResult)
         );
         return old
           ? {
@@ -537,6 +544,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
               targetAst: old.targetAst,
               bilingualAst: old.bilingualAst,
               translationKey: old.translationKey,
+              translationFromImage: old.translationFromImage,
               error: old.error,
               bilingualVersion: old.bilingualVersion,
               translationRepairRequired: old.translationRepairRequired,
@@ -557,7 +565,63 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     toLang: config.toLang,
     apiSlug: config.apiSlug,
     promptSlug: config.promptSlug,
+    terminologySignature: context.terminologySignatures?.pdf,
+    serviceSignature: context.services?.find(
+      (api) => api.apiSlug === config.apiSlug
+    )?.translationSignature,
+    prompt: context.prompts?.find(
+      (prompt) => prompt.slug === config.promptSlug
+    ),
   });
+  const visualSignature = JSON.stringify([
+    config.recognitionService,
+    config.vlmPromptSlug,
+    context.services?.find(
+      (api) => api.apiSlug === config.recognitionService?.apiSlug
+    )?.recognitionSignature,
+    config.fromLang,
+    config.toLang,
+    config.terms,
+    config.aiTerms,
+    config.termsList,
+    context.visualSignatures?.pdf || context.terminologySignatures?.pdf,
+    context.prompts?.find((prompt) => prompt.slug === config.vlmPromptSlug),
+  ]);
+  const reusableVisual = (block) =>
+    block.visualResult &&
+    block.translationFromImage !== false &&
+    hasReusableImageTranslation(block.visualResult, config.toLang);
+  const previousVisualSignature = useRef(visualSignature);
+  useEffect(() => {
+    if (previousVisualSignature.current === visualSignature) return;
+    previousVisualSignature.current = visualSignature;
+    if (!isPdf || phase === "opening") return;
+    ++operation.current;
+    abortRef.current?.abort();
+    translationRun.current?.abort.abort();
+    translationRun.current = null;
+    if (automaticRun.current) automaticRun.current.cancelled = true;
+    automaticRun.current = null;
+    enqueueTranslation.current = null;
+    setPhase("idle");
+    setTranslationBusy(false);
+    setAutomaticBusy(false);
+    setProgress(null);
+    setTranslationProgress(null);
+    const next = blocksRef.current
+      .filter((block) => !block.visualResult)
+      .map((block) =>
+        block.status === "busy" ? { ...block, status: "idle" } : block
+      );
+    if (resultRef.current)
+      resultRef.current = {
+        ...resultRef.current,
+        recognitionKey: undefined,
+        complete: false,
+        blocks: next,
+      };
+    publishBlocks(next);
+  }, [visualSignature]); // eslint-disable-line react-hooks/exhaustive-deps
   const readyBlock = (block, current = resultRef.current) =>
     !isPdf ||
     block.translationReady === true ||
@@ -566,6 +630,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       !block.pendingSourceIds?.length);
   const pendingTranslation = (block) =>
     readyBlock(block) &&
+    !reusableVisual(block) &&
     isTranslatableBlock(block) &&
     (ignoreCache ||
       block.translationKey !== settingsKey ||
@@ -599,6 +664,20 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     );
     setProgress(null);
     setTranslationProgress(null);
+  };
+  const beforeDocumentRecognition = async (selection) => {
+    await waitForSceneSave?.("pdf");
+    if (
+      selection.capability === "parseImage" &&
+      requiresStructuredImageHost(
+        context,
+        context.services?.find((api) => api.apiSlug === selection.apiSlug),
+        config.vlmPromptSlug
+      )
+    )
+      throw new Error(
+        i18n("file_visual_upgrade_required", "请升级扩展后使用结构化视觉解析")
+      );
   };
   const parse = async (
     reset = false,
@@ -663,6 +742,8 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         client,
         models: context.models,
         services: context.services,
+        beforeDocumentRecognition,
+        visualSignature,
         signal: abort.signal,
         previous: resultRef.current,
         retryRegion,
@@ -747,6 +828,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       .filter(
         (block) =>
           readyBlock(block, current) &&
+          !reusableVisual(block) &&
           (!Array.isArray(requested) || requested.includes(block.id)) &&
           isTranslatableBlock(block) &&
           (ignoreCache ||
@@ -769,7 +851,11 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       publishBlocks(
         blocksRef.current.map((block) => {
           const translated = targetBlocks.find(
-            (item) => item.id === block.id && item.raw === block.raw
+            (item) =>
+              item.id === block.id &&
+              item.raw === block.raw &&
+              JSON.stringify(item.visualResult) ===
+                JSON.stringify(block.visualResult)
           );
           return translated
             ? {
@@ -780,6 +866,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                 targetAst: translated.targetAst,
                 bilingualAst: translated.bilingualAst,
                 translationKey: translated.translationKey,
+                translationFromImage: translated.translationFromImage,
                 error: translated.error,
                 bilingualVersion: translated.bilingualVersion,
                 translationRepairRequired: translated.translationRepairRequired,
@@ -793,7 +880,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     setMode("bilingual");
     try {
       for (const block of targetBlocks) {
-        if (block.translationKey !== settingsKey) {
+        if (!reusableVisual(block) && block.translationKey !== settingsKey) {
           block.status = "idle";
           delete block.targetRaw;
           delete block.bilingualRaw;
@@ -812,7 +899,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       );
       if (ignoreCache)
         targetBlocks.forEach((block) => {
-          block.status = "idle";
+          if (!reusableVisual(block)) block.status = "idle";
         });
       await translateDocumentBlocks(
         targetBlocks,
@@ -878,7 +965,11 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           publishBlocks(
             blocksRef.current.map((block) => {
               const translated = targetBlocks.find(
-                (item) => item.id === block.id && item.raw === block.raw
+                (item) =>
+                  item.id === block.id &&
+                  item.raw === block.raw &&
+                  JSON.stringify(item.visualResult) ===
+                    JSON.stringify(block.visualResult)
               );
               return translated
                 ? {
@@ -889,6 +980,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
                     targetAst: translated.targetAst,
                     bilingualAst: translated.bilingualAst,
                     translationKey: translated.translationKey,
+                    translationFromImage: translated.translationFromImage,
                     error: translated.error,
                     bilingualVersion: translated.bilingualVersion,
                     translationRepairRequired:
@@ -927,7 +1019,10 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         config.recognitionService,
         config.visionServiceSlug
       );
+      await beforeDocumentRecognition(selection);
+      if (abort.signal.aborted) return;
       const response = await client.recognize(blob, selection, abort.signal, {
+        kind: "pdf",
         taskMode: "doc",
         promptSlug: config.vlmPromptSlug,
         cacheMode: ignoreCache ? "refresh" : undefined,
@@ -953,7 +1048,11 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         mounted.current &&
         operation.current === version
       ) {
-        if (!response.text?.trim()) throw new Error("图中文字识别结果为空");
+        if (
+          !response.text?.trim() &&
+          !response.items?.some((item) => item.translation?.trim())
+        )
+          throw new Error("图中文字识别结果为空");
         const located =
           selection.capability === "recognizeText"
             ? documentOcrBlocks(
@@ -964,11 +1063,21 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
               )
             : null;
         const associated = (
-          located ||
-          parseDocumentMarkdown(response.text, `${block.id}-recognized`)
+          response.translation ||
+          response.layout ||
+          response.items?.some((item) => item.translation || item.error)
+            ? visualDocumentBlocks(response, {
+                id: `${block.id}-recognized`,
+                page: fragment.page,
+                bbox: fragment.bbox,
+                sourceFallback: block.raw,
+                fingerprint: visualSignature,
+              })
+            : located ||
+              parseDocumentMarkdown(response.text, `${block.id}-recognized`)
         ).map((b) => ({
           ...b,
-          fragments: located ? b.fragments : block.fragments,
+          fragments: b.visualResult || located ? b.fragments : block.fragments,
           associatedImageId: block.id,
         }));
         setBlocks((prev) =>
@@ -1311,6 +1420,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       pumping: false,
     };
     automaticRun.current = run;
+    setMode("bilingual");
     setAutomaticBusy(true);
     const pump = () => {
       if (run.pumping || run.cancelled || automaticRun.current !== run)
@@ -1365,7 +1475,11 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         !currentResult?.complete ||
         (isPdf &&
           currentResult.recognitionKey !==
-            documentRecognitionKey({ ...config, services: context.services }))
+            documentRecognitionKey({
+              ...config,
+              services: context.services,
+              visualSignature,
+            }))
       )
         await parse(ignoreCache, undefined, currentRegions);
       if (!run.cancelled) await pump();

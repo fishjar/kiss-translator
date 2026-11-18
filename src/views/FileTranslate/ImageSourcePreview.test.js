@@ -107,6 +107,35 @@ describe("ImageSourcePreview regions", () => {
     }
   );
 
+  test("layout-only regions render labels and selection without text coordinates", () => {
+    const toggle = jest.fn();
+    render({
+      rows: [
+        {
+          source: "",
+          target: "Translation",
+          poly: null,
+          regionPoly: poly,
+          type: "paragraph",
+        },
+      ],
+      onToggleRegion: toggle,
+    });
+    measure();
+    expect(container.querySelector("polygon").getAttribute("points")).toBe(
+      "10,20 100,20 100,60 10,60"
+    );
+    expect(
+      container.querySelector('[data-testid="image-layout-type"]').textContent
+    ).toBe("正文");
+    act(() =>
+      container
+        .querySelector("polygon")
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    );
+    expect(toggle).toHaveBeenCalledWith(0);
+  });
+
   test("click and keyboard toggle the correct region without bubbling to image zoom", () => {
     const toggle = jest.fn(),
       zoom = jest.fn();

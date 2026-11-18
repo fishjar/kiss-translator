@@ -143,6 +143,41 @@ test("queued scene writes retain order and never replay into a new session", asy
   ).toHaveLength(1);
 });
 
+test("visual recognition can wait for its latest queued scene write", async () => {
+  const client = makeClient(),
+    first = deferred(),
+    second = deferred();
+  client.session = { sessionId: "visual", extensionVersion: "2.2.5" };
+  client.connect.mockResolvedValue(client.session);
+  client.request
+    .mockResolvedValueOnce({ scenes: { image: {} }, styles: [] })
+    .mockReturnValueOnce(first.promise)
+    .mockReturnValueOnce(second.promise);
+  getFileClient.mockReturnValue(client);
+  await act(async () =>
+    root.render(
+      <FileTranslationProvider>
+        <Content />
+      </FileTranslationProvider>
+    )
+  );
+  const startRecognition = jest.fn();
+  let ready;
+  await act(async () => {
+    value.patchScene("image", { toLang: "ja" });
+    value.patchScene("image", { termsList: ["names"] });
+    ready = value.waitForSceneSave("image").then(startRecognition);
+  });
+  expect(startRecognition).not.toHaveBeenCalled();
+  await act(async () => first.resolve({}));
+  expect(startRecognition).not.toHaveBeenCalled();
+  await act(async () => {
+    second.resolve({});
+    await ready;
+  });
+  expect(startRecognition).toHaveBeenCalledTimes(1);
+});
+
 test("connected language follows extension changes and survives disconnect", async () => {
   const client = makeClient();
   const context = {

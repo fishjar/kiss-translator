@@ -15,6 +15,14 @@ export function isSameImageTranslationLanguage(actual, expected) {
   return locale(actual) === locale(expected);
 }
 
+export function hasReusableImageTranslation(item, language) {
+  return Boolean(
+    item.translation?.trim() &&
+      (!item.translationLanguage ||
+        isSameImageTranslationLanguage(item.translationLanguage, language))
+  );
+}
+
 export function validImageTranslation(value, targetLanguage) {
   return (
     object(value) &&

@@ -8,7 +8,10 @@ import {
   getVlmPromptOptions,
   getPromptDisplayName,
 } from "../../config";
-import { getPluginPromptOptions } from "../../providers/defaultPrompts";
+import {
+  selectedPluginPrompt,
+  getPluginPromptOptions,
+} from "../../providers/defaultPrompts";
 import { SettingsSelect } from "../Options/SettingsCard";
 
 export default function ScenePromptSelect({
@@ -26,6 +29,7 @@ export default function ScenePromptSelect({
   sx,
   variant,
   recognitionApi,
+  structuredImageResults = true,
   ...rest
 }) {
   const displayLabel = label || i18n("translation_prompt", "翻译提示词");
@@ -46,7 +50,9 @@ export default function ScenePromptSelect({
   const translationApi = services.length === 1 ? services[0] : undefined;
   const translationPrompts =
     category === PROMPT_CATEGORY_VLM
-      ? getVlmPromptOptions(prompts, recognitionApi)
+      ? getVlmPromptOptions(prompts, recognitionApi).filter(
+          (prompt) => structuredImageResults || prompt.protocol !== "image-json"
+        )
       : [
           ...(!category
             ? [
@@ -126,7 +132,15 @@ export default function ScenePromptSelect({
       variant={variant}
       {...rest}
       options={[
-        { value: "", label: i18n("scene_prompt_follow_api", "跟随接口") },
+        {
+          value: "",
+          label: i18n("scene_prompt_follow_api", "跟随接口"),
+          disabled:
+            category === PROMPT_CATEGORY_VLM &&
+            !structuredImageResults &&
+            selectedPluginPrompt(recognitionApi, "vlm")?.protocol ===
+              "image-json",
+        },
         ...translationPrompts.map((prompt) => ({
           value: prompt.slug,
           label: getLabel(prompt),

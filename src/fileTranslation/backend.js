@@ -1,3 +1,5 @@
+import { invokeImageProvider } from "./imageProvider";
+import { buildImageParseInput, mapImageResult } from "./imageParsing";
 import {
   readTableDirectory,
   resolveTerminology,
@@ -15,8 +17,8 @@ import { DEFAULT_FILE_TRANSLATE_SETTING } from "../config/setting";
 import { STOKEY_SETTING } from "../config/storage";
 import {
   getAllPrompts,
-  resolveVlmPrompt,
   resolveApiPromptSettings,
+  resolveVlmPromptDefinition,
 } from "../config/prompt";
 import { providerCacheSignature } from "../providers/cache";
 import { prepareImage } from "../localAi/core/inputLimits";
@@ -29,13 +31,8 @@ import { executeFileTranslation } from "../libs/fileTranslationService";
 import { isApiAvailableFor } from "../config/serviceSelection";
 import { ALL_OCR_MODELS } from "../localAi/fileOperations";
 import { runtimeHost } from "../localAi/runtime/runtimeHostAdapter";
-import { cachedFileResult } from "./resultCache";
 import { normalizeSettings } from "../localAi/core/settings";
 import { CATALOG, DOC_MODEL_ID } from "../localAi/core/catalog";
-import { hasCompleteCoordinates } from "./recognition";
-import { createNativeRegistry } from "../builtin-plugins/runtime";
-import { createAssetStore } from "../providers/transport";
-import { invokeBackgroundPlugin } from "../providers/backgroundInvocation";
 import {
   FILE_CHANNEL,
   FILE_PROTOCOL,
@@ -158,83 +155,6 @@ async function inputSettings() {
   return normalizeSettings(stored["kiss-ai-settings"]);
 }
 
-// Both image scenes use the same bounded broker path. Keeping it static avoids
-// Webpack's document-based lazy chunk loader in the MV3 background worker.
-async function invokeImageProvider(
-  api,
-  capability,
-  prepared,
-  signal,
-  extra = {}
-) {
-  const assets = createAssetStore();
-  try {
-    const { cacheMode, onProgress, requireCoordinates, ...extraInput } = extra;
-    const input = {
-      ...extraInput,
-      ...(api.apiType === "LocalAI" && cacheMode && { cacheMode }),
-      image: assets.put(prepared.blob),
-      imageSize: prepared.size,
-    };
-    return await cachedFileResult({
-      api,
-      capability,
-      policy: await inputSettings(),
-      cacheMode,
-      signal,
-      onProgress,
-      validate: (result) => {
-        if (capability === "analyzeLayout") return;
-        if (!result.text?.trim())
-          throw fileError("INVALID_RESPONSE", "识别返回空结果");
-        if (
-          (requireCoordinates ||
-            supportedApiFeature(api, capability)?.coordinates) &&
-          !hasCompleteCoordinates(result.items || [])
-        )
-          throw fileError(
-            "INVALID_RESPONSE",
-            "识别服务未返回完整有效的文字坐标"
-          );
-      },
-      input: { ...extraInput, image: prepared.blob, imageSize: prepared.size },
-      run: async () => {
-        const call =
-          api.provider && api.provider.implementation?.kind !== "native"
-            ? invokeBackgroundPlugin(api, capability, input, { signal, assets })
-            : createNativeRegistry(() => api, { assets }).invoke(
-                api.apiSlug,
-                capability,
-                input,
-                { signal }
-              );
-        const events = (async () => {
-          const iterator = call.events[Symbol.asyncIterator]();
-          for (;;) {
-            const next = await iterator.next();
-            if (next.done) break;
-            const status = next.value.message;
-            if (status === "CACHE_HIT" || status === "INFERENCE_START")
-              onProgress?.({
-                type: status === "CACHE_HIT" ? "cache-hit" : "inference",
-              });
-          }
-        })();
-        events.catch(() => {});
-        try {
-          const result = await call.result;
-          await events;
-          return result;
-        } finally {
-          call.cancel();
-        }
-      },
-    });
-  } finally {
-    assets.clear();
-  }
-}
-
 export async function getFileContext(signal) {
   const setting = await getSettingWithDefault();
   const promptSignature = await sha256(
@@ -280,6 +200,22 @@ export async function getFileContext(signal) {
           const api =
             setting.transApis.find((api) => api.apiSlug === scene.apiSlug) ||
             {};
+          return [
+            kind,
+            await sha256((await resolveTerminology(scene, api)).signature),
+          ];
+        })
+      )
+    ),
+    features: { structuredImageResults: true },
+    visualSignatures: Object.fromEntries(
+      await Promise.all(
+        ["image", "pdf"].map(async (kind) => {
+          const scene = setting.fileTranslateSetting[kind] || {};
+          const api =
+            setting.transApis.find(
+              (item) => item.apiSlug === scene.recognitionService?.apiSlug
+            ) || {};
           return [
             kind,
             await sha256((await resolveTerminology(scene, api)).signature),
@@ -355,6 +291,10 @@ export async function getFileContext(signal) {
             .map((cap) => [
               cap,
               {
+                includesTranslation:
+                  supportedApiFeature(api, cap)?.includesTranslation === true,
+                includesLayout:
+                  supportedApiFeature(api, cap)?.includesLayout === true,
                 coordinates:
                   supportedApiFeature(api, cap)?.coordinates === true,
                 taskModes: supportedApiFeature(api, cap)?.taskModes || ["doc"],
@@ -376,7 +316,11 @@ export async function getFileContext(signal) {
             api.vlmPromptSlug,
             api.maxTokens,
             api.temperature,
-            promptSignature,
+            resolveVlmPromptDefinition(
+              setting.prompts,
+              api.vlmPromptSlug || "",
+              api
+            ),
             Object.fromEntries(
               (api.provider?.settings || [])
                 .filter((field) => field.type !== "password" && !field.isSecret)
@@ -386,8 +330,11 @@ export async function getFileContext(signal) {
         ),
       }))
     ),
-    prompts: getAllPrompts(setting.prompts).map((prompt) =>
-      pick(prompt, ["slug", "name", "nameKey", "category"])
+    prompts: await Promise.all(
+      getAllPrompts(setting.prompts).map(async (prompt) => ({
+        ...pick(prompt, ["slug", "name", "nameKey", "category", "protocol"]),
+        fingerprint: await sha256(JSON.stringify(prompt)),
+      }))
     ),
     styles: (setting.customStyles || []).map((style) =>
       pick(style, ["styleSlug", "styleName", "styleCode"])
@@ -671,59 +618,46 @@ export async function executeFileMethod(
       await inputSettings(),
       signal
     );
-    const promptSlug =
-      params.promptSlug || (mode === "doc" ? api.vlmPromptSlug : "");
-    let prompt;
-    if (capability === "parseImage") {
-      if (promptSlug)
-        prompt = resolveVlmPrompt(setting.prompts, promptSlug, api);
-      else if (
-        api.apiType !== "LocalAI" &&
-        (!api.provider || api.provider.implementation?.kind === "native")
-      )
-        prompt =
-          mode === "table"
-            ? "Extract the table as HTML. Preserve all cell contents and spans. Do not translate or explain."
-            : mode === "formula"
-              ? "Extract the formula as LaTeX. Do not translate or explain."
-              : resolveVlmPrompt(setting.prompts, "");
-    }
-    const result = await invokeImageProvider(
+    if (params.kind !== undefined && !["image", "pdf"].includes(params.kind))
+      throw fileError("INVALID_INPUT", "Invalid image scene.");
+    const scene = params.kind
+      ? {
+          ...DEFAULT_FILE_TRANSLATE_SETTING[params.kind],
+          ...setting.fileTranslateSetting?.[params.kind],
+        }
+      : undefined;
+    if (
+      !params.kind &&
+      mode === "doc" &&
+      capability === "parseImage" &&
+      resolveVlmPromptDefinition(
+        setting.prompts,
+        params.promptSlug || api.vlmPromptSlug || "",
+        api
+      )?.protocol === "image-json"
+    )
+      throw fileError(
+        "INVALID_INPUT",
+        "请刷新文件翻译页面后使用结构化视觉解析"
+      );
+    const parseInput = await buildImageParseInput({
       api,
       capability,
-      prepared,
-      signal,
-      {
-        mode,
-        requireCoordinates: params.requireCoordinates,
-        cacheMode: params.cacheMode,
-        onProgress,
-        ...(prompt && { prompt }),
-      }
-    );
-    if (!result.text?.trim())
-      throw fileError("INVALID_RESPONSE", "识别返回空结果");
-    if (
-      (params.requireCoordinates ||
-        supportedApiFeature(api, capability)?.coordinates) &&
-      !hasCompleteCoordinates(result.items || [])
-    )
-      throw fileError("INVALID_RESPONSE", "识别服务未返回完整有效的文字坐标");
-    const sx = prepared.original.width / prepared.size.width;
-    const sy = prepared.original.height / prepared.size.height;
+      setting,
+      promptSlug: params.promptSlug,
+      scene,
+      mode,
+    });
+    const raw = await invokeImageProvider(api, capability, prepared, signal, {
+      ...parseInput,
+      mode,
+      requireCoordinates: params.requireCoordinates,
+      cacheMode: params.cacheMode,
+      onProgress,
+    });
+    const result = mapImageResult(raw, prepared, parseInput);
     return {
       ...result,
-      items: (result.items?.length
-        ? result.items
-        : result.text
-            .split(/\r?\n/)
-            .filter(Boolean)
-            .map((text) => ({ text, poly: null }))
-      ).map((item) => ({
-        ...item,
-        poly: item.poly?.map(([x, y]) => [x * sx, y * sy]) || null,
-      })),
-      imageSize: prepared.original,
       serviceId: api.apiSlug,
       capability,
       inputAdjustments: [

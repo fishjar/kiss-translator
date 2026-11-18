@@ -71,7 +71,7 @@ export default function ImageSourcePreview({
       />
       {bounds &&
         showRegions &&
-        rows.some((row) => hasImagePolygon(row.poly)) && (
+        rows.some((row) => hasImagePolygon(row.regionPoly || row.poly)) && (
           <>
             <Box
               component="svg"
@@ -88,7 +88,7 @@ export default function ImageSourcePreview({
               }}
             >
               {rows.map((row, index) => {
-                if (!hasImagePolygon(row.poly)) return null;
+                if (!hasImagePolygon(row.regionPoly || row.poly)) return null;
                 const enabled = row.enabled !== false;
                 const label = `${regionLabel?.(row, index) || row.source} — ${enabled ? excludeLabel : selectLabel}`;
                 const toggle = (event) => {
@@ -104,7 +104,9 @@ export default function ImageSourcePreview({
                     aria-label={label}
                     aria-pressed={enabled}
                     aria-disabled={disabled}
-                    points={row.poly.map((point) => point.join(",")).join(" ")}
+                    points={(row.regionPoly || row.poly)
+                      .map((point) => point.join(","))
+                      .join(" ")}
                     fill={
                       enabled
                         ? "rgba(25, 118, 210, 0.08)"
@@ -134,9 +136,9 @@ export default function ImageSourcePreview({
               })}
             </Box>
             {rows.map((row, index) => {
-              if (!hasImagePolygon(row.poly)) return null;
+              if (!hasImagePolygon(row.regionPoly || row.poly)) return null;
               const enabled = row.enabled !== false;
-              const [left, top] = row.poly.reduce(
+              const [left, top] = (row.regionPoly || row.poly).reduce(
                 ([x, y], point) => [
                   Math.min(x, point[0]),
                   Math.min(y, point[1]),

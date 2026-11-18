@@ -47,9 +47,21 @@ Invalid translation fields are discarded while usable source text is retained. I
 
 The selected text translation service is a fallback. Valid image translations bypass it; only source content without valid target translations is translated. Recognition-only retains parsed content without calling fallback. A fallback failure preserves other successful items. Translation-only results have no synthetic original. Language changes invalidate parsed image results; changing the fallback service preserves image-generated translations and reuses source content.
 
-Structured fusion skips automatic preceding layout analysis. Existing user selections take priority, empty selections process nothing, and returned content is not cropped and parsed again. Disabling the independent layout service does not disable layouts returned by image parsing. Explicit user-requested layout analysis still runs separately.
+Explicitly selecting an independent layout service always runs that service; adapter capability declarations do not override the selection. Existing user selections take priority and empty selections process nothing. With no independent service selected, returned layout and content can be used without cropping and parsing them again. Disabling the independent layout service does not prohibit layouts returned by image parsing. Explicit user-requested layout analysis still runs separately.
 
-The first implementation applies this scheduling to the webpage image/screenshot panel. PDF and file-translation workflows retain their existing source-recognition behavior. No repainting or word-coordinate inference is added.
+The same request construction, provider invocation, validation and translation reuse rules now apply to webpage images/screenshots, file images and PDF document-region recognition. File images no longer automatically select a layout service when the saved selection is empty. Choose a service explicitly to retain a separate layout pass. Existing image repainting requires actual text coordinates, never layout-only polygons.
+
+## File bridge and PDF regions
+
+File pages wait for the latest pending scene save before starting visual recognition, so requests do not race saved languages, prompts or terminology. Native-only PDF parsing does not require structured-image support.
+
+File protocol remains version 1. New file pages send `kind: "image" | "pdf"` with `recognizeImage`; the background reads the saved scene and resolves languages, terminology and prompts. The context advertises `features.structuredImageResults`, per-scene visual signatures and prompt fingerprints. Old source-recognition requests remain valid. New pages connected to an older host hide structured presets and reject unsupported structured selections with an upgrade message.
+
+PDF Smart parsing retains its independent page-layout requirement; full-page fused layout is not part of this change. Only document-text crops and manual image-text extraction consume structured translations. Table HTML and formula LaTeX use their existing dedicated tasks, without the document translation prompt.
+
+A structured PDF response becomes one aligned visual group, or stable-ID groups for returned regions. Whole-document original and translated Markdown are rendered independently and are not forced to have matching AST shapes. Translation-only groups retain a source-image reference and page fragments without inventing source text. Visual groups stay separate during page merging; returned layout only refines the current crop. Traditional text translation keeps its protected-resource and placeholder checks.
+
+Recognition-only does not call text translation. Fallback-service changes preserve model translations and cached recognition; languages, selected visual prompts and terminology invalidate affected visual results. Parse and fallback caches remain separate. New cache namespaces reject stale structured entries while retaining unrelated inference caches. No extension or website publishing is performed by development builds.
 
 ## Compatibility and release
 

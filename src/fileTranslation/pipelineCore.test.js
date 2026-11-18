@@ -1274,68 +1274,82 @@ describe("pipelineCore", () => {
     expect(result[2].error).toContain("original text");
   });
 
-  test("structured fused parsing returns layout without preceding analysis or repeated recognition", async () => {
-    const plugin = {
-      apiSlug: "plugin",
-      provider: {
-        apiVersion: 1,
-        capabilities: {
-          parseImage: {
-            handler: "parseImage",
-            includesTranslation: true,
-            includesLayout: true,
-            outputModes: ["complete"],
+  test.each(["", "mock-layout"])(
+    "structured parsing respects explicit layout selection: %s",
+    async (layoutApiSlug) => {
+      const plugin = {
+        apiSlug: "plugin",
+        provider: {
+          apiVersion: 1,
+          capabilities: {
+            parseImage: {
+              handler: "parseImage",
+              includesTranslation: true,
+              includesLayout: true,
+              outputModes: ["complete"],
+            },
           },
+          implementation: { kind: "script" },
         },
-        implementation: { kind: "script" },
-      },
-    };
-    invokeBackgroundPlugin.mockReturnValueOnce({
-      result: Promise.resolve({
-        format: "text",
-        layout: {
-          regions: [
+      };
+      invokeBackgroundPlugin.mockReturnValueOnce({
+        result: Promise.resolve({
+          format: "text",
+          layout: {
+            regions: [
+              {
+                id: "r1",
+                type: "paragraph",
+                order: 0,
+                text: "Hello",
+                translation: "你好",
+                poly: [
+                  [0, 0],
+                  [200, 0],
+                  [200, 100],
+                  [0, 100],
+                ],
+              },
+            ],
+          },
+        }),
+        events: { async *[Symbol.asyncIterator]() {} },
+        cancel: jest.fn(),
+      });
+      const result = await executeImagePipeline({
+        imageBlob: new Blob(["image"]),
+        setting: {
+          ...mockSetting,
+          prompts: [
             {
-              id: "r1",
-              type: "paragraph",
-              order: 0,
-              text: "Hello",
-              translation: "你好",
-              poly: [
-                [0, 0],
-                [200, 0],
-                [200, 100],
-                [0, 100],
-              ],
+              slug: "custom-layout",
+              category: "vlm prompt",
+              protocol: "image-json",
+              userPrompt:
+                "Return original text, translation and layout regions.",
             },
           ],
+          transApis: [...mockSetting.transApis, plugin],
         },
-      }),
-      events: { async *[Symbol.asyncIterator]() {} },
-      cancel: jest.fn(),
-    });
-    const result = await executeImagePipeline({
-      imageBlob: new Blob(["image"]),
-      setting: {
-        ...mockSetting,
-        transApis: [...mockSetting.transApis, plugin],
-      },
-      scene: {
-        recognitionService: { apiSlug: "plugin", capability: "parseImage" },
-        toLang: "zh-CN",
-        apiSlug: "mock-trans",
-        layoutApiSlug: "mock-layout",
-        vlmPromptSlug: "vlm-image-bilingual",
-      },
-    });
-    expect(invokeBackgroundPlugin).toHaveBeenCalledTimes(1);
-    expect(createNativeRegistry).not.toHaveBeenCalled();
-    expect(executeFileTranslation).not.toHaveBeenCalled();
-    expect(result.items[0]).toMatchObject({
-      original: "Hello",
-      translation: "你好",
-      poly: null,
-    });
-    expect(result.layout.regions[0].bbox).toEqual([0, 0, 200, 100]);
-  });
+        scene: {
+          recognitionService: { apiSlug: "plugin", capability: "parseImage" },
+          toLang: "zh-CN",
+          apiSlug: "mock-trans",
+          layoutApiSlug,
+          vlmPromptSlug: "custom-layout",
+        },
+      });
+      expect(invokeBackgroundPlugin).toHaveBeenCalledTimes(1);
+      expect(createNativeRegistry).toHaveBeenCalledTimes(layoutApiSlug ? 1 : 0);
+      expect(executeFileTranslation).not.toHaveBeenCalled();
+      expect(result.items[0]).toMatchObject({
+        original: "Hello",
+        translation: "你好",
+        poly: null,
+      });
+      expect(result.layout.regions[0].bbox).toEqual(
+        layoutApiSlug ? [0, 0, 400, 300] : [0, 0, 200, 100]
+      );
+    }
+  );
 });
