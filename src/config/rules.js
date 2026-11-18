@@ -210,7 +210,7 @@ const RULES_MAP = {
     ignoreSelector: `[data-testid='videoPlayer'], [data-testid^='tweetTextarea']`,
     autoScan: `false`,
     selectStyle: `-webkit-line-clamp: unset; max-height: none; height: auto;`,
-    injectCss: `[data-testid='tweetPhoto'] img, [data-testid='card.layoutLarge.media'] img { opacity: 1 !important; }`,
+    injectCss: `[data-testid='tweetPhoto'] img, [data-testid='card.layoutLarge.media'] img { --kt-image-hover: 1; }`,
   },
   "://www.youtube.com/live_chat": {
     rootsSelector: `div#items`,

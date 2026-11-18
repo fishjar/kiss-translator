@@ -239,7 +239,8 @@ export class ImageHoverDetector {
     if (
       style.display === "none" ||
       style.visibility === "hidden" ||
-      parseFloat(style.opacity) === 0
+      (parseFloat(style.opacity) === 0 &&
+        style.getPropertyValue("--kt-image-hover").trim() !== "1")
     ) {
       return false;
     }
