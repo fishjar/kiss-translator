@@ -100,11 +100,47 @@ test("cancel stays in the test card and completes through the existing task canc
   await render({ apiSlug: "one", enabledCapabilities: ["chat"] });
   await act(async () => button("执行测试").click());
   expect(button("取消").closest(".kt-service-test__actions")).not.toBeNull();
+  expect(button("测试中…").disabled).toBe(true);
+  expect(
+    button("测试中…").querySelector('[role="progressbar"]')
+  ).not.toBeNull();
   await act(async () => button("取消").click());
   expect(cancel).toHaveBeenCalledTimes(1);
   expect(node.textContent).toContain("Cancelled task");
   expect(button("执行测试").disabled).toBe(false);
+  expect(node.querySelector('[role="progressbar"]')).toBeNull();
 });
+
+test.each(["success", "failure"])(
+  "native service shows loading until %s",
+  async (outcome) => {
+    let finish, fail;
+    invokeService.mockReturnValue({
+      result: new Promise((resolve, reject) => {
+        finish = resolve;
+        fail = reject;
+      }),
+      cancel: jest.fn(),
+    });
+    await render({ apiSlug: "one", enabledCapabilities: ["chat"] });
+    await act(async () => button("执行测试").click());
+    expect(button("测试中…").getAttribute("aria-busy")).toBe("true");
+    expect(
+      button("测试中…").querySelector('[role="progressbar"]')
+    ).not.toBeNull();
+    expect(button("取消").disabled).toBe(false);
+    await act(async () => {
+      if (outcome === "success") finish({ text: "Test completed" });
+      else fail(new Error("Test failed"));
+    });
+    expect(button("执行测试").disabled).toBe(false);
+    expect(button("取消").disabled).toBe(true);
+    expect(node.querySelector('[role="progressbar"]')).toBeNull();
+    expect(node.textContent).toContain(
+      outcome === "success" ? "Test completed" : "Test failed"
+    );
+  }
+);
 
 test("service tests preserve a saved timeout and do not force 60 seconds", async () => {
   invokeService.mockReturnValue({

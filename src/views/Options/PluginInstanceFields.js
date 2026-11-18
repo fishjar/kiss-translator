@@ -33,6 +33,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Alert,
   Button,
+  CircularProgress,
   Checkbox,
   FormControlLabel,
   Box,
@@ -495,6 +496,16 @@ export default function PluginInstanceFields({
         actions={
           <>
             <Button
+              aria-busy={Boolean(call)}
+              startIcon={
+                call ? (
+                  <CircularProgress
+                    size={16}
+                    color="inherit"
+                    aria-label={i18n("plugin_test_running")}
+                  />
+                ) : undefined
+              }
               disabled={
                 Boolean(call) ||
                 quickBusy ||
@@ -503,7 +514,7 @@ export default function PluginInstanceFields({
               }
               onClick={test}
             >
-              {i18n("plugin_run_test")}
+              {i18n(call ? "plugin_test_running" : "plugin_run_test")}
             </Button>
             <Button disabled={!call} onClick={() => call?.cancel()}>
               {i18n("cancel")}

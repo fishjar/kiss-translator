@@ -1,4 +1,14 @@
 export const PROVIDER_PLUGINS_I18N = {
+  plugin_test_running: {
+    zh: "测试中…",
+    en: "Testing…",
+    zh_TW: "測試中…",
+    ja: "テスト中…",
+    ko: "테스트 중…",
+    tr: "Test ediliyor…",
+    vi: "Đang kiểm tra…",
+    ru: "Тестирование…",
+  },
   plugin_free: {
     zh: "免费",
     en: "Free",
