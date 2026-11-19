@@ -6,6 +6,7 @@ import {
   PROMPT_CATEGORY_SUBTITLE,
   PROMPT_CATEGORY_VLM,
   getVlmPromptOptions,
+  resolveVlmPromptSlug,
   getPromptDisplayName,
 } from "../../config";
 import {
@@ -32,6 +33,8 @@ export default function ScenePromptSelect({
   structuredImageResults = true,
   ...rest
 }) {
+  if (category === PROMPT_CATEGORY_VLM)
+    value = resolveVlmPromptSlug(value, recognitionApi);
   const displayLabel = label || i18n("translation_prompt", "翻译提示词");
   const isHiddenLabel = hiddenLabel !== undefined ? hiddenLabel : !fullWidth;
 

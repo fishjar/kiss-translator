@@ -189,6 +189,32 @@ export default function ImageTranslateBox({
     layoutRegionsRef.current = selectedRegions;
   }, [selectedRegions, requestVersion, currentRegionsKey]);
 
+  const recognitionApiSlug = scene.recognitionService?.apiSlug;
+  const recognitionCapability = scene.recognitionService?.capability;
+  const previousRecognition = useRef(null);
+  useEffect(() => {
+    const previous = previousRecognition.current;
+    previousRecognition.current = {
+      apiSlug: recognitionApiSlug,
+      capability: recognitionCapability,
+      includesLayout: recognitionIncludesLayout,
+    };
+    if (
+      previous?.includesLayout &&
+      (previous.apiSlug !== recognitionApiSlug ||
+        previous.capability !== recognitionCapability) &&
+      automaticLayoutRegions.has(layoutRegionsRef.current)
+    ) {
+      layoutRegionsRef.current = null;
+      onSettingResetLayout?.();
+    }
+  }, [
+    recognitionApiSlug,
+    recognitionCapability,
+    recognitionIncludesLayout,
+    onSettingResetLayout,
+  ]);
+
   useEffect(() => {
     if (lastRegionsKeyRef.current !== currentRegionsKey) {
       lastRegionsKeyRef.current = currentRegionsKey;

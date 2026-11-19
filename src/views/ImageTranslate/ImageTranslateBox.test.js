@@ -156,7 +156,16 @@ describe("ImageTranslateBox staged actions", () => {
     await act(async () => header().onRunAction("recognize"));
     expect(sendBgMsg.mock.lastCall[1].selectedRegions).toBeUndefined();
 
+    act(() => header().onSettingChange(scene));
+    expect(props.onSettingResetLayout).toHaveBeenCalledTimes(1);
+    await act(async () => header().onRunAction("recognize"));
+    expect(sendBgMsg.mock.lastCall[1]).toMatchObject({
+      scene,
+      selectedRegions: undefined,
+    });
+
     const explicit = detected.map((region) => ({ ...region, enabled: false }));
+    act(() => header().onSettingChange(setting.imageTranslateSetting));
     act(() =>
       root.render(
         <ImageTranslateBox
@@ -169,6 +178,10 @@ describe("ImageTranslateBox staged actions", () => {
     );
     await act(async () => header().onRunAction("recognize"));
     expect(sendBgMsg.mock.lastCall[1].selectedRegions).toEqual(explicit);
+    act(() => header().onSettingChange(scene));
+    await act(async () => header().onRunAction("recognize"));
+    expect(sendBgMsg.mock.lastCall[1].selectedRegions).toEqual(explicit);
+    expect(props.onSettingResetLayout).toHaveBeenCalledTimes(1);
   });
 
   test("reports task locking through completion and cancellation and blocks actions while the source is being cropped", async () => {

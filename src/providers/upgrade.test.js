@@ -40,6 +40,24 @@ test("copy rejects changed secret types and invalid new constraints and keeps in
   expect(api.pluginConfig.model).toBe("m");
 });
 
+test.each([
+  ["PP-OCRv5", { model: "PP-OCRv5" }, []],
+  ["unknown", {}, ["model"]],
+])(
+  "checks a saved model %s against the new select field",
+  (model, values, skipped) => {
+    const api = {
+      provider: { settings: [{ key: "model", type: "text" }] },
+      pluginConfig: { model },
+    };
+    expect(
+      copyCompatibleConfig(api, [
+        { key: "model", type: "select", options: [{ value: "PP-OCRv5" }] },
+      ])
+    ).toEqual({ values, skipped });
+  }
+);
+
 const manifest = {
   apiVersion: 1,
   id: "upgrade-test",
